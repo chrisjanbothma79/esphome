@@ -40,13 +40,13 @@ void PCF8574Component::digital_write(uint8_t pin, bool value) {
 }
 void PCF8574Component::pin_mode(uint8_t pin, gpio::Flags flags) {
   if (flags == gpio::FLAG_INPUT) {
-    // Clear mode mask bit
-    this->mode_mask_ &= ~(1 << pin);
+    // Set mode mask bit
+    this->mode_mask_ |= 1 << pin;
     // Write GPIO to enable input mode
     this->write_gpio_();
   } else if (flags == gpio::FLAG_OUTPUT) {
-    // Set mode mask bit
-    this->mode_mask_ |= 1 << pin;
+    // Clear mode mask bit
+    this->mode_mask_ &= ~(1 << pin);
   }
 }
 bool PCF8574Component::read_gpio_() {
@@ -73,11 +73,9 @@ bool PCF8574Component::write_gpio_() {
   if (this->is_failed())
     return false;
 
-  uint16_t value = 0;
-  // Pins in OUTPUT mode and where pin is HIGH.
-  value |= this->mode_mask_ & this->output_mask_;
-  // Pins in INPUT mode must also be set here
-  value |= ~this->mode_mask_;
+  // Combine pins in input mode (that must always be set to HIGH)
+  // with pins in output mode where state is HIGH
+  uint16_t value = this->mode_mask_ | this->output_mask_;
 
   uint8_t data[2];
   data[0] = value;
