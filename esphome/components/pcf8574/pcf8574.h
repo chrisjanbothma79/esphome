@@ -15,6 +15,8 @@ class PCF8574Component : public Component, public i2c::I2CDevice {
 
   /// Check i2c availability and setup masks
   void setup() override;
+  // Read values every loop
+  void loop() override;
   /// Helper function to read the value of a pin.
   bool digital_read(uint8_t pin);
   /// Helper function to write the value of a pin.

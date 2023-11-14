@@ -17,6 +17,11 @@ void PCF8574Component::setup() {
   this->write_gpio_();
   this->read_gpio_();
 }
+void PCF8574Component::loop() {
+  if (this->mode_mask_) {
+    this->read_gpio_();
+  }
+}
 void PCF8574Component::dump_config() {
   ESP_LOGCONFIG(TAG, "PCF8574:");
   LOG_I2C_DEVICE(this)
@@ -26,7 +31,6 @@ void PCF8574Component::dump_config() {
   }
 }
 bool PCF8574Component::digital_read(uint8_t pin) {
-  this->read_gpio_();
   return this->input_state_ & (1 << pin);
 }
 void PCF8574Component::digital_write(uint8_t pin, bool value) {
