@@ -18,6 +18,12 @@ void PCF8574Component::setup() {
   this->read_gpio_();
 }
 void PCF8574Component::loop() {
+  if (this->first_loop_) {
+    // Set unused ports as outputs
+    this->mode_mask_ = this->input_mask_;
+    this->write_gpio_();
+    this->first_loop_ = false;
+  }
   if (this->mode_mask_) {
     this->read_gpio_();
   }
@@ -46,11 +52,13 @@ void PCF8574Component::pin_mode(uint8_t pin, gpio::Flags flags) {
   if (flags == gpio::FLAG_INPUT) {
     // Set mode mask bit
     this->mode_mask_ |= 1 << pin;
+    this->input_mask_ |= 1 << pin;
     // Write GPIO to enable input mode
     this->write_gpio_();
   } else if (flags == gpio::FLAG_OUTPUT) {
     // Clear mode mask bit
     this->mode_mask_ &= ~(1 << pin);
+    this->input_mask_ &= ~(1 << pin);
   }
 }
 bool PCF8574Component::read_gpio_() {

@@ -34,12 +34,21 @@ class PCF8574Component : public Component, public i2c::I2CDevice {
   bool write_gpio_();
 
   /// Mask for the pin mode - 0 means output, 1 means input
+  /// To prevent flapping of outputs during setup, this initializes as all inputs
+  /// As datasheet says unused ports must be outputs, this is corrected from
+  /// input_mask_ after setup (on the first loop).
   uint16_t mode_mask_{0xFFFF};
+  /// Mask for inputs configured in YAML - 0 means output, 1 means input
+  /// This becomes the mode_mask_ after setup (in first loop).
+  uint16_t input_mask_{0x0000};
+
   /// The value to write as output state - 1 means HIGH, 0 means LOW
   uint16_t output_state_{0x0000};
   /// The state read in read_gpio_ - 1 means HIGH, 0 means LOW
   uint16_t input_state_{0x0000};
+
   bool pcf8575_;  ///< TRUE->16-channel PCF8575, FALSE->8-channel PCF8574
+  bool first_loop_{true};
 };
 
 /// Helper class to expose a PCF8574 pin as an internal input GPIO pin.
