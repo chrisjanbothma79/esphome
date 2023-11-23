@@ -1,10 +1,17 @@
 #include "pcf8574.h"
 #include "esphome/core/log.h"
+#include "esphome/core/helpers.h"
 
 namespace esphome {
 namespace pcf8574 {
 
 static const char *const TAG = "pcf8574";
+
+void IRAM_ATTR HOT PCF8574ComponentStore::gpio_intr(PCF8574ComponentStore *arg) {
+  arg->changes++;
+  // Try to get our loop() to be called asap
+  arg->high_freq.start();
+}
 
 void PCF8574Component::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
@@ -16,6 +23,12 @@ void PCF8574Component::setup() {
 
   this->write_gpio_();
   this->read_gpio_();
+
+  if (this->pin_intr_ != nullptr) {
+    this->pin_intr_->setup();
+    this->store_.pin_intr = this->pin_intr_->to_isr();
+    this->pin_intr_->attach_interrupt(PCF8574ComponentStore::gpio_intr, &this->store_, gpio::INTERRUPT_RISING_EDGE);
+  }
 }
 void PCF8574Component::loop() {
   if (this->first_loop_) {
@@ -24,14 +37,38 @@ void PCF8574Component::loop() {
     this->write_gpio_();
     this->first_loop_ = false;
   }
-  if (this->mode_mask_) {
-    this->read_gpio_();
+  if (!this->mode_mask_) {
+    return;
   }
+  if (this->pin_intr_ != nullptr) {
+    // Check if interrupt fired as "no interrupt" means "no need to read device"
+    uint16_t changes;
+    {
+      InterruptLock lock;
+      changes = this->store_.changes;
+      if (changes == 0) {
+        return;
+      }
+      this->store_.changes = 0;
+      this->store_.high_freq.stop();
+    }
+#if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERY_VERBOSE
+    if (changes > 1) {
+      ESP_LOGVV(TAG, "Missed %d events", changes-1);
+    }
+#endif
+  }
+  this->read_gpio_();
 }
 void PCF8574Component::dump_config() {
   ESP_LOGCONFIG(TAG, "PCF8574:");
   LOG_I2C_DEVICE(this)
   ESP_LOGCONFIG(TAG, "  Is PCF8575: %s", YESNO(this->pcf8575_));
+  if (this->pin_intr_ != nullptr) {
+    LOG_PIN("  Interrupt pin: ", this->pin_intr_);
+  } else {
+    ESP_LOGCONFIG(TAG, "  Interrupt pin: DISABLED");
+  }
   if (this->is_failed()) {
     ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }

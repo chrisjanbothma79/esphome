@@ -7,11 +7,21 @@
 namespace esphome {
 namespace pcf8574 {
 
+// Helper class for the interrupt handler
+struct PCF8574ComponentStore {
+  ISRInternalGPIOPin pin_intr;
+  volatile uint16_t changes{0};
+  HighFrequencyLoopRequester high_freq;
+
+  static void gpio_intr(PCF8574ComponentStore *arg);
+};
+
 class PCF8574Component : public Component, public i2c::I2CDevice {
  public:
   PCF8574Component() = default;
 
   void set_pcf8575(bool pcf8575) { pcf8575_ = pcf8575; }
+  void set_interrupt_pin(InternalGPIOPin *pin_intr) { pin_intr_ = pin_intr; }
 
   /// Check i2c availability and setup masks
   void setup() override;
@@ -49,6 +59,11 @@ class PCF8574Component : public Component, public i2c::I2CDevice {
 
   bool pcf8575_;  ///< TRUE->16-channel PCF8575, FALSE->8-channel PCF8574
   bool first_loop_{true};
+
+  /// Interrupt pin
+  InternalGPIOPin *pin_intr_{nullptr};
+  /// Store for the interrupt handler
+  PCF8574ComponentStore store_{};
 };
 
 /// Helper class to expose a PCF8574 pin as an internal input GPIO pin.

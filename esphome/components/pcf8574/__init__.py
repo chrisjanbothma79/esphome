@@ -5,6 +5,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
     CONF_INPUT,
+    CONF_INTERRUPT_PIN,
     CONF_INVERTED,
     CONF_MODE,
     CONF_NUMBER,
@@ -26,6 +27,9 @@ CONFIG_SCHEMA = (
         {
             cv.Required(CONF_ID): cv.declare_id(PCF8574Component),
             cv.Optional(CONF_PCF8575, default=False): cv.boolean,
+            cv.Optional(CONF_INTERRUPT_PIN): cv.All(
+                pins.internal_gpio_input_pin_schema
+            ),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -38,6 +42,9 @@ async def to_code(config):
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
     cg.add(var.set_pcf8575(config[CONF_PCF8575]))
+    if CONF_INTERRUPT_PIN in config:
+        pin_intr = await cg.gpio_pin_expression(config[CONF_INTERRUPT_PIN])
+        cg.add(var.set_interrupt_pin(pin_intr))
 
 
 def validate_mode(value):
