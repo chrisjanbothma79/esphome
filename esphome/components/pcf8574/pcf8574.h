@@ -33,10 +33,10 @@ class PCF8574Component : public Component, public i2c::I2CDevice {
 
   /// Mask for the pin mode - 0 means output, 1 means input
   uint16_t mode_mask_{0xFFFF};
-  /// The mask to write as output state - 1 means HIGH, 0 means LOW
-  uint16_t output_mask_{0x0000};
+  /// The value to write as output state - 1 means HIGH, 0 means LOW
+  uint16_t output_state_{0x0000};
   /// The state read in read_gpio_ - 1 means HIGH, 0 means LOW
-  uint16_t input_mask_{0x0000};
+  uint16_t input_state_{0x0000};
   bool pcf8575_;  ///< TRUE->16-channel PCF8575, FALSE->8-channel PCF8574
 };
 

@@ -27,13 +27,13 @@ void PCF8574Component::dump_config() {
 }
 bool PCF8574Component::digital_read(uint8_t pin) {
   this->read_gpio_();
-  return this->input_mask_ & (1 << pin);
+  return this->input_state_ & (1 << pin);
 }
 void PCF8574Component::digital_write(uint8_t pin, bool value) {
   if (value) {
-    this->output_mask_ |= (1 << pin);
+    this->output_state_ |= (1 << pin);
   } else {
-    this->output_mask_ &= ~(1 << pin);
+    this->output_state_ &= ~(1 << pin);
   }
 
   this->write_gpio_();
@@ -56,10 +56,10 @@ bool PCF8574Component::read_gpio_() {
   uint8_t data[2];
   if (this->pcf8575_) {
     success = this->read_bytes_raw(data, 2);
-    this->input_mask_ = (uint16_t(data[1]) << 8) | (uint16_t(data[0]) << 0);
+    this->input_state_ = (uint16_t(data[1]) << 8) | (uint16_t(data[0]) << 0);
   } else {
     success = this->read_bytes_raw(data, 1);
-    this->input_mask_ = data[0];
+    this->input_state_ = data[0];
   }
 
   if (!success) {
@@ -75,7 +75,7 @@ bool PCF8574Component::write_gpio_() {
 
   // Combine pins in input mode (that must always be set to HIGH)
   // with pins in output mode where state is HIGH
-  uint16_t value = this->mode_mask_ | this->output_mask_;
+  uint16_t value = this->mode_mask_ | this->output_state_;
 
   uint8_t data[2];
   data[0] = value;
