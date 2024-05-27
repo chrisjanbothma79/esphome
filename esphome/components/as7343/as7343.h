@@ -75,7 +75,7 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   uint16_t swap_bytes(uint16_t data);
 
  protected:
-   //
+  //
   // Internal state machine, used to split all the actions into
   // small steps in loop() to make sure we are not blocking execution
   //

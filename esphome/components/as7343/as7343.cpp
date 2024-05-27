@@ -868,17 +868,17 @@ void AS7343Component::direct_config_3_chain_() {
   this->write_byte((uint8_t) 0xe7, 0x00);
   this->write_byte((uint8_t) 0xe4, 0x66);
 
-  //	this->write_byte((uint8_t)0x80, 0x11);
+  // this->write_byte((uint8_t)0x80, 0x11);
 }
 
-#define MIN_ASTEP 1
-#define MAX_ASTEP 65534
-#define MIN_ITIME_US 6
-#define MAX_ITIME_US 46602667
-#define CONVERSION_FACTOR_MS_TO_US 1000
+const uint16_t MIN_ASTEP = 1;
+const uint16_t MAX_ASTEP = 65534;
+const uint32_t MIN_ITIME_US = 6;
+const uint32_t MAX_ITIME_US = 46602667;
+const uint32_t CONVERSION_FACTOR_MS_TO_US = 1000;
 
-#define INTEGRATION_TIME_STEP_US_FACTOR 2000
-#define INTEGRATION_TIME_STEP_US_DIVIDER 720
+const uint32_t INTEGRATION_TIME_STEP_US_FACTOR = 2000;
+const uint32_t INTEGRATION_TIME_STEP_US_DIVIDER = 720;
 
 /*! Use this macro for signed 64 Bit divisions */
 #define DIV64_S64(s64dividend, s64divisor) (s64dividend / s64divisor)
@@ -957,8 +957,8 @@ template<typename T, size_t N> T AS7343Component::get_highest_value(std::array<T
   return max;
 }
 
-#define LOW_AUTO_GAIN_VALUE 3
-#define AUTO_GAIN_DIVIDER 2
+uint8_t LOW_AUTO_GAIN_VALUE = 3;
+uint8_t AUTO_GAIN_DIVIDER = 2;
 #define IS_SATURATION 1
 #define SATURATION_LOW_PERCENT 80
 #define SATURATION_HIGH_PERCENT 100
