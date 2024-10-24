@@ -137,17 +137,17 @@ esp_err_t AudioPipeline::common_start_(uint32_t target_sample_rate, const std::s
 
   if (this->read_task_handle_ == nullptr) {
     this->read_task_handle_ =
-        xTaskCreateStatic(AudioPipeline::read_task_, (task_name + "_read").c_str(), READER_TASK_STACK_SIZE,
+        xTaskCreateStatic(AudioPipeline::read_task, (task_name + "_read").c_str(), READER_TASK_STACK_SIZE,
                           (void *) this, priority, this->read_task_stack_buffer_, &this->read_task_stack_);
   }
   if (this->decode_task_handle_ == nullptr) {
     this->decode_task_handle_ =
-        xTaskCreateStatic(AudioPipeline::decode_task_, (task_name + "_decode").c_str(), DECODER_TASK_STACK_SIZE,
+        xTaskCreateStatic(AudioPipeline::decode_task, (task_name + "_decode").c_str(), DECODER_TASK_STACK_SIZE,
                           (void *) this, priority, this->decode_task_stack_buffer_, &this->decode_task_stack_);
   }
   if (this->resample_task_handle_ == nullptr) {
     this->resample_task_handle_ =
-        xTaskCreateStatic(AudioPipeline::resample_task_, (task_name + "_resample").c_str(), RESAMPLER_TASK_STACK_SIZE,
+        xTaskCreateStatic(AudioPipeline::resample_task, (task_name + "_resample").c_str(), RESAMPLER_TASK_STACK_SIZE,
                           (void *) this, priority, this->resample_task_stack_buffer_, &this->resample_task_stack_);
   }
 
@@ -314,7 +314,7 @@ void AudioPipeline::resume_tasks() {
   }
 }
 
-void AudioPipeline::read_task_(void *params) {
+void AudioPipeline::read_task(void *params) {
   AudioPipeline *this_pipeline = (AudioPipeline *) params;
 
   while (true) {
@@ -380,7 +380,7 @@ void AudioPipeline::read_task_(void *params) {
   }
 }
 
-void AudioPipeline::decode_task_(void *params) {
+void AudioPipeline::decode_task(void *params) {
   AudioPipeline *this_pipeline = (AudioPipeline *) params;
 
   while (true) {
@@ -467,7 +467,7 @@ void AudioPipeline::decode_task_(void *params) {
   }
 }
 
-void AudioPipeline::resample_task_(void *params) {
+void AudioPipeline::resample_task(void *params) {
   AudioPipeline *this_pipeline = (AudioPipeline *) params;
 
   while (true) {
