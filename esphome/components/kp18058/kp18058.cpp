@@ -1,0 +1,119 @@
+﻿#include "kp18058.h"
+#include "message.h"
+
+namespace esphome {
+namespace kp18058 {
+
+static const char *const TAG = "kp18058";
+static const uint8_t I2C_MAX_RETRY = 3;
+#define BIT_CHECK(PIN, N) !!((PIN & (1 << N)))
+
+uint8_t GetParityBit(uint8_t b) {
+  uint8_t sum = 0;
+  for (int i = 1; i < 8; i++) {
+    if (BIT_CHECK(b, i)) {
+      sum++;
+    }
+  }
+  return sum % 2;  // 0 for even, 1 for odd
+}
+
+kp18058::kp18058() : i2c_ready_(false), max_cw_current_(0), max_rgb_current_(0) {
+  for (int i = 0; i < 5; ++i) {
+    channels_[i] = nullptr;
+  }
+}
+
+void kp18058::setup() {
+  i2c_.setup();
+  i2c_ready_ = i2c_.reset();
+}
+
+void kp18058::dump_config() {
+  ESP_LOGCONFIG(TAG, "KP18058 LED Driver:");
+  LOG_PIN("  Data Pin: ", i2c_.get_data_pin());
+  LOG_PIN("  Clock Pin: ", i2c_.get_clock_pin());
+  ESP_LOGCONFIG(TAG, "  I2C Communication %s", i2c_ready_ ? "Initialized": "FAILED");
+  ESP_LOGCONFIG(TAG, "  CW max current: %.1f", this->max_cw_current_);
+  ESP_LOGCONFIG(TAG, "  RGB max current: %.1f", this->max_rgb_current_);
+}
+
+void kp18058::program_led_driver() {
+   
+  if (!i2c_ready_) {
+    ESP_LOGI(TAG, "Reestablishing communication with KP18058.");
+    i2c_ready_ = i2c_.reset();
+    if (!i2c_ready_) {
+      ESP_LOGE(TAG, "KP18058 I2C Reset failed.");
+      return;
+    }
+  }
+
+  // returns true if All channels are zero or nullptr
+  auto areAllChannelsZero = [this]() {
+    for (int i = 0; i < 5; ++i) { 
+      if (channels_[i] != nullptr && channels_[i]->get_value() > 0) {
+        // If any channel is non-zero, return false
+        return false; 
+      }
+    }
+    return true; 
+  };
+
+  // Create the settings union
+  KP18058_Settings settings{};
+  
+  settings.address_identification = 1;  
+  settings.working_mode = areAllChannelsZero() ? STANDBY_MODE : RGBCW_MODE;
+  // Set byte address start. valid values are 0 - 13
+  // In this message always all bytes are transmited (starting from 0)
+  settings.start_byte_address = 0x00; 
+
+  // Set Line Compensation Mechanism
+  settings.line_compensation_enable = LC_DISABLE;
+  settings.line_comp_threshold = LC_THRESHOLD_260V;
+  settings.line_comp_slope = LC_SLOPE_10_PERCENT;
+  settings.rc_filter_enable = RC_FILTER_DISABLE;
+
+  // Set max current values 
+  settings.max_current_out4_5 = static_cast<uint8_t>(max_cw_current_/2.5) & 0x1F;
+  settings.max_current_out1_3 = static_cast<uint8_t>(max_rgb_current_/2.5) & 0x1F;
+
+  // set dimming method for RGB channels and chop dimming frequency
+  settings.chop_dimming_out1_3 = ANALOG_DIMMING;
+  settings.chop_dimming_frequency = CD_FREQUENCY_500HZ;
+
+  // Set grayscale values for each output channel
+  for (int i = 0; i < 5; i++) {
+    uint16_t useVal = (channels_[i] != nullptr) ? channels_[i]->get_value() : 0;
+    settings.channels[i].upper_grayscale = (useVal >> 5) & 0x1F;
+    settings.channels[i].lower_grayscale = useVal & 0x1F;
+  }
+
+  // Calculate parity bits for each byte
+  for (int i = 0; i < sizeof(KP18058_Settings); ++i) {
+    settings.bytes[i] |= GetParityBit(settings.bytes[i]);
+  }
+
+  // Send the I2C message
+  i2c_.start();
+  for (int i = 0; i < sizeof(KP18058_Settings); i++) {
+    // on error try to repeat the byte transmission I2C_MAX_RETRY times
+    bool write_succeeded;
+    for (int attempt = 0; attempt < I2C_MAX_RETRY; attempt++) {
+      write_succeeded = i2c_.write_byte(settings.bytes[i]);
+      if (write_succeeded) break; 
+    }
+    // if all tries failed break and stop sending the rest of the frame bytes
+    if (!write_succeeded) {
+      ESP_LOGE(TAG, "Failed to write byte %02d (0x%02X) after %d attempts", i, settings.bytes[i], I2C_MAX_RETRY);
+      i2c_ready_ = false;
+      break;
+    }
+  }
+  i2c_.stop();
+  return;
+}
+
+}  // namespace kp18058
+}  // namespace esphome
