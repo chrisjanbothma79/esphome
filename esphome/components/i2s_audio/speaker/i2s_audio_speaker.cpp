@@ -269,7 +269,6 @@ void I2SAudioSpeaker::speaker_task(void *params) {
 
     xEventGroupSetBits(this_speaker->event_group_, SpeakerEventGroupBits::STATE_RUNNING);
 
-    bool stop_gracefully = false;
     uint32_t last_data_received_time = millis();
 
     while ((millis() - last_data_received_time) <= this_speaker->timeout_) {
@@ -284,7 +283,6 @@ void I2SAudioSpeaker::speaker_task(void *params) {
                                                                  pdMS_TO_TICKS(TASK_DELAY_MS));
 
       if (bytes_read > 0) {
-        last_data_received_time = millis();
         size_t bytes_written = 0;
 
         if ((audio_stream_info.bits_per_sample == 16) && (this_speaker->q15_volume_factor_ < INT16_MAX)) {
@@ -304,7 +302,9 @@ void I2SAudioSpeaker::speaker_task(void *params) {
 
         if (bytes_written != bytes_read) {
           xEventGroupSetBits(this_speaker->event_group_, SpeakerEventGroupBits::ERR_ESP_INVALID_SIZE);
+          continue;
         }
+        last_data_received_time = millis();
       }
     }
   } else {
@@ -319,7 +319,7 @@ void I2SAudioSpeaker::speaker_task(void *params) {
 
   xEventGroupSetBits(this_speaker->event_group_, SpeakerEventGroupBits::STATE_STOPPING);
 
-  i2s_stop(this_speaker->parent_->get_port());
+  // i2s_stop(this_speaker->parent_->get_port());
   i2s_driver_uninstall(this_speaker->parent_->get_port());
 
   this_speaker->parent_->unlock();
