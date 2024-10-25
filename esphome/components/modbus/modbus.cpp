@@ -43,7 +43,6 @@ void Modbus::loop() {
       waiting_for_response = 0;
     }
   }
-
 }
 
 bool Modbus::parse_modbus_byte_(uint8_t byte) {
