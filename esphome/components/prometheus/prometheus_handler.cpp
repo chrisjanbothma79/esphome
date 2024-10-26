@@ -377,7 +377,7 @@ void PrometheusHandler::text_sensor_row_(AsyncResponseStream *stream, text_senso
     stream->print(F("\",name=\""));
     stream->print(relabel_name_(obj).c_str());
     stream->print(F("\"} "));
-    stream->print(obj->state);
+    stream->print(F("1.0"));
     stream->print(F("\n"));
   } else {
     // Invalid state
