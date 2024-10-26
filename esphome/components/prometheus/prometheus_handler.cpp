@@ -361,7 +361,7 @@ void PrometheusHandler::text_sensor_sensor_type_(AsyncResponseStream *stream) {
   stream->print(F("#TYPE esphome_text_sensor_value gauge\n"));
   stream->print(F("#TYPE esphome_text_sensor_failed gauge\n"));
 }
-void PrometheusHandler::text_sensor_row_(AsyncResponseStream *stream, binary_sensor::BinarySensor *obj) {
+void PrometheusHandler::text_sensor_row_(AsyncResponseStream *stream, text_sensor::TextSensor *obj) {
   if (obj->is_internal() && !this->include_internal_)
     return;
   if (obj->has_state()) {
