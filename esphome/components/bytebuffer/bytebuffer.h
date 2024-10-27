@@ -37,6 +37,7 @@ enum Endian { LITTLE, BIG };
 class ByteBuffer {
  public:
   // Default constructor (compatibility with TEMPLATABLE_VALUE)
+  // Creates a zero-length ByteBuffer which is little use to anybody.
   ByteBuffer() : ByteBuffer(std::vector<uint8_t>()) {}
 
   /**
@@ -48,6 +49,10 @@ class ByteBuffer {
   // templated functions to implement putting and getting data of various types. There are two flavours of all
   // functions - one that uses the position as the offset, and updates the position accordingly, and one that
   // takes an explicit offset and does not update the position.
+  // Separate temnplates are provided for types that fit into 32 bits and those that are bigger. These delegate
+  // the actual put/get to common code based around those sizes.
+  // This reduces the code size and execution time for smaller types. A similar structure for e.g. 16 bits is unlikely
+  // to provide any further benefit given that all target platforms are native 32 bit.
 
   template<typename T>
   T get(typename std::enable_if<std::is_integral<T>::value, T>::type * = 0,

@@ -1,3 +1,5 @@
+bytebuffer:
+
 esphome:
   on_boot:
     - lambda: |-
@@ -153,4 +155,6 @@ esphome:
         buf.put(1.234, 10);
         double dx = buf.get<double>(10);
         assert(dx == 1.234);
+        buf.put((uint16_t)1, 10);
+        assert(buf.get_uint16(10) == 1);
         ESP_LOGD("bytebuffer", "******************** All tests succeeded");
