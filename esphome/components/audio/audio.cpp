@@ -10,7 +10,7 @@ AudioStreamer *AudioListener::start(const AudioStreamInfo &audio_stream_info) {
     return nullptr;
   }
   if (this->starting(audio_stream_info)) {
-    this->current_streamer_ = new AudioStreamer();
+    this->current_streamer_ = new AudioStreamer();  // NOLINT(cppcoreguidelines-owning-memory)
     this->current_streamer_->set_parent(this);
   }
   return nullptr;

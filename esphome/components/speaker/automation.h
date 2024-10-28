@@ -20,13 +20,13 @@ template<typename... Ts> class PlayAction : public Action<Ts...>, public Parente
   }
 
   void play(Ts... x) override {
-    auto val = this->data_func_(x...);
+    auto val = data_static_;
 
     if (!this->static_) {
       val = this->data_func_(x...);
     }
     auto streamer = this->parent_->start();
-    streamer->stream(val);
+    streamer->stream(val.data(), val.size());
     delete streamer;
   }
 
