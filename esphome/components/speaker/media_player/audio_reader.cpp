@@ -15,7 +15,9 @@ namespace speaker {
 static const size_t READ_WRITE_TIMEOUT_MS = 20;
 
 // The number of times the http read times out with no data before throwing an error
-static const ssize_t ERROR_COUNT_NO_DATA_READ_TIMEOUT = 10;
+static const ssize_t ERROR_COUNT_NO_DATA_READ_TIMEOUT = 100;
+
+static const size_t HTTP_STREAM_BUFFER_SIZE = 2048;
 
 AudioReader::AudioReader(esphome::RingBuffer *output_ring_buffer, size_t transfer_buffer_size) {
   this->output_ring_buffer_ = output_ring_buffer;
@@ -79,7 +81,7 @@ esp_err_t AudioReader::start(const std::string &uri, MediaFileType &file_type) {
   client_config.cert_pem = nullptr;
   client_config.disable_auto_redirect = false;
   client_config.max_redirection_count = 10;
-  client_config.buffer_size = 512;
+  client_config.buffer_size = HTTP_STREAM_BUFFER_SIZE;
   client_config.keep_alive_enable = true;
   client_config.timeout_ms = 5000;  // Doesn't raise an error if exceeded in esp-idf v4.4, it just prevents the
                                     // http_client_read command from blocking for too long
@@ -189,6 +191,7 @@ AudioReaderState AudioReader::http_read_() {
           this->cleanup_connection_();
           return AudioReaderState::FAILED;
         }
+        vTaskDelay(pdMS_TO_TICKS(READ_WRITE_TIMEOUT_MS));
       }
     }
   }
