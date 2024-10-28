@@ -5,8 +5,7 @@
 #include <limits>
 #include "esphome/core/hal.h"
 
-namespace esphome {
-namespace gpio_expander {
+namespace esphome::gpio_expander {
 
 /// @brief A class to cache the read state of a GPIO expander.
 ///        This class caches reads between GPIO Pins which are on the same bank.
@@ -18,18 +17,22 @@ namespace gpio_expander {
 ///           N - Number of pins
 template<typename T, T N> class CachedGpioExpander {
  public:
+  /// @brief Read the state of the given pin. This will invalidate the cache for the given pin number.
+  /// @param pin Pin number to read
+  /// @return Pin state
   bool digital_read(T pin) {
     const uint8_t bank = pin / BANK_SIZE;
+    const T pin_mask = (1 << (pin % BANK_SIZE));
     // Check if specific pin cache is valid
-    if (this->read_cache_valid_[bank] & (1 << (pin % BANK_SIZE))) {
+    if (this->read_cache_valid_[bank] & pin_mask) {
       // Invalidate pin
-      this->read_cache_valid_[bank] &= ~(1 << (pin % BANK_SIZE));
+      this->read_cache_valid_[bank] &= ~pin_mask;
     } else {
       // Read whole bank from hardware
       if (!this->digital_read_hw(pin))
         return false;
       // Mark bank cache as valid except the pin that is being returned now
-      this->read_cache_valid_[bank] = std::numeric_limits<T>::max() & ~(1 << (pin % BANK_SIZE));
+      this->read_cache_valid_[bank] = std::numeric_limits<T>::max() & ~pin_mask;
     }
     return this->digital_read_cache(pin);
   }
@@ -55,5 +58,4 @@ template<typename T, T N> class CachedGpioExpander {
   T read_cache_valid_[BANKS]{0};
 };
 
-}  // namespace gpio_expander
-}  // namespace esphome
+}  // namespace esphome::gpio_expander
