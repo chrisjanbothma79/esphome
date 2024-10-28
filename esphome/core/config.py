@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 import os
+from pathlib import Path
 import re
 
 from esphome import automation
@@ -35,7 +36,6 @@ from esphome.const import (
     CONF_VERSION,
     KEY_CORE,
     PLATFORM_ESP8266,
-    TARGET_PLATFORMS,
     __version__ as ESPHOME_VERSION,
 )
 from esphome.core import CORE, coroutine_with_priority
@@ -179,7 +179,7 @@ PRELOAD_CONFIG_SCHEMA = cv.Schema(
         # Compat options, these were moved to target-platform specific sections
         # but we'll keep these around for a long time because every config would
         # be impacted
-        cv.Optional(CONF_PLATFORM): cv.one_of(*TARGET_PLATFORMS, lower=True),
+        cv.Optional(CONF_PLATFORM): cv.string,
         cv.Optional(CONF_BOARD): cv.string_strict,
         cv.Optional(CONF_ESP8266_RESTORE_FROM_FLASH): cv.valid,
         cv.Optional(CONF_BOARD_FLASH_MODE): cv.valid,
@@ -189,7 +189,38 @@ PRELOAD_CONFIG_SCHEMA = cv.Schema(
 )
 
 
-def preload_core_config(config, result):
+def _is_target_platform(name):
+    try:
+        from esphome.loader import get_component
+
+        # we cannot load some components without platform
+        component = get_component(name, True)
+        if component.is_target_platform:
+            return True
+    except KeyError:
+        pass
+    return False
+
+
+def _supported_target_platforms():
+    target_platforms = []
+    # The root directory of the repo
+    root = Path(__file__).parent.parent
+    components_dir = root / "components"
+
+    for path in components_dir.iterdir():
+        if not path.is_dir():
+            continue
+        if not (path / "__init__.py").is_file():
+            continue
+
+        name = path.name
+        if _is_target_platform(name):
+            target_platforms += [name]
+    return target_platforms
+
+
+def preload_core_config(config, result) -> str:
     with cv.prepend_path(CONF_ESPHOME):
         conf = PRELOAD_CONFIG_SCHEMA(config[CONF_ESPHOME])
 
@@ -203,7 +234,12 @@ def preload_core_config(config, result):
     CORE.build_path = CORE.relative_internal_path(conf[CONF_BUILD_PATH])
 
     has_oldstyle = CONF_PLATFORM in conf
-    newstyle_found = [key for key in TARGET_PLATFORMS if key in config]
+    newstyle_found = []
+
+    for domain, _ in config.items():
+        if _is_target_platform(domain):
+            newstyle_found += [domain]
+
     oldstyle_opts = [
         CONF_ESP8266_RESTORE_FROM_FLASH,
         CONF_BOARD_FLASH_MODE,
@@ -214,7 +250,7 @@ def preload_core_config(config, result):
     if not has_oldstyle and not newstyle_found:
         raise cv.Invalid(
             "Platform missing. You must include one of the available platform keys: "
-            + ", ".join(TARGET_PLATFORMS),
+            + ", ".join(_supported_target_platforms()),
             [CONF_ESPHOME],
         )
     if has_oldstyle and newstyle_found:
@@ -238,6 +274,11 @@ def preload_core_config(config, result):
 
     if has_oldstyle:
         plat = conf.pop(CONF_PLATFORM)
+        if not _is_target_platform(plat):
+            raise cv.Invalid(
+                "Platform missing. You must include one of the available platform keys: "
+                + ", ".join(_supported_target_platforms())
+            )
         plat_conf = {}
         if CONF_ESP8266_RESTORE_FROM_FLASH in conf:
             plat_conf["restore_from_flash"] = conf.pop(CONF_ESP8266_RESTORE_FROM_FLASH)
@@ -259,6 +300,7 @@ def preload_core_config(config, result):
         # Insert generated target platform config to main config
         config[plat] = plat_conf
     config[CONF_ESPHOME] = conf
+    return newstyle_found[0] if newstyle_found else plat
 
 
 def include_file(path, basename):
