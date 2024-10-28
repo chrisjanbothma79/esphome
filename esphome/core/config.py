@@ -273,7 +273,7 @@ def preload_core_config(config, result) -> str:
                 )
 
     if has_oldstyle:
-        plat = conf.pop(CONF_PLATFORM)
+        plat = conf.pop(CONF_PLATFORM).lower()
         if not _is_target_platform(plat):
             raise cv.Invalid(
                 "Platform missing. You must include one of the available platform keys: "
