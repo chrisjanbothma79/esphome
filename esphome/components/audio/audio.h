@@ -39,7 +39,7 @@ class AudioStreamer : public Parented<AudioListener> {
   /// @param length The length of the audio data in bytes.
   /// @return The number of bytes that were actually written to the speaker's internal buffer.
 
-  size_t stream(const uint8_t *data, const size_t size, TickType_t ticks_to_wait = 0);
+  size_t stream(const uint8_t *data, size_t size, TickType_t ticks_to_wait = 0);
   bool is_running();
 };
 
@@ -54,11 +54,7 @@ class AudioListener {
   AudioStreamer *start(const AudioStreamInfo &audio_stream_info);
   AudioStreamer *start();
 
-  void stop() {
-    if (this->current_streamer_ != nullptr) {
-      delete this->current_streamer_;
-    }
-  }
+  void stop() { delete this->current_streamer_; }
 
   virtual bool can_stream(AudioStreamer *streamer);
 
@@ -69,6 +65,7 @@ class AudioListener {
   virtual void get_default_audio_stream_info(AudioStreamInfo &audio_stream_info) {}
 
  protected:
+  friend class AudioStreamer;
   virtual bool starting(const AudioStreamInfo &audio_stream_info) = 0;
   virtual size_t streaming(const uint8_t *data, size_t size, TickType_t ticks_to_wait) = 0;
   virtual void stopping(){};

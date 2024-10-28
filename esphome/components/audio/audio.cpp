@@ -5,11 +5,11 @@ namespace audio {
 
 /* *************** AudioListener **************** */
 
-AudioStreamer *AudioListener::start(AudioStreamInfo &info) {
+AudioStreamer *AudioListener::start(const AudioStreamInfo &audio_stream_info) {
   if (current_streamer_ != nullptr) {
     return nullptr;
   }
-  if (this->starting(info)) {
+  if (this->starting(audio_stream_info)) {
     this->current_streamer_ = new AudioStreamer();
     this->current_streamer_->set_parent(this);
   }
@@ -19,7 +19,7 @@ AudioStreamer *AudioListener::start(AudioStreamInfo &info) {
 AudioStreamer *AudioListener::start() {
   AudioStreamInfo info;
   this->get_default_audio_stream_info(info);
-  this->start(info);
+  return this->start(info);
 }
 
 bool AudioListener::can_stream(AudioStreamer *streamer) {
@@ -38,8 +38,8 @@ AudioStreamer::~AudioStreamer() {
 
 bool AudioStreamer::is_running() { return (this->parent_ == nullptr) ? false : this->parent_->can_stream(this); }
 
-size_t AudioStreamer::stream(const uint8_t *data, const size_t size, TickType_t ticks_to_wait) {
-  if (!this->is_running(this))
+size_t AudioStreamer::stream(const uint8_t *data, size_t size, TickType_t ticks_to_wait) {
+  if (!this->is_running())
     return 0;
   return this->parent_->streaming(data, size, ticks_to_wait);
 }
