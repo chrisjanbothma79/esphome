@@ -1,8 +1,8 @@
 #pragma once
 
-#include <cstdint>
-#include <stddef.h>
 #include "esphome/core/helpers.h"
+#include <cstddef>
+#include <cstdint>
 
 namespace esphome {
 namespace audio {
