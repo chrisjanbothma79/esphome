@@ -193,7 +193,7 @@ def _is_target_platform(name):
     try:
         from esphome.loader import get_component
 
-        # we cannot load some components without platform
+        # some components cannot be loaded without platform
         component = get_component(name, True)
         if component.is_target_platform:
             return True
@@ -204,7 +204,6 @@ def _is_target_platform(name):
 
 def _supported_target_platforms():
     target_platforms = []
-    # The root directory of the repo
     root = Path(__file__).parent.parent
     components_dir = root / "components"
 
