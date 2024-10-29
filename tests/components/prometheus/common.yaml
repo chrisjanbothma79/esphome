@@ -73,6 +73,7 @@ lock:
       } else {
         return LOCK_STATE_UNLOCKED;
       }
+    optimistic: true
 
 prometheus:
   include_internal: true
