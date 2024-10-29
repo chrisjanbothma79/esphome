@@ -48,6 +48,7 @@ switch:
       } else {
         return false;
       }
+    optimistic: true
 
 fan:
   - platform: template
