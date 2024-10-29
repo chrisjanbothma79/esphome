@@ -43,14 +43,14 @@ void PrometheusHandler::handleRequest(AsyncWebServerRequest *req) {
 
 #ifdef USE_SWITCH
   this->switch_type_(stream);
-  for (auto *obj : App.get_switches(), area, node, friendly_name)
-    this->switch_row_(stream, obj);
+  for (auto *obj : App.get_switches())
+    this->switch_row_(stream, obj, area, node, friendly_name);
 #endif
 
 #ifdef USE_LOCK
   this->lock_type_(stream);
-  for (auto *obj : App.get_locks(), area, node, friendly_name)
-    this->lock_row_(stream, obj);
+  for (auto *obj : App.get_locks())
+    this->lock_row_(stream, obj, area, node, friendly_name);
 #endif
 
 #ifdef USE_TEXT_SENSOR
