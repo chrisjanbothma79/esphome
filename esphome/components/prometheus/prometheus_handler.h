@@ -61,7 +61,7 @@ class PrometheusHandler : public AsyncWebHandler, public Component {
   std::string relabel_id_(EntityBase *obj);
   std::string relabel_name_(EntityBase *obj);
   void add_area_label_(AsyncResponseStream *stream, std::string &area);
-  void add_node_label_(AsyncResponseStream *stream, std::string &name);
+  void add_node_label_(AsyncResponseStream *stream, std::string &node);
   void add_friendly_name_label_(AsyncResponseStream *stream, std::string &friendly_name);
 
 #ifdef USE_SENSOR
