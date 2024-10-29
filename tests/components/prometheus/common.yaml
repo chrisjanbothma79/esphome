@@ -55,6 +55,17 @@ fan:
   - platform: template
     id: template_fan1
 
+cover:
+  - platform: template
+    id: template_cover1
+    lambda: |-
+      if (millis() > 10000) {
+        return COVER_OPEN;
+      } else {
+        return COVER_CLOSED;
+      }
+    update_interval: 60s
+
 prometheus:
   include_internal: true
   relabel:
