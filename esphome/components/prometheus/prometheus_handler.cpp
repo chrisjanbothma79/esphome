@@ -72,7 +72,7 @@ std::string PrometheusHandler::relabel_name_(EntityBase *obj) {
   return item == relabel_map_name_.end() ? obj->get_name() : item->second;
 }
 
-void PrometheusHandler::add_area_label_(AsyncResponseStream *stream, std::string &area, std::string &node) {
+void PrometheusHandler::add_area_label_(AsyncResponseStream *stream, std::string &area) {
   if (!area.empty()) {
     stream->print(F("\",area=\""));
     stream->print(area.c_str());
