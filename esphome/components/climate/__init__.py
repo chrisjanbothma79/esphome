@@ -126,6 +126,7 @@ VISUAL_TEMPERATURE_STEP_SCHEMA = cv.Schema(
     }
 )
 
+
 def visual_temperature_step(value):
 
     # Allow defining target/current temperature steps separately
