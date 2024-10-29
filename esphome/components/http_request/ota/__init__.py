@@ -59,7 +59,7 @@ OTA_HTTP_REQUEST_FLASH_ACTION_SCHEMA = cv.All(
             cv.Optional(CONF_PASSWORD): cv.templatable(cv.string),
             cv.Optional(CONF_USERNAME): cv.templatable(cv.string),
             cv.Required(CONF_URL): cv.templatable(cv.url),
-            cv.Optional("disable_bluetooth", default=False): cv.boolean,
+            cv.Optional("disable_bluetooth_proxy", default=False): cv.boolean,
         }
     ),
     cv.has_exactly_one_key(CONF_MD5, CONF_MD5_URL),
@@ -91,9 +91,9 @@ async def ota_http_request_action_to_code(config, action_id, template_arg, args)
         template_ = await cg.templatable(username_str, args, cg.std_string)
         cg.add(var.set_username(template_))
 
-    if disable_bluetooth_bool := config.get("disable_bluetooth"):
-        template_ = await cg.templatable(disable_bluetooth_bool, args, cg.bool_)
-        cg.add(var.set_disable_bluetooth_bool(template_))
+    if disable_bluetooth_proxy_bool := config.get("disable_bluetooth_proxy"):
+        template_ = await cg.templatable(disable_bluetooth_proxy_bool, args, cg.bool_)
+        cg.add(var.set_disable_bluetooth_proxy(template_))
 
     template_ = await cg.templatable(config[CONF_URL], args, cg.std_string)
     cg.add(var.set_url(template_))
