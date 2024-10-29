@@ -119,13 +119,14 @@ visual_temperature = cv.float_with_unit(
 )
 
 
+VISUAL_TEMPERATURE_STEP_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_TARGET_TEMPERATURE): visual_temperature,
+        cv.Required(CONF_CURRENT_TEMPERATURE): visual_temperature,
+    }
+)
+
 def visual_temperature_step(value):
-    VISUAL_TEMPERATURE_STEP_SCHEMA = cv.Schema(
-        {
-            cv.Required(CONF_TARGET_TEMPERATURE): visual_temperature,
-            cv.Required(CONF_CURRENT_TEMPERATURE): visual_temperature,
-        }
-    )
 
     # Allow defining target/current temperature steps separately
     if isinstance(value, dict):
