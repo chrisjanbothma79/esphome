@@ -299,7 +299,8 @@ def preload_core_config(config, result) -> str:
         # Insert generated target platform config to main config
         config[plat] = plat_conf
     config[CONF_ESPHOME] = conf
-    return newstyle_found[0] if newstyle_found else plat
+    target_platform = newstyle_found[0] if newstyle_found else plat
+    return target_platform
 
 
 def include_file(path, basename):
