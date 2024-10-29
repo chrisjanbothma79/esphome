@@ -19,6 +19,9 @@ sensor:
     update_interval: 60s
 
 text_sensor:
+  - platform: version
+    name: "ESPHome Version"
+    hide_timestamp: true
   - platform: template
     id: template_text_sensor1
     lambda: |-
