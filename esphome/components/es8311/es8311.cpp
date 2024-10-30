@@ -64,16 +64,6 @@ void ES8311::dump_config() {
     ESP_LOGCONFIG(TAG, "  Failed to initialize!");
     return;
   }
-
-#ifdef ESPHOME_LOG_HAS_VERBOSE
-  ESP_LOGV(TAG, "  Register Values:");
-  for (uint8_t reg = 0; reg <= 0x45; reg++) {
-    uint8_t value;
-    if (!ES8311_READ_BYTE(reg, &value)) {
-      ESP_LOGV(TAG, "    %02x = %02x", reg, value);
-    }
-  }
-#endif
 }
 
 bool ES8311::set_volume(float volume) {
