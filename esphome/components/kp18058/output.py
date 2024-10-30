@@ -1,7 +1,8 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import output
-from esphome.const import CONF_ID, CONF_CHANNEL
+import esphome.config_validation as cv
+from esphome.const import CONF_CHANNEL, CONF_ID
+
 from . import KP18058
 
 KP18058_ns = cg.esphome_ns.namespace("kp18058")
@@ -12,8 +13,8 @@ CONF_KP18058_ID = "kp18058_id"
 # Storage for outputs, to be validated at the end
 _output_registry = {}
 
-def validate_unique_channels(config):
 
+def validate_unique_channels(config):
     kp18058_id = str(config[CONF_KP18058_ID])
     channel = config[CONF_CHANNEL]
 

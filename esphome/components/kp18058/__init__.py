@@ -1,11 +1,9 @@
+from esphome import pins
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome import pins
-from esphome.const import (
-    CONF_CLOCK_PIN,
-    CONF_DATA_PIN,
-    CONF_ID,
-)
+from esphome.const import CONF_CLOCK_PIN, CONF_DATA_PIN, CONF_ID
+
+CODEOWNERS = ["@NewoPL"]
 
 MULTI_CONF = True
 
@@ -35,4 +33,4 @@ async def to_code(config):
 
     data = await cg.gpio_pin_expression(config[CONF_DATA_PIN])
     clock = await cg.gpio_pin_expression(config[CONF_CLOCK_PIN])
-    cg.add(var.set_i2c_pins(data,clock))
+    cg.add(var.set_i2c_pins(data, clock))
