@@ -1,9 +1,3 @@
-kp18058:
-  data_pin: 16
-  clock_pin: 17
-  cw_current: 8
-  rgb_current: 5
-
 output:
   - platform: kp18058
     id: output_green
