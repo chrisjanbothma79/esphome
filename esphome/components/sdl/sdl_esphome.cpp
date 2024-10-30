@@ -102,7 +102,7 @@ void Sdl::loop() {
         break;
 
       default:
-        ESP_LOGD(TAG, "Event %d", e.type);
+        ESP_LOGV(TAG, "Event %d", e.type);
         break;
     }
   }
