@@ -20,15 +20,13 @@ static const char *const TAG = "es8311";
   if (!(func)) { \
     return false; \
   }
-#define ES8311_READ_BYTE(reg, value) this->read_byte(reg, value)
-#define ES8311_WRITE_BYTE(reg, value) this->write_byte(reg, value)
 
 void ES8311::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ES8311...");
 
   // Reset
-  ES8311_ERROR_FAILED(ES8311_WRITE_BYTE(ES8311_REG00_RESET, 0x1F));
-  ES8311_ERROR_FAILED(ES8311_WRITE_BYTE(ES8311_REG00_RESET, 0x00));
+  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG00_RESET, 0x1F));
+  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG00_RESET, 0x00));
 
   ES8311_ERROR_FAILED(this->configure_clock_());
   ES8311_ERROR_FAILED(this->configure_format_());
@@ -38,19 +36,19 @@ void ES8311::setup() {
   this->set_volume(0.75);  // 0.75 = 0xBF = 0dB
 
   // Power up analog circuitry
-  ES8311_ERROR_FAILED(ES8311_WRITE_BYTE(ES8311_REG0D_SYSTEM, 0x01));
+  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG0D_SYSTEM, 0x01));
   // Enable analog PGA, enable ADC modulator
-  ES8311_ERROR_FAILED(ES8311_WRITE_BYTE(ES8311_REG0E_SYSTEM, 0x02));
+  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG0E_SYSTEM, 0x02));
   // Power up DAC
-  ES8311_ERROR_FAILED(ES8311_WRITE_BYTE(ES8311_REG12_SYSTEM, 0x00));
+  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG12_SYSTEM, 0x00));
   // Enable output to HP drive
-  ES8311_ERROR_FAILED(ES8311_WRITE_BYTE(ES8311_REG13_SYSTEM, 0x10));
+  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG13_SYSTEM, 0x10));
   // ADC Equalizer bypass, cancel DC offset in digital domain
-  ES8311_ERROR_FAILED(ES8311_WRITE_BYTE(ES8311_REG1C_ADC, 0x6A));
+  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG1C_ADC, 0x6A));
   // Bypass DAC equalizer
-  ES8311_ERROR_FAILED(ES8311_WRITE_BYTE(ES8311_REG37_DAC, 0x08));
+  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG37_DAC, 0x08));
   // Power On
-  ES8311_ERROR_FAILED(ES8311_WRITE_BYTE(ES8311_REG00_RESET, 0x80));
+  ES8311_ERROR_FAILED(this->write_byte(ES8311_REG00_RESET, 0x80));
 }
 
 void ES8311::dump_config() {
@@ -69,12 +67,12 @@ void ES8311::dump_config() {
 bool ES8311::set_volume(float volume) {
   volume = clamp(volume, 0.0f, 1.0f);
   uint8_t reg32 = remap<uint8_t, float>(volume, 0.0f, 1.0f, 0, 255);
-  return ES8311_WRITE_BYTE(ES8311_REG32_DAC, reg32);
+  return this->write_byte(ES8311_REG32_DAC, reg32);
 }
 
 float ES8311::volume() {
   uint8_t reg32;
-  ES8311_READ_BYTE(ES8311_REG32_DAC, &reg32);
+  this->read_byte(ES8311_REG32_DAC, &reg32);
   return remap<float, uint8_t>(reg32, 0, 255, 0.0f, 1.0f);
 }
 
@@ -115,7 +113,7 @@ bool ES8311::configure_clock_() {
   if (this->mclk_inverted_) {
     reg01 |= BIT(6);  // Invert MCLK pin
   }
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG01_CLK_MANAGER, reg01));
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG01_CLK_MANAGER, reg01));
 
   // Get clock coefficients from coefficient table
   auto *coefficient = get_coefficient(mclk_frequency, this->sample_frequency_);
@@ -127,26 +125,26 @@ bool ES8311::configure_clock_() {
 
   // Register 0x02
   uint8_t reg02;
-  ES8311_ERROR_CHECK(ES8311_READ_BYTE(ES8311_REG02_CLK_MANAGER, &reg02));
+  ES8311_ERROR_CHECK(this->read_byte(ES8311_REG02_CLK_MANAGER, &reg02));
   reg02 &= 0x07;
   reg02 |= (coefficient->pre_div - 1) << 5;
   reg02 |= coefficient->pre_mult << 3;
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG02_CLK_MANAGER, reg02));
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG02_CLK_MANAGER, reg02));
 
   // Register 0x03
   const uint8_t reg03 = (coefficient->fs_mode << 6) | coefficient->adc_osr;
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG03_CLK_MANAGER, reg03));
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG03_CLK_MANAGER, reg03));
 
   // Register 0x04
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG04_CLK_MANAGER, coefficient->dac_osr));
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG04_CLK_MANAGER, coefficient->dac_osr));
 
   // Register 0x05
   const uint8_t reg05 = ((coefficient->adc_div - 1) << 4) | (coefficient->dac_div - 1);
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG05_CLK_MANAGER, reg05));
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG05_CLK_MANAGER, reg05));
 
   // Register 0x06
   uint8_t reg06;
-  ES8311_ERROR_CHECK(ES8311_READ_BYTE(ES8311_REG06_CLK_MANAGER, &reg06));
+  ES8311_ERROR_CHECK(this->read_byte(ES8311_REG06_CLK_MANAGER, &reg06));
   if (this->sclk_inverted_) {
     reg06 |= BIT(5);
   } else {
@@ -158,17 +156,17 @@ bool ES8311::configure_clock_() {
   } else {
     reg06 |= (coefficient->bclk_div) << 0;
   }
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG06_CLK_MANAGER, reg06));
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG06_CLK_MANAGER, reg06));
 
   // Register 0x07
   uint8_t reg07;
-  ES8311_ERROR_CHECK(ES8311_READ_BYTE(ES8311_REG07_CLK_MANAGER, &reg07));
+  ES8311_ERROR_CHECK(this->read_byte(ES8311_REG07_CLK_MANAGER, &reg07));
   reg07 &= 0xC0;
   reg07 |= coefficient->lrck_h << 0;
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG07_CLK_MANAGER, reg07));
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG07_CLK_MANAGER, reg07));
 
   // Register 0x08
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG08_CLK_MANAGER, coefficient->lrck_l));
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG08_CLK_MANAGER, coefficient->lrck_l));
 
   // Successfully configured the clock
   return true;
@@ -177,17 +175,17 @@ bool ES8311::configure_clock_() {
 bool ES8311::configure_format_() {
   // Configure I2S mode and format
   uint8_t reg00;
-  ES8311_ERROR_CHECK(ES8311_READ_BYTE(ES8311_REG00_RESET, &reg00));
+  ES8311_ERROR_CHECK(this->read_byte(ES8311_REG00_RESET, &reg00));
   reg00 &= 0xBF;
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG00_RESET, reg00));
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG00_RESET, reg00));
 
   // Configure SDP in resolution
   uint8_t reg09 = calculate_resolution_value(this->resolution_in_);
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG09_SDPIN, reg09));
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG09_SDPIN, reg09));
 
   // Configure SDP out resolution
   uint8_t reg0a = calculate_resolution_value(this->resolution_out_);
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG0A_SDPOUT, reg0a));
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG0A_SDPOUT, reg0a));
 
   // Successfully configured the format
   return true;
@@ -198,10 +196,10 @@ bool ES8311::configure_mic_() {
   if (this->use_mic_) {
     reg14 |= BIT(6);  // Enable PDM digital microphone
   }
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG14_SYSTEM, reg14));
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG14_SYSTEM, reg14));
 
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG16_ADC, this->mic_gain_));  // ADC gain scale up
-  ES8311_ERROR_CHECK(ES8311_WRITE_BYTE(ES8311_REG17_ADC, 0xC8));             // Set ADC gain
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG16_ADC, this->mic_gain_));  // ADC gain scale up
+  ES8311_ERROR_CHECK(this->write_byte(ES8311_REG17_ADC, 0xC8));             // Set ADC gain
 
   // Successfully configured the microphones
   return true;
@@ -212,7 +210,7 @@ bool ES8311::set_mute_state_(bool mute_state) {
 
   this->is_muted_ = mute_state;
 
-  if (!ES8311_READ_BYTE(ES8311_REG31_DAC, &reg31)) {
+  if (!this->read_byte(ES8311_REG31_DAC, &reg31)) {
     return false;
   }
 
@@ -222,7 +220,7 @@ bool ES8311::set_mute_state_(bool mute_state) {
     reg31 &= ~(BIT(6) | BIT(5));
   }
 
-  return ES8311_WRITE_BYTE(ES8311_REG31_DAC, reg31);
+  return this->write_byte(ES8311_REG31_DAC, reg31);
 }
 
 }  // namespace es8311
