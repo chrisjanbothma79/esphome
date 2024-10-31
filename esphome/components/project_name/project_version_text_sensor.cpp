@@ -4,7 +4,7 @@
 #include "esphome/core/version.h"
 
 namespace esphome {
-namespace version {
+namespace project_name {
 
 static const char *const TAG = "project_name.text_sensor";
 
@@ -13,5 +13,5 @@ float ProjectNameTextSensor::get_setup_priority() const { return setup_priority:
 std::string ProjectNameTextSensor::unique_id() { return get_mac_address() + "-project_name"; }
 void ProjectNameTextSensor::dump_config() { LOG_TEXT_SENSOR("", "Project Name Text Sensor", this); }
 
-}  // namespace version
+}  // namespace project_name
 }  // namespace esphome

@@ -4,7 +4,7 @@
 #include "esphome/core/version.h"
 
 namespace esphome {
-namespace version {
+namespace project_version {
 
 static const char *const TAG = "project_version.text_sensor";
 
@@ -20,5 +20,5 @@ void ProjectVersionTextSensor::set_hide_timestamp(bool hide_timestamp) { this->h
 std::string ProjectVersionTextSensor::unique_id() { return get_mac_address() + "-project_version"; }
 void ProjectVersionTextSensor::dump_config() { LOG_TEXT_SENSOR("", "Project Version Text Sensor", this); }
 
-}  // namespace version
+}  // namespace project_version
 }  // namespace esphome
