@@ -13,7 +13,7 @@ void GP8211Output::dump_config() { ESP_LOGCONFIG(TAG, "GP8211 Output:"); }
 void GP8211Output::write_state(float state) {
 
   uint16_t value = static_cast<uint16_t>(state * 32767);
-  ESP_LOGD(TAG, "Calculated DAC value: %u", value);
+  ESP_LOGV(TAG, "Calculated DAC value: %u", value);
 
   i2c::ErrorCode err = this->parent_->write_register(OUTPUT_REGISTER, (uint8_t *) &value, 2);
 
