@@ -80,8 +80,8 @@ _DATETIME_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
             cv.Optional(CONF_TIME_ID): cv.use_id(time.RealTimeClock),
         }
     )
-    .add_extra(web_server.WEBSERVER_SORTING_SCHEMA)
-    .add_extra(cv.MQTT_COMMAND_COMPONENT_SCHEMA),
+    .extend(web_server.WEBSERVER_SORTING_SCHEMA)
+    .extend(cv.MQTT_COMMAND_COMPONENT_SCHEMA)
 ).add_extra(_validate_time_present)
 
 
