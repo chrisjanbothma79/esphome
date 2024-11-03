@@ -1663,9 +1663,8 @@ class SplitDefault(Optional):
                 self._defaults[platform_key] = vol.default_factory(value)
 
         for platform_key, priority in priority_mapping.items():
-            priority = [platform_key] + priority
             prioritized_default = _get_priority_default(
-                *[kwargs.get(p) for p in priority]
+                *[kwargs.get(p) for p in [platform_key] + priority]
             )
             self._defaults[platform_key] = vol.default_factory(prioritized_default)
 
