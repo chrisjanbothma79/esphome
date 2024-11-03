@@ -59,13 +59,13 @@ void KP18058::program_led_driver() {
     return true;
   };
 
-  // Create the settings union
+  // Create the settings struct
   KP18058_Settings settings{};
 
   settings.address_identification = 1;
   settings.working_mode = all_channels_zero() ? STANDBY_MODE : RGBCW_MODE;
   // Set byte address start. valid values are 0 - 13
-  // In this message always all bytes are transmited (starting from 0)
+  // In this message always all bytes are transmitted (starting from 0)
   settings.start_byte_address = 0x00;
 
   // Set Line Compensation Mechanism
@@ -78,7 +78,7 @@ void KP18058::program_led_driver() {
   settings.max_current_out4_5 = static_cast<uint8_t>(max_cw_current_ / 2.5) & 0x1F;
   settings.max_current_out1_3 = static_cast<uint8_t>(max_rgb_current_ / 2.5) & 0x1F;
 
-  // set dimming method for RGB channels and chop dimming frequency
+  // Set dimming method for RGB channels and chop dimming frequency
   settings.chop_dimming_out1_3 = ANALOG_DIMMING;
   settings.chop_dimming_frequency = CD_FREQUENCY_500HZ;
 
@@ -90,23 +90,24 @@ void KP18058::program_led_driver() {
   }
 
   // Calculate parity bits for each byte
-  for (auto &byte : settings.bytes) {
+  uint8_t *settings_bytes = reinterpret_cast<uint8_t *>(&settings);
+  for (auto &byte : settings_bytes) {
     byte |= get_parity_bit(byte);
   }
 
   // Send the I2C message
   i2c_.start();
-  for (int i = 0; i < sizeof(KP18058_Settings); i++) {
-    // on error try to repeat the byte transmission I2C_MAX_RETRY times
+  for (size_t i = 0; i < sizeof(KP18058_Settings); i++) {
+    // On error, try to repeat the byte transmission I2C_MAX_RETRY times
     bool write_succeeded;
     for (int attempt = 0; attempt < I2C_MAX_RETRY; attempt++) {
-      write_succeeded = i2c_.write_byte(settings.bytes[i]);
+      write_succeeded = i2c_.write_byte(settings_bytes[i]);
       if (write_succeeded)
         break;
     }
-    // if all tries failed break and stop sending the rest of the frame bytes
+    // If all tries failed, break and stop sending the rest of the frame bytes
     if (!write_succeeded) {
-      ESP_LOGE(TAG, "Failed to write byte %02d (0x%02X) after %d attempts", i, settings.bytes[i], I2C_MAX_RETRY);
+      ESP_LOGE(TAG, "Failed to write byte %02d (0x%02X) after %d attempts", i, settings_bytes[i], I2C_MAX_RETRY);
       i2c_ready_ = false;
       break;
     }

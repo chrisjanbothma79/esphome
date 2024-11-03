@@ -92,49 +92,43 @@ enum CDFrequency : uint8_t {
 #pragma pack(push, 1)
 
 /**
- * @brief Union representing the structure of the I2C message for configuring the KP18058 LED driver settings.
+ * @brief the structure of the I2C message for configuring the KP18058 LED driver settings.
  */
-typedef union {
-  // Access the settings as a structure
+struct KP18058_Settings {
+  // Byte 0
+  uint8_t byte0_parity_bit : 1;
+  uint8_t start_byte_address : 4;
+  WorkingMode working_mode : 2;
+  uint8_t address_identification : 1;
+
+  // Byte 1
+  uint8_t byte1_parity_bit : 1;
+  LCSlope line_comp_slope : 2;
+  LCThreshold line_comp_threshold : 4;
+  LCMode line_compensation_enable : 1;
+
+  // Byte 2
+  uint8_t byte2_parity_bit : 1;
+  uint8_t max_current_out1_3 : 5;
+  CDFrequency chop_dimming_frequency : 2;
+
+  // Byte 3
+  uint8_t byte3_parity_bit : 1;
+  uint8_t max_current_out4_5 : 5;
+  RCFilter rc_filter_enable : 1;
+  DimmingMode chop_dimming_out1_3 : 1;
+
+  // Channel array for OUT1 to OUT5 grayscale data
   struct {
-    // Byte 0
-    uint8_t byte0_parity_bit : 1;
-    uint8_t start_byte_address : 4;
-    WorkingMode working_mode : 2;
-    uint8_t address_identification : 1;
+    uint8_t upper_parity : 1;
+    uint8_t upper_grayscale : 5; /**< upper 5 bits of the channel value */
+    uint8_t upper_reserved : 2;
 
-    // Byte 1
-    uint8_t byte1_parity_bit : 1;
-    LCSlope line_comp_slope : 2;
-    LCThreshold line_comp_threshold : 4;
-    LCMode line_compensation_enable : 1;
-
-    // Byte 2
-    uint8_t byte2_parity_bit : 1;
-    uint8_t max_current_out1_3 : 5;
-    CDFrequency chop_dimming_frequency : 2;
-
-    // Byte 3
-    uint8_t byte3_parity_bit : 1;
-    uint8_t max_current_out4_5 : 5;
-    RCFilter rc_filter_enable : 1;
-    DimmingMode chop_dimming_out1_3 : 1;
-
-    // Channel array for OUT1 to OUT5 grayscale data
-    struct {
-      uint8_t upper_parity : 1;
-      uint8_t upper_grayscale : 5; /**< upper 5 bits of the channel value */
-      uint8_t upper_reserved : 2;
-
-      uint8_t lower_parity : 1;
-      uint8_t lower_grayscale : 5; /**< lower 5 bits of the channel value */
-      uint8_t lower_reserved : 2;
-    } channels[5];
-  };
-
-  // Access the settings as a byte array
-  uint8_t bytes[14];
-} KP18058_Settings;
+    uint8_t lower_parity : 1;
+    uint8_t lower_grayscale : 5; /**< lower 5 bits of the channel value */
+    uint8_t lower_reserved : 2;
+  } channels[5];
+};
 
 #pragma pack(pop)
 

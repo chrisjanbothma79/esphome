@@ -19,8 +19,8 @@ CONFIG_SCHEMA = cv.Schema(
         cv.GenerateID(): cv.declare_id(KP18058),
         cv.Required(CONF_DATA_PIN): pins.gpio_output_pin_schema,
         cv.Required(CONF_CLOCK_PIN): pins.gpio_output_pin_schema,
-        cv.Optional(CONF_CW_CURRENT, default=5): cv.int_range(min=0, max=31),
-        cv.Optional(CONF_RGB_CURRENT, default=5): cv.int_range(min=0, max=31),
+        cv.Optional(CONF_CW_CURRENT, default=8): cv.float_range(min=0, max=77.5),
+        cv.Optional(CONF_RGB_CURRENT, default=5): cv.float_range(min=0, max=48),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
