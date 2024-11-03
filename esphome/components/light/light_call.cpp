@@ -302,7 +302,24 @@ LightColorValues LightCall::validate_() {
   if (!this->has_transition_() && !this->has_flash_() && (!this->has_effect_() || *this->effect_ == 0) &&
       supports_transition) {
     // nothing specified and light supports transitions, set default transition length
-    this->transition_length_ = this->parent_->default_transition_length_;
+    if (this->parent_->dynamic_default_transition_) {
+      // dynamic transition adapts the transition length to the change size.
+
+      // Current and target values for different parameters
+      float brightness_change = fabs(v.get_brightness() - this->parent_->current_values.get_brightness());
+      float color_temp_change = fabs(v.get_color_temperature() - this->parent_->current_values.get_color_temperature());
+      float red_change = fabs(v.get_red() - this->parent_->current_values.get_red());
+      float green_change = fabs(v.get_green() - this->parent_->current_values.get_green());
+      float blue_change = fabs(v.get_blue() - this->parent_->current_values.get_blue());
+
+      // Find the maximum change
+      float change_ratio = std::max({brightness_change, color_temp_change, red_change, green_change, blue_change});
+
+      // Calculate dynamic transition length based on state change
+      this->transition_length_ = change_ratio * this->parent_->default_transition_length_;
+    } else {
+      this->transition_length_ = this->parent_->default_transition_length_;
+    }
   }
 
   if (this->transition_length_.value_or(0) == 0) {
