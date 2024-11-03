@@ -457,6 +457,7 @@ class Display : public PollingComponent {
    * @param font The font to draw the text with.
    * @param color The color to draw the text with.
    * @param background The background color to draw the text with.
+   * @param align The alignment of the text.
    * @param format The strftime format to use.
    * @param time The time to format.
    */
