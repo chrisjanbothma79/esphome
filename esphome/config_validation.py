@@ -1636,7 +1636,7 @@ class GenerateID(Optional):
 
 def _get_priority_default(*args):
     for arg in args:
-        if arg is not vol.UNDEFINED:
+        if arg is not None:
             return arg
     return vol.UNDEFINED
 
@@ -1646,6 +1646,7 @@ class SplitDefault(Optional):
 
     def __init__(self, key, **kwargs):
         super().__init__(key)
+
         self._defaults = {}
         priority_mapping = {
             "esp32_arduino": ["esp32"],
@@ -1658,13 +1659,15 @@ class SplitDefault(Optional):
             "esp32_c3_idf": ["esp32_c3", "esp32_idf", "esp32"],
         }
         for platform_key, value in kwargs.items():
-            if platform_key in priority_mapping:
-                prioritized_default = _get_priority_default(
-                    value, *[kwargs.get(p) for p in priority_mapping[platform_key]]
-                )
-                self._defaults[platform_key] = vol.default_factory(prioritized_default)
-            else:
+            if platform_key not in priority_mapping:
                 self._defaults[platform_key] = vol.default_factory(value)
+
+        for platform_key, priority in priority_mapping.items():
+            priority = [platform_key] + priority
+            prioritized_default = _get_priority_default(
+                *[kwargs.get(p) for p in priority]
+            )
+            self._defaults[platform_key] = vol.default_factory(prioritized_default)
 
     @property
     def default(self):
