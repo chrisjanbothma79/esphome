@@ -23,9 +23,15 @@ from esphome.helpers import write_file_if_changed
 from . import defines as df, helpers, lv_validation as lvalid
 from .automation import disp_update, focused_widgets, update_to_code
 from .defines import add_define
-from .encoders import ENCODERS_CONFIG, encoders_to_code, initial_focus_to_code
+from .encoders import (
+    ENCODERS_CONFIG,
+    encoders_to_code,
+    get_default_group,
+    initial_focus_to_code,
+)
 from .gradient import GRADIENT_SCHEMA, gradients_to_code
 from .hello_world import get_hello_world
+from .keypads import KEYPADS_CONFIG, keypads_to_code
 from .lv_validation import lv_bool, lv_images_used
 from .lvcode import LvContext, LvglComponent
 from .schemas import (
@@ -268,8 +274,10 @@ async def to_code(config):
 
     lv_scr_act = get_scr_act(lv_component)
     async with LvContext(lv_component):
+        default_group = get_default_group(config)
         await touchscreens_to_code(lv_component, config)
-        await encoders_to_code(lv_component, config)
+        await encoders_to_code(lv_component, config, default_group)
+        await keypads_to_code(lv_component, config, default_group)
         await theme_to_code(config)
         await styles_to_code(config)
         await gradients_to_code(config)
@@ -386,6 +394,7 @@ CONFIG_SCHEMA = (
             cv.Optional(df.CONF_GRADIENTS): GRADIENT_SCHEMA,
             cv.Optional(df.CONF_TOUCHSCREENS, default=None): touchscreen_schema,
             cv.Optional(df.CONF_ENCODERS, default=None): ENCODERS_CONFIG,
+            cv.Optional(df.CONF_KEYPADS, default=None): KEYPADS_CONFIG,
             cv.GenerateID(df.CONF_DEFAULT_GROUP): cv.declare_id(lv_group_t),
             cv.Optional(df.CONF_RESUME_ON_INPUT, default=True): cv.boolean,
         }
