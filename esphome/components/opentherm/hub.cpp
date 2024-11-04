@@ -154,6 +154,9 @@ void OpenthermHub::setup() {
   // communicate at least once every second. Sending the status request is
   // good practice anyway.
   this->add_repeating_message(MessageId::STATUS);
+  
+  // Also ensure that we start communication with the STATUS message
+  this->initial_messages_.insert(this->initial_messages_.begin(), MessageId::STATUS);
 
   this->current_message_iterator_ = this->initial_messages_.begin();
 }
