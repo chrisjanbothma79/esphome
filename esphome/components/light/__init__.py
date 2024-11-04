@@ -12,6 +12,7 @@ from esphome.const import (
     CONF_COLOR_MODE,
     CONF_COLOR_TEMPERATURE,
     CONF_DEFAULT_TRANSITION_LENGTH,
+    CONF_DYNAMIC_DEFAULT_TRANSITION,
     CONF_EFFECTS,
     CONF_FLASH_TRANSITION_LENGTH,
     CONF_GAMMA_CORRECT,
@@ -59,7 +60,6 @@ from .types import (  # noqa
 
 CODEOWNERS = ["@esphome/core"]
 IS_PLATFORM_COMPONENT = True
-CONF_DYNAMIC_DEFAULT_TRANSITION = "dynamic_default_transition"
 
 LightRestoreMode = light_ns.enum("LightRestoreMode")
 RESTORE_MODES = {
