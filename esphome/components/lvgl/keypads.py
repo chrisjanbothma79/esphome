@@ -59,9 +59,7 @@ async def keypads_to_code(var, config, default_group):
             enc_conf[CONF_ID], lv_indev_type_t.LV_INDEV_TYPE_KEYPAD, lpt, lprt
         )
         await cg.register_parented(listener, var)
-        print(enc_conf)
         for key in [x for x in enc_conf if x in KEYPAD_KEYS]:
-            print(key)
             b_sensor = await cg.get_variable(enc_conf[key])
             cg.add(listener.add_button(b_sensor, literal(f"LV_KEY_{key.upper()}")))
         if group := enc_conf.get(CONF_GROUP):
