@@ -298,10 +298,10 @@ void MR60FDA2Component::process_frame_() {
       }
 
       if (this->height_threshold_select_ != nullptr) {
-        uint32_t current_height_threshold_int_ =
+        uint32_t current_height_threshold_int =
             encode_uint32(current_data_buf_[7], current_data_buf_[6], current_data_buf_[5], current_data_buf_[4]);
 
-        height_threshold_float = bit_cast<float>(current_height_threshold_int_);
+        height_threshold_float = bit_cast<float>(current_height_threshold_int);
         size_t select_index = find_nearest_index(height_threshold_float, HEIGHT_THRESHOLD, 7);
         this->height_threshold_select_->publish_state(this->height_threshold_select_->at(select_index).value());
       }
