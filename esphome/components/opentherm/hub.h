@@ -77,7 +77,7 @@ class OpenthermHub : public Component {
   // we are talking to the boiler. Enable if you experience random intermittent invalid response errors.
   // Very likely to happen while using Dallas temperature sensors.
   bool sync_mode_ = false;
-  
+
   float opentherm_version_ = 0.0f;
 
   // Create OpenTherm messages based on the message id

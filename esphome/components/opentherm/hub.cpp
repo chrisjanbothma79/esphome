@@ -94,7 +94,7 @@ OpenthermData OpenthermHub::build_request_(MessageId request_id) const {
     data.type = MessageType::WRITE_DATA;
     data.id = MessageId::OT_VERSION_CONTROLLER;
     data.f88(this->opentherm_version_);
-    
+
     return data;
   }
 
@@ -163,7 +163,7 @@ void OpenthermHub::setup() {
   // communicate at least once every second. Sending the status request is
   // good practice anyway.
   this->add_repeating_message(MessageId::STATUS);
-  
+
   // Also ensure that we start communication with the STATUS message
   this->initial_messages_.insert(this->initial_messages_.begin(), MessageId::STATUS);
 
