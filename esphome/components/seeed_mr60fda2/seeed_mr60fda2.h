@@ -1,6 +1,6 @@
 #pragma once
-#include "esphome/core/defines.h"
 #include "esphome/core/component.h"
+#include "esphome/core/defines.h"
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #endif
@@ -85,8 +85,6 @@ class MR60FDA2Component : public Component,
   void split_frame_(uint8_t buffer);
   void process_frame_();
   void send_query_(uint8_t *query, size_t string_length);
-  void float_to_bytes_(float value, unsigned char *bytes);
-  void int_to_bytes_(uint32_t value, unsigned char *bytes);
 
  public:
   float get_setup_priority() const override { return esphome::setup_priority::LATE; }

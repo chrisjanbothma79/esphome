@@ -104,6 +104,39 @@ static uint8_t find_nearest_index(float value, const float *arr, int size) {
   return nearest_index;
 }
 
+/**
+ * @brief Convert a float value to a byte array.
+ *
+ * This function converts a float value to a byte array.
+ *
+ * @param value The float value to convert.
+ * @param bytes The byte array to store the converted value.
+ */
+static void float_to_bytes(float value, unsigned char *bytes) {
+  union {
+    float float_value;
+    unsigned char byte_array[4];
+  } u;
+
+  u.float_value = value;
+  memcpy(bytes, u.byte_array, 4);
+}
+
+/**
+ * @brief Convert a 32-bit unsigned integer to a byte array.
+ *
+ * This function converts a 32-bit unsigned integer to a byte array.
+ *
+ * @param value The 32-bit unsigned integer to convert.
+ * @param bytes The byte array to store the converted value.
+ */
+static void int_to_bytes(uint32_t value, unsigned char *bytes) {
+  bytes[0] = value & 0xFF;
+  bytes[1] = (value >> 8) & 0xFF;
+  bytes[2] = (value >> 16) & 0xFF;
+  bytes[3] = (value >> 24) & 0xFF;
+}
+
 void MR60FDA2Component::split_frame_(uint8_t buffer) {
   switch (this->current_frame_locate_) {
     case LOCATE_FRAME_HEADER:  // starting buffer
@@ -294,43 +327,10 @@ void MR60FDA2Component::process_frame_() {
 // Sending data frames
 void MR60FDA2Component::send_query_(uint8_t *query, size_t string_length) { this->write_array(query, string_length); }
 
-/**
- * @brief Convert a float value to a byte array.
- *
- * This function converts a float value to a byte array.
- *
- * @param value The float value to convert.
- * @param bytes The byte array to store the converted value.
- */
-void MR60FDA2Component::float_to_bytes_(float value, unsigned char *bytes) {
-  union {
-    float float_value;
-    unsigned char byte_array[4];
-  } u;
-
-  u.float_value = value;
-  memcpy(bytes, u.byte_array, 4);
-}
-
-/**
- * @brief Convert a 32-bit unsigned integer to a byte array.
- *
- * This function converts a 32-bit unsigned integer to a byte array.
- *
- * @param value The 32-bit unsigned integer to convert.
- * @param bytes The byte array to store the converted value.
- */
-void MR60FDA2Component::int_to_bytes_(uint32_t value, unsigned char *bytes) {
-  bytes[0] = value & 0xFF;
-  bytes[1] = (value >> 8) & 0xFF;
-  bytes[2] = (value >> 16) & 0xFF;
-  bytes[3] = (value >> 24) & 0xFF;
-}
-
 // Send Heartbeat Packet Command
 void MR60FDA2Component::set_install_height(uint8_t index) {
   uint8_t send_data[13] = {0x01, 0x00, 0x00, 0x00, 0x04, 0x0E, 0x04, 0xF0, 0x00, 0x00, 0x00, 0x00, 0x00};
-  float_to_bytes_(INSTALL_HEIGHT[index], &send_data[8]);
+  float_to_bytes(INSTALL_HEIGHT[index], &send_data[8]);
   send_data[12] = calculate_checksum(send_data + 8, 4);
   this->send_query_(send_data, 13);
   ESP_LOGV(TAG, "SEND INSTALL HEIGHT FRAME: %s", format_hex_pretty(send_data, 13).c_str());
@@ -338,7 +338,7 @@ void MR60FDA2Component::set_install_height(uint8_t index) {
 
 void MR60FDA2Component::set_height_threshold(uint8_t index) {
   uint8_t send_data[13] = {0x01, 0x00, 0x00, 0x00, 0x04, 0x0E, 0x08, 0xFC, 0x00, 0x00, 0x00, 0x00, 0x00};
-  float_to_bytes_(INSTALL_HEIGHT[index], &send_data[8]);
+  float_to_bytes(INSTALL_HEIGHT[index], &send_data[8]);
   send_data[12] = calculate_checksum(send_data + 8, 4);
   this->send_query_(send_data, 13);
   ESP_LOGV(TAG, "SEND HEIGHT THRESHOLD: %s", format_hex_pretty(send_data, 13).c_str());
@@ -347,7 +347,7 @@ void MR60FDA2Component::set_height_threshold(uint8_t index) {
 void MR60FDA2Component::set_sensitivity(uint8_t index) {
   uint8_t send_data[13] = {0x01, 0x00, 0x00, 0x00, 0x04, 0x0E, 0x0A, 0xFE, 0x00, 0x00, 0x00, 0x00, 0x00};
 
-  int_to_bytes_(SENSITIVITY[index], &send_data[8]);
+  int_to_bytes(SENSITIVITY[index], &send_data[8]);
 
   send_data[12] = calculate_checksum(send_data + 8, 4);
   this->send_query_(send_data, 13);
