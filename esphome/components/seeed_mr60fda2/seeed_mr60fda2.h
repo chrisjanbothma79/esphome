@@ -81,10 +81,6 @@ class MR60FDA2Component : public Component,
   size_t current_frame_len_;
   size_t current_data_frame_len_;
   uint16_t current_frame_type_;
-  uint32_t current_install_height_int_;
-  uint32_t current_height_threshold_int_;
-  uint8_t current_sensitivity_;
-  uint8_t select_index_;
 
   void split_frame_(uint8_t buffer);
   void process_frame_();

@@ -37,11 +37,6 @@ void MR60FDA2Component::setup() {
   this->current_frame_len_ = 0;
   this->current_data_frame_len_ = 0;
   this->current_frame_type_ = 0;
-  this->current_install_height_int_ = 0;
-  this->current_height_threshold_int_ = 0;
-  this->current_sensitivity_ = 0;
-  this->select_index_ = 0;
-
   this->get_radar_parameters();
 
   memset(this->current_frame_buf_, 0, FRAME_BUF_MAX_SIZE);
@@ -214,10 +209,6 @@ void MR60FDA2Component::split_frame_(uint8_t buffer) {
 }
 
 void MR60FDA2Component::process_frame_() {
-  // Declare variables outside of the switch statement
-  float install_height_float = 0;
-  float height_threshold_float = 0;
-
   switch (this->current_frame_type_) {
     case IS_FALL_TYPE_BUFFER:
       if (this->fall_detected_binary_sensor_ != nullptr) {
@@ -260,9 +251,14 @@ void MR60FDA2Component::process_frame_() {
       break;
 
     case RESULT_PARAMETERS:
-      // Variables declared outside the switch statement will be initialized here
+      float install_height_float = 0;
+      float height_threshold_float = 0;
+      uint32_t current_install_height_int_ = 0;
+      uint32_t current_height_threshold_int_ = 0;
+      uint32_t current_sensitivity_ = 0;
+      uint32_t select_index_ = 0;
       if (this->install_height_select_ != nullptr) {
-        this->current_install_height_int_ =
+        current_install_height_int_ =
             encode_uint32(current_data_buf_[3], current_data_buf_[2], current_data_buf_[1], current_data_buf_[0]);
 
         install_height_float = bit_cast<float>(current_install_height_int_);
@@ -271,7 +267,7 @@ void MR60FDA2Component::process_frame_() {
       }
 
       if (this->height_threshold_select_ != nullptr) {
-        this->current_height_threshold_int_ =
+        current_height_threshold_int_ =
             encode_uint32(current_data_buf_[7], current_data_buf_[6], current_data_buf_[5], current_data_buf_[4]);
 
         height_threshold_float = bit_cast<float>(current_height_threshold_int_);
@@ -280,10 +276,10 @@ void MR60FDA2Component::process_frame_() {
       }
 
       if (this->sensitivity_select_ != nullptr) {
-        this->current_sensitivity_ =
+        current_sensitivity_ =
             encode_uint32(current_data_buf_[11], current_data_buf_[10], current_data_buf_[9], current_data_buf_[8]);
 
-        select_index_ = find_nearest_index(this->current_sensitivity_, SENSITIVITY, 3);
+        select_index_ = find_nearest_index(current_sensitivity_, SENSITIVITY, 3);
         this->sensitivity_select_->publish_state(this->sensitivity_select_->at(select_index_).value());
       }
 
@@ -344,30 +340,18 @@ void MR60FDA2Component::set_install_height(uint8_t index) {
 
 void MR60FDA2Component::set_height_threshold(uint8_t index) {
   uint8_t send_data[13] = {0x01, 0x00, 0x00, 0x00, 0x04, 0x0E, 0x08, 0xFC, 0x00, 0x00, 0x00, 0x00, 0x00};
-  uint8_t data_frame[4] = {0x00, 0x00, 0x00, 0x00};
-
-  float_to_bytes_(HEIGHT_THRESHOLD[index], &send_data[8]);
-
-  for (int i = 0; i < 4; i++) {
-    data_frame[i] = send_data[i + 8];
-  }
-
-  send_data[12] = calculate_checksum(data_frame, 4);
+  float_to_bytes_(INSTALL_HEIGHT[index], &send_data[8]);
+  send_data[12] = calculate_checksum(send_data + 8, 4);
   this->send_query_(send_data, 13);
   ESP_LOGV(TAG, "SEND HEIGHT THRESHOLD: %s", format_hex_pretty(send_data, 13).c_str());
 }
 
 void MR60FDA2Component::set_sensitivity(uint8_t index) {
   uint8_t send_data[13] = {0x01, 0x00, 0x00, 0x00, 0x04, 0x0E, 0x0A, 0xFE, 0x00, 0x00, 0x00, 0x00, 0x00};
-  uint8_t data_frame[4] = {0x00, 0x00, 0x00, 0x00};
 
   int_to_bytes_(SENSITIVITY[index], &send_data[8]);
 
-  for (int i = 0; i < 4; i++) {
-    data_frame[i] = send_data[i + 8];
-  }
-
-  send_data[12] = calculate_checksum(data_frame, 4);
+  send_data[12] = calculate_checksum(send_data + 8, 4);
   this->send_query_(send_data, 13);
   ESP_LOGV(TAG, "SEND SET SENSITIVITY: %s", format_hex_pretty(send_data, 13).c_str());
 }
