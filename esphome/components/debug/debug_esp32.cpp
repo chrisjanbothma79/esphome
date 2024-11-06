@@ -87,53 +87,53 @@ std::string DebugComponent::get_reset_reason_() {
 #endif
       switch(esp_reset_reason()) {
         case ESP_RST_UNKNOWN:
-          reset_reason = "Software Reset CPU (Reset reason can not be determined)";
+          reset_reason = "Reset reason can not be determined";
           break;
         case ESP_RST_POWERON:
-          reset_reason = "Software Reset CPU (Reset due to power-on event)";
+          reset_reason = "Reset due to power-on event";
           break;
         case ESP_RST_EXT:
-          reset_reason = "Software Reset CPU (Reset by external pin)";
+          reset_reason = "Reset by external pin";
           break;
         case ESP_RST_SW:
-          reset_reason = "Software Reset CPU (Software reset via esp_restart)";
+          reset_reason = "Software reset via esp_restart";
           break;
         case ESP_RST_PANIC:
-          reset_reason = "Software Reset CPU (Software reset due to exception/panic)";
+          reset_reason = "Software reset due to exception/panic";
           break;
         case ESP_RST_INT_WDT:
-          reset_reason = "Software Reset CPU (Reset due to interrupt watchdog)";
+          reset_reason = "Reset (software or hardware) due to interrupt watchdog";
           break;
         case ESP_RST_TASK_WDT:
-          reset_reason = "Software Reset CPU (Reset due to task watchdog)";
+          reset_reason = "Reset due to task watchdog";
           break;
         case ESP_RST_WDT:
-          reset_reason = "Software Reset CPU (Reset due to other watchdogs)";
+          reset_reason = "Reset due to other watchdogs";
           break;
         case ESP_RST_DEEPSLEEP:
-          reset_reason = "Software Reset CPU (Reset after exiting deep sleep mode)";
+          reset_reason = "Reset after exiting deep sleep mode";
           break;
         case ESP_RST_BROWNOUT:
-          reset_reason = "Software Reset CPU (Brownout reset)";
+          reset_reason = "Brownout reset (software or hardware)";
           break;
         case ESP_RST_SDIO:
-          reset_reason = "Software Reset CPU (Reset over SDIO)";
+          reset_reason = "Reset over SDIO";
           break;
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 1, 0)
         case ESP_RST_USB:
-          reset_reason = "Software Reset CPU (Reset by USB peripheral)";
+          reset_reason = "Reset by USB peripheral";
           break;
         case ESP_RST_JTAG:
-          reset_reason = "Software Reset CPU (Reset by JTAG)";
+          reset_reason = "Reset by JTAG";
           break;
         case ESP_RST_EFUSE:
-          reset_reason = "Software Reset CPU (Reset due to efuse error)";
+          reset_reason = "Reset due to efuse error";
           break;
         case ESP_RST_PWR_GLITCH:
-          reset_reason = "Software Reset CPU (Reset due to power glitch detected)";
+          reset_reason = "Reset due to power glitch detected";
           break;
         case ESP_RST_CPU_LOCKUP:
-          reset_reason = "Software Reset CPU (Reset due to CPU lock up (double exception))";
+          reset_reason = "Reset due to CPU lock up (double exception)";
           break;
 #endif
         default:
