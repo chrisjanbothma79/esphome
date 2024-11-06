@@ -106,19 +106,6 @@ sensor:
     otc_hc_ratio_lb:
       name: "OTC heat curve ratio lower bound"
 
-  - platform: homeassistant
-    id: ch_room_temperature
-    entity_id: sensor.temperature
-    filters:
-      # Push room temperature every second to update PID parameters
-      - heartbeat: 1s
-  - platform: homeassistant
-    id: ch2_room_temperature
-    entity_id: sensor.other_temperature
-    filters:
-      # Push room temperature every second to update PID parameters
-      - heartbeat: 1s
-
 binary_sensor:
   - platform: opentherm
     fault_indication:
@@ -171,20 +158,3 @@ switch:
     ch2_active:
       name: "Boiler Central Heating 2 active"
 
-climate:
-  - platform: pid
-    name: "Central heating"
-    heat_output: t_set
-    default_target_temperature: 20
-    sensor: ch_room_temperature
-    control_parameters:
-      kp: 0.7
-      ki: 0.003
-  - platform: pid
-    name: "Central heating (Circuit 2)"
-    heat_output: t_set_ch2
-    default_target_temperature: 18
-    sensor: ch2_room_temperature
-    control_parameters:
-      kp: 0.4
-      ki: 0.004
