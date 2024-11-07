@@ -8,7 +8,8 @@ extern "C" {
 uint8_t temprature_sens_read();
 }
 #elif defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32C6) || \
-    defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+    defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3) || \
+    defined(USE_ESP32_VARIANT_ESP32H2) || defined(USE_ESP32_VARIANT_ESP32C2)
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
 #include "driver/temp_sensor.h"
 #else
@@ -32,7 +33,7 @@ static const char *const TAG = "internal_temperature";
 #ifdef USE_ESP32
 #if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)) && \
     (defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32C6) || defined(USE_ESP32_VARIANT_ESP32S2) || \
-     defined(USE_ESP32_VARIANT_ESP32S3))
+     defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32H2) || defined(USE_ESP32_VARIANT_ESP32C2))
 static temperature_sensor_handle_t tsensNew = NULL;
 #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0) && USE_ESP32_VARIANT
 #endif  // USE_ESP32
@@ -47,7 +48,8 @@ void InternalTemperatureSensor::update() {
   temperature = (raw - 32) / 1.8f;
   success = (raw != 128);
 #elif defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32C6) || \
-    defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+    defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)  || \
+    defined(USE_ESP32_VARIANT_ESP32H2) || defined(USE_ESP32_VARIANT_ESP32C2)
 #if ESP_IDF_VERSION < ESP_IDF_VERSION_VAL(5, 0, 0)
   temp_sensor_config_t tsens = TSENS_CONFIG_DEFAULT();
   temp_sensor_set_config(tsens);
@@ -98,7 +100,7 @@ void InternalTemperatureSensor::setup() {
 #ifdef USE_ESP32
 #if (ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)) && \
     (defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32C6) || defined(USE_ESP32_VARIANT_ESP32S2) || \
-     defined(USE_ESP32_VARIANT_ESP32S3))
+     defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32H2) || defined(USE_ESP32_VARIANT_ESP32C2))
   ESP_LOGCONFIG(TAG, "Setting up temperature sensor...");
 
   temperature_sensor_config_t tsens_config = TEMPERATURE_SENSOR_CONFIG_DEFAULT(-10, 80);
