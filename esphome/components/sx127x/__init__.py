@@ -135,8 +135,8 @@ def validate_config(config):
         raise cv.Invalid("PA power must be <= 15 dbm when using the RFO pin")
     if config[CONF_PA_PIN] == "BOOST" and config[CONF_PA_POWER] < 2:
         raise cv.Invalid("PA power must be >= 2 dbm when using the BOOST pin")
-    if CONF_BITSYNC in config and CONF_BITRATE not in config:
-        raise cv.Invalid("Bitsync is configured but not bitrate")
+    if CONF_BITSYNC in config and config[CONF_BITSYNC] and CONF_BITRATE not in config:
+        raise cv.Invalid("Bitsync is true but not bitrate not configured")
     if CONF_BITRATE in config and CONF_BITSYNC not in config:
         raise cv.Invalid(
             "Bitrate is configured but not bitsync; add 'bitsync: true' for original functionality"
