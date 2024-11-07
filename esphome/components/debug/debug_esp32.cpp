@@ -85,7 +85,7 @@ std::string DebugComponent::get_reset_reason_() {
     defined(USE_ESP32_VARIANT_ESP32S3) || defined(USE_ESP32_VARIANT_ESP32C6)
     case RTC_SW_CPU_RESET:
 #endif
-      switch(esp_reset_reason()) {
+      switch (esp_reset_reason()) {
         case ESP_RST_UNKNOWN:
           reset_reason = "Reset reason can not be determined";
           break;
