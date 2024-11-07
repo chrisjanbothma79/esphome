@@ -79,6 +79,7 @@ class Camera : public Component, public EntityBase {
   CallbackManager<void(std::shared_ptr<camera::CameraImage>)> new_image_callback_{};
   CallbackManager<void()> stream_start_callback_{};
   CallbackManager<void()> stream_stop_callback_{};
+  // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
   static Camera *global_camera;
 };
 
