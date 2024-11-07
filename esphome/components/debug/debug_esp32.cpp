@@ -136,7 +136,8 @@ std::string DebugComponent::get_reset_reason_() {
         case ESP_RST_CPU_LOCKUP:
           reset_reason = "Reset due to CPU lock up (double exception)";
           break;
-#endif
+#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 5)
+#endif  // USE_ESP32
         default:
           reset_reason = "Software Reset CPU";
           break;
