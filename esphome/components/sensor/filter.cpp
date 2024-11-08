@@ -288,18 +288,18 @@ optional<float> LambdaFilter::new_value(float value) {
 }
 
 // OffsetFilter
-OffsetFilter::OffsetFilter(TemplatableValue<float> offset) : offset_(offset) {}
+OffsetFilter::OffsetFilter(TemplatableValue<float> offset) : offset_(std::move(offset)) {}
 
 optional<float> OffsetFilter::new_value(float value) { return value + this->offset_.value(); }
 
 // MultiplyFilter
-MultiplyFilter::MultiplyFilter(TemplatableValue<float> multiplier) : multiplier_(multiplier) {}
+MultiplyFilter::MultiplyFilter(TemplatableValue<float> multiplier) : multiplier_(std::move(multiplier)) {}
 
 optional<float> MultiplyFilter::new_value(float value) { return value * this->multiplier_.value(); }
 
 // FilterOutValueFilter
 FilterOutValueFilter::FilterOutValueFilter(std::vector<TemplatableValue<float>> values_to_filter_out)
-    : values_to_filter_out_(values_to_filter_out) {}
+    : values_to_filter_out_(std::move(values_to_filter_out)) {}
 
 optional<float> FilterOutValueFilter::new_value(float value) {
   int8_t accuracy = this->parent_->get_accuracy_decimals();
@@ -388,7 +388,7 @@ optional<float> TimeoutFilter::new_value(float value) {
 }
 
 TimeoutFilter::TimeoutFilter(uint32_t time_period, TemplatableValue<float> new_value)
-    : time_period_(time_period), value_(new_value) {}
+    : time_period_(time_period), value_(std::move(new_value)) {}
 float TimeoutFilter::get_setup_priority() const { return setup_priority::HARDWARE; }
 
 // DebounceFilter
