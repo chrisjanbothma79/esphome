@@ -5,6 +5,7 @@ from esphome.const import (
     DEVICE_CLASS_CONNECTIVITY,
     ENTITY_CATEGORY_DIAGNOSTIC,
 )
+from . import CONF_STATUS_ID
 
 status_ns = cg.esphome_ns.namespace("status")
 StatusBinarySensor = status_ns.class_(
@@ -15,7 +16,15 @@ CONFIG_SCHEMA = binary_sensor.binary_sensor_schema(
     StatusBinarySensor,
     device_class=DEVICE_CLASS_CONNECTIVITY,
     entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-).extend(cv.COMPONENT_SCHEMA)
+).extend(cv.COMPONENT_SCHEMA).extend(
+            cv.Schema(
+                {
+                    cv.GenerateID(CONF_STATUS_ID): cv.All(
+                        cv.requires_component("network")
+                    ),
+                }
+            )
+        )
 
 
 async def to_code(config):
