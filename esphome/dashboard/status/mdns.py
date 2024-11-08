@@ -64,7 +64,9 @@ class MDNSStatus:
     async def async_run(self) -> None:
         dashboard = DASHBOARD
         entries = dashboard.entries
-        aiozc = AsyncEsphomeZeroconf()
+        aiozc = AsyncEsphomeZeroconf(
+            default_interface=dashboard.settings.zeroconf_default_interface
+        )
         self.aiozc = aiozc
         host_mdns_state = self.host_mdns_state
 
