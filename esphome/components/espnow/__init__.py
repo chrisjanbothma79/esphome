@@ -11,6 +11,8 @@ ESPNowComponent = espnow_ns.class_("ESPNowComponent", cg.Component)
 ESPNowListener = espnow_ns.class_("ESPNowListener")
 
 ESPNowPacket = espnow_ns.class_("ESPNowPacket")
+ESPNowPeer = espnow_ns.class_("Peer")
+
 ESPNowPacketConst = ESPNowPacket.operator("const")
 
 
@@ -51,6 +53,20 @@ def validate_raw_data(value):
     raise cv.Invalid(
         "data must either be a string wrapped in quotes or a list of bytes"
     )
+
+
+def validate_espnow_peer():
+    return PEER_SCHEMA
+
+
+PEER_SCHEMA = cv.Any(
+    {
+        cv.templatable(validate_espnow_peer),
+        cv.All(cv.string, cv.Length(min=8, max=8)),
+        cv.mac_address,
+        cv.uint64_t,
+    }
+)
 
 
 CONFIG_SCHEMA = cv.Schema(
@@ -146,12 +162,25 @@ async def register_protocol(var, config):
 
 
 @automation.register_action(
+    "espnow.broatcast",
+    SendAction,
+    cv.maybe_simple_value(
+        {
+            cv.GenerateID(): cv.use_id(ESPNowComponent),
+            cv.Optional(CONF_PEER, default=0xFFFFFFFFFFFF): cv.uint64_t,
+            cv.Required(CONF_DATA): cv.templatable(validate_raw_data),
+            cv.Optional(CONF_COMMAND): cv.templatable(cv.Range(min=16, max=255)),
+        },
+        key=CONF_DATA,
+    ),
+)
+@automation.register_action(
     "espnow.send",
     SendAction,
     cv.maybe_simple_value(
         {
             cv.GenerateID(): cv.use_id(ESPNowComponent),
-            cv.Optional(CONF_PEER): cv.templatable(cv.mac_address),
+            cv.Required(CONF_PEER): validate_espnow_peer,
             cv.Required(CONF_DATA): cv.templatable(validate_raw_data),
             cv.Optional(CONF_COMMAND): cv.templatable(cv.Range(min=16, max=255)),
         },
@@ -163,7 +192,7 @@ async def send_action(config, action_id, template_arg, args):
     await cg.register_parented(var, config[CONF_ID])
     if CONF_PEER in config:
         template_ = await cg.templatable(config[CONF_PEER].as_hex, args, cg.uint64)
-        cg.add(var.set_mac(template_))
+        cg.add(var.set_peer(template_))
 
     if CONF_COMMAND in config:
         template_ = await cg.templatable(config[CONF_COMMAND], args, cg.uint8)
@@ -206,5 +235,5 @@ async def send_action(config, action_id, template_arg, args):
 async def del_peer_action(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     template_ = await cg.templatable(config[CONF_PEER].as_hex, args, cg.uint64)
-    cg.add(var.set_mac(template_))
+    cg.add(var.set_peer(template_))
     return var

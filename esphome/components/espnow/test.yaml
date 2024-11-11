@@ -42,4 +42,4 @@ espnow:
 interval:
   - interval: 10sec
     then:
-      - espnow.send: "hallo everyone"
+      - espnow.broatcast: "hallo everyone"

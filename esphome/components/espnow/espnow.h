@@ -5,7 +5,6 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
-#include "esphome/core/log.h"
 #include <esp_now.h>
 
 #include <array>
@@ -29,8 +28,96 @@ static const uint8_t ESPNOW_COMMAND_ACK = 0x06;
 static const uint8_t ESPNOW_COMMAND_NAK = 0x15;
 static const uint8_t ESPNOW_COMMAND_RESEND = 0x05;
 
+static const char chars[] = "0123456789-AbCdEfGhIjKlMnOpQrStUvWxYz+aBcDeFgHiJkLmNoPqRsTuVwXyZ";
+static const uint64_t FAILED = 0;
+
+std::string encode_peer(uint64_t peer) {
+  std::string str1 = "";
+  if (peer == FAILED) {
+    return "[Not Set]"
+  } else if (peer == ESPNOW_BROADCAST_ADDR)
+    return "[BroadCast]";
+  do {
+    str1.push_back(chars[peer & 63]);  // Add on the left
+    peer = peer >> 6;
+  } while (peer != 0);
+  return str1;
+}
+
+uint64_t decode_peer(std::string peer) {
+  uint64_t mac = 0;
+  if (peer.size() != 8)
+    return FAILED;
+
+  for (int pos = peer.size(); pos > 0; pos--) {
+    char *p = strchr(chars, peer[pos - 1]);
+    if (p == nullptr)
+      return FAILED;
+    mac = (mac << 6) + (p - chars);
+  }
+  return mac;
+}
+
+struct Peer {
+  uint64_t id{0};
+
+  inline Peer() ESPHOME_ALWAYS_INLINE{};
+
+  inline Peer(const Peer &peer) ESPHOME_ALWAYS_INLINE { this.is = peer.id; }
+  inline Peer(std::String peer) ESPHOME_ALWAYS_INLINE { this->id = decode_peer(peercode); }
+  inline Peer(uint64_t peer) ESPHOME_ALWAYS_INLINE { this->id = peerid; }
+  inline Peer(const uint8_t *peer) ESPHOME_ALWAYS_INLINE { this = peer; }
+
+  inline uint8_t *mac() const { return (uint8_t *) &(this->id); }
+  inline std::string code() const { return encode_peer(this->id); }
+
+  inline char *c_str() const { return encode_peer(this->id).c_str(); }
+
+  inline bool operator=(const Peer &peer) {  // NOLINT
+    return this->id = peer.id;
+  }
+  inline Color &operator=(uint8_t *peer) ESPHOME_ALWAYS_INLINE {
+    memcpy((void *) this->mac(), (const void *) peer, 6);
+    return *this;
+  }
+  inline Color &operator=(std::String peer) ESPHOME_ALWAYS_INLINE {
+    this->id = decode_peer(peercode);
+    return *this;
+  }
+  inline Color &operator=(uint64_t peer) ESPHOME_ALWAYS_INLINE {
+    this->id = peer;
+    return *this;
+  }
+
+  inline bool operator==(const Peer &peer) {  // NOLINT
+    return this->id == peer.id;
+  }
+  inline bool operator==(uint64_t peer) {  // NOLINT
+    return this->id == peer;
+  }
+  inline bool operator==(std::String peer) {  // NOLINT
+    return this->id == decode_peer(peer);
+  }
+  inline bool operator==(const uint8_t *peer) {  // NOLINT
+    return memcmp(peer, this->mac(), 6) == 0;
+  }
+
+  inline bool operator!=(const Peer &peer) {  // NOLINT
+    return this->id != peer.id;
+  }
+  inline bool operator!=(uint64_t peer) {  // NOLINT
+    return this->id != rhs.raw_32;
+  }
+  inline bool operator!=(std::String peer) {  // NOLINT
+    return this->id != decode_peer(peer);
+  }
+  inline bool operator!=(const uint8_t *peer) {  // NOLINT
+    return memcmp(peer, this->mac(), 6) != 0;
+  }
+}
+
 struct ESPNowPacket {
-  uint64_t peer{0};
+  Peer &peerid{0};
   uint8_t rssi{0};
   int8_t attempts{0};
   bool is_broadcast{false};
@@ -47,12 +134,11 @@ struct ESPNowPacket {
 
   inline ESPNowPacket() ESPHOME_ALWAYS_INLINE {}
   // Create packet to be send.
-  inline ESPNowPacket(uint64_t peer, const uint8_t *data, uint8_t size, uint32_t protocol,
+
+  inline ESPNowPacket(Peer peer, const uint8_t *data, uint8_t size, uint32_t protocol,
                       uint8_t command = 0) ESPHOME_ALWAYS_INLINE {
     assert(size <= MAX_ESPNOW_DATA_SIZE);
-    if (peer == 0) {
-      peer = ESPNOW_BROADCAST_ADDR;
-    }
+    assert(peer == 0);
 
     this->peer = peer;
 
@@ -63,21 +149,6 @@ struct ESPNowPacket {
     this->size = size;
     std::memcpy(this->get_payload(), data, size);
   }
-  // Load received packet's.
-  ESPNowPacket(const uint8_t *peer, const uint8_t *data, uint8_t size) ESPHOME_ALWAYS_INLINE {
-    this->set_peer(peer);
-    std::memcpy(this->get_content(), data, size);
-    this->size = size - this->prefix_size();
-  }
-
-  inline uint8_t *get_peer() const { return (uint8_t *) &(this->peer); }
-  inline void set_peer(const uint8_t *peer) ESPHOME_ALWAYS_INLINE {
-    if (*peer == 0) {
-      peer = (uint8_t *) &ESPNOW_BROADCAST_ADDR;
-    }
-    memcpy((void *) this->get_peer(), (const void *) peer, 6);
-  };
-  inline bool is_peer(const uint8_t *peer) const { return memcmp(peer, this->get_peer(), 6) == 0; }
 
   uint8_t prefix_size() const { return sizeof(this->content.prefix); }
 
@@ -98,7 +169,7 @@ struct ESPNowPacket {
 
   inline uint8_t *get_content() const { return (uint8_t *) &(this->content); }
   inline uint8_t *get_payload() const { return (uint8_t *) &(this->content.payload); }
-  inline uint8_t get_byte_at(uint8_t pos) const {
+  inline uint8_t at(uint8_t pos) const {
     assert(pos < this->size);
     return *(((uint8_t *) &this->content) + pos);
   }
@@ -143,7 +214,7 @@ class ESPNowProtocol : public Parented<ESPNowComponent> {
     return valid;
   }
 
-  bool send(uint64_t peer, const uint8_t *data, uint8_t len, uint8_t command = 0);
+  bool send(peer peer, const uint8_t *data, uint8_t len, uint8_t command = 0);
 
  protected:
   uint8_t next_sequents_{255};
@@ -207,8 +278,8 @@ class ESPNowComponent : public Component {
     this->protocols_[protocol->get_protocol_id()] = protocol;
   }
 
-  esp_err_t add_peer(uint64_t addr);
-  esp_err_t del_peer(uint64_t addr);
+  esp_err_t add_peer(Peer peer);
+  esp_err_t del_peer(Peer peer);
 
   bool send_queue_empty() { return uxQueueMessagesWaiting(this->send_queue_) == 0; }
   bool send_queue_full() { return uxQueueSpacesAvailable(this->send_queue_) == 0; }
@@ -255,7 +326,7 @@ class ESPNowComponent : public Component {
 
 template<typename... Ts> class SendAction : public Action<Ts...>, public Parented<ESPNowComponent> {
  public:
-  template<typename V> void set_mac(V mac) { this->mac_ = mac; }
+  template<typename V> void set_peer(V peer) { this->peer_ = peer; }
   template<typename V> void set_command(V command) { this->command_ = command; }
 
   void set_data_template(std::function<std::vector<uint8_t>(Ts...)> func) {
@@ -265,7 +336,7 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
   void set_data_static(const std::vector<uint8_t> &data) { this->data_static_ = data; }
 
   void play(Ts... x) override {
-    uint64_t mac = this->mac_.value(x...);
+    Peer peer = this->peer_.value(x...);
     uint8_t command = 0;
     if (this->command_.has_value()) {
       command = this->mac_.value(x...);
@@ -274,12 +345,12 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
     if (this->dynamic_) {
       this->data_static_ = this->data_func_(x...);
     }
-    this->parent_->get_default_protocol()->send(mac, this->data_static_.data(), this->data_static_.size(), command);
+    this->parent_->get_default_protocol()->send(peer, this->data_static_.data(), this->data_static_.size(), command);
   }
 
  protected:
   TemplatableValue<uint8_t, Ts...> command_{};
-  TemplatableValue<uint64_t, Ts...> mac_{};
+  TemplatableValue<Peer, Ts...> peer_{};
   bool dynamic_{false};
   std::function<std::vector<uint8_t>(Ts...)> data_func_{};
   std::vector<uint8_t> data_static_{};
@@ -287,26 +358,26 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
 
 template<typename... Ts> class NewPeerAction : public Action<Ts...>, public Parented<ESPNowComponent> {
  public:
-  template<typename V> void set_mac(V mac) { this->mac_ = mac; }
+  template<typename V> void set_peer(V peer) { this->peer_ = peer; }
   void play(Ts... x) override {
-    auto mac = this->mac_.value(x...);
-    parent_->add_peer(mac);
+    auto peer = this->peer_.value(x...);
+    parent_->add_peer(peer);
   }
 
  protected:
-  TemplatableValue<uint64_t, Ts...> mac_{};
+  TemplatableValue<Peer, Ts...> mac_{};
 };
 
 template<typename... Ts> class DelPeerAction : public Action<Ts...>, public Parented<ESPNowComponent> {
  public:
-  template<typename V> void set_mac(V mac) { this->mac_ = mac; }
+  template<typename V> void set_peer(V mac) { this->peer_ = peer; }
   void play(Ts... x) override {
-    auto mac = this->mac_.value(x...);
+    auto peer = this->peer_.value(x...);
     parent_->del_peer(mac);
   }
 
  protected:
-  TemplatableValue<uint64_t, Ts...> mac_{};
+  TemplatableValue<Peer, Ts...> peer_{};
 };
 
 class ESPNowSentTrigger : public Trigger<const ESPNowPacket, bool> {
