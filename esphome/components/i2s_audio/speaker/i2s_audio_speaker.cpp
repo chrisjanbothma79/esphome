@@ -21,6 +21,8 @@ static const size_t TASK_DELAY_MS = 10;
 static const size_t TASK_STACK_SIZE = 4096;
 static const ssize_t TASK_PRIORITY = 23;
 
+static const size_t I2S_EVENT_QUEUE_COUNT = DMA_BUFFERS_COUNT + 1;
+
 static const char *const TAG = "i2s_audio.speaker";
 
 enum SpeakerEventGroupBits : uint32_t {
@@ -90,12 +92,18 @@ static const std::vector<int16_t> Q15_VOLUME_SCALING_FACTORS = {
 void I2SAudioSpeaker::setup() {
   ESP_LOGCONFIG(TAG, "Setting up I2S Audio Speaker...");
 
-  if (this->event_group_ == nullptr) {
-    this->event_group_ = xEventGroupCreate();
-  }
+  this->event_group_ = xEventGroupCreate();
 
   if (this->event_group_ == nullptr) {
     ESP_LOGE(TAG, "Failed to create event group");
+    this->mark_failed();
+    return;
+  }
+
+  this->i2s_event_queue_ = xQueueCreate(I2S_EVENT_QUEUE_COUNT, sizeof(i2s_event_t));
+
+  if (this->i2s_event_queue_ == nullptr) {
+    ESP_LOGE(TAG, "Failed to create I2S event queue");
     this->mark_failed();
     return;
   }
@@ -257,6 +265,7 @@ void I2SAudioSpeaker::speaker_task(void *params) {
 
     bool stop_gracefully = false;
     uint32_t last_data_received_time = millis();
+    bool tx_dma_underflow = false;
 
     while ((millis() - last_data_received_time) <= this_speaker->timeout_) {
       event_group_bits = xEventGroupGetBits(this_speaker->event_group_);
@@ -268,12 +277,18 @@ void I2SAudioSpeaker::speaker_task(void *params) {
         stop_gracefully = true;
       }
 
+      i2s_event_t i2s_event;
+      while (xQueueReceive(this_speaker->i2s_event_queue_, &i2s_event, 0)) {
+        if (i2s_event.type == I2S_EVENT_TX_Q_OVF) {
+          tx_dma_underflow = true;
+        }
+      }
+
       size_t bytes_to_read = dma_buffers_size;
       size_t bytes_read = this_speaker->audio_ring_buffer_->read((void *) this_speaker->data_buffer_, bytes_to_read,
                                                                  pdMS_TO_TICKS(TASK_DELAY_MS));
 
       if (bytes_read > 0) {
-        last_data_received_time = millis();
         size_t bytes_written = 0;
 
         if ((audio_stream_info.bits_per_sample == 16) && (this_speaker->q15_volume_factor_ < INT16_MAX)) {
@@ -294,15 +309,13 @@ void I2SAudioSpeaker::speaker_task(void *params) {
         if (bytes_written != bytes_read) {
           xEventGroupSetBits(this_speaker->event_group_, SpeakerEventGroupBits::ERR_ESP_INVALID_SIZE);
         }
-
+        tx_dma_underflow = false;
+        last_data_received_time = millis();
       } else {
         // No data received
-
-        if (stop_gracefully) {
+        if (stop_gracefully && tx_dma_underflow) {
           break;
         }
-
-        i2s_zero_dma_buffer(this_speaker->parent_->get_port());
       }
     }
   } else {
@@ -313,7 +326,6 @@ void I2SAudioSpeaker::speaker_task(void *params) {
 
   xEventGroupSetBits(this_speaker->event_group_, SpeakerEventGroupBits::STATE_STOPPING);
 
-  i2s_stop(this_speaker->parent_->get_port());
   i2s_driver_uninstall(this_speaker->parent_->get_port());
 
   this_speaker->parent_->unlock();
@@ -435,7 +447,8 @@ esp_err_t I2SAudioSpeaker::start_i2s_driver_() {
   }
 #endif
 
-  esp_err_t err = i2s_driver_install(this->parent_->get_port(), &config, 0, nullptr);
+  esp_err_t err =
+      i2s_driver_install(this->parent_->get_port(), &config, I2S_EVENT_QUEUE_COUNT, &this->i2s_event_queue_);
   if (err != ESP_OK) {
     // Failed to install the driver, so unlock the I2S port
     this->parent_->unlock();
@@ -498,6 +511,7 @@ void I2SAudioSpeaker::delete_task_(size_t buffer_size) {
   }
 
   xEventGroupSetBits(this->event_group_, SpeakerEventGroupBits::STATE_STOPPED);
+  xQueueReset(this->i2s_event_queue_);
 
   this->task_created_ = false;
   vTaskDelete(nullptr);

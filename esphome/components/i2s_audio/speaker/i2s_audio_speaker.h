@@ -7,6 +7,7 @@
 #include <driver/i2s.h>
 
 #include <freertos/event_groups.h>
+#include <freertos/queue.h>
 #include <freertos/FreeRTOS.h>
 
 #include "esphome/components/audio/audio.h"
@@ -116,6 +117,8 @@ class I2SAudioSpeaker : public I2SAudioOut, public speaker::Speaker, public Comp
 
   TaskHandle_t speaker_task_handle_{nullptr};
   EventGroupHandle_t event_group_{nullptr};
+
+  QueueHandle_t i2s_event_queue_;
 
   uint8_t *data_buffer_;
   std::shared_ptr<RingBuffer> audio_ring_buffer_;
