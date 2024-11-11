@@ -17,7 +17,7 @@ static const uint8_t DMA_BUFFER_DURATION_MS = 15;
 static const size_t DMA_BUFFERS_COUNT = 4;
 
 static const size_t TASK_DELAY_MS = DMA_BUFFER_DURATION_MS * DMA_BUFFERS_COUNT / 2;
-static const uint32_t RING_BUFFER_DURATION_MS = 2 * DMA_BUFFER_DURATION_MS * DMA_BUFFERS_COUNT;
+static const uint32_t RING_BUFFER_DURATION_MS = 500;
 
 static const size_t TASK_STACK_SIZE = 4096;
 static const ssize_t TASK_PRIORITY = 23;
