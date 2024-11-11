@@ -118,7 +118,7 @@ class I2SAudioSpeaker : public I2SAudioOut, public speaker::Speaker, public Comp
   EventGroupHandle_t event_group_{nullptr};
 
   uint8_t *data_buffer_;
-  std::unique_ptr<RingBuffer> audio_ring_buffer_;
+  std::shared_ptr<RingBuffer> audio_ring_buffer_;
 
   uint32_t timeout_;
   uint8_t dout_pin_;

@@ -24,10 +24,9 @@ static const ssize_t TASK_PRIORITY = 23;
 static const char *const TAG = "i2s_audio.speaker";
 
 enum SpeakerEventGroupBits : uint32_t {
-  COMMAND_START = (1 << 0),                           // Starts the main task purpose
-  COMMAND_STOP = (1 << 1),                            // stops the main task
-  COMMAND_STOP_GRACEFULLY = (1 << 2),                 // Stops the task once all data has been written
-  MESSAGE_RING_BUFFER_AVAILABLE_TO_WRITE = (1 << 5),  // Locks the ring buffer when not set
+  COMMAND_START = (1 << 0),            // starts the speaker task
+  COMMAND_STOP = (1 << 1),             // stops the speaker task
+  COMMAND_STOP_GRACEFULLY = (1 << 2),  // Stops the speaker task once all data has been written
   STATE_STARTING = (1 << 10),
   STATE_RUNNING = (1 << 11),
   STATE_STOPPING = (1 << 12),
@@ -199,23 +198,14 @@ size_t I2SAudioSpeaker::play(const uint8_t *data, size_t length, TickType_t tick
     this->start();
   }
 
-  // Wait for the ring buffer to be available
-  uint32_t event_bits =
-      xEventGroupWaitBits(this->event_group_, SpeakerEventGroupBits::MESSAGE_RING_BUFFER_AVAILABLE_TO_WRITE, pdFALSE,
-                          pdFALSE, pdMS_TO_TICKS(TASK_DELAY_MS));
-
-  if (event_bits & SpeakerEventGroupBits::MESSAGE_RING_BUFFER_AVAILABLE_TO_WRITE) {
-    // Ring buffer is available to write
-
-    // Lock the ring buffer, write to it, then unlock it
-    xEventGroupClearBits(this->event_group_, SpeakerEventGroupBits::MESSAGE_RING_BUFFER_AVAILABLE_TO_WRITE);
-    size_t bytes_written = this->audio_ring_buffer_->write_without_replacement((void *) data, length, ticks_to_wait);
-    xEventGroupSetBits(this->event_group_, SpeakerEventGroupBits::MESSAGE_RING_BUFFER_AVAILABLE_TO_WRITE);
-
-    return bytes_written;
+  size_t bytes_written = 0;
+  if (this->audio_ring_buffer_.use_count() == 1) {
+    // Temporarily share ownership of the ring buffer so it won't be deallocated while writing
+    std::shared_ptr<RingBuffer> temp_ring_buffer = this->audio_ring_buffer_;
+    bytes_written = temp_ring_buffer->write_without_replacement((void *) data, length, ticks_to_wait);
   }
 
-  return 0;
+  return bytes_written;
 }
 
 bool I2SAudioSpeaker::has_buffered_data() const {
@@ -258,9 +248,6 @@ void I2SAudioSpeaker::speaker_task(void *params) {
   if (this_speaker->send_esp_err_to_event_group_(this_speaker->start_i2s_driver_())) {
     // Failed to start I2S driver
     this_speaker->delete_task_(dma_buffers_size);
-  } else {
-    // Ring buffer is allocated, so indicate its can be written to
-    xEventGroupSetBits(this_speaker->event_group_, SpeakerEventGroupBits::MESSAGE_RING_BUFFER_AVAILABLE_TO_WRITE);
   }
 
   if (!this_speaker->send_esp_err_to_event_group_(this_speaker->reconfigure_i2s_stream_info_(audio_stream_info))) {
@@ -402,9 +389,9 @@ esp_err_t I2SAudioSpeaker::allocate_buffers_(size_t data_buffer_size, size_t rin
     return ESP_ERR_NO_MEM;
   }
 
-  if (this->audio_ring_buffer_ == nullptr) {
-    // Allocate ring buffer
-    this->audio_ring_buffer_ = RingBuffer::create(ring_buffer_size);
+  if (this->audio_ring_buffer_.use_count() == 0) {
+    // Allocate ring buffer. Moves the created unique_ptr to a shared_ptr to ensure it isn't improperly deallocated.
+    this->audio_ring_buffer_ = std::move(RingBuffer::create(ring_buffer_size));
   }
 
   if (this->audio_ring_buffer_ == nullptr) {
@@ -502,16 +489,7 @@ esp_err_t I2SAudioSpeaker::reconfigure_i2s_stream_info_(audio::AudioStreamInfo &
 }
 
 void I2SAudioSpeaker::delete_task_(size_t buffer_size) {
-  if (this->audio_ring_buffer_ != nullptr) {
-    xEventGroupWaitBits(this->event_group_,
-                        MESSAGE_RING_BUFFER_AVAILABLE_TO_WRITE,  // Bit message to read
-                        pdFALSE,                                 // Don't clear the bits on exit
-                        pdTRUE,                                  // Don't wait for all the bits,
-                        portMAX_DELAY);                          // Block indefinitely until a command bit is set
-
-    this->audio_ring_buffer_.reset();  // Deallocates the ring buffer stored in the unique_ptr
-    this->audio_ring_buffer_ = nullptr;
-  }
+  this->audio_ring_buffer_.reset();  // Releases onwership of the shared_ptr
 
   if (this->data_buffer_ != nullptr) {
     ExternalRAMAllocator<uint8_t> allocator(ExternalRAMAllocator<uint8_t>::ALLOW_FAILURE);
