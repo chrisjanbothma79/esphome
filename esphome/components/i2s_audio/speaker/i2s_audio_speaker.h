@@ -28,6 +28,7 @@ class I2SAudioSpeaker : public I2SAudioOut, public speaker::Speaker, public Comp
   void setup() override;
   void loop() override;
 
+  void set_buffer_duration(uint32_t buffer_duration_ms) { this->buffer_duration_ms_ = buffer_duration_ms; }
   void set_timeout(uint32_t ms) { this->timeout_ = ms; }
   void set_dout_pin(uint8_t pin) { this->dout_pin_ = pin; }
 #if SOC_I2S_SUPPORTS_DAC
@@ -122,6 +123,8 @@ class I2SAudioSpeaker : public I2SAudioOut, public speaker::Speaker, public Comp
 
   uint8_t *data_buffer_;
   std::shared_ptr<RingBuffer> audio_ring_buffer_;
+
+  uint32_t buffer_duration_ms_;
 
   optional<uint32_t> timeout_;
   uint8_t dout_pin_;

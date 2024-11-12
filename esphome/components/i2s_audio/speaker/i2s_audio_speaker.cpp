@@ -17,7 +17,6 @@ static const uint8_t DMA_BUFFER_DURATION_MS = 15;
 static const size_t DMA_BUFFERS_COUNT = 4;
 
 static const size_t TASK_DELAY_MS = DMA_BUFFER_DURATION_MS * DMA_BUFFERS_COUNT / 2;
-static const uint32_t RING_BUFFER_DURATION_MS = 500;
 
 static const size_t TASK_STACK_SIZE = 4096;
 static const ssize_t TASK_PRIORITY = 23;
@@ -251,7 +250,7 @@ void I2SAudioSpeaker::speaker_task(void *params) {
   const size_t dma_buffers_size = DMA_BUFFERS_COUNT * DMA_BUFFER_DURATION_MS * this_speaker->sample_rate_ / 1000 *
                                   bytes_per_sample * number_of_channels;
   const size_t ring_buffer_size =
-      RING_BUFFER_DURATION_MS * this_speaker->sample_rate_ / 1000 * bytes_per_sample * number_of_channels;
+      this_speaker->buffer_duration_ms_ * this_speaker->sample_rate_ / 1000 * bytes_per_sample * number_of_channels;
 
   if (this_speaker->send_esp_err_to_event_group_(this_speaker->allocate_buffers_(dma_buffers_size, ring_buffer_size))) {
     // Failed to allocate buffers

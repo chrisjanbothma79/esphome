@@ -24,7 +24,7 @@ I2SAudioSpeaker = i2s_audio_ns.class_(
     "I2SAudioSpeaker", cg.Component, speaker.Speaker, I2SAudioOut
 )
 
-
+CONF_BUFFER_DURATION = "buffer_duration"
 CONF_DAC_TYPE = "dac_type"
 CONF_I2S_COMM_FMT = "i2s_comm_fmt"
 
@@ -72,6 +72,9 @@ BASE_SCHEMA = (
     )
     .extend(
         {
+            cv.Optional(
+                CONF_BUFFER_DURATION, default="500ms"
+            ): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_TIMEOUT, default="500ms"): cv.Any(
                 cv.positive_time_period_milliseconds,
                 cv.one_of(CONF_DISABLED, lower=True),
@@ -119,3 +122,4 @@ async def to_code(config):
         cg.add(var.set_i2s_comm_fmt(config[CONF_I2S_COMM_FMT]))
     if config[CONF_TIMEOUT] != CONF_DISABLED:
         cg.add(var.set_timeout(config[CONF_TIMEOUT]))
+    cg.add(var.set_buffer_duration(config[CONF_BUFFER_DURATION]))
