@@ -334,7 +334,8 @@ extern MQTTClientComponent *global_mqtt_client;  // NOLINT(cppcoreguidelines-avo
 
 class MQTTMessageTrigger : public Trigger<std::string> {
  public:
-  void subscribe(MQTTClientComponent *parent, const std::string &topic, uint8_t qos, const std::string &filter_payload) {
+  void subscribe(MQTTClientComponent *parent, const std::string &topic, uint8_t qos,
+                 const std::string &filter_payload) {
     parent->subscribe(
         topic,
         [this, filter_payload](const std::string &topic, const std::string &payload) {
