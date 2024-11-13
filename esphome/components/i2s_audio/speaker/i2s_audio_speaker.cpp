@@ -99,14 +99,6 @@ void I2SAudioSpeaker::setup() {
     this->mark_failed();
     return;
   }
-
-  this->i2s_event_queue_ = xQueueCreate(I2S_EVENT_QUEUE_COUNT, sizeof(i2s_event_t));
-
-  if (this->i2s_event_queue_ == nullptr) {
-    ESP_LOGE(TAG, "Failed to create I2S event queue");
-    this->mark_failed();
-    return;
-  }
 }
 
 void I2SAudioSpeaker::loop() {
@@ -519,7 +511,6 @@ void I2SAudioSpeaker::delete_task_(size_t buffer_size) {
   }
 
   xEventGroupSetBits(this->event_group_, SpeakerEventGroupBits::STATE_STOPPED);
-  xQueueReset(this->i2s_event_queue_);
 
   this->task_created_ = false;
   vTaskDelete(nullptr);
