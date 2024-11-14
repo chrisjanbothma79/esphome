@@ -462,7 +462,8 @@ void Nextion::process_nextion_commands_() {
         this->remove_from_q_();
         break;
       case 0x24:  //  Serial Buffer overflow occurs
-        ESP_LOGW(TAG, "Nextion reported Serial Buffer overflow!");
+        // Buffer will continue to receive the current instruction, all previous instructions are lost.
+        ESP_LOGE(TAG, "Nextion reported Serial Buffer overflow!");
         this->buffer_overflow_callback_.call();
         break;
       case 0x65: {  // touch event return data
