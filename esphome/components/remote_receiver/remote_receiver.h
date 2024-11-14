@@ -40,7 +40,6 @@ struct RemoteReceiverComponentStore {
   uint32_t receive_size{0};
   esp_err_t error{ESP_OK};
   rmt_receive_config_t config;
-  rmt_channel_handle_t channel;
 #endif
 };
 
