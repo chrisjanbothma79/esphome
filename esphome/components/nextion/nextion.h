@@ -1134,6 +1134,12 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
    */
   void add_touch_event_callback(std::function<void(uint8_t, uint8_t, bool)> &&callback);
 
+  /** Add a callback to be notified when the nextion reports a buffer overflow.
+   *
+   * @param callback The void() callback.
+   */
+  void add_buffer_overflow_event_callback(std::function<void()> &&callback);
+
   void update_all_components();
 
   /**
