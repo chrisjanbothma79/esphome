@@ -75,6 +75,7 @@ void Sml::process_sml_file_(const bytes &sml_data) {
 }
 
 void Sml::log_obis_info_(const std::vector<ObisInfo> &obis_info_vec) {
+#ifdef ESPHOME_LOG_HAS_DEBUG
   ESP_LOGD(TAG, "OBIS info:");
   for (auto const &obis_info : obis_info_vec) {
     std::string info;
@@ -83,6 +84,7 @@ void Sml::log_obis_info_(const std::vector<ObisInfo> &obis_info_vec) {
     info += " [0x" + bytes_repr(obis_info.value) + "]";
     ESP_LOGD(TAG, "%s", info.c_str());
   }
+#endif
 }
 
 void Sml::publish_obis_info_(const std::vector<ObisInfo> &obis_info_vec) {
