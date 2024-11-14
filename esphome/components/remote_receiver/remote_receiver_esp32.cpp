@@ -9,17 +9,23 @@ namespace remote_receiver {
 static const char *const TAG = "remote_receiver.esp32";
 static const uint32_t MEM_BLOCK_SIZE = 64u;
 
-static bool IRAM_ATTR HOT rmt_callback(rmt_channel_handle_t channel, const rmt_rx_done_event_data_t *data, void *arg) {
+static bool IRAM_ATTR HOT rmt_callback(rmt_channel_handle_t channel, const rmt_rx_done_event_data_t *event, void *arg) {
   RemoteReceiverComponentStore *store = (RemoteReceiverComponentStore *) arg;
-  uint32_t next =
-      store->buffer_write_at + sizeof(rmt_rx_done_event_data_t) + data->num_symbols * sizeof(rmt_symbol_word_t);
-  if ((next + sizeof(rmt_rx_done_event_data_t) + store->receive_size) > store->buffer_size) {
-    next = 0;
+  rmt_rx_done_event_data_t *event_curr = (rmt_rx_done_event_data_t *) (store->buffer + store->buffer_write);
+  uint32_t event_size = sizeof(rmt_rx_done_event_data_t);
+  uint32_t next_write = store->buffer_write + event_size + event->num_symbols * sizeof(rmt_symbol_word_t);
+  if (next_write + event_size + store->receive_size > store->buffer_size) {
+    next_write = 0;
   }
-  store->error = rmt_receive(store->channel, (void *) (store->buffer + next + sizeof(rmt_rx_done_event_data_t)),
-                             store->receive_size, &store->config);
-  *(rmt_rx_done_event_data_t *) (store->buffer + store->buffer_write_at) = *data;
-  store->buffer_write_at = next;
+  if (store->buffer_read - next_write < event_size + store->receive_size) {
+    next_write = store->buffer_write;
+    store->overflow = true;
+  }
+  store->error = rmt_receive(store->channel, (uint8_t *) store->buffer + next_write + event_size, store->receive_size,
+                             &store->config);
+  event_curr->num_symbols = event->num_symbols;
+  event_curr->received_symbols = event->received_symbols;
+  store->buffer_write = next_write;
   return false;
 }
 
@@ -55,16 +61,17 @@ void RemoteReceiverComponent::setup() {
     return;
   }
 
+  uint32_t event_size = sizeof(rmt_rx_done_event_data_t);
   uint32_t max_filter_ns = 255u * 1000 / this->clock_divider_;
   uint32_t max_idle_ns = 65535u * 1000;
   this->store_.config.signal_range_min_ns = std::min(this->filter_us_ * 1000, max_filter_ns);
   this->store_.config.signal_range_max_ns = std::min(this->idle_us_ * 1000, max_idle_ns);
   this->store_.channel = this->channel_;
   this->store_.receive_size = MEM_BLOCK_SIZE * this->mem_block_num_ * sizeof(rmt_symbol_word_t);
-  this->store_.buffer_size = std::max(sizeof(rmt_rx_done_event_data_t) + this->store_.receive_size, this->buffer_size_);
+  this->store_.buffer_size = std::max((event_size + this->store_.receive_size) * 2, this->buffer_size_);
   this->store_.buffer = new uint8_t[this->buffer_size_];
-  error = rmt_receive(this->channel_, (uint8_t *) this->store_.buffer + sizeof(rmt_rx_done_event_data_t),
-                      this->store_.receive_size, &this->store_.config);
+  error = rmt_receive(this->channel_, (uint8_t *) this->store_.buffer + event_size, this->store_.receive_size,
+                      &this->store_.config);
   if (error != ESP_OK) {
     this->error_code_ = error;
     this->error_string_ = "in rmt_receive";
@@ -98,14 +105,17 @@ void RemoteReceiverComponent::loop() {
     this->error_string_ = "in rmt_callback";
     this->mark_failed();
   }
-  if (this->store_.buffer_write_at != this->store_.buffer_read_at) {
-    rmt_rx_done_event_data_t *data = (rmt_rx_done_event_data_t *) (this->store_.buffer + this->store_.buffer_read_at);
+  if (this->store_.buffer_write != this->store_.buffer_read) {
+    rmt_rx_done_event_data_t *data = (rmt_rx_done_event_data_t *) (this->store_.buffer + this->store_.buffer_read);
     this->decode_rmt_(data->received_symbols, data->num_symbols);
-    this->store_.buffer_read_at += sizeof(rmt_rx_done_event_data_t) + data->num_symbols * sizeof(rmt_symbol_word_t);
-    if ((this->store_.buffer_read_at + sizeof(rmt_rx_done_event_data_t) + this->store_.receive_size) >
-        this->store_.buffer_size) {
-      this->store_.buffer_read_at = 0;
+    uint32_t event_size = sizeof(rmt_rx_done_event_data_t);
+    uint32_t data_size = data->num_symbols * sizeof(rmt_symbol_word_t);
+    uint32_t next = this->store_.buffer_read + event_size + data_size;
+    if ((next + event_size + this->store_.receive_size) > this->store_.buffer_size) {
+      next = 0;
     }
+    this->store_.buffer_read = next;
+
     if (!this->temp_.empty()) {
       this->temp_.push_back(-this->idle_us_);
       this->call_listeners_dumpers_();
