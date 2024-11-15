@@ -74,6 +74,7 @@ void RemoteTransmitterComponent::configure_rmt_() {
     carrier.duty_cycle = this->carrier_duty_percent_;
   }
   carrier.flags.polarity_active_low = this->inverted_;
+  carrier.flags.always_on = 0;
   error = rmt_apply_carrier(this->channel_, &carrier);
   if (error != ESP_OK) {
     this->error_code_ = error;
@@ -140,6 +141,8 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
   this->transmit_trigger_->trigger();
   for (uint32_t i = 0; i < send_times; i++) {
     rmt_transmit_config_t config{};
+    config.loop_count = 0;
+    config.flags.eot_level = this->inverted_;
     esp_err_t error = rmt_transmit(this->channel_, this->encoder_, this->rmt_temp_.data(),
                                    this->rmt_temp_.size() * sizeof(rmt_symbol_word_t), &config);
     if (error != ESP_OK) {
