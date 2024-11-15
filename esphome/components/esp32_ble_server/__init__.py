@@ -1,3 +1,4 @@
+import encodings
 from esphome import automation
 import esphome.codegen as cg
 from esphome.components import esp32_ble
@@ -11,6 +12,7 @@ from esphome.const import (
     CONF_ON_CONNECT,
     CONF_ON_DISCONNECT,
     CONF_SERVICES,
+    CONF_TYPE,
     CONF_UUID,
     CONF_VALUE,
 )
@@ -20,27 +22,28 @@ AUTO_LOAD = ["esp32_ble", "bytebuffer"]
 CODEOWNERS = ["@jesserockz", "@clydebarrow", "@Rapsssito"]
 DEPENDENCIES = ["esp32"]
 
-CONF_BYTE_LENGTH = "byte_length"
+CONF_ADVERTISE = "advertise"
+CONF_BROADCAST = "broadcast"
+CONF_CHARACTERISTICS = "characteristics"
+CONF_DESCRIPTION = "description"
+CONF_DESCRIPTORS = "descriptors"
+CONF_ENDIANNES = "endianness"
+CONF_INDICATE = "indicate"
 CONF_MANUFACTURER = "manufacturer"
 CONF_MANUFACTURER_DATA = "manufacturer_data"
-CONF_ADVERTISE = "advertise"
 CONF_ON_WRITE = "on_write"
-CONF_CHARACTERISTICS = "characteristics"
 CONF_READ = "read"
-CONF_WRITE = "write"
-CONF_BROADCAST = "broadcast"
-CONF_INDICATE = "indicate"
-CONF_WRITE_NO_RESPONSE = "write_no_response"
-CONF_DESCRIPTORS = "descriptors"
 CONF_STRING_ENCODING = "string_encoding"
-CONF_DESCRIPTION = "description"
+CONF_WRITE = "write"
+CONF_WRITE_NO_RESPONSE = "write_no_response"
 
-CONF_CHAR_VALUE_ACTION_ID_ = "char_value_action_id_"
-CONF_VALUE_BUFFER_ = "value_buffer_"
-CONF_CUD_ID_ = "cud_id_"
-CONF_CUD_VALUE_BUFFER_ = "cud_value_buffer_"
+# Internal configuration keys
 CONF_CCCD_ID_ = "cccd_id_"
 CONF_CCCD_VALUE_BUFFER_ = "cccd_value_buffer_"
+CONF_CHAR_VALUE_ACTION_ID_ = "char_value_action_id_"
+CONF_CUD_ID_ = "cud_id_"
+CONF_CUD_VALUE_BUFFER_ = "cud_value_buffer_"
+CONF_VALUE_BUFFER_ = "value_buffer_"
 
 # Core key to store the global configuration
 _KEY_NOTIFY_REQUIRED = "esp32_ble_server_notify_required"
@@ -68,6 +71,7 @@ BLECharacteristicNotifyAction = esp32_ble_server_automations_ns.class_(
     "BLECharacteristicNotifyAction", automation.Action
 )
 bytebuffer_ns = cg.esphome_ns.namespace("bytebuffer")
+Endianness_ns = bytebuffer_ns.namespace("Endian")
 ByteBuffer_ns = bytebuffer_ns.namespace("ByteBuffer")
 ByteBuffer = bytebuffer_ns.class_("ByteBuffer")
 
@@ -108,18 +112,6 @@ def validate_notify_action(action_char_id):
     return action_char_id
 
 
-def validate_descritor_value_length(descriptor_conf):
-    # Check if the value length is specified for the descriptor if the value is a templatable
-    if (
-        cg.is_template(descriptor_conf[CONF_VALUE])
-        and CONF_BYTE_LENGTH not in descriptor_conf
-    ):
-        raise cv.Invalid(
-            f"Descriptor {descriptor_conf[CONF_UUID]} is a templatable value, so the {CONF_BYTE_LENGTH} property must be set"
-        )
-    return descriptor_conf
-
-
 def create_description_cud(char_config):
     if CONF_DESCRIPTION not in char_config:
         return char_config
@@ -137,8 +129,6 @@ def create_description_cud(char_config):
             CONF_READ: True,
             CONF_WRITE: False,
             CONF_VALUE: char_config[CONF_DESCRIPTION],
-            CONF_STRING_ENCODING: char_config[CONF_STRING_ENCODING],
-            CONF_VALUE_BUFFER_: char_config[CONF_CUD_VALUE_BUFFER_],
         }
     )
     return char_config
@@ -163,9 +153,12 @@ def create_notify_cccd(char_config):
             CONF_UUID: 0x2902,
             CONF_READ: True,
             CONF_WRITE: True,
-            CONF_VALUE: [0, 0],
-            CONF_STRING_ENCODING: char_config[CONF_STRING_ENCODING],
-            CONF_VALUE_BUFFER_: char_config[CONF_CCCD_VALUE_BUFFER_],
+            CONF_VALUE: VALUE_SCHEMA(
+                {
+                    CONF_VALUE: "{0, 0}",
+                    CONF_TYPE: "std::vector<uint8_t>",
+                }
+            ),
         }
     )
     return char_config
@@ -189,23 +182,51 @@ def final_validate_config(config):
     return config
 
 
-VALUE_SCHEMA = cv.Any(
-    cv.boolean,
-    cv.uint8_t,
-    cv.uint16_t,
-    cv.uint32_t,
-    cv.int_,
-    cv.float_,
-    cv.templatable(cv.All(cv.ensure_list(cv.uint8_t), cv.Length(min=1))),
-    cv.string,
-)
+def validate_value_type(value_config):
+    # If the value is a not a templatable, the type must be set
+    if not cg.is_template(value_config[CONF_VALUE]):
+        if CONF_TYPE not in value_config:
+            raise cv.Invalid(
+                f"Value {value_config[CONF_VALUE]} is not templatable, so the {CONF_TYPE} property must be set"
+            )
+    return value_config
 
-VALUE_EXTRAS_SCHEMA = cv.Schema(
+
+VALUE_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_STRING_ENCODING, default="utf-8"): cv.string,
-        cv.Optional(CONF_BYTE_LENGTH): cv.uint16_t,
+        cv.Required(CONF_VALUE): cv.Any(
+            cv.string_strict,
+            cv.templatable(cv.All(cv.ensure_list(cv.uint8_t), cv.Length(min=1))),
+        ),
+        cv.Optional(CONF_TYPE): cv.string_strict,
+        cv.Optional(CONF_STRING_ENCODING, default="utf-8"): cv.Any(
+            *(
+                list(encodings.aliases.aliases.keys())
+                + [
+                    "utf-8",
+                    "utf8",
+                    "latin-1",
+                    "latin1",
+                    "iso-8859-1",
+                    "iso8859-1",
+                    "ascii",
+                    "us-ascii",
+                    "utf-16",
+                    "utf16",
+                    "utf-32",
+                    "utf32",
+                ]
+            )  # Common encodings
+        ),
+        cv.Optional(CONF_ENDIANNES, default="LITTLE"): cv.enum(
+            {
+                "LITTLE": Endianness_ns.LITTLE,
+                "BIG": Endianness_ns.BIG,
+            }
+        ),
         cv.GenerateID(CONF_VALUE_BUFFER_): cv.declare_id(ByteBuffer),
-    }
+    },
+    extra_schemas=[validate_value_type],
 )
 
 DESCRIPTOR_SCHEMA = cv.Schema(
@@ -217,37 +238,31 @@ DESCRIPTOR_SCHEMA = cv.Schema(
         cv.Optional(CONF_ON_WRITE): automation.validate_automation(single=True),
         cv.Required(CONF_VALUE): VALUE_SCHEMA,
     },
-    extra_schemas=[validate_descritor_value_length, validate_desc_on_write],
-).extend(VALUE_EXTRAS_SCHEMA)
-
-SERVICE_CHARACTERISTIC_SCHEMA = (
-    cv.Schema(
-        {
-            cv.GenerateID(): cv.declare_id(BLECharacteristic),
-            cv.Required(CONF_UUID): cv.Any(bt_uuid, cv.hex_uint32_t),
-            cv.Optional(CONF_VALUE): VALUE_SCHEMA,
-            cv.GenerateID(CONF_CHAR_VALUE_ACTION_ID_): cv.declare_id(
-                BLECharacteristicSetValueAction
-            ),
-            cv.Optional(CONF_DESCRIPTORS, default=[]): cv.ensure_list(
-                DESCRIPTOR_SCHEMA
-            ),
-            cv.Optional(CONF_ON_WRITE): automation.validate_automation(single=True),
-            cv.Optional(CONF_DESCRIPTION): cv.string,
-            cv.GenerateID(CONF_CUD_ID_): cv.declare_id(BLEDescriptor),
-            cv.GenerateID(CONF_CUD_VALUE_BUFFER_): cv.declare_id(ByteBuffer),
-            cv.GenerateID(CONF_CCCD_ID_): cv.declare_id(BLEDescriptor),
-            cv.GenerateID(CONF_CCCD_VALUE_BUFFER_): cv.declare_id(ByteBuffer),
-        },
-        extra_schemas=[
-            validate_char_on_write,
-            create_description_cud,
-            create_notify_cccd,
-        ],
-    )
-    .extend({cv.Optional(k, default=False): cv.boolean for k in PROPERTY_MAP})
-    .extend(VALUE_EXTRAS_SCHEMA)
+    extra_schemas=[validate_desc_on_write],
 )
+
+SERVICE_CHARACTERISTIC_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.declare_id(BLECharacteristic),
+        cv.Required(CONF_UUID): cv.Any(bt_uuid, cv.hex_uint32_t),
+        cv.Optional(CONF_VALUE): VALUE_SCHEMA,
+        cv.GenerateID(CONF_CHAR_VALUE_ACTION_ID_): cv.declare_id(
+            BLECharacteristicSetValueAction
+        ),
+        cv.Optional(CONF_DESCRIPTORS, default=[]): cv.ensure_list(DESCRIPTOR_SCHEMA),
+        cv.Optional(CONF_ON_WRITE): automation.validate_automation(single=True),
+        cv.Optional(CONF_DESCRIPTION): VALUE_SCHEMA,
+        cv.GenerateID(CONF_CUD_ID_): cv.declare_id(BLEDescriptor),
+        cv.GenerateID(CONF_CUD_VALUE_BUFFER_): cv.declare_id(ByteBuffer),
+        cv.GenerateID(CONF_CCCD_ID_): cv.declare_id(BLEDescriptor),
+        cv.GenerateID(CONF_CCCD_VALUE_BUFFER_): cv.declare_id(ByteBuffer),
+    },
+    extra_schemas=[
+        validate_char_on_write,
+        create_description_cud,
+        create_notify_cccd,
+    ],
+).extend({cv.Optional(k, default=False): cv.boolean for k in PROPERTY_MAP})
 
 SERVICE_SCHEMA = cv.Schema(
     {
@@ -291,67 +306,27 @@ def parse_uuid(uuid):
     return ESPBTUUID_ns.from_raw(uuid)
 
 
-def bytebuffer_parser_(value, str_encoding):
-    for val_method, casting in zip(
-        (
-            cv.boolean,
-            cv.uint8_t,
-            cv.uint16_t,
-            cv.uint32_t,
-            cv.int_,
-            cv.float_,
-            cv.string,
-            cv.All(cv.ensure_list(cv.uint8_t), cv.Length(min=1)),
-        ),
-        (
-            cg.bool_,
-            cg.uint8,
-            cg.uint16,
-            cg.uint32,
-            cg.int_,
-            cg.float_,
-            None,
-            cg.std_vector.template(cg.uint8),
-        ),
-    ):
-        try:
-            val = val_method(value)
-            if val_method == cv.string:
-                # Convert to a list of bytes using encoding
-                val = cg.std_vector.template(cg.uint8)(list(val.encode(str_encoding)))
-            else:
-                val = casting(val)
-            return val, val_method
-        except cv.Invalid:
-            pass
-    raise cv.Invalid(f"Could not find type for value: {value}")
-
-
-async def parse_value(value, str_encoding, buffer_id, args, byte_length=None):
-    if isinstance(value, cv.Lambda):
-        return await cg.templatable(
-            value,
-            args,
-            cg.std_vector.template(cg.uint8),
-        )
-
-    val, val_method = bytebuffer_parser_(value, str_encoding)
-    if byte_length is None:
-        # If no byte length is specified, use the default length
-        buffer_var = cg.variable(buffer_id, ByteBuffer_ns.wrap(val))
+def native_value_parser_(value, type_, str_encoding):
+    if type_ == "encoded_string":
+        # Convert to a list of bytes using encoding
+        val = cg.std_vector.template(cg.uint8)(list(value.encode(str_encoding)))
     else:
-        put_method_dict = {
-            cv.boolean: "put_bool",
-            cv.uint8_t: "put_uint8",
-            cv.uint16_t: "put_uint16",
-            cv.uint32_t: "put_uint32",
-            cv.int_: "put_int",
-            cv.float_: "put_float",
-        }
-        # Create a buffer with the specified length and add the value
-        put_method = put_method_dict.get(val_method, "put_vector")
-        buffer_var = cg.variable(buffer_id, ByteBuffer(byte_length))
-        cg.add(getattr(buffer_var, put_method)(val))
+        val = cg.RawExpression(f"{type_}({value})")
+    return val
+
+
+async def parse_value(value_config, args):
+    value = value_config[CONF_VALUE]
+    if isinstance(value, cv.Lambda):
+        return await cg.templatable(value, args, cg.std_vector.template(cg.uint8))
+
+    buffer_id = value_config[CONF_VALUE_BUFFER_]
+    val = native_value_parser_(
+        value, value_config[CONF_TYPE], value_config[CONF_STRING_ENCODING]
+    )
+    buffer_var = cg.variable(
+        buffer_id, ByteBuffer_ns.wrap(val, value_config[CONF_ENDIANNES])
+    )
     return buffer_var
 
 
@@ -365,17 +340,12 @@ def calculate_num_handles(service_config):
 
 
 async def to_code_descriptor(descriptor_conf, char_var):
-    value = await parse_value(
-        descriptor_conf[CONF_VALUE],
-        descriptor_conf[CONF_STRING_ENCODING],
-        descriptor_conf[CONF_VALUE_BUFFER_],
-        {},
-        descriptor_conf.get(CONF_BYTE_LENGTH, None),
-    )
+    # TODO: Where to compute descriptor templatables?
+    value = await parse_value(descriptor_conf[CONF_VALUE], {})
     desc_var = cg.new_Pvariable(
         descriptor_conf[CONF_ID],
         parse_uuid(descriptor_conf[CONF_UUID]),
-        value.get_capacity(),
+        value.get_capacity(),  # TODO: FIX this does not work for templatables
         descriptor_conf[CONF_READ],
         descriptor_conf[CONF_WRITE],
     )
@@ -409,9 +379,6 @@ async def to_code_characteristic(service_var, char_conf):
         action_conf = {
             CONF_ID: char_conf[CONF_ID],
             CONF_VALUE: char_conf[CONF_VALUE],
-            CONF_BYTE_LENGTH: char_conf.get(CONF_BYTE_LENGTH, None),
-            CONF_STRING_ENCODING: char_conf[CONF_STRING_ENCODING],
-            CONF_VALUE_BUFFER_: char_conf[CONF_VALUE_BUFFER_],
         }
         value_action = await ble_server_characteristic_set_value(
             action_conf,
@@ -477,18 +444,12 @@ async def to_code(config):
             cv.Required(CONF_ID): cv.use_id(BLECharacteristic),
             cv.Required(CONF_VALUE): VALUE_SCHEMA,
         }
-    ).extend(VALUE_EXTRAS_SCHEMA),
+    ),
 )
 async def ble_server_characteristic_set_value(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
-    value = await parse_value(
-        config[CONF_VALUE],
-        config[CONF_STRING_ENCODING],
-        config[CONF_VALUE_BUFFER_],
-        args,
-        config.get(CONF_BYTE_LENGTH, None),
-    )
+    value = await parse_value(config[CONF_VALUE], args)
     cg.add(var.set_buffer(value))
     return var
 
