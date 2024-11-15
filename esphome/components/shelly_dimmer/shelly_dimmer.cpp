@@ -600,7 +600,7 @@ void ShellyDimmer::perform_calibration_measurement_() {
   this->calibration_measurements_[this->calibration_measurement_cnt_] = this->power_sensor_->state;
   this->calibration_measurement_cnt_++;
 
-  if ((uint32_t)this->calibration_measurement_cnt_ >= this->calibration_measurements_.size()) {
+  if ((uint32_t) this->calibration_measurement_cnt_ >= this->calibration_measurements_.size()) {
     this->complete_calibration_step_();
   }
 }
@@ -623,7 +623,7 @@ void ShellyDimmer::complete_calibration_step_() {
   this->calibration_measurements_.fill(0);
 
   // If all measurements collected, finish calibration
-  if ((uint32_t)this->calibration_step_ >= this->calibration_data_.size()) {
+  if ((uint32_t) this->calibration_step_ >= this->calibration_data_.size()) {
     this->complete_calibration_();
     return;
   }
