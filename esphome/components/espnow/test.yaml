@@ -3,11 +3,6 @@ substitutions:
   name: "lum-iot-test"
   friendly_name: "Project Template"
 
-# external_components:
-#  - source: github://pr#7141
-#    components: [ espnow ]
-#    refresh: 1 sec
-
 esp32:
   board: esp32dev
   framework:
@@ -35,11 +30,29 @@ espnow:
   auto_add_peer: true
   peers:
     - FF:FF:FF:FF:FF:FF
+    - 0xFFFFFFFFFFFF
+    - ZZZZZZZZ
   on_receive:
     - logger.log:
-        format: "Received: %s  RSSI: %d"
-        args: [packet.get_payload(), packet.rssi]
+        format: "Received: '%s' from '%s' command: %d RSSI: %d"
+        args:
+          [
+            packet.get_payload(),
+            packet.get_peer_code().c_str(),
+            packet.command,
+            packet.rssi,
+          ]
+
+  on_broadcast:
+    - command: 123
+      then:
+        - logger.log:
+            format: "Broadcast Received from: '%s' RSSI: %d: %s"
+            args: [packet.get_peer_code().c_str(), packet.rssi]
+
 interval:
   - interval: 10sec
     then:
-      - espnow.broatcast: "hallo everyone"
+      - espnow.broatcast:
+          payload: "hallo everyone"
+          command: 123
