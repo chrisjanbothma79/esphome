@@ -2,58 +2,58 @@ esphome:
   on_boot:
     # Binary sensor publish action tests
     - binary_sensor.nextion.publish:
-        id: r0
+        id: r0_sensor
         state: True
 
     - binary_sensor.nextion.publish:
-        id: r0
+        id: r0_sensor
         state: True
         publish_state: True
         send_to_nextion: True
 
     - binary_sensor.nextion.publish:
-        id: r0
+        id: r0_sensor
         state: True
         publish_state: False
         send_to_nextion: True
 
     - binary_sensor.nextion.publish:
-        id: r0
+        id: r0_sensor
         state: True
         publish_state: True
         send_to_nextion: False
 
     - binary_sensor.nextion.publish:
-        id: r0
+        id: r0_sensor
         state: True
         publish_state: False
         send_to_nextion: False
 
     # Templated
     - binary_sensor.nextion.publish:
-        id: r0
+        id: r0_sensor
         state: !lambda 'return true;'
 
     - binary_sensor.nextion.publish:
-        id: r0
+        id: r0_sensor
         state: !lambda 'return true;'
         publish_state: !lambda 'return true;'
         send_to_nextion: !lambda 'return true;'
 
     - binary_sensor.nextion.publish:
-        id: r0
+        id: r0_sensor
         state: !lambda 'return true;'
         publish_state: !lambda 'return false;'
         send_to_nextion: !lambda 'return true;'
 
     - binary_sensor.nextion.publish:
-        id: r0
+        id: r0_sensor
         state: !lambda 'return true;'
         publish_state: !lambda 'return true;'
         send_to_nextion: !lambda 'return false;'
 
     - binary_sensor.nextion.publish:
-        id: r0
+        id: r0_sensor
         state: !lambda 'return true;'
         publish_state: !lambda 'return false;'
         send_to_nextion: !lambda 'return false;'
