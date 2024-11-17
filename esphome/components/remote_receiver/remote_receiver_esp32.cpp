@@ -70,7 +70,7 @@ void RemoteReceiverComponent::setup() {
   uint32_t max_idle_ns = 65535u * 1000;
   this->store_.config.signal_range_min_ns = std::min(this->filter_us_ * 1000, max_filter_ns);
   this->store_.config.signal_range_max_ns = std::min(this->idle_us_ * 1000, max_idle_ns);
-  this->store_.receive_size = MEM_BLOCK_SIZE * this->mem_block_num_ * sizeof(rmt_symbol_word_t);
+  this->store_.receive_size = (MEM_BLOCK_SIZE * this->mem_block_num_ + 1) * sizeof(rmt_symbol_word_t);
   this->store_.buffer_size = std::max((event_size + this->store_.receive_size) * 2, this->buffer_size_);
   this->store_.buffer = new uint8_t[this->buffer_size_];
   error = rmt_receive(this->channel_, (uint8_t *) this->store_.buffer + event_size, this->store_.receive_size,
