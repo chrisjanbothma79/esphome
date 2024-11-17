@@ -5,4 +5,3 @@ substitutions:
 packages:
   base: !include common.yaml
 
-wifi: !remove
