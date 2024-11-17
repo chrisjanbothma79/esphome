@@ -36,7 +36,7 @@ void RemoteReceiverComponent::setup() {
   channel.resolution_hz = 1 * 1000 * 1000;
   channel.mem_block_symbols = MEM_BLOCK_SIZE * this->mem_block_num_;
   channel.gpio_num = gpio_num_t(this->pin_->get_pin());
-  channel.intr_priority = 3;
+  channel.intr_priority = 0;
   channel.flags.invert_in = 0;
   channel.flags.with_dma = 0;
   channel.flags.io_loop_back = 0;
