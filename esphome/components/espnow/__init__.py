@@ -278,7 +278,7 @@ async def send_action(config, action_id, template_arg, args):
         key=CONF_PEER,
     ),
 )
-async def del_peer_action(config, action_id, template_arg, args):
+async def add_del_peer_action(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     template_ = await cg.templatable(config[CONF_PEER], args, cg.uint64)
     cg.add(var.set_peer(template_))

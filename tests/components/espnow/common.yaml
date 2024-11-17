@@ -7,14 +7,46 @@ espnow:
   auto_add_peer: true
   peers:
     - FF:FF:FF:FF:FF:FF
+    - 0xFFFFFFFFFFFF
+    - ZZZZZZZZ
   on_receive:
     - logger.log:
-        format: "Received: %s  RSSI: %d"
-        args: [packet.get_payload(), packet.rssi]
+        format: "Received: '%s' from '%s' command: %d RSSI: %d"
+        args:
+          [
+            packet.get_payload(),
+            packet.get_peer_code().c_str(),
+            packet.get_command(),
+            packet.rssi,
+          ]
+
+  on_broadcast:
+    - command: 123
+      then:
+        - logger.log:
+            format: "Broadcast Received from: '%s' RSSI: %d: %s"
+            args:
+              [
+                packet.get_peer_code().c_str(),
+                packet.rssi,
+                packet.get_payload(),
+              ]
+
+interval:
+  - interval: 10sec
+    then:
+      - espnow.broatcast:
+          payload: "hallo everyone"
+          command: 123
+      - espnow.send:
+          payload: "hallo everyone"
+          command: 123
 
 binary_sensor:
   - platform: gpio
     pin: GPIO39
     name: Button
     on_click:
-      - espnow.send: "hallo everyone"
+      - espnow.peer.new:
+          peer: kGf7Ii0t
+      - espnow.peer.del: kGf7Ii0t

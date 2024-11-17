@@ -7,6 +7,7 @@ esp32:
   board: esp32dev
   framework:
     type: esp-idf
+    # version: 5.1.5
 
 esphome:
   name: "${name}"
@@ -56,3 +57,12 @@ interval:
       - espnow.broatcast:
           payload: "hallo everyone"
           command: 123
+
+binary_sensor:
+  - platform: gpio
+    pin: GPIO39
+    name: Button
+    on_click:
+      - espnow.peer.new:
+          peer: kGf7Ii0t
+      - espnow.peer.del: kGf7Ii0t

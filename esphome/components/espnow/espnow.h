@@ -316,26 +316,20 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
 
 template<typename... Ts> class NewPeerAction : public Action<Ts...>, public Parented<ESPNowComponent> {
  public:
-  template<typename V> void set_peer(V peer) { this->peer_ = peer; }
+  TEMPLATABLE_VALUE(uint64_t, peer);
   void play(Ts... x) override {
     auto peer = this->peer_.value(x...);
     parent_->add_peer(peer);
   }
-
- protected:
-  TemplatableValue<uint64_t, Ts...> mac_{};
 };
 
 template<typename... Ts> class DelPeerAction : public Action<Ts...>, public Parented<ESPNowComponent> {
  public:
-  template<typename V> void set_peer(V peer) { this->peer_ = peer; }
+  TEMPLATABLE_VALUE(uint64_t, peer);
   void play(Ts... x) override {
     auto peer = this->peer_.value(x...);
     parent_->del_peer(peer);
   }
-
- protected:
-  TemplatableValue<uint64_t, Ts...> peer_{};
 };
 
 class ESPNowSentTrigger : public Trigger<const ESPNowPacket, bool> {
