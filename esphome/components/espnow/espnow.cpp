@@ -359,7 +359,7 @@ bool ESPNowComponent::send(ESPNowPacket packet) {
 
 void ESPNowComponent::on_data_sent(const uint8_t *mac_addr, esp_now_send_status_t status) {
   ESPNowPacket packet;  // NOLINT
-  uint64_t peer;
+  uint64_t peer = 0;
   memcpy((void *) &peer, mac_addr, 6);
   if (xQueuePeek(ESPNowComponent::static_->send_queue_, (void *) &packet, 10 / portTICK_PERIOD_MS) == pdTRUE) {
     if (packet.peer != peer) {
