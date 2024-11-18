@@ -8,10 +8,9 @@
 #pragma once
 
 #include <string>
-#include <sstream>
-#include <iomanip>
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
+#include "esphome/core/helpers.h"
 
 #if defined(ESP32) || defined(USE_ESP_IDF)
 #include "driver/timer.h"
@@ -318,8 +317,8 @@ class OpenTherm {
 
   OperationMode get_mode() { return mode_; }
 
-  std::string debug_data(OpenthermData &data);
-  std::string debug_error(OpenThermError &error);
+  void debug_data(OpenthermData &data);
+  void debug_error(OpenThermError &error) const;
 
   const char *protocol_error_to_to_str(ProtocolErrorType error_type);
   const char *message_type_to_str(MessageType message_type);
@@ -368,6 +367,14 @@ class OpenTherm {
   void bit_read_(uint8_t value);
   ProtocolErrorType verify_stop_bit_(uint8_t value);
   void write_bit_(uint8_t high, uint8_t clock);
+
+  /// Format an unsigned integer in binary, starting with the least significant byte.
+  template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> static std::string format_bin(T val) {
+    return format_bin(reinterpret_cast<uint8_t *>(&val), sizeof(T));
+  }
+
+  /// Format the byte array \p data of length \p len in lowercased hex.
+  static std::string format_bin(const uint8_t *data, size_t length);
 
 #ifdef ESP8266
   // ESP8266 timer can accept callback with no parameters, so we have this hack to save a static instance of OpenTherm
