@@ -260,71 +260,70 @@ class ESPNowComponent : public Component {
   void set_retries(uint8_t value) { this->retries_ = value; }
   void set_pairing_protocol(ESPNowProtocol *pairing_protocol) { this->pairing_protocol_ = pairing_protocol; }
   void set_keeper(uint64_t keeper) { this->keeper_ = keeper; }
-} uint64_t get_keeper() {
-  return this->keeper_;
-}
-uint64_t get_own_peer_address() { return this->own_peer_address_; }
+  uint64_t get_keeper() { return this->keeper_; }
+  uint64_t get_own_peer_address() { return this->own_peer_address_; }
 
-void setup() override;
-void loop() override;
+  void setup() override;
+  void loop() override;
 
-bool is_paired(uint64_t to_peer);
+  bool is_paired(uint64_t to_peer);
 
-bool send(ESPNowPacket packet);
+  bool send(ESPNowPacket packet);
 
-void register_protocol(ESPNowProtocol *protocol) {
-  protocol->set_parent(this);
-  this->protocols_[protocol->get_protocol_id()] = protocol;
-  protocol->init_protocol();
-}
+  void register_protocol(ESPNowProtocol *protocol) {
+    protocol->set_parent(this);
+    this->protocols_[protocol->get_protocol_id()] = protocol;
+    protocol->init_protocol();
+  }
 
-esp_err_t add_peer(uint64_t peer);
-esp_err_t del_peer(uint64_t peer);
+  esp_err_t add_peer(uint64_t peer);
+  esp_err_t del_peer(uint64_t peer);
 
-bool send_queue_empty() { return uxQueueMessagesWaiting(this->send_queue_) == 0; }
-bool send_queue_full() { return uxQueueSpacesAvailable(this->send_queue_) == 0; }
-size_t send_queue_used() { return uxQueueMessagesWaiting(this->send_queue_); }
-size_t send_queue_free() { return uxQueueSpacesAvailable(this->send_queue_); }
+  bool send_queue_empty() { return uxQueueMessagesWaiting(this->send_queue_) == 0; }
+  bool send_queue_full() { return uxQueueSpacesAvailable(this->send_queue_) == 0; }
+  size_t send_queue_used() { return uxQueueMessagesWaiting(this->send_queue_); }
+  size_t send_queue_free() { return uxQueueSpacesAvailable(this->send_queue_); }
 
-void lock() { this->lock_ = true; }
-bool is_locked() { return this->lock_; }
-void unlock() { this->lock_ = false; }
+  void lock() { this->lock_ = true; }
+  bool is_locked() { return this->lock_; }
+  void unlock() { this->lock_ = false; }
 
-ESPNowDefaultProtocol *get_default_protocol();
+  ESPNowDefaultProtocol *get_default_protocol();
 
-void show_packet(const std::string &title, const ESPNowPacket &packet);
+  void show_packet(const std::string &title, const ESPNowPacket &packet);
 
-static void espnow_task(void *params);
+  static void espnow_task(void *params);
 
-protected:
-bool validate_channel_(uint8_t channel);
-ESPNowProtocol *get_protocol_(uint32_t protocol);
-ESPNowProtocol *pairing_protocol_{nullptr};
-uint64_t own_peer_address_{0};
-uint8_t wifi_channel_{0};
-uint32_t conformation_timeout_{5000};
-uint8_t retries_{5};
+ protected:
+  bool validate_channel_(uint8_t channel);
+  ESPNowProtocol *get_protocol_(uint32_t protocol);
+  ESPNowProtocol *pairing_protocol_{nullptr};
+  uint64_t own_peer_address_{0};
+  uint8_t wifi_channel_{0};
+  uint32_t conformation_timeout_{5000};
+  uint8_t retries_{5};
+  uint64_t keeper_{0};
 
-bool auto_add_peer_{false};
-bool use_sent_check_{true};
+  bool auto_add_peer_{false};
+  bool use_sent_check_{true};
 
-bool lock_{false};
+  bool lock_{false};
 
-void call_on_receive_(ESPNowPacket &packet);
-void call_on_broadcast_(ESPNowPacket &packet);
-void call_on_sent_(ESPNowPacket &packet, bool status);
-void call_on_new_peer_(ESPNowPacket &packet);
+  void call_on_receive_(ESPNowPacket &packet);
+  void call_on_broadcast_(ESPNowPacket &packet);
+  void call_on_sent_(ESPNowPacket &packet, bool status);
+  void call_on_new_peer_(ESPNowPacket &packet);
 
-void call_on_add_peer_(uint64_t peer);
-void call_on_del_peer_(uint64_t peer);
+  void call_on_add_peer_(uint64_t peer);
+  void call_on_del_peer_(uint64_t peer);
 
-QueueHandle_t receive_queue_{};
-QueueHandle_t send_queue_{};
+  QueueHandle_t receive_queue_{};
+  QueueHandle_t send_queue_{};
 
-std::map<uint32_t, ESPNowProtocol *> protocols_{};
-std::vector<uint64_t> peers_{};
-bool task_running_{false};
-static ESPNowComponent *static_;  // NOLINT
+  std::map<uint32_t, ESPNowProtocol *> protocols_{};
+  std::vector<uint64_t> peers_{};
+  bool task_running_{false};
+  static ESPNowComponent *static_;  // NOLINT
 };
 
 template<typename... Ts> class SendAction : public Action<Ts...>, public Parented<ESPNowComponent> {

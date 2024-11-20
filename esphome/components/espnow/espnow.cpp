@@ -425,8 +425,8 @@ void ESPNowComponent::on_data_sent(const uint8_t *mac_addr, esp_now_send_status_
 /* ESPNowProtocol ********************************************************************** */
 
 bool ESPNowProtocol::send(uint64_t peer, const uint8_t *data, uint8_t len, uint8_t command) {
-  if (peer == 0x0) {
-    peer = this->get_keeper();
+  if (peer == 0x0 && this->parent_ != nullptr) {
+    peer = this->parent_->get_keeper();
   }
 
   ESPNowPacket packet(peer, data, len, this->get_protocol_id(), command);  // NOLINT
