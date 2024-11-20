@@ -8,6 +8,8 @@ CODEOWNERS = ["@nielsnl68", "@jesserockz"]
 
 espnow_ns = cg.esphome_ns.namespace("espnow")
 ESPNowComponent = espnow_ns.class_("ESPNowComponent", cg.Component)
+ESPNowProtocol = espnow_ns.class_("ESPNowProtocol")
+
 ESPNowListener = espnow_ns.class_("ESPNowListener")
 
 ESPNowPacket = espnow_ns.class_("ESPNowPacket")
@@ -46,9 +48,19 @@ CONF_PEER = "peer"
 CONF_PEERS = "peers"
 CONF_USE_SENT_CHECK = "use_sent_check"
 CONF_WIFI_CHANNEL = "wifi_channel"
-
+CONF_PROTOCOL_MODE = "protocol_mode"
+CONF_KEEPER = "keeper"
 
 CONF_MAC_CHARS = "0123456789-AbCdEfGhIjKlMnOpQrStUvWxYz+aBcDeFgHiJkLmNoPqRsTuVwXyZ"
+
+validate_command = cv.Range(min=1, max=250)
+
+ESPNowProtocol_mode = espnow_ns.enum("ESPNowProtocol_mode")
+ENUM_MODE = {
+    "universal": ESPNowProtocol_mode.universal,
+    "keeper": ESPNowProtocol_mode.keeper,
+    "drudge": ESPNowProtocol_mode.drudge,
+}
 
 
 def validate_raw_data(value):
@@ -83,15 +95,18 @@ def validate_peer(value):
     if isinstance(value, (int)):
         return value
 
+    value = cv.string_strict(value)
+
+    if value.lower() == CONF_KEEPER:
+        return 0x0
+
     if value.find(":") != -1:
         return convert_mac_address(value)
 
     if len(value) == 8:
-        value = cv.string_strict(value)
-
         mac = 0
-        for x in value:
-            n = CONF_MAC_CHARS.find(x)
+        for x in range(8, 0, -1):
+            n = CONF_MAC_CHARS.find(value[x - 1])
             if n == -1:
                 raise cv.Invalid(f"peer code is invalid. ({value}|{x})")
             mac = (mac << 6) + n
@@ -112,28 +127,29 @@ CONFIG_SCHEMA = cv.Schema(
             CONF_CONFORMATION_TIMEOUT, default="5000ms"
         ): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_RETRIES, default=5): cv.int_range(min=1, max=10),
+        cv.Optional(CONF_KEEPER): cv.templatable(validate_peer),
         cv.Optional(CONF_ON_RECEIVE): automation.validate_automation(
             {
                 cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ESPNowReceiveTrigger),
-                cv.Optional(CONF_COMMAND): cv.Range(min=16, max=255),
+                cv.Optional(CONF_COMMAND): validate_command,
             }
         ),
         cv.Optional(CONF_ON_BROADCAST): automation.validate_automation(
             {
                 cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ESPNowBroadcaseTrigger),
-                cv.Optional(CONF_COMMAND): cv.Range(min=0, max=255),
+                cv.Optional(CONF_COMMAND): validate_command,
             }
         ),
         cv.Optional(CONF_ON_SENT): automation.validate_automation(
             {
                 cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ESPNowSentTrigger),
-                cv.Optional(CONF_COMMAND): cv.Range(min=0, max=255),
+                cv.Optional(CONF_COMMAND): validate_command,
             }
         ),
         cv.Optional(CONF_ON_NEW_PEER): automation.validate_automation(
             {
                 cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ESPNowNewPeerTrigger),
-                cv.Optional(CONF_COMMAND): cv.Range(min=16, max=255),
+                cv.Optional(CONF_COMMAND): validate_command,
             }
         ),
         cv.Optional(CONF_PEERS): cv.ensure_list(validate_peer),
@@ -156,6 +172,10 @@ async def to_code(config):
     cg.add(var.set_use_sent_check(config[CONF_USE_SENT_CHECK]))
     cg.add(var.set_conformation_timeout(config[CONF_CONFORMATION_TIMEOUT]))
     cg.add(var.set_retries(config[CONF_RETRIES]))
+
+    if CONF_KEEPER in config:
+        template_ = await cg.templatable(config[CONF_KEEPER], [], cg.uint64)
+        cg.add(var.set_keeper(template_))
 
     for conf in config.get(CONF_PEERS, []):
         cg.add(var.add_peer(conf))
@@ -198,24 +218,27 @@ async def to_code(config):
 PROTOCOL_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_ESPNOW): cv.use_id(ESPNowComponent),
+        cv.Optional(CONF_PROTOCOL_MODE): cv.enum(ENUM_MODE, string=True),
     },
     cv.only_on_esp32,
-).extend(cv.COMPONENT_SCHEMA)
+)
 
 
 async def register_protocol(var, config):
     now = await cg.get_variable(config[CONF_ESPNOW])
     cg.add(now.register_protocol(var))
+    if config[CONF_PROTOCOL_MODE]:
+        cg.add(var.set_protocol_mode(config[CONF_PROTOCOL_MODE]))
 
 
 @automation.register_action(
-    "espnow.broatcast",
+    "espnow.broadcast",
     SendAction,
     cv.maybe_simple_value(
         {
             cv.GenerateID(): cv.use_id(ESPNowComponent),
             cv.Required(CONF_PAYLOAD): cv.templatable(validate_raw_data),
-            cv.Optional(CONF_COMMAND): cv.templatable(cv.Range(min=16, max=255)),
+            cv.Optional(CONF_COMMAND): cv.templatable(validate_command),
         },
         key=CONF_PAYLOAD,
     ),
@@ -228,9 +251,7 @@ async def register_protocol(var, config):
             cv.GenerateID(): cv.use_id(ESPNowComponent),
             cv.Required(CONF_PEER): cv.templatable(validate_peer),
             cv.Required(CONF_PAYLOAD): cv.templatable(validate_raw_data),
-            cv.Optional(CONF_COMMAND, default=0): cv.templatable(
-                cv.Range(min=0, max=255)
-            ),
+            cv.Optional(CONF_COMMAND): cv.templatable(validate_command),
         }
     ),
 )
