@@ -124,7 +124,6 @@ FINAL_VALIDATE_SCHEMA = ota_esphome_final_validate
 @coroutine_with_priority(52.0)
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    await ota_to_code(var, config)
     cg.add(var.set_port(config[CONF_PORT]))
     if CONF_PASSWORD in config:
         cg.add(var.set_auth_password(config[CONF_PASSWORD]))
@@ -132,3 +131,4 @@ async def to_code(config):
     cg.add_define("USE_OTA_VERSION", config[CONF_VERSION])
 
     await cg.register_component(var, config)
+    await ota_to_code(var, config)
