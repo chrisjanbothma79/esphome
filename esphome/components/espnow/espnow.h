@@ -360,6 +360,15 @@ template<typename... Ts> class DelPeerAction : public Action<Ts...>, public Pare
   }
 };
 
+template<typename... Ts> class SetKeeperAction : public Action<Ts...>, public Parented<ESPNowComponent> {
+ public:
+  TEMPLATABLE_VALUE(uint64_t, peer);
+  void play(Ts... x) override {
+    auto peer = this->peer_.value(x...);
+    parent_->set_keeper(peer);
+  }
+};
+
 class ESPNowSentTrigger : public Trigger<const ESPNowPacket, bool> {
  public:
   explicit ESPNowSentTrigger(ESPNowComponent *parent) {

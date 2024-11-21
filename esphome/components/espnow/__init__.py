@@ -35,6 +35,8 @@ ESPNowBroadcaseTrigger = espnow_ns.class_(
 SendAction = espnow_ns.class_("SendAction", automation.Action)
 NewPeerAction = espnow_ns.class_("NewPeerAction", automation.Action)
 DelPeerAction = espnow_ns.class_("DelPeerAction", automation.Action)
+SetKeeperAction = espnow_ns.class_("SetKeeperAction", automation.Action)
+
 
 CONF_AUTO_ADD_PEER = "auto_add_peer"
 CONF_CONFORMATION_TIMEOUT = "conformation_timeout"
@@ -238,7 +240,7 @@ async def register_protocol(var, config):
         {
             cv.GenerateID(): cv.use_id(ESPNowComponent),
             cv.Required(CONF_PAYLOAD): cv.templatable(validate_raw_data),
-            cv.Optional(CONF_COMMAND): cv.templatable(validate_command),
+            cv.Optional(CONF_COMMAND, default=0): cv.templatable(validate_command),
         },
         key=CONF_PAYLOAD,
     ),
@@ -251,13 +253,14 @@ async def register_protocol(var, config):
             cv.GenerateID(): cv.use_id(ESPNowComponent),
             cv.Required(CONF_PEER): cv.templatable(validate_peer),
             cv.Required(CONF_PAYLOAD): cv.templatable(validate_raw_data),
-            cv.Optional(CONF_COMMAND): cv.templatable(validate_command),
+            cv.Optional(CONF_COMMAND, default=0): cv.templatable(validate_command),
         }
     ),
 )
 async def send_action(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
+
     peer = config.get(CONF_PEER, 0xFFFFFFFFFFFF)
     template_ = await cg.templatable(peer, args, cg.uint64)
     cg.add(var.set_peer(template_))
@@ -299,7 +302,18 @@ async def send_action(config, action_id, template_arg, args):
         key=CONF_PEER,
     ),
 )
-async def add_del_peer_action(config, action_id, template_arg, args):
+@automation.register_action(
+    "espnow.keeper.set",
+    SetKeeperAction,
+    cv.maybe_simple_value(
+        {
+            cv.GenerateID(): cv.use_id(ESPNowComponent),
+            cv.Required(CONF_PEER): cv.templatable(validate_peer),
+        },
+        key=CONF_PEER,
+    ),
+)
+async def peer_action(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
     template_ = await cg.templatable(config[CONF_PEER], args, cg.uint64)
