@@ -42,15 +42,15 @@ def set_sdkconfig_options(config):
         "CONFIG_OPENTHREAD_NETWORK_MASTERKEY", f"{config[CONF_NETWORK_KEY]}"
     )
 
-    if config[CONF_NETWORK_NAME]:
+    if CONF_NETWORK_NAME in config:
         add_idf_sdkconfig_option(
             "CONFIG_OPENTHREAD_NETWORK_NAME", f"{config[CONF_NETWORK_NAME]}"
         )
-    if config[CONF_EXTPANID]:
+    if CONF_EXTPANID in config:
         add_idf_sdkconfig_option(
             "CONFIG_OPENTHREAD_NETWORK_EXTPANID", f"{config[CONF_EXTPANID]}"
         )
-    if config[CONF_PSKC]:
+    if CONF_PSKC in config:
         add_idf_sdkconfig_option(
             "CONFIG_OPENTHREAD_NETWORK_PSKC", f"{config[CONF_PSKC]}"
         )
@@ -73,7 +73,7 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(): cv.declare_id(OpenThreadComponent),
             cv.GenerateID(CONF_SRP_ID): cv.declare_id(OpenThreadSrpComponent),
             cv.GenerateID(CONF_MDNS_ID): cv.use_id(MDNSComponent),
-            cv.Required(CONF_PANID): cv.int_,
+            cv.Required(CONF_PANID): cv.hex_int,
             cv.Required(CONF_CHANNEL): cv.int_,
             cv.Required(CONF_NETWORK_KEY): cv.string_strict,
             cv.Optional(CONF_EXTPANID): cv.string_strict,
