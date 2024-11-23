@@ -342,14 +342,9 @@ FLEX_OBJ_SCHEMA = {
 }
 
 
-def bg_image_validator(value):
-    add_lv_use("img", "label")
-    return lv_image(value)
-
-
 DISP_BG_SCHEMA = cv.Schema(
     {
-        cv.Optional(df.CONF_DISP_BG_IMAGE): bg_image_validator,
+        cv.Optional(df.CONF_DISP_BG_IMAGE): lv_image,
         cv.Optional(df.CONF_DISP_BG_COLOR): lv_color,
     }
 )
