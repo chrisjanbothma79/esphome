@@ -21,6 +21,7 @@ CONF_PANID = "panid"
 CONF_EXTPANID = "extpanid"
 CONF_MDNS_ID = "mdns_id"
 CONF_SRP_ID = "srp_id"
+CONF_FORCE_DATASET = "force_dataset"
 
 
 def set_sdkconfig_options(config):
@@ -79,6 +80,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_EXTPANID): cv.string_strict,
             cv.Optional(CONF_NETWORK_NAME): cv.string_strict,
             cv.Optional(CONF_PSKC): cv.string_strict,
+            cv.Optional(CONF_FORCE_DATASET): cv.boolean,
         }
     ),
 )

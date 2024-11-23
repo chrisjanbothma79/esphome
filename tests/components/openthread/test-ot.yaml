@@ -22,6 +22,7 @@ openthread:
   panid: 0x8f28
   extpanid: d63e8e3e495ebbc3
   pskc: c23a76e98f1a6483639b1ac1271e2e27
+  force_dataset: true
 
 text_sensor:
   - platform: openthread_info

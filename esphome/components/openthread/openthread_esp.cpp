@@ -114,9 +114,13 @@ void OpenThreadComponent::ot_main() {
 #endif
   ESP_LOGI(TAG, "Activating dataset...");
   otOperationalDatasetTlvs dataset;
+
+#ifdef CONFIG_OPENTHREAD_FORCE_DATASET
+  ESP_ERROR_CHECK(esp_openthread_auto_start(NULL));
+#else
   otError error = otDatasetGetActiveTlvs(esp_openthread_get_instance(), &dataset);
   ESP_ERROR_CHECK(esp_openthread_auto_start((error == OT_ERROR_NONE) ? &dataset : NULL));
-
+#endif
   esp_openthread_launch_mainloop();
 
   // Clean up
