@@ -568,8 +568,13 @@ void ShellyDimmer::reset_dfu_boot_() {
 }
 
 void ShellyDimmer::start_calibration() {
-  ESP_LOGI(TAG, "Starting calibration");
+  ESP_LOGD(TAG, "Setting update interval to 1 second");
+  this->update_interval_original_ = this->get_update_interval();
+  this->stop_poller();
+  this->set_update_interval(1000);
+  this->start_poller();
 
+  ESP_LOGI(TAG, "Starting calibration");
   // Turn on the light, disable transition, set max brightness
   this->set_brightness_no_transition_(1);
 
@@ -655,6 +660,12 @@ void ShellyDimmer::complete_calibration_() {
   }
 
   this->set_brightness_no_transition_(1);
+
+  uint32_t update_interval = this->update_interval_original_ == 0 ? 10000 : this->update_interval_original_;
+  ESP_LOGD(TAG, "Reverting update interval to %d seconds", update_interval / 1000);
+  this->stop_poller();
+  this->set_update_interval(update_interval);
+  this->start_poller();
 }
 void ShellyDimmer::save_calibration_() {
   if (this->rtc_.save(&this->calibration_data_)) {

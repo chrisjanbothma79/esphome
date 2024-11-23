@@ -89,6 +89,7 @@ class ShellyDimmer : public PollingComponent, public light::LightOutput, public 
   uint8_t calibration_measurement_cnt_{0};
   std::array<float, 3> calibration_measurements_;
   std::array<float, 20> calibration_data_;
+  uint32_t update_interval_original_{0};
 
   ESPPreferenceObject rtc_;
 
