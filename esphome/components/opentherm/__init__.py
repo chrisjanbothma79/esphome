@@ -57,7 +57,12 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_SUMMER_MODE_ACTIVE, False): cv.boolean,
             cv.Optional(CONF_DHW_BLOCK, False): cv.boolean,
             cv.Optional(CONF_SYNC_MODE, False): cv.boolean,
-            cv.Optional(CONF_OPENTHERM_VERSION): cv.positive_float,
+            cv.Optional(CONF_CONTROLLER_PRODUCT_TYPE): cv.int_range(min=0, max=255),
+            cv.Optional(CONF_CONTROLLER_PRODUCT_VERSION): cv.int_range(min=0, max=255),
+            cv.Optional(CONF_OPENTHERM_VERSION_CONTROLLER): cv.positive_float,
+            cv.Optional(CONF_CONTROLLER_ID): cv.int_range(min=0, max=255),
+            cv.Optional(CONF_CONTROLLER_CONFIGURATION): cv.int_range(min=0, max=255),
+            cv.Optional(CONF_OPENTHERM_VERSION): cv.positive_float,  # Deprecated
             cv.Optional(CONF_BEFORE_SEND): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(BeforeSendTrigger),
@@ -113,7 +118,7 @@ async def to_code(config: dict[str, Any]) -> None:
         else:
             if key == CONF_OPENTHERM_VERSION:
                 _LOGGER.warning(
-                    f"{CONF_OPENTHERM_VERSION} is deprecated and will be removed in esphome 2025.2.\n"
+                    f"{CONF_OPENTHERM_VERSION} is deprecated and will be removed in esphome 2025.2.0\n"
                     f"Please remove this property and set {CONF_OPENTHERM_VERSION_CONTROLLER} in number: "
                     f"section."
                 )

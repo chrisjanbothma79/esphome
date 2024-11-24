@@ -63,7 +63,7 @@ void write_f88(const float value, OpenthermData &data) { data.f88(value); }
 OpenthermData OpenthermHub::build_request_(MessageId request_id) const {
   OpenthermData data;
   data.type = 0;
-  data.id = 0;
+  data.id = request_id;
   data.valueHB = 0;
   data.valueLB = 0;
 
@@ -82,22 +82,32 @@ OpenthermData OpenthermHub::build_request_(MessageId request_id) const {
     // NOLINTEND
 
     data.type = MessageType::READ_DATA;
-    data.id = MessageId::STATUS;
     data.valueHB = ch_enabled | (dhw_enabled << 1) | (cooling_enabled << 2) | (otc_enabled << 3) | (ch2_enabled << 4) |
                    (summer_mode_is_active << 5) | (dhw_blocked << 6);
 
     return data;
   }
 
-  // Another special case is OpenTherm version number which is configured at hub level as a constant
-  if (request_id == MessageId::OT_VERSION_CONTROLLER) {
-    data.type = MessageType::WRITE_DATA;
-    data.id = MessageId::OT_VERSION_CONTROLLER;
-    data.f88(this->opentherm_version_);
-
-    return data;
+  // A couple of optional OpenTherm configuration oprions that can be configured as constants at hub level
+  switch (request_id) {
+    case MessageId::VERSION_CONTROLLER:
+      data.type = MessageType::WRITE_DATA;
+      data.valueHB = this->controller_product_type;
+      data.valueLB = this->controller_product_version;
+      return data;
+    case MessageId::OT_VERSION_CONTROLLER:
+      data.type = MessageType::WRITE_DATA;
+      data.f88(this->opentherm_version_controller);
+      return data;
+    case MessageId::CONTROLLER_CONFIG:
+      data.type = MessageType::WRITE_DATA;
+      data.valueHB = this->controller_configuration;
+      data.valueLB = this->controller_id;
+      return data;
+    default:
+      break;
   }
-
+  
 // Disable incomplete switch statement warnings, because the cases in each
 // switch are generated based on the configured sensors and inputs.
 #pragma GCC diagnostic push

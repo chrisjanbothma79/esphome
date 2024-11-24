@@ -79,8 +79,6 @@ class OpenthermHub : public Component {
   // Very likely to happen while using Dallas temperature sensors.
   bool sync_mode_ = false;
 
-  float opentherm_version_ = 0.0f;
-
   CallbackManager<void(OpenthermData &)> before_send_callback_;
   CallbackManager<void(OpenthermData &)> before_process_response_callback_;
 
@@ -146,6 +144,12 @@ class OpenthermHub : public Component {
   // or using a switch. ch_enable and dhw_enable default to true, the others to false.
   bool ch_enable = true, dhw_enable = true, cooling_enable = false, otc_active = false, ch2_active = false,
        summer_mode_active = false, dhw_block = false;
+  
+  uint8_t controller_product_type = 0;
+  uint8_t controller_product_version = 0;
+  float opentherm_version_controller = 0.0f;
+  uint8_t controller_id = 0;
+  uint8_t controller_configuration = 0;
 
   // Setters for the status variables
   void set_ch_enable(bool value) { this->ch_enable = value; }
@@ -156,7 +160,30 @@ class OpenthermHub : public Component {
   void set_summer_mode_active(bool value) { this->summer_mode_active = value; }
   void set_dhw_block(bool value) { this->dhw_block = value; }
   void set_sync_mode(bool sync_mode) { this->sync_mode_ = sync_mode; }
-  void set_opentherm_version(float value) { this->opentherm_version_ = value; }
+  void set_controller_product_type(uint8_t value) { 
+    this->controller_product_type = value;
+    this->initial_messages_.push_back(MessageId::VERSION_CONTROLLER);
+  }
+  void set_controller_product_version(uint8_t value) { 
+    this->controller_product_version = value;
+    this->initial_messages_.push_back(MessageId::VERSION_CONTROLLER);
+  }
+  void set_opentherm_version_controller(float value) { 
+    this->opentherm_version_controller = value;
+    this->initial_messages_.push_back(MessageId::OT_VERSION_CONTROLLER);
+  }
+  void set_opentherm_version(float value) { 
+    this->opentherm_version_controller = value;
+    this->initial_messages_.push_back(MessageId::OT_VERSION_CONTROLLER);
+  }  // Desprecated
+  void set_controller_id(uint8_t value) { 
+    this->controller_id = value;
+    this->initial_messages_.push_back(MessageId::CONTROLLER_CONFIG);
+  }
+  void set_controller_configuration(uint8_t value) { 
+    this->controller_configuration = value;
+    this->initial_messages_.push_back(MessageId::CONTROLLER_CONFIG);
+  }
 
   void add_on_before_send_callback(std::function<void(OpenthermData &)> &&callback) {
     this->before_send_callback_.add(std::move(callback));
