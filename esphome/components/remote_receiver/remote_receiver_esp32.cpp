@@ -39,7 +39,7 @@ void RemoteReceiverComponent::setup() {
   channel.gpio_num = gpio_num_t(this->pin_->get_pin());
   channel.intr_priority = 0;
   channel.flags.invert_in = 0;
-  channel.flags.with_dma = 0;
+  channel.flags.with_dma = this->with_dma_;
   channel.flags.io_loop_back = 0;
   esp_err_t error = rmt_new_rx_channel(&channel, &this->channel_);
   if (error != ESP_OK) {

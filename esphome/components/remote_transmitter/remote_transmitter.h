@@ -34,7 +34,10 @@ class RemoteTransmitterComponent : public remote_base::RemoteTransmitterBase,
 
   void set_carrier_duty_percent(uint8_t carrier_duty_percent) { this->carrier_duty_percent_ = carrier_duty_percent; }
 
+#ifdef USE_ESP32
+  void set_with_dma(bool with_dma) { this->with_dma_ = with_dma; }
   void set_one_wire(bool one_wire) { this->one_wire_ = one_wire; }
+#endif
 
   Trigger<> *get_transmit_trigger() const { return this->transmit_trigger_; };
   Trigger<> *get_complete_trigger() const { return this->complete_trigger_; };
@@ -64,6 +67,7 @@ class RemoteTransmitterComponent : public remote_base::RemoteTransmitterBase,
   esp_err_t error_code_{ESP_OK};
   std::string error_string_{""};
   bool inverted_{false};
+  bool with_dma_{false};
 #endif
   uint8_t carrier_duty_percent_;
 

@@ -3,11 +3,13 @@ import esphome.codegen as cg
 from esphome.components import esp32_rmt, remote_base
 import esphome.config_validation as cv
 from esphome.const import CONF_CARRIER_DUTY_PERCENT, CONF_ID, CONF_PIN, CONF_RMT_CHANNEL
+from esphome.core import CORE
 
 AUTO_LOAD = ["remote_base"]
 
 CONF_ON_TRANSMIT = "on_transmit"
 CONF_ON_COMPLETE = "on_complete"
+CONF_WITH_DMA = "with_dma"
 CONF_ONE_WIRE = "one_wire"
 
 remote_transmitter_ns = cg.esphome_ns.namespace("remote_transmitter")
@@ -24,6 +26,7 @@ CONFIG_SCHEMA = cv.Schema(
             cv.percentage_int, cv.Range(min=1, max=100)
         ),
         cv.Optional(CONF_ONE_WIRE): cv.boolean,
+        cv.Optional(CONF_WITH_DMA, default=False): cv.boolean,
         cv.Optional(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=True),
         cv.Optional(CONF_ON_TRANSMIT): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_COMPLETE): automation.validate_automation(single=True),
@@ -36,6 +39,8 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID], pin)
     await cg.register_component(var, config)
 
+    if CORE.is_esp32:
+        cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
     cg.add(var.set_carrier_duty_percent(config[CONF_CARRIER_DUTY_PERCENT]))
 
     if one_wire_config := config.get(CONF_ONE_WIRE):
