@@ -541,18 +541,6 @@ const char *OpenTherm::message_id_to_str(MessageId id) {
   }
 }
 
-std::string OpenTherm::format_bin(const uint8_t *data, size_t length) {
-  std::string result;
-  result.resize(length * 8);
-  for (int byte_idx = 0; byte_idx < length; ++byte_idx) {
-    for (int bit_idx = 0; bit_idx < 8; ++bit_idx) {
-      result[byte_idx * 8 + bit_idx] = (char) (((data[byte_idx] >> bit_idx) & 1) + '0');
-    }
-  }
-
-  return result;
-}
-
 void OpenTherm::debug_data(OpenthermData &data) {
   ESP_LOGD(TAG, "%s %s %s %s", format_bin(data.type).c_str(), format_bin(data.id).c_str(),
            format_bin(data.valueHB).c_str(), format_bin(data.valueLB).c_str());
