@@ -189,7 +189,6 @@ void ESPTime::recalc_timestamp_utc(bool use_day_of_year) {
 }
 
 void ESPTime::recalc_timestamp_local() {
-  time_t res = 0;
   struct tm tm;
 
   tm.tm_year = this->year - 1900;
