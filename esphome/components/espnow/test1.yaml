@@ -30,6 +30,8 @@ logger:
 
 espnow:
   auto_add_peer: true
+  predefined_peers:
+    - mac_address: 11:22:33:44:55:66
   on_receive:
     - logger.log:
         format: "Received: '%s' from '%s' command: %d RSSI: %d"

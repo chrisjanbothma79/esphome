@@ -88,6 +88,7 @@ DEFINE_PEER_CONFIG = cv.maybe_simple_value(
     {
         cv.Optional(CONF_PEER_ID): cv.declare_id(ESPNowPeer),
         cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
+        cv.Optional(CONF_WIFI_CHANNEL): cv.int_range(0, 14),
     },
     key=CONF_MAC_ADDRESS,
 )
@@ -96,7 +97,7 @@ DEFINE_PEER_CONFIG = cv.maybe_simple_value(
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(ESPNowComponent),
-        cv.Optional(CONF_WIFI_CHANNEL, default=0): cv.int_range(0, 14),
+        cv.Optional(CONF_WIFI_CHANNEL): cv.int_range(0, 14),
         cv.Optional(CONF_AUTO_ADD_PEER, default=False): cv.boolean,
         cv.Optional(CONF_USE_SENT_CHECK, default=True): cv.boolean,
         cv.Optional(
@@ -141,8 +142,9 @@ async def to_code(config):
         cg.add_library("WiFi", None)
 
     cg.add_define("USE_ESPNOW")
+    if CONF_WIFI_CHANNEL in config:
+        cg.add(var.set_wifi_channel(config[CONF_WIFI_CHANNEL]))
 
-    cg.add(var.set_wifi_channel(config[CONF_WIFI_CHANNEL]))
     cg.add(var.set_auto_add_peer(config[CONF_AUTO_ADD_PEER]))
     cg.add(var.set_use_sent_check(config[CONF_USE_SENT_CHECK]))
     cg.add(var.set_conformation_timeout(config[CONF_CONFORMATION_TIMEOUT]))
@@ -152,7 +154,11 @@ async def to_code(config):
         mac = espnow_hex(conf.get(CONF_MAC_ADDRESS))
         if CONF_PEER_ID in conf:
             cg.new_variable(conf[CONF_PEER_ID], mac)
-        cg.add(var.add_peer(mac))
+
+        if CONF_WIFI_CHANNEL in conf:
+            cg.add(var.add_peer(mac, conf[CONF_WIFI_CHANNEL]))
+        else:
+            cg.add(var.add_peer(mac))
 
     for conf in config.get(CONF_ON_SENT, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
@@ -276,6 +282,7 @@ async def send_action(config, action_id, template_arg, args):
         {
             cv.GenerateID(): cv.use_id(ESPNowComponent),
             cv.Required(CONF_MAC_ADDRESS): validate_peer,
+            cv.Optional(CONF_WIFI_CHANNEL): cv.int_range(0, 14),
         },
         key=CONF_MAC_ADDRESS,
     ),
@@ -308,6 +315,8 @@ async def peer_action(config, action_id, template_arg, args):
     if peer_id := config.get(CONF_PEER_ID):
         peer = await cg.get_variable(peer_id)
         cg.add(var.set_peer_id(peer))
+    if CONF_WIFI_CHANNEL in config:
+        cg.add(var.set_wifi_channel(config[CONF_WIFI_CHANNEL]))
 
     await register_peer(var, config, args)
 

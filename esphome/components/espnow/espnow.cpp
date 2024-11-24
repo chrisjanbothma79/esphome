@@ -125,7 +125,7 @@ void ESPNowComponent::setup() {
   esp_wifi_get_mac(WIFI_IF_STA, (uint8_t *) &this->own_peer_address_);
 
   for (auto id : this->peers_) {
-    this->add_peer(id);
+    this->add_peer(id & 0x00FFFFFFFFFFFF, (int8_t) id >> (64 - 8));
   }
 
   this->send_queue_ = xQueueCreate(SEND_BUFFER_SIZE, sizeof(ESPNowPacket));
@@ -184,7 +184,12 @@ void ESPNowComponent::espnow_task(void *param) {
         packet.retry();
         packet.timestamp = millis();
 
-        esp_err_t err = esp_now_send(packet.get_peer(), packet.get_content(), packet.content_size());
+        esp_err_t err;
+        if (packet.get_peer() == 0) {
+          err = esp_now_send(nullptr, packet.get_content(), packet.content_size());
+        } else {
+          err = esp_now_send(packet.get_peer(), packet.get_content(), packet.content_size());
+        }
 
         if (err == ESP_OK) {
           ESP_LOGD(TAG, "Sended '%s' (%d.%d) from buffer. Wait for conformation.", packet.get_peer_code().c_str(),
@@ -200,21 +205,32 @@ void ESPNowComponent::espnow_task(void *param) {
   }
 }
 
-esp_err_t ESPNowComponent::add_peer(uint64_t peer) {
+void ESPNowComponent::set_wifi_channel(uint8_t channel) {
+  if (this->is_ready() && (this->wifi_channel_ == channel)) {
+    ESPNowPacket packet(ESPNOW_MASS_SEND_ADDR, &channel, 1, ESPNOW_MAIN_PROTOCOL_ID, 251);
+  }
+  this->wifi_channel_ = channel;
+}
+
+esp_err_t ESPNowComponent::add_peer(uint64_t peer, int8_t channel) {
   esp_err_t result = ESP_OK;
+  int8_t old_channel = this->wifi_channel_;
+  esp_now_peer_info_t peer_info = {};
+
   if (!this->is_ready()) {
-    this->peers_.push_back(peer);
+    this->peers_.push_back((peer & 0x00FFFFFFFFFFFF) + (channel << (64 - 8)));
     return result;
   } else {
     if (esp_now_is_peer_exist((uint8_t *) &peer)) {
+      esp_now_get_peer((const uint8_t *) &peer, &peer_info);
+      old_channel = peer_info.channel;
       result = esp_now_del_peer((uint8_t *) &peer);
       if (result != ESP_OK)
         return result;
     }
 
-    esp_now_peer_info_t peer_info = {};
     memset(&peer_info, 0, sizeof(esp_now_peer_info_t));
-    peer_info.channel = this->wifi_channel_;
+    peer_info.channel = (channel = -1) ? old_channel : channel;
     peer_info.encrypt = false;
     memcpy((void *) peer_info.peer_addr, (void *) &peer, 6);
     esp_err_t result = esp_now_add_peer(&peer_info);
@@ -297,7 +313,12 @@ void ESPNowComponent::call_on_del_peer_(uint64_t peer) {
 
 bool ESPNowComponent::is_paired(uint64_t peer) {
   bool result = false;
-  if (this->pairing_protocol_ != nullptr) {
+  if (peer == ESPNOW_MASS_SEND_ADDR) {
+    return true;
+  } else if (peer == ESPNOW_BROADCAST_ADDR) {
+    this->add_peer(ESPNOW_BROADCAST_ADDR);
+    return true;
+  } else if (this->pairing_protocol_ != nullptr) {
     result = this->pairing_protocol_->is_paired(peer);
   } else {
     result = (esp_now_is_peer_exist((uint8_t *) &peer));
@@ -368,7 +389,12 @@ bool ESPNowComponent::send(ESPNowPacket packet) {
     xQueueSendToBack(this->send_queue_, (void *) &packet, 10);
     return true;
   } else {
-    esp_err_t err = esp_now_send(packet.get_peer(), packet.get_content(), packet.content_size());
+    esp_err_t err;
+    if (packet.get_peer() == 0) {
+      err = esp_now_send(nullptr, packet.get_content(), packet.content_size());
+    } else {
+      err = esp_now_send(packet.get_peer(), packet.get_content(), packet.content_size());
+    }
     ESP_LOGV(TAG, "Sending to %s (%d.%d) directly%s.", packet.get_peer_code().c_str(), packet.get_sequents(),
              packet.attempts, (err == ESP_OK) ? "" : " FAILED");
 

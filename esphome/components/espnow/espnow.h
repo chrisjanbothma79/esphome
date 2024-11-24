@@ -23,6 +23,7 @@ namespace esphome {
 namespace espnow {
 
 static const uint64_t ESPNOW_BROADCAST_ADDR = 0xFFFFFFFFFFFF;
+static const uint64_t ESPNOW_MASS_SEND_ADDR = 0xFFFFFFFFFFFE;
 
 static const uint8_t MAX_ESPNOW_DATA_SIZE = 240;
 
@@ -68,7 +69,7 @@ struct ESPNowPacket {
                       uint8_t command = 0) ESPHOME_ALWAYS_INLINE {
     if (size > MAX_ESPNOW_DATA_SIZE) {
       ESP_LOGE("ESPNowPacket", "Payload size is to large. It should be less then %d instead it is %d",
-               MAX_ESPNOW_DATA_SIZE, size);
+               MAX_ESPNOW_DATA_SIZE, size);  // nolint
       return;
     }
     if (peer == 0ull) {
@@ -90,7 +91,7 @@ struct ESPNowPacket {
   inline ESPNowPacket(const uint8_t *peer, const uint8_t *data, uint8_t size) ESPHOME_ALWAYS_INLINE {
     if (size > MAX_ESPNOW_DATA_SIZE + this->prefix_size()) {
       ESP_LOGE("ESPNowPacket", "Received Payload size is to large. It should be less then %d instead it is %d",
-               MAX_ESPNOW_DATA_SIZE + this->prefix_size(), size);
+               MAX_ESPNOW_DATA_SIZE + this->prefix_size(), size);  // nolint
       return;
     }
 
@@ -256,7 +257,7 @@ class ESPNowComponent : public Component {
 
   float get_setup_priority() const override { return -100; }
 
-  void set_wifi_channel(uint8_t channel) { this->wifi_channel_ = channel; }
+  void set_wifi_channel(uint8_t channel);
   void set_auto_add_peer(bool value) { this->auto_add_peer_ = value; }
   void set_use_sent_check(bool value) { this->use_sent_check_ = value; }
   void set_conformation_timeout(uint32_t timeout) { this->conformation_timeout_ = timeout; }
@@ -278,7 +279,7 @@ class ESPNowComponent : public Component {
     protocol->init_protocol();
   }
 
-  esp_err_t add_peer(uint64_t peer);
+  esp_err_t add_peer(uint64_t peer, int8_t channel = -1);
   esp_err_t del_peer(uint64_t peer);
 
   bool send_queue_empty() { return uxQueueMessagesWaiting(this->send_queue_) == 0; }
@@ -343,9 +344,14 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
 template<typename... Ts> class NewPeerAction : public Action<Ts...>, public Parented<ESPNowComponent> {
  public:
   TEMPLATABLE_VALUE(uint64_t, mac_address);
+  TEMPLATABLE_VALUE(int8_t, wifi_channel);
   void play(Ts... x) override {
     uint64_t mac_address = this->mac_address_.value(x...);
-    parent_->add_peer(mac_address);
+    if (this->wifi_channel_.has_value()) {
+      parent_->add_peer(mac_address);
+    } else {
+      parent_->add_peer(mac_address, this->wifi_channel_.value(x...));
+    }
   }
 };
 
