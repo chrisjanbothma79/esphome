@@ -201,7 +201,8 @@ void OpenthermHub::reorder_initial_messages_() {
   }
 }
 
-void OpenthermHub::add_initial_message_if_exists_(MessageId id, std::unordered_set<MessageId> &messages) {
+// Turning off clang-tidy here because it keeps removing trailing underscore from method name (is it a bug?)
+void OpenthermHub::add_initial_message_if_exists_(MessageId id, std::unordered_set<MessageId> &messages) {  // NOLINT
   if (messages.find(id) != messages.end()) {
     this->initial_messages_.push_back(id);
     messages.erase(id);
