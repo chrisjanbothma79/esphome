@@ -209,11 +209,13 @@ ENV \
   PLATFORMIO_CORE_DIR=/esphome/.temp/platformio
 
 RUN \
-    apt-get update \
+    curl -L https://apt.llvm.org/llvm-snapshot.gpg.key -o /etc/apt/trusted.gpg.d/apt.llvm.org.asc \
+    && echo "deb http://apt.llvm.org/bookworm/ llvm-toolchain-bookworm-18 main" > /etc/apt/sources.list.d/llvm.sources.list \
+    && apt-get update \
     # Use pinned versions so that we get updates with build caching
     && apt-get install -y --no-install-recommends \
         clang-format-13=1:13.0.1-11+b2 \
-        clang-tidy-14=1:14.0.6-12 \
+        clang-tidy-18 \
         patch=2.7.6-7 \
         software-properties-common=0.99.30-4.1~deb12u1 \
         nano=7.2-1+deb12u1 \
