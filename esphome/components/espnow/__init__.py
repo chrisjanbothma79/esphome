@@ -60,11 +60,11 @@ CONF_PROTOCOL_MODE = "protocol_mode"
 
 validate_command = cv.Range(min=1, max=250)
 
-ESPNowProtocol_mode = espnow_ns.enum("ESPNowProtocol_mode")
+ESPNowProtocolMode = espnow_ns.enum("ESPNowProtocolMode")
 ENUM_MODE = {
-    "universal": ESPNowProtocol_mode.pm_universal,
-    "keeper": ESPNowProtocol_mode.pm_keeper,
-    "drudge": ESPNowProtocol_mode.pm_drudge,
+    "universal": ESPNowProtocolMode.PM_UNIVERSAL,
+    "keeper": ESPNowProtocolMode.PM_KEEPER,
+    "drudge": ESPNowProtocolMode.PM_DRUDGE,
 }
 
 

@@ -35,7 +35,7 @@ void show_packet(const std::string &title, const ESPNowPacket &packet) {
            packet.attempts, packet.content_size(), packet.is_valid() ? "Yes" : "No");
 }
 
-std::string peer_str(const uint64_t peer) {
+std::string peer_str(uint64_t peer) {
   char mac[24];
   if (peer == 0)
     return "[Not Set]";
@@ -43,9 +43,9 @@ std::string peer_str(const uint64_t peer) {
     return "[Broadcast]";
   if (peer == ESPNOW_MASS_SEND_ADDR)
     return "[Mass Send]";
-  uint8_t *peer_ = (uint8_t *) &peer;
-  snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X", peer_[0], peer_[1], peer_[2], peer_[3], peer_[4],
-           peer_[5]);
+  uint8_t *ppeer = (uint8_t *) &peer;
+  snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X", ppeer[0], ppeer[1], ppeer[2], ppeer[3], ppeer[4],
+           ppeer[5]);
   return mac;
 }
 
@@ -241,7 +241,7 @@ void ESPNowComponent::espnow_task(void *param) {
         packet.timestamp = millis();
 
         esp_err_t err;
-        if (packet.get_peer() == 0) {
+        if (packet.peer == ESPNOW_MASS_SEND_ADDR) {
           err = esp_now_send(nullptr, packet.get_content(), packet.content_size());
         } else {
           err = esp_now_send(packet.get_peer(), packet.get_content(), packet.content_size());
@@ -471,7 +471,7 @@ bool ESPNowComponent::send(ESPNowPacket packet) {
     return true;
   } else {
     esp_err_t err;
-    if (packet.get_peer() == 0) {
+    if (packet.peer == ESPNOW_MASS_SEND_ADDR) {
       err = esp_now_send(nullptr, packet.get_content(), packet.content_size());
     } else {
       err = esp_now_send(packet.get_peer(), packet.get_content(), packet.content_size());

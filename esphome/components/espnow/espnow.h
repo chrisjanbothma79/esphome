@@ -42,7 +42,7 @@ template<typename T> std::string espnow_i2h(T i) { return sprintf("%04x", i); }
 
 std::string espnow_rdm(std::string::size_type length);
 
-std::string peer_str(const uint64_t peer);
+std::string peer_str(uint64_t peer);
 
 void show_packet(const std::string &title, const ESPNowPacket &packet);
 
@@ -116,15 +116,15 @@ struct ESPNowPacket {
 
 class ESPNowComponent;
 
-enum ESPNowProtocol_mode { pm_universal, pm_keeper, pm_drudge };
+enum ESPNowProtocolMode { PM_UNIVERSAL, PM_KEEPER, PM_DRUDGE };
 
 class ESPNowProtocol : public Parented<ESPNowComponent> {
  public:
-  void set_protocol_mode(ESPNowProtocol_mode mode) { this->protocol_mode_ = mode; }
-  ESPNowProtocol_mode get_protocol_mode() { return this->protocol_mode_; }
+  void set_protocol_mode(ESPNowProtocolMode mode) { this->protocol_mode_ = mode; }
+  ESPNowProtocolMode get_protocol_mode() { return this->protocol_mode_; }
 
  protected:
-  ESPNowProtocol_mode protocol_mode_{pm_universal};
+  ESPNowProtocolMode protocol_mode_{PM_UNIVERSAL};
 
  public:
   virtual uint32_t get_protocol_id() = 0;
@@ -165,11 +165,11 @@ class ESPNowProtocol : public Parented<ESPNowComponent> {
   std::map<uint64_t, uint8_t> next_sequents_{};
   std::string get_mode_name_() {
     switch (this->protocol_mode_) {
-      case pm_universal:
+      case PM_UNIVERSAL:
         return "Universal";
-      case pm_keeper:
+      case PM_KEEPER:
         return "Keeper";
-      case pm_drudge:
+      case PM_DRUDGE:
         return "Drudge";
     }
   }
