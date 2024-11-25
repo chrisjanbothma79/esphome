@@ -22,12 +22,7 @@ CONF_CH2_ACTIVE = "ch2_active"
 CONF_SUMMER_MODE_ACTIVE = "summer_mode_active"
 CONF_DHW_BLOCK = "dhw_block"
 CONF_SYNC_MODE = "sync_mode"
-CONF_CONTROLLER_PRODUCT_TYPE = "controller_product_type"
-CONF_CONTROLLER_PRODUCT_VERSION = "controller_product_version"
 CONF_OPENTHERM_VERSION = "opentherm_version"  # Deprecated, will be removed
-CONF_OPENTHERM_VERSION_CONTROLLER = "opentherm_version_controller"
-CONF_CONTROLLER_ID = "controller_id"
-CONF_CONTROLLER_CONFIGURATION = "controller_configuration"
 CONF_BEFORE_SEND = "before_send"
 CONF_BEFORE_PROCESS_RESPONSE = "before_process_response"
 
@@ -57,11 +52,6 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_SUMMER_MODE_ACTIVE, False): cv.boolean,
             cv.Optional(CONF_DHW_BLOCK, False): cv.boolean,
             cv.Optional(CONF_SYNC_MODE, False): cv.boolean,
-            cv.Optional(CONF_CONTROLLER_PRODUCT_TYPE): cv.int_range(min=0, max=255),
-            cv.Optional(CONF_CONTROLLER_PRODUCT_VERSION): cv.int_range(min=0, max=255),
-            cv.Optional(CONF_OPENTHERM_VERSION_CONTROLLER): cv.positive_float,
-            cv.Optional(CONF_CONTROLLER_ID): cv.int_range(min=0, max=255),
-            cv.Optional(CONF_CONTROLLER_CONFIGURATION): cv.int_range(min=0, max=255),
             cv.Optional(CONF_OPENTHERM_VERSION): cv.positive_float,  # Deprecated
             cv.Optional(CONF_BEFORE_SEND): automation.validate_automation(
                 {
@@ -80,6 +70,11 @@ CONFIG_SCHEMA = cv.All(
     .extend(
         validate.create_entities_schema(
             schema.INPUTS, (lambda _: cv.use_id(sensor.Sensor))
+        )
+    )
+    .extend(
+        validate.create_entities_schema(
+            schema.SETTINGS, (lambda s: s.validation_schema)
         )
     )
     .extend(cv.COMPONENT_SCHEMA),
@@ -106,21 +101,22 @@ async def to_code(config: dict[str, Any]) -> None:
         CONF_BEFORE_PROCESS_RESPONSE,
     }
     input_sensors = []
+    settings = []
     for key, value in config.items():
         if key in non_sensors:
             continue
         if key in schema.INPUTS:
             input_sensor = await cg.get_variable(value)
-            cg.add(
-                getattr(var, f"set_{key}_{const.INPUT_SENSOR.lower()}")(input_sensor)
-            )
+            cg.add(getattr(var, f"set_{key}_{const.INPUT_SENSOR}")(input_sensor))
             input_sensors.append(key)
+        elif key in schema.SETTINGS:
+            cg.add(getattr(var, f"set_{key}_{const.SETTING}")(value))
+            settings.append(key)
         else:
             if key == CONF_OPENTHERM_VERSION:
                 _LOGGER.warning(
                     f"{CONF_OPENTHERM_VERSION} is deprecated and will be removed in esphome 2025.2.0\n"
-                    f"Please remove this property and set {CONF_OPENTHERM_VERSION_CONTROLLER} in number: "
-                    f"section."
+                    f"Please change to 'opentherm_version_controller'."
                 )
             cg.add(getattr(var, f"set_{key}")(value))
 
@@ -131,6 +127,12 @@ async def to_code(config: dict[str, Any]) -> None:
         )
         generate.define_readers(const.INPUT_SENSOR, input_sensors)
         generate.add_messages(var, input_sensors, schema.INPUTS)
+
+    if len(settings) > 0:
+        generate.define_has_settings(settings, schema.SETTINGS)
+        generate.define_message_handler(const.SETTING, settings, schema.SETTINGS)
+        generate.define_setting_readers(const.SETTING, settings)
+        generate.add_messages(var, settings, schema.SETTINGS)
 
     for conf in config.get(CONF_BEFORE_SEND, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
