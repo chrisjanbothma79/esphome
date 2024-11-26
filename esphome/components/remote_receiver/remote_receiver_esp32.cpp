@@ -21,6 +21,9 @@ static bool IRAM_ATTR HOT rmt_callback(rmt_channel_handle_t channel, const rmt_r
     next_write = store->buffer_write;
     store->overflow = true;
   }
+  if (event->num_symbols < store->min_symbols) {
+    next_write = store->buffer_write;
+  }
   store->error =
       rmt_receive(channel, (uint8_t *) store->buffer + next_write + event_size, store->receive_size, &store->config);
   event_buffer->num_symbols = event->num_symbols;
@@ -73,7 +76,12 @@ void RemoteReceiverComponent::setup() {
   memset(&this->store_.config, 0, sizeof(this->store_.config));
   this->store_.config.signal_range_min_ns = std::min(this->filter_us_ * 1000, max_filter_ns);
   this->store_.config.signal_range_max_ns = std::min(this->idle_us_ * 1000, max_idle_ns);
-  this->store_.receive_size = (MEM_BLOCK_SIZE * this->mem_block_num_ + 1) * sizeof(rmt_symbol_word_t);
+  this->store_.min_symbols = (this->min_length_ + 1) / 2;
+  if (this->max_length_ > 0) {
+    this->store_.receive_size = ((this->max_length_ + 1) / 2) * sizeof(rmt_symbol_word_t);
+  } else {
+    this->store_.receive_size = MEM_BLOCK_SIZE * this->mem_block_num_ * sizeof(rmt_symbol_word_t);
+  }
   this->store_.buffer_size = std::max((event_size + this->store_.receive_size) * 2, this->buffer_size_);
   this->store_.buffer = new uint8_t[this->buffer_size_];
   error = rmt_receive(this->channel_, (uint8_t *) this->store_.buffer + event_size, this->store_.receive_size,

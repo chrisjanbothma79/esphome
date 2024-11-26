@@ -38,6 +38,7 @@ struct RemoteReceiverComponentStore {
   bool overflow{false};
   uint32_t buffer_size{1000};
   uint32_t receive_size{0};
+  uint32_t min_symbols{0};
   esp_err_t error{ESP_OK};
   rmt_receive_config_t config;
 #endif
@@ -64,6 +65,8 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
   float get_setup_priority() const override { return setup_priority::DATA; }
 
 #ifdef USE_ESP32
+  void set_min_length(uint32_t min_length) { this->min_length_ = min_length; }
+  void set_max_length(uint32_t max_length) { this->max_length_ = max_length; }
   void set_with_dma(bool with_dma) { this->with_dma_ = with_dma; }
 #endif
   void set_buffer_size(uint32_t buffer_size) { this->buffer_size_ = buffer_size; }
@@ -76,6 +79,8 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
   rmt_channel_handle_t channel_{NULL};
   esp_err_t error_code_{ESP_OK};
   std::string error_string_{""};
+  uint32_t min_length_{0};
+  uint32_t max_length_{0};
   bool with_dma_{false};
 #endif
 

@@ -19,6 +19,8 @@ from esphome.core import CORE, TimePeriod
 
 CONF_CLOCK_DIVIDER = "clock_divider"
 CONF_WITH_DMA = "with_dma"
+CONF_MIN_LENGTH = "min_length"
+CONF_MAX_LENGTH = "max_length"
 
 AUTO_LOAD = ["remote_base"]
 remote_receiver_ns = cg.esphome_ns.namespace("remote_receiver")
@@ -106,6 +108,8 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
                 cv.positive_time_period_microseconds,
                 cv.Range(max=TimePeriod(microseconds=4294967295)),
             ),
+            cv.Optional(CONF_MIN_LENGTH, default=0): cv.Range(min=0),
+            cv.Optional(CONF_MAX_LENGTH, default=0): cv.Range(min=0),
             cv.Optional(CONF_WITH_DMA, default=False): cv.boolean,
             cv.Optional(CONF_MEMORY_BLOCKS, default=3): cv.Range(min=1, max=8),
             cv.Optional(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=False),
@@ -118,6 +122,8 @@ async def to_code(config):
     pin = await cg.gpio_pin_expression(config[CONF_PIN])
     if CORE.is_esp32:
         var = cg.new_Pvariable(config[CONF_ID], pin, config[CONF_MEMORY_BLOCKS])
+        cg.add(var.set_min_length(config[CONF_MIN_LENGTH]))
+        cg.add(var.set_max_length(config[CONF_MAX_LENGTH]))
         cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
         cg.add(var.set_clock_divider(config[CONF_CLOCK_DIVIDER]))
     else:
