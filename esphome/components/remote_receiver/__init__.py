@@ -8,7 +8,9 @@ from esphome.const import (
     CONF_FILTER,
     CONF_ID,
     CONF_IDLE,
+    CONF_MAX_LENGTH,
     CONF_MEMORY_BLOCKS,
+    CONF_MIN_LENGTH,
     CONF_PIN,
     CONF_RMT_CHANNEL,
     CONF_TOLERANCE,
@@ -19,8 +21,6 @@ from esphome.core import CORE, TimePeriod
 
 CONF_CLOCK_DIVIDER = "clock_divider"
 CONF_WITH_DMA = "with_dma"
-CONF_MIN_LENGTH = "min_length"
-CONF_MAX_LENGTH = "max_length"
 
 AUTO_LOAD = ["remote_base"]
 remote_receiver_ns = cg.esphome_ns.namespace("remote_receiver")
