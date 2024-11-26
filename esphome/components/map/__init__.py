@@ -1,7 +1,6 @@
-from esphome.const import CONF_ID, CONF_FROM, CONF_TO
-
-import esphome.config_validation as cv
 import esphome.codegen as cg
+import esphome.config_validation as cv
+from esphome.const import CONF_FROM, CONF_ID, CONF_TO
 from esphome.core import CORE
 from esphome.cpp_generator import MockObj, VariableDeclarationExpression, add_global
 
@@ -11,6 +10,7 @@ map_ = cg.std_ns.class_("map")
 
 CONF_ENTRIES = "entries"
 CONF_CLASS = "class"
+
 
 class IndexType:
     def __init__(self, validator, data_type, conversion):
@@ -24,10 +24,11 @@ INDEX_TYPES = {
     "string": IndexType(cv.string, cg.std_string, str),
 }
 
+
 def to_schema(value):
     return cv.Any(
         cv.one_of(*INDEX_TYPES, lower=True),
-        cv.Schema({cv.Required(CONF_CLASS): cv.one_of(*MockObj.known_classes.keys())})
+        cv.Schema({cv.Required(CONF_CLASS): cv.one_of(*MockObj.known_classes.keys())}),
     )(value)
 
 
@@ -40,6 +41,7 @@ BASE_SCHEMA = cv.Schema(
     }
 )
 
+
 def validate_mapping(config):
     entries = config[CONF_ENTRIES]
     from_ = config[CONF_FROM]
@@ -51,12 +53,14 @@ def validate_mapping(config):
         to_val = cv.use_id(class_)
     else:
         to_val = INDEX_TYPES[to_].validator
-    schema = BASE_SCHEMA.extend({
-            cv.Required(CONF_ENTRIES):cv.Schema({ INDEX_TYPES[from_].validator: to_val})
-        })
+    schema = BASE_SCHEMA.extend(
+        {cv.Required(CONF_ENTRIES): cv.Schema({INDEX_TYPES[from_].validator: to_val})}
+    )
     return schema(config)
 
-CONFIG_SCHEMA = cv.All( BASE_SCHEMA, validate_mapping )
+
+CONFIG_SCHEMA = cv.All(BASE_SCHEMA, validate_mapping)
+
 
 async def to_code(config):
     entries = config[CONF_ENTRIES]
@@ -65,13 +69,17 @@ async def to_code(config):
     index_conversion = INDEX_TYPES[index].conversion
     index_type = INDEX_TYPES[index].data_type
     if isinstance(value_spec, dict):
-        entries = { index_conversion(key): await cg.get_variable(value) for key, value in entries.items() }
+        entries = {
+            index_conversion(key): await cg.get_variable(value)
+            for key, value in entries.items()
+        }
         value_type = MockObj.known_classes[value_spec[CONF_CLASS]].operator("ptr")
     else:
         value_conversion = INDEX_TYPES[value_spec].conversion
         value_type = INDEX_TYPES[value_spec].data_type
         entries = {
-            index_conversion(key): value_conversion(value) for key, value in entries.items()
+            index_conversion(key): value_conversion(value)
+            for key, value in entries.items()
         }
     varid = config[CONF_ID]
     varid.type = map_.template(index_type, value_type)
