@@ -1,6 +1,6 @@
 #pragma once
-#include "esphome/core/defines.h"
 #include "esphome/core/component.h"
+#include "esphome/core/defines.h"
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #endif
@@ -53,9 +53,6 @@ class MR60BHA2Component : public Component,
   size_t current_frame_len_;
   size_t current_data_frame_len_;
   uint16_t current_frame_type_;
-  uint32_t current_breath_rate_int_;
-  uint32_t current_heart_rate_int_;
-  uint32_t current_distance_int_;
 
   void split_frame_(uint8_t buffer);
   void process_frame_();

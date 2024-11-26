@@ -1,5 +1,5 @@
-#include "esphome/core/log.h"
 #include "seeed_mr60bha2.h"
+#include "esphome/core/log.h"
 
 #include <utility>
 
@@ -29,9 +29,6 @@ void MR60BHA2Component::setup() {
   this->current_frame_len_ = 0;
   this->current_data_frame_len_ = 0;
   this->current_frame_type_ = 0;
-  this->current_breath_rate_int_ = 0;
-  this->current_heart_rate_int_ = 0;
-  this->current_distance_int_ = 0;
 
   memset(this->current_frame_buf_, 0, FRAME_BUF_MAX_SIZE);
   memset(this->current_data_buf_, 0, DATA_BUF_MAX_SIZE);
@@ -112,17 +109,12 @@ void MR60BHA2Component::split_frame_(uint8_t buffer) {
         this->current_frame_buf_[this->current_frame_len_ - 1] = buffer;
         this->current_frame_locate_++;
       } else {
-        // ESP_LOGD(TAG, "DATA_FRAME_LEN_H: 0x%02x", buffer);
-        // ESP_LOGD(TAG, "CURRENT_FRAME_LEN_H: 0x%04x", this->current_data_frame_len_);
         this->current_frame_locate_ = LOCATE_FRAME_HEADER;
       }
       break;
     case LOCATE_LENGTH_FRAME_L:
       this->current_data_frame_len_ += buffer;
       if (this->current_data_frame_len_ > DATA_BUF_MAX_SIZE) {
-        // ESP_LOGD(TAG, "DATA_FRAME_LEN_L: 0x%02x", buffer);
-        // ESP_LOGD(TAG, "CURRENT_FRAME_LEN: 0x%04x", this->current_data_frame_len_);
-        // ESP_LOGD(TAG, "DATA_FRAME_LEN ERROR: %d", this->current_data_frame_len_);
         this->current_frame_locate_ = LOCATE_FRAME_HEADER;
       } else {
         this->current_frame_len_++;
@@ -135,7 +127,6 @@ void MR60BHA2Component::split_frame_(uint8_t buffer) {
       this->current_frame_len_++;
       this->current_frame_buf_[this->current_frame_len_ - 1] = buffer;
       this->current_frame_locate_++;
-      // ESP_LOGD(TAG, "GET LOCATE_TYPE_FRAME1: 0x%02x", this->current_frame_buf_[this->current_frame_len_ - 1]);
       break;
     case LOCATE_TYPE_FRAME2:
       this->current_frame_type_ += buffer;
@@ -145,13 +136,7 @@ void MR60BHA2Component::split_frame_(uint8_t buffer) {
         this->current_frame_len_++;
         this->current_frame_buf_[this->current_frame_len_ - 1] = buffer;
         this->current_frame_locate_++;
-        // ESP_LOGD(TAG, "GET CURRENT_FRAME_TYPE: 0x%02x 0x%02x", this->current_frame_buf_[this->current_frame_len_ -
-        // 2],
-        //          this->current_frame_buf_[this->current_frame_len_ - 1]);
       } else {
-        // ESP_LOGD(TAG, "CURRENT_FRAME_TYPE NOT FOUND: 0x%02x 0x%02x",
-        //          this->current_frame_buf_[this->current_frame_len_ - 2],
-        //          this->current_frame_buf_[this->current_frame_len_ - 1]);
         this->current_frame_locate_ = LOCATE_FRAME_HEADER;
       }
       break;
@@ -161,7 +146,7 @@ void MR60BHA2Component::split_frame_(uint8_t buffer) {
         this->current_frame_buf_[this->current_frame_len_ - 1] = buffer;
         this->current_frame_locate_++;
       } else {
-        ESP_LOGV(TAG, "HEAD_CKSUM_FRAME ERROR: 0x%02x", buffer);
+        ESP_LOGD(TAG, "HEAD_CKSUM_FRAME ERROR: 0x%02x", buffer);
         ESP_LOGV(TAG, " GET FRAME: %s", format_hex_pretty(this->current_frame_buf_, this->current_frame_len_).c_str());
         this->current_frame_locate_ = LOCATE_FRAME_HEADER;
       }
@@ -185,7 +170,7 @@ void MR60BHA2Component::split_frame_(uint8_t buffer) {
         this->current_frame_locate_++;
         this->process_frame_();
       } else {
-        ESP_LOGV(TAG, "DATA_CKSUM_FRAME ERROR: 0x%02x", buffer);
+        ESP_LOGD(TAG, "DATA_CKSUM_FRAME ERROR: 0x%02x", buffer);
         ESP_LOGV(TAG, "GET FRAME: %s", format_hex_pretty(this->current_frame_buf_, this->current_frame_len_).c_str());
         this->current_frame_locate_ = LOCATE_FRAME_HEADER;
       }
@@ -199,36 +184,31 @@ void MR60BHA2Component::process_frame_() {
   switch (this->current_frame_type_) {
     case BREATH_RATE_TYPE_BUFFER:
       if (this->breath_rate_sensor_ != nullptr) {
-        this->current_breath_rate_int_ =
-            (static_cast<uint32_t>(current_data_buf_[3]) << 24) | (static_cast<uint32_t>(current_data_buf_[2]) << 16) |
-            (static_cast<uint32_t>(current_data_buf_[1]) << 8) | static_cast<uint32_t>(current_data_buf_[0]);
+        uint32_t current_breath_rate_int =
+            encode_uint32(current_data_buf_[3], current_data_buf_[2], current_data_buf_[1], current_data_buf_[0]);
         float breath_rate_float;
-        memcpy(&breath_rate_float, &current_breath_rate_int_, sizeof(float));
+        memcpy(&breath_rate_float, &current_breath_rate_int, sizeof(float));
         this->breath_rate_sensor_->publish_state(breath_rate_float);
       }
       this->current_frame_locate_ = LOCATE_FRAME_HEADER;
       break;
     case HEART_RATE_TYPE_BUFFER:
       if (this->heart_rate_sensor_ != nullptr) {
-        this->current_heart_rate_int_ =
-            (static_cast<uint32_t>(current_data_buf_[3]) << 24) | (static_cast<uint32_t>(current_data_buf_[2]) << 16) |
-            (static_cast<uint32_t>(current_data_buf_[1]) << 8) | static_cast<uint32_t>(current_data_buf_[0]);
+        uint32_t current_heart_rate_int =
+            encode_uint32(current_data_buf_[3], current_data_buf_[2], current_data_buf_[1], current_data_buf_[0]);
         float heart_rate_float;
-        memcpy(&heart_rate_float, &current_heart_rate_int_, sizeof(float));
+        memcpy(&heart_rate_float, &current_heart_rate_int, sizeof(float));
         this->heart_rate_sensor_->publish_state(heart_rate_float);
       }
       this->current_frame_locate_ = LOCATE_FRAME_HEADER;
       break;
     case DISTANCE_TYPE_BUFFER:
       if (!current_data_buf_[0]) {
-        // ESP_LOGD(TAG, "Successfully set the mounting height");
         if (this->distance_sensor_ != nullptr) {
-          this->current_distance_int_ = (static_cast<uint32_t>(current_data_buf_[7]) << 24) |
-                                        (static_cast<uint32_t>(current_data_buf_[6]) << 16) |
-                                        (static_cast<uint32_t>(current_data_buf_[5]) << 8) |
-                                        static_cast<uint32_t>(current_data_buf_[4]);
+          uint32_t current_distance_int =
+              encode_uint32(current_data_buf_[7], current_data_buf_[6], current_data_buf_[5], current_data_buf_[4]);
           float distance_float;
-          memcpy(&distance_float, &current_distance_int_, sizeof(float));
+          memcpy(&distance_float, &current_distance_int, sizeof(float));
           this->distance_sensor_->publish_state(distance_float);
         }
       } else
