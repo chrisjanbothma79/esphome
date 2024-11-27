@@ -59,6 +59,8 @@ async def to_code(config):
             cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
             cg.add(var.set_one_wire(config[CONF_ONE_WIRE]))
             cg.add_define("USE_NEW_RMT_DRIVER")
+    else:
+        var = cg.new_Pvariable(config[CONF_ID], pin)
     await cg.register_component(var, config)
 
     cg.add(var.set_carrier_duty_percent(config[CONF_CARRIER_DUTY_PERCENT]))
