@@ -136,11 +136,11 @@ async def to_code(config):
             )
         else:
             var = cg.new_Pvariable(config[CONF_ID], pin, config[CONF_MEMORY_BLOCKS])
-        cg.add(var.set_min_length(config[CONF_MIN_LENGTH]))
-        cg.add(var.set_max_length(config[CONF_MAX_LENGTH]))
-        cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
         cg.add(var.set_clock_divider(config[CONF_CLOCK_DIVIDER]))
         if USE_NEW_RMT_DRIVER:
+            cg.add(var.set_min_length(config[CONF_MIN_LENGTH]))
+            cg.add(var.set_max_length(config[CONF_MAX_LENGTH]))
+            cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
             cg.add_define("USE_NEW_RMT_DRIVER")
     else:
         var = cg.new_Pvariable(config[CONF_ID], pin)
