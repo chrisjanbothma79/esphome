@@ -82,13 +82,13 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
  protected:
 #ifdef USE_ESP32
 #ifdef USE_NEW_RMT_DRIVER
-  void decode_rmt_(rmt_symbol_word_t *item, size_t count);
+  void decode_rmt_(rmt_symbol_word_t *item, size_t item_count);
   rmt_channel_handle_t channel_{NULL};
   uint32_t min_length_{0};
   uint32_t max_length_{0};
   bool with_dma_{false};
 #else
-  void decode_rmt_(rmt_item32_t *item, size_t count);
+  void decode_rmt_(rmt_item32_t *item, size_t item_count);
   RingbufHandle_t ringbuf_;
 #endif
   esp_err_t error_code_{ESP_OK};
