@@ -16,8 +16,16 @@ from esphome.const import (
     CONF_TOLERANCE,
     CONF_TYPE,
     CONF_VALUE,
+    KEY_CORE,
+    KEY_FRAMEWORK_VERSION,
 )
 from esphome.core import CORE, TimePeriod
+
+USE_NEW_RMT_DRIVER = False
+if CORE.is_esp32:
+    version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
+    if CORE.using_esp_idf and version >= cv.Version(5, 0, 0):
+        USE_NEW_RMT_DRIVER = True
 
 CONF_CLOCK_DIVIDER = "clock_divider"
 CONF_WITH_DMA = "with_dma"
@@ -121,11 +129,21 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
 async def to_code(config):
     pin = await cg.gpio_pin_expression(config[CONF_PIN])
     if CORE.is_esp32:
-        var = cg.new_Pvariable(config[CONF_ID], pin, config[CONF_MEMORY_BLOCKS])
+        if (
+            USE_NEW_RMT_DRIVER
+            and (rmt_channel := config.get(CONF_RMT_CHANNEL, None)) is not None
+        ):
+            var = cg.new_Pvariable(
+                config[CONF_ID], pin, rmt_channel, config[CONF_MEMORY_BLOCKS]
+            )
+        else:
+            var = cg.new_Pvariable(config[CONF_ID], pin, config[CONF_MEMORY_BLOCKS])
         cg.add(var.set_min_length(config[CONF_MIN_LENGTH]))
         cg.add(var.set_max_length(config[CONF_MAX_LENGTH]))
         cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
         cg.add(var.set_clock_divider(config[CONF_CLOCK_DIVIDER]))
+        if USE_NEW_RMT_DRIVER:
+            cg.add_define("USE_NEW_RMT_DRIVER")
     else:
         var = cg.new_Pvariable(config[CONF_ID], pin)
 

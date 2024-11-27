@@ -5,15 +5,15 @@
 
 #include <cinttypes>
 
-#ifdef USE_ESP32
+#if defined(USE_ESP32) && defined(USE_NEW_RMT_DRIVER)
 #include <driver/rmt_rx.h>
 #endif
 
 namespace esphome {
 namespace remote_receiver {
 
-struct RemoteReceiverComponentStore {
 #if defined(USE_ESP8266) || defined(USE_LIBRETINY)
+struct RemoteReceiverComponentStore {
   static void gpio_intr(RemoteReceiverComponentStore *arg);
 
   /// Stores the time (in micros) that the leading/falling edge happened at
@@ -28,7 +28,9 @@ struct RemoteReceiverComponentStore {
   uint32_t buffer_size{1000};
   uint32_t filter_us{10};
   ISRInternalGPIOPin pin;
-#elif defined(USE_ESP32)
+};
+#elif defined(USE_ESP32) && defined(USE_NEW_RMT_DRIVER)
+struct RemoteReceiverComponentStore {
   /// Stores RMT symbols and rx done event data
   volatile uint8_t *buffer{nullptr};
   /// The position last written to
@@ -41,8 +43,8 @@ struct RemoteReceiverComponentStore {
   uint32_t min_symbols{0};
   esp_err_t error{ESP_OK};
   rmt_receive_config_t config;
-#endif
 };
+#endif
 
 class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
                                 public Component
@@ -56,6 +58,10 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
 #ifdef USE_ESP32
   RemoteReceiverComponent(InternalGPIOPin *pin, uint8_t mem_block_num = 1)
       : RemoteReceiverBase(pin), remote_base::RemoteRMTChannel(mem_block_num) {}
+#ifndef USE_NEW_RMT_DRIVER
+  RemoteReceiverComponent(InternalGPIOPin *pin, rmt_channel_t channel, uint8_t mem_block_num = 1)
+      : RemoteReceiverBase(pin), remote_base::RemoteRMTChannel(channel, mem_block_num) {}
+#endif
 #else
   RemoteReceiverComponent(InternalGPIOPin *pin) : RemoteReceiverBase(pin) {}
 #endif
@@ -64,7 +70,7 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
   void loop() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
 
-#ifdef USE_ESP32
+#if defined(USE_ESP32) && defined(USE_NEW_RMT_DRIVER)
   void set_min_length(uint32_t min_length) { this->min_length_ = min_length; }
   void set_max_length(uint32_t max_length) { this->max_length_ = max_length; }
   void set_with_dma(bool with_dma) { this->with_dma_ = with_dma; }
@@ -75,17 +81,24 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
 
  protected:
 #ifdef USE_ESP32
-  void decode_rmt_(rmt_symbol_word_t *item, size_t item_count);
+#ifdef USE_NEW_RMT_DRIVER
+  void decode_rmt_(rmt_symbol_word_t *item, size_t count);
   rmt_channel_handle_t channel_{NULL};
-  esp_err_t error_code_{ESP_OK};
-  std::string error_string_{""};
   uint32_t min_length_{0};
   uint32_t max_length_{0};
   bool with_dma_{false};
+#else
+  void decode_rmt_(rmt_item32_t *item, size_t count);
+  RingbufHandle_t ringbuf_;
+#endif
+  esp_err_t error_code_{ESP_OK};
+  std::string error_string_{""};
 #endif
 
+#if defined(USE_ESP8266) || defined(USE_LIBRETINY) || (defined(USE_ESP32) && defined(USE_NEW_RMT_DRIVER))
   RemoteReceiverComponentStore store_;
   HighFrequencyLoopRequester high_freq_;
+#endif
 
   uint32_t buffer_size_{};
   uint32_t filter_us_{10};

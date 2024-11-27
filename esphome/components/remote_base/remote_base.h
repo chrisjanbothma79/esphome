@@ -8,6 +8,10 @@
 #include "esphome/core/component.h"
 #include "esphome/core/hal.h"
 
+#if defined(USE_ESP32) && !defined(USE_NEW_RMT_DRIVER)
+#include <driver/rmt.h>
+#endif
+
 namespace esphome {
 namespace remote_base {
 
@@ -108,7 +112,14 @@ class RemoteComponentBase {
 #ifdef USE_ESP32
 class RemoteRMTChannel {
  public:
+#ifndef USE_NEW_RMT_DRIVER
+  explicit RemoteRMTChannel(uint8_t mem_block_num = 1);
+  explicit RemoteRMTChannel(rmt_channel_t channel, uint8_t mem_block_num = 1);
+
+  void config_rmt(rmt_config_t &rmt);
+#else
   explicit RemoteRMTChannel(uint8_t mem_block_num = 1) : mem_block_num_(mem_block_num) {}
+#endif
   void set_clock_divider(uint8_t clock_divider) { this->clock_divider_ = clock_divider; }
 
  protected:
@@ -121,6 +132,9 @@ class RemoteRMTChannel {
     return (ticks * 10) / ticks_per_ten_us;
   }
   RemoteComponentBase *remote_base_;
+#ifndef USE_NEW_RMT_DRIVER
+  rmt_channel_t channel_{RMT_CHANNEL_0};
+#endif
   uint8_t mem_block_num_;
   uint8_t clock_divider_{80};
 };
