@@ -47,13 +47,8 @@ void RemoteTransmitterComponent::configure_rmt_() {
     channel.gpio_num = gpio_num_t(this->pin_->get_pin());
     channel.mem_block_symbols = 64 * this->mem_block_num_;
     channel.trans_queue_depth = 1;
-    if (this->one_wire_) {
-      channel.flags.io_loop_back = 1;
-      channel.flags.io_od_mode = 1;
-    } else {
-      channel.flags.io_loop_back = 0;
-      channel.flags.io_od_mode = 0;
-    }
+    channel.flags.io_loop_back = this->one_wire_;
+    channel.flags.io_od_mode = this->one_wire_;
     channel.flags.invert_out = 0;
     channel.flags.with_dma = this->with_dma_;
     channel.intr_priority = 0;
