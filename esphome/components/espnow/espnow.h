@@ -23,7 +23,7 @@ namespace esphome {
 namespace espnow {
 
 static const uint64_t ESPNOW_BROADCAST_ADDR = 0xFFFFFFFFFFFF;
-static const uint64_t ESPNOW_MASS_SEND_ADDR = 0xFFFFFFFFFFFE;
+static const uint64_t ESPNOW_MULTICAST_ADDR = 0xFFFFFFFFFFFE;
 
 static const uint8_t MAX_ESPNOW_DATA_SIZE = 240;
 
@@ -55,6 +55,8 @@ struct ESPNowPacket {
   uint8_t rssi{0};
   int8_t attempts{0};
   bool is_broadcast{false};
+  bool is_multicast{false};
+  uint8_t scan_start{0};
   uint32_t timestamp{0};
   uint8_t size{0};
   struct {
@@ -232,6 +234,8 @@ class ESPNowComponent : public Component {
   void set_wifi_channel(uint8_t channel);
   void set_auto_add_peer(bool value) { this->auto_add_peer_ = value; }
   void set_use_sent_check(bool value) { this->use_sent_check_ = value; }
+  void set_auto_channel_scan(bool value) { this->auto_channel_scan_ = value; }
+
   void set_conformation_timeout(uint32_t timeout) { this->conformation_timeout_ = timeout; }
   void set_retries(uint8_t value) { this->retries_ = value; }
   void set_pairing_protocol(ESPNowProtocol *pairing_protocol) { this->pairing_protocol_ = pairing_protocol; }
@@ -269,11 +273,14 @@ class ESPNowComponent : public Component {
   static void espnow_task(void *params);
 
   void handle_internal_commands(ESPNowPacket packet);
+  void handle_internal_sent(ESPNowPacket packet, bool status);
 
  protected:
   bool validate_channel_(uint8_t channel);
+
   ESPNowProtocol *get_protocol_(uint32_t protocol);
   ESPNowProtocol *pairing_protocol_{nullptr};
+
   uint64_t own_peer_address_{0};
   uint8_t wifi_channel_{0};
   uint32_t conformation_timeout_{5000};
@@ -281,6 +288,7 @@ class ESPNowComponent : public Component {
 
   bool auto_add_peer_{false};
   bool use_sent_check_{true};
+  bool auto_channel_scan_{false};
 
   bool lock_{false};
 
@@ -292,11 +300,16 @@ class ESPNowComponent : public Component {
   void call_on_add_peer_(uint64_t peer);
   void call_on_del_peer_(uint64_t peer);
 
+  uint8_t get_channel_for_(uint64_t peer);
+  void update_channel_scan_(ESPNowPacket &packet);
+  void start_multi_cast_();
+
   QueueHandle_t receive_queue_{};
   QueueHandle_t send_queue_{};
 
   std::map<uint32_t, ESPNowProtocol *> protocols_{};
   std::map<uint64_t, ESPNowPeer> peers_{};
+  std::vector<uint64_t> multicast_{};
 
   bool task_running_{false};
   static ESPNowComponent *static_;  // NOLINT

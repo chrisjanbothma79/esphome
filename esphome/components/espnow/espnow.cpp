@@ -41,8 +41,8 @@ std::string peer_str(uint64_t peer) {
     return "[Not Set]";
   if (peer == ESPNOW_BROADCAST_ADDR)
     return "[Broadcast]";
-  if (peer == ESPNOW_MASS_SEND_ADDR)
-    return "[Mass Send]";
+  if (peer == ESPNOW_MULTICAST_ADDR)
+    return "[Multicast]";
   uint8_t *ppeer = (uint8_t *) &peer;
   snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X", ppeer[0], ppeer[1], ppeer[2], ppeer[3], ppeer[4],
            ppeer[5]);
@@ -199,7 +199,7 @@ void ESPNowComponent::loop() {
 bool ESPNowComponent::can_proceed() {
 #ifdef USE_WIFI
   if (wifi::global_wifi_component != nullptr)
-    return wifi::global_wifi_component->is_ready();
+    return wifi::global_wifi_component->is_connected();
   return false;
 #else
   return true;
@@ -225,14 +225,13 @@ void ESPNowComponent::espnow_task(void *param) {
     }
     if (xQueueReceive(this_espnow->send_queue_, (void *) &packet, (TickType_t) 1) == pdTRUE) {
       if (packet.attempts > this_espnow->retries_) {
-        ESP_LOGE(TAG, "Dropped '%s' (%d.%d). To many retries.", packet.get_peer_code().c_str(), packet.get_sequents(),
+        ESP_LOGE(TAG, "Dropped %s (%d.%d). To many retries.", packet.get_peer_code().c_str(), packet.get_sequents(),
                  packet.attempts);
         this_espnow->unlock();
         continue;
       } else if (this_espnow->is_locked()) {
         if (packet.timestamp + this_espnow->conformation_timeout_ < millis()) {
-          ESP_LOGW(TAG, "TimeOut '%s' (%d.%d).", packet.get_peer_code().c_str(), packet.get_sequents(),
-                   packet.attempts);
+          ESP_LOGW(TAG, "TimeOut %s (%d.%d).", packet.get_peer_code().c_str(), packet.get_sequents(), packet.attempts);
           this_espnow->unlock();
         }
       } else {
@@ -241,17 +240,18 @@ void ESPNowComponent::espnow_task(void *param) {
         packet.timestamp = millis();
 
         esp_err_t err;
-        if (packet.peer == ESPNOW_MASS_SEND_ADDR) {
+        if (packet.peer == ESPNOW_MULTICAST_ADDR) {
+          this_espnow->start_multi_cast_();
           err = esp_now_send(nullptr, packet.get_content(), packet.content_size());
         } else {
           err = esp_now_send(packet.get_peer(), packet.get_content(), packet.content_size());
         }
 
         if (err == ESP_OK) {
-          ESP_LOGD(TAG, "Sended '%s' (%d.%d) from buffer. Wait for conformation.", packet.get_peer_code().c_str(),
+          ESP_LOGD(TAG, "Sended %s (%d.%d) from buffer. Wait for conformation.", packet.get_peer_code().c_str(),
                    packet.get_sequents(), packet.attempts);
         } else {
-          ESP_LOGE(TAG, "Sending '%s' (%d.%d) FAILED. B: %d.", packet.get_peer_code().c_str(), packet.get_sequents(),
+          ESP_LOGE(TAG, "Sending %s (%d.%d) FAILED. B: %d.", packet.get_peer_code().c_str(), packet.get_sequents(),
                    packet.attempts, this_espnow->send_queue_used());
           this_espnow->unlock();
         }
@@ -263,7 +263,7 @@ void ESPNowComponent::espnow_task(void *param) {
 
 void ESPNowComponent::set_wifi_channel(uint8_t channel) {
   if (this->is_ready() && (this->wifi_channel_ != channel)) {
-    ESPNowPacket packet(ESPNOW_MASS_SEND_ADDR, &channel, 1, ESPNOW_MAIN_PROTOCOL_ID, 251);
+    ESPNowPacket packet(ESPNOW_MULTICAST_ADDR, &channel, 1, ESPNOW_MAIN_PROTOCOL_ID, 251);
     this->send(packet);
     ESP_LOGD(TAG, "Wifi Channel is changed from %d to %d.", this->wifi_channel_, channel);
   }
@@ -380,7 +380,7 @@ void ESPNowComponent::call_on_del_peer_(uint64_t peer) {
 
 bool ESPNowComponent::is_paired(uint64_t peer) {
   bool result = false;
-  if (peer == ESPNOW_MASS_SEND_ADDR) {
+  if (peer == ESPNOW_MULTICAST_ADDR) {
     return true;
   } else if (peer == ESPNOW_BROADCAST_ADDR) {
     this->add_peer(ESPNOW_BROADCAST_ADDR);
@@ -456,6 +456,11 @@ void ESPNowComponent::handle_internal_commands(ESPNowPacket packet) {
   }
 }
 
+void ESPNowComponent::handle_internal_sent(ESPNowPacket packet, bool status) {
+  ESP_LOGW(TAG, "Internal packet sent to %s (%d.%d) %sreceived.", packet.get_peer_code().c_str(), packet.get_sequents(),
+           packet.attempts, status ? "" : "NOT ");
+}
+
 bool ESPNowComponent::send(ESPNowPacket packet) {
   if (packet.peer == this->own_peer_address_) {
     ESP_LOGE(TAG, "Tried to peer your self.");
@@ -477,7 +482,7 @@ bool ESPNowComponent::send(ESPNowPacket packet) {
     return true;
   } else {
     esp_err_t err;
-    if (packet.peer == ESPNOW_MASS_SEND_ADDR) {
+    if (packet.peer == ESPNOW_MULTICAST_ADDR) {
       err = esp_now_send(nullptr, packet.get_content(), packet.content_size());
     } else {
       err = esp_now_send(packet.get_peer(), packet.get_content(), packet.content_size());
@@ -493,11 +498,19 @@ bool ESPNowComponent::send(ESPNowPacket packet) {
 }
 
 void ESPNowComponent::on_data_sent(const uint8_t *mac_addr, esp_now_send_status_t status) {
+  ESPNowComponent *that = ESPNowComponent::static_;
+  bool unlock = true;
   ESPNowPacket packet;  // NOLINT
   uint64_t peer = 0;
   memcpy((void *) &peer, mac_addr, 6);
-  if (xQueuePeek(ESPNowComponent::static_->send_queue_, (void *) &packet, 10 / portTICK_PERIOD_MS) == pdTRUE) {
-    if (packet.peer != peer) {
+  if (xQueuePeek(that->send_queue_, (void *) &packet, 10 / portTICK_PERIOD_MS) == pdTRUE) {
+    if (packet.peer == ESPNOW_MULTICAST_ADDR) {
+      packet.peer = peer;
+      auto it = std::find(that->multicast_.begin(), that->multicast_.end(), peer);
+      that->multicast_.erase(it);
+      unlock = that->multicast_.empty();
+
+    } else if (packet.peer != peer) {
       ESP_LOGE(TAG, " Invalid mac address. Expected: %s (%d.%d); got: %s", packet.get_peer_code().c_str(),
                packet.get_sequents(), packet.attempts, peer_str(peer).c_str());
       return;
@@ -507,10 +520,32 @@ void ESPNowComponent::on_data_sent(const uint8_t *mac_addr, esp_now_send_status_
     } else {
       ESP_LOGV(TAG, "Confirm packet sent %s (%d.%d)", packet.get_peer_code().c_str(), packet.get_sequents(),
                packet.attempts);
-      xQueueReceive(ESPNowComponent::static_->send_queue_, (void *) &packet, 10 / portTICK_PERIOD_MS);
     }
-    ESPNowComponent::static_->call_on_sent_(packet, status == ESP_OK);
-    ESPNowComponent::static_->unlock();
+    if (packet.get_protocol() == ESPNOW_MAIN_PROTOCOL_ID && packet.get_command() > 250) {
+      that->defer([that, packet, status]() { that->handle_internal_sent(packet, status == ESP_OK); });
+    } else if (status == ESP_OK) {
+      that->call_on_sent_(packet, true);
+    }
+    if (unlock) {
+      if (status == ESP_OK) {
+        xQueueReceive(that->send_queue_, (void *) &packet, 10 / portTICK_PERIOD_MS);
+      }
+      that->unlock();
+    }
+  }
+}
+
+uint8_t ESPNowComponent::get_channel_for_(uint64_t peer) { return 0; }
+void ESPNowComponent::update_channel_scan_(ESPNowPacket &packet) {}
+
+void ESPNowComponent::start_multi_cast_() {
+  esp_now_peer_info_t peer;
+  memset(&peer, 0, sizeof(esp_now_peer_info_t));
+  multicast_.clear();
+  for (esp_err_t e = esp_now_fetch_peer(true, &peer); e == ESP_OK; e = esp_now_fetch_peer(false, &peer)) {
+    uint64_t mac = 0;
+    memcpy((void *) &mac, peer.peer_addr, 6);
+    multicast_.push_back(mac);
   }
 }
 

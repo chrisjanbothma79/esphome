@@ -26,19 +26,26 @@ esphome:
 
 # To be able to get logs from the device via serial and api.
 logger:
-  level: debug
+  level: verbose
 
 globals:
   - id: hub_address
     type: uint64_t
     initial_value: "0x0"
     restore_value: yes
+  - id: channel
+    type: uint8_t
+    initial_value: "3"
+    restore_value: false
 
 espnow:
   auto_add_peer: true
-  wifi_channel: 1
+  wifi_channel: 2
   predefined_peers:
     - mac_address: e8:6b:ea:24:22:04
+      wifi_channel: 1
+    - mac_address: e8:6b:ea:24:22:03
+    - mac_address: e8:6b:ea:24:22:02
   on_receive:
     - logger.log:
         format: "Received from: %s = '%s' cmd: %d RSSI: %d"
@@ -52,13 +59,10 @@ espnow:
 
 interval:
   - interval: 30sec
-    startup_delay: 10sec
     then:
-      - espnow.channel.set: 5
-  - interval: 5sec
-    startup_delay: 10sec
-    then:
-      - espnow.send:
-          mac_address: e8:6b:ea:24:22:04
-          payload: "Test 2."
-          command: 123
+      - espnow.channel.set: !lambda return id(channel);
+      - lambda: |-
+          id(channel) = id(channel)+1;
+          if (id(channel) > 10) {
+            id(channel) = 1;
+          }

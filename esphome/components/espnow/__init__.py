@@ -258,6 +258,20 @@ async def register_peer(var, config, args):
     cv.maybe_simple_value(
         {
             cv.GenerateID(): cv.use_id(ESPNowComponent),
+            cv.Optional(CONF_MAC_ADDRESS, default=0xFFFFFFFFFFFF): cv.uint64_t,
+            cv.Required(CONF_PAYLOAD): cv.templatable(validate_raw_data),
+            cv.Optional(CONF_COMMAND): cv.templatable(validate_command),
+        },
+        key=CONF_PAYLOAD,
+    ),
+)
+@automation.register_action(
+    "espnow.multicast",
+    SendAction,
+    cv.maybe_simple_value(
+        {
+            cv.GenerateID(): cv.use_id(ESPNowComponent),
+            cv.Optional(CONF_MAC_ADDRESS, default=0xFFFFFFFFFFFE): cv.uint64_t,
             cv.Required(CONF_PAYLOAD): cv.templatable(validate_raw_data),
             cv.Optional(CONF_COMMAND): cv.templatable(validate_command),
         },
