@@ -1,12 +1,11 @@
 from esphome import automation
-from esphome.components.lvgl.lv_validation import lv_image_list
 import esphome.config_validation as cv
 from esphome.const import CONF_DURATION, CONF_ID
 
 from ..automation import action_to_code
 from ..defines import CONF_AUTO_START, CONF_MAIN, CONF_REPEAT_COUNT, CONF_SRC
 from ..helpers import lvgl_components_required
-from ..lv_validation import lv_milliseconds
+from ..lv_validation import lv_image_list, lv_milliseconds
 from ..lvcode import lv
 from ..types import LvType, ObjUpdateAction
 from . import Widget, WidgetType, get_widgets
