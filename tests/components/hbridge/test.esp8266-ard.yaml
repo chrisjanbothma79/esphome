@@ -1,5 +1,5 @@
 substitutions:
-  pwm_platform: esp8266_pwm
+  pwm_platform: "esp8266_pwm"
   output1_pin: 4
   output2_pin: 5
   output3_pin: 12
