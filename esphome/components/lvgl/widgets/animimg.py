@@ -1,11 +1,12 @@
 from esphome import automation
+from esphome.components.lvgl.lv_validation import lv_image_list
 import esphome.config_validation as cv
 from esphome.const import CONF_DURATION, CONF_ID
 
 from ..automation import action_to_code
 from ..defines import CONF_AUTO_START, CONF_MAIN, CONF_REPEAT_COUNT, CONF_SRC
 from ..helpers import lvgl_components_required
-from ..lv_validation import lv_image, lv_milliseconds
+from ..lv_validation import lv_milliseconds
 from ..lvcode import lv
 from ..types import LvType, ObjUpdateAction
 from . import Widget, WidgetType, get_widgets
@@ -30,13 +31,14 @@ ANIMIMG_BASE_SCHEMA = cv.Schema(
 ANIMIMG_SCHEMA = ANIMIMG_BASE_SCHEMA.extend(
     {
         cv.Required(CONF_DURATION): lv_milliseconds,
-        cv.Required(CONF_SRC): cv.ensure_list(lv_image),
+        cv.Required(CONF_SRC): lv_image_list,
     }
 )
 
 ANIMIMG_MODIFY_SCHEMA = ANIMIMG_BASE_SCHEMA.extend(
     {
         cv.Optional(CONF_DURATION): lv_milliseconds,
+        cv.Optional(CONF_SRC): lv_image_list,
     }
 )
 
@@ -56,12 +58,14 @@ class AnimimgType(WidgetType):
     async def to_code(self, w: Widget, config):
         lvgl_components_required.add(CONF_IMAGE)
         lvgl_components_required.add(CONF_ANIMIMG)
-        if CONF_SRC in config:
-            srcs = [await lv_image.process(x) for x in config[CONF_SRC]]
+        if srcs := config.get(CONF_SRC):
+            srcs = await lv_image_list.process(srcs)
             lv.animimg_set_src(w.obj, srcs)
-        lv.animimg_set_repeat_count(w.obj, config[CONF_REPEAT_COUNT])
-        lv.animimg_set_duration(w.obj, config[CONF_DURATION])
-        if config.get(CONF_AUTO_START):
+        if repeat_count := config.get(CONF_REPEAT_COUNT):
+            lv.animimg_set_repeat_count(w.obj, repeat_count)
+        if duration := config.get(CONF_DURATION):
+            lv.animimg_set_duration(w.obj, duration)
+        if config[CONF_AUTO_START]:
             lv.animimg_start(w.obj)
 
     def get_uses(self):

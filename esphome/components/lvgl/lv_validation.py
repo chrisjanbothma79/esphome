@@ -336,6 +336,11 @@ lv_image = LValidator(
     image.Image_.operator("ptr"),
     requires="image",
 )
+lv_image_list = LValidator(
+    cv.ensure_list(image_validator),
+    cg.std_vector.template(image.Image_.operator("ptr")),
+    requires="image",
+)
 lv_bool = LValidator(cv.boolean, cg.bool_, retmapper=literal)
 
 

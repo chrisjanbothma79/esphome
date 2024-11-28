@@ -59,8 +59,9 @@ inline void lv_img_set_src(lv_obj_t *obj, esphome::image::Image *image) {
 #endif  // USE_LVGL_IMAGE
 #ifdef USE_LVGL_ANIMIMG
 inline void lv_animimg_set_src(lv_obj_t *img, std::vector<image::Image *> images) {
-  auto dsc = static_cast<std::vector<lv_img_dsc_t *> *>(lv_obj_get_user_data(img));
+  auto *dsc = static_cast<std::vector<lv_img_dsc_t *> *>(lv_obj_get_user_data(img));
   if (dsc == nullptr) {
+    // object will be lazily allocated but never freed.
     dsc = new std::vector<lv_img_dsc_t *>(images.size());  // NOLINT
     lv_obj_set_user_data(img, dsc);
   }

@@ -74,6 +74,10 @@ class LValidator:
             return self.retmapper(value)
         if isinstance(value, ID):
             return await cg.get_variable(value)
+        if isinstance(value, list):
+            value = [
+                await cg.get_variable(x) if isinstance(x, ID) else x for x in value
+            ]
         return cg.safe_exp(value)
 
 
