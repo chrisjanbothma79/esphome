@@ -2,7 +2,7 @@
 # inputs of the OpenTherm component.
 
 from dataclasses import dataclass
-from typing import Optional, TypeVar
+from typing import Optional, TypeVar, Any
 
 import esphome.config_validation as cv
 from esphome.const import (
@@ -833,7 +833,7 @@ INPUTS: dict[str, InputSchema] = {
 class SettingSchema(EntitySchema):
     backing_type: str
     validation_schema: cv.Schema
-    default_value: str
+    default_value: Any
     order: Optional[int] = None
 
 
@@ -845,7 +845,7 @@ SETTINGS: dict[str, SettingSchema] = {
         message_data="u8_hb",
         backing_type="uint8_t",
         validation_schema=cv.int_range(min=0, max=255),
-        default_value="0",
+        default_value=0,
         order=1,
     ),
     "controller_product_version": SettingSchema(
@@ -855,7 +855,7 @@ SETTINGS: dict[str, SettingSchema] = {
         message_data="u8_lb",
         backing_type="uint8_t",
         validation_schema=cv.int_range(min=0, max=255),
-        default_value="0",
+        default_value=0,
         order=1,
     ),
     "opentherm_version_controller": SettingSchema(
@@ -865,7 +865,7 @@ SETTINGS: dict[str, SettingSchema] = {
         message_data="f88",
         backing_type="float",
         validation_schema=cv.positive_float,
-        default_value="0.0f",
+        default_value=0,
         order=3,
     ),
     "controller_configuration": SettingSchema(
@@ -875,7 +875,7 @@ SETTINGS: dict[str, SettingSchema] = {
         message_data="u8_hb",
         backing_type="uint8_t",
         validation_schema=cv.int_range(min=0, max=255),
-        default_value="0",
+        default_value=0,
         order=5,
     ),
     "controller_id": SettingSchema(
@@ -885,7 +885,7 @@ SETTINGS: dict[str, SettingSchema] = {
         message_data="u8_lb",
         backing_type="uint8_t",
         validation_schema=cv.int_range(min=0, max=255),
-        default_value="0",
+        default_value=0,
         order=5,
     ),
 }
