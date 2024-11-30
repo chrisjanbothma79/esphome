@@ -88,8 +88,17 @@ lv_img_dsc_t *Image::get_lv_img_dsc() {
 
       case IMAGE_TYPE_RGB:
 #if LV_COLOR_DEPTH == 32
-        this->dsc_.header.cf =
-            this->transparent_ == TRANSPARENCY_ALPHA_CHANNEL ? LV_IMG_CF_TRUE_COLOR_ALPHA : LV_IMG_CF_TRUE_COLOR;
+        switch (this->transparent_) {
+          case TRANSPARENCY_ALPHA_CHANNEL:
+            this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA;
+            break;
+          case TRANSPARENCY_CHROMA_KEY:
+            this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR_CHROMA_KEYED;
+            break;
+          default:
+            this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR;
+            break;
+        }
 #else
         this->dsc_.header.cf = this->transparent_ == TRANSPARENCY_ALPHA_CHANNEL ? LV_IMG_CF_RGBA8888 : LV_IMG_CF_RGB888;
 #endif
@@ -97,8 +106,17 @@ lv_img_dsc_t *Image::get_lv_img_dsc() {
 
       case IMAGE_TYPE_RGB565:
 #if LV_COLOR_DEPTH == 16
-        this->dsc_.header.cf =
-            this->transparent_ == TRANSPARENCY_ALPHA_CHANNEL ? LV_IMG_CF_TRUE_COLOR_ALPHA : LV_IMG_CF_TRUE_COLOR;
+        switch (this->transparent_) {
+          case TRANSPARENCY_ALPHA_CHANNEL:
+            this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA;
+            break;
+          case TRANSPARENCY_CHROMA_KEY:
+            this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR_CHROMA_KEYED;
+            break;
+          default:
+            this->dsc_.header.cf = LV_IMG_CF_TRUE_COLOR;
+            break;
+        }
 #else
         this->dsc_.header.cf = this->transparent_ == TRANSPARENCY_ALPHA_CHANNEL ? LV_IMG_CF_RGB565A8 : LV_IMG_CF_RGB565;
 #endif
@@ -162,7 +180,7 @@ Color Image::get_rgb565_pixel_(int x, int y) const {
 Color Image::get_grayscale_pixel_(int x, int y) const {
   const uint32_t pos = (x + y * this->width_);
   const uint8_t gray = progmem_read_byte(this->data_start_ + pos);
-  uint8_t alpha = (gray == 1 && transparent_) ? 0 : 0xFF;
+  uint8_t alpha = (gray == 1 && this->transparent_ == TRANSPARENCY_CHROMA_KEY) ? 0 : 0xFF;
   return Color(gray, gray, gray, alpha);
 }
 int Image::get_width() const { return this->width_; }

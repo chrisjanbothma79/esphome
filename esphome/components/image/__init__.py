@@ -41,6 +41,7 @@ ImageType = image_ns.enum("ImageType")
 CONF_NONE = "none"
 CONF_CHROMA_KEY = "chroma_key"
 CONF_ALPHA_CHANNEL = "alpha_channel"
+CONF_INVERT_ALPHA = "invert_alpha"
 
 TRANSPARENCY_TYPES = (
     CONF_NONE,
@@ -50,7 +51,10 @@ TRANSPARENCY_TYPES = (
 
 
 class ImageEncoder:
-    def __init__(self, width, height, transparency, dither, image: Image):
+    allow_config = {CONF_ALPHA_CHANNEL, CONF_CHROMA_KEY, CONF_NONE}
+    replace_with = False
+
+    def __init__(self, width, height, transparency, dither, invert_alpha, image: Image):
         self.transparency = transparency
         self.width = width
         self.height = height
@@ -58,6 +62,7 @@ class ImageEncoder:
         self.dither = dither
         self.index = 0
         self.image = image
+        self.invert_alpha = invert_alpha
 
     def encode(self, pixel):
         """
@@ -72,17 +77,17 @@ class ImageEncoder:
 
 
 class ImageBinary(ImageEncoder):
-    def __init__(self, width, height, transparency, dither, image: Image):
+    allow_config = {CONF_NONE, CONF_INVERT_ALPHA, CONF_CHROMA_KEY}
+
+    def __init__(self, width, height, transparency, dither, invert_alpha, image):
         self.width8 = (width + 7) // 8
-        alpha = image.split()[-1]
-        if transparency != CONF_NONE and alpha.getextrema()[0] < 0xFF:
-            image = alpha
-        else:
-            image = image.convert("1", dither=dither)
-        super().__init__(self.width8, height, transparency, dither, image)
+        image = image.convert("1", dither=dither)
+        super().__init__(self.width8, height, transparency, dither, invert_alpha, image)
         self.bitno = 0
 
     def encode(self, pixel):
+        if self.invert_alpha:
+            pixel = not pixel
         if pixel:
             self.data[self.index] |= 0x80 >> (self.bitno % 8)
         self.bitno += 1
@@ -100,10 +105,15 @@ class ImageBinary(ImageEncoder):
 
 
 class ImageRGB(ImageEncoder):
-    def __init__(self, width, height, transparency, dither, image):
+    def __init__(self, width, height, transparency, dither, invert_alpha, image):
         stride = 4 if transparency == CONF_ALPHA_CHANNEL else 3
         super().__init__(
-            width * stride, height, transparency, dither, image.convert("RGBA")
+            width * stride,
+            height,
+            transparency,
+            dither,
+            invert_alpha,
+            image.convert("RGBA"),
         )
 
     def encode(self, pixel):
@@ -122,15 +132,22 @@ class ImageRGB(ImageEncoder):
         self.data[self.index] = b
         self.index += 1
         if self.transparency == CONF_ALPHA_CHANNEL:
+            if self.invert_alpha:
+                a ^= 0xFF
             self.data[self.index] = a
             self.index += 1
 
 
 class ImageRGB565(ImageEncoder):
-    def __init__(self, width, height, transparency, dither, image):
+    def __init__(self, width, height, transparency, dither, invert_alpha, image):
         stride = 3 if transparency == CONF_ALPHA_CHANNEL else 2
         super().__init__(
-            width * stride, height, transparency, dither, image.convert("RGBA")
+            width * stride,
+            height,
+            transparency,
+            dither,
+            invert_alpha,
+            image.convert("RGBA"),
         )
 
     def encode(self, pixel):
@@ -151,23 +168,38 @@ class ImageRGB565(ImageEncoder):
         self.data[self.index] = rgb & 0xFF
         self.index += 1
         if self.transparency == CONF_ALPHA_CHANNEL:
+            if self.invert_alpha:
+                a ^= 0xFF
             self.data[self.index] = a
             self.index += 1
 
 
 class ImageGrayscale(ImageEncoder):
-    def __init__(self, width, height, transparency, dither, image):
-        stride = 2 if transparency == CONF_ALPHA_CHANNEL else 1
-        super().__init__(width * stride, height, transparency, dither, image)
-        self.image = image.convert("LA")
+    allow_config = {CONF_ALPHA_CHANNEL, CONF_CHROMA_KEY, CONF_INVERT_ALPHA, CONF_NONE}
+
+    def __init__(self, width, height, transparency, dither, invert_alpha, image):
+        image = image.convert("LA", dither=dither)
+        super().__init__(width, height, transparency, dither, invert_alpha, image)
 
     def encode(self, pixel):
         b, a = pixel
+        if self.transparency == CONF_CHROMA_KEY:
+            if b == 1:
+                b = 0
+            if a != 0xFF:
+                b = 1
+        if self.invert_alpha:
+            b ^= 0xFF
+        if self.transparency == CONF_ALPHA_CHANNEL:
+            if a != 0xFF:
+                b = a
         self.data[self.index] = b
         self.index += 1
-        if self.transparency == CONF_ALPHA_CHANNEL:
-            self.data[self.index] = a
-            self.index += 1
+
+
+class ReplaceWith:
+    def __init__(self, replace_with):
+        self.replace_with = replace_with
 
 
 IMAGE_TYPE = {
@@ -175,7 +207,13 @@ IMAGE_TYPE = {
     "GRAYSCALE": ImageGrayscale,
     "RGB565": ImageRGB565,
     "RGB": ImageRGB,
+    "TRANSPARENT_BINARY": ReplaceWith(
+        "'type: BINARY' and 'use_transparency: chroma_key'"
+    ),
+    "RGB24": ReplaceWith("'type: RGB'"),
+    "RGBA": ReplaceWith("'type: RGB' and 'use_transparency: alpha_channel'"),
 }
+
 TransparencyType = image_ns.enum("TransparencyType")
 
 CONF_USE_TRANSPARENCY = "use_transparency"
@@ -302,17 +340,30 @@ def validate_transparency(value):
 
 
 def validate_type(value):
-    if value.upper() == "TRANSPARENT_BINARY":
+    value = cv.one_of(*IMAGE_TYPE, upper=True)(value)
+    if replace_with := IMAGE_TYPE[value.upper()].replace_with:
         raise cv.Invalid(
-            "'TRANSPARENT_BINARY' is deprecated; replace with 'type: BINARY' and 'use_transparency: chroma_key'"
+            f"Image type {value} is deprecated; replace with {replace_with}"
         )
-    if value.upper() == "RGB24":
-        raise cv.Invalid("'RGB24' is deprecated; replace with 'type: RGB'")
-    if value.upper() == "RGBA":
+    return value
+
+
+def validate_settings(value):
+    type = value[CONF_TYPE].lower()
+    transparency = value[CONF_USE_TRANSPARENCY].lower()
+    allow_config = IMAGE_TYPE[type.upper()].allow_config
+    if transparency not in allow_config:
         raise cv.Invalid(
-            "'RGBA' is deprecated; replace with 'type: RGB' and 'use_transparency: alpha_channel'"
+            f"Image format '{type}' cannot have transparency: {transparency}"
         )
-    return cv.one_of(*IMAGE_TYPE, upper=True)(value)
+    invert_alpha = value[CONF_INVERT_ALPHA]
+    if (
+        invert_alpha
+        and transparency != CONF_ALPHA_CHANNEL
+        and CONF_INVERT_ALPHA not in allow_config
+    ):
+        raise cv.Invalid("No alpha channel to invert")
+    return value
 
 
 IMAGE_SCHEMA = cv.Schema(
@@ -326,8 +377,10 @@ IMAGE_SCHEMA = cv.Schema(
             cv.Optional(CONF_DITHER, default="NONE"): cv.one_of(
                 "NONE", "FLOYDSTEINBERG", upper=True
             ),
+            cv.Optional(CONF_INVERT_ALPHA, default=False): cv.boolean,
             cv.GenerateID(CONF_RAW_DATA_ID): cv.declare_id(cg.uint8),
         },
+        validate_settings,
         validate_cairosvg_installed,
     )
 )
@@ -391,8 +444,9 @@ async def to_code(config):
         else Image.Dither.FLOYDSTEINBERG
     )
     type = config[CONF_TYPE]
+    invert_alpha = config[CONF_INVERT_ALPHA]
     encoder = IMAGE_TYPE[type](
-        width, height, config[CONF_USE_TRANSPARENCY], dither, image
+        width, height, config[CONF_USE_TRANSPARENCY], dither, invert_alpha, image
     )
     pixels = encoder.image.getdata()
     for row in range(height):
