@@ -52,7 +52,9 @@ bool OpenTherm::initialize() {
   OpenTherm::instance = this;
 #endif
   this->in_pin_->pin_mode(gpio::FLAG_INPUT);
+  this->in_pin_->setup();
   this->out_pin_->pin_mode(gpio::FLAG_OUTPUT);
+  this->out_pin_->setup();
   this->out_pin_->digital_write(true);
 
 #if defined(ESP32) || defined(USE_ESP_IDF)
