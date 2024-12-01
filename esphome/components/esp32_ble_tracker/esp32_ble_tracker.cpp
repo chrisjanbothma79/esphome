@@ -283,7 +283,7 @@ void ESP32BLETracker::start_scan_(bool first) {
   this->scan_params_.scan_interval = this->scan_interval_;
   this->scan_params_.scan_window = this->scan_window_;
 
-  // Start timeout before scan is stated. Otherwise scan never starts if any error.
+  // Start timeout before scan is started. Otherwise scan never starts if any error.
   this->set_timeout("scan", this->scan_duration_ * 2000, []() {
     ESP_LOGE(TAG, "ESP-IDF BLE scan never terminated, rebooting to restore BLE stack...");
     App.reboot();
@@ -672,7 +672,7 @@ void ESP32BLETracker::dump_config() {
   ESP_LOGCONFIG(TAG, "  Scan Window: %.1f ms", this->scan_window_ * 0.625f);
   ESP_LOGCONFIG(TAG, "  Scan Type: %s", this->scan_active_ ? "ACTIVE" : "PASSIVE");
   ESP_LOGCONFIG(TAG, "  Continuous Scanning: %s", YESNO(this->scan_continuous_));
-  ESP_LOGCONFIG(TAG, "  Continuous Idle: %s", YESNO(this->scanner_idle_));
+  ESP_LOGCONFIG(TAG, "  Scanner Idle: %s", YESNO(this->scanner_idle_));
   if (this->scan_start_fail_count_) {
     ESP_LOGCONFIG(TAG, "  Scan Start Fail Count: %d", this->scan_start_fail_count_);
   }
