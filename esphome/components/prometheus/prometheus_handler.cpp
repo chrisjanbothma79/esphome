@@ -622,7 +622,9 @@ void PrometheusHandler::select_row_(AsyncResponseStream *stream, select::Select 
 
 #ifdef USE_MEDIA_PLAYER
 void PrometheusHandler::media_player_type_(AsyncResponseStream *stream) {
-  stream->print(F("#TYPE esphome_media_player_value gauge\n"));
+  stream->print(F("#TYPE esphome_media_player_state_value gauge\n"));
+  stream->print(F("#TYPE esphome_media_player_volume gauge\n"));
+  stream->print(F("#TYPE esphome_media_player_is_muted gauge\n"));
   stream->print(F("#TYPE esphome_media_player_failed gauge\n"));
 }
 void PrometheusHandler::media_player_row_(AsyncResponseStream *stream, media_player::MediaPlayer *obj,
