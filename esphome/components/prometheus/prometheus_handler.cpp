@@ -675,7 +675,6 @@ void PrometheusHandler::media_player_row_(AsyncResponseStream *stream, media_pla
   }
   stream->print(F("\n"));
 }
-}
 #endif
 
 }  // namespace prometheus
