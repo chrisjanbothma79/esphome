@@ -350,6 +350,7 @@ void ESP32BLETracker::recalculate_advertisement_parser_types() {
 }
 
 void ESP32BLETracker::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
+  ESP_LOGD(TAG, "event: %d", event);
   switch (event) {
     case ESP_GAP_BLE_SCAN_RESULT_EVT:
       this->gap_scan_result_(param->scan_rst);
