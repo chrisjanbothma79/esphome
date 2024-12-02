@@ -581,7 +581,7 @@ lvgl:
               - 180, 60
               - 240, 10
             on_click:
-              - lvgl.widget.update:
+              - lvgl.line.update:
                   id: lv_line_id
                   line_color: 0xFFFF
               - lvgl.page.next:
