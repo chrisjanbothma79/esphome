@@ -2,6 +2,8 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/color.h"
 
+#include "esphome/core/log.h"
+
 namespace esphome {
 namespace online_image {
 
@@ -38,7 +40,7 @@ class ImageDecoder {
    * @return int   The amount of bytes read. It can be 0 if the buffer does not have enough content to meaningfully
    *               decode anything, or negative in case of a decoding error.
    */
-  virtual int decode(uint8_t *buffer, size_t size);
+  virtual int decode(uint8_t *buffer, size_t size) = 0;
 
   /**
    * @brief Request the image to be resized once the actual dimensions are known.
@@ -63,7 +65,10 @@ class ImageDecoder {
    */
   void draw(int x, int y, int w, int h, const Color &color);
 
-  bool is_finished() const { return this->decoded_bytes_ == this->download_size_; }
+  bool is_finished() const {
+    ESP_LOGD("online_image", "decoded bytes %u, download_size %u", this->decoded_bytes_, this->download_size_);
+    return this->decoded_bytes_ == this->download_size_;
+  }
 
  protected:
   OnlineImage *image_;

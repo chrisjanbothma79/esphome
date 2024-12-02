@@ -49,6 +49,14 @@ TRANSPARENCY_TYPES = (
 )
 
 
+def get_image_type_enum(type):
+    return getattr(ImageType, f"IMAGE_TYPE_{type.upper()}")
+
+
+def get_transparency_enum(transparency):
+    return getattr(TransparencyType, f"TRANSPARENCY_{transparency.upper()}")
+
+
 class ImageEncoder:
     """
     Superclass of image type encoders
@@ -128,40 +136,26 @@ class ImageBinary(ImageEncoder):
             self.index += 1
 
 
-class ImageRGB(ImageEncoder):
-    def __init__(self, width, height, transparency, dither, invert_alpha):
-        stride = 4 if transparency == CONF_ALPHA_CHANNEL else 3
-        super().__init__(
-            width * stride,
-            height,
-            transparency,
-            dither,
-            invert_alpha,
-        )
+class ImageGrayscale(ImageEncoder):
+    allow_config = {CONF_ALPHA_CHANNEL, CONF_CHROMA_KEY, CONF_INVERT_ALPHA, CONF_NONE}
 
     def convert(self, image):
-        return image.convert("RGBA")
+        return image.convert("LA")
 
     def encode(self, pixel):
-        r, g, b, a = pixel
+        b, a = pixel
         if self.transparency == CONF_CHROMA_KEY:
-            if r == 0 and g == 1 and b == 0:
-                g = 0
-            elif a < 128:
-                r = 0
-                g = 1
+            if b == 1:
                 b = 0
-        self.data[self.index] = r
-        self.index += 1
-        self.data[self.index] = g
-        self.index += 1
+            if a != 0xFF:
+                b = 1
+        if self.invert_alpha:
+            b ^= 0xFF
+        if self.transparency == CONF_ALPHA_CHANNEL:
+            if a != 0xFF:
+                b = a
         self.data[self.index] = b
         self.index += 1
-        if self.transparency == CONF_ALPHA_CHANNEL:
-            if self.invert_alpha:
-                a ^= 0xFF
-            self.data[self.index] = a
-            self.index += 1
 
 
 class ImageRGB565(ImageEncoder):
@@ -202,26 +196,40 @@ class ImageRGB565(ImageEncoder):
             self.index += 1
 
 
-class ImageGrayscale(ImageEncoder):
-    allow_config = {CONF_ALPHA_CHANNEL, CONF_CHROMA_KEY, CONF_INVERT_ALPHA, CONF_NONE}
+class ImageRGB(ImageEncoder):
+    def __init__(self, width, height, transparency, dither, invert_alpha):
+        stride = 4 if transparency == CONF_ALPHA_CHANNEL else 3
+        super().__init__(
+            width * stride,
+            height,
+            transparency,
+            dither,
+            invert_alpha,
+        )
 
     def convert(self, image):
-        return image.convert("LA")
+        return image.convert("RGBA")
 
     def encode(self, pixel):
-        b, a = pixel
+        r, g, b, a = pixel
         if self.transparency == CONF_CHROMA_KEY:
-            if b == 1:
+            if r == 0 and g == 1 and b == 0:
+                g = 0
+            elif a < 128:
+                r = 0
+                g = 1
                 b = 0
-            if a != 0xFF:
-                b = 1
-        if self.invert_alpha:
-            b ^= 0xFF
-        if self.transparency == CONF_ALPHA_CHANNEL:
-            if a != 0xFF:
-                b = a
+        self.data[self.index] = r
+        self.index += 1
+        self.data[self.index] = g
+        self.index += 1
         self.data[self.index] = b
         self.index += 1
+        if self.transparency == CONF_ALPHA_CHANNEL:
+            if self.invert_alpha:
+                a ^= 0xFF
+            self.data[self.index] = a
+            self.index += 1
 
 
 class ReplaceWith:
@@ -299,8 +307,10 @@ def download_image(value):
 
 def validate_cairosvg_installed(value):
     """Validate that cairosvg is installed if the file is SVG"""
-
-    file_type = puremagic.from_file(value[CONF_FILE], True)
+    file = value.get(CONF_FILE)
+    if not file:
+        return value
+    file_type = puremagic.from_file(file, True)
     if "svg" not in file_type:
         return value
     try:
@@ -380,14 +390,14 @@ def validate_type(value):
 
 
 def validate_settings(value):
-    type = value[CONF_TYPE].lower()
+    type = value[CONF_TYPE]
     transparency = value[CONF_USE_TRANSPARENCY].lower()
-    allow_config = IMAGE_TYPE[type.upper()].allow_config
+    allow_config = IMAGE_TYPE[type].allow_config
     if transparency not in allow_config:
         raise cv.Invalid(
             f"Image format '{type}' cannot have transparency: {transparency}"
         )
-    invert_alpha = value[CONF_INVERT_ALPHA]
+    invert_alpha = value.get(CONF_INVERT_ALPHA, False)
     if (
         invert_alpha
         and transparency != CONF_ALPHA_CHANNEL
@@ -472,6 +482,7 @@ async def write_image(config, all_frames=False):
         else Image.Dither.FLOYDSTEINBERG
     )
     type = config[CONF_TYPE]
+    transparency = config[CONF_USE_TRANSPARENCY]
     invert_alpha = config[CONF_INVERT_ALPHA]
     frame_count = 1
     if all_frames:
@@ -483,9 +494,7 @@ async def write_image(config, all_frames=False):
             _LOGGER.warning("Image file %s has no animation frames", path)
 
     total_rows = height * frame_count
-    encoder = IMAGE_TYPE[type](
-        width, total_rows, config[CONF_USE_TRANSPARENCY], dither, invert_alpha
-    )
+    encoder = IMAGE_TYPE[type](width, total_rows, transparency, dither, invert_alpha)
     for frame_index in range(frame_count):
         image.seek(frame_index)
         pixels = encoder.convert(image.resize((width, height))).getdata()
@@ -496,10 +505,8 @@ async def write_image(config, all_frames=False):
 
     rhs = [HexInt(x) for x in encoder.data]
     prog_arr = cg.progmem_array(config[CONF_RAW_DATA_ID], rhs)
-    image_type = getattr(ImageType, f"IMAGE_TYPE_{type.upper()}")
-    trans_value = getattr(
-        TransparencyType, f"TRANSPARENCY_{config[CONF_USE_TRANSPARENCY].upper()}"
-    )
+    image_type = get_image_type_enum(type)
+    trans_value = get_transparency_enum(transparency)
 
     return prog_arr, width, height, image_type, trans_value, frame_count
 
