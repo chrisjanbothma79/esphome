@@ -14,7 +14,7 @@ namespace sntp {
 /// \see https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html
 class SNTPComponent : public time::RealTimeClock {
  public:
-  SNTPComponent(const std::vector<std::string> &servers) : servers_(std::move(servers)) {}
+  SNTPComponent(const std::vector<std::string> &servers) : servers_(servers) {}
 
   // Note: set_servers() has been removed and replaced by a constructor - calling set_servers after setup would
   // have had no effect anyway, and making the strings immutable avoids the need to strdup their contents.
