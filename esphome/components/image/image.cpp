@@ -56,7 +56,9 @@ Color Image::get_pixel(int x, int y, const Color color_on, const Color color_off
     return color_off;
   switch (this->type_) {
     case IMAGE_TYPE_BINARY:
-      return std::move(this->get_binary_pixel_(x, y) ? color_on : color_off);
+      if (this->get_binary_pixel_(x, y))
+        return color_on;
+      return color_off;
     case IMAGE_TYPE_GRAYSCALE:
       return this->get_grayscale_pixel_(x, y);
     case IMAGE_TYPE_RGB565:
