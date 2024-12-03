@@ -8,6 +8,7 @@ import re
 
 from PIL import Image
 import puremagic
+from puremagic import PureError
 
 from esphome import core, external_files
 import esphome.codegen as cg
@@ -305,13 +306,21 @@ def download_image(value):
     return download_file(value, compute_local_image_path(value))
 
 
+def is_svg_file(file):
+    if not file:
+        return False
+    try:
+        file_type = puremagic.from_file(file, True)
+        return "svg" in file_type
+    except PureError:
+        # If not identified, then certainly not svg
+        return False
+
+
 def validate_cairosvg_installed(value):
     """Validate that cairosvg is installed if the file is SVG"""
     file = value.get(CONF_FILE)
-    if not file:
-        return value
-    file_type = puremagic.from_file(file, True)
-    if "svg" not in file_type:
+    if not is_svg_file(file):
         return value
     try:
         import cairosvg
@@ -425,7 +434,7 @@ IMAGE_SCHEMA = cv.Schema(
 CONFIG_SCHEMA = IMAGE_SCHEMA
 
 
-def load_svg_image(file: bytes, resize: tuple[int, int]):
+def load_svg_image(file, resize: tuple[int, int]):
     # Local imports only to allow "validate_pillow_installed" to run *before* importing it
     # cairosvg is only needed in case of SVG images; adding it
     # to the top would force configurations not using SVG to also have it
@@ -446,21 +455,24 @@ def load_svg_image(file: bytes, resize: tuple[int, int]):
 
 
 async def write_image(config, all_frames=False):
-    path = config[CONF_FILE]
-    try:
-        with open(path, "rb") as f:
-            file_contents = f.read()
-    except Exception as e:
-        raise core.EsphomeError(f"Could not load image file {path}: {e}")
+    path = Path(config[CONF_FILE])
+    if not path.is_file():
+        raise core.EsphomeError(f"Could not load image file {path}")
 
-    file_type = puremagic.from_string(file_contents, mime=True)
+    resize = config.get(CONF_RESIZE, (None, None))
+    if is_svg_file(path):
+        from cairosvg import svg2png
 
-    resize = config.get(CONF_RESIZE)
-    if "svg" in file_type:
-        image = load_svg_image(file_contents, resize)
-        width, height = resize
+        with open(path, "rb") as file:
+            image = svg2png(
+                file_obj=file,
+                output_width=resize[0],
+                output_height=resize[1],
+            )
+        image = Image.open(io.BytesIO(image))
+        width, height = image.size
     else:
-        image = Image.open(io.BytesIO(file_contents))
+        image = Image.open(path)
         width, height = image.size
         if resize:
             # Preserve aspect ratio
