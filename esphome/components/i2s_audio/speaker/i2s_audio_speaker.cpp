@@ -272,6 +272,12 @@ void I2SAudioSpeaker::speaker_task(void *params) {
         stop_gracefully = true;
       }
 
+      if (this_speaker->audio_stream_info_ != audio_stream_info) {
+        // Audio stream info has changed, stop the speaker task so it will restart with the proper settings.
+
+        break;
+      }
+
       i2s_event_t i2s_event;
       while (xQueueReceive(this_speaker->i2s_event_queue_, &i2s_event, 0)) {
         if (i2s_event.type == I2S_EVENT_TX_Q_OVF) {
@@ -313,7 +319,6 @@ void I2SAudioSpeaker::speaker_task(void *params) {
         }
       }
     }
-    i2s_zero_dma_buffer(this_speaker->parent_->get_port());
 
     xEventGroupSetBits(this_speaker->event_group_, SpeakerEventGroupBits::STATE_STOPPING);
 
@@ -495,28 +500,6 @@ esp_err_t I2SAudioSpeaker::start_i2s_driver_(audio::AudioStreamInfo &audio_strea
   }
 
   return err;
-}
-
-esp_err_t I2SAudioSpeaker::reconfigure_i2s_stream_info_(audio::AudioStreamInfo &audio_stream_info) {
-  if ((this->i2s_mode_ & I2S_MODE_SLAVE) && (this->sample_rate_ != audio_stream_info.sample_rate)) {
-    //  Can't reconfigure I2S bus, so the sample rate must match the configured value
-    return ESP_ERR_INVALID_ARG;
-  }
-
-  if ((i2s_bits_per_sample_t) audio_stream_info.bits_per_sample > this->bits_per_sample_) {
-    // Currently can't handle the case when the incoming audio has more bits per sample than the configured value
-    return ESP_ERR_INVALID_ARG;
-  }
-
-  uint32_t bits_cfg = (this->bits_per_channel_ << 16) | this->bits_per_sample_;
-
-  if (audio_stream_info.channels == 1) {
-    return i2s_set_clk(this->parent_->get_port(), audio_stream_info.sample_rate, bits_cfg, I2S_CHANNEL_MONO);
-  } else if (audio_stream_info.channels == 2) {
-    return i2s_set_clk(this->parent_->get_port(), audio_stream_info.sample_rate, bits_cfg, I2S_CHANNEL_STEREO);
-  }
-
-  return ESP_ERR_INVALID_ARG;
 }
 
 void I2SAudioSpeaker::delete_task_(size_t buffer_size) {
