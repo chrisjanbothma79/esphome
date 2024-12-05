@@ -397,6 +397,7 @@ void ESP32TouchBinarySensor::insert_value_() {
   this->threshold_ =
       uint32_t(float(this->sum_values_) / float(this->prev_values_.size()) * (1.0 + this->max_deviation_));
 #endif
+  ESP_LOGV(TAG, "'%s': New thouch threshold: %d", this->get_name().c_str(), this->threshold_);
 }
 
 }  // namespace esp32_touch
