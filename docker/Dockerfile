@@ -205,7 +205,7 @@ LABEL \
     org.opencontainers.image.documentation="https://esphome.io/" \
     org.opencontainers.image.source="https://github.com/esphome/esphome" \
     org.opencontainers.image.licenses="ESPHome" \
-    org.opencontainers.image.version=${BUILD_VERSION} \
+    org.opencontainers.image.version=${BUILD_VERSION}
 
 
 
