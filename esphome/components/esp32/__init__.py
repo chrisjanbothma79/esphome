@@ -253,7 +253,7 @@ RECOMMENDED_ESP_IDF_FRAMEWORK_VERSION = cv.Version(5, 1, 5)
 # The platformio/espressif32 version to use for esp-idf frameworks
 #  - https://github.com/platformio/platform-espressif32/releases
 #  - https://api.registry.platformio.org/v3/packages/platformio/platform/espressif32
-ESP_IDF_PLATFORM_VERSION = cv.Version(51, 3, 6)
+ESP_IDF_PLATFORM_VERSION = cv.Version(51, 3, 7)
 
 # List based on https://registry.platformio.org/tools/platformio/framework-espidf/versions
 SUPPORTED_PLATFORMIO_ESP_IDF_5X = [
@@ -267,6 +267,14 @@ SUPPORTED_PLATFORMIO_ESP_IDF_5X = [
     cv.Version(5, 0, 2),
     cv.Version(5, 0, 1),
     cv.Version(5, 0, 0),
+]
+
+# pioarduino versions that don't require a release number
+# List based on https://github.com/pioarduino/esp-idf/releases
+SUPPORTED_PIOARDUINO_ESP_IDF_5X = [
+    cv.Version(5, 3, 1),
+    cv.Version(5, 3, 0),
+    cv.Version(5, 1, 5),
 ]
 
 
@@ -344,10 +352,23 @@ def _esp_idf_check_versions(value):
         )
 
     if (
-        version in SUPPORTED_PLATFORMIO_ESP_IDF_5X or version.major < 5
+        version.major < 5
+        or (
+            version in SUPPORTED_PLATFORMIO_ESP_IDF_5X
+            and version not in SUPPORTED_PIOARDUINO_ESP_IDF_5X
+        )
     ) and not has_platform_ver:
         raise cv.Invalid(
-            f"ESP-IDF {value[CONF_VERSION]} may be supported by platformio/espressif32; please specify {CONF_PLATFORM_VERSION}"
+            f"ESP-IDF {value[CONF_VERSION]} may be supported by platformio/espressif32; please specify '{CONF_PLATFORM_VERSION}'"
+        )
+
+    if (
+        not is_platformio
+        and CONF_RELEASE not in value
+        and version not in SUPPORTED_PIOARDUINO_ESP_IDF_5X
+    ):
+        raise cv.Invalid(
+            f"ESP-IDF {value[CONF_VERSION]} is not available with pioarduino; you may need to specify '{CONF_RELEASE}'"
         )
 
     value[CONF_VERSION] = str(version)
@@ -372,6 +393,9 @@ def _parse_platform_version(value):
     try:
         ver = cv.Version.parse(cv.version_number(value))
         if ver.major >= 50:  # a pioarduino version
+            if "-" in value:
+                # maybe a release candidate?...definitely not our default, just use it as-is...
+                return f"https://github.com/pioarduino/platform-espressif32.git#{value}"
             return f"https://github.com/pioarduino/platform-espressif32.git#{ver.major}.{ver.minor:02d}.{ver.patch:02d}"
         # if platform version is a valid version constraint, prefix the default package
         cv.platformio_version_constraint(value)
