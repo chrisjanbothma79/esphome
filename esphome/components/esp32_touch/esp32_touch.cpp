@@ -353,7 +353,7 @@ void ESP32TouchBinarySensor::set_max_consecutive_anomalies(float max_consecutive
 void ESP32TouchBinarySensor::start_calibration(uint32_t interval, uint16_t num_values) {
   this->dynamic_calibration_ = true;
   this->max_prev_values_ = num_values;
-  this->prev_values_.resize(0);
+  this->prev_values_ = std::queue<uint32_t>();
   if (this->threshold_) {
     this->prev_values_.push(this->threshold_);
   }
@@ -397,7 +397,7 @@ void ESP32TouchBinarySensor::insert_value_() {
   this->threshold_ =
       uint32_t(float(this->sum_values_) / float(this->prev_values_.size()) * (1.0 + this->max_deviation_));
 #endif
-  ESP_LOGV(TAG, "'%s': New thouch threshold: %d", this->get_name().c_str(), this->threshold_);
+  ESP_LOGVV(TAG, "'%s': New thouch threshold: %d", this->get_name().c_str(), this->threshold_);
 }
 
 }  // namespace esp32_touch
