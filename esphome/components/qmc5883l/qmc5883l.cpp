@@ -81,6 +81,7 @@ void QMC5883LComponent::dump_config() {
 }
 float QMC5883LComponent::get_setup_priority() const { return setup_priority::DATA; }
 void QMC5883LComponent::update() {
+  i2c::ErrorCode err;
   uint8_t status = false;
   // Status byte gets cleared when data is read, so we have to read this first.
   // If status and two axes are desired, it's possible to save one byte of traffic by enabling
@@ -88,7 +89,11 @@ void QMC5883LComponent::update() {
   // If status and all three axes are desired, using ROL_PNT saves you 3 bytes.
   // But simply not reading status saves you 4 bytes always and is much simpler.
   if (ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG) {
-    this->read_byte(QMC5883L_REGISTER_STATUS, &status);
+    err = this->read_register(QMC5883L_REGISTER_STATUS, &status, 1);
+    if (err != i2c::ERROR_OK) {
+      this->status_set_warning(str_sprintf("status read failed (%d)", err).c_str());
+      return;
+    }
   }
 
   uint16_t raw[3] = {0};
@@ -106,8 +111,9 @@ void QMC5883LComponent::update() {
     start = QMC5883L_REGISTER_DATA_Z_LSB;
     dest = 2;
   }
-  if (!this->read_bytes_16_le_(start, &raw[dest], 3 - dest)) {
-    this->status_set_warning();
+  err = this->read_bytes_16_le_(start, &raw[dest], 3 - dest);
+  if (err != i2c::ERROR_OK) {
+    this->status_set_warning(str_sprintf("mag read failed (%d)", err).c_str());
     return;
   }
 
@@ -133,8 +139,9 @@ void QMC5883LComponent::update() {
   float temp = NAN;
   if (this->temperature_sensor_ != nullptr) {
     uint16_t raw_temp;
-    if (!this->read_bytes_16_le_(QMC5883L_REGISTER_TEMPERATURE_LSB, &raw_temp)) {
-      this->status_set_warning();
+    err = this->read_bytes_16_le_(QMC5883L_REGISTER_TEMPERATURE_LSB, &raw_temp);
+    if (err != i2c::ERROR_OK) {
+      this->status_set_warning(str_sprintf("temp read failed (%d)", err).c_str());
       return;
     }
     temp = int16_t(raw_temp) * 0.01f;
@@ -155,14 +162,13 @@ void QMC5883LComponent::update() {
     this->temperature_sensor_->publish_state(temp);
 }
 
-bool QMC5883LComponent::read_bytes_16_le_(uint8_t a_register, uint16_t *data, uint8_t len) {
-  if (!this->read_bytes_16(a_register, data, len))
-    return false;
-  // read_bytes_16 assumes big-endian
-  for (; len; len--, data++) {
-    *data = byteswap(*data);
-  }
-  return true;
+i2c::ErrorCode QMC5883LComponent::read_bytes_16_le_(uint8_t a_register, uint16_t *data, uint8_t len) {
+  i2c::ErrorCode err = this->read_register(a_register, reinterpret_cast<uint8_t *>(data), len * 2);
+  if (err != i2c::ERROR_OK)
+    return err;
+  for (size_t i = 0; i < len; i++)
+    data[i] = convert_little_endian(data[i]);
+  return err;
 }
 
 }  // namespace qmc5883l
