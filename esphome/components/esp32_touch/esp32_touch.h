@@ -7,7 +7,7 @@
 #include <esp_idf_version.h>
 
 #include <vector>
-#include <deque>
+#include <queue>
 
 #include <driver/touch_sensor.h>
 
@@ -121,7 +121,7 @@ class ESP32TouchBinarySensor : public binary_sensor::BinarySensor {
 
   bool dynamic_calibration_{false};
   float max_deviation_{0};
-  std::deque<uint32_t> prev_values_;
+  std::queue<uint32_t> prev_values_;
   uint32_t sum_values_{0};
   uint16_t max_prev_values_{0};
   uint32_t last_calibration_timestamp_{0};

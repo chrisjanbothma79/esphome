@@ -354,7 +354,9 @@ void ESP32TouchBinarySensor::start_calibration(uint32_t interval, uint16_t num_v
   this->dynamic_calibration_ = true;
   this->max_prev_values_ = num_values;
   this->prev_values_.resize(0);
-  this->prev_values_.push_front(this->threshold_);
+  if (this->threshold_) {
+    this->prev_values_.push(this->threshold_);
+  }
   this->sum_values_ = this->threshold_;
   this->calibration_interval_ = interval;
   this->last_calibration_timestamp_ = 0;
@@ -362,28 +364,30 @@ void ESP32TouchBinarySensor::start_calibration(uint32_t interval, uint16_t num_v
 }
 
 float ESP32TouchBinarySensor::get_average_value_() {
-  if (this->prev_values_.size() == 0)
+  if (this->prev_values_.empty())
     return 0;
 
-  return uint32_t(this->sum_values_ / float(this->prev_values_.size()));
+  return this->sum_values_ / float(this->prev_values_.size());
 }
 
 void ESP32TouchBinarySensor::insert_value_() {
-  float avg = this->get_average_value_();
-  if (fabs(float(this->value_) - avg) / avg > this->max_deviation_) {
-    this->consecutive_anomalies_++;
-    if (this->consecutive_anomalies_ < this->max_consecutive_anomalies_)
-      return;
+  if (!this->prev_values_.empty()) {
+    float avg = this->get_average_value_();
+    if (fabs(float(this->value_) - avg) / avg > this->max_deviation_) {
+      this->consecutive_anomalies_++;
+      if (this->consecutive_anomalies_ < this->max_consecutive_anomalies_)
+        return;
+    }
   }
 
   this->consecutive_anomalies_ = 0;
 
-  this->prev_values_.push_front(this->value_);
+  this->prev_values_.push(this->value_);
   this->sum_values_ += this->value_;
 
   while (this->prev_values_.size() > this->max_prev_values_) {
-    this->sum_values_ -= this->prev_values_.back();
-    this->prev_values_.pop_back();
+    this->sum_values_ -= this->prev_values_.front();
+    this->prev_values_.pop();
   }
 
 #if !(defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3))
