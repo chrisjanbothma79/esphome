@@ -292,7 +292,7 @@ esp_err_t ESPNowComponent::add_peer(uint64_t peer, int8_t channel) {
       peer_info.encrypt = false;
       peer_info.ifidx = WIFI_IF_STA;
       memcpy((void *) peer_info.peer_addr, (void *) &peer, 6);
-      esp_err_t result = esp_now_add_peer(&peer_info);
+      result = esp_now_add_peer(&peer_info);
     }
 
     if (result == ESP_OK) {
