@@ -1614,15 +1614,15 @@ void GDEY029T94::initialize() {
   this->command(0x11);  // data entry mode
   this->data(0x01);
 
-  this->command(0x44);
+  this->command(0x44);  // set Ram-X address start/end position
   this->data(0x00);
-  this->data(((this->get_width_internal() - 1) >> 3) & 0xFF);
+  this->data(this->get_width_internal() / 8 - 1);
 
-  this->command(0x45);
+  this->command(0x45);  // set Ram-Y address start/end position
+  this->data((this->get_height_internal() - 1) % 256);
+  this->data((this->get_height_internal() - 1) / 256);
   this->data(0x00);
   this->data(0x00);
-  this->data((this->get_height_internal() - 1) & 0xFF);
-  this->data(((this->get_height_internal() - 1) >> 8) & 0xFF);
 
   this->command(0x3C);  // BorderWavefrom
   this->data(0x05);
@@ -1637,15 +1637,19 @@ void GDEY029T94::initialize() {
   this->command(0x4E);  // set RAM x address count to 0;
   this->data(0x00);
   this->command(0x4F);  // set RAM y address count to 0X199;
-  this->data(0x00);
-  this->data(0x00);
+  this->data((this->get_height_internal() - 1) % 256);
+  this->data((this->get_height_internal() - 1) / 256);
   this->wait_until_idle_();
 }
 void HOT GDEY029T94::display() {
   this->command(0x24);  // write RAM for black(0)/white (1)
+  delay(2);
   this->start_data_();
-  this->write_array(this->buffer_, this->get_buffer_length_());
+  for (size_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->write_byte(this->buffer_[i]);
+  }
   this->end_data_();
+  delay(2);
 
   this->command(0x22);  // Display Update Control
   this->data(0xF7);
