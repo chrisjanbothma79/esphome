@@ -277,7 +277,6 @@ class GDEY029T94 : public WaveshareEPaper {
   void deep_sleep() override {
     this->command(0x10);  // Enter deep sleep
     this->data(0x01);
-    delay(100);
   }
 
  protected:
