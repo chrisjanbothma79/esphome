@@ -34,6 +34,7 @@ class RemoteTransmitterComponent : public remote_base::RemoteTransmitterBase,
 
   void dump_config() override;
 
+  // transmitter setup must run after receiver setup to allow the same GPIO to be used by both
   float get_setup_priority() const override { return setup_priority::DATA - 1; }
 
   void set_carrier_duty_percent(uint8_t carrier_duty_percent) { this->carrier_duty_percent_ = carrier_duty_percent; }

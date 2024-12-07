@@ -133,9 +133,9 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
                 cv.positive_time_period_microseconds,
                 cv.Range(max=TimePeriod(microseconds=4294967295)),
             ),
-            cv.Optional(CONF_MIN_LENGTH, default=0): cv.Range(min=0),
-            cv.Optional(CONF_MAX_LENGTH, default=0): cv.Range(min=0),
-            cv.Optional(CONF_WITH_DMA, default=False): cv.boolean,
+            cv.Optional(CONF_MIN_LENGTH): cv.Range(min=0),
+            cv.Optional(CONF_MAX_LENGTH): cv.Range(min=0),
+            cv.Optional(CONF_WITH_DMA): cv.boolean,
             cv.Optional(CONF_MEMORY_BLOCKS, default=3): cv.Range(min=1, max=8),
             cv.Optional(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=False),
         }
@@ -159,9 +159,12 @@ async def to_code(config):
         if CONF_CLOCK_RESOLUTION in config:
             cg.add(var.set_clock_resolution(config[CONF_CLOCK_RESOLUTION]))
         if new_driver:
-            cg.add(var.set_min_length(config[CONF_MIN_LENGTH]))
-            cg.add(var.set_max_length(config[CONF_MAX_LENGTH]))
-            cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
+            if CONF_MIN_LENGTH in config:
+                cg.add(var.set_min_length(config[CONF_MIN_LENGTH]))
+            if CONF_MAX_LENGTH in config:
+                cg.add(var.set_max_length(config[CONF_MAX_LENGTH]))
+            if CONF_WITH_DMA in config:
+                cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
             cg.add_define("USE_NEW_RMT_DRIVER")
     else:
         var = cg.new_Pvariable(config[CONF_ID], pin)

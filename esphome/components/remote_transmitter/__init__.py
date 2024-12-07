@@ -53,8 +53,8 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_CLOCK_DIVIDER): cv.All(
             cv.only_on_esp32, cv.Range(min=1, max=255)
         ),
-        cv.Optional(CONF_ONE_WIRE, default=False): cv.boolean,
-        cv.Optional(CONF_WITH_DMA, default=False): cv.boolean,
+        cv.Optional(CONF_ONE_WIRE): cv.boolean,
+        cv.Optional(CONF_WITH_DMA): cv.boolean,
         cv.Optional(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=True),
         cv.Optional(CONF_ON_TRANSMIT): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_COMPLETE): automation.validate_automation(single=True),
@@ -76,8 +76,10 @@ async def to_code(config):
         if CONF_CLOCK_RESOLUTION in config:
             cg.add(var.set_clock_resolution(config[CONF_CLOCK_RESOLUTION]))
         if new_driver:
-            cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
-            cg.add(var.set_one_wire(config[CONF_ONE_WIRE]))
+            if CONF_WITH_DMA in config:
+                cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
+            if CONF_ONE_WIRE in config:
+                cg.add(var.set_one_wire(config[CONF_ONE_WIRE]))
             cg.add_define("USE_NEW_RMT_DRIVER")
     else:
         var = cg.new_Pvariable(config[CONF_ID], pin)
