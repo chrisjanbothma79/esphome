@@ -7,7 +7,11 @@ namespace esphome {
 namespace remote_receiver {
 
 static const char *const TAG = "remote_receiver.esp32";
+#ifdef USE_ESP32_VARIANT_ESP32H2
+static const uint32_t RMT_CLK_FREQ = 32000000;
+#else
 static const uint32_t RMT_CLK_FREQ = 80000000;
+#endif
 static const uint32_t RMT_MEM_BLOCK_SIZE = 64;
 
 #ifdef USE_NEW_RMT_DRIVER
@@ -41,7 +45,7 @@ void RemoteReceiverComponent::setup() {
   rmt_rx_channel_config_t channel{};
   memset(&channel, 0, sizeof(channel));
   channel.clk_src = RMT_CLK_SRC_DEFAULT;
-  channel.resolution_hz = RMT_CLK_FREQ / this->clock_divider_;
+  channel.resolution_hz = this->clock_resolution_;
   channel.mem_block_symbols = RMT_MEM_BLOCK_SIZE * this->mem_block_num_;
   channel.gpio_num = gpio_num_t(this->pin_->get_pin());
   channel.intr_priority = 0;
@@ -75,8 +79,8 @@ void RemoteReceiverComponent::setup() {
   }
 
   uint32_t event_size = sizeof(rmt_rx_done_event_data_t);
-  uint32_t max_filter_ns = 255u * 1000 / this->clock_divider_;
-  uint32_t max_idle_ns = 65535u * 1000;
+  uint32_t max_filter_ns = 1000 * 255 / (RMT_CLK_FREQ / 1000000);
+  uint32_t max_idle_ns = 1000 * 65535;
   memset(&this->store_.config, 0, sizeof(this->store_.config));
   this->store_.config.signal_range_min_ns = std::min(this->filter_us_ * 1000, max_filter_ns);
   this->store_.config.signal_range_max_ns = std::min(this->idle_us_ * 1000, max_idle_ns);
@@ -158,9 +162,11 @@ void RemoteReceiverComponent::dump_config() {
   }
 #ifndef USE_NEW_RMT_DRIVER
   ESP_LOGCONFIG(TAG, "  Channel: %d", this->channel_);
+  ESP_LOGCONFIG(TAG, "  Clock divider: %u", this->clock_divider_);
+#else
+  ESP_LOGCONFIG(TAG, "  Clock resolution: %" PRIu32 " hz", this->clock_resolution_);
 #endif
   ESP_LOGCONFIG(TAG, "  RMT memory blocks: %d", this->mem_block_num_);
-  ESP_LOGCONFIG(TAG, "  Clock divider: %u", this->clock_divider_);
   ESP_LOGCONFIG(TAG, "  Tolerance: %" PRIu32 "%s", this->tolerance_,
                 (this->tolerance_mode_ == remote_base::TOLERANCE_MODE_TIME) ? " us" : "%");
   ESP_LOGCONFIG(TAG, "  Filter out pulses shorter than: %" PRIu32 " us", this->filter_us_);

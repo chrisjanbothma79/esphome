@@ -117,26 +117,38 @@ class RemoteRMTChannel {
   explicit RemoteRMTChannel(rmt_channel_t channel, uint8_t mem_block_num = 1);
 
   void config_rmt(rmt_config_t &rmt);
+  void set_clock_divider(uint8_t clock_divider) { this->clock_divider_ = clock_divider; }
 #else
   explicit RemoteRMTChannel(uint8_t mem_block_num = 1) : mem_block_num_(mem_block_num) {}
+
+  void set_clock_resolution(uint32_t clock_resolution) { this->clock_resolution_ = clock_resolution; }
 #endif
-  void set_clock_divider(uint8_t clock_divider) { this->clock_divider_ = clock_divider; }
 
  protected:
   uint32_t from_microseconds_(uint32_t us) {
+#ifdef USE_NEW_RMT_DRIVER
+    const uint32_t ticks_per_ten_us = this->clock_resolution_ / 100000u;
+#else
     const uint32_t ticks_per_ten_us = 80000000u / this->clock_divider_ / 100000u;
+#endif
     return us * ticks_per_ten_us / 10;
   }
   uint32_t to_microseconds_(uint32_t ticks) {
+#ifdef USE_NEW_RMT_DRIVER
+    const uint32_t ticks_per_ten_us = this->clock_resolution_ / 100000u;
+#else
     const uint32_t ticks_per_ten_us = 80000000u / this->clock_divider_ / 100000u;
+#endif
     return (ticks * 10) / ticks_per_ten_us;
   }
   RemoteComponentBase *remote_base_;
 #ifndef USE_NEW_RMT_DRIVER
   rmt_channel_t channel_{RMT_CHANNEL_0};
+  uint8_t clock_divider_{80};
+#else
+  uint32_t clock_resolution_{1000000};
 #endif
   uint8_t mem_block_num_;
-  uint8_t clock_divider_{80};
 };
 #endif
 

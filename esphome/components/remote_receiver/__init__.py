@@ -20,6 +20,7 @@ from esphome.const import (
 from esphome.core import CORE, TimePeriod
 
 CONF_CLOCK_DIVIDER = "clock_divider"
+CONF_CLOCK_RESOLUTION = "clock_resolution"
 CONF_WITH_DMA = "with_dma"
 
 AUTO_LOAD = ["remote_base"]
@@ -59,6 +60,19 @@ RemoteReceiverComponent = remote_receiver_ns.class_(
 )
 
 
+def validate_config(config):
+    if CORE.is_esp32:
+        if esp32_rmt.new_rmt_driver():
+            if CONF_CLOCK_DIVIDER in config:
+                raise cv.Invalid(
+                    "clock_divider has been deprecated in this version of the RMT drivers, please use clock_resolution"
+                )
+        elif CONF_CLOCK_RESOLUTION in config:
+            raise cv.Invalid(
+                "clock_resolution is not available in this version of the RMT drivers, please use clock_divider"
+            )
+
+
 def validate_tolerance(value):
     if isinstance(value, dict):
         return TOLERANCE_SCHEMA(value)
@@ -83,6 +97,7 @@ def validate_tolerance(value):
 
 
 MULTI_CONF = True
+FINAL_VALIDATE_SCHEMA = validate_config
 CONFIG_SCHEMA = remote_base.validate_triggers(
     cv.Schema(
         {
@@ -101,7 +116,10 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
                 cv.positive_time_period_microseconds,
                 cv.Range(max=TimePeriod(microseconds=4294967295)),
             ),
-            cv.SplitDefault(CONF_CLOCK_DIVIDER, esp32=80): cv.All(
+            cv.Optional(CONF_CLOCK_RESOLUTION): cv.All(
+                cv.only_on_esp32, cv.Range(min=1, max=80000000)
+            ),
+            cv.Optional(CONF_CLOCK_DIVIDER): cv.All(
                 cv.only_on_esp32, cv.Range(min=1, max=255)
             ),
             cv.Optional(CONF_IDLE, default="10ms"): cv.All(
@@ -129,7 +147,10 @@ async def to_code(config):
             )
         else:
             var = cg.new_Pvariable(config[CONF_ID], pin, config[CONF_MEMORY_BLOCKS])
-        cg.add(var.set_clock_divider(config[CONF_CLOCK_DIVIDER]))
+        if CONF_CLOCK_DIVIDER in config:
+            cg.add(var.set_clock_divider(config[CONF_CLOCK_DIVIDER]))
+        if CONF_CLOCK_RESOLUTION in config:
+            cg.add(var.set_clock_resolution(config[CONF_CLOCK_RESOLUTION]))
         if new_driver:
             cg.add(var.set_min_length(config[CONF_MIN_LENGTH]))
             cg.add(var.set_max_length(config[CONF_MAX_LENGTH]))
