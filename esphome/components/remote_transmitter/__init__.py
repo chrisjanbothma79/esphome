@@ -7,6 +7,8 @@ from esphome.core import CORE
 
 AUTO_LOAD = ["remote_base"]
 
+CONF_CLOCK_DIVIDER = "clock_divider"
+CONF_CLOCK_RESOLUTION = "clock_resolution"
 CONF_ON_TRANSMIT = "on_transmit"
 CONF_ON_COMPLETE = "on_complete"
 CONF_WITH_DMA = "with_dma"
@@ -17,13 +19,39 @@ RemoteTransmitterComponent = remote_transmitter_ns.class_(
     "RemoteTransmitterComponent", remote_base.RemoteTransmitterBase, cg.Component
 )
 
+
+def validate_config(config):
+    if CORE.is_esp32:
+        if esp32_rmt.new_rmt_driver():
+            if CONF_CLOCK_DIVIDER in config:
+                raise cv.Invalid(
+                    "clock_divider not available with the new RMT driver, use clock_resolution instead"
+                )
+        else:
+            if CONF_CLOCK_RESOLUTION in config:
+                raise cv.Invalid(
+                    "clock_resolution not available with the legacy RMT driver, use clock_divider instead"
+                )
+            if CONF_ONE_WIRE in config:
+                raise cv.Invalid("one_wire not available with the legacy RMT driver")
+            if CONF_WITH_DMA in config:
+                raise cv.Invalid("with_dma not available with the legacy RMT driver")
+
+
 MULTI_CONF = True
+FINAL_VALIDATE_SCHEMA = validate_config
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(RemoteTransmitterComponent),
         cv.Required(CONF_PIN): pins.gpio_output_pin_schema,
         cv.Required(CONF_CARRIER_DUTY_PERCENT): cv.All(
             cv.percentage_int, cv.Range(min=1, max=100)
+        ),
+        cv.Optional(CONF_CLOCK_RESOLUTION): cv.All(
+            cv.only_on_esp32, esp32_rmt.validate_clock_resolution()
+        ),
+        cv.Optional(CONF_CLOCK_DIVIDER): cv.All(
+            cv.only_on_esp32, cv.Range(min=1, max=255)
         ),
         cv.Optional(CONF_ONE_WIRE, default=False): cv.boolean,
         cv.Optional(CONF_WITH_DMA, default=False): cv.boolean,
@@ -43,6 +71,10 @@ async def to_code(config):
             var = cg.new_Pvariable(config[CONF_ID], pin, rmt_channel)
         else:
             var = cg.new_Pvariable(config[CONF_ID], pin)
+        if CONF_CLOCK_DIVIDER in config:
+            cg.add(var.set_clock_divider(config[CONF_CLOCK_DIVIDER]))
+        if CONF_CLOCK_RESOLUTION in config:
+            cg.add(var.set_clock_resolution(config[CONF_CLOCK_RESOLUTION]))
         if new_driver:
             cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
             cg.add(var.set_one_wire(config[CONF_ONE_WIRE]))

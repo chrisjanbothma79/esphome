@@ -126,18 +126,18 @@ class RemoteRMTChannel {
 
  protected:
   uint32_t from_microseconds_(uint32_t us) {
-#ifdef USE_NEW_RMT_DRIVER
-    const uint32_t ticks_per_ten_us = this->clock_resolution_ / 100000u;
-#else
+#ifndef USE_NEW_RMT_DRIVER
     const uint32_t ticks_per_ten_us = 80000000u / this->clock_divider_ / 100000u;
+#else
+    const uint32_t ticks_per_ten_us = this->clock_resolution_ / 100000u;
 #endif
     return us * ticks_per_ten_us / 10;
   }
   uint32_t to_microseconds_(uint32_t ticks) {
-#ifdef USE_NEW_RMT_DRIVER
-    const uint32_t ticks_per_ten_us = this->clock_resolution_ / 100000u;
-#else
+#ifndef USE_NEW_RMT_DRIVER
     const uint32_t ticks_per_ten_us = 80000000u / this->clock_divider_ / 100000u;
+#else
+    const uint32_t ticks_per_ten_us = this->clock_resolution_ / 100000u;
 #endif
     return (ticks * 10) / ticks_per_ten_us;
   }

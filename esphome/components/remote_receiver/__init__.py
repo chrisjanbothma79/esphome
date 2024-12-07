@@ -65,12 +65,19 @@ def validate_config(config):
         if esp32_rmt.new_rmt_driver():
             if CONF_CLOCK_DIVIDER in config:
                 raise cv.Invalid(
-                    "clock_divider has been deprecated in this version of the RMT driver, please use clock_resolution"
+                    "clock_divider not available with the new RMT driver, use clock_resolution instead"
                 )
-        elif CONF_CLOCK_RESOLUTION in config:
-            raise cv.Invalid(
-                "clock_resolution is not available in this version of the RMT driver, please use clock_divider"
-            )
+        else:
+            if CONF_CLOCK_RESOLUTION in config:
+                raise cv.Invalid(
+                    "clock_resolution not available with the legacy RMT driver, use clock_divider instead"
+                )
+            if CONF_MIN_LENGTH in config:
+                raise cv.Invalid("min_length not available with the legacy RMT driver")
+            if CONF_MAX_LENGTH in config:
+                raise cv.Invalid("max_length not available with the legacy RMT driver")
+            if CONF_WITH_DMA in config:
+                raise cv.Invalid("with_dma not available with the legacy RMT driver")
 
 
 def validate_tolerance(value):
@@ -117,7 +124,7 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
                 cv.Range(max=TimePeriod(microseconds=4294967295)),
             ),
             cv.Optional(CONF_CLOCK_RESOLUTION): cv.All(
-                cv.only_on_esp32, cv.Range(min=1, max=80000000)
+                cv.only_on_esp32, esp32_rmt.validate_clock_resolution()
             ),
             cv.Optional(CONF_CLOCK_DIVIDER): cv.All(
                 cv.only_on_esp32, cv.Range(min=1, max=255)
