@@ -38,8 +38,8 @@ void ADCSensor::setup() {
   for (int32_t i = 0; i <= ADC_ATTEN_DB_12_COMPAT; i++) {
     auto adc_unit = this->channel1_ != ADC1_CHANNEL_MAX ? ADC_UNIT_1 : ADC_UNIT_2;
     auto cal_value = esp_adc_cal_characterize(adc_unit, (adc_atten_t) i, ADC_WIDTH_MAX_SOC_BITS,
-                                            1100,  // default vref
-                                            &this->cal_characteristics_[i]);
+                                              1100,  // default vref
+                                              &this->cal_characteristics_[i]);
     switch (cal_value) {
       case ESP_ADC_CAL_VAL_EFUSE_VREF:
         ESP_LOGV(TAG, "Using eFuse Vref for calibration");
