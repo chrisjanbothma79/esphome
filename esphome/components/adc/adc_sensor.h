@@ -8,44 +8,44 @@
 #include "esphome/core/log.h"
 
 #ifdef USE_ESP32
-  #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-    #include "esp_adc/adc_oneshot.h"
-    #include "esp_adc/adc_cali.h"
-    #include "esp_adc/adc_cali_scheme.h"
-  #else
-    #include <esp_adc_cal.h>
-    #include "driver/adc.h"
-  #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+#include "esp_adc/adc_oneshot.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
+#else
+#include <esp_adc_cal.h>
+#include "driver/adc.h"
+#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 #endif  // USE_ESP32
 
 namespace esphome {
 namespace adc {
 
 #ifdef USE_ESP32
-  #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-    // Map old channel names to new ones for compatibility
-    #define ADC1_CHANNEL_0 ADC_CHANNEL_0
-    #define ADC1_CHANNEL_1 ADC_CHANNEL_1
-    #define ADC1_CHANNEL_2 ADC_CHANNEL_2
-    #define ADC1_CHANNEL_3 ADC_CHANNEL_3
-    #define ADC1_CHANNEL_4 ADC_CHANNEL_4
-    #define ADC1_CHANNEL_5 ADC_CHANNEL_5
-    #define ADC1_CHANNEL_6 ADC_CHANNEL_6
-    #define ADC1_CHANNEL_7 ADC_CHANNEL_7
-    #define ADC1_CHANNEL_MAX ADC_CHANNEL_MAX
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+// Map old channel names to new ones for compatibility
+#define ADC1_CHANNEL_0 ADC_CHANNEL_0
+#define ADC1_CHANNEL_1 ADC_CHANNEL_1
+#define ADC1_CHANNEL_2 ADC_CHANNEL_2
+#define ADC1_CHANNEL_3 ADC_CHANNEL_3
+#define ADC1_CHANNEL_4 ADC_CHANNEL_4
+#define ADC1_CHANNEL_5 ADC_CHANNEL_5
+#define ADC1_CHANNEL_6 ADC_CHANNEL_6
+#define ADC1_CHANNEL_7 ADC_CHANNEL_7
+#define ADC1_CHANNEL_MAX ADC_CHANNEL_MAX
 
-    #define ADC2_CHANNEL_0 ADC_CHANNEL_0
-    #define ADC2_CHANNEL_1 ADC_CHANNEL_1
-    #define ADC2_CHANNEL_2 ADC_CHANNEL_2
-    #define ADC2_CHANNEL_3 ADC_CHANNEL_3
-    #define ADC2_CHANNEL_4 ADC_CHANNEL_4
-    #define ADC2_CHANNEL_5 ADC_CHANNEL_5
-    #define ADC2_CHANNEL_6 ADC_CHANNEL_6
-    #define ADC2_CHANNEL_7 ADC_CHANNEL_7
-    #define ADC2_CHANNEL_8 ADC_CHANNEL_8
-    #define ADC2_CHANNEL_9 ADC_CHANNEL_9
-    #define ADC2_CHANNEL_MAX ADC_CHANNEL_MAX
-  #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+#define ADC2_CHANNEL_0 ADC_CHANNEL_0
+#define ADC2_CHANNEL_1 ADC_CHANNEL_1
+#define ADC2_CHANNEL_2 ADC_CHANNEL_2
+#define ADC2_CHANNEL_3 ADC_CHANNEL_3
+#define ADC2_CHANNEL_4 ADC_CHANNEL_4
+#define ADC2_CHANNEL_5 ADC_CHANNEL_5
+#define ADC2_CHANNEL_6 ADC_CHANNEL_6
+#define ADC2_CHANNEL_7 ADC_CHANNEL_7
+#define ADC2_CHANNEL_8 ADC_CHANNEL_8
+#define ADC2_CHANNEL_9 ADC_CHANNEL_9
+#define ADC2_CHANNEL_MAX ADC_CHANNEL_MAX
+#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 
 // clang-format off
 #if (ESP_IDF_VERSION_MAJOR == 4 && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 7)) || \
@@ -63,7 +63,6 @@ static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_11;
 
 class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage_sampler::VoltageSampler {
  public:
-
   /// Update the sensor's state by reading the current ADC value.
   /// This method is called periodically based on the update interval.
   void update() override;
