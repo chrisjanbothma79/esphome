@@ -82,9 +82,6 @@ void RemoteTransmitterComponent::configure_rmt_() {
     this->initialized_ = true;
   }
 
-  ESP_LOGCONFIG(TAG, "    Carrier Duty: %u%%", this->carrier_duty_percent_);
-  ESP_LOGCONFIG(TAG, "    Carrier Freq: %" PRIu32 " hz", this->current_carrier_frequency_);
-
   if (this->current_carrier_frequency_ == 0 || this->carrier_duty_percent_ == 100) {
     error = rmt_apply_carrier(this->channel_, nullptr);
   } else {
