@@ -44,9 +44,7 @@ bool Nextion::send_command_(const std::string &command) {
   this->write_array(to_send, sizeof(to_send));
 
 #ifdef USE_NEXTION_COMMAND_SPACING
-  if (!this->ignore_is_setup_) {
-    this->command_pacer_.mark_sent();
-  }
+  this->command_pacer_.mark_sent();
 #endif  // USE_NEXTION_COMMAND_SPACING
 
   return true;
