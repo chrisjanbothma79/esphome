@@ -34,8 +34,15 @@ namespace adc {
 #define ADC1_CHANNEL_5 ADC_CHANNEL_5
 #define ADC1_CHANNEL_6 ADC_CHANNEL_6
 #define ADC1_CHANNEL_7 ADC_CHANNEL_7
-#define ADC1_CHANNEL_MAX ADC_CHANNEL_MAX
 #endif  // ADC1_CHANNEL_0
+
+#ifndef ADC1_CHANNEL_MAX
+#ifdef ADC_CHANNEL_MAX
+#define ADC1_CHANNEL_MAX ADC_CHANNEL_MAX
+#else
+constexpr adc_channel_t ADC1_CHANNEL_MAX = static_cast<adc_channel_t>(8);
+#endif  // ADC_CHANNEL_MAX
+#endif  // ADC1_CHANNEL_MAX
 
 #ifndef ADC2_CHANNEL_0
 #define ADC2_CHANNEL_0 ADC_CHANNEL_0
@@ -48,8 +55,16 @@ namespace adc {
 #define ADC2_CHANNEL_7 ADC_CHANNEL_7
 #define ADC2_CHANNEL_8 ADC_CHANNEL_8
 #define ADC2_CHANNEL_9 ADC_CHANNEL_9
-#define ADC2_CHANNEL_MAX ADC_CHANNEL_MAX
 #endif  // ADC2_CHANNEL_0
+
+#ifndef ADC2_CHANNEL_MAX
+#ifdef ADC_CHANNEL_MAX
+#define ADC2_CHANNEL_MAX ADC_CHANNEL_MAX
+#else
+constexpr adc_channel_t ADC2_CHANNEL_MAX = static_cast<adc_channel_t>(10);
+#endif  // ADC_CHANNEL_MAX
+#endif  // ADC2_CHANNEL_MAX
+
 #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 
 // clang-format off
