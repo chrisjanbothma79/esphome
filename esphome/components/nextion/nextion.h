@@ -1265,7 +1265,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
 
  protected:
 #ifdef USE_NEXTION_COMMAND_SPACING
-  NextionCommandPacer command_pacer_{0};  // Default to 0ms
+  NextionCommandPacer command_pacer_{0};
 #endif  // USE_NEXTION_COMMAND_SPACING
   std::deque<NextionQueue *> nextion_queue_;
   std::deque<NextionQueue *> waveform_queue_;
