@@ -1,7 +1,6 @@
 remote_receiver:
   id: rcvr
   pin: ${pin}
-  rmt_channel: ${rmt_channel}
   dump: all
   tolerance: 25%
   on_abbwelcome:

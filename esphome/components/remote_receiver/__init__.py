@@ -132,7 +132,7 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
                 cv.only_with_esp_idf, cv.Range(min=0)
             ),
             cv.Optional(CONF_RECEIVE_SYMBOLS): cv.All(
-                cv.only_with_esp_idf, cv.Range(min=0)
+                cv.only_with_esp_idf, cv.Range(min=2)
             ),
             cv.Optional(CONF_WITH_DMA): cv.All(cv.only_with_esp_idf, cv.boolean),
         }
