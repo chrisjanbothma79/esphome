@@ -72,23 +72,6 @@ def validate_config(config):
                 raise cv.Invalid(
                     "memory_blocks not available with the new RMT driver, use rmt_symbols instead"
                 )
-        else:
-            if CONF_CLOCK_RESOLUTION in config:
-                raise cv.Invalid(
-                    "clock_resolution not available with the legacy RMT driver, use clock_divider instead"
-                )
-            if CONF_RMT_SYMBOLS in config:
-                raise cv.Invalid("rmt_symbols not available with the legacy RMT driver")
-            if CONF_FILTER_SYMBOLS in config:
-                raise cv.Invalid(
-                    "filter_symbols not available with the legacy RMT driver"
-                )
-            if CONF_RECEIVE_SYMBOLS in config:
-                raise cv.Invalid(
-                    "receive_symbols not available with the legacy RMT driver"
-                )
-            if CONF_WITH_DMA in config:
-                raise cv.Invalid("with_dma not available with the legacy RMT driver")
 
 
 def validate_tolerance(value):

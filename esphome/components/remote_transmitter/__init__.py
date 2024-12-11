@@ -33,17 +33,6 @@ def validate_config(config):
                 raise cv.Invalid(
                     "clock_divider not available with the new RMT driver, use clock_resolution instead"
                 )
-        else:
-            if CONF_CLOCK_RESOLUTION in config:
-                raise cv.Invalid(
-                    "clock_resolution not available with the legacy RMT driver, use clock_divider instead"
-                )
-            if CONF_RMT_SYMBOLS in config:
-                raise cv.Invalid("rmt_symbols not available with the legacy RMT driver")
-            if CONF_ONE_WIRE in config:
-                raise cv.Invalid("one_wire not available with the legacy RMT driver")
-            if CONF_WITH_DMA in config:
-                raise cv.Invalid("with_dma not available with the legacy RMT driver")
 
 
 MULTI_CONF = True
