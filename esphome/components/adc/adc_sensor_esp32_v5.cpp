@@ -77,6 +77,9 @@ void ADCSensor::setup() {
         .unit_id = unit_id,
         .atten = this->attenuation_,
         .bitwidth = ADC_BITWIDTH_DEFAULT,
+#if !defined(USE_ESP32_VARIANT_ESP32S2)
+        .default_vref = 1100,  // Initialize default_vref to 1100mV
+#endif  // not USE_ESP32_VARIANT_ESP32S2
     };
     if (adc_cali_create_scheme_line_fitting(&cali_config, &handle) == ESP_OK) {
       this->calibration_handle_ = handle;
