@@ -20,15 +20,13 @@ class RemoteTransmitterComponent : public remote_base::RemoteTransmitterBase,
 #endif
 {
  public:
-#ifdef USE_ESP32
+#if defined(USE_ESP32) && ESP_IDF_VERSION_MAJOR < 5
   RemoteTransmitterComponent(InternalGPIOPin *pin, uint8_t mem_block_num = 1)
       : remote_base::RemoteTransmitterBase(pin), remote_base::RemoteRMTChannel(mem_block_num) {}
-#if ESP_IDF_VERSION_MAJOR < 5
   RemoteTransmitterComponent(InternalGPIOPin *pin, rmt_channel_t channel, uint8_t mem_block_num = 1)
       : remote_base::RemoteTransmitterBase(pin), remote_base::RemoteRMTChannel(channel, mem_block_num) {}
-#endif
 #else
-  explicit RemoteTransmitterComponent(InternalGPIOPin *pin) : remote_base::RemoteTransmitterBase(pin) {}
+  RemoteTransmitterComponent(InternalGPIOPin *pin) : remote_base::RemoteTransmitterBase(pin) {}
 #endif
   void setup() override;
 

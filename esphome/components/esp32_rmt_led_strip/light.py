@@ -13,6 +13,7 @@ from esphome.const import (
     CONF_PIN,
     CONF_RGB_ORDER,
     CONF_RMT_CHANNEL,
+    CONF_RMT_SYMBOLS,
 )
 
 CODEOWNERS = ["@jesserockz"]
@@ -71,6 +72,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_NUM_LEDS): cv.positive_not_null_int,
             cv.Required(CONF_RGB_ORDER): cv.enum(RGB_ORDERS, upper=True),
             cv.Optional(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=True),
+            cv.Optional(CONF_RMT_SYMBOLS, default=64): cv.Range(min=2),
             cv.Optional(CONF_MAX_REFRESH_RATE): cv.positive_time_period_microseconds,
             cv.Optional(CONF_CHIPSET): cv.one_of(*CHIPSETS, upper=True),
             cv.Optional(CONF_IS_RGBW, default=False): cv.boolean,
@@ -146,7 +148,9 @@ async def to_code(config):
     cg.add(var.set_is_wrgb(config[CONF_IS_WRGB]))
     cg.add(var.set_use_psram(config[CONF_USE_PSRAM]))
 
-    if not esp32_rmt.use_new_rmt_driver():
+    if esp32_rmt.use_new_rmt_driver():
+        cg.add(var.set_rmt_symbols(config[CONF_RMT_SYMBOLS]))
+    else:
         rmt_channel_t = cg.global_ns.enum("rmt_channel_t")
         cg.add(
             var.set_rmt_channel(

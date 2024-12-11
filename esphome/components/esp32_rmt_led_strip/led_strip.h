@@ -60,7 +60,9 @@ class ESP32RMTLEDStripLightOutput : public light::AddressableLight {
                       uint32_t reset_time_high, uint32_t reset_time_low);
 
   void set_rgb_order(RGBOrder rgb_order) { this->rgb_order_ = rgb_order; }
-#if ESP_IDF_VERSION_MAJOR < 5
+#if ESP_IDF_VERSION_MAJOR >= 5
+  void set_rmt_symbols(uint32_t rmt_symbols) { this->rmt_symbols_ = rmt_symbols; }
+#else
   void set_rmt_channel(rmt_channel_t channel) { this->channel_ = channel; }
 #endif
 
@@ -83,6 +85,7 @@ class ESP32RMTLEDStripLightOutput : public light::AddressableLight {
   rmt_encoder_handle_t encoder_{nullptr};
   rmt_symbol_word_t *rmt_buf_{nullptr};
   rmt_symbol_word_t bit0_, bit1_, reset_;
+  uint32_t rmt_symbols_;
 #else
   rmt_item32_t *rmt_buf_{nullptr};
   rmt_item32_t bit0_, bit1_, reset_;

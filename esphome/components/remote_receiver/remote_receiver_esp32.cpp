@@ -12,7 +12,6 @@ static const uint32_t RMT_CLK_FREQ = 32000000;
 #else
 static const uint32_t RMT_CLK_FREQ = 80000000;
 #endif
-static const uint32_t RMT_MEM_BLOCK_SIZE = 64;
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 static bool IRAM_ATTR HOT rmt_callback(rmt_channel_handle_t channel, const rmt_rx_done_event_data_t *event, void *arg) {
@@ -27,7 +26,7 @@ static bool IRAM_ATTR HOT rmt_callback(rmt_channel_handle_t channel, const rmt_r
     next_write = store->buffer_write;
     store->overflow = true;
   }
-  if (event->num_symbols < store->min_symbols) {
+  if (event->num_symbols <= store->filter_symbols) {
     next_write = store->buffer_write;
   }
   store->error =
@@ -46,7 +45,7 @@ void RemoteReceiverComponent::setup() {
   memset(&channel, 0, sizeof(channel));
   channel.clk_src = RMT_CLK_SRC_DEFAULT;
   channel.resolution_hz = this->clock_resolution_;
-  channel.mem_block_symbols = RMT_MEM_BLOCK_SIZE * this->mem_block_num_;
+  channel.mem_block_symbols = rmt_symbols_;
   channel.gpio_num = gpio_num_t(this->pin_->get_pin());
   channel.intr_priority = 0;
   channel.flags.invert_in = 0;
@@ -84,12 +83,8 @@ void RemoteReceiverComponent::setup() {
   memset(&this->store_.config, 0, sizeof(this->store_.config));
   this->store_.config.signal_range_min_ns = std::min(this->filter_us_ * 1000, max_filter_ns);
   this->store_.config.signal_range_max_ns = std::min(this->idle_us_ * 1000, max_idle_ns);
-  this->store_.min_symbols = (this->min_length_ + 1) / 2;
-  if (this->max_length_ > 0) {
-    this->store_.receive_size = ((this->max_length_ + 1) / 2) * sizeof(rmt_symbol_word_t);
-  } else {
-    this->store_.receive_size = RMT_MEM_BLOCK_SIZE * this->mem_block_num_ * sizeof(rmt_symbol_word_t);
-  }
+  this->store_.filter_symbols = this->filter_symbols_;
+  this->store_.receive_size = this->receive_symbols_ * sizeof(rmt_symbol_word_t);
   this->store_.buffer_size = std::max((event_size + this->store_.receive_size) * 2, this->buffer_size_);
   this->store_.buffer = new uint8_t[this->buffer_size_];
   error = rmt_receive(this->channel_, (uint8_t *) this->store_.buffer + event_size, this->store_.receive_size,
@@ -162,11 +157,14 @@ void RemoteReceiverComponent::dump_config() {
   }
 #if ESP_IDF_VERSION_MAJOR >= 5
   ESP_LOGCONFIG(TAG, "  Clock resolution: %" PRIu32 " hz", this->clock_resolution_);
+  ESP_LOGCONFIG(TAG, "  RMT symbols: %" PRIu32, this->rmt_symbols_);
+  ESP_LOGCONFIG(TAG, "  Filter symbols: %" PRIu32, this->filter_symbols_);
+  ESP_LOGCONFIG(TAG, "  Receive symbols: %" PRIu32, this->receive_symbols_);
 #else
   ESP_LOGCONFIG(TAG, "  Clock divider: %u", this->clock_divider_);
   ESP_LOGCONFIG(TAG, "  Channel: %d", this->channel_);
-#endif
   ESP_LOGCONFIG(TAG, "  RMT memory blocks: %d", this->mem_block_num_);
+#endif
   ESP_LOGCONFIG(TAG, "  Tolerance: %" PRIu32 "%s", this->tolerance_,
                 (this->tolerance_mode_ == remote_base::TOLERANCE_MODE_TIME) ? " us" : "%");
   ESP_LOGCONFIG(TAG, "  Filter out pulses shorter than: %" PRIu32 " us", this->filter_us_);

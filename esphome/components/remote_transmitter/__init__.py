@@ -2,7 +2,13 @@ from esphome import automation, pins
 import esphome.codegen as cg
 from esphome.components import esp32_rmt, remote_base
 import esphome.config_validation as cv
-from esphome.const import CONF_CARRIER_DUTY_PERCENT, CONF_ID, CONF_PIN, CONF_RMT_CHANNEL
+from esphome.const import (
+    CONF_CARRIER_DUTY_PERCENT,
+    CONF_ID,
+    CONF_PIN,
+    CONF_RMT_CHANNEL,
+    CONF_RMT_SYMBOLS,
+)
 from esphome.core import CORE
 
 AUTO_LOAD = ["remote_base"]
@@ -32,6 +38,8 @@ def validate_config(config):
                 raise cv.Invalid(
                     "clock_resolution not available with the legacy RMT driver, use clock_divider instead"
                 )
+            if CONF_RMT_SYMBOLS in config:
+                raise cv.Invalid("rmt_symbols not available with the legacy RMT driver")
             if CONF_ONE_WIRE in config:
                 raise cv.Invalid("one_wire not available with the legacy RMT driver")
             if CONF_WITH_DMA in config:
@@ -56,6 +64,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_ONE_WIRE): cv.boolean,
         cv.Optional(CONF_WITH_DMA): cv.boolean,
         cv.Optional(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=True),
+        cv.Optional(CONF_RMT_SYMBOLS, default=64): cv.Range(min=2),
         cv.Optional(CONF_ON_TRANSMIT): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_COMPLETE): automation.validate_automation(single=True),
     }
@@ -65,21 +74,24 @@ CONFIG_SCHEMA = cv.Schema(
 async def to_code(config):
     pin = await cg.gpio_pin_expression(config[CONF_PIN])
     if CORE.is_esp32:
-        new_driver = esp32_rmt.use_new_rmt_driver()
-        rmt_channel = config.get(CONF_RMT_CHANNEL, None)
-        if not new_driver and rmt_channel is not None:
-            var = cg.new_Pvariable(config[CONF_ID], pin, rmt_channel)
-        else:
+        if esp32_rmt.use_new_rmt_driver():
             var = cg.new_Pvariable(config[CONF_ID], pin)
-        if CONF_CLOCK_DIVIDER in config:
-            cg.add(var.set_clock_divider(config[CONF_CLOCK_DIVIDER]))
-        if CONF_CLOCK_RESOLUTION in config:
-            cg.add(var.set_clock_resolution(config[CONF_CLOCK_RESOLUTION]))
-        if new_driver:
+            cg.add(var.set_rmt_symbols(config[CONF_RMT_SYMBOLS]))
+            if CONF_CLOCK_RESOLUTION in config:
+                cg.add(var.set_clock_resolution(config[CONF_CLOCK_RESOLUTION]))
             if CONF_WITH_DMA in config:
                 cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
             if CONF_ONE_WIRE in config:
                 cg.add(var.set_one_wire(config[CONF_ONE_WIRE]))
+        else:
+            rmt_channel = config.get(CONF_RMT_CHANNEL, None)
+            if rmt_channel is not None:
+                var = cg.new_Pvariable(config[CONF_ID], pin, rmt_channel)
+            else:
+                var = cg.new_Pvariable(config[CONF_ID], pin)
+            if CONF_CLOCK_DIVIDER in config:
+                cg.add(var.set_clock_divider(config[CONF_CLOCK_DIVIDER]))
+
     else:
         var = cg.new_Pvariable(config[CONF_ID], pin)
     await cg.register_component(var, config)

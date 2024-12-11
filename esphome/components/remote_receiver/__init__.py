@@ -8,11 +8,10 @@ from esphome.const import (
     CONF_FILTER,
     CONF_ID,
     CONF_IDLE,
-    CONF_MAX_LENGTH,
     CONF_MEMORY_BLOCKS,
-    CONF_MIN_LENGTH,
     CONF_PIN,
     CONF_RMT_CHANNEL,
+    CONF_RMT_SYMBOLS,
     CONF_TOLERANCE,
     CONF_TYPE,
     CONF_VALUE,
@@ -21,6 +20,8 @@ from esphome.core import CORE, TimePeriod
 
 CONF_CLOCK_DIVIDER = "clock_divider"
 CONF_CLOCK_RESOLUTION = "clock_resolution"
+CONF_FILTER_SYMBOLS = "filter_symbols"
+CONF_RECEIVE_SYMBOLS = "receive_symbols"
 CONF_WITH_DMA = "with_dma"
 
 AUTO_LOAD = ["remote_base"]
@@ -67,15 +68,25 @@ def validate_config(config):
                 raise cv.Invalid(
                     "clock_divider not available with the new RMT driver, use clock_resolution instead"
                 )
+            if CONF_MEMORY_BLOCKS in config:
+                raise cv.Invalid(
+                    "memory_blocks not available with the new RMT driver, use rmt_symbols instead"
+                )
         else:
             if CONF_CLOCK_RESOLUTION in config:
                 raise cv.Invalid(
                     "clock_resolution not available with the legacy RMT driver, use clock_divider instead"
                 )
-            if CONF_MIN_LENGTH in config:
-                raise cv.Invalid("min_length not available with the legacy RMT driver")
-            if CONF_MAX_LENGTH in config:
-                raise cv.Invalid("max_length not available with the legacy RMT driver")
+            if CONF_RMT_SYMBOLS in config:
+                raise cv.Invalid("rmt_symbols not available with the legacy RMT driver")
+            if CONF_FILTER_SYMBOLS in config:
+                raise cv.Invalid(
+                    "filter_symbols not available with the legacy RMT driver"
+                )
+            if CONF_RECEIVE_SYMBOLS in config:
+                raise cv.Invalid(
+                    "receive_symbols not available with the legacy RMT driver"
+                )
             if CONF_WITH_DMA in config:
                 raise cv.Invalid("with_dma not available with the legacy RMT driver")
 
@@ -133,11 +144,20 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
                 cv.positive_time_period_microseconds,
                 cv.Range(max=TimePeriod(microseconds=4294967295)),
             ),
-            cv.Optional(CONF_MIN_LENGTH): cv.Range(min=0),
-            cv.Optional(CONF_MAX_LENGTH): cv.Range(min=0),
+            cv.Optional(CONF_FILTER_SYMBOLS): cv.Range(min=0),
+            cv.Optional(CONF_RECEIVE_SYMBOLS): cv.Range(min=0),
             cv.Optional(CONF_WITH_DMA): cv.boolean,
-            cv.Optional(CONF_MEMORY_BLOCKS, default=3): cv.Range(min=1, max=8),
+            cv.SplitDefault(CONF_MEMORY_BLOCKS, esp32_arduino=3): cv.Range(
+                min=1, max=8
+            ),
             cv.Optional(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=False),
+            cv.SplitDefault(
+                CONF_RMT_SYMBOLS,
+                esp32=192,
+                esp32_s3=192,
+                esp32_s2=128,
+                esp32_c3=96,
+            ): cv.Range(min=2),
         }
     ).extend(cv.COMPONENT_SCHEMA)
 )
@@ -146,28 +166,32 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
 async def to_code(config):
     pin = await cg.gpio_pin_expression(config[CONF_PIN])
     if CORE.is_esp32:
-        new_driver = esp32_rmt.use_new_rmt_driver()
-        rmt_channel = config.get(CONF_RMT_CHANNEL, None)
-        if not new_driver and rmt_channel is not None:
-            var = cg.new_Pvariable(
-                config[CONF_ID], pin, rmt_channel, config[CONF_MEMORY_BLOCKS]
-            )
-        else:
-            var = cg.new_Pvariable(config[CONF_ID], pin, config[CONF_MEMORY_BLOCKS])
-        if CONF_CLOCK_DIVIDER in config:
-            cg.add(var.set_clock_divider(config[CONF_CLOCK_DIVIDER]))
-        if CONF_CLOCK_RESOLUTION in config:
-            cg.add(var.set_clock_resolution(config[CONF_CLOCK_RESOLUTION]))
-        if new_driver:
-            if CONF_MIN_LENGTH in config:
-                cg.add(var.set_min_length(config[CONF_MIN_LENGTH]))
-            if CONF_MAX_LENGTH in config:
-                cg.add(var.set_max_length(config[CONF_MAX_LENGTH]))
+        if esp32_rmt.use_new_rmt_driver():
+            var = cg.new_Pvariable(config[CONF_ID], pin)
+            cg.add(var.set_rmt_symbols(config[CONF_RMT_SYMBOLS]))
             if CONF_WITH_DMA in config:
                 cg.add(var.set_with_dma(config[CONF_WITH_DMA]))
+            if CONF_CLOCK_RESOLUTION in config:
+                cg.add(var.set_clock_resolution(config[CONF_CLOCK_RESOLUTION]))
+            if CONF_FILTER_SYMBOLS in config:
+                cg.add(var.set_filter_symbols(config[CONF_FILTER_SYMBOLS]))
+            if CONF_RECEIVE_SYMBOLS in config:
+                cg.add(var.set_receive_symbols(config[CONF_RECEIVE_SYMBOLS]))
+            else:
+                cg.add(var.set_receive_symbols(config[CONF_RMT_SYMBOLS]))
             if CORE.using_esp_idf:
                 esp32.add_idf_sdkconfig_option("CONFIG_RMT_RECV_FUNC_IN_IRAM", True)
                 esp32.add_idf_sdkconfig_option("CONFIG_RMT_ISR_IRAM_SAFE", True)
+        else:
+            rmt_channel = config.get(CONF_RMT_CHANNEL, None)
+            if rmt_channel is not None:
+                var = cg.new_Pvariable(
+                    config[CONF_ID], pin, rmt_channel, config[CONF_MEMORY_BLOCKS]
+                )
+            else:
+                var = cg.new_Pvariable(config[CONF_ID], pin, config[CONF_MEMORY_BLOCKS])
+            if CONF_CLOCK_DIVIDER in config:
+                cg.add(var.set_clock_divider(config[CONF_CLOCK_DIVIDER]))
     else:
         var = cg.new_Pvariable(config[CONF_ID], pin)
 

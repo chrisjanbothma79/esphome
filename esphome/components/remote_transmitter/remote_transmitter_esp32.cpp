@@ -8,7 +8,6 @@ namespace esphome {
 namespace remote_transmitter {
 
 static const char *const TAG = "remote_transmitter";
-static const uint32_t RMT_MEM_BLOCK_SIZE = 64;
 
 void RemoteTransmitterComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Remote Transmitter...");
@@ -20,11 +19,12 @@ void RemoteTransmitterComponent::dump_config() {
 #if ESP_IDF_VERSION_MAJOR >= 5
   ESP_LOGCONFIG(TAG, "  One wire: %s", this->one_wire_ ? "true" : "false");
   ESP_LOGCONFIG(TAG, "  Clock resolution: %" PRIu32 " hz", this->clock_resolution_);
+  ESP_LOGCONFIG(TAG, "  RMT symbols: %" PRIu32, this->rmt_symbols_);
 #else
   ESP_LOGCONFIG(TAG, "  Channel: %d", this->channel_);
   ESP_LOGCONFIG(TAG, "  Clock divider: %u", this->clock_divider_);
-#endif
   ESP_LOGCONFIG(TAG, "  RMT memory blocks: %d", this->mem_block_num_);
+#endif
   LOG_PIN("  Pin: ", this->pin_);
 
   if (this->current_carrier_frequency_ != 0 && this->carrier_duty_percent_ != 100) {
@@ -47,7 +47,7 @@ void RemoteTransmitterComponent::configure_rmt_() {
     channel.clk_src = RMT_CLK_SRC_DEFAULT;
     channel.resolution_hz = this->clock_resolution_;
     channel.gpio_num = gpio_num_t(this->pin_->get_pin());
-    channel.mem_block_symbols = RMT_MEM_BLOCK_SIZE * this->mem_block_num_;
+    channel.mem_block_symbols = this->rmt_symbols_;
     channel.trans_queue_depth = 1;
     channel.flags.io_loop_back = this->one_wire_;
     channel.flags.io_od_mode = this->one_wire_;

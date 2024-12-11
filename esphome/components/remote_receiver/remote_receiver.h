@@ -40,7 +40,7 @@ struct RemoteReceiverComponentStore {
   bool overflow{false};
   uint32_t buffer_size{1000};
   uint32_t receive_size{0};
-  uint32_t min_symbols{0};
+  uint32_t filter_symbols{0};
   esp_err_t error{ESP_OK};
   rmt_receive_config_t config;
 };
@@ -55,13 +55,11 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
 
 {
  public:
-#ifdef USE_ESP32
+#if defined(USE_ESP32) && ESP_IDF_VERSION_MAJOR < 5
   RemoteReceiverComponent(InternalGPIOPin *pin, uint8_t mem_block_num = 1)
       : RemoteReceiverBase(pin), remote_base::RemoteRMTChannel(mem_block_num) {}
-#if ESP_IDF_VERSION_MAJOR < 5
   RemoteReceiverComponent(InternalGPIOPin *pin, rmt_channel_t channel, uint8_t mem_block_num = 1)
       : RemoteReceiverBase(pin), remote_base::RemoteRMTChannel(channel, mem_block_num) {}
-#endif
 #else
   RemoteReceiverComponent(InternalGPIOPin *pin) : RemoteReceiverBase(pin) {}
 #endif
@@ -71,8 +69,8 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
   float get_setup_priority() const override { return setup_priority::DATA; }
 
 #if defined(USE_ESP32) && ESP_IDF_VERSION_MAJOR >= 5
-  void set_min_length(uint32_t min_length) { this->min_length_ = min_length; }
-  void set_max_length(uint32_t max_length) { this->max_length_ = max_length; }
+  void set_filter_symbols(uint32_t filter_symbols) { this->filter_symbols_ = filter_symbols; }
+  void set_receive_symbols(uint32_t receive_symbols) { this->receive_symbols_ = receive_symbols; }
   void set_with_dma(bool with_dma) { this->with_dma_ = with_dma; }
 #endif
   void set_buffer_size(uint32_t buffer_size) { this->buffer_size_ = buffer_size; }
@@ -84,8 +82,8 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
 #if ESP_IDF_VERSION_MAJOR >= 5
   void decode_rmt_(rmt_symbol_word_t *item, size_t item_count);
   rmt_channel_handle_t channel_{NULL};
-  uint32_t min_length_{0};
-  uint32_t max_length_{0};
+  uint32_t filter_symbols_{0};
+  uint32_t receive_symbols_{0};
   bool with_dma_{false};
 #else
   void decode_rmt_(rmt_item32_t *item, size_t item_count);

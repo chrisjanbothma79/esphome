@@ -113,9 +113,8 @@ class RemoteComponentBase {
 class RemoteRMTChannel {
  public:
 #if ESP_IDF_VERSION_MAJOR >= 5
-  explicit RemoteRMTChannel(uint8_t mem_block_num = 1) : mem_block_num_(mem_block_num) {}
-
   void set_clock_resolution(uint32_t clock_resolution) { this->clock_resolution_ = clock_resolution; }
+  void set_rmt_symbols(uint32_t rmt_symbols) { this->rmt_symbols_ = rmt_symbols; }
 #else
   explicit RemoteRMTChannel(uint8_t mem_block_num = 1);
   explicit RemoteRMTChannel(rmt_channel_t channel, uint8_t mem_block_num = 1);
@@ -144,11 +143,12 @@ class RemoteRMTChannel {
   RemoteComponentBase *remote_base_;
 #if ESP_IDF_VERSION_MAJOR >= 5
   uint32_t clock_resolution_{1000000};
+  uint32_t rmt_symbols_;
 #else
   uint8_t clock_divider_{80};
   rmt_channel_t channel_{RMT_CHANNEL_0};
-#endif
   uint8_t mem_block_num_;
+#endif
 };
 #endif
 

@@ -52,7 +52,7 @@ void ESP32RMTLEDStripLightOutput::setup() {
   channel.clk_src = RMT_CLK_SRC_DEFAULT;
   channel.resolution_hz = RMT_CLK_FREQ / RMT_CLK_DIV;
   channel.gpio_num = gpio_num_t(this->pin_);
-  channel.mem_block_symbols = 64;
+  channel.mem_block_symbols = this->rmt_symbols_;
   channel.trans_queue_depth = 1;
   channel.flags.io_loop_back = 0;
   channel.flags.io_od_mode = 0;
@@ -248,7 +248,9 @@ light::ESPColorView ESP32RMTLEDStripLightOutput::get_view_internal(int32_t index
 void ESP32RMTLEDStripLightOutput::dump_config() {
   ESP_LOGCONFIG(TAG, "ESP32 RMT LED Strip:");
   ESP_LOGCONFIG(TAG, "  Pin: %u", this->pin_);
-#if ESP_IDF_VERSION_MAJOR < 5
+#if ESP_IDF_VERSION_MAJOR >= 5
+  ESP_LOGCONFIG(TAG, "  RMT Symbols: %" PRIu32, this->rmt_symbols_);
+#else
   ESP_LOGCONFIG(TAG, "  Channel: %u", this->channel_);
 #endif
   const char *rgb_order;
