@@ -61,19 +61,6 @@ RemoteReceiverComponent = remote_receiver_ns.class_(
 )
 
 
-def validate_config(config):
-    if CORE.is_esp32:
-        if esp32_rmt.use_new_rmt_driver():
-            if CONF_CLOCK_DIVIDER in config:
-                raise cv.Invalid(
-                    "clock_divider not available with the new RMT driver, use clock_resolution instead"
-                )
-            if CONF_MEMORY_BLOCKS in config:
-                raise cv.Invalid(
-                    "memory_blocks not available with the new RMT driver, use rmt_symbols instead"
-                )
-
-
 def validate_tolerance(value):
     if isinstance(value, dict):
         return TOLERANCE_SCHEMA(value)
@@ -98,7 +85,6 @@ def validate_tolerance(value):
 
 
 MULTI_CONF = True
-FINAL_VALIDATE_SCHEMA = validate_config
 CONFIG_SCHEMA = remote_base.validate_triggers(
     cv.Schema(
         {
@@ -118,29 +104,37 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
                 cv.Range(max=TimePeriod(microseconds=4294967295)),
             ),
             cv.SplitDefault(CONF_CLOCK_DIVIDER, esp32_arduino=80): cv.All(
-                cv.only_on_esp32, cv.Range(min=1, max=255)
+                cv.only_on_esp32, cv.only_with_arduino, cv.Range(min=1, max=255)
             ),
             cv.Optional(CONF_CLOCK_RESOLUTION): cv.All(
-                cv.only_on_esp32, esp32_rmt.validate_clock_resolution()
+                cv.only_on_esp32,
+                cv.only_with_esp_idf,
+                esp32_rmt.validate_clock_resolution(),
             ),
             cv.Optional(CONF_IDLE, default="10ms"): cv.All(
                 cv.positive_time_period_microseconds,
                 cv.Range(max=TimePeriod(microseconds=4294967295)),
             ),
-            cv.SplitDefault(CONF_MEMORY_BLOCKS, esp32_arduino=3): cv.Range(
-                min=1, max=8
+            cv.SplitDefault(CONF_MEMORY_BLOCKS, esp32_arduino=3): cv.All(
+                cv.only_with_arduino, cv.Range(min=1, max=8)
             ),
-            cv.Optional(CONF_FILTER_SYMBOLS): cv.Range(min=0),
-            cv.Optional(CONF_RECEIVE_SYMBOLS): cv.Range(min=0),
-            cv.Optional(CONF_WITH_DMA): cv.boolean,
-            cv.Optional(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=False),
+            cv.Optional(CONF_RMT_CHANNEL): cv.All(
+                cv.only_with_arduino, esp32_rmt.validate_rmt_channel(tx=False)
+            ),
             cv.SplitDefault(
                 CONF_RMT_SYMBOLS,
-                esp32=192,
-                esp32_s3=192,
-                esp32_s2=128,
-                esp32_c3=96,
-            ): cv.Range(min=2),
+                esp32_idf=192,
+                esp32_s3_idf=192,
+                esp32_s2_idf=128,
+                esp32_c3_idf=96,
+            ): cv.All(cv.only_with_esp_idf, cv.Range(min=2)),
+            cv.Optional(CONF_FILTER_SYMBOLS): cv.All(
+                cv.only_with_esp_idf, cv.Range(min=0)
+            ),
+            cv.Optional(CONF_RECEIVE_SYMBOLS): cv.All(
+                cv.only_with_esp_idf, cv.Range(min=0)
+            ),
+            cv.Optional(CONF_WITH_DMA): cv.All(cv.only_with_esp_idf, cv.boolean),
         }
     ).extend(cv.COMPONENT_SCHEMA)
 )

@@ -64,6 +64,13 @@ CONF_RESET_HIGH = "reset_high"
 CONF_RESET_LOW = "reset_low"
 
 
+def final_validation(config):
+    if not esp32_rmt.use_new_rmt_driver() and CONF_RMT_CHANNEL not in config:
+        raise cv.Invalid("rmt_channel is a required option for the arduino framework.")
+
+
+FINAL_VALIDATE_SCHEMA = final_validation
+
 CONFIG_SCHEMA = cv.All(
     light.ADDRESSABLE_LIGHT_SCHEMA.extend(
         {
@@ -71,8 +78,12 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_PIN): pins.internal_gpio_output_pin_number,
             cv.Required(CONF_NUM_LEDS): cv.positive_not_null_int,
             cv.Required(CONF_RGB_ORDER): cv.enum(RGB_ORDERS, upper=True),
-            cv.Optional(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=True),
-            cv.Optional(CONF_RMT_SYMBOLS, default=64): cv.Range(min=2),
+            cv.Optional(CONF_RMT_CHANNEL): cv.All(
+                cv.only_with_arduino, esp32_rmt.validate_rmt_channel(tx=True)
+            ),
+            cv.SplitDefault(CONF_RMT_SYMBOLS, esp32_idf=64): cv.All(
+                cv.only_with_esp_idf, cv.Range(min=2)
+            ),
             cv.Optional(CONF_MAX_REFRESH_RATE): cv.positive_time_period_microseconds,
             cv.Optional(CONF_CHIPSET): cv.one_of(*CHIPSETS, upper=True),
             cv.Optional(CONF_IS_RGBW, default=False): cv.boolean,

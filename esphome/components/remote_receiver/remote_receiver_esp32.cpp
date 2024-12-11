@@ -54,7 +54,11 @@ void RemoteReceiverComponent::setup() {
   esp_err_t error = rmt_new_rx_channel(&channel, &this->channel_);
   if (error != ESP_OK) {
     this->error_code_ = error;
-    this->error_string_ = "in rmt_new_rx_channel";
+    if (error == ESP_ERR_NOT_FOUND) {
+      this->error_string_ = "out of RMT symbol memory";
+    } else {
+      this->error_string_ = "in rmt_new_rx_channel";
+    }
     this->mark_failed();
     return;
   }

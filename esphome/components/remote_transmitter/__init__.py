@@ -25,18 +25,7 @@ RemoteTransmitterComponent = remote_transmitter_ns.class_(
     "RemoteTransmitterComponent", remote_base.RemoteTransmitterBase, cg.Component
 )
 
-
-def validate_config(config):
-    if CORE.is_esp32:
-        if esp32_rmt.use_new_rmt_driver():
-            if CONF_CLOCK_DIVIDER in config:
-                raise cv.Invalid(
-                    "clock_divider not available with the new RMT driver, use clock_resolution instead"
-                )
-
-
 MULTI_CONF = True
-FINAL_VALIDATE_SCHEMA = validate_config
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(RemoteTransmitterComponent),
@@ -45,15 +34,21 @@ CONFIG_SCHEMA = cv.Schema(
             cv.percentage_int, cv.Range(min=1, max=100)
         ),
         cv.Optional(CONF_CLOCK_RESOLUTION): cv.All(
-            cv.only_on_esp32, esp32_rmt.validate_clock_resolution()
+            cv.only_on_esp32,
+            cv.only_with_esp_idf,
+            esp32_rmt.validate_clock_resolution(),
         ),
         cv.Optional(CONF_CLOCK_DIVIDER): cv.All(
-            cv.only_on_esp32, cv.Range(min=1, max=255)
+            cv.only_on_esp32, cv.only_with_arduino, cv.Range(min=1, max=255)
         ),
-        cv.Optional(CONF_ONE_WIRE): cv.boolean,
-        cv.Optional(CONF_WITH_DMA): cv.boolean,
-        cv.Optional(CONF_RMT_CHANNEL): esp32_rmt.validate_rmt_channel(tx=True),
-        cv.Optional(CONF_RMT_SYMBOLS, default=64): cv.Range(min=2),
+        cv.Optional(CONF_ONE_WIRE): cv.All(cv.only_with_esp_idf, cv.boolean),
+        cv.Optional(CONF_WITH_DMA): cv.All(cv.only_with_esp_idf, cv.boolean),
+        cv.SplitDefault(CONF_RMT_SYMBOLS, esp32_idf=64): cv.All(
+            cv.only_with_esp_idf, cv.Range(min=2)
+        ),
+        cv.Optional(CONF_RMT_CHANNEL): cv.All(
+            cv.only_with_arduino, esp32_rmt.validate_rmt_channel(tx=True)
+        ),
         cv.Optional(CONF_ON_TRANSMIT): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_COMPLETE): automation.validate_automation(single=True),
     }
