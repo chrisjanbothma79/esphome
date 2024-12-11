@@ -19,10 +19,12 @@ void ADCSensor::setup() {
 
   if (this->is_adc1_) {
     if (this->adc1_handle_ == nullptr) {
-      adc_oneshot_unit_init_cfg_t init_config1 = {
-          .unit_id = ADC_UNIT_1,
-          .ulp_mode = ADC_ULP_MODE_DISABLE,
-      };
+      adc_oneshot_unit_init_cfg_t init_config1 = {};  // Zero initialize
+      init_config1.unit_id = ADC_UNIT_1;
+      init_config1.ulp_mode = ADC_ULP_MODE_DISABLE;
+#if USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32H2
+      init_config1.clk_src = ADC_DIGI_CLK_SRC_DEFAULT;
+#endif  // USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32H2
       ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config1, &this->adc1_handle_));
     }
 
@@ -34,10 +36,12 @@ void ADCSensor::setup() {
 
   } else {
     if (this->adc2_handle_ == nullptr) {
-      adc_oneshot_unit_init_cfg_t init_config2 = {
-          .unit_id = ADC_UNIT_2,
-          .ulp_mode = ADC_ULP_MODE_DISABLE,
-      };
+      adc_oneshot_unit_init_cfg_t init_config2 = {};  // Zero initialize
+      init_config2.unit_id = ADC_UNIT_2;
+      init_config2.ulp_mode = ADC_ULP_MODE_DISABLE;
+#if USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32H2
+      init_config2.clk_src = ADC_DIGI_CLK_SRC_DEFAULT;
+#endif  // USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32H2
       ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config2, &this->adc2_handle_));
     }
 
@@ -52,16 +56,33 @@ void ADCSensor::setup() {
   if (this->calibration_handle_ == nullptr) {
     adc_cali_handle_t handle = nullptr;
     adc_unit_t unit_id = this->is_adc1_ ? ADC_UNIT_1 : ADC_UNIT_2;
+
+#if USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32S3 || USE_ESP32_VARIANT_ESP32H2
+    // RISC-V variants and S3 use curve fitting calibration
+    adc_cali_curve_fitting_config_t cali_config = {};  // Zero initialize first
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+    cali_config.chan = this->channel_;  // Set chan first as it's the first field in v5.3+
+#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+    cali_config.unit_id = unit_id;
+    cali_config.atten = this->attenuation_;
+    cali_config.bitwidth = ADC_BITWIDTH_DEFAULT;
+    
+    if (adc_cali_create_scheme_curve_fitting(&cali_config, &handle) == ESP_OK) {
+      this->calibration_handle_ = handle;
+      ESP_LOGV(TAG, "Using curve fitting calibration");
+    }
+#else  // USE_ESP32_VARIANT_ESP32C3 || ESP32C6 || ESP32S3 || ESP32H2
+    // Other ESP32 variants use line fitting calibration
     adc_cali_line_fitting_config_t cali_config = {
         .unit_id = unit_id,
         .atten = this->attenuation_,
         .bitwidth = ADC_BITWIDTH_DEFAULT,
     };
-
     if (adc_cali_create_scheme_line_fitting(&cali_config, &handle) == ESP_OK) {
       this->calibration_handle_ = handle;
-      ESP_LOGV(TAG, "Using line fitting for calibration");
+      ESP_LOGV(TAG, "Using line fitting calibration");
     }
+#endif  // USE_ESP32_VARIANT_ESP32C3 || ESP32C6 || ESP32S3 || ESP32H2
   }
 
   this->do_setup_ = false;
@@ -200,5 +221,4 @@ float ADCSensor::sample() {
 }  // namespace esphome
 
 #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
-
 #endif  // USE_ESP32
