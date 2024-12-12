@@ -1599,64 +1599,43 @@ void WaveshareEPaper2P9InV2R2::set_full_update_every(uint32_t full_update_every)
 // ========================================================
 
 void GDEY029T94::initialize() {
+  // EPD hardware init start
+  this->reset_();
   this->wait_until_idle_();
   this->command(0x12);  // SWRESET
   this->wait_until_idle_();
 
-  this->command(0x01);                                  // Driver output control
-  this->data((this->get_height_internal() - 1) % 256);  // Y
-  this->data((this->get_height_internal() - 1) / 256);  // Y
-  this->data(0x00);
-
-  this->command(0x11);  // data entry mode
-  this->data(0x03);
-
-  // SET WINDOWS
-  // XRAM_START_AND_END_POSITION
-  this->command(0x44);  // set Ram-X address start/end position
-  this->data(0 & 0xFF);
-  this->data((0 >> 8) & 0x03);
-  this->data((get_width_internal() - 1) & 0xFF);
-  this->data(((get_width_internal() - 1) >> 8) & 0x03);
-
-  // YRAM_START_AND_END_POSITION
-  this->command(0x45);
-  this->data(0 & 0xFF);
-  this->data((0 >> 8) & 0x03);
-  this->data((get_height_internal() - 1) & 0xFF);
-  this->data(((get_height_internal() - 1) >> 8) & 0x03);
-
-  this->command(0x3C);  // Border setting
-  this->data(0x01);
-
-  this->command(0x21);  //  Display update control
-  this->data(0x00);
-  this->data(0x80);
-
   this->command(0x18);  // Read built-in temperature sensor
   this->data(0x80);
 
-  // SET CURSOR
-  // XRAM_ADDRESS
-  this->command(0x4E);
-  this->data(0 & 0xFF);
-  this->data((0 >> 8) & 0x03);
-  // YRAM_ADDRESS
-  this->command(0x4F);
-  this->data(0 & 0xFF);
-  this->data((0 >> 8) & 0x03);
+  this->command(0x22);  // Load temperature value
+  this->data(0xB1);
+  this->command(0x20);
+  this->wait_until_idle_();
+  this->command(0x1A);  // Write to temperature register
+  this->data(0x5A);
+  this->data(0x00);
+
+  this->command(0x22);  // Load temperature value
+  this->data(0x91);
+  this->command(0x20);
   this->wait_until_idle_();
 }
 void HOT GDEY029T94::display() {
   // write b/w
-  this->command(0x24);
-  delay(2);
+
   this->start_data_();
-  this->write_array(this->buffer_, this->get_buffer_length_());
+  this->command(0x24);  // write RAM for black(0)/white (1)
+  for (size_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->write_byte(this->buffer_[i]);
+  }
+  this->command(0x26);  // write RAM for black(0)/white (1)
+  for (size_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->write_byte(0x00);
+  }
   this->end_data_();
-  delay(2);
   this->command(0x22);  // Display Update Control
-  this->data(0xF7);
+  this->data(0xC7);
   this->command(0x20);  // Activate Display Update Sequence
   this->wait_until_idle_();
 }
