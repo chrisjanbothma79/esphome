@@ -204,8 +204,8 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   bool config_complete_{false};
   bool handle_init_complete_{false};
   bool calibration_complete_{false};
-  static adc_oneshot_unit_handle_t shared_adc1_handle_;
-  static adc_oneshot_unit_handle_t shared_adc2_handle_;
+  static adc_oneshot_unit_handle_t shared_adc1_handle;
+  static adc_oneshot_unit_handle_t shared_adc2_handle;
 #else
   adc_atten_t attenuation_{ADC_ATTEN_DB_0};
   adc1_channel_t channel1_{ADC1_CHANNEL_MAX};

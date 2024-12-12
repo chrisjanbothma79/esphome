@@ -10,8 +10,8 @@ namespace adc {
 
 static const char *const TAG = "adc.esp32";
 
-adc_oneshot_unit_handle_t ADCSensor::shared_adc1_handle_ = nullptr;
-adc_oneshot_unit_handle_t ADCSensor::shared_adc2_handle_ = nullptr;
+adc_oneshot_unit_handle_t ADCSensor::shared_adc1_handle = nullptr;
+adc_oneshot_unit_handle_t ADCSensor::shared_adc2_handle = nullptr;
 
 void ADCSensor::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADC '%s'...", this->get_name().c_str());
@@ -28,8 +28,8 @@ void ADCSensor::setup() {
   if (this->is_adc1_) {
     if (this->adc1_handle_ == nullptr) {
       // Check if another sensor already initialized ADC1
-      if (shared_adc1_handle_ != nullptr) {
-        this->adc1_handle_ = shared_adc1_handle_;
+      if (shared_adc1_handle != nullptr) {
+        this->adc1_handle_ = shared_adc1_handle;
         this->handle_init_complete_ = true;
       } else {
         adc_oneshot_unit_init_cfg_t init_config1 = {};
@@ -45,7 +45,7 @@ void ADCSensor::setup() {
           this->mark_failed();
           return;
         }
-        shared_adc1_handle_ = this->adc1_handle_;
+        shared_adc1_handle = this->adc1_handle_;
         this->handle_init_complete_ = true;
       }
     }
@@ -66,8 +66,8 @@ void ADCSensor::setup() {
   } else {
     if (this->adc2_handle_ == nullptr) {
       // Check if another sensor already initialized ADC2
-      if (shared_adc2_handle_ != nullptr) {
-        this->adc2_handle_ = shared_adc2_handle_;
+      if (shared_adc2_handle != nullptr) {
+        this->adc2_handle_ = shared_adc2_handle;
         this->handle_init_complete_ = true;
       } else {
         adc_oneshot_unit_init_cfg_t init_config2 = {};
@@ -83,7 +83,7 @@ void ADCSensor::setup() {
           this->mark_failed();
           return;
         }
-        shared_adc2_handle_ = this->adc2_handle_;
+        shared_adc2_handle = this->adc2_handle_;
         this->handle_init_complete_ = true;
       }
     }
