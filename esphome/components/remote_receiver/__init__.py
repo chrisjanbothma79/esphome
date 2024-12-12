@@ -104,7 +104,9 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
                 cv.Range(max=TimePeriod(microseconds=4294967295)),
             ),
             cv.SplitDefault(CONF_CLOCK_DIVIDER, esp32_arduino=80): cv.All(
-                cv.only_on_esp32, cv.only_with_arduino, cv.Range(min=1, max=255)
+                cv.only_on_esp32,
+                cv.only_with_arduino,
+                cv.int_range(min=1, max=255),
             ),
             cv.Optional(CONF_CLOCK_RESOLUTION): cv.All(
                 cv.only_on_esp32,
@@ -116,7 +118,7 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
                 cv.Range(max=TimePeriod(microseconds=4294967295)),
             ),
             cv.SplitDefault(CONF_MEMORY_BLOCKS, esp32_arduino=3): cv.All(
-                cv.only_with_arduino, cv.Range(min=1, max=8)
+                cv.only_with_arduino, cv.int_range(min=1, max=8)
             ),
             cv.Optional(CONF_RMT_CHANNEL): cv.All(
                 cv.only_with_arduino, esp32_rmt.validate_rmt_channel(tx=False)
@@ -127,12 +129,12 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
                 esp32_s3_idf=192,
                 esp32_s2_idf=128,
                 esp32_c3_idf=96,
-            ): cv.All(cv.only_with_esp_idf, cv.Range(min=2)),
+            ): cv.All(cv.only_with_esp_idf, cv.int_range(min=2)),
             cv.Optional(CONF_FILTER_SYMBOLS): cv.All(
-                cv.only_with_esp_idf, cv.Range(min=0)
+                cv.only_with_esp_idf, cv.int_range(min=0)
             ),
             cv.Optional(CONF_RECEIVE_SYMBOLS): cv.All(
-                cv.only_with_esp_idf, cv.Range(min=2)
+                cv.only_with_esp_idf, cv.int_range(min=2)
             ),
             cv.Optional(CONF_USE_DMA): cv.All(cv.only_with_esp_idf, cv.boolean),
         }

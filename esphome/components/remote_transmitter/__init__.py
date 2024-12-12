@@ -39,12 +39,12 @@ CONFIG_SCHEMA = cv.Schema(
             esp32_rmt.validate_clock_resolution(),
         ),
         cv.Optional(CONF_CLOCK_DIVIDER): cv.All(
-            cv.only_on_esp32, cv.only_with_arduino, cv.Range(min=1, max=255)
+            cv.only_on_esp32, cv.only_with_arduino, cv.int_range(min=1, max=255)
         ),
         cv.Optional(CONF_ONE_WIRE): cv.All(cv.only_with_esp_idf, cv.boolean),
         cv.Optional(CONF_USE_DMA): cv.All(cv.only_with_esp_idf, cv.boolean),
         cv.SplitDefault(CONF_RMT_SYMBOLS, esp32_idf=64): cv.All(
-            cv.only_with_esp_idf, cv.Range(min=2)
+            cv.only_with_esp_idf, cv.int_range(min=2)
         ),
         cv.Optional(CONF_RMT_CHANNEL): cv.All(
             cv.only_with_arduino, esp32_rmt.validate_rmt_channel(tx=True)
