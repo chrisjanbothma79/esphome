@@ -157,9 +157,9 @@ void ADCSensor::dump_config() {
   LOG_PIN("  Pin: ", this->pin_);
   ESP_LOGCONFIG(TAG, "  Channel: %d (Unit: %s)", this->channel_, this->is_adc1_ ? "ADC1" : "ADC2");
   ESP_LOGCONFIG(TAG, "  Setup Status:");
-  ESP_LOGCONFIG(TAG, "    Handle Init: %s", this->handle_init_complete_ ? "OK" : "FAILED");
-  ESP_LOGCONFIG(TAG, "    Config: %s", this->config_complete_ ? "OK" : "FAILED");
-  ESP_LOGCONFIG(TAG, "    Calibration: %s", this->calibration_complete_ ? "OK" : "FAILED");
+  ESP_LOGCONFIG(TAG, "    Handle Init:  %s", this->handle_init_complete_ ? "OK" : "FAILED");
+  ESP_LOGCONFIG(TAG, "    Config:       %s", this->config_complete_ ? "OK" : "FAILED");
+  ESP_LOGCONFIG(TAG, "    Calibration:  %s", this->calibration_complete_ ? "OK" : "FAILED");
   ESP_LOGCONFIG(TAG, "    Overall Init: %s", this->init_complete_ ? "OK" : "FAILED");
   if (this->autorange_) {
     ESP_LOGCONFIG(TAG, "  Attenuation: auto");
