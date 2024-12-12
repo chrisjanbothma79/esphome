@@ -3,3 +3,7 @@ substitutions:
 
 packages:
   common: !include esp32-common.yaml
+
+remote_receiver:
+  - id: !extend rcvr
+    rmt_channel: "2"

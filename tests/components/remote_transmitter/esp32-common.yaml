@@ -1,7 +1,7 @@
 remote_transmitter:
-  id: rcvr
-  pin: ${pin}
-  carrier_duty_percent: 50%
+  - id: xmitr
+    pin: ${pin}
+    carrier_duty_percent: 50%
 
 packages:
   buttons: !include common-buttons.yaml
