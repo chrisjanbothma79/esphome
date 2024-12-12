@@ -10,6 +10,9 @@ namespace adc {
 
 static const char *const TAG = "adc.esp32";
 
+adc_oneshot_unit_handle_t ADCSensor::shared_adc1_handle_ = nullptr;
+adc_oneshot_unit_handle_t ADCSensor::shared_adc2_handle_ = nullptr;
+
 void ADCSensor::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADC '%s'...", this->get_name().c_str());
 
@@ -17,19 +20,33 @@ void ADCSensor::setup() {
     return;
   }
 
+  this->init_complete_ = false;
+  this->handle_init_complete_ = false;
+  this->config_complete_ = false;
+  this->calibration_complete_ = false;
+
   if (this->is_adc1_) {
     if (this->adc1_handle_ == nullptr) {
-      adc_oneshot_unit_init_cfg_t init_config1 = {};  // Zero initialize
-      init_config1.unit_id = ADC_UNIT_1;
-      init_config1.ulp_mode = ADC_ULP_MODE_DISABLE;
+      // Check if another sensor already initialized ADC1
+      if (shared_adc1_handle_ != nullptr) {
+        this->adc1_handle_ = shared_adc1_handle_;
+        this->handle_init_complete_ = true;
+      } else {
+        adc_oneshot_unit_init_cfg_t init_config1 = {};
+        init_config1.unit_id = ADC_UNIT_1;
+        init_config1.ulp_mode = ADC_ULP_MODE_DISABLE;
 #if USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32H2
-      init_config1.clk_src = ADC_DIGI_CLK_SRC_DEFAULT;
+        init_config1.clk_src = ADC_DIGI_CLK_SRC_DEFAULT;
 #endif  // USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32H2
-      esp_err_t err = adc_oneshot_new_unit(&init_config1, &this->adc1_handle_);
-      if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Error initializing ADC1 unit: %d", err);
-        this->mark_failed();
-        return;
+        esp_err_t err = adc_oneshot_new_unit(&init_config1, &this->adc1_handle_);
+        if (err != ESP_OK) {
+          ESP_LOGE(TAG, "Error initializing ADC1 unit: %d", err);
+          this->handle_init_complete_ = false;
+          this->mark_failed();
+          return;
+        }
+        shared_adc1_handle_ = this->adc1_handle_;
+        this->handle_init_complete_ = true;
       }
     }
 
@@ -40,23 +57,34 @@ void ADCSensor::setup() {
     esp_err_t err = adc_oneshot_config_channel(this->adc1_handle_, this->channel_, &config);
     if (err != ESP_OK) {
       ESP_LOGE(TAG, "Error configuring ADC1 channel: %d", err);
+      this->config_complete_ = false;
       this->mark_failed();
       return;
     }
+    this->config_complete_ = true;
 
   } else {
     if (this->adc2_handle_ == nullptr) {
-      adc_oneshot_unit_init_cfg_t init_config2 = {};  // Zero initialize
-      init_config2.unit_id = ADC_UNIT_2;
-      init_config2.ulp_mode = ADC_ULP_MODE_DISABLE;
+      // Check if another sensor already initialized ADC2
+      if (shared_adc2_handle_ != nullptr) {
+        this->adc2_handle_ = shared_adc2_handle_;
+        this->handle_init_complete_ = true;
+      } else {
+        adc_oneshot_unit_init_cfg_t init_config2 = {};
+        init_config2.unit_id = ADC_UNIT_2;
+        init_config2.ulp_mode = ADC_ULP_MODE_DISABLE;
 #if USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32H2
-      init_config2.clk_src = ADC_DIGI_CLK_SRC_DEFAULT;
+        init_config2.clk_src = ADC_DIGI_CLK_SRC_DEFAULT;
 #endif  // USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32H2
-      esp_err_t err = adc_oneshot_new_unit(&init_config2, &this->adc2_handle_);
-      if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Error initializing ADC2 unit: %d", err);
-        this->mark_failed();
-        return;
+        esp_err_t err = adc_oneshot_new_unit(&init_config2, &this->adc2_handle_);
+        if (err != ESP_OK) {
+          ESP_LOGE(TAG, "Error initializing ADC2 unit: %d", err);
+          this->handle_init_complete_ = false;
+          this->mark_failed();
+          return;
+        }
+        shared_adc2_handle_ = this->adc2_handle_;
+        this->handle_init_complete_ = true;
       }
     }
 
@@ -67,11 +95,14 @@ void ADCSensor::setup() {
     esp_err_t err = adc_oneshot_config_channel(this->adc2_handle_, this->channel_, &config);
     if (err != ESP_OK) {
       ESP_LOGE(TAG, "Error configuring ADC2 channel: %d", err);
+      this->config_complete_ = false;
       this->mark_failed();
       return;
     }
+    this->config_complete_ = true;
   }
 
+  // Initialize ADC calibration if not already done
   if (this->calibration_handle_ == nullptr) {
     adc_cali_handle_t handle = nullptr;
     adc_unit_t unit_id = this->is_adc1_ ? ADC_UNIT_1 : ADC_UNIT_2;
@@ -81,44 +112,55 @@ void ADCSensor::setup() {
     // RISC-V variants and S3 use curve fitting calibration
     adc_cali_curve_fitting_config_t cali_config = {};  // Zero initialize first
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
-    cali_config.chan = this->channel_;
+    cali_config.chan = this->channel_;  // Set chan first as it's the first field in v5.3+
 #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
     cali_config.unit_id = unit_id;
     cali_config.atten = this->attenuation_;
     cali_config.bitwidth = ADC_BITWIDTH_DEFAULT;
-
+    
     err = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
     if (err == ESP_OK) {
       this->calibration_handle_ = handle;
+      this->calibration_complete_ = true;
       ESP_LOGV(TAG, "Using curve fitting calibration");
     } else {
       ESP_LOGW(TAG, "Curve fitting calibration failed with error %d, will use uncalibrated readings", err);
+      this->calibration_complete_ = false;
     }
 #else  // Other ESP32 variants use line fitting calibration
     adc_cali_line_fitting_config_t cali_config = {
-        .unit_id = unit_id,
-        .atten = this->attenuation_,
-        .bitwidth = ADC_BITWIDTH_DEFAULT,
+      .unit_id = unit_id,
+      .atten = this->attenuation_,
+      .bitwidth = ADC_BITWIDTH_DEFAULT,
 #if !defined(USE_ESP32_VARIANT_ESP32S2)
-        .default_vref = 1100,  // Default reference voltage in mV
+      .default_vref = 1100,  // Default reference voltage in mV
 #endif  // !defined(USE_ESP32_VARIANT_ESP32S2)
     };
     err = adc_cali_create_scheme_line_fitting(&cali_config, &handle);
     if (err == ESP_OK) {
       this->calibration_handle_ = handle;
+      this->calibration_complete_ = true;
       ESP_LOGV(TAG, "Using line fitting calibration");
     } else {
       ESP_LOGW(TAG, "Line fitting calibration failed with error %d, will use uncalibrated readings", err);
+      this->calibration_complete_ = false;
     }
 #endif  // USE_ESP32_VARIANT_ESP32C3 || ESP32C6 || ESP32S3 || ESP32H2
   }
 
+  this->init_complete_ = true;
   this->do_setup_ = false;
 }
 
 void ADCSensor::dump_config() {
   LOG_SENSOR("", "ADC Sensor", this);
   LOG_PIN("  Pin: ", this->pin_);
+  ESP_LOGCONFIG(TAG, "  Channel: %d (Unit: %s)", this->channel_, this->is_adc1_ ? "ADC1" : "ADC2");
+  ESP_LOGCONFIG(TAG, "  Setup Status:");
+  ESP_LOGCONFIG(TAG, "    Handle Init: %s", this->handle_init_complete_ ? "OK" : "FAILED");
+  ESP_LOGCONFIG(TAG, "    Config: %s", this->config_complete_ ? "OK" : "FAILED");
+  ESP_LOGCONFIG(TAG, "    Calibration: %s", this->calibration_complete_ ? "OK" : "FAILED");
+  ESP_LOGCONFIG(TAG, "    Overall Init: %s", this->init_complete_ ? "OK" : "FAILED");
   if (this->autorange_) {
     ESP_LOGCONFIG(TAG, "  Attenuation: auto");
   } else {
@@ -193,7 +235,7 @@ float ADCSensor::sample() {
         if (this->calibration_handle_ != nullptr) {
 #if USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32S3 || USE_ESP32_VARIANT_ESP32H2
           adc_cali_delete_scheme_curve_fitting(this->calibration_handle_);
-#else  // Other ESP32 variants use line fitting calibration
+#else   // Other ESP32 variants use line fitting calibration
           adc_cali_delete_scheme_line_fitting(this->calibration_handle_);
 #endif  // USE_ESP32_VARIANT_ESP32C3 || ESP32C6 || ESP32S3 || ESP32H2
           this->calibration_handle_ = nullptr;
