@@ -1647,21 +1647,18 @@ void HOT GDEY029T94::display() {
   this->command(0x4f);
   this->data(0x00);
   this->data(0x00);
-  delay(2);
+  this->wait_until_idle_();
   // write b/w
   this->command(0x24);
+  delay(2);
   this->start_data_();
   this->write_array(this->buffer_, this->get_buffer_length_());
   this->end_data_();
-
-  // TurnOnDisplayPartial
-  this->command(0x22);
-  this->data(0x0F);
-  this->command(0x20);
-  // this->command(0x22);  // Display Update Control
-  // this->data(0xF7);
-  // this->command(0x20);  // Activate Display Update Sequence
-  // this->wait_until_idle_();
+  delay(2);
+  this->command(0x22);  // Display Update Control
+  this->data(0xF7);
+  this->command(0x20);  // Activate Display Update Sequence
+  this->wait_until_idle_();
 }
 int GDEY029T94::get_width_internal() { return 128; }
 int GDEY029T94::get_height_internal() { return 296; }
