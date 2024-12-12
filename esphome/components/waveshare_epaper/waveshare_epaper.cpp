@@ -1651,7 +1651,7 @@ void GDEY029T94::dump_config() {
 }
 
 // ========================================================
-//     Good Display 2.9in black/white/grey
+//     Good Display 2.9in black/white
 // Datasheet:
 //  - https://v4.cecdn.yun300.cn/100001_1909185148/SSD1680.pdf
 //  - https://github.com/adafruit/Adafruit_EPD/blob/master/src/panels/ThinkInk_290_Grayscale4_T5.h
