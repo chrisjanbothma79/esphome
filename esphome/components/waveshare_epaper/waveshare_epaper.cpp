@@ -1599,33 +1599,35 @@ void WaveshareEPaper2P9InV2R2::set_full_update_every(uint32_t full_update_every)
 // ========================================================
 
 void GDEY029T94::initialize() {
-  // EPD hardware init start
-  this->reset_();
-
   this->wait_until_idle_();
   this->command(0x12);  // SWRESET
   this->wait_until_idle_();
 
-  this->command(0x01);  // Driver output control
-  this->data((this->get_height_internal() - 1) % 256);
-  this->data((this->get_height_internal() - 1) / 256);
+  this->command(0x01);                                  // Driver output control
+  this->data((this->get_height_internal() - 1) % 256);  // Y
+  this->data((this->get_height_internal() - 1) / 256);  // Y
   this->data(0x00);
 
   this->command(0x11);  // data entry mode
-  this->data(0x01);
+  this->data(0x03);
 
+  // SET WINDOWS
+  // XRAM_START_AND_END_POSITION
   this->command(0x44);  // set Ram-X address start/end position
-  this->data(0x00);
-  this->data(this->get_width_internal() / 8 - 1);
+  this->data(0 & 0xFF);
+  this->data((0 >> 8) & 0x03);
+  this->data((get_width_internal() - 1) & 0xFF);
+  this->data(((get_width_internal() - 1) >> 8) & 0x03);
 
-  this->command(0x45);  // set Ram-Y address start/end position
-  this->data((this->get_height_internal() - 1) % 256);
-  this->data((this->get_height_internal() - 1) / 256);
-  this->data(0x00);
-  this->data(0x00);
+  // YRAM_START_AND_END_POSITION
+  this->command(0x45);
+  this->data(0 & 0xFF);
+  this->data((0 >> 8) & 0x03);
+  this->data((get_height_internal() - 1) & 0xFF);
+  this->data(((get_height_internal() - 1) >> 8) & 0x03);
 
-  this->command(0x3C);  // BorderWavefrom
-  this->data(0x05);
+  this->command(0x3C);  // Border setting
+  this->data(0x01);
 
   this->command(0x21);  //  Display update control
   this->data(0x00);
@@ -1634,20 +1636,18 @@ void GDEY029T94::initialize() {
   this->command(0x18);  // Read built-in temperature sensor
   this->data(0x80);
 
-  this->command(0x4E);  // set RAM x address count to 0;
-  this->data(0x00);
-  this->command(0x4F);  // set RAM y address count to 0X199;
-  this->data(0x00);
-  this->data(0x00);
+  // SET CURSOR
+  // XRAM_ADDRESS
+  this->command(0x4E);
+  this->data(0 & 0xFF);
+  this->data((0 >> 8) & 0x03);
+  // YRAM_ADDRESS
+  this->command(0x4F);
+  this->data(0 & 0xFF);
+  this->data((0 >> 8) & 0x03);
   this->wait_until_idle_();
 }
 void HOT GDEY029T94::display() {
-  this->command(0x4E);
-  this->data(0x00);
-  this->command(0x4f);
-  this->data(0x00);
-  this->data(0x00);
-  this->wait_until_idle_();
   // write b/w
   this->command(0x24);
   delay(2);
