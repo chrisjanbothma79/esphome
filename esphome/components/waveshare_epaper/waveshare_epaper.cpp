@@ -1619,7 +1619,6 @@ void GDEY029T94::initialize() {
   this->data(this->get_width_internal() / 8 - 1);
 
   this->command(0x45);  // set Ram-Y address start/end position
-
   this->data(0x00);
   this->data(0x00);
   this->data((this->get_height_internal() - 1) % 256);
@@ -1645,8 +1644,8 @@ void GDEY029T94::initialize() {
 void HOT GDEY029T94::display() {
   this->command(0x24);  // write RAM for black(0)/white (1)
   this->start_data_();
-  for (size_t i = this->get_buffer_length_(); i >= 0; i--) {
-    this->write_byte(this->buffer_[i]);
+  for (uint32_t i = 0; i < this->get_buffer_length_(); i++) {
+    this->data(this->buffer_[i]);
   }
   this->end_data_();
   this->command(0x22);  // Display Update Control
