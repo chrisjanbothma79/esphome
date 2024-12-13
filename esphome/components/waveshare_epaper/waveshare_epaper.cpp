@@ -1612,17 +1612,18 @@ void GDEY029T94::initialize() {
   this->data(0x00);
 
   this->command(0x11);  // data entry mode
-  this->data(0x01);
+  this->data(0x03);
 
   this->command(0x44);  // set Ram-X address start/end position
   this->data(0x00);
   this->data(this->get_width_internal() / 8 - 1);
 
   this->command(0x45);  // set Ram-Y address start/end position
+
+  this->data(0x00);
+  this->data(0x00);
   this->data((this->get_height_internal() - 1) % 256);
   this->data((this->get_height_internal() - 1) / 256);
-  this->data(0x00);
-  this->data(0x00);
 
   this->command(0x3C);  // BorderWavefrom
   this->data(0x05);
