@@ -28,7 +28,7 @@ struct RotaryEncoderSensorStore {
   ISRInternalGPIOPin pin_a;
   ISRInternalGPIOPin pin_b;
 
-  volatile int32_t counter{0};
+  int32_t counter{0};
   RotaryEncoderResolution resolution{ROTARY_ENCODER_1_PULSE_PER_CYCLE};
   int32_t min_value{INT32_MIN};
   int32_t max_value{INT32_MAX};

@@ -92,14 +92,16 @@ void IRAM_ATTR HOT RotaryEncoderSensorStore::gpio_intr(RotaryEncoderSensorStore 
 
   int8_t rotation_dir = 0;
   uint16_t new_state = STATE_LOOKUP_TABLE[input_state];
+
+  esphome::InterruptLock lock;
   if ((new_state & arg->resolution & STATE_HAS_INCREMENTED) != 0) {
     if (arg->counter < arg->max_value)
-      arg->counter++;
+      arg->counter += 1;
     rotation_dir = 1;
   }
   if ((new_state & arg->resolution & STATE_HAS_DECREMENTED) != 0) {
     if (arg->counter > arg->min_value)
-      arg->counter--;
+      arg->counter -= 1;
     rotation_dir = -1;
   }
 
