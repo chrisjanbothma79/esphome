@@ -43,8 +43,8 @@ struct BasicPulseCounterStorage : public PulseCounterStorageBase {
   bool pulse_counter_setup(InternalGPIOPin *pin) override;
   pulse_counter_t read_raw_value() override;
 
-  pulse_counter_t counter{0};
-  uint32_t last_pulse{0};
+  volatile pulse_counter_t counter{0};
+  volatile uint32_t last_pulse{0};
 
   ISRInternalGPIOPin isr_pin;
 };
