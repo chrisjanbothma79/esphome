@@ -107,7 +107,7 @@ void ESP32BLETracker::loop() {
     }
   }
   if(connecting != connecting_ || discovered != discovered_ || searching != searching_ || disconnecting != disconnecting_) {
-    ESP_LOGV(TAG, "connecting: %d, discovered %d, searching %d, disconnecting %d", connecting, discovered, searching, disconnecting);
+    ESP_LOGD(TAG, "connecting: %d, discovered %d, searching %d, disconnecting %d", connecting, discovered, searching, disconnecting);
     connecting_ = connecting;
     discovered_ = discovered;
     searching_ = searching;
