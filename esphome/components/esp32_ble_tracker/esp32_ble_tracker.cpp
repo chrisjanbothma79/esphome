@@ -400,7 +400,7 @@ void ESP32BLETracker::gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_
 }
 
 void ESP32BLETracker::gap_scan_result_(const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &param) {
-  ESP_LOGV(TAG, "gap_scan_result - event %d, status %d", param.search_evt, param.status);
+  ESP_LOGV(TAG, "gap_scan_result - event %d", param.search_evt);
   if (param.search_evt == ESP_GAP_SEARCH_INQ_RES_EVT) {
     if (xSemaphoreTake(this->scan_result_lock_, 0L)) {
       if (this->scan_result_index_ < ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE) {
