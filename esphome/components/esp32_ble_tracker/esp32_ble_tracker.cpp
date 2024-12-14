@@ -106,7 +106,13 @@ void ESP32BLETracker::loop() {
         break;
     }
   }
-  ESP_LOGV(TAG, "connecting: %d, discovered %d, searching %d, disconnecting %d", connecting, discovered, searching, disconnecting);
+  if(connecting != connecting_ || discovered != discovered_ || searching != searching_ || disconnecting != disconnecting_) {
+    ESP_LOGV(TAG, "connecting: %d, discovered %d, searching %d, disconnecting %d", connecting, discovered, searching, disconnecting);
+    connecting_ = connecting;
+    discovered_ = discovered;
+    searching_ = searching;
+    disconnecting_ = disconnecting;
+  } 
   bool promote_to_connecting = discovered && !searching && !connecting;
 
   if (!this->scanner_idle_) {

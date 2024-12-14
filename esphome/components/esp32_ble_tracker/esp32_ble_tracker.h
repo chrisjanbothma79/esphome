@@ -260,6 +260,10 @@ class ESP32BLETracker : public Component,
   esp_ble_gap_cb_param_t::ble_scan_result_evt_param *scan_result_buffer_;
   esp_bt_status_t scan_start_failed_{ESP_BT_STATUS_SUCCESS};
   esp_bt_status_t scan_set_param_failed_{ESP_BT_STATUS_SUCCESS};
+  int connecting_{0};
+  int discovered_{0};
+  int searching_{0};
+  int disconnecting_{0};
 };
 
 // NOLINTNEXTLINE
