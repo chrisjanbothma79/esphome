@@ -27,6 +27,39 @@ void BLEClient::dump_config() {
   ESP_LOGCONFIG(TAG, "BLE Client:");
   ESP_LOGCONFIG(TAG, "  Address: %s", this->address_str().c_str());
   ESP_LOGCONFIG(TAG, "  Auto-Connect: %s", TRUEFALSE(this->auto_connect_));
+  switch (this->state()) {
+    case INIT:
+      state = "INIT";
+      break;
+    case DISCONNECTING:
+      state = "DISCONNECTING";
+      break;
+    case IDLE:
+      state = "IDLE";
+      break;
+    case SEARCHING:
+      state = "SEARCHING";
+      break;
+    case DISCOVERED:
+      state = "DISCOVERED";
+      break;
+    case READY_TO_CONNECT:
+      state = "READY_TO_CONNECT";
+      break;
+    case CONNECTING:
+      state = "CONNECTING";
+      break;
+    case CONNECTED:
+      state = "CONNECTED";
+      break;
+    case ESTABLISHED:
+      state = "ESTABLISHED";
+      break;
+    default:
+      state = "UNKNOWN_STATE";
+      break;
+  }
+  ESP_LOGCONFIG(TAG, "  State: %s", state.c_str());
 }
 
 bool BLEClient::parse_device(const espbt::ESPBTDevice &device) {
