@@ -81,6 +81,9 @@ void BLEClientBase::dump_config() {
       break;
   }
   ESP_LOGCONFIG(TAG, "  State: %s", state_name.c_str());
+  if (this->is_failed()) {
+    ESP_LOGE(TAG, "  Marked Failed");
+  }
 }
 
 bool BLEClientBase::parse_device(const espbt::ESPBTDevice &device) {
@@ -168,6 +171,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       } else {
         ESP_LOGE(TAG, "[%d] [%s] gattc app registration failed id=%d code=%d", this->connection_index_,
                  this->address_str_.c_str(), param->reg.app_id, param->reg.status);
+        this->mark_failed();
       }
       break;
     }
