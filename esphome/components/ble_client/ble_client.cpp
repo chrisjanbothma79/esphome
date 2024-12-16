@@ -27,39 +27,40 @@ void BLEClient::dump_config() {
   ESP_LOGCONFIG(TAG, "BLE Client:");
   ESP_LOGCONFIG(TAG, "  Address: %s", this->address_str().c_str());
   ESP_LOGCONFIG(TAG, "  Auto-Connect: %s", TRUEFALSE(this->auto_connect_));
+  std::string state_name;
   switch (this->state()) {
     case espbt::ClientState::INIT:
-      state = "INIT";
+      state_name = "INIT";
       break;
     case espbt::ClientState::DISCONNECTING:
-      state = "DISCONNECTING";
+      state_name = "DISCONNECTING";
       break;
     case espbt::ClientState::IDLE:
-      state = "IDLE";
+      state_name = "IDLE";
       break;
     case espbt::ClientState::SEARCHING:
-      state = "SEARCHING";
+      state_name = "SEARCHING";
       break;
     case espbt::ClientState::DISCOVERED:
-      state = "DISCOVERED";
+      state_name = "DISCOVERED";
       break;
     case espbt::ClientState::READY_TO_CONNECT:
-      state = "READY_TO_CONNECT";
+      state_name = "READY_TO_CONNECT";
       break;
     case espbt::ClientState::CONNECTING:
-      state = "CONNECTING";
+      state_name = "CONNECTING";
       break;
     case espbt::ClientState::CONNECTED:
-      state = "CONNECTED";
+      state_name = "CONNECTED";
       break;
     case espbt::ClientState::ESTABLISHED:
-      state = "ESTABLISHED";
+      state_name = "ESTABLISHED";
       break;
     default:
-      state = "UNKNOWN_STATE";
+      state_name = "UNKNOWN_STATE";
       break;
   }
-  ESP_LOGCONFIG(TAG, "  State: %s", state.c_str());
+  ESP_LOGCONFIG(TAG, "  State: %s", state_name.c_str());
 }
 
 bool BLEClient::parse_device(const espbt::ESPBTDevice &device) {
