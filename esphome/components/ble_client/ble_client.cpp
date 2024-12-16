@@ -28,31 +28,31 @@ void BLEClient::dump_config() {
   ESP_LOGCONFIG(TAG, "  Address: %s", this->address_str().c_str());
   ESP_LOGCONFIG(TAG, "  Auto-Connect: %s", TRUEFALSE(this->auto_connect_));
   switch (this->state()) {
-    case INIT:
+    case espbt::ClientState::INIT:
       state = "INIT";
       break;
-    case DISCONNECTING:
+    case espbt::ClientState::DISCONNECTING:
       state = "DISCONNECTING";
       break;
-    case IDLE:
+    case espbt::ClientState::IDLE:
       state = "IDLE";
       break;
-    case SEARCHING:
+    case espbt::ClientState::SEARCHING:
       state = "SEARCHING";
       break;
-    case DISCOVERED:
+    case espbt::ClientState::DISCOVERED:
       state = "DISCOVERED";
       break;
-    case READY_TO_CONNECT:
+    case espbt::ClientState::READY_TO_CONNECT:
       state = "READY_TO_CONNECT";
       break;
-    case CONNECTING:
+    case espbt::ClientState::CONNECTING:
       state = "CONNECTING";
       break;
-    case CONNECTED:
+    case espbt::ClientState::CONNECTED:
       state = "CONNECTED";
       break;
-    case ESTABLISHED:
+    case espbt::ClientState::ESTABLISHED:
       state = "ESTABLISHED";
       break;
     default:
