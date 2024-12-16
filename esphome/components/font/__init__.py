@@ -54,8 +54,8 @@ class FontCache(dict):
         try:
             res = self[key] = freetype.Face(key)
             return res
-        except Exception as e:
-            raise cv.Invalid(f"Could not load Font file {key}: {e}")
+        except freetype.FT_Exception as e:
+            raise cv.Invalid(f"Could not load Font file {key}: {e}") from e
 
 
 FONT_CACHE = FontCache()
