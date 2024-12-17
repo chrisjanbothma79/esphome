@@ -93,7 +93,7 @@ size_t RingBuffer::write_without_replacement(const void *data, size_t len, TickT
 size_t RingBuffer::available() const {
   UBaseType_t ux_items_waiting = 0;
   vRingbufferGetInfo(this->handle_, nullptr, nullptr, nullptr, nullptr, &ux_items_waiting);
-  return uxItemsWaiting;
+  return ux_items_waiting;
 }
 
 size_t RingBuffer::free() const { return xRingbufferGetCurFreeSize(this->handle_); }
