@@ -49,6 +49,8 @@ CONFIG_SCHEMA = cv.Schema(
             esp32_s2_idf=64,
             esp32_s3_idf=48,
             esp32_c3_idf=48,
+            esp32_c6_idf=48,
+            esp32_h2_idf=48,
         ): cv.All(cv.only_with_esp_idf, cv.int_range(min=2)),
         cv.Optional(CONF_RMT_CHANNEL): cv.All(
             cv.only_with_arduino, esp32_rmt.validate_rmt_channel(tx=True)

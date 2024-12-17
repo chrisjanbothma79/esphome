@@ -129,13 +129,16 @@ CONFIG_SCHEMA = remote_base.validate_triggers(
                 esp32_s2_idf=192,
                 esp32_s3_idf=192,
                 esp32_c3_idf=96,
+                esp32_c6_idf=96,
+                esp32_h2_idf=96,
             ): cv.All(cv.only_with_esp_idf, cv.int_range(min=2)),
             cv.Optional(CONF_FILTER_SYMBOLS): cv.All(
                 cv.only_with_esp_idf, cv.int_range(min=0)
             ),
-            cv.Optional(CONF_RECEIVE_SYMBOLS): cv.All(
-                cv.only_with_esp_idf, cv.int_range(min=2)
-            ),
+            cv.SplitDefault(
+                CONF_RECEIVE_SYMBOLS,
+                esp32_idf=192,
+            ): cv.All(cv.only_with_esp_idf, cv.int_range(min=2)),
             cv.Optional(CONF_USE_DMA): cv.All(cv.only_with_esp_idf, cv.boolean),
         }
     ).extend(cv.COMPONENT_SCHEMA)
@@ -148,16 +151,13 @@ async def to_code(config):
         if esp32_rmt.use_new_rmt_driver():
             var = cg.new_Pvariable(config[CONF_ID], pin)
             cg.add(var.set_rmt_symbols(config[CONF_RMT_SYMBOLS]))
+            cg.add(var.set_receive_symbols(config[CONF_RECEIVE_SYMBOLS]))
             if CONF_USE_DMA in config:
                 cg.add(var.set_with_dma(config[CONF_USE_DMA]))
             if CONF_CLOCK_RESOLUTION in config:
                 cg.add(var.set_clock_resolution(config[CONF_CLOCK_RESOLUTION]))
             if CONF_FILTER_SYMBOLS in config:
                 cg.add(var.set_filter_symbols(config[CONF_FILTER_SYMBOLS]))
-            if CONF_RECEIVE_SYMBOLS in config:
-                cg.add(var.set_receive_symbols(config[CONF_RECEIVE_SYMBOLS]))
-            else:
-                cg.add(var.set_receive_symbols(config[CONF_RMT_SYMBOLS]))
             if CORE.using_esp_idf:
                 esp32.add_idf_sdkconfig_option("CONFIG_RMT_RECV_FUNC_IN_IRAM", True)
                 esp32.add_idf_sdkconfig_option("CONFIG_RMT_ISR_IRAM_SAFE", True)
