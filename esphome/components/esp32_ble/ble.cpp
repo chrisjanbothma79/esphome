@@ -27,7 +27,8 @@ namespace esp32_ble {
 
 static const char *const TAG = "esp32_ble";
 
-static RAMAllocator<BLEEvent> EVENT_ALLOCATOR(RAMAllocator<BLEEvent>::ALLOW_FAILURE);
+static RAMAllocator<BLEEvent> EVENT_ALLOCATOR(  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    RAMAllocator<BLEEvent>::ALLOW_FAILURE | RAMAllocator<BLEEvent>::ALLOC_INTERNAL);
 
 void ESP32BLE::setup() {
   global_ble = this;
@@ -341,7 +342,7 @@ void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_pa
   }
   new (new_event) BLEEvent(event, param);
   global_ble->ble_events_.push(new_event);
-}
+}  // NOLINT(clang-analyzer-unix.Malloc)
 
 void ESP32BLE::real_gap_event_handler_(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
   ESP_LOGV(TAG, "(BLE) gap_event_handler - %d", event);
@@ -359,7 +360,7 @@ void ESP32BLE::gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gat
   }
   new (new_event) BLEEvent(event, gatts_if, param);
   global_ble->ble_events_.push(new_event);
-}
+}  // NOLINT(clang-analyzer-unix.Malloc)
 
 void ESP32BLE::real_gatts_event_handler_(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                                          esp_ble_gatts_cb_param_t *param) {
@@ -378,7 +379,7 @@ void ESP32BLE::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gat
   }
   new (new_event) BLEEvent(event, gattc_if, param);
   global_ble->ble_events_.push(new_event);
-}
+}  // NOLINT(clang-analyzer-unix.Malloc)
 
 void ESP32BLE::real_gattc_event_handler_(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                          esp_ble_gattc_cb_param_t *param) {
