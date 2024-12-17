@@ -432,10 +432,6 @@ CONFIG_SCHEMA = IMAGE_SCHEMA
 
 
 def load_svg_image(file, resize: tuple[int, int]):
-    # Local imports only to allow "validate_pillow_installed" to run *before* importing it
-    # cairosvg is only needed in case of SVG images; adding it
-    # to the top would force configurations not using SVG to also have it
-    # installed for no reason.
     from cairosvg import svg2png
 
     if resize:
