@@ -108,7 +108,23 @@ def _validate_esp32_i2s_bus(value):
 
 
 neo_ns = cg.global_ns
+# Base shared classes
+NeoEspNotInverted = neo_ns.class_("NeoEspNotInverted")
 
+# I2S Method classes
+NeoEsp32I2sMethodBase = neo_ns.class_("NeoEsp32I2sMethodBase")
+NeoEsp32I2sBusZero = neo_ns.class_("NeoEsp32I2sBusZero")
+NeoEsp32I2sBusOne = neo_ns.class_("NeoEsp32I2sBusOne")
+NeoEsp32I2sBusN = neo_ns.class_("NeoEsp32I2sBusN")
+NeoEsp32I2sNotInverted = neo_ns.class_("NeoEsp32I2sNotInverted", NeoEspNotInverted)
+NeoEsp32I2sInverted = neo_ns.class_("NeoEsp32I2sInverted")
+NeoEsp32I2sCadence = neo_ns.class_("NeoEsp32I2sCadence")
+NeoEsp32I2sSpeedWs2812x = neo_ns.class_("NeoEsp32I2sSpeedWs2812x")
+
+# RMT Method classes
+NeoEsp32RmtMethodBase = neo_ns.class_("NeoEsp32RmtMethodBase")
+NeoEsp32RmtSpeedBase = neo_ns.class_("NeoEsp32RmtSpeedBase")
+NeoEsp32RmtSpeed = neo_ns.class_("NeoEsp32RmtSpeed")
 
 def _bit_bang_to_code(config, chip: str, inverted: bool):
     # https://github.com/Makuna/NeoPixelBus/blob/master/src/internal/NeoEspBitBangMethod.h
@@ -235,7 +251,19 @@ def _esp8266_dma_extra_validate(config):
 
 
 def _esp32_rmt_to_code(config, chip: str, inverted: bool):
+    """
+    Generate the RMT-based method for NeoPixelBus for ESP32.
+
+    Parameters:
+    - config: Configuration dictionary for the method.
+    - chip: Type of LED chip (e.g., WS2812X, SK6812, etc.).
+    - inverted: Whether the signal should be inverted.
+
+    Returns:
+    - An instance of the RMT method template with the appropriate speed and channel.
+    """
     # https://github.com/Makuna/NeoPixelBus/blob/master/src/internal/NeoEsp32RmtMethod.h
+    # Map the RMT channel from the configuration
     channel = {
         0: neo_ns.NeoEsp32RmtChannel0,
         1: neo_ns.NeoEsp32RmtChannel1,
@@ -247,13 +275,15 @@ def _esp32_rmt_to_code(config, chip: str, inverted: bool):
         7: neo_ns.NeoEsp32RmtChannel7,
         CHANNEL_DYNAMIC: neo_ns.NeoEsp32RmtChannelN,
     }[config[CONF_CHANNEL]]
-    # Some chips are only aliases
+
+    # Resolve chip aliasing and use default speed settings if necessary
     chip = {
-        CHIP_WS2813: CHIP_WS2812X,
-        CHIP_LC8812: CHIP_SK6812,
-        CHIP_WS2812: CHIP_800KBPS,
+        CHIP_WS2813: CHIP_WS2812X,  # Alias WS2813 to WS2812X
+        CHIP_LC8812: CHIP_SK6812,   # Alias LC8812 to SK6812
+        CHIP_WS2812: CHIP_800KBPS,  # Use generic 800Kbps for WS2812
     }.get(chip, chip)
 
+    # Define the speed lookup table for supported chips
     lookup = {
         (CHIP_WS2811, False): neo_ns.NeoEsp32RmtSpeedWs2811,
         (CHIP_WS2812X, False): neo_ns.NeoEsp32RmtSpeedWs2812x,
@@ -274,27 +304,41 @@ def _esp32_rmt_to_code(config, chip: str, inverted: bool):
         (CHIP_400KBPS, True): neo_ns.NeoEsp32RmtInvertedSpeed400Kbps,
         (CHIP_APA106, True): neo_ns.NeoEsp32RmtInvertedSpeedApa106,
     }
+
+    if (chip, inverted) not in lookup:
+        raise cv.Invalid(f"Unsupported chip {chip} with inverted={inverted} for RMT method.")
+
     speed = lookup[(chip, inverted)]
     return neo_ns.NeoEsp32RmtMethodBase.template(speed, channel)
 
 
 def _esp32_i2s_to_code(config, chip: str, inverted: bool):
+    """
+    Generate the I2S-based method for NeoPixelBus for ESP32,
+    with fallback to RMT for unsupported chips like WS2812X in v2.8.3.
+    """
     # https://github.com/Makuna/NeoPixelBus/blob/master/src/internal/NeoEsp32I2sMethod.h
     bus = {
         0: neo_ns.NeoEsp32I2sBusZero,
         1: neo_ns.NeoEsp32I2sBusOne,
         BUS_DYNAMIC: neo_ns.NeoEsp32I2sBusN,
     }[config[CONF_BUS]]
-    # Some chips are only aliases
+
     chip = {
-        CHIP_WS2811: CHIP_WS2812X,
-        CHIP_WS2813: CHIP_WS2812X,
-        CHIP_LC8812: CHIP_SK6812,
-        CHIP_WS2812: CHIP_800KBPS,
+        CHIP_WS2811: CHIP_WS2812X,  # Alias WS2811 to WS2812X
+        CHIP_WS2813: CHIP_WS2812X,  # Alias WS2813 to WS2812X
+        CHIP_LC8812: CHIP_SK6812,   # Alias LC8812 to SK6812
+        CHIP_WS2812: CHIP_800KBPS,  # Use generic 800Kbps for WS2812
     }.get(chip, chip)
 
+    # If chip is WS2812X, fall back to RMT
+    if chip == CHIP_WS2812X:
+        # Add a default channel for RMT if not set
+        if CONF_CHANNEL not in config:
+            config[CONF_CHANNEL] = _esp32_rmt_default_channel()
+        return _esp32_rmt_to_code(config, chip, inverted)
+
     lookup = {
-        CHIP_WS2812X: (neo_ns.NeoEsp32I2sSpeedWs2812x, False),
         CHIP_SK6812: (neo_ns.NeoEsp32I2sSpeedSk6812, False),
         CHIP_TM1814: (neo_ns.NeoEsp32I2sSpeedTm1814, True),
         CHIP_TM1914: (neo_ns.NeoEsp32I2sSpeedTm1914, True),
@@ -303,13 +347,17 @@ def _esp32_i2s_to_code(config, chip: str, inverted: bool):
         CHIP_400KBPS: (neo_ns.NeoEsp32I2sSpeed400Kbps, False),
         CHIP_APA106: (neo_ns.NeoEsp32I2sSpeedApa106, False),
     }
+
+    if chip not in lookup:
+        raise cv.Invalid(f"Unsupported chip {chip} for I2S method.")
+
     speed, inv_inverted = lookup[chip]
     # For tm variants opposite of inverted is needed
     inv = {
         False: neo_ns.NeoEsp32I2sNotInverted,
         True: neo_ns.NeoEsp32I2sInverted,
     }[inverted != inv_inverted]
-    return neo_ns.NeoEsp32I2sMethodBase.template(speed, bus, inv)
+    return neo_ns.NeoEsp32I2sMethodBase.template(speed, bus, inv, neo_ns.NeoEsp32I2sCadence)
 
 
 def _spi_to_code(config, chip: str, inverted: bool):
