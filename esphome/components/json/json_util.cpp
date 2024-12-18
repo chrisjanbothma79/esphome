@@ -7,14 +7,14 @@ namespace json {
 static const char *const TAG = "json";
 
 static std::vector<char> global_json_build_buffer;  // NOLINT
-static const auto allocator = RAMAllocator<uint8_t>(RAMAllocator<uint8_t>::ALLOC_INTERNAL);
+static const auto ALLOCATOR = RAMAllocator<uint8_t>(RAMAllocator<uint8_t>::ALLOC_INTERNAL);
 
 std::string build_json(const json_build_t &f) {
   // Here we are allocating up to 5kb of memory,
   // with the heap size minus 2kb to be safe if less than 5kb
   // as we can not have a true dynamic sized document.
   // The excess memory is freed below with `shrinkToFit()`
-  auto free_heap = allocator.get_max_free_block_size();
+  auto free_heap = ALLOCATOR.get_max_free_block_size();
   size_t request_size = std::min(free_heap, (size_t) 512);
   while (true) {
     ESP_LOGV(TAG, "Attempting to allocate %u bytes for JSON serialization", request_size);
@@ -49,7 +49,7 @@ bool parse_json(const std::string &data, const json_parse_t &f) {
   // with the heap size minus 2kb to be safe if less than that
   // as we can not have a true dynamic sized document.
   // The excess memory is freed below with `shrinkToFit()`
-  auto free_heap = allocator.get_max_free_block_size();
+  auto free_heap = ALLOCATOR.get_max_free_block_size();
   size_t request_size = std::min(free_heap, (size_t) (data.size() * 1.5));
   while (true) {
     DynamicJsonDocument json_document(request_size);
