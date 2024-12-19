@@ -2,7 +2,7 @@ animation:
   - id: rgb565_animation
     file: $component_dir/anim.gif
     type: RGB565
-    use_transparency: none
+    use_transparency: opaque
     resize: 50x50
   - id: rgb_animation
     file: $component_dir/anim.apng
