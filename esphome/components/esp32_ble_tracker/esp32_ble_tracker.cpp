@@ -675,9 +675,6 @@ uint64_t ESPBTDevice::address_uint64() const { return esp32_ble::ble_addr_to_uin
 
 void ESP32BLETracker::dump_config() {
   ESP_LOGCONFIG(TAG, "BLE Tracker:");
-  if (this->is_failed()) {
-    ESP_LOGE(TAG, "  Marked Failed");
-  }
   ESP_LOGCONFIG(TAG, "  Scan Duration: %" PRIu32 " s", this->scan_duration_);
   ESP_LOGCONFIG(TAG, "  Scan Interval: %.1f ms", this->scan_interval_ * 0.625f);
   ESP_LOGCONFIG(TAG, "  Scan Window: %.1f ms", this->scan_window_ * 0.625f);

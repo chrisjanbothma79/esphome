@@ -81,9 +81,6 @@ void BLEClientBase::dump_config() {
       break;
   }
   ESP_LOGCONFIG(TAG, "  State: %s", state_name.c_str());
-  if (this->is_failed()) {
-    ESP_LOGE(TAG, "  Marked Failed");
-  }
 }
 
 bool BLEClientBase::parse_device(const espbt::ESPBTDevice &device) {
