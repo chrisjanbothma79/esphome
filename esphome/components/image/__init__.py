@@ -29,8 +29,6 @@ _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "image"
 DEPENDENCIES = ["display"]
-MULTI_CONF = True
-MULTI_CONF_NO_DEFAULT = True
 
 image_ns = cg.esphome_ns.namespace("image")
 
@@ -413,10 +411,9 @@ def validate_settings(value):
     return value
 
 
-IMAGE_SCHEMA = cv.Schema(
+BASE_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ID): cv.declare_id(Image_),
-        cv.Required(CONF_TYPE): validate_type,
         cv.Required(CONF_FILE): cv.Any(validate_file_shorthand, TYPED_FILE_SCHEMA),
         cv.Optional(CONF_RESIZE): cv.dimensions,
         cv.Optional(CONF_USE_TRANSPARENCY, default="none"): validate_transparency,
@@ -428,7 +425,27 @@ IMAGE_SCHEMA = cv.Schema(
     }
 ).add_extra(validate_settings)
 
-CONFIG_SCHEMA = IMAGE_SCHEMA
+IMAGE_SCHEMA = BASE_SCHEMA.extend(
+    {
+        cv.Required(CONF_TYPE): validate_type,
+    }
+)
+
+CONFIG_SCHEMA = cv.Any(
+    cv.Schema(
+        {
+            cv.Optional(x.lower()): cv.ensure_list(
+                BASE_SCHEMA.extend(
+                    {
+                        cv.Optional(CONF_TYPE, default=x): cv.one_of(x, upper=True),
+                    }
+                )
+            )
+            for x in IMAGE_TYPE
+        }
+    ),
+    cv.ensure_list(IMAGE_SCHEMA),
+)
 
 
 async def write_image(config, all_frames=False):
@@ -503,6 +520,17 @@ async def write_image(config, all_frames=False):
     return prog_arr, width, height, image_type, trans_value, frame_count
 
 
-async def to_code(config):
-    prog_arr, width, height, image_type, trans_value, _ = await write_image(config)
-    cg.new_Pvariable(config[CONF_ID], prog_arr, width, height, image_type, trans_value)
+async def image_list_to_code(configs):
+    for config in configs:
+        prog_arr, width, height, image_type, trans_value, _ = await write_image(config)
+        cg.new_Pvariable(
+            config[CONF_ID], prog_arr, width, height, image_type, trans_value
+        )
+
+
+async def to_code(configs):
+    if isinstance(configs, list):
+        await image_list_to_code(configs)
+    else:
+        for entry in configs.values():
+            await image_list_to_code(entry)

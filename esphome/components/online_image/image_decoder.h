@@ -66,7 +66,7 @@ class ImageDecoder {
 
  protected:
   OnlineImage *image_;
-  // Initializing to 1, to ensure it is different to initial "decoded_bytes_".
+  // Initializing to 1, to ensure it is distinguishable from initial "decoded_bytes_".
   // Will be overwritten anyway once the download size is known.
   uint32_t download_size_ = 1;
   uint32_t decoded_bytes_ = 0;

@@ -7,6 +7,7 @@ image:
     file: ../../pnglogo.png
     type: BINARY
     use_transparency: chroma_key
+
   - id: rgba_image
     file: ../../pnglogo.png
     type: RGB
@@ -15,11 +16,39 @@ image:
   - id: rgb24_image
     file: ../../pnglogo.png
     type: RGB
-    use_transparency: alpha_channel
+    use_transparency: chroma_key
+  - id: rgb_image
+    file: ../../pnglogo.png
+    type: RGB
+    use_transparency: none
+
   - id: rgb565_image
     file: ../../pnglogo.png
     type: RGB565
     use_transparency: none
+  - id: rgb565_ck_image
+    file: ../../pnglogo.png
+    type: RGB565
+    use_transparency: chroma_key
+  - id: rgb565_alpha_image
+    file: ../../pnglogo.png
+    type: RGB565
+    use_transparency: alpha_channel
+
+  - id: grayscale_alpha_image
+    file: ../../pnglogo.png
+    type: grayscale
+    use_transparency: alpha_channel
+    resize: 50x50
+  - id: grayscale_ck_image
+    file: ../../pnglogo.png
+    type: grayscale
+    use_transparency: chroma_key
+  - id: grayscale_image
+    file: ../../pnglogo.png
+    type: grayscale
+    use_transparency: none
+
   - id: web_svg_image
     file: https://raw.githubusercontent.com/esphome/esphome-docs/a62d7ab193c1a464ed791670170c7d518189109b/images/logo.svg
     resize: 256x48
