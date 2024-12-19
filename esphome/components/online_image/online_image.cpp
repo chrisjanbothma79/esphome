@@ -71,13 +71,11 @@ bool OnlineImage::resize_(int width_in, int height_in) {
     return false;
   }
   auto new_size = this->get_buffer_size_(width, height);
-#if ESP_LOG_LEVEL >= ESPHOME_LOG_LEVEL_DEBUG
   ESP_LOGD(TAG, "Allocating new buffer of %d bytes", new_size);
-  delay_microseconds_safe(2000);  // allow time for log line to appear
-#endif
   this->buffer_ = this->allocator_.allocate(new_size);
   if (this->buffer_ == nullptr) {
-    ESP_LOGE(TAG, "allocation of %d bytes failed", new_size);
+    ESP_LOGE(TAG, "allocation of %zu bytes failed. Biggest block in heap: %zu Bytes", new_size,
+             this->allocator_.get_max_free_block_size());
     this->end_connection_();
     return false;
   }
