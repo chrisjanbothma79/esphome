@@ -442,7 +442,10 @@ IMAGE_SCHEMA = BASE_SCHEMA.extend(
 )
 
 
-def transparency_schema(image_type):
+def typed_image_schema(image_type):
+    """
+    Construct a schema for a specific image type, allowing transparency options
+    """
     return cv.Any(
         cv.Schema(
             {
@@ -463,6 +466,7 @@ def transparency_schema(image_type):
                 )
             }
         ),
+        # Allow a default configuration with no transparency preselected
         cv.ensure_list(
             BASE_SCHEMA.extend(
                 {
@@ -478,8 +482,10 @@ def transparency_schema(image_type):
     )
 
 
+# The config schema can be a (possibly empty) single list of images,
+# or a dictionary of image types each with a list of images
 CONFIG_SCHEMA = cv.Any(
-    cv.Schema({cv.Optional(t.lower()): transparency_schema(t) for t in IMAGE_TYPE}),
+    cv.Schema({cv.Optional(t.lower()): typed_image_schema(t) for t in IMAGE_TYPE}),
     cv.ensure_list(IMAGE_SCHEMA),
 )
 
