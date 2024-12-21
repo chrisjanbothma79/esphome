@@ -104,6 +104,7 @@ class BLEClientBase : public espbt::ESPBTClient, public Component {
   bool paired_{false};
   espbt::ConnectionType connection_type_{espbt::ConnectionType::V1};
   std::vector<BLEService *> services_;
+  esp_gatt_status_t status_{ESP_GATT_OK};
 
   void log_event_(const char *name);
 };
