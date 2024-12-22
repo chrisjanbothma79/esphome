@@ -841,8 +841,8 @@ def validate_config(
     result.remove_output_path([CONF_ESPHOME], CONF_ESPHOME)
 
     # Check version number now to avoid loading components that are not supported
-    if req_version := config[CONF_ESPHOME].get(CONF_MIN_VERSION):
-        cv.All(cv.version_number, cv.validate_esphome_version)(req_version)
+    if min_version := config[CONF_ESPHOME].get(CONF_MIN_VERSION):
+        cv.All(cv.version_number, cv.validate_esphome_version)(min_version)
 
     # First run platform validation steps
     for key in TARGET_PLATFORMS:
