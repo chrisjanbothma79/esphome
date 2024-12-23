@@ -45,7 +45,9 @@
 #endif
 #ifdef USE_ESP32
 #include "esp32/rom/crc.h"
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
 #include "esp_mac.h"
+#endif
 #include "esp_efuse.h"
 #include "esp_efuse_table.h"
 #endif
