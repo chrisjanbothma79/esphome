@@ -24,7 +24,7 @@ void PsramComponent::dump_config() {
     const size_t psram_total_size_bytes = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
     const float psram_total_size_kb = psram_total_size_bytes / 1024.0f;
 
-    if (abs(round(psram_total_size_kb) - psram_total_size_kb) < 0.05f) {
+    if (abs(std::round(psram_total_size_kb) - psram_total_size_kb) < 0.05f) {
       ESP_LOGCONFIG(TAG, "  Size: %.0f KB", psram_total_size_kb);
     } else {
       ESP_LOGCONFIG(TAG, "  Size: %.0f bytes", (float) psram_total_size_bytes);
