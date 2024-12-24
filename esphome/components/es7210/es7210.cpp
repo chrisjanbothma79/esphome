@@ -98,8 +98,8 @@ bool ES7210::configure_sample_rate_() {
   int mclk_fre = this->sample_rate_ * MCLK_DIV_FRE;
   int coeff = -1;
 
-  for (int i = 0; i < (sizeof(coeff_div) / sizeof(coeff_div[0])); ++i) {
-    if (coeff_div[i].lrck == this->sample_rate_ && coeff_div[i].mclk == mclk_fre)
+  for (int i = 0; i < (sizeof(ES7210_COEFFICIENTS) / sizeof(ES7210_COEFFICIENTS[0])); ++i) {
+    if (ES7210_COEFFICIENTS[i].lrclk == this->sample_rate_ && ES7210_COEFFICIENTS[i].mclk == mclk_fre)
       coeff = i;
   }
 
@@ -108,19 +108,19 @@ bool ES7210::configure_sample_rate_() {
     uint8_t regv;
     ES7210_ERROR_CHECK(this->read_byte(ES7210_MAINCLK_REG02, &regv));
     regv = regv & 0x00;
-    regv |= coeff_div[coeff].adc_div;
-    regv |= coeff_div[coeff].doubler << 6;
-    regv |= coeff_div[coeff].dll << 7;
+    regv |= ES7210_COEFFICIENTS[coeff].adc_div;
+    regv |= ES7210_COEFFICIENTS[coeff].doubler << 6;
+    regv |= ES7210_COEFFICIENTS[coeff].dll << 7;
 
     ES7210_ERROR_CHECK(this->write_byte(ES7210_MAINCLK_REG02, regv));
 
     // Set osr
-    regv = coeff_div[coeff].osr;
+    regv = ES7210_COEFFICIENTS[coeff].osr;
     ES7210_ERROR_CHECK(this->write_byte(ES7210_OSR_REG07, regv));
     // Set lrck
-    regv = coeff_div[coeff].lrck_h;
+    regv = ES7210_COEFFICIENTS[coeff].lrck_h;
     ES7210_ERROR_CHECK(this->write_byte(ES7210_LRCK_DIVH_REG04, regv));
-    regv = coeff_div[coeff].lrck_l;
+    regv = ES7210_COEFFICIENTS[coeff].lrck_l;
     ES7210_ERROR_CHECK(this->write_byte(ES7210_LRCK_DIVL_REG05, regv));
   } else {
     // Invalid sample frequency

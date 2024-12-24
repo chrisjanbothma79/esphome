@@ -44,17 +44,17 @@ static const uint8_t ES7210_MIC34_POWER_REG4C = 0x4C;
 /*
  * Clock coefficient structer
  */
-struct _coeff_div {
-  uint32_t mclk; /* mclk frequency */
-  uint32_t lrck; /* lrck */
+struct ES7210Coefficient {
+  uint32_t mclk;  // mclk frequency
+  uint32_t lrclk;
   uint8_t ss_ds;
-  uint8_t adc_div;  /* adcclk divider */
-  uint8_t dll;      /* dll_bypass */
-  uint8_t doubler;  /* doubler enable */
-  uint8_t osr;      /* adc osr */
-  uint8_t mclk_src; /* select mclk  source */
-  uint32_t lrck_h;  /* The high 4 bits of lrck */
-  uint32_t lrck_l;  /* The low 8 bits of lrck */
+  uint8_t adc_div;
+  uint8_t dll;       // dll_bypass
+  uint8_t doubler;   // doubler_enable
+  uint8_t osr;       // adc osr
+  uint8_t mclk_src;  // sselect mclk source
+  uint8_t lrck_h;    // High 4 bits of lrck
+  uint8_t lrck_l;    // Low 8 bits of lrck
 };
 
 /* Codec hifi mclk clock divider coefficients
@@ -70,7 +70,7 @@ struct _coeff_div {
  *           lrckh:      0x04
  *           lrckl:      0x05
  */
-static const struct _coeff_div coeff_div[] = {
+static const ES7210Coefficient ES7210_COEFFICIENTS[] = {
     // mclk      lrck    ss_ds adc_div  dll  doubler osr  mclk_src  lrckh   lrckl
     /* 8k */
     {12288000, 8000, 0x00, 0x03, 0x01, 0x00, 0x20, 0x00, 0x06, 0x00},
