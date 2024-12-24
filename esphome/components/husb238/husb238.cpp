@@ -136,17 +136,18 @@ void Husb238Component::update() {
     return;
   }
 
-  bool is_changed;
+  bool is_changed{false};
   if (!this->read_all_(is_changed)) {
     is_changed = !this->status_has_error();
-    this->status_set_error("Unnable to commucate with HUSB238 chip");
+    this->status_set_error("Unable to communicate with HUSB238 chip");
     std::fill(std::begin(this->registers_.raw), std::end(this->registers_.raw), 0);
   } else {
     this->status_clear_error();
   }
 
-  if (!is_changed)
+  if (!is_changed) {
     return;
+  }
 
 #ifdef USE_BINARY_SENSOR
   if (this->attached_binary_sensor_ != nullptr) {
@@ -156,13 +157,14 @@ void Husb238Component::update() {
     this->cc_direction_binary_sensor_->publish_state(this->registers_.pd_status1.cc_dir);
   }
 #endif
+
 #ifdef USE_SENSOR
   auto explicit_contract_voltage = this->registers_.pd_status0.voltage;
   if (this->voltage_sensor_ != nullptr) {
     float voltage{0.0f};
     if (this->is_attached()) {
       if (explicit_contract_voltage == SrcVoltage::PD_UNATTACHED) {
-        voltage = 5;
+        voltage = 5.0f;
       } else {
         voltage = voltage_to_float(explicit_contract_voltage);
       }
@@ -184,8 +186,8 @@ void Husb238Component::update() {
   if (this->selected_voltage_sensor_ != nullptr) {
     this->selected_voltage_sensor_->publish_state(selected_voltage_to_float(this->registers_.src_pdo_sel.voltage));
   }
-
 #endif
+
 #ifdef USE_TEXT_SENSOR
   if (this->status_text_sensor_ != nullptr) {
     this->status_text_sensor_->publish_state(status_to_string(this->registers_.pd_status1.response));
@@ -219,6 +221,34 @@ void Husb238Component::dump_config() {
 #ifdef USE_SELECT
   LOG_SELECT("  ", "Voltage", this->voltage_select_);
 #endif
+}
+
+bool Husb238Component::command_request_voltage(int volt) {
+  SrcVoltageSelection voltage;
+  switch (volt) {
+    case 5:
+      voltage = SrcVoltageSelection::SRC_PDO_5V;
+      break;
+    case 9:
+      voltage = SrcVoltageSelection::SRC_PDO_9V;
+      break;
+    case 12:
+      voltage = SrcVoltageSelection::SRC_PDO_12V;
+      break;
+    case 15:
+      voltage = SrcVoltageSelection::SRC_PDO_15V;
+      break;
+    case 18:
+      voltage = SrcVoltageSelection::SRC_PDO_18V;
+      break;
+    case 20:
+      voltage = SrcVoltageSelection::SRC_PDO_20V;
+      break;
+    default:
+      ESP_LOGE(TAG, "Invalid voltage");
+      return false;
+  }
+  return this->command_request_pdo(voltage);
 }
 
 bool Husb238Component::command_request_voltage(const std::string &select_state) {
@@ -262,13 +292,13 @@ bool Husb238Component::read_all_(bool &is_changed) {
     return false;
   }
   uint16_t old_crc = crc16(&this->registers_.raw[0], sizeof(this->registers_));
- 
+
   auto ok = this->read_bytes(static_cast<uint8_t>(CommandRegister::PD_STATUS0), &this->registers_.raw[0], REG_NUM);
   if (!ok) {
     ESP_LOGE(TAG, "Error reading HUSB238");
   }
   is_changed = old_crc != crc16(&this->registers_.raw[0], sizeof(this->registers_));
-  
+
   return ok;
 }
 
@@ -309,7 +339,7 @@ bool Husb238Component::select_pdo_voltage_(SrcVoltageSelection voltage) {
 }
 
 /*
-5V: 3.00A, 9V: 1.50A, 12V: 3.00A, 15V: 2.00A, 18V: 1.50A, 20V: 1.50A
+  5V: 3.00A, 9V: 1.50A, 12V: 3.00A, 15V: 2.00A, 18V: 1.50A, 20V: 1.50A
 */
 std::string Husb238Component::get_capabilities_() {
   bool nothing_detected = !this->registers_.src_pdo_5v.detected && !this->registers_.src_pdo_9v.detected &&

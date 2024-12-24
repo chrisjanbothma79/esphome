@@ -19,6 +19,8 @@
 namespace esphome {
 namespace husb238 {
 
+static const uint32_t DEFER_UPDATE_DELAY_MS = 300;
+
 enum class CommandRegister : uint8_t {
   PD_STATUS0 = 0x00,
   PD_STATUS1 = 0x01,
@@ -145,13 +147,17 @@ class Husb238Component : public PollingComponent, public i2c::I2CDevice {
   void update() override;
   void dump_config() override;
 
+  // API commands for yaml scripting
+  bool command_request_voltage(int volt);
   bool command_request_voltage(const std::string &select_state);
   bool command_request_pdo(SrcVoltageSelection voltage);
   bool command_reset() { return this->send_command_(CommandFunction::HARD_RESET); };
 
   bool is_attached();
 
-  void defer_update() { this->set_timeout(300, [this]() { this->update(); }); }
+  void defer_update() {
+    this->set_timeout(DEFER_UPDATE_DELAY_MS, [this]() { this->update(); });
+  }
 
 #ifdef USE_SENSOR
   SUB_SENSOR(voltage)
