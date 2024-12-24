@@ -2,6 +2,7 @@
 #include "es7210_const.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
+#include <cinttypes>
 
 namespace esphome {
 namespace es7210 {
@@ -24,7 +25,7 @@ static const size_t MCLK_DIV_FRE = 256;
   }
 
 void ES7210::dump_config() {
-  ESP_LOGCONFIG(TAG, "ES7210 Audio Codec:");
+  ESP_LOGCONFIG(TAG, "ES7210 ADC:");
   ESP_LOGCONFIG(TAG, "  Bits Per Sample: %" PRIu8, this->bits_per_sample_);
   ESP_LOGCONFIG(TAG, "  Sample Rate: %" PRIu32, this->sample_rate_);
 
