@@ -330,7 +330,7 @@ bool Husb238Component::select_pdo_voltage_(SrcVoltageSelection voltage) {
     return false;
   }
 
-  RegSrcPdoSelect reg_data = {0, voltage};
+  RegSrcPdoSelect reg_data = {{0, voltage}};
   auto ok = this->write_byte(static_cast<uint8_t>(CommandRegister::SRC_PDO), reg_data.raw);
   if (!ok) {
     ESP_LOGE(TAG, "Error setting PDO voltage");
@@ -367,7 +367,7 @@ std::string Husb238Component::get_capabilities_() {
     src_pdo.raw = this->registers_.raw[2 + i];
     if (src_pdo.detected) {
       snprintf(buffer, sizeof(buffer), "%dV: %.2fA", voltages[i], src_pdo_to_current(src_pdo));
-      if (capabilities.length() > 0) {
+      if (!capabilities.empty()) {
         capabilities += ", ";
       }
       capabilities += buffer;
