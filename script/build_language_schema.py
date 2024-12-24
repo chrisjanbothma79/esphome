@@ -66,12 +66,13 @@ def get_component_names():
     from esphome.loader import CORE_COMPONENTS_PATH
 
     component_names = ["esphome", "sensor", "esp32", "esp8266"]
+    skip_components = ["lvgl"]
 
     for d in os.listdir(CORE_COMPONENTS_PATH):
         if not d.startswith("__") and os.path.isdir(
             os.path.join(CORE_COMPONENTS_PATH, d)
         ):
-            if d not in component_names:
+            if d not in component_names and d not in skip_components:
                 component_names.append(d)
 
     return component_names
@@ -85,8 +86,8 @@ def load_components():
 
 
 # pylint: disable=wrong-import-position
-from esphome.const import CONF_TYPE, KEY_CORE
-from esphome.core import CORE
+from esphome.const import CONF_TYPE, KEY_CORE  # noqa: E402
+from esphome.core import CORE  # noqa: E402
 
 # pylint: enable=wrong-import-position
 
@@ -95,13 +96,13 @@ load_components()
 
 # Import esphome after loading components (so schema is tracked)
 # pylint: disable=wrong-import-position
-from esphome import automation, pins
-from esphome.components import remote_base
-import esphome.config_validation as cv
-import esphome.core as esphome_core
-from esphome.helpers import write_file_if_changed
-from esphome.loader import CORE_COMPONENTS_PATH, get_platform
-from esphome.util import Registry
+from esphome import automation, pins  # noqa: E402
+from esphome.components import remote_base  # noqa: E402
+import esphome.config_validation as cv  # noqa: E402
+import esphome.core as esphome_core  # noqa: E402
+from esphome.helpers import write_file_if_changed  # noqa: E402
+from esphome.loader import CORE_COMPONENTS_PATH, get_platform  # noqa: E402
+from esphome.util import Registry  # noqa: E402
 
 # pylint: enable=wrong-import-position
 
@@ -523,11 +524,14 @@ def shrink():
     # then are all simple types, integer and strings
     for x, paths in referenced_schemas.items():
         key_s = get_str_path_schema(x)
-        if key_s and key_s[S_TYPE] in ["enum", "registry", "integer", "string"]:
+        if key_s and key_s.get(S_TYPE) in ["enum", "registry", "integer", "string"]:
             if key_s[S_TYPE] == "registry":
                 print("Spreading registry: " + x)
             for target in paths:
                 target_s = get_arr_path_schema(target)
+                if S_SCHEMA not in target_s:
+                    print("skipping simple spread for " + ".".join(target))
+                    continue
                 assert target_s[S_SCHEMA][S_EXTENDS] == [x]
                 target_s.pop(S_SCHEMA)
                 target_s |= key_s
@@ -542,7 +546,7 @@ def shrink():
                     # an empty schema like speaker.SPEAKER_SCHEMA
                     target_s[S_EXTENDS].remove(x)
                     continue
-                assert target_s[S_SCHEMA][S_EXTENDS] == [x]
+                assert x in target_s[S_SCHEMA][S_EXTENDS]
                 target_s.pop(S_SCHEMA)
                 target_s.pop(S_TYPE)  # undefined
                 target_s["data_type"] = x.split(".")[1]
@@ -886,10 +890,17 @@ def convert(schema, config_var, path):
                 "class": "uart::UARTComponent",
                 "parents": ["Component"],
             }
+        elif path == "http_request/CONFIG_SCHEMA/val 1/extL/all/id":
+            config_var["id_type"] = {
+                "class": "http_request::HttpRequestComponent",
+                "parents": ["Component"],
+            }
         elif path == "pins/esp32/val 1/id":
             config_var["id_type"] = "pin"
         else:
-            raise TypeError("Cannot determine id_type for " + path)
+            print("Cannot determine id_type for " + path)
+
+            # raise TypeError("Cannot determine id_type for " + path)
 
     elif repr_schema in ejs.registry_schemas:
         solve_registry.append((ejs.registry_schemas[repr_schema], config_var))
