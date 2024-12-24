@@ -59,6 +59,10 @@ inline void lv_img_set_src(lv_obj_t *obj, esphome::image::Image *image) {
 inline void lv_disp_set_bg_image(lv_disp_t *disp, esphome::image::Image *image) {
   lv_disp_set_bg_image(disp, image->get_lv_img_dsc());
 }
+
+inline void lv_obj_set_style_bg_img_src(lv_obj_t *obj, esphome::image::Image *image, lv_style_selector_t selector) {
+  lv_obj_set_style_bg_img_src(obj, image->get_lv_img_dsc(), selector);
+}
 #endif  // USE_LVGL_IMAGE
 #ifdef USE_LVGL_ANIMIMG
 inline void lv_animimg_set_src(lv_obj_t *img, std::vector<image::Image *> images) {
