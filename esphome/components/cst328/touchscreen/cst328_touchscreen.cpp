@@ -78,6 +78,12 @@ void CST328Touchscreen::continue_setup_() {
   // Enter normal mode
   this->write_register16(static_cast<uint16_t>(Cst328WorkModes::NORMAL_MODE), buffer, 0);
 
+  // read once and sync?
+  uint8_t sync_byte;
+  this->read_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), &sync_byte, 1);
+  sync_byte = 0xAB;
+  this->write_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), &sync_byte, 1);
+
   this->setup_complete_ = true;
 
   ESP_LOGV(TAG, "CST328 Touchscreen setup complete");
@@ -94,11 +100,13 @@ void CST328Touchscreen::dump_config() {
 }
 
 void CST328Touchscreen::update_touches() {
+  ESP_LOGV(TAG, "update_touches()...");
   uint8_t data[CST328_TOUCH_DATA_SIZE];
   uint8_t clear{0};
   uint8_t touch_cnt = 0;
   this->skip_update_ = true;
   if (!this->read_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_FINGER_NUMBER), data, 1)) {
+    ESP_LOGV(TAG, "update_touches() cant read touch count");
     this->status_set_warning();
     return;
   }
@@ -110,9 +118,11 @@ void CST328Touchscreen::update_touches() {
   // no touch or error
   if (touch_cnt == 0 || touch_cnt > CST328_TOUCH_MAX_POINTS) {
     // clear touch
+    ESP_LOGV(TAG, "update_touches() no touch or error (count=%d)", touch_cnt);
     this->write_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_FINGER_NUMBER), &clear, 1);
     return;
   }
+  ESP_LOGV(TAG, "update_touches() touch count=%d", touch_cnt);
 
   // read all points
   if (!this->read_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), data, sizeof(data))) {
@@ -122,6 +132,8 @@ void CST328Touchscreen::update_touches() {
   }
 
   // clear touch
+  //  this->writeRegister(MODE_NORMAL_0_REG, (uint8_t)0xAB); // sync signal ?
+  clear = 0xAB;
   this->write_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_FINGER_NUMBER), &clear, 1);
 
   this->skip_update_ = false;
@@ -138,6 +150,7 @@ void CST328Touchscreen::update_touches() {
       index += 2;
     }
   }
+  ESP_LOGV(TAG, "update_touches() done - normal quit");
 }
 }  // namespace cst328
 }  // namespace esphome
