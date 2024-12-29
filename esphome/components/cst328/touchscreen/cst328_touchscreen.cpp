@@ -105,7 +105,8 @@ void CST328Touchscreen::update_touches() {
   uint8_t clear{0};
   uint8_t touch_cnt = 0;
   this->skip_update_ = true;
-  if (!this->read_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_FINGER_NUMBER), data, 1)) {
+  auto err = this->read_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_FINGER_NUMBER), data, 1);
+  if (err != i2c::ERROR_OK) {
     ESP_LOGV(TAG, "update_touches() cant read touch count");
     this->status_set_warning();
     return;
@@ -125,7 +126,8 @@ void CST328Touchscreen::update_touches() {
   ESP_LOGV(TAG, "update_touches() touch count=%d", touch_cnt);
 
   // read all points
-  if (!this->read_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), data, sizeof(data))) {
+  err = this->read_register16(static_cast<u_int16_t>(Cst328Registers::TOUCH_INFORMATION), data, sizeof(data));
+  if (err != i2c::ERROR_OK) {
     ESP_LOGV(TAG, "Failed to read touch data");
     this->status_set_warning();
     return;
