@@ -1,5 +1,6 @@
 #include "uptime_seconds_sensor.h"
 
+#if defined(USE_SENSOR) && defined(USE_TIME)
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
@@ -36,3 +37,5 @@ void UptimeSecondsSensor::dump_config() {
 
 }  // namespace uptime
 }  // namespace esphome
+
+#endif  // USE_SENSOR && USE_TIME

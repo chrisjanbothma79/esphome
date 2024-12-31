@@ -1,6 +1,6 @@
 #include "uptime_timestamp_sensor.h"
 
-#ifdef USE_TIME
+#if defined(USE_TIME) && defined(USE_SENSOR)
 
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
@@ -36,4 +36,4 @@ void UptimeTimestampSensor::dump_config() {
 }  // namespace uptime
 }  // namespace esphome
 
-#endif  // USE_TIME
+#endif  // USE_TIME && USE_SENSOR
