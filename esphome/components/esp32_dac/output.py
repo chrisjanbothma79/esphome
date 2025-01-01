@@ -5,7 +5,7 @@ import esphome.codegen as cg
 from esphome.core import CORE
 from esphome.components.esp32 import get_esp32_variant
 from esphome.components.esp32.const import VARIANT_ESP32S2
-from esphome.const import CONF_ID, CONF_NUMBER, CONF_PIN, KEY_CORE, KEY_TARGET_FRAMEWORK
+from esphome.const import CONF_ID, CONF_NUMBER, CONF_PIN
 
 DEPENDENCIES = ["esp32"]
 
