@@ -112,11 +112,6 @@ void SX127x::configure() {
   } else {
     this->write_register_(REG_DIO_MAPPING1, DIO0_MAPPING_11);
   }
-  if (this->preamble_size_ > 0) {
-    this->write_register_(REG_DIO_MAPPING2, MAP_PREAMBLE_INT);
-  } else {
-    this->write_register_(REG_DIO_MAPPING2, MAP_RSSI_INT);
-  }
 
   // configure rx and afc
   uint8_t trigger = (this->preamble_size_ > 0) ? TRIGGER_PREAMBLE : TRIGGER_RSSI;
