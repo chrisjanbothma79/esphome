@@ -11,53 +11,47 @@ void Modbus::setup() {
   if (this->flow_control_pin_ != nullptr) {
     this->flow_control_pin_->setup();
   }
-  //3.5 characters * 11 bits per character * 1000ms/sec / (bits/sec) (Standard modbus frame delay)
+  // 3.5 characters * 11 bits per character * 1000ms/sec / (bits/sec) (Standard modbus frame delay)
   this->frame_delay_ms_ = (3.5 * 11 * 1000 / this->parent_->get_baud_rate()) + 1;
-  //120 characters (default RxFIFOBuffer in HardwareSerial)
+  // 120 characters (default RxFIFOBuffer in HardwareSerial)
   this->long_rx_buffer_delay_ms_ = (120 * 11 * 1000 / this->parent_->get_baud_rate()) + 1;
   if (this->frame_delay_ms_ < 2)
-    this->frame_delay_ms_ = 2; //1750us minimium per spec - rounded up to 2ms.
-
+    this->frame_delay_ms_ = 2;  // 1750us minimium per spec - rounded up to 2ms.
 }
 
 void Modbus::loop() {
-  //First process all available incoming data.
+  // First process all available incoming data.
   this->receive_and_parse_modbus_bytes_();
 
-  //If the response frame is finished (including interframe delay) - we timeout.
-  //UART splits rx_buffer into 120 character chunks by default.
-  //We add in the long_rx_buffer_delay_ms_ to avoid timeing out when waiting for the buffer to transfer.
+  // If the response frame is finished (including interframe delay) - we timeout.
+  // UART splits rx_buffer into 120 character chunks by default.
+  // We add in the long_rx_buffer_delay_ms_ to avoid timeing out when waiting for the buffer to transfer.
   if (millis() - last_modbus_byte_ > frame_delay_ms_ + (rx_buffer_.size() > 100 ? long_rx_buffer_delay_ms_ : 0)) {
     clear_rx_buffer_("timeout");
   }
 
   // If we're past the send_wait_time timeout and response buffer doesn't have the start of the expected response
-  if (waiting_for_response !=0 &&  millis() - last_send_ > send_wait_time_ && (rx_buffer_.size() == 0 || rx_buffer_[0] != waiting_for_response)) {
+  if (waiting_for_response != 0 && millis() - last_send_ > send_wait_time_ &&
+      (rx_buffer_.size() == 0 || rx_buffer_[0] != waiting_for_response)) {
     ESP_LOGV(TAG, "Stop waiting for response from %d", waiting_for_response);
     waiting_for_response = 0;
   }
 
-
   // If there's no response pending and there's commands in the buffer
   if (!tx_blocked() && this->tx_buffer_.size() > 0) {
-    set_timeout("send_next_frame", 0, [this](){this->send_next_frame_();});
+    set_timeout("send_next_frame", 0, [this]() { this->send_next_frame_(); });
   }
-
 }
 
 bool Modbus::tx_blocked() {
   const uint32_t now = millis();
 
-  return available() ||
-        (rx_buffer_.size() > 0) ||
-        (waiting_for_response != 0) ||
-        (now - last_send_ < frame_delay_ms_ + (role == ModbusRole::CLIENT ? turnaround_delay_ms_ : 0)) ||
-        (now - last_modbus_byte_ < frame_delay_ms_ + (role == ModbusRole::CLIENT ? turnaround_delay_ms_ : 0));
+  return available() || (rx_buffer_.size() > 0) || (waiting_for_response != 0) ||
+         (now - last_send_ < frame_delay_ms_ + (role == ModbusRole::CLIENT ? turnaround_delay_ms_ : 0)) ||
+         (now - last_modbus_byte_ < frame_delay_ms_ + (role == ModbusRole::CLIENT ? turnaround_delay_ms_ : 0));
 }
 
-bool Modbus::tx_buffer_empty() {
-  return tx_buffer_.size() == 0;
-}
+bool Modbus::tx_buffer_empty() { return tx_buffer_.size() == 0; }
 
 void Modbus::receive_and_parse_modbus_bytes_() {
   while (this->available()) {
@@ -68,7 +62,7 @@ void Modbus::receive_and_parse_modbus_bytes_() {
     else
       ESP_LOGVV(TAG, "Modbus received first Byte  %d (0X%x) at %d", byte, byte, last_modbus_byte_);
 
-    //If the bytes in the rx buffer do not parse, clear out the buffer
+    // If the bytes in the rx buffer do not parse, clear out the buffer
     if (!this->parse_modbus_byte_(byte)) {
       clear_rx_buffer_("parse failed");
     }
@@ -150,9 +144,11 @@ bool Modbus::parse_modbus_byte_(uint8_t byte) {
     uint16_t remote_crc = uint16_t(raw[data_offset + data_len]) | (uint16_t(raw[data_offset + data_len + 1]) << 8);
     if (computed_crc != remote_crc) {
       if (this->disable_crc_) {
-        ESP_LOGD(TAG, "Modbus CRC Check failed, but ignored! %02X!=%02X  %s", computed_crc, remote_crc, format_hex_pretty(rx_buffer_).c_str());
+        ESP_LOGD(TAG, "Modbus CRC Check failed, but ignored! %02X!=%02X  %s", computed_crc, remote_crc,
+                 format_hex_pretty(rx_buffer_).c_str());
       } else {
-        ESP_LOGW(TAG, "Modbus CRC Check failed! %02X!=%02X %s at %d", computed_crc, remote_crc, format_hex_pretty(rx_buffer_).c_str(), millis());
+        ESP_LOGW(TAG, "Modbus CRC Check failed! %02X!=%02X %s at %d", computed_crc, remote_crc,
+                 format_hex_pretty(rx_buffer_).c_str(), millis());
         return false;
       }
     }
@@ -186,21 +182,20 @@ bool Modbus::parse_modbus_byte_(uint8_t byte) {
 
   clear_rx_buffer_("parse succeeded");
 
-  if(waiting_for_response == address)
+  if (waiting_for_response == address)
     waiting_for_response = 0;
 
   return true;
 }
 
-void Modbus::send_next_frame_(){
-  if(this->tx_buffer_.size() == 0)
+void Modbus::send_next_frame_() {
+  if (this->tx_buffer_.size() == 0)
     return;
 
-  if(tx_blocked())
+  if (tx_blocked())
     return;
 
   std::vector<uint8_t> data = this->tx_buffer_.front();
-
 
   if (this->role == ModbusRole::CLIENT) {
     waiting_for_response = data[0];
@@ -224,7 +219,6 @@ void Modbus::send_next_frame_(){
     ESP_LOGV(TAG, "Modbus write queue contains %d items.", this->tx_buffer_.size());
   }
 }
-
 
 void Modbus::dump_config() {
   ESP_LOGCONFIG(TAG, "Modbus:");
@@ -290,21 +284,20 @@ void Modbus::send_raw(const std::vector<uint8_t> &payload) {
   data.push_back(crc >> 8);
 
   for (auto &item : tx_buffer_) {
-      if (item == data) {
-        ESP_LOGW(TAG, "Duplicate queued command dropped: %s", format_hex_pretty(data).c_str());
-        return;
-      }
+    if (item == data) {
+      ESP_LOGW(TAG, "Duplicate queued command dropped: %s", format_hex_pretty(data).c_str());
+      return;
     }
+  }
 
   if (tx_buffer_.size() < MODBUS_TX_BUFFER_SIZE) {
     tx_buffer_.push_back(data);
   } else {
     ESP_LOGW(TAG, "Modbus write buffer full, dropped: %s", format_hex_pretty(data).c_str());
   }
-
 }
 
-void Modbus::clear_rx_buffer_(const std::string &reason){
+void Modbus::clear_rx_buffer_(const std::string &reason) {
   size_t at = this->rx_buffer_.size();
   if (at > 0) {
     ESP_LOGV(TAG, "Clearing buffer of %d bytes - %s at %d", at, reason.c_str(), millis());
