@@ -1,7 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import i2c, sensor
-#from esphome.const import ICON_EMPTY, UNIT_EMPTY
 from esphome.const import (
     CONF_BATTERY_LEVEL,
     CONF_BATTERY_VOLTAGE,
@@ -17,20 +16,27 @@ from esphome.const import (
     UNIT_CELSIUS,
     DEVICE_CLASS_TEMPERATURE,
     CONF_THERMISTOR_B_CONSTANT,
+    CONF_VOLTAGE,
 )
 
 DEPENDENCIES = ["i2c"]
 
 lc709203f_ns = cg.esphome_ns.namespace("lc709203f")
-lc709203f = lc709203f_ns.class_(
-    "lc709203f", cg.PollingComponent, i2c.I2CDevice
-)
+
+LC709203FBatteryVoltage = lc709203f_ns.enum("LC709203FBatteryVoltage")
+BATTERY_VOLTAGE_OPTIONS = {
+    "3.7": LC709203FBatteryVoltage.LC709203F_BATTERY_VOLTAGE_3_7,
+    "3.8": LC709203FBatteryVoltage.LC709203F_BATTERY_VOLTAGE_3_8,
+}
+
+lc709203f = lc709203f_ns.class_("lc709203f", cg.PollingComponent, i2c.I2CDevice)
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(lc709203f),
             cv.Optional(CONF_SIZE, default="500"): cv.int_range(200, 3000),
+            cv.Optional(CONF_VOLTAGE, default="3.7"): cv.enum(BATTERY_VOLTAGE_OPTIONS, upper=True),
             cv.Optional(CONF_BATTERY_VOLTAGE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_VOLT,
                 accuracy_decimals=3,
@@ -50,6 +56,7 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=2,
                 device_class=DEVICE_CLASS_TEMPERATURE,
                 state_class=STATE_CLASS_MEASUREMENT,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
             ).extend(
                 {
                     cv.Optional(CONF_THERMISTOR_B_CONSTANT, default="0x0D34"): cv.int_range(0, 0xFFFF),
@@ -66,6 +73,7 @@ async def to_code(config):
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
     cg.add(var.set_pack_size(config.get(CONF_SIZE)))
+    cg.add(var.set_pack_voltage(BATTERY_VOLTAGE_OPTIONS[config[CONF_VOLTAGE]]))
 
     if voltage_config := config.get(CONF_BATTERY_VOLTAGE):
         sens = await sensor.new_sensor(voltage_config)
