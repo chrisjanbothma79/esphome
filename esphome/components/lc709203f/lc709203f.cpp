@@ -165,7 +165,6 @@ void lc709203f::update(){
     else if (this->state_ == LC709203F_STATE_TEMP_SETUP)
     {
         //This should run once on the second update() after initialization.
-        //this->state_ = LC709203F_STATE_NORMAL;
         if (this->temperature_sensor_ != nullptr)
         {
             //This assumes that a thermistor is attached to the device as shown in the datahseet.
