@@ -5,7 +5,7 @@
 
 #include <cinttypes>
 
-#if defined(USE_ESP32) && ESP_IDF_VERSION_MAJOR >= 5
+#if defined(USE_ESP32) && defined(USE_ESP_IDF)
 #include <driver/rmt_rx.h>
 #endif
 
@@ -29,7 +29,7 @@ struct RemoteReceiverComponentStore {
   uint32_t filter_us{10};
   ISRInternalGPIOPin pin;
 };
-#elif defined(USE_ESP32) && ESP_IDF_VERSION_MAJOR >= 5
+#elif defined(USE_ESP32) && defined(USE_ESP_IDF)
 struct RemoteReceiverComponentStore {
   /// Stores RMT symbols and rx done event data
   volatile uint8_t *buffer{nullptr};
@@ -55,7 +55,7 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
 
 {
  public:
-#if defined(USE_ESP32) && ESP_IDF_VERSION_MAJOR < 5
+#if defined(USE_ESP32) && defined(USE_ARDUINO)
   RemoteReceiverComponent(InternalGPIOPin *pin, uint8_t mem_block_num = 1)
       : RemoteReceiverBase(pin), remote_base::RemoteRMTChannel(mem_block_num) {}
 
@@ -69,7 +69,7 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
   void loop() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
 
-#if defined(USE_ESP32) && ESP_IDF_VERSION_MAJOR >= 5
+#if defined(USE_ESP32) && defined(USE_ESP_IDF)
   void set_filter_symbols(uint32_t filter_symbols) { this->filter_symbols_ = filter_symbols; }
   void set_receive_symbols(uint32_t receive_symbols) { this->receive_symbols_ = receive_symbols; }
   void set_with_dma(bool with_dma) { this->with_dma_ = with_dma; }
@@ -80,7 +80,7 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
 
  protected:
 #ifdef USE_ESP32
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   void decode_rmt_(rmt_symbol_word_t *item, size_t item_count);
   rmt_channel_handle_t channel_{NULL};
   uint32_t filter_symbols_{0};
@@ -94,7 +94,7 @@ class RemoteReceiverComponent : public remote_base::RemoteReceiverBase,
   std::string error_string_{""};
 #endif
 
-#if defined(USE_ESP8266) || defined(USE_LIBRETINY) || (defined(USE_ESP32) && ESP_IDF_VERSION_MAJOR >= 5)
+#if defined(USE_ESP8266) || defined(USE_LIBRETINY) || (defined(USE_ESP32) && defined(USE_ESP_IDF))
   RemoteReceiverComponentStore store_;
   HighFrequencyLoopRequester high_freq_;
 #endif

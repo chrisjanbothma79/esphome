@@ -8,7 +8,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/hal.h"
 
-#if defined(USE_ESP32) && ESP_IDF_VERSION_MAJOR < 5
+#if defined(USE_ESP32) && defined(USE_ARDUINO)
 #include <driver/rmt.h>
 #endif
 
@@ -112,7 +112,7 @@ class RemoteComponentBase {
 #ifdef USE_ESP32
 class RemoteRMTChannel {
  public:
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   void set_clock_resolution(uint32_t clock_resolution) { this->clock_resolution_ = clock_resolution; }
   void set_rmt_symbols(uint32_t rmt_symbols) { this->rmt_symbols_ = rmt_symbols; }
 #else
@@ -125,7 +125,7 @@ class RemoteRMTChannel {
 
  protected:
   uint32_t from_microseconds_(uint32_t us) {
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
     const uint32_t ticks_per_ten_us = this->clock_resolution_ / 100000u;
 #else
     const uint32_t ticks_per_ten_us = 80000000u / this->clock_divider_ / 100000u;
@@ -133,7 +133,7 @@ class RemoteRMTChannel {
     return us * ticks_per_ten_us / 10;
   }
   uint32_t to_microseconds_(uint32_t ticks) {
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
     const uint32_t ticks_per_ten_us = this->clock_resolution_ / 100000u;
 #else
     const uint32_t ticks_per_ten_us = 80000000u / this->clock_divider_ / 100000u;
@@ -141,7 +141,7 @@ class RemoteRMTChannel {
     return (ticks * 10) / ticks_per_ten_us;
   }
   RemoteComponentBase *remote_base_;
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   uint32_t clock_resolution_{1000000};
   uint32_t rmt_symbols_;
 #else

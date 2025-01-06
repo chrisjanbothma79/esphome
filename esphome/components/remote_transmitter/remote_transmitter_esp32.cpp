@@ -17,7 +17,7 @@ void RemoteTransmitterComponent::setup() {
 
 void RemoteTransmitterComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Remote Transmitter:");
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   ESP_LOGCONFIG(TAG, "  One wire: %s", this->one_wire_ ? "true" : "false");
   ESP_LOGCONFIG(TAG, "  Clock resolution: %" PRIu32 " hz", this->clock_resolution_);
   ESP_LOGCONFIG(TAG, "  RMT symbols: %" PRIu32, this->rmt_symbols_);
@@ -38,7 +38,7 @@ void RemoteTransmitterComponent::dump_config() {
   }
 }
 
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
 void RemoteTransmitterComponent::digital_write(bool value) {
   rmt_symbol_word_t symbol = {
       .duration0 = 1,
@@ -64,7 +64,7 @@ void RemoteTransmitterComponent::digital_write(bool value) {
 #endif
 
 void RemoteTransmitterComponent::configure_rmt_() {
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   esp_err_t error;
 
   if (!this->initialized_) {
@@ -192,7 +192,7 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
   this->rmt_temp_.clear();
   this->rmt_temp_.reserve((this->temp_.get_data().size() + 1) / 2);
   uint32_t rmt_i = 0;
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   rmt_symbol_word_t rmt_item;
 #else
   rmt_item32_t rmt_item;
@@ -231,7 +231,7 @@ void RemoteTransmitterComponent::send_internal(uint32_t send_times, uint32_t sen
     return;
   }
   this->transmit_trigger_->trigger();
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   for (uint32_t i = 0; i < send_times; i++) {
     rmt_transmit_config_t config;
     memset(&config, 0, sizeof(config));

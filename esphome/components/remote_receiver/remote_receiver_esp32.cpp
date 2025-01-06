@@ -13,7 +13,7 @@ static const uint32_t RMT_CLK_FREQ = 32000000;
 static const uint32_t RMT_CLK_FREQ = 80000000;
 #endif
 
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
 static bool IRAM_ATTR HOT rmt_callback(rmt_channel_handle_t channel, const rmt_rx_done_event_data_t *event, void *arg) {
   RemoteReceiverComponentStore *store = (RemoteReceiverComponentStore *) arg;
   rmt_rx_done_event_data_t *event_buffer = (rmt_rx_done_event_data_t *) (store->buffer + store->buffer_write);
@@ -40,7 +40,7 @@ static bool IRAM_ATTR HOT rmt_callback(rmt_channel_handle_t channel, const rmt_r
 
 void RemoteReceiverComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Remote Receiver...");
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   rmt_rx_channel_config_t channel;
   memset(&channel, 0, sizeof(channel));
   channel.clk_src = RMT_CLK_SRC_DEFAULT;
@@ -154,7 +154,7 @@ void RemoteReceiverComponent::setup() {
 void RemoteReceiverComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Remote Receiver:");
   LOG_PIN("  Pin: ", this->pin_);
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   ESP_LOGCONFIG(TAG, "  Clock resolution: %" PRIu32 " hz", this->clock_resolution_);
   ESP_LOGCONFIG(TAG, "  RMT symbols: %" PRIu32, this->rmt_symbols_);
   ESP_LOGCONFIG(TAG, "  Filter symbols: %" PRIu32, this->filter_symbols_);
@@ -179,7 +179,7 @@ void RemoteReceiverComponent::dump_config() {
 }
 
 void RemoteReceiverComponent::loop() {
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   if (this->store_.error != ESP_OK) {
     ESP_LOGE(TAG, "Receive error");
     this->error_code_ = this->store_.error;
@@ -222,7 +222,7 @@ void RemoteReceiverComponent::loop() {
 #endif
 }
 
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
 void RemoteReceiverComponent::decode_rmt_(rmt_symbol_word_t *item, size_t item_count) {
 #else
 void RemoteReceiverComponent::decode_rmt_(rmt_item32_t *item, size_t item_count) {

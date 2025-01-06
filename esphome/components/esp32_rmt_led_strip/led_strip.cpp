@@ -42,7 +42,7 @@ void ESP32RMTLEDStripLightOutput::setup() {
     return;
   }
 
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   RAMAllocator<rmt_symbol_word_t> rmt_allocator(this->use_psram_ ? 0 : RAMAllocator<rmt_symbol_word_t>::ALLOC_INTERNAL);
 
   // 8 bits per byte, 1 rmt_symbol_word_t per bit + 1 rmt_symbol_word_t for reset
@@ -145,7 +145,7 @@ void ESP32RMTLEDStripLightOutput::write_state(light::LightState *state) {
 
   ESP_LOGVV(TAG, "Writing RGB values to bus...");
 
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   esp_err_t error = rmt_tx_wait_all_done(this->channel_, 1000);
 #else
   esp_err_t error = rmt_wait_tx_done(this->channel_, pdMS_TO_TICKS(1000));
@@ -162,7 +162,7 @@ void ESP32RMTLEDStripLightOutput::write_state(light::LightState *state) {
   size_t size = 0;
   size_t len = 0;
   uint8_t *psrc = this->buf_;
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   rmt_symbol_word_t *pdest = this->rmt_buf_;
 #else
   rmt_item32_t *pdest = this->rmt_buf_;
@@ -184,7 +184,7 @@ void ESP32RMTLEDStripLightOutput::write_state(light::LightState *state) {
     len++;
   }
 
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   rmt_transmit_config_t config;
   memset(&config, 0, sizeof(config));
   config.loop_count = 0;
@@ -249,7 +249,7 @@ light::ESPColorView ESP32RMTLEDStripLightOutput::get_view_internal(int32_t index
 void ESP32RMTLEDStripLightOutput::dump_config() {
   ESP_LOGCONFIG(TAG, "ESP32 RMT LED Strip:");
   ESP_LOGCONFIG(TAG, "  Pin: %u", this->pin_);
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   ESP_LOGCONFIG(TAG, "  RMT Symbols: %" PRIu32, this->rmt_symbols_);
 #else
   ESP_LOGCONFIG(TAG, "  Channel: %u", this->channel_);

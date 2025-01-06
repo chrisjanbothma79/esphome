@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#if defined(USE_ESP32) && ESP_IDF_VERSION_MAJOR >= 5
+#if defined(USE_ESP32) && defined(USE_ESP_IDF)
 #include <driver/rmt_tx.h>
 #endif
 
@@ -20,7 +20,7 @@ class RemoteTransmitterComponent : public remote_base::RemoteTransmitterBase,
 #endif
 {
  public:
-#if defined(USE_ESP32) && ESP_IDF_VERSION_MAJOR < 5
+#if defined(USE_ESP32) && defined(USE_ARDUINO)
   RemoteTransmitterComponent(InternalGPIOPin *pin, uint8_t mem_block_num = 1)
       : remote_base::RemoteTransmitterBase(pin), remote_base::RemoteRMTChannel(mem_block_num) {}
 
@@ -38,7 +38,7 @@ class RemoteTransmitterComponent : public remote_base::RemoteTransmitterBase,
 
   void set_carrier_duty_percent(uint8_t carrier_duty_percent) { this->carrier_duty_percent_ = carrier_duty_percent; }
 
-#if defined(USE_ESP32) && ESP_IDF_VERSION_MAJOR >= 5
+#if defined(USE_ESP32) && defined(USE_ESP_IDF)
   void set_with_dma(bool with_dma) { this->with_dma_ = with_dma; }
   void set_one_wire(bool one_wire) { this->one_wire_ = one_wire; }
   void set_eot_level(bool eot_level) { this->eot_level_ = eot_level; }
@@ -66,7 +66,7 @@ class RemoteTransmitterComponent : public remote_base::RemoteTransmitterBase,
 
   uint32_t current_carrier_frequency_{38000};
   bool initialized_{false};
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   std::vector<rmt_symbol_word_t> rmt_temp_;
   bool with_dma_{false};
   bool one_wire_{false};

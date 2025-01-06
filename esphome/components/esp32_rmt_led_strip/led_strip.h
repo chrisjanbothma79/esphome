@@ -12,7 +12,7 @@
 #include <esp_err.h>
 #include <esp_idf_version.h>
 
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
 #include <driver/rmt_tx.h>
 #else
 #include <driver/rmt.h>
@@ -60,7 +60,7 @@ class ESP32RMTLEDStripLightOutput : public light::AddressableLight {
                       uint32_t reset_time_high, uint32_t reset_time_low);
 
   void set_rgb_order(RGBOrder rgb_order) { this->rgb_order_ = rgb_order; }
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   void set_rmt_symbols(uint32_t rmt_symbols) { this->rmt_symbols_ = rmt_symbols; }
 #else
   void set_rmt_channel(rmt_channel_t channel) { this->channel_ = channel; }
@@ -80,7 +80,7 @@ class ESP32RMTLEDStripLightOutput : public light::AddressableLight {
 
   uint8_t *buf_{nullptr};
   uint8_t *effect_data_{nullptr};
-#if ESP_IDF_VERSION_MAJOR >= 5
+#ifdef USE_ESP_IDF
   rmt_channel_handle_t channel_{nullptr};
   rmt_encoder_handle_t encoder_{nullptr};
   rmt_symbol_word_t *rmt_buf_{nullptr};
