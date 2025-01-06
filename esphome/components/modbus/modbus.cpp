@@ -33,7 +33,8 @@ void Modbus::loop() {
   // If we're past the send_wait_time timeout and response buffer doesn't have the start of the expected response
   if (waiting_for_response_ != 0 && millis() - last_send_ > send_wait_time_ &&
       (rx_buffer_.empty() || rx_buffer_[0] != waiting_for_response_)) {
-    ESP_LOGV(TAG, "Stop waiting for response from %d %dms after last send", waiting_for_response_, millis() - last_send_);
+    ESP_LOGV(TAG, "Stop waiting for response from %d %dms after last send", waiting_for_response_,
+             millis() - last_send_);
     waiting_for_response_ = 0;
   }
 
