@@ -70,8 +70,8 @@ bool OnlineImage::resize_(int width_in, int height_in) {
   if (this->buffer_) {
     return false;
   }
-  auto new_size = this->get_buffer_size_(width, height);
-  ESP_LOGD(TAG, "Allocating new buffer of %d bytes", new_size);
+  size_t new_size = this->get_buffer_size_(width, height);
+  ESP_LOGD(TAG, "Allocating new buffer of %zu bytes", new_size);
   this->buffer_ = this->allocator_.allocate(new_size);
   if (this->buffer_ == nullptr) {
     ESP_LOGE(TAG, "allocation of %zu bytes failed. Biggest block in heap: %zu Bytes", new_size,
