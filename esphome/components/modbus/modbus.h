@@ -9,7 +9,7 @@
 namespace esphome {
 namespace modbus {
 
-static const uint16_t MODBUS_TX_BUFFER_SIZE = 10;
+static const uint16_t MODBUS_TX_BUFFER_SIZE = 100;
 
 enum ModbusRole {
   CLIENT,

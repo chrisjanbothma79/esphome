@@ -296,13 +296,6 @@ void Modbus::send_raw(const std::vector<uint8_t> &payload) {
   data.push_back(crc >> 0);
   data.push_back(crc >> 8);
 
-  for (auto &item : tx_buffer_) {
-    if (item == data) {
-      ESP_LOGW(TAG, "Duplicate queued command dropped: %s", format_hex_pretty(data).c_str());
-      return;
-    }
-  }
-
   if (tx_buffer_.size() < MODBUS_TX_BUFFER_SIZE) {
     tx_buffer_.push_back(data);
   } else {
