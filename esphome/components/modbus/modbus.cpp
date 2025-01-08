@@ -157,18 +157,23 @@ bool Modbus::parse_modbus_byte_(uint8_t byte) {
     if (device->address_ == address) {
       // Is it an error response?
       if ((function_code & 0x80) == 0x80) {
-        ESP_LOGD(TAG, "Modbus error function code: 0x%X exception: %d", function_code, raw[2]);
+        uint8_t exception = raw[2];
+        ESP_LOGD(TAG, "Modbus error function code: 0x%X exception: %d", function_code, exception);
         if (waiting_for_response_ == address) {
-          device->on_modbus_error(function_code & 0x7F, raw[2]);
+          set_timeout("on_modbus_error", 0, [device, function_code, exception](){
+            device->on_modbus_error(function_code & 0x7F, exception);
+          });
         } else {
           // Ignore modbus exception not related to a pending command
           ESP_LOGD(TAG, "Ignoring Modbus error - not expecting a response");
         }
       } else if (this->role == ModbusRole::SERVER && (function_code == 0x3 || function_code == 0x4)) {
-        device->on_modbus_read_registers(function_code, uint16_t(data[1]) | (uint16_t(data[0]) << 8),
+        set_timeout("on_modbus_read_registers", 0, [device,data,function_code](){
+          device->on_modbus_read_registers(function_code, uint16_t(data[1]) | (uint16_t(data[0]) << 8),
                                          uint16_t(data[3]) | (uint16_t(data[2]) << 8));
+        });
       } else {
-        device->on_modbus_data(data);
+        set_timeout("on_modbus_data", 0, [device, data]() { device->on_modbus_data(data); });
       }
       found = true;
     }
