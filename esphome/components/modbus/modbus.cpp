@@ -19,13 +19,13 @@ void Modbus::setup() {
     this->frame_delay_ms_ = 2;  // 1750us minimium per spec - rounded up to 2ms.
 
 #ifdef USE_ESP32_FRAMEWORK_ARDUINO
-  static_cast<uart::ESP32ArduinoUARTComponent*>(this->parent_)->get_hw_serial()->setRxFIFOFull(1);
-#endif // USE_ESP32_FRAMEWORK_ARDUINO
+  static_cast<uart::ESP32ArduinoUARTComponent *>(this->parent_)->get_hw_serial()->setRxFIFOFull(1);
+#endif  // USE_ESP32_FRAMEWORK_ARDUINO
 
 #ifdef USE_ESP_IDF
-  uint8_t serial = static_cast<uart::IDFUARTComponent*>(this->parent_)->get_hw_serial_number();
+  uint8_t serial = static_cast<uart::IDFUARTComponent *>(this->parent_)->get_hw_serial_number();
   uart_set_rx_full_threshold(serial, 1);
-#endif // USE_ESP_IDF
+#endif  // USE_ESP_IDF
 }
 
 void Modbus::loop() {
@@ -171,7 +171,7 @@ bool Modbus::parse_modbus_byte_(uint8_t byte) {
         uint8_t exception = raw[2];
         ESP_LOGD(TAG, "Modbus error function code: 0x%X exception: %d", function_code, exception);
         if (waiting_for_response_ == address) {
-          set_timeout("on_modbus_error", 0, [device, function_code, exception](){
+          set_timeout("on_modbus_error", 0, [device, function_code, exception]() {
             device->on_modbus_error(function_code & 0x7F, exception);
           });
         } else {
@@ -179,9 +179,9 @@ bool Modbus::parse_modbus_byte_(uint8_t byte) {
           ESP_LOGD(TAG, "Ignoring Modbus error - not expecting a response");
         }
       } else if (this->role == ModbusRole::SERVER && (function_code == 0x3 || function_code == 0x4)) {
-        set_timeout("on_modbus_read_registers", 0, [device,data,function_code](){
+        set_timeout("on_modbus_read_registers", 0, [device, data, function_code]() {
           device->on_modbus_read_registers(function_code, uint16_t(data[1]) | (uint16_t(data[0]) << 8),
-                                         uint16_t(data[3]) | (uint16_t(data[2]) << 8));
+                                           uint16_t(data[3]) | (uint16_t(data[2]) << 8));
         });
       } else {
         set_timeout("on_modbus_data", 0, [device, data]() { device->on_modbus_data(data); });
@@ -203,7 +203,7 @@ bool Modbus::parse_modbus_byte_(uint8_t byte) {
 }
 
 void Modbus::send_next_frame_() {
-  if (this->tx_buffer_.size() == 0)
+  if (this->tx_buffer_.empty())
     return;
 
   if (tx_blocked())
