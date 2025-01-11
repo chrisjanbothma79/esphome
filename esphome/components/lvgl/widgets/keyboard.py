@@ -41,7 +41,8 @@ class KeyboardType(WidgetType):
         lvgl_components_required.add("KEY_LISTENER")
         lvgl_components_required.add(CONF_KEYBOARD)
         add_lv_use("btnmatrix")
-        await w.set_property(CONF_MODE, await KEYBOARD_MODES.process(config[CONF_MODE]))
+        if mode := config.get(CONF_MODE):
+            await w.set_property(CONF_MODE, await KEYBOARD_MODES.process(mode))
         if ta := await get_widgets(config, CONF_TEXTAREA):
             await w.set_property(CONF_TEXTAREA, ta[0].obj)
 
