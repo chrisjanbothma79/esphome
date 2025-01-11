@@ -122,7 +122,7 @@ void lc709203f::update() {
       //  sets up the registers properly.
       if (this->get_register(LC709203F_CELL_TEMPERATURE, &buffer) == i2c::NO_ERROR) {
         // Raw units are .1 K
-        this->temperature_sensor_->publish_state((static_cast<float>(buffer) / 10.0) - 273.15 );
+        this->temperature_sensor_->publish_state((static_cast<float>(buffer) / 10.0) - 273.15);
         this->status_clear_warning();
       }
     }
@@ -303,7 +303,7 @@ void lc709203f::set_pack_size(uint16_t pack_size) {
       // If the pack size is exactly one of the values in the array.
       this->APA_ = APA_array[i];
       return;
-    } else if ((i > 0) && (pack_size_array[i] > pack_size) && (pack_size_array[i-1] < pack_size)) {
+    } else if ((i > 0) && (pack_size_array[i] > pack_size) && (pack_size_array[i - 1] < pack_size)) {
       // If the pack size is between the current array element and the previous. Do a linear
       //  Curve fit to determine the APA value.
 
