@@ -9,8 +9,8 @@ namespace lc709203f {
 
 /// Enum listing allowable voltage settings for the LC709203F.
 enum LC709203FBatteryVoltage {
-    LC709203F_BATTERY_VOLTAGE_3_8 = 0x0000,
-    LC709203F_BATTERY_VOLTAGE_3_7 = 0x0001,
+  LC709203F_BATTERY_VOLTAGE_3_8 = 0x0000,
+  LC709203F_BATTERY_VOLTAGE_3_7 = 0x0001,
 };
 
 class lc709203f : public sensor::Sensor, public PollingComponent, public i2c::I2CDevice {
@@ -23,13 +23,15 @@ class lc709203f : public sensor::Sensor, public PollingComponent, public i2c::I2
   void set_thermistor_B_constant(uint16_t B_constant);
   void set_pack_voltage(LC709203FBatteryVoltage pack_voltage);
   void set_voltage_sensor(sensor::Sensor *voltage_sensor) { voltage_sensor_ = voltage_sensor; }
-  void set_battery_remaining_sensor(sensor::Sensor *battery_remaining_sensor) { battery_remaining_sensor_ = battery_remaining_sensor; }
+  void set_battery_remaining_sensor(sensor::Sensor *battery_remaining_sensor) {
+    battery_remaining_sensor_ = battery_remaining_sensor; 
+  }
   void set_temperature_sensor(sensor::Sensor *temperature_sensor) { temperature_sensor_ = temperature_sensor; }
 
  private:
   uint8_t get_register(uint8_t register_to_read, uint16_t *register_value);
   uint8_t set_register(uint8_t register_to_set, uint16_t value_to_set);
-  uint8_t CRC8 (uint8_t *byte_buffer, uint8_t length_of_CRC);
+  uint8_t CRC8(uint8_t *byte_buffer, uint8_t length_of_CRC);
 
  protected:
   sensor::Sensor *voltage_sensor_{nullptr};
@@ -41,10 +43,9 @@ class lc709203f : public sensor::Sensor, public PollingComponent, public i2c::I2
   uint8_t state_;
   uint16_t pack_voltage_;
 
-  //A buffer to store error code messages. We put this here so as to not have to
-  // duplicate buffers in the different functions
+  // A buffer to store error code messages. We put this here so as to not have to
+  //  duplicate buffers in the different functions
   char error_code_buffer [50];
-
 };
 
 }  // namespace lc709203f

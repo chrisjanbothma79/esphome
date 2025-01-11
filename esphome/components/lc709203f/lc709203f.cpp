@@ -105,14 +105,14 @@ void lc709203f::update(){
     if (this->voltage_sensor_ != nullptr) {
       if (this->get_register(LC709203F_CELL_VOLTAGE, &buffer) == i2c::NO_ERROR) {
         // Raw units are mV
-        this->voltage_sensor_->publish_state(static_cast<float>(buffer)/1000.0);
+        this->voltage_sensor_->publish_state(static_cast<float>(buffer) / 1000.0);
         this->status_clear_warning();
       }
     }
     if (this->battery_remaining_sensor_ != nullptr) {
       if (this->get_register(LC709203F_ITE, &buffer) == i2c::NO_ERROR) {
         // Raw units are .1%
-        this->battery_remaining_sensor_->publish_state(static_cast<float>(buffer)/10.0);
+        this->battery_remaining_sensor_->publish_state(static_cast<float>(buffer) / 10.0);
         this->status_clear_warning();
       }
     }
@@ -122,12 +122,11 @@ void lc709203f::update(){
       //  sets up the registers properly.
       if (this->get_register(LC709203F_CELL_TEMPERATURE, &buffer) == i2c::NO_ERROR) {
         // Raw units are .1 K
-        this->temperature_sensor_->publish_state( (static_cast<float>(buffer)/10.0) - 273.15 );
+        this->temperature_sensor_->publish_state( (static_cast<float>(buffer) / 10.0) - 273.15 );
         this->status_clear_warning();
       }
     }
-  }
-  else if (this->state_ == LC709203F_STATE_INIT) {
+  } else if (this->state_ == LC709203F_STATE_INIT) {
     // We should only get here if the init sequence failed during the setup() function.
     //  This would likely occur because of a repeated failure on the I2C bus.
     if (this->set_register(LC709203F_IC_POWER_MODE, LC709203F_POWER_MODE_ON) == i2c::NO_ERROR) {
@@ -137,15 +136,13 @@ void lc709203f::update(){
         }
       }
     }
-  }
-  else if (this->state_ == LC709203F_STATE_RSOC) {
+  } else if (this->state_ == LC709203F_STATE_RSOC) {
     // We implement a delay here to send the initial RSOC command.
     //  This should run once on the first update() after initialization.
     if (this->set_register(LC709203F_INITIAL_RSOC, 0xAA55) == i2c::NO_ERROR) {
       this->state_ = LC709203F_STATE_TEMP_SETUP;
     }
-  }
-  else if (this->state_ == LC709203F_STATE_TEMP_SETUP) {
+  } else if (this->state_ == LC709203F_STATE_TEMP_SETUP) {
     // This should run once on the second update() after initialization.
     if (this->temperature_sensor_ != nullptr) {
       // This assumes that a thermistor is attached to the device as shown in the datahseet.
@@ -154,8 +151,7 @@ void lc709203f::update(){
           this->state_ = LC709203F_STATE_NORMAL;
         }
       }
-    }
-    else {
+    } else {
       // The device expects to get updates to the temperature in this mode.
       //  I am not doing that now. The temperature register defaults to 25C.
       //  In theory, we could have another temperature sensor and have ESPHome
@@ -168,7 +164,7 @@ void lc709203f::update(){
   }
 }
 
-void lc709203f::dump_config(){
+void lc709203f::dump_config() {
   ESP_LOGCONFIG(TAG, "LC709203F:");
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
@@ -182,8 +178,7 @@ void lc709203f::dump_config(){
   ESP_LOGCONFIG(TAG, "  Pack APA: 0x%02X", this->APA_);
   if (this->pack_voltage_ == 0x0000) {
     ESP_LOGCONFIG(TAG, "  Pack Rated Voltage: 3.8V");
-  }
-  else {
+  } else {
     // This is only true if the pack_voltage_ is 0x0001. The config validator should
     //  have already made sure that this value can be only 0 or 1.
     ESP_LOGCONFIG(TAG, "  Pack Rated Voltage: 3.7V");
@@ -195,14 +190,12 @@ void lc709203f::dump_config(){
   if (this->temperature_sensor_ != nullptr) {
     LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
     ESP_LOGCONFIG(TAG, "    B_Constant: %d", this->B_constant_);
-  }
-  else {
+  } else {
     ESP_LOGCONFIG(TAG, "  No Temperature Sensor");
   }
 }
 
-uint8_t lc709203f::get_register(uint8_t register_to_read, uint16_t *register_value)
-{
+uint8_t lc709203f::get_register(uint8_t register_to_read, uint16_t *register_value) {
   i2c::ErrorCode return_code;
   uint8_t read_buffer[6];
 
@@ -222,18 +215,15 @@ uint8_t lc709203f::get_register(uint8_t register_to_read, uint16_t *register_val
     return_code = this->read_register(register_to_read, &read_buffer[3], 3, false);
     if (return_code != i2c::NO_ERROR) {
       // Error on the i2c bus
-      snprintf(this->error_code_buffer, 50,
-        "Error code %d when reading from register 0x%02X", return_code, register_to_read);
+      snprintf(this->error_code_buffer, 50, "Error code %d when reading from register 0x%02X", return_code,
+               register_to_read);
       this->status_set_warning(this->error_code_buffer);
-    }
-    else {
+    } else {
       if(this->CRC8(read_buffer, 5) != read_buffer[5]) {
         // I2C indicated OK, but the CRC of the data does not matcth.
-        snprintf(this->error_code_buffer, 50,
-          "CRC error reading from register 0x%02X", register_to_read);
+        snprintf(this->error_code_buffer, 50, "CRC error reading from register 0x%02X", register_to_read);
         this->status_set_warning(this->error_code_buffer);
-      }
-      else {
+      } else {
         *register_value = ((uint16_t)read_buffer[4] << 8) | (uint16_t)read_buffer[3];
         return i2c::NO_ERROR;
       }
@@ -247,8 +237,7 @@ uint8_t lc709203f::get_register(uint8_t register_to_read, uint16_t *register_val
   *register_value = 0x0000;
   if (return_code != i2c::NO_ERROR) {
     return return_code;
-  }
-  else {
+  } else {
     return 0xFF;
   }
 }
@@ -261,10 +250,9 @@ uint8_t lc709203f::set_register(uint8_t register_to_set, uint16_t value_to_set) 
   //  part of the CRC calculation.
   write_buffer[0] = (this->address_) << 1;
   write_buffer[1] = register_to_set;
-  write_buffer[2] = value_to_set&0xFF;           // Low byte
+  write_buffer[2] = value_to_set & 0xFF;         // Low byte
   write_buffer[3] = (value_to_set >> 8) & 0xFF;  // High byte
   write_buffer[4] = this->CRC8(write_buffer, 4);
-
 
   for (int i = 0; i <= LC709203F_I2C_RETRY_COUNT; i++) {
     return_code = i2c::NO_ERROR;
@@ -274,10 +262,9 @@ uint8_t lc709203f::set_register(uint8_t register_to_set, uint16_t value_to_set) 
     return_code = this->write(&write_buffer[1], 4, true);
     if (return_code == i2c::NO_ERROR) {
       return return_code;
-    }
-    else {
-      snprintf(this->error_code_buffer, 50,
-        "Error code %d when writing to register 0x%02X", return_code, register_to_set);
+    } else {
+      snprintf(this->error_code_buffer, 50, "Error code %d when writing to register 0x%02X", return_code, 
+               register_to_set);
       this->status_set_warning(this->error_code_buffer);
     }
   }
@@ -307,29 +294,27 @@ void lc709203f::set_pack_size(uint16_t pack_size) {
   float slope;
   float intercept;
 
-  this->pack_size_ = pack_size;    // Pack size in mAH
+  this->pack_size_ = pack_size; // Pack size in mAH
 
   // The size is used to calculate the 'Adjustment Pack Application' number.
   // Here we assume a type 01 or type 03 battery and do a linear curve fit to find the APA.
-  for (uint8_t i = 0; i < sizeof(pack_size_array)/sizeof(pack_size_array[0]); i++) {
+  for (uint8_t i = 0; i < sizeof(pack_size_array) / sizeof(pack_size_array[0]); i++) {
     if (pack_size_array[i] == pack_size) {
       // If the pack size is exactly one of the values in the array.
       this->APA_ = APA_array[i];
       return;
-    }
-    else if((i > 0) && (pack_size_array[i] > pack_size) && (pack_size_array[i-1] < pack_size)) {
+    } else if((i > 0) && (pack_size_array[i] > pack_size) && (pack_size_array[i-1] < pack_size)) {
       // If the pack size is between the current array element and the previous. Do a linear
       //  Curve fit to determine the APA value.
 
       // Type casting is required here to avoid interger division
-      slope = static_cast<float>(APA_array[i] - APA_array[i-1]) /
-              static_cast<float>(pack_size_array[i] - pack_size_array[i-1]);
+      slope = static_cast<float>(APA_array[i] - APA_array[i - 1]) /
+              static_cast<float>(pack_size_array[i] - pack_size_array[i - 1]);
 
       // Type casting might not be needed here.
-      intercept = static_cast<float>(APA_array[i])-slope *
-                  static_cast<float>(pack_size_array[i]);
+      intercept = static_cast<float>(APA_array[i])-slope * static_cast<float>(pack_size_array[i]);
 
-      this->APA_ = static_cast<uint8_t>(slope*pack_size+intercept);
+      this->APA_ = static_cast<uint8_t>(slope * pack_size + intercept);
       return;
     }
   }
