@@ -2,7 +2,6 @@
 
 #include "esphome/core/defines.h"
 
-#ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/core/component.h"
 
@@ -24,5 +23,3 @@ class UptimeSecondsSensor : public sensor::Sensor, public PollingComponent {
 
 }  // namespace uptime
 }  // namespace esphome
-
-#endif  // USE_SENSOR
