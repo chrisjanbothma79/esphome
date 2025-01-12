@@ -22,11 +22,11 @@ void UptimeTextSensor::update() {
   // set last_ms_ to the last second boundary
   this->last_ms_ = now - (now % 1000);
   this->uptime_ += delta;
-  auto seconds = this->uptime_;
-  unsigned days = seconds / (24 * 3600);
-  seconds = seconds % (24 * 3600);
+  auto uptime = this->uptime_;
+  unsigned days = uptime / (24 * 3600);
+  unsigned seconds = uptime % (24 * 3600);
   unsigned hours = seconds / 3600;
-  seconds = seconds % 3600;
+  seconds %= 3600;
   unsigned minutes = seconds / 60;
   seconds %= 60;
   if (days != 0) {
