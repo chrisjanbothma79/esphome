@@ -15,6 +15,10 @@ from esphome.components.hid import CONF_HID
 
 CODEOWNERS = ["@tomaszduda23"]
 CONF_USB_DEVICE_ID = "usb_device_id"
+CONF_VENDOR_ID = "vendor_id"
+CONF_PRODUCT_ID = "product_id"
+CONF_MANUFACTURER_NAME = "manufacturer_name"
+CONF_PRODUCT_NAME = "product_name"
 
 
 def _validate_variant(value):
@@ -33,6 +37,10 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(UsbDevice),
+            cv.Optional(CONF_VENDOR_ID): cv.hex_uint16_t,
+            cv.Optional(CONF_PRODUCT_ID): cv.hex_uint16_t,
+            cv.Optional(CONF_MANUFACTURER_NAME): cv.string,
+            cv.Optional(CONF_PRODUCT_NAME): cv.string,
         }
     ).extend(cv.polling_component_schema("10s")),
     cv.only_with_arduino,
@@ -64,6 +72,17 @@ FINAL_VALIDATE_SCHEMA = cv.All(
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
+    if CONF_VENDOR_ID in config:
+        cg.add_define("USE_VENDOR_ID")
+        cg.add(var.set_vendor_id(config[CONF_VENDOR_ID]))
+    if CONF_PRODUCT_ID in config:
+        cg.add_define("USE_PRODUCT_ID")
+        cg.add(var.set_product_id(config[CONF_PRODUCT_ID]))
+    if CONF_MANUFACTURER_NAME in config:
+        cg.add(var.set_manufacturer_name(config[CONF_MANUFACTURER_NAME]))
+    if CONF_PRODUCT_NAME in config:
+        cg.add(var.set_product_name(config[CONF_PRODUCT_NAME]))
+
     await cg.register_component(var, config)
     cg.add_library("adafruit/Adafruit TinyUSB Library", "2.2.4", None)
     cg.add_build_flag("-DCFG_TUSB_MCU=OPT_MCU_ESP32S2")
