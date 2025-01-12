@@ -1634,8 +1634,7 @@ class GenerateID(Optional):
 
 
 def _get_default_key(*args):
-    key = [CORE.target_platform] + list(args)
-    return ["_".join(key)]
+    return ["_".join([CORE.target_platform] + list(args))]
 
 
 class SplitDefault(Optional):
