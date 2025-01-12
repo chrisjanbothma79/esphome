@@ -6,8 +6,11 @@ from esphome.const import (
     DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
-    CONF_IGNORE_THERMOCOUPLE_SHORT_CIRCUIT_ERRORS,
+    # CONF_IGNORE_THERMOCOUPLE_SHORT_CIRCUIT_ERRORS,
 )
+
+# TODO For testing, remove before merging.
+CONF_IGNORE_THERMOCOUPLE_SHORT_CIRCUIT_ERRORS = "ignore_thermocouple_short_circuit_errors"
 
 max31855_ns = cg.esphome_ns.namespace("max31855")
 MAX31855Sensor = max31855_ns.class_(
