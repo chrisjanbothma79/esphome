@@ -11,7 +11,7 @@ CONF_PEOPLE_EXIST = "people_exist"
 
 CONFIG_SCHEMA = {
     cv.GenerateID(CONF_MR60BHA2_ID): cv.use_id(MR60BHA2Component),
-    cv.Optional(CONF_PEOPLE_EXIST): binary_sensor.binary_sensor_schema(
+    cv.Optional(CONF_HAS_TARGET): binary_sensor.binary_sensor_schema(
         device_class=DEVICE_CLASS_OCCUPANCY, icon="mdi:motion-sensor"
     ),
 }
