@@ -299,7 +299,7 @@ void RemoteReceiverComponent::decode_rmt_(rmt_item32_t *item, size_t item_count)
     if (idle_level) {
       this->temp_.push_back(this->idle_us_ * multiplier);
     } else {
-      this->temp_.push_back(-this->idle_us_ * multiplier);
+      this->temp_.push_back(-int32_t(this->idle_us_) * multiplier);
     }
   }
 }
