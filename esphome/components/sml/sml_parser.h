@@ -15,8 +15,8 @@ using byte_span = Span<const uint8_t>;
 
 class SmlNode {
  public:
-  SmlNode(uint8_t type, byte_span bytes) : type(type), value_bytes(bytes) {}
-  SmlNode(uint8_t type, std::vector<SmlNode> &&nodes_) : type(type), nodes(nodes_) {}
+  SmlNode(uint8_t type, byte_span const &bytes) : type(type), value_bytes(bytes) {}
+  SmlNode(uint8_t type, std::vector<SmlNode> &&nodes) : type(type), nodes(nodes) {}
 
   const uint8_t type;
   const byte_span value_bytes;
