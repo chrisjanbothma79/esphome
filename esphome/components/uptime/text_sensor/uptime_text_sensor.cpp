@@ -1,6 +1,5 @@
 #include "uptime_text_sensor.h"
 
-#ifdef USE_TEXT_SENSOR
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
@@ -40,10 +39,8 @@ void UptimeTextSensor::update() {
   }
 }
 
-std::string UptimeTextSensor::unique_id() { return get_mac_address() + "-uptime-text"; }
 float UptimeTextSensor::get_setup_priority() const { return setup_priority::HARDWARE; }
 void UptimeTextSensor::dump_config() { LOG_TEXT_SENSOR("", "Uptime Text Sensor", this); }
 
 }  // namespace uptime
 }  // namespace esphome
-#endif  // USE_TEXT_SENSOR

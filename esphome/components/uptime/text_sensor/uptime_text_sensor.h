@@ -1,7 +1,6 @@
 #pragma once
 
 #include "esphome/core/defines.h"
-#ifdef USE_TEXT_SENSOR
 
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/core/component.h"
@@ -17,8 +16,6 @@ class UptimeTextSensor : public text_sensor::TextSensor, public PollingComponent
 
   float get_setup_priority() const override;
 
-  std::string unique_id() override;
-
  protected:
   uint64_t uptime_{0};
   uint64_t last_ms_{0};
@@ -26,5 +23,3 @@ class UptimeTextSensor : public text_sensor::TextSensor, public PollingComponent
 
 }  // namespace uptime
 }  // namespace esphome
-
-#endif  // USE_TEXT_SENSOR
