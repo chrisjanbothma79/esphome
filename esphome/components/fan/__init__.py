@@ -93,7 +93,7 @@ FAN_SCHEMA = (
             ),
             cv.OnlyWith(CONF_MQTT_ID, "mqtt"): cv.declare_id(mqtt.MQTTFanComponent),
             cv.Optional(CONF_DIRECTION_STATE_TOPIC): cv.All(
-                cv.requires_component("mqtt"), cv.subscribe_topic
+                cv.requires_component("mqtt"), cv.publish_topic
             ),
             cv.Optional(CONF_DIRECTION_COMMAND_TOPIC): cv.All(
                 cv.requires_component("mqtt"), cv.subscribe_topic
