@@ -256,13 +256,13 @@ void UDPComponent::setup() {
       this->status_set_error("Unable to bind socket");
       return;
     }
-#ifndef USE_HOST
+
     for (const auto &listen_address : this->listen_addresses_) {
-      struct ip_mreq imreq = {{0}};
-      imreq.imr_interface.s_addr = IPADDR_ANY;
-      inet_aton(listen_address.str().c_str(), &imreq.imr_multiaddr.s_addr);
-      ESP_LOGVV(TAG, "Join multicast %s", listen_address.str().c_str());
-      err = this->listen_socket_->setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, &imreq, sizeof(struct ip_mreq));
+      struct ip_mreq imreq = {};
+      imreq.imr_interface.s_addr = ESPHOME_INADDR_ANY;
+      inet_aton(listen_address.str().c_str(), &imreq.imr_multiaddr);
+      ESP_LOGV(TAG, "Join multicast %s", listen_address.str().c_str());
+      err = this->listen_socket_->setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, &imreq, sizeof(imreq));
       if (err < 0) {
         ESP_LOGE(TAG, "Failed to set IP_ADD_MEMBERSHIP. Error %d", errno);
         this->mark_failed();
@@ -270,7 +270,6 @@ void UDPComponent::setup() {
         return;
       }
     }
-#endif
   }
 #endif
 #ifdef USE_SOCKET_IMPL_LWIP_TCP
