@@ -82,6 +82,7 @@ class ImageEncoder:
         self.dither = dither
         self.index = 0
         self.invert_alpha = invert_alpha
+        self.path = ""
 
     def convert(self, image):
         """
@@ -103,6 +104,16 @@ class ImageEncoder:
         """
 
 
+def is_alpha_only(image: Image):
+    """
+    Check if an image (assumed to be RGBA) is only alpha
+    """
+    # Any alpha data?
+    if image.split()[-1].getextrema()[0] == 0xFF:
+        return False
+    return all(b.getextrema()[1] == 0 for b in image.split()[:-1])
+
+
 class ImageBinary(ImageEncoder):
     allow_config = {CONF_OPAQUE, CONF_INVERT_ALPHA, CONF_CHROMA_KEY}
 
@@ -112,10 +123,8 @@ class ImageBinary(ImageEncoder):
         self.bitno = 0
 
     def convert(self, image):
-        if self.transparency != CONF_OPAQUE:
-            alpha = image.split()[-1]
-            if alpha.getextrema()[0] < 0xFF:
-                image = alpha
+        if is_alpha_only(image):
+            image = image.split()[-1]
         return image.convert("1", dither=self.dither)
 
     def encode(self, pixel):
@@ -141,10 +150,8 @@ class ImageGrayscale(ImageEncoder):
     allow_config = {CONF_ALPHA_CHANNEL, CONF_CHROMA_KEY, CONF_INVERT_ALPHA, CONF_OPAQUE}
 
     def convert(self, image):
-        if self.transparency != CONF_OPAQUE:
-            alpha = image.split()[-1]
-            if alpha.getextrema()[0] < 0xFF:
-                image = alpha
+        if is_alpha_only(image):
+            image = image.split()[-1]
         return image.convert("LA")
 
     def encode(self, pixel):
@@ -554,6 +561,10 @@ async def write_image(config, all_frames=False):
 
     total_rows = height * frame_count
     encoder = IMAGE_TYPE[type](width, total_rows, transparency, dither, invert_alpha)
+    if transparency == CONF_OPAQUE:
+        _LOGGER.warning(
+            "Image %s is alpha only, but transparency is set to opaque", path
+        )
     for frame_index in range(frame_count):
         image.seek(frame_index)
         pixels = encoder.convert(image.resize((width, height))).getdata()
