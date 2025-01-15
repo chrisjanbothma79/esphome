@@ -126,7 +126,7 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   container->chunked = container->content_length == 0 ? esp_http_client_is_chunked_response(client) : false;
   if (container->chunked) {
     container->content_length = SIZE_MAX;
-    ESP_LOGV(TAG, "HTTP Request is chunked");
+    ESP_LOGV(TAG, "HTTP Response is chunked");
   }
 
   App.feed_wdt();
@@ -161,14 +161,14 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
 
       App.feed_wdt();
       container->content_length = esp_http_client_fetch_headers(client);
-      ESP_LOGV(TAG, "HTTP Request content_length %d", container->content_length);
+      ESP_LOGV(TAG, "HTTP Response content_length %d", container->content_length);
       App.feed_wdt();
       container->status_code = esp_http_client_get_status_code(client);
       App.feed_wdt();
       container->chunked = container->content_length == 0 ? esp_http_client_is_chunked_response(client) : false;
       if (container->chunked) {
         container->content_length = SIZE_MAX;
-        ESP_LOGV(TAG, "HTTP Request is chunked");
+        ESP_LOGV(TAG, "HTTP Response is chunked");
       }
       App.feed_wdt();
       if (is_success(container->status_code)) {
