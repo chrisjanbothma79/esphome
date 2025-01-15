@@ -249,18 +249,11 @@ void UDPComponent::setup() {
     server.sin_addr.s_addr = ESPHOME_INADDR_ANY;
     server.sin_port = htons(this->port_);
 
-    err = this->listen_socket_->bind((struct sockaddr *) &server, sizeof(server));
-    if (err != 0) {
-      ESP_LOGE(TAG, "Socket unable to bind: errno %d", errno);
-      this->mark_failed();
-      this->status_set_error("Unable to bind socket");
-      return;
-    }
-
     for (const auto &listen_address : this->listen_addresses_) {
       struct ip_mreq imreq = {};
       imreq.imr_interface.s_addr = ESPHOME_INADDR_ANY;
       inet_aton(listen_address.str().c_str(), &imreq.imr_multiaddr);
+      server.sin_addr.s_addr = imreq.imr_multiaddr.s_addr;
       ESP_LOGV(TAG, "Join multicast %s", listen_address.str().c_str());
       err = this->listen_socket_->setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, &imreq, sizeof(imreq));
       if (err < 0) {
@@ -269,6 +262,14 @@ void UDPComponent::setup() {
         this->status_set_error("Failed to set IP_ADD_MEMBERSHIP");
         return;
       }
+    }
+
+    err = this->listen_socket_->bind((struct sockaddr *) &server, sizeof(server));
+    if (err != 0) {
+      ESP_LOGE(TAG, "Socket unable to bind: errno %d", errno);
+      this->mark_failed();
+      this->status_set_error("Unable to bind socket");
+      return;
     }
   }
 #endif
