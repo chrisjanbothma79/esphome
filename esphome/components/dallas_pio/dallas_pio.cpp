@@ -34,7 +34,7 @@ void DallasPio::setup() {
   if (this->is_setup_done_)
     return;
   // ESP_LOGD("dallas_pio", "Setting up DallasPio: %s", this->name_.c_str());
-  this->initialize_reference_();
+  this->initialize_reference();
   this->is_setup_done_ = true;
 }
 
@@ -164,9 +164,9 @@ void DallasPio::ds2413_write_state_(bool state) {
     uint8_t mask = 1 << (this->pin_ - 1);
     // If state different than this->pin_inverted_
     if (state ^ this->pin_inverted_) {
-      this->PioOutputRegister_ &= ~mask;  // set bit bx to 0
+      this->pio_output_register_ &= ~mask;  // set bit bx to 0
     } else {
-      this->PioOutputRegister_ |= mask;  // set bx to 1
+      this->pio_output_register_ |= mask;  // set bx to 1
     }
   } else {
     return;
@@ -174,9 +174,9 @@ void DallasPio::ds2413_write_state_(bool state) {
   {
     InterruptLock lock;
     this->send_command_(DALLAS_COMMAND_PIO_ACCESS_WRITE);
-    this->bus_->write8(this->PioOutputRegister_);   // Send data
-    this->bus_->write8(~this->PioOutputRegister_);  // Invert data and resend
-    ack = this->bus_->read8();                      // 0xAA=success, 0xFF=failure
+    this->bus_->write8(this->pio_output_register_);   // Send data
+    this->bus_->write8(~this->pio_output_register_);  // Invert data and resend
+    ack = this->bus_->read8();                        // 0xAA=success, 0xFF=failure
   }
   if (ack == DALLAS_COMMAND_PIO_ACK_SUCCESS) {
     this->bus_->read8();  // Read the PIOA PIOB status byte
@@ -218,7 +218,7 @@ bool DallasPio::ds2406_get_state_(uint8_t &state, bool use_crc = false) {
   uint8_t channel_control_byte_2 = 0xFF;
   uint8_t channel_info_byte;
   uint8_t received_crc = 0;
-  const char *strPIO = nullptr;
+  const char *str_pio = nullptr;
   // Initialize One-Wire bus for this device
   if (!this->check_address_()) {
     this->status_set_warning();
@@ -278,13 +278,13 @@ bool DallasPio::ds2406_get_state_(uint8_t &state, bool use_crc = false) {
       pio_flipflop = channel_info_byte & 0x01;
       pio_sensed_level = channel_info_byte & 0x04;
       pio_activity_latch = channel_info_byte & 0x10;
-      strPIO = "PIOA";
+      str_pio = "PIOA";
       break;
     case 0x02:  // PIOB
       pio_flipflop = channel_info_byte & 0x02;
       pio_sensed_level = channel_info_byte & 0x08;
       pio_activity_latch = channel_info_byte & 0x20;
-      strPIO = "PIOB";
+      str_pio = "PIOB";
       break;
     default:
       ESP_LOGW(TAG, "DallasPio DS2406 pin %u does not exist !", this->pin_);
@@ -293,7 +293,7 @@ bool DallasPio::ds2406_get_state_(uint8_t &state, bool use_crc = false) {
       break;
   }
   if (pio_flipflop == 0) {
-    ESP_LOGW(TAG, "DallasPio DS2406 PIO flipflop must be 1 to read %s", strPIO);
+    ESP_LOGW(TAG, "DallasPio DS2406 PIO flipflop must be 1 to read %s", str_pio);
     this->status_set_warning();
     return false;
   }
@@ -385,7 +385,6 @@ bool DallasPio::ds2408_get_state_(uint8_t &state, bool use_crc = false) {
 void DallasPio::ds2408_write_state_(bool state, bool use_crc = false) {
   ESP_LOGW(TAG, "DallasPio DS2408 : ds2408_write_state_ to be implemented");
   this->status_set_warning();
-  return;
 }
 
 void DallasPio::crc_reset_() { this->crc_ = 0x0000; }

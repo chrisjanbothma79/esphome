@@ -23,7 +23,7 @@ class DallasPio : public Component, public one_wire::OneWireDevice {
 
   void setup() override;
   void dump_config() override;
-  void initialize_reference_() {
+  void initialize_reference() {
     this->family_code_ = static_cast<uint8_t>(this->address_ & 0xFF);
     switch (this->family_code_) {
       case DALLAS_MODEL_DS2413:
@@ -39,7 +39,7 @@ class DallasPio : public Component, public one_wire::OneWireDevice {
         this->reference_from_address_ = "Unknown";
         break;
     }
-    if (this->reference_ == "") {
+    if (this->reference_.empty()) {
       if (this->reference_from_address_ == "Unknown") {
         this->reference_ = "DS2413";
       } else {
@@ -48,13 +48,7 @@ class DallasPio : public Component, public one_wire::OneWireDevice {
     }
 
     if (this->reference_ == "DS2413") {
-      PioOutputRegister_ = 0xFF;
-    } else if (this->reference_ == "DS2406") {
-      // Action pour DS2406
-    } else if (this->reference_ == "DS2408") {
-      // Action pour DS2408
-    } else {
-      // Action par défaut
+      pio_output_register_ = 0xFF;
     }
   }
 
@@ -89,7 +83,7 @@ class DallasPio : public Component, public one_wire::OneWireDevice {
   // uint8_t calculate_crc_(std::initializer_list<uint8_t> data);
   uint8_t pin_;
   bool pin_inverted_;
-  uint8_t PioOutputRegister_;
+  uint8_t pio_output_register_;
 };
 
 }  // namespace dallas_pio
