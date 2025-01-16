@@ -1,7 +1,5 @@
 #pragma once
 
-#include "es7210.h"
-
 namespace esphome {
 namespace es7210 {
 
@@ -42,7 +40,7 @@ static const uint8_t ES7210_MIC12_POWER_REG4B = 0x4B; /* MICBias & ADC & PGA Pow
 static const uint8_t ES7210_MIC34_POWER_REG4C = 0x4C;
 
 /*
- * Clock coefficient structer
+ * Clock coefficient structure
  */
 struct ES7210Coefficient {
   uint32_t mclk;  // mclk frequency
@@ -120,6 +118,11 @@ static const ES7210Coefficient ES7210_COEFFICIENTS[] = {
     /* 96k */
     {12288000, 96000, 0x01, 0x01, 0x01, 0x01, 0x20, 0x00, 0x00, 0x80},
     {19200000, 96000, 0x01, 0x05, 0x00, 0x01, 0x28, 0x00, 0x00, 0xc8},
+};
+
+static const uint8_t ES7210_MIC_GAIN_COUNT = 15;
+static const float ES7210_MIC_GAINS[ES7210_MIC_GAIN_COUNT] = {
+    0.0, 3.0, 6.0, 9.0, 12.0, 15.0, 18.0, 21.0, 24.0, 27.0, 30.0, 33.0, 34.5, 36.0, 37.5,
 };
 
 }  // namespace es7210
