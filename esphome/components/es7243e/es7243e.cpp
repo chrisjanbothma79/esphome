@@ -69,7 +69,7 @@ void ES7243E::setup() {
   ES7243E_ERROR_FAILED(this->write_byte(0x20, 0x1A));  // PGA gain +30dB
   ES7243E_ERROR_FAILED(this->write_byte(0x21, 0x1A));
 
-  ES7243E_ERROR_FAILED(this->write_byte(0x00, 0x80));  // Slave  Mode
+  ES7243E_ERROR_FAILED(this->write_byte(0x00, 0x80));
   ES7243E_ERROR_FAILED(this->write_byte(0x01, 0x3A));
   ES7243E_ERROR_FAILED(this->write_byte(0x16, 0x3F));
   ES7243E_ERROR_FAILED(this->write_byte(0x16, 0x00));
