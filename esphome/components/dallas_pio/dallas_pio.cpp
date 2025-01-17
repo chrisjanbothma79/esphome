@@ -306,7 +306,7 @@ bool DallasPio::ds2406_get_state_(uint8_t &state, bool use_crc = false) {
   ESP_LOGD(TAG,
            "Got %s pio_flipflop=%d, pio_sensed_level=%d, "
            "pio_activity_latch=%d",
-           str_pio, pio_sensed_level, pio_activity_latch);
+           str_pio, pio_flipflop, pio_sensed_level, pio_activity_latch);
   if (pio_flipflop == 0) {
     ESP_LOGW(TAG, "DallasPio DS2406 PIO flipflop must be 1 to read %s", str_pio);
     this->status_set_warning();
