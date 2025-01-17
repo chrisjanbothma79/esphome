@@ -30,6 +30,8 @@ from esphome.const import (
     CONF_DUMMY_RECEIVER_ID,
     CONF_LAMBDA,
     PLATFORM_HOST,
+    KEY_CORE,
+    KEY_FRAMEWORK_VERSION
 )
 from esphome.core import CORE
 
@@ -117,10 +119,21 @@ def validate_rx_pin(value):
         raise cv.Invalid("Pins GPIO16 and GPIO17 cannot be used as RX pins on ESP8266.")
     return value
 
+
 def validate_flow_control_support(config):
-    if CONF_FLOW_CONTROL_PIN in config and not CORE.is_esp32:
-        raise cv.Invalid("Hardware does not support flow control.")
-    return config
+    if CORE.is_esp32 and CORE.using_arduino:
+        if CORE.data[KEY_CORE][
+            KEY_FRAMEWORK_VERSION
+        ] >= cv.Version(2, 0, 8):
+            cg.add_define("USE_UART_FLOW_CONTROL")
+        elif CONF_FLOW_CONTROL_PIN in config:
+            raise cv.Invalid(
+                "ESP32 RS485 UART Flow Control requires Arduino framework version 2.0.8 or higher."
+            )
+    elif CORE.is_esp32:
+        return config
+    else:
+        raise cv.Invalid("Hardware does not support RS485 flow control.")
 
 
 def validate_invert_esp32(config):
