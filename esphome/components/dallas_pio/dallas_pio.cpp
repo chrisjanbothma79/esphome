@@ -72,9 +72,7 @@ bool DallasPio::read_state(uint8_t &state, uint8_t pin) {
   } else if (this->reference_ == "DS2406") {
     return this->ds2406_get_state_(state, this->crc_enabled_);
   } else if (this->reference_ == "DS2408") {
-    // Action pour DS2408
-  } else {
-    // Action par défaut
+    return this->ds2408_get_state_(state, this->crc_enabled_);
   }
   return true;
 }
@@ -88,9 +86,7 @@ bool DallasPio::write_state(bool state, uint8_t pin, bool pin_inverted) {
   } else if (this->reference_ == "DS2406") {
     this->ds2406_write_state_(state, this->crc_enabled_);
   } else if (this->reference_ == "DS2408") {
-    // Action for DS2408
-  } else {
-    // Default action
+    this->ds2408_write_state_(state, this->crc_enabled_);
   }
   return true;
 }
@@ -307,6 +303,10 @@ bool DallasPio::ds2406_get_state_(uint8_t &state, bool use_crc = false) {
       return false;
       break;
   }
+  ESP_LOGD(TAG,
+           "Got %s pio_flipflop=%d, pio_sensed_level=%d, "
+           "pio_activity_latch=%d",
+           str_pio, pio_sensed_level, pio_activity_latch);
   if (pio_flipflop == 0) {
     ESP_LOGW(TAG, "DallasPio DS2406 PIO flipflop must be 1 to read %s", str_pio);
     this->status_set_warning();
@@ -367,6 +367,7 @@ void DallasPio::ds2406_write_state_(bool state, bool use_crc = false) {
     channel_info_byte = this->bus_->read8();
     this->bus_->write8(state ? 0xFF : 0x00);
   }
+  ESP_LOGD(TAG, "channel_info_byte=%d", channel_info_byte);
   if (!this->bus_->reset()) {
     ESP_LOGW(TAG, "Failed to reset One-Wire bus.");
     this->status_set_warning();
