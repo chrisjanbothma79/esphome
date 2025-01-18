@@ -400,7 +400,7 @@ bool DallasPio::ds2408_read_device_(uint8_t &pio_logic_state, bool use_crc = fal
   // PIO Output Latch State Register Bitmap
   // ADDR  b7  b6  b5  b4  b3  b2  b1  b0
   // 0x89  PL7 PL6 PL5 PL4 PL3 PL2 PL1 PL0
-  constexpr uint16_t TARGET_ADDRESS = 0x0088;
+  constexpr uint16_t target_address = 0x0088;
   uint8_t data[8];
   uint16_t crc_received = 0;
   // Initialize One-Wire bus for this device
@@ -417,11 +417,11 @@ bool DallasPio::ds2408_read_device_(uint8_t &pio_logic_state, bool use_crc = fal
     InterruptLock lock;
     this->send_command_(DALLAS_DS2408_COMMAND_READ_PIO_REGISTERS);
     // LSB of the address to read from
-    this->bus_->write8(TARGET_ADDRESS & 0xFF);  // LSB
+    this->bus_->write8(target_address & 0xFF);  // LSB
     // MSB of the address to read from
-    this->bus_->write8((TARGET_ADDRESS >> 8) & 0xFF);  // MSB
-    for (int i = 0; i < 8; i++) {
-      data[i] = this->bus_->read8();
+    this->bus_->write8((target_address >> 8) & 0xFF);  // MSB
+    for (unsigned char &i : data) {
+      i = this->bus_->read8();
     }
     if (use_crc) {
       crc_received |= this->bus_->read8();         // LSB
@@ -431,8 +431,8 @@ bool DallasPio::ds2408_read_device_(uint8_t &pio_logic_state, bool use_crc = fal
   if (use_crc) {
     uint8_t crc_input[11];
     crc_input[0] = DALLAS_DS2408_COMMAND_READ_PIO_REGISTERS;
-    crc_input[1] = TARGET_ADDRESS & 0xFF;
-    crc_input[2] = (TARGET_ADDRESS >> 8) & 0xFF;
+    crc_input[1] = target_address & 0xFF;
+    crc_input[2] = (target_address >> 8) & 0xFF;
     memcpy(&crc_input[3], data, 8);  // Copier les données dans le tableau CRC
 
     uint16_t calculated_crc = this->calculate_crc16_(crc_input, 11);
@@ -448,8 +448,8 @@ bool DallasPio::ds2408_read_device_(uint8_t &pio_logic_state, bool use_crc = fal
 }
 
 bool DallasPio::ds2408_get_state_(uint8_t &state, bool use_crc = false) {
-  uint8_t currentState = 0;
-  if (!this->ds2408_read_device_(currentState, use_crc)) {
+  uint8_t current_state = 0;
+  if (!this->ds2408_read_device_(current_state, use_crc)) {
     this->status_set_warning();
     return false;
   }
@@ -460,7 +460,7 @@ bool DallasPio::ds2408_get_state_(uint8_t &state, bool use_crc = false) {
     return false;
   }
 
-  state = (currentState >> pin_index) & 0x01;
+  state = (current_state >> pin_index) & 0x01;
 
   return true;
 }  // ds2408_get_state_
@@ -474,13 +474,13 @@ void DallasPio::ds2408_write_state_(bool state, bool use_crc = false) {
   // ADDR  b7  b6  b5  b4  b3  b2  b1  b0
   // 0x89  PL7 PL6 PL5 PL4 PL3 PL2 PL1 PL0
   // Initialize One-Wire bus for this device
-  uint8_t currentState = 0;
+  uint8_t current_state = 0;
   uint8_t ack = 0;
-  if (!this->ds2408_read_device_(currentState, use_crc)) {
+  if (!this->ds2408_read_device_(current_state, use_crc)) {
     this->status_set_warning();
     return;
   }
-  uint8_t newState = state ? (currentState | (1 << this->pin_)) : (currentState & ~(1 << this->pin_));
+  uint8_t new_state = state ? (current_state | (1 << this->pin_)) : (current_state & ~(1 << this->pin_));
 
   if (!this->check_address_()) {
     this->status_set_warning();
@@ -494,8 +494,8 @@ void DallasPio::ds2408_write_state_(bool state, bool use_crc = false) {
   {
     InterruptLock lock;
     this->send_command_(DALLAS_DS2408_COMMAND_WRITE_PIO_REGISTERS);
-    this->bus_->write8(newState);
-    this->bus_->write8(~newState);
+    this->bus_->write8(new_state);
+    this->bus_->write8(~new_state);
     ack = this->bus_->read8();  // 0xAA=success, 0xFF=failure
   }
   if (ack != DALLAS_COMMAND_PIO_ACK_SUCCESS) {
