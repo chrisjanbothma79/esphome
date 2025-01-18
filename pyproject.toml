@@ -108,6 +108,7 @@ expected-line-ending-format = "LF"
 
 [tool.ruff]
 required-version = ">=0.5.0"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = [

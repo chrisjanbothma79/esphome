@@ -2,7 +2,6 @@ from dataclasses import dataclass
 import logging
 import os
 from pathlib import Path
-from typing import Optional, Union
 
 from esphome import git
 import esphome.codegen as cg
@@ -142,7 +141,7 @@ class RawSdkconfigValue:
     value: str
 
 
-SdkconfigValueType = Union[bool, int, HexInt, str, RawSdkconfigValue]
+SdkconfigValueType = bool | int | HexInt | str | RawSdkconfigValue
 
 
 def add_idf_sdkconfig_option(name: str, value: SdkconfigValueType):
@@ -159,8 +158,8 @@ def add_idf_component(
     ref: str = None,
     path: str = None,
     refresh: TimePeriod = None,
-    components: Optional[list[str]] = None,
-    submodules: Optional[list[str]] = None,
+    components: list[str] | None = None,
+    submodules: list[str] | None = None,
 ):
     """Add an esp-idf component to the project."""
     if not CORE.using_esp_idf:
