@@ -556,6 +556,7 @@ int WaveshareEPaperTypeA::get_width_controller() {
   switch (this->model_) {
     case WAVESHARE_EPAPER_2_13_IN:
     case WAVESHARE_EPAPER_2_13_IN_V2:
+    case WAVESHARE_EPAPER_2_13_IN_V3:
     case TTGO_EPAPER_2_13_IN:
     case TTGO_EPAPER_2_13_IN_B73:
     case TTGO_EPAPER_2_13_IN_B74:
