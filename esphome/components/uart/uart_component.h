@@ -83,7 +83,7 @@ class UARTComponent {
   void set_rx_pin(InternalGPIOPin *rx_pin) { this->rx_pin_ = rx_pin; }
 
   // Sets the flow control pin for the UART bus.
-  // @param rx_pin Pointer to the internal GPIO pin used for reception.
+  // @param flow_control_pin Pointer to the internal GPIO pin used for flow control.
   void set_flow_control_pin(InternalGPIOPin *flow_control_pin) { this->flow_control_pin_ = flow_control_pin; }
 
   // Sets the size of the RX buffer.
@@ -93,6 +93,22 @@ class UARTComponent {
   // Gets the size of the RX buffer.
   // @return Size of the RX buffer in bytes.
   size_t get_rx_buffer_size() { return this->rx_buffer_size_; }
+
+  // Sets the RX FIFO full interrupt threshold.
+  // @param rx_full_threshold RX full interrupt threshold in bytes.
+  void set_rx_full_threshold(size_t rx_full_threshold) { this->rx_full_threshold_ = rx_full_threshold; }
+
+  // Gets the RX FIFO full interrupt threshold.
+  // @return RX full interrupt threshold in bytes.
+  size_t get_rx_full_threshold() { return this->rx_full_threshold_; }
+
+  // Sets the RX timeout interrupt threshold.
+  // @param rx_timeout RX timeout interrupt threshold (unit: time of sending one byte).
+  void set_rx_timeout(size_t rx_timeout) { this->rx_timeout_ = rx_timeout; }
+
+  // Gets the RX timeout interrupt threshold.
+  // @return RX timeout interrupt threshold (unit: time of sending one byte).
+  size_t get_rx_timeout() { return this->rx_timeout_; }
 
   // Sets the number of stop bits used in UART communication.
   // @param stop_bits Number of stop bits.
@@ -167,6 +183,8 @@ class UARTComponent {
   InternalGPIOPin *rx_pin_;
   InternalGPIOPin *flow_control_pin_;
   size_t rx_buffer_size_;
+  size_t rx_full_threshold_;
+  size_t rx_timeout_;
   uint32_t baud_rate_;
   uint8_t stop_bits_;
   uint8_t data_bits_;

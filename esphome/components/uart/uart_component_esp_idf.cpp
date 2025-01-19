@@ -96,6 +96,12 @@ void IDFUARTComponent::setup() {
 
   xSemaphoreTake(this->lock_, portMAX_DELAY);
 
+  this->load_settings(false);
+
+  xSemaphoreGive(this->lock_);
+}
+
+void IDFUARTComponent::load_settings(bool dump_config) {
   uart_config_t uart_config = this->get_config_();
   esp_err_t err = uart_param_config(this->uart_num_, &uart_config);
   if (err != ESP_OK) {
@@ -128,6 +134,14 @@ void IDFUARTComponent::setup() {
     return;
   }
 
+  if (uart_is_driver_installed(this->uart_num_)) {
+    uart_driver_delete(this->uart_num_);
+    if (err != ESP_OK) {
+      ESP_LOGW(TAG, "uart_driver_delete failed: %s", esp_err_to_name(err));
+      this->mark_failed();
+      return;
+    }
+  }
   err = uart_driver_install(this->uart_num_, /* UART RX ring buffer size. */ this->rx_buffer_size_,
                             /* UART TX ring buffer size. If set to zero, driver will not use TX buffer, TX function will
                                block task until all data have been sent out.*/
@@ -140,26 +154,29 @@ void IDFUARTComponent::setup() {
     return;
   }
 
-  if (this->flow_control_pin_ != nullptr) {
-    err = uart_set_mode(this->uart_num_, UART_MODE_RS485_HALF_DUPLEX);
-    if (err != ESP_OK) {
-      ESP_LOGW(TAG, "uart_set_mode failed: %s", esp_err_to_name(err));
-      this->mark_failed();
-      return;
-    }
-  }
-
-  xSemaphoreGive(this->lock_);
-}
-
-void IDFUARTComponent::load_settings(bool dump_config) {
-  uart_config_t uart_config = this->get_config_();
-  esp_err_t err = uart_param_config(this->uart_num_, &uart_config);
+  err = uart_set_rx_full_threshold(this->uart_num_, this->rx_full_threshold_);
   if (err != ESP_OK) {
-    ESP_LOGW(TAG, "uart_param_config failed: %s", esp_err_to_name(err));
+    ESP_LOGW(TAG, "uart_set_rx_full_threshold failed: %s", esp_err_to_name(err));
     this->mark_failed();
     return;
-  } else if (dump_config) {
+  }
+
+  err = uart_set_rx_timeout(this->uart_num_, this->rx_timeout_);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "uart_set_rx_timeout failed: %s", esp_err_to_name(err));
+    this->mark_failed();
+    return;
+  }
+
+  auto mode = this->flow_control_pin_ != nullptr ? UART_MODE_RS485_HALF_DUPLEX : UART_MODE_UART;
+  err = uart_set_mode(this->uart_num_, mode);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "uart_set_mode failed: %s", esp_err_to_name(err));
+    this->mark_failed();
+    return;
+  }
+
+  if (dump_config) {
     ESP_LOGCONFIG(TAG, "UART %u was reloaded.", this->uart_num_);
     this->dump_config();
   }
@@ -172,6 +189,8 @@ void IDFUARTComponent::dump_config() {
   LOG_PIN("  Flow Control Pin: ", flow_control_pin_);
   if (this->rx_pin_ != nullptr) {
     ESP_LOGCONFIG(TAG, "  RX Buffer Size: %u", this->rx_buffer_size_);
+    ESP_LOGCONFIG(TAG, "  RX Full Threshold: %u", this->rx_full_threshold_);
+    ESP_LOGCONFIG(TAG, "  RX Timeout: %u", this->rx_timeout_);
   }
   ESP_LOGCONFIG(TAG, "  Baud Rate: %" PRIu32 " baud", this->baud_rate_);
   ESP_LOGCONFIG(TAG, "  Data Bits: %u", this->data_bits_);

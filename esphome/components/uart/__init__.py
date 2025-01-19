@@ -30,8 +30,6 @@ from esphome.const import (
     CONF_DUMMY_RECEIVER_ID,
     CONF_LAMBDA,
     PLATFORM_HOST,
-    KEY_CORE,
-    KEY_FRAMEWORK_VERSION,
 )
 from esphome.core import CORE
 
@@ -100,6 +98,9 @@ UARTDummyReceiver = uart_ns.class_("UARTDummyReceiver", cg.Component)
 MULTI_CONF = True
 MULTI_CONF_NO_DEFAULT = True
 
+CONF_RX_FULL_THRESHOLD = "rx_full_threshold"
+CONF_RX_TIMEOUT = "rx_timeout"
+
 
 def validate_raw_data(value):
     if isinstance(value, str):
@@ -118,19 +119,6 @@ def validate_rx_pin(value):
     if CORE.is_esp8266 and value[CONF_NUMBER] >= 16:
         raise cv.Invalid("Pins GPIO16 and GPIO17 cannot be used as RX pins on ESP8266.")
     return value
-
-
-def validate_flow_control_support(config):
-    if CORE.is_esp32 and CORE.using_arduino:
-        if CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION] >= cv.Version(2, 0, 8):
-            cg.add_define("USE_UART_FLOW_CONTROL")
-        elif CONF_FLOW_CONTROL_PIN in config:
-            raise cv.Invalid(
-                "ESP32 RS485 UART Flow Control requires Arduino framework version 2.0.8 or higher."
-            )
-    elif not CORE.is_esp32 and CONF_FLOW_CONTROL_PIN in config:
-        raise cv.Invalid("Hardware does not support RS485 flow control.")
-    return config
 
 
 def validate_invert_esp32(config):
@@ -255,9 +243,17 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_BAUD_RATE): cv.int_range(min=1),
             cv.Optional(CONF_TX_PIN): pins.internal_gpio_output_pin_schema,
             cv.Optional(CONF_RX_PIN): validate_rx_pin,
-            cv.Optional(CONF_FLOW_CONTROL_PIN): pins.internal_gpio_output_pin_schema,
+            cv.Optional(CONF_FLOW_CONTROL_PIN): cv.All(
+                cv.only_on_esp32, pins.internal_gpio_output_pin_schema
+            ),
             cv.Optional(CONF_PORT): cv.All(validate_port, cv.only_on(PLATFORM_HOST)),
             cv.Optional(CONF_RX_BUFFER_SIZE, default=256): cv.validate_bytes,
+            cv.SplitDefault(CONF_RX_FULL_THRESHOLD, esp32=120): cv.All(
+                cv.only_on_esp32, cv.validate_bytes, cv.uint8_t
+            ),
+            cv.SplitDefault(CONF_RX_TIMEOUT, esp32=2): cv.All(
+                cv.only_on_esp32, cv.validate_bytes, cv.int_range(min=0, max=92)
+            ),
             cv.Optional(CONF_STOP_BITS, default=1): cv.one_of(1, 2, int=True),
             cv.Optional(CONF_DATA_BITS, default=8): cv.int_range(min=5, max=8),
             cv.Optional(CONF_PARITY, default="NONE"): cv.enum(
@@ -271,7 +267,6 @@ CONFIG_SCHEMA = cv.All(
     ).extend(cv.COMPONENT_SCHEMA),
     cv.has_at_least_one_key(CONF_TX_PIN, CONF_RX_PIN, CONF_PORT),
     validate_invert_esp32,
-    validate_flow_control_support,
     validate_host_config,
 )
 
@@ -320,6 +315,9 @@ async def to_code(config):
     if CONF_PORT in config:
         cg.add(var.set_name(config[CONF_PORT]))
     cg.add(var.set_rx_buffer_size(config[CONF_RX_BUFFER_SIZE]))
+    if CORE.is_esp32:
+        cg.add(var.set_rx_full_threshold(config[CONF_RX_FULL_THRESHOLD]))
+        cg.add(var.set_rx_timeout(config[CONF_RX_TIMEOUT]))
     cg.add(var.set_stop_bits(config[CONF_STOP_BITS]))
     cg.add(var.set_data_bits(config[CONF_DATA_BITS]))
     cg.add(var.set_parity(config[CONF_PARITY]))

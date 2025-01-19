@@ -134,6 +134,7 @@ void ESP32ArduinoUARTComponent::setup() {
 void ESP32ArduinoUARTComponent::load_settings(bool dump_config) {
   int8_t tx = this->tx_pin_ != nullptr ? this->tx_pin_->get_pin() : -1;
   int8_t rx = this->rx_pin_ != nullptr ? this->rx_pin_->get_pin() : -1;
+  int8_t flow_control = this->flow_control_pin_ != nullptr ? this->flow_control_pin_->get_pin() : -1;
   bool invert = false;
   if (tx_pin_ != nullptr && tx_pin_->is_inverted())
     invert = true;
@@ -141,12 +142,12 @@ void ESP32ArduinoUARTComponent::load_settings(bool dump_config) {
     invert = true;
   this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
   this->hw_serial_->begin(this->baud_rate_, get_config(), rx, tx, invert);
-#ifdef USE_UART_FLOW_CONTROL
-  if (this->flow_control_pin_ != nullptr) {
-    this->hw_serial_->setPins(-1, -1, -1, this->flow_control_pin_->get_pin());
-    this->hw_serial_->setMode(UART_MODE_RS485_HALF_DUPLEX);
-  }
-#endif
+  this->hw_serial_->setPins(-1, -1, -1, flow_control);
+  // Use deep level function because hw_serial_->setMode() is only available in Arduino Framework 2.0.8
+  auto mode = this->flow_control_pin_ != nullptr ? UART_MODE_RS485_HALF_DUPLEX : UART_MODE_UART;
+  uart_set_mode(this->number_, mode);
+  this->hw_serial_->setRxFIFOFull(this->rx_full_threshold_);
+  this->hw_serial_->setRxTimeout(this->rx_timeout_);
   if (dump_config) {
     ESP_LOGCONFIG(TAG, "UART %u was reloaded.", this->number_);
     this->dump_config();
@@ -160,6 +161,8 @@ void ESP32ArduinoUARTComponent::dump_config() {
   LOG_PIN("  Flow Control Pin: ", flow_control_pin_);
   if (this->rx_pin_ != nullptr) {
     ESP_LOGCONFIG(TAG, "  RX Buffer Size: %u", this->rx_buffer_size_);
+    ESP_LOGCONFIG(TAG, "  RX Full Threshold: %u", this->rx_full_threshold_);
+    ESP_LOGCONFIG(TAG, "  RX Timeout: %u", this->rx_timeout_);
   }
   ESP_LOGCONFIG(TAG, "  Baud Rate: %u baud", this->baud_rate_);
   ESP_LOGCONFIG(TAG, "  Data Bits: %u", this->data_bits_);
