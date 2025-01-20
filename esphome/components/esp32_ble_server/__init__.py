@@ -233,7 +233,7 @@ def validate_value_type(value_config):
                 f'The "{CONF_TYPE}" property is not allowed for templatable values'
             )
         value_config[CONF_DATA] = VALUE_TYPES[type_].validator(value)
-    elif isinstance(value, float) or isinstance(value, int):
+    elif isinstance(value, (float, int)):
         raise cv.Invalid(
             f'The "{CONF_TYPE}" property is required for the value "{value}"'
         )
@@ -245,8 +245,8 @@ VALUE_SCHEMA = cv.maybe_simple_value(
         {
             cv.Required(CONF_DATA): cv.Any(
                 cv.string_strict,
-                cv.float_,
                 cv.int_,
+                cv.float_,
                 cv.templatable(cv.All([cv.uint8_t], cv.Length(min=1))),
             ),
             cv.Optional(CONF_TYPE): cv.one_of(*VALUE_TYPES, lower=True),
