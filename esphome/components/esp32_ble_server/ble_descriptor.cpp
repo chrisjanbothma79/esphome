@@ -12,7 +12,7 @@ namespace esp32_ble_server {
 
 static const char *const TAG = "esp32_ble_server.descriptor";
 
-static RAMAllocator<uint8_t> descriptor_allocator{};
+static RAMAllocator<uint8_t> descriptor_allocator{};  // NOLINT
 
 BLEDescriptor::BLEDescriptor(ESPBTUUID uuid, uint16_t max_len, bool read, bool write) {
   this->uuid_ = uuid;
