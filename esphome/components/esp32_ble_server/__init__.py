@@ -69,6 +69,9 @@ BLEService = esp32_ble_server_ns.class_("BLEService")
 BLECharacteristicSetValueAction = esp32_ble_server_automations_ns.class_(
     "BLECharacteristicSetValueAction", automation.Action
 )
+BLEDescriptorSetValueAction = esp32_ble_server_automations_ns.class_(
+    "BLEDescriptorSetValueAction", automation.Action
+)
 BLECharacteristicNotifyAction = esp32_ble_server_automations_ns.class_(
     "BLECharacteristicNotifyAction", automation.Action
 )
@@ -240,6 +243,13 @@ def validate_value_type(value_config):
     return value_config
 
 
+def validate_descriptor_template_value(value_config):
+    # The value cannot be templated
+    if cg.is_template(value_config[CONF_DATA]):
+        raise cv.Invalid("Descriptor values cannot be templated")
+    return value_config
+
+
 VALUE_SCHEMA = cv.maybe_simple_value(
     cv.All(
         {
@@ -281,6 +291,12 @@ VALUE_SCHEMA = cv.maybe_simple_value(
     key=CONF_DATA,
 )
 
+# A value schema is the same as the value schema, but the type cannot be templated
+CONSTANT_VALUE_SCHEMA = cv.All(
+    VALUE_SCHEMA,
+    validate_descriptor_template_value,
+)
+
 DESCRIPTOR_SCHEMA = cv.All(
     {
         cv.GenerateID(): cv.declare_id(BLEDescriptor),
@@ -288,7 +304,7 @@ DESCRIPTOR_SCHEMA = cv.All(
         cv.Optional(CONF_READ, default=True): cv.boolean,
         cv.Optional(CONF_WRITE, default=True): cv.boolean,
         cv.Optional(CONF_ON_WRITE): automation.validate_automation(single=True),
-        cv.Required(CONF_VALUE): VALUE_SCHEMA,
+        cv.Required(CONF_VALUE): CONSTANT_VALUE_SCHEMA,
         cv.Optional(CONF_MAX_LENGTH): cv.uint16_t,
     },
     validate_descriptor,
@@ -304,7 +320,7 @@ SERVICE_CHARACTERISTIC_SCHEMA = cv.Schema(
         ),
         cv.Optional(CONF_DESCRIPTORS, default=[]): cv.ensure_list(DESCRIPTOR_SCHEMA),
         cv.Optional(CONF_ON_WRITE): automation.validate_automation(single=True),
-        cv.Optional(CONF_DESCRIPTION): VALUE_SCHEMA,
+        cv.Optional(CONF_DESCRIPTION): CONSTANT_VALUE_SCHEMA,
         cv.GenerateID(CONF_CUD_ID_): cv.declare_id(BLEDescriptor),
         cv.GenerateID(CONF_CCCD_ID_): cv.declare_id(BLEDescriptor),
     },
@@ -380,7 +396,6 @@ def calculate_num_handles(service_config):
 
 
 async def to_code_descriptor(descriptor_conf, char_var):
-    # TODO: Where to compute descriptor templatables?
     value = await parse_value(descriptor_conf[CONF_VALUE], {})
     desc_var = cg.new_Pvariable(
         descriptor_conf[CONF_ID],
@@ -487,6 +502,24 @@ async def to_code(config):
     ),
 )
 async def ble_server_characteristic_set_value(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, paren)
+    value = await parse_value(config[CONF_VALUE], args)
+    cg.add(var.set_buffer(value))
+    return var
+
+
+@automation.register_action(
+    "ble_server.descriptor.set_value",
+    BLEDescriptorSetValueAction,
+    cv.Schema(
+        {
+            cv.Required(CONF_ID): cv.use_id(BLEDescriptor),
+            cv.Required(CONF_VALUE): VALUE_SCHEMA,
+        }
+    ),
+)
+async def ble_server_descriptor_set_value(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
     value = await parse_value(config[CONF_VALUE], args)

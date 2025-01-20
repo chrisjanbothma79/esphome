@@ -96,6 +96,17 @@ template<typename... Ts> class BLECharacteristicNotifyAction : public Action<Ts.
   BLECharacteristic *parent_;
 };
 
+template<typename... Ts> class BLEDescriptorSetValueAction : public Action<Ts...> {
+ public:
+  BLEDescriptorSetValueAction(BLEDescriptor *descriptor) : parent_(descriptor) {}
+  TEMPLATABLE_VALUE(std::vector<uint8_t>, buffer)
+  void set_buffer(ByteBuffer buffer) { this->set_buffer(buffer.get_data()); }
+  void play(Ts... x) override { this->parent_->set_value(this->buffer_.value(x...)); }
+
+ protected:
+  BLEDescriptor *parent_;
+};
+
 }  // namespace esp32_ble_server_automations
 }  // namespace esp32_ble_server
 }  // namespace esphome
