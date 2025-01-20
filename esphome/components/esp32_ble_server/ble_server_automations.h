@@ -4,7 +4,7 @@
 #include "ble_characteristic.h"
 #include "ble_descriptor.h"
 
-#include "esphome/core/event_emitter.h"
+#include "esphome/components/event_emitter/event_emitter.h"
 #include "esphome/core/automation.h"
 
 #include <vector>
@@ -19,6 +19,7 @@ namespace esp32_ble_server {
 namespace esp32_ble_server_automations {
 
 using namespace esp32_ble;
+using namespace event_emitter;
 
 class BLETriggers {
  public:

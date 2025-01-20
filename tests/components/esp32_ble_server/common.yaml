@@ -40,6 +40,9 @@ esp32_ble_server:
             string_encoding: utf-8
           description: Change characteristic
           descriptors:
+            - uuid: 0x4414
+              id: test_change_descriptor
+              value: "Initial descriptor value"
             - uuid: 0x2312
               value:
                 data: 0x12
@@ -58,3 +61,6 @@ esp32_ble_server:
                   value: !lambda 'return bytebuffer::ByteBuffer::wrap({0x00, 0x01, 0x02}).get_data();'
               - ble_server.characteristic.notify:
                   id: test_notify_characteristic
+              - ble_server.descriptor.set_value:
+                  id: test_change_descriptor
+                  value: !lambda return bytebuffer::ByteBuffer::wrap({0x03, 0x04, 0x05}).get_data();

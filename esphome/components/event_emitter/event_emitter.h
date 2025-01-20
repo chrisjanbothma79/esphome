@@ -7,6 +7,7 @@
 #include "esphome/core/log.h"
 
 namespace esphome {
+namespace event_emitter {
 
 using EventEmitterListenerID = uint32_t;
 void raise_event_emitter_full_error();
@@ -58,4 +59,5 @@ template<typename EvtType, typename... Args> class EventEmitter {
   EventEmitterListenerID current_id_ = 0;
 };
 
+}  // namespace event_emitter
 }  // namespace esphome

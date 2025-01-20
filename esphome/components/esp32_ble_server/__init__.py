@@ -21,7 +21,7 @@ from esphome.const import (
 )
 from esphome.core import CORE
 
-AUTO_LOAD = ["esp32_ble", "bytebuffer"]
+AUTO_LOAD = ["esp32_ble", "bytebuffer", "event_emitter"]
 CODEOWNERS = ["@jesserockz", "@clydebarrow", "@Rapsssito"]
 DEPENDENCIES = ["esp32"]
 

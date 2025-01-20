@@ -2,7 +2,7 @@
 
 #include "ble_descriptor.h"
 #include "esphome/components/esp32_ble/ble_uuid.h"
-#include "esphome/core/event_emitter.h"
+#include "esphome/components/event_emitter/event_emitter.h"
 #include "esphome/components/bytebuffer/bytebuffer.h"
 
 #include <vector>
@@ -23,6 +23,7 @@ namespace esp32_ble_server {
 
 using namespace esp32_ble;
 using namespace bytebuffer;
+using namespace event_emitter;
 
 class BLEService;
 
