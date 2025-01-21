@@ -26,6 +26,10 @@ online_image:
     format: PNG
     type: RGB
     use_transparency: chroma_key
+  - id: online_binary_bmp
+    url: http://www.libpng.org/pub/png/img_png/pnglogo-blk-tiny.png
+    format: BMP
+    type: BINARY
 
 # Check the set_url action
 esphome:
