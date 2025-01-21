@@ -30,17 +30,17 @@ int HOT BmpDecoder::decode(uint8_t *buffer, size_t size) {
   if (this->current_index_ == 14 && this->decoded_bytes_ > data_offset_) {
     this->width_ = encode_uint32(buffer[21], buffer[20], buffer[19], buffer[18]);
     this->height_ = encode_uint32(buffer[25], buffer[24], buffer[23], buffer[22]);
-    this->bitsPerPixel_ = encode_uint16(buffer[29], buffer[28]);
-    this->compressionMethod_ = encode_uint32(buffer[33], buffer[32], buffer[31], buffer[30]);
-    this->imageDataSize_ = encode_uint32(buffer[37], buffer[36], buffer[35], buffer[34]);
-    this->colorTableEntries_ = encode_uint32(buffer[49], buffer[48], buffer[47], buffer[46]);
+    this->bits_per_pixel_ = encode_uint16(buffer[29], buffer[28]);
+    this->compression_method_ = encode_uint32(buffer[33], buffer[32], buffer[31], buffer[30]);
+    this->image_data_size_ = encode_uint32(buffer[37], buffer[36], buffer[35], buffer[34]);
+    this->color_table_entries_ = encode_uint32(buffer[49], buffer[48], buffer[47], buffer[46]);
 
-    switch (this->bitsPerPixel_) {
+    switch (this->bits_per_pixel_) {
       case 1:
-        this->widthBytes_ = (this->width_ % 8 == 0) ? (this->width_ / 8) : (this->width_ / 8 + 1);
+        this->width_bytes_ = (this->width_ % 8 == 0) ? (this->width_ / 8) : (this->width_ / 8 + 1);
         break;
       default:
-        ESP_LOGE(TAG, "Unsupported bits per pixel: %d", this->bitsPerPixel_);
+        ESP_LOGE(TAG, "Unsupported bits per pixel: %d", this->bits_per_pixel_);
         return 0;
     }
 
@@ -56,7 +56,7 @@ int HOT BmpDecoder::decode(uint8_t *buffer, size_t size) {
     uint8_t current_byte = buffer[index];
     for (uint8_t i = 0; i < 8; i++) {
       size_t x = (paint_index * 8) % this->width_ + i;
-      size_t y = (this->height_ - 1) - (paint_index / this->widthBytes_);
+      size_t y = (this->height_ - 1) - (paint_index / this->width_bytes_);
       Color c = (current_byte & (1 << (7 - i))) ? display::COLOR_ON : display::COLOR_OFF;
       this->draw(x, y, 1, 1, c);
     }

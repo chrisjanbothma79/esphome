@@ -26,11 +26,11 @@ class BmpDecoder : public ImageDecoder {
   size_t current_index_{0};
   ssize_t width_{0};
   ssize_t height_{0};
-  uint16_t bitsPerPixel_{0};
-  uint32_t compressionMethod_{0};
-  uint32_t imageDataSize_{0};
-  uint32_t colorTableEntries_{0};
-  size_t widthBytes_{0};
+  uint16_t bits_per_pixel_{0};
+  uint32_t compression_method_{0};
+  uint32_t image_data_size_{0};
+  uint32_t color_table_entries_{0};
+  size_t width_bytes_{0};
   size_t total_size_{0};
   size_t data_offset_{0};
 };
