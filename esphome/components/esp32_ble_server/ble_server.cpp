@@ -71,11 +71,6 @@ void BLEServer::loop() {
     }
     case REGISTERING: {
       if (this->registered_) {
-        if (this->device_information_service_ == nullptr) {
-          this->device_information_service_ =
-              this->create_service(ESPBTUUID::from_uint16(DEVICE_INFORMATION_SERVICE_UUID), false, 7);
-          this->create_device_characteristics_();
-        }
         // Create all services previously created
         for (auto &pair : this->services_) {
           pair.second->do_create(this);
@@ -105,28 +100,6 @@ void BLEServer::restart_advertising_() {
   if (this->is_running()) {
     this->parent_->advertising_set_manufacturer_data(this->manufacturer_data_);
   }
-}
-
-bool BLEServer::create_device_characteristics_() {
-  if (this->model_.has_value()) {
-    BLECharacteristic *model =
-        this->device_information_service_->create_characteristic(MODEL_UUID, BLECharacteristic::PROPERTY_READ);
-    model->set_value(this->model_.value());
-  } else {
-    BLECharacteristic *model =
-        this->device_information_service_->create_characteristic(MODEL_UUID, BLECharacteristic::PROPERTY_READ);
-    model->set_value(std::string(ESPHOME_BOARD));
-  }
-
-  BLECharacteristic *version =
-      this->device_information_service_->create_characteristic(VERSION_UUID, BLECharacteristic::PROPERTY_READ);
-  version->set_value(std::string("ESPHome " ESPHOME_VERSION));
-
-  BLECharacteristic *manufacturer =
-      this->device_information_service_->create_characteristic(MANUFACTURER_UUID, BLECharacteristic::PROPERTY_READ);
-  manufacturer->set_value(this->manufacturer_);
-
-  return true;
 }
 
 BLEService *BLEServer::create_service(ESPBTUUID uuid, bool advertise, uint16_t num_handles) {

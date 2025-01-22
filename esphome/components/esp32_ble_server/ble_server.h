@@ -46,8 +46,6 @@ class BLEServer : public Component,
   void teardown();
   bool is_running();
 
-  void set_manufacturer(const std::string &manufacturer) { this->manufacturer_ = manufacturer; }
-  void set_model(const std::string &model) { this->model_ = model; }
   void set_manufacturer_data(const std::vector<uint8_t> &data) {
     this->manufacturer_data_ = data;
     this->restart_advertising_();
@@ -57,6 +55,7 @@ class BLEServer : public Component,
   void remove_service(ESPBTUUID uuid, uint8_t inst_id = 0);
   BLEService *get_service(ESPBTUUID uuid, uint8_t inst_id = 0);
   void enqueue_start_service(BLEService *service) { this->services_to_start_.push_back(service); }
+  void set_device_information_service(BLEService *service) { this->device_information_service_ = service; }
 
   esp_gatt_if_t get_gatts_if() { return this->gatts_if_; }
   uint32_t get_connected_client_count() { return this->clients_.size(); }
@@ -69,14 +68,11 @@ class BLEServer : public Component,
 
  protected:
   static std::string get_service_key(ESPBTUUID uuid, uint8_t inst_id);
-  bool create_device_characteristics_();
   void restart_advertising_();
 
   void add_client_(uint16_t conn_id) { this->clients_.insert(conn_id); }
   void remove_client_(uint16_t conn_id) { this->clients_.erase(conn_id); }
 
-  std::string manufacturer_{};
-  optional<std::string> model_{};
   std::vector<uint8_t> manufacturer_data_{};
   esp_gatt_if_t gatts_if_{0};
   bool registered_{false};

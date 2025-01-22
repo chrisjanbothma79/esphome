@@ -18,6 +18,7 @@ from esphome.const import (
     CONF_TYPE,
     CONF_UUID,
     CONF_VALUE,
+    __version__ as ESPHOME_VERSION,
 )
 from esphome.core import CORE
 
@@ -31,6 +32,7 @@ CONF_CHARACTERISTICS = "characteristics"
 CONF_DESCRIPTION = "description"
 CONF_DESCRIPTORS = "descriptors"
 CONF_ENDIANNESS = "endianness"
+CONF_FIRMWARE_VERSION = "firmware_version"
 CONF_INDICATE = "indicate"
 CONF_MANUFACTURER = "manufacturer"
 CONF_MANUFACTURER_DATA = "manufacturer_data"
@@ -42,10 +44,15 @@ CONF_WRITE = "write"
 CONF_WRITE_NO_RESPONSE = "write_no_response"
 
 # Internal configuration keys
-CONF_CCCD_ID_ = "cccd_id_"
-CONF_CCCD_VALUE_BUFFER_ = "cccd_value_buffer_"
 CONF_CHAR_VALUE_ACTION_ID_ = "char_value_action_id_"
-CONF_CUD_ID_ = "cud_id_"
+
+# BLE reserverd UUIDs
+CCCD_DESCRIPTOR_UUID = 0x2902
+CUD_DESCRIPTOR_UUID = 0x2901
+DEVICE_INFORMATION_SERVICE_UUID = 0x180A
+MANUFACTURER_NAME_CHARACTERISTIC_UUID = 0x2A29
+MODEL_CHARACTERISTIC_UUID = 0x2A24
+FIRMWARE_VERSION_CHARACTERISTIC_UUID = 0x2A26
 
 # Core key to store the global configuration
 _KEY_NOTIFY_REQUIRED = "esp32_ble_server_notify_required"
@@ -163,7 +170,7 @@ def create_description_cud(char_config):
         return char_config
     # If the config displays a description, there cannot be a descriptor with the CUD UUID
     for desc in char_config[CONF_DESCRIPTORS]:
-        if desc[CONF_UUID] == 0x2901:
+        if desc[CONF_UUID] == CUD_DESCRIPTOR_UUID:
             raise cv.Invalid(
                 f"Characteristic {char_config[CONF_UUID]} has a description, but a CUD descriptor is already present"
             )
@@ -171,8 +178,7 @@ def create_description_cud(char_config):
     char_config[CONF_DESCRIPTORS].append(
         DESCRIPTOR_SCHEMA(
             {
-                CONF_ID: char_config[CONF_CUD_ID_].id,
-                CONF_UUID: 0x2901,
+                CONF_UUID: CUD_DESCRIPTOR_UUID,
                 CONF_READ: True,
                 CONF_WRITE: False,
                 CONF_VALUE: char_config[CONF_DESCRIPTION],
@@ -187,7 +193,7 @@ def create_notify_cccd(char_config):
         return char_config
     # If the CCCD descriptor is already present, return the config
     for desc in char_config[CONF_DESCRIPTORS]:
-        if desc[CONF_UUID] == 0x2902:
+        if desc[CONF_UUID] == CCCD_DESCRIPTOR_UUID:
             # Check if the WRITE property is set
             if not desc[CONF_WRITE]:
                 raise cv.Invalid(
@@ -196,16 +202,65 @@ def create_notify_cccd(char_config):
             return char_config
     # Manually add the CCCD descriptor
     char_config[CONF_DESCRIPTORS].append(
-        {
-            CONF_ID: char_config[CONF_CCCD_ID_],
-            CONF_UUID: 0x2902,
-            CONF_READ: True,
-            CONF_WRITE: True,
-            CONF_MAX_LENGTH: 2,
-            CONF_VALUE: VALUE_SCHEMA([0, 0]),
-        }
+        DESCRIPTOR_SCHEMA(
+            {
+                CONF_UUID: CCCD_DESCRIPTOR_UUID,
+                CONF_READ: True,
+                CONF_WRITE: True,
+                CONF_MAX_LENGTH: 2,
+                CONF_VALUE: [0, 0],
+            }
+        )
     )
     return char_config
+
+
+def create_device_information_service(config):
+    # If there is already a device information service,
+    # there cannot be CONF_MODEL, CONF_MANUFACTURER or CONF_FIRMWARE_VERSION properties
+    for service in config[CONF_SERVICES]:
+        if service[CONF_UUID] == DEVICE_INFORMATION_SERVICE_UUID:
+            if (
+                CONF_MODEL in config
+                or CONF_MANUFACTURER in config
+                or CONF_FIRMWARE_VERSION in config
+            ):
+                raise cv.Invalid(
+                    "Device information service already present, cannot add manufacturer, model or firmware version"
+                )
+            return config
+    # Manually add the device information service
+    config[CONF_SERVICES].append(
+        SERVICE_SCHEMA(
+            {
+                CONF_UUID: DEVICE_INFORMATION_SERVICE_UUID,
+                CONF_CHARACTERISTICS: [
+                    {
+                        CONF_UUID: MANUFACTURER_NAME_CHARACTERISTIC_UUID,
+                        CONF_READ: True,
+                        CONF_VALUE: config.get(CONF_MANUFACTURER, "ESPHome"),
+                    },
+                    {
+                        CONF_UUID: MODEL_CHARACTERISTIC_UUID,
+                        CONF_READ: True,
+                        CONF_VALUE: config.get(
+                            CONF_MODEL,
+                            CORE.data["esp32"]["board"],
+                        ),
+                    },
+                    {
+                        CONF_UUID: FIRMWARE_VERSION_CHARACTERISTIC_UUID,
+                        CONF_READ: True,
+                        CONF_VALUE: config.get(
+                            CONF_FIRMWARE_VERSION,
+                            "ESPHome " + ESPHOME_VERSION,
+                        ),
+                    },
+                ],
+            }
+        )
+    )
+    return config
 
 
 def final_validate_config(config):
@@ -310,7 +365,7 @@ DESCRIPTOR_SCHEMA = cv.All(
     validate_descriptor,
 )
 
-SERVICE_CHARACTERISTIC_SCHEMA = cv.Schema(
+CHARACTERISTIC_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(BLECharacteristic),
         cv.Required(CONF_UUID): cv.Any(bt_uuid, cv.hex_uint32_t),
@@ -321,8 +376,6 @@ SERVICE_CHARACTERISTIC_SCHEMA = cv.Schema(
         cv.Optional(CONF_DESCRIPTORS, default=[]): cv.ensure_list(DESCRIPTOR_SCHEMA),
         cv.Optional(CONF_ON_WRITE): automation.validate_automation(single=True),
         cv.Optional(CONF_DESCRIPTION): CONSTANT_VALUE_SCHEMA,
-        cv.GenerateID(CONF_CUD_ID_): cv.declare_id(BLEDescriptor),
-        cv.GenerateID(CONF_CCCD_ID_): cv.declare_id(BLEDescriptor),
     },
     extra_schemas=[
         validate_char_on_write,
@@ -337,7 +390,7 @@ SERVICE_SCHEMA = cv.Schema(
         cv.Required(CONF_UUID): cv.Any(bt_uuid, cv.hex_uint32_t),
         cv.Optional(CONF_ADVERTISE, default=False): cv.boolean,
         cv.Optional(CONF_CHARACTERISTICS, default=[]): cv.ensure_list(
-            SERVICE_CHARACTERISTIC_SCHEMA
+            CHARACTERISTIC_SCHEMA
         ),
     }
 )
@@ -346,13 +399,15 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(BLEServer),
         cv.GenerateID(esp32_ble.CONF_BLE_ID): cv.use_id(esp32_ble.ESP32BLE),
-        cv.Optional(CONF_MANUFACTURER, default="ESPHome"): cv.string,
+        cv.Optional(CONF_MANUFACTURER): VALUE_SCHEMA,
+        cv.Optional(CONF_MODEL): VALUE_SCHEMA,
+        cv.Optional(CONF_FIRMWARE_VERSION): VALUE_SCHEMA,
         cv.Optional(CONF_MANUFACTURER_DATA): cv.Schema([cv.uint8_t]),
-        cv.Optional(CONF_MODEL): cv.string,
         cv.Optional(CONF_SERVICES, default=[]): cv.ensure_list(SERVICE_SCHEMA),
         cv.Optional(CONF_ON_CONNECT): automation.validate_automation(single=True),
         cv.Optional(CONF_ON_DISCONNECT): automation.validate_automation(single=True),
-    }
+    },
+    extra_schemas=[create_device_information_service],
 ).extend(cv.COMPONENT_SCHEMA)
 
 FINAL_VALIDATE_SCHEMA = final_validate_config
@@ -455,11 +510,13 @@ async def to_code(config):
     cg.add(parent.register_gatts_event_handler(var))
     cg.add(parent.register_ble_status_event_handler(var))
     cg.add(var.set_parent(parent))
-    cg.add(var.set_manufacturer(config[CONF_MANUFACTURER]))
     if CONF_MANUFACTURER_DATA in config:
         cg.add(var.set_manufacturer_data(config[CONF_MANUFACTURER_DATA]))
-    if CONF_MODEL in config:
-        cg.add(var.set_model(config[CONF_MODEL]))
+    # Make sure that the DEVICE_INFORMATION_SERVICE_UUID is the first one
+    # so the GATT table is correctly ordered
+    config[CONF_SERVICES].sort(
+        key=lambda x: x[CONF_UUID] != DEVICE_INFORMATION_SERVICE_UUID
+    )
     for service_config in config[CONF_SERVICES]:
         # Calculate the optimal number of handles based on the number of characteristics and descriptors
         num_handles = calculate_num_handles(service_config)
@@ -473,7 +530,10 @@ async def to_code(config):
         )
         for char_conf in service_config[CONF_CHARACTERISTICS]:
             await to_code_characteristic(service_var, char_conf)
-        cg.add(var.enqueue_start_service(service_var))
+        if service_config[CONF_UUID] == DEVICE_INFORMATION_SERVICE_UUID:
+            cg.add(var.set_device_information_service(service_var))
+        else:
+            cg.add(var.enqueue_start_service(service_var))
     if CONF_ON_CONNECT in config:
         await automation.build_automation(
             BLETriggers_ns.create_server_on_connect_trigger(var),
