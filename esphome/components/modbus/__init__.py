@@ -12,7 +12,6 @@ from esphome.const import (
     CONF_ADDRESS,
     CONF_DISABLE_CRC,
 )
-from esphome.core import CORE
 from esphome import pins
 
 DEPENDENCIES = ["uart"]
@@ -51,6 +50,7 @@ CONFIG_SCHEMA = (
     .extend(cv.COMPONENT_SCHEMA)
     .extend(uart.UART_DEVICE_SCHEMA)
 )
+
 
 async def to_code(config):
     cg.add_global(modbus_ns.using)

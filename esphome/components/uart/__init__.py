@@ -248,8 +248,12 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PARITY, default="NONE"): cv.enum(
                 UART_PARITY_OPTIONS, upper=True
             ),
-            cv.Optional(CONF_RX_FULL_THRESHOLD): cv.All(cv.int_range(min=1, max=120), cv.only_on_esp32),
-            cv.Optional(CONF_RX_TIMEOUT): cv.All(cv.int_range(min=0, max=126), cv.only_on_esp32),
+            cv.Optional(CONF_RX_FULL_THRESHOLD): cv.All(
+                cv.int_range(min=1, max=120), cv.only_on_esp32
+            ),
+            cv.Optional(CONF_RX_TIMEOUT): cv.All(
+                cv.int_range(min=0, max=126), cv.only_on_esp32
+            ),
             cv.Optional(CONF_INVERT): cv.invalid(
                 "This option has been removed. Please instead use invert in the tx/rx pin schemas."
             ),
