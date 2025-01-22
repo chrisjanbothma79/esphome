@@ -19,11 +19,6 @@ namespace esp32_ble_server {
 
 static const char *const TAG = "esp32_ble_server";
 
-static const uint16_t DEVICE_INFORMATION_SERVICE_UUID = 0x180A;
-static const uint16_t MODEL_UUID = 0x2A24;
-static const uint16_t VERSION_UUID = 0x2A26;
-static const uint16_t MANUFACTURER_UUID = 0x2A29;
-
 void BLEServer::setup() {
   if (this->parent_->is_failed()) {
     this->mark_failed();
@@ -71,8 +66,14 @@ void BLEServer::loop() {
     }
     case REGISTERING: {
       if (this->registered_) {
+        // Create the device information service first so
+        // it is at the top of the GATT table
+        this->device_information_service_->do_create(this);
         // Create all services previously created
         for (auto &pair : this->services_) {
+          if (pair.second == this->device_information_service_) {
+            continue;
+          }
           pair.second->do_create(this);
         }
         this->state_ = STARTING_SERVICE;

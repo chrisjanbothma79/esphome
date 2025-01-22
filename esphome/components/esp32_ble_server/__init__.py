@@ -512,11 +512,6 @@ async def to_code(config):
     cg.add(var.set_parent(parent))
     if CONF_MANUFACTURER_DATA in config:
         cg.add(var.set_manufacturer_data(config[CONF_MANUFACTURER_DATA]))
-    # Make sure that the DEVICE_INFORMATION_SERVICE_UUID is the first one
-    # so the GATT table is correctly ordered
-    config[CONF_SERVICES].sort(
-        key=lambda x: x[CONF_UUID] != DEVICE_INFORMATION_SERVICE_UUID
-    )
     for service_config in config[CONF_SERVICES]:
         # Calculate the optimal number of handles based on the number of characteristics and descriptors
         num_handles = calculate_num_handles(service_config)
