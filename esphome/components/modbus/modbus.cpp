@@ -14,6 +14,9 @@ void Modbus::setup() {
   this->frame_delay_ms_ = (3.5 * 11 * 1000 / this->parent_->get_baud_rate()) + 1;
   if (this->frame_delay_ms_ < 2)
     this->frame_delay_ms_ = 2;  // 1750us minimium per spec - rounded up to 2ms.
+
+  this->long_rx_buffer_delay_ms_ =
+      (this->parent_->get_rx_full_threshold() * 11 * 1000 / this->parent_->get_baud_rate()) + 1;
 }
 
 void Modbus::loop() {
@@ -21,7 +24,13 @@ void Modbus::loop() {
   this->receive_and_parse_modbus_bytes_();
 
   // If the response frame is finished (including interframe delay) - we timeout.
-  if (millis() - this->last_modbus_byte_ > this->frame_delay_ms_) {
+  // The long_rx_buffer_delay accounts for long responses (larger than the UART rx_full_threshold) to avoid timeouts
+  // when the buffer is filling the back half of the response
+  const uint16_t timeout = std::max(
+      (uint16_t) this->frame_delay_ms_,
+      (uint16_t) (this->rx_buffer_.size() > this->parent_->get_rx_full_threshold() - 1 ? this->long_rx_buffer_delay_ms_
+                                                                                       : 0));
+  if (millis() - this->last_modbus_byte_ > timeout) {
     clear_rx_buffer_("timeout");
   }
 
@@ -241,6 +250,7 @@ void Modbus::dump_config() {
   ESP_LOGCONFIG(TAG, "  Send Wait Time: %d ms", this->send_wait_time_);
   ESP_LOGCONFIG(TAG, "  Turnaround Time: %d ms", this->turnaround_delay_ms_);
   ESP_LOGCONFIG(TAG, "  Frame Delay: %d ms", this->frame_delay_ms_);
+  ESP_LOGCONFIG(TAG, "  Long Rx Buffer Delay: %d ms", this->long_rx_buffer_delay_ms_);
   ESP_LOGCONFIG(TAG, "  CRC Disabled: %s", YESNO(this->disable_crc_));
 }
 float Modbus::get_setup_priority() const {

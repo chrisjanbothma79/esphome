@@ -53,6 +53,7 @@ class Modbus : public uart::UARTDevice, public Component {
   void receive_and_parse_modbus_bytes_();
   uint16_t send_wait_time_{250};
   uint16_t frame_delay_ms_{5};
+  uint16_t long_rx_buffer_delay_ms_{0};
   uint16_t turnaround_delay_ms_{100};
   bool disable_crc_;
   std::vector<uint8_t> rx_buffer_;

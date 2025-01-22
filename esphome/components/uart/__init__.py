@@ -248,8 +248,8 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_PARITY, default="NONE"): cv.enum(
                 UART_PARITY_OPTIONS, upper=True
             ),
-            cv.Optional(CONF_RX_FULL_THRESHOLD): cv.int_range(min=1, max=120),
-            cv.Optional(CONF_RX_TIMEOUT): cv.int_range(min=0, max=126),
+            cv.Optional(CONF_RX_FULL_THRESHOLD): cv.All(cv.int_range(min=1, max=120), cv.only_on_esp32),
+            cv.Optional(CONF_RX_TIMEOUT): cv.All(cv.int_range(min=0, max=126), cv.only_on_esp32),
             cv.Optional(CONF_INVERT): cv.invalid(
                 "This option has been removed. Please instead use invert in the tx/rx pin schemas."
             ),
@@ -308,6 +308,8 @@ async def to_code(config):
     cg.add(var.set_parity(config[CONF_PARITY]))
     if CONF_RX_FULL_THRESHOLD in config:
         cg.add(var.set_rx_full_threshold(config[CONF_RX_FULL_THRESHOLD]))
+    else:
+        cg.add(var.set_rx_full_threshold(1 if config[CONF_BAUD_RATE] <= 9600 else 120))
     if CONF_RX_TIMEOUT in config:
         cg.add(var.set_rx_timeout(config[CONF_RX_TIMEOUT]))
 
