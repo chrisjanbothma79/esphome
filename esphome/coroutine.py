@@ -43,13 +43,13 @@ the last `yield` expression defines what is returned.
 """
 
 import collections
-from collections.abc import Awaitable, Generator, Iterator
+from collections.abc import Awaitable, Callable, Generator, Iterator
 import functools
 import heapq
 import inspect
 import logging
 import types
-from typing import Any, Callable
+from typing import Any
 
 _LOGGER = logging.getLogger(__name__)
 
