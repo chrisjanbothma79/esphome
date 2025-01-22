@@ -47,12 +47,12 @@ class EnergySampler {
 
   /// @brief Get sampled parameters (voltage and current) for a specific phase.
   /// @param phase The phase for which to retrieve the parameters (PHASE_1, PHASE_2, or PHASE_3).
-  /// @return A PhaseSampleData struct containing the voltage and current for the specified phase.
-  virtual PhaseSampleData get_instantaneous_parameters_for_phase(const Phase phase) = 0;
+  /// @param data Pointer to a PhaseSampleData struct to store the retrieved parameters.
+  virtual void get_instantaneous_parameters_for_phase(const Phase phase, PhaseSampleData *data) = 0;
 
   /// @brief Get sampled parameters for all phases and the neutral current.
-  /// @return An EnergySampleData struct containing the voltage and current for all three phases and the neutral current.
-  virtual EnergySampleData get_instantaneous_parameters_for_all_phases() = 0;
+  /// @param data Pointer to an EnergySampleData struct to store the retrieved parameters.
+  virtual void get_instantaneous_parameters_for_all_phases(EnergySampleData *data) = 0;
 };
 
 }  // namespace energy_sampler
