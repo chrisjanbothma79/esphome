@@ -125,10 +125,10 @@ void OnlineImage::update() {
 #ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
   if (this->format_ == ImageFormat::PNG) {
     this->decoder_ = make_unique<PngDecoder>(this);
-  } else
+  }
 #endif  // ONLINE_IMAGE_PNG_SUPPORT
 #ifdef USE_ONLINE_IMAGE_BMP_SUPPORT
-      if (this->format_ == ImageFormat::BMP) {
+  if (this->format_ == ImageFormat::BMP) {
     this->decoder_ = make_unique<BmpDecoder>(this);
   }
 #endif  // ONLINE_IMAGE_BMP_SUPPORT

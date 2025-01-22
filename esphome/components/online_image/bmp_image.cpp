@@ -18,7 +18,7 @@ int HOT BmpDecoder::decode(uint8_t *buffer, size_t size) {
     // Check if the file is a BMP image
     if (buffer[0] != 'B' || buffer[1] != 'M') {
       ESP_LOGE(TAG, "Not a BMP file");
-      return 0;
+      return -1;
     }
 
     this->total_size_ = encode_uint32(buffer[5], buffer[4], buffer[3], buffer[2]);
@@ -27,7 +27,7 @@ int HOT BmpDecoder::decode(uint8_t *buffer, size_t size) {
     this->current_index_ = 14;
     index = 14;
   }
-  if (this->current_index_ == 14 && this->decoded_bytes_ > data_offset_) {
+  if (this->current_index_ == 14 && this->decoded_bytes_ > this->data_offset_) {
     this->width_ = encode_uint32(buffer[21], buffer[20], buffer[19], buffer[18]);
     this->height_ = encode_uint32(buffer[25], buffer[24], buffer[23], buffer[22]);
     this->bits_per_pixel_ = encode_uint16(buffer[29], buffer[28]);
@@ -41,11 +41,11 @@ int HOT BmpDecoder::decode(uint8_t *buffer, size_t size) {
         break;
       default:
         ESP_LOGE(TAG, "Unsupported bits per pixel: %d", this->bits_per_pixel_);
-        return 0;
+        return -2;
     }
 
     if (!this->set_size(this->width_, this->height_)) {
-      return 0;
+      return -3;
     }
     this->current_index_ = this->data_offset_;
     index = this->data_offset_;

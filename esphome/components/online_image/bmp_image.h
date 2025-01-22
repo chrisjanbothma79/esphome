@@ -14,7 +14,7 @@ namespace online_image {
 class BmpDecoder : public ImageDecoder {
  public:
   /**
-   * @brief Construct a new PNG Decoder object.
+   * @brief Construct a new BMP Decoder object.
    *
    * @param display The image to decode the stream into.
    */
