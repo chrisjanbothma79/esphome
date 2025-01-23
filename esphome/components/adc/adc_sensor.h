@@ -66,7 +66,7 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   void set_pin(InternalGPIOPin *pin) { this->pin_ = pin; }
   void set_output_raw(bool output_raw) { this->output_raw_ = output_raw; }
   void set_sample_count(uint8_t sample_count);
-  void set_sampling_mode(uint8_t sample_mode);
+  void set_sampling_mode(uint8_t sampling_mode);
   float sample() override;
 
 #ifdef USE_ESP8266
