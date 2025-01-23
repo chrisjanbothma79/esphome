@@ -105,12 +105,12 @@ float ADCSensor::sample() {
       } else if (this->sampling_mode_ == 1) {
         // min
         if (raw < aggr) {
-          aggr = raw
+          aggr = raw;
         }
       } else {
         // max
         if (raw > aggr) {
-          aggr = raw
+          aggr = raw;
         }
       }
     }
