@@ -6,14 +6,17 @@ from esphome.components import esp32_ble
 from esphome.components.esp32 import add_idf_sdkconfig_option
 from esphome.components.esp32_ble import bt_uuid
 import esphome.config_validation as cv
+from esphome.config_validation import UNDEFINED
 from esphome.const import (
     CONF_DATA,
+    CONF_ESPHOME,
     CONF_ID,
     CONF_MAX_LENGTH,
     CONF_MODEL,
     CONF_NOTIFY,
     CONF_ON_CONNECT,
     CONF_ON_DISCONNECT,
+    CONF_PROJECT,
     CONF_SERVICES,
     CONF_TYPE,
     CONF_UUID,
@@ -25,6 +28,7 @@ from esphome.core import CORE
 AUTO_LOAD = ["esp32_ble", "bytebuffer", "event_emitter"]
 CODEOWNERS = ["@jesserockz", "@clydebarrow", "@Rapsssito"]
 DEPENDENCIES = ["esp32"]
+DOMAIN = "esp32_ble_server"
 
 CONF_ADVERTISE = "advertise"
 CONF_BROADCAST = "broadcast"
@@ -55,7 +59,7 @@ MODEL_CHARACTERISTIC_UUID = 0x2A24
 FIRMWARE_VERSION_CHARACTERISTIC_UUID = 0x2A26
 
 # Core key to store the global configuration
-_KEY_NOTIFY_REQUIRED = "esp32_ble_server_notify_required"
+KEY_NOTIFY_REQUIRED = "notify_required"
 
 esp32_ble_server_ns = cg.esphome_ns.namespace("esp32_ble_server")
 ESPBTUUID_ns = cg.esphome_ns.namespace("esp32_ble").namespace("ESPBTUUID")
@@ -159,9 +163,8 @@ def validate_descriptor(desc_config):
 
 def validate_notify_action(action_char_id):
     # Store the characteristic ID in the global data for the final validation
-    if _KEY_NOTIFY_REQUIRED not in CORE.data:
-        CORE.data[_KEY_NOTIFY_REQUIRED] = set()
-    CORE.data[_KEY_NOTIFY_REQUIRED].add(action_char_id)
+    data = CORE.data.setdefault(DOMAIN, {}).setdefault(KEY_NOTIFY_REQUIRED, set())
+    data.add(action_char_id)
     return action_char_id
 
 
@@ -229,6 +232,11 @@ def create_device_information_service(config):
                     "Device information service already present, cannot add manufacturer, model or firmware version"
                 )
             return config
+    project = CORE.raw_config[CONF_ESPHOME].get(CONF_PROJECT, {})
+    model = config.get(CONF_MODEL, project.get("name", CORE.data["esp32"]["board"]))
+    version = config.get(
+        CONF_FIRMWARE_VERSION, project.get("version", "ESPHome " + ESPHOME_VERSION)
+    )
     # Manually add the device information service
     config[CONF_SERVICES].append(
         SERVICE_SCHEMA(
@@ -243,18 +251,12 @@ def create_device_information_service(config):
                     {
                         CONF_UUID: MODEL_CHARACTERISTIC_UUID,
                         CONF_READ: True,
-                        CONF_VALUE: config.get(
-                            CONF_MODEL,
-                            CORE.data["esp32"]["board"],
-                        ),
+                        CONF_VALUE: model,
                     },
                     {
                         CONF_UUID: FIRMWARE_VERSION_CHARACTERISTIC_UUID,
                         CONF_READ: True,
-                        CONF_VALUE: config.get(
-                            CONF_FIRMWARE_VERSION,
-                            "ESPHome " + ESPHOME_VERSION,
-                        ),
+                        CONF_VALUE: version,
                     },
                 ],
             }
@@ -265,19 +267,18 @@ def create_device_information_service(config):
 
 def final_validate_config(config):
     # Check if all characteristics that require notifications have the notify property set
-    if _KEY_NOTIFY_REQUIRED in CORE.data:
-        for char_id in CORE.data[_KEY_NOTIFY_REQUIRED]:
-            # Look for the characteristic in the configuration
-            char_config = [
-                char_conf
-                for service_conf in config[CONF_SERVICES]
-                for char_conf in service_conf[CONF_CHARACTERISTICS]
-                if char_conf[CONF_ID] == char_id
-            ][0]
-            if not char_config[CONF_NOTIFY]:
-                raise cv.Invalid(
-                    f"Characteristic {char_config[CONF_UUID]} has notify actions and the {CONF_NOTIFY} property is not set"
-                )
+    for char_id in CORE.data.get(DOMAIN, {}).get(KEY_NOTIFY_REQUIRED, set()):
+        # Look for the characteristic in the configuration
+        char_config = [
+            char_conf
+            for service_conf in config[CONF_SERVICES]
+            for char_conf in service_conf[CONF_CHARACTERISTICS]
+            if char_conf[CONF_ID] == char_id
+        ][0]
+        if not char_config[CONF_NOTIFY]:
+            raise cv.Invalid(
+                f"Characteristic {char_config[CONF_UUID]} has notify actions and the {CONF_NOTIFY} property is not set"
+            )
     return config
 
 
@@ -305,50 +306,54 @@ def validate_descriptor_template_value(value_config):
     return value_config
 
 
-VALUE_SCHEMA = cv.maybe_simple_value(
-    cv.All(
-        {
-            cv.Required(CONF_DATA): cv.Any(
-                cv.string_strict,
-                cv.int_,
-                cv.float_,
-                cv.templatable(cv.All([cv.uint8_t], cv.Length(min=1))),
-            ),
-            cv.Optional(CONF_TYPE): cv.one_of(*VALUE_TYPES, lower=True),
-            cv.Optional(CONF_STRING_ENCODING, default="utf-8"): cv.Any(
-                *(
-                    list(encodings.aliases.aliases.keys())
-                    + [
-                        "utf-8",
-                        "utf8",
-                        "latin-1",
-                        "latin1",
-                        "iso-8859-1",
-                        "iso8859-1",
-                        "ascii",
-                        "us-ascii",
-                        "utf-16",
-                        "utf16",
-                        "utf-32",
-                        "utf32",
-                    ]
-                )  # Common encodings
-            ),
-            cv.Optional(CONF_ENDIANNESS, default="LITTLE"): cv.enum(
-                {
-                    "LITTLE": Endianness_ns.LITTLE,
-                    "BIG": Endianness_ns.BIG,
-                }
-            ),
-        },
-        validate_value_type,
-    ),
-    key=CONF_DATA,
-)
+def value_schema(default_type=UNDEFINED):
+    return cv.maybe_simple_value(
+        cv.All(
+            {
+                cv.Required(CONF_DATA): cv.Any(
+                    cv.string_strict,
+                    cv.int_,
+                    cv.float_,
+                    cv.templatable(cv.All([cv.uint8_t], cv.Length(min=1))),
+                ),
+                cv.Optional(CONF_TYPE, default=default_type): cv.one_of(
+                    *VALUE_TYPES, lower=True
+                ),
+                cv.Optional(CONF_STRING_ENCODING, default="utf-8"): cv.Any(
+                    *(
+                        list(encodings.aliases.aliases.keys())
+                        + [
+                            "utf-8",
+                            "utf8",
+                            "latin-1",
+                            "latin1",
+                            "iso-8859-1",
+                            "iso8859-1",
+                            "ascii",
+                            "us-ascii",
+                            "utf-16",
+                            "utf16",
+                            "utf-32",
+                            "utf32",
+                        ]
+                    )  # Common encodings
+                ),
+                cv.Optional(CONF_ENDIANNESS, default="LITTLE"): cv.enum(
+                    {
+                        "LITTLE": Endianness_ns.LITTLE,
+                        "BIG": Endianness_ns.BIG,
+                    }
+                ),
+            },
+            validate_value_type,
+        ),
+        key=CONF_DATA,
+    )
+
 
 # A value schema is the same as the value schema, but the type cannot be templated
 CONSTANT_VALUE_SCHEMA = cv.All(
-    VALUE_SCHEMA,
+    value_schema(),
     validate_descriptor_template_value,
 )
 
@@ -369,7 +374,7 @@ CHARACTERISTIC_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(BLECharacteristic),
         cv.Required(CONF_UUID): cv.Any(bt_uuid, cv.hex_uint32_t),
-        cv.Optional(CONF_VALUE): VALUE_SCHEMA,
+        cv.Optional(CONF_VALUE): value_schema(),
         cv.GenerateID(CONF_CHAR_VALUE_ACTION_ID_): cv.declare_id(
             BLECharacteristicSetValueAction
         ),
@@ -399,9 +404,9 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(BLEServer),
         cv.GenerateID(esp32_ble.CONF_BLE_ID): cv.use_id(esp32_ble.ESP32BLE),
-        cv.Optional(CONF_MANUFACTURER): VALUE_SCHEMA,
-        cv.Optional(CONF_MODEL): VALUE_SCHEMA,
-        cv.Optional(CONF_FIRMWARE_VERSION): VALUE_SCHEMA,
+        cv.Optional(CONF_MANUFACTURER): value_schema("string"),
+        cv.Optional(CONF_MODEL): value_schema("string"),
+        cv.Optional(CONF_FIRMWARE_VERSION): value_schema("string"),
         cv.Optional(CONF_MANUFACTURER_DATA): cv.Schema([cv.uint8_t]),
         cv.Optional(CONF_SERVICES, default=[]): cv.ensure_list(SERVICE_SCHEMA),
         cv.Optional(CONF_ON_CONNECT): automation.validate_automation(single=True),
@@ -552,7 +557,7 @@ async def to_code(config):
     cv.Schema(
         {
             cv.Required(CONF_ID): cv.use_id(BLECharacteristic),
-            cv.Required(CONF_VALUE): VALUE_SCHEMA,
+            cv.Required(CONF_VALUE): value_schema(),
         }
     ),
 )
@@ -570,7 +575,7 @@ async def ble_server_characteristic_set_value(config, action_id, template_arg, a
     cv.Schema(
         {
             cv.Required(CONF_ID): cv.use_id(BLEDescriptor),
-            cv.Required(CONF_VALUE): VALUE_SCHEMA,
+            cv.Required(CONF_VALUE): value_schema(),
         }
     ),
 )
