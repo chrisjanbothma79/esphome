@@ -37,7 +37,7 @@ class Aggregator {
   Aggregator(SamplingMode mode);
 
  protected:
-  SamplingMode mode_{0};
+  SamplingMode mode_{SamplingMode::AVG};
   uint32_t aggr_{0};
   uint32_t samples_{0};
 };
