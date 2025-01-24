@@ -171,6 +171,16 @@ void ESP32ArduinoUARTComponent::dump_config() {
   this->check_logger_conflict();
 }
 
+void ESP32ArduinoUARTComponent::set_rx_full_threshold(size_t rx_full_threshold) {
+  this->rx_full_threshold_ = rx_full_threshold;
+  this->hw_serial_->setRxTimeout(this->rx_full_threshold_);
+}
+
+void ESP32ArduinoUARTComponent::set_rx_timeout(size_t rx_timeout) {
+  this->rx_timeout_ = rx_timeout;
+  this->hw_serial_->setRxTimeout(this->rx_timeout_);
+}
+
 void ESP32ArduinoUARTComponent::write_array(const uint8_t *data, size_t len) {
   this->hw_serial_->write(data, len);
 #ifdef USE_UART_DEBUGGER

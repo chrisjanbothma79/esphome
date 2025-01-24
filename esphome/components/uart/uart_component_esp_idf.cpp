@@ -199,6 +199,24 @@ void IDFUARTComponent::dump_config() {
   this->check_logger_conflict();
 }
 
+void IDFUARTComponent::set_rx_full_threshold(size_t rx_full_threshold) {
+  esp_err_t err = uart_set_rx_full_threshold(this->uart_num_, rx_full_threshold);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "uart_set_rx_full_threshold failed: %s", esp_err_to_name(err));
+    return;
+  }
+  this->rx_full_threshold_ = rx_full_threshold;
+}
+
+void IDFUARTComponent::set_rx_timeout(size_t rx_timeout) {
+  esp_err_t err = uart_set_rx_timeout(this->uart_num_, rx_timeout);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "uart_set_rx_timeout failed: %s", esp_err_to_name(err));
+    return;
+  }
+  this->rx_timeout_ = rx_timeout;
+}
+
 void IDFUARTComponent::write_array(const uint8_t *data, size_t len) {
   xSemaphoreTake(this->lock_, portMAX_DELAY);
   uart_write_bytes(this->uart_num_, data, len);

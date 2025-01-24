@@ -96,7 +96,11 @@ class UARTComponent {
 
   // Sets the RX FIFO full interrupt threshold.
   // @param rx_full_threshold RX full interrupt threshold in bytes.
-  void set_rx_full_threshold(size_t rx_full_threshold) { this->rx_full_threshold_ = rx_full_threshold; }
+  virtual void set_rx_full_threshold(size_t rx_full_threshold) {}
+
+  // Sets the RX FIFO full interrupt threshold.
+  // @param time RX full interrupt threshold in ms.
+  void set_rx_full_threshold_ms(uint8_t time);
 
   // Gets the RX FIFO full interrupt threshold.
   // @return RX full interrupt threshold in bytes.
@@ -104,7 +108,7 @@ class UARTComponent {
 
   // Sets the RX timeout interrupt threshold.
   // @param rx_timeout RX timeout interrupt threshold (unit: time of sending one byte).
-  void set_rx_timeout(size_t rx_timeout) { this->rx_timeout_ = rx_timeout; }
+  virtual void set_rx_timeout(size_t rx_timeout) {}
 
   // Gets the RX timeout interrupt threshold.
   // @return RX timeout interrupt threshold (unit: time of sending one byte).
@@ -183,8 +187,8 @@ class UARTComponent {
   InternalGPIOPin *rx_pin_;
   InternalGPIOPin *flow_control_pin_;
   size_t rx_buffer_size_;
-  size_t rx_full_threshold_;
-  size_t rx_timeout_;
+  size_t rx_full_threshold_{1};
+  size_t rx_timeout_{0};
   uint32_t baud_rate_;
   uint8_t stop_bits_;
   uint8_t data_bits_;
