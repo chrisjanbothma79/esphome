@@ -373,7 +373,7 @@ async def to_code(config):
                 other_includes.append(include)
         # <...> includes should be at the start
         for include in system_includes:
-            cg.add_global(cg.RawStatement(f'#include {include}'), prepend=True)
+            cg.add_global(cg.RawStatement(f"#include {include}"), prepend=True)
         # Other includes should be at the end
         CORE.add_job(add_includes, other_includes)
 
