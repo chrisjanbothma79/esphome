@@ -37,6 +37,10 @@ void Aggregator::add_sample(uint32_t value) {
 
 uint32_t Aggregator::aggregate() {
   if (this->mode_ == SamplingMode::AVG) {
+    if (this->samples_ == 0) {
+      return this->aggr_;
+    }
+
     return (this->aggr_ + (this->samples_ >> 1)) / this->samples_;  // NOLINT(clang-analyzer-core.DivideZero)
   }
 
