@@ -78,7 +78,21 @@ void ADCSensor::dump_config() {
     }
   }
   ESP_LOGCONFIG(TAG, "  Samples: %i", this->sample_count_);
-  ESP_LOGCONFIG(TAG, "  Sampling mode: %hhu", static_cast<uint8_t>(this->sampling_mode_));
+  const char* samplingModeStr;
+  switch(this->sampling_mode_) {
+    case SamplingMode::AVG:
+      samplingModeStr = "average";
+      break;
+    case SamplingMode::MIN:
+      samplingModeStr = "minimum";
+      break;
+    case SamplingMode::MAX:
+      samplingModeStr = "maximum";
+      break;
+    default:
+      samplingModeStr = "unknown";
+  }
+  ESP_LOGCONFIG(TAG, "  Sampling mode: %s", samplingModeStr);
   LOG_UPDATE_INTERVAL(this);
 }
 
