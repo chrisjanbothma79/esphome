@@ -6,8 +6,6 @@ namespace adc {
 
 static const char *const TAG = "adc.common";
 
-enum class SamplingMode : uint8_t { AVG = 0, MIN = 1, MAX = 2 };
-
 Aggregator::Aggregator(SamplingMode mode) {
   mode_ = mode;
   // set to max uint if mode is "min"
