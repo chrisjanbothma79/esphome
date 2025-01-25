@@ -20,6 +20,7 @@ from esphome.components.zephyr import (
     zephyr_add_overlay,
     zephyr_add_prj_conf,
 )
+from esphome.components.zephyr.const import KEY_ZEPHYR
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ARGS,
@@ -157,7 +158,7 @@ def uart_selection(value):
             return cv.one_of(*UART_SELECTION_LIBRETINY[component], upper=True)(value)
     if CORE.is_host:
         raise cv.Invalid("Uart selection not valid for host platform")
-    if CORE.is_nrf52:
+    if CORE.target_platform == PLATFORM_NRF52:
         return cv.one_of(*UART_SELECTION_NRF52, upper=True)(value)
     raise NotImplementedError
 
@@ -187,22 +188,25 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_BAUD_RATE, default=115200): cv.positive_int,
             cv.Optional(CONF_TX_BUFFER_SIZE, default=512): cv.validate_bytes,
             cv.Optional(CONF_DEASSERT_RTS_DTR, default=False): cv.boolean,
-            cv.SplitDefault(
-                CONF_HARDWARE_UART,
-                esp8266=UART0,
-                esp32=UART0,
-                esp32_s2=USB_CDC,
-                esp32_s3_arduino=USB_CDC,
-                esp32_s3_idf=USB_SERIAL_JTAG,
-                esp32_c3_arduino=USB_CDC,
-                esp32_c3_idf=USB_SERIAL_JTAG,
-                esp32_c6_arduino=USB_CDC,
-                esp32_c6_idf=USB_SERIAL_JTAG,
-                rp2040=USB_CDC,
-                bk72xx=DEFAULT,
-                rtl87xx=DEFAULT,
-                nrf52=USB_CDC,
-            ): cv.All(
+            cv.Optional(CONF_HARDWARE_UART, default=USB_CDC):
+            # https://github.com/esphome/esphome/pull/7715
+            # cv.SplitDefault(
+            #     CONF_HARDWARE_UART,
+            #     esp8266=UART0,
+            #     esp32=UART0,
+            #     esp32_s2=USB_CDC,
+            #     esp32_s3_arduino=USB_CDC,
+            #     esp32_s3_idf=USB_SERIAL_JTAG,
+            #     esp32_c3_arduino=USB_CDC,
+            #     esp32_c3_idf=USB_SERIAL_JTAG,
+            #     esp32_c6_arduino=USB_CDC,
+            #     esp32_c6_idf=USB_SERIAL_JTAG,
+            #     rp2040=USB_CDC,
+            #     bk72xx=DEFAULT,
+            #     rtl87xx=DEFAULT,
+            #     nrf52=USB_CDC,
+            # ):
+            cv.All(
                 cv.only_on(
                     [
                         PLATFORM_ESP8266,
@@ -227,9 +231,10 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_LEVEL, default="WARN"): is_log_level,
                 }
             ),
-            cv.SplitDefault(
-                CONF_ESP8266_STORE_LOG_STRINGS_IN_FLASH, esp8266=True
-            ): cv.All(cv.only_on_esp8266, cv.boolean),
+            # https://github.com/esphome/esphome/pull/7715
+            # cv.SplitDefault(
+            #     CONF_ESP8266_STORE_LOG_STRINGS_IN_FLASH, esp8266=True
+            # ): cv.All(cv.only_on_esp8266, cv.boolean),
         }
     ).extend(cv.COMPONENT_SCHEMA),
     validate_local_no_higher_than_global,
@@ -315,7 +320,7 @@ async def to_code(config):
     except cv.Invalid:
         pass
 
-    if CORE.using_zephyr:
+    if CORE.target_framework == KEY_ZEPHYR:
         if config[CONF_HARDWARE_UART] == UART0:
             zephyr_add_overlay("""&uart0 { status = "okay";};""")
         if config[CONF_HARDWARE_UART] == UART1:

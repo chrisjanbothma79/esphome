@@ -8,6 +8,7 @@ from esphome import automation
 from esphome.automation import Condition
 import esphome.codegen as cg
 from esphome.components.zephyr import zephyr_add_prj_conf
+from esphome.components.zephyr.const import KEY_ZEPHYR
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_AT,
@@ -298,7 +299,7 @@ TIME_SCHEMA = cv.Schema(
 
 
 async def setup_time_core_(time_var, config):
-    if not CORE.using_zephyr:
+    if not CORE.target_framework == KEY_ZEPHYR:
         cg.add(time_var.set_timezone(config[CONF_TIMEZONE]))
 
     for conf in config.get(CONF_ON_TIME, []):
@@ -333,7 +334,7 @@ async def register_time(time_var, config):
 
 @coroutine_with_priority(100.0)
 async def to_code(config):
-    if CORE.using_zephyr:
+    if CORE.target_framework == KEY_ZEPHYR:
         zephyr_add_prj_conf("POSIX_CLOCK", True)
     cg.add_define("USE_TIME")
     cg.add_global(time_ns.using)
