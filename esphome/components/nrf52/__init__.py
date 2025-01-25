@@ -119,6 +119,7 @@ def get_download_types(storage_json):
     DFU_PATH = "firmware.zip"
     HEX_PATH = "zephyr/zephyr.hex"
     HEX_MERGED_PATH = "zephyr/merged.hex"
+    APP_IMAGE_PATH = "zephyr/app_update.bin"
     build_dir = Path(storage_json.firmware_bin_path).parent
     if (build_dir / UF2_PATH).is_file():
         types = [
@@ -140,11 +141,22 @@ def get_download_types(storage_json):
             {
                 "title": "HEX package",
                 "description": "For flashing via pyocd using SWD.",
-                "file": HEX_MERGED_PATH
-                if (build_dir / HEX_MERGED_PATH).is_file()
-                else HEX_PATH,
+                "file": (
+                    HEX_MERGED_PATH
+                    if (build_dir / HEX_MERGED_PATH).is_file()
+                    else HEX_PATH
+                ),
                 "download": f"{storage_json.name}.hex",
             },
         ]
+        if (build_dir / APP_IMAGE_PATH).is_file():
+            types += [
+                {
+                    "title": "App update package",
+                    "description": "For flashing via mcumgr-web using BLE or smpclient using USB CDC.",
+                    "file": APP_IMAGE_PATH,
+                    "download": f"app-{storage_json.name}.img",
+                },
+            ]
 
     return types
