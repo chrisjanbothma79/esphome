@@ -46,8 +46,6 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   GPIOPin *sck_pin_;
   /// Gain to set after new measurement.
   HX711Gain gain_{HX711_GAIN_128};
-  /// The gain used for the last measurement.
-  HX711Gain last_gain_{HX711_GAIN_128};
 };
 
 }  // namespace hx711

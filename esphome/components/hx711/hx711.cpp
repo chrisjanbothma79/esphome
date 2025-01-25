@@ -84,9 +84,10 @@ bool HX711Sensor::read_sensor_(uint32_t *result, const bool force) {
     return false;
   }
 
+  // After a reset or power-down event, input selection is default to Channel A with a gain of 128.
+  static HX711Gain last_gain = HX711Gain::HX711_GAIN_128;
   uint32_t data = 0;
   bool final_dout;
-
   {
     InterruptLock lock;
     for (uint8_t i = 0; i < 24; i++) {
@@ -107,10 +108,10 @@ bool HX711Sensor::read_sensor_(uint32_t *result, const bool force) {
     final_dout = this->dout_pin_->digital_read();
   }
 
-  if (this->last_gain_ != this->gain_) {
+  if (last_gain != this->gain_) {
     // Timestamp the change
     this->last_change_ = millis();
-    this->last_gain_ = this->gain_;
+    last_gain = this->gain_;
     ESP_LOGV(TAG, "HX711 gain changed to x%" PRIu8 " at %" PRIu32 " ms", hx711_gain_to_linear_gain(this->gain_),
              this->last_change_);
   }
