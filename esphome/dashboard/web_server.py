@@ -33,6 +33,7 @@ import tornado.process
 import tornado.queues
 import tornado.web
 import tornado.websocket
+import voluptuous as vol
 import yaml
 from yaml.nodes import Node
 
@@ -51,7 +52,6 @@ from .util.text import friendly_name_slugify
 
 if TYPE_CHECKING:
     from requests import Response
-import voluptuous as vol
 
 _LOGGER = logging.getLogger(__name__)
 
