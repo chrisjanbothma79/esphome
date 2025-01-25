@@ -88,6 +88,7 @@ bool HX711Sensor::read_sensor_(uint32_t *result, const bool force) {
   static HX711Gain last_gain = HX711Gain::HX711_GAIN_128;
   uint32_t data = 0;
   bool final_dout;
+
   {
     InterruptLock lock;
     for (uint8_t i = 0; i < 24; i++) {
