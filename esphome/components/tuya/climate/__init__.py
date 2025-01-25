@@ -45,11 +45,11 @@ CONF_SUPPORTS_PELLET = "supports_pellet"
 CONF_ECO_MODE = "eco_mode"
 CONF_E1_VALUE = "e1_value"
 CONF_E2_VALUE = "e2_value"
-CONF_PELLET_FEED = "pellet_feed"
-CONF_P1_VALUE = "p4_value"
-CONF_P2_VALUE = "p3_value"
-CONF_P3_VALUE = "p2_value"
-CONF_P4_VALUE = "p1_value"
+CONF_PELLET_RATE = "pellet_rate"
+CONF_R1_VALUE = "r4_value"
+CONF_R2_VALUE = "r3_value"
+CONF_R3_VALUE = "r2_value"
+CONF_R4_VALUE = "r1_value"
 
 TuyaClimate = tuya_ns.class_("TuyaClimate", climate.Climate, cg.Component)
 
@@ -137,10 +137,10 @@ def validate_heating_values(value):
                     f" Please add {CONF_SUPPORTS_PELLET} to your configuration."
                 )
             if (
-                CONF_PELLET_FEED in value
+                CONF_PELLET_RATE in value
             ):
                 raise cv.Invalid(
-                    f"Device does not support pellet heat, but {CONF_PELLET_FEED} specified."
+                    f"Device does not support pellet heat, but {CONF_PELLET_RATE} specified."
                     f" Please add {CONF_SUPPORTS_PELLET} to your configuration."
                 )
     return value
@@ -194,13 +194,13 @@ ECO_MODES = cv.Schema(
     }
 )
 
-PELLET_FEEDS = cv.Schema(
+PELLET_RATES = cv.Schema(
     {
         cv.Required(CONF_DATAPOINT): cv.uint8_t,
-        cv.Optional(CONF_P1_VALUE): cv.uint8_t,
-        cv.Optional(CONF_P2_VALUE): cv.uint8_t,
-        cv.Optional(CONF_P3_VALUE): cv.uint8_t,
-        cv.Optional(CONF_P4_VALUE): cv.uint8_t,       
+        cv.Optional(CONF_R1_VALUE): cv.uint8_t,
+        cv.Optional(CONF_R2_VALUE): cv.uint8_t,
+        cv.Optional(CONF_R3_VALUE): cv.uint8_t,
+        cv.Optional(CONF_R4_VALUE): cv.uint8_t,       
     }
 )
 
@@ -226,7 +226,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_FAN_MODE): FAN_MODES,
             cv.Optional(CONF_SWING_MODE): SWING_MODES,
             cv.Optional(CONF_ECO_MODE): ECO_MODES,
-            cv.Optional(CONF_PELLET_FEED): PELLET_FEEDS,
+            cv.Optional(CONF_PELLET_RATE): PELLET_RATES,
             cv.Optional("active_state_datapoint"): cv.invalid(
                 "'active_state_datapoint' has been moved inside of the 'active_state' config block as 'datapoint'"
             ),
@@ -341,13 +341,13 @@ async def to_code(config):
         if (eco_mode_e1_value := eco_mode_config.get(CONF_E1_VALUE)) is not None:
             cg.add(var.set_eco_mode_e1_value(eco_mode_e1_value))
 
-    if pellet_feed_config := config.get(CONF_PELLET_FEED):
-        cg.add(var.set_pellet_feed_id(pellet_feed_config.get(CONF_DATAPOINT)))
-        if (pellet_feed_p1_value := pellet_feed_config.get(CONF_P1_VALUE)) is not None:
-            cg.add(var.set_pellet_feed_p1_value(pellet_feed_p1_value))
-        if (pellet_feed_p2_value := pellet_feed_config.get(CONF_P2_VALUE)) is not None:
-            cg.add(var.set_pellet_feed_p1_value(pellet_feed_p2_value))
-        if (pellet_feed_p3_value := pellet_feed_config.get(CONF_P3_VALUE)) is not None:
-            cg.add(var.set_pellet_feed_p1_value(pellet_feed_p3_value))
-        if (pellet_feed_p4_value := pellet_feed_config.get(CONF_P4_VALUE)) is not None:
-            cg.add(var.set_pellet_feed_p1_value(pellet_feed_p4_value))
+    if pellet_rate_config := config.get(CONF_PELLET_RATE):
+        cg.add(var.set_pellet_rate_id(pellet_rate_config.get(CONF_DATAPOINT)))
+        if (pellet_rate_r1_value := pellet_rate_config.get(CONF_R1_VALUE)) is not None:
+            cg.add(var.set_pellet_rate_r1_value(pellet_rate_r1_value))
+        if (pellet_rate_r2_value := pellet_rate_config.get(CONF_R2_VALUE)) is not None:
+            cg.add(var.set_pellet_rate_r2_value(pellet_rate_r2_value))
+        if (pellet_rate_r3_value := pellet_rate_config.get(CONF_R3_VALUE)) is not None:
+            cg.add(var.set_pellet_rate_r3_value(pellet_rate_r3_value))
+        if (pellet_rate_r4_value := pellet_rate_config.get(CONF_R4_VALUE)) is not None:
+            cg.add(var.set_pellet_rate_r4_value(pellet_rate_r4_value))
