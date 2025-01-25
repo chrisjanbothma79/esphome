@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import esphome.codegen as cg
 from esphome.components.zephyr import (
     copy_files as zephyr_copy_files,
@@ -109,3 +111,37 @@ async def to_code(config):
 
 def copy_files():
     zephyr_copy_files()
+
+
+def get_download_types(storage_json):
+    types = []
+    UF2_PATH = "zephyr/zephyr.uf2"
+    DFU_PATH = "firmware.zip"
+    HEX_PATH = "zephyr/zephyr.hex"
+    build_dir = Path(storage_json.firmware_bin_path).parent
+    if (build_dir / UF2_PATH).is_file():
+        types = [
+            {
+                "title": "UF2 package (recommended)",
+                "description": "For flashing via Adafruit nRF52 Bootloader as a flash drive.",
+                "file": UF2_PATH,
+                "download": f"{storage_json.name}.uf2",
+            },
+            {
+                "title": "DFU package",
+                "description": "For flashing via adafruit-nrfutil using USB CDC.",
+                "file": DFU_PATH,
+                "download": f"dfu-{storage_json.name}.zip",
+            },
+        ]
+    else:
+        types = [
+            {
+                "title": "HEX package",
+                "description": "For flashing via pyocd using SWD.",
+                "file": HEX_PATH,
+                "download": f"{storage_json.name}.hex",
+            },
+        ]
+
+    return types
