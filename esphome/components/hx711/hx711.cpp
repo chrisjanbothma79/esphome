@@ -20,7 +20,7 @@ constexpr uint8_t hx711_gain_to_linear_gain(const HX711Gain gain) {
 /// @brief Calculates the elapsed time in milliseconds from a given timestamp.
 /// @param[in] timestamp The reference timestamp (in millis).
 /// @return The elapsed time in milliseconds.
-inline uint32_t millis_elapsed_from(const uint32_t timestamp) { return millis() - timestamp; }
+inline uint32_t millis_elapsed_since(const uint32_t timestamp) { return millis() - timestamp; }
 
 void HX711Sensor::setup() {
   ESP_LOGCONFIG(TAG, "Setting up HX711 '%s'...", this->name_.c_str());
@@ -46,9 +46,9 @@ void HX711Sensor::dump_config() {
 float HX711Sensor::get_setup_priority() const { return setup_priority::DATA; }
 
 void HX711Sensor::update() {
-  if (millis_elapsed_from(this->last_change_) < static_cast<uint32_t>(this->settling_time_ms_)) {
+  if (millis_elapsed_since(this->last_change_) < static_cast<uint32_t>(this->settling_time_ms_)) {
     uint32_t settling_time_remaining_ms =
-        static_cast<uint32_t>(this->settling_time_ms_) - millis_elapsed_from(this->last_change_);
+        static_cast<uint32_t>(this->settling_time_ms_) - millis_elapsed_since(this->last_change_);
     ESP_LOGW(TAG, "Waiting %" PRIu32 " ms for HX711 to settle before updating, stopping poller.",
              settling_time_remaining_ms);
     this->stop_poller();
@@ -77,7 +77,7 @@ bool HX711Sensor::read_sensor_(uint32_t *result, bool force) {
     return false;
   }
 
-  uint32_t elapsed = millis_elapsed_from(this->last_change_);
+  uint32_t elapsed = millis_elapsed_since(this->last_change_);
   if (!force && (elapsed < static_cast<uint32_t>(this->settling_time_ms_))) {
     ESP_LOGW(TAG, "HX711 output is not settled yet (%" PRIu32 " ms left)", this->settling_time_ms_ - elapsed);
     this->status_set_warning();
