@@ -106,7 +106,6 @@ class ClimateCall {
   ClimateCall &set_pellet_rate(const std::string &pellet_rate);
   /// Set the pellet rate of the climate device based on a string.
   ClimateCall &set_pellet_rate(optional<std::string> pellet_rate);
-  
 
   void perform();
 

@@ -44,12 +44,12 @@ CONF_MEDIUM_VALUE = "medium_value"
 CONF_MIDDLE_VALUE = "middle_value"
 CONF_HIGH_VALUE = "high_value"
 CONF_AUTO_VALUE = "auto_value"
-CONF_PELLET_ECO_ON_VALUE = "on_value"
-CONF_PELLET_ECO_OFF_VALUE = "off_value"
-CONF_PELLET_RATE_LOW_VALUE = "low_value"
-CONF_PELLET_RATE_MED_VALUE = "med_value"
-CONF_PELLET_RATE_HIGH_VALUE = "high_value"
-CONF_PELLET_RATE_MAX_VALUE = "max_value"
+CONF_PELLET_ECO_ON_VALUE = "pellet_eco_on_value"
+CONF_PELLET_ECO_OFF_VALUE = "pellet_eco_off_value"
+CONF_PELLET_RATE_LOW_VALUE = "pellet_rate_low_value"
+CONF_PELLET_RATE_MED_VALUE = "pellet_rate_med_value"
+CONF_PELLET_RATE_HIGH_VALUE = "pellet_rate_high_value"
+CONF_PELLET_RATE_MAX_VALUE = "pellet_rate_max_value"
 
 TuyaClimate = tuya_ns.class_("TuyaClimate", climate.Climate, cg.Component)
 
