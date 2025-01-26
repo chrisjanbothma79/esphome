@@ -10,11 +10,8 @@ import esphome.config_validation as cv
 from esphome.const import CONF_ID, PLATFORM_HOST
 from esphome.coroutine import coroutine_with_priority
 
-# from esphome.cpp_helpers import setup_entity
-
 CODEOWNERS = ["@esphome/core"]
 
-# CONF_DBUS_ID = "dbus_id"
 CONF_DBUS_SYSTEM = "dbus_system"
 CONF_DBUS_DESTINATION = "dbus_destination"
 CONF_DBUS_PATH = "dbus_path"
@@ -34,7 +31,6 @@ DBusSendAction = dbus_ns.class_(
 @automation.register_action(
     "dbus.send",
     DBusSendAction,
-    # cv.maybe_simple_value(
     cv.Schema(
         {
             cv.GenerateID(): cv.use_id(DBus),

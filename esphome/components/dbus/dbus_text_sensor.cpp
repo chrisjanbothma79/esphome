@@ -3,14 +3,6 @@
 #include "esphome/core/application.h"
 
 #include "dbus-print-message.h"
-// dbus-send --session --print-reply --dest=org.mpris.MediaPlayer2.amarok /org/mpris/MediaPlayer2
-// org.freedesktop.DBus.Properties.Get string:'org.mpris.MediaPlayer2.Player' string:'Metadata'
-// https://stackoverflow.com/questions/47095118/c-gdbus-how-to-fetch-the-property-of-interface-using-gdbus-library
-// #define DBUS_DESTINATION  "org.mpris.MediaPlayer2.amarok"
-// #define DBUS_PATH         "/org/mpris/MediaPlayer2"
-// #define DBUS_INTERFACE    "org.freedesktop.DBus.Properties"
-// #define DBUS_METHOD       "Get"
-// #define DBUS_ARGS         "org.mpris.MediaPlayer2.Player" "Metadata"
 
 namespace esphome {
 namespace dbus {
