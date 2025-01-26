@@ -4,10 +4,8 @@
 #include "esphome/components/sensor/sensor.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-
 namespace esphome {
 namespace pulse_width_accumulate {
-
 /// Store data in a class that doesn't use multiple-inheritance (vtables in flash)
 class PulseWidthAccumulateSensorStore {
  public:
@@ -20,13 +18,12 @@ class PulseWidthAccumulateSensorStore {
  private:
   portMUX_TYPE mux_;
   ISRInternalGPIOPin pin_;
-  uint32_t last_rise_us_{0};               // Timestamp of last rising edge
-  uint32_t last_fall_us_{0};              // Timestamp of last falling edge
+  uint32_t last_rise_us_{0};// Timestamp of last rising edge
+  uint32_t last_fall_us_{0};// Timestamp of last falling edge
    uint32_t cumulative_width_us_{0};
-   float cumulative_width_s_{0.0f};  // Total cumulative pulse width
+   float cumulative_width_s_{0.0f};// Total cumulative pulse width
    uint32_t pulse_count_{0};
 };
-
 class PulseWidthAccumulateSensor : public sensor::Sensor, public PollingComponent {
  public:
   void set_pin(InternalGPIOPin *pin) { pin_ = pin; }
@@ -40,6 +37,5 @@ class PulseWidthAccumulateSensor : public sensor::Sensor, public PollingComponen
   InternalGPIOPin *pin_;
   sensor::Sensor *frequency_sensor_{nullptr};// Pointer to the frequency sensor
 };
-
-}  // namespace pulse_width_accumulate
-}  // namespace esphome
+}// namespace pulse_width_accumulate
+}// namespace esphome

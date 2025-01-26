@@ -2,20 +2,17 @@
 #include "esphome/core/log.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
-
 namespace esphome {
 namespace pulse_width_accumulate {
 static const char *const TAG = "pulse_width";
 constexpr uint32_t MICROSECOND_PER_PULSE_LOWER_THRESHOLD = 17;
 PulseWidthAccumulateSensorStore::PulseWidthAccumulateSensorStore() {  mux_ = portMUX_INITIALIZER_UNLOCKED; }
-
 void PulseWidthAccumulateSensorStore::setup(InternalGPIOPin *pin) {
 pin->setup();
     this->pin_ = pin->to_isr();
     this->last_rise_us_ = micros();
     pin->attach_interrupt(&PulseWidthAccumulateSensorStore::gpio_intr, this, gpio::INTERRUPT_ANY_EDGE);
 }
-
 float PulseWidthAccumulateSensorStore::get_pulses_this_cycle() {
 uint32_t pulse_count = 0;
     // Safely copy & reset the pulse counter
@@ -26,7 +23,6 @@ uint32_t pulse_count = 0;
     float pulses_this_cycle = static_cast<float>(pulse_count);
     return static_cast<float>(pulses_this_cycle);
 }
-
 // Zero the microsecond counter every polling cycle so we never overflow at 2^32 (ie. ~71.58 min)
 float PulseWidthAccumulateSensorStore::get_cumulative_pulse_width_s() {
   float cumulative_local = 0;
@@ -42,7 +38,6 @@ portENTER_CRITICAL(&this->mux_);
 portEXIT_CRITICAL(&this->mux_);
   return cumulative_local;
 }
-
 // ISR. Get in and out ASAP.  No floating point math!
 void IRAM_ATTR PulseWidthAccumulateSensorStore::gpio_intr(PulseWidthAccumulateSensorStore *arg) {
   uint32_t now = micros();
@@ -59,13 +54,11 @@ void IRAM_ATTR PulseWidthAccumulateSensorStore::gpio_intr(PulseWidthAccumulateSe
   }
 portEXIT_CRITICAL_ISR(&arg->mux_);
 }
-  
 void PulseWidthAccumulateSensor::dump_config() {
   LOG_SENSOR("", "Pulse Width", this)
   LOG_UPDATE_INTERVAL(this)
   LOG_PIN("  Pin: ", this->pin_);
 }
-
 void PulseWidthAccumulateSensor::update() {
   //Retrieve cumulative pulse width, and zero the counter
   float cumulative_width = this->store_.get_cumulative_pulse_width_s();
@@ -79,10 +72,6 @@ void PulseWidthAccumulateSensor::update() {
   }
   if (cumulative_width > polling_interval_s) {
     ESP_LOGW(TAG, "Warning, cumulative pulse width: %.4f s exceeds the polling window: %.4f s.", cumulative_width, polling_interval_s);
-    /*Always issue a warning, but only attempt to fix if there's a large deviation
-    Experimental observation: When the GPIO input is continuously on we often get a self correcting error.  
-    Specifically one polling period will overshoot by 1 or 2 ms, and the next will be deficiant by the same amount
-    we dont want to introduce any systemic inaccuracy by correcting when we shouldn't*/
     if ( (cumulative_width - polling_interval_s) > 3.0e-3f ) {
       ESP_LOGW(TAG, "Clamping cumulative pulse width to range: %.4f", polling_interval_s);
       cumulative_width = polling_interval_s;
