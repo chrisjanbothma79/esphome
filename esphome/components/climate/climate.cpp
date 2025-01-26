@@ -569,7 +569,7 @@ ClimateCall ClimateDeviceRestoreState::to_call(Climate *climate) {
   }
   if (traits.get_supports_pellet_rates()) {
     call.set_pellet_rate(this->pellet_rate);
-  }  
+  }
   if (traits.get_supports_fan_modes() || !traits.get_supported_custom_fan_modes().empty()) {
     call.set_fan_mode(this->fan_mode);
   }
