@@ -39,8 +39,12 @@ class TuyaClimate : public climate::Climate, public Component {
   void set_swing_horizontal_id(uint8_t swing_horizontal_id) { this->swing_horizontal_id_ = swing_horizontal_id; }
   void set_fan_speed_id(uint8_t fan_speed_id) { this->fan_speed_id_ = fan_speed_id; }
   void set_fan_speed_low_value(uint8_t fan_speed_low_value) { this->fan_speed_low_value_ = fan_speed_low_value; }
-  void set_fan_speed_medium_value(uint8_t fan_speed_medium_value) { this->fan_speed_medium_value_ = fan_speed_medium_value; }
-  void set_fan_speed_middle_value(uint8_t fan_speed_middle_value) { this->fan_speed_middle_value_ = fan_speed_middle_value; }
+  void set_fan_speed_medium_value(uint8_t fan_speed_medium_value) {
+    this->fan_speed_medium_value_ = fan_speed_medium_value;
+  }
+  void set_fan_speed_middle_value(uint8_t fan_speed_middle_value) {
+    this->fan_speed_middle_value_ = fan_speed_middle_value; 
+  }
   void set_fan_speed_high_value(uint8_t fan_speed_high_value) { this->fan_speed_high_value_ = fan_speed_high_value; }
   void set_fan_speed_auto_value(uint8_t fan_speed_auto_value) { this->fan_speed_auto_value_ = fan_speed_auto_value; }
   void set_eco_mode_id(uint8_t eco_mode_id) { this->eco_mode_id_ = eco_mode_id; }
