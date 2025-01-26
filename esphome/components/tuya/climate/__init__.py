@@ -192,7 +192,7 @@ ECO_MODES = cv.Schema(
     {
         cv.Required(CONF_DATAPOINT): cv.uint8_t,
         cv.Optional(CONF_PELLET_ECO_ON_VALUE): cv.uint8_t,
-        cv.Optional(CONF_PELLET_ECO_OFF_VALUE): cv.uint8_t,       
+        cv.Optional(CONF_PELLET_ECO_OFF_VALUE): cv.uint8_t,
     }
 )
 
@@ -202,7 +202,7 @@ PELLET_RATES = cv.Schema(
         cv.Optional(CONF_PELLET_RATE_LOW_VALUE): cv.uint8_t,
         cv.Optional(CONF_PELLET_RATE_MED_VALUE): cv.uint8_t,
         cv.Optional(CONF_PELLET_RATE_HIGH_VALUE): cv.uint8_t,
-        cv.Optional(CONF_PELLET_RATE_MAX_VALUE): cv.uint8_t,       
+        cv.Optional(CONF_PELLET_RATE_MAX_VALUE): cv.uint8_t,
     }
 )
 
@@ -263,7 +263,7 @@ async def to_code(config):
 
     cg.add(var.set_supports_heat(config[CONF_SUPPORTS_HEAT]))
     cg.add(var.set_supports_cool(config[CONF_SUPPORTS_COOL]))
-    cg.add(var.set_supports_pellet(config[CONF_SUPPORTS_PELLET]))   
+    cg.add(var.set_supports_pellet(config[CONF_SUPPORTS_PELLET]))
     if switch_datapoint := config.get(CONF_SWITCH_DATAPOINT):
         cg.add(var.set_switch_id(switch_datapoint))
 
@@ -353,4 +353,4 @@ async def to_code(config):
             cg.add(var.set_pellet_rate_high_value(pellet_rate_high_value))
         if (pellet_rate_max_value := pellet_rate_config.get(CONF_PELLET_RATE_MAX_VALUE)) is not None:
             cg.add(var.set_pellet_rate_max_value(pellet_rate_max_value))
-            
+#
