@@ -14,17 +14,29 @@ CONF_REFERENCE = "reference"
 CONF_CRC = "crc"
 
 
+def validate_pin(value, reference=""):
+    reference = reference.upper()
+    if reference in ["DS2413", "DS2406"]:
+        return cv.one_of("PIOA", "PIOB", upper=True)(value)
+    elif reference == "DS2408":
+        return cv.one_of("P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", upper=True)(
+            value
+        )
+    raise cv.Invalid("Invalid pin configuration for the given reference.")
+
+
 def validate_crc_option(config_list):
     for conf in config_list:
         reference = conf.get("reference", "").upper()
-        if not reference or reference == "DS2413":
+        if not reference:
             continue
-        if reference in {"DS2406", "DS2408"} and "crc" not in conf:
+        crc_value = conf.get("crc", False)
+        if reference not in {"DS2413", "DS2406", "DS2408"}:
+            raise cv.Invalid(f"Unsupported reference: {reference}")
+        if crc_value and reference != "DS2406":
             raise cv.Invalid(
-                "Option 'crc' is required when 'reference' is DS2406 or DS2408."
+                f"Option 'crc' can only be set to true for reference DS2406, not {reference}."
             )
-        if reference not in {"DS2406", "DS2408"} and "crc" in conf:
-            raise cv.Invalid("Option 'crc' is not supported for this reference.")
     return config_list
 
 

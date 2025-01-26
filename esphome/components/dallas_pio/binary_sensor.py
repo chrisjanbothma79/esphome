@@ -26,7 +26,9 @@ def validate_mode(value):
 
 CUSTOM_PIN_SCHEMA = cv.Schema(
     {
-        cv.Required("number"): cv.one_of("PIOA", "PIOB", upper=True),
+        cv.Required("number"): cv.one_of(
+            "PIOA", "PIOB", "P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", upper=True
+        ),
         cv.Optional(CONF_INVERTED, default=False): cv.boolean,
         cv.Optional(CONF_MODE, default={"input": True}): validate_mode,
     }
@@ -63,6 +65,10 @@ async def to_code(config):
         cg.add(var.set_pin(0x01))  # PIOA assiociated to 0x01
     elif pin_number == "PIOB":
         cg.add(var.set_pin(0x02))  # PIOB assiociated to 0x02
+    elif pin_number.startswith("P"):
+        pin_index = int(pin_number[1:])
+        if 0 <= pin_index <= 7:
+            cg.add(var.set_pin(1 + pin_index))
     cg.add(var.set_pin_inverted(pin_inverted))
     cg.add(var.set_pin_mode(pin_mode.get("input", True), pin_mode.get("output", False)))
     # cg.add(var.set_inverted(inverted))

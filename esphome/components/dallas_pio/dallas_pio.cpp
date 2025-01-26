@@ -147,6 +147,7 @@ bool DallasPio::ds2413_get_state_(uint8_t &state) {
       return false;
       break;
   }
+  state = this->pin_inverted_ ? !state : state;
   return true;
 }  // ds2413_get_state_
 
@@ -326,6 +327,7 @@ bool DallasPio::ds2406_get_state_(uint8_t &state, bool use_crc = false) {
     return false;
   }
   state = pio_sensed_level;
+  state = this->pin_inverted_ ? !state : state;
   return true;
 }  // ds2406_get_state_
 
@@ -497,7 +499,7 @@ bool DallasPio::ds2408_get_state_(uint8_t &state, bool use_crc = false) {
   }
 
   state = (current_state >> pin_index) & 0x01;
-
+  state = this->pin_inverted_ ? !state : state;
   return true;
 }  // ds2408_get_state_
 
@@ -509,15 +511,14 @@ void DallasPio::ds2408_write_state_(bool state, bool use_crc = false) {
   // PIO Output Latch State Register Bitmap
   // ADDR  b7  b6  b5  b4  b3  b2  b1  b0
   // 0x89  PL7 PL6 PL5 PL4 PL3 PL2 PL1 PL0
-  // Initialize One-Wire bus for this device
-  uint8_t current_state = 0;
+  // Be aware to pull up RSTZ pin to be able to write outputs !!
   uint8_t ack = 0;
-  if (!this->ds2408_read_device_(current_state, use_crc)) {
-    this->status_set_warning();
-    return;
-  }
-  uint8_t new_state = state ? (current_state | (1 << this->pin_)) : (current_state & ~(1 << this->pin_));
-
+  uint8_t new_state = (state ^ this->pin_inverted_) ? (this->ds2408_write_current_state_ | (1 << (this->pin_ - 1)))
+                                                    : (this->ds2408_write_current_state_ & ~(1 << (this->pin_ - 1)));
+  this->ds2408_write_current_state_ = new_state;
+  uint8_t read_after_write = 0;
+  bool read_state_after_write = true;
+  // ESP_LOGD(TAG, "new_state: 0x%04X this->pin_: %d state: %u", new_state, this->pin_, state);
   if (!this->check_address_()) {
     this->status_set_warning();
     return;
@@ -533,9 +534,22 @@ void DallasPio::ds2408_write_state_(bool state, bool use_crc = false) {
     this->bus_->write8(new_state);
     this->bus_->write8(~new_state);
     ack = this->bus_->read8();  // 0xAA=success, 0xFF=failure
+    read_after_write = this->bus_->read8();
   }
-  if (ack != DALLAS_DS2413_COMMAND_PIO_ACK_SUCCESS) {
-    ESP_LOGW(TAG, "Failed to write One-Wire bus.");
+  // ESP_LOGD(TAG, "ack: 0x%04X read_after_write: 0x%04X", ack, read_after_write);
+  if (ack != DALLAS_DS2408_COMMAND_PIO_ACK_SUCCESS) {
+    ESP_LOGW(TAG, "Failed to write One-Wire bus with ack: 0x%04X", ack);
+    this->status_set_warning();
+    return;
+  }
+  read_state_after_write = ((read_after_write & (1 << (this->pin_ - 1))) != 0);
+  if (read_state_after_write != state) {
+    ESP_LOGW(TAG, "Failed to write One-Wire bus write %u read %u", state, read_state_after_write);
+    this->status_set_warning();
+    return;
+  }
+  if (!this->bus_->reset()) {
+    ESP_LOGW(TAG, "Failed to reset One-Wire bus.");
     this->status_set_warning();
     return;
   }

@@ -17,6 +17,7 @@ static const uint8_t DALLAS_DS2406_COMMAND_READ_STATUS = 0xAA;
 static const uint8_t DALLAS_DS2406_COMMAND_WRITE_STATUS = 0x55;
 static const uint8_t DALLAS_DS2408_COMMAND_READ_PIO_REGISTERS = 0xF0;
 static const uint8_t DALLAS_DS2408_COMMAND_WRITE_PIO_REGISTERS = 0x5A;
+static const uint8_t DALLAS_DS2408_COMMAND_PIO_ACK_SUCCESS = 0xAA;
 
 }  // namespace dallas_pio
 }  // namespace esphome
