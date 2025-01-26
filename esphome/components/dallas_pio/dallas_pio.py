@@ -18,7 +18,7 @@ def validate_pin(value, reference=""):
     reference = reference.upper()
     if reference in ["DS2413", "DS2406"]:
         return cv.one_of("PIOA", "PIOB", upper=True)(value)
-    elif reference == "DS2408":
+    if reference == "DS2408":
         return cv.one_of("P0", "P1", "P2", "P3", "P4", "P5", "P6", "P7", upper=True)(
             value
         )
