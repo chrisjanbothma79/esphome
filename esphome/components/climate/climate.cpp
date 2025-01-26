@@ -609,7 +609,7 @@ void ClimateDeviceRestoreState::apply(Climate *climate) {
     std::vector<std::string> modes_vec{modes.begin(), modes.end()};
     if (custom_fan_mode < modes_vec.size()) {
       climate->custom_fan_mode = modes_vec[this->custom_fan_mode];
-     }
+    }
   }
   if (traits.get_supports_presets() && !this->uses_custom_preset) {
     climate->preset = this->preset;
@@ -620,14 +620,13 @@ void ClimateDeviceRestoreState::apply(Climate *climate) {
     std::vector<std::string> presets_vec{presets.begin(), presets.end()};
     if (custom_preset < presets_vec.size()) {
       climate->custom_preset = presets_vec[this->custom_preset];
-     }
+    }
   }
   if (traits.get_supports_swing_modes()) {
     climate->swing_mode = this->swing_mode;
   }
   climate->publish_state();
 }
-
 
 template<typename T1, typename T2> bool set_alternative(optional<T1> &dst, optional<T2> &alt, const T1 &src) {
   bool is_changed = alt.has_value();
@@ -652,7 +651,6 @@ bool Climate::set_custom_fan_mode_(const std::string &mode) {
 }
 
 bool Climate::set_preset_(ClimatePreset preset) { return set_alternative(this->preset, this->custom_preset, preset); }
-
 
 bool Climate::set_custom_preset_(const std::string &preset) {
   return set_alternative(this->custom_preset, this->preset, preset);
