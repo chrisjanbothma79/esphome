@@ -21,10 +21,10 @@ uint32_t pulse_count = 0;
     // Safely copy & reset the pulse counter
   portENTER_CRITICAL(&this->mux_);
     pulse_count = this->pulse_count_;
-    this->pulse_count_ = 0;  
+    this->pulse_count_ = 0;
   portEXIT_CRITICAL(&this->mux_);
     float pulses_this_cycle = static_cast<float>(pulse_count);
-    return static_cast<float>(pulses_this_cycle); 
+    return static_cast<float>(pulses_this_cycle);
 }
 
 // Zero the microsecond counter every polling cycle so we never overflow at 2^32 (ie. ~71.58 min)
@@ -72,11 +72,11 @@ void PulseWidthAccumulateSensor::update() {
   float polling_interval_s = static_cast<float>(this->get_update_interval()) / 1000.0f;
   if (polling_interval_s > 4294.9f) {//Check and fix errors, and issue warnings if necessary.
     ESP_LOGW(TAG, "Error! Polling interval: %.1f s exceeds 71.58 min. Microseconds will overflow if pw > 71.58 min", polling_interval_s);
-  } 
-  if (cumulative_width < 0) {//Clamp cumulative width to valid range, 
+  }
+  if (cumulative_width < 0) {//Clamp cumulative width to valid range,
     ESP_LOGW(TAG, "Warning, cumulative pulse width %.1f s doesn't make sense! Setting to zero.", cumulative_width);
     cumulative_width = 0.0f;
-  } 
+  }
   if (cumulative_width > polling_interval_s) {
     ESP_LOGW(TAG, "Warning, cumulative pulse width: %.4f s exceeds the polling window: %.4f s.", cumulative_width, polling_interval_s);
     /*Always issue a warning, but only attempt to fix if there's a large deviation
@@ -95,6 +95,5 @@ void PulseWidthAccumulateSensor::update() {
   }
   this->publish_state(cumulative_width);
 }
-
 }  // namespace pulse_width_accumulate
 }  // namespace esphome
