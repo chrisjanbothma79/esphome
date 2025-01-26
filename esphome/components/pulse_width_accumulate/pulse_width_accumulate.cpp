@@ -5,7 +5,6 @@
 
 namespace esphome {
 namespace pulse_width_accumulate {
-
 static const char *const TAG = "pulse_width";
 constexpr uint32_t MICROSECOND_PER_PULSE_LOWER_THRESHOLD = 17;
 PulseWidthAccumulateSensorStore::PulseWidthAccumulateSensorStore() {  mux_ = portMUX_INITIALIZER_UNLOCKED; }
@@ -72,12 +71,10 @@ void PulseWidthAccumulateSensor::dump_config() {
   LOG_PIN("  Pin: ", this->pin_);
 }
 
-
 void PulseWidthAccumulateSensor::update() {
   //Retrieve cumulative pulse width, and zero the counter
   float cumulative_width = this->store_.get_cumulative_pulse_width_s();
   float polling_interval_s = static_cast<float>(this->get_update_interval()) / 1000.0f;
-
   //Check and fix errors, and issue warnings if necessary.
   if (polling_interval_s > 4294.9f) {
     ESP_LOGW(TAG, "Error! Polling interval: %.1f s exceeds 71.58 min. Microseconds will overflow if pw > 71.58 min", polling_interval_s);
@@ -97,16 +94,13 @@ void PulseWidthAccumulateSensor::update() {
       ESP_LOGW(TAG, "Clamping cumulative pulse width to range: %.4f", polling_interval_s);
       cumulative_width = polling_interval_s;
     }
-    
   }
-
   //get frequency if needed
   if (this->frequency_sensor_ != nullptr) {
     float pulse_count = this->store_.get_pulses_this_cycle();
     float frequency = pulse_count / polling_interval_s;
     this->frequency_sensor_->publish_state(frequency);
   }
-
   this->publish_state(cumulative_width);
 }
 

@@ -1,5 +1,4 @@
 #pragma once
-
 #include "esphome/core/component.h"
 #include "esphome/core/hal.h"
 #include "esphome/components/sensor/sensor.h"
@@ -18,7 +17,6 @@ class PulseWidthAccumulateSensorStore {
   // Getters and Setters
   float get_cumulative_pulse_width_s();
   float get_pulses_this_cycle();
-
  private:
   portMUX_TYPE mux_;
   ISRInternalGPIOPin pin_;
@@ -37,7 +35,6 @@ class PulseWidthAccumulateSensor : public sensor::Sensor, public PollingComponen
   float get_setup_priority() const override { return setup_priority::DATA; }
   void update();
   void set_frequency_sensor(sensor::Sensor *frequency_sensor) { frequency_sensor_ = frequency_sensor; }
-
  private:
   PulseWidthAccumulateSensorStore store_;
   InternalGPIOPin *pin_;
