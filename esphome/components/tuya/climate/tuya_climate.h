@@ -12,37 +12,87 @@ class TuyaClimate : public climate::Climate, public Component {
   void setup() override;
   void loop() override;
   void dump_config() override;
-  void set_supports_heat(bool supports_heat) { this->supports_heat_ = supports_heat; }
-  void set_supports_cool(bool supports_cool) { this->supports_cool_ = supports_cool; }
-  void set_supports_pellet(bool supports_pellet) { this->supports_pellet_ = supports_pellet; }
-  void set_switch_id(uint8_t switch_id) { this->switch_id_ = switch_id; }
-  void set_active_state_id(uint8_t state_id) { this->active_state_id_ = state_id; }
-  void set_active_state_heating_value(uint8_t value) { this->active_state_heating_value_ = value; }
-  void set_active_state_cooling_value(uint8_t value) { this->active_state_cooling_value_ = value; }
-  void set_active_state_drying_value(uint8_t value) { this->active_state_drying_value_ = value; }
-  void set_active_state_fanonly_value(uint8_t value) { this->active_state_fanonly_value_ = value; }
-  void set_heating_state_pin(GPIOPin *pin) { this->heating_state_pin_ = pin; }
-  void set_cooling_state_pin(GPIOPin *pin) { this->cooling_state_pin_ = pin; }
-  void set_swing_vertical_id(uint8_t swing_vertical_id) { this->swing_vertical_id_ = swing_vertical_id; }
-  void set_swing_horizontal_id(uint8_t swing_horizontal_id) { this->swing_horizontal_id_ = swing_horizontal_id; }
-  void set_fan_speed_id(uint8_t fan_speed_id) { this->fan_speed_id_ = fan_speed_id; }
-  void set_fan_speed_low_value(uint8_t fan_speed_low_value) { this->fan_speed_low_value_ = fan_speed_low_value; }
+  void set_supports_heat(bool supports_heat) {
+    this->supports_heat_ = supports_heat;
+  }
+  void set_supports_cool(bool supports_cool) {
+    this->supports_cool_ = supports_cool;
+  }
+  void set_supports_pellet(bool supports_pellet) {
+    this->supports_pellet_ = supports_pellet;
+  }
+  void set_switch_id(uint8_t switch_id) {
+    this->switch_id_ = switch_id;
+  }
+  void set_active_state_id(uint8_t state_id) {
+    this->active_state_id_ = state_id;
+  }
+  void set_active_state_heating_value(uint8_t value) {
+    this->active_state_heating_value_ = value;
+  }
+  void set_active_state_cooling_value(uint8_t value) {
+    this->active_state_cooling_value_ = value;
+  }
+  void set_active_state_drying_value(uint8_t value) {
+    this->active_state_drying_value_ = value;
+  }
+  void set_active_state_fanonly_value(uint8_t value) {
+    this->active_state_fanonly_value_ = value;
+  }
+  void set_heating_state_pin(GPIOPin *pin) {
+    this->heating_state_pin_ = pin;
+  }
+  void set_cooling_state_pin(GPIOPin *pin) {
+    this->cooling_state_pin_ = pin;
+  }
+  void set_swing_vertical_id(uint8_t swing_vertical_id) {
+    this->swing_vertical_id_ = swing_vertical_id;
+  }
+  void set_swing_horizontal_id(uint8_t swing_horizontal_id) {
+    this->swing_horizontal_id_ = swing_horizontal_id;
+  }
+  void set_fan_speed_id(uint8_t fan_speed_id) {
+    this->fan_speed_id_ = fan_speed_id;
+  }
+  void set_fan_speed_low_value(uint8_t fan_speed_low_value) {
+    this->fan_speed_low_value_ = fan_speed_low_value;
+  }
   void set_fan_speed_medium_value(uint8_t fan_speed_medium_value) {
     this->fan_speed_medium_value_ = fan_speed_medium_value;
   }
   void set_fan_speed_middle_value(uint8_t fan_speed_middle_value) {
     this->fan_speed_middle_value_ = fan_speed_middle_value;
   }
-  void set_fan_speed_high_value(uint8_t fan_speed_high_value) { this->fan_speed_high_value_ = fan_speed_high_value; }
-  void set_fan_speed_auto_value(uint8_t fan_speed_auto_value) { this->fan_speed_auto_value_ = fan_speed_auto_value; }
-  void set_eco_mode_id(uint8_t eco_mode_id) { this->eco_mode_id_ = eco_mode_id; }
-  void set_eco_mode_e1_value(uint8_t eco_mode_on_value) { this->eco_mode_on_value_ = eco_mode_on_value; }
-  void set_eco_mode_e2_value(uint8_t eco_mode_off_value) { this->eco_mode_off_value_ = eco_mode_off_value; }
-  void set_pellet_rate_id(uint8_t pellet_rate_id) { this->pellet_rate_id_ = pellet_rate_id; }
-  void set_pellet_rate_low_value(uint8_t pellet_rate_low_value) { this->pellet_rate_low_value_ = pellet_rate_low_value; }
-  void set_pellet_rate_med_value(uint8_t pellet_rate_med_value) { this->pellet_rate_med_value_ = pellet_rate_med_value; }
-  void set_pellet_rate_high_value(uint8_t pellet_rate_high_value) { this->pellet_rate_high_value_ = pellet_rate_high_value; }
-  void set_pellet_rate_max_value(uint8_t pellet_rate_max_value) { this->pellet_rate_max_value_ = pellet_rate_max_value; }
+  void set_fan_speed_high_value(uint8_t fan_speed_high_value) {
+    this->fan_speed_high_value_ = fan_speed_high_value;
+  }
+  void set_fan_speed_auto_value(uint8_t fan_speed_auto_value) {
+    this->fan_speed_auto_value_ = fan_speed_auto_value;
+  }
+  void set_eco_mode_id(uint8_t eco_mode_id) {
+    this->eco_mode_id_ = eco_mode_id;
+  }
+  void set_eco_mode_on_value(uint8_t eco_mode_on_value) {
+    this->eco_mode_on_value_ = eco_mode_on_value;
+  }
+  void set_eco_mode_off_value(uint8_t eco_mode_off_value) {
+    this->eco_mode_off_value_ = eco_mode_off_value;
+  }
+  void set_pellet_rate_id(uint8_t pellet_rate_id) {
+    this->pellet_rate_id_ = pellet_rate_id;
+  }
+  void set_pellet_rate_low_value(uint8_t pellet_rate_low_value) {
+    this->pellet_rate_low_value_ = pellet_rate_low_value;
+  }
+  void set_pellet_rate_med_value(uint8_t pellet_rate_med_value) {
+    this->pellet_rate_med_value_ = pellet_rate_med_value;
+  }
+  void set_pellet_rate_high_value(uint8_t pellet_rate_high_value) {
+    this->pellet_rate_high_value_ = pellet_rate_high_value;
+  }
+  void set_pellet_rate_max_value(uint8_t pellet_rate_max_value) {
+    this->pellet_rate_max_value_ = pellet_rate_max_value;
+  }
   void set_target_temperature_id(uint8_t target_temperature_id) {
     this->target_temperature_id_ = target_temperature_id;
   }
