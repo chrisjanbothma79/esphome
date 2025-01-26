@@ -18,7 +18,7 @@ template<typename... Ts> class ControlAction : public Action<Ts...> {
   TEMPLATABLE_VALUE(bool, away)
   TEMPLATABLE_VALUE(ClimateFanMode, fan_mode)
   TEMPLATABLE_VALUE(ClimateEcoMode, eco_mode)
-  TEMPLATABLE_VALUE(ClimatePelletRate, pellet_rate)  
+  TEMPLATABLE_VALUE(ClimatePelletRate, pellet_rate)
   TEMPLATABLE_VALUE(std::string, custom_fan_mode)
   TEMPLATABLE_VALUE(ClimatePreset, preset)
   TEMPLATABLE_VALUE(std::string, custom_preset)
