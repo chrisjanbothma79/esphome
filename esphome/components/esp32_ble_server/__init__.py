@@ -24,6 +24,7 @@ from esphome.const import (
     __version__ as ESPHOME_VERSION,
 )
 from esphome.core import CORE
+from esphome.schema_extractors import SCHEMA_EXTRACT
 
 AUTO_LOAD = ["esp32_ble", "bytebuffer", "event_emitter"]
 CODEOWNERS = ["@jesserockz", "@clydebarrow", "@Rapsssito"]
@@ -107,6 +108,15 @@ class ValueType:
         self.type_ = type_
         self.validator = validator
         self.length = length
+
+    def validate(self, value, encoding):
+        value = self.validator(value)
+        if self.type_ == "string":
+            try:
+                value.encode(encoding)
+            except UnicodeEncodeError as e:
+                raise cv.Invalid(str(e)) from e
+        return value
 
 
 VALUE_TYPES = {
@@ -291,7 +301,9 @@ def validate_value_type(value_config):
             raise cv.Invalid(
                 f'The "{CONF_TYPE}" property is not allowed for templatable values'
             )
-        value_config[CONF_DATA] = VALUE_TYPES[type_].validator(value)
+        value_config[CONF_DATA] = VALUE_TYPES[type_].validate(
+            value, value_config[CONF_STRING_ENCODING]
+        )
     elif isinstance(value, (float, int)):
         raise cv.Invalid(
             f'The "{CONF_TYPE}" property is required for the value "{value}"'
@@ -299,45 +311,33 @@ def validate_value_type(value_config):
     return value_config
 
 
-def validate_descriptor_template_value(value_config):
-    # The value cannot be templated
-    if cg.is_template(value_config[CONF_DATA]):
-        raise cv.Invalid("Descriptor values cannot be templated")
-    return value_config
+def validate_encoding(value):
+    if value == SCHEMA_EXTRACT:
+        return cv.one_of("utf-8", "latin-1", "ascii", "utf-16", "utf-32")
+    value = encodings.normalize_encoding(value)
+    if not value:
+        raise cv.Invalid("Invalid encoding")
+    return value
 
 
-def value_schema(default_type=UNDEFINED):
+def value_schema(default_type=UNDEFINED, templatable=True):
+    data_validators = [
+        cv.string_strict,
+        cv.int_,
+        cv.float_,
+        cv.All([cv.uint8_t], cv.Length(min=1)),
+    ]
+    if templatable:
+        data_validators.append(cv.returning_lambda)
+
     return cv.maybe_simple_value(
         cv.All(
             {
-                cv.Required(CONF_DATA): cv.Any(
-                    cv.string_strict,
-                    cv.int_,
-                    cv.float_,
-                    cv.templatable(cv.All([cv.uint8_t], cv.Length(min=1))),
-                ),
+                cv.Required(CONF_DATA): cv.Any(*data_validators),
                 cv.Optional(CONF_TYPE, default=default_type): cv.one_of(
                     *VALUE_TYPES, lower=True
                 ),
-                cv.Optional(CONF_STRING_ENCODING, default="utf-8"): cv.Any(
-                    *(
-                        list(encodings.aliases.aliases.keys())
-                        + [
-                            "utf-8",
-                            "utf8",
-                            "latin-1",
-                            "latin1",
-                            "iso-8859-1",
-                            "iso8859-1",
-                            "ascii",
-                            "us-ascii",
-                            "utf-16",
-                            "utf16",
-                            "utf-32",
-                            "utf32",
-                        ]
-                    )  # Common encodings
-                ),
+                cv.Optional(CONF_STRING_ENCODING, default="utf_8"): validate_encoding,
                 cv.Optional(CONF_ENDIANNESS, default="LITTLE"): cv.enum(
                     {
                         "LITTLE": Endianness_ns.LITTLE,
@@ -351,12 +351,6 @@ def value_schema(default_type=UNDEFINED):
     )
 
 
-# A value schema is the same as the value schema, but the type cannot be templated
-CONSTANT_VALUE_SCHEMA = cv.All(
-    value_schema(),
-    validate_descriptor_template_value,
-)
-
 DESCRIPTOR_SCHEMA = cv.All(
     {
         cv.GenerateID(): cv.declare_id(BLEDescriptor),
@@ -364,7 +358,7 @@ DESCRIPTOR_SCHEMA = cv.All(
         cv.Optional(CONF_READ, default=True): cv.boolean,
         cv.Optional(CONF_WRITE, default=True): cv.boolean,
         cv.Optional(CONF_ON_WRITE): automation.validate_automation(single=True),
-        cv.Required(CONF_VALUE): CONSTANT_VALUE_SCHEMA,
+        cv.Required(CONF_VALUE): value_schema(templatable=False),
         cv.Optional(CONF_MAX_LENGTH): cv.uint16_t,
     },
     validate_descriptor,
@@ -374,13 +368,15 @@ CHARACTERISTIC_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(BLECharacteristic),
         cv.Required(CONF_UUID): cv.Any(bt_uuid, cv.hex_uint32_t),
-        cv.Optional(CONF_VALUE): value_schema(),
+        cv.Optional(CONF_VALUE): value_schema(templatable=True),
         cv.GenerateID(CONF_CHAR_VALUE_ACTION_ID_): cv.declare_id(
             BLECharacteristicSetValueAction
         ),
         cv.Optional(CONF_DESCRIPTORS, default=[]): cv.ensure_list(DESCRIPTOR_SCHEMA),
         cv.Optional(CONF_ON_WRITE): automation.validate_automation(single=True),
-        cv.Optional(CONF_DESCRIPTION): CONSTANT_VALUE_SCHEMA,
+        cv.Optional(CONF_DESCRIPTION): value_schema(
+            default_type="string", templatable=False
+        ),
     },
     extra_schemas=[
         validate_char_on_write,
@@ -404,9 +400,9 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(BLEServer),
         cv.GenerateID(esp32_ble.CONF_BLE_ID): cv.use_id(esp32_ble.ESP32BLE),
-        cv.Optional(CONF_MANUFACTURER): value_schema("string"),
-        cv.Optional(CONF_MODEL): value_schema("string"),
-        cv.Optional(CONF_FIRMWARE_VERSION): value_schema("string"),
+        cv.Optional(CONF_MANUFACTURER): value_schema("string", templatable=False),
+        cv.Optional(CONF_MODEL): value_schema("string", templatable=False),
+        cv.Optional(CONF_FIRMWARE_VERSION): value_schema("string", templatable=False),
         cv.Optional(CONF_MANUFACTURER_DATA): cv.Schema([cv.uint8_t]),
         cv.Optional(CONF_SERVICES, default=[]): cv.ensure_list(SERVICE_SCHEMA),
         cv.Optional(CONF_ON_CONNECT): automation.validate_automation(single=True),
