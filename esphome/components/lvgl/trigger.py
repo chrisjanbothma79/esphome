@@ -23,7 +23,7 @@ from .lvcode import (
     lvgl_static,
 )
 from .types import LV_EVENT
-from .widgets import widget_map
+from .widgets import LvScrActType, get_scr_act, widget_map
 
 
 async def generate_triggers():
@@ -33,6 +33,9 @@ async def generate_triggers():
     """
 
     for w in widget_map.values():
+        if isinstance(w.type, LvScrActType):
+            w = get_scr_act(w.var)
+
         if w.config:
             for event, conf in {
                 event: conf
