@@ -2,7 +2,7 @@
 
 #include <cassert>
 #include <cstdarg>
-// Include stdint.h for PRIu32 and friends
+// for PRIu32 and friends
 #include <cinttypes>
 #include <string>
 
