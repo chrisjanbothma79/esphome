@@ -158,9 +158,24 @@ int esp_idf_log_vprintf_(const char *format, va_list args);  // NOLINT
 #define BYTE_TO_BINARY(byte) \
   ((byte) &0x80 ? '1' : '0'), ((byte) &0x40 ? '1' : '0'), ((byte) &0x20 ? '1' : '0'), ((byte) &0x10 ? '1' : '0'), \
       ((byte) &0x08 ? '1' : '0'), ((byte) &0x04 ? '1' : '0'), ((byte) &0x02 ? '1' : '0'), ((byte) &0x01 ? '1' : '0')
-#define YESNO(b) ((b) ? "YES" : "NO")
 #define ONOFF(b) ((b) ? "ON" : "OFF")
+#define YESNO(b) ((b) ? "YES" : "NO")
+#define UPDOWN(b) ((b) ? "UP" : "DOWN")
+#define PASSFAIL(b) ((b) ? "PASS" : "FAIL")
+#define HIGHLOW(b) ((b) ? "HIGH" : "LOW")
+#define OPENSHUT(b) ((b) ? "OPEN" : "SHUT")
 #define TRUEFALSE(b) ((b) ? "TRUE" : "FALSE")
+#define STARTSTOP(b) ((b) ? "START" : "STOP")
+#define VALIDINVALID(b) ((b) ? "VALID" : "INVALID")
+#define ACTIVEINACTIVE(b) ((b) ? "ACTIVE" : "INACTIVE")
+#define ENABLEDISABLE(b) ((b) ? "ENABLE" : "DISABLE")
+#define PRESENTABSENT(b) ((b) ? "PRESENT" : "ABSENT")
+#define SUCCESSFAILURE(b) ((b) ? "SUCCESS" : "FAILURE")
+#define READYNOTREADY(b) ((b) ? "READY" : "NOT READY")
+#define VISIBLEHIDDEN(b) ((b) ? "VISIBLE" : "HIDDEN")
+#define GRANTEDDENIED(b) ((b) ? "GRANTED" : "DENIED")
+#define ENABLEDDISABLED(b) ((b) ? "ENABLED" : "DISABLED")
+#define CONNECTEDDISCONNECTED(b) ((b) ? "CONNECTED" : "DISCONNECTED")
 
 // Helper class that identifies strings that may be stored in flash storage (similar to Arduino's __FlashStringHelper)
 struct LogString;
