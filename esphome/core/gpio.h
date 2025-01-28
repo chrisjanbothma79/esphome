@@ -88,6 +88,8 @@ class InternalGPIOPin : public GPIOPin {
 
   virtual uint8_t get_pin() const = 0;
 
+  virtual gpio::Flags get_flags() const = 0;
+
   bool is_internal() override { return true; }
 
   virtual bool is_inverted() const = 0;
