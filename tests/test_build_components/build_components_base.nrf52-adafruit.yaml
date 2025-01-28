@@ -1,7 +1,7 @@
 external_components:
   - source: github://pr#7049
     components: [nrf52, zephyr]
-    refresh: a
+    refresh: always
 
 esphome:
   name: componenttestnrf52
