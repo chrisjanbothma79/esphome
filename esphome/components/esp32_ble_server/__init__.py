@@ -61,6 +61,7 @@ FIRMWARE_VERSION_CHARACTERISTIC_UUID = 0x2A26
 
 # Core key to store the global configuration
 KEY_NOTIFY_REQUIRED = "notify_required"
+KEY_SET_VALUE = "set_value"
 
 esp32_ble_server_ns = cg.esphome_ns.namespace("esp32_ble_server")
 ESPBTUUID_ns = cg.esphome_ns.namespace("esp32_ble").namespace("ESPBTUUID")
@@ -171,11 +172,18 @@ def validate_descriptor(desc_config):
     return desc_config
 
 
-def validate_notify_action(action_char_id):
+def validate_notify_action(config):
     # Store the characteristic ID in the global data for the final validation
     data = CORE.data.setdefault(DOMAIN, {}).setdefault(KEY_NOTIFY_REQUIRED, set())
-    data.add(action_char_id)
-    return action_char_id
+    data.add(config[CONF_ID])
+    return config
+
+
+def validate_set_value_action(config):
+    # Store the characteristic ID in the global data for the final validation
+    data = CORE.data.setdefault(DOMAIN, {}).setdefault(KEY_SET_VALUE, set())
+    data.add(config[CONF_ID])
+    return config
 
 
 def create_description_cud(char_config):
@@ -288,6 +296,18 @@ def final_validate_config(config):
         if not char_config[CONF_NOTIFY]:
             raise cv.Invalid(
                 f"Characteristic {char_config[CONF_UUID]} has notify actions and the {CONF_NOTIFY} property is not set"
+            )
+    for char_id in CORE.data.get(DOMAIN, {}).get(KEY_SET_VALUE, set()):
+        # Look for the characteristic in the configuration
+        char_config = [
+            char_conf
+            for service_conf in config[CONF_SERVICES]
+            for char_conf in service_conf[CONF_CHARACTERISTICS]
+            if char_conf[CONF_ID] == char_id
+        ][0]
+        if isinstance(char_config.get(CONF_VALUE, {}).get(CONF_DATA), cv.Lambda):
+            raise cv.Invalid(
+                f"Characteristic {char_config[CONF_UUID]} has both a set_value action and a templated value"
             )
     return config
 
@@ -550,11 +570,14 @@ async def to_code(config):
 @automation.register_action(
     "ble_server.characteristic.set_value",
     BLECharacteristicSetValueAction,
-    cv.Schema(
-        {
-            cv.Required(CONF_ID): cv.use_id(BLECharacteristic),
-            cv.Required(CONF_VALUE): value_schema(),
-        }
+    cv.All(
+        cv.Schema(
+            {
+                cv.Required(CONF_ID): cv.use_id(BLECharacteristic),
+                cv.Required(CONF_VALUE): value_schema(),
+            }
+        ),
+        validate_set_value_action,
     ),
 )
 async def ble_server_characteristic_set_value(config, action_id, template_arg, args):
@@ -586,12 +609,13 @@ async def ble_server_descriptor_set_value(config, action_id, template_arg, args)
 @automation.register_action(
     "ble_server.characteristic.notify",
     BLECharacteristicNotifyAction,
-    cv.Schema(
-        {
-            cv.Required(CONF_ID): cv.All(
-                cv.use_id(BLECharacteristic), validate_notify_action
-            ),
-        }
+    cv.All(
+        cv.Schema(
+            {
+                cv.Required(CONF_ID): cv.use_id(BLECharacteristic),
+            }
+        ),
+        validate_notify_action,
     ),
 )
 async def ble_server_characteristic_notify(config, action_id, template_arg, args):
