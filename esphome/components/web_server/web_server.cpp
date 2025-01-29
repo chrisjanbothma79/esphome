@@ -34,6 +34,10 @@
 #endif
 #endif
 
+#ifdef USE_WEBSERVER_CAPTIVE_PORTAL
+#include "esphome/components/captive_portal/captive_portal.h"
+#endif
+
 namespace esphome {
 namespace web_server {
 
@@ -1632,7 +1636,7 @@ bool WebServer::canHandle(AsyncWebServerRequest *request) {
 #endif
 
 #ifdef USE_WEBSERVER_CAPTIVE_PORTAL
-  if (request->url() == "/captive_portal")
+  if (request->url() == captive_portal::WEB_SERVER_PORTAL_PATH)
     return true;
   if (request->url() == "/wifisave")
     return true;
@@ -1752,7 +1756,7 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
   }
 
 #ifdef USE_WEBSERVER_CAPTIVE_PORTAL
-  if (request->url() == "/captive_portal") {
+  if (request->url() == captive_portal::WEB_SERVER_PORTAL_PATH) {
     this->handle_captive_portal_request(request);
     return;
   } else if (request->url() == "/wifisave") {
