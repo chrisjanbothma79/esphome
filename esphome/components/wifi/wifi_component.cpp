@@ -660,6 +660,7 @@ void WiFiComponent::check_connecting_finished() {
       if (this->is_captive_portal_active_()) {
         captive_portal::global_captive_portal->end();
       }
+      // TODO only start captive portal if mode: ALWAYS_ON is set in config
       captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_PORTAL_PATH);
 #endif
       ESP_LOGD(TAG, "Disabling AP...");
