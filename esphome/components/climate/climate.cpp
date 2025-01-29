@@ -661,10 +661,6 @@ bool Climate::set_fan_mode_(ClimateFanMode mode) {
   return set_alternative(this->fan_mode, this->custom_fan_mode, mode);
 }
 
-bool Climate::set_eco_mode_(ClimateEcoMode mode) { return set_alternative(this->eco_mode, mode); }
-
-bool Climate::set_pellet_rate_(ClimatePelletRate mode) { return set_alternative(this->pellet_rate, mode); }
-
 bool Climate::set_custom_fan_mode_(const std::string &mode) {
   return set_alternative(this->custom_fan_mode, this->fan_mode, mode);
 }
