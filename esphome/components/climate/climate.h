@@ -164,7 +164,6 @@ struct ClimateDeviceRestoreState {
   } __attribute__((packed));
   float target_humidity;
 
-
   /// Convert this struct to a climate call that can be performed.
   ClimateCall to_call(Climate *climate);
   /// Apply these settings to the climate device.
