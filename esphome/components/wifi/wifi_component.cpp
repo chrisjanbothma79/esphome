@@ -72,6 +72,7 @@ void WiFiComponent::start() {
   SavedWifiSettings save{};
   if (this->pref_.load(&save)) {
     ESP_LOGD(TAG, "Loaded saved wifi settings: %s", save.ssid);
+    // Nessasary because we save a empty ssid and password if we want to start the AP
     if (strlen(save.ssid)) {
       WiFiAP sta{};
       sta.set_ssid(save.ssid);
