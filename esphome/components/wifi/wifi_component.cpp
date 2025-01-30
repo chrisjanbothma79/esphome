@@ -81,6 +81,11 @@ void WiFiComponent::start() {
     }
   }
 
+  this->setup_ap_config_();
+  if (this->output_power_.has_value() && !this->wifi_apply_output_power_(*this->output_power_)) {
+    ESP_LOGV(TAG, "Setting Output Power Option failed!");
+  }
+
   if (this->has_sta()) {
     this->wifi_sta_pre_setup_();
     if (this->output_power_.has_value() && !this->wifi_apply_output_power_(*this->output_power_)) {
@@ -109,10 +114,6 @@ void WiFiComponent::start() {
 #endif
 #ifdef USE_WIFI_AP
   } else if (this->has_ap()) {
-    this->setup_ap_config_();
-    if (this->output_power_.has_value() && !this->wifi_apply_output_power_(*this->output_power_)) {
-      ESP_LOGV(TAG, "Setting Output Power Option failed!");
-    }
     this->start_ap();
 #endif  // USE_WIFI_AP
   }
@@ -194,7 +195,7 @@ void WiFiComponent::loop() {
     }
 
 #ifdef USE_WIFI_AP
-    if (this->ap_timeout_ != 0 && (now - this->last_connected_ > this->ap_timeout_)) {
+    if (!this->ap_active_ && this->ap_timeout_ != 0 && (now - this->last_connected_ > this->ap_timeout_)) {
       this->start_ap();
     }
 #endif  // USE_WIFI_AP
@@ -253,12 +254,8 @@ void WiFiComponent::set_use_address(const std::string &use_address) { this->use_
 
 #ifdef USE_WIFI_AP
 void WiFiComponent::setup_ap_config_() {
-  this->wifi_mode_({}, true);
-
   if (this->ap_setup_)
     return;
-
-  ESP_LOGI(TAG, "Starting fallback AP!");
 
   if (this->ap_.get_ssid().empty()) {
     std::string name = App.get_name();
@@ -282,10 +279,6 @@ void WiFiComponent::setup_ap_config_() {
     ESP_LOGCONFIG(TAG, "  AP Gateway: '%s'", manual.gateway.str().c_str());
     ESP_LOGCONFIG(TAG, "  AP Subnet: '%s'", manual.subnet.str().c_str());
   }
-
-  if (!this->has_sta()) {
-    this->state_ = WIFI_COMPONENT_STATE_AP;
-  }
 }
 
 void WiFiComponent::set_ap(const WiFiAP &ap) {
@@ -303,11 +296,17 @@ void WiFiComponent::start_ap() {
     return;
   }
 
+  ESP_LOGI(TAG, "Starting fallback AP!");
   ESP_LOGI(TAG, "Starting AP...");
 
+  this->wifi_mode_({}, true);
   this->ap_setup_ = this->wifi_start_ap_(this->ap_);
   ESP_LOGCONFIG(TAG, "  IP Address: %s", this->wifi_soft_ap_ip().str().c_str());
-  this->ap_active_ = false;
+  this->ap_active_ = true;
+
+  if (!this->has_sta()) {
+    this->state_ = WIFI_COMPONENT_STATE_AP;
+  }
 
 #ifdef USE_CAPTIVE_PORTAL
   if (captive_portal::global_captive_portal != nullptr) {
@@ -324,6 +323,8 @@ void WiFiComponent::start_ap() {
 
 void WiFiComponent::stop_ap() {
   ESP_LOGI(TAG, "Disabling AP...");
+  if (!ap_active_)
+    return;
   this->wifi_mode_({}, false);
   this->ap_active_ = false;
 #ifndef USE_CAPTIVE_PORTAL_MODE_ALWAYS_ACTIVE
@@ -689,16 +690,7 @@ void WiFiComponent::check_connecting_finished() {
     ESP_LOGI(TAG, "WiFi Connected!");
     this->print_connect_params_();
 #ifdef USE_WIFI_AP
-    if (this->has_ap()) {
-#ifdef USE_CAPTIVE_PORTAL
-      if (this->is_captive_portal_active_()) {
-        captive_portal::global_captive_portal->end();
-      }
-      // TODO do not end captive portel if mode: ALWAYS_ON is set in config
-      captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH);
-#endif
-      this->stop_ap();
-    }
+    this->stop_ap();
 #endif  // USE_WIFI_AP
 #ifdef USE_IMPROV
     if (this->is_esp32_improv_active_()) {
