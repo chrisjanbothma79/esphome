@@ -386,7 +386,6 @@ climate::ClimateTraits TuyaClimate::traits() {
                                                                  climate::CLIMATE_SWING_HORIZONTAL};
     traits.set_supported_swing_modes(std::move(supported_swing_modes));
   }
-
   if (fan_speed_id_) {
     if (fan_speed_low_value_)
       traits.add_supported_fan_mode(climate::CLIMATE_FAN_LOW);
@@ -399,14 +398,12 @@ climate::ClimateTraits TuyaClimate::traits() {
     if (fan_speed_auto_value_)
       traits.add_supported_fan_mode(climate::CLIMATE_FAN_AUTO);
   }
-
   if (eco_mode_id_) {
     if (eco_mode_on_value_)
       traits.add_supported_eco_mode(climate::CLIMATE_PELLET_ECO_ON);
     if (eco_mode_off_value_)
       traits.add_supported_eco_mode(climate::CLIMATE_PELLET_ECO_OFF);
   }
-
   if (pellet_rate_id_) {
     if (pellet_rate_low_value_)
       traits.add_supported_pellet_rate(climate::CLIMATE_PELLET_RATE_LOW);
