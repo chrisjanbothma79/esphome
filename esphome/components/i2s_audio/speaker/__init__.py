@@ -3,11 +3,14 @@ import esphome.codegen as cg
 from esphome.components import audio, esp32, speaker
 import esphome.config_validation as cv
 from esphome.const import (
+    CONF_BITS_PER_SAMPLE,
     CONF_BUFFER_DURATION,
     CONF_CHANNEL,
     CONF_ID,
     CONF_MODE,
     CONF_NEVER,
+    CONF_NUM_CHANNELS,
+    CONF_SAMPLE_RATE,
     CONF_TIMEOUT,
 )
 
