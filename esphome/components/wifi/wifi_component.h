@@ -81,6 +81,8 @@ enum WiFiComponentState {
   WIFI_COMPONENT_STATE_STA_CONNECTING_2,
   /** WiFi is in STA(+AP) mode and successfully connected. */
   WIFI_COMPONENT_STATE_STA_CONNECTED,
+  /** WiFi is in AP-only mode and internal AP is not started yet. */
+  WIFI_COMPONENT_STATE_START_AP,
   /** WiFi is in AP-only mode and internal AP is already enabled. */
   WIFI_COMPONENT_STATE_AP,
 };
@@ -227,10 +229,11 @@ class WiFiComponent : public Component {
 
   void enable();
   void disable();
-  void disconnect() { this->wifi_disconnect_(); }
+  void disconnect();
   bool is_disabled();
-  void start_scanning();
+  void start_scanning(bool passive = false);
   void check_scanning_finished();
+
   void start_connecting(const WiFiAP &ap, bool two);
   void set_fast_connect(bool fast_connect);
   void set_ap_timeout(uint32_t ap_timeout) { ap_timeout_ = ap_timeout; }
@@ -341,6 +344,8 @@ class WiFiComponent : public Component {
   void wifi_pre_setup_();
   WiFiSTAConnectStatus wifi_sta_connect_status_();
   bool wifi_scan_start_(bool passive);
+
+  void print_scan_result_();
 
 #ifdef USE_WIFI_AP
   bool wifi_ap_ip_config_(optional<ManualIP> manual_ip);

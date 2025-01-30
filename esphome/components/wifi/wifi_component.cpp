@@ -98,16 +98,8 @@ void WiFiComponent::start() {
     } else {
       this->start_scanning();
     }
-#ifdef USE_WIFI_AP
-  } else if (this->has_ap()) {
-    this->setup_ap_config_();
-    if (this->output_power_.has_value() && !this->wifi_apply_output_power_(*this->output_power_)) {
-      ESP_LOGV(TAG, "Setting Output Power Option failed!");
-    }
 #ifdef USE_CAPTIVE_PORTAL
     if (captive_portal::global_captive_portal != nullptr) {
-      this->wifi_sta_pre_setup_();
-      this->start_scanning();
 #ifdef USE_WEBSERVER
       captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH);
 #elif
@@ -115,6 +107,12 @@ void WiFiComponent::start() {
 #endif
     }
 #endif
+#ifdef USE_WIFI_AP
+  } else if (this->has_ap()) {
+    this->setup_ap_config_();
+    if (this->output_power_.has_value() && !this->wifi_apply_output_power_(*this->output_power_)) {
+      ESP_LOGV(TAG, "Setting Output Power Option failed!");
+    }
 #endif  // USE_WIFI_AP
   }
 #ifdef USE_IMPROV
@@ -129,7 +127,6 @@ void WiFiComponent::start() {
 void WiFiComponent::loop() {
   this->wifi_loop_();
   const uint32_t now = millis();
-
   if (this->has_sta()) {
     if (this->is_connected() != this->handled_connected_state_) {
       if (this->handled_connected_state_) {
@@ -139,7 +136,7 @@ void WiFiComponent::loop() {
       }
       this->handled_connected_state_ = this->is_connected();
     }
-
+    // ESP_LOGD(TAG, "this->state_: %n", this->state_);
     switch (this->state_) {
       case WIFI_COMPONENT_STATE_COOLDOWN: {
         this->status_set_warning("waiting to reconnect");
@@ -168,6 +165,16 @@ void WiFiComponent::loop() {
       }
 
       case WIFI_COMPONENT_STATE_STA_CONNECTED: {
+        // did a passive scan finish?
+        if (this->scan_done_) {
+          this->scan_done_ = false;
+          ESP_LOGD(TAG, "Found networks:");
+          if (this->scan_result_.empty()) {
+            ESP_LOGD(TAG, "  No network found!");
+          }
+          this->print_scan_result_();
+        }
+
         if (!this->is_connected()) {
           ESP_LOGW(TAG, "WiFi Connection lost... Reconnecting...");
           this->state_ = WIFI_COMPONENT_STATE_STA_CONNECTING;
@@ -188,16 +195,7 @@ void WiFiComponent::loop() {
 #ifdef USE_WIFI_AP
     if (this->has_ap() && !this->ap_setup_) {
       if (this->ap_timeout_ != 0 && (now - this->last_connected_ > this->ap_timeout_)) {
-        ESP_LOGI(TAG, "Starting fallback AP!");
         this->setup_ap_config_();
-#ifdef USE_CAPTIVE_PORTAL
-        if (captive_portal::global_captive_portal != nullptr)
-#ifdef USE_WEBSERVER
-          captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH);
-#elif
-          captive_portal::global_captive_portal->start("/");
-#endif
-#endif
       }
     }
 #endif  // USE_WIFI_AP
@@ -261,6 +259,8 @@ void WiFiComponent::setup_ap_config_() {
   if (this->ap_setup_)
     return;
 
+  ESP_LOGI(TAG, "Starting fallback AP!");
+
   if (this->ap_.get_ssid().empty()) {
     std::string name = App.get_name();
     if (name.length() > 32) {
@@ -287,6 +287,18 @@ void WiFiComponent::setup_ap_config_() {
   this->ap_setup_ = this->wifi_start_ap_(this->ap_);
   ESP_LOGCONFIG(TAG, "  IP Address: %s", this->wifi_soft_ap_ip().str().c_str());
 
+#ifdef USE_CAPTIVE_PORTAL
+  if (captive_portal::global_captive_portal != nullptr) {
+    this->wifi_sta_pre_setup_();
+    this->start_scanning();
+#ifdef USE_WEBSERVER
+    captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH);
+#elif
+    captive_portal::global_captive_portal->start("/");
+#endif
+  }
+#endif
+
   if (!this->has_sta()) {
     this->state_ = WIFI_COMPONENT_STATE_AP;
   }
@@ -310,8 +322,6 @@ void WiFiComponent::set_sta(const WiFiAP &ap) {
 void WiFiComponent::clear_sta() { this->sta_.clear(); }
 void WiFiComponent::save_wifi_sta(const std::string &ssid, const std::string &password) {
   SavedWifiSettings save{};
-  snprintf(save.ssid, sizeof(save.ssid), "%s", ssid.c_str());
-  snprintf(save.password, sizeof(save.password), "%s", password.c_str());
 
   if (ssid.length()) {
     ESP_LOGV(TAG, "ssid.length()");
@@ -322,24 +332,36 @@ void WiFiComponent::save_wifi_sta(const std::string &ssid, const std::string &pa
     sta.set_ssid(ssid);
     sta.set_password(password);
     this->set_sta(sta);
+    this->start_scanning();
+    // this->state_ = WIFI_COMPONENT_STATE_STA_SCANNING;
   } else {
     ESP_LOGV(TAG, "no ssid set");
     // TODO check if ap is enabled in conf and only start it if enabled
-    this->clear_sta();
-    this->selected_ap_ = WiFiAP{};
-#ifdef USE_WEBSERVER
     if (this->is_captive_portal_active_()) {
       captive_portal::global_captive_portal->end();
-      captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH);
     }
-#endif
+    if (this->is_connected()) {
+      this->disconnect();
+    }
+    this->clear_sta();
+    this->ap_setup_ = 0;
+    this->setup_ap_config_();
+    // this->selected_ap_ = WiFiAP{};
+    // this->ap_setup_ = 0;
+    // this->state_ = WIFI_COMPONENT_STATE_START_AP;
+    // if (this->is_captive_portal_active_()) {
+    //   captive_portal::global_captive_portal->end();
+    //   // #ifdef USE_WEBSERVER
+    //   //     if (this->is_captive_portal_active_()) {
+    //   //       captive_portal::global_captive_portal->end();
+    //   //       captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH);
+    //   //     }
+    //   // #endif
+    // }
   }
-
   this->pref_.save(&save);
   // ensure it's written immediately
   global_preferences->sync();
-  this->ap_setup_ = 0;
-  this->disconnect();
 }
 
 void WiFiComponent::start_connecting(const WiFiAP &ap, bool two) {
@@ -508,13 +530,20 @@ void WiFiComponent::disable() {
   this->wifi_mode_(false, false);
 }
 
+void WiFiComponent::disconnect() {
+  ESP_LOGV(TAG, "Disconnecting from Wifi network...");
+  this->wifi_disconnect_();
+}
+
 bool WiFiComponent::is_disabled() { return this->state_ == WIFI_COMPONENT_STATE_DISABLED; }
 
-void WiFiComponent::start_scanning() {
+void WiFiComponent::start_scanning(bool passive) {
   this->action_started_ = millis();
+  this->passive_scan_ = passive;
   ESP_LOGD(TAG, "Starting scan...");
   this->wifi_scan_start_(this->passive_scan_);
-  this->state_ = WIFI_COMPONENT_STATE_STA_SCANNING;
+  if (!this->passive_scan_)
+    this->state_ = WIFI_COMPONENT_STATE_STA_SCANNING;
 }
 
 void WiFiComponent::check_scanning_finished() {
@@ -655,7 +684,7 @@ void WiFiComponent::check_connecting_finished() {
       if (this->is_captive_portal_active_()) {
         captive_portal::global_captive_portal->end();
       }
-      // TODO only start captive portal if mode: ALWAYS_ON is set in config
+      // TODO do not end captive portel if mode: ALWAYS_ON is set in config
       captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH);
 #endif
       ESP_LOGD(TAG, "Disabling AP...");
@@ -781,6 +810,17 @@ bool WiFiComponent::is_esp32_improv_active_() {
 #else
   return false;
 #endif
+}
+
+void WiFiComponent::print_scan_result_() {
+  for (auto &res : this->scan_result_) {
+    char bssid_s[18];
+    auto bssid = res.get_bssid();
+    sprintf(bssid_s, "%02X:%02X:%02X:%02X:%02X:%02X", bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
+
+    ESP_LOGD(TAG, "- " LOG_SECRET("'%s'") " " LOG_SECRET("(%s) ") "%s", res.get_ssid().c_str(), bssid_s,
+             LOG_STR_ARG(get_signal_bars(res.get_rssi())));
+  }
 }
 
 void WiFiComponent::load_fast_connect_settings_() {
