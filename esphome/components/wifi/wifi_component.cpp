@@ -80,12 +80,12 @@ void WiFiComponent::start() {
       this->set_sta(sta);
     }
   }
-
+#ifdef USE_WIFI_AP
   this->setup_ap_config_();
   if (this->output_power_.has_value() && !this->wifi_apply_output_power_(*this->output_power_)) {
     ESP_LOGV(TAG, "Setting Output Power Option failed!");
   }
-
+#endif  // USE_WIFI_AP
   if (this->has_sta()) {
     this->wifi_sta_pre_setup_();
     if (this->output_power_.has_value() && !this->wifi_apply_output_power_(*this->output_power_)) {
@@ -368,7 +368,9 @@ void WiFiComponent::save_wifi_sta(const std::string &ssid, const std::string &pa
       this->disconnect();
     }
     this->clear_sta();
+#ifdef USE_WIFI_AP
     this->start_ap();
+#endif  // USE_WIFI_AP
   }
   this->pref_.save(&save);
   // ensure it's written immediately

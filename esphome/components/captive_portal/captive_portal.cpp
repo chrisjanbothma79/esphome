@@ -70,7 +70,7 @@ void CaptivePortal::start(const String portal_path) {
     this->base_->add_handler(this);
     this->base_->add_ota_handler();
   }
-
+#ifdef USE_WIFI_AP
 #ifdef USE_ARDUINO
   this->dns_server_ = make_unique<DNSServer>();
   this->dns_server_->setErrorReplyCode(DNSReplyCode::NoError);
@@ -87,13 +87,13 @@ void CaptivePortal::start(const String portal_path) {
     auto url = "http://" + wifi::global_wifi_component->wifi_soft_ap_ip().str();
     req->redirect(url.c_str());
   });
-
+#endif  // USE_WIFI_AP
   this->initialized_ = true;
   this->active_ = true;
 }
 
 void CaptivePortal::end() {
-  ESP_LOGV(TAG, "Ending Captive Portal");
+  ESP_LOGV(TAG, "Ending Captive Portal...");
 
   this->active_ = false;
   this->base_->deinit();
