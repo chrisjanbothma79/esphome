@@ -108,7 +108,7 @@ void WiFiComponent::start() {
       this->wifi_sta_pre_setup_();
       this->start_scanning();
 #ifdef USE_WEBSERVER
-      captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_PORTAL_PATH);
+      captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH);
 #elif
       captive_portal::global_captive_portal->start("/");
 #endif
@@ -192,7 +192,7 @@ void WiFiComponent::loop() {
 #ifdef USE_CAPTIVE_PORTAL
         if (captive_portal::global_captive_portal != nullptr)
 #ifdef USE_WEBSERVER
-          captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_PORTAL_PATH);
+          captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH);
 #elif
           captive_portal::global_captive_portal->start("/");
 #endif
@@ -336,7 +336,7 @@ void WiFiComponent::save_wifi_sta(const std::string &ssid, const std::string &pa
 #ifdef USE_WEBSERVER
     if (this->is_captive_portal_active_()) {
       captive_portal::global_captive_portal->end();
-      captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_PORTAL_PATH);
+      captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH);
     }
 #endif
   }
@@ -661,7 +661,7 @@ void WiFiComponent::check_connecting_finished() {
         captive_portal::global_captive_portal->end();
       }
       // TODO only start captive portal if mode: ALWAYS_ON is set in config
-      captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_PORTAL_PATH);
+      captive_portal::global_captive_portal->start(captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH);
 #endif
       ESP_LOGD(TAG, "Disabling AP...");
       this->wifi_mode_({}, false);

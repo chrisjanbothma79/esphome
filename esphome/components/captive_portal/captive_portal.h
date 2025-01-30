@@ -14,7 +14,7 @@ namespace esphome {
 
 namespace captive_portal {
 
-const char WEB_SERVER_PORTAL_PATH[] = "/captive_portal";
+const char WEB_SERVER_CAPTIVE_PORTAL_PATH[] = "/captive_portal";
 
 enum Mode { MODE_ALWAYS_ON, MODE_AP_ONLY };
 
@@ -53,10 +53,9 @@ class CaptivePortal : public AsyncWebHandler, public Component {
     return false;
   }
 
+  void handle_captive_portal(AsyncWebServerRequest *request);
   void handle_config(AsyncWebServerRequest *request);
-
   void handle_wifisave(AsyncWebServerRequest *request);
-
   void handleRequest(AsyncWebServerRequest *req) override;
 
   Mode mode{MODE_AP_ONLY};
