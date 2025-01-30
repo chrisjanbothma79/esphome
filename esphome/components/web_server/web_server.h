@@ -31,9 +31,8 @@ extern const uint8_t ESPHOME_WEBSERVER_JS_INCLUDE[] PROGMEM;
 extern const size_t ESPHOME_WEBSERVER_JS_INCLUDE_SIZE;
 #endif
 
-#ifdef USE_WEBSERVER_CAPTIVE_PORTAL
+#ifdef USE_CAPTIVE_PORTAL
 #include "esphome/components/wifi/wifi_component.h"
-#include "server_captive_portal.h"
 #endif
 
 namespace esphome {
