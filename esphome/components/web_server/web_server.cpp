@@ -34,7 +34,7 @@
 #endif
 #endif
 
-#ifdef USE_WEBSERVER_CAPTIVE_PORTAL
+#ifdef USE_CAPTIVE_PORTAL
 #include "esphome/components/captive_portal/captive_portal.h"
 #endif
 
@@ -1601,8 +1601,8 @@ bool WebServer::canHandle(AsyncWebServerRequest *request) {
   }
 #endif
 
-#ifdef USE_WEBSERVER_CAPTIVE_PORTAL
-  return global_captive_portal->canHandle(request);
+#ifdef USE_CAPTIVE_PORTAL
+  return captive_portal::global_captive_portal->canHandle(request);
 #endif
 
   UrlMatch match = match_url(request->url().c_str(), true);
@@ -1716,15 +1716,15 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
     return;
   }
 
-#ifdef USE_WEBSERVER_CAPTIVE_PORTAL
+#ifdef USE_CAPTIVE_PORTAL
   if (request->url() == captive_portal::WEB_SERVER_CAPTIVE_PORTAL_PATH) {
-    global_captive_portal->handleRequest(request);
+    captive_portal::global_captive_portal->handleRequest(request);
     return;
   } else if (request->url() == "/wifisave") {
-    global_captive_portal->handle_wifisave(request);
+    captive_portal::global_captive_portal->handle_wifisave(request);
     return;
   } else if (request->url() == "/config.json") {
-    global_captive_portal->handle_config(request);
+    captive_portal::global_captive_portal->handle_config(request);
     return;
   }
 #endif
