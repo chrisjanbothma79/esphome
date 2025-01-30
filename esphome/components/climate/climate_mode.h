@@ -72,16 +72,16 @@ enum ClimateEcoMode : uint8_t {
   /// The pellet eco mode is set to Off
   CLIMATE_PELLET_ECO_OFF = 1,
 };
-/// Enum for all pellet feed rates of climate device
-enum ClimatePelletRate : uint8_t {
-  /// The pellet rate is set to Low
-  CLIMATE_PELLET_RATE_LOW = 3,
-  /// The pellet rate is set to Medium
-  CLIMATE_PELLET_RATE_MED = 2,
-  /// The pellet rate is set to High
-  CLIMATE_PELLET_RATE_HIGH = 1,
-  /// The pellet rate is set to Maximum
-  CLIMATE_PELLET_RATE_MAX = 0,
+/// Enum for all pellet feed modes of climate device
+enum ClimatePelletMode : uint8_t {
+  /// The pellet mode is set to Low
+  CLIMATE_PELLET_MODE_LOW = 3,
+  /// The pellet mode is set to Medium
+  CLIMATE_PELLET_MODE_MED = 2,
+  /// The pellet mode is set to High
+  CLIMATE_PELLET_MODE_HIGH = 1,
+  /// The pellet mode is set to Maximum
+  CLIMATE_PELLET_MODE_MAX = 0,
 };
 /// Enum for all modes a climate swing can be in
 enum ClimateSwingMode : uint8_t {
@@ -127,8 +127,8 @@ const LogString *climate_fan_mode_to_string(ClimateFanMode mode);
 /// Convert the given ClimateEcoMode to a human-readable string.
 const LogString *climate_eco_mode_to_string(ClimateEcoMode mode);
 
-/// Convert the given ClimatePelletRate to a human-readable string.
-const LogString *climate_pellet_rate_to_string(ClimatePelletRate mode);
+/// Convert the given ClimatePelletMode to a human-readable string.
+const LogString *climate_pellet_mode_to_string(ClimatePelletMode mode);
 
 /// Convert the given ClimateSwingMode to a human-readable string.
 const LogString *climate_swing_mode_to_string(ClimateSwingMode mode);

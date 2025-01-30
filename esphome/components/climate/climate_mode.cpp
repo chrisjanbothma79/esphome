@@ -80,15 +80,15 @@ const LogString *climate_eco_mode_to_string(ClimateEcoMode eco_mode) {
   }
 }
 
-const LogString *climate_pellet_rate_to_string(ClimatePelletRate pellet_rate) {
-  switch (pellet_rate) {
-    case climate::CLIMATE_PELLET_RATE_LOW:
+const LogString *climate_pellet_mode_to_string(ClimatePelletMode pellet_mode) {
+  switch (pellet_mode) {
+    case climate::CLIMATE_PELLET_MODE_LOW:
       return LOG_STR("LOW");
-    case climate::CLIMATE_PELLET_RATE_MED:
+    case climate::CLIMATE_PELLET_MODE_MED:
       return LOG_STR("MED");
-    case climate::CLIMATE_PELLET_RATE_HIGH:
+    case climate::CLIMATE_PELLET_MODE_HIGH:
       return LOG_STR("HIGH");
-    case climate::CLIMATE_PELLET_RATE_MAX:
+    case climate::CLIMATE_PELLET_MODE_MAX:
       return LOG_STR("MAX");
     default:
       return LOG_STR("UNKNOWN");

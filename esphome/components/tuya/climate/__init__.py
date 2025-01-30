@@ -43,13 +43,13 @@ CONF_HIGH_VALUE = "high_value"
 CONF_AUTO_VALUE = "auto_value"
 CONF_SUPPORTS_PELLET = "supports_pellet"
 CONF_PELLET_ECO_MODE = "pellet_eco_mode"
-CONF_PELLET_RATE = "pellet_rate"
+CONF_PELLET_MODE = "pellet_mode"
 CONF_PELLET_ECO_ON_VALUE = "pellet_eco_on_value"
 CONF_PELLET_ECO_OFF_VALUE = "pellet_eco_off_value"
-CONF_PELLET_RATE_LOW_VALUE = "pellet_rate_low_value"
-CONF_PELLET_RATE_MED_VALUE = "pellet_rate_med_value"
-CONF_PELLET_RATE_HIGH_VALUE = "pellet_rate_high_value"
-CONF_PELLET_RATE_MAX_VALUE = "pellet_rate_max_value"
+CONF_PELLET_MODE_LOW_VALUE = "pellet_mode_low_value"
+CONF_PELLET_MODE_MED_VALUE = "pellet_mode_med_value"
+CONF_PELLET_MODE_HIGH_VALUE = "pellet_mode_high_value"
+CONF_PELLET_MODE_MAX_VALUE = "pellet_mode_max_value"
 
 TuyaClimate = tuya_ns.class_("TuyaClimate", climate.Climate, cg.Component)
 
@@ -133,9 +133,9 @@ def validate_heating_values(value):
                     f"Device does not support pellet heat, but pellet {CONF_PELLET_ECO_MODE} specified."
                     f" Please add {CONF_SUPPORTS_PELLET} to your configuration."
                 )
-            if CONF_PELLET_RATE in value:
+            if CONF_PELLET_MODE in value:
                 raise cv.Invalid(
-                    f"Device does not support pellet heat, but {CONF_PELLET_RATE} specified."
+                    f"Device does not support pellet heat, but {CONF_PELLET_MODE} specified."
                     f" Please add {CONF_SUPPORTS_PELLET} to your configuration."
                 )
     return value
@@ -190,13 +190,13 @@ ECO_MODES = cv.Schema(
     }
 )
 
-PELLET_RATES = cv.Schema(
+PELLET_MODES = cv.Schema(
     {
         cv.Required(CONF_DATAPOINT): cv.uint8_t,
-        cv.Optional(CONF_PELLET_RATE_LOW_VALUE): cv.uint8_t,
-        cv.Optional(CONF_PELLET_RATE_MED_VALUE): cv.uint8_t,
-        cv.Optional(CONF_PELLET_RATE_HIGH_VALUE): cv.uint8_t,
-        cv.Optional(CONF_PELLET_RATE_MAX_VALUE): cv.uint8_t,
+        cv.Optional(CONF_PELLET_MODE_LOW_VALUE): cv.uint8_t,
+        cv.Optional(CONF_PELLET_MODE_MED_VALUE): cv.uint8_t,
+        cv.Optional(CONF_PELLET_MODE_HIGH_VALUE): cv.uint8_t,
+        cv.Optional(CONF_PELLET_MODE_MAX_VALUE): cv.uint8_t,
     }
 )
 
@@ -222,7 +222,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_FAN_MODE): FAN_MODES,
             cv.Optional(CONF_SWING_MODE): SWING_MODES,
             cv.Optional(CONF_PELLET_ECO_MODE): ECO_MODES,
-            cv.Optional(CONF_PELLET_RATE): PELLET_RATES,
+            cv.Optional(CONF_PELLET_MODE): PELLET_MODES,
             cv.Optional("active_state_datapoint"): cv.invalid(
                 "'active_state_datapoint' has been moved inside of the 'active_state' config block as 'datapoint'"
             ),
@@ -344,23 +344,23 @@ async def to_code(config):
         ) is not None:
             cg.add(var.set_pellet_eco_mode_off_value(pellet_eco_mode_off_value))
 
-    if pellet_rate_config := config.get(CONF_PELLET_RATE):
-        cg.add(var.set_pellet_rate_id(pellet_rate_config.get(CONF_DATAPOINT)))
+    if pellet_mode_config := config.get(CONF_PELLET_MODE):
+        cg.add(var.set_pellet_mode_id(pellet_mode_config.get(CONF_DATAPOINT)))
         if (
-            pellet_rate_low_value := pellet_rate_config.get(CONF_PELLET_RATE_LOW_VALUE)
+            pellet_mode_low_value := pellet_mode_config.get(CONF_PELLET_MODE_LOW_VALUE)
         ) is not None:
-            cg.add(var.set_pellet_rate_low_value(pellet_rate_low_value))
+            cg.add(var.set_pellet_mode_low_value(pellet_mode_low_value))
         if (
-            pellet_rate_med_value := pellet_rate_config.get(CONF_PELLET_RATE_MED_VALUE)
+            pellet_mode_med_value := pellet_mode_config.get(CONF_PELLET_MODE_MED_VALUE)
         ) is not None:
-            cg.add(var.set_pellet_rate_med_value(pellet_rate_med_value))
+            cg.add(var.set_pellet_mode_med_value(pellet_mode_med_value))
         if (
-            pellet_rate_high_value := pellet_rate_config.get(
-                CONF_PELLET_RATE_HIGH_VALUE
+            pellet_mode_high_value := pellet_mode_config.get(
+                CONF_PELLET_MODE_HIGH_VALUE
             )
         ) is not None:
-            cg.add(var.set_pellet_rate_high_value(pellet_rate_high_value))
+            cg.add(var.set_pellet_mode_high_value(pellet_mode_high_value))
         if (
-            pellet_rate_max_value := pellet_rate_config.get(CONF_PELLET_RATE_MAX_VALUE)
+            pellet_mode_max_value := pellet_mode_config.get(CONF_PELLET_MODE_MAX_VALUE)
         ) is not None:
-            cg.add(var.set_pellet_rate_max_value(pellet_rate_max_value))
+            cg.add(var.set_pellet_mode_max_value(pellet_mode_max_value))

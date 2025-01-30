@@ -98,14 +98,14 @@ class ClimateCall {
   ClimateCall &set_eco_mode(const std::string &eco_mode);
   /// Set the pellet eco mode of the climate device based on a string.
   ClimateCall &set_eco_mode(optional<std::string> eco_mode);
-  /// Set the pellet rate of the climate device.
-  ClimateCall &set_pellet_rate(ClimatePelletRate pellet_rate);
-  /// Set the pellet rate of the climate device.
-  ClimateCall &set_pellet_rate(optional<ClimatePelletRate> pellet_rate);
-  /// Set the pellet rate of the climate device based on a string.
-  ClimateCall &set_pellet_rate(const std::string &pellet_rate);
-  /// Set the pellet rate of the climate device based on a string.
-  ClimateCall &set_pellet_rate(optional<std::string> pellet_rate);
+  /// Set the pellet mode of the climate device.
+  ClimateCall &set_pellet_mode(ClimatePelletMode pellet_mode);
+  /// Set the pellet mode of the climate device.
+  ClimateCall &set_pellet_mode(optional<ClimatePelletMode> pellet_mode);
+  /// Set the pellet mode of the climate device based on a string.
+  ClimateCall &set_pellet_mode(const std::string &pellet_mode);
+  /// Set the pellet mode of the climate device based on a string.
+  ClimateCall &set_pellet_mode(optional<std::string> pellet_mode);
 
   void perform();
 
@@ -116,7 +116,7 @@ class ClimateCall {
   const optional<float> &get_target_humidity() const;
   const optional<ClimateFanMode> &get_fan_mode() const;
   const optional<ClimateEcoMode> &get_eco_mode() const;
-  const optional<ClimatePelletRate> &get_pellet_rate() const;
+  const optional<ClimatePelletMode> &get_pellet_mode() const;
   const optional<ClimateSwingMode> &get_swing_mode() const;
   const optional<std::string> &get_custom_fan_mode() const;
   const optional<ClimatePreset> &get_preset() const;
@@ -133,7 +133,7 @@ class ClimateCall {
   optional<float> target_humidity_;
   optional<ClimateFanMode> fan_mode_;
   optional<ClimateEcoMode> eco_mode_;
-  optional<ClimatePelletRate> pellet_rate_;
+  optional<ClimatePelletMode> pellet_mode_;
   optional<ClimateSwingMode> swing_mode_;
   optional<std::string> custom_fan_mode_;
   optional<ClimatePreset> preset_;
@@ -145,7 +145,7 @@ class ClimateCall {
 struct ClimateDeviceRestoreState {
   ClimateMode mode;
   ClimateEcoMode eco_mode;
-  ClimatePelletRate pellet_rate;
+  ClimatePelletMode pellet_mode;
   bool uses_custom_fan_mode{false};
   union {
     ClimateFanMode fan_mode;
@@ -224,7 +224,7 @@ class Climate : public EntityBase {
   optional<ClimateEcoMode> eco_mode;
 
   /// The active pellet eco mode of the climate device.
-  optional<ClimatePelletRate> pellet_rate;
+  optional<ClimatePelletMode> pellet_mode;
 
   /// The active swing mode of the climate device.
   ClimateSwingMode swing_mode;
@@ -297,8 +297,8 @@ class Climate : public EntityBase {
   /// Set eco mode. Return true if eco mode has been changed.
   bool set_eco_mode_(ClimateEcoMode mode);
 
-  /// Set pellet rate. Return true if pellet rate has been changed.
-  bool set_pellet_rate_(ClimatePelletRate mode);
+  /// Set pellet mode. Return true if pellet mode has been changed.
+  bool set_pellet_mode_(ClimatePelletMode mode);
 
   /** Get the default traits of this climate device.
    *
