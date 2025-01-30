@@ -111,7 +111,7 @@ class ClimateTraits {
   void set_supports_eco_modes(bool supports_eco_modes) { supports_eco_modes_ = supports_eco_modes; }
 
   void set_supported_pellet_rates(std::set<ClimatePelletRate> modes) { supported_pellet_rates_ = std::move(modes); }
-  void add_supported_pellet_mode(ClimatePelletRate mode) { supported_pellet_rates_.insert(mode); }
+  void add_supported_pellet_rate(ClimatePelletRate mode) { supported_pellet_rates_.insert(mode); }
   bool supports_pellet_rates(ClimatePelletRate pellet_rate) const { return supported_pellet_rates_.count(pellet_rate); }
   bool get_supports_pellet_rates() const { return !supported_pellet_rates_.empty(); }
   const std::set<ClimatePelletRate> &get_supported_pellet_rates() const { return supported_pellet_rates_; }
