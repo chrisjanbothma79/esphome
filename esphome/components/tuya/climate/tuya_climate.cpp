@@ -112,18 +112,18 @@ void TuyaClimate::setup() {
 
   if (this->eco_mode_id_.has_value()) {
     this->parent_->register_listener(*this->eco_mode_id_, [this](const TuyaDatapoint &datapoint) {
-      ESP_LOGV(TAG, "MCU reported Pellet ECO Mode is: %u", datapoint.value_enum);
+      ESP_LOGV(TAG, "MCU reported Pellet Eco Mode is: %u", datapoint.value_enum);
       this->eco_mode_state_ = datapoint.value_enum;
       this->compute_eco_mode_();
       this->publish_state();
     });
   }
 
-  if (this->pellet_mode_id_.has_value()) {
-    this->parent_->register_listener(*this->pellet_mode_id_, [this](const TuyaDatapoint &datapoint) {
-      ESP_LOGV(TAG, "MCU reported Pellet Mode is: %u", datapoint.value_enum);
-      this->pellet_mode_state_ = datapoint.value_enum;
-      this->compute_pellet_mode_();
+  if (this->pellet_rate_id_.has_value()) {
+    this->parent_->register_listener(*this->pellet_rate_id_, [this](const TuyaDatapoint &datapoint) {
+      ESP_LOGV(TAG, "MCU reported Pellet Rate is: %u", datapoint.value_enum);
+      this->pellet_rate_state_ = datapoint.value_enum;
+      this->compute_pellet_rate_();
       this->publish_state();
     });
   }
@@ -179,7 +179,7 @@ void TuyaClimate::control(const climate::ClimateCall &call) {
   control_swing_mode_(call);
   control_fan_mode_(call);
   control_eco_mode_(call);
-  control_pellet_mode_(call);
+  control_pellet_rate_(call);
 
   if (call.get_target_temperature().has_value()) {
     float target_temperature = *call.get_target_temperature();
@@ -323,30 +323,30 @@ void TuyaClimate::control_eco_mode_(const climate::ClimateCall &call) {
   }
 }
 
-void TuyaClimate::control_pellet_mode_(const climate::ClimateCall &call) {
-  if (call.get_pellet_mode().has_value()) {
-    climate::ClimatePelletMode pellet_mode = *call.get_pellet_mode();
+void TuyaClimate::control_pellet_rate_(const climate::ClimateCall &call) {
+  if (call.get_pellet_rate().has_value()) {
+    climate::ClimatePelletRate pellet_rate = *call.get_pellet_rate();
 
-    uint8_t tuya_pellet_mode;
-    switch (pellet_mode) {
-      case climate::CLIMATE_PELLET_MODE_LOW:
-        tuya_pellet_mode = *pellet_mode_low_value_;
+    uint8_t tuya_pellet_rate;
+    switch (pellet_rate) {
+      case climate::CLIMATE_PELLET_RATE_LOW:
+        tuya_pellet_rate = *pellet_rate_low_value_;
         break;
-      case climate::CLIMATE_PELLET_MODE_MED:
-        tuya_pellet_mode = *pellet_mode_med_value_;
+      case climate::CLIMATE_PELLET_RATE_MED:
+        tuya_pellet_rate = *pellet_rate_med_value_;
         break;
-      case climate::CLIMATE_PELLET_MODE_HIGH:
-        tuya_pellet_mode = *pellet_mode_high_value_;
+      case climate::CLIMATE_PELLET_RATE_HIGH:
+        tuya_pellet_rate = *pellet_rate_high_value_;
         break;
-      case climate::CLIMATE_PELLET_MODE_MAX:
-        tuya_pellet_mode = *pellet_mode_max_value_;
+      case climate::CLIMATE_PELLET_RATE_MAX:
+        tuya_pellet_rate = *pellet_rate_max_value_;
         break;
       default:
-        tuya_pellet_mode = 3;
+        tuya_pellet_rate = 3;
         break;
     }
     if (this->eco_mode_id_.has_value()) {
-      this->parent_->set_enum_datapoint_value(*this->pellet_mode_id_, tuya_pellet_mode);
+      this->parent_->set_enum_datapoint_value(*this->pellet_rate_id_, tuya_pellet_rate);
     }
   }
 }
@@ -407,15 +407,15 @@ climate::ClimateTraits TuyaClimate::traits() {
       traits.add_supported_eco_mode(climate::CLIMATE_PELLET_ECO_OFF);
   }
 
-  if (pellet_mode_id_) {
-    if (pellet_mode_low_value_)
-      traits.add_supported_pellet_mode(climate::CLIMATE_PELLET_MODE_LOW);
-    if (pellet_mode_med_value_)
-      traits.add_supported_pellet_mode(climate::CLIMATE_PELLET_MODE_MED);
-    if (pellet_mode_high_value_)
-      traits.add_supported_pellet_mode(climate::CLIMATE_PELLET_MODE_HIGH);
-    if (pellet_mode_max_value_)
-      traits.add_supported_pellet_mode(climate::CLIMATE_PELLET_MODE_MAX);
+  if (pellet_rate_id_) {
+    if (pellet_rate_low_value_)
+      traits.add_supported_pellet_rate(climate::CLIMATE_PELLET_RATE_LOW);
+    if (pellet_rate_med_value_)
+      traits.add_supported_pellet_rate(climate::CLIMATE_PELLET_RATE_MED);
+    if (pellet_rate_high_value_)
+      traits.add_supported_pellet_rate(climate::CLIMATE_PELLET_RATE_HIGH);
+    if (pellet_rate_max_value_)
+      traits.add_supported_pellet_rate(climate::CLIMATE_PELLET_RATE_MAX);
   }
   return traits;
 }
@@ -500,17 +500,17 @@ void TuyaClimate::compute_eco_mode_() {
   }
 }
 
-void TuyaClimate::compute_pellet_mode_() {
-  if (this->pellet_mode_id_.has_value()) {
+void TuyaClimate::compute_pellet_rate_() {
+  if (this->pellet_rate_id_.has_value()) {
     // Use state from MCU datapoint
-    if (this->pellet_mode_low_value_.has_value() && this->pellet_mode_state_ == this->pellet_mode_low_value_) {
-      this->pellet_mode = climate::CLIMATE_PELLET_MODE_LOW;
-    } else if (this->pellet_mode_med_value_.has_value() && this->pellet_mode_state_ == this->pellet_mode_med_value_) {
-      this->pellet_mode = climate::CLIMATE_PELLET_MODE_MED;
-    } else if (this->pellet_mode_high_value_.has_value() && this->pellet_mode_state_ == this->pellet_mode_high_value_) {
-      this->pellet_mode = climate::CLIMATE_PELLET_MODE_HIGH;
-    } else if (this->pellet_mode_max_value_.has_value() && this->pellet_mode_state_ == this->pellet_mode_max_value_) {
-      this->pellet_mode = climate::CLIMATE_PELLET_MODE_MAX;
+    if (this->pellet_rate_low_value_.has_value() && this->pellet_rate_state_ == this->pellet_rate_low_value_) {
+      this->pellet_rate = climate::CLIMATE_PELLET_RATE_LOW;
+    } else if (this->pellet_rate_med_value_.has_value() && this->pellet_rate_state_ == this->pellet_rate_med_value_) {
+      this->pellet_rate = climate::CLIMATE_PELLET_RATE_MED;
+    } else if (this->pellet_rate_high_value_.has_value() && this->pellet_rate_state_ == this->pellet_rate_high_value_) {
+      this->pellet_rate = climate::CLIMATE_PELLET_RATE_HIGH;
+    } else if (this->pellet_rate_max_value_.has_value() && this->pellet_rate_state_ == this->pellet_rate_max_value_) {
+      this->pellet_rate = climate::CLIMATE_PELLET_RATE_MAX;
     }
   }
 }
