@@ -121,3 +121,20 @@ display:
     model: 7.50in-bv3-bwr
     lambda: |-
       it.rectangle(0, 0, it.get_width(), it.get_height());
+  - platform: waveshare_epaper
+    cs_pin:
+      allow_other_uses: true
+      number: 5
+    dc_pin:
+      allow_other_uses: true
+      number: 5
+    busy_pin:
+      allow_other_uses: true
+      number: 5
+    reset_pin:
+      allow_other_uses: true
+      number: 5
+    model: gdew029t5
+    full_update_every: 30
+    lambda: |-
+      it.rectangle(0, 0, it.get_width(), it.get_height());
