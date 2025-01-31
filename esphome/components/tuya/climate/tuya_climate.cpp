@@ -1,4 +1,3 @@
-#pragma once
 #include "tuya_climate.h"
 #include "esphome/core/log.h"
 

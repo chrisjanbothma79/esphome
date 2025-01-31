@@ -36,8 +36,8 @@ class TuyaClimate : public climate::Climate, public Component {
   void set_fan_speed_high_value(uint8_t fan_speed_high_value) { this->fan_speed_high_value_ = fan_speed_high_value; }
   void set_fan_speed_auto_value(uint8_t fan_speed_auto_value) { this->fan_speed_auto_value_ = fan_speed_auto_value; }
   void set_eco_mode_id(uint8_t eco_mode_id) { this->eco_mode_id_ = eco_mode_id; }
-  void set_eco_mode_on_value(uint8_t eco_mode_on_value) { this->eco_mode_on_value_ = eco_mode_on_value; }
-  void set_eco_mode_off_value(uint8_t eco_mode_off_value) { this->eco_mode_off_value_ = eco_mode_off_value; }
+  void set_pellet_eco_mode_on_value(uint8_t eco_mode_on_value) { this->eco_mode_on_value_ = eco_mode_on_value; }
+  void set_pellet_eco_mode_off_value(uint8_t eco_mode_off_value) { this->eco_mode_off_value_ = eco_mode_off_value; }
   void set_pellet_rate_id(uint8_t pellet_rate_id) { this->pellet_rate_id_ = pellet_rate_id; }
   void set_pellet_rate_low_value(uint8_t pellet_rate_low_value) {
     this->pellet_rate_low_value_ = pellet_rate_low_value;
