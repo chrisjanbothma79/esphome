@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import climate_ir
-from esphome.const import CONF_ID CONF_TEMPERATURE CONF_FAN_MODE
+from esphome.const import CONF_ID, CONF_TEMPERATURE, CONF_FAN_MODE
 
 AUTO_LOAD = ["climate_ir"]
 
