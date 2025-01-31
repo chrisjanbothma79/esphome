@@ -206,7 +206,7 @@ display:
     lambda: |-
       it.rectangle(0, 0, it.get_width(), it.get_height());
   - platform: waveshare_epaper
-    model: 2gdew029t5
+    model: gdew029t5
     spi_id: spi_id_1
     cs_pin:
       allow_other_uses: true
