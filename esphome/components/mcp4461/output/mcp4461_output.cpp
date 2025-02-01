@@ -13,7 +13,8 @@ void MCP4461Wiper::write_state(float state) {
   ESP_LOGV(TAG, "Got value %02f from frontend", state);
   const float max_taps = 256.0;
   state = state * 1000.0;
-  if(state > max_taps) state = 256.0;
+  if(state > max_taps)
+    state = 256.0;
   uint16_t taps;
   taps = static_cast<uint16_t>(state);
   ESP_LOGV(TAG, "Setting wiper %d to value %d", this->wiper_, taps);
@@ -21,9 +22,7 @@ void MCP4461Wiper::write_state(float state) {
   this->parent_->set_wiper_level_(this->wiper_, taps);
 }
 
-uint16_t MCP4461Wiper::get_wiper_level() {
-  return this->parent_->get_wiper_level_(this->wiper_);
-}
+uint16_t MCP4461Wiper::get_wiper_level() { return this->parent_->get_wiper_level_(this->wiper_); }
 
 void MCP4461Wiper::save_level() {
   if (this->wiper_ > 3) {
