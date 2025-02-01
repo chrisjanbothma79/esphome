@@ -12,13 +12,13 @@ CONF_DISABLE_WIPER_2 = "disable_wiper_2"
 CONF_DISABLE_WIPER_3 = "disable_wiper_3"
 
 mcp4461_ns = cg.esphome_ns.namespace("mcp4461")
-MCP4461Component = mcp4461_ns.class_("MCP4461Component", cg.Component, i2c.I2CDevice)
+mcp4461Component = mcp4461_ns.class_("mcp4461Component", cg.Component, i2c.I2CDevice)
 CONF_MCP4461_ID = "mcp4461_id"
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(MCP4461Component),
+            cv.GenerateID(): cv.declare_id(mcp4461Component),
             cv.Optional(CONF_DISABLE_WIPER_0, default=False): cv.boolean,
             cv.Optional(CONF_DISABLE_WIPER_1, default=False): cv.boolean,
             cv.Optional(CONF_DISABLE_WIPER_2, default=False): cv.boolean,
