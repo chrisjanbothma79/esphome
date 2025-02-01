@@ -9,7 +9,7 @@ namespace mcp4461 {
 static const char *const TAG = "mcp4461";
 
 void mcp4461Component::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up MCP4461 (0x%02X)...", this->address_);
+  ESP_LOGCONFIG(TAG, "Setting up mcp4461 (0x%02X)...", this->address_);
   auto err = this->write(nullptr, 0);
   if (err != i2c::ERROR_OK) {
     this->mark_failed();
@@ -26,10 +26,10 @@ void mcp4461Component::begin_() {
 }
 
 void mcp4461Component::dump_config() {
-  ESP_LOGCONFIG(TAG, "MCP4461:");
+  ESP_LOGCONFIG(TAG, "mcp4461:");
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with MCP4461 failed!");
+    ESP_LOGE(TAG, "Communication with mcp4461 failed!");
   }
 }
 
@@ -45,9 +45,9 @@ void mcp4461Component::loop() {
       if (i < 4) {
         // set terminal register changes
         if (i == 0 || i == 2) {
-          MCP4461TerminalIdx terminal_connector = MCP4461TerminalIdx::MCP4461_TERMINAL_0;
+          mcp4461TerminalIdx terminal_connector = mcp4461TerminalIdx::MCP4461_TERMINAL_0;
           if (i > 0)
-            terminal_connector = MCP4461TerminalIdx::MCP4461_TERMINAL_1;
+            terminal_connector = mcp4461TerminalIdx::MCP4461_TERMINAL_1;
           uint8_t new_terminal_value = this->calc_terminal_connector_byte_(terminal_connector);
           if (new_terminal_value != this->get_terminal_register_(terminal_connector)) {
             ESP_LOGV(TAG, "updating terminal %d to new value %d", (uint8_t) terminal_connector, new_terminal_value);
@@ -60,7 +60,7 @@ void mcp4461Component::loop() {
   }
 }
 
-uint8_t mcp4461Component::calc_terminal_connector_byte_(MCP4461TerminalIdx terminal_connector) {
+uint8_t mcp4461Component::calc_terminal_connector_byte_(mcp4461TerminalIdx terminal_connector) {
   uint8_t i;
   if ((uint8_t) terminal_connector == 0 || (uint8_t) terminal_connector == 1)
     i = 0;
@@ -83,7 +83,7 @@ uint8_t mcp4461Component::calc_terminal_connector_byte_(MCP4461TerminalIdx termi
   return (uint8_t) new_value_byte;
 }
 
-void mcp4461Component::update_terminal_register_(MCP4461TerminalIdx terminal_connector) {
+void mcp4461Component::update_terminal_register_(mcp4461TerminalIdx terminal_connector) {
   if ((uint8_t) terminal_connector != 0 && (uint8_t) terminal_connector != 1)
     return;
   uint8_t terminal_data;
@@ -104,8 +104,8 @@ void mcp4461Component::update_terminal_register_(MCP4461TerminalIdx terminal_con
 
 uint16_t mcp4461Component::get_status_register_() {
   uint8_t reg = 0;
-  reg |= (uint8_t) MCP4461_ADDRESSES::MCP4461_STATUS;
-  reg |= (uint8_t) MCP4461_COMMANDS::READ;
+  reg |= (uint8_t) mcp4461Addresses::MCP4461_STATUS;
+  reg |= (uint8_t) mcp4461Commands::READ;
   uint16_t buf;
   if (!this->read_byte_16(reg, &buf)) {
     this->status_set_warning();
@@ -117,13 +117,13 @@ uint16_t mcp4461Component::get_status_register_() {
 
 bool mcp4461Component::is_writing_() { return (bool) ((this->get_status_register_() >> 4) & 0x01); }
 
-uint8_t mcp4461Component::get_terminal_register_(MCP4461TerminalIdx terminal_connector) {
+uint8_t mcp4461Component::get_terminal_register_(mcp4461TerminalIdx terminal_connector) {
   uint8_t reg = 0;
   if ((uint8_t) terminal_connector == 0)
-    reg |= (uint8_t) MCP4461_ADDRESSES::MCP4461_TCON0;
+    reg |= (uint8_t) mcp4461Addresses::MCP4461_TCON0;
   else
-    reg |= (uint8_t) MCP4461_ADDRESSES::MCP4461_TCON1;
-  reg |= (uint8_t) MCP4461_COMMANDS::READ;
+    reg |= (uint8_t) mcp4461Addresses::MCP4461_TCON1;
+  reg |= (uint8_t) mcp4461Commands::READ;
   uint16_t buf;
   if (!this->read_byte_16(reg, &buf)) {
     this->status_set_warning();
@@ -133,12 +133,12 @@ uint8_t mcp4461Component::get_terminal_register_(MCP4461TerminalIdx terminal_con
   return (uint8_t) (buf & 0x00ff);
 }
 
-void mcp4461Component::set_terminal_register_(MCP4461TerminalIdx terminal_connector, uint8_t data) {
+void mcp4461Component::set_terminal_register_(mcp4461TerminalIdx terminal_connector, uint8_t data) {
   uint8_t addr;
   if ((uint8_t) terminal_connector == 0)
-    addr = (uint8_t) MCP4461_ADDRESSES::MCP4461_TCON0;
+    addr = (uint8_t) mcp4461Addresses::MCP4461_TCON0;
   else if ((uint8_t) terminal_connector == 1)
-    addr = (uint8_t) MCP4461_ADDRESSES::MCP4461_TCON1;
+    addr = (uint8_t) mcp4461Addresses::MCP4461_TCON1;
   else
     return;
   this->mcp4461_write_(addr, data);
@@ -203,16 +203,16 @@ uint8_t mcp4461Component::get_wiper_address_(uint8_t wiper) {
   }
   switch (wiper) {
     case 0:
-      addr = (uint8_t) MCP4461_ADDRESSES::MCP4461_VW0;
+      addr = (uint8_t) mcp4461Addresses::MCP4461_VW0;
       break;
     case 1:
-      addr = (uint8_t) MCP4461_ADDRESSES::MCP4461_VW1;
+      addr = (uint8_t) mcp4461Addresses::MCP4461_VW1;
       break;
     case 2:
-      addr = (uint8_t) MCP4461_ADDRESSES::MCP4461_VW2;
+      addr = (uint8_t) mcp4461Addresses::MCP4461_VW2;
       break;
     case 3:
-      addr = (uint8_t) MCP4461_ADDRESSES::MCP4461_VW3;
+      addr = (uint8_t) mcp4461Addresses::MCP4461_VW3;
       break;
     default:
       ESP_LOGE(TAG, "unknown wiper specified");
@@ -227,7 +227,7 @@ uint16_t mcp4461Component::get_wiper_level_(uint8_t wiper) {
   uint8_t reg = 0;
   uint16_t buf = 0;
   reg |= this->get_wiper_address_(wiper);
-  reg |= (uint8_t) MCP4461_COMMANDS::READ;
+  reg |= (uint8_t) mcp4461Commands::READ;
   if (wiper > 3) {
     while (this->is_writing_()) {
       ESP_LOGV(TAG, "delaying during eeprom write");
@@ -287,7 +287,7 @@ void mcp4461Component::increase_wiper_(uint8_t wiper) {
   uint8_t addr;
   addr = this->get_wiper_address_(wiper);
   reg |= addr;
-  reg |= (uint8_t) MCP4461_COMMANDS::INCREMENT;
+  reg |= (uint8_t) mcp4461Commands::INCREMENT;
   this->write(&this->address_, reg, sizeof(reg));
 }
 
@@ -297,14 +297,14 @@ void mcp4461Component::decrease_wiper_(uint8_t wiper) {
   uint8_t addr;
   addr = this->get_wiper_address_(wiper);
   reg |= addr;
-  reg |= (uint8_t) MCP4461_COMMANDS::DECREMENT;
+  reg |= (uint8_t) mcp4461Commands::DECREMENT;
   this->write(&this->address_, reg, sizeof(reg));
 }
 
 uint16_t mcp4461Component::get_eeprom_value(MCP4461EEPRomLocation location) {
   uint8_t reg = 0;
   reg |= (uint8_t) (MCP4461_EEPROM_1 + ((uint8_t) location * 0x10));
-  reg |= (uint8_t) MCP4461_COMMANDS::READ;
+  reg |= (uint8_t) mcp4461Commands::READ;
   uint16_t buf;
   if (!this->read_byte_16(reg, &buf)) {
     this->status_set_warning();
@@ -339,7 +339,7 @@ void mcp4461Component::mcp4461_write_(uint8_t addr, uint16_t data) {
   value_byte = (uint8_t) (data & 0x00ff);
   ESP_LOGV(TAG, "Writing value %d", data);
   reg |= addr;
-  reg |= (uint8_t) MCP4461_COMMANDS::WRITE;
+  reg |= (uint8_t) mcp4461Commands::WRITE;
   this->write_byte(reg, value_byte);
 }
 }  // namespace mcp4461
