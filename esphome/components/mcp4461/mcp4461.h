@@ -71,7 +71,7 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   void set_eeprom_value(MCP4461EEPRomLocation location, uint16_t value);
 
  protected:
-  friend MCP4461Wiper;
+  friend Mcp4461Wiper;
   uint8_t get_wiper_address_(uint8_t wiper);
   void update_wiper_state_(uint8_t wiper);
   void write_wiper_level_(uint8_t wiper, uint16_t value);
