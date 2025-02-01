@@ -2,11 +2,11 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import output
 from esphome.const import CONF_CHANNEL, CONF_ID, CONF_INITIAL_VALUE
-from .. import mcp4461Component, CONF_MCP4461_ID, mcp4461_ns
+from .. import Mcp4461Component, CONF_MCP4461_ID, mcp4461_ns
 
 DEPENDENCIES = ["mcp4461"]
 
-MCP4461Wiper = mcp4461_ns.class_("MCP4461Wiper", output.FloatOutput)
+Mcp4461Wiper = mcp4461_ns.class_("Mcp4461Wiper", output.FloatOutput)
 
 MCP4461WiperIdx = mcp4461_ns.enum("MCP4461WiperIdx")
 CHANNEL_OPTIONS = {
@@ -28,8 +28,8 @@ CONF_TERMINAL_W = "terminal_w"
 
 CONFIG_SCHEMA = output.FLOAT_OUTPUT_SCHEMA.extend(
     {
-        cv.Required(CONF_ID): cv.declare_id(MCP4461Wiper),
-        cv.GenerateID(CONF_MCP4461_ID): cv.use_id(mcp4461Component),
+        cv.Required(CONF_ID): cv.declare_id(Mcp4461Wiper),
+        cv.GenerateID(CONF_MCP4461_ID): cv.use_id(Mcp4461Component),
         cv.Required(CONF_CHANNEL): cv.enum(CHANNEL_OPTIONS, upper=True),
         cv.Optional(CONF_ENABLE, default=True): cv.boolean,
         cv.Optional(CONF_INITIAL_VALUE, default=1.0): cv.float_range(
