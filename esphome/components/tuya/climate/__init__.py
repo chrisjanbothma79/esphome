@@ -11,6 +11,7 @@ from esphome.const import (
     CONF_SWING_MODE,
     CONF_FAN_MODE,
     CONF_TEMPERATURE,
+    CONF_SENSOR_DATAPOINT,
 )
 from .. import tuya_ns, CONF_TUYA_ID, Tuya
 
@@ -223,6 +224,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_SWING_MODE): SWING_MODES,
             cv.Optional(CONF_PELLET_ECO_MODE): ECO_MODES,
             cv.Optional(CONF_PELLET_RATE): PELLET_RATES,
+            cv.Optional(CONF_SENSOR_DATAPOINT): cv.uint8_t,
             cv.Optional("active_state_datapoint"): cv.invalid(
                 "'active_state_datapoint' has been moved inside of the 'active_state' config block as 'datapoint'"
             ),
@@ -331,6 +333,7 @@ async def to_code(config):
             cg.add(var.set_fan_speed_high_value(fan_high_value))
 
     if pellet_eco_mode_config := config.get(CONF_PELLET_ECO_MODE):
+        cg.add(var.set_eco_mode_id(pellet_eco_mode_config.get(CONF_DATAPOINT)))
         if (
             pellet_eco_mode_on_value := pellet_eco_mode_config.get(
                 CONF_PELLET_ECO_ON_VALUE
