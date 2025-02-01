@@ -66,8 +66,7 @@ uint8_t Mcp4461Component::calc_terminal_connector_byte_(Mcp4461TerminalIdx termi
   uint8_t i;
   if (((uint8_t) terminal_connector == 0 || (uint8_t) terminal_connector == 1)) {
     i = 0;
-  }
-  else {
+  } else {
     i = 2;
   }
   uint8_t new_value_byte_array[8];
@@ -329,8 +328,7 @@ void Mcp4461Component::set_eeprom_value(MCP4461EEPRomLocation location, uint16_t
   uint8_t addr = 0;
   if (value > 256) {
     return;
-  }
-  else if (value == 256) {
+  } else if (value == 256) {
     addr = 1;
   }
   uint8_t data;
