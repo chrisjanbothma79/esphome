@@ -32,7 +32,7 @@ CONFIG_SCHEMA = output.FLOAT_OUTPUT_SCHEMA.extend(
         cv.Required(CONF_CHANNEL): cv.enum(CHANNEL_OPTIONS, upper=True),
         cv.Optional(CONF_ENABLE, default=True): cv.boolean,
         cv.Optional(CONF_INITIAL_VALUE, default=1.0): cv.float_range(
-            min=0.001, max=0.256
+            min=0.000, max=0.256
         ),
         cv.Optional(CONF_TERMINAL_A, default=True): cv.boolean,
         cv.Optional(CONF_TERMINAL_B, default=True): cv.boolean,
