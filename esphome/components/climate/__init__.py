@@ -49,6 +49,7 @@ from esphome.core import CORE, coroutine_with_priority
 from esphome.cpp_helpers import setup_entity
 
 IS_PLATFORM_COMPONENT = True
+CONF_PELLET_ECO_MODE = "pellet_eco_mode"
 
 CODEOWNERS = ["@esphome/core"]
 climate_ns = cg.esphome_ns.namespace("climate")
@@ -450,6 +451,9 @@ CLIMATE_CONTROL_ACTION_SCHEMA = cv.Schema(
         cv.Exclusive(CONF_FAN_MODE, "fan_mode"): cv.templatable(
             validate_climate_fan_mode
         ),
+        cv.Exclusive(CONF_PELLET_ECO_MODE, "pellet_eco_mode"): cv.templatable(
+            validate_climate_eco_mode
+        ),
         cv.Exclusive(CONF_CUSTOM_FAN_MODE, "fan_mode"): cv.templatable(
             cv.string_strict
         ),
@@ -496,6 +500,9 @@ async def climate_control_to_code(config, action_id, template_arg, args):
     if (swing_mode := config.get(CONF_SWING_MODE)) is not None:
         template_ = await cg.templatable(swing_mode, args, ClimateSwingMode)
         cg.add(var.set_swing_mode(template_))
+    if (eco_mode := config.get(CONF_PELLET_ECO_MODE)) is not None:
+        template_ = await cg.templatable(eco_mode, args, ClimateEcoMode)
+        cg.add(var.set_eco_mode(template_))
     return var
 
 
