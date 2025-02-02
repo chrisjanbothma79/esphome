@@ -13,6 +13,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/preferences.h"
 
+#include <deque>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 
@@ -25,6 +26,12 @@ struct MediaCallCommand {
   optional<bool> announce;
   optional<bool> new_url;
   optional<bool> new_file;
+  optional<bool> enqueue;
+};
+
+struct MediaFile {
+  optional<std::string> url;
+  optional<audio::AudioFile *> file;
 };
 
 struct VolumeRestoreState {
@@ -64,7 +71,7 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
   Trigger<> *get_unmute_trigger() const { return this->unmute_trigger_; }
   Trigger<float> *get_volume_trigger() const { return this->volume_trigger_; }
 
-  void play_file(audio::AudioFile *media_file, bool announcement);
+  void play_file(audio::AudioFile *media_file, bool announcement, bool enqueue);
 
   uint32_t get_playback_ms() const { return this->playback_ms_; }
   uint32_t get_playback_us() const { return this->playback_us_; }
@@ -96,21 +103,27 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
   Speaker *media_speaker_{nullptr};
   Speaker *announcement_speaker_{nullptr};
 
-  // Starts the ``type`` pipeline with a ``url`` or file. Starts the mixer, pipeline, and speaker tasks if necessary.
-  // Unpauses if starting media in paused state
-  esp_err_t start_pipeline_(AudioPipelineType type, bool url);
+  esp_err_t start_pipeline_(AudioPipelineType type, std::string &url);
+  esp_err_t start_pipeline_(AudioPipelineType type, audio::AudioFile *audio_file);
+
+  esp_err_t create_pipeline_(AudioPipelineType type);
 
   optional<media_player::MediaPlayerSupportedFormat> media_format_;
   AudioPipelineState media_pipeline_state_{AudioPipelineState::STOPPED};
-  optional<std::string> media_url_{};          // only modified by control function
-  optional<audio::AudioFile *> media_file_{};  // only modified by play_file function
+  std::string media_url_{};         // only modified by control function
+  audio::AudioFile *media_file_{};  // only modified by play_file function
+  bool media_repeat_{false};
 
   optional<media_player::MediaPlayerSupportedFormat> announcement_format_;
   AudioPipelineState announcement_pipeline_state_{AudioPipelineState::STOPPED};
-  optional<std::string> announcement_url_{};          // only modified by control function
-  optional<audio::AudioFile *> announcement_file_{};  // only modified by play_file function
+  std::string announcement_url_{};         // only modified by control function
+  audio::AudioFile *announcement_file_{};  // only modified by play_file function
+  bool announcement_repeat_{false};
 
   QueueHandle_t media_control_command_queue_;
+
+  std::deque<MediaFile> announcement_queue_;
+  std::deque<MediaFile> media_queue_;
 
   size_t buffer_size_;
 
