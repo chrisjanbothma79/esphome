@@ -77,6 +77,113 @@ uint16_t Mcp4461Component::get_status_register_() {
 
 bool Mcp4461Component::is_writing_() { return (bool) ((this->get_status_register_() >> 4) & 0x01); }
 
+uint8_t Mcp4461Component::get_wiper_address_(uint8_t wiper) {
+  uint8_t addr;
+  bool nonvolatile = false;
+  if (wiper > 3) {
+    nonvolatile = true;
+    wiper = wiper - 4;
+  }
+  switch (wiper) {
+    case 0:
+      addr = (uint8_t) Mcp4461Addresses::MCP4461_VW0;
+      break;
+    case 1:
+      addr = (uint8_t) Mcp4461Addresses::MCP4461_VW1;
+      break;
+    case 2:
+      addr = (uint8_t) Mcp4461Addresses::MCP4461_VW2;
+      break;
+    case 3:
+      addr = (uint8_t) Mcp4461Addresses::MCP4461_VW3;
+      break;
+    default:
+      ESP_LOGE(TAG, "unknown wiper specified");
+      return 0;
+  }
+  if (nonvolatile) {
+    addr = addr + 0x20;
+  }
+  return addr;
+}
+
+uint16_t Mcp4461Component::get_wiper_level_(uint8_t wiper) {
+  uint8_t reg = 0;
+  uint16_t buf = 0;
+  reg |= this->get_wiper_address_(wiper);
+  reg |= (uint8_t) Mcp4461Commands::READ;
+  if (wiper > 3) {
+    while (this->is_writing_()) {
+      ESP_LOGV(TAG, "delaying during eeprom write");
+    }
+  }
+  if (!this->read_byte_16(reg, &buf)) {
+    this->status_set_warning();
+    if (wiper > 3) {
+      this->status_set_warning();
+      ESP_LOGW(TAG, "Error fetching nonvolatile wiper %d value", wiper);
+    } else {
+      this->status_set_warning();
+      ESP_LOGW(TAG, "Error fetching wiper %d value", wiper);
+    }
+    return 0;
+  }
+  return buf;
+}
+
+void Mcp4461Component::update_wiper_level_(uint8_t wiper) {
+  uint16_t data;
+  data = this->get_wiper_level_(wiper);
+  ESP_LOGV(TAG, "Got value %d from wiper %d", data, wiper);
+  this->reg_[wiper].state = data;
+}
+
+void Mcp4461Component::set_wiper_level_(uint8_t wiper, uint16_t value) {
+  ESP_LOGV(TAG, "Setting MCP4461 wiper %d to %d!", wiper, value);
+  this->reg_[wiper].state = value;
+  this->update_ = true;
+}
+
+void Mcp4461Component::write_wiper_level_(uint8_t wiper, uint16_t value) {
+  if (wiper > 3) {
+    while (this->is_writing_()) {
+      ESP_LOGV(TAG, "delaying during eeprom write");
+    }
+  }
+  this->mcp4461_write_(this->get_wiper_address_(wiper), value);
+}
+
+void Mcp4461Component::enable_wiper_(uint8_t wiper) {
+  ESP_LOGV(TAG, "Enabling wiper %d", wiper);
+  this->reg_[wiper].terminal_hw = true;
+  this->update_ = true;
+}
+
+void Mcp4461Component::disable_wiper_(uint8_t wiper) {
+  ESP_LOGV(TAG, "Disabling wiper %d", wiper);
+  this->reg_[wiper].terminal_hw = false;
+  this->update_ = true;
+}
+
+void Mcp4461Component::increase_wiper_(uint8_t wiper) {
+  ESP_LOGV(TAG, "Increasing wiper %d", wiper);
+  uint8_t reg = 0;
+  uint8_t addr;
+  addr = this->get_wiper_address_(wiper);
+  reg |= addr;
+  reg |= (uint8_t) Mcp4461Commands::INCREMENT;
+  this->write(&this->address_, reg, sizeof(reg));
+}
+
+void Mcp4461Component::decrease_wiper_(uint8_t wiper) {
+  ESP_LOGV(TAG, "Decreasing wiper %d", wiper);
+  uint8_t reg = 0;
+  uint8_t addr;
+  addr = this->get_wiper_address_(wiper);
+  reg |= addr;
+  reg |= (uint8_t) Mcp4461Commands::DECREMENT;
+  this->write(&this->address_, reg, sizeof(reg));
+}
 
 uint8_t Mcp4461Component::calc_terminal_connector_byte_(Mcp4461TerminalIdx terminal_connector) {
   uint8_t i;
@@ -202,114 +309,6 @@ void Mcp4461Component::disable_terminal_(uint8_t wiper, char terminal) {
       return;
   }
   this->update_ = true;
-}
-
-uint8_t Mcp4461Component::get_wiper_address_(uint8_t wiper) {
-  uint8_t addr;
-  bool nonvolatile = false;
-  if (wiper > 3) {
-    nonvolatile = true;
-    wiper = wiper - 4;
-  }
-  switch (wiper) {
-    case 0:
-      addr = (uint8_t) Mcp4461Addresses::MCP4461_VW0;
-      break;
-    case 1:
-      addr = (uint8_t) Mcp4461Addresses::MCP4461_VW1;
-      break;
-    case 2:
-      addr = (uint8_t) Mcp4461Addresses::MCP4461_VW2;
-      break;
-    case 3:
-      addr = (uint8_t) Mcp4461Addresses::MCP4461_VW3;
-      break;
-    default:
-      ESP_LOGE(TAG, "unknown wiper specified");
-      return 0;
-  }
-  if (nonvolatile) {
-    addr = addr + 0x20;
-  }
-  return addr;
-}
-
-uint16_t Mcp4461Component::get_wiper_level_(uint8_t wiper) {
-  uint8_t reg = 0;
-  uint16_t buf = 0;
-  reg |= this->get_wiper_address_(wiper);
-  reg |= (uint8_t) Mcp4461Commands::READ;
-  if (wiper > 3) {
-    while (this->is_writing_()) {
-      ESP_LOGV(TAG, "delaying during eeprom write");
-    }
-  }
-  if (!this->read_byte_16(reg, &buf)) {
-    this->status_set_warning();
-    if (wiper > 3) {
-      this->status_set_warning();
-      ESP_LOGW(TAG, "Error fetching nonvolatile wiper %d value", wiper);
-    } else {
-      this->status_set_warning();
-      ESP_LOGW(TAG, "Error fetching wiper %d value", wiper);
-    }
-    return 0;
-  }
-  return buf;
-}
-
-void Mcp4461Component::update_wiper_state_(uint8_t wiper) {
-  uint16_t data;
-  data = this->get_wiper_level_(wiper);
-  ESP_LOGV(TAG, "Got value %d from wiper %d", data, wiper);
-  this->reg_[wiper].state = data;
-}
-
-void Mcp4461Component::set_wiper_level_(uint8_t wiper, uint16_t value) {
-  ESP_LOGV(TAG, "Setting MCP4461 wiper %d to %d!", wiper, value);
-  this->reg_[wiper].state = value;
-  this->update_ = true;
-}
-
-void Mcp4461Component::write_wiper_level_(uint8_t wiper, uint16_t value) {
-  if (wiper > 3) {
-    while (this->is_writing_()) {
-      ESP_LOGV(TAG, "delaying during eeprom write");
-    }
-  }
-  this->mcp4461_write_(this->get_wiper_address_(wiper), value);
-}
-
-void Mcp4461Component::enable_wiper_(uint8_t wiper) {
-  ESP_LOGV(TAG, "Enabling wiper %d", wiper);
-  this->reg_[wiper].terminal_hw = true;
-  this->update_ = true;
-}
-
-void Mcp4461Component::disable_wiper_(uint8_t wiper) {
-  ESP_LOGV(TAG, "Disabling wiper %d", wiper);
-  this->reg_[wiper].terminal_hw = false;
-  this->update_ = true;
-}
-
-void Mcp4461Component::increase_wiper_(uint8_t wiper) {
-  ESP_LOGV(TAG, "Increasing wiper %d", wiper);
-  uint8_t reg = 0;
-  uint8_t addr;
-  addr = this->get_wiper_address_(wiper);
-  reg |= addr;
-  reg |= (uint8_t) Mcp4461Commands::INCREMENT;
-  this->write(&this->address_, reg, sizeof(reg));
-}
-
-void Mcp4461Component::decrease_wiper_(uint8_t wiper) {
-  ESP_LOGV(TAG, "Decreasing wiper %d", wiper);
-  uint8_t reg = 0;
-  uint8_t addr;
-  addr = this->get_wiper_address_(wiper);
-  reg |= addr;
-  reg |= (uint8_t) Mcp4461Commands::DECREMENT;
-  this->write(&this->address_, reg, sizeof(reg));
 }
 
 uint16_t Mcp4461Component::get_eeprom_value(MCP4461EEPRomLocation location) {
