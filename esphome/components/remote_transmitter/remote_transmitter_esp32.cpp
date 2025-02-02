@@ -19,7 +19,6 @@ void RemoteTransmitterComponent::setup() {
 void RemoteTransmitterComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Remote Transmitter:");
 #if ESP_IDF_VERSION_MAJOR >= 5
-  ESP_LOGCONFIG(TAG, "  One wire: %s", this->one_wire_ ? "true" : "false");
   ESP_LOGCONFIG(TAG, "  Clock resolution: %" PRIu32 " hz", this->clock_resolution_);
   ESP_LOGCONFIG(TAG, "  RMT symbols: %" PRIu32, this->rmt_symbols_);
 #else
@@ -76,8 +75,8 @@ void RemoteTransmitterComponent::configure_rmt_() {
     channel.gpio_num = gpio_num_t(this->pin_->get_pin());
     channel.mem_block_symbols = this->rmt_symbols_;
     channel.trans_queue_depth = 1;
-    channel.flags.io_loop_back = this->one_wire_;
-    channel.flags.io_od_mode = this->one_wire_;
+    channel.flags.io_loop_back = (this->pin_->get_flags() & gpio::FLAG_OPEN_DRAIN) ? 1 : 0;
+    channel.flags.io_od_mode = (this->pin_->get_flags() & gpio::FLAG_OPEN_DRAIN) ? 1 : 0;
     channel.flags.invert_out = 0;
     channel.flags.with_dma = this->with_dma_;
     channel.intr_priority = 0;
@@ -95,9 +94,6 @@ void RemoteTransmitterComponent::configure_rmt_() {
     if (this->pin_->get_flags() & gpio::FLAG_PULLUP) {
       gpio_pullup_en(gpio_num_t(this->pin_->get_pin()));
     } else {
-      if (this->one_wire_) {
-        ESP_LOGW(TAG, "Disabling pullup in open drain mode");
-      }
       gpio_pullup_dis(gpio_num_t(this->pin_->get_pin()));
     }
 
