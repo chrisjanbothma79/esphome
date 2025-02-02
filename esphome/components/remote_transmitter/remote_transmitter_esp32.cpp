@@ -96,7 +96,7 @@ void RemoteTransmitterComponent::configure_rmt_() {
       gpio_pullup_en(gpio_num_t(this->pin_->get_pin()));
     } else {
       if (this->one_wire_) {
-        ESP_LOGW(TAG, "Disabling pull-up in open-drain mode");
+        ESP_LOGW(TAG, "Disabling pullup in open drain mode");
       }
       gpio_pullup_dis(gpio_num_t(this->pin_->get_pin()));
     }
