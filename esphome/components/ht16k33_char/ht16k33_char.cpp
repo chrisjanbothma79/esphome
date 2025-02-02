@@ -6,7 +6,6 @@
 #include "esphome/core/hal.h"
 
 #include <unordered_map>
-#include <map>
 
 namespace esphome {
 namespace ht16k33_char {
@@ -26,8 +25,6 @@ static const uint8_t HT16K33_DISPLAY_OFF = 0x00;
 static const uint8_t HT16K33_DISPLAY_ON = 0x01;
 static const uint8_t HT16K33_MODE_STANDBY = 0x00;
 static const uint8_t HT16K33_MODE_NORMAL = 0x01;
-
-
 
 //Return a setup priority. More info here: https://esphome.io/api/namespaceesphome_1_1setup__priority
 float HT16k33CharComponent::get_setup_priority() const { return setup_priority::PROCESSOR; }
@@ -51,13 +48,15 @@ void HT16k33CharComponent::setup() {
 
 void HT16k33CharComponent::update() {
   //TODO: I will probably want to implement the scrolling stuff here
+  //ESP_LOGD(TAG, "Update function");
   
   if (this->writer_.has_value()) {
-    //ESP_LOGD(TAG, "writer");
     //This line is responsible for calling the lambda code.
     (*this->writer_)(*this);    
   }
   
+  //The lambda code does not actually update the display directly. It manipulates the char buffer.
+  //We call the display function to actually update the display after the lambda function is complete.
   this->display();
   
   ESP_LOGD(TAG, "Buffer: %s. Length is %d", this->char_buffer_.c_str(), this->char_buffer_.length());
@@ -210,13 +209,13 @@ uint8_t HT16k33CharComponent::clock_display(ESPTime time, uint8_t position, bool
 //TODO: There is probably a cleaner way to do this. I want to use compiler defines to only include code for the device type we are actually using. I could instead use different includes or something to move all this to a separate file.
 uint8_t HT16k33CharComponent::send_to_display(i2c::I2CDevice *display, uint8_t position){
   #if HT16K33_CHAR_DISPLAY_TYPE == HT16K33_CHAR_TYPE_ADAFRUIT_7SEGMENT_1_2IN
-    ESP_LOGD(TAG, "dis type is 1");
+    //ESP_LOGD(TAG, "Display type 1");
     
     uint8_t i;
     char char_to_find;
     bool special_character_found;
     const std::unordered_map<char, uint8_t> char_map = {
-      {'0', 0b00111111}, 
+      {'0', 0b00111111},  //The number zero
       {'1', 0b00000110}, 
       {'2', 0b01011011},
       {'3', 0b01001111},
@@ -226,12 +225,27 @@ uint8_t HT16k33CharComponent::send_to_display(i2c::I2CDevice *display, uint8_t p
       {'7', 0b00000111},
       {'8', 0b01111111},
       {'9', 0b01101111},
-      {' ', 0b00000000}};
+      {' ', 0b00000000},  //Blank space
+      {'O', 0b00111111},  //The capitol letter 'o'
+      {'A', 0b01110111},
+      {'b', 0b01111100},
+      {'C', 0b00111001},
+      {'d', 0b01011110},
+      {'E', 0b01111001},
+      {'F', 0b01110001},
+      {'r', 0b01010000},
+      {'o', 0b01011100},  //The lower case letter 'o'
+      {'N', 0b00110111},
+      {'P', 0b01110011},
+      {'L', 0b00111000},
+      {'Y', 0b01101110},
+      {'t', 0b01111000},
+      {'U', 0b00111110},
+      {'S', 0b01101101},
+    };
   
     const uint8_t digit_map[4] = {1, 3, 7, 9};
     uint8_t char_buffer_location;
-  
-    //ESP_LOGD(TAG, "buff[0]: %c, %d", this->char_buffer_.at(0), (uint8_t)(this->char_buffer_.at(0)) );
 
     this->buffer_[0] = HT16K33_DISPLAY_DATA_ADDRESS;
 
@@ -243,12 +257,6 @@ uint8_t HT16k33CharComponent::send_to_display(i2c::I2CDevice *display, uint8_t p
     char_buffer_location = position;
     i = 0;
     special_character_found = false;
-    
-    ESP_LOGD(TAG, "Starting buffer location %d", char_buffer_location);
-    //if (char_buffer_location >= this->char_buffer_.length()) {
-    //  //We were passed a location that is >= the max size of the character buffer.
-    //  return this->char_buffer_.length();
-    //}
   
     while (i < 4) {
       if (char_buffer_location >= this->char_buffer_.length()) {
@@ -334,21 +342,9 @@ uint8_t HT16k33CharComponent::send_to_display(i2c::I2CDevice *display, uint8_t p
         char_buffer_location++;
       }
     }
-  
-    ESP_LOGD(TAG, "Ending buffer location %d", char_buffer_location);
-  
+
     display->write(this->buffer_, 16, true);
-    
     return char_buffer_location;
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
   #elif HT16K33_CHAR_DISPLAY_TYPE == HT16K33_CHAR_TYPE_ADAFRUIT_14_SEG
     ESP_LOGD(TAG, "Display type 2");
