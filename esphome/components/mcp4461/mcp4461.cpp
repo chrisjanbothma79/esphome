@@ -62,7 +62,7 @@ void Mcp4461Component::loop() {
   }
 }
 
-uint16_t Mcp4461Component::get_status_register_() {
+uint16_t Mcp4461Component::get_status_register() {
   uint8_t reg = 0;
   reg |= (uint8_t) Mcp4461Addresses::MCP4461_STATUS;
   reg |= (uint8_t) Mcp4461Commands::READ;
@@ -107,7 +107,7 @@ uint8_t Mcp4461Component::get_wiper_address_(uint8_t wiper) {
   return addr;
 }
 
-uint16_t Mcp4461Component::get_wiper_level_(uint8_t wiper) {
+uint16_t Mcp4461Component::get_wiper_level(uint8_t wiper) {
   uint8_t reg = 0;
   uint16_t buf = 0;
   reg |= this->get_wiper_address_(wiper);
@@ -131,14 +131,14 @@ uint16_t Mcp4461Component::get_wiper_level_(uint8_t wiper) {
   return buf;
 }
 
-void Mcp4461Component::update_wiper_level_(uint8_t wiper) {
+void Mcp4461Component::update_wiper_level(uint8_t wiper) {
   uint16_t data;
   data = this->get_wiper_level_(wiper);
   ESP_LOGV(TAG, "Got value %d from wiper %d", data, wiper);
   this->reg_[wiper].state = data;
 }
 
-void Mcp4461Component::set_wiper_level_(uint8_t wiper, uint16_t value) {
+void Mcp4461Component::set_wiper_level(uint8_t wiper, uint16_t value) {
   ESP_LOGV(TAG, "Setting MCP4461 wiper %d to %d!", wiper, value);
   this->reg_[wiper].state = value;
   this->update_ = true;
@@ -153,19 +153,19 @@ void Mcp4461Component::write_wiper_level_(uint8_t wiper, uint16_t value) {
   this->mcp4461_write_(this->get_wiper_address_(wiper), value);
 }
 
-void Mcp4461Component::enable_wiper_(uint8_t wiper) {
+void Mcp4461Component::enable_wiper(uint8_t wiper) {
   ESP_LOGV(TAG, "Enabling wiper %d", wiper);
   this->reg_[wiper].terminal_hw = true;
   this->update_ = true;
 }
 
-void Mcp4461Component::disable_wiper_(uint8_t wiper) {
+void Mcp4461Component::disable_wiper(uint8_t wiper) {
   ESP_LOGV(TAG, "Disabling wiper %d", wiper);
   this->reg_[wiper].terminal_hw = false;
   this->update_ = true;
 }
 
-void Mcp4461Component::increase_wiper_(uint8_t wiper) {
+void Mcp4461Component::increase_wiper(uint8_t wiper) {
   ESP_LOGV(TAG, "Increasing wiper %d", wiper);
   uint8_t reg = 0;
   uint8_t addr;
@@ -175,7 +175,7 @@ void Mcp4461Component::increase_wiper_(uint8_t wiper) {
   this->write(&this->address_, reg, sizeof(reg));
 }
 
-void Mcp4461Component::decrease_wiper_(uint8_t wiper) {
+void Mcp4461Component::decrease_wiper(uint8_t wiper) {
   ESP_LOGV(TAG, "Decreasing wiper %d", wiper);
   uint8_t reg = 0;
   uint8_t addr;
@@ -209,7 +209,7 @@ uint8_t Mcp4461Component::calc_terminal_connector_byte_(Mcp4461TerminalIdx termi
   return (uint8_t) new_value_byte;
 }
 
-uint8_t Mcp4461Component::get_terminal_register_(Mcp4461TerminalIdx terminal_connector) {
+uint8_t Mcp4461Component::get_terminal_register(Mcp4461TerminalIdx terminal_connector) {
   uint8_t reg = 0;
   if ((uint8_t) terminal_connector == 0) {
     reg |= (uint8_t) Mcp4461Addresses::MCP4461_TCON0;
@@ -226,7 +226,7 @@ uint8_t Mcp4461Component::get_terminal_register_(Mcp4461TerminalIdx terminal_con
   return (uint8_t) (buf & 0x00ff);
 }
 
-void Mcp4461Component::update_terminal_register_(Mcp4461TerminalIdx terminal_connector) {
+void Mcp4461Component::update_terminal_register(Mcp4461TerminalIdx terminal_connector) {
   if (((uint8_t) terminal_connector != 0 && (uint8_t) terminal_connector != 1)) {
     return;
   }
@@ -247,7 +247,7 @@ void Mcp4461Component::update_terminal_register_(Mcp4461TerminalIdx terminal_con
   this->reg_[(wiper_index + 1)].terminal_hw = ((terminal_data >> 7) & 0x01);
 }
 
-void Mcp4461Component::set_terminal_register_(Mcp4461TerminalIdx terminal_connector, uint8_t data) {
+void Mcp4461Component::set_terminal_register(Mcp4461TerminalIdx terminal_connector, uint8_t data) {
   uint8_t addr;
   if ((uint8_t) terminal_connector == 0) {
     addr = (uint8_t) Mcp4461Addresses::MCP4461_TCON0;
@@ -259,7 +259,7 @@ void Mcp4461Component::set_terminal_register_(Mcp4461TerminalIdx terminal_connec
   this->mcp4461_write_(addr, data);
 }
 
-void Mcp4461Component::enable_terminal_(uint8_t wiper, char terminal) {
+void Mcp4461Component::enable_terminal(uint8_t wiper, char terminal) {
   if (wiper > 3) {
     return;
   }
@@ -285,7 +285,7 @@ void Mcp4461Component::enable_terminal_(uint8_t wiper, char terminal) {
   this->update_ = true;
 }
 
-void Mcp4461Component::disable_terminal_(uint8_t wiper, char terminal) {
+void Mcp4461Component::disable_terminal(uint8_t wiper, char terminal) {
   if (wiper > 3) {
     return;
   }
