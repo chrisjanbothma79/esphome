@@ -67,19 +67,19 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::HARDWARE; }
   void loop() override;
-  uint16_t get_status_register_();
-  uint16_t get_wiper_level_(uint8_t wiper);
-  void set_wiper_level_(uint8_t wiper, uint16_t value);
-  void update_wiper_level_(uint8_t wiper);
-  void enable_wiper_(uint8_t wiper);
-  void disable_wiper_(uint8_t wiper);
-  void increase_wiper_(uint8_t wiper);
-  void decrease_wiper_(uint8_t wiper);
-  void enable_terminal_(uint8_t wiper, char terminal);
-  void disable_terminal_(uint8_t wiper, char terminal);
-  void update_terminal_register_(Mcp4461TerminalIdx terminal_connector);
-  uint8_t get_terminal_register_(Mcp4461TerminalIdx terminal_connector);
-  void set_terminal_register_(Mcp4461TerminalIdx terminal_connector, uint8_t data);
+  uint16_t get_status_register();
+  uint16_t get_wiper_level(uint8_t wiper);
+  void set_wiper_level(uint8_t wiper, uint16_t value);
+  void update_wiper_level(uint8_t wiper);
+  void enable_wiper(uint8_t wiper);
+  void disable_wiper(uint8_t wiper);
+  void increase_wiper(uint8_t wiper);
+  void decrease_wiper(uint8_t wiper);
+  void enable_terminal(uint8_t wiper, char terminal);
+  void disable_terminal(uint8_t wiper, char terminal);
+  void update_terminal_register(Mcp4461TerminalIdx terminal_connector);
+  uint8_t get_terminal_register(Mcp4461TerminalIdx terminal_connector);
+  void set_terminal_register(Mcp4461TerminalIdx terminal_connector, uint8_t data);
   uint16_t get_eeprom_value(MCP4461EEPRomLocation location);
   void set_eeprom_value(MCP4461EEPRomLocation location, uint16_t value);
 
