@@ -255,7 +255,7 @@ void HitachiClimate::transmit_state() {
   }
 
   // find change value to set button
-  if (pre_mode == get_mode_() &&  pre_fan == get_fan_() && pre_power == get_power_() && pre_swingv != get_swing_v_()) {
+  if (pre_mode == get_mode_() && pre_fan == get_fan_() && pre_power == get_power_() && pre_swingv != get_swing_v_()) {
     set_button_(HITACHI_AC344_BUTTON_SWINGV);
   } else {
     set_button_(HITACHI_AC344_BUTTON_POWER);
