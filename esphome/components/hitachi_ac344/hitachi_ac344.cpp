@@ -160,6 +160,13 @@ uint8_t HitachiClimate::get_button_() { return remote_state_[HITACHI_AC344_BUTTO
 void HitachiClimate::set_button_(uint8_t button) { remote_state_[HITACHI_AC344_BUTTON_BYTE] = button; }
 
 void HitachiClimate::transmit_state() {
+  // Store original state
+  uint8_t pre_mode = get_mode_();
+  uint8_t pre_fan = get_fan_();
+  uint8_t pre_swingh = get_swing_h_();
+  bool pre_swingv = get_swing_v_();
+  bool pre_power = get_power_();
+
   // Custom modes
   if (this->custom_preset == "Cool") {
     this->mode = climate::CLIMATE_MODE_COOL;
@@ -247,8 +254,12 @@ void HitachiClimate::transmit_state() {
       break;
   }
 
-  // TODO: find change value to set button, now always set to power button
-  set_button_(HITACHI_AC344_BUTTON_POWER);
+  // find change value to set button
+  if (pre_mode == get_mode_() &&  pre_fan == get_fan_() && pre_power == get_power_() && pre_swingv != get_swing_v_()) {
+    set_button_(HITACHI_AC344_BUTTON_SWINGV);
+  } else {
+    set_button_(HITACHI_AC344_BUTTON_POWER);
+  }
 
   invert_byte_pairs(remote_state_ + 3, HITACHI_AC344_STATE_LENGTH - 3);
 
