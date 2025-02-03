@@ -389,9 +389,9 @@ def add_hello_world(config):
 
 FINAL_VALIDATE_SCHEMA = final_validation
 
-LVGL_SCHEMA = (
+LVGL_SCHEMA = container_schema(
+    obj_spec,
     cv.polling_component_schema("1s")
-    .extend(obj_schema(obj_spec))
     .extend(
         {
             cv.GenerateID(CONF_ID): cv.declare_id(LvglComponent),
@@ -457,7 +457,7 @@ LVGL_SCHEMA = (
         }
     )
     .extend(DISP_BG_SCHEMA)
-    .add_extra(add_hello_world)
+    .add_extra(add_hello_world),
 )
 
 
