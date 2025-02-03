@@ -163,7 +163,6 @@ void HitachiClimate::transmit_state() {
   // Store original state
   uint8_t pre_mode = get_mode_();
   uint8_t pre_fan = get_fan_();
-  uint8_t pre_swingh = get_swing_h_();
   bool pre_swingv = get_swing_v_();
   bool pre_power = get_power_();
 
