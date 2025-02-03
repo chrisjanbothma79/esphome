@@ -8,10 +8,6 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
-#ifdef USE_ESP32_VARIANT_ESP32S2
-#include <soc/i2c_struct.h>
-#endif
-
 namespace esphome {
 namespace i2c {
 
@@ -43,20 +39,16 @@ void IDFI2CBus::setup() {
   conf.scl_io_num = scl_pin_;
   conf.scl_pullup_en = scl_pullup_enabled_;
   conf.master.clk_speed = frequency_;
+#ifdef USE_ESP32_VARIANT_ESP32S2
+  // workaround for issue #6718, have to use ref clock
+  conf.clk_flags = I2C_SCLK_SRC_FLAG_AWARE_DFS;
+#endif
   esp_err_t err = i2c_param_config(port_, &conf);
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "i2c_param_config failed: %s", esp_err_to_name(err));
     this->mark_failed();
     return;
   }
-#ifdef USE_ESP32_VARIANT_ESP32S2
-  // workaround for issue #6718, i2c_param_config doesn't set the clock source
-  if (port_ == I2C_NUM_0) {
-    I2C0.ctr.ref_always_on = 1;
-  } else {
-    I2C1.ctr.ref_always_on = 1;
-  }
-#endif
   if (timeout_ > 0) {  // if timeout specified in yaml:
     if (timeout_ > 13000) {
       ESP_LOGW(TAG, "i2c timeout of %" PRIu32 "us greater than max of 13ms on esp-idf, setting to max", timeout_);
