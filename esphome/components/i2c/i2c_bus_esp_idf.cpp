@@ -33,6 +33,17 @@ void IDFI2CBus::setup() {
 
   i2c_config_t conf{};
   memset(&conf, 0, sizeof(conf));
+#ifdef USE_ESP32_VARIANT_ESP32S2
+  // workaround for issue #6718, i2c_param_config doesn't set the clock source in
+  // master mode, timings are programmed for APB but it uses the REF_TICK clock, set
+  // slave mode first to set the clock source then switch to master mode
+  conf.mode = I2C_MODE_SLAVE;
+  conf.sda_io_num = sda_pin_;
+  conf.sda_pullup_en = sda_pullup_enabled_;
+  conf.scl_io_num = scl_pin_;
+  conf.scl_pullup_en = scl_pullup_enabled_;
+  i2c_param_config(port_, &conf);
+#endif
   conf.mode = I2C_MODE_MASTER;
   conf.sda_io_num = sda_pin_;
   conf.sda_pullup_en = sda_pullup_enabled_;
