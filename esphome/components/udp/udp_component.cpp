@@ -3,6 +3,8 @@
 #include "esphome/components/network/util.h"
 #include "udp_component.h"
 
+#include "esphome/components/xxtea/xxtea.h"
+
 namespace esphome {
 namespace udp {
 
