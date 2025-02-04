@@ -1,12 +1,14 @@
 #pragma once
 
 #include "esphome/core/component.h"
+#include "esphome/core/preferences.h"
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #endif
 #ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #endif
+#
 #include <vector>
 #include <map>
 
@@ -19,7 +21,7 @@
  */
 
 namespace esphome {
-namespace packet_encoding {
+namespace packet_transport {
 
 struct Provider {
   std::vector<uint8_t> encryption_key;
@@ -42,7 +44,7 @@ struct BinarySensor {
 };
 #endif
 
-class PacketEncoding : public PollingComponent {
+class PacketTransport : public PollingComponent {
  public:
   void setup() override;
   void loop() override;
@@ -98,12 +100,12 @@ class PacketEncoding : public PollingComponent {
 
  protected:
   // child classes must implement this
-  virtual void send_packet(void *data, size_t len) = 0;
+  virtual void send_packet(std::vector<uint8_t> &buf) const = 0;
   virtual size_t get_max_packet_size() = 0;
   virtual bool should_send() { return true; }
 
   // to be called by child classes when a data packet is received.
-  void process_(uint8_t *buf, size_t len);
+  void process_(std::vector<uint8_t> &buf);
   void send_data_(bool all);
   void flush_();
   void add_data_(uint8_t key, const char *id, float data);
@@ -123,7 +125,6 @@ class PacketEncoding : public PollingComponent {
   bool resend_data_{};
   const char *name_{};
   ESPPreferenceObject pref_;
-  std::vector<uint32_t> encode_buffer_{};
 
   std::vector<uint8_t> encryption_key_{};
 
@@ -148,5 +149,5 @@ class PacketEncoding : public PollingComponent {
   inline bool is_encrypted_() { return !this->encryption_key_.empty(); }
 };
 
-}  // namespace packet_encoding
+}  // namespace packet_transport
 }  // namespace esphome

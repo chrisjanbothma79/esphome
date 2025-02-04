@@ -1,7 +1,5 @@
 #pragma once
 
-#include "esphome/core/component.h"
-#include "esphome/components/packet_encoding/packet_encoding.h"
 #include "esphome/components/network/ip_address.h"
 #if defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS)
 #include "esphome/components/socket/socket.h"
@@ -10,30 +8,31 @@
 #include <WiFiUdp.h>
 #endif
 #include <vector>
-#include <map>
 
 namespace esphome {
 namespace udp {
 
 static const size_t MAX_PACKET_SIZE = 508;
-class UDPComponent : public packet_encoding::PacketEncoding {
+class UDPComponent : public Component {
  public:
-  void setup() override;
-  void loop() override;
-  void update() override;
-  void dump_config() override;
-
   void add_address(const char *addr) { this->addresses_.emplace_back(addr); }
   void set_listen_address(const char *listen_addr) { this->listen_address_ = network::IPAddress(listen_addr); }
   void set_port(uint16_t port) { this->port_ = port; }
-  float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
+  void set_should_broadcast() { this->should_broadcast_ = true; }
+  void set_should_listen() { this->should_listen_ = true; }
+  void add_listener(std::function<void(std::vector<uint8_t> &)> &&listener) {
+    this->packet_listeners_.add(std::move(listener));
+  }
+  void setup() override;
+  void loop() override;
+  void dump_config() override;
+  void send_packet_(std::vector<uint8_t> &buf) const;
 
  protected:
-  bool should_send() override;
-  size_t get_max_packet_size() override { return MAX_PACKET_SIZE; }
-  uint16_t port_{18511};
+  uint16_t port_{};
   bool should_broadcast_{};
   bool should_listen_{};
+  CallbackManager<void(std::vector<uint8_t> &)> packet_listeners_{};
 
 #if defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS)
   std::unique_ptr<socket::Socket> broadcast_socket_ = nullptr;
@@ -44,11 +43,9 @@ class UDPComponent : public packet_encoding::PacketEncoding {
   std::vector<IPAddress> ipaddrs_{};
   WiFiUDP udp_client_{};
 #endif
-  std::vector<uint8_t> encryption_key_{};
   std::vector<std::string> addresses_{};
 
   optional<network::IPAddress> listen_address_{};
-  void send_packet(void *data, size_t len) override;
 };
 
 }  // namespace udp

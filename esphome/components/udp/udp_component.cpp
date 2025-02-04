@@ -3,31 +3,18 @@
 #include "esphome/components/network/util.h"
 #include "udp_component.h"
 
-#include "esphome/components/xxtea/xxtea.h"
-
 namespace esphome {
 namespace udp {
 
 static const char *const TAG = "udp";
 
-bool UDPComponent::should_send_() { return this->should_broadcast_ && network::is_connected(); }
 void UDPComponent::setup() {
-  PacketEncoding::setup();
 #if defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS)
   for (const auto &address : this->addresses_) {
     struct sockaddr saddr {};
     socket::set_sockaddr(&saddr, sizeof(saddr), address, this->port_);
     this->sockaddrs_.push_back(saddr);
   }
-  this->should_broadcast_ = this->ping_pong_enable_;
-#ifdef USE_SENSOR
-  this->should_broadcast_ |= !this->sensors_.empty();
-#endif
-#ifdef USE_BINARY_SENSOR
-  this->should_broadcast_ |= !this->binary_sensors_.empty();
-#endif
-  this->should_listen_ = !this->providers_.empty() || this->is_encrypted_();
-
   // set up broadcast socket
   if (this->should_broadcast_) {
     this->broadcast_socket_ = socket::socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
@@ -80,7 +67,7 @@ void UDPComponent::setup() {
       imreq.imr_interface.s_addr = ESPHOME_INADDR_ANY;
       inet_aton(this->listen_address_.value().str().c_str(), &imreq.imr_multiaddr);
       server.sin_addr.s_addr = imreq.imr_multiaddr.s_addr;
-      ESP_LOGV(TAG, "Join multicast %s", this->listen_address_.value().str().c_str());
+      ESP_LOGD(TAG, "Join multicast %s", this->listen_address_.value().str().c_str());
       err = this->listen_socket_->setsockopt(IPPROTO_IP, IP_ADD_MEMBERSHIP, &imreq, sizeof(imreq));
       if (err < 0) {
         ESP_LOGE(TAG, "Failed to set IP_ADD_MEMBERSHIP. Error %d", errno);
@@ -111,32 +98,25 @@ void UDPComponent::setup() {
 #endif
 }
 
-void UDPComponent::update() {
-  PacketEncoding::update();
-  this->updated_ = true;
-  this->resend_data_ = this->should_broadcast_;
-}
-
 void UDPComponent::loop() {
-  uint8_t buf[MAX_PACKET_SIZE];
+  auto buf = std::vector<uint8_t>(MAX_PACKET_SIZE);
   if (this->should_listen_) {
     for (;;) {
 #if defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS)
-      auto len = this->listen_socket_->read(buf, sizeof(buf));
+      auto len = this->listen_socket_->read(buf.data(), buf.size());
 #endif
 #ifdef USE_SOCKET_IMPL_LWIP_TCP
       auto len = this->udp_client_.parsePacket();
       if (len > 0)
-        len = this->udp_client_.read(buf, sizeof(buf));
+        len = this->udp_client_.read(buf.data(), buf.size());
 #endif
-      if (len > 0) {
-        this->process_(buf, len);
-        continue;
-      }
-      break;
+      if (len <= 0)
+        break;
+      buf.resize(len);
+      ESP_LOGV(TAG, "Received packet of length %zu", len);
+      this->packet_listeners_.call(buf);
     }
   }
-  PacketEncoding::loop();
 }
 
 void UDPComponent::dump_config() {
@@ -147,13 +127,12 @@ void UDPComponent::dump_config() {
   if (this->listen_address_.has_value()) {
     ESP_LOGCONFIG(TAG, "  Listen address: %s", this->listen_address_.value().str().c_str());
   }
-  PacketEncoding::dump_config();
 }
 
-void UDPComponent::send_packet_(void *data, size_t len) {
+void UDPComponent::send_packet_(std::vector<uint8_t> &buf) const {
 #if defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS)
   for (const auto &saddr : this->sockaddrs_) {
-    auto result = this->broadcast_socket_->sendto(data, len, 0, &saddr, sizeof(saddr));
+    auto result = this->broadcast_socket_->sendto(buf.data(), buf.size(), 0, &saddr, sizeof(saddr));
     if (result < 0)
       ESP_LOGW(TAG, "sendto() error %d", errno);
   }
@@ -162,7 +141,7 @@ void UDPComponent::send_packet_(void *data, size_t len) {
   auto iface = IPAddress(0, 0, 0, 0);
   for (const auto &saddr : this->ipaddrs_) {
     if (this->udp_client_.beginPacketMulticast(saddr, this->port_, iface, 128) != 0) {
-      this->udp_client_.write((const uint8_t *) data, len);
+      this->udp_client_.write(buf.data(), buf.size());
       auto result = this->udp_client_.endPacket();
       if (result == 0)
         ESP_LOGW(TAG, "udp.write() error");

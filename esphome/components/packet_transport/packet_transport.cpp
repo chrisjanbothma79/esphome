@@ -1,12 +1,12 @@
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
 #include "esphome/components/network/util.h"
-#include "packet_encoding.h"
+#include "packet_transport.h"
 
 #include "esphome/components/xxtea/xxtea.h"
 
 namespace esphome {
-namespace packet_encoding {
+namespace packet_transport {
 /**
  * Structure of a data packet; everything is little-endian
  *
@@ -104,7 +104,7 @@ static void add(std::vector<uint8_t> &vec, const char *str) {
   }
 }
 
-void PacketEncoding::setup() {
+void PacketTransport::setup() {
   this->name_ = App.get_name().c_str();
   if (strlen(this->name_) > 255) {
     this->mark_failed();
@@ -143,7 +143,7 @@ void PacketEncoding::setup() {
     this->header_.push_back(0);
 }
 
-void PacketEncoding::init_data_() {
+void PacketTransport::init_data_() {
   this->data_.clear();
   if (this->rolling_code_enable_) {
     add(this->data_, ROLLING_CODE_KEY);
@@ -159,46 +159,47 @@ void PacketEncoding::init_data_() {
   }
 }
 
-void PacketEncoding::flush_() {
-  if (!this->should_send_() || this->data_.empty())
+void PacketTransport::flush_() {
+  if (!this->should_send() || this->data_.empty())
     return;
-  auto header_len = round4(this->header_.size()) / 4;
-  auto len = round4(data_.size()) / 4;
-  this->encode_buffer_.resize(round4(this->get_max_packet_size_()) / 4);
+  auto header_len = round4(this->header_.size());
+  auto len = round4(data_.size());
+  auto encode_buffer_ = std::vector<uint8_t>(round4(this->get_max_packet_size()));
   memcpy(encode_buffer_.data(), this->header_.data(), this->header_.size());
   memcpy(encode_buffer_.data() + header_len, this->data_.data(), this->data_.size());
   if (this->is_encrypted_()) {
-    xxtea::encrypt(encode_buffer_.data() + header_len, len, (uint32_t *) this->encryption_key_.data());
+    xxtea::encrypt((uint32_t *) (encode_buffer_.data() + header_len), len / 4,
+                   (uint32_t *) this->encryption_key_.data());
   }
-  auto total_len = (header_len + len) * 4;
-  this->send_packet_(encode_buffer_.data(), total_len);
+  auto send_buffer = std::vector<uint8_t>(header_len + len);
+  this->send_packet(encode_buffer_);
 }
 
-void PacketEncoding::add_binary_data_(uint8_t key, const char *id, bool data) {
+void PacketTransport::add_binary_data_(uint8_t key, const char *id, bool data) {
   auto len = 1 + 1 + 1 + strlen(id);
-  if (len + this->header_.size() + this->data_.size() > this->get_max_packet_size_()) {
+  if (len + this->header_.size() + this->data_.size() > this->get_max_packet_size()) {
     this->flush_();
   }
   add(this->data_, key);
   add(this->data_, (uint8_t) data);
   add(this->data_, id);
 }
-void PacketEncoding::add_data_(uint8_t key, const char *id, float data) {
+void PacketTransport::add_data_(uint8_t key, const char *id, float data) {
   FuData udata{.f32 = data};
   this->add_data_(key, id, udata.u32);
 }
 
-void PacketEncoding::add_data_(uint8_t key, const char *id, uint32_t data) {
+void PacketTransport::add_data_(uint8_t key, const char *id, uint32_t data) {
   auto len = 4 + 1 + 1 + strlen(id);
-  if (len + this->header_.size() + this->data_.size() > this->get_max_packet_size_()) {
+  if (len + this->header_.size() + this->data_.size() > this->get_max_packet_size()) {
     this->flush_();
   }
   add(this->data_, key);
   add(this->data_, data);
   add(this->data_, id);
 }
-void PacketEncoding::send_data_(bool all) {
-  if (!this->should_send_() || !network::is_connected())
+void PacketTransport::send_data_(bool all) {
+  if (!this->should_send() || !network::is_connected())
     return;
   this->init_data_();
 #ifdef USE_SENSOR
@@ -221,7 +222,7 @@ void PacketEncoding::send_data_(bool all) {
   this->updated_ = false;
 }
 
-void PacketEncoding::update() {
+void PacketTransport::update() {
   auto now = millis() / 1000;
   if (this->last_key_time_ + this->ping_pong_recyle_time_ < now) {
     this->resend_ping_key_ = this->ping_pong_enable_;
@@ -229,7 +230,7 @@ void PacketEncoding::update() {
   }
 }
 
-void PacketEncoding::add_key_(const char *name, uint32_t key) {
+void PacketTransport::add_key_(const char *name, uint32_t key) {
   if (!this->is_encrypted_())
     return;
   if (this->ping_keys_.count(name) == 0 && this->ping_keys_.size() == MAX_PING_KEYS) {
@@ -241,7 +242,7 @@ void PacketEncoding::add_key_(const char *name, uint32_t key) {
   ESP_LOGV(TAG, "Ping key from %s now %X", name, (unsigned) key);
 }
 
-void PacketEncoding::process_ping_request_(const char *name, uint8_t *ptr, size_t len) {
+void PacketTransport::process_ping_request_(const char *name, uint8_t *ptr, size_t len) {
   if (len != 4) {
     ESP_LOGW(TAG, "Bad ping request");
     return;
@@ -269,14 +270,16 @@ static bool process_rolling_code(Provider &provider, uint8_t *&buf, const uint8_
 /**
  * Process a received packet
  */
-void PacketEncoding::process_(uint8_t *buf, const size_t len) {
+void PacketTransport::process_(std::vector<uint8_t> &data) {
   auto ping_key_seen = !this->ping_pong_enable_;
+  auto len = data.size();
   if (len < 8) {
     ESP_LOGV(TAG, "Bad length %zu", len);
     return;
   }
   char namebuf[256]{};
   uint8_t byte;
+  auto buf = data.data();
   uint8_t *start_ptr = buf;
   const uint8_t *end = buf + len;
   FuData rdata{};
@@ -400,7 +403,7 @@ void PacketEncoding::process_(uint8_t *buf, const size_t len) {
   }
 }
 
-void PacketEncoding::dump_config() {
+void PacketTransport::dump_config() {
   ESP_LOGCONFIG(TAG, "UDP:");
   ESP_LOGCONFIG(TAG, "  Encrypted: %s", YESNO(this->is_encrypted_()));
   ESP_LOGCONFIG(TAG, "  Ping-pong: %s", YESNO(this->ping_pong_enable_));
@@ -425,7 +428,7 @@ void PacketEncoding::dump_config() {
 #endif
   }
 }
-void PacketEncoding::increment_code_() {
+void PacketTransport::increment_code_() {
   if (this->rolling_code_enable_) {
     if (++this->rolling_code_[0] == 0) {
       this->rolling_code_[1]++;
@@ -434,7 +437,7 @@ void PacketEncoding::increment_code_() {
   }
 }
 
-void PacketEncoding::loop() {
+void PacketTransport::loop() {
   if (this->resend_ping_key_)
     this->send_ping_pong_request_();
   if (this->updated_) {
@@ -442,7 +445,7 @@ void PacketEncoding::loop() {
   }
 }
 
-void PacketEncoding::send_ping_pong_request_() {
+void PacketTransport::send_ping_pong_request_() {
   if (!this->ping_pong_enable_ || !network::is_connected())
     return;
   this->ping_key_ = random_uint32();
@@ -450,9 +453,9 @@ void PacketEncoding::send_ping_pong_request_() {
   add(this->ping_header_, MAGIC_PING);
   add(this->ping_header_, this->name_);
   add(this->ping_header_, this->ping_key_);
-  this->send_packet_(this->ping_header_.data(), this->ping_header_.size());
+  this->send_packet(this->ping_header_);
   this->resend_ping_key_ = false;
   ESP_LOGV(TAG, "Sent new ping request %08X", (unsigned) this->ping_key_);
 }
-}  // namespace packet_encoding
+}  // namespace packet_transport
 }  // namespace esphome
