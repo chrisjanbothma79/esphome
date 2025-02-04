@@ -22,7 +22,7 @@ AUTO_LOAD = ["audio"]
 CODEOWNERS = ["@kahrendt"]
 
 mixer_speaker_ns = cg.esphome_ns.namespace("mixer_speaker")
-MixerSpeaker = mixer_speaker_ns.class_("MixerSpeaker", cg.Component, speaker.Speaker)
+MixerSpeaker = mixer_speaker_ns.class_("MixerSpeaker", cg.Component)
 SourceSpeaker = mixer_speaker_ns.class_("SourceSpeaker", cg.Component, speaker.Speaker)
 
 CONF_DECIBEL_REDUCTION = "decibel_reduction"
