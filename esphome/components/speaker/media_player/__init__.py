@@ -450,8 +450,8 @@ async def to_code(config):
         {
             cv.GenerateID(): cv.use_id(SpeakerMediaPlayer),
             cv.Required(CONF_MEDIA_FILE): cv.use_id(audio.AudioFile),
-            cv.Optional(CONF_ANNOUNCEMENT, default=False): cv.boolean,
-            cv.Optional(CONF_ENQUEUE, default=False): cv.boolean,
+            cv.Optional(CONF_ANNOUNCEMENT, default=False): cv.templatable(cv.boolean),
+            cv.Optional(CONF_ENQUEUE, default=False): cv.templatable(cv.boolean),
         },
         key=CONF_MEDIA_FILE,
     ),
@@ -460,25 +460,10 @@ async def play_on_device_media_media_action(config, action_id, template_arg, arg
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
     media_file = await cg.get_variable(config[CONF_MEDIA_FILE])
+    announcement = await cg.templatable(config[CONF_ANNOUNCEMENT], args, cg.bool_)
+    enqueue = await cg.templatable(config[CONF_ENQUEUE], args, cg.bool_)
+
     cg.add(var.set_audio_file(media_file))
-    cg.add(var.set_announcement(config[CONF_ANNOUNCEMENT]))
-    cg.add(var.set_enqueue(config[CONF_ENQUEUE]))
-    return var
-
-
-@automation.register_action(
-    "speaker_media_player.stop_stream",
-    StopStreamAction,
-    cv.maybe_simple_value(
-        {
-            cv.GenerateID(): cv.use_id(SpeakerMediaPlayer),
-            cv.Required(CONF_STREAM): cv.enum(AUDIO_PIPELINE_TYPE_ENUM, upper=True),
-        },
-        key=CONF_STREAM,
-    ),
-)
-async def stop_stream_action(config, action_id, template_arg, args):
-    var = cg.new_Pvariable(action_id, template_arg)
-    await cg.register_parented(var, config[CONF_ID])
-    cg.add(var.set_pipeline_type(config[CONF_STREAM]))
+    cg.add(var.set_announcement(announcement))
+    cg.add(var.set_enqueue(enqueue))
     return var

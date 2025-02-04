@@ -20,20 +20,6 @@ template<typename... Ts> class PlayOnDeviceMediaAction : public Action<Ts...>, p
   }
 };
 
-template<typename... Ts> class StopStreamAction : public Action<Ts...>, public Parented<SpeakerMediaPlayer> {
-  TEMPLATABLE_VALUE(AudioPipelineType, pipeline_type)
-  void play(Ts... x) override {
-    bool announcement = false;
-    if (this->pipeline_type_.value(x...) == AudioPipelineType::ANNOUNCEMENT) {
-      announcement = true;
-    }
-    this->parent_->make_call()
-        .set_command(media_player::MediaPlayerCommand::MEDIA_PLAYER_COMMAND_STOP)
-        .set_announcement(announcement)
-        .perform();
-  }
-};
-
 }  // namespace speaker
 }  // namespace esphome
 
