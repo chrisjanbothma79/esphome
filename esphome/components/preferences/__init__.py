@@ -1,6 +1,7 @@
-from esphome.const import CONF_ID
 import esphome.codegen as cg
 import esphome.config_validation as cv
+from esphome.const import CONF_ID
+from esphome.core import TimePeriod
 
 CODEOWNERS = ["@esphome/core"]
 
@@ -11,9 +12,9 @@ CONF_FLASH_WRITE_INTERVAL = "flash_write_interval"
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(IntervalSyncer),
-        cv.Optional(
-            CONF_FLASH_WRITE_INTERVAL, default="60s"
-        ): cv.positive_time_period_milliseconds,
+        cv.Optional(CONF_FLASH_WRITE_INTERVAL, default="60s"): cv.All(
+            cv.update_interval, cv.Range(min=TimePeriod(milliseconds=1000))
+        ),
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
