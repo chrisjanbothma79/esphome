@@ -16,7 +16,6 @@ from esphome.core.entity_helpers import inherit_property_from
 
 AUTO_LOAD = ["audio"]
 CODEOWNERS = ["@kahrendt"]
-DEPENDENCIES = ["speaker"]
 
 resampler_ns = cg.esphome_ns.namespace("resampler")
 ResamplerSpeaker = resampler_ns.class_(
@@ -30,7 +29,7 @@ def _set_stream_limits(config):
     audio.set_stream_limits(
         min_bits_per_sample=16,
         max_bits_per_sample=32,
-    )
+    )(config)
 
     return config
 
