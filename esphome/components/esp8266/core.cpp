@@ -2,7 +2,6 @@
 
 #include "core.h"
 #include "esphome/core/defines.h"
-#include "esphome/core/log.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 #include "preferences.h"
@@ -12,26 +11,7 @@
 namespace esphome {
 
 void IRAM_ATTR HOT yield() { ::yield(); }
-
-static const uint32_t MAX_INC = 0xFFFFFFFF;
-static uint32_t milli_offset = MAX_INC - 120000;
-static uint32_t last;
-
-uint32_t IRAM_ATTR HOT millis() {
-  auto m = ::millis() + milli_offset;
-  if (m > 120000) {
-    if (m < last) {
-      milli_offset += MAX_INC - 120000;
-      ESP_LOGD("MILLIS", "Overflow detected, offsetting to %u", milli_offset);
-    }
-    last = m;
-  }
-  // if (m > 60000 && milli_offset == 0)
-  //  milli_offset = MAX_INC - 120000;
-  // else if (m > 180000 && milli_offset < MAX_INC)
-  //  milli_offset = MAX_INC * 2 - 240000;
-  return m;
-}
+uint32_t IRAM_ATTR HOT millis() { return ::millis(); }
 void IRAM_ATTR HOT delay(uint32_t ms) { ::delay(ms); }
 uint32_t IRAM_ATTR HOT micros() { return ::micros(); }
 void IRAM_ATTR HOT delayMicroseconds(uint32_t us) { delay_microseconds_safe(us); }
