@@ -35,6 +35,8 @@ class Sdl : public display::Display {
   int mouse_y{};
   bool mouse_down{};
 
+  bool key_state[323]{};
+
  protected:
   int get_width_internal() override { return this->width_; }
   int get_height_internal() override { return this->height_; }

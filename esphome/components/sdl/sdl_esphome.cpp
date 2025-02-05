@@ -87,6 +87,14 @@ void Sdl::loop() {
         }
         break;
 
+      case SDL_KEYDOWN:
+        this->key_state[e.key.keysym.sym] = true;
+        break;
+
+      case SDL_KEYUP:
+        this->key_state[e.key.keysym.sym] = false;
+        break;
+
       case SDL_WINDOWEVENT:
         switch (e.window.event) {
           case SDL_WINDOWEVENT_SIZE_CHANGED:
