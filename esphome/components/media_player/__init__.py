@@ -135,12 +135,15 @@ MEDIA_PLAYER_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
 )
 
 
-MEDIA_PLAYER_ACTION_SCHEMA = cv.maybe_simple_value(
+MEDIA_PLAYER_ACTION_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.use_id(MediaPlayer),
         cv.Optional(CONF_ANNOUNCEMENT, default=False): cv.templatable(cv.boolean),
-    },
-    key=CONF_ANNOUNCEMENT,
+    }
+)
+
+MEDIA_PLAYER_CONDITION_SCHEMA = automation.maybe_simple_id(
+    {cv.GenerateID(): cv.use_id(MediaPlayer)}
 )
 
 
@@ -180,23 +183,29 @@ async def media_player_play_media_action(config, action_id, template_arg, args):
 @automation.register_action(
     "media_player.volume_down", VolumeDownAction, MEDIA_PLAYER_ACTION_SCHEMA
 )
-@automation.register_condition(
-    "media_player.is_idle", IsIdleCondition, MEDIA_PLAYER_ACTION_SCHEMA
-)
-@automation.register_condition(
-    "media_player.is_paused", IsPausedCondition, MEDIA_PLAYER_ACTION_SCHEMA
-)
-@automation.register_condition(
-    "media_player.is_playing", IsPlayingCondition, MEDIA_PLAYER_ACTION_SCHEMA
-)
-@automation.register_condition(
-    "media_player.is_announcing", IsAnnouncingCondition, MEDIA_PLAYER_ACTION_SCHEMA
-)
 async def media_player_action(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
     announcement = await cg.templatable(config[CONF_ANNOUNCEMENT], args, cg.bool_)
     cg.add(var.set_announcement(announcement))
+    return var
+
+
+@automation.register_condition(
+    "media_player.is_idle", IsIdleCondition, MEDIA_PLAYER_CONDITION_SCHEMA
+)
+@automation.register_condition(
+    "media_player.is_paused", IsPausedCondition, MEDIA_PLAYER_CONDITION_SCHEMA
+)
+@automation.register_condition(
+    "media_player.is_playing", IsPlayingCondition, MEDIA_PLAYER_CONDITION_SCHEMA
+)
+@automation.register_condition(
+    "media_player.is_announcing", IsAnnouncingCondition, MEDIA_PLAYER_CONDITION_SCHEMA
+)
+async def media_player_condition(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
     return var
 
 
