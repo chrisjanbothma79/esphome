@@ -7,9 +7,10 @@ from esphome.components.packet_transport import (
     new_packet_transport,
     transport_schema,
 )
-from esphome.components.udp import UDP_SCHEMA, register_udp_client, udp_ns
 from esphome.const import CONF_BINARY_SENSORS, CONF_SENSORS
 from esphome.cpp_types import PollingComponent
+
+from .. import UDP_SCHEMA, register_udp_client, udp_ns
 
 UDPTransport = udp_ns.class_("UDPTransport", PacketTransport, PollingComponent)
 

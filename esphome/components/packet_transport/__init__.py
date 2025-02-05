@@ -56,7 +56,8 @@ def provider_name_validate(value):
     value = cv.valid_name(value)
     if "_" in value:
         _LOGGER.warning(
-            f"Device names typically do not contain underscores - did you mean to use a hyphen in '{value}'?"
+            "Device names typically do not contain underscores - did you mean to use a hyphen in '%s'?",
+            value,
         )
     return value
 
