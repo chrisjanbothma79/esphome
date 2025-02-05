@@ -121,8 +121,8 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
 
   QueueHandle_t media_control_command_queue_;
 
-  std::deque<PlaylistItem> announcement_queue_;
-  std::deque<PlaylistItem> media_queue_;
+  std::deque<PlaylistItem> announcement_playlist_;
+  std::deque<PlaylistItem> media_playlist_;
 
   size_t buffer_size_;
 

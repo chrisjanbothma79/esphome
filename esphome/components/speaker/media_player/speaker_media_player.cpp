@@ -150,7 +150,7 @@ void SpeakerMediaPlayer::watch_media_commands_() {
 
         if (!enqueue) {
           this->cancel_timeout("next_ann");
-          this->announcement_queue_.clear();
+          this->announcement_playlist_.clear();
         }
 
         PlaylistItem playlist_item;
@@ -167,12 +167,12 @@ void SpeakerMediaPlayer::watch_media_commands_() {
             this->announcement_pipeline_->set_pause_state(false);
           }
         }
-        this->announcement_queue_.push_back(playlist_item);
+        this->announcement_playlist_.push_back(playlist_item);
       } else {
         // Media queue/pipeline
         if (!enqueue) {
           this->cancel_timeout("next_media");
-          this->media_queue_.clear();
+          this->media_playlist_.clear();
         }
 
         this->is_paused_ = false;
@@ -190,7 +190,7 @@ void SpeakerMediaPlayer::watch_media_commands_() {
             this->media_pipeline_->set_pause_state(false);
           }
         }
-        this->media_queue_.push_back(playlist_item);
+        this->media_playlist_.push_back(playlist_item);
       }
 
       if (err != ESP_OK) {
@@ -226,13 +226,13 @@ void SpeakerMediaPlayer::watch_media_commands_() {
           if (this->single_pipeline_() || (media_command.announce.has_value() && media_command.announce.value())) {
             if (this->announcement_pipeline_ != nullptr) {
               this->cancel_timeout("next_ann");
-              this->announcement_queue_.clear();
+              this->announcement_playlist_.clear();
               this->announcement_pipeline_->stop();
             }
           } else {
             if (this->media_pipeline_ != nullptr) {
               this->cancel_timeout("next_media");
-              this->media_queue_.clear();
+              this->media_playlist_.clear();
               this->media_pipeline_->stop();
             }
           }
@@ -282,12 +282,12 @@ void SpeakerMediaPlayer::watch_media_commands_() {
           break;
         case media_player::MEDIA_PLAYER_COMMAND_CLEAR_PLAYLIST:
           if (this->single_pipeline_() || (media_command.announce.has_value() && media_command.announce.value())) {
-            if (this->announcement_queue_.size() > 0) {
-              this->announcement_queue_.resize(1);
+            if (this->announcement_playlist_.size() > 0) {
+              this->announcement_playlist_.resize(1);
             }
           } else {
-            if (this->media_queue_.size() > 0) {
-              this->media_queue_.resize(1);
+            if (this->media_playlist_.size() > 0) {
+              this->media_playlist_.resize(1);
             }
           }
           break;
@@ -330,19 +330,19 @@ void SpeakerMediaPlayer::loop() {
   if (this->announcement_pipeline_state_ != AudioPipelineState::STOPPED) {
     this->state = media_player::MEDIA_PLAYER_STATE_ANNOUNCING;
   } else {
-    if (!this->announcement_queue_.empty()) {
+    if (!this->announcement_playlist_.empty()) {
       uint32_t timeout_ms = 0;
       if (old_announcement_pipeline_state == AudioPipelineState::PLAYING) {
         // Finished the current announcement file. Pop it off the deque if repeat is disabled
         if (!this->announcement_repeat_one_) {
-          this->announcement_queue_.pop_front();
+          this->announcement_playlist_.pop_front();
         }
         timeout_ms = this->announcement_playlist_delay_ms_;
       }
 
-      if (!this->announcement_queue_.empty()) {
+      if (!this->announcement_playlist_.empty()) {
         // Start the next announcement file
-        PlaylistItem playlist_item = this->announcement_queue_.front();
+        PlaylistItem playlist_item = this->announcement_playlist_.front();
         if (playlist_item.url.has_value()) {
           this->announcement_pipeline_->start_url(playlist_item.url.value());
         } else if (playlist_item.file.has_value()) {
@@ -366,17 +366,17 @@ void SpeakerMediaPlayer::loop() {
         this->remainder_us_ = 0;
         this->pending_ms_ = 0;
 
-        if (!media_queue_.empty()) {
+        if (!media_playlist_.empty()) {
           uint32_t timeout_ms = 0;
           if (old_media_pipeline_state == AudioPipelineState::PLAYING) {
             // Finished the current media file. Pop it off the deque if repeat is disabled
             if (!this->media_repeat_one_) {
-              this->media_queue_.pop_front();
+              this->media_playlist_.pop_front();
             }
             timeout_ms = this->announcement_playlist_delay_ms_;
           }
-          if (!this->media_queue_.empty()) {
-            PlaylistItem playlist_item = this->media_queue_.front();
+          if (!this->media_playlist_.empty()) {
+            PlaylistItem playlist_item = this->media_playlist_.front();
             if (playlist_item.url.has_value()) {
               this->media_pipeline_->start_url(playlist_item.url.value());
             } else if (playlist_item.file.has_value()) {
