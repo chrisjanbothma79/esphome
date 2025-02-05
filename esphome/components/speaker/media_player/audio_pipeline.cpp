@@ -45,11 +45,11 @@ enum EventGroupBits : uint32_t {
 
 AudioPipeline::AudioPipeline(speaker::Speaker *speaker, size_t buffer_size, bool task_stack_in_psram,
                              const std::string &base_name, UBaseType_t priority)
-    : task_stack_in_psram_(task_stack_in_psram),
-      speaker_(speaker),
-      buffer_size_(buffer_size),
+    : speaker_(speaker),
       base_name_(base_name),
-      priority_(priority) {
+      priority_(priority),
+      task_stack_in_psram_(task_stack_in_psram),
+      buffer_size_(buffer_size) {
   this->allocate_communications_();
   this->transfer_buffer_size_ = std::min(buffer_size_ / 4, DEFAULT_TRANSFER_BUFFER_SIZE);
 }

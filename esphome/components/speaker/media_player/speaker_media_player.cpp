@@ -291,11 +291,11 @@ void SpeakerMediaPlayer::watch_media_commands_() {
           break;
         case media_player::MEDIA_PLAYER_COMMAND_CLEAR_PLAYLIST:
           if (this->single_pipeline_() || (media_command.announce.has_value() && media_command.announce.value())) {
-            if (this->announcement_playlist_.size() > 0) {
+            if (this->announcement_playlist_.empty()) {
               this->announcement_playlist_.resize(1);
             }
           } else {
-            if (this->media_playlist_.size() > 0) {
+            if (this->media_playlist_.empty()) {
               this->media_playlist_.resize(1);
             }
           }
