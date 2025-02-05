@@ -44,8 +44,8 @@ enum EventGroupBits : uint32_t {
 };
 
 AudioPipeline::AudioPipeline(speaker::Speaker *speaker, size_t buffer_size, bool task_stack_in_psram,
-                             const std::string &base_name, UBaseType_t priority)
-    : base_name_(base_name),
+                             std::string base_name, UBaseType_t priority)
+    : base_name_(std::move(base_name)),
       priority_(priority),
       task_stack_in_psram_(task_stack_in_psram),
       speaker_(speaker),

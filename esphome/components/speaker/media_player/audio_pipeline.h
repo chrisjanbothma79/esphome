@@ -64,7 +64,7 @@ class AudioPipeline {
   /// @param task_stack_in_psram True if the task stack should be allocated in PSRAM, false otherwise
   /// @param task_name FreeRTOS task base name
   /// @param priority FreeRTOS task priority
-  AudioPipeline(speaker::Speaker *speaker, size_t buffer_size, bool task_stack_in_psram, const std::string &base_name,
+  AudioPipeline(speaker::Speaker *speaker, size_t buffer_size, bool task_stack_in_psram, std::string base_name,
                 UBaseType_t priority);
 
   /// @brief Starts an audio pipeline given a media url
