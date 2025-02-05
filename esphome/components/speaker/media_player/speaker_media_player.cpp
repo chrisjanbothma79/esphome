@@ -143,12 +143,16 @@ esp_err_t SpeakerMediaPlayer::start_pipeline_(AudioPipelineType type, std::strin
 
   switch (type) {
     case AudioPipelineType::ANNOUNCEMENT:
-      this->create_pipeline_(AudioPipelineType::ANNOUNCEMENT);
-      err = this->announcement_pipeline_->start_url(url);
+      err = this->create_pipeline_(AudioPipelineType::ANNOUNCEMENT);
+      if (err == ESP_OK) {
+        this->announcement_pipeline_->start_url(url);
+      }
       break;
     case AudioPipelineType::MEDIA:
-      this->create_pipeline_(AudioPipelineType::MEDIA);
-      err = this->media_pipeline_->start_url(url);
+      err = this->create_pipeline_(AudioPipelineType::MEDIA);
+      if (err == ESP_OK) {
+        this->media_pipeline_->start_url(url);
+      }
   }
 
   return err;
@@ -159,12 +163,16 @@ esp_err_t SpeakerMediaPlayer::start_pipeline_(AudioPipelineType type, audio::Aud
 
   switch (type) {
     case AudioPipelineType::ANNOUNCEMENT:
-      this->create_pipeline_(AudioPipelineType::ANNOUNCEMENT);
-      err = this->announcement_pipeline_->start_file(file);
+      err = this->create_pipeline_(AudioPipelineType::ANNOUNCEMENT);
+      if (err == ESP_OK) {
+        this->announcement_pipeline_->start_file(file);
+      }
       break;
     case AudioPipelineType::MEDIA:
-      this->create_pipeline_(AudioPipelineType::MEDIA);
-      err = this->media_pipeline_->start_file(file);
+      err = this->create_pipeline_(AudioPipelineType::MEDIA);
+      if (err == ESP_OK) {
+        this->media_pipeline_->start_file(file);
+      }
   }
 
   return err;
@@ -350,7 +358,7 @@ void SpeakerMediaPlayer::loop() {
 
   AudioPipelineState old_media_pipeline_state = this->media_pipeline_state_;
   if (this->media_pipeline_ != nullptr) {
-    this->media_pipeline_state_ = this->media_pipeline_->get_state();
+    this->media_pipeline_state_ = this->media_pipeline_->process_state();
     this->decoded_playback_ms_ = this->media_pipeline_->get_playback_ms();
   }
 
@@ -362,7 +370,7 @@ void SpeakerMediaPlayer::loop() {
 
   AudioPipelineState old_announcement_pipeline_state = this->announcement_pipeline_state_;
   if (this->announcement_pipeline_ != nullptr) {
-    this->announcement_pipeline_state_ = this->announcement_pipeline_->get_state();
+    this->announcement_pipeline_state_ = this->announcement_pipeline_->process_state();
   }
 
   if (this->announcement_pipeline_state_ == AudioPipelineState::ERROR_READING) {

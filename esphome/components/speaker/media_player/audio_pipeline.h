@@ -78,20 +78,21 @@ class AudioPipeline {
   /// @brief Starts an audio pipeline given a media url
   /// @param uri media file url
   /// @return ESP_OK if successful or an appropriate error if not
-  esp_err_t start_url(const std::string &uri);
+  void start_url(const std::string &uri);
 
   /// @brief Starts an audio pipeline given a AudioFile pointer
   /// @param audio_file pointer to an AudioFile object
   /// @return ESP_OK if successful or an appropriate error if not
-  esp_err_t start_file(audio::AudioFile *audio_file);
+  void start_file(audio::AudioFile *audio_file);
 
   /// @brief Stops the pipeline. Sends a stop signal to each task (if running) and clears the ring buffers.
   /// @return ESP_OK if successful or ESP_ERR_TIMEOUT if the tasks did not indicate they stopped
   esp_err_t stop();
 
-  /// @brief Gets the state of the audio pipeline based on the info_error_queue_ and event_group_
+  /// @brief Processes the state of the audio pipeline based on the info_error_queue_ and event_group_. Handles creating
+  /// and stopping the pipeline tasks. Needs to be regularly called to update the internal pipeline state.
   /// @return AudioPipelineState
-  AudioPipelineState get_state();
+  AudioPipelineState process_state();
 
   /// @brief Suspends any running tasks
   void suspend_tasks();

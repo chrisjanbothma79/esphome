@@ -21,7 +21,7 @@ static const char *const TAG = "speaker_media_player.pipeline";
 enum EventGroupBits : uint32_t {
   // MESSAGE_* bits are only set by their respective tasks
 
-  // Stops all activity in the pipeline elements; cleared by get_state() and set by stop() or by each task
+  // Stops all activity in the pipeline elements; cleared by process_state() and set by stop() or by each task
   PIPELINE_COMMAND_STOP = (1 << 0),
 
   // Read audio from an HTTP source; cleared by reader task and set by start_url
@@ -33,33 +33,29 @@ enum EventGroupBits : uint32_t {
   READER_MESSAGE_LOADED_MEDIA_TYPE = (1 << 6),
   // Reader is done (either through a failure or just end of the stream); cleared by reader task
   READER_MESSAGE_FINISHED = (1 << 7),
-  // Error reading the file; cleared by get_state()
+  // Error reading the file; cleared by process_state()
   READER_MESSAGE_ERROR = (1 << 8),
 
   // Decoder is done (either through a faiilure or the end of the stream); cleared by decoder task
   DECODER_MESSAGE_FINISHED = (1 << 12),
-  // Error decoding the file; cleared by get_state() by decoder task
+  // Error decoding the file; cleared by process_state() by decoder task
   DECODER_MESSAGE_ERROR = (1 << 13),
 };
 
-esp_err_t AudioPipeline::start_url(const std::string &uri) {
+void AudioPipeline::start_url(const std::string &uri) {
   if (this->is_playing_) {
     xEventGroupSetBits(this->event_group_, PIPELINE_COMMAND_STOP);
   }
   this->current_uri_ = uri;
   this->pending_url_ = true;
-
-  return ESP_OK;
 }
 
-esp_err_t AudioPipeline::start_file(audio::AudioFile *audio_file) {
+void AudioPipeline::start_file(audio::AudioFile *audio_file) {
   if (this->is_playing_) {
     xEventGroupSetBits(this->event_group_, PIPELINE_COMMAND_STOP);
   }
   this->current_audio_file_ = audio_file;
   this->pending_file_ = true;
-
-  return ESP_OK;
 }
 
 esp_err_t AudioPipeline::stop() {
@@ -91,7 +87,7 @@ void AudioPipeline::resume_tasks() {
   }
 }
 
-AudioPipelineState AudioPipeline::get_state() {
+AudioPipelineState AudioPipeline::process_state() {
   InfoErrorEvent event;
   if (this->info_error_queue_ != nullptr) {
     while (xQueueReceive(this->info_error_queue_, &event, 0)) {
