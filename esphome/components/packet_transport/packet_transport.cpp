@@ -278,7 +278,7 @@ void PacketTransport::process_(std::vector<uint8_t> &data) {
   }
   char namebuf[256]{};
   uint8_t byte;
-  auto buf = data.data();
+  auto *buf = data.data();
   uint8_t *start_ptr = buf;
   const uint8_t *end = buf + len;
   FuData rdata{};
