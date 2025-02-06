@@ -105,15 +105,21 @@ void OnlineImage::update() {
   http_request::Header accept_header;
   accept_header.name = "Accept";
   switch (this->format_) {
+#ifdef USE_ONLINE_IMAGE_BMP_SUPPORT
     case ImageFormat::BMP:
       accept_header.value = "image/bmp;q=0.9,*/*;q=0.8";
       break;
+#endif  // ONLINE_IMAGE_BMP_SUPPORT
+#ifdef USE_ONLINE_IMAGE_JPEG_SUPPORT
     case ImageFormat::JPEG:
       accept_header.value = "image/jpeg;q=0.9,*/*;q=0.8";
       break;
+#endif  // USE_ONLINE_IMAGE_JPEG_SUPPORT
+#ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
     case ImageFormat::PNG:
       accept_header.value = "image/png;q=0.9,*/*;q=0.8";
       break;
+#endif  // ONLINE_IMAGE_PNG_SUPPORT
     default:
       accept_header.value = "*/*";
   }
