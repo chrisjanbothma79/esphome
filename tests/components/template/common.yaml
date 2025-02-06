@@ -294,20 +294,6 @@ climate:
     swing_mode_id: climate_swing_mode
     preset_id: climate_preset
     action_id: climate_action
-    supported_modes:
-      - "OFF"
-      - "COOL"
-      - "HEAT"
-      - "AUTO"
-    supported_fan_modes:
-      - "ON"
-      - "QUIET"
-    supported_swing_modes:
-      - "OFF"
-      - "HORIZONTAL"
-    supported_presets:
-      - "NONE"
-      - "ECO"
     visual:
       temperature_step: 0.1C
 
