@@ -27,6 +27,7 @@ class UDPComponent : public Component {
   void loop() override;
   void dump_config() override;
   void send_packet(std::vector<uint8_t> &buf);
+  float get_setup_priority() const override { return setup_priority::AFTER_WIFI; };
 
  protected:
   uint16_t port_{};
