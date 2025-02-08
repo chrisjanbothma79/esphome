@@ -144,7 +144,7 @@ void SX127x::configure() {
       this->write_register_(REG_SYNC_VALUE1 + i, this->sync_value_[i]);
     }
   } else {
-    this->write_register_(REG_SYNC_CONFIG, AUTO_RESTART_PLL_LOCK | polarity | SYNC_OFF);
+    this->write_register_(REG_SYNC_CONFIG, AUTO_RESTART_PLL_LOCK | polarity);
   }
 
   // config preamble detector
