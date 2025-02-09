@@ -234,8 +234,11 @@ async def to_code(config):
     level = config[CONF_LEVEL]
     initial_level = LOG_LEVELS[config.get(CONF_INITIAL_LEVEL, level)]
     log = cg.new_Pvariable(
-        config[CONF_ID], baud_rate, config[CONF_TX_BUFFER_SIZE], initial_level
+        config[CONF_ID],
+        baud_rate,
+        config[CONF_TX_BUFFER_SIZE],
     )
+    cg.add(log.set_log_level(initial_level))
     if CONF_HARDWARE_UART in config:
         cg.add(
             log.set_uart_selection(

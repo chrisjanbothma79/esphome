@@ -6,6 +6,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 #ifdef USE_ARDUINO
 #if defined(USE_ESP8266) || defined(USE_ESP32)
@@ -55,7 +56,7 @@ enum UARTSelection {
 
 class Logger : public Component {
  public:
-  explicit Logger(uint32_t baud_rate, size_t tx_buffer_size, int initial_level);
+  explicit Logger(uint32_t baud_rate, size_t tx_buffer_size);
 #ifdef USE_LOGGER_USB_CDC
   void loop() override;
 #endif
@@ -167,7 +168,7 @@ class Logger : public Component {
 #endif
   std::map<std::string, int> log_levels_{};
   CallbackManager<void(int, const char *, const char *)> log_callback_{};
-  int current_level_;
+  int current_level_{ESPHOME_LOG_LEVEL_VERY_VERBOSE};
   /// Prevents recursive log calls, if true a log message is already being processed.
   bool recursion_guard_ = false;
   void *main_task_ = nullptr;
