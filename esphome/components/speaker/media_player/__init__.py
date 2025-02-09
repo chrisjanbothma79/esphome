@@ -151,18 +151,9 @@ def _read_audio_file_and_type(file_config):
     with open(path, "rb") as f:
         data = f.read()
 
-    try:
-        import puremagic
+    import puremagic
 
-        file_type: str = puremagic.from_string(data)
-    except ImportError:
-        try:
-            from magic import Magic
-
-            magic = Magic(mime=True)
-            file_type: str = magic.from_buffer(data)
-        except ImportError as exc:
-            raise cv.Invalid("Please install puremagic") from exc
+    file_type: str = puremagic.from_string(data)
     if file_type.startswith("."):
         file_type = file_type[1:]
 
@@ -224,18 +215,17 @@ def _validate_repeated_speaker(config):
 
 
 def _validate_supported_local_file(config):
-    if files_list := config.get(CONF_FILES):
-        for file_config in files_list:
-            _, media_file_type = _read_audio_file_and_type(file_config)
-            if str(media_file_type) == str(audio.AUDIO_FILE_TYPE_ENUM["NONE"]):
-                raise cv.Invalid("Unsupported local media file.")
-            if not config[CONF_CODEC_SUPPORT_ENABLED] and str(media_file_type) != str(
-                audio.AUDIO_FILE_TYPE_ENUM["WAV"]
-            ):
-                # Only wav files are supported
-                raise cv.Invalid(
-                    f"Unsupported local media file type, set {CONF_CODEC_SUPPORT_ENABLED} to true or convert the media file to wav"
-                )
+    for file_config in config.get(CONF_FILES, []):
+        _, media_file_type = _read_audio_file_and_type(file_config)
+        if str(media_file_type) == str(audio.AUDIO_FILE_TYPE_ENUM["NONE"]):
+            raise cv.Invalid("Unsupported local media file.")
+        if not config[CONF_CODEC_SUPPORT_ENABLED] and str(media_file_type) != str(
+            audio.AUDIO_FILE_TYPE_ENUM["WAV"]
+        ):
+            # Only wav files are supported
+            raise cv.Invalid(
+                f"Unsupported local media file type, set {CONF_CODEC_SUPPORT_ENABLED} to true or convert the media file to wav"
+            )
 
     return config
 
@@ -414,33 +404,32 @@ async def to_code(config):
             on_volume,
         )
 
-    if files_list := config.get(CONF_FILES):
-        for file_config in files_list:
-            data, media_file_type = _read_audio_file_and_type(file_config)
+    for file_config in config.get(CONF_FILES, []):
+        data, media_file_type = _read_audio_file_and_type(file_config)
 
-            rhs = [HexInt(x) for x in data]
-            prog_arr = cg.progmem_array(file_config[CONF_RAW_DATA_ID], rhs)
+        rhs = [HexInt(x) for x in data]
+        prog_arr = cg.progmem_array(file_config[CONF_RAW_DATA_ID], rhs)
 
-            media_files_struct = cg.StructInitializer(
-                audio.AudioFile,
-                (
-                    "data",
-                    prog_arr,
-                ),
-                (
-                    "length",
-                    len(rhs),
-                ),
-                (
-                    "file_type",
-                    media_file_type,
-                ),
-            )
+        media_files_struct = cg.StructInitializer(
+            audio.AudioFile,
+            (
+                "data",
+                prog_arr,
+            ),
+            (
+                "length",
+                len(rhs),
+            ),
+            (
+                "file_type",
+                media_file_type,
+            ),
+        )
 
-            cg.new_Pvariable(
-                file_config[CONF_ID],
-                media_files_struct,
-            )
+        cg.new_Pvariable(
+            file_config[CONF_ID],
+            media_files_struct,
+        )
 
 
 @automation.register_action(
