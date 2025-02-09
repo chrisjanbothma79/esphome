@@ -7,6 +7,8 @@ from esphome.cpp_helpers import register_component, register_parented
 
 from .. import LOG_LEVEL_SEVERITY, Logger, logger_ns
 
+CODEOWNERS = ["@clydebarrow"]
+
 LoggerLevelSelect = logger_ns.class_("LoggerLevelSelect", select.Select, cg.Component)
 
 CONF_LOGGER_ID = "logger_id"
