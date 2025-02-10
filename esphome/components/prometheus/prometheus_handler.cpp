@@ -804,7 +804,7 @@ void PrometheusHandler::valve_row_(AsyncResponseStream *stream, valve::Valve *ob
   stream->print(F("\",name=\""));
   stream->print(relabel_name_(obj).c_str());
   stream->print(F("\",operation=\""));
-  stream->print(valve::valve_operation_to_str(obj->current_operation).c_str());
+  stream->print(valve::valve_operation_to_str(obj->current_operation));
   stream->print(F("\"} "));
   stream->print(F("1.0"));
   stream->print(F("\n"));
