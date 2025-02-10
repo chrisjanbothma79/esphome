@@ -20,7 +20,6 @@ media_player_ns = cg.esphome_ns.namespace("media_player")
 
 MediaPlayer = media_player_ns.class_("MediaPlayer")
 
-media_player_ns = cg.esphome_ns.namespace("media_player")
 MediaPlayerSupportedFormat = media_player_ns.struct("MediaPlayerSupportedFormat")
 
 MediaPlayerFormatPurpose = media_player_ns.enum(
