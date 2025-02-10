@@ -19,14 +19,43 @@ namespace http_request {
 
 static const char *const TAG = "http_request.idf";
 
+struct UserData {
+  const std::list<std::string> &collect_header_names;
+  const std::map<std::string, std::list<std::string>> &response_headers;
+};
+
 void HttpRequestIDF::dump_config() {
   HttpRequestComponent::dump_config();
   ESP_LOGCONFIG(TAG, "  Buffer Size RX: %u", this->buffer_size_rx_);
   ESP_LOGCONFIG(TAG, "  Buffer Size TX: %u", this->buffer_size_tx_);
 }
 
+esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
+  UserData *user_data = (UserData *) evt->user_data;
+  auto response_headers = user_data->response_headers;
+  auto collect_header_names = user_data->collect_header_names;
+
+  switch (evt->event_id) {
+    case HTTP_EVENT_ON_HEADER: {
+      auto *header_name = evt->header_key;
+      for (const auto &collect_header_name : collect_header_names) {
+        if (str_lower_case(collect_header_name) == header_name) {
+          response_headers[header_name].emplace_back(evt->header_value);
+          break;
+        }
+      }
+      break;
+    }
+    default: {
+      break;
+    }
+  }
+  return ESP_OK;
+}
+
 std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::string method, std::string body,
-                                                     std::list<Header> headers) {
+                                                     std::list<Header> headers,
+                                                     std::list<std::string> collect_header_names) {
   if (!network::is_connected()) {
     this->status_momentary_error("failed", 1000);
     ESP_LOGE(TAG, "HTTP Request failed; Not connected to network");
@@ -89,6 +118,10 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
 
   const int body_len = body.length();
 
+  config.event_handler = http_event_handler;
+  auto user_data = UserData{collect_header_names, {}};
+  config.user_data = static_cast<void *>(&user_data);
+
   esp_err_t err = esp_http_client_open(client, body_len);
   if (err != ESP_OK) {
     this->status_momentary_error("failed", 1000);
@@ -120,6 +153,7 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   }
 
   container->feed_wdt();
+  container->set_response_headers(user_data.response_headers);
   container->content_length = esp_http_client_fetch_headers(client);
   container->feed_wdt();
   container->status_code = esp_http_client_get_status_code(client);
