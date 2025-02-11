@@ -191,8 +191,12 @@ void SX127x::transmit_packet(const std::vector<uint8_t> &packet) {
   this->set_mode_standby();
   this->write_fifo_(packet);
   this->set_mode_tx();
+  uint32_t start = millis();
   while (!this->store_.dio0_irq) {
-    // do nothing
+    if (millis() - start > 1000) {
+      ESP_LOGW(TAG, "Transmit packet failure");
+      break;
+    }
   }
   this->store_.dio0_irq = false;
   if (this->rx_start_) {
