@@ -1,4 +1,5 @@
 #include "voice_assistant.h"
+#include "esphome/core/defines.h"
 
 #ifdef USE_VOICE_ASSISTANT
 
@@ -733,8 +734,9 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
     }
     case api::enums::VOICE_ASSISTANT_RUN_END: {
       ESP_LOGD(TAG, "Assist Pipeline ended");
-      if (this->state_ == State::STARTING_PIPELINE) {
+      if ((this->state_ == State::STARTING_PIPELINE) || (this->state_ == State::AWAITING_RESPONSE)) {
         // Pipeline ended before starting microphone
+        // Or there wasn't a TTS start event ("nevermind")
         this->set_state_(State::IDLE, State::IDLE);
       } else if (this->state_ == State::STREAMING_MICROPHONE) {
         this->ring_buffer_->reset();
@@ -747,9 +749,6 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
         {
           this->set_state_(State::IDLE, State::IDLE);
         }
-      } else if (this->state_ == State::AWAITING_RESPONSE) {
-        // No TTS start event ("nevermind")
-        this->set_state_(State::IDLE, State::IDLE);
       }
       this->defer([this]() { this->end_trigger_->trigger(); });
       break;
