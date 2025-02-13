@@ -840,9 +840,9 @@ void PrometheusHandler::climate_type_(AsyncResponseStream *stream) {
   stream->print(F("#TYPE esphome_climate_failed gauge\n"));
 }
 
-void PrometheusHandler::climate_mode_row_(AsyncResponseStream *stream, std::string &category,
-                                          std::string &climate_value, std::string &area, std::string &node,
-                                          std::string &friendly_name) {
+void PrometheusHandler::climate_mode_row_(AsyncResponseStream *stream, climate::Climate *obj, std::string &area,
+                                          std::string &node, std::string &friendly_name, std::string &category,
+                                          std::string &climate_value) {
   stream->print(F("esphome_climate_value{id=\""));
   stream->print(relabel_id_(obj).c_str());
   add_area_label_(stream, area);
@@ -884,7 +884,8 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
   stream->print(F("\n"));
   // Now see if position is supported
   if (obj->get_traits().get_supports_current_temperature()) {
-    climate_mode_row_(stream, "current_temperature", obj->current_temperature, area, node, friendly_name)
+    std::string current_temp = "current_temperature";
+    climate_mode_row_(stream, obj, area, node, friendly_name, current_temp, obj->current_temperature)
   }
 }
 #endif
