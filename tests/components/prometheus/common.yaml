@@ -1,6 +1,3 @@
-substitutions:
-  verify_ssl: "false"
-
 esphome:
   name: livingroomdevice
   friendly_name: Living Room Device
