@@ -1,3 +1,6 @@
+substitutions:
+  pin: GPIO2
+
 <<: !include common.yaml
 
 i2s_audio:

@@ -169,6 +169,14 @@ class PrometheusHandler : public AsyncWebHandler, public Component {
                   std::string &friendly_name);
 #endif
 
+#ifdef USE_CLIMATE
+  /// Return the type for prometheus
+  void climate_type_(AsyncResponseStream *stream);
+  /// Return the climate state as prometheus data point
+  void climate_row_(AsyncResponseStream *stream, climate::Climate *obj, std::string &area, std::string &node,
+                    std::string &friendly_name);
+#endif
+
   web_server_base::WebServerBase *base_;
   bool include_internal_{false};
   std::map<EntityBase *, std::string> relabel_map_id_;
