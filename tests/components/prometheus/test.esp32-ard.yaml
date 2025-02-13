@@ -1,6 +1,6 @@
 substitutions:
   verify_ssl: "false"
-  pin: GPIO2
+  pin: GPIO5
 
 <<: !include common.yaml
 
