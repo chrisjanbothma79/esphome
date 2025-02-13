@@ -892,18 +892,6 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
   std::string climate_mode_category = "mode";
   auto climate_mode_value = climate::climate_mode_to_string(obj->mode);
   climate_setting_row_(stream, obj, area, node, friendly_name, climate_mode_category, climate_mode_value);
-  //  stream->print(F("esphome_climate_setting{id=\""));
-  //  stream->print(relabel_id_(obj).c_str());
-  //  add_area_label_(stream, area);
-  //  add_node_label_(stream, node);
-  //  add_friendly_name_label_(stream, friendly_name);
-  //  stream->print(F("\",name=\""));
-  //  stream->print(relabel_name_(obj).c_str());
-  //  stream->print(F("\",value=\""));
-  //  stream->print(LOG_STR_ARG(climate::climate_mode_to_string(obj->mode)));
-  //  stream->print(F("\"} "));
-  //  stream->print(F("1.0"));
-  //  stream->print(F("\n"));
   const auto traits = obj->get_traits();
   // Now see if traits is supported
   int8_t target_accuracy = traits.get_target_temperature_accuracy_decimals();
