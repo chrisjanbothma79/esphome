@@ -842,7 +842,7 @@ void PrometheusHandler::climate_type_(AsyncResponseStream *stream) {
 
 void PrometheusHandler::climate_setting_row_(AsyncResponseStream *stream, climate::Climate *obj, std::string &area,
                                              std::string &node, std::string &friendly_name, std::string &setting,
-                                             const LogString &setting_value) {
+                                             const LogString *setting_value) {
   stream->print(F("esphome_climate_setting{id=\""));
   stream->print(relabel_id_(obj).c_str());
   add_area_label_(stream, area);
