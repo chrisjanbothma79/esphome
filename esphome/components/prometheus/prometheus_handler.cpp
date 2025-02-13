@@ -840,6 +840,23 @@ void PrometheusHandler::climate_type_(AsyncResponseStream *stream) {
   stream->print(F("#TYPE esphome_climate_failed gauge\n"));
 }
 
+void PrometheusHandler::climate_mode_row_(AsyncResponseStream *stream, std::string &category,
+                                          std::string &climate_value, std::string &area, std::string &node,
+                                          std::string &friendly_name) {
+  stream->print(F("esphome_climate_value{id=\""));
+  stream->print(relabel_id_(obj).c_str());
+  add_area_label_(stream, area);
+  add_node_label_(stream, node);
+  add_friendly_name_label_(stream, friendly_name);
+  stream->print(F("\",name=\""));
+  stream->print(relabel_name_(obj).c_str());
+  stream->print(F("\",category=\""));
+  stream->print(category.c_str());
+  stream->print(F("\"} "));
+  stream->print(climate_value.c_str());
+  stream->print(F("\n"));
+}
+
 void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Climate *obj, std::string &area,
                                      std::string &node, std::string &friendly_name) {
   if (obj->is_internal() && !this->include_internal_)
@@ -867,17 +884,7 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
   stream->print(F("\n"));
   // Now see if position is supported
   if (obj->get_traits().get_supports_current_temperature()) {
-    stream->print(F("esphome_climate_value{id=\""));
-    stream->print(relabel_id_(obj).c_str());
-    add_area_label_(stream, area);
-    add_node_label_(stream, node);
-    add_friendly_name_label_(stream, friendly_name);
-    stream->print(F("\",name=\""));
-    stream->print(relabel_name_(obj).c_str());
-    stream->print(F("\",category=current_temperature\""));
-    stream->print(F("\"} "));
-    stream->print(obj->current_temperature);
-    stream->print(F("\n"));
+    climate_mode_row_(stream, "current_temperature", obj->current_temperature, area, node, friendly_name)
   }
 }
 #endif
