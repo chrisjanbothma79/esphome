@@ -873,10 +873,9 @@ void PrometheusHandler::climate_value_row_(AsyncResponseStream *stream, climate:
   stream->print(F("\n"));
 }
 
-void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Climate *obj, std::string &area,
-                                     std::string &node, std::string &friendly_name) {
-  if (obj->is_internal() && !this->include_internal_)
-    return;
+void PrometheusHandler::climate_failed_row_(AsyncResponseStream *stream, climate::Climate *obj, std::string &area,
+                                            std::string &node, std::string &friendly_name, std::string &category,
+                                            bool is_failed_value) {
   stream->print(F("esphome_climate_failed{id=\""));
   stream->print(relabel_id_(obj).c_str());
   add_area_label_(stream, area);
@@ -884,7 +883,22 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
   add_friendly_name_label_(stream, friendly_name);
   stream->print(F("\",name=\""));
   stream->print(relabel_name_(obj).c_str());
-  stream->print(F("\"} 0\n"));
+  stream->print(F("\",category=\""));
+  stream->print(category.c_str());
+  stream->print(F("\"} "));
+  if (is_failed_value) {
+    stream->print(F("1.0"));
+  } else {
+    stream->print(F("0.0"));
+  }
+
+  stream->print(F("\n"));
+}
+
+void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Climate *obj, std::string &area,
+                                     std::string &node, std::string &friendly_name) {
+  if (obj->is_internal() && !this->include_internal_)
+    return;
   // Data itself
   std::string climate_mode_category = "mode";
   const auto *climate_mode_value = climate::climate_mode_to_string(obj->mode);
@@ -902,10 +916,15 @@ void PrometheusHandler::climate_row_(AsyncResponseStream *stream, climate::Clima
   auto min_temp_value = value_accuracy_to_string(traits.get_visual_min_temperature(), target_accuracy);
   climate_value_row_(stream, obj, area, node, friendly_name, min_temp, min_temp_value);
   // now check optional traits
-  if (traits.get_supports_current_temperature() && !std::isnan(obj->current_temperature)) {
+  if (traits.get_supports_current_temperature()) {
     std::string current_temp = "current_temperature";
-    auto current_temp_value = value_accuracy_to_string(obj->current_temperature, current_accuracy);
-    climate_value_row_(stream, obj, area, node, friendly_name, current_temp, current_temp_value);
+    if (std::isnan(obj->current_temperature)) {
+      climate_failed_row_(stream, obj, area, node, friendly_name, current_temp, true);
+    } else {
+      auto current_temp_value = value_accuracy_to_string(obj->current_temperature, current_accuracy);
+      climate_value_row_(stream, obj, area, node, friendly_name, current_temp, current_temp_value);
+      climate_failed_row_(stream, obj, area, node, friendly_name, current_temp, false);
+    }
   }
   if (traits.get_supports_current_humidity() && !std::isnan(obj->current_humidity)) {
     std::string current_humidity = "current_humidity";
