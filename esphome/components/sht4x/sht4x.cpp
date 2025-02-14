@@ -20,6 +20,12 @@ void SHT4XComponent::start_heater_() {
 void SHT4XComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up sht4x...");
 
+  auto err = this->write(nullptr, 0);
+  if (err != i2c::ERROR_OK) {
+    this->mark_failed();
+    return;
+  }
+
   if (this->duty_cycle_ > 0.0) {
     uint32_t heater_interval = (uint32_t) (this->heater_time_ / this->duty_cycle_);
     ESP_LOGD(TAG, "Heater interval: %" PRIu32, heater_interval);
@@ -49,12 +55,17 @@ void SHT4XComponent::setup() {
   }
 }
 
-void SHT4XComponent::dump_config() { LOG_I2C_DEVICE(this); }
+void SHT4XComponent::dump_config() {
+  ESP_LOGCONFIG(TAG, "SHT4x:");
+  LOG_I2C_DEVICE(this);
+  if (this->is_failed()) {
+    ESP_LOGE(TAG, "Communication with SHT4x failed!");
+  }
+}
 
 void SHT4XComponent::update() {
   // Send command
-  const bool measure_cmd_result = this->write_command(MEASURECOMMANDS[this->precision_]);
-  if (measure_cmd_result != i2c::ErrorCode::ERROR_OK) {
+  if (!this->write_command(MEASURECOMMANDS[this->precision_])) {
     this->status_set_warning("Failed to send measurement command");
     return;
   }
