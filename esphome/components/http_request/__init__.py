@@ -266,7 +266,7 @@ async def http_request_action_to_code(config, action_id, template_arg, args):
                 template_ = await cg.templatable(json_[key], args, cg.std_string)
                 cg.add(var.add_json(key, template_))
     for key in config.get(CONF_HEADERS, []):
-        template_ = await cg.templatable(key, args, cg.const_char_ptr)
+        template_ = await cg.templatable(key, args, cg.std_string)
         cg.add(var.add_header(key, template_))
 
     for value in config.get(CONF_COLLECT_HEADER_NAMES, []):
