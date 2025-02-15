@@ -8,6 +8,7 @@ from esphome.const import CONF_ID, CONF_NUMBER
 from .. import (
     CONF_I2S_DIN_PIN,
     CONF_RIGHT,
+    CONF_SAMPLE_RATE,
     I2SAudioIn,
     i2s_audio_component_schema,
     i2s_audio_ns,
@@ -36,6 +37,8 @@ def validate_esp32_variant(config):
         if config[CONF_PDM]:
             if variant not in PDM_VARIANTS:
                 raise cv.Invalid(f"{variant} does not support PDM")
+            if config[CONF_SAMPLE_RATE] != 16000:
+                raise cv.Invalid("PDM mode supports only a sample rate of 16 kHz")
         return config
     if config[CONF_ADC_TYPE] == "internal":
         if variant not in INTERNAL_ADC_VARIANTS:
@@ -78,9 +81,7 @@ CONFIG_SCHEMA = cv.All(
 def _final_validate(config):
     if not use_legacy():
         if config[CONF_ADC_TYPE] == "internal":
-            raise cv.Invalid("Internal DAC is only compatible with legacy i2s driver.")
-        if config.get(CONF_PDM):
-            raise cv.Invalid("PDM mode is only compatible with legacy i2s driver.")
+            raise cv.Invalid("Internal ADC is only compatible with legacy i2s driver.")
 
 
 FINAL_VALIDATE_SCHEMA = _final_validate
