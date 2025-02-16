@@ -102,7 +102,7 @@ bool HOT IRAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, bool r
     delayMicroseconds(800);
   }
 
-  // this->pin_->pin_mode(this->pin_->get_flags());
+  this->pin_->pin_mode(this->pin_->get_flags());
 
   {
     InterruptLock lock;
