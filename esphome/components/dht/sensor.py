@@ -1,21 +1,19 @@
-import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome import pins
+import esphome.codegen as cg
 from esphome.components import sensor
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_HUMIDITY,
     CONF_ID,
     CONF_MODEL,
     CONF_PIN,
-    CONF_PULLUP,
     CONF_TEMPERATURE,
+    DEVICE_CLASS_HUMIDITY,
+    DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
     UNIT_PERCENT,
-    DEVICE_CLASS_TEMPERATURE,
-    DEVICE_CLASS_HUMIDITY,
 )
-
 from esphome.cpp_helpers import gpio_pin_expression
 
 dht_ns = cg.esphome_ns.namespace("dht")
@@ -51,7 +49,6 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_MODEL, default="auto detect"): cv.enum(
             DHT_MODELS, upper=True, space="_"
         ),
-        cv.Optional(CONF_PULLUP, default=True): cv.boolean
     }
 ).extend(cv.polling_component_schema("60s"))
 
@@ -62,7 +59,6 @@ async def to_code(config):
 
     pin = await gpio_pin_expression(config[CONF_PIN])
     cg.add(var.set_pin(pin))
-    cg.add(var.set_pullup(config[CONF_PULLUP]))
 
     if CONF_TEMPERATURE in config:
         sens = await sensor.new_sensor(config[CONF_TEMPERATURE])

@@ -23,7 +23,6 @@ void DHT::dump_config() {
   } else {
     ESP_LOGCONFIG(TAG, "  Model: DHT22 (or equivalent)");
   }
-  ESP_LOGCONFIG(TAG, "  Internal Pull-up: %s", this->use_pullup_ ? "ENABLED" : "DISABLED");
 
   LOG_UPDATE_INTERVAL(this);
 
@@ -104,10 +103,8 @@ bool HOT IRAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, bool r
   }
 
   gpio::Flags flags = gpio::FLAG_INPUT;
-  if (this->use_pullup_) {
+  if (this->pin_->get_flags() & gpio::FLAG_PULLUP) {
     flags = flags | gpio::FLAG_PULLUP;
-  } else {
-    flags = flags | gpio::FLAG_PULLDOWN;
   }
   this->pin_->pin_mode(flags);
 
