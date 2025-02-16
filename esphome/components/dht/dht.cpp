@@ -105,7 +105,9 @@ bool HOT IRAM_ATTR DHT::read_sensor_(float *temperature, float *humidity, bool r
 
   gpio::Flags flags = gpio::FLAG_INPUT;
   if (this->use_pullup_) {
-      flags = flags | gpio::FLAG_PULLUP;
+    flags = flags | gpio::FLAG_PULLUP;
+  } else {
+    flags = flags | gpio::FLAG_PULLDOWN;
   }
   this->pin_->pin_mode(flags);
 
