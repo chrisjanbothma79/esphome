@@ -108,7 +108,12 @@ class HttpContainer : public Parented<HttpRequestComponent> {
     if (this->response_headers_.count(header_name_lower_case) == 0) {
       return "";
     } else {
-      return this->response_headers_[header_name_lower_case].front();
+      auto values = this->response_headers_[header_name_lower_case];
+      if (values.empty()) {
+        return "";
+      } else {
+        return values.front();
+      }
     }
   }
 
