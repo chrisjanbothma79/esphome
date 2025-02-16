@@ -43,13 +43,11 @@
 
 
 namespace esphome {
-namespace lanbon {
-namespace l8 {
-namespace hd {
+namespace lanbon_l8_hd {
 
 class LocalDimmerOutput : public light::LightOutput, public uart::UARTDevice, public Component {
  public:
-   LocalDimmerOutput();
+  LocalDimmerOutput();
   // LightOutput methods
   light::LightTraits get_traits() override;
   void setup_state(light::LightState *state) override { this->light_state_ = state; }
@@ -76,7 +74,5 @@ class LocalDimmerOutput : public light::LightOutput, public uart::UARTDevice, pu
   void write_command_(uint8_t *cmd, size_t len);
 };
 
-}  // namespace hd
-}  // namespace l8
-}  // namespace lanbon
+}  // namespace lanbon_l8_hd
 }  // namespace esphome

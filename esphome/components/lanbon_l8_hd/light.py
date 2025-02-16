@@ -9,7 +9,7 @@ from esphome.const import (
 
 DEPENDENCIES = ["uart", "light"]
 
-lanbon_l8_hd_ns = cg.esphome_ns.namespace("lanbon::l8::hd")
+lanbon_l8_hd_ns = cg.esphome_ns.namespace("lanbon_l8_hd")
 LanbonL8DSOutput = lanbon_l8_hd_ns.class_(
     "LocalDimmerOutput", cg.Component, uart.UARTDevice, light.LightOutput
 )
@@ -26,7 +26,13 @@ CONFIG_SCHEMA = (
     .extend(uart.UART_DEVICE_SCHEMA)
 )
 FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
-    "lanbon_l8_hd", baud_rate=115200, data_bits=8, parity=None, stop_bits=1, require_tx=True, require_rx=False
+    "lanbon_l8_hd",
+    baud_rate=115200,
+    data_bits=8,
+    parity=None,
+    stop_bits=1,
+    require_tx=True,
+    require_rx=False
 )
 
 

@@ -43,12 +43,11 @@
 
 #include "lanbon_l8_hd.h"
 
-namespace esphome::lanbon::l8::hd {
+namespace esphome::lanbon_l8_hd {
 
 static const char *const TAG = "lanbon_l8_hd";
 
-LocalDimmerOutput::LocalDimmerOutput()
-{
+LocalDimmerOutput::LocalDimmerOutput() {
   power_relay_.set_pin(static_cast<gpio_num_t>(27));
   power_relay_.pin_mode(gpio::FLAG_OUTPUT);
   power_relay_.set_inverted(false);
@@ -66,6 +65,7 @@ void LocalDimmerOutput::dump_config() {
   ESP_LOGCONFIG(TAG, "Lanbon L8-DS Dimmer: '%s'", this->light_state_ ? this->light_state_->get_name().c_str() : "");
   ESP_LOGCONFIG(TAG, "  Minimal brightness: %d", this->min_value_);
   ESP_LOGCONFIG(TAG, "  Maximal brightness: %d", this->max_value_);
+  ESP_LOGCONFIG(TAG, "  Relay GPIO pin: %d", this->power_relay_.get_pin());
 
   this->started_ = false;
 }
@@ -131,4 +131,4 @@ void LocalDimmerOutput::write_command_(uint8_t *cmd, const size_t len) {
   this->write_array(cmd, len);
 }
 
-}  // namespace esphome::lanbon::l8::hd
+}  // namespace esphome::lanbon_l8_hd
