@@ -14,6 +14,7 @@ from esphome.const import (
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_HUMIDITY,
 )
+
 from esphome.cpp_helpers import gpio_pin_expression
 
 dht_ns = cg.esphome_ns.namespace("dht")
