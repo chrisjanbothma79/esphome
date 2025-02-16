@@ -1,3 +1,5 @@
+import esphome.codegen as cg
+import esphome.config_validation as cv
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import sensor
@@ -8,11 +10,11 @@ from esphome.const import (
     CONF_MODEL,
     CONF_PIN,
     CONF_TEMPERATURE,
-    DEVICE_CLASS_HUMIDITY,
-    DEVICE_CLASS_TEMPERATURE,
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
     UNIT_PERCENT,
+    DEVICE_CLASS_HUMIDITY,
+    DEVICE_CLASS_TEMPERATURE,
 )
 from esphome.cpp_helpers import gpio_pin_expression
 
