@@ -21,7 +21,7 @@ static const char *const TAG = "http_request.idf";
 
 struct UserData {
   const std::set<std::string> &collect_header_names;
-  std::map<std::string, std::list<std::string>> &response_headers;
+  std::map<std::string, std::list<std::string>> response_headers;
 };
 
 void HttpRequestIDF::dump_config() {
@@ -33,7 +33,6 @@ void HttpRequestIDF::dump_config() {
 esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
   ESP_LOGD(TAG, "Entered http_event_handler");
   UserData *user_data = (UserData *) evt->user_data;
-  auto response_headers = user_data->response_headers;
   auto collect_header_names = user_data->collect_header_names;
 
   switch (evt->event_id) {
@@ -45,7 +44,7 @@ esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
         if (str_equals_case_insensitive(collect_header_name, header_name)) {
           const std::string header_value = evt->header_value;
           ESP_LOGD(TAG, "Received response header, name: %s, value: %s", header_name.c_str(), header_value.c_str());
-          response_headers[header_name].push_back(header_value);
+          user_data->response_headers[header_name].push_back(header_value);
           break;
         }
       }
@@ -112,8 +111,7 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   watchdog::WatchdogManager wdm(this->get_watchdog_timeout());
 
   config.event_handler = http_event_handler;
-  std::map<std::string, std::list<std::string>> response_headers = {};
-  auto user_data = UserData{collect_header_names, response_headers};
+  auto user_data = UserData{collect_header_names, {}};
   config.user_data = static_cast<void *>(&user_data);
 
   esp_http_client_handle_t client = esp_http_client_init(&config);
@@ -167,8 +165,8 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   ESP_LOGD(TAG, "About to esp_http_client_get_status_code");
   container->status_code = esp_http_client_get_status_code(client);
   container->feed_wdt();
-  ESP_LOGD(TAG, "About to set_response_headers, size: %d", response_headers.size());
-  container->set_response_headers(response_headers);
+  ESP_LOGD(TAG, "About to set_response_headers, size: %d", user_data.response_headers.size());
+  container->set_response_headers(user_data.response_headers);
   ESP_LOGD(TAG, "Done with set_response_headers");
   if (is_success(container->status_code)) {
     container->duration_ms = millis() - start;
