@@ -158,7 +158,7 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   }
 
   container->feed_wdt();
-  container->set_response_headers(user_data.response_headers);
+  container->set_response_headers(user_data->response_headers);
   container->content_length = esp_http_client_fetch_headers(client);
   container->feed_wdt();
   container->status_code = esp_http_client_get_status_code(client);
