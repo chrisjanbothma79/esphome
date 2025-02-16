@@ -13,40 +13,18 @@ namespace sml {
 using bytes = std::vector<uint8_t>;
 using byte_span = Span<const uint8_t>;
 
-class SmlNode {
- public:
-  SmlNode(uint8_t type, byte_span const &bytes) : type(type), value_bytes(bytes) {}
-  SmlNode(uint8_t type, std::vector<SmlNode> &&nodes) : type(type), nodes(nodes) {}
-
-  const uint8_t type;
-  const byte_span value_bytes;
-  const std::vector<SmlNode> nodes;
-};
-
-class ObisInfo {
- public:
-  ObisInfo(byte_span const &server_id, SmlNode const &val_list_entry);
+struct ObisInfo {
   byte_span server_id;
   byte_span code;
-  byte_span status;
-  char unit;
-  char scaler;
+  uint8_t unit;
+  int8_t scaler;
   byte_span value;
   uint16_t value_type;
   std::string code_repr() const;
 };
 
-class SmlFile {
- public:
-  SmlFile(byte_span const &buffer);
-  bool setup_node(std::vector<SmlNode> &nodes);
-  std::vector<SmlNode> messages;
-  void for_each_obis_info(const std::function<void(const ObisInfo &)> &callback);
-
- protected:
-  const byte_span buffer_;
-  size_t pos_;
-};
+void for_each_obis_info(uint8_t const *begin, uint8_t const *end,
+                        const std::function<void(const ObisInfo &)> &callback);
 
 std::string bytes_repr(const byte_span &buffer);
 

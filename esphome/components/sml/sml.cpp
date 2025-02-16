@@ -54,7 +54,8 @@ void Sml::loop() {
           // discard start/end sequence
           auto file_begin = this->sml_data_.begin() + START_SEQ.size();
           auto file_length = this->sml_data_.size() - START_SEQ.size() - 8;
-          this->process_sml_file_(byte_span(&*file_begin, file_length));
+          for_each_obis_info(&*file_begin, &*file_begin + file_length,
+                             [this](const ObisInfo &obis_info) { this->publish_value_(obis_info); });
         }
         break;
       };
@@ -64,10 +65,6 @@ void Sml::loop() {
 
 void Sml::add_on_data_callback(std::function<void(std::vector<uint8_t>, bool)> &&callback) {
   this->data_callbacks_.add(std::move(callback));
-}
-
-void Sml::process_sml_file_(const byte_span &sml_data) {
-  SmlFile(sml_data).for_each_obis_info([this](const ObisInfo &obis_info) { this->publish_value_(obis_info); });
 }
 
 void Sml::publish_value_(const ObisInfo &obis_info) {
