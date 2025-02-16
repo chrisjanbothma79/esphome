@@ -43,7 +43,8 @@
 
 #include "lanbon_l8_hd.h"
 
-namespace esphome::lanbon_l8_hd {
+namespace esphome {
+namespace lanbon_l8_hd {
 
 static const char *const TAG = "lanbon_l8_hd";
 
@@ -131,4 +132,5 @@ void LocalDimmerOutput::write_command_(uint8_t *cmd, const size_t len) {
   this->write_array(cmd, len);
 }
 
-}  // namespace esphome::lanbon_l8_hd
+}  // namespace lanbon_l8_hd
+}  // namespace esphome
