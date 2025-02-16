@@ -21,7 +21,7 @@ class HttpContainerIDF : public HttpContainer {
   /// @brief Feeds the watchdog timer if the executing task has one attached
   void feed_wdt();
 
-  void set_response_headers(std::map<std::string, std::list<std::string>> response_headers) {
+  void set_response_headers(std::map<std::string, std::list<std::string>> &response_headers) {
     this->response_headers_ = std::move(response_headers);
   }
 

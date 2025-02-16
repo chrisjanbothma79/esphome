@@ -101,7 +101,7 @@ class HttpContainer : public Parented<HttpRequestComponent> {
    *
    * @return The key is the lower case response header name, the value is the header value.
    */
-  std::map<std::string, std::list<std::string>> get_response_headers() const { return this->response_headers_; }
+  const std::map<std::string, std::list<std::string>> &get_response_headers() const { return this->response_headers_; }
 
   std::string get_response_header(const std::string &header_name) {
     auto header_name_lower_case = str_lower_case(header_name);
