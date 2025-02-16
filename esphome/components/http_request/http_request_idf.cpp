@@ -21,7 +21,7 @@ static const char *const TAG = "http_request.idf";
 
 struct UserData {
   const std::set<std::string> &collect_header_names;
-  const std::map<std::string, std::list<std::string>> &response_headers;
+  std::map<std::string, std::list<std::string>> &response_headers;
 };
 
 void HttpRequestIDF::dump_config() {
@@ -112,7 +112,7 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   watchdog::WatchdogManager wdm(this->get_watchdog_timeout());
 
   config.event_handler = http_event_handler;
-  const std::map<std::string, std::list<std::string>> response_headers = {};
+  std::map<std::string, std::list<std::string>> response_headers = {};
   auto user_data = UserData{collect_header_names, response_headers};
   config.user_data = static_cast<void *>(&user_data);
 
