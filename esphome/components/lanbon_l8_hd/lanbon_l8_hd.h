@@ -39,14 +39,13 @@
 #include "esphome/components/light/light_output.h"
 #include "esphome/components/light/light_state.h"
 #include "esphome/components/light/light_traits.h"
-#include "esphome/components/esp32/gpio.h"
+#include "esphome/components/output/binary_output.h"
 
 namespace esphome {
 namespace lanbon_l8_hd {
 
 class LocalDimmerOutput : public light::LightOutput, public uart::UARTDevice, public Component {
  public:
-  LocalDimmerOutput();
   // LightOutput methods
   light::LightTraits get_traits() override;
   void setup_state(light::LightState *state) override { this->light_state_ = state; }
@@ -58,9 +57,10 @@ class LocalDimmerOutput : public light::LightOutput, public uart::UARTDevice, pu
 
   void set_min_value(const uint8_t min_value) { this->min_value_ = min_value; }
   void set_max_value(const uint8_t max_value) { this->max_value_ = max_value; }
+  void set_enable(output::BinaryOutput *enable) { this->power_relay_ = enable; }
 
  protected:
-  esp32::ESP32InternalGPIOPin power_relay_;
+  output::BinaryOutput *power_relay_;
   bool started_{false};
   uint8_t min_value_{0};
   uint8_t max_value_{100};

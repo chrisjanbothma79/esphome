@@ -48,13 +48,6 @@ namespace lanbon_l8_hd {
 
 static const char *const TAG = "lanbon_l8_hd";
 
-LocalDimmerOutput::LocalDimmerOutput() {
-  power_relay_.set_pin(static_cast<gpio_num_t>(27));
-  power_relay_.pin_mode(gpio::FLAG_OUTPUT);
-  power_relay_.set_inverted(false);
-  power_relay_.digital_write(false);
-}
-
 // Set the device's traits
 light::LightTraits LocalDimmerOutput::get_traits() {
   auto traits = light::LightTraits();
@@ -66,7 +59,6 @@ void LocalDimmerOutput::dump_config() {
   ESP_LOGCONFIG(TAG, "Lanbon L8-DS Dimmer: '%s'", this->light_state_ ? this->light_state_->get_name().c_str() : "");
   ESP_LOGCONFIG(TAG, "  Minimal brightness: %d", this->min_value_);
   ESP_LOGCONFIG(TAG, "  Maximal brightness: %d", this->max_value_);
-  ESP_LOGCONFIG(TAG, "  Relay GPIO pin: %d", this->power_relay_.get_pin());
 
   this->started_ = false;
 }
@@ -99,7 +91,7 @@ void LocalDimmerOutput::write_state(light::LightState *state) {
 }
 
 void LocalDimmerOutput::start_dimmer_() {
-  this->power_relay_.digital_write(true);
+  this->power_relay_->turn_on();
 
   uint8_t attn_command[1] = {0x20};
   this->write_command_(attn_command, sizeof(attn_command));
@@ -111,7 +103,7 @@ void LocalDimmerOutput::start_dimmer_() {
 
 void LocalDimmerOutput::control_dimmer_(const bool binary, const uint8_t brightness) {
   if (!binary) {
-    this->power_relay_.digital_write(false);
+    this->power_relay_->turn_off();
     return;
   }
 

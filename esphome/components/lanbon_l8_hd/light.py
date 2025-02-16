@@ -1,10 +1,11 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import uart, light
+from esphome.components import uart, light, output
 from esphome.const import (
     CONF_OUTPUT_ID,
     CONF_MIN_VALUE,
     CONF_MAX_VALUE,
+    CONF_ENABLE_PIN,
 )
 
 DEPENDENCIES = ["uart", "light"]
@@ -20,6 +21,7 @@ CONFIG_SCHEMA = (
             cv.GenerateID(CONF_OUTPUT_ID): cv.declare_id(LanbonL8DSOutput),
             cv.Optional(CONF_MIN_VALUE, default=0): cv.int_range(min=0, max=100),
             cv.Optional(CONF_MAX_VALUE, default=100): cv.int_range(min=0, max=100),
+            cv.Required(CONF_ENABLE_PIN): cv.use_id(output.BinaryOutput),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -43,3 +45,5 @@ async def to_code(config):
     cg.add(var.set_min_value(config[CONF_MIN_VALUE]))
     cg.add(var.set_max_value(config[CONF_MAX_VALUE]))
     await light.register_light(var, config)
+    enable = await cg.get_variable(config[CONF_ENABLE_PIN])
+    cg.add(var.set_enable(enable))
