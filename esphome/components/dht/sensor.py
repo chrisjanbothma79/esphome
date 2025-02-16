@@ -1,9 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import pins
-import esphome.codegen as cg
 from esphome.components import sensor
-import esphome.config_validation as cv
 from esphome.const import (
     CONF_HUMIDITY,
     CONF_ID,
@@ -13,8 +11,8 @@ from esphome.const import (
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
     UNIT_PERCENT,
-    DEVICE_CLASS_HUMIDITY,
     DEVICE_CLASS_TEMPERATURE,
+    DEVICE_CLASS_HUMIDITY,
 )
 from esphome.cpp_helpers import gpio_pin_expression
 
