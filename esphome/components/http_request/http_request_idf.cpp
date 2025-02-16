@@ -168,6 +168,7 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   container->feed_wdt();
   ESP_LOGD(TAG, "About to set_response_headers");
   container->set_response_headers(response_headers);
+  ESP_LOGD(TAG, "Done with set_response_headers");
   if (is_success(container->status_code)) {
     container->duration_ms = millis() - start;
     ESP_LOGD(TAG, "HTTP Request successful");
