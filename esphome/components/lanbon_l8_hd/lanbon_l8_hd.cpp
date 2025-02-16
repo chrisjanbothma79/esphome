@@ -52,7 +52,7 @@ LocalDimmerOutput::LocalDimmerOutput() {
   power_relay_.set_pin(static_cast<gpio_num_t>(27));
   power_relay_.pin_mode(gpio::FLAG_OUTPUT);
   power_relay_.set_inverted(false);
-  power_relay_.digital_write(0);
+  power_relay_.digital_write(false);
 }
 
 // Set the device's traits
@@ -99,7 +99,7 @@ void LocalDimmerOutput::write_state(light::LightState *state) {
 }
 
 void LocalDimmerOutput::start_dimmer_() {
-  this->power_relay_.digital_write(1);
+  this->power_relay_.digital_write(true);
 
   uint8_t attn_command[1] = {0x20};
   this->write_command_(attn_command, sizeof(attn_command));
@@ -111,7 +111,7 @@ void LocalDimmerOutput::start_dimmer_() {
 
 void LocalDimmerOutput::control_dimmer_(const bool binary, const uint8_t brightness) {
   if (!binary) {
-    this->power_relay_.digital_write(0);
+    this->power_relay_.digital_write(false);
     return;
   }
 
