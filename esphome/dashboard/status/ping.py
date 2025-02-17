@@ -9,7 +9,13 @@ from icmplib import Host, SocketPermissionError, async_ping
 
 from ..const import MAX_EXECUTOR_WORKERS
 from ..core import DASHBOARD
-from ..entries import DashboardEntry, EntryState, EntryStateSource, bool_to_entry_state
+from ..entries import (
+    DashboardEntry,
+    EntryState,
+    EntryStateSource,
+    ReachableState,
+    bool_to_entry_state,
+)
 from ..util.itertools import chunked
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,7 +44,9 @@ class PingStatus:
             dashboard.ping_request.clear()
             current_entries = dashboard.entries.async_all()
             to_ping: list[DashboardEntry] = [
-                entry for entry in current_entries if entry.address is not None
+                entry
+                for entry in current_entries
+                if entry.address is not None and entry.state
             ]
 
             # Resolve DNS for all entries
@@ -56,7 +64,10 @@ class PingStatus:
 
                 for entry, result in zip(ping_group, dns_results):
                     if isinstance(result, Exception):
-                        entries.async_set_state(entry, EntryState.UNKNOWN)
+                        entries.async_set_state(
+                            entry,
+                            EntryState(ReachableState.UNKNOWN, EntryStateSource.PING),
+                        )
                         continue
                     if isinstance(result, BaseException):
                         raise result
