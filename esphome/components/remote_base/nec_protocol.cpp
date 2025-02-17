@@ -21,6 +21,10 @@ static const uint32_t SPACE_AGC_REPEAT_US = 96187;   // AGC Repeat space: ~96.18
 void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
   ESP_LOGD(TAG, "Sending NEC: address=0x%04X, command=0x%04X, repeats=%d", data.address, data.command, data.repeats);
 
+  if (data.repeats > 60) {
+    ESP_LOGW(TAG, "High repeat count may cause WDT timeout.");
+  }
+
   // Reserve: AGC Header (2) + Address bits (32) + Command bits (32) + Final mark (2) + Repeat codes (4 per repeat)
   dst->reserve(2 + 32 + 32 + 2 + data.repeats * 4);
   dst->set_carrier_frequency(38222);
@@ -55,7 +59,7 @@ void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
   }
 
   // Send AGC Repeat Codes if requested
-  for (uint16_t repeats = 0; repeats < data.repeats; repeats++) {
+  for (uint16_t repeats = 0; repeats < data.repeats; ++repeats) {
     // AGC Repeat header (shorter version of the initial AGC header)
     dst->item(HEADER_HIGH_US, HEADER_LOW_US / 2);  // Shortened AGC header
     dst->mark(BIT_HIGH_US);                        // Mark to complete the repeat code
