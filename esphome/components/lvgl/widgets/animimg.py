@@ -23,12 +23,12 @@ def lv_repeat_count(value):
 
 ANIMIMG_BASE_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_REPEAT_COUNT, default="forever"): lv_repeat_count,
         cv.Optional(CONF_AUTO_START, default=True): cv.boolean,
     }
 )
 ANIMIMG_SCHEMA = ANIMIMG_BASE_SCHEMA.extend(
     {
+        cv.Optional(CONF_REPEAT_COUNT, default="forever"): lv_repeat_count,
         cv.Required(CONF_DURATION): lv_milliseconds,
         cv.Required(CONF_SRC): lv_image_list,
     }
@@ -36,6 +36,7 @@ ANIMIMG_SCHEMA = ANIMIMG_BASE_SCHEMA.extend(
 
 ANIMIMG_MODIFY_SCHEMA = ANIMIMG_BASE_SCHEMA.extend(
     {
+        cv.Optional(CONF_REPEAT_COUNT): lv_repeat_count,
         cv.Optional(CONF_DURATION): lv_milliseconds,
         cv.Optional(CONF_SRC): lv_image_list,
     }

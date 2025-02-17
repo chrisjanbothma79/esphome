@@ -67,10 +67,11 @@ class ArcType(NumberType):
             lv.arc_set_mode(w.obj, literal(config[CONF_MODE]))
             lv.arc_set_change_rate(w.obj, config[CONF_CHANGE_RATE])
 
-        if config.get(CONF_ADJUSTABLE) is False:
+        adjustable = config.get(CONF_ADJUSTABLE)
+        if adjustable is False:
             lv_obj.remove_style(w.obj, nullptr, literal("LV_PART_KNOB"))
             w.clear_flag("LV_OBJ_FLAG_CLICKABLE")
-        elif CONF_GROUP not in config:
+        elif adjustable is True and CONF_GROUP not in config:
             # For some reason arc does not get automatically added to the default group
             lv.group_add_obj(lv_expr.group_get_default(), w.obj)
 
