@@ -8,46 +8,78 @@ MULTI_CONF = True
 CODEOWNERS = ["@swoboda1337"]
 DEPENDENCIES = ["spi"]
 
+CONF_BANDWIDTH = "bandwidth"
 CONF_BITRATE = "bitrate"
 CONF_BITSYNC = "bitsync"
+CONF_CODING_RATE = "coding_rate"
 CONF_CRC_ENABLE = "crc_enable"
+CONF_DEVIATION = "deviation"
 CONF_DIO0_PIN = "dio0_pin"
-CONF_FSK_FDEV = "fsk_fdev"
-CONF_FSK_RAMP = "fsk_ramp"
 CONF_MODULATION = "modulation"
 CONF_ON_PACKET = "on_packet"
 CONF_PA_PIN = "pa_pin"
 CONF_PA_POWER = "pa_power"
+CONF_PA_RAMP = "pa_ramp"
 CONF_PAYLOAD_LENGTH = "payload_length"
 CONF_PREAMBLE_ERRORS = "preamble_errors"
 CONF_PREAMBLE_POLARITY = "preamble_polarity"
 CONF_PREAMBLE_SIZE = "preamble_size"
 CONF_RST_PIN = "rst_pin"
-CONF_RX_BANDWIDTH = "rx_bandwidth"
 CONF_RX_FLOOR = "rx_floor"
 CONF_RX_START = "rx_start"
 CONF_SHAPING = "shaping"
+CONF_SPREADING_FACTOR = "spreading_factor"
 CONF_SYNC_VALUE = "sync_value"
 
 sx127x_ns = cg.esphome_ns.namespace("sx127x")
 SX127x = sx127x_ns.class_("SX127x", cg.Component, spi.SPIDevice)
+SX127xBw = sx127x_ns.enum("SX127xBw")
 SX127xOpMode = sx127x_ns.enum("SX127xOpMode")
-SX127xRxBw = sx127x_ns.enum("SX127xRxBw")
 SX127xPaConfig = sx127x_ns.enum("SX127xPaConfig")
 SX127xPaRamp = sx127x_ns.enum("SX127xPaRamp")
+SX127xModemCfg1 = sx127x_ns.enum("SX127xModemCfg1")
+
+BW = {
+    "2_6kHz": SX127xBw.SX127X_BW_2_6,
+    "3_1kHz": SX127xBw.SX127X_BW_3_1,
+    "3_9kHz": SX127xBw.SX127X_BW_3_9,
+    "5_2kHz": SX127xBw.SX127X_BW_5_2,
+    "6_3kHz": SX127xBw.SX127X_BW_6_3,
+    "7_8kHz": SX127xBw.SX127X_BW_7_8,
+    "10_4kHz": SX127xBw.SX127X_BW_10_4,
+    "12_5kHz": SX127xBw.SX127X_BW_12_5,
+    "15_6kHz": SX127xBw.SX127X_BW_15_6,
+    "20_8kHz": SX127xBw.SX127X_BW_20_8,
+    "25_0kHz": SX127xBw.SX127X_BW_25_0,
+    "31_3kHz": SX127xBw.SX127X_BW_31_3,
+    "41_7kHz": SX127xBw.SX127X_BW_41_7,
+    "50_0kHz": SX127xBw.SX127X_BW_50_0,
+    "62_5kHz": SX127xBw.SX127X_BW_62_5,
+    "83_3kHz": SX127xBw.SX127X_BW_83_3,
+    "100_0kHz": SX127xBw.SX127X_BW_100_0,
+    "125_0kHz": SX127xBw.SX127X_BW_125_0,
+    "166_7kHz": SX127xBw.SX127X_BW_166_7,
+    "200_0kHz": SX127xBw.SX127X_BW_200_0,
+    "250_0kHz": SX127xBw.SX127X_BW_250_0,
+    "500_0kHz": SX127xBw.SX127X_BW_500_0,
+}
+
+CODING_RATE = {
+    "CR_4_5": SX127xModemCfg1.CODING_RATE_4_5,
+    "CR_4_6": SX127xModemCfg1.CODING_RATE_4_6,
+    "CR_4_7": SX127xModemCfg1.CODING_RATE_4_7,
+    "CR_4_8": SX127xModemCfg1.CODING_RATE_4_8,
+}
+
+MOD = {
+    "LORA": SX127xOpMode.MOD_LORA,
+    "FSK": SX127xOpMode.MOD_FSK,
+    "OOK": SX127xOpMode.MOD_OOK,
+}
 
 PA_PIN = {
     "RFO": SX127xPaConfig.PA_PIN_RFO,
     "BOOST": SX127xPaConfig.PA_PIN_BOOST,
-}
-
-SHAPING = {
-    "CUTOFF_BR_X_2": SX127xPaRamp.CUTOFF_BR_X_2,
-    "CUTOFF_BR_X_1": SX127xPaRamp.CUTOFF_BR_X_1,
-    "GAUSSIAN_BT_0_3": SX127xPaRamp.GAUSSIAN_BT_0_3,
-    "GAUSSIAN_BT_0_5": SX127xPaRamp.GAUSSIAN_BT_0_5,
-    "GAUSSIAN_BT_1_0": SX127xPaRamp.GAUSSIAN_BT_1_0,
-    "NONE": SX127xPaRamp.SHAPING_NONE,
 }
 
 RAMP = {
@@ -69,33 +101,13 @@ RAMP = {
     "3400us": SX127xPaRamp.PA_RAMP_3400,
 }
 
-MOD = {
-    "FSK": SX127xOpMode.MOD_FSK,
-    "OOK": SX127xOpMode.MOD_OOK,
-}
-
-RX_BW = {
-    "2_6kHz": SX127xRxBw.RX_BW_2_6,
-    "3_1kHz": SX127xRxBw.RX_BW_3_1,
-    "3_9kHz": SX127xRxBw.RX_BW_3_9,
-    "5_2kHz": SX127xRxBw.RX_BW_5_2,
-    "6_3kHz": SX127xRxBw.RX_BW_6_3,
-    "7_8kHz": SX127xRxBw.RX_BW_7_8,
-    "10_4kHz": SX127xRxBw.RX_BW_10_4,
-    "12_5kHz": SX127xRxBw.RX_BW_12_5,
-    "15_6kHz": SX127xRxBw.RX_BW_15_6,
-    "20_8kHz": SX127xRxBw.RX_BW_20_8,
-    "25_0kHz": SX127xRxBw.RX_BW_25_0,
-    "31_3kHz": SX127xRxBw.RX_BW_31_3,
-    "41_7kHz": SX127xRxBw.RX_BW_41_7,
-    "50_0kHz": SX127xRxBw.RX_BW_50_0,
-    "62_5kHz": SX127xRxBw.RX_BW_62_5,
-    "83_3kHz": SX127xRxBw.RX_BW_83_3,
-    "100_0kHz": SX127xRxBw.RX_BW_100_0,
-    "125_0kHz": SX127xRxBw.RX_BW_125_0,
-    "166_7kHz": SX127xRxBw.RX_BW_166_7,
-    "200_0kHz": SX127xRxBw.RX_BW_200_0,
-    "250_0kHz": SX127xRxBw.RX_BW_250_0,
+SHAPING = {
+    "CUTOFF_BR_X_2": SX127xPaRamp.CUTOFF_BR_X_2,
+    "CUTOFF_BR_X_1": SX127xPaRamp.CUTOFF_BR_X_1,
+    "GAUSSIAN_BT_0_3": SX127xPaRamp.GAUSSIAN_BT_0_3,
+    "GAUSSIAN_BT_0_5": SX127xPaRamp.GAUSSIAN_BT_0_5,
+    "GAUSSIAN_BT_1_0": SX127xPaRamp.GAUSSIAN_BT_1_0,
+    "NONE": SX127xPaRamp.SHAPING_NONE,
 }
 
 SendPacketAction = sx127x_ns.class_(
@@ -119,20 +131,51 @@ def validate_raw_data(value):
 
 
 def validate_config(config):
-    if config[CONF_PAYLOAD_LENGTH] > 0 and CONF_DIO0_PIN not in config:
-        raise cv.Invalid("Cannot use packet mode without dio0_pin")
-    if config[CONF_PAYLOAD_LENGTH] > 0 and config[CONF_BITRATE] == 0:
-        raise cv.Invalid("Cannot use packet mode without setting bitrate")
+    if config[CONF_MODULATION] == "LORA":
+        bws = [
+            "7_8kHz",
+            "10_4kHz",
+            "15_6kHz",
+            "20_8kHz",
+            "31_3kHz",
+            "41_7kHz",
+            "62_5kHz",
+            "125_0kHz",
+            "250_0kHz",
+            "500_0kHz",
+        ]
+        if config[CONF_BANDWIDTH] not in bws:
+            raise cv.Invalid(
+                f"Bandwidth {config[CONF_BANDWIDTH]} is not available with LORA"
+            )
+        if CONF_DIO0_PIN not in config:
+            raise cv.Invalid("Cannot use LoRa without dio0_pin")
+        if config[CONF_PREAMBLE_SIZE] > 0 and config[CONF_PREAMBLE_SIZE] < 6:
+            raise cv.Invalid("Minimum preamble size is 6 with LORA")
+        if config[CONF_SPREADING_FACTOR] == 6 and config[CONF_PAYLOAD_LENGTH] == 0:
+            raise cv.Invalid("Payload length must be set when spreading factor is 6")
+    else:
+        if config[CONF_BANDWIDTH] == "500_0kHz":
+            raise cv.Invalid(
+                f"Bandwidth {config[CONF_BANDWIDTH]} is only available with LORA"
+            )
+        if config[CONF_PAYLOAD_LENGTH] > 64:
+            raise cv.Invalid("Payload length must be >= 64 with FSK/OOK")
+        if config[CONF_PAYLOAD_LENGTH] > 0 and CONF_DIO0_PIN not in config:
+            raise cv.Invalid("Cannot use packet mode without dio0_pin")
+        if CONF_BITRATE not in config:
+            if config[CONF_PAYLOAD_LENGTH] > 0:
+                raise cv.Invalid("Cannot use packet mode without setting bitrate")
+            if CONF_BITSYNC in config and config[CONF_BITSYNC]:
+                raise cv.Invalid("Bitsync is true but bitrate is not configured")
+        elif CONF_BITSYNC not in config:
+            raise cv.Invalid(
+                "Bitrate is configured but not bitsync; add 'bitsync: true'"
+            )
     if config[CONF_PA_PIN] == "RFO" and config[CONF_PA_POWER] > 15:
         raise cv.Invalid("PA power must be <= 15 dbm when using the RFO pin")
     if config[CONF_PA_PIN] == "BOOST" and config[CONF_PA_POWER] < 2:
         raise cv.Invalid("PA power must be >= 2 dbm when using the BOOST pin")
-    if CONF_BITSYNC in config and config[CONF_BITSYNC] and CONF_BITRATE not in config:
-        raise cv.Invalid("Bitsync is true but bitrate is not configured")
-    if CONF_BITRATE in config and CONF_BITSYNC not in config:
-        raise cv.Invalid(
-            "Bitrate is configured but not bitsync; add 'bitsync: true' for original functionality"
-        )
     return config
 
 
@@ -140,28 +183,30 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(SX127x),
+            cv.Optional(CONF_BANDWIDTH, default="125_0kHz"): cv.enum(BW),
             cv.Optional(CONF_BITRATE): cv.int_range(min=500, max=300000),
             cv.Optional(CONF_BITSYNC): cv.boolean,
+            cv.Optional(CONF_CODING_RATE, default="CR_4_5"): cv.enum(CODING_RATE),
             cv.Optional(CONF_CRC_ENABLE, default=False): cv.boolean,
+            cv.Optional(CONF_DEVIATION, default=5000): cv.int_range(min=0, max=100000),
             cv.Optional(CONF_DIO0_PIN): pins.internal_gpio_input_pin_schema,
             cv.Required(CONF_FREQUENCY): cv.int_range(min=137000000, max=1020000000),
-            cv.Optional(CONF_FSK_FDEV, default=5000): cv.int_range(min=0, max=100000),
-            cv.Optional(CONF_FSK_RAMP, default="40us"): cv.enum(RAMP),
             cv.Required(CONF_MODULATION): cv.enum(MOD),
             cv.Optional(CONF_ON_PACKET): automation.validate_automation(single=True),
             cv.Optional(CONF_PA_PIN, default="BOOST"): cv.enum(PA_PIN),
             cv.Optional(CONF_PA_POWER, default=17): cv.int_range(min=0, max=17),
-            cv.Optional(CONF_PAYLOAD_LENGTH, default=0): cv.int_range(min=0, max=64),
+            cv.Optional(CONF_PA_RAMP, default="40us"): cv.enum(RAMP),
+            cv.Optional(CONF_PAYLOAD_LENGTH, default=0): cv.int_range(min=0, max=256),
             cv.Optional(CONF_PREAMBLE_ERRORS, default=0): cv.int_range(min=0, max=31),
             cv.Optional(CONF_PREAMBLE_POLARITY, default=0xAA): cv.All(
                 cv.hex_int, cv.one_of(0xAA, 0x55)
             ),
-            cv.Optional(CONF_PREAMBLE_SIZE, default=0): cv.int_range(min=0, max=7),
+            cv.Optional(CONF_PREAMBLE_SIZE, default=0): cv.int_range(min=0, max=65535),
             cv.Required(CONF_RST_PIN): pins.internal_gpio_output_pin_schema,
-            cv.Optional(CONF_RX_BANDWIDTH, default="50_0kHz"): cv.enum(RX_BW),
             cv.Optional(CONF_RX_FLOOR, default=-94): cv.float_range(min=-128, max=-1),
             cv.Optional(CONF_RX_START, default=True): cv.boolean,
             cv.Optional(CONF_SHAPING, default="NONE"): cv.enum(SHAPING),
+            cv.Optional(CONF_SPREADING_FACTOR, default=7): cv.int_range(min=6, max=12),
             cv.Optional(CONF_SYNC_VALUE, default=[]): cv.ensure_list(cv.hex_uint8_t),
         },
     )
@@ -178,7 +223,11 @@ async def to_code(config):
     if CONF_ON_PACKET in config:
         await automation.build_automation(
             var.get_packet_trigger(),
-            [(cg.std_vector.template(cg.uint8), "x")],
+            [
+                (cg.std_vector.template(cg.uint8), "x"),
+                (cg.float_, "rssi"),
+                (cg.float_, "snr"),
+            ],
             config[CONF_ON_PACKET],
         )
     if CONF_DIO0_PIN in config:
@@ -186,8 +235,13 @@ async def to_code(config):
         cg.add(var.set_dio0_pin(dio0_pin))
     rst_pin = await cg.gpio_pin_expression(config[CONF_RST_PIN])
     cg.add(var.set_rst_pin(rst_pin))
+    cg.add(var.set_bandwidth(config[CONF_BANDWIDTH]))
     cg.add(var.set_frequency(config[CONF_FREQUENCY]))
+    cg.add(var.set_deviation(config[CONF_DEVIATION]))
     cg.add(var.set_modulation(config[CONF_MODULATION]))
+    cg.add(var.set_pa_pin(config[CONF_PA_PIN]))
+    cg.add(var.set_pa_ramp(config[CONF_PA_RAMP]))
+    cg.add(var.set_pa_power(config[CONF_PA_POWER]))
     cg.add(var.set_shaping(config[CONF_SHAPING]))
     if CONF_BITRATE in config:
         cg.add(var.set_bitrate(config[CONF_BITRATE]))
@@ -202,14 +256,11 @@ async def to_code(config):
     cg.add(var.set_preamble_size(config[CONF_PREAMBLE_SIZE]))
     cg.add(var.set_preamble_polarity(config[CONF_PREAMBLE_POLARITY]))
     cg.add(var.set_preamble_errors(config[CONF_PREAMBLE_ERRORS]))
+    cg.add(var.set_coding_rate(config[CONF_CODING_RATE]))
+    cg.add(var.set_spreading_factor(config[CONF_SPREADING_FACTOR]))
     cg.add(var.set_sync_value(config[CONF_SYNC_VALUE]))
     cg.add(var.set_rx_floor(config[CONF_RX_FLOOR]))
     cg.add(var.set_rx_start(config[CONF_RX_START]))
-    cg.add(var.set_rx_bandwidth(config[CONF_RX_BANDWIDTH]))
-    cg.add(var.set_pa_pin(config[CONF_PA_PIN]))
-    cg.add(var.set_pa_power(config[CONF_PA_POWER]))
-    cg.add(var.set_fsk_fdev(config[CONF_FSK_FDEV]))
-    cg.add(var.set_fsk_ramp(config[CONF_FSK_RAMP]))
 
 
 SET_MODE_ACTION_SCHEMA = automation.maybe_simple_id(
