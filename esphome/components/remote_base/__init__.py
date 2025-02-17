@@ -10,7 +10,6 @@ from esphome.const import (
     CONF_CHECK,
     CONF_CODE,
     CONF_COMMAND,
-    CONF_COMMAND_REPEATS,
     CONF_DATA,
     CONF_DELTA,
     CONF_DEVICE,
@@ -46,6 +45,7 @@ AUTO_LOAD = ["binary_sensor"]
 CONF_RECEIVER_ID = "receiver_id"
 CONF_TRANSMITTER_ID = "transmitter_id"
 CONF_FIRST = "first"
+CONF_REPEATS = "repeats"
 
 ns = remote_base_ns = cg.esphome_ns.namespace("remote_base")
 RemoteProtocol = ns.class_("RemoteProtocol")
@@ -750,7 +750,7 @@ NEC_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ADDRESS): cv.hex_uint16_t,
         cv.Required(CONF_COMMAND): cv.hex_uint16_t,
-        cv.Optional(CONF_COMMAND_REPEATS, default=1): cv.uint16_t, # // TODO: command_repeats -> repeats (repeat as repeat code, not whole message frame)
+        cv.Optional(CONF_REPEATS, default=1): cv.uint16_t,
     }
 )
 
@@ -763,7 +763,7 @@ def nec_binary_sensor(var, config):
                 NECData,
                 ("address", config[CONF_ADDRESS]),
                 ("command", config[CONF_COMMAND]),
-                ("command_repeats", config[CONF_COMMAND_REPEATS]), # // TODO: command_repeats -> repeats (repeat as repeat code, not whole message frame)
+                ("repeats", config[CONF_REPEATS]),
             )
         )
     )
@@ -785,8 +785,8 @@ async def nec_action(var, config, args):
     cg.add(var.set_address(template_))
     template_ = await cg.templatable(config[CONF_COMMAND], args, cg.uint16)
     cg.add(var.set_command(template_))
-    template_ = await cg.templatable(config[CONF_COMMAND_REPEATS], args, cg.uint16) # // TODO: command_repeats -> repeats (repeat as repeat code, not whole message frame)
-    cg.add(var.set_command_repeats(template_)) # // TODO: command_repeats -> repeats (repeat as repeat code, not whole message frame)
+    template_ = await cg.templatable(config[CONF_REPEATS], args, cg.uint16)
+    cg.add(var.set_repeats(template_))
 
 
 # Pioneer
