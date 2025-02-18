@@ -50,7 +50,7 @@ struct NECData {
   };
 };
 
-static const NECData NEC_REPEAT_CODE_DATA = {0, 0, 1, NECCodeType::REPEAT};
+static const NECData NEC_REPEAT_CODE_DATA = {{0}, {0}, 1, NECCodeType::REPEAT};
 
 class NECProtocol : public RemoteProtocol<NECData> {
  public:
