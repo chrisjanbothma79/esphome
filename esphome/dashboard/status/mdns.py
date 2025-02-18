@@ -102,11 +102,10 @@ class MDNSStatus:
                 host_mdns_state[name] = result
                 if matching_entries := entries.get_by_name(name):
                     for entry in matching_entries:
-                        if not entry.no_mdns:
-                            entries.async_set_state(
-                                entry,
-                                bool_to_entry_state(result, EntryStateSource.MDNS),
-                            )
+                        entries.async_set_state(
+                            entry,
+                            bool_to_entry_state(result, EntryStateSource.MDNS),
+                        )
 
         stat = DashboardStatus(on_update)
         imports = DashboardImportDiscovery()
