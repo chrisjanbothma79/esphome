@@ -13,8 +13,22 @@ enum class NECCodeType : uint8_t {
 
 /// @brief Struct to store NEC protocol data
 struct NECData {
-  uint16_t address;
-  uint16_t command;
+  union {
+    uint16_t address;
+    struct {
+      uint8_t address_lower;
+      uint8_t address_upper;
+    };
+  };
+
+  union {
+    uint16_t command;
+    struct {
+      uint8_t command_lower;
+      uint8_t command_upper;
+    };
+  };
+
   uint16_t repeats;
   NECCodeType type;
 
@@ -45,11 +59,10 @@ class NECProtocol : public RemoteProtocol<NECData> {
   void dump(const NECData &data) override;
 
   std::string get_protocol_type_and_fields(const NECData &data) const;
-  bool is_extended(const NECData &data) const { return !is_high_byte_inverse_of_low_byte_(data.address); }
-  bool is_command_valid(const NECData &data) const { return is_high_byte_inverse_of_low_byte_(data.command); }
-
- protected:
-  bool is_high_byte_inverse_of_low_byte_(uint16_t value) const;
+  bool is_extended(const NECData &data) const { return data.address_lower != data.address_upper; }
+  bool is_command_valid(const NECData &data) const {
+    return data.command_lower == static_cast<uint8_t>(~data.command_upper);
+  }
 };
 
 DECLARE_REMOTE_PROTOCOL(NEC)

@@ -146,15 +146,6 @@ void NECProtocol::dump(const NECData &data) {
   }
 }
 
-bool NECProtocol::is_high_byte_inverse_of_low_byte_(uint16_t value) const {
-  // Extract low and high bytes
-  uint8_t low = static_cast<uint8_t>(value & 0xFF);
-  uint8_t high = static_cast<uint8_t>((value >> 8) & 0xFF);
-
-  // Compare high byte to bitwise inverse of low byte
-  return (high == static_cast<uint8_t>(~low));
-}
-
 std::string NECProtocol::get_protocol_type_and_fields(const NECData &data) const {
   std::string debug_message = "NEC ";
   switch (data.type) {
@@ -173,11 +164,11 @@ std::string NECProtocol::get_protocol_type_and_fields(const NECData &data) const
     if (this->is_extended(data)) {
       debug_message += str_sprintf("%04X", data.address);
     } else {
-      debug_message += str_sprintf("%02X, address#=0x%02X", data.address & 0xFF, (data.address >> 8) & 0xFF);
+      debug_message += str_sprintf("%02X, address#=0x%02X", data.address_lower, data.address_upper);
     }
 
-    debug_message += str_sprintf(", command=0x%02X, command#=0x%02X, command_valid=%s" PRIu16, data.command & 0xFF,
-                                 (data.command >> 8) & 0xFF, YESNO(this->is_command_valid(data)));
+    debug_message += str_sprintf(", command=0x%02X, command#=0x%02X, command_valid=%s" PRIu16, data.command_lower,
+                                 data.command_upper, YESNO(this->is_command_valid(data)));
   }
 
   debug_message += str_sprintf(", repeats=%" PRIu16, data.repeats);
