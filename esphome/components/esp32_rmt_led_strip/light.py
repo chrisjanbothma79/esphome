@@ -15,6 +15,7 @@ from esphome.const import (
     CONF_RGB_ORDER,
     CONF_RMT_CHANNEL,
     CONF_RMT_SYMBOLS,
+    CONF_USE_DMA,
 )
 from esphome.core import CORE
 
@@ -138,6 +139,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_CHIPSET): cv.one_of(*CHIPSETS, upper=True),
             cv.Optional(CONF_IS_RGBW, default=False): cv.boolean,
             cv.Optional(CONF_IS_WRGB, default=False): cv.boolean,
+            cv.Optional(CONF_USE_DMA): cv.All(cv.only_with_esp_idf, cv.boolean),
             cv.Optional(CONF_USE_PSRAM, default=True): cv.boolean,
             cv.Inclusive(
                 CONF_BIT0_HIGH,
@@ -211,6 +213,10 @@ async def to_code(config):
 
     if esp32_rmt.use_new_rmt_driver():
         cg.add(var.set_rmt_symbols(config[CONF_RMT_SYMBOLS]))
+        if CONF_USE_DMA in config:
+            cg.add(var.set_use_dma(config[CONF_USE_DMA]))
+        else:
+            cg.add(var.set_use_dma(False))
     else:
         rmt_channel_t = cg.global_ns.enum("rmt_channel_t")
         cg.add(
