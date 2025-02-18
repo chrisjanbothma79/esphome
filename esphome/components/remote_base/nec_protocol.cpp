@@ -26,13 +26,13 @@ void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
     ESP_LOGW(TAG, "High repeat count may cause WDT timeout.");
   }
 
-  if (data.repeats == 0 && data.type != NECCodeType::FRAME) {
-    ESP_LOGE(TAG, "NECData repeat count must be greater than 0 for type NECCodeType::REPEAT.");
+  if (data.repeats == 0 && data.type != NECCodeType::FRAME_WITH_REPEATS) {
+    ESP_LOGE(TAG, "NECData repeat count must be greater than 0 for type NECCodeType::FRAME_WITH_REPEATS.");
   }
 
   // Repeat codes (4 per repeat)
   uint32_t dst_len = data.repeats * 4;
-  if (data.type == NECCodeType::FRAME) {
+  if (data.type == NECCodeType::FRAME_WITH_REPEATS) {
     dst_len += 2;   // AGC Header (2)
     dst_len += 32;  // Address bits (32)
     dst_len += 32;  // Command bits (32)
@@ -41,7 +41,7 @@ void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
   dst->reserve(dst_len);
   dst->set_carrier_frequency(38222);
 
-  if (data.type == NECCodeType::FRAME) {
+  if (data.type == NECCodeType::FRAME_WITH_REPEATS) {
     // Send the AGC Header (start of frame)
     dst->item(AGC_HIGH_US, LONG_PAUSE_LOW_US);
 
@@ -90,7 +90,7 @@ optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
       .address = 0,
       .command = 0,
       .repeats = 0,  // Start with 0, as the first frame is counted explicitly
-      .type = NECCodeType::FRAME,
+      .type = NECCodeType::FRAME_WITH_REPEATS,
   };
 
   // Validate the AGC header (start of frame or repeat code)
@@ -158,17 +158,17 @@ void NECProtocol::dump(const NECData &data) {
 std::string NECProtocol::get_protocol_type_and_fields(const NECData &data) const {
   std::string debug_message = "NEC ";
   switch (data.type) {
-    case NECCodeType::FRAME:
+    case NECCodeType::FRAME_WITH_REPEATS:
       debug_message += str_sprintf("Frame (%u-bit address)", this->is_extended(data) ? 16 : 8);
       break;
-    case NECCodeType::REPEAT:
+    case NECCodeType::REPEATS_ONLY:
       debug_message += "Repeat Code:";
       break;
     default:
       debug_message += "Unknown";
   }
 
-  if (data.type == NECCodeType::FRAME) {
+  if (data.type == NECCodeType::FRAME_WITH_REPEATS) {
     debug_message += ": address=0x";
     if (this->is_extended(data)) {
       debug_message += str_sprintf("%04X", data.address);

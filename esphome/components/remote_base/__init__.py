@@ -49,8 +49,8 @@ CONF_FIRST = "first"
 
 # NEC
 CONF_REPEATS = "repeats"
-TYPE_FRAME = "frame"
-TYPE_REPEAT = "repeat"
+TYPE_FRAME_WITH_REPEATS = "frame_with_repeats"
+TYPE_REPEATS_ONLY = "repeats_only"
 
 ns = remote_base_ns = cg.esphome_ns.namespace("remote_base")
 RemoteProtocol = ns.class_("RemoteProtocol")
@@ -753,8 +753,8 @@ async def keeloq_action(var, config, args):
 NECData, NECBinarySensor, NECTrigger, NECAction, NECDumper = declare_protocol("NEC")
 nec_code_type_enum_class = ns.enum("NECCodeType", is_class=True)
 NEC_CODE_TYPES = {
-    TYPE_FRAME: nec_code_type_enum_class.FRAME,
-    TYPE_REPEAT: nec_code_type_enum_class.REPEAT,
+    TYPE_FRAME_WITH_REPEATS: nec_code_type_enum_class.FRAME_WITH_REPEATS,
+    TYPE_REPEATS_ONLY: nec_code_type_enum_class.REPEATS_ONLY,
 }
 
 NEC_SCHEMA = cv.Schema(
@@ -762,7 +762,9 @@ NEC_SCHEMA = cv.Schema(
         cv.Required(CONF_ADDRESS): cv.hex_uint16_t,
         cv.Required(CONF_COMMAND): cv.hex_uint16_t,
         cv.Optional(CONF_REPEATS, default=0): cv.uint16_t,
-        cv.Optional(CONF_TYPE, default=TYPE_FRAME): cv.enum(NEC_CODE_TYPES, lower=True),
+        cv.Optional(CONF_TYPE, default=TYPE_FRAME_WITH_REPEATS): cv.enum(
+            NEC_CODE_TYPES, lower=True
+        ),
     }
 )
 

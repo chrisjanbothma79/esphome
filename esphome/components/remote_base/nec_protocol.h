@@ -5,10 +5,10 @@
 namespace esphome {
 namespace remote_base {
 
-/// @brief NEC protocol frame types
+/// @brief NEC protocol code types
 enum class NECCodeType : uint8_t {
-  FRAME,  ///< Frame with address, command and repeats
-  REPEAT  ///< Repeat code without address and command
+  FRAME_WITH_REPEATS,  ///< Frame with address, command and repeats
+  REPEATS_ONLY         ///< Repeat code without address and command
 };
 
 /// @brief Struct to store NEC protocol data
@@ -40,9 +40,9 @@ struct NECData {
     }
 
     switch (type) {
-      case NECCodeType::REPEAT:
+      case NECCodeType::REPEATS_ONLY:
         return repeats == rhs.repeats;
-      case NECCodeType::FRAME:
+      case NECCodeType::FRAME_WITH_REPEATS:
         return address == rhs.address && command == rhs.command && repeats == rhs.repeats;
       default:
         return false;
@@ -50,25 +50,28 @@ struct NECData {
   };
 };
 
-static const NECData NEC_REPEAT_CODE_DATA = {{0}, {0}, 1, NECCodeType::REPEAT};
+/// @brief Predefined single repeat code `NECData` returned by `NECProtocol::decode`
+static const NECData NEC_REPEAT_CODE_DATA = {{0}, {0}, 1, NECCodeType::REPEATS_ONLY};
 
 class NECProtocol : public RemoteProtocol<NECData> {
  public:
   /// @brief Encodes `NECData` into `RemoteTransmitData`.
   /// @details Generates an NEC IR signal based on the given `NECData`:
-  ///          - If `data.type` is `NECCodeType::FRAME`, it encodes a full NEC frame with address, command, stop bit,
-  ///          and the specified number of repeat codes.
-  ///          - If `data.type` is `NECCodeType::REPEAT`, it encodes just repeat codes without frame.
-  /// @note `NECCodeType::REPEAT` `data.type` is invalid if `data.repeats` is 0, and no data will be encoded.
+  ///          - If `data.type` is `NECCodeType::FRAME_WITH_REPEATS`, it encodes a full NEC frame with address, command,
+  ///          stop bit, and the specified number of repeat codes.
+  ///          - If `data.type` is `NECCodeType::REPEATS_ONLY`, it encodes just repeat codes without frame.
+  /// @note `NECCodeType::REPEATS_ONLY` `data.type` is invalid if `data.repeats` is 0, and no data will be encoded.
   /// @warning A high repeat count may cause a WDT timeout.
   /// @param[out] dst Destination `RemoteTransmitData` for the encoded signal.
   /// @param[in] data NEC data containing type, address, command, and repeat count.
   void encode(RemoteTransmitData *dst, const NECData &data) override;
   /// @brief Decodes `NECData` from `RemoteReceiveData`.
   /// @details This function parses `NECData`, distinguishing between full message frames and repeat codes:
-  ///          - If a valid `NECCodeType::FRAME` is detected, it extracts the address, command.
-  ///          - If a `NECCodeType::REPEAT` code is detected, it returns a predefined `NEC_REPEAT_CODE_DATA` instance.
-  /// @note A `NECCodeType::FRAME` is always decoded with `repeats = 0`, as repeat codes are processed separately.
+  ///          - If a valid `NECCodeType::FRAME_WITH_REPEATS` is detected, it extracts the address, command.
+  ///          - If a `NECCodeType::REPEATS_ONLY` code is detected, it returns a predefined `NEC_REPEAT_CODE_DATA`
+  ///          instance.
+  /// @note A `NECCodeType::FRAME_WITH_REPEATS` is always decoded with `repeats = 0`, as repeat codes are processed
+  /// separately.
   /// @warning If the decoded command is invalid, a warning is logged.
   /// @param[in] src The received IR signal data to be decoded.
   /// @return An `optional<NECData>` containing the decoded NEC data, or an empty optional if decoding fails.
