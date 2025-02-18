@@ -12,7 +12,7 @@ if sys.version_info >= (3, 11):
 else:
     from async_timeout import timeout as async_timeout
 
-RESOLVE_TIMEOUT = 2.5
+RESOLVE_TIMEOUT = 3.0
 
 
 async def _async_resolve_wrapper(hostname: str) -> list[str] | Exception:
