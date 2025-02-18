@@ -94,6 +94,10 @@ def valid_project_name(value: str):
 
 
 def get_usable_cpu_count() -> int:
+    """Return the number of CPUs that can be used for processes.
+    On Python 3.13+ this is the number of CPUs that can be used for processes.
+    On older Python versions this is the number of CPUs.
+    """
     return (
         os.process_cpu_count() if hasattr(os, "process_cpu_count") else os.cpu_count()
     )
