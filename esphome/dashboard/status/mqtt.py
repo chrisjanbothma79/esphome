@@ -41,10 +41,11 @@ class MqttStatusThread(threading.Thread):
                     return
                 if matching_entries := entries.get_by_name(data["name"]):
                     for entry in matching_entries:
+                        state = entry.state
                         if (
-                            entry.state.reachable is not ReachableState.ONLINE
-                            or entry.state.source is EntryStateSource.UNKNOWN
-                            or entry.state.source is EntryStateSource.MQTT
+                            state.reachable is not ReachableState.ONLINE
+                            or state.source
+                            in (EntryStateSource.UNKNOWN, EntryStateSource.MQTT)
                         ):
                             entries.set_state(
                                 entry,
@@ -73,10 +74,8 @@ class MqttStatusThread(threading.Thread):
             current_entries = entries.all()
             # will be set to true on on_message
             for entry in current_entries:
-                if (
-                    entry.state.source is EntryStateSource.UNKNOWN
-                    or entry.state.source is EntryStateSource.MQTT
-                ):
+                state = entry.state
+                if state.source in (EntryStateSource.UNKNOWN, EntryStateSource.MQTT):
                     entries.set_state(
                         entry, EntryState(ReachableState.OFFLINE, EntryStateSource.MQTT)
                     )

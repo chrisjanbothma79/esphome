@@ -51,14 +51,11 @@ class PingStatus:
             to_ping: list[DashboardEntry] = []
 
             for entry in current_entries:
-                if entry.address is None:
-                    # No address we can't ping it
-                    continue
-                if (
-                    entry.state.source is not EntryStateSource.UNKNOWN
-                    and entry.state.source is not EntryStateSource.PING
+                if entry.address is None or entry.state.source not in (
+                    EntryStateSource.UNKNOWN,
+                    EntryStateSource.PING,
                 ):
-                    # We already have a state from another source
+                    # No address or we already have a state from another source
                     continue
                 to_ping.append(entry)
 
@@ -77,9 +74,9 @@ class PingStatus:
 
                 for entry, result in zip(ping_group, dns_results):
                     if isinstance(result, Exception):
-                        if (
-                            entry.state.source is EntryStateSource.UNKNOWN
-                            or entry.state.source is EntryStateSource.PING
+                        if entry.state.source in (
+                            EntryStateSource.UNKNOWN,
+                            EntryStateSource.PING,
                         ):
                             entries.async_set_state(
                                 entry,
@@ -113,13 +110,12 @@ class PingStatus:
                         host: Host = result
                         ping_result = host.is_alive
                     entry = cast(DashboardEntry, entry_addresses[0])
+                    state = entry.state
                     if (
-                        (
-                            ping_result
-                            and entry.state.reachable is not ReachableState.ONLINE
-                        )
-                        or entry.state.source is EntryStateSource.UNKNOWN
-                        or entry.state.source is EntryStateSource.PING
+                        ping_result and state.reachable is not ReachableState.ONLINE
+                    ) or state.source in (
+                        EntryStateSource.UNKNOWN,
+                        EntryStateSource.PING,
                     ):
                         entries.async_set_state(
                             entry,

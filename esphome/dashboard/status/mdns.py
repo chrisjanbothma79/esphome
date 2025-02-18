@@ -81,10 +81,12 @@ class MDNSStatus:
                 result = bool(address_list)
                 host_mdns_state[name] = result
                 for entry in poll_names[name]:
+                    state = entry.state
                     if (
-                        (result and entry.state.reachable is not ReachableState.ONLINE)
-                        or entry.state.source is EntryStateSource.UNKNOWN
-                        or entry.state.source is EntryStateSource.MDNS
+                        result and state.reachable is not ReachableState.ONLINE
+                    ) or state.source in (
+                        EntryStateSource.UNKNOWN,
+                        EntryStateSource.MDNS,
                     ):
                         entries.async_set_state(
                             entry, bool_to_entry_state(result, EntryStateSource.MDNS)
