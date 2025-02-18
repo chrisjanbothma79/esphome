@@ -31,7 +31,6 @@ from esphome.const import (
     CONF_SYNC,
     CONF_TIMES,
     CONF_TRIGGER_ID,
-    CONF_TYPE,
     CONF_TYPE_ID,
     CONF_WAIT_TIME,
     CONF_WAND_ID,
@@ -46,7 +45,12 @@ AUTO_LOAD = ["binary_sensor"]
 CONF_RECEIVER_ID = "receiver_id"
 CONF_TRANSMITTER_ID = "transmitter_id"
 CONF_FIRST = "first"
+
+# NEC
 CONF_REPEATS = "repeats"
+CONF_CODE_TYPE = "code_type"
+TYPE_FRAME = "frame"
+TYPE_REPEAT = "repeat"
 
 ns = remote_base_ns = cg.esphome_ns.namespace("remote_base")
 RemoteProtocol = ns.class_("RemoteProtocol")
@@ -749,16 +753,34 @@ async def keeloq_action(var, config, args):
 NECData, NECBinarySensor, NECTrigger, NECAction, NECDumper = declare_protocol("NEC")
 nec_code_type_enum_class = ns.enum("NECCodeType", is_class=True)
 NEC_CODE_TYPES = {
-    "frame": nec_code_type_enum_class.FRAME,
-    "repeat": nec_code_type_enum_class.REPEAT,
+    TYPE_FRAME: nec_code_type_enum_class.FRAME,
+    TYPE_REPEAT: nec_code_type_enum_class.REPEAT,
 }
-NEC_SCHEMA = cv.Schema(
+
+NEC_FRAME_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ADDRESS): cv.hex_uint16_t,
         cv.Required(CONF_COMMAND): cv.hex_uint16_t,
+        cv.Required(CONF_CODE_TYPE, default=TYPE_FRAME): cv.enum(NEC_CODE_TYPES),
         cv.Optional(CONF_REPEATS, default=0): cv.uint16_t,
-        cv.Optional(CONF_TYPE, default="frame"): cv.enum(NEC_CODE_TYPES, lower=True),
     }
+)
+
+NEC_REPEAT_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_ADDRESS, default=0): cv.uint16_t,
+        cv.Required(CONF_COMMAND, default=0): cv.uint16_t,
+        cv.Required(CONF_CODE_TYPE, default=TYPE_REPEAT): cv.enum(NEC_CODE_TYPES),
+        cv.Optional(CONF_REPEATS, default=1): cv.int_range(min=1, max=65535),
+    }
+)
+
+NEC_SCHEMA = cv.typed_schema(
+    {
+        TYPE_FRAME: NEC_FRAME_SCHEMA,
+        TYPE_REPEAT: NEC_REPEAT_SCHEMA,
+    },
+    default_type=TYPE_FRAME,
 )
 
 
@@ -771,7 +793,7 @@ def nec_binary_sensor(var, config):
                 ("address", config[CONF_ADDRESS]),
                 ("command", config[CONF_COMMAND]),
                 ("repeats", config[CONF_REPEATS]),
-                ("type", config[CONF_TYPE]),
+                ("type", config[CONF_CODE_TYPE]),
             )
         )
     )
@@ -795,7 +817,9 @@ async def nec_action(var, config, args):
     cg.add(var.set_command(template_))
     template_ = await cg.templatable(config[CONF_REPEATS], args, cg.uint16)
     cg.add(var.set_repeats(template_))
-    template_ = await cg.templatable(config[CONF_TYPE], args, nec_code_type_enum_class)
+    template_ = await cg.templatable(
+        config[CONF_CODE_TYPE], args, nec_code_type_enum_class
+    )
     cg.add(var.set_type(template_))
 
 
