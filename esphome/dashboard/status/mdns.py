@@ -78,7 +78,6 @@ class MDNSStatus:
 
     def _async_set_state(self, entry: DashboardEntry, result: bool | None) -> None:
         """Set the state of an entry."""
-
         state = bool_to_entry_state(result, EntryStateSource.MDNS)
         if result:
             # If we can reach it via mDNS, we always set it online
