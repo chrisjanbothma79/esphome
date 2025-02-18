@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections import defaultdict
 from dataclasses import dataclass
+from functools import lru_cache
 import logging
 import os
 from typing import TYPE_CHECKING, Any
@@ -29,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 DashboardCacheKeyType = tuple[int, int, float, int]
 
 
-@dataclass
+@dataclass(frozen=True)
 class EntryState:
     """Represents the state of an entry."""
 
@@ -66,6 +67,7 @@ _REACHABLE_STATE_TO_BOOL = {
 UNKNOWN_STATE = EntryState(ReachableState.UNKNOWN, EntryStateSource.UNKNOWN)
 
 
+@lru_cache
 def bool_to_entry_state(value: bool, source: EntryStateSource) -> EntryState:
     """Convert a bool to an entry state."""
     return EntryState(_BOOL_TO_REACHABLE_STATE[value], source)

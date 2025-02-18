@@ -8,7 +8,7 @@ import typing
 
 from esphome import mqtt
 
-from ..entries import EntryState, EntryStateSource, ReachableState
+from ..entries import EntryStateSource, ReachableState, bool_to_entry_state
 
 if typing.TYPE_CHECKING:
     from ..core import ESPHomeDashboard
@@ -48,10 +48,7 @@ class MqttStatusThread(threading.Thread):
                             in (EntryStateSource.UNKNOWN, EntryStateSource.MQTT)
                         ):
                             entries.set_state(
-                                entry,
-                                EntryState(
-                                    ReachableState.ONLINE, EntryStateSource.MQTT
-                                ),
+                                entry, bool_to_entry_state(True, EntryStateSource.MQTT)
                             )
 
         def on_connect(client, userdata, flags, return_code):
@@ -77,7 +74,7 @@ class MqttStatusThread(threading.Thread):
                 state = entry.state
                 if state.source in (EntryStateSource.UNKNOWN, EntryStateSource.MQTT):
                     entries.set_state(
-                        entry, EntryState(ReachableState.OFFLINE, EntryStateSource.MQTT)
+                        entry, bool_to_entry_state(False, EntryStateSource.MQTT)
                     )
 
             client.publish("esphome/discover", None, retain=False)
