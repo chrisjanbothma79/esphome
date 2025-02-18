@@ -24,6 +24,8 @@ _LOGGER = logging.getLogger(__name__)
 
 IGNORED_DEVICES_STORAGE_PATH = "ignored-devices.json"
 
+MDNS_BOOTSTRAP_TIME = 10
+
 
 @dataclass
 class Event:
@@ -137,10 +139,10 @@ class ESPHomeDashboard:
         self.mdns_status = mdns_status
         if mdns_status.async_setup():
             mdns_task = asyncio.create_task(mdns_status.async_run())
-            # Start ping 10 seconds after startup to ensure
+            # Start ping MDNS_BOOTSTRAP_TIME seconds after startup to ensure
             # MDNS has had a chance to resolve the devices
             start_ping_timer = self.loop.call_later(
-                10, self._async_start_ping_status, ping_status
+                MDNS_BOOTSTRAP_TIME, self._async_start_ping_status, ping_status
             )
         else:
             # If mDNS is not available, start the ping status immediately
