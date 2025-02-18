@@ -68,7 +68,6 @@ struct CombinedLamp {
 };
 
 struct DynamicLampTimer {
-  char lamp_name[32] : 256;
   uint8_t mode : 1;
   uint8_t hour : 5;
   uint8_t minute : 6;

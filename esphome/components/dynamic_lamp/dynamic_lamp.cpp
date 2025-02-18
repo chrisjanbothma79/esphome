@@ -232,7 +232,6 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
                                      bool friday, bool saturday, bool sunday) {
   char const *lamp_name_cstr = lamp_name.c_str();
   DynamicLampTimer new_timer;
-  std::strncpy(new_timer.lamp_name, lamp_name_cstr, 32);
   new_timer.active = timer_active;
   new_timer.mode = mode;
   new_timer.hour = hour;
@@ -250,7 +249,7 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
   new_timer.begin_date = begin_date;
   new_timer.end_date = end_date;
   ESP_LOGV(TAG, "Added new timer for lamp %s, active %d, mode %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d",
-           new_timer.lamp_name, new_timer.active, new_timer.mode, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
+           lamp_name, new_timer.active, new_timer.mode, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
            new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday);
   ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
   return true; 
