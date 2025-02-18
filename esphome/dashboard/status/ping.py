@@ -43,11 +43,15 @@ class PingStatus:
             await dashboard.ping_request.wait()
             dashboard.ping_request.clear()
             current_entries = dashboard.entries.async_all()
-            to_ping: list[DashboardEntry] = [
-                entry
-                for entry in current_entries
-                if entry.address is not None and entry.state
-            ]
+            to_ping: list[DashboardEntry] = []
+
+            for entry in current_entries:
+                if entry.address is None or (
+                    entry.state.reachable == ReachableState.ONLINE
+                    and entry.state.source == EntryStateSource.MDNS
+                ):
+                    continue
+                to_ping.append(entry)
 
             # Resolve DNS for all entries
             entries_with_addresses: dict[DashboardEntry, list[str]] = {}
