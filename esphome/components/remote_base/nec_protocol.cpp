@@ -26,6 +26,10 @@ void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
     ESP_LOGW(TAG, "High repeat count may cause WDT timeout.");
   }
 
+  if (data.repeats == 0 && data.type != NECCodeType::FRAME) {
+    ESP_LOGE(TAG, "NECData repeat count must be greater than 0 for type NECCodeType::REPEAT.");
+  }
+
   // Repeat codes (4 per repeat)
   uint32_t dst_len = data.repeats * 4;
   if (data.type == NECCodeType::FRAME) {
