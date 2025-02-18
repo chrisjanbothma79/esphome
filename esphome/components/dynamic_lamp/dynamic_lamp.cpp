@@ -282,4 +282,4 @@ void DynamicLampComponent::restore_lamp_values_(uint8_t lamp_number) {
 }
 
 }  // namespace dynamic_lamp
-} 
+}  // namespace esphome
