@@ -21,7 +21,7 @@ static const uint32_t SPACE_AGC_REPEAT_US = 96187;   // AGC Repeat space: ~96.18
 void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
   ESP_LOGD(TAG, "Sending NEC: address=0x%04X, command=0x%04X, repeats=%d", data.address, data.command, data.repeats);
 
-  if (data.repeats > 60) {
+  if (data.repeats > 20) {
     ESP_LOGW(TAG, "High repeat count may cause WDT timeout.");
   }
 
