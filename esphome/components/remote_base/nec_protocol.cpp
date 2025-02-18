@@ -143,11 +143,7 @@ optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
 }
 
 void NECProtocol::dump(const NECData &data) {
-  if (data.type == NECCodeType::REPEAT) {
-    ESP_LOGI(TAG, "Received NEC repeat code, count %" PRIu16, data.repeats);
-  } else {
-    ESP_LOGI(TAG, "Received %s", this->get_protocol_type_and_fields(data).c_str());
-  }
+  ESP_LOGI(TAG, "Received %s", this->get_protocol_type_and_fields(data).c_str());
 }
 
 std::string NECProtocol::get_protocol_type_and_fields(const NECData &data) const {
