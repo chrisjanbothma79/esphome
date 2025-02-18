@@ -26,6 +26,8 @@ _LOGGER = logging.getLogger(__name__)
 
 GROUP_SIZE = int(MAX_EXECUTOR_WORKERS / 2)
 
+DNS_FAILURE_STATE = EntryState(ReachableState.DNS_FAILURE, EntryStateSource.PING)
+
 
 class PingStatus:
     def __init__(self, dashboard: ESPHomeDashboard) -> None:
@@ -78,12 +80,7 @@ class PingStatus:
                             EntryStateSource.UNKNOWN,
                             EntryStateSource.PING,
                         ):
-                            entries.async_set_state(
-                                entry,
-                                EntryState(
-                                    ReachableState.DNS_FAILURE, EntryStateSource.PING
-                                ),
-                            )
+                            entries.async_set_state(entry, DNS_FAILURE_STATE)
                         continue
                     if isinstance(result, BaseException):
                         raise result
