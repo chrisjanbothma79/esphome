@@ -82,6 +82,10 @@ class MDNSStatus:
                 host_mdns_state[name] = result
                 for entry in poll_names[name]:
                     state = entry.state
+                    # If we can reach it via mDNS, we always set it
+                    # online, however if we can't reach it via mDNS
+                    # we only set it to offline if the state is unknown
+                    # or from mDNS
                     if (
                         result and state.reachable is not ReachableState.ONLINE
                     ) or state.source in (
@@ -104,6 +108,9 @@ class MDNSStatus:
                 host_mdns_state[name] = result
                 if matching_entries := entries.get_by_name(name):
                     for entry in matching_entries:
+                        # If its reachable via mDNS, we always set it
+                        # to online even if no_mdns is set since we can
+                        # reach it via mDNS
                         if result or not entry.no_mdns:
                             entries.async_set_state(
                                 entry,

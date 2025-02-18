@@ -42,6 +42,8 @@ class MqttStatusThread(threading.Thread):
                 if matching_entries := entries.get_by_name(data["name"]):
                     for entry in matching_entries:
                         state = entry.state
+                        # Only override state if we don't have a state from another source
+                        # or we have a state from MQTT and the device is reachable
                         if (
                             state.reachable is not ReachableState.ONLINE
                             or state.source
@@ -72,6 +74,7 @@ class MqttStatusThread(threading.Thread):
             # will be set to true on on_message
             for entry in current_entries:
                 state = entry.state
+                # Only override state if we don't have a state from another source
                 if state.source in (EntryStateSource.UNKNOWN, EntryStateSource.MQTT):
                     entries.set_state(
                         entry, bool_to_entry_state(False, EntryStateSource.MQTT)

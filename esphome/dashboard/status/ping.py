@@ -58,6 +58,7 @@ class PingStatus:
                     EntryStateSource.PING,
                 ):
                     # No address or we already have a state from another source
+                    # so no need to ping
                     continue
                 to_ping.append(entry)
 
@@ -76,6 +77,9 @@ class PingStatus:
 
                 for entry, result in zip(ping_group, dns_results):
                     if isinstance(result, Exception):
+                        # Only update state if its unknown or from ping
+                        # so we don't mark it as offline if we have a state
+                        # from mDNS or MQTT
                         if entry.state.source in (
                             EntryStateSource.UNKNOWN,
                             EntryStateSource.PING,
@@ -108,6 +112,10 @@ class PingStatus:
                         ping_result = host.is_alive
                     entry = cast(DashboardEntry, entry_addresses[0])
                     state = entry.state
+                    # If we can reach it via ping, we always set it
+                    # online, however if we can't reach it via ping
+                    # we only set it to offline if the state is unknown
+                    # or from ping
                     if (
                         ping_result and state.reachable is not ReachableState.ONLINE
                     ) or state.source in (
