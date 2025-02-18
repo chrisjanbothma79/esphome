@@ -112,7 +112,7 @@ class PingStatus:
                     else:
                         host: Host = result
                         ping_result = host.is_alive
-                    entry, _ = entry_addresses
+                    entry = cast(DashboardEntry, entry_addresses[0])
                     if (
                         (
                             ping_result
