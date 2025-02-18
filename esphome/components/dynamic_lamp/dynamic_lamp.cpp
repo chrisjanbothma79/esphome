@@ -17,24 +17,6 @@ namespace dynamic_lamp {
 
 static const char *TAG = "dynamic_lamp";
 
-struct DynamicLampTimer {
-  char lamp_name[32] : 256;
-  uint8_t mode : 1;
-  uint8_t hour : 5;
-  uint8_t minute : 6;
-  bool active : 1;
-  bool monday : 1;
-  bool tuesday : 1;
-  bool wednesday : 1;
-  bool thursday : 1;
-  bool friday : 1;
-  bool saturday : 1;
-  bool sunday : 1;
-  unsigned char :0;
-  ESPTime begin_date : 64;
-  ESPTime end_date : 64;
-};
-
 void DynamicLampComponent::setup() {
   this->begin();
 }
