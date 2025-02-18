@@ -55,8 +55,8 @@ class PingStatus:
                     entry.address is None
                     or entry.no_mdns
                     or (
-                        entry.state.reachable == ReachableState.ONLINE
-                        and entry.state.source == EntryStateSource.MDNS
+                        entry.state.reachable is ReachableState.ONLINE
+                        and entry.state.source is EntryStateSource.MDNS
                     )
                 ):
                     continue
@@ -79,7 +79,9 @@ class PingStatus:
                     if isinstance(result, Exception):
                         entries.async_set_state(
                             entry,
-                            EntryState(ReachableState.UNKNOWN, EntryStateSource.PING),
+                            EntryState(
+                                ReachableState.DNS_FAILURE, EntryStateSource.PING
+                            ),
                         )
                         continue
                     if isinstance(result, BaseException):

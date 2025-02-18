@@ -47,6 +47,7 @@ class EntryStateSource(StrEnum):
 class ReachableState(StrEnum):
     ONLINE = "online"
     OFFLINE = "offline"
+    DNS_FAILURE = "dns_failure"
     UNKNOWN = "unknown"
 
 
@@ -58,6 +59,7 @@ _BOOL_TO_REACHABLE_STATE = {
 _REACHABLE_STATE_TO_BOOL = {
     ReachableState.ONLINE: True,
     ReachableState.OFFLINE: False,
+    ReachableState.DNS_FAILURE: False,
     ReachableState.UNKNOWN: None,
 }
 
