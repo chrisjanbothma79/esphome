@@ -100,7 +100,7 @@ class PingStatus:
 
                 results = await asyncio.gather(
                     *(
-                        async_ping(addresses[0], privileged=privileged)
+                        async_ping(addresses[0], count=2, privileged=privileged)
                         for _, addresses in entry_addresses
                     ),
                     return_exceptions=True,
