@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import typing
 
 from esphome.zeroconf import (
     ESPHOME_SERVICE_TYPE,
@@ -12,8 +13,10 @@ from esphome.zeroconf import (
 )
 
 from ..const import SENTINEL
-from ..core import DASHBOARD
 from ..entries import DashboardEntry, EntryStateSource, bool_to_entry_state
+
+if typing.TYPE_CHECKING:
+    from ..core import ESPHomeDashboard
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,13 +24,14 @@ _LOGGER = logging.getLogger(__name__)
 class MDNSStatus:
     """Class that updates the mdns status."""
 
-    def __init__(self) -> None:
+    def __init__(self, dashboard: ESPHomeDashboard) -> None:
         """Initialize the MDNSStatus class."""
         super().__init__()
         self.aiozc: AsyncEsphomeZeroconf | None = None
         # This is the current mdns state for each host (True, False, None)
         self.host_mdns_state: dict[str, bool | None] = {}
         self._loop = asyncio.get_running_loop()
+        self.dashboard = dashboard
 
     def async_setup(self) -> bool:
         """Set up the MDNSStatus class."""
@@ -44,9 +48,9 @@ class MDNSStatus:
             return await aiozc.async_resolve_host(host_name)
         return None
 
-    async def async_refresh_hosts(self):
+    async def async_refresh_hosts(self) -> None:
         """Refresh the hosts to track."""
-        dashboard = DASHBOARD
+        dashboard = self.dashboard
         host_mdns_state = self.host_mdns_state
         entries = dashboard.entries
         poll_names: dict[str, set[DashboardEntry]] = {}
@@ -77,7 +81,8 @@ class MDNSStatus:
                     )
 
     async def async_run(self) -> None:
-        dashboard = DASHBOARD
+        """Run the mdns status."""
+        dashboard = self.dashboard
         entries = dashboard.entries
         host_mdns_state = self.host_mdns_state
 
@@ -105,7 +110,7 @@ class MDNSStatus:
 
         ping_request = dashboard.ping_request
         while not dashboard.stop_event.is_set():
-            await self.async_refresh_hosts()
+            await self.async_refresh_hosts(dashboard)
             await ping_request.wait()
             ping_request.clear()
 

@@ -3,12 +3,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+import typing
 from typing import cast
 
 from icmplib import Host, SocketPermissionError, async_ping
 
 from ..const import MAX_EXECUTOR_WORKERS
-from ..core import DASHBOARD
 from ..entries import (
     DashboardEntry,
     EntryState,
@@ -18,20 +18,25 @@ from ..entries import (
 )
 from ..util.itertools import chunked
 
+if typing.TYPE_CHECKING:
+    from ..core import ESPHomeDashboard
+
+
 _LOGGER = logging.getLogger(__name__)
 
 GROUP_SIZE = int(MAX_EXECUTOR_WORKERS / 2)
 
 
 class PingStatus:
-    def __init__(self) -> None:
+    def __init__(self, dashboard: ESPHomeDashboard) -> None:
         """Initialize the PingStatus class."""
         super().__init__()
         self._loop = asyncio.get_running_loop()
+        self.dashboard = dashboard
 
     async def async_run(self) -> None:
         """Run the ping status."""
-        dashboard = DASHBOARD
+        dashboard = self.dashboard
         entries = dashboard.entries
         privileged = await _can_use_icmp_lib_with_privilege()
         if privileged is None:

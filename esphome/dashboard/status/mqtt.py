@@ -4,19 +4,27 @@ import binascii
 import json
 import os
 import threading
+import typing
 
 from esphome import mqtt
 
-from ..core import DASHBOARD
 from ..entries import EntryState, EntryStateSource, ReachableState
+
+if typing.TYPE_CHECKING:
+    from ..core import ESPHomeDashboard
 
 
 class MqttStatusThread(threading.Thread):
     """Status thread to get the status of the devices via MQTT."""
 
+    def __init__(self, dashboard: ESPHomeDashboard) -> None:
+        """Initialize the status thread."""
+        super().__init__()
+        self.dashboard = dashboard
+
     def run(self) -> None:
         """Run the status thread."""
-        dashboard = DASHBOARD
+        dashboard = self.dashboard
         entries = dashboard.entries
         current_entries = entries.all()
 

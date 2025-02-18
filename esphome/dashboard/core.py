@@ -136,7 +136,7 @@ class ESPHomeDashboard:
 
         self.mdns_status = mdns_status
         if mdns_status.async_setup():
-            mdns_task = asyncio.create_task(mdns_status.async_run())
+            mdns_task = asyncio.create_task(mdns_status.async_run(self))
             # Start ping 5 seconds after startup to ensure
             # MDNS has had a chance to resolve the devices
             start_ping_timer = self.loop.call_later(
@@ -149,7 +149,7 @@ class ESPHomeDashboard:
         if settings.status_use_mqtt:
             from .status.mqtt import MqttStatusThread
 
-            status_thread_mqtt = MqttStatusThread()
+            status_thread_mqtt = MqttStatusThread(self)
             status_thread_mqtt.start()
 
         try:
