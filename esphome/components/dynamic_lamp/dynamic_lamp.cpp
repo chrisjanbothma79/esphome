@@ -264,12 +264,12 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
 void DynamicLampComponent::read_timers_to_log() {
   uint8_t i = 0;
   for (i = 0; i < 16; i++) {
-    if (this->parent_->active_lamps_[i].active) {
+    if (this->active_lamps_[i].active) {
       char lamp_name_buffer[32];
-      this->parent_->fram_->read(2048, reinterpret_cast<unsigned char *>(lamp_name_buffer), 32);
+      this->fram_->read(2048, reinterpret_cast<unsigned char *>(lamp_name_buffer), 32);
       ESP_LOGV(TAG, "Lamp name: %s", lamp_name_buffer);
       DynamicLampTimer timer;
-      this->parent_->fram_->read((2048 + 32), reinterpret_cast<unsigned char *>(&timer), 24);
+      this->fram_->read((2048 + 32), reinterpret_cast<unsigned char *>(&timer), 24);
       ESP_LOGV(TAG, "Timer active: %d, mode: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d",
                timer.active, timer.mode, timer.hour, timer.minute, timer.monday, timer.tuesday, timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
     }
