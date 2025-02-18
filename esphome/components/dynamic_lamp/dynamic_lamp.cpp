@@ -273,14 +273,20 @@ LampList DynamicLampComponent::build_lamp_list_from_list_str_(std::string lamp_l
   if (lamp_list_vector.size() > 16) {
     ESP_LOGW(TAG, "Too many lamps in list, only 16 supported!");
     this->status_set_warning();
-    return LampList();
+    LampList lamp_list;
+      lamp_list[0] = 0;
+      lamp_list[1] = 0;
+      return lamp_list();
   }
   LampList lamp_list;
   for (uint8_t i = 0; i < lamp_list_vector.size(); i++) {
     if (lamp_list_vector[i] > 15) {
       ESP_LOGW(TAG, "Lamp index %" PRIu8 " is out of range, only [0-15] supported!", lamp_list_vector[i]);
       this->status_set_warning();
-      return LampList();
+      LampList lamp_list;
+      lamp_list[0] = 0;
+      lamp_list[1] = 0;
+      return lamp_list();
     }
     switch (lamp_list_vector[i]) {
       case 0:
