@@ -150,9 +150,8 @@ class ESPHomeDashboard:
             status_thread_mqtt = MqttStatusThread()
             status_thread_mqtt.start()
 
-        shutdown_event = asyncio.Event()
         try:
-            await shutdown_event.wait()
+            await asyncio.Event().wait()
         finally:
             _LOGGER.info("Shutting down...")
             self.stop_event.set()
