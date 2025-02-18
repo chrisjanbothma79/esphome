@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 
 IGNORED_DEVICES_STORAGE_PATH = "ignored-devices.json"
 
-MDNS_BOOTSTRAP_TIME = 10
+MDNS_BOOTSTRAP_TIME = 7.5
 
 
 @dataclass
