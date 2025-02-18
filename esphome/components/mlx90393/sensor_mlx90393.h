@@ -58,6 +58,9 @@ class MLX90393Cls : public PollingComponent, public i2c::I2CDevice, public MLX90
   bool temperature_compensation_{false};
   uint8_t hallconf_{0xC};
   GPIOPin *drdy_pin_{nullptr};
+
+  bool apply_settings_();
+  bool verify_settings_();
 };
 
 }  // namespace mlx90393
