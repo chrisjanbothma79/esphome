@@ -2,7 +2,7 @@ import esphome.codegen as cg
 from esphome.components import i2c, output
 from esphome.components.time import RealTimeClock
 import esphome.config_validation as cv
-from esphome.const import CONF_ID,
+from esphome.const import CONF_ID
 
 DEPENDENCIES = ["i2c", "fram", "output", "time"]
 CODEOWNERS = ["@p1ngb4ck"]
