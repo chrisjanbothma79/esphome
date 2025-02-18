@@ -1,5 +1,6 @@
 import esphome.codegen as cg
 from esphome.components import output
+from esphome.components.fram import FRAM
 from esphome.components.time import RealTimeClock
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
@@ -12,11 +13,13 @@ DynamicLampComponent = dynamic_lamp_ns.class_('DynamicLampComponent', cg.Compone
 CONF_DYNAMIC_LAMP_ID = "dynamic_lamp_id"
 
 CONF_RTC = 'rtc'
+CONF_FRAM = 'fram'
 CONF_SAVE_MODE = 'save_mode'
 CONF_AVAILABLE_OUTPUTS = 'available_outputs'
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(CONF_ID): cv.declare_id(DynamicLampComponent),
     cv.Required(CONF_RTC): cv.use_id(RealTimeClock),
+    cv.Required(CONF_FRAM): cv.use_id(FRAM),
     cv.Required(CONF_AVAILABLE_OUTPUTS): [cv.use_id(output.FloatOutput)],
     cv.Optional(CONF_SAVE_MODE, default=0): cv.int_range(0, 1),
 }).extend(cv.COMPONENT_SCHEMA)
@@ -26,6 +29,7 @@ async def to_code(config):
     var = cg.new_Pvariable(
         config[CONF_ID],
         await cg.get_variable(config[CONF_RTC]),
+        await cg.get_variable(config[CONF_FRAM]),
     )
     await cg.register_component(var, config)
     for outputPointer in config.get(CONF_AVAILABLE_OUTPUTS, []):

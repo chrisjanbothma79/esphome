@@ -109,6 +109,7 @@ class DynamicLampComponent : public Component {
  protected:
   friend class DynamicLamp;
   time::RealTimeClock *rtc_;
+  FRAM *fram_;
   void restore_lamp_values_(uint8_t lamp_number);
   void set_lamp_values_(uint8_t lamp_number, bool active, uint16_t selected_outputs, uint8_t mode, uint8_t mode_value);
   bool write_state_(uint8_t lamp_number, float state);
@@ -117,7 +118,6 @@ class DynamicLampComponent : public Component {
   LinkedOutput available_outputs_[16];
   uint8_t save_mode_;
   uint8_t lamp_count_ = 0;
-
 };
 
 
