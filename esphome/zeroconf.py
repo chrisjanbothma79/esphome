@@ -174,7 +174,8 @@ class DashboardImportDiscovery:
 
 def _make_host_resolver(host: str) -> HostResolver:
     """Create a new HostResolver for the given host name."""
-    return AddressResolver(f"{host.partition(".")[0]}.local.")
+    short_host = host.partition(".")[0]
+    return AddressResolver(f"{short_host}.local.")
 
 
 class EsphomeZeroconf(Zeroconf):
