@@ -68,7 +68,7 @@ UNKNOWN_STATE = EntryState(ReachableState.UNKNOWN, EntryStateSource.UNKNOWN)
 
 
 @lru_cache  # creating frozen dataclass instances is expensive, so we cache them
-def bool_to_entry_state(value: bool, source: EntryStateSource) -> EntryState:
+def bool_to_entry_state(value: bool | None, source: EntryStateSource) -> EntryState:
     """Convert a bool to an entry state."""
     return EntryState(_BOOL_TO_REACHABLE_STATE[value], source)
 

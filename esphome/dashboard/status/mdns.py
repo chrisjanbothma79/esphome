@@ -65,9 +65,7 @@ class MDNSStatus:
                 # the device won't respond to a request to ._esphomelib._tcp.local.
                 poll_names.setdefault(entry.name, set()).add(entry)
             elif (online := host_mdns_state.get(entry.name, SENTINEL)) != SENTINEL:
-                entries.async_set_state(
-                    entry, bool_to_entry_state(online, EntryStateSource.MDNS)
-                )
+                self._async_set_state(entry, online)
         if poll_names and self.aiozc:
             results = await asyncio.gather(
                 *(self.aiozc.async_resolve_host(name) for name in poll_names)
@@ -76,15 +74,19 @@ class MDNSStatus:
                 result = bool(address_list)
                 host_mdns_state[name] = result
                 for entry in poll_names[name]:
-                    # If we can reach it via mDNS, we always set it
-                    # online, however if we can't reach it via mDNS
-                    # we only set it to offline if the state is unknown
-                    # or from mDNS
-                    state = bool_to_entry_state(result, EntryStateSource.MDNS)
-                    if result:
-                        entries.async_set_state(entry, state)
-                    else:
-                        entries.async_set_state_if_source(entry, state)
+                    self._async_set_state(entry, result)
+
+    def _async_set_state(self, entry: DashboardEntry, result: bool | None) -> None:
+        """Set the state of an entry."""
+        # If we can reach it via mDNS, we always set it
+        # online, however if we can't reach it via mDNS
+        # we only set it to offline if the state is unknown
+        # or from mDNS
+        state = bool_to_entry_state(result, EntryStateSource.MDNS)
+        if result:
+            self.dashboard.entries.async_set_state(entry, state)
+        else:
+            self.dashboard.entries.async_set_state_if_source(entry, state)
 
     async def async_run(self) -> None:
         """Run the mdns status."""
@@ -98,14 +100,7 @@ class MDNSStatus:
                 host_mdns_state[name] = result
                 if matching_entries := entries.get_by_name(name):
                     for entry in matching_entries:
-                        # If its reachable via mDNS, we always set it
-                        # to online even if no_mdns is set since we can
-                        # reach it via mDNS
-                        if result or not entry.no_mdns:
-                            entries.async_set_state(
-                                entry,
-                                bool_to_entry_state(result, EntryStateSource.MDNS),
-                            )
+                        self._async_set_state(entry, result)
 
         stat = DashboardStatus(on_update)
         imports = DashboardImportDiscovery()
