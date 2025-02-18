@@ -137,10 +137,10 @@ class ESPHomeDashboard:
         self.mdns_status = mdns_status
         if mdns_status.async_setup():
             mdns_task = asyncio.create_task(mdns_status.async_run())
-            # Start ping 5 seconds after startup to ensure
+            # Start ping 10 seconds after startup to ensure
             # MDNS has had a chance to resolve the devices
             start_ping_timer = self.loop.call_later(
-                5, self._async_start_ping_status, ping_status
+                10, self._async_start_ping_status, ping_status
             )
         else:
             # If mDNS is not available, start the ping status immediately

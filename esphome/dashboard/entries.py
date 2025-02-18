@@ -31,6 +31,8 @@ DashboardCacheKeyType = tuple[int, int, float, int]
 
 @dataclass
 class EntryState:
+    """Represents the state of an entry."""
+
     reachable: ReachableState
     source: EntryStateSource
 
@@ -58,6 +60,8 @@ _REACHABLE_STATE_TO_BOOL = {
     ReachableState.OFFLINE: False,
     ReachableState.UNKNOWN: None,
 }
+
+UNKNOWN_STATE = EntryState(ReachableState.UNKNOWN, EntryStateSource.UNKNOWN)
 
 
 def bool_to_entry_state(value: bool, source: EntryStateSource) -> EntryState:
@@ -279,7 +283,7 @@ class DashboardEntry:
         self._storage_path = ext_storage_path(self.filename)
         self.cache_key = cache_key
         self.storage: StorageJSON | None = None
-        self.state = EntryState(ReachableState.UNKNOWN, EntryStateSource.UNKNOWN)
+        self.state = UNKNOWN_STATE
         self._to_dict: dict[str, Any] | None = None
 
     def __repr__(self) -> str:
