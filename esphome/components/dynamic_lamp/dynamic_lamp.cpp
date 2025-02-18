@@ -232,7 +232,7 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
                                      bool friday, bool saturday, bool sunday) {
   //unsigned char* lamp_name_cstr = lamp_name.c_str();
   unsigned char lamp_name_buffer[32];
-  strncopy(lamp_name_buffer, lamp_name.data(), 32);
+  strncpy(lamp_name_buffer, lamp_name.data(), 32);
   DynamicLampTimer new_timer;
   new_timer.active = timer_active;
   new_timer.mode = mode;
@@ -255,8 +255,8 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
            lamp_name.c_str(), new_timer.active, new_timer.mode, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
            new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday);
   ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
-  this->fram_->write(2048, &lamp_name_buffer, 32);
-  this->fram_->writeObject((2048 + 32), new_timer);
+  this->fram_->write(2048, lamp_name_buffer, 32);
+  this->fram_->write((2048 + 32), new_timer, 24);
   return true; 
 }
 
