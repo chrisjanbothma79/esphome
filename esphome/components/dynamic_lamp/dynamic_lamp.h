@@ -88,7 +88,7 @@ struct LampList {
 };
 
 struct DynamicLampTimer {
-  unsigned char validation[3] = { "D", "L", "T" };
+  unsigned char validation[3] = { "DLT" };
   uint8_t lamp_list[2];
   uint8_t action : 3;
   uint8_t hour : 5;
@@ -123,7 +123,6 @@ class DynamicLampComponent : public Component {
   void add_output_to_lamp(std::string lamp_name, LinkedOutput *output);
   void remove_output_from_lamp(std::string lamp_name, LinkedOutput *output);
   std::array<bool, 16> get_lamp_outputs(uint8_t lamp_number);
-  std::array<bool, 16> get_lamp_outputs_by_name(std::string lamp_name);
   bool add_timer(std::string lamp_name, bool timer_active, uint8_t mode, uint8_t hour,
     uint8_t minute, bool monday, bool tuesday, bool wednesday, bool thursday,
     bool friday, bool saturday, bool sunday);
@@ -136,6 +135,8 @@ class DynamicLampComponent : public Component {
   void restore_lamp_values_(uint8_t lamp_number);
   void set_lamp_values_(uint8_t lamp_number, bool active, uint16_t selected_outputs, uint8_t mode, uint8_t mode_value);
   bool write_state_(uint8_t lamp_number, float state);
+  uint8_t get_lamp_index_by_name_(std::string lamp_name);
+  std::array<bool, 16> get_lamp_outputs_by_name_(std::string lamp_name);
   std::vector<std::string> split_to_int_array_(const std::string& s, const std::string& delimiter);
   LampList build_lamp_list_from_list_str_(std::string lamp_list_str);
 

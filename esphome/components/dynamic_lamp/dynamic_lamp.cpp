@@ -214,7 +214,7 @@ std::array<bool, 16> DynamicLampComponent::get_lamp_outputs(uint8_t lamp_number)
   return bool_array;
 }
 
-uint8_t DynamicLampComponent::get_lamp_index_by_name(std::string lamp_name) {
+uint8_t DynamicLampComponent::get_lamp_index_by_name_(std::string lamp_name) {
   uint8_t i = 0;
   for (i = 0; i < this->lamp_count_; i++) {
     if (this->active_lamps_[i].name == lamp_name) {
@@ -226,23 +226,23 @@ uint8_t DynamicLampComponent::get_lamp_index_by_name(std::string lamp_name) {
   return 255;
 }
 
-std::array<bool, 16> DynamicLampComponent::get_lamp_outputs_by_name(std::string lamp_name) {
+std::array<bool, 16> DynamicLampComponent::get_lamp_outputs_by_name_(std::string lamp_name) {
   uint8_t lamp_index = this->get_lamp_index_by_name(lamp_name);
   if (lamp_index == 255) {
     std::array<bool, 16> bool_array;
     return bool_array;
   }
-  return this->get_lamp_outputs(i);
+  return this->get_lamp_outputs(lamp_index);
 }
 
-bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_active, uint8_t mode, uint8_t hour,
+bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_active, uint8_t action, uint8_t hour,
                                      uint8_t minute, bool monday, bool tuesday, bool wednesday, bool thursday,
                                      bool friday, bool saturday, bool sunday) {
   LampList lamp_list = this->build_lamp_list_from_list_str_(lamp_list_str);
   DynamicLampTimer new_timer;
   memcpy(new_timer.lamp_list, &lamp_list, 2);
   new_timer.active = timer_active;
-  new_timer.mode = mode;
+  new_timer.action = action;
   new_timer.hour = hour;
   new_timer.minute = minute;
   new_timer.monday = monday;
@@ -273,14 +273,14 @@ LampList DynamicLampComponent::build_lamp_list_from_list_str_(std::string lamp_l
   if (lamp_list_vector.size() > 16) {
     ESP_LOGW(TAG, "Too many lamps in list, only 16 supported!");
     this->status_set_warning();
-    return false;
+    return LampList();
   }
   LampList lamp_list;
   for (uint8_t i = 0; i < lamp_list_vector.size(); i++) {
     if (lamp_list_vector[i] > 15) {
       ESP_LOGW(TAG, "Lamp index %" PRIu8 " is out of range, only [0-15] supported!", lamp_list_vector[i]);
       this->status_set_warning();
-      return false;
+      return LampList();
     }
     switch (lamp_list_vector[i]) {
       case 0:
