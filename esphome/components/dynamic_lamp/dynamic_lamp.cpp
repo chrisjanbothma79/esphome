@@ -234,7 +234,7 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
   unsigned char lamp_name_buffer[32];
   strncpy(static_cast<char*>(static_cast<void*>(&lamp_name_buffer)), lamp_name.c_str(), 32);
   DynamicLampTimer new_timer;
-  memcpy(new_timer.lamp_name, lamp_name_buffer);
+  memcpy(new_timer.lamp_name, lamp_name_buffer, 32);
   new_timer.active = timer_active;
   new_timer.mode = mode;
   new_timer.hour = hour;
