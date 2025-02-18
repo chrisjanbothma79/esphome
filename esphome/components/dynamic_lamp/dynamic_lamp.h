@@ -88,7 +88,7 @@ class DynamicLamp;
 
 class DynamicLampComponent : public Component {
  public:
-  explicit DynamicLampComponent(time::RealTimeClock *rtc) : rtc_(rtc) {}
+  explicit DynamicLampComponent(time::RealTimeClock *rtc, FRAM *fram) : rtc_(rtc), fram_(fram) {}
   void setup() override;
   void loop() override;
   void dump_config() override;
