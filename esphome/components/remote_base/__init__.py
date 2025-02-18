@@ -747,10 +747,10 @@ async def keeloq_action(var, config, args):
 
 # NEC
 NECData, NECBinarySensor, NECTrigger, NECAction, NECDumper = declare_protocol("NEC")
-nec_code_type = ns.enum("NECCodeType", is_class=True)
+nec_code_type_enum_class = ns.enum("NECCodeType", is_class=True)
 NEC_CODE_TYPES = {
-    "frame": nec_code_type.FRAME,
-    "repeat": nec_code_type.REPEAT,
+    "frame": nec_code_type_enum_class.FRAME,
+    "repeat": nec_code_type_enum_class.REPEAT,
 }
 NEC_SCHEMA = cv.Schema(
     {
@@ -795,6 +795,8 @@ async def nec_action(var, config, args):
     cg.add(var.set_command(template_))
     template_ = await cg.templatable(config[CONF_REPEATS], args, cg.uint16)
     cg.add(var.set_repeats(template_))
+    template_ = await cg.templatable(config[CONF_TYPE], args, nec_code_type_enum_class)
+    cg.add(var.set_type(template_))
 
 
 # Pioneer
