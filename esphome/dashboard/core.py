@@ -121,6 +121,9 @@ class ESPHomeDashboard:
                 {"ignored_devices": sorted(self.ignored_devices)}, indent=2, fp=f_handle
             )
 
+    def _async_start_ping_status(self, ping_status: PingStatus) -> None:
+        self._ping_status_task = asyncio.create_task(ping_status.async_run())
+
     async def async_run(self) -> None:
         """Run the dashboard."""
         settings = self.settings
@@ -131,18 +134,17 @@ class ESPHomeDashboard:
         ping_status = PingStatus()
         start_ping_timer: asyncio.TimerHandle | None = None
 
-        def _start_ping_status():
-            self._ping_status_task = asyncio.create_task(ping_status.async_run())
-
         self.mdns_status = mdns_status
         if mdns_status.async_setup():
             mdns_task = asyncio.create_task(mdns_status.async_run())
             # Start ping 5 seconds after startup to ensure
             # MDNS has had a chance to resolve the devices
-            start_ping_timer = self.loop.call_later(5, _start_ping_status)
+            start_ping_timer = self.loop.call_later(
+                5, self._async_start_ping_status, ping_status
+            )
         else:
             # If mDNS is not available, start the ping status immediately
-            _start_ping_status()
+            self._async_start_ping_status(ping_status)
 
         if settings.status_use_mqtt:
             from .status.mqtt import MqttStatusThread
