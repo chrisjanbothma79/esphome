@@ -8,7 +8,6 @@ namespace SeeedEnergyMeter {
 static const char *const TAG = "SeeedEnergyMeter";
 
 // https://www.belling.com.cn/media/file_object/bel_product/BL0939/datasheet/BL0939_V1.2_cn.pdf
-// (unfortunately chinese, but the protocol can be understood with some translation tool)
 static const uint8_t BL0939_READ_COMMAND = 0x55;  // 0x5{A4,A3,A2,A1}
 static const uint8_t BL0939_FULL_PACKET = 0xAA;
 static const uint8_t BL0939_PACKET_HEADER = 0x55;
