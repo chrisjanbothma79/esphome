@@ -32,7 +32,7 @@ template<typename... Ts> class NECAction : public RemoteTransmitterActionBase<Ts
     NECData data{};
     data.address = this->address_.value(x...);
     data.command = this->command_.value(x...);
-    data.repeats = this->repeats.value(x...);
+    data.repeats = this->repeats_.value(x...);
     NECProtocol().encode(dst, data);
   }
 };
