@@ -53,12 +53,17 @@ class PingStatus:
             to_ping: list[DashboardEntry] = []
 
             for entry in current_entries:
-                if entry.address is None or entry.state.source not in (
-                    EntryStateSource.UNKNOWN,
-                    EntryStateSource.PING,
-                ):
+                if entry.address is None:
                     # No address or we already have a state from another source
                     # so no need to ping
+                    continue
+                if (
+                    entry.state.reachable is ReachableState.ONLINE
+                    and entry.state.source
+                    not in (EntryStateSource.PING, EntryStateSource.UNKNOWN)
+                ):
+                    # If we already have a state from another source and
+                    # it's online, we don't need to ping
                     continue
                 to_ping.append(entry)
 
