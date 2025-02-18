@@ -31,6 +31,7 @@ from esphome.const import (
     CONF_SYNC,
     CONF_TIMES,
     CONF_TRIGGER_ID,
+    CONF_TYPE,
     CONF_TYPE_ID,
     CONF_WAIT_TIME,
     CONF_WAND_ID,
@@ -48,7 +49,6 @@ CONF_FIRST = "first"
 
 # NEC
 CONF_REPEATS = "repeats"
-CONF_CODE_TYPE = "code_type"
 TYPE_FRAME = "frame"
 TYPE_REPEAT = "repeat"
 
@@ -761,7 +761,6 @@ NEC_FRAME_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ADDRESS): cv.hex_uint16_t,
         cv.Required(CONF_COMMAND): cv.hex_uint16_t,
-        cv.Required(CONF_CODE_TYPE, default=TYPE_FRAME): cv.enum(NEC_CODE_TYPES),
         cv.Optional(CONF_REPEATS, default=0): cv.uint16_t,
     }
 )
@@ -770,17 +769,25 @@ NEC_REPEAT_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ADDRESS, default=0): cv.uint16_t,
         cv.Required(CONF_COMMAND, default=0): cv.uint16_t,
-        cv.Required(CONF_CODE_TYPE, default=TYPE_REPEAT): cv.enum(NEC_CODE_TYPES),
         cv.Optional(CONF_REPEATS, default=1): cv.int_range(min=1, max=65535),
     }
 )
 
-NEC_SCHEMA = cv.typed_schema(
-    {
-        TYPE_FRAME: NEC_FRAME_SCHEMA,
-        TYPE_REPEAT: NEC_REPEAT_SCHEMA,
-    },
-    default_type=TYPE_FRAME,
+
+def nec_schema_convert_type_to_enum(config):
+    config[CONF_TYPE] = cv.enum(NEC_CODE_TYPES, lower=True)(config[CONF_TYPE])
+    return config
+
+
+NEC_SCHEMA = cv.All(
+    cv.typed_schema(
+        {
+            TYPE_FRAME: NEC_FRAME_SCHEMA,
+            TYPE_REPEAT: NEC_REPEAT_SCHEMA,
+        },
+        lower=True,
+    ),
+    nec_schema_convert_type_to_enum,
 )
 
 
@@ -793,7 +800,7 @@ def nec_binary_sensor(var, config):
                 ("address", config[CONF_ADDRESS]),
                 ("command", config[CONF_COMMAND]),
                 ("repeats", config[CONF_REPEATS]),
-                ("type", config[CONF_CODE_TYPE]),
+                ("type", config[CONF_TYPE]),
             )
         )
     )
@@ -817,9 +824,7 @@ async def nec_action(var, config, args):
     cg.add(var.set_command(template_))
     template_ = await cg.templatable(config[CONF_REPEATS], args, cg.uint16)
     cg.add(var.set_repeats(template_))
-    template_ = await cg.templatable(
-        config[CONF_CODE_TYPE], args, nec_code_type_enum_class
-    )
+    template_ = await cg.templatable(config[CONF_TYPE], args, nec_code_type_enum_class)
     cg.add(var.set_type(template_))
 
 
