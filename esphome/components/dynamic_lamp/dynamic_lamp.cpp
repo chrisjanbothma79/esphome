@@ -214,27 +214,33 @@ std::array<bool, 16> DynamicLampComponent::get_lamp_outputs(uint8_t lamp_number)
   return bool_array;
 }
 
-std::array<bool, 16> DynamicLampComponent::get_lamp_outputs_by_name(std::string lamp_name) {
+uint8_t DynamicLampComponent::get_lamp_index_by_name(std::string lamp_name) {
   uint8_t i = 0;
-  std::array<bool, 16> bool_array;
   for (i = 0; i < this->lamp_count_; i++) {
     if (this->active_lamps_[i].name == lamp_name) {
-      return this->get_lamp_outputs(i);
+      return i;
     }
   }
   this->status_set_warning();
   ESP_LOGW(TAG, "No lamp with name %s defined !", lamp_name.c_str());
-  return bool_array;
+  return 255;
 }
 
-bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, uint8_t mode, uint8_t hour,
+std::array<bool, 16> DynamicLampComponent::get_lamp_outputs_by_name(std::string lamp_name) {
+  uint8_t lamp_index = this->get_lamp_index_by_name(lamp_name);
+  if (lamp_index == 255) {
+    std::array<bool, 16> bool_array;
+    return bool_array;
+  }
+  return this->get_lamp_outputs(i);
+}
+
+bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_active, uint8_t mode, uint8_t hour,
                                      uint8_t minute, bool monday, bool tuesday, bool wednesday, bool thursday,
                                      bool friday, bool saturday, bool sunday) {
-  //unsigned char* lamp_name_cstr = lamp_name.c_str();
-  unsigned char lamp_name_buffer[32];
-  strncpy(static_cast<char*>(static_cast<void*>(&lamp_name_buffer)), lamp_name.c_str(), 32);
+  LampList lamp_list = this->build_lamp_list_from_list_str_(lamp_list_str);
   DynamicLampTimer new_timer;
-  memcpy(new_timer.lamp_name, lamp_name_buffer, 32);
+  memcpy(new_timer.lamp_list, &lamp_list, 2);
   new_timer.active = timer_active;
   new_timer.mode = mode;
   new_timer.hour = hour;
@@ -254,12 +260,80 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
   new_timer.end_date = end_date;
   unsigned char* timer_as_bytes = static_cast<unsigned char*>(static_cast<void*>(&new_timer));
   ESP_LOGV(TAG, "Added new timer for lamp %s, active %d, mode %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d",
-           new_timer.lamp_name, new_timer.active, new_timer.mode, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
+           lamp_list_str.c_str(), new_timer.active, new_timer.mode, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
            new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday);
   ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
-  //this->fram_->write(2048, reinterpret_cast<unsigned char *>(lamp_name_buffer), 32);
-  this->fram_->write((2048), timer_as_bytes, 56);
-  return true; 
+  this->fram_->write((2048), timer_as_bytes, 24);
+  return true;
+}
+
+LampList DynamicLampComponent::build_lamp_list_from_list_str_(std::string lamp_list_str) {
+  std::string delimiter = ",";
+  std::vector<uint8_t> lamp_list_vector = this->split_to_int_array_(s, delimiter);
+  if (lamp_list_vector.size() > 16) {
+    ESP_LOGW(TAG, "Too many lamps in list, only 16 supported!");
+    this->status_set_warning();
+    return false;
+  }
+  LampList lamp_list;
+  for (uint8_t i = 0; i < lamp_list_vector.size(); i++) {
+    if (lamp_list_vector[i] > 15) {
+      ESP_LOGW(TAG, "Lamp index %" PRIu8 " is out of range, only [0-15] supported!", lamp_list_vector[i]);
+      this->status_set_warning();
+      return false;
+    }
+    switch (lamp_list_vector[i]) {
+      case 0:
+        lamp_list.lamp_0 = true;
+        break;
+      case 1:
+        lamp_list.lamp_1 = true;
+        break;
+      case 2:
+        lamp_list.lamp_2 = true;
+        break;
+      case 3:
+        lamp_list.lamp_3 = true;
+        break;
+      case 4:
+        lamp_list.lamp_4 = true;
+        break;
+      case 5:
+        lamp_list.lamp_5 = true;
+        break;
+      case 6:
+        lamp_list.lamp_6 = true;
+        break;
+      case 7:
+        lamp_list.lamp_7 = true;
+        break;
+      case 8:
+        lamp_list.lamp_8 = true;
+        break;
+      case 9:
+        lamp_list.lamp_9 = true;
+        break;
+      case 10:
+        lamp_list.lamp_10 = true;
+        break;
+      case 11:
+        lamp_list.lamp_11 = true;
+        break;
+      case 12:
+        lamp_list.lamp_12 = true;
+        break;
+      case 13:
+        lamp_list.lamp_13 = true;
+        break;
+      case 14:
+        lamp_list.lamp_14 = true;
+        break;
+      case 15:
+        lamp_list.lamp_15 = true;
+        break;
+    }
+  }
+  return lamp_list;
 }
 
 void DynamicLampComponent::read_timers_to_log() {
@@ -267,10 +341,15 @@ void DynamicLampComponent::read_timers_to_log() {
   for (i = 0; i < 16; i++) {
     if (this->active_lamps_[i].active) {
       DynamicLampTimer timer;
-      this->fram_->read((2048), reinterpret_cast<unsigned char *>(&timer), 56);
-      ESP_LOGV(TAG, "Timer found for lamp %s: %d, mode: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d",
-               timer.lamp_name, timer.active, timer.mode, timer.hour, timer.minute, timer.monday, timer.tuesday,
+      this->fram_->read((2048), reinterpret_cast<unsigned char *>(&timer), 24);
+      LampList lamp_list = *reinterpret_cast<LampList *>(&timer.lamp_list);
+      for (uint8_t j = 0; j < 16; j++) {
+        if (lamp_list[j]) {
+          ESP_LOGV(TAG, "Timer found for lamp %s: %d, mode: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d",
+               this->active_lamps_[j].name, timer.active, timer.mode, timer.hour, timer.minute, timer.monday, timer.tuesday,
                timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
+        }
+      }
     }
   }
 }
@@ -294,6 +373,20 @@ void DynamicLampComponent::set_lamp_values_(uint8_t lamp_number, bool active, ui
 
 void DynamicLampComponent::restore_lamp_values_(uint8_t lamp_number) {
   this->active_lamps_[lamp_number].active = false;
+}
+
+std::vector<uint8_t> DynamicLampComponent::split_to_int_array_(const std::string& s, const std::string& delimiter) {
+  std::vector<uint8_t> tokens;
+  size_t pos = 0;
+  std::string token;
+  while ((pos = s.find(delimiter)) != std::string::npos) {
+      token = static_cast<uint8_t>(atoi(s.substr(0, pos)));
+      tokens.push_back(token);
+      s.erase(0, pos + delimiter.length());
+  }
+  tokens.push_back(s);
+
+  return tokens;
 }
 
 }  // namespace dynamic_lamp

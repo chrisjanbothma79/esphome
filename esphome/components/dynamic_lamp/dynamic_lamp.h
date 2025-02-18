@@ -68,9 +68,29 @@ struct CombinedLamp {
   bool used_outputs[16];
 };
 
+struct LampList {
+  bool lamp_0 : 1;
+  bool lamp_1 : 1;
+  bool lamp_2 : 1;
+  bool lamp_3 : 1;
+  bool lamp_4 : 1;
+  bool lamp_5 : 1;
+  bool lamp_6 : 1;
+  bool lamp_7 : 1;
+  bool lamp_8 : 1;
+  bool lamp_9 : 1;
+  bool lamp_10 : 1;
+  bool lamp_11 : 1;
+  bool lamp_12 : 1;
+  bool lamp_13 : 1;
+  bool lamp_14 : 1;
+  bool lamp_15 : 1;
+};
+
 struct DynamicLampTimer {
-  unsigned char lamp_name[32];
-  uint8_t mode : 1;
+  unsigned char validation[3] = { "D", "L", "T" };
+  uint8_t lamp_list[2];
+  uint8_t action : 3;
   uint8_t hour : 5;
   uint8_t minute : 6;
   bool active : 1;
@@ -116,6 +136,8 @@ class DynamicLampComponent : public Component {
   void restore_lamp_values_(uint8_t lamp_number);
   void set_lamp_values_(uint8_t lamp_number, bool active, uint16_t selected_outputs, uint8_t mode, uint8_t mode_value);
   bool write_state_(uint8_t lamp_number, float state);
+  std::vector<std::string> split_to_int_array_(const std::string& s, const std::string& delimiter);
+  LampList build_lamp_list_from_list_str_(std::string lamp_list_str);
 
   CombinedLamp active_lamps_[16];
   LinkedOutput available_outputs_[16];
