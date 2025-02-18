@@ -153,7 +153,7 @@ std::string NECProtocol::get_protocol_type_and_fields(const NECData &data) const
       debug_message += str_sprintf("Frame (%u-bit address)", this->is_extended(data) ? 16 : 8);
       break;
     case NECCodeType::REPEAT:
-      debug_message += "Repeat Code";
+      debug_message += "Repeat Code:";
       break;
     default:
       debug_message += "Unknown";
@@ -167,11 +167,11 @@ std::string NECProtocol::get_protocol_type_and_fields(const NECData &data) const
       debug_message += str_sprintf("%02X, address#=0x%02X", data.address_lower, data.address_upper);
     }
 
-    debug_message += str_sprintf(", command=0x%02X, command#=0x%02X, command_valid=%s", data.command_lower,
+    debug_message += str_sprintf(", command=0x%02X, command#=0x%02X, command_valid=%s,", data.command_lower,
                                  data.command_upper, YESNO(this->is_command_valid(data)));
   }
 
-  debug_message += str_sprintf(", repeats=%" PRIu16, data.repeats);
+  debug_message += str_sprintf(" repeats=%" PRIu16, data.repeats);
 
   return debug_message;
 }
