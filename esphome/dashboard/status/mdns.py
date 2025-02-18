@@ -38,7 +38,9 @@ class MDNSStatus:
         try:
             self.aiozc = AsyncEsphomeZeroconf()
         except OSError as e:
-            _LOGGER.error("Error initializing zeroconf: %s", e)
+            _LOGGER.warning(
+                "Failed to initialize zeroconf, will fallback to ping: %s", e
+            )
             return False
         return True
 
