@@ -234,6 +234,7 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
   char lamp_name_buffer[32];
   strncpy(lamp_name_buffer, lamp_name.c_str(), 32);
   DynamicLampTimer new_timer;
+  new_timer.name = lamp_name_buffer;
   new_timer.active = timer_active;
   new_timer.mode = mode;
   new_timer.hour = hour;
@@ -253,11 +254,11 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
   new_timer.end_date = end_date;
   unsigned char* timer_as_bytes = static_cast<unsigned char*>(static_cast<void*>(&new_timer));
   ESP_LOGV(TAG, "Added new timer for lamp %s, active %d, mode %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d",
-           lamp_name.c_str(), new_timer.active, new_timer.mode, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
+           new_timer.name, new_timer.active, new_timer.mode, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
            new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday);
   ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
-  this->fram_->write(2048, reinterpret_cast<unsigned char *>(lamp_name_buffer), 32);
-  this->fram_->write((2048 + 32), timer_as_bytes, 24);
+  //this->fram_->write(2048, reinterpret_cast<unsigned char *>(lamp_name_buffer), 32);
+  this->fram_->write((2048), timer_as_bytes, 56);
   return true; 
 }
 
@@ -265,13 +266,11 @@ void DynamicLampComponent::read_timers_to_log() {
   uint8_t i = 0;
   for (i = 0; i < 16; i++) {
     if (this->active_lamps_[i].active) {
-      char lamp_name_buffer[32];
-      this->fram_->read(2048, reinterpret_cast<unsigned char *>(lamp_name_buffer), 32);
-      ESP_LOGV(TAG, "Lamp name: %s", lamp_name_buffer);
       DynamicLampTimer timer;
-      this->fram_->read((2048 + 32), reinterpret_cast<unsigned char *>(&timer), 24);
-      ESP_LOGV(TAG, "Timer active: %d, mode: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d",
-               timer.active, timer.mode, timer.hour, timer.minute, timer.monday, timer.tuesday, timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
+      this->fram_->read((2048), reinterpret_cast<unsigned char *>(&timer), 56);
+      ESP_LOGV(TAG, "Timer found for lamp %s: %d, mode: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d",
+               timer.name, timer.active, timer.mode, timer.hour, timer.minute, timer.monday, timer.tuesday,
+               timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
     }
   }
 }
