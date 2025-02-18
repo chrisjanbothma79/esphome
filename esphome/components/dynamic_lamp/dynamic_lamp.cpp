@@ -245,14 +245,13 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
   new_timer.saturday = saturday;
   new_timer.sunday = sunday;
   ESPTime now = this->rtc_->now();
-  time_t begin_date = now.to_time_t();
-  time_t end_date = now.increment_days(1).to_time_t();
+  time_t begin_date = now.to_c_tm();
+  time_t end_date = now.increment_day(1).to_c_tm();
   new_timer.begin_date = begin_date;
   new_timer.end_date = end_date;
-  ESP_LOGV(TAG, "Added new timer for lamp %s, active %d, mode %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d, begin_date %s, end_date %s",
+  ESP_LOGV(TAG, "Added new timer for lamp %s, active %d, mode %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d",
            new_timer.lamp_name, new_timer.active, new_timer.mode, new_timer.hour, new_timer.minute, new_timer.monday, new_timer.tuesday, new_timer.wednesday,
-           new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday,
-           new_timer.begin_date.to_string().c_str(), new_timer.end_date.to_string().c_str());
+           new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday);
   ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
   return true; 
 }
