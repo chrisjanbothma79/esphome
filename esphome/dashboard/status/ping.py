@@ -28,6 +28,8 @@ GROUP_SIZE = int(MAX_EXECUTOR_WORKERS / 2)
 
 DNS_FAILURE_STATE = EntryState(ReachableState.DNS_FAILURE, EntryStateSource.PING)
 
+MIN_PING_INTERVAL = 5  # ensure we don't ping too often
+
 
 class PingStatus:
     def __init__(self, dashboard: ESPHomeDashboard) -> None:
@@ -49,6 +51,7 @@ class PingStatus:
             # Only ping if the dashboard is open
             await dashboard.ping_request.wait()
             dashboard.ping_request.clear()
+            iteration_start = time.monotonic()
             current_entries = dashboard.entries.async_all()
             to_ping: list[DashboardEntry] = []
 
@@ -120,6 +123,11 @@ class PingStatus:
                         entry,
                         bool_to_entry_state(ping_result, EntryStateSource.PING),
                     )
+
+            if not dashboard.stop_event.is_set():
+                iteration_duration = time.monotonic() - iteration_start
+                if iteration_duration < MIN_PING_INTERVAL:
+                    await asyncio.sleep(MIN_PING_INTERVAL - iteration_duration)
 
 
 async def _can_use_icmp_lib_with_privilege() -> None | bool:
