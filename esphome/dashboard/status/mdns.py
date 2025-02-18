@@ -13,7 +13,12 @@ from esphome.zeroconf import (
 )
 
 from ..const import SENTINEL
-from ..entries import DashboardEntry, EntryStateSource, bool_to_entry_state
+from ..entries import (
+    DashboardEntry,
+    EntryStateSource,
+    ReachableState,
+    bool_to_entry_state,
+)
 
 if typing.TYPE_CHECKING:
     from ..core import ESPHomeDashboard
@@ -77,7 +82,8 @@ class MDNSStatus:
                 host_mdns_state[name] = result
                 for entry in poll_names[name]:
                     if (
-                        entry.state.source is EntryStateSource.UNKNOWN
+                        (result and entry.state.reachable is not ReachableState.ONLINE)
+                        or entry.state.source is EntryStateSource.UNKNOWN
                         or entry.state.source is EntryStateSource.MDNS
                     ):
                         entries.async_set_state(
