@@ -232,7 +232,7 @@ bool DynamicLampComponent::add_timer(std::string lamp_name, bool timer_active, u
                                      bool friday, bool saturday, bool sunday) {
   //unsigned char* lamp_name_cstr = lamp_name.c_str();
   unsigned char lamp_name_buffer[32];
-  strncpy(static_cast<char *>(lamp_name_buffer), lamp_name.c_str(), 32);
+  strncpy(static_cast<char*>(static_cast<void*>(lamp_name_buffer)), lamp_name.c_str(), 32);
   DynamicLampTimer new_timer;
   new_timer.lamp_name = lamp_name_buffer;
   new_timer.active = timer_active;
