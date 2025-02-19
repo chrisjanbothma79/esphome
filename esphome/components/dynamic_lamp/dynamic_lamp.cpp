@@ -104,7 +104,7 @@ void DynamicLampComponent::dump_config() {
   //this->add_output_to_lamp("First Lamp", &this->available_outputs_[1]);
   //this->add_output_to_lamp("First Lamp", &this->available_outputs_[2]);
   //this->add_output_to_lamp("First Lamp", &this->available_outputs_[3]);
-  std::string lamp_names_str;
+  /* std::string lamp_names_str;
   for (uint8_t i = 0; i < 64; i++) {
     if (this->timers_[i].in_use == true) {
       lamp_names_str = "";
@@ -123,7 +123,7 @@ void DynamicLampComponent::dump_config() {
         this->timers_[i].wednesday, this->timers_[i].thursday, this->timers_[i].friday, this->timers_[i].saturday, this->timers_[i].sunday);
       ESP_LOGCONFIG(TAG, "Timer active for lamps %s", lamp_names_str.c_str());
     }
-  }
+  } */
 }
 
 void DynamicLampComponent::set_save_mode(uint8_t save_mode) {
