@@ -232,7 +232,7 @@ bool DynamicLampComponent::add_timer(std::string timer_desc, std::string lamp_li
                                      bool friday, bool saturday, bool sunday) {
   std::vector<bool> lamp_list = this->build_lamp_list_from_list_str_(lamp_list_str);
   DynamicLampTimer new_timer;
-  strncpy(reinterpret_cast<char *>(new_timer.timer_desc), timer_desc.c_str(), 40);
+  strncpy(reinterpret_cast<char *>(new_timer.timer_desc), timer_desc.c_str(), 36);
   unsigned char lamp_list_bytes[2] = {0, 0};
   for (uint8_t i = 0; i < lamp_list.size(); i++) {
     if (lamp_list[i] == true && !this->active_lamps_[i].active) {
