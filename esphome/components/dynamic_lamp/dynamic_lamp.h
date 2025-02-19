@@ -123,7 +123,8 @@ class DynamicLampComponent : public Component {
   std::array<bool, 16> get_lamp_outputs_by_name_(std::string lamp_name);
   std::vector<uint8_t> split_to_int_vector_(std::string lamp_list_str);
   std::vector<bool> build_lamp_list_from_list_str_(std::string lamp_list_str);
-
+  void clear_fram_();
+ 
   CombinedLamp active_lamps_[16];
   LinkedOutput available_outputs_[16];
   DynamicLampTimer timers_[12];

@@ -410,6 +410,10 @@ void DynamicLampComponent::restore_timers_() {
   }
 }
 
+void DynamicLampComponent::clear_fram_() {
+  this->fram_->clear();
+}
+
 std::vector<uint8_t> DynamicLampComponent::split_to_int_vector_(std::string lamp_list_str) {
   std::vector<uint8_t> tokens;
   std::stringstream sstream(lamp_list_str);
