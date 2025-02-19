@@ -8,6 +8,7 @@ import logging
 import os
 import re
 from string import ascii_letters, digits
+from typing import Callable
 import uuid as uuid_
 
 import voluptuous as vol
@@ -87,6 +88,8 @@ from esphome.schema_extractors import (
 from esphome.util import parse_esphome_version
 from esphome.voluptuous_schema import _Schema
 from esphome.yaml_util import make_data_base
+
+from .frame import get_component_logger
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -2259,3 +2262,120 @@ def rename_key(old_key, new_key):
         return config
 
     return validator
+
+
+def _deprecated_or_removed(
+    key: str,
+    replacement_key: str | None,
+    default: Any | None,
+    raise_if_present: bool,
+    option_removed: bool,
+) -> Callable[[dict], dict]:
+    """Log key as deprecated and provide a replacement (if exists) or fail.
+
+    Expected behavior:
+        - Outputs or throws the appropriate deprecation warning if key is detected
+        - Outputs or throws the appropriate error if key is detected
+          and removed from support
+        - Processes schema moving the value from key to replacement_key
+        - Processes schema changing nothing if only replacement_key provided
+        - No warning if only replacement_key provided
+        - No warning if neither key nor replacement_key are provided
+            - Adds replacement_key with default value in this case
+    """
+
+    def validator(config: dict) -> dict:
+        """Check if key is in config and log warning or error."""
+        if key in config:
+            if option_removed:
+                level = logging.ERROR
+                option_status = "has been removed"
+            else:
+                level = logging.WARNING
+                option_status = "is deprecated"
+
+            try:
+                # near = (
+                #    f"near {config.__config_file__}"  # type: ignore[attr-defined]
+                #    f":{config.__line__} "  # type: ignore[attr-defined]
+                # )
+                near = ""  # TODO: fix this
+            except AttributeError:
+                near = ""
+            arguments: tuple[str, ...]
+            if replacement_key:
+                warning = "The '%s' option %s%s, please replace it with '%s'"
+                arguments = (key, near, option_status, replacement_key)
+            else:
+                warning = (
+                    "The '%s' option %s%s, please remove it from your configuration"
+                )
+                arguments = (key, near, option_status)
+
+            if raise_if_present:
+                raise vol.Invalid(warning % arguments)
+
+            get_component_logger(__name__).log(level, warning, *arguments)
+            value = config[key]
+            if replacement_key or option_removed:
+                config.pop(key)
+        else:
+            value = default
+
+        keys = [key]
+        if replacement_key:
+            keys.append(replacement_key)
+            if value is not None and (
+                replacement_key not in config or default == config.get(replacement_key)
+            ):
+                config[replacement_key] = value
+
+        return has_at_most_one_key(*keys)(config)
+
+    return validator
+
+
+def deprecated(
+    key: str,
+    replacement_key: str | None = None,
+    default: Any | None = None,
+    raise_if_present: bool | None = False,
+) -> Callable[[dict], dict]:
+    """Log key as deprecated and provide a replacement (if exists).
+
+    Expected behavior:
+        - Outputs the appropriate deprecation warning if key is detected
+          or raises an exception
+        - Processes schema moving the value from key to replacement_key
+        - Processes schema changing nothing if only replacement_key provided
+        - No warning if only replacement_key provided
+        - No warning if neither key nor replacement_key are provided
+            - Adds replacement_key with default value in this case
+    """
+    return _deprecated_or_removed(
+        key,
+        replacement_key=replacement_key,
+        default=default,
+        raise_if_present=raise_if_present or False,
+        option_removed=False,
+    )
+
+
+def removed(
+    key: str,
+    default: Any | None = None,
+    raise_if_present: bool | None = True,
+) -> Callable[[dict], dict]:
+    """Log key as deprecated and fail the config validation.
+
+    Expected behavior:
+        - Outputs the appropriate error if key is detected and removed from
+          support or raises an exception.
+    """
+    return _deprecated_or_removed(
+        key,
+        replacement_key=None,
+        default=default,
+        raise_if_present=raise_if_present or False,
+        option_removed=True,
+    )
