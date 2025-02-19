@@ -161,8 +161,7 @@ void DynamicLampComponent::remove_lamp(std::string lamp_name) {
           this->active_lamps_[i].used_outputs[j] = false;
         }
       }
-      for (uint8_t j = i; j < 24; j++) {
-        this->active_lamps_[j] = this->active_lamps_[j + 1];
+      for (uint8_t j = 0; j < 24; j++) {
         this->fram_->write((0x0000 + (i * 24) + j), { 0xff }, 1);
       }
       this->active_lamps_[i].active = false;
@@ -413,7 +412,7 @@ bool DynamicLampComponent::write_state_(uint8_t lamp_number, float state) {
   return false;
 }
 
-unsigned char[16] DynamicLampComponent::get_lamp_name(uint8_t lamp_number) {
+unsigned char* DynamicLampComponent::get_lamp_name(uint8_t lamp_number) {
   return this->active_lamps_[lamp_number].name;
 }
 
