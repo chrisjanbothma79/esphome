@@ -163,7 +163,7 @@ void DynamicLampComponent::remove_lamp(std::string lamp_name) {
         }
       }
       uint16_t memaddress = 0 + (i * 24);
-      unsigned char[24] empty_lamp;
+      unsigned char empty_lamp[24];
       for (uint8_t m = 0; m < 24; m++) {
         empty_lamp[m] = 0xff;
       }
