@@ -62,8 +62,8 @@ enum DynamicLampIdx : uint8_t {
 struct CombinedLamp {
   unsigned char validation_byte;
   uint8_t lamp_index : 4;
-  bool active = false : 1;
-  bool update_ = false : 1;
+  bool active : 1;
+  bool update_ : 1;
   unsigned char :0;
   unsigned char name[16];
   float state_;

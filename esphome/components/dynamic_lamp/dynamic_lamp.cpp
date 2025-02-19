@@ -124,14 +124,14 @@ void DynamicLampComponent::add_available_output(output::FloatOutput * output, st
   this->available_outputs_[counter].output_id = output_id;
   this->available_outputs_[counter].output = output;
   this->available_outputs_[counter].output_index = counter;
-  this->available_outputs_[counter].state = output->state;
+  this->available_outputs_[counter].state = output.state;
   counter++;
 }
 
 void DynamicLampComponent::add_lamp(std::string name) {
   if (this->lamp_count_ < 15) {
     this->active_lamps_[this->lamp_count_].active = true;
-    this->active_lamps_[this->lamp_count_].name = name;
+    this->active_lamps_[this->lamp_count_].name = nam.c_str();
     this->active_lamps_[this->lamp_count_].validation_byte = 'L';
     this->active_lamps_[this->lamp_count_].lamp_index = this->lamp_count_;
     this->active_lamps_[this->lamp_count_].used_outputs[0] = 0;
@@ -148,7 +148,7 @@ void DynamicLampComponent::add_lamp(std::string name) {
 void DynamicLampComponent::remove_lamp(std::string lamp_name) {
   uint8_t i = 0;
   while (i < this->lamp_count_) {
-    if (this->active_lamps_[i].name == lamp_name) {
+    if (this->active_lamps_[i].name == lamp_name.c_str()) {
       for (uint8_t j = 0; j < 16; j++) {
         uint8_t k = 0;
         uint8_t l = j;
@@ -164,7 +164,7 @@ void DynamicLampComponent::remove_lamp(std::string lamp_name) {
       }
       for (uint8_t j = i; j < 24; j++) {
         this->active_lamps_[j] = this->active_lamps_[j + 1];
-        this->fram_->write((0x0000 + (i * 24) + j), { 'FF' }, 1);
+        this->fram_->write((0x0000 + (i * 24) + j), { 0xff }, 1);
       }
       this->active_lamps_[i].active = false;
       this->lamp_count_--;
