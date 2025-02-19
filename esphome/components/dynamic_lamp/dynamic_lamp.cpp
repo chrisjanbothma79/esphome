@@ -281,19 +281,22 @@ bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_activ
 std::vector<bool> DynamicLampComponent::build_lamp_list_from_list_str_(std::string lamp_list_str) {
   std::vector<uint8_t> lamp_list_vector = this->split_to_int_vector_(lamp_list_str);
   std::vector<bool> lamp_list;
-  memset(&lamp_list, 0, 16);
+  while (lamp_list.size() < 16) {
+    lamp_list.push_back(false);
+  }
   if (lamp_list_vector.size() > 16) {
     ESP_LOGW(TAG, "Too many lamps in list, only 16 supported!");
     this->status_set_warning();
     return lamp_list;
   }  
   for (uint8_t i = 0; i < lamp_list_vector.size(); i++) {
-    if (lamp_list_vector[i] > 15) {
+    uint8_t lamp_index = lamp_list_vector[i];
+    if (lamp_index > 15) {
       ESP_LOGW(TAG, "Lamp index %" PRIu8 " is out of range, only [0-15] supported!", lamp_list_vector[i]);
       this->status_set_warning();
       return lamp_list;
     }
-    lamp_list[lamp_list_vector[i]] = true;
+    lamp_list[lamp_index] = true;
   }
   return lamp_list;
 }
@@ -305,7 +308,7 @@ void DynamicLampComponent::read_timers_to_log() {
       DynamicLampTimer timer;
       this->fram_->read((2048), reinterpret_cast<unsigned char *>(&timer), 24);
       for (uint8_t j = 0; j < 16; j++) {
-        bool lamp_included = static_cast<bool>(timer.lamp_list[j / 8] & (1 << (j % 8)));
+        bool lamp_included = static_cast<bool>(timer.lamp_list[floor(j / 8)] & (1 << (j % 8)));
         if (lamp_included && this->active_lamps_[j].active) {
           ESP_LOGV(TAG, "Timer found for lamp %s |: active: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d",
                    this->active_lamps_[j].name, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
