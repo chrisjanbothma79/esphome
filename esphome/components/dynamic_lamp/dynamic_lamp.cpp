@@ -240,10 +240,10 @@ bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_activ
                                      bool friday, bool saturday, bool sunday) {
   std::vector<bool> lamp_list = this->build_lamp_list_from_list_str_(lamp_list_str);
   DynamicLampTimer new_timer;
-  uint8_t lamp_list_bytes[2];
-  for (uint8_t i = 0; i < 16; i++) {
+  unsigned char lamp_list_bytes[2] = {0, 0};
+  for (uint8_t i = 0; i < lamp_list.size(); i++) {
     if (!this->active_lamps_[i].active) {
-      ESP_LOGW(TAG, "Ignoring lamp number %" PRIu8 " as there is no active lamp with that index!", lamp_list_vector[i]);
+      ESP_LOGW(TAG, "Ignoring lamp number %" PRIu8 " as there is no active lamp with that index!", i);
       continue;
     }
     if (lamp_list[i]) {
@@ -281,7 +281,7 @@ std::vector<bool> DynamicLampComponent::build_lamp_list_from_list_str_(std::stri
   std::string delimiter = ",";
   std::vector<uint8_t> lamp_list_vector = this->split_to_int_vector_(lamp_list_str, delimiter);
   std::vector<bool> lamp_list;
-  memset(&lamp_list, 0, sizeof(lamp_list));
+  memset(&lamp_list, 0, 16);
   if (lamp_list_vector.size() > 16) {
     ESP_LOGW(TAG, "Too many lamps in list, only 16 supported!");
     this->status_set_warning();
@@ -342,7 +342,7 @@ std::vector<uint8_t> DynamicLampComponent::split_to_int_vector_(const std::strin
   size_t pos = 0;
   std::string token;
   while ((pos = s.find(delimiter)) != std::string::npos) {
-      token = static_cast<uint8_t>(atoi(s.substr(0, pos)));
+      token = static_cast<uint8_t>(atoi(s.substr(0, pos).c_str()));
       tokens.push_back(token);
       s.erase(0, pos + delimiter.length());
   }

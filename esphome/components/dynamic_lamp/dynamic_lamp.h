@@ -70,7 +70,7 @@ struct CombinedLamp {
 
 struct DynamicLampTimer {
   unsigned char validation[3] = { 'D', 'L', 'T' };
-  uint8_t lamp_list[2];
+  unsigned char lamp_list[2];
   uint8_t action : 3;
   uint8_t hour : 5;
   uint8_t minute : 6;
