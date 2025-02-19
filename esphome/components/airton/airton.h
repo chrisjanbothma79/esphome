@@ -90,7 +90,7 @@ class AirtonClimate : public climate_ir::ClimateIR {
   void set_display_state(bool state, bool send_ir);
   bool get_display_state() const;
   void set_vertical_direction_state(VerticalDirection state);
-  void set_vertical_direction_state(std::string state);
+  void set_vertical_direction_state(const std::string &state);
   VerticalDirection get_vertical_direction_state() const;
 
  private:
