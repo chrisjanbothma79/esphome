@@ -23,6 +23,9 @@ void DynamicLampComponent::setup() {
 }
 
 void DynamicLampComponent::begin() {
+  for (uint8_t i=0; i < 16; i++) {
+    this->active_lamps_[i].active = false;
+  }
   this->restore_lamp_settings_();
   this->restore_timers_();
 }
@@ -259,13 +262,13 @@ bool DynamicLampComponent::add_timer(std::string timer_desc, std::string lamp_li
            new_timer.timer_desc, lamp_list_str.c_str(), new_timer.active, new_timer.action, new_timer.hour, new_timer.minute, new_timer.monday,
            new_timer.tuesday, new_timer.wednesday, new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday);
   uint8_t save_slot;
-  for (save_slot = 0; save_slot < 256; save_slot++) {
+  for (save_slot = 0; save_slot < 128; save_slot++) {
     if (this->timers_[save_slot].in_use != true) {
       break;
     }
   }
-  if (save_slot == 256) {
-    ESP_LOGW(TAG, "No more timer slots available, max 256 timers supported!");
+  if (save_slot == 128) {
+    ESP_LOGW(TAG, "No more timer slots available, max 128 timers supported!");
     this->status_set_warning();
     return false;
   }
@@ -299,7 +302,7 @@ std::vector<bool> DynamicLampComponent::build_lamp_list_from_list_str_(std::stri
 
 void DynamicLampComponent::read_fram_timers_to_log() {
   DynamicLampTimer timer;
-  for (uint8_t i = 0; i < 256; i++) {
+  for (uint8_t i = 0; i < 128; i++) {
     this->fram_->read((0x4000 + (i * 64)), reinterpret_cast<unsigned char *>(&timer), 64);
     if (timer.validation_bytes[0] == 'V' && timer.validation_bytes[1] == 'D' && timer.validation_bytes[2] == 'L' && timer.validation_bytes[3] == 'T' && timer.in_use == true) {
       std::string lamp_names_str = "";
@@ -329,7 +332,7 @@ void DynamicLampComponent::read_fram_timers_to_log() {
 
 void DynamicLampComponent::read_initialized_timers_to_log() {
   DynamicLampTimer timer;
-  for (uint8_t i = 0; i < 256; i++) {
+  for (uint8_t i = 0; i < 128; i++) {
     if (this->timers_[i].in_use == true) {
       timer = this->timers_[i];
       std::string lamp_names_str = "";
@@ -376,11 +379,6 @@ void DynamicLampComponent::set_lamp_values_(uint8_t lamp_number, bool active, ui
 
 void DynamicLampComponent::restore_lamp_settings_() {
   switch (this->save_mode_) {
-    case SAVE_MODE_NONE:
-      for (uint8_t i=0; i < 16; i++) {
-        this->active_lamps_[i].active = false;
-      }
-      break;
     case SAVE_MODE_LOCAL:
       // ToDo - yet to be implemented
       ESP_LOGW(TAG, "Save mode LOCAL not implemented yet, sorry");
@@ -395,10 +393,12 @@ void DynamicLampComponent::restore_lamp_settings_() {
 }
 
 void DynamicLampComponent::restore_timers_() {
+  DynamicLampTimer timer;
   switch (this->save_mode_) {
     case SupportedSaveModes::SAVE_MODE_NONE:
-      for (uint8_t i = 0; i < 256; i++) {
-        this->timers_[i] = DynamicLampTimer();
+      for (uint8_t i = 0; i < 128; i++) {
+        timer = DynamicLampTimer();
+        this->timers_[i] = timer;
         this->timers_[i].in_use = false;
       }
       break;
@@ -408,19 +408,14 @@ void DynamicLampComponent::restore_timers_() {
       this->status_set_warning();
       break;
     case SupportedSaveModes::SAVE_MODE_FRAM:
-      DynamicLampTimer timer;
-      for (uint8_t i = 0; i < 256; i++) {
-        timer  = DynamicLampTimer();
-        this->timers_[i] = timer;
-        this->timers_[i].in_use = false;
-      }
       std::string lamp_names_str;
-      for (uint8_t i = 0; i < 256; i++) {
+      for (uint8_t i = 0; i < 128; i++) {
         this->fram_->read((0x4000 + (i * 64)), reinterpret_cast<unsigned char *>(&timer), 64);
         if (timer.validation_bytes[0] == 'V' && timer.validation_bytes[1] == 'D' && timer.validation_bytes[2] == 'L' && timer.validation_bytes[3] == 'T' && timer.in_use == true) {
           this->timers_[i] = timer;
         } else {
-          this->timers_[i] = DynamicLampTimer();
+          timer  = DynamicLampTimer();
+          this->timers_[i] = timer;
           this->timers_[i].in_use = false;
         }
       }
