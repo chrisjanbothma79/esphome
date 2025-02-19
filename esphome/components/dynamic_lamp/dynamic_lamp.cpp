@@ -99,13 +99,13 @@ void DynamicLampComponent::dump_config() {
       ESP_LOGCONFIG(TAG, "Using output with id %s as output number %" PRIu8 "", this->available_outputs_[i].output_id.c_str(), i);
     }
   }
-  this->add_lamp("First Lamp");
-  this->add_output_to_lamp("First Lamp", &this->available_outputs_[0]);
-  this->add_output_to_lamp("First Lamp", &this->available_outputs_[1]);
-  this->add_output_to_lamp("First Lamp", &this->available_outputs_[2]);
-  this->add_output_to_lamp("First Lamp", &this->available_outputs_[3]);
+  //this->add_lamp("First Lamp");
+  //this->add_output_to_lamp("First Lamp", &this->available_outputs_[0]);
+  //this->add_output_to_lamp("First Lamp", &this->available_outputs_[1]);
+  //this->add_output_to_lamp("First Lamp", &this->available_outputs_[2]);
+  //this->add_output_to_lamp("First Lamp", &this->available_outputs_[3]);
   std::string lamp_names_str;
-  for (uint8_t i = 0; i < 64; i++) {
+  for (i = 0; i < 64; i++) {
     if (this->timers_[i].in_use == true) {
       lamp_names_str = "";
       for (uint8_t j = 0; j < 16; j++) {
