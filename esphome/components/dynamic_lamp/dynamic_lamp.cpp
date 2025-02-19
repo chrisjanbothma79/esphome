@@ -24,7 +24,7 @@ void DynamicLampComponent::setup() {
 
 void DynamicLampComponent::begin() {
   this->restore_lamp_settings_();
-  this->restore_timers_();
+  //this->restore_timers_();
 }
 
 void DynamicLampComponent::loop() {
