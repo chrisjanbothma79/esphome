@@ -23,7 +23,7 @@ static const uint32_t SPACE_INTER_FRAME_US = 40000;  // Inter-frame space: 40ms
 static const uint32_t SPACE_AGC_REPEAT_US = 96187;   // AGC Repeat space: ~96.1875ms
 
 void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
-  ESP_LOGD(TAG, "Encoding %s", get_protocol_type_and_fields(data).c_str());
+  ESP_LOGD(TAG, "Encoding %s", this->get_protocol_type_and_fields(data).c_str());
 
   if (data.repeats > 20) {
     ESP_LOGW(TAG, "High repeat count may cause WDT timeout.");
