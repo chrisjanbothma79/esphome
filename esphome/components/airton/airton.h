@@ -1,9 +1,14 @@
 #pragma once
 
 #include "esphome/components/climate_ir/climate_ir.h"
+#include "quirks.h"
 
 #ifdef USE_SWITCH
 #include "esphome/components/switch/switch.h"
+#endif
+
+#ifdef USE_SELECT
+#include "esphome/components/select/select.h"
 #endif
 
 namespace esphome {
@@ -45,7 +50,17 @@ const uint8_t AIRTON_STATE_FRAME_SIZE = 7;
 struct AirtonSettings {
   bool sleep_state;
   bool display_state;
+  VerticalDirection vertical_direction_state;
 };
+
+// Local vertical direction constants
+static const VerticalDirection VERTICAL_DIRECTION_OFF = VerticalDirection::VERTICAL_DIRECTION_OFF;
+static const VerticalDirection VERTICAL_DIRECTION_SWING = VerticalDirection::VERTICAL_DIRECTION_SWING;
+static const VerticalDirection VERTICAL_DIRECTION_UP = VerticalDirection::VERTICAL_DIRECTION_UP;
+static const VerticalDirection VERTICAL_DIRECTION_MIDDLE_UP = VerticalDirection::VERTICAL_DIRECTION_MIDDLE_UP;
+static const VerticalDirection VERTICAL_DIRECTION_MIDDLE = VerticalDirection::VERTICAL_DIRECTION_MIDDLE;
+static const VerticalDirection VERTICAL_DIRECTION_MIDDLE_DOWN = VerticalDirection::VERTICAL_DIRECTION_MIDDLE_DOWN;
+static const VerticalDirection VERTICAL_DIRECTION_DOWN = VerticalDirection::VERTICAL_DIRECTION_DOWN;
 
 class AirtonClimate : public climate_ir::ClimateIR {
 #ifdef USE_SWITCH
@@ -57,16 +72,26 @@ class AirtonClimate : public climate_ir::ClimateIR {
   switch_::Switch *sleep_mode_switch_{nullptr};
   switch_::Switch *display_switch_{nullptr};
 #endif
+#ifdef USE_SELECT
+ public:
+  void set_vertical_direction_select(select::Select *sel);
+
+ protected:
+  select::Select *vertical_direction_select_{nullptr};
+#endif
  public:
   AirtonClimate()
       : climate_ir::ClimateIR(AIRTON_TEMP_MIN, AIRTON_TEMP_MAX, 1.0f, true, true,
                               {climate::CLIMATE_FAN_AUTO, climate::CLIMATE_FAN_LOW, climate::CLIMATE_FAN_MEDIUM,
                                climate::CLIMATE_FAN_HIGH},
                               {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL}) {}
-  void set_sleep_mode_state(bool state);
+  void set_sleep_mode_state(bool state, bool send_ir);
   bool get_sleep_mode_state() const;
-  void set_display_state(bool state);
+  void set_display_state(bool state, bool send_ir);
   bool get_display_state() const;
+  void set_vertical_direction_state(VerticalDirection state);
+  void set_vertical_direction_state(std::string state);
+  VerticalDirection get_vertical_direction_state() const;
 
  private:
   // Save the previous operation mode inside instance
@@ -85,7 +110,6 @@ class AirtonClimate : public climate_ir::ClimateIR {
   uint16_t fan_speed_();
   bool turbo_control_();
   uint8_t temperature_();
-  uint8_t swing_mode_();
   uint8_t operation_settings_();
 
   uint8_t sum_bytes_(const uint8_t *start, uint16_t length);

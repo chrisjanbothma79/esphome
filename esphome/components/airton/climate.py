@@ -11,10 +11,25 @@ AirtonClimate = airton_ns.class_("AirtonClimate", climate_ir.ClimateIR)
 
 CONF_AIRTON_ID = "airton_id"
 CONF_SLEEP_MODE = "sleep_mode"
+CONF_VERTICAL_DIRECTION = "vertical_direction"
+
+VerticalDirections = airton_ns.enum("VerticalDirections")
+VERTICAL_DIRECTIONS = {
+    "off": VerticalDirections.VERTICAL_DIRECTION_OFF,
+    "swing": VerticalDirections.VERTICAL_DIRECTION_SWING,
+    "up": VerticalDirections.VERTICAL_DIRECTION_UP,
+    "middle-up": VerticalDirections.VERTICAL_DIRECTION_MIDDLE_UP,
+    "middle": VerticalDirections.VERTICAL_DIRECTION_MIDDLE,
+    "middle-down": VerticalDirections.VERTICAL_DIRECTION_MIDDLE_DOWN,
+    "down": VerticalDirections.VERTICAL_DIRECTION_DOWN,
+}
 
 CONFIG_SCHEMA = climate_ir.CLIMATE_IR_WITH_RECEIVER_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(AirtonClimate),
+        cv.Optional(CONF_VERTICAL_DIRECTION, default="off"): cv.enum(
+            VERTICAL_DIRECTIONS
+        ),
     }
 )
 
@@ -57,3 +72,4 @@ async def sleep_action_to_code(config, action_id, template_arg, args):
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await climate_ir.register_climate_ir(var, config)
+    cg.add(var.set_vertical_direction_state(config[CONF_VERTICAL_DIRECTION]))
