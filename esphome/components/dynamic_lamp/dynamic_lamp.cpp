@@ -413,7 +413,7 @@ bool DynamicLampComponent::write_state_(uint8_t lamp_number, float state) {
   return false;
 }
 
-std::string DynamicLampComponent::get_lamp_name(uint8_t lamp_number) {
+unsigned char[16] DynamicLampComponent::get_lamp_name(uint8_t lamp_number) {
   return this->active_lamps_[lamp_number].name;
 }
 
