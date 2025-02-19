@@ -209,6 +209,7 @@ void DynamicLampComponent::remove_output_from_lamp(std::string lamp_name, Linked
   uint8_t i = 0;
   while (i < 16) {
     if (this->active_lamps_[i].name == lamp_name) {
+      uint8_t k = output->output_index;
       uint8_t j = 0;
       if (output->output_index > 7) {
         j = 1;
@@ -243,7 +244,8 @@ std::array<bool, 16> DynamicLampComponent::get_lamp_outputs(uint8_t lamp_number)
 uint8_t DynamicLampComponent::get_lamp_index_by_name_(std::string lamp_name) {
   uint8_t i = 0;
   for (i = 0; i < this->lamp_count_; i++) {
-    if (this->active_lamps_[i].name == lamp_name) {
+    std::string str(this->active_lamps_[i].name, this->active_lamps_[i].name + sizeof this->active_lamps_[i].name / sizeof this->active_lamps_[i].name[0]);  
+    if (str == lamp_name) {
       return i;
     }
   }
