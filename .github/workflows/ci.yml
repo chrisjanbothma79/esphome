@@ -77,7 +77,7 @@ jobs:
       - name: Run Ruff
         run: |
           . venv/bin/activate
-          ruff format --diff esphome tests
+          ruff format esphome tests
       - name: Suggested changes
         run: script/ci-suggest-changes
         if: always()
