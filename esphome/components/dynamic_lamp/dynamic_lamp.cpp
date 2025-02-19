@@ -147,7 +147,8 @@ void DynamicLampComponent::add_lamp(std::string name) {
 void DynamicLampComponent::remove_lamp(std::string lamp_name) {
   uint8_t i = 0;
   while (i < this->lamp_count_) {
-    if (this->active_lamps_[i].name == lamp_name.c_str()) {
+    std::string str(this->active_lamps_[i].name, this->active_lamps_[i].name + sizeof this->active_lamps_[i].name / sizeof this->active_lamps_[i].name[0]);
+    if (str == lamp_name) {
       for (uint8_t j = 0; j < 16; j++) {
         uint8_t k = 0;
         uint8_t l = j;
@@ -188,7 +189,8 @@ void DynamicLampComponent::add_output_to_lamp(std::string lamp_name, LinkedOutpu
   }
   uint8_t i = 0;
   while (i < 16) {
-    if (this->active_lamps_[i].name == lamp_name.c_str()) {
+    std::string str(this->active_lamps_[i].name, this->active_lamps_[i].name + sizeof this->active_lamps_[i].name / sizeof this->active_lamps_[i].name[0]);
+    if (str == lamp_name) {
       uint8_t j = 0;
       if (output->output_index > 7) {
         j = 1;
@@ -208,7 +210,8 @@ void DynamicLampComponent::add_output_to_lamp(std::string lamp_name, LinkedOutpu
 void DynamicLampComponent::remove_output_from_lamp(std::string lamp_name, LinkedOutput *output) {
   uint8_t i = 0;
   while (i < 16) {
-    if (this->active_lamps_[i].name == lamp_name) {
+    std::string str(this->active_lamps_[i].name, this->active_lamps_[i].name + sizeof this->active_lamps_[i].name / sizeof this->active_lamps_[i].name[0]);
+    if (str == lamp_name) {
       uint8_t k = output->output_index;
       uint8_t j = 0;
       if (output->output_index > 7) {
