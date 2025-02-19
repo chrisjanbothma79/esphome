@@ -23,10 +23,10 @@ class VerticalDirection {
     VERTICAL_DIRECTION_DOWN = 0x06,
   };
 
-  VerticalDirection(Direction direction = Direction::VERTICAL_DIRECTION_OFF) : _direction(direction) {}
+  VerticalDirection(Direction direction = Direction::VERTICAL_DIRECTION_OFF) : direction_(direction) {}
 
-  std::string toString() const {
-    switch (_direction) {
+  std::string to_string() const {
+    switch (direction_) {
       case Direction::VERTICAL_DIRECTION_SWING:
         return "swing";
       case Direction::VERTICAL_DIRECTION_UP:
@@ -45,31 +45,31 @@ class VerticalDirection {
     }
   }
 
-  uint8_t toUint8() const { return static_cast<uint8_t>(_direction); }
+  uint8_t to_uint8() const { return static_cast<uint8_t>(direction_); }
 
-  void setDirection(Direction direction) { _direction = direction; }
-  void setDirection(std::string direction) {
+  void set_direction(Direction direction) { direction_ = direction; }
+  void set_direction(const std::string &direction) {
     if (direction == "swing") {
-      _direction = Direction::VERTICAL_DIRECTION_SWING;
+      direction_ = Direction::VERTICAL_DIRECTION_SWING;
     } else if (direction == "up") {
-      _direction = Direction::VERTICAL_DIRECTION_UP;
+      direction_ = Direction::VERTICAL_DIRECTION_UP;
     } else if (direction == "middle-up") {
-      _direction = Direction::VERTICAL_DIRECTION_MIDDLE_UP;
+      direction_ = Direction::VERTICAL_DIRECTION_MIDDLE_UP;
     } else if (direction == "middle") {
-      _direction = Direction::VERTICAL_DIRECTION_MIDDLE;
+      direction_ = Direction::VERTICAL_DIRECTION_MIDDLE;
     } else if (direction == "middle-down") {
-      _direction = Direction::VERTICAL_DIRECTION_MIDDLE_DOWN;
+      direction_ = Direction::VERTICAL_DIRECTION_MIDDLE_DOWN;
     } else if (direction == "down") {
-      _direction = Direction::VERTICAL_DIRECTION_DOWN;
+      direction_ = Direction::VERTICAL_DIRECTION_DOWN;
     } else {
-      _direction = Direction::VERTICAL_DIRECTION_OFF;
+      direction_ = Direction::VERTICAL_DIRECTION_OFF;
     }
   }
 
-  Direction getDirection() const { return _direction; }
+  Direction get_direction() const { return direction_; }
 
  private:
-  Direction _direction;
+  Direction direction_;
 };
 
 }  // namespace airton

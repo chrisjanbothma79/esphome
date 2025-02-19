@@ -35,19 +35,19 @@ void AirtonClimate::set_display_state(bool state, bool send_ir = false) {
 bool AirtonClimate::get_display_state() const { return this->settings_.display_state; }
 
 void AirtonClimate::set_vertical_direction_state(VerticalDirection state) {
-  if (state.toUint8() != this->settings_.vertical_direction_state.toUint8()) {
+  if (state.to_uint8() != this->settings_.vertical_direction_state.to_uint8()) {
     this->settings_.vertical_direction_state = state;
 #ifdef USE_SELECT
-    this->vertical_direction_select_->publish_state(state.toString());
+    this->vertical_direction_select_->publish_state(state.to_string());
 #endif
     this->airton_rtc_.save(&this->settings_);
   }
 }
-void AirtonClimate::set_vertical_direction_state(const std::string state) {
-  if (state != this->settings_.vertical_direction_state.toString()) {
+void AirtonClimate::set_vertical_direction_state(const std::string &state) {
+  if (state != this->settings_.vertical_direction_state.to_string()) {
     VerticalDirection new_state;
-    new_state.setDirection(state);
-    this->settings_.vertical_direction_state = new_state.getDirection();
+    new_state.set_direction(state);
+    this->settings_.vertical_direction_state = new_state.get_direction();
 #ifdef USE_SELECT
     this->vertical_direction_select_->publish_state(state);
 #endif
@@ -81,7 +81,7 @@ void AirtonClimate::set_display_switch(switch_::Switch *sw) {
 void AirtonClimate::set_vertical_direction_select(select::Select *sel) {
   this->vertical_direction_select_ = sel;
   if (this->vertical_direction_select_ != nullptr) {
-    this->vertical_direction_select_->publish_state(this->get_vertical_direction_state().toString());
+    this->vertical_direction_select_->publish_state(this->get_vertical_direction_state().to_string());
   }
 }
 #endif  // USE_SELECT
@@ -109,7 +109,7 @@ void AirtonClimate::transmit_state() {
   remote_state[3] |= this->temperature_();
 
   remote_state[4] = 0;
-  remote_state[4] |= this->get_vertical_direction_state().toUint8();
+  remote_state[4] |= this->get_vertical_direction_state().to_uint8();
 
   remote_state[5] = this->operation_settings_();
 
