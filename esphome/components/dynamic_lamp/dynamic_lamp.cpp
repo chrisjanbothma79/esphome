@@ -24,7 +24,7 @@ void DynamicLampComponent::setup() {
 
 void DynamicLampComponent::begin() {
   this->restore_lamp_settings_();
-  //this->restore_timers_();
+  this->restore_timers_();
 }
 
 void DynamicLampComponent::loop() {
@@ -291,7 +291,7 @@ bool DynamicLampComponent::add_timer(std::string timer_desc, std::string lamp_li
     }
   }
   if (save_slot == 64) {
-    ESP_LOGW(TAG, "No more timer slots available, max 256 timers supported!");
+    ESP_LOGW(TAG, "No more timer slots available, max 64 timers supported!");
     this->status_set_warning();
     return false;
   }
