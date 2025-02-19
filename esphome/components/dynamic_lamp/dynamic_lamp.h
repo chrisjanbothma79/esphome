@@ -60,10 +60,10 @@ enum DynamicLampIdx : uint8_t {
 };
 
 struct CombinedLamp {
-  bool active = false;
-  bool update_ = false;
-  std::string name = "";
   uint8_t lamp_index;
+  bool active = false;
+  std::string name = "";
+  bool update_ = false;
   float state_;
   bool used_outputs[16];
 };

@@ -314,9 +314,10 @@ void DynamicLampComponent::read_timers_to_log() {
       lamp_names_str += this->active_lamps_[j].name;
     }
   }
-  ESP_LOGV(TAG, "Timer found for lamps [%s]: [ active: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d ]",
-    lamp_names_str.c_str(), timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
+  ESP_LOGV(TAG, "Timer found: [ active: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d ]",
+    timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
     timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
+  ESP_LOGV(TAG, "Timer active for lamps %s", lamp_names_str.c_str());
 }
 
 bool DynamicLampComponent::write_state_(uint8_t lamp_number, float state) {
