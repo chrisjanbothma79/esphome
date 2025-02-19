@@ -659,7 +659,10 @@ class EsphomeCore:
         return os.path.join(self.build_path, path_)
 
     def relative_src_path(self, *path):
-        return self.relative_build_path("src", *path)
+        if CORE.using_esp_idf:
+            return self.relative_build_path("main", *path)
+        else:
+            return self.relative_build_path("src", *path)
 
     def relative_pioenvs_path(self, *path):
         return self.relative_build_path(".pioenvs", *path)

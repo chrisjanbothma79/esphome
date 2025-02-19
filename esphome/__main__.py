@@ -228,9 +228,13 @@ def write_cpp_file():
     code_s = indent(CORE.cpp_main_section)
     writer.write_cpp(code_s)
 
-    from esphome.build_gen import platformio
+    from esphome.build_gen import esp_idf, platformio
 
-    platformio.write_project()
+    if CORE.using_esp_idf:
+        esp_idf.Generator().write_project()
+    else:
+        platformio.write_project()
+
     return 0
 
 
@@ -238,11 +242,16 @@ def compile_program(args, config):
     from esphome import platformio_api
 
     _LOGGER.info("Compiling app...")
-    rc = platformio_api.run_compile(config, CORE.verbose)
-    if rc != 0:
-        return rc
-    idedata = platformio_api.get_idedata(config)
-    return 0 if idedata is not None else 1
+    if CORE.using_esp_idf:
+        from esphome.build_gen import esp_idf
+
+        esp_idf.Builder().build()
+    else:
+        rc = platformio_api.run_compile(config, CORE.verbose)
+        if rc != 0:
+            return rc
+        idedata = platformio_api.get_idedata(config)
+        return 0 if idedata is not None else 1
 
 
 def upload_using_esptool(config, port, file):
