@@ -23,17 +23,8 @@ void DynamicLampComponent::setup() {
 }
 
 void DynamicLampComponent::begin() {
-  uint8_t i = 0;
-  bool valid = true;
-  if(this->save_mode_ == 0) {
-   for (i=0; i < 16; i++) {
-     this->active_lamps_[i].active = false;
-   }
-  } else {
-    while(i < 16) {
-      this->restore_lamp_values_(i);
-    }
-  }
+  this->restore_lamp_settings_();
+  this->restore_timers_();
   /* keep example for future reference
   this->add_lamp("First Lamp");
   this->add_output_to_lamp("First Lamp", &this->available_outputs_[0]);
@@ -274,8 +265,20 @@ bool DynamicLampComponent::add_timer(std::string timer_desc, std::string lamp_li
   ESP_LOGV(TAG, "Added new timer %s with lamp-list %s, active %d, action %d, hour %d, minute %d, monday %d, tuesday %d, wednesday %d, thursday %d, friday %d, saturday %d, sunday %d",
            new_timer.timer_desc, lamp_list_str.c_str(), new_timer.active, new_timer.action, new_timer.hour, new_timer.minute, new_timer.monday,
            new_timer.tuesday, new_timer.wednesday, new_timer.thursday, new_timer.friday, new_timer.saturday, new_timer.sunday);
-  ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
-  this->fram_->write((2048), timer_as_bytes, 64);
+  //ESP_LOGV(TAG, "Size of struct is %" PRIu8 "", static_cast<uint8_t>(sizeof(new_timer)));
+  uint8_t save_slot;
+  for (save_slot = 0; save_slot < 256; save_slot++) {
+    if (!this->timers_[save_slot].in_use) {
+      break;
+    }
+  }
+  if (save_slot == 256) {
+    ESP_LOGW(TAG, "No more timer slots available, max 256 timers supported!");
+    this->status_set_warning();
+    return false;
+  }
+  this->timers_[save_slot] = new_timer;
+  this->fram_->write((0x4000 + (save_slot * 64)), timer_as_bytes, 64);
   return true;
 }
 
@@ -338,8 +341,75 @@ void DynamicLampComponent::set_lamp_values_(uint8_t lamp_number, bool active, ui
 
 }
 
-void DynamicLampComponent::restore_lamp_values_(uint8_t lamp_number) {
-  this->active_lamps_[lamp_number].active = false;
+void DynamicLampComponent::restore_lamp_settings_() {
+  switch (this->save_mode_) {
+    case SAVE_MODE_NONE:
+      for (uint8_t i=0; i < 16; i++) {
+        this->active_lamps_[i].active = false;
+      }
+      break;
+    case SAVE_MODE_LOCAL:
+      // ToDo - yet to be implemented
+      ESP_LOGW(TAG, "Save mode LOCAL not implemented yet, sorry");
+      this->status_set_warning();
+      break;
+    case SAVE_MODE_FRAM:
+      // ToDo - yet to be implemented
+      //ESP_LOGW(TAG, "Save mode FRAM not implemented yet, sorry");
+      //this->status_set_warning();
+      break;
+    default:
+      ESP_LOGW(TAG, "Currently only NONE(0), LOCAL(1) & FRAM(2) save modes supported, ignoring value %" PRIu8 " and defaulting to NONE!", this->save_mode_);
+      this->save_mode_ = 0;
+  }
+}
+
+void DynamicLampComponent::restore_timers_() {
+  switch (this->save_mode_) {
+    case SAVE_MODE_NONE:
+      for (uint8_t i = 0; i < 256; i++) {
+        this->timers_[i] = Dynamic_LampTimer();
+        this->timers_[i].in_use = false;
+      }
+      break;
+    case SAVE_MODE_LOCAL:
+      // ToDo - yet to be implemented
+      ESP_LOGW(TAG, "Save mode LOCAL not implemented yet, sorry");
+      this->status_set_warning();
+      break;
+    case SAVE_MODE_FRAM:
+      DynamicLampTimer timer;
+      std::string lamp_names_str;
+      for (uint8_t i = 0; i < 256; i++) {
+        this->fram_->read((0x4000h + (i * 64)), reinterpret_cast<unsigned char *>(&timer), 64);
+        if (timer.validation_bytes == {'V', 'D', 'L', 'T'} &&  timer.in_use) {
+          this->timers_[i] = timer;
+          lamp_names_str = "";
+          for (uint8_t j = 0; j < 16; j++) {
+            bool lamp_included = static_cast<bool>(timer.lamp_list[j / 8] & (1 << (j % 8)));
+            if (lamp_included && this->active_lamps_[j].active) {
+              if (lamp_names_str.length() > 0) {
+                lamp_names_str += ", ";
+              }
+              lamp_names_str += this->active_lamps_[j].name;
+            }
+          }
+          ESP_LOGVV(TAG, "Restored valid timer record %s in save slot %" PRIu8 "", i, timer.timer_desc);
+          ESP_LOGVV(TAG, "Timer %s found: [ active: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d ]",
+            timer.timer_desc, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
+            timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
+          ESP_LOGVV(TAG, "Timer active for lamps %s", lamp_names_str.c_str());
+        } else {
+          this->timers_[i] = Dynamic_LampTimer();
+          this->timers_[i].in_use = false;
+          ESP_LOGVV(TAG, "Timer save slot %" PRIu8 " did not contain valid record, initializing unused empty timer slot", i);
+        }
+      }
+      break;
+    default:
+      ESP_LOGW(TAG, "Currently only NONE(0), LOCAL(1) & FRAM(2) save modes supported, ignoring value %" PRIu8 " and defaulting to NONE!", this->save_mode_);
+      this->save_mode_ = 0;
+  }
 }
 
 std::vector<uint8_t> DynamicLampComponent::split_to_int_vector_(std::string lamp_list_str) {

@@ -69,8 +69,10 @@ struct CombinedLamp {
 };
 
 struct DynamicLampTimer {
-  unsigned char timer_desc[40];
+  unsigned char validation_bytes[4] = {'V', 'D', 'L', 'T'};
+  unsigned char timer_desc[36];
   unsigned char lamp_list[2];
+  bool in_use : 1;
   uint8_t action : 3;
   uint8_t hour : 5;
   uint8_t minute : 6;
@@ -113,7 +115,8 @@ class DynamicLampComponent : public Component {
   friend class DynamicLamp;
   time::RealTimeClock *rtc_;
   fram::FRAM *fram_;
-  void restore_lamp_values_(uint8_t lamp_number);
+  void restore_lamp_settings_(uint8_t lamp_number);
+  void restore_timers_(uint8_t lamp_number);
   void set_lamp_values_(uint8_t lamp_number, bool active, uint16_t selected_outputs, uint8_t mode, uint8_t mode_value);
   bool write_state_(uint8_t lamp_number, float state);
   uint8_t get_lamp_index_by_name_(std::string lamp_name);
@@ -123,6 +126,7 @@ class DynamicLampComponent : public Component {
 
   CombinedLamp active_lamps_[16];
   LinkedOutput available_outputs_[16];
+  Dynamic_LampTimer timers_[256];
   uint8_t save_mode_;
   uint8_t lamp_count_ = 0;
 };

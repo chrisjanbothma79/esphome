@@ -23,7 +23,7 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Required(CONF_RTC): cv.use_id(RealTimeClock),
     cv.Required(CONF_FRAM): cv.use_id(FRAMComponent),
     cv.Required(CONF_AVAILABLE_OUTPUTS): [cv.use_id(output.FloatOutput)],
-    cv.Optional(CONF_SAVE_MODE, default=0): cv.int_range(0, 1),
+    cv.Optional(CONF_SAVE_MODE, default=0): cv.int_range(0, 2),
 }).extend(cv.COMPONENT_SCHEMA)
 
 
