@@ -38,7 +38,14 @@ void DynamicLampComponent::loop() {
     if (this->active_lamps_[i].active == true && this->active_lamps_[i].update_ == true) {
       uint8_t j = 0;
       for (j = 0; j < 16; j++) {
-        if (this->active_lamps_[i].used_outputs[j] == true) {
+        uint8_t k = 0;
+        uint8_t l = j;
+        if (j > 7) {
+          k = 1;
+          l = j - 8;
+        }
+        bool output_in_use = static_cast<bool>(this->active_lamps_[i].used_outputs[k] & (1 << l));
+        if (output_in_use == true) {
           // Update level
           float new_state;
           new_state = this->active_lamps_[i].state_;
