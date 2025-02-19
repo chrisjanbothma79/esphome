@@ -109,7 +109,8 @@ class DynamicLampComponent : public Component {
   bool add_timer(std::string timer_desc, std::string lamp_name, bool timer_active, uint8_t mode, uint8_t hour,
     uint8_t minute, bool monday, bool tuesday, bool wednesday, bool thursday,
     bool friday, bool saturday, bool sunday);
-  void read_timers_to_log();
+  void read_initialized_timers_to_log();
+  void read_fram_timers_to_log();
   void clear_fram();
 
  protected:

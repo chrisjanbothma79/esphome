@@ -104,7 +104,7 @@ void DynamicLampComponent::dump_config() {
   //this->add_output_to_lamp("First Lamp", &this->available_outputs_[1]);
   //this->add_output_to_lamp("First Lamp", &this->available_outputs_[2]);
   //this->add_output_to_lamp("First Lamp", &this->available_outputs_[3]);
-  std::string lamp_names_str;
+  /* std::string lamp_names_str;
   for (uint8_t i = 0; i < 12; i++) {
     if (this->timers_[i].in_use == true) {
       lamp_names_str = "";
@@ -123,7 +123,7 @@ void DynamicLampComponent::dump_config() {
         this->timers_[i].wednesday, this->timers_[i].thursday, this->timers_[i].friday, this->timers_[i].saturday, this->timers_[i].sunday);
       ESP_LOGCONFIG(TAG, "Timer active for lamps %s", lamp_names_str.c_str());
     }
-  }
+  } */
 }
 
 void DynamicLampComponent::set_save_mode(uint8_t save_mode) {
@@ -322,11 +322,41 @@ std::vector<bool> DynamicLampComponent::build_lamp_list_from_list_str_(std::stri
   return lamp_list;
 }
 
-void DynamicLampComponent::read_timers_to_log() {
+void DynamicLampComponent::read_fram_timers_to_log() {
   DynamicLampTimer timer;
   for (uint8_t i = 0; i < 12; i++) {
     this->fram_->read((0x4000 + (i * 64)), reinterpret_cast<unsigned char *>(&timer), 64);
     if (timer.validation_bytes[0] == 'V' && timer.validation_bytes[1] == 'D' && timer.validation_bytes[2] == 'L' && timer.validation_bytes[3] == 'T' && timer.in_use == true) {
+      std::string lamp_names_str = "";
+      for (uint8_t j = 0; j < 16; j++) {
+        uint8_t k = 0;
+        uint8_t l = j;
+        if (j > 7) {
+          k = 1;
+          l = j - 8;
+        }
+        //bool lamp_included = static_cast<bool>(timer.lamp_list[j / 8] & (1 << (j % 8)));
+        bool lamp_included = static_cast<bool>(timer.lamp_list[k] & (1 << l));
+        if (lamp_included == true && this->active_lamps_[j].active == true) {
+          if (lamp_names_str.length() > 0) {
+            lamp_names_str += ", ";
+          }
+          lamp_names_str += this->active_lamps_[j].name;
+        }
+      }
+      ESP_LOGV(TAG, "Timer %s found: [ active: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d ]",
+        timer.timer_desc, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
+        timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
+      ESP_LOGV(TAG, "Timer active for lamps %s", lamp_names_str.c_str());
+    }
+  }
+}
+
+void DynamicLampComponent::read_initialized_timers_to_log() {
+  DynamicLampTimer timer;
+  for (uint8_t i = 0; i < 12; i++) {
+    if (this->timers_[i].in_use == true) {
+      timer = this->timers_[i];
       std::string lamp_names_str = "";
       for (uint8_t j = 0; j < 16; j++) {
         uint8_t k = 0;
