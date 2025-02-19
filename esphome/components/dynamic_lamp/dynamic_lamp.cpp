@@ -26,6 +26,7 @@ void DynamicLampComponent::begin() {
   for (uint8_t i=0; i < 16; i++) {
     this->active_lamps_[i] = CombinedLamp();
     this->active_lamps_[i].active = false;
+    this->available_outputs_[i] = LinkedOutput{ false, false, "", 0, nullptr, 0, 0, 0, std::nullopt, std::nullopt, false };
   }
   this->restore_lamp_settings_();
   this->restore_timers_();
@@ -111,17 +112,19 @@ void DynamicLampComponent::set_save_mode(uint8_t save_mode) {
 
 void DynamicLampComponent::add_available_output(output::FloatOutput * output, std::string output_id) {
   uint8_t counter = 0;
-  while (this->available_outputs_[counter].available) {
+  while (this->available_outputs_[counter].available == true) {
     counter++;
   }
-  this->available_outputs_[counter] = LinkedOutput{
-    true,
-    false,
-    output_id,
-    counter,
-    output,
-    0, 0, 1.0, false
-  };
+  if (counter > 15) {
+    ESP_LOGW(TAG, "No more outputs available, max 16 outputs supported!");
+    this->status_set_warning();
+    return;
+  }
+  this->available_outputs_[counter].available = true;
+  this->available_outputs_[counter].output_id = output_id;
+  this->available_outputs_[counter].output = output;
+  this->available_outputs_[counter].output_index = counter;
+  this->available_outputs_[counter].state = output->state;
   counter++;
 }
 
@@ -427,8 +430,28 @@ void DynamicLampComponent::restore_lamp_settings_() {
       this->status_set_warning();
       break;
     case SAVE_MODE_FRAM:
+      CombinedLamp lamp;
       for (uint8_t i=0; i < 16; i++) {
-        this->active_lamps_[i].active = false;
+        lamp = this->fram_->read((0x0000 + (i * 24)), reinterpret_cast<unsigned char *>(&lamp), 24);
+        if (lamp.validation_byte == 'L' && lamp.active == true) {
+          this->active_lamps_[i] = lamp;
+          for (uint8_t j = 0; j < 16; j++) {
+            uint8_t k = 0;
+            uint8_t l = j;
+            if (j > 7) {
+              k = 1;
+              l = j - 8;
+            }
+            bool output_in_use = static_cast<bool>(lamp.used_outputs[k] & (1 << l));
+            if (output_in_use == true) {
+              this->available_outputs_[j].in_use = true;
+            }
+          }
+        } else {
+          lamp = CombinedLamp();
+          this->active_lamps_[i] = lamp;
+          this->active_lamps_[i].active = false;
+        }
       }
       break;
   }
