@@ -193,6 +193,8 @@ bool NECBinarySensor::matches(RemoteReceiveData src) {
     return false;
   }
 
+  bool last_waiting_state = this->waiting_for_repeat_code_;
+
   switch (res.value().type) {
     case NECCodeType::FRAME_WITH_REPEATS:
       // Set waiting to true only if currently not waiting and this is our desired frame.
@@ -207,6 +209,11 @@ bool NECBinarySensor::matches(RemoteReceiveData src) {
     default:
       this->waiting_for_repeat_code_ = false;
       break;
+  }
+
+  if (last_waiting_state && !this->waiting_for_repeat_code_) {
+    this->publish_state(false);
+    this->cancel_timeout("repeat");
   }
 
   return this->waiting_for_repeat_code_;
