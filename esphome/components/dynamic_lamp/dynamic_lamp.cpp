@@ -243,7 +243,7 @@ bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_activ
   DynamicLampTimer new_timer;
   unsigned char lamp_list_bytes[2] = {0, 0};
   for (uint8_t i = 0; i < lamp_list.size(); i++) {
-    if (lamp_list[i] && !this->active_lamps_[i].active) {
+    if (lamp_list[i] == true && !this->active_lamps_[i].active) {
       ESP_LOGW(TAG, "Ignoring lamp number %" PRIu8 " as there is no active lamp with that index!", i);
       continue;
     }
