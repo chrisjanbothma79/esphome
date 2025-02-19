@@ -325,7 +325,7 @@ std::vector<bool> DynamicLampComponent::build_lamp_list_from_list_str_(std::stri
 void DynamicLampComponent::read_timers_to_log() {
   DynamicLampTimer timer;
   for (uint8_t i = 0; i < 12; i++) {
-    this->fram_->read((0x4000 + (i * 12)), reinterpret_cast<unsigned char *>(&timer), 64);
+    this->fram_->read((0x4000 + (i * 64)), reinterpret_cast<unsigned char *>(&timer), 64);
     std::string lamp_names_str = "";
     for (uint8_t j = 0; j < 16; j++) {
       bool lamp_included = static_cast<bool>(timer.lamp_list[j / 8] & (1 << (j % 8)));
