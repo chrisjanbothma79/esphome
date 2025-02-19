@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cinttypes>
 #include <bit>
+#include <sstream>
 
 namespace esphome {
 namespace dynamic_lamp {
