@@ -238,9 +238,19 @@ std::array<bool, 16> DynamicLampComponent::get_lamp_outputs_by_name_(std::string
 bool DynamicLampComponent::add_timer(std::string lamp_list_str, bool timer_active, uint8_t action, uint8_t hour,
                                      uint8_t minute, bool monday, bool tuesday, bool wednesday, bool thursday,
                                      bool friday, bool saturday, bool sunday) {
-  LampList lamp_list = this->build_lamp_list_from_list_str_(lamp_list_str);
+  std::vector<bool> lamp_list = this->build_lamp_list_from_list_str_(lamp_list_str);
   DynamicLampTimer new_timer;
-  memcpy(new_timer.lamp_list, &lamp_list, 2);
+  uint8_t lamp_list_bytes[2];
+  for (uint8_t i = 0; i < 16; i++) {
+    if (!this->active_lamps_[i].active) {
+      ESP_LOGW(TAG, "Ignoring lamp number %" PRIu8 " as there is no active lamp with that index!", lamp_list_vector[i]);
+      continue;
+    }
+    if (lamp_list[i]) {
+      lamp_list_bytes[i / 8] |= 1 << (i % 8);
+    }
+  }
+  memcpy(new_timer.lamp_list, lamp_list_bytes, 2);
   new_timer.active = timer_active;
   new_timer.action = action;
   new_timer.hour = hour;
@@ -294,9 +304,10 @@ void DynamicLampComponent::read_timers_to_log() {
     if (this->active_lamps_[i].active) {
       DynamicLampTimer timer;
       this->fram_->read((2048), reinterpret_cast<unsigned char *>(&timer), 24);
-      std::vector<bool> lamp_list = *reinterpret_cast<std::vector<bool> *>(&timer.lamp_list);
+      //std::vector<bool> lamp_list = *reinterpret_cast<std::vector<bool> *>(&timer.lamp_list);
       for (uint8_t j = 0; j < 16; j++) {
-        if (lamp_list[j] && this->active_lamps_[j].active) {
+        bool lamp_included = timer.lamp_list[j / 8] & (1 << (j % 8));
+        if (lamp_included && this->active_lamps_[j].active) {
           ESP_LOGV(TAG, "Timer found for lamp %s: %d, action: %d, hour: %d, minute: %d, monday: %d, tuesday: %d, wednesday: %d, thursday: %d, friday: %d, saturday: %d, sunday: %d",
                    this->active_lamps_[j].name, timer.active, timer.action, timer.hour, timer.minute, timer.monday, timer.tuesday,
                    timer.wednesday, timer.thursday, timer.friday, timer.saturday, timer.sunday);
