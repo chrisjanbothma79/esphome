@@ -462,8 +462,8 @@ void DynamicLampComponent::restore_lamp_settings_() {
             if (output_in_use == true) {
               this->available_outputs_[j].in_use = true;
             }
-            this->lamp_count_++;
           }
+          this->lamp_count_++;
         } else {
           lamp = CombinedLamp();
           this->active_lamps_[i] = lamp;
