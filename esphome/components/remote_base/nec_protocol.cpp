@@ -184,5 +184,46 @@ std::string NECProtocol::get_protocol_type_and_fields(const NECData &data) const
 
   return debug_message;
 }
+
+bool NECBinarySensor::matches(RemoteReceiveData src) {
+  auto proto = NECProtocol();
+  auto res = proto.decode(src);
+
+  if (!res.has_value()) {
+    return false;
+  }
+
+  switch (res.value().type) {
+    case NECCodeType::FRAME_WITH_REPEATS:
+      // Set waiting to true only if currently not waiting and this is our desired frame.
+      this->waiting_for_repeat_code_ = (!this->waiting_for_repeat_code_ && (res.value() == this->data_));
+      break;
+
+    case NECCodeType::REPEATS_ONLY:
+      // Stay waiting only if we were already waiting and we got a valid repeat code.
+      this->waiting_for_repeat_code_ = (this->waiting_for_repeat_code_ && (res.value() == NEC_REPEAT_CODE_DATA));
+      break;
+
+    default:
+      this->waiting_for_repeat_code_ = false;
+      break;
+  }
+
+  return this->waiting_for_repeat_code_;
+}
+
+bool NECBinarySensor::on_receive(RemoteReceiveData src) {
+  if (!this->matches(src)) {
+    return false;
+  }
+
+  this->publish_state(true);
+  this->set_timeout("repeat", this->repeat_timeout_ms_, [this]() {
+    this->waiting_for_repeat_code_ = false;
+    this->publish_state(false);
+  });
+
+  return true;
+}
 }  // namespace remote_base
 }  // namespace esphome

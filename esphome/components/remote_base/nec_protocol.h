@@ -50,7 +50,7 @@ struct NECData {
   };
 };
 
-/// @brief Predefined single repeat code `NECData` returned by `NECProtocol::decode`
+/// @brief Predefined single repeat code `NECData` returned by `NECProtocol::decode(RemoteReceiveData)`
 static const NECData NEC_REPEAT_CODE_DATA = {{0}, {0}, 1, NECCodeType::REPEATS_ONLY};
 
 class NECProtocol : public RemoteProtocol<NECData> {
@@ -92,7 +92,36 @@ class NECProtocol : public RemoteProtocol<NECData> {
   std::string get_protocol_type_and_fields(const NECData &data) const;
 };
 
-DECLARE_REMOTE_PROTOCOL(NEC)
+class NECBinarySensor : public RemoteReceiverBinarySensor<NECProtocol> {
+ public:
+  NECBinarySensor() : RemoteReceiverBinarySensor<NECProtocol>() {}
+
+  /// @brief Checks if the incoming data matches this sensor's expected NEC code.
+  /// @details
+  ///   - If not currently waiting for a repeat code, only a matching new frame sets the waiting state.
+  ///   - If waiting for a repeat code, only a valid repeat code keeps the sensor active.
+  ///   - Otherwise, the sensor stops waiting.
+  /// @param[in] src The raw IR data to process.
+  /// @return True if the decoded data matches the expected code and is valid in the current state; false otherwise.
+  bool matches(RemoteReceiveData src) override;
+  /// @brief Called when new data arrives. If it matches, turn the sensor on and set a timeout to turn it off.
+  /// @details
+  ///   - Internally calls `NECBinarySensor::matches(RemoteReceiveData)`.
+  ///   - If a match occurs, publishes an "on" state and sets a timeout to revert to "off" if no repeat codes arrive.
+  /// @note The off state is published automatically when the timeout expires.
+  /// @param[in] src The raw IR data to process.
+  /// @return True if this data is handled and match found, false otherwise.
+  bool on_receive(RemoteReceiveData src) override;
+
+ protected:
+  /// @brief The timeout in milliseconds to wait for repeat codes before turning the sensor off.
+  uint8_t repeat_timeout_ms_{130};
+  /// @brief Indicates whether the sensor is currently expecting a repeat code.
+  bool waiting_for_repeat_code_{false};
+};
+
+using NECTrigger = RemoteReceiverTrigger<NECProtocol>;
+using NECDumper = RemoteReceiverDumper<NECProtocol>;
 
 template<typename... Ts> class NECAction : public RemoteTransmitterActionBase<Ts...> {
  public:
