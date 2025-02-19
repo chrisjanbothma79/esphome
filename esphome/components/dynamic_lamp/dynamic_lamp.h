@@ -68,8 +68,6 @@ struct CombinedLamp {
   bool used_outputs[16];
 };
 
-std::vector<bool> LampList {};
-
 struct DynamicLampTimer {
   unsigned char validation[3] = { 'D', 'L', 'T' };
   uint8_t lamp_list[2];
@@ -121,7 +119,7 @@ class DynamicLampComponent : public Component {
   uint8_t get_lamp_index_by_name_(std::string lamp_name);
   std::array<bool, 16> get_lamp_outputs_by_name_(std::string lamp_name);
   std::vector<uint8_t> split_to_int_vector_(const std::string& s, const std::string& delimiter);
-  LampList build_lamp_list_from_list_str_(std::string lamp_list_str);
+  std::vector<bool> build_lamp_list_from_list_str_(std::string lamp_list_str);
 
   CombinedLamp active_lamps_[16];
   LinkedOutput available_outputs_[16];
