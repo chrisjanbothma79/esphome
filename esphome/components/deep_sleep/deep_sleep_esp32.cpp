@@ -69,7 +69,7 @@ bool DeepSleepComponent::prepare_to_sleep_() {
 }
 
 void DeepSleepComponent::deep_sleep_() {
-#if !defined(USE_ESP32_VARIANT_ESP32C3) && !defined(USE_ESP32_VARIANT_ESP32C6) && !defined(USE_ESP32_VARIANT_ESP32H2) 
+#if !defined(USE_ESP32_VARIANT_ESP32C3) && !defined(USE_ESP32_VARIANT_ESP32C6) && !defined(USE_ESP32_VARIANT_ESP32H2)
   if (this->sleep_duration_.has_value())
     esp_sleep_enable_timer_wakeup(*this->sleep_duration_);
   if (this->wakeup_pin_ != nullptr) {
@@ -88,7 +88,7 @@ void DeepSleepComponent::deep_sleep_() {
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
   }
 #endif
-#if defined(USE_ESP32_VARIANT_ESP32H2) 
+#if defined(USE_ESP32_VARIANT_ESP32H2)
   if (this->sleep_duration_.has_value())
     esp_sleep_enable_timer_wakeup(*this->sleep_duration_);
 
