@@ -409,6 +409,7 @@ void DynamicLampComponent::restore_timers_() {
     default:
       ESP_LOGW(TAG, "Currently only NONE(0), LOCAL(1) & FRAM(2) save modes supported, ignoring value %" PRIu8 " and defaulting to NONE!", this->save_mode_);
       this->save_mode_ = 0;
+      break;
   }
 }
 
