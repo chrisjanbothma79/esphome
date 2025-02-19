@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef AIRTON_QUIRKS_H
 #define AIRTON_QUIRKS_H
 

@@ -30,3 +30,9 @@ switch:
       name: "sleep mode"
     display:
       name: "display light"
+
+select:
+  - platform: airton
+    vertical_direction:
+      name: "Vertical direction"
+      id: direction
