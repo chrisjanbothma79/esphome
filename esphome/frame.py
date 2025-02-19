@@ -97,7 +97,6 @@ def get_component_logger(fallback_name: str) -> logging.Logger:
 
     If Python is unable to access the sources files, the call stack frame
     will be missing information, so let's guard by requiring a fallback name.
-    https://github.com/home-assistant/core/issues/24982
     """
     try:
         component_frame = get_component_frame()
