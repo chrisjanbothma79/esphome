@@ -410,7 +410,7 @@ void DynamicLampComponent::restore_timers_() {
   }
 }
 
-void DynamicLampComponent::clear_fram_() {
+void DynamicLampComponent::clear_fram() {
   this->fram_->clear();
   ESP_LOGV(TAG, "Cleared FRAM");
 }
