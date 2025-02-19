@@ -13,6 +13,7 @@ optional<uint32_t> DeepSleepComponent::get_run_duration_() const {
     switch (wakeup_cause) {
       case ESP_SLEEP_WAKEUP_EXT0:
       case ESP_SLEEP_WAKEUP_EXT1:
+        return this->wakeup_cause_to_run_duration_->ext1_cause;
       case ESP_SLEEP_WAKEUP_GPIO:
         return this->wakeup_cause_to_run_duration_->gpio_cause;
       case ESP_SLEEP_WAKEUP_TOUCHPAD:
@@ -30,7 +31,9 @@ void DeepSleepComponent::set_wakeup_pin_mode(WakeupPinMode wakeup_pin_mode) {
 
 #if !defined(USE_ESP32_VARIANT_ESP32C3) && !defined(USE_ESP32_VARIANT_ESP32C6)
 void DeepSleepComponent::set_ext1_wakeup(Ext1Wakeup ext1_wakeup) { this->ext1_wakeup_ = ext1_wakeup; }
+#endif
 
+#if !defined(USE_ESP32_VARIANT_ESP32C3) && !defined(USE_ESP32_VARIANT_ESP32C6) && !defined(USE_ESP32_VARIANT_ESP32H2)
 void DeepSleepComponent::set_touch_wakeup(bool touch_wakeup) { this->touch_wakeup_ = touch_wakeup; }
 #endif
 
@@ -47,6 +50,7 @@ void DeepSleepComponent::dump_config_platform_() {
                   this->wakeup_cause_to_run_duration_->default_cause);
     ESP_LOGCONFIG(TAG, "  Touch Wakeup Run Duration: %" PRIu32 " ms", this->wakeup_cause_to_run_duration_->touch_cause);
     ESP_LOGCONFIG(TAG, "  GPIO Wakeup Run Duration: %" PRIu32 " ms", this->wakeup_cause_to_run_duration_->gpio_cause);
+    ESP_LOGCONFIG(TAG, "  EXT1 Wakeup Run Duration: %" PRIu32 " ms", this->wakeup_cause_to_run_duration_->ext1_cause);
   }
 }
 
@@ -65,7 +69,7 @@ bool DeepSleepComponent::prepare_to_sleep_() {
 }
 
 void DeepSleepComponent::deep_sleep_() {
-#if !defined(USE_ESP32_VARIANT_ESP32C3) && !defined(USE_ESP32_VARIANT_ESP32C6)
+#if !defined(USE_ESP32_VARIANT_ESP32C3) && !defined(USE_ESP32_VARIANT_ESP32C6) && !defined(USE_ESP32_VARIANT_ESP32H2) 
   if (this->sleep_duration_.has_value())
     esp_sleep_enable_timer_wakeup(*this->sleep_duration_);
   if (this->wakeup_pin_ != nullptr) {
@@ -82,6 +86,14 @@ void DeepSleepComponent::deep_sleep_() {
   if (this->touch_wakeup_.has_value() && *(this->touch_wakeup_)) {
     esp_sleep_enable_touchpad_wakeup();
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+  }
+#endif
+#if defined(USE_ESP32_VARIANT_ESP32H2) 
+  if (this->sleep_duration_.has_value())
+    esp_sleep_enable_timer_wakeup(*this->sleep_duration_);
+
+  if (this->ext1_wakeup_.has_value()) {
+    esp_sleep_enable_ext1_wakeup(this->ext1_wakeup_->mask, this->ext1_wakeup_->wakeup_mode);
   }
 #endif
 #if defined(USE_ESP32_VARIANT_ESP32C3) || defined(USE_ESP32_VARIANT_ESP32C6)

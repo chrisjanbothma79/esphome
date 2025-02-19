@@ -48,6 +48,8 @@ struct WakeupCauseToRunDuration {
   uint32_t touch_cause;
   // Run duration if woken up by GPIO pins.
   uint32_t gpio_cause;
+  // Run duration if woken up by ext1 pins.
+  uint32_t ext1_cause;
 };
 
 #endif

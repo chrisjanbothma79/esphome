@@ -157,6 +157,7 @@ CONF_TOUCH_WAKEUP = "touch_wakeup"
 CONF_DEFAULT = "default"
 CONF_GPIO_WAKEUP_REASON = "gpio_wakeup_reason"
 CONF_TOUCH_WAKEUP_REASON = "touch_wakeup_reason"
+CONF_EXT1_WAKEUP_REASON = "ext1_wakeup_reason"
 CONF_UNTIL = "until"
 
 WAKEUP_CAUSES_SCHEMA = cv.Schema(
@@ -164,6 +165,7 @@ WAKEUP_CAUSES_SCHEMA = cv.Schema(
         cv.Required(CONF_DEFAULT): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_TOUCH_WAKEUP_REASON): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_GPIO_WAKEUP_REASON): cv.positive_time_period_milliseconds,
+        cv.Optional(CONF_EXT1_WAKEUP_REASON): cv.positive_time_period_milliseconds,
     }
 )
 
@@ -232,6 +234,12 @@ async def to_code(config):
                     "gpio_cause",
                     run_duration_config.get(
                         CONF_GPIO_WAKEUP_REASON, default_run_duration
+                    ),
+                ),
+                (
+                    "ext1_cause",
+                    run_duration_config.get(
+                        CONF_EXT1_WAKEUP_REASON, default_run_duration
                     ),
                 ),
             )
