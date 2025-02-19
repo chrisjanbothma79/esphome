@@ -24,6 +24,7 @@ void DynamicLampComponent::setup() {
 
 void DynamicLampComponent::begin() {
   for (uint8_t i=0; i < 16; i++) {
+    this->active_lamps_[i] = CombinedLamp();
     this->active_lamps_[i].active = false;
   }
   this->restore_lamp_settings_();
@@ -128,10 +129,11 @@ void DynamicLampComponent::add_lamp(std::string name) {
   if (this->lamp_count_ < 15) {
     this->active_lamps_[this->lamp_count_].active = true;
     this->active_lamps_[this->lamp_count_].name = name;
+    this->active_lamps_[this->lamp_count_].validation_byte = 'L';
     this->active_lamps_[this->lamp_count_].lamp_index = this->lamp_count_;
-    for (uint8_t i = 0; i < 16; i++) {
-      this->active_lamps_[this->lamp_count_].used_outputs[i] = false;
-    }
+    this->active_lamps_[this->lamp_count_].used_outputs[0] = 0;
+    this->active_lamps_[this->lamp_count_].used_outputs[1] = 0;
+    this->fram_->write((0x0000 + (this->lamp_count_ * 24)), reinterpret_cast<unsigned char *>(&this->active_lamps_[this->lamp_count_]), 24);
     this->lamp_count_++;
     ESP_LOGV(TAG, "Added new lamp %s, total lamps now %" PRIu8 "", name.c_str(), this->lamp_count_);
     return;
@@ -144,9 +146,22 @@ void DynamicLampComponent::remove_lamp(std::string lamp_name) {
   uint8_t i = 0;
   while (i < this->lamp_count_) {
     if (this->active_lamps_[i].name == lamp_name) {
-      for (uint8_t j = i; j < this->lamp_count_; j++) {
-        this->active_lamps_[i].used_outputs[j] = false;
-        this->available_outputs_[j].in_use = false;
+      for (uint8_t j = 0; j < 16; j++) {
+        uint8_t k = 0;
+        uint8_t l = j;
+        if (j > 7) {
+          k = 1;
+          l = j - 8;
+        }
+        bool output_in_use = static_cast<bool>(this->active_lamps_[i].used_outputs[k] & (1 << l));
+        if (output_in_use == true) {
+          this->available_outputs_[j].in_use = false;
+          this->active_lamps_[i].used_outputs[j] = false;
+        }
+      }
+      for (uint8_t j = i; j < 24; j++) {
+        this->active_lamps_[j] = this->active_lamps_[j + 1];
+        this->fram_->write((0x0000 + (i * 24) + j), { 'FF' }, 1);
       }
       this->active_lamps_[i].active = false;
       this->lamp_count_--;
@@ -160,11 +175,26 @@ void DynamicLampComponent::remove_lamp(std::string lamp_name) {
 }
 
 void DynamicLampComponent::add_output_to_lamp(std::string lamp_name, LinkedOutput *output) {
+  if (output->available == false) {
+    ESP_LOGW(TAG, "Output %s is not available, ignoring!", output->output_id.c_str());
+    this->status_set_warning();
+    return;
+  }
+  if (output->in_use == true) {
+    ESP_LOGW(TAG, "Output %s is already in use, ignoring!", output->output_id.c_str());
+    this->status_set_warning();
+    return;
+  }
   uint8_t i = 0;
   while (i < 16) {
     if (this->active_lamps_[i].name == lamp_name) {
-      this->active_lamps_[i].used_outputs[output->output_index] = true;
+      uint8_t j = 0;
+      if (output->output_index > 7) {
+        j = 1;
+      }
+      this->active_lamps_[i].used_outputs[j] |= 1 << (output->output_index % 8);
       output->in_use = true;
+      this->fram_->write((0x0000 + (this->active_lamps_[i].lamp_index * 24)), reinterpret_cast<unsigned char *>(&this->active_lamps_[i]), 24);
       ESP_LOGV(TAG, "Added output %s to lamp %s", output->output_id.c_str(), lamp_name.c_str());
       return;
     }
@@ -178,7 +208,13 @@ void DynamicLampComponent::remove_output_from_lamp(std::string lamp_name, Linked
   uint8_t i = 0;
   while (i < 16) {
     if (this->active_lamps_[i].name == lamp_name) {
-      this->active_lamps_[i].used_outputs[output->output_index] = false;
+      uint8_t j = 0;
+      if (output->output_index > 7) {
+        j = 1;
+        k = output->output_index - 8;
+      }
+      this->active_lamps_[i].used_outputs[j] &= ~(1 << k);
+      this->fram_->write((0x0000 + (i * 24)), reinterpret_cast<unsigned char *>(&this->active_lamps_[i]), 24);
       output->in_use = false;
       ESP_LOGV(TAG, "Removed output %s from lamp %s", output->output_id.c_str(), lamp_name.c_str());
       return;
@@ -192,7 +228,13 @@ void DynamicLampComponent::remove_output_from_lamp(std::string lamp_name, Linked
 std::array<bool, 16> DynamicLampComponent::get_lamp_outputs(uint8_t lamp_number) {
   std::array<bool, 16> bool_array;
   for (uint8_t i = 0; i < 16; i++) {
-        bool_array[i] = this->active_lamps_[lamp_number].used_outputs[i];  
+    uint8_t j = 0;
+    uint8_t k = i;
+    if (i > 7) {
+      j = 1;
+      k = i - 8;
+    }
+    bool_array[i] = static_cast<bool>(this->active_lamps_[lamp_number].used_outputs[j] & (1 << k));
   }
   return bool_array;
 }
