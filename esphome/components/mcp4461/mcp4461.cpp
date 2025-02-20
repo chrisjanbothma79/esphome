@@ -24,7 +24,7 @@ void Mcp4461Component::begin_() {
   // save WP/WL status
   this->update_write_protection_status_();
   for (uint8_t i = 0; i < 8; i++) {
-    if (this->reg_[i].initial_value.has_value()) {
+    if (this->reg_[i].initial_value.has_value() && std::isfinite(this->reg_[i].initial_value.value())) {
       uint16_t initial_state;
       initial_state = static_cast<uint16_t>(*this->reg_[i].initial_value * 256.0f);
       this->write_wiper_level_(i, initial_state);
