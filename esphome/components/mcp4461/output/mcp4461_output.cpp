@@ -12,6 +12,14 @@ static const char *const TAG = "mcp4461.output";
 // floats from other components (like light etc.) are passed as "percentage floats"
 // this function converts them to the 0 - 256 range used by the MCP4461
 void Mcp4461Wiper::write_state(float state) {
+  if (!std::isfinite(state)) {
+    ESP_LOGW(TAG, "Finite state state value is required.");
+    return;
+  }
+  state = clamp(state, 0.0f, 1.0f);
+  if (this->is_inverted()) {
+    state = 1.0f - state;
+  }
   if (this->parent_->set_wiper_level_(this->wiper_, static_cast<uint16_t>(std::roundf(state * 256)))) {
     this->state_ = state;
   }
@@ -39,7 +47,7 @@ void Mcp4461Wiper::turn_off() { this->parent_->disable_wiper_(this->wiper_); }
 void Mcp4461Wiper::increase_wiper() {
   if (this->parent_->increase_wiper_(this->wiper_)) {
     this->state_ = this->update_state();
-    ESP_LOGV(TAG, "Increased wiper %d to %" PRIu16 "", this->wiper_,
+    ESP_LOGV(TAG, "Increased wiper %" PRIu8 " to %" PRIu16 "", static_cast<uint8_t>(this->wiper_),
              static_cast<uint16_t>(std::roundf(this->state_ * 256)));
   }
 }
@@ -47,7 +55,7 @@ void Mcp4461Wiper::increase_wiper() {
 void Mcp4461Wiper::decrease_wiper() {
   if (this->parent_->decrease_wiper_(this->wiper_)) {
     this->state_ = this->update_state();
-    ESP_LOGV(TAG, "Decreased wiper %d to %" PRIu16 "", this->wiper_,
+    ESP_LOGV(TAG, "Decreased wiper %" PRIu8 " to %" PRIu16 "", static_cast<uint8_t>(this->wiper_),
              static_cast<uint16_t>(std::roundf(this->state_ * 256)));
   }
 }
