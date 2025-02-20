@@ -11,6 +11,9 @@ from esphome.components.image import (
     get_image_type_enum,
     get_transparency_enum,
 )
+from esphome.components.animation import (
+    Animation_,
+)
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BUFFER_SIZE,
@@ -25,7 +28,7 @@ from esphome.const import (
     CONF_URL,
 )
 
-AUTO_LOAD = ["image"]
+AUTO_LOAD = ["image", "animation"]
 DEPENDENCIES = ["display", "http_request"]
 CODEOWNERS = ["@guillempages", "@clydebarrow"]
 MULTI_CONF = True
@@ -68,6 +71,13 @@ class JPEGFormat(Format):
         cg.add_define("USE_ONLINE_IMAGE_JPEG_SUPPORT")
         cg.add_library("JPEGDEC", None, "https://github.com/bitbank2/JPEGDEC#ca1e0f2")
 
+class WEBPFormat(Format):
+    def __init__(self):
+        super().__init__("WEBP")
+
+    def actions(self):
+        cg.add_define("USE_ONLINE_IMAGE_WEBP_SUPPORT")
+        cg.add_library("libwebp", None, "https://github.com/acvigue/libwebp#26b0c4b")
 
 class PNGFormat(Format):
     def __init__(self):
@@ -83,12 +93,13 @@ IMAGE_FORMATS = {
     for x in (
         BMPFormat(),
         JPEGFormat(),
+        WEBPFormat(),
         PNGFormat(),
     )
 }
 IMAGE_FORMATS.update({"JPG": IMAGE_FORMATS["JPEG"]})
 
-OnlineImage = online_image_ns.class_("OnlineImage", cg.PollingComponent, Image_)
+OnlineImage = online_image_ns.class_("OnlineImage", cg.PollingComponent, Image_, Animation_)
 
 # Actions
 SetUrlAction = online_image_ns.class_(
