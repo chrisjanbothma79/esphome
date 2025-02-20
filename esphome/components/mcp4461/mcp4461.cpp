@@ -615,10 +615,6 @@ bool Mcp4461Component::set_eeprom_value(Mcp4461EepromLocation location, uint16_t
   return true;
 }
 
-int Mcp4461Component::get_error_code() {
-  return this->error_code;
-}
-
 bool Mcp4461Component::is_writing_() {
   /* Read the EEPROM write-active status from the status register */
   bool writing = static_cast<bool>((this->get_status_register_() >> 4) & 0x01);
