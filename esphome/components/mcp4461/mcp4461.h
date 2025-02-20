@@ -82,10 +82,10 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   /// @brief set hardware priority for component
   float get_setup_priority() const override { return setup_priority::HARDWARE; }
   void loop() override;
-  /// @brief get user-data value from eeprom location 
+  /// @brief get user-data value from eeprom location
   /// @param[location] location to fetch data from, valid is uint8_t in range of 0-4 for 5x 9 bits of user-data
   uint16_t get_eeprom_value(Mcp4461EepromLocation location);
-  /// @brief set user-data value from eeprom location 
+  /// @brief set user-data value from eeprom location
   /// @param[location] location to write data to, valid is uint8_t in range of 0-4 for 5x 9 bits of user-data
   bool set_eeprom_value(Mcp4461EepromLocation location, uint16_t value);
   /// @brief set initial value for wiper
