@@ -120,16 +120,22 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   void update_write_protection_status_();
   /// @brief fetch wiper address for given wiper
   /// @param[wiper] wiper to fetch address for, int in range 0-7
+  /// @return wiper address from Mcp4461Addresses
   uint8_t get_wiper_address_(uint8_t wiper);
   /// @brief internal i2c function to read given wiper value
+  /// @return uint16_t value in range 0-256 representing current wiper state/level
   uint16_t read_wiper_level_(uint8_t wiper);
   /// @brief fetch device status register values
+  /// @return uint8_t status register value - see datasheet for bit values
   uint8_t get_status_register_();
   /// @brief read current level/state of given wiper with validation checks
+  /// @return uint16_t value in range 0-256 representing current wiper state/level
   uint16_t get_wiper_level_(Mcp4461WiperIdx wiper);
   /// @brief set level/state of given wiper
+  /// @return bool - true on success, false on error/warning
   bool set_wiper_level_(Mcp4461WiperIdx wiper, uint16_t value);
   /// @brief update current level/state of given wiper
+  /// @return bool - true on success, false on error/warning
   bool update_wiper_level_(Mcp4461WiperIdx wiper);
   /// @brief enable given wiper
   /// @param[wiper] wiper to enable
@@ -139,9 +145,11 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   void disable_wiper_(Mcp4461WiperIdx wiper);
   /// @brief increase given wiper
   /// @param[wiper] wiper to increase
+  /// @return bool - true on success, false on error/warning
   bool increase_wiper_(Mcp4461WiperIdx wiper);
   /// @brief increase given wiper
   /// @param[wiper] wiper to increase
+  /// @return bool - true on success, false on error/warning
   bool decrease_wiper_(Mcp4461WiperIdx wiper);
   /// @brief enable terminal of wiper
   /// @param[wiper] desired wiper for which the terminal shall be enabled
@@ -150,23 +158,29 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   /// @param[wiper] desired wiper for which the terminal shall be disabled
   void disable_terminal_(Mcp4461WiperIdx, char terminal);
   /// @brief check if device is still busy writing to eeprom
+  /// @return bool - true if device is currently writing to eeprom
   bool is_writing_();
   /// @brief wait until timeout if device is busy
   /// @param[wait_if_not_ready] set to true to wait until timeout again, if previous write timed out already
+  /// @return bool - true if device eeprom still busy, false if rdy for write to nonvolatile wiper/eeprom
   bool is_eeprom_ready_for_writing_(bool wait_if_not_ready);
   /// @brief set wiper level
   /// @param[wiper] wiper for which the new state shall be set
   /// @param[value] the int value in range 0-256 the wiper shall be set to
   void write_wiper_level_(uint8_t wiper, uint16_t value);
   /// @brief internal i2c write function
+  /// @return bool - true write successful, false if not
   bool mcp4461_write_(uint8_t addr, uint16_t data, bool nonvolatile = false);
   /// @brief calculate correct terminal register values
+  /// @return uint8_t - calculated terminal register value for current internal terminal states
   uint8_t calc_terminal_connector_byte_(Mcp4461TerminalIdx terminal_connector);
   /// @brief internal function to update terminal registers
   void update_terminal_register_(Mcp4461TerminalIdx terminal_connector);
   /// @brief internal function to get terminal register values
+  /// /// @return uint8_t - get terminal register value of specified terminal
   uint8_t get_terminal_register_(Mcp4461TerminalIdx terminal_connector);
   /// @brief internal function to set terminal registers
+  /// @return bool - true if write successful, false if not
   bool set_terminal_register_(Mcp4461TerminalIdx terminal_connector, uint8_t data);
 
   WiperState reg_[8];
