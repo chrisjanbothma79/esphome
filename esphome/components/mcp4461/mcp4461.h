@@ -141,7 +141,7 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   /// @return bool - true on success, false on error/warning
   bool update_wiper_level_(Mcp4461WiperIdx wiper);
   /// @brief enable given wiper
-  /// @param[wiper] wiper to enable
+  /// @param[in] wiper The wiper to enable
   void enable_wiper_(Mcp4461WiperIdx wiper);
   /// @brief disable given wiper
   /// @param[wiper] wiper to disable
