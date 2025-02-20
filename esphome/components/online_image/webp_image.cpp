@@ -22,20 +22,20 @@ namespace online_image {
  * @param height Image Height
  * @param frame The frame to draw the image to
  */
-void draw_frame(ImageDecoder *decoder, uint8_t *pix, uint32_t width, uint32_t height, int frame) {
-  static int ixR = 0;
-  static int ixG = 1;
-  static int ixB = 2;
-  static int ixA = 3;
+void draw_frame(ImageDecoder *decoder, const uint8_t *pix, uint32_t width, uint32_t height, int frame) {
+  static int ix_r = 0;
+  static int ix_g = 1;
+  static int ix_b = 2;
+  static int ix_a = 3;
   static int channels = 4;
 
   for (unsigned int y = 0; y < height; y++) {
     for (unsigned int x = 0; x < width; x++) {
       const uint8_t *p = &pix[(y * width + x) * channels];
-      uint8_t r = p[ixR];
-      uint8_t g = p[ixG];
-      uint8_t b = p[ixB];
-      Color color(r, g, b, p[ixA]);
+      uint8_t r = p[ix_r];
+      uint8_t g = p[ix_g];
+      uint8_t b = p[ix_b];
+      Color color(r, g, b, p[ix_a]);
       decoder->draw(x, y, 1, 1, color, frame);
     }
   }
@@ -59,16 +59,16 @@ int HOT WebpDecoder::decode(uint8_t *buffer, size_t size) {
   }
 
   // Set up WebP decoder
-  WebPData webpData;
-  WebPDataInit(&webpData);
-  webpData.bytes = buffer;
-  webpData.size = size;
+  WebPData webp_data;
+  WebPDataInit(&webp_data);
+  webp_data.bytes = buffer;
+  webp_data.size = size;
 
-  WebPAnimDecoderOptions decoderOptions;
-  WebPAnimDecoderOptionsInit(&decoderOptions);
-  decoderOptions.color_mode = MODE_RGBA;
+  WebPAnimDecoderOptions decoder_options;
+  WebPAnimDecoderOptionsInit(&decoder_options);
+  decoder_options.color_mode = MODE_RGBA;
 
-  this->decoder_ = WebPAnimDecoderNew(&webpData, &decoderOptions);
+  this->decoder_ = WebPAnimDecoderNew(&webp_data, &decoder_options);
   if (this->decoder_ == NULL) {
     ESP_LOGE(TAG, "Could not create WebP decoder");
     return DECODE_ERROR_UNSUPPORTED_FORMAT;
