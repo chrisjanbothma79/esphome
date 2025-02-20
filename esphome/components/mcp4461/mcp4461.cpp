@@ -46,23 +46,23 @@ void Mcp4461Component::begin_() {
 // Converts a status to a human readable string
 static const LogString *mcp4461_get_message_string(int status) {
   switch (status) {
-    case this->MCP4461_STATUS_I2C_ERROR:
+    case MCP4461_STATUS_I2C_ERROR:
       return LOG_STR("I2C error - communication with MCP4461 failed!");
-    case this->MCP4461_STATUS_REGISTER_ERROR:
+    case MCP4461_STATUS_REGISTER_ERROR:
       return LOG_STR("Status register could not be read");
-    case this->MCP4461_STATUS_REGISTER_INVALID:
+    case MCP4461_STATUS_REGISTER_INVALID:
       return LOG_STR("Invalid status register value - bits 1,7 or 8 are 0");
-    case this->MCP4461_VALUE_INVALID:
+    case MCP4461_VALUE_INVALID:
       return LOG_STR("Invalid value for wiper given");
-    case this->MCP4461_WRITE_PROTECTED:
+    case MCP4461_WRITE_PROTECTED:
       return LOG_STR("MCP4461 is write protected. Setting nonvolatile wipers/eeprom values is prohibited.");
-    case this->MCP4461_WIPER_ENABLED:
+    case MCP4461_WIPER_ENABLED:
       return LOG_STR("MCP4461 Wiper is already enabled, ignoring cmd to enable.");
-    case this->MCP4461_WIPER_DISABLED:
+    case MCP4461_WIPER_DISABLED:
       return LOG_STR("MCP4461 Wiper is disabled. All actions on this wiper are prohibited.");
-    case this->MCP4461_WIPER_LOCKED:
+    case MCP4461_WIPER_LOCKED:
       return LOG_STR("MCP4461 Wiper is locked using WiperLock-technology. All actions on this wiper are prohibited.");
-    case this->MCP4461_STATUS_OK:
+    case MCP4461_STATUS_OK:
       return LOG_STR("Status OK");
     default:
       return LOG_STR("Unknown");
