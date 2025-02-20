@@ -10,7 +10,7 @@ Mcp4461Wiper = mcp4461_ns.class_(
     "Mcp4461Wiper", output.FloatOutput, cg.Parented.template(Mcp4461Component)
 )
 
-Mcp4461WiperIdx = mcp4461_ns.enum("Mcp4461WiperIdx")
+Mcp4461WiperIdx = mcp4461_ns.enum("Mcp4461WiperIdx", is_class=True)
 CHANNEL_OPTIONS = {
     "A": Mcp4461WiperIdx.MCP4461_WIPER_0,
     "B": Mcp4461WiperIdx.MCP4461_WIPER_1,
