@@ -47,7 +47,7 @@ void Mcp4461Wiper::turn_off() { this->parent_->disable_wiper_(this->wiper_); }
 void Mcp4461Wiper::increase_wiper() {
   if (this->parent_->increase_wiper_(this->wiper_)) {
     this->state_ = this->update_state();
-    ESP_LOGV(TAG, "Increased wiper %hhu to %" PRIu16 "", static_cast<uint8_t>(this->wiper_),
+    ESP_LOGV(TAG, "Increased wiper %" PRIu8 " to %" PRIu16 "", static_cast<uint8_t>(this->wiper_),
              static_cast<uint16_t>(std::roundf(this->state_ * 256)));
   }
 }
