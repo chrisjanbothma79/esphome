@@ -8,6 +8,7 @@ namespace esphome {
 namespace mcp4461 {
 
 /// @brief Struct representing current wiper details/state
+/// Default wiper state is 0x80h (128 int)
 struct WiperState {
   bool enabled = true;
   uint16_t state = 0;
