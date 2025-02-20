@@ -81,10 +81,11 @@ int HOT WebpDecoder::decode(uint8_t *buffer, size_t size) {
     return DECODE_ERROR_UNSUPPORTED_FORMAT;
   }
 
-  ESP_LOGD(TAG, "WebPAnimDecode size: (%dx%d), loops: %d, frames: %d, bgcolor: #%X", animation_.canvas_width, animation_.canvas_height, animation_.loop_count, animation_.frame_count, animation_.bgcolor);
+  ESP_LOGD(TAG, "WebPAnimDecode size: (%dx%d), loops: %d, frames: %d, bgcolor: #%X", animation_.canvas_width,
+      animation_.canvas_height, animation_.loop_count, animation_.frame_count, animation_.bgcolor);
 
   if (!this->set_size(animation_.canvas_width, animation_.canvas_height, animation_.frame_count)) {
-    ESP_LOGE(TAG,"could not allocate enough memory");
+    ESP_LOGE(TAG, "could not allocate enough memory");
     WebPAnimDecoderDelete(this->decoder_);
     this->decoder_ = NULL;
     return DECODE_ERROR_OUT_OF_MEMORY;
@@ -102,7 +103,7 @@ int HOT WebpDecoder::decode(uint8_t *buffer, size_t size) {
     uint8_t *pix;
     int timestamp;
     if (!WebPAnimDecoderGetNext(this->decoder_, &pix, &timestamp)) {
-      ESP_LOGE(TAG,"error parsing webp frame %u/%u", frame, animation_.frame_count);
+      ESP_LOGE(TAG, "error parsing webp frame %u/%u", frame, animation_.frame_count);
       WebPAnimDecoderDelete(this->decoder_);
       this->decoder_ = NULL;
       return DECODE_ERROR_UNSUPPORTED_FORMAT;

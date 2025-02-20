@@ -71,6 +71,7 @@ class JPEGFormat(Format):
         cg.add_define("USE_ONLINE_IMAGE_JPEG_SUPPORT")
         cg.add_library("JPEGDEC", None, "https://github.com/bitbank2/JPEGDEC#ca1e0f2")
 
+
 class WEBPFormat(Format):
     def __init__(self):
         super().__init__("WEBP")
@@ -78,6 +79,7 @@ class WEBPFormat(Format):
     def actions(self):
         cg.add_define("USE_ONLINE_IMAGE_WEBP_SUPPORT")
         cg.add_library("libwebp", None, "https://github.com/acvigue/libwebp#26b0c4b")
+
 
 class PNGFormat(Format):
     def __init__(self):
@@ -99,7 +101,9 @@ IMAGE_FORMATS = {
 }
 IMAGE_FORMATS.update({"JPG": IMAGE_FORMATS["JPEG"]})
 
-OnlineImage = online_image_ns.class_("OnlineImage", cg.PollingComponent, Image_, Animation_)
+OnlineImage = online_image_ns.class_(
+    "OnlineImage", cg.PollingComponent, Image_, Animation_
+)
 
 # Actions
 SetUrlAction = online_image_ns.class_(

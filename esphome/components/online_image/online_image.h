@@ -97,8 +97,12 @@ class OnlineImage : public PollingComponent,
 
   RAMAllocator<uint8_t> allocator_{};
 
-  uint32_t get_buffer_size_() const { return get_buffer_size_(this->buffer_width_, this->buffer_height_, this->animation_frame_count_); }
-  int get_buffer_size_(int width, int height, int frames) const { return frames * ((this->get_bpp() * width + 7u) / 8u * height); }
+  uint32_t get_buffer_size_() const {
+    return get_buffer_size_(this->buffer_width_, this->buffer_height_, this->animation_frame_count_);
+  }
+  int get_buffer_size_(int width, int height, int frames) const {
+    return frames * ((this->get_bpp() * width + 7u) / 8u * height);
+  }
 
   int get_position_(int x, int y, int frame = 0) const {
     int frame_offset = this->buffer_frame_size_ * frame;

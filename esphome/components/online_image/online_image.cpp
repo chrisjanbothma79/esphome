@@ -267,7 +267,8 @@ void OnlineImage::draw_pixel_(int x, int y, Color color, int frame) {
     ESP_LOGE(TAG, "Buffer not allocated!");
     return;
   }
-  if (x < 0 || y < 0 || frame < 0 || x >= this->buffer_width_ || y >= this->buffer_height_ || frame >= this->animation_frame_count_) {
+  if (x < 0 || y < 0 || frame < 0 || x >= this->buffer_width_ || y >= this->buffer_height_ ||
+      frame >= this->animation_frame_count_) {
     ESP_LOGE(TAG, "Tried to paint a pixel (%d,%d,%d) outside the image!", x, y, frame);
     return;
   }
