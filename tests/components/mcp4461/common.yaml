@@ -1,7 +1,7 @@
 i2c:
   - id: i2c_mcp4461
-    scl: ${scl_pin}
     sda: ${sda_pin}
+    scl: ${scl_pin}
 
 mcp4461:
   - id: mcp4461_digipot_01
