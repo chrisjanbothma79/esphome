@@ -32,7 +32,7 @@ class Mcp4461Wiper : public output::FloatOutput, public Parented<Mcp4461Componen
   /// @param[terminal] single char parameter defining desired terminal to enable, one of { 'a', 'b', 'w', 'h' }
   void enable_terminal(char terminal);
   /// @brief Disable given terminal
-  /// @param[terminal] single char parameter defining desired terminal to disable, one of { 'a', 'b', 'w', 'h' }
+  /// @param[in] terminal single char parameter defining desired terminal to disable, one of { 'a', 'b', 'w', 'h' }
   void disable_terminal(char terminal);
 
  protected:
