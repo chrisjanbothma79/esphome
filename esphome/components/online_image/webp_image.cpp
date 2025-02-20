@@ -82,7 +82,7 @@ int HOT WebpDecoder::decode(uint8_t *buffer, size_t size) {
   }
 
   ESP_LOGD(TAG, "WebPAnimDecode size: (%dx%d), loops: %d, frames: %d, bgcolor: #%X", animation_.canvas_width,
-          animation_.canvas_height, animation_.loop_count, animation_.frame_count, animation_.bgcolor);
+           animation_.canvas_height, animation_.loop_count, animation_.frame_count, animation_.bgcolor);
 
   if (!this->set_size(animation_.canvas_width, animation_.canvas_height, animation_.frame_count)) {
     ESP_LOGE(TAG, "could not allocate enough memory");
