@@ -12,7 +12,7 @@ class Mcp4461Wiper : public output::FloatOutput, public Parented<Mcp4461Componen
  public:
   Mcp4461Wiper(Mcp4461Component *parent, Mcp4461WiperIdx wiper) : parent_(parent), wiper_(wiper) {}
   /// @brief Enables/Disables current output using bool parameter
-  /// @param[state] boolean var representing desired state (true=ON, false=OFF)
+  /// @param[in] state boolean var representing desired state (true=ON, false=OFF)
   void set_state(bool state) override;
   /// @brief Enables current output
   void turn_on() override;
