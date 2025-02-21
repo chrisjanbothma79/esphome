@@ -125,6 +125,10 @@ esp_err_t BLEClientBase::pair() { return esp_ble_set_encryption(this->remote_bda
 void BLEClientBase::disconnect() {
   if (this->state_ == espbt::ClientState::IDLE || this->state_ == espbt::ClientState::DISCONNECTING)
     return;
+  if (this->conn_id_ == UNSET_CONN_ID) {
+    ESP_LOGW(TAG, "[%d] [%s] Disconnecting before connected", this->connection_index_, this->address_str_.c_str());
+    return;
+  }
   ESP_LOGI(TAG, "[%d] [%s] Disconnecting.", this->connection_index_, this->address_str_.c_str());
   auto err = esp_ble_gattc_close(this->gattc_if_, this->conn_id_);
   if (err != ESP_OK) {
@@ -241,6 +245,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       this->log_event_("ESP_GATTC_CLOSE_EVT");
       this->release_services();
       this->set_state(espbt::ClientState::IDLE);
+      this->conn_id_ = UNSET_CONN_ID;
       break;
     }
     case ESP_GATTC_SEARCH_RES_EVT: {
