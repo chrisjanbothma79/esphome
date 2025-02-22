@@ -1,6 +1,8 @@
 #include "daikin_protocol.h"
 #include "esphome/core/log.h"
 
+#include <cinttypes>
+
 namespace esphome {
 namespace remote_base {
 
@@ -18,10 +20,10 @@ static const uint32_t MESSAGE_SPACE = 32300;
 static const uint8_t HEADER[] = {0x11, 0xda, 0x27, 0x00};
 
 void DaikinProtocol::encode(RemoteTransmitData *dst, const DaikinData &data) {
+  dst->reserve(4 + (sizeof(HEADER) + data.data.size() + 1) * 16);
   dst->set_carrier_frequency(IR_FREQUENCY);
 
-  dst->mark(HEADER_MARK);
-  dst->space(HEADER_SPACE);
+  dst->item(HEADER_MARK, HEADER_SPACE);
 
   uint8_t checksum = 0;
 
@@ -37,8 +39,7 @@ void DaikinProtocol::encode(RemoteTransmitData *dst, const DaikinData &data) {
 
   DaikinProtocol::encode_byte(dst, checksum);
 
-  dst->mark(BIT_MARK);
-  dst->space(MESSAGE_SPACE);
+  dst->item(BIT_MARK, MESSAGE_SPACE);
 }
 
 optional<DaikinData> DaikinProtocol::decode(RemoteReceiveData src) {
@@ -75,7 +76,7 @@ optional<DaikinData> DaikinProtocol::decode(RemoteReceiveData src) {
 
     if (i < sizeof(HEADER)) {
       if (*it != HEADER[i]) {
-        ESP_LOGD(TAG, "Invalid header byte (%hhu): received %02X, expected %02X", i, *it, HEADER[i]);
+        ESP_LOGD(TAG, "Invalid header byte (%" PRIu8 "): received %02" PRIX8 ", expected %02" PRIX8, i, *it, HEADER[i]);
         return {};
       }
 
@@ -86,7 +87,7 @@ optional<DaikinData> DaikinProtocol::decode(RemoteReceiveData src) {
   }
 
   if (checksum != out.data.back()) {
-    ESP_LOGD(TAG, "Invalid checksum: received %02X, expected %02X", out.data.back(), checksum);
+    ESP_LOGD(TAG, "Invalid checksum: received %02" PRIX8 ", expected %02" PRIX8, out.data.back(), checksum);
     return {};
   }
 
@@ -100,9 +101,8 @@ void DaikinProtocol::dump(const DaikinData &data) {
 
 void DaikinProtocol::encode_byte(RemoteTransmitData *dst, uint8_t byte) {
   for (uint8_t mask = 1; mask > 0; mask <<= 1) {
-    dst->mark(BIT_MARK);
     const bool bit = byte & mask;
-    dst->space(bit ? ONE_SPACE : ZERO_SPACE);
+    dst->item(BIT_MARK, bit ? ONE_SPACE : ZERO_SPACE);
   }
 }
 

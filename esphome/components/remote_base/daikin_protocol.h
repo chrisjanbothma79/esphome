@@ -30,7 +30,7 @@ template<typename... Ts> class DaikinAction : public RemoteTransmitterActionBase
  public:
   TEMPLATABLE_VALUE(std::vector<uint8_t>, data);
 
-  void set_data(const std::vector<uint8_t> &data) { data_ = data; }
+  void set_data(const std::vector<uint8_t> &data) { this->data_ = data; }
   void encode(RemoteTransmitData *dst, Ts... x) override {
     DaikinData data{};
     data.data = this->data_.value(x...);
