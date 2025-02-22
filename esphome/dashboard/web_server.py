@@ -592,12 +592,26 @@ class IgnoreDeviceRequestHandler(BaseHandler):
 class DownloadListRequestHandler(BaseHandler):
     @authenticated
     @bind_config
-    def get(self, configuration: str | None = None) -> None:
+    async def get(self, configuration: str | None = None) -> None:
+        loop = asyncio.get_running_loop()
+        try:
+            downloads = await loop.run_in_executor(None, self._get, configuration)
+        except vol.Invalid:
+            self.send_error(404)
+            return
+        if downloads is None:
+            self.send_error(404)
+            return
+        self.set_status(200)
+        self.set_header("content-type", "application/json")
+        self.write(json.dumps(downloads))
+        self.finish()
+
+    def _get(self, configuration: str | None = None) -> dict[str, Any] | None:
         storage_path = ext_storage_path(configuration)
         storage_json = StorageJSON.load(storage_path)
         if storage_json is None:
-            self.send_error(404)
-            return
+            return None
 
         config = yaml_util.load_yaml(settings.rel_path(configuration))
 
@@ -606,15 +620,11 @@ class DownloadListRequestHandler(BaseHandler):
                 do_external_components_pass,
             )
 
-            try:
-                do_external_components_pass(config)
-            except vol.Invalid:
-                self.send_error(404)
-                return
+            do_external_components_pass(config)
 
         from esphome.components.esp32 import VARIANTS as ESP32_VARIANTS
 
-        downloads = []
+        downloads: list[dict[str, Any]] = []
         platform: str = storage_json.target_platform.lower()
 
         if platform.upper() in ESP32_VARIANTS:
@@ -628,12 +638,7 @@ class DownloadListRequestHandler(BaseHandler):
         except AttributeError as exc:
             raise ValueError(f"Unknown platform {platform}") from exc
         downloads = get_download_types(storage_json)
-
-        self.set_status(200)
-        self.set_header("content-type", "application/json")
-        self.write(json.dumps(downloads))
-        self.finish()
-        return
+        return json.dumps(downloads)
 
 
 class DownloadBinaryRequestHandler(BaseHandler):
