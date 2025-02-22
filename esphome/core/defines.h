@@ -14,6 +14,9 @@
 #define ESPHOME_PROJECT_VERSION_30 "v2"
 #define ESPHOME_VARIANT "ESP32"
 
+// logger
+#define ESPHOME_LOG_LEVEL ESPHOME_LOG_LEVEL_VERY_VERBOSE
+
 // Feature flags
 #define USE_ALARM_CONTROL_PANEL
 #define USE_BINARY_SENSOR
@@ -71,6 +74,8 @@
 
 // Feature flags which do not work for zephyr
 #ifndef USE_ZEPHYR
+#define USE_AUDIO_FLAC_SUPPORT
+#define USE_AUDIO_MP3_SUPPORT
 #define USE_API
 #define USE_API_NOISE
 #define USE_API_PLAINTEXT
@@ -79,6 +84,7 @@
 #define USE_NETWORK
 #define USE_ONLINE_IMAGE_BMP_SUPPORT
 #define USE_ONLINE_IMAGE_PNG_SUPPORT
+#define USE_ONLINE_IMAGE_JPEG_SUPPORT
 #define USE_OTA
 #define USE_OTA_PASSWORD
 #define USE_OTA_STATE_CALLBACK

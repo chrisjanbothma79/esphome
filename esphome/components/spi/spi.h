@@ -118,6 +118,8 @@ class NullPin : public GPIOPin {
 
   void pin_mode(gpio::Flags flags) override {}
 
+  gpio::Flags get_flags() const override { return gpio::Flags::FLAG_NONE; }
+
   bool digital_read() override { return false; }
 
   void digital_write(bool value) override {}
