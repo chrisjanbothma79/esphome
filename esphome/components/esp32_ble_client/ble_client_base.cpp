@@ -125,7 +125,7 @@ esp_err_t BLEClientBase::pair() { return esp_ble_set_encryption(this->remote_bda
 void BLEClientBase::disconnect() {
   if (this->state_ == espbt::ClientState::IDLE || this->state_ == espbt::ClientState::DISCONNECTING)
     return;
-  if (this->conn_id_ == UNSET_CONN_ID) {
+  if (this->state_ == espbt::ClientState::CONNECTING || this->conn_id_ == UNSET_CONN_ID) {
     ESP_LOGW(TAG, "[%d] [%s] Disconnecting before connected", this->connection_index_, this->address_str_.c_str());
     return;
   }
