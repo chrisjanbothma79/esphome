@@ -205,7 +205,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         this->set_state(espbt::ClientState::IDLE);
         break;
       }
-      if (this->state == espbt::ClientState::DISCONNECTING) {
+      if (this->state_ == espbt::ClientState::DISCONNECTING) {
         // Disconnect was requested before after connecting started,
         // but before the connection was established. Now that we have
         // this->conn_id_ set, we can disconnect it.
@@ -232,7 +232,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if (!this->check_addr(param->connect.remote_bda))
         return false;
       this->log_event_("ESP_GATTC_CONNECT_EVT");
-      if (this->state == espbt::ClientState::DISCONNECTING) {
+      if (this->state_ == espbt::ClientState::DISCONNECTING) {
         // Disconnect was requested before after connecting started,
         // but before the connection was established. Now that we have
         // this->conn_id_ set, we can disconnect it.
