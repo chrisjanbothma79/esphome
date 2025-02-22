@@ -7,6 +7,22 @@
 namespace esphome {
 namespace ht16k33_char {
 
+static const uint8_t HT16K33_DISPLAY_DATA_ADDRESS = 0x00;
+static const uint8_t HT16K33_SYSTEM_SETUP = 0x20;
+static const uint8_t HT16K33_KEY_DATA_ADDRESS = 0x40;
+static const uint8_t HT16K33_INT_FLAG_ADDRESS = 0x60;
+static const uint8_t HT16K33_DISPLAY_SETUP = 0x80;
+static const uint8_t HT16K33_ROW_INT_SET = 0xA0;
+static const uint8_t HT16K33_DIMMING_SET = 0xE0;
+
+static const uint8_t HT16K33_DISPLAY_OFF = 0x00;
+static const uint8_t HT16K33_DISPLAY_ON = 0x01;
+static const uint8_t HT16K33_MODE_STANDBY = 0x00;
+static const uint8_t HT16K33_MODE_NORMAL = 0x01;
+
+
+
+
 class HT16k33CharComponent;
 
 //We can have up to 7 chips. Chip addresses are 0b1110xxx. Default is 0b1110000 (0x70).
@@ -21,16 +37,15 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
   void update() override;
   void dump_config() override;
   
-
   void set_writer(ht16k33_char_writer_t &&writer) { this->writer_ = writer; };
   float get_setup_priority() const override;
   void display();
   
-  uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position);
+  //This needs to have the stub or it won't work. This function is replaced by the device specific functions in the subclasses.
+  virtual uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position) {return 0;};
   
   void set_brightness(uint8_t brightness) { this->brightness_ = brightness; };
   void set_buffer_size(uint8_t size_to_set) { this->char_buffer_size_ = size_to_set; };  //TODO: Should I use a compiler define for this?
-  //void set_device_type(uint8_t device_type) { this->device_type_ = device_type; };
   
   //Called automatically during setup to generate a list of I2CDevices that represent the displays.
   //We iterate through the displays_ to address individual displays during runtime.

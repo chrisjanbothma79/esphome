@@ -29,27 +29,26 @@ CONFIG_SECONDARY = cv.Schema({
 }).extend(i2c.i2c_device_schema(None))
 #------------------------------------------
 
-#HT16K33Char_DeviceType = ht16k33_char_ns.enum("HT16K33Char_DeviceType")
-#HT16K33_DEVICE_TYPES = {
-#    "ADAFRUIT_7SEGMENT_1_2IN": HT16K33Char_DeviceType.ADAFRUIT_7SEGMENT_1_2IN,
-#    "ADAFRUIT_14_SEG": HT16K33Char_DeviceType.ADAFRUIT_14_SEGMENT,
-#}
 
+HT16k33Char_BaseClassType = ht16k33_char_ns.class_("HT16k33CharComponent", cg.PollingComponent, i2c.I2CDevice)
+
+#A dictionary for supported device types
+# -The key is what the user would put in the YAML file to select this device.
+# -The value is the name of the class that implements the device.
 HT16K33_DEVICE_TYPES = {
-    "ADAFRUIT_7SEGMENT_1_2IN":  1,
-    "ADAFRUIT_14_SEG":          2,
+    "ADAFRUIT_7SEGMENT_1.2IN":              "Adafruit_7seg_large",
+    "ADAFRUIT_7SEGMENT_1.2IN_FLIPPED":      "Adafruit_7seg_large_flip",
+    "ADAFRUIT_14_SEG":                      "Adafruit_14_seg",
 }
 
-
-HT16k33CharComponent = ht16k33_char_ns.class_("HT16k33CharComponent", cg.PollingComponent, i2c.I2CDevice)
-HT16k33ComponentRef = HT16k33CharComponent.operator("ref")
+HT16k33Char_BaseClassTypeRef = HT16k33Char_BaseClassType.operator("ref")
 
 CONFIG_SCHEMA = ( display.BASIC_DISPLAY_SCHEMA.extend(
         {
-            cv.GenerateID(): cv.declare_id(HT16k33CharComponent),
+            cv.GenerateID(): cv.declare_id(HT16k33Char_BaseClassType),
+            cv.Required(CONF_DEVICE): cv.enum(HT16K33_DEVICE_TYPES, upper=True),
             cv.Optional(CONF_BUFFER_SIZE, default=8): cv.int_range(min=1, max=255),
             cv.Optional(CONF_BRIGHTNESS, default=15): cv.int_range(min=0, max=15),
-            cv.Required(CONF_DEVICE): cv.enum(HT16K33_DEVICE_TYPES, upper=True),
             cv.Optional(CONF_SECONDARY_DISPLAYS): cv.ensure_list(CONFIG_SECONDARY),
             cv.Optional(CONF_CONTINUOUS, default=False): cv.boolean,
             cv.Optional(CONF_SCROLL, default=False): cv.boolean,
@@ -63,28 +62,24 @@ CONFIG_SCHEMA = ( display.BASIC_DISPLAY_SCHEMA.extend(
 )
 
 async def to_code(config):
+    ClassType = ht16k33_char_ns.class_(HT16K33_DEVICE_TYPES[config[CONF_DEVICE]], HT16k33Char_BaseClassType)
+    ClassInstantiation = ClassType.new()
+    var = cg.Pvariable(config[CONF_ID], ClassInstantiation, ClassType)
     
-    for key, value in HT16K33_DEVICE_TYPES.items():
-        cg.add_define("HT16K33_CHAR_TYPE_"+key, value)
+    #print("REF: ", HT16k33Char_BaseClassTypeRef)
+    #print("Base Class Type: ", HT16k33Char_BaseClassType)
+    #print("ID: ", config[CONF_ID])
+    #print("Type: ", ClassType)
+    #print("Instantiation: ", ClassInstantiation)
     
-    
-    var = cg.new_Pvariable(config[CONF_ID])
     await i2c.register_i2c_device(var, config)
     await display.register_display(var, config)
-
     cg.add(var.set_buffer_size(config[CONF_BUFFER_SIZE]))   #TODO: I could use a compiler define to set this size. Is that a good idea?
     cg.add(var.set_brightness(config[CONF_BRIGHTNESS]))
-    
-    #TODO: I set this twice, I probably don't need to do that, but it should not hurt anything. 
-    # I need the compiler define in order to remove char maps for devices that we are not using. 
-    # However, I could use the compiler define to set the device type in the class. Also, do I 
-    # even use that variable in the class?
-    #cg.add(var.set_device_type(config[CONF_DEVICE]))
-    cg.add_define("HT16K33_CHAR_DISPLAY_TYPE", config[CONF_DEVICE])
 
     if CONF_LAMBDA in config:
         lambda_ = await cg.process_lambda(
-            config[CONF_LAMBDA], [(HT16k33ComponentRef, "it")], return_type=cg.void
+            config[CONF_LAMBDA], [(HT16k33Char_BaseClassTypeRef, "it")], return_type=cg.void
         )
         cg.add(var.set_writer(lambda_))
     

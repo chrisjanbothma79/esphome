@@ -1,30 +1,22 @@
-#include "esphome/core/defines.h"   //TODO: needed to get access to the compiler define for device type
-#include "esphome/core/log.h"
-#include "ht16k33_char.h"
+#include <unordered_map>
 
+//#include "esphome/core/defines.h"   //TODO: needed to get access to the compiler define for device type
+#include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
 
-#include <unordered_map>
+#include "ht16k33_char.h"
+
+/* To add more device types:
+ *    -Add to the enum in the display.py file
+ *    -Add a new .h and .c file that defines a class derived from the `HT16k33CharComponent` class.
+ *    -Implement a `uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position)` function in that class.
+ */
 
 namespace esphome {
 namespace ht16k33_char {
 
 static const char *const TAG = "ht16k33_char";
-
-//Commands
-static const uint8_t HT16K33_DISPLAY_DATA_ADDRESS = 0x00;
-static const uint8_t HT16K33_SYSTEM_SETUP = 0x20;
-static const uint8_t HT16K33_KEY_DATA_ADDRESS = 0x40;
-static const uint8_t HT16K33_INT_FLAG_ADDRESS = 0x60;
-static const uint8_t HT16K33_DISPLAY_SETUP = 0x80;
-static const uint8_t HT16K33_ROW_INT_SET = 0xA0;
-static const uint8_t HT16K33_DIMMING_SET = 0xE0;
-
-static const uint8_t HT16K33_DISPLAY_OFF = 0x00;
-static const uint8_t HT16K33_DISPLAY_ON = 0x01;
-static const uint8_t HT16K33_MODE_STANDBY = 0x00;
-static const uint8_t HT16K33_MODE_NORMAL = 0x01;
 
 //Return a setup priority. More info here: https://esphome.io/api/namespaceesphome_1_1setup__priority
 float HT16k33CharComponent::get_setup_priority() const { return setup_priority::PROCESSOR; }
@@ -48,22 +40,21 @@ void HT16k33CharComponent::setup() {
 
 void HT16k33CharComponent::update() {
   //TODO: I will probably want to implement the scrolling stuff here
-  //ESP_LOGD(TAG, "Update function");
+  //TODO: Should I have some variable that indicates if the display needs to be updated? That way I can only update the display if it needs to change.
   
   if (this->writer_.has_value()) {
     //This line is responsible for calling the lambda code.
-    (*this->writer_)(*this);    
+    (*this->writer_)(*this);
   }
   
   //The lambda code does not actually update the display directly. It manipulates the char buffer.
   //We call the display function to actually update the display after the lambda function is complete.
   this->display();
-  
-  ESP_LOGD(TAG, "Buffer: %s. Length is %d", this->char_buffer_.c_str(), this->char_buffer_.length());
 }
 
 void HT16k33CharComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "HT16K33:");
+  ESP_LOGCONFIG(TAG, "this in the dump confige function %d", this);
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
     // Nothing in this code actually sets the device to failed, so this should never trigger.
@@ -74,15 +65,9 @@ void HT16k33CharComponent::dump_config() {
   LOG_UPDATE_INTERVAL(this);
 }
 
-/* To add more device types:
- *    -Add to the enum in the display.py file
- *    -Add a section to send_to_display() that implements the code to convert the char buffer into 
- *     the proper memory settings for the chip
- */
-
-
 //Zeros out all of the display memory on the device. This is not the same a turning it off, but it will have the same effect.
 void HT16k33CharComponent::blank() {
+  //ESP_LOGD(TAG, "Blank display");
   for (auto *display : this->displays_) {
     
     this->buffer_[0] = HT16K33_DISPLAY_DATA_ADDRESS;
@@ -95,7 +80,6 @@ void HT16k33CharComponent::blank() {
     display->write(this->buffer_, 16, true);
   }
 }
-
 
 void HT16k33CharComponent::display() {
   uint8_t buffer_location = this->fist_char_location_;
@@ -111,6 +95,7 @@ uint8_t HT16k33CharComponent::print(uint8_t start_pos, const char *str, bool cle
   uint8_t top;
   uint8_t j;
   //ESP_LOGD(TAG, "print function:");
+  //ESP_LOGD(TAG, "this in the print function %d", this);
   //ESP_LOGD(TAG, "Old Buffer: %s. Length is %d", this->char_buffer_.c_str(), this->char_buffer_.length());
   //ESP_LOGD(TAG, "Adding %s of length %d at location %d", str, strlen(str), start_pos);
   
@@ -145,6 +130,7 @@ uint8_t HT16k33CharComponent::print(uint8_t start_pos, const char *str, bool cle
   }
   
   //ESP_LOGD(TAG, "New Buffer: %s. Length is %d", this->char_buffer_.c_str(), this->char_buffer_.length());
+  //ESP_LOGD(TAG, "end print function:");
   return 0;
 }
 
@@ -186,175 +172,10 @@ uint8_t HT16k33CharComponent::clock_display(ESPTime time, uint8_t position, bool
     buffer[0] = ' ';
   }
 
-  ESP_LOGD(TAG, "time: %s, %d:%d", buffer, time.hour, time.minute);
+  //ESP_LOGD(TAG, "time: %s, %d:%d", buffer, time.hour, time.minute);
   
   return this->print(position, buffer, clear_buffer);
 }
-
-
-//Notes for the 7 segment 1.2" display.
-  //Digit 1 is COM0
-  //Digit 2 is COM1
-  //DPs are COM2
-  //Digit 3 is COM3
-  //Digit 4 is COM4
-  //tempBuffer[5] = 0b00010000; this is the dp between the right two digits
-  //tempBuffer[5] = 0b00000010; this is the colon between the two sets of digits
-  //tempBuffer[5] = 0b00000100; this is the dp on the edge of the display. Roughly in line with the first decimal point above
-  //tempBuffer[5] = 0b00001000; This is the DP on the edge of the display. it is on the lower part of the display, further from being a decimal point.
-
-
-//Position is the position in the character buffer. position 0 is the begining of the buffer
-//Returns the index of the next character to display in the buffer (what we would give as `position` to the next call to this function).
-//TODO: There is probably a cleaner way to do this. I want to use compiler defines to only include code for the device type we are actually using. I could instead use different includes or something to move all this to a separate file.
-uint8_t HT16k33CharComponent::send_to_display(i2c::I2CDevice *display, uint8_t position){
-  #if HT16K33_CHAR_DISPLAY_TYPE == HT16K33_CHAR_TYPE_ADAFRUIT_7SEGMENT_1_2IN
-    //ESP_LOGD(TAG, "Display type 1");
-    
-    uint8_t i;
-    char char_to_find;
-    bool special_character_found;
-    const std::unordered_map<char, uint8_t> char_map = {
-      {'0', 0b00111111},  //The number zero
-      {'1', 0b00000110}, 
-      {'2', 0b01011011},
-      {'3', 0b01001111},
-      {'4', 0b01100110},
-      {'5', 0b01101101},
-      {'6', 0b01111101},
-      {'7', 0b00000111},
-      {'8', 0b01111111},
-      {'9', 0b01101111},
-      {' ', 0b00000000},  //Blank space
-      {'O', 0b00111111},  //The capitol letter 'o'
-      {'A', 0b01110111},
-      {'b', 0b01111100},
-      {'C', 0b00111001},
-      {'d', 0b01011110},
-      {'E', 0b01111001},
-      {'F', 0b01110001},
-      {'r', 0b01010000},
-      {'o', 0b01011100},  //The lower case letter 'o'
-      {'N', 0b00110111},
-      {'P', 0b01110011},
-      {'L', 0b00111000},
-      {'Y', 0b01101110},
-      {'t', 0b01111000},
-      {'U', 0b00111110},
-      {'S', 0b01101101},
-    };
-  
-    const uint8_t digit_map[4] = {1, 3, 7, 9};
-    uint8_t char_buffer_location;
-
-    this->buffer_[0] = HT16K33_DISPLAY_DATA_ADDRESS;
-
-    //Clear any old data from the buffer
-    for(int i=1; i<16; i++) {
-      this->buffer_[i] = 0x00;
-    }
-  
-    char_buffer_location = position;
-    i = 0;
-    special_character_found = false;
-  
-    while (i < 4) {
-      if (char_buffer_location >= this->char_buffer_.length()) {
-        //char_buffer_location is past the end of the character buffer. 
-        //Blank the digits past the end of the display.
-        //TODO: Is there a situation where we would not want to blank the digits? Maybe allow wrapping the digits?
-        this->buffer_[digit_map[i]] = 0x00;
-        i++;
-      }
-      
-      else {
-        //The character to find is within the bounds of the buffer array.
-        char_to_find = this->char_buffer_.at(char_buffer_location);
-
-        auto it = char_map.find(char_to_find);  //TODO: can I get rid of auto here?
-        if (it != char_map.end()) {
-          this->buffer_[digit_map[i]] = it->second;
-          //ESP_LOGD(TAG, "char%d %c:%d", i, char_to_find, this->buffer_[digit_map[i]]);
-          special_character_found = false;
-          i++;
-        }
-        else {
-          //Look for special characters. These characters are only valid at certain locations in the display. A special character in an invalid location will be treated the same way as an invalid character. In the case of an invalid character, that location in the display will be left blank. only one special character will be evaulated per location on the display.
-          if(!special_character_found) {
-            if(char_to_find == ':') {
-              if (i == 0) {
-                //We want a colon before the first digit
-                //ESP_LOGD(TAG, "colon before digit 0");
-                this->buffer_[5] = this->buffer_[5] | 0b00001100;
-                special_character_found = true;
-                char_buffer_location++;
-                continue;
-              }
-              else if (i == 2) {
-                //We want a colon between digit 2 and 3
-                //ESP_LOGD(TAG, "colon before digit 2");
-                this->buffer_[5] = this->buffer_[5] | 0b00000010;
-                special_character_found = true;
-                char_buffer_location++;
-                continue;
-              }
-              //ESP_LOGD(TAG, "colon at invalid location");
-            }
-            else if(char_to_find == '\'' || char_to_find == '`') {
-              if (i == 0) {
-                //We want an apostrophe before the first digit
-                //ESP_LOGD(TAG, "apostrophe before digit 0");
-                this->buffer_[5] = this->buffer_[5] | 0b00000100;
-                special_character_found = true;
-                char_buffer_location++;
-                continue;
-
-              }
-              else if (i == 3) {
-                //We want an apostrophe before the fourth digit
-                //ESP_LOGD(TAG, "apostrophe before digit 3");
-                this->buffer_[5] = this->buffer_[5] | 0b00010000;
-                special_character_found = true;
-                char_buffer_location++;
-                continue;
-              }
-              //ESP_LOGD(TAG, "apostrophe at invalid location");
-            }
-            else if(char_to_find == '.') {
-              if (i == 0) {
-                //We want an period before the first digit
-                //ESP_LOGD(TAG, "period before digit 0");
-                this->buffer_[5] = this->buffer_[5] | 0b00001000;
-                special_character_found = true;
-                char_buffer_location++;
-                continue;
-              }
-              //ESP_LOGD(TAG, "period at invalid location");
-            }
-          }
-
-          this->buffer_[digit_map[i]] = 0x00;
-          //ESP_LOGD(TAG, "char%d %c is not in map", i, char_to_find);
-          special_character_found = false;
-          i++;
-        }
-      
-        char_buffer_location++;
-      }
-    }
-
-    display->write(this->buffer_, 16, true);
-    return char_buffer_location;
-    
-  #elif HT16K33_CHAR_DISPLAY_TYPE == HT16K33_CHAR_TYPE_ADAFRUIT_14_SEG
-    ESP_LOGD(TAG, "Display type 2");
-    return 0;
-  #else
-    ESP_LOGD(TAG, "unknown disp type");
-    return 0;
-  #endif
-}
-
 
 }  // namespace ht16k33_char
 }  // namespace esphome
