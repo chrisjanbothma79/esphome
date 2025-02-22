@@ -595,16 +595,16 @@ class DownloadListRequestHandler(BaseHandler):
     async def get(self, configuration: str | None = None) -> None:
         loop = asyncio.get_running_loop()
         try:
-            downloads = await loop.run_in_executor(None, self._get, configuration)
+            downloads_json = await loop.run_in_executor(None, self._get, configuration)
         except vol.Invalid:
             self.send_error(404)
             return
-        if downloads is None:
+        if downloads_json is None:
             self.send_error(404)
             return
         self.set_status(200)
         self.set_header("content-type", "application/json")
-        self.write(json.dumps(downloads))
+        self.write(downloads_json)
         self.finish()
 
     def _get(self, configuration: str | None = None) -> dict[str, Any] | None:
