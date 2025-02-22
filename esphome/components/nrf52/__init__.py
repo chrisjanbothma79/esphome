@@ -88,7 +88,7 @@ async def to_code(config):
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
     cg.add_define("ESPHOME_VARIANT", "NRF52")
     conf = {
-        CONF_PLATFORM_VERSION: "https://github.com/tomaszduda23/platform-nordicnrf52#b4b73670f2524e816df78bedbbc0bdda867a66a5"
+        CONF_PLATFORM_VERSION: "https://github.com/tomaszduda23/platform-nordicnrf52#9099e96676c3a0eb983d7f7ef09954213dc98503"
     }
     cg.add_platformio_option(CONF_FRAMEWORK, CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK])
     cg.add_platformio_option("platform", conf[CONF_PLATFORM_VERSION])
