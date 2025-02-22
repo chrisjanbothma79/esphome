@@ -145,7 +145,6 @@ void BLEClientBase::_unconditional_disconnect() {
   if (this->state_ == espbt::ClientState::SEARCHING || this->state_ == espbt::ClientState::READY_TO_CONNECT ||
       this->state_ == espbt::ClientState::DISCOVERED || this->state_ == espbt::ClientState::DISCONNECTING) {
     this->set_address(0);
-    this->conn_id_ = UNSET_CONN_ID;
     this->set_state(espbt::ClientState::IDLE);
   } else {
     this->set_state(espbt::ClientState::DISCONNECTING);
@@ -205,6 +204,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         // Disconnect we requested before after connecting started,
         // but before the connection was established.
         this->_unconditional_disconnect();
+        this->conn_id_ = UNSET_CONN_ID;
         break;
       }
       auto ret = esp_ble_gattc_send_mtu_req(this->gattc_if_, param->open.conn_id);
@@ -230,6 +230,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         // Disconnect we requested before after connecting started,
         // but before the connection was established.
         this->_unconditional_disconnect();
+        this->conn_id_ = UNSET_CONN_ID;
       }
       break;
     }
