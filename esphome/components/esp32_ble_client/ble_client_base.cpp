@@ -127,8 +127,14 @@ void BLEClientBase::disconnect() {
     return;
   if (this->state_ == espbt::ClientState::CONNECTING || this->conn_id_ == UNSET_CONN_ID) {
     ESP_LOGW(TAG, "[%d] [%s] Disconnecting before connected", this->connection_index_, this->address_str_.c_str());
+    this->set_state(espbt::ClientState::DISCONNECTING);
     return;
   }
+  this->unconditional_disconnect();
+}
+
+void BLEClientBase::unconditional_disconnect() {
+  // Disconnect without checking the state.
   ESP_LOGI(TAG, "[%d] [%s] Disconnecting.", this->connection_index_, this->address_str_.c_str());
   auto err = esp_ble_gattc_close(this->gattc_if_, this->conn_id_);
   if (err != ESP_OK) {
@@ -137,7 +143,7 @@ void BLEClientBase::disconnect() {
   }
 
   if (this->state_ == espbt::ClientState::SEARCHING || this->state_ == espbt::ClientState::READY_TO_CONNECT ||
-      this->state_ == espbt::ClientState::DISCOVERED) {
+      this->state_ == espbt::ClientState::DISCOVERED || this->state_ == espbt::ClientState::DISCONNECTING) {
     this->set_address(0);
     this->set_state(espbt::ClientState::IDLE);
   } else {
@@ -194,6 +200,12 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         this->set_state(espbt::ClientState::IDLE);
         break;
       }
+      if (this->state == espbt::ClientState::DISCONNECTING) {
+        // Disconnect we requested before after connecting started,
+        // but before the connection was established.
+        this->unconditional_disconnect();
+        break;
+      }
       auto ret = esp_ble_gattc_send_mtu_req(this->gattc_if_, param->open.conn_id);
       if (ret) {
         ESP_LOGW(TAG, "[%d] [%s] esp_ble_gattc_send_mtu_req failed, status=%x", this->connection_index_,
@@ -213,6 +225,12 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
       if (!this->check_addr(param->connect.remote_bda))
         return false;
       this->log_event_("ESP_GATTC_CONNECT_EVT");
+      if (this->state == espbt::ClientState::DISCONNECTING) {
+        // Disconnect we requested before after connecting started,
+        // but before the connection was established.
+        this->unconditional_disconnect();
+        break;
+      }
       break;
     }
     case ESP_GATTC_DISCONNECT_EVT: {
