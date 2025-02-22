@@ -21,6 +21,7 @@ class ZephyrGPIOPin : public InternalGPIOPin {
   ISRInternalGPIOPin to_isr() const override;
   uint8_t get_pin() const override { return this->pin_; }
   bool is_inverted() const override { return this->inverted_; }
+  gpio::Flags get_flags() const override { return flags_; }
 
  protected:
   void attach_interrupt(void (*func)(void *), void *arg, gpio::InterruptType type) const override;
