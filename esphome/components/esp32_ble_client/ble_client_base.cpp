@@ -130,10 +130,10 @@ void BLEClientBase::disconnect() {
     this->set_state(espbt::ClientState::DISCONNECTING);
     return;
   }
-  this->_unconditional_disconnect_();
+  this->unconditional_disconnect();
 }
 
-void BLEClientBase::_unconditional_disconnect_() {
+void BLEClientBase::unconditional_disconnect() {
   // Disconnect without checking the state.
   ESP_LOGI(TAG, "[%d] [%s] Disconnecting.", this->connection_index_, this->address_str_.c_str());
   if (this->conn_id_ == UNSET_CONN_ID) {
@@ -209,7 +209,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         // Disconnect was requested after connecting started,
         // but before the connection was established. Now that we have
         // this->conn_id_ set, we can disconnect it.
-        this->_unconditional_disconnect_();
+        this->unconditional_disconnect();
         this->conn_id_ = UNSET_CONN_ID;
         break;
       }
@@ -236,7 +236,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         // Disconnect was requested after connecting started,
         // but before the connection was established. Now that we have
         // this->conn_id_ set, we can disconnect it.
-        this->_unconditional_disconnect_();
+        this->unconditional_disconnect();
         this->conn_id_ = UNSET_CONN_ID;
       }
       break;
