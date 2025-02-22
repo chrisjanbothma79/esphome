@@ -206,7 +206,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         break;
       }
       if (this->state_ == espbt::ClientState::DISCONNECTING) {
-        // Disconnect was requested before after connecting started,
+        // Disconnect was requested after connecting started,
         // but before the connection was established. Now that we have
         // this->conn_id_ set, we can disconnect it.
         this->_unconditional_disconnect();
@@ -233,7 +233,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
         return false;
       this->log_event_("ESP_GATTC_CONNECT_EVT");
       if (this->state_ == espbt::ClientState::DISCONNECTING) {
-        // Disconnect was requested before after connecting started,
+        // Disconnect was requested after connecting started,
         // but before the connection was established. Now that we have
         // this->conn_id_ set, we can disconnect it.
         this->_unconditional_disconnect();
