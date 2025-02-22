@@ -143,9 +143,13 @@ void BLEClientBase::unconditional_disconnect() {
   }
   auto err = esp_ble_gattc_close(this->gattc_if_, this->conn_id_);
   if (err != ESP_OK) {
-    // This is a fatal error, we can't do anything about it.
+    //
+    // This is a fatal error, but we can't do anything about it
+    // and it likely means the BLE stack is in a bad state.
+    //
     // In the future we might consider App.reboot() here since
     // the BLE stack is in an indeterminate state.
+    //
     ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_close error, err=%d", this->connection_index_, this->address_str_.c_str(),
              err);
   }
