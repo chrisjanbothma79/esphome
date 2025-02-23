@@ -13,6 +13,11 @@
  *    -Implement a `uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position)` function in that class.
  */
 
+#define HT16K33_SCROLL_STATE_STATIC     0   //No scrolling. If this state is set, it will never change.
+#define HT16K33_SCROLL_STATE_START      1
+#define HT16K33_SCROLL_STATE_SCROLLING  2
+#define HT16K33_SCROLL_STATE_END        3
+
 namespace esphome {
 namespace ht16k33_char {
 
@@ -36,26 +41,155 @@ void HT16k33CharComponent::setup() {
   this->blank();
   this->char_buffer_.resize(this->char_buffer_size_, ' ');
   this->fist_char_location_ = 0;
+  
+  //Check to see if we need to scroll the display.
+  if ( !(this->scroll_) || ( this->char_buffer_.length() <= ( this->displays_.size()*this->digits_per_display_) ) ) {
+    //Scrolling is off or the message to display is shorter than the number of digits, so scrolling is not required.
+    this->scroll_state_ = HT16K33_SCROLL_STATE_STATIC;
+  }
+  else if (this->continuous_) {
+    //If the state is continuous, there is not start and end delay. Go directly into the scrolling.
+    this->scroll_state_ = HT16K33_SCROLL_STATE_SCROLLING;
+    this->last_scroll_ = millis();
+  }
+  else {
+    this->scroll_state_ = HT16K33_SCROLL_STATE_START;
+    this->last_scroll_ = millis();
+  }
 }
 
 void HT16k33CharComponent::update() {
-  //TODO: I will probably want to implement the scrolling stuff here
-  //TODO: Should I have some variable that indicates if the display needs to be updated? That way I can only update the display if it needs to change.
-  
+  //This checks if the lambda function is defined. I guess if it is not defined, we don't do anything.
   if (this->writer_.has_value()) {
     //This line is responsible for calling the lambda code.
     (*this->writer_)(*this);
+    
+    //The lambda code does not actually update the display directly. It manipulates the char buffer.
+    //  - If the display is static (no scrolling), we directly call display() to update the display now.
+    //  - If scrolling is happening, we do not update the display in this function. The display will 
+    //    be updated in the loop() function.
+    if (this->scroll_state_ == HT16K33_SCROLL_STATE_STATIC) {
+      this->display();
+    }
+  }
+  //ESP_LOGD(TAG, "digits per display: %d", this->digits_per_display_);
+}
+
+void HT16k33CharComponent::loop() {
+  uint32_t now;
+  uint8_t total_display_length;
+  
+  if (this->scroll_state_ == HT16K33_SCROLL_STATE_STATIC) {
+    //Check this first. If the display is static, we don't need to do anything in this function.
+    return;
   }
   
-  //The lambda code does not actually update the display directly. It manipulates the char buffer.
-  //We call the display function to actually update the display after the lambda function is complete.
-  this->display();
+  now = millis();
+  
+  //The total number of characters we can display.
+  total_display_length = this->displays_.size() * this->digits_per_display_;
+  
+  //Check some edge cases. I probaby don't need to do this.
+  if (this->last_scroll_ == 0) {
+    //last_scroll_ will only be exactly 0 on the first time through the loop.
+    //TODO: Is this needed? We want the last_scroll_ variable to start when the display starts showing something.
+    //TODO: Probably not needed anymore. this is set in state machine init.
+    this->last_scroll_ = now;
+    return;
+  }
+  if(this->last_scroll_ > now) {
+    //This will happen when the millis() function overflows. (approx every 50 days)
+    //TODO: Is this even needed. Check the rest of the code to see if it can handle this case natively.
+    this->last_scroll_ = now;
+    return;
+  }
+  
+  switch (this->scroll_state_) {
+    case HT16K33_SCROLL_STATE_START:
+      if ( (now - this->last_scroll_) >= this->scroll_delay_) {
+        //Start scrolling
+        //ESP_LOGD(TAG, "Start scrolling");
+        this->last_scroll_ = now;
+        this->scroll_state_ = HT16K33_SCROLL_STATE_SCROLLING;
+        this->fist_char_location_++;
+        this->display();    //Update the display
+      }
+      break;
+    
+    case HT16K33_SCROLL_STATE_SCROLLING:
+      if ( (now - this->last_scroll_) >= this->scroll_speed_) {
+        //It's time to do something
+        //ESP_LOGD(TAG, "Scroll");
+        if ( !this->continuous_ && (this->char_buffer_.length() - this->fist_char_location_) <= total_display_length ) {
+          //We have reached the end of the stuff to display. Go to the end delay.
+          //The display does not need to be updated here.
+          //ESP_LOGD(TAG, "End of Scrolling");
+          this->scroll_state_ = HT16K33_SCROLL_STATE_END;
+        }
+        else {
+          //Scroll to the next character.
+          this->last_scroll_ = now;
+          this->fist_char_location_++;
+          if (this->fist_char_location_ >= this->char_buffer_.length()) {
+            //This only happens in continuous mode.
+            this->fist_char_location_ = 0;
+          }
+          this->display();    //Update the display
+        }
+      }
+      break;
+    
+    case HT16K33_SCROLL_STATE_END:
+      if ( (now - this->last_scroll_) >= this->scroll_dwell_) {
+        //Go back to the begining
+        this->last_scroll_ = now;
+        this->scroll_state_ = HT16K33_SCROLL_STATE_START;
+        this->fist_char_location_ = 0;
+        this->display();    //Update the display
+        //ESP_LOGD(TAG, "Restarting scrolling");
+      }
+      break;
+  }
 }
 
 void HT16k33CharComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "HT16K33:");
-  ESP_LOGCONFIG(TAG, "this in the dump confige function %d", this);
-  LOG_I2C_DEVICE(this);
+  ESP_LOGCONFIG(TAG, "HT16K33 Char:");
+  
+  ESP_LOGCONFIG(TAG, "  Device Type: ");  //TODO: Do I add a string to be able to show the device type?
+  ESP_LOGCONFIG(TAG, "  Buffer Length: %d", this->char_buffer_size_);
+  ESP_LOGCONFIG(TAG, "  Brightness: %d", this->brightness_);
+  
+  //Scrolling stuff
+  if(this->scroll_){
+    ESP_LOGCONFIG(TAG, "  Scrolling: Enabled");
+    if(this->continuous_) {
+      ESP_LOGCONFIG(TAG, "    Continuous: Yes");
+    }
+    else {
+      ESP_LOGCONFIG(TAG, "    Continuous: No");
+    }
+    ESP_LOGCONFIG(TAG, "    Scroll Speed:       %0.2f sec", this->scroll_speed_/1000.);
+    ESP_LOGCONFIG(TAG, "    Scroll Start Delay: %0.2f sec", this->scroll_delay_/1000.);
+    ESP_LOGCONFIG(TAG, "    Scroll End Delay    %0.2f sec", this->scroll_dwell_/1000.);
+  }
+  else {
+    ESP_LOGCONFIG(TAG, "  Scrolling: Disabled");
+  }
+  
+  //Display device addresses.
+  ESP_LOGCONFIG(TAG, "  Number of displays: %d", this->displays_.size());
+  if (this->displays_.size() == 1) {
+    //Only one display
+    LOG_I2C_DEVICE(this);
+  }
+  else {
+    //TODO: I2C address is protected, how do I display the address of the devices?
+    //ESP_LOGCONFIG(TAG, "Device List:");
+    //for (auto *display : this->displays_) {
+    //  LOG_I2C_DEVICE(display);
+    //}
+  }
+  
   if (this->is_failed()) {
     // Nothing in this code actually sets the device to failed, so this should never trigger.
     //  I am leaving this in incase I want to implement a check during init to verify the

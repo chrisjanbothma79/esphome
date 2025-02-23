@@ -16,6 +16,7 @@ class Adafruit_7seg_large : public HT16k33CharComponent {
     uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position);
     
   //protected:
+    //uint8_t digits_per_display_ {4};
     //optional<ht16k33_char_writer_t> writer_{};
     
 };

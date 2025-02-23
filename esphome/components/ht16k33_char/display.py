@@ -32,13 +32,15 @@ CONFIG_SECONDARY = cv.Schema({
 
 HT16k33Char_BaseClassType = ht16k33_char_ns.class_("HT16k33CharComponent", cg.PollingComponent, i2c.I2CDevice)
 
-#A dictionary for supported device types
+#A dictionary for supported device types:
 # -The key is what the user would put in the YAML file to select this device.
-# -The value is the name of the class that implements the device.
+# -The value is a dictionary that contains the keys: 
+#    `CLASS_NAME`: The name of the class that implements the device.
+#    `DIGITS_PER_DISPLAY`: The number of digits on the display
 HT16K33_DEVICE_TYPES = {
-    "ADAFRUIT_7SEGMENT_1.2IN":              "Adafruit_7seg_large",
-    "ADAFRUIT_7SEGMENT_1.2IN_FLIPPED":      "Adafruit_7seg_large_flip",
-    "ADAFRUIT_14_SEG":                      "Adafruit_14_seg",
+    "ADAFRUIT_7SEGMENT_1.2IN":          {"CLASS_NAME":"Adafruit_7seg_large",        "DIGITS_PER_DISPLAY": 4},
+    "ADAFRUIT_7SEGMENT_1.2IN_FLIPPED":  {"CLASS_NAME":"Adafruit_7seg_large_flip",   "DIGITS_PER_DISPLAY": 4},
+    "ADAFRUIT_14_SEG":                  {"CLASS_NAME":"Adafruit_14_seg",            "DIGITS_PER_DISPLAY": 4},
 }
 
 HT16k33Char_BaseClassTypeRef = HT16k33Char_BaseClassType.operator("ref")
@@ -52,9 +54,9 @@ CONFIG_SCHEMA = ( display.BASIC_DISPLAY_SCHEMA.extend(
             cv.Optional(CONF_SECONDARY_DISPLAYS): cv.ensure_list(CONFIG_SECONDARY),
             cv.Optional(CONF_CONTINUOUS, default=False): cv.boolean,
             cv.Optional(CONF_SCROLL, default=False): cv.boolean,
-            cv.Optional(CONF_SCROLL_SPEED, default='250ms'): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_SCROLL_SPEED, default='1s'): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_SCROLL_DWELL, default='2s'): cv.positive_time_period_milliseconds,
-            cv.Optional(CONF_SCROLL_DELAY, default='3'): cv.float_range(min=1),
+            cv.Optional(CONF_SCROLL_DELAY, default='5s'): cv.positive_time_period_milliseconds,
         }
     )
     .extend(cv.polling_component_schema("10s"))
@@ -62,7 +64,7 @@ CONFIG_SCHEMA = ( display.BASIC_DISPLAY_SCHEMA.extend(
 )
 
 async def to_code(config):
-    ClassType = ht16k33_char_ns.class_(HT16K33_DEVICE_TYPES[config[CONF_DEVICE]], HT16k33Char_BaseClassType)
+    ClassType = ht16k33_char_ns.class_(HT16K33_DEVICE_TYPES[config[CONF_DEVICE]]["CLASS_NAME"], HT16k33Char_BaseClassType)
     ClassInstantiation = ClassType.new()
     var = cg.Pvariable(config[CONF_ID], ClassInstantiation, ClassType)
     
@@ -76,6 +78,9 @@ async def to_code(config):
     await display.register_display(var, config)
     cg.add(var.set_buffer_size(config[CONF_BUFFER_SIZE]))   #TODO: I could use a compiler define to set this size. Is that a good idea?
     cg.add(var.set_brightness(config[CONF_BRIGHTNESS]))
+    cg.add(var.set_digits_per_display(HT16K33_DEVICE_TYPES[config[CONF_DEVICE]]["DIGITS_PER_DISPLAY"]))
+    
+    
 
     if CONF_LAMBDA in config:
         lambda_ = await cg.process_lambda(
@@ -89,7 +94,7 @@ async def to_code(config):
         cg.add(var.set_continuous(config[CONF_CONTINUOUS]))
         cg.add(var.set_scroll_speed(config[CONF_SCROLL_SPEED]))
         cg.add(var.set_scroll_dwell(config[CONF_SCROLL_DWELL]))
-        cg.add(var.set_scroll_delay(int(config[CONF_SCROLL_DELAY] * config[CONF_SCROLL_SPEED].total_milliseconds)))
+        cg.add(var.set_scroll_delay(config[CONF_SCROLL_DELAY]))
 
     if CONF_SECONDARY_DISPLAYS in config:
         for conf in config[CONF_SECONDARY_DISPLAYS]:

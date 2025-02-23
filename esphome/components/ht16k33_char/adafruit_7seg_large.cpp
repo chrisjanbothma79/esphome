@@ -31,7 +31,7 @@ namespace ht16k33_char {
 static const char *const TAG = "ht16k33_char";
 
 //Position is the position in the character buffer. position 0 is the begining of the buffer
-//Returns the index of the next character to display in the buffer (what we would give as `position` to the next call to this function).
+//Returns the index of the first character to display in the buffer (what we would give as `position` to the next call to this function).
 uint8_t Adafruit_7seg_large::send_to_display(i2c::I2CDevice *display, uint8_t position){
   uint8_t i;
   char char_to_find;
@@ -87,13 +87,21 @@ uint8_t Adafruit_7seg_large::send_to_display(i2c::I2CDevice *display, uint8_t po
   i = 0;
   special_character_found = false;
 
+  //ESP_LOGD(TAG, "Buffer: %s. Length is %d", this->char_buffer_.c_str(), this->char_buffer_.length());
+
   while (i < 4) {
     if (char_buffer_location >= this->char_buffer_.length()) {
-      //char_buffer_location is past the end of the character buffer. 
-      //Blank the digits past the end of the display.
-      //TODO: Is there a situation where we would not want to blank the digits? Maybe allow wrapping the digits?
-      this->buffer_[digit_map[i]] = 0x00;
-      i++;
+      //char_buffer_location is past the end of the character buffer.
+      if (this->continuous_) {
+        //We want a continuous display where the message starts over immediately.
+        char_buffer_location = 0;
+      }
+      else {
+        //Blank the digits past the end of the display.
+        //TODO: Is there a situation where we would not want to blank the digits? Maybe allow wrapping the digits?
+        this->buffer_[digit_map[i]] = 0x00;
+        i++;
+      }
     }
     
     else {

@@ -103,14 +103,18 @@ uint8_t Adafruit_7seg_large_flip::send_to_display(i2c::I2CDevice *display, uint8
 
   while (i < 4) {
     if (char_buffer_location >= this->char_buffer_.length()) {
-      //char_buffer_location is past the end of the character buffer. 
-      //Blank the digits past the end of the display.
-      //TODO: Is there a situation where we would not want to blank the digits? Maybe allow wrapping the digits?
-      break;
-      //this->buffer_[digit_map[i]] = 0x00;
-      //i++;
+      //char_buffer_location is past the end of the character buffer.
+      if (this->continuous_) {
+        //We want a continuous display where the message starts over immediately.
+        char_buffer_location = 0;
+      }
+      else {
+        //Blank the digits past the end of the display.
+        //TODO: Is there a situation where we would not want to blank the digits? Maybe allow wrapping the digits?
+        this->buffer_[digit_map[i]] = 0x00;
+        i++;
+      }
     }
-    
     else {
       //The character to find is within the bounds of the buffer array.
       char_to_find = this->char_buffer_.at(char_buffer_location);

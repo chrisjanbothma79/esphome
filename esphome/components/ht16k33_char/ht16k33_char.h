@@ -34,7 +34,8 @@ using ht16k33_char_writer_t = std::function<void(HT16k33CharComponent &)>;
 class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
  public:
   void setup() override;
-  void update() override;
+  void update() override;   //Called at the update interval set during device config
+  void loop() override;     //Called at the speed of the main loop (approx every 16ms)
   void dump_config() override;
   
   void set_writer(ht16k33_char_writer_t &&writer) { this->writer_ = writer; };
@@ -56,7 +57,7 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
   void set_scroll_speed(unsigned long scroll_speed) { this->scroll_speed_ = scroll_speed; }
   void set_scroll_dwell(unsigned long scroll_dwell) { this->scroll_dwell_ = scroll_dwell; }
   void set_scroll_delay(unsigned long scroll_delay) { this->scroll_delay_ = scroll_delay; }
-
+  void set_digits_per_display(uint8_t digits) { this->digits_per_display_ = digits; }
 
   /// Evaluate the printf-format and print the result at the given position.
   uint8_t printf(uint8_t pos, bool clear_buffer, const char *format, ...) __attribute__((format(printf, 4, 5)));
@@ -79,6 +80,8 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
   uint8_t strftime(const char *format, ESPTime time) __attribute__((format(strftime, 2, 0)));
 
  protected:
+  uint8_t scroll_state_; 
+ 
   std::vector<i2c::I2CDevice *> displays_ {this};
 
   //uint8_t device_type_;   //TODO: Is this used anywhere?
@@ -89,9 +92,11 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
   unsigned long scroll_speed_ {250};  //TODO: should these be initialized to zero??
   unsigned long scroll_dwell_ {2000};
   unsigned long scroll_delay_ {750};
-  unsigned long last_scroll_ {0};
+  unsigned long last_scroll_  {0};
+  
+  uint8_t digits_per_display_ {0};
 
-  uint8_t brightness_{15};     // Intensity of the display from 0 to 15 (most) TODO: Change to brightness?
+  uint8_t brightness_ {15};     // Intensity of the display from 0 to 15 (most) TODO: Change to brightness?
   
   std::string char_buffer_;     //This buffer holds the entire character message to display.
   uint8_t buffer_[20];          //This buffer is used to send the raw bytes to the HT16k33 device. TODO: Make this 17?
