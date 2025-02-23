@@ -54,11 +54,15 @@ MSA_RANGES = {
 }
 
 MSAResolution = msa3xx_ns.enum("Resolution", True)
-MSA_RESOLUTIONS = {
+RESOLUTIONS_MSA301 = {
     14: MSAResolution.RES_14BIT,
     12: MSAResolution.RES_12BIT,
     10: MSAResolution.RES_10BIT,
     8: MSAResolution.RES_8BIT,
+}
+
+RESOLUTIONS_MSA311 = {
+    12: MSAResolution.RES_12BIT,
 }
 
 _COMMON_SCHEMA = cv.Schema(
@@ -99,19 +103,23 @@ CONFIG_SCHEMA = cv.typed_schema(
     {
         MODEL_MSA301: _COMMON_SCHEMA.extend(
             {
-                cv.Optional(CONF_RESOLUTION, default=14): cv.enum(MSA_RESOLUTIONS),
+                cv.Optional(CONF_RESOLUTION, default=14): cv.enum(RESOLUTIONS_MSA301),
             }
         ).extend(i2c.i2c_device_schema(0x26)),
         MODEL_MSA311: _COMMON_SCHEMA.extend(
             {
-                cv.Optional(CONF_RESOLUTION): cv.invalid(
-                    "MSA311 doesn't support different resolutions"
-                ),
+                cv.Optional(CONF_RESOLUTION, default=12): cv.enum(RESOLUTIONS_MSA311),
             }
         ).extend(i2c.i2c_device_schema(0x62)),
     },
     upper=True,
     enum=MSA_MODELS,
+)
+
+MSA_SENSOR_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(CONF_MSA3XX_ID): cv.use_id(MSA3xxComponent),
+    }
 )
 
 
@@ -120,15 +128,11 @@ async def to_code(config):
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
 
-    if config[CONF_TYPE] == MODEL_MSA311:
-        config[CONF_RESOLUTION] = 12
-
     cg.add(var.set_model(config[CONF_TYPE]))
     cg.add(var.set_range(MSA_RANGES[config[CONF_RANGE]]))
-    cg.add(var.set_resolution(MSA_RESOLUTIONS[config[CONF_RESOLUTION]]))
+    cg.add(var.set_resolution(RESOLUTIONS_MSA301[config[CONF_RESOLUTION]]))
 
-    if CONF_TRANSFORM in config:
-        transform = config[CONF_TRANSFORM]
+    if transform := config.get(CONF_TRANSFORM):
         cg.add(
             var.set_transform(
                 transform[CONF_MIRROR_X],
@@ -138,8 +142,7 @@ async def to_code(config):
             )
         )
 
-    if CONF_CALIBRATION in config:
-        calibration_config = config[CONF_CALIBRATION]
+    if calibration_config := config.get(CONF_CALIBRATION):
         cg.add(
             var.set_offset(
                 calibration_config[CONF_OFFSET_X],

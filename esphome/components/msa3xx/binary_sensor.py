@@ -3,7 +3,7 @@ from esphome.components import binary_sensor
 import esphome.config_validation as cv
 from esphome.const import CONF_ACTIVE, CONF_NAME, DEVICE_CLASS_VIBRATION, ICON_VIBRATE
 
-from . import CONF_MSA3XX_ID, MSA3xxComponent
+from . import CONF_MSA3XX_ID, MSA_SENSOR_SCHEMA
 
 CODEOWNERS = ["@latonita"]
 DEPENDENCIES = ["msa3xx"]
@@ -17,11 +17,7 @@ ICON_DOUBLE_TAP = "mdi:gesture-double-tap"
 EVENT_SENSORS = (CONF_TAP, CONF_DOUBLE_TAP, CONF_ACTIVE)
 ICONS = (ICON_TAP, ICON_DOUBLE_TAP, ICON_VIBRATE)
 
-CONFIG_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(CONF_MSA3XX_ID): cv.use_id(MSA3xxComponent),
-    }
-).extend(
+CONFIG_SCHEMA = MSA_SENSOR_SCHEMA.extend(
     {
         cv.Optional(event): cv.maybe_simple_value(
             binary_sensor.binary_sensor_schema(

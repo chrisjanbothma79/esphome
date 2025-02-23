@@ -3,7 +3,7 @@ from esphome.components import text_sensor
 import esphome.config_validation as cv
 from esphome.const import CONF_NAME
 
-from . import CONF_MSA3XX_ID, MSA3xxComponent
+from . import CONF_MSA3XX_ID, MSA_SENSOR_SCHEMA
 
 CODEOWNERS = ["@latonita"]
 DEPENDENCIES = ["msa3xx"]
@@ -14,11 +14,7 @@ ICON_SCREEN_ROTATION = "mdi:screen-rotation"
 
 ORIENTATION_SENSORS = (CONF_ORIENTATION_XY, CONF_ORIENTATION_Z)
 
-CONFIG_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(CONF_MSA3XX_ID): cv.use_id(MSA3xxComponent),
-    }
-).extend(
+CONFIG_SCHEMA = MSA_SENSOR_SCHEMA.extend(
     {
         cv.Optional(sensor): cv.maybe_simple_value(
             text_sensor.text_sensor_schema(icon=ICON_SCREEN_ROTATION),

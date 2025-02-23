@@ -11,7 +11,7 @@ from esphome.const import (
     UNIT_METER_PER_SECOND_SQUARED,
 )
 
-from . import CONF_MSA3XX_ID, MSA3xxComponent
+from . import CONF_MSA3XX_ID, MSA_SENSOR_SCHEMA
 
 CODEOWNERS = ["@latonita"]
 DEPENDENCIES = ["msa3xx"]
@@ -29,11 +29,9 @@ accel_schema = cv.maybe_simple_value(
 )
 
 
-CONFIG_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(CONF_MSA3XX_ID): cv.use_id(MSA3xxComponent),
-    }
-).extend({cv.Optional(sensor): accel_schema for sensor in ACCELERATION_SENSORS})
+CONFIG_SCHEMA = MSA_SENSOR_SCHEMA.extend(
+    {cv.Optional(sensor): accel_schema for sensor in ACCELERATION_SENSORS}
+)
 
 
 async def to_code(config):
