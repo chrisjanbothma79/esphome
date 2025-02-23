@@ -184,7 +184,7 @@ class ESPBTClient : public ESPBTDeviceListener {
 
  protected:
   ClientState state_{ClientState::INIT};
-  want_disconnect_{false};
+  bool want_disconnect_{false};
 };
 
 class ESP32BLETracker : public Component,
