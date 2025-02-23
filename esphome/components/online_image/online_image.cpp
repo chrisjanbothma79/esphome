@@ -12,11 +12,11 @@ static const char *const TAG = "online_image";
 #ifdef USE_ONLINE_IMAGE_JPEG_SUPPORT
 #include "jpeg_image.h"
 #endif
-#ifdef USE_ONLINE_IMAGE_WEBP_SUPPORT
-#include "webp_image.h"
-#endif
 #ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
 #include "png_image.h"
+#endif
+#ifdef USE_ONLINE_IMAGE_WEBP_SUPPORT
+#include "webp_image.h"
 #endif
 
 namespace esphome {
@@ -97,7 +97,7 @@ size_t OnlineImage::resize_(int width_in, int height_in, int frames) {
   this->animation_frame_count_ = frames;
   this->buffer_frame_size_ = new_size / frames;
   this->current_frame_ = 0;
-  ESP_LOGV(TAG, "New size: (%d, %d, %d)", width, height, frames);
+  ESP_LOGV(TAG, "New size: (%d, %d). Frames: %d", width, height, frames);
   return new_size;
 }
 

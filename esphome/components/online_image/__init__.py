@@ -95,8 +95,8 @@ IMAGE_FORMATS = {
     for x in (
         BMPFormat(),
         JPEGFormat(),
-        WEBPFormat(),
         PNGFormat(),
+        WEBPFormat(),
     )
 }
 IMAGE_FORMATS.update({"JPG": IMAGE_FORMATS["JPEG"]})
