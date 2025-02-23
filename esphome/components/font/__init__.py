@@ -71,7 +71,7 @@ class FontCache(MutableMapping):
         return f"file:{value[CONF_PATH]}"
 
     def __init__(self, *args, **kwargs):
-        self.store = dict()
+        self.store = {}
         self.update(dict(*args, **kwargs))
 
     def __delitem__(self, key):
