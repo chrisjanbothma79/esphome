@@ -249,15 +249,7 @@ bool BLEClientBase::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_
     case ESP_GATTC_CONNECT_EVT: {
       if (!this->check_addr(param->connect.remote_bda))
         return false;
-      this->conn_id_ = param->connect.conn_id;
       this->log_event_("ESP_GATTC_CONNECT_EVT");
-      if (this->want_disconnect_) {
-        // Disconnect was requested after connecting started,
-        // but before the connection was established. Now that we have
-        // this->conn_id_ set, we can disconnect it.
-        this->unconditional_disconnect();
-        this->conn_id_ = UNSET_CONN_ID;
-      }
       break;
     }
     case ESP_GATTC_DISCONNECT_EVT: {
