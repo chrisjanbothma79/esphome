@@ -387,7 +387,8 @@ def validate_file_shorthand(value):
             }
         )
 
-    if value.endswith(".pcf") or value.endswith(".bdf"):
+    extension = Path(value).suffix
+    if extension in BITMAP_EXTENSIONS:
         return font_file_schema(
             {
                 CONF_TYPE: TYPE_LOCAL_BITMAP,
