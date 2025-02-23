@@ -133,7 +133,6 @@ void BLEClientBase::disconnect() {
              this->address_str_.c_str());
     return;
   }
-  ESP_LOGI(TAG, "[%d] [%s] Disconnecting.", this->connection_index_, this->address_str_.c_str());
   if (this->state_ == espbt::ClientState::CONNECTING || this->conn_id_ == UNSET_CONN_ID) {
     ESP_LOGW(TAG, "[%d] [%s] Disconnecting before connected, disconnect scheduled.", this->connection_index_,
              this->address_str_.c_str());
