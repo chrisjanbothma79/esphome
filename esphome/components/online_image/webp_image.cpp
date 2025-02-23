@@ -32,10 +32,7 @@ void draw_frame(ImageDecoder *decoder, const uint8_t *pix, uint32_t width, uint3
   for (unsigned int y = 0; y < height; y++) {
     for (unsigned int x = 0; x < width; x++) {
       const uint8_t *p = &pix[(y * width + x) * channels];
-      uint8_t r = p[ix_r];
-      uint8_t g = p[ix_g];
-      uint8_t b = p[ix_b];
-      Color color(r, g, b, p[ix_a]);
+      Color color(p[ix_r], p[ix_g], p[ix_b], p[ix_a]);
       decoder->draw(x, y, 1, 1, color, frame);
     }
   }

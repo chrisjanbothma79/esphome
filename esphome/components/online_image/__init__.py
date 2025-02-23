@@ -2,6 +2,7 @@ import logging
 
 from esphome import automation
 import esphome.codegen as cg
+from esphome.components.animation import Animation_
 from esphome.components.http_request import CONF_HTTP_REQUEST_ID, HttpRequestComponent
 from esphome.components.image import (
     CONF_INVERT_ALPHA,
@@ -10,9 +11,6 @@ from esphome.components.image import (
     Image_,
     get_image_type_enum,
     get_transparency_enum,
-)
-from esphome.components.animation import (
-    Animation_,
 )
 import esphome.config_validation as cv
 from esphome.const import (
@@ -72,15 +70,6 @@ class JPEGFormat(Format):
         cg.add_library("JPEGDEC", None, "https://github.com/bitbank2/JPEGDEC#ca1e0f2")
 
 
-class WEBPFormat(Format):
-    def __init__(self):
-        super().__init__("WEBP")
-
-    def actions(self):
-        cg.add_define("USE_ONLINE_IMAGE_WEBP_SUPPORT")
-        cg.add_library("libwebp", None, "https://github.com/acvigue/libwebp#26b0c4b")
-
-
 class PNGFormat(Format):
     def __init__(self):
         super().__init__("PNG")
@@ -88,6 +77,15 @@ class PNGFormat(Format):
     def actions(self):
         cg.add_define("USE_ONLINE_IMAGE_PNG_SUPPORT")
         cg.add_library("pngle", "1.0.2")
+
+
+class WEBPFormat(Format):
+    def __init__(self):
+        super().__init__("WEBP")
+
+    def actions(self):
+        cg.add_define("USE_ONLINE_IMAGE_WEBP_SUPPORT")
+        cg.add_library("libwebp", None, "https://github.com/acvigue/libwebp#26b0c4b")
 
 
 IMAGE_FORMATS = {

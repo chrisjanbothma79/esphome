@@ -124,16 +124,16 @@ void OnlineImage::update() {
       accept_mime_type = "image/jpeg";
       break;
 #endif  // USE_ONLINE_IMAGE_JPEG_SUPPORT
-#ifdef USE_ONLINE_IMAGE_WEBP_SUPPORT
-    case ImageFormat::WEBP:
-      accept_mime_type = "image/webp";
-      break;
-#endif  // USE_ONLINE_IMAGE_WEBP_SUPPORT
 #ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
     case ImageFormat::PNG:
       accept_mime_type = "image/png";
       break;
 #endif  // ONLINE_IMAGE_PNG_SUPPORT
+#ifdef USE_ONLINE_IMAGE_WEBP_SUPPORT
+    case ImageFormat::WEBP:
+      accept_mime_type = "image/webp";
+      break;
+#endif  // USE_ONLINE_IMAGE_WEBP_SUPPORT
     default:
       accept_mime_type = "image/*";
   }
@@ -178,18 +178,18 @@ void OnlineImage::update() {
     this->decoder_ = esphome::make_unique<JpegDecoder>(this);
   }
 #endif  // USE_ONLINE_IMAGE_JPEG_SUPPORT
-#ifdef USE_ONLINE_IMAGE_WEBP_SUPPORT
-  if (this->format_ == ImageFormat::WEBP) {
-    ESP_LOGD(TAG, "Allocating WEBP decoder");
-    this->decoder_ = esphome::make_unique<WebpDecoder>(this);
-  }
-#endif  // USE_ONLINE_IMAGE_WEBP_SUPPORT
 #ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
   if (this->format_ == ImageFormat::PNG) {
     ESP_LOGD(TAG, "Allocating PNG decoder");
     this->decoder_ = make_unique<PngDecoder>(this);
   }
 #endif  // ONLINE_IMAGE_PNG_SUPPORT
+#ifdef USE_ONLINE_IMAGE_WEBP_SUPPORT
+  if (this->format_ == ImageFormat::WEBP) {
+    ESP_LOGD(TAG, "Allocating WEBP decoder");
+    this->decoder_ = esphome::make_unique<WebpDecoder>(this);
+  }
+#endif  // USE_ONLINE_IMAGE_WEBP_SUPPORT
 
   if (!this->decoder_) {
     ESP_LOGE(TAG, "Could not instantiate decoder. Image format unsupported: %d", this->format_);
