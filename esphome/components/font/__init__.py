@@ -70,9 +70,8 @@ class FontCache(MutableMapping):
             return f"url:{value[CONF_URL]}"
         return f"file:{value[CONF_PATH]}"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         self.store = {}
-        self.update(dict(*args, **kwargs))
 
     def __delitem__(self, key):
         del self.store[self._keytransform(key)]
