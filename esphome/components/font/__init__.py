@@ -204,10 +204,13 @@ def validate_font_config(config):
                 if font.get_char_index(x) != 0
             ]
 
-    if config[CONF_FILE][CONF_TYPE] == TYPE_LOCAL_BITMAP and CONF_SIZE in config:
-        raise cv.Invalid(
-            "Size is not a valid option for bitmap fonts, which are inherently fixed size"
-        )
+    if config[CONF_FILE][CONF_TYPE] == TYPE_LOCAL_BITMAP:
+        if CONF_SIZE in config:
+            raise cv.Invalid(
+                "Size is not a valid option for bitmap fonts, which are inherently fixed size"
+            )
+    elif CONF_SIZE not in config:
+        config[CONF_SIZE] = 20
 
     return config
 
@@ -523,7 +526,7 @@ async def to_code(config):
     for codepoint in codepoints:
         font = point_font_map[codepoint]
         if not font.has_fixed_sizes:
-            font.set_pixel_sizes(config.get(CONF_SIZE, 20), 0)
+            font.set_pixel_sizes(config[CONF_SIZE], 0)
         font.load_char(codepoint)
         font.glyph.render(mode)
         width = font.glyph.bitmap.width
