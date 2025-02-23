@@ -146,7 +146,12 @@ def check_missing_glyphs(file, codepoints, warning: bool = False):
             raise cv.Invalid(message)
 
 
-def validate_glyphs(config):
+def validate_font_config(config):
+    if config[CONF_FILE][CONF_TYPE] == TYPE_LOCAL_BITMAP and CONF_SIZE in config:
+        raise cv.Invalid(
+            "Size is not a valid option for bitmap fonts, which are inherently fixed size"
+        )
+
     """
     Check for duplicate codepoints, then check that all requested codepoints actually
     have glyphs defined in the appropriate font file.
@@ -302,9 +307,8 @@ def download_gfont(value):
         external_files.compute_local_file_dir(DOMAIN)
         / f"{value[CONF_FAMILY]}@{value[CONF_WEIGHT]}@{value[CONF_ITALIC]}@v1.ttf"
     )
-    _LOGGER.debug("download_gfont: path=%s", path)
-
     if not external_files.is_file_recent(str(path), value[CONF_REFRESH]):
+        _LOGGER.debug("download_gfont: path=%s", path)
         try:
             req = requests.get(url, timeout=external_files.NETWORK_TIMEOUT)
             req.raise_for_status()
@@ -324,6 +328,9 @@ def download_gfont(value):
         _LOGGER.debug("download_gfont: ttf_url=%s", ttf_url)
 
         external_files.download_content(ttf_url, path)
+        # In case the remote file is not modified, the download_content function will return the existing file,
+        # so update the modification time to now.
+        path.touch()
     FONT_CACHE[value] = path
     return value
 
@@ -444,7 +451,7 @@ FONT_SCHEMA = cv.Schema(
             cv.one_of(*glyphsets.defined_glyphsets())
         ),
         cv.Optional(CONF_IGNORE_MISSING_GLYPHS, default=False): cv.boolean,
-        cv.Optional(CONF_SIZE, default=20): cv.int_range(min=1),
+        cv.Optional(CONF_SIZE): cv.int_range(min=1),
         cv.Optional(CONF_BPP, default=1): cv.one_of(1, 2, 4, 8),
         cv.Optional(CONF_EXTRAS, default=[]): cv.ensure_list(
             cv.Schema(
@@ -459,7 +466,7 @@ FONT_SCHEMA = cv.Schema(
     },
 )
 
-CONFIG_SCHEMA = cv.All(FONT_SCHEMA, validate_glyphs)
+CONFIG_SCHEMA = cv.All(FONT_SCHEMA, validate_font_config)
 
 
 class EFont:
@@ -495,7 +502,6 @@ async def to_code(config):
     }
     # get the codepoints from the glyphs key, flatten to a list of chrs and combine with the points from glyphsets
     point_set.update(flatten(config[CONF_GLYPHS]))
-    size = config[CONF_SIZE]
     # Create the codepoint to font file map
     base_font = FONT_CACHE[config[CONF_FILE]]
     point_font_map: dict[str, Face] = {c: base_font for c in point_set}
@@ -517,7 +523,7 @@ async def to_code(config):
     for codepoint in codepoints:
         font = point_font_map[codepoint]
         if not font.has_fixed_sizes:
-            font.set_pixel_sizes(size, 0)
+            font.set_pixel_sizes(config.get(CONF_SIZE, 20), 0)
         font.load_char(codepoint)
         font.glyph.render(mode)
         width = font.glyph.bitmap.width
