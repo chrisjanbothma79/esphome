@@ -124,7 +124,7 @@ esp_err_t BLEClientBase::pair() { return esp_ble_set_encryption(this->remote_bda
 
 void BLEClientBase::disconnect() {
   if (this->state_ == espbt::ClientState::IDLE) {
-    ESP_LOGI(TAG, "[%d] [%s] Disconnect requested, but already disconnected.", this->connection_index_,
+    ESP_LOGI(TAG, "[%d] [%s] Disconnect requested, but already idle.", this->connection_index_,
              this->address_str_.c_str());
     return;
   }
