@@ -53,6 +53,16 @@ CONF_IGNORE_MISSING_GLYPHS = "ignore_missing_glyphs"
 # Cache loaded freetype fonts
 class FontCache(MutableMapping):
     @staticmethod
+    def get_name(value):
+        if CONF_FAMILY in value:
+            return (
+                f"{value[CONF_FAMILY]}:{int(value[CONF_ITALIC])}:{value[CONF_WEIGHT]}"
+            )
+        if CONF_URL in value:
+            return value[CONF_URL]
+        return value[CONF_PATH]
+
+    @staticmethod
     def _keytransform(value):
         if CONF_FAMILY in value:
             return f"gfont:{value[CONF_FAMILY]}:{int(value[CONF_ITALIC])}:{value[CONF_WEIGHT]}"
@@ -131,7 +141,7 @@ def check_missing_glyphs(file, codepoints, warning: bool = False):
         )
         if count > 10:
             missing_str += f"\n    and {count - 10} more."
-        message = f"Font {Path(file).name} is missing {count} glyph{'s' if count != 1 else ''}:\n    {missing_str}"
+        message = f"Font {FontCache.get_name(file)} is missing {count} glyph{'s' if count != 1 else ''}:\n    {missing_str}"
         if warning:
             _LOGGER.warning(message)
         else:
