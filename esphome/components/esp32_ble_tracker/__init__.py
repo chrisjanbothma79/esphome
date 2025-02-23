@@ -29,11 +29,19 @@ from esphome.core import CORE
 AUTO_LOAD = ["esp32_ble"]
 DEPENDENCIES = ["esp32"]
 
+KEY_ESP32_BLE_TRACKER = "esp32_ble_tracker"
+KEY_USED_CONNECTION_SLOTS = "used_connection_slots"
+
+CONF_MAX_CONNECTIONS = "max_connections"
 CONF_ESP32_BLE_ID = "esp32_ble_id"
 CONF_SCAN_PARAMETERS = "scan_parameters"
 CONF_WINDOW = "window"
 CONF_CONTINUOUS = "continuous"
 CONF_ON_SCAN_END = "on_scan_end"
+
+DEFAULT_MAX_CONNECTIONS = 3
+IDF_MAX_CONNECTIONS = 9
+
 esp32_ble_tracker_ns = cg.esphome_ns.namespace("esp32_ble_tracker")
 ESP32BLETracker = esp32_ble_tracker_ns.class_(
     "ESP32BLETracker",
@@ -112,61 +120,100 @@ def as_reversed_hex_array(value):
     )
 
 
-CONFIG_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(): cv.declare_id(ESP32BLETracker),
-        cv.GenerateID(esp32_ble.CONF_BLE_ID): cv.use_id(esp32_ble.ESP32BLE),
-        cv.Optional(CONF_SCAN_PARAMETERS, default={}): cv.All(
-            cv.Schema(
+def max_connections():
+    return IDF_MAX_CONNECTIONS if CORE.using_esp_idf else DEFAULT_MAX_CONNECTIONS
+
+
+def consume_connection_slots(value):
+    def _consume_connection_slots(config):
+        data = CORE.data.setdefault(KEY_ESP32_BLE_TRACKER, {})
+        data.setdefault(KEY_USED_CONNECTION_SLOTS, 0)
+        data[KEY_USED_CONNECTION_SLOTS] += value
+        return config
+
+    return _consume_connection_slots
+
+
+CONFIG_SCHEMA = cv.All(
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.declare_id(ESP32BLETracker),
+            cv.GenerateID(esp32_ble.CONF_BLE_ID): cv.use_id(esp32_ble.ESP32BLE),
+            cv.Optional(CONF_MAX_CONNECTIONS, default=DEFAULT_MAX_CONNECTIONS): cv.All(
+                cv.positive_int, cv.Range(min=0, max=max_connections())
+            ),
+            cv.Optional(CONF_SCAN_PARAMETERS, default={}): cv.All(
+                cv.Schema(
+                    {
+                        cv.Optional(
+                            CONF_DURATION, default="5min"
+                        ): cv.positive_time_period_seconds,
+                        cv.Optional(
+                            CONF_INTERVAL, default="320ms"
+                        ): cv.positive_time_period_milliseconds,
+                        cv.Optional(
+                            CONF_WINDOW, default="30ms"
+                        ): cv.positive_time_period_milliseconds,
+                        cv.Optional(CONF_ACTIVE, default=True): cv.boolean,
+                        cv.Optional(CONF_CONTINUOUS, default=True): cv.boolean,
+                    }
+                ),
+                validate_scan_parameters,
+            ),
+            cv.Optional(CONF_ON_BLE_ADVERTISE): automation.validate_automation(
                 {
-                    cv.Optional(
-                        CONF_DURATION, default="5min"
-                    ): cv.positive_time_period_seconds,
-                    cv.Optional(
-                        CONF_INTERVAL, default="320ms"
-                    ): cv.positive_time_period_milliseconds,
-                    cv.Optional(
-                        CONF_WINDOW, default="30ms"
-                    ): cv.positive_time_period_milliseconds,
-                    cv.Optional(CONF_ACTIVE, default=True): cv.boolean,
-                    cv.Optional(CONF_CONTINUOUS, default=True): cv.boolean,
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
+                        ESPBTAdvertiseTrigger
+                    ),
+                    cv.Optional(CONF_MAC_ADDRESS): cv.ensure_list(cv.mac_address),
                 }
             ),
-            validate_scan_parameters,
-        ),
-        cv.Optional(CONF_ON_BLE_ADVERTISE): automation.validate_automation(
-            {
-                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ESPBTAdvertiseTrigger),
-                cv.Optional(CONF_MAC_ADDRESS): cv.ensure_list(cv.mac_address),
-            }
-        ),
-        cv.Optional(CONF_ON_BLE_SERVICE_DATA_ADVERTISE): automation.validate_automation(
-            {
-                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
-                    BLEServiceDataAdvertiseTrigger
-                ),
-                cv.Optional(CONF_MAC_ADDRESS): cv.mac_address,
-                cv.Required(CONF_SERVICE_UUID): bt_uuid,
-            }
-        ),
-        cv.Optional(
-            CONF_ON_BLE_MANUFACTURER_DATA_ADVERTISE
-        ): automation.validate_automation(
-            {
-                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
-                    BLEManufacturerDataAdvertiseTrigger
-                ),
-                cv.Optional(CONF_MAC_ADDRESS): cv.mac_address,
-                cv.Required(CONF_MANUFACTURER_ID): bt_uuid,
-            }
-        ),
-        cv.Optional(CONF_ON_SCAN_END): automation.validate_automation(
-            {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(BLEEndOfScanTrigger)}
-        ),
-    }
-).extend(cv.COMPONENT_SCHEMA)
+            cv.Optional(
+                CONF_ON_BLE_SERVICE_DATA_ADVERTISE
+            ): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
+                        BLEServiceDataAdvertiseTrigger
+                    ),
+                    cv.Optional(CONF_MAC_ADDRESS): cv.mac_address,
+                    cv.Required(CONF_SERVICE_UUID): bt_uuid,
+                }
+            ),
+            cv.Optional(
+                CONF_ON_BLE_MANUFACTURER_DATA_ADVERTISE
+            ): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
+                        BLEManufacturerDataAdvertiseTrigger
+                    ),
+                    cv.Optional(CONF_MAC_ADDRESS): cv.mac_address,
+                    cv.Required(CONF_MANUFACTURER_ID): bt_uuid,
+                }
+            ),
+            cv.Optional(CONF_ON_SCAN_END): automation.validate_automation(
+                {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(BLEEndOfScanTrigger)}
+            ),
+        }
+    ).extend(cv.COMPONENT_SCHEMA),
+)
 
-FINAL_VALIDATE_SCHEMA = esp32_ble.validate_variant
+
+def validate_remaining_connections(config):
+    used_slots = CORE.data.get(KEY_ESP32_BLE_TRACKER, {}).get(
+        KEY_USED_CONNECTION_SLOTS, 0
+    )
+    if used_slots <= config[CONF_MAX_CONNECTIONS]:
+        return config
+    raise cv.Invalid(
+        f"Exceeded {CONF_MAX_CONNECTIONS}: "
+        f"{used_slots}/{config[CONF_MAX_CONNECTIONS]}: "
+        "Decrease the number of BLE clients or increase the maximum connections."
+    )
+
+
+FINAL_VALIDATE_SCHEMA = cv.All(
+    validate_remaining_connections, esp32_ble.validate_variant
+)
 
 ESP_BLE_DEVICE_SCHEMA = cv.Schema(
     {
@@ -238,6 +285,9 @@ async def to_code(config):
         else:
             add_idf_sdkconfig_option("CONFIG_BTU_TASK_STACK_SIZE", 8192)
         add_idf_sdkconfig_option("CONFIG_BT_ACL_CONNECTIONS", 9)
+        add_idf_sdkconfig_option(
+            "CONFIG_BTDM_CTRL_BLE_MAX_CONN", config[CONF_MAX_CONNECTIONS]
+        )
 
     cg.add_define("USE_OTA_STATE_CALLBACK")  # To be notified when an OTA update starts
     cg.add_define("USE_ESP32_BLE_CLIENT")
