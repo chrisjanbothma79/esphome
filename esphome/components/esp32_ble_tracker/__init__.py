@@ -205,9 +205,11 @@ def validate_remaining_connections(config):
     if used_slots <= config[CONF_MAX_CONNECTIONS]:
         return config
     raise cv.Invalid(
-        f"Exceeded {CONF_MAX_CONNECTIONS}: "
-        f"Requested {used_slots} of configured maximum {config[CONF_MAX_CONNECTIONS]}: "
-        "Decrease the number of BLE clients or increase the maximum connections."
+        f"Exceeded `{CONF_MAX_CONNECTIONS}`: "
+        f"Components attempted to consume {used_slots} slot(s) out of available "
+        f"configured maximum {config[CONF_MAX_CONNECTIONS]} connection slots; "
+        f"Decrease the number of BLE clients or increase "
+        f"`{CONF_MAX_CONNECTIONS}` to {used_slots}."
     )
 
 
