@@ -123,8 +123,16 @@ void BLEClientBase::connect() {
 esp_err_t BLEClientBase::pair() { return esp_ble_set_encryption(this->remote_bda_, ESP_BLE_SEC_ENCRYPT); }
 
 void BLEClientBase::disconnect() {
-  if (this->state_ == espbt::ClientState::IDLE || this->state_ == espbt::ClientState::DISCONNECTING)
+  if (this->state_ == espbt::ClientState::IDLE) {
+    ESP_LOGI(TAG, "[%d] [%s] Disconnect requested, but already disconnected.", this->connection_index_,
+             this->address_str_.c_str());
     return;
+  }
+  if (this->state_ == espbt::ClientState::DISCONNECTING) {
+    ESP_LOGI(TAG, "[%d] [%s] Disconnect requested, but already disconnecting.", this->connection_index_,
+             this->address_str_.c_str());
+    return;
+  }
   ESP_LOGI(TAG, "[%d] [%s] Disconnecting.", this->connection_index_, this->address_str_.c_str());
   if (this->state_ == espbt::ClientState::CONNECTING || this->conn_id_ == UNSET_CONN_ID) {
     ESP_LOGW(TAG, "[%d] [%s] Disconnecting before connected, disconnect scheduled", this->connection_index_,
