@@ -1,19 +1,55 @@
 import esphome.codegen as cg
-from esphome.components import text_sensor
+from esphome.components import text_sensor, time
 import esphome.config_validation as cv
-from esphome.const import ENTITY_CATEGORY_DIAGNOSTIC, ICON_TIMER
+from esphome.const import CONF_TIME_ID, ENTITY_CATEGORY_DIAGNOSTIC, ICON_TIMER
 
 uptime_ns = cg.esphome_ns.namespace("uptime")
-UptimeTextSensor = uptime_ns.class_(
-    "UptimeTextSensor", text_sensor.TextSensor, cg.PollingComponent
+UptimeSecondsTextSensor = uptime_ns.class_(
+    "UptimeSecondsTextSensor", text_sensor.TextSensor, cg.PollingComponent
 )
+UptimeTimestampTextSensor = uptime_ns.class_(
+    "UptimeTimestampTextSensor", text_sensor.TextSensor, cg.Component
+)
+
+
 CONFIG_SCHEMA = text_sensor.text_sensor_schema(
-    UptimeTextSensor,
+    UptimeSecondsTextSensor,
     icon=ICON_TIMER,
     entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
 ).extend(cv.polling_component_schema("30s"))
 
 
+CONFIG_SCHEMA = cv.typed_schema(
+    {
+        "seconds": text_sensor.text_sensor_schema(
+            UptimeSecondsTextSensor,
+            icon=ICON_TIMER,
+            entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        ).extend(cv.polling_component_schema("30s")),
+        "timestamp": text_sensor.text_sensor_schema(
+            UptimeTimestampTextSensor,
+            icon=ICON_TIMER,
+            entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        )
+        .extend(
+            cv.Schema(
+                {
+                    cv.GenerateID(CONF_TIME_ID): cv.All(
+                        cv.requires_component("time"), cv.use_id(time.RealTimeClock)
+                    ),
+                }
+            )
+        )
+        .extend(cv.COMPONENT_SCHEMA),
+    },
+    default_type="seconds",
+)
+
+
 async def to_code(config):
     var = await text_sensor.new_text_sensor(config)
     await cg.register_component(var, config)
+
+    if time_id_config := config.get(CONF_TIME_ID):
+        time_id = await cg.get_variable(time_id_config)
+        cg.add(var.set_time(time_id))
