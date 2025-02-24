@@ -1,26 +1,21 @@
 import os
 from typing import Union
-import esphome.codegen as cg
-from esphome.core import CORE
-from esphome.helpers import (
-    write_file_if_changed,
-    copy_file_if_changed,
-)
-from esphome.const import (
-    CONF_BOARD,
-    KEY_NAME,
-)
-from .const import (
-    KEY_ZEPHYR,
-    KEY_PRJ_CONF,
-    KEY_OVERLAY,
-    zephyr_ns,
-    BOOTLOADER_MCUBOOT,
-    KEY_EXTRA_BUILD_FILES,
-    KEY_PATH,
-    KEY_BOOTLOADER,
-)
 
+import esphome.codegen as cg
+from esphome.const import CONF_BOARD, KEY_NAME
+from esphome.core import CORE
+from esphome.helpers import copy_file_if_changed, write_file_if_changed
+
+from .const import (
+    BOOTLOADER_MCUBOOT,
+    KEY_BOOTLOADER,
+    KEY_EXTRA_BUILD_FILES,
+    KEY_OVERLAY,
+    KEY_PATH,
+    KEY_PRJ_CONF,
+    KEY_ZEPHYR,
+    zephyr_ns,
+)
 
 AUTO_LOAD = ["preferences"]
 KEY_BOARD = "board"
