@@ -7,7 +7,7 @@ on_beo4:
   then:
     - logger.log:
         format: "on_beo4: %u %u"
-        args: ["x.source", "x.command"] 
+        args: ["x.source", "x.command"]
 on_aeha:
   then:
     - logger.log:
