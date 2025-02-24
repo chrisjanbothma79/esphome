@@ -53,6 +53,7 @@ PROTOCOLS = {
     "mitsubishi_sez": Protocol.PROTOCOL_MITSUBISHI_SEZ,
     "panasonic_ckp": Protocol.PROTOCOL_PANASONIC_CKP,
     "panasonic_dke": Protocol.PROTOCOL_PANASONIC_DKE,
+    "panasonic_eke": Protocol.PROTOCOL_PANASONIC_EKE,
     "panasonic_jke": Protocol.PROTOCOL_PANASONIC_JKE,
     "panasonic_lke": Protocol.PROTOCOL_PANASONIC_LKE,
     "panasonic_nke": Protocol.PROTOCOL_PANASONIC_NKE,
