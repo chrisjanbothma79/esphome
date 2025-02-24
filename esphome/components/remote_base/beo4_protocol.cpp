@@ -67,7 +67,7 @@ void Beo4Protocol::encode(RemoteTransmitData *dst, const Beo4Data &data) {
 }
 
 optional<Beo4Data> Beo4Protocol::decode(RemoteReceiveData src) {
-  int32_t n_sym = src.size();     // number of recorded symbols
+  int32_t n_sym = src.size();
   Beo4Data data{
       .source = 0,
       .command = 0,
