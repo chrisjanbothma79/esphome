@@ -20,28 +20,28 @@ typedef struct hw_timer_s {
   timer_idx_t num;
 } hw_timer_t;
 
-hw_timer_t *timerBegin(uint8_t timer, uint16_t divider, bool countUp);
-void timerAttachInterrupt(hw_timer_t *timer, void (*fn)(void), bool edge);
-void timerAlarmEnable(hw_timer_t *timer);
-void timerAlarmDisable(hw_timer_t *timer);
-void timerAlarmWrite(hw_timer_t *timer, uint64_t alarm_value, bool autoreload);
-void timerSetAutoReload(hw_timer_t *timer, bool autoreload);
-void timerStart(hw_timer_t *timer);
-void timerStop(hw_timer_t *timer);
+hw_timer_t *timer_begin(uint8_t timer, uint16_t divider, bool count_up);
+void timer_attach_interrupt(hw_timer_t *timer, void (*fn)(void), bool edge);
+void timer_alarm_enable(hw_timer_t *timer);
+void timer_alarm_disable(hw_timer_t *timer);
+void timer_alarm_write(hw_timer_t *timer, uint64_t alarm_value, bool autoreload);
+void timer_set_auto_reload(hw_timer_t *timer, bool autoreload);
+void timer_start(hw_timer_t *timer);
+void timer_stop(hw_timer_t *timer);
 
-uint32_t timerGetConfig(hw_timer_t *timer);
-uint16_t timerGetDivider(hw_timer_t *timer);
-void timerSetDivider(hw_timer_t *timer, uint16_t divider);
+uint32_t timer_get_config(hw_timer_t *timer);
+uint16_t timer_get_divider(hw_timer_t *timer);
+void timer_set_divider(hw_timer_t *timer, uint16_t divider);
 #endif
 
 #if (ESP_IDF_VERSION_MAJOR == 5)
 
-using voidFuncPtr = void (*)();
-using voidFuncPtrArg = void (*)(void *);
+using void_func_ptr = void (*)();
+using void_func_ptr_arg = void (*)(void *);
 
 // keep structure names as in SDK
 struct interrupt_config_t {  // NOLINT
-  voidFuncPtr fn;
+  void_func_ptr fn;
   void *arg;
 };
 
@@ -52,11 +52,11 @@ struct hw_timer_t {  // NOLINT
   bool timer_started;
 };
 
-hw_timer_t *timerBegin(uint32_t frequency);
+hw_timer_t *timer_begin(uint32_t frequency);
 
-void timerAttachInterrupt(hw_timer_t *timer, void (*userFunc)(void));
-void timerAlarm(hw_timer_t *timer, uint64_t alarm_value, bool autoreload, uint64_t reload_count);
-void timerStart(hw_timer_t *timer);
+void timer_attach_interrupt(hw_timer_t *timer, void (*userFunc)(void));
+void timer_alarm(hw_timer_t *timer, uint64_t alarm_value, bool autoreload, uint64_t reload_count);
+void timer_start(hw_timer_t *timer);
 
 #endif
 }  // namespace ac_dimmer

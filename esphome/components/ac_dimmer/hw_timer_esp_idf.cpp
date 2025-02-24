@@ -62,22 +62,22 @@ static apb_change_t *apb_change_callbacks = NULL;
 static xSemaphoreHandle apb_change_lock = NULL;
 
 // Hz
-uint32_t getApbFrequency() { return esp_clk_apb_freq(); }
+uint32_t get_apb_frequency() { return esp_clk_apb_freq(); }
 
 static void _on_apb_change(void *arg, apb_change_ev_t ev_type, uint32_t old_apb, uint32_t new_apb) {
   hw_timer_t *timer = (hw_timer_t *) arg;
   if (ev_type == APB_BEFORE_CHANGE) {
-    timerStop(timer);
+    timer_stop(timer);
   } else {
     old_apb /= 1000000;
     new_apb /= 1000000;
-    uint16_t divider = (new_apb * timerGetDivider(timer)) / old_apb;
-    timerSetDivider(timer, divider);
-    timerStart(timer);
+    uint16_t divider = (new_apb * timer_get_divider(timer)) / old_apb;
+    timer_set_divider(timer, divider);
+    timer_start(timer);
   }
 }
 
-static void initApbChangeCallback() {
+static void init_apb_change_callback() {
   static volatile bool initialized = false;
   if (!initialized) {
     initialized = true;
@@ -86,10 +86,10 @@ static void initApbChangeCallback() {
       initialized = false;
     }
   }
-};
+}
 
-static bool addApbChangeCallback(void *arg, apb_change_cb_t cb) {
-  initApbChangeCallback();
+static bool add_apb_change_callback(void *arg, apb_change_cb_t cb) {
+  init_apb_change_callback();
   apb_change_t *c = (apb_change_t *) malloc(sizeof(apb_change_t));
   if (!c) {
     ESP_LOGE(TAG, "Callback Object Malloc Failed");
@@ -122,7 +122,7 @@ static bool addApbChangeCallback(void *arg, apb_change_cb_t cb) {
   return true;
 }
 
-hw_timer_t *timerBegin(uint8_t num, uint16_t divider, bool countUp) {
+hw_timer_t *timer_begin(uint8_t num, uint16_t divider, bool countUp) {
   if (num >= NUM_OF_TIMERS) {
     ESP_LOGE(TAG, "Timer number %u exceeds available number of Timers.", num);
     return NULL;
@@ -141,50 +141,50 @@ hw_timer_t *timerBegin(uint8_t num, uint16_t divider, bool countUp) {
 
   timer_init(timer->group, timer->num, &config);
   timer_set_counter_value(timer->group, timer->num, 0);
-  timerStart(timer);
-  addApbChangeCallback(timer, _on_apb_change);
+  timer_start(timer);
+  add_apb_change_callback(timer, _on_apb_change);
   return timer;
 }
 
-bool IRAM_ATTR timerFnWrapper(void *arg) {
+bool IRAM_ATTR timer_fn_wrapper(void *arg) {
   void (*fn)(void) = (void (*)()) arg;
   fn();
 
-  // some additional logic or handling may be required here to approriately yield or not
+  // some additional logic or handling may be required here to appropriately yield or not
   return false;
 }
 
-void timerAttachInterrupt(hw_timer_t *timer, void (*fn)(void), bool edge) {
+void timer_attach_interrupt(hw_timer_t *timer, void (*fn)(void), bool edge) {
   if (edge) {
     ESP_LOGW(TAG, "EDGE timer interrupt is not supported! Setting to LEVEL...");
   }
-  timer_isr_callback_add(timer->group, timer->num, (bool (*)(void *)) timerFnWrapper, (void *) fn, 0);
+  timer_isr_callback_add(timer->group, timer->num, (bool (*)(void *)) timer_fn_wrapper, (void *) fn, 0);
 }
 
-void timerStart(hw_timer_t *timer) { timer_start(timer->group, timer->num); }
+void timer_start(hw_timer_t *timer) { timer_start(timer->group, timer->num); }
 
-void timerStop(hw_timer_t *timer) { timer_pause(timer->group, timer->num); }
+void timer_stop(hw_timer_t *timer) { timer_pause(timer->group, timer->num); }
 
-void timerAlarmEnable(hw_timer_t *timer) { timer_set_alarm(timer->group, timer->num, TIMER_ALARM_EN); }
+void timer_alarm_enable(hw_timer_t *timer) { timer_set_alarm(timer->group, timer->num, TIMER_ALARM_EN); }
 
-void timerAlarmDisable(hw_timer_t *timer) { timer_set_alarm(timer->group, timer->num, TIMER_ALARM_DIS); }
+void timer_alarm_disable(hw_timer_t *timer) { timer_set_alarm(timer->group, timer->num, TIMER_ALARM_DIS); }
 
-void timerAlarmWrite(hw_timer_t *timer, uint64_t alarm_value, bool autoreload) {
+void timer_alarm_write(hw_timer_t *timer, uint64_t alarm_value, bool autoreload) {
   timer_set_alarm_value(timer->group, timer->num, alarm_value);
-  timerSetAutoReload(timer, autoreload);
+  timer_alarm_set_auto_reload(timer, autoreload);
 }
 
-void timerSetAutoReload(hw_timer_t *timer, bool autoreload) {
+void timer_set_auto_reload(hw_timer_t *timer, bool autoreload) {
   timer_set_auto_reload(timer->group, timer->num, (timer_autoreload_t) autoreload);
 }
 
-uint16_t timerGetDivider(hw_timer_t *timer) {
+uint16_t timer_get_divider(hw_timer_t *timer) {
   timer_cfg_t config;
-  config.val = timerGetConfig(timer);
+  config.val = timer_get_config(timer);
   return config.divider;
 }
 
-void timerSetDivider(hw_timer_t *timer, uint16_t divider) {
+void timer_set_divider(hw_timer_t *timer, uint16_t divider) {
   if (divider < 2) {
     ESP_LOGE(TAG, "Timer divider must be set in range of 2 to 65535");
     return;
@@ -192,7 +192,7 @@ void timerSetDivider(hw_timer_t *timer, uint16_t divider) {
   timer_set_divider(timer->group, timer->num, divider);
 }
 
-uint32_t timerGetConfig(hw_timer_t *timer) {
+uint32_t timer_get_config(hw_timer_t *timer) {
   timer_config_t timer_cfg;
   timer_get_config(timer->group, timer->num, &timer_cfg);
 
@@ -214,7 +214,7 @@ uint32_t timerGetConfig(hw_timer_t *timer) {
 
 interrupt_config_t *timer_intr_config = NULL;
 
-hw_timer_t *timerBegin(uint32_t frequency) {
+hw_timer_t *timer_begin(uint32_t frequency) {
   esp_err_t err = ESP_OK;
   uint32_t counter_src_hz = 0;
   uint32_t divider = 0;
@@ -266,11 +266,11 @@ hw_timer_t *timerBegin(uint32_t frequency) {
   return timer;
 }
 
-bool IRAM_ATTR timerFnWrapper(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *args) {
+bool IRAM_ATTR timer_fn_wrapper(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *args) {
   interrupt_config_t *isr = (interrupt_config_t *) args;
   if (isr->fn) {
     if (isr->arg) {
-      ((voidFuncPtrArg) isr->fn)(isr->arg);
+      ((void_func_ptr_arg) isr->fn)(isr->arg);
     } else {
       isr->fn();
     }
@@ -279,13 +279,13 @@ bool IRAM_ATTR timerFnWrapper(gptimer_handle_t timer, const gptimer_alarm_event_
   return false;
 }
 
-void timerAttachInterruptFunctionalArg(hw_timer_t *timer, void (*userFunc)(void *), void *arg) {
+void timer_attach_interrupt_functional_arg(hw_timer_t *timer, void (*userFunc)(void *), void *arg) {
   esp_err_t err = ESP_OK;
   gptimer_event_callbacks_t cbs = {
-      .on_alarm = timerFnWrapper,
+      .on_alarm = timer_fn_wrapper,
   };
 
-  timer->interrupt_handle.fn = (voidFuncPtr) userFunc;
+  timer->interrupt_handle.fn = (void_func_ptr) userFunc;
   timer->interrupt_handle.arg = arg;
 
   if (timer->timer_started == true) {
@@ -302,11 +302,11 @@ void timerAttachInterruptFunctionalArg(hw_timer_t *timer, void (*userFunc)(void 
   }
 }
 
-void timerAttachInterrupt(hw_timer_t *timer, voidFuncPtr userFunc) {
-  timerAttachInterruptFunctionalArg(timer, (voidFuncPtrArg) userFunc, NULL);
+void timer_attach_interrupt(hw_timer_t *timer, void_func_ptr userFunc) {
+  timer_attach_interrupt_functional_arg(timer, (void_func_ptr_arg) userFunc, NULL);
 }
 
-void timerAlarm(hw_timer_t *timer, uint64_t alarm_value, bool autoreload, uint64_t reload_count) {
+void timer_alarm(hw_timer_t *timer, uint64_t alarm_value, bool autoreload, uint64_t reload_count) {
   esp_err_t err = ESP_OK;
   gptimer_alarm_config_t alarm_cfg = {
       .alarm_count = alarm_value,
@@ -319,7 +319,7 @@ void timerAlarm(hw_timer_t *timer, uint64_t alarm_value, bool autoreload, uint64
   }
 }
 
-void timerStart(hw_timer_t *timer) {
+void timer_start(hw_timer_t *timer) {
   gptimer_start(timer->timer_handle);
   timer->timer_started = true;
 }
