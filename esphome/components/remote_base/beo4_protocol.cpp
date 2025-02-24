@@ -28,13 +28,13 @@ constexpr uint32_t N_BITS = 1 + 8 + 8;
 constexpr uint32_t N_SYM = 2 + ((3 + 17 + 1) * 2u);  // + 2 = 44
 
 // states finite-state-machine decoder
-enum class rxSt { Idle, Data, Stop };
+enum class RxSt {RX_IDLE, RX_DATA, RX_STOP};
 
 void Beo4Protocol::encode(RemoteTransmitData *dst, const Beo4Data &data) {
-  uint32_t beoCode = ((uint32_t) data.source << 8) + (uint32_t) data.command;
+  uint32_t beo_code = ((uint32_t) data.source << 8) + (uint32_t) data.command;
   uint32_t jc = 0, ic = 0;  // loop counters
-  uint32_t curBit = 0;      // current bit
-  uint32_t preBit = 0;      // previous bit to compare
+  uint32_t cur_bit = 0;     // current bit
+  uint32_t pre_bit = 0;     // previous bit to compare
   dst->set_carrier_frequency(455000);
   dst->reserve(N_SYM);
 
@@ -51,14 +51,15 @@ void Beo4Protocol::encode(RemoteTransmitData *dst, const Beo4Data &data) {
   // to right, then comparing current with previous bit
   // and set pulse to "same" "one" or "zero"
   for (jc = 15, ic = 0; ic < 16; ic++, jc--) {
-    curBit = ((beoCode) >> jc) & 1;
-    if (curBit == preBit)
+    cur_bit = ((beo_code) >> jc) & 1;
+    if (cur_bit == pre_bit) {
       dst->item(PW_CARR_US, PW_SAME_US);
-    else if (1 == curBit)
+    } else if (1 == cur_bit) {
       dst->item(PW_CARR_US, PW_ONE_US);
-    else
+    } else {
       dst->item(PW_CARR_US, PW_ZERO_US);
-    preBit = curBit;
+    }
+    pre_bit = cur_bit;
   }
   // complete the frame with stop-symbol and final carrier pulse
   dst->item(PW_CARR_US, PW_STOP_US);
@@ -66,70 +67,71 @@ void Beo4Protocol::encode(RemoteTransmitData *dst, const Beo4Data &data) {
 }
 
 optional<Beo4Data> Beo4Protocol::decode(RemoteReceiveData src) {
-  int32_t n_sym = src.size();  // number of recorded symbols
+  int32_t n_sym = src.size();     // number of recorded symbols
   Beo4Data data{
       // preset output data
       .source = 0,
       .command = 0,
       .repeats = 0,
   };
-  if (n_sym > 42) {               // suppress dummy codes (TSO7000 hiccups)
-    static uint32_t beoCode = 0;  // decoded beoCode
-    rxSt rxFSM = rxSt::Idle;      // begin in idle state
-    int32_t ic = 0, jc = 0;
-    uint32_t preBit = 0;  // previous bit
-    uint32_t cntBit = 0;  // bit counter
+  if (n_sym > 42) {                // suppress dummy codes (TSO7000 hiccups)
+    static uint32_t beo_code = 0;  // decoded beo_code
+    RxSt fsm = RxSt::RX_IDLE;      // begin in IDLE state
+    int32_t ic = 0;
+    int32_t jc = 0;
+    uint32_t pre_bit = 0;          // previous bit
+    uint32_t cnt_bit = 0;          // bit counter
     ESP_LOGD(TAG, "Beo4: n_sym=%d ", n_sym);
     for (jc = 0, ic = 0; ic < (n_sym - 1); ic += 2, jc++) {
-      int32_t pulseWidth = src[ic] - src[ic + 1];
-      if (pulseWidth > 1500) {  // suppress TSOP7000 (dummy pulses)
-        int32_t pulseCode = (pulseWidth + 1560) / 3125;
-        switch (rxFSM) {
-          case rxSt::Idle: {  // waiting until start-code
-            beoCode = 0;
-            cntBit = 0;
-            preBit = 0;
-            if (PC_START == pulseCode) {
-              rxFSM = rxSt::Data;  // next--> collect data
+      int32_t pulse_width = src[ic] - src[ic + 1];
+      if (pulse_width > 1500) {    // suppress TSOP7000 (dummy pulses)
+        int32_t pulse_code = (pulse_width + 1560) / 3125;
+        switch (fsm) {
+          case RxSt::RX_IDLE: {    // waiting for start-code
+            beo_code = 0;
+            cnt_bit = 0;
+            pre_bit = 0;
+            if (PC_START == pulse_code) {
+              fsm = RxSt::RX_DATA; // next--> collecting data
             }
             break;
           }
-          case rxSt::Data: {  // collecting data
-            uint32_t curBit = 0;
-            switch (pulseCode) {
+          case RxSt::RX_DATA: {    // collecting data
+            uint32_t cur_bit = 0;
+            switch (pulse_code) {
               case PC_ZERO: {
-                curBit = preBit = 0;
+                cur_bit = pre_bit = 0;
                 break;
               }
               case PC_SAME: {
-                curBit = preBit;
+                cur_bit = pre_bit;
                 break;
               }
               case PC_ONE: {
-                curBit = preBit = 1;
+                cur_bit = pre_bit = 1;
                 break;
               }
               default: {
-                rxFSM = rxSt::Idle;  // frame is faulty, reset and..
+                fsm = RxSt::RX_IDLE; // frame is faulty, reset and..
                 break;               // ..process further symbols
               }
             }
-            beoCode = (beoCode << 1) + curBit;
-            if (++cntBit == N_BITS) {  // beoCode is complete
-              rxFSM = rxSt::Stop;      // next--> validate stop-code
+            beo_code = (beo_code << 1) + cur_bit;
+            if (++cnt_bit == N_BITS) {  // beo_code is complete
+              fsm = RxSt::RX_STOP;      // next--> validate stop-code
             }
             break;
           }
-          case rxSt::Stop: {             // validate stop code
-            if (PC_STOP == pulseCode) {  // stop code valid
-              data.source = (uint8_t) ((beoCode >> 8) & 0xff);
-              data.command = (uint8_t) ((beoCode) &0xff);
-              data.repeats++;  // update counter
+          case RxSt::RX_STOP: {          // validating stop code
+            if (PC_STOP == pulse_code) { // stop code valid
+              data.source = (uint8_t) ((beo_code >> 8) & 0xff);
+              data.command = (uint8_t) ((beo_code) &0xff);
+              data.repeats++;            // count repeats
             }
             if ((n_sym - ic) < 42) {
               return data;  // no more frames, so return here
             } else {
-              rxFSM = rxSt::Idle;  // process further symbols
+              fsm = RxSt::RX_IDLE;  // process further symbols
             }
             break;
           }
