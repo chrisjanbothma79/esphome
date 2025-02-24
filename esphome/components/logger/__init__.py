@@ -1,10 +1,9 @@
 import re
 
-import voluptuous as vol
-
 from esphome import automation
 from esphome.automation import LambdaAction
 import esphome.codegen as cg
+from esphome.components import zephyr
 from esphome.components.esp32 import add_idf_sdkconfig_option, get_esp32_variant
 from esphome.components.esp32.const import (
     VARIANT_ESP32,
@@ -185,44 +184,6 @@ LoggerMessageTrigger = logger_ns.class_(
 )
 
 
-def _get_default_key(*args):
-    return ["_".join([CORE.target_platform] + list(args))]
-
-
-# https://github.com/esphome/esphome/pull/7715
-class _SplitDefault(cv.Optional):
-    """Mark this key to have a split default for ESP8266/ESP32."""
-
-    def __init__(self, key, **kwargs):
-        super().__init__(key)
-
-        self._defaults = {}
-
-        for platform_key, value in kwargs.items():
-            self._defaults[platform_key] = vol.default_factory(value)
-
-    @property
-    def default(self):
-        keys = []
-        if CORE.is_esp32:
-            variant = get_esp32_variant().replace(VARIANT_ESP32, "").lower()
-            framework = CORE.target_framework.replace("esp-", "")
-            if variant:
-                keys += _get_default_key(variant, framework)
-                keys += _get_default_key(variant)
-            keys += _get_default_key(framework)
-        keys += _get_default_key()
-        for key in keys:
-            if self._defaults.get(key) is not None:
-                return self._defaults[key]
-        return vol.default_factory(vol.UNDEFINED)
-
-    @default.setter
-    def default(self, value):
-        # Ignore default set from vol.Optional
-        pass
-
-
 PLATFORM_NRF52 = "nrf52"
 CONF_ESP8266_STORE_LOG_STRINGS_IN_FLASH = "esp8266_store_log_strings_in_flash"
 CONFIG_SCHEMA = cv.All(
@@ -233,7 +194,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_TX_BUFFER_SIZE, default=512): cv.validate_bytes,
             cv.Optional(CONF_DEASSERT_RTS_DTR, default=False): cv.boolean,
             # https://github.com/esphome/esphome/pull/7715
-            _SplitDefault(
+            zephyr.SplitDefault(
                 CONF_HARDWARE_UART,
                 esp8266=UART0,
                 esp32=UART0,
@@ -275,7 +236,7 @@ CONFIG_SCHEMA = cv.All(
                 }
             ),
             # https://github.com/esphome/esphome/pull/7715
-            _SplitDefault(
+            zephyr.SplitDefault(
                 CONF_ESP8266_STORE_LOG_STRINGS_IN_FLASH, esp8266=True
             ): cv.All(cv.only_on_esp8266, cv.boolean),
         }
