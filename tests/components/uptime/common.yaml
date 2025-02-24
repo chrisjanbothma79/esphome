@@ -17,3 +17,7 @@ sensor:
 text_sensor:
   - platform: uptime
     name: Uptime Text
+  - platform: uptime
+    name: Uptime Text With Separator
+    separator: "-"
+    update_interval: 10s
