@@ -1,5 +1,6 @@
 from esphome import pins
 import esphome.codegen as cg
+from esphome.components import zephyr
 from esphome.components.zephyr import zephyr_add_overlay, zephyr_add_prj_conf
 import esphome.config_validation as cv
 from esphome.const import (
@@ -55,11 +56,11 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): _bus_declare_type,
             cv.Optional(CONF_SDA, default="SDA"): pin_with_input_and_output_support,
-            cv.SplitDefault(CONF_SDA_PULLUP_ENABLED, esp32_idf=True): cv.All(
+            zephyr.SplitDefault(CONF_SDA_PULLUP_ENABLED, esp32_idf=True): cv.All(
                 cv.only_with_esp_idf, cv.boolean
             ),
             cv.Optional(CONF_SCL, default="SCL"): pin_with_input_and_output_support,
-            cv.SplitDefault(CONF_SCL_PULLUP_ENABLED, esp32_idf=True): cv.All(
+            zephyr.SplitDefault(CONF_SCL_PULLUP_ENABLED, esp32_idf=True): cv.All(
                 cv.only_with_esp_idf, cv.boolean
             ),
             cv.Optional(CONF_FREQUENCY, default="50kHz"): cv.All(
