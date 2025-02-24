@@ -27,7 +27,7 @@ void UptimeTimestampTextSensor::setup() {
 }
 
 float UptimeTimestampTextSensor::get_setup_priority() const { return setup_priority::HARDWARE; }
-void UptimeTimestampTextSensor::dump_config() { LOG_TEXT_SENSOR("", "Uptime Text Sensor", this); }
+void UptimeTimestampTextSensor::dump_config() { LOG_TEXT_SENSOR("", "Uptime Timestamp Text Sensor", this); }
 
 }  // namespace uptime
 }  // namespace esphome
