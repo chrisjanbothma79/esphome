@@ -423,7 +423,7 @@ void DlmsMeterComponent::loop() {
 
           if (code_type == CodeType::TIMESTAMP)  // Handle timestamp generation
           {
-            char timestamp[21];  // 0000-00-00T00:00:00Z
+            char timestamp[27];  // 0000-00-00T00:00:00Z
 
             uint16_t year;
             uint8_t month;
@@ -442,7 +442,10 @@ void DlmsMeterComponent::loop() {
             memcpy(&hour, &plaintext[current_position + 5], 1);
             memcpy(&minute, &plaintext[current_position + 6], 1);
             memcpy(&second, &plaintext[current_position + 7], 1);
-
+            if (year > 9999 || month > 12 || day > 31 || hour > 23 || minute > 59 || second > 59) {
+              ESP_LOGE("DLMS", "Invalid timestamp values: %04u-%02u-%02uT%02u:%02u:%02uZ", year, month, day, hour,
+                       minute, second);
+            }
             sprintf(timestamp, "%04u-%02u-%02uT%02u:%02u:%02uZ", year, month, day, hour, minute, second);
 
             data.timestamp = timestamp;
