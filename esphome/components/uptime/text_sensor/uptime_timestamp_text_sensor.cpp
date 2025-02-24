@@ -17,7 +17,6 @@ void UptimeTimestampTextSensor::setup() {
       return;  // No need to update the timestamp if it's already set
 
     auto now = this->time_->now();
-    const uint32_t ms = millis();
     if (!now.is_valid())
       return;  // No need to update the timestamp if the time is not valid
 
