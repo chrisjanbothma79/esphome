@@ -8,7 +8,7 @@
 namespace esphome {
 namespace uptime {
 
-class UptimeSecondsTextSensor : public text_sensor::TextSensor, public PollingComponent {
+class UptimeDurationTextSensor : public text_sensor::TextSensor, public PollingComponent {
  public:
   void update() override;
   void dump_config() override;

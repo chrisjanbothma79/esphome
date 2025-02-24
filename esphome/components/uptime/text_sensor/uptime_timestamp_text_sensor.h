@@ -21,7 +21,7 @@ class UptimeTimestampTextSensor : public text_sensor::TextSensor, public Compone
   void set_time(time::RealTimeClock *time) { this->time_ = time; }
 
  protected:
-  time::RealTimeClock *time_;
+  time::RealTimeClock *time_{};
 };
 
 }  // namespace uptime
