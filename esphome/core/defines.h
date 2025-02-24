@@ -88,7 +88,7 @@
 #define USE_OTA
 #define USE_OTA_PASSWORD
 #define USE_OTA_STATE_CALLBACK
-#define USE_OTA_VERSION 1
+#define USE_OTA_VERSION 2
 #define USE_WIFI
 #define USE_WIFI_AP
 #define USE_WIREGUARD
