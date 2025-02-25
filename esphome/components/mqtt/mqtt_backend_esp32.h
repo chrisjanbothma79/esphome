@@ -150,6 +150,22 @@ class MQTTBackendESP32 final : public MQTTBackend {
   void set_cl_key(const std::string &key) { cl_key_ = key; }
   void set_skip_cert_cn_check(bool skip_check) { skip_cert_cn_check_ = skip_check; }
 
+  ~MQTTBackendESP32() {
+#if defined(USE_MQTT_IDF_ENQUEUE)
+    if (this->task_handle_)
+      vTaskDelete(this->task_handle_);
+
+    if (this->mqtt_queue_) {
+      struct QueueElement elem;
+      while (xQueueReceive(this->mqtt_queue_, &elem, 0)) {
+        free(elem.topic);
+        free(elem.payload);
+      }
+      vQueueDelete(this->mqtt_queue_);
+    }
+#endif
+  }
+
  protected:
   bool initialize_();
   void mqtt_event_handler_(const Event &event);
