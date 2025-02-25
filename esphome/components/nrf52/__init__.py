@@ -164,20 +164,24 @@ def get_download_types(storage_json):
     return types
 
 
+def _upload_using_platformio(config, port, upload_args):
+    from esphome import platformio_api
+
+    if port is not None:
+        upload_args += ["--upload-port", port]
+    return platformio_api.run_platformio_cli_run(config, CORE.verbose, *upload_args)
+
+
 def upload_program(config, args, host):
-    from esphome.__main__ import (
-        check_permissions,
-        get_port_type,
-        upload_using_platformio,
-    )
+    from esphome.__main__ import check_permissions, get_port_type
 
     result = 0
     if get_port_type(host) == "SERIAL":
         check_permissions(host)
-        result = upload_using_platformio(config, host, ["-t", "upload"])
+        result = _upload_using_platformio(config, host, ["-t", "upload"])
         return True
     if host == "PYOCD":
-        result = upload_using_platformio(config, host, ["-t", "flash_pyocd"])
+        result = _upload_using_platformio(config, host, ["-t", "flash_pyocd"])
         return True
     if result != 0:
         raise EsphomeError(f"Upload failed with result: {result}")
