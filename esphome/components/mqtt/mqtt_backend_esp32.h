@@ -119,14 +119,14 @@ class MQTTBackendESP32 final : public MQTTBackend {
 
   bool subscribe(const char *topic, uint8_t qos) final {
 #ifdef ESPHOME_MQTT_THREAD
-    return enqueue(MQTT_EVENT_SUBSCRIBED, topic, qos);
+    return enqueue_(MQTT_EVENT_SUBSCRIBED, topic, qos);
 #else
     return esp_mqtt_client_subscribe(handler_.get(), topic, qos) != -1;
 #endif
   }
   bool unsubscribe(const char *topic) final {
 #ifdef ESPHOME_MQTT_THREAD
-    return enqueue(MQTT_EVENT_UNSUBSCRIBED, topic);
+    return enqueue_(MQTT_EVENT_UNSUBSCRIBED, topic);
 #else
     return esp_mqtt_client_unsubscribe(handler_.get(), topic) != -1;
 #endif
@@ -134,7 +134,7 @@ class MQTTBackendESP32 final : public MQTTBackend {
 
   bool publish(const char *topic, const char *payload, size_t length, uint8_t qos, bool retain) final {
 #ifdef ESPHOME_MQTT_THREAD
-    return enqueue(MQTT_EVENT_PUBLISHED, topic, qos, retain, payload, length);
+    return enqueue_(MQTT_EVENT_PUBLISHED, topic, qos, retain, payload, length);
 #elif defined(USE_MQTT_IDF_ENQUEUE)
     // use the non-blocking version
     // it can delay sending a couple of seconds but won't block
@@ -189,8 +189,8 @@ class MQTTBackendESP32 final : public MQTTBackend {
   static void esphome_mqtt_task(void *params);
   std::unique_ptr<RingBuffer> ring_buffer_;
   TaskHandle_t task_handle_;
-  bool enqueue(esp_mqtt_event_id_t type, const char *topic, int qos = 0, bool retain = false,
-               const char *payload = NULL, size_t len = 0) {
+  bool enqueue_(esp_mqtt_event_id_t type, const char *topic, int qos = 0, bool retain = false,
+                const char *payload = NULL, size_t len = 0) {
     struct RingElement elem;
 
     elem.type = type;

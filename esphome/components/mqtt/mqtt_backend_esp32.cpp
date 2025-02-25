@@ -203,7 +203,7 @@ void MQTTBackendESP32::esphome_mqtt_task(void *params) {
   const char *topic = recv_buf;
   const char *payload;
 
-  while (1) {
+  while (true) {
     struct RingElement elem;
     size_t r;
 
