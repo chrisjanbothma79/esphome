@@ -11,7 +11,7 @@
 #include <mqtt_client.h>
 #include "esphome/components/network/ip_address.h"
 #include "esphome/core/helpers.h"
-#include "esphome/core/ring_buffer.h"
+#include <freertos/queue.h>
 
 namespace esphome {
 namespace mqtt {
@@ -45,19 +45,21 @@ struct Event {
         error_handle(*event.error_handle) {}
 };
 
-struct RingElement {
+struct QueueElement {
   esp_mqtt_event_id_t type;
+  char *topic;
+  char *payload;
+  uint32_t payload_len;
   int qos;
   bool retain;
-  uint32_t topic_len;
-  uint32_t payload_len;
 };
 
 class MQTTBackendESP32 final : public MQTTBackend {
  public:
   static const size_t MQTT_BUFFER_SIZE = 4096;
-  static const size_t TASK_STACK_SIZE = 4096 + MQTT_BUFFER_SIZE;
+  static const size_t TASK_STACK_SIZE = 4096;
   static const ssize_t TASK_PRIORITY = 5;
+  static const uint32_t MQTT_QUEUE_LENGTH = 20;
 
   void set_keep_alive(uint16_t keep_alive) final { this->keep_alive_ = keep_alive; }
   void set_client_id(const char *client_id) final { this->client_id_ = client_id; }
@@ -187,32 +189,27 @@ class MQTTBackendESP32 final : public MQTTBackend {
   bool skip_cert_cn_check_{false};
 #ifdef ESPHOME_MQTT_THREAD
   static void esphome_mqtt_task(void *params);
-  std::unique_ptr<RingBuffer> ring_buffer_;
+  QueueHandle_t mqtt_queue_;
   TaskHandle_t task_handle_;
   bool enqueue_(esp_mqtt_event_id_t type, const char *topic, int qos = 0, bool retain = false,
                 const char *payload = NULL, size_t len = 0) {
-    struct RingElement elem;
+    struct QueueElement elem;
 
     elem.type = type;
     elem.qos = qos;
     elem.retain = retain;
-    elem.topic_len = strlen(topic) + 1;  // include the trailing NUL
     elem.payload_len = len;
+    elem.topic = strdup(topic);
+    if (payload && len) {
+      elem.payload = (char *) malloc(len);  // NOLINT
+      elem.payload_len = len;
+      memcpy(elem.payload, payload, len);
+    } else {
+      elem.payload = NULL;
+      elem.payload_len = 0;
+    }
 
-    /*
-     * Assert that current_task == loop_task_handle, which is what makes it
-     * OK that these writes (and the free() check) aren't atomic.
-     */
-
-    if (this->ring_buffer_->free() < sizeof(elem) + elem.topic_len + len)
-      return false;
-
-    this->ring_buffer_->write(&elem, sizeof(elem));
-    this->ring_buffer_->write(topic, elem.topic_len);
-    if (len)
-      this->ring_buffer_->write(payload, len);
-
-    return true;
+    return xQueueSend(this->mqtt_queue_, &elem, 20);
   }
 #endif
 

@@ -96,7 +96,7 @@ bool MQTTBackendESP32::initialize_() {
   }
 #endif
 #ifdef ESPHOME_MQTT_THREAD
-  this->ring_buffer_ = RingBuffer::create(MQTT_BUFFER_SIZE);
+  this->mqtt_queue_ = xQueueCreate(MQTT_QUEUE_LENGTH, sizeof(struct QueueElement));
   xTaskCreate(esphome_mqtt_task, "esphome_mqtt", TASK_STACK_SIZE, (void *) this, TASK_PRIORITY, &this->task_handle_);
   if (this->task_handle_ == nullptr) {
     ESP_LOGE(TAG, "Failed to start MQTT thread");
@@ -199,55 +199,33 @@ void MQTTBackendESP32::mqtt_event_handler(void *handler_args, esp_event_base_t b
 #ifdef ESPHOME_MQTT_THREAD
 void MQTTBackendESP32::esphome_mqtt_task(void *params) {
   MQTTBackendESP32 *this_mqtt = (MQTTBackendESP32 *) params;
-  char recv_buf[MQTT_BUFFER_SIZE];
-  const char *topic = recv_buf;
-  const char *payload;
 
   while (true) {
-    struct RingElement elem;
-    size_t r;
+    struct QueueElement elem;
 
-    r = this_mqtt->ring_buffer_->read(&elem, sizeof(elem), portMAX_DELAY);
-    if (r != sizeof(elem) || elem.topic_len > MQTT_BUFFER_SIZE || elem.payload_len > MQTT_BUFFER_SIZE ||
-        elem.topic_len + elem.payload_len > MQTT_BUFFER_SIZE) {
-      ESP_LOGE(TAG, "Invalid header read %zd from MQTT ring buffer", r);
-      this_mqtt->ring_buffer_->reset();
+    if (!xQueueReceive(this_mqtt->mqtt_queue_, &elem, portMAX_DELAY))
       continue;
-    }
-
-    r = this_mqtt->ring_buffer_->read(recv_buf, elem.topic_len, portMAX_DELAY);
-    if (r != elem.topic_len || recv_buf[elem.topic_len - 1] != '\0') {
-      ESP_LOGE(TAG, "Invalid topic read (%zd of %zd) from MQTT ring buffer", r, elem.topic_len);
-      this_mqtt->ring_buffer_->reset();
-      continue;
-    }
-
-    r = this_mqtt->ring_buffer_->read(recv_buf + elem.topic_len, elem.payload_len, portMAX_DELAY);
-    if (r != elem.payload_len) {
-      ESP_LOGE(TAG, "Invalid payload read (%zd of %zd) from MQTT ring buffer", r, elem.payload_len);
-      this_mqtt->ring_buffer_->reset();
-      continue;
-    }
 
     switch (elem.type) {
       case MQTT_EVENT_SUBSCRIBED:
-        esp_mqtt_client_subscribe(this_mqtt->handler_.get(), topic, elem.qos);
+        esp_mqtt_client_subscribe(this_mqtt->handler_.get(), elem.topic, elem.qos);
         break;
 
       case MQTT_EVENT_UNSUBSCRIBED:
-        esp_mqtt_client_unsubscribe(this_mqtt->handler_.get(), topic);
+        esp_mqtt_client_unsubscribe(this_mqtt->handler_.get(), elem.topic);
         break;
 
       case MQTT_EVENT_PUBLISHED:
-        payload = &recv_buf[elem.topic_len];
-        esp_mqtt_client_publish(this_mqtt->handler_.get(), topic, payload, elem.payload_len, elem.qos, elem.retain);
+        esp_mqtt_client_publish(this_mqtt->handler_.get(), elem.topic, elem.payload, elem.payload_len, elem.qos,
+                                elem.retain);
         break;
 
       default:
-        ESP_LOGE(TAG, "Invalid operation type from MQTT ring buffer");
-        this_mqtt->ring_buffer_->reset();
+        ESP_LOGE(TAG, "Invalid operation type from MQTT queue");
         break;
     }
+    free(elem.topic);
+    free(elem.payload);
   }
 }
 #endif
