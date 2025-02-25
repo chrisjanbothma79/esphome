@@ -90,7 +90,7 @@ struct ESPTime {
    */
   static ESPTime from_values(uint16_t year, uint8_t month, uint8_t day,
                              uint8_t hour, uint8_t minute, uint8_t second);
-  
+
   /** Convert an UTC epoch timestamp to a UTC time ESPTime instance.
    *
    * @param epoch Seconds since 1st January 1970. In UTC.
