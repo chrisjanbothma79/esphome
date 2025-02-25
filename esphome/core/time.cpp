@@ -17,10 +17,9 @@ size_t ESPTime::strftime(char *buffer, size_t buffer_len, const char *format) {
   return ::strftime(buffer, buffer_len, format, &c_tm);
 }
 
-ESPTime ESPTime::from_values(uint16_t year, uint8_t month, uint8_t day,
-                             uint8_t hour, uint8_t minute, uint8_t second) {
+ESPTime ESPTime::from_values(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
   ESPTime res{};
-  std::tm tm = { 0, 0, 0, day, (month -1), (year - 1900) };
+  std::tm tm = { 0, 0, 0, day, (month -1), (year - 1900)};
   res.second = uint8_t(c_tm->tm_sec);
   res.minute = uint8_t(c_tm->tm_min);
   res.hour = uint8_t(c_tm->tm_hour);
