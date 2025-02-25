@@ -20,7 +20,7 @@ void UptimeTimestampTextSensor::setup() {
     if (!now.is_valid())
       return;  // No need to update the timestamp if the time is not valid
 
-    std::string now_string = this->time_->now().strftime("%F %T");
+    std::string now_string = this->time_->now().strftime(this->format_);
 
     this->publish_state(now_string);
   });

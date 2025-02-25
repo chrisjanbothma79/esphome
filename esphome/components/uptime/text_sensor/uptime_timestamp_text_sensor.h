@@ -19,9 +19,11 @@ class UptimeTimestampTextSensor : public text_sensor::TextSensor, public Compone
   float get_setup_priority() const override;
 
   void set_time(time::RealTimeClock *time) { this->time_ = time; }
+  void set_format(std::string format) { this->format_ = format; }
 
  protected:
   time::RealTimeClock *time_{};
+  std::string format_{};
 };
 
 }  // namespace uptime
