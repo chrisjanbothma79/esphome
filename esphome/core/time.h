@@ -88,8 +88,7 @@ struct ESPTime {
   /** Initialize new ESPTime struct using given values
    *  required, to mimic c_tm initialization without day of week required
    */
-  static ESPTime from_values(uint16_t year, uint8_t month, uint8_t day,
-                             uint8_t hour, uint8_t minute, uint8_t second);
+  static ESPTime from_values(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second);
 
   /** Convert an UTC epoch timestamp to a UTC time ESPTime instance.
    *
