@@ -21,7 +21,7 @@ from esphome.const import (
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
 )
-from esphome.core import CORE, coroutine_with_priority
+from esphome.core import CORE, EsphomeError, coroutine_with_priority
 
 from .boards_zephyr import BOARDS_ZEPHYR
 from .const import BOOTLOADER_ADAFRUIT
@@ -162,3 +162,23 @@ def get_download_types(storage_json):
             ]
 
     return types
+
+
+def upload_program(config, args, host):
+    from esphome.__main__ import (
+        check_permissions,
+        get_port_type,
+        upload_using_platformio,
+    )
+
+    result = 0
+    if get_port_type(host) == "SERIAL":
+        check_permissions(host)
+        result = upload_using_platformio(config, host, ["-t", "upload"])
+        return True
+    if host == "PYOCD":
+        result = upload_using_platformio(config, host, ["-t", "flash_pyocd"])
+        return True
+    if result != 0:
+        raise EsphomeError(f"Upload failed with result: {result}")
+    return False
