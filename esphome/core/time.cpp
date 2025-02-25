@@ -117,7 +117,7 @@ bool ESPTime::strptime(const std::string &time_to_parse, ESPTime &esp_time) {
 
 
 static bool from_local_values(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, ESPTime &esp_time) {
-  return this->strptime(sprintf("%04hu-%02hhu-%02hhu %02hhu:%02hhu:%02hhu"), year, month, day, hour, minute, second, esp_time);
+  return this->strptime(sprintf("%04hu-%02hhu-%02hhu %02hhu:%02hhu:%02hhu", year, month, day, hour, minute, second), esp_time);
 }
 
 void ESPTime::increment_second() {
