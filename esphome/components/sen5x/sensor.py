@@ -28,6 +28,10 @@ from esphome.const import (
     UNIT_CELSIUS,
     UNIT_MICROGRAMS_PER_CUBIC_METER,
     UNIT_PERCENT,
+    CONF_CO2,
+    ICON_MOLECULE_CO2,
+    UNIT_PARTS_PER_MILLION,
+    DEVICE_CLASS_CARBON_DIOXIDE,
 )
 
 CODEOWNERS = ["@martgras"]
@@ -54,7 +58,7 @@ CONF_STD_INITIAL = "std_initial"
 CONF_TIME_CONSTANT = "time_constant"
 CONF_VOC = "voc"
 CONF_VOC_BASELINE = "voc_baseline"
-
+CONF_CO2 = "co2"
 
 # Actions
 StartFanAction = sen5x_ns.class_("StartFanAction", automation.Action)
@@ -139,6 +143,13 @@ CONFIG_SCHEMA = (
                 device_class=DEVICE_CLASS_AQI,
                 state_class=STATE_CLASS_MEASUREMENT,
             ).extend(GAS_SENSOR),
+            cv.Optional(CONF_CO2): sensor.sensor_schema(
+                unit_of_measurement=UNIT_PARTS_PER_MILLION,
+                icon=ICON_MOLECULE_CO2,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_CARBON_DIOXIDE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
             cv.Optional(CONF_STORE_BASELINE, default=True): cv.boolean,
             cv.Optional(CONF_VOC_BASELINE): cv.hex_uint16_t,
             cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
@@ -180,6 +191,7 @@ SENSOR_MAP = {
     CONF_NOX: "set_nox_sensor",
     CONF_TEMPERATURE: "set_temperature_sensor",
     CONF_HUMIDITY: "set_humidity_sensor",
+    CONF_CO2: "set_co2_sensor",
 }
 
 SETTING_MAP = {
