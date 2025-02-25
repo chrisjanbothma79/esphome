@@ -8,9 +8,9 @@ from esphome.const import (
     CONF_FILE,
     CONF_FILES,
     CONF_MIN_VERSION,
-    CONF_NAME,
     CONF_PACKAGES,
     CONF_PASSWORD,
+    CONF_PATH,
     CONF_REF,
     CONF_REFRESH,
     CONF_URL,
@@ -81,7 +81,7 @@ BASE_SCHEMA = cv.All(
                         validate_yaml_filename,
                         cv.Schema(
                             {
-                                cv.Required(CONF_NAME): validate_yaml_filename,
+                                cv.Required(CONF_PATH): validate_yaml_filename,
                                 cv.Optional(CONF_VARS, default={}): cv.Schema(
                                     {cv.string: cv.string}
                                 ),
@@ -124,14 +124,14 @@ def _process_base_package(config: dict) -> dict:
 
     for file in config[CONF_FILES]:
         if isinstance(file, str):
-            files.append({CONF_NAME: file, CONF_VARS: {}})
+            files.append({CONF_PATH: file, CONF_VARS: {}})
         else:
             files.append(file)
 
     def get_packages(files) -> dict:
         packages = {}
         for idx, file in enumerate(files):
-            filename = file[CONF_NAME]
+            filename = file[CONF_PATH]
             yaml_file: Path = repo_dir / filename
             vars = file.get(CONF_VARS, {})
 
