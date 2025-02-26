@@ -15,6 +15,18 @@ map:
     entries:
       clear-night: image_1
       sunny: image_2
+  - id: weather_map_1
+    from: string
+    to: image.Image_
+    entries:
+      clear-night: image_1
+      sunny: image_2
+  - id: weather_map_2
+    from: string
+    to: image
+    entries:
+      clear-night: image_1
+      sunny: image_2
   - id: int_map
     from: int
     to: string
