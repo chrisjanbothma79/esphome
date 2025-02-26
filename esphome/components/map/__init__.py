@@ -5,6 +5,7 @@ from esphome.core import CORE
 from esphome.cpp_generator import MockObj, VariableDeclarationExpression, add_global
 
 CODEOWNERS = ["@clydebarrow"]
+MULTI_CONF = True
 
 map_ = cg.std_ns.class_("map")
 
@@ -37,7 +38,7 @@ def to_schema(value):
     """
     return cv.Any(
         cv.one_of(*INDEX_TYPES, lower=True),
-        cv.Schema({cv.Required(CONF_CLASS): cv.one_of(*MockObj.known_classes.keys())}),
+        cv.one_of(*CORE.id_classes.keys()),
     )(value)
 
 
@@ -46,57 +47,52 @@ BASE_SCHEMA = cv.Schema(
         cv.Required(CONF_ID): cv.declare_id(map_),
         cv.Required(CONF_FROM): cv.one_of(*INDEX_TYPES, lower=True),
         cv.Required(CONF_TO): to_schema,
-    }
+    },
+    extra=cv.ALLOW_EXTRA,
 )
 
 
-def validate_mapping(config):
+def map_schema(config):
+    config = BASE_SCHEMA(config)
+    if CONF_ENTRIES not in config or not isinstance(config[CONF_ENTRIES], dict):
+        raise cv.Invalid("an entries list is required for a map")
     entries = config[CONF_ENTRIES]
-    from_ = config[CONF_FROM]
     to_ = config[CONF_TO]
     if len(entries) == 0:
         raise cv.Invalid("Map must have at least one entry")
-    if isinstance(to_, dict):
-        class_ = to_[CONF_CLASS]
-        config[CONF_ENTRIES] = {k: cv.use_id(class_)(v) for k, v in entries.items()}
-        for k, v in config[CONF_ENTRIES].items():
-            print(k, v, v.type)
-    else:
+    if to_ in INDEX_TYPES:
         config[CONF_ENTRIES] = {
             k: INDEX_TYPES[to_].validator(v) for k, v in entries.items()
+        }
+    else:
+        config[CONF_ENTRIES] = {
+            k: cv.use_id(CORE.id_classes[to_])(v) for k, v in entries.items()
         }
     return config
 
 
-CONFIG_SCHEMA = cv.All(
-    BASE_SCHEMA.extend(
-        {
-            cv.Required(CONF_ENTRIES): dict,
-        }
-    ),
-    validate_mapping,
-)
+CONFIG_SCHEMA = map_schema
 
 
 async def to_code(config):
     entries = config[CONF_ENTRIES]
-    index = config[CONF_FROM]
-    value_spec = config[CONF_TO]
-    index_conversion = INDEX_TYPES[index].conversion
-    index_type = INDEX_TYPES[index].data_type
-    if isinstance(value_spec, dict):
-        entries = {
-            index_conversion(key): await cg.get_variable(value)
-            for key, value in entries.items()
-        }
-        value_type = MockObj.known_classes[value_spec[CONF_CLASS]].operator("ptr")
-    else:
-        value_conversion = INDEX_TYPES[value_spec].conversion
-        value_type = INDEX_TYPES[value_spec].data_type
+    from_ = config[CONF_FROM]
+    to_ = config[CONF_TO]
+    index_conversion = INDEX_TYPES[from_].conversion
+    index_type = INDEX_TYPES[from_].data_type
+    if to_ in INDEX_TYPES:
+        value_conversion = INDEX_TYPES[to_].conversion
+        value_type = INDEX_TYPES[to_].data_type
         entries = {
             index_conversion(key): value_conversion(value)
             for key, value in entries.items()
         }
+    else:
+        entries = {
+            index_conversion(key): await cg.get_variable(value)
+            for key, value in entries.items()
+        }
+        value_type = CORE.id_classes[to_].operator("ptr")
     varid = config[CONF_ID]
     varid.type = map_.template(index_type, value_type)
     var = MockObj(varid, ".")
