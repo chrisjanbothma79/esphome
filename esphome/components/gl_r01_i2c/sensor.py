@@ -1,6 +1,5 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-import esphome.automation as automation
 from esphome.components import i2c, sensor
 from esphome.const import (
     CONF_ID,
