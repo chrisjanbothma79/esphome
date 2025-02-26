@@ -13,6 +13,10 @@ CONF_CLASS = "class"
 
 
 class IndexType:
+    """
+    Represents a type of index in a map.
+    """
+
     def __init__(self, validator, data_type, conversion):
         self.validator = validator
         self.data_type = data_type
@@ -26,6 +30,11 @@ INDEX_TYPES = {
 
 
 def to_schema(value):
+    """
+    Generate a schema for the 'to' field of a map. This can be either one of the index types or a class name.
+    :param value:
+    :return:
+    """
     return cv.Any(
         cv.one_of(*INDEX_TYPES, lower=True),
         cv.Schema({cv.Required(CONF_CLASS): cv.one_of(*MockObj.known_classes.keys())}),
@@ -37,7 +46,6 @@ BASE_SCHEMA = cv.Schema(
         cv.Required(CONF_ID): cv.declare_id(map_),
         cv.Required(CONF_FROM): cv.one_of(*INDEX_TYPES, lower=True),
         cv.Required(CONF_TO): to_schema,
-        cv.Required(CONF_ENTRIES): dict,
     }
 )
 
@@ -50,16 +58,24 @@ def validate_mapping(config):
         raise cv.Invalid("Map must have at least one entry")
     if isinstance(to_, dict):
         class_ = to_[CONF_CLASS]
-        to_val = cv.use_id(class_)
+        config[CONF_ENTRIES] = {k: cv.use_id(class_)(v) for k, v in entries.items()}
+        for k, v in config[CONF_ENTRIES].items():
+            print(k, v, v.type)
     else:
-        to_val = INDEX_TYPES[to_].validator
-    schema = BASE_SCHEMA.extend(
-        {cv.Required(CONF_ENTRIES): cv.Schema({INDEX_TYPES[from_].validator: to_val})}
-    )
-    return schema(config)
+        config[CONF_ENTRIES] = {
+            k: INDEX_TYPES[to_].validator(v) for k, v in entries.items()
+        }
+    return config
 
 
-CONFIG_SCHEMA = cv.All(BASE_SCHEMA, validate_mapping)
+CONFIG_SCHEMA = cv.All(
+    BASE_SCHEMA.extend(
+        {
+            cv.Required(CONF_ENTRIES): dict,
+        }
+    ),
+    validate_mapping,
+)
 
 
 async def to_code(config):
