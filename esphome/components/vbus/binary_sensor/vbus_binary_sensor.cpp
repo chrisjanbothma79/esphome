@@ -72,6 +72,100 @@ void DeltaSolBS2009BSensor::handle_message(std::vector<uint8_t> &message) {
     this->frost_protection_active_bsensor_->publish_state(message[25] & 1);
 }
 
+void DeltaSolBXBSensor::dump_config() {
+  ESP_LOGCONFIG(TAG, "Deltasol BX:");
+  LOG_BINARY_SENSOR("  ", "Sensor 1 Error", this->s1_error_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Sensor 2 Error", this->s2_error_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Sensor 3 Error", this->s3_error_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Sensor 4 Error", this->s4_error_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Sensor 5 Error", this->s5_error_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Sensor 6 Error", this->s6_error_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Sensor 7 Error", this->s7_error_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Sensor 8 Error", this->s8_error_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Sensor 9 Error", this->s9_error_bsensor_);
+  LOG_BINARY_SENSOR("  ", "V40 Error", this->v40_error_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Leakage", this->leakage_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Overpressure", this->overpressure_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Flow Rate Error", this->flow_rate_error_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Blocking Protection 1", this->blocking_protection1_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Blocking Protection 2", this->blocking_protection2_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Blocking Protection 3", this->blocking_protection3_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Blocking Protection 4", this->blocking_protection4_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Initialisation", this->initialisation_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Filling", this->filling_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Stabilisation", this->stabilisation_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Pump Delay", this->pump_delay_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Heat Dump", this->heat_dump_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Overrun", this->overrun_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Thermal Disinfection", this->thermal_disinfection_bsensor_);
+  LOG_BINARY_SENSOR("  ", "System Cooling", this->system_cooling_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Store Cooling", this->store_cooling_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Spreading", this->spreading_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Antifreeze", this->antifreeze_bsensor_);
+  LOG_BINARY_SENSOR("  ", "Collector Cooling", this->collector_cooling_bsensor_);
+}
+
+void DeltaSolBXBSensor::handle_message(std::vector<uint8_t> &message) {
+  if (this->s1_error_bsensor_ != nullptr)
+    this->s1_error_bsensor_->publish_state(message[44] & 0x01);
+  if (this->s2_error_bsensor_ != nullptr)
+    this->s2_error_bsensor_->publish_state(message[44] & 0x02);
+  if (this->s3_error_bsensor_ != nullptr)
+    this->s3_error_bsensor_->publish_state(message[44] & 0x04);
+  if (this->s4_error_bsensor_ != nullptr)
+    this->s4_error_bsensor_->publish_state(message[44] & 0x08);
+  if (this->s5_error_bsensor_ != nullptr)
+    this->s5_error_bsensor_->publish_state(message[44] & 0x10);
+  if (this->s6_error_bsensor_ != nullptr)
+    this->s6_error_bsensor_->publish_state(message[44] & 0x20);
+  if (this->s7_error_bsensor_ != nullptr)
+    this->s7_error_bsensor_->publish_state(message[44] & 0x40);
+  if (this->s8_error_bsensor_ != nullptr)
+    this->s8_error_bsensor_->publish_state(message[44] & 0x80);
+  if (this->s9_error_bsensor_ != nullptr)
+    this->s9_error_bsensor_->publish_state(message[45] & 0x01);
+  if (this->v40_error_bsensor_ != nullptr)
+    this->v40_error_bsensor_->publish_state(message[45] & 0x02);
+  if (this->leakage_bsensor_ != nullptr)
+    this->leakage_bsensor_->publish_state(message[45] & 0x04);
+  if (this->overpressure_bsensor_ != nullptr)
+    this->overpressure_bsensor_->publish_state(message[45] & 0x08);
+  if (this->flow_rate_error_bsensor_ != nullptr)
+    this->flow_rate_error_bsensor_->publish_state(message[45] & 0x10);
+  if (this->blocking_protection1_bsensor_ != nullptr)
+    this->blocking_protection1_bsensor_->publish_state(message[46] & 0x01);
+  if (this->blocking_protection2_bsensor_ != nullptr)
+    this->blocking_protection2_bsensor_->publish_state(message[46] & 0x02);
+  if (this->blocking_protection3_bsensor_ != nullptr)
+    this->blocking_protection3_bsensor_->publish_state(message[46] & 0x04);
+  if (this->blocking_protection4_bsensor_ != nullptr)
+    this->blocking_protection4_bsensor_->publish_state(message[46] & 0x08);
+  if (this->initialisation_bsensor_ != nullptr)
+    this->initialisation_bsensor_->publish_state(message[46] & 0x10);
+  if (this->filling_bsensor_ != nullptr)
+    this->filling_bsensor_->publish_state(message[46] & 0x20);
+  if (this->stabilisation_bsensor_ != nullptr)
+    this->stabilisation_bsensor_->publish_state(message[46] & 0x40);
+  if (this->pump_delay_bsensor_ != nullptr)
+    this->pump_delay_bsensor_->publish_state(message[46] & 0x80);
+  if (this->heat_dump_bsensor_ != nullptr)
+    this->heat_dump_bsensor_->publish_state(message[47] & 0x01);
+  if (this->overrun_bsensor_ != nullptr)
+    this->overrun_bsensor_->publish_state(message[47] & 0x02);
+  if (this->thermal_disinfection_bsensor_ != nullptr)
+    this->thermal_disinfection_bsensor_->publish_state(message[47] & 0x04);
+  if (this->system_cooling_bsensor_ != nullptr)
+    this->system_cooling_bsensor_->publish_state(message[47] & 0x08);
+  if (this->store_cooling_bsensor_ != nullptr)
+    this->store_cooling_bsensor_->publish_state(message[47] & 0x10);
+  if (this->spreading_bsensor_ != nullptr)
+    this->spreading_bsensor_->publish_state(message[47] & 0x20);
+  if (this->antifreeze_bsensor_ != nullptr)
+    this->antifreeze_bsensor_->publish_state(message[47] & 0x40);
+  if (this->collector_cooling_bsensor_ != nullptr)
+    this->collector_cooling_bsensor_->publish_state(message[47] & 0x80);
+}
+
 void DeltaSolCBSensor::dump_config() {
   ESP_LOGCONFIG(TAG, "Deltasol C:");
   LOG_BINARY_SENSOR("  ", "Sensor 1 Error", this->s1_error_bsensor_);
