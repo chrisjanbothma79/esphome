@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef USE_ESP_IDF
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
 #include "esphome/core/component.h"
 #include <vector>
 #include "usb/usb_host.h"
@@ -112,4 +112,4 @@ class USBHost : public Component {
 }  // namespace usb_host
 }  // namespace esphome
 
-#endif  // USE_ESP_IDF
+#endif  // USE_ESP32_VARIANT_ESP32S2 || USE_ESP32_VARIANT_ESP32S3

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "esphome/core/component.h"
-#ifdef USE_ESP_IDF
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
 #include "esphome/core/helpers.h"
 #include "esphome/components/uart/uart_component.h"
 #include "esphome/components/usb_host/usb_host.h"
@@ -148,4 +148,4 @@ class USBUartTypeCH34X : public USBUartTypeCdcAcm {
 }  // namespace usb_uart
 }  // namespace esphome
 
-#endif  // USE_ESP_IDF
+#endif  // USE_ESP32_VARIANT_ESP32S2 || USE_ESP32_VARIANT_ESP32S3
