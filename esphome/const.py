@@ -1,6 +1,6 @@
 """Constants used by esphome."""
 
-__version__ = "2025.2.0-dev"
+__version__ = "2025.3.0-dev"
 
 ALLOWED_NAME_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789-_"
 VALID_SUBSTITUTIONS_CHARACTERS = (
@@ -927,6 +927,7 @@ CONF_VALUE = "value"
 CONF_VALUE_FONT = "value_font"
 CONF_VARIABLES = "variables"
 CONF_VARIANT = "variant"
+CONF_VARS = "vars"
 CONF_VERSION = "version"
 CONF_VIBRATIONS = "vibrations"
 CONF_VISIBLE = "visible"
