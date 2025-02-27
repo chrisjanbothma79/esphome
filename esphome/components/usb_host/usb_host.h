@@ -9,7 +9,7 @@
 namespace esphome {
 namespace usb_host {
 
-static const char *TAG = "usb_host";
+static const char *const TAG = "usb_host";
 
 // constants for setup packet type
 static const uint8_t USB_RECIP_DEVICE = 0;
@@ -26,26 +26,26 @@ static const size_t SETUP_PACKET_SIZE = 8;
 static const size_t MAX_REQUESTS = 16;  // maximum number of outstanding requests possible.
 
 // used to report a transfer status
-typedef struct {  // NOLINT
+struct transfer_status_t {
   bool success;
   uint16_t error_code;
   uint8_t *data;
   size_t data_len;
   uint8_t endpoint;
   void *user_data;
-} transfer_status_t;
+};
 
 using transfer_cb_t = std::function<void(const transfer_status_t &)>;
 
 // struct used to capture all data needed for a transfer
 class USBClient;
 
-typedef struct {  // NOLINT
+struct transfer_request_t {
   usb_transfer_t *transfer;
   transfer_cb_t callback;
   transfer_status_t status;
   USBClient *client;
-} transfer_request_t;
+};
 
 // callback function type.
 
