@@ -1,10 +1,7 @@
 import os
 from typing import Union
 
-import voluptuous as vol
-
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.const import CONF_BOARD, KEY_NAME
 from esphome.core import CORE
 from esphome.helpers import copy_file_if_changed, write_file_if_changed
@@ -181,44 +178,3 @@ def copy_files():
             file[KEY_PATH],
             CORE.relative_build_path(file[KEY_NAME]),
         )
-
-
-def _get_default_key(*args):
-    return ["_".join([CORE.target_platform] + list(args))]
-
-
-# https://github.com/esphome/esphome/pull/7715
-class SplitDefault(cv.Optional):
-    """Mark this key to have a split default for ESP8266/ESP32."""
-
-    def __init__(self, key, **kwargs):
-        super().__init__(key)
-
-        self._defaults = {}
-
-        for platform_key, value in kwargs.items():
-            self._defaults[platform_key] = vol.default_factory(value)
-
-    @property
-    def default(self):
-        keys = []
-        if CORE.is_esp32:
-            from esphome.components.esp32 import get_esp32_variant
-            from esphome.components.esp32.const import VARIANT_ESP32
-
-            variant = get_esp32_variant().replace(VARIANT_ESP32, "").lower()
-            framework = CORE.target_framework.replace("esp-", "")
-            if variant:
-                keys += _get_default_key(variant, framework)
-                keys += _get_default_key(variant)
-            keys += _get_default_key(framework)
-        keys += _get_default_key()
-        for key in keys:
-            if self._defaults.get(key) is not None:
-                return self._defaults[key]
-        return vol.default_factory(vol.UNDEFINED)
-
-    @default.setter
-    def default(self, value):
-        # Ignore default set from vol.Optional
-        pass

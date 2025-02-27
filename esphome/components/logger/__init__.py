@@ -3,7 +3,6 @@ import re
 from esphome import automation
 from esphome.automation import LambdaAction
 import esphome.codegen as cg
-from esphome.components import zephyr
 from esphome.components.esp32 import add_idf_sdkconfig_option, get_esp32_variant
 from esphome.components.esp32.const import (
     VARIANT_ESP32,
@@ -193,8 +192,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_BAUD_RATE, default=115200): cv.positive_int,
             cv.Optional(CONF_TX_BUFFER_SIZE, default=512): cv.validate_bytes,
             cv.Optional(CONF_DEASSERT_RTS_DTR, default=False): cv.boolean,
-            # https://github.com/esphome/esphome/pull/7715
-            zephyr.SplitDefault(
+            cv.SplitDefault(
                 CONF_HARDWARE_UART,
                 esp8266=UART0,
                 esp32=UART0,
@@ -235,8 +233,7 @@ CONFIG_SCHEMA = cv.All(
                     cv.Optional(CONF_LEVEL, default="WARN"): is_log_level,
                 }
             ),
-            # https://github.com/esphome/esphome/pull/7715
-            zephyr.SplitDefault(
+            cv.SplitDefault(
                 CONF_ESP8266_STORE_LOG_STRINGS_IN_FLASH, esp8266=True
             ): cv.All(cv.only_on_esp8266, cv.boolean),
         }
