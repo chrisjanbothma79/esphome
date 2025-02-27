@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef USE_ESP_IDF
 #include "esphome/core/component.h"
 #include <vector>
 #include "usb/usb_host.h"
@@ -110,3 +111,5 @@ class USBHost : public Component {
 
 }  // namespace usb_host
 }  // namespace esphome
+
+#endif  // USE_ESP_IDF

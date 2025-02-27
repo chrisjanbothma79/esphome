@@ -97,7 +97,7 @@ void usb_client_print_config_descriptor(const usb_config_desc_t *cfg_desc,
   }
 
   int offset = 0;
-  uint16_t wTotalLength = cfg_desc->wTotalLength;
+  uint16_t w_total_length = cfg_desc->wTotalLength;
   const usb_standard_desc_t *next_desc = (const usb_standard_desc_t *) cfg_desc;
 
   do {
@@ -118,7 +118,7 @@ void usb_client_print_config_descriptor(const usb_config_desc_t *cfg_desc,
         break;
     }
 
-    next_desc = usb_parse_next_descriptor(next_desc, wTotalLength, &offset);
+    next_desc = usb_parse_next_descriptor(next_desc, w_total_length, &offset);
 
   } while (next_desc != NULL);
 }
@@ -179,14 +179,16 @@ void USBClient::loop() {
     case USB_CLIENT_OPEN: {
       int err;
       ESP_LOGD(TAG, "Open device %d", this->device_addr_);
-      if ((err = usb_host_device_open(this->handle_, this->device_addr_, &this->device_handle_)) != ESP_OK) {
+      err = usb_host_device_open(this->handle_, this->device_addr_, &this->device_handle_);
+      if (err != ESP_OK) {
         ESP_LOGW(TAG, "Device open failed: %s", esp_err_to_name(err));
         this->state_ = USB_CLIENT_INIT;
         break;
       }
       ESP_LOGD(TAG, "Get descriptor device %d", this->device_addr_);
       const usb_device_desc_t *desc;
-      if ((err = usb_host_get_device_descriptor(this->device_handle_, &desc)) != ESP_OK) {
+      err = usb_host_get_device_descriptor(this->device_handle_, &desc);
+      if (err != ESP_OK) {
         ESP_LOGW(TAG, "Device get_desc failed: %s", esp_err_to_name(err));
         this->disconnect();
       } else {
@@ -242,7 +244,7 @@ void USBClient::on_removed(usb_device_handle_t handle) {
 }
 
 static void control_callback(const usb_transfer_t *xfer) {
-  auto trq = static_cast<TransferRequest *>(xfer->context);
+  auto *trq = static_cast<TransferRequest *>(xfer->context);
   trq->status.error_code = xfer->status;
   trq->status.success = xfer->status == USB_TRANSFER_STATUS_COMPLETED;
   trq->status.endpoint = xfer->bEndpointAddress;
@@ -258,7 +260,7 @@ TransferRequest *USBClient::get_trq_() {
     ESP_LOGE(TAG, "Too many requests queued");
     return nullptr;
   }
-  auto trq = this->trq_pool_.front();
+  auto *trq = this->trq_pool_.front();
   this->trq_pool_.pop_front();
   trq->client = this;
   trq->transfer->context = trq;
@@ -278,7 +280,7 @@ void USBClient::disconnect() {
 
 bool USBClient::control_transfer(uint8_t type, uint8_t request, uint16_t value, uint16_t index,
                                  const transfer_cb_t &callback, const std::vector<uint8_t> &data) {
-  auto trq = this->get_trq_();
+  auto *trq = this->get_trq_();
   if (trq == nullptr)
     return false;
   auto length = data.size();
