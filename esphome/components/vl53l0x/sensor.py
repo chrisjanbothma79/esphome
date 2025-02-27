@@ -9,7 +9,7 @@ from esphome.const import (
     CONF_TIMEOUT,
     CONF_ENABLE_PIN,
 )
-from esphome import pins
+from esphome import pins, core
 
 DEPENDENCIES = ["i2c"]
 
@@ -39,13 +39,6 @@ def check_timeout(value):
     return value
 
 
-def check_timing_budget(value):
-    value = cv.positive_time_period_microseconds(value)
-    if value.total_microseconds < 17000 or value.total_microseconds > 4294967295:
-        raise cv.Invalid("Timing budget must be between 17000us and 4294967295us")
-    return value
-
-
 CONFIG_SCHEMA = cv.All(
     sensor.sensor_schema(
         VL53L0XSensor,
@@ -62,7 +55,13 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_LONG_RANGE, default=False): cv.boolean,
             cv.Optional(CONF_TIMEOUT, default="10ms"): check_timeout,
             cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
-            cv.Optional(CONF_TIMING_BUDGET): check_timing_budget,
+            cv.Optional(CONF_TIMING_BUDGET): cv.All (
+                cv.positive_time_period_microseconds,
+                cv.Range(
+                    min=core.TimePeriod(microseconds=1),
+                    max=core.TimePeriod(microseconds=4294967295)
+                    ),
+            ),
         }
     )
     .extend(cv.polling_component_schema("60s"))
