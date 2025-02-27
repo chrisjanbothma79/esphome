@@ -1,4 +1,4 @@
-#include "USBUartComponent.h"
+#include "usb_uart.h"
 #include "usb/usb_host.h"
 #include "esphome/core/log.h"
 #include "esphome/components/uart/uart_debugger.h"
@@ -181,7 +181,12 @@ void USBUartComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "    Baud Rate: %" PRIu32 " baud", channel->baud_rate_);
     ESP_LOGCONFIG(TAG, "    Data Bits: %u", channel->data_bits_);
     ESP_LOGCONFIG(TAG, "    Parity: %s", parity_names[channel->parity_]);
-    ESP_LOGCONFIG(TAG, "    Stop bits: %u", channel->stop_bits_);
+    auto stop_bits = "1";
+    if (channel->stop_bits_ == UART_CONFIG_STOP_BITS_2)
+      stop_bits = "2";
+    else if (channel->stop_bits_ == UART_CONFIG_STOP_BITS_1_5)
+      stop_bits = "1.5";
+    ESP_LOGCONFIG(TAG, "    Stop bits: %s", stop_bits);
     if (channel->debug_)
       ESP_LOGCONFIG(TAG, "    Debug: true");
     if (channel->dummy_receiver_)
