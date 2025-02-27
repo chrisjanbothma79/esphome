@@ -1,7 +1,15 @@
 import esphome.codegen as cg
 from esphome.components import text_sensor
 import esphome.config_validation as cv
-from esphome.const import CONF_FORMAT, CONF_ID, ENTITY_CATEGORY_DIAGNOSTIC, ICON_TIMER
+from esphome.const import (
+    CONF_FORMAT,
+    CONF_HOURS,
+    CONF_ID,
+    CONF_MINUTES,
+    CONF_SECONDS,
+    ENTITY_CATEGORY_DIAGNOSTIC,
+    ICON_TIMER,
+)
 
 uptime_ns = cg.esphome_ns.namespace("uptime")
 UptimeTextSensor = uptime_ns.class_(
@@ -9,9 +17,6 @@ UptimeTextSensor = uptime_ns.class_(
 )
 
 CONF_SEPARATOR = "separator"
-CONF_HOURS = "hours"
-CONF_MINUTES = "minutes"
-CONF_SECONDS = "seconds"
 CONF_DAYS = "days"
 CONF_EXPAND = "expand"
 
