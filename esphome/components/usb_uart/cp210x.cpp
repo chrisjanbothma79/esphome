@@ -96,7 +96,7 @@ std::vector<cdc_eps_t> USBUartTypeCP210X::parse_descriptors_(usb_device_handle_t
   return cdc_devs;
 }
 
-void USBUartTypeCP210X::enable_channels_() {
+void USBUartTypeCP210X::enable_channels() {
   // enable the channels
   for (auto channel : this->channels_) {
     if (!channel->initialised_)
@@ -118,7 +118,7 @@ void USBUartTypeCP210X::enable_channels_() {
     this->control_transfer(USB_VENDOR_IFC | usb_host::USB_DIR_OUT, SET_BAUDRATE, 0, channel->index_, callback,
                            baud.get_data());
   }
-  USBUartTypeCdcAcm::enable_channels_();
+  USBUartTypeCdcAcm::enable_channels();
 }
 }  // namespace usb_uart
 }  // namespace esphome

@@ -188,14 +188,14 @@ void USBClient::loop() {
       const usb_device_desc_t *desc;
       if ((err = usb_host_get_device_descriptor(this->device_handle_, &desc)) != ESP_OK) {
         ESP_LOGW(TAG, "Device get_desc failed: %s", esp_err_to_name(err));
-        this->disconnect_();
+        this->disconnect();
       } else {
         ESP_LOGD(TAG, "Device descriptor: vid %X pid %X", desc->idVendor, desc->idProduct);
         if (desc->idVendor == this->vid_ && desc->idProduct == this->pid_ || this->vid_ == 0 && this->pid_ == 0) {
           usb_device_info_t dev_info;
           if ((err = usb_host_device_info(this->device_handle_, &dev_info)) != ESP_OK) {
             ESP_LOGW(TAG, "Device info failed: %s", esp_err_to_name(err));
-            this->disconnect_();
+            this->disconnect();
             break;
           }
           this->state_ = USB_CLIENT_CONNECTED;
@@ -214,10 +214,10 @@ void USBClient::loop() {
           if (err == ESP_OK)
             usb_client_print_config_descriptor(config_desc, nullptr);
 #endif
-          this->on_connected_();
+          this->on_connected();
         } else {
           ESP_LOGD(TAG, "Not our device, closing");
-          this->disconnect_();
+          this->disconnect();
         }
       }
       break;
@@ -237,7 +237,7 @@ void USBClient::on_opened(uint8_t addr) {
 }
 void USBClient::on_removed(usb_device_handle_t handle) {
   if (this->device_handle_ == handle) {
-    this->disconnect_();
+    this->disconnect();
   }
 }
 
@@ -265,8 +265,8 @@ transfer_request_t *USBClient::get_trq_() {
   trq->transfer->device_handle = this->device_handle_;
   return trq;
 }
-void USBClient::disconnect_() {
-  this->on_disconnected_();
+void USBClient::disconnect() {
+  this->on_disconnected();
   auto err = usb_host_device_close(this->handle_, this->device_handle_);
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Device close failed: %s", esp_err_to_name(err));
@@ -345,7 +345,7 @@ void USBClient::transfer_in(uint8_t ep_address, const transfer_cb_t &callback, u
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to submit transfer, address=%x, length=%d, err=%x", ep_address, length, err);
     this->release_trq(trq);
-    this->disconnect_();
+    this->disconnect();
   }
 }
 

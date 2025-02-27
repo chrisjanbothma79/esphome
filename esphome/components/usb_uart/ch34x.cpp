@@ -12,7 +12,7 @@ using namespace bytebuffer;
  * CH34x
  */
 
-void USBUartTypeCH34X::enable_channels_() {
+void USBUartTypeCH34X::enable_channels() {
   // enable the channels
   for (auto channel : this->channels_) {
     if (!channel->initialised_)
@@ -72,7 +72,7 @@ void USBUartTypeCH34X::enable_channels_() {
       cmd += 0xE;
     this->control_transfer(USB_VENDOR_DEV | usb_host::USB_DIR_OUT, cmd, value, (factor << 8) | divisor, callback);
   }
-  USBUartTypeCdcAcm::enable_channels_();
+  USBUartTypeCdcAcm::enable_channels();
 }
 }  // namespace usb_uart
 }  // namespace esphome

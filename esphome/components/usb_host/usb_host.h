@@ -26,26 +26,26 @@ static const size_t SETUP_PACKET_SIZE = 8;
 static const size_t MAX_REQUESTS = 16;  // maximum number of outstanding requests possible.
 
 // used to report a transfer status
-typedef struct {
+using transfer_status_t = struct {
   bool success;
   uint16_t error_code;
   uint8_t *data;
   size_t data_len;
   uint8_t endpoint;
   void *user_data;
-} transfer_status_t;
+};
 
-typedef std::function<void(const transfer_status_t &)> transfer_cb_t;
+using transfer_cb_t = std::function<void(const transfer_status_t &)>;
 
 // struct used to capture all data needed for a transfer
 class USBClient;
 
-typedef struct {
+using transfer_request_t = struct {
   usb_transfer_t *transfer;
   transfer_cb_t callback;
   transfer_status_t status;
   USBClient *client;
-} transfer_request_t;
+};
 
 // callback function type.
 
@@ -85,9 +85,9 @@ class USBClient : public Component {
  protected:
   bool register_();
   transfer_request_t *get_trq_();
-  virtual void disconnect_();
-  virtual void on_connected_() {}
-  virtual void on_disconnected_() { this->init_pool(); }
+  virtual void disconnect();
+  virtual void on_connected() {}
+  virtual void on_disconnected() { this->init_pool(); }
 
   usb_host_client_handle_t handle_{};
   usb_device_handle_t device_handle_{};

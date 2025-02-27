@@ -110,25 +110,25 @@ std::vector<cdc_eps_t> USBUartTypeCdcAcm::parse_descriptors_(usb_device_handle_t
 
 void RingBuffer::push(uint8_t item) {
   this->buffer_[this->insert_pos_] = item;
-  this->insert_pos_ = (this->insert_pos_ + 1) % this->buffer_size;
+  this->insert_pos_ = (this->insert_pos_ + 1) % this->buffer_size_;
 }
 void RingBuffer::push(const uint8_t *data, size_t len) {
   for (size_t i = 0; i != len; i++) {
     this->buffer_[this->insert_pos_] = *data++;
-    this->insert_pos_ = (this->insert_pos_ + 1) % this->buffer_size;
+    this->insert_pos_ = (this->insert_pos_ + 1) % this->buffer_size_;
   }
 }
 
 uint8_t RingBuffer::pop() {
   uint8_t item = this->buffer_[this->read_pos_];
-  this->read_pos_ = (this->read_pos_ + 1) % this->buffer_size;
+  this->read_pos_ = (this->read_pos_ + 1) % this->buffer_size_;
   return item;
 }
 size_t RingBuffer::pop(uint8_t *data, size_t len) {
   len = std::min(len, this->get_available());
   for (size_t i = 0; i != len; i++) {
     *data++ = this->buffer_[this->read_pos_];
-    this->read_pos_ = (this->read_pos_ + 1) % this->buffer_size;
+    this->read_pos_ = (this->read_pos_ + 1) % this->buffer_size_;
   }
   return len;
 }
@@ -180,17 +180,10 @@ void USBUartComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "  UART Channel %d", channel->index_);
     ESP_LOGCONFIG(TAG, "    Baud Rate: %" PRIu32 " baud", channel->baud_rate_);
     ESP_LOGCONFIG(TAG, "    Data Bits: %u", channel->data_bits_);
-    ESP_LOGCONFIG(TAG, "    Parity: %s", parity_names[channel->parity_]);
-    auto stop_bits = "1";
-    if (channel->stop_bits_ == UART_CONFIG_STOP_BITS_2)
-      stop_bits = "2";
-    else if (channel->stop_bits_ == UART_CONFIG_STOP_BITS_1_5)
-      stop_bits = "1.5";
-    ESP_LOGCONFIG(TAG, "    Stop bits: %s", stop_bits);
-    if (channel->debug_)
-      ESP_LOGCONFIG(TAG, "    Debug: true");
-    if (channel->dummy_receiver_)
-      ESP_LOGCONFIG(TAG, "    Dummy receiver: true");
+    ESP_LOGCONFIG(TAG, "    Parity: %s", PARITY_NAMES[channel->parity_]);
+    ESP_LOGCONFIG(TAG, "    Stop bits: %s", STOP_BITS_NAMES[channel->stop_bits_]);
+    ESP_LOGCONFIG(TAG, "    Debug: %s", YESNO(channel->debug_));
+    ESP_LOGCONFIG(TAG, "    Dummy receiver: %s", YESNO(channel->dummy_receiver_));
   }
 }
 void USBUartComponent::start_input(USBUartChannel *channel) {
@@ -261,11 +254,11 @@ static void fix_mps(const usb_ep_desc_t *ep) {
     }
   }
 }
-void USBUartTypeCdcAcm::on_connected_() {
+void USBUartTypeCdcAcm::on_connected() {
   auto cdc_devs = this->parse_descriptors_(this->device_handle_);
   if (cdc_devs.empty()) {
     this->status_set_error("No CDC-ACM device found");
-    this->disconnect_();
+    this->disconnect();
     return;
   }
   ESP_LOGD(TAG, "Found %zu CDC-ACM devices", cdc_devs.size());
@@ -285,14 +278,14 @@ void USBUartTypeCdcAcm::on_connected_() {
       ESP_LOGE(TAG, "usb_host_interface_claim failed: %s, channel=%d, intf=%d", esp_err_to_name(err), channel->index_,
                channel->cdc_dev_.interface_number);
       this->status_set_error("usb_host_interface_claim failed");
-      this->disconnect_();
+      this->disconnect();
       return;
     }
   }
-  this->enable_channels_();
+  this->enable_channels();
 }
 
-void USBUartTypeCdcAcm::on_disconnected_() {
+void USBUartTypeCdcAcm::on_disconnected() {
   for (auto channel : this->channels_) {
     if (channel->cdc_dev_.in_ep != nullptr) {
       usb_host_endpoint_halt(this->device_handle_, channel->cdc_dev_.in_ep->bEndpointAddress);
@@ -313,10 +306,10 @@ void USBUartTypeCdcAcm::on_disconnected_() {
     channel->input_buffer_.clear();
     channel->output_buffer_.clear();
   }
-  USBClient::on_disconnected_();
+  USBClient::on_disconnected();
 }
 
-void USBUartTypeCdcAcm::enable_channels_() {
+void USBUartTypeCdcAcm::enable_channels() {
   for (auto channel : this->channels_) {
     if (!channel->initialised_)
       continue;

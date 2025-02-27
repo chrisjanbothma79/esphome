@@ -20,12 +20,12 @@ static constexpr uint8_t USB_DEVICE_PROTOCOL_IAD = 0x01;
 static constexpr uint8_t USB_VENDOR_IFC = usb_host::USB_TYPE_VENDOR | usb_host::USB_RECIP_INTERFACE;
 static constexpr uint8_t USB_VENDOR_DEV = usb_host::USB_TYPE_VENDOR | usb_host::USB_RECIP_DEVICE;
 
-typedef struct {
+using cdc_eps_t = struct {
   const usb_ep_desc_t *notify_ep;
   const usb_ep_desc_t *in_ep;
   const usb_ep_desc_t *out_ep;
   uint8_t interface_number;
-} cdc_eps_t;
+};
 
 enum UARTParityOptions {
   UART_CONFIG_PARITY_NONE = 0,
@@ -41,16 +41,17 @@ enum UARTStopBitsOptions {
   UART_CONFIG_STOP_BITS_2,
 };
 
-static const char *const parity_names[] = {"NONE", "ODD", "EVEN", "MARK", "SPACE"};
+static const char *const PARITY_NAMES[] = {"NONE", "ODD", "EVEN", "MARK", "SPACE"};
+static const char *const STOP_BITS_NAMES[] = {"1", "1.5", "2"};
 
 class RingBuffer {
  public:
-  RingBuffer(uint16_t buffer_size) : buffer_size(buffer_size), buffer_(new uint8_t[buffer_size]) {}
+  RingBuffer(uint16_t buffer_size) : buffer_size_(buffer_size), buffer_(new uint8_t[buffer_size]) {}
   bool is_empty() const { return this->read_pos_ == this->insert_pos_; }
   size_t get_available() const {
-    return (this->insert_pos_ + this->buffer_size - this->read_pos_) % this->buffer_size;
+    return (this->insert_pos_ + this->buffer_size_ - this->read_pos_) % this->buffer_size_;
   };
-  size_t get_free_space() const { return this->buffer_size - 1 - this->get_available(); }
+  size_t get_free_space() const { return this->buffer_size_ - 1 - this->get_available(); }
   uint8_t peek() const { return this->buffer_[this->read_pos_]; }
   void push(uint8_t item);
   void push(const uint8_t *data, size_t len);
@@ -61,7 +62,7 @@ class RingBuffer {
  protected:
   uint16_t insert_pos_ = 0;
   uint16_t read_pos_ = 0;
-  uint16_t buffer_size{256};
+  uint16_t buffer_size_{256};
   uint8_t *buffer_{};
 };
 
@@ -122,9 +123,9 @@ class USBUartTypeCdcAcm : public USBUartComponent {
 
  protected:
   virtual std::vector<cdc_eps_t> parse_descriptors_(usb_device_handle_t dev_hdl);
-  void on_connected_() override;
-  virtual void enable_channels_();
-  void on_disconnected_() override;
+  void on_connected() override;
+  virtual void enable_channels();
+  void on_disconnected() override;
 };
 
 class USBUartTypeCP210X : public USBUartTypeCdcAcm {
@@ -133,14 +134,14 @@ class USBUartTypeCP210X : public USBUartTypeCdcAcm {
 
  protected:
   std::vector<cdc_eps_t> parse_descriptors_(usb_device_handle_t dev_hdl) override;
-  void enable_channels_() override;
+  void enable_channels() override;
 };
 class USBUartTypeCH34X : public USBUartTypeCdcAcm {
  public:
   USBUartTypeCH34X(uint16_t vid, uint16_t pid) : USBUartTypeCdcAcm(vid, pid) {}
 
  protected:
-  void enable_channels_() override;
+  void enable_channels() override;
 };
 
 }  // namespace usb_uart
