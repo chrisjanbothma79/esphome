@@ -41,7 +41,7 @@ void GLR01I2CComponent::dump_config() {
 void GLR01I2CComponent::update() {
   if (this->is_failed())
     return;
-  if (state_ != GLR01I2CState::IDLE) {
+  if (this->state_ != GLR01I2CState::IDLE) {
     ESP_LOGVV(TAG, "Previous measurement still in progress");
     return;
   }
@@ -53,26 +53,26 @@ void GLR01I2CComponent::update() {
     return;
   }
 
-  state_ = GLR01I2CState::TRIGGERED;
-  trigger_time_ = millis();
+  this->state_ = GLR01I2CState::TRIGGERED;
+  this->trigger_time_ = millis();
 }
 
 void GLR01I2CComponent::loop() {
   if (this->is_failed())
     return;
   // Wait for result after measurement was triggered
-  if (state_ == GLR01I2CState::TRIGGERED) {
-    if (millis() - trigger_time_ >= min_read_interval_) {
-      state_ = GLR01I2CState::READY;
+  if (this->state_ == GLR01I2CState::TRIGGERED) {
+    if (millis() - this->trigger_time_ >= this->min_read_interval_) {
+      this->state_ = GLR01I2CState::READY;
     }
   }
 
-  if (state_ == GLR01I2CState::READY) {
+  if (this->state_ == GLR01I2CState::READY) {
     uint16_t distance = 0;
     if (!this->read_byte_16(REG_DISTANCE, &distance)) {
       ESP_LOGE(TAG, "Failed to read distance value!");
       this->status_set_warning();
-      state_ = GLR01I2CState::IDLE;
+      this->state_ = GLR01I2CState::IDLE;
       return;
     }
 
@@ -87,7 +87,7 @@ void GLR01I2CComponent::loop() {
       this->status_clear_warning();
     }
 
-    state_ = GLR01I2CState::IDLE;
+    this->state_ = GLR01I2CState::IDLE;
   }
 }
 
