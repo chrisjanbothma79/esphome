@@ -47,7 +47,7 @@ void GLR01I2CComponent::update() {
   }
 
   // Schedule reading the result after the minimum read interval
-  App.scheduler.set_timeout(this, "read_distance", this->min_read_interval_, [this]() { this->read_distance_(); });
+  this->set_timeout(this->min_read_interval_, [this]() { this->read_distance_(); });
 }
 
 void GLR01I2CComponent::read_distance_() {
