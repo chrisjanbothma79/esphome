@@ -1,5 +1,5 @@
 uart:
-  rx_pin: GPIO33         # change this to the pin where you connected the mbus adapter board
+  rx_pin: GPIO4          # change this to the pin where you connected the mbus adapter board
   baud_rate: 2400
   rx_buffer_size: 1024   # Needed to receive the large packets send by the smart meter
 
