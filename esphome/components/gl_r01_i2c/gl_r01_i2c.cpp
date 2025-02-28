@@ -1,5 +1,6 @@
 #include "esphome/core/log.h"
 #include "esphome/core/hal.h"
+#include "esphome/core/application.h"
 #include "gl_r01_i2c.h"
 
 namespace esphome {
@@ -37,10 +38,6 @@ void GLR01I2CComponent::dump_config() {
 void GLR01I2CComponent::update() {
   if (this->is_failed())
     return;
-  if (this->state_ != GLR01I2CState::IDLE) {
-    ESP_LOGVV(TAG, "Previous measurement still in progress");
-    return;
-  }
 
   // Trigger a new measurement
   if (!this->write_byte(REG_TRIGGER, CMD_TRIGGER)) {
@@ -49,39 +46,28 @@ void GLR01I2CComponent::update() {
     return;
   }
 
-  this->state_ = GLR01I2CState::TRIGGERED;
-  this->trigger_time_ = millis();
+  // Schedule reading the result after the minimum read interval
+  App.scheduler.set_timeout(this, "read_distance", this->min_read_interval_, [this]() { this->read_distance_(); });
 }
 
-void GLR01I2CComponent::loop() {
+void GLR01I2CComponent::read_distance_() {
   if (this->is_failed())
     return;
-  // Wait for result after measurement was triggered
-  if (this->state_ == GLR01I2CState::TRIGGERED) {
-    if (millis() - this->trigger_time_ >= this->min_read_interval_) {
-      this->state_ = GLR01I2CState::READY;
-    }
+
+  uint16_t distance = 0;
+  if (!this->read_byte_16(REG_DISTANCE, &distance)) {
+    ESP_LOGE(TAG, "Failed to read distance value!");
+    this->status_set_warning();
+    return;
   }
 
-  if (this->state_ == GLR01I2CState::READY) {
-    uint16_t distance = 0;
-    if (!this->read_byte_16(REG_DISTANCE, &distance)) {
-      ESP_LOGE(TAG, "Failed to read distance value!");
-      this->status_set_warning();
-      this->state_ = GLR01I2CState::IDLE;
-      return;
-    }
-
-    if (distance == 0xFFFF) {
-      ESP_LOGW(TAG, "Invalid measurement received!");
-      this->status_set_warning();
-    } else {
-      ESP_LOGV(TAG, "Distance: %umm", distance);
-      this->publish_state(distance);
-      this->status_clear_warning();
-    }
-
-    this->state_ = GLR01I2CState::IDLE;
+  if (distance == 0xFFFF) {
+    ESP_LOGW(TAG, "Invalid measurement received!");
+    this->status_set_warning();
+  } else {
+    ESP_LOGV(TAG, "Distance: %umm", distance);
+    this->publish_state(distance);
+    this->status_clear_warning();
   }
 }
 
