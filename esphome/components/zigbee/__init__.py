@@ -1,6 +1,6 @@
 from datetime import datetime
-import random
 
+# import random
 from esphome import automation
 import esphome.codegen as cg
 from esphome.components.zephyr import zephyr_add_prj_conf
@@ -125,9 +125,9 @@ async def to_code(config):
     zephyr_add_prj_conf("ZIGBEE_CHANNEL_SELECTION_MODE_MULTI", True)
 
     # TODO zigbee2mqtt do not update configuration of device without this
-    zephyr_add_prj_conf("IEEE802154_VENDOR_OUI_ENABLE", True)
-    random_number = random.randint(0x000000, 0xFFFFFF)
-    zephyr_add_prj_conf("IEEE802154_VENDOR_OUI", random_number)
+    # zephyr_add_prj_conf("IEEE802154_VENDOR_OUI_ENABLE", True)
+    # random_number = random.randint(0x000000, 0xFFFFFF)
+    # zephyr_add_prj_conf("IEEE802154_VENDOR_OUI", random_number)
 
     # crypto
     zephyr_add_prj_conf("CRYPTO", True)
