@@ -17,8 +17,6 @@ class GLR01I2CComponent : public sensor::Sensor, public i2c::I2CDevice, public P
   void loop() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
 
-  void set_min_read_interval(uint32_t min_read_interval);
-
  protected:
   GLR01I2CState state_{GLR01I2CState::IDLE};
   uint32_t trigger_time_{0};

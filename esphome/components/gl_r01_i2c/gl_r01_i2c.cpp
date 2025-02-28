@@ -15,10 +15,6 @@ static const uint8_t CMD_TRIGGER = 0xB0;
 static const uint8_t RESTART_CMD1 = 0x5A;
 static const uint8_t RESTART_CMD2 = 0xA5;
 
-void GLR01I2CComponent::set_min_read_interval(uint32_t min_read_interval) {
-  this->min_read_interval_ = min_read_interval;
-}
-
 void GLR01I2CComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up GL-R01 I2C...");
   // Verify sensor presence
@@ -77,9 +73,7 @@ void GLR01I2CComponent::loop() {
     }
 
     if (distance == 0xFFFF) {
-      ESP_LOGW(TAG,
-               "Invalid measurement received! Check connection or consider increasing min_read_interval from %u ms!",
-               this->min_read_interval_);
+      ESP_LOGW(TAG, "Invalid measurement received!");
       this->status_set_warning();
     } else {
       ESP_LOGV(TAG, "Distance: %umm", distance);
