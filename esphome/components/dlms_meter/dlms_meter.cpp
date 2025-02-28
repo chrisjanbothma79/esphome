@@ -52,8 +52,8 @@ void DlmsMeterComponent::loop() {
       ESP_LOGV(TAG, "MBUS: Parsing frame");
 
       // Check start bytes
-      if (this->receive_buffer_[frame_offset + MBUS_START1_OFFSET] != 0x68 ||
-          this->receive_buffer_[frame_offset + MBUS_START2_OFFSET] != 0x68) {
+      if (this->receive_buffer_[frame_offset + MBUS_START1_OFFSET] != START_BYTE_LONG_FRAME ||
+          this->receive_buffer_[frame_offset + MBUS_START2_OFFSET] != START_BYTE_LONG_FRAME) {
         ESP_LOGE(TAG, "MBUS: Start bytes do not match");
         abort_();
         return;
@@ -77,7 +77,7 @@ void DlmsMeterComponent::loop() {
       }
 
       if (this->receive_buffer_[frame_offset + frame_length + MBUS_HEADER_INTRO_LENGTH + MBUS_FOOTER_LENGTH - 1] !=
-          0x16) {
+          STOP_BYTE) {
         ESP_LOGE(TAG, "MBUS: Invalid stop byte");
         abort_();
         return;
@@ -105,7 +105,7 @@ void DlmsMeterComponent::loop() {
       return;
     }
 
-    if (mbus_payload[DLMS_CIPHER_OFFSET] != 0xDB)  // Only general-glo-ciphering is supported (0xDB)
+    if (mbus_payload[DLMS_CIPHER_OFFSET] != GLO_CIPHERING)  // Only general-glo-ciphering is supported (0xDB)
     {
       ESP_LOGE(TAG, "DLMS: Unsupported cipher");
       abort_();

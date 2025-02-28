@@ -70,5 +70,7 @@ static const int DLMS_FRAMECOUNTER_LENGTH = 4;   // Length of the frame counter 
 
 static const int DLMS_PAYLOAD_OFFSET = 16;  // Offset at which the encrypted payload
 
+static const int GLO_CIPHERING = 0xDB;
+
 }  // namespace dlms_meter
 }  // namespace esphome

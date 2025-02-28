@@ -49,6 +49,20 @@ Possible Values found in publicly available docs:
 - DTSAP: 0x67 (Consumer Information Push Client ID 103)
  */
 
+/*
+ * MBUS start bytes for different telegram formats:
+ * - Single Character: 0xE5 (length=1)
+ * - Short Frame: 0x10 (length=5)
+ * - Control Frame: 0x68 (length=9)
+ * - Long Frame: 0x68 (length=9+data_length)
+ *
+ * This component currently only uses Long Frame.
+ */
+static const int START_BYTE_SINGLE_CHARACTER = 0xE5;
+static const int START_BYTE_SHORT_FRAME = 0x10;
+static const int START_BYTE_CONTROL_FRAME = 0x68;
+static const int START_BYTE_LONG_FRAME = 0x68;
+
 static const int MBUS_HEADER_INTRO_LENGTH = 4;  // Header length for the intro (0x68, length, length, 0x68)
 static const int MBUS_FULL_HEADER_LENGTH = 9;   // Total header length
 static const int MBUS_FOOTER_LENGTH = 2;        // Footer after frame
@@ -59,6 +73,8 @@ static const int MBUS_START1_OFFSET = 0;   // Offset of first start byte
 static const int MBUS_LENGTH1_OFFSET = 1;  // Offset of first length byte
 static const int MBUS_LENGTH2_OFFSET = 2;  // Offset of (duplicated) second length byte
 static const int MBUS_START2_OFFSET = 3;   // Offset of (duplicated) second start byte
+
+static const int STOP_BYTE = 0x16;
 
 }  // namespace dlms_meter
 }  // namespace esphome

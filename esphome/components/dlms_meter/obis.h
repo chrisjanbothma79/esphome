@@ -35,7 +35,19 @@ enum DataType {
   COMPACT_ARRAY = 0x13
 };
 
-enum Medium { ABSTRACT = 0x00, ELECTRICITY = 0x01, HEAT = 0x06, GAS = 0x07, WATER = 0x08 };
+enum Medium {
+  ABSTRACT = 0x00,
+  ELECTRICITY = 0x01,
+  HEAT_COST_ALLOCATOR = 0x04,
+  COOLING = 0x05,
+  HEAT = 0x06,
+  GAS = 0x07,
+  COLD_WATER = 0x08,
+  HOT_WATER = 0x09,
+  OIL = 0x10,
+  COMPRESSED_AIR = 0x11,
+  NITROGEN = 0x12
+};
 
 enum CodeType {
   UNKNOWN,
