@@ -178,7 +178,7 @@ void DlmsMeterComponent::loop() {
 
     uint8_t plaintext[message_length];
 
-#if defined(ESP8266)
+#if defined(USE_ESP8266_FRAMEWORK_ARDUINO)
     memcpy(plaintext, &mbus_payload[header_offset + DLMS_PAYLOAD_OFFSET], message_length);
     br_gcm_context gcm_ctx;
     br_aes_ct_ctr_keys bc;
@@ -187,7 +187,7 @@ void DlmsMeterComponent::loop() {
     br_gcm_reset(&gcm_ctx, iv, sizeof(iv));
     br_gcm_flip(&gcm_ctx);
     br_gcm_run(&gcm_ctx, 0, plaintext, message_length);
-#elif defined(ESP32)
+#elif defined(USE_ESP32_FRAMEWORK_ARDUINO)
     mbedtls_gcm_init(&this->aes_);
     mbedtls_gcm_setkey(&this->aes_, MBEDTLS_CIPHER_ID_AES, this->decryption_key_, this->decryption_key_length_ * 8);
 

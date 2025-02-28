@@ -11,11 +11,11 @@
 #include "dlms.h"
 #include "obis.h"
 
-#if defined(ESP32)
+#if defined(USE_ESP32_FRAMEWORK_ARDUINO)
 #include "mbedtls/gcm.h"
 #endif
 
-#if defined(ESP8266)
+#if defined(USE_ESP8266_FRAMEWORK_ARDUINO)
 #include <bearssl/bearssl.h>
 #endif
 
@@ -109,7 +109,7 @@ class DlmsMeterComponent : public Component, public uart::UARTDevice {
   uint8_t decryption_key_[16];    // Stores the decryption key
   size_t decryption_key_length_;  // Stores the decryption key length (usually 16 bytes)
 
-#if defined(ESP32)
+#if defined(USE_ESP32_FRAMEWORK_ARDUINO)
   mbedtls_gcm_context aes_;  // AES context used for decryption
 #endif
 

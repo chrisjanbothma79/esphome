@@ -1,7 +1,7 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import uart
-from esphome.const import CONF_ID, CONF_RAW_DATA_ID, PLATFORM_ESP8266, PLATFORM_ESP32
+import esphome.config_validation as cv
+from esphome.const import CONF_ID, CONF_RAW_DATA_ID, PLATFORM_ESP32, PLATFORM_ESP8266
 
 CODEOWNERS = ["@SimonFischer04"]
 ESP_PLATFORMS = [PLATFORM_ESP8266, PLATFORM_ESP32]
@@ -48,7 +48,9 @@ CONFIG_SCHEMA = (
         }
     )
     .extend(uart.UART_DEVICE_SCHEMA)
-    .extend(cv.COMPONENT_SCHEMA)
+    .extend(cv.COMPONENT_SCHEMA),
+    cv.only_with_arduino,
+    cv.only_on(ESP_PLATFORMS),
 )
 
 
