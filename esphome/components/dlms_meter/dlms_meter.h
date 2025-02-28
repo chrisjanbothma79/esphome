@@ -70,7 +70,7 @@ struct MeterData {
   float reactive_energy_minus;  // Reactive energy put into grid
   std::string timestamp;        // Text sensor for the timestamp value
 
-  // EVN
+  // Netz NOE
   float power_factor;       // Power Factor
   std::string meternumber;  // Text sensor for the meterNumber value
 };

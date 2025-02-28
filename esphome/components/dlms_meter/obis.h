@@ -54,8 +54,8 @@ enum CodeType {
   ACTIVE_ENERGY_MINUS,
   REACTIVE_ENERGY_PLUS,
   REACTIVE_ENERGY_MINUS,
-  METER_NUMBER,  // EVN Special
-  POWER_FACTOR   // EVN Special
+  METER_NUMBER,  // Netz NOE Special
+  POWER_FACTOR   // Netz NOE Special
 };
 
 enum Accuracy { SINGLE_DIGIT = 0xFF, DOUBLE_DIGIT = 0xFE };
@@ -132,7 +132,7 @@ static const uint8_t ESPDM_REACTIVE_ENERGY_PLUS[]{0x03, 0x08};
 static const uint8_t ESPDM_REACTIVE_ENERGY_MINUS[]{0x04, 0x08};
 
 /*
- * EVN Special
+ * Netz NOE Special
  */
 
 static const uint8_t ESPDM_POWER_FACTOR[]{0x0D, 0x07};

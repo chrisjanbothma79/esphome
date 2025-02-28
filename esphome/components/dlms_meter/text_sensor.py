@@ -1,9 +1,9 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import text_sensor
+import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
-from . import DlmsMeterComponent, CONF_DLMS_METER_ID
+from . import CONF_DLMS_METER_ID, DlmsMeterComponent
 
 AUTO_LOAD = ["dlms_meter"]
 
@@ -11,7 +11,7 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_DLMS_METER_ID): cv.use_id(DlmsMeterComponent),
         cv.Optional("timestamp"): text_sensor.text_sensor_schema(),
-        # EVN
+        # Netz NOE
         cv.Optional("meternumber"): text_sensor.text_sensor_schema(),
     }
 ).extend(cv.COMPONENT_SCHEMA)

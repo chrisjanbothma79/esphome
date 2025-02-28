@@ -1,11 +1,12 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import sensor
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_ENERGY,
     DEVICE_CLASS_POWER,
+    DEVICE_CLASS_POWER_FACTOR,
     DEVICE_CLASS_VOLTAGE,
     STATE_CLASS_MEASUREMENT,
     STATE_CLASS_TOTAL_INCREASING,
@@ -13,9 +14,9 @@ from esphome.const import (
     UNIT_VOLT,
     UNIT_WATT,
     UNIT_WATT_HOURS,
-    DEVICE_CLASS_POWER_FACTOR,
 )
-from . import DlmsMeterComponent, CONF_DLMS_METER_ID
+
+from . import CONF_DLMS_METER_ID, DlmsMeterComponent
 
 AUTO_LOAD = ["dlms_meter"]
 
@@ -94,7 +95,7 @@ CONFIG_SCHEMA = cv.Schema(
             device_class=DEVICE_CLASS_ENERGY,
             state_class=STATE_CLASS_TOTAL_INCREASING,
         ),
-        # EVN
+        # Netz NOE
         cv.Optional("power_factor"): sensor.sensor_schema(
             accuracy_decimals=3,
             device_class=DEVICE_CLASS_POWER_FACTOR,
