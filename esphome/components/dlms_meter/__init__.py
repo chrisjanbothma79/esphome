@@ -38,7 +38,7 @@ def validate_key(value):
     return "".join(f"{part:02X}" for part in parts_int)
 
 
-CONFIG_SCHEMA = (
+CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(DlmsMeterComponent),
