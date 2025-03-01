@@ -6,7 +6,7 @@ namespace mlx90393 {
 
 static const char *const TAG = "mlx90393";
 
-const char *MLX90393Cls::SETTING_NAMES[] = {
+const char *MLX90393Cls::setting_names[] = {
     "gain",
     "resolution",
     "oversampling",
@@ -71,7 +71,7 @@ uint8_t MLX90393Cls::apply_setting_(MLX90393Setting which) {
       break;
   }
   if (ret != MLX90393::STATUS_OK) {
-    ESP_LOGE(TAG, "failed to apply %s", SETTING_NAMES[which]);
+    ESP_LOGE(TAG, "failed to apply %s", setting_names[which]);
   }
   return ret;
 }
@@ -102,7 +102,7 @@ void MLX90393Cls::setup() {
   }
 
   // start verify settings process
-  this->set_timeout("verify settings", 3000, [this]() { this->MLX90393_timeout_(MLX90393_GAIN_SEL); });
+  this->set_timeout("verify settings", 3000, [this]() { this->verify_settings_timeout_(MLX90393_GAIN_SEL); });
 }
 
 void MLX90393Cls::dump_config() {
@@ -211,7 +211,7 @@ bool MLX90393Cls::verify_setting_(MLX90393Setting which) {
     }
   }
   if (read_status != MLX90393::STATUS_OK) {
-    ESP_LOGE(TAG, "verify error: failed to read %s", SETTING_NAMES[which]);
+    ESP_LOGE(TAG, "verify error: failed to read %s", setting_names[which]);
     return false;
   }
   if (read_back_str[0] == 0x0) {
@@ -219,10 +219,10 @@ bool MLX90393Cls::verify_setting_(MLX90393Setting which) {
   }
   bool is_correct = read_value == expected_value;
   if (!is_correct) {
-    ESP_LOGW(TAG, "verify failed: read back wrong %s: got %s", SETTING_NAMES[which], read_back_str);
+    ESP_LOGW(TAG, "verify failed: read back wrong %s: got %s", setting_names[which], read_back_str);
     return false;
   }
-  ESP_LOGD(TAG, "verify succeeded for %s. got %s", SETTING_NAMES[which], read_back_str);
+  ESP_LOGD(TAG, "verify succeeded for %s. got %s", setting_names[which], read_back_str);
   return true;
 }
 
@@ -233,7 +233,7 @@ bool MLX90393Cls::verify_setting_(MLX90393Setting which) {
  * returns true if everything is fine.
  * false if not
  */
-void MLX90393Cls::MLX90393_timeout_(MLX90393Setting stage) {
+void MLX90393Cls::verify_settings_timeout_(MLX90393Setting stage) {
   bool is_setting_ok = this->verify_setting_(stage);
 
   if (!is_setting_ok) {
@@ -258,7 +258,7 @@ void MLX90393Cls::MLX90393_timeout_(MLX90393Setting stage) {
     next_stage = static_cast<MLX90393Setting>(0);
   }
 
-  this->set_timeout("verify settings", 3000, [this, next_stage]() { this->MLX90393_timeout_(next_stage); });
+  this->set_timeout("verify settings", 3000, [this, next_stage]() { this->verify_settings_timeout_(next_stage); });
 }
 
 }  // namespace mlx90393

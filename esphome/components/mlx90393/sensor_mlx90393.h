@@ -69,13 +69,13 @@ class MLX90393Cls : public PollingComponent, public i2c::I2CDevice, public MLX90
     MLX90393_HALLCONF,
     MLX90393_LAST,
   };
-  static const char *SETTING_NAMES[];
+  static const char *setting_names[];
 
   bool apply_all_settings_();
   uint8_t apply_setting_(MLX90393Setting which);
 
   bool verify_setting_(MLX90393Setting which);
-  void MLX90393_timeout_(MLX90393Setting stage);
+  void verify_settings_timeout_(MLX90393Setting stage);
 };
 
 }  // namespace mlx90393
