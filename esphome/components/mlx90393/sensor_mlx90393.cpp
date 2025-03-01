@@ -43,28 +43,28 @@ bool MLX90393Cls::read_drdy_pin() {
 void MLX90393Cls::sleep_millis(uint32_t millis) { delay(millis); }
 void MLX90393Cls::sleep_micros(uint32_t micros) { delayMicroseconds(micros); }
 
-uint8_t MLX90393Cls::apply_setting_(VerifySettingsStage which) {
+uint8_t MLX90393Cls::apply_setting_(MLX90393Setting which) {
   uint8_t ret = -1;
   switch (which) {
-    case VERIFY_SETTINGS_GAIN_SEL:
+    case MLX90393_GAIN_SEL:
       ret = this->mlx_.setGainSel(this->gain_);
       break;
-    case VERIFY_SETTINGS_RESOLUTION:
+    case MLX90393_RESOLUTION:
       ret = this->mlx_.setResolution(this->resolutions_[0], this->resolutions_[1], this->resolutions_[2]);
       break;
-    case VERIFY_SETTINGS_OVER_SAMPLING:
+    case MLX90393_OVER_SAMPLING:
       ret = this->mlx_.setOverSampling(this->oversampling_);
       break;
-    case VERIFY_SETTINGS_DIGITAL_FILTERING:
+    case MLX90393_DIGITAL_FILTERING:
       ret = this->mlx_.setDigitalFiltering(this->filter_);
       break;
-    case VERIFY_SETTINGS_TEMPERATURE_OVER_SAMPLING:
+    case MLX90393_TEMPERATURE_OVER_SAMPLING:
       ret = this->mlx_.setTemperatureOverSampling(this->temperature_oversampling_);
       break;
-    case VERIFY_SETTINGS_TEMPERATURE_COMPENSATION:
+    case MLX90393_TEMPERATURE_COMPENSATION:
       ret = this->mlx_.setTemperatureCompensation(this->temperature_compensation_);
       break;
-    case VERIFY_SETTINGS_HALLCONF:
+    case MLX90393_HALLCONF:
       ret = this->mlx_.setHallConf(this->hallconf_);
       break;
     default:
@@ -83,8 +83,8 @@ bool MLX90393Cls::apply_all_settings_() {
   this->mlx_.getGainSel(ignore);
 
   uint8_t result = MLX90393::STATUS_OK;
-  for (int i = VERIFY_SETTINGS_GAIN_SEL; i != VERIFY_SETTINGS_LAST; i++) {
-    VerifySettingsStage stage = static_cast<VerifySettingsStage>(i);
+  for (int i = MLX90393_GAIN_SEL; i != MLX90393_LAST; i++) {
+    MLX90393Setting stage = static_cast<MLX90393Setting>(i);
     result |= this->apply_setting_(stage);
   }
   return result == MLX90393::STATUS_OK;
@@ -100,6 +100,9 @@ void MLX90393Cls::setup() {
   if (!this->apply_all_settings_()) {
     this->mark_failed();
   }
+
+  // start verify settings process
+  this->set_timeout("verify settings", 3000, [this]() { this->MLX90393_timeout_(MLX90393_GAIN_SEL); });
 }
 
 void MLX90393Cls::dump_config() {
@@ -142,40 +145,22 @@ void MLX90393Cls::update() {
     ESP_LOGE(TAG, "failed to read data");
     this->status_set_warning();
   }
-
-  // perform verifications. if a register has an unexpected value, reset chip and set everything again
-  if (!this->verify_all_settings_()) {
-    if (this->mlx_.checkStatus(this->mlx_.reset()) != MLX90393::STATUS_OK) {
-      ESP_LOGE(TAG, "failed to reset device");
-      this->status_set_error();
-      this->mark_failed();
-      return;
-    }
-
-    if (!this->apply_all_settings_()) {
-      ESP_LOGE(TAG, "failed to re-apply settings");
-      this->status_set_error();
-      this->mark_failed();
-    } else {
-      ESP_LOGI(TAG, "reset and re-apply settings completed");
-    }
-  }
 }
 
-bool MLX90393Cls::verify_setting_(VerifySettingsStage which) {
+bool MLX90393Cls::verify_setting_(MLX90393Setting which) {
   uint8_t read_value = 0xFF;
   uint8_t expected_value = 0xFF;
   uint8_t read_status = -1;
   char read_back_str[25] = {0};
 
   switch (which) {
-    case VERIFY_SETTINGS_GAIN_SEL: {
+    case MLX90393_GAIN_SEL: {
       read_status = this->mlx_.getGainSel(read_value);
       expected_value = this->gain_;
       break;
     }
 
-    case VERIFY_SETTINGS_RESOLUTION: {
+    case MLX90393_RESOLUTION: {
       uint8_t read_resolutions[3] = {0xFF};
       read_status = this->mlx_.getResolution(read_resolutions[0], read_resolutions[1], read_resolutions[2]);
       snprintf(read_back_str, sizeof(read_back_str), "%u %u %u expected %u %u %u", read_resolutions[0],
@@ -196,27 +181,27 @@ bool MLX90393Cls::verify_setting_(VerifySettingsStage which) {
       }
       break;
     }
-    case VERIFY_SETTINGS_OVER_SAMPLING: {
+    case MLX90393_OVER_SAMPLING: {
       read_status = this->mlx_.getOverSampling(read_value);
       expected_value = this->oversampling_;
       break;
     }
-    case VERIFY_SETTINGS_DIGITAL_FILTERING: {
+    case MLX90393_DIGITAL_FILTERING: {
       read_status = this->mlx_.getDigitalFiltering(read_value);
       expected_value = this->filter_;
       break;
     }
-    case VERIFY_SETTINGS_TEMPERATURE_OVER_SAMPLING: {
+    case MLX90393_TEMPERATURE_OVER_SAMPLING: {
       read_status = this->mlx_.getTemperatureOverSampling(read_value);
       expected_value = this->temperature_oversampling_;
       break;
     }
-    case VERIFY_SETTINGS_TEMPERATURE_COMPENSATION: {
+    case MLX90393_TEMPERATURE_COMPENSATION: {
       read_status = this->mlx_.getTemperatureCompensation(read_value);
       expected_value = (bool) this->temperature_compensation_;
       break;
     }
-    case VERIFY_SETTINGS_HALLCONF: {
+    case MLX90393_HALLCONF: {
       read_status = this->mlx_.getHallConf(read_value);
       expected_value = this->hallconf_;
       break;
@@ -248,24 +233,32 @@ bool MLX90393Cls::verify_setting_(VerifySettingsStage which) {
  * returns true if everything is fine.
  * false if not
  */
-bool MLX90393Cls::verify_all_settings_() {
-  static enum VerifySettingsStage stage = VERIFY_SETTINGS_GAIN_SEL;
-  static uint32_t last_verify = 0;
+void MLX90393Cls::MLX90393_timeout_(MLX90393Setting stage) {
+  bool is_setting_ok = this->verify_setting_(stage);
 
-  // verify at most once every 3s
-  if (millis() - last_verify > 3000) {
-    last_verify = millis();
-    if (!this->verify_setting_(stage)) {
-      return false;
+  if (!is_setting_ok) {
+    if (this->mlx_.checkStatus(this->mlx_.reset()) != MLX90393::STATUS_OK) {
+      ESP_LOGE(TAG, "failed to reset device");
+      this->status_set_error();
+      this->mark_failed();
+      return;
     }
 
-    // advance to next verify stage
-    stage = static_cast<VerifySettingsStage>(static_cast<int>(stage) + 1);
-    if (stage == VERIFY_SETTINGS_LAST) {
-      stage = static_cast<VerifySettingsStage>(0);
+    if (!this->apply_all_settings_()) {
+      ESP_LOGE(TAG, "failed to re-apply settings");
+      this->status_set_error();
+      this->mark_failed();
+    } else {
+      ESP_LOGI(TAG, "reset and re-apply settings completed");
     }
   }
-  return true;
+
+  MLX90393Setting next_stage = static_cast<MLX90393Setting>(static_cast<int>(stage) + 1);
+  if (next_stage == MLX90393_LAST) {
+    next_stage = static_cast<MLX90393Setting>(0);
+  }
+
+  this->set_timeout("verify settings", 3000, [this, next_stage]() { this->MLX90393_timeout_(next_stage); });
 }
 
 }  // namespace mlx90393
