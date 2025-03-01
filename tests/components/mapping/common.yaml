@@ -8,7 +8,7 @@ image:
         id: image_2
         resize: 50x50
 
-map:
+mapping:
   - id: weather_map
     from: string
     to: "image::Image"
@@ -17,7 +17,7 @@ map:
       sunny: image_2
   - id: weather_map_1
     from: string
-    to: image.Image_
+    to: esphome::image::Image
     entries:
       clear-night: image_1
       sunny: image_2
@@ -43,6 +43,27 @@ map:
       two: 2
       three: 3
       seventy-seven: 77
+  - id: color_map
+    from: string
+    to: color
+    entries:
+      red: red_id
+      blue: blue_id
+      green: green_id
+
+color:
+  - id: red_id
+    red: 1.0
+    green: 0.0
+    blue: 0.0
+  - id: green_id
+    red: 0.0
+    green: 1.0
+    blue: 0.0
+  - id: blue_id
+    red: 0.0
+    green: 0.0
+    blue: 1.0
 
 display:
   lambda: |-

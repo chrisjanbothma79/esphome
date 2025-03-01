@@ -4,12 +4,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_FROM, CONF_ID, CONF_TO
 from esphome.core import CORE
-from esphome.cpp_generator import (
-    MockObj,
-    MockObjClass,
-    VariableDeclarationExpression,
-    add_global,
-)
+from esphome.cpp_generator import MockObj, VariableDeclarationExpression, add_global
 from esphome.loader import get_component
 
 CODEOWNERS = ["@clydebarrow"]
@@ -64,20 +59,20 @@ def get_object_type(to_):
     """
     Get the object type from a string. Possible formats:
        xxx The name of a component which defines INSTANCE_TYPE
-       xxx.yyy A class name yyy defined in a component xxx
+       esphome::xxx::yyy A C++ class name defined in a component
        xxx::yyy A C++ class name defined in a component
+       yyy A C++ class name defined in the core
     """
 
-    if "::" in to_:
-        return CORE.id_classes.get(to_)
-    parts = to_.split(".")
-    if component := get_component(parts[0]):
-        if len(parts) == 1:
-            return component.instance_type
-        if len(parts) == 2:
-            result = getattr(component.module, parts[1])
-            if isinstance(result, MockObjClass):
-                return result
+    if cls := CORE.id_classes.get(to_):
+        return cls
+    if cls := CORE.id_classes.get(to_.removeprefix("esphome::")):
+        return cls
+    # get_component will throw a wobbly if we don't check this first.
+    if "." in to_:
+        return None
+    if component := get_component(to_):
+        return component.instance_type
     return None
 
 
@@ -124,7 +119,9 @@ async def to_code(config):
             index_conversion(key): await cg.get_variable(value)
             for key, value in entries.items()
         }
-        value_type = get_object_type(to_).operator("ptr")
+        value_type = get_object_type(to_)
+        if list(entries.values())[0].op != ".":
+            value_type = value_type.operator("ptr")
     varid = config[CONF_ID]
     varid.type = map_.template(index_type, value_type)
     var = MockObj(varid, ".")
