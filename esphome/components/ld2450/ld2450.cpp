@@ -485,21 +485,20 @@ void LD2450Component::handle_periodic_data_(uint8_t *buffer, uint8_t len) {
   uint8_t zone_moving_targets = 0;
   uint8_t zone_all_targets = 0;
   for (index = 0; index < MAX_ZONES; index++) {
+    zone_still_targets = this->count_targets_in_zone_(this->zone_config_[index], false);
+    zone_moving_targets = this->count_targets_in_zone_(this->zone_config_[index], true);
+    zone_all_targets = zone_still_targets + zone_moving_targets;
+
     // Publish Still Target Count in Zones
     sensor::Sensor *szstc = this->zone_still_target_count_sensors_[index];
     if (szstc != nullptr) {
-      zone_still_targets = this->count_targets_in_zone_(this->zone_config_[index], false);
       szstc->publish_state(zone_still_targets);
     }
     // Publish Moving Target Count in Zones
     sensor::Sensor *szmtc = this->zone_moving_target_count_sensors_[index];
     if (szmtc != nullptr) {
-      zone_moving_targets = this->count_targets_in_zone_(this->zone_config_[index], true);
       szmtc->publish_state(zone_moving_targets);
     }
-
-    zone_all_targets = zone_still_targets + zone_moving_targets;
-
     // Publish All Target Count in Zones
     sensor::Sensor *sztc = this->zone_target_count_sensors_[index];
     if (sztc != nullptr) {
