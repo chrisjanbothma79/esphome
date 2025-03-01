@@ -110,8 +110,10 @@ LD2450Component::LD2450Component() {}
 void LD2450Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up HLK-LD2450...");
 #ifdef USE_NUMBER
-  this->pref_ = global_preferences->make_preference<float>(this->presence_timeout_number_->get_object_id_hash());
-  this->set_presence_timeout();
+  if (this->presence_timeout_number_ != nullptr) {
+    this->pref_ = global_preferences->make_preference<float>(this->presence_timeout_number_->get_object_id_hash());
+    this->set_presence_timeout();
+  }
 #endif
   this->restart_and_read_all_info();
 }
@@ -281,10 +283,13 @@ void LD2450Component::process_zone_(uint8_t *buffer) {
     this->zone_config_[index].x2 = ld2450::hex_to_signed_int(buffer, start + 4);
     this->zone_config_[index].y2 = ld2450::hex_to_signed_int(buffer, start + 6);
 #ifdef USE_NUMBER
-    this->zone_x1_numbers_[index]->publish_state(this->zone_config_[index].x1);
-    this->zone_y1_numbers_[index]->publish_state(this->zone_config_[index].y1);
-    this->zone_x2_numbers_[index]->publish_state(this->zone_config_[index].x2);
-    this->zone_y2_numbers_[index]->publish_state(this->zone_config_[index].y2);
+    // only one null-check as all coordinates are required for a single zone
+    if (this->zone_x1_numbers_[index] != nullptr) {
+      this->zone_x1_numbers_[index]->publish_state(this->zone_config_[index].x1);
+      this->zone_y1_numbers_[index]->publish_state(this->zone_config_[index].y1);
+      this->zone_x2_numbers_[index]->publish_state(this->zone_config_[index].x2);
+      this->zone_y2_numbers_[index]->publish_state(this->zone_config_[index].y2);
+    }
 #endif
   }
 }
