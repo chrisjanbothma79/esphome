@@ -233,7 +233,9 @@ def zigbee_new_attr_list(id_: ID, *args):
     assert isinstance(id_, ID)
     list = []
     for arg in args:
-        if str(zb_char_t_ptr) == str(arg.type):
+        if str(zb_char_t_ptr) == str(arg.type) or (
+            str(arg) == "zb_zcl_time_attrs_t_id"
+        ):
             list.append(f"{arg}")
         else:
             list.append(f"&{arg}")

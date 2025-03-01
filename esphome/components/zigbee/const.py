@@ -59,3 +59,10 @@ CONF_BINARY_OUTPUT_EP = "binary_output_ep"
 esphome_zb_ha_declare_binary_output_ep = cg.global_ns.namespace(
     "ESPHOME_ZB_HA_DECLARE_BINARY_OUTPUT_EP"
 )
+
+# time
+CONF_TIME_ATTRIB_LIST = "time_attrib_list"
+CONF_TIME_ATTRS = "time_attrs"
+CONF_TIME_CLUSTER_LIST = "time_cluster_list"
+CONF_TIME_EP = "time_input_ep"
+esphome_zb_ha_declare_time_ep = cg.global_ns.namespace("ESPHOME_ZB_HA_DECLARE_TIME_EP")
