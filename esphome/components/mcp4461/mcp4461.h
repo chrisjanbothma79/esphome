@@ -115,7 +115,6 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   void update_terminal_register_(Mcp4461TerminalIdx terminal_connector);
   uint8_t get_terminal_register_(Mcp4461TerminalIdx terminal_connector);
   bool set_terminal_register_(Mcp4461TerminalIdx terminal_connector, uint8_t data);
-  static const LogString* mcp4461_get_message_string_(int status);
 
   enum ErrorCode {
     MCP4461_STATUS_OK = 0,               // CMD completed successfully
@@ -133,7 +132,7 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   } error_code_{MCP4461_STATUS_OK};
 
   // Converts a status to a human readable string
-  static const LogString* get_message_string_(int status) {
+  static const LogString *get_message_string_(int status) {
     switch (status) {
       case MCP4461_STATUS_I2C_ERROR:
         return LOG_STR("I2C error - communication with MCP4461 failed!");
