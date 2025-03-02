@@ -12,6 +12,7 @@ from esphome.core import coroutine_with_priority
 
 from .. import (
     ZigbeeBaseSchema,
+    ZigbeeClusterDesc,
     zigbee_assign,
     zigbee_new_attr_list,
     zigbee_new_cluster_list,
@@ -19,15 +20,10 @@ from .. import (
     zigbee_set_string,
 )
 from ..const import (
-    CONF_BASIC_ATTRIB_LIST_EXT,
     CONF_BINARY_ATTRS,
     CONF_BINARY_OUTPUT_ATTRIB_LIST,
-    CONF_BINARY_OUTPUT_CLUSTER_LIST,
-    CONF_EP,
-    CONF_GROUPS_ATTRIB_LIST,
-    CONF_IDENTIFY_ATTRIB_LIST,
-    CONF_SCENES_ATTRIB_LIST,
     CONF_ZIGBEE_ID,
+    ZB_ZCL_CLUSTER_ID_BINARY_OUTPUT,
     BinaryAttrs,
     zigbee_ns,
 )
@@ -45,11 +41,6 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(CONF_BINARY_OUTPUT_ATTRIB_LIST): cv.declare_id(
                 cg.global_ns.namespace(
                     "ESPHOME_ZB_ZCL_DECLARE_BINARY_OUTPUT_ATTRIB_LIST"
-                )
-            ),
-            cv.GenerateID(CONF_BINARY_OUTPUT_CLUSTER_LIST): cv.declare_id(
-                cg.global_ns.namespace(
-                    "ESPHOME_ZB_HA_DECLARE_BINARY_OUTPUT_CLUSTER_LIST"
                 )
             ),
         }
@@ -71,25 +62,11 @@ async def to_code(config):
         zigbee_set_string(binary_attrs.description, config[CONF_NAME]),
     )
 
-    cluster = zigbee_new_cluster_list(
-        config[CONF_BINARY_OUTPUT_CLUSTER_LIST],
-        attr_list,
-        config[CONF_BASIC_ATTRIB_LIST_EXT],
-        config[CONF_IDENTIFY_ATTRIB_LIST],
-        config[CONF_GROUPS_ATTRIB_LIST],
-        config[CONF_SCENES_ATTRIB_LIST],
+    cluster_id, clusters = zigbee_new_cluster_list(
+        config, [ZigbeeClusterDesc(ZB_ZCL_CLUSTER_ID_BINARY_OUTPUT, attr_list)]
     )
 
-    clusters = [
-        "ZB_ZCL_CLUSTER_ID_BASIC",
-        "ZB_ZCL_CLUSTER_ID_IDENTIFY",
-        "ZB_ZCL_CLUSTER_ID_BINARY_OUTPUT",
-        "ZB_ZCL_CLUSTER_ID_SCENES",
-        "ZB_ZCL_CLUSTER_ID_GROUPS",
-    ]
-    zigbee_register_ep(
-        config[CONF_EP], cluster, config[KEY_EP_NUMBER], 5, 0, 2, clusters
-    )
+    zigbee_register_ep(config, cluster_id, 2, clusters)
 
     var = await switch.new_switch(config)
     await cg.register_component(var, config)

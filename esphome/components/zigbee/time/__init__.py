@@ -11,20 +11,16 @@ from esphome.core import coroutine_with_priority
 
 from .. import (
     ZigbeeBaseSchema,
+    ZigbeeClusterDesc,
     zigbee_new_attr_list,
     zigbee_new_cluster_list,
     zigbee_new_variable,
 )
 from ..const import (
-    CONF_BASIC_ATTRIB_LIST_EXT,
-    CONF_EP,
-    CONF_GROUPS_ATTRIB_LIST,
-    CONF_IDENTIFY_ATTRIB_LIST,
-    CONF_SCENES_ATTRIB_LIST,
     CONF_TIME_ATTRIB_LIST,
     CONF_TIME_ATTRS,
-    CONF_TIME_CLUSTER_LIST,
     CONF_ZIGBEE_ID,
+    ZB_ZCL_CLUSTER_ID_TIME,
     zigbee_ns,
 )
 
@@ -42,9 +38,6 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(CONF_TIME_ATTRIB_LIST): cv.declare_id(
                 cg.global_ns.namespace("ZB_ZCL_DECLARE_TIME_ATTR_LIST")
             ),
-            cv.GenerateID(CONF_TIME_CLUSTER_LIST): cv.declare_id(
-                cg.global_ns.namespace("ESPHOME_ZB_HA_DECLARE_TIME_CLUSTER_LIST")
-            ),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -61,27 +54,15 @@ async def to_code(config):
         config[CONF_TIME_ATTRIB_LIST],
         time_attrs,
     )
-    cluster = zigbee_new_cluster_list(
-        config[CONF_TIME_CLUSTER_LIST],
-        attr_list,
-        config[CONF_BASIC_ATTRIB_LIST_EXT],
-        config[CONF_IDENTIFY_ATTRIB_LIST],
-        config[CONF_GROUPS_ATTRIB_LIST],
-        config[CONF_SCENES_ATTRIB_LIST],
+    cluster_id, clusters = zigbee_new_cluster_list(
+        config,
+        [
+            ZigbeeClusterDesc(ZB_ZCL_CLUSTER_ID_TIME, attr_list),
+            ZigbeeClusterDesc(ZB_ZCL_CLUSTER_ID_TIME),
+        ],
     )
 
-    clusters = [
-        "ZB_ZCL_CLUSTER_ID_BASIC",
-        "ZB_ZCL_CLUSTER_ID_IDENTIFY",
-        "ZB_ZCL_CLUSTER_ID_TIME",
-        "ZB_ZCL_CLUSTER_ID_SCENES",
-        "ZB_ZCL_CLUSTER_ID_GROUPS",
-        "ZB_ZCL_CLUSTER_ID_TIME",
-    ]
-
-    zigbee_register_ep(
-        config[CONF_EP], cluster, config[KEY_EP_NUMBER], 5, 1, 0, clusters
-    )
+    zigbee_register_ep(config, cluster_id, 0, clusters)
 
     var = cg.new_Pvariable(config[CONF_ID])
     await time_.register_time(var, config)

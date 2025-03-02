@@ -5,7 +5,7 @@ import esphome.codegen as cg
 from esphome.components.nrf52 import add_pm_static
 from esphome.components.nrf52.boards import BOOTLOADER_CONFIG, Section
 from esphome.components.zephyr.const import KEY_BOOTLOADER, KEY_ZEPHYR
-from esphome.core import CORE, ID, coroutine_with_priority
+from esphome.core import CORE, coroutine_with_priority
 
 KEY_ZIGBEE = "zigbee"
 KEY_EP_NUMBER = "ep_number"
@@ -30,18 +30,24 @@ def consume_ep_slots(config: MutableMapping) -> MutableMapping:
 
 
 def zigbee_register_ep(
-    id_: ID,
-    cluster,
-    ep_number: int,
-    in_cluster_num: int,
-    out_cluster_num: int,
+    config,
+    cluster_id,
     report_attr_count: int,
-    clusters: list[str],
+    clusters,
 ):
-    assert isinstance(id_, ID)
-    CORE.data[KEY_ZIGBEE][KEY_EP_NUMBER][ep_number - 1] = str(id_)
+    id_ = config[CONF_EP]
+    in_cluster_num = 0
+    out_cluster_num = 0
+    attrs = []
+    for c in clusters:
+        if c.attr:
+            in_cluster_num += 1
+        else:
+            out_cluster_num += 1
+        attrs.append(c.name)
+    CORE.data[KEY_ZIGBEE][KEY_EP_NUMBER][config[KEY_EP_NUMBER] - 1] = str(id_)
     obj = cg.RawExpression(
-        f"{id_.type}({id_}, {ep_number}, {cluster}, {in_cluster_num}, {out_cluster_num}, {report_attr_count}, {', '.join(clusters)})"
+        f"{id_.type}({id_}, {config[KEY_EP_NUMBER]}, {cluster_id}, {in_cluster_num}, {out_cluster_num}, {report_attr_count}, {', '.join(attrs)})"
     )
     CORE.add_global(obj)
 

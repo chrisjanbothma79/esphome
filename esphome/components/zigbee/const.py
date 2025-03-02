@@ -47,15 +47,24 @@ BinaryAttrs = zigbee_ns.struct("BinaryAttrs")
 
 # input
 CONF_BINARY_INPUT_ATTRIB_LIST = "binary_input_attrib_list"
-CONF_BINARY_INPUT_CLUSTER_LIST = "binary_input_cluster_list"
 
 # output
 CONF_BINARY_OUTPUT_ATTRIB_LIST = "binary_output_attrib_list"
-CONF_BINARY_OUTPUT_CLUSTER_LIST = "binary_output_cluster_list"
 
 # time
 CONF_TIME_ATTRIB_LIST = "time_attrib_list"
-CONF_TIME_CLUSTER_LIST = "time_cluster_list"
 
 # general
-esphome_zb_ha_declare_ep = cg.global_ns.namespace("ESPHOME_ZB_HA_DECLARE_EP")
+ESPHOME_ZB_HA_DECLARE_EP = cg.global_ns.namespace("ESPHOME_ZB_HA_DECLARE_EP")
+CONF_CLUSTER_LIST = "cluster_list"
+
+
+# clusters
+ZB_ZCL_CLUSTER_ID_BASIC = "ZB_ZCL_CLUSTER_ID_BASIC"
+ZB_ZCL_CLUSTER_ID_IDENTIFY = "ZB_ZCL_CLUSTER_ID_IDENTIFY"
+ZB_ZCL_CLUSTER_ID_GROUPS = "ZB_ZCL_CLUSTER_ID_GROUPS"
+ZB_ZCL_CLUSTER_ID_SCENES = "ZB_ZCL_CLUSTER_ID_SCENES"
+
+ZB_ZCL_CLUSTER_ID_BINARY_INPUT = "ZB_ZCL_CLUSTER_ID_BINARY_INPUT"
+ZB_ZCL_CLUSTER_ID_BINARY_OUTPUT = "ZB_ZCL_CLUSTER_ID_BINARY_OUTPUT"
+ZB_ZCL_CLUSTER_ID_TIME = "ZB_ZCL_CLUSTER_ID_TIME"

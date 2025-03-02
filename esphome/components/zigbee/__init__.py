@@ -21,6 +21,7 @@ from esphome.cpp_generator import (
 from .const import (
     CONF_BASIC_ATTRIB_LIST_EXT,
     CONF_BASIC_ATTRS_EXT,
+    CONF_CLUSTER_LIST,
     CONF_EP,
     CONF_GROUPS_ATTRIB_LIST,
     CONF_GROUPS_ATTRS,
@@ -30,12 +31,16 @@ from .const import (
     CONF_SCENES_ATTRIB_LIST,
     CONF_SCENES_ATTRS,
     CONF_ZIGBEE_ID,
+    ESPHOME_ZB_HA_DECLARE_EP,
+    ZB_ZCL_CLUSTER_ID_BASIC,
+    ZB_ZCL_CLUSTER_ID_GROUPS,
+    ZB_ZCL_CLUSTER_ID_IDENTIFY,
+    ZB_ZCL_CLUSTER_ID_SCENES,
     ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_EXT,
     ZB_ZCL_DECLARE_GROUPS_ATTRIB_LIST,
     ZB_ZCL_DECLARE_IDENTIFY_ATTRIB_LIST,
     ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST,
     Zigbee,
-    esphome_zb_ha_declare_ep,
     zb_char_t_ptr,
     zb_zcl_basic_attrs_ext_t,
     zb_zcl_groups_attrs_t,
@@ -63,7 +68,10 @@ ZigbeeBaseSchema = cv.Schema(
         cv.GenerateID(CONF_SCENES_ATTRIB_LIST): cv.use_id(
             ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST
         ),
-        cv.GenerateID(CONF_EP): cv.declare_id(esphome_zb_ha_declare_ep),
+        cv.GenerateID(CONF_EP): cv.declare_id(ESPHOME_ZB_HA_DECLARE_EP),
+        cv.GenerateID(CONF_CLUSTER_LIST): cv.declare_id(
+            cg.global_ns.namespace("zb_zcl_cluster_desc_t")
+        ),
     },
 )
 
@@ -241,11 +249,59 @@ def zigbee_new_attr_list(id_: ID, *args):
     return id_
 
 
-def zigbee_new_cluster_list(id_: ID, *args):
-    assert isinstance(id_, ID)
-    list = []
-    for arg in args:
-        list.append(f"{arg}")
-    obj = cg.RawExpression(f"{id_.type}({id_}, {', '.join(list)})")
-    CORE.add_global(obj)
-    return id_
+class ArrayAssignmentExpression(AssignmentExpression):
+    __slots__ = ()
+
+    def __init__(self, type_, name, rhs):
+        super().__init__(type_, "", name, rhs)
+
+    def __str__(self):
+        return f"{self.type} {self.name}[] = {self.rhs}"
+
+
+def zigbee_array(id_, rhs) -> "MockObj":
+    rhs = cg.safe_exp(rhs)
+    obj = MockObj(id_, ".")
+    assignment = ArrayAssignmentExpression(id_.type, id_, rhs)
+    CORE.add_global(assignment)
+    CORE.register_variable(id_, obj)
+    return obj
+
+
+class ZigbeeClusterDesc(MockObj):
+    def __init__(self, name: str, attr=None):
+        self.name = name
+        self.attr = attr
+
+    def __str__(self):
+        role = (
+            "ZB_ZCL_CLUSTER_SERVER_ROLE" if self.attr else "ZB_ZCL_CLUSTER_CLIENT_ROLE"
+        )
+        attr_count = "0"
+        attr_desc_list = "NULL"
+        if self.attr:
+            attr_count = f"ZB_ZCL_ARRAY_SIZE({self.attr}, zb_zcl_attr_t)"
+            attr_desc_list = str(self.attr)
+        return f"ZB_ZCL_CLUSTER_DESC({self.name}, {attr_count}, {attr_desc_list}, {role}, ZB_ZCL_MANUF_CODE_INVALID)"
+
+
+def zigbee_new_cluster_list(config, attr_list):
+    rhs = [
+        ZigbeeClusterDesc(ZB_ZCL_CLUSTER_ID_BASIC, config[CONF_BASIC_ATTRIB_LIST_EXT]),
+        ZigbeeClusterDesc(
+            ZB_ZCL_CLUSTER_ID_IDENTIFY, config[CONF_IDENTIFY_ATTRIB_LIST]
+        ),
+    ]
+    rhs.extend(attr_list)
+    rhs.extend(
+        [
+            ZigbeeClusterDesc(
+                ZB_ZCL_CLUSTER_ID_GROUPS, config[CONF_GROUPS_ATTRIB_LIST]
+            ),
+            ZigbeeClusterDesc(
+                ZB_ZCL_CLUSTER_ID_SCENES, config[CONF_SCENES_ATTRIB_LIST]
+            ),
+        ]
+    )
+    obj = zigbee_array(config[CONF_CLUSTER_LIST], rhs)
+    return (obj, rhs)
