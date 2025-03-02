@@ -42,7 +42,7 @@ static void draw_callback(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, ui
 
 PngDecoder::PngDecoder(OnlineImage *image) : ImageDecoder(image) {
   {
-    pngle_t *pngle = this->allocator_.allocate(1);
+    pngle_t *pngle = this->allocator_.allocate(1, 43888U);
     if (!pngle) {
       ESP_LOGE(TAG, "Failed to allocate memory for PNGLE engine!");
       return;
