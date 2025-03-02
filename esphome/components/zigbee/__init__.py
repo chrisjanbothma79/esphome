@@ -10,7 +10,7 @@ from esphome.components.zigbee_ctx import (
     zigbee_set_core_data,
 )
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_PLATFORM, __version__
+from esphome.const import CONF_ID, __version__
 from esphome.core import CORE, ID, coroutine_with_priority
 from esphome.cpp_generator import (
     AssignmentExpression,
@@ -91,15 +91,6 @@ CONFIG_SCHEMA = cv.All(
     ).extend(cv.COMPONENT_SCHEMA),
     zigbee_set_core_data,
 )
-
-
-def count_ep_by_type(fconf, type):
-    count = 0
-    if type in fconf:
-        for entity in fconf[type]:
-            if CONF_PLATFORM in entity and entity[CONF_PLATFORM] == KEY_ZIGBEE:
-                count += 1
-    return count
 
 
 def validate_number_of_ep(config):
