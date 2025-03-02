@@ -25,7 +25,6 @@ from ..const import (
     CONF_TIME_ATTRS,
     CONF_TIME_CLUSTER_LIST,
     CONF_ZIGBEE_ID,
-    esphome_zb_ha_declare_ep,
     zigbee_ns,
 )
 
@@ -46,7 +45,6 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(CONF_TIME_CLUSTER_LIST): cv.declare_id(
                 cg.global_ns.namespace("ESPHOME_ZB_HA_DECLARE_TIME_CLUSTER_LIST")
             ),
-            cv.GenerateID(CONF_EP): cv.declare_id(esphome_zb_ha_declare_ep),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)

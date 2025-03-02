@@ -21,6 +21,7 @@ from esphome.cpp_generator import (
 from .const import (
     CONF_BASIC_ATTRIB_LIST_EXT,
     CONF_BASIC_ATTRS_EXT,
+    CONF_EP,
     CONF_GROUPS_ATTRIB_LIST,
     CONF_GROUPS_ATTRS,
     CONF_IDENTIFY_ATTRIB_LIST,
@@ -34,6 +35,7 @@ from .const import (
     ZB_ZCL_DECLARE_IDENTIFY_ATTRIB_LIST,
     ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST,
     Zigbee,
+    esphome_zb_ha_declare_ep,
     zb_char_t_ptr,
     zb_zcl_basic_attrs_ext_t,
     zb_zcl_groups_attrs_t,
@@ -61,6 +63,7 @@ ZigbeeBaseSchema = cv.Schema(
         cv.GenerateID(CONF_SCENES_ATTRIB_LIST): cv.use_id(
             ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST
         ),
+        cv.GenerateID(CONF_EP): cv.declare_id(esphome_zb_ha_declare_ep),
     },
 )
 

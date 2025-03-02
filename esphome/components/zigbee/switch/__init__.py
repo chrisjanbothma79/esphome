@@ -29,7 +29,6 @@ from ..const import (
     CONF_SCENES_ATTRIB_LIST,
     CONF_ZIGBEE_ID,
     BinaryAttrs,
-    esphome_zb_ha_declare_ep,
     zigbee_ns,
 )
 
@@ -53,7 +52,6 @@ CONFIG_SCHEMA = cv.All(
                     "ESPHOME_ZB_HA_DECLARE_BINARY_OUTPUT_CLUSTER_LIST"
                 )
             ),
-            cv.GenerateID(CONF_EP): cv.declare_id(esphome_zb_ha_declare_ep),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
