@@ -40,6 +40,24 @@ static void draw_callback(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, ui
   decoder->draw(x, y, w, h, color);
 }
 
+PngDecoder::PngDecoder(OnlineImage *image) : ImageDecoder(image) {
+  {
+    pngle_t *pngle = this->allocator_.allocate(1);
+    if (!pngle) {
+      ESP_LOGE(TAG, "Failed to allocate memory for PNGLE engine!");
+      return;
+    }
+    this->pngle_ = pngle;
+  }
+}
+
+PngDecoder::~PngDecoder() {
+  if (this->pngle_) {
+    pngle_reset(this->pngle_);
+    this->allocator_.deallocate(this->pngle_, 1);
+  }
+}
+
 int PngDecoder::prepare(size_t download_size) {
   ImageDecoder::prepare(download_size);
   if (!this->pngle_) {
