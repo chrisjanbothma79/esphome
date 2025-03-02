@@ -38,9 +38,12 @@ HT16k33Char_BaseClassType = ht16k33_char_ns.class_("HT16k33CharComponent", cg.Po
 #    `CLASS_NAME`: The name of the class that implements the device.
 #    `DIGITS_PER_DISPLAY`: The number of digits on the display
 HT16K33_DEVICE_TYPES = {
-    "ADAFRUIT_7SEGMENT_1.2IN":          {"CLASS_NAME":"Adafruit_7seg_large",        "DIGITS_PER_DISPLAY": 4},
-    "ADAFRUIT_7SEGMENT_1.2IN_FLIPPED":  {"CLASS_NAME":"Adafruit_7seg_large_flip",   "DIGITS_PER_DISPLAY": 4},
-    "ADAFRUIT_14_SEG":                  {"CLASS_NAME":"Adafruit_14_seg",            "DIGITS_PER_DISPLAY": 4},
+    "ADAFRUIT_7SEGMENT_1.2IN":          {"CLASS_NAME":"Adafruit_7seg_large",        },
+    "ADAFRUIT_7SEGMENT_1.2IN_FLIPPED":  {"CLASS_NAME":"Adafruit_7seg_large_flip",   },
+    "ADAFRUIT_7SEGMENT_.56IN":          {"CLASS_NAME":"Adafruit_7seg",              },
+    "ADAFRUIT_7SEGMENT_.56IN_FLIPPED":  {"CLASS_NAME":"Adafruit_7seg_flip",         },
+    "ADAFRUIT_14_SEG":                  {"CLASS_NAME":"Adafruit_14seg",             },
+    "ADAFRUIT_14_SEG_FLIPPED":          {"CLASS_NAME":"Adafruit_14seg_flip",        },
 }
 
 HT16k33Char_BaseClassTypeRef = HT16k33Char_BaseClassType.operator("ref")
@@ -78,9 +81,6 @@ async def to_code(config):
     await display.register_display(var, config)
     cg.add(var.set_buffer_size(config[CONF_BUFFER_SIZE]))   #TODO: I could use a compiler define to set this size. Is that a good idea?
     cg.add(var.set_brightness(config[CONF_BRIGHTNESS]))
-    cg.add(var.set_digits_per_display(HT16K33_DEVICE_TYPES[config[CONF_DEVICE]]["DIGITS_PER_DISPLAY"]))
-    
-    
 
     if CONF_LAMBDA in config:
         lambda_ = await cg.process_lambda(
@@ -88,7 +88,6 @@ async def to_code(config):
         )
         cg.add(var.set_writer(lambda_))
     
-    #TODO: From ht16k33_alpha, not implemented. I don't have hardware to test any of this.
     if config[CONF_SCROLL]:
         cg.add(var.set_scroll(True))
         cg.add(var.set_continuous(config[CONF_CONTINUOUS]))

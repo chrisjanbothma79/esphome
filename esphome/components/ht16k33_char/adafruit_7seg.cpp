@@ -1,31 +1,26 @@
 #include <unordered_map>
 #include "esphome/core/log.h"
-#include "adafruit_7seg_large.h"
+#include "adafruit_7seg.h"
 
 /******************************************************************************
- *Adafruit 7 segment 1.2" displays
- *  Product Link: https://www.adafruit.com/product/1270
+ *Adafruit 7 segment .56" displays
+ *  Product Link: https://www.adafruit.com/product/878
  *
- *  Device specific functions for the Adafruit 7 segment, 1.2" high displays. Both right-side-up
+ *  Device specific functions for the Adafruit 7 segment, .56" high displays. Both right-side-up
  *  and upside-down orientations are supported. To use these in your device, use device type 
- *  'ADAFRUIT_7SEGMENT_1.2IN' or 'ADAFRUIT_7SEGMENT_1.2IN_FLIPPED'. These devices are mostly only 
+ *  'ADAFRUIT_7SEGMENT_.56IN' or 'ADAFRUIT_7SEGMENT_.56IN_FLIPPED'. These devices are mostly only 
  *  able to display numbers. There are a few letters in the font set that display reasonably well
  *  on the 7 segment display. If you ask it to print an unsupported character, that digit on the
  *  display will be left blank.
  *
- *  Schematic: https://learn.adafruit.com/assets/122068
- *  Display Datasheet: https://cdn-shop.adafruit.com/datasheets/1264datasheet.pdf
+ *  Schematic: https://learn.adafruit.com/assets/108790
+ *  Display Datasheet: https://cdn-shop.adafruit.com/datasheets/865datasheet.pdf
  *
- *  Note: As of this writing (3/2025) the schematic for this device linked above is wrong. The 
- *        LEDs segments are connected to the HT16K33 the same as the .56" devices. 
- *
- *  Note: This display doesnt have a decimal point after each digit. In addition to the four 
- *        7-segment digits, it has four other dots controlled by bits in DisplayBuffer[5]:
- *          0b00000010 - A colon between digits 2 and 3.
- *          0b00000100 - The upper part of the colon at the left edge of the display.
- *          0b00001000 - The lower part of the colon at the left edge of the display.
- *          0b00010000 - A dot between digits 3 and 4 at the top. Could be a decimal point if the 
- *                       display was flipped upside-down. (DisplayBuffer[5] = 0b00000010)
+ *  Note: You can't use both the period and the colon after the second digit at the same time. 
+ *        In theory, the device would allow this. But the way I wrote the code will treat the 
+ *        second character as an invalid character in the third location I can't think of a 
+ *        scenario where we would need to use both the colon and the period, so I did not 
+ *        implement it.
  *****************************************************************************/
 
 namespace esphome {
@@ -35,17 +30,10 @@ static const char *const TAG = "ht16k33_char";
 
 //Position is the position in the character buffer. position 0 is the begining of the buffer
 //Returns the index of the first character to display in the buffer (what we would give as `position` to the next call to this function).
-uint8_t Adafruit_7seg_large::send_to_display(i2c::I2CDevice *display, uint8_t position){
+uint8_t Adafruit_7seg::send_to_display(i2c::I2CDevice *display, uint8_t position){
   uint8_t i;
   char char_to_find;
-  
-  //Note: we use this to detect when there are multiple special characters in a rown in the
-  //string. Say something like '..1234'. A period before the first character is valid, so
-  //the first character turns on the period LED. Without this flag, because the character
-  //location has not moved, the next period is also valid. With this flag, the next period
-  //will be treated as an invalid character.
   bool special_character_found;
-  
   const std::unordered_map<char, uint8_t> char_map = {
     {'0', 0b00111111},  //The number zero
     {'1', 0b00000110}, 
@@ -125,14 +113,7 @@ uint8_t Adafruit_7seg_large::send_to_display(i2c::I2CDevice *display, uint8_t po
         //Look for special characters. These characters are only valid at certain locations in the display. A special character in an invalid location will be treated the same way as an invalid character. In the case of an invalid character, that location in the display will be left blank. only one special character will be evaulated per location on the display.
         if(!special_character_found) {
           if(char_to_find == ':') {
-            if (i == 0) {
-              //We want a colon before the first digit
-              this->buffer_[5] = this->buffer_[5] | 0b00001100;
-              special_character_found = true;
-              char_buffer_location++;
-              continue;
-            }
-            else if (i == 2) {
+            if (i == 2) {
               //We want a colon between digit 2 and 3
               this->buffer_[5] = this->buffer_[5] | 0b00000010;
               special_character_found = true;
@@ -140,31 +121,19 @@ uint8_t Adafruit_7seg_large::send_to_display(i2c::I2CDevice *display, uint8_t po
               continue;
             }
           }
-          else if(char_to_find == '\'' || char_to_find == '`') {
-            if (i == 0) {
-              //We want an apostrophe before the first digit
-              this->buffer_[5] = this->buffer_[5] | 0b00000100;
-              special_character_found = true;
-              char_buffer_location++;
-              continue;
-
+          
+          if(char_to_find == '.') {
+            special_character_found = true;
+            char_buffer_location++;
+            if (i > 0) {
+              //We can't put a period before the first digit.
+              this->buffer_[digit_map[i-1]] |= 0x80;
             }
-            else if (i == 3) {
-              //We want an apostrophe before the fourth digit
-              this->buffer_[5] = this->buffer_[5] | 0b00010000;
-              special_character_found = true;
-              char_buffer_location++;
-              continue;
+            else {
+              //If there is a decimal point in the first location in the char buffer, skip over it.
+              this->fist_char_location_++;
             }
-          }
-          else if(char_to_find == '.') {
-            if (i == 0) {
-              //We want an period before the first digit
-              this->buffer_[5] = this->buffer_[5] | 0b00001000;
-              special_character_found = true;
-              char_buffer_location++;
-              continue;
-            }
+            continue;
           }
         }
 
@@ -176,15 +145,23 @@ uint8_t Adafruit_7seg_large::send_to_display(i2c::I2CDevice *display, uint8_t po
       char_buffer_location++;
     }
   }
-
+  
+  //We can have a period after the last digit. Handle that here
+  if ( !(char_buffer_location >= this->char_buffer_.length()) ) {
+    char_to_find = this->char_buffer_.at(char_buffer_location);
+    if(char_to_find == '.') {
+      this->buffer_[digit_map[3]] |= 0x80;
+      char_buffer_location++;
+    }
+  }
+  
   display->write(this->buffer_, 16, true);
   return char_buffer_location;
 }
 
-
 //Position is the position in the character buffer. position 0 is the begining of the buffer
-//Returns the index of the next character to display in the buffer (what we would give as `position` to the next call to this function).
-uint8_t Adafruit_7seg_large_flip::send_to_display(i2c::I2CDevice *display, uint8_t position){
+//Returns the index of the first character to display in the buffer (what we would give as `position` to the next call to this function).
+uint8_t Adafruit_7seg_flip::send_to_display(i2c::I2CDevice *display, uint8_t position){
   uint8_t i;
   char char_to_find;
   bool special_character_found;
@@ -214,7 +191,7 @@ uint8_t Adafruit_7seg_large_flip::send_to_display(i2c::I2CDevice *display, uint8
     {'J', 0x31},
     {'L', 0x07},
     {'N', 0x3E},
-    {'O', 0x3F}, //The capitol letter 'o'
+    {'O', 0x3F}, //The capitol letter 'O'
     {'o', 0x63}, //The lower case letter 'o'
     {'P', 0x5E},
     {'r', 0x42},
@@ -239,6 +216,8 @@ uint8_t Adafruit_7seg_large_flip::send_to_display(i2c::I2CDevice *display, uint8
   i = 0;
   special_character_found = false;
 
+  //ESP_LOGD(TAG, "Buffer: %s. Length is %d", this->char_buffer_.c_str(), this->char_buffer_.length());
+
   while (i < 4) {
     if (char_buffer_location >= this->char_buffer_.length()) {
       //char_buffer_location is past the end of the character buffer.
@@ -252,13 +231,14 @@ uint8_t Adafruit_7seg_large_flip::send_to_display(i2c::I2CDevice *display, uint8
         i++;
       }
     }
+    
     else {
       //The character to find is within the bounds of the buffer array.
       char_to_find = this->char_buffer_.at(char_buffer_location);
 
       auto it = char_map.find(char_to_find);
       if (it != char_map.end()) {
-        this->buffer_[digit_map[i]] = it->second;
+        this->buffer_[digit_map[i]] |= it->second;
         special_character_found = false;
         i++;
       }
@@ -274,14 +254,16 @@ uint8_t Adafruit_7seg_large_flip::send_to_display(i2c::I2CDevice *display, uint8
               continue;
             }
           }
-          else if(char_to_find == '.') {
-            if (i == 1) {
-              //We want an period before the second digit
-              this->buffer_[5] = this->buffer_[5] | 0b00010000;
-              special_character_found = true;
-              char_buffer_location++;
-              continue;
+          if(char_to_find == '\'' || char_to_find == '`') {
+            this->buffer_[digit_map[i]] |= 0x80;
+            special_character_found = true;
+            char_buffer_location++;
+            if (i == 0) {
+              //If there is a ' or ` in the first location, we want to advance
+              // the first char location by 2 instead of 1.
+              this->fist_char_location_++;
             }
+            continue;
           }
         }
 
@@ -294,23 +276,6 @@ uint8_t Adafruit_7seg_large_flip::send_to_display(i2c::I2CDevice *display, uint8
     }
   }
   
-  //We can have special characters after the last digit.
-  if ( !(char_buffer_location >= this->char_buffer_.length()) ) {
-    char_to_find = this->char_buffer_.at(char_buffer_location);
-    if(char_to_find == '.') {
-      this->buffer_[5] = this->buffer_[5] | 0b00000100;
-      char_buffer_location++;
-    }
-    else if(char_to_find == '\'' || char_to_find == '`') {
-      this->buffer_[5] = this->buffer_[5] | 0b00001000;
-      char_buffer_location++;
-    }
-    else if(char_to_find == ':') {
-      this->buffer_[5] = this->buffer_[5] | 0b00001100;
-      char_buffer_location++;
-    }
-  }
-
   display->write(this->buffer_, 16, true);
   return char_buffer_location;
 }
