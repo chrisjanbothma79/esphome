@@ -21,7 +21,7 @@ class IDFI2CBus : public I2CBus, public Component {
   void dump_config() override;
   ErrorCode readv(uint8_t address, ReadBuffer *buffers, size_t cnt) override;
   ErrorCode writev(uint8_t address, WriteBuffer *buffers, size_t cnt, bool stop) override;
-  float get_setup_priority() const override { return setup_priority::BUS; }
+  float get_setup_priority() const override { return setup_priority_; }
 
   void set_scan(bool scan) { scan_ = scan; }
   void set_sda_pin(uint8_t sda_pin) { sda_pin_ = sda_pin; }
@@ -30,6 +30,7 @@ class IDFI2CBus : public I2CBus, public Component {
   void set_scl_pullup_enabled(bool scl_pullup_enabled) { scl_pullup_enabled_ = scl_pullup_enabled; }
   void set_frequency(uint32_t frequency) { frequency_ = frequency; }
   void set_timeout(uint32_t timeout) { timeout_ = timeout; }
+  void set_priority(float priority) { setup_priority_ = priority; }
 
  private:
   void recover_();
@@ -44,6 +45,7 @@ class IDFI2CBus : public I2CBus, public Component {
   uint32_t frequency_;
   uint32_t timeout_ = 0;
   bool initialized_ = false;
+  float setup_priority_ = 1000.0f;
 };
 
 }  // namespace i2c
