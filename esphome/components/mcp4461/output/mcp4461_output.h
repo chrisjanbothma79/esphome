@@ -11,6 +11,9 @@ namespace mcp4461 {
 class Mcp4461Wiper : public output::FloatOutput, public Parented<Mcp4461Component> {
  public:
   Mcp4461Wiper(Mcp4461Component *parent, Mcp4461WiperIdx wiper) : parent_(parent), wiper_(wiper) {}
+  /// @brief Set level of wiper
+  /// @param[in] state - The desired float level in range 0-1.0
+  void set_level(float state);
   /// @brief Enables/Disables current output using bool parameter
   /// @param[in] state boolean var representing desired state (true=ON, false=OFF)
   void set_state(bool state) override;
