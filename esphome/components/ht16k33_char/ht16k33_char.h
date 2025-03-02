@@ -59,8 +59,9 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
   void set_scroll_delay(unsigned long scroll_delay) { this->scroll_delay_ = scroll_delay; }
 
   void brightness(uint8_t brightness_to_set);
-
-
+  void set_blink(uint8_t blink_state);
+  void display_off(bool turn_off);
+  void display_standby(bool standby);
 
   /// Evaluate the printf-format and print the result at the given position.
   uint8_t printf(uint8_t pos, bool clear_buffer, const char *format, ...) __attribute__((format(printf, 4, 5)));

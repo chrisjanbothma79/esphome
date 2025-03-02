@@ -1,6 +1,5 @@
 #include <unordered_map>
 
-//#include "esphome/core/defines.h"   //TODO: needed to get access to the compiler define for device type
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
@@ -8,9 +7,14 @@
 #include "ht16k33_char.h"
 
 /* To add more device types:
- *    -Add to the enum in the display.py file
+ *    -Add to the HT16K33_DEVICE_TYPES enum in the display.py file
  *    -Add a new .h and .c file that defines a class derived from the `HT16k33CharComponent` class.
  *    -Implement a `uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position)` function in that class.
+ *        -display: the i2c device of the current display to use. The code will step through the 
+ *         defined displays and call the send_to_display() function for each one.
+ *        -position: The position in the char buffer to start writing to the display. Starts at 0.
+ *        -returns the position in the char buffer for the next character that should be displayed 
+ *         on the next display.
  */
 
 //States for the scrolling state machine.
@@ -195,22 +199,28 @@ void HT16k33CharComponent::dump_config() {
   LOG_UPDATE_INTERVAL(this);
 }
 
-//Zeros out all of the display memory on the device. This is not the same a turning it off, but it will have the same effect.
+/****************************
+ *Zeros out all of the display memory on the device. This is not the same as 
+ * turning it off, but it will have the same effect.
+ ****************************/
 void HT16k33CharComponent::blank() {
-  //ESP_LOGD(TAG, "Blank display");
   for (auto *display : this->displays_) {
-    
     this->buffer_[0] = HT16K33_DISPLAY_DATA_ADDRESS;
 
-    //Clear any old data from the buffer
+    //Clear any the buffer
     for(int i=1; i<16; i++) {
       this->buffer_[i] = 0x00;
     }
-    
     display->write(this->buffer_, 16, true);
   }
 }
 
+/****************************
+ *Updates the displays based on the current char_buffer_ and first_char_location_.
+ *
+ *  -Returns the buffer location of the *next* character after the last one displayed.
+ *   This can be used to determine scrolling state.
+ ****************************/
 uint8_t HT16k33CharComponent::update_display() {
   uint8_t buffer_location = this->fist_char_location_;
   
@@ -224,6 +234,7 @@ uint8_t HT16k33CharComponent::update_display() {
 void HT16k33CharComponent::brightness(uint8_t brightness_to_set) {
   uint8_t buffer;
   
+  //Valid brightness values are 0x00 - 0x0F
   if (brightness_to_set > 0x0F) {
     buffer = HT16K33_DIMMING_SET|0x0F;
   }
@@ -234,57 +245,117 @@ void HT16k33CharComponent::brightness(uint8_t brightness_to_set) {
   for (auto *display : this->displays_) {
     display->write(&buffer, 1, true);
   }
+}
+
+/***********************************
+ *Sets the blink function on the HT16k33. This blinking occurs independent of the CPU.
+ *
+ *  blink_state: The desired blink state. Valid values are:
+ *    *0: No Blinking
+ *    *1: Blink rate 2hZ (twice per second)
+ *    *2: Blink rate 1hz (once per second)
+ *    *3: Blink rate .5hZ (once per 2 seconds)
+ *  An invalid blink rate will turn off blinking.
+ ************************************/
+void HT16k33CharComponent::set_blink(uint8_t blink_state) {
+  uint8_t buffer;
   
+  if (blink_state > 0x03) {
+    //Valid values for blink are 0-3 anything else turns off blinking.
+    buffer = HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON;
+  }
+  else {
+    buffer = HT16K33_DISPLAY_SETUP | (blink_state << 1) | HT16K33_DISPLAY_ON;
+  }
+
+  for (auto *display : this->displays_) {
+    display->write(&buffer, 1, true);
+  }
+}
+
+/***********************************
+ *Turns the displays on or off.
+ *
+ *  turn_off: Boolean. Set to true to turn off the device.
+ *
+ *Note: this function will also clear the bink state.
+ ************************************/
+void HT16k33CharComponent::display_off(bool turn_off) {
+  uint8_t buffer;
+  
+  if(turn_off) {
+    buffer = HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_OFF;
+  }
+  else {
+    buffer = HT16K33_DISPLAY_SETUP | HT16K33_DISPLAY_ON;
+  }
+  
+  for (auto *display : this->displays_) {
+    display->write(&buffer, 1, true);
+  }
+}
+
+/***********************************
+ *Puts the display into standby mode. This is probably a lower power state than just 
+ *turning it off, but I have not tested that.
+ *
+ *  standby: Boolean. Set to true to put the device in standby mode. False to turn it back on.
+ ************************************/
+void HT16k33CharComponent::display_standby(bool standby) {
+  uint8_t buffer;
+  
+  if(standby) {
+    buffer = HT16K33_SYSTEM_SETUP | HT16K33_MODE_STANDBY;
+  }
+  else {
+    buffer = HT16K33_SYSTEM_SETUP | HT16K33_MODE_NORMAL;
+  }
+  
+  for (auto *display : this->displays_) {
+    display->write(&buffer, 1, true);
+  }
 }
 
 
+
 //TODO: This function should take a character array and put it in the character buffer
+//TODO: Why does this function return anything?
 //NOTE: start_pos is zero reference
 uint8_t HT16k33CharComponent::print(uint8_t start_pos, const char *str, bool clear_buffer) {
   uint8_t top;
   uint8_t j;
-  //ESP_LOGD(TAG, "print function:");
-  //ESP_LOGD(TAG, "this in the print function %d", this);
-  //ESP_LOGD(TAG, "Old Buffer: %s. Length is %d", this->char_buffer_.c_str(), this->char_buffer_.length());
-  //ESP_LOGD(TAG, "Adding %s of length %d at location %d", str, strlen(str), start_pos);
   
   if (start_pos >= this->char_buffer_.length()) {
     //Start position is after the end of the buffer
-    //ESP_LOGD(TAG, "Start position is beyond the end of the buffer");
     return 0;
   }
   
   if ((start_pos + strlen(str)) <= this->char_buffer_.length()) {
     //The entire string will fit in the buffer
-    //ESP_LOGD(TAG, "New string fits in the buffer");
     top = (start_pos + strlen(str))-1;
   }
   else {
-    //ESP_LOGD(TAG, "New string is too long for buffer");
     top = this->char_buffer_.length()-1;
   }
   
   if(clear_buffer) {
     //TODO: Does this reallocate memory? Should I step through the buffer and clear manually?
-    //ESP_LOGD(TAG, "Clear buffer");
     this->char_buffer_.clear();
     this->char_buffer_.resize(this->char_buffer_size_, ' ');
   }
   
   j = 0;
   for(uint8_t i = start_pos; i<=top; i++) {
-    //ESP_LOGD(TAG, "i = %d, buffer = %c, str = %c", i, this->char_buffer_.at(i), str[j]);
     this->char_buffer_.at(i) = str[j];
     j++;
   }
-  
-  //ESP_LOGD(TAG, "New Buffer: %s. Length is %d", this->char_buffer_.c_str(), this->char_buffer_.length());
-  //ESP_LOGD(TAG, "end print function:");
+
   return 0;
 }
 
 uint8_t HT16k33CharComponent::print(const char *str, bool clear_buffer) { return this->print(0, str, clear_buffer); }
 
+//TODO: The 'real' printf function returns the number of bytes written. Not sure if we need to do that here.
 uint8_t HT16k33CharComponent::printf(uint8_t pos, bool clear_buffer, const char *format, ...) {
   va_list arg;
   va_start(arg, format);

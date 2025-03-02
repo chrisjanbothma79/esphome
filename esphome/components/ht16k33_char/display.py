@@ -36,7 +36,6 @@ HT16k33Char_BaseClassType = ht16k33_char_ns.class_("HT16k33CharComponent", cg.Po
 # -The key is what the user would put in the YAML file to select this device.
 # -The value is a dictionary that contains the keys: 
 #    `CLASS_NAME`: The name of the class that implements the device.
-#    `DIGITS_PER_DISPLAY`: The number of digits on the display
 HT16K33_DEVICE_TYPES = {
     "ADAFRUIT_7SEGMENT_1.2IN":          {"CLASS_NAME":"Adafruit_7seg_large",        },
     "ADAFRUIT_7SEGMENT_1.2IN_FLIPPED":  {"CLASS_NAME":"Adafruit_7seg_large_flip",   },
