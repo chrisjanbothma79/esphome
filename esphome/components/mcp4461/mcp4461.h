@@ -120,7 +120,6 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
                               // aborted/discarded
   } error_code_{MCP4461_STATUS_OK};
 
-  
   // Converts a status to a human readable string
   static const LogString* get_message_string_(int status) {
     switch (status) {
