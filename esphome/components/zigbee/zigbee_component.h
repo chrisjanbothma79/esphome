@@ -28,6 +28,21 @@ extern "C" {
 #define ESPHOME_ZB_AF_SIMPLE_DESC_TYPE(ep_name, in_num, out_num) \
   ESPHOME_CAT7(zb_af_simple_desc_, ep_name, _, in_num, _, out_num, _t)
 
+#define ESPHOME_ZB_ZCL_DECLARE_SIMPLE_DESC(ep_name, ep_id, in_clust_num, out_clust_num, ...) \
+  ESPHOME_ZB_DECLARE_SIMPLE_DESC(ep_name, in_clust_num, out_clust_num); \
+  ESPHOME_ZB_AF_SIMPLE_DESC_TYPE(ep_name, in_clust_num, out_clust_num) \
+  simple_desc_##ep_name = {ep_id,         ZB_AF_HA_PROFILE_ID, ZB_HA_CUSTOM_ATTR_DEVICE_ID, 0, 0, in_clust_num, \
+                           out_clust_num, {__VA_ARGS__}}
+
+#define ESPHOME_ZB_HA_DECLARE_EP(ep_name, ep_id, cluster_list, in_cluster_num, out_cluster_num, report_attr_count, \
+                                 ...) \
+  ESPHOME_ZB_ZCL_DECLARE_SIMPLE_DESC(ep_name, ep_id, in_cluster_num, out_cluster_num, __VA_ARGS__); \
+  ZBOSS_DEVICE_DECLARE_REPORTING_CTX(reporting_info##ep_name, report_attr_count); \
+  ZB_AF_DECLARE_ENDPOINT_DESC(ep_name, ep_id, ZB_AF_HA_PROFILE_ID, 0, NULL, \
+                              ZB_ZCL_ARRAY_SIZE(cluster_list, zb_zcl_cluster_desc_t), cluster_list, \
+                              (zb_af_simple_desc_1_1_t *) &simple_desc_##ep_name, report_attr_count, \
+                              reporting_info##ep_name, 0, NULL)
+
 namespace esphome {
 namespace zigbee {
 

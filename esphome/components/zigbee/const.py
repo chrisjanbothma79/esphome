@@ -20,6 +20,7 @@ CONF_IDENTIFY_ATTRS = "identify_attrs"
 CONF_GROUPS_ATTRS = "groups_attrs"
 CONF_SCENES_ATTRS = "scenes_attrs"
 CONF_BINARY_ATTRS = "binary_attrs"
+CONF_TIME_ATTRS = "time_attrs"
 
 CONF_BASIC_ATTRIB_LIST_EXT = "basic_attrib_list_ext"
 CONF_IDENTIFY_ATTRIB_LIST = "identify_attrib_list"
@@ -47,20 +48,14 @@ BinaryAttrs = zigbee_ns.struct("BinaryAttrs")
 # input
 CONF_BINARY_INPUT_ATTRIB_LIST = "binary_input_attrib_list"
 CONF_BINARY_INPUT_CLUSTER_LIST = "binary_input_cluster_list"
-esphome_zb_ha_declare_binary_input_ep = cg.global_ns.namespace(
-    "ESPHOME_ZB_HA_DECLARE_BINARY_INPUT_EP"
-)
 
 # output
 CONF_BINARY_OUTPUT_ATTRIB_LIST = "binary_output_attrib_list"
 CONF_BINARY_OUTPUT_CLUSTER_LIST = "binary_output_cluster_list"
 
-esphome_zb_ha_declare_binary_output_ep = cg.global_ns.namespace(
-    "ESPHOME_ZB_HA_DECLARE_BINARY_OUTPUT_EP"
-)
-
 # time
 CONF_TIME_ATTRIB_LIST = "time_attrib_list"
-CONF_TIME_ATTRS = "time_attrs"
 CONF_TIME_CLUSTER_LIST = "time_cluster_list"
-esphome_zb_ha_declare_time_ep = cg.global_ns.namespace("ESPHOME_ZB_HA_DECLARE_TIME_EP")
+
+# general
+esphome_zb_ha_declare_ep = cg.global_ns.namespace("ESPHOME_ZB_HA_DECLARE_EP")

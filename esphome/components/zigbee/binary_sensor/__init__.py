@@ -29,7 +29,7 @@ from ..const import (
     CONF_SCENES_ATTRIB_LIST,
     CONF_ZIGBEE_ID,
     BinaryAttrs,
-    esphome_zb_ha_declare_binary_input_ep,
+    esphome_zb_ha_declare_ep,
     zigbee_ns,
 )
 
@@ -55,9 +55,7 @@ CONFIG_SCHEMA = cv.All(
                         "ESPHOME_ZB_HA_DECLARE_BINARY_INPUT_CLUSTER_LIST"
                     )
                 ),
-                cv.GenerateID(CONF_EP): cv.declare_id(
-                    esphome_zb_ha_declare_binary_input_ep
-                ),
+                cv.GenerateID(CONF_EP): cv.declare_id(esphome_zb_ha_declare_ep),
                 cv.Optional(CONF_LAMBDA): cv.returning_lambda,
             }
         )
@@ -88,7 +86,17 @@ async def to_code(config):
         config[CONF_SCENES_ATTRIB_LIST],
     )
 
-    zigbee_register_ep(config[CONF_EP], cluster, config[KEY_EP_NUMBER])
+    clusters = [
+        "ZB_ZCL_CLUSTER_ID_BASIC",
+        "ZB_ZCL_CLUSTER_ID_IDENTIFY",
+        "ZB_ZCL_CLUSTER_ID_BINARY_INPUT",
+        "ZB_ZCL_CLUSTER_ID_SCENES",
+        "ZB_ZCL_CLUSTER_ID_GROUPS",
+    ]
+
+    zigbee_register_ep(
+        config[CONF_EP], cluster, config[KEY_EP_NUMBER], 5, 0, 2, clusters
+    )
 
     var = await binary_sensor.new_binary_sensor(config)
     await cg.register_component(var, config)

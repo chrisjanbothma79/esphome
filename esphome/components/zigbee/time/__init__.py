@@ -25,7 +25,7 @@ from ..const import (
     CONF_TIME_ATTRS,
     CONF_TIME_CLUSTER_LIST,
     CONF_ZIGBEE_ID,
-    esphome_zb_ha_declare_time_ep,
+    esphome_zb_ha_declare_ep,
     zigbee_ns,
 )
 
@@ -33,20 +33,20 @@ AUTO_LOAD = ["zigbee"]
 
 ZigbeeTime = zigbee_ns.class_("ZigbeeTime", time_.RealTimeClock)
 
-zb_zcl_time_attrs_t = cg.global_ns.struct("zb_zcl_time_attrs_t")
-
 CONFIG_SCHEMA = cv.All(
     time_.TIME_SCHEMA.extend(
         {
             cv.GenerateID(): cv.declare_id(ZigbeeTime),
-            cv.GenerateID(CONF_TIME_ATTRS): cv.declare_id(zb_zcl_time_attrs_t),
+            cv.GenerateID(CONF_TIME_ATTRS): cv.declare_id(
+                cg.global_ns.struct("zb_zcl_time_attrs_t")
+            ),
             cv.GenerateID(CONF_TIME_ATTRIB_LIST): cv.declare_id(
                 cg.global_ns.namespace("ZB_ZCL_DECLARE_TIME_ATTR_LIST")
             ),
             cv.GenerateID(CONF_TIME_CLUSTER_LIST): cv.declare_id(
                 cg.global_ns.namespace("ESPHOME_ZB_HA_DECLARE_TIME_CLUSTER_LIST")
             ),
-            cv.GenerateID(CONF_EP): cv.declare_id(esphome_zb_ha_declare_time_ep),
+            cv.GenerateID(CONF_EP): cv.declare_id(esphome_zb_ha_declare_ep),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -71,14 +71,25 @@ async def to_code(config):
         config[CONF_GROUPS_ATTRIB_LIST],
         config[CONF_SCENES_ATTRIB_LIST],
     )
-    ep = config[KEY_EP_NUMBER]
-    zigbee_register_ep(config[CONF_EP], cluster, ep)
+
+    clusters = [
+        "ZB_ZCL_CLUSTER_ID_BASIC",
+        "ZB_ZCL_CLUSTER_ID_IDENTIFY",
+        "ZB_ZCL_CLUSTER_ID_TIME",
+        "ZB_ZCL_CLUSTER_ID_SCENES",
+        "ZB_ZCL_CLUSTER_ID_GROUPS",
+        "ZB_ZCL_CLUSTER_ID_TIME",
+    ]
+
+    zigbee_register_ep(
+        config[CONF_EP], cluster, config[KEY_EP_NUMBER], 5, 1, 0, clusters
+    )
 
     var = cg.new_Pvariable(config[CONF_ID])
     await time_.register_time(var, config)
     await cg.register_component(var, config)
 
-    cg.add(var.set_ep(ep))
+    cg.add(var.set_ep(config[KEY_EP_NUMBER]))
     cg.add(var.set_cluster_attributes(time_attrs))
     hub = await cg.get_variable(config[CONF_ZIGBEE_ID])
     cg.add(var.set_parent(hub))

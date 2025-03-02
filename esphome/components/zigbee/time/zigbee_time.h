@@ -25,33 +25,6 @@ extern "C" {
                           (groups_attr_list), ZB_ZCL_CLUSTER_SERVER_ROLE, ZB_ZCL_MANUF_CODE_INVALID), \
       ZB_ZCL_CLUSTER_DESC(ZB_ZCL_CLUSTER_ID_TIME, 0, NULL, ZB_ZCL_CLUSTER_CLIENT_ROLE, ZB_ZCL_MANUF_CODE_INVALID)}
 
-#define ESPHOME_ZB_HA_DEVICE_VER_SIMPLE_SENSOR 0
-
-#define ESPHOME_ZB_ZCL_DECLARE_TIME_SIMPLE_DESC(ep_name, ep_id, in_clust_num, out_clust_num) \
-  ESPHOME_ZB_DECLARE_SIMPLE_DESC(ep_name, in_clust_num, out_clust_num); \
-  ESPHOME_ZB_AF_SIMPLE_DESC_TYPE(ep_name, in_clust_num, out_clust_num) \
-  simple_desc_##ep_name = {ep_id, \
-                           ZB_AF_HA_PROFILE_ID, \
-                           ZB_HA_CUSTOM_ATTR_DEVICE_ID, \
-                           ESPHOME_ZB_HA_DEVICE_VER_SIMPLE_SENSOR, \
-                           0, \
-                           in_clust_num, \
-                           out_clust_num, \
-                           {ZB_ZCL_CLUSTER_ID_BASIC, ZB_ZCL_CLUSTER_ID_IDENTIFY, ZB_ZCL_CLUSTER_ID_TIME, \
-                            ZB_ZCL_CLUSTER_ID_SCENES, ZB_ZCL_CLUSTER_ID_GROUPS, ZB_ZCL_CLUSTER_ID_TIME}}
-
-#define ESPHOME_ZB_HA_TIME_IN_CLUSTER_NUM 5   // server roles in ESPHOME_ZB_HA_DECLARE_TIME_CLUSTER_LIST
-#define ESPHOME_ZB_HA_TIME_OUT_CLUSTER_NUM 1  // client roles in ESPHOME_ZB_HA_DECLARE_TIME_CLUSTER_LIST
-
-#define ESPHOME_ZB_HA_DECLARE_TIME_EP(ep_name, ep_id, cluster_list) \
-  ESPHOME_ZB_ZCL_DECLARE_TIME_SIMPLE_DESC(ep_name, ep_id, ESPHOME_ZB_HA_TIME_IN_CLUSTER_NUM, \
-                                          ESPHOME_ZB_HA_TIME_OUT_CLUSTER_NUM); \
-  ZBOSS_DEVICE_DECLARE_REPORTING_CTX(reporting_info##ep_name, ZB_ZCL_TIME_REPORT_ATTR_COUNT); \
-  ZB_AF_DECLARE_ENDPOINT_DESC(ep_name, ep_id, ZB_AF_HA_PROFILE_ID, 0, NULL, \
-                              ZB_ZCL_ARRAY_SIZE(cluster_list, zb_zcl_cluster_desc_t), cluster_list, \
-                              (zb_af_simple_desc_1_1_t *) &simple_desc_##ep_name, ZB_ZCL_TIME_REPORT_ATTR_COUNT, \
-                              reporting_info##ep_name, 0, NULL)
-
 namespace esphome {
 namespace zigbee {
 

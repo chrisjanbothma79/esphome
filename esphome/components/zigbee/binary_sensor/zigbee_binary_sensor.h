@@ -23,35 +23,6 @@ extern "C" {
       ZB_ZCL_CLUSTER_DESC(ZB_ZCL_CLUSTER_ID_GROUPS, ZB_ZCL_ARRAY_SIZE(groups_attr_list, zb_zcl_attr_t), \
                           (groups_attr_list), ZB_ZCL_CLUSTER_SERVER_ROLE, ZB_ZCL_MANUF_CODE_INVALID)}
 
-#define ESPHOME_ZB_HA_DEVICE_VER_SIMPLE_SENSOR 0
-
-#define ESPHOME_ZB_ZCL_DECLARE_BINARY_INPUT_SIMPLE_DESC(ep_name, ep_id, in_clust_num, out_clust_num) \
-  ESPHOME_ZB_DECLARE_SIMPLE_DESC(ep_name, in_clust_num, out_clust_num); \
-  ESPHOME_ZB_AF_SIMPLE_DESC_TYPE(ep_name, in_clust_num, out_clust_num) \
-  simple_desc_##ep_name = {ep_id, \
-                           ZB_AF_HA_PROFILE_ID, \
-                           ZB_HA_CUSTOM_ATTR_DEVICE_ID, \
-                           ESPHOME_ZB_HA_DEVICE_VER_SIMPLE_SENSOR, \
-                           0, \
-                           in_clust_num, \
-                           out_clust_num, \
-                           {ZB_ZCL_CLUSTER_ID_BASIC, ZB_ZCL_CLUSTER_ID_IDENTIFY, ZB_ZCL_CLUSTER_ID_BINARY_INPUT, \
-                            ZB_ZCL_CLUSTER_ID_SCENES, ZB_ZCL_CLUSTER_ID_GROUPS}}
-
-#define ESPHOME_ZB_HA_BINARY_INPUT_REPORT_ATTR_COUNT ZB_ZCL_BINARY_INPUT_REPORT_ATTR_COUNT
-#define ESPHOME_ZB_HA_BINARY_INPUT_IN_CLUSTER_NUM 5   // server roles in ESPHOME_ZB_HA_DECLARE_BINARY_INPUT_CLUSTER_LIST
-#define ESPHOME_ZB_HA_BINARY_INPUT_OUT_CLUSTER_NUM 0  // client roles in ESPHOME_ZB_HA_DECLARE_BINARY_INPUT_CLUSTER_LIST
-
-#define ESPHOME_ZB_HA_DECLARE_BINARY_INPUT_EP(ep_name, ep_id, cluster_list) \
-  ESPHOME_ZB_ZCL_DECLARE_BINARY_INPUT_SIMPLE_DESC(ep_name, ep_id, ESPHOME_ZB_HA_BINARY_INPUT_IN_CLUSTER_NUM, \
-                                                  ESPHOME_ZB_HA_BINARY_INPUT_OUT_CLUSTER_NUM); \
-  ZBOSS_DEVICE_DECLARE_REPORTING_CTX(reporting_info##ep_name, ESPHOME_ZB_HA_BINARY_INPUT_REPORT_ATTR_COUNT); \
-  ZB_AF_DECLARE_ENDPOINT_DESC(ep_name, ep_id, ZB_AF_HA_PROFILE_ID, 0, NULL, \
-                              ZB_ZCL_ARRAY_SIZE(cluster_list, zb_zcl_cluster_desc_t), cluster_list, \
-                              (zb_af_simple_desc_1_1_t *) &simple_desc_##ep_name, \
-                              ESPHOME_ZB_HA_BINARY_INPUT_REPORT_ATTR_COUNT, reporting_info##ep_name, 0, NULL)
-
-// it cannot have ESPHOME prefix since it is used outside
 #define ZB_SET_ATTR_DESCR_WITH_ZB_ZCL_ATTR_BINARY_INPUT_DESCRIPTION_ID(data_ptr) \
   { \
     ZB_ZCL_ATTR_BINARY_INPUT_DESCRIPTION_ID, ZB_ZCL_ATTR_TYPE_CHAR_STRING, ZB_ZCL_ATTR_ACCESS_READ_ONLY, \
