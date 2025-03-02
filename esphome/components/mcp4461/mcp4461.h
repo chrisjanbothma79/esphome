@@ -75,9 +75,21 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::HARDWARE; }
   void loop() override;
+  /// @brief get eeprom value from location
+  /// @param[in] location - eeprom location 0-4
+  /// @return eeprom value of specified location (9 bits max)
   uint16_t get_eeprom_value(Mcp4461EepromLocation location);
+  /// @brief set eeprom value at specified location
+  /// @param[in] location - eeprom location 0-4
+  /// @param[in] value - 9 bits value to store
   bool set_eeprom_value(Mcp4461EepromLocation location, uint16_t value);
+  /// @brief public function used to set initial value
+  /// @param[in] wiper - the wiper to set the value for
+  /// @param[in] initial_value - the initial value in range 0-1.0 as float
   void set_initial_value(Mcp4461WiperIdx wiper, float initial_value);
+  /// @brief public function used to set disable terminal config
+  /// @param[in] wiper - the wiper to set the value for
+  /// @param[in] terminal - the terminal to disable, one of ['a','b','w','h']
   void initialize_terminal_disabled(Mcp4461WiperIdx wiper, char terminal);
 
  protected:
