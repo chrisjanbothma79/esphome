@@ -1,4 +1,5 @@
 #pragma once
+
 #include "esphome/core/application.h"
 #include "esphome/core/component.h"
 #include "esphome/core/hal.h"
@@ -26,11 +27,6 @@ using SPIInterface = SPIClass *;
 using SPIInterface = spi_host_device_t;
 
 #endif  // USE_ESP_IDF
-
-#ifdef USE_ZEPHYR
-// supprse clang-tidy
-using SPIInterface = void *;
-#endif
 
 /**
  * Implementation of SPI Controller mode.
