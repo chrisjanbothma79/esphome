@@ -25,8 +25,6 @@ static const char *const TAG = "es8388";
 void ES8388::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ES8388...");
 
-  static int dac_power = DAC_OUTPUT_ALL;
-
   // mute DAC
   this->set_mute_state_(true);
 
@@ -37,8 +35,8 @@ void ES8388::setup() {
   // disable DAC and disable Lout/Rout/1/2
   ES8388_ERROR_FAILED(this->write_byte(ES8388_DACPOWER, 0xC0));
 
-  // vmidsel/500k ADC/DAC idem
-  // Enfr=0,Play&Record Mode,(0x17-both of mic&paly)
+  // vmidsel/500k
+  // EnRef=0,Play&Record Mode,(0x17-both of mic&play)
   ES8388_ERROR_FAILED(this->write_byte(ES8388_CONTROL1, 0x12));
 
   // I2S worker mode
@@ -57,11 +55,24 @@ void ES8388::setup() {
   ES8388_ERROR_FAILED(this->write_byte(ES8388_DACCONTROL20, 0x90));
   // set internal ADC and DAC use the same LRCK clock, ADC LRCK as internal LRCK
   ES8388_ERROR_FAILED(this->write_byte(ES8388_DACCONTROL21, 0x80));
-  // vroi=0
+  // vroi=0 - 1.5k VREF to analog output resistance (default)
   ES8388_ERROR_FAILED(this->write_byte(ES8388_DACCONTROL23, 0x00));
 
-  dac_power = 0;
-  dac_power = DAC_OUTPUT_LOUT1 | DAC_OUTPUT_LOUT2 | DAC_OUTPUT_ROUT1 | DAC_OUTPUT_ROUT2;
+  static int dac_power = ES8388_DAC_OUTPUT_NONE;
+
+  switch (this->dac_output_) {
+    case DAC_OUTPUT_LINE1:
+      dac_power = ES8388_DAC_OUTPUT_LOUT1_ROUT1;
+      break;
+    case DAC_OUTPUT_LINE2:
+      dac_power = ES8388_DAC_OUTPUT_LOUT2_ROUT2;
+      break;
+    case DAC_OUTPUT_BOTH:
+      dac_power = ES8388_DAC_OUTPUT_BOTH;
+      break;
+    default:
+      break;
+  }
 
   // DAC power-up LOUT1/ROUT1 and LOUT2/ROUT2 enabled
   ES8388_ERROR_FAILED(this->write_byte(ES8388_DACPOWER, dac_power));
@@ -89,13 +100,6 @@ void ES8388::setup() {
   // ADC Volume
   ES8388_ERROR_FAILED(this->write_byte(ES8388_ADCCONTROL8, 0x00));
   ES8388_ERROR_FAILED(this->write_byte(ES8388_ADCCONTROL9, 0x00));
-
-  // ALC OFF  original
-
-  // Power on ADC, enable LIN&RIN, power off MICBIAS, and set int1lp to low power mode
-  // enable dac
-  // this->write_byte(ES8388_ADCPOWER, 0x09);
-  // this->write_byte(ES8388_DACCONTROL21, 0x80);
 
   //@nightDav
   // ALC Config (as recommended by ES8388 user guide for voice recording)
@@ -127,7 +131,7 @@ void ES8388::setup() {
   this->set_volume(0.75);  // 0.75 = 0xBF = 0dB
 
   // DAC volume max
-  // Set L1 R1 L2 R2 volume. 0x00: -30dB, 0x1E: 0dB, 0x21: 3dB , 0x1C: 28db
+  // Set L1 R1 L2 R2 volume. 0x00: -45dB, 0x1E: 0dB, 0x21: 3dB , 0x1C: 28db
   ES8388_ERROR_FAILED(this->write_byte(ES8388_DACCONTROL24, 0x1C));
   ES8388_ERROR_FAILED(this->write_byte(ES8388_DACCONTROL25, 0x1C));
 
@@ -148,6 +152,24 @@ void ES8388::setup() {
 
 void ES8388::dump_config() {
   ESP_LOGCONFIG(TAG, "ES8388 Audio Codec:");
+  LOG_I2C_DEVICE(this);
+  switch (this->dac_output_) {
+    case DAC_OUTPUT_LINE1:
+      ESP_LOGCONFIG(TAG, "  DAC Output: DAC_OUTPUT_LINE1");
+      ESP_LOGCONFIG(TAG, "    Value: 0x%02X", (uint16_t) ES8388_DAC_OUTPUT_LOUT1_ROUT1);
+
+      break;
+    case DAC_OUTPUT_LINE2:
+      ESP_LOGCONFIG(TAG, "  DAC Output: DAC_OUTPUT_LINE2");
+      ESP_LOGCONFIG(TAG, "    Value: 0x%02X", (uint16_t) ES8388_DAC_OUTPUT_LOUT2_ROUT2);
+      break;
+    case DAC_OUTPUT_BOTH:
+      ESP_LOGCONFIG(TAG, "  DAC Output: DAC_OUTPUT_ALL");
+      ESP_LOGCONFIG(TAG, "    Value: 0x%02X", (uint16_t) ES8388_DAC_OUTPUT_BOTH);
+      break;
+    default:
+      break;
+  }
 
   if (this->is_failed()) {
     ESP_LOGCONFIG(TAG, "  Failed to initialize");

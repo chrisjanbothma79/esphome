@@ -7,6 +7,24 @@
 namespace esphome {
 namespace es8388 {
 
+using ES8388_ADCInput = enum {
+  ADC_INPUT_MIN = -1,
+  ADC_INPUT_LINPUT1_RINPUT1 = 0x00,
+  ADC_INPUT_MIC1 = 0x05,
+  ADC_INPUT_MIC2 = 0x06,
+  ADC_INPUT_LINPUT2_RINPUT2 = 0x50,
+  ADC_INPUT_DIFFERENCE = 0xf0,
+  ADC_INPUT_MAX,
+};
+
+using ES8388_DACOutput = enum {
+  // DAC_OUTPUT_MIN,
+  DAC_OUTPUT_LINE1,
+  DAC_OUTPUT_LINE2,
+  DAC_OUTPUT_BOTH,
+  // DAC_OUTPUT_MAX,
+};
+
 class ES8388 : public audio_dac::AudioDac, public Component, public i2c::I2CDevice {
  public:
   /////////////////////////
@@ -40,32 +58,15 @@ class ES8388 : public audio_dac::AudioDac, public Component, public i2c::I2CDevi
 
   bool is_muted() override { return this->is_muted_; }
 
+  void set_dac_output(ES8388_DACOutput dac_output) { this->dac_output_ = dac_output; }
+
  protected:
   /// @brief Mutes or unmutes the DAC audio out
   /// @param mute_state True to mute, false to unmute
   /// @return True if successful and false otherwise
   bool set_mute_state_(bool mute_state);
-};
 
-using es_adc_input_t = enum {
-  ADC_INPUT_MIN = -1,
-  ADC_INPUT_LINPUT1_RINPUT1 = 0x00,
-  ADC_INPUT_MIC1 = 0x05,
-  ADC_INPUT_MIC2 = 0x06,
-  ADC_INPUT_LINPUT2_RINPUT2 = 0x50,
-  ADC_INPUT_DIFFERENCE = 0xf0,
-  ADC_INPUT_MAX,
-};
-
-using es_dac_output_t = enum {
-  DAC_OUTPUT_MIN = -1,
-  DAC_OUTPUT_LOUT1 = 0x04,
-  DAC_OUTPUT_LOUT2 = 0x08,
-  DAC_OUTPUT_SPK = 0x09,
-  DAC_OUTPUT_ROUT1 = 0x10,
-  DAC_OUTPUT_ROUT2 = 0x20,
-  DAC_OUTPUT_ALL = 0x3c,
-  DAC_OUTPUT_MAX,
+  ES8388_DACOutput dac_output_;
 };
 
 }  // namespace es8388
