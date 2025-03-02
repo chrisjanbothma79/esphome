@@ -413,16 +413,19 @@ void ILI9XXXDisplay::set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uin
   y1 += this->offset_y_;
   y2 += this->offset_y_;
   uint8_t buf[4];
-  buf[0] = x1 >> 8;
-  buf[1] = x1;
-  buf[2] = x2 >> 8;
-  buf[3] = x2;
-  this->bus_->write_cmd_data(ILI9XXX_CASET, buf, sizeof buf);
   buf[0] = y1 >> 8;
   buf[1] = y1;
   buf[2] = y2 >> 8;
   buf[3] = y2;
   this->bus_->write_cmd_data(ILI9XXX_PASET, buf, sizeof buf);
+  // Write the command again - this is specifically to deal with a weird issue with the WT32-SC01 Plus display
+  // where the first command is sometimes apparently ignored. Will be harmless on other displays.
+  this->bus_->write_cmd_data(ILI9XXX_PASET, buf, sizeof buf);
+  buf[0] = x1 >> 8;
+  buf[1] = x1;
+  buf[2] = x2 >> 8;
+  buf[3] = x2;
+  this->bus_->write_cmd_data(ILI9XXX_CASET, buf, sizeof buf);
   this->bus_->write_cmd(ILI9XXX_RAMWR);
   this->bus_->begin_transaction();
 }
