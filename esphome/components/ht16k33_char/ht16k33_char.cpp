@@ -13,6 +13,7 @@
  *    -Implement a `uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position)` function in that class.
  */
 
+//States for the scrolling state machine.
 #define HT16K33_SCROLL_STATE_STATIC         0   //No scrolling. If this state is set, it will never change.
 #define HT16K33_SCROLL_STATE_START          1
 #define HT16K33_SCROLL_STATE_SCROLLING      2
@@ -38,6 +39,8 @@ void HT16k33CharComponent::setup() {
     SetupBuffer = HT16K33_DISPLAY_SETUP|HT16K33_DISPLAY_ON;
     display->write(&SetupBuffer, 1, true);
   }
+  
+  this->brightness(this->brightness_);  
   
   this->blank();
   this->char_buffer_.resize(this->char_buffer_size_, ' ');
@@ -217,6 +220,23 @@ uint8_t HT16k33CharComponent::update_display() {
   
   return buffer_location;
 }
+
+void HT16k33CharComponent::brightness(uint8_t brightness_to_set) {
+  uint8_t buffer;
+  
+  if (brightness_to_set > 0x0F) {
+    buffer = HT16K33_DIMMING_SET|0x0F;
+  }
+  else {
+    buffer = HT16K33_DIMMING_SET|brightness_to_set;
+  }
+
+  for (auto *display : this->displays_) {
+    display->write(&buffer, 1, true);
+  }
+  
+}
+
 
 //TODO: This function should take a character array and put it in the character buffer
 //NOTE: start_pos is zero reference

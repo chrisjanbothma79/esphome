@@ -52,8 +52,8 @@ CONFIG_SCHEMA = ( display.BASIC_DISPLAY_SCHEMA.extend(
         {
             cv.GenerateID(): cv.declare_id(HT16k33Char_BaseClassType),
             cv.Required(CONF_DEVICE): cv.enum(HT16K33_DEVICE_TYPES, upper=True),
-            cv.Optional(CONF_BUFFER_SIZE, default=8): cv.int_range(min=1, max=255),
-            cv.Optional(CONF_BRIGHTNESS, default=15): cv.int_range(min=0, max=15),
+            cv.Optional(CONF_BUFFER_SIZE, default=8): cv.int_range(min=4, max=255),
+            cv.Optional(CONF_BRIGHTNESS, default=15): cv.int_range(min=1, max=16),
             cv.Optional(CONF_SECONDARY_DISPLAYS): cv.ensure_list(CONFIG_SECONDARY),
             cv.Optional(CONF_CONTINUOUS, default=False): cv.boolean,
             cv.Optional(CONF_SCROLL, default=False): cv.boolean,

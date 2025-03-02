@@ -45,7 +45,7 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
   //This needs to have the stub or it won't work. This function is replaced by the device specific functions in the subclasses.
   virtual uint8_t send_to_display(i2c::I2CDevice *display, uint8_t position) {return 0;};
   
-  void set_brightness(uint8_t brightness) { this->brightness_ = brightness; };
+  void set_brightness(uint8_t brightness) { this->brightness_ = brightness-1; };
   void set_buffer_size(uint8_t size_to_set) { this->char_buffer_size_ = size_to_set; };  //TODO: Should I use a compiler define for this?
   
   //Called automatically during setup to generate a list of I2CDevices that represent the displays.
@@ -57,6 +57,10 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
   void set_scroll_speed(unsigned long scroll_speed) { this->scroll_speed_ = scroll_speed; }
   void set_scroll_dwell(unsigned long scroll_dwell) { this->scroll_dwell_ = scroll_dwell; }
   void set_scroll_delay(unsigned long scroll_delay) { this->scroll_delay_ = scroll_delay; }
+
+  void brightness(uint8_t brightness_to_set);
+
+
 
   /// Evaluate the printf-format and print the result at the given position.
   uint8_t printf(uint8_t pos, bool clear_buffer, const char *format, ...) __attribute__((format(printf, 4, 5)));
