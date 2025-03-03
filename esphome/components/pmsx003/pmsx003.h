@@ -71,6 +71,7 @@ class PMSX003Component : public uart::UARTDevice, public Component {
  protected:
   optional<bool> check_byte_();
   void parse_data_();
+  bool PMSX003Component::check_payload_length_(uint16_t payload_length);
   void send_command_(PMSX0003Command cmd, uint16_t data);
   uint16_t get_16_bit_uint_(uint8_t start_index);
 

@@ -134,21 +134,7 @@ optional<bool> PMSX003Component::check_byte_() {
 
   uint16_t payload_length = this->get_16_bit_uint_(2);
   if (index == 3) {
-    bool length_matches = false;
-    switch (this->type_) {
-      case PMSX003_TYPE_X003:
-        length_matches = payload_length == 28 || payload_length == 20;
-        break;
-      case PMSX003_TYPE_5003T:
-      case PMSX003_TYPE_5003S:
-        length_matches = payload_length == 28;
-        break;
-      case PMSX003_TYPE_5003ST:
-        length_matches = payload_length == 36;
-        break;
-    }
-
-    if (!length_matches) {
+    if (!this->check_payload_length_(payload_length)) {
       ESP_LOGW(TAG, "PMSX003 length %u doesn't match. Are you using the correct PMSX003 type?", payload_length);
       return false;
     }
@@ -173,6 +159,19 @@ optional<bool> PMSX003Component::check_byte_() {
   }
 
   return {};
+}
+
+bool PMSX003Component::check_payload_length_(uint16_t payload_length) {
+  switch (this->type_) {
+    case PMSX003_TYPE_X003:
+      return payload_length == 28 || payload_length == 20;  // 2*13+2 // TODO: payload_length=20?
+    case PMSX003_TYPE_5003T:
+    case PMSX003_TYPE_5003S:
+      return payload_length == 28;  // 2*13+2 (Data 13 not set/reserved)
+    case PMSX003_TYPE_5003ST:
+      return payload_length == 36;  // 2*17+2 (Data 16 not set/reserved)
+  }
+  return false;
 }
 
 void PMSX003Component::send_command_(PMSX0003Command cmd, uint16_t data) {
