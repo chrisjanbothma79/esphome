@@ -129,7 +129,8 @@ std::shared_ptr<HttpContainer> HttpRequestArduino::start(std::string url, std::s
   }
 
   container->response_headers_ = {};
-  for (int i = 0; i < container->client_.headers(); i++) {
+  auto header_count = container->client_.headers();
+  for (int i = 0; i < header_count; i++) {
     const std::string header_name = str_lower_case(container->client_.headerName(i).c_str());
     for (const auto &collect_header_name : collect_header_names) {
       if (str_equals_case_insensitive(collect_header_name, header_name)) {
