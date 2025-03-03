@@ -1,24 +1,12 @@
-SW_RESET_CMD = 0x01
-SLEEP_IN = 0x10
-SLEEP_OUT = 0x11
-NORON = 0x13
-INVERT_OFF = 0x20
-INVERT_ON = 0x21
-ALL_ON = 0x23
-WRAM = 0x24
-MIPI = 0x26
-DISPLAY_OFF = 0x28
-DISPLAY_ON = 0x29
-RASET = 0x2B
-CASET = 0x2A
-WDATA = 0x2C
-TEON = 0x35
-MADCTL_CMD = 0x36
-PIXFMT = 0x3A
-BRIGHTNESS = 0x51
-SWIRE1 = 0x5A
-SWIRE2 = 0x5B
-PAGESEL = 0xFE
+from esphome.components.spi import TYPE_QUAD, TYPE_SINGLE
+
+MADCTL_MY = 0x80  # Bit 7 Bottom to top
+MADCTL_MX = 0x40  # Bit 6 Right to left
+MADCTL_MV = 0x20  # Bit 5 Reverse Mode
+MADCTL_ML = 0x10  # Bit 4 LCD refresh Bottom to top
+MADCTL_RGB = 0x00  # Bit 3 Red-Green-Blue pixel order
+MADCTL_BGR = 0x08  # Bit 3 Blue-Green-Red pixel order
+MADCTL_MH = 0x04  # Bit 2 LCD refresh right to left
 
 
 def cmd(c, *args):
@@ -35,11 +23,12 @@ def delay(ms):
 
 
 class DriverChip:
-    chips = {}
-
-    def __init__(self, name: str, defaults=None, *initsequence):
+    def __init__(
+        self, name: str, defaults=None, modes=(TYPE_SINGLE, TYPE_QUAD), initsequence=()
+    ):
         name = name.upper()
         self.name = name
+        self.modes = modes
         assert all(isinstance(x, tuple) for x in initsequence)
         self.initsequence = sum(initsequence, ())
         self.defaults = defaults or {}

@@ -1,12 +1,9 @@
 #pragma once
 
-#ifdef USE_ESP_IDF
 #include "esphome/components/spi/spi.h"
 #include "esphome/components/display/display.h"
 #include "esphome/components/display/display_buffer.h"
 #include "esphome/components/display/display_color_utils.h"
-
-#include "esp_lcd_panel_rgb.h"
 
 namespace esphome {
 namespace mipi_dbi {
@@ -138,9 +135,11 @@ class MipiDbi : public display::DisplayBuffer,
   void reset_params_(bool ready = false);
   void write_init_sequence_();
   void set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
+  void set_dc_pin(GPIOPin *dc_pin) { this->dc_pin_ = dc_pin; }
 
   GPIOPin *reset_pin_{nullptr};
   GPIOPin *enable_pin_{nullptr};
+  GPIOPin *dc_pin_{nullptr};
   uint16_t x_low_{1};
   uint16_t y_low_{1};
   uint16_t x_high_{0};
@@ -161,10 +160,6 @@ class MipiDbi : public display::DisplayBuffer,
   uint8_t brightness_{0xD0};
   const char *model_{"Unknown"};
   std::vector<std::vector<uint8_t>> init_sequences_{};
-
-  esp_lcd_panel_handle_t handle_{};
 };
-
 }  // namespace mipi_dbi
 }  // namespace esphome
-#endif

@@ -1,10 +1,14 @@
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display, spi
+from esphome.components.mipi_dbi.models import ili
+from esphome.components.spi import TYPE_OCTAL, TYPE_QUAD, TYPE_SINGLE
 import esphome.config_validation as cv
+from esphome.config_validation import ALLOW_EXTRA
 from esphome.const import (
     CONF_BRIGHTNESS,
     CONF_COLOR_ORDER,
+    CONF_DC_PIN,
     CONF_DIMENSIONS,
     CONF_ENABLE_PIN,
     CONF_HEIGHT,
@@ -44,11 +48,14 @@ DATA_PIN_SCHEMA = pins.internal_gpio_output_pin_schema
 
 DELAY_FLAG = 0xFF
 
+CONF_BUS_MODE = "bus_mode"
+
 # Define models by import from submodule
 
 MODELS = [DriverChip("CUSTOM", {})]
 MODELS.extend(amoled.chips)
 MODELS.extend(jc.chips)
+MODELS.extend(ili.chips)
 
 MODELS = {chip.name: chip for chip in MODELS}
 
@@ -94,33 +101,25 @@ def power_of_two(value):
 
 
 BASE_SCHEMA = display.FULL_DISPLAY_SCHEMA.extend(
-    cv.Schema(
-        {
-            cv.GenerateID(): cv.declare_id(MIPI_DBI),
-            cv.Optional(CONF_INIT_SEQUENCE): cv.ensure_list(map_sequence),
-            cv.Required(CONF_DIMENSIONS): cv.Any(
-                cv.dimensions,
-                cv.Schema(
-                    {
-                        cv.Required(CONF_WIDTH): validate_dimension,
-                        cv.Required(CONF_HEIGHT): validate_dimension,
-                        cv.Optional(CONF_OFFSET_HEIGHT, default=0): validate_dimension,
-                        cv.Optional(CONF_OFFSET_WIDTH, default=0): validate_dimension,
-                    }
-                ),
+    {
+        cv.GenerateID(): cv.declare_id(MIPI_DBI),
+        cv.Optional(CONF_INIT_SEQUENCE): cv.ensure_list(map_sequence),
+        cv.Required(CONF_DIMENSIONS): cv.Any(
+            cv.dimensions,
+            cv.Schema(
+                {
+                    cv.Required(CONF_WIDTH): validate_dimension,
+                    cv.Required(CONF_HEIGHT): validate_dimension,
+                    cv.Optional(CONF_OFFSET_HEIGHT, default=0): validate_dimension,
+                    cv.Optional(CONF_OFFSET_WIDTH, default=0): validate_dimension,
+                }
             ),
-            cv.Optional(CONF_DRAW_FROM_ORIGIN, default=False): cv.boolean,
-            cv.Optional(CONF_RESET_PIN): pins.gpio_output_pin_schema,
-            cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
-        }
-    ).extend(
-        spi.spi_device_schema(
-            cs_pin_required=False,
-            default_mode="MODE0",
-            default_data_rate=10e6,
-            mode=spi.TYPE_QUAD,
-        )
-    )
+        ),
+        cv.Optional(CONF_DRAW_FROM_ORIGIN, default=False): cv.boolean,
+        cv.Optional(CONF_RESET_PIN): pins.gpio_output_pin_schema,
+        cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
+        cv.Optional(CONF_DC_PIN): pins.gpio_output_pin_schema,
+    }
 )
 
 
@@ -128,30 +127,41 @@ def model_property(name, defaults, fallback):
     return cv.Optional(name, default=defaults.get(name, fallback))
 
 
-def model_schema(defaults):
+def model_schema(bus_mode, model: DriverChip):
     transform = cv.Schema(
         {
             cv.Optional(CONF_MIRROR_X, default=False): cv.boolean,
             cv.Optional(CONF_MIRROR_Y, default=False): cv.boolean,
         }
     )
-    if defaults.get(CONF_SWAP_XY, True):
+    if model.defaults.get(CONF_SWAP_XY, True):
         transform = transform.extend(
             {
                 cv.Optional(CONF_SWAP_XY, default=False): cv.boolean,
             }
         )
     schema = BASE_SCHEMA.extend(
+        spi.spi_device_schema(
+            cs_pin_required=False,
+            default_mode="MODE0",
+            default_data_rate=10e6,
+            mode=bus_mode,
+        )
+    ).extend(
         {
-            model_property(CONF_INVERT_COLORS, defaults, False): cv.boolean,
-            model_property(CONF_COLOR_ORDER, defaults, "RGB"): cv.enum(
+            model_property(CONF_INVERT_COLORS, model.defaults, False): cv.boolean,
+            model_property(CONF_COLOR_ORDER, model.defaults, "RGB"): cv.enum(
                 COLOR_ORDERS, upper=True
             ),
-            model_property(CONF_DRAW_ROUNDING, defaults, 2): power_of_two,
+            model_property(CONF_DRAW_ROUNDING, model.defaults, 2): power_of_two,
             cv.Optional(CONF_TRANSFORM): transform,
+            cv.Optional(CONF_BUS_MODE, default=bus_mode): cv.one_of(
+                *model.modes, lower=True
+            ),
+            cv.Required(CONF_MODEL): cv.one_of(model.name, upper=True),
         }
     )
-    if brightness := defaults.get(CONF_BRIGHTNESS):
+    if brightness := model.defaults.get(CONF_BRIGHTNESS):
         schema = schema.extend(
             {
                 cv.Optional(CONF_BRIGHTNESS, default=brightness): cv.int_range(
@@ -159,17 +169,33 @@ def model_schema(defaults):
                 ),
             }
         )
+    if bus_mode == TYPE_QUAD:
+        return cv.All(schema, cv.only_with_esp_idf)
     return schema
 
 
-CONFIG_SCHEMA = cv.All(
-    cv.typed_schema(
-        {k.upper(): model_schema(v.defaults) for k, v in MODELS.items()},
-        upper=True,
-        key=CONF_MODEL,
-    ),
-    cv.only_with_esp_idf,
-)
+def config_schema(config):
+    # First get the model and bus mode
+    config = cv.Schema(
+        {
+            cv.Optional(CONF_BUS_MODE): cv.one_of(
+                TYPE_SINGLE, TYPE_QUAD, TYPE_OCTAL, lower=True
+            ),
+            cv.Required(CONF_MODEL): cv.one_of(*MODELS, upper=True),
+        },
+        extra=ALLOW_EXTRA,
+    )(config)
+    model = MODELS[config[CONF_MODEL]]
+    bus_mode = config.get(CONF_BUS_MODE, model.modes[0])
+    config = model_schema(bus_mode, model)(config)
+    if bus_mode == TYPE_QUAD and CONF_DC_PIN in config:
+        raise cv.Invalid("DC pin is not supported in quad mode")
+    if bus_mode != TYPE_QUAD and CONF_DC_PIN not in config:
+        raise cv.Invalid(f"DC pin is required in {bus_mode} mode")
+    return config
+
+
+CONFIG_SCHEMA = config_schema
 
 
 async def to_code(config):
@@ -200,6 +226,10 @@ async def to_code(config):
     if reset_pin := config.get(CONF_RESET_PIN):
         reset = await cg.gpio_pin_expression(reset_pin)
         cg.add(var.set_reset_pin(reset))
+
+    if dc_pin := config.get(CONF_DC_PIN):
+        dc_pin = await cg.gpio_pin_expression(dc_pin)
+        cg.add(var.set_dc_pin(dc_pin))
 
     if transform := config.get(CONF_TRANSFORM):
         cg.add(var.set_mirror_x(transform[CONF_MIRROR_X]))
