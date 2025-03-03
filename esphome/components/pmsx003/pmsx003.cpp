@@ -176,22 +176,27 @@ bool PMSX003Component::check_payload_length_(uint16_t payload_length) {
 }
 
 void PMSX003Component::send_command_(PMSX0003Command cmd, uint16_t data) {
-  this->data_index_ = 0;
-  this->data_[data_index_++] = START_CHARACTER_1;
-  this->data_[data_index_++] = START_CHARACTER_2;
-  this->data_[data_index_++] = cmd;
-  this->data_[data_index_++] = (data >> 8) & 0xFF;
-  this->data_[data_index_++] = (data >> 0) & 0xFF;
-  int sum = 0;
-  for (int i = 0; i < data_index_; i++) {
-    sum += this->data_[i];
+  uint8_t send_data[7] = {
+      START_CHARACTER_1,   // Start Byte 1
+      START_CHARACTER_2,   // Start Byte 2
+      cmd,                 // Command
+      (data >> 8) & 0xFF,  // Data 1
+      (data >> 0) & 0xFF,  // Data 2
+      0,                   // Verify Byte 1
+      0,                   // Verify Byte 2
+  };
+
+  // Calculate checksum
+  uint16_t checksum = 0;
+  for (uint8_t i = 0; i < 5; i++) {
+    checksum += send_data[i];
   }
-  this->data_[data_index_++] = (sum >> 8) & 0xFF;
-  this->data_[data_index_++] = (sum >> 0) & 0xFF;
-  for (int i = 0; i < data_index_; i++) {
-    this->write_byte(this->data_[i]);
+  send_data[5] = (checksum >> 8) & 0xFF;  // Verify Byte 1
+  send_data[6] = (checksum >> 0) & 0xFF;  // Verify Byte 2
+
+  for (auto send_byte : send_data) {
+    this->write_byte(send_byte);
   }
-  this->data_index_ = 0;
 }
 
 void PMSX003Component::parse_data_() {
