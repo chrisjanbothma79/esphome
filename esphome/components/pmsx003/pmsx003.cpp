@@ -39,13 +39,13 @@ void PMSX003Component::set_pm_particles_100um_sensor(sensor::Sensor *pm_particle
   pm_particles_100um_sensor_ = pm_particles_100um_sensor;
 }
 
+void PMSX003Component::set_formaldehyde_sensor(sensor::Sensor *formaldehyde_sensor) {
+  formaldehyde_sensor_ = formaldehyde_sensor;
+}
 void PMSX003Component::set_temperature_sensor(sensor::Sensor *temperature_sensor) {
   temperature_sensor_ = temperature_sensor;
 }
 void PMSX003Component::set_humidity_sensor(sensor::Sensor *humidity_sensor) { humidity_sensor_ = humidity_sensor; }
-void PMSX003Component::set_formaldehyde_sensor(sensor::Sensor *formaldehyde_sensor) {
-  formaldehyde_sensor_ = formaldehyde_sensor;
-}
 
 void PMSX003Component::loop() {
   const uint32_t now = millis();
