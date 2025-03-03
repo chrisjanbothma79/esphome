@@ -149,7 +149,7 @@ optional<bool> PMSX003Component::check_byte_() {
 
   // checksum is without checksum bytes
   uint16_t checksum = 0;
-  for (uint8_t i = 0; i < total_size - 2; i++) {
+  for (uint16_t i = 0; i < total_size - 2; i++) {
     checksum += this->data_[i];
   }
 
