@@ -249,7 +249,7 @@ void PMSX003Component::parse_data_() {
       this->pm_particles_100um_sensor_->publish_state(pm_particles_100um);
   }
 
-  ESP_LOGD(TAG, "Got PM1.0 Concentration: %u µg/m^3, PM2.5 Concentration %u µg/m^3, PM10.0 Concentration: %u µg/m^3",
+  ESP_LOGD(TAG, "Got PM1.0 Concentration: %u µg/m³, PM2.5 Concentration %u µg/m³, PM10.0 Concentration: %u µg/m³",
            pm_1_0_concentration, pm_2_5_concentration, pm_10_0_concentration);
 
   // Formaldehyde
