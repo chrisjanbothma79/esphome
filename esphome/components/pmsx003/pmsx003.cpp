@@ -177,13 +177,13 @@ bool PMSX003Component::check_payload_length_(uint16_t payload_length) {
 
 void PMSX003Component::send_command_(PMSX0003Command cmd, uint16_t data) {
   uint8_t send_data[7] = {
-      START_CHARACTER_1,   // Start Byte 1
-      START_CHARACTER_2,   // Start Byte 2
-      cmd,                 // Command
-      (data >> 8) & 0xFF,  // Data 1
-      (data >> 0) & 0xFF,  // Data 2
-      0,                   // Verify Byte 1
-      0,                   // Verify Byte 2
+      START_CHARACTER_1,            // Start Byte 1
+      START_CHARACTER_2,            // Start Byte 2
+      cmd,                          // Command
+      uint8_t((data >> 8) & 0xFF),  // Data 1
+      uint8_t((data >> 0) & 0xFF),  // Data 2
+      0,                            // Verify Byte 1
+      0,                            // Verify Byte 2
   };
 
   // Calculate checksum
