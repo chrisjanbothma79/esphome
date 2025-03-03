@@ -277,6 +277,14 @@ void PMSX003Component::parse_data_() {
       this->humidity_sensor_->publish_state(humidity);
   }
 
+  // Firmware Version and Error Code
+  if (this->type_ == PMSX003_TYPE_5003ST) {
+    uint8_t firmware_version = this->data_[36];
+    uint8_t error_code = this->data_[37];
+
+    ESP_LOGD(TAG, "Got Firmware Version: %u, Error Code: %u", firmware_version, error_code);
+  }
+
   // Spin down the sensor again if we aren't going to need it until more time has
   // passed than it takes to stabilise
   if (this->update_interval_ > PMS_STABILISING_MS) {
