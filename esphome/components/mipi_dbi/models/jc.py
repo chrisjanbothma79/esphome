@@ -3,29 +3,12 @@ from esphome.components.spi import TYPE_QUAD
 import esphome.config_validation as cv
 from esphome.const import CONF_COLOR_ORDER, CONF_INVERT_COLORS, CONF_SWAP_XY
 
-from . import DriverChip, cmd, delay
-from .commands import DISPLAY_OFF, INVERT_OFF, PIXFMT, SLEEP_IN, SLEEP_OUT
-
-JC4832W535 = DriverChip(
-    "JC4832W535",
-    {CONF_DRAW_ROUNDING: 8, CONF_SWAP_XY: cv.UNDEFINED, CONF_COLOR_ORDER: MODE_RGB},
-    modes=(TYPE_QUAD,),
-    initsequence=(
-        cmd(DISPLAY_OFF),
-        delay(20),
-        cmd(SLEEP_IN),
-        delay(80),
-        cmd(SLEEP_OUT),
-        cmd(INVERT_OFF),
-        # A magic sequence to enable the windowed drawing mode
-        cmd(0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5A, 0xA5),
-        cmd(0xC1, 0x33),
-        cmd(0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
-    ),
-)
+from . import DriverChip, cmd
+from .commands import PIXFMT
 
 AXS15231 = DriverChip(
     "AXS15231",
+    {CONF_DRAW_ROUNDING: 8, CONF_SWAP_XY: cv.UNDEFINED, CONF_COLOR_ORDER: MODE_RGB},
     modes=(TYPE_QUAD,),
     initsequence=(
         cmd(0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5A, 0xA5),
@@ -257,4 +240,4 @@ JC3636W518 = DriverChip(
         cmd(PIXFMT, 0x55),
     ),
 )
-chips = (JC3636W518, JC4832W535, AXS15231)
+chips = (JC3636W518, AXS15231)
