@@ -128,7 +128,7 @@ void BH1750Sensor::update() {
   // first do a quick measurement in L-mode with full range
   // to find right range
 
-  if (use_mode == BH1750_MODE_AUTO) {
+  if (use_mode_ == BH1750_MODE_AUTO) {
     this->read_lx_(BH1750_MODE_L, 31, [this](float val) {
       if (std::isnan(val)) {
         this->status_set_warning();
@@ -138,10 +138,10 @@ void BH1750Sensor::update() {
 
       uint8_t use_mtreg;
       if (val <= 7000) {
-        use_mode = BH1750_MODE_H2;
+        use_mode_ = BH1750_MODE_H2;
         use_mtreg = 254;
       } else {
-        use_mode = BH1750_MODE_H;
+        use_mode_ = BH1750_MODE_H;
         // lx = counts / 1.2 * (69 / mtreg)
         // -> mtreg = counts / 1.2 * (69 / lx)
         // calculate for counts=50000 (allow some range to not saturate, but maximize mtreg)
@@ -149,9 +149,9 @@ void BH1750Sensor::update() {
         int ideal_mtreg = 50000 * 10 * 69 / (12 * (int) val);
         use_mtreg = std::min(254, std::max(31, ideal_mtreg));
       }
-      ESP_LOGV(TAG, "L result: %f -> Calculated mode=%d, mtreg=%d", val, (int) use_mode, use_mtreg);
+      ESP_LOGV(TAG, "L result: %f -> Calculated mode=%d, mtreg=%d", val, (int) use_mode_, use_mtreg);
 
-      this->read_lx_(use_mode, use_mtreg, [this](float val) {
+      this->read_lx_(use_mode_, use_mtreg, [this](float val) {
         if (std::isnan(val)) {
           this->status_set_warning();
           this->publish_state(NAN);
@@ -163,7 +163,7 @@ void BH1750Sensor::update() {
       });
     });
   } else {
-    this->read_lx_(use_mode, 69, [this](float val) {
+    this->read_lx_(use_mode_, 69, [this](float val) {
       if (std::isnan(val)) {
         this->status_set_warning();
         this->publish_state(NAN);
@@ -176,7 +176,7 @@ void BH1750Sensor::update() {
   }
 }
 
-void BH1750Sensor::set_mode(BH1750Mode mode) { this->use_mode = mode; }
+void BH1750Sensor::set_mode(BH1750Mode mode) { this->use_mode_ = mode; }
 
 float BH1750Sensor::get_setup_priority() const { return setup_priority::DATA; }
 

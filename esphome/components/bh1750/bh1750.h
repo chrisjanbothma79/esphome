@@ -30,7 +30,7 @@ class BH1750Sensor : public sensor::Sensor, public PollingComponent, public i2c:
   void read_lx_(BH1750Mode mode, uint8_t mtreg, const std::function<void(float)> &f);
 
   uint8_t active_mtreg_{0};
-  BH1750Mode use_mode;
+  BH1750Mode use_mode_;
 };
 
 }  // namespace bh1750
