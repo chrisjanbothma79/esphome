@@ -1,5 +1,5 @@
 import os
-from typing import Union
+from typing import TypedDict, Union
 
 import esphome.codegen as cg
 from esphome.const import CONF_BOARD, KEY_NAME
@@ -21,22 +21,31 @@ CODEOWNERS = ["@tomaszduda23"]
 AUTO_LOAD = ["preferences"]
 KEY_BOARD = "board"
 
-
-def zephyr_set_core_data(config):
-    CORE.data[KEY_ZEPHYR] = {
-        KEY_BOARD: config[CONF_BOARD],
-        KEY_PRJ_CONF: {},
-        KEY_OVERLAY: "",
-        KEY_BOOTLOADER: config[KEY_BOOTLOADER],
-        KEY_EXTRA_BUILD_FILES: {},
-    }
-    return config
-
-
 PrjConfValueType = Union[bool, str, int]
 
 
-def zephyr_add_prj_conf(name: str, value: PrjConfValueType, required: bool = True) -> None:
+class ZephyrData(TypedDict):
+    board: str
+    bootloader: str
+    prj_conf: dict[str, tuple[PrjConfValueType, bool]]
+    overlay: str
+    extra_build_files: dict[str, str]
+
+
+def zephyr_set_core_data(config):
+    CORE.data[KEY_ZEPHYR] = ZephyrData(
+        board=config[CONF_BOARD],
+        bootloader=config[KEY_BOOTLOADER],
+        prj_conf={},
+        overlay="",
+        extra_build_files={},
+    )
+    return config
+
+
+def zephyr_add_prj_conf(
+    name: str, value: PrjConfValueType, required: bool = True
+) -> None:
     """Set an zephyr prj conf value."""
     if not name.startswith("CONFIG_"):
         name = "CONFIG_" + name
