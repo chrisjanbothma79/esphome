@@ -1,4 +1,5 @@
 #include "esphome/core/log.h"
+#ifdef USE_NETWORK
 #include "esphome/core/application.h"
 #include "esphome/components/network/util.h"
 #include "udp_component.h"
@@ -154,3 +155,5 @@ void UDPComponent::send_packet(std::vector<uint8_t> &buf) {
 }
 }  // namespace udp
 }  // namespace esphome
+
+#endif

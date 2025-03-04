@@ -1,5 +1,7 @@
 #pragma once
 
+#include "esphome/core/defines.h"
+#ifdef USE_NETWORK
 #include "esphome/components/network/ip_address.h"
 #if defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS)
 #include "esphome/components/socket/socket.h"
@@ -53,3 +55,4 @@ class UDPComponent : public Component {
 
 }  // namespace udp
 }  // namespace esphome
+#endif
