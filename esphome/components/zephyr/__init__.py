@@ -36,20 +36,21 @@ def zephyr_set_core_data(config):
 PrjConfValueType = Union[bool, str, int]
 
 
-def zephyr_add_prj_conf(name: str, value: PrjConfValueType, required: bool = True):
+def zephyr_add_prj_conf(name: str, value: PrjConfValueType, required: bool = True) -> None:
     """Set an zephyr prj conf value."""
     if not name.startswith("CONFIG_"):
         name = "CONFIG_" + name
-    if name in CORE.data[KEY_ZEPHYR][KEY_PRJ_CONF]:
-        old_value = CORE.data[KEY_ZEPHYR][KEY_PRJ_CONF][name]
-        if old_value[0] != value and old_value[1]:
-            raise ValueError(
-                f"{name} already set with value '{old_value[0]}', cannot set again to '{value}'"
-            )
-        if required:
-            CORE.data[KEY_ZEPHYR][KEY_PRJ_CONF][name] = (value, required)
-    else:
-        CORE.data[KEY_ZEPHYR][KEY_PRJ_CONF][name] = (value, required)
+    prj_conf = CORE.data[KEY_ZEPHYR][KEY_PRJ_CONF]
+    if name not in prj_conf:
+        prj_conf[name] = (value, required)
+        return
+    old_value, old_required = prj_conf[name]
+    if old_value != value and old_required:
+        raise ValueError(
+            f"{name} already set with value '{old_value}', cannot set again to '{value}'"
+        )
+    if required:
+        prj_conf[name] = (value, required)
 
 
 def zephyr_add_overlay(content):
