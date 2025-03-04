@@ -56,10 +56,6 @@
 #include <WiFi.h>  // for macAddress()
 #endif
 
-#ifdef USE_ZEPHYR
-#include <zephyr/random/rand32.h>
-#endif
-
 namespace esphome {
 
 static const char *const TAG = "helpers";
@@ -218,9 +214,6 @@ uint32_t random_uint32() {
   std::mt19937 rng(dev());
   std::uniform_int_distribution<uint32_t> dist(0, std::numeric_limits<uint32_t>::max());
   return dist(rng);
-// #elif defined(USE_ZEPHYR)
-//   return rand();
-// #else
 }
 #endif
 float random_float() { return static_cast<float>(random_uint32()) / static_cast<float>(UINT32_MAX); }
@@ -262,10 +255,6 @@ bool random_bytes(uint8_t *data, size_t len) {
   }
   fclose(fp);
   return true;
-// #elif defined(USE_ZEPHYR)
-//   sys_rand_get(data, len);
-//   return true;
-// #else
 }
 #endif
 
@@ -660,11 +649,6 @@ Mutex::~Mutex() {}
 void Mutex::lock() {}
 bool Mutex::try_lock() { return true; }
 void Mutex::unlock() {}
-#elif defined(USE_ZEPHYR)
-Mutex::Mutex() { k_mutex_init(&handle_); }
-void Mutex::lock() { k_mutex_lock(&this->handle_, K_FOREVER); }
-bool Mutex::try_lock() { return k_mutex_lock(&this->handle_, K_NO_WAIT) == 0; }
-void Mutex::unlock() { k_mutex_unlock(&this->handle_); }
 #elif defined(USE_ESP32) || defined(USE_LIBRETINY)
 Mutex::Mutex() { handle_ = xSemaphoreCreateMutex(); }
 Mutex::~Mutex() {}
@@ -717,14 +701,6 @@ void get_mac_address_raw(uint8_t *mac) {  // NOLINT(readability-non-const-parame
     esp_efuse_read_field_blob(ESP_EFUSE_MAC_FACTORY, mac, 48);
   }
 #else
-// #elif defined(USE_NRF52)
-//   mac[0] = ((NRF_FICR->DEVICEADDR[1] & 0xFFFF) >> 8) | 0xC0;
-//   mac[1] = NRF_FICR->DEVICEADDR[1] & 0xFFFF;
-//   mac[2] = NRF_FICR->DEVICEADDR[0] >> 24;
-//   mac[3] = NRF_FICR->DEVICEADDR[0] >> 16;
-//   mac[4] = NRF_FICR->DEVICEADDR[0] >> 8;
-//   mac[5] = NRF_FICR->DEVICEADDR[0];
-// #else
   if (has_custom_mac_address()) {
     esp_efuse_mac_get_custom(mac);
   } else {

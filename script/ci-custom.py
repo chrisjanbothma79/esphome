@@ -552,7 +552,6 @@ def lint_relative_py_import(fname):
         "esphome/components/rp2040/core.cpp",
         "esphome/components/libretiny/core.cpp",
         "esphome/components/host/core.cpp",
-        "esphome/components/zephyr/core.cpp",
     ],
 )
 def lint_namespace(fname, content):
