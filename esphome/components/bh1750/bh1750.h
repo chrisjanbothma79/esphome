@@ -8,6 +8,7 @@ namespace esphome {
 namespace bh1750 {
 
 enum BH1750Mode {
+  BH1750_MODE_AUTO,
   BH1750_MODE_L,
   BH1750_MODE_H,
   BH1750_MODE_H2,
@@ -16,6 +17,8 @@ enum BH1750Mode {
 /// This class implements support for the i2c-based BH1750 ambient light sensor.
 class BH1750Sensor : public sensor::Sensor, public PollingComponent, public i2c::I2CDevice {
  public:
+  void set_mode(BH1750Mode mode);
+
   // ========== INTERNAL METHODS ==========
   // (In most use cases you won't need these)
   void setup() override;
@@ -27,6 +30,7 @@ class BH1750Sensor : public sensor::Sensor, public PollingComponent, public i2c:
   void read_lx_(BH1750Mode mode, uint8_t mtreg, const std::function<void(float)> &f);
 
   uint8_t active_mtreg_{0};
+  BH1750Mode use_mode;
 };
 
 }  // namespace bh1750

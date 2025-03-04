@@ -1,11 +1,7 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import i2c, sensor
-from esphome.const import (
-    DEVICE_CLASS_ILLUMINANCE,
-    STATE_CLASS_MEASUREMENT,
-    UNIT_LUX,
-)
+import esphome.config_validation as cv
+from esphome.const import DEVICE_CLASS_ILLUMINANCE, STATE_CLASS_MEASUREMENT, UNIT_LUX
 
 DEPENDENCIES = ["i2c"]
 CODEOWNERS = ["@OttoWinter"]
@@ -15,6 +11,15 @@ bh1750_ns = cg.esphome_ns.namespace("bh1750")
 BH1750Sensor = bh1750_ns.class_(
     "BH1750Sensor", sensor.Sensor, cg.PollingComponent, i2c.I2CDevice
 )
+
+BH1750Mode = {
+    "AUTO": "BH1750_MODE_AUTO",
+    "LOW": "BH1750_MODE_L",
+    "HIGH": "BH1750_MODE_H",
+    "HIGH2": "BH1750_MODE_H2",
+}
+
+CONF_RESOLUTION = "resolution"
 
 CONFIG_SCHEMA = (
     sensor.sensor_schema(
@@ -26,8 +31,8 @@ CONFIG_SCHEMA = (
     )
     .extend(
         {
-            cv.Optional("resolution"): cv.invalid(
-                "The 'resolution' option has been removed. The optimal value is now dynamically calculated."
+            cv.Optional(CONF_RESOLUTION, default="Auto"): cv.enum(
+                BH1750Mode, upper=True
             ),
             cv.Optional("measurement_duration"): cv.invalid(
                 "The 'measurement_duration' option has been removed. The optimal value is now dynamically calculated."
@@ -43,3 +48,5 @@ async def to_code(config):
     var = await sensor.new_sensor(config)
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
+
+    cg.add(var.set_mode(bh1750_ns.enum(BH1750Mode[config[CONF_RESOLUTION]])))
