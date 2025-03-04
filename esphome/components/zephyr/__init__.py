@@ -106,7 +106,7 @@ def add_extra_script(stage: str, filename: str, path: str):
         cg.add_platformio_option("extra_scripts", [key])
 
 
-def zephyr_to_code(conf):
+def zephyr_to_code(config):
     cg.add(zephyr_ns.setup_preferences())
     cg.add_build_flag("-DUSE_ZEPHYR")
     # build is done by west so bypass board checking in platformio

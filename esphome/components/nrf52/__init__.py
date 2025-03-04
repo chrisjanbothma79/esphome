@@ -16,7 +16,6 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_BOARD,
     CONF_FRAMEWORK,
-    CONF_PLATFORM_VERSION,
     KEY_CORE,
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
@@ -72,12 +71,13 @@ def _detect_bootloader(value):
         bootloaders = BOARDS_ZEPHYR[value[CONF_BOARD]][KEY_BOOTLOADER]
 
     if KEY_BOOTLOADER not in value:
-        if not bootloaders:
+        if bootloaders:
+            # there is no bootloader in config -> take first one
+            value[KEY_BOOTLOADER] = bootloaders[0]
+        else:
             # make mcuboot as default if there is no configuration for that board
-            bootloaders = [BOOTLOADER_MCUBOOT]
-        # there is no bootloader in config -> take first one
-        value[KEY_BOOTLOADER] = bootloaders[0]
-    elif bootloaders is not None and value[KEY_BOOTLOADER] not in bootloaders:
+            value[KEY_BOOTLOADER] = BOOTLOADER_MCUBOOT
+    elif bootloaders and value[KEY_BOOTLOADER] not in bootloaders:
         raise cv.Invalid(
             f"{value[CONF_BOARD]} does not support {value[KEY_BOOTLOADER]}, select one of: {', '.join(bootloaders)}"
         )
@@ -102,11 +102,11 @@ async def to_code(config):
     cg.add_build_flag("-DUSE_NRF52")
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
     cg.add_define("ESPHOME_VARIANT", "NRF52")
-    conf = {
-        CONF_PLATFORM_VERSION: "https://github.com/tomaszduda23/platform-nordicnrf52/archive/refs/tags/v10.3.0-1.zip"
-    }
     cg.add_platformio_option(CONF_FRAMEWORK, CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK])
-    cg.add_platformio_option("platform", conf[CONF_PLATFORM_VERSION])
+    cg.add_platformio_option(
+        "platform",
+        "https://github.com/tomaszduda23/platform-nordicnrf52/archive/refs/tags/v10.3.0-1.zip",
+    )
     cg.add_platformio_option(
         "platform_packages",
         [
@@ -123,7 +123,7 @@ async def to_code(config):
         cg.add_platformio_option("board_upload.require_upload_port", "true")
         cg.add_platformio_option("board_upload.wait_for_upload_port", "true")
 
-    zephyr_to_code(conf)
+    zephyr_to_code(config)
 
 
 def copy_files():
