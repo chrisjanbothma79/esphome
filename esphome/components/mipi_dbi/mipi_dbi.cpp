@@ -1,4 +1,3 @@
-#ifdef USE_ESP_IDF
 #include "mipi_dbi.h"
 #include "esphome/core/log.h"
 
@@ -27,7 +26,7 @@ void MipiDbi::setup() {
 }
 
 void MipiDbi::update() {
-  if (!this->setup_complete_) {
+  if (!this->setup_complete_ || this->is_failed()) {
     return;
   }
   this->do_update_();
@@ -59,9 +58,8 @@ void MipiDbi::draw_absolute_pixel_internal(int x, int y, Color color) {
   if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0) {
     return;
   }
-  if (this->is_failed())
+  if (this->is_failed() || !this->check_buffer_())
     return;
-  check_buffer_();
   uint32_t pos = (y * this->width_) + x;
   bool updated = false;
   pos = pos * 2;
@@ -103,7 +101,8 @@ void MipiDbi::reset_params_(bool ready) {
   if (this->mirror_y_)
     mad |= MADCTL_MY;
   this->write_command_(MADCTL_CMD, mad);
-  this->write_command_(BRIGHTNESS, this->brightness_);
+  if (this->brightness_.has_value())
+    this->write_command_(BRIGHTNESS, this->brightness_.value());
   this->write_command_(DISPLAY_ON);
 }
 
@@ -141,7 +140,8 @@ void MipiDbi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
       big_endian != (this->bit_order_ == spi::BIT_ORDER_MSB_FIRST)) {
     Display::draw_pixels_at(x_start, y_start, w, h, ptr, order, bitness, big_endian, x_offset, y_offset, x_pad);
     return;
-  } else if (this->draw_from_origin_) {
+  }
+  if (this->draw_from_origin_) {
     auto stride = x_offset + w + x_pad;
     for (int y = 0; y != h; y++) {
       memcpy(this->buffer_ + ((y + y_start) * this->width_ + x_start) * 2,
@@ -161,25 +161,53 @@ void MipiDbi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
 void MipiDbi::write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
                                 int x_pad) {
   this->set_addr_window_(x_start, y_start, x_start + w - 1, y_start + h - 1);
-  this->enable();
-  // x_ and y_offset are offsets into the source buffer, unrelated to our own offsets into the display.
-  if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
-    // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't bother
-    this->write_cmd_addr_data(8, 0x32, 24, 0x2C00, ptr, w * h * 2, 4);
+  if (this->dc_pin_ == nullptr) {
+    this->enable();
+    // x_ and y_offset are offsets into the source buffer, unrelated to our own offsets into the display.
+    if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
+      // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't bother
+      this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, ptr, w * h * 2, 4);
+    } else {
+      auto stride = x_offset + w + x_pad;
+      this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, nullptr, 0, 4);
+      for (int y = 0; y != h; y++) {
+        this->write_cmd_addr_data(0, 0, 0, 0, ptr + ((y + y_offset) * stride + x_offset) * 2, w * 2, 4);
+      }
+    }
   } else {
-    auto stride = x_offset + w + x_pad;
-    this->write_cmd_addr_data(8, 0x32, 24, 0x2C00, nullptr, 0, 4);
-    for (int y = 0; y != h; y++) {
-      this->write_cmd_addr_data(0, 0, 0, 0, ptr + ((y + y_offset) * stride + x_offset) * 2, w * 2, 4);
+    this->write_command_(WDATA);
+    this->enable();
+    if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
+      // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't bother
+      this->write_array(ptr, w * h * 2);
+    } else {
+      auto stride = x_offset + w + x_pad;
+      for (int y = 0; y != h; y++) {
+        this->write_array(ptr + ((y + y_offset) * stride + x_offset) * 2, w * 2);
+      }
     }
   }
   this->disable();
 }
+
 void MipiDbi::write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) {
-  ESP_LOGV(TAG, "Command %02X, length %d, bytes %s", cmd, len, format_hex_pretty(bytes, len).c_str());
-  this->enable();
-  this->write_cmd_addr_data(8, 0x02, 24, cmd << 8, bytes, len);
-  this->disable();
+  ESP_LOGD(TAG, "Command %02X, length %d, bytes %s", cmd, len, format_hex_pretty(bytes, len).c_str());
+  if (this->dc_pin_ == nullptr) {
+    this->enable();
+    this->write_cmd_addr_data(8, 0x02, 24, cmd << 8, bytes, len);
+    this->disable();
+  } else {
+    this->dc_pin_->digital_write(false);
+    this->enable();
+    this->write_byte(cmd);
+    this->disable();
+    this->dc_pin_->digital_write(true);
+    if (len != 0) {
+      this->enable();
+      this->write_array(bytes, len);
+      this->disable();
+    }
+  }
 }
 
 void MipiDbi::write_sequence_(const std::vector<uint8_t> &vec) {
@@ -198,6 +226,7 @@ void MipiDbi::write_sequence_(const std::vector<uint8_t> &vec) {
       uint8_t num_args = x & 0x7F;
       if (vec.size() - index < num_args) {
         ESP_LOGE(TAG, "Malformed init sequence");
+        this->mark_failed();
         return;
       }
       const auto *ptr = vec.data() + index;
@@ -215,9 +244,9 @@ void MipiDbi::dump_config() {
   ESP_LOGCONFIG(TAG, "  Draw rounding: %u", this->draw_rounding_);
   LOG_PIN("  CS Pin: ", this->cs_);
   LOG_PIN("  Reset Pin: ", this->reset_pin_);
+  LOG_PIN("  DC Pin: ", this->dc_pin_);
   ESP_LOGCONFIG(TAG, "  SPI Data rate: %dMHz", (unsigned) (this->data_rate_ / 1000000));
 }
 
 }  // namespace mipi_dbi
 }  // namespace esphome
-#endif

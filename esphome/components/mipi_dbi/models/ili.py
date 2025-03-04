@@ -6,7 +6,6 @@ from .commands import (
     GAMMASET,
     GMCTRN1,
     GMCTRP1,
-    MADCTL,
     PIXFMT,
     PWCTR1,
     PWCTR2,
@@ -76,10 +75,6 @@ ILI9341 = DriverChip(
         cmd(
             VMCTR2,
             0x86,
-        ),
-        cmd(
-            MADCTL,
-            0x48,
         ),
         cmd(
             VSCRSADD,

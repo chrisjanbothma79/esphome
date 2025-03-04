@@ -60,6 +60,7 @@ class MipiDbi : public display::DisplayBuffer,
 
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
   void set_enable_pin(GPIOPin *enable_pin) { this->enable_pin_ = enable_pin; }
+  void set_dc_pin(GPIOPin *dc_pin) { this->dc_pin_ = dc_pin; }
   void set_dimensions(uint16_t width, uint16_t height) {
     this->width_ = width;
     this->height_ = height;
@@ -100,9 +101,10 @@ class MipiDbi : public display::DisplayBuffer,
   void set_draw_rounding(unsigned rounding) { this->draw_rounding_ = rounding; }
 
  protected:
-  void check_buffer_() {
+  bool check_buffer_() {
     if (this->buffer_ == nullptr)
       this->init_internal_(this->width_ * this->height_ * 2);
+    return this->buffer_ != nullptr;
   }
   void write_sequence_(const std::vector<uint8_t> &vec);
   void draw_absolute_pixel_internal(int x, int y, Color color) override;
@@ -135,7 +137,6 @@ class MipiDbi : public display::DisplayBuffer,
   void reset_params_(bool ready = false);
   void write_init_sequence_();
   void set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
-  void set_dc_pin(GPIOPin *dc_pin) { this->dc_pin_ = dc_pin; }
 
   GPIOPin *reset_pin_{nullptr};
   GPIOPin *enable_pin_{nullptr};
@@ -157,7 +158,7 @@ class MipiDbi : public display::DisplayBuffer,
   bool mirror_y_{};
   bool draw_from_origin_{false};
   unsigned draw_rounding_{2};
-  uint8_t brightness_{0xD0};
+  optional<uint8_t> brightness_{};
   const char *model_{"Unknown"};
   std::vector<std::vector<uint8_t>> init_sequences_{};
 };
