@@ -173,7 +173,7 @@ def copy_files():
             fake_board_manifest,
         )
 
-    for _, file in CORE.data[KEY_ZEPHYR][KEY_EXTRA_BUILD_FILES].items():
+    for file in CORE.data[KEY_ZEPHYR][KEY_EXTRA_BUILD_FILES].values():
         copy_file_if_changed(
             file[KEY_PATH],
             CORE.relative_build_path(file[KEY_NAME]),
