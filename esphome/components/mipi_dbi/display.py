@@ -123,23 +123,24 @@ BASE_SCHEMA = display.FULL_DISPLAY_SCHEMA.extend(
 )
 
 
-def model_property(name, defaults, fallback):
-    return cv.Optional(name, default=defaults.get(name, fallback))
-
-
 def model_schema(bus_mode, model: DriverChip):
     transform = cv.Schema(
         {
-            cv.Optional(CONF_MIRROR_X, default=False): cv.boolean,
-            cv.Optional(CONF_MIRROR_Y, default=False): cv.boolean,
+            model.option(CONF_MIRROR_X, False): cv.boolean,
+            model.option(CONF_MIRROR_Y, False): cv.boolean,
+            model.option(CONF_SWAP_XY, False): cv.boolean,
         }
     )
-    if model.defaults.get(CONF_SWAP_XY, True):
+    # If the model does not support swapping, overwrite the above option
+    if model.get_default(CONF_SWAP_XY, False) == cv.UNDEFINED:
         transform = transform.extend(
             {
-                cv.Optional(CONF_SWAP_XY, default=False): cv.boolean,
+                cv.Optional(CONF_SWAP_XY): cv.invalid(
+                    "Axis swapping not supported by this model"
+                )
             }
         )
+
     schema = BASE_SCHEMA.extend(
         spi.spi_device_schema(
             cs_pin_required=False,
@@ -149,11 +150,9 @@ def model_schema(bus_mode, model: DriverChip):
         )
     ).extend(
         {
-            model_property(CONF_INVERT_COLORS, model.defaults, False): cv.boolean,
-            model_property(CONF_COLOR_ORDER, model.defaults, "RGB"): cv.enum(
-                COLOR_ORDERS, upper=True
-            ),
-            model_property(CONF_DRAW_ROUNDING, model.defaults, 2): power_of_two,
+            model.option(CONF_INVERT_COLORS, False): cv.boolean,
+            model.option(CONF_COLOR_ORDER, "RGB"): cv.enum(COLOR_ORDERS, upper=True),
+            model.option(CONF_DRAW_ROUNDING, 2): power_of_two,
             cv.Optional(CONF_TRANSFORM): transform,
             cv.Optional(CONF_BUS_MODE, default=bus_mode): cv.one_of(
                 *model.modes, lower=True
@@ -161,7 +160,7 @@ def model_schema(bus_mode, model: DriverChip):
             cv.Required(CONF_MODEL): cv.one_of(model.name, upper=True),
         }
     )
-    if brightness := model.defaults.get(CONF_BRIGHTNESS):
+    if brightness := model.get_default(CONF_BRIGHTNESS):
         schema = schema.extend(
             {
                 cv.Optional(CONF_BRIGHTNESS, default=brightness): cv.int_range(

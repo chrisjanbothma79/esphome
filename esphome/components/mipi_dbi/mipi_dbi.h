@@ -101,10 +101,13 @@ class MipiDbi : public display::DisplayBuffer,
   void set_draw_rounding(unsigned rounding) { this->draw_rounding_ = rounding; }
 
  protected:
-  bool check_buffer_() {
-    if (this->buffer_ == nullptr)
+  void check_buffer_() {
+    if (!this->is_failed() && this->buffer_ == nullptr) {
       this->init_internal_(this->width_ * this->height_ * 2);
-    return this->buffer_ != nullptr;
+      if (this->buffer_ == nullptr) {
+        this->mark_failed();
+      }
+    }
   }
   void write_sequence_(const std::vector<uint8_t> &vec);
   void draw_absolute_pixel_internal(int x, int y, Color color) override;

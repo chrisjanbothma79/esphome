@@ -1,4 +1,5 @@
 from esphome.components.spi import TYPE_QUAD, TYPE_SINGLE
+import esphome.config_validation as cv
 
 MADCTL_MY = 0x80  # Bit 7 Bottom to top
 MADCTL_MX = 0x40  # Bit 6 Right to left
@@ -32,3 +33,9 @@ class DriverChip:
         assert all(isinstance(x, tuple) for x in initsequence)
         self.initsequence = sum(initsequence, ())
         self.defaults = defaults or {}
+
+    def get_default(self, key, fallback=False):
+        return self.defaults.get(key, fallback)
+
+    def option(self, name, fallback=False):
+        return cv.Optional(name, self.get_default(name, fallback))

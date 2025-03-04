@@ -7,6 +7,10 @@ namespace mipi_dbi {
 void MipiDbi::setup() {
   ESP_LOGCONFIG(TAG, "Setting up mipi_DBI");
   this->spi_setup();
+  if (this->dc_pin_ != nullptr) {
+    this->dc_pin_->setup();
+    this->dc_pin_->digital_write(false);
+  }
   if (this->enable_pin_ != nullptr) {
     this->enable_pin_->setup();
     this->enable_pin_->digital_write(true);
@@ -30,6 +34,7 @@ void MipiDbi::update() {
     return;
   }
   this->do_update_();
+  ESP_LOGD(TAG, "x_low %d, y_low %d, x_high %d, y_high %d", this->x_low_, this->y_low_, this->x_high_, this->y_high_);
   if (this->buffer_ == nullptr || this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
     return;
   // Some chips require that the drawing window be aligned on certain boundaries
@@ -58,7 +63,8 @@ void MipiDbi::draw_absolute_pixel_internal(int x, int y, Color color) {
   if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0) {
     return;
   }
-  if (this->is_failed() || !this->check_buffer_())
+  this->check_buffer_();
+  if (this->is_failed())
     return;
   uint32_t pos = (y * this->width_) + x;
   bool updated = false;
@@ -191,7 +197,7 @@ void MipiDbi::write_to_display_(int x_start, int y_start, int w, int h, const ui
 }
 
 void MipiDbi::write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) {
-  ESP_LOGD(TAG, "Command %02X, length %d, bytes %s", cmd, len, format_hex_pretty(bytes, len).c_str());
+  ESP_LOGV(TAG, "Command %02X, length %d, bytes %s", cmd, len, format_hex_pretty(bytes, len).c_str());
   if (this->dc_pin_ == nullptr) {
     this->enable();
     this->write_cmd_addr_data(8, 0x02, 24, cmd << 8, bytes, len);

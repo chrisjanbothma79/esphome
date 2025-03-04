@@ -1,5 +1,6 @@
 from esphome.components.mipi_dbi import CONF_DRAW_ROUNDING
 from esphome.components.spi import TYPE_QUAD
+import esphome.config_validation as cv
 from esphome.const import CONF_BRIGHTNESS, CONF_SWAP_XY
 
 from . import DriverChip, cmd, delay
@@ -46,7 +47,7 @@ RM690B0 = DriverChip(
 
 AXS15231 = DriverChip(
     "AXS15231",
-    {CONF_DRAW_ROUNDING: 8, CONF_SWAP_XY: False, CONF_BRIGHTNESS: 0xD0},
+    {CONF_DRAW_ROUNDING: 8, CONF_SWAP_XY: cv.UNDEFINED, CONF_BRIGHTNESS: 0xD0},
     modes=(TYPE_QUAD,),
     initsequence=(
         cmd(0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5A, 0xA5),
