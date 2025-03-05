@@ -52,9 +52,9 @@ class ImageDecoder {
 
   /**
    * @brief For images that may take a while to decode, such as animations
-   * call decode_loop after decode until it returns false to fully decode the image
-   * object from the components main loop() function
-   * @return any decoding error encountered or 0
+   * call decode_loop() from the component's main loop() after decode()
+   * until is_finished() returns true
+   * @return any decoding error encountered or DECODE_ERROR_NONE
    */
   virtual enum DecodeError decode_loop() { return DECODE_ERROR_NONE; }
 
