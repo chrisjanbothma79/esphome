@@ -5,6 +5,7 @@ namespace esphome {
 namespace online_image {
 
 enum DecodeError : int {
+  DECODE_ERROR_NONE = 0,
   DECODE_ERROR_INVALID_TYPE = -1,
   DECODE_ERROR_UNSUPPORTED_FORMAT = -2,
   DECODE_ERROR_OUT_OF_MEMORY = -3,
@@ -48,6 +49,14 @@ class ImageDecoder {
    *               decode anything, or negative in case of a decoding error.
    */
   virtual int decode(uint8_t *buffer, size_t size) = 0;
+
+  /**
+   * @brief For images that may take a while to decode, such as animations
+   * call decode_loop after decode until it returns false to fully decode the image
+   * object from the components main loop() function
+   * @return any decoding error encountered or 0
+   */
+  virtual enum DecodeError decode_loop() { return DECODE_ERROR_NONE; }
 
   /**
    * @brief Request the image to be resized once the actual dimensions are known.

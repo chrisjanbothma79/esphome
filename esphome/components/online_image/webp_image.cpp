@@ -95,25 +95,34 @@ int HOT WebpDecoder::decode(uint8_t *buffer, size_t size) {
     return 0;
   }
 
-  // iterate over all frames
-  for (uint frame = 0; frame < animation_.frame_count; frame++) {
+  this->decoded_bytes_ = 0;
+  this->next_frame_ = 0;
+  return size;
+}
+
+enum DecodeError WebpDecoder::decode_loop() {
+  if (this->decoder_ && this->next_frame_ < this->animation_.frame_count) {
+    ESP_LOGD(TAG,"decode_loop for frame: %d", this->next_frame_);
     uint8_t *pix;
     int timestamp;
     if (!WebPAnimDecoderGetNext(this->decoder_, &pix, &timestamp)) {
-      ESP_LOGE(TAG, "error parsing webp frame %u/%u", frame, animation_.frame_count);
+      ESP_LOGE(TAG, "error parsing webp frame %u/%u", this->next_frame_, animation_.frame_count);
       WebPAnimDecoderDelete(this->decoder_);
       this->decoder_ = NULL;
       return DECODE_ERROR_UNSUPPORTED_FORMAT;
     }
 
-    draw_frame(this, pix, this->animation_.canvas_width, this->animation_.canvas_height, frame);
+    draw_frame(this, pix, this->animation_.canvas_width, this->animation_.canvas_height, this->next_frame_);
+    this->next_frame_++;
+
+    // clean up if all frames have been decoded
+    if (this->next_frame_ == this->animation_.frame_count) {
+      WebPAnimDecoderDelete(this->decoder_);
+      this->decoder_ = NULL;
+      this->decoded_bytes_ = this->download_size_;
+    }
   }
-
-  WebPAnimDecoderDelete(this->decoder_);
-  this->decoder_ = NULL;
-
-  this->decoded_bytes_ = size;
-  return size;
+  return DECODE_ERROR_NONE;
 }
 
 }  // namespace online_image

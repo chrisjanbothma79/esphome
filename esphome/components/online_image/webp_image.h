@@ -23,10 +23,12 @@ class WebpDecoder : public ImageDecoder {
 
   int prepare(size_t download_size) override;
   int HOT decode(uint8_t *buffer, size_t size) override;
+  enum DecodeError decode_loop() override;
 
  protected:
   WebPAnimInfo animation_;
   WebPAnimDecoder *decoder_;
+  uint next_frame_;
 };
 
 }  // namespace online_image

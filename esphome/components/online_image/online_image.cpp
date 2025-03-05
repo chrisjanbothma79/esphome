@@ -247,6 +247,15 @@ void OnlineImage::loop() {
       this->download_buffer_.read(fed);
     }
   }
+  // if the download has finished and the image is not fully decoded yet, call decode_loop()
+  if (!this->decoder_->is_finished()) {
+    auto ret = this->decoder_->decode_loop();
+    if (ret != DECODE_ERROR_NONE) {
+      ESP_LOGE(TAG, "Error when decoding image.");
+      this->download_error_callback_.call();
+      return;
+    }
+  }
 }
 
 void OnlineImage::map_chroma_key(Color &color) {
