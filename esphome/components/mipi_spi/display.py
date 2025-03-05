@@ -27,17 +27,17 @@ from esphome.const import (
 )
 from esphome.core import TimePeriod
 
-from . import CONF_DRAW_FROM_ORIGIN, CONF_DRAW_ROUNDING, MODE_BGR, MODE_RGB
+from . import CONF_DRAW_FROM_ORIGIN, CONF_DRAW_ROUNDING, CONF_SPI_16, MODE_BGR, MODE_RGB
 from .models import DELAY_FLAG, DriverChip, amoled, ili, jc
 
 DEPENDENCIES = ["spi"]
 
-mipi_dbi_ns = cg.esphome_ns.namespace("mipi_dbi")
-MIPI_DBI = mipi_dbi_ns.class_(
-    "MipiDbi", display.Display, display.DisplayBuffer, cg.Component, spi.SPIDevice
+mipi_spi_ns = cg.esphome_ns.namespace("mipi_spi")
+MIPI_SPI = mipi_spi_ns.class_(
+    "MipiSpi", display.Display, display.DisplayBuffer, cg.Component, spi.SPIDevice
 )
 ColorOrder = display.display_ns.enum("ColorMode")
-Model = mipi_dbi_ns.enum("Model")
+Model = mipi_spi_ns.enum("Model")
 
 COLOR_ORDERS = {
     MODE_RGB: ColorOrder.COLOR_ORDER_RGB,
@@ -55,6 +55,16 @@ MODELS.extend(jc.chips)
 MODELS.extend(ili.chips)
 
 MODELS = {chip.name: chip for chip in MODELS}
+
+PixelMode = mipi_spi_ns.enum("PixelMode")
+
+PIXEL_MODE_16 = "16bit"
+PIXEL_MODE_18 = "18bit"
+
+PIXEL_MODES = {
+    PIXEL_MODE_16: PixelMode.PIXEL_MODE_16,
+    PIXEL_MODE_18: PixelMode.PIXEL_MODE_18,
+}
 
 
 def validate_dimension(value):
@@ -89,24 +99,26 @@ def power_of_two(value):
     return value
 
 
+DIMENSION_SCHEMA = cv.Any(
+    cv.dimensions,
+    cv.Schema(
+        {
+            cv.Required(CONF_WIDTH): validate_dimension,
+            cv.Required(CONF_HEIGHT): validate_dimension,
+            cv.Optional(CONF_OFFSET_HEIGHT, default=0): validate_dimension,
+            cv.Optional(CONF_OFFSET_WIDTH, default=0): validate_dimension,
+        }
+    ),
+)
+
 BASE_SCHEMA = display.FULL_DISPLAY_SCHEMA.extend(
     {
-        cv.GenerateID(): cv.declare_id(MIPI_DBI),
-        cv.Required(CONF_DIMENSIONS): cv.Any(
-            cv.dimensions,
-            cv.Schema(
-                {
-                    cv.Required(CONF_WIDTH): validate_dimension,
-                    cv.Required(CONF_HEIGHT): validate_dimension,
-                    cv.Optional(CONF_OFFSET_HEIGHT, default=0): validate_dimension,
-                    cv.Optional(CONF_OFFSET_WIDTH, default=0): validate_dimension,
-                }
-            ),
-        ),
+        cv.GenerateID(): cv.declare_id(MIPI_SPI),
         cv.Optional(CONF_DRAW_FROM_ORIGIN, default=False): cv.boolean,
         cv.Optional(CONF_RESET_PIN): pins.gpio_output_pin_schema,
         cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
         cv.Optional(CONF_DC_PIN): pins.gpio_output_pin_schema,
+        cv.Optional(CONF_SPI_16, default=False): cv.boolean,
     }
 )
 
@@ -116,10 +128,8 @@ def model_schema(bus_mode, model: DriverChip):
         {
             cv.Optional(CONF_MIRROR_X, False): cv.boolean,
             cv.Optional(CONF_MIRROR_Y, False): cv.boolean,
-            cv.Optional(CONF_SWAP_XY, False): cv.boolean,
         }
     )
-    # If the model does not support swapping, overwrite the above option
     if model.get_default(CONF_SWAP_XY, False) == cv.UNDEFINED:
         transform = transform.extend(
             {
@@ -128,7 +138,12 @@ def model_schema(bus_mode, model: DriverChip):
                 )
             }
         )
-
+    else:
+        transform = transform.extend(
+            {
+                cv.Optional(CONF_SWAP_XY, default=False): cv.boolean,
+            }
+        )
     # CUSTOM model will need to provide a custom init sequence
     iseqconf = (
         cv.Optional(CONF_INIT_SEQUENCE)
@@ -155,6 +170,19 @@ def model_schema(bus_mode, model: DriverChip):
             iseqconf: cv.ensure_list(map_sequence),
         }
     )
+    if model.get_default(CONF_WIDTH) and model.get_default(CONF_HEIGHT):
+        schema = schema.extend(
+            {
+                cv.Optional(CONF_DIMENSIONS): DIMENSION_SCHEMA,
+            }
+        )
+    else:
+        schema = schema.extend(
+            {
+                cv.Required(CONF_DIMENSIONS): DIMENSION_SCHEMA,
+            }
+        )
+
     if brightness := model.get_default(CONF_BRIGHTNESS):
         schema = schema.extend(
             {
@@ -213,6 +241,7 @@ async def to_code(config):
     cg.add(var.set_model(config[CONF_MODEL]))
     cg.add(var.set_draw_from_origin(config[CONF_DRAW_FROM_ORIGIN]))
     cg.add(var.set_draw_rounding(config[CONF_DRAW_ROUNDING]))
+    cg.add(var.set_spi_16(config[CONF_SPI_16]))
     if enable_pin := config.get(CONF_ENABLE_PIN):
         enable = await cg.gpio_pin_expression(enable_pin)
         cg.add(var.set_enable_pin(enable))
@@ -237,8 +266,10 @@ async def to_code(config):
         cg.add(var.set_mirror_x(True))
     if transform[CONF_MIRROR_Y]:
         cg.add(var.set_mirror_y(True))
+    swap_xy = False
     if transform.get(CONF_SWAP_XY) is True:
         cg.add(var.set_swap_xy(True))
+        swap_xy = True
 
     if CONF_DIMENSIONS in config:
         dimensions = config[CONF_DIMENSIONS]
@@ -251,6 +282,14 @@ async def to_code(config):
             )
         else:
             (width, height) = dimensions
+            cg.add(var.set_dimensions(width, height))
+    else:
+        width = chip.get_default(CONF_WIDTH)
+        height = chip.get_default(CONF_HEIGHT)
+        # Swap default dimensions if swap_xy is set (not for explicit dimensions)
+        if swap_xy:
+            cg.add(var.set_dimensions(height, width))
+        else:
             cg.add(var.set_dimensions(width, height))
 
     if lamb := config.get(CONF_LAMBDA):

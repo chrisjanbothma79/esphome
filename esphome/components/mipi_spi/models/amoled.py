@@ -1,4 +1,4 @@
-from esphome.components.mipi_dbi import MODE_RGB
+from esphome.components.mipi_spi import MODE_RGB
 from esphome.components.spi import TYPE_QUAD
 from esphome.const import CONF_BRIGHTNESS, CONF_COLOR_ORDER
 

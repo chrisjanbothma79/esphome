@@ -1,11 +1,11 @@
-#include "mipi_dbi.h"
+#include "mipi_spi.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
-namespace mipi_dbi {
+namespace mipi_spi {
 
-void MipiDbi::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up mipi_DBI");
+void MipiSpi::setup() {
+  ESP_LOGCONFIG(TAG, "Setting up MIPI SPI");
   this->spi_setup();
   if (this->dc_pin_ != nullptr) {
     this->dc_pin_->setup();
@@ -29,7 +29,7 @@ void MipiDbi::setup() {
     check_buffer_();
 }
 
-void MipiDbi::update() {
+void MipiSpi::update() {
   if (!this->setup_complete_ || this->is_failed()) {
     return;
   }
@@ -59,7 +59,7 @@ void MipiDbi::update() {
   this->y_high_ = 0;
 }
 
-void MipiDbi::draw_absolute_pixel_internal(int x, int y, Color color) {
+void MipiSpi::draw_absolute_pixel_internal(int x, int y, Color color) {
   if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0) {
     return;
   }
@@ -94,7 +94,7 @@ void MipiDbi::draw_absolute_pixel_internal(int x, int y, Color color) {
   }
 }
 
-void MipiDbi::reset_params_(bool ready) {
+void MipiSpi::reset_params_(bool ready) {
   if (!ready && !this->is_ready())
     return;
   this->write_command_(this->invert_colors_ ? INVERT_ON : INVERT_OFF);
@@ -112,16 +112,16 @@ void MipiDbi::reset_params_(bool ready) {
   this->write_command_(DISPLAY_ON);
 }
 
-void MipiDbi::write_init_sequence_() {
+void MipiSpi::write_init_sequence_() {
   for (const auto &seq : this->init_sequences_) {
     this->write_sequence_(seq);
   }
   this->reset_params_(true);
   this->setup_complete_ = true;
-  ESP_LOGCONFIG(TAG, "mipi_DBI setup complete");
+  ESP_LOGCONFIG(TAG, "MIPI SPI setup complete");
 }
 
-void MipiDbi::set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
+void MipiSpi::set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
   ESP_LOGVV(TAG, "Set addr %d/%d, %d/%d", x1, y1, x2, y2);
   uint8_t buf[4];
   x1 += this->offset_x_;
@@ -136,7 +136,7 @@ void MipiDbi::set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y
   this->write_command_(CASET, buf, sizeof buf);
 }
 
-void MipiDbi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
+void MipiSpi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                              display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) {
   if (!this->setup_complete_ || this->is_failed())
     return;
@@ -163,7 +163,7 @@ void MipiDbi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
   this->write_to_display_(x_start, y_start, w, h, ptr, x_offset, y_offset, x_pad);
 }
 
-void MipiDbi::write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
+void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
                                 int x_pad) {
   this->set_addr_window_(x_start, y_start, x_start + w - 1, y_start + h - 1);
   if (this->dc_pin_ == nullptr) {
@@ -195,7 +195,7 @@ void MipiDbi::write_to_display_(int x_start, int y_start, int w, int h, const ui
   this->disable();
 }
 
-void MipiDbi::write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) {
+void MipiSpi::write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) {
   ESP_LOGV(TAG, "Command %02X, length %d, bytes %s", cmd, len, format_hex_pretty(bytes, len).c_str());
   if (this->dc_pin_ == nullptr) {
     this->enable();
@@ -208,18 +208,28 @@ void MipiDbi::write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) {
     this->disable();
     this->dc_pin_->digital_write(true);
     if (len != 0) {
-      this->enable();
-      this->write_array(bytes, len);
-      this->disable();
+      if (this->spi_16_) {
+        for (size_t i = 0; i != len; i++) {
+          this->enable();
+          this->write_byte(0);
+          this->write_byte(bytes[i]);
+          this->disable();
+        }
+      } else {
+        this->enable();
+        this->write_array(bytes, len);
+        this->disable();
+      }
     }
   }
 }
 
-void MipiDbi::write_sequence_(const std::vector<uint8_t> &vec) {
+void MipiSpi::write_sequence_(const std::vector<uint8_t> &vec) {
   size_t index = 0;
   while (index != vec.size()) {
     if (vec.size() - index < 2) {
       ESP_LOGE(TAG, "Malformed init sequence");
+      this->mark_failed();
       return;
     }
     uint8_t cmd = vec[index++];
@@ -241,11 +251,11 @@ void MipiDbi::write_sequence_(const std::vector<uint8_t> &vec) {
   }
 }
 
-void MipiDbi::dump_config() {
-  ESP_LOGCONFIG("", "MIPI_DBI Display");
+void MipiSpi::dump_config() {
+  ESP_LOGCONFIG("", "MIPI_SPI Display");
   ESP_LOGCONFIG("", "Model: %s", this->model_);
-  ESP_LOGCONFIG(TAG, "  Height: %u", this->height_);
   ESP_LOGCONFIG(TAG, "  Width: %u", this->width_);
+  ESP_LOGCONFIG(TAG, "  Height: %u", this->height_);
   ESP_LOGCONFIG(TAG, "  Swap X/Y: %s", YESNO(this->swap_xy_));
   ESP_LOGCONFIG(TAG, "  Mirror X: %s", YESNO(this->mirror_x_));
   ESP_LOGCONFIG(TAG, "  Mirror Y: %s", YESNO(this->mirror_y_));
@@ -258,5 +268,5 @@ void MipiDbi::dump_config() {
   ESP_LOGCONFIG(TAG, "  SPI Data rate: %dMHz", (unsigned) (this->data_rate_ / 1000000));
 }
 
-}  // namespace mipi_dbi
+}  // namespace mipi_spi
 }  // namespace esphome

@@ -1,4 +1,4 @@
-from esphome.components.mipi_dbi import CONF_DRAW_ROUNDING, MODE_RGB
+from esphome.components.mipi_spi import CONF_DRAW_ROUNDING, MODE_RGB
 from esphome.components.spi import TYPE_QUAD
 import esphome.config_validation as cv
 from esphome.const import CONF_COLOR_ORDER, CONF_INVERT_COLORS, CONF_SWAP_XY

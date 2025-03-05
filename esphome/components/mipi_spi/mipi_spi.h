@@ -6,9 +6,9 @@
 #include "esphome/components/display/display_color_utils.h"
 
 namespace esphome {
-namespace mipi_dbi {
+namespace mipi_spi {
 
-constexpr static const char *const TAG = "display.mipi_dbi";
+constexpr static const char *const TAG = "display.mipi_spi";
 static const uint8_t SW_RESET_CMD = 0x01;
 static const uint8_t SLEEP_OUT = 0x11;
 static const uint8_t NORON = 0x13;
@@ -42,13 +42,12 @@ static inline void put16_be(uint8_t *buf, uint16_t value) {
   buf[1] = value;
 }
 
-enum Model {
-  CUSTOM,
-  RM690B0,
-  RM67162,
+enum PixelMode {
+  PIXEL_MODE_16,
+  PIXEL_MODE_18,
 };
 
-class MipiDbi : public display::DisplayBuffer,
+class MipiSpi : public display::DisplayBuffer,
                 public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                       spi::DATA_RATE_1MHZ> {
  public:
@@ -99,6 +98,8 @@ class MipiDbi : public display::DisplayBuffer,
   bool can_proceed() override { return this->setup_complete_; }
   void add_init_sequence(const std::vector<uint8_t> &sequence) { this->init_sequences_.push_back(sequence); }
   void set_draw_rounding(unsigned rounding) { this->draw_rounding_ = rounding; }
+  void set_spi_16(bool spi_16) { this->spi_16_ = spi_16; }
+  void set_pixel_mode(PixelMode mode) { this->pixel_mode_ = mode; }
 
  protected:
   void check_buffer_() {
@@ -159,11 +160,13 @@ class MipiDbi : public display::DisplayBuffer,
   bool swap_xy_{};
   bool mirror_x_{};
   bool mirror_y_{};
+  bool spi_16_{};
+  PixelMode pixel_mode_{};
   bool draw_from_origin_{false};
   unsigned draw_rounding_{2};
   optional<uint8_t> brightness_{};
   const char *model_{"Unknown"};
   std::vector<std::vector<uint8_t>> init_sequences_{};
 };
-}  // namespace mipi_dbi
+}  // namespace mipi_spi
 }  // namespace esphome
