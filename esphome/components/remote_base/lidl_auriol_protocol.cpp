@@ -47,7 +47,7 @@ void LidlAuriolProtocol::encode(RemoteTransmitData *dst, const LidlAuriolData &d
   SET_BITS(code, 24, 4, 0b1111);
   SET_BITS(code, 0, 24, data.rain);
 
-  ESP_LOGD(TAG, "Sending %" PRIx64 " id=%d battery_level=%d channel=%d temperature=%.1f rain=%d", code, data.id,
+  ESP_LOGD(TAG, "Sending %" PRIx64 " id=%d battery_level=%d channel=%d temperature=%.1f rain=%" PRIu32 "", code, data.id,
            data.battery_level, data.channel, data.temperature, data.rain);
 
   for (int i = 0; i < 7; i++)
@@ -66,8 +66,10 @@ optional<LidlAuriolData> LidlAuriolProtocol::decode(RemoteReceiveData src) {
     ESP_LOGD(TAG, "LIDL_AURIOL_PROTOCOL2");
   }
 
-  if (GET_BITS(code, 24, 4) != 15)
+  if (GET_BITS(code, 24, 4) != 0b1111) {
+    ESP_LOGD(TAG, "[24:27] should be 1111, received 0x%" PRIx64 " (%d)", code, nbits);
     return {};
+  }
 
   if (!(nbits >= 44 && nbits <= 52)) {
     // id = 01110000, nbits is 51 only, the leading zero may be missing, 11110000 sends all 52 bits
@@ -92,7 +94,7 @@ optional<LidlAuriolData> LidlAuriolProtocol::decode(RemoteReceiveData src) {
 }
 
 void LidlAuriolProtocol::dump(const LidlAuriolData &data) {
-  ESP_LOGI(TAG, "Received: %" PRIx64 " id=%d battery_level=%d channel=%d temperature=%.1f rain=%d", data.code,
+  ESP_LOGI(TAG, "Received: %" PRIx64 " id=%d battery_level=%d channel=%d temperature=%.1f rain=%" PRIu32 "", data.code,
            data.id, data.battery_level, data.channel, data.temperature, data.rain);
 }
 
