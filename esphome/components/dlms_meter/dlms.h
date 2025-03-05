@@ -58,6 +58,7 @@ static const int DLMS_CIPHER_OFFSET = 0;  // Offset at which used cipher suite i
 static const int DLMS_SYST_OFFSET = 1;    // Offset at which length of system title is stored
 
 static const int DLMS_LENGTH_OFFSET = 10;  // Offset at which message length is stored
+static const int TWO_BYTE_LENGTH = 0x82;   // Two byte length indicator / prefix
 static const int DLMS_LENGTH_CORRECTION =
     5;  // Part of the header is included in the DLMS length field and needs to be removed
 
@@ -71,6 +72,16 @@ static const int DLMS_FRAMECOUNTER_LENGTH = 4;   // Length of the frame counter 
 static const int DLMS_PAYLOAD_OFFSET = 16;  // Offset at which the encrypted payload
 
 static const int GLO_CIPHERING = 0xDB;
+static const int DATA_NOTIFICATION = 0x0F;
+static const int TIMESTAMP_DATETIME = 0x0C;
+
+/*
+ * provider specific quirks
+ */
+
+static const int NETZ_NOE_MAGIC_BYTE = 0x81;  // Magic length byte used by Netz NOE
+static const int NETZ_NOE_EXPECTED_MESSAGE_LENGTH = 0xF8;
+static const int NETZ_NOE_EXPECTED_SECURITY_CONTROL_BYTE = 0x20;
 
 }  // namespace dlms_meter
 }  // namespace esphome

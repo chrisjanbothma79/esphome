@@ -142,16 +142,17 @@ void DlmsMeterComponent::loop() {
 
 #if defined(PROVIDER_NETZNOE)
     // for some reason EVN seems to set the standard "length" field to 0x81 and then the actual length is in the next
-    // byte
-    if (message_length == 0x81 && mbus_payload[DLMS_LENGTH_OFFSET + 1] == 0xF8 &&
-        mbus_payload[DLMS_LENGTH_OFFSET + 2] == 0x20) {
+    // byte. Check some bytes to see if received data still matches expectation
+    if (message_length == NETZ_NOE_MAGIC_BYTE &&
+        mbus_payload[DLMS_LENGTH_OFFSET + 1] == NETZ_NOE_EXPECTED_MESSAGE_LENGTH &&
+        mbus_payload[DLMS_LENGTH_OFFSET + 2] == NETZ_NOE_EXPECTED_SECURITY_CONTROL_BYTE) {
       message_length = mbus_payload[DLMS_LENGTH_OFFSET + 1];
       header_offset = 1;
     } else {
       ESP_LOGE(TAG, "Wrong Length - Security Control Byte sequence detected for provider EVN");
     }
 #else
-    if (message_length == 0x82) {
+    if (message_length == TWO_BYTE_LENGTH) {
       ESP_LOGV(TAG, "DLMS: Message length > 127");
 
       memcpy(&message_length, &mbus_payload[DLMS_LENGTH_OFFSET + 1], 2);
@@ -218,7 +219,7 @@ void DlmsMeterComponent::loop() {
     ESP_LOGV(TAG, "Decrypted payload: %d", message_length);
     ESP_LOGV(TAG, "%s", format_hex_pretty(&plaintext[0], message_length).c_str());
 
-    if (plaintext[0] != 0x0F || plaintext[5] != 0x0C) {
+    if (plaintext[0] != DATA_NOTIFICATION || plaintext[5] != TIMESTAMP_DATETIME) {
       ESP_LOGE(TAG, "OBIS: Packet was decrypted but data is invalid");
       abort_();
       return;
@@ -476,7 +477,7 @@ void DlmsMeterComponent::loop() {
       current_position += 2;                     // Skip break after data
 #endif
 
-      if (plaintext[current_position] == 0x0F) {  // There is still additional data for this type, skip it
+      if (plaintext[current_position] == DATA_NOTIFICATION) {  // There is still additional data for this type, skip it
         // on EVN Meters the additional data (no additional Break) is only 3 Bytes + 1 Byte for the "there is data" Byte
 #if defined(PROVIDER_NETZNOE)
         current_position += 4;  // Skip additional data and additional break; this will jump out of bounds on last frame
