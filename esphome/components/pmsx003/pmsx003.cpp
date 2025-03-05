@@ -120,8 +120,8 @@ void PMSX003Component::loop() {
 float PMSX003Component::get_setup_priority() const { return setup_priority::DATA; }
 
 optional<bool> PMSX003Component::check_byte_() {
-  uint8_t index = this->data_index_;
-  uint8_t byte = this->data_[index];
+  const uint8_t index = this->data_index_;
+  const uint8_t byte = this->data_[index];
 
   if (index == 0)
     return byte == START_CHARACTER_1;
@@ -132,7 +132,7 @@ optional<bool> PMSX003Component::check_byte_() {
   if (index == 2)
     return true;
 
-  uint16_t payload_length = this->get_16_bit_uint_(2);
+  const uint16_t payload_length = this->get_16_bit_uint_(2);
   if (index == 3) {
     if (!this->check_payload_length_(payload_length)) {
       ESP_LOGW(TAG, "PMSX003 length %u doesn't match. Are you using the correct PMSX003 type?", payload_length);
@@ -142,7 +142,7 @@ optional<bool> PMSX003Component::check_byte_() {
   }
 
   // start (16bit) + length (16bit) + DATA (payload_length - 16bit) + checksum (16bit)
-  uint16_t total_size = 4 + payload_length;
+  const uint16_t total_size = 4 + payload_length;
 
   if (index < total_size - 1)
     return true;
@@ -153,7 +153,7 @@ optional<bool> PMSX003Component::check_byte_() {
     checksum += this->data_[i];
   }
 
-  uint16_t check = this->get_16_bit_uint_(total_size - 2);
+  const uint16_t check = this->get_16_bit_uint_(total_size - 2);
   if (checksum != check) {
     ESP_LOGW(TAG, "PMSX003 checksum mismatch! 0x%02X!=0x%02X", checksum, check);
     return false;
@@ -201,18 +201,18 @@ void PMSX003Component::send_command_(PMSX0003Command cmd, uint16_t data) {
 
 void PMSX003Component::parse_data_() {
   // Particle Matter
-  uint16_t pm_1_0_std_concentration = this->get_16_bit_uint_(4);
-  uint16_t pm_2_5_std_concentration = this->get_16_bit_uint_(6);
-  uint16_t pm_10_0_std_concentration = this->get_16_bit_uint_(8);
+  const uint16_t pm_1_0_std_concentration = this->get_16_bit_uint_(4);
+  const uint16_t pm_2_5_std_concentration = this->get_16_bit_uint_(6);
+  const uint16_t pm_10_0_std_concentration = this->get_16_bit_uint_(8);
 
-  uint16_t pm_1_0_concentration = this->get_16_bit_uint_(10);
-  uint16_t pm_2_5_concentration = this->get_16_bit_uint_(12);
-  uint16_t pm_10_0_concentration = this->get_16_bit_uint_(14);
+  const uint16_t pm_1_0_concentration = this->get_16_bit_uint_(10);
+  const uint16_t pm_2_5_concentration = this->get_16_bit_uint_(12);
+  const uint16_t pm_10_0_concentration = this->get_16_bit_uint_(14);
 
-  uint16_t pm_particles_03um = this->get_16_bit_uint_(16);
-  uint16_t pm_particles_05um = this->get_16_bit_uint_(18);
-  uint16_t pm_particles_10um = this->get_16_bit_uint_(20);
-  uint16_t pm_particles_25um = this->get_16_bit_uint_(22);
+  const uint16_t pm_particles_03um = this->get_16_bit_uint_(16);
+  const uint16_t pm_particles_05um = this->get_16_bit_uint_(18);
+  const uint16_t pm_particles_10um = this->get_16_bit_uint_(20);
+  const uint16_t pm_particles_25um = this->get_16_bit_uint_(22);
 
   if (this->pm_1_0_std_sensor_ != nullptr)
     this->pm_1_0_std_sensor_->publish_state(pm_1_0_std_concentration);
@@ -240,8 +240,8 @@ void PMSX003Component::parse_data_() {
   if (this->type_ != PMSX003_TYPE_5003T) {
     // Note the pm particles 50um & 100um are not returned,
     // as PMS5003T uses those data values for temperature and humidity.
-    uint16_t pm_particles_50um = this->get_16_bit_uint_(24);
-    uint16_t pm_particles_100um = this->get_16_bit_uint_(26);
+    const uint16_t pm_particles_50um = this->get_16_bit_uint_(24);
+    const uint16_t pm_particles_100um = this->get_16_bit_uint_(26);
 
     if (this->pm_particles_50um_sensor_ != nullptr)
       this->pm_particles_50um_sensor_->publish_state(pm_particles_50um);
@@ -254,7 +254,7 @@ void PMSX003Component::parse_data_() {
 
   // Formaldehyde
   if (this->type_ == PMSX003_TYPE_5003ST || this->type_ == PMSX003_TYPE_5003S) {
-    uint16_t formaldehyde = this->get_16_bit_uint_(28);
+    const uint16_t formaldehyde = this->get_16_bit_uint_(28);
 
     ESP_LOGD(TAG, "Got Formaldehyde: %u µg/m^3", formaldehyde);
 
@@ -264,10 +264,10 @@ void PMSX003Component::parse_data_() {
 
   // Temperature and Humidity
   if (this->type_ == PMSX003_TYPE_5003ST || this->type_ == PMSX003_TYPE_5003T) {
-    const uint8_t temperature_offset = (this->type_ == PMSX003_TYPE_5003T) ? 24 : 30;
+    const const uint8_t temperature_offset = (this->type_ == PMSX003_TYPE_5003T) ? 24 : 30;
 
-    float temperature = (int16_t) this->get_16_bit_uint_(temperature_offset) / 10.0f;
-    float humidity = this->get_16_bit_uint_(temperature_offset + 2) / 10.0f;
+    const float temperature = (int16_t) this->get_16_bit_uint_(temperature_offset) / 10.0f;
+    const float humidity = this->get_16_bit_uint_(temperature_offset + 2) / 10.0f;
 
     ESP_LOGD(TAG, "Got Temperature: %.1f°C, Humidity: %.1f%%", temperature, humidity);
 
@@ -279,8 +279,8 @@ void PMSX003Component::parse_data_() {
 
   // Firmware Version and Error Code
   if (this->type_ == PMSX003_TYPE_5003ST) {
-    uint8_t firmware_version = this->data_[36];
-    uint8_t error_code = this->data_[37];
+    const uint8_t firmware_version = this->data_[36];
+    const uint8_t error_code = this->data_[37];
 
     ESP_LOGD(TAG, "Got Firmware Version: %u, Error Code: %u", firmware_version, error_code);
   }
