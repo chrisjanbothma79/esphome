@@ -15,8 +15,14 @@ static const char *const TAG = "remote.lidl_auriol";
 // BATTERY: 1 ok, 0 bad
 // TEMP_C: 2's complement * 10
 
+// sync: ________-_
+// one: ____-_
+// zero: __-_
+// skip 4ms low when receiving, the signal is repeated 7 times, it will catch 6 of them
+// sync-on-low would work if the idle time was set to <4ms, which isn't the default for remote_receiver (10ms)
+
 static const uint32_t LIDL_AURIOL_PULSE_LENGTH = 490;
-static const RCSwitchBase LIDL_AURIOL_PROTOCOL1 = RCSwitchBase(
+static const RCSwitchBase LIDL_AURIOL_PROTOCOL_RECEIVE = RCSwitchBase(
   1 * LIDL_AURIOL_PULSE_LENGTH, // sync_high
   8 * LIDL_AURIOL_PULSE_LENGTH, // sync_low
   1 * LIDL_AURIOL_PULSE_LENGTH, // zero_high
@@ -24,7 +30,7 @@ static const RCSwitchBase LIDL_AURIOL_PROTOCOL1 = RCSwitchBase(
   1 * LIDL_AURIOL_PULSE_LENGTH, // one_high
   4 * LIDL_AURIOL_PULSE_LENGTH, // one_low
   false); // inverted
-static const RCSwitchBase LIDL_AURIOL_PROTOCOL2 = RCSwitchBase(
+static const RCSwitchBase LIDL_AURIOL_PROTOCOL_SEND = RCSwitchBase(
   8 * LIDL_AURIOL_PULSE_LENGTH, // sync_high
   1 * LIDL_AURIOL_PULSE_LENGTH, // sync_low
   2 * LIDL_AURIOL_PULSE_LENGTH, // zero_high
@@ -51,19 +57,14 @@ void LidlAuriolProtocol::encode(RemoteTransmitData *dst, const LidlAuriolData &d
            data.battery_level, data.channel, data.temperature, data.rain);
 
   for (int i = 0; i < 7; i++)
-    LIDL_AURIOL_PROTOCOL2.transmit(dst, code, 52);
+    LIDL_AURIOL_PROTOCOL_SEND.transmit(dst, code, 52);
 }
 
 optional<LidlAuriolData> LidlAuriolProtocol::decode(RemoteReceiveData src) {
   uint64_t code = 0;
   uint8_t nbits;
-  if (!LIDL_AURIOL_PROTOCOL2.decode(src, &code, &nbits)) {
-    if (!LIDL_AURIOL_PROTOCOL1.decode(src, &code, &nbits)) {
-      return {};
-    }
-    ESP_LOGD(TAG, "LIDL_AURIOL_PROTOCOL1");
-  } else {
-    ESP_LOGD(TAG, "LIDL_AURIOL_PROTOCOL2");
+  if (!LIDL_AURIOL_PROTOCOL_RECEIVE.decode(src, &code, &nbits)) {
+    return {};
   }
 
   if (GET_BITS(code, 24, 4) != 0b1111) {
@@ -71,10 +72,7 @@ optional<LidlAuriolData> LidlAuriolProtocol::decode(RemoteReceiveData src) {
     return {};
   }
 
-  if (!(nbits >= 44 && nbits <= 52)) {
-    // id = 01110000, nbits is 51 only, the leading zero may be missing, 11110000 sends all 52 bits
-    // ... could be a receive or protocol setup error
-    // ... allow arbitrary number of id bits, for now
+  if (nbits != 52) {
     ESP_LOGD(TAG, "Wrong number of bits, received 0x%" PRIx64 " (%d)", code, nbits);
     return {};
   }
