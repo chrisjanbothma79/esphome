@@ -55,17 +55,12 @@ void LidlAuriolProtocol::encode(RemoteTransmitData *dst, const LidlAuriolData &d
 optional<LidlAuriolData> LidlAuriolProtocol::decode(RemoteReceiveData src) {
   uint64_t code = 0;
   uint8_t nbits;
-  if (!LIDL_AURIOL_PROTOCOL.decode(src, &code, &nbits)) {
+  if (!LIDL_AURIOL_PROTOCOL.decode(src, &code, &nbits) || nbits != 52) {
     return {};
   }
 
   if (GET_BITS(code, 24, 4) != 0b1111) {
     ESP_LOGD(TAG, "[24:27] should be 1111, received 0x%" PRIx64 " (%d)", code, nbits);
-    return {};
-  }
-
-  if (nbits != 52) {
-    ESP_LOGD(TAG, "Wrong number of bits, received 0x%" PRIx64 " (%d)", code, nbits);
     return {};
   }
 
