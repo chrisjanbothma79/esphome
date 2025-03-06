@@ -33,13 +33,13 @@ binary_sensor:
     name: test bs1
     internal: true
     pin:
-      number: GPIO19
+      number: GPIO32
   - platform: gpio
     id: bs_2
     name: test bs2
     internal: false
     pin:
-      number: GPIO29
+      number: GPIO33
   - platform: touchscreen
     id: bs_3
     name: test bs3
