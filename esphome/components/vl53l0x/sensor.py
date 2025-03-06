@@ -58,7 +58,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_TIMING_BUDGET): cv.All (
                 cv.positive_time_period_microseconds,
                 cv.Range(
-                    min=core.TimePeriod(microseconds=1),
+                    min=core.TimePeriod(microseconds=20000),
                     max=core.TimePeriod(microseconds=4294967295)
                     ),
             ),
