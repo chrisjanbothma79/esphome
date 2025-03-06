@@ -64,10 +64,7 @@ void MipiSpi::setup() {
           this->invert_colors_ = true;
           break;
         case MADCTL_CMD:
-          this->swap_xy_ = (arg_byte & MADCTL_MV) != 0;
-          this->mirror_x_ = (arg_byte & MADCTL_MX) != 0;
-          this->mirror_y_ = (arg_byte & MADCTL_MY) != 0;
-          this->color_order_ = (arg_byte & MADCTL_BGR) != 0 ? display::COLOR_ORDER_BGR : display::COLOR_ORDER_RGB;
+          this->madctl_ = arg_byte;
           break;
         case PIXFMT:
           this->pixel_mode_ = arg_byte;
@@ -308,11 +305,11 @@ void MipiSpi::dump_config() {
     ESP_LOGCONFIG(TAG, "  Offset width: %u", this->offset_width_);
   if (this->offset_height_ != 0)
     ESP_LOGCONFIG(TAG, "  Offset height: %u", this->offset_height_);
-  ESP_LOGCONFIG(TAG, "  Swap X/Y: %s", YESNO(this->swap_xy_));
-  ESP_LOGCONFIG(TAG, "  Mirror X: %s", YESNO(this->mirror_x_));
-  ESP_LOGCONFIG(TAG, "  Mirror Y: %s", YESNO(this->mirror_y_));
+  ESP_LOGCONFIG(TAG, "  Swap X/Y: %s", YESNO(this->madctl_ & MADCTL_MV));
+  ESP_LOGCONFIG(TAG, "  Mirror X: %s", YESNO(this->madctl_ & (MADCTL_MX | MADCTL_XFLIP)));
+  ESP_LOGCONFIG(TAG, "  Mirror Y: %s", YESNO(this->madctl_ & (MADCTL_MY | MADCTL_YFLIP)));
   ESP_LOGCONFIG(TAG, "  Invert colors: %s", YESNO(this->invert_colors_));
-  ESP_LOGCONFIG(TAG, "  Color order: %s", this->color_order_ == display::COLOR_ORDER_BGR ? "BGR" : "RGB");
+  ESP_LOGCONFIG(TAG, "  Color order: %s", this->madctl_ & MADCTL_BGR ? "BGR" : "RGB");
   ESP_LOGCONFIG(TAG, "  Pixel mode: %s", (this->pixel_mode_ & 0x11) != 0 ? "16bit" : "18bit");
   if (this->brightness_.has_value())
     ESP_LOGCONFIG(TAG, "  Brightness: %u", this->brightness_.value());

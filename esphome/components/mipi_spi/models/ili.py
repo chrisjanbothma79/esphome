@@ -317,7 +317,7 @@ models = [
         ),
     ),
     DriverChip(
-        "ILI9488_A",
+        "ILI9488_IPS",
         width=320,
         height=480,
         invert_colors=True,

@@ -29,11 +29,13 @@ static const uint8_t SWIRE1 = 0x5A;
 static const uint8_t SWIRE2 = 0x5B;
 static const uint8_t PAGESEL = 0xFE;
 
-static const uint8_t MADCTL_MY = 0x80;   ///< Bit 7 Bottom to top
-static const uint8_t MADCTL_MX = 0x40;   ///< Bit 6 Right to left
-static const uint8_t MADCTL_MV = 0x20;   ///< Bit 5 Reverse Mode
-static const uint8_t MADCTL_RGB = 0x00;  ///< Bit 3 Red-Green-Blue pixel order
-static const uint8_t MADCTL_BGR = 0x08;  ///< Bit 3 Blue-Green-Red pixel order
+static const uint8_t MADCTL_MY = 0x80;     // Bit 7 Bottom to top
+static const uint8_t MADCTL_MX = 0x40;     // Bit 6 Right to left
+static const uint8_t MADCTL_MV = 0x20;     // Bit 5 Swap axes
+static const uint8_t MADCTL_RGB = 0x00;    // Bit 3 Red-Green-Blue pixel order
+static const uint8_t MADCTL_BGR = 0x08;    // Bit 3 Blue-Green-Red pixel order
+static const uint8_t MADCTL_XFLIP = 0x02;  // Mirror the display horizontally
+static const uint8_t MADCTL_YFLIP = 0x01;  // Mirror the display vertically
 
 static const uint8_t DELAY_FLAG = 0xFF;
 // store a 16 bit value in a buffer, big endian.
@@ -54,8 +56,9 @@ class MipiSpi : public display::DisplayBuffer,
   void set_model(const char *model) { this->model_ = model; }
   void update() override;
   void setup() override;
-  display::ColorOrder get_color_mode() { return this->color_order_; }
-  void set_color_order(display::ColorOrder color_mode) { this->color_order_ = color_mode; }
+  display::ColorOrder get_color_mode() {
+    return this->madctl_ & MADCTL_BGR ? display::COLOR_ORDER_BGR : display::COLOR_ORDER_RGB;
+  }
 
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
   void set_enable_pin(GPIOPin *enable_pin) { this->enable_pin_ = enable_pin; }
@@ -66,18 +69,6 @@ class MipiSpi : public display::DisplayBuffer,
   }
   void set_invert_colors(bool invert_colors) {
     this->invert_colors_ = invert_colors;
-    this->reset_params_();
-  }
-  void set_mirror_x(bool mirror_x) {
-    this->mirror_x_ = mirror_x;
-    this->reset_params_();
-  }
-  void set_mirror_y(bool mirror_y) {
-    this->mirror_y_ = mirror_y;
-    this->reset_params_();
-  }
-  void set_swap_xy(bool swap_xy) {
-    this->swap_xy_ = swap_xy;
     this->reset_params_();
   }
   void set_brightness(uint8_t brightness) {
@@ -150,15 +141,12 @@ class MipiSpi : public display::DisplayBuffer,
   bool setup_complete_{};
 
   bool invert_colors_{};
-  display::ColorOrder color_order_{display::COLOR_ORDER_BGR};
   size_t width_{};
   size_t height_{};
   int16_t offset_width_{0};
   int16_t offset_height_{0};
-  bool swap_xy_{};
-  bool mirror_x_{};
-  bool mirror_y_{};
   bool spi_16_{};
+  uint8_t madctl_{};
   uint8_t pixel_mode_{};
   bool draw_from_origin_{false};
   unsigned draw_rounding_{2};
