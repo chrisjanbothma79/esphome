@@ -23,10 +23,74 @@ void MipiSpi::setup() {
     delay(5);
     this->reset_pin_->digital_write(true);
   }
-  this->set_timeout(120, [this] { this->write_command_(SLEEP_OUT); });
-  this->set_timeout(240, [this] { this->write_init_sequence_(); });
+  delay(120);
+  this->write_command_(SLEEP_OUT);
+  delay(120);
+  // need to know when the display is ready for SLPOUT command - will be 120ms after reset
+  auto when = millis() + 120;
+  delay(10);
+  size_t index = 0;
+  auto &vec = this->init_sequence_;
+  while (index != vec.size()) {
+    if (vec.size() - index < 2) {
+      ESP_LOGE(TAG, "Malformed init sequence");
+      this->mark_failed();
+      return;
+    }
+    uint8_t cmd = vec[index++];
+    uint8_t x = vec[index++];
+    if (x == DELAY_FLAG) {
+      ESP_LOGD(TAG, "Delay %dms", cmd);
+      delay(cmd);
+    } else {
+      uint8_t num_args = x & 0x7F;
+      if (vec.size() - index < num_args) {
+        ESP_LOGE(TAG, "Malformed init sequence");
+        this->mark_failed();
+        return;
+      }
+      auto arg_byte = vec[index];
+      switch (cmd) {
+        case SLEEP_OUT: {
+          // are we ready, boots?
+          int duration = when - millis();
+          if (duration > 0) {
+            ESP_LOGD(TAG, "Sleep %dms", duration);
+            delay(duration);
+          }
+        } break;
+
+        case INVERT_ON:
+          this->invert_colors_ = true;
+          break;
+        case MADCTL_CMD:
+          this->swap_xy_ = (arg_byte & MADCTL_MV) != 0;
+          this->mirror_x_ = (arg_byte & MADCTL_MX) != 0;
+          this->mirror_y_ = (arg_byte & MADCTL_MY) != 0;
+          this->color_order_ = (arg_byte & MADCTL_BGR) != 0 ? display::COLOR_ORDER_BGR : display::COLOR_ORDER_RGB;
+          break;
+        case PIXFMT:
+          this->pixel_mode_ = arg_byte;
+          break;
+        case BRIGHTNESS:
+          this->brightness_ = arg_byte;
+          break;
+
+        default:
+          break;
+      }
+      const auto *ptr = vec.data() + index;
+      ESP_LOGD(TAG, "Command %02X, length %d, byte %02X", cmd, num_args, arg_byte);
+      this->write_command_(cmd, ptr, num_args);
+      index += num_args;
+      if (cmd == SLEEP_OUT)
+        delay(10);
+    }
+  }
+  this->setup_complete_ = true;
   if (this->draw_from_origin_)
     check_buffer_();
+  ESP_LOGCONFIG(TAG, "MIPI SPI setup complete");
 }
 
 void MipiSpi::update() {
@@ -94,29 +158,40 @@ void MipiSpi::draw_absolute_pixel_internal(int x, int y, Color color) {
   }
 }
 
-void MipiSpi::reset_params_(bool ready) {
-  if (!ready && !this->is_ready())
+void MipiSpi::reset_params_() {
+  if (!this->is_ready())
     return;
   this->write_command_(this->invert_colors_ ? INVERT_ON : INVERT_OFF);
-  // custom x/y transform and color order
-  uint8_t mad = this->color_order_ == display::COLOR_ORDER_BGR ? MADCTL_BGR : MADCTL_RGB;
-  if (this->swap_xy_)
-    mad |= MADCTL_MV;
-  if (this->mirror_x_)
-    mad |= MADCTL_MX;
-  if (this->mirror_y_)
-    mad |= MADCTL_MY;
-  this->write_command_(MADCTL_CMD, mad);
   if (this->brightness_.has_value())
     this->write_command_(BRIGHTNESS, this->brightness_.value());
-  this->write_command_(DISPLAY_ON);
 }
 
 void MipiSpi::write_init_sequence_() {
-  for (const auto &seq : this->init_sequences_) {
-    this->write_sequence_(seq);
+  size_t index = 0;
+  auto &vec = this->init_sequence_;
+  while (index != vec.size()) {
+    if (vec.size() - index < 2) {
+      ESP_LOGE(TAG, "Malformed init sequence");
+      this->mark_failed();
+      return;
+    }
+    uint8_t cmd = vec[index++];
+    uint8_t x = vec[index++];
+    if (x == DELAY_FLAG) {
+      ESP_LOGV(TAG, "Delay %dms", cmd);
+      delay(cmd);
+    } else {
+      uint8_t num_args = x & 0x7F;
+      if (vec.size() - index < num_args) {
+        ESP_LOGE(TAG, "Malformed init sequence");
+        this->mark_failed();
+        return;
+      }
+      const auto *ptr = vec.data() + index;
+      this->write_command_(cmd, ptr, num_args);
+      index += num_args;
+    }
   }
-  this->reset_params_(true);
   this->setup_complete_ = true;
   ESP_LOGCONFIG(TAG, "MIPI SPI setup complete");
 }
@@ -124,10 +199,10 @@ void MipiSpi::write_init_sequence_() {
 void MipiSpi::set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
   ESP_LOGVV(TAG, "Set addr %d/%d, %d/%d", x1, y1, x2, y2);
   uint8_t buf[4];
-  x1 += this->offset_x_;
-  x2 += this->offset_x_;
-  y1 += this->offset_y_;
-  y2 += this->offset_y_;
+  x1 += this->offset_width_;
+  x2 += this->offset_width_;
+  y1 += this->offset_height_;
+  y2 += this->offset_height_;
   put16_be(buf, y1);
   put16_be(buf + 2, y2);
   this->write_command_(RASET, buf, sizeof buf);
@@ -224,44 +299,28 @@ void MipiSpi::write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) {
   }
 }
 
-void MipiSpi::write_sequence_(const std::vector<uint8_t> &vec) {
-  size_t index = 0;
-  while (index != vec.size()) {
-    if (vec.size() - index < 2) {
-      ESP_LOGE(TAG, "Malformed init sequence");
-      this->mark_failed();
-      return;
-    }
-    uint8_t cmd = vec[index++];
-    uint8_t x = vec[index++];
-    if (x == DELAY_FLAG) {
-      ESP_LOGV(TAG, "Delay %dms", cmd);
-      delay(cmd);
-    } else {
-      uint8_t num_args = x & 0x7F;
-      if (vec.size() - index < num_args) {
-        ESP_LOGE(TAG, "Malformed init sequence");
-        this->mark_failed();
-        return;
-      }
-      const auto *ptr = vec.data() + index;
-      this->write_command_(cmd, ptr, num_args);
-      index += num_args;
-    }
-  }
-}
-
 void MipiSpi::dump_config() {
   ESP_LOGCONFIG("", "MIPI_SPI Display");
   ESP_LOGCONFIG("", "Model: %s", this->model_);
   ESP_LOGCONFIG(TAG, "  Width: %u", this->width_);
   ESP_LOGCONFIG(TAG, "  Height: %u", this->height_);
+  if (this->offset_width_ != 0)
+    ESP_LOGCONFIG(TAG, "  Offset width: %u", this->offset_width_);
+  if (this->offset_height_ != 0)
+    ESP_LOGCONFIG(TAG, "  Offset height: %u", this->offset_height_);
   ESP_LOGCONFIG(TAG, "  Swap X/Y: %s", YESNO(this->swap_xy_));
   ESP_LOGCONFIG(TAG, "  Mirror X: %s", YESNO(this->mirror_x_));
   ESP_LOGCONFIG(TAG, "  Mirror Y: %s", YESNO(this->mirror_y_));
+  ESP_LOGCONFIG(TAG, "  Invert colors: %s", YESNO(this->invert_colors_));
   ESP_LOGCONFIG(TAG, "  Color order: %s", this->color_order_ == display::COLOR_ORDER_BGR ? "BGR" : "RGB");
+  ESP_LOGCONFIG(TAG, "  Pixel mode: %s", (this->pixel_mode_ & 0x11) != 0 ? "16bit" : "18bit");
+  if (this->brightness_.has_value())
+    ESP_LOGCONFIG(TAG, "  Brightness: %u", this->brightness_.value());
+  if (this->spi_16_)
+    ESP_LOGCONFIG(TAG, "  SPI 16bit: YES");
   ESP_LOGCONFIG(TAG, "  Draw rounding: %u", this->draw_rounding_);
-  ESP_LOGCONFIG(TAG, "  Draw from origin: %s", YESNO(this->draw_from_origin_));
+  if (this->draw_from_origin_)
+    ESP_LOGCONFIG(TAG, "  Draw from origin: YES");
   LOG_PIN("  CS Pin: ", this->cs_);
   LOG_PIN("  Reset Pin: ", this->reset_pin_);
   LOG_PIN("  DC Pin: ", this->dc_pin_);

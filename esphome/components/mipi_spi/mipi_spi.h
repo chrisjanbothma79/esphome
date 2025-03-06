@@ -85,8 +85,8 @@ class MipiSpi : public display::DisplayBuffer,
     this->reset_params_();
   }
   void set_offsets(int16_t offset_x, int16_t offset_y) {
-    this->offset_x_ = offset_x;
-    this->offset_y_ = offset_y;
+    this->offset_width_ = offset_x;
+    this->offset_height_ = offset_y;
   }
 
   void set_draw_from_origin(bool draw_from_origin) { this->draw_from_origin_ = draw_from_origin; }
@@ -96,10 +96,9 @@ class MipiSpi : public display::DisplayBuffer,
   int get_width_internal() override { return this->width_; }
   int get_height_internal() override { return this->height_; }
   bool can_proceed() override { return this->setup_complete_; }
-  void add_init_sequence(const std::vector<uint8_t> &sequence) { this->init_sequences_.push_back(sequence); }
+  void set_init_sequence(const std::vector<uint8_t> &sequence) { this->init_sequence_ = sequence; }
   void set_draw_rounding(unsigned rounding) { this->draw_rounding_ = rounding; }
   void set_spi_16(bool spi_16) { this->spi_16_ = spi_16; }
-  void set_pixel_mode(PixelMode mode) { this->pixel_mode_ = mode; }
 
  protected:
   void check_buffer_() {
@@ -110,7 +109,6 @@ class MipiSpi : public display::DisplayBuffer,
       }
     }
   }
-  void write_sequence_(const std::vector<uint8_t> &vec);
   void draw_absolute_pixel_internal(int x, int y, Color color) override;
   void draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override;
@@ -138,7 +136,7 @@ class MipiSpi : public display::DisplayBuffer,
 
   void write_command_(uint8_t cmd, uint8_t data) { this->write_command_(cmd, &data, 1); }
   void write_command_(uint8_t cmd) { this->write_command_(cmd, &cmd, 0); }
-  void reset_params_(bool ready = false);
+  void reset_params_();
   void write_init_sequence_();
   void set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
 
@@ -155,18 +153,18 @@ class MipiSpi : public display::DisplayBuffer,
   display::ColorOrder color_order_{display::COLOR_ORDER_BGR};
   size_t width_{};
   size_t height_{};
-  int16_t offset_x_{0};
-  int16_t offset_y_{0};
+  int16_t offset_width_{0};
+  int16_t offset_height_{0};
   bool swap_xy_{};
   bool mirror_x_{};
   bool mirror_y_{};
   bool spi_16_{};
-  PixelMode pixel_mode_{};
+  uint8_t pixel_mode_{};
   bool draw_from_origin_{false};
   unsigned draw_rounding_{2};
   optional<uint8_t> brightness_{};
   const char *model_{"Unknown"};
-  std::vector<std::vector<uint8_t>> init_sequences_{};
+  std::vector<uint8_t> init_sequence_{};
 };
 }  // namespace mipi_spi
 }  // namespace esphome

@@ -8,7 +8,13 @@ MADCTL_ML = 0x10  # Bit 4 LCD refresh Bottom to top
 MADCTL_RGB = 0x00  # Bit 3 Red-Green-Blue pixel order
 MADCTL_BGR = 0x08  # Bit 3 Blue-Green-Red pixel order
 MADCTL_MH = 0x04  # Bit 2 LCD refresh right to left
-DELAY_FLAG = 0xFFF
+
+# These bits are used instead of the above bits on some chips, where using MX and MY results in incorrect
+# partial updates.
+MADCTL_XFLIP = 0x02  # Mirror the display horizontally
+MADCTL_YFLIP = 0x01  # Mirror the display vertically
+
+DELAY_FLAG = 0xFFF  # Special flag to indicate a delay
 
 
 def delay(ms):
@@ -17,32 +23,21 @@ def delay(ms):
 
 class DriverChip:
     def __init__(
-        self, name: str, defaults=None, modes=(TYPE_SINGLE, TYPE_QUAD), initsequence=()
+        self, name: str, modes=(TYPE_SINGLE, TYPE_QUAD), initsequence=None, **defaults
     ):
         name = name.upper()
         self.name = name
         self.modes = modes
-        self.initsequence = tuple(
-            (x,) if isinstance(x, int) else x for x in initsequence
-        )
-        assert all(isinstance(x, tuple) for x in self.initsequence)
-        self.defaults = defaults or {}
+        self.initsequence = initsequence
+        self.defaults = defaults
+
+    def derive(self, name, **kwargs):
+        defaults = self.defaults.copy()
+        defaults.update(kwargs)
+        return DriverChip(name, self.modes, initsequence=self.initsequence, **defaults)
 
     def get_default(self, key, fallback=False):
         return self.defaults.get(key, fallback)
 
     def option(self, name, fallback=False):
         return cv.Optional(name, default=self.get_default(name, fallback))
-
-    def get_sequence(self):
-        """
-        Convert the init sequence to a flat list, replacing DELAY_FLAG with the correct byte sequence
-        and inserting a length byte for command sequences.
-        """
-        return sum(
-            tuple(
-                (x[1], 0xFF) if x[0] == DELAY_FLAG else (x[0], len(x) - 1) + x[1:]
-                for x in self.initsequence
-            ),
-            (),
-        )

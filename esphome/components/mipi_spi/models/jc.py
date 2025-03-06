@@ -1,14 +1,14 @@
-from esphome.components.mipi_spi import CONF_DRAW_ROUNDING, MODE_RGB
+from esphome.components.mipi_spi import MODE_RGB
 from esphome.components.spi import TYPE_QUAD
 import esphome.config_validation as cv
-from esphome.const import CONF_COLOR_ORDER, CONF_INVERT_COLORS, CONF_SWAP_XY
 
 from . import DriverChip
-from .commands import PIXFMT
 
 AXS15231 = DriverChip(
     "AXS15231",
-    {CONF_DRAW_ROUNDING: 8, CONF_SWAP_XY: cv.UNDEFINED, CONF_COLOR_ORDER: MODE_RGB},
+    draw_rounding=8,
+    swap_xy=cv.UNDEFINED,
+    color_order=MODE_RGB,
     modes=(TYPE_QUAD,),
     initsequence=(
         (0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5A, 0xA5),
@@ -19,7 +19,7 @@ AXS15231 = DriverChip(
 
 JC3636W518 = DriverChip(
     "JC3636W518",
-    {CONF_INVERT_COLORS: True},
+    invert_colors=True,
     modes=(TYPE_QUAD,),
     initsequence=(
         (0xF0, 0x08),
@@ -237,7 +237,6 @@ JC3636W518 = DriverChip(
         (0xA0, 0x0B),
         (0xA3, 0x2A),
         (0xA5, 0xC3),
-        (PIXFMT, 0x55),
     ),
 )
-chips = (JC3636W518, AXS15231)
+models = (JC3636W518, AXS15231)
