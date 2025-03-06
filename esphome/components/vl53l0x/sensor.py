@@ -55,12 +55,12 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_LONG_RANGE, default=False): cv.boolean,
             cv.Optional(CONF_TIMEOUT, default="10ms"): check_timeout,
             cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
-            cv.Optional(CONF_TIMING_BUDGET): cv.All (
+            cv.Optional(CONF_TIMING_BUDGET): cv.All(
                 cv.positive_time_period_microseconds,
                 cv.Range(
                     min=core.TimePeriod(microseconds=20000),
                     max=core.TimePeriod(microseconds=4294967295)
-                    ),
+                ),
             ),
         }
     )
