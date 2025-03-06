@@ -2021,9 +2021,13 @@ async def Toto_action(var, config, args):
 
 
 # LidlAuriol
-LidlAuriolData, LidlAuriolBinarySensor, LidlAuriolTrigger, LidlAuriolAction, LidlAuriolDumper = declare_protocol(
-    "LidlAuriol"
-)
+(
+    LidlAuriolData,
+    LidlAuriolBinarySensor,
+    LidlAuriolTrigger,
+    LidlAuriolAction,
+    LidlAuriolDumper,
+) = declare_protocol("LidlAuriol")
 LIDL_AURIOL_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ID): cv.uint8_t,
