@@ -26,7 +26,7 @@ void MCP4151::write_state(float state) {
 
 void MCP4151::send_command(uint8_t value) {
   this->enable();
-  this->transfer_byte(0x00); // command Byte (Pot #0)
+  this->transfer_byte(0x00);  // command Byte (Pot #0)
   this->transfer_byte(value);
   this->disable();
 }
