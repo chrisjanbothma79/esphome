@@ -811,6 +811,7 @@ DriverChip(
     "WAVESHARE-4-TFT",
     width=320,
     height=480,
+    invert_colors=True,
     spi_16=True,
     initsequence=(
         (
