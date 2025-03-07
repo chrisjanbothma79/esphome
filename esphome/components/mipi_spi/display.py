@@ -134,15 +134,6 @@ DIMENSION_SCHEMA = cv.Any(
     ),
 )
 
-BASE_SCHEMA = display.FULL_DISPLAY_SCHEMA.extend(
-    {
-        cv.GenerateID(): cv.declare_id(MIPI_SPI),
-        cv.Optional(CONF_RESET_PIN): pins.gpio_output_pin_schema,
-        cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
-        cv.Optional(CONF_DC_PIN): pins.gpio_output_pin_schema,
-    }
-)
-
 
 def model_schema(bus_mode, model: DriverChip):
     transform = cv.Schema(
@@ -171,8 +162,9 @@ def model_schema(bus_mode, model: DriverChip):
         if model.initsequence is None
         else cv.Optional(CONF_INIT_SEQUENCE)
     )
+    cv_dimensions = cv.Optional if model.get_default(CONF_WIDTH) else cv.Required
     schema = (
-        BASE_SCHEMA.extend(
+        display.FULL_DISPLAY_SCHEMA.extend(
             spi.spi_device_schema(
                 cs_pin_required=False,
                 default_mode="MODE0",
@@ -182,6 +174,13 @@ def model_schema(bus_mode, model: DriverChip):
         )
         .extend(
             {
+                cv.GenerateID(): cv.declare_id(MIPI_SPI),
+                cv_dimensions(CONF_DIMENSIONS): DIMENSION_SCHEMA,
+                model.option(CONF_RESET_PIN, cv.UNDEFINED): pins.gpio_output_pin_schema,
+                model.option(
+                    CONF_ENABLE_PIN, cv.UNDEFINED
+                ): pins.gpio_output_pin_schema,
+                model.option(CONF_DC_PIN, cv.UNDEFINED): pins.gpio_output_pin_schema,
                 model.option(CONF_COLOR_ORDER, MODE_BGR): cv.enum(
                     COLOR_ORDERS, upper=True
                 ),
@@ -210,19 +209,6 @@ def model_schema(bus_mode, model: DriverChip):
             }
         )
     )
-    if model.get_default(CONF_WIDTH) and model.get_default(CONF_HEIGHT):
-        schema = schema.extend(
-            {
-                cv.Optional(CONF_DIMENSIONS): DIMENSION_SCHEMA,
-            }
-        )
-    else:
-        schema = schema.extend(
-            {
-                cv.Required(CONF_DIMENSIONS): DIMENSION_SCHEMA,
-            }
-        )
-
     if brightness := model.get_default(CONF_BRIGHTNESS):
         schema = schema.extend(
             {
@@ -231,7 +217,7 @@ def model_schema(bus_mode, model: DriverChip):
                 ),
             }
         )
-    if bus_mode == TYPE_QUAD:
+    if bus_mode != TYPE_SINGLE:
         return cv.All(schema, cv.only_with_esp_idf)
     return schema
 
@@ -251,14 +237,19 @@ def config_schema(config):
     # First get the model and bus mode
     config = cv.Schema(
         {
-            cv.Optional(CONF_BUS_MODE): cv.one_of(
-                TYPE_SINGLE, TYPE_QUAD, TYPE_OCTAL, lower=True
-            ),
             cv.Required(CONF_MODEL): cv.one_of(*MODELS, upper=True),
         },
         extra=ALLOW_EXTRA,
     )(config)
     model = MODELS[config[CONF_MODEL]]
+    bus_modes = model.modes
+    config = cv.Schema(
+        {
+            model.option(CONF_BUS_MODE, TYPE_SINGLE): cv.one_of(*bus_modes, lower=True),
+            cv.Required(CONF_MODEL): cv.one_of(*MODELS, upper=True),
+        },
+        extra=ALLOW_EXTRA,
+    )(config)
     bus_mode = config.get(CONF_BUS_MODE, model.modes[0])
     config = model_schema(bus_mode, model)(config)
     # Check for invalid combinations of MADCTL config
@@ -365,9 +356,14 @@ def get_sequence(model, config):
 
 
 async def to_code(config):
+    bus_mode = config[CONF_BUS_MODE]
     var = cg.new_Pvariable(config[CONF_ID])
     model = MODELS[config[CONF_MODEL]]
     cg.add(var.set_init_sequence(get_sequence(model, config)))
+    if bus_mode == TYPE_QUAD:
+        cg.add(var.set_bus_width(4))
+    elif bus_mode == TYPE_OCTAL:
+        cg.add(var.set_bus_width(8))
     transform = get_transform(model, config)
     if rotation_as_transform(model, config):
         if CONF_TRANSFORM in config:

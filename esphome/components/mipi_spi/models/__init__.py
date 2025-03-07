@@ -1,4 +1,4 @@
-from esphome.components.spi import TYPE_QUAD, TYPE_SINGLE
+from esphome.components.spi import TYPE_OCTAL, TYPE_QUAD, TYPE_SINGLE
 import esphome.config_validation as cv
 
 MADCTL_MY = 0x80  # Bit 7 Bottom to top
@@ -25,7 +25,11 @@ class DriverChip:
     models = {}
 
     def __init__(
-        self, name: str, modes=(TYPE_SINGLE, TYPE_QUAD), initsequence=None, **defaults
+        self,
+        name: str,
+        modes=(TYPE_SINGLE, TYPE_QUAD, TYPE_OCTAL),
+        initsequence=None,
+        **defaults,
     ):
         name = name.upper()
         self.name = name

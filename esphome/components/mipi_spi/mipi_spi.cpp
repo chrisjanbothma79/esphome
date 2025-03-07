@@ -238,41 +238,72 @@ void MipiSpi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
 void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
                                 int x_pad) {
   this->set_addr_window_(x_start, y_start, x_start + w - 1, y_start + h - 1);
-  if (this->dc_pin_ == nullptr) {
-    this->enable();
-    // x_ and y_offset are offsets into the source buffer, unrelated to our own offsets into the display.
-    if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
-      // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't bother
-      this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, ptr, w * h * 2, 4);
-    } else {
-      auto stride = x_offset + w + x_pad;
-      this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, nullptr, 0, 4);
-      for (int y = 0; y != h; y++) {
-        this->write_cmd_addr_data(0, 0, 0, 0, ptr + ((y + y_offset) * stride + x_offset) * 2, w * 2, 4);
+  switch (this->bus_width_) {
+    case 4:
+      this->enable();
+      if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
+        // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't
+        // bother
+        this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, ptr, w * h * 2, 4);
+      } else {
+        auto stride = x_offset + w + x_pad;
+        this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, nullptr, 0, 4);
+        for (int y = 0; y != h; y++) {
+          this->write_cmd_addr_data(0, 0, 0, 0, ptr + ((y + y_offset) * stride + x_offset) * 2, w * 2, 4);
+        }
       }
-    }
-  } else {
-    this->write_command_(WDATA);
-    this->enable();
-    if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
-      // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't bother
-      this->write_array(ptr, w * h * 2);
-    } else {
-      auto stride = x_offset + w + x_pad;
-      for (int y = 0; y != h; y++) {
-        this->write_array(ptr + ((y + y_offset) * stride + x_offset) * 2, w * 2);
+      break;
+
+    case 8:
+      this->write_command_(WDATA);
+      this->enable();
+      if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
+        // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't
+        // bother
+        this->write_cmd_addr_data(0, 0, 0, 0, ptr, w * h * 2, 8);
+      } else {
+        auto stride = x_offset + w + x_pad;
+        for (int y = 0; y != h; y++) {
+          this->write_cmd_addr_data(0, 0, 0, 0, ptr + ((y + y_offset) * stride + x_offset) * 2, w * 2, 8);
+        }
       }
-    }
+      break;
+
+    default:
+      this->write_command_(WDATA);
+      this->enable();
+      if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
+        // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't
+        // bother
+        this->write_array(ptr, w * h * 2);
+      } else {
+        auto stride = x_offset + w + x_pad;
+        for (int y = 0; y != h; y++) {
+          this->write_array(ptr + ((y + y_offset) * stride + x_offset) * 2, w * 2);
+        }
+      }
+      break;
   }
   this->disable();
 }
 
 void MipiSpi::write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) {
   ESP_LOGV(TAG, "Command %02X, length %d, bytes %s", cmd, len, format_hex_pretty(bytes, len).c_str());
-  if (this->dc_pin_ == nullptr) {
+  if (this->bus_width_ == 4) {
     this->enable();
     this->write_cmd_addr_data(8, 0x02, 24, cmd << 8, bytes, len);
     this->disable();
+  } else if (this->bus_width_ == 8) {
+    this->dc_pin_->digital_write(false);
+    this->enable();
+    this->write_cmd_addr_data(0, 0, 0, 0, &cmd, 1, 8);
+    this->disable();
+    this->dc_pin_->digital_write(true);
+    if (len != 0) {
+      this->enable();
+      this->write_cmd_addr_data(0, 0, 0, 0, bytes, len, 8);
+      this->disable();
+    }
   } else {
     this->dc_pin_->digital_write(false);
     this->enable();

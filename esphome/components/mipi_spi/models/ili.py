@@ -1,3 +1,5 @@
+from esphome.components.spi import TYPE_OCTAL
+
 from .. import MODE_RGB
 from . import DriverChip, delay
 from .commands import (
@@ -930,6 +932,15 @@ DriverChip(
             0x04,
         ),
     ),
+)
+
+DriverChip.models["ST7796"].derive(
+    "WT32-SC01-PLUS",
+    bus_mode=TYPE_OCTAL,
+    mirror_x=True,
+    reset_pin=4,
+    dc_pin=0,
+    invert_colors=True,
 )
 
 models = {}

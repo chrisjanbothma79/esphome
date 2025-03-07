@@ -90,6 +90,7 @@ class MipiSpi : public display::DisplayBuffer,
   void set_init_sequence(const std::vector<uint8_t> &sequence) { this->init_sequence_ = sequence; }
   void set_draw_rounding(unsigned rounding) { this->draw_rounding_ = rounding; }
   void set_spi_16(bool spi_16) { this->spi_16_ = spi_16; }
+  void set_bus_width(uint8_t bus_width) { this->bus_width_ = bus_width; }
 
  protected:
   void check_buffer_() {
@@ -148,6 +149,7 @@ class MipiSpi : public display::DisplayBuffer,
   bool spi_16_{};
   uint8_t madctl_{};
   uint8_t pixel_mode_{};
+  uint8_t bus_width_{1};
   bool draw_from_origin_{false};
   unsigned draw_rounding_{2};
   optional<uint8_t> brightness_{};
