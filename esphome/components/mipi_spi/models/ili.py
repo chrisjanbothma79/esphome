@@ -333,6 +333,7 @@ from .commands import (
         width=320,
         height=480,
         invert_colors=True,
+        mirror_x=True,
         initsequence=(
             (
                 GMCTRP1,
@@ -808,9 +809,9 @@ DriverChip(
 )
 DriverChip(
     "WAVESHARE-4-TFT",
-    mirror_x=True,
     width=320,
     height=480,
+    spi_16=True,
     initsequence=(
         (
             0xF9,
