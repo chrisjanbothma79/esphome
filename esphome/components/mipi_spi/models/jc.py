@@ -9,7 +9,7 @@ AXS15231 = DriverChip(
     draw_rounding=8,
     swap_xy=cv.UNDEFINED,
     color_order=MODE_RGB,
-    modes=(TYPE_QUAD,),
+    bus_mode=TYPE_QUAD,
     initsequence=(
         (0xBB, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x5A, 0xA5),
         (0xC1, 0x33),

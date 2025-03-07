@@ -9,6 +9,8 @@ from esphome.config_validation import ALLOW_EXTRA
 from esphome.const import (
     CONF_BRIGHTNESS,
     CONF_COLOR_ORDER,
+    CONF_CS_PIN,
+    CONF_DATA_RATE,
     CONF_DC_PIN,
     CONF_DIMENSIONS,
     CONF_ENABLE_PIN,
@@ -52,6 +54,7 @@ from .models import (
     amoled,
     ili,
     jc,
+    lilygo,
 )
 from .models.commands import BRIGHTNESS, DISPON, INVOFF, INVON, MADCTL, PIXFMT, SLPOUT
 
@@ -79,6 +82,7 @@ MODELS = DriverChip.models
 MODELS.update(ili.models)
 MODELS.update(jc.models)
 MODELS.update(amoled.models)
+MODELS.update(lilygo.models)
 
 PixelMode = mipi_spi_ns.enum("PixelMode")
 
@@ -89,11 +93,14 @@ PIXEL_MODES = {
 }
 
 
-def validate_dimension(value):
-    value = cv.positive_int(value)
-    if value % 2 != 0:
-        raise cv.Invalid("Width/height/offset must be divisible by 2")
-    return value
+def validate_dimension(rounding):
+    def validator(value):
+        value = cv.positive_int(value)
+        if value % rounding != 0:
+            raise cv.Invalid(f"Dimensions and offsets must be divisible by {rounding}")
+        return value
+
+    return validator
 
 
 def map_sequence(value):
@@ -122,17 +129,20 @@ def power_of_two(value):
     return value
 
 
-DIMENSION_SCHEMA = cv.Any(
-    cv.dimensions,
-    cv.Schema(
-        {
-            cv.Required(CONF_WIDTH): validate_dimension,
-            cv.Required(CONF_HEIGHT): validate_dimension,
-            cv.Optional(CONF_OFFSET_HEIGHT, default=0): validate_dimension,
-            cv.Optional(CONF_OFFSET_WIDTH, default=0): validate_dimension,
-        }
-    ),
-)
+def dimension_schema(rounding):
+    return cv.Any(
+        cv.dimensions,
+        cv.Schema(
+            {
+                cv.Required(CONF_WIDTH): validate_dimension(rounding),
+                cv.Required(CONF_HEIGHT): validate_dimension(rounding),
+                cv.Optional(CONF_OFFSET_HEIGHT, default=0): validate_dimension(
+                    rounding
+                ),
+                cv.Optional(CONF_OFFSET_WIDTH, default=0): validate_dimension(rounding),
+            }
+        ),
+    )
 
 
 def model_schema(bus_mode, model: DriverChip):
@@ -167,16 +177,19 @@ def model_schema(bus_mode, model: DriverChip):
         display.FULL_DISPLAY_SCHEMA.extend(
             spi.spi_device_schema(
                 cs_pin_required=False,
-                default_mode="MODE0",
-                default_data_rate=10e6,
+                default_mode="MODE3" if bus_mode == TYPE_OCTAL else "MODE0",
+                default_data_rate=model.get_default(CONF_DATA_RATE, 10_000_000),
                 mode=bus_mode,
             )
         )
         .extend(
             {
                 cv.GenerateID(): cv.declare_id(MIPI_SPI),
-                cv_dimensions(CONF_DIMENSIONS): DIMENSION_SCHEMA,
+                cv_dimensions(CONF_DIMENSIONS): dimension_schema(
+                    model.get_default(CONF_DRAW_ROUNDING, 1)
+                ),
                 model.option(CONF_RESET_PIN, cv.UNDEFINED): pins.gpio_output_pin_schema,
+                model.option(CONF_CS_PIN, cv.UNDEFINED): pins.gpio_output_pin_schema,
                 model.option(
                     CONF_ENABLE_PIN, cv.UNDEFINED
                 ): pins.gpio_output_pin_schema,
@@ -407,7 +420,7 @@ async def to_code(config):
         offset_height = model.get_default(CONF_OFFSET_HEIGHT, 0)
 
         # Swap default dimensions if swap_xy is set (not for explicit dimensions)
-        if transform[CONF_SWAP_XY]:
+        if transform[CONF_SWAP_XY] is True:
             cg.add(var.set_dimensions(height, width))
             cg.add(var.set_offsets(offset_height, offset_width))
         else:

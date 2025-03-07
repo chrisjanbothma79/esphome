@@ -328,8 +328,8 @@ void MipiSpi::write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) {
 }
 
 void MipiSpi::dump_config() {
-  ESP_LOGCONFIG("", "MIPI_SPI Display");
-  ESP_LOGCONFIG("", "Model: %s", this->model_);
+  ESP_LOGCONFIG(TAG, "MIPI_SPI Display");
+  ESP_LOGCONFIG(TAG, "  Model: %s", this->model_);
   ESP_LOGCONFIG(TAG, "  Width: %u", this->width_);
   ESP_LOGCONFIG(TAG, "  Height: %u", this->height_);
   if (this->offset_width_ != 0)
@@ -353,6 +353,7 @@ void MipiSpi::dump_config() {
   LOG_PIN("  Reset Pin: ", this->reset_pin_);
   LOG_PIN("  DC Pin: ", this->dc_pin_);
   ESP_LOGCONFIG(TAG, "  SPI Data rate: %dMHz", (unsigned) (this->data_rate_ / 1000000));
+  ESP_LOGCONFIG(TAG, "  SPI Bus width: %d", this->bus_width_);
 }
 
 }  // namespace mipi_spi
