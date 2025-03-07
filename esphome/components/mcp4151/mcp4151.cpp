@@ -21,10 +21,10 @@ void MCP4151::write_state(float state) {
   uint8_t value = static_cast<uint8_t>(state * 255.0f);
   ESP_LOGD(TAG, "  set value: %d", static_cast<int>(value));
   this->last_value_ = value;
-  this->send_command(value);
+  this->send_command_(value);
 }
 
-void MCP4151::send_command(uint8_t value) {
+void MCP4151::send_command_(uint8_t value) {
   this->enable();
   this->transfer_byte(0x00);  // command Byte (Pot #0)
   this->transfer_byte(value);

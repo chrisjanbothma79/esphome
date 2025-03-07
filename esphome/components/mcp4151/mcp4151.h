@@ -19,7 +19,7 @@ class MCP4151 : public Component,
 
  protected:
   uint8_t last_value_{0};
-  void send_command(uint8_t value);
+  void send_command_(uint8_t value);
 };
 
 }  // namespace mcp4151
