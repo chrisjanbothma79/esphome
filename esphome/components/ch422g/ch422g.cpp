@@ -4,7 +4,7 @@
 namespace esphome {
 namespace ch422g {
 
-static const uint8_t CH422G_REG_MODE = 0x24;
+static const uint8_t CH422G_REG_MODE = 0x22;
 static const uint8_t CH422G_MODE_OUTPUT = 0x01;      // enables output mode on 0-7
 static const uint8_t CH422G_MODE_OPEN_DRAIN = 0x04;  // enables open drain mode on 8-11
 static const uint8_t CH422G_REG_IN = 0x26;           // read reg for input bits
