@@ -87,7 +87,7 @@ void RealTimeClock::set_time(uint16_t year, uint8_t month, uint8_t day, uint8_t 
 };
 
 void RealTimeClock::set_time(ESPTime datetime, bool utc) {
-  return this->set_time(datetime.year, datetime.month, datetime.day_of_month, datetime.hour, datetime.minute,
+  this->set_time(datetime.year, datetime.month, datetime.day_of_month, datetime.hour, datetime.minute,
                         datetime.second, utc);
 };
 
