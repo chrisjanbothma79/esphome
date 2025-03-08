@@ -54,6 +54,7 @@ from .models import (
     amoled,
     ili,
     jc,
+    lanbon,
     lilygo,
 )
 from .models.commands import BRIGHTNESS, DISPON, INVOFF, INVON, MADCTL, PIXFMT, SLPOUT
@@ -79,10 +80,12 @@ CONF_BUS_MODE = "bus_mode"
 DriverChip("CUSTOM", initsequence={})
 
 MODELS = DriverChip.models
+# These statements are noops, but serve to suppress linting of side-effect-only imports
 MODELS.update(ili.models)
 MODELS.update(jc.models)
 MODELS.update(amoled.models)
 MODELS.update(lilygo.models)
+MODELS.update(lanbon.models)
 
 PixelMode = mipi_spi_ns.enum("PixelMode")
 
