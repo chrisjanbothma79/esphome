@@ -64,7 +64,7 @@ void MipiSpi::setup() {
           this->madctl_ = arg_byte;
           break;
         case PIXFMT:
-          this->pixel_mode_ = arg_byte;
+          this->pixel_mode_ = arg_byte & 0x11 ? PIXEL_MODE_16 : PIXEL_MODE_18;
           break;
         case BRIGHTNESS:
           this->brightness_ = arg_byte;
@@ -108,8 +108,8 @@ void MipiSpi::update() {
   }
   int w = this->x_high_ - this->x_low_ + 1;
   int h = this->y_high_ - this->y_low_ + 1;
-  this->write_to_display_(this->x_low_, this->y_low_, w, h, this->buffer_, this->x_low_, this->y_low_,
-                          this->width_ - w - this->x_low_);
+  this->write_to_display_(this->x_low_, this->y_low_, w, h, reinterpret_cast<const uint16_t *>(this->buffer_),
+                          this->x_low_, this->y_low_, this->width_ - w - this->x_low_);
   // invalidate watermarks
   this->x_low_ = this->width_;
   this->y_low_ = this->height_;
@@ -229,24 +229,49 @@ void MipiSpi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
     x_offset = 0;
     y_offset = 0;
   }
-  this->write_to_display_(x_start, y_start, w, h, ptr, x_offset, y_offset, x_pad);
+  this->write_to_display_(x_start, y_start, w, h, reinterpret_cast<const uint16_t *>(ptr), x_offset, y_offset, x_pad);
 }
 
-void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
+void MipiSpi::write_18_bit_(const uint16_t *ptr, size_t w, size_t h, size_t stride) {
+  stride -= w;
+  uint8_t transfer_buffer[6 * 256];
+  size_t idx = 0;  // index into transfer_buffer
+  while (h-- != 0) {
+    for (auto x = w; x-- != 0;) {
+      auto color_val = *ptr++;
+      // deal with byte swapping
+      transfer_buffer[idx++] = (color_val & 0xF8);                                       // Blue
+      transfer_buffer[idx++] = ((color_val & 0x7) << 5) | ((color_val & 0xE000) >> 11);  // Green
+      transfer_buffer[idx++] = (color_val >> 5) & 0xF8;                                  // Red
+      if (idx == sizeof(transfer_buffer)) {
+        this->write_array(transfer_buffer, idx);
+        idx = 0;
+      }
+    }
+    ptr += stride;
+  }
+  if (idx != 0)
+    this->write_array(transfer_buffer, idx);
+}
+
+void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const uint16_t *ptr, int x_offset, int y_offset,
                                 int x_pad) {
   this->set_addr_window_(x_start, y_start, x_start + w - 1, y_start + h - 1);
+  auto stride = x_offset + w + x_pad;
+  auto offset_ptr = ptr + (y_offset * stride + x_offset);
+
   switch (this->bus_width_) {
     case 4:
       this->enable();
       if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
         // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't
         // bother
-        this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, ptr, w * h * 2, 4);
+        this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, reinterpret_cast<const uint8_t *>(ptr), w * h * 2, 4);
       } else {
-        auto stride = x_offset + w + x_pad;
         this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, nullptr, 0, 4);
         for (int y = 0; y != h; y++) {
-          this->write_cmd_addr_data(0, 0, 0, 0, ptr + ((y + y_offset) * stride + x_offset) * 2, w * 2, 4);
+          this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(offset_ptr), w * 2, 4);
+          offset_ptr += stride;
         }
       }
       break;
@@ -255,13 +280,11 @@ void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const ui
       this->write_command_(WDATA);
       this->enable();
       if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
-        // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't
-        // bother
-        this->write_cmd_addr_data(0, 0, 0, 0, ptr, w * h * 2, 8);
+        this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(ptr), w * h * 2, 8);
       } else {
-        auto stride = x_offset + w + x_pad;
         for (int y = 0; y != h; y++) {
-          this->write_cmd_addr_data(0, 0, 0, 0, ptr + ((y + y_offset) * stride + x_offset) * 2, w * 2, 8);
+          this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(offset_ptr), w * 2, 4);
+          offset_ptr += stride;
         }
       }
       break;
@@ -269,14 +292,14 @@ void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const ui
     default:
       this->write_command_(WDATA);
       this->enable();
-      if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
-        // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't
-        // bother
-        this->write_array(ptr, w * h * 2);
+      if (this->pixel_mode_ == PIXEL_MODE_18) {
+        this->write_18_bit_(offset_ptr, w, h, stride);
+      } else if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
+        this->write_array(reinterpret_cast<const uint8_t *>(ptr), w * h * 2);
       } else {
-        auto stride = x_offset + w + x_pad;
         for (int y = 0; y != h; y++) {
-          this->write_array(ptr + ((y + y_offset) * stride + x_offset) * 2, w * 2);
+          this->write_array(reinterpret_cast<const uint8_t *>(offset_ptr), w * 2);
+          offset_ptr += stride;
         }
       }
       break;
@@ -338,7 +361,7 @@ void MipiSpi::dump_config() {
   ESP_LOGCONFIG(TAG, "  Mirror Y: %s", YESNO(this->madctl_ & (MADCTL_MY | MADCTL_YFLIP)));
   ESP_LOGCONFIG(TAG, "  Invert colors: %s", YESNO(this->invert_colors_));
   ESP_LOGCONFIG(TAG, "  Color order: %s", this->madctl_ & MADCTL_BGR ? "BGR" : "RGB");
-  ESP_LOGCONFIG(TAG, "  Pixel mode: %s", (this->pixel_mode_ & 0x11) != 0 ? "16bit" : "18bit");
+  ESP_LOGCONFIG(TAG, "  Pixel mode: %s", this->pixel_mode_ == PIXEL_MODE_18 ? "18bit" : "16bit");
   if (this->brightness_.has_value())
     ESP_LOGCONFIG(TAG, "  Brightness: %u", this->brightness_.value());
   if (this->spi_16_)
@@ -350,7 +373,7 @@ void MipiSpi::dump_config() {
   LOG_PIN("  Reset Pin: ", this->reset_pin_);
   LOG_PIN("  DC Pin: ", this->dc_pin_);
   ESP_LOGCONFIG(TAG, "  SPI Mode: %d", this->mode_);
-  ESP_LOGCONFIG(TAG, "  SPI Data rate: %dMHz", (unsigned) (this->data_rate_ / 1000000));
+  ESP_LOGCONFIG(TAG, "  SPI Data rate: %dMHz", static_cast<unsigned>(this->data_rate_ / 1000000));
   ESP_LOGCONFIG(TAG, "  SPI Bus width: %d", this->bus_width_);
 }
 

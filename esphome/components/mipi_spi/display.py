@@ -86,10 +86,12 @@ MODELS.update(lilygo.models)
 
 PixelMode = mipi_spi_ns.enum("PixelMode")
 
+PIXEL_MODE_18BIT = "18bit"
+PIXEL_MODE_16BIT = "16bit"
 
 PIXEL_MODES = {
-    "16bit": 0x55,
-    "18bit": 0x66,
+    PIXEL_MODE_16BIT: 0x55,
+    PIXEL_MODE_18BIT: 0x66,
 }
 
 
@@ -274,6 +276,8 @@ def config_schema(config):
 
     if bus_mode == TYPE_QUAD and CONF_DC_PIN in config:
         raise cv.Invalid("DC pin is not supported in quad mode")
+    if config[CONF_PIXEL_MODE] == PIXEL_MODE_18BIT and bus_mode != TYPE_SINGLE:
+        raise cv.Invalid("18-bit pixel mode is not supported on a quad or octal bus")
     if bus_mode != TYPE_QUAD and CONF_DC_PIN not in config:
         raise cv.Invalid(f"DC pin is required in {bus_mode} mode")
     return config

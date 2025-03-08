@@ -104,7 +104,8 @@ class MipiSpi : public display::DisplayBuffer,
   void draw_absolute_pixel_internal(int x, int y, Color color) override;
   void draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override;
-  void write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
+  void write_18_bit_(const uint16_t *ptr, size_t w, size_t h, size_t stride);
+  void write_to_display_(int x_start, int y_start, int w, int h, const uint16_t *ptr, int x_offset, int y_offset,
                          int x_pad);
   /**
    * the RM67162 in quad SPI mode seems to work like this (not in the datasheet, this is deduced from the
@@ -148,7 +149,7 @@ class MipiSpi : public display::DisplayBuffer,
   int16_t offset_height_{0};
   bool spi_16_{};
   uint8_t madctl_{};
-  uint8_t pixel_mode_{};
+  PixelMode pixel_mode_{};
   uint8_t bus_width_{1};
   bool draw_from_origin_{false};
   unsigned draw_rounding_{2};

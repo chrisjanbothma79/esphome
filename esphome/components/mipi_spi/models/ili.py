@@ -270,6 +270,7 @@ DriverChip(
     "ILI9488",
     width=320,
     height=480,
+    pixel_mode="18bit",
     initsequence=(
         (
             GMCTRP1,
@@ -318,10 +319,11 @@ DriverChip(
     ),
 )
 DriverChip(
-    "ILI9488_IPS",
+    "ILI9488_A",
     width=320,
     height=480,
-    invert_colors=True,
+    invert_colors=False,
+    pixel_mode="18bit",
     mirror_x=True,
     initsequence=(
         (

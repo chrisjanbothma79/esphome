@@ -1,6 +1,7 @@
 from esphome.components.mipi_spi import MODE_RGB
 from esphome.components.spi import TYPE_QUAD
 import esphome.config_validation as cv
+from esphome.const import CONF_IGNORE_STRAPPING_WARNING, CONF_NUMBER
 
 from . import DriverChip
 
@@ -17,12 +18,26 @@ AXS15231 = DriverChip(
     ),
 )
 
-JC3248W535 = AXS15231.extend("JC3248W535", width=320, height=480)
+AXS15231.extend(
+    "JC3248W535",
+    width=320,
+    height=480,
+    cs_pin={CONF_NUMBER: 45, CONF_IGNORE_STRAPPING_WARNING: True},
+    data_rate="40MHz",
+)
 
 DriverChip(
     "JC3636W518",
+    height=360,
+    width=360,
+    offset_height=1,
+    draw_rounding=1,
+    cs_pin=10,
+    reset_pin=47,
     invert_colors=True,
-    modes=(TYPE_QUAD,),
+    color_order=MODE_RGB,
+    bus_mode=TYPE_QUAD,
+    data_rate="40MHz",
     initsequence=(
         (0xF0, 0x08),
         (0xF2, 0x08),
