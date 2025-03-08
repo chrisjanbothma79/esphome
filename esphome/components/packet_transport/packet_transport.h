@@ -97,6 +97,7 @@ class PacketTransport : public PollingComponent {
   void set_provider_encryption(const char *name, std::vector<uint8_t> key) {
     this->providers_[name].encryption_key = std::move(key);
   }
+  void set_platform_name(const char *name) { this->platform_name_ = name; }
 
  protected:
   // child classes must implement this
@@ -142,6 +143,7 @@ class PacketTransport : public PollingComponent {
   std::vector<uint8_t> header_{};
   std::vector<uint8_t> data_{};
   std::map<const char *, uint32_t> ping_keys_{};
+  const char *platform_name_{""};
   void add_key_(const char *name, uint32_t key);
   void send_ping_pong_request_();
   void process_ping_request_(const char *name, uint8_t *ptr, size_t len);

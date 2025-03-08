@@ -14,6 +14,7 @@ from esphome.const import (
     CONF_INTERNAL,
     CONF_KEY,
     CONF_NAME,
+    CONF_PLATFORM,
     CONF_SENSORS,
 )
 from esphome.core import CORE
@@ -195,5 +196,6 @@ async def register_packet_transport(var, config):
 
 async def new_packet_transport(config):
     var = cg.new_Pvariable(config[CONF_ID])
+    cg.add(var.set_platform_name(config[CONF_PLATFORM]))
     providers = await register_packet_transport(var, config)
     return var, providers
