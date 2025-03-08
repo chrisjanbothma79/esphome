@@ -47,7 +47,6 @@ CONF_ON_SCAN_END = "on_scan_end"
 
 DEFAULT_MAX_CONNECTIONS = 3
 IDF_MAX_CONNECTIONS = 9
-ARDUINO_MAX_CONNECTIONS = 3
 
 _LOGGER = logging.getLogger(__name__)
 
