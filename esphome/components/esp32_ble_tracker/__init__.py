@@ -216,24 +216,25 @@ def validate_remaining_connections(config):
     if used_slots <= config[CONF_MAX_CONNECTIONS]:
         return config
     slot_users = ", ".join(slots)
-    hard_limit = ARDUINO_MAX_CONNECTIONS
-    if CORE.using_esp_idf:
-        if used_slots < IDF_MAX_CONNECTIONS:
-            config[CONF_MAX_CONNECTIONS] = used_slots
-            _LOGGER.warning(
-                "esp32_ble_tracker exceeded `%s`: Components attempted to consume %d slot(s) "
-                "out of available configured maximum %d connection slot(s); The system "
-                "automatically increased `%s` to %d to match the number of used slots by "
-                "components: %s.",
-                CONF_MAX_CONNECTIONS,
-                used_slots,
-                config[CONF_MAX_CONNECTIONS],
-                CONF_MAX_CONNECTIONS,
-                used_slots,
-                slot_users,
-            )
-            return config
-        hard_limit = IDF_MAX_CONNECTIONS
+
+    hard_limit = max_connections()
+    configured_limit = min(hard_limit, config[CONF_MAX_CONNECTIONS])
+
+    if used_slots < hard_limit:
+        config[CONF_MAX_CONNECTIONS] = used_slots
+        _LOGGER.warning(
+            "esp32_ble_tracker exceeded `%s`: Components attempted to consume %d slot(s) "
+            "out of available configured maximum %d connection slot(s); The system "
+            "automatically increased `%s` to %d to match the number of used slots by "
+            "components: %s.",
+            CONF_MAX_CONNECTIONS,
+            used_slots,
+            config[CONF_MAX_CONNECTIONS],
+            CONF_MAX_CONNECTIONS,
+            used_slots,
+            slot_users,
+        )
+        return config
 
     msg = (
         f"esp32_ble_tracker exceeded `{CONF_MAX_CONNECTIONS}`: "
@@ -241,7 +242,7 @@ def validate_remaining_connections(config):
         f"configured maximum {config[CONF_MAX_CONNECTIONS]} connection slot(s); "
         f"Decrease the number of BLE clients ({slot_users})"
     )
-    if used_slots < hard_limit:
+    if configured_limit < hard_limit:
         msg += f" or increase {CONF_MAX_CONNECTIONS}` to {used_slots}"
     msg += f" to stay under the {hard_limit} connection slot(s) limit."
     raise cv.Invalid(msg)
