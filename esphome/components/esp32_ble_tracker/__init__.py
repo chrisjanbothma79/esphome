@@ -215,9 +215,7 @@ def validate_remaining_connections(config):
     if used_slots <= config[CONF_MAX_CONNECTIONS]:
         return config
     slot_users = ", ".join(slots)
-
     hard_limit = max_connections()
-    configured_limit = min(hard_limit, config[CONF_MAX_CONNECTIONS])
 
     if used_slots < hard_limit:
         _LOGGER.warning(
@@ -241,7 +239,7 @@ def validate_remaining_connections(config):
         f"out of available configured maximum {config[CONF_MAX_CONNECTIONS]} "
         f"connection slot(s); Decrease the number of BLE clients ({slot_users})"
     )
-    if configured_limit < hard_limit:
+    if config[CONF_MAX_CONNECTIONS] < hard_limit:
         msg += f" or increase {CONF_MAX_CONNECTIONS}` to {used_slots}"
     msg += f" to stay under the {hard_limit} connection slot(s) limit."
     raise cv.Invalid(msg)
