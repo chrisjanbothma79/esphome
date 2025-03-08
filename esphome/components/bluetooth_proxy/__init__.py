@@ -8,10 +8,10 @@ AUTO_LOAD = ["esp32_ble_client", "esp32_ble_tracker"]
 DEPENDENCIES = ["api", "esp32"]
 CODEOWNERS = ["@jesserockz"]
 
-CONF_MAX_CONNECTIONS = "max_connections"
+CONF_CONNECTION_SLOTS = "connection_slots"
 CONF_CACHE_SERVICES = "cache_services"
 CONF_CONNECTIONS = "connections"
-DEFAULT_MAX_CONNECTIONS = 3
+DEFAULT_CONNECTION_SLOTS = 3
 
 bluetooth_proxy_ns = cg.esphome_ns.namespace("bluetooth_proxy")
 
@@ -36,14 +36,13 @@ def validate_connections(config):
                 "Connections can only be used if the proxy is set to active"
             )
     elif config[CONF_ACTIVE]:
-        esp32_ble_tracker.consume_connection_slots(
-            config[CONF_MAX_CONNECTIONS], "bluetooth_proxy"
-        )(config)
+        connection_slots: int = config[CONF_CONNECTION_SLOTS]
+        esp32_ble_tracker.consume_connection_slots(connection_slots, "bluetooth_proxy")(
+            config
+        )
         return {
             **config,
-            CONF_CONNECTIONS: [
-                CONNECTION_SCHEMA({}) for _ in range(config[CONF_MAX_CONNECTIONS])
-            ],
+            CONF_CONNECTIONS: [CONNECTION_SCHEMA({}) for _ in range(connection_slots)],
         }
     return config
 
@@ -58,8 +57,8 @@ CONFIG_SCHEMA = cv.All(
                     cv.only_with_esp_idf, cv.boolean
                 ),
                 cv.Optional(
-                    CONF_MAX_CONNECTIONS,
-                    default=esp32_ble_tracker.DEFAULT_MAX_CONNECTIONS,
+                    CONF_CONNECTION_SLOTS,
+                    default=DEFAULT_CONNECTION_SLOTS,
                 ): cv.All(
                     cv.positive_int,
                     cv.Range(min=1, max=esp32_ble_tracker.max_connections()),

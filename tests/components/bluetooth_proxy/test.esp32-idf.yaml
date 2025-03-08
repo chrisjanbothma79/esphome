@@ -5,4 +5,4 @@ esp32_ble_tracker:
 
 bluetooth_proxy:
   active: true
-  max_connections: 9
+  connection_slots: 9
