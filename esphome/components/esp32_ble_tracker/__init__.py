@@ -220,7 +220,6 @@ def validate_remaining_connections(config):
     configured_limit = min(hard_limit, config[CONF_MAX_CONNECTIONS])
 
     if used_slots < hard_limit:
-        config[CONF_MAX_CONNECTIONS] = used_slots
         _LOGGER.warning(
             "esp32_ble_tracker exceeded `%s`: components attempted to consume %d "
             "connection slot(s) out of available configured maximum %d connection "
@@ -233,6 +232,7 @@ def validate_remaining_connections(config):
             used_slots,
             slot_users,
         )
+        config[CONF_MAX_CONNECTIONS] = used_slots
         return config
 
     msg = (
