@@ -189,16 +189,16 @@ def model_schema(bus_mode, model: DriverChip):
         )
         .extend(
             {
+                model.option(pin, cv.UNDEFINED): pins.gpio_output_pin_schema
+                for pin in (CONF_RESET_PIN, CONF_CS_PIN, CONF_ENABLE_PIN, CONF_DC_PIN)
+            }
+        )
+        .extend(
+            {
                 cv.GenerateID(): cv.declare_id(MIPI_SPI),
                 cv_dimensions(CONF_DIMENSIONS): dimension_schema(
                     model.get_default(CONF_DRAW_ROUNDING, 1)
                 ),
-                model.option(CONF_RESET_PIN, cv.UNDEFINED): pins.gpio_output_pin_schema,
-                model.option(CONF_CS_PIN, cv.UNDEFINED): pins.gpio_output_pin_schema,
-                model.option(
-                    CONF_ENABLE_PIN, cv.UNDEFINED
-                ): pins.gpio_output_pin_schema,
-                model.option(CONF_DC_PIN, cv.UNDEFINED): pins.gpio_output_pin_schema,
                 model.option(CONF_COLOR_ORDER, MODE_BGR): cv.enum(
                     COLOR_ORDERS, upper=True
                 ),
@@ -363,8 +363,7 @@ def get_sequence(model, config):
             sequence.append((BRIGHTNESS, brightness))
     if SLPOUT not in commands:
         sequence.append((SLPOUT,))
-    if DISPON not in commands:
-        sequence.append((DISPON,))
+    sequence.append((DISPON,))
 
     # Flatten the sequence into a list of bytes, with the length of each command
     # or the delay flag inserted where needed
