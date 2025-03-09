@@ -142,17 +142,17 @@ void SHT20Component::advance_measurements_()
   }
   else if ( this->measurement_progress_ == 5 )
   { // all done : publish results
-    uint16_t t = measurement_results_[ 0 ];
+    uint16_t t = this->measurement_results_[ 0 ];
     t <<= 8;
-    t |= measurement_results_[ 1 ] & 0xfc;
+    t |= this->measurement_results_[ 1 ] & 0xfc;
     if ( this->temperature_sensor_ != nullptr )
-      temperature_sensor_->publish_state( 175.72 * t / 65536.0 - 46.85 );
+      this->temperature_sensor_->publish_state( 175.72 * t / 65536.0 - 46.85 );
 
-    uint16_t h = measurement_results_[ 2 ];
+    uint16_t h = this->measurement_results_[ 2 ];
     h <<= 8;
-    h |=  measurement_results_[ 3 ] & 0xfc;
+    h |=  this->measurement_results_[ 3 ] & 0xfc;
     if ( this->humidity_sensor_ != nullptr )
-      humidity_sensor_->publish_state( 125.0 * h / 65536.0 - 6.0 );
+      this->humidity_sensor_->publish_state( 125.0 * h / 65536.0 - 6.0 );
 
     this->measurement_progress_ = 0;
   }
