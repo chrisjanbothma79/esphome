@@ -190,7 +190,7 @@ def model_schema(bus_mode, model: DriverChip):
         .extend(
             {
                 model.option(pin, cv.UNDEFINED): pins.gpio_output_pin_schema
-                for pin in (CONF_RESET_PIN, CONF_CS_PIN, CONF_ENABLE_PIN, CONF_DC_PIN)
+                for pin in (CONF_RESET_PIN, CONF_CS_PIN, CONF_DC_PIN)
             }
         )
         .extend(
@@ -198,6 +198,9 @@ def model_schema(bus_mode, model: DriverChip):
                 cv.GenerateID(): cv.declare_id(MIPI_SPI),
                 cv_dimensions(CONF_DIMENSIONS): dimension_schema(
                     model.get_default(CONF_DRAW_ROUNDING, 1)
+                ),
+                model.option(CONF_ENABLE_PIN, cv.UNDEFINED): cv.ensure_list(
+                    pins.gpio_output_pin_schema
                 ),
                 model.option(CONF_COLOR_ORDER, MODE_BGR): cv.enum(
                     COLOR_ORDERS, upper=True
@@ -396,8 +399,8 @@ async def to_code(config):
     cg.add(var.set_draw_rounding(config[CONF_DRAW_ROUNDING]))
     cg.add(var.set_spi_16(config[CONF_SPI_16]))
     if enable_pin := config.get(CONF_ENABLE_PIN):
-        enable = await cg.gpio_pin_expression(enable_pin)
-        cg.add(var.set_enable_pin(enable))
+        enable = [await cg.gpio_pin_expression(pin) for pin in enable_pin]
+        cg.add(var.set_enable_pins(enable))
 
     if reset_pin := config.get(CONF_RESET_PIN):
         reset = await cg.gpio_pin_expression(reset_pin)

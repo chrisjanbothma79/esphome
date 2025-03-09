@@ -11,9 +11,9 @@ void MipiSpi::setup() {
     this->dc_pin_->setup();
     this->dc_pin_->digital_write(false);
   }
-  if (this->enable_pin_ != nullptr) {
-    this->enable_pin_->setup();
-    this->enable_pin_->digital_write(true);
+  for (auto *pin : this->enable_pins_) {
+    pin->setup();
+    pin->digital_write(true);
   }
   if (this->reset_pin_ != nullptr) {
     this->reset_pin_->setup();

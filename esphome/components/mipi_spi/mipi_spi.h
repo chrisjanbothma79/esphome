@@ -61,7 +61,7 @@ class MipiSpi : public display::DisplayBuffer,
   }
 
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
-  void set_enable_pin(GPIOPin *enable_pin) { this->enable_pin_ = enable_pin; }
+  void set_enable_pins(std::vector<GPIOPin *> enable_pins) { this->enable_pins_ = enable_pins; }
   void set_dc_pin(GPIOPin *dc_pin) { this->dc_pin_ = dc_pin; }
   void set_dimensions(uint16_t width, uint16_t height) {
     this->width_ = width;
@@ -134,7 +134,7 @@ class MipiSpi : public display::DisplayBuffer,
   void set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2);
 
   GPIOPin *reset_pin_{nullptr};
-  GPIOPin *enable_pin_{nullptr};
+  std::vector<GPIOPin *> enable_pins_{};
   GPIOPin *dc_pin_{nullptr};
   uint16_t x_low_{1};
   uint16_t y_low_{1};

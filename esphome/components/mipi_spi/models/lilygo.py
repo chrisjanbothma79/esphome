@@ -39,6 +39,7 @@ ST7789V.extend(
     dc_pin=7,
     cs_pin=6,
     reset_pin=5,
+    enable_pin=[9, 15],
     data_rate="10MHz",
     bus_mode=TYPE_OCTAL,
 )
