@@ -99,7 +99,7 @@ void SHT20Component::advance_measurements_()
       ESP_LOGD( TAG, "SHT20 reading temperature" );
       if ( this->read( & this->measurement_results_[ 0 ], 2 ) != i2c::ERROR_OK )
       {
-        ESP_LOGE( TAG, "SHT20 temperature reading not ready yet" );
+        ESP_LOGE( TAG, "SHT20 temperature reading not ready yet!" );
         error = true;
       }
       break;
@@ -123,7 +123,7 @@ void SHT20Component::advance_measurements_()
       ESP_LOGD( TAG, "SHT20 reading humidity value" );
       if ( this->read( & this->measurement_results_[ 2 ], 2 ) != i2c::ERROR_OK )
       {
-        ESP_LOGE( TAG, "SHT20 humidity reading not ready yet" );
+        ESP_LOGE( TAG, "SHT20 humidity reading not ready yet!" );
         error = true;
       }
       break;
@@ -134,23 +134,25 @@ void SHT20Component::advance_measurements_()
 
   if ( error )
   { // error detected : abort and notify sensors
-    this->temperature_sensor_->publish_state( NAN );
-    this->humidity_sensor_->publish_state( NAN );
+    if ( this->temperature_sensor_ != nullptr )
+      this->temperature_sensor_->publish_state( NAN );
+    if ( this->humidity_sensor_ != nullptr )
+      this->humidity_sensor_->publish_state( NAN );
     this->measurement_progress_ = 0;
-    return;
   }
-
-  if ( this->measurement_progress_ == 5 )
+  else if ( this->measurement_progress_ == 5 )
   { // all done : publish results
     uint16_t t = measurement_results_[ 0 ];
     t <<= 8;
     t |= measurement_results_[ 1 ] & 0xfc;
-    temperature_sensor_->publish_state( 175.72 * t / 65536.0 - 46.85 );
+    if ( this->temperature_sensor_ != nullptr )
+      temperature_sensor_->publish_state( 175.72 * t / 65536.0 - 46.85 );
 
     uint16_t h = measurement_results_[ 2 ];
     h <<= 8;
     h |=  measurement_results_[ 3 ] & 0xfc;
-    humidity_sensor_->publish_state( 125.0 * h / 65536.0 - 6.0 );
+    if ( this->humidity_sensor_ != nullptr )
+      humidity_sensor_->publish_state( 125.0 * h / 65536.0 - 6.0 );
 
     this->measurement_progress_ = 0;
   }
