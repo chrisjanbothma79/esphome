@@ -3,8 +3,6 @@ import esphome.config_validation as cv
 from esphome.components.zephyr import (
     zephyr_add_prj_conf,
     zephyr_add_overlay,
-    zephyr_data,
-    KEY_PRJ_CONF,
 )
 from esphome.const import CONF_ID, CONF_ENABLE_IPV6
 from esphome.core import CORE, coroutine_with_priority
@@ -33,7 +31,7 @@ from . import config_validation as ot_cv
 
 CODEOWNERS = ["@tomaszduda23"]
 DEPENDENCIES = ["zephyr", "nrf52"]
-AUTO_LOAD = ["mdns"]
+AUTO_LOAD = ["mdns", "network"]
 
 OpenThreadZephyr = openthread_zephyr_ns.class_("OpenThreadZephyr", cg.Component)
 
@@ -78,15 +76,23 @@ async def to_code(config):
     cg.add(var.set_pskc(config[CONF_PSKC]))
     cg.add(var.set_radio_tx_power(config[CONF_RADIO_TX_POWER]))
     cg.add(var.set_force_dataset(config[CONF_FORCE_DATASET]))
+    
+    # Get mDNS component reference if available
+    if "mdns" in CORE.config:
+        mdns = await cg.get_variable(CORE.config["mdns"]["id"])
+        cg.add(var.set_mdns(mdns))
 
     # Configure Zephyr for OpenThread
     # Enable OpenThread
     zephyr_add_prj_conf("NET_L2_OPENTHREAD", True)
+    zephyr_add_prj_conf("INIT_STACKS", True)
     
     # Choose either MTD or FTD mode, not both
     # MTD = Minimal Thread Device (end device)
     # FTD = Full Thread Device (router capable)
+
     zephyr_add_prj_conf("OPENTHREAD_FTD", False)
+    zephyr_add_prj_conf("OPENTHREAD_COAP", True)
     zephyr_add_prj_conf("OPENTHREAD_MTD", True)
     
     # Nordic library configuration
@@ -94,16 +100,21 @@ async def to_code(config):
     zephyr_add_prj_conf("OPENTHREAD_NORDIC_LIBRARY_MTD", True)
     zephyr_add_prj_conf("OPENTHREAD_NORDIC_LIBRARY_FTD", False)
     
-    zephyr_add_prj_conf("OPENTHREAD_MANUAL_START", True)
+    #zephyr_add_prj_conf("OPENTHREAD_MANUAL_START", True)
     zephyr_add_prj_conf("OPENTHREAD_SHELL", True)
+    zephyr_add_prj_conf("OPENTHREAD_PING_SENDER", True)
     zephyr_add_prj_conf("SHELL", True)
     zephyr_add_prj_conf("SHELL_BACKEND_SERIAL", True)
     
     # Network stack with IPv6 support
     zephyr_add_prj_conf("NETWORKING", True)
     zephyr_add_prj_conf("NET_IPV6", True)
-    zephyr_add_prj_conf("NET_UDP", True)
-    zephyr_add_prj_conf("NET_TCP", True)
+    zephyr_add_prj_conf("OPENTHREAD_SLAAC", True)
+    #zephyr_add_prj_conf("OPENTHREAD_ENABLE_SERVICE", True)
+    # zephyr_add_prj_conf("OPENTHREAD_DHCP6_CLIENT", True)
+    zephyr_add_prj_conf("NET_IF_UNICAST_IPV6_ADDR_COUNT", 6)
+    #zephyr_add_prj_conf("NET_UDP", True)
+    #zephyr_add_prj_conf("NET_TCP", True)
     zephyr_add_prj_conf("NET_SOCKETS", True)
     zephyr_add_prj_conf("NET_SOCKETS_POSIX_NAMES", True)
     
@@ -111,11 +122,10 @@ async def to_code(config):
     zephyr_add_prj_conf("NET_TCP_ISN_RFC6528", False)
     
     # DNS and mDNS support
-    zephyr_add_prj_conf("DNS_RESOLVER", True)
-    # We're using a stub MDNS implementation for now
-    # zephyr_add_prj_conf("MDNS_RESPONDER", True)
-    zephyr_add_prj_conf("NET_HOSTNAME_ENABLE", True)
-    zephyr_add_prj_conf("NET_HOSTNAME_UNIQUE", True)
+    #zephyr_add_prj_conf("DNS_RESOLVER", True)
+    zephyr_add_prj_conf("MDNS_RESPONDER", True)
+    #zephyr_add_prj_conf("NET_HOSTNAME_ENABLE", True)
+    #zephyr_add_prj_conf("NET_HOSTNAME_UNIQUE", True)
     
     # SRP (Service Registration Protocol) support
     zephyr_add_prj_conf("OPENTHREAD_SRP_CLIENT", True)
@@ -127,24 +137,23 @@ async def to_code(config):
     
     # OpenThread settings
     zephyr_add_prj_conf("OPENTHREAD_CHANNEL", config[CONF_CHANNEL])
-    # Convert hexadecimal PANID to decimal integer
     panid_int = int(config[CONF_PANID])  # Already an integer from cv.hex_uint16_t
     zephyr_add_prj_conf("OPENTHREAD_PANID", panid_int)
     zephyr_add_prj_conf("OPENTHREAD_NETWORK_NAME", config[CONF_NETWORK_NAME])
     zephyr_add_prj_conf("OPENTHREAD_XPANID", config[CONF_XPANID])
     zephyr_add_prj_conf("OPENTHREAD_NETWORKKEY", config[CONF_NETWORK_KEY])
-    
+
     # Thread role and capabilities - consistent with MTD mode
-    zephyr_add_prj_conf("OPENTHREAD_JOINER", True)
-    zephyr_add_prj_conf("OPENTHREAD_COMMISSIONER", False)
+    #zephyr_add_prj_conf("OPENTHREAD_JOINER", True)
+    #zephyr_add_prj_conf("OPENTHREAD_COMMISSIONER", False)
     
     # Radio settings
     zephyr_add_prj_conf("OPENTHREAD_RADIO_WORKQUEUE_STACK_SIZE", 1024)
-    zephyr_add_prj_conf("OPENTHREAD_DEFAULT_TX_POWER", config[CONF_RADIO_TX_POWER])
+    #zephyr_add_prj_conf("OPENTHREAD_DEFAULT_TX_POWER", config[CONF_RADIO_TX_POWER])
     
     # Memory settings
-    zephyr_add_prj_conf("OPENTHREAD_NUM_MESSAGE_BUFFERS", 128)
-    zephyr_add_prj_conf("OPENTHREAD_MAC_FILTER", True)
+    #zephyr_add_prj_conf("OPENTHREAD_NUM_MESSAGE_BUFFERS", 128)
+    #zephyr_add_prj_conf("OPENTHREAD_MAC_FILTER", True)
     
     # CLI settings - ensure CLI libraries are properly included
     zephyr_add_prj_conf("OPENTHREAD_CLI_MAX_LINE_LENGTH", 128)
@@ -155,12 +164,6 @@ async def to_code(config):
     cg.add_build_flag("-DUSE_IPV6")
     cg.add_build_flag("-DUSE_ZEPHYR")
     cg.add_build_flag("-DUSE_ZEPHYR_NETWORKING")
-    cg.add_build_flag("-DMBEDTLS_MD5_C")
-    
-    # Configure libsodium
-    zephyr_add_prj_conf("OPENTHREAD_CRYPTO_PSA", True)
-    zephyr_add_prj_conf("MBEDTLS_PSA_CRYPTO_C", True)
-    zephyr_add_prj_conf("MBEDTLS_USE_PSA_CRYPTO", True)
     
     # Enable security backend
     zephyr_add_prj_conf("NORDIC_SECURITY_BACKEND", True)

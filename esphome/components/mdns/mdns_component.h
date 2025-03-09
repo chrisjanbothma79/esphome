@@ -38,6 +38,8 @@ class MDNSComponent : public Component {
 
   void on_shutdown() override;
 
+  std::vector<MDNSService> get_services();
+
   // Make services accessible to other components
   std::vector<MDNSService> services_{};
   

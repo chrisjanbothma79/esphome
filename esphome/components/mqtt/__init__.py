@@ -53,6 +53,7 @@ from esphome.const import (
     PLATFORM_BK72XX,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
+    PLATFORM_NRF52,
 )
 from esphome.core import CORE, coroutine_with_priority
 
@@ -301,7 +302,7 @@ CONFIG_SCHEMA = cv.All(
         }
     ),
     validate_config,
-    cv.only_on([PLATFORM_ESP32, PLATFORM_ESP8266, PLATFORM_BK72XX]),
+    cv.only_on([PLATFORM_ESP32, PLATFORM_ESP8266, PLATFORM_BK72XX, PLATFORM_NRF52]),
 )
 
 

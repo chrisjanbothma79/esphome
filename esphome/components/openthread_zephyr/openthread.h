@@ -7,6 +7,9 @@
 namespace esphome {
 namespace openthread_zephyr {
 class OpenThreadZephyr;
+
+// Add global component variable
+extern OpenThreadZephyr *global_openthread_component;
 }  // namespace openthread_zephyr
 }  // namespace esphome
 
@@ -25,17 +28,23 @@ using namespace esphome;
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/openthread.h>
 
+// Include mDNS component
+#include "esphome/components/mdns/mdns_component.h"
+#include "esphome/components/network/ip_address.h"
+
 namespace esphome {
 namespace openthread_zephyr {
 
 class OpenThreadZephyr : public Component {
  public:
   OpenThreadZephyr() = default;
+  ~OpenThreadZephyr() = default;
 
   void setup() override;
   void loop() override;
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
+  void on_shutdown() override;
 
   void set_channel(uint8_t channel) { channel_ = channel; }
   void set_panid(uint16_t panid) { panid_ = panid; }
@@ -45,6 +54,7 @@ class OpenThreadZephyr : public Component {
   void set_pskc(const std::string &pskc) { pskc_ = pskc; }
   void set_radio_tx_power(int8_t tx_power) { radio_tx_power_ = tx_power; }
   void set_force_dataset(bool force_dataset) { force_dataset_ = force_dataset; }
+  void set_mdns(mdns::MDNSComponent *mdns) { mdns_ = mdns; }
 
   bool is_connected() const { return connected_; }
   void start_thread_network();
@@ -53,6 +63,9 @@ class OpenThreadZephyr : public Component {
   // IPv6 related methods
   bool has_ipv6_address() const { return has_ipv6_address_; }
   const std::string &get_ipv6_address() const { return ipv6_address_; }
+  
+  // Add get_ip_addresses method
+  network::IPAddresses get_ip_addresses();
 
  protected:
   uint8_t channel_{15};
@@ -75,9 +88,15 @@ class OpenThreadZephyr : public Component {
   
   void update_ipv6_addresses();
   void configure_operational_dataset();
+  void setup_srp_services();
+  void configure_dns();
   
   // Zephyr network interface
   struct net_if *thread_iface_{nullptr};
+  
+  // mDNS component reference
+  mdns::MDNSComponent *mdns_{nullptr};
+  std::vector<mdns::MDNSService> mdns_services_{};
 };
 
 }  // namespace openthread_zephyr
