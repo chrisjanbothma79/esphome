@@ -1,0 +1,9 @@
+spi:
+  clk_pin: GPIO14
+  mosi_pin: GPIO13
+  interface: hardware
+
+output:
+  - platform: mcp4151
+    id: digital_pot
+    cs_pin: GPIO15
