@@ -24,6 +24,7 @@ DriverChip(
     cs_pin=6,
     reset_pin=17,
     dc_pin=7,
+    enable_pin=38,
     brightness=0xD0,
     color_order=MODE_RGB,
     initsequence=(
