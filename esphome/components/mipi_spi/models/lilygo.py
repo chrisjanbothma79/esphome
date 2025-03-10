@@ -1,7 +1,7 @@
 from esphome.components.spi import TYPE_OCTAL
 
 from .. import MODE_BGR
-from .ili import ST7789V
+from .ili import ST7789V, ST7796
 
 ST7789V.extend(
     "T-EMBED",
@@ -42,6 +42,19 @@ ST7789V.extend(
     enable_pin=[9, 15],
     data_rate="10MHz",
     bus_mode=TYPE_OCTAL,
+)
+
+ST7796.extend(
+    "T-DISPLAY-S3-PRO",
+    width=222,
+    height=480,
+    offset_width=49,
+    draw_rounding=1,
+    cs_pin=39,
+    reset_pin=47,
+    dc_pin=9,
+    backlight_pin=48,
+    invert_colors=True,
 )
 
 models = {}
