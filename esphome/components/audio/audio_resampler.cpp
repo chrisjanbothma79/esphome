@@ -93,8 +93,9 @@ AudioResamplerState AudioResampler::resample(bool stop_gracefully, int32_t *ms_d
   }
 
   if (!this->pause_output_) {
-    // Move audio data to the sink
-    this->output_transfer_buffer_->transfer_data_to_sink(pdMS_TO_TICKS(READ_WRITE_TIMEOUT_MS));
+    // Move audio data to the sink without shifting the data in the output transfer buffer to avoid unnecessary, slow
+    // data moves
+    this->output_transfer_buffer_->transfer_data_to_sink(pdMS_TO_TICKS(READ_WRITE_TIMEOUT_MS), false);
   } else {
     // If paused, block to avoid wasting CPU resources
     delay(READ_WRITE_TIMEOUT_MS);
