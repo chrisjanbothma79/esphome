@@ -1,1 +1,6 @@
+substitutions:
+  clk_pin: GPIO14
+  mosi_pin: GPIO13
+  cs_pin: GPIO15
+
 <<: !include common.yaml
