@@ -13,15 +13,15 @@ static const char *const TAG = "remote.lidl_auriol";
 static const uint32_t PULSE_LENGTH = 500;
 
 // temperature and rain sensor
-static const char *MODEL_4LD631 = "4LD631";
+static const char *const MODEL_4LD631 = "4LD631";
 // TODO: unable to receive signal, does not show up in raw dump either, but rtl433 sees it
-static const char *MODEL_H10515DCF = "H10515DCF";
+static const char *const MODEL_H10515_DCF = "H10515_DCF";
 // TODO: temperature, humidity, wind, rain, from the year 2005, sold under many names
-static const char *MODEL_H13726A = "H13726A";
+static const char *const MODEL_H13726A = "H13726A";
 // temperature only (aka TFA-Pool)
-static const char *MODEL_L08037A = "L08037A";
+static const char *const MODEL_L08037A = "L08037A";
 // temperature, humidity (not auriol, but very similar packets)
-static const char *MODEL_NEXUS = "NEXUS";
+static const char *const MODEL_NEXUS = "NEXUS";
 
 struct PROTOCOL {
   const char *model;
@@ -113,7 +113,7 @@ struct TIMING {
   }
 };
 
-static bool decode_4LD631(LidlAuriolData &data) {
+static bool decode_4ld631(LidlAuriolData &data) {
   if (GET_BITS(data.code, 24, 4) != 0b1111) {
     ESP_LOGD(TAG, "[24:27] should be 0b1111");
     return false;
@@ -131,7 +131,7 @@ static bool decode_4LD631(LidlAuriolData &data) {
   return true;
 }
 
-static bool encode_4LD631(const LidlAuriolData &data, uint64_t &code) {
+static bool encode_4ld631(const LidlAuriolData &data, uint64_t &code) {
   code = 0;
   SET_BITS(code, 44, 8, data.id);
   SET_BITS(code, 43, 1, data.battery_level > 25 ? 1 : 0);  // 25% is pretty dead
@@ -144,7 +144,7 @@ static bool encode_4LD631(const LidlAuriolData &data, uint64_t &code) {
   return true;
 }
 
-static bool decode_H10515DCF(LidlAuriolData &data) {
+static bool decode_h10515_dcf(LidlAuriolData &data) {
   /*
   // very similar to NEXUS
   // TODO
@@ -165,7 +165,7 @@ static bool decode_H10515DCF(LidlAuriolData &data) {
   // TODO: return true;
 }
 
-static bool decode_H13726A(LidlAuriolData &data) {
+static bool decode_h13726a(LidlAuriolData &data) {
   uint8_t chksum = 0b1111;
   for (int i = 0; i < 8; i++) {
     chksum = (chksum - (uint8_t) GET_BITS(data.code, i * 4, 4)) & 0b1111;
@@ -180,7 +180,7 @@ static bool decode_H13726A(LidlAuriolData &data) {
   return true;
 }
 
-static bool decode_L08037A(LidlAuriolData &data) {
+static bool decode_l08037a(LidlAuriolData &data) {
   uint8_t chksum = 0b1111;
   for (int i = 0; i < 6; i++) {
     chksum = (chksum + (uint8_t) GET_BITS(data.code, i * 4, 4)) & 0b1111;
@@ -197,7 +197,7 @@ static bool decode_L08037A(LidlAuriolData &data) {
   return true;
 }
 
-static bool decode_NEXUS(LidlAuriolData &data) {
+static bool decode_nexus(LidlAuriolData &data) {
   // 3E806DF2F id=3E, battery ok, 10.9C, 47%
   // 0011 1110 1000 0000 0110 1101 1111 0010 1111
   if (GET_BITS(data.code, 8, 4) != 0b1111) {
@@ -212,8 +212,8 @@ static bool decode_NEXUS(LidlAuriolData &data) {
   return true;
 }
 
-static bool encode_DUMMY(const LidlAuriolData &data, uint64_t &code) {
-  ESP_LOGD(TAG, "encode_DUMMY");
+static bool encode_dummy(const LidlAuriolData &data, uint64_t &code) {
+  ESP_LOGD(TAG, "encode_dummy");
   return true;
 }
 
@@ -221,26 +221,26 @@ static struct TIMING TIMINGS[] = {
     {
         {PULSE_LENGTH, 8, 1, 2, 1, 4, 1, true},
         {
-            {MODEL_4LD631, 52, 7, false, decode_4LD631, encode_4LD631},
+            {MODEL_4LD631, 52, 7, false, decode_4ld631, encode_4ld631},
         },
     },
     {
         {PULSE_LENGTH, 1, 8, 1, 2, 1, 4, false},
         {
-            {MODEL_NEXUS, 36, 8, false, decode_NEXUS, encode_DUMMY},
-            {MODEL_H13726A, 36, 8, false, decode_H13726A, encode_DUMMY},
+            {MODEL_NEXUS, 36, 8, false, decode_nexus, encode_dummy},
+            {MODEL_H13726A, 36, 8, false, decode_h13726a, encode_dummy},
         },
     },
     {
         {PULSE_LENGTH, 1, 18, 1, 4, 1, 8, false},
         {
-            {MODEL_H10515DCF, 36, 6, true, decode_H10515DCF, encode_DUMMY},
+            {MODEL_H10515_DCF, 36, 6, true, decode_h10515_dcf, encode_dummy},
         },
     },
     {
         {PULSE_LENGTH, 1, 19, 1, 4, 1, 9, false},
         {
-            {MODEL_L08037A, 28, 8, false, decode_L08037A, encode_DUMMY},
+            {MODEL_L08037A, 28, 8, false, decode_l08037a, encode_dummy},
         },
     },
 };
@@ -270,8 +270,8 @@ optional<LidlAuriolData> LidlAuriolProtocol::decode(RemoteReceiveData src) {
 
   uint8_t min_nbits = UINT8_MAX;
 
-  for (auto t : TIMINGS) {
-    for (auto p : t.protocols) {
+  for (const auto &t : TIMINGS) {
+    for (const auto &p : t.protocols) {
       if (min_nbits > p.nbits)
         min_nbits = p.nbits;
     }
@@ -281,11 +281,11 @@ optional<LidlAuriolData> LidlAuriolProtocol::decode(RemoteReceiveData src) {
     return {};
   }
 
-  for (auto t : TIMINGS) {
+  for (const auto &t : TIMINGS) {
     uint8_t min_nbits = UINT8_MAX;
     uint8_t max_nbits = 0;
 
-    for (auto p : t.protocols) {
+    for (const auto &p : t.protocols) {
       if (min_nbits > p.nbits)
         min_nbits = p.nbits;
       if (max_nbits < p.nbits)
@@ -301,7 +301,7 @@ optional<LidlAuriolData> LidlAuriolProtocol::decode(RemoteReceiveData src) {
         break;
       }
 
-      for (auto p : t.protocols) {
+      for (const auto &p : t.protocols) {
         if (nbits != p.nbits)
           continue;
 
