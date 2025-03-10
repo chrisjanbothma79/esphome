@@ -1,6 +1,6 @@
-from esphome.components.mipi_spi import MODE_RGB
 from esphome.components.spi import TYPE_QUAD
 
+from .. import MODE_RGB
 from . import DriverChip, delay
 from .commands import MIPI, NORON, PAGESEL, PIXFMT, SLPOUT, SWIRE1, SWIRE2, TEON, WRAM
 
