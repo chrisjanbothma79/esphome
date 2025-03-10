@@ -4,6 +4,7 @@ from esphome.components import binary_sensor
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ADDRESS,
+    CONF_BATTERY_LEVEL,
     CONF_BUTTON,
     CONF_CARRIER_FREQUENCY,
     CONF_CHANNEL,
@@ -16,10 +17,12 @@ from esphome.const import (
     CONF_DEVICE,
     CONF_FAMILY,
     CONF_GROUP,
+    CONF_HUMIDITY,
     CONF_ID,
     CONF_INVERTED,
     CONF_LEVEL,
     CONF_MAGNITUDE,
+    CONF_MODEL,
     CONF_NBITS,
     CONF_ONE,
     CONF_PROTOCOL,
@@ -31,14 +34,15 @@ from esphome.const import (
     CONF_SOURCE,
     CONF_STATE,
     CONF_SYNC,
+    CONF_TEMPERATURE,
     CONF_TIMES,
     CONF_TRIGGER_ID,
     CONF_TYPE_ID,
     CONF_WAIT_TIME,
     CONF_WAND_ID,
+    CONF_WIND_DIRECTION_DEGREES,
+    CONF_WIND_SPEED,
     CONF_ZERO,
-    CONF_BATTERY_LEVEL,
-    CONF_TEMPERATURE,
 )
 from esphome.core import coroutine
 from esphome.schema_extractors import SCHEMA_EXTRACT, schema_extractor
@@ -50,6 +54,7 @@ CONF_RECEIVER_ID = "receiver_id"
 CONF_TRANSMITTER_ID = "transmitter_id"
 CONF_FIRST = "first"
 CONF_RAIN = "rain"
+CONF_WIND_GUST = "wind_gust"
 
 ns = remote_base_ns = cg.esphome_ns.namespace("remote_base")
 RemoteProtocol = ns.class_("RemoteProtocol")
@@ -2123,11 +2128,16 @@ async def Toto_action(var, config, args):
 ) = declare_protocol("LidlAuriol")
 LIDL_AURIOL_SCHEMA = cv.Schema(
     {
+        cv.Required(CONF_MODEL): cv.string,
         cv.Required(CONF_ID): cv.uint8_t,
-        cv.Required(CONF_BATTERY_LEVEL): cv.boolean,
+        cv.Required(CONF_BATTERY_LEVEL): cv.float_,
         cv.Required(CONF_CHANNEL): cv.uint8_t,
         cv.Required(CONF_TEMPERATURE): cv.float_,
-        cv.Required(CONF_RAIN): cv.uint32_t,
+        cv.Required(CONF_HUMIDITY): cv.uint8_t,
+        cv.Required(CONF_RAIN): cv.float_,
+        cv.Required(CONF_WIND_DIRECTION_DEGREES): cv.uint16_t,
+        cv.Required(CONF_WIND_SPEED): cv.float_,
+        cv.Required(CONF_WIND_GUST): cv.float_,
     }
 )
 
@@ -2138,11 +2148,15 @@ def lidl_auriol_binary_sensor(var, config):
         var.set_data(
             cg.StructInitializer(
                 LidlAuriolData,
-                ("id", config[CONF_ID]),
-                ("battery_level", config[CONF_BATTERY_LEVEL]),
-                ("channel", config[CONF_CHANNEL]),
-                ("temperature", config[CONF_TEMPERATURE]),
-                ("rain", config[CONF_RAIN]),
+                (CONF_ID, config[CONF_ID]),
+                (CONF_BATTERY_LEVEL, config[CONF_BATTERY_LEVEL]),
+                (CONF_CHANNEL, config[CONF_CHANNEL]),
+                (CONF_TEMPERATURE, config[CONF_TEMPERATURE]),
+                (CONF_HUMIDITY, config[CONF_HUMIDITY]),
+                (CONF_RAIN, config[CONF_RAIN]),
+                (CONF_WIND_DIRECTION_DEGREES, config[CONF_WIND_DIRECTION_DEGREES]),
+                (CONF_WIND_SPEED, config[CONF_WIND_SPEED]),
+                (CONF_WIND_GUST, config[CONF_WIND_GUST]),
             )
         )
     )
@@ -2160,10 +2174,13 @@ def lidl_auriol_dumper(var, config):
 
 @register_action("lidl_auriol", LidlAuriolAction, LIDL_AURIOL_SCHEMA)
 def lidl_auriol_action(var, config, args):
+    cg.add(
+        var.set_model((yield cg.templatable(config[CONF_MODEL], args, cg.std_string)))
+    )
     cg.add(var.set_id((yield cg.templatable(config[CONF_ID], args, cg.uint8))))
     cg.add(
         var.set_battery_level(
-            (yield cg.templatable(config[CONF_BATTERY_LEVEL], args, cg.bool_))
+            (yield cg.templatable(config[CONF_BATTERY_LEVEL], args, cg.float_))
         )
     )
     cg.add(
@@ -2174,4 +2191,19 @@ def lidl_auriol_action(var, config, args):
             (yield cg.templatable(config[CONF_TEMPERATURE], args, cg.float_))
         )
     )
-    cg.add(var.set_rain((yield cg.templatable(config[CONF_RAIN], args, cg.uint32))))
+
+    cg.add(
+        var.set_humidity((yield cg.templatable(config[CONF_HUMIDITY], args, cg.uint8)))
+    )
+    cg.add(var.set_rain((yield cg.templatable(config[CONF_RAIN], args, cg.float_))))
+    cg.add(
+        var.set_rain(
+            (yield cg.templatable(config[CONF_WIND_DIRECTION_DEGREES], args, cg.uint16))
+        )
+    )
+    cg.add(
+        var.set_rain((yield cg.templatable(config[CONF_WIND_SPEED], args, cg.float_)))
+    )
+    cg.add(
+        var.set_rain((yield cg.templatable(config[CONF_WIND_GUST], args, cg.float_)))
+    )
