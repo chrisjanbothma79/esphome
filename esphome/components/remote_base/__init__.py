@@ -2129,37 +2129,17 @@ async def Toto_action(var, config, args):
 LIDL_AURIOL_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_MODEL): cv.string,
-        cv.Required(CONF_ID): cv.uint8_t,
-        cv.Required(CONF_BATTERY_LEVEL): cv.float_,
-        cv.Required(CONF_CHANNEL): cv.uint8_t,
-        cv.Required(CONF_TEMPERATURE): cv.float_,
-        cv.Required(CONF_HUMIDITY): cv.uint8_t,
-        cv.Required(CONF_RAIN): cv.float_,
-        cv.Required(CONF_WIND_DIRECTION_DEGREES): cv.uint16_t,
-        cv.Required(CONF_WIND_SPEED): cv.float_,
-        cv.Required(CONF_WIND_GUST): cv.float_,
+        cv.Optional(CONF_ID): cv.uint8_t,
+        cv.Optional(CONF_BATTERY_LEVEL): cv.float_,
+        cv.Optional(CONF_CHANNEL): cv.uint8_t,
+        cv.Optional(CONF_TEMPERATURE): cv.float_,
+        cv.Optional(CONF_HUMIDITY): cv.uint8_t,
+        cv.Optional(CONF_RAIN): cv.float_,
+        cv.Optional(CONF_WIND_DIRECTION_DEGREES): cv.uint16_t,
+        cv.Optional(CONF_WIND_SPEED): cv.float_,
+        cv.Optional(CONF_WIND_GUST): cv.float_,
     }
 )
-
-
-@register_binary_sensor("lidl_auriol", NexaBinarySensor, LIDL_AURIOL_SCHEMA)
-def lidl_auriol_binary_sensor(var, config):
-    cg.add(
-        var.set_data(
-            cg.StructInitializer(
-                LidlAuriolData,
-                (CONF_ID, config[CONF_ID]),
-                (CONF_BATTERY_LEVEL, config[CONF_BATTERY_LEVEL]),
-                (CONF_CHANNEL, config[CONF_CHANNEL]),
-                (CONF_TEMPERATURE, config[CONF_TEMPERATURE]),
-                (CONF_HUMIDITY, config[CONF_HUMIDITY]),
-                (CONF_RAIN, config[CONF_RAIN]),
-                (CONF_WIND_DIRECTION_DEGREES, config[CONF_WIND_DIRECTION_DEGREES]),
-                (CONF_WIND_SPEED, config[CONF_WIND_SPEED]),
-                (CONF_WIND_GUST, config[CONF_WIND_GUST]),
-            )
-        )
-    )
 
 
 @register_trigger("lidl_auriol", LidlAuriolTrigger, LidlAuriolData)
@@ -2177,33 +2157,53 @@ def lidl_auriol_action(var, config, args):
     cg.add(
         var.set_model((yield cg.templatable(config[CONF_MODEL], args, cg.std_string)))
     )
-    cg.add(var.set_id((yield cg.templatable(config[CONF_ID], args, cg.uint8))))
-    cg.add(
-        var.set_battery_level(
-            (yield cg.templatable(config[CONF_BATTERY_LEVEL], args, cg.float_))
+    if CONF_ID in config:
+        cg.add(var.set_id((yield cg.templatable(config[CONF_ID], args, cg.uint8))))
+    if CONF_BATTERY_LEVEL in config:
+        cg.add(
+            var.set_battery_level(
+                (yield cg.templatable(config[CONF_BATTERY_LEVEL], args, cg.float_))
+            )
         )
-    )
-    cg.add(
-        var.set_channel((yield cg.templatable(config[CONF_CHANNEL], args, cg.uint8)))
-    )
-    cg.add(
-        var.set_temperature(
-            (yield cg.templatable(config[CONF_TEMPERATURE], args, cg.float_))
+    if CONF_CHANNEL in config:
+        cg.add(
+            var.set_channel(
+                (yield cg.templatable(config[CONF_CHANNEL], args, cg.uint8))
+            )
         )
-    )
-
-    cg.add(
-        var.set_humidity((yield cg.templatable(config[CONF_HUMIDITY], args, cg.uint8)))
-    )
-    cg.add(var.set_rain((yield cg.templatable(config[CONF_RAIN], args, cg.float_))))
-    cg.add(
-        var.set_rain(
-            (yield cg.templatable(config[CONF_WIND_DIRECTION_DEGREES], args, cg.uint16))
+    if CONF_TEMPERATURE in config:
+        cg.add(
+            var.set_temperature(
+                (yield cg.templatable(config[CONF_TEMPERATURE], args, cg.float_))
+            )
         )
-    )
-    cg.add(
-        var.set_rain((yield cg.templatable(config[CONF_WIND_SPEED], args, cg.float_)))
-    )
-    cg.add(
-        var.set_rain((yield cg.templatable(config[CONF_WIND_GUST], args, cg.float_)))
-    )
+    if CONF_HUMIDITY in config:
+        cg.add(
+            var.set_humidity(
+                (yield cg.templatable(config[CONF_HUMIDITY], args, cg.uint8))
+            )
+        )
+    if CONF_RAIN in config:
+        cg.add(var.set_rain((yield cg.templatable(config[CONF_RAIN], args, cg.float_))))
+    if CONF_WIND_DIRECTION_DEGREES in config:
+        cg.add(
+            var.set_rain(
+                (
+                    yield cg.templatable(
+                        config[CONF_WIND_DIRECTION_DEGREES], args, cg.uint16
+                    )
+                )
+            )
+        )
+    if CONF_WIND_SPEED in config:
+        cg.add(
+            var.set_rain(
+                (yield cg.templatable(config[CONF_WIND_SPEED], args, cg.float_))
+            )
+        )
+    if CONF_WIND_GUST in config:
+        cg.add(
+            var.set_rain(
+                (yield cg.templatable(config[CONF_WIND_GUST], args, cg.float_))
+            )
+        )

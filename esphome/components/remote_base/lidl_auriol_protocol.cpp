@@ -227,6 +227,7 @@ static struct TIMING TIMINGS[] = {
     {
         {PULSE_LENGTH, 1, 8, 1, 2, 1, 4, false},
         {
+            // {MODEL_4LD631, 52, 7, false, decode_4ld631, encode_4ld631},
             {MODEL_NEXUS, 36, 8, false, decode_nexus, encode_dummy},
             {MODEL_H13726A, 36, 8, false, decode_h13726a, encode_dummy},
         },
@@ -246,8 +247,8 @@ static struct TIMING TIMINGS[] = {
 };
 
 void LidlAuriolProtocol::encode(RemoteTransmitData *dst, const LidlAuriolData &data) {
-  for (auto t : TIMINGS) {
-    for (auto p : t.protocols) {
+  for (const auto &t : TIMINGS) {
+    for (const auto &p : t.protocols) {
       if (data.model == p.model) {
         uint64_t code = 0;
         if (p.encode(data, code)) {
@@ -266,7 +267,7 @@ void LidlAuriolProtocol::encode(RemoteTransmitData *dst, const LidlAuriolData &d
 }
 
 optional<LidlAuriolData> LidlAuriolProtocol::decode(RemoteReceiveData src) {
-  RemoteReceiveData s(src.get_raw_data(), 25, TOLERANCE_MODE_PERCENTAGE);
+  RemoteReceiveData s(src.get_raw_data(), 50, TOLERANCE_MODE_PERCENTAGE);
 
   uint8_t min_nbits = UINT8_MAX;
 
@@ -301,6 +302,10 @@ optional<LidlAuriolData> LidlAuriolProtocol::decode(RemoteReceiveData src) {
         break;
       }
 
+      if (nbits < min_nbits) {
+        continue;
+      }
+
       for (const auto &p : t.protocols) {
         if (nbits != p.nbits)
           continue;
@@ -314,7 +319,7 @@ optional<LidlAuriolData> LidlAuriolProtocol::decode(RemoteReceiveData src) {
           }
         }
 
-        ESP_LOGD(TAG, "code @%" PRIu32 " 0x%" PRIx64 " (%d)", s.get_index(), code, nbits);
+        ESP_LOGD(TAG, "%s code @%" PRIu32 " 0x%" PRIx64 " (%d)", p.model, s.get_index(), code, nbits);
 
         LidlAuriolData data;
         data.model = p.model;
