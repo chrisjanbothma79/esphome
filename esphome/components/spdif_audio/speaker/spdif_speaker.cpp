@@ -238,8 +238,8 @@ void SPDIFSpeaker::loop() {
     this->status_set_error("Failed to adjust I2S bus to match the incoming audio");
     ESP_LOGE(TAG,
              "Incompatible audio format: sample rate = %" PRIu32 ", channels = %" PRIu8 ", bits per sample = %" PRIu8,
-             this->audio_stream_info_.sample_rate, this->audio_stream_info_.channels,
-             this->audio_stream_info_.bits_per_sample);
+             this->audio_stream_info_.get_sample_rate(), this->audio_stream_info_.get_channels(),
+             this->audio_stream_info_.get_bits_per_sample());
   }
 }
 
@@ -309,11 +309,11 @@ void SPDIFSpeaker::speaker_task(void *params) {
 
   audio::AudioStreamInfo audio_stream_info = this_speaker->audio_stream_info_;
 
-  const uint32_t bytes_per_ms =
-      audio_stream_info.channels * audio_stream_info.get_bytes_per_sample() * audio_stream_info.sample_rate / 1000;
+  const uint32_t bytes_per_ms = audio_stream_info.get_channels() * audio_stream_info.samples_to_bytes(1) *
+                                audio_stream_info.get_sample_rate() / 1000;
 
-  const size_t dma_buffers_size =
-      DMA_BUFFERS_COUNT * SPDIF_BLOCK_SAMPLES * audio_stream_info.channels * audio_stream_info.get_bytes_per_sample();
+  const size_t dma_buffers_size = DMA_BUFFERS_COUNT * SPDIF_BLOCK_SAMPLES * audio_stream_info.get_channels() *
+                                  audio_stream_info.samples_to_bytes(1);
 
   int task_delay_ms = bytes_per_ms * DMA_BUFFERS_COUNT / 2;
 
@@ -356,7 +356,7 @@ void SPDIFSpeaker::speaker_task(void *params) {
       size_t bytes_read = this_speaker->audio_ring_buffer_->read((void *) this_speaker->data_buffer_, bytes_to_read,
                                                                  pdMS_TO_TICKS(task_delay_ms));
       if (bytes_read > 0) {
-        if ((audio_stream_info.bits_per_sample == 16) && (this_speaker->q15_volume_factor_ < INT16_MAX)) {
+        if ((audio_stream_info.get_bits_per_sample() == 16) && (this_speaker->q15_volume_factor_ < INT16_MAX)) {
           // Scale samples by the volume factor in place
           q15_multiplication((int16_t *) this_speaker->data_buffer_, (int16_t *) this_speaker->data_buffer_,
                              bytes_read / sizeof(int16_t), this_speaker->q15_volume_factor_);
@@ -471,20 +471,20 @@ esp_err_t SPDIFSpeaker::allocate_buffers_(size_t data_buffer_size, size_t ring_b
 }
 
 esp_err_t SPDIFSpeaker::start_i2s_driver_(audio::AudioStreamInfo &audio_stream_info) {
-  if (this->sample_rate_ != audio_stream_info.sample_rate) {  // NOLINT
+  if (this->sample_rate_ != audio_stream_info.get_sample_rate()) {  // NOLINT
     //  Can't reconfigure I2S bus, so the sample rate must match the configured value
     ESP_LOGE(TAG, "SPDIF only supports a single sample rate");
     return ESP_ERR_NOT_SUPPORTED;
   }
 
   // Currently only 16-bit samples are supported
-  if (audio_stream_info.bits_per_sample != 16) {
+  if (audio_stream_info.get_bits_per_sample() != 16) {
     ESP_LOGE(TAG, "SPDIF only supports 16 bits per sample");
     return ESP_ERR_NOT_SUPPORTED;
   }
 
   // Currently only stereo is supported
-  if (audio_stream_info.channels != 2) {
+  if (audio_stream_info.get_channels() != 2) {
     ESP_LOGE(TAG, "SPDIF only supports stereo");
     return ESP_ERR_NOT_SUPPORTED;
   }
