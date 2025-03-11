@@ -15,6 +15,11 @@ static inline int16_t get_i16(std::vector<uint8_t> &message, int start) {
   return (int16_t) ((message[start + 1] << 8) + message[start]);
 }
 
+static inline int32_t get_u32(std::vector<uint8_t> &message, int start) {
+  return (int32_t) ((message[start + 3] << 24) + (message[start + 2] << 16) + (message[start + 1] << 8) +
+                    message[start]);
+}
+
 void DeltaSolBSPlusSensor::dump_config() {
   ESP_LOGCONFIG(TAG, "Deltasol BS Plus:");
   LOG_SENSOR("  ", "Temperature 1", this->temperature1_sensor_);
@@ -96,6 +101,88 @@ void DeltaSolBS2009Sensor::handle_message(std::vector<uint8_t> &message) {
     this->time_sensor_->publish_state(get_u16(message, 22));
   if (this->version_sensor_ != nullptr)
     this->version_sensor_->publish_state(get_u16(message, 32) * 0.01f);
+}
+
+void DeltaSolBXSensor::dump_config() {
+  ESP_LOGCONFIG(TAG, "Deltasol BX:");
+  LOG_SENSOR("  ", "Temperature 1", this->temperature1_sensor_);
+  LOG_SENSOR("  ", "Temperature 2", this->temperature2_sensor_);
+  LOG_SENSOR("  ", "Temperature 3", this->temperature3_sensor_);
+  LOG_SENSOR("  ", "Temperature 4", this->temperature4_sensor_);
+  LOG_SENSOR("  ", "Temperature 5", this->temperature5_sensor_);
+  LOG_SENSOR("  ", "Temperature RPS", this->temperature_rps_sensor_);
+  LOG_SENSOR("  ", "Pressure RPS", this->pressure_rps_sensor_);
+  LOG_SENSOR("  ", "Temperature VFS", this->temperature_vfs_sensor_);
+  LOG_SENSOR("  ", "Flow Rate VFS", this->flow_rate_vfs_sensor_);
+  LOG_SENSOR("  ", "Flow Rate V40", this->flow_rate_v40_sensor_);
+  LOG_SENSOR("  ", "Unit", this->unit_sensor_);
+  LOG_SENSOR("  ", "PWM 1", this->pwm1_sensor_);
+  LOG_SENSOR("  ", "PWM 2", this->pwm2_sensor_);
+  LOG_SENSOR("  ", "Pump Speed Relay 1", this->pump_speed_relay1_sensor_);
+  LOG_SENSOR("  ", "Pump Speed Relay 2", this->pump_speed_relay2_sensor_);
+  LOG_SENSOR("  ", "Pump Speed Relay 3", this->pump_speed_relay3_sensor_);
+  LOG_SENSOR("  ", "Pump Speed Relay 4", this->pump_speed_relay4_sensor_);
+  LOG_SENSOR("  ", "Operating Seconds Relay 1", this->operating_seconds_relay1_sensor_);
+  LOG_SENSOR("  ", "Operating Seconds Relay 2", this->operating_seconds_relay2_sensor_);
+  LOG_SENSOR("  ", "Operating Seconds Relay 3", this->operating_seconds_relay3_sensor_);
+  LOG_SENSOR("  ", "Operating Seconds Relay 4", this->operating_seconds_relay4_sensor_);
+  LOG_SENSOR("  ", "Heat Quantity", this->heat_quantity_sensor_);
+  LOG_SENSOR("  ", "FW Version", this->version_sensor_);
+  LOG_SENSOR("  ", "System Time", this->time_sensor_);
+  LOG_SENSOR("  ", "Date", this->date_sensor_);
+}
+
+void DeltaSolBXSensor::handle_message(std::vector<uint8_t> &message) {
+  if (this->temperature1_sensor_ != nullptr)
+    this->temperature1_sensor_->publish_state(get_i16(message, 0) * 0.1f);
+  if (this->temperature2_sensor_ != nullptr)
+    this->temperature2_sensor_->publish_state(get_i16(message, 2) * 0.1f);
+  if (this->temperature3_sensor_ != nullptr)
+    this->temperature3_sensor_->publish_state(get_i16(message, 4) * 0.1f);
+  if (this->temperature4_sensor_ != nullptr)
+    this->temperature4_sensor_->publish_state(get_i16(message, 6) * 0.1f);
+  if (this->temperature5_sensor_ != nullptr)
+    this->temperature5_sensor_->publish_state(get_i16(message, 8) * 0.1f);
+  if (this->temperature_rps_sensor_ != nullptr)
+    this->temperature_rps_sensor_->publish_state(get_i16(message, 10) * 0.1f);
+  if (this->pressure_rps_sensor_ != nullptr)
+    this->pressure_rps_sensor_->publish_state(get_i16(message, 12) * 0.1f);
+  if (this->temperature_vfs_sensor_ != nullptr)
+    this->temperature_vfs_sensor_->publish_state(get_i16(message, 14) * 0.1f);
+  if (this->flow_rate_vfs_sensor_ != nullptr)
+    this->flow_rate_vfs_sensor_->publish_state(get_i16(message, 16));
+  if (this->flow_rate_v40_sensor_ != nullptr)
+    this->flow_rate_v40_sensor_->publish_state(get_i16(message, 18));
+  if (this->unit_sensor_ != nullptr)
+    this->unit_sensor_->publish_state(message[20]);
+  if (this->pwm1_sensor_ != nullptr)
+    this->pwm1_sensor_->publish_state(message[22]);
+  if (this->pwm2_sensor_ != nullptr)
+    this->pwm2_sensor_->publish_state(message[23]);
+  if (this->pump_speed_relay1_sensor_ != nullptr)
+    this->pump_speed_relay1_sensor_->publish_state(message[24]);
+  if (this->pump_speed_relay2_sensor_ != nullptr)
+    this->pump_speed_relay2_sensor_->publish_state(message[25]);
+  if (this->pump_speed_relay3_sensor_ != nullptr)
+    this->pump_speed_relay3_sensor_->publish_state(message[26]);
+  if (this->pump_speed_relay4_sensor_ != nullptr)
+    this->pump_speed_relay4_sensor_->publish_state(message[27]);
+  if (this->operating_seconds_relay1_sensor_ != nullptr)
+    this->operating_seconds_relay1_sensor_->publish_state(get_u32(message, 28));
+  if (this->operating_seconds_relay2_sensor_ != nullptr)
+    this->operating_seconds_relay2_sensor_->publish_state(get_u32(message, 32));
+  if (this->operating_seconds_relay3_sensor_ != nullptr)
+    this->operating_seconds_relay3_sensor_->publish_state(get_u32(message, 36));
+  if (this->operating_seconds_relay4_sensor_ != nullptr)
+    this->operating_seconds_relay4_sensor_->publish_state(get_u32(message, 40));
+  if (this->heat_quantity_sensor_ != nullptr)
+    this->heat_quantity_sensor_->publish_state(get_u32(message, 48));
+  if (this->version_sensor_ != nullptr)
+    this->version_sensor_->publish_state(get_u16(message, 52) * 0.01f);
+  if (this->time_sensor_ != nullptr)
+    this->time_sensor_->publish_state(get_u16(message, 54));
+  if (this->date_sensor_ != nullptr)
+    this->date_sensor_->publish_state(get_u32(message, 56));
 }
 
 void DeltaSolCSensor::dump_config() {
