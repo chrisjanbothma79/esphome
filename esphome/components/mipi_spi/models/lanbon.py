@@ -1,7 +1,7 @@
 from .ili import ST7789V
 
 ST7789V.extend(
-    "LANBON_L8",
+    "LANBON-L8",
     width=240,
     height=320,
     mirror_x=True,

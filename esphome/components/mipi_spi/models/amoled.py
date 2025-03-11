@@ -53,7 +53,6 @@ RM690B0 = DriverChip(
     color_order=MODE_RGB,
     width=480,
     height=600,
-    modes=(TYPE_QUAD,),
     initsequence=(
         (PAGESEL, 0x20),
         (MIPI, 0x0A),
@@ -68,6 +67,6 @@ RM690B0 = DriverChip(
     ),
 )
 
-T4_S3_AMOLED = RM690B0.extend("T4-S3", width=450, offset_width=16)
+T4_S3_AMOLED = RM690B0.extend("T4-S3", width=450, offset_width=16, bus_mode=TYPE_QUAD)
 
 models = {}

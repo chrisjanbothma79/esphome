@@ -149,11 +149,11 @@ def dimension_schema(rounding):
     )
 
 
-def model_schema(bus_mode, model: DriverChip):
+def model_schema(bus_mode, model: DriverChip, swapsies: bool):
     transform = cv.Schema(
         {
-            cv.Optional(CONF_MIRROR_X, False): cv.boolean,
-            cv.Optional(CONF_MIRROR_Y, False): cv.boolean,
+            cv.Required(CONF_MIRROR_X): cv.boolean,
+            cv.Required(CONF_MIRROR_Y): cv.boolean,
         }
     )
     if model.get_default(CONF_SWAP_XY, False) == cv.UNDEFINED:
@@ -167,7 +167,7 @@ def model_schema(bus_mode, model: DriverChip):
     else:
         transform = transform.extend(
             {
-                cv.Optional(CONF_SWAP_XY, default=False): cv.boolean,
+                cv.Required(CONF_SWAP_XY): cv.boolean,
             }
         )
     # CUSTOM model will need to provide a custom init sequence
@@ -176,7 +176,10 @@ def model_schema(bus_mode, model: DriverChip):
         if model.initsequence is None
         else cv.Optional(CONF_INIT_SEQUENCE)
     )
-    cv_dimensions = cv.Optional if model.get_default(CONF_WIDTH) else cv.Required
+    # Dimensions are optional if the model has a default width and the transform is not overridden
+    cv_dimensions = (
+        cv.Optional if model.get_default(CONF_WIDTH) and not swapsies else cv.Required
+    )
     schema = (
         display.FULL_DISPLAY_SCHEMA.extend(
             spi.spi_device_schema(
@@ -271,7 +274,8 @@ def config_schema(config):
         extra=ALLOW_EXTRA,
     )(config)
     bus_mode = config.get(CONF_BUS_MODE, model.modes[0])
-    config = model_schema(bus_mode, model)(config)
+    swapsies = config.get(CONF_TRANSFORM, {}).get(CONF_SWAP_XY) is True
+    config = model_schema(bus_mode, model, swapsies)(config)
     # Check for invalid combinations of MADCTL config
     if init_sequence := config.get(CONF_INIT_SEQUENCE):
         if MADCTL in [x[0] for x in init_sequence] and CONF_TRANSFORM in config:

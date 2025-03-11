@@ -127,7 +127,7 @@ DriverChip(
 )
 
 ILI9488_A.extend(
-    "PICO_RESTOUCH_LCD_3_5",
+    "PICO-RESTOUCH-LCD-3.5",
     spi_16=True,
     pixel_mode="16bit",
     mirror_x=True,
