@@ -258,7 +258,7 @@ void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const ui
                                 int x_pad) {
   this->set_addr_window_(x_start, y_start, x_start + w - 1, y_start + h - 1);
   auto stride = x_offset + w + x_pad;
-  auto offset_ptr = ptr + (y_offset * stride + x_offset);
+  const auto *offset_ptr = ptr + (y_offset * stride + x_offset);
 
   switch (this->bus_width_) {
     case 4:
