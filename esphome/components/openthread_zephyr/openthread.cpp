@@ -9,12 +9,16 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/net/openthread.h>
+#include <zephyr/net/net_if.h>
+#include <zephyr/net/net_l2.h>
 #include <openthread/thread.h>
 #include <openthread/ip6.h>
 #include <openthread/dataset.h>
 #include <openthread/platform/radio.h>
 #include <openthread/srp_client.h>
 #include <openthread/dataset_ftd.h>
+#include <openthread/netdata.h>
+#include "esphome/components/socket/socket.h"
 
 namespace esphome {
 namespace openthread_zephyr {
@@ -59,6 +63,12 @@ void OpenThreadZephyr::setup() {
 }
 
 void OpenThreadZephyr::loop() {
+  // Add debug logging
+  static uint32_t last_debug_log = 0;
+  if (millis() - last_debug_log > 5000) {  // Log every 5 seconds
+    last_debug_log = millis();
+  }
+
   if (!this->thread_started_)
     return;
     
@@ -93,6 +103,9 @@ void OpenThreadZephyr::loop() {
         break;
     }
     ESP_LOGI(TAG, "Thread role changed to: %s", role_str);
+    
+    // Clear NAT64 prefix cache when role changes
+    socket::clear_nat64_prefix_cache();
   }
   
   if (is_connected != this->connected_) {
@@ -103,12 +116,18 @@ void OpenThreadZephyr::loop() {
       // Update IPv6 addresses
       this->update_ipv6_addresses();
       
+      // Clear NAT64 prefix cache when connection status changes
+      socket::clear_nat64_prefix_cache();
+      
       // Note: SRP entries will be automatically updated when Off-Mesh-Routable prefix changes
       // due to otSrpClientEnableAutoHostAddress being enabled in setup_srp_services()
     } else {
       ESP_LOGW(TAG, "Disconnected from Thread network");
       this->has_ipv6_address_ = false;
       this->ipv6_address_ = "";
+      
+      // Clear NAT64 prefix cache when disconnected
+      socket::clear_nat64_prefix_cache();
     }
   }
   
@@ -282,6 +301,8 @@ void OpenThreadZephyr::stop_thread_network() {
 }
 
 void OpenThreadZephyr::update_ipv6_addresses() {
+  ESP_LOGD(TAG, "Updating IPv6 addresses...");
+  
   otInstance *instance = openthread_get_default_instance();
   if (instance == nullptr) {
     ESP_LOGW(TAG, "OpenThread instance not available");
@@ -296,29 +317,44 @@ void OpenThreadZephyr::update_ipv6_addresses() {
   std::string global_addr;
   bool found_omr_prefix = false;
   
+  ESP_LOGD(TAG, "Scanning IPv6 addresses:");
+  int addr_count = 0;
+  
   for (const otNetifAddress *addr = unicast_addrs; addr; addr = addr->mNext) {
+    addr_count++;
     char addr_str[OT_IP6_ADDRESS_STRING_SIZE];
     otIp6AddressToString(&addr->mAddress, addr_str, sizeof(addr_str));
     
-    // Check if mesh-local address
-    if (addr->mAddress.mFields.m8[0] == 0xfd && addr->mAddress.mFields.m8[1] == 0xb5) {
+    // Log all addresses
+    ESP_LOGD(TAG, "  Address %d: %s/%d", addr_count, addr_str, addr->mPrefixLength);
+    
+    // Check if mesh-local address (fd prefix)
+    if (addr->mAddress.mFields.m8[0] == 0xfd) {
       found_mesh_local = true;
       mesh_local_addr = addr_str;
-      ESP_LOGD(TAG, "Mesh-local IPv6 Address: %s", addr_str);
+      ESP_LOGD(TAG, "  -> Mesh-local IPv6 Address: %s", addr_str);
     }
-    // Check if global address
-    else if (addr->mAddress.mFields.m8[0] == 0x20 || addr->mAddress.mFields.m8[0] == 0x30) {
+    // Check if global address (2xxx or 3xxx prefix)
+    else if ((addr->mAddress.mFields.m8[0] == 0x20 || addr->mAddress.mFields.m8[0] == 0x30) && 
+             addr->mPrefixLength == 64) {
       found_global = true;
       global_addr = addr_str;
-      ESP_LOGD(TAG, "Global IPv6 Address: %s", addr_str);
-      
-      // Check if this is an Off-Mesh-Routable (OMR) prefix
-      // OMR prefixes typically start with 0x20 or 0x30 and are used for Thread Border Router connectivity
-      if (addr->mPrefixLength == 64) {
-        found_omr_prefix = true;
-        ESP_LOGD(TAG, "Off-Mesh-Routable (OMR) prefix detected: %s/%d", addr_str, addr->mPrefixLength);
+      ESP_LOGD(TAG, "  -> Global IPv6 Address: %s", addr_str);
+      found_omr_prefix = true;
+      ESP_LOGD(TAG, "  -> Off-Mesh-Routable (OMR) prefix detected: %s/%d", addr_str, addr->mPrefixLength);
+    }
+    // Check if link-local address (fe80 prefix)
+    else if (addr->mAddress.mFields.m8[0] == 0xfe && addr->mAddress.mFields.m8[1] == 0x80) {
+      ESP_LOGD(TAG, "  -> Link-local IPv6 Address: %s", addr_str);
+      // If we don't have a better address, use link-local as fallback
+      if (!found_mesh_local && !found_global) {
+        mesh_local_addr = addr_str;
       }
     }
+  }
+  
+  if (addr_count == 0) {
+    ESP_LOGD(TAG, "  No IPv6 addresses found");
   }
   
   // Update IPv6 address status
@@ -328,14 +364,36 @@ void OpenThreadZephyr::update_ipv6_addresses() {
   // Prefer global address, fall back to mesh-local
   if (found_global) {
     this->ipv6_address_ = global_addr;
+    ESP_LOGI(TAG, "Using global IPv6 address: %s", global_addr.c_str());
   } else if (found_mesh_local) {
     this->ipv6_address_ = mesh_local_addr;
+    ESP_LOGI(TAG, "Using mesh-local IPv6 address: %s", mesh_local_addr.c_str());
   }
   
   // Log if IPv6 status changed
   if (had_ipv6 != this->has_ipv6_address_) {
     if (this->has_ipv6_address_) {
       ESP_LOGI(TAG, "IPv6 address acquired: %s", this->ipv6_address_.c_str());
+
+      // Get the Thread network interface
+      struct net_if *iface = NULL;
+      iface = net_if_get_default();
+      if (iface == NULL) {
+        ESP_LOGE(TAG, "Failed to get default network interface");
+        this->mark_failed();
+        return;
+      }
+      
+      this->thread_iface_ = iface;
+      
+      if (this->thread_iface_ == NULL) {
+        ESP_LOGE(TAG, "Failed to find Thread network interface");
+        //this->mark_failed();
+        //return;
+      }
+      
+      ESP_LOGD(TAG, "Thread network interface initialized");
+
       
       // If we have an OMR prefix, SRP auto host address will handle updating SRP entries
       if (found_omr_prefix) {

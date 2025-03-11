@@ -7,6 +7,7 @@ CONF_IMPLEMENTATION = "implementation"
 IMPLEMENTATION_LWIP_TCP = "lwip_tcp"
 IMPLEMENTATION_LWIP_SOCKETS = "lwip_sockets"
 IMPLEMENTATION_BSD_SOCKETS = "bsd_sockets"
+IMPLEMENTATION_ZEPHYR_SOCKETS = "zephyr_sockets"
 
 CONFIG_SCHEMA = cv.Schema(
     {
@@ -15,7 +16,7 @@ CONFIG_SCHEMA = cv.Schema(
             esp8266=IMPLEMENTATION_LWIP_TCP,
             esp32=IMPLEMENTATION_BSD_SOCKETS,
             rp2040=IMPLEMENTATION_LWIP_TCP,
-            nrf52=IMPLEMENTATION_BSD_SOCKETS,
+            nrf52=IMPLEMENTATION_ZEPHYR_SOCKETS,
             bk72xx=IMPLEMENTATION_LWIP_SOCKETS,
             rtl87xx=IMPLEMENTATION_LWIP_SOCKETS,
             host=IMPLEMENTATION_BSD_SOCKETS,
@@ -23,6 +24,7 @@ CONFIG_SCHEMA = cv.Schema(
             IMPLEMENTATION_LWIP_TCP,
             IMPLEMENTATION_LWIP_SOCKETS,
             IMPLEMENTATION_BSD_SOCKETS,
+            IMPLEMENTATION_ZEPHYR_SOCKETS,
             lower=True,
             space="_",
         ),
@@ -38,3 +40,5 @@ async def to_code(config):
         cg.add_define("USE_SOCKET_IMPL_LWIP_SOCKETS")
     elif impl == IMPLEMENTATION_BSD_SOCKETS:
         cg.add_define("USE_SOCKET_IMPL_BSD_SOCKETS")
+    elif impl == IMPLEMENTATION_ZEPHYR_SOCKETS:
+        cg.add_define("USE_SOCKET_IMPL_ZEPHYR_SOCKETS")

@@ -109,6 +109,7 @@ async def to_code(config):
     # Network stack with IPv6 support
     zephyr_add_prj_conf("NETWORKING", True)
     zephyr_add_prj_conf("NET_IPV6", True)
+    zephyr_add_prj_conf("NET_TCP", True)
     zephyr_add_prj_conf("OPENTHREAD_SLAAC", True)
     #zephyr_add_prj_conf("OPENTHREAD_ENABLE_SERVICE", True)
     # zephyr_add_prj_conf("OPENTHREAD_DHCP6_CLIENT", True)

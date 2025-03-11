@@ -89,7 +89,6 @@ class OpenThreadZephyr : public Component {
   void update_ipv6_addresses();
   void configure_operational_dataset();
   void setup_srp_services();
-  void configure_dns();
   
   // Zephyr network interface
   struct net_if *thread_iface_{nullptr};

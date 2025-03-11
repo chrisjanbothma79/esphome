@@ -1,0 +1,66 @@
+esphome:
+  name: nrf52-openthread-mqtt
+  friendly_name: NRF52 OpenThread MQTT
+
+# Use the Zephyr framework for nRF52
+zephyr:
+  board: nrf52840dk_nrf52840
+  
+# Enable logging
+logger:
+  level: DEBUG
+  
+# Enable OpenThread for IPv6 connectivity
+openthread_zephyr:
+  channel: 15
+  panid: 0xABCD
+  network_name: "ESPHome-Thread"
+  xpanid: "FEDCBA9876543210"
+  network_key: "00112233445566778899AABBCCDDEEFF"
+  radio_tx_power: 8
+  
+# Enable our simple MQTT client
+simple_mqtt:
+  broker: "fd00::1"  # Replace with your MQTT broker's IPv6 address
+  port: 1883
+  client_id: "nrf52-thread-mqtt"
+  # Optional: Add username and password if your broker requires authentication
+  # username: "user"
+  # password: "pass"
+  
+# Add a button to trigger MQTT publish
+button:
+  - platform: template
+    name: "Publish MQTT Message"
+    on_press:
+      then:
+        - lambda: |-
+            // Get a reference to our simple MQTT client
+            auto *mqtt = static_cast<esphome::simple_mqtt::SimpleMQTTClient *>(id(simple_mqtt));
+            
+            // Check if we're connected
+            if (!mqtt->is_connected()) {
+              ESP_LOGI("button", "Connecting to MQTT broker...");
+              mqtt->connect();
+              delay(1000);  // Give it some time to connect
+            }
+            
+            // Publish a message
+            if (mqtt->is_connected()) {
+              ESP_LOGI("button", "Publishing message...");
+              mqtt->publish("nrf52/test", "Hello from nRF52 with OpenThread!");
+            } else {
+              ESP_LOGW("button", "Not connected to MQTT broker");
+            }
+            
+# Add a text sensor to display the IPv6 address
+text_sensor:
+  - platform: template
+    name: "Thread IPv6 Address"
+    id: thread_ipv6
+    update_interval: 60s
+    lambda: |-
+      if (openthread_zephyr::global_openthread_component->has_ipv6_address()) {
+        return openthread_zephyr::global_openthread_component->get_ipv6_address();
+      }
+      return "No IPv6 Address"; 
