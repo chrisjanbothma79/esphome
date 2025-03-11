@@ -4,9 +4,11 @@ from esphome.components import speaker
 from esphome.components.i2s_audio import I2SAudioComponent
 import esphome.config_validation as cv
 from esphome.const import (
+    CONF_BUFFER_DURATION,
     CONF_DATA_PIN,
     CONF_DEBUG,
     CONF_ID,
+    CONF_NEVER,
     CONF_SAMPLE_RATE,
     CONF_TIMEOUT,
 )
@@ -19,9 +21,6 @@ CODEOWNERS = ["@johnboiles"]
 SPDIFSpeaker = spdif_audio_ns.class_(
     "SPDIFSpeaker", cg.Component, speaker.Speaker, I2SAudioComponent
 )
-
-CONF_BUFFER_DURATION = "buffer_duration"
-CONF_NEVER = "never"
 
 CONF_I2S_AUDIO_ID = "i2s_audio_id"
 
