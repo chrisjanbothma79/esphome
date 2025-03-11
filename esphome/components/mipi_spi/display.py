@@ -57,6 +57,7 @@ from .models import (
     jc,
     lanbon,
     lilygo,
+    waveshare,
 )
 from .models.commands import BRIGHTNESS, DISPON, INVOFF, INVON, MADCTL, PIXFMT, SLPOUT
 
@@ -82,7 +83,7 @@ DriverChip("CUSTOM", initsequence={})
 
 MODELS = DriverChip.models
 # These statements are noops, but serve to suppress linting of side-effect-only imports
-for _ in (ili, jc, amoled, lilygo, lanbon, cyd):
+for _ in (ili, jc, amoled, lilygo, lanbon, cyd, waveshare):
     pass
 
 PixelMode = mipi_spi_ns.enum("PixelMode")

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "esphome/components/spi/spi.h"
 #include "esphome/components/display/display.h"
 #include "esphome/components/display/display_buffer.h"
@@ -61,7 +63,7 @@ class MipiSpi : public display::DisplayBuffer,
   }
 
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
-  void set_enable_pins(std::vector<GPIOPin *> enable_pins) { this->enable_pins_ = enable_pins; }
+  void set_enable_pins(std::vector<GPIOPin *> enable_pins) { this->enable_pins_ = std::move(enable_pins); }
   void set_dc_pin(GPIOPin *dc_pin) { this->dc_pin_ = dc_pin; }
   void set_dimensions(uint16_t width, uint16_t height) {
     this->width_ = width;
