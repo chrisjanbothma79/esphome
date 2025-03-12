@@ -386,9 +386,9 @@ def validate_thermostat(config):
                 preset_min_temperature = preset_config[
                     CONF_DEFAULT_TARGET_TEMPERATURE_LOW
                 ]
-                # due to config validation, the preset_min_temperature can be "keep" or a float value
+                # due to config validation, the preset_min_temperature can be TEMPERATURE_VALUE_KEEP or a float value
                 if (
-                    str(preset_min_temperature).lower() != TEMPERATURE_VALUE_KEEP
+                    preset_min_temperature != TEMPERATURE_VALUE_KEEP
                     and preset_min_temperature < visual_min_temperature
                 ):
                     raise cv.Invalid(
@@ -399,9 +399,9 @@ def validate_thermostat(config):
                 preset_max_temperature = preset_config[
                     CONF_DEFAULT_TARGET_TEMPERATURE_HIGH
                 ]
-                # due to config validation, the preset_max_temperature can be "keep" or a float value
+                # due to config validation, the preset_max_temperature can be TEMPERATURE_VALUE_KEEP or a float value
                 if (
-                    str(preset_max_temperature).lower() != TEMPERATURE_VALUE_KEEP
+                    preset_max_temperature != TEMPERATURE_VALUE_KEEP
                     and preset_max_temperature > visual_max_temperature
                 ):
                     raise cv.Invalid(
@@ -937,8 +937,8 @@ async def to_code(config):
                 preset_max_temperature = preset_config[
                     CONF_DEFAULT_TARGET_TEMPERATURE_HIGH
                 ]
-
-                if str(preset_max_temperature).lower() == TEMPERATURE_VALUE_KEEP:
+                # due to config validation, the preset_max_temperature can be TEMPERATURE_VALUE_KEEP or a float value
+                if preset_max_temperature == TEMPERATURE_VALUE_KEEP:
                     preset_target_config = ThermostatClimateTargetTempConfig()
                 else:
                     preset_target_config = ThermostatClimateTargetTempConfig(
@@ -948,8 +948,8 @@ async def to_code(config):
                 preset_min_temperature = preset_config[
                     CONF_DEFAULT_TARGET_TEMPERATURE_LOW
                 ]
-
-                if str(preset_min_temperature).lower() == TEMPERATURE_VALUE_KEEP:
+                # due to config validation, the preset_min_temperature can be TEMPERATURE_VALUE_KEEP or a float value
+                if preset_min_temperature == TEMPERATURE_VALUE_KEEP:
                     preset_target_config = ThermostatClimateTargetTempConfig()
                 else:
                     preset_target_config = ThermostatClimateTargetTempConfig(
