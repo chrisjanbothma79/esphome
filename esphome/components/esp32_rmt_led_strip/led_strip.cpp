@@ -21,6 +21,40 @@ static const uint32_t RMT_CLK_FREQ = 80000000;
 static const uint8_t RMT_CLK_DIV = 2;
 #endif
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+static size_t encoder_callback(const void *data, size_t size, size_t symbols_written, size_t symbols_free,
+                               rmt_symbol_word_t *symbols, bool *done, void *arg) {
+  LedParams *params = (LedParams *) arg;
+  uint8_t *bytes = (uint8_t *) data;
+  size_t index = symbols_written / 8;
+  if (index < size) {
+    // convert byte to symbols
+    if (symbols_free < 8) {
+      return 0;
+    }
+    for (int32_t i = 0; i < 8; i++) {
+      if (bytes[index] & (1 << (7 - i))) {
+        symbols[i] = params->bit1;
+      } else {
+        symbols[i] = params->bit0;
+      }
+    }
+    if ((index + 1) >= size && params->reset.duration0 == 0 && params->reset.duration1 == 0) {
+      *done = true;
+    }
+    return 8;
+  } else {
+    // send reset
+    if (symbols_free < 1) {
+      return 0;
+    }
+    symbols[0] = params->reset;
+    *done = true;
+    return 1;
+  }
+}
+#endif
+
 void ESP32RMTLEDStripLightOutput::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ESP32 LED Strip...");
 
@@ -43,10 +77,15 @@ void ESP32RMTLEDStripLightOutput::setup() {
   }
 
 #if ESP_IDF_VERSION_MAJOR >= 5
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+  // copy of the led buffer
+  this->rmt_buf_ = allocator.allocate(buffer_size);
+#else
   RAMAllocator<rmt_symbol_word_t> rmt_allocator(this->use_psram_ ? 0 : RAMAllocator<rmt_symbol_word_t>::ALLOC_INTERNAL);
 
   // 8 bits per byte, 1 rmt_symbol_word_t per bit + 1 rmt_symbol_word_t for reset
   this->rmt_buf_ = rmt_allocator.allocate(buffer_size * 8 + 1);
+#endif
 
   rmt_tx_channel_config_t channel;
   memset(&channel, 0, sizeof(channel));
@@ -66,6 +105,18 @@ void ESP32RMTLEDStripLightOutput::setup() {
     return;
   }
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+  rmt_simple_encoder_config_t encoder;
+  memset(&encoder, 0, sizeof(encoder));
+  encoder.callback = encoder_callback;
+  encoder.arg = &this->params_;
+  encoder.min_chunk_size = 8;
+  if (rmt_new_simple_encoder(&encoder, &this->encoder_) != ESP_OK) {
+    ESP_LOGE(TAG, "Encoder creation failed");
+    this->mark_failed();
+    return;
+  }
+#else
   rmt_copy_encoder_config_t encoder;
   memset(&encoder, 0, sizeof(encoder));
   if (rmt_new_copy_encoder(&encoder, &this->encoder_) != ESP_OK) {
@@ -73,6 +124,7 @@ void ESP32RMTLEDStripLightOutput::setup() {
     this->mark_failed();
     return;
   }
+#endif
 
   if (rmt_enable(this->channel_) != ESP_OK) {
     ESP_LOGE(TAG, "Enabling channel failed");
@@ -116,20 +168,20 @@ void ESP32RMTLEDStripLightOutput::set_led_params(uint32_t bit0_high, uint32_t bi
   float ratio = (float) RMT_CLK_FREQ / RMT_CLK_DIV / 1e09f;
 
   // 0-bit
-  this->bit0_.duration0 = (uint32_t) (ratio * bit0_high);
-  this->bit0_.level0 = 1;
-  this->bit0_.duration1 = (uint32_t) (ratio * bit0_low);
-  this->bit0_.level1 = 0;
+  this->params_.bit0.duration0 = (uint32_t) (ratio * bit0_high);
+  this->params_.bit0.level0 = 1;
+  this->params_.bit0.duration1 = (uint32_t) (ratio * bit0_low);
+  this->params_.bit0.level1 = 0;
   // 1-bit
-  this->bit1_.duration0 = (uint32_t) (ratio * bit1_high);
-  this->bit1_.level0 = 1;
-  this->bit1_.duration1 = (uint32_t) (ratio * bit1_low);
-  this->bit1_.level1 = 0;
+  this->params_.bit1.duration0 = (uint32_t) (ratio * bit1_high);
+  this->params_.bit1.level0 = 1;
+  this->params_.bit1.duration1 = (uint32_t) (ratio * bit1_low);
+  this->params_.bit1.level1 = 0;
   // reset
-  this->reset_.duration0 = (uint32_t) (ratio * reset_time_high);
-  this->reset_.level0 = 1;
-  this->reset_.duration1 = (uint32_t) (ratio * reset_time_low);
-  this->reset_.level1 = 0;
+  this->params_.reset.duration0 = (uint32_t) (ratio * reset_time_high);
+  this->params_.reset.level0 = 1;
+  this->params_.reset.duration1 = (uint32_t) (ratio * reset_time_low);
+  this->params_.reset.level1 = 0;
 }
 
 void ESP32RMTLEDStripLightOutput::write_state(light::LightState *state) {
@@ -157,6 +209,9 @@ void ESP32RMTLEDStripLightOutput::write_state(light::LightState *state) {
   }
   delayMicroseconds(50);
 
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+  memcpy(this->rmt_buf_, this->buf_, this->get_buffer_size_());
+#else
   size_t buffer_size = this->get_buffer_size_();
 
   size_t size = 0;
@@ -170,7 +225,7 @@ void ESP32RMTLEDStripLightOutput::write_state(light::LightState *state) {
   while (size < buffer_size) {
     uint8_t b = *psrc;
     for (int i = 0; i < 8; i++) {
-      pdest->val = b & (1 << (7 - i)) ? this->bit1_.val : this->bit0_.val;
+      pdest->val = b & (1 << (7 - i)) ? this->params_.bit1.val : this->params_.bit0.val;
       pdest++;
       len++;
     }
@@ -178,18 +233,21 @@ void ESP32RMTLEDStripLightOutput::write_state(light::LightState *state) {
     psrc++;
   }
 
-  if (this->reset_.duration0 > 0 || this->reset_.duration1 > 0) {
-    pdest->val = this->reset_.val;
+  if (this->params_.reset.duration0 > 0 || this->params_.reset.duration1 > 0) {
+    pdest->val = this->params_.reset.val;
     pdest++;
     len++;
   }
+#endif
 
 #if ESP_IDF_VERSION_MAJOR >= 5
   rmt_transmit_config_t config;
   memset(&config, 0, sizeof(config));
-  config.loop_count = 0;
-  config.flags.eot_level = 0;
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+  error = rmt_transmit(this->channel_, this->encoder_, this->rmt_buf_, this->get_buffer_size_(), &config);
+#else
   error = rmt_transmit(this->channel_, this->encoder_, this->rmt_buf_, len * sizeof(rmt_symbol_word_t), &config);
+#endif
 #else
   error = rmt_write_items(this->channel_, this->rmt_buf_, len, false);
 #endif
