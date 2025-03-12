@@ -89,34 +89,6 @@ template<> const char *proto_enum_to_string<enums::FanDirection>(enums::FanDirec
 }
 #endif
 #ifdef HAS_PROTO_MESSAGE_DUMP
-template<> const char *proto_enum_to_string<enums::ColorMode>(enums::ColorMode value) {
-  switch (value) {
-    case enums::COLOR_MODE_UNKNOWN:
-      return "COLOR_MODE_UNKNOWN";
-    case enums::COLOR_MODE_ON_OFF:
-      return "COLOR_MODE_ON_OFF";
-    case enums::COLOR_MODE_BRIGHTNESS:
-      return "COLOR_MODE_BRIGHTNESS";
-    case enums::COLOR_MODE_WHITE:
-      return "COLOR_MODE_WHITE";
-    case enums::COLOR_MODE_COLOR_TEMPERATURE:
-      return "COLOR_MODE_COLOR_TEMPERATURE";
-    case enums::COLOR_MODE_COLD_WARM_WHITE:
-      return "COLOR_MODE_COLD_WARM_WHITE";
-    case enums::COLOR_MODE_RGB:
-      return "COLOR_MODE_RGB";
-    case enums::COLOR_MODE_RGB_WHITE:
-      return "COLOR_MODE_RGB_WHITE";
-    case enums::COLOR_MODE_RGB_COLOR_TEMPERATURE:
-      return "COLOR_MODE_RGB_COLOR_TEMPERATURE";
-    case enums::COLOR_MODE_RGB_COLD_WARM_WHITE:
-      return "COLOR_MODE_RGB_COLD_WARM_WHITE";
-    default:
-      return "UNKNOWN";
-  }
-}
-#endif
-#ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::SensorStateClass>(enums::SensorStateClass value) {
   switch (value) {
     case enums::STATE_CLASS_NONE:
@@ -429,20 +401,6 @@ const char *proto_enum_to_string<enums::VoiceAssistantSubscribeFlag>(enums::Voic
       return "VOICE_ASSISTANT_SUBSCRIBE_NONE";
     case enums::VOICE_ASSISTANT_SUBSCRIBE_API_AUDIO:
       return "VOICE_ASSISTANT_SUBSCRIBE_API_AUDIO";
-    default:
-      return "UNKNOWN";
-  }
-}
-#endif
-#ifdef HAS_PROTO_MESSAGE_DUMP
-template<> const char *proto_enum_to_string<enums::VoiceAssistantRequestFlag>(enums::VoiceAssistantRequestFlag value) {
-  switch (value) {
-    case enums::VOICE_ASSISTANT_REQUEST_NONE:
-      return "VOICE_ASSISTANT_REQUEST_NONE";
-    case enums::VOICE_ASSISTANT_REQUEST_USE_VAD:
-      return "VOICE_ASSISTANT_REQUEST_USE_VAD";
-    case enums::VOICE_ASSISTANT_REQUEST_USE_WAKE_WORD:
-      return "VOICE_ASSISTANT_REQUEST_USE_WAKE_WORD";
     default:
       return "UNKNOWN";
   }
@@ -1430,7 +1388,7 @@ bool ListEntitiesFanResponse::decode_varint(uint32_t field_id, ProtoVarInt value
       return true;
     }
     case 8: {
-      this->supported_speed_count = value.as_int32();
+      this->supported_speed_levels = value.as_int32();
       return true;
     }
     case 9: {
@@ -1489,7 +1447,7 @@ void ListEntitiesFanResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(5, this->supports_oscillation);
   buffer.encode_bool(6, this->supports_speed);
   buffer.encode_bool(7, this->supports_direction);
-  buffer.encode_int32(8, this->supported_speed_count);
+  buffer.encode_int32(8, this->supported_speed_levels);
   buffer.encode_bool(9, this->disabled_by_default);
   buffer.encode_string(10, this->icon);
   buffer.encode_enum<enums::EntityCategory>(11, this->entity_category);
@@ -1530,8 +1488,8 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->supports_direction));
   out.append("\n");
 
-  out.append("  supported_speed_count: ");
-  sprintf(buffer, "%" PRId32, this->supported_speed_count);
+  out.append("  supported_speed_levels: ");
+  sprintf(buffer, "%" PRId32, this->supported_speed_levels);
   out.append(buffer);
   out.append("\n");
 
@@ -1794,7 +1752,7 @@ void FanCommandRequest::dump_to(std::string &out) const {
 bool ListEntitiesLightResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 12: {
-      this->supported_color_modes.push_back(value.as_enum<enums::ColorMode>());
+      this->supported_color_modes.push_back(value.as_int32());
       return true;
     }
     case 5: {
@@ -1875,7 +1833,7 @@ void ListEntitiesLightResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(3, this->name);
   buffer.encode_string(4, this->unique_id);
   for (auto &it : this->supported_color_modes) {
-    buffer.encode_enum<enums::ColorMode>(12, it, true);
+    buffer.encode_int32(12, it, true);
   }
   buffer.encode_bool(5, this->legacy_supports_brightness);
   buffer.encode_bool(6, this->legacy_supports_rgb);
@@ -1913,7 +1871,8 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
 
   for (const auto &it : this->supported_color_modes) {
     out.append("  supported_color_modes: ");
-    out.append(proto_enum_to_string<enums::ColorMode>(it));
+    sprintf(buffer, "%" PRId32, it);
+    out.append(buffer);
     out.append("\n");
   }
 
@@ -1970,7 +1929,7 @@ bool LightStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
       return true;
     }
     case 11: {
-      this->color_mode = value.as_enum<enums::ColorMode>();
+      this->color_mode = value.as_int32();
       return true;
     }
     default:
@@ -2037,7 +1996,7 @@ void LightStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_bool(2, this->state);
   buffer.encode_float(3, this->brightness);
-  buffer.encode_enum<enums::ColorMode>(11, this->color_mode);
+  buffer.encode_int32(11, this->color_mode);
   buffer.encode_float(10, this->color_brightness);
   buffer.encode_float(4, this->red);
   buffer.encode_float(5, this->green);
@@ -2067,7 +2026,8 @@ void LightStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  color_mode: ");
-  out.append(proto_enum_to_string<enums::ColorMode>(this->color_mode));
+  sprintf(buffer, "%" PRId32, this->color_mode);
+  out.append(buffer);
   out.append("\n");
 
   out.append("  color_brightness: ");
@@ -2135,7 +2095,7 @@ bool LightCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
       return true;
     }
     case 23: {
-      this->color_mode = value.as_enum<enums::ColorMode>();
+      this->color_mode = value.as_int32();
       return true;
     }
     case 20: {
@@ -2249,7 +2209,7 @@ void LightCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(4, this->has_brightness);
   buffer.encode_float(5, this->brightness);
   buffer.encode_bool(22, this->has_color_mode);
-  buffer.encode_enum<enums::ColorMode>(23, this->color_mode);
+  buffer.encode_int32(23, this->color_mode);
   buffer.encode_bool(20, this->has_color_brightness);
   buffer.encode_float(21, this->color_brightness);
   buffer.encode_bool(6, this->has_rgb);
@@ -2302,7 +2262,8 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  color_mode: ");
-  out.append(proto_enum_to_string<enums::ColorMode>(this->color_mode));
+  sprintf(buffer, "%" PRId32, this->color_mode);
+  out.append(buffer);
   out.append("\n");
 
   out.append("  has_color_brightness: ");
@@ -2412,7 +2373,7 @@ bool ListEntitiesSensorResponse::decode_varint(uint32_t field_id, ProtoVarInt va
       return true;
     }
     case 11: {
-      this->legacy_last_reset_type = value.as_enum<enums::SensorLastResetType>();
+      this->last_reset_type = value.as_enum<enums::SensorLastResetType>();
       return true;
     }
     case 12: {
@@ -2478,7 +2439,7 @@ void ListEntitiesSensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(8, this->force_update);
   buffer.encode_string(9, this->device_class);
   buffer.encode_enum<enums::SensorStateClass>(10, this->state_class);
-  buffer.encode_enum<enums::SensorLastResetType>(11, this->legacy_last_reset_type);
+  buffer.encode_enum<enums::SensorLastResetType>(11, this->last_reset_type);
   buffer.encode_bool(12, this->disabled_by_default);
   buffer.encode_enum<enums::EntityCategory>(13, this->entity_category);
 }
@@ -2528,8 +2489,8 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::SensorStateClass>(this->state_class));
   out.append("\n");
 
-  out.append("  legacy_last_reset_type: ");
-  out.append(proto_enum_to_string<enums::SensorLastResetType>(this->legacy_last_reset_type));
+  out.append("  last_reset_type: ");
+  out.append(proto_enum_to_string<enums::SensorLastResetType>(this->last_reset_type));
   out.append("\n");
 
   out.append("  disabled_by_default: ");
@@ -3970,7 +3931,7 @@ bool ClimateStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
       return true;
     }
     case 7: {
-      this->unused_legacy_away = value.as_bool();
+      this->legacy_away = value.as_bool();
       return true;
     }
     case 8: {
@@ -4048,7 +4009,7 @@ void ClimateStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_float(4, this->target_temperature);
   buffer.encode_float(5, this->target_temperature_low);
   buffer.encode_float(6, this->target_temperature_high);
-  buffer.encode_bool(7, this->unused_legacy_away);
+  buffer.encode_bool(7, this->legacy_away);
   buffer.encode_enum<enums::ClimateAction>(8, this->action);
   buffer.encode_enum<enums::ClimateFanMode>(9, this->fan_mode);
   buffer.encode_enum<enums::ClimateSwingMode>(10, this->swing_mode);
@@ -4091,8 +4052,8 @@ void ClimateStateResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
-  out.append("  unused_legacy_away: ");
-  out.append(YESNO(this->unused_legacy_away));
+  out.append("  legacy_away: ");
+  out.append(YESNO(this->legacy_away));
   out.append("\n");
 
   out.append("  action: ");
@@ -4154,11 +4115,11 @@ bool ClimateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) 
       return true;
     }
     case 10: {
-      this->unused_has_legacy_away = value.as_bool();
+      this->has_legacy_away = value.as_bool();
       return true;
     }
     case 11: {
-      this->unused_legacy_away = value.as_bool();
+      this->legacy_away = value.as_bool();
       return true;
     }
     case 12: {
@@ -4251,8 +4212,8 @@ void ClimateCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_float(7, this->target_temperature_low);
   buffer.encode_bool(8, this->has_target_temperature_high);
   buffer.encode_float(9, this->target_temperature_high);
-  buffer.encode_bool(10, this->unused_has_legacy_away);
-  buffer.encode_bool(11, this->unused_legacy_away);
+  buffer.encode_bool(10, this->has_legacy_away);
+  buffer.encode_bool(11, this->legacy_away);
   buffer.encode_bool(12, this->has_fan_mode);
   buffer.encode_enum<enums::ClimateFanMode>(13, this->fan_mode);
   buffer.encode_bool(14, this->has_swing_mode);
@@ -4310,12 +4271,12 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
-  out.append("  unused_has_legacy_away: ");
-  out.append(YESNO(this->unused_has_legacy_away));
+  out.append("  has_legacy_away: ");
+  out.append(YESNO(this->has_legacy_away));
   out.append("\n");
 
-  out.append("  unused_legacy_away: ");
-  out.append(YESNO(this->unused_legacy_away));
+  out.append("  legacy_away: ");
+  out.append(YESNO(this->legacy_away));
   out.append("\n");
 
   out.append("  has_fan_mode: ");
@@ -4791,6 +4752,276 @@ void SelectCommandRequest::dump_to(std::string &out) const {
 
   out.append("  state: ");
   out.append("'").append(this->state).append("'");
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool ListEntitiesSirenResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 6: {
+      this->disabled_by_default = value.as_bool();
+      return true;
+    }
+    case 8: {
+      this->supports_duration = value.as_bool();
+      return true;
+    }
+    case 9: {
+      this->supports_volume = value.as_bool();
+      return true;
+    }
+    case 10: {
+      this->entity_category = value.as_enum<enums::EntityCategory>();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool ListEntitiesSirenResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 1: {
+      this->object_id = value.as_string();
+      return true;
+    }
+    case 3: {
+      this->name = value.as_string();
+      return true;
+    }
+    case 4: {
+      this->unique_id = value.as_string();
+      return true;
+    }
+    case 5: {
+      this->icon = value.as_string();
+      return true;
+    }
+    case 7: {
+      this->tones.push_back(value.as_string());
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool ListEntitiesSirenResponse::decode_32bit(uint32_t field_id, Proto32Bit value) {
+  switch (field_id) {
+    case 2: {
+      this->key = value.as_fixed32();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void ListEntitiesSirenResponse::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_string(1, this->object_id);
+  buffer.encode_fixed32(2, this->key);
+  buffer.encode_string(3, this->name);
+  buffer.encode_string(4, this->unique_id);
+  buffer.encode_string(5, this->icon);
+  buffer.encode_bool(6, this->disabled_by_default);
+  for (auto &it : this->tones) {
+    buffer.encode_string(7, it, true);
+  }
+  buffer.encode_bool(8, this->supports_duration);
+  buffer.encode_bool(9, this->supports_volume);
+  buffer.encode_enum<enums::EntityCategory>(10, this->entity_category);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void ListEntitiesSirenResponse::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("ListEntitiesSirenResponse {\n");
+  out.append("  object_id: ");
+  out.append("'").append(this->object_id).append("'");
+  out.append("\n");
+
+  out.append("  key: ");
+  sprintf(buffer, "%" PRIu32, this->key);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  name: ");
+  out.append("'").append(this->name).append("'");
+  out.append("\n");
+
+  out.append("  unique_id: ");
+  out.append("'").append(this->unique_id).append("'");
+  out.append("\n");
+
+  out.append("  icon: ");
+  out.append("'").append(this->icon).append("'");
+  out.append("\n");
+
+  out.append("  disabled_by_default: ");
+  out.append(YESNO(this->disabled_by_default));
+  out.append("\n");
+
+  for (const auto &it : this->tones) {
+    out.append("  tones: ");
+    out.append("'").append(it).append("'");
+    out.append("\n");
+  }
+
+  out.append("  supports_duration: ");
+  out.append(YESNO(this->supports_duration));
+  out.append("\n");
+
+  out.append("  supports_volume: ");
+  out.append(YESNO(this->supports_volume));
+  out.append("\n");
+
+  out.append("  entity_category: ");
+  out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool SirenStateResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 2: {
+      this->state = value.as_bool();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool SirenStateResponse::decode_32bit(uint32_t field_id, Proto32Bit value) {
+  switch (field_id) {
+    case 1: {
+      this->key = value.as_fixed32();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void SirenStateResponse::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_fixed32(1, this->key);
+  buffer.encode_bool(2, this->state);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void SirenStateResponse::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("SirenStateResponse {\n");
+  out.append("  key: ");
+  sprintf(buffer, "%" PRIu32, this->key);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  state: ");
+  out.append(YESNO(this->state));
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool SirenCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 2: {
+      this->has_state = value.as_bool();
+      return true;
+    }
+    case 3: {
+      this->state = value.as_bool();
+      return true;
+    }
+    case 4: {
+      this->has_tone = value.as_bool();
+      return true;
+    }
+    case 6: {
+      this->has_duration = value.as_bool();
+      return true;
+    }
+    case 7: {
+      this->duration = value.as_uint32();
+      return true;
+    }
+    case 8: {
+      this->has_volume = value.as_bool();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool SirenCommandRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 5: {
+      this->tone = value.as_string();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+bool SirenCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
+  switch (field_id) {
+    case 1: {
+      this->key = value.as_fixed32();
+      return true;
+    }
+    case 9: {
+      this->volume = value.as_float();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void SirenCommandRequest::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_fixed32(1, this->key);
+  buffer.encode_bool(2, this->has_state);
+  buffer.encode_bool(3, this->state);
+  buffer.encode_bool(4, this->has_tone);
+  buffer.encode_string(5, this->tone);
+  buffer.encode_bool(6, this->has_duration);
+  buffer.encode_uint32(7, this->duration);
+  buffer.encode_bool(8, this->has_volume);
+  buffer.encode_float(9, this->volume);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void SirenCommandRequest::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("SirenCommandRequest {\n");
+  out.append("  key: ");
+  sprintf(buffer, "%" PRIu32, this->key);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  has_state: ");
+  out.append(YESNO(this->has_state));
+  out.append("\n");
+
+  out.append("  state: ");
+  out.append(YESNO(this->state));
+  out.append("\n");
+
+  out.append("  has_tone: ");
+  out.append(YESNO(this->has_tone));
+  out.append("\n");
+
+  out.append("  tone: ");
+  out.append("'").append(this->tone).append("'");
+  out.append("\n");
+
+  out.append("  has_duration: ");
+  out.append(YESNO(this->has_duration));
+  out.append("\n");
+
+  out.append("  duration: ");
+  sprintf(buffer, "%" PRIu32, this->duration);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  has_volume: ");
+  out.append(YESNO(this->has_volume));
+  out.append("\n");
+
+  out.append("  volume: ");
+  sprintf(buffer, "%g", this->volume);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -5494,7 +5725,7 @@ void MediaPlayerCommandRequest::dump_to(std::string &out) const {
 bool SubscribeBluetoothLEAdvertisementsRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
-      this->flags = value.as_uint32();
+      this->flags = value.as_int32();
       return true;
     }
     default:
@@ -5502,14 +5733,14 @@ bool SubscribeBluetoothLEAdvertisementsRequest::decode_varint(uint32_t field_id,
   }
 }
 void SubscribeBluetoothLEAdvertisementsRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint32(1, this->flags);
+  buffer.encode_int32(1, this->flags);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SubscribeBluetoothLEAdvertisementsRequest {\n");
   out.append("  flags: ");
-  sprintf(buffer, "%" PRIu32, this->flags);
+  sprintf(buffer, "%" PRId32, this->flags);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -7094,6 +7325,16 @@ void VoiceAssistantTimerEventResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
+bool VoiceAssistantAnnounceRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 4: {
+      this->start_conversation = value.as_bool();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
 bool VoiceAssistantAnnounceRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 1: {
@@ -7104,6 +7345,10 @@ bool VoiceAssistantAnnounceRequest::decode_length(uint32_t field_id, ProtoLength
       this->text = value.as_string();
       return true;
     }
+    case 3: {
+      this->preannounce_media_id = value.as_string();
+      return true;
+    }
     default:
       return false;
   }
@@ -7111,6 +7356,8 @@ bool VoiceAssistantAnnounceRequest::decode_length(uint32_t field_id, ProtoLength
 void VoiceAssistantAnnounceRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->media_id);
   buffer.encode_string(2, this->text);
+  buffer.encode_string(3, this->preannounce_media_id);
+  buffer.encode_bool(4, this->start_conversation);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantAnnounceRequest::dump_to(std::string &out) const {
@@ -7122,6 +7369,14 @@ void VoiceAssistantAnnounceRequest::dump_to(std::string &out) const {
 
   out.append("  text: ");
   out.append("'").append(this->text).append("'");
+  out.append("\n");
+
+  out.append("  preannounce_media_id: ");
+  out.append("'").append(this->preannounce_media_id).append("'");
+  out.append("\n");
+
+  out.append("  start_conversation: ");
+  out.append(YESNO(this->start_conversation));
   out.append("\n");
   out.append("}");
 }

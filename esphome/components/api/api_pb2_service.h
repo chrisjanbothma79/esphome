@@ -130,6 +130,15 @@ class APIServerConnectionBase : public ProtoService {
 #ifdef USE_SELECT
   virtual void on_select_command_request(const SelectCommandRequest &value){};
 #endif
+#ifdef USE_SIREN
+  bool send_list_entities_siren_response(const ListEntitiesSirenResponse &msg);
+#endif
+#ifdef USE_SIREN
+  bool send_siren_state_response(const SirenStateResponse &msg);
+#endif
+#ifdef USE_SIREN
+  virtual void on_siren_command_request(const SirenCommandRequest &value){};
+#endif
 #ifdef USE_LOCK
   bool send_list_entities_lock_response(const ListEntitiesLockResponse &msg);
 #endif
@@ -154,10 +163,8 @@ class APIServerConnectionBase : public ProtoService {
 #ifdef USE_MEDIA_PLAYER
   virtual void on_media_player_command_request(const MediaPlayerCommandRequest &value){};
 #endif
-#ifdef USE_BLUETOOTH_PROXY
   virtual void on_subscribe_bluetooth_le_advertisements_request(
       const SubscribeBluetoothLEAdvertisementsRequest &value){};
-#endif
 #ifdef USE_BLUETOOTH_PROXY
   bool send_bluetooth_le_advertisement_response(const BluetoothLEAdvertisementResponse &msg);
 #endif
@@ -221,10 +228,8 @@ class APIServerConnectionBase : public ProtoService {
 #ifdef USE_BLUETOOTH_PROXY
   bool send_bluetooth_device_unpairing_response(const BluetoothDeviceUnpairingResponse &msg);
 #endif
-#ifdef USE_BLUETOOTH_PROXY
   virtual void on_unsubscribe_bluetooth_le_advertisements_request(
       const UnsubscribeBluetoothLEAdvertisementsRequest &value){};
-#endif
 #ifdef USE_BLUETOOTH_PROXY
   bool send_bluetooth_device_clear_cache_response(const BluetoothDeviceClearCacheResponse &msg);
 #endif
@@ -370,11 +375,14 @@ class APIServerConnection : public APIServerConnectionBase {
 #ifdef USE_NUMBER
   virtual void number_command(const NumberCommandRequest &msg) = 0;
 #endif
+#ifdef USE_SELECT
+  virtual void select_command(const SelectCommandRequest &msg) = 0;
+#endif
 #ifdef USE_TEXT
   virtual void text_command(const TextCommandRequest &msg) = 0;
 #endif
-#ifdef USE_SELECT
-  virtual void select_command(const SelectCommandRequest &msg) = 0;
+#ifdef USE_SIREN
+  virtual void siren_command(const SirenCommandRequest &msg) = 0;
 #endif
 #ifdef USE_BUTTON
   virtual void button_command(const ButtonCommandRequest &msg) = 0;
@@ -397,12 +405,7 @@ class APIServerConnection : public APIServerConnectionBase {
 #ifdef USE_DATETIME_DATETIME
   virtual void datetime_command(const DateTimeCommandRequest &msg) = 0;
 #endif
-#ifdef USE_UPDATE
-  virtual void update_command(const UpdateCommandRequest &msg) = 0;
-#endif
-#ifdef USE_BLUETOOTH_PROXY
   virtual void subscribe_bluetooth_le_advertisements(const SubscribeBluetoothLEAdvertisementsRequest &msg) = 0;
-#endif
 #ifdef USE_BLUETOOTH_PROXY
   virtual void bluetooth_device_request(const BluetoothDeviceRequest &msg) = 0;
 #endif
@@ -424,22 +427,9 @@ class APIServerConnection : public APIServerConnectionBase {
 #ifdef USE_BLUETOOTH_PROXY
   virtual void bluetooth_gatt_notify(const BluetoothGATTNotifyRequest &msg) = 0;
 #endif
-#ifdef USE_BLUETOOTH_PROXY
-  virtual BluetoothConnectionsFreeResponse subscribe_bluetooth_connections_free(
-      const SubscribeBluetoothConnectionsFreeRequest &msg) = 0;
-#endif
-#ifdef USE_BLUETOOTH_PROXY
   virtual void unsubscribe_bluetooth_le_advertisements(const UnsubscribeBluetoothLEAdvertisementsRequest &msg) = 0;
-#endif
 #ifdef USE_VOICE_ASSISTANT
   virtual void subscribe_voice_assistant(const SubscribeVoiceAssistantRequest &msg) = 0;
-#endif
-#ifdef USE_VOICE_ASSISTANT
-  virtual VoiceAssistantConfigurationResponse voice_assistant_get_configuration(
-      const VoiceAssistantConfigurationRequest &msg) = 0;
-#endif
-#ifdef USE_VOICE_ASSISTANT
-  virtual void voice_assistant_set_configuration(const VoiceAssistantSetConfiguration &msg) = 0;
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
   virtual void alarm_control_panel_command(const AlarmControlPanelCommandRequest &msg) = 0;
@@ -478,11 +468,14 @@ class APIServerConnection : public APIServerConnectionBase {
 #ifdef USE_NUMBER
   void on_number_command_request(const NumberCommandRequest &msg) override;
 #endif
+#ifdef USE_SELECT
+  void on_select_command_request(const SelectCommandRequest &msg) override;
+#endif
 #ifdef USE_TEXT
   void on_text_command_request(const TextCommandRequest &msg) override;
 #endif
-#ifdef USE_SELECT
-  void on_select_command_request(const SelectCommandRequest &msg) override;
+#ifdef USE_SIREN
+  void on_siren_command_request(const SirenCommandRequest &msg) override;
 #endif
 #ifdef USE_BUTTON
   void on_button_command_request(const ButtonCommandRequest &msg) override;
@@ -505,12 +498,7 @@ class APIServerConnection : public APIServerConnectionBase {
 #ifdef USE_DATETIME_DATETIME
   void on_date_time_command_request(const DateTimeCommandRequest &msg) override;
 #endif
-#ifdef USE_UPDATE
-  void on_update_command_request(const UpdateCommandRequest &msg) override;
-#endif
-#ifdef USE_BLUETOOTH_PROXY
   void on_subscribe_bluetooth_le_advertisements_request(const SubscribeBluetoothLEAdvertisementsRequest &msg) override;
-#endif
 #ifdef USE_BLUETOOTH_PROXY
   void on_bluetooth_device_request(const BluetoothDeviceRequest &msg) override;
 #endif
@@ -532,21 +520,10 @@ class APIServerConnection : public APIServerConnectionBase {
 #ifdef USE_BLUETOOTH_PROXY
   void on_bluetooth_gatt_notify_request(const BluetoothGATTNotifyRequest &msg) override;
 #endif
-#ifdef USE_BLUETOOTH_PROXY
-  void on_subscribe_bluetooth_connections_free_request(const SubscribeBluetoothConnectionsFreeRequest &msg) override;
-#endif
-#ifdef USE_BLUETOOTH_PROXY
   void on_unsubscribe_bluetooth_le_advertisements_request(
       const UnsubscribeBluetoothLEAdvertisementsRequest &msg) override;
-#endif
 #ifdef USE_VOICE_ASSISTANT
   void on_subscribe_voice_assistant_request(const SubscribeVoiceAssistantRequest &msg) override;
-#endif
-#ifdef USE_VOICE_ASSISTANT
-  void on_voice_assistant_configuration_request(const VoiceAssistantConfigurationRequest &msg) override;
-#endif
-#ifdef USE_VOICE_ASSISTANT
-  void on_voice_assistant_set_configuration(const VoiceAssistantSetConfiguration &msg) override;
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
   void on_alarm_control_panel_command_request(const AlarmControlPanelCommandRequest &msg) override;
