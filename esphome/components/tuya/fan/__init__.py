@@ -6,7 +6,7 @@ from esphome.const import (
     CONF_OUTPUT_ID,
     CONF_PRESET_MODES,
     CONF_SPEED_COUNT,
-    CONF_SWITCH_DATAPOINT
+    CONF_SWITCH_DATAPOINT,
 )
 
 from .. import tuya_ns, CONF_TUYA_ID, Tuya
