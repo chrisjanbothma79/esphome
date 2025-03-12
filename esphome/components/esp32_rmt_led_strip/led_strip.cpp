@@ -22,8 +22,8 @@ static const uint8_t RMT_CLK_DIV = 2;
 #endif
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
-static size_t encoder_callback(const void *data, size_t size, size_t symbols_written, size_t symbols_free,
-                               rmt_symbol_word_t *symbols, bool *done, void *arg) {
+static size_t IRAM_ATTR HOT encoder_callback(const void *data, size_t size, size_t symbols_written, size_t symbols_free,
+                                             rmt_symbol_word_t *symbols, bool *done, void *arg) {
   LedParams *params = (LedParams *) arg;
   uint8_t *bytes = (uint8_t *) data;
   size_t index = symbols_written / 8;
