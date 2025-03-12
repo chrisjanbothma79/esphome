@@ -35,9 +35,9 @@ elif CORE.is_esp8266:
     # ESP8266 doesn't support IPv6
     pass
 elif CORE.is_nrf52:
-    # For nRF52, use openthread_zephyr
-    DEPENDENCIES.append("openthread_zephyr")
-    AUTO_LOAD.append("openthread_zephyr")
+    # For nRF52, use zephyr_openthread
+    DEPENDENCIES.append("zephyr_openthread")
+    AUTO_LOAD.append("zephyr_openthread")
 
 simple_mqtt_ns = cg.esphome_ns.namespace("simple_mqtt")
 SimpleMQTTClient = simple_mqtt_ns.class_("SimpleMQTTClient", cg.Component)
@@ -76,53 +76,54 @@ MQTT_PUBLISH_ACTION_SCHEMA = cv.Schema(
     }
 )
 
+
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
-    
+
     # Set up the MQTT client
     cg.add(var.set_broker_address(config[CONF_BROKER]))
     cg.add(var.set_broker_port(config[CONF_PORT]))
-    
+
     if CONF_USERNAME in config:
         cg.add(var.set_username(config[CONF_USERNAME]))
-    
+
     if CONF_PASSWORD in config:
         cg.add(var.set_password(config[CONF_PASSWORD]))
-    
+
     if CONF_CLIENT_ID in config:
         cg.add(var.set_client_id(config[CONF_CLIENT_ID]))
-    
+
     cg.add(var.set_keep_alive(config[CONF_KEEP_ALIVE]))
     cg.add(var.set_auto_reconnect(config[CONF_AUTO_RECONNECT]))
-    
+
     # Set up message triggers
     if CONF_ON_MESSAGE in config:
         for conf in config[CONF_ON_MESSAGE]:
-            trigger = cg.new_Pvariable(
-                conf[CONF_TRIGGER_ID], 
-                var
-            )
+            trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
             cg.add(var.subscribe(conf[CONF_TOPIC]))
             await automation.build_automation(
                 trigger, [(cg.std_string, "topic"), (cg.std_string, "payload")], conf
             )
 
-@automation.register_action("simple_mqtt.publish", MQTTPublishAction, MQTT_PUBLISH_ACTION_SCHEMA)
+
+@automation.register_action(
+    "simple_mqtt.publish", MQTTPublishAction, MQTT_PUBLISH_ACTION_SCHEMA
+)
 async def mqtt_publish_action_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
-    
+
     template_ = await cg.templatable(config[CONF_TOPIC], args, cg.std_string)
     cg.add(var.set_topic(template_))
-    
+
     template_ = await cg.templatable(config[CONF_PAYLOAD], args, cg.std_string)
     cg.add(var.set_payload(template_))
-    
+
     template_ = await cg.templatable(config[CONF_QOS], args, cg.uint8)
     cg.add(var.set_qos(template_))
-    
+
     template_ = await cg.templatable(config[CONF_RETAIN], args, cg.bool_)
     cg.add(var.set_retain(template_))
-    
-    return var 
+
+    return var

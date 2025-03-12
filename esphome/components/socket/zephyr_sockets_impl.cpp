@@ -1,5 +1,5 @@
-#include "socket.h"
 #include "esphome/core/defines.h"
+#include "socket.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
@@ -12,13 +12,15 @@
 #include <zephyr/net/socket.h>
 #include <zephyr/net/net_ip.h>
 
-#ifdef USE_OPENTHREAD_ZEPHYR
+#ifdef USE_ZEPHYR_OPENTHREAD
+#include "esphome/components/zephyr_openthread/dns.h"
 #include <openthread/instance.h>
 #include <openthread/netdata.h>
 #include <openthread/border_router.h>
 #include <openthread/ip6.h>
-#include "esphome/components/openthread_zephyr/openthread.h"
+#include "esphome/components/zephyr_openthread/openthread.h"
 extern otInstance *openthread_get_default_instance(void);
+namespace openthread = esphome::zephyr_openthread;
 #endif
 
 // Undefine macros to avoid conflicts with method names
@@ -49,40 +51,29 @@ extern otInstance *openthread_get_default_instance(void);
 #define F_SETFL 4
 #endif
 #ifndef O_NONBLOCK
-#define O_NONBLOCK 1
+#define O_NONBLOCK 0x0004
 #endif
 
 namespace esphome {
 namespace socket {
 
-// Cache for the NAT64 prefix
-static bool nat64_prefix_cached = false;
-static uint8_t nat64_prefix_cache[12] = {0};
-
-// Function to clear the NAT64 prefix cache
-void clear_nat64_prefix_cache() {
-  nat64_prefix_cached = false;
-}
-
 // Add Socket destructor implementation
 Socket::~Socket() {}
 
 std::string format_sockaddr(const struct sockaddr_storage &storage) {
+  char buf[INET6_ADDRSTRLEN];
+
   if (storage.ss_family == AF_INET) {
     const struct sockaddr_in *addr = reinterpret_cast<const struct sockaddr_in *>(&storage);
-    char buf[INET_ADDRSTRLEN];
-    if (zsock_inet_ntop(AF_INET, &addr->sin_addr, buf, sizeof(buf)) != nullptr)
-      return std::string{buf};
-  }
-#if defined(CONFIG_NET_IPV6)
-  else if (storage.ss_family == AF_INET6) {
+    zsock_inet_ntop(AF_INET, &addr->sin_addr, buf, sizeof(buf));
+    return std::string(buf) + ":" + std::to_string(ntohs(addr->sin_port));
+  } else if (storage.ss_family == AF_INET6) {
     const struct sockaddr_in6 *addr = reinterpret_cast<const struct sockaddr_in6 *>(&storage);
-    char buf[INET6_ADDRSTRLEN];
-    if (zsock_inet_ntop(AF_INET6, &addr->sin6_addr, buf, sizeof(buf)) != nullptr)
-      return std::string{buf};
+    zsock_inet_ntop(AF_INET6, &addr->sin6_addr, buf, sizeof(buf));
+    return "[" + std::string(buf) + "]:" + std::to_string(ntohs(addr->sin6_port));
   }
-#endif
-  return {};
+
+  return "Unknown";
 }
 
 class ZephyrSocketImpl : public Socket {
@@ -98,47 +89,47 @@ class ZephyrSocketImpl : public Socket {
       ESP_LOGW("socket", "Failed to get socket type for fd=%d, errno: %d (%s)", fd_, errno, strerror(errno));
     }
   }
-  
+
   ~ZephyrSocketImpl() override {
     if (!closed_) {
       close();  // NOLINT(clang-analyzer-optin.cplusplus.VirtualCall)
     }
   }
-  
-  int connect(const struct sockaddr *addr, socklen_t addrlen) override { 
+
+  int connect(const struct sockaddr *addr, socklen_t addrlen) override {
     ESP_LOGD("socket", "Connecting socket fd=%d (type=%d)", fd_, socket_type_);
-    return zsock_connect(fd_, addr, addrlen); 
+    return zsock_connect(fd_, addr, addrlen);
   }
-  
+
   std::unique_ptr<Socket> accept(struct sockaddr *addr, socklen_t *addrlen) override {
     if (socket_type_ != SOCK_STREAM) {
       ESP_LOGE("socket", "Cannot accept on non-stream socket fd=%d (type=%d)", fd_, socket_type_);
       return nullptr;
     }
-    
+
     int fd = zsock_accept(fd_, addr, addrlen);
     if (fd == -1)
       return {};
     return make_unique<ZephyrSocketImpl>(fd);
   }
-  
-  int bind(const struct sockaddr *addr, socklen_t addrlen) override { 
+
+  int bind(const struct sockaddr *addr, socklen_t addrlen) override {
     ESP_LOGD("socket", "Binding socket fd=%d (type=%d)", fd_, socket_type_);
-    return zsock_bind(fd_, addr, addrlen); 
+    return zsock_bind(fd_, addr, addrlen);
   }
-  
+
   int close() override {
     if (closed_)
       return 0;
     closed_ = true;
     return zsock_close(fd_);
   }
-  
-  int shutdown(int how) override { 
+
+  int shutdown(int how) override {
     if (socket_type_ != SOCK_STREAM) {
       ESP_LOGW("socket", "Shutdown on non-stream socket fd=%d (type=%d)", fd_, socket_type_);
     }
-    return zsock_shutdown(fd_, how); 
+    return zsock_shutdown(fd_, how);
   }
 
   int getpeername(struct sockaddr *addr, socklen_t *addrlen) override { return zsock_getpeername(fd_, addr, addrlen); }
@@ -166,13 +157,13 @@ class ZephyrSocketImpl : public Socket {
     return zsock_setsockopt(fd_, level, optname, optval, optlen);
   }
   int listen(int backlog) override { return zsock_listen(fd_, backlog); }
-  ssize_t read(void *buf, size_t len) override { 
+  ssize_t read(void *buf, size_t len) override {
     if (socket_type_ == SOCK_STREAM) {
-      return zsock_recv(fd_, buf, len, 0); 
+      return zsock_recv(fd_, buf, len, 0);
     } else if (socket_type_ == SOCK_DGRAM) {
       struct sockaddr_storage from;
       socklen_t from_len = sizeof(from);
-      return zsock_recvfrom(fd_, buf, len, 0, (struct sockaddr *)&from, &from_len);
+      return zsock_recvfrom(fd_, buf, len, 0, (struct sockaddr *) &from, &from_len);
     } else {
       ESP_LOGW("socket", "Read on socket fd=%d with unsupported type %d", fd_, socket_type_);
       return -1;
@@ -185,24 +176,24 @@ class ZephyrSocketImpl : public Socket {
     // Zephyr doesn't have readv, so we need to implement it ourselves
     if (iovcnt <= 0)
       return 0;
-    
+
     // Calculate total length
     size_t total_len = 0;
     for (int i = 0; i < iovcnt; i++) {
       total_len += iov[i].iov_len;
     }
-    
+
     if (total_len == 0)
       return 0;
-    
+
     // Create a temporary buffer
     std::vector<uint8_t> temp_buffer(total_len);
-    
+
     // Read into the temporary buffer
     ssize_t ret = this->read(temp_buffer.data(), total_len);
     if (ret <= 0)
       return ret;
-    
+
     // Copy data to the iovec buffers
     size_t copied = 0;
     for (int i = 0; i < iovcnt && copied < static_cast<size_t>(ret); i++) {
@@ -210,12 +201,12 @@ class ZephyrSocketImpl : public Socket {
       memcpy(iov[i].iov_base, temp_buffer.data() + copied, to_copy);
       copied += to_copy;
     }
-    
+
     return ret;
   }
-  ssize_t write(const void *buf, size_t len) override { 
+  ssize_t write(const void *buf, size_t len) override {
     if (socket_type_ == SOCK_STREAM) {
-      return zsock_send(fd_, buf, len, 0); 
+      return zsock_send(fd_, buf, len, 0);
     } else if (socket_type_ == SOCK_DGRAM) {
       // For datagram sockets, we need a destination address
       ESP_LOGW("socket", "Write on datagram socket fd=%d without destination address", fd_);
@@ -230,20 +221,20 @@ class ZephyrSocketImpl : public Socket {
     if (iovcnt == 1) {
       return this->write(iov[0].iov_base, iov[0].iov_len);
     }
-    
+
     // For multiple buffers, we'll need to copy to a temporary buffer and then send
     size_t total_len = 0;
     for (int i = 0; i < iovcnt; i++) {
       total_len += iov[i].iov_len;
     }
-    
+
     std::vector<uint8_t> temp_buffer(total_len);
     size_t offset = 0;
     for (int i = 0; i < iovcnt; i++) {
       memcpy(temp_buffer.data() + offset, iov[i].iov_base, iov[i].iov_len);
       offset += iov[i].iov_len;
     }
-    
+
     return this->write(temp_buffer.data(), total_len);
   }
 
@@ -279,14 +270,38 @@ std::unique_ptr<Socket> socket(int domain, int type, int protocol) {
 std::unique_ptr<Socket> socket_ip(int type, int protocol) {
   std::unique_ptr<Socket> ret = nullptr;
   int sock_fd = -1;
-  
+
+#ifdef USE_ZEPHYR_OPENTHREAD
+  // Check if OpenThread is active
+  bool openthread_active =
+      openthread::global_openthread_component != nullptr && openthread::global_openthread_component->is_connected();
+
+  if (openthread_active) {
+    // When OpenThread is active, only use IPv6
+    ESP_LOGD("socket", "OpenThread active - creating IPv6 socket only");
+
 #if defined(CONFIG_NET_IPV6)
-  // Always try IPv6 first for Thread
-  ESP_LOGD("socket", "Creating IPv6 socket for OpenThread...");
+    sock_fd = zsock_socket(AF_INET6, type, protocol);
+    if (sock_fd >= 0) {
+      ESP_LOGD("socket", "Successfully created IPv6 socket for OpenThread: fd=%d", sock_fd);
+      return std::unique_ptr<Socket>{new ZephyrSocketImpl(sock_fd)};
+    }
+    ESP_LOGE("socket", "Failed to create IPv6 socket for OpenThread, errno: %d (%s)", errno, strerror(errno));
+    return nullptr;  // Don't fall back to IPv4 when OpenThread is active
+#else
+    ESP_LOGE("socket", "IPv6 not supported but required for OpenThread");
+    return nullptr;
+#endif
+  }
+#endif
+
+#if defined(CONFIG_NET_IPV6)
+  // Try IPv6 first if not enforced by OpenThread
+  ESP_LOGD("socket", "Creating IPv6 socket...");
   sock_fd = zsock_socket(AF_INET6, type, protocol);
   if (sock_fd >= 0) {
     ESP_LOGD("socket", "Successfully created IPv6 socket: fd=%d", sock_fd);
-    
+
     // Set IPV6_V6ONLY to 0 to allow IPv4-mapped IPv6 addresses
     int off = 0;
     if (zsock_setsockopt(sock_fd, IPPROTO_IPV6, IPV6_V6ONLY, &off, sizeof(off)) < 0) {
@@ -295,7 +310,7 @@ std::unique_ptr<Socket> socket_ip(int type, int protocol) {
     } else {
       ESP_LOGD("socket", "Set IPV6_V6ONLY=0 to allow IPv4-mapped addresses");
     }
-    
+
     return std::unique_ptr<Socket>{new ZephyrSocketImpl(sock_fd)};
   }
   ESP_LOGW("socket", "Failed to create IPv6 socket, errno: %d (%s)", errno, strerror(errno));
@@ -316,151 +331,70 @@ std::unique_ptr<Socket> socket_ip(int type, int protocol) {
   return nullptr;
 }
 
-// Get NAT64 prefix from OpenThread network data
-bool get_nat64_prefix(uint8_t *prefix, size_t prefix_len) {
-#ifdef USE_OPENTHREAD_ZEPHYR
-  if (prefix_len < 12) {
-    ESP_LOGE("socket", "Buffer too small for NAT64 prefix");
-    return false;
-  }
-
-  // If we have a cached prefix, use it
-  if (nat64_prefix_cached) {
-    memcpy(prefix, nat64_prefix_cache, 12);
-    return true;
-  }
-
-  otInstance *instance = openthread_get_default_instance();
-  if (instance == nullptr) {
-    ESP_LOGE("socket", "OpenThread instance not available");
-    return false;
-  }
-
-  // Get network data
-  otNetworkDataIterator iterator = OT_NETWORK_DATA_ITERATOR_INIT;
-  otExternalRouteConfig config;
-  bool found_nat64 = false;
-
-  // Look for the NAT64 prefix in the network data
-  // NAT64 prefixes typically have a /96 prefix length
-  while (otNetDataGetNextRoute(instance, &iterator, &config) == OT_ERROR_NONE) {
-    char buf[OT_IP6_PREFIX_STRING_SIZE];
-    otIp6PrefixToString(&config.mPrefix, buf, sizeof(buf));
-    
-    // Check if this is a NAT64 prefix (typically /96)
-    if (config.mPrefix.mLength == 96) {
-      // Copy the prefix bytes (12 bytes for a /96 prefix)
-      memcpy(prefix, config.mPrefix.mPrefix.mFields.m8, 12);
-      
-      ESP_LOGD("socket", "Found NAT64 prefix: %s", buf);
-      found_nat64 = true;
-      break;
-    }
-  }
-
-  // If we didn't find a /96 route, try again looking for a route with "ffff:0:0::/96" in the name
-  // This is a common pattern for NAT64 prefixes
-  if (!found_nat64) {
-    iterator = OT_NETWORK_DATA_ITERATOR_INIT;
-    while (otNetDataGetNextRoute(instance, &iterator, &config) == OT_ERROR_NONE) {
-      char buf[OT_IP6_PREFIX_STRING_SIZE];
-      otIp6PrefixToString(&config.mPrefix, buf, sizeof(buf));
-      
-      // Look for "ffff:0:0::" pattern in the prefix string which is common for NAT64
-      if (strstr(buf, "ffff:0:0::") != nullptr || strstr(buf, "ffff::") != nullptr) {
-        // Copy the prefix bytes (12 bytes for a /96 prefix)
-        memcpy(prefix, config.mPrefix.mPrefix.mFields.m8, 12);
-        
-        ESP_LOGD("socket", "Found NAT64 prefix by pattern matching: %s", buf);
-        found_nat64 = true;
-        break;
-      }
-    }
-  }
-
-  if (found_nat64) {
-    // Cache the prefix for future use
-    memcpy(nat64_prefix_cache, prefix, 12);
-    nat64_prefix_cached = true;
-  } else {
-    ESP_LOGW("socket", "NAT64 prefix not found in network data, using default");
-    return false;
-  }
-
-  return found_nat64;
-#else
-  ESP_LOGW("socket", "OpenThread not available, cannot get NAT64 prefix");
-  return false;
-#endif
-}
-
-// Add NAT64 translation function for OpenThread
-socklen_t set_sockaddr_nat64(struct sockaddr *addr, socklen_t addrlen, const std::string &ipv4_address, uint16_t port) {
-  if (addrlen < sizeof(struct sockaddr_in6)) {
-    ESP_LOGE("socket", "Buffer too small for IPv6 address: %u < %u", addrlen, sizeof(struct sockaddr_in6));
-    return 0;
-  }
-
-  // IPv4 address that needs NAT64 translation
-  struct sockaddr_in6 *addr_in6 = reinterpret_cast<struct sockaddr_in6 *>(addr);
-  memset(addr_in6, 0, sizeof(*addr_in6));
-  addr_in6->sin6_family = AF_INET6;
-  addr_in6->sin6_port = htons(port);
-  
-  // Parse the IPv4 address
-  struct in_addr ipv4_addr;
-  if (zsock_inet_pton(AF_INET, ipv4_address.c_str(), &ipv4_addr) != 1) {
-    ESP_LOGE("socket", "Failed to parse IPv4 address: %s", ipv4_address.c_str());
-    return 0;
-  }
-  
-  // Convert IPv4 address to OpenThread NAT64 format
-  uint8_t *ipv6_addr = reinterpret_cast<uint8_t *>(&addr_in6->sin6_addr);
-  
-  // Try to get the NAT64 prefix from OpenThread network data
-  bool prefix_found = get_nat64_prefix(ipv6_addr, 12);
-  
-  if (!prefix_found) {
-    // If no NAT64 prefix is found, return an error
-    ESP_LOGE("socket", "No NAT64 prefix found in network data, cannot translate IPv4 address: %s", ipv4_address.c_str());
-    return 0;
-  }
-  
-  // Convert IPv4 address to the format used by OpenThread
-  // Example: 10.0.1.195 -> a00:1c3
-  uint32_t ipv4_value = ntohl(ipv4_addr.s_addr);
-  
-  // Extract the bytes from the IPv4 address
-  uint8_t b1 = (ipv4_value >> 24) & 0xff;  // 10
-  uint8_t b2 = (ipv4_value >> 16) & 0xff;  // 0
-  uint8_t b3 = (ipv4_value >> 8) & 0xff;   // 1
-  uint8_t b4 = ipv4_value & 0xff;          // 195
-  
-  // Format according to OpenThread NAT64: prefix::a00:1c3
-  ipv6_addr[12] = b1;  // 10 -> 0x0a
-  ipv6_addr[13] = b2;  // 0 -> 0x00
-  ipv6_addr[14] = b3;  // 1 -> 0x01
-  ipv6_addr[15] = b4;  // 195 -> 0xc3
-  
-  // Print the NAT64 translated address for debugging
-  char buf[INET6_ADDRSTRLEN];
-  if (zsock_inet_ntop(AF_INET6, &addr_in6->sin6_addr, buf, sizeof(buf)) != nullptr) {
-    ESP_LOGD("socket", "OpenThread NAT64 translated address: %s:%u", buf, port);
-  } else {
-    ESP_LOGW("socket", "Failed to convert NAT64 address to string");
-  }
-  
-  return sizeof(struct sockaddr_in6);
-}
-
-// Update the set_sockaddr function to use NAT64 for IPv4 addresses when using IPv6 sockets
+// Update the set_sockaddr function to use DNS resolution for hostnames
 socklen_t set_sockaddr(struct sockaddr *addr, socklen_t addrlen, const std::string &ip_address, uint16_t port) {
   // Check if this is an IPv6 address (contains ':')
   bool is_ipv6 = ip_address.find(':') != std::string::npos;
 
+  // Check if this is an IP address or hostname
+  bool is_ip_address = false;
+
+  // Simple check for IPv4 (x.x.x.x format)
+  if (!is_ipv6) {
+    int dots = 0;
+    bool valid = true;
+
+    for (char c : ip_address) {
+      if (c == '.') {
+        dots++;
+      } else if (!isdigit(c)) {
+        valid = false;
+        break;
+      }
+    }
+
+    is_ip_address = valid && (dots == 3);
+  } else {
+    // Simple check for IPv6 (contains ':')
+    is_ip_address = true;
+  }
+
+  // If this is a hostname, resolve it
+  if (!is_ip_address) {
+    ESP_LOGD("socket", "Resolving hostname: %s", ip_address.c_str());
+
+#ifdef USE_ZEPHYR_OPENTHREAD
+    struct sockaddr_storage resolved_addr;
+
+    if (esphome::zephyr_openthread::resolve_hostname(ip_address, &resolved_addr, port)) {
+      // Copy the resolved address to the output
+      if (resolved_addr.ss_family == AF_INET) {
+        if (addrlen < sizeof(struct sockaddr_in)) {
+          ESP_LOGE("socket", "Buffer too small for IPv4 address: %u < %u", addrlen, sizeof(struct sockaddr_in));
+          return 0;
+        }
+        memcpy(addr, &resolved_addr, sizeof(struct sockaddr_in));
+        return sizeof(struct sockaddr_in);
+      } else if (resolved_addr.ss_family == AF_INET6) {
+        if (addrlen < sizeof(struct sockaddr_in6)) {
+          ESP_LOGE("socket", "Buffer too small for IPv6 address: %u < %u", addrlen, sizeof(struct sockaddr_in6));
+          return 0;
+        }
+        memcpy(addr, &resolved_addr, sizeof(struct sockaddr_in6));
+        return sizeof(struct sockaddr_in6);
+      }
+    } else {
+      ESP_LOGE("socket", "Failed to resolve hostname: %s", ip_address.c_str());
+      return 0;
+    }
+#else
+    ESP_LOGE("socket", "DNS resolution not available, cannot resolve hostname: %s", ip_address.c_str());
+    return 0;
+#endif
+  }
+
   if (is_ipv6) {
     // Handle IPv6 address
-    // ... existing IPv6 code ...
     if (addrlen < sizeof(struct sockaddr_in6)) {
       ESP_LOGE("socket", "Buffer too small for IPv6 address: %u < %u", addrlen, sizeof(struct sockaddr_in6));
       return 0;
@@ -480,16 +414,7 @@ socklen_t set_sockaddr(struct sockaddr *addr, socklen_t addrlen, const std::stri
     ESP_LOGD("socket", "Successfully converted IPv6 address: %s", ip_address.c_str());
     return sizeof(struct sockaddr_in6);
   } else {
-    // Check if we're using an IPv6 socket with an IPv4 address
-    // This is determined by checking if the address family is already set to AF_INET6
-    if (addr->sa_family == AF_INET6) {
-      // Use NAT64 translation for IPv4 address with IPv6 socket
-      ESP_LOGD("socket", "Using NAT64 translation for IPv4 address: %s", ip_address.c_str());
-      return set_sockaddr_nat64(addr, addrlen, ip_address, port);
-    }
-
-    // Handle IPv4 address normally
-    // ... existing IPv4 code ...
+    // Handle IPv4 address
     if (addrlen < sizeof(struct sockaddr_in)) {
       ESP_LOGE("socket", "Buffer too small for IPv4 address: %u < %u", addrlen, sizeof(struct sockaddr_in));
       return 0;
@@ -524,4 +449,4 @@ socklen_t set_sockaddr_any(struct sockaddr *addr, socklen_t addrlen, uint16_t po
 }  // namespace socket
 }  // namespace esphome
 
-#endif  // USE_SOCKET_IMPL_ZEPHYR_SOCKETS 
+#endif  // USE_SOCKET_IMPL_ZEPHYR_SOCKETS

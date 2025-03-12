@@ -6,8 +6,8 @@
 #endif
 
 #ifdef USE_OPENTHREAD
-#include "esphome/components/openthread_zephyr/openthread.h"
-namespace openthread = esphome::openthread_zephyr;
+#include "esphome/components/zephyr_openthread/openthread.h"
+namespace openthread = esphome::zephyr_openthread;
 #endif
 
 #ifdef USE_ETHERNET

@@ -15,6 +15,7 @@ CONF_DATASET_TIMESTAMP = "dataset_timestamp"
 CONF_RADIO_TX_POWER = "radio_tx_power"
 CONF_PSKC = "pskc"
 CONF_FORCE_DATASET = "force_dataset"
+CONF_SHELL = "shell"
 
 # Default values
 DEFAULT_CHANNEL = 15
@@ -25,7 +26,8 @@ DEFAULT_NETWORK_KEY = "00112233445566778899AABBCCDDEEFF"
 DEFAULT_RADIO_TX_POWER = 0  # dBm
 DEFAULT_PSKC = "00112233445566778899AABBCCDDEEFF"
 DEFAULT_FORCE_DATASET = False
+DEFAULT_SHELL = False
 
 # Namespace
-openthread_zephyr_ns = cg.esphome_ns.namespace("openthread_zephyr")
+zephyr_openthread_ns = cg.esphome_ns.namespace("zephyr_openthread")
 # Add a define to ensure the namespace is recognized

@@ -3,7 +3,7 @@
 
 // Include Zephyr networking header if needed
 #ifdef USE_ZEPHYR_NETWORKING
-#include "esphome/components/openthread_zephyr/zephyr_networking.h"
+#include "esphome/components/zephyr_openthread/zephyr_networking.h"
 #endif
 
 #ifdef USE_NETWORK

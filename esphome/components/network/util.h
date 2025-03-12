@@ -7,12 +7,12 @@
 // Forward declarations for network components
 #ifdef USE_OPENTHREAD
 namespace esphome {
-namespace openthread_zephyr {
+namespace zephyr_openthread {
 class OpenThreadZephyr;
 extern OpenThreadZephyr *global_openthread_component;
-}  // namespace openthread_zephyr
+}  // namespace zephyr_openthread
 }  // namespace esphome
-namespace openthread = esphome::openthread_zephyr;
+namespace openthread = esphome::zephyr_openthread;
 #endif
 
 namespace esphome {

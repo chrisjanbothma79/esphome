@@ -5,7 +5,8 @@
 #include "esphome/core/optional.h"
 #include "headers.h"
 
-#if defined(USE_SOCKET_IMPL_LWIP_TCP) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS) || defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_ZEPHYR_SOCKETS)
+#if defined(USE_SOCKET_IMPL_LWIP_TCP) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS) || \
+    defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_ZEPHYR_SOCKETS)
 namespace esphome {
 namespace socket {
 
@@ -21,7 +22,8 @@ class Socket {
   virtual int close() = 0;
   // not supported yet:
   // virtual int connect(const std::string &address) = 0;
-#if defined(USE_SOCKET_IMPL_LWIP_SOCKETS) || defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_ZEPHYR_SOCKETS)
+#if defined(USE_SOCKET_IMPL_LWIP_SOCKETS) || defined(USE_SOCKET_IMPL_BSD_SOCKETS) || \
+    defined(USE_SOCKET_IMPL_ZEPHYR_SOCKETS)
   virtual int connect(const struct sockaddr *addr, socklen_t addrlen) = 0;
 #endif
   virtual int shutdown(int how) = 0;
@@ -63,10 +65,6 @@ socklen_t set_sockaddr_nat64(struct sockaddr *addr, socklen_t addrlen, const std
 
 /// Format a sockaddr_storage as a string.
 std::string format_sockaddr(const struct sockaddr_storage &storage);
-
-/// Clear the NAT64 prefix cache to force a refresh from the network data.
-void clear_nat64_prefix_cache();
-
 }  // namespace socket
 }  // namespace esphome
 #endif

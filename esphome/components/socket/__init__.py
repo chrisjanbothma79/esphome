@@ -1,5 +1,7 @@
 import esphome.config_validation as cv
 import esphome.codegen as cg
+from esphome.core import CORE
+from esphome.const import CONF_ID
 
 CODEOWNERS = ["@esphome/core"]
 
@@ -8,6 +10,15 @@ IMPLEMENTATION_LWIP_TCP = "lwip_tcp"
 IMPLEMENTATION_LWIP_SOCKETS = "lwip_sockets"
 IMPLEMENTATION_BSD_SOCKETS = "bsd_sockets"
 IMPLEMENTATION_ZEPHYR_SOCKETS = "zephyr_sockets"
+
+socket_ns = cg.esphome_ns.namespace("socket")
+Socket = socket_ns.class_("Socket")
+
+# No need to auto-load zephyr_dns anymore, as it's part of zephyr_openthread
+AUTO_LOAD = []
+
+# No need for zephyr_dns dependency anymore
+DEPENDENCIES = []
 
 CONFIG_SCHEMA = cv.Schema(
     {
@@ -42,3 +53,5 @@ async def to_code(config):
         cg.add_define("USE_SOCKET_IMPL_BSD_SOCKETS")
     elif impl == IMPLEMENTATION_ZEPHYR_SOCKETS:
         cg.add_define("USE_SOCKET_IMPL_ZEPHYR_SOCKETS")
+
+    # Add build flag to enable OpenThread DNS if needed

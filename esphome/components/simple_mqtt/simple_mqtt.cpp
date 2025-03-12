@@ -4,8 +4,8 @@
 #include "esphome/core/hal.h"  // For millis() and delay()
 #include "esphome/components/network/util.h"
 
-#ifdef USE_OPENTHREAD_ZEPHYR
-#include "esphome/components/openthread_zephyr/openthread.h"
+#ifdef USE_ZEPHYR_OPENTHREAD
+#include "esphome/components/zephyr_openthread/openthread.h"
 #endif
 
 namespace esphome {
@@ -131,11 +131,11 @@ bool SimpleMQTTClient::connect() {
   // Check if we should use IPv6 from OpenThread
   std::string broker_address = this->broker_address_;
   bool is_ipv6 = broker_address.find(':') != std::string::npos;
-  
-#ifdef USE_OPENTHREAD_ZEPHYR
-  if (openthread_zephyr::global_openthread_component != nullptr && 
-      openthread_zephyr::global_openthread_component->is_connected() &&
-      openthread_zephyr::global_openthread_component->has_ipv6_address()) {
+
+#ifdef USE_ZEPHYR_OPENTHREAD
+  if (zephyr_openthread::global_openthread_component != nullptr &&
+      zephyr_openthread::global_openthread_component->is_connected() &&
+      zephyr_openthread::global_openthread_component->has_ipv6_address()) {
     if (is_ipv6) {
       ESP_LOGD(TAG, "Using IPv6 broker address: %s", broker_address.c_str());
     } else {
@@ -149,7 +149,7 @@ bool SimpleMQTTClient::connect() {
   // Create socket - always use IPv6 for OpenThread
   ESP_LOGD(TAG, "Creating IPv6 socket for MQTT connection...");
   this->socket_ = socket::socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
-  
+
   if (this->socket_ == nullptr) {
     ESP_LOGE(TAG, "Failed to create socket, errno: %d (%s)", errno, strerror(errno));
     return false;
@@ -168,20 +168,20 @@ bool SimpleMQTTClient::connect() {
   ESP_LOGD(TAG, "Resolving broker address: %s", broker_address.c_str());
   struct sockaddr_storage storage;
   socklen_t addrlen = sizeof(storage);
-  
+
   // Set up the sockaddr structure - the socket component will handle NAT64 translation
   // for IPv4 addresses when using an IPv6 socket
   memset(&storage, 0, addrlen);
-  struct sockaddr *addr = (struct sockaddr *)&storage;
+  struct sockaddr *addr = (struct sockaddr *) &storage;
   addr->sa_family = AF_INET6;  // Set family to IPv6 to trigger NAT64 translation if needed
-  
+
   addrlen = socket::set_sockaddr(addr, addrlen, broker_address, this->broker_port_);
   if (addrlen == 0) {
     ESP_LOGE(TAG, "Failed to resolve broker address");
     this->socket_ = nullptr;
     return false;
   }
-  
+
   // Connect to broker
   ESP_LOGD(TAG, "Connecting to broker...");
   int err = this->socket_->connect((struct sockaddr *) &storage, addrlen);
@@ -194,20 +194,20 @@ bool SimpleMQTTClient::connect() {
       return true;
     } else {
       ESP_LOGE(TAG, "Failed to connect to MQTT broker, errno: %d (%s)", errno, strerror(errno));
-      
+
       // Get more information about the socket
       std::string peer_name = this->socket_->getpeername();
       std::string sock_name = this->socket_->getsockname();
       ESP_LOGD(TAG, "Socket peer name: %s", peer_name.empty() ? "unknown" : peer_name.c_str());
       ESP_LOGD(TAG, "Socket local name: %s", sock_name.empty() ? "unknown" : sock_name.c_str());
-      
+
       // Try to get socket error
       int socket_error = 0;
       socklen_t len = sizeof(socket_error);
       if (this->socket_->getsockopt(SOL_SOCKET, SO_ERROR, &socket_error, &len) == 0) {
         ESP_LOGD(TAG, "Socket error: %d (%s)", socket_error, strerror(socket_error));
       }
-      
+
       this->socket_ = nullptr;
       return false;
     }

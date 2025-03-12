@@ -5,18 +5,18 @@
 // Forward declaration of the OpenThreadZephyr class
 // This ensures the class is available even when USE_ZEPHYR is not defined
 namespace esphome {
-namespace openthread_zephyr {
+namespace zephyr_openthread {
 class OpenThreadZephyr;
 
 // Add global component variable
 extern OpenThreadZephyr *global_openthread_component;
-}  // namespace openthread_zephyr
+}  // namespace zephyr_openthread
 }  // namespace esphome
 
 // Make the namespace available in the global scope
 using namespace esphome;
 
-#if defined(USE_ZEPHYR) && defined(USE_OPENTHREAD_ZEPHYR)
+#if defined(USE_ZEPHYR) && defined(USE_ZEPHYR_OPENTHREAD)
 
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
@@ -33,7 +33,7 @@ using namespace esphome;
 #include "esphome/components/network/ip_address.h"
 
 namespace esphome {
-namespace openthread_zephyr {
+namespace zephyr_openthread {
 
 class OpenThreadZephyr : public Component {
  public:
@@ -59,11 +59,11 @@ class OpenThreadZephyr : public Component {
   bool is_connected() const { return connected_; }
   void start_thread_network();
   void stop_thread_network();
-  
+
   // IPv6 related methods
   bool has_ipv6_address() const { return has_ipv6_address_; }
   const std::string &get_ipv6_address() const { return ipv6_address_; }
-  
+
   // Add get_ip_addresses method
   network::IPAddresses get_ip_addresses();
 
@@ -78,27 +78,24 @@ class OpenThreadZephyr : public Component {
   bool force_dataset_{false};
   bool connected_{false};
   bool thread_started_{false};
-  
+
   // IPv6 related properties
   bool has_ipv6_address_{false};
   std::string ipv6_address_{};
-  
+
   // Thread role
   uint8_t thread_role_{0};
-  
+
   void update_ipv6_addresses();
   void configure_operational_dataset();
   void setup_srp_services();
-  
-  // Zephyr network interface
-  struct net_if *thread_iface_{nullptr};
-  
+
   // mDNS component reference
   mdns::MDNSComponent *mdns_{nullptr};
   std::vector<mdns::MDNSService> mdns_services_{};
 };
 
-}  // namespace openthread_zephyr
+}  // namespace zephyr_openthread
 }  // namespace esphome
 
-#endif  // defined(USE_ZEPHYR) && defined(USE_OPENTHREAD_ZEPHYR) 
+#endif  // defined(USE_ZEPHYR) && defined(USE_ZEPHYR_OPENTHREAD)

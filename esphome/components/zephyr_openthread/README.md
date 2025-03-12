@@ -28,7 +28,7 @@ This component integrates OpenThread with ESPHome on nRF52 devices using the Zep
 
 ```yaml
 # Example configuration
-openthread_zephyr:
+zephyr_openthread:
   channel: 15                                  # IEEE 802.15.4 channel (11-26)
   panid: 43981                                 # Personal Area Network ID
   network_name: "ESPHome-Thread"               # Thread network name
@@ -106,7 +106,7 @@ network:
   enable_ipv6: true
 
 # Enable OpenThread
-openthread_zephyr:
+zephyr_openthread:
   channel: 15
   panid: 43981
   network_name: "ESPHome-Thread"
@@ -147,4 +147,4 @@ sensor:
 - Thread networks are separate from Wi-Fi networks, so your device will need a Thread border router to communicate with IP devices outside the Thread network.
 - For security reasons, it's recommended to change the default network key and PSKC to unique values.
 - The SRP client is used to register services with a Thread SRP server, which is typically running on the Thread border router.
-- IPv6 addresses in Thread networks typically start with `fd` (mesh-local) or `2` (global). 
+- IPv6 addresses in Thread networks typically start with `fd` (mesh-local) or `2` (global).
