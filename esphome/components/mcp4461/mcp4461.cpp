@@ -26,7 +26,7 @@ void Mcp4461Component::begin_() {
   for (uint8_t i = 0; i < 8; i++) {
     if (this->reg_[i].initial_value.has_value()) {
       uint16_t initial_state;
-      initial_state = static_cast<uint16_t>(*this->reg_[i].initial_value * 1000.f);
+      initial_state = static_cast<uint16_t>(*this->reg_[i].initial_value * 256.0f);
       this->write_wiper_level_(i, initial_state);
     }
     if (this->reg_[i].enabled) {
@@ -53,16 +53,10 @@ void Mcp4461Component::initialize_terminal_disabled(Mcp4461WiperIdx wiper, char 
   switch (terminal) {
     case 'a':
       this->reg_[wiper_idx].terminal_a = false;
-      break;
     case 'b':
       this->reg_[wiper_idx].terminal_b = false;
-      break;
     case 'w':
       this->reg_[wiper_idx].terminal_w = false;
-      break;
-    default:
-      ESP_LOGW(TAG, "%s", LOG_STR_ARG(this->get_message_string(MCP4461_VALUE_INVALID)));
-      break;
   }
 }
 
@@ -96,16 +90,6 @@ void Mcp4461Component::dump_config() {
       ESP_LOGCONFIG(TAG, "  ├── Nonvolatile wiper [%" PRIu8 "] level: %" PRIu16 "", i, this->reg_[i].state);
     }
   }
-
-  uint8_t status_register_value;
-  status_register_value = this->get_status_register_();
-  ESP_LOGCONFIG(TAG,
-                "  └── Status register: D7:  %" PRIu8 ", WL3: %" PRIu8 ", WL2: %" PRIu8 ", EEWA: %" PRIu8
-                ", WL1: %" PRIu8 ", WL0: %" PRIu8 ", R1: %" PRIu8 ", WP: %" PRIu8 "",
-                ((status_register_value >> 7) & 0x01), ((status_register_value >> 6) & 0x01),
-                ((status_register_value >> 5) & 0x01), ((status_register_value >> 4) & 0x01),
-                ((status_register_value >> 3) & 0x01), ((status_register_value >> 2) & 0x01),
-                ((status_register_value >> 1) & 0x01), ((status_register_value >> 0) & 0x01));
 }
 
 void Mcp4461Component::loop() {
@@ -169,6 +153,19 @@ uint8_t Mcp4461Component::get_status_register_() {
   return lsb;
 }
 
+void Mcp4461Component::read_status_register_to_log() {
+  uint8_t status_register_value;
+  status_register_value = this->get_status_register_();
+  ESP_LOGI(TAG,
+                "  └── Status register: D7:  %" PRIu8 ", WL3: %" PRIu8 ", WL2: %" PRIu8 ", EEWA: %" PRIu8
+                ", WL1: %" PRIu8 ", WL0: %" PRIu8 ", R1: %" PRIu8 ", WP: %" PRIu8 "",
+                ((status_register_value >> 7) & 0x01), ((status_register_value >> 6) & 0x01),
+                ((status_register_value >> 5) & 0x01), ((status_register_value >> 4) & 0x01),
+                ((status_register_value >> 3) & 0x01), ((status_register_value >> 2) & 0x01),
+                ((status_register_value >> 1) & 0x01), ((status_register_value >> 0) & 0x01));
+  return;
+}
+
 uint8_t Mcp4461Component::get_wiper_address_(uint8_t wiper) {
   uint8_t addr;
   bool nonvolatile = false;
@@ -211,7 +208,7 @@ uint16_t Mcp4461Component::get_wiper_level_(Mcp4461WiperIdx wiper) {
   }
   if (!(this->reg_[wiper_idx].enabled)) {
     ESP_LOGW(TAG, "reading from disabled volatile wiper %" PRIu8 ", returning 0", wiper_idx);
-    return 0;
+    return static_cast<uint16_t>(0);
   }
   return this->read_wiper_level_(wiper_idx);
 }
@@ -408,16 +405,21 @@ uint8_t Mcp4461Component::calc_terminal_connector_byte_(Mcp4461TerminalIdx termi
   } else {
     i = 2;
   }
-  uint8_t new_value_byte = 0;
-  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_hw);
-  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_a) << 1;
-  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_w) << 2;
-  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_b) << 3;
-  new_value_byte += static_cast<uint8_t>(this->reg_[i].terminal_hw) << 4;
-  new_value_byte += static_cast<uint8_t>(this->reg_[i].terminal_a) << 5;
-  new_value_byte += static_cast<uint8_t>(this->reg_[i].terminal_w) << 6;
-  new_value_byte += static_cast<uint8_t>(this->reg_[i].terminal_b) << 7;
-  return new_value_byte;
+  uint8_t new_value_byte_array[8];
+  new_value_byte_array[0] = static_cast<uint8_t>(this->reg_[i].terminal_b);
+  new_value_byte_array[1] = static_cast<uint8_t>(this->reg_[i].terminal_w);
+  new_value_byte_array[2] = static_cast<uint8_t>(this->reg_[i].terminal_a);
+  new_value_byte_array[3] = static_cast<uint8_t>(this->reg_[i].terminal_hw);
+  new_value_byte_array[4] = static_cast<uint8_t>(this->reg_[(i + 1)].terminal_b);
+  new_value_byte_array[5] = static_cast<uint8_t>(this->reg_[(i + 1)].terminal_w);
+  new_value_byte_array[6] = static_cast<uint8_t>(this->reg_[(i + 1)].terminal_a);
+  new_value_byte_array[7] = static_cast<uint8_t>(this->reg_[(i + 1)].terminal_hw);
+  unsigned char new_value_byte = 0;
+  uint8_t b;
+  for (b = 0; b < 8; b++) {
+    new_value_byte += (new_value_byte_array[b] << (7 - b));
+  }
+  return static_cast<uint8_t>(new_value_byte);
 }
 
 uint8_t Mcp4461Component::get_terminal_register_(Mcp4461TerminalIdx terminal_connector) {
