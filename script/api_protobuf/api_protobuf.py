@@ -528,7 +528,7 @@ class RepeatedTypeInfo(TypeInfo):
 
     @property
     def dump_content(self):
-        o = f'for (const auto {"" if self._ti_is_bool else "&"}it : this->{self.field_name}) {{\n'
+        o = f"for (const auto {'' if self._ti_is_bool else '&'}it : this->{self.field_name}) {{\n"
         o += f'  out.append("  {self.name}: ");\n'
         o += indent(self._ti.dump("it")) + "\n"
         o += '  out.append("\\n");\n'
@@ -543,15 +543,27 @@ def build_enum_type(desc):
     name = desc.name
     out = f"enum {name} : uint32_t {{\n"
     for v in desc.value:
-        out += f"  {v.name} = {v.number},\n"
+        # Add prefix for LogLevel enum to avoid conflicts with Zephyr
+        if name == "LogLevel" and v.name.startswith("LOG_LEVEL_"):
+            enum_value_name = f"PB_{v.name}"
+        else:
+            enum_value_name = v.name
+        out += f"  {enum_value_name} = {v.number},\n"
     out += "};\n"
 
     cpp = "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
     cpp += f"template<> const char *proto_enum_to_string<enums::{name}>(enums::{name} value) {{\n"
     cpp += "  switch (value) {\n"
     for v in desc.value:
-        cpp += f"    case enums::{v.name}:\n"
-        cpp += f'      return "{v.name}";\n'
+        # Use the same prefixed names in the string conversion function
+        if name == "LogLevel" and v.name.startswith("LOG_LEVEL_"):
+            enum_value_name = f"PB_{v.name}"
+        else:
+            enum_value_name = v.name
+        cpp += f"    case enums::{enum_value_name}:\n"
+        cpp += (
+            f'      return "{v.name}";\n'  # Keep the original name in the string output
+        )
     cpp += "    default:\n"
     cpp += '      return "UNKNOWN";\n'
     cpp += "  }\n"

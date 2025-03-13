@@ -27,20 +27,20 @@ inline std::string get_ip_address() {
     return "";
 
   char buf[NET_IPV4_ADDR_LEN];
-  
+
   // Get the first IPv4 address
   for (int i = 0; i < NET_IF_MAX_IPV4_ADDR; i++) {
-    struct net_if_ipv4 *ipv4 = &iface->config.ip.ipv4;
+    struct net_if_ipv4 *ipv4 = iface->config.ip.ipv4;
     if (ipv4 && ipv4->unicast[i].is_used) {
       net_addr_ntop(AF_INET, &ipv4->unicast[i].address.in_addr, buf, sizeof(buf));
       return std::string(buf);
     }
   }
-  
+
   return "";
 }
 
 }  // namespace api
 }  // namespace esphome
 
-#endif  // USE_ZEPHYR 
+#endif  // USE_ZEPHYR

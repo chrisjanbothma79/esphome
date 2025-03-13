@@ -149,21 +149,21 @@ template<> const char *proto_enum_to_string<enums::SensorLastResetType>(enums::S
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::LogLevel>(enums::LogLevel value) {
   switch (value) {
-    case enums::LOG_LEVEL_NONE:
+    case enums::PB_LOG_LEVEL_NONE:
       return "LOG_LEVEL_NONE";
-    case enums::LOG_LEVEL_ERROR:
+    case enums::PB_LOG_LEVEL_ERROR:
       return "LOG_LEVEL_ERROR";
-    case enums::LOG_LEVEL_WARN:
+    case enums::PB_LOG_LEVEL_WARN:
       return "LOG_LEVEL_WARN";
-    case enums::LOG_LEVEL_INFO:
+    case enums::PB_LOG_LEVEL_INFO:
       return "LOG_LEVEL_INFO";
-    case enums::LOG_LEVEL_CONFIG:
+    case enums::PB_LOG_LEVEL_CONFIG:
       return "LOG_LEVEL_CONFIG";
-    case enums::LOG_LEVEL_DEBUG:
+    case enums::PB_LOG_LEVEL_DEBUG:
       return "LOG_LEVEL_DEBUG";
-    case enums::LOG_LEVEL_VERBOSE:
+    case enums::PB_LOG_LEVEL_VERBOSE:
       return "LOG_LEVEL_VERBOSE";
-    case enums::LOG_LEVEL_VERY_VERBOSE:
+    case enums::PB_LOG_LEVEL_VERY_VERBOSE:
       return "LOG_LEVEL_VERY_VERBOSE";
     default:
       return "UNKNOWN";
