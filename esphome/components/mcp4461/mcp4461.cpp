@@ -156,7 +156,7 @@ uint8_t Mcp4461Component::get_status_register_() {
 void Mcp4461Component::read_status_register_to_log() {
   uint8_t status_register_value;
   status_register_value = this->get_status_register_();
-  ESP_LOGCONFIG(TAG,
+  ESP_LOGI(TAG,
                 "  └── Status register: D7:  %" PRIu8 ", WL3: %" PRIu8 ", WL2: %" PRIu8 ", EEWA: %" PRIu8
                 ", WL1: %" PRIu8 ", WL0: %" PRIu8 ", R1: %" PRIu8 ", WP: %" PRIu8 "",
                 ((status_register_value >> 7) & 0x01), ((status_register_value >> 6) & 0x01),
