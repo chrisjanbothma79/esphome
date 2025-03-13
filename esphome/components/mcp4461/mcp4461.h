@@ -34,7 +34,7 @@ enum class Mcp4461Addresses : uint8_t {
   MCP4461_EEPROM_1 = 0xB0
 };
 
-enum Mcp4461WiperIdx : uint8_t {
+enum class Mcp4461WiperIdx : uint8_t {
   MCP4461_WIPER_0 = 0,
   MCP4461_WIPER_1 = 1,
   MCP4461_WIPER_2 = 2,
@@ -91,6 +91,8 @@ class Mcp4461Component : public Component, public i2c::I2CDevice {
   /// @param[in] wiper - the wiper to set the value for
   /// @param[in] terminal - the terminal to disable, one of ['a','b','w','h']
   void initialize_terminal_disabled(Mcp4461WiperIdx wiper, char terminal);
+  /// @brief read status register to log
+  void read_status_register_to_log();
 
  protected:
   friend class Mcp4461Wiper;
