@@ -129,7 +129,7 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   void set_sample_count(uint8_t sample_count);
 
   /// Set the sampling mode for how multiple ADC samples are combined into a single measurement.
-  /// 
+  ///
   /// When multiple samples are taken (controlled by set_sample_count), they can be combined
   /// in one of three ways:
   ///   - SamplingMode::AVG: Compute the average (default)
