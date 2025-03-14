@@ -16,6 +16,7 @@
 #include <openthread/dataset.h>
 #include <openthread/platform/radio.h>
 #include <openthread/srp_client.h>
+#include <openthread/srp_client_buffers.h>
 #include <openthread/dataset_ftd.h>
 #include <openthread/netdata.h>
 #include "esphome/components/socket/socket.h"
@@ -27,6 +28,18 @@ static const char *const TAG = "zephyr_openthread";
 
 // Add a global variable for the OpenThreadZephyr component
 OpenThreadZephyr *global_openthread_component = nullptr;
+
+// SRP client callbacks
+void srpCallback(otError aError, const otSrpClientHostInfo *aHostInfo, const otSrpClientService *aServices,
+                 const otSrpClientService *aRemovedServices, void *aContext) {
+  if (aError == OT_ERROR_NONE) {
+    ESP_LOGI(TAG, "SRP client registration successful");
+  } else {
+    ESP_LOGW(TAG, "SRP client registration failed: %s", otThreadErrorToString(aError));
+  }
+}
+
+void srpStartCallback(const otSockAddr *aServerSockAddr, void *aContext) { ESP_LOGI(TAG, "SRP client has started"); }
 
 void OpenThreadZephyr::setup() {
   ESP_LOGCONFIG(TAG, "Setting up OpenThread Zephyr...");
@@ -49,17 +62,6 @@ void OpenThreadZephyr::setup() {
 
   // Start OpenThread network
   this->start_thread_network();
-
-  // Enable SRP client auto-start
-  otInstance *instance = openthread_get_default_instance();
-  if (instance != nullptr) {
-    // Setup SRP services using mDNS component
-    this->setup_srp_services();
-
-    ESP_LOGI(TAG, "SRP services registered");
-  } else {
-    ESP_LOGE(TAG, "OpenThread instance not available, SRP services not registered");
-  }
 }
 
 void OpenThreadZephyr::loop() {
@@ -119,6 +121,9 @@ void OpenThreadZephyr::loop() {
       ESP_LOGW(TAG, "Disconnected from Thread network");
       this->has_ipv6_address_ = false;
       this->ipv6_address_ = "";
+
+      // Reset SRP services registration flag when disconnected
+      this->srp_services_registered_ = false;
     }
   }
 
@@ -368,6 +373,13 @@ void OpenThreadZephyr::update_ipv6_addresses() {
 
       ESP_LOGD(TAG, "Thread network interface initialized");
 
+      // Setup SRP services if not already done
+      if (!this->srp_services_registered_ && this->mdns_ != nullptr) {
+        ESP_LOGI(TAG, "Setting up SRP services now that we have an IP address");
+        this->setup_srp_services();
+        this->srp_services_registered_ = true;
+      }
+
       // If we have an OMR prefix, SRP auto host address will handle updating SRP entries
       if (found_omr_prefix) {
         ESP_LOGD(TAG, "OMR prefix available - SRP entries will be updated automatically");
@@ -385,129 +397,156 @@ void OpenThreadZephyr::setup_srp_services() {
     return;
   }
 
-  // Enable SRP client auto-start mode
-  otSrpClientEnableAutoStartMode(instance, nullptr, nullptr);
-  ESP_LOGD(TAG, "SRP client auto-start enabled");
+  otSrpClientSetCallback(instance, srpCallback, nullptr);
 
-  // Enable automatic host address updates when Off-Mesh-Routable prefix changes
-  otError auto_addr_error = otSrpClientEnableAutoHostAddress(instance);
-  if (auto_addr_error != OT_ERROR_NONE) {
-    ESP_LOGE(TAG, "Failed to enable SRP auto host address: %d", auto_addr_error);
-  } else {
-    ESP_LOGD(TAG, "SRP auto host address enabled - will update when Off-Mesh-Routable prefix changes");
-  }
-
-  // Register device with SRP using the actual device name
+  // Set the host name using the project name
   std::string hostname_str = App.get_name();  // Store in a string to ensure lifetime
-  const char *hostname = hostname_str.c_str();
-  otError error = otSrpClientSetHostName(instance, hostname);
+  this->host_name_ = hostname_str;            // Store for later use
+
+  // Get buffer for hostname
+  uint16_t size;
+  char *existing_host_name = otSrpClientBuffersGetHostNameString(instance, &size);
+  uint16_t len = this->host_name_.size();
+  if (len > size) {
+    ESP_LOGW(TAG, "Hostname is too long, choose a shorter project name");
+    return;
+  }
+  memcpy(existing_host_name, this->host_name_.c_str(), len + 1);
+
+  // Set the hostname
+  otError error = otSrpClientSetHostName(instance, existing_host_name);
   if (error != OT_ERROR_NONE) {
-    ESP_LOGE(TAG, "Failed to set SRP hostname: %d", error);
+    ESP_LOGW(TAG, "Could not set host name: %s", otThreadErrorToString(error));
     return;
   }
 
-  // Add host address
-  const otIp6Address *hostAddress = otThreadGetMeshLocalEid(instance);
-  error = otSrpClientSetHostAddresses(instance, hostAddress, 1);
+  // Enable automatic host address updates when Off-Mesh-Routable prefix changes
+  error = otSrpClientEnableAutoHostAddress(instance);
   if (error != OT_ERROR_NONE) {
-    ESP_LOGE(TAG, "Failed to set SRP host address: %d", error);
+    ESP_LOGW(TAG, "Could not enable auto host address: %s", otThreadErrorToString(error));
     return;
   }
 
   // If mDNS component is available, use its services
   if (this->mdns_ != nullptr) {
-    // Get mDNS services
+    // Copy the mdns services to our local instance so that the c_str pointers remain valid for the lifetime of this
+    // component
     this->mdns_services_ = this->mdns_->get_services();
-    ESP_LOGD(TAG, "Setting up SRP services from mDNS. Count = %d", this->mdns_services_.size());
-
-    // Store service names and other strings to ensure proper lifetime
-    std::vector<std::string> service_names;
-    std::vector<std::vector<std::string>> txt_keys;
-    std::vector<std::vector<std::string>> txt_values;
+    ESP_LOGW(TAG, "Setting up SRP services. count = %d", this->mdns_services_.size());
 
     for (const auto &service : this->mdns_services_) {
-      // Create a service structure
-      otSrpClientService srp_service;
-      memset(&srp_service, 0, sizeof(srp_service));
+      otSrpClientBuffersServiceEntry *entry = otSrpClientBuffersAllocateService(instance);
+      if (!entry) {
+        ESP_LOGW(TAG, "Failed to allocate service entry");
+        continue;
+      }
 
-      // Set service name and type - store in a string to ensure lifetime
+      // Set service name
+      char *string = otSrpClientBuffersGetServiceEntryServiceNameString(entry, &size);
       std::string full_service = service.service_type + "." + service.proto;
-      service_names.push_back(full_service);
+      if (full_service.size() > size) {
+        ESP_LOGW(TAG, "Service name too long: %s", full_service.c_str());
+        continue;
+      }
+      memcpy(string, full_service.c_str(), full_service.size() + 1);
 
-      srp_service.mName = service_names.back().c_str();
-      srp_service.mInstanceName = hostname;
-      srp_service.mPort = service.port;
-      srp_service.mWeight = 0;
-      srp_service.mPriority = 0;
+      // Set instance name (using host_name)
+      string = otSrpClientBuffersGetServiceEntryInstanceNameString(entry, &size);
+      if (this->host_name_.size() > size) {
+        ESP_LOGW(TAG, "Instance name too long: %s", this->host_name_.c_str());
+        continue;
+      }
+      memcpy(string, this->host_name_.c_str(), this->host_name_.size() + 1);
+
+      // Set port
+      entry->mService.mPort = service.port;
 
       // Set TXT records if available
       if (!service.txt_records.empty()) {
-        // Store TXT keys and values
-        txt_keys.push_back(std::vector<std::string>());
-        txt_values.push_back(std::vector<std::string>());
-
         // Allocate memory for TXT entries
         otDnsTxtEntry *txt_entries = new otDnsTxtEntry[service.txt_records.size()];
+
+        // Store TXT keys and values in member variables to ensure lifetime
+        this->txt_keys_.push_back(std::vector<std::string>());
+        this->txt_values_.push_back(std::vector<std::string>());
+        auto &keys = this->txt_keys_.back();
+        auto &values = this->txt_values_.back();
 
         // Fill TXT entries
         for (size_t i = 0; i < service.txt_records.size(); i++) {
           const auto &txt = service.txt_records[i];
 
           // Store keys and values
-          txt_keys.back().push_back(txt.key);
-          txt_values.back().push_back(txt.value);
+          keys.push_back(txt.key);
+          values.push_back(txt.value);
 
-          txt_entries[i].mKey = txt_keys.back().back().c_str();
-          txt_entries[i].mValue = reinterpret_cast<const uint8_t *>(txt_values.back().back().c_str());
-          txt_entries[i].mValueLength = txt_values.back().back().size();
+          txt_entries[i].mKey = keys.back().c_str();
+          txt_entries[i].mValue = reinterpret_cast<const uint8_t *>(values.back().c_str());
+          txt_entries[i].mValueLength = values.back().size();
         }
 
-        srp_service.mTxtEntries = txt_entries;
-        srp_service.mNumTxtEntries = service.txt_records.size();
+        entry->mService.mTxtEntries = txt_entries;
+        entry->mService.mNumTxtEntries = service.txt_records.size();
+
+        // Store pointer to free later
+        this->txt_entries_.push_back(txt_entries);
       } else {
-        srp_service.mNumTxtEntries = 0;
-        srp_service.mTxtEntries = nullptr;
+        entry->mService.mNumTxtEntries = 0;
+        entry->mService.mTxtEntries = nullptr;
       }
 
-      // Register the service
-      error = otSrpClientAddService(instance, &srp_service);
+      // Add service
+      error = otSrpClientAddService(instance, &entry->mService);
       if (error != OT_ERROR_NONE) {
-        ESP_LOGE(TAG, "Failed to add SRP service '%s': %d", full_service.c_str(), error);
+        ESP_LOGW(TAG, "Failed to add service: %s", otThreadErrorToString(error));
       } else {
-        ESP_LOGD(TAG, "Added SRP service: %s", full_service.c_str());
-      }
-
-      // Free allocated memory for TXT entries if any
-      if (srp_service.mTxtEntries != nullptr) {
-        delete[] srp_service.mTxtEntries;
+        ESP_LOGI(TAG, "Added service: %s", full_service.c_str());
       }
     }
   } else {
     // Fallback to default service if mDNS is not available
     ESP_LOGW(TAG, "mDNS component not available, using default service");
 
-    // Create a default service structure
-    otSrpClientService service;
-    memset(&service, 0, sizeof(service));
+    otSrpClientBuffersServiceEntry *entry = otSrpClientBuffersAllocateService(instance);
+    if (!entry) {
+      ESP_LOGW(TAG, "Failed to allocate service entry for default service");
+      return;
+    }
 
-    // Set service name and type
-    std::string service_type = "_esphome._tcp";
-    service.mInstanceName = hostname;
-    service.mName = service_type.c_str();
-    service.mPort = 80;
-    service.mWeight = 0;
-    service.mPriority = 0;
-    service.mNumTxtEntries = 0;
-    service.mTxtEntries = nullptr;
+    // Set service name
+    char *string = otSrpClientBuffersGetServiceEntryServiceNameString(entry, &size);
+    std::string full_service = "_esphome._tcp";
+    if (full_service.size() > size) {
+      ESP_LOGW(TAG, "Default service name too long");
+      return;
+    }
+    memcpy(string, full_service.c_str(), full_service.size() + 1);
 
-    // Register the service
-    error = otSrpClientAddService(instance, &service);
+    // Set instance name (using host_name)
+    string = otSrpClientBuffersGetServiceEntryInstanceNameString(entry, &size);
+    if (this->host_name_.size() > size) {
+      ESP_LOGW(TAG, "Instance name too long: %s", this->host_name_.c_str());
+      return;
+    }
+    memcpy(string, this->host_name_.c_str(), this->host_name_.size() + 1);
+
+    // Set port
+    entry->mService.mPort = 6053;
+    entry->mService.mNumTxtEntries = 0;
+    entry->mService.mTxtEntries = nullptr;
+
+    // Add service
+    error = otSrpClientAddService(instance, &entry->mService);
     if (error != OT_ERROR_NONE) {
-      ESP_LOGE(TAG, "Failed to add default SRP service: %d", error);
+      ESP_LOGW(TAG, "Failed to add default service: %s", otThreadErrorToString(error));
     } else {
-      ESP_LOGD(TAG, "Added default SRP service: _esphome._tcp");
+      ESP_LOGI(TAG, "Added default service: _esphome._tcp");
     }
   }
+
+  // Enable auto start mode for SRP client
+  otSrpClientEnableAutoStartMode(instance, srpStartCallback, nullptr);
+  ESP_LOGI(TAG, "Finished SRP setup");
 }
 
 void OpenThreadZephyr::on_shutdown() {
@@ -521,6 +560,12 @@ void OpenThreadZephyr::on_shutdown() {
     otSrpClientStop(instance);
     ESP_LOGD(TAG, "SRP client stopped");
   }
+
+  // Free allocated memory for TXT entries
+  for (auto txt_entry : this->txt_entries_) {
+    delete[] txt_entry;
+  }
+  this->txt_entries_.clear();
 }
 
 network::IPAddresses OpenThreadZephyr::get_ip_addresses() {

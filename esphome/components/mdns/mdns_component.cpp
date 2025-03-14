@@ -46,6 +46,11 @@ void MDNSComponent::compile_records_() {
 #ifdef USE_RP2040
     platform = "RP2040";
 #endif
+// TODO fix this. There's a bug in openthread where if we add one more txt record,
+// SRP will error with a invalid_argument error.
+//#ifdef USE_NRF52
+//    platform = "NRF52";
+//#endif
 #ifdef USE_LIBRETINY
     platform = lt_cpu_get_model_name();
 #endif
@@ -75,7 +80,6 @@ void MDNSComponent::compile_records_() {
 #ifdef USE_DASHBOARD_IMPORT
     service.txt_records.push_back({"package_import_url", dashboard_import::get_package_import_url()});
 #endif
-
     this->services_.push_back(service);
   }
 #endif  // USE_API

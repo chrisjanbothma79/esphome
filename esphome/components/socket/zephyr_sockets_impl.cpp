@@ -51,7 +51,7 @@ namespace openthread = esphome::zephyr_openthread;
 #define F_SETFL 4
 #endif
 #ifndef O_NONBLOCK
-#define O_NONBLOCK 0x0004
+#define O_NONBLOCK 0x4000
 #endif
 
 namespace esphome {

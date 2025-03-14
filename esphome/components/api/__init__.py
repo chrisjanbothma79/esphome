@@ -124,11 +124,6 @@ async def to_code(config):
     cg.add(var.set_password(config[CONF_PASSWORD]))
     cg.add(var.set_reboot_timeout(config[CONF_REBOOT_TIMEOUT]))
 
-    # Check if we're using Zephyr platform
-    if CONF_PLATFORM in config and config[CONF_PLATFORM] == "zephyr":
-        cg.add_define("USE_ZEPHYR")
-        cg.add_include("api/zephyr_platform.h")
-
     for conf in config.get(CONF_ACTIONS, []):
         template_args = []
         func_args = []

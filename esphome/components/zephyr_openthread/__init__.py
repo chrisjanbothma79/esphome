@@ -36,7 +36,9 @@ DEPENDENCIES = ["zephyr", "nrf52"]
 AUTO_LOAD = ["mdns", "network"]
 
 OpenThreadZephyr = zephyr_openthread_ns.class_("OpenThreadZephyr", cg.Component)
-OpenThreadDNSComponent = zephyr_openthread_ns.class_("OpenThreadDNSComponent", cg.Component)
+OpenThreadDNSComponent = zephyr_openthread_ns.class_(
+    "OpenThreadDNSComponent", cg.Component
+)
 
 
 # Create a custom validator for hex strings with a specific length
@@ -106,8 +108,8 @@ async def to_code(config):
     # MTD = Minimal Thread Device (end device)
     # FTD = Full Thread Device (router capable)
 
-    zephyr_add_prj_conf("OPENTHREAD_FTD", False)
-    zephyr_add_prj_conf("OPENTHREAD_COAP", True)
+    # zephyr_add_prj_conf("OPENTHREAD_FTD", True)
+    # zephyr_add_prj_conf("OPENTHREAD_COAP", True)
     zephyr_add_prj_conf("OPENTHREAD_MTD", True)
 
     # Nordic library configuration
@@ -137,22 +139,19 @@ async def to_code(config):
     # TCP configuration - disable RFC6528 ISN generation to avoid mbedtls_md5 dependency
     zephyr_add_prj_conf("NET_TCP_ISN_RFC6528", False)
 
-    # mDNS support
-    zephyr_add_prj_conf("MDNS_RESPONDER", True)
-
     # SRP (Service Registration Protocol) support
     zephyr_add_prj_conf("OPENTHREAD_SRP_CLIENT", True)
 
     # Enable OpenThread DNS client and upstream query
     zephyr_add_prj_conf("CONFIG_OPENTHREAD_DNS_CLIENT", True)
     zephyr_add_prj_conf("CONFIG_OPENTHREAD_DNS_UPSTREAM_QUERY", True)
-    
+
     # Enable hostname
     zephyr_add_prj_conf("NET_HOSTNAME_ENABLE", True)
-    
+
     # Configure DNS resolver settings for Zephyr
     zephyr_add_prj_conf("DNS_RESOLVER", True)
-    zephyr_add_prj_conf("MDNS_RESOLVER", True)
+    zephyr_add_prj_conf("DNS_SD", True)
     zephyr_add_prj_conf("DNS_SERVER_IP_ADDRESSES", False)
     zephyr_add_prj_conf("DNS_RESOLVER_MAX_SERVERS", 2)
     zephyr_add_prj_conf("DNS_RESOLVER_ADDITIONAL_BUF_CTR", 2)

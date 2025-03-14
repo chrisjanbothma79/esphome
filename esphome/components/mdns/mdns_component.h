@@ -42,7 +42,7 @@ class MDNSComponent : public Component {
 
   // Make services accessible to other components
   std::vector<MDNSService> services_{};
-  
+
  protected:
   std::vector<MDNSService> services_extra_{};
   std::string hostname_;

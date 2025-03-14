@@ -28,9 +28,17 @@ using namespace esphome;
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/openthread.h>
 
+// Include OpenThread headers
+#include <openthread/thread.h>
+#include <openthread/srp_client.h>
+#include <openthread/dns.h>
+
 // Include mDNS component
 #include "esphome/components/mdns/mdns_component.h"
 #include "esphome/components/network/ip_address.h"
+
+// Forward declaration for OpenThread types if needed
+struct otDnsTxtEntry;
 
 namespace esphome {
 namespace zephyr_openthread {
@@ -43,7 +51,7 @@ class OpenThreadZephyr : public Component {
   void setup() override;
   void loop() override;
   void dump_config() override;
-  float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
+  float get_setup_priority() const override { return setup_priority::WIFI; }
   void on_shutdown() override;
 
   void set_channel(uint8_t channel) { channel_ = channel; }
@@ -85,6 +93,14 @@ class OpenThreadZephyr : public Component {
 
   // Thread role
   uint8_t thread_role_{0};
+  bool srp_services_registered_{false};
+
+  // SRP service related properties
+  std::string host_name_{};
+  std::vector<std::string> service_names_{};
+  std::vector<std::vector<std::string>> txt_keys_{};
+  std::vector<std::vector<std::string>> txt_values_{};
+  std::vector<otDnsTxtEntry *> txt_entries_{};
 
   void update_ipv6_addresses();
   void configure_operational_dataset();
