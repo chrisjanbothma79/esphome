@@ -43,6 +43,7 @@ class DalyHkmsBmsComponent : public PollingComponent, public modbus::ModbusDevic
   SUB_SENSOR(max_cell_voltage_number)
   SUB_SENSOR(min_cell_voltage)
   SUB_SENSOR(min_cell_voltage_number)
+  SUB_SENSOR(delta_cell_voltage)
   SUB_SENSOR(max_temperature)
   SUB_SENSOR(max_temperature_probe_number)
   SUB_SENSOR(min_temperature)

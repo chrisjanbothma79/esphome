@@ -29,6 +29,7 @@ CONF_MAX_CELL_VOLTAGE = "max_cell_voltage"
 CONF_MAX_CELL_VOLTAGE_NUMBER = "max_cell_voltage_number"
 CONF_MIN_CELL_VOLTAGE = "min_cell_voltage"
 CONF_MIN_CELL_VOLTAGE_NUMBER = "min_cell_voltage_number"
+CONF_DELTA_CELL_VOLTAGE = "delta_cell_voltage"
 CONF_MAX_TEMPERATURE_PROBE_NUMBER = "max_temperature_probe_number"
 CONF_MIN_TEMPERATURE_PROBE_NUMBER = "min_temperature_probe_number"
 CONF_CELLS_NUMBER = "cells_number"
@@ -66,6 +67,7 @@ TYPES = [
     CONF_MAX_CELL_VOLTAGE_NUMBER,
     CONF_MIN_CELL_VOLTAGE,
     CONF_MIN_CELL_VOLTAGE_NUMBER,
+    CONF_DELTA_CELL_VOLTAGE,
     CONF_MAX_TEMPERATURE,
     CONF_MAX_TEMPERATURE_PROBE_NUMBER,
     CONF_MIN_TEMPERATURE,
@@ -163,6 +165,13 @@ CONFIG_SCHEMA = (
                 unit_of_measurement=UNIT_EMPTY,
                 icon=ICON_COUNTER,
                 accuracy_decimals=0,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
+            cv.Optional(CONF_DELTA_CELL_VOLTAGE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_VOLT,
+                icon=ICON_FLASH,
+                accuracy_decimals=3,
+                device_class=DEVICE_CLASS_VOLTAGE,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_MAX_TEMPERATURE): sensor.sensor_schema(
