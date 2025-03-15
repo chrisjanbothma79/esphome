@@ -3,11 +3,9 @@ import esphome.config_validation as cv
 from esphome.components import spi
 from esphome.const import (
     CONF_ID,
-    CONF_CS_PIN,
     CONF_CHANNEL,
-    CONF_DATA_RATE,
 )
-from esphome.components import gpio
+from esphome import pins
 
 DEPENDENCIES = ["spi"]
 MULTI_CONF = True
@@ -26,6 +24,7 @@ CONF_AUTO_ACK = "auto_ack"
 CONF_READ_PIPES = "read_pipes"
 CONF_PIPE_NUMBER = "pipe"
 CONF_WRITE_ADDRESS = "write_address"
+CONF_RF_DATA_RATE = "rf_data_rate"
 
 # Create namespace and component class
 nrf24_ns = cg.esphome_ns.namespace("nrf24")
@@ -58,14 +57,14 @@ CRC_LENGTH = {
 
 def validate_address(value):
     """Validate a 5-byte address."""
-    value = cv.hex_uint40_t(value)
+    value = cv.hex_uint64_t(value)
     if value > 0xFFFFFFFFFF:
         raise cv.Invalid("Address must be a 5-byte address (max 0xFFFFFFFFFF)")
     return value
 
 PIPE_SCHEMA = cv.Schema({
-    cv.Required(CONF_PIPE_NUMBER): cv.int_range(min=0, max=5),
-    cv.Required(CONF_ADDRESS, default=0xE8E8F0F0E1): validate_address,
+    cv.Optional(CONF_PIPE_NUMBER, default=1): cv.int_range(min=0, max=5),
+    cv.Optional(CONF_ADDRESS, default=0xE8E8F0F0E1): validate_address,
 })
 
 CONFIG_SCHEMA = cv.Schema(
@@ -73,8 +72,8 @@ CONFIG_SCHEMA = cv.Schema(
         cv.GenerateID(): cv.declare_id(NRF24Component),
         cv.Required(CONF_CE_PIN): pins.gpio_output_pin_schema,
         cv.Optional(CONF_CHANNEL, default=76): cv.int_range(min=0, max=125),
-        cv.Optional(CONF_PA_LEVEL, default="high"): cv.enum(PA_LEVELS, lower=True),
-        cv.Optional(CONF_DATA_RATE, default="1mbps"): cv.enum(DATA_RATES, lower=True),
+        cv.Optional(CONF_PA_LEVEL, default="low"): cv.enum(PA_LEVELS, lower=True),
+        cv.Optional(CONF_RF_DATA_RATE, default="1mbps"): cv.enum(DATA_RATES, lower=True),
         cv.Optional(CONF_PAYLOAD_SIZE, default=32): cv.int_range(min=1, max=32),
         cv.Optional(CONF_CRC, default="16bit"): cv.enum(CRC_LENGTH, lower=True),
         cv.Optional(CONF_AUTO_ACK, default=True): cv.boolean,
@@ -87,7 +86,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_WRITE_ADDRESS, default=0xE8E8F0F0E1): validate_address,
         cv.Optional(CONF_READ_PIPES): cv.ensure_list(PIPE_SCHEMA),
     }
-).extend(spi.spi_device_schema())
+).extend(spi.spi_device_schema(True))
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
@@ -103,7 +102,7 @@ async def to_code(config):
     # Configure radio parameters
     cg.add(var.set_channel(config[CONF_CHANNEL]))
     cg.add(var.set_pa_level(config[CONF_PA_LEVEL]))
-    cg.add(var.set_data_rate(config[CONF_DATA_RATE]))
+    cg.add(var.set_data_rate(config[CONF_RF_DATA_RATE]))
     cg.add(var.set_payload_size(config[CONF_PAYLOAD_SIZE]))
     cg.add(var.set_crc_length(config[CONF_CRC]))
     cg.add(var.set_auto_ack(config[CONF_AUTO_ACK]))
