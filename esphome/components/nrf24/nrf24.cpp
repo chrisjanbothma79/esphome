@@ -6,61 +6,74 @@ namespace nrf24 {
 
 static const char *const TAG = "nrf24";
 
-void nrf24::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up nrf24...");
+void NRF24Component::setup() {
+  ESP_LOGCONFIG(TAG, "Setting up nRF24...");
 
-  ce_pin_->setup();
+  this->ce_pin_->setup();
+  this->ce_pin_->digital_write(false);
 
-  radio.begin();
-  radio.setChannel(channel_);
+  this->radio_ = new RF24(this->ce_pin_->get_pin(), this->cs_->get_pin());
 
-  // Map generic PA levels to RF24 levels
-  RF24_PA_e rf24_pa_level;
-  switch (pa_level_) {
-    case nrf24PALevel::LOW:
-      rf24_pa_level = RF24_PA_LOW;
-      break;
-    case nrf24PALevel::MEDIUM:
-      rf24_pa_level = RF24_PA_HIGH;  // Assuming HIGH is a reasonable "medium"
-      break;
-    case nrf24PALevel::HIGH:
-      rf24_pa_level = RF24_PA_HIGH;
-      break;
-    case nrf24PALevel::MAX:
-      rf24_pa_level = RF24_PA_MAX;
-      break;
-    default:
-      rf24_pa_level = RF24_PA_HIGH;
-      ESP_LOGW(TAG, "Invalid PA level, defaulting to HIGH");
-      break;
+  if (!this->radio_->begin()) {
+    ESP_LOGE(TAG, "Radio hardware not responding!");
+    this->mark_failed();
+    return;
   }
-  radio.setPALevel(rf24_pa_level);
 
-  radio.setDataRate(data_rate_);
-  radio.setPayloadSize(payload_size_);
-  radio.setRetries(retry_delay_, retry_count_);
+  // Configure radio
+  this->radio_->setChannel(this->channel_);
+  this->radio_->setPALevel(static_cast<rf24_pa_dbm_e>(this->pa_level_));
+  this->radio_->setDataRate(static_cast<rf24_datarate_e>(this->data_rate_));
+  this->radio_->setCRCLength(static_cast<rf24_crclength_e>(this->crc_length_));
+  this->radio_->setPayloadSize(this->payload_size_);
+  this->radio_->setRetries(this->retry_delay_, this->retry_count_);
 
-  radio.openReadingPipe(1, address_);  // pipe 0 is not recommended
-  ESP_LOGCONFIG(TAG, "Address is 0x%llX", address_);
-  this->before_start_listening();
-  radio.startListening();
+  // TODO: only open pipes if they are enabled; also address can be different for read and write
+  this->radio_->openWritingPipe(this->address_);
+  this->radio_->openReadingPipe(1, this->address_);
+  // TODO: create a config for auto-ack and set it here
+  if (this->crc_length_ == NRF24CRCLength::RF24_CRC_DISABLED) {
+    this->radio_->disableCRC();
+  }
 
-  ESP_LOGCONFIG(TAG, "nrf24 setup complete");
+  ESP_LOGCONFIG(TAG, "nRF24 setup complete");
 }
 
-void nrf24::loop() {
-  if (radio.available()) {
-    uint8_t len = radio.getPayloadSize();
-    uint8_t data[len];
-    radio.read(data, len);
-    process_received_data(data, len);
-  }
+void NRF24Component::dump_config() {
+  ESP_LOGCONFIG(TAG, "nRF24:");
+  LOG_PIN("  CE Pin: ", this->ce_pin_);
+  LOG_PIN("  CS Pin: ", this->cs_);
+  ESP_LOGCONFIG(TAG, "  Channel: %d", this->channel_);
+  ESP_LOGCONFIG(TAG, "  PA Level: %d", this->pa_level_);
+  ESP_LOGCONFIG(TAG, "  Data Rate: %d", this->data_rate_);
+  ESP_LOGCONFIG(TAG, "  Payload Size: %d", this->payload_size_);
+  ESP_LOGCONFIG(TAG, "  CRC Length: %d", this->crc_length_);
+  ESP_LOGCONFIG(TAG, "  Retry Delay: %d", this->retry_delay_);
+  ESP_LOGCONFIG(TAG, "  Retry Count: %d", this->retry_count_);
+  ESP_LOGCONFIG(TAG, "  Address: 0x%lX", this->address_);
+  // TODO: add new configs
 }
 
-void nrf24::process_received_data(const uint8_t *data, uint8_t length) {
-  // This is where derived components would process the received data
-  ESP_LOGD(TAG, "Received data (length=%u):", length);
-  ESP_LOGD(TAG, "Implement process_received_data in derived class to handle this data");
+bool NRF24Component::write(const void* buf, uint8_t len) {
+  // TODO: check if write is enabled
+  return this->radio_->write(buf, len);
+}
+
+bool NRF24Component::read(void* buf, uint8_t len) {
+  // TODO: check if read is enabled
+  return this->radio_->read(buf, len);
+}
+
+bool NRF24Component::available() {
+  return this->radio_->available();
+}
+
+void NRF24Component::start_listening() {
+  this->radio_->startListening();
+}
+
+void NRF24Component::stop_listening() {
+  this->radio_->stopListening();
 }
 
 }  // namespace nrf24

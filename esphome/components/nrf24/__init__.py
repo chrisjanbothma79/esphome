@@ -1,27 +1,45 @@
 import esphome.codegen as cg
-from esphome.components import gpio, spi, spi_device
 import esphome.config_validation as cv
-from esphome.const import CONF_CHANNEL, CONF_DATA_RATE, CONF_ID, CONF_SPI_ID
+from esphome.components import spi
+from esphome.const import (
+    CONF_ID,
+    CONF_CS_PIN,
+    CONF_CHANNEL,
+    CONF_DATA_RATE,
+)
+from esphome.components import gpio
+
+DEPENDENCIES = ["spi"]
+MULTI_CONF = True
 
 CONF_CE_PIN = "ce_pin"
 CONF_PA_LEVEL = "pa_level"
 CONF_PAYLOAD_SIZE = "payload_size"
+CONF_CRC = "crc"
 CONF_RETRIES = "retries"
 CONF_RETRY_DELAY = "delay"
 CONF_RETRY_COUNT = "count"
 CONF_ADDRESS = "address"
 
-nrf24l01_ns = cg.esphome_ns.namespace("nrf24l01")
-NRF24L01 = nrf24l01_ns.class_("NRF24L01", spi_device.SPIDevice, cg.Component)
-NRF24L01PALevel = nrf24l01_ns.enum("NRF24L01PALevel")
+nrf24_ns = cg.esphome_ns.namespace("nrf24")
+NRF24Component = nrf24_ns.class_("NRF24Component", cg.Component, spi.SPIDevice)
+
+NRF24PALevel = nrf24_ns.enum("NRF24PALevel")
+NRF24DataRate = nrf24_ns.enum("NRF24DataRate")
+NRF24CRCLength = nrf24_ns.enum("NRF24CRCLength")
 
 PA_LEVELS = {
-    "low": NRF24L01PALevel.LOW,
-    "medium": NRF24L01PALevel.MEDIUM,
-    "high": NRF24L01PALevel.HIGH,
-    "max": NRF24L01PALevel.MAX,
+    "min": NRF24PALevel.RF24_PA_MIN,
+    "low": NRF24PALevel.RF24_PA_LOW,
+    "high": NRF24PALevel.RF24_PA_HIGH,
+    "max": NRF24PALevel.RF24_PA_MAX,
 }
 
+DATA_RATES = {
+    "250kbps": NRF24DataRate.RF24_250KBPS,
+    "1mbps": NRF24DataRate.RF24_1MBPS,
+    "2mbps": NRF24DataRate.RF24_2MBPS,
+}
 
 def validate_address(value):
     value = cv.positive_int(value)
@@ -29,52 +47,51 @@ def validate_address(value):
         raise cv.Invalid("Address must be a 5-byte address (max 0xFFFFFFFFFF)")
     return value
 
+CRC_LENGTH = {
+    "disabled": NRF24CRCLength.RF24_CRC_DISABLED,
+    "8bit": NRF24CRCLength.RF24_CRC_8,
+    "16bit": NRF24CRCLength.RF24_CRC_16,
+}
 
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(): cv.declare_id(NRF24L01),
-        cv.Required(CONF_CE_PIN): cv.use_id(gpio.GPIOPin),
-        cv.Optional(CONF_CHANNEL, default=76): cv.int_range(min=0, max=127),
+        cv.GenerateID(): cv.declare_id(NRF24Component),
+        cv.Required(CONF_CE_PIN): pins.gpio_output_pin_schema,
+        cv.Optional(CONF_CHANNEL, default=76): cv.int_range(min=0, max=125),
         cv.Optional(CONF_PA_LEVEL, default="high"): cv.enum(PA_LEVELS, lower=True),
-        cv.Optional(CONF_DATA_RATE, default="1mbps"): cv.enum(
-            {
-                "250kbps": cg.RawExpression("RF24_250KBPS"),
-                "1mbps": cg.RawExpression("RF24_1MBPS"),
-                "2mbps": cg.RawExpression("RF24_2MBPS"),
-            },
-            lower=True,
-        ),
+        cv.Optional(CONF_DATA_RATE, default="1mbps"): cv.enum(DATA_RATES, lower=True),
         cv.Optional(CONF_PAYLOAD_SIZE, default=32): cv.int_range(min=1, max=32),
+        cv.Optional(CONF_CRC, default="16bit"): cv.enum(CRC_LENGTH, lower=True),
         cv.Optional(CONF_RETRIES): cv.Schema(
             {
                 cv.Optional(CONF_RETRY_DELAY, default=15): cv.int_range(min=0, max=15),
                 cv.Optional(CONF_RETRY_COUNT, default=15): cv.int_range(min=0, max=15),
             }
         ),
-        cv.Optional(CONF_ADDRESS, default="0x1234567890"): validate_address,
+        cv.Optional(CONF_ADDRESS, default=0x1234567890): cv.validate_address,
     }
-).extend(
-    spi_device.spi_device_schema(cs_pin_required=False)
-)  # cs_pin is managed by spi_device
-CONFIG_SCHEMA = CONFIG_SCHEMA.extend(cv.COMPONENT_SCHEMA)
-
+).extend(spi.spi_device_schema())
 
 async def to_code(config):
-    var = cg.new_Pvariable(
-        config[CONF_ID],
-        cg.new_args(
-            config[CONF_CE_PIN],
-        ),
-    )
+    var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
-    await spi_device.register_spi_device(var, config)
 
+    # Register SPI device
+    await spi.register_spi_device(var, config)
+
+    # Set CE pin
+    ce_pin = await cg.gpio_pin_expression(config[CONF_CE_PIN])
+    cg.add(var.set_ce_pin(ce_pin))
+
+    # Configure radio parameters
     cg.add(var.set_channel(config[CONF_CHANNEL]))
     cg.add(var.set_pa_level(config[CONF_PA_LEVEL]))
     cg.add(var.set_data_rate(config[CONF_DATA_RATE]))
     cg.add(var.set_payload_size(config[CONF_PAYLOAD_SIZE]))
-    cg.add(var.set_address(config[CONF_ADDRESS]))
+    cg.add(var.set_crc_length(config[CONF_CRC]))
 
     if CONF_RETRIES in config:
         retries = config[CONF_RETRIES]
         cg.add(var.set_retries(retries[CONF_RETRY_DELAY], retries[CONF_RETRY_COUNT]))
+
+    cg.add(var.set_address(config[CONF_ADDRESS]))
