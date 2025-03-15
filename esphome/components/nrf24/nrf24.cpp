@@ -27,13 +27,19 @@ void NRF24Component::setup() {
   this->radio_->setCRCLength(static_cast<rf24_crclength_e>(this->crc_length_));
   this->radio_->setPayloadSize(this->payload_size_);
   this->radio_->setRetries(this->retry_delay_, this->retry_count_);
+  this->radio_->setAutoAck(this->auto_ack_);
 
-  // TODO: only open pipes if they are enabled; also address can be different for read and write
-  this->radio_->openWritingPipe(this->address_);
-  this->radio_->openReadingPipe(1, this->address_);
-  // TODO: create a config for auto-ack and set it here
-  if (this->crc_length_ == NRF24CRCLength::RF24_CRC_DISABLED) {
+  // Configure CRC
+  if (this->crc_length_ == RF24_CRC_DISABLED) {
     this->radio_->disableCRC();
+  }
+  // Configure pipes
+  if (this->write_address_ != 0) {
+    this->radio_->openWritingPipe(this->write_address_);
+  }
+
+  for (const auto &pipe : this->pipes_) {
+    this->radio_->openReadingPipe(pipe.pipe_num, pipe.address);
   }
 
   ESP_LOGCONFIG(TAG, "nRF24 setup complete");
@@ -48,19 +54,21 @@ void NRF24Component::dump_config() {
   ESP_LOGCONFIG(TAG, "  Data Rate: %d", this->data_rate_);
   ESP_LOGCONFIG(TAG, "  Payload Size: %d", this->payload_size_);
   ESP_LOGCONFIG(TAG, "  CRC Length: %d", this->crc_length_);
+  ESP_LOGCONFIG(TAG, "  Auto ACK: %s", YESNO(this->auto_ack_));
   ESP_LOGCONFIG(TAG, "  Retry Delay: %d", this->retry_delay_);
   ESP_LOGCONFIG(TAG, "  Retry Count: %d", this->retry_count_);
-  ESP_LOGCONFIG(TAG, "  Address: 0x%lX", this->address_);
-  // TODO: add new configs
+  ESP_LOGCONFIG(TAG, "  Write Address: 0x%llX", this->write_address_);
+
+  for (const auto &pipe : this->pipes_) {
+    ESP_LOGCONFIG(TAG, "  Read pipe %d Address: 0x%llX", pipe.pipe_num, pipe.address);
+  }
 }
 
 bool NRF24Component::write(const void* buf, uint8_t len) {
-  // TODO: check if write is enabled
   return this->radio_->write(buf, len);
 }
 
 bool NRF24Component::read(void* buf, uint8_t len) {
-  // TODO: check if read is enabled
   return this->radio_->read(buf, len);
 }
 

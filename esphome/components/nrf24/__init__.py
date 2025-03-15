@@ -11,7 +11,9 @@ from esphome.components import gpio
 
 DEPENDENCIES = ["spi"]
 MULTI_CONF = True
+CODEOWNERS = ["@tylerwowen"]
 
+# Configuration keys
 CONF_CE_PIN = "ce_pin"
 CONF_PA_LEVEL = "pa_level"
 CONF_PAYLOAD_SIZE = "payload_size"
@@ -20,14 +22,21 @@ CONF_RETRIES = "retries"
 CONF_RETRY_DELAY = "delay"
 CONF_RETRY_COUNT = "count"
 CONF_ADDRESS = "address"
+CONF_AUTO_ACK = "auto_ack"
+CONF_READ_PIPES = "read_pipes"
+CONF_PIPE_NUMBER = "pipe"
+CONF_WRITE_ADDRESS = "write_address"
 
+# Create namespace and component class
 nrf24_ns = cg.esphome_ns.namespace("nrf24")
 NRF24Component = nrf24_ns.class_("NRF24Component", cg.Component, spi.SPIDevice)
 
+# Enums
 NRF24PALevel = nrf24_ns.enum("NRF24PALevel")
 NRF24DataRate = nrf24_ns.enum("NRF24DataRate")
 NRF24CRCLength = nrf24_ns.enum("NRF24CRCLength")
 
+# Enum mappings
 PA_LEVELS = {
     "min": NRF24PALevel.RF24_PA_MIN,
     "low": NRF24PALevel.RF24_PA_LOW,
@@ -41,17 +50,23 @@ DATA_RATES = {
     "2mbps": NRF24DataRate.RF24_2MBPS,
 }
 
-def validate_address(value):
-    value = cv.positive_int(value)
-    if value > 0xFFFFFFFFFF:
-        raise cv.Invalid("Address must be a 5-byte address (max 0xFFFFFFFFFF)")
-    return value
-
 CRC_LENGTH = {
     "disabled": NRF24CRCLength.RF24_CRC_DISABLED,
     "8bit": NRF24CRCLength.RF24_CRC_8,
     "16bit": NRF24CRCLength.RF24_CRC_16,
 }
+
+def validate_address(value):
+    """Validate a 5-byte address."""
+    value = cv.hex_uint40_t(value)
+    if value > 0xFFFFFFFFFF:
+        raise cv.Invalid("Address must be a 5-byte address (max 0xFFFFFFFFFF)")
+    return value
+
+PIPE_SCHEMA = cv.Schema({
+    cv.Required(CONF_PIPE_NUMBER): cv.int_range(min=0, max=5),
+    cv.Required(CONF_ADDRESS, default=0xE8E8F0F0E1): validate_address,
+})
 
 CONFIG_SCHEMA = cv.Schema(
     {
@@ -62,13 +77,15 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_DATA_RATE, default="1mbps"): cv.enum(DATA_RATES, lower=True),
         cv.Optional(CONF_PAYLOAD_SIZE, default=32): cv.int_range(min=1, max=32),
         cv.Optional(CONF_CRC, default="16bit"): cv.enum(CRC_LENGTH, lower=True),
+        cv.Optional(CONF_AUTO_ACK, default=True): cv.boolean,
         cv.Optional(CONF_RETRIES): cv.Schema(
             {
-                cv.Optional(CONF_RETRY_DELAY, default=15): cv.int_range(min=0, max=15),
+                cv.Optional(CONF_RETRY_DELAY, default=5): cv.int_range(min=0, max=15),
                 cv.Optional(CONF_RETRY_COUNT, default=15): cv.int_range(min=0, max=15),
             }
         ),
-        cv.Optional(CONF_ADDRESS, default=0x1234567890): cv.validate_address,
+        cv.Optional(CONF_WRITE_ADDRESS, default=0xE8E8F0F0E1): validate_address,
+        cv.Optional(CONF_READ_PIPES): cv.ensure_list(PIPE_SCHEMA),
     }
 ).extend(spi.spi_device_schema())
 
@@ -89,9 +106,13 @@ async def to_code(config):
     cg.add(var.set_data_rate(config[CONF_DATA_RATE]))
     cg.add(var.set_payload_size(config[CONF_PAYLOAD_SIZE]))
     cg.add(var.set_crc_length(config[CONF_CRC]))
+    cg.add(var.set_auto_ack(config[CONF_AUTO_ACK]))
+    cg.add(var.set_write_address(config[CONF_WRITE_ADDRESS]))
 
     if CONF_RETRIES in config:
         retries = config[CONF_RETRIES]
         cg.add(var.set_retries(retries[CONF_RETRY_DELAY], retries[CONF_RETRY_COUNT]))
 
-    cg.add(var.set_address(config[CONF_ADDRESS]))
+    if CONF_READ_PIPES in config:
+        for pipe in config[CONF_READ_PIPES]:
+            cg.add(var.add_pipe(pipe[CONF_PIPE_NUMBER], pipe[CONF_ADDRESS]))
