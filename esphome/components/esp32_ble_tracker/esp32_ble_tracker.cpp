@@ -118,11 +118,15 @@ void ESP32BLETracker::loop() {
   bool promote_to_connecting = discovered && !searching && !connecting;
 
   if (!this->scanner_idle_) {
+    const uint32_t now = millis();
     if (this->scan_result_index_ &&  // if it looks like we have a scan result we will take the lock
         xSemaphoreTake(this->scan_result_lock_, 5L / portTICK_PERIOD_MS)) {
       uint32_t index = this->scan_result_index_;
       if (index >= ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE) {
         ESP_LOGW(TAG, "Too many BLE events to process. Some devices may not show up.");
+      }
+      if (index > 0) {
+        this->last_scanned_ = now;
       }
 
       if (this->raw_advertisements_) {
@@ -209,6 +213,13 @@ void ESP32BLETracker::loop() {
       if (this->scan_set_param_failed_) {
         ESP_LOGE(TAG, "Scan set param failed: %d", this->scan_set_param_failed_);
         this->scan_set_param_failed_ = ESP_BT_STATUS_SUCCESS;
+      }
+    }
+
+    if (this->reboot_timeout_ != 0 && this->last_scanned_ != 0) {
+      if (now - this->last_scanned_ > this->reboot_timeout_) {
+        ESP_LOGE(TAG, "Can't get scan results, rebooting...");
+        App.reboot();
       }
     }
   }
@@ -687,6 +698,9 @@ void ESP32BLETracker::dump_config() {
   if (this->scan_start_fail_count_) {
     ESP_LOGCONFIG(TAG, "  Scan Start Fail Count: %d", this->scan_start_fail_count_);
   }
+  if (this->last_scanned_) {
+    ESP_LOGCONFIG(TAG, "  Got scan results %u sec ago", (millis() - this->last_scanned_) / 1000);
+  }
 }
 
 void ESP32BLETracker::print_bt_device_info(const ESPBTDevice &device) {
@@ -726,6 +740,8 @@ void ESP32BLETracker::print_bt_device_info(const ESPBTDevice &device) {
     ESP_LOGD(TAG, "  TX Power: %d", tx_power);
   }
 }
+
+void ESP32BLETracker::set_reboot_timeout(uint32_t reboot_timeout) { this->reboot_timeout_ = reboot_timeout; }
 
 bool ESPBTDevice::resolve_irk(const uint8_t *irk) const {
   uint8_t ecb_key[16];

@@ -224,6 +224,8 @@ class ESP32BLETracker : public Component,
   void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) override;
   void ble_before_disabled_event_handler() override;
 
+  void set_reboot_timeout(uint32_t reboot_timeout);
+
  protected:
   void stop_scan_();
   /// Start a single scan by setting up the parameters and doing some esp-idf calls.
@@ -274,6 +276,8 @@ class ESP32BLETracker : public Component,
   int discovered_{0};
   int searching_{0};
   int disconnecting_{0};
+  uint32_t last_scanned_{0};
+  uint32_t reboot_timeout_{};
 };
 
 // NOLINTNEXTLINE
