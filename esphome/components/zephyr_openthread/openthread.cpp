@@ -56,9 +56,9 @@ void OpenThreadZephyr::setup() {
   }
 
   // Configure operational dataset if needed
-  if (this->force_dataset_) {
-    this->configure_operational_dataset();
-  }
+  // if (this->force_dataset_) {
+  //   this->configure_operational_dataset();
+  // }
 
   // Start OpenThread network
   this->start_thread_network();
@@ -150,116 +150,11 @@ void OpenThreadZephyr::dump_config() {
   }
 }
 
-void OpenThreadZephyr::configure_operational_dataset() {
-  otInstance *instance = openthread_get_default_instance();
-  if (instance == nullptr) {
-    ESP_LOGE(TAG, "OpenThread instance not available");
-    return;
-  }
-
-  otOperationalDataset dataset;
-  memset(&dataset, 0, sizeof(dataset));
-
-  // Set active timestamp
-  dataset.mActiveTimestamp.mSeconds = 1;
-  dataset.mActiveTimestamp.mTicks = 0;
-  dataset.mActiveTimestamp.mAuthoritative = false;
-  dataset.mComponents.mIsActiveTimestampPresent = true;
-
-  // Set channel
-  dataset.mChannel = this->channel_;
-  dataset.mComponents.mIsChannelPresent = true;
-
-  // Set PAN ID
-  dataset.mPanId = this->panid_;
-  dataset.mComponents.mIsPanIdPresent = true;
-
-  // Set Extended PAN ID - Fixed implementation
-  const char *xpanid_str = this->xpanid_.c_str();
-  for (size_t i = 0; i < sizeof(dataset.mExtendedPanId.m8); i++) {
-    char hex[3] = {xpanid_str[i * 2], xpanid_str[i * 2 + 1], 0};
-    dataset.mExtendedPanId.m8[i] = strtoul(hex, nullptr, 16);
-  }
-  dataset.mComponents.mIsExtendedPanIdPresent = true;
-
-  // Set network key - Fixed implementation
-  const char *key_str = this->network_key_.c_str();
-  for (size_t i = 0; i < sizeof(dataset.mNetworkKey.m8); i++) {
-    char hex[3] = {key_str[i * 2], key_str[i * 2 + 1], 0};
-    dataset.mNetworkKey.m8[i] = strtoul(hex, nullptr, 16);
-  }
-  dataset.mComponents.mIsNetworkKeyPresent = true;
-
-  // Set network name
-  strncpy(dataset.mNetworkName.m8, this->network_name_.c_str(), sizeof(dataset.mNetworkName.m8) - 1);
-  dataset.mComponents.mIsNetworkNamePresent = true;
-
-  // Set PSKC - Fixed implementation
-  const char *pskc_str = this->pskc_.c_str();
-  for (size_t i = 0; i < sizeof(dataset.mPskc.m8); i++) {
-    char hex[3] = {pskc_str[i * 2], pskc_str[i * 2 + 1], 0};
-    dataset.mPskc.m8[i] = strtoul(hex, nullptr, 16);
-  }
-  dataset.mComponents.mIsPskcPresent = true;
-
-  // Set the operational dataset
-  otError error = otDatasetSetActive(instance, &dataset);
-  if (error != OT_ERROR_NONE) {
-    ESP_LOGE(TAG, "Failed to set operational dataset: %d", error);
-  } else {
-    ESP_LOGI(TAG, "Successfully set operational dataset");
-  }
-}
-
 void OpenThreadZephyr::start_thread_network() {
   otInstance *instance = openthread_get_default_instance();
   if (instance == nullptr) {
     ESP_LOGE(TAG, "OpenThread instance not available");
     return;
-  }
-
-  if (!this->force_dataset_) {
-    // Set extended PAN ID - Fixed implementation
-    otExtendedPanId xpanid;
-    const char *xpanid_str = this->xpanid_.c_str();
-    for (size_t i = 0; i < sizeof(xpanid.m8); i++) {
-      char hex[3] = {xpanid_str[i * 2], xpanid_str[i * 2 + 1], 0};
-      xpanid.m8[i] = strtoul(hex, nullptr, 16);
-    }
-    otError error = otThreadSetExtendedPanId(instance, &xpanid);
-    if (error != OT_ERROR_NONE) {
-      ESP_LOGE(TAG, "Failed to set extended PAN ID: %d", error);
-    }
-
-    // Set network key - Fixed implementation
-    otNetworkKey network_key;
-    const char *key_str = this->network_key_.c_str();
-    for (size_t i = 0; i < sizeof(network_key.m8); i++) {
-      char hex[3] = {key_str[i * 2], key_str[i * 2 + 1], 0};
-      network_key.m8[i] = strtoul(hex, nullptr, 16);
-    }
-    error = otThreadSetNetworkKey(instance, &network_key);
-    if (error != OT_ERROR_NONE) {
-      ESP_LOGE(TAG, "Failed to set network key: %d", error);
-    }
-
-    // Set channel
-    error = otLinkSetChannel(instance, this->channel_);
-    if (error != OT_ERROR_NONE) {
-      ESP_LOGE(TAG, "Failed to set channel: %d", error);
-    }
-
-    // Set PAN ID
-    error = otLinkSetPanId(instance, this->panid_);
-    if (error != OT_ERROR_NONE) {
-      ESP_LOGE(TAG, "Failed to set PAN ID: %d", error);
-    }
-
-    // Set network name
-    error = otThreadSetNetworkName(instance, this->network_name_.c_str());
-    if (error != OT_ERROR_NONE) {
-      ESP_LOGE(TAG, "Failed to set network name: %d", error);
-    }
   }
 
   // Set radio TX power
@@ -498,44 +393,7 @@ void OpenThreadZephyr::setup_srp_services() {
       }
     }
   } else {
-    // Fallback to default service if mDNS is not available
-    ESP_LOGW(TAG, "mDNS component not available, using default service");
-
-    otSrpClientBuffersServiceEntry *entry = otSrpClientBuffersAllocateService(instance);
-    if (!entry) {
-      ESP_LOGW(TAG, "Failed to allocate service entry for default service");
-      return;
-    }
-
-    // Set service name
-    char *string = otSrpClientBuffersGetServiceEntryServiceNameString(entry, &size);
-    std::string full_service = "_esphome._tcp";
-    if (full_service.size() > size) {
-      ESP_LOGW(TAG, "Default service name too long");
-      return;
-    }
-    memcpy(string, full_service.c_str(), full_service.size() + 1);
-
-    // Set instance name (using host_name)
-    string = otSrpClientBuffersGetServiceEntryInstanceNameString(entry, &size);
-    if (this->host_name_.size() > size) {
-      ESP_LOGW(TAG, "Instance name too long: %s", this->host_name_.c_str());
-      return;
-    }
-    memcpy(string, this->host_name_.c_str(), this->host_name_.size() + 1);
-
-    // Set port
-    entry->mService.mPort = 6053;
-    entry->mService.mNumTxtEntries = 0;
-    entry->mService.mTxtEntries = nullptr;
-
-    // Add service
-    error = otSrpClientAddService(instance, &entry->mService);
-    if (error != OT_ERROR_NONE) {
-      ESP_LOGW(TAG, "Failed to add default service: %s", otThreadErrorToString(error));
-    } else {
-      ESP_LOGI(TAG, "Added default service: _esphome._tcp");
-    }
+    ESP_LOGW(TAG, "mDNS component not available, SRP services will not be registered");
   }
 
   // Enable auto start mode for SRP client
