@@ -210,8 +210,6 @@ uint8_t WaveshareEPaper6C::color_to_hex(Color color) {
       } else {
         hex_code = 0x2;  // Yellow
       }
-    } else if (color.green > 85) {
-      hex_code = 0x3;  // Orange -> Red
     } else {
       hex_code = 0x3;  // Red (or Magenta)
     }
