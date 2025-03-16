@@ -125,7 +125,7 @@ void ESP32BLETracker::loop() {
       if (index >= ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE) {
         ESP_LOGW(TAG, "Too many BLE events to process. Some devices may not show up.");
       }
-      if (index > 0) {
+      if (index > 0 && this->reboot_timeout_) {
         this->last_scanned_ = now;
       }
 
@@ -216,11 +216,8 @@ void ESP32BLETracker::loop() {
       }
     }
 
-    if (this->reboot_timeout_ != 0 && this->last_scanned_ != 0) {
-      if (now - this->last_scanned_ > this->reboot_timeout_) {
-        ESP_LOGE(TAG, "Can't get scan results, rebooting...");
-        App.reboot();
-      }
+    if (reboot_timeout_active_()) {
+      check_reboot_timeout_(now);
     }
   }
 
@@ -318,6 +315,11 @@ void ESP32BLETracker::start_scan_(bool first) {
     ESP_LOGE(TAG, "esp_ble_gap_start_scanning failed: %d", err);
     return;
   }
+  if (this->scanner_idle_ && reboot_timeout_active_()) {
+    uint32_t now = millis();
+    // convert from elapsed time to timestamp
+    this->last_scanned_ = now - this->last_scanned_;
+  }
   this->scanner_idle_ = false;
 }
 
@@ -330,6 +332,12 @@ void ESP32BLETracker::end_of_scan_() {
 
   ESP_LOGD(TAG, "End of scan.");
   this->scanner_idle_ = true;
+  if (reboot_timeout_active_()) {
+    uint32_t now = millis();
+    check_reboot_timeout_(now);
+    // convert from timestamp to elapsed time and make sure that it is not 0
+    this->last_scanned_ = now - this->last_scanned_ + 1;
+  }
   this->already_discovered_.clear();
   xSemaphoreGive(this->scan_end_lock_);
   this->cancel_timeout("scan");
@@ -417,6 +425,15 @@ void ESP32BLETracker::gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_
   ESP_LOGV(TAG, "gap_scan_stop_complete - status %d", param.status);
   xSemaphoreGive(this->scan_end_lock_);
 }
+
+void ESP32BLETracker::check_reboot_timeout_(const uint32_t now) {
+  if (now - this->last_scanned_ >= this->reboot_timeout_) {
+    ESP_LOGE(TAG, "Can't get scan results, rebooting...");
+    App.reboot();
+  }
+}
+
+bool ESP32BLETracker::reboot_timeout_active_() { return this->reboot_timeout_ != 0 && this->last_scanned_ != 0; }
 
 void ESP32BLETracker::gap_scan_result_(const esp_ble_gap_cb_param_t::ble_scan_result_evt_param &param) {
   ESP_LOGV(TAG, "gap_scan_result - event %d", param.search_evt);
@@ -698,8 +715,13 @@ void ESP32BLETracker::dump_config() {
   if (this->scan_start_fail_count_) {
     ESP_LOGCONFIG(TAG, "  Scan Start Fail Count: %d", this->scan_start_fail_count_);
   }
-  if (this->last_scanned_) {
-    ESP_LOGCONFIG(TAG, "  Got scan results %u sec ago", (millis() - this->last_scanned_) / 1000);
+  ESP_LOGCONFIG(TAG, "  Reboot Timeout: %" PRIu32 "%s", (this->reboot_timeout_ / 1000),
+                (this->reboot_timeout_ != 0 ? "s" : " (DISABLED)"));
+  if (this->reboot_timeout_) {
+    uint32_t elapsed =
+        this->scanner_idle_ || this->last_scanned_ == 0 ? this->last_scanned_ : millis() - this->last_scanned_;
+    ESP_LOGCONFIG(TAG, "  Elapsed reboot timeout %" PRIu32 "%s", elapsed / 1000,
+                  this->last_scanned_ != 0 ? "s" : " (no scan results yet)");
   }
 }
 

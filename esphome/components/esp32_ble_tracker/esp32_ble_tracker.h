@@ -241,6 +241,9 @@ class ESP32BLETracker : public Component,
   /// Called when a `ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT` event is received.
   void gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_scan_stop_cmpl_evt_param &param);
 
+  void check_reboot_timeout_(const uint32_t now);
+  bool reboot_timeout_active_();
+
   int app_id_{0};
 
   /// Vector of addresses that have already been printed in print_bt_device_info
