@@ -316,9 +316,9 @@ void PASCO2Component::update() {
       return;
     }
 
-    uint16_t co2result;
+    int16_t co2result;
     if (read_back[0] & XENSIV_PASCO2_REG_MEAS_STS_DRDY_MSK) {
-      if (!this->read_byte_16(XENSIV_PASCO2_REG_CO2PPM_H, &co2result)) {
+      if (!this->read_byte_16(XENSIV_PASCO2_REG_CO2PPM_H, (uint16_t *)&co2result)) {
         ESP_LOGW(TAG, "Result Reading Failed!");
         this->status_set_warning();
         return;
