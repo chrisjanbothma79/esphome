@@ -1,10 +1,12 @@
 #pragma once
 
+#include <RF24.h>
+
+#include <vector>
+
+#include "esphome/components/spi/spi.h"
 #include "esphome/core/component.h"
 #include "esphome/core/hal.h"
-#include "esphome/components/spi/spi.h"
-#include <RF24.h>
-#include <vector>
 
 namespace esphome {
 namespace nrf24 {
@@ -22,23 +24,21 @@ enum NRF24DataRate {
   RF24_250KBPS,
 };
 
-enum NRF24CRCLength {
-  RF24_CRC_DISABLED = 0,
-  RF24_CRC_8,
-  RF24_CRC_16
-};
+enum NRF24CRCLength { RF24_CRC_DISABLED = 0, RF24_CRC_8, RF24_CRC_16 };
 
 struct PipeConfig {
   uint8_t pipe_num;
   uint64_t address;
 };
 
-class NRF24Device : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_HIGH,
-                                                 spi::CLOCK_PHASE_TRAILING, spi::DATA_RATE_10MHZ> {
+class NRF24Device
+    : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_HIGH,
+                            spi::CLOCK_PHASE_TRAILING, spi::DATA_RATE_1MHZ> {
  public:
   void setup_nrf24();
   void dump_config();
   float get_setup_priority() const { return setup_priority::IO; }
+  virtual void mark_nrf24_failed() = 0;
 
   void set_ce_pin(GPIOPin *pin) { ce_pin_ = pin; }
   void set_channel(uint8_t channel) { channel_ = channel; }
@@ -57,8 +57,8 @@ class NRF24Device : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_P
   }
 
   // Methods for derived classes
-  bool write(const void* buf, uint8_t len);
-  void read(void* buf, uint8_t len);
+  bool write(const void *buf, uint8_t len);
+  void read(void *buf, uint8_t len);
   bool available();
   void start_listening();
   void stop_listening();
