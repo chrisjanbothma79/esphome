@@ -125,7 +125,6 @@ void PASCO2Component::setup() {
   }
 
   this->initialize_sensor();
-
 }
 
 void PASCO2Component::initialize_sensor() {
@@ -148,10 +147,10 @@ void PASCO2Component::loop() {
             ESP_LOGE(TAG, "Failed to Write Scratch Pad");
             this->error_code_ = COMM_FAILED;
             this->mark_failed();
-            this->initialization_state_ = InitializationState::COMPLETE;  // End state
+            this->initialization_state_ = InitializationState::COMPLETE;        // End state
           }
         } else {
-          this->remaining_retries_ = 2;  // Reset retries on success
+          this->remaining_retries_ = 2;                                         // Reset retries on success
           this->initialization_state_ = InitializationState::READ_SCRATCH_PAD;  // Move to next state
         }
         this->last_action_time_ = millis();  // Update timing
@@ -204,8 +203,8 @@ void PASCO2Component::loop() {
           // Check status and handle errors
           handle_status_errors(read_back[0]);
           if (this->initialization_state_ != InitializationState::COMPLETE) {
-            this->initialized_ = true;  // Mark as initialized
-            this->start_measurement_();  // Start measurements
+            this->initialized_ = true;    // Mark as initialized
+            this->start_measurement_();   // Start measurements
             ESP_LOGD(TAG, "Sensor initialized");
             this->initialization_state_ = InitializationState::COMPLETE;  // End state
           }
@@ -357,10 +356,12 @@ bool PASCO2Component::perform_forced_calibration(uint16_t current_co2_concentrat
 	}
    //set force calibration flag, this starts the calibration process and data acquisition
   if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG, XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE | XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_CONTINOUS, true)) {
+      XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_CONTINOUS, true)) {
     ESP_LOGE(TAG, "Failed to force calibration");
     this->status_set_warning();
   }  
-  //the arduino example code doesn't actually read the values back, it just waits for XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE to be cleared.
+  //the arduino example code doesn't actually read the values back, it just waits for 
+  //    XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE to be cleared.
   set_retry(6000, 10, [this](const uint8_t remaining_attempts) {
 		uint8_t read_back = 0;
 		
