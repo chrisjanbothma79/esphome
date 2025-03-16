@@ -125,8 +125,8 @@ void ESP32BLETracker::loop() {
       if (index >= ESP32BLETracker::SCAN_RESULT_BUFFER_SIZE) {
         ESP_LOGW(TAG, "Too many BLE events to process. Some devices may not show up.");
       }
-      if (index > 0 && this->reboot_timeout_) {
-        // this->last_scanned_ = now;
+      if (index > 0 && this->reboot_timeout_ && this->last_scanned_ == 0) {
+        this->last_scanned_ = now;
       }
 
       if (this->raw_advertisements_) {
