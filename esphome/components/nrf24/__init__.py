@@ -10,6 +10,7 @@ from esphome import pins
 DEPENDENCIES = ["spi"]
 MULTI_CONF = True
 CODEOWNERS = ["@tylerwowen"]
+# IS_PLATFORM_COMPONENT = True
 
 # Configuration keys
 CONF_CE_PIN = "ce_pin"
@@ -28,7 +29,9 @@ CONF_RF_DATA_RATE = "rf_data_rate"
 
 # Create namespace and component class
 nrf24_ns = cg.esphome_ns.namespace("nrf24")
-NRF24Component = nrf24_ns.class_("NRF24Component", cg.Component, spi.SPIDevice)
+NRF24Device = nrf24_ns.class_("NRF24Device", cg.Component, spi.SPIDevice)
+
+NRF24DeviceCompmonent = nrf24_ns.class_("NRF24DeviceComponent", cg.Component, spi.SPIDevice)
 
 # Enums
 NRF24PALevel = nrf24_ns.enum("NRF24PALevel")
@@ -69,11 +72,11 @@ PIPE_SCHEMA = cv.Schema({
 
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(): cv.declare_id(NRF24Component),
+        cv.GenerateID(): cv.declare_id(NRF24Device),
         cv.Required(CONF_CE_PIN): pins.gpio_output_pin_schema,
         cv.Optional(CONF_CHANNEL, default=76): cv.int_range(min=0, max=125),
         cv.Optional(CONF_PA_LEVEL, default="low"): cv.enum(PA_LEVELS, lower=True),
-        cv.Optional(CONF_RF_DATA_RATE, default="1mbps"): cv.enum(DATA_RATES, lower=True),
+        cv.Optional(CONF_RF_DATA_RATE, default="2mbps"): cv.enum(DATA_RATES, lower=True),
         cv.Optional(CONF_PAYLOAD_SIZE, default=32): cv.int_range(min=1, max=32),
         cv.Optional(CONF_CRC, default="16bit"): cv.enum(CRC_LENGTH, lower=True),
         cv.Optional(CONF_AUTO_ACK, default=True): cv.boolean,
@@ -86,11 +89,35 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_WRITE_ADDRESS, default=0xE8E8F0F0E1): validate_address,
         cv.Optional(CONF_READ_PIPES): cv.ensure_list(PIPE_SCHEMA),
     }
-).extend(spi.spi_device_schema(True))
+).extend(spi.spi_device_schema(True, "10MHz"))
+
+NRF24_DEVICE_SCHEMA = CONFIG_SCHEMA.extend(
+    {
+        cv.GenerateID(): cv.use_id(NRF24DeviceCompmonent),
+    }
+)
+
+async def register_nrf24_device(var, config):
+    cg.add(var.set_channel(config[CONF_CHANNEL]))
+    cg.add(var.set_pa_level(config[CONF_PA_LEVEL]))
+    cg.add(var.set_rf_data_rate(config[CONF_RF_DATA_RATE]))
+    cg.add(var.set_payload_size(config[CONF_PAYLOAD_SIZE]))
+    cg.add(var.set_crc_length(config[CONF_CRC]))
+    cg.add(var.set_auto_ack(config[CONF_AUTO_ACK]))
+    cg.add(var.set_write_address(config[CONF_WRITE_ADDRESS]))
+
+    if CONF_RETRIES in config:
+        retries = config[CONF_RETRIES]
+        cg.add(var.set_retries(retries[CONF_RETRY_DELAY], retries[CONF_RETRY_COUNT]))
+
+    if CONF_READ_PIPES in config:
+        for pipe in config[CONF_READ_PIPES]:
+            cg.add(var.add_pipe(pipe[CONF_PIPE_NUMBER], pipe[CONF_ADDRESS]))
+
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    await cg.register_component(var, config)
+    # await cg.register_component(var, config)
 
     # Register SPI device
     await spi.register_spi_device(var, config)
@@ -102,7 +129,7 @@ async def to_code(config):
     # Configure radio parameters
     cg.add(var.set_channel(config[CONF_CHANNEL]))
     cg.add(var.set_pa_level(config[CONF_PA_LEVEL]))
-    cg.add(var.set_data_rate(config[CONF_RF_DATA_RATE]))
+    cg.add(var.set_rf_data_rate(config[CONF_RF_DATA_RATE]))
     cg.add(var.set_payload_size(config[CONF_PAYLOAD_SIZE]))
     cg.add(var.set_crc_length(config[CONF_CRC]))
     cg.add(var.set_auto_ack(config[CONF_AUTO_ACK]))

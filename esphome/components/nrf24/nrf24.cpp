@@ -6,24 +6,24 @@ namespace nrf24 {
 
 static const char *const TAG = "nrf24";
 
-void NRF24Component::setup() {
+void NRF24Device::setup_nrf24() {
+  ESP_LOGD(TAG, "Setting up SPIDevice...");
+  this->spi_setup();
+  ESP_LOGCONFIG(TAG, "SPIDevice set up!");
+
   ESP_LOGCONFIG(TAG, "Setting up nRF24...");
-
-  this->ce_pin_->setup();
-  this->ce_pin_->digital_write(false);
-
-  this->radio_ = new RF24(this->ce_pin_->get_pin(), this->cs_->get_pin());
+  this->radio_ = new RF24(spi::Utility::get_pin_no(ce_pin_), spi::Utility::get_pin_no(cs_), this->data_rate_);
 
   if (!this->radio_->begin()) {
     ESP_LOGE(TAG, "Radio hardware not responding!");
-    this->mark_failed();
+    // this->mark_failed();
     return;
   }
 
   // Configure radio
   this->radio_->setChannel(this->channel_);
   this->radio_->setPALevel(static_cast<rf24_pa_dbm_e>(this->pa_level_));
-  this->radio_->setDataRate(static_cast<rf24_datarate_e>(this->data_rate_));
+  this->radio_->setDataRate(static_cast<rf24_datarate_e>(this->rf_data_rate_));
   this->radio_->setCRCLength(static_cast<rf24_crclength_e>(this->crc_length_));
   this->radio_->setPayloadSize(this->payload_size_);
   this->radio_->setRetries(this->retry_delay_, this->retry_count_);
@@ -45,13 +45,14 @@ void NRF24Component::setup() {
   ESP_LOGCONFIG(TAG, "nRF24 setup complete");
 }
 
-void NRF24Component::dump_config() {
+void NRF24Device::dump_config() {
   ESP_LOGCONFIG(TAG, "nRF24:");
   LOG_PIN("  CE Pin: ", this->ce_pin_);
   LOG_PIN("  CS Pin: ", this->cs_);
   ESP_LOGCONFIG(TAG, "  Channel: %d", this->channel_);
   ESP_LOGCONFIG(TAG, "  PA Level: %d", this->pa_level_);
-  ESP_LOGCONFIG(TAG, "  Data Rate: %d", this->data_rate_);
+  ESP_LOGCONFIG(TAG, "  SPI Data Rate: %d", this->data_rate_);
+  ESP_LOGCONFIG(TAG, "  RF Data Rate: %d", this->rf_data_rate_);
   ESP_LOGCONFIG(TAG, "  Payload Size: %d", this->payload_size_);
   ESP_LOGCONFIG(TAG, "  CRC Length: %d", this->crc_length_);
   ESP_LOGCONFIG(TAG, "  Auto ACK: %s", YESNO(this->auto_ack_));
@@ -64,23 +65,23 @@ void NRF24Component::dump_config() {
   }
 }
 
-bool NRF24Component::write(const void* buf, uint8_t len) {
+bool NRF24Device::write(const void* buf, uint8_t len) {
   return this->radio_->write(buf, len);
 }
 
-bool NRF24Component::read(void* buf, uint8_t len) {
-  return this->radio_->read(buf, len);
+void NRF24Device::read(void* buf, uint8_t len) {
+  this->radio_->read(buf, len);
 }
 
-bool NRF24Component::available() {
+bool NRF24Device::available() {
   return this->radio_->available();
 }
 
-void NRF24Component::start_listening() {
+void NRF24Device::start_listening() {
   this->radio_->startListening();
 }
 
-void NRF24Component::stop_listening() {
+void NRF24Device::stop_listening() {
   this->radio_->stopListening();
 }
 

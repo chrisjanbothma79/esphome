@@ -1,8 +1,10 @@
 #pragma once
 
-#include "esphome/components/nrf24/nrf24.h"
 #include "esphome/core/component.h"
+#include "esphome/components/nrf24/nrf24.h"
 #include "esphome/core/automation.h"
+#include "esphome/components/light/light_output.h"
+#include "esphome/components/light/light_traits.h"
 
 namespace esphome
 {
@@ -18,17 +20,25 @@ namespace esphome
       CMD_RESET = 0x0600,
     };
 
-    class MijiaLightBarComponent : public nrf24::NRF24Component
+    class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, public light::LightOutput
     {
     public:
       void setup() override;
       void dump_config() override;
 
-      float get_setup_priority() const override;
-
       void set_remote_id(uint32_t id) { remote_id_ = id; }
       void set_repetitions(uint8_t repetitions) { repetitions_ = repetitions; }
       void set_delay_ms(uint8_t delay_ms) { delay_ms_ = delay_ms; }
+
+      light::LightTraits get_traits() override {
+        auto traits = light::LightTraits();
+        traits.set_supported_color_modes({light::ColorMode::BRIGHTNESS, light::ColorMode::COLOR_TEMPERATURE});
+        traits.set_min_mireds(153); // ~6500K
+        traits.set_max_mireds(370); // ~2700K
+        return traits;
+      }
+
+      void write_state(light::LightState *state) override;
 
       // Light control methods
       void toggle();
@@ -41,14 +51,32 @@ namespace esphome
       void set_color_temp(uint16_t color_temp);
 
     protected:
-      uint16_t calculate_crc16_(const std::vector<uint8_t> &data);
-      std::vector<uint8_t> create_packet_(uint16_t command, uint8_t value = 0);
-      void send_command_(uint16_t command, uint8_t value = 0);
+      void create_packet(uint8_t* data, uint8_t size, uint16_t command, uint8_t value = 0);
+      void send_command(uint16_t command, uint8_t value = 0);
+
+      // Convert brightness (0.0-1.0) to device levels (1-15)
+      uint8_t brightness_to_level(float brightness) {
+        return static_cast<uint8_t>(brightness * 14.0f) + 1;
+      }
+
+      // Convert color temperature (mireds) to device levels (1-15)
+      uint8_t color_temp_to_level(float color_temp, float min_mireds, float max_mireds) {
+        return static_cast<uint8_t>(((color_temp - min_mireds) / (max_mireds - min_mireds)) * 14.0f) + 1;
+      }
 
       uint32_t remote_id_{0};
       uint8_t repetitions_{3};
       uint8_t delay_ms_{20};
       uint8_t counter_{0};
+
+      // Store last known state (even though device can't report it)
+      struct {
+        bool state{false};
+        uint8_t brightness{15};
+        uint8_t color_temp{8};
+      } last_state_;
+
+      static constexpr byte preamble[8] = {0x53, 0x39, 0x14, 0xDD, 0x1C, 0x49, 0x34, 0x12};
     };
 
     template <typename... Ts>
@@ -61,7 +89,10 @@ namespace esphome
 
       void play(Ts... x) override
       {
-        this->parent_->toggle();
+        auto *state = this->parent_->last_state_;
+        if (state != nullptr) {
+          state->toggle().perform();
+        }
       }
 
     protected:

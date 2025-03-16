@@ -1,5 +1,5 @@
 from esphome import automation
-from esphome.components import spi, nrf24, light
+from esphome.components import nrf24, light, spi
 import esphome.config_validation as cv
 import esphome.codegen as cg
 from esphome.const import (
@@ -7,11 +7,12 @@ from esphome.const import (
     CONF_TRANSITION_LENGTH,
 )
 
-DEPENDENCIES = ["nrf24"]
-AUTO_LOAD = ["nrf24"]
+DEPENDENCIES = ["spi"]
+# AUTO_LOAD = ["nrf24"]
+MULTI_CONF = True
 
 mijia_lightbar_ns = cg.esphome_ns.namespace("mijia_light_bar")
-MijiaLightBarComponent = mijia_lightbar_ns.class_("MijiaLightBarComponent", light.LightOutput)
+MijiaLightBarComponent = mijia_lightbar_ns.class_("MijiaLightBarComponent", nrf24.NRF24Device, light.LightOutput)
 
 # Actions
 ToggleAction = mijia_lightbar_ns.class_("ToggleAction", automation.Action)
@@ -32,7 +33,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_REMOTE_ID, default=0x00000000): cv.hex_uint32_t,
         cv.Optional(CONF_REPETITIONS, default=3): cv.int_range(min=1, max=10),
         cv.Optional(CONF_DELAY_MS, default=20): cv.int_range(min=1, max=100),
-}).extend(light.LIGHT_SCHEMA)
+}).extend(cv.COMPONENT_SCHEMA).extend(spi.spi_device_schema(False, "10MHz"))
 
 async def to_code(config):
     """Generate code for the Mijia Light Bar component."""
@@ -40,6 +41,8 @@ async def to_code(config):
 
     # Register as component first
     await cg.register_component(var, config)
+
+    await spi.register_spi_device(var, config)
 
     # Register as light output
     # await light.register_light(var, config)
