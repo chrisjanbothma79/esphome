@@ -10,12 +10,12 @@ namespace esphome {
 namespace mijia_light_bar {
 
 enum MijiaLightBarCommand {
-  CMD_TOGGLE = 0x0100,
-  CMD_COOLER = 0x0200,
-  CMD_WARMER = 0x0300,
-  CMD_BRIGHTER = 0x0400,
-  CMD_DIMMER = 0x0500,
-  CMD_RESET = 0x0600,
+  CMD_TOGGLE = 0x01,
+  CMD_COOLER = 0x02,
+  CMD_WARMER = 0x03,
+  CMD_BRIGHTER = 0x04,
+  CMD_DIMMER = 0x05,
+  CMD_RESET = 0x06,
 };
 
 class MijiaLightBarComponent : public Component,
@@ -53,9 +53,9 @@ class MijiaLightBarComponent : public Component,
   void set_color_temp(uint16_t color_temp);
 
  protected:
-  void create_packet(uint8_t *data, uint8_t size, uint16_t command,
+  void create_packet(uint8_t *data, uint8_t size, uint8_t command,
                      uint8_t value = 0);
-  void send_command(uint16_t command, uint8_t value = 0);
+  void send_command(uint8_t command, uint8_t value = 0);
 
   // Convert brightness (0.0-1.0) to device levels (1-15)
   uint8_t brightness_to_level(float brightness) {

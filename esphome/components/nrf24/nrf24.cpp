@@ -18,7 +18,7 @@ void NRF24Device::setup_nrf24() {
   }
 
   if (spi_is_ready()) {
-    ESP_LOGI(TAG, "SPIDevice set up!");
+    ESP_LOGD(TAG, "SPIDevice set up!");
   } else {
     ESP_LOGE(TAG, "SPI hardware not ready!");
     mark_nrf24_failed();
@@ -33,12 +33,12 @@ void NRF24Device::setup_nrf24() {
 
   i = 0;
   while (i++ < 10 && !radio_->begin()) {
-    ESP_LOGI(TAG, "Radio is not ready, retrying...%d/10", i);
+    ESP_LOGI(TAG, "Radio is not ready, wait...%d/10", i);
     delay(50);
   }
 
   if (radio_->begin()) {
-    ESP_LOGI(TAG, "Radio began!");
+    ESP_LOGD(TAG, "Radio began!");
   } else {
     ESP_LOGE(TAG, "Radio hardware not responding!");
     mark_nrf24_failed();

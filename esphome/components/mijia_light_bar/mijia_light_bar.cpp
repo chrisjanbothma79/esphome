@@ -30,7 +30,7 @@ void MijiaLightBarComponent::dump_config() {
 }
 
 void MijiaLightBarComponent::create_packet(uint8_t *data, uint8_t size,
-                                           uint16_t command, uint8_t value) {
+                                           uint8_t command, uint8_t value) {
   memcpy(data, MijiaLightBarComponent::preamble,
          sizeof(MijiaLightBarComponent::preamble));
   data[8] = (remote_id_ & 0xFF0000) >> 16;
@@ -44,19 +44,20 @@ void MijiaLightBarComponent::create_packet(uint8_t *data, uint8_t size,
   if (counter_ > 255) counter_ = 0;
 
   // Calculate CRC16 using ESPHome's helper
-  uint16_t crc = crc16be(data, size - 2, 0xFFFF, 0x1021, false, false);
+  uint16_t crc = crc16be(data, size - 2, 0xFFFE, 0x1021, false, false);
   data[15] = (crc & 0xFF00) >> 8;
   data[16] = crc & 0x00FF;
 }
 
-void MijiaLightBarComponent::send_command(uint16_t command, uint8_t value) {
+void MijiaLightBarComponent::send_command(uint8_t command, uint8_t value) {
   uint8_t packet[17] = {0};
-  create_packet(packet, sizeof(packet), command, value);
+  create_packet(packet, payload_size_, command, value);
 
-  ESP_LOGD(TAG, "Sending command 0x%04X with value %d", command, value);
+  ESP_LOGD(TAG, "Sending command 0x%02X%02X", command, value);
+  ESP_LOGD(TAG, "Packet %s", format_hex_pretty(packet, payload_size_).c_str());
 
   for (int i = 0; i < repetitions_; ++i) {
-    nrf24::NRF24Device::write(&packet, sizeof(packet));
+    nrf24::NRF24Device::write(&packet, payload_size_);
     delay(delay_ms_);
   }
 }
