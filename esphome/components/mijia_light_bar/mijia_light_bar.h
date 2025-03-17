@@ -30,8 +30,7 @@ class MijiaLightBarComponent : public Component,
   // LightOutput methods
   light::LightTraits get_traits() override {
     auto traits = light::LightTraits();
-    traits.set_supported_color_modes(
-        {light::ColorMode::BRIGHTNESS, light::ColorMode::COLOR_TEMPERATURE});
+    traits.set_supported_color_modes({light::ColorMode::COLOR_TEMPERATURE});
     traits.set_min_mireds(153);  // ~6500K
     traits.set_max_mireds(370);  // ~2700K
     return traits;
@@ -65,13 +64,9 @@ class MijiaLightBarComponent : public Component,
     return static_cast<uint8_t>(brightness * 14.0f) + 1;
   }
 
-  // Convert color temperature (mireds) to device levels (1-15)
-  uint8_t color_temp_to_level(float color_temp, float min_mireds,
-                              float max_mireds) {
-    return static_cast<uint8_t>(
-               ((color_temp - min_mireds) / (max_mireds - min_mireds)) *
-               14.0f) +
-           1;
+  // Convert color temperature (0.0-1.0) to device levels (1-15)
+  uint8_t color_temp_to_level(float color_temp) {
+    return static_cast<uint8_t>((1.0f-color_temp) * 14.0f + 1.0f);
   }
 
   uint32_t remote_id_{0};
@@ -82,7 +77,7 @@ class MijiaLightBarComponent : public Component,
   // Store last known state (even though device can't report it)
   struct {
     bool state{false};
-    uint8_t brightness{15};
+    uint8_t brightness{8};
     uint8_t color_temp{8};
   } last_state_;
 

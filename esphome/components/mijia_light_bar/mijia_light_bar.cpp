@@ -15,6 +15,10 @@ static const char *const TAG = "mijia_light_bar";
 void MijiaLightBarComponent::setup() {
   // Call parent setup first to initialize nRF24
   nrf24::NRF24Device::setup_nrf24();
+  if (is_failed()) {
+    ESP_LOGE(TAG, "Failed to initialize Mijia Light Bar");
+    return;
+  }
   ESP_LOGD(TAG, "Mijia Light Bar initialized");
 }
 
@@ -81,11 +85,7 @@ void MijiaLightBarComponent::write_state(light::LightState *state) {
       last_state_.brightness = brightness_level;
     }
 
-    // Convert color temperature from mireds to device levels 1-15
-    uint8_t color_temp_level =
-        color_temp_to_level(color_temp, get_traits().get_min_mireds(),
-                            get_traits().get_max_mireds());
-
+    uint8_t color_temp_level = color_temp_to_level(color_temp);
     if (color_temp_level != last_state_.color_temp) {
       set_color_temp(color_temp_level);
       last_state_.color_temp = color_temp_level;
