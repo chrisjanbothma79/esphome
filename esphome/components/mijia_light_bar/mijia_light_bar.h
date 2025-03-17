@@ -22,15 +22,12 @@ class MijiaLightBarComponent : public Component,
                                public nrf24::NRF24Device,
                                public light::LightOutput {
  public:
+  // Component methods
   void setup() override;
   void dump_config() override;
   float get_setup_priority() const { return setup_priority::IO; }
-  void mark_nrf24_failed() override { mark_failed(); }
 
-  void set_remote_id(uint32_t id) { remote_id_ = id; }
-  void set_repetitions(uint8_t repetitions) { repetitions_ = repetitions; }
-  void set_delay_ms(uint8_t delay_ms) { delay_ms_ = delay_ms; }
-
+  // LightOutput methods
   light::LightTraits get_traits() override {
     auto traits = light::LightTraits();
     traits.set_supported_color_modes(
@@ -39,8 +36,14 @@ class MijiaLightBarComponent : public Component,
     traits.set_max_mireds(370);  // ~2700K
     return traits;
   }
-
   void write_state(light::LightState *state) override;
+
+  // Custom methods
+  void mark_nrf24_failed() override { mark_failed(); }
+
+  void set_remote_id(uint32_t id) { remote_id_ = id; }
+  void set_repetitions(uint8_t repetitions) { repetitions_ = repetitions; }
+  void set_delay_ms(uint8_t delay_ms) { delay_ms_ = delay_ms; }
 
   // Light control methods
   void toggle();
@@ -50,7 +53,7 @@ class MijiaLightBarComponent : public Component,
   void dimmer();
   void reset();
   void set_brightness(uint8_t brightness);
-  void set_color_temp(uint16_t color_temp);
+  void set_color_temp(uint8_t color_temp);
 
  protected:
   void create_packet(uint8_t *data, uint8_t size, uint8_t command,
@@ -86,24 +89,5 @@ class MijiaLightBarComponent : public Component,
   static constexpr byte preamble[8] = {0x53, 0x39, 0x14, 0xDD,
                                        0x1C, 0x49, 0x34, 0x12};
 };
-
-template <typename... Ts>
-class ToggleAction : public Action<Ts...> {
- public:
-  explicit ToggleAction(MijiaLightBarComponent *parent) : parent_(parent) {}
-
-  TEMPLATABLE_VALUE(uint32_t, transition_length)
-
-  void play(Ts... x) override {
-    auto *state = parent_->last_state_;
-    if (state != nullptr) {
-      state->toggle().perform();
-    }
-  }
-
- protected:
-  MijiaLightBarComponent *parent_;
-};
-
 }  // namespace mijia_light_bar
 }  // namespace esphome

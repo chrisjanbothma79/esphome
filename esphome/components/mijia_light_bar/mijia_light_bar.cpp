@@ -15,10 +15,7 @@ static const char *const TAG = "mijia_light_bar";
 void MijiaLightBarComponent::setup() {
   // Call parent setup first to initialize nRF24
   nrf24::NRF24Device::setup_nrf24();
-
-  if (is_failed()) return;
-
-  ESP_LOGCONFIG(TAG, "Mijia Light Bar initialized");
+  ESP_LOGD(TAG, "Mijia Light Bar initialized");
 }
 
 void MijiaLightBarComponent::dump_config() {
@@ -63,32 +60,24 @@ void MijiaLightBarComponent::send_command(uint8_t command, uint8_t value) {
 }
 
 void MijiaLightBarComponent::write_state(light::LightState *state) {
-  float brightness;
-  float color_temp;
   bool is_on;
-  state->current_values_as_ct(&color_temp, &brightness);
   state->current_values_as_binary(&is_on);
 
   if (is_on != last_state_.state) {
     // State changed, send toggle command
-    send_command(CMD_TOGGLE);
+    toggle();
     last_state_.state = is_on;
-
-    if (!is_on) {
-      // If turning off, don't send other commands
-      return;
-    }
   }
 
   if (is_on) {
+    float brightness;
+    float color_temp;
+    state->current_values_as_ct(&color_temp, &brightness);
+
     // Convert brightness from 0.0-1.0 to device levels 1-15
     uint8_t brightness_level = brightness_to_level(brightness);
     if (brightness_level != last_state_.brightness) {
-      if (brightness_level > last_state_.brightness) {
-        send_command(CMD_BRIGHTER, brightness_level - last_state_.brightness);
-      } else {
-        send_command(CMD_DIMMER, last_state_.brightness - brightness_level);
-      }
+      set_brightness(brightness_level);
       last_state_.brightness = brightness_level;
     }
 
@@ -98,11 +87,7 @@ void MijiaLightBarComponent::write_state(light::LightState *state) {
                             get_traits().get_max_mireds());
 
     if (color_temp_level != last_state_.color_temp) {
-      if (color_temp_level > last_state_.color_temp) {
-        send_command(CMD_WARMER, color_temp_level - last_state_.color_temp);
-      } else {
-        send_command(CMD_COOLER, last_state_.color_temp - color_temp_level);
-      }
+      set_color_temp(color_temp_level);
       last_state_.color_temp = color_temp_level;
     }
   }
@@ -115,12 +100,14 @@ void MijiaLightBarComponent::toggle() {
 
 void MijiaLightBarComponent::set_brightness(uint8_t brightness) {
   ESP_LOGD(TAG, "Setting brightness: %d", brightness);
+  send_command(CMD_DIMMER, 0xF0);
   send_command(CMD_BRIGHTER, brightness);
 }
 
-void MijiaLightBarComponent::set_color_temp(uint16_t color_temp) {
+void MijiaLightBarComponent::set_color_temp(uint8_t color_temp) {
   ESP_LOGD(TAG, "Setting color temperature: %d", color_temp);
-  send_command(CMD_WARMER, static_cast<uint8_t>(color_temp));
+  send_command(CMD_WARMER, 0xF0);
+  send_command(CMD_COOLER, color_temp);
 }
 
 }  // namespace mijia_light_bar
