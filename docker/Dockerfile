@@ -160,7 +160,7 @@ RUN \
     apt-get update \
     # Use pinned versions so that we get updates with build caching
     && apt-get install -y --no-install-recommends \
-        nginx-light=1.22.1-9 \
+        nginx-light=1.22.1-9+deb12u1 \
     && rm -rf \
         /tmp/* \
         /var/{cache,log}/* \
