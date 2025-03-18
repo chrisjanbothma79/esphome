@@ -84,7 +84,7 @@ static inline void add(std::vector<uint8_t> &vec, uint32_t data) {
 
 class PacketDecoder {
  public:
-  PacketDecoder(const char *buffer, size_t len) : buffer_(buffer), len_(len) {}
+  PacketDecoder(const uint8_t *buffer, size_t len) : buffer_(buffer), len_(len) {}
 
   DecodeResult decode_string(char *data, size_t maxlen) {
     if (this->position_ == this->len_)
@@ -173,7 +173,7 @@ class PacketDecoder {
   }
 
  protected:
-  const char *buffer_;
+  const uint8_t *buffer_;
   size_t len_;
   size_t position_{};
 };
@@ -355,7 +355,7 @@ static bool process_rolling_code(Provider &provider, PacketDecoder &decoder) {
  */
 void PacketTransport::process_(std::vector<uint8_t> &data) {
   auto ping_key_seen = !this->ping_pong_enable_;
-  PacketDecoder decoder((const char *) data.data(), data.size());
+  PacketDecoder decoder((data.data()), data.size());
   char namebuf[256]{};
   uint8_t byte;
   FuData rdata{};
