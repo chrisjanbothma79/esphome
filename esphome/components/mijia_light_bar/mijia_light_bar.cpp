@@ -54,7 +54,7 @@ void MijiaLightBarComponent::send_command(uint8_t command, uint8_t value) {
   create_packet(packet, payload_size_, command, value);
 
   ESP_LOGD(TAG, "Sending command 0x%02X%02X", command, value);
-  ESP_LOGD(TAG, "Packet %s", format_hex_pretty(packet, payload_size_).c_str());
+  ESP_LOGV(TAG, "Packet %s", format_hex_pretty(packet, payload_size_).c_str());
 
   for (int i = 0; i < repetitions_; ++i) {
     nrf24::NRF24Device::write(&packet, payload_size_);

@@ -5,9 +5,7 @@ import esphome.config_validation as cv
 from esphome.const import CONF_CHANNEL
 
 DEPENDENCIES = ["spi"]
-MULTI_CONF = True
 CODEOWNERS = ["@tylerwowen"]
-# IS_PLATFORM_COMPONENT = True
 
 # Configuration keys
 CONF_CE_PIN = "ce_pin"
@@ -45,7 +43,7 @@ PA_LEVELS = {
     "max": NRF24PALevel.RF24_PA_MAX,
 }
 
-DATA_RATES = {
+RF_DATA_RATES = {
     "250kbps": NRF24DataRate.RF24_250KBPS,
     "1mbps": NRF24DataRate.RF24_1MBPS,
     "2mbps": NRF24DataRate.RF24_2MBPS,
@@ -73,20 +71,20 @@ PIPE_SCHEMA = cv.Schema(
     }
 )
 
-NRF24_DEVICE_SCHEMA = cv.Schema(
+NRF24_DEVICE_SCHEMA = spi.spi_device_schema(True, "4MHz").extend(
     {
         cv.Required(CONF_CE_PIN): pins.gpio_output_pin_schema,
         cv.Optional(CONF_CHANNEL, default=76): cv.int_range(min=0, max=125),
         cv.Optional(CONF_PA_LEVEL, default="low"): cv.enum(PA_LEVELS, lower=True),
         cv.Optional(CONF_RF_DATA_RATE, default="2mbps"): cv.enum(
-            DATA_RATES, lower=True
+            RF_DATA_RATES, lower=True
         ),
         cv.Optional(CONF_PAYLOAD_SIZE, default=32): cv.int_range(min=1, max=32),
         cv.Optional(CONF_CRC, default="16bit"): cv.enum(CRC_LENGTH, lower=True),
         cv.Optional(CONF_AUTO_ACK, default=True): cv.boolean,
         cv.Optional(CONF_WRITE_ADDRESS, default=0xE8E8F0F0E1): validate_address,
         cv.Optional(
-            CONF_RETRIES, default={CONF_RETRY_DELAY: 15, CONF_RETRY_COUNT: 15}
+            CONF_RETRIES, default={CONF_RETRY_DELAY: 5, CONF_RETRY_COUNT: 15}
         ): cv.Schema(
             {
                 cv.Optional(CONF_RETRY_DELAY, default=5): cv.int_range(min=0, max=15),
@@ -95,7 +93,7 @@ NRF24_DEVICE_SCHEMA = cv.Schema(
         ),
         cv.Optional(CONF_READ_PIPES): cv.ensure_list(PIPE_SCHEMA),
     }
-).extend(spi.spi_device_schema(True, "10MHz"))
+)
 
 
 async def register_nrf24_device(var, config):

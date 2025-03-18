@@ -31,7 +31,7 @@ struct PipeConfig {
 };
 
 class NRF24Device : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_HIGH, spi::CLOCK_PHASE_TRAILING,
-                                          spi::DATA_RATE_1MHZ> {
+                                          spi::DATA_RATE_4MHZ> {
  public:
   void setup_nrf24();
   void dump_config();

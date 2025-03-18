@@ -2,6 +2,8 @@
 #include "esphome/core/log.h"
 
 namespace esphome {
+using namespace spi;
+
 namespace nrf24 {
 
 static const char *const TAG = "nrf24";
@@ -12,7 +14,7 @@ void NRF24Device::setup_nrf24() {
 
   int i = 0;
   while (i++ < 10 && !spi_is_ready()) {
-    ESP_LOGI(TAG, "SPI is not ready, wait... %d/10", i);
+    ESP_LOGD(TAG, "SPI is not ready, wait... %d/10", i);
     delay(50);
   }
 
@@ -24,20 +26,20 @@ void NRF24Device::setup_nrf24() {
     return;
   }
 
-  ESP_LOGV(TAG, "Setting up nRF24 with CE pin %d, CS pin %d, DR: %d", spi::Utility::get_pin_no(ce_pin_),
-           spi::Utility::get_pin_no(cs_), data_rate_);
-  radio_ = new RF24(spi::Utility::get_pin_no(ce_pin_), spi::Utility::get_pin_no(cs_), data_rate_);
+  ESP_LOGV(TAG, "Setting up nRF24 with CE pin %d, CS pin %d, DR: %d", Utility::get_pin_no(ce_pin_),
+           Utility::get_pin_no(cs_), data_rate_);
+  radio_ = new RF24(Utility::get_pin_no(ce_pin_), Utility::get_pin_no(cs_), data_rate_);
 
   i = 0;
   while (i++ < 10 && !radio_->begin()) {
-    ESP_LOGI(TAG, "Radio is not ready, wait...%d/10", i);
+    ESP_LOGD(TAG, "Radio is not ready, wait...%d/10", i);
     delay(50);
   }
 
   if (radio_->begin()) {
     ESP_LOGD(TAG, "Radio began!");
   } else {
-    ESP_LOGE(TAG, "Radio hardware not responding!");
+    ESP_LOGE(TAG, "Radio hardware not responding, check wiring!");
     mark_nrf24_failed();
     return;
   }
@@ -64,7 +66,7 @@ void NRF24Device::setup_nrf24() {
     radio_->openReadingPipe(pipe.pipe_num, pipe.address);
   }
 
-  ESP_LOGCONFIG(TAG, "nRF24 setup complete");
+  ESP_LOGI(TAG, "nRF24 setup completed");
 }
 
 void NRF24Device::dump_config() {

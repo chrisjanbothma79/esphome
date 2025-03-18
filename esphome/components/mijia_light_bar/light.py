@@ -4,9 +4,8 @@ from esphome.components import light, nrf24
 import esphome.config_validation as cv
 from esphome.const import CONF_LIGHT_ID
 
-DEPENDENCIES = ["spi", "light"]
+DEPENDENCIES = ["light"]
 AUTO_LOAD = ["nrf24"]
-# MULTI_CONF = True
 
 mijia_light_bar_ns = cg.esphome_ns.namespace("mijia_light_bar")
 MijiaLightBarComponent = mijia_light_bar_ns.class_(
@@ -26,18 +25,26 @@ CONFIG_SCHEMA = (
     nrf24.NRF24_DEVICE_SCHEMA.extend(
         {
             cv.GenerateID(CONF_LIGHT_ID): cv.declare_id(MijiaLightBarComponent),
+            # Redefine channel default
             cv.Optional(nrf24.CONF_CHANNEL, default=68): cv.one_of(
                 6, 7, 15, 16, 43, 44, 68, 69, int=True
             ),
-            cv.Optional(nrf24.CONF_PA_LEVEL, default="low"): cv.enum(
-                nrf24.PA_LEVELS, lower=True
-            ),
+            # Fixed values
             cv.Optional(nrf24.CONF_RF_DATA_RATE, default="2mbps"): cv.enum(
-                nrf24.DATA_RATES, lower=True
+                {"2mbps": nrf24.NRF24DataRate.RF24_2MBPS}, lower=True
             ),
+            cv.Optional(nrf24.CONF_PAYLOAD_SIZE, default=17): cv.one_of(17, int=True),
+            cv.Optional(nrf24.CONF_AUTO_ACK, default=False): cv.one_of(False),
+            cv.Optional(nrf24.CONF_WRITE_ADDRESS, default=0x5555555555): cv.one_of(
+                0x5555555555, int=True
+            ),
+            cv.Optional(nrf24.CONF_CRC, default="disabled"): cv.enum(
+                {"disabled": nrf24.NRF24CRCLength.RF24_CRC_DISABLED}, lower=True
+            ),
+            # Mijia Light Bar specific
             cv.Optional(CONF_REMOTE_ID, default=0x00000000): cv.hex_uint32_t,
-            cv.Optional(CONF_REPETITIONS, default=3): cv.int_range(min=1, max=10),
-            cv.Optional(CONF_DELAY_MS, default=20): cv.int_range(min=1, max=100),
+            cv.Optional(CONF_REPETITIONS, default=20): cv.int_range(min=1, max=30),
+            cv.Optional(CONF_DELAY_MS, default=10): cv.int_range(min=1, max=20),
         }
     )
     .extend(light.LIGHT_SCHEMA)
@@ -50,13 +57,7 @@ async def to_code(config):
     await cg.register_component(var, config)
     await nrf24.register_nrf24_device(var, config)
 
-    # Set fixed Mijia Light Bar nrf24 values
-    cg.add(var.set_payload_size(17))
-    cg.add(var.set_crc_length(nrf24.NRF24CRCLength.RF24_CRC_DISABLED))
-    cg.add(var.set_auto_ack(False))
-    cg.add(var.set_write_address(0x5555555555))
-
-    # Configure Mijia-specific settings
+    # Add Mijia-specific settings
     cg.add(var.set_remote_id(config[CONF_REMOTE_ID]))
     cg.add(var.set_repetitions(config[CONF_REPETITIONS]))
     cg.add(var.set_delay_ms(config[CONF_DELAY_MS]))
