@@ -1,7 +1,6 @@
 #pragma once
 
 #include <RF24.h>
-
 #include <vector>
 
 #include "esphome/components/spi/spi.h"
@@ -31,9 +30,8 @@ struct PipeConfig {
   uint64_t address;
 };
 
-class NRF24Device
-    : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_HIGH,
-                            spi::CLOCK_PHASE_TRAILING, spi::DATA_RATE_1MHZ> {
+class NRF24Device : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_HIGH, spi::CLOCK_PHASE_TRAILING,
+                                          spi::DATA_RATE_1MHZ> {
  public:
   void setup_nrf24();
   void dump_config();
@@ -52,9 +50,7 @@ class NRF24Device
     retry_count_ = count;
   }
   void set_write_address(uint64_t address) { write_address_ = address; }
-  void add_pipe(uint8_t pipe_num, uint64_t address) {
-    pipes_.push_back({pipe_num, address});
-  }
+  void add_pipe(uint8_t pipe_num, uint64_t address) { pipes_.push_back({pipe_num, address}); }
 
   // Methods for derived classes
   bool write(const void *buf, uint8_t len);

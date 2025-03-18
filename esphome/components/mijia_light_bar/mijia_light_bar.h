@@ -18,9 +18,7 @@ enum MijiaLightBarCommand {
   CMD_RESET = 0x06,
 };
 
-class MijiaLightBarComponent : public Component,
-                               public nrf24::NRF24Device,
-                               public light::LightOutput {
+class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, public light::LightOutput {
  public:
   // Component methods
   void setup() override;
@@ -55,19 +53,14 @@ class MijiaLightBarComponent : public Component,
   void set_color_temp(uint8_t color_temp);
 
  protected:
-  void create_packet(uint8_t *data, uint8_t size, uint8_t command,
-                     uint8_t value = 0);
+  void create_packet(uint8_t *data, uint8_t size, uint8_t command, uint8_t value = 0);
   void send_command(uint8_t command, uint8_t value = 0);
 
   // Convert brightness (0.0-1.0) to device levels (1-15)
-  uint8_t brightness_to_level(float brightness) {
-    return static_cast<uint8_t>(brightness * 14.0f) + 1;
-  }
+  uint8_t brightness_to_level(float brightness) { return static_cast<uint8_t>(brightness * 14.0f) + 1; }
 
   // Convert color temperature (0.0-1.0) to device levels (1-15)
-  uint8_t color_temp_to_level(float color_temp) {
-    return static_cast<uint8_t>((1.0f-color_temp) * 14.0f + 1.0f);
-  }
+  uint8_t color_temp_to_level(float color_temp) { return static_cast<uint8_t>((1.0f - color_temp) * 14.0f + 1.0f); }
 
   uint32_t remote_id_{0};
   uint8_t repetitions_{3};
@@ -81,8 +74,7 @@ class MijiaLightBarComponent : public Component,
     uint8_t color_temp{8};
   } last_state_;
 
-  static constexpr byte preamble[8] = {0x53, 0x39, 0x14, 0xDD,
-                                       0x1C, 0x49, 0x34, 0x12};
+  static constexpr byte preamble[8] = {0x53, 0x39, 0x14, 0xDD, 0x1C, 0x49, 0x34, 0x12};
 };
 }  // namespace mijia_light_bar
 }  // namespace esphome

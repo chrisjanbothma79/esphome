@@ -30,10 +30,8 @@ void MijiaLightBarComponent::dump_config() {
   nrf24::NRF24Device::dump_config();
 }
 
-void MijiaLightBarComponent::create_packet(uint8_t *data, uint8_t size,
-                                           uint8_t command, uint8_t value) {
-  memcpy(data, MijiaLightBarComponent::preamble,
-         sizeof(MijiaLightBarComponent::preamble));
+void MijiaLightBarComponent::create_packet(uint8_t *data, uint8_t size, uint8_t command, uint8_t value) {
+  memcpy(data, MijiaLightBarComponent::preamble, sizeof(MijiaLightBarComponent::preamble));
   data[8] = (remote_id_ & 0xFF0000) >> 16;
   data[9] = (remote_id_ & 0x00FF00) >> 8;
   data[10] = remote_id_ & 0x0000FF;
@@ -42,7 +40,8 @@ void MijiaLightBarComponent::create_packet(uint8_t *data, uint8_t size,
   data[13] = command;
   data[14] = value;
 
-  if (counter_ > 255) counter_ = 0;
+  if (counter_ > 255)
+    counter_ = 0;
 
   // Calculate CRC16 using ESPHome's helper
   uint16_t crc = crc16be(data, size - 2, 0xFFFE, 0x1021, false, false);

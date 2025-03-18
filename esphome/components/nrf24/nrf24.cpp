@@ -1,5 +1,4 @@
 #include "nrf24.h"
-
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -25,11 +24,9 @@ void NRF24Device::setup_nrf24() {
     return;
   }
 
-  ESP_LOGV(TAG, "Setting up nRF24 with CE pin %d, CS pin %d, DR: %d",
-           spi::Utility::get_pin_no(ce_pin_), spi::Utility::get_pin_no(cs_),
-           data_rate_);
-  radio_ = new RF24(spi::Utility::get_pin_no(ce_pin_),
-                    spi::Utility::get_pin_no(cs_), data_rate_);
+  ESP_LOGV(TAG, "Setting up nRF24 with CE pin %d, CS pin %d, DR: %d", spi::Utility::get_pin_no(ce_pin_),
+           spi::Utility::get_pin_no(cs_), data_rate_);
+  radio_ = new RF24(spi::Utility::get_pin_no(ce_pin_), spi::Utility::get_pin_no(cs_), data_rate_);
 
   i = 0;
   while (i++ < 10 && !radio_->begin()) {
@@ -77,8 +74,7 @@ void NRF24Device::dump_config() {
   ESP_LOGCONFIG(TAG, "  Channel: %d", channel_);
   ESP_LOGCONFIG(TAG, "  PA Level: %d", pa_level_);
   ESP_LOGCONFIG(TAG, "  SPI Data Rate: %d", data_rate_);
-  ESP_LOGCONFIG(TAG, "  RF Data Rate: %d [0: 1M, 1: 2M, 2: 250K]",
-                rf_data_rate_);
+  ESP_LOGCONFIG(TAG, "  RF Data Rate: %d [0: 1M, 1: 2M, 2: 250K]", rf_data_rate_);
   ESP_LOGCONFIG(TAG, "  Payload Size: %d", payload_size_);
   ESP_LOGCONFIG(TAG, "  CRC Length: %d", crc_length_);
   ESP_LOGCONFIG(TAG, "  Auto ACK: %s", YESNO(auto_ack_));
@@ -87,14 +83,11 @@ void NRF24Device::dump_config() {
   ESP_LOGCONFIG(TAG, "  Write Address: 0x%llX", write_address_);
 
   for (const auto &pipe : pipes_) {
-    ESP_LOGCONFIG(TAG, "  Read pipe %d Address: 0x%llX", pipe.pipe_num,
-                  pipe.address);
+    ESP_LOGCONFIG(TAG, "  Read pipe %d Address: 0x%llX", pipe.pipe_num, pipe.address);
   }
 }
 
-bool NRF24Device::write(const void *buf, uint8_t len) {
-  return radio_->write(buf, len);
-}
+bool NRF24Device::write(const void *buf, uint8_t len) { return radio_->write(buf, len); }
 
 void NRF24Device::read(void *buf, uint8_t len) { radio_->read(buf, len); }
 

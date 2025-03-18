@@ -1,18 +1,17 @@
 from esphome import automation
-from esphome.components import nrf24, light, spi
-import esphome.config_validation as cv
 import esphome.codegen as cg
-from esphome.const import (
-    CONF_LIGHT_ID,
-    CONF_TRANSITION_LENGTH,
-)
+from esphome.components import light, nrf24
+import esphome.config_validation as cv
+from esphome.const import CONF_LIGHT_ID
 
 DEPENDENCIES = ["spi", "light"]
 AUTO_LOAD = ["nrf24"]
 # MULTI_CONF = True
 
 mijia_light_bar_ns = cg.esphome_ns.namespace("mijia_light_bar")
-MijiaLightBarComponent = mijia_light_bar_ns.class_("MijiaLightBarComponent", nrf24.NRF24Device, light.LightOutput)
+MijiaLightBarComponent = mijia_light_bar_ns.class_(
+    "MijiaLightBarComponent", nrf24.NRF24Device, light.LightOutput
+)
 
 # Actions
 ToggleAction = mijia_light_bar_ns.class_("ToggleAction", automation.Action)
@@ -23,17 +22,28 @@ CONF_REPETITIONS = "repetitions"
 CONF_DELAY_MS = "delay_ms"
 
 # Base schema for Mijia-specific settings
-CONFIG_SCHEMA = nrf24.NRF24_DEVICE_SCHEMA.extend(
-    {
-        cv.GenerateID(CONF_LIGHT_ID): cv.declare_id(MijiaLightBarComponent),
-        cv.Optional(nrf24.CONF_CHANNEL, default=68): cv.one_of(6, 7, 15, 16, 43, 44, 68, 69, int=True),
-        cv.Optional(nrf24.CONF_PA_LEVEL, default="low"): cv.enum(nrf24.PA_LEVELS, lower=True),
-        cv.Optional(nrf24.CONF_RF_DATA_RATE, default="2mbps"): cv.enum(nrf24.DATA_RATES, lower=True),
+CONFIG_SCHEMA = (
+    nrf24.NRF24_DEVICE_SCHEMA.extend(
+        {
+            cv.GenerateID(CONF_LIGHT_ID): cv.declare_id(MijiaLightBarComponent),
+            cv.Optional(nrf24.CONF_CHANNEL, default=68): cv.one_of(
+                6, 7, 15, 16, 43, 44, 68, 69, int=True
+            ),
+            cv.Optional(nrf24.CONF_PA_LEVEL, default="low"): cv.enum(
+                nrf24.PA_LEVELS, lower=True
+            ),
+            cv.Optional(nrf24.CONF_RF_DATA_RATE, default="2mbps"): cv.enum(
+                nrf24.DATA_RATES, lower=True
+            ),
+            cv.Optional(CONF_REMOTE_ID, default=0x00000000): cv.hex_uint32_t,
+            cv.Optional(CONF_REPETITIONS, default=3): cv.int_range(min=1, max=10),
+            cv.Optional(CONF_DELAY_MS, default=20): cv.int_range(min=1, max=100),
+        }
+    )
+    .extend(light.LIGHT_SCHEMA)
+    .extend(cv.COMPONENT_SCHEMA)
+)
 
-        cv.Optional(CONF_REMOTE_ID, default=0x00000000): cv.hex_uint32_t,
-        cv.Optional(CONF_REPETITIONS, default=3): cv.int_range(min=1, max=10),
-        cv.Optional(CONF_DELAY_MS, default=20): cv.int_range(min=1, max=100),
-}).extend(light.LIGHT_SCHEMA).extend(cv.COMPONENT_SCHEMA)
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_LIGHT_ID])
