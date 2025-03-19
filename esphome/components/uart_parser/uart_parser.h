@@ -12,6 +12,5 @@ class UartParser : public Component {
   void dump_config() override;
 };
 
-
-}  // namespace empty_component
+}  // namespace uart_parser
 }  // namespace esphome
