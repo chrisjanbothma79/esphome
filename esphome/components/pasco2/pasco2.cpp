@@ -382,8 +382,6 @@ bool PASCO2Component::perform_forced_calibration(uint16_t current_co2_concentrat
 		uint8_t read_back = 0;
 		
 		if (!this->read_bytes(XENSIV_PASCO2_REG_MEAS_CFG, &read_back, 1)) {
-		  ESP_LOGD(TAG, "MEAS_CFG read failed");
-      this->status_set_warning();
 		  return  RetryResult::RETRY;
 		}
     
