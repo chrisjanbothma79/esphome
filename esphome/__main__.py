@@ -248,7 +248,7 @@ def upload_using_esptool(config, port, file):
     from esphome import platformio_api
 
     first_baudrate = config[CONF_ESPHOME][CONF_PLATFORMIO_OPTIONS].get(
-        "upload_speed", 460800
+        "upload_speed", os.getenv("ESPHOME_UPLOAD_SPEED", "460800")
     )
 
     if file is not None:
