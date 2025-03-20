@@ -355,7 +355,7 @@ bool PASCO2Component::perform_forced_calibration(uint16_t current_co2_concentrat
       ESP_LOGD(TAG, "setting forced calibration CO2 level %d ppm", current_co2_concentration);
 	}
    //set force calibration flag, this starts the calibration process and data acquisition
-  if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG, XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE | XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_CONTINOUS, true)) {
+  if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG, XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE | 
       XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_CONTINOUS, true)) {
     ESP_LOGE(TAG, "Failed to force calibration");
     this->status_set_warning();
