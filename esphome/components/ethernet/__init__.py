@@ -1,4 +1,5 @@
 import logging
+
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components.esp32 import add_idf_sdkconfig_option, get_esp32_variant
@@ -71,24 +72,9 @@ SPI_ETHERNET_TYPES = ["W5500"]
 SPI_ETHERNET_DEFAULT_POLLING_INTERVAL = TimePeriodMilliseconds(milliseconds=10)
 
 emac_rmii_clock_mode_t = cg.global_ns.enum("emac_rmii_clock_mode_t")
-emac_rmii_clock_gpio_t = cg.global_ns.enum("emac_rmii_clock_gpio_t")
 CLK_MODES = {
-    "GPIO0_IN": (
-        emac_rmii_clock_mode_t.EMAC_CLK_EXT_IN,
-        emac_rmii_clock_gpio_t.EMAC_CLK_IN_GPIO,
-    ),
-    "GPIO0_OUT": (
-        emac_rmii_clock_mode_t.EMAC_CLK_OUT,
-        emac_rmii_clock_gpio_t.EMAC_APPL_CLK_OUT_GPIO,
-    ),
-    "GPIO16_OUT": (
-        emac_rmii_clock_mode_t.EMAC_CLK_OUT,
-        emac_rmii_clock_gpio_t.EMAC_CLK_OUT_GPIO,
-    ),
-    "GPIO17_OUT": (
-        emac_rmii_clock_mode_t.EMAC_CLK_OUT,
-        emac_rmii_clock_gpio_t.EMAC_CLK_OUT_180_GPIO,
-    ),
+    "CLK_EXT_IN": emac_rmii_clock_mode_t.EMAC_CLK_EXT_IN,
+    "CLK_OUT": emac_rmii_clock_mode_t.EMAC_CLK_OUT,
 }
 
 
@@ -178,9 +164,10 @@ PHY_REGISTER_SCHEMA = cv.Schema(
 RMII_SCHEMA = BASE_SCHEMA.extend(
     cv.Schema(
         {
+            cv.Required(CONF_CLK_PIN): pins.internal_gpio_output_pin_number,
             cv.Required(CONF_MDC_PIN): pins.internal_gpio_output_pin_number,
             cv.Required(CONF_MDIO_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_CLK_MODE, default="GPIO0_IN"): cv.enum(
+            cv.Optional(CONF_CLK_MODE, default="CLK_EXT_IN"): cv.enum(
                 CLK_MODES, upper=True, space="_"
             ),
             cv.Optional(CONF_PHY_ADDR, default=0): cv.int_range(min=0, max=31),
@@ -303,7 +290,8 @@ async def to_code(config):
         cg.add(var.set_phy_addr(config[CONF_PHY_ADDR]))
         cg.add(var.set_mdc_pin(config[CONF_MDC_PIN]))
         cg.add(var.set_mdio_pin(config[CONF_MDIO_PIN]))
-        cg.add(var.set_clk_mode(*CLK_MODES[config[CONF_CLK_MODE]]))
+        cg.add(var.set_clk_pin(config[CONF_CLK_PIN]))
+        cg.add(var.set_clk_mode(config[CONF_CLK_MODE]))
         if CONF_POWER_PIN in config:
             cg.add(var.set_power_pin(config[CONF_POWER_PIN]))
         for register_value in config.get(CONF_PHY_REGISTERS, []):

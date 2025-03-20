@@ -59,8 +59,8 @@ class EthernetComponent : public Component {
   void on_shutdown() override { powerdown(); }
   bool is_connected();
 
-#ifdef USE_ETHERNET_SPI
   void set_clk_pin(uint8_t clk_pin);
+#ifdef USE_ETHERNET_SPI
   void set_miso_pin(uint8_t miso_pin);
   void set_mosi_pin(uint8_t mosi_pin);
   void set_cs_pin(uint8_t cs_pin);
@@ -75,7 +75,7 @@ class EthernetComponent : public Component {
   void set_power_pin(int power_pin);
   void set_mdc_pin(uint8_t mdc_pin);
   void set_mdio_pin(uint8_t mdio_pin);
-  void set_clk_mode(emac_rmii_clock_mode_t clk_mode, emac_rmii_clock_gpio_t clk_gpio);
+  void set_clk_mode(emac_rmii_clock_mode_t clk_mode);
   void add_phy_register(PHYRegister register_value);
 #endif
   void set_type(EthernetType type);
@@ -124,7 +124,7 @@ class EthernetComponent : public Component {
   uint8_t mdc_pin_{23};
   uint8_t mdio_pin_{18};
   emac_rmii_clock_mode_t clk_mode_{EMAC_CLK_EXT_IN};
-  emac_rmii_clock_gpio_t clk_gpio_{EMAC_CLK_IN_GPIO};
+  emac_rmii_clock_gpio_t clk_pin_{0};
   std::vector<PHYRegister> phy_registers_{};
 #endif
   EthernetType type_{ETHERNET_TYPE_UNKNOWN};
