@@ -10,16 +10,15 @@ espnow:
   predefined_peers:
     - FF:FF:FF:FF:FF:FF
     - mac_address: 11:22:33:44:55:66
-      wifi_channel: 2
   on_receive:
     - logger.log:
         format: "Received: '%s' from '%s' command: %d RSSI: %d"
         args:
           [
-            packet.get_payload(),
-            packet.get_peer_code().c_str(),
-            packet.get_command(),
-            packet.rssi,
+            packet.payload(),
+            packet.peer_str().c_str(),
+            packet.command(),
+            packet.rssi(),
           ]
 
   on_broadcast:
@@ -57,5 +56,4 @@ binary_sensor:
     on_click:
       - espnow.peer.add:
           mac_address: 22:44:66:88:AA:CC
-          wifi_channel: 3
       - espnow.peer.del: 22:44:66:88:AA:CC

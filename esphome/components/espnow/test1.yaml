@@ -2,20 +2,21 @@
 substitutions:
   name: "lum-iot-test1"
   friendly_name: "Project Template"
+  my_espnow_app: "0x5354"
 
 esp32:
   board: m5stack-atom
   framework:
     type: esp-idf
-    version: 5.2.1
-    platform_version: 6.6.0
 
 esphome:
   name: "${name}"
+  platformio_options:
+    upload_speed: 115200
 
 # To be able to get logs from the device via serial and api.
 logger:
-  level: debug
+  level: verbose
 
 # wifi:
 #   fast_connect: true
@@ -26,25 +27,59 @@ logger:
 espnow:
   auto_add_peer: true
   wifi_channel: 1
+  attempts: 3
   predefined_peers:
+    - mac_address: e8:6b:ea:24:22:04
     - mac_address: E8:6B:EA:23:CD:98
-      wifi_channel: 2
-  on_receive:
+  on_new_peer:
     - logger.log:
-        format: "Received from: %s = '%s' cmd: %d RSSI: %d"
+        format: "New Peer from: %s = '%s' cmd: %d RSSI: %d"
         args:
           [
-            packet.get_payload(),
-            packet.get_peer_code().c_str(),
-            packet.get_command(),
-            packet.rssi,
+            packet->payload(),
+            packet->peer_str().c_str(),
+            packet->command(),
+            packet->rssi(),
           ]
+  custom_apps:
+    - app_id: ${my_espnow_app}
+      on_receive:
+        - logger.log:
+            format: "Received from: %s = '%s' cmd: %d RSSI: %d"
+            args:
+              [
+                packet->payload(),
+                packet->peer_str().c_str(),
+                packet->command(),
+                packet->rssi(),
+              ]
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO39
+      inverted: true
+    name: Button
+    disabled_by_default: true
+    entity_category: diagnostic
+    id: echo_button
+    on_click:
+      - logger.log:
+          format: "------------"
+      - espnow.send:
+          #ac_address: e8:6b:ea:24:22:04
+          #app_id: ${my_espnow_app}
+          command: 222
+          payload: "Test  1."
 
 interval:
-  - interval: 30sec
-    startup_delay: 20sec
+  - interval: 0.2sec
+    startup_delay: 5sec
     then:
+      - logger.log:
+          format: "------------"
       - espnow.send:
-          mac_address: E8:6B:EA:23:CD:98
-          payload: "Test  1."
-          command: 222
+          #ac_address: e8:6b:ea:24:22:04
+          #app_id: ${my_espnow_app}
+          command: 249
+          payload: "Test  2."

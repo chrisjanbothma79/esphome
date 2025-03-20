@@ -50,3 +50,25 @@ espnow:
                 packet->command(),
                 packet->rssi(),
               ]
+
+espnow_find:
+
+interval:
+  - interval: 999930sec
+    startup_delay: 150sec
+    then:
+      - espnow.channel.set: 5
+      - espnow.peer.find:
+          mac_address: E8:6B:EA:23:CD:98
+          then:
+            - logger.log:
+                format: "Peer 'E8:6B:EA:23:CD:98' has BEEN found."
+            - espnow.send:
+                #mac_address: e8:6b:ea:24:22:04
+                #app_id: ${my_espnow_app}
+                command: 0x47
+                payload: "Load error base ."
+                dont_wait: true
+          else:
+            - logger.log:
+                format: "Peer 'E8:6B:EA:23:CD:98' has NOT been found."
