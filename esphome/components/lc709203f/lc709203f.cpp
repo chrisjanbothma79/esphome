@@ -259,8 +259,8 @@ uint8_t Lc709203f::crc8_(uint8_t *byte_buffer, uint8_t length_of_crc) {
 }
 
 void Lc709203f::set_pack_size(uint16_t pack_size) {
-  uint16_t pack_size_array[6] = {100, 200, 500, 1000, 2000, 3000};
-  uint16_t apa_array[6] = {0x08, 0x0B, 0x10, 0x19, 0x2D, 0x36};
+  static const uint16_t pack_size_array[6] = {100, 200, 500, 1000, 2000, 3000};
+  static const uint16_t apa_array[6] = {0x08, 0x0B, 0x10, 0x19, 0x2D, 0x36};
   float slope;
   float intercept;
 
