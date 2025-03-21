@@ -57,32 +57,6 @@ void Lc709203f::setup() {
   ESP_LOGCONFIG(TAG, "Setting up LC709203F...");
 
   this->state_ = LC709203F_STATE_INIT;
-  // Note: Here I am tempted to read the LC709203F_IC_VERSION register and verify that it is
-  //  correct. However, I don't actually know what the expected value of that register is. The
-  //  device I am using to test has 0x2AFF in that register, but I don't know if they will all
-  //  have that value (and the datasheet does not say). The code below could be used to do this
-  //  check.
-  /*
-  uint16_t buffer;
-  if (this->get_register_(LC709203F_IC_VERSION, &buffer) != i2c::NO_ERROR)
-  {
-      // I2C bus error, init will be retried on the next call to update()
-      return;
-  }
-  else
-  {
-      if (buffer != 0x2AFF)
-      {
-          // A register was read from a device at the correct address, but it does not match
-          //  what we expect for the LC709203F
-          ESP_LOGE(TAG, "Device does not appear to be a LC709203F");
-          this->status_set_error("unrecognised");
-          this->mark_failed();
-          return;
-      }
-  }
-  */
-
   // Set power mode to on. Note that, unlike some other similar devices, in sleep mode the IC
   //  does not record power usage. If there is significant power consumption during sleep mode,
   //  the pack RSOC will likely no longer be correct. Because of that, I do not implement
