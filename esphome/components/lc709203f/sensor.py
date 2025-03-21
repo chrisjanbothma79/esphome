@@ -7,7 +7,6 @@ from esphome.const import (
     CONF_ID,
     CONF_SIZE,
     CONF_TEMPERATURE,
-    CONF_THERMISTOR_B_CONSTANT,
     CONF_VOLTAGE,
     DEVICE_CLASS_BATTERY,
     DEVICE_CLASS_TEMPERATURE,
@@ -23,6 +22,8 @@ DEPENDENCIES = ["i2c"]
 
 lc709203f_ns = cg.esphome_ns.namespace("lc709203f")
 
+CONF_THERMISTOR_B_CONSTANT = "thermistor_b_constant"
+
 LC709203FBatteryVoltage = lc709203f_ns.enum("LC709203FBatteryVoltage")
 BATTERY_VOLTAGE_OPTIONS = {
     "3.7": LC709203FBatteryVoltage.LC709203F_BATTERY_VOLTAGE_3_7,
@@ -35,7 +36,7 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(lc709203f),
-            cv.Optional(CONF_SIZE, default="500"): cv.int_range(200, 3000),
+            cv.Optional(CONF_SIZE, default="500"): cv.int_range(100, 3000),
             cv.Optional(CONF_VOLTAGE, default="3.7"): cv.enum(
                 BATTERY_VOLTAGE_OPTIONS, upper=True
             ),
@@ -80,19 +81,19 @@ async def to_code(config):
     cg.add(var.set_pack_size(config.get(CONF_SIZE)))
     cg.add(var.set_pack_voltage(BATTERY_VOLTAGE_OPTIONS[config[CONF_VOLTAGE]]))
 
-    if voltage_config := config.get(CONF_BATTERY_VOLTAGE):
-        sens = await sensor.new_sensor(voltage_config)
+    if CONF_BATTERY_VOLTAGE in config:
+        sens = await sensor.new_sensor(config[CONF_BATTERY_VOLTAGE])
         cg.add(var.set_voltage_sensor(sens))
 
     if CONF_BATTERY_LEVEL in config:
         sens = await sensor.new_sensor(config[CONF_BATTERY_LEVEL])
         cg.add(var.set_battery_remaining_sensor(sens))
 
-    if temperature_config := config.get(CONF_TEMPERATURE):
-        sens = await sensor.new_sensor(temperature_config)
+    if CONF_TEMPERATURE in config:
+        sens = await sensor.new_sensor(config[CONF_TEMPERATURE])
         cg.add(var.set_temperature_sensor(sens))
         cg.add(
             var.set_thermistor_b_constant(
-                temperature_config[CONF_THERMISTOR_B_CONSTANT]
+                config[CONF_TEMPERATURE][CONF_THERMISTOR_B_CONSTANT]
             )
         )
