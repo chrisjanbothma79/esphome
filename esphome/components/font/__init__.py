@@ -7,7 +7,13 @@ from pathlib import Path
 import re
 
 import esphome_glyphsets as glyphsets
-from freetype import Face, ft_pixel_mode_grays, ft_pixel_mode_mono
+from freetype import (
+    FT_LOAD_NO_BITMAP,
+    FT_LOAD_RENDER,
+    Face,
+    ft_pixel_mode_grays,
+    ft_pixel_mode_mono,
+)
 import requests
 
 from esphome import external_files
@@ -513,7 +519,7 @@ async def to_code(config):
                 font.select_size(sizes.index(size))
         else:
             font.set_pixel_sizes(size, 0)
-        font.load_char(codepoint)
+        font.load_char(codepoint, FT_LOAD_RENDER | FT_LOAD_NO_BITMAP)
         font.glyph.render(mode)
         width = font.glyph.bitmap.width
         height = font.glyph.bitmap.rows
