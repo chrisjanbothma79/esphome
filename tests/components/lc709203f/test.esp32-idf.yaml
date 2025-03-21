@@ -1,16 +1,5 @@
-i2c:
-  - id: i2c_lc709203f
-    scl: 16
-    sda: 17
+substitutions:
+  scl_pin: GPIO16
+  sda_pin: GPIO17
 
-sensor:
-  - platform: lc709203f
-    size: 2000
-    voltage: 3.7
-    battery_voltage:
-      name: "Battery Voltage"
-    battery_level:
-      name: "Battery"
-    temperature:
-      name: "Pack Temperature"
-      thermistor_b_constant: 0xA5A5
+<<: !include common.yaml
