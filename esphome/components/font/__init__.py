@@ -519,7 +519,10 @@ async def to_code(config):
                 font.select_size(sizes.index(size))
         else:
             font.set_pixel_sizes(size, 0)
-        font.load_char(codepoint, FT_LOAD_RENDER | FT_LOAD_NO_BITMAP)
+        flags = FT_LOAD_RENDER
+        if bpp != 1:
+            flags |= FT_LOAD_NO_BITMAP
+        font.load_char(codepoint, flags)
         font.glyph.render(mode)
         width = font.glyph.bitmap.width
         height = font.glyph.bitmap.rows
