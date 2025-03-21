@@ -7,6 +7,8 @@ from pathlib import Path
 import re
 
 import esphome_glyphsets as glyphsets
+
+# pylint: disable=no-name-in-module
 from freetype import (
     FT_LOAD_NO_BITMAP,
     FT_LOAD_RENDER,
