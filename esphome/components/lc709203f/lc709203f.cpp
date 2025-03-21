@@ -259,8 +259,8 @@ uint8_t Lc709203f::crc8_(uint8_t *byte_buffer, uint8_t length_of_crc) {
 }
 
 void Lc709203f::set_pack_size(uint16_t pack_size) {
-  static const uint16_t pack_size_array[6] = {100, 200, 500, 1000, 2000, 3000};
-  static const uint16_t apa_array[6] = {0x08, 0x0B, 0x10, 0x19, 0x2D, 0x36};
+  static const uint16_t PACK_SIZE_ARRAY[6] = {100, 200, 500, 1000, 2000, 3000};
+  static const uint16_t APA_ARRAY[6] = {0x08, 0x0B, 0x10, 0x19, 0x2D, 0x36};
   float slope;
   float intercept;
 
@@ -268,21 +268,21 @@ void Lc709203f::set_pack_size(uint16_t pack_size) {
 
   // The size is used to calculate the 'Adjustment Pack Application' number.
   // Here we assume a type 01 or type 03 battery and do a linear curve fit to find the APA.
-  for (int i = 0; i < sizeof(pack_size_array) / sizeof(pack_size_array[0]); i++) {
-    if (pack_size_array[i] == pack_size) {
+  for (int i = 0; i < sizeof(PACK_SIZE_ARRAY) / sizeof(PACK_SIZE_ARRAY[0]); i++) {
+    if (PACK_SIZE_ARRAY[i] == pack_size) {
       // If the pack size is exactly one of the values in the array.
-      this->apa_ = apa_array[i];
+      this->apa_ = APA_ARRAY[i];
       return;
-    } else if ((i > 0) && (pack_size_array[i] > pack_size) && (pack_size_array[i - 1] < pack_size)) {
+    } else if ((i > 0) && (PACK_SIZE_ARRAY[i] > pack_size) && (PACK_SIZE_ARRAY[i - 1] < pack_size)) {
       // If the pack size is between the current array element and the previous. Do a linear
       //  Curve fit to determine the APA value.
 
       // Type casting is required here to avoid interger division
-      slope = static_cast<float>(apa_array[i] - apa_array[i - 1]) /
-              static_cast<float>(pack_size_array[i] - pack_size_array[i - 1]);
+      slope = static_cast<float>(APA_ARRAY[i] - APA_ARRAY[i - 1]) /
+              static_cast<float>(PACK_SIZE_ARRAY[i] - PACK_SIZE_ARRAY[i - 1]);
 
       // Type casting might not be needed here.
-      intercept = static_cast<float>(apa_array[i]) - slope * static_cast<float>(pack_size_array[i]);
+      intercept = static_cast<float>(APA_ARRAY[i]) - slope * static_cast<float>(PACK_SIZE_ARRAY[i]);
 
       this->apa_ = static_cast<uint8_t>(slope * pack_size + intercept);
       return;
