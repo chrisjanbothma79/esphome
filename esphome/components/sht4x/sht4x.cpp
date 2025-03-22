@@ -66,6 +66,7 @@ void SHT4XComponent::dump_config() {
 void SHT4XComponent::update() {
   // Send command
   if (!this->write_command(MEASURECOMMANDS[this->precision_])) {
+    // Warning will be printed only if warning status is not set yet
     this->status_set_warning("Failed to send measurement command");
     return;
   }
@@ -74,29 +75,30 @@ void SHT4XComponent::update() {
     uint16_t buffer[2];
 
     // Read measurement
-    bool read_status = this->read_data(buffer, 2);
+    if (!this->read_data(buffer, 2)) {
+      // Using ESP_LOGW to force the warning to be printed
+      ESP_LOGW(TAG, "Sensor read failed");
+      this->status_set_warning();
+      return;
+    }
 
-    if (read_status) {
-      this->status_clear_warning();
+    this->status_clear_warning();
 
-      // Evaluate and publish measurements
-      if (this->temp_sensor_ != nullptr) {
-        // Temp is contained in the first result word
-        float sensor_value_temp = buffer[0];
-        float temp = -45 + 175 * sensor_value_temp / 65535;
+    // Evaluate and publish measurements
+    if (this->temp_sensor_ != nullptr) {
+      // Temp is contained in the first result word
+      float sensor_value_temp = buffer[0];
+      float temp = -45 + 175 * sensor_value_temp / 65535;
 
-        this->temp_sensor_->publish_state(temp);
-      }
+      this->temp_sensor_->publish_state(temp);
+    }
 
-      if (this->humidity_sensor_ != nullptr) {
-        // Relative humidity is in the second result word
-        float sensor_value_rh = buffer[1];
-        float rh = -6 + 125 * sensor_value_rh / 65535;
+    if (this->humidity_sensor_ != nullptr) {
+      // Relative humidity is in the second result word
+      float sensor_value_rh = buffer[1];
+      float rh = -6 + 125 * sensor_value_rh / 65535;
 
-        this->humidity_sensor_->publish_state(rh);
-      }
-    } else {
-      this->status_set_warning("Sensor read failed");
+      this->humidity_sensor_->publish_state(rh);
     }
   });
 }
