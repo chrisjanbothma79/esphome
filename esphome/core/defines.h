@@ -110,6 +110,7 @@
 #define USE_WIFI
 #define USE_WIFI_AP
 #define USE_WIREGUARD
+#define USE_AUDIO_DAC
 
 // Arduino-specific feature flags
 #ifdef USE_ARDUINO
