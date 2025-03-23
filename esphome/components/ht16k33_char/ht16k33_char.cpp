@@ -56,7 +56,7 @@ void HT16k33CharComponent::setup() {
     this->scroll_state_ = HT16K33_SCROLL_STATE_STATIC;
   }
   else if (this->continuous_) {
-    //If the state is continuous, there is not start and end delay. Go directly into the scrolling.
+    //If the state is continuous, there is no start and end delay. Go directly into the scrolling.
     this->scroll_state_ = HT16K33_SCROLL_STATE_SCROLLING;
     this->last_scroll_ = millis();
   }
@@ -76,12 +76,14 @@ void HT16k33CharComponent::update() {
     //  - If the display is static (no scrolling), we directly call display() to update the display now.
     //  - If scrolling is happening, we do not update the display in this function. The display will 
     //    be updated in the loop() function.
+    //  - if we are in the state 'FIRST_START' this means we just started the device. In that state, 
+    //    the display will not be showing anything yet, and we need to run the update_display()
+    //    function to show the initial contents.
     if ( (this->scroll_state_ == HT16K33_SCROLL_STATE_STATIC) || 
          (this->scroll_state_ == HT16K33_SCROLL_STATE_FIRST_START) ) {
       this->update_display();
     }
   }
-  //ESP_LOGD(TAG, "digits per display: %d", this->digits_per_display2_);
 }
 
 //Note: Scroll that is not continuous will go to the end of the buffer size, not the end of the message in the buffer.
@@ -146,7 +148,7 @@ void HT16k33CharComponent::loop() {
         this->last_scroll_ = now;
         this->scroll_state_ = HT16K33_SCROLL_STATE_START;
         this->fist_char_location_ = 0;
-        this->update_display();    //Update the display
+        this->update_display();
       }
       break;
   }
@@ -184,9 +186,10 @@ void HT16k33CharComponent::dump_config() {
   }
   else {
     //TODO: I2C address is protected, how do I display the address of the devices?
-    //ESP_LOGCONFIG(TAG, "Device List:");
+    ESP_LOGCONFIG(TAG, "Device List:");
     //for (auto *display : this->displays_) {
-    //  LOG_I2C_DEVICE(display);
+    //  ESP_LOGCONFIG(TAG, "    addr: 0x%02X", display->dump_config());
+      //LOG_I2C_DEVICE(display);
     //}
   }
   
@@ -231,6 +234,13 @@ uint8_t HT16k33CharComponent::update_display() {
   return buffer_location;
 }
 
+/***********************************
+ *Sets the brightness of the display
+ *
+ *  brightness_to_set: The brightness value to set. Valid values are 0-15. Setting brightness to 0 
+ *  does not turn off the display, it sets it to the minimum brigthness of 1/16 duty cycle. Setting
+ *  an invalid brightness value will result in the device being set to full brightness.
+ ************************************/
 void HT16k33CharComponent::brightness(uint8_t brightness_to_set) {
   uint8_t buffer;
   
@@ -316,12 +326,19 @@ void HT16k33CharComponent::display_standby(bool standby) {
   }
 }
 
-
-
-//TODO: This function should take a character array and put it in the character buffer
-//TODO: Why does this function return anything?
-//NOTE: start_pos is zero reference
-uint8_t HT16k33CharComponent::print(uint8_t start_pos, const char *str, bool clear_buffer) {
+/***********************************
+ *Write a character string to the display buffer.
+ *
+ *  start_pos:    The position to place the first character in the string. Position 0 is the start 
+ *                of the display buffer.
+ *
+ *  str:          The string to put in the buffer.
+ *
+ *  clear_buffer: Boolean. Set to true to clear the display buffer before writing the string.
+ *
+ *  Returns the number of bytes written to the buffer.
+ ************************************/
+uint8_t HT16k33CharComponent::print(uint8_t start_pos, bool clear_buffer, const char *str) {
   uint8_t top;
   uint8_t j;
   
@@ -339,7 +356,6 @@ uint8_t HT16k33CharComponent::print(uint8_t start_pos, const char *str, bool cle
   }
   
   if(clear_buffer) {
-    //TODO: Does this reallocate memory? Should I step through the buffer and clear manually?
     this->char_buffer_.clear();
     this->char_buffer_.resize(this->char_buffer_size_, ' ');
   }
@@ -350,33 +366,83 @@ uint8_t HT16k33CharComponent::print(uint8_t start_pos, const char *str, bool cle
     j++;
   }
 
-  return 0;
+  return j-1;
 }
 
-uint8_t HT16k33CharComponent::print(const char *str, bool clear_buffer) { return this->print(0, str, clear_buffer); }
 
-//TODO: The 'real' printf function returns the number of bytes written. Not sure if we need to do that here.
-uint8_t HT16k33CharComponent::printf(uint8_t pos, bool clear_buffer, const char *format, ...) {
+/***********************************
+ *Write a character string to the start of the display buffer.
+ *
+ *  clear_buffer: Boolean. Set to true to clear the display buffer before writing the string.
+ *
+ *  str:          The string to put in the buffer.
+ *
+ *  Returns the number of bytes written to the buffer.
+ ************************************/
+uint8_t HT16k33CharComponent::print(bool clear_buffer, const char *str) { return this->print(0, str, clear_buffer); }
+
+/***********************************
+ *Implements a printf to write a formatted string to the display buffer.
+ *
+ *  start_pos:    The position to place the first character in the string. Position 0 is the start 
+ *                of the display buffer.
+ *
+ *  clear_buffer: Boolean. Set to true to clear the display buffer before writing the string.
+ *
+ *  The remaining parameters are the normal parameters for printf.
+ *
+ *  Returns the number of bytes written to the buffer.
+ ************************************/
+uint8_t HT16k33CharComponent::printf(uint8_t start_pos, bool clear_buffer, const char *format, ...) {
   va_list arg;
   va_start(arg, format);
   char buffer[this->char_buffer_size_+1];  //Add one for the string terminating character.
   int ret = vsnprintf(buffer, sizeof(buffer), format, arg);
-  //ESP_LOGD(TAG, "printf: %s, size %d", buffer, sizeof(buffer));
   va_end(arg);
   
-  //TODO: Why am I returning something here? change to void?
-  return this->print(pos, buffer, clear_buffer);
+  return this->print(start_pos, buffer, clear_buffer);
 }
 
-uint8_t HT16k33CharComponent::strftime(uint8_t pos, bool clear_buffer, const char *format, ESPTime time) {
+/***********************************
+ *Implements strftime to write a formatted time string to the display buffer.
+ *
+ *  start_pos:    The position to place the first character in the string. Position 0 is the start 
+ *                of the display buffer.
+ *
+ *  clear_buffer: Boolean. Set to true to clear the display buffer before writing the string.
+ *
+ *  format: The formatting string for strftime.
+ *
+ *  time: the time object to write.
+ *
+ *  Returns the number of bytes written to the buffer.
+ ************************************/
+uint8_t HT16k33CharComponent::strftime(uint8_t start_pos, bool clear_buffer, const char *format, ESPTime time) {
   char buffer[64];    //TODO: This buffer is really big, I should make it smaller.
   size_t ret = time.strftime(buffer, sizeof(buffer), format);
-  if (ret > 0)
-    return this->print(pos, buffer, clear_buffer);
+  if (ret > 0) {
+    return this->print(start_pos, buffer, clear_buffer);
+  }
   return 0;
 }
 
-uint8_t HT16k33CharComponent::clock_display(ESPTime time, uint8_t position, bool clear_buffer, bool show_leading_zero, bool UseAMPM){
+/***********************************
+ *Implements a simplified display function to write the time to the display in the format hours:minutes
+ *
+ *  start_pos: The position to place the first character in the string. Position 0 is the start 
+ *             of the display buffer.
+ *
+ *  clear_buffer: Boolean. Set to true to clear the display buffer before writing the string.
+ *
+ *  show_leading_zero:  Boolean. Set to true to display the leading zero on hours (ex: 01:30)
+ *
+ *  UseAMPM: Boolean. Set to true to convert the time to 12 hour time for display.
+ *
+ *  time: the time object to write.
+ *
+ *  Returns the number of bytes written to the buffer.
+ ************************************/
+uint8_t HT16k33CharComponent::clock_display(uint8_t start_pos, bool clear_buffer, bool show_leading_zero, bool UseAMPM, ESPTime time){
   char buffer[6];
   //TODO: strftime is very memory intensive if all I need is hours and minutes. I could rewrite this to not use strftime and save a bunch of flash
   
@@ -388,13 +454,11 @@ uint8_t HT16k33CharComponent::clock_display(ESPTime time, uint8_t position, bool
   }
   
   if((!show_leading_zero) && (buffer[0] == '0')) {
-    //ESP_LOGD(TAG, "clear leading zero");
+    //Clear leading zero
     buffer[0] = ' ';
   }
-
-  //ESP_LOGD(TAG, "time: %s, %d:%d", buffer, time.hour, time.minute);
   
-  return this->print(position, buffer, clear_buffer);
+  return this->print(start_pos, buffer, clear_buffer);
 }
 
 }  // namespace ht16k33_char
