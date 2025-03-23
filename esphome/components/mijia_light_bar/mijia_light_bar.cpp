@@ -33,35 +33,6 @@ void MijiaLightBarComponent::dump_config() {
   nrf24::NRF24Device::dump_config();
 }
 
-void MijiaLightBarComponent::create_packet(uint8_t *data, uint8_t size, uint8_t command, uint8_t value) {
-  memcpy(data, MijiaLightBarComponent::preamble, sizeof(MijiaLightBarComponent::preamble));
-  data[8] = (remote_id_ & 0xFF0000) >> 16;
-  data[9] = (remote_id_ & 0x00FF00) >> 8;
-  data[10] = remote_id_ & 0x0000FF;
-  data[11] = 0xFF;
-  data[12] = ++counter_;
-  data[13] = command;
-  data[14] = value;
-
-  if (counter_ > 255)
-    counter_ = 0;
-
-  // Calculate CRC16 using ESPHome's helper
-  uint16_t crc = crc16be(data, size - 2, 0xFFFE, 0x1021, false, false);
-  data[15] = (crc & 0xFF00) >> 8;
-  data[16] = crc & 0x00FF;
-}
-
-void MijiaLightBarComponent::send_command(uint8_t command, uint8_t value) {
-  uint8_t packet[17] = {0};
-  create_packet(packet, payload_size_, command, value);
-
-  ESP_LOGD(TAG, "Sending command 0x%02X%02X", command, value);
-  ESP_LOGV(TAG, "Packet %s", format_hex_pretty(packet, payload_size_).c_str());
-
-  nrf24::NRF24Device::write(&packet, payload_size_);
-}
-
 bool MijiaLightBarComponent::queue_command(uint8_t cmd, uint8_t value) {
   if (is_queue_full()) {
     ESP_LOGW(TAG, "Command queue full, dropping command 0x%02X", cmd);
@@ -69,7 +40,7 @@ bool MijiaLightBarComponent::queue_command(uint8_t cmd, uint8_t value) {
   }
 
   Command &cmd_entry = command_queue_[queue_tail_];
-  create_packet(cmd_entry.packet, payload_size_, cmd, value);
+  init_packet(cmd_entry.packet, cmd, value, ++counter_);
   cmd_entry.remaining_repetitions = repetitions_;
   cmd_entry.last_sent = 0;
 
@@ -92,7 +63,10 @@ bool MijiaLightBarComponent::process_next_command() {
       this->radio_->powerUp();
     }
 
-    nrf24::NRF24Device::write(cmd.packet, payload_size_);
+    ESP_LOGD(TAG, "Sending command 0x%02X%02X", cmd.packet.cmd, cmd.packet.value);
+    ESP_LOGV(TAG, "Packet %s",
+             format_hex_pretty(reinterpret_cast<const uint8_t *>(&cmd.packet), sizeof(Packet)).c_str());
+    nrf24::NRF24Device::write(reinterpret_cast<const uint8_t *>(&cmd.packet), sizeof(Packet));
 
     cmd.last_sent = now;
     cmd.remaining_repetitions--;
@@ -191,6 +165,29 @@ void MijiaLightBarComponent::set_color_temp(uint8_t color_temp) {
   ESP_LOGD(TAG, "Setting color temperature: %d", color_temp);
   queue_command(CMD_WARMER, 0xF0);
   queue_command(CMD_COOLER, color_temp);
+}
+
+void MijiaLightBarComponent::init_packet(Packet &packet, uint8_t command, uint8_t value, uint8_t counter) {
+  // Initialize static parts
+  memcpy(packet.preamble, preamble, sizeof(preamble));
+  packet.remote_id[0] = (remote_id_ & 0xFF0000) >> 16;
+  packet.remote_id[1] = (remote_id_ & 0x00FF00) >> 8;
+  packet.remote_id[2] = remote_id_ & 0x0000FF;
+  packet.reserved = 0xFF;
+
+  // Set command data
+  packet.counter = counter;
+  packet.cmd = command;
+  packet.value = value;
+
+  // Calculate and set CRC
+  uint16_t crc = calculate_crc(reinterpret_cast<const uint8_t *>(&packet), 15);
+  packet.crc[0] = (crc & 0xFF00) >> 8;
+  packet.crc[1] = crc & 0x00FF;
+}
+
+uint16_t MijiaLightBarComponent::calculate_crc(const uint8_t *data, size_t length) {
+  return crc16be(data, length, 0xFFFE, 0x1021, false, false);
 }
 
 }  // namespace mijia_light_bar

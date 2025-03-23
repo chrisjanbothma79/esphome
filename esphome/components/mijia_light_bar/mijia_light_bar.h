@@ -69,12 +69,24 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
   uint8_t delay_ms_{10};
   uint8_t counter_{0};
 
+  // Packet structure with named fields
+  struct Packet {
+    uint8_t preamble[8];   // 0-7: Fixed preamble
+    uint8_t remote_id[3];  // 8-10: Remote ID bytes
+    uint8_t reserved;      // 11: Reserved (0xFF)
+    uint8_t counter;       // 12: Command counter
+    uint8_t cmd;           // 13: Command
+    uint8_t value;         // 14: Command value
+    uint8_t crc[2];        // 15-16: CRC bytes
+  };
+
   // Command queue structure
   struct Command {
-    uint8_t packet[17];  // Store complete packet
+    Packet packet;
     uint8_t remaining_repetitions;
     uint32_t last_sent;
   };
+
   static constexpr size_t MAX_QUEUE_SIZE = 5;
   std::array<Command, MAX_QUEUE_SIZE> command_queue_;
   size_t queue_head_{0};
@@ -102,6 +114,10 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
     queue_tail_ = 0;
     queue_size_ = 0;
   }
+
+  // Packet creation methods
+  void init_packet(Packet &packet, uint8_t command, uint8_t value, uint8_t counter);
+  uint16_t calculate_crc(const uint8_t *data, size_t length);
 };
 }  // namespace mijia_light_bar
 }  // namespace esphome
