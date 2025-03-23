@@ -22,6 +22,7 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
  public:
   // Component methods
   void setup() override;
+  void loop() override;
   void dump_config() override;
   float get_setup_priority() const { return setup_priority::IO; }
 
@@ -33,6 +34,7 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
     traits.set_max_mireds(370);  // ~2700K
     return traits;
   }
+
   void write_state(light::LightState *state) override;
 
   // Custom methods
@@ -63,16 +65,19 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
   uint8_t color_temp_to_level(float color_temp) { return static_cast<uint8_t>((1.0f - color_temp) * 14.0f + 1.0f); }
 
   uint32_t remote_id_{0};
-  uint8_t repetitions_{3};
-  uint8_t delay_ms_{20};
+  uint8_t repetitions_{20};
+  uint8_t delay_ms_{10};
   uint8_t counter_{0};
 
   // Store last known state (even though device can't report it)
-  struct {
-    bool state{false};
+  struct LightBarState {
+    bool is_on{false};
+    bool has_changes{false};
     uint8_t brightness{8};
     uint8_t color_temp{8};
-  } last_state_;
+  };
+  LightBarState last_state_;
+  LightBarState pending_state_;
 
   static constexpr byte preamble[8] = {0x53, 0x39, 0x14, 0xDD, 0x1C, 0x49, 0x34, 0x12};
 };
