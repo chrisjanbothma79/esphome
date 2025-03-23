@@ -187,17 +187,17 @@ void HT16k33CharComponent::dump_config() {
   else {
     //TODO: I2C address is protected, how do I display the address of the devices?
     ESP_LOGCONFIG(TAG, "Device List:");
-    //for (auto *display : this->displays_) {
-    //  ESP_LOGCONFIG(TAG, "    addr: 0x%02X", display->dump_config());
+    for (auto *display : this->displays_) {
+      //ESP_LOGCONFIG(TAG, "    addr: 0x%02X", display->dump_config());
       //LOG_I2C_DEVICE(display);
-    //}
+    }
   }
   
   if (this->is_failed()) {
     // Nothing in this code actually sets the device to failed, so this should never trigger.
     //  I am leaving this in incase I want to implement a check during init to verify the
     //  correct device is on the bus.
-    ESP_LOGCONFIG(TAG, "  I2C Device at 0x0B does not appear to be a HT16K33");
+    ESP_LOGCONFIG(TAG, "  I2C Device at 0x70 does not appear to be a HT16K33");
   }
   LOG_UPDATE_INTERVAL(this);
 }
@@ -379,7 +379,7 @@ uint8_t HT16k33CharComponent::print(uint8_t start_pos, bool clear_buffer, const 
  *
  *  Returns the number of bytes written to the buffer.
  ************************************/
-uint8_t HT16k33CharComponent::print(bool clear_buffer, const char *str) { return this->print(0, str, clear_buffer); }
+uint8_t HT16k33CharComponent::print(bool clear_buffer, const char *str) { return this->print(0, clear_buffer, str); }
 
 /***********************************
  *Implements a printf to write a formatted string to the display buffer.
@@ -400,7 +400,7 @@ uint8_t HT16k33CharComponent::printf(uint8_t start_pos, bool clear_buffer, const
   int ret = vsnprintf(buffer, sizeof(buffer), format, arg);
   va_end(arg);
   
-  return this->print(start_pos, buffer, clear_buffer);
+  return this->print(start_pos, clear_buffer, buffer);
 }
 
 /***********************************
@@ -421,7 +421,7 @@ uint8_t HT16k33CharComponent::strftime(uint8_t start_pos, bool clear_buffer, con
   char buffer[64];    //TODO: This buffer is really big, I should make it smaller.
   size_t ret = time.strftime(buffer, sizeof(buffer), format);
   if (ret > 0) {
-    return this->print(start_pos, buffer, clear_buffer);
+    return this->print(start_pos, clear_buffer, buffer);
   }
   return 0;
 }
@@ -458,7 +458,7 @@ uint8_t HT16k33CharComponent::clock_display(uint8_t start_pos, bool clear_buffer
     buffer[0] = ' ';
   }
   
-  return this->print(start_pos, buffer, clear_buffer);
+  return this->print(start_pos, clear_buffer, buffer);
 }
 
 }  // namespace ht16k33_char
