@@ -35,6 +35,8 @@ NRF24PALevel = nrf24_ns.enum("NRF24PALevel")
 NRF24DataRate = nrf24_ns.enum("NRF24DataRate")
 NRF24CRCLength = nrf24_ns.enum("NRF24CRCLength")
 
+RETRY_RANGE = cv.int_range(min=0, max=15)
+
 # Enum mappings
 PA_LEVELS = {
     "min": NRF24PALevel.RF24_PA_MIN,
@@ -71,6 +73,13 @@ PIPE_SCHEMA = cv.Schema(
     }
 )
 
+RETRY_SCHEMA = cv.Schema(
+    {
+        cv.Optional(CONF_RETRY_DELAY, default=15): RETRY_RANGE,
+        cv.Optional(CONF_RETRY_COUNT, default=15): RETRY_RANGE,
+    }
+)
+
 NRF24_DEVICE_SCHEMA = spi.spi_device_schema(True, "4MHz").extend(
     {
         cv.Required(CONF_CE_PIN): pins.gpio_output_pin_schema,
@@ -85,12 +94,7 @@ NRF24_DEVICE_SCHEMA = spi.spi_device_schema(True, "4MHz").extend(
         cv.Optional(CONF_WRITE_ADDRESS, default=0xE8E8F0F0E1): validate_address,
         cv.Optional(
             CONF_RETRIES, default={CONF_RETRY_DELAY: 5, CONF_RETRY_COUNT: 15}
-        ): cv.Schema(
-            {
-                cv.Optional(CONF_RETRY_DELAY, default=5): cv.int_range(min=0, max=15),
-                cv.Optional(CONF_RETRY_COUNT, default=15): cv.int_range(min=0, max=15),
-            }
-        ),
+        ): RETRY_SCHEMA,
         cv.Optional(CONF_READ_PIPES): cv.ensure_list(PIPE_SCHEMA),
     }
 )

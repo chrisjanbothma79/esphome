@@ -69,7 +69,19 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
   uint8_t delay_ms_{10};
   uint8_t counter_{0};
 
-  // Store last known state (even though device can't report it)
+  // Command queue structure
+  struct Command {
+    uint8_t packet[17];  // Store complete packet
+    uint8_t remaining_repetitions;
+    uint32_t last_sent;
+  };
+  static constexpr size_t MAX_QUEUE_SIZE = 5;
+  std::array<Command, MAX_QUEUE_SIZE> command_queue_;
+  size_t queue_head_{0};
+  size_t queue_tail_{0};
+  size_t queue_size_{0};
+
+  // Store last known state
   struct LightBarState {
     bool is_on{false};
     bool has_changes{false};
@@ -78,8 +90,18 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
   };
   LightBarState last_state_;
   LightBarState pending_state_;
-
   static constexpr byte preamble[8] = {0x53, 0x39, 0x14, 0xDD, 0x1C, 0x49, 0x34, 0x12};
+
+  // Queue management methods
+  bool queue_command(uint8_t cmd, uint8_t value = 0);
+  bool process_next_command();
+  bool is_queue_full() const { return queue_size_ >= MAX_QUEUE_SIZE; }
+  bool is_queue_empty() const { return queue_size_ == 0; }
+  void clear_queue() {
+    queue_head_ = 0;
+    queue_tail_ = 0;
+    queue_size_ = 0;
+  }
 };
 }  // namespace mijia_light_bar
 }  // namespace esphome

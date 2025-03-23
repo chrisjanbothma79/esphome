@@ -25,10 +25,14 @@ CONFIG_SCHEMA = (
     nrf24.NRF24_DEVICE_SCHEMA.extend(
         {
             cv.GenerateID(CONF_LIGHT_ID): cv.declare_id(MijiaLightBarComponent),
-            # Redefine channel default
+            # Redefine defaults
             cv.Optional(nrf24.CONF_CHANNEL, default=68): cv.one_of(
                 6, 7, 15, 16, 43, 44, 68, 69, int=True
             ),
+            cv.Optional(
+                nrf24.CONF_RETRIES,
+                default={nrf24.CONF_RETRY_DELAY: 15, nrf24.CONF_RETRY_COUNT: 15},
+            ): nrf24.RETRY_SCHEMA,
             # Fixed values
             cv.Optional(nrf24.CONF_RF_DATA_RATE, default="2mbps"): cv.enum(
                 {"2mbps": nrf24.NRF24DataRate.RF24_2MBPS}, lower=True
@@ -44,7 +48,7 @@ CONFIG_SCHEMA = (
             # Mijia Light Bar specific
             cv.Optional(CONF_REMOTE_ID, default=0x00000000): cv.hex_uint32_t,
             cv.Optional(CONF_REPETITIONS, default=20): cv.int_range(min=1, max=30),
-            cv.Optional(CONF_DELAY_MS, default=10): cv.int_range(min=1, max=20),
+            cv.Optional(CONF_DELAY_MS, default=20): cv.int_range(min=1, max=20),
         }
     )
     .extend(light.LIGHT_SCHEMA)

@@ -59,36 +59,63 @@ void MijiaLightBarComponent::send_command(uint8_t command, uint8_t value) {
   ESP_LOGD(TAG, "Sending command 0x%02X%02X", command, value);
   ESP_LOGV(TAG, "Packet %s", format_hex_pretty(packet, payload_size_).c_str());
 
-  for (int i = 0; i < repetitions_; ++i) {
-    nrf24::NRF24Device::write(&packet, payload_size_);
-    delay(delay_ms_);
+  nrf24::NRF24Device::write(&packet, payload_size_);
+}
+
+bool MijiaLightBarComponent::queue_command(uint8_t cmd, uint8_t value) {
+  if (is_queue_full()) {
+    ESP_LOGW(TAG, "Command queue full, dropping command 0x%02X", cmd);
+    return false;
   }
+
+  Command &cmd_entry = command_queue_[queue_tail_];
+  create_packet(cmd_entry.packet, payload_size_, cmd, value);
+  cmd_entry.remaining_repetitions = repetitions_;
+  cmd_entry.last_sent = 0;
+
+  queue_tail_ = (queue_tail_ + 1) % MAX_QUEUE_SIZE;
+  queue_size_++;
+  return true;
+}
+
+bool MijiaLightBarComponent::process_next_command() {
+  if (is_queue_empty()) {
+    return false;
+  }
+
+  Command &cmd = command_queue_[queue_head_];
+  uint32_t now = millis();
+
+  // Check if it's time to send the next repetition
+  if (now - cmd.last_sent >= delay_ms_) {
+    if (cmd.remaining_repetitions == repetitions_) {
+      this->radio_->powerUp();
+    }
+
+    nrf24::NRF24Device::write(cmd.packet, payload_size_);
+
+    cmd.last_sent = now;
+    cmd.remaining_repetitions--;
+
+    if (cmd.remaining_repetitions == 0) {
+      // Command completed, remove from queue
+      queue_head_ = (queue_head_ + 1) % MAX_QUEUE_SIZE;
+      queue_size_--;
+
+      if (queue_size_ == 0) {
+        this->radio_->powerDown();
+      }
+      return true;
+    }
+  }
+
+  return false;
 }
 
 void MijiaLightBarComponent::loop() {
-  // Process pending state changes
-  if (pending_state_.has_changes) {
-    this->radio_->powerUp();
-
-    if (pending_state_.is_on != last_state_.is_on) {
-      toggle();
-      last_state_.is_on = pending_state_.is_on;
-    }
-
-    if (pending_state_.is_on) {
-      if (pending_state_.brightness != last_state_.brightness) {
-        set_brightness(pending_state_.brightness);
-        last_state_.brightness = pending_state_.brightness;
-      }
-
-      if (pending_state_.color_temp != last_state_.color_temp) {
-        set_color_temp(pending_state_.color_temp);
-        last_state_.color_temp = pending_state_.color_temp;
-      }
-    }
-
-    this->radio_->powerDown();
-    pending_state_.has_changes = false;
+  // Process commands in the queue
+  while (process_next_command()) {
+    // Process all commands that are ready
   }
 }
 
@@ -96,61 +123,74 @@ void MijiaLightBarComponent::write_state(light::LightState *state) {
   bool is_on;
   state->current_values_as_binary(&is_on);
 
-  float brightness;
-  float color_temp;
-  state->current_values_as_ct(&color_temp, &brightness);
+  clear_queue();
 
-  // Convert values to device levels
-  uint8_t brightness_level = brightness_to_level(brightness);
-  uint8_t color_temp_level = color_temp_to_level(color_temp);
+  if (is_on != last_state_.is_on) {
+    toggle();
+    last_state_.is_on = is_on;
+  }
 
-  // Queue the state changes
-  pending_state_.is_on = is_on;
-  pending_state_.brightness = brightness_level;
-  pending_state_.color_temp = color_temp_level;
-  pending_state_.has_changes = true;
+  if (is_on) {
+    float brightness;
+    float color_temp;
+    state->current_values_as_ct(&color_temp, &brightness);
+
+    // Convert values to device levels
+    uint8_t brightness_level = brightness_to_level(brightness);
+    uint8_t color_temp_level = color_temp_to_level(color_temp);
+
+    if (brightness_level != last_state_.brightness) {
+      set_brightness(brightness_level);
+      last_state_.brightness = brightness_level;
+    }
+
+    if (color_temp_level != last_state_.color_temp) {
+      set_color_temp(color_temp_level);
+      last_state_.color_temp = color_temp_level;
+    }
+  }
 }
 
 void MijiaLightBarComponent::toggle() {
   ESP_LOGD(TAG, "Toggling");
-  send_command(CMD_TOGGLE);
+  queue_command(CMD_TOGGLE);
 }
 
 void MijiaLightBarComponent::reset() {
   ESP_LOGD(TAG, "Resetting");
-  send_command(CMD_RESET);
+  queue_command(CMD_RESET);
 }
 
 void MijiaLightBarComponent::cooler() {
   ESP_LOGD(TAG, "Cooler");
-  send_command(CMD_COOLER);
+  queue_command(CMD_COOLER);
 }
 
 void MijiaLightBarComponent::warmer() {
   ESP_LOGD(TAG, "Warmer");
-  send_command(CMD_WARMER);
+  queue_command(CMD_WARMER);
 }
 
 void MijiaLightBarComponent::brighter() {
   ESP_LOGD(TAG, "Brighter");
-  send_command(CMD_BRIGHTER);
+  queue_command(CMD_BRIGHTER);
 }
 
 void MijiaLightBarComponent::dimmer() {
   ESP_LOGD(TAG, "Dimmer");
-  send_command(CMD_DIMMER);
+  queue_command(CMD_DIMMER);
 }
 
 void MijiaLightBarComponent::set_brightness(uint8_t brightness) {
   ESP_LOGD(TAG, "Setting brightness: %d", brightness);
-  send_command(CMD_DIMMER, 0xF0);
-  send_command(CMD_BRIGHTER, brightness);
+  queue_command(CMD_DIMMER, 0xF0);
+  queue_command(CMD_BRIGHTER, brightness);
 }
 
 void MijiaLightBarComponent::set_color_temp(uint8_t color_temp) {
   ESP_LOGD(TAG, "Setting color temperature: %d", color_temp);
-  send_command(CMD_WARMER, 0xF0);
-  send_command(CMD_COOLER, color_temp);
+  queue_command(CMD_WARMER, 0xF0);
+  queue_command(CMD_COOLER, color_temp);
 }
 
 }  // namespace mijia_light_bar
