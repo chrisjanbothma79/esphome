@@ -13,16 +13,20 @@ namespace mijia_light_bar {
 static const char *const TAG = "mijia_light_bar";
 
 void MijiaLightBarComponent::setup() {
+  ESP_LOGD(TAG, "Setting up Mijia Light Bar");
+
   // Call parent setup first to initialize nRF24
   nrf24::NRF24Device::setup_nrf24();
   if (is_failed()) {
-    ESP_LOGE(TAG, "Failed to initialize Mijia Light Bar");
+    ESP_LOGE(TAG, "Failed to initialize nRF24 radio");
     return;
   }
+
   this->radio_->disableDynamicPayloads();
   this->radio_->stopListening();
   this->radio_->powerDown();
-  ESP_LOGD(TAG, "Mijia Light Bar initialized");
+
+  ESP_LOGI(TAG, "Mijia Light Bar initialized");
 }
 
 void MijiaLightBarComponent::dump_config() {
@@ -35,7 +39,7 @@ void MijiaLightBarComponent::dump_config() {
 
 bool MijiaLightBarComponent::queue_command(uint8_t cmd, uint8_t value) {
   if (is_queue_full()) {
-    ESP_LOGW(TAG, "Command queue full, dropping command 0x%02X", cmd);
+    ESP_LOGW(TAG, "Command queue full (%d/%d), dropping command 0x%02X", queue_size_, MAX_QUEUE_SIZE, cmd);
     return false;
   }
 
@@ -46,6 +50,9 @@ bool MijiaLightBarComponent::queue_command(uint8_t cmd, uint8_t value) {
 
   queue_tail_ = (queue_tail_ + 1) % MAX_QUEUE_SIZE;
   queue_size_++;
+
+  ESP_LOGD(TAG, "Queued command 0x%02X%02X (counter: %d, queue: %d/%d)", cmd, value, counter_, queue_size_,
+           MAX_QUEUE_SIZE);
   return true;
 }
 
@@ -60,12 +67,15 @@ bool MijiaLightBarComponent::process_next_command() {
   // Check if it's time to send the next repetition
   if (now - cmd.last_sent >= delay_ms_) {
     if (cmd.remaining_repetitions == repetitions_) {
+      ESP_LOGD(TAG, "Powering up radio for new command");
       this->radio_->powerUp();
     }
 
-    ESP_LOGD(TAG, "Sending command 0x%02X%02X", cmd.packet.cmd, cmd.packet.value);
+    ESP_LOGD(TAG, "Sending command 0x%02X%02X (repetition %d/%d)", cmd.packet.cmd, cmd.packet.value,
+             repetitions_ - cmd.remaining_repetitions + 1, repetitions_);
     ESP_LOGV(TAG, "Packet %s",
              format_hex_pretty(reinterpret_cast<const uint8_t *>(&cmd.packet), sizeof(Packet)).c_str());
+
     nrf24::NRF24Device::write(reinterpret_cast<const uint8_t *>(&cmd.packet), sizeof(Packet));
 
     cmd.last_sent = now;
@@ -77,6 +87,7 @@ bool MijiaLightBarComponent::process_next_command() {
       queue_size_--;
 
       if (queue_size_ == 0) {
+        ESP_LOGD(TAG, "No more commands, powering down radio");
         this->radio_->powerDown();
       }
       return true;
@@ -89,7 +100,7 @@ bool MijiaLightBarComponent::process_next_command() {
 void MijiaLightBarComponent::loop() {
   // Process commands in the queue
   while (process_next_command()) {
-    // Process all commands that are ready
+    ESP_LOGV(TAG, "Processed command, queue size: %d", queue_size_);
   }
 }
 
@@ -97,9 +108,11 @@ void MijiaLightBarComponent::write_state(light::LightState *state) {
   bool is_on;
   state->current_values_as_binary(&is_on);
 
+  ESP_LOGD(TAG, "Received new state - On: %d", is_on);
   clear_queue();
 
   if (is_on != last_state_.is_on) {
+    ESP_LOGD(TAG, "State change: %d -> %d", last_state_.is_on, is_on);
     toggle();
     last_state_.is_on = is_on;
   }
@@ -113,12 +126,17 @@ void MijiaLightBarComponent::write_state(light::LightState *state) {
     uint8_t brightness_level = brightness_to_level(brightness);
     uint8_t color_temp_level = color_temp_to_level(color_temp);
 
+    ESP_LOGD(TAG, "Brightness: %.2f -> %d, Color Temp: %.2f -> %d", brightness, brightness_level, color_temp,
+             color_temp_level);
+
     if (brightness_level != last_state_.brightness) {
+      ESP_LOGD(TAG, "Brightness change: %d -> %d", last_state_.brightness, brightness_level);
       set_brightness(brightness_level);
       last_state_.brightness = brightness_level;
     }
 
     if (color_temp_level != last_state_.color_temp) {
+      ESP_LOGD(TAG, "Color temp change: %d -> %d", last_state_.color_temp, color_temp_level);
       set_color_temp(color_temp_level);
       last_state_.color_temp = color_temp_level;
     }
@@ -168,11 +186,11 @@ void MijiaLightBarComponent::set_color_temp(uint8_t color_temp) {
 }
 
 void MijiaLightBarComponent::init_packet(Packet &packet, uint8_t command, uint8_t value, uint8_t counter) {
+  ESP_LOGV(TAG, "Initializing packet - Command: 0x%02X, Value: 0x%02X, Counter: %d", command, value, counter);
+
   // Initialize static parts
   memcpy(packet.preamble, preamble, sizeof(preamble));
-  packet.remote_id[0] = (remote_id_ & 0xFF0000) >> 16;
-  packet.remote_id[1] = (remote_id_ & 0x00FF00) >> 8;
-  packet.remote_id[2] = remote_id_ & 0x0000FF;
+  packet.set_remote_id(remote_id_);
   packet.reserved = 0xFF;
 
   // Set command data
@@ -184,10 +202,14 @@ void MijiaLightBarComponent::init_packet(Packet &packet, uint8_t command, uint8_
   uint16_t crc = calculate_crc(reinterpret_cast<const uint8_t *>(&packet), 15);
   packet.crc[0] = (crc & 0xFF00) >> 8;
   packet.crc[1] = crc & 0x00FF;
+
+  ESP_LOGV(TAG, "Packet initialized with CRC: 0x%04X", crc);
 }
 
 uint16_t MijiaLightBarComponent::calculate_crc(const uint8_t *data, size_t length) {
-  return crc16be(data, length, 0xFFFE, 0x1021, false, false);
+  uint16_t crc = crc16be(data, length, 0xFFFE, 0x1021, false, false);
+  ESP_LOGV(TAG, "Calculated CRC: 0x%04X for %d bytes", crc, length);
+  return crc;
 }
 
 }  // namespace mijia_light_bar
