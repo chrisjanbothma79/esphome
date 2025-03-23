@@ -65,11 +65,15 @@ void GT911Touchscreen::setup() {
     if (err == i2c::ERROR_OK) {
       err = this->read(data, sizeof(data));
       if (err == i2c::ERROR_OK) {
+        auto max_x = encode_uint16(data[1], data[0]);
+        auto max_y = encode_uint16(data[3], data[2]);
+        if (this->swap_x_y_)
+          std::swap(max_x, max_y);
         if (this->x_raw_max_ == this->x_raw_min_) {
-          this->x_raw_max_ = encode_uint16(data[1], data[0]);
+          this->x_raw_max_ = max_x;
         }
         if (this->y_raw_max_ == this->y_raw_min_) {
-          this->y_raw_max_ = encode_uint16(data[3], data[2]);
+          this->y_raw_max_ = max_y;
         }
         esph_log_d(TAG, "calibration max_x/max_y %d/%d", this->x_raw_max_, this->y_raw_max_);
       }
