@@ -350,15 +350,8 @@ void I2SAudioSpeaker::speaker_task(void *params) {
                              pdMS_TO_TICKS(DMA_BUFFER_DURATION_MS * 5));
           }
 #else
-          if (audio_stream_info.get_bits_per_sample() == (uint8_t) this_speaker->data_bit_width_) {
-            i2s_channel_write(this_speaker->tx_handle_, this_speaker->data_buffer_ + i * single_dma_buffer_input_size,
-                              bytes_to_write, &bytes_written, pdMS_TO_TICKS(DMA_BUFFER_DURATION_MS * 5));
-          } /** else if (audio_stream_info.get_bits_per_sample() < (uint8_t) this_speaker->data_bit_width_) {
-            i2s_write_expand(this_speaker->parent_->get_port(),
-                             this_speaker->data_buffer_ + i * single_dma_buffer_input_size, bytes_to_write,
-                             audio_stream_info.get_bits_per_sample(), this_speaker->data_bit_width_, &bytes_written,
-                             pdMS_TO_TICKS(DMA_BUFFER_DURATION_MS * 5));
-          }*/
+          i2s_channel_write(this_speaker->tx_handle_, this_speaker->data_buffer_ + i * single_dma_buffer_input_size,
+                            bytes_to_write, &bytes_written, pdMS_TO_TICKS(DMA_BUFFER_DURATION_MS * 5));
 #endif
 
           uint32_t write_timestamp = micros();
@@ -502,7 +495,8 @@ esp_err_t I2SAudioSpeaker::start_i2s_driver_(audio::AudioStreamInfo &audio_strea
 #ifdef USE_I2S_LEGACY
   if ((i2s_bits_per_sample_t) audio_stream_info.get_bits_per_sample() > this->bits_per_sample_) {
 #else
-  if ((i2s_data_bit_width_t) audio_stream_info.get_bits_per_sample() > this->data_bit_width_) {
+  if (this->slot_bit_width_ != I2S_SLOT_BIT_WIDTH_AUTO &&
+      (i2s_slot_bit_width_t) audio_stream_info.get_bits_per_sample() > this->slot_bit_width_) {
 #endif
     // Currently can't handle the case when the incoming audio has more bits per sample than the configured value
     return ESP_ERR_NOT_SUPPORTED;
@@ -623,11 +617,14 @@ esp_err_t I2SAudioSpeaker::start_i2s_driver_(audio::AudioStreamInfo &audio_strea
 
   i2s_std_slot_config_t std_slot_cfg;
   if (this->i2s_comm_fmt_ == "std") {
-    std_slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(this->data_bit_width_, slot_mode);
+    std_slot_cfg =
+        I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG((i2s_data_bit_width_t) audio_stream_info.get_bits_per_sample(), slot_mode);
   } else if (this->i2s_comm_fmt_ == "pcm") {
-    std_slot_cfg = I2S_STD_PCM_SLOT_DEFAULT_CONFIG(this->data_bit_width_, slot_mode);
+    std_slot_cfg =
+        I2S_STD_PCM_SLOT_DEFAULT_CONFIG((i2s_data_bit_width_t) audio_stream_info.get_bits_per_sample(), slot_mode);
   } else {
-    std_slot_cfg = I2S_STD_MSB_SLOT_DEFAULT_CONFIG(this->data_bit_width_, slot_mode);
+    std_slot_cfg =
+        I2S_STD_MSB_SLOT_DEFAULT_CONFIG((i2s_data_bit_width_t) audio_stream_info.get_bits_per_sample(), slot_mode);
   }
   std_slot_cfg.slot_bit_width = this->slot_bit_width_;
   std_slot_cfg.slot_mask = slot_mask;

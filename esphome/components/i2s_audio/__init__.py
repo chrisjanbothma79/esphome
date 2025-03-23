@@ -104,14 +104,6 @@ I2S_BITS_PER_SAMPLE = {
     32: i2s_bits_per_sample_t.I2S_BITS_PER_SAMPLE_32BIT,
 }
 
-i2s_data_bit_width_t = cg.global_ns.enum("i2s_data_bit_width_t")
-I2S_DATA_BIT_WIDTH = {
-    8: i2s_data_bit_width_t.I2S_DATA_BIT_WIDTH_8BIT,
-    16: i2s_data_bit_width_t.I2S_DATA_BIT_WIDTH_16BIT,
-    24: i2s_data_bit_width_t.I2S_DATA_BIT_WIDTH_24BIT,
-    32: i2s_data_bit_width_t.I2S_DATA_BIT_WIDTH_32BIT,
-}
-
 i2s_bits_per_chan_t = cg.global_ns.enum("i2s_bits_per_chan_t")
 I2S_BITS_PER_CHANNEL = {
     "default": i2s_bits_per_chan_t.I2S_BITS_PER_CHAN_DEFAULT,
@@ -190,7 +182,6 @@ async def register_i2s_audio_component(var, config):
             slot_mask = CONF_BOTH
         cg.add(var.set_slot_mode(I2S_SLOT_MODE[slot_mode]))
         cg.add(var.set_std_slot_mask(I2S_STD_SLOT_MASK[slot_mask]))
-        cg.add(var.set_data_bit_width(I2S_DATA_BIT_WIDTH[config[CONF_BITS_PER_SAMPLE]]))
         cg.add(
             var.set_slot_bit_width(I2S_SLOT_BIT_WIDTH[config[CONF_BITS_PER_CHANNEL]])
         )

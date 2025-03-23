@@ -187,7 +187,13 @@ void I2SAudioMicrophone::start_() {
         .clk_src = clk_src,
         .mclk_multiple = I2S_MCLK_MULTIPLE_256,
     };
-    i2s_std_slot_config_t std_slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(this->data_bit_width_, this->slot_mode_);
+    i2s_data_bit_width_t data_bit_width;
+    if (this->slot_bit_width_ > I2S_SLOT_BIT_WIDTH_8BIT) {
+      data_bit_width = I2S_DATA_BIT_WIDTH_16BIT;
+    } else {
+      data_bit_width = I2S_DATA_BIT_WIDTH_8BIT;
+    }
+    i2s_std_slot_config_t std_slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(data_bit_width, this->slot_mode_);
     std_slot_cfg.slot_bit_width = this->slot_bit_width_;
     std_slot_cfg.slot_mask = this->std_slot_mask_;
 
@@ -316,23 +322,7 @@ size_t I2SAudioMicrophone::read(int16_t *buf, size_t len) {
       return 0;
   }
 #else
-  switch (this->data_bit_width_) {
-    case I2S_DATA_BIT_WIDTH_8BIT:
-    case I2S_DATA_BIT_WIDTH_16BIT:
-      return bytes_read;
-    case I2S_DATA_BIT_WIDTH_24BIT:
-    case I2S_DATA_BIT_WIDTH_32BIT: {
-      size_t samples_read = bytes_read / sizeof(int32_t);
-      for (size_t i = 0; i < samples_read; i++) {
-        int32_t temp = reinterpret_cast<int32_t *>(buf)[i] >> 14;
-        buf[i] = clamp<int16_t>(temp, INT16_MIN, INT16_MAX);
-      }
-      return samples_read * sizeof(int16_t);
-    }
-    default:
-      ESP_LOGE(TAG, "Unsupported data bit width: %d", this->data_bit_width_);
-      return 0;
-  }
+  return bytes_read;
 #endif
 }
 

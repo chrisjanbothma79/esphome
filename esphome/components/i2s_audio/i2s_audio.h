@@ -27,7 +27,6 @@ class I2SAudioBase : public Parented<I2SAudioComponent> {
   void set_i2s_role(i2s_role_t role) { this->i2s_role_ = role; }
   void set_slot_mode(i2s_slot_mode_t slot_mode) { this->slot_mode_ = slot_mode; }
   void set_std_slot_mask(i2s_std_slot_mask_t std_slot_mask) { this->std_slot_mask_ = std_slot_mask; }
-  void set_data_bit_width(i2s_data_bit_width_t data_bit_width) { this->data_bit_width_ = data_bit_width; }
   void set_slot_bit_width(i2s_slot_bit_width_t slot_bit_width) { this->slot_bit_width_ = slot_bit_width; }
 #endif
   void set_sample_rate(uint32_t sample_rate) { this->sample_rate_ = sample_rate; }
@@ -43,7 +42,6 @@ class I2SAudioBase : public Parented<I2SAudioComponent> {
   i2s_role_t i2s_role_{};
   i2s_slot_mode_t slot_mode_;
   i2s_std_slot_mask_t std_slot_mask_;
-  i2s_data_bit_width_t data_bit_width_;
   i2s_slot_bit_width_t slot_bit_width_;
 #endif
   uint32_t sample_rate_;

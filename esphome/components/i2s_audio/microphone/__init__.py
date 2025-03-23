@@ -3,10 +3,12 @@ import esphome.codegen as cg
 from esphome.components import esp32, microphone
 from esphome.components.adc import ESP32_VARIANT_ADC1_PIN_TO_CHANNEL, validate_adc_pin
 import esphome.config_validation as cv
-from esphome.const import CONF_BITS_PER_SAMPLE, CONF_ID, CONF_NUMBER
+from esphome.const import CONF_ID, CONF_NUMBER
 
 from .. import (
+    CONF_CHANNEL,
     CONF_I2S_DIN_PIN,
+    CONF_MONO,
     CONF_RIGHT,
     I2SAudioIn,
     i2s_audio_component_schema,
@@ -36,14 +38,18 @@ def validate_esp32_variant(config):
         if config[CONF_PDM]:
             if variant not in PDM_VARIANTS:
                 raise cv.Invalid(f"{variant} does not support PDM")
-            if config[CONF_BITS_PER_SAMPLE] != 16:
-                raise cv.Invalid("PDM mode supports only 16 bit per sample")
         return config
     if config[CONF_ADC_TYPE] == "internal":
         if variant not in INTERNAL_ADC_VARIANTS:
             raise cv.Invalid(f"{variant} does not have an internal ADC")
         return config
     raise NotImplementedError
+
+
+def validate_channel(config):
+    if config[CONF_CHANNEL] == CONF_MONO:
+        raise cv.Invalid(f"I2S microphone does not support {CONF_MONO}.")
+    return config
 
 
 BASE_SCHEMA = microphone.MICROPHONE_SCHEMA.extend(
@@ -74,6 +80,7 @@ CONFIG_SCHEMA = cv.All(
         key=CONF_ADC_TYPE,
     ),
     validate_esp32_variant,
+    validate_channel,
 )
 
 
