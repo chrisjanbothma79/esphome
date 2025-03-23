@@ -5,6 +5,7 @@
 #include "esphome/components/nrf24/nrf24.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
+#include <queue>
 
 namespace esphome {
 namespace mijia_light_bar {
@@ -80,26 +81,17 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
   /** @brief Set the remote ID for the light bar
    * @param id 24-bit remote ID
    */
-  void set_remote_id(uint32_t id) {
-    ESP_LOGD(TAG, "Setting remote ID: 0x%06X", id);
-    remote_id_ = id;
-  }
+  void set_remote_id(uint32_t id) { remote_id_ = id; }
 
   /** @brief Set number of command repetitions
    * @param repetitions Number of times to repeat each command
    */
-  void set_repetitions(uint8_t repetitions) {
-    ESP_LOGD(TAG, "Setting repetitions: %d", repetitions);
-    repetitions_ = repetitions;
-  }
+  void set_repetitions(uint8_t repetitions) { repetitions_ = repetitions; }
 
   /** @brief Set delay between command repetitions
    * @param delay_ms Delay in milliseconds
    */
-  void set_delay_ms(uint8_t delay_ms) {
-    ESP_LOGD(TAG, "Setting delay: %d ms", delay_ms);
-    delay_ms_ = delay_ms;
-  }
+  void set_delay_ms(uint8_t delay_ms) { delay_ms_ = delay_ms; }
 
   /** @brief Toggle light on/off */
   void toggle();
@@ -189,10 +181,7 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
   };
 
   static constexpr size_t MAX_QUEUE_SIZE = 5;
-  std::array<Command, MAX_QUEUE_SIZE> command_queue_;
-  size_t queue_head_{0};
-  size_t queue_tail_{0};
-  size_t queue_size_{0};
+  std::queue<Command> command_queue_;
 
   /** @brief Light bar state structure */
   struct LightBarState {
@@ -201,7 +190,6 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
     uint8_t color_temp{8};
   };
   LightBarState last_state_;
-  static constexpr byte preamble[8] = {0x53, 0x39, 0x14, 0xDD, 0x1C, 0x49, 0x34, 0x12};
 
   /** @brief Queue a command for sending
    * @param cmd Command to queue
@@ -214,23 +202,6 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
    * @return true if a command was processed, false if queue is empty
    */
   bool process_next_command();
-
-  /** @brief Check if command queue is full
-   * @return true if queue is full
-   */
-  bool is_queue_full() const { return queue_size_ >= MAX_QUEUE_SIZE; }
-
-  /** @brief Check if command queue is empty
-   * @return true if queue is empty
-   */
-  bool is_queue_empty() const { return queue_size_ == 0; }
-
-  /** @brief Clear the command queue */
-  void clear_queue() {
-    queue_head_ = 0;
-    queue_tail_ = 0;
-    queue_size_ = 0;
-  }
 
   /** @brief Initialize a packet for sending
    * @param packet Packet to initialize

@@ -11,6 +11,8 @@ namespace esphome {
 namespace mijia_light_bar {
 
 static const char *const TAG = "mijia_light_bar";
+// 0x533914DD1C493412
+static const uint8_t PREAMBLE[8] = {0x53, 0x39, 0x14, 0xDD, 0x1C, 0x49, 0x34, 0x12};
 
 void MijiaLightBarComponent::setup() {
   ESP_LOGD(TAG, "Setting up Mijia Light Bar");
@@ -38,30 +40,28 @@ void MijiaLightBarComponent::dump_config() {
 }
 
 bool MijiaLightBarComponent::queue_command(uint8_t cmd, uint8_t value) {
-  if (is_queue_full()) {
-    ESP_LOGW(TAG, "Command queue full (%d/%d), dropping command 0x%02X", queue_size_, MAX_QUEUE_SIZE, cmd);
+  if (command_queue_.size() >= MAX_QUEUE_SIZE) {
+    ESP_LOGW(TAG, "Command queue full, dropping command 0x%02X", cmd);
     return false;
   }
 
-  Command &cmd_entry = command_queue_[queue_tail_];
+  Command cmd_entry;
   init_packet(cmd_entry.packet, cmd, value, ++counter_);
   cmd_entry.remaining_repetitions = repetitions_;
   cmd_entry.last_sent = 0;
 
-  queue_tail_ = (queue_tail_ + 1) % MAX_QUEUE_SIZE;
-  queue_size_++;
-
-  ESP_LOGD(TAG, "Queued command 0x%02X%02X (counter: %d, queue: %d/%d)", cmd, value, counter_, queue_size_,
+  command_queue_.push(cmd_entry);
+  ESP_LOGD(TAG, "Queued command 0x%02X%02X (counter: %d, queue: %d/%d)", cmd, value, counter_, command_queue_.size(),
            MAX_QUEUE_SIZE);
   return true;
 }
 
 bool MijiaLightBarComponent::process_next_command() {
-  if (is_queue_empty()) {
+  if (command_queue_.empty()) {
     return false;
   }
 
-  Command &cmd = command_queue_[queue_head_];
+  Command &cmd = command_queue_.front();
   uint32_t now = millis();
 
   // Check if it's time to send the next repetition
@@ -83,10 +83,9 @@ bool MijiaLightBarComponent::process_next_command() {
 
     if (cmd.remaining_repetitions == 0) {
       // Command completed, remove from queue
-      queue_head_ = (queue_head_ + 1) % MAX_QUEUE_SIZE;
-      queue_size_--;
+      command_queue_.pop();
 
-      if (queue_size_ == 0) {
+      if (command_queue_.empty()) {
         ESP_LOGD(TAG, "No more commands, powering down radio");
         this->radio_->powerDown();
       }
@@ -100,16 +99,13 @@ bool MijiaLightBarComponent::process_next_command() {
 void MijiaLightBarComponent::loop() {
   // Process commands in the queue
   while (process_next_command()) {
-    ESP_LOGV(TAG, "Processed command, queue size: %d", queue_size_);
+    ESP_LOGV(TAG, "Processed command, queue size: %d", command_queue_.size());
   }
 }
 
 void MijiaLightBarComponent::write_state(light::LightState *state) {
   bool is_on;
   state->current_values_as_binary(&is_on);
-
-  ESP_LOGD(TAG, "Received new state - On: %d", is_on);
-  clear_queue();
 
   if (is_on != last_state_.is_on) {
     ESP_LOGD(TAG, "State change: %d -> %d", last_state_.is_on, is_on);
@@ -189,7 +185,7 @@ void MijiaLightBarComponent::init_packet(Packet &packet, uint8_t command, uint8_
   ESP_LOGV(TAG, "Initializing packet - Command: 0x%02X, Value: 0x%02X, Counter: %d", command, value, counter);
 
   // Initialize static parts
-  memcpy(packet.preamble, preamble, sizeof(preamble));
+  memcpy(packet.preamble, PREAMBLE, sizeof(PREAMBLE));
   packet.set_remote_id(remote_id_);
   packet.reserved = 0xFF;
 
