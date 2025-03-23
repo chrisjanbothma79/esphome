@@ -188,7 +188,7 @@ void I2SAudioMicrophone::start_() {
         .mclk_multiple = I2S_MCLK_MULTIPLE_256,
     };
     i2s_data_bit_width_t data_bit_width;
-    if (this->slot_bit_width_ > I2S_SLOT_BIT_WIDTH_8BIT) {
+    if (this->slot_bit_width_ != I2S_SLOT_BIT_WIDTH_8BIT) {
       data_bit_width = I2S_DATA_BIT_WIDTH_16BIT;
     } else {
       data_bit_width = I2S_DATA_BIT_WIDTH_8BIT;
@@ -322,6 +322,27 @@ size_t I2SAudioMicrophone::read(int16_t *buf, size_t len) {
       return 0;
   }
 #else
+#ifndef USE_ESP32_VARIANT_ESP32
+  // For newer ESP32 variants 8 bit data needs to be extended to 16 bit.
+  if (this->slot_bit_width_ == I2S_SLOT_BIT_WIDTH_8BIT) {
+    size_t samples_read = bytes_read / sizeof(int8_t);
+    for (size_t i = samples_read - 1; i >= 0; i--) {
+      int16_t temp = static_cast<int16_t>(reinterpret_cast<int8_t *>(buf)[i]) << 8;
+      buf[i] = temp;
+    }
+    return samples_read * sizeof(int16_t);
+  }
+#else
+  // For ESP32 8/16 bit standard mono mode samples need to be switched.
+  if (this->slot_mode_ == I2S_SLOT_MODE_MONO && this->slot_bit_width_ <= 16 && !this->pdm_) {
+    size_t samples_read = bytes_read / sizeof(int16_t);
+    for (int i = 0; i < samples_read; i += 2) {
+      int16_t tmp = buf[i];
+      buf[i] = buf[i + 1];
+      buf[i + 1] = tmp;
+    }
+  }
+#endif
   return bytes_read;
 #endif
 }

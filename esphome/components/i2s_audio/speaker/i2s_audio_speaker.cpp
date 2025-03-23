@@ -331,6 +331,18 @@ void I2SAudioSpeaker::speaker_task(void *params) {
                              bytes_read / sizeof(int16_t), this_speaker->q15_volume_factor_);
         }
 
+#ifdef USE_ESP32_VARIANT_ESP32
+        // For ESP32 8/16 bit mono mode samples need to be switched.
+        if (audio_stream_info.get_channels() == 1 && audio_stream_info.get_bits_per_sample() <= 16) {
+          size_t len = bytes_read / sizeof(int16_t);
+          int16_t *tmp_buf = (int16_t *) this_speaker->data_buffer_;
+          for (int i = 0; i < len; i += 2) {
+            int16_t tmp = tmp_buf[i];
+            tmp_buf[i] = tmp_buf[i + 1];
+            tmp_buf[i + 1] = tmp;
+          }
+        }
+#endif
         // Write the audio data to a single DMA buffer at a time to reduce latency for the audio duration played
         // callback.
         const uint32_t batches = (bytes_read + single_dma_buffer_input_size - 1) / single_dma_buffer_input_size;
