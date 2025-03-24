@@ -18,6 +18,7 @@ from esphome.const import (
     CONF_PROTOCOL,
     CONF_SENSOR,
     CONF_TEMPERATURE,
+    CONF_WAIT_TIME,
     # DEVICE_CLASS_FREQUENCY,
     DEVICE_CLASS_SIGNAL_STRENGTH,
     DEVICE_CLASS_TEMPERATURE,
@@ -80,7 +81,6 @@ CONF_LNA_PRIORITY = "lna_priority"
 CONF_FILTER_LENGTH_FSK_MSK = "filter_length_fsk_msk"
 CONF_FILTER_LENGTH_ASK_OOK = "filter_length_ask_ook"
 CONF_FREEZE = "freeze"
-CONF_WAIT_TIME = "wait_time"
 CONF_HYST_LEVEL = "hyst_level"
 
 # sensor

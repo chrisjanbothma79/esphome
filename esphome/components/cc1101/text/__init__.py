@@ -15,16 +15,10 @@ from esphome.core import CORE
 from esphome.cpp_generator import MockObjClass
 from esphome.cpp_helpers import setup_entity
 
-from .. import (
-    CONF_CC1101_ID,
-    CONF_TUNER,
-    ICON_FORMAT_TEXT,
-    CC1101Component,
-    for_each_conf,
-    ns,
-)
+from .. import CONF_CC1101_ID, CONF_TUNER, CC1101Component, for_each_conf, ns
 
 CONF_DUMMY_TEXT = "dummy_text"
+ICON_FORMAT_TEXT = "mdi:format-text"
 
 DummyText = ns.class_("DummyText", text.Text)
 

@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import select
 import esphome.config_validation as cv
-from esphome.const import ENTITY_CATEGORY_CONFIG
+from esphome.const import CONF_WAIT_TIME, ENTITY_CATEGORY_CONFIG
 
 from .. import (
     CARRIER_SENSE_REL_THR,
@@ -17,7 +17,6 @@ from .. import (
     CONF_MAX_LNA_GAIN,
     CONF_MODULATION,
     CONF_TUNER,
-    CONF_WAIT_TIME,
     FILTER_LENGTH_ASK_OOK,
     FILTER_LENGTH_FSK_MSK,
     FREEZE,
