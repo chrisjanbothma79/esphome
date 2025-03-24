@@ -1,23 +1,10 @@
 #include "cc1101.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
-#include <cstdio>
-#include <cmath>
 #include <climits>
+#include <cmath>
+#include <cstdio>
 
-/*
-#ifdef USE_ARDUINO
-#include <Arduino.h>
-#else  // USE_ESP_IDF
-#include <driver/gpio.h>
-int32_t map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max) {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-#endif
-int32_t mapfloat(float x, float in_min, float in_max, float out_min, float out_max) {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-*/
 namespace esphome {
 namespace cc1101 {
 
@@ -593,7 +580,7 @@ void CC1101Component::split_float_(float value, int mbits, uint8_t &e, uint32_t 
   }
 
   int e_tmp;
-  float m_tmp = frexp(value, &e_tmp);
+  float m_tmp = std::frexp(value, &e_tmp);
 
   if (e_tmp <= mbits) {
     ESP_LOGW(TAG, "float_split(%f, %d): exponent would be negative, set to minimum", value, mbits);
@@ -648,7 +635,15 @@ template<typename T> T GET_ENUM_LAST(T value) { return T::LAST; }
 
 // TODO: std::clamp isn't here yet
 #define clamp(v, lo, hi) std::max(std::min(v, hi), lo)
+/*
+static int mapint(int x, int in_min, int in_max, int out_min, int out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
 
+static int32_t mapfloat(float x, float in_min, float in_max, float out_min, float out_max) {
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+*/
 // tuner_*
 
 void CC1101Component::set_tuner_frequency(float value) {
@@ -691,7 +686,7 @@ void CC1101Component::set_tuner_frequency(float value) {
   // calibration
   /*
     if (freq >= 300000 && freq <= 348000) {
-      this->write_(Register::FSCTRL0, (uint8_t) map(freq, 300000, 348000, 24, 28));
+      this->write_(Register::FSCTRL0, (uint8_t) mapint(freq, 300000, 348000, 24, 28));
 
       if (freq < 322880) {
         this->write_(Register::TEST0, 0x0B);
@@ -704,7 +699,7 @@ void CC1101Component::set_tuner_frequency(float value) {
         }
       }
     } else if (freq >= 378000 && freq <= 464000) {
-      this->write_(Register::FSCTRL0, (uint8_t) map(freq, 378000, 464000, 31, 38));
+      this->write_(Register::FSCTRL0, (uint8_t) mapint(freq, 378000, 464000, 31, 38));
 
       if (freq < 430500) {
         this->write_(Register::TEST0, 0x0B);
@@ -717,7 +712,7 @@ void CC1101Component::set_tuner_frequency(float value) {
         }
       }
     } else if (freq >= 779000 && freq < 900000) {
-      this->write_(Register::FSCTRL0, (uint8_t) map(freq, 779000, 899000, 65, 76));
+      this->write_(Register::FSCTRL0, (uint8_t) mapint(freq, 779000, 899000, 65, 76));
 
       if (freq < 861000) {
         this->write_(Register::TEST0, 0x0B);
@@ -730,7 +725,7 @@ void CC1101Component::set_tuner_frequency(float value) {
         }
       }
     } else if (freq >= 900000 && freq <= 928000) {
-      this->write_(Register::FSCTRL0, (uint8_t) map(freq, 900000, 928000, 77, 79));
+      this->write_(Register::FSCTRL0, (uint8_t) mapint(freq, 900000, 928000, 77, 79));
       //if (freq < ) {
       //  this->write_(Register::TEST0, 0x0B);
       //} else {
