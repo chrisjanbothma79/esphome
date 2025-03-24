@@ -189,6 +189,11 @@ std::string NECProtocol::get_protocol_type_and_fields_str(const NECData &data) {
   return debug_message;
 }
 
+void NECBinarySensor::dump_config() {
+  RemoteReceiverBinarySensorBase::dump_config();
+  ESP_LOGCONFIG(TAG, "  Repeat Timeout: %" PRIu16 " ms", this->repeat_timeout_ms_);
+}
+
 bool NECBinarySensor::matches(RemoteReceiveData src) {
   auto proto = NECProtocol();
   auto res = proto.decode(src);

@@ -162,6 +162,8 @@ class NECBinarySensor : public RemoteReceiverBinarySensor<NECProtocol> {
   /// @return True if a match is found and the sensor state is updated, false otherwise.
   bool on_receive(RemoteReceiveData src) override;
 
+  void dump_config() override;
+
  protected:
   /// @brief Timeout duration (in milliseconds) for detecting repeat codes before turning off.
   uint8_t repeat_timeout_ms_{130};
