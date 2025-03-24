@@ -11,71 +11,56 @@ enum class NECCodeType : uint8_t {
   REPEATS_ONLY         ///< Repeat code without address and command
 };
 
-/// @brief Struct to store NEC protocol data.
-/// @details This structure represents a decoded NEC infrared signal. It includes fields for
-///          address, command, repeat count, and type, supporting both full frames and repeat codes.
+/// @brief Represents NEC infrared protocol data.
+/// @details This struct stores a decoded NEC infrared signal, including its address, command, repeat count, and type.
 struct NECData {
-  /// @brief NEC address field, stored as a 16-bit value.
+  /// @brief NEC address (16-bit).
   /// @details The NEC protocol supports two addressing modes:
-  ///          - **Standard NEC (8-bit addressing)**: The `address_upper` field is the logical inverse of
-  ///          `address_lower`.
-  ///          - **Extended NEC (16-bit addressing)**: Both `address_lower` and `address_upper` contain independent
-  ///          values. If the upper byte is not the inverse of the lower byte, it is treated as an extended NEC address
-  ///          in logs.
+  ///          - **Standard NEC (8-bit address)**: `address_bytes.hi` is the inverse of `address_bytes.lo`.
+  ///          - **Extended NEC (16-bit address)**: Both bytes contain independent values.
   union {
-    uint16_t address;  ///< Full 16-bit NEC address (used in extended NEC mode).
+    uint16_t address;  ///< Full 16-bit NEC address.
     struct {
-      uint8_t address_lower;  ///< Lower 8 bits of the address.
-      uint8_t address_upper;  ///< Upper 8 bits of the address (inverse of lower in standard NEC).
-    };
+      uint8_t lo;  ///< Lower 8 bits.
+      uint8_t hi;  ///< Upper 8 bits (inverse of lower in standard NEC).
+    } address_bytes;
   };
 
-  /// @brief NEC command field, always stored as a 16-bit value.
-  /// @details The NEC protocol defines an **8-bit command**, but it is transmitted as **16 bits**, where:
-  ///          - `command_lower` holds the actual 8-bit command.
-  ///          - `command_upper` is its logical inverse.
-  ///          Unlike some implementations that automatically compute the inverse, this protocol requires both values
-  ///          to be explicitly provided. This ensures support for **non-standard NEC signals** where the inverse byte
-  ///          may not strictly adhere to the NEC specification.
+  /// @brief NEC command (16-bit).
+  /// @details An NEC command is always 8 bits but transmitted as 16 bits:
+  ///          - `command_bytes.lo`: Actual command.
+  ///          - `command_bytes.hi`: Logical inverse of `command_bytes.lo` (in standard NEC).
+  ///          Some non-standard signals may not follow this inversion rule.
   union {
-    uint16_t
-        command;  ///< Full 16-bit NEC command (lower 8 bits hold the actual command, upper 8 bits are its inverse).
+    uint16_t command;  ///< Full 16-bit NEC command.
     struct {
-      uint8_t command_lower;  ///< Lower 8 bits (actual command value).
-      uint8_t command_upper;  ///< Upper 8 bits (logical inverse of `command_lower` in standard NEC).
-    };
+      uint8_t lo;  ///< Lower 8 bits (actual command).
+      uint8_t hi;  ///< Upper 8 bits (logical inverse in standard NEC).
+    } command_bytes;
   };
 
-  uint16_t repeats;  ///< Number of repeat codes received or transmitted.
-  NECCodeType type;  ///< Type of NEC signal (frame with repeats or repeat codes only).
+  uint16_t repeats;  ///< Number of repeat codes received or to be transmitted.
+  NECCodeType type;  ///< Type of NEC signal (full frame or repeats only).
 
-  /// @brief Equality operator for NECData.
-  /// @details Compares two NECData instances to determine if they represent the same signal.
-  ///          The comparison logic varies based on the NECCodeType:
-  ///          - For `REPEATS_ONLY`, only the repeat count is compared.
-  ///          - For `FRAME_WITH_REPEATS`, the address, command, and repeat count must all match.
-  /// @param[in] rhs The NECData instance to compare with.
-  /// @return True if both instances represent the same NEC signal, false otherwise.
+  /// @brief Compares two NECData instances.
+  /// @details Checks if two NEC signals are identical:
+  ///          - If `type` is `NECCodeType::REPEATS_ONLY`, only the repeat count is compared.
+  ///          - If `type` is `NECCodeType::FRAME_WITH_REPEATS`, both address and command must match.
+  /// @param[in] rhs Another NECData instance.
+  /// @return True if both instances are equal, false otherwise.
   bool operator==(const NECData &rhs) const {
-    if (type != rhs.type) {
-      return false;
-    }
-
     switch (type) {
       case NECCodeType::REPEATS_ONLY:
         return repeats == rhs.repeats;
       case NECCodeType::FRAME_WITH_REPEATS:
-        // Compare repeats to allow differentiation based on button hold duration in the future.
-        // This enables NEC data to store information about how long a button was pressed.
-        return address == rhs.address && command == rhs.command && repeats == rhs.repeats;
-      default:
-        return false;
+        return address == rhs.address && command == rhs.command;
     }
+    return false;
   };
 };
 
 /// @brief Predefined single repeat code `NECData` returned by `NECProtocol::decode(RemoteReceiveData)`
-static const NECData NEC_REPEAT_CODE_DATA = {{0}, {0}, 1, NECCodeType::REPEATS_ONLY};
+static const NECData NEC_REPEAT_CODE_DATA = {0, 0, 1, NECCodeType::REPEATS_ONLY};
 
 /// @brief NECProtocol handles encoding, decoding, and validation of NEC infrared signals.
 /// @details This class provides methods to encode and decode NEC IR signals while ensuring compliance
@@ -85,8 +70,9 @@ static const NECData NEC_REPEAT_CODE_DATA = {{0}, {0}, 1, NECCodeType::REPEATS_O
 /// ## **Decoding Behavior**
 /// The current implementation does **not** support returning a single `NECData` structure containing both
 /// the initial frame and its associated repeat codes. Instead:
-/// - **Frame decoding**: When a `FRAME_WITH_REPEATS` signal type is received, it is decoded with `repeats = 0`.
-/// - **Repeat code handling**: Each repeat code (`REPEATS_ONLY`) is decoded **individually**, returning
+/// - **Frame decoding**: When a `NECCodeType::FRAME_WITH_REPEATS` signal type is received, it is decoded with `repeats
+/// = 0`.
+/// - **Repeat code handling**: Each repeat code (`NECCodeType::REPEATS_ONLY`) is decoded **individually**, returning
 ///   `NEC_REPEAT_CODE_DATA` for every repeat code received after the initial frame.
 ///
 /// This means the user must handle frame and repeat codes separately, as repeat signals are not appended
@@ -102,7 +88,7 @@ class NECProtocol : public RemoteProtocol<NECData> {
   /// @note `NECCodeType::REPEATS_ONLY` `data.type` is invalid if `data.repeats` is 0, and no data will be encoded.
   /// @warning A high repeat count may cause a WDT timeout.
   /// @param[out] dst Destination `RemoteTransmitData` for the encoded signal.
-  /// @param[in] data NEC data containing type, address, command, and repeat count.
+  /// @param[in] data `NECData` containing type, address, command, and repeat count.
   void encode(RemoteTransmitData *dst, const NECData &data) override;
 
   /// @brief Decodes `NECData` from `RemoteReceiveData`.
@@ -120,22 +106,19 @@ class NECProtocol : public RemoteProtocol<NECData> {
   void dump(const NECData &data) override;
 
   /// @brief Determines if the NEC address follows the extended (16-bit) format.
-  /// @details In standard NEC (8-bit addressing), `address_upper` should be the logical inverse of `address_lower`.
+  /// @details In standard NEC (8-bit addressing), upper address byte should be the logical inverse of lower address
+  /// byte.
   ///          If this condition is not met, the address is considered extended (16-bit NEC mode).
   /// @param[in] data The NECData structure containing the address.
   /// @return True if the address is in extended (16-bit) format, false if it follows standard (8-bit) NEC addressing.
-  bool is_extended(const NECData &data) const {
-    return data.address_lower != static_cast<uint8_t>(~data.address_upper);
-  }
+  static bool is_address_extended(const NECData &data) { return data.address_bytes.hi != ~data.address_bytes.lo; }
 
   /// @brief Validates whether the NEC command follows the standard format.
-  /// @details The NEC protocol requires the upper 8 bits of the command (`command_upper`)
-  ///          to be the logical inverse of the lower 8 bits (`command_lower`).
+  /// @details The NEC protocol requires the upper byte of the command to be the logical inverse of the lower byte.
+  ///          If this condition is not met, the command is considered invalid.
   /// @param[in] data The NECData structure containing the command.
   /// @return True if the command follows the NEC specification, false otherwise.
-  bool is_command_valid(const NECData &data) const {
-    return data.command_lower == static_cast<uint8_t>(~data.command_upper);
-  }
+  static bool is_command_valid(const NECData &data) { return data.command_bytes.hi == ~data.command_bytes.lo; }
 
   /// @brief Generates a formatted debug string describing the NEC signal type and its fields.
   /// @details This function constructs a human-readable representation of an NEC signal,
@@ -145,7 +128,7 @@ class NECProtocol : public RemoteProtocol<NECData> {
   ///          - **Unknown Type**: Fallback case for unrecognized NEC types.
   /// @param[in] data The `NECData` structure containing the decoded NEC signal.
   /// @return A formatted string describing the NEC signal type and its fields.
-  std::string get_protocol_type_and_fields(const NECData &data) const;
+  static std::string get_protocol_type_and_fields_str(const NECData &data);
 };
 
 /// @brief NEC-based binary sensor for detecting button presses via infrared signals.
@@ -157,6 +140,8 @@ class NECProtocol : public RemoteProtocol<NECData> {
 class NECBinarySensor : public RemoteReceiverBinarySensor<NECProtocol> {
  public:
   NECBinarySensor() : RemoteReceiverBinarySensor<NECProtocol>() {}
+
+  void set_repeat_timeout_ms(uint8_t repeat_timeout_ms) { this->repeat_timeout_ms_ = repeat_timeout_ms; }
 
   /// @brief Checks if the received IR signal matches the expected NEC frame.
   /// @details Determines if the incoming NEC signal corresponds to the stored reference data.

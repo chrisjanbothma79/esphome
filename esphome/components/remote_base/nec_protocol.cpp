@@ -23,14 +23,14 @@ static const uint32_t SPACE_INTER_FRAME_US = 40000;  // Inter-frame space: 40ms
 static const uint32_t SPACE_AGC_REPEAT_US = 96187;   // AGC Repeat space: ~96.1875ms
 
 void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
-  ESP_LOGD(TAG, "Encoding %s", this->get_protocol_type_and_fields(data).c_str());
+  ESP_LOGD(TAG, "Encoding %s", this->get_protocol_type_and_fields_str(data).c_str());
 
   if (data.repeats > 20) {
     ESP_LOGW(TAG, "High repeat count may cause WDT timeout.");
   }
 
-  if (data.repeats == 0 && data.type != NECCodeType::FRAME_WITH_REPEATS) {
-    ESP_LOGE(TAG, "NECData repeat count must be greater than 0 for type NECCodeType::FRAME_WITH_REPEATS.");
+  if (data.repeats == 0 && data.type == NECCodeType::REPEATS_ONLY) {
+    ESP_LOGE(TAG, "Repeat count must be greater than 0 for repeat only codes.");
   }
 
   // Repeat codes (4 per repeat)
@@ -145,24 +145,24 @@ optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
   }
 
   // Message frame received, `data.type = NECCodeType::FRAME_WITH_REPEATS` is already set
-  if (!this->is_command_valid(data)) {
+  if (NECProtocol::is_command_valid(data)) {
     ESP_LOGW(TAG, "Decoded command invalid: 0x%04X", data.command);
   }
 
-  ESP_LOGV(TAG, "Decoded %s", this->get_protocol_type_and_fields(data).c_str());
+  ESP_LOGV(TAG, "Decoded %s", this->get_protocol_type_and_fields_str(data).c_str());
 
   return data;
 }
 
 void NECProtocol::dump(const NECData &data) {
-  ESP_LOGI(TAG, "Received %s", this->get_protocol_type_and_fields(data).c_str());
+  ESP_LOGI(TAG, "Received %s", this->get_protocol_type_and_fields_str(data).c_str());
 }
 
-std::string NECProtocol::get_protocol_type_and_fields(const NECData &data) const {
+std::string NECProtocol::get_protocol_type_and_fields_str(const NECData &data) {
   std::string debug_message = "NEC ";
   switch (data.type) {
     case NECCodeType::FRAME_WITH_REPEATS:
-      debug_message += str_sprintf("Frame (%u-bit address)", this->is_extended(data) ? 16 : 8);
+      debug_message += str_sprintf("Frame (%u-bit address)", NECProtocol::is_address_extended(data) ? 16 : 8);
       break;
     case NECCodeType::REPEATS_ONLY:
       debug_message += "Repeat Code:";
@@ -173,14 +173,15 @@ std::string NECProtocol::get_protocol_type_and_fields(const NECData &data) const
 
   if (data.type != NECCodeType::REPEATS_ONLY) {
     debug_message += ": address=0x";
-    if (this->is_extended(data)) {
-      debug_message += str_sprintf("%04X", data.address);
+    if (NECProtocol::is_address_extended(data)) {
+      debug_message += str_sprintf("%04" PRIX16, data.address);
     } else {
-      debug_message += str_sprintf("%02X, address#=0x%02X", data.address_lower, data.address_upper);
+      debug_message += str_sprintf("%02" PRIX8 ", address#=0x%02" PRIX8, data.address_bytes.lo, data.address_bytes.hi);
     }
 
-    debug_message += str_sprintf(", command=0x%02X, command#=0x%02X, command_valid=%s,", data.command_lower,
-                                 data.command_upper, YESNO(this->is_command_valid(data)));
+    debug_message +=
+        str_sprintf(", command=0x%02" PRIX8 ", command#=0x%02" PRIX8 ", command_valid=%s,", data.command_bytes.lo,
+                    data.command_bytes.hi, YESNO(NECProtocol::is_command_valid(data)));
   }
 
   debug_message += str_sprintf(" repeats=%" PRIu16, data.repeats);

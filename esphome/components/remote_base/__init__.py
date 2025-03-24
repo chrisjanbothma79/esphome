@@ -29,6 +29,7 @@ from esphome.const import (
     CONF_SECOND,
     CONF_STATE,
     CONF_SYNC,
+    CONF_TIMEOUT,
     CONF_TIMES,
     CONF_TRIGGER_ID,
     CONF_TYPE,
@@ -37,7 +38,7 @@ from esphome.const import (
     CONF_WAND_ID,
     CONF_ZERO,
 )
-from esphome.core import coroutine
+from esphome.core import TimePeriod, coroutine
 from esphome.schema_extractors import SCHEMA_EXTRACT, schema_extractor
 from esphome.util import Registry, SimpleRegistry
 
@@ -751,25 +752,39 @@ async def keeloq_action(var, config, args):
 
 # NEC
 NECData, NECBinarySensor, NECTrigger, NECAction, NECDumper = declare_protocol("NEC")
-nec_code_type_enum_class = ns.enum("NECCodeType", is_class=True)
+NECCodeType = ns.enum("NECCodeType", is_class=True)
 NEC_CODE_TYPES = {
-    TYPE_FRAME_WITH_REPEATS: nec_code_type_enum_class.FRAME_WITH_REPEATS,
-    TYPE_REPEATS_ONLY: nec_code_type_enum_class.REPEATS_ONLY,
+    TYPE_FRAME_WITH_REPEATS: NECCodeType.FRAME_WITH_REPEATS,
+    TYPE_REPEATS_ONLY: NECCodeType.REPEATS_ONLY,
 }
 
-NEC_SCHEMA = cv.Schema(
+NEC_FRAME_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ADDRESS): cv.hex_uint16_t,
         cv.Required(CONF_COMMAND): cv.hex_uint16_t,
+    }
+)
+
+NEC_TRANSMIT_SCHEMA = cv.Schema(
+    {
         cv.Optional(CONF_REPEATS, default=0): cv.uint16_t,
         cv.Optional(CONF_TYPE, default=TYPE_FRAME_WITH_REPEATS): cv.enum(
             NEC_CODE_TYPES, lower=True
         ),
     }
-)
+).extend(NEC_FRAME_SCHEMA)
+
+NEC_RECEIVE_SCHEMA = cv.Schema(
+    {
+        cv.Optional(CONF_TIMEOUT, default="130ms"): cv.All(
+            cv.positive_time_period_milliseconds,
+            cv.Range(min=TimePeriod(milliseconds=90), max=TimePeriod(milliseconds=170)),
+        ),
+    }
+).extend(NEC_FRAME_SCHEMA)
 
 
-@register_binary_sensor("nec", NECBinarySensor, NEC_SCHEMA)
+@register_binary_sensor("nec", NECBinarySensor, NEC_RECEIVE_SCHEMA)
 def nec_binary_sensor(var, config):
     cg.add(
         var.set_data(
@@ -777,11 +792,12 @@ def nec_binary_sensor(var, config):
                 NECData,
                 ("address", config[CONF_ADDRESS]),
                 ("command", config[CONF_COMMAND]),
-                ("repeats", config[CONF_REPEATS]),
-                ("type", config[CONF_TYPE]),
+                ("repeats", 0),
+                ("type", NEC_CODE_TYPES[TYPE_FRAME_WITH_REPEATS]),
             )
         )
     )
+    cg.add(var.set_repeat_timeout_ms(config[CONF_TIMEOUT]))
 
 
 @register_trigger("nec", NECTrigger, NECData)
@@ -794,7 +810,7 @@ def nec_dumper(var, config):
     pass
 
 
-@register_action("nec", NECAction, NEC_SCHEMA)
+@register_action("nec", NECAction, NEC_TRANSMIT_SCHEMA)
 async def nec_action(var, config, args):
     template_ = await cg.templatable(config[CONF_ADDRESS], args, cg.uint16)
     cg.add(var.set_address(template_))
@@ -802,7 +818,7 @@ async def nec_action(var, config, args):
     cg.add(var.set_command(template_))
     template_ = await cg.templatable(config[CONF_REPEATS], args, cg.uint16)
     cg.add(var.set_repeats(template_))
-    template_ = await cg.templatable(config[CONF_TYPE], args, nec_code_type_enum_class)
+    template_ = await cg.templatable(config[CONF_TYPE], args, NECCodeType)
     cg.add(var.set_type(template_))
 
 
