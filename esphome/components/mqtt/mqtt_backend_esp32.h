@@ -219,7 +219,13 @@ class MQTTBackendESP32 final : public MQTTBackend {
       elem.payload_len = 0;
     }
 
-    return xQueueSend(this->mqtt_queue_, &elem, 20);
+    if (xQueueSend(this->mqtt_queue_, &elem, 20) == pdPASS) {
+      return true;
+    } else {
+      free(elem.topic);   // NOLINT
+      free(elem.payload); // NOLINT
+      return false;
+    }
   }
 #endif
 
