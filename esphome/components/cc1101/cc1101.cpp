@@ -1,4 +1,5 @@
 #include "cc1101.h"
+#include "cc1101pa.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 #include <climits>
@@ -14,8 +15,7 @@ CC1101Component::CC1101Component() {
   this->gdo0_ = nullptr;
   this->gdo0_adc_ = nullptr;
   this->reset_ = false;
-  this->xtal_frequency_ = 26000;  // KHz (any way to detect it?)
-  this->pa_ = 12;
+  this->output_power_ = OUTPUT_POWER_MAX;
   memset(this->pa_table_, 0, sizeof(pa_table_));
   memset(&this->state_, 0, sizeof(this->state_));
 
@@ -194,13 +194,7 @@ void CC1101Component::setup() {
   this->chip_id_ = buff;
 
   ESP_LOGD(TAG, "%s was found", this->chip_id_.c_str());
-  /*
-    for(uint8_t i = 0; i <= 0x3D; i++) {
-      uint8_t old_value = this->regs_[i];
-      this->read_(i);
-      ESP_LOGI(TAG, "[%d] %02X vs %02X", i, old_value, this->regs_[i]);
-    }
-  */
+
   for (uint8_t i = 0; i <= 0x2E; i++) {
     this->write_((Register) i);
   }
@@ -217,6 +211,7 @@ void CC1101Component::setup() {
 
   this->send_(Command::RX);
 
+  this->publish_output_power();
   this->publish_tuner_frequency();
   this->publish_tuner_if_frequency();
   this->publish_tuner_bandwidth();
@@ -242,8 +237,6 @@ void CC1101Component::setup() {
   this->publish_rssi_sensor();
   this->publish_lqi_sensor();
   this->publish_temperature_sensor();
-
-  // this->set_interval(1000, [this]() { this->..._update_(); });
 }
 
 void CC1101Component::dump_config() {
@@ -467,146 +460,6 @@ bool CC1101Component::wait_(Command cmd) {
   return false;
 }
 
-// 300 - 348, 387 - 464              -30   -20   -15   -10     0     5     7    10
-static const uint8_t PA_TABLE_315[8]{0x12, 0x0D, 0x1C, 0x34, 0x51, 0x85, 0xCB, 0xC2};
-static const uint8_t PA_TABLE_433[8]{0x12, 0x0E, 0x1D, 0x34, 0x60, 0x84, 0xC8, 0xC0};
-// 779 - 899.99                       -30   -20   -15   -10    -6     0     5     7    10    12
-static const uint8_t PA_TABLE_868[10]{0x03, 0x17, 0x1D, 0x26, 0x37, 0x50, 0x86, 0xCD, 0xC5, 0xC0};
-// 900 - 928                          -30   -20   -15   -10    -6     0     5     7    10    11
-static const uint8_t PA_TABLE_915[10]{0x03, 0x0E, 0x1E, 0x27, 0x38, 0x8E, 0x84, 0xCC, 0xC3, 0xC0};
-
-void CC1101Component::update_pa_table_(int8_t pa) {
-  this->pa_ = pa;
-
-  int freq = (int) this->get_tuner_frequency();
-
-  int a;
-
-  if (freq >= 300000 && freq <= 348000) {
-    if (pa <= -30) {
-      a = PA_TABLE_315[0];
-    } else if (pa > -30 && pa <= -20) {
-      a = PA_TABLE_315[1];
-    } else if (pa > -20 && pa <= -15) {
-      a = PA_TABLE_315[2];
-    } else if (pa > -15 && pa <= -10) {
-      a = PA_TABLE_315[3];
-    } else if (pa > -10 && pa <= 0) {
-      a = PA_TABLE_315[4];
-    } else if (pa > 0 && pa <= 5) {
-      a = PA_TABLE_315[5];
-    } else if (pa > 5 && pa <= 7) {
-      a = PA_TABLE_315[6];
-    } else {
-      a = PA_TABLE_315[7];
-    }
-  } else if (freq >= 378000 && freq <= 464000) {
-    if (pa <= -30) {
-      a = PA_TABLE_433[0];
-    } else if (pa > -30 && pa <= -20) {
-      a = PA_TABLE_433[1];
-    } else if (pa > -20 && pa <= -15) {
-      a = PA_TABLE_433[2];
-    } else if (pa > -15 && pa <= -10) {
-      a = PA_TABLE_433[3];
-    } else if (pa > -10 && pa <= 0) {
-      a = PA_TABLE_433[4];
-    } else if (pa > 0 && pa <= 5) {
-      a = PA_TABLE_433[5];
-    } else if (pa > 5 && pa <= 7) {
-      a = PA_TABLE_433[6];
-    } else {
-      a = PA_TABLE_433[7];
-    }
-  } else if (freq >= 779000 && freq < 900000) {
-    if (pa <= -30) {
-      a = PA_TABLE_868[0];
-    } else if (pa > -30 && pa <= -20) {
-      a = PA_TABLE_868[1];
-    } else if (pa > -20 && pa <= -15) {
-      a = PA_TABLE_868[2];
-    } else if (pa > -15 && pa <= -10) {
-      a = PA_TABLE_868[3];
-    } else if (pa > -10 && pa <= -6) {
-      a = PA_TABLE_868[4];
-    } else if (pa > -6 && pa <= 0) {
-      a = PA_TABLE_868[5];
-    } else if (pa > 0 && pa <= 5) {
-      a = PA_TABLE_868[6];
-    } else if (pa > 5 && pa <= 7) {
-      a = PA_TABLE_868[7];
-    } else if (pa > 7 && pa <= 10) {
-      a = PA_TABLE_868[8];
-    } else {
-      a = PA_TABLE_868[9];
-    }
-  } else if (freq >= 900000 && freq <= 928000) {
-    if (pa <= -30) {
-      a = PA_TABLE_915[0];
-    } else if (pa > -30 && pa <= -20) {
-      a = PA_TABLE_915[1];
-    } else if (pa > -20 && pa <= -15) {
-      a = PA_TABLE_915[2];
-    } else if (pa > -15 && pa <= -10) {
-      a = PA_TABLE_915[3];
-    } else if (pa > -10 && pa <= -6) {
-      a = PA_TABLE_915[4];
-    } else if (pa > -6 && pa <= 0) {
-      a = PA_TABLE_915[5];
-    } else if (pa > 0 && pa <= 5) {
-      a = PA_TABLE_915[6];
-    } else if (pa > 5 && pa <= 7) {
-      a = PA_TABLE_915[7];
-    } else if (pa > 7 && pa <= 10) {
-      a = PA_TABLE_915[8];
-    } else {
-      a = PA_TABLE_915[9];
-    }
-  } else {
-    ESP_LOGE(TAG, "update_pa_table_(%d) frequency out of range: %d", pa, freq);
-    return;
-  }
-
-  if (this->get_tuner_modulation() == Modulation::MODULATION_ASK_OOK) {
-    this->pa_table_[0] = 0;
-    this->pa_table_[1] = a;
-  } else {
-    this->pa_table_[0] = a;
-    this->pa_table_[1] = 0;
-  }
-}
-
-void CC1101Component::split_float_(float value, int mbits, uint8_t &e, uint32_t &m) const {
-  if (value < 0) {
-    ESP_LOGE(TAG, "split_float_(%f, %d): positive values only", value, mbits);
-  }
-
-  int e_tmp;
-  float m_tmp = std::frexp(value, &e_tmp);
-
-  if (e_tmp <= mbits) {
-    ESP_LOGW(TAG, "split_float_(%f, %d): exponent would be negative, set to minimum", value, mbits);
-    e = 0;
-    m = 0;
-    return;
-  }
-
-  // frexp returns 2^e * 0.m
-  // but we want the original 2^e * 1.m format with the hidden bit
-
-  e = (uint8_t) (e_tmp - mbits - 1);
-  m = (uint32_t) ((m_tmp * 2 - 1) * (1 << (mbits + 1)) + 1) >> 1;
-
-  // mantissa might overflow due to rounding, even the datasheet recommends this:
-  // "If DRATE_M is rounded to the nearest integer and becomes 256,
-  //  increment DRATE_E and use DRATE_M = 0."
-
-  if (m == (1 << mbits)) {
-    e = e + 1;
-    m = 0;
-  }
-}
-
 // config
 
 template<typename T> T GET_ENUM_LAST(T value) { return T::LAST; }
@@ -646,6 +499,81 @@ static int32_t mapfloat(float x, float in_min, float in_max, float out_min, floa
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 */
+
+static void split_float(float value, int mbits, uint8_t &e, uint32_t &m) {
+  if (value < 0) {
+    ESP_LOGE(TAG, "split_float(%f, %d): positive values only", value, mbits);
+  }
+
+  int e_tmp;
+  float m_tmp = std::frexp(value, &e_tmp);
+
+  if (e_tmp <= mbits) {
+    ESP_LOGW(TAG, "split_float(%f, %d): exponent would be negative, set to minimum", value, mbits);
+    e = 0;
+    m = 0;
+    return;
+  }
+
+  // frexp returns 2^e * 0.m
+  // but we want the original 2^e * 1.m format with the hidden bit
+
+  e = (uint8_t) (e_tmp - mbits - 1);
+  m = (uint32_t) ((m_tmp * 2 - 1) * (1 << (mbits + 1)) + 1) >> 1;
+
+  // mantissa might overflow due to rounding, even the datasheet recommends this:
+  // "If DRATE_M is rounded to the nearest integer and becomes 256,
+  //  increment DRATE_E and use DRATE_M = 0."
+
+  if (m == (1 << mbits)) {
+    e = e + 1;
+    m = 0;
+  }
+}
+
+void CC1101Component::set_output_power(float value) {
+  CHECK_FLOAT_RANGE(value, OUTPUT_POWER_MIN, OUTPUT_POWER_MAX)
+
+  int freq = (int) this->get_tuner_frequency();
+  Modulation modulation = this->get_tuner_modulation();
+  uint8_t a = 0xC0;
+
+  if (freq >= 300000 && freq <= 348000) {
+    ESP_LOGI(TAG, "*** %zu", sizeof(PA_TABLE_315));
+    a = PowerTable::find(PA_TABLE_315, sizeof(PA_TABLE_315) / sizeof(PA_TABLE_315[0]), value);
+  } else if (freq >= 378000 && freq <= 464000) {
+    a = PowerTable::find(PA_TABLE_433, sizeof(PA_TABLE_433) / sizeof(PA_TABLE_433[0]), value);
+  } else if (freq >= 779000 && freq < 900000) {
+    a = PowerTable::find(PA_TABLE_868, sizeof(PA_TABLE_868) / sizeof(PA_TABLE_868[0]), value);
+  } else if (freq >= 900000 && freq <= 928000) {
+    a = PowerTable::find(PA_TABLE_915, sizeof(PA_TABLE_915) / sizeof(PA_TABLE_915[0]), value);
+  } else {
+    ESP_LOGE(TAG, "frequency out of range: %d", freq);
+  }
+
+  if (modulation == Modulation::MODULATION_ASK_OOK) {
+    this->pa_table_[0] = 0;
+    this->pa_table_[1] = a;
+  } else {
+    this->pa_table_[0] = a;
+    this->pa_table_[1] = 0;
+  }
+
+  this->output_power_ = value;
+
+  ESP_LOGD(TAG, "set_output_power(%.1f) %d", value, a);
+
+  this->publish_output_power();
+
+  if (!this->reset_) {
+    return;
+  }
+
+  this->write_(Register::PATABLE, this->pa_table_, sizeof(this->pa_table_));
+}
+
+float CC1101Component::get_output_power() { return this->output_power_; }
+
 // tuner_*
 
 void CC1101Component::set_tuner_frequency(float value) {
@@ -653,13 +581,13 @@ void CC1101Component::set_tuner_frequency(float value) {
 
   // strange frequencies like 360MHz also seem to work, not sure about the quality
 
-  int freq = (int) (value * (1 << 16) / this->xtal_frequency_);
+  int freq = (int) (value * (1 << 16) / XTAL_FREQUENCY);
 
   this->state_.FREQ2 = (uint8_t) (freq >> 16);
   this->state_.FREQ1 = (uint8_t) (freq >> 8);
   this->state_.FREQ0 = (uint8_t) freq;
 
-  this->update_pa_table_(this->pa_);
+  this->set_output_power(this->output_power_);  // frequency and modulation dependent
 
   ESP_LOGD(TAG, "set_tuner_frequency(%f) FREQ = %02X%02X%02X", value, this->state_.FREQ2, this->state_.FREQ1,
            this->state_.FREQ0);
@@ -740,7 +668,6 @@ void CC1101Component::set_tuner_frequency(float value) {
       //}
     }
   */
-  this->write_(Register::PATABLE, this->pa_table_, sizeof(this->pa_table_));
 
   this->send_(Command::RX);
 }
@@ -750,13 +677,13 @@ float CC1101Component::get_tuner_frequency() {
   freq |= (uint32_t) this->state_.FREQ2 << 16;
   freq |= (uint32_t) this->state_.FREQ1 << 8;
   freq |= (uint32_t) this->state_.FREQ0;
-  return roundf((float) this->xtal_frequency_ * freq / (1 << 16));
+  return roundf((float) XTAL_FREQUENCY * freq / (1 << 16));
 }
 
 void CC1101Component::set_tuner_if_frequency(float value) {
   CHECK_FLOAT_RANGE(value, IF_FREQUENCY_MIN, IF_FREQUENCY_MAX)
 
-  this->state_.FREQ_IF = value * (1 << 10) / this->xtal_frequency_;
+  this->state_.FREQ_IF = value * (1 << 10) / XTAL_FREQUENCY;
 
   ESP_LOGD(TAG, "set_tuner_if_frequency(%f)", value);
 
@@ -769,14 +696,14 @@ void CC1101Component::set_tuner_if_frequency(float value) {
   this->write_(Register::FSCTRL1);
 }
 
-float CC1101Component::get_tuner_if_frequency() { return this->xtal_frequency_ * this->state_.FREQ_IF / (1 << 10); }
+float CC1101Component::get_tuner_if_frequency() { return XTAL_FREQUENCY * this->state_.FREQ_IF / (1 << 10); }
 
 void CC1101Component::set_tuner_bandwidth(float value) {
   CHECK_FLOAT_RANGE(value, BANDWIDTH_MIN, BANDWIDTH_MAX)
 
   uint8_t e;
   uint32_t m;
-  this->split_float_(this->xtal_frequency_ / (value * 8), 2, e, m);
+  split_float(XTAL_FREQUENCY / (value * 8), 2, e, m);
   this->state_.CHANBW_E = (uint8_t) e;
   this->state_.CHANBW_M = (uint8_t) m;
 
@@ -794,7 +721,7 @@ void CC1101Component::set_tuner_bandwidth(float value) {
 
 float CC1101Component::get_tuner_bandwidth() {
   float chanbw = (float) (4 + this->state_.CHANBW_M) * (1 << this->state_.CHANBW_E);
-  return roundf(this->xtal_frequency_ / (8 * chanbw));
+  return roundf(XTAL_FREQUENCY / (8 * chanbw));
 }
 
 void CC1101Component::set_tuner_channel(uint8_t value) {
@@ -818,7 +745,7 @@ void CC1101Component::set_tuner_channel_spacing(float value) {
 
   uint8_t e;
   uint32_t m;
-  this->split_float_(value * (1 << 18) / this->xtal_frequency_, 8, e, m);
+  split_float(value * (1 << 18) / XTAL_FREQUENCY, 8, e, m);
   this->state_.CHANSPC_E = (uint8_t) e;
   this->state_.CHANSPC_M = (uint8_t) m;
 
@@ -837,7 +764,7 @@ void CC1101Component::set_tuner_channel_spacing(float value) {
 
 float CC1101Component::get_tuner_channel_spacing() {
   float chanspc = (float) (256 + this->state_.CHANSPC_M) * (1 << this->state_.CHANSPC_E);
-  return this->xtal_frequency_ * chanspc / (1 << 18);
+  return XTAL_FREQUENCY * chanspc / (1 << 18);
 }
 
 void CC1101Component::set_tuner_fsk_deviation(float value) {
@@ -845,7 +772,7 @@ void CC1101Component::set_tuner_fsk_deviation(float value) {
 
   uint8_t e;
   uint32_t m;
-  this->split_float_(value * (1 << 17) / this->xtal_frequency_, 3, e, m);
+  split_float(value * (1 << 17) / XTAL_FREQUENCY, 3, e, m);
   this->state_.DEVIATION_E = (uint8_t) e;
   this->state_.DEVIATION_M = (uint8_t) m;
 
@@ -863,7 +790,7 @@ void CC1101Component::set_tuner_fsk_deviation(float value) {
 
 float CC1101Component::get_tuner_fsk_deviation() {
   float deviation = (float) (8 + this->state_.DEVIATION_M) * (1 << this->state_.DEVIATION_E);
-  return this->xtal_frequency_ * deviation / (1 << 17);
+  return XTAL_FREQUENCY * deviation / (1 << 17);
 }
 
 void CC1101Component::set_tuner_msk_deviation(uint8_t value) {
@@ -890,7 +817,7 @@ void CC1101Component::set_tuner_symbol_rate(float value) {
 
   uint8_t e;
   uint32_t m;
-  this->split_float_(value * (1 << 28) / (this->xtal_frequency_ * 1000), 8, e, m);
+  split_float(value * (1 << 28) / (XTAL_FREQUENCY * 1000), 8, e, m);
   this->state_.DRATE_E = (uint8_t) e;
   this->state_.DRATE_M = (uint8_t) m;
 
@@ -909,7 +836,7 @@ void CC1101Component::set_tuner_symbol_rate(float value) {
 
 float CC1101Component::get_tuner_symbol_rate() {
   float drate = (float) (256 + this->state_.DRATE_M) * (1 << this->state_.DRATE_E);
-  return (this->xtal_frequency_ * 1000) * drate / (1 << 28);
+  return (XTAL_FREQUENCY * 1000) * drate / (1 << 28);
 }
 
 void CC1101Component::set_tuner_modulation(Modulation value) {
@@ -919,7 +846,8 @@ void CC1101Component::set_tuner_modulation(Modulation value) {
   // In OOK/ASK mode, this selects the PATABLE index to use when transmitting a ‘1’.
   // PATABLE index zero is used in OOK/ASK when transmitting a ‘0’.
   this->state_.PA_POWER = value == Modulation::MODULATION_ASK_OOK ? 1 : 0;
-  this->update_pa_table_(this->pa_);
+
+  this->set_output_power(this->output_power_);  // frequency and modulation dependent
 
   ESP_LOGD(TAG, "set_tuner_modulation(%d)", (int) value);
 
@@ -931,7 +859,6 @@ void CC1101Component::set_tuner_modulation(Modulation value) {
 
   this->write_(Register::MDMCFG2);
   this->write_(Register::FREND0);
-  this->write_(Register::PATABLE, this->pa_table_, sizeof(this->pa_table_));
 }
 
 Modulation CC1101Component::get_tuner_modulation() { return (Modulation) this->state_.MOD_FORMAT; }

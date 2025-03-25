@@ -36,6 +36,7 @@ class CC1101Component : public PollingComponent,
   void begin_tx();
   void end_tx();
 
+  CC1101_SUB_NUMBER(output_power, float)
   CC1101_SUB_NUMBER(tuner_frequency, float)
   CC1101_SUB_NUMBER(tuner_if_frequency, float)
   CC1101_SUB_NUMBER(tuner_bandwidth, float)
@@ -69,8 +70,7 @@ class CC1101Component : public PollingComponent,
   voltage_sampler::VoltageSampler *gdo0_adc_;
   std::string chip_id_;
   bool reset_;
-  float xtal_frequency_;  // TODO: user configurable? datasheet mentions 27MHz
-  uint8_t pa_;
+  float output_power_;
   uint8_t pa_table_[8];
   union {
     struct CC1101State state_;
@@ -86,8 +86,6 @@ class CC1101Component : public PollingComponent,
   // bool send_data_(const uint8_t* data, size_t length);
   void send_(Command cmd);
   bool wait_(Command cmd);
-  void update_pa_table_(int8_t pa);  // TODO: CC1101_SUB_NUMBER(pa)
-  void split_float_(float value, int mbits, uint8_t &e, uint32_t &m) const;
 
   template<class S, class T> void publish_(S *s, T state);
   // template specialization here in the header is not supported by the compiler

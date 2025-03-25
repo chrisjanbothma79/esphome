@@ -5,6 +5,9 @@
 namespace esphome {
 namespace cc1101 {
 
+static constexpr float XTAL_FREQUENCY = 26000;
+static constexpr float OUTPUT_POWER_MIN = -30;
+static constexpr float OUTPUT_POWER_MAX = 11;
 static constexpr float FREQUENCY_MIN = 300000;
 static constexpr float FREQUENCY_MAX = 928000;
 static constexpr float IF_FREQUENCY_MIN = 25;

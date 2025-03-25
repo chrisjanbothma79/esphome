@@ -57,6 +57,7 @@ CONF_CC1101_ID = "cc1101_id"
 
 CONF_GDO0_PIN = "gdo0_pin"
 CONF_GDO0_ADC_ID = "gdo0_adc_id"
+CONF_OUTPUT_POWER = "output_power"
 
 # tuner
 CONF_TUNER = "tuner"
@@ -252,6 +253,7 @@ CONFIG_SCHEMA = (
             cv.GenerateID(): cv.declare_id(CC1101Component),
             cv.Optional(CONF_GDO0_PIN): pins.gpio_output_pin_schema,
             cv.Optional(CONF_GDO0_ADC_ID): cv.use_id(voltage_sampler.VoltageSampler),
+            cv.Optional(CONF_OUTPUT_POWER): cv.float_range(-70, 11),
             cv.Optional(CONF_TUNER): TUNER_SCHEMA,
             cv.Optional(CONF_AGC): AGC_SCHEMA,
             cv.Optional(CONF_SENSOR): SENSOR_SCHEMA,
@@ -265,6 +267,7 @@ VARIABLES = {
     None: [
         [CONF_GDO0_PIN],
         [CONF_GDO0_ADC_ID],
+        [CONF_OUTPUT_POWER],
     ],
     CONF_TUNER: [
         [CONF_FREQUENCY],

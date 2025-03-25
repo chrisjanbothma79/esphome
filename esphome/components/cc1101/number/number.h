@@ -7,6 +7,14 @@
 namespace esphome {
 namespace cc1101 {
 
+class OutputPowerNumber : public number::Number, public Parented<CC1101Component> {
+ protected:
+  void control(float value) override {
+    this->publish_state(value);
+    this->parent_->set_output_power(value);
+  }
+};
+
 class TunerFrequencyNumber : public number::Number, public Parented<CC1101Component> {
  protected:
   void control(float value) override {

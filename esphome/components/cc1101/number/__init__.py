@@ -9,6 +9,7 @@ from esphome.const import (
     DEVICE_CLASS_SIGNAL_STRENGTH,
     ENTITY_CATEGORY_CONFIG,
     UNIT_DECIBEL,
+    UNIT_DECIBEL_MILLIWATT,
 )
 
 from .. import (
@@ -20,6 +21,7 @@ from .. import (
     CONF_FSK_DEVIATION,
     CONF_IF_FREQUENCY,
     CONF_MSK_DEVIATION,
+    CONF_OUTPUT_POWER,
     CONF_SYMBOL_RATE,
     CONF_TUNER,
     UNIT_KILO_HERTZ,
@@ -30,6 +32,7 @@ from .. import (
 
 NumberMode = number.NumberMode
 
+OutputPowerNumber = ns.class_("OutputPowerNumber", number.Number)
 TunerFrequencyNumber = ns.class_("TunerFrequencyNumber", number.Number)
 TunerIfFrequencyNumber = ns.class_("TunerIfFrequencyNumber", number.Number)
 TunerBandwidthNumber = ns.class_("TunerBandwidthNumber", number.Number)
@@ -116,15 +119,30 @@ AGC_SCHEMA = cv.Schema(
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_CC1101_ID): cv.use_id(CC1101Component),
+        cv.Optional(CONF_OUTPUT_POWER): number.number_schema(
+            OutputPowerNumber,
+            unit_of_measurement=UNIT_DECIBEL_MILLIWATT,
+            device_class=DEVICE_CLASS_SIGNAL_STRENGTH,
+            entity_category=ENTITY_CATEGORY_CONFIG,
+            # icon=ICON_,
+        ),
         cv.Optional(CONF_TUNER): TUNER_SCHEMA,
         cv.Optional(CONF_AGC): AGC_SCHEMA,
     }
 )
 
 VARIABLES = {
-    None: [],
+    None: [
+        [
+            CONF_OUTPUT_POWER,
+            ns.OUTPUT_POWER_MIN,
+            ns.OUTPUT_POWER_MAX,
+            0.1,
+            NumberMode.NUMBER_MODE_SLIDER,
+        ]
+    ],
     CONF_TUNER: [
-        [CONF_FREQUENCY, ns.FREQUENCY_MIN, ns.FREQUENCY_MAX, 0.001],
+        [CONF_FREQUENCY, ns.FREQUENCY_MIN, ns.FREQUENCY_MAX, 1],
         [CONF_IF_FREQUENCY, ns.IF_FREQUENCY_MIN, ns.IF_FREQUENCY_MAX, 0.001],
         [CONF_BANDWIDTH, ns.BANDWIDTH_MIN, ns.BANDWIDTH_MAX, 0.001],
         [CONF_CHANNEL, ns.CHANNEL_MIN, ns.CHANNEL_MAX, 1],  # NumberMode.NUMBER_MODE_BOX
