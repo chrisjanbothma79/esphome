@@ -141,7 +141,7 @@ class I2CDevice {
 
   /// @brief Returns the I2C address of the object.
   /// @return the I2C address
-  uint8_t get_i2c_address() { return this->address_; }
+  uint8_t get_i2c_address() const { return this->address_; }
 
   /// @brief we store the pointer to the I2CBus to use
   /// @param bus pointer to the I2CBus object
