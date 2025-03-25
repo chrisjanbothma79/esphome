@@ -68,6 +68,32 @@ CAN_SPEEDS = {
     "800KBPS": CanSpeed.CAN_800KBPS,
     "1000KBPS": CanSpeed.CAN_1000KBPS,
 }
+CAN_SPEEDS_NUMERIC = {
+    "1KBPS": 1_000,
+    "5KBPS": 5_000,
+    "10KBPS": 10_000,
+    "12K5BPS": 12_500,
+    "16KBPS": 16_000,
+    "20KBPS": 20_000,
+    "25KBPS": 25_000,
+    "31K25BPS": 31_250,
+    "33KBPS": 33_000,
+    "40KBPS": 40_000,
+    "50KBPS": 50_000,
+    "80KBPS": 80_000,
+    "83K3BPS": 83_300,
+    "95KBPS": 95_000,
+    "100KBPS": 100_000,
+    "125KBPS": 125_000,
+    "200KBPS": 200_000,
+    "250KBPS": 250_000,
+    "500KBPS": 500_000,
+    "800KBPS": 800_000,
+    "1000KBPS": 1_000_000,
+}
+
+assert CAN_SPEEDS.keys() == CAN_SPEEDS_NUMERIC.keys()
+
 CANBUS_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(CanbusComponent),
