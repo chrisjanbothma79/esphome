@@ -205,6 +205,8 @@ void CC1101Component::setup() {
     this->write_((Register) i);
   }
 
+  this->write_(Register::PATABLE, this->pa_table_, sizeof(this->pa_table_));
+
   ESP_LOGD(TAG, "verify");
 
   for (uint8_t i = 0; i <= 0x2E; i++) {
@@ -576,14 +578,14 @@ void CC1101Component::update_pa_table_(int8_t pa) {
 
 void CC1101Component::split_float_(float value, int mbits, uint8_t &e, uint32_t &m) const {
   if (value < 0) {
-    ESP_LOGE(TAG, "float_split(%f, %d): positive values only", value, mbits);
+    ESP_LOGE(TAG, "split_float_(%f, %d): positive values only", value, mbits);
   }
 
   int e_tmp;
   float m_tmp = std::frexp(value, &e_tmp);
 
   if (e_tmp <= mbits) {
-    ESP_LOGW(TAG, "float_split(%f, %d): exponent would be negative, set to minimum", value, mbits);
+    ESP_LOGW(TAG, "split_float_(%f, %d): exponent would be negative, set to minimum", value, mbits);
     e = 0;
     m = 0;
     return;

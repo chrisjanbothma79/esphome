@@ -327,7 +327,7 @@ struct CC1101State {
     uint8_t FSCTRL1;
     struct {
       uint8_t FREQ_IF : 5;
-      uint8_t Reserved : 1;  // hm?
+      uint8_t RESERVED : 1;  // hm?
       uint8_t : 2;
     };
   };
