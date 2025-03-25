@@ -10,9 +10,9 @@ from .. import UART_DEVICE_SCHEMA, register_uart_device, uart_ns
 CODEOWNERS = ["@clydebarrow"]
 DEPENDENCIES = ["uart"]
 
-UDPTransport = uart_ns.class_("UARTTransport", PacketTransport, PollingComponent)
+UARTTransport = uart_ns.class_("UARTTransport", PacketTransport, PollingComponent)
 
-CONFIG_SCHEMA = transport_schema(UDPTransport).extend(UART_DEVICE_SCHEMA)
+CONFIG_SCHEMA = transport_schema(UARTTransport).extend(UART_DEVICE_SCHEMA)
 
 
 async def to_code(config):
