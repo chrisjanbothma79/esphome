@@ -138,7 +138,6 @@ void SpeakerMediaPlayer::watch_media_commands_() {
   }
 
   MediaCallCommand media_command;
-  esp_err_t err = ESP_OK;
 
   if (xQueueReceive(this->media_control_command_queue_, &media_command, 0) == pdTRUE) {
     bool enqueue = media_command.enqueue.has_value() && media_command.enqueue.value();
