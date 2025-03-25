@@ -17,6 +17,16 @@ static const uint8_t PREAMBLE[8] = {0x53, 0x39, 0x14, 0xDD, 0x1C, 0x49, 0x34, 0x
 void MijiaLightBarComponent::setup() {
   ESP_LOGD(TAG, "Setting up Mijia Light Bar");
 
+  remote_id_preference_ = global_preferences->make_preference<uint32_t>(fnv1_hash("mijiao_lightbar_remote_id"));
+  if (remote_id_ == 0) {
+    remote_id_preference_.load(&remote_id_);
+    if (remote_id_ != 0) {
+      ESP_LOGI(TAG, "Loaded saved remote ID: 0x%06X", remote_id_);
+    } else {
+      ESP_LOGW(TAG, "No saved remote ID found, use paring mode to capture one");
+    }
+  }
+
   // Call parent setup first to initialize nRF24
   nrf24::NRF24Device::setup_nrf24();
   if (is_failed()) {
@@ -24,9 +34,9 @@ void MijiaLightBarComponent::setup() {
     return;
   }
 
-  this->radio_->disableDynamicPayloads();
-  this->radio_->stopListening();
-  this->radio_->powerDown();
+  radio_->disableDynamicPayloads();
+  radio_->stopListening();
+  radio_->powerDown();
 
   ESP_LOGI(TAG, "Mijia Light Bar initialized");
 }
@@ -68,7 +78,7 @@ bool MijiaLightBarComponent::process_next_command() {
   if (now - cmd.last_sent >= delay_ms_) {
     if (cmd.remaining_repetitions == repetitions_) {
       ESP_LOGD(TAG, "Powering up radio for new command");
-      this->radio_->powerUp();
+      radio_->powerUp();
     }
 
     ESP_LOGD(TAG, "Sending command 0x%02X%02X (repetition %d/%d)", cmd.packet.cmd, cmd.packet.value,
@@ -87,7 +97,7 @@ bool MijiaLightBarComponent::process_next_command() {
 
       if (command_queue_.empty()) {
         ESP_LOGD(TAG, "No more commands, powering down radio");
-        this->radio_->powerDown();
+        radio_->powerDown();
       }
       return true;
     }
@@ -97,10 +107,92 @@ bool MijiaLightBarComponent::process_next_command() {
 }
 
 void MijiaLightBarComponent::loop() {
+  // Handle pairing mode if active
+  if (pairing_mode_) {
+    handle_pairing_mode();
+    return;
+  }
+
   // Process commands in the queue
   while (process_next_command()) {
     ESP_LOGV(TAG, "Processed command, queue size: %d", command_queue_.size());
   }
+}
+
+void MijiaLightBarComponent::start_pairing() {
+  if (pairing_mode_) {
+    ESP_LOGI(TAG, "Already in pairing mode");
+    return;
+  }
+
+  pairing_mode_ = true;
+  pairing_start_time_ = millis();
+  // Power up radio and start listening
+  radio_->powerUp();
+  radio_->openReadingPipe(0, 0xAAAAAAAAAAAA);
+  radio_->startListening();
+  ESP_LOGI(TAG, "Entering pairing mode for 2 minutes");
+}
+
+void MijiaLightBarComponent::exit_pairing_mode() {
+  radio_->stopListening();
+  radio_->closeReadingPipe(0);
+  radio_->powerDown();
+  pairing_mode_ = false;
+}
+
+void MijiaLightBarComponent::handle_pairing_mode() {
+  // Check if pairing mode has timed out
+  if (millis() - pairing_start_time_ >= PAIRING_TIMEOUT_MS) {
+    exit_pairing_mode();
+    ESP_LOGI(TAG, "Pairing mode timed out");
+    return;
+  }
+
+  // Check for received packets
+  if (radio_->available()) {
+    uint8_t raw_data[18];
+    radio_->read(raw_data, sizeof(raw_data));
+    if (check_pairing_packet(raw_data)) {
+      exit_pairing_mode();
+    }
+  }
+}
+
+bool MijiaLightBarComponent::check_pairing_packet(const uint8_t *raw_data) {
+  byte data[17] = {0x5};
+  for (int i = 0; i < 17; i++) {
+    if (i == 0) {
+      data[i] = 0x50 | raw_data[i] >> 5;
+    } else {
+      data[i] = ((raw_data[i - 1] >> 1) & 0x0F) << 4 | ((raw_data[i - 1] & 0x01) << 3) | raw_data[i] >> 5;
+    }
+  }
+  ESP_LOGV(TAG, "Raw data: %s", format_hex_pretty(raw_data, 17).c_str());
+  ESP_LOGV(TAG, "Data: %s", format_hex_pretty(data, 17).c_str());
+  // Check preamble
+  if (memcmp(data, PREAMBLE, sizeof(PREAMBLE)) != 0) {
+    ESP_LOGV(TAG, "Invalid preamble, expected: %s, got: %s", format_hex_pretty(PREAMBLE, sizeof(PREAMBLE)).c_str(),
+             format_hex_pretty(data, sizeof(PREAMBLE)).c_str());
+    return false;
+  }
+
+  // Check CRC
+  uint16_t received_crc = (data[15] << 8) | data[16];
+  uint16_t calculated_crc = calculate_crc(data, 15);
+
+  if (received_crc == calculated_crc) {
+    // Extract remote ID from packet
+    uint32_t remote_id = (data[8] << 16) | (data[9] << 8) | data[10];
+    ESP_LOGI(TAG, "Received pairing packet, saving remote ID to preferences: 0x%06X", remote_id);
+    // Save the remote ID
+    set_remote_id(remote_id);
+    // Save to preferences
+    remote_id_preference_.save(&remote_id_);
+    return true;
+  }
+  ESP_LOGV(TAG, "Invalid CRC");
+  return false;
 }
 
 void MijiaLightBarComponent::write_state(light::LightState *state) {
@@ -141,44 +233,42 @@ void MijiaLightBarComponent::write_state(light::LightState *state) {
 
 void MijiaLightBarComponent::toggle() {
   ESP_LOGD(TAG, "Toggling");
-  queue_command(CMD_TOGGLE);
+  return queue_command(CMD_TOGGLE);
 }
 
 void MijiaLightBarComponent::reset() {
   ESP_LOGD(TAG, "Resetting");
-  queue_command(CMD_RESET);
+  return queue_command(CMD_RESET);
 }
 
 void MijiaLightBarComponent::cooler() {
   ESP_LOGD(TAG, "Cooler");
-  queue_command(CMD_COOLER);
+  return queue_command(CMD_COOLER);
 }
 
 void MijiaLightBarComponent::warmer() {
   ESP_LOGD(TAG, "Warmer");
-  queue_command(CMD_WARMER);
+  return queue_command(CMD_WARMER);
 }
 
 void MijiaLightBarComponent::brighter() {
   ESP_LOGD(TAG, "Brighter");
-  queue_command(CMD_BRIGHTER);
+  return queue_command(CMD_BRIGHTER);
 }
 
 void MijiaLightBarComponent::dimmer() {
   ESP_LOGD(TAG, "Dimmer");
-  queue_command(CMD_DIMMER);
+  return queue_command(CMD_DIMMER);
 }
 
 void MijiaLightBarComponent::set_brightness(uint8_t brightness) {
   ESP_LOGD(TAG, "Setting brightness: %d", brightness);
-  queue_command(CMD_DIMMER, 0xF0);
-  queue_command(CMD_BRIGHTER, brightness);
+  return queue_command(CMD_DIMMER, 0xF0) && queue_command(CMD_BRIGHTER, brightness);
 }
 
 void MijiaLightBarComponent::set_color_temp(uint8_t color_temp) {
   ESP_LOGD(TAG, "Setting color temperature: %d", color_temp);
-  queue_command(CMD_WARMER, 0xF0);
-  queue_command(CMD_COOLER, color_temp);
+  return queue_command(CMD_WARMER, 0xF0) && queue_command(CMD_COOLER, color_temp);
 }
 
 void MijiaLightBarComponent::init_packet(Packet &packet, uint8_t command, uint8_t value, uint8_t counter) {
@@ -204,7 +294,6 @@ void MijiaLightBarComponent::init_packet(Packet &packet, uint8_t command, uint8_
 
 uint16_t MijiaLightBarComponent::calculate_crc(const uint8_t *data, size_t length) {
   uint16_t crc = crc16be(data, length, 0xFFFE, 0x1021, false, false);
-  ESP_LOGV(TAG, "Calculated CRC: 0x%04X for %d bytes", crc, length);
   return crc;
 }
 

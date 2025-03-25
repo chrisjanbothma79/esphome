@@ -6,6 +6,7 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include <queue>
+#include "esphome/core/preferences.h"
 
 namespace esphome {
 namespace mijia_light_bar {
@@ -94,32 +95,45 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
   void set_delay_ms(uint8_t delay_ms) { delay_ms_ = delay_ms; }
 
   /** @brief Toggle light on/off */
-  void toggle();
+  bool toggle();
 
   /** @brief Decrease color temperature */
-  void cooler();
+  bool cooler();
 
   /** @brief Increase color temperature */
-  void warmer();
+  bool warmer();
 
   /** @brief Increase brightness */
-  void brighter();
+  bool brighter();
 
   /** @brief Decrease brightness */
-  void dimmer();
+  bool dimmer();
 
   /** @brief Reset light to default state */
-  void reset();
+  bool reset();
 
   /** @brief Set absolute brightness level
    * @param brightness Brightness level (1-15)
    */
-  void set_brightness(uint8_t brightness);
+  bool set_brightness(uint8_t brightness);
 
   /** @brief Set absolute color temperature level
    * @param color_temp Color temperature level (1-15)
    */
-  void set_color_temp(uint8_t color_temp);
+  bool set_color_temp(uint8_t color_temp);
+
+  /** @brief Start pairing mode
+   *
+   * Enters pairing mode for 2 minutes. During this time, the model will try
+   * to capature commands from the remote.
+   */
+  void start_pairing();
+
+  /** @brief Exit pairing mode
+   *
+   * Exits pairing mode and restores normal operation.
+   */
+  void exit_pairing_mode();
 
  protected:
   /** @brief Create a packet for sending
@@ -152,6 +166,9 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
   uint8_t repetitions_{20};
   uint8_t delay_ms_{10};
   uint8_t counter_{0};
+  bool pairing_mode_{false};
+  uint32_t pairing_start_time_{0};
+  static constexpr uint32_t PAIRING_TIMEOUT_MS = 120000;  // 2 minutes
 
   /** @brief Packet structure for Mijia Light Bar protocol */
   struct Packet {
@@ -217,6 +234,21 @@ class MijiaLightBarComponent : public Component, public nrf24::NRF24Device, publ
    * @return Calculated CRC value
    */
   uint16_t calculate_crc(const uint8_t *data, size_t length);
+
+  /** @brief Handle pairing mode
+   *
+   * Called periodically to check if the light bar is in pairing mode and
+   * respond to commands from the remote.
+   */
+  void handle_pairing_mode();
+
+  /** @brief Check if a received packet is a pairing packet
+   * @param data Data to check
+   * @return true if the packet is a pairing packet, false otherwise
+   */
+  bool check_pairing_packet(const uint8_t *data);
+
+  ESPPreferenceObject remote_id_preference_;
 };
 }  // namespace mijia_light_bar
 }  // namespace esphome
