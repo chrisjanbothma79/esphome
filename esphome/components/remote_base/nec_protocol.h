@@ -60,7 +60,7 @@ struct NECData {
 };
 
 /// @brief Predefined single repeat code `NECData` returned by `NECProtocol::decode(RemoteReceiveData)`
-static const NECData NEC_REPEAT_CODE_DATA = {0, 0, 1, NECCodeType::REPEATS_ONLY};
+static const NECData NEC_REPEAT_CODE_DATA = {{0}, {0}, 1, NECCodeType::REPEATS_ONLY};
 
 /// @brief NECProtocol handles encoding, decoding, and validation of NEC infrared signals.
 /// @details This class provides methods to encode and decode NEC IR signals while ensuring compliance
@@ -111,14 +111,18 @@ class NECProtocol : public RemoteProtocol<NECData> {
   ///          If this condition is not met, the address is considered extended (16-bit NEC mode).
   /// @param[in] data The NECData structure containing the address.
   /// @return True if the address is in extended (16-bit) format, false if it follows standard (8-bit) NEC addressing.
-  static bool is_address_extended(const NECData &data) { return data.address_bytes.hi != ~data.address_bytes.lo; }
+  static bool is_address_extended(const NECData &data) {
+    return data.address_bytes.hi != static_cast<uint8_t>(~data.address_bytes.lo);
+  }
 
   /// @brief Validates whether the NEC command follows the standard format.
   /// @details The NEC protocol requires the upper byte of the command to be the logical inverse of the lower byte.
   ///          If this condition is not met, the command is considered invalid.
   /// @param[in] data The NECData structure containing the command.
   /// @return True if the command follows the NEC specification, false otherwise.
-  static bool is_command_valid(const NECData &data) { return data.command_bytes.hi == ~data.command_bytes.lo; }
+  static bool is_command_valid(const NECData &data) {
+    return data.command_bytes.hi == static_cast<uint8_t>(~data.command_bytes.lo);
+  }
 
   /// @brief Generates a formatted debug string describing the NEC signal type and its fields.
   /// @details This function constructs a human-readable representation of an NEC signal,

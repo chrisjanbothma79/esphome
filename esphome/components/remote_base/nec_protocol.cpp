@@ -145,7 +145,7 @@ optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
   }
 
   // Message frame received, `data.type = NECCodeType::FRAME_WITH_REPEATS` is already set
-  if (NECProtocol::is_command_valid(data)) {
+  if (!NECProtocol::is_command_valid(data)) {
     ESP_LOGW(TAG, "Decoded command invalid: 0x%04X", data.command);
   }
 
@@ -190,7 +190,7 @@ std::string NECProtocol::get_protocol_type_and_fields_str(const NECData &data) {
 }
 
 void NECBinarySensor::dump_config() {
-  RemoteReceiverBinarySensorBase::dump_config();
+  LOG_BINARY_SENSOR("", "Remote Receiver Binary Sensor", this);
   ESP_LOGCONFIG(TAG, "  Repeat Timeout: %" PRIu16 " ms", this->repeat_timeout_ms_);
 }
 
