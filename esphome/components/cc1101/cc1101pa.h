@@ -1,6 +1,9 @@
+#pragma once
+
 #include <cinttypes>
 #include <cmath>
 #include <cstdio>
+
 namespace esphome {
 namespace cc1101 {
 
@@ -179,7 +182,7 @@ static const PowerTableItem PA_TABLE_915[] = {
     {0x12, 13},  // 12 -28.6 -55.9 -58.6 -58.5 -57.7 -54.7 12.1
     {0x03, 11},  // 3 -29.8 -56.9 -58.5 -58.4 -57.7 -54.7 12.0
 };
-
+/*
 static const PowerTableItem PA_TABLE_315_FULL[] = {
     {0xC0, 4},    // C0 10.6 -35.3 -44.4 -57.8 -53.8 -58.3 -57.2 -57.8 -56.7 28.5
     {0xC1, 2},    // C1 10.3 -36.6 -44.7 -58.4 -54.0 -58.5 -57.4 -58.0 -56.8 27.6
@@ -675,6 +678,6 @@ static const PowerTableItem PA_TABLE_915_FULL[] = {
     {0x6E, 62},   // 6E -64.5 -58.8 -58.5 -58.4 -57.7 -55.5 16.0
     {0x6F, 52},   // 6F -69.7 -58.6 -58.6 -58.4 -57.7 -55.3 10.7
 };
-
+*/
 }  // namespace cc1101
 }  // namespace esphome
