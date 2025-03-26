@@ -151,7 +151,7 @@ void Mcp4461Component::read_status_register_to_log() {
   uint8_t status_register_value = this->get_status_register_();
   // clang-format off
   ESP_LOGI(TAG,
-           "D7:  %" PRIu8 ", WL3: %" PRIu8 ", WL2: %" PRIu8 ", EEWA: %" PRIu8", WL1: %" PRIu8 ", WL0: %" PRIu8 ", R1: %" PRIu8 ", WP: %" PRIu8 "",
+           "D7:  %u, WL3: %u, WL2: %u, EEWA: %u, WL1: %u, WL0: %u, R1: %u, WP: %u",
            ((status_register_value >> 7) & 0x01), ((status_register_value >> 6) & 0x01),
            ((status_register_value >> 5) & 0x01), ((status_register_value >> 4) & 0x01),
            ((status_register_value >> 3) & 0x01), ((status_register_value >> 2) & 0x01),
