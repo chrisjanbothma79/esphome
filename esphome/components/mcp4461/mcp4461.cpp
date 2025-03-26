@@ -386,10 +386,10 @@ bool Mcp4461Component::decrease_wiper_(Mcp4461WiperIdx wiper) {
 uint8_t Mcp4461Component::calc_terminal_connector_byte_(Mcp4461TerminalIdx terminal_connector) {
   uint8_t i = static_cast<uint8_t>(terminal_connector) <= 1 ? 0 : 2;
   uint8_t new_value_byte = 0;
-  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_b);
-  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_w) << 1;
-  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_a) << 2;
-  new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_hw) << 3;
+  new_value_byte += static_cast<uint8_t>(this->reg_[i].terminal_b);
+  new_value_byte += static_cast<uint8_t>(this->reg_[i].terminal_w) << 1;
+  new_value_byte += static_cast<uint8_t>(this->reg_[i].terminal_a) << 2;
+  new_value_byte += static_cast<uint8_t>(this->reg_[i].terminal_hw) << 3;
   new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_b) << 4;
   new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_w) << 5;
   new_value_byte += static_cast<uint8_t>(this->reg_[(i + 1)].terminal_a) << 6;
