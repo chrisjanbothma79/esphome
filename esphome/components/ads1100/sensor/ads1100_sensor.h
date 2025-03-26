@@ -17,7 +17,7 @@ class ADS1100Sensor : public sensor::Sensor, public PollingComponent {
   void update() override;
 
   void set_gain(uint8_t gain) { this->gain_ = gain; }
-  void set_data_rate(uint8_t data_rate) { this->data_rate_ = data_rate; }
+  void set_sample_rate(uint8_t sample_rate) { this->data_rate_ = sample_rate; }
 
  protected:
   ADS1100Component *parent_;

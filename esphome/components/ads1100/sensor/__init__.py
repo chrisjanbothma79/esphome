@@ -53,4 +53,4 @@ async def to_code(config):
     if CONF_GAIN in config:
         cg.add(var.set_gain(config[CONF_GAIN]))
     if CONF_SAMPLE_RATE in config:
-        cg.add(var.set_data_rate(config[CONF_SAMPLE_RATE]))
+        cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))
