@@ -16,7 +16,6 @@ void ADS1100Sensor::setup() {
 
 void ADS1100Sensor::dump_config() {
   ESP_LOGCONFIG(TAG, "ADS1100 Sensor:");
-  LOG_I2C_DEVICE(this->parent_);
   ESP_LOGCONFIG(TAG, "  Gain: %d", this->gain_);
   ESP_LOGCONFIG(TAG, "  Data Rate: %d", this->data_rate_);
   LOG_SENSOR("  ", "Voltage", this);
