@@ -25,6 +25,7 @@ void ADS1100Component::setup() {
     ESP_LOGE(TAG, "  - Device not responding at address 0x%02X", this->address_);
     ESP_LOGE(TAG, "  - Check if device is properly connected");
     ESP_LOGE(TAG, "  - Verify I2C bus is properly configured");
+    ESP_LOGE(TAG, "  - Check if pull-up resistors are present");
     this->mark_failed();
     return;
   }
@@ -40,6 +41,7 @@ void ADS1100Component::setup() {
     ESP_LOGE(TAG, "  - I2C communication error at register 0x%02X", ADS1100_REGISTER_CONVERSION);
     ESP_LOGE(TAG, "  - Device may be in an invalid state");
     ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
     this->mark_failed();
     return;
   }
@@ -77,6 +79,8 @@ void ADS1100Component::setup() {
     ESP_LOGE(TAG, "  - I2C write error at register 0x%02X", ADS1100_REGISTER_CONFIG);
     ESP_LOGE(TAG, "  - Attempted to write value: 0x%04X", config);
     ESP_LOGE(TAG, "  - Device may be locked or in an invalid state");
+    ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
     this->mark_failed();
     return;
   }
@@ -91,6 +95,7 @@ void ADS1100Component::setup() {
     ESP_LOGE(TAG, "  - I2C read error at register 0x%02X", ADS1100_REGISTER_CONFIG);
     ESP_LOGE(TAG, "  - Device may be in an invalid state");
     ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
     this->mark_failed();
     return;
   }
@@ -109,6 +114,8 @@ void ADS1100Component::setup() {
     ESP_LOGE(TAG, "    * Sample Rate: Expected %d, Got %d", (config >> 2) & 0x03, (read_config >> 2) & 0x03);
     ESP_LOGE(TAG, "    * Gain: Expected %d, Got %d", config & 0x03, read_config & 0x03);
     ESP_LOGE(TAG, "  - Device may be malfunctioning or in an invalid state");
+    ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
     this->mark_failed();
     return;
   }
@@ -132,87 +139,65 @@ void ADS1100Component::dump_config() {
 
 float ADS1100Component::request_measurement() {
   if (!this->i2c_initialized_) {
-    ESP_LOGE(TAG, "I2C not initialized");
+    ESP_LOGE(TAG, "Cannot request measurement - I2C not initialized");
     return NAN;
   }
 
+  // Start a new conversion
   uint16_t config = this->prev_config_;
-
-  // Start conversion
-  config |= 0b1000000000000000;
-
+  config |= 0b1000000000000000;  // Set single-shot mode
   ESP_LOGD(TAG, "Starting conversion with config: 0x%04X", config);
+  ESP_LOGD(TAG, "Config bits:");
+  ESP_LOGD(TAG, "  Single-shot: %d", (config >> 15) & 0x01);
+  ESP_LOGD(TAG, "  Sample Rate: %d", (config >> 2) & 0x03);
+  ESP_LOGD(TAG, "  Gain: %d", config & 0x03);
+
   if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, config)) {
-    ESP_LOGE(TAG, "Failed to write config for conversion");
-    this->status_set_warning();
+    ESP_LOGE(TAG, "Failed to write config for conversion:");
+    ESP_LOGE(TAG, "  - I2C write error at register 0x%02X", ADS1100_REGISTER_CONFIG);
+    ESP_LOGE(TAG, "  - Attempted to write value: 0x%04X", config);
+    ESP_LOGE(TAG, "  - Device may be locked or in an invalid state");
+    ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
     return NAN;
   }
-  delay(10);  // Small delay after write
-  this->prev_config_ = config;
 
-  // Wait for conversion to complete based on sample rate
-  int delay_ms;
-  switch (this->sample_rate_) {
-    case ADS1100_SAMPLE_RATE_8_SPS:
-      delay_ms = 126;  // NOLINT
-      break;
-    case ADS1100_SAMPLE_RATE_16_SPS:
-      delay_ms = 63;  // NOLINT
-      break;
-    case ADS1100_SAMPLE_RATE_32_SPS:
-      delay_ms = 32;
-      break;
-    case ADS1100_SAMPLE_RATE_128_SPS:
-    default:
-      delay_ms = 9;
-      break;
-  }
-  ESP_LOGD(TAG, "Waiting %d ms for conversion", delay_ms);
-  delay(delay_ms);
+  // Wait for conversion to complete
+  delay(10);  // Minimum delay based on sample rate
 
-  uint32_t start = millis();
-  while (this->read_byte_16(ADS1100_REGISTER_CONFIG, &config) && (config >> 15) == 0) {
-    if (millis() - start > 100) {
-      ESP_LOGW(TAG, "Reading ADS1100 timed out");
-      this->status_set_warning();
-      return NAN;
-    }
-    yield();
-  }
-
-  uint16_t raw_conversion;
-  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &raw_conversion)) {
-    ESP_LOGE(TAG, "Failed to read conversion result");
-    this->status_set_warning();
+  // Read the conversion result
+  uint16_t raw_value;
+  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &raw_value)) {
+    ESP_LOGE(TAG, "Failed to read conversion result:");
+    ESP_LOGE(TAG, "  - I2C read error at register 0x%02X", ADS1100_REGISTER_CONVERSION);
+    ESP_LOGE(TAG, "  - Device may be in an invalid state");
+    ESP_LOGE(TAG, "  - Check if device is properly powered");
+    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
     return NAN;
   }
-  ESP_LOGD(TAG, "Raw conversion value: 0x%04X", raw_conversion);
 
-  auto signed_conversion = static_cast<int16_t>(raw_conversion);
-
-  // Convert to volts based on gain setting
-  float full_scale_voltage;
+  // Convert to voltage based on gain setting
+  float voltage;
   switch (this->gain_) {
     case ADS1100_GAIN_1:
-      full_scale_voltage = 2.048f;
+      voltage = (raw_value * 1.0f) / 32768.0f;
       break;
     case ADS1100_GAIN_2:
-      full_scale_voltage = 1.024f;
+      voltage = (raw_value * 2.0f) / 32768.0f;
       break;
     case ADS1100_GAIN_4:
-      full_scale_voltage = 0.512f;
+      voltage = (raw_value * 4.0f) / 32768.0f;
       break;
     case ADS1100_GAIN_8:
-      full_scale_voltage = 0.256f;
+      voltage = (raw_value * 8.0f) / 32768.0f;
       break;
     default:
-      full_scale_voltage = 2.048f;
+      ESP_LOGE(TAG, "Invalid gain setting: %d", this->gain_);
+      return NAN;
   }
-  float volts = (signed_conversion * full_scale_voltage) / 32768.0f;
-  ESP_LOGD(TAG, "Converted voltage: %.3fV", volts);
 
-  this->status_clear_warning();
-  return volts;
+  ESP_LOGD(TAG, "Raw value: %d, Voltage: %.3f V", raw_value, voltage);
+  return voltage;
 }
 
 }  // namespace ads1100
