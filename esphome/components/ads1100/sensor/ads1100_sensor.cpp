@@ -11,8 +11,18 @@ void ADS1100Sensor::setup() {
 
   // Configure the ADS1100
   uint8_t config = (this->gain_ << 2) | (this->data_rate_ & 0x03);
-  ESP_LOGD(TAG, "Writing config byte: 0x%02X", config);
+  ESP_LOGD(TAG, "Writing config byte: 0x%02X (gain: %d, data_rate: %d)", config, this->gain_, this->data_rate_);
 
+  // First try to read the current config to verify communication
+  uint8_t current_config;
+  if (!this->parent_->read_byte(0x00, &current_config)) {
+    ESP_LOGE(TAG, "Failed to read current config");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Current config: 0x%02X", current_config);
+
+  // Write new config
   if (!this->parent_->write_byte(0x00, config)) {
     ESP_LOGE(TAG, "Failed to write config byte");
     this->mark_failed();
@@ -46,6 +56,8 @@ void ADS1100Sensor::dump_config() {
 void ADS1100Sensor::update() {
   // Configure for reading
   uint8_t config = (this->gain_ << 2) | (this->data_rate_ & 0x03);
+  ESP_LOGD(TAG, "Writing config byte: 0x%02X", config);
+
   if (!this->parent_->write_byte(0x00, config)) {
     ESP_LOGE(TAG, "Failed to write config byte");
     this->status_set_warning();
