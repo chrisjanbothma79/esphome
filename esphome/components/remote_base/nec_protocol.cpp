@@ -23,7 +23,7 @@ static const uint32_t SPACE_INTER_FRAME_US = 40000;  // Inter-frame space: 40ms
 static const uint32_t SPACE_AGC_REPEAT_US = 96187;   // AGC Repeat space: ~96.1875ms
 
 void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
-  ESP_LOGD(TAG, "Encoding %s", this->get_protocol_type_and_fields_str(data).c_str());
+  ESP_LOGV(TAG, "Encoding %s", this->get_protocol_type_and_fields_str(data).c_str());
 
   if (data.repeats > 20) {
     ESP_LOGW(TAG, "High repeat count may cause WDT timeout.");
@@ -108,6 +108,8 @@ optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
       return {};
     }
 
+    ESP_LOGV(TAG, "Decoded repeat code only");
+
     // Repeat code received
     return NEC_REPEAT_CODE_DATA;
   }
@@ -149,7 +151,8 @@ optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
     ESP_LOGW(TAG, "Decoded command invalid: 0x%04X", data.command);
   }
 
-  ESP_LOGV(TAG, "Decoded %s", this->get_protocol_type_and_fields_str(data).c_str());
+  ESP_LOGV(TAG, "Decoded %s, src_idx=%" PRIu32 ", src_sz=%" PRIi32,
+           this->get_protocol_type_and_fields_str(data).c_str(), src.get_index(), src.size());
 
   return data;
 }
@@ -174,24 +177,23 @@ std::string NECProtocol::get_protocol_type_and_fields_str(const NECData &data) {
   if (data.type != NECCodeType::REPEATS_ONLY) {
     debug_message += ": address=0x";
     if (NECProtocol::is_address_extended(data)) {
-      debug_message += str_sprintf("%04" PRIX16, data.address);
+      debug_message += str_sprintf("%04X", data.address);
     } else {
-      debug_message += str_sprintf("%02" PRIX8 ", address#=0x%02" PRIX8, data.address_bytes.lo, data.address_bytes.hi);
+      debug_message += str_sprintf("%02X, address#=0x%02X", data.address_bytes.lo, data.address_bytes.hi);
     }
 
-    debug_message +=
-        str_sprintf(", command=0x%02" PRIX8 ", command#=0x%02" PRIX8 ", command_valid=%s,", data.command_bytes.lo,
-                    data.command_bytes.hi, YESNO(NECProtocol::is_command_valid(data)));
+    debug_message += str_sprintf(", command=0x%02X, command#=0x%02X, command_valid=%s,", data.command_bytes.lo,
+                                 data.command_bytes.hi, YESNO(NECProtocol::is_command_valid(data)));
   }
 
-  debug_message += str_sprintf(" repeats=%" PRIu16, data.repeats);
+  debug_message += str_sprintf(" repeats=%u", data.repeats);
 
   return debug_message;
 }
 
 void NECBinarySensor::dump_config() {
   LOG_BINARY_SENSOR("", "Remote Receiver Binary Sensor", this);
-  ESP_LOGCONFIG(TAG, "  Repeat Timeout: %" PRIu16 " ms", this->repeat_timeout_ms_);
+  ESP_LOGCONFIG(TAG, "  Repeat Timeout: %u ms", this->repeat_timeout_ms_);
 }
 
 bool NECBinarySensor::matches(RemoteReceiveData src) {
@@ -221,6 +223,7 @@ bool NECBinarySensor::matches(RemoteReceiveData src) {
   }
 
   if (last_waiting_state && !this->waiting_for_repeat_code_) {
+    ESP_LOGV(TAG, "Received unexpected signal");
     this->publish_state(false);
     this->cancel_timeout("repeat");
   }
