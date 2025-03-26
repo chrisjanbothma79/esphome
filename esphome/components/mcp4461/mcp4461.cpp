@@ -428,8 +428,7 @@ void Mcp4461Component::update_terminal_register_(Mcp4461TerminalIdx terminal_con
   if ((static_cast<uint8_t>(terminal_connector) != 0 && static_cast<uint8_t>(terminal_connector) != 1)) {
     return;
   }
-  uint8_t terminal_data;
-  terminal_data = this->get_terminal_register_(terminal_connector);
+  uint8_t terminal_data = this->get_terminal_register_(terminal_connector);
   if (terminal_data == 0) {
     return;
   }
