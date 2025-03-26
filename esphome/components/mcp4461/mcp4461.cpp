@@ -335,7 +335,7 @@ bool Mcp4461Component::increase_wiper_(Mcp4461WiperIdx wiper) {
     ESP_LOGV(TAG, "Maximum wiper level reached, further increase of wiper %u prohibited", wiper_idx);
     return false;
   }
-  ESP_LOGV(TAG, "Increasing wiper %" PRIu8 "", wiper_idx);
+  ESP_LOGV(TAG, "Increasing wiper %u", wiper_idx);
   uint8_t reg = 0;
   uint8_t addr;
   addr = this->get_wiper_address_(wiper_idx);
