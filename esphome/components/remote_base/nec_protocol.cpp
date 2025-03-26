@@ -108,7 +108,7 @@ optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
       return {};
     }
 
-    ESP_LOGV(TAG, "Decoded repeat code only");
+    ESP_LOGVV(TAG, "Decoded repeat code only");
 
     // Repeat code received
     return NEC_REPEAT_CODE_DATA;
@@ -151,8 +151,8 @@ optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
     ESP_LOGW(TAG, "Decoded command invalid: 0x%04X", data.command);
   }
 
-  ESP_LOGV(TAG, "Decoded %s, src_idx=%" PRIu32 ", src_sz=%" PRIi32,
-           this->get_protocol_type_and_fields_str(data).c_str(), src.get_index(), src.size());
+  ESP_LOGVV(TAG, "Decoded %s, src_idx=%" PRIu32 ", src_sz=%" PRIi32,
+            this->get_protocol_type_and_fields_str(data).c_str(), src.get_index(), src.size());
 
   return data;
 }
