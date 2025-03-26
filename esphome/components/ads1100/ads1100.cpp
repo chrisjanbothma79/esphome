@@ -13,7 +13,27 @@ void ADS1100Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADS1100...");
   LOG_I2C_DEVICE(this);
 
-  // Configure the device first
+  // First try to read the conversion register to verify communication
+  uint16_t value;
+  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &value)) {
+    ESP_LOGE(TAG, "Failed to read conversion register");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Initial conversion value: 0x%04X", value);
+  delay(10);  // Small delay after read
+
+  // Read current config
+  uint16_t current_config;
+  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &current_config)) {
+    ESP_LOGE(TAG, "Failed to read current config register");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Current config: 0x%04X", current_config);
+  delay(10);  // Small delay after read
+
+  // Configure the device
   uint16_t config = 0;
   // Clear single-shot bit
   //        0b0xxxxxxxxxxxxxxx
@@ -33,21 +53,13 @@ void ADS1100Component::setup() {
 
   ESP_LOGD(TAG, "Writing config: 0x%04X (gain: %d, sample_rate: %d)", config, this->gain_, this->sample_rate_);
 
-  // First try to read current config
-  uint16_t current_config;
-  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &current_config)) {
-    ESP_LOGE(TAG, "Failed to read current config register");
-    this->mark_failed();
-    return;
-  }
-  ESP_LOGD(TAG, "Current config: 0x%04X", current_config);
-
   // Write new config
   if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, config)) {
     ESP_LOGE(TAG, "Failed to write config register");
     this->mark_failed();
     return;
   }
+  delay(10);  // Small delay after write
   this->prev_config_ = config;
 
   // Verify the config was written correctly
@@ -64,15 +76,6 @@ void ADS1100Component::setup() {
     this->mark_failed();
     return;
   }
-
-  // Now try to read the conversion register to verify communication
-  uint16_t value;
-  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &value)) {
-    ESP_LOGE(TAG, "Failed to read conversion register");
-    this->mark_failed();
-    return;
-  }
-  ESP_LOGD(TAG, "Initial conversion value: 0x%04X", value);
 }
 
 void ADS1100Component::dump_config() {
@@ -101,6 +104,7 @@ float ADS1100Component::request_measurement() {
     this->status_set_warning();
     return NAN;
   }
+  delay(10);  // Small delay after write
   this->prev_config_ = config;
 
   // Wait for conversion to complete based on sample rate
