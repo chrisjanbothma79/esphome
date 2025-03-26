@@ -368,7 +368,7 @@ bool Mcp4461Component::decrease_wiper_(Mcp4461WiperIdx wiper) {
     ESP_LOGV(TAG, "Minimum wiper level reached, further decrease of wiper %u prohibited", wiper_idx);
     return false;
   }
-  ESP_LOGV(TAG, "Decreasing wiper %" PRIu8 "", wiper_idx);
+  ESP_LOGV(TAG, "Decreasing wiper %u", wiper_idx);
   uint8_t reg = 0;
   uint8_t addr;
   addr = this->get_wiper_address_(wiper_idx);
