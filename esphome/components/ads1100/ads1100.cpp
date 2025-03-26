@@ -46,27 +46,38 @@ void ADS1100Component::setup() {
     return;
   }
   ESP_LOGD(TAG, "Current config: 0x%04X", current_config);
+  ESP_LOGD(TAG, "Current config bits:");
+  ESP_LOGD(TAG, "  Single-shot: %d", (current_config >> 15) & 0x01);
+  ESP_LOGD(TAG, "  Sample Rate: %d", (current_config >> 2) & 0x03);
+  ESP_LOGD(TAG, "  Gain: %d", current_config & 0x03);
   delay(10);  // Small delay after read
 
   // Configure the device
-  uint16_t config = 0;
+  uint16_t config = current_config;  // Start with current config
+
   // Clear single-shot bit
   //        0b0xxxxxxxxxxxxxxx
-  config |= 0b0000000000000000;
+  config &= ~(1 << 15);
 
   // Set continuous mode
   //        0bxxxxxxx0xxxxxxxx
-  config |= 0b0000000000000000;
+  config &= ~(1 << 8);
 
   // Set sample rate
   //        0bxxxxxxxxBBxxxxxx
-  config |= (this->sample_rate_ & 0b11) << 2;
+  config &= ~(0x03 << 2);                      // Clear sample rate bits
+  config |= (this->sample_rate_ & 0x03) << 2;  // Set new sample rate
 
   // Set gain
   //        0bxxxxxxxxxxBBxxxx
-  config |= (this->gain_ & 0b11);
+  config &= ~0x03;                 // Clear gain bits
+  config |= (this->gain_ & 0x03);  // Set new gain
 
   ESP_LOGD(TAG, "Writing config: 0x%04X (gain: %d, sample_rate: %d)", config, this->gain_, this->sample_rate_);
+  ESP_LOGD(TAG, "Config bits:");
+  ESP_LOGD(TAG, "  Single-shot: %d", (config >> 15) & 0x01);
+  ESP_LOGD(TAG, "  Sample Rate: %d", (config >> 2) & 0x03);
+  ESP_LOGD(TAG, "  Gain: %d", config & 0x03);
 
   // Write new config
   if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, config)) {
@@ -86,6 +97,10 @@ void ADS1100Component::setup() {
     return;
   }
   ESP_LOGD(TAG, "Read back config: 0x%04X", read_config);
+  ESP_LOGD(TAG, "Read back config bits:");
+  ESP_LOGD(TAG, "  Single-shot: %d", (read_config >> 15) & 0x01);
+  ESP_LOGD(TAG, "  Sample Rate: %d", (read_config >> 2) & 0x03);
+  ESP_LOGD(TAG, "  Gain: %d", read_config & 0x03);
 
   if (read_config != config) {
     ESP_LOGE(TAG, "Config verification failed. Expected: 0x%04X, Got: 0x%04X", config, read_config);
