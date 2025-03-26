@@ -18,7 +18,7 @@ optional<WeatherStationData> WeatherStationProtocol::decode(RemoteReceiveData sr
 
   uint32_t samples = (this->nbits_ + 1) * 2;                                    // sync + nbits
   uint32_t search_end = src.size() > samples ? src.size() - samples + 1 : 0ul;  // last possible sync + 1
-  uint32_t search_limit = std::min(search_end, samples);                        // limit search
+  uint32_t search_limit = std::min(search_end, samples * 3 / 2);                // limit search
 
   while (src.get_index() < search_limit) {
     if (this->receive_item_(src, this->sync_high_, this->sync_low_)) {
