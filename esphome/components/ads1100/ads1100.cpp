@@ -27,8 +27,13 @@ void ADS1100Component::setup() {
     return;
   }
   ESP_LOGD(TAG, "ADS1100 communication test successful");
+  ESP_LOGD(TAG, "Initial conversion value: 0x%04X", value);
 
-  // Configure the device with basic settings
+  // For ADS1100, we should write directly to the conversion register (0x00)
+  // Based on the M5Stack implementation, we should skip directly writing to config
+  // and just use the device in its default state
+
+  // Save a default config for later use
   uint16_t config = 0;
 
   // Set gain (bits 0-1)
@@ -37,20 +42,8 @@ void ADS1100Component::setup() {
   // Set sample rate (bits 2-3)
   config |= (this->sample_rate_ & 0x03) << 2;
 
-  // Set continuous mode (not single-shot)
-  // For ADS1100, continuous mode is the default (bit 8 = 0)
-
-  ESP_LOGD(TAG, "Writing configuration: 0x%04X", config);
-
-  // Write config register
-  if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, config)) {
-    ESP_LOGE(TAG, "Failed to configure ADS1100!");
-    this->mark_failed();
-    return;
-  }
-
-  // Save config for later use
   this->prev_config_ = config;
+  ESP_LOGD(TAG, "Using default configuration: 0x%04X", config);
 
   // Wait for first conversion to complete based on sample rate
   int delay_ms;
@@ -71,6 +64,15 @@ void ADS1100Component::setup() {
   }
   delay(delay_ms);
 
+  // Try to read a measurement to make sure we can communicate
+  float test_voltage = this->request_measurement();
+  if (std::isnan(test_voltage)) {
+    ESP_LOGE(TAG, "Failed to read initial measurement");
+    this->mark_failed();
+    return;
+  }
+
+  ESP_LOGD(TAG, "Initial measurement: %.4f V", test_voltage);
   this->i2c_initialized_ = true;
   ESP_LOGCONFIG(TAG, "ADS1100 initialized successfully");
 }
@@ -102,11 +104,17 @@ float ADS1100Component::request_measurement() {
     return NAN;
   }
 
+  ESP_LOGVV(TAG, "Raw ADC value: 0x%04X", raw_adc);
+
   // Convert raw ADC value to voltage
   float voltage;
   int16_t value = raw_adc;  // Treat as signed 16-bit integer
 
-  // Convert to voltage based on gain setting
+  // The ADS1100 has a fixed input range of ±VREF
+  // Each gain setting divides this range:
+  // Gain=1: ±2.048V, Gain=2: ±1.024V, Gain=4: ±0.512V, Gain=8: ±0.256V
+
+  // Convert to voltage based on gain setting and datasheet values
   switch (this->gain_) {
     case ADS1100_GAIN_1:
       voltage = value * 2.048f / 32768.0f;
