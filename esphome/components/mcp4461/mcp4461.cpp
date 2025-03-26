@@ -10,7 +10,7 @@ static const char *const TAG = "mcp4461";
 constexpr uint8_t EEPROM_WRITE_TIMEOUT_MS = 10;
 
 void Mcp4461Component::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up mcp4461 using address (0x%02" PRIX8 ")...", this->address_);
+  ESP_LOGCONFIG(TAG, "Setting up mcp4461 using address (0x%02X)...", this->address_);
   auto err = this->write(nullptr, 0);
   if (err != i2c::ERROR_OK) {
     this->error_code_ = MCP4461_STATUS_I2C_ERROR;
@@ -34,8 +34,7 @@ void Mcp4461Component::begin_() {
       // only volatile wipers can be set disabled on hw level
       if (i < 4) {
         this->reg_[i].state = 0;
-        Mcp4461WiperIdx wiper_idx;
-        wiper_idx = static_cast<Mcp4461WiperIdx>(i);
+        Mcp4461WiperIdx wiper_idx = static_cast<Mcp4461WiperIdx>(i);
         this->disable_wiper_(wiper_idx);
       }
     }
@@ -93,7 +92,7 @@ void Mcp4461Component::dump_config() {
 }
 
 void Mcp4461Component::loop() {
-  if (status_has_warning()) {
+  if (this->status_has_warning()) {
     this->get_status_register_();
   }
   for (uint8_t i = 0; i < 8; i++) {
@@ -309,7 +308,7 @@ void Mcp4461Component::disable_wiper_(Mcp4461WiperIdx wiper) {
     ESP_LOGW(TAG, "%s", LOG_STR_ARG(this->get_message_string(MCP4461_WIPER_LOCKED)));
     return;
   }
-  ESP_LOGV(TAG, "Disabling wiper %" PRIu8, wiper_idx);
+  ESP_LOGV(TAG, "Disabling wiper %u", wiper_idx);
   this->reg_[wiper_idx].enabled = true;
   if (wiper_idx < 4) {
     this->reg_[wiper_idx].terminal_hw = true;
@@ -432,7 +431,7 @@ void Mcp4461Component::update_terminal_register_(Mcp4461TerminalIdx terminal_con
   if (terminal_data == 0) {
     return;
   }
-  ESP_LOGV(TAG, "Got terminal register %u data %0xh", static_cast<uint8_t>(terminal_connector), terminal_data);
+  ESP_LOGV(TAG, "Got terminal register %u data 0x%02X", static_cast<uint8_t>(terminal_connector), terminal_data);
   uint8_t wiper_index = 0;
   if (static_cast<uint8_t>(terminal_connector) == 1) {
     wiper_index = 2;
@@ -538,7 +537,7 @@ uint16_t Mcp4461Component::get_eeprom_value(Mcp4461EepromLocation location) {
   if (!this->read_byte_16(reg, &buf)) {
     this->error_code_ = MCP4461_STATUS_I2C_ERROR;
     this->status_set_warning();
-    ESP_LOGW(TAG, "Error fetching EEPRom location value");
+    ESP_LOGW(TAG, "Error fetching EEPROM location value");
     return 0;
   }
   return buf;
@@ -615,10 +614,7 @@ bool Mcp4461Component::is_eeprom_ready_for_writing_(bool wait_if_not_ready) {
 }
 
 bool Mcp4461Component::mcp4461_write_(uint8_t addr, uint16_t data, bool nonvolatile) {
-  uint8_t reg = 0;
-  if (data > 0xFF) {
-    reg = 1;
-  }
+  uint8_t reg = data > 0xff ? 1 : 0;
   uint8_t value_byte = static_cast<uint8_t>(data & 0x00ff);
   ESP_LOGV(TAG, "Writing value %u to address %u", data, addr);
   reg |= addr;
