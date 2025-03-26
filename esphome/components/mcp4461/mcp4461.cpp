@@ -17,10 +17,6 @@ void Mcp4461Component::setup() {
     this->mark_failed();
     return;
   }
-  this->begin_();
-}
-
-void Mcp4461Component::begin_() {
   // save WP/WL status
   this->update_write_protection_status_();
   for (uint8_t i = 0; i < 8; i++) {
