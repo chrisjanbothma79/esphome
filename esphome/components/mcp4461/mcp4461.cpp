@@ -608,7 +608,7 @@ bool Mcp4461Component::is_eeprom_ready_for_writing_(bool wait_if_not_ready) {
   }
 
   /* If still not ready after timeout, log error and mark the timeout */
-  ESP_LOGE(TAG, "EEPROM write timeout exceeded (%" PRIu8 " ms)", EEPROM_WRITE_TIMEOUT_MS);
+  ESP_LOGE(TAG, "EEPROM write timeout exceeded (%u ms)", EEPROM_WRITE_TIMEOUT_MS);
   this->last_eeprom_write_timed_out_ = true;
 
   return false;
