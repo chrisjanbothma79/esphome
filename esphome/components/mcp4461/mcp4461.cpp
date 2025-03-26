@@ -332,7 +332,7 @@ bool Mcp4461Component::increase_wiper_(Mcp4461WiperIdx wiper) {
     return false;
   }
   if (this->reg_[wiper_idx].state == 256) {
-    ESP_LOGV(TAG, "Maximum wiper level reached, further increase of wiper %" PRIu8 " prohibited", wiper_idx);
+    ESP_LOGV(TAG, "Maximum wiper level reached, further increase of wiper %u prohibited", wiper_idx);
     return false;
   }
   ESP_LOGV(TAG, "Increasing wiper %" PRIu8 "", wiper_idx);
