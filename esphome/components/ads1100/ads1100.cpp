@@ -15,31 +15,20 @@ void ADS1100Component::setup() {
 
   // Log initial state
   ESP_LOGD(TAG, "Initial state - Gain: %d, Sample Rate: %d", this->gain_, this->sample_rate_);
-  ESP_LOGD(TAG, "I2C Address: 0x%02X", this->address_);
 
-  // Add initial delay to allow device to stabilize
-  delay(50);
+  // Initial delay to allow device to power up
+  delay(100);
 
-  // Initialize I2C
-  ESP_LOGD(TAG, "Attempting to initialize I2C communication...");
-
-  // First try a simple I2C scan to verify device presence
-  uint8_t test_byte;
-  ESP_LOGD(TAG, "Performing I2C device scan...");
-  if (!this->read_byte(0x00, &test_byte)) {
-    ESP_LOGE(TAG, "Failed to detect device at address 0x%02X:", this->address_);
-    ESP_LOGE(TAG, "  - Device not responding to basic I2C read");
-    ESP_LOGE(TAG, "  - Check if device is properly connected");
-    ESP_LOGE(TAG, "  - Verify I2C bus is properly configured");
-    ESP_LOGE(TAG, "  - Check if pull-up resistors are present");
+  // Simple approach like ADS1115 - first attempt to read a value to check communication
+  uint16_t value;
+  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &value)) {
+    ESP_LOGE(TAG, "Communication with ADS1100 failed!");
     this->mark_failed();
     return;
   }
-  ESP_LOGD(TAG, "Device detected at address 0x%02X", this->address_);
-  delay(10);  // Small delay after scan
+  ESP_LOGD(TAG, "ADS1100 communication test successful");
 
-  // Configure the device with desired settings
-  // Following M5Stack implementation - simpler configuration approach
+  // Configure the device with basic settings
   uint16_t config = 0;
 
   // Set gain (bits 0-1)
@@ -48,84 +37,42 @@ void ADS1100Component::setup() {
   // Set sample rate (bits 2-3)
   config |= (this->sample_rate_ & 0x03) << 2;
 
-  // Set continuous mode (bit 8 = 0)
-  // Note: M5Stack implementation uses continuous mode by default
-  config &= ~0x0100;
+  // Set continuous mode (not single-shot)
+  // For ADS1100, continuous mode is the default (bit 8 = 0)
 
-  ESP_LOGD(TAG, "Writing initial config: 0x%04X", config);
-  ESP_LOGD(TAG, "Config bits:");
-  ESP_LOGD(TAG, "  Sample Rate: %d", (config >> 2) & 0x03);
-  ESP_LOGD(TAG, "  Gain: %d", config & 0x03);
+  ESP_LOGD(TAG, "Writing configuration: 0x%04X", config);
 
-  // Write config
+  // Write config register
   if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, config)) {
-    ESP_LOGE(TAG, "Failed to write config register:");
-    ESP_LOGE(TAG, "  - I2C write error at register 0x%02X", ADS1100_REGISTER_CONFIG);
-    ESP_LOGE(TAG, "  - Attempted to write value: 0x%04X", config);
-    ESP_LOGE(TAG, "  - Check if device is properly powered");
-    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
+    ESP_LOGE(TAG, "Failed to configure ADS1100!");
     this->mark_failed();
     return;
   }
-  delay(10);  // Small delay after write
+
+  // Save config for later use
   this->prev_config_ = config;
-
-  // Verify the config was written correctly
-  uint16_t read_config;
-  ESP_LOGD(TAG, "Verifying config write...");
-  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &read_config)) {
-    ESP_LOGE(TAG, "Failed to read back config register:");
-    ESP_LOGE(TAG, "  - I2C read error at register 0x%02X", ADS1100_REGISTER_CONFIG);
-    ESP_LOGE(TAG, "  - Device may be in an invalid state");
-    ESP_LOGE(TAG, "  - Check if device is properly powered");
-    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
-    this->mark_failed();
-    return;
-  }
-  ESP_LOGD(TAG, "Read back config: 0x%04X", read_config);
-
-  if (read_config != config) {
-    ESP_LOGE(TAG, "Config verification failed:");
-    ESP_LOGE(TAG, "  - Expected config: 0x%04X", config);
-    ESP_LOGE(TAG, "  - Read back config: 0x%04X", read_config);
-    ESP_LOGE(TAG, "  - Device may be malfunctioning");
-    this->mark_failed();
-    return;
-  }
 
   // Wait for first conversion to complete based on sample rate
   int delay_ms;
   switch (this->sample_rate_) {
     case ADS1100_SAMPLE_RATE_8_SPS:
-      delay_ms = 126;  // NOLINT
+      delay_ms = 125;
       break;
     case ADS1100_SAMPLE_RATE_16_SPS:
-      delay_ms = 63;  // NOLINT
+      delay_ms = 62;
       break;
     case ADS1100_SAMPLE_RATE_32_SPS:
-      delay_ms = 32;
+      delay_ms = 31;
       break;
     case ADS1100_SAMPLE_RATE_128_SPS:
     default:
-      delay_ms = 9;
+      delay_ms = 8;
       break;
   }
   delay(delay_ms);
 
-  // Try a test conversion
-  ESP_LOGD(TAG, "Attempting test conversion...");
-  float test_voltage = this->request_measurement();
-  if (std::isnan(test_voltage)) {
-    ESP_LOGE(TAG, "Test conversion failed:");
-    ESP_LOGE(TAG, "  - Failed to read conversion result");
-    ESP_LOGE(TAG, "  - Device may be in an invalid state");
-    this->mark_failed();
-    return;
-  }
-  ESP_LOGD(TAG, "Test conversion successful, voltage: %.3f V", test_voltage);
-
   this->i2c_initialized_ = true;
-  ESP_LOGD(TAG, "ADS1100 setup completed successfully");
+  ESP_LOGCONFIG(TAG, "ADS1100 initialized successfully");
 }
 
 void ADS1100Component::dump_config() {
@@ -144,81 +91,41 @@ void ADS1100Component::dump_config() {
 
 float ADS1100Component::request_measurement() {
   if (!this->i2c_initialized_) {
-    ESP_LOGE(TAG, "Cannot request measurement - I2C not initialized");
+    ESP_LOGE(TAG, "ADS1100 not initialized");
     return NAN;
   }
 
-  // Start a new conversion
-  uint16_t config = this->prev_config_;
-  config |= 0x8000;  // Set single-shot mode (ADS1100_REG_CONFIG_OS_SINGLE)
-  ESP_LOGD(TAG, "Starting conversion with config: 0x%04X", config);
-  ESP_LOGD(TAG, "Config bits:");
-  ESP_LOGD(TAG, "  Single-shot: %d", (config >> 15) & 0x01);
-  ESP_LOGD(TAG, "  Sample Rate: %d", (config >> 2) & 0x03);
-  ESP_LOGD(TAG, "  Gain: %d", config & 0x03);
-
-  if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, config)) {
-    ESP_LOGE(TAG, "Failed to write config for conversion:");
-    ESP_LOGE(TAG, "  - I2C write error at register 0x%02X", ADS1100_REGISTER_CONFIG);
-    ESP_LOGE(TAG, "  - Attempted to write value: 0x%04X", config);
-    ESP_LOGE(TAG, "  - Device may be locked or in an invalid state");
-    ESP_LOGE(TAG, "  - Check if device is properly powered");
-    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
+  // In continuous mode, we just read the current conversion result
+  uint16_t raw_adc;
+  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &raw_adc)) {
+    ESP_LOGE(TAG, "Failed to read ADC value");
     return NAN;
   }
 
-  // Wait for conversion to complete based on sample rate
-  int delay_ms;
-  switch (this->sample_rate_) {
-    case ADS1100_SAMPLE_RATE_8_SPS:
-      delay_ms = 126;  // NOLINT
-      break;
-    case ADS1100_SAMPLE_RATE_16_SPS:
-      delay_ms = 63;  // NOLINT
-      break;
-    case ADS1100_SAMPLE_RATE_32_SPS:
-      delay_ms = 32;
-      break;
-    case ADS1100_SAMPLE_RATE_128_SPS:
-    default:
-      delay_ms = 9;
-      break;
-  }
-  ESP_LOGD(TAG, "Waiting %d ms for conversion", delay_ms);
-  delay(delay_ms);
-
-  // Read the conversion result
-  uint16_t raw_value;
-  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &raw_value)) {
-    ESP_LOGE(TAG, "Failed to read conversion result:");
-    ESP_LOGE(TAG, "  - I2C read error at register 0x%02X", ADS1100_REGISTER_CONVERSION);
-    ESP_LOGE(TAG, "  - Device may be in an invalid state");
-    ESP_LOGE(TAG, "  - Check if device is properly powered");
-    ESP_LOGE(TAG, "  - Verify I2C clock speed is not too high");
-    return NAN;
-  }
+  // Convert raw ADC value to voltage
+  float voltage;
+  int16_t value = raw_adc;  // Treat as signed 16-bit integer
 
   // Convert to voltage based on gain setting
-  float voltage;
   switch (this->gain_) {
     case ADS1100_GAIN_1:
-      voltage = (raw_value * 1.0f) / 32768.0f;
+      voltage = value * 2.048f / 32768.0f;
       break;
     case ADS1100_GAIN_2:
-      voltage = (raw_value * 2.0f) / 32768.0f;
+      voltage = value * 1.024f / 32768.0f;
       break;
     case ADS1100_GAIN_4:
-      voltage = (raw_value * 4.0f) / 32768.0f;
+      voltage = value * 0.512f / 32768.0f;
       break;
     case ADS1100_GAIN_8:
-      voltage = (raw_value * 8.0f) / 32768.0f;
+      voltage = value * 0.256f / 32768.0f;
       break;
     default:
       ESP_LOGE(TAG, "Invalid gain setting: %d", this->gain_);
       return NAN;
   }
 
-  ESP_LOGD(TAG, "Raw value: %d, Voltage: %.3f V", raw_value, voltage);
+  ESP_LOGVV(TAG, "Raw ADC: %d, Voltage: %.4f V", value, voltage);
   return voltage;
 }
 
