@@ -63,8 +63,7 @@ void Mcp4461Component::initialize_terminal_disabled(Mcp4461WiperIdx wiper, char 
 }
 
 void Mcp4461Component::update_write_protection_status_() {
-  uint8_t status_register_value;
-  status_register_value = this->get_status_register_();
+  uint8_t status_register_value = this->get_status_register_();
   this->write_protected_ = static_cast<bool>((status_register_value >> 0) & 0x01);
   this->reg_[0].wiper_lock_active = static_cast<bool>((status_register_value >> 2) & 0x01);
   this->reg_[1].wiper_lock_active = static_cast<bool>((status_register_value >> 3) & 0x01);
