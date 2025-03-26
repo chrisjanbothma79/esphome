@@ -1,5 +1,4 @@
 #include "ads1100_sensor.h"
-#include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -7,21 +6,42 @@ namespace ads1100 {
 
 static const char *const TAG = "ads1100.sensor";
 
-void ADS1100Sensor::setup() { ESP_LOGCONFIG(TAG, "Setting up ADS1100 Sensor '%s'...", this->name_.c_str()); }
+void ADS1100Sensor::setup() {
+  ESP_LOGCONFIG(TAG, "Setting up ADS1100 Sensor...");
+  if (!this->write_byte(0x00, (this->gain_ << 2) | (this->data_rate_ & 0x03))) {
+    this->mark_failed();
+    return;
+  }
+}
 
 void ADS1100Sensor::dump_config() {
-  LOG_SENSOR("", "ADS1100 Sensor", this);
-  LOG_UPDATE_INTERVAL(this);
+  ESP_LOGCONFIG(TAG, "ADS1100 Sensor:");
+  LOG_I2C_DEVICE(this);
+  ESP_LOGCONFIG(TAG, "  Gain: %d", this->gain_);
+  ESP_LOGCONFIG(TAG, "  Data Rate: %d", this->data_rate_);
+  LOG_SENSOR("  ", "Voltage", this);
 }
 
 void ADS1100Sensor::update() {
-  float value = this->parent_->request_measurement();
-  if (std::isnan(value)) {
+  if (!this->write_byte(0x00, (this->gain_ << 2) | (this->data_rate_ & 0x03))) {
     this->status_set_warning();
     return;
   }
+
+  // Wait for conversion to complete
+  delay(10);
+
+  uint8_t data[2];
+  if (!this->read_bytes(0x00, data, 2)) {
+    this->status_set_warning();
+    return;
+  }
+
+  int16_t raw = (data[0] << 8) | data[1];
+  float voltage = (raw * 2.048f) / 32768.0f * this->gain_;
+
+  this->publish_state(voltage);
   this->status_clear_warning();
-  this->publish_state(value);
 }
 
 }  // namespace ads1100
