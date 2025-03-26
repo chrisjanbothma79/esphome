@@ -639,9 +639,8 @@ bool Mcp4461Component::mcp4461_write_(uint8_t addr, uint16_t data, bool nonvolat
   if (data > 0xFF) {
     reg = 1;
   }
-  uint8_t value_byte;
-  value_byte = static_cast<uint8_t>(data & 0x00ff);
-  ESP_LOGV(TAG, "Writing value %" PRIu16 " to address %" PRIu8 "", data, addr);
+  uint8_t value_byte = static_cast<uint8_t>(data & 0x00ff);
+  ESP_LOGV(TAG, "Writing value %u to address %u", data, addr);
   reg |= addr;
   reg |= static_cast<uint8_t>(Mcp4461Commands::WRITE);
   if (nonvolatile) {
