@@ -287,7 +287,7 @@ void Mcp4461Component::enable_wiper_(Mcp4461WiperIdx wiper) {
     ESP_LOGW(TAG, "%s", LOG_STR_ARG(this->get_message_string(MCP4461_WIPER_LOCKED)));
     return;
   }
-  ESP_LOGV(TAG, "Enabling wiper %" PRIu8, wiper_idx);
+  ESP_LOGV(TAG, "Enabling wiper %u", wiper_idx);
   this->reg_[wiper_idx].enabled = true;
   if (wiper_idx < 4) {
     this->reg_[wiper_idx].terminal_hw = true;
