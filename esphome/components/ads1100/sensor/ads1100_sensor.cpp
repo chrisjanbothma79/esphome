@@ -14,9 +14,13 @@ void ADS1100Sensor::setup() {
     return;
   }
 
+  ESP_LOGD(TAG, "Current sensor settings - Gain: %d, Data Rate: %d", this->gain_, this->data_rate_);
+
   // Propagate settings to parent component
   this->parent_->set_gain(static_cast<ADS1100Gain>(this->gain_));
   this->parent_->set_data_rate(static_cast<ADS1100DataRate>(this->data_rate_));
+
+  ESP_LOGD(TAG, "Settings propagated to parent component");
 }
 
 void ADS1100Sensor::dump_config() {
@@ -28,16 +32,20 @@ void ADS1100Sensor::dump_config() {
 
 void ADS1100Sensor::update() {
   if (this->parent_ == nullptr) {
+    ESP_LOGE(TAG, "Parent component not set!");
     this->status_set_error();
     return;
   }
 
+  ESP_LOGD(TAG, "Requesting measurement from parent component");
   float value = this->parent_->request_measurement();
   if (std::isnan(value)) {
+    ESP_LOGE(TAG, "Failed to get measurement from parent component");
     this->status_set_error();
     return;
   }
 
+  ESP_LOGD(TAG, "Got measurement: %.3fV", value);
   this->publish_state(value);
   this->status_clear_error();
 }

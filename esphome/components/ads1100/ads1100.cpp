@@ -31,13 +31,39 @@ void ADS1100Component::setup() {
   //        0bxxxxxxxxxxBBxxxx
   config |= (this->gain_ & 0b11);
 
-  ESP_LOGD(TAG, "Writing config: 0x%04X", config);
+  ESP_LOGD(TAG, "Writing config: 0x%04X (gain: %d, data_rate: %d)", config, this->gain_, this->data_rate_);
+
+  // First try to read current config
+  uint16_t current_config;
+  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &current_config)) {
+    ESP_LOGE(TAG, "Failed to read current config register");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Current config: 0x%04X", current_config);
+
+  // Write new config
   if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, config)) {
     ESP_LOGE(TAG, "Failed to write config register");
     this->mark_failed();
     return;
   }
   this->prev_config_ = config;
+
+  // Verify the config was written correctly
+  uint16_t read_config;
+  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &read_config)) {
+    ESP_LOGE(TAG, "Failed to read back config register");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Read back config: 0x%04X", read_config);
+
+  if (read_config != config) {
+    ESP_LOGE(TAG, "Config verification failed. Expected: 0x%04X, Got: 0x%04X", config, read_config);
+    this->mark_failed();
+    return;
+  }
 
   // Now try to read the conversion register to verify communication
   uint16_t value;
@@ -69,7 +95,9 @@ float ADS1100Component::request_measurement() {
   // Start conversion
   config |= 0b1000000000000000;
 
+  ESP_LOGD(TAG, "Starting conversion with config: 0x%04X", config);
   if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, config)) {
+    ESP_LOGE(TAG, "Failed to write config for conversion");
     this->status_set_warning();
     return NAN;
   }
@@ -92,6 +120,7 @@ float ADS1100Component::request_measurement() {
       delay_ms = 9;
       break;
   }
+  ESP_LOGD(TAG, "Waiting %d ms for conversion", delay_ms);
   delay(delay_ms);
 
   uint32_t start = millis();
@@ -106,9 +135,11 @@ float ADS1100Component::request_measurement() {
 
   uint16_t raw_conversion;
   if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &raw_conversion)) {
+    ESP_LOGE(TAG, "Failed to read conversion result");
     this->status_set_warning();
     return NAN;
   }
+  ESP_LOGD(TAG, "Raw conversion value: 0x%04X", raw_conversion);
 
   auto signed_conversion = static_cast<int16_t>(raw_conversion);
 
@@ -131,6 +162,7 @@ float ADS1100Component::request_measurement() {
       full_scale_voltage = 2.048f;
   }
   float volts = (signed_conversion * full_scale_voltage) / 32768.0f;
+  ESP_LOGD(TAG, "Converted voltage: %.3fV", volts);
 
   this->status_clear_warning();
   return volts;
