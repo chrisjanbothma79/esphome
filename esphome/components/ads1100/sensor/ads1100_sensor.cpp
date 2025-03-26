@@ -7,9 +7,9 @@ namespace ads1100 {
 static const char *const TAG = "ads1100.sensor";
 
 void ADS1100Sensor::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up ADS1100 Sensor...");
+  ESP_LOGCONFIG(TAG, "Setting up ADS1110 Sensor...");
   if (this->parent_ == nullptr) {
-    ESP_LOGE(TAG, "ADS1100 parent not set!");
+    ESP_LOGE(TAG, "ADS1110 parent not set!");
     this->mark_failed();
     return;
   }
@@ -28,7 +28,7 @@ void ADS1100Sensor::setup() {
 }
 
 void ADS1100Sensor::dump_config() {
-  ESP_LOGCONFIG(TAG, "ADS1100 Sensor:");
+  ESP_LOGCONFIG(TAG, "ADS1110 Sensor:");
   ESP_LOGCONFIG(TAG, "  Gain: %d", this->gain_);
   ESP_LOGCONFIG(TAG, "  Sample Rate: %d SPS", this->sample_rate_);
   LOG_SENSOR("  ", "Voltage", this);

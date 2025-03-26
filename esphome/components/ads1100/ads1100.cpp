@@ -10,7 +10,7 @@ static const uint8_t ADS1100_REGISTER_CONVERSION = 0x00;
 static const uint8_t ADS1100_REGISTER_CONFIG = 0x01;
 
 void ADS1100Component::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up ADS1100...");
+  ESP_LOGCONFIG(TAG, "Setting up ADS1110...");
   LOG_I2C_DEVICE(this);
 
   // Log initial state
@@ -19,21 +19,28 @@ void ADS1100Component::setup() {
   // Initial delay to allow device to power up
   delay(100);
 
-  // Simple approach like ADS1115 - first attempt to read a value to check communication
+  // First, read the current conversion register value to check communication
   uint16_t value;
   if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &value)) {
-    ESP_LOGE(TAG, "Communication with ADS1100 failed!");
+    ESP_LOGE(TAG, "Communication with ADS1110 failed!");
     this->mark_failed();
     return;
   }
-  ESP_LOGD(TAG, "ADS1100 communication test successful");
+  ESP_LOGD(TAG, "ADS1110 communication test successful");
   ESP_LOGD(TAG, "Initial conversion value: 0x%04X", value);
 
-  // For ADS1100, we should write directly to the conversion register (0x00)
-  // Based on the M5Stack implementation, we should skip directly writing to config
-  // and just use the device in its default state
+  // For ADS1110, try to read the config register
+  uint16_t current_config;
+  if (!this->read_byte_16(ADS1100_REGISTER_CONFIG, &current_config)) {
+    ESP_LOGD(TAG, "Could not read config register - this is normal for ADS1110");
+    // For ADS1110, we might not be able to read the config register
+    // This is okay - we'll just use the default config
+  } else {
+    ESP_LOGD(TAG, "Current config register: 0x%04X", current_config);
+  }
 
-  // Save a default config for later use
+  // ADS1110 has a configuration register that can be written to
+  // Configure the device based on our requirements
   uint16_t config = 0;
 
   // Set gain (bits 0-1)
@@ -42,8 +49,16 @@ void ADS1100Component::setup() {
   // Set sample rate (bits 2-3)
   config |= (this->sample_rate_ & 0x03) << 2;
 
+  // Try to write the configuration
+  ESP_LOGD(TAG, "Attempting to write config: 0x%04X", config);
+  if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, config)) {
+    ESP_LOGD(TAG, "Could not write config - using default configuration");
+    // This is expected if the chip is truly an ADS1110 and not ADS1100
+    // We'll continue and use the default settings
+  }
+
+  // Store what we believe the config is
   this->prev_config_ = config;
-  ESP_LOGD(TAG, "Using default configuration: 0x%04X", config);
 
   // Wait for first conversion to complete based on sample rate
   int delay_ms;
@@ -74,14 +89,14 @@ void ADS1100Component::setup() {
 
   ESP_LOGD(TAG, "Initial measurement: %.4f V", test_voltage);
   this->i2c_initialized_ = true;
-  ESP_LOGCONFIG(TAG, "ADS1100 initialized successfully");
+  ESP_LOGCONFIG(TAG, "ADS1110 initialized successfully");
 }
 
 void ADS1100Component::dump_config() {
-  ESP_LOGCONFIG(TAG, "ADS1100:");
+  ESP_LOGCONFIG(TAG, "ADS1110:");
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with ADS1100 failed!");
+    ESP_LOGE(TAG, "Communication with ADS1110 failed!");
   }
   ESP_LOGCONFIG(TAG, "  Gain: %d", this->gain_);
   ESP_LOGCONFIG(TAG, "  Sample Rate: %d SPS",
@@ -93,11 +108,12 @@ void ADS1100Component::dump_config() {
 
 float ADS1100Component::request_measurement() {
   if (!this->i2c_initialized_) {
-    ESP_LOGE(TAG, "ADS1100 not initialized");
+    ESP_LOGE(TAG, "ADS1110 not initialized");
     return NAN;
   }
 
-  // In continuous mode, we just read the current conversion result
+  // For ADS1110, we just read the conversion register
+  // It operates in continuous conversion mode by default
   uint16_t raw_adc;
   if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &raw_adc)) {
     ESP_LOGE(TAG, "Failed to read ADC value");
@@ -107,14 +123,15 @@ float ADS1100Component::request_measurement() {
   ESP_LOGVV(TAG, "Raw ADC value: 0x%04X", raw_adc);
 
   // Convert raw ADC value to voltage
+  // The ADS1110 returns a signed 16-bit value
+  int16_t value = raw_adc;
+
+  // For ADS1110, according to datasheet:
+  // Gain=1: ±2.048V
+  // Gain=2: ±1.024V
+  // Gain=4: ±0.512V
+  // Gain=8: ±0.256V
   float voltage;
-  int16_t value = raw_adc;  // Treat as signed 16-bit integer
-
-  // The ADS1100 has a fixed input range of ±VREF
-  // Each gain setting divides this range:
-  // Gain=1: ±2.048V, Gain=2: ±1.024V, Gain=4: ±0.512V, Gain=8: ±0.256V
-
-  // Convert to voltage based on gain setting and datasheet values
   switch (this->gain_) {
     case ADS1100_GAIN_1:
       voltage = value * 2.048f / 32768.0f;
