@@ -458,7 +458,7 @@ bool Mcp4461Component::set_terminal_register_(Mcp4461TerminalIdx terminal_connec
   } else if (static_cast<uint8_t>(terminal_connector) == 1) {
     addr = static_cast<uint8_t>(Mcp4461Addresses::MCP4461_TCON1);
   } else {
-    ESP_LOGW(TAG, "Invalid terminal connector id %" PRIu8 " specified", static_cast<uint8_t>(terminal_connector));
+    ESP_LOGW(TAG, "Invalid terminal connector id %u specified", static_cast<uint8_t>(terminal_connector));
     return false;
   }
   if (!(this->mcp4461_write_(addr, data))) {
