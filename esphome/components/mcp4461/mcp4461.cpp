@@ -258,7 +258,7 @@ bool Mcp4461Component::set_wiper_level_(Mcp4461WiperIdx wiper, uint16_t value) {
     ESP_LOGW(TAG, "%s", LOG_STR_ARG(this->get_message_string(MCP4461_WIPER_LOCKED)));
     return false;
   }
-  ESP_LOGV(TAG, "Setting MCP4461 wiper %" PRIu8 " to %" PRIu16 "!", wiper_idx, value);
+  ESP_LOGV(TAG, "Setting MCP4461 wiper %u to %u", wiper_idx, value);
   this->reg_[wiper_idx].state = value;
   this->reg_[wiper_idx].update_level = true;
   return true;
