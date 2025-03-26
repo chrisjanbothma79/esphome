@@ -84,7 +84,7 @@ void Mcp4461Component::dump_config() {
     // reworked to be a one-line intentionally, as output would not be in order
     if (i < 4) {
       ESP_LOGCONFIG(TAG,
-                    "  ├── Volatile wiper [%" PRIu8 "] level: %" PRIu16 ", Status: %s, HW: %s, A: %s, B: %s, W: %s", i,
+                    "  ├── Volatile wiper [%u] level: %u, Status: %s, HW: %s, A: %s, B: %s, W: %s", i,
                     this->reg_[i].state, ONOFF(this->reg_[i].terminal_hw), ONOFF(this->reg_[i].terminal_a),
                     ONOFF(this->reg_[i].terminal_b), ONOFF(this->reg_[i].terminal_w), ONOFF(this->reg_[i].enabled));
     } else {
