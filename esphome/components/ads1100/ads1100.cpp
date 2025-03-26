@@ -11,14 +11,9 @@ static const uint8_t ADS1100_REGISTER_CONFIG = 0x01;
 
 void ADS1100Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADS1100...");
-  uint16_t value;
-  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &value)) {
-    this->mark_failed();
-    return;
-  }
+  LOG_I2C_DEVICE(this);
 
-  ESP_LOGCONFIG(TAG, "Configuring ADS1100...");
-
+  // Configure the device first
   uint16_t config = 0;
   // Clear single-shot bit
   //        0b0xxxxxxxxxxxxxxx
@@ -36,11 +31,22 @@ void ADS1100Component::setup() {
   //        0bxxxxxxxxxxBBxxxx
   config |= (this->gain_ & 0b11);
 
+  ESP_LOGD(TAG, "Writing config: 0x%04X", config);
   if (!this->write_byte_16(ADS1100_REGISTER_CONFIG, config)) {
+    ESP_LOGE(TAG, "Failed to write config register");
     this->mark_failed();
     return;
   }
   this->prev_config_ = config;
+
+  // Now try to read the conversion register to verify communication
+  uint16_t value;
+  if (!this->read_byte_16(ADS1100_REGISTER_CONVERSION, &value)) {
+    ESP_LOGE(TAG, "Failed to read conversion register");
+    this->mark_failed();
+    return;
+  }
+  ESP_LOGD(TAG, "Initial conversion value: 0x%04X", value);
 }
 
 void ADS1100Component::dump_config() {

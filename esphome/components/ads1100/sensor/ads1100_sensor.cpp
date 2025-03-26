@@ -8,80 +8,38 @@ static const char *const TAG = "ads1100.sensor";
 
 void ADS1100Sensor::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADS1100 Sensor...");
-
-  // Configure the ADS1100
-  uint8_t config = (this->gain_ << 2) | (this->data_rate_ & 0x03);
-  ESP_LOGD(TAG, "Writing config byte: 0x%02X (gain: %d, data_rate: %d)", config, this->gain_, this->data_rate_);
-
-  // First try to read the current config to verify communication
-  uint8_t current_config;
-  if (!this->parent_->read_byte(0x00, &current_config)) {
-    ESP_LOGE(TAG, "Failed to read current config");
-    this->mark_failed();
-    return;
-  }
-  ESP_LOGD(TAG, "Current config: 0x%02X", current_config);
-
-  // Write new config
-  if (!this->parent_->write_byte(0x00, config)) {
-    ESP_LOGE(TAG, "Failed to write config byte");
+  if (this->parent_ == nullptr) {
+    ESP_LOGE(TAG, "ADS1100 parent not set!");
     this->mark_failed();
     return;
   }
 
-  // Verify the configuration
-  uint8_t read_config;
-  if (!this->parent_->read_byte(0x00, &read_config)) {
-    ESP_LOGE(TAG, "Failed to read config byte");
-    this->mark_failed();
-    return;
-  }
-
-  if (read_config != config) {
-    ESP_LOGE(TAG, "Config verification failed. Expected: 0x%02X, Got: 0x%02X", config, read_config);
-    this->mark_failed();
-    return;
-  }
-
-  ESP_LOGD(TAG, "ADS1100 configured successfully");
+  // Propagate settings to parent component
+  this->parent_->set_gain(static_cast<ADS1100Gain>(this->gain_));
+  this->parent_->set_data_rate(static_cast<ADS1100DataRate>(this->data_rate_));
 }
 
 void ADS1100Sensor::dump_config() {
   ESP_LOGCONFIG(TAG, "ADS1100 Sensor:");
   ESP_LOGCONFIG(TAG, "  Gain: %d", this->gain_);
-  ESP_LOGCONFIG(TAG, "  Data Rate: %d", this->data_rate_);
+  ESP_LOGCONFIG(TAG, "  Data Rate: %d SPS", this->data_rate_);
   LOG_SENSOR("  ", "Voltage", this);
 }
 
 void ADS1100Sensor::update() {
-  // Configure for reading
-  uint8_t config = (this->gain_ << 2) | (this->data_rate_ & 0x03);
-  ESP_LOGD(TAG, "Writing config byte: 0x%02X", config);
-
-  if (!this->parent_->write_byte(0x00, config)) {
-    ESP_LOGE(TAG, "Failed to write config byte");
-    this->status_set_warning();
+  if (this->parent_ == nullptr) {
+    this->status_set_error();
     return;
   }
 
-  // Wait for conversion to complete (depends on data rate)
-  delay(1000 / this->data_rate_ + 1);  // Add 1ms margin
-
-  // Read the conversion result
-  uint8_t data[2];
-  if (!this->parent_->read_bytes(0x00, data, 2)) {
-    ESP_LOGE(TAG, "Failed to read conversion result");
-    this->status_set_warning();
+  float value = this->parent_->request_measurement();
+  if (std::isnan(value)) {
+    this->status_set_error();
     return;
   }
 
-  // Convert to voltage
-  int16_t raw = (data[0] << 8) | data[1];  // MSB first
-  float voltage = (raw * 2.048f) / 32768.0f * this->gain_;
-
-  ESP_LOGD(TAG, "Raw value: %d, Voltage: %.3fV", raw, voltage);
-  this->publish_state(voltage);
-  this->status_clear_warning();
+  this->publish_state(value);
+  this->status_clear_error();
 }
 
 }  // namespace ads1100
