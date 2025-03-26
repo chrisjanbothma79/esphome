@@ -110,7 +110,7 @@ void Mcp4461Component::loop() {
     if (this->reg_[i].update_terminal) {
       // set terminal register changes
       Mcp4461TerminalIdx terminal_connector =
-        i < 2 ? Mcp4461TerminalIdx::MCP4461_TERMINAL_0 : Mcp4461TerminalIdx::MCP4461_TERMINAL_1;
+          i < 2 ? Mcp4461TerminalIdx::MCP4461_TERMINAL_0 : Mcp4461TerminalIdx::MCP4461_TERMINAL_1;
       uint8_t new_terminal_value = this->calc_terminal_connector_byte_(terminal_connector);
       ESP_LOGV(TAG, "updating terminal %u to new value %u", static_cast<uint8_t>(terminal_connector),
                new_terminal_value);
