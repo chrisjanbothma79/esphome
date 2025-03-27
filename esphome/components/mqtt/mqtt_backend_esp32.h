@@ -58,6 +58,7 @@ class MQTTBackendESP32 final : public MQTTBackend {
   static const size_t TASK_STACK_SIZE = 4096;
   static const ssize_t TASK_PRIORITY = 5;
   static const uint32_t MQTT_QUEUE_LENGTH = 20;
+  static const uint32_t MQTT_QUEUE_WAIT = 20;  // Max time (ms) to wait to enqueue message.
 
   void set_keep_alive(uint16_t keep_alive) final { this->keep_alive_ = keep_alive; }
   void set_client_id(const char *client_id) final { this->client_id_ = client_id; }
@@ -219,11 +220,11 @@ class MQTTBackendESP32 final : public MQTTBackend {
       elem.payload_len = 0;
     }
 
-    if (xQueueSend(this->mqtt_queue_, &elem, 20) == pdPASS) {
+    if (xQueueSend(this->mqtt_queue_, &elem, pdMS_TO_TICKS(MQTT_QUEUE_WAIT)) == pdPASS) {
       return true;
     } else {
-      free(elem.topic);   // NOLINT
-      free(elem.payload); // NOLINT
+      free(elem.topic);    // NOLINT
+      free(elem.payload);  // NOLINT
       return false;
     }
   }
