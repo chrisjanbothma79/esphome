@@ -7,6 +7,11 @@ namespace st7701s {
 
 void ST7701S::setup() {
   esph_log_config(TAG, "Setting up ST7701S");
+  if (heap_caps_get_free_size(MALLOC_CAP_SPIRAM) < 1024 * 1024) {
+    this->status_set_error("PSRAM not available");
+    this->mark_failed();
+    return;
+  }
   this->spi_setup();
   this->write_init_sequence_();
 
