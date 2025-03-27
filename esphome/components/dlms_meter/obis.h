@@ -76,20 +76,20 @@ enum Accuracy { SINGLE_DIGIT = 0xFF, DOUBLE_DIGIT = 0xFE };
  * Data structure
  */
 
-static const int DECODER_START_OFFSET =
+static const uint8_t DECODER_START_OFFSET =
     20;  // Offset for start of OBIS decoding, skip header, timestamp and break block
 
-static const int OBIS_TYPE_OFFSET = 0;
-static const int OBIS_LENGTH_OFFSET = 1;
+static const uint8_t OBIS_TYPE_OFFSET = 0;
+static const uint8_t OBIS_LENGTH_OFFSET = 1;
 
-static const int OBIS_CODE_OFFSET = 2;
+static const uint8_t OBIS_CODE_OFFSET = 2;
 
-static const int OBIS_A = 0;
-static const int OBIS_B = 1;
-static const int OBIS_C = 2;
-static const int OBIS_D = 3;
-static const int OBIS_E = 4;
-static const int OBIS_F = 5;
+static const uint8_t OBIS_A = 0;
+static const uint8_t OBIS_B = 1;
+static const uint8_t OBIS_C = 2;
+static const uint8_t OBIS_D = 3;
+static const uint8_t OBIS_E = 4;
+static const uint8_t OBIS_F = 5;
 
 /*
  * Metadata

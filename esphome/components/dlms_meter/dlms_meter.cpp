@@ -15,7 +15,7 @@ void DlmsMeterComponent::dump_config() {
   ESP_LOGVV(TAG, "decryption_key: %s",
             format_hex_pretty(&this->decryption_key_[0], this->decryption_key_length_).c_str());
 
-  ESP_LOGCONFIG(TAG, "read_timeout: %d", this->read_timeout_);
+  ESP_LOGCONFIG(TAG, "read_timeout: %ld", this->read_timeout_);
 
 #define DLMS_METER_LOG_SENSOR(s) LOG_SENSOR("  ", #s, this->s##_sensor_);
   DLMS_METER_SENSOR_LIST(DLMS_METER_LOG_SENSOR, )
@@ -29,8 +29,7 @@ void DlmsMeterComponent::dump_config() {
 void DlmsMeterComponent::loop() {
   uint32_t current_time = millis();
 
-  while (available())  // Read while data is available
-  {
+  while (available()) {  // Read while data is available
     uint8_t c;
     this->read_byte(&c);
     this->receive_buffer_.push_back(c);
@@ -39,7 +38,7 @@ void DlmsMeterComponent::loop() {
   }
 
   if (!this->receive_buffer_.empty() && current_time - this->last_read_ > this->read_timeout_) {
-    log_packet_(this->receive_buffer_);
+    this->log_packet_(this->receive_buffer_);
 
     // Verify and parse M-Bus frames
 
@@ -48,14 +47,14 @@ void DlmsMeterComponent::loop() {
     uint16_t frame_offset = 0;          // Offset is used if the M-Bus message is split into multiple frames
     std::vector<uint8_t> mbus_payload;  // Contains the data of the payload
 
-    while (true) {
+    while (frame_offset < this->receive_buffer_.size()) {
       ESP_LOGV(TAG, "MBUS: Parsing frame");
 
       // Check start bytes
       if (this->receive_buffer_[frame_offset + MBUS_START1_OFFSET] != START_BYTE_LONG_FRAME ||
           this->receive_buffer_[frame_offset + MBUS_START2_OFFSET] != START_BYTE_LONG_FRAME) {
         ESP_LOGE(TAG, "MBUS: Start bytes do not match");
-        abort_();
+        this->abort_();
         return;
       }
 
@@ -63,7 +62,7 @@ void DlmsMeterComponent::loop() {
       if (this->receive_buffer_[frame_offset + MBUS_LENGTH1_OFFSET] !=
           this->receive_buffer_[frame_offset + MBUS_LENGTH2_OFFSET]) {
         ESP_LOGE(TAG, "MBUS: Length bytes do not match");
-        abort_();
+        this->abort_();
         return;
       }
 
@@ -72,14 +71,14 @@ void DlmsMeterComponent::loop() {
       // Check if received data is enough for the given frame length
       if (this->receive_buffer_.size() - frame_offset < frame_length + 3) {
         ESP_LOGE(TAG, "MBUS: Frame too big for received data");
-        abort_();
+        this->abort_();
         return;
       }
 
       if (this->receive_buffer_[frame_offset + frame_length + MBUS_HEADER_INTRO_LENGTH + MBUS_FOOTER_LENGTH - 1] !=
           STOP_BYTE) {
         ESP_LOGE(TAG, "MBUS: Invalid stop byte");
-        abort_();
+        this->abort_();
         return;
       }
 
@@ -95,7 +94,7 @@ void DlmsMeterComponent::loop() {
       if (checksum != this->receive_buffer_[frame_offset + frame_length + MBUS_HEADER_INTRO_LENGTH]) {
         ESP_LOGE(TAG, "MBUS: Invalid checksum: %x != %x", checksum,
                  this->receive_buffer_[frame_offset + frame_length + MBUS_HEADER_INTRO_LENGTH]);
-        abort_();
+        this->abort_();
         return;
       }
 
@@ -103,42 +102,34 @@ void DlmsMeterComponent::loop() {
                           &this->receive_buffer_[frame_offset + MBUS_HEADER_INTRO_LENGTH + frame_length]);
 
       frame_offset += MBUS_HEADER_INTRO_LENGTH + frame_length + MBUS_FOOTER_LENGTH;
-
-      if (frame_offset >= this->receive_buffer_.size())  // No more data to read, exit loop
-      {
-        break;
-      }
     }
 
     // Verify and parse DLMS header
 
     ESP_LOGV(TAG, "Parsing DLMS header");
 
-    if (mbus_payload.size() < 20)  // If the payload is too short we need to abort
-    {
+    if (mbus_payload.size() < 20) {  // If the payload is too short we need to abort
       ESP_LOGE(TAG, "DLMS: Payload too short");
-      abort_();
+      this->abort_();
       return;
     }
 
-    if (mbus_payload[DLMS_CIPHER_OFFSET] != GLO_CIPHERING)  // Only general-glo-ciphering is supported (0xDB)
-    {
+    if (mbus_payload[DLMS_CIPHER_OFFSET] != GLO_CIPHERING) {  // Only general-glo-ciphering is supported (0xDB)
       ESP_LOGE(TAG, "DLMS: Unsupported cipher");
-      abort_();
+      this->abort_();
       return;
     }
 
     uint8_t systitle_length = mbus_payload[DLMS_SYST_OFFSET];
 
-    if (systitle_length != 0x08)  // Only system titles with length of 8 are supported
-    {
+    if (systitle_length != 0x08) {  // Only system titles with length of 8 are supported
       ESP_LOGE(TAG, "DLMS: Unsupported system title length");
-      abort_();
+      this->abort_();
       return;
     }
 
     uint16_t message_length = mbus_payload[DLMS_LENGTH_OFFSET];
-    int header_offset = 0;
+    uint16_t header_offset = 0;
 
 #if defined(PROVIDER_NETZNOE)
     // for some reason EVN seems to set the standard "length" field to 0x81 and then the actual length is in the next
@@ -169,16 +160,15 @@ void DlmsMeterComponent::loop() {
     if (mbus_payload.size() - DLMS_HEADER_LENGTH - header_offset != message_length) {
       ESP_LOGV(TAG, "lengths: %d, %d, %d, %d", mbus_payload.size(), DLMS_HEADER_LENGTH, header_offset, message_length);
       ESP_LOGE(TAG, "DLMS: Message has invalid length");
-      abort_();
+      this->abort_();
       return;
     }
 
     if (mbus_payload[header_offset + DLMS_SECBYTE_OFFSET] != 0x21 &&
         mbus_payload[header_offset + DLMS_SECBYTE_OFFSET] !=
-            0x20)  // Only certain security suite is supported (0x21 || 0x20)
-    {
+            0x20) {  // Only certain security suite is supported (0x21 || 0x20)
       ESP_LOGE(TAG, "DLMS: Unsupported security control byte");
-      abort_();
+      this->abort_();
       return;
     }
 
@@ -221,7 +211,7 @@ void DlmsMeterComponent::loop() {
 
     if (plaintext[0] != DATA_NOTIFICATION || plaintext[5] != TIMESTAMP_DATETIME) {
       ESP_LOGE(TAG, "OBIS: Packet was decrypted but data is invalid");
-      abort_();
+      this->abort_();
       return;
     }
 
@@ -230,12 +220,12 @@ void DlmsMeterComponent::loop() {
     ESP_LOGV(TAG, "Decoding payload");
 
     MeterData data{};
-    int current_position = DECODER_START_OFFSET;
+    uint16_t current_position = DECODER_START_OFFSET;
 
-    do {
+    while (current_position < message_length) {
       if (plaintext[current_position + OBIS_TYPE_OFFSET] != DataType::OCTET_STRING) {
         ESP_LOGE(TAG, "OBIS: Unsupported OBIS header type: %x", plaintext[current_position + OBIS_TYPE_OFFSET]);
-        abort_();
+        this->abort_();
         return;
       }
 
@@ -243,7 +233,7 @@ void DlmsMeterComponent::loop() {
 
       if (obis_code_length != 0x06 && obis_code_length != 0x0C) {
         ESP_LOGE(TAG, "OBIS: Unsupported OBIS header length: %x", obis_code_length);
-        abort_();
+        this->abort_();
         return;
       }
 
@@ -342,10 +332,9 @@ void DlmsMeterComponent::loop() {
         code_type = CodeType::METER_NUMBER;
       }
 #endif
-
       else {
         ESP_LOGE(TAG, "OBIS: Unsupported OBIS medium: %x", obis_code[OBIS_A]);
-        abort_();
+        this->abort_();
         return;
       }
 
@@ -362,20 +351,27 @@ void DlmsMeterComponent::loop() {
 
           float_value = uint32_value;  // Ignore decimal digits for now
 
-          if (code_type == CodeType::ACTIVE_POWER_PLUS) {
-            data.active_power_plus = float_value;
-          } else if (code_type == CodeType::ACTIVE_POWER_MINUS) {
-            data.active_power_minus = float_value;
-
-          } else if (code_type == CodeType::ACTIVE_ENERGY_PLUS) {
-            data.active_energy_plus = float_value;
-          } else if (code_type == CodeType::ACTIVE_ENERGY_MINUS) {
-            data.active_energy_minus = float_value;
-
-          } else if (code_type == CodeType::REACTIVE_ENERGY_PLUS) {
-            data.reactive_energy_plus = float_value;
-          } else if (code_type == CodeType::REACTIVE_ENERGY_MINUS) {
-            data.reactive_energy_minus = float_value;
+          switch (code_type) {
+            case CodeType::ACTIVE_POWER_PLUS:
+              data.active_power_plus = float_value;
+              break;
+            case CodeType::ACTIVE_POWER_MINUS:
+              data.active_power_minus = float_value;
+              break;
+            case CodeType::ACTIVE_ENERGY_PLUS:
+              data.active_energy_plus = float_value;
+              break;
+            case CodeType::ACTIVE_ENERGY_MINUS:
+              data.active_energy_minus = float_value;
+              break;
+            case CodeType::REACTIVE_ENERGY_PLUS:
+              data.reactive_energy_plus = float_value;
+              break;
+            case CodeType::REACTIVE_ENERGY_MINUS:
+              data.reactive_energy_minus = float_value;
+              break;
+            default:
+              ESP_LOGW(TAG, "Unsupported CodeType '%d' for DataType '%d'", code_type, data_type);
           }
 
           break;
@@ -393,26 +389,33 @@ void DlmsMeterComponent::loop() {
             float_value = uint16_value;  // No decimal places
           }
 
-          if (code_type == CodeType::VOLTAGE_L1) {
-            data.voltage_l1 = float_value;
-          } else if (code_type == CodeType::VOLTAGE_L2) {
-            data.voltage_l2 = float_value;
-          } else if (code_type == CodeType::VOLTAGE_L3) {
-            data.voltage_l3 = float_value;
-
-          } else if (code_type == CodeType::CURRENT_L1) {
-            data.current_l1 = float_value;
-          } else if (code_type == CodeType::CURRENT_L2) {
-            data.current_l2 = float_value;
-          } else if (code_type == CodeType::CURRENT_L3) {
-            data.current_l3 = float_value;
-          }
-
+          switch (code_type) {
+            case CodeType::VOLTAGE_L1:
+              data.voltage_l1 = float_value;
+              break;
+            case CodeType::VOLTAGE_L2:
+              data.voltage_l2 = float_value;
+              break;
+            case CodeType::VOLTAGE_L3:
+              data.voltage_l3 = float_value;
+              break;
+            case CodeType::CURRENT_L1:
+              data.current_l1 = float_value;
+              break;
+            case CodeType::CURRENT_L2:
+              data.current_l2 = float_value;
+              break;
+            case CodeType::CURRENT_L3:
+              data.current_l3 = float_value;
+              break;
 #if defined(PROVIDER_NETZNOE)
-          else if (code_type == CodeType::POWER_FACTOR)
-            data.power_factor = float_value / 1000.0f;
+            case CodeType::POWER_FACTOR:
+              data.power_factor = float_value / 1000.0f;
+              break;
 #endif
-
+            default:
+              ESP_LOGW(TAG, "Unsupported CodeType '%d' for DataType '%d'", code_type, data_type);
+          }
           break;
         case DataType::OCTET_STRING:
           ESP_LOGV(TAG, "Arrived on OctetString");
@@ -421,9 +424,8 @@ void DlmsMeterComponent::loop() {
           data_length = plaintext[current_position];
           current_position++;  // Advance past string length
 
-          if (code_type == CodeType::TIMESTAMP)  // Handle timestamp generation
-          {
-            char timestamp[21];  // 0000-00-00T00:00:00Z
+          if (code_type == CodeType::TIMESTAMP) {  // Handle timestamp generation
+            char timestamp[27];                    // 0000-00-00T00:00:00Z
 
             uint16_t year;
             uint8_t month;
@@ -442,7 +444,10 @@ void DlmsMeterComponent::loop() {
             memcpy(&hour, &plaintext[current_position + 5], 1);
             memcpy(&minute, &plaintext[current_position + 6], 1);
             memcpy(&second, &plaintext[current_position + 7], 1);
-
+            if (year > 9999 || month > 12 || day > 31 || hour > 23 || minute > 59 || second > 59) {
+              ESP_LOGE("DLMS", "Invalid timestamp values: %04u-%02u-%02uT%02u:%02u:%02uZ", year, month, day, hour,
+                       minute, second);
+            }
             sprintf(timestamp, "%04u-%02u-%02uT%02u:%02u:%02uZ", year, month, day, hour, minute, second);
 
             data.timestamp = timestamp;
@@ -458,11 +463,10 @@ void DlmsMeterComponent::loop() {
             data.meternumber = meterNumber;
           }
 #endif
-
           break;
         default:
           ESP_LOGE(TAG, "OBIS: Unsupported OBIS data type: %x", data_type);
-          abort_();
+          this->abort_();
           return;
       }
 
@@ -485,7 +489,7 @@ void DlmsMeterComponent::loop() {
         current_position += 6;                   // Skip additional data and additional break; this will jump out of bounds on last frame
 #endif
       }
-    } while (current_position <= message_length);  // Loop until arrived at end
+    }
 
     this->receive_buffer_.clear();  // Reset buffer
 
