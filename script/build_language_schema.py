@@ -86,12 +86,12 @@ def load_components():
 
 
 # pylint: disable=wrong-import-position
-from esphome.const import CONF_TYPE, KEY_CORE  # noqa: E402
+from esphome.const import CONF_TYPE, KEY_CORE, KEY_TARGET_PLATFORM  # noqa: E402
 from esphome.core import CORE  # noqa: E402
 
 # pylint: enable=wrong-import-position
 
-CORE.data[KEY_CORE] = {}
+CORE.data[KEY_CORE] = {KEY_TARGET_PLATFORM: None}
 load_components()
 
 # Import esphome after loading components (so schema is tracked)
@@ -618,9 +618,9 @@ def build_schema():
             if platform_manifest is not None:
                 output[platform][S_COMPONENTS][domain] = {}
                 if len(platform_manifest.dependencies) > 0:
-                    output[platform][S_COMPONENTS][domain][
-                        "dependencies"
-                    ] = platform_manifest.dependencies
+                    output[platform][S_COMPONENTS][domain]["dependencies"] = (
+                        platform_manifest.dependencies
+                    )
                 register_module_schemas(
                     f"{domain}.{platform}", platform_manifest.module, platform_manifest
                 )
