@@ -8,6 +8,11 @@ namespace rpi_dpi_rgb {
 void RpiDpiRgb::setup() {
   ESP_LOGCONFIG(TAG, "Setting up RPI_DPI_RGB");
   this->reset_display_();
+  if (heap_caps_get_free_size(MALLOC_CAP_SPIRAM) < 1024 * 1024) {
+    this->status_set_error("PSRAM not available");
+    this->mark_failed();
+    return;
+  }
   esp_lcd_rgb_panel_config_t config{};
   config.flags.fb_in_psram = 1;
 #if ESP_IDF_VERSION_MAJOR >= 5
