@@ -27,13 +27,14 @@ struct PowerTable {
     for (size_t i = 0; i < count; i++) {
       dbmi -= items[i].dbm_diff;
       if (dbmi_target >= dbmi) {
-        dbm_target = (float) dbmi / 10;
         if (items[i].value >= 0x61 && items[i].value <= 0x6F)
           continue;  // see note in the commend above
+        dbm_target = (float) dbmi / 10;
         return items[i].value;
       }
     }
-    return items[count - 1].value;
+    dbm_target = -30;
+    return 0x03;
   }
 };
 

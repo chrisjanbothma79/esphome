@@ -15,7 +15,8 @@ CC1101Component::CC1101Component() {
   this->gdo0_ = nullptr;
   this->gdo0_adc_ = nullptr;
   this->reset_ = false;
-  this->output_power_ = OUTPUT_POWER_MAX;
+  this->output_power_requested_ = OUTPUT_POWER_MAX;
+  this->output_power_effective_ = OUTPUT_POWER_MAX;
   memset(this->pa_table_, 0, sizeof(pa_table_));
   memset(&this->state_, 0, sizeof(this->state_));
 
@@ -488,8 +489,6 @@ template<typename T> T GET_ENUM_LAST(T value) { return T::LAST; }
     (value).resize(max_size); \
   }
 
-// TODO: std::clamp isn't here yet
-#define clamp(v, lo, hi) std::max(std::min(v, hi), lo)
 /*
 static int mapint(int x, int in_min, int in_max, int out_min, int out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -534,6 +533,8 @@ static void split_float(float value, int mbits, uint8_t &e, uint32_t &m) {
 void CC1101Component::set_output_power(float value) {
   CHECK_FLOAT_RANGE(value, OUTPUT_POWER_MIN, OUTPUT_POWER_MAX)
 
+  this->output_power_requested_ = value;
+
   int freq = (int) this->get_tuner_frequency();
   Modulation modulation = this->get_tuner_modulation();
   uint8_t a = 0xC0;
@@ -558,7 +559,7 @@ void CC1101Component::set_output_power(float value) {
     this->pa_table_[1] = 0;
   }
 
-  this->output_power_ = value;
+  this->output_power_effective_ = value;
 
   ESP_LOGD(TAG, "set_output_power(%.1f) %d", value, a);
 
@@ -571,7 +572,7 @@ void CC1101Component::set_output_power(float value) {
   this->write_(Register::PATABLE, this->pa_table_, sizeof(this->pa_table_));
 }
 
-float CC1101Component::get_output_power() { return this->output_power_; }
+float CC1101Component::get_output_power() { return this->output_power_effective_; }
 
 // tuner_*
 
@@ -586,7 +587,7 @@ void CC1101Component::set_tuner_frequency(float value) {
   this->state_.FREQ1 = (uint8_t) (freq >> 8);
   this->state_.FREQ0 = (uint8_t) freq;
 
-  this->set_output_power(this->output_power_);  // frequency and modulation dependent
+  this->set_output_power(this->output_power_requested_);  // frequency and modulation dependent
 
   ESP_LOGD(TAG, "set_tuner_frequency(%f) FREQ = %02X%02X%02X", value, this->state_.FREQ2, this->state_.FREQ1,
            this->state_.FREQ0);
@@ -846,7 +847,7 @@ void CC1101Component::set_tuner_modulation(Modulation value) {
   // PATABLE index zero is used in OOK/ASK when transmitting a ‘0’.
   this->state_.PA_POWER = value == Modulation::MODULATION_ASK_OOK ? 1 : 0;
 
-  this->set_output_power(this->output_power_);  // frequency and modulation dependent
+  this->set_output_power(this->output_power_requested_);  // frequency and modulation dependent
 
   ESP_LOGD(TAG, "set_tuner_modulation(%d)", (int) value);
 

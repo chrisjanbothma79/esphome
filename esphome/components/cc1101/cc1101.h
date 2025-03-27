@@ -70,7 +70,8 @@ class CC1101Component : public PollingComponent,
   voltage_sampler::VoltageSampler *gdo0_adc_;
   std::string chip_id_;
   bool reset_;
-  float output_power_;
+  float output_power_requested_;
+  float output_power_effective_;
   uint8_t pa_table_[8];
   union {
     struct CC1101State state_;
