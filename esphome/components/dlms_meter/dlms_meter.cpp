@@ -15,7 +15,7 @@ void DlmsMeterComponent::dump_config() {
   ESP_LOGVV(TAG, "decryption_key: %s",
             format_hex_pretty(&this->decryption_key_[0], this->decryption_key_length_).c_str());
 
-  ESP_LOGCONFIG(TAG, "read_timeout: %d", this->read_timeout_);
+  ESP_LOGCONFIG(TAG, "read_timeout: %ld", this->read_timeout_);
 
 #define DLMS_METER_LOG_SENSOR(s) LOG_SENSOR("  ", #s, this->s##_sensor_);
   DLMS_METER_SENSOR_LIST(DLMS_METER_LOG_SENSOR, )
