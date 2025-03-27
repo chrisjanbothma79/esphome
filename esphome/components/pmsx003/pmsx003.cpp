@@ -6,46 +6,59 @@ namespace pmsx003 {
 
 static const char *const TAG = "pmsx003";
 
+static const uint8_t START_CHARACTER_1 = 0x42;
+static const uint8_t START_CHARACTER_2 = 0x4D;
+
+static const uint16_t PMS_STABILISING_MS = 30000;  // time taken for the sensor to become stable after power on in ms
+
+static const uint16_t PMS_CMD_MEASUREMENT_MODE_PASSIVE =
+    0x0000;  // use `PMS_CMD_MANUAL_MEASUREMENT` to trigger a measurement
+static const uint16_t PMS_CMD_MEASUREMENT_MODE_ACTIVE = 0x0001;  // automatically perform measurements
+static const uint16_t PMS_CMD_SLEEP_MODE_SLEEP = 0x0000;         // go to sleep mode
+static const uint16_t PMS_CMD_SLEEP_MODE_WAKEUP = 0x0001;        // wake up from sleep mode
+
 void PMSX003Component::set_pm_1_0_std_sensor(sensor::Sensor *pm_1_0_std_sensor) {
-  pm_1_0_std_sensor_ = pm_1_0_std_sensor;
+  this->pm_1_0_std_sensor_ = pm_1_0_std_sensor;
 }
 void PMSX003Component::set_pm_2_5_std_sensor(sensor::Sensor *pm_2_5_std_sensor) {
-  pm_2_5_std_sensor_ = pm_2_5_std_sensor;
+  this->pm_2_5_std_sensor_ = pm_2_5_std_sensor;
 }
 void PMSX003Component::set_pm_10_0_std_sensor(sensor::Sensor *pm_10_0_std_sensor) {
-  pm_10_0_std_sensor_ = pm_10_0_std_sensor;
+  this->pm_10_0_std_sensor_ = pm_10_0_std_sensor;
 }
 
-void PMSX003Component::set_pm_1_0_sensor(sensor::Sensor *pm_1_0_sensor) { pm_1_0_sensor_ = pm_1_0_sensor; }
-void PMSX003Component::set_pm_2_5_sensor(sensor::Sensor *pm_2_5_sensor) { pm_2_5_sensor_ = pm_2_5_sensor; }
-void PMSX003Component::set_pm_10_0_sensor(sensor::Sensor *pm_10_0_sensor) { pm_10_0_sensor_ = pm_10_0_sensor; }
+void PMSX003Component::set_pm_1_0_sensor(sensor::Sensor *pm_1_0_sensor) { this->pm_1_0_sensor_ = pm_1_0_sensor; }
+void PMSX003Component::set_pm_2_5_sensor(sensor::Sensor *pm_2_5_sensor) { this->pm_2_5_sensor_ = pm_2_5_sensor; }
+void PMSX003Component::set_pm_10_0_sensor(sensor::Sensor *pm_10_0_sensor) { this->pm_10_0_sensor_ = pm_10_0_sensor; }
 
 void PMSX003Component::set_pm_particles_03um_sensor(sensor::Sensor *pm_particles_03um_sensor) {
-  pm_particles_03um_sensor_ = pm_particles_03um_sensor;
+  this->pm_particles_03um_sensor_ = pm_particles_03um_sensor;
 }
 void PMSX003Component::set_pm_particles_05um_sensor(sensor::Sensor *pm_particles_05um_sensor) {
-  pm_particles_05um_sensor_ = pm_particles_05um_sensor;
+  this->pm_particles_05um_sensor_ = pm_particles_05um_sensor;
 }
 void PMSX003Component::set_pm_particles_10um_sensor(sensor::Sensor *pm_particles_10um_sensor) {
-  pm_particles_10um_sensor_ = pm_particles_10um_sensor;
+  this->pm_particles_10um_sensor_ = pm_particles_10um_sensor;
 }
 void PMSX003Component::set_pm_particles_25um_sensor(sensor::Sensor *pm_particles_25um_sensor) {
-  pm_particles_25um_sensor_ = pm_particles_25um_sensor;
+  this->pm_particles_25um_sensor_ = pm_particles_25um_sensor;
 }
 void PMSX003Component::set_pm_particles_50um_sensor(sensor::Sensor *pm_particles_50um_sensor) {
-  pm_particles_50um_sensor_ = pm_particles_50um_sensor;
+  this->pm_particles_50um_sensor_ = pm_particles_50um_sensor;
 }
 void PMSX003Component::set_pm_particles_100um_sensor(sensor::Sensor *pm_particles_100um_sensor) {
-  pm_particles_100um_sensor_ = pm_particles_100um_sensor;
+  this->pm_particles_100um_sensor_ = pm_particles_100um_sensor;
 }
 
 void PMSX003Component::set_formaldehyde_sensor(sensor::Sensor *formaldehyde_sensor) {
-  formaldehyde_sensor_ = formaldehyde_sensor;
+  this->formaldehyde_sensor_ = formaldehyde_sensor;
 }
 void PMSX003Component::set_temperature_sensor(sensor::Sensor *temperature_sensor) {
-  temperature_sensor_ = temperature_sensor;
+  this->temperature_sensor_ = temperature_sensor;
 }
-void PMSX003Component::set_humidity_sensor(sensor::Sensor *humidity_sensor) { humidity_sensor_ = humidity_sensor; }
+void PMSX003Component::set_humidity_sensor(sensor::Sensor *humidity_sensor) {
+  this->humidity_sensor_ = humidity_sensor;
+}
 
 void PMSX003Component::loop() {
   const uint32_t now = millis();

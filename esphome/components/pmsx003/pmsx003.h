@@ -7,17 +7,6 @@
 namespace esphome {
 namespace pmsx003 {
 
-static const uint8_t START_CHARACTER_1 = 0x42;
-static const uint8_t START_CHARACTER_2 = 0x4D;
-
-static const uint16_t PMS_STABILISING_MS = 30000;  // time taken for the sensor to become stable after power on in ms
-
-static const uint16_t PMS_CMD_MEASUREMENT_MODE_PASSIVE =
-    0x0000;  // use `PMS_CMD_MANUAL_MEASUREMENT` to trigger a measurement
-static const uint16_t PMS_CMD_MEASUREMENT_MODE_ACTIVE = 0x0001;  // automatically perform measurements
-static const uint16_t PMS_CMD_SLEEP_MODE_SLEEP = 0x0000;         // go to sleep mode
-static const uint16_t PMS_CMD_SLEEP_MODE_WAKEUP = 0x0001;        // wake up from sleep mode
-
 enum PMSX0003Command : uint8_t {
   PMS_CMD_MEASUREMENT_MODE =
       0xE1,  // Data Options: `PMS_CMD_MEASUREMENT_MODE_PASSIVE`, `PMS_CMD_MEASUREMENT_MODE_ACTIVE`
