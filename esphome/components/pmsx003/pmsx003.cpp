@@ -178,7 +178,11 @@ optional<bool> PMSX003Component::check_byte_() {
 bool PMSX003Component::check_payload_length_(uint16_t payload_length) {
   switch (this->type_) {
     case PMSX003_TYPE_X003:
-      return payload_length == 28 || payload_length == 20;  // 2*13+2 // TODO: payload_length=20?
+      // The expected payload length is typically 28 bytes.
+      // However, a 20-byte payload check was already present in the code.
+      // No official documentation was found confirming this.
+      // Retaining this check to avoid breaking existing behavior.
+      return payload_length == 28 || payload_length == 20;  // 2*13+2
     case PMSX003_TYPE_5003T:
     case PMSX003_TYPE_5003S:
       return payload_length == 28;  // 2*13+2 (Data 13 not set/reserved)
