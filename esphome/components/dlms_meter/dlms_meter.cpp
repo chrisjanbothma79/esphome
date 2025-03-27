@@ -204,7 +204,7 @@ void DlmsMeterComponent::loop() {
     br_gcm_reset(&gcm_ctx, iv, sizeof(iv));
     br_gcm_flip(&gcm_ctx);
     br_gcm_run(&gcm_ctx, 0, plaintext, message_length);
-#elif defined(USE_ESP32_FRAMEWORK_ARDUINO)
+#elif defined(USE_ESP32)
     mbedtls_gcm_init(&this->aes_);
     mbedtls_gcm_setkey(&this->aes_, MBEDTLS_CIPHER_ID_AES, this->decryption_key_, this->decryption_key_length_ * 8);
 
