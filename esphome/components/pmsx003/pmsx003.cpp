@@ -279,7 +279,7 @@ void PMSX003Component::parse_data_() {
   if (this->type_ == PMSX003_TYPE_5003ST || this->type_ == PMSX003_TYPE_5003T) {
     const uint8_t temperature_offset = (this->type_ == PMSX003_TYPE_5003T) ? 24 : 30;
 
-    const float temperature = (int16_t) this->get_16_bit_uint_(temperature_offset) / 10.0f;
+    const float temperature = static_cast<int16_t>(this->get_16_bit_uint_(temperature_offset)) / 10.0f;
     const float humidity = this->get_16_bit_uint_(temperature_offset + 2) / 10.0f;
 
     ESP_LOGD(TAG, "Got Temperature: %.1f°C, Humidity: %.1f%%", temperature, humidity);
