@@ -20,6 +20,13 @@ SPIRAM_SPEEDS = {
     120e6: "CONFIG_SPIRAM_SPEED_120M",
 }
 
+
+def validate_psram_mode(config):
+    if config[CONF_MODE] == "octal" and config[CONF_SPEED] == 120e6:
+        raise cv.Invalid("PSRAM 120MHz is not supported in octal mode")
+    return config
+
+
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
@@ -29,6 +36,7 @@ CONFIG_SCHEMA = cv.All(
         }
     ),
     cv.only_on_esp32,
+    validate_psram_mode,
 )
 
 
