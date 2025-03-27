@@ -25,10 +25,6 @@
 namespace esphome {
 namespace dlms_meter {
 
-#ifndef METER_PROVIDER
-#define METER_PROVIDER ""
-#endif
-
 static const char *const DLMS_METER_VERSION = "0.9.1";
 static const char *const TAG = "dlms_meter";
 
@@ -76,6 +72,13 @@ struct MeterData {
   std::string meternumber;  // Text sensor for the meterNumber value
 };
 
+/*
+ * Provider constants
+ */
+
+static const uint8_t PROVIDER_GENERIC = 0;
+static const uint8_t PROVIDER_NETZNOE = 1;
+
 class DlmsMeterComponent : public Component, public uart::UARTDevice {
  public:
   DlmsMeterComponent() = default;
@@ -85,6 +88,7 @@ class DlmsMeterComponent : public Component, public uart::UARTDevice {
   void loop() override;
 
   void set_decryption_key(const uint8_t *decryption_key, size_t decryption_key_length);
+  void set_provider(uint8_t provider);
 
   void publish_sensors(MeterData &data) {
 #define DLMS_METER_PUBLISH_SENSOR(s) \
@@ -107,8 +111,9 @@ class DlmsMeterComponent : public Component, public uart::UARTDevice {
   uint32_t last_read_ = 0;               // Timestamp when data was last read
   uint32_t read_timeout_ = 1000;         // Time to wait after last byte before considering data complete
 
-  uint8_t decryption_key_[16];    // Stores the decryption key
-  size_t decryption_key_length_;  // Stores the decryption key length (usually 16 bytes)
+  uint8_t provider_ = PROVIDER_GENERIC;  // Provider of the meter / your grid operator
+  uint8_t decryption_key_[16];           // Stores the decryption key
+  size_t decryption_key_length_;         // Stores the decryption key length (usually 16 bytes)
 
 #if defined(USE_ESP32)
   mbedtls_gcm_context aes_;  // AES context used for decryption

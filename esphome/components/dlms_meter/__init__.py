@@ -11,7 +11,7 @@ CONF_DLMS_METER_ID = "dlms_meter_id"
 CONF_DECRYPTION_KEY = "decryption_key"
 CONF_PROVIDER = "provider"
 
-PROVIDERS = {"generic": "PROVIDER_GENERIC", "netznoe": "PROVIDER_NETZNOE"}
+PROVIDERS = {"generic": 0, "netznoe": 1}
 
 dlms_meter_component_ns = cg.esphome_ns.namespace("dlms_meter")
 DlmsMeterComponent = dlms_meter_component_ns.class_(
@@ -63,5 +63,4 @@ async def to_code(config):
     cg.add(var.set_decryption_key(key_array, len(rhs_key_bytes)))
 
     if CONF_PROVIDER in config:
-        cg.add_define(PROVIDERS[config[CONF_PROVIDER]])
-        cg.add_define("METER_PROVIDER", config[CONF_PROVIDER])
+        cg.add(var.set_provider(PROVIDERS[config[CONF_PROVIDER]]))
