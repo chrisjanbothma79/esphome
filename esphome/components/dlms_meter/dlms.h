@@ -50,38 +50,38 @@ Security Control Byte:
 - Bit 7: Indicates the use of compression.
  */
 
-static const int DLMS_HEADER_LENGTH = 16;  // Length of the header (total message length <= 127)
-static const int DLMS_HEADER_EXT_OFFSET =
+static const uint8_t DLMS_HEADER_LENGTH = 16;  // Length of the header (total message length <= 127)
+static const uint8_t DLMS_HEADER_EXT_OFFSET =
     2;  // Length to offset when header is extended length (total message length > 127)
 
-static const int DLMS_CIPHER_OFFSET = 0;  // Offset at which used cipher suite is stored
-static const int DLMS_SYST_OFFSET = 1;    // Offset at which length of system title is stored
+static const uint8_t DLMS_CIPHER_OFFSET = 0;  // Offset at which used cipher suite is stored
+static const uint8_t DLMS_SYST_OFFSET = 1;    // Offset at which length of system title is stored
 
-static const int DLMS_LENGTH_OFFSET = 10;  // Offset at which message length is stored
-static const int TWO_BYTE_LENGTH = 0x82;   // Two byte length indicator / prefix
-static const int DLMS_LENGTH_CORRECTION =
+static const uint8_t DLMS_LENGTH_OFFSET = 10;  // Offset at which message length is stored
+static const uint8_t TWO_BYTE_LENGTH = 0x82;   // Two byte length indicator / prefix
+static const uint8_t DLMS_LENGTH_CORRECTION =
     5;  // Part of the header is included in the DLMS length field and needs to be removed
 
 // Bytes after length may be shifted depending on length field
 
-static const int DLMS_SECBYTE_OFFSET = 11;  // Offset of the security byte
+static const uint8_t DLMS_SECBYTE_OFFSET = 11;  // Offset of the security byte
 
-static const int DLMS_FRAMECOUNTER_OFFSET = 12;  // Offset of the frame counter
-static const int DLMS_FRAMECOUNTER_LENGTH = 4;   // Length of the frame counter (always 4)
+static const uint8_t DLMS_FRAMECOUNTER_OFFSET = 12;  // Offset of the frame counter
+static const uint8_t DLMS_FRAMECOUNTER_LENGTH = 4;   // Length of the frame counter (always 4)
 
-static const int DLMS_PAYLOAD_OFFSET = 16;  // Offset at which the encrypted payload
+static const uint8_t DLMS_PAYLOAD_OFFSET = 16;  // Offset at which the encrypted payload
 
-static const int GLO_CIPHERING = 0xDB;
-static const int DATA_NOTIFICATION = 0x0F;
-static const int TIMESTAMP_DATETIME = 0x0C;
+static const uint8_t GLO_CIPHERING = 0xDB;
+static const uint8_t DATA_NOTIFICATION = 0x0F;
+static const uint8_t TIMESTAMP_DATETIME = 0x0C;
 
 /*
  * provider specific quirks
  */
 
-static const int NETZ_NOE_MAGIC_BYTE = 0x81;  // Magic length byte used by Netz NOE
-static const int NETZ_NOE_EXPECTED_MESSAGE_LENGTH = 0xF8;
-static const int NETZ_NOE_EXPECTED_SECURITY_CONTROL_BYTE = 0x20;
+static const uint8_t NETZ_NOE_MAGIC_BYTE = 0x81;  // Magic length byte used by Netz NOE
+static const uint8_t NETZ_NOE_EXPECTED_MESSAGE_LENGTH = 0xF8;
+static const uint8_t NETZ_NOE_EXPECTED_SECURITY_CONTROL_BYTE = 0x20;
 
 }  // namespace dlms_meter
 }  // namespace esphome

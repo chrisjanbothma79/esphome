@@ -138,7 +138,7 @@ void DlmsMeterComponent::loop() {
     }
 
     uint16_t message_length = mbus_payload[DLMS_LENGTH_OFFSET];
-    int header_offset = 0;
+    uint16_t header_offset = 0;
 
 #if defined(PROVIDER_NETZNOE)
     // for some reason EVN seems to set the standard "length" field to 0x81 and then the actual length is in the next
@@ -230,7 +230,7 @@ void DlmsMeterComponent::loop() {
     ESP_LOGV(TAG, "Decoding payload");
 
     MeterData data{};
-    int current_position = DECODER_START_OFFSET;
+    uint16_t current_position = DECODER_START_OFFSET;
 
     do {
       if (plaintext[current_position + OBIS_TYPE_OFFSET] != DataType::OCTET_STRING) {
