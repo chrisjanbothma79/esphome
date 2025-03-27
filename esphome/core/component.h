@@ -118,6 +118,11 @@ class Component {
    */
   virtual void mark_failed();
 
+  void mark_failed(const char *message) {
+    this->mark_failed();
+    this->status_set_error(message);
+  }
+
   bool is_failed() const;
 
   bool is_ready() const;
