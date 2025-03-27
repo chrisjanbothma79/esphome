@@ -1,5 +1,6 @@
 import esphome.codegen as cg
 from esphome.components import sensor
+from esphome.components.dlms_meter import CONF_DLMS_METER_ID, DlmsMeterComponent
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
@@ -15,8 +16,6 @@ from esphome.const import (
     UNIT_WATT,
     UNIT_WATT_HOURS,
 )
-
-from . import CONF_DLMS_METER_ID, DlmsMeterComponent
 
 AUTO_LOAD = ["dlms_meter"]
 
