@@ -240,4 +240,4 @@ class FastLEDLightOutput : public light::AddressableLight {
 }  // namespace fastled_base
 }  // namespace esphome
 
-#endif // USE_ARDUINO
+#endif  // USE_ARDUINO
