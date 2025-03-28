@@ -15,7 +15,7 @@ namespace http_request {
 static const char *const TAG = "http_request.arduino";
 
 std::shared_ptr<HttpContainer> HttpRequestArduino::start(std::string url, std::string method, std::string body,
-                                                         std::list<Header> headers,
+                                                         std::list<Header> request_headers,
                                                          std::set<std::string> collect_header_names) {
   if (!network::is_connected()) {
     this->status_momentary_error("failed", 1000);
@@ -96,7 +96,7 @@ std::shared_ptr<HttpContainer> HttpRequestArduino::start(std::string url, std::s
   if (this->useragent_ != nullptr) {
     container->client_.setUserAgent(this->useragent_);
   }
-  for (const auto &header : headers) {
+  for (const auto &header : request_headers) {
     container->client_.addHeader(header.name.c_str(), header.value.c_str(), false, true);
   }
 

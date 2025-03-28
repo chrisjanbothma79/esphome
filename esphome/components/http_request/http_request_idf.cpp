@@ -54,7 +54,7 @@ esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
 }
 
 std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::string method, std::string body,
-                                                     std::list<Header> headers,
+                                                     std::list<Header> request_headers,
                                                      std::set<std::string> collect_header_names) {
   if (!network::is_connected()) {
     this->status_momentary_error("failed", 1000);
@@ -116,7 +116,7 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
 
   container->set_secure(secure);
 
-  for (const auto &header : headers) {
+  for (const auto &header : request_headers) {
     esp_http_client_set_header(client, header.name.c_str(), header.value.c_str());
   }
 
