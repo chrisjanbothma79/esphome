@@ -241,14 +241,14 @@ void DlmsMeterComponent::loop() {
       memcpy(&obis_code[0], &plaintext[current_position + OBIS_CODE_OFFSET],
              obis_code_length);  // Copy OBIS code to array
 
-      bool timestampFound = false;
-      bool meterNumberFound = false;
+      bool timestamp_found = false;
+      bool meter_number_found = false;
       if (this->provider_ == PROVIDER_NETZNOE) {
         // Do not advance Position when reading the Timestamp at DECODER_START_OFFSET
         if ((obis_code_length == 0x0C) && (current_position == DECODER_START_OFFSET)) {
-          timestampFound = true;
+          timestamp_found = true;
         } else if ((current_position != DECODER_START_OFFSET) && plaintext[current_position - 1] == 0xFF) {
-          meterNumberFound = true;
+          meter_number_found = true;
         } else {
           current_position += obis_code_length + 2;  // Advance past code and position
         }
@@ -321,10 +321,10 @@ void DlmsMeterComponent::loop() {
         if (this->provider_ == PROVIDER_NETZNOE) {
           // Needed so the Timestamp at DECODER_START_OFFSET gets read correctly
           // as it doesn't have an obisMedium
-          if (timestampFound) {
+          if (timestamp_found) {
             ESP_LOGV(TAG, "Found Timestamp without obisMedium");
             code_type = CodeType::TIMESTAMP;
-          } else if (meterNumberFound) {
+          } else if (meter_number_found) {
             ESP_LOGV(TAG, "Found MeterNumber without obisMedium");
             code_type = CodeType::METER_NUMBER;
           } else {
@@ -474,7 +474,7 @@ void DlmsMeterComponent::loop() {
 
       if (this->provider_ == PROVIDER_NETZNOE) {
         // Don't skip the break on the first Timestamp, as there's none
-        if (!timestampFound) {
+        if (!timestamp_found) {
           current_position += 2;  // Skip break after data
         }
       } else {
