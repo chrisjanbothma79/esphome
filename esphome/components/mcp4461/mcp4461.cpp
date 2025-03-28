@@ -120,9 +120,8 @@ uint8_t Mcp4461Component::get_status_register_() {
     ESP_LOGE(TAG, "%s", LOG_STR_ARG(this->get_message_string(this->error_code_)));
     return 0;
   }
-  uint8_t reg = 0;
-  reg |= static_cast<uint8_t>(Mcp4461Addresses::MCP4461_STATUS);
-  reg |= static_cast<uint8_t>(Mcp4461Commands::READ);
+  uint8_t addr = static_cast<uint8_t>(Mcp4461Addresses::MCP4461_STATUS)
+  uint8_t reg = addr | static_cast<uint8_t>(Mcp4461Commands::READ);
   uint16_t buf;
   if (!this->read_byte_16(reg, &buf)) {
     this->error_code_ = MCP4461_STATUS_REGISTER_ERROR;
