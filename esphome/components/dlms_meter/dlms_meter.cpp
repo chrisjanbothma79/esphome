@@ -29,7 +29,7 @@ void DlmsMeterComponent::dump_config() {
 void DlmsMeterComponent::loop() {
   uint32_t current_time = millis();
 
-  while (available()) {  // Read while data is available
+  while (this->available()) {  // Read while data is available
     uint8_t c;
     this->read_byte(&c);
     this->receive_buffer_.push_back(c);

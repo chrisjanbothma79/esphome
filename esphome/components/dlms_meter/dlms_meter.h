@@ -11,13 +11,11 @@
 #include "dlms.h"
 #include "obis.h"
 
-#if defined(USE_ESP32)
-#include "mbedtls/esp_config.h"
-#include "mbedtls/gcm.h"
-#endif
-
 #if defined(USE_ESP8266_FRAMEWORK_ARDUINO)
 #include <bearssl/bearssl.h>
+#elif defined(USE_ESP32)
+#include "mbedtls/esp_config.h"
+#include "mbedtls/gcm.h"
 #endif
 
 #include <vector>
