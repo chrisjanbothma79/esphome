@@ -36,13 +36,11 @@ esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
   switch (evt->event_id) {
     case HTTP_EVENT_ON_HEADER: {
       const std::string header_name = str_lower_case(evt->header_key);
-      for (const auto &collect_header : user_data->collect_headers) {
-        if (str_equals_case_insensitive(collect_header, header_name)) {
-          const std::string header_value = evt->header_value;
-          ESP_LOGD(TAG, "Received response header, name: %s, value: %s", header_name.c_str(), header_value.c_str());
-          user_data->response_headers[header_name].push_back(header_value);
-          break;
-        }
+      if (user_data->collect_headers.count(header_name)) {
+        const std::string header_value = evt->header_value;
+        ESP_LOGD(TAG, "Received response header, name: %s, value: %s", header_name.c_str(), header_value.c_str());
+        user_data->response_headers[header_name].push_back(header_value);
+        break;
       }
       break;
     }
@@ -53,9 +51,9 @@ esp_err_t HttpRequestIDF::http_event_handler(esp_http_client_event_t *evt) {
   return ESP_OK;
 }
 
-std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::string method, std::string body,
-                                                     std::list<Header> request_headers,
-                                                     std::set<std::string> collect_headers) {
+std::shared_ptr<HttpContainer> HttpRequestIDF::start_(std::string url, std::string method, std::string body,
+                                                      std::list<Header> request_headers,
+                                                      std::set<std::string> collect_headers) {
   if (!network::is_connected()) {
     this->status_momentary_error("failed", 1000);
     ESP_LOGE(TAG, "HTTP Request failed; Not connected to network");

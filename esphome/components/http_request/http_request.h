@@ -155,11 +155,19 @@ class HttpRequestComponent : public Component {
     return this->start(url, method, body, request_headers, {});
   }
 
-  virtual std::shared_ptr<HttpContainer> start(std::string url, std::string method, std::string body,
-                                               std::list<Header> request_headers,
-                                               std::set<std::string> collect_headers) = 0;
+  std::shared_ptr<HttpContainer> start(std::string url, std::string method, std::string body,
+                                       std::list<Header> request_headers, std::set<std::string> collect_headers) {
+    std::set<std::string> lower_case_collect_headers;
+    for (const std::string &collect_header : collect_headers) {
+      lower_case_collect_headers.insert(str_lower_case(collect_header));
+    }
+    return this->start_(url, method, body, request_headers, lower_case_collect_headers);
+  }
 
  protected:
+  virtual std::shared_ptr<HttpContainer> start_(std::string url, std::string method, std::string body,
+                                                std::list<Header> request_headers,
+                                                std::set<std::string> collect_headers) = 0;
   const char *useragent_{nullptr};
   bool follow_redirects_{};
   uint16_t redirect_limit_{};
