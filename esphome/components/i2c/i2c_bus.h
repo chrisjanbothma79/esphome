@@ -91,22 +91,12 @@ class I2CBus {
   /// @details This is a pure virtual method that must be implemented in the subclass.
   virtual ErrorCode writev(uint8_t address, WriteBuffer *buffers, size_t count, bool stop) = 0;
 
-  /// @brief This virtual method writes bytes to an I2CBus from an array of WriteBuffer.
-  /// @param address address of the I²C component on the i2c bus
-  /// @param buffers pointer to an array of WriteBuffer
-  /// @param count number of WriteBuffer to write
-  /// @param stop true or false: True will send a stop message, releasing the bus after
-  /// transmission. False will send a restart, keeping the connection active.
-  /// @return an i2c::ErrorCode
-  /// @details This is a pure virtual method that must be implemented in the subclass.
-  virtual ErrorCode probe(uint8_t address) = 0;
-
  protected:
   /// @brief Scans the I2C bus for devices. Devices presence is kept in an array of std::pair
   /// that contains the address and the corresponding bool presence flag.
   void i2c_scan_() {
     for (uint8_t address = 8; address < 120; address++) {
-      auto err = probe(address);
+      auto err = writev(address, nullptr, 0);
       if (err == ERROR_OK) {
         scan_results_.emplace_back(address, true);
       } else if (err == ERROR_UNKNOWN) {

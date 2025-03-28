@@ -34,28 +34,38 @@ void IDFI2CBus::setup() {
 
   recover_();
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
-  i2c_master_bus_config_t conf{};
-  memset(&conf, 0, sizeof(conf));
-  conf.sda_io_num = gpio_num_t(sda_pin_);
-  conf.scl_io_num = gpio_num_t(scl_pin_);
-  conf.i2c_port = port_;
-  conf.glitch_ignore_cnt = 7;
-  conf.clk_source = I2C_CLK_SRC_DEFAULT;
-  conf.flags.enable_internal_pullup = sda_pullup_enabled_ || scl_pullup_enabled_;
-  esp_err_t err = i2c_new_master_bus(&conf, &bus_);
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
+  esp_err_t err;
+
+  i2c_master_bus_config_t bus_conf{};
+  memset(&bus_conf, 0, sizeof(bus_conf));
+  bus_conf.sda_io_num = gpio_num_t(sda_pin_);
+  bus_conf.scl_io_num = gpio_num_t(scl_pin_);
+  bus_conf.i2c_port = this->port_;
+  bus_conf.glitch_ignore_cnt = 7;
+  bus_conf.clk_source = I2C_CLK_SRC_DEFAULT;
+  bus_conf.flags.enable_internal_pullup = sda_pullup_enabled_ || scl_pullup_enabled_;
+  err = i2c_new_master_bus(&bus_conf, &this->bus_);
   if (err != ESP_OK) {
-    ESP_LOGW(TAG, "i2c_param_config failed: %s", esp_err_to_name(err));
+    ESP_LOGW(TAG, "i2c_new_master_bus failed: %s", esp_err_to_name(err));
     this->mark_failed();
     return;
   }
-  if (timeout_ > 0) {  // if timeout specified in yaml:
-    if (timeout_ > 13000) {
-      ESP_LOGW(TAG, "i2c timeout of %" PRIu32 "us greater than max of 13ms on esp-idf, setting to max", timeout_);
-      timeout_ = 13000;
-    }
+
+  i2c_device_config_t dev_conf{};
+  memset(&dev_conf, 0, sizeof(dev_conf));
+  dev_conf.dev_addr_length = I2C_ADDR_BIT_LEN_7;
+  dev_conf.device_address = I2C_DEVICE_ADDRESS_NOT_USED;
+  dev_conf.scl_speed_hz = this->frequency_;
+  err = i2c_master_bus_add_device(this->bus_, &dev_conf, &this->dev_);
+  if (err != ESP_OK) {
+    ESP_LOGW(TAG, "i2c_master_bus_add_device failed: %s", esp_err_to_name(err));
+    this->mark_failed();
+    return;
   }
-  initialized_ = true;
+
+  this->initialized_ = true;
+
   if (this->scan_) {
     ESP_LOGV(TAG, "Scanning i2c bus for active devices...");
     this->i2c_scan_();
@@ -142,22 +152,6 @@ void IDFI2CBus::dump_config() {
   }
 }
 
-ErrorCode IDFI2CBus::probe(uint8_t address) {
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
-  esp_err_t err = i2c_master_probe(bus_, address, 10);
-  if (err != ESP_OK) {
-    ESP_LOGVV(TAG, "Probing %02X failed: %s", address, esp_err_to_name(err));
-    return ERROR_UNKNOWN;
-  }
-  return ERROR_OK;
-#else
-  WriteBuffer buf;
-  buf.data = nullptr;
-  buf.len = 0;
-  return writev(address, &buf, 1, true);
-#endif
-}
-
 ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
   // logging is only enabled with vv level, if warnings are shown the caller
   // should log them
@@ -166,7 +160,7 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
     return ERROR_NOT_INITIALIZED;
   }
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
   i2c_master_dev_handle_t device;
   i2c_device_config_t conf{};
   memset(&conf, 0, sizeof(conf));
@@ -277,7 +271,7 @@ ErrorCode IDFI2CBus::writev(uint8_t address, WriteBuffer *buffers, size_t cnt, b
   ESP_LOGVV(TAG, "0x%02X TX %s", address, debug_hex.c_str());
 #endif
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
   i2c_master_dev_handle_t device;
   i2c_device_config_t conf{};
   memset(&conf, 0, sizeof(conf));

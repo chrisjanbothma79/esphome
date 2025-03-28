@@ -5,7 +5,7 @@
 #include "i2c_bus.h"
 #include "esphome/core/component.h"
 #include "esphome/core/application.h"
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
 #include <driver/i2c_master.h>
 #else
 #include <driver/i2c.h>
@@ -26,7 +26,6 @@ class IDFI2CBus : public I2CBus, public Component {
   void dump_config() override;
   ErrorCode readv(uint8_t address, ReadBuffer *buffers, size_t cnt) override;
   ErrorCode writev(uint8_t address, WriteBuffer *buffers, size_t cnt, bool stop) override;
-  ErrorCode probe(uint8_t address) override;
   float get_setup_priority() const override { return setup_priority::BUS; }
 
   void set_scan(bool scan) { scan_ = scan; }
@@ -42,7 +41,8 @@ class IDFI2CBus : public I2CBus, public Component {
   RecoveryCode recovery_result_;
 
  protected:
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
+  i2c_master_dev_handle_t dev_;
   i2c_master_bus_handle_t bus_;
 #endif
   i2c_port_t port_;
