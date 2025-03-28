@@ -11,13 +11,6 @@
 #include "dlms.h"
 #include "obis.h"
 
-#if defined(USE_ESP8266_FRAMEWORK_ARDUINO)
-#include <bearssl/bearssl.h>
-#elif defined(USE_ESP32)
-#include "mbedtls/esp_config.h"
-#include "mbedtls/gcm.h"
-#endif
-
 #include <vector>
 
 namespace esphome {
@@ -112,10 +105,6 @@ class DlmsMeterComponent : public Component, public uart::UARTDevice {
   uint8_t provider_ = PROVIDER_GENERIC;  // Provider of the meter / your grid operator
   uint8_t decryption_key_[16];           // Stores the decryption key
   size_t decryption_key_length_;         // Stores the decryption key length (usually 16 bytes)
-
-#if defined(USE_ESP32)
-  mbedtls_gcm_context aes_;  // AES context used for decryption
-#endif
 
   uint16_t swap_uint16_(uint16_t val);
   uint32_t swap_uint32_(uint32_t val);

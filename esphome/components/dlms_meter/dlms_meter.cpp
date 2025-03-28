@@ -1,5 +1,12 @@
 #include "dlms_meter.h"
 
+#if defined(USE_ESP8266_FRAMEWORK_ARDUINO)
+#include <bearssl/bearssl.h>
+#elif defined(USE_ESP32)
+#include "mbedtls/esp_config.h"
+#include "mbedtls/gcm.h"
+#endif
+
 namespace esphome {
 namespace dlms_meter {
 
@@ -195,13 +202,14 @@ void DlmsMeterComponent::loop() {
     br_gcm_flip(&gcm_ctx);
     br_gcm_run(&gcm_ctx, 0, plaintext, message_length);
 #elif defined(USE_ESP32)
-    mbedtls_gcm_init(&this->aes_);
-    mbedtls_gcm_setkey(&this->aes_, MBEDTLS_CIPHER_ID_AES, this->decryption_key_, this->decryption_key_length_ * 8);
+    mbedtls_gcm_context gcm_ctx;
+    mbedtls_gcm_init(&gcm_ctx);
+    mbedtls_gcm_setkey(&gcm_ctx, MBEDTLS_CIPHER_ID_AES, this->decryption_key_, this->decryption_key_length_ * 8);
 
-    mbedtls_gcm_auth_decrypt(&this->aes_, message_length, iv, sizeof(iv), NULL, 0, NULL, 0,
+    mbedtls_gcm_auth_decrypt(&gcm_ctx, message_length, iv, sizeof(iv), NULL, 0, NULL, 0,
                              &mbus_payload[header_offset + DLMS_PAYLOAD_OFFSET], plaintext);
 
-    mbedtls_gcm_free(&this->aes_);
+    mbedtls_gcm_free(&gcm_ctx);
 #else
 #error "Invalid Platform"
 #endif
