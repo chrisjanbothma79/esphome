@@ -12,15 +12,18 @@ esphome:
           url: https://esphome.io
           request_headers:
             Content-Type: application/json
+          collect_headers:
+            - age
           on_error:
             logger.log: "Request failed"
           on_response:
             then:
               - logger.log:
-                  format: "Response status: %d, Duration: %lu ms"
+                  format: "Response status: %d, Duration: %lu ms, age: %s"
                   args:
                     - response->status_code
                     - (long) response->duration_ms
+                    - response->get_response_header("age").c_str()
       - http_request.post:
           url: https://esphome.io
           request_headers:
