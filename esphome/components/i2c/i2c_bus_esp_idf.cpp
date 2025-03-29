@@ -22,14 +22,14 @@ void IDFI2CBus::setup() {
   static i2c_port_t next_port = I2C_NUM_0;
   ESP_LOGCONFIG(TAG, "Setting up I2C bus...");
 
-  port_ = next_port;
-  if (port_ == I2C_NUM_MAX) {
+  this->port_ = next_port;
+  if (this->port_ == I2C_NUM_MAX) {
     ESP_LOGE(TAG, "Too many I2C buses configured. Max %u supported.", I2C_NUM_MAX);
     this->mark_failed();
     return;
   }
 
-  recover_();
+  this->recover_();
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
   next_port = (i2c_port_t) (next_port + 1);
