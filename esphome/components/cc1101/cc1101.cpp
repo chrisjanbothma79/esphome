@@ -202,12 +202,12 @@ void CC1101Component::setup() {
 
   this->write_(Register::PATABLE, this->pa_table_, sizeof(this->pa_table_));
 
-  ESP_LOGD(TAG, "verify");
+  ESP_LOGV(TAG, "verify");
 
   for (uint8_t i = 0; i <= 0x2E; i++) {
     uint8_t old_value = this->regs_[i];
     this->read_((Register) i);
-    ESP_LOGD(TAG, "[%d] %02X vs %02X%s", i, old_value, this->regs_[i], old_value != this->regs_[i] ? " ***" : "");
+    ESP_LOGV(TAG, "[%d] %02X vs %02X%s", i, old_value, this->regs_[i], old_value != this->regs_[i] ? " ***" : "");
   }
 
   this->send_(Command::RX);
@@ -339,7 +339,7 @@ void CC1101Component::strobe_(Command cmd) {
   this->write_byte(index);
   this->disable();
 
-  ESP_LOGD(TAG, "%s(0x%02X)", __func__, index);
+  ESP_LOGV(TAG, "%s(0x%02X)", __func__, index);
 }
 
 void CC1101Component::write_(Register reg) {
@@ -363,7 +363,7 @@ void CC1101Component::write_(Register reg) {
   this->transfer_array(&value, 1);
   this->disable();
 
-  ESP_LOGD(TAG, "%s(0x%02X) = 0x%02X", __func__, index, this->regs_[index]);
+  ESP_LOGV(TAG, "%s(0x%02X) = 0x%02X", __func__, index, this->regs_[index]);
 }
 
 void CC1101Component::write_(Register reg, uint8_t value) {
@@ -395,6 +395,8 @@ void CC1101Component::write_(Register reg, uint8_t *buffer, size_t length) {
   this->write_byte(index | BUS_WRITE | BUS_BURST);
   this->transfer_array(buffer, length);
   this->disable();
+
+  ESP_LOGV(TAG, "%s(0x%02X) %zu", __func__, index, length);
 }
 
 bool CC1101Component::read_(Register reg) {
@@ -432,7 +434,7 @@ void CC1101Component::send_(Command cmd) {
     this->send_(Command::IDLE);
   }
 
-  ESP_LOGD(TAG, "send_(0x%02X)", (uint8_t) cmd);
+  ESP_LOGV(TAG, "%s(0x%02X)", __func__, (uint8_t) cmd);
 
   this->strobe_(cmd);
   this->wait_(cmd);
