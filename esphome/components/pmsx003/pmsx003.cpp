@@ -17,47 +17,28 @@ static const uint16_t PMS_CMD_MEASUREMENT_MODE_ACTIVE = 0x0001;  // automaticall
 static const uint16_t PMS_CMD_SLEEP_MODE_SLEEP = 0x0000;         // go to sleep mode
 static const uint16_t PMS_CMD_SLEEP_MODE_WAKEUP = 0x0001;        // wake up from sleep mode
 
-void PMSX003Component::set_pm_1_0_std_sensor(sensor::Sensor *pm_1_0_std_sensor) {
-  this->pm_1_0_std_sensor_ = pm_1_0_std_sensor;
-}
-void PMSX003Component::set_pm_2_5_std_sensor(sensor::Sensor *pm_2_5_std_sensor) {
-  this->pm_2_5_std_sensor_ = pm_2_5_std_sensor;
-}
-void PMSX003Component::set_pm_10_0_std_sensor(sensor::Sensor *pm_10_0_std_sensor) {
-  this->pm_10_0_std_sensor_ = pm_10_0_std_sensor;
-}
+void PMSX003Component::dump_config() {
+  ESP_LOGCONFIG(TAG, "PMSX003:");
+  LOG_SENSOR("  ", "PM1.0STD", this->pm_1_0_std_sensor_);
+  LOG_SENSOR("  ", "PM2.5STD", this->pm_2_5_std_sensor_);
+  LOG_SENSOR("  ", "PM10.0STD", this->pm_10_0_std_sensor_);
 
-void PMSX003Component::set_pm_1_0_sensor(sensor::Sensor *pm_1_0_sensor) { this->pm_1_0_sensor_ = pm_1_0_sensor; }
-void PMSX003Component::set_pm_2_5_sensor(sensor::Sensor *pm_2_5_sensor) { this->pm_2_5_sensor_ = pm_2_5_sensor; }
-void PMSX003Component::set_pm_10_0_sensor(sensor::Sensor *pm_10_0_sensor) { this->pm_10_0_sensor_ = pm_10_0_sensor; }
+  LOG_SENSOR("  ", "PM1.0", this->pm_1_0_sensor_);
+  LOG_SENSOR("  ", "PM2.5", this->pm_2_5_sensor_);
+  LOG_SENSOR("  ", "PM10.0", this->pm_10_0_sensor_);
 
-void PMSX003Component::set_pm_particles_03um_sensor(sensor::Sensor *pm_particles_03um_sensor) {
-  this->pm_particles_03um_sensor_ = pm_particles_03um_sensor;
-}
-void PMSX003Component::set_pm_particles_05um_sensor(sensor::Sensor *pm_particles_05um_sensor) {
-  this->pm_particles_05um_sensor_ = pm_particles_05um_sensor;
-}
-void PMSX003Component::set_pm_particles_10um_sensor(sensor::Sensor *pm_particles_10um_sensor) {
-  this->pm_particles_10um_sensor_ = pm_particles_10um_sensor;
-}
-void PMSX003Component::set_pm_particles_25um_sensor(sensor::Sensor *pm_particles_25um_sensor) {
-  this->pm_particles_25um_sensor_ = pm_particles_25um_sensor;
-}
-void PMSX003Component::set_pm_particles_50um_sensor(sensor::Sensor *pm_particles_50um_sensor) {
-  this->pm_particles_50um_sensor_ = pm_particles_50um_sensor;
-}
-void PMSX003Component::set_pm_particles_100um_sensor(sensor::Sensor *pm_particles_100um_sensor) {
-  this->pm_particles_100um_sensor_ = pm_particles_100um_sensor;
-}
+  LOG_SENSOR("  ", "PM0.3um", this->pm_particles_03um_sensor_);
+  LOG_SENSOR("  ", "PM0.5um", this->pm_particles_05um_sensor_);
+  LOG_SENSOR("  ", "PM1.0um", this->pm_particles_10um_sensor_);
+  LOG_SENSOR("  ", "PM2.5um", this->pm_particles_25um_sensor_);
+  LOG_SENSOR("  ", "PM5.0um", this->pm_particles_50um_sensor_);
+  LOG_SENSOR("  ", "PM10.0um", this->pm_particles_100um_sensor_);
 
-void PMSX003Component::set_formaldehyde_sensor(sensor::Sensor *formaldehyde_sensor) {
-  this->formaldehyde_sensor_ = formaldehyde_sensor;
-}
-void PMSX003Component::set_temperature_sensor(sensor::Sensor *temperature_sensor) {
-  this->temperature_sensor_ = temperature_sensor;
-}
-void PMSX003Component::set_humidity_sensor(sensor::Sensor *humidity_sensor) {
-  this->humidity_sensor_ = humidity_sensor;
+  LOG_SENSOR("  ", "Formaldehyde", this->formaldehyde_sensor_);
+
+  LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
+  LOG_SENSOR("  ", "Humidity", this->humidity_sensor_);
+  this->check_uart_settings(9600);
 }
 
 void PMSX003Component::loop() {
@@ -129,8 +110,6 @@ void PMSX003Component::loop() {
     }
   }
 }
-
-float PMSX003Component::get_setup_priority() const { return setup_priority::DATA; }
 
 optional<bool> PMSX003Component::check_byte_() {
   const uint8_t index = this->data_index_;
@@ -314,29 +293,6 @@ void PMSX003Component::parse_data_() {
 
 uint16_t PMSX003Component::get_16_bit_uint_(uint8_t start_index) {
   return (uint16_t(this->data_[start_index]) << 8) | uint16_t(this->data_[start_index + 1]);
-}
-
-void PMSX003Component::dump_config() {
-  ESP_LOGCONFIG(TAG, "PMSX003:");
-  LOG_SENSOR("  ", "PM1.0STD", this->pm_1_0_std_sensor_);
-  LOG_SENSOR("  ", "PM2.5STD", this->pm_2_5_std_sensor_);
-  LOG_SENSOR("  ", "PM10.0STD", this->pm_10_0_std_sensor_);
-
-  LOG_SENSOR("  ", "PM1.0", this->pm_1_0_sensor_);
-  LOG_SENSOR("  ", "PM2.5", this->pm_2_5_sensor_);
-  LOG_SENSOR("  ", "PM10.0", this->pm_10_0_sensor_);
-
-  LOG_SENSOR("  ", "PM0.3um", this->pm_particles_03um_sensor_);
-  LOG_SENSOR("  ", "PM0.5um", this->pm_particles_05um_sensor_);
-  LOG_SENSOR("  ", "PM1.0um", this->pm_particles_10um_sensor_);
-  LOG_SENSOR("  ", "PM2.5um", this->pm_particles_25um_sensor_);
-  LOG_SENSOR("  ", "PM5.0um", this->pm_particles_50um_sensor_);
-  LOG_SENSOR("  ", "PM10.0um", this->pm_particles_100um_sensor_);
-
-  LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
-  LOG_SENSOR("  ", "Humidity", this->humidity_sensor_);
-  LOG_SENSOR("  ", "Formaldehyde", this->formaldehyde_sensor_);
-  this->check_uart_settings(9600);
 }
 
 }  // namespace pmsx003

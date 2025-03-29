@@ -30,33 +30,47 @@ enum PMSX003State {
 class PMSX003Component : public uart::UARTDevice, public Component {
  public:
   PMSX003Component() = default;
-  void loop() override;
-  float get_setup_priority() const override;
+  float get_setup_priority() const override { return setup_priority::DATA; };
   void dump_config() override;
+  void loop() override;
 
-  void set_type(PMSX003Type type) { type_ = type; }
+  void set_update_interval(uint32_t update_interval) { this->update_interval_ = update_interval; }
 
-  void set_update_interval(uint32_t val) { update_interval_ = val; };
+  void set_type(PMSX003Type type) { this->type_ = type; }
 
-  void set_pm_1_0_std_sensor(sensor::Sensor *pm_1_0_std_sensor);
-  void set_pm_2_5_std_sensor(sensor::Sensor *pm_2_5_std_sensor);
-  void set_pm_10_0_std_sensor(sensor::Sensor *pm_10_0_std_sensor);
+  void set_pm_1_0_std_sensor(sensor::Sensor *pm_1_0_std_sensor) { this->pm_1_0_std_sensor_ = pm_1_0_std_sensor; }
+  void set_pm_2_5_std_sensor(sensor::Sensor *pm_2_5_std_sensor) { this->pm_2_5_std_sensor_ = pm_2_5_std_sensor; }
+  void set_pm_10_0_std_sensor(sensor::Sensor *pm_10_0_std_sensor) { this->pm_10_0_std_sensor_ = pm_10_0_std_sensor; }
 
-  void set_pm_1_0_sensor(sensor::Sensor *pm_1_0_sensor);
-  void set_pm_2_5_sensor(sensor::Sensor *pm_2_5_sensor);
-  void set_pm_10_0_sensor(sensor::Sensor *pm_10_0_sensor);
+  void set_pm_1_0_sensor(sensor::Sensor *pm_1_0_sensor) { this->pm_1_0_sensor_ = pm_1_0_sensor; }
+  void set_pm_2_5_sensor(sensor::Sensor *pm_2_5_sensor) { this->pm_2_5_sensor_ = pm_2_5_sensor; }
+  void set_pm_10_0_sensor(sensor::Sensor *pm_10_0_sensor) { this->pm_10_0_sensor_ = pm_10_0_sensor; }
 
-  void set_pm_particles_03um_sensor(sensor::Sensor *pm_particles_03um_sensor);
-  void set_pm_particles_05um_sensor(sensor::Sensor *pm_particles_05um_sensor);
-  void set_pm_particles_10um_sensor(sensor::Sensor *pm_particles_10um_sensor);
-  void set_pm_particles_25um_sensor(sensor::Sensor *pm_particles_25um_sensor);
-  void set_pm_particles_50um_sensor(sensor::Sensor *pm_particles_50um_sensor);
-  void set_pm_particles_100um_sensor(sensor::Sensor *pm_particles_100um_sensor);
+  void set_pm_particles_03um_sensor(sensor::Sensor *pm_particles_03um_sensor) {
+    this->pm_particles_03um_sensor_ = pm_particles_03um_sensor;
+  }
+  void set_pm_particles_05um_sensor(sensor::Sensor *pm_particles_05um_sensor) {
+    this->pm_particles_05um_sensor_ = pm_particles_05um_sensor;
+  }
+  void set_pm_particles_10um_sensor(sensor::Sensor *pm_particles_10um_sensor) {
+    this->pm_particles_10um_sensor_ = pm_particles_10um_sensor;
+  }
+  void set_pm_particles_25um_sensor(sensor::Sensor *pm_particles_25um_sensor) {
+    this->pm_particles_25um_sensor_ = pm_particles_25um_sensor;
+  }
+  void set_pm_particles_50um_sensor(sensor::Sensor *pm_particles_50um_sensor) {
+    this->pm_particles_50um_sensor_ = pm_particles_50um_sensor;
+  }
+  void set_pm_particles_100um_sensor(sensor::Sensor *pm_particles_100um_sensor) {
+    this->pm_particles_100um_sensor_ = pm_particles_100um_sensor;
+  }
 
-  void set_formaldehyde_sensor(sensor::Sensor *formaldehyde_sensor);
+  void set_formaldehyde_sensor(sensor::Sensor *formaldehyde_sensor) {
+    this->formaldehyde_sensor_ = formaldehyde_sensor;
+  }
 
-  void set_temperature_sensor(sensor::Sensor *temperature_sensor);
-  void set_humidity_sensor(sensor::Sensor *humidity_sensor);
+  void set_temperature_sensor(sensor::Sensor *temperature_sensor) { this->temperature_sensor_ = temperature_sensor; }
+  void set_humidity_sensor(sensor::Sensor *humidity_sensor) { this->humidity_sensor_ = humidity_sensor; }
 
  protected:
   optional<bool> check_byte_();
