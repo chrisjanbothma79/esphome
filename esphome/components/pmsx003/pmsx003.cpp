@@ -125,7 +125,7 @@ optional<bool> PMSX003Component::check_byte_() {
   }
 
   if (index == 1) {
-    if (byte == START_CHARACTER_1) {
+    if (byte == START_CHARACTER_2) {
       return true;
     } else {
       ESP_LOGW(TAG, "Start character 2 mismatch: 0x%02X != 0x%02X", byte, START_CHARACTER_2);
