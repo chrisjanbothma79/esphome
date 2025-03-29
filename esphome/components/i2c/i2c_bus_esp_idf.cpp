@@ -194,7 +194,7 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
   stop.command = I2C_MASTER_CMD_STOP;
   this->jobs_.push_back(stop);
 
-  esp_err_t err = i2c_master_execute_defined_operations(this->dev_, this->jobs_.data(), this->jobs_.size(), 50);
+  esp_err_t err = i2c_master_execute_defined_operations(this->dev_, this->jobs_.data(), this->jobs_.size(), 20);
   if (err == ESP_ERR_TIMEOUT) {
     ESP_LOGVV(TAG, "RX from %02X failed: timeout", address);
     return ERROR_TIMEOUT;
@@ -323,7 +323,7 @@ ErrorCode IDFI2CBus::writev(uint8_t address, WriteBuffer *buffers, size_t cnt, b
     this->jobs_.push_back(stop);
   }
 
-  esp_err_t err = i2c_master_execute_defined_operations(this->dev_, this->jobs_.data(), this->jobs_.size(), 50);
+  esp_err_t err = i2c_master_execute_defined_operations(this->dev_, this->jobs_.data(), this->jobs_.size(), 20);
   if (err == ESP_ERR_TIMEOUT) {
     ESP_LOGVV(TAG, "TX to %02X failed: timeout", address);
     return ERROR_TIMEOUT;
