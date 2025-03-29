@@ -116,25 +116,35 @@ optional<bool> PMSX003Component::check_byte_() {
   const uint8_t byte = this->data_[index];
 
   if (index == 0) {
-    ESP_LOGW(TAG, "Start character 1 mismatch: 0x%02X != 0x%02X", byte, START_CHARACTER_1);
-    return byte == START_CHARACTER_1;
+    if (byte == START_CHARACTER_1) {
+      return true;
+    } else {
+      ESP_LOGW(TAG, "Start character 1 mismatch: 0x%02X != 0x%02X", byte, START_CHARACTER_1);
+      return false;
+    }
   }
 
   if (index == 1) {
-    ESP_LOGW(TAG, "Start character 2 mismatch: 0x%02X != 0x%02X", byte, START_CHARACTER_2);
-    return byte == START_CHARACTER_2;
+    if (byte == START_CHARACTER_1) {
+      return true;
+    } else {
+      ESP_LOGW(TAG, "Start character 2 mismatch: 0x%02X != 0x%02X", byte, START_CHARACTER_2);
+      return false;
+    }
   }
 
-  if (index == 2)
+  if (index == 2) {
     return true;
+  }
 
   const uint16_t payload_length = this->get_16_bit_uint_(2);
   if (index == 3) {
-    if (!this->check_payload_length_(payload_length)) {
+    if (this->check_payload_length_(payload_length)) {
+      return true;
+    } else {
       ESP_LOGW(TAG, "PMSX003 length %u doesn't match. Are you using the correct PMSX003 type?", payload_length);
       return false;
     }
-    return true;
   }
 
   // start (16bit) + length (16bit) + DATA (payload_length - 16bit) + checksum (16bit)
