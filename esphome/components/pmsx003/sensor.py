@@ -33,6 +33,7 @@ from esphome.const import (
     UNIT_PERCENT,
 )
 
+CODEOWNERS = ["@ximex"]
 DEPENDENCIES = ["uart"]
 
 pmsx003_ns = cg.esphome_ns.namespace("pmsx003")
