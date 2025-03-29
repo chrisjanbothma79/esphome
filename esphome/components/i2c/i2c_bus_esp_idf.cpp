@@ -195,8 +195,11 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
   this->jobs_.push_back(stop);
 
   esp_err_t err = i2c_master_execute_defined_operations(this->dev_, this->jobs_.data(), this->jobs_.size(), 50);
-  if (err != ESP_OK) {
-    ESP_LOGVV(TAG, "TX to %02X master execute failed: %s", address, esp_err_to_name(err));
+  if (err == ESP_ERR_TIMEOUT) {
+    ESP_LOGVV(TAG, "RX from %02X failed: timeout", address);
+    return ERROR_TIMEOUT;
+  } else if (err != ESP_OK) {
+    ESP_LOGVV(TAG, "RX from %02X failed: %s", address, esp_err_to_name(err));
     return ERROR_UNKNOWN;
   }
 #else
@@ -321,8 +324,11 @@ ErrorCode IDFI2CBus::writev(uint8_t address, WriteBuffer *buffers, size_t cnt, b
   }
 
   esp_err_t err = i2c_master_execute_defined_operations(this->dev_, this->jobs_.data(), this->jobs_.size(), 50);
-  if (err != ESP_OK) {
-    ESP_LOGVV(TAG, "TX to %02X master execute failed: %s", address, esp_err_to_name(err));
+  if (err == ESP_ERR_TIMEOUT) {
+    ESP_LOGVV(TAG, "TX to %02X failed: timeout", address);
+    return ERROR_TIMEOUT;
+  } else if (err != ESP_OK) {
+    ESP_LOGVV(TAG, "TX to %02X failed: %s", address, esp_err_to_name(err));
     return ERROR_UNKNOWN;
   }
 #else
