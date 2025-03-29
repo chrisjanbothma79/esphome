@@ -200,7 +200,7 @@ TUNER_SCHEMA = cv.Schema(
         cv.Optional(CONF_CHANNEL): cv.uint8_t,
         cv.Optional(CONF_CHANNEL_SPACING, default=200): cv.float_range(25, 405),
         cv.Optional(CONF_FSK_DEVIATION): cv.float_range(1.5, 381),  # do not set default
-        cv.Optional(CONF_MSK_DEVIATION): cv.int_range(0, 7),  # do not set default
+        cv.Optional(CONF_MSK_DEVIATION): cv.int_range(1, 8),  # do not set default
         cv.Optional(CONF_SYMBOL_RATE): cv.float_range(600, 500000),
         cv.Optional(CONF_MODULATION): cv.enum(MODULATION),
     }

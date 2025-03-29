@@ -836,7 +836,7 @@ void CC1101Component::set_tuner_msk_deviation(uint8_t value) {
   CHECK_INT_RANGE(value, MSK_DEVIATION_MIN, MSK_DEVIATION_MAX)
 
   this->state_.DEVIATION_E = 0;
-  this->state_.DEVIATION_M = value;  // Specifies the fraction of symbol period (1/8-8/8)
+  this->state_.DEVIATION_M = value - 1;  // Specifies the fraction of symbol period (1/8-8/8)
 
   ESP_LOGD(TAG, "set_tuner_msk_deviation(%d)", value);
 
@@ -849,7 +849,7 @@ void CC1101Component::set_tuner_msk_deviation(uint8_t value) {
   this->write_(Register::DEVIATN);
 }
 
-uint8_t CC1101Component::get_tuner_msk_deviation() { return this->state_.DEVIATION_M; }
+uint8_t CC1101Component::get_tuner_msk_deviation() { return this->state_.DEVIATION_M + 1; }
 
 void CC1101Component::set_tuner_symbol_rate(float value) {
   CHECK_FLOAT_RANGE(value, SYMBOL_RATE_MIN, SYMBOL_RATE_MAX)
