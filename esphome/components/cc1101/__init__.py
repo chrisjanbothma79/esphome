@@ -154,10 +154,10 @@ CARRIER_SENSE_REL_THR = {
 
 FilterLengthFskMsk = ns.enum("FilterLengthFskMsk", True)
 FILTER_LENGTH_FSK_MSK = {
-    "8dB": FilterLengthFskMsk.FILTER_LENGTH_8DB,
-    "16dB": FilterLengthFskMsk.FILTER_LENGTH_16DB,
-    "32dB": FilterLengthFskMsk.FILTER_LENGTH_32DB,
-    "64dB": FilterLengthFskMsk.FILTER_LENGTH_64DB,
+    "8": FilterLengthFskMsk.FILTER_LENGTH_8,
+    "16": FilterLengthFskMsk.FILTER_LENGTH_16,
+    "32": FilterLengthFskMsk.FILTER_LENGTH_32,
+    "64": FilterLengthFskMsk.FILTER_LENGTH_64,
 }
 
 FilterLengthAskOok = ns.enum("FilterLengthAskOok", True)
