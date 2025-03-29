@@ -611,7 +611,7 @@ bool WeatherStationAHFLProtocol::transform(const std::vector<uint8_t> &code, Wea
     chksum += (uint8_t) get_bits(code, i, 4);
   }
   if ((chksum & 0x3F) != get_bits(code, 0, 6)) {
-    ESP_LOGV(TAG, "chksum mismatch %02X %02X", get_bits(code, 0, 6), chksum & 0x3F);
+    ESP_LOGV(TAG, "chksum mismatch %02X %02X", (uint8_t) get_bits(code, 0, 6), chksum & 0x3F);
     return false;
   }
 
