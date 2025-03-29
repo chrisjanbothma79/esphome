@@ -189,13 +189,12 @@ void WeatherStation2032Protocol::setup() {
 }
 
 bool WeatherStation2032Protocol::transform(const std::vector<uint8_t> &code, WeatherStationData &data) const {
-  uint32_t chksum = 0;
+  uint8_t chksum = 0;
   for (uint8_t i = 0, pos = 103; i < 12; i++, pos -= 8) {
     chksum += get_bits(code, pos, 8);
   }
-  chksum &= 0xff;
   if (get_bits(code, 7, 8) != chksum) {
-    ESP_LOGV(TAG, "chksum mismatch %x != %x", (uint8_t) get_bits(code, 7, 8), chksum);
+    ESP_LOGV(TAG, "chksum mismatch %02X != %02X", (uint8_t) get_bits(code, 7, 8), chksum);
     return false;
   }
 
