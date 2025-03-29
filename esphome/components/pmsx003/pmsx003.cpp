@@ -115,11 +115,15 @@ optional<bool> PMSX003Component::check_byte_() {
   const uint8_t index = this->data_index_;
   const uint8_t byte = this->data_[index];
 
-  if (index == 0)
+  if (index == 0) {
+    ESP_LOGW(TAG, "Start character 1 mismatch: 0x%02X != 0x%02X", byte, START_CHARACTER_1);
     return byte == START_CHARACTER_1;
+  }
 
-  if (index == 1)
+  if (index == 1) {
+    ESP_LOGW(TAG, "Start character 2 mismatch: 0x%02X != 0x%02X", byte, START_CHARACTER_2);
     return byte == START_CHARACTER_2;
+  }
 
   if (index == 2)
     return true;
@@ -136,8 +140,9 @@ optional<bool> PMSX003Component::check_byte_() {
   // start (16bit) + length (16bit) + DATA (payload_length - 16bit) + checksum (16bit)
   const uint16_t total_size = 4 + payload_length;
 
-  if (index < total_size - 1)
+  if (index < total_size - 1) {
     return true;
+  }
 
   // checksum is without checksum bytes
   uint16_t checksum = 0;
@@ -147,7 +152,7 @@ optional<bool> PMSX003Component::check_byte_() {
 
   const uint16_t check = this->get_16_bit_uint_(total_size - 2);
   if (checksum != check) {
-    ESP_LOGW(TAG, "PMSX003 checksum mismatch! 0x%02X!=0x%02X", checksum, check);
+    ESP_LOGW(TAG, "PMSX003 checksum mismatch! 0x%02X != 0x%02X", checksum, check);
     return false;
   }
 
@@ -278,7 +283,7 @@ void PMSX003Component::parse_data_() {
     const uint8_t firmware_version = this->data_[36];
     const uint8_t error_code = this->data_[37];
 
-    ESP_LOGD(TAG, "Got Firmware Version: %u, Error Code: %u", firmware_version, error_code);
+    ESP_LOGD(TAG, "Got Firmware Version: 0x%02X, Error Code: 0x%02X", firmware_version, error_code);
   }
 
   // Spin down the sensor again if we aren't going to need it until more time has
