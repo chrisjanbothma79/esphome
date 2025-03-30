@@ -129,8 +129,8 @@ ESPNowPacket::ESPNowPacket(uint16_t app_id, uint8_t command, uint64_t peer, cons
   }
 
   this->peer_ = peer;
-  this->options(OPTION_broadcast, peer == ESPNOW_BROADCAST_ADDR);
-  this->options(OPTION_multicast, peer == ESPNOW_MULTICAST_ADDR);
+  this->options(OPTION_BROADCAST, peer == ESPNOW_BROADCAST_ADDR);
+  this->options(OPTION_MULTICAST, peer == ESPNOW_MULTICAST_ADDR);
 
   this->content_.clear();
   this->content_.resize(ESPNOW_HEADER_SIZE);
@@ -156,9 +156,9 @@ ESPNowPacket::ESPNowPacket(uint64_t peer, const uint8_t *payload, size_t size) {
   ESP_LOGI(TAG, "Construction RAW DATA packet, size: %d", size);
 
   this->peer_ = peer;
-  this->options(OPTION_broadcast, peer == ESPNOW_BROADCAST_ADDR);
-  this->options(OPTION_multicast, peer == ESPNOW_MULTICAST_ADDR);
-  this->options(OPTION_raw_data, true);
+  this->options(OPTION_BROADCAST, peer == ESPNOW_BROADCAST_ADDR);
+  this->options(OPTION_MULTICAST, peer == ESPNOW_MULTICAST_ADDR);
+  this->options(OPTION_RAW, true);
 
   this->content_.clear();
   this->content_.resize(size);
@@ -169,14 +169,14 @@ ESPNowPacket::ESPNowPacket(uint64_t peer, const uint8_t *payload, size_t size) {
 
 ESPNowPacket::ESPNowPacket(const uint8_t *peer, const uint8_t *payload, int size) {
   this->mac_address(peer);
-  this->options(OPTION_received, true);
+  this->options(OPTION_RECEIVED, true);
   if (size > 0) {
     this->content_.insert(this->content_.begin(), payload, payload + size);
   }
 
   if (!this->is_valid()) {
     ESP_LOGI(TAG, "Construction received RAW packet, size: %d", this->content_size());
-    this->options(OPTION_raw_data, true);
+    this->options(OPTION_RAW, true);
   }
 }
 
@@ -184,8 +184,8 @@ std::string ESPNowPacket::peer_str() const { return peer_string(this->peer_); }
 
 std::string ESPNowPacket::info() const {
   char info[100];
-  char model = this->options(OPTION_received) ? 'R' : 'S';
-  if (this->options(OPTION_raw_data)) {
+  char model = this->options(OPTION_RECEIVED) ? 'R' : 'S';
+  if (this->options(OPTION_RAW)) {
     snprintf(info, sizeof(info), "%s(%c%04x.%d)[%02x] RAW [%d] ", this->peer_str().c_str(), model, this->sequents(),
              this->options(), this->attempt(), this->payload_size());
   } else {
@@ -197,7 +197,7 @@ std::string ESPNowPacket::info() const {
 }
 
 bool ESPNowPacket::is_valid() const {
-  if (this->options(OPTION_raw_data) || this->content_size() < ESPNOW_HEADER_SIZE) {
+  if (this->options(OPTION_RAW) || this->content_size() < ESPNOW_HEADER_SIZE) {
     return false;
   }
   bool header_valid = this->read16h(0) == TRANSPORT_HEADER;
@@ -375,7 +375,7 @@ void ESPNowComponent::on_data_received_(const esp_now_recv_info_t *recv_info, co
   auto packet = std::make_shared<ESPNowPacket>(recv_info->src_addr, data, size);  // NOLINT
   ESPNowTriggers event = TRIGGER_NONE;
 
-  packet->options(OPTION_broadcast, ((uint64_t) *recv_info->des_addr & ESPNOW_BROADCAST_ADDR) == ESPNOW_BROADCAST_ADDR);
+  packet->options(OPTION_BROADCAST, ((uint64_t) *recv_info->des_addr & ESPNOW_BROADCAST_ADDR) == ESPNOW_BROADCAST_ADDR);
   packet->rssi(recv_info->rx_ctrl->rssi);
   packet->timestamp(recv_info->rx_ctrl->timestamp);
 
@@ -389,7 +389,7 @@ void ESPNowComponent::on_data_received_(const esp_now_recv_info_t *recv_info, co
         this->handle_system_command_(packet, packet->command());
         return;
       } else {
-        event = (packet->options(OPTION_broadcast)) ? TRIGGER_ON_BROADCAST : TRIGGER_ON_RECEIVE;
+        event = (packet->options(OPTION_BROADCAST)) ? TRIGGER_ON_BROADCAST : TRIGGER_ON_RECEIVE;
       }
       show_packet("Packet Received", packet.get(), true);
       this->call_trigger_for_(event, packet);
@@ -398,7 +398,7 @@ void ESPNowComponent::on_data_received_(const esp_now_recv_info_t *recv_info, co
     }
   } else {
     ESP_LOGE(TAG, "Invalid ESP-NOW packet received.");
-    packet->options(OPTION_raw_data, true);
+    packet->options(OPTION_RAW, true);
     packet->status(TRIGGER_ON_RAW_DATA);
     this->get_raw_data_trigger()->trigger(packet);
   }
@@ -446,16 +446,16 @@ void ESPNowComponent::handle_ack_command_(std::weak_ptr<ESPNowPacket> wAck) {
     ESP_LOGE(TAG, "%s| Failed to Send", packet->info().c_str());
   }
 
-  packet->options(OPTION_ack_done, true);
+  packet->options(OPTION_FINISHED, true);
 
   if (status) {
     this->call_trigger_for_(TRIGGER_ON_SUCCEED, packet);
   } else {
-    if (packet->options(OPTION_multicast)) {
+    if (packet->options(OPTION_MULTICAST)) {
       this->call_trigger_for_(TRIGGER_ON_FAILED, packet);
     } else {
       packet->status(TRIGGER_ON_FAILED);
-      packet->options(OPTION_been_send, false);
+      packet->options(OPTION_BEEN_SEND, false);
     }
     unlock = false;
   }
@@ -473,20 +473,20 @@ bool ESPNowComponent::send(std::weak_ptr<ESPNowPacket> wPacket) {
     ESP_LOGE(TAG, "Cannot send espnow packet, espnow failed to setup");
   } else if (this->send_queue_used() == SEND_BUFFER_SIZE) {
     ESP_LOGE(TAG, "Send Buffer Out of Memory.");
-  } else if (this->is_suspension() && !packet->options(OPTION_send_direct)) {
+  } else if (this->is_suspension() && !packet->options(OPTION_SEND_DIRECT)) {
     ESP_LOGE(TAG, "Cannot send espnow packet, ESPNOW is suspended.");
   } else if (packet->peer() == this->own_peer_address_) {
     ESP_LOGE(TAG, "Trying to send a packet to your self.");
   } else if (!this->is_paired(packet->peer())) {
     ESP_LOGE(TAG, "Peer is not registered: %s.", packet->peer_str().c_str());
-  } else if (!packet->is_valid() and !packet->options(OPTION_raw_data)) {
+  } else if (!packet->is_valid() and !packet->options(OPTION_RAW)) {
     ESP_LOGE(TAG, "%s| Packet Is invalid !!", packet->info().c_str());
   } else {
     packet->sequents(this->get_next_sequents(packet->peer(), packet->application()));
     uint64_t key = packet->key();
     this->packet_send_map_[key] = packet;
 
-    if (packet->options(OPTION_send_direct)) {
+    if (packet->options(OPTION_SEND_DIRECT)) {
       show_packet("Added to TOP of buffer", packet.get(), true);
       xQueueSendToFront(this->send_queue_, (void *) &key, 10);
     } else {
@@ -501,7 +501,7 @@ bool ESPNowComponent::send(std::weak_ptr<ESPNowPacket> wPacket) {
 
 bool ESPNowComponent::send_system_command(std::weak_ptr<ESPNowPacket> wPacket, uint8_t command) {
   auto packet = wPacket.lock();
-  if (packet == nullptr || packet->options(OPTION_ack_done)) {
+  if (packet == nullptr || packet->options(OPTION_FINISHED)) {
     show_packet("Send System Command ALREADY SEND", packet.get());
     return false;
   }
@@ -510,9 +510,9 @@ bool ESPNowComponent::send_system_command(std::weak_ptr<ESPNowPacket> wPacket, u
   uint8_t *data = static_cast<uint8_t *>(static_cast<void *>(&key));
 
   auto ack = this->make_packet(packet->peer(), (const uint8_t *) data, sizeof(key), packet->application(), command);
-  ack->options(OPTION_send_direct, true);
-  ack->options(OPTION_dont_wait, true);
-  packet->options(OPTION_ack_done, true);
+  ack->options(OPTION_SEND_DIRECT, true);
+  ack->options(OPTION_DONT_WAIT, true);
+  packet->options(OPTION_FINISHED, true);
   return this->send(ack);
 }
 
@@ -524,13 +524,13 @@ void ESPNowComponent::espnow_task(void *param) {
       auto packet = that->get_packet(key);
       if (packet == nullptr) {
         ESP_LOGE(TAG, "Packet %llx not found (task).", key);
-      } else if (packet->options(OPTION_ack_done)) {
+      } else if (packet->options(OPTION_FINISHED)) {
         xQueueReceive(that->send_queue_, (void *) &key2, (TickType_t) 1);
         if (key != key2) {
           ESP_LOGE(TAG, "!!! Remove from buffer ERROR: %llx vs %llx.", key, key2);
         }
 
-      } else if (!packet->options(OPTION_been_send)) {
+      } else if (!packet->options(OPTION_BEEN_SEND)) {
         if (packet->attempt() >= that->attempts_) {
           ESP_LOGE(TAG, "%s| Packet Dropped. To many attempts. ", packet->info().c_str());
           xQueueReceive(that->send_queue_, (void *) &key2, (TickType_t) 1);
@@ -551,9 +551,9 @@ void ESPNowComponent::espnow_task(void *param) {
           }
 
           if (err == ESP_OK) {
-            packet->options(OPTION_been_send, true);
-            if (packet->options(OPTION_dont_wait)) {
-              packet->options(OPTION_ack_done, true);
+            packet->options(OPTION_BEEN_SEND, true);
+            if (packet->options(OPTION_DONT_WAIT)) {
+              packet->options(OPTION_FINISHED, true);
               show_packet("Packet has been send. Dont Wait.", packet.get());
 
               that->call_trigger_for_(TRIGGER_ON_SUCCEED, packet);
@@ -568,7 +568,7 @@ void ESPNowComponent::espnow_task(void *param) {
       } else if (packet->timestamp() + that->confirmation_timeout_ < millis()) {
         show_packet("Timed Out", packet.get());
         packet->status(TRIGGER_ON_TIMEOUT);
-        packet->options(OPTION_been_send, false);
+        packet->options(OPTION_BEEN_SEND, false);
 
       } else {
         vTaskDelay(10);
@@ -665,12 +665,12 @@ void ESPNowComponent::call_trigger_for_(ESPNowTriggers event, std::weak_ptr<ESPN
       cb(packet);
     }
 
-    if (packet->options(OPTION_received)) {
-      if (!packet->options(OPTION_ack_done)) {
+    if (packet->options(OPTION_RECEIVED)) {
+      if (!packet->options(OPTION_FINISHED)) {
         this->send_system_command(packet, ESPNOW_COMMAND_ACK);
       }
     } else {
-      if (packet->options(OPTION_ack_done)) {
+      if (packet->options(OPTION_FINISHED)) {
         uint64_t key = packet->key();
         this->remove_packet(key);
       }

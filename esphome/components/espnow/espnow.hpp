@@ -62,16 +62,16 @@ enum ESPNowTriggers : uint8_t {
 };
 
 enum ESPNowOptions : uint8_t {
-  OPTION_received = 0,
-  OPTION_broadcast,
-  OPTION_multicast,
-  OPTION_send_direct,
-  OPTION_raw_data,
+  OPTION_RECEIVED = 0,
+  OPTION_BROADCAST,
+  OPTION_MULTICAST,
+  OPTION_SEND_DIRECT,
+  OPTION_RAW,
 
-  OPTION_dont_wait,
+  OPTION_DONT_WAIT,
 
-  OPTION_been_send,
-  OPTION_ack_done
+  OPTION_BEEN_SEND,
+  OPTION_FINISHED
 };
 
 enum ESPNowAppMode { PM_UNIVERSAL, PM_COLLECTOR, PM_PROVIDER };
@@ -95,7 +95,7 @@ class ESPNowPacket {
   uint64_t key() const { return make_key(this->peer(), this->sequents()); }
 
   size_t header_size() const {
-    if (this->options(OPTION_raw_data) || this->content_.size() < ESPNOW_HEADER_SIZE) {
+    if (this->options(OPTION_RAW) || this->content_.size() < ESPNOW_HEADER_SIZE) {
       return 0;
     } else {
       return ESPNOW_HEADER_SIZE;
@@ -131,17 +131,17 @@ class ESPNowPacket {
     if (this->header_size() == 0) {
       return 0;
     } else {
-      return this->options(OPTION_raw_data) ? 0 : this->read8h(4);
+      return this->options(OPTION_RAW) ? 0 : this->read8h(4);
     }
   }
 
   void sequents(uint16_t value) {
     this->sequents_ = value;
-    if (!this->options(OPTION_raw_data)) {
+    if (!this->options(OPTION_RAW)) {
       this->write16h(5, value);
     }
   }
-  uint16_t sequents() const { return this->options(OPTION_raw_data) ? this->sequents_ : this->read16h(5); }
+  uint16_t sequents() const { return this->options(OPTION_RAW) ? this->sequents_ : this->read16h(5); }
 
   void timestamp(uint32_t value) { this->timestamp_ = value; }
   uint32_t timestamp() const { return this->timestamp_; }
@@ -369,7 +369,7 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
     uint8_t command = this->command_.value(x...);
     auto packet = this->parent_->make_packet(mac, payload.data(), payload.size(), app, command);
     packet->triggerGroup(this->triggerGroup_);
-    packet->options(OPTION_dont_wait, this->dont_wait_flag_);
+    packet->options(OPTION_DONT_WAIT, this->dont_wait_flag_);
     this->parent_->send(packet);
   }
 
