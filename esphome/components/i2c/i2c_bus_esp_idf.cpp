@@ -42,12 +42,12 @@ void IDFI2CBus::setup() {
   bus_conf.glitch_ignore_cnt = 7;
 #if SOC_LP_I2C_SUPPORTED
   if (this->port_ < SOC_HP_I2C_NUM) {
-    bus_conf.clk_source = (i2c_clock_source_t) I2C_CLK_SRC_DEFAULT;
+    bus_conf.clk_source = I2C_CLK_SRC_DEFAULT;
   } else {
-    bus_conf.clk_source = (i2c_clock_source_t) LP_I2C_SCLK_DEFAULT;
+    bus_conf.lp_source_clk = LP_I2C_SCLK_DEFAULT;
   }
 #else
-  bus_conf.clk_source = (i2c_clock_source_t) I2C_CLK_SRC_DEFAULT;
+  bus_conf.clk_source = I2C_CLK_SRC_DEFAULT;
 #endif
   bus_conf.flags.enable_internal_pullup = sda_pullup_enabled_ || scl_pullup_enabled_;
   esp_err_t err = i2c_new_master_bus(&bus_conf, &this->bus_);
@@ -62,6 +62,7 @@ void IDFI2CBus::setup() {
   dev_conf.dev_addr_length = I2C_ADDR_BIT_LEN_7;
   dev_conf.device_address = I2C_DEVICE_ADDRESS_NOT_USED;
   dev_conf.scl_speed_hz = this->frequency_;
+  dev_conf.scl_wait_us = 0;
   err = i2c_master_bus_add_device(this->bus_, &dev_conf, &this->dev_);
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "i2c_master_bus_add_device failed: %s", esp_err_to_name(err));
@@ -172,20 +173,18 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
   }
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
+  i2c_operation_job_t jobs[cnt + 4];
   uint8_t read = (address << 1) | I2C_MASTER_READ;
-  this->jobs_.clear();
-  this->jobs_.reserve(cnt + 4);
+  size_t num = 0;
 
-  i2c_operation_job_t start{};
-  start.command = I2C_MASTER_CMD_START;
-  this->jobs_.push_back(start);
+  jobs[num].command = I2C_MASTER_CMD_START;
+  num++;
 
-  i2c_operation_job_t cmd{};
-  cmd.command = I2C_MASTER_CMD_WRITE;
-  cmd.write.ack_check = true;
-  cmd.write.data = &read;
-  cmd.write.total_bytes = 1;
-  this->jobs_.push_back(cmd);
+  jobs[num].command = I2C_MASTER_CMD_WRITE;
+  jobs[num].write.ack_check = true;
+  jobs[num].write.data = &read;
+  jobs[num].write.total_bytes = 1;
+  num++;
 
   for (size_t i = 0; i < cnt; i++) {
     const auto &buf = buffers[i];
@@ -195,34 +194,30 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
     // split the last read if len is larger than 1
     if (i == cnt - 1) {
       if (buf.len > 1) {
-        i2c_operation_job_t data{};
-        data.command = I2C_MASTER_CMD_READ;
-        data.read.ack_value = I2C_ACK_VAL;
-        data.read.data = (uint8_t *) buf.data;
-        data.read.total_bytes = buf.len - 1;
-        this->jobs_.push_back(data);
+        jobs[num].command = I2C_MASTER_CMD_READ;
+        jobs[num].read.ack_value = I2C_ACK_VAL;
+        jobs[num].read.data = (uint8_t *) buf.data;
+        jobs[num].read.total_bytes = buf.len - 1;
+        num++;
       }
-      i2c_operation_job_t data{};
-      data.command = I2C_MASTER_CMD_READ;
-      data.read.ack_value = I2C_NACK_VAL;
-      data.read.data = (uint8_t *) buf.data + buf.len - 1;
-      data.read.total_bytes = 1;
-      this->jobs_.push_back(data);
+      jobs[num].command = I2C_MASTER_CMD_READ;
+      jobs[num].read.ack_value = I2C_NACK_VAL;
+      jobs[num].read.data = (uint8_t *) buf.data + buf.len - 1;
+      jobs[num].read.total_bytes = 1;
+      num++;
     } else {
-      i2c_operation_job_t data{};
-      data.command = I2C_MASTER_CMD_READ;
-      data.read.ack_value = I2C_ACK_VAL;
-      data.read.data = (uint8_t *) buf.data;
-      data.read.total_bytes = buf.len;
-      this->jobs_.push_back(data);
+      jobs[num].command = I2C_MASTER_CMD_READ;
+      jobs[num].read.ack_value = I2C_ACK_VAL;
+      jobs[num].read.data = (uint8_t *) buf.data;
+      jobs[num].read.total_bytes = buf.len;
+      num++;
     }
   }
 
-  i2c_operation_job_t stop{};
-  stop.command = I2C_MASTER_CMD_STOP;
-  this->jobs_.push_back(stop);
+  jobs[num].command = I2C_MASTER_CMD_STOP;
+  num++;
 
-  esp_err_t err = i2c_master_execute_defined_operations(this->dev_, this->jobs_.data(), this->jobs_.size(), 20);
+  esp_err_t err = i2c_master_execute_defined_operations(this->dev_, jobs, num, 20);
   if (err == ESP_ERR_TIMEOUT) {
     ESP_LOGVV(TAG, "RX from %02X failed: timeout", address);
     return ERROR_TIMEOUT;
@@ -318,40 +313,36 @@ ErrorCode IDFI2CBus::writev(uint8_t address, WriteBuffer *buffers, size_t cnt, b
 #endif
 
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
+  i2c_operation_job_t jobs[cnt + 3];
   uint8_t write = (address << 1) | I2C_MASTER_WRITE;
-  this->jobs_.clear();
-  this->jobs_.reserve(cnt + 3);
+  size_t num = 0;
 
-  i2c_operation_job_t start{};
-  start.command = I2C_MASTER_CMD_START;
-  this->jobs_.push_back(start);
+  jobs[num].command = I2C_MASTER_CMD_START;
+  num++;
 
-  i2c_operation_job_t cmd{};
-  cmd.command = I2C_MASTER_CMD_WRITE;
-  cmd.write.ack_check = true;
-  cmd.write.data = &write;
-  cmd.write.total_bytes = 1;
-  this->jobs_.push_back(cmd);
+  jobs[num].command = I2C_MASTER_CMD_WRITE;
+  jobs[num].write.ack_check = true;
+  jobs[num].write.data = &write;
+  jobs[num].write.total_bytes = 1;
+  num++;
 
   for (size_t i = 0; i < cnt; i++) {
     const auto &buf = buffers[i];
     if (buf.len == 0)
       continue;
-    i2c_operation_job_t data{};
-    data.command = I2C_MASTER_CMD_WRITE;
-    data.write.ack_check = true;
-    data.write.data = (uint8_t *) buf.data;
-    data.write.total_bytes = buf.len;
-    this->jobs_.push_back(data);
+    jobs[num].command = I2C_MASTER_CMD_WRITE;
+    jobs[num].write.ack_check = true;
+    jobs[num].write.data = (uint8_t *) buf.data;
+    jobs[num].write.total_bytes = buf.len;
+    num++;
   }
 
   if (stop) {
-    i2c_operation_job_t stop{};
-    stop.command = I2C_MASTER_CMD_STOP;
-    this->jobs_.push_back(stop);
+    jobs[num].command = I2C_MASTER_CMD_STOP;
+    num++;
   }
 
-  esp_err_t err = i2c_master_execute_defined_operations(this->dev_, this->jobs_.data(), this->jobs_.size(), 20);
+  esp_err_t err = i2c_master_execute_defined_operations(this->dev_, jobs, num, 20);
   if (err == ESP_ERR_TIMEOUT) {
     ESP_LOGVV(TAG, "TX to %02X failed: timeout", address);
     return ERROR_TIMEOUT;
