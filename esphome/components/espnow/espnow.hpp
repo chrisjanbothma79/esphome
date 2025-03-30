@@ -252,14 +252,14 @@ class ESPNowComponent : public Component {
   void set_use_sent_check(bool value) { this->use_sent_check_ = value; }
   void set_auto_channel_scan(bool value) { this->auto_channel_scan_ = value; }
 
-  void set_conformation_timeout(uint32_t timeout) { this->conformation_timeout_ = timeout; }
+  void set_confirmation_timeout(uint32_t timeout) { this->confirmation_timeout_ = timeout; }
   void set_attempts(uint8_t value) { this->attempts_ = value; }
   void set_pairing_app(ESPNowApp *pairing_app) { this->pairing_app_ = pairing_app; }
   void set_default_app_id(uint16_t value) {}
   void set_trigger_for(uint32_t app_id, uint8_t command, ESPNowTriggers event, EPSNowTriggerCallback &&cb) {
     this->triggers_[app_id][command][event] = std::move(cb);
   }
-  uint64_t get_own_peer_address() { return this->own_peer_address_; }
+  uint64_t get_own_peer_address() const { return this->own_peer_address_; }
 
   Trigger<std::shared_ptr<ESPNowPacket>> *get_new_peer_trigger() const { return this->new_peer_trigger_; }
   Trigger<std::shared_ptr<ESPNowPacket>> *get_raw_data_trigger() const { return this->raw_data_trigger_; }
@@ -271,7 +271,7 @@ class ESPNowComponent : public Component {
   void loop() override;
   bool can_proceed() override;
 
-  bool is_paired(uint64_t to_peer);
+  bool is_paired(uint64_t to_peer) const;
   std::shared_ptr<ESPNowPacket> make_packet(uint64_t peer, const uint8_t *data, uint8_t size, uint16_t app_id,
                                             uint8_t command) {
     return std::make_shared<ESPNowPacket>(app_id, command, peer, data, size);
@@ -319,7 +319,7 @@ class ESPNowComponent : public Component {
   uint64_t default_peer_address_{0};
 
   uint8_t wifi_channel_{0};
-  uint32_t conformation_timeout_{5000};
+  uint32_t confirmation_timeout_{5000};
   uint8_t attempts_{1};
   uint64_t last_packet_send_{0ull};
 

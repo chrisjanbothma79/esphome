@@ -18,12 +18,6 @@
 
 #include <memory>
 
-#ifndef CONFIG_ESPNOW_VERSION
-#define ESPNOW_VERSION 2
-#else
-#define ESPNOW_VERSION CONFIG_ESPNOW_VERSION
-#endif
-
 #if defined(USE_ESP32)
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 1)
 
@@ -260,7 +254,7 @@ void ESPNowComponent::dump_config() {
 
   ESP_LOGCONFIG(TAG, "  Auto add new peers  : %s.", this->auto_add_peer_ ? "Yes" : "No");
   ESP_LOGCONFIG(TAG, "  Use sent status     : %s.", this->use_sent_check_ ? "Yes" : "No");
-  ESP_LOGCONFIG(TAG, "  Convermation timeout: %" PRIx32 "ms.", this->conformation_timeout_);
+  ESP_LOGCONFIG(TAG, "  Convermation timeout: %" PRIx32 "ms.", this->confirmation_timeout_);
   ESP_LOGCONFIG(TAG, "  Max Send attempts   : %d.", this->attempts_);
 }
 
@@ -564,7 +558,7 @@ void ESPNowComponent::espnow_task(void *param) {
           return;  ///// continue;
         }
       }
-    } else if (packet->timestamp() + that->conformation_timeout_ < millis()) {
+    } else if (packet->timestamp() + that->confirmation_timeout_ < millis()) {
       show_packet("Timed Out", packet.get());
       packet->status(TRIGGER_ON_TIMEOUT);
       packet->options(OPTION_been_send, false);
@@ -608,10 +602,9 @@ esp_err_t ESPNowComponent::add_peer(uint64_t peer) {
       memcpy((void *) peer_info.peer_addr, (void *) &peer, 6);
       result = esp_now_add_peer(&peer_info);
     }
-
-    if (result == ESP_OK) {
-      this->peers_.push_back(peer);
-    }
+  }
+  if (result == ESP_OK) {
+    this->peers_.push_back(peer);
   }
 
   return result;
@@ -699,7 +692,7 @@ void ESPNowComponent::call_on_del_peer_(uint64_t peer) {
   });
 }
 
-bool ESPNowComponent::is_paired(uint64_t peer) {
+bool ESPNowComponent::is_paired(uint64_t peer) const {
   bool result = false;
   if (peer == ESPNOW_MULTICAST_ADDR) {
     return true;
