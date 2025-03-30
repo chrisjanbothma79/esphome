@@ -24,11 +24,11 @@ LD2410SMinimalOutput = ld2410s_ns.class_("LD2410SMinimalOutput", button.Button)
 # LD2410SEnableConfigButton = ld2410s_ns.class_("LD2410SEnableConfigButton", button.Button)
 # LD2410SDisableConfigButton = ld2410s_ns.class_("LD2410SDisableConfigButton", button.Button)
 
-CONF_READ_ALL = "read_all"
-CONF_APPLY_CONFIG = "apply_config"
-CONF_CALIBRATION = "calibration"
-CONF_FACTORY_RESET = "factory_reset"
-CONF_MINIMAL_OUTPUT = "toggle_minimal_output"
+CONF_READ_ALL = "conf_read_all"
+CONF_APPLY_CONFIG = "conf_apply_config"
+CONF_CALIBRATION = "conf_calibration"
+CONF_FACTORY_RESET = "conf_factory_reset"
+CONF_MINIMAL_OUTPUT = "conf_minimal_output"
 # CONF_ENABLE_CONFIG = "enable_config"
 # CONF_DISABLE_CONFIG = "disable_config"
 
