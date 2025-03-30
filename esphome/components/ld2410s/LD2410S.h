@@ -202,54 +202,56 @@ class LD2410S : public uart::UARTDevice, public Component {
   void set_trigger_threshold(float trigger_threshold);
   void set_trigger_hold(float trigger_hold);
   void set_trigger_snr(float trigger_snr);
-  void set_response_speed_select(const std::string &response_speed_select);
+  void set_response_speed_select_(const std::string &response_speed_select_);
 
 #ifdef USE_NUMBER
-  void set_max_distance_number(number::Number *max_distance_number) {
-    this->max_distance_number = max_distance_number;
+  void set_max_distance_number_(number::Number *max_distance_number_) {
+    this->max_distance_number_ = max_distance_number_;
   };
-  void set_min_distance_number(number::Number *min_distance_number) {
-    this->min_distance_number = min_distance_number;
+  void set_min_distance_number_(number::Number *min_distance_number_) {
+    this->min_distance_number_ = min_distance_number_;
   };
-  void set_no_delay_number(number::Number *delay_number) { this->no_delay_number = delay_number; };
-  void set_status_reporting_freq_number(number::Number *status_reporting_freq_number) {
-    this->status_reporting_freq_number = status_reporting_freq_number;
+  void set_no_delay_number_(number::Number *delay_number) { this->no_delay_number_ = delay_number; };
+  void set_status_reporting_freq_number_(number::Number *status_reporting_freq_number_) {
+    this->status_reporting_freq_number_ = status_reporting_freq_number_;
   };
-  void set_distance_reporting_freq_number(number::Number *distance_reporting_freq_number) {
-    this->distance_reporting_freq_number = distance_reporting_freq_number;
+  void set_distance_reporting_freq_number_(number::Number *distance_reporting_freq_number_) {
+    this->distance_reporting_freq_number_ = distance_reporting_freq_number_;
   };
 
-  void set_trigger_threshold_number(number::Number *trigger_threshold_number) {
-    this->trigger_threshold_number = trigger_threshold_number;
+  void set_trigger_threshold_number_(number::Number *trigger_threshold_number_) {
+    this->trigger_threshold_number_ = trigger_threshold_number_;
   };
-  void set_trigger_hold_number(number::Number *trigger_hold_number) {
-    this->trigger_hold_number = trigger_hold_number;
+  void set_trigger_hold_number_(number::Number *trigger_hold_number_) {
+    this->trigger_hold_number_ = trigger_hold_number_;
   };
-  void set_trigger_snr_number(number::Number *trigger_snr_number) { this->trigger_snr_number = trigger_snr_number; };
-  void set_trigger_selected_gate_number(number::Number *trigger_selected_gate_number) {
-    this->trigger_selected_gate_number = trigger_selected_gate_number;
+  void set_trigger_snr_number_(number::Number *trigger_snr_number_) {
+    this->trigger_snr_number_ = trigger_snr_number_;
+  };
+  void set_trigger_selected_gate_number_(number::Number *trigger_selected_gate_number_) {
+    this->trigger_selected_gate_number_ = trigger_selected_gate_number_;
 #ifdef USE_NUMBER
-    this->trigger_selected_gate_number->publish_state(this->triggers_.selected_gate);
-    this->trigger_threshold_number->publish_state(this->triggers_.threshold[this->triggers_.selected_gate]);
-    this->trigger_hold_number->publish_state(this->triggers_.hold[this->triggers_.selected_gate]);
-    this->trigger_snr_number->publish_state(this->triggers_.snr[this->triggers_.selected_gate]);
+    this->trigger_selected_gate_number_->publish_state(this->triggers_.selected_gate);
+    this->trigger_threshold_number_->publish_state(this->triggers_.threshold[this->triggers_.selected_gate]);
+    this->trigger_hold_number_->publish_state(this->triggers_.hold[this->triggers_.selected_gate]);
+    this->trigger_snr_number_->publish_state(this->triggers_.snr[this->triggers_.selected_gate]);
 #endif
   };
 
 #endif
 
 #ifdef USE_BUTTON
-  void set_read_all_button(button::Button *button) { this->read_all_button = button; };
-  void set_apply_config_button(button::Button *button) { this->apply_config_button = button; };
-  void set_calibration_button(button::Button *button) { this->calibration_button = button; };
-  void set_factory_reset_button(button::Button *button) { this->factory_reset_button = button; };
-  void set_toggle_minimal_output_button(button::Button *button) { this->toggle_minimal_output_button = button; };
+  void set_read_all_button_(button::Button *button) { this->read_all_button_ = button; };
+  void set_apply_config_button_(button::Button *button) { this->apply_config_button_ = button; };
+  void set_calibration_button_(button::Button *button) { this->calibration_button_ = button; };
+  void set_factory_reset_button_(button::Button *button) { this->factory_reset_button_ = button; };
+  void set_toggle_minimal_output_button_(button::Button *button) { this->toggle_minimal_output_button_ = button; };
     // void set_enable_config_button(button::Button* button) { this->enable_config_button = button; };
     // void set_disable_config_button(button::Button* button) { this->disable_config_button = button; };
 #endif
 
 #ifdef USE_SELECT
-  void set_response_speed_select(select::Select *selector) { this->response_speed_select = selector; };
+  void set_response_speed_select_(select::Select *selector) { this->response_speed_select_ = selector; };
 #endif
  private:
   std::vector<LD2410SListener *> listeners_{};
@@ -273,82 +275,82 @@ class LD2410S : public uart::UARTDevice, public Component {
   uint8_t last_ = 0;
   CmdT commands_[CMD_EXEC_BUFFER_SIZE];
 
-  void loop_exec();
-  void cmd_add(CmdFrameT *cmd_frame);
-  void cmd_buffer_insert(CmdT *cmd);
-  void cmd_buffer_finished();
-  void cmd_buffer_inc(uint8_t &index);
+  void loop_exec_();
+  void cmd_add_(CmdFrameT *cmd_frame);
+  void cmd_buffer_insert_(CmdT *cmd);
+  void cmd_buffer_finished_();
+  void cmd_buffer_inc_(uint8_t &index);
 
-  void send_cmd(const char *msg, uint16_t command, uint16_t sub_command = 0);
-  void publish_thresholds();
+  void send_cmd_(const char *msg, uint16_t command, uint16_t sub_command = 0);
+  // void publish_thresholds_();
 
 #ifdef USE_NUMBER
-  number::Number *max_distance_number{nullptr};
-  number::Number *min_distance_number{nullptr};
-  number::Number *no_delay_number{nullptr};
-  number::Number *status_reporting_freq_number{nullptr};
-  number::Number *distance_reporting_freq_number{nullptr};
+  number::Number *max_distance_number_{nullptr};
+  number::Number *min_distance_number_{nullptr};
+  number::Number *no_delay_number_{nullptr};
+  number::Number *status_reporting_freq_number_{nullptr};
+  number::Number *distance_reporting_freq_number_{nullptr};
 
-  number::Number *trigger_threshold_number{nullptr};
-  number::Number *trigger_hold_number{nullptr};
-  number::Number *trigger_snr_number{nullptr};
-  number::Number *trigger_selected_gate_number{nullptr};
+  number::Number *trigger_threshold_number_{nullptr};
+  number::Number *trigger_hold_number_{nullptr};
+  number::Number *trigger_snr_number_{nullptr};
+  number::Number *trigger_selected_gate_number_{nullptr};
 #endif
 
 #ifdef USE_BUTTON
-  button::Button *read_all_button{nullptr};
-  button::Button *apply_config_button{nullptr};
-  button::Button *calibration_button{nullptr};
-  button::Button *factory_reset_button{nullptr};
-  button::Button *toggle_minimal_output_button{nullptr};
+  button::Button *read_all_button_{nullptr};
+  button::Button *apply_config_button_{nullptr};
+  button::Button *calibration_button_{nullptr};
+  button::Button *factory_reset_button_{nullptr};
+  button::Button *toggle_minimal_output_button_{nullptr};
   // button::Button* enable_config_button{ nullptr };
   // button::Button* disable_config_button{ nullptr };
 #endif
 
 #ifdef USE_SELECT
-  select::Select *response_speed_select{nullptr};
+  select::Select *response_speed_select_{nullptr};
 #endif
 
-  void receive(uint8_t *buffer, size_t buffer_size, size_t &pos, bool &replay);
-  PackageType get_frame_type(uint8_t *buffer, size_t pos);
-  size_t get_frame_start(uint8_t *buffer, size_t end_pos, PackageType type);
-  size_t get_data_size(uint8_t *buffer, size_t end_pos, PackageType type, size_t start_pos);
-  size_t get_data_start_pos(PackageType type, size_t start_pos);
+  void receive_(uint8_t *buffer, size_t buffer_size, size_t &pos, bool &replay);
+  PackageType get_frame_type_(uint8_t *buffer, size_t pos);
+  size_t get_frame_start_(uint8_t *buffer, size_t end_pos, PackageType type);
+  size_t get_data_size_(uint8_t *buffer, size_t end_pos, PackageType type, size_t start_pos);
+  // size_t get_data_start_pos_(PackageType type, size_t start_pos);
 
-  bool process_frame(PackageType type, uint8_t *buffer, size_t data_size);
-  void process_short_data_frame(uint8_t *data);
-  void process_data_frame(uint8_t *data);
-  bool process_cmd_frame(uint8_t *buffer, size_t data_size);
+  // bool process_frame_(PackageType type, uint8_t *buffer, size_t data_size);
+  void process_short_data_frame_(uint8_t *data);
+  void process_data_frame_(uint8_t *data);
+  bool process_cmd_frame_(uint8_t *buffer, size_t data_size);
 
-  CmdAckT parse_ack(uint8_t *buffer, size_t length);
+  CmdAckT parse_ack_(uint8_t *buffer, size_t length);
 
-  void process_data_distance(uint8_t *data);
-  void process_data_progress(uint8_t *data);
-  void process_data_energy_levels(uint8_t *data);
+  // void process_data_distance_(uint8_t *data);
+  // void process_data_progress_(uint8_t *data);
+  // void process_data_energy_levels_(uint8_t *data);
 
-  void send_cmd_frame(uint16_t command, uint16_t sub_command = 0);
+  void send_cmd_frame_(uint16_t command, uint16_t sub_command = 0);
 
-  void cmd_frame_append_data(CmdFrameT *cmd_frame, const uint8_t *append_data, size_t append_data_size);
-  void cmd_frame_append_data(CmdFrameT *cmd_frame, const uint16_t *append_data, size_t append_data_size);
-  void cmd_frame_append_data(CmdFrameT *cmd_frame, const uint32_t *append_data, size_t append_data_size);
+  void cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint8_t *append_data, size_t append_data_size);
+  void cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint16_t *append_data, size_t append_data_size);
+  void cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint32_t *append_data, size_t append_data_size);
 
-  void send_command(CmdFrameT *cmd_frame);
+  void send_command_(CmdFrameT *cmd_frame);
 
-  void process_config_read_ack(uint8_t *data);
-  void process_ack_fw_read(uint8_t *data);
-  void process_ack_trigger_threshold_read(uint8_t *data);
-  void process_ack_trigger_hold_read(uint8_t *data);
-  void process_ack_trigger_snr_read(uint8_t *data);
-  void process_data_energy_values_read(uint8_t *data);
+  void process_config_read_ack_(uint8_t *data);
+  void process_ack_fw_read_(uint8_t *data);
+  void process_ack_trigger_threshold_read_(uint8_t *data);
+  void process_ack_trigger_hold_read_(uint8_t *data);
+  void process_ack_trigger_snr_read_(uint8_t *data);
+  void process_data_energy_values_read_(uint8_t *data);
 
-  std::string format_int(uint32_t *val, uint8_t len, uint8_t min_w);
-  void four_byte_to_int_array(uint8_t *in, uint32_t *out, uint8_t out_len);
-  void hex_diag(const char *msg, const uint8_t *data, size_t length);
-  int read_int(uint8_t *buffer, size_t pos, size_t len);
-  int two_byte_to_int(uint8_t byte1, uint8_t byte2);
-  uint32_t four_byte_to_int(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4);
-  uint16_t swapEndian(uint16_t value);
-  uint32_t swapEndian(uint32_t value);
+  std::string format_int_(uint32_t *val, uint8_t len, uint8_t min_w);
+  void four_byte_to_int_array_(uint8_t *in, uint32_t *out, uint8_t out_len);
+  void hex_diag_(const char *msg, const uint8_t *data, size_t length);
+  int read_int_(uint8_t *buffer, size_t pos, size_t len);
+  int two_byte_to_int_(uint8_t byte1, uint8_t byte2);
+  uint32_t four_byte_to_int_(uint8_t byte1, uint8_t byte2, uint8_t byte3, uint8_t byte4);
+  uint16_t swapEndian_(uint16_t value);
+  uint32_t swapEndian_(uint32_t value);
 };
 
 }  // namespace ld2410s
