@@ -25,7 +25,7 @@
 namespace esphome {
 namespace ld2410s {
 
-static const char *TAG = "ld2410s";
+static const char[] TAG = "ld2410s";
 
 static const uint8_t SHORT_DATA_FRAME_HEADER = 0x6E;
 static const uint8_t SHORT_DATA_FRAME_FOOTER = 0x62;
@@ -202,32 +202,32 @@ class LD2410S : public uart::UARTDevice, public Component {
   void set_trigger_threshold(float trigger_threshold);
   void set_trigger_hold(float trigger_hold);
   void set_trigger_snr(float trigger_snr);
-  void set_response_speed_select_(const std::string &response_speed_select_);
+  void set_response_speed_select(const std::string &response_speed_select);
 
 #ifdef USE_NUMBER
   void set_max_distance_number(number::Number *max_distance_number) {
-    this->max_distance_number_ = max_distance_number_;
+    this->max_distance_number_ = max_distance_number;
   };
   void set_min_distance_number(number::Number *min_distance_number) {
-    this->min_distance_number_ = min_distance_number_;
+    this->min_distance_number_ = min_distance_number;
   };
   void set_no_delay_number(number::Number *delay_number) { this->no_delay_number_ = delay_number; };
   void set_status_reporting_freq_number(number::Number *status_reporting_freq_number) {
-    this->status_reporting_freq_number_ = status_reporting_freq_number_;
+    this->status_reporting_freq_number_ = status_reporting_freq_number;
   };
   void set_distance_reporting_freq_number(number::Number *distance_reporting_freq_number) {
-    this->distance_reporting_freq_number_ = distance_reporting_freq_number_;
+    this->distance_reporting_freq_number_ = distance_reporting_freq_number;
   };
 
   void set_trigger_threshold_number(number::Number *trigger_threshold_number) {
-    this->trigger_threshold_number_ = trigger_threshold_number_;
+    this->trigger_threshold_number_ = trigger_threshold_number;
   };
   void set_trigger_hold_number(number::Number *trigger_hold_number) {
-    this->trigger_hold_number_ = trigger_hold_number_;
+    this->trigger_hold_number_ = trigger_hold_number;
   };
-  void set_trigger_snr_number(number::Number *trigger_snr_number) { this->trigger_snr_number_ = trigger_snr_number_; };
+  void set_trigger_snr_number(number::Number *trigger_snr_number) { this->trigger_snr_number_ = trigger_snr_number; };
   void set_trigger_selected_gate_number(number::Number *trigger_selected_gate_number) {
-    this->trigger_selected_gate_number_ = trigger_selected_gate_number_;
+    this->trigger_selected_gate_number_ = trigger_selected_gate_number;
 #ifdef USE_NUMBER
     this->trigger_selected_gate_number_->publish_state(this->triggers_.selected_gate);
     this->trigger_threshold_number_->publish_state(this->triggers_.threshold[this->triggers_.selected_gate]);
