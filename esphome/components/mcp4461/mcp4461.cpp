@@ -391,8 +391,8 @@ uint8_t Mcp4461Component::get_terminal_register_(Mcp4461TerminalIdx terminal_con
     ESP_LOGE(TAG, "%s", LOG_STR_ARG(this->get_message_string(this->error_code_)));
     return 0;
   }
-  uint8_t reg = static_cast<uint8_t>(terminal_connector) == 0 ?
-    static_cast<uint8_t>(Mcp4461Addresses::MCP4461_TCON0) : static_cast<uint8_t>(Mcp4461Addresses::MCP4461_TCON1);
+  uint8_t reg = static_cast<uint8_t>(terminal_connector) == 0 ? static_cast<uint8_t>(Mcp4461Addresses::MCP4461_TCON0)
+                                                              : static_cast<uint8_t>(Mcp4461Addresses::MCP4461_TCON1);
   reg |= static_cast<uint8_t>(Mcp4461Commands::READ);
   uint16_t buf;
   if (this->read_byte_16(reg, &buf)) {
