@@ -205,30 +205,28 @@ class LD2410S : public uart::UARTDevice, public Component {
   void set_response_speed_select_(const std::string &response_speed_select_);
 
 #ifdef USE_NUMBER
-  void set_max_distance_number_(number::Number *max_distance_number_) {
+  void set_max_distance_number(number::Number *max_distance_number) {
     this->max_distance_number_ = max_distance_number_;
   };
-  void set_min_distance_number_(number::Number *min_distance_number_) {
+  void set_min_distance_number(number::Number *min_distance_number) {
     this->min_distance_number_ = min_distance_number_;
   };
-  void set_no_delay_number_(number::Number *delay_number) { this->no_delay_number_ = delay_number; };
-  void set_status_reporting_freq_number_(number::Number *status_reporting_freq_number_) {
+  void set_no_delay_number(number::Number *delay_number) { this->no_delay_number_ = delay_number; };
+  void set_status_reporting_freq_number(number::Number *status_reporting_freq_number) {
     this->status_reporting_freq_number_ = status_reporting_freq_number_;
   };
-  void set_distance_reporting_freq_number_(number::Number *distance_reporting_freq_number_) {
+  void set_distance_reporting_freq_number(number::Number *distance_reporting_freq_number) {
     this->distance_reporting_freq_number_ = distance_reporting_freq_number_;
   };
 
-  void set_trigger_threshold_number_(number::Number *trigger_threshold_number_) {
+  void set_trigger_threshold_number(number::Number *trigger_threshold_number) {
     this->trigger_threshold_number_ = trigger_threshold_number_;
   };
-  void set_trigger_hold_number_(number::Number *trigger_hold_number_) {
+  void set_trigger_hold_number(number::Number *trigger_hold_number) {
     this->trigger_hold_number_ = trigger_hold_number_;
   };
-  void set_trigger_snr_number_(number::Number *trigger_snr_number_) {
-    this->trigger_snr_number_ = trigger_snr_number_;
-  };
-  void set_trigger_selected_gate_number_(number::Number *trigger_selected_gate_number_) {
+  void set_trigger_snr_number(number::Number *trigger_snr_number) { this->trigger_snr_number_ = trigger_snr_number_; };
+  void set_trigger_selected_gate_number(number::Number *trigger_selected_gate_number) {
     this->trigger_selected_gate_number_ = trigger_selected_gate_number_;
 #ifdef USE_NUMBER
     this->trigger_selected_gate_number_->publish_state(this->triggers_.selected_gate);
@@ -241,17 +239,17 @@ class LD2410S : public uart::UARTDevice, public Component {
 #endif
 
 #ifdef USE_BUTTON
-  void set_read_all_button_(button::Button *button) { this->read_all_button_ = button; };
-  void set_apply_config_button_(button::Button *button) { this->apply_config_button_ = button; };
-  void set_calibration_button_(button::Button *button) { this->calibration_button_ = button; };
-  void set_factory_reset_button_(button::Button *button) { this->factory_reset_button_ = button; };
-  void set_toggle_minimal_output_button_(button::Button *button) { this->toggle_minimal_output_button_ = button; };
-    // void set_enable_config_button(button::Button* button) { this->enable_config_button = button; };
-    // void set_disable_config_button(button::Button* button) { this->disable_config_button = button; };
+  void set_read_all_button(button::Button *button) { this->read_all_button_ = button; };
+  void set_apply_config_button(button::Button *button) { this->apply_config_button_ = button; };
+  void set_calibration_button(button::Button *button) { this->calibration_button_ = button; };
+  void set_factory_reset_button(button::Button *button) { this->factory_reset_button_ = button; };
+  void set_toggle_minimal_output_button(button::Button *button) { this->toggle_minimal_output_button_ = button; };
+    // void set_enable_config_button(button::Button* button) { this->enable_config_button_ = button; };
+    // void set_disable_config_button(button::Button* button) { this->disable_config_button_ = button; };
 #endif
 
 #ifdef USE_SELECT
-  void set_response_speed_select_(select::Select *selector) { this->response_speed_select_ = selector; };
+  void set_response_speed_select(select::Select *selector) { this->response_speed_select_ = selector; };
 #endif
  private:
   std::vector<LD2410SListener *> listeners_{};
