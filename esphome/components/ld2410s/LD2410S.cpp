@@ -5,7 +5,7 @@ namespace esphome {
 namespace ld2410s {
 
 void LD2410S::setup() {
-  this->minimal_output = true;
+  this->minimal_output_ = true;
   this->send_cmd_frame(CONFIG_MODE_START_CMD);
   this->send_cmd_frame(OUTPUT_MODE_SWITCH_CMD);
   this->send_cmd_frame(FW_READ_CMD);
@@ -16,7 +16,7 @@ void LD2410S::setup() {
   this->send_cmd_frame(CONFIG_MODE_END_CMD);
 }
 void LD2410S::loop() {
-  if (!this->cmd_active) {
+  if (!this->cmd_active_) {
     if (available()) {
       static uint8_t buffer[128];
       static size_t pos = 0;
@@ -26,21 +26,14 @@ void LD2410S::loop() {
       this->loop_exec();
     }
   }
-
-  // report_count++;
-  // if (report_count > 1000) {
-  //     report_count = 0;
-  //     // ESP_LOGD(TAG, "loop active:%d, last:%d", active, last);
-  //     ESP_LOGD(TAG, "loop current:%d, new:%d", this->current_config.resp_speed, this->resp_speed);
-  // }
 }
 
 void LD2410S::loop_exec() {
-  CmdT *cmd = &commands[active];
+  CmdT *cmd = &commands_[this->active_];
   uint32_t now = millis();
 
   if (cmd->state == CmdState::SCHEDULED) {
-    // ESP_LOGD(TAG, "loop_exec Send new command active:%d, last:%d", active, last);
+    // ESP_LOGD(TAG, "loop_exec Send new command active:%d, last:%d", this->active, this->last_);
     this->send_command(cmd->cmd_frame);
     cmd->state = CmdState::SENT;
     cmd->time_started = now;
@@ -48,25 +41,21 @@ void LD2410S::loop_exec() {
   } else if (cmd->state == CmdState::SENT) {
     if (now >= cmd->time_started + CMD_EXEC_TIMEOUT) {
       if (cmd->retry < CMD_EXEC_REPEAT) {
-        ESP_LOGD(TAG, "loop_exec Send Retry active:%d, last:%d", this->active, this->last);
+        ESP_LOGD(TAG, "loop_exec Send Retry active:%d, last:%d", this->active_, this->last_);
         cmd->retry++;
         cmd->time_started = now;
         this->send_command(cmd->cmd_frame);
       } else {
-        ESP_LOGD(TAG, "loop_exec Send to Give up active:%d, last:%d", this->active, this->last);
+        ESP_LOGD(TAG, "loop_exec Send to Give up active:%d, last:%d", this->active_, this->last_);
         cmd->state = CmdState::EMPTY;
         this->cmd_buffer_finished();
       }
     }
-  } else if (cmd->state == CmdState::EMPTY & this->active == this->last & this->active != 0) {
-    this->active = 0;
-    this->last = 0;
+  } else if (cmd->state == CmdState::EMPTY & this->active_ == this->last_ & this->active_ != 0) {
+    this->active_ = 0;
+    this->last_ = 0;
     // ESP_LOGD(TAG, "loop_exec Sending Done");
   }
-  // else {
-  //     int8_t next = active;
-  //     this->cmd_buffer_finished();
-  // }
 }
 
 void LD2410S::cmd_add(CmdFrameT *cmd_frame) {
@@ -82,39 +71,38 @@ void LD2410S::cmd_add(CmdFrameT *cmd_frame) {
 
 void LD2410S::cmd_buffer_insert(CmdT *cmd) {
   if (!cmd) {
-    ESP_LOGD(TAG, "cmd_buffer_insert cmd is empty !!! active:%d, last:%d", active, last);
+    ESP_LOGD(TAG, "cmd_buffer_insert cmd is empty !!! active:%d, last:%d", this->active_, this->last_);
     return;
   }
 
-  if (commands[last].state != CmdState::EMPTY) {
-    uint8_t next = last;
+  if (this->commands_[this->last_].state != CmdState::EMPTY) {
+    uint8_t next = this->last_;
     this->cmd_buffer_inc(next);
-    if (commands[next].state != CmdState::EMPTY) {  //  || next == active) {
-      ESP_LOGD(TAG, "cmd_buffer_insert Buffer FULL !!! active:%d, last:%d", active, last);
+    if (this->commands_[next].state != CmdState::EMPTY) {
+      ESP_LOGD(TAG, "cmd_buffer_insert Buffer FULL !!! active:%d, last:%d", this->active_, this->last_);
       return;
     }
-    last = next;
+    this->last_ = next;
   }
 
-  commands[last] = *cmd;  // Shallow copy of state, time_started, retry
+  this->commands_[this->last_] = *cmd;  // Shallow copy of state, time_started, retry
 
   if (cmd->cmd_frame) {
-    commands[last].cmd_frame = new CmdFrameT(*cmd->cmd_frame);  // Deep copy
+    this->commands_[this->last_].cmd_frame = new CmdFrameT(*cmd->cmd_frame);  // Deep copy
   } else {
-    commands[last].cmd_frame = nullptr;
+    this->commands_[this->last_].cmd_frame = nullptr;
   }
 
   // ESP_LOGD(TAG, "cmd_buffer_insert  command:%0x, lengt:%d, active:%d, last:%d", cmd->cmd_frame->command,
-  // cmd->cmd_frame->length, active, last);
 }
 void LD2410S::cmd_buffer_finished() {
-  commands[active].state = CmdState::EMPTY;
+  this->commands_[this->active_].state = CmdState::EMPTY;
 
-  if (commands[active + 1].state != CmdState::EMPTY) {
-    this->cmd_buffer_inc(active);
+  if (this->commands_[this->active_ + 1].state != CmdState::EMPTY) {
+    this->cmd_buffer_inc(this->active_);
   }
 
-  // ESP_LOGD(TAG, "cmd_buffer_finished active:%d, last:%d", active, last);
+  // ESP_LOGD(TAG, "cmd_buffer_finished active:%d, last:%d", this->active_, this->last_);
 }
 
 void LD2410S::cmd_buffer_inc(uint8_t &index) {
@@ -162,19 +150,19 @@ void LD2410S::apply_config() {
 void LD2410S::calibration() { this->send_cmd("start_calibration\0", CALIBRATION_CMD); }
 
 void LD2410S::factory_reset() {
-  this->minimal_output = true;
+  this->minimal_output_ = true;
 
-  this->max_dist = 8;
-  this->min_dist = 0;
-  this->delay = 10;
-  this->status_freq = 80;
-  this->dist_freq = 80;
-  this->resp_speed = 5;
+  this->max_dist_ = 8;
+  this->min_dist_ = 0;
+  this->delay_ = 10;
+  this->status_freq_ = 80;
+  this->dist_freq_ = 80;
+  this->resp_speed_ = 5;
 
   for (int i = 0; i < 16; i++) {
-    this->triggers.threshold[i] = THRASHOLDS_TRIGGER_WRITE_DATA[i];
-    this->triggers.hold[i] = THRASHOLDS_HOLD_WRITE_DATA[i];
-    this->triggers.snr[i] = THRASHOLDS_SNR_WRITE_DATA[i];
+    this->triggers_.threshold[i] = THRASHOLDS_TRIGGER_WRITE_DATA[i];
+    this->triggers_.hold[i] = THRASHOLDS_HOLD_WRITE_DATA[i];
+    this->triggers_.snr[i] = THRASHOLDS_SNR_WRITE_DATA[i];
   }
 
   this->status_set_warning("factory_reset");
@@ -197,46 +185,48 @@ void LD2410S::factory_reset() {
 }
 
 void LD2410S::toggle_minimal() {
-  this->minimal_output = !this->minimal_output;
+  this->minimal_output_ = !this->minimal_output_;
   this->send_cmd("toggle_minimal_output\0", OUTPUT_MODE_SWITCH_CMD);
 }
 
 void LD2410S::set_delay(float delay) {
-  this->delay = delay;
+  this->delay_ = delay;
   this->send_cmd("set_delay\0", PARAMS_WRITE_CMD, CFG_NO_DELAY_VALUE);
 }
 void LD2410S::set_distance_reporting_freq(float distance_reporting_freq) {
-  this->dist_freq = distance_reporting_freq * 10;
+  this->dist_freq_ = distance_reporting_freq * 10;
   this->send_cmd("set_distance_reporting_freq\0", PARAMS_WRITE_CMD, CFG_DISTANCE_FREQ_VALUE);
 }
 void LD2410S::set_max_distance(float max_distance) {
-  this->max_dist = max_distance;
+  this->max_dist_ = max_distance;
   this->send_cmd("set_max_distance\0", PARAMS_WRITE_CMD, CFG_MAX_DETECTION_VALUE);
 }
 void LD2410S::set_min_distance(float min_distance) {
-  this->min_dist = min_distance;
+  this->min_dist_ = min_distance;
   this->send_cmd("set_min_distance\0", PARAMS_WRITE_CMD, CFG_MIN_DETECTION_VALUE);
 }
 void LD2410S::set_status_reporting_freq(float status_reporting_freq) {
-  this->status_freq = status_reporting_freq * 10;
+  this->status_freq_ = status_reporting_freq * 10;
   this->send_cmd("set_status_reporting_freq\0", PARAMS_WRITE_CMD, CFG_STATUS_FREQ_VALUE);
 }
 void LD2410S::set_trigger_selected_gate(float trigger_selected_gate) {
-  this->triggers.selected_gate = trigger_selected_gate;
+  this->triggers_.selected_gate = trigger_selected_gate;
 #ifdef USE_NUMBER
-  this->trigger_selected_gate_number->publish_state(this->triggers.selected_gate);
-  this->trigger_threshold_number->publish_state(this->triggers.threshold[this->triggers.selected_gate]);
-  this->trigger_hold_number->publish_state(this->triggers.hold[this->triggers.selected_gate]);
-  this->trigger_snr_number->publish_state(this->triggers.snr[this->triggers.selected_gate]);
+  this->trigger_selected_gate_number->publish_state(this->triggers_.selected_gate);
+  this->trigger_threshold_number->publish_state(this->triggers_.threshold[this->triggers_.selected_gate]);
+  this->trigger_hold_number->publish_state(this->triggers_.hold[this->triggers_.selected_gate]);
+  this->trigger_snr_number->publish_state(this->triggers_.snr[this->triggers_.selected_gate]);
 #endif
 }
 void LD2410S::set_trigger_threshold(float trigger_threshold) {
-  this->triggers.threshold[this->triggers.selected_gate] = trigger_threshold;
+  this->triggers_.threshold[this->triggers_.selected_gate] = trigger_threshold;
 }
-void LD2410S::set_trigger_hold(float trigger_hold) { this->triggers.hold[this->triggers.selected_gate] = trigger_hold; }
-void LD2410S::set_trigger_snr(float trigger_snr) { this->triggers.snr[this->triggers.selected_gate] = trigger_snr; }
+void LD2410S::set_trigger_hold(float trigger_hold) {
+  this->triggers_.hold[this->triggers_.selected_gate] = trigger_hold;
+}
+void LD2410S::set_trigger_snr(float trigger_snr) { this->triggers_.snr[this->triggers_.selected_gate] = trigger_snr; }
 void LD2410S::set_response_speed_select(const std::string &response_speed_select) {
-  this->resp_speed = response_speed_select == RESPONSE_SPEED_NORMAL ? 5 : 10;
+  this->resp_speed_ = response_speed_select == RESPONSE_SPEED_NORMAL ? 5 : 10;
   this->send_cmd("set_response_speed_select\0", PARAMS_WRITE_CMD, CFG_RESPONSE_SPEED_VALUE);
 }
 
@@ -257,7 +247,7 @@ void LD2410S::send_cmd_frame(uint16_t command, uint16_t sub_command) {
 
   switch (command) {
     case OUTPUT_MODE_SWITCH_CMD: {
-      if (this->minimal_output) {
+      if (this->minimal_output_) {
         this->cmd_frame_append_data(&cmd_frame, &OUTPUT_MODE_VALUE_MIN[0], 4);
       } else {
         this->cmd_frame_append_data(&cmd_frame, &OUTPUT_MODE_VALUE_STD[0], 4);
@@ -314,19 +304,19 @@ void LD2410S::send_cmd_frame(uint16_t command, uint16_t sub_command) {
       break;
 
     case PARAMS_WRITE_CMD:
-      if (this->resp_speed == 0) {
+      if (this->resp_speed_ == 0) {
         ESP_LOGD(TAG, "PARAMS_WRITE_CMD Error, bad new_config");
         return;
       } else {
         switch (sub_command) {
           case CFG_MAX_DETECTION_VALUE:
             this->cmd_frame_append_data(&cmd_frame, &CFG_MAX_DETECTION_VALUE, 1);
-            this->cmd_frame_append_data(&cmd_frame, &this->max_dist, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->max_dist_, 1);
             break;
 
           case CFG_MIN_DETECTION_VALUE:
             this->cmd_frame_append_data(&cmd_frame, &CFG_MIN_DETECTION_VALUE, 1);
-            this->cmd_frame_append_data(&cmd_frame, &this->min_dist, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->min_dist_, 1);
             break;
 
           case CFG_NO_DELAY_VALUE:
@@ -336,37 +326,37 @@ void LD2410S::send_cmd_frame(uint16_t command, uint16_t sub_command) {
 
           case CFG_STATUS_FREQ_VALUE:
             this->cmd_frame_append_data(&cmd_frame, &CFG_STATUS_FREQ_VALUE, 1);
-            this->cmd_frame_append_data(&cmd_frame, &this->status_freq, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->status_freq_, 1);
             break;
 
           case CFG_DISTANCE_FREQ_VALUE:
             this->cmd_frame_append_data(&cmd_frame, &CFG_DISTANCE_FREQ_VALUE, 1);
-            this->cmd_frame_append_data(&cmd_frame, &this->dist_freq, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->dist_freq_, 1);
             break;
 
           case CFG_RESPONSE_SPEED_VALUE:
             this->cmd_frame_append_data(&cmd_frame, &CFG_RESPONSE_SPEED_VALUE, 1);
-            this->cmd_frame_append_data(&cmd_frame, &this->resp_speed, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->resp_speed_, 1);
             break;
           default:
 
             this->cmd_frame_append_data(&cmd_frame, &CFG_MAX_DETECTION_VALUE, 1);
-            this->cmd_frame_append_data(&cmd_frame, &this->max_dist, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->max_dist_, 1);
 
             this->cmd_frame_append_data(&cmd_frame, &CFG_MIN_DETECTION_VALUE, 1);
-            this->cmd_frame_append_data(&cmd_frame, &this->min_dist, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->min_dist_, 1);
 
             this->cmd_frame_append_data(&cmd_frame, &CFG_NO_DELAY_VALUE, 1);
-            this->cmd_frame_append_data(&cmd_frame, &this->delay, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->delay_, 1);
 
             this->cmd_frame_append_data(&cmd_frame, &CFG_STATUS_FREQ_VALUE, 1);
-            this->cmd_frame_append_data(&cmd_frame, &this->status_freq, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->status_freq_, 1);
 
             this->cmd_frame_append_data(&cmd_frame, &CFG_DISTANCE_FREQ_VALUE, 1);
-            this->cmd_frame_append_data(&cmd_frame, &this->dist_freq, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->dist_freq_, 1);
 
             this->cmd_frame_append_data(&cmd_frame, &CFG_RESPONSE_SPEED_VALUE, 1);
-            this->cmd_frame_append_data(&cmd_frame, &this->resp_speed, 1);
+            this->cmd_frame_append_data(&cmd_frame, &this->resp_speed_, 1);
             break;
         }
         break;
@@ -393,11 +383,11 @@ void LD2410S::send_cmd_frame(uint16_t command, uint16_t sub_command) {
     case THRASHOLDS_TRIGGER_WRITE_CMD:
       if (sub_command != 0) {
         this->cmd_frame_append_data(&cmd_frame, &sub_command, 1);
-        this->cmd_frame_append_data(&cmd_frame, &this->triggers.threshold[sub_command], 1);
+        this->cmd_frame_append_data(&cmd_frame, &this->triggers_.threshold[sub_command], 1);
       } else {
         for (uint16_t i = 0; i < 16; i++) {
           this->cmd_frame_append_data(&cmd_frame, &i, 1);
-          this->cmd_frame_append_data(&cmd_frame, &this->triggers.threshold[i], 1);
+          this->cmd_frame_append_data(&cmd_frame, &this->triggers_.threshold[i], 1);
         }
       }
       break;
@@ -405,11 +395,11 @@ void LD2410S::send_cmd_frame(uint16_t command, uint16_t sub_command) {
     case THRASHOLDS_HOLD_WRITE_CMD:
       if (sub_command != 0) {
         this->cmd_frame_append_data(&cmd_frame, &sub_command, 1);
-        this->cmd_frame_append_data(&cmd_frame, &this->triggers.hold[sub_command], 1);
+        this->cmd_frame_append_data(&cmd_frame, &this->triggers_.hold[sub_command], 1);
       } else {
         for (uint16_t i = 0; i < 16; i++) {
           this->cmd_frame_append_data(&cmd_frame, &i, 1);
-          this->cmd_frame_append_data(&cmd_frame, &this->triggers.hold[i], 1);
+          this->cmd_frame_append_data(&cmd_frame, &this->triggers_.hold[i], 1);
         }
       }
       break;
@@ -417,11 +407,11 @@ void LD2410S::send_cmd_frame(uint16_t command, uint16_t sub_command) {
     case THRASHOLDS_SNR_WRITE_CMD:
       if (sub_command != 0) {
         this->cmd_frame_append_data(&cmd_frame, &sub_command, 1);
-        this->cmd_frame_append_data(&cmd_frame, &this->triggers.snr[sub_command], 1);
+        this->cmd_frame_append_data(&cmd_frame, &this->triggers_.snr[sub_command], 1);
       } else {
         for (uint16_t i = 0; i < 16; i++) {
           this->cmd_frame_append_data(&cmd_frame, &i, 1);
-          this->cmd_frame_append_data(&cmd_frame, &this->triggers.snr[i], 1);
+          this->cmd_frame_append_data(&cmd_frame, &this->triggers_.snr[i], 1);
         }
       }
       break;
@@ -461,7 +451,7 @@ void LD2410S::send_command(CmdFrameT *frame) {
   // ESP_LOGD(TAG, "Sending command Cmd:%04X, data_length:%d", frame->command, frame->data_length);
   // this->hex_diag("Sending command:", &frame->data[0], frame->data_length);
 
-  this->cmd_active = true;
+  this->cmd_active_ = true;
   uint8_t cmd_buffer[128];
 
   frame->length = 0;
@@ -493,7 +483,7 @@ void LD2410S::send_command(CmdFrameT *frame) {
 
   this->flush();
 
-  this->cmd_active = false;
+  this->cmd_active_ = false;
 }
 
 void LD2410S::receive(uint8_t *buffer, size_t buffer_size, size_t &end_pos, bool &reply) {
@@ -640,7 +630,7 @@ void LD2410S::process_short_data_frame(uint8_t *data) {
   if (!presenceState)
     distance = 0;
   // ESP_LOGD(TAG, "Presence: %x , Distance: %i", presenceState, distance);
-  for (auto &listener : this->listeners) {
+  for (auto &listener : this->listeners_) {
     listener->on_presence(presenceState);
     listener->on_distance(distance);
   }
@@ -654,7 +644,7 @@ void LD2410S::process_data_frame(uint8_t *data) {
       if (!presenceState)
         distance = 0;
       // ESP_LOGD(TAG, "Presence: %x , Distance: %i", presenceState, distance);
-      for (auto &listener : this->listeners) {
+      for (auto &listener : this->listeners_) {
         listener->on_presence(presenceState);
         listener->on_distance(distance);
       }
@@ -666,7 +656,7 @@ void LD2410S::process_data_frame(uint8_t *data) {
     case 0x03:  // calibration progress
     {
       int progress = this->two_byte_to_int(data[1], data[2]);
-      for (auto &listener : this->listeners) {
+      for (auto &listener : this->listeners_) {
         if (progress == 100) {
           listener->on_threshold_progress(0);
           listener->on_threshold_update(false);
@@ -777,27 +767,27 @@ CmdAckT LD2410S::parse_ack(uint8_t *buffer, size_t length) {
 }
 
 void LD2410S::process_config_read_ack(uint8_t *data) {
-  this->max_dist = this->read_int(data, 0, 4);
-  this->min_dist = this->read_int(data, 4, 4);
-  this->delay = this->read_int(data, 8, 4);
-  this->status_freq = this->read_int(data, 12, 4);
-  this->dist_freq = this->read_int(data, 16, 4);
-  this->resp_speed = this->read_int(data, 20, 4);
+  this->max_dist_ = this->read_int(data, 0, 4);
+  this->min_dist_ = this->read_int(data, 4, 4);
+  this->delay_ = this->read_int(data, 8, 4);
+  this->status_freq_ = this->read_int(data, 12, 4);
+  this->dist_freq_ = this->read_int(data, 16, 4);
+  this->resp_speed_ = this->read_int(data, 20, 4);
 
 #ifdef USE_NUMBER
-  this->max_distance_number->publish_state(this->max_dist);
-  this->min_distance_number->publish_state(this->min_dist);
-  this->no_delay_number->publish_state(this->delay);
-  this->status_reporting_freq_number->publish_state(this->status_freq / 10);
-  this->distance_reporting_freq_number->publish_state(this->dist_freq / 10);
+  this->max_distance_number->publish_state(this->max_dist_);
+  this->min_distance_number->publish_state(this->min_dist_);
+  this->no_delay_number->publish_state(this->delay_);
+  this->status_reporting_freq_number->publish_state(this->status_freq_ / 10);
+  this->distance_reporting_freq_number->publish_state(this->dist_freq_ / 10);
 #endif
 
 #ifdef USE_SELECT
-  this->response_speed_select->publish_state(this->resp_speed == 5 ? RESPONSE_SPEED_NORMAL : RESPONSE_SPEED_FAST);
+  this->response_speed_select->publish_state(this->resp_speed_ == 5 ? RESPONSE_SPEED_NORMAL : RESPONSE_SPEED_FAST);
 #endif
 
   ESP_LOGI(TAG, "Config: max_dist=%d, min_dist=%d, delay=%d, status_resp_freq=%d, dist_resp_freq=%d, resp_speed=%d",
-           this->max_dist, this->min_dist, this->delay, this->status_freq, this->dist_freq, this->resp_speed);
+           this->max_dist_, this->min_dist_, this->delay_, this->status_freq_, this->dist_freq_, this->resp_speed_);
 }
 
 void LD2410S::process_ack_fw_read(uint8_t *data) {
@@ -806,7 +796,7 @@ void LD2410S::process_ack_fw_read(uint8_t *data) {
   int patch_v = static_cast<int>(data[2]);
   std::string version = "v" + std::to_string(major_v) + "." + std::to_string(minor_v) + "." + std::to_string(patch_v);
 
-  for (auto &listener : this->listeners) {
+  for (auto &listener : this->listeners_) {
     listener->on_fw_version(version);
   }
 
@@ -814,14 +804,14 @@ void LD2410S::process_ack_fw_read(uint8_t *data) {
 }
 
 void LD2410S::process_ack_trigger_threshold_read(uint8_t *data) {
-  this->four_byte_to_int_array(data, this->triggers.threshold, 16);
+  this->four_byte_to_int_array(data, this->triggers_.threshold, 16);
 #ifdef USE_NUMBER
-  this->trigger_threshold_number->publish_state(this->triggers.threshold[this->triggers.selected_gate]);
+  this->trigger_threshold_number->publish_state(this->triggers_.threshold[this->triggers_.selected_gate]);
 #endif
 
-  std::string vals = this->format_int(this->triggers.threshold, 16, 2);
+  std::string vals = this->format_int(this->triggers_.threshold, 16, 2);
 
-  for (auto &listener : this->listeners) {
+  for (auto &listener : this->listeners_) {
     listener->on_trigger_threshold_ts(vals);
   }
 
@@ -829,14 +819,14 @@ void LD2410S::process_ack_trigger_threshold_read(uint8_t *data) {
 }
 
 void LD2410S::process_ack_trigger_hold_read(uint8_t *data) {
-  this->four_byte_to_int_array(data, this->triggers.hold, 16);
+  this->four_byte_to_int_array(data, this->triggers_.hold, 16);
 #ifdef USE_NUMBER
-  this->trigger_hold_number->publish_state(this->triggers.hold[this->triggers.selected_gate]);
+  this->trigger_hold_number->publish_state(this->triggers_.hold[this->triggers_.selected_gate]);
 #endif
 
-  std::string vals = this->format_int(this->triggers.hold, 16, 2);
+  std::string vals = this->format_int(this->triggers_.hold, 16, 2);
 
-  for (auto &listener : this->listeners) {
+  for (auto &listener : this->listeners_) {
     listener->on_trigger_hold_ts(vals);
   }
 
@@ -844,14 +834,14 @@ void LD2410S::process_ack_trigger_hold_read(uint8_t *data) {
 }
 
 void LD2410S::process_ack_trigger_snr_read(uint8_t *data) {
-  this->four_byte_to_int_array(data, this->triggers.snr, 16);
+  this->four_byte_to_int_array(data, this->triggers_.snr, 16);
 #ifdef USE_NUMBER
-  this->trigger_snr_number->publish_state(this->triggers.snr[this->triggers.selected_gate]);
+  this->trigger_snr_number->publish_state(this->triggers_.snr[this->triggers_.selected_gate]);
 #endif
 
-  std::string vals = this->format_int(this->triggers.snr, 16, 2);
+  std::string vals = this->format_int(this->triggers_.snr, 16, 2);
 
-  for (auto &listener : this->listeners) {
+  for (auto &listener : this->listeners_) {
     listener->on_trigger_snr_ts(vals);
   }
 
@@ -861,19 +851,19 @@ void LD2410S::process_ack_trigger_snr_read(uint8_t *data) {
 void LD2410S::process_data_energy_values_read(uint8_t *data) {
   for (int i = 0; i < 16; i++) {
     uint32_t val = this->four_byte_to_int(data[i * 4], data[i * 4 + 1], data[i * 4 + 2], data[i * 4 + 3]);
-    this->energy_values[i] =
-        (this->energy_values[i] * 16 * this->energy_values_count + val) / (this->energy_values_count + 1) / 16;
-    this->energy_values_count++;
+    this->energy_values_[i] =
+        (this->energy_values_[i] * 16 * this->energy_values_count_ + val) / (this->energy_values_count_ + 1) / 16;
+    this->energy_values_count_++;
   }
 
-  std::string vals = this->format_int(this->energy_values, 16, 3);
+  std::string vals = this->format_int(this->energy_values_, 16, 3);
 
-  if (energy_values_str != vals) {
-    for (auto &listener : this->listeners) {
+  if (energy_values_str_ != vals) {
+    for (auto &listener : this->listeners_) {
       listener->on_energy_values_ts(vals);
     }
 
-    energy_values_str = vals;
+    energy_values_str_ = vals;
   }
 
   ESP_LOGD(TAG, "Energy Values: %s", vals.c_str());

@@ -25,8 +25,6 @@
 namespace esphome {
 namespace ld2410s {
 
-static std::string ver = "ni 25.03.29.1859";
-
 static const char *TAG = "ld2410s";
 
 static const uint8_t SHORT_DATA_FRAME_HEADER = 0x6E;
@@ -187,7 +185,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   void loop() override;
   float get_setup_priority() const override;
 
-  void register_listener(LD2410SListener *listener) { this->listeners.push_back(listener); };
+  void register_listener(LD2410SListener *listener) { this->listeners_.push_back(listener); };
 
   void read_all();
   void apply_config();
@@ -231,10 +229,10 @@ class LD2410S : public uart::UARTDevice, public Component {
   void set_trigger_selected_gate_number(number::Number *trigger_selected_gate_number) {
     this->trigger_selected_gate_number = trigger_selected_gate_number;
 #ifdef USE_NUMBER
-    this->trigger_selected_gate_number->publish_state(this->triggers.selected_gate);
-    this->trigger_threshold_number->publish_state(this->triggers.threshold[this->triggers.selected_gate]);
-    this->trigger_hold_number->publish_state(this->triggers.hold[this->triggers.selected_gate]);
-    this->trigger_snr_number->publish_state(this->triggers.snr[this->triggers.selected_gate]);
+    this->trigger_selected_gate_number->publish_state(this->triggers_.selected_gate);
+    this->trigger_threshold_number->publish_state(this->triggers_.threshold[this->triggers_.selected_gate]);
+    this->trigger_hold_number->publish_state(this->triggers_.hold[this->triggers_.selected_gate]);
+    this->trigger_snr_number->publish_state(this->triggers_.snr[this->triggers_.selected_gate]);
 #endif
   };
 
@@ -254,28 +252,26 @@ class LD2410S : public uart::UARTDevice, public Component {
   void set_response_speed_select(select::Select *selector) { this->response_speed_select = selector; };
 #endif
  private:
-  std::vector<LD2410SListener *> listeners{};
+  std::vector<LD2410SListener *> listeners_{};
   // Config current_config;
-  bool cmd_active{false};
+  bool cmd_active_{false};
 
-  TriggersT triggers;
+  TriggersT triggers_;
 
-  uint32_t max_dist{0};     //
-  uint32_t min_dist{0};     //
-  uint32_t delay{0};        //
-  uint32_t status_freq{0};  //
-  uint32_t dist_freq{0};    //
-  uint32_t resp_speed{0};   //
-  bool minimal_output{true};
-  uint32_t energy_values[16];
-  uint32_t energy_values_count = 0;
-  std::string energy_values_str = "";
+  uint32_t max_dist_{0};     //
+  uint32_t min_dist_{0};     //
+  uint32_t delay_{0};        //
+  uint32_t status_freq_{0};  //
+  uint32_t dist_freq_{0};    //
+  uint32_t resp_speed_{0};   //
+  bool minimal_output_{true};
+  uint32_t energy_values_[16];
+  uint32_t energy_values_count_ = 0;
+  std::string energy_values_str_ = "";
 
-  uint8_t active = 0;
-  uint8_t last = 0;
-  CmdT commands[CMD_EXEC_BUFFER_SIZE];
-
-  int report_count = 0;
+  uint8_t active_ = 0;
+  uint8_t last_ = 0;
+  CmdT commands_[CMD_EXEC_BUFFER_SIZE];
 
   void loop_exec();
   void cmd_add(CmdFrameT *cmd_frame);
