@@ -24,7 +24,7 @@ std::string HttpContainer::get_response_header(const std::string &header_name) {
   auto response_headers = this->get_response_headers();
   auto header_name_lower_case = str_lower_case(header_name);
   if (response_headers.count(header_name_lower_case) == 0) {
-    ESP_LOGD(TAG, "No header with name %s found", header_name_lower_case.c_str());
+    ESP_LOGW(TAG, "No header with name %s found", header_name_lower_case.c_str());
     return "";
   } else {
     auto values = response_headers[header_name_lower_case];
