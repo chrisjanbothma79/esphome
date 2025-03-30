@@ -151,7 +151,7 @@ void Mcp4461Component::read_status_register_to_log() {
            ((status_register_value >> 3) & 0x01), ((status_register_value >> 2) & 0x01),
            ((status_register_value >> 1) & 0x01), ((status_register_value >> 0) & 0x01));
 }
-
+// clang-format on
 uint8_t Mcp4461Component::get_wiper_address_(uint8_t wiper) {
   uint8_t addr;
   bool nonvolatile = false;
