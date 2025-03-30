@@ -224,13 +224,9 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
       header.value = val.value(x...);
       request_headers.push_back(header);
     }
-    std::set<std::string> collect_headers;
-    for (const auto &item : this->collect_headers_) {
-      collect_headers.insert(item);
-    }
 
-    auto container =
-        this->parent_->start(this->url_.value(x...), this->method_.value(x...), body, request_headers, collect_headers);
+    auto container = this->parent_->start(this->url_.value(x...), this->method_.value(x...), body, request_headers,
+                                          this->collect_headers_);
 
     if (container == nullptr) {
       for (auto *trigger : this->error_triggers_)
