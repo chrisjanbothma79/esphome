@@ -45,53 +45,42 @@ void show_packet(const std::string &title, ESPNowPacket *packet, bool extended) 
                packet->content());
 
     } else if (!extended || size == 0) {
-      ESP_LOGV(TAG, "%s| %s", packet->info().c_str(), title.c_str(), packet->sequents(), packet->attempt(),
-               packet->read8h(2), packet->read8h(3), packet->read8h(4), packet->payload_size());
+      ESP_LOGV(TAG, "%s| %s", packet->info().c_str(), title.c_str());
     } else if (size == 1) {
       ESP_LOGV(TAG, "%s| %s | %02x                                        ", packet->info().c_str(), title.c_str(),
-               packet->read8h(2), packet->read8h(3), packet->read8h(4), packet->payload_size(),
-               packet->read(0, packet->payload_size()));
+               packet->read8u(0));
     } else if (size == 2) {
-      ESP_LOGV(TAG, "%s| %s, App: %c%c-%02x, Size: %d| %02x%02x                                   ",
-               packet->info().c_str(), title.c_str(), packet->read8h(2), packet->read8h(3), packet->read8h(4),
-               packet->payload_size(), packet->read8u(0), packet->read8u(1));
+      ESP_LOGV(TAG, "%s| %s | %02x%02x                                   ", packet->info().c_str(), title.c_str(),
+               packet->read8u(0), packet->read8u(1));
     } else if (size == 3) {
-      ESP_LOGV(TAG, "%s| %s, App: %c%c-%02x, Size: %d| %02x%02x %02x                              ",
-               packet->info().c_str(), title.c_str(), packet->read8h(2), packet->read8h(3), packet->read8h(4),
-               packet->payload_size(), packet->read8u(0), packet->read8u(1), packet->read8u(2));
+      ESP_LOGV(TAG, "%s| %s | %02x%02x %02x                              ", packet->info().c_str(), title.c_str(),
+               packet->read8u(0), packet->read8u(1), packet->read8u(2));
     } else if (size == 4) {
-      ESP_LOGV(TAG, "%s| %s, App: %c%c-%02x, Size: %d| %02x%02x %02x%02x                          ",
-               packet->info().c_str(), title.c_str(), packet->read8h(2), packet->read8h(3), packet->read8h(4),
-               packet->payload_size(), packet->read8u(0), packet->read8u(1), packet->read8u(2), packet->read8u(3));
+      ESP_LOGV(TAG, "%s| %s | %02x%02x %02x%02x                          ", packet->info().c_str(), title.c_str(),
+               packet->read8u(0), packet->read8u(1), packet->read8u(2), packet->read8u(3));
     } else if (size == 5) {
-      ESP_LOGV(TAG, "%s| %s, App: %c%c-%02x, Size: %d| %02x%02x %02x%02x %02x                     ",
-               packet->info().c_str(), title.c_str(), packet->read8h(2), packet->read8h(3), packet->read8h(4),
-               packet->payload_size(), packet->read8u(0), packet->read8u(1), packet->read8u(2), packet->read8u(3),
-               packet->read8u(4));
+      ESP_LOGV(TAG, "%s| %s | %02x%02x %02x%02x %02x                     ", packet->info().c_str(), title.c_str(),
+               packet->read8u(0), packet->read8u(1), packet->read8u(2), packet->read8u(3), packet->read8u(4));
     } else if (size == 6) {
-      ESP_LOGV(TAG, "%s| %s, App: %c%c-%02x, Size: %d| %02x%02x %02x%02x %02x%02x                 ",
-               packet->info().c_str(), title.c_str(), packet->read8h(2), packet->read8h(3), packet->read8h(4),
-               packet->payload_size(), packet->read8u(0), packet->read8u(1), packet->read8u(2), packet->read8u(3),
-               packet->read8u(4), packet->read8u(5));
+      ESP_LOGV(TAG, "%s| %s | %02x%02x %02x%02x %02x%02x                 ", packet->info().c_str(), title.c_str(),
+               packet->read8u(0), packet->read8u(1), packet->read8u(2), packet->read8u(3), packet->read8u(4),
+               packet->read8u(5));
     } else if (size == 7) {
-      ESP_LOGV(TAG, "%s| %s, App: %c%c-%02x, Size: %d| %02x%02x %02x%02x %02x%02x %02x             ",
-               packet->info().c_str(), title.c_str(), packet->read8u(0), packet->read8u(1), packet->read8u(2),
-               packet->read8u(3), packet->read8u(4), packet->read8u(5), packet->read8u(6));
+      ESP_LOGV(TAG, "%s| %s | %02x%02x %02x%02x %02x%02x %02x             ", packet->info().c_str(), title.c_str(),
+               packet->read8u(0), packet->read8u(1), packet->read8u(2), packet->read8u(3), packet->read8u(4),
+               packet->read8u(5), packet->read8u(6));
     } else if (size == 8) {
-      ESP_LOGV(TAG, "%s| %s, App: %c%c-%02x, Size: %d| %02x%02x %02x%02x %02x%02x %02x%02x         ",
-               packet->info().c_str(), title.c_str(), packet->read8u(0), packet->read8u(1), packet->read8u(2),
-               packet->read8u(3), packet->read8u(4), packet->read8u(5), packet->read8u(6), packet->read8u(7));
+      ESP_LOGV(TAG, "%s| %s | %02x%02x %02x%02x %02x%02x %02x%02x         ", packet->info().c_str(), title.c_str(),
+               packet->read8u(0), packet->read8u(1), packet->read8u(2), packet->read8u(3), packet->read8u(4),
+               packet->read8u(5), packet->read8u(6), packet->read8u(7));
     } else if (size == 9) {
-      ESP_LOGV(TAG, "%s| %s, App: %c%c-%02x, Size: %d| %02x%02x %02x%02x %02x%02x %02x%02x %02x    ",
-               packet->info().c_str(), title.c_str(), packet->read8h(2), packet->read8h(3), packet->read8h(4),
-               packet->payload_size(), packet->read8u(0), packet->read8u(1), packet->read8u(2), packet->read8u(3),
-               packet->read8u(4), packet->read8u(5), packet->read8u(6), packet->read8u(7), packet->read8u(8));
+      ESP_LOGV(TAG, "%s| %s | %02x%02x %02x%02x %02x%02x %02x%02x %02x    ", packet->info().c_str(), title.c_str(),
+               packet->read8u(0), packet->read8u(1), packet->read8u(2), packet->read8u(3), packet->read8u(4),
+               packet->read8u(5), packet->read8u(6), packet->read8u(7), packet->read8u(8));
     } else if (size >= 10) {
-      ESP_LOGV(TAG, "%s| %s, App: %c%c-%02x, Size: %d| %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x",
-               packet->info().c_str(), title.c_str(), packet->read8h(2), packet->read8h(3), packet->read8h(4),
-               packet->payload_size(), packet->read8u(0), packet->read8u(1), packet->read8u(2), packet->read8u(3),
-               packet->read8u(4), packet->read8u(5), packet->read8u(6), packet->read8u(7), packet->read8u(8),
-               packet->read8u(9));
+      ESP_LOGV(TAG, "%s| %s | %02x%02x %02x%02x %02x%02x %02x%02x %02x%02x", packet->info().c_str(), title.c_str(),
+               packet->read8u(0), packet->read8u(1), packet->read8u(2), packet->read8u(3), packet->read8u(4),
+               packet->read8u(5), packet->read8u(6), packet->read8u(7), packet->read8u(8), packet->read8u(9));
     }
   }
 }
@@ -694,7 +683,7 @@ void ESPNowComponent::call_on_del_peer_(uint64_t peer) {
   });
 }
 
-bool ESPNowComponent::is_paired(uint64_t peer) const {
+bool ESPNowComponent::is_paired(uint64_t peer) {
   bool result = false;
   if (peer == ESPNOW_MULTICAST_ADDR) {
     return true;

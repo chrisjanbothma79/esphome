@@ -29,7 +29,6 @@ espnow:
   wifi_channel: 1
   attempts: 3
   predefined_peers:
-    - mac_address: e8:6b:ea:24:22:04
     - mac_address: E8:6B:EA:23:CD:98
   on_new_peer:
     - logger.log:
@@ -73,13 +72,10 @@ binary_sensor:
           payload: "Test  1."
 
 interval:
-  - interval: 0.2sec
+  - interval: 5sec
     startup_delay: 5sec
     then:
       - logger.log:
           format: "------------"
-      - espnow.send:
-          #ac_address: e8:6b:ea:24:22:04
-          #app_id: ${my_espnow_app}
-          command: 249
+      - espnow.send.raw:
           payload: "Test  2."

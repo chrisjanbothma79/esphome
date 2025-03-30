@@ -271,7 +271,7 @@ class ESPNowComponent : public Component {
   void loop() override;
   bool can_proceed() override;
 
-  bool is_paired(uint64_t to_peer) const;
+  bool is_paired(uint64_t to_peer);
   std::shared_ptr<ESPNowPacket> make_packet(uint64_t peer, const uint8_t *data, uint8_t size, uint16_t app_id,
                                             uint8_t command) {
     return std::make_shared<ESPNowPacket>(app_id, command, peer, data, size);
@@ -297,7 +297,7 @@ class ESPNowComponent : public Component {
   esp_err_t del_peer(uint64_t peer);
   size_t send_queue_used() { return uxQueueMessagesWaiting(this->send_queue_); }
 
-  /* static */ void espnow_task(void *params);
+  static void espnow_task(void *params);
 
   uint16_t get_next_sequents(uint64_t peer, uint16_t app);
   bool is_valid_squence(uint64_t peer, uint16_t app, uint16_t received_sequence);
@@ -361,13 +361,20 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
 
  public:
   void set_dont_wait_flag() { this->dont_wait_flag_ = true; }
+  void set_raw_data() { this->raw_data_flag_ = true; }
+
   void set_triggerGroup(uint32_t value) { this->triggerGroup_ = value; }
   void play(Ts... x) override {
     std::vector<uint8_t> payload = this->payload_.value(x...);
     uint64_t mac = this->mac_address_.value(x...);
     uint16_t app = this->app_id_.value(x...);
     uint8_t command = this->command_.value(x...);
-    auto packet = this->parent_->make_packet(mac, payload.data(), payload.size(), app, command);
+    std::shared_ptr<ESPNowPacket> packet;
+    if (raw_data_flag_) {
+      packet = this->parent_->make_packet(mac, payload.data(), payload.size());
+    } else {
+      packet = this->parent_->make_packet(mac, payload.data(), payload.size(), app, command);
+    }
     packet->triggerGroup(this->triggerGroup_);
     packet->options(OPTION_DONT_WAIT, this->dont_wait_flag_);
     this->parent_->send(packet);
@@ -375,6 +382,7 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
 
  protected:
   bool dont_wait_flag_{false};
+  bool raw_data_flag_{false};
   uint32_t triggerGroup_{0};
 };
 

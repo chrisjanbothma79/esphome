@@ -49,6 +49,7 @@ CONF_ESPNOW = "espnow"
 CONF_APP_ID = "app_id"
 CONF_ATTEMPTS = "attempts"
 CONF_DEFAULT = "default"
+CONF_RAW_DATA = "raw_data"
 
 CONF_PEER = "peer"
 CONF_PEER_ID = "peer_id"
@@ -124,48 +125,48 @@ DEFINE_PEER_CONFIG = cv.maybe_simple_value(
     key=CONF_MAC_ADDRESS,
 )
 
-DEFAULT_TRIGGER_AUTOMATION_SCHEMA = automation.validate_automation(
+TRIGGER_SCHEMA = automation.validate_automation(
     {
         cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ESPNowDefaultTrigger),
         cv.Optional(CONF_COMMAND): validate_command,
     }
 )
 
-CONFIG_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(): cv.declare_id(ESPNowComponent),
-        cv.Optional(CONF_WIFI_CHANNEL): validate_channel,
-        cv.Optional(CONF_AUTO_ADD_PEER, default=False): cv.boolean,
-        cv.Optional(CONF_WAIT_FOR_ACK, default=True): cv.boolean,
-        cv.Optional(
-            CONF_CONFORMATION_TIMEOUT, default="5s"
-        ): cv.positive_time_period_milliseconds,
-        cv.Optional(CONF_ATTEMPTS, default=1): cv.int_range(min=1, max=10),
-        cv.Optional(CONF_PREDEFINED_PEERS): cv.ensure_list(DEFINE_PEER_CONFIG),
-        cv.Optional(CONF_ON_NEW_PEER): automation.validate_automation(single=True),
-        cv.Optional(CONF_ON_RAW_DATA): automation.validate_automation(single=True),
-        cv.Optional(CONF_CUSTOM_APPS): cv.All(
-            cv.ensure_list(
-                cv.Schema(
-                    {
-                        cv.Optional(CONF_APP_ID, default=CONF_DEFAULT): validate_app,
-                        cv.Optional(CONF_DEFAULT): cv.boolean,
-                        cv.Optional(CONF_ON_RECEIVE): DEFAULT_TRIGGER_AUTOMATION_SCHEMA,
-                        cv.Optional(
-                            CONF_ON_BROADCAST
-                        ): DEFAULT_TRIGGER_AUTOMATION_SCHEMA,
-                        cv.Optional(CONF_ON_SUCCEED): DEFAULT_TRIGGER_AUTOMATION_SCHEMA,
-                        cv.Optional(CONF_ON_FAILED): DEFAULT_TRIGGER_AUTOMATION_SCHEMA,
-                        cv.Optional(CONF_ON_TIMEOUT): DEFAULT_TRIGGER_AUTOMATION_SCHEMA,
-                    }
+CONFIG_SCHEMA = cv.All(
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.declare_id(ESPNowComponent),
+            cv.Optional(CONF_WIFI_CHANNEL): validate_channel,
+            cv.Optional(CONF_AUTO_ADD_PEER, default=False): cv.boolean,
+            cv.Optional(CONF_WAIT_FOR_ACK, default=True): cv.boolean,
+            cv.Optional(
+                CONF_CONFORMATION_TIMEOUT, default="5s"
+            ): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_ATTEMPTS, default=1): cv.int_range(min=1, max=10),
+            cv.Optional(CONF_PREDEFINED_PEERS): cv.ensure_list(DEFINE_PEER_CONFIG),
+            cv.Optional(CONF_ON_NEW_PEER): automation.validate_automation(single=True),
+            cv.Optional(CONF_ON_RAW_DATA): automation.validate_automation(single=True),
+            cv.Optional(CONF_CUSTOM_APPS): cv.All(
+                cv.ensure_list(
+                    cv.Schema(
+                        {
+                            cv.Optional(CONF_APP_ID, default="default"): validate_app,
+                            cv.Optional(CONF_DEFAULT): cv.boolean,
+                            cv.Optional(CONF_ON_RECEIVE): TRIGGER_SCHEMA,
+                            cv.Optional(CONF_ON_BROADCAST): TRIGGER_SCHEMA,
+                            cv.Optional(CONF_ON_SUCCEED): TRIGGER_SCHEMA,
+                            cv.Optional(CONF_ON_FAILED): TRIGGER_SCHEMA,
+                            cv.Optional(CONF_ON_TIMEOUT): TRIGGER_SCHEMA,
+                        }
+                    ),
                 ),
+                validate_unque_app_ids,
             ),
-            validate_unque_app_ids,
-        ),
-    },
+        },
+    ).extend(cv.COMPONENT_SCHEMA),
     cv.only_on_esp32,
     set_core_data,
-).extend(cv.COMPONENT_SCHEMA)
+)
 
 
 async def to_code(config):
@@ -181,7 +182,7 @@ async def to_code(config):
 
     cg.add(var.set_auto_add_peer(config[CONF_AUTO_ADD_PEER]))
     cg.add(var.set_wait_for_ack(config[CONF_WAIT_FOR_ACK]))
-    cg.add(var.set_conformation_timeout(config[CONF_CONFORMATION_TIMEOUT]))
+    cg.add(var.set_confirmation_timeout(config[CONF_CONFORMATION_TIMEOUT]))
     cg.add(var.set_attempts(config[CONF_ATTEMPTS]))
     def_peer = 0
     first_peer = 0
@@ -317,8 +318,11 @@ async def register_peer(var, config, args):
 SEND_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.use_id(ESPNowComponent),
+        cv.Optional(CONF_MAC_ADDRESS, default="default"): validate_peer,
         cv.Optional(CONF_APP_ID, default="default"): validate_app,
-        cv.Optional(CONF_COMMAND, default=0): validate_command,
+        cv.Optional(CONF_COMMAND): validate_command,
+        cv.Optional(CONF_DONT_WAIT): cv.boolean,
+        cv.Optional(CONF_RAW_DATA): cv.boolean,
         cv.Required(CONF_PAYLOAD): cv.templatable(validate_raw_data),
         cv.Optional(CONF_ON_SUCCEED): automation.validate_automation(
             {
@@ -342,6 +346,11 @@ SEND_SCHEMA = cv.Schema(
 )
 
 
+@automation.register_action(
+    "espnow.send",
+    SendAction,
+    SEND_SCHEMA,
+)
 @automation.register_action(
     "espnow.send.broadcast",
     SendAction,
@@ -367,12 +376,12 @@ SEND_SCHEMA = cv.Schema(
     ),
 )
 @automation.register_action(
-    "espnow.send",
+    "espnow.send.raw",
     SendAction,
     SEND_SCHEMA.extend(
         {
-            cv.Optional(CONF_MAC_ADDRESS, default="default"): validate_peer,
-            cv.Optional(CONF_DONT_WAIT): cv.boolean,
+            cv.Optional(CONF_RAW_DATA, default=True): cv.boolean,
+            cv.Optional(CONF_APP_ID): cv.valid,
         }
     ),
 )
@@ -381,14 +390,15 @@ async def send_action(config, action_id, template_arg, args):
     await cg.register_parented(var, config[CONF_ID])
 
     await register_peer(var, config, args)
+    if CONF_COMMAND in config:
+        command = config.get(CONF_COMMAND)
+        cg.add(var.set_command(command))
 
-    command = config.get(CONF_COMMAND)
-    cg.add(var.set_command(command))
-
-    app_id = config.get(CONF_APP_ID)
-    if app_id == "default":
-        app_id = CORE.data[CONF_ESPNOW]["default_app_id"]
-    cg.add(var.set_app_id(app_id))
+    if CONF_APP_ID in config:
+        app_id = config.get(CONF_APP_ID)
+        if app_id == "default":
+            app_id = CORE.data[CONF_ESPNOW]["default_app_id"]
+        cg.add(var.set_app_id(app_id))
 
     data = config.get(CONF_PAYLOAD, [])
     if isinstance(data, bytes):
@@ -400,6 +410,9 @@ async def send_action(config, action_id, template_arg, args):
 
     if config.get(CONF_DONT_WAIT, False):
         cg.add(var.set_dont_wait_flag())
+
+    if config.get(CONF_RAW_DATA, False):
+        cg.add(var.set_raw_data())
 
     for trigger_name, event_code in ALLOWED_TRIGGER_LIST.items():
         for conf in config.get(trigger_name, []):
