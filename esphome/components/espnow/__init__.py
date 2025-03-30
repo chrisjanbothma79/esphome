@@ -5,6 +5,7 @@ from esphome.const import (
     CONF_COMMAND,
     CONF_ID,
     CONF_MAC_ADDRESS,
+    CONF_ON_TIMEOUT,
     CONF_PAYLOAD,
     CONF_TRIGGER_ID,
     CONF_WIFI,
@@ -67,7 +68,7 @@ CONF_ON_RAW_DATA = "on_raw_data"
 
 CONF_ON_SUCCEED = "on_succeed"
 CONF_ON_FAILED = "on_failed"
-CONF_ON_TIMEOUT = "on_timeout"
+
 
 ESPNowTriggers = espnow_ns.enum("ESPNowTriggers")
 ALLOWED_TRIGGER_LIST = {
