@@ -706,11 +706,11 @@ void get_mac_address_raw(uint8_t *mac) {  // NOLINT(readability-non-const-parame
   if (has_custom_mac_address()) {
     esp_efuse_mac_get_custom(mac);
   } else {
-  #if defined(USE_ETHERNET)
+#if defined(USE_ETHERNET)
     esp_read_mac(mac, ESP_MAC_ETH);
-  #else
+#else
     esp_efuse_mac_get_default(mac);
-  #endif
+#endif
   }
 #endif
 }
