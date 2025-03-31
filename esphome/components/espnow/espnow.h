@@ -1,5 +1,8 @@
 #pragma once
 
+#if defined(USE_ESP32)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 1)
+
 #include "esphome/core/automation.h"
 #include "esphome/core/base_automation.h"
 #include "esphome/core/component.h"
@@ -14,9 +17,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-#if defined(USE_ESP32)
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 1)
 
 namespace esphome {
 namespace espnow {

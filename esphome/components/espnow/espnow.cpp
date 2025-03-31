@@ -1,3 +1,6 @@
+#if defined(USE_ESP32)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 1)
+
 #include "espnow.h"
 
 #include <cstring>
@@ -17,9 +20,6 @@
 #include "esphome/core/log.h"
 
 #include <memory>
-
-#if defined(USE_ESP32)
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 1)
 
 namespace esphome {
 namespace espnow {
