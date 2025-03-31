@@ -100,7 +100,7 @@ void SpeakerMediaPlayer::setup() {
 
   if (!this->single_pipeline_()) {
     this->media_pipeline_ = make_unique<AudioPipeline>(this->media_speaker_, this->buffer_size_,
-                                                       this->task_stack_in_psram_, "ann", MEDIA_PIPELINE_TASK_PRIORITY);
+                                                       this->task_stack_in_psram_, "med", MEDIA_PIPELINE_TASK_PRIORITY);
 
     if (this->media_pipeline_ == nullptr) {
       ESP_LOGE(TAG, "Failed to create media pipeline");
