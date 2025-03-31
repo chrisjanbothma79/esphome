@@ -1,3 +1,7 @@
+#include "esphome/core/application.h"
+#include "esphome/core/version.h"
+#include "esphome/core/log.h"
+
 #if defined(USE_ESP32)
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 1)
 
@@ -15,9 +19,6 @@
 #ifdef USE_WIFI
 #include "esphome/components/wifi/wifi_component.h"
 #endif
-#include "esphome/core/application.h"
-#include "esphome/core/version.h"
-#include "esphome/core/log.h"
 
 #include <memory>
 
