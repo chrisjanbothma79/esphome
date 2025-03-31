@@ -1,5 +1,5 @@
 #pragma once
-#include "esphome/core/application.h"
+#include <esp_idf_version.h>
 #include <cstdint>
 #include <cstddef>
 #include <utility>
