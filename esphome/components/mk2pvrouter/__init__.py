@@ -3,7 +3,7 @@ from esphome.components import uart
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
-# CODEOWNERS = ["@0hax"]
+CODEOWNERS = ["@FredM67"]
 
 mk2pvrouter_ns = cg.esphome_ns.namespace("mk2pvrouter")
 Mk2PVRouter = mk2pvrouter_ns.class_("Mk2PVRouter", cg.PollingComponent, uart.UARTDevice)
