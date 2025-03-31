@@ -24,7 +24,7 @@ constexpr uint8_t MAX_ITERATIONS = 128;
  *             or the length of the field if it exceeds max_len (but the field is not copied).
  */
 static size_t get_field(std::string &dest, const char *buf_start, const char *buf_end, size_t max_len) {
-  const auto field_end = static_cast<const char *>(memchr(buf_start, TAB, buf_end - buf_start));
+  const auto *const field_end = static_cast<const char *>(memchr(buf_start, TAB, buf_end - buf_start));
   if (!field_end)
     return 0;
   const auto len = field_end - buf_start;
@@ -152,8 +152,8 @@ void Mk2PVRouter::loop() {
       ESP_LOGD(TAG, "State transition: END_FRAME_RECEIVED -> DoWork");
       size_t field_len;
 
-      auto buf_finger = buf_.data();
-      auto buf_end = buf_.data() + buf_index_;
+      auto *buf_finger = buf_.data();
+      auto *buf_end = buf_.data() + buf_index_;
 
       /* Each frame is composed of multiple groups starting by 0xa(Line Feed) and ending by
        * 0xd ('\r').
@@ -170,7 +170,7 @@ void Mk2PVRouter::loop() {
         ++buf_finger;
 
         /* Group len */
-        const auto grp_end = static_cast<char *>(memchr(buf_finger, CARRIAGE_RETURN, buf_end - buf_finger));
+        auto *const grp_end = static_cast<char *>(memchr(buf_finger, CARRIAGE_RETURN, buf_end - buf_finger));
         if (!grp_end) {
           ESP_LOGE(TAG, "No group found");
           break;
@@ -191,7 +191,7 @@ void Mk2PVRouter::loop() {
 
         field_len = get_field(val_, buf_finger, grp_end, MAX_VAL_SIZE);
         if (!field_len || field_len >= MAX_VAL_SIZE) {
-          ESP_LOGE(TAG, "Invalid value for tag %s", tag_);
+          ESP_LOGE(TAG, "Invalid value for tag %s", tag_.c_str());
           continue;
         }
 
