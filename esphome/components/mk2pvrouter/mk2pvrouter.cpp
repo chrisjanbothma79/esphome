@@ -137,19 +137,19 @@ void Mk2PVRouter::loop() {
     case State::OFF:
       break;
     case State::ON:
-      ESP_LOGD(TAG, "State transition: ON -> START_FRAME_RECEIVED");
+      ESP_LOGVV(TAG, "State transition: ON -> START_FRAME_RECEIVED");
       /* Dequeue chars until start frame (0x2) */
       if (read_chars_until_(true, START_FRAME))
         state_ = State::START_FRAME_RECEIVED;
       break;
     case State::START_FRAME_RECEIVED:
-      ESP_LOGD(TAG, "State transition: START_FRAME_RECEIVED -> END_FRAME_RECEIVED");
+      ESP_LOGVV(TAG, "State transition: START_FRAME_RECEIVED -> END_FRAME_RECEIVED");
       /* Dequeue chars until end frame (0x3) */
       if (read_chars_until_(false, END_FRAME))
         state_ = State::END_FRAME_RECEIVED;
       break;
     case State::END_FRAME_RECEIVED:
-      ESP_LOGD(TAG, "State transition: END_FRAME_RECEIVED -> DoWork");
+      ESP_LOGVV(TAG, "State transition: END_FRAME_RECEIVED -> DoWork");
       size_t field_len;
 
       auto *buf_finger = buf_.data();
