@@ -3,6 +3,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_COMMAND,
+    CONF_DEFAULT,
     CONF_ID,
     CONF_MAC_ADDRESS,
     CONF_ON_TIMEOUT,
@@ -49,7 +50,7 @@ CONF_CONFORMATION_TIMEOUT = "conformation_timeout"
 CONF_ESPNOW = "espnow"
 CONF_APP_ID = "app_id"
 CONF_ATTEMPTS = "attempts"
-CONF_DEFAULT = "default"
+
 CONF_RAW_DATA = "raw_data"
 
 CONF_PEER = "peer"
