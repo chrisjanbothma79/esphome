@@ -352,9 +352,9 @@ void SpeakerMediaPlayer::loop() {
         if (timeout_ms > 0) {
           // Pause pipeline internally to facilitiate delay between items
           this->announcement_pipeline_->set_pause_state(true);
-          // Internally unpause the pipeline after the delay between playlist items
-          this->set_timeout("next_ann", timeout_ms,
-                            [this]() { this->announcement_pipeline_->set_pause_state(this->is_paused_); });
+          // Internally unpause the pipeline after the delay between playlist items. Announcements do not follow the
+          // media player's pause state.
+          this->set_timeout("next_ann", timeout_ms, [this]() { this->announcement_pipeline_->set_pause_state(false); });
         }
       }
     } else {
@@ -392,7 +392,8 @@ void SpeakerMediaPlayer::loop() {
             if (timeout_ms > 0) {
               // Pause pipeline internally to facilitiate delay between items
               this->media_pipeline_->set_pause_state(true);
-              // Internally unpause the pipeline after the delay between playlist items
+              // Internally unpause the pipeline after the delay between playlist items, if the media player state is
+              // not paused.
               this->set_timeout("next_media", timeout_ms,
                                 [this]() { this->media_pipeline_->set_pause_state(this->is_paused_); });
             }
