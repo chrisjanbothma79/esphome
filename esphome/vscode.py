@@ -78,6 +78,15 @@ def _print_file_read_event(path: str) -> None:
     )
 
 
+def _loader(fname: str):
+    _print_file_read_event(fname)
+    raw_yaml_stream = StringIO(_read_file_content_from_json_on_stdin())
+    # it is required to set the name on StringIO so document on start_mark
+    # is set properly. Otherwise it is initialized with "<file>"
+    raw_yaml_stream.name = fname
+    return parse_yaml(fname, raw_yaml_stream, _loader)
+
+
 def read_config(args):
     while True:
         CORE.reset()
@@ -92,14 +101,12 @@ def read_config(args):
             CORE.config_path = data["file"]
 
         file_name = CORE.config_path
-        _print_file_read_event(file_name)
-        raw_yaml = _read_file_content_from_json_on_stdin()
         command_line_substitutions: dict[str, Any] = (
             dict(args.substitution) if args.substitution else {}
         )
         vs = VSCodeResult()
         try:
-            config = parse_yaml(file_name, StringIO(raw_yaml))
+            config = _loader(file_name)
             res = validate_config(config, command_line_substitutions)
         except Exception as err:  # pylint: disable=broad-except
             vs.add_yaml_error(str(err))

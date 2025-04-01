@@ -102,6 +102,10 @@ def _add_data_ref(fn):
 class ESPHomeLoaderMixin:
     """Loader class that keeps track of line numbers."""
 
+    def __init__(self, name, yaml_loader):
+        self.name = name
+        self.yaml_loader = yaml_loader
+
     @_add_data_ref
     def construct_yaml_int(self, node):
         return super().construct_yaml_int(node)
@@ -252,14 +256,14 @@ class ESPHomeLoaderMixin:
     @_add_data_ref
     def construct_secret(self, node):
         try:
-            secrets = _load_yaml_internal(self._rel_path(SECRET_YAML))
+            secrets = self.yaml_loader(self._rel_path(SECRET_YAML))
         except EsphomeError as e:
             if self.name == CORE.config_path:
                 raise e
             try:
                 main_config_dir = os.path.dirname(CORE.config_path)
                 main_secret_yml = os.path.join(main_config_dir, SECRET_YAML)
-                secrets = _load_yaml_internal(main_secret_yml)
+                secrets = self.yaml_loader(main_secret_yml)
             except EsphomeError as er:
                 raise EsphomeError(f"{e}\n{er}") from er
 
@@ -290,7 +294,7 @@ class ESPHomeLoaderMixin:
         else:
             file, vars = node.value, None
 
-        result = _load_yaml_internal(self._rel_path(file))
+        result = self.yaml_loader(self._rel_path(file))
         if not vars:
             vars = {}
         result = substitute_vars(result, vars)
@@ -299,14 +303,14 @@ class ESPHomeLoaderMixin:
     @_add_data_ref
     def construct_include_dir_list(self, node):
         files = filter_yaml_files(_find_files(self._rel_path(node.value), "*.yaml"))
-        return [_load_yaml_internal(f) for f in files]
+        return [self.yaml_loader(f) for f in files]
 
     @_add_data_ref
     def construct_include_dir_merge_list(self, node):
         files = filter_yaml_files(_find_files(self._rel_path(node.value), "*.yaml"))
         merged_list = []
         for fname in files:
-            loaded_yaml = _load_yaml_internal(fname)
+            loaded_yaml = self.yaml_loader(fname)
             if isinstance(loaded_yaml, list):
                 merged_list.extend(loaded_yaml)
         return merged_list
@@ -317,7 +321,7 @@ class ESPHomeLoaderMixin:
         mapping = OrderedDict()
         for fname in files:
             filename = os.path.splitext(os.path.basename(fname))[0]
-            mapping[filename] = _load_yaml_internal(fname)
+            mapping[filename] = self.yaml_loader(fname)
         return mapping
 
     @_add_data_ref
@@ -325,7 +329,7 @@ class ESPHomeLoaderMixin:
         files = filter_yaml_files(_find_files(self._rel_path(node.value), "*.yaml"))
         mapping = OrderedDict()
         for fname in files:
-            loaded_yaml = _load_yaml_internal(fname)
+            loaded_yaml = self.yaml_loader(fname)
             if isinstance(loaded_yaml, dict):
                 mapping.update(loaded_yaml)
         return mapping
@@ -351,9 +355,17 @@ class ESPHomeLoaderMixin:
 class ESPHomeLoader(ESPHomeLoaderMixin, FastestAvailableSafeLoader):
     """Loader class that keeps track of line numbers."""
 
+    def __init__(self, stream, name, yaml_loader):
+        FastestAvailableSafeLoader.__init__(self, stream)
+        ESPHomeLoaderMixin.__init__(self, name, yaml_loader)
+
 
 class ESPHomePurePythonLoader(ESPHomeLoaderMixin, PurePythonLoader):
     """Loader class that keeps track of line numbers."""
+
+    def __init__(self, stream, name, yaml_loader):
+        PurePythonLoader.__init__(self, stream)
+        ESPHomeLoaderMixin.__init__(self, name, yaml_loader)
 
 
 for _loader in (ESPHomeLoader, ESPHomePurePythonLoader):
@@ -388,17 +400,30 @@ def load_yaml(fname: str, clear_secrets: bool = True) -> Any:
     return _load_yaml_internal(fname)
 
 
-def parse_yaml(file_name: str, file_handle: TextIOWrapper) -> Any:
+def _load_yaml_internal(fname: str) -> Any:
+    """Load a YAML file."""
+    try:
+        with open(fname, encoding="utf-8") as f_handle:
+            return parse_yaml(fname, f_handle)
+    except (UnicodeDecodeError, OSError) as err:
+        raise EsphomeError(f"Error reading file {fname}: {err}") from err
+
+
+def parse_yaml(
+    file_name: str, file_handle: TextIOWrapper, yaml_loader=_load_yaml_internal
+) -> Any:
     """Parse a YAML file."""
     try:
-        return _load_yaml_internal_with_type(ESPHomeLoader, file_name, file_handle)
+        return _load_yaml_internal_with_type(
+            ESPHomeLoader, file_name, file_handle, yaml_loader
+        )
     except EsphomeError:
         # Loading failed, so we now load with the Python loader which has more
         # readable exceptions
         # Rewind the stream so we can try again
         file_handle.seek(0, 0)
         return _load_yaml_internal_with_type(
-            ESPHomePurePythonLoader, file_name, file_handle
+            ESPHomePurePythonLoader, file_name, file_handle, yaml_loader
         )
 
 
@@ -435,23 +460,14 @@ def substitute_vars(config, vars):
     return result
 
 
-def _load_yaml_internal(fname: str) -> Any:
-    """Load a YAML file."""
-    try:
-        with open(fname, encoding="utf-8") as f_handle:
-            return parse_yaml(fname, f_handle)
-    except (UnicodeDecodeError, OSError) as err:
-        raise EsphomeError(f"Error reading file {fname}: {err}") from err
-
-
 def _load_yaml_internal_with_type(
     loader_type: type[ESPHomeLoader] | type[ESPHomePurePythonLoader],
     fname: str,
     content: TextIOWrapper,
+    yaml_loader: Any,
 ) -> Any:
     """Load a YAML file."""
-    loader = loader_type(content)
-    loader.name = fname
+    loader = loader_type(content, fname, yaml_loader)
     try:
         return loader.get_single_data() or OrderedDict()
     except yaml.YAMLError as exc:
