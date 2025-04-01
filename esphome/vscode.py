@@ -78,13 +78,13 @@ def _print_file_read_event(path: str) -> None:
     )
 
 
-def _request_and_get_stream_on_stdin(fname: str):
+def _request_and_get_stream_on_stdin(fname: str) -> StringIO:
     _print_file_read_event(fname)
     raw_yaml_stream = StringIO(_read_file_content_from_json_on_stdin())
     return raw_yaml_stream
 
 
-def _vscode_loader(fname: str):
+def _vscode_loader(fname: str) -> dict[str, Any]:
     raw_yaml_stream = _request_and_get_stream_on_stdin(fname)
     # it is required to set the name on StringIO so document on start_mark
     # is set properly. Otherwise it is initialized with "<file>"
@@ -92,7 +92,7 @@ def _vscode_loader(fname: str):
     return parse_yaml(fname, raw_yaml_stream, _vscode_loader)
 
 
-def _ace_loader(fname: str):
+def _ace_loader(fname: str) -> dict[str, Any]:
     raw_yaml_stream = _request_and_get_stream_on_stdin(fname)
     return parse_yaml(fname, raw_yaml_stream)
 

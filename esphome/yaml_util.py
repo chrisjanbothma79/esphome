@@ -3,12 +3,12 @@ from __future__ import annotations
 import fnmatch
 import functools
 import inspect
-from io import TextIOWrapper
+from io import BytesIO, TextIOBase, TextIOWrapper
 from ipaddress import _BaseAddress
 import logging
 import math
 import os
-from typing import Any
+from typing import Any, Callable
 import uuid
 
 import yaml
@@ -69,7 +69,10 @@ class ESPForceValue:
     pass
 
 
-def make_data_base(value, from_database: ESPHomeDataBase = None):
+def make_data_base(
+    value, from_database: ESPHomeDataBase = None
+) -> ESPHomeDataBase | Any:
+    """Wrap a value in a ESPHomeDataBase object."""
     try:
         value = add_class_to_obj(value, ESPHomeDataBase)
         if from_database is not None:
@@ -102,7 +105,8 @@ def _add_data_ref(fn):
 class ESPHomeLoaderMixin:
     """Loader class that keeps track of line numbers."""
 
-    def __init__(self, name, yaml_loader):
+    def __init__(self, name: str, yaml_loader: Callable[[str], dict[str, Any]]) -> None:
+        """Initialize the loader."""
         self.name = name
         self.yaml_loader = yaml_loader
 
@@ -131,7 +135,7 @@ class ESPHomeLoaderMixin:
         return super().construct_yaml_seq(node)
 
     @_add_data_ref
-    def construct_yaml_map(self, node):
+    def construct_yaml_map(self, node: yaml.MappingNode) -> OrderedDict[str, Any]:
         """Traverses the given mapping node and returns a list of constructed key-value pairs."""
         assert isinstance(node, yaml.MappingNode)
         # A list of key-value pairs we find in the current mapping
@@ -235,7 +239,7 @@ class ESPHomeLoaderMixin:
         return OrderedDict(pairs)
 
     @_add_data_ref
-    def construct_env_var(self, node):
+    def construct_env_var(self, node: yaml.Node) -> str:
         args = node.value.split()
         # Check for a default value
         if len(args) > 1:
@@ -247,14 +251,14 @@ class ESPHomeLoaderMixin:
         )
 
     @property
-    def _directory(self):
+    def _directory(self) -> str:
         return os.path.dirname(self.name)
 
-    def _rel_path(self, *args):
+    def _rel_path(self, *args: str) -> str:
         return os.path.join(self._directory, *args)
 
     @_add_data_ref
-    def construct_secret(self, node):
+    def construct_secret(self, node: yaml.Node) -> str:
         try:
             secrets = self.yaml_loader(self._rel_path(SECRET_YAML))
         except EsphomeError as e:
@@ -276,7 +280,9 @@ class ESPHomeLoaderMixin:
         return val
 
     @_add_data_ref
-    def construct_include(self, node):
+    def construct_include(
+        self, node: yaml.Node
+    ) -> dict[str, Any] | OrderedDict[str, Any]:
         from esphome.const import CONF_VARS
 
         def extract_file_vars(node):
@@ -301,12 +307,12 @@ class ESPHomeLoaderMixin:
         return result
 
     @_add_data_ref
-    def construct_include_dir_list(self, node):
+    def construct_include_dir_list(self, node: yaml.Node) -> list[dict[str, Any]]:
         files = filter_yaml_files(_find_files(self._rel_path(node.value), "*.yaml"))
         return [self.yaml_loader(f) for f in files]
 
     @_add_data_ref
-    def construct_include_dir_merge_list(self, node):
+    def construct_include_dir_merge_list(self, node: yaml.Node) -> list[dict[str, Any]]:
         files = filter_yaml_files(_find_files(self._rel_path(node.value), "*.yaml"))
         merged_list = []
         for fname in files:
@@ -316,7 +322,9 @@ class ESPHomeLoaderMixin:
         return merged_list
 
     @_add_data_ref
-    def construct_include_dir_named(self, node):
+    def construct_include_dir_named(
+        self, node: yaml.Node
+    ) -> OrderedDict[str, dict[str, Any]]:
         files = filter_yaml_files(_find_files(self._rel_path(node.value), "*.yaml"))
         mapping = OrderedDict()
         for fname in files:
@@ -325,7 +333,9 @@ class ESPHomeLoaderMixin:
         return mapping
 
     @_add_data_ref
-    def construct_include_dir_merge_named(self, node):
+    def construct_include_dir_merge_named(
+        self, node: yaml.Node
+    ) -> OrderedDict[str, dict[str, Any]]:
         files = filter_yaml_files(_find_files(self._rel_path(node.value), "*.yaml"))
         mapping = OrderedDict()
         for fname in files:
@@ -335,27 +345,32 @@ class ESPHomeLoaderMixin:
         return mapping
 
     @_add_data_ref
-    def construct_lambda(self, node):
+    def construct_lambda(self, node: yaml.Node) -> Lambda:
         return Lambda(str(node.value))
 
     @_add_data_ref
-    def construct_force(self, node):
+    def construct_force(self, node: yaml.Node) -> ESPForceValue:
         obj = self.construct_scalar(node)
         return add_class_to_obj(obj, ESPForceValue)
 
     @_add_data_ref
-    def construct_extend(self, node):
+    def construct_extend(self, node: yaml.Node) -> Extend:
         return Extend(str(node.value))
 
     @_add_data_ref
-    def construct_remove(self, node):
+    def construct_remove(self, node: yaml.Node) -> Remove:
         return Remove(str(node.value))
 
 
 class ESPHomeLoader(ESPHomeLoaderMixin, FastestAvailableSafeLoader):
     """Loader class that keeps track of line numbers."""
 
-    def __init__(self, stream, name, yaml_loader):
+    def __init__(
+        self,
+        stream: TextIOBase | BytesIO,
+        name: str,
+        yaml_loader: Callable[[str], dict[str, Any]],
+    ) -> None:
         FastestAvailableSafeLoader.__init__(self, stream)
         ESPHomeLoaderMixin.__init__(self, name, yaml_loader)
 
@@ -363,7 +378,12 @@ class ESPHomeLoader(ESPHomeLoaderMixin, FastestAvailableSafeLoader):
 class ESPHomePurePythonLoader(ESPHomeLoaderMixin, PurePythonLoader):
     """Loader class that keeps track of line numbers."""
 
-    def __init__(self, stream, name, yaml_loader):
+    def __init__(
+        self,
+        stream: TextIOBase | BytesIO,
+        name: str,
+        yaml_loader: Callable[[str], dict[str, Any]],
+    ) -> None:
         PurePythonLoader.__init__(self, stream)
         ESPHomeLoaderMixin.__init__(self, name, yaml_loader)
 
@@ -486,7 +506,7 @@ def dump(dict_, show_secrets=False):
     )
 
 
-def _is_file_valid(name):
+def _is_file_valid(name: str) -> bool:
     """Decide if a file is valid."""
     return not name.startswith(".")
 
