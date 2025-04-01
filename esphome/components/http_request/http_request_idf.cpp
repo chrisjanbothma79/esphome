@@ -12,6 +12,8 @@
 #include "esp_crt_bundle.h"
 #endif
 
+#include "esp_task_wdt.h"
+
 namespace esphome {
 namespace http_request {
 
@@ -83,7 +85,7 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
   container->set_secure(secure);
 
   for (const auto &header : headers) {
-    esp_http_client_set_header(client, header.name, header.value);
+    esp_http_client_set_header(client, header.name.c_str(), header.value.c_str());
   }
 
   const int body_len = body.length();
@@ -118,11 +120,11 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
     return nullptr;
   }
 
-  App.feed_wdt();
+  container->feed_wdt();
   container->content_length = esp_http_client_fetch_headers(client);
-  App.feed_wdt();
+  container->feed_wdt();
   container->status_code = esp_http_client_get_status_code(client);
-  App.feed_wdt();
+  container->feed_wdt();
   if (is_success(container->status_code)) {
     container->duration_ms = millis() - start;
     return container;
@@ -152,11 +154,11 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::start(std::string url, std::strin
         return nullptr;
       }
 
-      App.feed_wdt();
+      container->feed_wdt();
       container->content_length = esp_http_client_fetch_headers(client);
-      App.feed_wdt();
+      container->feed_wdt();
       container->status_code = esp_http_client_get_status_code(client);
-      App.feed_wdt();
+      container->feed_wdt();
       if (is_success(container->status_code)) {
         container->duration_ms = millis() - start;
         return container;
@@ -186,8 +188,9 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
     return 0;
   }
 
-  App.feed_wdt();
+  this->feed_wdt();
   int read_len = esp_http_client_read(this->client_, (char *) buf, bufsize);
+  this->feed_wdt();
 
   if (read_len >= 0) {
     this->bytes_read_ += read_len;
@@ -202,6 +205,13 @@ void HttpContainerIDF::end() {
 
   esp_http_client_close(this->client_);
   esp_http_client_cleanup(this->client_);
+}
+
+void HttpContainerIDF::feed_wdt() {
+  // Tests to see if the executing task has a watchdog timer attached
+  if (esp_task_wdt_status(nullptr) == ESP_OK) {
+    App.feed_wdt();
+  }
 }
 
 }  // namespace http_request
