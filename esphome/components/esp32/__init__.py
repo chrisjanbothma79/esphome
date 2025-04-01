@@ -64,6 +64,7 @@ from .gpio import esp32_pin_to_code  # noqa
 _LOGGER = logging.getLogger(__name__)
 CODEOWNERS = ["@esphome/core"]
 AUTO_LOAD = ["preferences"]
+IS_TARGET_PLATFORM = True
 
 CONF_RELEASE = "release"
 
@@ -272,6 +273,9 @@ SUPPORTED_PLATFORMIO_ESP_IDF_5X = [
 # pioarduino versions that don't require a release number
 # List based on https://github.com/pioarduino/esp-idf/releases
 SUPPORTED_PIOARDUINO_ESP_IDF_5X = [
+    cv.Version(5, 4, 1),
+    cv.Version(5, 4, 0),
+    cv.Version(5, 3, 2),
     cv.Version(5, 3, 1),
     cv.Version(5, 3, 0),
     cv.Version(5, 1, 5),
@@ -437,24 +441,20 @@ def _detect_variant(value):
 
 
 def final_validate(config):
-    if CONF_PLATFORMIO_OPTIONS not in fv.full_config.get()[CONF_ESPHOME]:
+    if not (
+        pio_options := fv.full_config.get()[CONF_ESPHOME].get(CONF_PLATFORMIO_OPTIONS)
+    ):
+        # Not specified or empty
         return config
 
     pio_flash_size_key = "board_upload.flash_size"
     pio_partitions_key = "board_build.partitions"
-    if (
-        CONF_PARTITIONS in config
-        and pio_partitions_key
-        in fv.full_config.get()[CONF_ESPHOME][CONF_PLATFORMIO_OPTIONS]
-    ):
+    if CONF_PARTITIONS in config and pio_partitions_key in pio_options:
         raise cv.Invalid(
             f"Do not specify '{pio_partitions_key}' in '{CONF_PLATFORMIO_OPTIONS}' with '{CONF_PARTITIONS}' in esp32"
         )
 
-    if (
-        pio_flash_size_key
-        in fv.full_config.get()[CONF_ESPHOME][CONF_PLATFORMIO_OPTIONS]
-    ):
+    if pio_flash_size_key in pio_options:
         raise cv.Invalid(
             f"Please specify {CONF_FLASH_SIZE} within esp32 configuration only"
         )
@@ -605,6 +605,9 @@ async def to_code(config):
         # This is espressif's own published version which is more up to date.
         cg.add_platformio_option(
             "platform_packages", ["espressif/toolchain-esp32ulp@2.35.0-20220830"]
+        )
+        add_idf_sdkconfig_option(
+            f"CONFIG_ESPTOOLPY_FLASHSIZE_{config[CONF_FLASH_SIZE]}", True
         )
         add_idf_sdkconfig_option("CONFIG_PARTITION_TABLE_SINGLE_APP", False)
         add_idf_sdkconfig_option("CONFIG_PARTITION_TABLE_CUSTOM", True)
