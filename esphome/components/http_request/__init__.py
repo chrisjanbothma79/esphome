@@ -276,7 +276,7 @@ async def http_request_action_to_code(config, action_id, template_arg, args):
             trigger,
             [
                 (cg.std_shared_ptr.template(HttpContainer), "response"),
-                (cg.std_shared_ptr.template(cg.std_string), "body"),
+                (cg.std_shared_ptr.template(cg.std_string.operator("const")), "body"),
             ],
             conf,
         )
