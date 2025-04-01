@@ -78,13 +78,23 @@ def _print_file_read_event(path: str) -> None:
     )
 
 
-def _loader(fname: str):
+def _request_and_get_stream_on_stdin(fname: str):
     _print_file_read_event(fname)
     raw_yaml_stream = StringIO(_read_file_content_from_json_on_stdin())
+    return raw_yaml_stream
+
+
+def _vscode_loader(fname: str):
+    raw_yaml_stream = _request_and_get_stream_on_stdin(fname)
     # it is required to set the name on StringIO so document on start_mark
     # is set properly. Otherwise it is initialized with "<file>"
     raw_yaml_stream.name = fname
-    return parse_yaml(fname, raw_yaml_stream, _loader)
+    return parse_yaml(fname, raw_yaml_stream, _vscode_loader)
+
+
+def _ace_loader(fname: str):
+    raw_yaml_stream = _request_and_get_stream_on_stdin(fname)
+    return parse_yaml(fname, raw_yaml_stream)
 
 
 def read_config(args):
@@ -97,8 +107,10 @@ def read_config(args):
         f = data["file"]
         if CORE.ace:
             CORE.config_path = os.path.join(args.configuration, f)
+            loader = _ace_loader
         else:
             CORE.config_path = data["file"]
+            loader = _vscode_loader
 
         file_name = CORE.config_path
         command_line_substitutions: dict[str, Any] = (
@@ -106,7 +118,7 @@ def read_config(args):
         )
         vs = VSCodeResult()
         try:
-            config = _loader(file_name)
+            config = loader(file_name)
             res = validate_config(config, command_line_substitutions)
         except Exception as err:  # pylint: disable=broad-except
             vs.add_yaml_error(str(err))
