@@ -140,7 +140,7 @@ async def canvas_set_pixel(config, action_id, template_arg, args):
                     x, y = point
                     lv.canvas_set_px_opa(w.obj, x, y, opa)
             else:
-                with LocalVariable("opa", "lv_opa_t", opa) as opa_var:
+                with LocalVariable("opa", "lv_opa_t", opa, modifier="") as opa_var:
                     for point in points:
                         x, y = point
                         lv.canvas_set_px_opa(w.obj, x, y, opa_var)
@@ -191,11 +191,6 @@ RECT_PROPS = {
         "bg_opa",
         "bg_color",
         "bg_grad",
-        "bg_image_src",
-        "bg_image_recolor",
-        "bg_image_opa",
-        "bg_image_recolor_opa",
-        "bg_image_tiled",
         "border_color",
         "border_width",
         "border_opa",
