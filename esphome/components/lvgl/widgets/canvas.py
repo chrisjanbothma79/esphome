@@ -294,8 +294,9 @@ async def canvas_draw_image(config, action_id, template_arg, args):
     pivot_y = await pixels.process(config[CONF_PIVOT_Y])
 
     async def do_draw_image(w: Widget, x, y, dsc_addr):
-        dsc = literal(f"(*{dsc_addr})")
+        dsc = MockObj(f"(*{dsc_addr})")
         if pivot_x or pivot_y:
+            # pylint :disable=no-member
             lv_assign(dsc.pivot, literal(f"{{{pivot_x}, {pivot_y}}}"))
         lv.canvas_draw_img(w.obj, x, y, src, dsc_addr)
 
