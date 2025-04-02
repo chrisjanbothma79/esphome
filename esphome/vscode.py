@@ -105,10 +105,8 @@ def read_config(args):
         if data["type"] == "exit":
             return
         CORE.vscode = True
-        CORE.ace = args.ace
-        f = data["file"]
-        if CORE.ace:
-            CORE.config_path = os.path.join(args.configuration, f)
+        if args.ace:  # Running from ESPHome Compiler dashboard, not vscode
+            CORE.config_path = os.path.join(args.configuration, data["file"])
             loader = _ace_loader
         else:
             CORE.config_path = data["file"]
