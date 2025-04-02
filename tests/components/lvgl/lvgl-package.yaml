@@ -510,6 +510,69 @@ lvgl:
 
     - id: page2
       widgets:
+        - canvas:
+            id: canvas_id
+            align: center
+            width: 400
+            height: 400
+            transparent: true
+            on_boot:
+              - lvgl.canvas.fill:
+                  color: blue
+                  opa: 50%
+              - lvgl.canvas.draw_rectangle:
+                  x: 20
+                  y: 20
+                  width: 150
+                  height: 150
+                  bg_color: green
+              - lvgl.canvas.set_pixels:
+                  color: red
+                  points:
+                    - x: 100
+                      y: 100
+                    - 100,101
+                    - 100,102
+                    - 100,103
+                    - 100,104
+              - lvgl.canvas.set_pixels:
+                  color: !lambda return lv_color_make(255,255,255);
+                  points:
+                    - x: !lambda return random_uint32() % 200;
+                      y: !lambda return random_uint32() % 200;
+                    - 121,120
+                    - 122,120
+                    - 123,120
+                    - 124,120
+                    - 125,120
+
+              - lvgl.canvas.draw_text:
+                  x: 100
+                  y: 100
+                  font: montserrat_18
+                  color: white
+                  text: Canvas Text
+                  align: center
+                  max_width: 150
+              - lvgl.canvas.draw_image:
+                  src: cat_image
+                  x: 100
+                  y: 100
+                  angle: 90
+                  zoom: 2.0
+                  pivot_x: 25
+                  pivot_y: 25
+              - lvgl.canvas.draw_line:
+                  color: blue
+                  width: 4
+                  round_end: true
+                  round_start: false
+                  points:
+                    - 50,50
+                    - 50, 200
+                    - 200, 200
+                    - 200, 50
+                    - 50,50
         - qrcode:
             id: lv_qr
             align: left_mid

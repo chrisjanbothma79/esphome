@@ -1,4 +1,4 @@
-from esphome import automation, config_validation as cv
+from esphome import automation, codegen as cg, config_validation as cv
 from esphome.components.display_menu_base import CONF_LABEL
 from esphome.components.lvgl.automation import action_to_code
 from esphome.components.lvgl.defines import (
@@ -11,6 +11,7 @@ from esphome.components.lvgl.defines import (
     CONF_Y,
 )
 from esphome.components.lvgl.lv_validation import (
+    lv_bool,
     lv_color,
     lv_image,
     lv_text,
@@ -28,6 +29,7 @@ from ..defines import CONF_MAIN, literal
 from ..schemas import STYLE_PROPS, STYLE_REMAP, TEXT_SCHEMA, point_schema
 from ..types import WidgetType
 from . import Widget, get_widgets
+from .line import lv_point_t, process_coord
 
 CONF_CANVAS = "canvas"
 CONF_BUFFER_ID = "buffer_id"
@@ -161,13 +163,16 @@ DRAW_OPA_SCHEMA = DRAW_SCHEMA.extend(
 
 async def draw_to_code(config, dsc_type, props, do_draw, action_id, template_arg, args):
     widget = await get_widgets(config)
-    x = await pixels_or_percent.process(config[CONF_X])
-    y = await pixels_or_percent.process(config[CONF_Y])
+    x = await pixels_or_percent.process(config.get(CONF_X))
+    y = await pixels_or_percent.process(config.get(CONF_Y))
 
     async def action_func(w: Widget):
         with LocalVariable("dsc", f"lv_draw_{dsc_type}_dsc_t", modifier="") as dsc:
             dsc_addr = literal(f"&{dsc}")
             lv.call(f"draw_{dsc_type}_dsc_init", dsc_addr)
+            if CONF_OPA in config:
+                opa = await opacity.process(config[CONF_OPA])
+                lv_assign(dsc.opa, opa)
             for prop, validator in props.items():
                 if prop in config:
                     value = await validator.process(config[prop])
@@ -302,4 +307,71 @@ async def canvas_draw_image(config, action_id, template_arg, args):
 
     return await draw_to_code(
         config, "img", IMG_PROPS, do_draw_image, action_id, template_arg, args
+    )
+
+
+LINE_PROPS = {
+    "width": STYLE_PROPS["line_width"],
+    "color": STYLE_PROPS["line_color"],
+    "dash-width": STYLE_PROPS["line_dash_width"],
+    "dash-gap": STYLE_PROPS["line_dash_gap"],
+    "round_start": lv_bool,
+    "round_end": lv_bool,
+}
+
+
+@automation.register_action(
+    "lvgl.canvas.draw_line",
+    ObjUpdateAction,
+    cv.Schema(
+        {
+            cv.GenerateID(CONF_ID): cv.use_id(lv_canvas_t),
+            cv.Optional(CONF_OPA, default="COVER"): opacity,
+            cv.Required(CONF_POINTS): cv.ensure_list(point_schema),
+        },
+    ).extend({cv.Optional(prop): validator for prop, validator in LINE_PROPS.items()}),
+)
+async def canvas_draw_line(config, action_id, template_arg, args):
+    points = [
+        [await process_coord(p[CONF_X]), await process_coord(p[CONF_Y])]
+        for p in config[CONF_POINTS]
+    ]
+
+    async def do_draw_line(w: Widget, x, y, dsc_addr):
+        with LocalVariable(
+            "points", cg.std_vector.template(lv_point_t), points, modifier=""
+        ) as points_var:
+            lv.canvas_draw_line(w.obj, points_var.data(), points_var.size(), dsc_addr)
+
+    return await draw_to_code(
+        config, "line", LINE_PROPS, do_draw_line, action_id, template_arg, args
+    )
+
+
+@automation.register_action(
+    "lvgl.canvas.draw_polygon",
+    ObjUpdateAction,
+    cv.Schema(
+        {
+            cv.GenerateID(CONF_ID): cv.use_id(lv_canvas_t),
+            cv.Required(CONF_POINTS): cv.ensure_list(point_schema),
+        },
+    ).extend({cv.Optional(prop): STYLE_PROPS[prop] for prop in RECT_PROPS}),
+)
+async def canvas_draw_polygon(config, action_id, template_arg, args):
+    points = [
+        [await process_coord(p[CONF_X]), await process_coord(p[CONF_Y])]
+        for p in config[CONF_POINTS]
+    ]
+
+    async def do_draw_polygon(w: Widget, x, y, dsc_addr):
+        with LocalVariable(
+            "points", cg.std_vector.template(lv_point_t), points, modifier=""
+        ) as points_var:
+            lv.canvas_draw_polygon(
+                w.obj, points_var.data(), points_var.size(), dsc_addr
+            )
+
+    return await draw_to_code(
+        config, "rect", RECT_PROPS, do_draw_polygon, action_id, template_arg, args
     )
