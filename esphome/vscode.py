@@ -101,7 +101,9 @@ def read_config(args):
     while True:
         CORE.reset()
         data = json.loads(input())
-        assert data["type"] == "validate"
+        assert data["type"] == "validate" or data["type"] == "exit"
+        if data["type"] == "exit":
+            return
         CORE.vscode = True
         CORE.ace = args.ace
         f = data["file"]
