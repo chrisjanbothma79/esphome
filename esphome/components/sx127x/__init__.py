@@ -111,11 +111,13 @@ SHAPING = {
     "NONE": SX127xPaRamp.SHAPING_NONE,
 }
 
+RunImageCalAction = sx127x_ns.class_("RunImageCalAction", automation.Action)
 SendPacketAction = sx127x_ns.class_(
     "SendPacketAction", automation.Action, cg.Parented.template(SX127x)
 )
 SetModeTxAction = sx127x_ns.class_("SetModeTxAction", automation.Action)
 SetModeRxAction = sx127x_ns.class_("SetModeRxAction", automation.Action)
+SetModeSleepAction = sx127x_ns.class_("SetModeSleepAction", automation.Action)
 SetModeStandbyAction = sx127x_ns.class_("SetModeStandbyAction", automation.Action)
 
 
@@ -161,7 +163,7 @@ def validate_config(config):
                 f"Bandwidth {config[CONF_BANDWIDTH]} is only available with LORA"
             )
         if config[CONF_PAYLOAD_LENGTH] > 64:
-            raise cv.Invalid("Payload length must be <= 64 with FSK/OOK")
+            raise cv.Invalid("Payload length must be >= 64 with FSK/OOK")
         if config[CONF_PAYLOAD_LENGTH] > 0 and CONF_DIO0_PIN not in config:
             raise cv.Invalid("Cannot use packet mode without dio0_pin")
         if config[CONF_PREAMBLE_ERRORS] > 0 and config[CONF_PREAMBLE_DETECT] == 0:
@@ -270,7 +272,7 @@ async def to_code(config):
     cg.add(var.set_rx_start(config[CONF_RX_START]))
 
 
-SET_MODE_ACTION_SCHEMA = automation.maybe_simple_id(
+NO_ARGS_ACTION_SCHEMA = automation.maybe_simple_id(
     {
         cv.GenerateID(): cv.use_id(SX127x),
     }
@@ -278,15 +280,21 @@ SET_MODE_ACTION_SCHEMA = automation.maybe_simple_id(
 
 
 @automation.register_action(
-    "sx127x.set_mode_tx", SetModeTxAction, SET_MODE_ACTION_SCHEMA
+    "sx127x.run_image_cal", RunImageCalAction, NO_ARGS_ACTION_SCHEMA
 )
 @automation.register_action(
-    "sx127x.set_mode_rx", SetModeRxAction, SET_MODE_ACTION_SCHEMA
+    "sx127x.set_mode_tx", SetModeTxAction, NO_ARGS_ACTION_SCHEMA
 )
 @automation.register_action(
-    "sx127x.set_mode_standby", SetModeStandbyAction, SET_MODE_ACTION_SCHEMA
+    "sx127x.set_mode_rx", SetModeRxAction, NO_ARGS_ACTION_SCHEMA
 )
-async def set_mode_action_to_code(config, action_id, template_arg, args):
+@automation.register_action(
+    "sx127x.set_mode_sleep", SetModeSleepAction, NO_ARGS_ACTION_SCHEMA
+)
+@automation.register_action(
+    "sx127x.set_mode_standby", SetModeStandbyAction, NO_ARGS_ACTION_SCHEMA
+)
+async def no_args_action_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, paren)
     return var
