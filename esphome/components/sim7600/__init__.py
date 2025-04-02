@@ -96,7 +96,7 @@ CONFIG_SCHEMA = cv.All(
             ),
         }
     )
-    .extend(cv.polling_component_schema("5s"))
+    .extend(cv.polling_component_schema("30s"))
     .extend(uart.UART_DEVICE_SCHEMA)
 )
 FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
