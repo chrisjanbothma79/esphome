@@ -49,7 +49,10 @@ class LVGLSelect : public select::Select, public Component {
   }
 
  protected:
-  void control(const std::string &value) override { this->widget_->set_selected_text(value, this->anim_); }
+  void control(const std::string &value) override {
+    this->widget_->set_selected_text(value, this->anim_);
+    this->publish();
+  }
   void set_options_() { this->traits.set_options(this->widget_->get_options()); }
 
   LvSelectable *widget_;
