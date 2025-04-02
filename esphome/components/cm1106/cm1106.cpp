@@ -53,7 +53,7 @@ void CM1106Component::update() {
 
   this->status_clear_warning();
 
-  int16_t ppm = response[3] << 8 | response[4];
+  uint16_t ppm = response[3] << 8 | response[4];
   ESP_LOGD(TAG, "CM1106 Received CO₂=%uppm DF3=%02X DF4=%02X", ppm, response[5], response[6]);
   if (this->co2_sensor_ != nullptr)
     this->co2_sensor_->publish_state(ppm);
