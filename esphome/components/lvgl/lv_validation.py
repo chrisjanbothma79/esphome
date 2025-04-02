@@ -254,6 +254,15 @@ def pixels_or_percent_validator(value):
 pixels_or_percent = LValidator(pixels_or_percent_validator, uint32, retmapper=literal)
 
 
+def pixels_validator(value):
+    if isinstance(value, str) and value.lower().endswith("px"):
+        value = value[:-2]
+    return cv.positive_int(value)
+
+
+pixels = LValidator(pixels_validator, uint32, retmapper=literal)
+
+
 def zoom_validator(value):
     value = cv.float_range(0.1, 10.0)(value)
     return value

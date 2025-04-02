@@ -2,26 +2,28 @@ from esphome import automation, codegen as cg, config_validation as cv
 from esphome.components.display_menu_base import CONF_LABEL
 from esphome.components.lvgl.automation import action_to_code
 from esphome.components.lvgl.defines import (
+    CONF_END_ANGLE,
     CONF_OPA,
     CONF_PIVOT_X,
     CONF_PIVOT_Y,
     CONF_POINTS,
     CONF_SRC,
+    CONF_START_ANGLE,
     CONF_X,
     CONF_Y,
 )
 from esphome.components.lvgl.lv_validation import (
+    lv_angle,
     lv_bool,
     lv_color,
     lv_image,
     lv_text,
     opacity,
-    pixels_or_percent,
+    pixels,
     size,
 )
 from esphome.components.lvgl.lvcode import LocalVariable, lv, lv_assign
 from esphome.components.lvgl.types import LvType, ObjUpdateAction
-from esphome.components.lvgl.widgets.img import CONF_IMAGE
 from esphome.const import CONF_COLOR, CONF_HEIGHT, CONF_ID, CONF_TEXT, CONF_WIDTH
 from esphome.cpp_generator import Literal, MockObj
 
@@ -35,6 +37,7 @@ CONF_CANVAS = "canvas"
 CONF_BUFFER_ID = "buffer_id"
 CONF_MAX_WIDTH = "max_width"
 CONF_TRANSPARENT = "transparent"
+CONF_RADIUS = "radius"
 
 lv_canvas_t = LvType("lv_canvas_t")
 
@@ -55,7 +58,7 @@ class CanvasType(WidgetType):
         )
 
     def get_uses(self):
-        return "img", CONF_IMAGE, CONF_LABEL
+        return "img", CONF_LABEL
 
     async def to_code(self, w: Widget, config):
         width = config[CONF_WIDTH]
@@ -115,8 +118,8 @@ async def canvas_set_pixel(config, action_id, template_arg, args):
     opa = await opacity.process(config.get(CONF_OPA))
     points = [
         (
-            await pixels_or_percent.process(p[CONF_X]),
-            await pixels_or_percent.process(p[CONF_Y]),
+            await pixels.process(p[CONF_X]),
+            await pixels.process(p[CONF_Y]),
         )
         for p in config[CONF_POINTS]
     ]
@@ -127,8 +130,7 @@ async def canvas_set_pixel(config, action_id, template_arg, args):
                 x, y = point
                 lv.canvas_set_px_color(w.obj, x, y, color)
         else:
-            with LocalVariable("color", "lv_color_t", modifier="") as color_var:
-                lv_assign(color_var, color)
+            with LocalVariable("color", "lv_color_t", color, modifier="") as color_var:
                 for point in points:
                     x, y = point
                     lv.canvas_set_px_color(w.obj, x, y, color_var)
@@ -138,8 +140,7 @@ async def canvas_set_pixel(config, action_id, template_arg, args):
                     x, y = point
                     lv.canvas_set_px_opa(w.obj, x, y, opa)
             else:
-                with LocalVariable("opa", "lv_opa_t") as opa_var:
-                    lv_assign(opa_var, opa)
+                with LocalVariable("opa", "lv_opa_t", opa) as opa_var:
                     for point in points:
                         x, y = point
                         lv.canvas_set_px_opa(w.obj, x, y, opa_var)
@@ -150,8 +151,8 @@ async def canvas_set_pixel(config, action_id, template_arg, args):
 DRAW_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_ID): cv.use_id(lv_canvas_t),
-        cv.Required(CONF_X): cv.templatable(cv.int_),
-        cv.Required(CONF_Y): cv.templatable(cv.int_),
+        cv.Required(CONF_X): pixels,
+        cv.Required(CONF_Y): pixels,
     }
 )
 DRAW_OPA_SCHEMA = DRAW_SCHEMA.extend(
@@ -163,8 +164,8 @@ DRAW_OPA_SCHEMA = DRAW_SCHEMA.extend(
 
 async def draw_to_code(config, dsc_type, props, do_draw, action_id, template_arg, args):
     widget = await get_widgets(config)
-    x = await pixels_or_percent.process(config.get(CONF_X))
-    y = await pixels_or_percent.process(config.get(CONF_Y))
+    x = await pixels.process(config.get(CONF_X))
+    y = await pixels.process(config.get(CONF_Y))
 
     async def action_func(w: Widget):
         with LocalVariable("dsc", f"lv_draw_{dsc_type}_dsc_t", modifier="") as dsc:
@@ -223,8 +224,8 @@ RECT_PROPS = {
     ).extend({cv.Optional(prop): STYLE_PROPS[prop] for prop in RECT_PROPS}),
 )
 async def canvas_draw_rect(config, action_id, template_arg, args):
-    width = await pixels_or_percent.process(config[CONF_WIDTH])
-    height = await pixels_or_percent.process(config[CONF_HEIGHT])
+    width = await pixels.process(config[CONF_WIDTH])
+    height = await pixels.process(config[CONF_HEIGHT])
 
     async def do_draw_rect(w: Widget, x, y, dsc_addr):
         lv.canvas_draw_rect(w.obj, x, y, width, height, dsc_addr)
@@ -262,7 +263,7 @@ TEXT_PROPS = {
 )
 async def canvas_draw_text(config, action_id, template_arg, args):
     text = await lv_text.process(config[CONF_TEXT])
-    max_width = await pixels_or_percent.process(config[CONF_MAX_WIDTH])
+    max_width = await pixels.process(config[CONF_MAX_WIDTH])
 
     async def do_draw_text(w: Widget, x, y, dsc_addr):
         lv.canvas_draw_text(w.obj, x, y, max_width, dsc_addr, text)
@@ -284,20 +285,18 @@ IMG_PROPS = {
 @automation.register_action(
     "lvgl.canvas.draw_image",
     ObjUpdateAction,
-    TEXT_SCHEMA.extend(DRAW_OPA_SCHEMA)
-    .extend(
+    DRAW_OPA_SCHEMA.extend(
         {
             cv.Required(CONF_SRC): lv_image,
-            cv.Optional(CONF_PIVOT_X, default=0): cv.templatable(cv.int_),
-            cv.Optional(CONF_PIVOT_Y, default=0): cv.templatable(cv.int_),
+            cv.Optional(CONF_PIVOT_X, default=0): pixels,
+            cv.Optional(CONF_PIVOT_Y, default=0): pixels,
         },
-    )
-    .extend({cv.Optional(prop): validator for prop, validator in IMG_PROPS.items()}),
+    ).extend({cv.Optional(prop): validator for prop, validator in IMG_PROPS.items()}),
 )
 async def canvas_draw_image(config, action_id, template_arg, args):
     src = await lv_image.process(config[CONF_SRC])
-    pivot_x = await pixels_or_percent.process(config[CONF_PIVOT_X])
-    pivot_y = await pixels_or_percent.process(config[CONF_PIVOT_Y])
+    pivot_x = await pixels.process(config[CONF_PIVOT_X])
+    pivot_y = await pixels.process(config[CONF_PIVOT_Y])
 
     async def do_draw_image(w: Widget, x, y, dsc_addr):
         dsc = literal(f"(*{dsc_addr})")
@@ -326,7 +325,7 @@ LINE_PROPS = {
     cv.Schema(
         {
             cv.GenerateID(CONF_ID): cv.use_id(lv_canvas_t),
-            cv.Optional(CONF_OPA, default="COVER"): opacity,
+            cv.Optional(CONF_OPA): opacity,
             cv.Required(CONF_POINTS): cv.ensure_list(point_schema),
         },
     ).extend({cv.Optional(prop): validator for prop, validator in LINE_PROPS.items()}),
@@ -374,4 +373,35 @@ async def canvas_draw_polygon(config, action_id, template_arg, args):
 
     return await draw_to_code(
         config, "rect", RECT_PROPS, do_draw_polygon, action_id, template_arg, args
+    )
+
+
+ARC_PROPS = {
+    "width": STYLE_PROPS["arc_width"],
+    "color": STYLE_PROPS["arc_color"],
+    "rounded": STYLE_PROPS["arc_rounded"],
+}
+
+
+@automation.register_action(
+    "lvgl.canvas.draw_arc",
+    ObjUpdateAction,
+    DRAW_OPA_SCHEMA.extend(
+        {
+            cv.Required(CONF_RADIUS): pixels,
+            cv.Required(CONF_START_ANGLE): lv_angle,
+            cv.Required(CONF_END_ANGLE): lv_angle,
+        }
+    ).extend({cv.Optional(prop): validator for prop, validator in ARC_PROPS.items()}),
+)
+async def canvas_draw_arc(config, action_id, template_arg, args):
+    radius = await size.process(config[CONF_RADIUS])
+    start_angle = await lv_angle.process(config[CONF_START_ANGLE])
+    end_angle = await lv_angle.process(config[CONF_END_ANGLE])
+
+    async def do_draw_arc(w: Widget, x, y, dsc_addr):
+        lv.canvas_draw_arc(w.obj, x, y, radius, start_angle, end_angle, dsc_addr)
+
+    return await draw_to_code(
+        config, "arc", ARC_PROPS, do_draw_arc, action_id, template_arg, args
     )
