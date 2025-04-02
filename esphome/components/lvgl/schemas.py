@@ -87,8 +87,15 @@ ENCODER_SCHEMA = cv.Schema(
     }
 )
 
+POINT_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_X): cv.templatable(cv.int_),
+        cv.Required(CONF_Y): cv.templatable(cv.int_),
+    }
+)
 
-def point_shorthand(value):
+
+def point_schema(value):
     """
     A shorthand for a point in the form of x,y
     :param value: The value to check
@@ -99,19 +106,9 @@ def point_shorthand(value):
             x, y = map(int, value.split(","))
             return {CONF_X: x, CONF_Y: y}
         except ValueError:
-            pass
-    raise cv.Invalid("Invalid point format, should be <x_value>, <y_value>")
+            raise cv.Invalid("Invalid point format, should be <x_value>, <y_value>")
+    return POINT_SCHEMA(value)
 
-
-POINT_SCHEMA = cv.Any(
-    point_shorthand,
-    cv.Schema(
-        {
-            cv.Required(CONF_X): cv.templatable(cv.int_),
-            cv.Required(CONF_Y): cv.templatable(cv.int_),
-        }
-    ),
-)
 
 # All LVGL styles and their validators
 STYLE_PROPS = {

@@ -25,7 +25,7 @@ from esphome.const import CONF_COLOR, CONF_HEIGHT, CONF_ID, CONF_TEXT, CONF_WIDT
 from esphome.cpp_generator import Literal, MockObj
 
 from ..defines import CONF_MAIN, literal
-from ..schemas import POINT_SCHEMA, STYLE_PROPS, STYLE_REMAP, TEXT_SCHEMA
+from ..schemas import STYLE_PROPS, STYLE_REMAP, TEXT_SCHEMA, point_schema
 from ..types import WidgetType
 from . import Widget, get_widgets
 
@@ -103,7 +103,7 @@ async def canvas_fill(config, action_id, template_arg, args):
             cv.GenerateID(CONF_ID): cv.use_id(lv_canvas_t),
             cv.Required(CONF_COLOR): lv_color,
             cv.Optional(CONF_OPA): opacity,
-            cv.Required(CONF_POINTS): cv.ensure_list(POINT_SCHEMA),
+            cv.Required(CONF_POINTS): cv.ensure_list(point_schema),
         },
     ),
 )
