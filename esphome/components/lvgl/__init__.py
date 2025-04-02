@@ -3,7 +3,6 @@ import logging
 from esphome.automation import build_automation, register_action, validate_automation
 import esphome.codegen as cg
 from esphome.components.display import Display
-from esphome.components.lvgl.widgets.canvas import canvas_spec
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_AUTO_CLEAR_ENABLED,
@@ -75,6 +74,7 @@ from .widgets.animimg import animimg_spec
 from .widgets.arc import arc_spec
 from .widgets.button import button_spec
 from .widgets.buttonmatrix import buttonmatrix_spec
+from .widgets.canvas import canvas_spec
 from .widgets.checkbox import checkbox_spec
 from .widgets.dropdown import dropdown_spec
 from .widgets.img import img_spec

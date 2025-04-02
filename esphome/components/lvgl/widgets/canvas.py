@@ -1,17 +1,5 @@
 from esphome import automation, codegen as cg, config_validation as cv
 from esphome.components.display_menu_base import CONF_LABEL
-from esphome.components.lvgl.automation import action_to_code
-from esphome.components.lvgl.defines import (
-    CONF_END_ANGLE,
-    CONF_OPA,
-    CONF_PIVOT_X,
-    CONF_PIVOT_Y,
-    CONF_POINTS,
-    CONF_SRC,
-    CONF_START_ANGLE,
-    CONF_X,
-    CONF_Y,
-)
 from esphome.components.lvgl.lv_validation import (
     lv_angle,
     lv_bool,
@@ -27,7 +15,20 @@ from esphome.components.lvgl.types import LvType, ObjUpdateAction
 from esphome.const import CONF_COLOR, CONF_HEIGHT, CONF_ID, CONF_TEXT, CONF_WIDTH
 from esphome.cpp_generator import Literal, MockObj
 
-from ..defines import CONF_MAIN, literal
+from ..automation import action_to_code
+from ..defines import (
+    CONF_END_ANGLE,
+    CONF_MAIN,
+    CONF_OPA,
+    CONF_PIVOT_X,
+    CONF_PIVOT_Y,
+    CONF_POINTS,
+    CONF_SRC,
+    CONF_START_ANGLE,
+    CONF_X,
+    CONF_Y,
+    literal,
+)
 from ..schemas import STYLE_PROPS, STYLE_REMAP, TEXT_SCHEMA, point_schema
 from ..types import WidgetType
 from . import Widget, get_widgets
