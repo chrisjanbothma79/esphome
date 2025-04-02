@@ -308,8 +308,6 @@ def pixels_validator(value):
     return cv.int_(value)
 
 
-pixels = LValidator(pixels_validator, uint32, retmapper=literal)
-
 radius_consts = LvConstant("LV_RADIUS_", "CIRCLE")
 
 
