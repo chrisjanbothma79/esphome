@@ -23,6 +23,8 @@ void MipiSpi::setup() {
     delay(5);
     this->reset_pin_->digital_write(true);
   }
+  this->bus_width_ = this->parent_->get_bus_width();
+
   // need to know when the display is ready for SLPOUT command - will be 120ms after reset
   auto when = millis() + 120;
   delay(10);
@@ -108,8 +110,8 @@ void MipiSpi::update() {
   }
   int w = this->x_high_ - this->x_low_ + 1;
   int h = this->y_high_ - this->y_low_ + 1;
-  this->write_to_display_(this->x_low_, this->y_low_, w, h, reinterpret_cast<const uint16_t *>(this->buffer_),
-                          this->x_low_, this->y_low_, this->width_ - w - this->x_low_);
+  this->write_to_display_(this->x_low_, this->y_low_, w, h, this->buffer_, this->x_low_, this->y_low_,
+                          this->width_ - w - this->x_low_);
   // invalidate watermarks
   this->x_low_ = this->width_;
   this->y_low_ = this->height_;
@@ -126,18 +128,33 @@ void MipiSpi::draw_absolute_pixel_internal(int x, int y, Color color) {
     return;
   uint32_t pos = (y * this->width_) + x;
   bool updated = false;
-  pos = pos * 2;
-  uint16_t new_color = display::ColorUtil::color_to_565(color, display::ColorOrder::COLOR_ORDER_RGB);
-  if (this->buffer_[pos] != static_cast<uint8_t>(new_color >> 8)) {
-    this->buffer_[pos] = static_cast<uint8_t>(new_color >> 8);
-    updated = true;
-  }
-  pos = pos + 1;
-  new_color = new_color & 0xFF;
+  switch (this->color_depth_) {
+    case display::COLOR_BITNESS_332: {
+      uint8_t new_color = display::ColorUtil::color_to_332(color, display::ColorOrder::COLOR_ORDER_RGB);
+      if (this->buffer_[pos] != new_color) {
+        this->buffer_[pos] = new_color;
+        updated = true;
+      }
+      break;
+    }
 
-  if (this->buffer_[pos] != new_color) {
-    this->buffer_[pos] = new_color;
-    updated = true;
+    case display::COLOR_BITNESS_565: {
+      pos = pos * 2;
+      uint16_t new_color = display::ColorUtil::color_to_565(color, display::ColorOrder::COLOR_ORDER_RGB);
+      if (this->buffer_[pos] != static_cast<uint8_t>(new_color >> 8)) {
+        this->buffer_[pos] = static_cast<uint8_t>(new_color >> 8);
+        updated = true;
+      }
+      pos = pos + 1;
+      new_color = new_color & 0xFF;
+
+      if (this->buffer_[pos] != new_color) {
+        this->buffer_[pos] = new_color;
+        updated = true;
+      }
+    }
+    default:
+      return;
   }
   if (updated) {
     // low and high watermark may speed up drawing from buffer
@@ -211,7 +228,7 @@ void MipiSpi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
     return;
   if (w <= 0 || h <= 0)
     return;
-  if (bitness != display::COLOR_BITNESS_565 || big_endian != (this->bit_order_ == spi::BIT_ORDER_MSB_FIRST)) {
+  if (bitness != this->color_depth_ || big_endian != (this->bit_order_ == spi::BIT_ORDER_MSB_FIRST)) {
     Display::draw_pixels_at(x_start, y_start, w, h, ptr, order, bitness, big_endian, x_offset, y_offset, x_pad);
     return;
   }
@@ -229,7 +246,7 @@ void MipiSpi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
     x_offset = 0;
     y_offset = 0;
   }
-  this->write_to_display_(x_start, y_start, w, h, reinterpret_cast<const uint16_t *>(ptr), x_offset, y_offset, x_pad);
+  this->write_to_display_(x_start, y_start, w, h, ptr, x_offset, y_offset, x_pad);
 }
 
 void MipiSpi::write_18_bit_(const uint16_t *ptr, size_t w, size_t h, size_t stride) {
@@ -254,11 +271,17 @@ void MipiSpi::write_18_bit_(const uint16_t *ptr, size_t w, size_t h, size_t stri
     this->write_array(transfer_buffer, idx);
 }
 
-void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const uint16_t *ptr, int x_offset, int y_offset,
+void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
                                 int x_pad) {
   this->set_addr_window_(x_start, y_start, x_start + w - 1, y_start + h - 1);
   auto stride = x_offset + w + x_pad;
-  const auto *offset_ptr = ptr + (y_offset * stride + x_offset);
+  const auto *offset_ptr = ptr;
+  if (this->color_depth_ == display::COLOR_BITNESS_332) {
+    offset_ptr += y_offset * stride + x_offset;
+  } else {
+    stride *= 2;
+    offset_ptr += y_offset * stride + x_offset * 2;
+  }
 
   switch (this->bus_width_) {
     case 4:
@@ -266,11 +289,11 @@ void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const ui
       if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
         // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't
         // bother
-        this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, reinterpret_cast<const uint8_t *>(ptr), w * h * 2, 4);
+        this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, ptr, w * h * 2, 4);
       } else {
         this->write_cmd_addr_data(8, 0x32, 24, WDATA << 8, nullptr, 0, 4);
         for (int y = 0; y != h; y++) {
-          this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(offset_ptr), w * 2, 4);
+          this->write_cmd_addr_data(0, 0, 0, 0, offset_ptr, w * 2, 4);
           offset_ptr += stride;
         }
       }
@@ -280,10 +303,10 @@ void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const ui
       this->write_command_(WDATA);
       this->enable();
       if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
-        this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(ptr), w * h * 2, 8);
+        this->write_cmd_addr_data(0, 0, 0, 0, ptr, w * h * 2, 8);
       } else {
         for (int y = 0; y != h; y++) {
-          this->write_cmd_addr_data(0, 0, 0, 0, reinterpret_cast<const uint8_t *>(offset_ptr), w * 2, 4);
+          this->write_cmd_addr_data(0, 0, 0, 0, offset_ptr, w * 2, 8);
           offset_ptr += stride;
         }
       }
@@ -292,15 +315,50 @@ void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const ui
     default:
       this->write_command_(WDATA);
       this->enable();
-      if (this->pixel_mode_ == PIXEL_MODE_18) {
-        this->write_18_bit_(offset_ptr, w, h, stride);
-      } else if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
-        this->write_array(reinterpret_cast<const uint8_t *>(ptr), w * h * 2);
+
+      if (this->color_depth_ == display::COLOR_BITNESS_565) {
+        // Source buffer is 16-bit RGB565
+        if (this->pixel_mode_ == PIXEL_MODE_18) {
+          // Convert RGB565 to RGB666
+          this->write_18_bit_(reinterpret_cast<const uint16_t *>(offset_ptr), w, h, stride / 2);
+        } else {
+          // Direct RGB565 output
+          if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
+            this->write_array(ptr, w * h * 2);
+          } else {
+            for (int y = 0; y != h; y++) {
+              this->write_array(offset_ptr, w * 2);
+              offset_ptr += stride;
+            }
+          }
+        }
       } else {
+        // Source buffer is 8-bit RGB332
+        uint8_t transfer_buffer[512];  // Process in chunks
+        stride -= w;
+
+        size_t buf_idx = 0;
         for (int y = 0; y != h; y++) {
-          this->write_array(reinterpret_cast<const uint8_t *>(offset_ptr), w * 2);
+          for (int x = 0; x != w; x++) {
+            uint8_t rgb332 = *offset_ptr++;
+            if (this->pixel_mode_ == PIXEL_MODE_18) {
+              transfer_buffer[buf_idx++] = rgb332 << 6;           // Blue
+              transfer_buffer[buf_idx++] = (rgb332 << 3) & 0xE0;  // Green
+              transfer_buffer[buf_idx++] = rgb332 & 0xE0;         // Red
+            } else {
+              transfer_buffer[buf_idx++] = (rgb332 & 0xE0) | ((rgb332 & 0x1C) << 3);  // Red
+              transfer_buffer[buf_idx++] = (rgb332 & 0x3) << 3;
+            }
+
+            if (buf_idx >= sizeof(transfer_buffer) - 3) {
+              this->write_array(transfer_buffer, buf_idx);
+              buf_idx = 0;
+            }
+          }
           offset_ptr += stride;
         }
+        if (buf_idx != 0)
+          this->write_array(transfer_buffer, buf_idx);
       }
       break;
   }
@@ -359,6 +417,7 @@ void MipiSpi::dump_config() {
   ESP_LOGCONFIG(TAG, "  Swap X/Y: %s", YESNO(this->madctl_ & MADCTL_MV));
   ESP_LOGCONFIG(TAG, "  Mirror X: %s", YESNO(this->madctl_ & (MADCTL_MX | MADCTL_XFLIP)));
   ESP_LOGCONFIG(TAG, "  Mirror Y: %s", YESNO(this->madctl_ & (MADCTL_MY | MADCTL_YFLIP)));
+  ESP_LOGCONFIG(TAG, "  Color depth: %d bits", this->color_depth_ == display::COLOR_BITNESS_565 ? 16 : 8);
   ESP_LOGCONFIG(TAG, "  Invert colors: %s", YESNO(this->invert_colors_));
   ESP_LOGCONFIG(TAG, "  Color order: %s", this->madctl_ & MADCTL_BGR ? "BGR" : "RGB");
   ESP_LOGCONFIG(TAG, "  Pixel mode: %s", this->pixel_mode_ == PIXEL_MODE_18 ? "18bit" : "16bit");

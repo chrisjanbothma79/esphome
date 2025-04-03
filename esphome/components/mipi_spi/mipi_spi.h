@@ -55,6 +55,12 @@ class MipiSpi : public display::DisplayBuffer,
                 public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                       spi::DATA_RATE_1MHZ> {
  public:
+  MipiSpi(size_t width, size_t height, int16_t offset_width, int16_t offset_height, display::ColorBitness color_depth)
+      : width_(width),
+        height_(height),
+        offset_width_(offset_width),
+        offset_height_(offset_height),
+        color_depth_(color_depth) {}
   void set_model(const char *model) { this->model_ = model; }
   void update() override;
   void setup() override;
@@ -65,10 +71,6 @@ class MipiSpi : public display::DisplayBuffer,
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
   void set_enable_pins(std::vector<GPIOPin *> enable_pins) { this->enable_pins_ = std::move(enable_pins); }
   void set_dc_pin(GPIOPin *dc_pin) { this->dc_pin_ = dc_pin; }
-  void set_dimensions(uint16_t width, uint16_t height) {
-    this->width_ = width;
-    this->height_ = height;
-  }
   void set_invert_colors(bool invert_colors) {
     this->invert_colors_ = invert_colors;
     this->reset_params_();
@@ -76,10 +78,6 @@ class MipiSpi : public display::DisplayBuffer,
   void set_brightness(uint8_t brightness) {
     this->brightness_ = brightness;
     this->reset_params_();
-  }
-  void set_offsets(int16_t offset_x, int16_t offset_y) {
-    this->offset_width_ = offset_x;
-    this->offset_height_ = offset_y;
   }
 
   void set_draw_from_origin(bool draw_from_origin) { this->draw_from_origin_ = draw_from_origin; }
@@ -92,12 +90,12 @@ class MipiSpi : public display::DisplayBuffer,
   void set_init_sequence(const std::vector<uint8_t> &sequence) { this->init_sequence_ = sequence; }
   void set_draw_rounding(unsigned rounding) { this->draw_rounding_ = rounding; }
   void set_spi_16(bool spi_16) { this->spi_16_ = spi_16; }
-  void set_bus_width(uint8_t bus_width) { this->bus_width_ = bus_width; }
 
  protected:
   void check_buffer_() {
     if (!this->is_failed() && this->buffer_ == nullptr) {
-      this->init_internal_(this->width_ * this->height_ * 2);
+      auto bytes_per_pixel = this->color_depth_ == display::COLOR_BITNESS_565 ? 2 : 1;
+      this->init_internal_(this->width_ * this->height_ * bytes_per_pixel);
       if (this->buffer_ == nullptr) {
         this->mark_failed();
       }
@@ -107,7 +105,7 @@ class MipiSpi : public display::DisplayBuffer,
   void draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override;
   void write_18_bit_(const uint16_t *ptr, size_t w, size_t h, size_t stride);
-  void write_to_display_(int x_start, int y_start, int w, int h, const uint16_t *ptr, int x_offset, int y_offset,
+  void write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
                          int x_pad);
   /**
    * the RM67162 in quad SPI mode seems to work like this (not in the datasheet, this is deduced from the
@@ -145,14 +143,15 @@ class MipiSpi : public display::DisplayBuffer,
   bool setup_complete_{};
 
   bool invert_colors_{};
-  size_t width_{};
-  size_t height_{};
-  int16_t offset_width_{0};
-  int16_t offset_height_{0};
+  size_t width_;
+  size_t height_;
+  int16_t offset_width_;
+  int16_t offset_height_;
+  display::ColorBitness color_depth_;
+  PixelMode pixel_mode_{PIXEL_MODE_16};
+  uint8_t bus_width_{};
   bool spi_16_{};
   uint8_t madctl_{};
-  PixelMode pixel_mode_{};
-  uint8_t bus_width_{1};
   bool draw_from_origin_{false};
   unsigned draw_rounding_{2};
   optional<uint8_t> brightness_{};

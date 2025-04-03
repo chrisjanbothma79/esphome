@@ -32,7 +32,9 @@ from esphome.const import (
 )
 from esphome.core import TimePeriod
 
+from ..lvgl.defines import CONF_COLOR_DEPTH
 from . import (
+    CONF_BUS_MODE,
     CONF_DRAW_FROM_ORIGIN,
     CONF_DRAW_ROUNDING,
     CONF_PIXEL_MODE,
@@ -69,15 +71,20 @@ MIPI_SPI = mipi_spi_ns.class_(
     "MipiSpi", display.Display, display.DisplayBuffer, cg.Component, spi.SPIDevice
 )
 ColorOrder = display.display_ns.enum("ColorMode")
+ColorBitness = display.display_ns.enum("ColorBitness")
 Model = mipi_spi_ns.enum("Model")
 
 COLOR_ORDERS = {
     MODE_RGB: ColorOrder.COLOR_ORDER_RGB,
     MODE_BGR: ColorOrder.COLOR_ORDER_BGR,
 }
+
+COLOR_DEPTHS = {
+    8: ColorBitness.COLOR_BITNESS_332,
+    16: ColorBitness.COLOR_BITNESS_565,
+}
 DATA_PIN_SCHEMA = pins.internal_gpio_output_pin_schema
 
-CONF_BUS_MODE = "bus_mode"
 
 DriverChip("CUSTOM", initsequence={})
 
@@ -180,6 +187,8 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
     cv_dimensions = (
         cv.Optional if model.get_default(CONF_WIDTH) and not swapsies else cv.Required
     )
+    pixel_modes = PIXEL_MODES if bus_mode == TYPE_SINGLE else (PIXEL_MODE_16BIT,)
+    color_depth = (16, 8) if bus_mode == TYPE_SINGLE else (8,)
     schema = (
         display.FULL_DISPLAY_SCHEMA.extend(
             spi.spi_device_schema(
@@ -207,14 +216,15 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
                 model.option(CONF_COLOR_ORDER, MODE_BGR): cv.enum(
                     COLOR_ORDERS, upper=True
                 ),
+                model.option(CONF_COLOR_DEPTH, 16): cv.one_of(*color_depth),
                 model.option(CONF_DRAW_ROUNDING, 2): power_of_two,
-                model.option(CONF_PIXEL_MODE, "16bit"): cv.Any(
-                    cv.one_of(*PIXEL_MODES, lower=True),
+                model.option(CONF_PIXEL_MODE, PIXEL_MODE_16BIT): cv.Any(
+                    cv.one_of(*pixel_modes, lower=True),
                     cv.int_range(0, 255, min_included=True, max_included=True),
                 ),
                 cv.Optional(CONF_TRANSFORM): transform,
                 cv.Optional(CONF_BUS_MODE, default=bus_mode): cv.one_of(
-                    *model.modes, lower=True
+                    bus_mode, lower=True
                 ),
                 cv.Required(CONF_MODEL): cv.one_of(model.name, upper=True),
                 iseqconf: cv.ensure_list(map_sequence),
@@ -383,15 +393,35 @@ def get_sequence(model, config):
 
 
 async def to_code(config):
-    bus_mode = config[CONF_BUS_MODE]
-    var = cg.new_Pvariable(config[CONF_ID])
     model = MODELS[config[CONF_MODEL]]
-    cg.add(var.set_init_sequence(get_sequence(model, config)))
-    if bus_mode == TYPE_QUAD:
-        cg.add(var.set_bus_width(4))
-    elif bus_mode == TYPE_OCTAL:
-        cg.add(var.set_bus_width(8))
     transform = get_transform(model, config)
+    if CONF_DIMENSIONS in config:
+        dimensions = config[CONF_DIMENSIONS]
+        if isinstance(dimensions, dict):
+            width = dimensions[CONF_WIDTH]
+            height = dimensions[CONF_HEIGHT]
+            offset_width = dimensions[CONF_OFFSET_WIDTH]
+            offset_height = dimensions[CONF_OFFSET_HEIGHT]
+        else:
+            (width, height) = dimensions
+            offset_width = 0
+            offset_height = 0
+    else:
+        width = model.get_default(CONF_WIDTH)
+        height = model.get_default(CONF_HEIGHT)
+        offset_width = model.get_default(CONF_OFFSET_WIDTH, 0)
+        offset_height = model.get_default(CONF_OFFSET_HEIGHT, 0)
+
+        # Swap default dimensions if swap_xy is set (not for explicit dimensions)
+        if transform[CONF_SWAP_XY] is True:
+            width, height = height, width
+            offset_height, offset_width = offset_width, offset_height
+    color_depth = COLOR_DEPTHS[config[CONF_COLOR_DEPTH]]
+
+    var = cg.new_Pvariable(
+        config[CONF_ID], width, height, offset_width, offset_height, color_depth
+    )
+    cg.add(var.set_init_sequence(get_sequence(model, config)))
     if rotation_as_transform(model, config):
         if CONF_TRANSFORM in config:
             LOGGER.warning("Use of 'transform' with 'rotation' is not recommended")
@@ -412,32 +442,6 @@ async def to_code(config):
     if dc_pin := config.get(CONF_DC_PIN):
         dc_pin = await cg.gpio_pin_expression(dc_pin)
         cg.add(var.set_dc_pin(dc_pin))
-
-    if CONF_DIMENSIONS in config:
-        dimensions = config[CONF_DIMENSIONS]
-        if isinstance(dimensions, dict):
-            cg.add(var.set_dimensions(dimensions[CONF_WIDTH], dimensions[CONF_HEIGHT]))
-            cg.add(
-                var.set_offsets(
-                    dimensions[CONF_OFFSET_WIDTH], dimensions[CONF_OFFSET_HEIGHT]
-                )
-            )
-        else:
-            (width, height) = dimensions
-            cg.add(var.set_dimensions(width, height))
-    else:
-        width = model.get_default(CONF_WIDTH)
-        height = model.get_default(CONF_HEIGHT)
-        offset_width = model.get_default(CONF_OFFSET_WIDTH, 0)
-        offset_height = model.get_default(CONF_OFFSET_HEIGHT, 0)
-
-        # Swap default dimensions if swap_xy is set (not for explicit dimensions)
-        if transform[CONF_SWAP_XY] is True:
-            cg.add(var.set_dimensions(height, width))
-            cg.add(var.set_offsets(offset_height, offset_width))
-        else:
-            cg.add(var.set_dimensions(width, height))
-            cg.add(var.set_offsets(offset_width, offset_height))
 
     if lamb := config.get(CONF_LAMBDA):
         lambda_ = await cg.process_lambda(
