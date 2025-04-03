@@ -133,7 +133,7 @@ class APIServer : public Component, public Controller {
  protected:
   std::unique_ptr<socket::Socket> socket_ = nullptr;
   uint16_t port_{6053};
-  std::string mac_address{};
+  std::string mac_address_{};
   uint32_t reboot_timeout_{300000};
   uint32_t last_connected_{0};
   std::vector<std::unique_ptr<APIConnection>> clients_;
