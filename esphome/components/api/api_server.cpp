@@ -26,7 +26,7 @@ void APIServer::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Home Assistant API server...");
   this->setup_controller();
   if (this->mac_address_.empty()) {
-    this->mac_address_ = std::move(get_mac_address_pretty());
+    this->mac_address_ = get_mac_address_pretty();
   }
   socket_ = socket::socket_ip(SOCK_STREAM, 0);
   if (socket_ == nullptr) {
