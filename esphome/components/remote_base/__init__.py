@@ -10,6 +10,7 @@ from esphome.const import (
     CONF_CHECK,
     CONF_CODE,
     CONF_COMMAND,
+    CONF_COMMAND_REPEATS,
     CONF_DATA,
     CONF_DELTA,
     CONF_DEVICE,
@@ -762,6 +763,10 @@ NEC_FRAME_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ADDRESS): cv.hex_uint16_t,
         cv.Required(CONF_COMMAND): cv.hex_uint16_t,
+        cv.Optional(CONF_COMMAND_REPEATS): cv.invalid(
+            "'command_repeats' option has been renamed to 'repeats'. "
+            "Check Remote receiver/transmitter documentation for more details."
+        ),
     }
 )
 
