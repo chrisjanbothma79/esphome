@@ -32,11 +32,11 @@ from esphome.const import (
 )
 from esphome.core import TimePeriod
 
+from ..const import CONF_DRAW_ROUNDING
 from ..lvgl.defines import CONF_COLOR_DEPTH
 from . import (
     CONF_BUS_MODE,
     CONF_DRAW_FROM_ORIGIN,
-    CONF_DRAW_ROUNDING,
     CONF_PIXEL_MODE,
     CONF_SPI_16,
     CONF_USE_AXIS_FLIPS,
