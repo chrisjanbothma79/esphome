@@ -6,6 +6,9 @@
 #ifdef USE_STATUS_LED
 #include "esphome/components/status_led/status_led.h"
 #endif
+#ifdef USE_ACTIVITY_LED
+#include "esphome/components/activity_led/activity_led.h"
+#endif
 
 namespace esphome {
 
@@ -117,6 +120,11 @@ void IRAM_ATTR HOT Application::feed_wdt() {
 #ifdef USE_STATUS_LED
     if (status_led::global_status_led != nullptr) {
       status_led::global_status_led->call();
+    }
+#endif
+#ifdef USE_ACTIVITY_LED
+    if (activity_led::global_activity_led != nullptr) {
+      activity_led::global_activity_led->call();
     }
 #endif
   }
