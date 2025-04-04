@@ -4,7 +4,7 @@ substitutions:
   miso_pin: GPIO19
   cs_pin: GPIO18
   rst_pin: GPIO23
-  busy_pin: GPIO24
+  busy_pin: GPIO25
   dio1_pin: GPIO26
 
 <<: !include common.yaml
