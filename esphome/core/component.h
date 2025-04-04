@@ -144,10 +144,6 @@ class Component {
 
   void status_momentary_error(const std::string &name, uint32_t length = 5000);
 
-  bool activity_is_active() const;
-
-  bool activity_is_bussy() const;
-
   void activity_set_active(const char *message = "unspecified");
 
   void activity_set_bussy(const char *message = "unspecified");
@@ -294,7 +290,7 @@ class Component {
   /// Cancel a defer callback using the specified name, name must not be empty.
   bool cancel_defer(const std::string &name);  // NOLINT
 
-  uint32_t component_state_{0x0000};  ///< State of this component.
+  uint32_t component_state_{0x000000};  ///< State of this component.
   float setup_priority_override_{NAN};
   const char *component_source_{nullptr};
 };

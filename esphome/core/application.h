@@ -472,6 +472,7 @@ class Application {
 
   std::vector<Component *> components_{};
   std::vector<Component *> looping_components_{};
+  std::vector<Component *> non_looping_components_{};
 
 #ifdef USE_BINARY_SENSOR
   std::vector<binary_sensor::BinarySensor *> binary_sensors_{};

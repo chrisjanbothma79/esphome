@@ -34,14 +34,14 @@ const uint32_t COMPONENT_STATE_CONSTRUCTION = 0x00;
 const uint32_t COMPONENT_STATE_SETUP = 0x01;
 const uint32_t COMPONENT_STATE_LOOP = 0x02;
 const uint32_t COMPONENT_STATE_FAILED = 0x03;
-const uint32_t STATUS_LED_MASK = 0x0F00;
+const uint32_t STATUS_LED_MASK = 0xFF00;
 const uint32_t STATUS_LED_OK = 0x0000;
 const uint32_t STATUS_LED_WARNING = 0x0100;
 const uint32_t STATUS_LED_ERROR = 0x0200;
-const uint32_t ACTIVITY_LED_MASK = 0xF000;
-const uint32_t ACTIVITY_LED_IDLE = 0x0000;
-const uint32_t ACTIVITY_LED_ACTIVE = 0x1000;
-const uint32_t ACTIVITY_LED_BUSSY = 0x2000;
+const uint32_t ACTIVITY_LED_MASK = 0xFF0000;
+const uint32_t ACTIVITY_LED_IDLE = 0x000000;
+const uint32_t ACTIVITY_LED_ACTIVE = 0x010000;
+const uint32_t ACTIVITY_LED_BUSSY = 0x020000;
 
 uint32_t global_state = 0;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
@@ -187,8 +187,6 @@ void Component::status_momentary_error(const std::string &name, uint32_t length)
   this->status_set_error();
   this->set_timeout(name, length, [this]() { this->status_clear_error(); });
 }
-bool Component::activity_is_active() const { return this->component_state_ & ACTIVITY_LED_ACTIVE; }
-bool Component::activity_is_bussy() const { return this->component_state_ & ACTIVITY_LED_BUSSY; }
 void Component::activity_set_active(const char *message) {
   if ((this->component_state_ & ACTIVITY_LED_ACTIVE) != 0)
     return;

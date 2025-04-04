@@ -81,6 +81,11 @@ void Application::loop() {
     this->app_state_ |= new_app_state;
     this->feed_wdt();
   }
+#ifdef USE_ACTIVITY_LED
+  for (Component *component : this->non_looping_components_) {
+    component->activity_clear_all();
+  }
+#endif
   this->app_state_ = new_app_state;
 
   const uint32_t now = millis();
@@ -151,6 +156,8 @@ void Application::calculate_looping_components_() {
   for (auto *obj : this->components_) {
     if (obj->has_overridden_loop())
       this->looping_components_.push_back(obj);
+    else
+      this->non_looping_components_.push_back(obj);
   }
 }
 
