@@ -123,50 +123,41 @@ void MipiSpi::draw_absolute_pixel_internal(int x, int y, Color color) {
   if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0) {
     return;
   }
-  this->check_buffer_();
-  if (this->is_failed())
+  if (!this->check_buffer_())
     return;
-  uint32_t pos = (y * this->width_) + x;
+  size_t pos = (y * this->width_) + x;
   bool updated = false;
   switch (this->color_depth_) {
     case display::COLOR_BITNESS_332: {
-      uint8_t new_color = display::ColorUtil::color_to_332(color, display::ColorOrder::COLOR_ORDER_RGB);
-      if (this->buffer_[pos] != new_color) {
-        this->buffer_[pos] = new_color;
-        updated = true;
-      }
+      uint8_t new_color = display::ColorUtil::color_to_332(color);
+      if (this->buffer_[pos] == new_color)
+        return;
+      this->buffer_[pos] = new_color;
       break;
     }
 
     case display::COLOR_BITNESS_565: {
-      pos = pos * 2;
-      uint16_t new_color = display::ColorUtil::color_to_565(color, display::ColorOrder::COLOR_ORDER_RGB);
-      if (this->buffer_[pos] != static_cast<uint8_t>(new_color >> 8)) {
-        this->buffer_[pos] = static_cast<uint8_t>(new_color >> 8);
-        updated = true;
-      }
-      pos = pos + 1;
-      new_color = new_color & 0xFF;
-
-      if (this->buffer_[pos] != new_color) {
-        this->buffer_[pos] = new_color;
-        updated = true;
-      }
+      auto ptr_16 = reinterpret_cast<uint16_t *>(this->buffer_);
+      uint8_t hi_byte = static_cast<uint8_t>(color.r & 0xF8) | (color.g >> 5);
+      uint8_t lo_byte = static_cast<uint8_t>((color.g & 0x1C) << 3) | (color.b >> 3);
+      uint16_t new_color = hi_byte | (lo_byte << 8);  // big endian
+      if (ptr_16[pos] == new_color)
+        return;
+      ptr_16[pos] = new_color;
+      break;
     }
     default:
       return;
   }
-  if (updated) {
-    // low and high watermark may speed up drawing from buffer
-    if (x < this->x_low_)
-      this->x_low_ = x;
-    if (y < this->y_low_)
-      this->y_low_ = y;
-    if (x > this->x_high_)
-      this->x_high_ = x;
-    if (y > this->y_high_)
-      this->y_high_ = y;
-  }
+  // low and high watermark may speed up drawing from buffer
+  if (x < this->x_low_)
+    this->x_low_ = x;
+  if (y < this->y_low_)
+    this->y_low_ = y;
+  if (x > this->x_high_)
+    this->x_high_ = x;
+  if (y > this->y_high_)
+    this->y_high_ = y;
 }
 
 void MipiSpi::reset_params_() {
@@ -249,7 +240,7 @@ void MipiSpi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
   this->write_to_display_(x_start, y_start, w, h, ptr, x_offset, y_offset, x_pad);
 }
 
-void MipiSpi::write_18_bit_(const uint16_t *ptr, size_t w, size_t h, size_t stride) {
+void MipiSpi::write_18_from_16_bit_(const uint16_t *ptr, size_t w, size_t h, size_t stride) {
   stride -= w;
   uint8_t transfer_buffer[6 * 256];
   size_t idx = 0;  // index into transfer_buffer
@@ -260,6 +251,47 @@ void MipiSpi::write_18_bit_(const uint16_t *ptr, size_t w, size_t h, size_t stri
       transfer_buffer[idx++] = (color_val & 0xF8);                                       // Blue
       transfer_buffer[idx++] = ((color_val & 0x7) << 5) | ((color_val & 0xE000) >> 11);  // Green
       transfer_buffer[idx++] = (color_val >> 5) & 0xF8;                                  // Red
+      if (idx == sizeof(transfer_buffer)) {
+        this->write_array(transfer_buffer, idx);
+        idx = 0;
+      }
+    }
+    ptr += stride;
+  }
+  if (idx != 0)
+    this->write_array(transfer_buffer, idx);
+}
+
+void MipiSpi::write_18_from_8_bit_(const uint8_t *ptr, size_t w, size_t h, size_t stride) {
+  stride -= w;
+  uint8_t transfer_buffer[6 * 256];
+  size_t idx = 0;  // index into transfer_buffer
+  while (h-- != 0) {
+    for (auto x = w; x-- != 0;) {
+      auto color_val = *ptr++;
+      transfer_buffer[idx++] = color_val & 0xE0;         // Red
+      transfer_buffer[idx++] = (color_val << 3) & 0xE0;  // Green
+      transfer_buffer[idx++] = color_val << 6;           // Blue
+      if (idx == sizeof(transfer_buffer)) {
+        this->write_array(transfer_buffer, idx);
+        idx = 0;
+      }
+    }
+    ptr += stride;
+  }
+  if (idx != 0)
+    this->write_array(transfer_buffer, idx);
+}
+
+void MipiSpi::write_16_from_8_bit_(const uint8_t *ptr, size_t w, size_t h, size_t stride) {
+  stride -= w;
+  uint8_t transfer_buffer[6 * 256];
+  size_t idx = 0;  // index into transfer_buffer
+  while (h-- != 0) {
+    for (auto x = w; x-- != 0;) {
+      auto color_val = *ptr++;
+      transfer_buffer[idx++] = (color_val & 0xE0) | ((color_val & 0x1C) >> 2);
+      transfer_buffer[idx++] = (color_val & 0x3) << 3;
       if (idx == sizeof(transfer_buffer)) {
         this->write_array(transfer_buffer, idx);
         idx = 0;
@@ -320,7 +352,7 @@ void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const ui
         // Source buffer is 16-bit RGB565
         if (this->pixel_mode_ == PIXEL_MODE_18) {
           // Convert RGB565 to RGB666
-          this->write_18_bit_(reinterpret_cast<const uint16_t *>(offset_ptr), w, h, stride / 2);
+          this->write_18_from_16_bit_(reinterpret_cast<const uint16_t *>(offset_ptr), w, h, stride / 2);
         } else {
           // Direct RGB565 output
           if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
@@ -334,33 +366,14 @@ void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const ui
         }
       } else {
         // Source buffer is 8-bit RGB332
-        uint8_t transfer_buffer[512];  // Process in chunks
-        stride -= w;
-
-        size_t buf_idx = 0;
-        for (int y = 0; y != h; y++) {
-          for (int x = 0; x != w; x++) {
-            uint8_t rgb332 = *offset_ptr++;
-            if (this->pixel_mode_ == PIXEL_MODE_18) {
-              transfer_buffer[buf_idx++] = rgb332 << 6;           // Blue
-              transfer_buffer[buf_idx++] = (rgb332 << 3) & 0xE0;  // Green
-              transfer_buffer[buf_idx++] = rgb332 & 0xE0;         // Red
-            } else {
-              transfer_buffer[buf_idx++] = (rgb332 & 0xE0) | ((rgb332 & 0x1C) << 3);  // Red
-              transfer_buffer[buf_idx++] = (rgb332 & 0x3) << 3;
-            }
-
-            if (buf_idx >= sizeof(transfer_buffer) - 3) {
-              this->write_array(transfer_buffer, buf_idx);
-              buf_idx = 0;
-            }
-          }
-          offset_ptr += stride;
+        if (this->pixel_mode_ == PIXEL_MODE_18) {
+          // Convert RGB332 to RGB666
+          this->write_18_from_8_bit_(offset_ptr, w, h, stride);
+        } else {
+          this->write_16_from_8_bit_(offset_ptr, w, h, stride);
         }
-        if (buf_idx != 0)
-          this->write_array(transfer_buffer, buf_idx);
+        break;
       }
-      break;
   }
   this->disable();
 }

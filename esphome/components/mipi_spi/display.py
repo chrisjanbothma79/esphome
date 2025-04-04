@@ -188,7 +188,9 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
         cv.Optional if model.get_default(CONF_WIDTH) and not swapsies else cv.Required
     )
     pixel_modes = PIXEL_MODES if bus_mode == TYPE_SINGLE else (PIXEL_MODE_16BIT,)
-    color_depth = (16, 8) if bus_mode == TYPE_SINGLE else (8,)
+    color_depth = (
+        ("16", "8", "16bit", "8bit") if bus_mode == TYPE_SINGLE else ("16", "16bit")
+    )
     schema = (
         display.FULL_DISPLAY_SCHEMA.extend(
             spi.spi_device_schema(
@@ -216,7 +218,7 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
                 model.option(CONF_COLOR_ORDER, MODE_BGR): cv.enum(
                     COLOR_ORDERS, upper=True
                 ),
-                model.option(CONF_COLOR_DEPTH, 16): cv.one_of(*color_depth),
+                model.option(CONF_COLOR_DEPTH, 16): cv.one_of(*color_depth, lower=True),
                 model.option(CONF_DRAW_ROUNDING, 2): power_of_two,
                 model.option(CONF_PIXEL_MODE, PIXEL_MODE_16BIT): cv.Any(
                     cv.one_of(*pixel_modes, lower=True),
@@ -416,7 +418,10 @@ async def to_code(config):
         if transform[CONF_SWAP_XY] is True:
             width, height = height, width
             offset_height, offset_width = offset_width, offset_height
-    color_depth = COLOR_DEPTHS[config[CONF_COLOR_DEPTH]]
+    color_depth = config[CONF_COLOR_DEPTH]
+    if color_depth.endswith("bit"):
+        color_depth = color_depth[:-3]
+    color_depth = COLOR_DEPTHS[int(color_depth)]
 
     var = cg.new_Pvariable(
         config[CONF_ID], width, height, offset_width, offset_height, color_depth

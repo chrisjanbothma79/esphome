@@ -92,19 +92,23 @@ class MipiSpi : public display::DisplayBuffer,
   void set_spi_16(bool spi_16) { this->spi_16_ = spi_16; }
 
  protected:
-  void check_buffer_() {
+  bool check_buffer_() {
     if (!this->is_failed() && this->buffer_ == nullptr) {
       auto bytes_per_pixel = this->color_depth_ == display::COLOR_BITNESS_565 ? 2 : 1;
       this->init_internal_(this->width_ * this->height_ * bytes_per_pixel);
       if (this->buffer_ == nullptr) {
         this->mark_failed();
+        return false;
       }
     }
+    return true;
   }
   void draw_absolute_pixel_internal(int x, int y, Color color) override;
   void draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override;
-  void write_18_bit_(const uint16_t *ptr, size_t w, size_t h, size_t stride);
+  void write_18_from_16_bit_(const uint16_t *ptr, size_t w, size_t h, size_t stride);
+  void write_18_from_8_bit_(const uint8_t *ptr, size_t w, size_t h, size_t stride);
+  void write_16_from_8_bit_(const uint8_t *ptr, size_t w, size_t h, size_t stride);
   void write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
                          int x_pad);
   /**
