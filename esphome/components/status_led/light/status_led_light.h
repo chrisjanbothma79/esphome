@@ -36,7 +36,7 @@ class StatusLEDLightOutput : public light::LightOutput, public Component {
   GPIOPin *pin_{nullptr};
   output::BinaryOutput *output_{nullptr};
   light::LightState *lightstate_{};
-  uint8_t flash_cycles_left_{0};
+  uint8_t cycles_left_{0};
   uint32_t last_app_state_{0xFFFF};
   void output_state_(bool state);
 };
