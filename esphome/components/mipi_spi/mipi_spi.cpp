@@ -126,7 +126,6 @@ void MipiSpi::draw_absolute_pixel_internal(int x, int y, Color color) {
   if (!this->check_buffer_())
     return;
   size_t pos = (y * this->width_) + x;
-  bool updated = false;
   switch (this->color_depth_) {
     case display::COLOR_BITNESS_332: {
       uint8_t new_color = display::ColorUtil::color_to_332(color);
