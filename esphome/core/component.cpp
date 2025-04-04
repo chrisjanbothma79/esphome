@@ -215,6 +215,10 @@ void Component::activity_clear_bussy() {
   this->component_state_ &= ~ACTIVITY_LED_BUSSY;
   ESP_LOGVV(TAG, "Component %s cleared Bussy flag", this->get_component_source());
 }
+void Component::activity_clear_all() {
+  this->activity_clear_active();
+  this->activity_clear_bussy();
+}
 void Component::dump_config() {}
 float Component::get_actual_setup_priority() const {
   if (std::isnan(this->setup_priority_override_))

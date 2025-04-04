@@ -156,6 +156,8 @@ class Component {
 
   void activity_clear_bussy();
 
+  void activity_clear_all();
+
   bool has_overridden_loop() const;
 
   /** Set where this component was loaded from for some debug messages.

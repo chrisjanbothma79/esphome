@@ -77,6 +77,10 @@ void Application::loop() {
       component->call();
     }
     new_app_state |= component->get_component_state();
+#ifdef USE_ACTIVITY_LED
+    // Clear all activity fields since fetched, make ready to set again
+    component->activity_clear_all();
+#endif
     this->app_state_ |= new_app_state;
     this->feed_wdt();
   }
