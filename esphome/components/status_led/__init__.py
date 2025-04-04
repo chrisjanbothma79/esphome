@@ -7,10 +7,13 @@ from esphome.core import coroutine_with_priority
 status_led_ns = cg.esphome_ns.namespace("status_led")
 StatusLED = status_led_ns.class_("StatusLED", cg.Component)
 
+CONF_ACTIVITY_LED = "activity_led"
+
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(StatusLED),
         cv.Required(CONF_PIN): pins.gpio_output_pin_schema,
+        cv.Optional(CONF_ACTIVITY_LED, default=False): bool,
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -23,3 +26,5 @@ async def to_code(config):
     await cg.register_component(var, config)
     cg.add(var.pre_setup())
     cg.add_define("USE_STATUS_LED")
+    if config[CONF_ACTIVITY_LED]:
+        cg.add_define("USE_ACTIVITY_LED")

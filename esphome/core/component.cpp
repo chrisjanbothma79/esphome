@@ -189,14 +189,14 @@ void Component::status_momentary_error(const std::string &name, uint32_t length)
 }
 bool Component::activity_is_active() const { return this->component_state_ & ACTIVITY_LED_ACTIVE; }
 bool Component::activity_is_bussy() const { return this->component_state_ & ACTIVITY_LED_BUSSY; }
-void Component::activity_set_active(const char *message = "unspecified") {
+void Component::activity_set_active(const char *message) {
   if ((this->component_state_ & ACTIVITY_LED_ACTIVE) != 0)
     return;
   this->component_state_ |= ACTIVITY_LED_ACTIVE;
   App.app_state_ |= ACTIVITY_LED_ACTIVE;
   ESP_LOGVV(TAG, "Component %s set Active flag: %s", this->get_component_source(), message);
 }
-void Component::activity_set_bussy(const char *message = "unspecified") {
+void Component::activity_set_bussy(const char *message) {
   if ((this->component_state_ & ACTIVITY_LED_BUSSY) != 0)
     return;
   this->component_state_ |= ACTIVITY_LED_BUSSY;

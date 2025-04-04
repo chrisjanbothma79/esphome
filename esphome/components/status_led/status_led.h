@@ -18,6 +18,7 @@ class StatusLED : public Component {
 
  protected:
   GPIOPin *pin_;
+  uint8_t flash_cycles_left_{0};
 };
 
 extern StatusLED *global_status_led;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)

@@ -10,6 +10,9 @@ static const char *const TAG = "status_led";
 
 void StatusLEDLightOutput::loop() {
   uint32_t new_state = App.get_app_state() & STATUS_LED_MASK;
+#ifdef USE_ACTIVITY_LED
+  new_state |= App.get_app_state() & ACTIVITY_LED_MASK;
+#endif
 
   if (new_state != this->last_app_state_) {
     ESP_LOGV(TAG, "New app state 0x%08" PRIX32, new_state);
@@ -21,6 +24,32 @@ void StatusLEDLightOutput::loop() {
   } else if ((new_state & STATUS_LED_WARNING) != 0u) {
     this->output_state_(millis() % 1500u < 250u);
     this->last_app_state_ = new_state;
+#ifdef USE_ACTIVITY_LED
+  } else if ((new_state & ACTIVITY_LED_BUSSY) != 0u) {
+    this->flash_cycles_left_ = 3u;
+    // if (this->pin_->digital_read()) {
+    //   this->pin_->digital_write(false);
+    //   this->flash_cycles_left_++;
+    // } else
+    //   this->pin_->digital_write(true);
+    this->output_state_(true);
+    this->last_app_state_ = new_state;
+  } else if ((new_state & ACTIVITY_LED_ACTIVE) != 0u) {
+    this->flash_cycles_left_ = 1u;
+    // if (this->pin_->digital_read()) {
+    //   this->pin_->digital_write(false);
+    //   this->flash_cycles_left_++;
+    // } else
+    //   this->pin_->digital_write(true);
+    this->output_state_(true);
+    this->last_app_state_ = new_state;
+  } else if (this->flash_cycles_left_ > 0) {
+    this->flash_cycles_left_--;
+    if (this->flash_cycles_left_ % 2 == 0)
+      this->output_state_(false);
+    else
+      this->output_state_(true);
+#endif
   } else if (new_state != this->last_app_state_) {
     // if no error/warning -> restore light state or turn off
     bool state = false;
