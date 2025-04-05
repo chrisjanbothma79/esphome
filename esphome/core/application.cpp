@@ -154,10 +154,11 @@ void Application::run_safe_shutdown_hooks() {
 
 void Application::calculate_looping_components_() {
   for (auto *obj : this->components_) {
-    if (obj->has_overridden_loop())
+    if (obj->has_overridden_loop()) {
       this->looping_components_.push_back(obj);
-    else
+    } else {
       this->non_looping_components_.push_back(obj);
+    }
   }
 }
 
