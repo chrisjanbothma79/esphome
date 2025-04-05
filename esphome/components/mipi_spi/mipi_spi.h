@@ -100,9 +100,11 @@ class MipiSpi : public display::DisplayBuffer,
         this->mark_failed();
         return false;
       }
+      this->buffer_bytes_ = this->width_ * this->height_ * bytes_per_pixel;
     }
     return true;
   }
+  void fill(Color color) override;
   void draw_absolute_pixel_internal(int x, int y, Color color) override;
   void draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override;
@@ -151,6 +153,7 @@ class MipiSpi : public display::DisplayBuffer,
   size_t height_;
   int16_t offset_width_;
   int16_t offset_height_;
+  size_t buffer_bytes_{0};
   display::ColorBitness color_depth_;
   PixelMode pixel_mode_{PIXEL_MODE_16};
   uint8_t bus_width_{};

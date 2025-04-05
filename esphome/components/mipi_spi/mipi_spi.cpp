@@ -119,6 +119,35 @@ void MipiSpi::update() {
   this->y_high_ = 0;
 }
 
+void MipiSpi::fill(Color color) {
+  if (!this->check_buffer_())
+    return;
+  this->x_low_ = 0;
+  this->y_low_ = 0;
+  this->x_high_ = this->get_width_internal() - 1;
+  this->y_high_ = this->get_height_internal() - 1;
+  switch (this->color_depth_) {
+    case display::COLOR_BITNESS_332: {
+      auto new_color = display::ColorUtil::color_to_332(color, display::ColorOrder::COLOR_ORDER_RGB);
+      memset(this->buffer_, (uint8_t) new_color, this->buffer_bytes_);
+      break;
+    }
+    default: {
+      auto new_color = display::ColorUtil::color_to_565(color);
+      if (((uint8_t) (new_color >> 8)) == ((uint8_t) new_color)) {
+        // Upper and lower is equal can use quicker memset operation. Takes ~20ms.
+        memset(this->buffer_, (uint8_t) new_color, this->buffer_bytes_);
+      } else {
+        auto *ptr_16 = reinterpret_cast<uint16_t *>(this->buffer_);
+        auto len = this->buffer_bytes_ / 2;
+        while (len--) {
+          *ptr_16++ = new_color;
+        }
+      }
+    }
+  }
+}
+
 void MipiSpi::draw_absolute_pixel_internal(int x, int y, Color color) {
   if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0) {
     return;
