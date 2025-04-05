@@ -128,6 +128,8 @@ class Component {
 
   virtual bool can_proceed();
 
+  void set_activity_reporting(bool active);
+
   bool status_has_warning() const;
 
   bool status_has_error() const;
@@ -290,6 +292,7 @@ class Component {
   /// Cancel a defer callback using the specified name, name must not be empty.
   bool cancel_defer(const std::string &name);  // NOLINT
 
+  bool report_activity_{false};
   uint32_t component_state_{0x000000};  ///< State of this component.
   float setup_priority_override_{NAN};
   const char *component_source_{nullptr};
