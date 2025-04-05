@@ -51,6 +51,9 @@ void IDFI2CBus::setup() {
   } else {
     bus_conf.lp_source_clk = LP_I2C_SCLK_DEFAULT;
   }
+#elif defined(USE_ESP32_VARIANT_ESP32S2)
+  // workaround for https://github.com/esphome/issues/issues/6718
+  bus_conf.clk_source = I2C_CLK_SRC_REF_TICK;
 #else
   bus_conf.clk_source = I2C_CLK_SRC_DEFAULT;
 #endif
