@@ -8,3 +8,4 @@ light:
   - platform: status_led
     name: Switch State
     pin: 4
+    activity_led: True
