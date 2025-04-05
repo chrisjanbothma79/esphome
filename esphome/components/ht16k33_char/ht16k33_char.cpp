@@ -17,17 +17,17 @@
  *         on the next display.
  */
 
-// States for the scrolling state machine.
-#define HT16K33_SCROLL_STATE_STATIC 0  // No scrolling. If this state is set, it will never change.
-#define HT16K33_SCROLL_STATE_START 1
-#define HT16K33_SCROLL_STATE_SCROLLING 2
-#define HT16K33_SCROLL_STATE_END 3
-#define HT16K33_SCROLL_STATE_FIRST_START 4
-
 namespace esphome {
 namespace ht16k33_char {
 
 static const char *const TAG = "ht16k33_char";
+
+// States for the scrolling state machine.
+static const uint8_t HT16K33_SCROLL_STATE_STATIC = 0;
+static const uint8_t HT16K33_SCROLL_STATE_START = 1;
+static const uint8_t HT16K33_SCROLL_STATE_SCROLLING = 2;
+static const uint8_t HT16K33_SCROLL_STATE_END = 3;
+static const uint8_t HT16K33_SCROLL_STATE_FIRST_START = 4;
 
 // Return a setup priority. More info here: https://esphome.io/api/namespaceesphome_1_1setup__priority
 float HT16k33CharComponent::get_setup_priority() const { return setup_priority::PROCESSOR; }
