@@ -22,13 +22,16 @@ CONFIG_SCHEMA = cv.Schema(
         ): cv.All(
             cv.boolean,
             cv.Any(
-                cv.require_framework_version(
-                    esp_idf=cv.Version(0, 0, 0),
-                    esp32_arduino=cv.Version(0, 0, 0),
-                    esp8266_arduino=cv.Version(0, 0, 0),
-                    rp2040_arduino=cv.Version(0, 0, 0),
-                    bk72xx_libretiny=cv.Version(1, 7, 0),
-                    nrf52_zephyr=cv.Version(0, 0, 0),
+                ## TODO: remove this when nrf52_zephyr is added
+                lambda value: value if (CORE.is_nrf52) else (
+                    cv.require_framework_version(
+                        esp_idf=cv.Version(0, 0, 0),
+                        esp32_arduino=cv.Version(0, 0, 0),
+                        esp8266_arduino=cv.Version(0, 0, 0),
+                        rp2040_arduino=cv.Version(0, 0, 0),
+                        bk72xx_libretiny=cv.Version(1, 7, 0),
+                        nrf52_zephyr=cv.Version(0, 0, 0),
+                    )(value)
                 ),
                 cv.boolean_false,
             ),

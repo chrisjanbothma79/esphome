@@ -60,9 +60,6 @@ socklen_t set_sockaddr(struct sockaddr *addr, socklen_t addrlen, const std::stri
 /// Set a sockaddr to the any address and specified port for the IP version used by socket_ip().
 socklen_t set_sockaddr_any(struct sockaddr *addr, socklen_t addrlen, uint16_t port);
 
-/// Set a sockaddr to the NAT64 translation of the given IPv4 address and port.
-socklen_t set_sockaddr_nat64(struct sockaddr *addr, socklen_t addrlen, const std::string &ipv4_address, uint16_t port);
-
 /// Format a sockaddr_storage as a string.
 std::string format_sockaddr(const struct sockaddr_storage &storage);
 }  // namespace socket
