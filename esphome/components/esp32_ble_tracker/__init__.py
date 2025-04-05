@@ -23,6 +23,7 @@ from esphome.const import (
     CONF_TRIGGER_ID,
     KEY_CORE,
     KEY_FRAMEWORK_VERSION,
+    CONF_CONTINUOUS,
 )
 from esphome.core import CORE
 
@@ -32,7 +33,6 @@ DEPENDENCIES = ["esp32"]
 CONF_ESP32_BLE_ID = "esp32_ble_id"
 CONF_SCAN_PARAMETERS = "scan_parameters"
 CONF_WINDOW = "window"
-CONF_CONTINUOUS = "continuous"
 CONF_ON_SCAN_END = "on_scan_end"
 esp32_ble_tracker_ns = cg.esphome_ns.namespace("esp32_ble_tracker")
 ESP32BLETracker = esp32_ble_tracker_ns.class_(
