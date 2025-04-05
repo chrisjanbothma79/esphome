@@ -1,10 +1,28 @@
+import logging
+
 import esphome.codegen as cg
-from esphome.components.esp32 import add_idf_sdkconfig_option, get_esp32_variant
+from esphome.components.esp32 import (
+    CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES,
+    add_idf_sdkconfig_option,
+    get_esp32_variant,
+)
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_MODE, CONF_SPEED
+from esphome.const import (
+    CONF_ADVANCED,
+    CONF_FRAMEWORK,
+    CONF_ID,
+    CONF_MODE,
+    CONF_SPEED,
+    PLATFORM_ESP32,
+)
 from esphome.core import CORE
+import esphome.final_validate as fv
 
 CODEOWNERS = ["@esphome/core"]
+
+DEPENDENCIES = [PLATFORM_ESP32]
+
+_LOGGER = logging.getLogger(__name__)
 
 psram_ns = cg.esphome_ns.namespace("psram")
 PsramComponent = psram_ns.class_("PsramComponent", cg.Component)
@@ -26,25 +44,31 @@ SPIRAM_SPEEDS = {
 
 def validate_psram_mode(config):
     if config[CONF_MODE] == TYPE_OCTAL and config[CONF_SPEED] == 120e6:
-        raise cv.Invalid("PSRAM 120MHz is not supported in octal mode")
+        esp32_config = fv.full_config.get()[PLATFORM_ESP32]
+        if (
+            esp32_config[CONF_FRAMEWORK]
+            .get(CONF_ADVANCED, {})
+            .get(CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES)
+        ):
+            _LOGGER.warning(
+                "120MHz PSRAM in octal mode is an experimental feature - use at your own risk"
+            )
+        else:
+            raise cv.Invalid("PSRAM 120MHz is not supported in octal mode")
     return config
 
 
-CONFIG_SCHEMA = cv.All(
-    cv.Schema(
-        {
-            cv.GenerateID(): cv.declare_id(PsramComponent),
-            cv.Optional(CONF_MODE, default=TYPE_QUAD): cv.enum(
-                SPIRAM_MODES, lower=True
-            ),
-            cv.Optional(CONF_SPEED, default=40e6): cv.All(
-                cv.frequency, cv.one_of(*SPIRAM_SPEEDS)
-            ),
-        }
-    ),
-    cv.only_on_esp32,
-    validate_psram_mode,
+CONFIG_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.declare_id(PsramComponent),
+        cv.Optional(CONF_MODE, default=TYPE_QUAD): cv.enum(SPIRAM_MODES, lower=True),
+        cv.Optional(CONF_SPEED, default=40e6): cv.All(
+            cv.frequency, cv.one_of(*SPIRAM_SPEEDS)
+        ),
+    }
 )
+
+FINAL_VALIDATE_SCHEMA = validate_psram_mode
 
 
 async def to_code(config):
@@ -62,6 +86,8 @@ async def to_code(config):
 
         add_idf_sdkconfig_option(f"{SPIRAM_MODES[config[CONF_MODE]]}", True)
         add_idf_sdkconfig_option(f"{SPIRAM_SPEEDS[config[CONF_SPEED]]}", True)
+        if config[CONF_MODE] == TYPE_OCTAL and config[CONF_SPEED] == 120e6:
+            add_idf_sdkconfig_option("CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240", True)
 
     cg.add_define("USE_PSRAM")
 
