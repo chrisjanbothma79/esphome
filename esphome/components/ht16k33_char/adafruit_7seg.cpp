@@ -29,47 +29,19 @@ namespace ht16k33_char {
 static const char *const TAG = "ht16k33_char";
 
 // Position is the position in the character buffer. position 0 is the begining of the buffer
-// Returns the index of the first character to display in the buffer (what we would give as `position` to the next call 
+// Returns the index of the first character to display in the buffer (what we would give as `position` to the next call
 // to this function).
-uint8_t Adafruit_7seg::send_to_display(i2c::I2CDevice *display, uint8_t position){
+uint8_t Adafruit_7seg::send_to_display(i2c::I2CDevice *display, uint8_t position) {
   uint8_t i;
   char char_to_find;
   bool special_character_found;
   const std::unordered_map<char, uint8_t> char_map = {
-      {'0', 0b00111111},  //The number zero
-      {'1', 0b00000110}, 
-      {'2', 0b01011011},
-      {'3', 0b01001111},
-      {'4', 0b01100110},
-      {'5', 0b01101101},
-      {'6', 0b01111101},
-      {'7', 0b00000111},
-      {'8', 0b01111111},
-      {'9', 0b01101111},
-      {' ', 0b00000000},  //Blank space
-      {'A', 0b01110111},
-      {'b', 0b01111100},
-      {'C', 0b00111001},
-      {'c', 0b01011000},
-      {'d', 0b01011110},
-      {'E', 0b01111001},
-      {'F', 0b01110001},
-      {'G', 0b00111101},
-      {'H', 0b01110110},
-      {'h', 0b01110100},
-      {'I', 0b00110000},
-      {'J', 0b00001110},
-      {'L', 0b00111000},
-      {'N', 0b00110111},
-      {'O', 0b00111111},  //The capitol letter 'o'
-      {'o', 0b01011100},  //The lower case letter 'o'
-      {'P', 0b01110011},
-      {'r', 0b01010000},
-      {'S', 0b01101101},
-      {'t', 0b01111000},
-      {'U', 0b00111110},
-      {'u', 0b00011100},
-      {'Y', 0b01101110},
+      {'0', 0b00111111}, {'1', 0b00000110}, {'2', 0b01011011}, {'3', 0b01001111}, {'4', 0b01100110}, {'5', 0b01101101},
+      {'6', 0b01111101}, {'7', 0b00000111}, {'8', 0b01111111}, {'9', 0b01101111}, {' ', 0b00000000}, {'A', 0b01110111},
+      {'b', 0b01111100}, {'C', 0b00111001}, {'c', 0b01011000}, {'d', 0b01011110}, {'E', 0b01111001}, {'F', 0b01110001},
+      {'G', 0b00111101}, {'H', 0b01110110}, {'h', 0b01110100}, {'I', 0b00110000}, {'J', 0b00001110}, {'L', 0b00111000},
+      {'N', 0b00110111}, {'O', 0b00111111}, {'o', 0b01011100}, {'P', 0b01110011}, {'r', 0b01010000}, {'S', 0b01101101},
+      {'t', 0b01111000}, {'U', 0b00111110}, {'u', 0b00011100}, {'Y', 0b01101110},
   };
 
   const uint8_t digit_map[4] = {1, 3, 7, 9};
@@ -78,7 +50,7 @@ uint8_t Adafruit_7seg::send_to_display(i2c::I2CDevice *display, uint8_t position
   this->buffer_[0] = HT16K33_DISPLAY_DATA_ADDRESS;
 
   // Clear any old data from the buffer
-  for(int i = 1; i < 16; i++) {
+  for (int i = 1; i < 16; i++) {
     this->buffer_[i] = 0x00;
   }
 
@@ -168,40 +140,11 @@ uint8_t Adafruit_7seg_flip::send_to_display(i2c::I2CDevice *display, uint8_t pos
   char char_to_find;
   bool special_character_found;
   const std::unordered_map<char, uint8_t> char_map = {
-      {'0', 0x3F}, //The number zero
-      {'1', 0x30},
-      {'2', 0x5B},
-      {'3', 0x79},
-      {'4', 0x74},
-      {'5', 0x6D},
-      {'6', 0x6F},
-      {'7', 0x38},
-      {'8', 0x7F},
-      {'9', 0x7D},
-      {' ', 0x00}, //Blank space
-      {'A', 0x7E},
-      {'b', 0x67},
-      {'C', 0x0F},
-      {'c', 0x43},
-      {'d', 0x73},
-      {'E', 0x4F},
-      {'F', 0x4E},
-      {'G', 0x2F},
-      {'H', 0x76},
-      {'h', 0x66},
-      {'I', 0x06},
-      {'J', 0x31},
-      {'L', 0x07},
-      {'N', 0x3E},
-      {'O', 0x3F}, //The capitol letter 'O'
-      {'o', 0x63}, //The lower case letter 'o'
-      {'P', 0x5E},
-      {'r', 0x42},
-      {'S', 0x6D},
-      {'t', 0x47},
-      {'U', 0x37},
-      {'u', 0x23},
-      {'Y', 0x75},
+      {'0', 0x3F}, {'1', 0x30}, {'2', 0x5B}, {'3', 0x79}, {'4', 0x74}, {'5', 0x6D}, {'6', 0x6F}, {'7', 0x38},
+      {'8', 0x7F}, {'9', 0x7D}, {' ', 0x00}, {'A', 0x7E}, {'b', 0x67}, {'C', 0x0F}, {'c', 0x43}, {'d', 0x73},
+      {'E', 0x4F}, {'F', 0x4E}, {'G', 0x2F}, {'H', 0x76}, {'h', 0x66}, {'I', 0x06}, {'J', 0x31}, {'L', 0x07},
+      {'N', 0x3E}, {'O', 0x3F}, {'o', 0x63}, {'P', 0x5E}, {'r', 0x42}, {'S', 0x6D}, {'t', 0x47}, {'U', 0x37},
+      {'u', 0x23}, {'Y', 0x75},
   };
 
   const uint8_t digit_map[4] = {9, 7, 3, 1};
@@ -210,7 +153,7 @@ uint8_t Adafruit_7seg_flip::send_to_display(i2c::I2CDevice *display, uint8_t pos
   this->buffer_[0] = HT16K33_DISPLAY_DATA_ADDRESS;
 
   // Clear any old data from the buffer
-  for(int i = 1; i < 16; i++) {
+  for (int i = 1; i < 16; i++) {
     this->buffer_[i] = 0x00;
   }
 
@@ -246,7 +189,7 @@ uint8_t Adafruit_7seg_flip::send_to_display(i2c::I2CDevice *display, uint8_t pos
         // invalid character, that location in the display will be left blank. only one special character will be
         // evaulated per location on the display.
         if (!special_character_found) {
-          if( char_to_find == ':') {
+          if (char_to_find == ':') {
             if (i == 2) {
               // We want a colon between digit 2 and 3
               this->buffer_[5] = this->buffer_[5] | 0b00000010;
@@ -255,7 +198,7 @@ uint8_t Adafruit_7seg_flip::send_to_display(i2c::I2CDevice *display, uint8_t pos
               continue;
             }
           }
-          if(char_to_find == '\'' || char_to_find == '`') {
+          if (char_to_find == '\'' || char_to_find == '`') {
             this->buffer_[digit_map[i]] |= 0x80;
             special_character_found = true;
             char_buffer_location++;

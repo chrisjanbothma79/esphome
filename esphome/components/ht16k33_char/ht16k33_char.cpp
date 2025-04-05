@@ -18,7 +18,7 @@
  */
 
 // States for the scrolling state machine.
-#define HT16K33_SCROLL_STATE_STATIC 0   // No scrolling. If this state is set, it will never change.
+#define HT16K33_SCROLL_STATE_STATIC 0  // No scrolling. If this state is set, it will never change.
 #define HT16K33_SCROLL_STATE_START 1
 #define HT16K33_SCROLL_STATE_SCROLLING 2
 #define HT16K33_SCROLL_STATE_END 3
@@ -72,12 +72,12 @@ void HT16k33CharComponent::update() {
 
     // The lambda code does not actually update the display directly. It manipulates the char buffer.
     //   - If the display is static (no scrolling), we directly call display() to update the display now.
-    //   - If scrolling is happening, we do not update the display in this function. The display will 
+    //   - If scrolling is happening, we do not update the display in this function. The display will
     //     be updated in the loop() function.
-    //   - if we are in the state 'FIRST_START' this means we just started the device. In that state, 
+    //   - if we are in the state 'FIRST_START' this means we just started the device. In that state,
     //     the display will not be showing anything yet, and we need to run the update_display()
     //     function to show the initial contents.
-    if ((this->scroll_state_ == HT16K33_SCROLL_STATE_STATIC) || 
+    if ((this->scroll_state_ == HT16K33_SCROLL_STATE_STATIC) ||
         (this->scroll_state_ == HT16K33_SCROLL_STATE_FIRST_START)) {
       this->update_display();
     }
@@ -88,7 +88,7 @@ void HT16k33CharComponent::update() {
 void HT16k33CharComponent::loop() {
   uint32_t now;
   uint8_t current_buffer_location;
-  
+
   if (this->scroll_state_ == HT16K33_SCROLL_STATE_STATIC) {
     // Check this first. If the display is static, we don't need to do anything in this function.
     return;
@@ -110,8 +110,8 @@ void HT16k33CharComponent::loop() {
         this->last_scroll_ = now;
         this->fist_char_location_++;
         current_buffer_location = this->update_display();
-        if( current_buffer_location >= this->char_buffer_.length() ) {
-          // We reached the end of the char buffer before we reached the end of the display. 
+        if(current_buffer_location >= this->char_buffer_.length()) {
+          // We reached the end of the char buffer before we reached the end of the display.
           // Scrolling is not required.
           this->scroll_state_ = HT16K33_SCROLL_STATE_STATIC;
         } else {
@@ -160,7 +160,7 @@ void HT16k33CharComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Buffer Length: %d", this->char_buffer_size_);
   ESP_LOGCONFIG(TAG, "  Brightness: %d", this->brightness_);
 
-  //Scrolling stuff
+  // Scrolling stuff
   if (this->scroll_) {
     ESP_LOGCONFIG(TAG, "  Scrolling: Enabled");
     if (this->continuous_) {
@@ -348,14 +348,13 @@ uint8_t HT16k33CharComponent::print(uint8_t start_pos, bool clear_buffer, const 
   }
 
   j = 0;
-  for (uint8_t i = start_pos; i<=top; i++) {
+  for (uint8_t i = start_pos; i <= top; i++) {
     this->char_buffer_.at(i) = str[j];
     j++;
   }
 
   return j - 1;
 }
-
 
 /***********************************
  *Write a character string to the start of the display buffer.

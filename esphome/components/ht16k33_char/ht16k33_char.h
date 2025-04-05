@@ -50,7 +50,7 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
   // Called automatically during setup to generate a list of I2CDevices that represent the displays.
   // We iterate through the displays_ to address individual displays during runtime.
   void add_secondary_display(i2c::I2CDevice *display) { this->displays_.push_back(display); }
-  
+
   void set_scroll(bool scroll) { this->scroll_ = scroll; }
   void set_continuous(bool continuous) { this->continuous_ = continuous; }
   void set_scroll_speed(unsigned long scroll_speed) { this->scroll_speed_ = scroll_speed; }
@@ -72,8 +72,9 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
   uint8_t print(bool clear_buffer, const char *str);
 
   // Evaluate the strftime-format and print the result at the given position.
-  uint8_t strftime(uint8_t start_pos, bool clear_buffer, const char *format, ESPTime time) __attribute__((format(strftime, 4, 0)));
-  
+  uint8_t strftime(uint8_t start_pos, bool clear_buffer, const char *format, ESPTime time) 
+    __attribute__((format(strftime, 4, 0)));
+
   uint8_t clock_display(uint8_t start_pos, bool clear_buffer, bool show_leading_zero, bool UseAMPM, ESPTime time);
 
   void blank();
@@ -95,16 +96,15 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
   unsigned long scroll_delay_{750};
   unsigned long last_scroll_{0};
 
-  uint8_t brightness_{15};     // Intensity of the display from 0 to 15 (most) TODO: Change to brightness?
+  uint8_t brightness_{15};  // Intensity of the display from 0 to 15 (most) TODO: Change to brightness?
 
-  std::string char_buffer_;     // This buffer holds the entire character message to display.
-  uint8_t buffer_[20];          // This buffer is used to send the raw bytes to the HT16k33 device. TODO: Make this 17?
-  uint8_t char_buffer_size_;    // This is the length of the character buffer. I need to track this separately instead of
-                                // just calling buffer.length(), since when I clear the buffer, it resets the size to 0. 
-                                // TODO: Maybe a different data type would be better here?
+  std::string char_buffer_;   // This buffer holds the entire character message to display.
+  uint8_t buffer_[20];        // This buffer is used to send the raw bytes to the HT16k33 device. TODO: Make this 17?
+  uint8_t char_buffer_size_;  // This is the length of the character buffer. I need to track this separately instead of
+                              // just calling buffer.length(), since when I clear the buffer, it resets the size to 0. 
+                              // TODO: Maybe a different data type would be better here?
 
   optional<ht16k33_char_writer_t> writer_{};
-
 };
 
 }  // namespace ht16k33_char

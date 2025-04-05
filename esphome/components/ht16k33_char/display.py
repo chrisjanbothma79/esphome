@@ -21,7 +21,8 @@ CONF_SCROLL_DELAY = "scroll_delay"
 CONF_SECONDARY_DISPLAYS = "secondary_displays"
 
 CONFIG_SECONDARY = cv.Schema({cv.GenerateID(): cv.declare_id(i2c.I2CDevice)}).extend(
-    i2c.i2c_device_schema(None))
+    i2c.i2c_device_schema(None)
+)
 
 HT16k33Char_BaseClassType = ht16k33_char_ns.class_(
     "HT16k33CharComponent", cg.PollingComponent, i2c.I2CDevice
@@ -32,12 +33,24 @@ HT16k33Char_BaseClassType = ht16k33_char_ns.class_(
 #  -The value is a dictionary that contains the keys:
 #     `CLASS_NAME`: The name of the class that implements the device.
 HT16K33_DEVICE_TYPES = {
-    "ADAFRUIT_7SEGMENT_1.2IN":          {"CLASS_NAME":"Adafruit_7seg_large",        },
-    "ADAFRUIT_7SEGMENT_1.2IN_FLIPPED":  {"CLASS_NAME":"Adafruit_7seg_large_flip",   },
-    "ADAFRUIT_7SEGMENT_.56IN":          {"CLASS_NAME":"Adafruit_7seg",              },
-    "ADAFRUIT_7SEGMENT_.56IN_FLIPPED":  {"CLASS_NAME":"Adafruit_7seg_flip",         },
-    "ADAFRUIT_14_SEG":                  {"CLASS_NAME":"Adafruit_14seg",             },
-    "ADAFRUIT_14_SEG_FLIPPED":          {"CLASS_NAME":"Adafruit_14seg_flip",        },
+    "ADAFRUIT_7SEGMENT_1.2IN": {
+        "CLASS_NAME":"Adafruit_7seg_large",
+    },
+    "ADAFRUIT_7SEGMENT_1.2IN_FLIPPED": {
+        "CLASS_NAME":"Adafruit_7seg_large_flip",
+    },
+    "ADAFRUIT_7SEGMENT_.56IN": {
+        "CLASS_NAME":"Adafruit_7seg",
+    },
+    "ADAFRUIT_7SEGMENT_.56IN_FLIPPED": {
+        "CLASS_NAME":"Adafruit_7seg_flip",
+    },
+    "ADAFRUIT_14_SEG": {
+        "CLASS_NAME":"Adafruit_14seg",
+    },
+    "ADAFRUIT_14_SEG_FLIPPED": {
+        "CLASS_NAME":"Adafruit_14seg_flip",
+    },
 }
 
 HT16k33Char_BaseClassTypeRef = HT16k33Char_BaseClassType.operator("ref")
@@ -53,13 +66,13 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_CONTINUOUS, default=False): cv.boolean,
             cv.Optional(CONF_SCROLL, default=False): cv.boolean,
             cv.Optional(
-                CONF_SCROLL_SPEED, default='1s'
+                CONF_SCROLL_SPEED, default="1s"
             ): cv.positive_time_period_milliseconds,
             cv.Optional(
-                CONF_SCROLL_DWELL, default='2s'
+                CONF_SCROLL_DWELL, default="2s"
             ): cv.positive_time_period_milliseconds,
             cv.Optional(
-                CONF_SCROLL_DELAY, default='5s'
+                CONF_SCROLL_DELAY, default="5s"
             ): cv.positive_time_period_milliseconds,
         }
     )
@@ -70,12 +83,12 @@ CONFIG_SCHEMA = (
 
 async def to_code(config):
     ClassType = ht16k33_char_ns.class_(
-        HT16K33_DEVICE_TYPES[config[CONF_DEVICE]]["CLASS_NAME"], 
-        HT16k33Char_BaseClassType
+        HT16K33_DEVICE_TYPES[config[CONF_DEVICE]]["CLASS_NAME"],
+        HT16k33Char_BaseClassType,
     )
     ClassInstantiation = ClassType.new()
     var = cg.Pvariable(config[CONF_ID], ClassInstantiation, ClassType)
-    
+
     await i2c.register_i2c_device(var, config)
     await display.register_display(var, config)
     cg.add(var.set_buffer_size(config[CONF_BUFFER_SIZE]))
@@ -83,9 +96,9 @@ async def to_code(config):
 
     if CONF_LAMBDA in config:
         lambda_ = await cg.process_lambda(
-            config[CONF_LAMBDA], 
+            config[CONF_LAMBDA],
             [(HT16k33Char_BaseClassTypeRef, "it")],
-            return_type=cg.void
+            return_type=cg.void,
         )
         cg.add(var.set_writer(lambda_))
 
