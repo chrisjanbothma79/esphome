@@ -91,6 +91,7 @@ static const uint32_t THRASHOLDS_TRIGGER_WRITE_DATA[] = {
 
     // AutoCalibration:
     // 80, 70, 65, 60, 55, 50, 45, 43, 41, 40, 39, 38, 37, 36, 35, 34
+    // 45, 47, 50, 49, 51, 50, 51, 51, 51, 50, 51, 50, 50, 50, 50, 50
 
     // Doc, questionable:
     //   https://drive.google.com/drive/folders/1wC8KC-DaNavNbpeVouZ1HdiBzZ9YrAcg
@@ -114,6 +115,7 @@ static const uint32_t THRASHOLDS_HOLD_WRITE_DATA[] = {
 
     // AutoCalibration:
     // 78, 68, 63, 58, 53, 48, 43, 41, 39, 38, 37, 36, 35, 34, 33, 32
+    // 47, 53, 53, 52, 52, 51, 52, 52, 52, 51, 52, 51, 51, 51, 51, 51
 };
 
 static const uint16_t THRASHOLDS_SNR_READ_CMD = 0x0075;
@@ -123,11 +125,13 @@ static const uint16_t THRASHOLDS_SNR_WRITE_REPLY = 0x0174;
 static const uint32_t THRASHOLDS_SNR_WRITE_DATA[] = {
     // 5~63 dB
 
-    25, 25, 25, 25, 25, 25, 25, 25, 25,
-    25, 25, 25, 25, 25, 25, 25
+    45, 42, 39, 36, 36, 36, 36, 35, 35,
+    35, 35, 34, 34, 34, 34, 34
 
     // AutoCalibration:
     // 45, 42, 39, 36, 36, 36, 36, 35, 35, 35, 35, 34, 34, 34, 34, 34
+    // 48, 49, 46, 47, 43, 46, 46, 46, 43, 44, 42, 44, 44, 40, 43, 38
+
 };
 
 static const uint32_t CMD_EXEC_TIMEOUT = 1000;
