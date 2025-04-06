@@ -770,16 +770,16 @@ CmdAckT LD2410S::parse_ack_(uint8_t *buffer, size_t length) {
 }
 
 void LD2410S::process_config_read_ack_(uint8_t *data) {
-  this->max_dist_ = this->read_int_(data, 0, 4) / 2;
-  this->min_dist_ = this->read_int_(data, 4, 4) / 2;
+  this->max_dist_ = this->read_int_(data, 0, 4);
+  this->min_dist_ = this->read_int_(data, 4, 4);
   this->delay_ = this->read_int_(data, 8, 4);
   this->status_freq_ = this->read_int_(data, 12, 4);
   this->dist_freq_ = this->read_int_(data, 16, 4);
   this->resp_speed_ = this->read_int_(data, 20, 4);
 
 #ifdef USE_NUMBER
-  this->max_distance_number_->publish_state(this->max_dist_);
-  this->min_distance_number_->publish_state(this->min_dist_);
+  this->max_distance_number_->publish_state(this->max_dist_) / 2;
+  this->min_distance_number_->publish_state(this->min_dist_) / 2;
   this->no_delay_number_->publish_state(this->delay_);
   this->status_reporting_freq_number_->publish_state(static_cast<float>(this->status_freq_) / 10);
   this->distance_reporting_freq_number_->publish_state(static_cast<float>(this->dist_freq_) / 10);
