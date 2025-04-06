@@ -27,6 +27,7 @@ from esphome.const import (
     CONF_WIDTH,
     CONF_X_GRID,
     CONF_Y_GRID,
+    CONF_CONTINUOUS,
 )
 
 CODEOWNERS = ["@synco"]
@@ -60,8 +61,6 @@ VALUE_POSITION_TYPE = {
     "BESIDE": ValuePositionType.VALUE_POSITION_TYPE_BESIDE,
     "BELOW": ValuePositionType.VALUE_POSITION_TYPE_BELOW,
 }
-
-CONF_CONTINUOUS = "continuous"
 
 GRAPH_TRACE_SCHEMA = cv.Schema(
     {
