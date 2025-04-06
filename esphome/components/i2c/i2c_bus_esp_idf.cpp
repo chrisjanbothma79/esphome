@@ -223,7 +223,10 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
   num++;
 
   esp_err_t err = i2c_master_execute_defined_operations(this->dev_, jobs, num, 20);
-  if (err == ESP_ERR_TIMEOUT) {
+  if (err == ESP_ERR_INVALID_STATE) {
+    ESP_LOGVV(TAG, "RX from %02X failed: not acked", address);
+    return ERROR_NOT_ACKNOWLEDGED;
+  } else if (err == ESP_ERR_TIMEOUT) {
     ESP_LOGVV(TAG, "RX from %02X failed: timeout", address);
     return ERROR_TIMEOUT;
   } else if (err != ESP_OK) {
@@ -348,7 +351,10 @@ ErrorCode IDFI2CBus::writev(uint8_t address, WriteBuffer *buffers, size_t cnt, b
   }
 
   esp_err_t err = i2c_master_execute_defined_operations(this->dev_, jobs, num, 20);
-  if (err == ESP_ERR_TIMEOUT) {
+  if (err == ESP_ERR_INVALID_STATE) {
+    ESP_LOGVV(TAG, "TX to %02X failed: not acked", address);
+    return ERROR_NOT_ACKNOWLEDGED;
+  } else if (err == ESP_ERR_TIMEOUT) {
     ESP_LOGVV(TAG, "TX to %02X failed: timeout", address);
     return ERROR_TIMEOUT;
   } else if (err != ESP_OK) {
