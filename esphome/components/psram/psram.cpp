@@ -8,7 +8,6 @@
 #include "esphome/core/log.h"
 
 #include <esp_heap_caps.h>
-#include <esp_idf_version.h>
 
 namespace esphome {
 namespace psram {
@@ -24,6 +23,7 @@ void PsramComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "  Size: %zu KB", esp_psram_get_size() / 1024);
 #if CONFIG_SPIRAM_ECC_ENABLE
     ESP_LOGCONFIG(TAG, "  ECC enabled: YES");
+  }
 #endif
 #else
   // Technically this can be false if the PSRAM is full, but heap_caps_get_total_size() isn't always available, and it's
@@ -42,7 +42,6 @@ void PsramComponent::dump_config() {
     }
   }
 #endif  // USE_ESP_IDF
-  }
 }
 
 }  // namespace psram
