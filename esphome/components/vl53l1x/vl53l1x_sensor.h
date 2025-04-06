@@ -104,6 +104,11 @@ class VL53L1XSensor : public sensor::Sensor, public PollingComponent, public i2c
   void set_distance_mode(DistanceMode distance_mode) { this->distance_mode_ = distance_mode; }
   void set_measurement_timing_budget_us(uint32_t budget_us) { this->measurement_timing_budget_us_ = budget_us; }
   void set_enable_pin(GPIOPin *enable) { this->enable_pin_ = enable; }
+  void set_region_of_interest(uint8_t width, uint8_t height) {
+    this->roi_width_ = width;
+    this->roi_height_ = height;
+  }
+  void set_region_of_interest_center_spad(uint8_t center_spad) { this->roi_center_spad_ = center_spad; }
 
  protected:
   void next_setup_task_();
@@ -112,6 +117,8 @@ class VL53L1XSensor : public sensor::Sensor, public PollingComponent, public i2c
   bool apply_distance_mode_();
   bool apply_measurement_timing_budget_(uint32_t budget_us);
   uint32_t get_measurement_timing_budget_();
+  void apply_roi_size_();
+  void apply_roi_center_();
   void setup_manual_calibration_();
   ResultBuffer read_results_();
   void update_dss_(const ResultBuffer &results);
@@ -141,6 +148,8 @@ class VL53L1XSensor : public sensor::Sensor, public PollingComponent, public i2c
   uint16_t timeout_us_{};
   DistanceMode distance_mode_{LONG};              // default to long range
   uint32_t measurement_timing_budget_us_{50000};  // default 50ms
+  uint8_t roi_width_{16}, roi_height_{16};        // default to 16x16 ROI
+  uint8_t roi_center_spad_{199};                  // default to center spad
 
   static std::list<VL53L1XSensor *> vl53_sensors;   // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
   static bool enable_pin_setup_complete;            // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)

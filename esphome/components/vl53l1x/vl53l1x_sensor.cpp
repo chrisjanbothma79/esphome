@@ -88,6 +88,8 @@ enum RegAddr : uint16_t {
   SD_CONFIG_INITIAL_PHASE_SD1 = 0x007B,
   SYSTEM_GROUPED_PARAMETER_HOLD_1 = 0x007C,
   SD_CONFIG_QUANTIFIER = 0x007E,
+  ROI_CONFIG_USER_ROI_CENTRE_SPAD = 0x007F,
+  ROI_CONFIG_USER_ROI_REQUESTED_GLOBAL_XY_SIZE = 0x0080,
   SYSTEM_SEQUENCE_CONFIG = 0x0081,
   SYSTEM_GROUPED_PARAMETER_HOLD = 0x0082,
   SYSTEM_MODE_START = 0x0087,
@@ -165,7 +167,7 @@ void VL53L1XSensor::setup() {
     }
   }
 
-  next_setup_task_();
+  this->next_setup_task_();
 }
 
 void VL53L1XSensor::next_setup_task_() {
@@ -181,20 +183,20 @@ void VL53L1XSensor::next_setup_task_() {
         }
         // Enable the enable pin to cause FW boot (to get back to 0x29 default address)
         this->enable_pin_->digital_write(true);
-        last_setup_task_us_ = micros();
+        this->last_setup_task_us_ = micros();
         this->current_setup_state_ = SETUP_STATE_AWAIT_ENABLE;
         return;
       }
       this->current_setup_state_ = SETUP_STATE_BEGIN_SOFT_RESET;
-      next_setup_task_();  // synchronously start the next task; we had nothing to do
+      this->next_setup_task_();  // synchronously start the next task; we had nothing to do
       break;
     case SETUP_STATE_AWAIT_ENABLE:
       // wait at least 100 ms
-      if (!check_timeout_(100000)) {
+      if (!this->check_timeout_(100000)) {
         return;
       }
       this->current_setup_state_ = SETUP_STATE_BEGIN_SOFT_RESET;
-      next_setup_task_();  // synchronously start the next task; we had nothing to do
+      this->next_setup_task_();  // synchronously start the next task; we had nothing to do
       break;
     case SETUP_STATE_BEGIN_SOFT_RESET:
       // Save the i2c address we want and force it to use the default 0x29
@@ -203,7 +205,7 @@ void VL53L1XSensor::next_setup_task_() {
       this->set_i2c_address(0x29);
 
       // check model ID and module type registers (values specified in datasheet)
-      model_id = read_register16_16_(IDENTIFICATION_MODEL_ID);
+      model_id = this->read_register16_16_(IDENTIFICATION_MODEL_ID);
       if (model_id != 0xEACC) {
         ESP_LOGE(TAG, "'%s' - model ID mismatch: %04x", this->name_.c_str(), model_id);
         this->current_setup_state_ = SETUP_STATE_FAILED;
@@ -213,28 +215,28 @@ void VL53L1XSensor::next_setup_task_() {
 
       // VL53L1_software_reset() begin
 
-      reg16(SOFT_RESET) = 0x00;
-      last_setup_task_us_ = micros();
+      this->reg16(SOFT_RESET) = 0x00;
+      this->last_setup_task_us_ = micros();
       this->current_setup_state_ = SETUP_STATE_AWAIT_SOFT_RESET;
       break;
     case SETUP_STATE_AWAIT_SOFT_RESET:
       // wait at least 100 ms
-      if (!check_timeout_(100000)) {
+      if (!this->check_timeout_(100000)) {
         return;
       }
-      reg16(SOFT_RESET) = 0x01;
-      last_setup_task_us_ = micros();
+      this->reg16(SOFT_RESET) = 0x01;
+      this->last_setup_task_us_ = micros();
       this->current_setup_state_ = SETUP_STATE_AWAIT_FIRMWARE_STATUS;
       break;
     case SETUP_STATE_AWAIT_FIRMWARE_STATUS:
       // give it some time to boot; otherwise the sensor NACKs during the readReg()
       // call below and the Arduino 101 doesn't seem to handle that well
-      if (!check_timeout_(1000000)) {
+      if (!this->check_timeout_(1000000)) {
         return;
       }
 
       // VL53L1_poll_for_boot_completion() begin
-      if ((reg16(FIRMWARE_SYSTEM_STATUS).get() & 0x01) == 0x00) {
+      if ((this->reg16(FIRMWARE_SYSTEM_STATUS).get() & 0x01) == 0x00) {
         return;
       }
 
@@ -245,10 +247,10 @@ void VL53L1XSensor::next_setup_task_() {
       // VL53L1_DataInit() begin
 
       // sensor uses 1V8 mode for I/O by default; switch to 2V8 mode
-      reg16(PAD_I2C_HV_EXTSUP_CONFIG) |= 0x01;
+      this->reg16(PAD_I2C_HV_EXTSUP_CONFIG) |= 0x01;
 
       // store oscillator info for later use
-      fast_osc_frequency_ = read_register16_16_(OSC_MEASURED_FAST_OSC_FREQUENCY);
+      fast_osc_frequency_ = this->read_register16_16_(OSC_MEASURED_FAST_OSC_FREQUENCY);
 
       // VL53L1_DataInit() end
 
@@ -271,32 +273,32 @@ void VL53L1XSensor::next_setup_task_() {
       // static config
       // API resets PAD_I2C_HV_EXTSUP_CONFIG here, but maybe we don't want to do
       // that? (seems like it would disable 2V8 mode)
-      write_register16_16_(DSS_CONFIG_TARGET_TOTAL_RATE_MCPS,
-                           TARGET_RATE);  // should already be this value after reset
-      reg16(GPIO_TIO_HV_STATUS) = 0x02;
-      reg16(SIGMA_ESTIMATOR_EFFECTIVE_PULSE_WIDTH_NS) = 8;     // tuning parm default
-      reg16(SIGMA_ESTIMATOR_EFFECTIVE_AMBIENT_WIDTH_NS) = 16;  // tuning parm default
-      reg16(ALGO_CROSSTALK_COMPENSATION_VALID_HEIGHT_MM) = 0x01;
-      reg16(ALGO_RANGE_IGNORE_VALID_HEIGHT_MM) = 0xff;
-      reg16(ALGO_RANGE_MIN_CLIP) = 0;               // tuning parm default
-      reg16(ALGO_CONSISTENCY_CHECK_TOLERANCE) = 2;  // tuning parm default
+      this->write_register16_16_(DSS_CONFIG_TARGET_TOTAL_RATE_MCPS,
+                                 TARGET_RATE);  // should already be this value after reset
+      this->reg16(GPIO_TIO_HV_STATUS) = 0x02;
+      this->reg16(SIGMA_ESTIMATOR_EFFECTIVE_PULSE_WIDTH_NS) = 8;     // tuning parm default
+      this->reg16(SIGMA_ESTIMATOR_EFFECTIVE_AMBIENT_WIDTH_NS) = 16;  // tuning parm default
+      this->reg16(ALGO_CROSSTALK_COMPENSATION_VALID_HEIGHT_MM) = 0x01;
+      this->reg16(ALGO_RANGE_IGNORE_VALID_HEIGHT_MM) = 0xff;
+      this->reg16(ALGO_RANGE_MIN_CLIP) = 0;               // tuning parm default
+      this->reg16(ALGO_CONSISTENCY_CHECK_TOLERANCE) = 2;  // tuning parm default
 
       // general config
-      write_register16_16_(SYSTEM_THRESH_RATE_HIGH, 0x0000);
-      write_register16_16_(SYSTEM_THRESH_RATE_LOW, 0x0000);
-      reg16(DSS_CONFIG_APERTURE_ATTENUATION) = 0x38;
+      this->write_register16_16_(SYSTEM_THRESH_RATE_HIGH, 0x0000);
+      this->write_register16_16_(SYSTEM_THRESH_RATE_LOW, 0x0000);
+      this->reg16(DSS_CONFIG_APERTURE_ATTENUATION) = 0x38;
 
       // timing config
       // most of these settings will be determined later by distance and timing
       // budget configuration
-      write_register16_16_(RANGE_CONFIG_SIGMA_THRESH, 360);                   // tuning parm default
-      write_register16_16_(RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT_MCPS, 192);  // tuning parm default
+      this->write_register16_16_(RANGE_CONFIG_SIGMA_THRESH, 360);                   // tuning parm default
+      this->write_register16_16_(RANGE_CONFIG_MIN_COUNT_RATE_RTN_LIMIT_MCPS, 192);  // tuning parm default
 
       // dynamic config
 
-      reg16(SYSTEM_GROUPED_PARAMETER_HOLD_0) = 0x01;
-      reg16(SYSTEM_GROUPED_PARAMETER_HOLD_1) = 0x01;
-      reg16(SD_CONFIG_QUANTIFIER) = 2;  // tuning parm default
+      this->reg16(SYSTEM_GROUPED_PARAMETER_HOLD_0) = 0x01;
+      this->reg16(SYSTEM_GROUPED_PARAMETER_HOLD_1) = 0x01;
+      this->reg16(SD_CONFIG_QUANTIFIER) = 2;  // tuning parm default
 
       // VL53L1_preset_mode_standard_ranging() end
 
@@ -304,33 +306,36 @@ void VL53L1XSensor::next_setup_task_() {
       // GPH is 0 after reset, but writing GPH0 and GPH1 above seem to set GPH to 1,
       // and things don't seem to work if we don't set GPH back to 0 (which the API
       // does here).
-      reg16(SYSTEM_GROUPED_PARAMETER_HOLD) = 0x00;
-      reg16(SYSTEM_SEED_CONFIG) = 1;  // tuning parm default
+      this->reg16(SYSTEM_GROUPED_PARAMETER_HOLD) = 0x00;
+      this->reg16(SYSTEM_SEED_CONFIG) = 1;  // tuning parm default
 
       // from VL53L1_config_low_power_auto_mode
-      reg16(SYSTEM_SEQUENCE_CONFIG) = 0x8b;  // VHV, PHASECAL, DSS1, RANGE
-      write_register16_16_(DSS_CONFIG_MANUAL_EFFECTIVE_SPADS_SELECT, 200 << 8);
-      reg16(DSS_CONFIG_ROI_MODE_CONTROL) = 2;  // REQUESTED_EFFFECTIVE_SPADS
+      this->reg16(SYSTEM_SEQUENCE_CONFIG) = 0x8b;  // VHV, PHASECAL, DSS1, RANGE
+      this->write_register16_16_(DSS_CONFIG_MANUAL_EFFECTIVE_SPADS_SELECT, 200 << 8);
+      this->reg16(DSS_CONFIG_ROI_MODE_CONTROL) = 2;  // REQUESTED_EFFFECTIVE_SPADS
 
       // VL53L1_set_preset_mode() end
 
       // default to 50 ms timing budget
       // note that this is different than what the API defaults to
-      apply_distance_mode_();
-      apply_measurement_timing_budget_(measurement_timing_budget_us_);
+      this->apply_distance_mode_();
+      this->apply_measurement_timing_budget_(measurement_timing_budget_us_);
+      this->apply_roi_size_();
+      this->apply_roi_center_();
 
       // VL53L1_StaticInit() end
 
       // the API triggers this change in VL53L1_init_and_start_range() once a
       // measurement is started; assumes MM1 and MM2 are disabled
-      write_register16_16_(ALGO_PART_TO_PART_RANGE_OFFSET_MM, read_register16_16_(MM_CONFIG_OUTER_OFFSET_MM) * 4);
+      this->write_register16_16_(ALGO_PART_TO_PART_RANGE_OFFSET_MM,
+                                 this->read_register16_16_(MM_CONFIG_OUTER_OFFSET_MM) * 4);
 
       // Set the sensor to the desired final address
       // The following is different for VL53L0X vs VL53L1X
       // I2C_SXXXX_DEVICE_ADDRESS = 0x8A for VL53L0X
       // I2C_SXXXX_DEVICE_ADDRESS = 0x0001 for VL53L1X
       if (this->final_address_ != 0x29) {
-        reg16(I2C_SXXXX_DEVICE_ADDRESS) = this->final_address_ & 0x7F;
+        this->reg16(I2C_SXXXX_DEVICE_ADDRESS) = this->final_address_ & 0x7F;
         this->set_i2c_address(this->final_address_);
       }
 
@@ -379,15 +384,15 @@ void VL53L1XSensor::update() {
   ESP_LOGD(TAG, "Starting single shot read");
 
   // initiate single shot measurement
-  reg16(SYSTEM_INTERRUPT_CLEAR) = 0x01;  // sys_interrupt_clear_range
-  reg16(SYSTEM_MODE_START) = 0x10;       // mode_range_single_shot
+  this->reg16(SYSTEM_INTERRUPT_CLEAR) = 0x01;  // sys_interrupt_clear_range
+  this->reg16(SYSTEM_MODE_START) = 0x10;       // mode_range_single_shot
 
   this->waiting_for_interrupt_ = true;
 }
 
 void VL53L1XSensor::loop() {
   if (this->current_setup_state_ != SETUP_STATE_COMPLETE) {
-    next_setup_task_();
+    this->next_setup_task_();
     return;
   }
 
@@ -395,22 +400,22 @@ void VL53L1XSensor::loop() {
     return;
   }
 
-  if (!data_ready_()) {
+  if (!this->data_ready_()) {
     return;
   }
 
-  ResultBuffer results = read_results_();
+  ResultBuffer results = this->read_results_();
 
-  if (!calibrated_) {
-    setup_manual_calibration_();
-    calibrated_ = true;
+  if (!this->calibrated_) {
+    this->setup_manual_calibration_();
+    this->calibrated_ = true;
   }
 
-  update_dss_(results);
+  this->update_dss_(results);
 
-  RangingData ranging_data = get_ranging_data_(results);
+  RangingData ranging_data = this->get_ranging_data_(results);
 
-  reg16(SYSTEM_INTERRUPT_CLEAR) = 0x01;  // sys_interrupt_clear_range
+  this->reg16(SYSTEM_INTERRUPT_CLEAR) = 0x01;  // sys_interrupt_clear_range
 
   float range_m = ranging_data.range_mm / 1e3f;
   ESP_LOGD(TAG, "'%s' - Got distance %.3f m", this->name_.c_str(), range_m);
@@ -421,22 +426,22 @@ void VL53L1XSensor::loop() {
 
 bool VL53L1XSensor::apply_distance_mode_() {
   // save existing timing budget
-  uint32_t budget_us = get_measurement_timing_budget_();
+  uint32_t budget_us = this->get_measurement_timing_budget_();
 
   switch (distance_mode_) {
     case SHORT:
       // from VL53L1_preset_mode_standard_ranging_short_range()
 
       // timing config
-      reg16(RANGE_CONFIG_VCSEL_PERIOD_A) = 0x07;
-      reg16(RANGE_CONFIG_VCSEL_PERIOD_B) = 0x05;
-      reg16(RANGE_CONFIG_VALID_PHASE_HIGH) = 0x38;
+      this->reg16(RANGE_CONFIG_VCSEL_PERIOD_A) = 0x07;
+      this->reg16(RANGE_CONFIG_VCSEL_PERIOD_B) = 0x05;
+      this->reg16(RANGE_CONFIG_VALID_PHASE_HIGH) = 0x38;
 
       // dynamic config
-      reg16(SD_CONFIG_WOI_SD0) = 0x07;
-      reg16(SD_CONFIG_WOI_SD1) = 0x05;
-      reg16(SD_CONFIG_INITIAL_PHASE_SD0) = 6;  // tuning parm default
-      reg16(SD_CONFIG_INITIAL_PHASE_SD1) = 6;  // tuning parm default
+      this->reg16(SD_CONFIG_WOI_SD0) = 0x07;
+      this->reg16(SD_CONFIG_WOI_SD1) = 0x05;
+      this->reg16(SD_CONFIG_INITIAL_PHASE_SD0) = 6;  // tuning parm default
+      this->reg16(SD_CONFIG_INITIAL_PHASE_SD1) = 6;  // tuning parm default
 
       break;
 
@@ -444,15 +449,15 @@ bool VL53L1XSensor::apply_distance_mode_() {
       // from VL53L1_preset_mode_standard_ranging()
 
       // timing config
-      reg16(RANGE_CONFIG_VCSEL_PERIOD_A) = 0x0b;
-      reg16(RANGE_CONFIG_VCSEL_PERIOD_B) = 0x09;
-      reg16(RANGE_CONFIG_VALID_PHASE_HIGH) = 0x78;
+      this->reg16(RANGE_CONFIG_VCSEL_PERIOD_A) = 0x0b;
+      this->reg16(RANGE_CONFIG_VCSEL_PERIOD_B) = 0x09;
+      this->reg16(RANGE_CONFIG_VALID_PHASE_HIGH) = 0x78;
 
       // dynamic config
-      reg16(SD_CONFIG_WOI_SD0) = 0x0b;
-      reg16(SD_CONFIG_WOI_SD1) = 0x09;
-      reg16(SD_CONFIG_INITIAL_PHASE_SD0) = 10;  // tuning parm default
-      reg16(SD_CONFIG_INITIAL_PHASE_SD1) = 10;  // tuning parm default
+      this->reg16(SD_CONFIG_WOI_SD0) = 0x0b;
+      this->reg16(SD_CONFIG_WOI_SD1) = 0x09;
+      this->reg16(SD_CONFIG_INITIAL_PHASE_SD0) = 10;  // tuning parm default
+      this->reg16(SD_CONFIG_INITIAL_PHASE_SD1) = 10;  // tuning parm default
 
       break;
 
@@ -460,15 +465,15 @@ bool VL53L1XSensor::apply_distance_mode_() {
       // from VL53L1_preset_mode_standard_ranging_long_range()
 
       // timing config
-      reg16(RANGE_CONFIG_VCSEL_PERIOD_A) = 0x0f;
-      reg16(RANGE_CONFIG_VCSEL_PERIOD_B) = 0x0d;
-      reg16(RANGE_CONFIG_VALID_PHASE_HIGH) = 0xb8;
+      this->reg16(RANGE_CONFIG_VCSEL_PERIOD_A) = 0x0f;
+      this->reg16(RANGE_CONFIG_VCSEL_PERIOD_B) = 0x0d;
+      this->reg16(RANGE_CONFIG_VALID_PHASE_HIGH) = 0xb8;
 
       // dynamic config
-      reg16(SD_CONFIG_WOI_SD0) = 0x0f;
-      reg16(SD_CONFIG_WOI_SD1) = 0x0d;
-      reg16(SD_CONFIG_INITIAL_PHASE_SD0) = 14;  // tuning parm default
-      reg16(SD_CONFIG_INITIAL_PHASE_SD1) = 14;  // tuning parm default
+      this->reg16(SD_CONFIG_WOI_SD0) = 0x0f;
+      this->reg16(SD_CONFIG_WOI_SD1) = 0x0d;
+      this->reg16(SD_CONFIG_INITIAL_PHASE_SD0) = 14;  // tuning parm default
+      this->reg16(SD_CONFIG_INITIAL_PHASE_SD1) = 14;  // tuning parm default
 
       break;
 
@@ -478,7 +483,7 @@ bool VL53L1XSensor::apply_distance_mode_() {
   }
 
   // reapply timing budget
-  apply_measurement_timing_budget_(budget_us);
+  this->apply_measurement_timing_budget_(budget_us);
 
   return true;
 }
@@ -504,16 +509,16 @@ bool VL53L1XSensor::apply_measurement_timing_budget_(uint32_t budget_us) {
   uint32_t macro_period_us;
 
   // "Update Macro Period for Range A VCSEL Period"
-  macro_period_us = calc_macro_period_(reg16(RANGE_CONFIG_VCSEL_PERIOD_A).get());
+  macro_period_us = this->calc_macro_period_(this->reg16(RANGE_CONFIG_VCSEL_PERIOD_A).get());
 
   // "Update Phase timeout - uses Timing A"
   // Timeout of 1000 is tuning parm default (TIMED_PHASECAL_CONFIG_TIMEOUT_US_DEFAULT)
   // via VL53L1_get_preset_mode_timing_cfg().
-  uint32_t phasecal_timeout_mclks = timeout_microseconds_to_mclks_(1000, macro_period_us);
+  uint32_t phasecal_timeout_mclks = this->timeout_microseconds_to_mclks_(1000, macro_period_us);
   if (phasecal_timeout_mclks > 0xFF) {
     phasecal_timeout_mclks = 0xFF;
   }
-  reg16(PHASECAL_CONFIG_TIMEOUT_MACROP) = phasecal_timeout_mclks;
+  this->reg16(PHASECAL_CONFIG_TIMEOUT_MACROP) = phasecal_timeout_mclks;
 
   // "Update MM Timing A timeout"
   // Timeout of 1 is tuning parm default (LOWPOWERAUTO_MM_CONFIG_TIMEOUT_US_DEFAULT)
@@ -522,22 +527,24 @@ bool VL53L1XSensor::apply_measurement_timing_budget_(uint32_t budget_us) {
   // retrieved, recalculated with a different macro period, and reassigned,
   // but it probably doesn't matter because it seems like the MM ("mode
   // mitigation"?) sequence steps are disabled in low power auto mode anyway.
-  write_register16_16_(MM_CONFIG_TIMEOUT_MACROP_A, encode_timeout_(timeout_microseconds_to_mclks_(1, macro_period_us)));
+  this->write_register16_16_(MM_CONFIG_TIMEOUT_MACROP_A,
+                             this->encode_timeout_(this->timeout_microseconds_to_mclks_(1, macro_period_us)));
 
   // "Update Range Timing A timeout"
-  write_register16_16_(RANGE_CONFIG_TIMEOUT_MACROP_A,
-                       encode_timeout_(timeout_microseconds_to_mclks_(range_config_timeout_us, macro_period_us)));
+  this->write_register16_16_(RANGE_CONFIG_TIMEOUT_MACROP_A, this->encode_timeout_(this->timeout_microseconds_to_mclks_(
+                                                                range_config_timeout_us, macro_period_us)));
 
   // "Update Macro Period for Range B VCSEL Period"
-  macro_period_us = calc_macro_period_(reg16(RANGE_CONFIG_VCSEL_PERIOD_B).get());
+  macro_period_us = this->calc_macro_period_(this->reg16(RANGE_CONFIG_VCSEL_PERIOD_B).get());
 
   // "Update MM Timing B timeout"
   // (See earlier comment about MM Timing A timeout.)
-  write_register16_16_(MM_CONFIG_TIMEOUT_MACROP_B, encode_timeout_(timeout_microseconds_to_mclks_(1, macro_period_us)));
+  this->write_register16_16_(MM_CONFIG_TIMEOUT_MACROP_B,
+                             this->encode_timeout_(this->timeout_microseconds_to_mclks_(1, macro_period_us)));
 
   // "Update Range Timing B timeout"
-  write_register16_16_(RANGE_CONFIG_TIMEOUT_MACROP_B,
-                       encode_timeout_(timeout_microseconds_to_mclks_(range_config_timeout_us, macro_period_us)));
+  this->write_register16_16_(RANGE_CONFIG_TIMEOUT_MACROP_B, this->encode_timeout_(this->timeout_microseconds_to_mclks_(
+                                                                range_config_timeout_us, macro_period_us)));
 
   // VL53L1_calc_timeout_register_values() end
 
@@ -555,42 +562,102 @@ uint32_t VL53L1XSensor::get_measurement_timing_budget_() {
   // VL53L1_get_timeouts_us() begin
 
   // "Update Macro Period for Range A VCSEL Period"
-  uint32_t macro_period_us = calc_macro_period_(reg16(0x0060).get());
+  uint32_t macro_period_us = this->calc_macro_period_(this->reg16(0x0060).get());
 
   // "Get Range Timing A timeout"
 
   uint32_t range_config_timeout_us =
-      timeout_mclks_to_microseconds_(decode_timeout_(read_register16_16_(0x005e)), macro_period_us);
+      this->timeout_mclks_to_microseconds_(this->decode_timeout_(this->read_register16_16_(0x005e)), macro_period_us);
 
   // VL53L1_get_timeouts_us() end
 
   return 2 * range_config_timeout_us + TIMING_GUARD;
 }
 
+// Set the width and height of the region of interest
+// based on VL53L1X_SetROI() from STSW-IMG009 Ultra Lite Driver
+//
+// ST user manual UM2555 explains ROI selection in detail, so we recommend
+// reading that document carefully.
+void VL53L1XSensor::apply_roi_size_() {
+  this->reg16(ROI_CONFIG_USER_ROI_REQUESTED_GLOBAL_XY_SIZE) = (this->roi_height_ - 1) << 4 | (this->roi_width_ - 1);
+}
+
+// Set the center SPAD of the region of interest (ROI)
+// based on VL53L1X_SetROICenter() from STSW-IMG009 Ultra Lite Driver
+//
+// ST user manual UM2555 explains ROI selection in detail, so we recommend
+// reading that document carefully. Here is a table of SPAD locations from
+// UM2555 (199 is the default/center):
+//
+// 128,136,144,152,160,168,176,184,  192,200,208,216,224,232,240,248
+// 129,137,145,153,161,169,177,185,  193,201,209,217,225,233,241,249
+// 130,138,146,154,162,170,178,186,  194,202,210,218,226,234,242,250
+// 131,139,147,155,163,171,179,187,  195,203,211,219,227,235,243,251
+// 132,140,148,156,164,172,180,188,  196,204,212,220,228,236,244,252
+// 133,141,149,157,165,173,181,189,  197,205,213,221,229,237,245,253
+// 134,142,150,158,166,174,182,190,  198,206,214,222,230,238,246,254
+// 135,143,151,159,167,175,183,191,  199,207,215,223,231,239,247,255
+//
+// 127,119,111,103, 95, 87, 79, 71,   63, 55, 47, 39, 31, 23, 15,  7
+// 126,118,110,102, 94, 86, 78, 70,   62, 54, 46, 38, 30, 22, 14,  6
+// 125,117,109,101, 93, 85, 77, 69,   61, 53, 45, 37, 29, 21, 13,  5
+// 124,116,108,100, 92, 84, 76, 68,   60, 52, 44, 36, 28, 20, 12,  4
+// 123,115,107, 99, 91, 83, 75, 67,   59, 51, 43, 35, 27, 19, 11,  3
+// 122,114,106, 98, 90, 82, 74, 66,   58, 50, 42, 34, 26, 18, 10,  2
+// 121,113,105, 97, 89, 81, 73, 65,   57, 49, 41, 33, 25, 17,  9,  1
+// 120,112,104, 96, 88, 80, 72, 64,   56, 48, 40, 32, 24, 16,  8,  0 <- Pin 1
+//
+// This table is oriented as if looking into the front of the sensor (or top of
+// the chip). SPAD 0 is closest to pin 1 of the VL53L1X, which is the corner
+// closest to the VDD pin on the Pololu VL53L1X carrier board:
+//
+//   +--------------+
+//   |             O| GPIO1
+//   |              |
+//   |             O|
+//   | 128    248   |
+//   |+----------+ O|
+//   ||+--+  +--+|  |
+//   |||  |  |  || O|
+//   ||+--+  +--+|  |
+//   |+----------+ O|
+//   | 120      0   |
+//   |             O|
+//   |              |
+//   |             O| VDD
+//   +--------------+
+//
+// However, note that the lens inside the VL53L1X inverts the image it sees
+// (like the way a camera works). So for example, to shift the sensor's FOV to
+// sense objects toward the upper left, you should pick a center SPAD in the
+// lower right.
+void VL53L1XSensor::apply_roi_center_() { this->reg16(ROI_CONFIG_USER_ROI_CENTRE_SPAD) = this->roi_center_spad_; }
+
 // "Setup ranges after the first one in low power auto mode by turning off
 // FW calibration steps and programming static values"
 // based on VL53L1_low_power_auto_setup_manual_calibration()
 void VL53L1XSensor::setup_manual_calibration_() {
   // "save original vhv configs"
-  uint8_t saved_vhv_init = reg16(VHV_CONFIG_INIT).get();
-  uint8_t saved_vhv_timeout = reg16(VHV_CONFIG_TIMEOUT_MACROP_LOOP_BOUND).get();
+  uint8_t saved_vhv_init = this->reg16(VHV_CONFIG_INIT).get();
+  uint8_t saved_vhv_timeout = this->reg16(VHV_CONFIG_TIMEOUT_MACROP_LOOP_BOUND).get();
 
   // "disable VHV init"
-  reg16(VHV_CONFIG_INIT) = saved_vhv_init & 0x7F;
+  this->reg16(VHV_CONFIG_INIT) = saved_vhv_init & 0x7F;
 
   // "set loop bound to tuning param"
-  reg16(VHV_CONFIG_TIMEOUT_MACROP_LOOP_BOUND) =
+  this->reg16(VHV_CONFIG_TIMEOUT_MACROP_LOOP_BOUND) =
       (saved_vhv_timeout & 0x03) + (3 << 2);  // tuning parm default (LOWPOWERAUTO_VHV_LOOP_BOUND_DEFAULT)
 
   // "override phasecal"
-  reg16(PHASECAL_CONFIG_OVERRIDE) = 0x01;
-  reg16(CAL_CONFIG_VCSEL_START) = reg16(PHASECAL_RESULT_VCSEL_START).get();
+  this->reg16(PHASECAL_CONFIG_OVERRIDE) = 0x01;
+  this->reg16(CAL_CONFIG_VCSEL_START) = this->reg16(PHASECAL_RESULT_VCSEL_START).get();
 }
 
 // read measurement results into buffer
 ResultBuffer VL53L1XSensor::read_results_() {
   ResultBuffer results;
-  read_register16(RESULT_RANGE_STATUS, (uint8_t *) &results, sizeof(results));
+  this->read_register16(RESULT_RANGE_STATUS, (uint8_t *) &results, sizeof(results));
   results.dss_actual_effective_spads_sd0 = i2c::i2ctohs(results.dss_actual_effective_spads_sd0);
   results.ambient_count_rate_mcps_sd0 = i2c::i2ctohs(results.ambient_count_rate_mcps_sd0);
   results.final_crosstalk_corrected_range_mm_sd0 = i2c::i2ctohs(results.final_crosstalk_corrected_range_mm_sd0);
@@ -631,7 +698,7 @@ void VL53L1XSensor::update_dss_(const ResultBuffer &results) {
       }
 
       // "override DSS config"
-      write_register16_16_(DSS_CONFIG_MANUAL_EFFECTIVE_SPADS_SELECT, required_spads);
+      this->write_register16_16_(DSS_CONFIG_MANUAL_EFFECTIVE_SPADS_SELECT, required_spads);
       // DSS_CONFIG_ROI_MODE_CONTROL should already be set to REQUESTED_EFFFECTIVE_SPADS
 
       return;
@@ -643,7 +710,7 @@ void VL53L1XSensor::update_dss_(const ResultBuffer &results) {
   // "We want to gracefully set a spad target, not just exit with an error"
 
   // "set target to mid point"
-  write_register16_16_(DSS_CONFIG_MANUAL_EFFECTIVE_SPADS_SELECT, 0x8000);
+  this->write_register16_16_(DSS_CONFIG_MANUAL_EFFECTIVE_SPADS_SELECT, 0x8000);
 }
 
 // get range, status, rates from results buffer
@@ -721,8 +788,8 @@ RangingData VL53L1XSensor::get_ranging_data_(const ResultBuffer &results) {
 
   // from SetSimpleData()
   ranging_data.peak_signal_count_rate_mcps =
-      count_rate_fixed_to_float_(results.peak_signal_count_rate_crosstalk_corrected_mcps_sd0);
-  ranging_data.ambient_count_rate_mcps = count_rate_fixed_to_float_(results.ambient_count_rate_mcps_sd0);
+      this->count_rate_fixed_to_float_(results.peak_signal_count_rate_crosstalk_corrected_mcps_sd0);
+  ranging_data.ambient_count_rate_mcps = this->count_rate_fixed_to_float_(results.ambient_count_rate_mcps_sd0);
   return ranging_data;
 }
 
@@ -772,7 +839,7 @@ uint32_t VL53L1XSensor::timeout_microseconds_to_mclks_(uint32_t timeout_us, uint
 uint32_t VL53L1XSensor::calc_macro_period_(uint8_t vcsel_period) {
   // from VL53L1_calc_pll_period_us()
   // fast osc frequency in 4.12 format; PLL period in 0.24 format
-  uint32_t pll_period_us = ((uint32_t) 0x01 << 30) / fast_osc_frequency_;
+  uint32_t pll_period_us = ((uint32_t) 0x01 << 30) / this->fast_osc_frequency_;
 
   // from VL53L1_decode_vcsel_period()
   uint8_t vcsel_period_pclks = (vcsel_period + 1) << 1;
@@ -792,17 +859,17 @@ float VL53L1XSensor::count_rate_fixed_to_float_(uint16_t count_rate_fixed) {
 
 // check if sensor has new reading available
 // assumes interrupt is active low (GPIO_HV_MUX_CTRL bit 4 is 1)
-bool VL53L1XSensor::data_ready_() { return (reg16(GPIO_TIO_HV_STATUS).get() & 0x01) == 0; }
+bool VL53L1XSensor::data_ready_() { return (this->reg16(GPIO_TIO_HV_STATUS).get() & 0x01) == 0; }
 
 uint16_t VL53L1XSensor::read_register16_16_(uint16_t reg) {
   uint16_t value = 0;
-  read_register16(reg, (uint8_t *) &value, sizeof(value));
+  this->read_register16(reg, (uint8_t *) &value, sizeof(value));
   return i2c::i2ctohs(value);
 }
 
 void VL53L1XSensor::write_register16_16_(uint16_t reg, uint16_t value) {
   value = i2c::htoi2cs(value);
-  write_register16(reg, (uint8_t *) &value, sizeof(value));
+  this->write_register16(reg, (uint8_t *) &value, sizeof(value));
 }
 
 }  // namespace vl53l1x
