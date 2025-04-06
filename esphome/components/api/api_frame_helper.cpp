@@ -897,7 +897,7 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
     if (aerr == APIError::BAD_INDICATOR) {
       struct iovec iov[1];
       const uint8_t *msg = "Bad indicator byte";
-      iov[0].iov_base = const_cast<uint8_t *>(msg);
+      iov[0].iov_base = (void *) msg;
       iov[0].iov_len = 19;
       write_raw_(iov, 1);
     }
