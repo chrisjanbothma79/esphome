@@ -30,6 +30,8 @@ PsramComponent = psram_ns.class_("PsramComponent", cg.Component)
 TYPE_QUAD = "quad"
 TYPE_OCTAL = "octal"
 
+CONF_ENABLE_ECC = "enable_ecc"
+
 SPIRAM_MODES = {
     TYPE_QUAD: "CONFIG_SPIRAM_MODE_QUAD",
     TYPE_OCTAL: "CONFIG_SPIRAM_MODE_OCT",
@@ -55,6 +57,8 @@ def validate_psram_mode(config):
             )
         else:
             raise cv.Invalid("PSRAM 120MHz is not supported in octal mode")
+    if config[CONF_MODE] != TYPE_OCTAL and config[CONF_ENABLE_ECC]:
+        raise cv.Invalid("ECC is only available in octal mode.")
     return config
 
 
@@ -62,6 +66,7 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(PsramComponent),
         cv.Optional(CONF_MODE, default=TYPE_QUAD): cv.enum(SPIRAM_MODES, lower=True),
+        cv.Optional(CONF_ENABLE_ECC, default=False): cv.boolean,
         cv.Optional(CONF_SPEED, default=40e6): cv.All(
             cv.frequency, cv.one_of(*SPIRAM_SPEEDS)
         ),
@@ -88,6 +93,12 @@ async def to_code(config):
         add_idf_sdkconfig_option(f"{SPIRAM_SPEEDS[config[CONF_SPEED]]}", True)
         if config[CONF_MODE] == TYPE_OCTAL and config[CONF_SPEED] == 120e6:
             add_idf_sdkconfig_option("CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240", True)
+            # This works only on IDF 5.4.x but does no harm on earlier versions
+            add_idf_sdkconfig_option(
+                "CONFIG_SPIRAM_TIMING_TUNING_POINT_VIA_TEMPERATURE_SENSOR", True
+            )
+        if config[CONF_ENABLE_ECC]:
+            add_idf_sdkconfig_option("CONFIG_SPIRAM_ECC_ENABLE", True)
 
     cg.add_define("USE_PSRAM")
 
