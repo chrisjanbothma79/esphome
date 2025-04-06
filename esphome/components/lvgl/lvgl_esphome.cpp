@@ -433,7 +433,12 @@ void LvglComponent::setup() {
   auto height = display->get_height();
   size_t buffer_pixels = width * height / this->buffer_frac_;
   auto buf_bytes = buffer_pixels * LV_COLOR_DEPTH / 8;
-  auto *buffer = lv_custom_mem_alloc(buf_bytes);  // NOLINT
+  void *buffer = nullptr;
+  if (this->buffer_frac_ >= 4)
+    // try to allocate in internal memory first if not full screen
+    buffer = malloc(buf_bytes);  // NOLINT
+  if (buffer == nullptr)
+    buffer = lv_custom_mem_alloc(buf_bytes);  // NOLINT
   if (buffer == nullptr) {
     this->mark_failed();
     this->status_set_error("Memory allocation failure");
