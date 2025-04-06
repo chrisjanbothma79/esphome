@@ -53,9 +53,9 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
 
   void set_scroll(bool scroll) { this->scroll_ = scroll; }
   void set_continuous(bool continuous) { this->continuous_ = continuous; }
-  void set_scroll_speed(unsigned long scroll_speed) { this->scroll_speed_ = scroll_speed; }
-  void set_scroll_dwell(unsigned long scroll_dwell) { this->scroll_dwell_ = scroll_dwell; }
-  void set_scroll_delay(unsigned long scroll_delay) { this->scroll_delay_ = scroll_delay; }
+  void set_scroll_speed(uint32_t scroll_speed) { this->scroll_speed_ = scroll_speed; }
+  void set_scroll_dwell(uint32_t scroll_dwell) { this->scroll_dwell_ = scroll_dwell; }
+  void set_scroll_delay(uint32_t scroll_delay) { this->scroll_delay_ = scroll_delay; }
 
   void brightness(uint8_t brightness_to_set);
   void set_blink(uint8_t blink_state);
@@ -91,10 +91,10 @@ class HT16k33CharComponent : public PollingComponent, public i2c::I2CDevice {
 
   bool scroll_{false};
   bool continuous_{false};
-  unsigned long scroll_speed_{250};
-  unsigned long scroll_dwell_{2000};
-  unsigned long scroll_delay_{750};
-  unsigned long last_scroll_{0};
+  uint32_t scroll_speed_{250};
+  uint32_t scroll_dwell_{2000};
+  uint32_t scroll_delay_{750};
+  uint32_t last_scroll_{0};
 
   uint8_t brightness_{15};  // Intensity of the display from 0 to 15 (most) TODO: Change to brightness?
 
