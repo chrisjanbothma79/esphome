@@ -899,12 +899,14 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
       // understand the indicator byte so it knows
       // we do not support it.
       struct iovec iov[1];
-      // The \x00 first byte is the marker, the remote will
-      // know how to handle the indicator byte, but it likely
-      // won't understand the rest of the message. We must
-      // send at least 3 bytes to be valid so we add a message
-      // after the indicator byte to ensures its long enough
-      // and can aid in debugging.
+      // The \x00 first byte is the marker for plaintext.
+      //
+      // The remote will know how to handle the indicator byte,
+      // but it likely won't understand the rest of the message.
+      //
+      // We must send at least 3 bytes to be read, so we add
+      // a message after the indicator byte to ensures its long
+      // enough and can aid in debugging.
       const char msg[] = {'\x00', 'B', 'a', 'd', ' ', 'i', 'n', 'd', 'i', 'c',
                           'a',    't', 'o', 'r', ' ', 'b', 'y', 't', 'e'};
       iov[0].iov_base = (void *) msg;
