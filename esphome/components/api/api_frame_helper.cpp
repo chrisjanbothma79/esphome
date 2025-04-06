@@ -893,8 +893,16 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
 
   ParsedFrame frame;
   aerr = try_read_frame_(&frame);
-  if (aerr != APIError::OK)
+  if (aerr != APIError::OK) {
+    if (aerr == APIError::BAD_INDICATOR) {
+      struct iovec iov[1];
+      const uint8_t *msg = "Bad indicator byte";
+      iov[0].iov_base = const_cast<uint8_t *>(msg);
+      iov[0].iov_len = 19;
+      write_raw_(iov, 1);
+    }
     return aerr;
+  }
 
   buffer->container = std::move(frame.msg);
   buffer->data_offset = 0;
