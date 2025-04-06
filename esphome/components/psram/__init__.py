@@ -79,8 +79,10 @@ FINAL_VALIDATE_SCHEMA = validate_psram_mode
 async def to_code(config):
     if CORE.using_arduino:
         cg.add_build_flag("-DBOARD_HAS_PSRAM")
-        if config[CONF_MODE] == TYPE_OCTAL:
-            cg.add_platformio_option("board_build.arduino.memory_type", "qio_opi")
+        # TODO - make octal mode work with Arduino.
+        # The folling lines should do it, but results in build errors.
+        # if config[CONF_MODE] == TYPE_OCTAL:
+        #    cg.add_platformio_option("board_build.arduino.memory_type", "qio_opi")
 
     if CORE.using_esp_idf:
         add_idf_sdkconfig_option(
