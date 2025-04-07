@@ -4,6 +4,10 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
     CONF_NAME,
+    CONF_PHASE_A,
+    CONF_PHASE_B,
+    CONF_PHASE_C,
+    CONF_REFERENCE_VOLTAGE,
     ENTITY_CATEGORY_CONFIG,
     UNIT_AMPERE,
     UNIT_VOLT,
@@ -17,10 +21,6 @@ ATM90E32Number = atm90e32_ns.class_(
 )
 
 CONF_REFERENCE_CURRENT = "reference_current"
-CONF_REFERENCE_VOLTAGE = "reference_voltage"
-CONF_PHASE_A = "phase_a"
-CONF_PHASE_B = "phase_b"
-CONF_PHASE_C = "phase_c"
 PHASE_KEYS = [CONF_PHASE_A, CONF_PHASE_B, CONF_PHASE_C]
 
 

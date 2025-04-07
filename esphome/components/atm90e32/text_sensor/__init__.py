@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import text_sensor
 import esphome.config_validation as cv
-from esphome.const import CONF_ID
+from esphome.const import CONF_ID, CONF_PHASE_A, CONF_PHASE_B, CONF_PHASE_C
 
 from .. import atm90e32_ns
 from ..sensor import ATM90E32Component
@@ -20,9 +20,6 @@ ATM90E32FreqStatusSensor = atm90e32_ns.class_(
 
 CONF_PHASE_STATUS = "phase_status"
 CONF_FREQ_STATUS = "freq_status"
-CONF_PHASE_A = "phase_a"
-CONF_PHASE_B = "phase_b"
-CONF_PHASE_C = "phase_c"
 PHASE_KEYS = [CONF_PHASE_A, CONF_PHASE_B, CONF_PHASE_C]
 
 PHASE_STATUS_SCHEMA = cv.Schema(
