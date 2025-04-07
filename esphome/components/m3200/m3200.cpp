@@ -78,9 +78,11 @@ void M3200::update() {
   
   // If we get here, the device tried to get data 10 times and got stale data or an invalid status
   // every time. I have only seen it fail once from stale data, so 10 failures probably indicates a
-  // i2c bus problem.
+  // i2c bus problem. If this happens, we log an error but continue. I considered marking the device
+  // failed if this happens, but it is possible to recover from a bus failure, so I don't want to 
+  // mark the device failed unnessecarially.
   ESP_LOGE(TAG, "Ten read failures in a row. Device is probably failed.");
-  this->mark_failed();
+  //this->mark_failed();
 }
 
 void M3200::dump_config() {
