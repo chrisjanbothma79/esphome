@@ -45,9 +45,10 @@ class WeatherStationProtocol : public RemoteProtocol<WeatherStationData> {
     REVERSED = 0b00001000,
   };
 
-  virtual void setup() = 0;
-  virtual bool transform(const std::vector<uint8_t> &code, WeatherStationData &data) const = 0;
-  virtual bool transform(const WeatherStationData &data, std::vector<uint8_t> &code) const = 0;
+  std::vector<uint8_t> code_;
+
+  uint32_t get_bits_(uint8_t pos, uint8_t nbits) const;
+  void set_bits_(uint8_t pos, uint8_t nbits, uint32_t c);
 
   bool is_pwm_() const { return (this->flags_ & TYPE_MASK) == TYPE_PWM; }
   bool is_ppm_() const { return (this->flags_ & TYPE_MASK) == TYPE_PPM; }
@@ -55,9 +56,13 @@ class WeatherStationProtocol : public RemoteProtocol<WeatherStationData> {
   bool is_reversed_() const { return (this->flags_ & REVERSED) != 0; }
 
   bool receive_item_(RemoteReceiveData &src, uint32_t high, uint32_t low) const;
-  bool receive_code_(RemoteReceiveData &src, std::vector<uint8_t> &code) const;
+  bool receive_code_(RemoteReceiveData &src);
   void transmit_item_(RemoteTransmitData *dst, uint32_t high, uint32_t low) const;
-  void transmit_code_(RemoteTransmitData *dst, const std::vector<uint8_t> &code) const;
+  void transmit_code_(RemoteTransmitData *dst) const;
+
+  virtual void setup() = 0;
+  virtual bool to_data(WeatherStationData &data) const = 0;
+  virtual bool to_code(const WeatherStationData &data) = 0;
 };
 
 template<typename P, typename... Ts> class WeatherStationAction : public RemoteTransmitterActionBase<Ts...> {
@@ -100,8 +105,8 @@ template<typename T> class WeatherStationBinarySensor : public RemoteReceiverBin
   class prefix##Protocol : public WeatherStationProtocol { \
    protected: \
     void setup() override; \
-    bool transform(const std::vector<uint8_t> &code, WeatherStationData &data) const override; \
-    bool transform(const WeatherStationData &data, std::vector<uint8_t> &code) const override; \
+    bool to_data(WeatherStationData &data) const override; \
+    bool to_code(const WeatherStationData &data) override; \
   }; \
   using prefix##BinarySensor = WeatherStationBinarySensor<prefix##Protocol>; \
   using prefix##Trigger = RemoteReceiverTrigger<prefix##Protocol>; \
