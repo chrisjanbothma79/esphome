@@ -11,7 +11,9 @@ from .const import (
     KEY_BOOTLOADER,
     KEY_EXTRA_BUILD_FILES,
     KEY_OVERLAY,
+    KEY_MCUBOOT_OVERLAY,
     KEY_PM_STATIC,
+    KEY_MCUBOOT_CONF,
     KEY_PRJ_CONF,
     KEY_ZEPHYR,
     zephyr_ns,
@@ -49,7 +51,11 @@ class ZephyrData(TypedDict):
     overlay: str
     extra_build_files: dict[str, str]
     pm_static: list[Section]
+    mcuboot_overlay: str
+    mcuboot_conf: dict[str, tuple[PrjConfValueType, bool]]
 
+def zephyr_data() -> ZephyrData:
+    return CORE.data[KEY_ZEPHYR]
 
 def zephyr_set_core_data(config):
     CORE.data[KEY_ZEPHYR] = ZephyrData(
@@ -59,13 +65,10 @@ def zephyr_set_core_data(config):
         overlay="",
         extra_build_files={},
         pm_static=[],
+        mcuboot_overlay="",
+        mcuboot_conf={},
     )
     return config
-
-
-def zephyr_data() -> ZephyrData:
-    return CORE.data[KEY_ZEPHYR]
-
 
 def zephyr_add_prj_conf(
     name: str, value: PrjConfValueType, required: bool = True
@@ -89,6 +92,19 @@ def zephyr_add_prj_conf(
 def zephyr_add_overlay(content):
     zephyr_data()[KEY_OVERLAY] += content
 
+def zephyr_add_mcuboot_overlay(content):
+    zephyr_data()[KEY_MCUBOOT_OVERLAY] += content
+
+def zephyr_add_mcuboot_conf(
+    name: str, value: PrjConfValueType, required: bool = True
+) -> None:
+    """Add a mcuboot configuration option to the project."""
+    if not name.startswith("CONFIG_"):
+        name = "CONFIG_" + name
+    mcuboot_conf = zephyr_data()[KEY_MCUBOOT_CONF]
+    if name in mcuboot_conf and mcuboot_conf[name][1] and not required:
+        return
+    mcuboot_conf[name] = (value, required)
 
 def add_extra_build_file(filename: str, path: str) -> bool:
     """Add an extra build file to the project."""
@@ -187,11 +203,30 @@ def copy_files():
     )
 
     write_file_if_changed(CORE.relative_build_path("zephyr/prj.conf"), prj_conf)
+    
+    # Write mcuboot configuration if it exists
+    mcuboot_opts = zephyr_data()[KEY_MCUBOOT_CONF]
+    if mcuboot_opts:
+        mcuboot_conf = (
+            "\n".join(
+                f"{name}={_format_prj_conf_val(value[0])}"
+                for name, value in sorted(mcuboot_opts.items())
+            )
+            + "\n"
+        )
+        write_file_if_changed(CORE.relative_build_path("zephyr/child_image/mcuboot/prj.conf"), mcuboot_conf)
 
     write_file_if_changed(
         CORE.relative_build_path("zephyr/app.overlay"),
         zephyr_data()[KEY_OVERLAY],
     )
+
+    # Write mcuboot overlay if it exists
+    if zephyr_data().get(KEY_MCUBOOT_OVERLAY):
+        write_file_if_changed(
+            CORE.relative_build_path(f"zephyr/child_image/mcuboot/boards/{zephyr_data()[KEY_BOARD]}.overlay"),
+            zephyr_data()[KEY_MCUBOOT_OVERLAY],
+        )
 
     if zephyr_data()[KEY_BOOTLOADER] == BOOTLOADER_MCUBOOT or zephyr_data()[
         KEY_BOARD
