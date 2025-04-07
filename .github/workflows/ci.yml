@@ -3,7 +3,7 @@ name: CI
 
 on:
   push:
-    branches: [dev, beta, release]
+    branches: [atm90e32-calibration-status]
 
   pull_request:
     paths:
