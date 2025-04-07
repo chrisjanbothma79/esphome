@@ -24,7 +24,6 @@ void ATM90E32GainCalibrationButton::press_action() {
   this->parent_->run_gain_calibrations();
 }
 
-
 void ATM90E32ClearGainCalibrationButton::press_action() {
   if (this->parent_ == nullptr) {
     ESP_LOGW(TAG, "No meters assigned to Clear Gain button [%s]", this->get_name().c_str());
@@ -47,7 +46,6 @@ void ATM90E32OffsetCalibrationButton::press_action() {
   this->parent_->run_offset_calibrations();
 }
 
-
 void ATM90E32ClearOffsetCalibrationButton::press_action() {
   if (this->parent_ == nullptr) {
     ESP_LOGW(TAG, "No meters assigned to Clear Offset button [%s]", this->get_name().c_str());
@@ -58,7 +56,6 @@ void ATM90E32ClearOffsetCalibrationButton::press_action() {
   this->parent_->clear_offset_calibrations();
 }
 
-
 void ATM90E32PowerOffsetCalibrationButton::press_action() {
   if (this->parent_ == nullptr) {
     ESP_LOGW(TAG, "No meters assigned to Power Calibration button [%s]", this->get_name().c_str());
@@ -67,10 +64,11 @@ void ATM90E32PowerOffsetCalibrationButton::press_action() {
 
   ESP_LOGI(TAG, "%s", this->get_name().c_str());
   ESP_LOGI(TAG, "**NOTE: CTs must be 0 during this process. Voltage reference should be present**");
-  ESP_LOGI(TAG, "Use offset_active_power: & offset_reactive_power: under each phase_x: in your config file to save these values");
+  ESP_LOGI(
+      TAG,
+      "Use offset_active_power: & offset_reactive_power: under each phase_x: in your config file to save these values");
   this->parent_->run_power_offset_calibrations();
 }
-
 
 void ATM90E32ClearPowerOffsetCalibrationButton::press_action() {
   if (this->parent_ == nullptr) {

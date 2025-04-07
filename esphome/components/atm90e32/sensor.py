@@ -1,5 +1,5 @@
 import esphome.codegen as cg
-from esphome.components import sensor, spi, number
+from esphome.components import number, sensor, spi
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_APPARENT_POWER,
@@ -8,6 +8,7 @@ from esphome.const import (
     CONF_FREQUENCY,
     CONF_ID,
     CONF_LINE_FREQUENCY,
+    CONF_NAME,
     CONF_PHASE_A,
     CONF_PHASE_ANGLE,
     CONF_PHASE_B,
@@ -17,7 +18,6 @@ from esphome.const import (
     CONF_REACTIVE_POWER,
     CONF_REVERSE_ACTIVE_ENERGY,
     CONF_VOLTAGE,
-    CONF_NAME,
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_ENERGY,
     DEVICE_CLASS_POWER,
@@ -41,6 +41,7 @@ from esphome.const import (
 )
 
 from . import atm90e32_ns
+
 ATM90E32Number = atm90e32_ns.class_("ATM90E32Number", number.Number)
 
 CONF_CHIP_TEMPERATURE = "chip_temperature"
@@ -189,6 +190,7 @@ CONFIG_SCHEMA = (
     .extend(cv.polling_component_schema("60s"))
     .extend(spi.spi_device_schema())
 )
+
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])

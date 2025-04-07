@@ -21,17 +21,26 @@ class ATM90E32Component : public PollingComponent,
   static const uint8_t PHASEA = 0;
   static const uint8_t PHASEB = 1;
   static const uint8_t PHASEC = 2;
-  const char *phase_labels[3] = { "A", "B", "C" };
+  const char *phase_labels[3] = {"A", "B", "C"};
   // these registers are not sucessive, so we can't just do 'base + phase'
-  const uint16_t voltage_gain_registers[3] = { ATM90E32_REGISTER_UGAINA, ATM90E32_REGISTER_UGAINB, ATM90E32_REGISTER_UGAINC };
-  const uint16_t current_gain_registers[3] = { ATM90E32_REGISTER_IGAINA, ATM90E32_REGISTER_IGAINB, ATM90E32_REGISTER_IGAINC };
-  const uint16_t voltage_offset_registers[3] = { ATM90E32_REGISTER_UOFFSETA, ATM90E32_REGISTER_UOFFSETB, ATM90E32_REGISTER_UOFFSETC };
-  const uint16_t current_offset_registers[3] = { ATM90E32_REGISTER_IOFFSETA, ATM90E32_REGISTER_IOFFSETB, ATM90E32_REGISTER_IOFFSETC };
-  const uint16_t power_offset_registers[3] = { ATM90E32_REGISTER_POFFSETA, ATM90E32_REGISTER_POFFSETB, ATM90E32_REGISTER_POFFSETC };
-  const uint16_t reactive_power_offset_registers[3] = { ATM90E32_REGISTER_QOFFSETA, ATM90E32_REGISTER_QOFFSETB, ATM90E32_REGISTER_QOFFSETC };
-  const uint16_t over_voltage_flags[3] = { ATM90E32_STATUS_S0_OVPHASEAST, ATM90E32_STATUS_S0_OVPHASEBST, ATM90E32_STATUS_S0_OVPHASECST };
-  const uint16_t voltage_sag_flags[3] = { ATM90E32_STATUS_S1_SAGPHASEAST, ATM90E32_STATUS_S1_SAGPHASEBST, ATM90E32_STATUS_S1_SAGPHASECST };
-  const uint16_t phase_loss_flags[3] = { ATM90E32_STATUS_S1_PHASELOSSAST, ATM90E32_STATUS_S1_PHASELOSSBST, ATM90E32_STATUS_S1_PHASELOSSCST };
+  const uint16_t voltage_gain_registers[3] = {ATM90E32_REGISTER_UGAINA, ATM90E32_REGISTER_UGAINB,
+                                              ATM90E32_REGISTER_UGAINC};
+  const uint16_t current_gain_registers[3] = {ATM90E32_REGISTER_IGAINA, ATM90E32_REGISTER_IGAINB,
+                                              ATM90E32_REGISTER_IGAINC};
+  const uint16_t voltage_offset_registers[3] = {ATM90E32_REGISTER_UOFFSETA, ATM90E32_REGISTER_UOFFSETB,
+                                                ATM90E32_REGISTER_UOFFSETC};
+  const uint16_t current_offset_registers[3] = {ATM90E32_REGISTER_IOFFSETA, ATM90E32_REGISTER_IOFFSETB,
+                                                ATM90E32_REGISTER_IOFFSETC};
+  const uint16_t power_offset_registers[3] = {ATM90E32_REGISTER_POFFSETA, ATM90E32_REGISTER_POFFSETB,
+                                              ATM90E32_REGISTER_POFFSETC};
+  const uint16_t reactive_power_offset_registers[3] = {ATM90E32_REGISTER_QOFFSETA, ATM90E32_REGISTER_QOFFSETB,
+                                                       ATM90E32_REGISTER_QOFFSETC};
+  const uint16_t over_voltage_flags[3] = {ATM90E32_STATUS_S0_OVPHASEAST, ATM90E32_STATUS_S0_OVPHASEBST,
+                                          ATM90E32_STATUS_S0_OVPHASECST};
+  const uint16_t voltage_sag_flags[3] = {ATM90E32_STATUS_S1_SAGPHASEAST, ATM90E32_STATUS_S1_SAGPHASEBST,
+                                         ATM90E32_STATUS_S1_SAGPHASECST};
+  const uint16_t phase_loss_flags[3] = {ATM90E32_STATUS_S1_PHASELOSSAST, ATM90E32_STATUS_S1_PHASELOSSBST,
+                                        ATM90E32_STATUS_S1_PHASELOSSCST};
   void loop() override;
   void setup() override;
   void dump_config() override;
@@ -58,8 +67,12 @@ class ATM90E32Component : public PollingComponent,
   void set_ct_gain(int phase, uint16_t gain) { this->phase_[phase].ct_gain_ = gain; }
   void set_voltage_offset(uint8_t phase, int16_t offset) { this->offset_phase_[phase].voltage_offset_ = offset; }
   void set_current_offset(uint8_t phase, int16_t offset) { this->offset_phase_[phase].current_offset_ = offset; }
-  void set_active_power_offset(uint8_t phase, int16_t offset) { this->power_offset_phase_[phase].active_power_offset = offset; }
-  void set_reactive_power_offset(uint8_t phase, int16_t offset) { this->power_offset_phase_[phase].reactive_power_offset = offset; }
+  void set_active_power_offset(uint8_t phase, int16_t offset) {
+    this->power_offset_phase_[phase].active_power_offset = offset;
+  }
+  void set_reactive_power_offset(uint8_t phase, int16_t offset) {
+    this->power_offset_phase_[phase].reactive_power_offset = offset;
+  }
   void set_freq_sensor(sensor::Sensor *freq_sensor) { freq_sensor_ = freq_sensor; }
   void set_peak_current_signed(bool flag) { peak_current_signed_ = flag; }
   void set_chip_temperature_sensor(sensor::Sensor *chip_temperature_sensor) {
@@ -82,16 +95,18 @@ class ATM90E32Component : public PollingComponent,
   void set_reference_voltage(uint8_t phase, number::Number *ref_voltage) { ref_voltages_[phase] = ref_voltage; }
   void set_reference_current(uint8_t phase, number::Number *ref_current) { ref_currents_[phase] = ref_current; }
   float get_reference_voltage(uint8_t phase) {
-    return (phase >= 0 && phase < 3 && ref_voltages_[phase]) ? ref_voltages_[phase]->state : 120.0; // Default voltage
+    return (phase >= 0 && phase < 3 && ref_voltages_[phase]) ? ref_voltages_[phase]->state : 120.0;  // Default voltage
   }
   float get_reference_current(uint8_t phase) {
-    return (phase >= 0 && phase < 3 && ref_currents_[phase]) ? ref_currents_[phase]->state : 5.0f; // Default current
+    return (phase >= 0 && phase < 3 && ref_currents_[phase]) ? ref_currents_[phase]->state : 5.0f;  // Default current
   }
   bool using_saved_calibrations_ = false;  // Track if stored calibrations are being used
   void check_phase_status();
   void check_freq_status();
   void check_over_current();
-  void set_phase_status_text_sensor(uint8_t phase, text_sensor::TextSensor *sensor) { this->phase_status_text_sensor_[phase]= sensor; }
+  void set_phase_status_text_sensor(uint8_t phase, text_sensor::TextSensor *sensor) {
+    this->phase_status_text_sensor_[phase] = sensor;
+  }
   void set_freq_status_text_sensor(text_sensor::TextSensor *sensor) { this->freq_status_text_sensor_ = sensor; }
   uint16_t calculate_voltage_threshold_(int line_freq, uint16_t ugain, float multiplier);
   int32_t last_periodic_millis = millis();
@@ -183,7 +198,7 @@ class ATM90E32Component : public PollingComponent,
     int16_t active_power_offset{0};
     int16_t reactive_power_offset{0};
   } power_offset_phase_[3];
-  
+
   struct GainCalibration {
     uint16_t voltage_gain{1};
     uint16_t current_gain{1};
@@ -208,9 +223,7 @@ class ATM90E32Component : public PollingComponent,
 
 class ATM90E32Number : public number::Number, public Parented<ATM90E32Component> {
  public:
-  void control(float value) override {
-    this->publish_state(value);
-  }
+  void control(float value) override { this->publish_state(value); }
 };
 class ATM90E32PhaseStatusSensor : public text_sensor::TextSensor, public Parented<ATM90E32Component> {
  public:

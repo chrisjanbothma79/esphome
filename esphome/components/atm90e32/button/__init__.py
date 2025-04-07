@@ -1,11 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import button
 import esphome.config_validation as cv
-from esphome.const import (
-    CONF_ID, 
-    ENTITY_CATEGORY_CONFIG, 
-    ICON_SCALE
-)
+from esphome.const import CONF_ID, ENTITY_CATEGORY_CONFIG, ICON_SCALE
 
 from .. import atm90e32_ns
 from ..sensor import ATM90E32Component
@@ -41,35 +37,35 @@ CONFIG_SCHEMA = {
     cv.Optional(CONF_RUN_GAIN_CALIBRATION): button.button_schema(
         ATM90E32GainCalibrationButton,
         entity_category=ENTITY_CATEGORY_CONFIG,
-        icon="mdi:scale-balance"
+        icon="mdi:scale-balance",
     ),
     cv.Optional(CONF_CLEAR_GAIN_CALIBRATION): button.button_schema(
         ATM90E32ClearGainCalibrationButton,
         entity_category=ENTITY_CATEGORY_CONFIG,
-        icon="mdi:delete"
+        icon="mdi:delete",
     ),
     cv.Optional(CONF_RUN_OFFSET_CALIBRATION): button.button_schema(
         ATM90E32OffsetCalibrationButton,
         entity_category=ENTITY_CATEGORY_CONFIG,
-        icon=ICON_SCALE
+        icon=ICON_SCALE,
     ),
-
     cv.Optional(CONF_CLEAR_OFFSET_CALIBRATION): button.button_schema(
         ATM90E32ClearOffsetCalibrationButton,
         entity_category=ENTITY_CATEGORY_CONFIG,
-        icon="mdi:delete"
+        icon="mdi:delete",
     ),
     cv.Optional(CONF_RUN_POWER_OFFSET_CALIBRATION): button.button_schema(
         ATM90E32PowerOffsetCalibrationButton,
         entity_category=ENTITY_CATEGORY_CONFIG,
-        icon=ICON_SCALE
+        icon=ICON_SCALE,
     ),
     cv.Optional(CONF_CLEAR_POWER_OFFSET_CALIBRATION): button.button_schema(
         ATM90E32ClearPowerOffsetCalibrationButton,
         entity_category=ENTITY_CATEGORY_CONFIG,
-        icon="mdi:delete"
+        icon="mdi:delete",
     ),
 }
+
 
 async def to_code(config):
     parent = await cg.get_variable(config[CONF_ID])
