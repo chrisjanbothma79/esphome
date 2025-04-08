@@ -346,7 +346,7 @@ async def to_code(configs):
     # Set this directly since we are limited in how many methods can be added to the Widget class.
     Widget.widgets_completed = True
     async with LvContext():
-        await generate_triggers(lv_component)
+        await generate_triggers()
         for config in configs:
             lv_component = await cg.get_variable(config[CONF_ID])
             await generate_page_triggers(config)
@@ -369,7 +369,8 @@ async def to_code(configs):
                 await build_automation(resume_trigger, [], conf)
             for conf in config.get(CONF_ON_BOOT, ()):
                 boot_trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], lv_component)
-                await build_automation(boot_trigger, [], conf)
+                cg.add(lv_component.add_on_boot_callback(boot_trigger))
+                # await build_automation(boot_trigger, [], conf)
 
     # This must be done after all widgets are created
     for comp in helpers.lvgl_components_required:
