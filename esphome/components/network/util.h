@@ -4,6 +4,17 @@
 #include <string>
 #include "ip_address.h"
 
+// Forward declarations for network components
+#ifdef USE_OPENTHREAD
+namespace esphome {
+namespace zephyr_openthread {
+class OpenThreadZephyr;
+extern OpenThreadZephyr *global_openthread_component;
+}  // namespace zephyr_openthread
+}  // namespace esphome
+namespace openthread = esphome::zephyr_openthread;
+#endif
+
 namespace esphome {
 namespace network {
 

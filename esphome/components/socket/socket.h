@@ -5,7 +5,8 @@
 #include "esphome/core/optional.h"
 #include "headers.h"
 
-#if defined(USE_SOCKET_IMPL_LWIP_TCP) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS) || defined(USE_SOCKET_IMPL_BSD_SOCKETS)
+#if defined(USE_SOCKET_IMPL_LWIP_TCP) || defined(USE_SOCKET_IMPL_LWIP_SOCKETS) || \
+    defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_ZEPHYR_SOCKETS)
 namespace esphome {
 namespace socket {
 
@@ -21,7 +22,8 @@ class Socket {
   virtual int close() = 0;
   // not supported yet:
   // virtual int connect(const std::string &address) = 0;
-#if defined(USE_SOCKET_IMPL_LWIP_SOCKETS) || defined(USE_SOCKET_IMPL_BSD_SOCKETS)
+#if defined(USE_SOCKET_IMPL_LWIP_SOCKETS) || defined(USE_SOCKET_IMPL_BSD_SOCKETS) || \
+    defined(USE_SOCKET_IMPL_ZEPHYR_SOCKETS)
   virtual int connect(const struct sockaddr *addr, socklen_t addrlen) = 0;
 #endif
   virtual int shutdown(int how) = 0;
@@ -34,7 +36,7 @@ class Socket {
   virtual int setsockopt(int level, int optname, const void *optval, socklen_t optlen) = 0;
   virtual int listen(int backlog) = 0;
   virtual ssize_t read(void *buf, size_t len) = 0;
-#ifdef USE_SOCKET_IMPL_BSD_SOCKETS
+#if defined(USE_SOCKET_IMPL_BSD_SOCKETS) || defined(USE_SOCKET_IMPL_ZEPHYR_SOCKETS)
   virtual ssize_t recvfrom(void *buf, size_t len, sockaddr *addr, socklen_t *addr_len) = 0;
 #endif
   virtual ssize_t readv(const struct iovec *iov, int iovcnt) = 0;
@@ -58,6 +60,8 @@ socklen_t set_sockaddr(struct sockaddr *addr, socklen_t addrlen, const std::stri
 /// Set a sockaddr to the any address and specified port for the IP version used by socket_ip().
 socklen_t set_sockaddr_any(struct sockaddr *addr, socklen_t addrlen, uint16_t port);
 
+/// Format a sockaddr_storage as a string.
+std::string format_sockaddr(const struct sockaddr_storage &storage);
 }  // namespace socket
 }  // namespace esphome
 #endif

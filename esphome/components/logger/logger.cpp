@@ -41,6 +41,8 @@ void Logger::write_header_(int level, const char *tag, int line) {
   const char *letter = LOG_LEVEL_LETTERS[level];
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
   TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
+#elif defined(USE_ZEPHYR)
+  k_tid_t current_task = k_current_get();
 #else
   void *current_task = nullptr;
 #endif
@@ -52,9 +54,16 @@ void Logger::write_header_(int level, const char *tag, int line) {
     thread_name = pcTaskGetName(current_task);
 #elif defined(USE_LIBRETINY)
     thread_name = pcTaskGetTaskName(current_task);
+#elif defined(USE_ZEPHYR)
+    thread_name = k_thread_name_get(current_task);
 #endif
-    this->printf_to_buffer_("%s[%s][%s:%03u]%s[%s]%s: ", color, letter, tag, line,
-                            ESPHOME_LOG_BOLD(ESPHOME_LOG_COLOR_RED), thread_name, color);
+    if (thread_name) {
+      this->printf_to_buffer_("%s[%s][%s:%03u]%s[%s]%s: ", color, letter, tag, line,
+                              ESPHOME_LOG_BOLD(ESPHOME_LOG_COLOR_RED), thread_name, color);
+    } else {
+      this->printf_to_buffer_("%s[%s][%s:%03u]%s[%p]%s: ", color, letter, tag, line,
+                              ESPHOME_LOG_BOLD(ESPHOME_LOG_COLOR_RED), current_task, color);
+    }
   }
 }
 
@@ -139,10 +148,13 @@ Logger::Logger(uint32_t baud_rate, size_t tx_buffer_size) : baud_rate_(baud_rate
   this->tx_buffer_ = new char[this->tx_buffer_size_ + 1];  // NOLINT
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
   this->main_task_ = xTaskGetCurrentTaskHandle();
+#elif defined(USE_ZEPHYR)
+  this->main_task_ = k_current_get();
 #endif
 }
 
 #ifdef USE_LOGGER_USB_CDC
+#ifndef USE_ZEPHYR
 void Logger::loop() {
 #ifdef USE_ARDUINO
   if (this->uart_ != UART_SELECTION_USB_CDC) {
@@ -159,11 +171,12 @@ void Logger::loop() {
 #endif
 }
 #endif
+#endif
 
 void Logger::set_baud_rate(uint32_t baud_rate) { this->baud_rate_ = baud_rate; }
 void Logger::set_log_level(const std::string &tag, int log_level) { this->log_levels_[tag] = log_level; }
 
-#if defined(USE_ESP32) || defined(USE_ESP8266) || defined(USE_RP2040) || defined(USE_LIBRETINY)
+#if defined(USE_ESP32) || defined(USE_ESP8266) || defined(USE_RP2040) || defined(USE_LIBRETINY) || defined(USE_ZEPHYR)
 UARTSelection Logger::get_uart() const { return this->uart_; }
 #endif
 

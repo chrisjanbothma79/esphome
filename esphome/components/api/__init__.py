@@ -22,6 +22,7 @@ from esphome.const import (
     CONF_TAG,
     CONF_TRIGGER_ID,
     CONF_VARIABLES,
+    CONF_PLATFORM,
 )
 from esphome.core import coroutine_with_priority
 
@@ -49,6 +50,7 @@ SERVICE_ARG_NATIVE_TYPES = {
     "string[]": cg.std_vector.template(cg.std_string),
 }
 CONF_ENCRYPTION = "encryption"
+CONF_USE_ZEPHYR = "use_zephyr"
 
 
 def validate_encryption_key(value):
@@ -106,6 +108,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_ON_CLIENT_DISCONNECTED): automation.validate_automation(
                 single=True
             ),
+            cv.Optional(CONF_PLATFORM): cv.one_of("zephyr"),
         }
     ).extend(cv.COMPONENT_SCHEMA),
     cv.rename_key(CONF_SERVICES, CONF_ACTIONS),
