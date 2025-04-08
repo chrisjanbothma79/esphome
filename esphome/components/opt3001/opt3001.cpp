@@ -30,12 +30,12 @@ opt3001 properties:
 
 */
 
-OPT3001Sensor::OPT3001Sensor() { updating_ = false; }
+OPT3001Sensor::OPT3001Sensor() { this->updating_ = false; }
 
 void OPT3001Sensor::read_result_(const std::function<void(float)> &f) {
   // ensure the single shot flag is clear, indicating it's done
   uint16_t raw_value;
-  if (this->read_(&raw_value) != i2c::ERROR_OK) {
+  if (this->read(reinterpret_cast<uint8_t *>(&raw_value), 2) != i2c::ERROR_OK) {
     ESP_LOGW(TAG, "Reading configuration register failed");
     f(NAN);
     return;
@@ -74,13 +74,13 @@ void OPT3001Sensor::read_lx_(const std::function<void(float)> &f) {
   }
 
   this->set_timeout("read", OPT3001_CONVERSION_TIME_800, [this, f]() {
-    if (this->setup_read_(OPT3001_REG_CONFIGURATION) != i2c::ERROR_OK) {
+    if (this->write(&OPT3001_REG_CONFIGURATION, 1, true) != i2c::ERROR_OK) {
       ESP_LOGW(TAG, "Starting configuration register read failed");
       f(NAN);
       return;
     }
 
-    read_result_(f);
+    this->read_result_(f);
   });
 }
 
@@ -99,13 +99,13 @@ void OPT3001Sensor::update() {
   // and we just keep waiting for it in read_result_.
   // This way we don't end up with potentially boundless "threads"
   // using up memory and eventually crashing the device
-  if (updating_) {
+  if (this->updating_) {
     return;
   }
-  updating_ = true;
+  this->updating_ = true;
 
   this->read_lx_([this](float val) {
-    updating_ = false;
+    this->updating_ = false;
 
     if (std::isnan(val)) {
       this->status_set_warning();
