@@ -335,6 +335,19 @@ class DeviceInfoRequest : public ProtoMessage {
 
  protected:
 };
+class SubDeviceInfo : public ProtoMessage {
+ public:
+  std::string id{};
+  std::string name{};
+  std::string suggested_area{};
+  void encode(ProtoWriteBuffer buffer) const override;
+#ifdef HAS_PROTO_MESSAGE_DUMP
+  void dump_to(std::string &out) const override;
+#endif
+
+ protected:
+  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
+};
 class DeviceInfoResponse : public ProtoMessage {
  public:
   bool uses_password{false};
@@ -355,6 +368,7 @@ class DeviceInfoResponse : public ProtoMessage {
   uint32_t voice_assistant_feature_flags{0};
   std::string suggested_area{};
   std::string bluetooth_mac_address{};
+  std::vector<SubDeviceInfo> sub_devices{};
   void encode(ProtoWriteBuffer buffer) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;

@@ -762,6 +762,47 @@ void DeviceInfoRequest::encode(ProtoWriteBuffer buffer) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DeviceInfoRequest::dump_to(std::string &out) const { out.append("DeviceInfoRequest {}"); }
 #endif
+bool SubDeviceInfo::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 1: {
+      this->id = value.as_string();
+      return true;
+    }
+    case 2: {
+      this->name = value.as_string();
+      return true;
+    }
+    case 3: {
+      this->suggested_area = value.as_string();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void SubDeviceInfo::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_string(1, this->id);
+  buffer.encode_string(2, this->name);
+  buffer.encode_string(3, this->suggested_area);
+}
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void SubDeviceInfo::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("SubDeviceInfo {\n");
+  out.append("  id: ");
+  out.append("'").append(this->id).append("'");
+  out.append("\n");
+
+  out.append("  name: ");
+  out.append("'").append(this->name).append("'");
+  out.append("\n");
+
+  out.append("  suggested_area: ");
+  out.append("'").append(this->suggested_area).append("'");
+  out.append("\n");
+  out.append("}");
+}
+#endif
 bool DeviceInfoResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -842,6 +883,10 @@ bool DeviceInfoResponse::decode_length(uint32_t field_id, ProtoLengthDelimited v
       this->bluetooth_mac_address = value.as_string();
       return true;
     }
+    case 19: {
+      this->sub_devices.push_back(value.as_message<SubDeviceInfo>());
+      return true;
+    }
     default:
       return false;
   }
@@ -865,6 +910,9 @@ void DeviceInfoResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(17, this->voice_assistant_feature_flags);
   buffer.encode_string(16, this->suggested_area);
   buffer.encode_string(18, this->bluetooth_mac_address);
+  for (auto &it : this->sub_devices) {
+    buffer.encode_message<SubDeviceInfo>(19, it, true);
+  }
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DeviceInfoResponse::dump_to(std::string &out) const {
@@ -946,6 +994,12 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
   out.append("  bluetooth_mac_address: ");
   out.append("'").append(this->bluetooth_mac_address).append("'");
   out.append("\n");
+
+  for (const auto &it : this->sub_devices) {
+    out.append("  sub_devices: ");
+    it.dump_to(out);
+    out.append("\n");
+  }
   out.append("}");
 }
 #endif
