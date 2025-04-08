@@ -62,7 +62,7 @@ sensor:
       unit_of_measurement: "µg/m³"
       icon: mdi:chemical-weapon
 
-    aqi:
+  aqi:
       name: "AQI"
       id: aqi_sensor
       calculation_type: "CAQI"
