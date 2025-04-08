@@ -105,7 +105,6 @@ STYLE_PROPS = {
     "bg_image_recolor": lvalid.lv_color,
     "bg_image_recolor_opa": lvalid.opacity,
     "bg_image_src": lvalid.lv_image,
-    "bg_image_tiled": lvalid.lv_bool,
     "bg_main_stop": lvalid.stop_value,
     "bg_opa": lvalid.opacity,
     "border_color": lvalid.lv_color,
@@ -175,7 +174,6 @@ STYLE_REMAP = {
     "bg_image_recolor": "bg_img_recolor",
     "bg_image_recolor_opa": "bg_img_recolor_opa",
     "bg_image_src": "bg_img_src",
-    "bg_image_tiled": "bg_img_tiled",
     "image_recolor": "img_recolor",
     "image_recolor_opa": "img_recolor_opa",
 }
