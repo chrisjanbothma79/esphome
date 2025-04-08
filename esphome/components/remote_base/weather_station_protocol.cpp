@@ -22,7 +22,8 @@ optional<WeatherStationData> WeatherStationProtocol::decode(RemoteReceiveData sr
   while (src.get_index() < search_limit) {
     if (this->receive_item_(src, this->sync_high_, this->sync_low_)) {
       if (this->receive_code_(src)) {
-        ESP_LOGD(TAG, "receive @%" PRIu32 " %" PRIx64 " (%d)", src.get_index(), *(uint64_t *) &this->code_[0], this->nbits_);
+        ESP_LOGD(TAG, "receive @%" PRIu32 " %" PRIx64 " (%d)", src.get_index(), *(uint64_t *) &this->code_[0],
+                 this->nbits_);
         // found something, extend search till the end
         search_limit = search_end;
         // transform may also return false if it needs more packets to complete data
