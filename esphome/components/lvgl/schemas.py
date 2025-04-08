@@ -15,6 +15,7 @@ from esphome.const import (
     CONF_TYPE,
 )
 from esphome.core import TimePeriod
+from esphome.core.config import StartupTrigger
 from esphome.schema_extractors import SCHEMA_EXTRACT
 
 from . import defines as df, lv_validation as lvalid
@@ -23,7 +24,6 @@ from .helpers import add_lv_use, requires_component, validate_printf
 from .lv_validation import lv_color, lv_font, lv_gradient, lv_image, opacity
 from .lvcode import LvglComponent, lv_event_t_ptr
 from .types import (
-    BootTrigger,
     LVEncoderListener,
     LvType,
     WidgetType,
@@ -234,7 +234,7 @@ def automation_schema(typ: LvType):
     ).extend(
         {
             cv.Optional(CONF_ON_BOOT): validate_automation(
-                {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(BootTrigger)}
+                {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(StartupTrigger)}
             )
         }
     )
