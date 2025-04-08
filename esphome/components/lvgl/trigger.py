@@ -28,6 +28,13 @@ from .types import LV_EVENT
 from .widgets import LvScrActType, get_scr_act, widget_map
 
 
+async def add_on_boot_triggers(triggers):
+    for conf in triggers:
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], 390)
+        await cg.register_component(trigger, conf)
+        await automation.build_automation(trigger, [], conf)
+
+
 async def generate_triggers():
     """
     Generate LVGL triggers for all defined widgets
@@ -75,10 +82,7 @@ async def generate_triggers():
                     UPDATE_EVENT,
                 )
 
-            for conf in w.config.get(CONF_ON_BOOT, ()):
-                trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], 390)
-                await cg.register_component(trigger, conf)
-                await automation.build_automation(trigger, [], conf)
+            await add_on_boot_triggers(w.config.get(CONF_ON_BOOT, ()))
 
             # Generate align to directives while we're here
             if align_to := w.config.get(CONF_ALIGN_TO):

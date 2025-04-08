@@ -50,7 +50,7 @@ from .schemas import (
 )
 from .styles import add_top_layer, styles_to_code, theme_to_code
 from .touchscreens import touchscreen_schema, touchscreens_to_code
-from .trigger import generate_triggers
+from .trigger import add_on_boot_triggers, generate_triggers
 from .types import (
     FontEngine,
     IdleTrigger,
@@ -367,10 +367,7 @@ async def to_code(configs):
                     conf[CONF_TRIGGER_ID], lv_component, False
                 )
                 await build_automation(resume_trigger, [], conf)
-            for conf in config.get(CONF_ON_BOOT, ()):
-                boot_trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], lv_component)
-                cg.add(lv_component.add_on_boot_callback(boot_trigger))
-                # await build_automation(boot_trigger, [], conf)
+            await add_on_boot_triggers(config.get(CONF_ON_BOOT, ()))
 
     # This must be done after all widgets are created
     for comp in helpers.lvgl_components_required:
