@@ -349,9 +349,10 @@ def icon(value):
     )
 
 
-def device_id(value):
-    StringRef = cg.esphome_ns.struct("StringRef")
-    validator = use_id(StringRef)
+def sub_device_id(value):
+    devices_ns = cg.esphome_ns.namespace("devices")
+    SubDevice = devices_ns.class_("SubDevice")
+    validator = use_id(SubDevice)
     return validator(value)
 
 
@@ -1874,8 +1875,7 @@ ENTITY_BASE_SCHEMA = Schema(
         Optional(CONF_DISABLED_BY_DEFAULT, default=False): boolean,
         Optional(CONF_ICON): icon,
         Optional(CONF_ENTITY_CATEGORY): entity_category,
-        # Optional(CONF_DEVICE_ID): use_id(StringRef),
-        Optional(CONF_DEVICE_ID): device_id,
+        Optional(CONF_DEVICE_ID): sub_device_id,
     }
 )
 

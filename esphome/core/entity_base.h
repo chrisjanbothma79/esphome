@@ -47,9 +47,9 @@ class EntityBase {
   std::string get_icon() const;
   void set_icon(const char *icon);
 
-  // Get/set this entity's device name
-  StringRef get_device_id() const;
-  void set_device_id(const StringRef *device_id);
+  // Get/set this entity's device id
+  const StringRef &get_device_id() const;
+  void set_device_id(const std::string device_id);
 
  protected:
   /// The hash_base() function has been deprecated. It is kept in this
