@@ -200,6 +200,33 @@ def resolve_ip_address(host, port):
     return res
 
 
+def sort_ip_addresses(address_list):
+    import socket
+
+    # First "resolve" all the IP addresses to get getaddrinfo() tuples
+    # which indicate the type of address, scope, etc.
+    res = []
+    for addr in address_list:
+        # This should always work as these are supposed to be IP addresses
+        try:
+            r = socket.getaddrinfo(
+                addr, 0, proto=socket.IPPROTO_TCP, flags=socket.AI_NUMERICHOST
+            )
+            res = res + r
+        except OSError:
+            _LOGGER.info("Failed to parse IP address '%s'", addr)
+
+    # Now use that information to sort them.
+    res.sort(key=addr_preference_)
+
+    # Finally, turn the getaddrinfo() tuples back into plain hostnames.
+    sorted_address_list = []
+    for r in res:
+        sorted_address_list.append(socket.getnameinfo(r[4], socket.NI_NUMERICHOST)[0])
+
+    return sorted_address_list
+
+
 def get_bool_env(var, default=False):
     value = os.getenv(var, default)
     if isinstance(value, str):
