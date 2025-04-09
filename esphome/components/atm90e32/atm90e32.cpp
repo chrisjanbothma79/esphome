@@ -540,8 +540,7 @@ void ATM90E32Component::save_gain_calibration_to_memory_() {
 
 void ATM90E32Component::run_offset_calibrations() {
   if (!this->enable_offset_calibration_) {
-    ESP_LOGW("CALIBRATION", 
-             "Offset calibration is disabled! Enable it first with enable_offset_calibration: true");
+    ESP_LOGW("CALIBRATION", "Offset calibration is disabled! Enable it first with enable_offset_calibration: true");
     return;
   }
 
@@ -560,7 +559,7 @@ void ATM90E32Component::run_offset_calibrations() {
 
 void ATM90E32Component::run_power_offset_calibrations() {
   if (!this->enable_offset_calibration_) {
-    ESP_LOGW("CALIBRATION", 
+    ESP_LOGW("CALIBRATION",
              "Offset power calibration is disabled! Enable it first with enable_offset_calibration: true");
     return;
   }
