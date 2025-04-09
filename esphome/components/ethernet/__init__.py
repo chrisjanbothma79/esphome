@@ -166,7 +166,10 @@ RMII_SCHEMA = BASE_SCHEMA.extend(
         {
             cv.Required(CONF_MDC_PIN): pins.internal_gpio_output_pin_number,
             cv.Required(CONF_MDIO_PIN): pins.internal_gpio_output_pin_number,
-            cv.Required(CONF_CLK_PIN): pins.internal_gpio_output_pin_number,
+            cv.Required(CONF_CLK_PIN): cv.Any(
+                pins.internal_gpio_output_pin_number,
+                pins.internal_gpio_input_pin_number,
+            ),
             cv.Optional(CONF_CLK_MODE, default="CLK_EXT_IN"): cv.enum(
                 CLK_MODES, upper=True, space="_"
             ),
