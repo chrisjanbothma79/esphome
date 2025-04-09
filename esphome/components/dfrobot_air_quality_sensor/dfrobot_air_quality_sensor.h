@@ -19,6 +19,11 @@ class DFRobotAirQualitySensor : public PollingComponent, public i2c::I2CDevice {
   void set_aqi_sensor(sensor::Sensor *sensor) { aqi_sensor_ = sensor; }
   void set_aqi_calculation_type(AQICalculatorType aqi_calc_type) { aqi_calc_type_ = aqi_calc_type; }
   
+  void set_pm_0_3_sensor(sensor::Sensor *sensor) { pm_0_3_sensor_ = sensor; }
+  void set_pm_0_5_sensor(sensor::Sensor *sensor) { pm_0_5_sensor_ = sensor; }
+  void set_pm_5_0_sensor(sensor::Sensor *sensor) { pm_5_0_sensor_ = sensor; }
+  void set_pm_10_5_sensor(sensor::Sensor *sensor) { pm_10_5_sensor_ = sensor; }
+  
   void setup() override;
   void update() override;
 
@@ -27,10 +32,16 @@ class DFRobotAirQualitySensor : public PollingComponent, public i2c::I2CDevice {
   sensor::Sensor *pm_2_5_sensor_{nullptr};
   sensor::Sensor *pm_10_sensor_{nullptr};
   sensor::Sensor *aqi_sensor_{nullptr};
-  DFRobot_AirQualitySensor *sensor_;
   
+  sensor::Sensor *pm_0_3_sensor_{nullptr};
+  sensor::Sensor *pm_0_5_sensor_{nullptr};
+  sensor::Sensor *pm_5_0_sensor_{nullptr};
+  sensor::Sensor *pm_10_5_sensor_{nullptr};
+
   AQICalculatorType aqi_calc_type_;
   AQICalculatorFactory aqi_calculator_factory_ = AQICalculatorFactory();
+  
+  DFRobot_AirQualitySensor *sensor_;
 };
 
 }  // namespace dfrobot_air_quality_sensor

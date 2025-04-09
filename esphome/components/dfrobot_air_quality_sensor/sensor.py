@@ -17,17 +17,34 @@ from esphome.const import (
 )
 
 DEPENDENCIES = ["i2c"]
-CODEOWNERS = ["@DanBar1971"]
+CODEOWNERS = ["@daniel_barradas"]
 
 dfrobot_ns = cg.esphome_ns.namespace("dfrobot_air_quality_sensor")
 DFRobotAirQualitySensor = dfrobot_ns.class_("DFRobotAirQualitySensor", cg.PollingComponent, i2c.I2CDevice)
 AQICalculatorType = dfrobot_ns.enum("AQICalculatorType")
 
+DEVICE_CLASS_PM03 = "pm03"
+DEVICE_CLASS_PM05 = "pm05"
+DEVICE_CLASS_PM50 = "pm50"
+DEVICE_CLASS_PM105 = "pm105"
+
 CONF_PM_1_0 = "pm_1_0"
 CONF_PM_2_5 = "pm_2_5"
-CONF_PM_10 = "pm_10"
-CONF_AQI = "aqi"
+CONF_PM_10  = "pm_10"
+
+CONF_PM_0_3UM = "pm_0_3um"
+CONF_PM_0_5UM = "pm_0_5um"
+CONF_PM_5_0UM = "pm_5_0um"
+CONF_PM_10_5UM = "pm_10_5um"
+
+#CONF_PM_0_3 = "pm_0_3"
+#CONF_PM_0_5 = "pm_0_5"
+#CONF_PM_5_0 = "pm_5_0"
+#CONF_PM_10_5 = "pm_10_5"
+
+CONF_AQI    = "aqi"
 CONF_CALCULATION_TYPE = "calculation_type"
+
 UNIT_INDEX = "index"
 
 AQI_CALCULATION_TYPE = {
@@ -67,6 +84,34 @@ CONFIG_SCHEMA = cv.Schema(
             device_class=DEVICE_CLASS_PM10,
             state_class=STATE_CLASS_MEASUREMENT,
         ),
+        cv.Optional(CONF_PM_0_3UM): sensor.sensor_schema(
+            unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
+            icon=ICON_CHEMICAL_WEAPON,
+            accuracy_decimals=0,
+            device_class=DEVICE_CLASS_PM1,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),    
+        cv.Optional(CONF_PM_0_5UM): sensor.sensor_schema(
+            unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
+            icon=ICON_CHEMICAL_WEAPON,
+            accuracy_decimals=0,
+            device_class=DEVICE_CLASS_PM1,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),    
+        cv.Optional(CONF_PM_5_0UM): sensor.sensor_schema(
+            unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
+            icon=ICON_CHEMICAL_WEAPON,
+            accuracy_decimals=0,
+            device_class=DEVICE_CLASS_PM1,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),    
+        cv.Optional(CONF_PM_10_5UM): sensor.sensor_schema(
+            unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
+            icon=ICON_CHEMICAL_WEAPON,
+            accuracy_decimals=0,
+            device_class=DEVICE_CLASS_PM10,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ),    
         cv.Optional(CONF_AQI): sensor.sensor_schema(
             unit_of_measurement=UNIT_INDEX,
             icon=ICON_CHEMICAL_WEAPON,
@@ -88,15 +133,40 @@ async def to_code(config):
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
 
-    sens = await sensor.new_sensor(config[CONF_PM_1_0])
-    cg.add(var.set_pm_1_0_sensor(sens))
+    if CONF_PM_1_0 in config:
+        sens = await sensor.new_sensor(config[CONF_PM_1_0])
+        cg.add(var.set_pm_1_0_sensor(sens))
+    
+    if CONF_PM_2_5 in config:
+        sens = await sensor.new_sensor(config[CONF_PM_2_5])
+        cg.add(var.set_pm_2_5_sensor(sens))
+    
+    if CONF_PM_10_0 in config:
+        sens = await sensor.new_sensor(config[CONF_PM_10])
+        cg.add(var.set_pm_10_sensor(sens))
+    
+    if CONF_PM_0_3UM in config:
+        sens = await sensor.new_sensor(config[CONF_PM_0_3UM])
+        cg.add(var.set_pm_0_3_sensor(sens))
 
-    sens = await sensor.new_sensor(config[CONF_PM_2_5])
-    cg.add(var.set_pm_2_5_sensor(sens))
+    if CONF_PM_0_5UM in config:
+        sens = await sensor.new_sensor(config[CONF_PM_0_5UM])
+        cg.add(var.set_pm_0_5_sensor(sens))
+    
+    if CONF_PM_5_0UM in config:
+        sens = await sensor.new_sensor(config[CONF_PM_5_0UM])
+        cg.add(var.set_pm_5_0_sensor(sens))
+    
+    if CONF_PM_10_5UM in config:
+        sens = await sensor.new_sensor(config[CONF_PM_10_5UM])
+        cg.add(var.set_pm_10_5_sensor(sens))
+    
+    if CONF_AQI in config:
+        sens = await sensor.new_sensor(config[CONF_AQI])
+        cg.add(var.set_aqi_sensor(sens))
+        cg.add(var.set_aqi_calculation_type(config[CONF_AQI][CONF_CALCULATION_TYPE]))
+        
+    
+    
 
-    sens = await sensor.new_sensor(config[CONF_PM_10])
-    cg.add(var.set_pm_10_sensor(sens))
 
-    sens = await sensor.new_sensor(config[CONF_AQI])
-    cg.add(var.set_aqi_sensor(sens))
-    cg.add(var.set_aqi_calculation_type(config[CONF_AQI][CONF_CALCULATION_TYPE]))

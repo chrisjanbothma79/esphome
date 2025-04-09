@@ -1,6 +1,6 @@
 from esphome.components import i2c
 import esphome.codegen as cg
 
-CODEOWNERS = ["@DanBar1971"]
+CODEOWNERS = ["@daniel_barradas"]
 DEPENDENCIES = ["i2c"]
 AUTO_LOAD = ["sensor"]
