@@ -24,7 +24,6 @@ ota:
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
-
   ap:
     ssid: "Test-Dfrobot-Air-Quality-Sensor"
     password: "< USE YOURS >"
@@ -40,7 +39,6 @@ i2c:
   sda: GPIO4
   scl: GPIO5
   scan: true
-
 
 sensor:
   - platform: dfrobot_air_quality_sensor
@@ -67,26 +65,21 @@ sensor:
       id: aqi_sensor
       calculation_type: "CAQI"
       icon: mdi:air-filter  
-      
-    #  Get the number of particles in 0.1L of air
     pm_0_3um:
       name: "PM0.3"
       id: pm03_sensor
       unit_of_measurement: "um"
       icon: mdi:chemical-weapon
-
     pm_0_5um:
       name: "PM0.5"
       id: pm05_sensor
       unit_of_measurement: "um"
       icon: mdi:chemical-weapon
-
     pm_5_0um:
       name: "PM5.0"
       id: pm5_0_sensor
       unit_of_measurement: "um"
       icon: mdi:chemical-weapon
-
     pm_10_5um:
       name: "PM10.5"
       id: pm10_5_sensor
