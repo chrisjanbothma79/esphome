@@ -35,7 +35,7 @@ std::string EntityBase::get_icon() const {
 }
 void EntityBase::set_icon(const char *icon) { this->icon_c_str_ = icon; }
 
-// Entity Device Name
+// Entity Device id
 const StringRef &EntityBase::get_device_id() const {
   if (this->device_id_.empty()) {
     return StringRef("");

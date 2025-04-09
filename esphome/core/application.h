@@ -252,6 +252,8 @@ class Application {
 
 #ifdef USE_SUB_DEVICE
   const std::vector<devices::SubDevice *> &get_sub_devices() { return this->sub_devices_; }
+  // /* Very likely no need for get_sub_device_by_key as it only seem to be used when requesting update from API
+  //    and the sub_devices shaould only be sent once at connection. */
   // devices::SubDevice *get_sub_device_by_key(uint32_t key, bool include_internal = false) {
   //   for (auto *obj : this->sub_devices_) {
   //     if (obj->get_object_id_hash() == key && (include_internal || !obj->is_internal()))

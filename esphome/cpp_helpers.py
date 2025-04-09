@@ -89,10 +89,6 @@ async def register_component(var, config):
     return var
 
 
-# async def register_sub_device(var, value):
-#     pass
-
-
 async def register_parented(var, value):
     if isinstance(value, ID):
         paren = await get_variable(value)
