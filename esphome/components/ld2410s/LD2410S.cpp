@@ -238,16 +238,6 @@ void LD2410S::set_response_speed_select(const std::string &response_speed_select
   this->send_cmd_("set_response_speed_select\0", PARAMS_WRITE_CMD, CFG_RESPONSE_SPEED_VALUE);
 }
 
-void LD2410S::send_cmd_(const char *msg, uint16_t command, uint16_t sub_command) {
-  this->status_set_warning(msg);
-
-  this->send_cmd_frame_(CONFIG_MODE_START_CMD);
-  this->send_cmd_frame_(command, sub_command);
-  this->send_cmd_frame_(CONFIG_MODE_END_CMD);
-
-  this->status_clear_warning();
-}
-
 void LD2410S::send_cmd_(const char *msg, uint16_t command, uint16_t sub_command, uint16_t command2,
                         uint16_t sub_command2) {
   this->status_set_warning(msg);
