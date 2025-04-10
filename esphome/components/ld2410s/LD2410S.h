@@ -319,7 +319,7 @@ class LD2410S : public uart::UARTDevice, public Component {
   // void process_data_progress_(uint8_t *data);
   // void process_data_energy_levels_(uint8_t *data);
 
-  void send_cmd_frame_(uint16_t command, uint16_t sub_command = 0);
+  void send_cmd_frame_(uint16_t command, uint16_t sub_command = 0xffff);
 
   void cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint8_t *append_data, size_t append_data_size);
   void cmd_frame_append_data_(CmdFrameT *cmd_frame, const uint16_t *append_data, size_t append_data_size);
