@@ -55,6 +55,7 @@ from .const import (  # noqa
     KEY_SUBMODULES,
     KEY_VARIANT,
     VARIANT_ESP32,
+    VARIANT_ESP32C3,
     VARIANT_FRIENDLY,
     VARIANTS,
 )
@@ -88,6 +89,14 @@ def set_core_data(config):
     CORE.data[KEY_ESP32][KEY_BOARD] = config[CONF_BOARD]
     CORE.data[KEY_ESP32][KEY_VARIANT] = config[CONF_VARIANT]
     CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES] = {}
+    if (
+        config[CONF_VARIANT] == VARIANT_ESP32C3
+        and config[CONF_CPU_FREQUENCY] == "240MHZ"
+    ):
+        raise cv.Invalid(
+            "ESP32-C3 does not support 240MHz.",
+            path=[CONF_CPU_FREQUENCY],
+        )
 
     return config
 
@@ -552,6 +561,7 @@ FLASH_SIZES = [
 ]
 
 CPU_FREQUENCIES = (
+    "40MHZ",
     "80MHZ",
     "160MHZ",
     "240MHZ",
