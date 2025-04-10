@@ -95,8 +95,9 @@ std::string DebugComponent::get_reset_reason_() {
     case ESP_RST_CPU_LOCKUP:
       reset_reason = "Reset due to CPU lock up (double exception)";
       break;
-#endif        // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 1, 4)
-#endif        // USE_ESP32_VARIANT_ESP32
+#endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 1, 4)
+#endif  // USE_ESP32_VARIANT_ESP32
+#ifndef USE_ESP32_VARIANT_ESP32P4
     default:  // Includes ESP_RST_UNKNOWN
       switch (rtc_get_reset_reason(0)) {
         case POWERON_RESET:
@@ -203,6 +204,7 @@ std::string DebugComponent::get_reset_reason_() {
           reset_reason = "Unknown Reset Reason";
       }
       break;
+#endif
   }
   ESP_LOGD(TAG, "Reset Reason: %s", reset_reason.c_str());
   return reset_reason;
@@ -330,6 +332,7 @@ void DebugComponent::get_device_info_(std::string &device_info) {
   device_info += "|Reset: ";
   device_info += get_reset_reason_();
 
+#ifndef USE_ESP32_VARIANT_ESP32P4
   const char *wakeup_reason;
   switch (rtc_get_wakeup_cause()) {
     case NO_SLEEP:
@@ -374,6 +377,7 @@ void DebugComponent::get_device_info_(std::string &device_info) {
   ESP_LOGD(TAG, "Wakeup Reason: %s", wakeup_reason);
   device_info += "|Wakeup: ";
   device_info += wakeup_reason;
+#endif
 }
 
 void DebugComponent::update_platform_() {

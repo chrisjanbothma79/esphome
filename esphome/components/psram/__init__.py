@@ -8,7 +8,11 @@ from esphome.components.esp32 import (
     get_esp32_variant,
     only_on_variant,
 )
-from esphome.components.esp32.const import VARIANT_ESP32S2, VARIANT_ESP32S3
+from esphome.components.esp32.const import (
+    VARIANT_ESP32P4,
+    VARIANT_ESP32S2,
+    VARIANT_ESP32S3,
+)
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ADVANCED,
@@ -32,18 +36,22 @@ PsramComponent = psram_ns.class_("PsramComponent", cg.Component)
 
 TYPE_QUAD = "quad"
 TYPE_OCTAL = "octal"
+TYPE_HEX = "hex"
 
 CONF_ENABLE_ECC = "enable_ecc"
 
 SPIRAM_MODES = {
     TYPE_QUAD: "CONFIG_SPIRAM_MODE_QUAD",
     TYPE_OCTAL: "CONFIG_SPIRAM_MODE_OCT",
+    TYPE_HEX: "CONFIG_SPIRAM_MODE_HEX",
 }
 
 SPIRAM_SPEEDS = {
+    20e6: "CONFIG_SPIRAM_SPEED_40M",
     40e6: "CONFIG_SPIRAM_SPEED_40M",
     80e6: "CONFIG_SPIRAM_SPEED_80M",
     120e6: "CONFIG_SPIRAM_SPEED_120M",
+    200e6: "CONFIG_SPIRAM_SPEED_200M",
 }
 
 
@@ -62,12 +70,17 @@ def validate_psram_mode(config):
             raise cv.Invalid("PSRAM 120MHz is not supported in octal mode")
     if config[CONF_MODE] != TYPE_OCTAL and config[CONF_ENABLE_ECC]:
         raise cv.Invalid("ECC is only available in octal mode.")
+    variant = get_esp32_variant()
     if config[CONF_MODE] == TYPE_OCTAL:
-        variant = get_esp32_variant()
         if variant != VARIANT_ESP32S3:
             raise cv.Invalid(
                 f"Octal PSRAM is only supported on ESP32-S3, not {variant}"
             )
+    if config[CONF_MODE] == TYPE_HEX:
+        if variant != VARIANT_ESP32P4:
+            raise cv.Invalid(f"Hex PSRAM is only supported on ESP32-P4, not {variant}")
+    elif variant == VARIANT_ESP32P4:
+        raise cv.Invalid(f"ESP32-P4 supports only hex PSRAM, not {config[CONF_MODE]}")
     return config
 
 
@@ -75,7 +88,7 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(PsramComponent),
-            cv.Optional(CONF_MODE, default=TYPE_QUAD): cv.enum(
+            cv.SplitDefault(CONF_MODE, esp32p4=TYPE_HEX, default=TYPE_QUAD): cv.enum(
                 SPIRAM_MODES, lower=True
             ),
             cv.Optional(CONF_ENABLE_ECC, default=False): cv.boolean,
@@ -85,7 +98,7 @@ CONFIG_SCHEMA = cv.All(
         }
     ),
     only_on_variant(
-        supported=[VARIANT_ESP32, VARIANT_ESP32S3, VARIANT_ESP32S2],
+        supported=[VARIANT_ESP32, VARIANT_ESP32S3, VARIANT_ESP32S2, VARIANT_ESP32P4],
     ),
 )
 
@@ -109,6 +122,9 @@ async def to_code(config):
 
         add_idf_sdkconfig_option(f"{SPIRAM_MODES[config[CONF_MODE]]}", True)
         add_idf_sdkconfig_option(f"{SPIRAM_SPEEDS[config[CONF_SPEED]]}", True)
+        add_idf_sdkconfig_option(
+            "CONFIG_SPIRAM_SPEED", int(config[CONF_SPEED]) // 1000000
+        )
         if config[CONF_MODE] == TYPE_OCTAL and config[CONF_SPEED] == 120e6:
             add_idf_sdkconfig_option("CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240", True)
             # This works only on IDF 5.4.x but does no harm on earlier versions

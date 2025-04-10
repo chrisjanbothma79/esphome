@@ -91,7 +91,7 @@ CPU_FREQUENCIES = {
     VARIANT_ESP32C3: get_cpu_frequencies(80, 160),
     VARIANT_ESP32C6: get_cpu_frequencies(80, 120, 160),
     VARIANT_ESP32H2: get_cpu_frequencies(16, 32, 48, 64, 96),
-    VARIANT_ESP32P4: get_cpu_frequencies(40, 360),
+    VARIANT_ESP32P4: get_cpu_frequencies(40, 360, 400),
 }
 
 FULL_CPU_FREQUENCIES = set(itertools.chain.from_iterable(CPU_FREQUENCIES.values()))
