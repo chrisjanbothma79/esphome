@@ -37,6 +37,7 @@ from esphome.const import (
     __version__,
 )
 from esphome.core import CORE, HexInt, TimePeriod
+from esphome.cpp_generator import RawExpression
 import esphome.final_validate as fv
 from esphome.helpers import copy_file_if_changed, mkdir_p, write_file_if_changed
 
@@ -83,6 +84,7 @@ def set_core_data(config):
     CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION] = cv.Version.parse(
         config[CONF_FRAMEWORK][CONF_VERSION]
     )
+
     CORE.data[KEY_ESP32][KEY_BOARD] = config[CONF_BOARD]
     CORE.data[KEY_ESP32][KEY_VARIANT] = config[CONF_VARIANT]
     CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES] = {}
@@ -549,12 +551,22 @@ FLASH_SIZES = [
     "32MB",
 ]
 
+CPU_FREQUENCIES = (
+    "80MHZ",
+    "160MHZ",
+    "240MHZ",
+)
+
 CONF_FLASH_SIZE = "flash_size"
+CONF_CPU_FREQUENCY = "cpu_frequency"
 CONF_PARTITIONS = "partitions"
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.Required(CONF_BOARD): cv.string_strict,
+            cv.Optional(CONF_CPU_FREQUENCY, default="160MHz"): cv.one_of(
+                *CPU_FREQUENCIES, upper=True
+            ),
             cv.Optional(CONF_FLASH_SIZE, default="4MB"): cv.one_of(
                 *FLASH_SIZES, upper=True
             ),
@@ -595,6 +607,7 @@ async def to_code(config):
         os.path.join(os.path.dirname(__file__), "post_build.py.script"),
     )
 
+    freq = config.get(CONF_CPU_FREQUENCY, "160Mhz")[:-3]
     if conf[CONF_TYPE] == FRAMEWORK_ESP_IDF:
         cg.add_platformio_option("framework", "espidf")
         cg.add_build_flag("-DUSE_ESP_IDF")
@@ -627,6 +640,12 @@ async def to_code(config):
         add_idf_sdkconfig_option("CONFIG_ESP_TASK_WDT_PANIC", True)
         add_idf_sdkconfig_option("CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0", False)
         add_idf_sdkconfig_option("CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1", False)
+
+        # Set default CPU frequency
+        add_idf_sdkconfig_option(f"CONFIG_ESP_DEFAULT_CPU_FREQ_{freq}", True)
+        add_idf_sdkconfig_option(
+            f"CONFIG_{config[CONF_VARIANT]}_DEFAULT_CPU_FREQ_{freq}", True
+        )
 
         cg.add_platformio_option("board_build.partitions", "partitions.csv")
         if CONF_PARTITIONS in config:
@@ -693,6 +712,7 @@ async def to_code(config):
                 f"VERSION_CODE({framework_ver.major}, {framework_ver.minor}, {framework_ver.patch})"
             ),
         )
+        cg.add(RawExpression(f"setCpuFrequencyMhz({freq})"))
 
 
 APP_PARTITION_SIZES = {
