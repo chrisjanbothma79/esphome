@@ -270,6 +270,8 @@ void DebugComponent::get_device_info_(std::string &device_info) {
   model = "ESP32-S3";
 #elif defined(USE_ESP32_VARIANT_ESP32H2)
   model = "ESP32-H2";
+#elif defined(USE_ESP32_VARIANT_ESP32P4)
+  model = "ESP32-P4";
 #else
   model = "UNKNOWN";
 #endif
