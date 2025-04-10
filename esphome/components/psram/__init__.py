@@ -8,11 +8,7 @@ from esphome.components.esp32 import (
     get_esp32_variant,
     only_on_variant,
 )
-from esphome.components.esp32.const import (
-    VARIANT_ESP32P4,
-    VARIANT_ESP32S2,
-    VARIANT_ESP32S3,
-)
+from esphome.components.esp32.const import VARIANT_ESP32S2, VARIANT_ESP32S3
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ADVANCED,
@@ -36,21 +32,18 @@ PsramComponent = psram_ns.class_("PsramComponent", cg.Component)
 
 TYPE_QUAD = "quad"
 TYPE_OCTAL = "octal"
-TYPE_HEX = "hex"
 
 CONF_ENABLE_ECC = "enable_ecc"
 
 SPIRAM_MODES = {
     TYPE_QUAD: "CONFIG_SPIRAM_MODE_QUAD",
     TYPE_OCTAL: "CONFIG_SPIRAM_MODE_OCT",
-    TYPE_HEX: "CONFIG_SPIRAM_MODE_HEX",
 }
 
 SPIRAM_SPEEDS = {
     40e6: "CONFIG_SPIRAM_SPEED_40M",
     80e6: "CONFIG_SPIRAM_SPEED_80M",
     120e6: "CONFIG_SPIRAM_SPEED_120M",
-    200e6: "CONFIG_SPIRAM_SPEED_200M",
 }
 
 
@@ -92,7 +85,7 @@ CONFIG_SCHEMA = cv.All(
         }
     ),
     only_on_variant(
-        supported=[VARIANT_ESP32, VARIANT_ESP32S3, VARIANT_ESP32S2, VARIANT_ESP32P4],
+        supported=[VARIANT_ESP32, VARIANT_ESP32S3, VARIANT_ESP32S2],
     ),
 )
 
