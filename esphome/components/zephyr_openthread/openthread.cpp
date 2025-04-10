@@ -19,6 +19,8 @@
 #include <openthread/srp_client_buffers.h>
 #include <openthread/dataset_ftd.h>
 #include <openthread/netdata.h>
+#include <zephyr/mgmt/mcumgr/transport/smp_udp.h>
+#include <set>
 
 namespace esphome {
 namespace zephyr_openthread {
@@ -55,9 +57,9 @@ void OpenThreadZephyr::setup() {
   }
 
   // Configure operational dataset if needed
-  // if (this->force_dataset_) {
-  //   this->configure_operational_dataset();
-  // }
+  if (this->force_dataset_) {
+    this->configure_operational_dataset();
+  }
 
   // Start OpenThread network
   this->start_thread_network();
@@ -191,8 +193,6 @@ void OpenThreadZephyr::stop_thread_network() {
 }
 
 void OpenThreadZephyr::update_ipv6_addresses() {
-  ESP_LOGD(TAG, "Updating IPv6 addresses...");
-
   otInstance *instance = openthread_get_default_instance();
   if (instance == nullptr) {
     ESP_LOGW(TAG, "OpenThread instance not available");
@@ -207,35 +207,58 @@ void OpenThreadZephyr::update_ipv6_addresses() {
   std::string global_addr;
   bool found_omr_prefix = false;
 
-  ESP_LOGD(TAG, "Scanning IPv6 addresses:");
+  // Track address changes
+  std::string previous_ipv6_address = this->ipv6_address_;
+  
+  // Set to store current addresses for comparison
+  std::set<std::string> current_addresses;
+  bool new_global_address_found = false;
   int addr_count = 0;
 
   for (const otNetifAddress *addr = unicast_addrs; addr; addr = addr->mNext) {
     addr_count++;
     char addr_str[OT_IP6_ADDRESS_STRING_SIZE];
     otIp6AddressToString(&addr->mAddress, addr_str, sizeof(addr_str));
-
-    // Log all addresses
-    ESP_LOGD(TAG, "  Address %d: %s/%d", addr_count, addr_str, addr->mPrefixLength);
+    
+    // Add to current addresses set
+    std::string address_string(addr_str);
+    current_addresses.insert(address_string);
+    
+    // Check if this is a new address we haven't seen before
+    bool is_new_address = this->known_addresses_.find(address_string) == this->known_addresses_.end();
+    
+    // Log new addresses
+    if (is_new_address) {
+      ESP_LOGD(TAG, "New IPv6 address found: %s/%d", addr_str, addr->mPrefixLength);
+      this->known_addresses_.insert(address_string);
+    }
 
     // Check if mesh-local address (fd prefix)
     if (addr->mAddress.mFields.m8[0] == 0xfd) {
       found_mesh_local = true;
       mesh_local_addr = addr_str;
-      ESP_LOGD(TAG, "  -> Mesh-local IPv6 Address: %s", addr_str);
+      
+      // Flag for MCUMGR restart if it's a new mesh-local address
+      if (is_new_address) {
+        new_global_address_found = true;
+      }
     }
     // Check if global address (2xxx or 3xxx prefix)
     else if ((addr->mAddress.mFields.m8[0] == 0x20 || addr->mAddress.mFields.m8[0] == 0x30) &&
              addr->mPrefixLength == 64) {
       found_global = true;
       global_addr = addr_str;
-      ESP_LOGD(TAG, "  -> Global IPv6 Address: %s", addr_str);
+      
+      // Log new global addresses explicitly
+      if (is_new_address) {
+        ESP_LOGI(TAG, "New global IPv6 address found: %s", addr_str);
+        new_global_address_found = true;
+      }
+      
       found_omr_prefix = true;
-      ESP_LOGD(TAG, "  -> Off-Mesh-Routable (OMR) prefix detected: %s/%d", addr_str, addr->mPrefixLength);
     }
     // Check if link-local address (fe80 prefix)
     else if (addr->mAddress.mFields.m8[0] == 0xfe && addr->mAddress.mFields.m8[1] == 0x80) {
-      ESP_LOGD(TAG, "  -> Link-local IPv6 Address: %s", addr_str);
       // If we don't have a better address, use link-local as fallback
       if (!found_mesh_local && !found_global) {
         mesh_local_addr = addr_str;
@@ -243,8 +266,22 @@ void OpenThreadZephyr::update_ipv6_addresses() {
     }
   }
 
-  if (addr_count == 0) {
-    ESP_LOGD(TAG, "  No IPv6 addresses found");
+  // Detect addresses that disappeared
+  std::vector<std::string> removed_addresses;
+  for (const auto &known_addr : this->known_addresses_) {
+    if (current_addresses.find(known_addr) == current_addresses.end()) {
+      removed_addresses.push_back(known_addr);
+      ESP_LOGD(TAG, "IPv6 address removed: %s", known_addr.c_str());
+    }
+  }
+  
+  // Remove disappeared addresses from known set
+  for (const auto &removed : removed_addresses) {
+    this->known_addresses_.erase(removed);
+  }
+
+  if (addr_count == 0 && this->known_addresses_.empty()) {
+    ESP_LOGD(TAG, "No IPv6 addresses found");
   }
 
   // Update IPv6 address status
@@ -252,34 +289,54 @@ void OpenThreadZephyr::update_ipv6_addresses() {
   this->has_ipv6_address_ = found_mesh_local || found_global;
 
   // Prefer global address, fall back to mesh-local
+  std::string new_ipv6_address;
   if (found_global) {
-    this->ipv6_address_ = global_addr;
-    ESP_LOGI(TAG, "Using global IPv6 address: %s", global_addr.c_str());
+    new_ipv6_address = global_addr;
+    // Only log if it's a new primary address
+    if (new_ipv6_address != previous_ipv6_address) {
+      ESP_LOGI(TAG, "Using global IPv6 address: %s", global_addr.c_str());
+    }
   } else if (found_mesh_local) {
-    this->ipv6_address_ = mesh_local_addr;
-    ESP_LOGI(TAG, "Using mesh-local IPv6 address: %s", mesh_local_addr.c_str());
+    new_ipv6_address = mesh_local_addr;
+    // Only log if it's a new primary address
+    if (new_ipv6_address != previous_ipv6_address) {
+      ESP_LOGI(TAG, "Using mesh-local IPv6 address: %s", mesh_local_addr.c_str());
+    }
   }
+  
+  // Update the stored IP address
+  this->ipv6_address_ = new_ipv6_address;
 
-  // Log if IPv6 status changed
+  // Address status changed (gained or lost an address)
   if (had_ipv6 != this->has_ipv6_address_) {
     if (this->has_ipv6_address_) {
       ESP_LOGI(TAG, "IPv6 address acquired: %s", this->ipv6_address_.c_str());
 
-      ESP_LOGD(TAG, "Thread network interface initialized");
-
-      // Setup SRP services if not already done
+      // Setup SRP services once when the first IPv6 address is acquired
       if (!this->srp_services_registered_ && this->mdns_ != nullptr) {
         ESP_LOGI(TAG, "Setting up SRP services now that we have an IP address");
         this->setup_srp_services();
-        this->srp_services_registered_ = true;
+        this->srp_services_registered_ = true; // Mark as registered
       }
 
-      // If we have an OMR prefix, SRP auto host address will handle updating SRP entries
-      if (found_omr_prefix) {
-        ESP_LOGD(TAG, "OMR prefix available - SRP entries will be updated automatically");
-      }
     } else {
-      ESP_LOGW(TAG, "IPv6 address lost");
+      ESP_LOGI(TAG, "IPv6 address lost");
+    }
+  }
+  
+  // Restart MCUMGR UDP transport if we found new global addresses and it's already running
+  if (new_global_address_found) {
+    ESP_LOGI(TAG, "New IPv6 address detected, restarting MCUMGR UDP transport to listen on new interfaces");
+    if (this->mcumgr_udp_started_) {
+      smp_udp_close();
+    }
+    int ret = smp_udp_open();
+    if (ret == 0) {
+      ESP_LOGI(TAG, "MCUMGR UDP transport restarted successfully.");
+      this->mcumgr_udp_started_ = true;
+    } else {
+      ESP_LOGE(TAG, "Failed to restart MCUMGR UDP transport: %d", ret);
+      this->mcumgr_udp_started_ = false; // Mark as stopped since restart failed
     }
   }
 }
@@ -297,19 +354,20 @@ void OpenThreadZephyr::setup_srp_services() {
     return;
   }
 
+  // Set up the SRP client callback (only needs to be done once)
   otSrpClientSetCallback(instance, srpCallback, nullptr);
 
   // Set the host name using the project name
-  std::string hostname_str = App.get_name();  // Store in a string to ensure lifetime
-  this->host_name_ = hostname_str;            // Store for later use
+  std::string hostname_str = App.get_name();
+  this->host_name_ = hostname_str;
 
-  // Get buffer for hostname
+  // Get buffer and set hostname
   uint16_t size;
   char *existing_host_name = otSrpClientBuffersGetHostNameString(instance, &size);
   uint16_t len = this->host_name_.size();
-  if (len > size) {
-    ESP_LOGW(TAG, "Hostname is too long, choose a shorter project name");
-    return;
+  if (len + 1 > size) { // +1 for null terminator
+    ESP_LOGW(TAG, "Hostname '%s' is too long (max %d), choose a shorter project name", hostname_str.c_str(), size - 1);
+    return; // Don't proceed if hostname is too long
   }
   memcpy(existing_host_name, this->host_name_.c_str(), len + 1);
 
@@ -317,78 +375,88 @@ void OpenThreadZephyr::setup_srp_services() {
   otError error = otSrpClientSetHostName(instance, existing_host_name);
   if (error != OT_ERROR_NONE) {
     ESP_LOGW(TAG, "Could not set host name: %s", otThreadErrorToString(error));
-    return;
+    // Don't return here, attempt to register services anyway
   }
 
-  // Enable automatic host address updates when Off-Mesh-Routable prefix changes
+  // Enable automatic host address updates (uses current addresses)
   error = otSrpClientEnableAutoHostAddress(instance);
   if (error != OT_ERROR_NONE) {
     ESP_LOGW(TAG, "Could not enable auto host address: %s", otThreadErrorToString(error));
-    return;
   }
 
-  // If mDNS component is available, use its services
+  // Register mDNS services if available
   if (this->mdns_ != nullptr) {
-    // Copy the mdns services to our local instance so that the c_str pointers remain valid for the lifetime of this
-    // component
     this->mdns_services_ = this->mdns_->get_services();
-    ESP_LOGW(TAG, "Setting up SRP services. count = %d", this->mdns_services_.size());
+    ESP_LOGI(TAG, "Registering %d SRP services", this->mdns_services_.size());
 
     for (const auto &service : this->mdns_services_) {
+      std::string service_type = service.service_type + "." + service.proto;
+
       otSrpClientBuffersServiceEntry *entry = otSrpClientBuffersAllocateService(instance);
       if (!entry) {
-        ESP_LOGW(TAG, "Failed to allocate service entry");
-        continue;
+        ESP_LOGW(TAG, "Failed to allocate service entry for %s", service_type.c_str());
+        continue; // Try next service
       }
 
-      // Set service name
-      char *string = otSrpClientBuffersGetServiceEntryServiceNameString(entry, &size);
-      std::string full_service = service.service_type + "." + service.proto;
-      if (full_service.size() > size) {
-        ESP_LOGW(TAG, "Service name too long: %s", full_service.c_str());
-        continue;
+      // Populate service entry
+      char *buffer;
+      uint16_t buffer_size;
+      bool success = true; // Track if entry population succeeds
+
+      // Set service name (type._proto)
+      buffer = otSrpClientBuffersGetServiceEntryServiceNameString(entry, &buffer_size);
+      if (service_type.size() + 1 > buffer_size) {
+        ESP_LOGW(TAG, "Service name too long: %s", service_type.c_str());
+        success = false;
       }
-      memcpy(string, full_service.c_str(), full_service.size() + 1);
-
-      // Set instance name (using host_name)
-      string = otSrpClientBuffersGetServiceEntryInstanceNameString(entry, &size);
-      if (this->host_name_.size() > size) {
-        ESP_LOGW(TAG, "Instance name too long: %s", this->host_name_.c_str());
-        continue;
+      if (success) {
+         memcpy(buffer, service_type.c_str(), service_type.size() + 1);
       }
-      memcpy(string, this->host_name_.c_str(), this->host_name_.size() + 1);
 
-      // Set port
-      entry->mService.mPort = service.port;
+      // Set instance name (use host name) - only if previous steps succeeded
+      if (success) {
+          buffer = otSrpClientBuffersGetServiceEntryInstanceNameString(entry, &buffer_size);
+          if (this->host_name_.size() + 1 > buffer_size) {
+            ESP_LOGW(TAG, "Instance name too long: %s", this->host_name_.c_str());
+            success = false;
+          } else {
+            memcpy(buffer, this->host_name_.c_str(), this->host_name_.size() + 1);
+          }
+      }
 
-      // Set TXT records if available
-      if (!service.txt_records.empty()) {
-        // Allocate memory for TXT entries
-        otDnsTxtEntry *mTxtEntries =
-            reinterpret_cast<otDnsTxtEntry *>(this->pool_alloc_(sizeof(otDnsTxtEntry) * service.txt_records.size()));
+      // Set port - only if previous steps succeeded
+      if (success) {
+          entry->mService.mPort = service.port;
+      }
 
-        // Fill TXT entries
+      // Set TXT records - only if previous steps succeeded
+      entry->mService.mNumTxtEntries = 0;
+      entry->mService.mTxtEntries = nullptr;
+      if (success && !service.txt_records.empty()) {
+        otDnsTxtEntry *mTxtEntries = reinterpret_cast<otDnsTxtEntry *>(
+            this->pool_alloc_(sizeof(otDnsTxtEntry) * service.txt_records.size()));
+        // NOTE: pool_alloc_ return not checked
         for (size_t i = 0; i < service.txt_records.size(); i++) {
           const auto &txt = service.txt_records[i];
-
           mTxtEntries[i].mKey = txt.key.c_str();
           mTxtEntries[i].mValue = reinterpret_cast<const uint8_t *>(txt.value.c_str());
           mTxtEntries[i].mValueLength = txt.value.size();
         }
-
         entry->mService.mTxtEntries = mTxtEntries;
         entry->mService.mNumTxtEntries = service.txt_records.size();
-      } else {
-        entry->mService.mNumTxtEntries = 0;
-        entry->mService.mTxtEntries = nullptr;
       }
+      this->srp_service_entries_.push_back(entry); // Store pointer on success
 
-      // Add service
-      error = otSrpClientAddService(instance, &entry->mService);
-      if (error != OT_ERROR_NONE) {
-        ESP_LOGW(TAG, "Failed to add service: %s", otThreadErrorToString(error));
+      if (success) {
+        // Now, add the service (which acts as registration or update)
+        error = otSrpClientAddService(instance, &entry->mService);
+        if (error != OT_ERROR_NONE) {
+          ESP_LOGW(TAG, "Failed to add/update SRP service %s: %s", service_type.c_str(), otThreadErrorToString(error));
+        } else {
+          ESP_LOGI(TAG, "Added/Updated SRP service: %s", service_type.c_str());
+        }
       } else {
-        ESP_LOGI(TAG, "Added service: %s", full_service.c_str());
+         ESP_LOGW(TAG, "Skipping addition of service %s due to population error.", service_type.c_str());
       }
     }
   } else {
@@ -397,17 +465,29 @@ void OpenThreadZephyr::setup_srp_services() {
 
   // Enable auto start mode for SRP client
   otSrpClientEnableAutoStartMode(instance, srpStartCallback, nullptr);
-  ESP_LOGI(TAG, "Finished SRP setup");
+  ESP_LOGI(TAG, "SRP setup complete, client auto-start enabled.");
 }
 
 void OpenThreadZephyr::on_shutdown() {
   // Stop the Thread network
   this->stop_thread_network();
 
+  // Stop MCUMGR UDP transport if it was started
+  if (this->mcumgr_udp_started_) {
+    ESP_LOGI(TAG, "Stopping MCUMGR UDP transport...");
+    smp_udp_close();
+    this->mcumgr_udp_started_ = false;
+    ESP_LOGI(TAG, "MCUMGR UDP transport stopped.");
+  }
+
   // Clean up SRP services if needed
   otInstance *instance = openthread_get_default_instance();
   if (instance != nullptr) {
-    // Disable SRP client
+    // Free allocated SRP service entries
+    ESP_LOGD(TAG, "Freeing %d allocated SRP service entries...", this->srp_service_entries_.size());
+    this->srp_service_entries_.clear();
+
+    // Disable SRP client (stops communication and removes services from server)
     otSrpClientStop(instance);
     ESP_LOGD(TAG, "SRP client stopped");
   }
@@ -441,6 +521,73 @@ network::IPAddresses OpenThreadZephyr::get_ip_addresses() {
   }
 
   return addresses;
+}
+
+void OpenThreadZephyr::configure_operational_dataset() {
+  ESP_LOGI(TAG, "Forcing OpenThread operational dataset configuration");
+  
+  otInstance *instance = openthread_get_default_instance();
+  if (instance == nullptr) {
+    ESP_LOGE(TAG, "OpenThread instance not available");
+    return;
+  }
+
+  // Create operational dataset
+  otOperationalDataset dataset = {};
+  
+  // Set active timestamp
+  dataset.mActiveTimestamp.mSeconds = 1;
+  dataset.mActiveTimestamp.mTicks = 0;
+  dataset.mActiveTimestamp.mAuthoritative = true;
+  dataset.mComponents.mIsActiveTimestampPresent = true;
+  
+  // Set network key
+  otNetworkKey key;
+  const char *network_key = this->network_key_.c_str();
+  for (int i = 0; i < OT_NETWORK_KEY_SIZE; i++) {
+    char byte_str[3] = {network_key[i * 2], network_key[i * 2 + 1], '\0'};
+    key.m8[i] = static_cast<uint8_t>(strtoul(byte_str, nullptr, 16));
+  }
+  memcpy(dataset.mNetworkKey.m8, key.m8, OT_NETWORK_KEY_SIZE);
+  dataset.mComponents.mIsNetworkKeyPresent = true;
+  
+  // Set network name
+  strncpy(dataset.mNetworkName.m8, this->network_name_.c_str(), OT_NETWORK_NAME_MAX_SIZE);
+  dataset.mNetworkName.m8[OT_NETWORK_NAME_MAX_SIZE - 1] = '\0';  // Ensure null termination
+  dataset.mComponents.mIsNetworkNamePresent = true;
+  
+  // Set extended PAN ID
+  const char *xpanid_str = this->xpanid_.c_str();
+  for (int i = 0; i < OT_EXT_PAN_ID_SIZE; i++) {
+    char byte_str[3] = {xpanid_str[i * 2], xpanid_str[i * 2 + 1], '\0'};
+    dataset.mExtendedPanId.m8[i] = static_cast<uint8_t>(strtoul(byte_str, nullptr, 16));
+  }
+  dataset.mComponents.mIsExtendedPanIdPresent = true;
+  
+  // Set PAN ID
+  dataset.mPanId = this->panid_;
+  dataset.mComponents.mIsPanIdPresent = true;
+  
+  // Set channel
+  dataset.mChannel = this->channel_;
+  dataset.mComponents.mIsChannelPresent = true;
+  
+  // Set PSKc if available
+  const char *pskc_str = this->pskc_.c_str();
+  for (int i = 0; i < OT_PSKC_MAX_SIZE; i++) {
+    char byte_str[3] = {pskc_str[i * 2], pskc_str[i * 2 + 1], '\0'};
+    dataset.mPskc.m8[i] = static_cast<uint8_t>(strtoul(byte_str, nullptr, 16));
+  }
+  dataset.mComponents.mIsPskcPresent = true;
+  
+  // Set dataset as active
+  otError error = otDatasetSetActive(instance, &dataset);
+  if (error != OT_ERROR_NONE) {
+    ESP_LOGE(TAG, "Failed to set active dataset: %s", otThreadErrorToString(error));
+    return;
+  }
+
+  ESP_LOGI(TAG, "Successfully configured and set active dataset");
 }
 
 }  // namespace zephyr_openthread

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "esphome/core/defines.h"
+#include <openthread/srp_client_buffers.h>
+#include <set>
 
 // Forward declaration of the OpenThreadZephyr class
 // This ensures the class is available even when USE_ZEPHYR is not defined
@@ -75,8 +77,16 @@ class OpenThreadZephyr : public Component {
   // Add get_ip_addresses method
   network::IPAddresses get_ip_addresses();
 
+  void update_ipv6_addresses();
+  void configure_operational_dataset();
+  void setup_srp_services();
+
  private:
+  // Memory pool for SRP TXT record values (used by pool_alloc_)
   std::vector<std::unique_ptr<uint8_t[]>> memory_pool_;
+
+  // Vector to hold allocated SRP service entries for proper cleanup
+  std::vector<otSrpClientBuffersServiceEntry *> srp_service_entries_;
   void *pool_alloc_(size_t size);
 
  protected:
@@ -94,6 +104,7 @@ class OpenThreadZephyr : public Component {
   // IPv6 related properties
   bool has_ipv6_address_{false};
   std::string ipv6_address_{};
+  std::set<std::string> known_addresses_{}; // Track all discovered IPv6 addresses
 
   // Thread role
   uint8_t thread_role_{0};
@@ -103,13 +114,11 @@ class OpenThreadZephyr : public Component {
   std::string host_name_{};
   std::vector<std::string> service_names_{};
 
-  void update_ipv6_addresses();
-  void configure_operational_dataset();
-  void setup_srp_services();
-
   // mDNS component reference
   mdns::MDNSComponent *mdns_{nullptr};
   std::vector<mdns::MDNSService> mdns_services_{};
+
+  bool mcumgr_udp_started_{false};
 };
 
 }  // namespace zephyr_openthread
