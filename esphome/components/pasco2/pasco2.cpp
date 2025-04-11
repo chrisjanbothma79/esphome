@@ -278,11 +278,9 @@ bool PASCO2Component::read_sensor_(int16_t *co2result)
     
     if (read_back & XENSIV_PASCO2_REG_MEAS_STS_DRDY_MSK) {
       if (!this->read_byte_16(XENSIV_PASCO2_REG_CO2PPM_H, (uint16_t *)co2result)) {
-        ESP_LOGW(TAG, "Result Reading Failed, retrying next loop!");
         return false;
       }
     } else {
-      ESP_LOGW(TAG, "Data not ready yet, retrying next loop!");
       return false;
     }
     
