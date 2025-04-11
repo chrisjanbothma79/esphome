@@ -15,6 +15,7 @@ from esphome.components.zephyr import (
     zephyr_add_prj_conf,
     zephyr_add_cdc_acm,
     zephyr_add_overlay,
+    zephyr_add_mcuboot_conf,
 )
 
 AUTO_LOAD = ["zephyr_mcumgr"]
@@ -129,6 +130,28 @@ async def to_code(config):
     zephyr_add_prj_conf("MCUMGR_MGMT_NOTIFICATION_HOOKS", True)
     zephyr_add_prj_conf("MCUMGR_GRP_IMG_STATUS_HOOKS", True)
     zephyr_add_prj_conf("MCUMGR_GRP_IMG_UPLOAD_CHECK_HOOK", True)
+
+    # TODO: need some flags
+    zephyr_add_prj_conf("NORDIC_QSPI_NOR", True)
+    zephyr_add_prj_conf("NORDIC_QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE", 4096)
+    zephyr_add_prj_conf("PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY", True)
+
+    # MCUBoot config
+    zephyr_add_mcuboot_conf("MAIN_STACK_SIZE", 20480)
+    zephyr_add_mcuboot_conf("SYSTEM_WORKQUEUE_STACK_SIZE", 20480)
+    zephyr_add_mcuboot_conf("PM_PARTITION_SIZE_MCUBOOT", "0x12000")
+    zephyr_add_mcuboot_conf("SECURE_BOOT", False)
+    # External flash for secondary slot
+    zephyr_add_mcuboot_conf("PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY", True)
+    zephyr_add_mcuboot_conf("PM_OVERRIDE_EXTERNAL_DRIVER_CHECK", True)
+    # Enable flash operations
+    zephyr_add_mcuboot_conf("NORDIC_QSPI_NOR", True)
+    zephyr_add_mcuboot_conf("NORDIC_QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE", 4096)
+    zephyr_add_mcuboot_conf("BOOT_MAX_IMG_SECTORS", 256)
+     ## MCUBoot configuration
+    zephyr_add_mcuboot_conf("MULTITHREADING", True)
+    zephyr_add_mcuboot_conf("FLASH", True)
+
     if config[CONF_BLE]:
         zephyr_add_prj_conf("MCUMGR_TRANSPORT_BT", True)
         zephyr_add_prj_conf("MCUMGR_TRANSPORT_BT_REASSEMBLY", True)
