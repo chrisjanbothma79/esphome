@@ -239,12 +239,12 @@ void ESPNowComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Wifi channel        : %d.", this->wifi_channel_);
 #endif
 
-  ESP_LOGCONFIG(TAG, "  Own Peer address    : %s.", peer_string(this->own_peer_address_).c_str());
-  ESP_LOGCONFIG(TAG, "  Default Peer address: %s.", peer_string(this->own_peer_address_).c_str());
+  ESP_LOGCONFIG(TAG, "  Own Mac address    : %s.", peer_string(this->own_mac_address_).c_str());
+  ESP_LOGCONFIG(TAG, "  Default Mac Address: %s.", peer_string(this->default_mac_address_).c_str());
 
   ESP_LOGCONFIG(TAG, "  Auto add new peers  : %s.", this->auto_add_peer_ ? "Yes" : "No");
   ESP_LOGCONFIG(TAG, "  Wait for ACK        : %s.", this->wait_for_ack_ ? "Yes" : "No");
-  ESP_LOGCONFIG(TAG, "  Convermation timeout: %" PRIx32 "ms.", this->confirmation_timeout_);
+  ESP_LOGCONFIG(TAG, "  Convermation timeout: %" PRId32 "ms.", this->confirmation_timeout_);
   ESP_LOGCONFIG(TAG, "  Max Send attempts   : %d.", this->attempts_);
 }
 
@@ -291,7 +291,7 @@ void ESPNowComponent::setup() {
     return;
   }
 
-  esp_wifi_get_mac(WIFI_IF_STA, (uint8_t *) &this->own_peer_address_);
+  esp_wifi_get_mac(WIFI_IF_STA, (uint8_t *) &this->own_mac_address_);
   for (auto peer : this->peers_) {
     this->add_peer(peer);
   }
@@ -465,7 +465,7 @@ bool ESPNowComponent::send(std::weak_ptr<ESPNowPacket> weak_packet) {
     ESP_LOGE(TAG, "Send Buffer Out of Memory.");
   } else if (this->is_suspension() && !packet->options(OPTION_SEND_DIRECT)) {
     ESP_LOGE(TAG, "Cannot send espnow packet, ESPNOW is suspended.");
-  } else if (packet->peer() == this->own_peer_address_) {
+  } else if (packet->peer() == this->own_mac_address_) {
     ESP_LOGE(TAG, "Trying to send a packet to your self.");
   } else if (!this->is_paired(packet->peer())) {
     ESP_LOGE(TAG, "Peer is not registered: %s.", packet->peer_str().c_str());
@@ -496,7 +496,7 @@ bool ESPNowComponent::send_system_command(std::weak_ptr<ESPNowPacket> weak_packe
     return false;
   }
 
-  uint64_t key = make_key(this->own_peer_address_, packet->sequents());
+  uint64_t key = make_key(this->own_mac_address_, packet->sequents());
   uint8_t *data = static_cast<uint8_t *>(static_cast<void *>(&key));
 
   auto ack = this->make_packet(packet->peer(), (const uint8_t *) data, sizeof(key), packet->application(), command);
@@ -583,7 +583,7 @@ esp_err_t ESPNowComponent::add_peer(uint64_t peer) {
   esp_now_peer_info_t peer_info = {};
 
   if (this->is_ready()) {
-    if (peer == this->own_peer_address_) {
+    if (peer == this->own_mac_address_) {
       ESP_LOGE(TAG, "Tried to pair your self.");
       this->mark_failed();
       return ESP_ERR_INVALID_MAC;

@@ -252,11 +252,16 @@ class ESPNowComponent : public Component {
   void set_confirmation_timeout(uint32_t timeout) { this->confirmation_timeout_ = timeout; }
   void set_attempts(uint8_t value) { this->attempts_ = value; }
   void set_pairing_app(ESPNowApp *pairing_app) { this->pairing_app_ = pairing_app; }
-  void set_default_app_id(uint16_t value) {}
+
+  void set_default_app_id(uint16_t value) { this->default_app_id_ = value; }
+  uint16_t get_default_app_id() { return this->default_app_id_; }
+  void set_default_mac_address(uint64_t value) { this->default_mac_address_ = value; }
+  uint64_t get_default_mac_address() { return this->default_mac_address_; }
+
   void set_trigger_for(uint32_t app_id, uint8_t command, ESPNowTriggers event, EPSNowTriggerCallback &&cb) {
     this->triggers_[app_id][command][event] = std::move(cb);
   }
-  uint64_t get_own_peer_address() const { return this->own_peer_address_; }
+  uint64_t get_own_mac_address() const { return this->own_mac_address_; }
 
   Trigger<std::shared_ptr<ESPNowPacket>> *get_new_peer_trigger() const { return this->new_peer_trigger_; }
   Trigger<std::shared_ptr<ESPNowPacket>> *get_raw_data_trigger() const { return this->raw_data_trigger_; }
@@ -312,8 +317,9 @@ class ESPNowComponent : public Component {
 
   bool is_suspended_{false};
 
-  uint64_t own_peer_address_{0};
-  uint64_t default_peer_address_{0};
+  uint64_t own_mac_address_{0};
+  uint64_t default_mac_address_{0};
+  uint16_t default_app_id_{0};
 
   uint8_t wifi_channel_{0};
   uint32_t confirmation_timeout_{5000};
@@ -363,8 +369,9 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
   void set_trigger_group(uint32_t value) { this->trigger_group_ = value; }
   void play(Ts... x) override {
     std::vector<uint8_t> payload = this->payload_.value(x...);
-    uint64_t mac = this->mac_address_.value(x...);
-    uint16_t app = this->app_id_.value(x...);
+    uint64_t mac =
+        this->mac_address_.has_value() ? this->mac_address_.value(x...) : this->parent_->get_default_mac_addres();
+    uint16_t app = this->app_id_.has_value() ? this->app_id_.value(x...) : this->parent_->get_default_app_id();
     uint8_t command = this->command_.value(x...);
     std::shared_ptr<ESPNowPacket> packet;
     if (raw_data_flag_) {

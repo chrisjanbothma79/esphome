@@ -70,6 +70,7 @@ CONF_ON_RAW_DATA = "on_raw_data"
 CONF_ON_SUCCEED = "on_succeed"
 CONF_ON_FAILED = "on_failed"
 
+DEFAULT_APP_ID = 0x5358  # = ST
 
 ESPNowTriggers = espnow_ns.enum("ESPNowTriggers")
 ALLOWED_TRIGGER_LIST = {
@@ -95,14 +96,7 @@ ENUM_MODE = {
 
 validate_command = cv.Range(min=1, max=250)
 validate_channel = cv.int_range(1, 14)
-validate_app = cv.Any(cv.int_range(0x0001, 0xFFFF), "default")
-
-
-def set_core_data(config):
-    CORE.data[CONF_ESPNOW] = {}
-    CORE.data[CONF_ESPNOW]["default_app_id"] = 0x5358
-    CORE.data[CONF_ESPNOW]["default_peer"] = 0
-    return config
+validate_app = cv.Any(cv.int_range(0x0001, 0xFFFF))
 
 
 def validate_unque_app_ids(config):
@@ -167,7 +161,6 @@ CONFIG_SCHEMA = cv.All(
         },
     ).extend(cv.COMPONENT_SCHEMA),
     cv.only_on_esp32,
-    set_core_data,
 )
 
 
@@ -187,19 +180,12 @@ async def to_code(config):
     cg.add(var.set_confirmation_timeout(config[CONF_CONFORMATION_TIMEOUT]))
     cg.add(var.set_attempts(config[CONF_ATTEMPTS]))
     def_peer = 0
-    first_peer = 0
     for conf in config.get(CONF_PREDEFINED_PEERS, []):
         mac = espnow_hex(conf.get(CONF_MAC_ADDRESS))
-        if config.get(CONF_DEFAULT, False):
-            def_peer = mac
-        if first_peer == 0:
-            first_peer = mac
-
         cg.add(var.add_peer(mac))
-    if def_peer:
-        CORE.data[CONF_ESPNOW]["default_peer"] = def_peer
-    else:
-        CORE.data[CONF_ESPNOW]["default_peer"] = first_peer
+        if def_peer == 0 or config.get(CONF_DEFAULT, False):
+            def_peer = mac
+    cg.add(var.set_default_mac_address(def_peer))
 
     if CONF_ON_NEW_PEER in config:
         await automation.build_automation(
@@ -222,18 +208,14 @@ async def to_code(config):
                 event, [(cg.std_shared_ptr.template(ESPNowPacket), "packet")], conf
             )
     def_app_id = 0
-    first_app_id = 0
     if apps := config.get(CONF_CUSTOM_APPS, []):
         for app in apps:
-            app_id = app.get(CONF_APP_ID)
+            app_id = app.get(CONF_APP_ID, "default")
             if app_id == "default":
-                app_id = CORE.data[CONF_ESPNOW]["default_app_id"]
-                def_app_id = app_id
+                app_id = DEFAULT_APP_ID
 
-            if app.get(CONF_DEFAULT, False) and def_app_id == 0:
+            if app.get(CONF_DEFAULT, False) or def_app_id == 0:
                 def_app_id = app_id
-            if first_app_id == 0:
-                first_app_id = app_id
 
             for key, code in ALLOWED_TRIGGER_LIST.items():
                 for conf in app.get(key, []):
@@ -246,11 +228,9 @@ async def to_code(config):
                         [(cg.std_shared_ptr.template(ESPNowPacket), "packet")],
                         conf,
                     )
-    if def_app_id:
-        CORE.data[CONF_ESPNOW]["default_app_id"] = def_app_id
-    else:
-        CORE.data[CONF_ESPNOW]["default_app_id"] = first_app_id
-    cg.add(var.set_default_app_id(CORE.data[CONF_ESPNOW]["default_app_id"]))
+    if def_app_id == 0:
+        def_app_id = DEFAULT_APP_ID
+    cg.add(var.set_default_app_id(def_app_id))
 
 
 ESPNOW_APP_SCHEMA = cv.Schema(
@@ -289,8 +269,6 @@ FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 def validate_peer(value):
-    if value == "default":
-        return value
     if isinstance(value, cv.Lambda):
         return cv.returning_lambda(value)
     return cv.mac_address(value)
@@ -308,8 +286,6 @@ def validate_raw_data(value):
 
 async def register_peer(var, config, args):
     peer = config.get(CONF_MAC_ADDRESS, 0xFFFFFFFFFFFF)
-    if peer == "default":
-        peer = CORE.data[CONF_ESPNOW]["default_peer"]
     if isinstance(peer, core.MACAddress):
         peer = espnow_hex(peer)
 
@@ -320,8 +296,8 @@ async def register_peer(var, config, args):
 SEND_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.use_id(ESPNowComponent),
-        cv.Optional(CONF_MAC_ADDRESS, default="default"): validate_peer,
-        cv.Optional(CONF_APP_ID, default="default"): validate_app,
+        cv.Optional(CONF_MAC_ADDRESS): validate_peer,
+        cv.Optional(CONF_APP_ID): validate_app,
         cv.Optional(CONF_COMMAND): validate_command,
         cv.Optional(CONF_DONT_WAIT): cv.boolean,
         cv.Optional(CONF_RAW_DATA): cv.boolean,
@@ -398,8 +374,6 @@ async def send_action(config, action_id, template_arg, args):
 
     if CONF_APP_ID in config:
         app_id = config.get(CONF_APP_ID)
-        if app_id == "default":
-            app_id = CORE.data[CONF_ESPNOW]["default_app_id"]
         cg.add(var.set_app_id(app_id))
 
     data = config.get(CONF_PAYLOAD, [])
@@ -416,10 +390,18 @@ async def send_action(config, action_id, template_arg, args):
     if config.get(CONF_RAW_DATA, False):
         cg.add(var.set_raw_data())
 
+    has_triggers = 0
     for trigger_name, event_code in ALLOWED_TRIGGER_LIST.items():
         for conf in config.get(trigger_name, []):
+            if has_triggers == 0:
+                if CONF_ESPNOW in CORE.data:
+                    CORE.data[CONF_ESPNOW] = 0x80000000
+                CORE.data[CONF_ESPNOW] = CORE.data[CONF_ESPNOW] + 1
+                cg.add(var.set_trigger_group(CORE.data[CONF_ESPNOW]))
+                has_triggers = 1
+
             trigger = cg.new_Pvariable(
-                conf[CONF_TRIGGER_ID], var, app_id, command, event_code
+                conf[CONF_TRIGGER_ID], var, CORE.data[CONF_ESPNOW], command, event_code
             )
             await automation.build_automation(
                 trigger, [(cg.std_shared_ptr.template(ESPNowPacket), "packet")], conf
