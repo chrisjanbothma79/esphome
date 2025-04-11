@@ -285,6 +285,7 @@ bool PASCO2Component::read_sensor_(int16_t *co2result)
     }
     
     //data is valid
+    this->status_clear_warning();
     return true;
 }
 
