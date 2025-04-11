@@ -3,7 +3,7 @@ from typing import Final
 import esphome.codegen as cg
 
 # OpenThread constants
-CONF_OPENTHREAD = "openthread"
+CONF_OPENTHREAD = "zephyr_openthread"
 CONF_CHANNEL = "channel"
 CONF_PANID = "panid"
 CONF_NETWORK_NAME = "network_name"

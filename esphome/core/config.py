@@ -349,7 +349,7 @@ async def to_code(config):
         )
     )
 
-    if CORE.using_zephyr:
+    if CORE.target_platform == "zephyr":
         zephyr_add_prj_conf("BT_DEVICE_NAME", config[CONF_NAME])
 
     CORE.add_job(_add_automations, config)

@@ -59,7 +59,7 @@ void OTAComponent::setup() {
   mgmt_callback_register(&IMG_MGMT_CALLBACK);
   // TODO check if ota cdc is set
   // use zephyr,uart-mcumgr
-  auto uart_dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(cdc_acm_uart0));
+  const struct device *uart_dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(cdc_acm_uart0));
   if (device_is_ready(uart_dev)) {
     usb_enable(NULL);
   }
@@ -105,7 +105,7 @@ void OTAComponent::update_chunk(const img_mgmt_upload_check &upload) {
 }
 
 void OTAComponent::update_started() {
-  ESP_LOGD(TAG, "Starting OTA Update from %s...", "ble");
+  ESP_LOGD(TAG, "Starting OTA Update from %s...", "mcumgr");
 #ifdef USE_OTA_STATE_CALLBACK
   this->state_callback_.call(ota::OTA_STARTED, 0.0f, 0);
 #endif

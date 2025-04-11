@@ -163,7 +163,6 @@ async def to_code(config):
 
     # Stack sizes
     zephyr_add_prj_conf("MAIN_STACK_SIZE", 10240)
-    #zephyr_add_prj_conf("SYSTEM_WORKQUEUE_STACK_SIZE", 10240)
     
     # OpenThread settings
     zephyr_add_prj_conf("OPENTHREAD_THREAD_STACK_SIZE", 8192)
@@ -178,50 +177,19 @@ async def to_code(config):
     # Radio settings
     zephyr_add_prj_conf("OPENTHREAD_RADIO_WORKQUEUE_STACK_SIZE", 2048)
 
-    #OTA
-    zephyr_add_prj_conf("SECURE_BOOT", False)
-    zephyr_add_prj_conf("MCUMGR", True)
-    zephyr_add_prj_conf("MCUMGR_MGMT_NOTIFICATION_HOOKS", True)
-    zephyr_add_prj_conf("MCUMGR_GRP_IMG", True)
-    zephyr_add_prj_conf("MCUMGR_GRP_OS", True)
-    zephyr_add_prj_conf("MCUMGR_GRP_OS_ECHO", True)
-    zephyr_add_prj_conf("MCUMGR_GRP_IMG_DIRECT_UPLOAD", True)
-    zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_AUTOMATIC_INIT", False)
-    zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_MTU", 1280)
-    zephyr_add_prj_conf("MCUMGR_GRP_IMG_STATUS_HOOKS", True)
-    zephyr_add_prj_conf("MCUMGR_GRP_IMG_UPLOAD_CHECK_HOOK", True)
-    zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP", True)
-    zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_IPV6", True)
-    zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_STACK_SIZE", 2048)
-    zephyr_add_prj_conf("CONFIG_TEST_RANDOM_GENERATOR", True)
-
-    zephyr_add_prj_conf("CRC", True)
-
-    zephyr_add_prj_conf("IMG_ERASE_PROGRESSIVELY", True)
-    zephyr_add_prj_conf("IMG_MANAGER", True)
-    zephyr_add_prj_conf("STREAM_FLASH", True)
-    zephyr_add_prj_conf("FLASH_MAP", True)
-    zephyr_add_prj_conf("NET_BUF", True)
-    zephyr_add_prj_conf("ZCBOR", True)
-    zephyr_add_prj_conf("BOOTLOADER_MCUBOOT", True)
-    zephyr_add_mcuboot_conf("NORDIC_QSPI_NOR", True)
-    zephyr_add_mcuboot_conf("NORDIC_QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE", 4096)
+    # TODO: felipejfc these shouldn't be here and also need some flags
+    zephyr_add_prj_conf("NORDIC_QSPI_NOR", True)
+    zephyr_add_prj_conf("NORDIC_QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE", 4096)
     zephyr_add_prj_conf("PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY", True)
-    zephyr_add_mcuboot_conf("BOOT_MAX_IMG_SECTORS", 256)
-    zephyr_add_mcuboot_conf("BOOT_PREFER_SWAP_MOVE", True)
 
     ## MCUBoot configuration
-
-    # More RAM
-    zephyr_add_mcuboot_conf("MAIN_STACK_SIZE", 20480)
-    zephyr_add_mcuboot_conf("SYSTEM_WORKQUEUE_STACK_SIZE", 20480)
+    zephyr_add_mcuboot_conf("MULTITHREADING", True)
 
     # Enable flash operations
-    zephyr_add_mcuboot_conf("FLASH", True)
     zephyr_add_mcuboot_conf("NORDIC_QSPI_NOR", True)
     zephyr_add_mcuboot_conf("NORDIC_QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE", 4096)
     zephyr_add_mcuboot_conf("BOOT_MAX_IMG_SECTORS", 256)
-    zephyr_add_mcuboot_conf("BOOT_PREFER_SWAP_MOVE", True)
+    zephyr_add_mcuboot_conf("FLASH", True)
 
     zephyr_add_mcuboot_conf("CONSOLE", False)
 
@@ -234,36 +202,8 @@ async def to_code(config):
     zephyr_add_mcuboot_conf("EARLY_CONSOLE", False)
     zephyr_add_mcuboot_conf("SIZE_OPTIMIZATIONS", True)
 
-    # Enable SMP USB CDC ACM DFU
-    zephyr_add_mcuboot_conf("MCUBOOT_SERIAL", True)
-    zephyr_add_mcuboot_conf("BOOT_MGMT_ECHO", True)
-    zephyr_add_mcuboot_conf("BOOT_SERIAL_IMG_GRP_HASH", True)
-    zephyr_add_mcuboot_conf("BOOT_SERIAL_IMG_GRP_IMAGE_STATE", True)
-    zephyr_add_mcuboot_conf("BOOT_SERIAL_CDC_ACM", True)
-
     # Partition sizes
     zephyr_add_mcuboot_conf("PM_PARTITION_SIZE_MCUBOOT", "0x12000")
-
-    # Allow upload to the primary slot
-    zephyr_add_mcuboot_conf("MCUBOOT_SERIAL_DIRECT_IMAGE_UPLOAD", True)
-
-    # Enable USB
-    zephyr_add_mcuboot_conf("USB_DEVICE_STACK", True)
-    zephyr_add_mcuboot_conf("SERIAL", True)
-    zephyr_add_mcuboot_conf("UART_LINE_CTRL", True)
-    zephyr_add_mcuboot_conf("USB_DEVICE_INITIALIZE_AT_BOOT", False)
-
-    # Serial Recovery
-    zephyr_add_mcuboot_conf("BOOT_SERIAL_NO_APPLICATION", True)
-
-    # Enter DFU mode on every boot, with timeout
-    zephyr_add_mcuboot_conf("BOOT_SERIAL_WAIT_FOR_DFU", True)
-    zephyr_add_mcuboot_conf("BOOT_SERIAL_ENTRANCE_GPIO", False)
-    # USB must enumerate!
-    zephyr_add_mcuboot_conf("BOOT_SERIAL_WAIT_FOR_DFU_TIMEOUT", 2000)
-
-    # Dependencies
-    zephyr_add_mcuboot_conf("MULTITHREADING", True)
 
     # External flash for secondary slot
     zephyr_add_mcuboot_conf("PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY", True)

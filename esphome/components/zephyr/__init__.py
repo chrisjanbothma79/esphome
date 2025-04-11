@@ -157,12 +157,6 @@ def zephyr_to_code(config):
     # use NFC pins as GPIO
     zephyr_add_prj_conf("NFCT_PINS_AS_GPIOS", True)
 
-    add_extra_script(
-        "pre",
-        "pre_build.py",
-        os.path.join(os.path.dirname(__file__), "pre_build.py.script"),
-    )
-
 
 def _format_prj_conf_val(value: PrjConfValueType) -> str:
     if isinstance(value, bool):
@@ -225,12 +219,12 @@ def copy_files():
         )
         write_file_if_changed(CORE.relative_build_path("zephyr/child_image/mcuboot/prj.conf"), mcuboot_conf)
     
-        if CORE.data[KEY_ZEPHYR][KEY_USER]:
+        if zephyr_data().get(KEY_USER):
             zephyr_add_overlay(
                 f"""
 / {{
     zephyr,user {{
-        {[f"{key} = {', '.join(value)};" for key, value in CORE.data[KEY_ZEPHYR][KEY_USER].items()][0]}
+        {[f"{key} = {', '.join(value)};" for key, value in zephyr_data()[KEY_USER].items()][0]}
 }};
 }};"""
         )
@@ -269,10 +263,10 @@ def copy_files():
             fake_board_manifest,
         )
 
-    for filename, path in zephyr_data()[KEY_EXTRA_BUILD_FILES].items():
+    for file in zephyr_data()[KEY_EXTRA_BUILD_FILES].values():
         copy_file_if_changed(
-            path,
-            CORE.relative_build_path(filename),
+            file[KEY_NAME],
+            CORE.relative_build_path(file[KEY_NAME]),
         )
 
     pm_static = "\n".join(str(item) for item in zephyr_data()[KEY_PM_STATIC])
