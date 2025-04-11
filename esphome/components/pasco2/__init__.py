@@ -1,1 +1,1 @@
-CODEOWNERS = ["@circuitvalley", "@ozonejunkieau"]
+CODEOWNERS = ["@circuitvalley", "@ozonejunkieau", "@mgiacomelli"]
