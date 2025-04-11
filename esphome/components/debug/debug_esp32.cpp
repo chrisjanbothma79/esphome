@@ -1,6 +1,7 @@
 #include "debug_component.h"
 #ifdef USE_ESP32
 #include "esphome/core/log.h"
+#include "esphome/core/hal.h"
 
 #include <esp_heap_caps.h>
 #include <esp_system.h>
@@ -212,16 +213,6 @@ std::string DebugComponent::get_reset_reason_() {
 
 uint32_t DebugComponent::get_free_heap_() { return heap_caps_get_free_size(MALLOC_CAP_INTERNAL); }
 
-static uint32_t get_cpu_frequency() {
-  uint32_t freq = 0;
-#ifdef USE_ESP_IDF
-  esp_clk_tree_src_get_freq_hz(SOC_MOD_CLK_CPU, ESP_CLK_TREE_SRC_FREQ_PRECISION_CACHED, &freq);
-#elif defined(USE_ARDUINO)
-  freq = ESP.getCpuFreqMHz() * 1000000;
-#endif
-  return freq;
-}
-
 void DebugComponent::get_device_info_(std::string &device_info) {
 #if defined(USE_ARDUINO)
   const char *flash_mode;
@@ -306,8 +297,8 @@ void DebugComponent::get_device_info_(std::string &device_info) {
   device_info += features;
   device_info += " Cores:" + to_string(info.cores);
   device_info += " Revision:" + to_string(info.revision);
-  device_info += str_sprintf("|CPU Frequency: %u MHz", get_cpu_frequency() / 1000000);
-  ESP_LOGD(TAG, "CPU Frequency: %u MHz", get_cpu_frequency() / 1000000);
+  device_info += str_sprintf("|CPU Frequency: %u MHz", arch_get_cpu_freq_hz() / 1000000);
+  ESP_LOGD(TAG, "CPU Frequency: %u MHz", arch_get_cpu_freq_hz() / 1000000);
 
   // Framework detection
   device_info += "|Framework: ";
@@ -391,7 +382,7 @@ void DebugComponent::update_platform_() {
     this->psram_sensor_->publish_state(heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
   }
   if (this->cpu_frequency_sensor_ != nullptr) {
-    this->cpu_frequency_sensor_->publish_state(get_cpu_frequency());
+    this->cpu_frequency_sensor_->publish_state(arch_get_cpu_freq_hz());
   }
 #endif
 }
