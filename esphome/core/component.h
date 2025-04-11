@@ -122,6 +122,11 @@ class Component {
    */
   virtual void mark_failed();
 
+  void mark_failed(const char *message) {
+    this->status_set_error(message);
+    this->mark_failed();
+  }
+
   bool is_failed() const;
 
   bool is_ready() const;
@@ -296,6 +301,7 @@ class Component {
   uint32_t component_state_{0x000000};  ///< State of this component.
   float setup_priority_override_{NAN};
   const char *component_source_{nullptr};
+  std::string error_message_{};
 };
 
 /** This class simplifies creating components that periodically check a state.
