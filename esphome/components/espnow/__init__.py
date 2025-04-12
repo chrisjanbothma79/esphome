@@ -70,7 +70,7 @@ CONF_ON_RAW_DATA = "on_raw_data"
 CONF_ON_SUCCEED = "on_succeed"
 CONF_ON_FAILED = "on_failed"
 
-DEFAULT_APP_ID = 0x5358  # = ST
+DEFAULT_APP_ID = 0x5374  # = ST
 
 ESPNowTriggers = espnow_ns.enum("ESPNowTriggers")
 ALLOWED_TRIGGER_LIST = {
@@ -146,7 +146,9 @@ CONFIG_SCHEMA = cv.All(
                 cv.ensure_list(
                     cv.Schema(
                         {
-                            cv.Optional(CONF_APP_ID, default="default"): validate_app,
+                            cv.Optional(
+                                CONF_APP_ID, default=DEFAULT_APP_ID
+                            ): validate_app,
                             cv.Optional(CONF_DEFAULT): cv.boolean,
                             cv.Optional(CONF_ON_RECEIVE): TRIGGER_SCHEMA,
                             cv.Optional(CONF_ON_BROADCAST): TRIGGER_SCHEMA,
@@ -210,9 +212,7 @@ async def to_code(config):
     def_app_id = 0
     if apps := config.get(CONF_CUSTOM_APPS, []):
         for app in apps:
-            app_id = app.get(CONF_APP_ID, "default")
-            if app_id == "default":
-                app_id = DEFAULT_APP_ID
+            app_id = app.get(CONF_APP_ID, DEFAULT_APP_ID)
 
             if app.get(CONF_DEFAULT, False) or def_app_id == 0:
                 def_app_id = app_id
@@ -417,9 +417,7 @@ async def send_action(config, action_id, template_arg, args):
         {
             cv.GenerateID(): cv.use_id(ESPNowComponent),
             cv.Required(CONF_MAC_ADDRESS): validate_peer,
-            cv.Optional(CONF_WIFI_CHANNEL): cv.invalid(
-                CONF_WIFI_CHANNEL + " No longer in use."
-            ),
+            cv.Optional(CONF_DEFAULT): cv.boolean,
         },
         key=CONF_MAC_ADDRESS,
     ),
@@ -439,6 +437,8 @@ async def peer_action(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
     await register_peer(var, config, args)
+    if config.get(CONF_DEFAULT, False):
+        cg.add(var.make_default())
 
     return var
 

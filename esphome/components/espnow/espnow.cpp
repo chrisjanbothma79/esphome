@@ -34,13 +34,13 @@ static const uint16_t TRANSPORT_HEADER = 0x4E77;  // {'N', 'w'};
 
 ESPNowComponent *ESPNowComponent::static_{nullptr};  // NOLINT
 
-uint64_t make_key(uint64_t peer, uint16_t sequents) { return ((peer & ESPNOW_BROADCAST_ADDR) << 16) + sequents; }
+uint64_t make_key(uint64_t peer, uint16_t sequence) { return ((peer & ESPNOW_BROADCAST_ADDR) << 16) + sequence; }
 
 void show_packet(const std::string &title, ESPNowPacket *packet, bool extended) {
   if (packet == nullptr) {
     ESP_LOGE(TAG, ">>> %s ~~~ Packet is NOT SET <<<", title.c_str());
   } else {
-    size_t size = packet->payload_size();
+    size_t size = packet->size();
     if (!packet->is_valid()) {
       ESP_LOGV(TAG, "%s| %s, size: %d, Raw: %s", packet->info().c_str(), title.c_str(), packet->content_size(),
                packet->content());
@@ -176,12 +176,12 @@ std::string ESPNowPacket::info() const {
   char info[100];
   char model = this->options(OPTION_RECEIVED) ? 'R' : 'S';
   if (this->options(OPTION_RAW)) {
-    snprintf(info, sizeof(info), "%s(%c%04x.%d)[%02x] RAW [%d] ", this->peer_str().c_str(), model, this->sequents(),
-             this->options(), this->attempt(), this->payload_size());
+    snprintf(info, sizeof(info), "%s(%c%04x.%d)[%02x] RAW [%d] ", this->peer_str().c_str(), model, this->sequence(),
+             this->options(), this->attempt(), this->size());
   } else {
     snprintf(info, sizeof(info), "%s(%c%04x.%d)[%02x] %c%c-%02x[%d] ", this->peer_str().c_str(), model,
-             this->sequents(), this->attempt(), this->options(), this->read8h(2), this->read8h(3), this->read8h(4),
-             this->payload_size());
+             this->sequence(), this->attempt(), this->options(), this->read8h(2), this->read8h(3), this->read8h(4),
+             this->size());
   }
   return info;
 }
@@ -191,7 +191,7 @@ bool ESPNowPacket::is_valid() const {
     return false;
   }
   bool header_valid = this->read16h(0) == TRANSPORT_HEADER;
-  bool app_valid = (this->application() != 0);
+  bool app_valid = (this->app_id() != 0);
   if (!header_valid || !app_valid) {
     ESP_LOGE(TAG, "Packet is invalid. Header is %s, App is %s.", header_valid ? "valid" : "invalid",
              app_valid ? "set" : "clear");
@@ -472,7 +472,7 @@ bool ESPNowComponent::send(std::weak_ptr<ESPNowPacket> weak_packet) {
   } else if (!packet->is_valid() and !packet->options(OPTION_RAW)) {
     ESP_LOGE(TAG, "%s| Packet Is invalid !!", packet->info().c_str());
   } else {
-    packet->sequents(this->get_next_sequents(packet->peer(), packet->application()));
+    packet->sequence(this->get_next_sequence(packet->peer(), packet->app_id()));
     uint64_t key = packet->key();
     this->packet_send_map_[key] = packet;
 
@@ -496,10 +496,10 @@ bool ESPNowComponent::send_system_command(std::weak_ptr<ESPNowPacket> weak_packe
     return false;
   }
 
-  uint64_t key = make_key(this->own_mac_address_, packet->sequents());
+  uint64_t key = make_key(this->own_mac_address_, packet->sequence());
   uint8_t *data = static_cast<uint8_t *>(static_cast<void *>(&key));
 
-  auto ack = this->make_packet(packet->peer(), (const uint8_t *) data, sizeof(key), packet->application(), command);
+  auto ack = this->make_packet(packet->peer(), (const uint8_t *) data, sizeof(key), packet->app_id(), command);
   ack->options(OPTION_SEND_DIRECT, true);
   ack->options(OPTION_DONT_WAIT, true);
   packet->options(OPTION_FINISHED, true);
@@ -625,10 +625,10 @@ EPSNowTriggerCallback ESPNowComponent::get_trigger_for_(ESPNowTriggers event, st
   }
 
   if (!cb) {
-    cb = this->triggers_[packet->application()][packet->command()][event];
+    cb = this->triggers_[packet->app_id()][packet->command()][event];
   }
   if (!cb) {
-    cb = this->triggers_[packet->application()][0][event];
+    cb = this->triggers_[packet->app_id()][0][event];
   }
 
   if (!cb) {
@@ -714,19 +714,19 @@ void ESPNowComponent::start_multi_cast_() {
   }
 }
 
-uint16_t ESPNowComponent::get_next_sequents(uint64_t peer, uint16_t app_id) {
-  if (this->next_sequents_[peer][app_id] == 0xFFFF) {
-    this->next_sequents_[peer][app_id] = 0;
+uint16_t ESPNowComponent::get_next_sequence(uint64_t peer, uint16_t app_id) {
+  if (this->next_sequence_[peer][app_id] == 0xFFFF) {
+    this->next_sequence_[peer][app_id] = 0;
   } else {
-    this->next_sequents_[peer][app_id]++;
+    this->next_sequence_[peer][app_id]++;
   }
-  return this->next_sequents_[peer][app_id];
+  return this->next_sequence_[peer][app_id];
 }
 
 bool ESPNowComponent::is_valid_squence(uint64_t peer, uint16_t app_id, uint16_t received_sequence) {
-  bool valid = this->next_sequents_[peer][app_id] + 1 == received_sequence;
+  bool valid = this->next_sequence_[peer][app_id] + 1 == received_sequence;
   if (valid) {
-    this->next_sequents_[peer][app_id] = received_sequence;
+    this->next_sequence_[peer][app_id] = received_sequence;
   }
   return valid;
 }
@@ -737,7 +737,7 @@ bool ESPNowApp::send(uint64_t peer, const uint8_t *data, uint8_t len, uint8_t co
   if (peer == 0ULL)
     return false;
 
-  auto packet = this->parent_->make_packet(peer, data, len, this->application(), command);  // NOLINT
+  auto packet = this->parent_->make_packet(peer, data, len, this->app_id(), command);  // NOLINT
 
   return this->parent_->send(packet);
 }

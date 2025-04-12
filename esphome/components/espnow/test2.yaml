@@ -2,7 +2,6 @@
 substitutions:
   name: "lum-iot-test2"
   friendly_name: "Project Template"
-  my_espnow_app: "0x5354"
 
 esp32:
   board: m5stack-atom
@@ -29,14 +28,13 @@ espnow:
         args: [packet->peer_str().c_str(), packet->payload(), packet->rssi()]
 
   custom_apps:
-    - app_id: ${my_espnow_app}
-      on_receive:
-        - logger.log:
-            format: "%s| Received: %s, cmd: %02x, RSSI: %d"
-            args:
-              [
-                packet->info().c_str(),
-                packet->payload(),
-                packet->command(),
-                packet->rssi(),
-              ]
+    on_receive:
+      - logger.log:
+          format: "%s| Received: %s, cmd: %02x, RSSI: %d"
+          args:
+            [
+              packet->info().c_str(),
+              packet->payload(),
+              packet->command(),
+              packet->rssi(),
+            ]

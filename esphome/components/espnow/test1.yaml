@@ -2,7 +2,6 @@
 substitutions:
   name: "lum-iot-test1"
   friendly_name: "Project Template"
-  my_espnow_app: "0x5354"
 
 esp32:
   board: m5stack-atom
@@ -41,8 +40,7 @@ espnow:
             packet->rssi(),
           ]
   custom_apps:
-    - app_id: 0x5354
-      on_receive:
+    - on_receive:
         - logger.log:
             format: "Received from: %s = '%s' cmd: %d RSSI: %d"
             args:

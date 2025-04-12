@@ -27,8 +27,6 @@ static const uint8_t ESPNOW_HEADER_SIZE = 8;
 
 static const uint8_t ESPNOW_MAX_DATA_SIZE = ESP_NOW_MAX_DATA_LEN - ESPNOW_HEADER_SIZE;
 
-static const uint16_t ESPNOW_DEFAULT_APP_ID = 0x7453;  // = St
-
 static const uint8_t ESPNOW_COMMAND_ACK = 254;
 static const uint8_t ESPNOW_COMMAND_NACK = 253;
 static const uint8_t ESPNOW_COMMAND_RESEND = 252;
@@ -48,7 +46,7 @@ class ESPNowTAG {
 
 void show_packet(const std::string &title, ESPNowPacket *packet, bool extended = false);
 std::string peer_string(uint64_t peer);
-uint64_t make_key(uint64_t peer, uint16_t sequents);
+uint64_t make_key(uint64_t peer, uint16_t sequence);
 
 enum ESPNowTriggers : uint8_t {
   TRIGGER_NONE = 0,
@@ -89,7 +87,7 @@ class ESPNowPacket {
   ESPNowPacket(uint64_t peer, const uint8_t *payload, size_t size);
   ESPNowPacket(const uint8_t *mac_address, const uint8_t *payload, int size);
 
-  uint64_t key() const { return make_key(this->peer(), this->sequents()); }
+  uint64_t key() const { return make_key(this->peer(), this->sequence()); }
 
   size_t header_size() const {
     if (this->options(OPTION_RAW) || this->content_.size() < ESPNOW_HEADER_SIZE) {
@@ -99,7 +97,7 @@ class ESPNowPacket {
     }
   }
   size_t content_size() const { return this->content_.size(); }
-  size_t payload_size() const { return this->content_size() - this->header_size(); }
+  size_t size() const { return this->content_size() - this->header_size(); }
 
   uint8_t *content() const { return (uint8_t *) this->content_.data(); }
 
@@ -116,7 +114,7 @@ class ESPNowPacket {
 
   std::string info() const;
 
-  uint16_t application() const {
+  uint16_t app_id() const {
     if (this->header_size() == 0) {
       return 0;
     } else {
@@ -132,13 +130,13 @@ class ESPNowPacket {
     }
   }
 
-  void sequents(uint16_t value) {
-    this->sequents_ = value;
+  void sequence(uint16_t value) {
+    this->sequence_ = value;
     if (!this->options(OPTION_RAW)) {
       this->write16h(5, value);
     }
   }
-  uint16_t sequents() const { return this->options(OPTION_RAW) ? this->sequents_ : this->read16h(5); }
+  uint16_t sequence() const { return this->options(OPTION_RAW) ? this->sequence_ : this->read16h(5); }
 
   void timestamp(uint32_t value) { this->timestamp_ = value; }
   uint32_t timestamp() const { return this->timestamp_; }
@@ -172,6 +170,9 @@ class ESPNowPacket {
   void write16u(size_t offset, uint16_t value) { this->write(offset, sizeof(uint16_t), value); }
   uint16_t read16u(size_t offset) const { return static_cast<uint16_t>(this->read(offset, sizeof(uint16_t))); };
 
+  void write32u(size_t offset, uint16_t value) { this->write(offset, sizeof(uint32_t), value); }
+  uint32_t read32u(size_t offset) const { return this->read(offset, sizeof(uint32_t)); };
+
   void write64u(size_t offset, uint16_t value) { this->write(offset, sizeof(uint64_t), value); }
   uint64_t read64u(size_t offset) const { return this->read(offset, sizeof(uint64_t)); };
 
@@ -192,7 +193,7 @@ class ESPNowPacket {
   uint16_t options_{0};
   uint8_t attempt_{0};
   uint32_t timestamp_{0};
-  uint16_t sequents_{0};
+  uint16_t sequence_{0};
   uint32_t trigger_group_{0};
 
   ESPNowTriggers status_{TRIGGER_NONE};
@@ -211,7 +212,7 @@ class ESPNowApp : public Parented<ESPNowComponent> {
   ESPNowAppMode app_mode_{PM_UNIVERSAL};
 
  public:
-  virtual uint16_t application() = 0;
+  virtual uint16_t app_id() = 0;
   virtual void init_app() {}
 
   virtual void on_add_peer(uint64_t peer){};
@@ -291,7 +292,7 @@ class ESPNowComponent : public Component {
 
   void register_app(ESPNowApp *app) {
     app->set_parent(this);
-    this->apps_[app->application()] = app;
+    this->apps_[app->app_id()] = app;
     app->init_app();
   }
 
@@ -301,7 +302,7 @@ class ESPNowComponent : public Component {
 
   static void espnow_task(void *params);
 
-  uint16_t get_next_sequents(uint64_t peer, uint16_t app);
+  uint16_t get_next_sequence(uint64_t peer, uint16_t app);
   bool is_valid_squence(uint64_t peer, uint16_t app, uint16_t received_sequence);
 
   static void on_data_received(const esp_now_recv_info_t *recv_info, const uint8_t *data, int size);
@@ -344,7 +345,7 @@ class ESPNowComponent : public Component {
   Trigger<std::shared_ptr<ESPNowPacket>> *raw_data_trigger_ = new Trigger<std::shared_ptr<ESPNowPacket>>();
 
   std::map<uint32_t, std::map<uint8_t, std::map<ESPNowTriggers, EPSNowTriggerCallback>>> triggers_;
-  std::map<uint64_t, std::map<uint16_t, uint16_t>> next_sequents_{};
+  std::map<uint64_t, std::map<uint16_t, uint16_t>> next_sequence_{};
   std::map<uint64_t, std::shared_ptr<ESPNowPacket>> packet_send_map_{};
   std::map<uint32_t, ESPNowApp *> apps_{};
   std::vector<uint64_t> peers_{};
@@ -393,10 +394,17 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
 template<typename... Ts> class NewPeerAction : public Action<Ts...>, public Parented<ESPNowComponent> {
  public:
   TEMPLATABLE_VALUE(uint64_t, mac_address);
+  void make_default() { this->make_default_ = true; }
   void play(Ts... x) override {
     uint64_t mac_address = this->mac_address_.value(x...);
     this->parent_->add_peer(mac_address);
+    if (this->make_default_) {
+      this->parent_->set_default_mac_address(mac_address);
+    }
   }
+
+ protected:
+  bool make_default_{false};
 };
 
 template<typename... Ts> class DelPeerAction : public Action<Ts...>, public Parented<ESPNowComponent> {
