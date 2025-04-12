@@ -644,12 +644,12 @@ EPSNowTriggerCallback ESPNowComponent::get_trigger_for_(ESPNowTriggers event, st
 
 void ESPNowComponent::call_trigger_for_(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet) {
   EPSNowTriggerCallback cb = this->get_trigger_for_(event, weak_packet);
-
+  auto packet = weak_packet.lock();
   ESP_LOGI(TAG, "triggger event {%d}", (int) event);
-  weak_packet.lock()->status(event);
+  packet->status(event);
 
-  this->set_timeout(10, [this, cb, weak_packet]() {  //"ESPNowTrigger"
-    auto packet = weak_packet.lock();
+  this->set_timeout(10, [this, cb, packet]() {  //"ESPNowTrigger"
+    // auto packet = weak_packet.lock();
     show_packet("Running trigger ", packet.get());
 
     if (cb) {
