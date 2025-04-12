@@ -685,11 +685,11 @@ class WaveshareEPaper5P8InV2 : public WaveshareEPaper {
 
 class WaveshareEPaper5P7InF : public WaveshareEPaperC {
  public:
- void initialize() override;
+  void initialize() override;
 
- void display() override;
+  void display() override;
 
- void dump_config() override;
+  void dump_config() override;
 
  protected:
   int get_width_internal() override;
