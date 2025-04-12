@@ -21,9 +21,6 @@ void setup();
 void loop();
 #endif
 
-void setup();
-void loop();
-
 namespace esphome {
 
 void IRAM_ATTR HOT yield() { vPortYield(); }
