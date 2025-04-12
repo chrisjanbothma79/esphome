@@ -7,9 +7,6 @@
 #include <esp_system.h>
 #include <esp_chip_info.h>
 #include <esp_partition.h>
-#ifdef USE_ESP_IDF
-#include <esp_clk_tree.h>
-#endif
 
 #if defined(USE_ESP32_VARIANT_ESP32)
 #include <esp32/rom/rtc.h>
