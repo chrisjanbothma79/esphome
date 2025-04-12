@@ -372,9 +372,6 @@ void DebugComponent::update_platform_() {
   if (this->psram_sensor_ != nullptr) {
     this->psram_sensor_->publish_state(heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
   }
-  if (this->cpu_frequency_sensor_ != nullptr) {
-    this->cpu_frequency_sensor_->publish_state(arch_get_cpu_freq_hz());
-  }
 #endif
 }
 
