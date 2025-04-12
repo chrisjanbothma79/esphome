@@ -366,8 +366,8 @@ SEND_SCHEMA = cv.Schema(
 async def send_action(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
-
-    await register_peer(var, config, args)
+    if CONF_MAC_ADDRESS in config:
+        await register_peer(var, config, args)
     if CONF_COMMAND in config:
         command = config.get(CONF_COMMAND)
         cg.add(var.set_command(command))
