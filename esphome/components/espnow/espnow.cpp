@@ -527,6 +527,7 @@ void ESPNowComponent::espnow_task(void *param) {
           if (key != key2) {
             ESP_LOGE(TAG, "!!! Remove from buffer ERROR: %llx vs %llx.", key, key2);
           }
+          packet->options(OPTION_FINISHED, true);
           that->call_trigger_for_(packet->status(), packet);
         } else {
           packet->retry();
@@ -555,7 +556,7 @@ void ESPNowComponent::espnow_task(void *param) {
             packet->status(TRIGGER_ON_FAILED);
           }
         }
-      } else if (packet->timestamp() + that->confirmation_timeout_ < millis()) {
+      } else if (millis() > packet->timestamp() + that->confirmation_timeout_) {
         show_packet("Timed Out", packet.get());
         packet->status(TRIGGER_ON_TIMEOUT);
         packet->options(OPTION_BEEN_SEND, false);

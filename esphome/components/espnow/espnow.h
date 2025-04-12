@@ -370,7 +370,7 @@ template<typename... Ts> class SendAction : public Action<Ts...>, public Parente
   void play(Ts... x) override {
     std::vector<uint8_t> payload = this->payload_.value(x...);
     uint64_t mac =
-        this->mac_address_.has_value() ? this->mac_address_.value(x...) : this->parent_->get_default_mac_addres();
+        this->mac_address_.has_value() ? this->mac_address_.value(x...) : this->parent_->get_default_mac_address();
     uint16_t app = this->app_id_.has_value() ? this->app_id_.value(x...) : this->parent_->get_default_app_id();
     uint8_t command = this->command_.value(x...);
     std::shared_ptr<ESPNowPacket> packet;
