@@ -18,9 +18,6 @@
 #include <esp_clk_tree.h>
 #endif
 
-void setup();
-void loop();
-
 namespace esphome {
 
 void IRAM_ATTR HOT yield() { vPortYield(); }
@@ -71,6 +68,8 @@ uint32_t arch_get_cpu_freq_hz() {
 }
 
 #ifdef USE_ESP_IDF
+void setup();
+void loop();
 TaskHandle_t loop_task_handle = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 void loop_task(void *pv_params) {
