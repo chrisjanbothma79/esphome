@@ -16,6 +16,9 @@
 #include <Esp.h>
 #else
 #include <esp_clk_tree.h>
+
+void setup();
+void loop();
 #endif
 
 namespace esphome {
@@ -68,8 +71,6 @@ uint32_t arch_get_cpu_freq_hz() {
 }
 
 #ifdef USE_ESP_IDF
-void setup();
-void loop();
 TaskHandle_t loop_task_handle = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 void loop_task(void *pv_params) {
