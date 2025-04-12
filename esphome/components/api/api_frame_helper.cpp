@@ -314,7 +314,7 @@ APIError APINoiseFrameHelper::state_action_() {
     // node mac, terminated by null byte
     uint8_t mac[6];
     get_mac_address_raw(mac);
-    const uint8_t *mac_ptr = reinterpret_cast<const uint8_t *>(mac);
+    uint8_t *mac_ptr = reinterpret_cast<uint8_t *>(mac);
     msg.insert(msg.end(), mac_ptr, mac_ptr + 6 + 1);
 
     aerr = write_frame_(msg.data(), msg.size());
