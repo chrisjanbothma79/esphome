@@ -16,6 +16,9 @@
 #include <Esp.h>
 #else
 #include <esp_clk_tree.h>
+
+void setup();
+void loop();
 #endif
 
 void setup();
