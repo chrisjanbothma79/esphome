@@ -5,11 +5,11 @@ from esphome import pins
 from esphome.components.zephyr import (
     zephyr_add_prj_conf,
     zephyr_add_overlay,
-    zephyr_add_mcuboot_conf,
     zephyr_add_mcuboot_overlay,
 )
-from esphome.const import CONF_ID, CONF_ENABLE_IPV6
-from esphome.core import CORE, coroutine_with_priority
+from esphome.const import CONF_ID, CONF_ENABLE_IPV6, CONF_OTA, CONF_TRANSPORT, CONF_UDP
+from esphome.core import CORE, coroutine_with_priority, _LOGGER
+import enum
 
 from .const import (
     CONF_CHANNEL,
@@ -48,6 +48,19 @@ OpenThreadDNSComponent = zephyr_openthread_ns.class_(
 # TODO: Move this to constants, leaving it here for now to avoid breaking changes
 CONF_FACTORY_RESET_PIN = "factory_reset_pin"
 
+CONF_DEVICE_TYPE = "device_type"
+# Define enum for device types
+class DeviceType(enum.Enum):
+    MTD = "mtd"
+    FTD = "ftd"
+
+DEFAULT_DEVICE_TYPE = DeviceType.FTD
+
+DEVICE_TYPE_OPTIONS = {
+    "mtd": DeviceType.MTD,
+    "ftd": DeviceType.FTD,
+}
+
 # Create a custom validator for hex strings with a specific length
 def hex_string_length(length):
     def validator(value):
@@ -61,30 +74,44 @@ def hex_string_length(length):
     return validator
 
 
-CONFIG_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(): cv.declare_id(OpenThreadZephyr),
-        cv.Optional(CONF_CHANNEL, default=DEFAULT_CHANNEL): cv.int_range(
-            min=11, max=26
-        ),
-        cv.Optional(CONF_PANID, default=DEFAULT_PANID): cv.hex_uint16_t,
-        cv.Optional(CONF_NETWORK_NAME, default=DEFAULT_NETWORK_NAME): cv.string,
-        cv.Optional(CONF_XPANID, default=DEFAULT_XPANID): hex_string_length(16),
-        cv.Optional(CONF_NETWORK_KEY, default=DEFAULT_NETWORK_KEY): hex_string_length(
-            32
-        ),
-        cv.Optional(CONF_PSKC, default=DEFAULT_PSKC): hex_string_length(32),
-        cv.Optional(CONF_RADIO_TX_POWER, default=DEFAULT_RADIO_TX_POWER): cv.int_range(
-            min=-20, max=20
-        ),
-        cv.Optional(CONF_FORCE_DATASET, default=DEFAULT_FORCE_DATASET): cv.boolean,
-        cv.Optional(CONF_SHELL, default=DEFAULT_SHELL): cv.boolean,
-        cv.Optional(CONF_ENABLE_IPV6, default=True): ot_cv.require_framework_version(
-            cv.Version(1, 0, 0)
-        ),
-        cv.Optional(CONF_FACTORY_RESET_PIN): pins.gpio_input_pin_schema,
-    }
-).extend(cv.COMPONENT_SCHEMA)
+def _validate_shell_depends_on_ftd(config):
+    if config[CONF_SHELL] and config[CONF_DEVICE_TYPE] != DeviceType.FTD:
+        raise cv.Invalid(
+            f"{CONF_SHELL}=true is only supported when {CONF_DEVICE_TYPE}=FTD"
+        )
+    return config
+
+
+CONFIG_SCHEMA = cv.All(
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.declare_id(OpenThreadZephyr),
+            cv.Optional(CONF_DEVICE_TYPE, default=DEFAULT_DEVICE_TYPE): cv.enum(
+                DEVICE_TYPE_OPTIONS, upper=False
+            ),
+            cv.Optional(CONF_CHANNEL, default=DEFAULT_CHANNEL): cv.int_range(
+                min=11, max=26
+            ),
+            cv.Optional(CONF_PANID, default=DEFAULT_PANID): cv.hex_uint16_t,
+            cv.Optional(CONF_NETWORK_NAME, default=DEFAULT_NETWORK_NAME): cv.string,
+            cv.Optional(CONF_XPANID, default=DEFAULT_XPANID): hex_string_length(16),
+            cv.Optional(CONF_NETWORK_KEY, default=DEFAULT_NETWORK_KEY): hex_string_length(
+                32
+            ),
+            cv.Optional(CONF_PSKC, default=DEFAULT_PSKC): hex_string_length(32),
+            cv.Optional(CONF_RADIO_TX_POWER, default=DEFAULT_RADIO_TX_POWER): cv.int_range(
+                min=-20, max=20
+            ),
+            cv.Optional(CONF_FORCE_DATASET, default=DEFAULT_FORCE_DATASET): cv.boolean,
+            cv.Optional(CONF_SHELL, default=DEFAULT_SHELL): cv.boolean,
+            cv.Optional(CONF_ENABLE_IPV6, default=True): ot_cv.require_framework_version(
+                cv.Version(1, 0, 0)
+            ),
+            cv.Optional(CONF_FACTORY_RESET_PIN): pins.gpio_input_pin_schema,
+        }
+    ).extend(cv.COMPONENT_SCHEMA),
+    _validate_shell_depends_on_ftd,
+)
 
 
 @coroutine_with_priority(1000)
@@ -112,19 +139,38 @@ async def to_code(config):
         mdns = await cg.get_variable(CORE.config["mdns"]["id"])
         cg.add(var.set_mdns(mdns))
 
+    # Get MCUmgr component reference if configured for UDP OTA
+    if CONF_OTA in CORE.config:
+        for ota_config in CORE.config[CONF_OTA]:
+            # Check if this OTA entry is for zephyr_mcumgr
+            if ota_config.get("platform") == "zephyr_mcumgr":
+                # Check if UDP transport is used for this entry
+                if ota_config.get(CONF_TRANSPORT) == CONF_UDP:
+                    # Get the ID of this specific zephyr_mcumgr OTA component
+                    mcumgr_ota_id = ota_config.get(CONF_ID)
+                    if mcumgr_ota_id:
+                        _LOGGER.debug(f"Found zephyr_mcumgr OTA component with UDP transport (ID: {mcumgr_ota_id}). Setting dependency.")
+                        mcumgr = await cg.get_variable(mcumgr_ota_id)
+                        cg.add(var.set_mcumgr(mcumgr))
+                        break
+                    else:
+                         _LOGGER.warning("Found zephyr_mcumgr OTA with UDP but no ID?") # Should not happen with proper config validation
+                else:
+                     _LOGGER.debug(f"Found zephyr_mcumgr OTA component but transport is not UDP ({ota_config.get(CONF_TRANSPORT)}). Skipping dependency.")
+    else:
+        _LOGGER.debug("No OTA configuration found. Skipping mcumgr dependency.")
+
     # Configure Zephyr for OpenThread
     # Enable OpenThread
     zephyr_add_prj_conf("NET_L2_OPENTHREAD", True)
     zephyr_add_prj_conf("INIT_STACKS", True)
-    zephyr_add_prj_conf("OPENTHREAD_MTD", True)
 
-    # Nordic library configuration
-    zephyr_add_prj_conf("OPENTHREAD_NORDIC_LIBRARY", True)
-    zephyr_add_prj_conf("OPENTHREAD_NORDIC_LIBRARY_MTD", True)
+    # Set device type based on config
+    zephyr_add_prj_conf("OPENTHREAD_MTD", config[CONF_DEVICE_TYPE] == DeviceType.MTD)
+    zephyr_add_prj_conf("OPENTHREAD_FTD", config[CONF_DEVICE_TYPE] == DeviceType.FTD)
 
     # Shell configuration - make it configurable
     shell_enabled = config[CONF_SHELL]
-    zephyr_add_prj_conf("OPENTHREAD_NORDIC_LIBRARY_FTD", shell_enabled)
     zephyr_add_prj_conf("OPENTHREAD_SHELL", shell_enabled)
     zephyr_add_prj_conf("OPENTHREAD_PING_SENDER", shell_enabled)
     zephyr_add_prj_conf("SHELL", shell_enabled)
@@ -148,13 +194,6 @@ async def to_code(config):
 
     # TCP configuration - disable RFC6528 ISN generation to avoid mbedtls_md5 dependency
     zephyr_add_prj_conf("NET_TCP_ISN_RFC6528", False)
-
-    # SRP (Service Registration Protocol) support
-    zephyr_add_prj_conf("OPENTHREAD_SRP_CLIENT", True)
-
-    # Enable OpenThread DNS client and upstream query
-    zephyr_add_prj_conf("CONFIG_OPENTHREAD_DNS_CLIENT", True)
-    zephyr_add_prj_conf("CONFIG_OPENTHREAD_DNS_UPSTREAM_QUERY", True)
 
     # Enable hostname
     zephyr_add_prj_conf("NET_HOSTNAME_ENABLE", True)
@@ -222,24 +261,17 @@ async def to_code(config):
     chosen {
         nordic,pm-ext-flash = &p25q16h;
     };
-    
-    aliases {
-        mcuboot-button0 = &button0;
-    };
-};
-
-&gpio0 {
-    status = "okay";
-};
-
-/ {
-    buttons {
-        compatible = "gpio-keys";
-        button0: button_0 {
-            gpios = <&gpio0 28 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
-            label = "MCUboot recovery button";
-        };
-    };
 };
     """)
 
+    # Setup SRP services if mDNS is enabled
+    if "mdns" in CORE.config:
+        # This assumes the mDNS component correctly populates its services
+        # The C++ code in OpenThreadZephyr::setup_srp_services() will handle
+        # reading these services from the mDNS component via the pointer we set earlier.
+        # No specific C++ calls needed here for SRP itself, just enabling the feature.
+        zephyr_add_prj_conf("CONFIG_OPENTHREAD_SRP_CLIENT", True)
+        zephyr_add_prj_conf("CONFIG_OPENTHREAD_DNS_CLIENT", True)
+        _LOGGER.debug("mDNS component found, enabling OpenThread SRP client features.")
+    else:
+        _LOGGER.debug("mDNS component not found, OpenThread SRP client features disabled.")

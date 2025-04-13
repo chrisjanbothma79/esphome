@@ -42,6 +42,9 @@ using namespace esphome;
 #include "esphome/components/mdns/mdns_component.h"
 #include "esphome/components/network/ip_address.h"
 
+// Include the full header for the dependency
+#include "esphome/components/zephyr_mcumgr/ota_zephyr_mcumgr.h"
+
 // Forward declaration for OpenThread types if needed
 struct otDnsTxtEntry;
 
@@ -69,6 +72,7 @@ class OpenThreadZephyr : public Component {
   void set_force_dataset(bool force_dataset) { force_dataset_ = force_dataset; }
   void set_mdns(mdns::MDNSComponent *mdns) { mdns_ = mdns; }
   void set_factory_reset_pin(GPIOPin *pin) { factory_reset_pin_ = pin; }
+  void set_mcumgr(zephyr_mcumgr::OTAComponent *mcumgr) { this->mcumgr_component_ = mcumgr; }
 
   bool is_connected() const { return connected_; }
   void start_thread_network();
@@ -126,7 +130,8 @@ class OpenThreadZephyr : public Component {
   mdns::MDNSComponent *mdns_{nullptr};
   std::vector<mdns::MDNSService> mdns_services_{};
 
-  bool mcumgr_udp_started_{false};
+  // Pointer to the mcumgr component (if available)
+  zephyr_mcumgr::OTAComponent* mcumgr_component_{nullptr};
 };
 
 }  // namespace zephyr_openthread

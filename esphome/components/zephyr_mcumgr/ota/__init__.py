@@ -108,6 +108,47 @@ async def to_code(config):
     cg.add_define("USE_OTA")
 
     await cg.register_component(var, config)
+
+    # Set transport flags based on config
+    if config[CONF_TRANSPORT] == CONF_UDP:
+        cg.add(var.set_udp_transport(True))
+    elif config[CONF_TRANSPORT] == CONF_HARDWARE_UART:
+        cdc_id = UARTS[config[CONF_HARDWARE_UART]][1]
+        if cdc_id >= 0: # Only set flag if using CDC ACM UART
+             cg.add(var.set_cdc_transport(True))
+        # else: No specific flag needed for non-CDC hardware UARTs yet
+    # elif config[CONF_TRANSPORT] == CONF_BLE:
+    #     # No specific flag needed for BLE transport management in C++ yet
+    #     pass
+
+    # mcumgr Kconfig settings based on transport
+    if config[CONF_TRANSPORT] == CONF_BLE:
+        zephyr_add_prj_conf("MCUMGR_TRANSPORT_BT", True)
+        zephyr_add_prj_conf("MCUMGR_TRANSPORT_BT_REASSEMBLY", True)
+        zephyr_add_prj_conf("NCS_SAMPLE_MCUMGR_BT_OTA_DFU_SPEEDUP", True)
+    if config[CONF_TRANSPORT] == CONF_UDP:
+        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP", True)
+        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_IPV6", True)
+        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_STACK_SIZE", 2048)
+        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_MTU", 1232)
+        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_AUTOMATIC_INIT", False)
+    if config[CONF_TRANSPORT] == CONF_HARDWARE_UART:
+        cdc_id = UARTS[config[CONF_HARDWARE_UART]][1]
+        if cdc_id >= 0:
+            zephyr_add_cdc_acm(config, cdc_id)
+        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UART", True)
+        zephyr_add_prj_conf("BASE64", True)
+        zephyr_add_prj_conf("CONSOLE", True)
+        zephyr_add_overlay(
+            f"""
+/ {{
+    chosen {{
+        zephyr,uart-mcumgr = &{UARTS[config[CONF_HARDWARE_UART]][0]};
+    }};
+}};
+"""
+        )
+
     # mcumgr begin
     zephyr_add_prj_conf("NET_BUF", True)
     zephyr_add_prj_conf("ZCBOR", True)
@@ -150,30 +191,3 @@ async def to_code(config):
      ## MCUBoot configuration
     zephyr_add_mcuboot_conf("MULTITHREADING", True)
     zephyr_add_mcuboot_conf("FLASH", True)
-
-    if config[CONF_TRANSPORT] == CONF_BLE:
-        zephyr_add_prj_conf("MCUMGR_TRANSPORT_BT", True)
-        zephyr_add_prj_conf("MCUMGR_TRANSPORT_BT_REASSEMBLY", True)
-        zephyr_add_prj_conf("NCS_SAMPLE_MCUMGR_BT_OTA_DFU_SPEEDUP", True)
-    if config[CONF_TRANSPORT] == CONF_UDP:
-        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP", True)
-        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_IPV6", True)
-        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_STACK_SIZE", 2048)
-        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_MTU", 1500)
-        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_AUTOMATIC_INIT", False)
-    if config[CONF_TRANSPORT] == CONF_HARDWARE_UART:
-        cdc_id = UARTS[config[CONF_HARDWARE_UART]][1]
-        if cdc_id >= 0:
-            zephyr_add_cdc_acm(config, cdc_id)
-        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UART", True)
-        zephyr_add_prj_conf("BASE64", True)
-        zephyr_add_prj_conf("CONSOLE", True)
-        zephyr_add_overlay(
-            f"""
-/ {{
-    chosen {{
-        zephyr,uart-mcumgr = &{UARTS[config[CONF_HARDWARE_UART]][0]};
-    }};
-}};
-"""
-        )

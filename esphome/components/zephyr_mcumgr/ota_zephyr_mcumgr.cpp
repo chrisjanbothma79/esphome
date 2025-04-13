@@ -23,6 +23,7 @@ namespace zephyr_mcumgr {
 
 static const char *const TAG = "zephyr_mcumgr";
 static OTAComponent *global_ota_component = nullptr;
+static OTAComponent *global_mcumgr_component = nullptr;
 
 #define IMAGE_HASH_LEN 32 /* Size of SHA256 TLV hash */
 
@@ -40,6 +41,7 @@ static enum mgmt_cb_return mcumgr_img_mgmt_cb(uint32_t event, enum mgmt_cb_retur
   } else {
     ESP_LOGD(TAG, "MCUmgr Image Management Event with the %d ID", u32_count_trailing_zeros(MGMT_EVT_GET_ID(event)));
   }
+  
   return MGMT_CB_OK;
 }
 
@@ -50,6 +52,7 @@ static struct mgmt_callback IMG_MGMT_CALLBACK = {
 
 OTAComponent::OTAComponent() {
   global_ota_component = this;
+  global_mcumgr_component = this;
 #ifdef USE_OTA_STATE_CALLBACK
   ota::register_ota_platform(this);
 #endif
@@ -57,11 +60,17 @@ OTAComponent::OTAComponent() {
 
 void OTAComponent::setup() {
   mgmt_callback_register(&IMG_MGMT_CALLBACK);
-  // TODO check if ota cdc is set
   // use zephyr,uart-mcumgr
-  const struct device *uart_dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(cdc_acm_uart0));
-  if (device_is_ready(uart_dev)) {
-    usb_enable(NULL);
+  if (this->use_udp_transport_) {
+    ESP_LOGI(TAG, "MCUmgr ready. Waiting for network connection to start UDP transport.");
+  } else if (this->use_cdc_transport_) {
+    const struct device *uart_dev = DEVICE_DT_GET_OR_NULL(DT_NODELABEL(cdc_acm_uart0));
+    if (device_is_ready(uart_dev)) {
+      usb_enable(NULL);
+      ESP_LOGI(TAG, "MCUmgr ready. Enabled USB CDC transport.");
+    } else {
+      ESP_LOGW(TAG, "MCUmgr: Configured CDC UART device not ready.");
+    }
   }
 }
 
@@ -75,6 +84,67 @@ void OTAComponent::loop() {
       }
     }
   }
+}
+
+void OTAComponent::start_udp_transport() {
+  if (!this->use_udp_transport_) return;
+  if (this->udp_transport_started_) {
+    ESP_LOGD(TAG, "MCUmgr UDP transport already started.");
+    return;
+  }
+  ESP_LOGI(TAG, "Starting MCUmgr UDP transport...");
+  int ret = smp_udp_open();
+  if (ret == 0) {
+    ESP_LOGI(TAG, "MCUmgr UDP transport started successfully.");
+    this->udp_transport_started_ = true;
+  } else {
+    ESP_LOGE(TAG, "Failed to start MCUmgr UDP transport: %d", ret);
+    this->udp_transport_started_ = false;
+  }
+}
+
+void OTAComponent::stop_udp_transport() {
+  if (!this->use_udp_transport_) return;
+  if (!this->udp_transport_started_) {
+    ESP_LOGD(TAG, "MCUmgr UDP transport already stopped.");
+    return;
+  }
+  ESP_LOGI(TAG, "Stopping MCUmgr UDP transport...");
+  smp_udp_close();
+  this->udp_transport_started_ = false;
+  ESP_LOGI(TAG, "MCUmgr UDP transport stopped.");
+}
+
+void OTAComponent::on_network_update(bool connected, bool ip_address_changed) {
+  if (!this->use_udp_transport_) {
+    ESP_LOGV(TAG, "Ignoring network update as UDP transport is not enabled.");
+    return;
+  }
+  ESP_LOGD(TAG, "Network update: connected=%s, ip_changed=%s", YESNO(connected), YESNO(ip_address_changed));
+  if (connected) {
+    if (!this->udp_transport_started_ || ip_address_changed) {
+      if (this->udp_transport_started_) {
+        ESP_LOGI(TAG, "Network IP changed, restarting MCUmgr UDP transport.");
+        this->stop_udp_transport();
+      }
+      this->start_udp_transport();
+    } else {
+      ESP_LOGD(TAG, "Network connected, UDP transport already running and IP unchanged.");
+    }
+  } else {
+    if (this->udp_transport_started_) {
+      ESP_LOGI(TAG, "Network disconnected, stopping MCUmgr UDP transport.");
+      this->stop_udp_transport();
+    } else {
+      ESP_LOGD(TAG, "Network disconnected, UDP transport already stopped.");
+    }
+  }
+}
+
+void OTAComponent::on_shutdown() {
+  if (!this->use_udp_transport_) return;
+  ESP_LOGI(TAG, "MCUmgr shutting down. Stopping UDP transport...");
+  this->stop_udp_transport();
 }
 
 static const char *swap_type_str(uint8_t type) {

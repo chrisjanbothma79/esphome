@@ -1,6 +1,9 @@
 #include "esphome/core/defines.h"
 #include "openthread.h"
 
+// Ensure the full definition of the mcumgr OTA component is included
+#include "esphome/components/zephyr_mcumgr/ota_zephyr_mcumgr.h"
+
 #if defined(USE_ZEPHYR) && defined(USE_ZEPHYR_OPENTHREAD)
 
 #include "esphome/core/log.h"
@@ -19,10 +22,11 @@
 #include <openthread/srp_client_buffers.h>
 #include <openthread/dataset_ftd.h>
 #include <openthread/netdata.h>
-#include <zephyr/mgmt/mcumgr/transport/smp_udp.h>
 #include <set>
+#include <zephyr/mgmt/mcumgr/transport/smp_udp.h>
 
 namespace esphome {
+
 namespace zephyr_openthread {
 
 static const char *const TAG = "zephyr_openthread";
@@ -170,6 +174,13 @@ void OpenThreadZephyr::loop() {
 
       // Reset SRP services registration flag when disconnected
       this->srp_services_registered_ = false;
+
+      // Notify mcumgr component that network is down
+      if (this->mcumgr_component_ != nullptr) {
+        this->mcumgr_component_->on_network_update(false, false);
+      } else {
+        ESP_LOGV(TAG, "MCUmgr component not available to notify of network down."); // Use Verbose log level
+      }
     }
   }
 
@@ -369,19 +380,13 @@ void OpenThreadZephyr::update_ipv6_addresses() {
     }
   }
   
-  // Restart MCUMGR UDP transport if we found new global addresses and it's already running
+  // Notify MCUMGR if new addresses require transport restart
   if (new_global_address_found) {
-    ESP_LOGI(TAG, "New IPv6 address detected, restarting MCUMGR UDP transport to listen on new interfaces.");
-    if (this->mcumgr_udp_started_) {
-      smp_udp_close();
-    }
-    int ret = smp_udp_open();
-    if (ret == 0) {
-      ESP_LOGI(TAG, "MCUMGR UDP transport restarted successfully.");
-      this->mcumgr_udp_started_ = true;
+    ESP_LOGI(TAG, "New IPv6 address detected, notifying MCUMGR component.");
+    if (this->mcumgr_component_ != nullptr) {
+        this->mcumgr_component_->on_network_update(true, true); // Connected, IP changed
     } else {
-      ESP_LOGE(TAG, "Failed to restart MCUMGR UDP transport: %d", ret);
-      this->mcumgr_udp_started_ = false; // Mark as stopped since restart failed
+        ESP_LOGV(TAG, "MCUmgr component not available to notify of IP change."); // Use Verbose log level
     }
   }
 }
@@ -517,13 +522,8 @@ void OpenThreadZephyr::on_shutdown() {
   // Stop the Thread network
   this->stop_thread_network();
 
-  // Stop MCUMGR UDP transport if it was started
-  if (this->mcumgr_udp_started_) {
-    ESP_LOGI(TAG, "Stopping MCUMGR UDP transport...");
-    smp_udp_close();
-    this->mcumgr_udp_started_ = false;
-    ESP_LOGI(TAG, "MCUMGR UDP transport stopped.");
-  }
+  // MCUmgr component handles its own shutdown via Component lifecycle.
+  // No need to explicitly notify it here anymore.
 
   // Clean up SRP services if needed
   otInstance *instance = openthread_get_default_instance();
