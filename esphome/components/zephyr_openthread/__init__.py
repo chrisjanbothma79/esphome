@@ -173,6 +173,7 @@ async def to_code(config):
     zephyr_add_prj_conf("OPENTHREAD_XPANID", config[CONF_XPANID])
     zephyr_add_prj_conf("OPENTHREAD_NETWORKKEY", config[CONF_NETWORK_KEY])
     zephyr_add_prj_conf("OPENTHREAD_MANUAL_START", True)
+    zephyr_add_prj_conf("OPENTHREAD_DEFAULT_TX_POWER", config[CONF_RADIO_TX_POWER])
 
     # Radio settings
     zephyr_add_prj_conf("OPENTHREAD_RADIO_WORKQUEUE_STACK_SIZE", 2048)
