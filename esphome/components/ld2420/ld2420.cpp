@@ -67,8 +67,8 @@ float LD2420Component::get_setup_priority() const { return setup_priority::BUS; 
 void LD2420Component::dump_config() {
   ESP_LOGCONFIG(TAG, "LD2420:");
   ESP_LOGCONFIG(TAG, "  Firmware Version : %7s", this->ld2420_firmware_ver_);
-  ESP_LOGCONFIG(TAG, "LD2420 Number:");
 #ifdef USE_NUMBER
+  ESP_LOGCONFIG(TAG, "LD2420 Number:");
   LOG_NUMBER(TAG, "  Gate Timeout:", this->gate_timeout_number_);
   LOG_NUMBER(TAG, "  Gate Max Distance:", this->max_gate_distance_number_);
   LOG_NUMBER(TAG, "  Gate Min Distance:", this->min_gate_distance_number_);
@@ -141,7 +141,7 @@ void LD2420Component::setup() {
     this->set_mode_(CMD_SYSTEM_MODE_SIMPLE);
     ESP_LOGW(TAG, "LD2420 Frimware Version %s and older are only supported in Simple Mode", ld2420_firmware_ver_);
   } else {
-    this->set_mode_(CMD_SYSTEM_MODE_ENERGY);
+    this->set_mode_(CMD_SYSTEM_MODE_ENERGY);  // Set the default mode to energy
     this->operating_selector_->publish_state(OP_NORMAL_MODE_STRING);
   }
 #ifdef USE_NUMBER
