@@ -134,6 +134,10 @@ void LD2420Component::setup() {
     this->get_gate_threshold_(gate);
   }
 
+  // Set the default mode to energy and ensure its not null
+  if (this->operating_selector_ == nullptr)
+    this->set_operating_mode(OP_NORMAL_MODE_STRING);
+
   memcpy(&this->new_config, &this->current_config, sizeof(this->current_config));
   if (get_firmware_int_(ld2420_firmware_ver_) < CALIBRATE_VERSION_MIN) {
     this->set_operating_mode(OP_SIMPLE_MODE_STRING);
@@ -292,7 +296,7 @@ void LD2420Component::set_operating_mode(const std::string &state) {
   // If unsupported firmware ignore mode select
   if (get_firmware_int_(ld2420_firmware_ver_) >= CALIBRATE_VERSION_MIN) {
     this->current_operating_mode = OP_MODE_TO_UINT.at(state);
-    // Entering Auto Calibrate we need to clear the privoiuos data collection
+    // Entering Auto Calibrate we need to clear the previous data collection
     this->operating_selector_->publish_state(state);
     if (current_operating_mode == OP_CALIBRATE_MODE) {
       this->set_calibration_(true);
