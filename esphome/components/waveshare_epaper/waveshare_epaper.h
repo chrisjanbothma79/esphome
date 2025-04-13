@@ -703,7 +703,7 @@ class WaveshareEPaper5P65InF : public WaveshareEPaper7C {
 
   void deep_sleep() override { ; }
 
-  enum WaitForState { BUSY = 0, IDLE = 1 };
+  enum WaitForState { BUSY = true, IDLE = false };
   bool wait_until_(WaitForState state);
 
   bool deep_sleep_between_updates_{true};

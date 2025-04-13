@@ -3505,9 +3505,8 @@ bool WaveshareEPaper5P65InF::wait_until_(WaitForState busy_state) {
     return true;
   }
 
-  const bool wanted_pin_value = (busy_state == IDLE) ? false : true;
   const uint32_t start = millis();
-  while (wanted_pin_value != this->busy_pin_->digital_read()) {
+  while (busy_state != this->busy_pin_->digital_read()) {
     if (millis() - start > this->idle_timeout_()) {
       ESP_LOGE(TAG, "Timeout while displaying image!");
       return false;
