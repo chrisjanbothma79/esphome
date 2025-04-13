@@ -3447,7 +3447,7 @@ void WaveshareEPaper5P65InF::initialize() {
   this->cmd_data(R61_CMD_TRES, sizeof(R61_CMD_TRES));
   this->cmd_data(RE3_CMD_PWS, sizeof(RE3_CMD_PWS));
 
-  delay(100);
+  delay(100);  // NOLINT
   this->cmd_data(R50_CMD_CDI, sizeof(R50_CMD_CDI));
 
   ESP_LOGI(TAG, "Display initialized successfully");
