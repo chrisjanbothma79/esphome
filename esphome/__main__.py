@@ -8,15 +8,16 @@ import os
 import re
 import sys
 import time
-
+import asyncio
 import argcomplete
-
 from esphome import const, writer, yaml_util
 import esphome.codegen as cg
+import esphome.zephyr_tools as zephyr_tools
 from esphome.config import iter_component_configs, read_config, strip_default_ids
 from esphome.const import (
     ALLOWED_NAME_CHARS,
     CONF_BAUD_RATE,
+    CONF_BLE,
     CONF_BROKER,
     CONF_DEASSERT_RTS_DTR,
     CONF_DISABLED,
@@ -32,8 +33,12 @@ from esphome.const import (
     CONF_PLATFORM,
     CONF_PLATFORMIO_OPTIONS,
     CONF_PORT,
+    CONF_HARDWARE_UART,
     CONF_SUBSTITUTIONS,
     CONF_TOPIC,
+    CONF_TRANSPORT,
+    CONF_UDP,
+    CONF_ZEPHYR_MCUMGR,
     PLATFORM_BK72XX,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
@@ -136,6 +141,8 @@ def choose_upload_log_host(
     #         )
     # if show_mqtt and CONF_MQTT in CORE.config:
     #     options.append((f"MQTT ({CORE.config['mqtt'][CONF_BROKER]})", "MQTT"))
+    #     if default == "OTA":
+    #         return "MQTT"
     if (show_ota and "ota" in CORE.config) or (show_api and "api" in CORE.config):
         options.append((f"Over The Air ({CORE.address})", CORE.address))
         if default == "OTA":
@@ -177,8 +184,6 @@ def get_port_type(port):
         return "SERIAL"
     if port == "MQTT":
         return "MQTT"
-    if is_mac_address(port):
-        return "BLE"
     return "NETWORK"
 
 
@@ -405,24 +410,17 @@ def upload_program(config, args, host):
 
         if CORE.target_platform in (PLATFORM_BK72XX, PLATFORM_RTL87XX):
             return upload_using_platformio(config, host)
-
         if CORE.target_platform in (PLATFORM_NRF52):
             return upload_using_platformio(config, host, ["-t", "upload"])
 
         raise EsphomeError(f"Unknown target platform: {CORE.target_platform}")
 
     if host == "PYOCD":
-        print(CORE)
         return upload_using_platformio(config, host, ["-t", "flash_pyocd"])
-    if host.startswith("mcumgr"):
-        firmware = os.path.abspath(
-            CORE.relative_pioenvs_path(CORE.name, "zephyr", "app_update.bin")
-        )
-        return asyncio.run(smpmgr_upload(config, host.split(" ")[1], firmware))
-
+    
     ota_conf = {}
     for ota_item in config.get(CONF_OTA, []):
-        if ota_item[CONF_PLATFORM] == CONF_ESPHOME:
+        if ota_item[CONF_PLATFORM] == CONF_ESPHOME or ota_item[CONF_PLATFORM] == CONF_ZEPHYR_MCUMGR:
             ota_conf = ota_item
             break
 
@@ -430,6 +428,22 @@ def upload_program(config, args, host):
         raise EsphomeError(
             f"Cannot upload Over the Air as the {CONF_OTA} configuration is not present or does not include {CONF_PLATFORM}: {CONF_ESPHOME}"
         )
+
+    if ota_conf[CONF_PLATFORM] == CONF_ZEPHYR_MCUMGR:
+        firmware = os.path.abspath(
+            CORE.relative_pioenvs_path(CORE.name, "zephyr", "app_update.bin")
+        )
+        if ota_conf.get(CONF_TRANSPORT) in [CONF_BLE, CONF_HARDWARE_UART]:
+             rc = asyncio.run(zephyr_tools.smpmgr_upload(
+                 ota_conf.get(CONF_TRANSPORT), host.split(" ")[1], firmware
+             ))
+        elif ota_conf[CONF_TRANSPORT] == CONF_UDP:
+             rc = asyncio.run(zephyr_tools.smpmgr_upload(
+                 CONF_UDP, host, firmware
+             ))
+        else:
+            raise EsphomeError(f"Unknown transport: {ota_conf[CONF_TRANSPORT]}")
+        return rc
 
     from esphome import espota2
 

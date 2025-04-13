@@ -7,6 +7,7 @@ from rich.pretty import pprint
 from bleak import BleakScanner, BleakClient
 from bleak.exc import BleakDeviceNotFoundError, BleakDBusError
 from smpclient.transport.ble import SMPBLETransport
+from smpclient.transport.udp import SMPUDPTransport
 from smpclient.transport import SMPTransportDisconnected
 from smpclient.transport.serial import SMPSerialTransport
 from smpclient import SMPClient
@@ -16,6 +17,7 @@ from smpclient.requests.os_management import ResetWrite
 from smpclient.generics import error, success
 from smp.exceptions import SMPBadStartDelimiter
 from esphome.espota2 import ProgressBar
+from esphome.const import CONF_BLE, CONF_HARDWARE_UART, CONF_UDP
 
 SMP_SERVICE_UUID = "8D53DC1D-1DB7-4CD3-868B-8A527460AA84"
 NUS_SERVICE_UUID = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
@@ -93,15 +95,20 @@ async def smpmgr_upload(config, host, firmware):
     return 1
 
 
-async def smpmgr_upload_(config, host, firmware):
+async def smpmgr_upload_(transport, host, firmware):
     image_tlv_sha256 = get_image_tlv_sha256(firmware)
     if image_tlv_sha256 is None:
         return 1
 
-    if is_mac_address(host):
+    if transport == CONF_BLE:
         smp_client = SMPClient(SMPBLETransport(), host)
-    else:
+    elif transport == CONF_HARDWARE_UART:
         smp_client = SMPClient(SMPSerialTransport(), host)
+    elif transport == CONF_UDP:
+        smp_client = SMPClient(SMPUDPTransport(mtu=1024), host)
+    else:
+        _LOGGER.error("Unknown transport: %s", transport)
+        return 1
 
     _LOGGER.info("Connecting %s...", host)
     try:
@@ -113,7 +120,7 @@ async def smpmgr_upload_(config, host, firmware):
     _LOGGER.info("Connected %s...", host)
 
     try:
-        image_state = await smp_client.request(ImageStatesRead(), 2.5)
+        image_state = await smp_client.request(ImageStatesRead(), 5.0)
     except SMPBadStartDelimiter as e:
         _LOGGER.error("mcumgr is not supported by device (%s)", e)
         return 1
@@ -149,13 +156,13 @@ async def smpmgr_upload_(config, host, firmware):
             progress = ProgressBar()
             progress.update(0)
             try:
-                async for offset in smp_client.upload(image):
+                async for offset in smp_client.upload(image, subsequent_timeout_s=10.0):
                     progress.update(offset / upload_size)
             finally:
                 progress.done()
 
     _LOGGER.info("Mark image for testing")
-    r = await smp_client.request(ImageStatesWrite(hash=image_tlv_sha256), 1.0)
+    r = await smp_client.request(ImageStatesWrite(hash=image_tlv_sha256), 5.0)
 
     if error(r):
         _LOGGER.error(r)
@@ -164,7 +171,7 @@ async def smpmgr_upload_(config, host, firmware):
     # give a chance to execute completion callback
     time.sleep(1)
     _LOGGER.info("Reset")
-    r = await smp_client.request(ResetWrite(), 1.0)
+    r = await smp_client.request(ResetWrite(), 5.0)
 
     if error(r):
         _LOGGER.error(r)

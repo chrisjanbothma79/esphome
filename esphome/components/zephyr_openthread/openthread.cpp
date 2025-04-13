@@ -326,7 +326,7 @@ void OpenThreadZephyr::update_ipv6_addresses() {
   
   // Restart MCUMGR UDP transport if we found new global addresses and it's already running
   if (new_global_address_found) {
-    ESP_LOGI(TAG, "New IPv6 address detected, restarting MCUMGR UDP transport to listen on new interfaces");
+    ESP_LOGI(TAG, "New IPv6 address detected, restarting MCUMGR UDP transport to listen on new interfaces.");
     if (this->mcumgr_udp_started_) {
       smp_udp_close();
     }

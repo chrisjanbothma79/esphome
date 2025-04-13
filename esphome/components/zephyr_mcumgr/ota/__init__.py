@@ -7,6 +7,9 @@ from esphome.const import (
     CONF_OTA,
     CONF_REBOOT_TIMEOUT,
     CONF_HARDWARE_UART,
+    CONF_BLE,
+    CONF_UDP,
+    CONF_TRANSPORT,
 )
 from esphome.core import CORE, coroutine_with_priority
 import esphome.final_validate as fv
@@ -25,11 +28,8 @@ ZephyrMcumgrOTAComponent = cg.esphome_ns.namespace("zephyr_mcumgr").class_(
     "OTAComponent", cg.Component
 )
 
-CONF_BLE = "ble"
-CONF_UDP = "udp"
-
 def _validate_transport(conf):
-    if conf[CONF_BLE] or conf[CONF_UDP] or conf[CONF_HARDWARE_UART]:
+    if conf[CONF_TRANSPORT] in [CONF_BLE, CONF_UDP, CONF_HARDWARE_UART]:
         return conf
     raise cv.Invalid(
         f"At least one trasnport protocol has to be enabled. Set '{CONF_BLE}', '{CONF_UDP}' or '{CONF_HARDWARE_UART}'"
@@ -51,11 +51,8 @@ CONFIG_SCHEMA = cv.All(
                 CONF_REBOOT_TIMEOUT, default="5min"
             ): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_NUM_ATTEMPTS, default="10"): cv.positive_not_null_int,
-            cv.Optional(CONF_BLE, default=False): cv.boolean,
-            cv.Optional(CONF_UDP, default=False): cv.boolean,
-            cv.Optional(
-                CONF_HARDWARE_UART,
-            ): cv.one_of(*UARTS, lower=True),
+            cv.Optional(CONF_TRANSPORT, default=CONF_BLE): cv.one_of(CONF_BLE, CONF_UDP, CONF_HARDWARE_UART, lower=True),
+            cv.Optional(CONF_HARDWARE_UART): cv.one_of(*UARTS, lower=True),
         }
     )
     .extend(BASE_OTA_SCHEMA)
@@ -78,7 +75,7 @@ KEY_ZEPHYR_BLE_SERVER = "zephyr_ble_server"
 from esphome.components.zephyr_openthread.const import CONF_OPENTHREAD
 
 def _validate_ble_server(config):
-    if config[CONF_BLE]:
+    if config[CONF_TRANSPORT] == CONF_BLE:
         has_ble_server = KEY_ZEPHYR_BLE_SERVER in fv.full_config.get()
         if not has_ble_server:
             raise cv.Invalid(
@@ -86,7 +83,7 @@ def _validate_ble_server(config):
             )
 
 def _validate_udp_server(config):
-    if config[CONF_UDP]:
+    if config[CONF_TRANSPORT] == CONF_UDP:
         has_openthread = CONF_OPENTHREAD in fv.full_config.get()
         if not has_openthread:
             raise cv.Invalid(
@@ -117,6 +114,8 @@ async def to_code(config):
     zephyr_add_prj_conf("MCUMGR", True)
 
     zephyr_add_prj_conf("MCUMGR_GRP_IMG", True)
+    zephyr_add_prj_conf("MCUMGR_GRP_OS", True)
+    zephyr_add_prj_conf("MCUMGR_GRP_OS_MCUMGR_PARAMS", True)
 
     zephyr_add_prj_conf("IMG_MANAGER", True)
     zephyr_add_prj_conf("STREAM_FLASH", True)
@@ -152,21 +151,17 @@ async def to_code(config):
     zephyr_add_mcuboot_conf("MULTITHREADING", True)
     zephyr_add_mcuboot_conf("FLASH", True)
 
-    if config[CONF_BLE]:
+    if config[CONF_TRANSPORT] == CONF_BLE:
         zephyr_add_prj_conf("MCUMGR_TRANSPORT_BT", True)
         zephyr_add_prj_conf("MCUMGR_TRANSPORT_BT_REASSEMBLY", True)
-
-        zephyr_add_prj_conf("MCUMGR_GRP_OS", True)
-        zephyr_add_prj_conf("MCUMGR_GRP_OS_MCUMGR_PARAMS", True)
-
         zephyr_add_prj_conf("NCS_SAMPLE_MCUMGR_BT_OTA_DFU_SPEEDUP", True)
-    if config[CONF_UDP]:
+    if config[CONF_TRANSPORT] == CONF_UDP:
         zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP", True)
         zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_IPV6", True)
         zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_STACK_SIZE", 2048)
-        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_MTU", 1280)
+        zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_MTU", 1500)
         zephyr_add_prj_conf("MCUMGR_TRANSPORT_UDP_AUTOMATIC_INIT", False)
-    if CONF_HARDWARE_UART in config:
+    if config[CONF_TRANSPORT] == CONF_HARDWARE_UART:
         cdc_id = UARTS[config[CONF_HARDWARE_UART]][1]
         if cdc_id >= 0:
             zephyr_add_cdc_acm(config, cdc_id)
