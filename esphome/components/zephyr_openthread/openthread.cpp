@@ -48,6 +48,15 @@ void OpenThreadZephyr::setup() {
   // Set the global variable
   global_openthread_component = this;
 
+  // Setup factory reset pin if configured
+  if (this->factory_reset_pin_ != nullptr) {
+    ESP_LOGCONFIG(TAG, "Setting up factory reset pin...");
+    this->factory_reset_pin_->setup();
+    // Expecting button pulls pin to ground, so use INPUT_PULLUP
+    this->factory_reset_pin_->pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
+    this->factory_reset_start_time_ = 0;
+  }
+
   // Initialize OpenThread stack
   int ret = openthread_start(openthread_get_default_context());
   if (ret != 0) {
@@ -66,6 +75,42 @@ void OpenThreadZephyr::setup() {
 }
 
 void OpenThreadZephyr::loop() {
+  // Check factory reset button
+  if (this->factory_reset_pin_ != nullptr) {
+    bool pin_state = this->factory_reset_pin_->digital_read();
+    uint32_t now = millis();
+
+    if (!pin_state) { // Pin is LOW (button pressed)
+      if (this->factory_reset_start_time_ == 0) {
+        // Button just pressed, record start time
+        ESP_LOGD(TAG, "Factory reset button pressed.");
+        this->factory_reset_start_time_ = now;
+      } else if (now - this->factory_reset_start_time_ >= 5000) {
+        // Button held for 5 seconds
+        ESP_LOGW(TAG, "Factory reset button held for 5 seconds. Triggering OpenThread factory reset!");
+        otInstance *instance = openthread_get_default_instance();
+        if (instance != nullptr) {
+          otInstanceFactoryReset(instance);
+          ESP_LOGW(TAG, "OpenThread factory reset initiated. Device will reboot.");
+          // Reset timer to prevent re-triggering immediately
+          this->factory_reset_start_time_ = 0;
+          // Trigger reboot
+          App.safe_reboot();
+        } else {
+          ESP_LOGE(TAG, "Cannot perform factory reset: OpenThread instance not available.");
+          // Reset timer anyway
+          this->factory_reset_start_time_ = 0;
+        }
+      }
+    } else { // Pin is HIGH (button released)
+      if (this->factory_reset_start_time_ != 0) {
+        // Button was pressed but released before 5 seconds
+        ESP_LOGD(TAG, "Factory reset button released before timeout.");
+        this->factory_reset_start_time_ = 0;
+      }
+    }
+  }
+
   // Add debug logging
   static uint32_t last_debug_log = 0;
   if (millis() - last_debug_log > 5000) {  // Log every 5 seconds

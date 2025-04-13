@@ -1,6 +1,7 @@
 #pragma once
 
 #include "esphome/core/defines.h"
+#include "esphome/core/gpio.h"
 #include <openthread/srp_client_buffers.h>
 #include <set>
 
@@ -22,6 +23,7 @@ using namespace esphome;
 
 #include "esphome/core/component.h"
 #include "esphome/core/log.h"
+#include "esphome/core/hal.h"
 #include <string>
 
 // Include Zephyr networking headers
@@ -34,6 +36,7 @@ using namespace esphome;
 #include <openthread/thread.h>
 #include <openthread/srp_client.h>
 #include <openthread/dns.h>
+#include <openthread/instance.h>
 
 // Include mDNS component
 #include "esphome/components/mdns/mdns_component.h"
@@ -65,6 +68,7 @@ class OpenThreadZephyr : public Component {
   void set_radio_tx_power(int8_t tx_power) { radio_tx_power_ = tx_power; }
   void set_force_dataset(bool force_dataset) { force_dataset_ = force_dataset; }
   void set_mdns(mdns::MDNSComponent *mdns) { mdns_ = mdns; }
+  void set_factory_reset_pin(GPIOPin *pin) { factory_reset_pin_ = pin; }
 
   bool is_connected() const { return connected_; }
   void start_thread_network();
@@ -105,6 +109,10 @@ class OpenThreadZephyr : public Component {
   bool has_ipv6_address_{false};
   std::string ipv6_address_{};
   std::set<std::string> known_addresses_{}; // Track all discovered IPv6 addresses
+
+  // Factory reset pin members
+  GPIOPin *factory_reset_pin_{nullptr};
+  uint32_t factory_reset_start_time_{0};
 
   // Thread role
   uint8_t thread_role_{0};

@@ -1,5 +1,7 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
+from esphome.components import gpio
+from esphome import pins
 from esphome.components.zephyr import (
     zephyr_add_prj_conf,
     zephyr_add_overlay,
@@ -42,6 +44,9 @@ OpenThreadDNSComponent = zephyr_openthread_ns.class_(
     "OpenThreadDNSComponent", cg.Component
 )
 
+# Define new constant for factory reset pin
+# TODO: Move this to constants, leaving it here for now to avoid breaking changes
+CONF_FACTORY_RESET_PIN = "factory_reset_pin"
 
 # Create a custom validator for hex strings with a specific length
 def hex_string_length(length):
@@ -77,6 +82,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_ENABLE_IPV6, default=True): ot_cv.require_framework_version(
             cv.Version(1, 0, 0)
         ),
+        cv.Optional(CONF_FACTORY_RESET_PIN): pins.gpio_input_pin_schema,
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -95,6 +101,11 @@ async def to_code(config):
     cg.add(var.set_pskc(config[CONF_PSKC]))
     cg.add(var.set_radio_tx_power(config[CONF_RADIO_TX_POWER]))
     cg.add(var.set_force_dataset(config[CONF_FORCE_DATASET]))
+
+    # Setup factory reset pin if configured
+    if CONF_FACTORY_RESET_PIN in config:
+        pin = await cg.gpio_pin_expression(config[CONF_FACTORY_RESET_PIN])
+        cg.add(var.set_factory_reset_pin(pin))
 
     # Get mDNS component reference if available
     if "mdns" in CORE.config:
