@@ -504,7 +504,7 @@ int LD2420Component::send_cmd_from_array(CmdFrameT frame) {
   this->cmd_reply_.ack = false;
   if (frame.command != CMD_RESTART)
     this->set_cmd_active_(true);  // Restart does not reply, thus no ack state required.
-  uint8_t retry = 3;
+  uint8_t retry = 4;
   while (retry) {
     frame.length = 0;
     uint16_t frame_data_bytes = frame.data_length + 2;  // Always add two bytes for the cmd size
@@ -539,7 +539,7 @@ int LD2420Component::send_cmd_from_array(CmdFrameT frame) {
         this->readline_(read(), ack_buffer, sizeof(ack_buffer));
       }
       delay_microseconds_safe(1450);
-      // Wait on an Rx from the LD2420 for up to 3 1 second loops, otherwise it could trigger a WDT.
+      // Wait on an Rx from the LD2420 for up to 4 x 1 second loops, otherwise it could trigger a WDT.
       if ((millis() - start_millis) > 1000) {
         start_millis = millis();
         error = LD2420_ERROR_TIMEOUT;
