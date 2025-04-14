@@ -1,20 +1,19 @@
 #pragma once
 
 #include "esphome/core/component.h"
-#include "esphome/components/sensor/sensor.h"
 #include "esphome/components/uart/uart.h"
 
 namespace esphome {
 namespace wts01 {
 
-class WTS01Sensor : public Component, public uart::UARTDevice {
+class WTS01Component : public Component, public uart::UARTDevice {
  public:
   void loop() override;
   void dump_config() override;
-
-  void set_temperature_sensor(sensor::Sensor *temperature_sensor) { this->temperature_sensor_ = temperature_sensor; }
-
   float get_setup_priority() const override { return setup_priority::DATA; }
+
+  // Getter pour la température
+  float get_temperature() const { return this->current_temperature_; }
 
  protected:
   static const uint8_t PACKET_SIZE = 9;
@@ -25,9 +24,7 @@ class WTS01Sensor : public Component, public uart::UARTDevice {
 
   uint8_t buffer_[PACKET_SIZE];
   uint8_t buffer_pos_{0};
-
-  sensor::Sensor *temperature_sensor_{nullptr};
-  float current_temperature_{NAN};  // Current temperature value from sensor
+  float current_temperature_{NAN};
 
   void handle_char_(uint8_t c);
   void process_packet_();

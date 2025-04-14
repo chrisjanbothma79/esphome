@@ -9,12 +9,12 @@ DEPENDENCIES = ["uart"]
 CODEOWNERS = ["@alepee"]
 
 wts01_ns = cg.esphome_ns.namespace("wts01")
-WTS01Sensor = wts01_ns.class_("WTS01Sensor", cg.Component, uart.UARTDevice)
+WTS01Component = wts01_ns.class_("WTS01Component", cg.Component, uart.UARTDevice)
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(WTS01Sensor),
+            cv.GenerateID(): cv.declare_id(WTS01Component),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)

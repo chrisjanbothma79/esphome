@@ -5,7 +5,7 @@
 namespace esphome {
 namespace wts01 {
 
-void WTS01Sensor::loop() {
+void WTS01Component::loop() {
   while (available()) {
     uint8_t c;
     if (read_byte(&c)) {
@@ -14,12 +14,9 @@ void WTS01Sensor::loop() {
   }
 }
 
-void WTS01Sensor::dump_config() {
-  ESP_LOGCONFIG(TAG, "WTS01 Sensor:");
-  LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
-}
+void WTS01Component::dump_config() { ESP_LOGCONFIG(TAG, "WTS01 Component:"); }
 
-void WTS01Sensor::handle_char_(uint8_t c) {
+void WTS01Component::handle_char_(uint8_t c) {
   // Reset buffer if we're at the start of a new packet
   if (c == HEADER_1 && this->buffer_pos_ == 0) {
     this->buffer_[this->buffer_pos_++] = c;
@@ -52,7 +49,7 @@ void WTS01Sensor::handle_char_(uint8_t c) {
   }
 }
 
-void WTS01Sensor::process_packet_() {
+void WTS01Component::process_packet_() {
   // Based on Tasmota implementation
   // Format: 55 01 01 04 01 11 16 12 95
   // header            T  Td Ck  - T = Temperature, Td = Temperature decimal, Ck = Checksum
@@ -73,12 +70,9 @@ void WTS01Sensor::process_packet_() {
     // Calculate temperature (temp + decimal/100)
     float temperature = sign * (static_cast<float>(temp) + (static_cast<float>(this->buffer_[7]) / 100.0f));
 
-    // Store and publish the temperature value immediately
+    // Store temperature
     this->current_temperature_ = temperature;
-    if (this->temperature_sensor_ != nullptr) {
-      ESP_LOGD(TAG, "Temperature: %.2f°C", temperature);
-      this->temperature_sensor_->publish_state(temperature);
-    }
+    ESP_LOGV(TAG, "Temperature: %.2f°C", temperature);
   }
 }
 

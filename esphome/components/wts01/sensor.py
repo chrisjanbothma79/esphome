@@ -10,17 +10,13 @@ from esphome.const import (
     UNIT_CELSIUS,
 )
 
-from . import WTS01Sensor, wts01_ns
+CONF_WTS01_ID = "wts01_id"
 
 DEPENDENCIES = ["wts01"]
 
-CONF_WTS01_ID = "wts01_id"
-
-WTS01TemperatureSensor = wts01_ns.class_("WTS01TemperatureSensor", sensor.Sensor)
-
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(CONF_WTS01_ID): cv.use_id(WTS01Sensor),
+        cv.GenerateID(CONF_WTS01_ID): cv.use_id("WTS01Component"),
         cv.Required(CONF_TEMPERATURE): sensor.sensor_schema(
             unit_of_measurement=UNIT_CELSIUS,
             accuracy_decimals=1,
@@ -36,4 +32,5 @@ async def to_code(config):
 
     if CONF_TEMPERATURE in config:
         sens = await sensor.new_sensor(config[CONF_TEMPERATURE])
-        cg.add(parent.set_temperature_sensor(sens))
+        # Créer une lambda qui appelle get_temperature() sur le parent
+        cg.add(sens.set_state_lambda(f"return {parent.get_id()}->get_temperature();"))
