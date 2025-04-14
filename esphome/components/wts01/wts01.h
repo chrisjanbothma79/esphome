@@ -14,7 +14,6 @@ class WTS01Sensor : public PollingComponent {
   // Constructor with uart component
   void construct(uart::UARTComponent *uart) { this->uart_ = uart; }
 
-  void setup() override;
   void update() override;
   void loop() override;
   void dump_config() override;

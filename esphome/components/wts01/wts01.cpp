@@ -5,10 +5,6 @@
 namespace esphome {
 namespace wts01 {
 
-void WTS01Sensor::setup() {
-  // Empty setup - initialization is handled in the loop function
-}
-
 void WTS01Sensor::update() {
   // Publish the latest temperature value at the configured update interval
   if (this->temperature_sensor_ != nullptr && !std::isnan(this->current_temperature_)) {
