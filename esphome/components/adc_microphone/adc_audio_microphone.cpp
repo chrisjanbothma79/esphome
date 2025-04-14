@@ -1,4 +1,4 @@
-#include "i2s_audio_microphone.h"
+#include "adc_audio_microphone.h"
 
 #ifdef USE_ESP32
 

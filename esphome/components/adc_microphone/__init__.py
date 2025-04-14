@@ -1,6 +1,6 @@
 import esphome.codegen as cg
-from esphome.components import esp32, microphone
-from esphome.components.adc import ESP32_VARIANT_ADC1_PIN_TO_CHANNEL, validate_adc_pin
+from esphome.components import microphone
+from esphome.components.adc import validate_adc_pin
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_NUMBER, CONF_SAMPLE_RATE
 
@@ -26,7 +26,9 @@ BASE_SCHEMA = microphone.MICROPHONE_SCHEMA.extend(
 ).extend(cv.COMPONENT_SCHEMA)
 
 
-CONFIG_SCHEMA = BASE_SCHEMA
+CONFIG_SCHEMA = cv.All(
+    BASE_SCHEMA, cv.require_framework_version(esp_idf=cv.Version(5, 0, 0))
+)
 
 
 async def to_code(config):
@@ -34,7 +36,6 @@ async def to_code(config):
     await cg.register_component(var, config)
     await microphone.register_microphone(var, config)
 
-    variant = esp32.get_esp32_variant()
     pin_num = config[CONF_ADC_PIN][CONF_NUMBER]
-    channel = ESP32_VARIANT_ADC1_PIN_TO_CHANNEL[variant][pin_num]
-    cg.add(var.set_adc_channel(channel))
+    cg.add(var.set_adc_channel(pin_num))
+    cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))

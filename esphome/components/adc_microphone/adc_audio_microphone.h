@@ -1,16 +1,15 @@
 #pragma once
 
-#ifdef USE_ESP32
-
-#include "../i2s_audio.h"
-
 #include "esphome/components/microphone/microphone.h"
 #include "esphome/core/component.h"
 
-namespace esphome {
-namespace i2s_audio {
+#include <hal/adc_types.h>
+#include <esp_adc/adc_continuous.h>
 
-class I2SAudioMicrophone : public I2SAudioIn, public microphone::Microphone, public Component {
+namespace esphome {
+namespace adc_microphone {
+
+class ADCAudioMicrophone : public microphone::Microphone, public Component {
  public:
   void setup() override;
   void start() override;
@@ -18,34 +17,22 @@ class I2SAudioMicrophone : public I2SAudioIn, public microphone::Microphone, pub
 
   void loop() override;
 
-  void set_din_pin(int8_t pin) { this->din_pin_ = pin; }
-  void set_pdm(bool pdm) { this->pdm_ = pdm; }
-
   size_t read(int16_t *buf, size_t len) override;
 
-#if SOC_I2S_SUPPORTS_ADC
-  void set_adc_channel(adc1_channel_t channel) {
-    this->adc_channel_ = channel;
-    this->adc_ = true;
-  }
-#endif
+  void set_adc_channel(int gpio_pin) { adc_continuous_io_to_channel(gpio_pin, &adc_unit_, &adc_channel_); }
+  void set_sample_rate(uint32_t sample_rate) { this->sample_rate_ = sample_rate; }
 
  protected:
   void start_();
   void stop_();
   void read_();
 
-  int8_t din_pin_{I2S_PIN_NO_CHANGE};
-#if SOC_I2S_SUPPORTS_ADC
-  adc1_channel_t adc_channel_{ADC1_CHANNEL_MAX};
-  bool adc_{false};
-#endif
-  bool pdm_{false};
+  adc_unit_t adc_unit_;
+  adc_channel_t adc_channel_;
 
   HighFrequencyLoopRequester high_freq_;
+  uint32_t sample_rate_;
 };
 
-}  // namespace i2s_audio
+}  // namespace adc_microphone
 }  // namespace esphome
-
-#endif  // USE_ESP32
