@@ -7,6 +7,7 @@ from esphome.const import CONF_ACTION, CONF_GROUP, CONF_ID, CONF_TIMEOUT
 from esphome.cpp_generator import TemplateArguments, get_variable
 from esphome.cpp_types import nullptr
 
+from ...core import Lambda
 from .defines import (
     CONF_DISP_BG_COLOR,
     CONF_DISP_BG_IMAGE,
@@ -64,7 +65,13 @@ async def action_to_code(
     action_id,
     template_arg,
     args,
+    config,
 ):
+    # Ensure all required ids have been processed, so our LambdaContext doesn't get context-switched.
+    for lamb in config.values():
+        if isinstance(lamb, Lambda):
+            for id_ in lamb.requires_ids:
+                await get_variable(id_)
     await wait_for_widgets()
     async with LambdaContext(parameters=args, where=action_id) as context:
         for widget in widgets:
@@ -84,7 +91,9 @@ async def update_to_code(config, action_id, template_arg, args):
             lv.event_send(widget.obj, UPDATE_EVENT, nullptr)
 
     widgets = await get_widgets(config[CONF_ID])
-    return await action_to_code(widgets, do_update, action_id, template_arg, args)
+    return await action_to_code(
+        widgets, do_update, action_id, template_arg, args, config
+    )
 
 
 @automation.register_condition(
@@ -172,7 +181,9 @@ async def obj_invalidate_to_code(config, action_id, template_arg, args):
     async def do_invalidate(widget: Widget):
         lv_obj.invalidate(widget.obj)
 
-    return await action_to_code(widgets, do_invalidate, action_id, template_arg, args)
+    return await action_to_code(
+        widgets, do_invalidate, action_id, template_arg, args, config
+    )
 
 
 @automation.register_action(
@@ -232,7 +243,7 @@ async def obj_disable_to_code(config, action_id, template_arg, args):
         widget.add_state(LV_STATE.DISABLED)
 
     return await action_to_code(
-        await get_widgets(config), do_disable, action_id, template_arg, args
+        await get_widgets(config), do_disable, action_id, template_arg, args, config
     )
 
 
@@ -242,7 +253,7 @@ async def obj_enable_to_code(config, action_id, template_arg, args):
         widget.clear_state(LV_STATE.DISABLED)
 
     return await action_to_code(
-        await get_widgets(config), do_enable, action_id, template_arg, args
+        await get_widgets(config), do_enable, action_id, template_arg, args, config
     )
 
 
@@ -254,7 +265,7 @@ async def obj_hide_to_code(config, action_id, template_arg, args):
     widgets = [
         widget.outer if widget.outer else widget for widget in await get_widgets(config)
     ]
-    return await action_to_code(widgets, do_hide, action_id, template_arg, args)
+    return await action_to_code(widgets, do_hide, action_id, template_arg, args, config)
 
 
 @automation.register_action("lvgl.widget.show", ObjUpdateAction, LIST_ACTION_SCHEMA)
@@ -267,7 +278,7 @@ async def obj_show_to_code(config, action_id, template_arg, args):
     widgets = [
         widget.outer if widget.outer else widget for widget in await get_widgets(config)
     ]
-    return await action_to_code(widgets, do_show, action_id, template_arg, args)
+    return await action_to_code(widgets, do_show, action_id, template_arg, args, config)
 
 
 def focused_id(value):
@@ -348,4 +359,6 @@ async def obj_update_to_code(config, action_id, template_arg, args):
         await set_obj_properties(widget, config)
 
     widgets = await get_widgets(config[CONF_ID])
-    return await action_to_code(widgets, do_update, action_id, template_arg, args)
+    return await action_to_code(
+        widgets, do_update, action_id, template_arg, args, config
+    )

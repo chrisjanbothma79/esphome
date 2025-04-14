@@ -111,4 +111,6 @@ async def tabview_select(config, action_id, template_arg, args):
         lv.tabview_set_act(w.obj, index, literal(config[CONF_ANIMATED]))
         lv.event_send(w.obj, LV_EVENT.VALUE_CHANGED, cg.nullptr)
 
-    return await action_to_code(widget, do_select, action_id, template_arg, args)
+    return await action_to_code(
+        widget, do_select, action_id, template_arg, args, config
+    )

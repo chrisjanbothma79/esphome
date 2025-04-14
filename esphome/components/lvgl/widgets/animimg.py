@@ -90,7 +90,7 @@ async def animimg_start(config, action_id, template_arg, args):
     async def do_start(w: Widget):
         lv.animimg_start(w.obj)
 
-    return await action_to_code(widget, do_start, action_id, template_arg, args)
+    return await action_to_code(widget, do_start, action_id, template_arg, args, config)
 
 
 @automation.register_action(
@@ -109,4 +109,4 @@ async def animimg_stop(config, action_id, template_arg, args):
     async def do_stop(w: Widget):
         lv.animimg_stop(w.obj)
 
-    return await action_to_code(widget, do_stop, action_id, template_arg, args)
+    return await action_to_code(widget, do_stop, action_id, template_arg, args, config)

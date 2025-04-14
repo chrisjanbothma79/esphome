@@ -142,7 +142,9 @@ async def spinbox_increment(config, action_id, template_arg, args):
     async def do_increment(w: Widget):
         lv.spinbox_increment(w.obj)
 
-    return await action_to_code(widgets, do_increment, action_id, template_arg, args)
+    return await action_to_code(
+        widgets, do_increment, action_id, template_arg, args, config
+    )
 
 
 @automation.register_action(
@@ -161,7 +163,9 @@ async def spinbox_decrement(config, action_id, template_arg, args):
     async def do_increment(w: Widget):
         lv.spinbox_decrement(w.obj)
 
-    return await action_to_code(widgets, do_increment, action_id, template_arg, args)
+    return await action_to_code(
+        widgets, do_increment, action_id, template_arg, args, config
+    )
 
 
 @automation.register_action(

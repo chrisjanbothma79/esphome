@@ -275,5 +275,5 @@ async def button_update_to_code(config, action_id, template_arg, args):
                 )
 
     return await action_to_code(
-        widgets, do_button_update, action_id, template_arg, args
+        widgets, do_button_update, action_id, template_arg, args, config
     )
