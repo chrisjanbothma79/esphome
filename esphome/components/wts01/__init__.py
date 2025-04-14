@@ -3,7 +3,7 @@
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_UART_ID, CONF_UPDATE_INTERVAL
+from esphome.const import CONF_ID, CONF_UART_ID
 
 DEPENDENCIES = ["uart"]
 CODEOWNERS = ["@alepee"]
@@ -16,7 +16,6 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(WTS01Sensor),
             cv.Optional(CONF_UART_ID): cv.use_id(uart.UARTComponent),
-            cv.Optional(CONF_UPDATE_INTERVAL, default="15s"): cv.update_interval,
         }
     )
     .extend(cv.COMPONENT_SCHEMA)

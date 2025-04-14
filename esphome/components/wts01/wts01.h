@@ -7,14 +7,11 @@
 namespace esphome {
 namespace wts01 {
 
-class WTS01Sensor : public PollingComponent {
+class WTS01Sensor : public Component {
  public:
-  WTS01Sensor() : PollingComponent(15000) {}  // Default update interval 15s
-
   // Constructor with uart component
   void construct(uart::UARTComponent *uart) { this->uart_ = uart; }
 
-  void update() override;
   void loop() override;
   void dump_config() override;
 
@@ -34,8 +31,7 @@ class WTS01Sensor : public PollingComponent {
 
   uart::UARTComponent *uart_{nullptr};
   sensor::Sensor *temperature_sensor_{nullptr};
-  float last_published_temperature_{NAN};  // Last temperature value published to HA
-  float current_temperature_{NAN};         // Current temperature value from sensor
+  float current_temperature_{NAN};  // Current temperature value from sensor
 
   void handle_char_(uint8_t c);
   void process_packet_();

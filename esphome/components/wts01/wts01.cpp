@@ -5,20 +5,6 @@
 namespace esphome {
 namespace wts01 {
 
-void WTS01Sensor::update() {
-  // Publish the latest temperature value at the configured update interval
-  if (this->temperature_sensor_ != nullptr && !std::isnan(this->current_temperature_)) {
-    // Only log when publishing if the value has changed significantly since last publish
-    if (std::isnan(this->last_published_temperature_) ||
-        std::abs(this->current_temperature_ - this->last_published_temperature_) >= 0.1f) {
-      ESP_LOGD(TAG, "Temperature: %.2f°C", this->current_temperature_);
-    }
-
-    this->last_published_temperature_ = this->current_temperature_;
-    this->temperature_sensor_->publish_state(this->current_temperature_);
-  }
-}
-
 void WTS01Sensor::loop() {
   if (this->uart_ == nullptr) {
     return;
@@ -35,7 +21,6 @@ void WTS01Sensor::loop() {
 void WTS01Sensor::dump_config() {
   ESP_LOGCONFIG(TAG, "WTS01 Sensor:");
   LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
-  LOG_UPDATE_INTERVAL(this);
 }
 
 void WTS01Sensor::handle_char_(uint8_t c) {
@@ -92,8 +77,12 @@ void WTS01Sensor::process_packet_() {
     // Calculate temperature (temp + decimal/100)
     float temperature = sign * (static_cast<float>(temp) + (static_cast<float>(this->buffer_[7]) / 100.0f));
 
-    // Store the temperature value but don't publish yet - wait for update() to be called
+    // Store and publish the temperature value immediately
     this->current_temperature_ = temperature;
+    if (this->temperature_sensor_ != nullptr) {
+      ESP_LOGD(TAG, "Temperature: %.2f°C", temperature);
+      this->temperature_sensor_->publish_state(temperature);
+    }
   }
 }
 
