@@ -4,10 +4,10 @@ from esphome import automation
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ACTION, CONF_GROUP, CONF_ID, CONF_TIMEOUT
+from esphome.core import Lambda
 from esphome.cpp_generator import TemplateArguments, get_variable
 from esphome.cpp_types import nullptr
 
-from ...core import Lambda
 from .defines import (
     CONF_DISP_BG_COLOR,
     CONF_DISP_BG_IMAGE,
