@@ -11,9 +11,7 @@ namespace xdb401 {
 class XDB401Component : public PollingComponent, public i2c::I2CDevice {
  public:
   void set_temperature_sensor(sensor::Sensor *temperature_sensor) { this->temperature_sensor_ = temperature_sensor; }
-  void set_raw_pressure_sensor(sensor::Sensor *raw_pressure_sensor) {
-    this->raw_pressure_sensor_ = raw_pressure_sensor;
-  }
+  void set_raw_pressure_sensor(sensor::Sensor *pressure_sensor) { this->pressure_sensor_ = pressure_sensor; }
 
   float get_setup_priority() const override;
   void setup() override;
@@ -21,9 +19,9 @@ class XDB401Component : public PollingComponent, public i2c::I2CDevice {
   void update() override;
 
  protected:
-  i2c::ErrorCode read_(sint16_t &raw_temperature, sint32_t &raw_pressure);
+  i2c::ErrorCode read_(float &temperature, float &pressure);
   sensor::Sensor *temperature_sensor_{nullptr};
-  sensor::Sensor *raw_pressure_sensor_{nullptr};
+  sensor::Sensor *pressure_sensor_{nullptr};
 };
 
 }  // namespace xdb401
