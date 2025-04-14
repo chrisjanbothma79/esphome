@@ -373,6 +373,7 @@ class SPIComponent : public Component {
 };
 
 using QuadSPIComponent = SPIComponent;
+using OctalSPIComponent = SPIComponent;
 /**
  * Base class for SPIDevice, un-templated.
  */
