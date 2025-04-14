@@ -1,4 +1,4 @@
-#include "uptime_text_sensor.h"
+#include "uptime_duration_text_sensor.h"
 
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
@@ -9,14 +9,14 @@ namespace uptime {
 
 static const char *const TAG = "uptime.sensor";
 
-void UptimeTextSensor::setup() {
+void UptimeDurationTextSensor::setup() {
   this->last_ms_ = millis();
   if (this->last_ms_ < 60 * 1000)
     this->last_ms_ = 0;
   this->update();
 }
 
-void UptimeTextSensor::update() {
+void UptimeDurationTextSensor::update() {
   auto now = millis();
   // get whole seconds since last update. Note that even if the millis count has overflowed between updates,
   // the difference will still be correct due to the way twos-complement arithmetic works.
@@ -56,8 +56,8 @@ void UptimeTextSensor::update() {
   this->publish_state(buffer);
 }
 
-float UptimeTextSensor::get_setup_priority() const { return setup_priority::HARDWARE; }
-void UptimeTextSensor::dump_config() { LOG_TEXT_SENSOR("", "Uptime Text Sensor", this); }
+float UptimeDurationTextSensor::get_setup_priority() const { return setup_priority::HARDWARE; }
+void UptimeDurationTextSensor::dump_config() { LOG_TEXT_SENSOR("", "Uptime Text Sensor", this); }
 
 }  // namespace uptime
 }  // namespace esphome
