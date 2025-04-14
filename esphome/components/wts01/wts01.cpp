@@ -6,13 +6,9 @@ namespace esphome {
 namespace wts01 {
 
 void WTS01Sensor::loop() {
-  if (this->uart_ == nullptr) {
-    return;
-  }
-
-  while (this->uart_->available()) {
+  while (available()) {
     uint8_t c;
-    if (this->uart_->read_byte(&c)) {
+    if (read_byte(&c)) {
       this->handle_char_(c);
     }
   }

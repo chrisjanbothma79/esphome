@@ -7,11 +7,8 @@
 namespace esphome {
 namespace wts01 {
 
-class WTS01Sensor : public Component {
+class WTS01Sensor : public Component, public uart::UARTDevice {
  public:
-  // Constructor with uart component
-  void construct(uart::UARTComponent *uart) { this->uart_ = uart; }
-
   void loop() override;
   void dump_config() override;
 
@@ -29,7 +26,6 @@ class WTS01Sensor : public Component {
   uint8_t buffer_[PACKET_SIZE];
   uint8_t buffer_pos_{0};
 
-  uart::UARTComponent *uart_{nullptr};
   sensor::Sensor *temperature_sensor_{nullptr};
   float current_temperature_{NAN};  // Current temperature value from sensor
 
