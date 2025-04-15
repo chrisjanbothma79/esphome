@@ -19,6 +19,7 @@ static const float SCALE_TEMPERATURE = 100.0;
 
 static const int CHECK_DELAY = 5u;
 static const int CHECK_ATTEMPTS = 6u;
+static const int MARK_FAIL_AFTER = 5;
 
 void XDB401Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up XDB401...");
@@ -27,12 +28,10 @@ void XDB401Component::setup() {
   float pressure;
   i2c::ErrorCode err_code = this->read_(temperature, pressure);
   if (err_code != i2c::ERROR_OK) {
-    ESP_LOGCONFIG(TAG, "    I2C Communication Failed...");
-    this->mark_failed();
+    this->mark_failed("I2C Communication Failed...");
     return;
   }
-
-  ESP_LOGCONFIG(TAG, "    Success...");
+  this->comm_err_counter_ = 0;
 }
 
 void XDB401Component::dump_config() {
@@ -43,40 +42,35 @@ void XDB401Component::dump_config() {
   LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
 }
 
-float XDB401Component::get_setup_priority() const { return setup_priority::DATA; }
-
 i2c::ErrorCode XDB401Component::read_(float &temperature, float &pressure) {
-  i2c::ErrorCode err_code;
+  i2c::ErrorCode err_code = i2c::ERROR_OK;
 
   err_code = this->set_meas_mode_();
   if (err_code != i2c::ERROR_OK) {
-    this->mark_failed();
+    ESP_LOGE(TAG, "Could not enter measurement mode");
     return err_code;
   }
 
   err_code = this->read_pressure_(pressure);
   if (err_code != i2c::ERROR_OK) {
-    this->mark_failed();
+    this->status_set_warning("Could not read pressure data");
     return err_code;
   }
 
   err_code = this->read_temperature_(temperature);
   if (err_code != i2c::ERROR_OK) {
-    this->mark_failed();
+    this->status_set_warning("Could not read temperature data");
     return err_code;
   }
 
-  return i2c::ERROR_OK;
+  return err_code;
 }
 
 i2c::ErrorCode XDB401Component::set_meas_mode_() {
-  i2c::ErrorCode err_code = i2c::ERROR_OK;
-
   // Initiate data read from device
-  err_code = write_register(REG_MAKE_MEASURE, &CMD_MAKE_MEASURE, sizeof(CMD_MAKE_MEASURE), true);
+  i2c::ErrorCode err_code = write_register(REG_MAKE_MEASURE, &CMD_MAKE_MEASURE, sizeof(CMD_MAKE_MEASURE), true);
   if (err_code != i2c::ERROR_OK) {
     ESP_LOGE(TAG, "Error writing config to device, code: %u", err_code);
-    this->mark_failed();
     return err_code;
   }
 
@@ -88,7 +82,6 @@ i2c::ErrorCode XDB401Component::set_meas_mode_() {
     err_code = read_register(REG_MAKE_MEASURE, meas_resp, sizeof(meas_resp), true);
     if (err_code != i2c::ERROR_OK) {
       ESP_LOGE(TAG, "Error reading config from device, code: %u", err_code);
-      this->mark_failed();
       return err_code;
     }
     // Bit 3 shall be 0
@@ -109,11 +102,9 @@ i2c::ErrorCode XDB401Component::set_meas_mode_() {
 }
 
 i2c::ErrorCode XDB401Component::read_pressure_(float &pressure) {
-  i2c::ErrorCode err_code = i2c::ERROR_OK;
-
   // Read 3 bytes from senesor at address 0x06
   uint8_t p_data[3]{};
-  err_code = this->read_register(REG_PRESSURE, p_data, 3, true);
+  i2c::ErrorCode err_code = this->read_register(REG_PRESSURE, p_data, 3, true);
   if (err_code != i2c::ERROR_OK) {
     ESP_LOGE(TAG, "Error reading pressure register");
     return err_code;
@@ -132,11 +123,9 @@ i2c::ErrorCode XDB401Component::read_pressure_(float &pressure) {
 }
 
 i2c::ErrorCode XDB401Component::read_temperature_(float &temperature) {
-  i2c::ErrorCode err_code = i2c::ERROR_OK;
-
   // Read 2 bytes from senesor at address 0x09
   uint8_t t_data[2]{};
-  err_code = this->read_register(REG_TEMPERATURE, t_data, 2, true);
+  i2c::ErrorCode err_code = this->read_register(REG_TEMPERATURE, t_data, 2, true);
   if (err_code != i2c::ERROR_OK) {
     ESP_LOGE(TAG, "Error reading temperature register");
     return err_code;
@@ -159,11 +148,16 @@ void XDB401Component::update() {
   float temperature{};
   float pressure{};
 
-  i2c::ErrorCode err = this->read_(temperature, pressure);
-
-  if (err != i2c::ERROR_OK) {
-    ESP_LOGW(TAG, "I2C Communication Failed");
-    this->status_set_warning();
+  i2c::ErrorCode err_code = this->read_(temperature, pressure);
+  if (err_code != i2c::ERROR_OK) {
+    this->status_set_warning("I2C Communication Failed");
+    if (this->comm_err_counter_ > MARK_FAIL_AFTER) {
+      this->mark_failed("Too many consecutive I2C communication errors");
+    }
+    else {
+      this->comm_err_counter_++;
+    }
+    
     return;
   }
 
@@ -174,6 +168,7 @@ void XDB401Component::update() {
   if (this->pressure_sensor_ != nullptr)
     this->pressure_sensor_->publish_state(pressure);
 
+  this->comm_err_counter_ = 0;
   this->status_clear_warning();
 }
 
