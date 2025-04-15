@@ -28,7 +28,7 @@ def ensure_option_map(value):
     return value
 
 
-CONFIG_SCHEMA = (
+CONFIG_SCHEMA = cv.All(
     select.select_schema(TuyaSelect)
     .extend(
         {
