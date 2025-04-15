@@ -2,11 +2,7 @@ import logging
 
 import esphome.codegen as cg
 from esphome.components import esp32, microphone
-from esphome.components.adc import (
-    ATTENUATION_MODES,
-    ESP32_VARIANT_ADC2_PIN_TO_CHANNEL,
-    validate_adc_pin,
-)
+from esphome.components.adc import ESP32_VARIANT_ADC2_PIN_TO_CHANNEL, validate_adc_pin
 from esphome.components.esp32.const import (
     VARIANT_ESP32,
     VARIANT_ESP32C3,
@@ -28,6 +24,13 @@ DEPENDENCIES = ["esp32"]
 
 _LOGGER = logging.getLogger(__name__)
 
+ATTENUATION_MODES = {
+    "0db": cg.global_ns.ADC_ATTEN_DB_0,
+    "2.5db": cg.global_ns.ADC_ATTEN_DB_2_5,
+    "6db": cg.global_ns.ADC_ATTEN_DB_6,
+    "12db": cg.global_ns.ADC_ATTEN_DB_12,
+}
+
 _attenuation = cv.enum(ATTENUATION_MODES, lower=True)
 
 CONF_ADC_PIN = "adc_pin"
@@ -48,15 +51,6 @@ BASE_SCHEMA = microphone.MICROPHONE_SCHEMA.extend(
 
 
 def validate_config(config):
-    if config.get(CONF_ATTENUATION, None) == "auto":
-        raise cv.Invalid("Automatic attenuation not supported for microphone")
-    if config.get(CONF_ATTENUATION) == "11db":
-        _LOGGER.warning(
-            "`attenuation: 11db` is deprecated, use `attenuation: 12db` instead"
-        )
-        # Alter value here so `config` command prints the recommended change
-        config[CONF_ATTENUATION] = _attenuation("12db")
-
     variant = esp32.get_esp32_variant()
     if variant in [VARIANT_ESP32, VARIANT_ESP32C3, VARIANT_ESP32S3]:
         pin_num = config[CONF_ADC_PIN][CONF_NUMBER]
