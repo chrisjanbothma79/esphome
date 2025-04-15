@@ -290,8 +290,8 @@ void DebugComponent::get_device_info_(std::string &device_info) {
   device_info += features;
   device_info += " Cores:" + to_string(info.cores);
   device_info += " Revision:" + to_string(info.revision);
-  device_info += str_sprintf("|CPU Frequency: %u MHz", arch_get_cpu_freq_hz() / 1000000);
-  ESP_LOGD(TAG, "CPU Frequency: %u MHz", arch_get_cpu_freq_hz() / 1000000);
+  device_info += str_sprintf("|CPU Frequency: % " PRIu32 " MHz", arch_get_cpu_freq_hz() / 1000000);
+  ESP_LOGD(TAG, "CPU Frequency: % " PRIu32 " MHz", arch_get_cpu_freq_hz() / 1000000);
 
   // Framework detection
   device_info += "|Framework: ";
