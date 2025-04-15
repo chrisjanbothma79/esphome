@@ -228,11 +228,7 @@ def sort_ip_addresses(address_list: list[str]) -> list[str]:
     res.sort(key=addr_preference_)
 
     # Finally, turn the getaddrinfo() tuples back into plain hostnames.
-    sorted_address_list: list[str] = []
-    for r in res:
-        sorted_address_list.append(socket.getnameinfo(r[4], socket.NI_NUMERICHOST)[0])
-
-    return sorted_address_list
+    return [socket.getnameinfo(r[4], socket.NI_NUMERICHOST)[0] for r in res]
 
 
 def get_bool_env(var, default=False):
