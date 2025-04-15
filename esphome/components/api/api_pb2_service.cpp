@@ -186,7 +186,7 @@ bool APIServerConnectionBase::send_noise_encryption_set_key_response(const Noise
 #ifdef HAS_PROTO_MESSAGE_DUMP
   ESP_LOGVV(TAG, "send_noise_encryption_set_key_response: %s", msg.dump().c_str());
 #endif
-  return this->send_message_<NoiseEncryptionSetKeyResponse>(msg, 120);
+  return this->send_message_<NoiseEncryptionSetKeyResponse>(msg, 125);
 }
 #endif
 bool APIServerConnectionBase::send_homeassistant_service_response(const HomeassistantServiceResponse &msg) {
@@ -1201,6 +1201,17 @@ bool APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       ESP_LOGVV(TAG, "on_voice_assistant_set_configuration: %s", msg.dump().c_str());
 #endif
       this->on_voice_assistant_set_configuration(msg);
+#endif
+      break;
+    }
+    case 124: {
+#ifdef USE_API_NOISE
+      NoiseEncryptionSetKeyRequest msg;
+      msg.decode(msg_data, msg_size);
+#ifdef HAS_PROTO_MESSAGE_DUMP
+      ESP_LOGVV(TAG, "on_noise_encryption_set_key_request: %s", msg.dump().c_str());
+#endif
+      this->on_noise_encryption_set_key_request(msg);
 #endif
       break;
     }

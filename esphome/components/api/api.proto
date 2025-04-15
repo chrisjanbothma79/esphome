@@ -660,7 +660,7 @@ message SubscribeLogsResponse {
 
 // ==================== NOISE ENCRYPTION ====================
 message NoiseEncryptionSetKeyRequest {
-  option (id) = 119;
+  option (id) = 124;
   option (source) = SOURCE_CLIENT;
   option (ifdef) = "USE_API_NOISE";
 
@@ -668,7 +668,7 @@ message NoiseEncryptionSetKeyRequest {
 }
 
 message NoiseEncryptionSetKeyResponse {
-  option (id) = 120;
+  option (id) = 125;
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_API_NOISE";
 
