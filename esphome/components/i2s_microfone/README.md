@@ -29,7 +29,7 @@ wifi:
   password: !secret wifi_password
 
   ap:
-    ssid: "Test-Dfrobot-Air-Quality-Sensor"
+    ssid: "i2s_microfone_sample_ap"
     password: "< USE YOURS >"
 
 captive_portal:
