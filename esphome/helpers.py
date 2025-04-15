@@ -207,7 +207,8 @@ def sort_ip_addresses(address_list: list[str]) -> list[str]:
     This is roughly based on RFC6724 but a lot simpler: First we choose
     IPv6 addresses, then Legacy IP addresses, and lowest priority is
     link-local IPv6 addresses that don't have a link specified (which
-    are useless, but mDNS does provide them in that form.)
+    are useless, but mDNS does provide them in that form). Addresses
+    which cannot be parsed are silently dropped.
     """
     import socket
 
