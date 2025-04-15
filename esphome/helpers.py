@@ -211,9 +211,17 @@ def sort_ip_addresses(address_list: list[str]) -> list[str]:
     """
     import socket
 
-    # First "resolve" all the IP addresses to get getaddrinfo() tuples
-    # which indicate the type of address, scope, etc.
-    res: list[str] = []
+    # First "resolve" all the IP addresses to getaddrinfo() tuples of the form
+    # (family, type, proto, canonname, sockaddr)
+    res: list[
+        tuple[
+            int,
+            int,
+            int,
+            Union[str, None],
+            Union[tuple[str, int], tuple[str, int, int, int]],
+        ]
+    ] = []
     for addr in address_list:
         # This should always work as these are supposed to be IP addresses
         try:
