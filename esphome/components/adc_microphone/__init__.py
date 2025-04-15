@@ -31,7 +31,6 @@ _LOGGER = logging.getLogger(__name__)
 _attenuation = cv.enum(ATTENUATION_MODES, lower=True)
 
 CONF_ADC_PIN = "adc_pin"
-CONF_ADC_TYPE = "adc_type"
 adc_microphone_ns = cg.esphome_ns.namespace("adc_microphone")
 
 ADCAudioMicrophone = adc_microphone_ns.class_(
@@ -43,7 +42,7 @@ BASE_SCHEMA = microphone.MICROPHONE_SCHEMA.extend(
         cv.GenerateID(): cv.declare_id(ADCAudioMicrophone),
         cv.Optional(CONF_SAMPLE_RATE, default=20000): cv.int_range(min=1),
         cv.Required(CONF_ADC_PIN): validate_adc_pin,
-        cv.Optional(CONF_ATTENUATION, default=False): _attenuation,
+        cv.Optional(CONF_ATTENUATION, default="12db"): _attenuation,
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
