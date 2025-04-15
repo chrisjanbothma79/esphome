@@ -51,19 +51,22 @@ std::string DebugComponent::get_reset_reason_() {
   ESP_LOGD(TAG, "Reset Reason: %s", reset_reason.c_str());
   return "Reset by " + reset_reason;
 }
-const char *const WAKEUP_CAUSES[] = {"undefined",
-                                     "undefined",
-                                     "external signal using RTC_IO",
-                                     "external signal using RTC_CNTL",
-                                     "timer",
-                                     "touchpad",
-                                     "ULP program",
-                                     "GPIO",
-                                     "UART",
-                                     "WIFI",
-                                     "COCPU int",
-                                     "COCPU crash",
-                                     "BT"};
+
+const char *const WAKEUP_CAUSES[] = {
+    "undefined",
+    "undefined",
+    "external signal using RTC_IO",
+    "external signal using RTC_CNTL",
+    "timer",
+    "touchpad",
+    "ULP program",
+    "GPIO",
+    "UART",
+    "WIFI",
+    "COCPU int",
+    "COCPU crash",
+    "BT",
+};
 
 std::string DebugComponent::get_wakeup_cause_() {
   std::string wake_reason;
