@@ -95,7 +95,7 @@ void DebugComponent::log_partition_info_() {
 
 uint32_t DebugComponent::get_free_heap_() { return heap_caps_get_free_size(MALLOC_CAP_INTERNAL); }
 
-static const std::map<int, const char *> chip_info = {
+static const std::map<int, const char *> CHIP_FEATURES = {
     {CHIP_FEATURE_BLE, "BLE"},
     {CHIP_FEATURE_BT, "BT"},
     {CHIP_FEATURE_EMB_FLASH, "EMB Flash"},
@@ -140,7 +140,7 @@ void DebugComponent::get_device_info_(std::string &device_info) {
   esp_chip_info(&info);
   const char *model = ESPHOME_VARIANT;
   std::string features;
-  for (auto feature : chip_info) {
+  for (auto feature : CHIP_FEATURES) {
     if (info.features & feature.first) {
       features += feature.second;
       features += ", ";
