@@ -79,6 +79,7 @@ class DebugComponent : public PollingComponent {
 #endif  // USE_TEXT_SENSOR
 
   std::string get_reset_reason_();
+  std::string get_wakeup_cause_();
   uint32_t get_free_heap_();
   void get_device_info_(std::string &device_info);
   void update_platform_();
