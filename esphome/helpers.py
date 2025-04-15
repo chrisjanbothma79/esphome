@@ -200,12 +200,20 @@ def resolve_ip_address(host, port):
     return res
 
 
-def sort_ip_addresses(address_list):
+def sort_ip_addresses(address_list: list[str]) -> list[str]:
+    """Takes a list of IP addresses in string form, e.g. from mDNS or MQTT,
+    and sorts them into the best order to actually try connecting to them.
+
+    This is roughly based on RFC6724 but a lot simpler: First we choose
+    IPv6 addresses, then Legacy IP addresses, and lowest priority is
+    link-local IPv6 addresses that don't have a link specified (which
+    are useless, but mDNS does provide them in that form.)
+    """
     import socket
 
     # First "resolve" all the IP addresses to get getaddrinfo() tuples
     # which indicate the type of address, scope, etc.
-    res = []
+    res: list[str] = []
     for addr in address_list:
         # This should always work as these are supposed to be IP addresses
         try:
@@ -220,7 +228,7 @@ def sort_ip_addresses(address_list):
     res.sort(key=addr_preference_)
 
     # Finally, turn the getaddrinfo() tuples back into plain hostnames.
-    sorted_address_list = []
+    sorted_address_list: list[str] = []
     for r in res:
         sorted_address_list.append(socket.getnameinfo(r[4], socket.NI_NUMERICHOST)[0])
 
