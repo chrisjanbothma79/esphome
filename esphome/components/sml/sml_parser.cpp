@@ -5,7 +5,7 @@
 namespace esphome {
 namespace sml {
 
-SmlFile::SmlFile(const bytes_view &buffer) : buffer_(buffer) {
+SmlFile::SmlFile(const BytesView &buffer) : buffer_(buffer) {
   // extract messages
   this->pos_ = 0;
   while (this->pos_ < this->buffer_.size()) {
@@ -85,14 +85,14 @@ bool SmlFile::setup_node(SmlNode *node) {
 std::vector<ObisInfo> SmlFile::get_obis_info() {
   std::vector<ObisInfo> obis_info;
   for (auto const &message : messages) {
-    const auto& message_body = message.nodes[3];
+    const auto &message_body = message.nodes[3];
     uint16_t message_type = bytes_to_uint(message_body.nodes[0].value_bytes);
     if (message_type != SML_GET_LIST_RES)
       continue;
 
-    const auto& get_list_response = message_body.nodes[1];
-    const auto& server_id = get_list_response.nodes[1].value_bytes;
-    const auto& val_list = get_list_response.nodes[4];
+    const auto &get_list_response = message_body.nodes[1];
+    const auto &server_id = get_list_response.nodes[1].value_bytes;
+    const auto &val_list = get_list_response.nodes[4];
 
     for (auto const &val_list_entry : val_list.nodes) {
       obis_info.emplace_back(server_id, val_list_entry);
@@ -101,7 +101,7 @@ std::vector<ObisInfo> SmlFile::get_obis_info() {
   return obis_info;
 }
 
-std::string bytes_repr(const bytes_view &buffer) {
+std::string bytes_repr(const BytesView &buffer) {
   std::string repr;
   for (auto const value : buffer) {
     repr += str_sprintf("%02x", value & 0xff);
@@ -109,7 +109,7 @@ std::string bytes_repr(const bytes_view &buffer) {
   return repr;
 }
 
-uint64_t bytes_to_uint(const bytes_view &buffer) {
+uint64_t bytes_to_uint(const BytesView &buffer) {
   uint64_t val = 0;
   for (auto const value : buffer) {
     val = (val << 8) + value;
@@ -117,7 +117,7 @@ uint64_t bytes_to_uint(const bytes_view &buffer) {
   return val;
 }
 
-int64_t bytes_to_int(const bytes_view &buffer) {
+int64_t bytes_to_int(const BytesView &buffer) {
   uint64_t tmp = bytes_to_uint(buffer);
   int64_t val;
 
@@ -133,14 +133,14 @@ int64_t bytes_to_int(const bytes_view &buffer) {
   return val;
 }
 
-std::string bytes_to_string(const bytes_view &buffer) { return std::string(buffer.begin(), buffer.end()); }
+std::string bytes_to_string(const BytesView &buffer) { return std::string(buffer.begin(), buffer.end()); }
 
-ObisInfo::ObisInfo(const bytes_view &server_id, const SmlNode &val_list_entry) : server_id(server_id) {
+ObisInfo::ObisInfo(const BytesView &server_id, const SmlNode &val_list_entry) : server_id(server_id) {
   this->code = val_list_entry.nodes[0].value_bytes;
   this->status = val_list_entry.nodes[1].value_bytes;
   this->unit = bytes_to_uint(val_list_entry.nodes[3].value_bytes);
   this->scaler = bytes_to_int(val_list_entry.nodes[4].value_bytes);
-  const auto& value_node = val_list_entry.nodes[5];
+  const auto &value_node = val_list_entry.nodes[5];
   this->value = value_node.value_bytes;
   this->value_type = value_node.type;
 }

@@ -52,7 +52,8 @@ void Sml::loop() {
             break;
 
           // remove start/end sequence
-          this->process_sml_file_(bytes_view(this->sml_data_).subview(START_SEQ.size(), this->sml_data_.size() - START_SEQ.size() - 8));
+          this->process_sml_file_(
+              BytesView(this->sml_data_).subview(START_SEQ.size(), this->sml_data_.size() - START_SEQ.size() - 8));
         }
         break;
       };
@@ -64,7 +65,7 @@ void Sml::add_on_data_callback(std::function<void(std::vector<uint8_t>, bool)> &
   this->data_callbacks_.add(std::move(callback));
 }
 
-void Sml::process_sml_file_(const bytes_view &sml_data) {
+void Sml::process_sml_file_(const BytesView &sml_data) {
   SmlFile sml_file(sml_data);
   std::vector<ObisInfo> obis_info = sml_file.get_obis_info();
   this->publish_obis_info_(obis_info);
