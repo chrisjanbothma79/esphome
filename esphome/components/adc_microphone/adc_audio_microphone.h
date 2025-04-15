@@ -21,7 +21,7 @@ class ADCAudioMicrophone : public microphone::Microphone, public Component {
 
   size_t read(int16_t *buf, size_t len) override;
 
-  void set_adc_channel(int gpio_pin) { adc_continuous_io_to_channel(gpio_pin, &adc_unit_, &adc_channel_); }
+  void set_adc_channel(int gpio_pin);
   void set_sample_rate(uint32_t sample_rate) { this->sample_rate_ = sample_rate; }
   void set_attenuation(adc_atten_t attenuation) { this->attenuation_ = attenuation; }
 
@@ -36,6 +36,7 @@ class ADCAudioMicrophone : public microphone::Microphone, public Component {
   HighFrequencyLoopRequester high_freq_;
   uint32_t sample_rate_;
   adc_atten_t attenuation_;
+  adc_continuous_handle_t adc_handle;
 };
 
 }  // namespace adc_microphone

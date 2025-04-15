@@ -1,49 +1,65 @@
 #include "adc_audio_microphone.h"
 
-#ifdef USE_ESP32
-
-#include <driver/i2s.h>
+#ifdef USE_ESP32_FRAMEWORK_ESP_IDF
 
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
-namespace i2s_audio {
+namespace adc_microphone {
 
 static const size_t BUFFER_SIZE = 512;
 
-static const char *const TAG = "i2s_audio.microphone";
+static const char *const TAG = "adc_microphone";
 
-void I2SAudioMicrophone::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up I2S Audio Microphone...");
-#if SOC_I2S_SUPPORTS_ADC
-  if (this->adc_) {
-    if (this->parent_->get_port() != I2S_NUM_0) {
-      ESP_LOGE(TAG, "Internal ADC only works on I2S0!");
-      this->mark_failed();
-      return;
-    }
-  } else
+void ADCAudioMicrophone::setup() {
+  ESP_LOGCONFIG(TAG, "Setting up ADC Audio Microphone...");
+
+  adc_continuous_handle_cfg_t adc_config = {
+      .max_store_buf_size = SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 8 *
+                            100,  // ensure buffer is large enough to work even when running at slower speed
+      .conv_frame_size = SOC_ADC_DIGI_DATA_BYTES_PER_CONV * 8,
+  };
+
+  ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &adc_handle));
+
+#if CONFIG_IDF_TARGET_ESP32 || CONFIG_IDF_TARGET_ESP32S2
+  adc_digi_output_format_t format = ADC_DIGI_OUTPUT_FORMAT_TYPE1;
+#else
+  adc_digi_output_format_t format = ADC_DIGI_OUTPUT_FORMAT_TYPE2;
 #endif
-  {
-    if (this->pdm_) {
-      if (this->parent_->get_port() != I2S_NUM_0) {
-        ESP_LOGE(TAG, "PDM only works on I2S0!");
-        this->mark_failed();
-        return;
-      }
-    }
-  }
+
+  adc_digi_convert_mode_t adc_conv_mode = (adc_unit_ == ADC_UNIT_1) ? ADC_CONV_SINGLE_UNIT_1 : ADC_CONV_SINGLE_UNIT_2;
+
+  adc_continuous_config_t dig_cfg = {
+      .pattern_num = 1,
+      .sample_freq_hz = 20 * 1000,
+      .conv_mode = adc_conv_mode,
+      .format = format,
+  };
+
+  adc_digi_pattern_config_t adc_pattern = {
+      .atten = attenuation_,
+      .channel = adc_channel_,
+      .unit = adc_unit_,
+      .bit_width = ADC_BITWIDTH_DEFAULT,
+  };
+  dig_cfg.adc_pattern = &adc_pattern;
+  ESP_ERROR_CHECK(adc_continuous_config(adc_handle, &dig_cfg))
 }
 
-void I2SAudioMicrophone::start() {
+void ADCAudioMicrophone::set_adc_channel(int gpio_pin) {
+  ESP_ERROR_CHECK(adc_continuous_io_to_channel(gpio_pin, &adc_unit_, &adc_channel_));
+}
+
+void ADCAudioMicrophone::start() {
   if (this->is_failed())
     return;
   if (this->state_ == microphone::STATE_RUNNING)
     return;  // Already running
   this->state_ = microphone::STATE_STARTING;
 }
-void I2SAudioMicrophone::start_() {
+void ADCAudioMicrophone::start_() {
   if (!this->parent_->try_lock()) {
     return;  // Waiting for another i2s to return lock
   }
@@ -116,7 +132,7 @@ void I2SAudioMicrophone::start_() {
   this->status_clear_error();
 }
 
-void I2SAudioMicrophone::stop() {
+void ADCAudioMicrophone::stop() {
   if (this->state_ == microphone::STATE_STOPPED || this->is_failed())
     return;
   if (this->state_ == microphone::STATE_STARTING) {
@@ -126,7 +142,7 @@ void I2SAudioMicrophone::stop() {
   this->state_ = microphone::STATE_STOPPING;
 }
 
-void I2SAudioMicrophone::stop_() {
+void ADCAudioMicrophone::stop_() {
   esp_err_t err;
 #if SOC_I2S_SUPPORTS_ADC
   if (this->adc_) {
@@ -156,7 +172,7 @@ void I2SAudioMicrophone::stop_() {
   this->status_clear_error();
 }
 
-size_t I2SAudioMicrophone::read(int16_t *buf, size_t len) {
+size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   size_t bytes_read = 0;
   esp_err_t err = i2s_read(this->parent_->get_port(), buf, len, &bytes_read, (100 / portTICK_PERIOD_MS));
   if (err != ESP_OK) {
@@ -190,7 +206,7 @@ size_t I2SAudioMicrophone::read(int16_t *buf, size_t len) {
   }
 }
 
-void I2SAudioMicrophone::read_() {
+void ADCAudioMicrophone::read_() {
   std::vector<int16_t> samples;
   samples.resize(BUFFER_SIZE);
   size_t bytes_read = this->read(samples.data(), BUFFER_SIZE / sizeof(int16_t));
@@ -198,7 +214,7 @@ void I2SAudioMicrophone::read_() {
   this->data_callbacks_.call(samples);
 }
 
-void I2SAudioMicrophone::loop() {
+void ADCAudioMicrophone::loop() {
   switch (this->state_) {
     case microphone::STATE_STOPPED:
       break;
@@ -216,7 +232,7 @@ void I2SAudioMicrophone::loop() {
   }
 }
 
-}  // namespace i2s_audio
+}  // namespace adc_microphone
 }  // namespace esphome
 
-#endif  // USE_ESP32
+#endif  // USE_ESP32_FRAMEWORK_ESP_IDF
