@@ -28,7 +28,9 @@ void XDB401Component::setup() {
   float pressure;
   i2c::ErrorCode err_code = this->read_(temperature, pressure);
   if (err_code != i2c::ERROR_OK) {
-    this->mark_failed("I2C Communication Failed...");
+    // this->mark_failed("I2C Communication Failed...");  // Need latest dev
+    this->mark_failed();
+    ESP_LOGE(TAG, "I2C Communication Failed...");
     return;
   }
   this->comm_err_counter_ = 0;
@@ -113,7 +115,7 @@ i2c::ErrorCode XDB401Component::read_pressure_(float &pressure) {
 
   // Byte-order high to low, byte 0 bit 8 is sign bit.
   // Shift one byte to much and then back to get sign correct.
-  sint32_t raw_pressure = ((p_data[0] << 24) | (p_data[1] << 16) | (p_data[2] << 8)) >> 8;
+  int32_t raw_pressure = ((p_data[0] << 24) | (p_data[1] << 16) | (p_data[2] << 8)) >> 8;
   ESP_LOGD(TAG, "Pressure data raw %i", raw_pressure);
 
   // Convert signed integer to floating point and scale to Pascal
@@ -133,7 +135,7 @@ i2c::ErrorCode XDB401Component::read_temperature_(float &temperature) {
   ESP_LOGV(TAG, "Got temperature data: %s", format_hex_pretty(t_data, 2).c_str());
 
   // Byte-order high to low, byte 0 bit 8 is sign bit.
-  sint16_t raw_temperature = ((t_data[0] << 8) | t_data[1]);
+  int16_t raw_temperature = ((t_data[0] << 8) | t_data[1]);
   ESP_LOGD(TAG, "Temperature data raw %i", raw_temperature);
 
   // Convert signed integer to floating point and scale to percent (of range)?
@@ -152,12 +154,13 @@ void XDB401Component::update() {
   if (err_code != i2c::ERROR_OK) {
     this->status_set_warning("I2C Communication Failed");
     if (this->comm_err_counter_ > MARK_FAIL_AFTER) {
-      this->mark_failed("Too many consecutive I2C communication errors");
-    }
-    else {
+      // this->mark_failed("Too many consecutive I2C communication errors");  // Need latest dev
+      this->mark_failed();
+      ESP_LOGE(TAG, "Too many consecutive I2C communication errors");
+    } else {
       this->comm_err_counter_++;
     }
-    
+
     return;
   }
 
