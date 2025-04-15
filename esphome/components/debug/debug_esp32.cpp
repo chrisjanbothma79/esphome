@@ -52,7 +52,7 @@ std::string DebugComponent::get_reset_reason_() {
   return "Reset by " + reset_reason;
 }
 
-const char *const WAKEUP_CAUSES[] = {
+static const char *const WAKEUP_CAUSES[] = {
     "undefined",
     "undefined",
     "external signal using RTC_IO",
