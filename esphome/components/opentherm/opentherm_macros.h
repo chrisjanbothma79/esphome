@@ -121,6 +121,22 @@ namespace opentherm {
 
 #define OPENTHERM_IGNORE(x, y)
 
+// Read data response builders
+#define OPENTHERM_MESSAGE_READ_RESPONSE_MESSAGE(msg) \
+  case MessageId::msg: { \
+    data.type = MessageType::READ_ACK;
+#define OPENTHERM_MESSAGE_READ_RESPONSE_POSTSCRIPT \
+  return data; \
+  }
+
+// Write data response builders
+#define OPENTHERM_MESSAGE_WRITE_RESPONSE_MESSAGE(msg) \
+  case MessageId::msg: { \
+    data.type = MessageType::WRITE_ACK;
+#define OPENTHERM_MESSAGE_WRITE_RESPONSE_POSTSCRIPT \
+  return data; \
+  }
+
 // Default macros for STATUS entities
 #ifndef OPENTHERM_READ_ch_enable
 #define OPENTHERM_READ_ch_enable true

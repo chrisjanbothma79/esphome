@@ -164,7 +164,49 @@ void OpenthermHub::process_request(OpenthermData &data) {
 OpenthermData OpenthermHub::build_response_(const OpenthermData &request) {
   OpenthermData data = request;
 
-  data.type = UNKNOWN_DATAID;
+  // Respond with UNKNOWN_DATAID to any request about an ID that we don't handle
+  switch (request.id) {
+    // Required messages
+#ifndef OPENTHERM_HAS_SETTING_device_configuration
+    case DEVICE_CONFIG:
+      break;
+#endif
+
+      OPENTHERM_SENSOR_MESSAGE_HANDLERS(OPENTHERM_MESSAGE_RESPONSE_MESSAGE, OPENTHERM_IGNORE, ,
+                                        OPENTHERM_MESSAGE_RESPONSE_POSTSCRIPT, )
+      OPENTHERM_SETTING_MESSAGE_HANDLERS(OPENTHERM_MESSAGE_RESPONSE_MESSAGE, OPENTHERM_IGNORE, ,
+                                         OPENTHERM_MESSAGE_RESPONSE_POSTSCRIPT, )
+      OPENTHERM_SWITCH_MESSAGE_HANDLERS(OPENTHERM_MESSAGE_RESPONSE_MESSAGE, OPENTHERM_IGNORE, ,
+                                        OPENTHERM_MESSAGE_RESPONSE_POSTSCRIPT, )
+
+    default:
+      data.type = UNKNOWN_DATAID;
+      return data;
+  }
+
+  if (request.type == READ_DATA) {
+    switch (request.id) {
+      // Required messages
+#ifndef OPENTHERM_HAS_SETTING_device_configuration
+      case DEVICE_CONFIG:
+        data.type = READ_ACK;
+        data.u16(0);
+        return data;
+#endif
+
+        OPENTHERM_SETTING_MESSAGE_HANDLERS(OPENTHERM_MESSAGE_READ_RESPONSE_MESSAGE, OPENTHERM_MESSAGE_WRITE_SETTING, ,
+                                           OPENTHERM_MESSAGE_READ_RESPONSE_POSTSCRIPT, )
+        OPENTHERM_SWITCH_MESSAGE_HANDLERS(OPENTHERM_MESSAGE_READ_RESPONSE_MESSAGE, OPENTHERM_MESSAGE_WRITE_ENTITY, ,
+                                          OPENTHERM_MESSAGE_READ_RESPONSE_POSTSCRIPT, )
+    }
+  } else if (request.type == WRITE_DATA) {
+    switch (request.id) {
+      OPENTHERM_SENSOR_MESSAGE_HANDLERS(OPENTHERM_MESSAGE_WRITE_RESPONSE_MESSAGE, OPENTHERM_MESSAGE_RESPONSE_ENTITY, ,
+                                        OPENTHERM_MESSAGE_WRITE_RESPONSE_POSTSCRIPT, )
+    }
+  }
+
+  data.type = DATA_INVALID;
   return data;
 }
 
