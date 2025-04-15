@@ -8,9 +8,7 @@ from .. import CONF_TUYA_ID, Tuya, tuya_ns
 DEPENDENCIES = ["tuya"]
 CODEOWNERS = ["@bearpawmaxim"]
 
-CONF_DATA_TYPE = "data_type"
-
-DATA_TYPE = {"enum": 0, "int": 1}
+CONF_INT_DATAPOINT = "int_datapoint"
 
 TuyaSelect = tuya_ns.class_("TuyaSelect", select.Select, cg.Component)
 
@@ -35,13 +33,14 @@ CONFIG_SCHEMA = (
     .extend(
         {
             cv.GenerateID(CONF_TUYA_ID): cv.use_id(Tuya),
-            cv.Required(CONF_ENUM_DATAPOINT): cv.uint8_t,
+            cv.Optional(CONF_ENUM_DATAPOINT): cv.uint8_t,
+            cv.Optional(CONF_INT_DATAPOINT): cv.uint8_t,
             cv.Required(CONF_OPTIONS): ensure_option_map,
             cv.Optional(CONF_OPTIMISTIC, default=False): cv.boolean,
-            cv.Optional(CONF_DATA_TYPE, default="enum"): cv.enum(DATA_TYPE, lower=True),
         }
     )
-    .extend(cv.COMPONENT_SCHEMA)
+    .extend(cv.COMPONENT_SCHEMA),
+    cv.has_at_least_one_key(CONF_ENUM_DATAPOINT, CONF_INT_DATAPOINT),
 )
 
 
@@ -52,6 +51,10 @@ async def to_code(config):
     cg.add(var.set_select_mappings(list(options_map.keys())))
     parent = await cg.get_variable(config[CONF_TUYA_ID])
     cg.add(var.set_tuya_parent(parent))
-    cg.add(var.set_select_id(config[CONF_ENUM_DATAPOINT]))
+    if CONF_ENUM_DATAPOINT in config:
+        cg.add(var.set_select_id(config[CONF_ENUM_DATAPOINT]))
+        cg.add(var.set_is_int(False))
+    if CONF_INT_DATAPOINT in config:
+        cg.add(var.set_select_id(config[CONF_INT_DATAPOINT]))
+        cg.add(var.set_is_int(True))
     cg.add(var.set_optimistic(config[CONF_OPTIMISTIC]))
-    cg.add(var.set_data_type(config[CONF_DATA_TYPE]))
