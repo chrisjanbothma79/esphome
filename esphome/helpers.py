@@ -229,7 +229,7 @@ def sort_ip_addresses(address_list: list[str]) -> list[str]:
             r = socket.getaddrinfo(
                 addr, 0, proto=socket.IPPROTO_TCP, flags=socket.AI_NUMERICHOST
             )
-            res = res + r
+            res += r
         except OSError:
             _LOGGER.info("Failed to parse IP address '%s'", addr)
 
