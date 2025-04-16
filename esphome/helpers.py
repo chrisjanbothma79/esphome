@@ -226,10 +226,9 @@ def sort_ip_addresses(address_list: list[str]) -> list[str]:
     for addr in address_list:
         # This should always work as these are supposed to be IP addresses
         try:
-            r = socket.getaddrinfo(
+            res += socket.getaddrinfo(
                 addr, 0, proto=socket.IPPROTO_TCP, flags=socket.AI_NUMERICHOST
             )
-            res += r
         except OSError:
             _LOGGER.info("Failed to parse IP address '%s'", addr)
 
