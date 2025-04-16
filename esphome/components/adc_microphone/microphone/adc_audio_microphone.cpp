@@ -20,6 +20,13 @@ static const char *const TAG = "adc_microphone";
 #define DMA_FORMAT_TYPE ADC_DIGI_OUTPUT_FORMAT_TYPE2
 #endif
 
+#define ADC_ESP_ERROR_CHECK(err, action, retval) \
+  if (unlikely((err) != ESP_OK)) { \
+    ESP_LOGE(TAG, "Could not " action " for ADC Microphone: %s", esp_err_to_name(err)); \
+    this->status_set_error("Failed to " action); \
+    return retval; \
+  }
+
 // 16 samples seems like a decent enough size for each frame
 #define DMA_SAMPLES_PER_FRAME 16
 
@@ -36,8 +43,22 @@ void ADCAudioMicrophone::setup() {
       // .flags = 0, // leave flags default-initialized to zero
   };
 
-  ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &adc_handle_));
+  ADC_ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &adc_handle_), "init handle", );
+}
 
+void ADCAudioMicrophone::set_adc_channel(int gpio_pin) {
+  ADC_ESP_ERROR_CHECK(adc_continuous_io_to_channel(gpio_pin, &adc_unit_, &adc_channel_), "get ADC channel", );
+}
+
+void ADCAudioMicrophone::start() {
+  if (this->is_failed())
+    return;
+  if (this->state_ == microphone::STATE_RUNNING)
+    return;  // Already running
+  this->state_ = microphone::STATE_STARTING;
+}
+
+void ADCAudioMicrophone::start_() {
   adc_digi_output_format_t format = DMA_FORMAT_TYPE;
 
   adc_digi_convert_mode_t adc_conv_mode = (adc_unit_ == ADC_UNIT_1) ? ADC_CONV_SINGLE_UNIT_1 : ADC_CONV_SINGLE_UNIT_2;
@@ -58,33 +79,15 @@ void ADCAudioMicrophone::setup() {
       .bit_width = 12,
   };
   dig_cfg.adc_pattern = &adc_pattern;
-  ESP_ERROR_CHECK(adc_continuous_config(adc_handle_, &dig_cfg));
-}
 
-void ADCAudioMicrophone::set_adc_channel(int gpio_pin) {
-  ESP_ERROR_CHECK(adc_continuous_io_to_channel(gpio_pin, &adc_unit_, &adc_channel_));
-}
+  ADC_ESP_ERROR_CHECK(adc_continuous_config(adc_handle_, &dig_cfg), "configure continuous mode", );
 
-void ADCAudioMicrophone::start() {
-  if (this->is_failed())
-    return;
-  if (this->state_ == microphone::STATE_RUNNING)
-    return;  // Already running
-  this->state_ = microphone::STATE_STARTING;
-}
-void ADCAudioMicrophone::start_() {
-  esp_err_t err;
-  {
-    err = adc_continuous_start(adc_handle_);
-    if (err != ESP_OK) {
-      ESP_LOGW(TAG, "Error starting ADC microphone: %s", esp_err_to_name(err));
-      this->status_set_error("Cound not start");
-      return;
-    }
-    // two calls are needed to empty the buffer anyways when it fills,
-    // so lets save some memory
-    dma_out_buffer_ = new uint8_t[DMA_BUF_SIZE / 2];
-  }
+  ADC_ESP_ERROR_CHECK(adc_continuous_start(adc_handle_), "start microphone data collection", );
+
+  // two calls are needed to empty the buffer anyways when it fills,
+  // so lets save some memory
+  dma_out_buffer_ = new uint8_t[DMA_BUF_SIZE / 2];
+
   this->state_ = microphone::STATE_RUNNING;
   this->high_freq_.start();
   this->status_clear_error();
@@ -101,14 +104,8 @@ void ADCAudioMicrophone::stop() {
 }
 
 void ADCAudioMicrophone::stop_() {
-  esp_err_t err;
+  ADC_ESP_ERROR_CHECK(adc_continuous_stop(adc_handle_), "stop ADC microphone", );
 
-  err = adc_continuous_stop(adc_handle_);
-  if (err != ESP_OK) {
-    ESP_LOGW(TAG, "Error stopping ADC microphone: %s", esp_err_to_name(err));
-    this->status_set_error();
-    return;
-  }
   delete[] dma_out_buffer_;
   this->state_ = microphone::STATE_STOPPED;
   this->high_freq_.stop();
@@ -118,15 +115,12 @@ void ADCAudioMicrophone::stop_() {
 size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   uint32_t bytes_read = 0;
   size_t max_read = std::min(len, (size_t) DMA_BUF_SIZE / 2);
-  esp_err_t err = adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 4);
+  ADC_ESP_ERROR_CHECK(adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 4),
+                      "read data from buffer", 0);
   ESP_LOGV(TAG, "read %" PRIu32 "bytes from ADC", bytes_read);
-  if (err != ESP_OK) {
-    ESP_LOGW(TAG, "Error reading from adc microphone: %s", esp_err_to_name(err));
-    this->status_set_warning();
-    return 0;
-  }
+
   if (bytes_read == 0) {
-    this->status_set_warning();
+    this->status_set_warning("Zero bytes read from ADC");
     return 0;
   }
   this->status_clear_warning();
@@ -148,7 +142,7 @@ size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
     seen_nonzero |= (buf[i]);
   }
   if (seen_nonzero == 0) {
-    ESP_LOGW(TAG, "All-zero data from ADC");
+    this->status_set_warning("All-zero data from ADC");
   }
   return samples_read * sizeof(int16_t);
 }
