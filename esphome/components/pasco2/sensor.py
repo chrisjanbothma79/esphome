@@ -35,22 +35,17 @@ PerformForcedCalibrationAction = pasco2_ns.class_(
 )
 FactoryResetAction = pasco2_ns.class_("FactoryResetAction", automation.Action)
 
-CONF_AMBIENT_PRESSURE_COMPENSATION = "ambient_pressure_compensation"
-CONF_AMBIENT_PRESSURE_COMPENSATION_SOURCE = "ambient_pressure_compensation_source"
-CONF_AUTOMATIC_SELF_CALIBRATION = "automatic_self_calibration"
-CONF_MEASUREMENT_MODE = "measurement_mode"
-
-CONFIG_SCHEMA = (
-    cv.Schema(
-        {
-            cv.GenerateID(): cv.declare_id(PASCO2Component),
-            cv.Required(CONF_CO2): sensor.sensor_schema(
-                unit_of_measurement=UNIT_PARTS_PER_MILLION,
-                icon=ICON_MOLECULE_CO2,
-                accuracy_decimals=0,
-                device_class=DEVICE_CLASS_CARBON_DIOXIDE,
-                state_class=STATE_CLASS_MEASUREMENT,
-            ),
+ CONFIG_SCHEMA = ( 
+     sensor.sensor_schema( 
+         PASCO2, 
+         unit_of_measurement=UNIT_PARTS_PER_MILLION, 
+         accuracy_decimals=0, 
+         device_class=DEVICE_CLASS_CARBON_DIOXIDE, 
+         state_class=STATE_CLASS_MEASUREMENT, 
+         icon=ICON_MOLECULE_CO2, 
+     ) 
+     .extend( 
+         { 
             cv.Optional(CONF_AUTOMATIC_SELF_CALIBRATION, default=True): cv.boolean,
             cv.Optional(CONF_AMBIENT_PRESSURE_COMPENSATION): cv.pressure,
             cv.Optional(CONF_ENABLE_PIN): pins.gpio_output_pin_schema,
@@ -60,11 +55,12 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_MEASUREMENT_MODE, default="periodic"): cv.enum(
                 MEASUREMENT_MODE_OPTIONS, lower=True
             ),
-        }
-    )
-    .extend(cv.polling_component_schema("60s"))
-    .extend(i2c.i2c_device_schema(0x28))
-)
+         } 
+     ) 
+     .extend(cv.polling_component_schema("60s")) 
+     .extend(i2c.i2c_device_schema(0x28)) 
+ ) 
+  
 
 SENSOR_MAP = {
     CONF_CO2: "set_co2_sensor",
