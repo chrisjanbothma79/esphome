@@ -139,6 +139,8 @@ CC1101Component::CC1101Component() {
   this->set_tuner_channel(0);
   this->set_tuner_channel_spacing(200);
   this->set_tuner_symbol_rate(5000);
+  this->set_tuner_sync_mode(SyncMode::SYNC_MODE_NONE);
+  this->set_tuner_carrier_sense_above_threshold(true);
   this->set_tuner_modulation(Modulation::MODULATION_ASK_OOK);
   // this->set_tuner_fsk_deviation(47.607f);
   // this->set_tuner_msk_deviation(0);
@@ -220,10 +222,12 @@ void CC1101Component::setup() {
   this->publish_tuner_bandwidth();
   this->publish_tuner_channel();
   this->publish_tuner_channel_spacing();
-  this->publish_tuner_symbol_rate();
-  this->publish_tuner_modulation();
   this->publish_tuner_fsk_deviation();
   this->publish_tuner_msk_deviation();
+  this->publish_tuner_symbol_rate();
+  this->publish_tuner_sync_mode();
+  this->publish_tuner_carrier_sense_above_threshold();
+  this->publish_tuner_modulation();
   this->publish_agc_magn_target();
   this->publish_agc_max_lna_gain();
   this->publish_agc_max_dvga_gain();
@@ -261,6 +265,8 @@ void CC1101Component::dump_config() {
   ESP_LOGCONFIG(TAG, "    FSK Deviation: %d KHz", (int) this->get_tuner_fsk_deviation());
   ESP_LOGCONFIG(TAG, "    MSK Deviation: %d KHz", (int) this->get_tuner_msk_deviation());
   ESP_LOGCONFIG(TAG, "    Symbol Rate: %d Baud", (int) this->get_tuner_symbol_rate());
+  ESP_LOGCONFIG(TAG, "    Sync Mode: %d", (int) this->get_tuner_sync_mode());
+  ESP_LOGCONFIG(TAG, "    Carrier Sense Above Threshold: %d", (int) this->get_tuner_carrier_sense_above_threshold());
   ESP_LOGCONFIG(TAG, "    Modulation: %d", (int) this->get_tuner_modulation());
   // TODO: ...and everything else...
   LOG_PIN("  CS Pin: ", this->cs_);
@@ -878,6 +884,42 @@ void CC1101Component::set_tuner_symbol_rate(float value) {
 float CC1101Component::get_tuner_symbol_rate() {
   float drate = (float) (256 + this->state_.DRATE_M) * (1 << this->state_.DRATE_E);
   return (XTAL_FREQUENCY * 1000) * drate / (1 << 28);
+}
+
+void CC1101Component::set_tuner_sync_mode(SyncMode value) {
+  CHECK_ENUM(value)
+
+  this->state_.SYNC_MODE = (uint8_t) value;
+
+  ESP_LOGD(TAG, "set_tuner_sync_mode(%d)", (int) value);
+
+  this->publish_tuner_sync_mode();
+
+  if (!this->reset_) {
+    return;
+  }
+
+  this->write_(Register::MDMCFG2);
+}
+
+SyncMode CC1101Component::get_tuner_sync_mode() { return (SyncMode) this->state_.SYNC_MODE; }
+
+void CC1101Component::set_tuner_carrier_sense_above_threshold(bool value) {
+  this->state_.CARRIER_SENSE_ABOVE_THRESHOLD = value ? 1 : 0;
+
+  ESP_LOGD(TAG, "set_tuner_carrier_sense_above_threshold(%d)", value ? 1 : 0);
+
+  this->publish_tuner_carrier_sense_above_threshold();
+
+  if (!this->reset_) {
+    return;
+  }
+
+  this->write_(Register::MDMCFG2);
+}
+
+bool CC1101Component::get_tuner_carrier_sense_above_threshold() {
+  return this->state_.CARRIER_SENSE_ABOVE_THRESHOLD == 1;
 }
 
 void CC1101Component::set_tuner_modulation(Modulation value) {

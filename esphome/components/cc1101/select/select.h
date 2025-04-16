@@ -18,6 +18,7 @@ class Select : public select::Select, public Parented<CC1101Component> {
 };
 
 using RxAttenuationSelect = Select<RxAttenuation, &CC1101Component::set_rx_attenuation>;
+using TunerSyncModeSelect = Select<SyncMode, &CC1101Component::set_tuner_sync_mode>;
 using TunerModulationSelect = Select<Modulation, &CC1101Component::set_tuner_modulation>;
 using AgcMagnTargetSelect = Select<MagnTarget, &CC1101Component::set_agc_magn_target>;
 using AgcMaxLnaGainSelect = Select<MaxLnaGain, &CC1101Component::set_agc_max_lna_gain>;

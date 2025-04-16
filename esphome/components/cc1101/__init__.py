@@ -71,6 +71,8 @@ CONF_CHANNEL_SPACING = "channel_spacing"
 CONF_FSK_DEVIATION = "fsk_deviation"
 CONF_MSK_DEVIATION = "msk_deviation"
 CONF_SYMBOL_RATE = "symbol_rate"
+CONF_SYNC_MODE = "sync_mode"
+CONF_CARRIER_SENSE_ABOVE_THRESHOLD = "carrier_sense_above_threshold"
 CONF_MODULATION = "modulation"
 
 # agc
@@ -91,6 +93,14 @@ CONF_CHIP_ID = "chip_id"
 CONF_RSSI = "rssi"
 CONF_LQI = "lqi"
 # CONF_TEMPERATURE = "temperature"
+
+SyncMode = ns.enum("SyncMode", True)
+SYNC_MODE = {
+    "None": SyncMode.SYNC_MODE_NONE,
+    "15/16": SyncMode.SYNC_MODE_15_16,
+    "16/16": SyncMode.SYNC_MODE_16_16,
+    "30/32": SyncMode.SYNC_MODE_30_32,
+}
 
 Modulation = ns.enum("Modulation", True)
 MODULATION = {
@@ -202,6 +212,8 @@ TUNER_SCHEMA = cv.Schema(
         cv.Optional(CONF_FSK_DEVIATION): cv.float_range(1.5, 381),  # do not set default
         cv.Optional(CONF_MSK_DEVIATION): cv.int_range(1, 8),  # do not set default
         cv.Optional(CONF_SYMBOL_RATE): cv.float_range(600, 500000),
+        cv.Optional(CONF_SYNC_MODE): cv.enum(SYNC_MODE),
+        cv.Optional(CONF_CARRIER_SENSE_ABOVE_THRESHOLD): cv.boolean,
         cv.Optional(CONF_MODULATION): cv.enum(MODULATION),
     }
 )
@@ -290,6 +302,8 @@ VARIABLES = {
         [CONF_FSK_DEVIATION],
         [CONF_MSK_DEVIATION],
         [CONF_SYMBOL_RATE],
+        [CONF_SYNC_MODE],
+        [CONF_CARRIER_SENSE_ABOVE_THRESHOLD],
         [CONF_MODULATION],
     ],
     CONF_AGC: [

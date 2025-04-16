@@ -158,6 +158,16 @@ enum class RxAttenuation : uint8_t {
   LAST,
 };
 
+// MDMCFG2
+
+enum class SyncMode : uint8_t {
+  SYNC_MODE_NONE,
+  SYNC_MODE_15_16,
+  SYNC_MODE_16_16,
+  SYNC_MODE_30_32,
+  LAST,
+};
+
 enum class Modulation : uint8_t {
   MODULATION_2_FSK,
   MODULATION_GFSK,
@@ -370,7 +380,8 @@ struct CC1101State {
   union {
     uint8_t MDMCFG2;
     struct {
-      uint8_t SYNC_MODE : 3;
+      uint8_t SYNC_MODE : 2;
+      uint8_t CARRIER_SENSE_ABOVE_THRESHOLD : 1;
       uint8_t MANCHESTER_EN : 1;
       uint8_t MOD_FORMAT : 3;  // Modulation
       uint8_t DEM_DCFILT_OFF : 1;

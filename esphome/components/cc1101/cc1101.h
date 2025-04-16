@@ -48,6 +48,8 @@ class CC1101Component : public PollingComponent,
   CC1101_SUB_NUMBER(tuner_fsk_deviation, float)
   CC1101_SUB_NUMBER(tuner_msk_deviation, uint8_t)
   CC1101_SUB_NUMBER(tuner_symbol_rate, float)
+  CC1101_SUB_SELECT(tuner_sync_mode, SyncMode)
+  CC1101_SUB_SWITCH(tuner_carrier_sense_above_threshold)
   CC1101_SUB_SELECT(tuner_modulation, Modulation)
   CC1101_SUB_SELECT(agc_magn_target, MagnTarget)
   CC1101_SUB_SELECT(agc_max_lna_gain, MaxLnaGain)

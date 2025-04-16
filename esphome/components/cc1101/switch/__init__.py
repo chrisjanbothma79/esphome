@@ -5,16 +5,32 @@ from esphome.const import DEVICE_CLASS_SWITCH, ENTITY_CATEGORY_CONFIG
 
 from .. import (
     CONF_AGC,
+    CONF_CARRIER_SENSE_ABOVE_THRESHOLD,
     CONF_CC1101_ID,
     CONF_DC_BLOCKING_FILTER,
     CONF_LNA_PRIORITY,
+    CONF_TUNER,
     CC1101Component,
     for_each_conf,
     ns,
 )
 
 DcBlockingFilterSwitch = ns.class_("DcBlockingFilterSwitch", switch.Switch)
+CarrierSenseAboveThresholdSwitch = ns.class_(
+    "CarrierSenseAboveThresholdSwitch", switch.Switch
+)
 AgcLnaPrioritySwitch = ns.class_("AgcLnaPrioritySwitch", switch.Switch)
+
+TUNER_SCHEMA = cv.Schema(
+    {
+        cv.Optional(CONF_CARRIER_SENSE_ABOVE_THRESHOLD): switch.switch_schema(
+            CarrierSenseAboveThresholdSwitch,
+            device_class=DEVICE_CLASS_SWITCH,
+            entity_category=ENTITY_CATEGORY_CONFIG,
+            # icon=ICON_,
+        ),
+    }
+)
 
 AGC_SCHEMA = cv.Schema(
     {
@@ -36,6 +52,7 @@ CONFIG_SCHEMA = cv.Schema(
             entity_category=ENTITY_CATEGORY_CONFIG,
             # icon=ICON_,
         ),
+        cv.Optional(CONF_TUNER): TUNER_SCHEMA,
         cv.Optional(CONF_AGC): AGC_SCHEMA,
     }
 )
@@ -43,6 +60,9 @@ CONFIG_SCHEMA = cv.Schema(
 VARIABLES = {
     None: [
         [CONF_DC_BLOCKING_FILTER],
+    ],
+    CONF_TUNER: [
+        [CONF_CARRIER_SENSE_ABOVE_THRESHOLD],
     ],
     CONF_AGC: [
         [CONF_LNA_PRIORITY],
