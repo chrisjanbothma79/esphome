@@ -125,11 +125,11 @@ void PASCO2Component::setup() {
   }
 
   this->initialize_sensor();
-  
+
   if(this->measurement_mode_ == PERIODIC)
   {
     polling_interval = this->get_update_interval()/1000;  //convert to seconds
-    
+
     if(polling_interval < 5)
     {
       ESP_LOGW(TAG, "Polling interval less than min of 5s, setting to 5s");
@@ -242,7 +242,7 @@ void PASCO2Component::loop() {
       // No action needed, initialization complete
       break;
   }
-  
+
   //read the sensor if in continuous mode
   if(this->initialized_ && this->measurement_mode_ == PERIODIC)
   {
@@ -261,8 +261,8 @@ bool PASCO2Component::read_sensor_(int16_t *co2result)
 {
    // Check if data is ready
     uint8_t read_back;
- 
-    int errorCode = this->read_register(XENSIV_PASCO2_REG_MEAS_STS, &read_back, 1, true);   
+
+    int errorCode = this->read_register(XENSIV_PASCO2_REG_MEAS_STS, &read_back, 1, true);
     switch (errorCode) {
       case i2c::ErrorCode::NO_ERROR:
         break;
@@ -275,7 +275,7 @@ bool PASCO2Component::read_sensor_(int16_t *co2result)
         this->status_set_warning(); //this is an actual problem
         return false;
     }
-    
+
     if (read_back & XENSIV_PASCO2_REG_MEAS_STS_DRDY_MSK) {
       if (!this->read_byte_16(XENSIV_PASCO2_REG_CO2PPM_H, (uint16_t *)co2result)) {
         return false;
@@ -283,7 +283,7 @@ bool PASCO2Component::read_sensor_(int16_t *co2result)
     } else {
       return false;
     }
-    
+
     //data is valid
     this->status_clear_warning();
     return true;
@@ -378,40 +378,40 @@ void PASCO2Component::update() {
 
   //the sensor will not respond to I2C commands for approximately 1 second during measurement cycles,
   //so the call to start could hypothetically fail although I have never seen it happen
-  set_retry(350, 4, [this](const uint8_t remaining_attempts) {   
-    uint32_t wait_time = 1500;  
+  set_retry(350, 4, [this](const uint8_t remaining_attempts) {
+    uint32_t wait_time = 1500;
 
     if(!start_measurement_())
     {
       return  RetryResult::RETRY;
-    }        
-    
+    }
+
     //wait until the sensor is ready, retrying if it takes longer than expected
-    set_retry(wait_time, 3, [this](const uint8_t remaining_attempts) {   
-      
+    set_retry(wait_time, 3, [this](const uint8_t remaining_attempts) {
+
       int16_t co2result;
       if(read_sensor_(&co2result))
       {
         if (this->co2_sensor_ != nullptr)
           this->co2_sensor_->publish_state(co2result);
-        
+
         ESP_LOGD(TAG, "Read Co2 level %d ppm", co2result);
       } else {
         return  RetryResult::RETRY;
       }
-      
+
       this->status_clear_warning();
       return RetryResult::DONE;
-    }, 1.0f);  
-    
+    }, 1.0f);
+
     return RetryResult::DONE;
   }, 1.0f);
 }
 
 bool PASCO2Component::perform_forced_calibration(uint16_t current_co2_concentration) {
   calibrating_ = true;
-  
-  //set device to idle 
+
+  //set device to idle
   if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG, XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_IDLE, true)) {
     ESP_LOGE(TAG, "Failed to stop measurements");
     this->status_set_warning();
@@ -421,29 +421,29 @@ bool PASCO2Component::perform_forced_calibration(uint16_t current_co2_concentrat
     ESP_LOGW(TAG, "Failed to set measurement period to 10s");
     this->status_set_warning();
   }
-  //load calibration value 
+  //load calibration value
 	if (this->write_byte_16(XENSIV_PASCO2_REG_CALIB_REF_H, current_co2_concentration)) {
       ESP_LOGD(TAG, "setting forced calibration CO2 level %d ppm", current_co2_concentration);
 	}
    //set force calibration flag, this starts the calibration process and data acquisition
-  if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG, XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE | 
+  if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG, XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE |
       XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_CONTINOUS, true)) {
     ESP_LOGE(TAG, "Failed to force calibration");
     this->status_set_warning();
-  }  
-  //the arduino example code doesn't actually read the values back, it just waits for 
+  }
+  //the arduino example code doesn't actually read the values back, it just waits for
   //    XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE to be cleared.
   set_retry(6200, 10, [this](const uint8_t remaining_attempts) {
 		uint8_t read_back = 0;
-		
+
 		if (!this->read_bytes(XENSIV_PASCO2_REG_MEAS_CFG, &read_back, 1)) {
 		  return  RetryResult::RETRY;
 		}
-    
+
 		if(read_back & XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_FORCE)
     {
       ESP_LOGD(TAG, "Calibrating...");
-      
+
       if(remaining_attempts ==0)
       {
         ESP_LOGD(TAG, "calibration timed out!");
@@ -451,21 +451,21 @@ bool PASCO2Component::perform_forced_calibration(uint16_t current_co2_concentrat
       }
       return  RetryResult::RETRY;
     }
-    
+
     if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG,XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_IDLE, true)) {
       ESP_LOGE(TAG, "Failed to idle measurement");
       this->status_set_warning();
     }
-    
+
     //store calibraiton data to NVRAM
     if (!this->write_byte(XENSIV_PASCO2_REG_SENS_RST, XENSIV_PASCO2_CMD_SAVE_FCS_CALIB_OFFSET, true)) {
       ESP_LOGE(TAG, "Failed to save calibration to NVRAM");
       this->status_set_warning();
-    }  
+    }
 
     ESP_LOGD(TAG, "calibration complete!");
-        
-    //restart acquiring co2 data using new calibration, delay seems to reduce odds chip doesn't respond   
+
+    //restart acquiring co2 data using new calibration, delay seems to reduce odds chip doesn't respond
     this->set_timeout(100, [this]() { start_measurement_();});
     this->set_timeout(200, [this]() { calibrating_ = false;});
 
@@ -514,20 +514,20 @@ bool PASCO2Component::start_measurement_() {
   if (this->measurement_mode_ == PERIODIC && !this->write_byte_16(XENSIV_PASCO2_REG_MEAS_RATE_H, polling_interval)) {
     ESP_LOGE(TAG, "Setting Measurement Rate Failed!");
     return false;
-  }    
-  
+  }
+
   uint8_t measurement_command = XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_CONTINOUS |
                                 XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_ENABLE | XENSIV_PASCO2_REG_MEAS_CFG_PWM_OUTEN_EN;
   if (this->measurement_mode_ == SINGLE_SHOT) {
     measurement_command = XENSIV_PASCO2_REG_MEAS_CFG_OP_MODE_SINGLESHOT | XENSIV_PASCO2_REG_MEAS_CFG_BOC_CFG_ENABLE |
                           XENSIV_PASCO2_REG_MEAS_CFG_PWM_OUTEN_EN;
-  }    
-  
+  }
+
   if (!this->write_byte(XENSIV_PASCO2_REG_MEAS_CFG, measurement_command, true)) {
     //this is not necessarily an error, the sensor may be temporarily busy and not responding
     return false;
   }
-    
+
   this->status_clear_warning();
   return true;
 }
