@@ -6,6 +6,5 @@ i2c:
 
 sensor:
   - platform: pasco2
-    co2:
-      name: tester_co2_name
+    name: tester_co2_name
     update_interval: 60s
