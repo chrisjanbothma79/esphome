@@ -155,8 +155,8 @@ jobs:
             suffix: ""
           - build_type: "ha-addon"
             suffix: "hassio"
-          # - build_type: "lint"
-          #   suffix: "lint"
+            # - build_type: "lint"
+            #   suffix: "lint"
         registry:
           - ghcr
           - dockerhub
