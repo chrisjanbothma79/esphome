@@ -82,24 +82,33 @@ def load_components():
     from esphome.config import get_component
 
     for domain in get_component_names():
-        components[domain] = get_component(domain)
+        components[domain] = get_component(domain, exception=True)
+        assert components[domain] is not None
 
 
-# pylint: disable=wrong-import-position
-from esphome.const import CONF_TYPE, KEY_CORE, KEY_TARGET_PLATFORM  # noqa: E402
+from esphome.const import (  # noqa: E402
+    CONF_TYPE,
+    KEY_CORE,
+    KEY_FRAMEWORK_VERSION,
+    KEY_TARGET_FRAMEWORK,
+    KEY_TARGET_PLATFORM,
+)
 from esphome.core import CORE  # noqa: E402
 
-# pylint: enable=wrong-import-position
+CORE.data[KEY_CORE] = {
+    KEY_TARGET_PLATFORM: "esp8266",
+    KEY_TARGET_FRAMEWORK: "arduino",
+    KEY_FRAMEWORK_VERSION: "0",
+}
 
-CORE.data[KEY_CORE] = {KEY_TARGET_PLATFORM: None}
+
 load_components()
 
 # Import esphome after loading components (so schema is tracked)
 # pylint: disable=wrong-import-position
-from esphome import automation, const, pins  # noqa: E402
+from esphome import automation, pins  # noqa: E402
 from esphome.components import remote_base  # noqa: E402
 import esphome.config_validation as cv  # noqa: E402
-import esphome.core as esphome_core  # noqa: E402
 from esphome.helpers import write_file_if_changed  # noqa: E402
 from esphome.loader import CORE_COMPONENTS_PATH, get_platform  # noqa: E402
 from esphome.util import Registry  # noqa: E402
@@ -977,13 +986,6 @@ def convert_keys(converted, schema, path):
             else:
                 converted["key_type"] = str(k)
 
-        esphome_core.CORE.data = {
-            esphome_core.KEY_CORE: {
-                esphome_core.KEY_TARGET_PLATFORM: "esp8266",
-                esphome_core.KEY_TARGET_FRAMEWORK: "arduino",
-                const.KEY_FRAMEWORK_VERSION: "0",
-            }
-        }
         if hasattr(k, "default") and str(k.default) != "...":
             default_value = k.default()
             if default_value is not None:
