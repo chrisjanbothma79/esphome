@@ -32,9 +32,8 @@ void ADCAudioMicrophone::setup() {
   // it's arguable that some of this should be moved into start(), not setup()
 
   adc_continuous_handle_cfg_t adc_config = {
-      .max_store_buf_size = DMA_BUF_SIZE,
-      .conv_frame_size = DMA_FRAME_SIZE,
-      .flags = 0,
+      .max_store_buf_size = DMA_BUF_SIZE, .conv_frame_size = DMA_FRAME_SIZE,
+      // .flags = 0, // leave flags default-initialized to zero
   };
 
   ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &adc_handle));
