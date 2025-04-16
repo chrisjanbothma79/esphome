@@ -36,8 +36,8 @@ class ADCAudioMicrophone : public microphone::Microphone, public Component {
   HighFrequencyLoopRequester high_freq_;
   uint32_t sample_rate_;
   adc_atten_t attenuation_;
-  adc_continuous_handle_t adc_handle;
-  uint8_t *dma_out_buffer;
+  adc_continuous_handle_t adc_handle_;
+  uint8_t *dma_out_buffer_;
 };
 
 }  // namespace adc_microphone

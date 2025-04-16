@@ -24,8 +24,8 @@ static const char *const TAG = "adc_microphone";
 #define DMA_SAMPLES_PER_FRAME 16
 
 // ensure buffer is large enough to work even when running at slower speed
-#define DMA_FRAME_SIZE SOC_ADC_DIGI_DATA_BYTES_PER_CONV *DMA_SAMPLES_PER_FRAME
-#define DMA_BUF_SIZE DMA_FRAME_SIZE * 100
+#define DMA_FRAME_SIZE (SOC_ADC_DIGI_DATA_BYTES_PER_CONV * DMA_SAMPLES_PER_FRAME)
+#define DMA_BUF_SIZE (DMA_FRAME_SIZE * 100)
 
 void ADCAudioMicrophone::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADC Audio Microphone...");
@@ -36,7 +36,7 @@ void ADCAudioMicrophone::setup() {
       // .flags = 0, // leave flags default-initialized to zero
   };
 
-  ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &adc_handle));
+  ESP_ERROR_CHECK(adc_continuous_new_handle(&adc_config, &adc_handle_));
 
   adc_digi_output_format_t format = DMA_FORMAT_TYPE;
 
@@ -58,7 +58,7 @@ void ADCAudioMicrophone::setup() {
       .bit_width = 12,
   };
   dig_cfg.adc_pattern = &adc_pattern;
-  ESP_ERROR_CHECK(adc_continuous_config(adc_handle, &dig_cfg));
+  ESP_ERROR_CHECK(adc_continuous_config(adc_handle_, &dig_cfg));
 }
 
 void ADCAudioMicrophone::set_adc_channel(int gpio_pin) {
@@ -75,7 +75,7 @@ void ADCAudioMicrophone::start() {
 void ADCAudioMicrophone::start_() {
   esp_err_t err;
   {
-    err = adc_continuous_start(adc_handle);
+    err = adc_continuous_start(adc_handle_);
     if (err != ESP_OK) {
       ESP_LOGW(TAG, "Error starting ADC microphone: %s", esp_err_to_name(err));
       this->status_set_error("Cound not start");
@@ -83,7 +83,7 @@ void ADCAudioMicrophone::start_() {
     }
     // two calls are needed to empty the buffer anyways when it fills,
     // so lets save some memory
-    dma_out_buffer = new uint8_t[DMA_BUF_SIZE / 2];
+    dma_out_buffer_ = new uint8_t[DMA_BUF_SIZE / 2];
   }
   this->state_ = microphone::STATE_RUNNING;
   this->high_freq_.start();
@@ -103,13 +103,13 @@ void ADCAudioMicrophone::stop() {
 void ADCAudioMicrophone::stop_() {
   esp_err_t err;
 
-  err = adc_continuous_stop(adc_handle);
+  err = adc_continuous_stop(adc_handle_);
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "Error stopping ADC microphone: %s", esp_err_to_name(err));
     this->status_set_error();
     return;
   }
-  delete[] dma_out_buffer;
+  delete[] dma_out_buffer_;
   this->state_ = microphone::STATE_STOPPED;
   this->high_freq_.stop();
   this->status_clear_error();
@@ -118,7 +118,7 @@ void ADCAudioMicrophone::stop_() {
 size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   uint32_t bytes_read = 0;
   size_t max_read = std::min(len, (size_t) DMA_BUF_SIZE / 2);
-  esp_err_t err = adc_continuous_read(adc_handle, dma_out_buffer, max_read, &bytes_read, 4);
+  esp_err_t err = adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 4);
   ESP_LOGV(TAG, "read %u bytes from ADC", bytes_read);
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "Error reading from adc microphone: %s", esp_err_to_name(err));
@@ -134,7 +134,7 @@ size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   // remove the extraneous data, only leaving what we care about
   // skip calibration, since that looks performance-intensive
   size_t samples_read = bytes_read / SOC_ADC_DIGI_DATA_BYTES_PER_CONV;
-  adc_digi_output_data_t *temp = reinterpret_cast<adc_digi_output_data_t *>(dma_out_buffer);
+  adc_digi_output_data_t *temp = reinterpret_cast<adc_digi_output_data_t *>(dma_out_buffer_);
   int16_t seen_nonzero = 0;
   ESP_LOGV(TAG, "First sample is %x", temp[0].val);
   for (size_t i = 0; i < samples_read; i++) {
