@@ -33,10 +33,7 @@ ForceRecalibrationWithReference = scd30_ns.class_(
     "ForceRecalibrationWithReference", automation.Action
 )
 
-CONF_AUTOMATIC_SELF_CALIBRATION = "automatic_self_calibration"
 CONF_ALTITUDE_COMPENSATION = "altitude_compensation"
-CONF_AMBIENT_PRESSURE_COMPENSATION = "ambient_pressure_compensation"
-
 
 CONFIG_SCHEMA = (
     cv.Schema(

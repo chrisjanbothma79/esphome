@@ -22,7 +22,7 @@ MEASUREMENT_MODE = {
     "mass_flow": MeasurementMode.MASS_FLOW_AVG,
     "differential_pressure": MeasurementMode.DP_AVG,
 }
-CONF_MEASUREMENT_MODE = "measurement_mode"
+
 
 CONFIG_SCHEMA = (
     sensor.sensor_schema(
