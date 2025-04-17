@@ -51,14 +51,14 @@ class PASCO2Component : public PollingComponent, public i2c::I2CDevice {
   ERRORCODE error_code_;
 
   InitializationState initialization_state_ = InitializationState::IDLE;
-  unsigned long last_action_time_;
+  uint32_t last_action_time_;
   uint8_t remaining_retries_;
   bool initialized_{false};
   bool calibrating_{false};
 
   bool ambient_pressure_compensation_;
   uint16_t ambient_pressure_;
-  uint32_t polling_interval;
+  uint32_t polling_interval_;
   bool enable_asc_;
   MeasurementMode measurement_mode_{PERIODIC};
   sensor::Sensor *co2_sensor_{nullptr};
