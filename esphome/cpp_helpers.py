@@ -11,6 +11,7 @@ from esphome.const import (
     CONF_TYPE_ID,
     CONF_UPDATE_INTERVAL,
     KEY_PAST_SAFE_MODE,
+    CONF_ID,
 )
 from esphome.core import CORE, ID, coroutine
 from esphome.coroutine import FakeAwaitable
@@ -95,14 +96,22 @@ async def register_parented(var, value):
         paren = value
     add(var.set_parent(paren))
 
-
 async def setup_entity(var, config):
     """Set up generic properties of an Entity"""
     add(var.set_name(config[CONF_NAME]))
-    if not config[CONF_NAME]:
-        add(var.set_object_id(sanitize(snake_case(CORE.friendly_name))))
+    
+    if CONF_ID in config:
+        object_id = sanitize(snake_case(str(config[CONF_ID])))
+    elif not config[CONF_NAME]:
+        object_id = sanitize(snake_case(CORE.friendly_name))
+    elif set(sanitize(snake_case(config[CONF_NAME]))) != {'_'}:
+        object_id = sanitize(snake_case(config[CONF_NAME]))
     else:
-        add(var.set_object_id(sanitize(snake_case(config[CONF_NAME]))))
+        from hashlib import md5
+        object_id = md5(config[CONF_NAME].encode("utf-8")).hexdigest()[:8]
+
+    add(var.set_object_id(object_id))
+
     add(var.set_disabled_by_default(config[CONF_DISABLED_BY_DEFAULT]))
     if CONF_INTERNAL in config:
         add(var.set_internal(config[CONF_INTERNAL]))
