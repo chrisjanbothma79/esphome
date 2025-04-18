@@ -13,102 +13,66 @@ static const char *const TAG = "remote.nec";
 // // NOLINT https://www.renesas.com/ja/document/apn/1184-remote-control-ir-receiver-decoder
 
 // Timing constants in microseconds
-static const uint16_t AGC_HIGH_US = 9000;            // AGC burst: 9ms HIGH
-static const uint16_t LONG_PAUSE_LOW_US = 4500;      // After AGC burst: 4.5ms LOW
-static const uint16_t SHORT_PAUSE_LOW_US = 2250;     // After AGC burst: 2.25ms LOW
-static const uint16_t BIT_HIGH_US = 562;             // Bit HIGH duration: 562.5µs
-static const uint16_t BIT_ONE_LOW_US = 1687;         // Logic '1': 562.5µs HIGH + 1687.5µs LOW
-static const uint16_t BIT_ZERO_LOW_US = 562;         // Logic '0': 562.5µs HIGH + 562.5µs LOW
-static const uint16_t SPACE_INTER_FRAME_US = 40000;  // Inter-frame space: 40ms
-static const uint32_t SPACE_AGC_REPEAT_US = 96187;   // AGC Repeat space: ~96.1875ms
-
-const NECData NEC_REPEAT_CODE_DATA{
-    .address = 0,
-    .command = 0,
-    .repeats = 1,
-    .type = NECCodeType::REPEATS_ONLY,
-};
+static const uint16_t AGC_HIGH_US = 9000;         // AGC burst: 9ms HIGH
+static const uint16_t LONG_PAUSE_LOW_US = 4500;   // After AGC burst: 4.5ms LOW
+static const uint16_t SHORT_PAUSE_LOW_US = 2250;  // After AGC burst: 2.25ms LOW
+static const uint16_t BIT_HIGH_US = 562;          // Bit HIGH duration: 562.5µs
+static const uint16_t BIT_ONE_LOW_US = 1687;      // Logic '1': 562.5µs HIGH + 1687.5µs LOW
+static const uint16_t BIT_ZERO_LOW_US = 562;      // Logic '0': 562.5µs HIGH + 562.5µs LOW
+const uint16_t NEC_SPACE_INTER_FRAME_US = 40000;  // Inter-frame space: 40ms
+const uint32_t NEC_SPACE_AGC_REPEAT_US = 96187;   // AGC Repeat space: ~96.1875ms
 
 void NECProtocol::encode(RemoteTransmitData *dst, const NECData &data) {
   ESP_LOGV(TAG, "Encoding %s", this->get_protocol_type_and_fields_str(data).c_str());
 
-  if (data.repeats > 20) {
-    ESP_LOGW(TAG, "High repeat count may cause WDT timeout.");
+  if (data.type != NECCodeType::FRAME && data.type != NECCodeType::REPEAT) {
+    ESP_LOGE(TAG, "Only FRAME and REPEAT code types are supported.");
   }
 
-  if (data.repeats == 0 && data.type == NECCodeType::REPEATS_ONLY) {
-    ESP_LOGE(TAG, "Repeat count must be greater than 0 for repeat only codes.");
-  }
-
-  // Repeat codes (4 per repeat)
-  uint32_t dst_len = data.repeats * 4;
-  if (data.type == NECCodeType::FRAME_WITH_REPEATS) {
-    dst_len += 2;   // AGC Header (2)
-    dst_len += 32;  // Address bits (32)
-    dst_len += 32;  // Command bits (32)
-    dst_len += 2;   // Stop bit (2)
-  }
+  // FRAME: AGC Header (2) + Address bits (32) + Command bits (32) + Stop bit (2)
+  // REPEAT: AGC Repeat header (2) + Stop bit (2)
+  uint32_t dst_len = data.type == NECCodeType::FRAME ? 68 : 4;
   dst->reserve(dst_len);
   dst->set_carrier_frequency(38222);
 
-  if (data.type == NECCodeType::FRAME_WITH_REPEATS) {
-    // Send the AGC Header (start of frame)
-    dst->item(AGC_HIGH_US, LONG_PAUSE_LOW_US);
-
-    // Encode Address
-    for (uint16_t mask = 1; mask; mask <<= 1) {
-      if (data.address & mask) {
-        dst->item(BIT_HIGH_US, BIT_ONE_LOW_US);  // Logic '1'
-      } else {
-        dst->item(BIT_HIGH_US, BIT_ZERO_LOW_US);  // Logic '0'
-      }
-    }
-
-    // Encode Command
-    for (uint16_t mask = 1; mask; mask <<= 1) {
-      if (data.command & mask) {
-        dst->item(BIT_HIGH_US, BIT_ONE_LOW_US);  // Logic '1'
-      } else {
-        dst->item(BIT_HIGH_US, BIT_ZERO_LOW_US);  // Logic '0'
-      }
-    }
-
-    // Stop bit to end the message frame
-    dst->mark(BIT_HIGH_US);
-
-#if defined(USE_REMOTE_TRANSMITTER_NEC_FULL_LEN)
-    // Space after end of message frame
-    dst->space(SPACE_INTER_FRAME_US);
-#else
-    // Space between message frame and first repeat code
-    if (data.repeats > 0)
-      dst->space(SPACE_INTER_FRAME_US);
-#endif
-  }
-
-  // Send AGC Repeat Codes if requested
-  for (uint16_t repeats = 0; repeats < data.repeats; ++repeats) {
+  if (data.type == NECCodeType::REPEAT) {
     // AGC Repeat header (shorter version of the initial AGC header)
     dst->item(AGC_HIGH_US, SHORT_PAUSE_LOW_US);  // Shortened AGC header
     dst->mark(BIT_HIGH_US);                      // Stop bit to complete the repeat code
-
-#if defined(USE_REMOTE_TRANSMITTER_NEC_FULL_LEN)
-    // Add space after each repeat code
-    dst->space(SPACE_AGC_REPEAT_US);
-#else
-    // Add space after repeat code, except after the final repeat
-    if (repeats < data.repeats - 1)
-      dst->space(SPACE_AGC_REPEAT_US);
-#endif
+    return;
   }
+
+  // AGC Header (start of frame)
+  dst->item(AGC_HIGH_US, LONG_PAUSE_LOW_US);
+
+  // Encode Address
+  for (uint16_t mask = 1; mask; mask <<= 1) {
+    if (data.address & mask) {
+      dst->item(BIT_HIGH_US, BIT_ONE_LOW_US);  // Logic '1'
+    } else {
+      dst->item(BIT_HIGH_US, BIT_ZERO_LOW_US);  // Logic '0'
+    }
+  }
+
+  // Encode Command
+  for (uint16_t mask = 1; mask; mask <<= 1) {
+    if (data.command & mask) {
+      dst->item(BIT_HIGH_US, BIT_ONE_LOW_US);  // Logic '1'
+    } else {
+      dst->item(BIT_HIGH_US, BIT_ZERO_LOW_US);  // Logic '0'
+    }
+  }
+
+  // Stop bit to end the message frame
+  dst->mark(BIT_HIGH_US);
 }
 
 optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
   NECData data{
       .address = 0,
       .command = 0,
-      .repeats = 0,  // Start with 0, as the first frame is counted explicitly
-      .type = NECCodeType::FRAME_WITH_REPEATS,
+      .repeats = 0,
+      .type = NECCodeType::REPEAT,
   };
 
   // Validate the AGC header (start of frame or repeat code)
@@ -123,10 +87,10 @@ optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
       return {};
     }
 
-    ESP_LOGVV(TAG, "Decoded repeat code only");
+    ESP_LOGVV(TAG, "Decoded repeat code");
 
     // Repeat code received
-    return NEC_REPEAT_CODE_DATA;
+    return data;
   }
 
   // Validate the long pause (message frame)
@@ -161,7 +125,9 @@ optional<NECData> NECProtocol::decode(RemoteReceiveData src) {
     return {};
   }
 
-  // Message frame received, `data.type = NECCodeType::FRAME_WITH_REPEATS` is already set
+  // Frame received
+  data.type = NECCodeType::FRAME;
+
   if (!NECProtocol::is_command_valid(data)) {
     ESP_LOGW(TAG, "Decoded command invalid: 0x%04X", data.command);
   }
@@ -179,17 +145,17 @@ void NECProtocol::dump(const NECData &data) {
 std::string NECProtocol::get_protocol_type_and_fields_str(const NECData &data) {
   std::string debug_message = "NEC ";
   switch (data.type) {
-    case NECCodeType::FRAME_WITH_REPEATS:
+    case NECCodeType::FRAME:
       debug_message += str_sprintf("Frame (%u-bit address)", NECProtocol::is_address_extended(data) ? 16 : 8);
       break;
-    case NECCodeType::REPEATS_ONLY:
+    case NECCodeType::REPEAT:
       debug_message += "Repeat Code:";
       break;
     default:
       debug_message += "Unknown";
   }
 
-  if (data.type != NECCodeType::REPEATS_ONLY) {
+  if (data.type != NECCodeType::REPEAT) {
     debug_message += ": address=0x";
     if (NECProtocol::is_address_extended(data)) {
       debug_message += str_sprintf("%04X", data.address);
@@ -199,9 +165,11 @@ std::string NECProtocol::get_protocol_type_and_fields_str(const NECData &data) {
 
     debug_message += str_sprintf(", command=0x%02X, command#=0x%02X, command_valid=%s,", data.command_bytes.lo,
                                  data.command_bytes.hi, YESNO(NECProtocol::is_command_valid(data)));
-  }
 
-  debug_message += str_sprintf(" repeats=%u", data.repeats);
+    if (data.type != NECCodeType::FRAME) {
+      debug_message += str_sprintf(" repeats=%u, type=%u", data.repeats, static_cast<uint8_t>(data.type));
+    }
+  }
 
   return debug_message;
 }
@@ -219,31 +187,29 @@ bool NECBinarySensor::matches(RemoteReceiveData src) {
     return false;
   }
 
-  bool last_waiting_state = this->waiting_for_repeat_code_;
+  bool last_waiting_state = this->currently_on_and_waiting_for_repeat_code_;
 
   switch (res.value().type) {
-    case NECCodeType::FRAME_WITH_REPEATS:
-      // Set waiting to true only if currently not waiting and this is our desired frame.
-      this->waiting_for_repeat_code_ = (!this->waiting_for_repeat_code_ && (res.value() == this->data_));
+    case NECCodeType::FRAME:
+      this->currently_on_and_waiting_for_repeat_code_ = res.value() == this->data_;
       break;
 
-    case NECCodeType::REPEATS_ONLY:
-      // Stay waiting only if we were already waiting and we got a valid repeat code.
-      this->waiting_for_repeat_code_ = (this->waiting_for_repeat_code_ && (res.value() == NEC_REPEAT_CODE_DATA));
+    case NECCodeType::REPEAT:
+      // Repeat codes are ignored, state remains unchanged
       break;
 
     default:
-      this->waiting_for_repeat_code_ = false;
+      this->currently_on_and_waiting_for_repeat_code_ = false;
       break;
   }
 
-  if (last_waiting_state && !this->waiting_for_repeat_code_) {
+  if (last_waiting_state && !this->currently_on_and_waiting_for_repeat_code_) {
     ESP_LOGV(TAG, "Received unexpected signal");
     this->publish_state(false);
     this->cancel_timeout("repeat");
   }
 
-  return this->waiting_for_repeat_code_;
+  return this->currently_on_and_waiting_for_repeat_code_;
 }
 
 bool NECBinarySensor::on_receive(RemoteReceiveData src) {
@@ -253,11 +219,12 @@ bool NECBinarySensor::on_receive(RemoteReceiveData src) {
 
   this->publish_state(true);
   this->set_timeout("repeat", this->repeat_timeout_ms_, [this]() {
-    this->waiting_for_repeat_code_ = false;
+    this->currently_on_and_waiting_for_repeat_code_ = false;
     this->publish_state(false);
   });
 
   return true;
 }
+
 }  // namespace remote_base
 }  // namespace esphome

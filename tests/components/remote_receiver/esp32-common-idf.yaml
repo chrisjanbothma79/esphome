@@ -21,3 +21,4 @@ binary_sensor:
     nec:
       address: 0x6B86
       command: 0xF30C
+      timeout: 125ms

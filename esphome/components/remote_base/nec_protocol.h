@@ -5,14 +5,20 @@
 namespace esphome {
 namespace remote_base {
 
-/// @brief NEC protocol code types
+extern const uint16_t NEC_SPACE_INTER_FRAME_US;  // Inter-frame space
+extern const uint32_t NEC_SPACE_AGC_REPEAT_US;   // AGC Repeat space
+
+/// @brief NEC protocol code types for encoding.
+/// @note Only `FRAME` and `REPEAT` are supported for encoding/decoding.
 enum class NECCodeType : uint8_t {
-  FRAME_WITH_REPEATS,  ///< Frame with address, command and repeats
-  REPEATS_ONLY         ///< Repeat code without address and command
+  FRAME,                    ///< Frame with address, command
+  NEC1_FRAME_WITH_REPEATS,  ///< NEC1
+  NEC2_FRAME_WITH_REPEATS,  ///< NEC2
+  REPEAT                    ///< Single NEC1 repeat code
 };
 
 /// @brief Represents NEC infrared protocol data.
-/// @details This struct stores a decoded NEC infrared signal, including its address, command, repeat count, and type.
+/// @details This struct stores a decoded NEC infrared signal, including its address, command and type.
 struct NECData {
   /// @brief NEC address (16-bit).
   /// @details The NEC protocol supports two addressing modes:
@@ -39,28 +45,29 @@ struct NECData {
     } command_bytes;
   };
 
-  uint16_t repeats;  ///< Number of repeat codes received or to be transmitted.
-  NECCodeType type;  ///< Type of NEC signal (full frame or repeats only).
+  uint16_t repeats;  ///< Number of repeat codes received (reserved for future use).
+  NECCodeType type;
 
-  /// @brief Compares two NECData instances.
-  /// @details Checks if two NEC signals are identical:
-  ///          - If `type` is `NECCodeType::REPEATS_ONLY`, only the repeat count is compared.
-  ///          - If `type` is `NECCodeType::FRAME_WITH_REPEATS`, both address and command must match.
-  /// @param[in] rhs Another NECData instance.
-  /// @return True if both instances are equal, false otherwise.
   bool operator==(const NECData &rhs) const {
-    switch (type) {
-      case NECCodeType::REPEATS_ONLY:
-        return repeats == rhs.repeats;
-      case NECCodeType::FRAME_WITH_REPEATS:
-        return address == rhs.address && command == rhs.command;
+    // Types must match
+    if (type != rhs.type) {
+      return false;
     }
+
+    switch (type) {
+      case NECCodeType::FRAME:
+        return address == rhs.address && command == rhs.command;
+      case NECCodeType::NEC1_FRAME_WITH_REPEATS:
+      case NECCodeType::NEC2_FRAME_WITH_REPEATS:
+        return address == rhs.address && command == rhs.command && repeats == rhs.repeats;
+      case NECCodeType::REPEAT:
+        return true;
+    }
+
+    // Unknown type
     return false;
   };
 };
-
-/// @brief Predefined single repeat code `NECData` returned by `NECProtocol::decode(RemoteReceiveData)`
-extern const NECData NEC_REPEAT_CODE_DATA;
 
 /// @brief NECProtocol handles encoding, decoding, and validation of NEC infrared signals.
 /// @details This class provides methods to encode and decode NEC IR signals while ensuring compliance
@@ -173,7 +180,7 @@ class NECBinarySensor : public RemoteReceiverBinarySensor<NECProtocol> {
   uint8_t repeat_timeout_ms_{130};
 
   /// @brief Tracks whether the sensor is currently expecting a repeat code.
-  bool waiting_for_repeat_code_{false};
+  bool currently_on_and_waiting_for_repeat_code_{false};
 };
 
 using NECTrigger = RemoteReceiverTrigger<NECProtocol>;
@@ -183,14 +190,74 @@ template<typename... Ts> class NECAction : public RemoteTransmitterActionBase<Ts
  public:
   TEMPLATABLE_VALUE(uint16_t, address)
   TEMPLATABLE_VALUE(uint16_t, command)
-  TEMPLATABLE_VALUE(uint16_t, repeats)
   TEMPLATABLE_VALUE(NECCodeType, type)
+
+  void play(Ts... x) override {
+    if (!this->type_.has_value()) {
+      return;
+    }
+
+    uint32_t send_times = this->send_times_.value_or(x..., 1);
+    if (send_times == 0) {
+      return;
+    }
+
+    // How many times to send whole NEC frame (addr+cmd)
+    uint32_t frame_send_times = send_times;
+
+    // Accpet only valid NEC code types
+    NECCodeType type = this->type_.value(x...);
+    switch (type) {
+      case NECCodeType::NEC1_FRAME_WITH_REPEATS:
+        if (frame_send_times > 1) {
+          frame_send_times = 1;
+        }
+        break;
+      case NECCodeType::NEC2_FRAME_WITH_REPEATS:
+        break;
+      default:
+        return;
+    }
+
+    // Encode frame
+    NECData data{};
+    data.address = this->address_.value(x...);
+    data.command = this->command_.value(x...);
+    data.repeats = send_times - 1;
+    data.type = NECCodeType::FRAME;
+
+    // Create transmit call, resets RemoteTransmitData
+    auto call = this->transmitter_->transmit();
+    NECProtocol().encode(call.get_data(), data);
+    // Send frames
+    call.set_send_times(frame_send_times);
+    call.set_send_wait(NEC_SPACE_INTER_FRAME_US);
+    call.perform();
+
+    if (type == NECCodeType::NEC2_FRAME_WITH_REPEATS) {
+      return;
+    }
+
+    // Send NEC1 repeats only if needed
+    if (send_times == 1) {
+      return;
+    }
+
+    // Reset RemoteTransmitData
+    call.get_data()->reset();
+    // Send NEC1 repeats
+    data.type = NECCodeType::REPEAT;
+    NECProtocol().encode(call.get_data(), data);
+    call.set_send_times(send_times - 1);
+    call.set_send_wait(NEC_SPACE_AGC_REPEAT_US);
+    call.perform();
+  }
 
   void encode(RemoteTransmitData *dst, Ts... x) override {
     NECData data{};
     data.address = this->address_.value(x...);
     data.command = this->command_.value(x...);
-    data.repeats = this->repeats_.value(x...);
+    data.repeats = this->send_times_.value_or(x..., 0);
     data.type = this->type_.value(x...);
     NECProtocol().encode(dst, data);
   }

@@ -18,31 +18,34 @@ button:
         address: 0x4242
         command: 0x8484
   - platform: template
-    name: NEC Default 1 Repeat
+    name: NEC Default with 1 Repeat
     id: living_room_lights_off_default_repeat
     on_press:
       remote_transmitter.transmit_nec:
         address: 0x4242
         command: 0x8484
-        repeats: 1
+        repeat:
+          times: 1
   - platform: template
-    name: NEC Default 3 Repeats
+    name: NEC1 with 3 Repeats
     id: living_room_lights_off_default_repeats
     on_press:
       remote_transmitter.transmit_nec:
         address: 0x4242
         command: 0x8484
-        repeats: 3
-        type: frame_with_repeats
+        type: NEC1
+        repeat:
+          times: 3
   - platform: template
-    name: NEC Repeats Only
+    name: NEC2 with 10 Repeats
     id: living_room_lights_off_repeats_only
     on_press:
       remote_transmitter.transmit_nec:
         address: 0x4242
         command: 0x8484
-        repeats: 10
-        type: repeats_only
+        type: NEC2
+        repeat:
+          times: 10
   - platform: template
     name: LG
     on_press:

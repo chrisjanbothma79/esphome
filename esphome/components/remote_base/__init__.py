@@ -50,9 +50,8 @@ CONF_TRANSMITTER_ID = "transmitter_id"
 CONF_FIRST = "first"
 
 # NEC
-CONF_REPEATS = "repeats"
-TYPE_FRAME_WITH_REPEATS = "frame_with_repeats"
-TYPE_REPEATS_ONLY = "repeats_only"
+NEC_TYPE_NEC1 = "NEC1"
+NEC_TYPE_NEC2 = "NEC2"
 
 ns = remote_base_ns = cg.esphome_ns.namespace("remote_base")
 RemoteProtocol = ns.class_("RemoteProtocol")
@@ -755,8 +754,8 @@ async def keeloq_action(var, config, args):
 NECData, NECBinarySensor, NECTrigger, NECAction, NECDumper = declare_protocol("NEC")
 NECCodeType = ns.enum("NECCodeType", is_class=True)
 NEC_CODE_TYPES = {
-    TYPE_FRAME_WITH_REPEATS: NECCodeType.FRAME_WITH_REPEATS,
-    TYPE_REPEATS_ONLY: NECCodeType.REPEATS_ONLY,
+    NEC_TYPE_NEC1: NECCodeType.NEC1_FRAME_WITH_REPEATS,
+    NEC_TYPE_NEC2: NECCodeType.NEC2_FRAME_WITH_REPEATS,
 }
 
 NEC_FRAME_SCHEMA = cv.Schema(
@@ -764,7 +763,7 @@ NEC_FRAME_SCHEMA = cv.Schema(
         cv.Required(CONF_ADDRESS): cv.hex_uint16_t,
         cv.Required(CONF_COMMAND): cv.hex_uint16_t,
         cv.Optional(CONF_COMMAND_REPEATS): cv.invalid(
-            "'command_repeats' option has been renamed to 'repeats'. "
+            "'command_repeats' option has been removed. Use 'repeat' instead. "
             "Check Remote receiver/transmitter documentation for more details."
         ),
     }
@@ -772,9 +771,17 @@ NEC_FRAME_SCHEMA = cv.Schema(
 
 NEC_TRANSMIT_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_REPEATS, default=0): cv.uint16_t,
-        cv.Optional(CONF_TYPE, default=TYPE_FRAME_WITH_REPEATS): cv.enum(
-            NEC_CODE_TYPES, lower=True
+        cv.Optional(CONF_TYPE, default=NEC_TYPE_NEC1): cv.enum(
+            NEC_CODE_TYPES, upper=True
+        ),
+        cv.Optional(CONF_REPEAT, default={CONF_TIMES: 1}): cv.Schema(
+            {
+                cv.Required(CONF_TIMES): cv.templatable(cv.positive_int),
+                cv.Optional(CONF_WAIT_TIME): cv.invalid(
+                    "'wait_time' option is invalid for NEC protocol. "
+                    "Check Remote receiver/transmitter documentation for more details."
+                ),
+            }
         ),
     }
 ).extend(NEC_FRAME_SCHEMA)
@@ -798,7 +805,7 @@ def nec_binary_sensor(var, config):
                 ("address", config[CONF_ADDRESS]),
                 ("command", config[CONF_COMMAND]),
                 ("repeats", 0),
-                ("type", NEC_CODE_TYPES[TYPE_FRAME_WITH_REPEATS]),
+                ("type", NECCodeType.FRAME),
             )
         )
     )
@@ -821,8 +828,6 @@ async def nec_action(var, config, args):
     cg.add(var.set_address(template_))
     template_ = await cg.templatable(config[CONF_COMMAND], args, cg.uint16)
     cg.add(var.set_command(template_))
-    template_ = await cg.templatable(config[CONF_REPEATS], args, cg.uint16)
-    cg.add(var.set_repeats(template_))
     template_ = await cg.templatable(config[CONF_TYPE], args, NECCodeType)
     cg.add(var.set_type(template_))
 
