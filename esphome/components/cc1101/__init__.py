@@ -202,71 +202,84 @@ HYST_LEVEL = {
     "High": HystLevel.HYST_LEVEL_HIGH,
 }
 
-TUNER_SCHEMA = cv.Schema(
-    {
-        cv.Optional(CONF_FREQUENCY): cv.float_range(300000, 928000),
-        cv.Optional(CONF_IF_FREQUENCY): cv.float_range(25, 788),
-        cv.Optional(CONF_BANDWIDTH): cv.float_range(58, 812),
-        cv.Optional(CONF_CHANNEL): cv.uint8_t,
-        cv.Optional(CONF_CHANNEL_SPACING, default=200): cv.float_range(25, 405),
-        cv.Optional(CONF_FSK_DEVIATION): cv.float_range(1.5, 381),  # do not set default
-        cv.Optional(CONF_MSK_DEVIATION): cv.int_range(1, 8),  # do not set default
-        cv.Optional(CONF_SYMBOL_RATE): cv.float_range(600, 500000),
-        cv.Optional(CONF_SYNC_MODE): cv.enum(SYNC_MODE),
-        cv.Optional(CONF_CARRIER_SENSE_ABOVE_THRESHOLD): cv.boolean,
-        cv.Optional(CONF_MODULATION): cv.enum(MODULATION),
-    }
-)
-
-AGC_SCHEMA = cv.Schema(
-    {
-        cv.Optional(CONF_MAGN_TARGET): cv.enum(MAGN_TARGET),
-        cv.Optional(CONF_MAX_LNA_GAIN): cv.enum(MAX_LNA_GAIN),
-        cv.Optional(CONF_MAX_DVGA_GAIN): cv.enum(MAX_DVGA_GAIN),
-        cv.Optional(CONF_CARRIER_SENSE_ABS_THR): cv.int_range(-8, 7),
-        cv.Optional(CONF_CARRIER_SENSE_REL_THR): cv.enum(CARRIER_SENSE_REL_THR),
-        cv.Optional(CONF_LNA_PRIORITY): cv.boolean,
-        cv.Optional(CONF_FILTER_LENGTH_FSK_MSK): cv.enum(FILTER_LENGTH_FSK_MSK),
-        cv.Optional(CONF_FILTER_LENGTH_ASK_OOK): cv.enum(FILTER_LENGTH_ASK_OOK),
-        cv.Optional(CONF_FREEZE): cv.enum(FREEZE),
-        cv.Optional(CONF_WAIT_TIME): cv.enum(WAIT_TIME),
-        cv.Optional(CONF_HYST_LEVEL): cv.enum(HYST_LEVEL),
-    }
-)
-
-SENSOR_SCHEMA = {
-    cv.Optional(CONF_CHIP_ID): text_sensor.text_sensor_schema(
-        # unit_of_measurement=UNIT_,
-        # accuracy_decimals=3,
-        # device_class=DEVICE_CLASS_,
-        # state_class=STATE_CLASS_MEASUREMENT,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-        icon=ICON_CHIP,
-    ),
-    cv.Optional(CONF_RSSI): sensor.sensor_schema(
-        unit_of_measurement=UNIT_DECIBEL_MILLIWATT,
-        accuracy_decimals=0,
-        device_class=DEVICE_CLASS_SIGNAL_STRENGTH,
-        state_class=STATE_CLASS_MEASUREMENT,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-        # icon=ICON_CHIP,
-    ),
-    cv.Optional(CONF_LQI): sensor.sensor_schema(
-        unit_of_measurement=UNIT_EMPTY,
-        accuracy_decimals=0,
-        # device_class=DEVICE_CLASS_SIGNAL_STRENGTH,
-        state_class=STATE_CLASS_MEASUREMENT,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-        # icon=ICON_CHIP,
-    ),
-    cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
-        unit_of_measurement=UNIT_CELSIUS,
-        accuracy_decimals=1,
-        device_class=DEVICE_CLASS_TEMPERATURE,
-        state_class=STATE_CLASS_MEASUREMENT,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-        # icon=ICON_CHIP,
-    ),
+TYPES = {
+    None: {
+        CONF_OUTPUT_POWER: [cv.float_range(-70, 11)],
+        CONF_RX_ATTENUATION: [cv.enum(RX_ATTENUATION)],
+        CONF_DC_BLOCKING_FILTER: [cv.boolean],
+    },
+    CONF_TUNER: {
+        CONF_FREQUENCY: [cv.float_range(300000, 928000)],
+        CONF_IF_FREQUENCY: [cv.float_range(25, 788)],
+        CONF_BANDWIDTH: [cv.float_range(58, 812)],
+        CONF_CHANNEL: [cv.uint8_t],
+        CONF_CHANNEL_SPACING: [cv.float_range(25, 405)],
+        CONF_FSK_DEVIATION: [cv.float_range(1.5, 381)],
+        CONF_MSK_DEVIATION: [cv.int_range(1, 8)],
+        CONF_SYMBOL_RATE: [cv.float_range(600, 500000)],
+        CONF_SYNC_MODE: [cv.enum(SYNC_MODE)],
+        CONF_CARRIER_SENSE_ABOVE_THRESHOLD: [cv.boolean],
+        CONF_MODULATION: [cv.enum(MODULATION)],
+    },
+    CONF_AGC: {
+        CONF_MAGN_TARGET: [cv.enum(MAGN_TARGET)],
+        CONF_MAX_LNA_GAIN: [cv.enum(MAX_LNA_GAIN)],
+        CONF_MAX_DVGA_GAIN: [cv.enum(MAX_DVGA_GAIN)],
+        CONF_CARRIER_SENSE_ABS_THR: [cv.int_range(-8, 7)],
+        CONF_CARRIER_SENSE_REL_THR: [cv.enum(CARRIER_SENSE_REL_THR)],
+        CONF_LNA_PRIORITY: [cv.boolean],
+        CONF_FILTER_LENGTH_FSK_MSK: [cv.enum(FILTER_LENGTH_FSK_MSK)],
+        CONF_FILTER_LENGTH_ASK_OOK: [cv.enum(FILTER_LENGTH_ASK_OOK)],
+        CONF_FREEZE: [cv.enum(FREEZE)],
+        CONF_WAIT_TIME: [cv.enum(WAIT_TIME)],
+        CONF_HYST_LEVEL: [cv.enum(HYST_LEVEL)],
+    },
+    CONF_SENSOR: {
+        CONF_CHIP_ID: [
+            text_sensor.text_sensor_schema(
+                # unit_of_measurement=UNIT_,
+                # accuracy_decimals=3,
+                # device_class=DEVICE_CLASS_,
+                # state_class=STATE_CLASS_MEASUREMENT,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+                icon=ICON_CHIP,
+            ),
+            "text_sensor",
+        ],
+        CONF_RSSI: [
+            sensor.sensor_schema(
+                unit_of_measurement=UNIT_DECIBEL_MILLIWATT,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_SIGNAL_STRENGTH,
+                state_class=STATE_CLASS_MEASUREMENT,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+                # icon=ICON_CHIP,
+            ),
+            "sensor",
+        ],
+        CONF_LQI: [
+            sensor.sensor_schema(
+                unit_of_measurement=UNIT_EMPTY,
+                accuracy_decimals=0,
+                # device_class=DEVICE_CLASS_SIGNAL_STRENGTH,
+                state_class=STATE_CLASS_MEASUREMENT,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+                # icon=ICON_CHIP,
+            ),
+            "sensor",
+        ],
+        CONF_TEMPERATURE: [
+            sensor.sensor_schema(
+                unit_of_measurement=UNIT_CELSIUS,
+                accuracy_decimals=1,
+                device_class=DEVICE_CLASS_TEMPERATURE,
+                state_class=STATE_CLASS_MEASUREMENT,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+                # icon=ICON_CHIP,
+            ),
+            "sensor",
+        ],
+    },
 }
 
 CONFIG_SCHEMA = (
@@ -275,75 +288,47 @@ CONFIG_SCHEMA = (
             cv.GenerateID(): cv.declare_id(CC1101Component),
             cv.Optional(CONF_GDO0_PIN): cv.All(pins.internal_gpio_output_pin_schema),
             cv.Optional(CONF_GDO0_ADC_ID): cv.use_id(voltage_sampler.VoltageSampler),
-            cv.Optional(CONF_OUTPUT_POWER): cv.float_range(-70, 11),
-            cv.Optional(CONF_RX_ATTENUATION): cv.enum(RX_ATTENUATION),
-            cv.Optional(CONF_DC_BLOCKING_FILTER): cv.boolean,
-            cv.Optional(CONF_TUNER): TUNER_SCHEMA,
-            cv.Optional(CONF_AGC): AGC_SCHEMA,
-            cv.Optional(CONF_SENSOR): SENSOR_SCHEMA,
         }
+    )
+    .extend(
+        {cv.Optional(k): v[0] for k, v in TYPES[None].items()},
+        {
+            cv.Optional(CONF_TUNER): cv.Schema(
+                {cv.Optional(k): v[0] for k, v in TYPES[CONF_TUNER].items()}
+            ),
+            cv.Optional(CONF_AGC): cv.Schema(
+                {cv.Optional(k): v[0] for k, v in TYPES[CONF_AGC].items()}
+            ),
+            cv.Optional(CONF_SENSOR): cv.Schema(
+                {cv.Optional(k): v[0] for k, v in TYPES[CONF_SENSOR].items()}
+            ),
+        },
     )
     .extend(cv.polling_component_schema("60s"))
     .extend(spi.spi_device_schema(cs_pin_required=True))
 )
 
-VARIABLES = {
-    None: [
-        [CONF_OUTPUT_POWER],
-        [CONF_RX_ATTENUATION],
-        [CONF_DC_BLOCKING_FILTER],
-    ],
-    CONF_TUNER: [
-        [CONF_FREQUENCY],
-        [CONF_IF_FREQUENCY],
-        [CONF_BANDWIDTH],
-        [CONF_CHANNEL],
-        [CONF_CHANNEL_SPACING],
-        [CONF_FSK_DEVIATION],
-        [CONF_MSK_DEVIATION],
-        [CONF_SYMBOL_RATE],
-        [CONF_SYNC_MODE],
-        [CONF_CARRIER_SENSE_ABOVE_THRESHOLD],
-        [CONF_MODULATION],
-    ],
-    CONF_AGC: [
-        [CONF_MAGN_TARGET],
-        [CONF_MAX_LNA_GAIN],
-        [CONF_MAX_DVGA_GAIN],
-        [CONF_CARRIER_SENSE_ABS_THR],
-        [CONF_CARRIER_SENSE_REL_THR],
-        [CONF_LNA_PRIORITY],
-        [CONF_FILTER_LENGTH_FSK_MSK],
-        [CONF_FILTER_LENGTH_ASK_OOK],
-        [CONF_FREEZE],
-        [CONF_WAIT_TIME],
-        [CONF_HYST_LEVEL],
-    ],
-}
-
-SENSORS = {
-    CONF_SENSOR: [
-        [CONF_CHIP_ID, "text_sensor"],
-        [CONF_RSSI, "sensor"],
-        [CONF_LQI, "sensor"],
-        [CONF_TEMPERATURE, "sensor"],
-    ],
-}
+CC1101_COMPONENT_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(CONF_CC1101_ID): cv.use_id(CC1101Component),
+    }
+)
 
 
-async def for_each_conf(config, vars, callback):
-    for section in vars:
+async def for_each_conf(config, types, callback):
+    for section in types:
         if section is not None and section not in config:
             continue
         c = config[section] if section is not None else config
-        for args in vars[section]:
+        for type, args in types[section].items():
+            if type not in c:
+                continue
             setter = "set_"
             if section is not None and section != CONF_SENSOR:
                 setter += section + "_"
-            setter += args[0]
-            if args[0] in c:
-                # print(setter + "(" + repr(c[args[0]]) + ")")
-                await callback(c[args[0]], args, setter)
+            setter += type
+            # print(setter + "(" + repr(c[type]) + ")")
+            await callback(c[type], args[1:], setter)
 
 
 async def to_code(config):
@@ -357,22 +342,21 @@ async def to_code(config):
         gdo0_adc_id = await cg.get_variable(config[CONF_GDO0_ADC_ID])
         cg.add(var.set_config_gdo0_adc_pin(gdo0_adc_id))
 
-    async def set_var(c, a, s):
-        cg.add(getattr(var, s)(c))
+    async def set_var(c, args, setter):
+        if len(args) > 0:
+            s = None
+            if args[0] == "sensor":
+                s = await sensor.new_sensor(c)
+            elif args[0] == "binary_sensor":
+                s = await binary_sensor.new_binary_sensor(c)
+            elif args[0] == "text_sensor":
+                s = await text_sensor.new_text_sensor(c)
+            if s is not None:
+                cg.add(getattr(var, setter + "_" + args[0])(s))
+        else:
+            cg.add(getattr(var, setter)(c))
 
-    await for_each_conf(config, VARIABLES, set_var)
-
-    async def new_sensor(c, args, setter):
-        s = None
-        if args[1] == "sensor":
-            s = await sensor.new_sensor(c)
-        elif args[1] == "binary_sensor":
-            s = await binary_sensor.new_binary_sensor(c)
-        elif args[1] == "text_sensor":
-            s = await text_sensor.new_text_sensor(c)
-        cg.add(getattr(var, setter + "_" + args[1])(s))
-
-    await for_each_conf(config, SENSORS, new_sensor)
+    await for_each_conf(config, TYPES, set_var)
 
 
 BeginTxAction = ns.class_("BeginTxAction", automation.Action)

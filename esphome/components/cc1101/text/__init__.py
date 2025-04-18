@@ -15,7 +15,7 @@ from esphome.core import CORE
 from esphome.cpp_generator import MockObjClass
 from esphome.cpp_helpers import setup_entity
 
-from .. import CONF_CC1101_ID, CONF_TUNER, CC1101Component, for_each_conf, ns
+from .. import CC1101_COMPONENT_SCHEMA, CONF_CC1101_ID, for_each_conf, ns
 
 CONF_DUMMY_TEXT = "dummy_text"
 ICON_FORMAT_TEXT = "mdi:format-text"
@@ -102,29 +102,23 @@ async def register_text(
     )
 
 
-TUNER_SCHEMA = cv.Schema(
-    {
-        cv.Optional(CONF_DUMMY_TEXT): text_schema(
-            DummyText,
-            entity_category=ENTITY_CATEGORY_CONFIG,
-            icon=ICON_FORMAT_TEXT,
-        ),
-    }
-)
-
-CONFIG_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(CONF_CC1101_ID): cv.use_id(CC1101Component),
-        cv.Optional(CONF_TUNER): TUNER_SCHEMA,
-    }
-)
-
-VARIABLES = {
-    None: [],
-    CONF_TUNER: [
-        [CONF_DUMMY_TEXT, 0, 64],
-    ],
+TYPES = {
+    None: {
+        CONF_DUMMY_TEXT: [
+            text_schema(
+                DummyText,
+                entity_category=ENTITY_CATEGORY_CONFIG,
+                icon=ICON_FORMAT_TEXT,
+            ),
+            0,
+            64,
+        ]
+    },
 }
+
+CONFIG_SCHEMA = CC1101_COMPONENT_SCHEMA.extend(
+    {cv.Optional(k): v[0] for k, v in TYPES[None].items()},
+)
 
 
 async def to_code(config):
@@ -132,8 +126,8 @@ async def to_code(config):
 
     async def new_text(c, args, setter):
         var = cg.new_Pvariable(c[CONF_ID])
-        await register_text(var, c, min_length=args[1], max_length=args[2])
+        await register_text(var, c, min_length=args[0], max_length=args[1])
         await cg.register_parented(var, parent)
         cg.add(getattr(parent, setter + "_text")(var))
 
-    await for_each_conf(config, VARIABLES, new_text)
+    await for_each_conf(config, TYPES, new_text)
