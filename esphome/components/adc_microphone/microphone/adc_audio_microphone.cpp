@@ -8,7 +8,7 @@
 namespace esphome {
 namespace adc_microphone {
 
-static const size_t BUFFER_SIZE = 512;
+static const size_t BUFFER_SIZE = 1024;
 
 static const char *const TAG = "adc_microphone";
 
@@ -130,7 +130,8 @@ void ADCAudioMicrophone::stop_() {
 
 size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   uint32_t bytes_read = 0;
-  size_t max_read = std::min(len, (size_t) DMA_BUF_SIZE / 2);
+  // len is passed in number of int16_t's, while the target buffer is only half the size of the full buffer
+  size_t max_read = std::min(len * 2, DMA_BUF_SIZE / 2U);
   ADC_ESP_ERROR_CHECK(adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 4),
                       "read data from buffer", 0);
   ESP_LOGV(TAG, "read %" PRIu32 " of maximum %zu bytes from ADC", bytes_read, max_read);
