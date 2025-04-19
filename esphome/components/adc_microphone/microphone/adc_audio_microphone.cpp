@@ -36,7 +36,7 @@ static const char *const TAG = "adc_microphone";
 
 static bool IRAM_ATTR s_conv_overflow_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata,
                                          void *user_data) {
-  ESP_LOGE(TAG, "ADC Conversion Buffer Overflow");
+  ESP_DRAM_LOGE(DRAM_STR("adc_microhpone"), "ADC Conversion Buffer Overflow");
   return true;
 }
 
