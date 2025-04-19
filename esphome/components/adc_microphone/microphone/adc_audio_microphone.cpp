@@ -41,6 +41,12 @@ static bool IRAM_ATTR s_conv_overflow_cb(adc_continuous_handle_t handle, const a
   return true;
 }
 
+static bool IRAM_ATTR s_conv_done_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata,
+                                     void *user_data) {
+  ESP_DRAM_LOGE(DRAM_STR("adc_microhpone"), "ADC mic has data");
+  return true;
+}
+
 void ADCAudioMicrophone::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADC Audio Microphone...");
   // it's arguable that some of this should be moved into start(), not setup()
@@ -84,13 +90,18 @@ void ADCAudioMicrophone::start_() {
       .unit = adc_unit_,
       // For some reason, the continuous mode driver doesn't support ADC_BITWIDTH_DEFAULT.
       // Use 12 instead and hope for the best.
-      .bit_width = 12,
+      .bit_width = SOC_ADC_DIGI_MAX_BITWIDTH,
   };
+
+  ESP_LOGI(TAG, "Mic setup with %" PRIu8 " atten, %" PRIu8 "channel, %" PRIu8 " unit, and bitwidth %" PRIu8,
+           adc_pattern.atten, adc_pattern.channel, adc_pattern.unit, adc_pattern.bit_width);
+
   dig_cfg.adc_pattern = &adc_pattern;
 
   ADC_ESP_ERROR_CHECK(adc_continuous_config(adc_handle_, &dig_cfg), "configure continuous mode", );
 
   adc_continuous_evt_cbs_t cbs = {
+      .on_conv_done = s_conv_done_cb,
       .on_pool_ovf = s_conv_overflow_cb,
   };
 
@@ -159,6 +170,9 @@ size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
 #error "Unknown DMA_FORMAT_TYPE"
 #endif
     seen_nonzero |= (buf[i]);
+    if (seen_nonzero) {
+      ESP_LOGVV(TAG, "Saw data %" PRId16, buf[i]);
+    }
   }
   if (seen_nonzero == 0) {
     this->status_set_warning("All-zero data from ADC");
