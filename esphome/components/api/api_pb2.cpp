@@ -887,7 +887,7 @@ bool DeviceInfoResponse::decode_length(uint32_t field_id, ProtoLengthDelimited v
       this->bluetooth_mac_address = value.as_string();
       return true;
     }
-    case 19: {
+    case 20: {
       this->sub_devices.push_back(value.as_message<SubDeviceInfo>());
       return true;
     }
@@ -1009,7 +1009,6 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
     it.dump_to(out);
     out.append("\n");
   }
-
   out.append("}");
 }
 #endif
