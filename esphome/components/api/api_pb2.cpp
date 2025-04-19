@@ -833,6 +833,10 @@ bool DeviceInfoResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
       this->voice_assistant_feature_flags = value.as_uint32();
       return true;
     }
+    case 19: {
+      this->api_encryption_supported = value.as_bool();
+      return true;
+    }
     default:
       return false;
   }
@@ -910,8 +914,9 @@ void DeviceInfoResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(17, this->voice_assistant_feature_flags);
   buffer.encode_string(16, this->suggested_area);
   buffer.encode_string(18, this->bluetooth_mac_address);
+  buffer.encode_bool(19, this->api_encryption_supported);
   for (auto &it : this->sub_devices) {
-    buffer.encode_message<SubDeviceInfo>(19, it, true);
+    buffer.encode_message<SubDeviceInfo>(20, it, true);
   }
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -995,11 +1000,16 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
   out.append("'").append(this->bluetooth_mac_address).append("'");
   out.append("\n");
 
+  out.append("  api_encryption_supported: ");
+  out.append(YESNO(this->api_encryption_supported));
+  out.append("\n");
+
   for (const auto &it : this->sub_devices) {
     out.append("  sub_devices: ");
     it.dump_to(out);
     out.append("\n");
   }
+
   out.append("}");
 }
 #endif
@@ -3077,6 +3087,48 @@ void SubscribeLogsResponse::dump_to(std::string &out) const {
 
   out.append("  send_failed: ");
   out.append(YESNO(this->send_failed));
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+  switch (field_id) {
+    case 1: {
+      this->key = value.as_string();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void NoiseEncryptionSetKeyRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_string(1, this->key); }
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void NoiseEncryptionSetKeyRequest::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("NoiseEncryptionSetKeyRequest {\n");
+  out.append("  key: ");
+  out.append("'").append(this->key).append("'");
+  out.append("\n");
+  out.append("}");
+}
+#endif
+bool NoiseEncryptionSetKeyResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
+  switch (field_id) {
+    case 1: {
+      this->success = value.as_bool();
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+void NoiseEncryptionSetKeyResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->success); }
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void NoiseEncryptionSetKeyResponse::dump_to(std::string &out) const {
+  __attribute__((unused)) char buffer[64];
+  out.append("NoiseEncryptionSetKeyResponse {\n");
+  out.append("  success: ");
+  out.append(YESNO(this->success));
   out.append("\n");
   out.append("}");
 }
