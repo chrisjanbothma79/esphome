@@ -170,9 +170,6 @@ size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
 #error "Unknown DMA_FORMAT_TYPE"
 #endif
     seen_nonzero |= (buf[i]);
-    if (seen_nonzero) {
-      ESP_LOGVV(TAG, "Saw data %" PRId16, buf[i]);
-    }
   }
   if (seen_nonzero == 0) {
     this->status_set_warning("All-zero data from ADC");
