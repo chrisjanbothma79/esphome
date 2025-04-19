@@ -51,6 +51,7 @@ void ADCAudioMicrophone::set_adc_channel(int gpio_pin) {
 }
 
 void ADCAudioMicrophone::start() {
+  ESP_LOGI(TAG, "ADC Mic start Requested");
   if (this->is_failed())
     return;
   if (this->state_ == microphone::STATE_RUNNING)
@@ -85,12 +86,18 @@ void ADCAudioMicrophone::start_() {
   ADC_ESP_ERROR_CHECK(adc_continuous_start(adc_handle_), "start microphone data collection", );
 
   // two calls are needed to empty the buffer anyways when it fills,
-  // so lets save some memory
+  // so lets save some memory with the buffer we copy things into
   dma_out_buffer_ = new uint8_t[DMA_BUF_SIZE / 2];
+
+  adc_continuous_callback_t on_pool_ovf =
+  {
+
+  }
 
   this->state_ = microphone::STATE_RUNNING;
   this->high_freq_.start();
   this->status_clear_error();
+  ESP_LOGI(TAG, "ADC Mic Started");
 }
 
 void ADCAudioMicrophone::stop() {
@@ -101,9 +108,11 @@ void ADCAudioMicrophone::stop() {
     return;
   }
   this->state_ = microphone::STATE_STOPPING;
+  ESP_LOGI(TAG, "ADC Mic Stop Requested");
 }
 
 void ADCAudioMicrophone::stop_() {
+  ESP_LOGI(TAG, "ADC Mic Stopped");
   ADC_ESP_ERROR_CHECK(adc_continuous_stop(adc_handle_), "stop ADC microphone", );
 
   delete[] dma_out_buffer_;
@@ -117,7 +126,7 @@ size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
   size_t max_read = std::min(len, (size_t) DMA_BUF_SIZE / 2);
   ADC_ESP_ERROR_CHECK(adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 4),
                       "read data from buffer", 0);
-  ESP_LOGV(TAG, "read %" PRIu32 "bytes from ADC", bytes_read);
+  ESP_LOGV(TAG, "read %" PRIu32 " of maximum %zu bytes from ADC", bytes_read);
 
   if (bytes_read == 0) {
     this->status_set_warning("Zero bytes read from ADC");
@@ -152,7 +161,7 @@ void ADCAudioMicrophone::read_() {
   samples.resize(BUFFER_SIZE);
   size_t bytes_read = this->read(samples.data(), BUFFER_SIZE / sizeof(int16_t));
   samples.resize(bytes_read / sizeof(int16_t));
-  ESP_LOGD(TAG, "Processing %zd ADC samples", samples.size());
+  ESP_LOGD(TAG, "Processing %zu ADC samples", samples.size());
   ESP_LOGV(TAG, "First four samples: %d %d %d %d", samples[0], samples[1], samples[2], samples[3]);
   this->data_callbacks_.call(samples);
 }
