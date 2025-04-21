@@ -11,6 +11,7 @@ from esphome.components.esp32.const import (
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ATTENUATION,
+    CONF_BUFFER_DURATION,
     CONF_ID,
     CONF_NUMBER,
     CONF_SAMPLE_RATE,
@@ -23,6 +24,8 @@ CODEOWNERS = ["@calumapplepie"]
 DEPENDENCIES = ["esp32"]
 
 _LOGGER = logging.getLogger(__name__)
+
+CONF_FREE_MEM = "free_memory_on_stop"
 
 ATTENUATION_MODES = {
     "0db": cg.global_ns.ADC_ATTEN_DB_0,
@@ -43,7 +46,10 @@ ADCAudioMicrophone = adc_microphone_ns.class_(
 BASE_SCHEMA = microphone.MICROPHONE_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(ADCAudioMicrophone),
-        cv.Optional(CONF_SAMPLE_RATE, default=20000): cv.int_range(min=1),
+        cv.Optional(CONF_SAMPLE_RATE, default=32000): cv.int_range(min=1),
+        cv.Optional(
+            CONF_BUFFER_DURATION, default="30ms"
+        ): cv.positive_time_period_milliseconds,
         cv.Required(CONF_ADC_PIN): validate_adc_pin,
         cv.Optional(CONF_ATTENUATION, default="12db"): _attenuation,
     }
@@ -93,3 +99,7 @@ async def to_code(config):
 
     attenuation = config.get(CONF_ATTENUATION)
     cg.add(var.set_attenuation(attenuation))
+
+    # determine the number of frames based on requested buffer duration
+    frames_per_ms = config[CONF_SAMPLE_RATE] / 1000 / 64
+    cg.add_define("ADC_DMA_NUM_FRAMES", frames_per_ms * config[CONF_BUFFER_DURATION])

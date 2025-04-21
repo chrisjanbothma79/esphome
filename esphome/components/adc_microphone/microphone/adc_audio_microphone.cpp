@@ -31,9 +31,13 @@ static const char *const TAG = "adc_microphone";
 // increased size to prevent overflows (maybe?)
 #define DMA_SAMPLES_PER_FRAME 64
 
-// ensure buffer is large enough to work even when running at slower speed
+// this is defined by codegen, also define here for testing
+#ifndef ADC_DMA_NUM_FRAMES
+#define ADC_DMA_NUM_FRAMES 16
+#endif
+
 #define DMA_FRAME_SIZE (SOC_ADC_DIGI_DATA_BYTES_PER_CONV * DMA_SAMPLES_PER_FRAME)
-#define DMA_BUF_SIZE (DMA_FRAME_SIZE * 100)
+#define DMA_BUF_SIZE (DMA_FRAME_SIZE * ADC_DMA_NUM_FRAMES)
 
 static bool IRAM_ATTR s_conv_overflow_cb(adc_continuous_handle_t handle, const adc_continuous_evt_data_t *edata,
                                          void *user_data) {
