@@ -25,6 +25,7 @@ class DebugComponent : public PollingComponent {
 #ifdef USE_TEXT_SENSOR
   void set_device_info_sensor(text_sensor::TextSensor *device_info) { device_info_ = device_info; }
   void set_reset_reason_sensor(text_sensor::TextSensor *reset_reason) { reset_reason_ = reset_reason; }
+  void on_shutdown() override;
 #endif  // USE_TEXT_SENSOR
 #ifdef USE_SENSOR
   void set_free_sensor(sensor::Sensor *free_sensor) { free_sensor_ = free_sensor; }
