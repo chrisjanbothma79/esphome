@@ -165,7 +165,7 @@ size_t I2SAudioMicrophone::read(int16_t *buf, size_t len) {
     return 0;
   }
   if (bytes_read == 0) {
-    this->status_set_warning("No data read from microphone");
+    this->status_set_warning();
     return 0;
   }
   this->status_clear_warning();
