@@ -8,6 +8,9 @@
 #include "esphome/core/component.h"
 #include "esphome/core/controller.h"
 #include "esphome/core/entity_base.h"
+#ifdef USE_CLIMATE
+#include "esphome/core/log.h"
+#endif
 
 namespace esphome {
 namespace prometheus {
@@ -159,6 +162,28 @@ class PrometheusHandler : public AsyncWebHandler, public Component {
   void update_entity_row_(AsyncResponseStream *stream, update::UpdateEntity *obj, std::string &area, std::string &node,
                           std::string &friendly_name);
   void handle_update_state_(AsyncResponseStream *stream, update::UpdateState state);
+#endif
+
+#ifdef USE_VALVE
+  /// Return the type for prometheus
+  void valve_type_(AsyncResponseStream *stream);
+  /// Return the valve state as prometheus data point
+  void valve_row_(AsyncResponseStream *stream, valve::Valve *obj, std::string &area, std::string &node,
+                  std::string &friendly_name);
+#endif
+
+#ifdef USE_CLIMATE
+  /// Return the type for prometheus
+  void climate_type_(AsyncResponseStream *stream);
+  /// Return the climate state as prometheus data point
+  void climate_row_(AsyncResponseStream *stream, climate::Climate *obj, std::string &area, std::string &node,
+                    std::string &friendly_name);
+  void climate_failed_row_(AsyncResponseStream *stream, climate::Climate *obj, std::string &area, std::string &node,
+                           std::string &friendly_name, std::string &category, bool is_failed_value);
+  void climate_setting_row_(AsyncResponseStream *stream, climate::Climate *obj, std::string &area, std::string &node,
+                            std::string &friendly_name, std::string &setting, const LogString *setting_value);
+  void climate_value_row_(AsyncResponseStream *stream, climate::Climate *obj, std::string &area, std::string &node,
+                          std::string &friendly_name, std::string &category, std::string &climate_value);
 #endif
 
   web_server_base::WebServerBase *base_;
