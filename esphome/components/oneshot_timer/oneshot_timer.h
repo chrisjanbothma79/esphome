@@ -9,6 +9,8 @@ namespace esphome {
 namespace oneshot_timer {
 
 class OnTimeoutTrigger: public Trigger<> {};
+class OnStartTrigger: public Trigger<> {};
+class OnPauseTrigger: public Trigger<> {};
 
 class OneShotTimer : public Component {
  public:
@@ -26,7 +28,9 @@ class OneShotTimer : public Component {
   void start(std::optional<uint32_t> interval = std::nullopt);
   void pause();
   void resume();
-  void add_on_timeout_trigger(OnTimeoutTrigger *trigger) { this->on_timeout_trigger_ = trigger; }
+  void add_on_timeout_trigger(OnTimeoutTrigger *trigger) { this->on_timeout_trigger_.push_back(trigger); }
+  void add_on_start_trigger(OnStartTrigger *trigger) { this->on_start_trigger_.push_back(trigger); }
+  void add_on_pause_trigger(OnPauseTrigger *trigger) { this->on_pause_trigger_.push_back(trigger); }
 
   uint32_t remaining_time() const { return this->remaining_time_; }
   bool running() const { return this->running_; }
@@ -36,7 +40,9 @@ class OneShotTimer : public Component {
   uint32_t remaining_time_{0};
   uint32_t last_visit_{0};
   bool running_{false};
-  OnTimeoutTrigger *on_timeout_trigger_{nullptr};
+  std::vector<OnTimeoutTrigger*> on_timeout_trigger_;
+  std::vector<OnStartTrigger*> on_start_trigger_;
+  std::vector<OnPauseTrigger*> on_pause_trigger_;
   bool auto_start_{false};
 };
 

@@ -23,8 +23,8 @@ void OneShotTimer::loop() {
             ESP_LOGD(TAG, "Timer expired");
             this->remaining_time_ = 0;
             this->running_ = false;
-            if (this->on_timeout_trigger_ != nullptr) {
-                this->on_timeout_trigger_->trigger();
+            for(auto trig : this->on_timeout_trigger_) {
+              trig->trigger();
             }
         }
         else {
@@ -49,10 +49,18 @@ void OneShotTimer::start(std::optional<uint32_t> interval) {
   }
   this->running_ = true;
   this->last_visit_ = millis();
+  for(auto trig : this->on_start_trigger_) {
+    trig->trigger();
+  }
 }
 
 void OneShotTimer::pause() {
-    this->running_ = false;
+    if (this->running_) {
+      this->running_ = false;
+      for(auto trig : this->on_pause_trigger_) {
+        trig->trigger();
+      }
+    }   
 }
 
 void OneShotTimer::resume() {

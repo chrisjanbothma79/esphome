@@ -4,25 +4,35 @@ from esphome import automation
 from esphome.const import CONF_ID, CONF_INTERVAL, CONF_TRIGGER_ID
 
 CONF_AUTO_START = "auto_start"
+CONF_ON_TIMEOUT = "on_timeout"
+CONF_ON_START = "on_start"
+CONF_ON_PAUSE = "on_pause"
 
 oneshot_timer_ns = cg.esphome_ns.namespace('oneshot_timer')
 OneShotTimer = oneshot_timer_ns.class_('OneShotTimer', cg.Component)
 OnTimeoutTrigger = oneshot_timer_ns.class_('OnTimeoutTrigger')
+OnStartTrigger = oneshot_timer_ns.class_('OnStartTrigger')
+OnPauseTrigger = oneshot_timer_ns.class_('OnPauseTrigger')
 
 # Actions
 StartAction = oneshot_timer_ns.class_('StartAction', automation.Action)
 PauseAction = oneshot_timer_ns.class_('PauseAction', automation.Action)
 ResumeAction = oneshot_timer_ns.class_('ResumeAction', automation.Action)
 
-CONF_ON_TIMEOUT = "on_timeout"
-
 ONESHOT_TIMER_SCHEMA = cv.Schema({
     cv.Required(CONF_ID): cv.declare_id(OneShotTimer),
     cv.Required(CONF_INTERVAL): cv.positive_time_period_milliseconds,
     cv.Optional(CONF_AUTO_START, default=False): cv.boolean,
-    cv.Optional(CONF_ON_TIMEOUT): automation.validate_automation({
+    cv.Required(CONF_ON_TIMEOUT): automation.validate_automation({
         cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(OnTimeoutTrigger),
-    })   
+    }),
+    cv.Optional(CONF_ON_START): automation.validate_automation({
+        cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(OnStartTrigger)
+    }),
+    cv.Optional(CONF_ON_PAUSE): automation.validate_automation({
+        cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(OnPauseTrigger)
+    })
+    
 }).extend(cv.COMPONENT_SCHEMA)
 
 CONFIG_SCHEMA = cv.All(cv.ensure_list(ONESHOT_TIMER_SCHEMA))
@@ -39,6 +49,16 @@ async def to_code(config):
             trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID])
             await automation.build_automation(trigger, [], conf)
             cg.add(var.add_on_timeout_trigger(trigger))
+
+        for conf in timer_config.get(CONF_ON_START, []):
+            trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID])
+            await automation.build_automation(trigger, [], conf)
+            cg.add(var.add_on_start_trigger(trigger))
+
+        for conf in timer_config.get(CONF_ON_PAUSE, []):
+            trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID])
+            await automation.build_automation(trigger, [], conf)
+            cg.add(var.add_on_pause_trigger(trigger))
 
 @automation.register_action(
     'oneshot_timer.start',
