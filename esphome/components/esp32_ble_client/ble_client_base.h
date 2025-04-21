@@ -86,6 +86,8 @@ class BLEClientBase : public espbt::ESPBTClient, public Component {
   uint16_t get_conn_id() const { return this->conn_id_; }
   uint64_t get_address() const { return this->address_; }
   bool is_paired() const { return this->paired_; }
+  bool disconnect_pending() const { return this->want_disconnect_; }
+  void cancel_disconnect() { this->want_disconnect_ = false; }
 
   uint8_t get_connection_index() const { return this->connection_index_; }
 
