@@ -121,6 +121,7 @@ void ADCAudioMicrophone::start_() {
 
   dma_out_buffer_ = new uint8_t[BUFFER_SIZE * sizeof(adc_digi_output_data_t)];
 
+  this->samples_.reserve(BUFFER_SIZE);
   this->state_ = microphone::STATE_RUNNING;
   this->high_freq_.start();
   this->status_clear_error();
@@ -152,6 +153,8 @@ void ADCAudioMicrophone::stop_() {
 #endif
 
   delete[] dma_out_buffer_;
+  this->samples_.clear();
+  this->samples_.shrink_to_fit();
   this->state_ = microphone::STATE_STOPPED;
   this->high_freq_.stop();
   this->status_clear_error();
@@ -197,12 +200,12 @@ void ADCAudioMicrophone::read_() {
   // NOTE: Could acheive a possible speedup with
   // https://hackingcpp.com/cpp/recipe/uninitialized_numeric_array.html#no_init
   // (ie, avoiding the possible 0-initializing of the end of the buffer).
-  samples.resize(BUFFER_SIZE);
-  size_t bytes_read = this->read(samples.data(), BUFFER_SIZE * sizeof(int16_t));
-  samples.resize(bytes_read / sizeof(int16_t));
-  ESP_LOGV(TAG, "Processing %zu ADC samples", samples.size());
-  ESP_LOGVV(TAG, "First four samples: %d %d %d %d", samples[0], samples[1], samples[2], samples[3]);
-  this->data_callbacks_.call(samples);
+  samples_.resize(BUFFER_SIZE);
+  size_t bytes_read = this->read(samples_.data(), BUFFER_SIZE * sizeof(int16_t));
+  samples_.resize(bytes_read / sizeof(int16_t));
+  ESP_LOGV(TAG, "Processing %zu ADC samples", samples_.size());
+  ESP_LOGVV(TAG, "First four samples: %d %d %d %d", samples_[0], samples_[1], samples_[2], samples_[3]);
+  this->data_callbacks_.call(samples_);
 }
 
 void ADCAudioMicrophone::loop() {

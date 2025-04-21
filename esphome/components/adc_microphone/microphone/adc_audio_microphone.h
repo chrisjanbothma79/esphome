@@ -40,7 +40,7 @@ class ADCAudioMicrophone : public microphone::Microphone, public Component {
   uint8_t *dma_out_buffer_;
 
   // keep the output vector hanging around rather than constantly reallocating
-  std::vector<int16_t> samples;
+  std::vector<int16_t> samples_;
 };
 
 }  // namespace adc_microphone
