@@ -55,7 +55,6 @@ void DebugComponent::on_shutdown() {
   ESP_LOGD(TAG, "Storing reboot source: %s", buffer);
   pref.save(&buffer);
   global_preferences->sync();
-  delay(200);
 }
 
 std::string DebugComponent::get_reset_reason_() {
