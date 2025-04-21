@@ -112,7 +112,7 @@ void I2SAudioMicrophone::start_() {
     }
   }
 
-  this->samples.reserve(BUFFER_SIZE);
+  this->samples_.reserve(BUFFER_SIZE);
 
   this->state_ = microphone::STATE_RUNNING;
   this->high_freq_.start();
@@ -154,8 +154,8 @@ void I2SAudioMicrophone::stop_() {
     return;
   }
 
-  this->samples.clear();
-  this->samples.shrink_to_fit();
+  this->samples_.clear();
+  this->samples_.shrink_to_fit();
   this->parent_->unlock();
   this->state_ = microphone::STATE_STOPPED;
   this->high_freq_.stop();
@@ -197,10 +197,10 @@ size_t I2SAudioMicrophone::read(int16_t *buf, size_t len) {
 }
 
 void I2SAudioMicrophone::read_() {
-  samples.resize(BUFFER_SIZE);
-  size_t bytes_read = this->read(samples.data(), BUFFER_SIZE * sizeof(int16_t));
-  samples.resize(bytes_read / sizeof(int16_t));
-  this->data_callbacks_.call(samples);
+  samples_.resize(BUFFER_SIZE);
+  size_t bytes_read = this->read(samples_.data(), BUFFER_SIZE * sizeof(int16_t));
+  samples_.resize(bytes_read / sizeof(int16_t));
+  this->data_callbacks_.call(samples_);
 }
 
 void I2SAudioMicrophone::loop() {

@@ -43,7 +43,7 @@ class I2SAudioMicrophone : public I2SAudioIn, public microphone::Microphone, pub
   bool pdm_{false};
 
   HighFrequencyLoopRequester high_freq_;
-  std::vector<int16_t> samples;
+  std::vector<int16_t> samples_;
 };
 
 }  // namespace i2s_audio
