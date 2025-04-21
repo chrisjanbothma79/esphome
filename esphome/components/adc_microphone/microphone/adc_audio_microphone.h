@@ -38,6 +38,9 @@ class ADCAudioMicrophone : public microphone::Microphone, public Component {
   adc_atten_t attenuation_;
   adc_continuous_handle_t adc_handle_;
   uint8_t *dma_out_buffer_;
+
+  // keep the output vector hanging around rather than constantly reallocating
+  std::vector<int16_t> samples;
 };
 
 }  // namespace adc_microphone

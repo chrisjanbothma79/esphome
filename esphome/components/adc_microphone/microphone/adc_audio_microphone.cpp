@@ -194,7 +194,9 @@ size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
 }
 
 void ADCAudioMicrophone::read_() {
-  std::vector<int16_t> samples;
+  // NOTE: Could acheive a possible speedup with
+  // https://hackingcpp.com/cpp/recipe/uninitialized_numeric_array.html#no_init
+  // (ie, avoiding the possible 0-initializing of the end of the buffer).
   samples.resize(BUFFER_SIZE);
   size_t bytes_read = this->read(samples.data(), BUFFER_SIZE * sizeof(int16_t));
   samples.resize(bytes_read / sizeof(int16_t));
