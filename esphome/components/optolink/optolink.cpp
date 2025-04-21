@@ -18,6 +18,11 @@ void Optolink::setup() {
     VitoWiFi.setLogger(this);
     VitoWiFi.enableLogger();
   }
+  if (communication_suspension_ == 0) {
+    set_state_("communication active");
+  } else {
+    set_state_("communication state unknown");
+  }
 
 #if defined(USE_ESP32)
   VitoWiFi.setup(&Serial, rx_pin_, tx_pin_);
@@ -27,7 +32,9 @@ void Optolink::setup() {
 }
 
 void Optolink::loop() {
-  communication_check_();
+  if (communication_suspension_ > 0) {
+    communication_check_();
+  }
   if (!communication_suspended()) {
     VitoWiFi.loop();
   }
@@ -35,15 +42,7 @@ void Optolink::loop() {
 
 int Optolink::get_queue_size() { return VitoWiFi.queueSize(); }
 
-void Optolink::set_state_(const char *format, ...) {
-  va_list args;
-  va_start(args, format);
-  char buffer[128];
-  std::vsnprintf(buffer, sizeof(buffer), format, args);
-  va_end(args);
-
-  state_ = buffer;
-}
+void Optolink::set_state_(const char *state) { state_ = state; }
 
 void Optolink::notify_receive() { timestamp_receive_ = timestamp_loop_; }
 
@@ -54,22 +53,20 @@ void Optolink::communication_check_() {
 
   if (communication_suspended()) {
     if (timestamp_loop_ < timestamp_disruption_ ||
-        (timestamp_loop_ - timestamp_disruption_) > COMMUNICATION_SUSPENSION_DURATION) {
+        (timestamp_loop_ - timestamp_disruption_) > communication_suspension_) {
       resume_communication_();
     } else {
       set_state_("communication suspended");
-      // if (timestamp_loop % 10 == 0)
-      //   ESP_LOGD(TAG, "communication suspended");
     }
   } else if (timestamp_loop_ < timestamp_send_ || timestamp_loop_ < timestamp_receive_) {
     ESP_LOGI(TAG, "timestamp rollover");
     timestamp_send_ = 0;
     timestamp_receive_ = 0;
-  } else if (timestamp_send_ == 0 || timestamp_receive_ == 0) {
+  } else if (timestamp_send_ == 0) {
     // too less data to analyze communication statistics
   } else if ((timestamp_loop_ - timestamp_receive_) > COMMUNICATION_CHECK_WINDOW) {
     // last response older than 10 sec - check if there was no request in same time window except last two seconds
-    if (timestamp_send_ > timestamp_loop_ - MAX_RESPONSE_DELAY) {
+    if (timestamp_send_ > timestamp_loop_ - max_response_delay_) {
       // request too fresh -> possiblly still waiting for response
     } else if (timestamp_send_ < timestamp_receive_) {
       // no new and fresh request since last response
@@ -85,13 +82,14 @@ void Optolink::communication_check_() {
 void Optolink::suspend_communication_() {
   set_state_("communication suspended");
   ESP_LOGW(TAG,
-           "communication disrupted - suspending communication for 10 sec; timestamp_loop: %u, timestamp_send: %u,  "
+           "communication disrupted - suspending communication for %u ms; timestamp_loop: %u, timestamp_send: %u,  "
            "timestamp_receive: %u ",
-           timestamp_loop_, timestamp_send_, timestamp_receive_);
+           communication_suspension_, timestamp_loop_, timestamp_send_, timestamp_receive_);
   timestamp_disruption_ = timestamp_loop_;
 }
 
 void Optolink::resume_communication_() {
+  set_state_("communication state unknown");
   ESP_LOGI(TAG, "resuming communication");
   timestamp_disruption_ = 0;
   timestamp_send_ = 0;

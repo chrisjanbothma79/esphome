@@ -20,10 +20,10 @@ class Optolink : public esphome::Component, public Print {
   uint32_t timestamp_disruption_ = 0;
   uint32_t timestamp_receive_ = 0;
   uint32_t timestamp_send_ = 0;
+  uint32_t communication_suspension_ = 20000;
+  uint32_t max_response_delay_ = 2000;
 
   static const uint32_t COMMUNICATION_CHECK_WINDOW = 10000;
-  static const uint32_t COMMUNICATION_SUSPENSION_DURATION = 10000;
-  static const uint32_t MAX_RESPONSE_DELAY = 2000;
 
  public:
   void setup() override;
@@ -35,6 +35,10 @@ class Optolink : public esphome::Component, public Print {
   void set_logger_enabled(bool logger_enabled) { logger_enabled_ = logger_enabled; }
   void set_rx_pin(int rx_pin) { rx_pin_ = rx_pin; }
   void set_tx_pin(int tx_pin) { tx_pin_ = tx_pin; }
+  void set_communication_suspension(uint32_t communication_suspension) {
+    communication_suspension_ = communication_suspension;
+  }
+  void set_max_response_delay(uint32_t set_max_response_delay) { max_response_delay_ = set_max_response_delay; }
 
   bool write_datapoint(IDatapoint *datapoint, DPValue dp_value);
   bool read_datapoint(IDatapoint *datapoint);
@@ -47,7 +51,7 @@ class Optolink : public esphome::Component, public Print {
   void notify_send();
 
  private:
-  void set_state_(const char *format, ...);
+  void set_state_(const char *state);
 
   void communication_check_();
   void suspend_communication_();

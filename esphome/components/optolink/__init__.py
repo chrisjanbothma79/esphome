@@ -1,5 +1,4 @@
-from esphome import core
-from esphome import pins
+from esphome import core, pins
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import (
@@ -23,6 +22,8 @@ MULTI_CONF = False
 
 optolink_ns = cg.esphome_ns.namespace("optolink")
 CONF_OPTOLINK_ID = "optolink_id"
+CONF_COMMUNICATION_SUSPENSION = "communication_suspension"
+CONF_MAX_RESPONSE_DELAY = "max_response_delay"
 
 DAY_OF_WEEK = {
     "MONDAY": 0,
@@ -141,6 +142,16 @@ CONFIG_SCHEMA = cv.All(
                 cv.only_on_esp32,
                 pins.internal_gpio_input_pin_number,
             ),
+            cv.Optional(CONF_COMMUNICATION_SUSPENSION, default="20s"): cv.All(
+                cv.positive_time_period_milliseconds,
+                cv.Range(min=core.TimePeriod(seconds=0)),
+            ),
+            cv.Optional(CONF_MAX_RESPONSE_DELAY, default="2s"): cv.All(
+                cv.positive_time_period_milliseconds,
+                cv.Range(
+                    min=core.TimePeriod(seconds=1), max=core.TimePeriod(seconds=10)
+                ),
+            ),
             cv.Optional(CONF_LOGGER, default=False): cv.boolean,
         }
     ).extend(cv.COMPONENT_SCHEMA),
@@ -161,6 +172,8 @@ async def to_code(config):
 
     var = cg.new_Pvariable(config[CONF_ID])
     cg.add(var.set_logger_enabled(config[CONF_LOGGER]))
+    cg.add(var.set_communication_suspension(config[CONF_COMMUNICATION_SUSPENSION]))
+    cg.add(var.set_max_response_delay(config[CONF_MAX_RESPONSE_DELAY]))
 
     if CORE.is_esp32:
         cg.add(var.set_rx_pin(config[CONF_RX_PIN]))
