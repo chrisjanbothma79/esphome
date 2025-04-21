@@ -111,6 +111,9 @@ void I2SAudioMicrophone::start_() {
       return;
     }
   }
+
+  this->samples.reserve(BUFFER_SIZE);
+
   this->state_ = microphone::STATE_RUNNING;
   this->high_freq_.start();
   this->status_clear_error();
@@ -150,6 +153,9 @@ void I2SAudioMicrophone::stop_() {
     this->status_set_error();
     return;
   }
+
+  this->samples.clear();
+  this->samples.shrink_to_fit();
   this->parent_->unlock();
   this->state_ = microphone::STATE_STOPPED;
   this->high_freq_.stop();
