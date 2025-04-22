@@ -155,17 +155,17 @@ enum class ClientState {
 };
 
 enum class ScannerState {
-  // Scanner is idle
+  // Scanner is idle, init state, set from the main loop when processing STOPPED
   IDLE,
-  // Scanner is starting
+  // Scanner is starting, set from the main loop only
   STARTING,
-  // Scanner is running
+  // Scanner is running, set from the ESP callback only
   RUNNING,
-  // Scanner failed to start
+  // Scanner failed to start, set from the ESP callback only
   FAILED,
-  // Scanner is stopping
+  // Scanner is stopping, set from the main loop only
   STOPPING,
-  // Scanner is stopped
+  // Scanner is stopped, set from the ESP callback only
   STOPPED,
 };
 
