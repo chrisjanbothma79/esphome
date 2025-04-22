@@ -3,6 +3,7 @@
 #ifdef USE_MDNS
 #include <string>
 #include <vector>
+#include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 
 namespace esphome {
@@ -10,7 +11,7 @@ namespace mdns {
 
 struct MDNSTXTRecord {
   std::string key;
-  std::string value;
+  TemplatableValue<std::string> value;
 };
 
 struct MDNSService {

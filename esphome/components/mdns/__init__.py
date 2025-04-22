@@ -36,7 +36,7 @@ SERVICE_SCHEMA = cv.Schema(
         cv.Required(CONF_SERVICE): cv.string,
         cv.Required(CONF_PROTOCOL): cv.string,
         cv.Optional(CONF_PORT, default=0): cv.Any(0, cv.port),
-        cv.Optional(CONF_TXT, default={}): {cv.string: cv.string},
+        cv.Optional(CONF_TXT, default={}): {cv.string: cv.templatable(cv.string)},
     }
 )
 
@@ -101,10 +101,17 @@ async def to_code(config):
     await cg.register_component(var, config)
 
     for service in config[CONF_SERVICES]:
-        txt = [
-            mdns_txt_record(txt_key, txt_value)
-            for txt_key, txt_value in service[CONF_TXT].items()
-        ]
+        txt = []
+        args = []
+        for txt_key, txt_value in service[CONF_TXT].items():
+            template_txt_value_ = await cg.templatable(txt_value, args, cg.std_string)
+            txt.append(
+                cg.StructInitializer(
+                    MDNSTXTRecord,
+                    ("key", txt_key),
+                    ("value", template_txt_value_),
+                )
+            )
 
         exp = mdns_service(
             service[CONF_SERVICE], service[CONF_PROTOCOL], service[CONF_PORT], txt

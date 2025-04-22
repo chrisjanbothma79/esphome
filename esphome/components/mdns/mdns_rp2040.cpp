@@ -31,7 +31,8 @@ void MDNSComponent::setup() {
     }
     MDNS.addService(service_type, proto, service.port);
     for (const auto &record : service.txt_records) {
-      MDNS.addServiceTxt(service_type, proto, record.key.c_str(), record.value.c_str());
+      MDNS.addServiceTxt(service_type, proto, record.key.c_str(),
+                         const_cast<TemplatableValue<std::string> &>(record.value).value().c_str());
     }
   }
 }
