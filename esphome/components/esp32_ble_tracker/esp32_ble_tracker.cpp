@@ -209,8 +209,7 @@ void ESP32BLETracker::loop() {
         if (this->scanner_state_ == ScannerState::RUNNING) {
           ESP_LOGD(TAG, "Stopping scan to make connection...");
           this->stop_scan_();
-        }
-        elif (this->scanner_state_ == ScannerState::STOPPED) {
+        } else if (this->scanner_state_ == ScannerState::STOPPED) {
           ESP_LOGD(TAG, "Promoting client to connect...");
           // We only want to promote one client at a time.
           // once the scanner is fully stopped.
@@ -264,11 +263,11 @@ void ESP32BLETracker::start_scan_(bool first) {
       ESP_LOGE(TAG, "Cannot start scan while already starting.");
     } else if (this->scanner_state_ == ScannerState::RUNNING) {
       ESP_LOGE(TAG, "Cannot start scan while already running.");
-    }
-    elif (this->scanner_state_ == ScannerState::STOPPING) {
+    } else if (this->scanner_state_ == ScannerState::STOPPING) {
       ESP_LOGE(TAG, "Cannot start scan while already stopping.");
+    } else if (this->scanner_state_ == ScannerState::FAILED) {
+      ESP_LOGE(TAG, "Cannot start scan while already failed.");
     }
-    elif (this->scanner_state_ == ScannerState::FAILED) { ESP_LOGE(TAG, "Cannot start scan while already failed."); }
     return;
   }
   this->scanner_state_ = ScannerState::STARTING;
