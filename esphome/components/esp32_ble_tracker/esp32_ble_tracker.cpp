@@ -165,7 +165,7 @@ void ESP32BLETracker::loop() {
     this->end_of_scan_();  // Change state to IDLE
   }
   if (this->scanner_state_ == ScannerState::FAILED ||
-      (this->scan_set_param_failed_ && this->scan_state_ == ScannerState::RUNNING)) {
+      (this->scan_set_param_failed_ && this->scanner_state_ == ScannerState::RUNNING)) {
     this->stop_scan_();
     if (this->scan_start_fail_count_ == std::numeric_limits<uint8_t>::max()) {
       ESP_LOGE(TAG, "ESP-IDF BLE scan could not restart after %d attempts, rebooting to restore BLE stack...",
