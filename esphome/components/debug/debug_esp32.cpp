@@ -41,7 +41,7 @@ static const char *const RESET_REASONS[] = {
     "CPU lock up",
 };
 
-static const char *REBOOT_KEY = "reboot_source";
+static const char *const REBOOT_KEY = "reboot_source";
 static const size_t REBOOT_MAX_LEN = 24;
 
 // on shutdown, store the source of the reboot request
