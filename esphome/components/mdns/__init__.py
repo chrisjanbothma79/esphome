@@ -35,7 +35,7 @@ SERVICE_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_SERVICE): cv.string,
         cv.Required(CONF_PROTOCOL): cv.string,
-        cv.Optional(CONF_PORT, default=0): cv.Any(0, cv.port),
+        cv.Optional(CONF_PORT, default=0): cv.templatable(cv.Any(0, cv.port)),
         cv.Optional(CONF_TXT, default={}): {cv.string: cv.templatable(cv.string)},
     }
 )
@@ -112,9 +112,9 @@ async def to_code(config):
                     ("value", template_txt_value_),
                 )
             )
-
+        template_port_value_ = await cg.templatable(service[CONF_PORT], args, cg.uint16)
         exp = mdns_service(
-            service[CONF_SERVICE], service[CONF_PROTOCOL], service[CONF_PORT], txt
+            service[CONF_SERVICE], service[CONF_PROTOCOL], template_port_value_, txt
         )
 
         cg.add(var.add_extra_service(exp))
