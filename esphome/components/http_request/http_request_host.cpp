@@ -55,7 +55,8 @@ std::shared_ptr<HttpContainer> HttpRequestHost::start(std::string url, std::stri
   }
   client.set_follow_location(this->follow_redirects_);
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT
-  client.set_ca_cert_path(this->ca_path_);
+  if (this->ca_path_ != nullptr)
+    client.set_ca_cert_path(this->ca_path_);
 #endif
 
   httplib::Result result;
