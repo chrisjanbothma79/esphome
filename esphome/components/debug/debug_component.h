@@ -25,7 +25,6 @@ class DebugComponent : public PollingComponent {
 #ifdef USE_TEXT_SENSOR
   void set_device_info_sensor(text_sensor::TextSensor *device_info) { device_info_ = device_info; }
   void set_reset_reason_sensor(text_sensor::TextSensor *reset_reason) { reset_reason_ = reset_reason; }
-  void on_shutdown() override;
 #endif  // USE_TEXT_SENSOR
 #ifdef USE_SENSOR
   void set_free_sensor(sensor::Sensor *free_sensor) { free_sensor_ = free_sensor; }
@@ -35,6 +34,7 @@ class DebugComponent : public PollingComponent {
 #endif
   void set_loop_time_sensor(sensor::Sensor *loop_time_sensor) { loop_time_sensor_ = loop_time_sensor; }
 #ifdef USE_ESP32
+  void on_shutdown() override;
   void set_psram_sensor(sensor::Sensor *psram_sensor) { this->psram_sensor_ = psram_sensor; }
 #endif  // USE_ESP32
   void set_cpu_frequency_sensor(sensor::Sensor *cpu_frequency_sensor) {
