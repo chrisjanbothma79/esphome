@@ -203,13 +203,13 @@ void ESP32BLETracker::loop() {
   // devices, then stop scanning and promote the discovered
   // client to ready to connect.
   if (promote_to_connecting &&
-      (this->scanner_state_ == ScannerState::RUNNING || this->scanner_state_ == ScannerState::STOPPED)) {
+      (this->scanner_state_ == ScannerState::RUNNING || this->scanner_state_ == ScannerState::IDLE)) {
     for (auto *client : this->clients_) {
       if (client->state() == ClientState::DISCOVERED) {
         if (this->scanner_state_ == ScannerState::RUNNING) {
           ESP_LOGD(TAG, "Stopping scan to make connection...");
           this->stop_scan_();
-        } else if (this->scanner_state_ == ScannerState::STOPPED) {
+        } else if (this->scanner_state_ == ScannerState::IDLE) {
           ESP_LOGD(TAG, "Promoting client to connect...");
           // We only want to promote one client at a time.
           // once the scanner is fully stopped.
