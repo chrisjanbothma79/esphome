@@ -232,13 +232,15 @@ void ESP32BLETracker::stop_scan() {
 void ESP32BLETracker::ble_before_disabled_event_handler() { this->stop_scan_(); }
 
 void ESP32BLETracker::stop_scan_() {
-  if (this->scanner_state_ != ScannerState::RUNNING || this->scanner_state_ == ScannerState::FAILED) {
+  if (this->scanner_state_ != ScannerState::RUNNING && this->scanner_state_ != ScannerState::FAILED) {
     if (this->scanner_state_ == ScannerState::IDLE) {
       ESP_LOGE(TAG, "Scan is already stopped while trying to stop.");
     } else if (this->scanner_state_ == ScannerState::STARTING) {
       ESP_LOGE(TAG, "Scan is starting while trying to stop.");
     } else if (this->scanner_state_ == ScannerState::STOPPING) {
       ESP_LOGE(TAG, "Scan is already stopping while trying to stop.");
+    } else if (this->scanner_state_ == ScannerState::STOPPED) {
+      ESP_LOGE(TAG, "Scan is already stopped while trying to stop.");
     }
     return;
   }
