@@ -192,6 +192,8 @@ async def to_code(config):
         elif path := config.get(CONF_CA_CERTIFICATE_PATH):
             cg.add_define("CPPHTTPLIB_OPENSSL_SUPPORT")
             cg.add(var.set_ca_path(path))
+            cg.add_build_flag("-lssl")
+            cg.add_build_flag("-lcrypto")
 
     await cg.register_component(var, config)
 
