@@ -21,7 +21,7 @@ ResumeAction = oneshot_timer_ns.class_("ResumeAction", automation.Action)
 
 ONESHOT_TIMER_SCHEMA = cv.Schema(
     {
-        cv.Required(CONF_ID): cv.declare_id(OneShotTimer),
+        cv.GenerateID(): cv.declare_id(OneShotTimer),
         cv.Required(CONF_INTERVAL): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_AUTO_START, default=False): cv.boolean,
         cv.Required(CONF_ON_TIMEOUT): automation.validate_automation(

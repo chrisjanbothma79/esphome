@@ -1,0 +1,14 @@
+interval:
+  - interval: 1s
+    then:
+      - logger.log: Tick
+
+oneshot_timer:
+  - interval: 5s
+    auto_start: false
+    on_timeout:
+      - logger.log: Timeout
+    on_start:
+      - logger.log: Start
+    on_pause:
+      - logger.log: Pause
