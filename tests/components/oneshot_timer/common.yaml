@@ -18,7 +18,7 @@ button:
   - platform: template
     id: start_specified_interval
     on_press:
-      oneshot_timer.start: 
+      oneshot_timer.start:
         id: timer1
         interval: 10s
 
