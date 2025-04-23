@@ -95,7 +95,7 @@ std::shared_ptr<HttpContainer> HttpRequestHost::perform(std::string url, std::st
   }
   App.feed_wdt();
   if (!result) {
-    ESP_LOGW(TAG, "HTTP Request failed; URL: %s, error code: %d", url.c_str(), result.error());
+    ESP_LOGW(TAG, "HTTP Request failed; URL: %s, error code: %u", url.c_str(), (unsigned) result.error());
     container->end();
     this->status_momentary_error("failed", 1000);
     return nullptr;
