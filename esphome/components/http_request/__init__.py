@@ -210,6 +210,7 @@ HTTP_REQUEST_ACTION_SCHEMA = cv.Schema(
         cv.Optional(CONF_REQUEST_HEADERS): cv.All(
             cv.Schema({cv.string: cv.templatable(cv.string)})
         ),
+        cv.Optional(CONF_COLLECT_HEADERS): cv.ensure_list(cv.string),
         cv.Optional(CONF_VERIFY_SSL): cv.invalid(
             f"{CONF_VERIFY_SSL} has moved to the base component configuration."
         ),
@@ -294,11 +295,12 @@ async def http_request_action_to_code(config, action_id, template_arg, args):
             for key in json_:
                 template_ = await cg.templatable(json_[key], args, cg.std_string)
                 cg.add(var.add_json(key, template_))
-    for key in config.get(CONF_HEADERS, []):
-        template_ = await cg.templatable(
-            config[CONF_HEADERS][key], args, cg.const_char_ptr
-        )
-        cg.add(var.add_header(key, template_))
+    for key in config.get(CONF_REQUEST_HEADERS, []):
+        template_ = await cg.templatable(key, args, cg.std_string)
+        cg.add(var.add_request_header(key, template_))
+
+    for value in config.get(CONF_COLLECT_HEADERS, []):
+        cg.add(var.add_collect_header(value))
 
     for conf in config.get(CONF_ON_RESPONSE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID])

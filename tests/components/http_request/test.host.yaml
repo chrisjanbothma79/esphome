@@ -1,4 +1,6 @@
 substitutions:
   verify_ssl: "true"
+http_request:
+  ca_certificate_path: /dev/null
 
 <<: !include http_request.yaml
