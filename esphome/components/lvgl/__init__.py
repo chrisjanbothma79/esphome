@@ -12,6 +12,7 @@ from esphome.const import (
     CONF_LAMBDA,
     CONF_ON_BOOT,
     CONF_ON_IDLE,
+    CONF_ON_PAUSE,
     CONF_PAGES,
     CONF_TIMEOUT,
     CONF_TRIGGER_ID,
@@ -357,7 +358,7 @@ async def to_code(configs):
                     conf[CONF_TRIGGER_ID], lv_component, templ
                 )
                 await build_automation(idle_trigger, [], conf)
-            for conf in config.get(df.CONF_ON_PAUSE, ()):
+            for conf in config.get(CONF_ON_PAUSE, ()):
                 pause_trigger = cg.new_Pvariable(
                     conf[CONF_TRIGGER_ID], lv_component, True
                 )
@@ -434,7 +435,7 @@ LVGL_SCHEMA = cv.All(
                         ),
                     }
                 ),
-                cv.Optional(df.CONF_ON_PAUSE): validate_automation(
+                cv.Optional(CONF_ON_PAUSE): validate_automation(
                     {
                         cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(PauseTrigger),
                     }

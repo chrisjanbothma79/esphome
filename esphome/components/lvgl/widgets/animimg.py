@@ -1,9 +1,9 @@
 from esphome import automation
 import esphome.config_validation as cv
-from esphome.const import CONF_DURATION, CONF_ID
+from esphome.const import CONF_DURATION, CONF_ID, CONF_AUTO_START
 
 from ..automation import action_to_code
-from ..defines import CONF_AUTO_START, CONF_MAIN, CONF_REPEAT_COUNT, CONF_SRC
+from ..defines import CONF_MAIN, CONF_REPEAT_COUNT, CONF_SRC
 from ..helpers import lvgl_components_required
 from ..lv_validation import lv_image_list, lv_milliseconds
 from ..lvcode import lv

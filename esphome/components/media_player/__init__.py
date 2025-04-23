@@ -4,6 +4,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
     CONF_ON_IDLE,
+    CONF_ON_PAUSE,
     CONF_ON_STATE,
     CONF_TRIGGER_ID,
     CONF_VOLUME,
@@ -58,7 +59,6 @@ VolumeSetAction = media_player_ns.class_(
 
 CONF_ANNOUNCEMENT = "announcement"
 CONF_ON_PLAY = "on_play"
-CONF_ON_PAUSE = "on_pause"
 CONF_ON_ANNOUNCEMENT = "on_announcement"
 CONF_MEDIA_URL = "media_url"
 
