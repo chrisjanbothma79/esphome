@@ -1,6 +1,7 @@
 substitutions:
   verify_ssl: "true"
 http_request:
-  ca_certificate_path: /dev/null
+  # Just a file we can be sure exists
+  ca_certificate_path: /etc/passwd
 
 <<: !include http_request.yaml
