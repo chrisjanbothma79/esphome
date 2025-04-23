@@ -1,5 +1,7 @@
 substitutions:
   pin: GPIO2
+  rmt_symbols: "64"
+  use_dma: "false"
 
 packages:
   common: !include esp32-common.yaml
