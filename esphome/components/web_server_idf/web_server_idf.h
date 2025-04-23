@@ -132,8 +132,8 @@ class AsyncWebServerRequest {
     return res;
   }
   // NOLINTNEXTLINE(readability-identifier-naming)
-  AsyncWebServerResponse *beginResponse_P(int code, const char *content_type, const uint8_t *data,
-                                          const size_t data_size) {
+  AsyncWebServerResponse *beginResponse(int code, const char *content_type, const uint8_t *data,
+                                        const size_t data_size) {
     auto *res = new AsyncWebServerResponseProgmem(this, data, data_size);  // NOLINT(cppcoreguidelines-owning-memory)
     this->init_response_(res, code, content_type);
     return res;

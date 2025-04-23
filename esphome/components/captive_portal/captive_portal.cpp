@@ -5,6 +5,10 @@
 #include "esphome/components/wifi/wifi_component.h"
 #include "captive_index.h"
 
+#if USE_ESP8266
+#define beginResponse beginResponse_P
+#endif
+
 namespace esphome {
 namespace captive_portal {
 
@@ -68,7 +72,7 @@ void CaptivePortal::start() {
 
 void CaptivePortal::handleRequest(AsyncWebServerRequest *req) {
   if (req->url() == "/") {
-    auto *response = req->beginResponse_P(200, "text/html", INDEX_GZ, sizeof(INDEX_GZ));
+    auto *response = req->beginResponse(200, "text/html", INDEX_GZ, sizeof(INDEX_GZ));
     response->addHeader("Content-Encoding", "gzip");
     req->send(response);
     return;
