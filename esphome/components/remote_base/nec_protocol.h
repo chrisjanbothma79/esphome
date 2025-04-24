@@ -243,6 +243,9 @@ template<typename... Ts> class NECAction : public RemoteTransmitterActionBase<Ts
       return;
     }
 
+    // Transmit call does not wait for `send_wait` us after last iteration
+    auto start_millis = micros();
+
     // Reset RemoteTransmitData
     call.get_data()->reset();
     // Send NEC1 repeats
@@ -250,6 +253,13 @@ template<typename... Ts> class NECAction : public RemoteTransmitterActionBase<Ts
     NECProtocol().encode(call.get_data(), data);
     call.set_send_times(send_times - 1);
     call.set_send_wait(NEC_SPACE_AGC_REPEAT_US);
+
+    // Delay must be added between NEC1 frame and repeat code
+    // Encoding time is compensated
+    auto delay_time = NEC_SPACE_INTER_FRAME_US - (micros() - start_millis);
+    if (delay_time <= NEC_SPACE_INTER_FRAME_US) {
+      delayMicroseconds(delay_time);
+    }
     call.perform();
   }
 

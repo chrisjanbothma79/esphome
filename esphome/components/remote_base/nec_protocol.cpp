@@ -149,7 +149,7 @@ std::string NECProtocol::get_protocol_type_and_fields_str(const NECData &data) {
       debug_message += str_sprintf("Frame (%u-bit address)", NECProtocol::is_address_extended(data) ? 16 : 8);
       break;
     case NECCodeType::REPEAT:
-      debug_message += "Repeat Code:";
+      debug_message += "Repeat Code";
       break;
     default:
       debug_message += "Unknown";
