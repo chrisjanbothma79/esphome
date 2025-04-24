@@ -116,6 +116,7 @@ void ST7789V::setup() {
 
   backlight_(true);
 
+  this->buffer_fragment_length_pixels_ = this->get_width_internal() * this->get_height_internal() / this->buffer_fragmentation_;
   this->init_internal_(this->get_buffer_length_());
   memset(this->buffer_, 0x00, this->get_buffer_length_());
 }
@@ -127,6 +128,7 @@ void ST7789V::dump_config() {
   ESP_LOGCONFIG(TAG, "  Width: %u", this->width_);
   ESP_LOGCONFIG(TAG, "  Height Offset: %u", this->offset_height_);
   ESP_LOGCONFIG(TAG, "  Width Offset: %u", this->offset_width_);
+  ESP_LOGCONFIG(TAG, "  Fragmentation: %u", this->buffer_fragmentation_);
   ESP_LOGCONFIG(TAG, "  8-bit color mode: %s", YESNO(this->eightbitcolor_));
   LOG_PIN("  CS Pin: ", this->cs_);
   LOG_PIN("  DC Pin: ", this->dc_pin_);
@@ -142,8 +144,13 @@ void ST7789V::dump_config() {
 float ST7789V::get_setup_priority() const { return setup_priority::PROCESSOR; }
 
 void ST7789V::update() {
-  this->do_update_();
-  this->write_display_data();
+  this->current_fragment_offset_pixels_ = 0;
+  for (unsigned frag=0; frag < this->buffer_fragmentation_; frag++) {
+    this->do_update_();
+    this->write_display_data();
+    App.feed_wdt();
+    this->current_fragment_offset_pixels_ += this->buffer_fragment_length_pixels_;
+  }
 }
 
 void ST7789V::set_model_str(const char *model_str) { this->model_str_ = model_str; }
@@ -151,7 +158,7 @@ void ST7789V::set_model_str(const char *model_str) { this->model_str_ = model_st
 void ST7789V::write_display_data() {
   uint16_t x1 = this->offset_height_;
   uint16_t x2 = x1 + get_width_internal() - 1;
-  uint16_t y1 = this->offset_width_;
+  uint16_t y1 = this->offset_width_ + this->current_fragment_offset_pixels_ / get_width_internal();
   uint16_t y2 = y1 + get_height_internal() - 1;
 
   this->enable();
@@ -256,10 +263,9 @@ void ST7789V::write_color_(uint16_t color, uint16_t size) {
 }
 
 size_t ST7789V::get_buffer_length_() {
-  if (this->eightbitcolor_) {
-    return size_t(this->get_width_internal()) * size_t(this->get_height_internal());
-  }
-  return size_t(this->get_width_internal()) * size_t(this->get_height_internal()) * 2;
+  if (this->eightbitcolor_)
+    return this->buffer_fragment_length_pixels_;
+  return this->buffer_fragment_length_pixels_ * 2;
 }
 
 // Draw a filled rectangle
@@ -293,15 +299,20 @@ void HOT ST7789V::draw_absolute_pixel_internal(int x, int y, Color color) {
   if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0)
     return;
 
+  uint32_t pos = (x + y * this->get_width_internal());
+  if (pos < this->current_fragment_offset_pixels_)
+    return;
+  pos -= this->current_fragment_offset_pixels_;
+  if (pos >= this->buffer_fragment_length_pixels_)
+    return;
+
   if (this->eightbitcolor_) {
     auto color332 = display::ColorUtil::color_to_332(color);
-    uint32_t pos = (x + y * this->get_width_internal());
     this->buffer_[pos] = color332;
   } else {
     auto color565 = display::ColorUtil::color_to_565(color);
-    uint32_t pos = (x + y * this->get_width_internal()) * 2;
-    this->buffer_[pos++] = (color565 >> 8) & 0xff;
-    this->buffer_[pos] = color565 & 0xff;
+    this->buffer_[2*pos+0] = (color565 >> 8) & 0xff;
+    this->buffer_[2*pos+1] = color565 & 0xff;
   }
 }
 

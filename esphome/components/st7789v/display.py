@@ -15,6 +15,7 @@ from esphome.const import (
     CONF_POWER_SUPPLY,
     CONF_RESET_PIN,
     CONF_ROTATION,
+    CONF_FRAGMENTATION,
     CONF_WIDTH,
 )
 
@@ -142,6 +143,10 @@ def validate_st7789v(config):
     if CONF_DC_PIN not in config or CONF_RESET_PIN not in config:
         raise cv.Invalid(f"both {CONF_DC_PIN} and {CONF_RESET_PIN} must be specified")
 
+    if CONF_FRAGMENTATION in config:
+        if config[CONF_WIDTH] * config[CONF_HEIGHT] // config[CONF_FRAGMENTATION] == 0:
+            raise cv.Invalid("Fragmentation too high.")
+
     return config
 
 
@@ -162,6 +167,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_WIDTH): cv.int_,
             cv.Optional(CONF_OFFSET_HEIGHT): cv.int_,
             cv.Optional(CONF_OFFSET_WIDTH): cv.int_,
+            cv.Optional(CONF_FRAGMENTATION): cv.int_range(min=1),
         }
     )
     .extend(cv.polling_component_schema("5s"))
@@ -185,6 +191,9 @@ async def to_code(config):
     cg.add(var.set_width(config[CONF_WIDTH]))
     cg.add(var.set_offset_height(config[CONF_OFFSET_HEIGHT]))
     cg.add(var.set_offset_width(config[CONF_OFFSET_WIDTH]))
+
+    if CONF_FRAGMENTATION in config:
+        cg.add(var.set_buffer_fragmentation(config[CONF_FRAGMENTATION]))
 
     cg.add(var.set_eightbitcolor(config[CONF_EIGHTBITCOLOR]))
 
