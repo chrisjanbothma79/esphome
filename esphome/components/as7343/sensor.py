@@ -1,25 +1,23 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import i2c, sensor
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_COLOR_TEMPERATURE,
     CONF_GAIN,
-    CONF_ID,
-    CONF_NAME,
-    CONF_ILLUMINANCE,
-    DEVICE_CLASS_ILLUMINANCE,
     CONF_GLASS_ATTENUATION_FACTOR,
+    CONF_ID,
+    CONF_ILLUMINANCE,
+    CONF_NAME,
+    DEVICE_CLASS_ILLUMINANCE,
     ICON_BRIGHTNESS_5,
+    ICON_THERMOMETER,
     STATE_CLASS_MEASUREMENT,
     UNIT_KELVIN,
     UNIT_LUX,
-    UNIT_PERCENT,
-    ICON_THERMOMETER,
 )
 
-
 CODEOWNERS = ["@mrgnr", "@latonita"]
-DEPENDENCIES = ["i2c"]
+DEPENDENCIES = ["i2c", "sensor"]
 
 as7343_ns = cg.esphome_ns.namespace("as7343")
 
@@ -43,6 +41,7 @@ CONF_F7 = "f7"
 CONF_F8 = "f8"
 CONF_NIR = "nir"
 CONF_CLEAR = "clear"
+
 CONF_IRRADIANCE = "irradiance"
 CONF_IRRADIANCE_PHOTOPIC = "irradiance_photopic"
 CONF_PPFD = "ppfd"
@@ -74,9 +73,9 @@ GAIN_OPTIONS = {
 
 SENSOR_SCHEMA = cv.maybe_simple_value(
     sensor.sensor_schema(
-        unit_of_measurement=UNIT_PERCENT,
+        unit_of_measurement=UNIT_COUNTS,
         icon=ICON_BRIGHTNESS_5,
-        accuracy_decimals=0,
+        accuracy_decimals=4,
         device_class=DEVICE_CLASS_ILLUMINANCE,
         state_class=STATE_CLASS_MEASUREMENT,
     ),
@@ -88,6 +87,12 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(AS7343Component),
+            cv.Optional(CONF_GAIN, default="X8"): cv.enum(GAIN_OPTIONS),
+            cv.Optional(CONF_ATIME, default=29): cv.int_range(min=0, max=255),
+            cv.Optional(CONF_ASTEP, default=599): cv.int_range(min=0, max=65534),
+            cv.Optional(CONF_GLASS_ATTENUATION_FACTOR, default=1.0): cv.float_range(
+                min=1.0
+            ),
             cv.Optional(CONF_F1): SENSOR_SCHEMA,
             cv.Optional(CONF_F2): SENSOR_SCHEMA,
             cv.Optional(CONF_FZ): SENSOR_SCHEMA,
@@ -109,12 +114,6 @@ CONFIG_SCHEMA = (
                     state_class=STATE_CLASS_MEASUREMENT,
                 ),
                 key=CONF_NAME,
-            ),
-            cv.Optional(CONF_GAIN, default="X8"): cv.enum(GAIN_OPTIONS),
-            cv.Optional(CONF_ATIME, default=29): cv.int_range(min=0, max=255),
-            cv.Optional(CONF_ASTEP, default=599): cv.int_range(min=0, max=65534),
-            cv.Optional(CONF_GLASS_ATTENUATION_FACTOR, default=1.0): cv.float_range(
-                min=1.0
             ),
             cv.Optional(CONF_ILLUMINANCE): cv.maybe_simple_value(
                 sensor.sensor_schema(
@@ -181,27 +180,49 @@ CONFIG_SCHEMA = (
     .extend(i2c.i2c_device_schema(0x39))
 )
 
-SENSORS = {
-    CONF_F1: "set_f1_sensor",
-    CONF_F2: "set_f2_sensor",
-    CONF_FZ: "set_fz_sensor",
-    CONF_F3: "set_f3_sensor",
-    CONF_F4: "set_f4_sensor",
-    CONF_FY: "set_fy_sensor",
-    CONF_F5: "set_f5_sensor",
-    CONF_FXL: "set_fxl_sensor",
-    CONF_F6: "set_f6_sensor",
-    CONF_F7: "set_f7_sensor",
-    CONF_F8: "set_f8_sensor",
-    CONF_NIR: "set_nir_sensor",
-    CONF_CLEAR: "set_clear_sensor",
-    CONF_ILLUMINANCE: "set_illuminance_sensor",
-    CONF_IRRADIANCE: "set_irradiance_sensor",
-    CONF_IRRADIANCE_PHOTOPIC: "set_irradiance_photopic_sensor",
-    CONF_PPFD: "set_ppfd_sensor",
-    CONF_SATURATION: "set_saturation_sensor",
-    CONF_COLOR_TEMPERATURE: "set_color_temperature_sensor",
-}
+SENSORS = [
+    CONF_F1,
+    CONF_F2,
+    CONF_FZ,
+    CONF_F3,
+    CONF_F4,
+    CONF_FY,
+    CONF_F5,
+    CONF_FXL,
+    CONF_F6,
+    CONF_F7,
+    CONF_F8,
+    CONF_NIR,
+    CONF_CLEAR,
+    CONF_ILLUMINANCE,
+    CONF_IRRADIANCE,
+    CONF_IRRADIANCE_PHOTOPIC,
+    CONF_PPFD,
+    CONF_SATURATION,
+    CONF_COLOR_TEMPERATURE,
+]
+
+# SENSORS = {
+#     CONF_F1: "set_f1_sensor",
+#     CONF_F2: "set_f2_sensor",
+#     CONF_FZ: "set_fz_sensor",
+#     CONF_F3: "set_f3_sensor",
+#     CONF_F4: "set_f4_sensor",
+#     CONF_FY: "set_fy_sensor",
+#     CONF_F5: "set_f5_sensor",
+#     CONF_FXL: "set_fxl_sensor",
+#     CONF_F6: "set_f6_sensor",
+#     CONF_F7: "set_f7_sensor",
+#     CONF_F8: "set_f8_sensor",
+#     CONF_NIR: "set_nir_sensor",
+#     CONF_CLEAR: "set_clear_sensor",
+#     CONF_ILLUMINANCE: "set_illuminance_sensor",
+#     CONF_IRRADIANCE: "set_irradiance_sensor",
+#     CONF_IRRADIANCE_PHOTOPIC: "set_irradiance_photopic_sensor",
+#     CONF_PPFD: "set_ppfd_sensor",
+#     CONF_SATURATION: "set_saturation_sensor",
+#     CONF_COLOR_TEMPERATURE: "set_color_temperature_sensor",
+# }
 
 
 async def to_code(config):
@@ -214,7 +235,11 @@ async def to_code(config):
     cg.add(var.set_astep(config[CONF_ASTEP]))
     cg.add(var.set_glass_attenuation_factor(config[CONF_GLASS_ATTENUATION_FACTOR]))
 
-    for conf_id, set_sensor_func in SENSORS.items():
-        if sens_config := config.get(conf_id):
-            sens = await sensor.new_sensor(sens_config)
-            cg.add(getattr(var, set_sensor_func)(sens))
+    # for conf_id, set_sensor_func in SENSORS.items():
+    #     if sens_config := config.get(conf_id):
+    #         sens = await sensor.new_sensor(sens_config)
+    #         cg.add(getattr(var, set_sensor_func)(sens))
+    for sensor_id in SENSORS:
+        if sensor_config := config.get(sensor_id):
+            sens = await sensor.new_sensor(sensor_config)
+            cg.add(getattr(var, f"set_{sensor_id}_sensor")(sens))
