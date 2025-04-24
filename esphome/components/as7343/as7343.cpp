@@ -28,12 +28,12 @@ static constexpr uint8_t CHANNEL_IDX[AS7343_NUM_CHANNELS_MAX] = {
 
 static constexpr std::array<const char *, AS7343_NUM_CHANNELS + 1> CHANNEL_NAME = {
     "F1", "F2", "FZ", "F3", "F4", "FY", "F5", "FXL", "F6", "F7", "F8", "NIR", "Clear", ""};
-static constexpr std::array<float, AS7343_NUM_CHANNELS + 1> CHANNEL_WAVE_NM = {405, 425, 450, 475, 515, 555, 550,
-                                                                               600, 640, 690, 745, 855, 718, 0.0f};
+static constexpr std::array<uint16_t, AS7343_NUM_CHANNELS + 1> CHANNEL_WAVE_NM = {405, 425, 450, 475, 515, 555, 550,
+                                                                                  600, 640, 690, 745, 855, 718, 0};
 
 // LOGGING. printing out channel values except for last one which is fake just for the safety of inverse mapping
 void log_cn_f(const char *TAG, const char *str, const std::array<float, AS7343_NUM_CHANNELS + 1> &arr) {
-  ESP_LOGD(TAG, "%s, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, ", str, arr[0],
+  ESP_LOGD(TAG, "%s, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, %.6f, ", str, arr[0],
            arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], arr[7], arr[8], arr[9], arr[10], arr[11], arr[12]);
 }
 
@@ -304,7 +304,7 @@ void AS7343Component::calculate_() {
 
   ESP_LOGD(TAG, "Readings:");
   log_cn_s(TAG, "  Channel", CHANNEL_NAME);
-  log_cn_f0(TAG, "  Nm", CHANNEL_WAVE_NM);
+  log_cn_d(TAG, "  Nm", CHANNEL_WAVE_NM);
   log_cn_d(TAG, "  Counts", this->readings_.raw_counts);
   log_cn_f(TAG, "  Basic", this->readings_.basic_counts);
 
@@ -325,7 +325,7 @@ void AS7343Component::calculate_() {
   ESP_LOGD(TAG, "  Gain  =  %.1f", this->readings_.gain_x);
   ESP_LOGD(TAG, "  ATIME = %u ", this->readings_.atime);
   ESP_LOGD(TAG, "  ASTEP = %u ", this->readings_.astep);
-  ESP_LOGD(TAG, "  TINT  = %.4f ms", this->readings_.t_int_us / 1000.0f);
+  ESP_LOGD(TAG, "  TINT  = %.3f ms", this->readings_.t_int_us / 1000.0f);
 
   this->calculate_spectral_(this->calculated_values_.lux, this->calculated_values_.par, this->calculated_values_.ppfd,
                             this->calculated_values_.irradiance, this->calculated_values_.irradiance_photopic);
@@ -372,11 +372,11 @@ void AS7343Component::calculate_basic_counts_() {
   // gain_x  : numeric gain (0.5 … 2048.0)
   // t_int_us: integration-time in micro-seconds
   const float inv_exposure = 1.0f / (this->readings_.gain_x * this->readings_.t_int_us);  // 1/(gain·µs)
-  const float us_to_s = 1.0e6f;
+  // const float us_to_s = 1.0e6f;
 
   for (size_t i = 0; i < AS7343_NUM_CHANNELS; i++) {
     // 1. raw → basic-counts  (now counts · s⁻¹ @ ×1 gain)
-    float basic_count = this->readings_.raw_counts[i] * inv_exposure * us_to_s;
+    float basic_count = this->readings_.raw_counts[i] * inv_exposure;  // * us_to_s;
     // 2. gain-linearity correction (datasheet “GAIN_CORR” table)
     basic_count *= AS7343_GAIN_CORRECTION[(uint8_t) this->readings_.gain][i];
 
@@ -388,6 +388,8 @@ void AS7343Component::calculate_basic_counts_() {
 
 void AS7343Component::calculate_spectral_(float &lux, float &par, float &ppfd, float &irradiance,
                                           float &irradiance_photopic) {
+  lux = ppfd = par = irradiance = irradiance_photopic = 0.0f;
+
   for (uint8_t i = 0; i < AS7343_NUM_CHANNELS; i++) {
     lux += AS7343_LUX_PER_COUNT[i] * this->readings_.basic_counts[i];
     ppfd += AS7343_PPFD_UMOL_PER_COUNT[i] * this->readings_.basic_counts[i];
@@ -396,10 +398,13 @@ void AS7343Component::calculate_spectral_(float &lux, float &par, float &ppfd, f
   }
 
   // scale values to proper units
-  lux /= 1e6f;                      // convert to lux
-  par /= 1e6f;                      // convert to W/m²
-  ppfd /= 1e3f;                     // convert to µmol/s·m²
-  irradiance /= 1e6f;               // convert to W/m²
+  // lux /= 1e6f;                      // convert to lux
+  // par /= 1e6f;                      // convert to W/m²
+  // ppfd /= 1e3f;                     // convert to µmol/s·m²
+  // irradiance /= 1e6f;               // convert to W/m²
+
+  ppfd *= 1e3f;
+
   irradiance_photopic = lux / 683;  // convert to W/m²
 }
 
@@ -414,9 +419,9 @@ void AS7343Component::calculate_color_(float &cct, float &duv, float &lux) {
     }
 
     // basic counts are 1e6 bigger than in example calculations in excel sheet, since TINT is in seconds and not in us
-    XYZ[0] /= 1e6f;
-    XYZ[1] /= 1e6f;
-    XYZ[2] /= 1e6f;
+    // XYZ[0] /= 1e6f;
+    // XYZ[1] /= 1e6f;
+    // XYZ[2] /= 1e6f;
 
     float epsilon = 0.0001;
     float xyz_sum = XYZ[0] + XYZ[1] + XYZ[2];
