@@ -72,13 +72,17 @@ enum AS7341Gain {
   AS7341_GAIN_128X,
   AS7341_GAIN_256X,
   AS7341_GAIN_512X,
+  AS7341_GAIN_COUNT,
 };
+
+constexpr uint16_t AS7341_NUM_CHANNELS = 12;
 
 class AS7341Component : public PollingComponent, public i2c::I2CDevice {
  public:
   void setup() override;
   void dump_config() override;
   float get_setup_priority() const override;
+  void loop() override;
   void update() override;
 
   void set_f1_sensor(sensor::Sensor *f1_sensor) { this->f1_ = f1_sensor; }
@@ -104,7 +108,7 @@ class AS7341Component : public PollingComponent, public i2c::I2CDevice {
   bool setup_astep(uint16_t astep);
 
   uint16_t read_channel(AS7341AdcChannel channel);
-  bool read_channels(uint16_t *data);
+  bool read_channels();
   void set_smux_low_channels(bool enable);
   bool set_smux_command(AS7341SmuxCommand command);
   void configure_smux_low_channels();
@@ -123,6 +127,19 @@ class AS7341Component : public PollingComponent, public i2c::I2CDevice {
   uint16_t swap_bytes(uint16_t data);
 
  protected:
+  enum class State : uint8_t {
+    NOT_INITIALIZED,
+    INITIAL_SETUP_COMPLETED,
+    IDLE,
+    START_MEASUREMENT,
+    COLLECTING_DATA,
+    COLLECTING_DATA_AUTO,
+    DATA_COLLECTED,
+    READY_TO_PUBLISH_PART_1,
+    READY_TO_PUBLISH_PART_2,
+    READY_TO_PUBLISH_PART_3
+  } state_{State::NOT_INITIALIZED};
+
   sensor::Sensor *f1_{nullptr};
   sensor::Sensor *f2_{nullptr};
   sensor::Sensor *f3_{nullptr};
@@ -137,7 +154,40 @@ class AS7341Component : public PollingComponent, public i2c::I2CDevice {
   uint16_t astep_;
   AS7341Gain gain_;
   uint8_t atime_;
-  uint16_t channel_readings_[12];
+  float glass_attenuation_factor_{1.0f};
+  // uint16_t channel_readings_[12];
+  std::array<uint16_t, AS7341_NUM_CHANNELS> channel_readings_{};  // extra channel for safe inverse mapping
+
+  struct {
+    std::array<float, AS7341_NUM_CHANNELS> basic_counts{};
+    AS7341Gain gain;
+    uint8_t atime;
+    uint16_t astep;
+    float gain_x{};
+    float t_int_us{};
+    uint32_t millis_start;
+    bool first_run{true};
+  } readings_;
+  struct {
+    float lux;
+    float irradiance;
+    float irradiance_photopic;
+    float ppfd;
+    float par;
+    float cct;
+    float duv;
+    float lux_from_xyz;
+  } calculated_values_;
+
+  float get_gain_multiplier(AS7341Gain gain);
+
+  void calculate_();
+  void calculate_basic_counts_();
+  void calculate_spectral_(float &lux, float &par, float &ppfd, float &irradiance, float &irradiance_photopic);
+  void calculate_color_(float &ct, float &duv, float &lux);
+
+  void publish_channel_readings_();
+  void publish_derived_readings_();
 };
 
 }  // namespace as7341
