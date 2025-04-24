@@ -302,7 +302,7 @@ void AS7341Component::calculate_color_(float &cct, float &duv, float &lux) {
       XYZ[j] += AS7341_XYZ_PER_COUNT[j][i] * this->readings_.basic_counts[i];
     }
   }
-
+  // basic counts are 1e6 bigger than in example calculations in excel sheet, since TINT is in seconds and not in us
   XYZ[0] /= 1e6f;
   XYZ[1] /= 1e6f;
   XYZ[2] /= 1e6f;
@@ -329,14 +329,15 @@ void AS7341Component::calculate_color_(float &cct, float &duv, float &lux) {
     //      lux = XYZ[1] * this->corr_lx_y_cie1931_ / 1e6f;
     // output x y z (small)
     ESP_LOGD(TAG, "XYZ: %.2f, %.2f, %.2f", XYZ[0], XYZ[1], XYZ[2]);
-    ESP_LOGD(TAG, "Output x: %.2f, y: %.2f, z: %.2f", x, y, z);
+    ESP_LOGD(TAG, "x: %.2f, y: %.2f, z: %.2f", x, y, z);
     ESP_LOGD(TAG, "CCT: %.2f, duv: %.2f", cct, duv);
   }
 }
 
 float AS7341Component::get_gain_multiplier(AS7341Gain gain) {
   float gainx = ((uint16_t) 1 << (uint8_t) gain);
-  return gainx / 2;
+  // The AS7341 sensor's gain values are represented as powers of 2, but the actual gain multiplier
+  // is half of this value. This division by 2 adjusts the calculated gain multiplier accordingly.
 }
 
 void AS7341Component::calculate_basic_counts_() {
