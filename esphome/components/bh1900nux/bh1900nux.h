@@ -5,7 +5,7 @@
 #include "esphome/components/i2c/i2c.h"
 
 namespace esphome {
-namespace empty_i2c_sensor {
+namespace bh1900nux_i2c {
 
 class BH1900NUXSensor : public sensor::Sensor, public PollingComponent, public i2c::I2CDevice {
  public:
@@ -14,5 +14,5 @@ class BH1900NUXSensor : public sensor::Sensor, public PollingComponent, public i
   void dump_config() override;
 };
 
-}  // namespace empty_i2c_sensor
+}  // namespace bh1900nux_i2c
 }  // namespace esphome
