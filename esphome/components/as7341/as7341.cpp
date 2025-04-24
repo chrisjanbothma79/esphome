@@ -338,6 +338,8 @@ float AS7341Component::get_gain_multiplier(AS7341Gain gain) {
   float gainx = ((uint16_t) 1 << (uint8_t) gain);
   // The AS7341 sensor's gain values are represented as powers of 2, but the actual gain multiplier
   // is half of this value. This division by 2 adjusts the calculated gain multiplier accordingly.
+  gainx /= 2.0f;
+  return gainx;
 }
 
 void AS7341Component::calculate_basic_counts_() {
