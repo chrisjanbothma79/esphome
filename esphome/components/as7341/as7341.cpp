@@ -310,7 +310,7 @@ void AS7341Component::calculate_color_(float &cct, float &duv, float &lux) {
   float epsilon = 0.0001;
   float xyz_sum = XYZ[0] + XYZ[1] + XYZ[2];
   float x{0}, y{0}, z{0};
-  if (xyz_sum < epsilon && xyz_sum > -epsilon) {
+  if (fabs(xyz_sum) < epsilon) {
     cct = 0;
     duv = 0;
     lux = 0;
