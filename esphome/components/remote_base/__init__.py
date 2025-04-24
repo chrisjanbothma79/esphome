@@ -764,7 +764,7 @@ NEC_FRAME_SCHEMA = cv.Schema(
         cv.Required(CONF_COMMAND): cv.hex_uint16_t,
         cv.Optional(CONF_COMMAND_REPEATS): cv.invalid(
             "'command_repeats' option has been removed. Use 'repeat' instead. "
-            "Check Remote receiver/transmitter documentation for more details."
+            "Check Remote Transmitter/Receiver documentation for more details."
         ),
     }
 )
@@ -779,7 +779,7 @@ NEC_TRANSMIT_SCHEMA = cv.Schema(
                 cv.Required(CONF_TIMES): cv.templatable(cv.positive_int),
                 cv.Optional(CONF_WAIT_TIME): cv.invalid(
                     "'wait_time' option is invalid for NEC protocol. "
-                    "Check Remote receiver/transmitter documentation for more details."
+                    "Check Remote Transmitter documentation for more details."
                 ),
             }
         ),
