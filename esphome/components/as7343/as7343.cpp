@@ -273,6 +273,8 @@ uint16_t AS7343Component::get_astep() {
 
 float AS7343Component::get_gain_multiplier(AS7343Gain gain) {
   float gainx = ((uint16_t) 1 << (uint8_t) gain);
+  // The AS7343 sensor's gain values are represented as powers of 2, but the actual gain multiplier
+  // is half of this value. This division by 2 adjusts the calculated gain multiplier accordingly.
   return gainx / 2;
 }
 
@@ -334,8 +336,6 @@ void AS7343Component::calculate_() {
   this->calculate_cri_();
 
   //
-
-  //
   // check for wrong readings due to underexposure or overexposure, replace with 0
   //
   this->calculated_values_.lux = std::max(this->calculated_values_.lux, 0.0f);
@@ -345,16 +345,7 @@ void AS7343Component::calculate_() {
   this->calculated_values_.ppfd = std::max(this->calculated_values_.ppfd, 0.0f);
   this->calculated_values_.lux_from_xyz = std::max(this->calculated_values_.lux_from_xyz, 0.0f);
   this->calculated_values_.cct = std::max(this->calculated_values_.cct, 0.0f);
-  this->calculated_values_.duv = std::max(this->calculated_values_.duv, 0.0f);
-
-  // ZERO_IF_LESS(this->calculated_values_.lux, 0.0f);
-  // ZERO_IF_LESS(this->calculated_values_.irradiance, 0.0f);
-  // ZERO_IF_LESS(this->calculated_values_.irradiance_photopic, 0.0f);
-  // ZERO_IF_LESS(this->calculated_values_.par, 0.0f);
-  // ZERO_IF_LESS(this->calculated_values_.ppfd, 0.0f);
-  // ZERO_IF_LESS(this->calculated_values_.lux_from_xyz, 0.0f);
-  // ZERO_IF_LESS(this->calculated_values_.cct, 0.0f);
-  // ZERO_IF_LESS(this->calculated_values_.duv, 0.0f);
+  // this->calculated_values_.duv = std::max(this->calculated_values_.duv, 0.0f);
 
   //
   // apply glass attenuation
@@ -378,7 +369,7 @@ void AS7343Component::calculate_() {
 }
 
 void AS7343Component::calculate_basic_counts_() {
-  // gain_x  : numeric gain (0.5 … 512.0)
+  // gain_x  : numeric gain (0.5 … 2048.0)
   // t_int_us: integration-time in micro-seconds
   const float inv_exposure = 1.0f / (this->readings_.gain_x * this->readings_.t_int_us);  // 1/(gain·µs)
   const float us_to_s = 1.0e6f;
@@ -414,23 +405,28 @@ void AS7343Component::calculate_spectral_(float &lux, float &par, float &ppfd, f
 
 void AS7343Component::calculate_color_(float &cct, float &duv, float &lux) {
   {
-    ESP_LOGD(TAG, "COLORS 1:");
-    // option one
+    ESP_LOGD(TAG, "Tristimulus:");
     float XYZ[3] = {0, 0, 0};
     for (uint8_t i = 0; i < AS7343_NUM_CHANNELS; i++) {
       for (uint8_t j = 0; j < 3; j++) {
         XYZ[j] += AS7343_XYZ_PER_COUNT[j][i] * this->readings_.basic_counts[i];
       }
     }
+
+    // basic counts are 1e6 bigger than in example calculations in excel sheet, since TINT is in seconds and not in us
+    XYZ[0] /= 1e6f;
+    XYZ[1] /= 1e6f;
+    XYZ[2] /= 1e6f;
+
     float epsilon = 0.0001;
     float xyz_sum = XYZ[0] + XYZ[1] + XYZ[2];
     float x{0}, y{0}, z{0};
-    if (xyz_sum < epsilon && xyz_sum > -epsilon) {
+    if (fabs(xyz_sum) < epsilon) {
       cct = 0;
-      duv = 0;
+      duv = NAN;
       lux = 0;
     } else {
-      duv = 0;
+      duv = NAN;
       x = XYZ[0] / xyz_sum;
       y = XYZ[1] / xyz_sum;
       z = XYZ[2] / xyz_sum;
@@ -440,67 +436,47 @@ void AS7343Component::calculate_color_(float &cct, float &duv, float &lux) {
       cct = 437 * pow(n, 3) + 3601 * pow(n, 2) + 6861 * n + 5517;
 
       // Calc lx from Y CIE1931
-      lux = XYZ[1] * this->corr_lx_y_cie1931_ / 1e6f;
+      lux = XYZ[1] * this->corr_lx_y_cie1931_;
       // output x y z (small)
-      ESP_LOGD(TAG, "XYZ: %.2f, %.2f, %.2f", XYZ[0], XYZ[1], XYZ[2]);
-      ESP_LOGD(TAG, "Output x: %.2f, y: %.2f, z: %.2f", x, y, z);
-      ESP_LOGD(TAG, "CCT: %.2f, duv: %.2f", cct, duv);
+      ESP_LOGD(TAG, "  XYZ: %.2f, %.2f, %.2f", XYZ[0], XYZ[1], XYZ[2]);
+      ESP_LOGD(TAG, "  x: %.2f, y: %.2f, z: %.2f", x, y, z);
+      ESP_LOGD(TAG, "  CCT: %.2f, duv: %.2f", cct, duv);
     }
   }
-  {
-    ESP_LOGD(TAG, "COLORS 2:");
-    // option two
-    float XYZ[3] = {0, 0, 0};
-    for (uint8_t i = 0; i < AS7343_NUM_CHANNELS; i++) {
-      for (uint8_t j = 0; j < 3; j++) {
-        XYZ[j] += AS7343_XYZ_PER_COUNT_2[j][i] * this->readings_.basic_counts[i];
-      }
-    }
-    float epsilon = 0.0001;
-    float xyz_sum = XYZ[0] + XYZ[1] + XYZ[2];
-    float x{0}, y{0}, z{0};
-    if (xyz_sum < epsilon && xyz_sum > -epsilon) {
-      cct = 0;
-      duv = 0;
-      lux = 0;
-    } else {
-      duv = 0;
-      x = XYZ[0] / xyz_sum;
-      y = XYZ[1] / xyz_sum;
-      z = XYZ[2] / xyz_sum;
+  // {
+  //   ESP_LOGD(TAG, "COLORS 2:");
+  //   // option two
+  //   float XYZ[3] = {0, 0, 0};
+  //   for (uint8_t i = 0; i < AS7343_NUM_CHANNELS; i++) {
+  //     for (uint8_t j = 0; j < 3; j++) {
+  //       XYZ[j] += AS7343_XYZ_PER_COUNT_2[j][i] * this->readings_.basic_counts[i];
+  //     }
+  //   }
+  //   float epsilon = 0.0001;
+  //   float xyz_sum = XYZ[0] + XYZ[1] + XYZ[2];
+  //   float x{0}, y{0}, z{0};
+  //   if (xyz_sum < epsilon && xyz_sum > -epsilon) {
+  //     cct = 0;
+  //     duv = 0;
+  //     lux = 0;
+  //   } else {
+  //     duv = 0;
+  //     x = XYZ[0] / xyz_sum;
+  //     y = XYZ[1] / xyz_sum;
+  //     z = XYZ[2] / xyz_sum;
 
-      float n = (x - 0.3320) / (0.1858 - y);
+  //     float n = (x - 0.3320) / (0.1858 - y);
 
-      cct = 437 * pow(n, 3) + 3601 * pow(n, 2) + 6861 * n + 5517;
+  //     cct = 437 * pow(n, 3) + 3601 * pow(n, 2) + 6861 * n + 5517;
 
-      // Calc lx from Y CIE1931
-      lux = XYZ[1] * this->corr_lx_y_cie1931_ / 1e6f;
-      // output x y z (small)
-      ESP_LOGD(TAG, "XYZ: %.2f, %.2f, %.2f", XYZ[0], XYZ[1], XYZ[2]);
-      ESP_LOGD(TAG, "Output x: %.2f, y: %.2f, z: %.2f", x, y, z);
-      ESP_LOGD(TAG, "CCT: %.2f, duv: %.2f", cct, duv);
-    }
-  }
-  {
-    ESP_LOGD(TAG, "COLORS 3:");
-    // option three
-    float X = 0, Y = 0, Z = 0;
-    for (uint8_t i = 0; i < AS7343_NUM_CHANNELS; i++) {
-      X += AS7343_XYZ_PER_COUNT_2[0][i] * this->readings_.basic_counts[i];
-      Y += AS7343_XYZ_PER_COUNT_2[1][i] * this->readings_.basic_counts[i];
-      Z += AS7343_XYZ_PER_COUNT_2[2][i] * this->readings_.basic_counts[i];
-    }
-    const float k_norm = 100.0f / Y;  // normalise to Y=100 for CRI
-    X *= k_norm;
-    Y = 100.0f;
-    Z *= k_norm;
-    // McCamy’s formula (OK for 1000–15000 K)
-    float n = (X - 0.3320f) / (0.1858f - Y / 100.0f);
-    float CCT = 449 * pow(n, 3) + 3525 * pow(n, 2) + 6823.3f * n + 5520.33f;
-
-    ESP_LOGD(TAG, "X: %.2f, Y: %.2f, Z: %.2f", X, Y, Z);
-    ESP_LOGD(TAG, "CCT: %.2f", CCT);
-  }
+  //     // Calc lx from Y CIE1931
+  //     lux = XYZ[1] * this->corr_lx_y_cie1931_ / 1e6f;
+  //     // output x y z (small)
+  //     ESP_LOGD(TAG, "XYZ: %.2f, %.2f, %.2f", XYZ[0], XYZ[1], XYZ[2]);
+  //     ESP_LOGD(TAG, "Output x: %.2f, y: %.2f, z: %.2f", x, y, z);
+  //     ESP_LOGD(TAG, "CCT: %.2f, duv: %.2f", cct, duv);
+  //   }
+  // }
 }
 
 void AS7343Component::calculate_cri_() {
@@ -544,13 +520,14 @@ bool AS7343Component::read_all_channels() {
     this->readings_.raw_counts[i] = data[SMUX_CHANNEL_MAP[i]];
   }
 
+  // combine two clear channels to one
   uint16_t clear = data[AS7343_CHANNEL_CLEAR_0] / 2 + data[AS7343_CHANNEL_CLEAR_1] / 2;
   this->readings_.raw_counts[AS7343_NUM_CHANNELS - 1] = clear;
 
   this->readings_.gain = astatus.again_status;
-  this->readings_.gain_x = get_gain_multiplier(this->readings_.gain);
-  this->readings_.atime = get_atime();
-  this->readings_.astep = get_astep();
+  this->readings_.gain_x = this->get_gain_multiplier(this->readings_.gain);
+  this->readings_.atime = this->get_atime();
+  this->readings_.astep = this->get_astep();
   this->readings_.t_int_us = (1.0f + this->readings_.atime) * (1.0f + this->readings_.astep) * 2.78f;
 
   this->readings_saturated_ = astatus.asat_status;
