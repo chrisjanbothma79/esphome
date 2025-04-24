@@ -132,6 +132,7 @@ class ST7789V : public display::DisplayBuffer,
   void dump_config() override;
   float get_setup_priority() const override;
   void update() override;
+  void fill(Color color) override;
 
   void write_display_data();
 

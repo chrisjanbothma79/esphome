@@ -161,6 +161,18 @@ void ST7789V::update() {
   }
 }
 
+void ST7789V::fill(Color color) {
+  if (this->eightbitcolor_) {
+    auto color332 = display::ColorUtil::color_to_332(color);
+    memset(this->buffer_, color332, this->buffer_fragment_length_pixels_);
+  } else {
+    auto color565 = display::ColorUtil::color_to_565(color);
+    uint16_t *buff = (uint16_t *)this->buffer_;
+    for (unsigned pos=0; pos<this->buffer_fragment_length_pixels_; pos++)
+      *buff++ = color565;
+  }
+}
+
 void ST7789V::set_model_str(const char *model_str) { this->model_str_ = model_str; }
 
 void ST7789V::write_display_data() {
