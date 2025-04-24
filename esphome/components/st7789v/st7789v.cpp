@@ -146,6 +146,14 @@ float ST7789V::get_setup_priority() const { return setup_priority::PROCESSOR; }
 void ST7789V::update() {
   this->current_fragment_offset_pixels_ = 0;
   for (unsigned frag=0; frag < this->buffer_fragmentation_; frag++) {
+    this->clear_clipping_();
+    this->start_clipping(
+      0,
+      this->current_fragment_offset_pixels_/this->get_width_internal(),
+      this->get_width_internal(),
+      (this->current_fragment_offset_pixels_ + this->buffer_fragment_length_pixels_)/this->get_width_internal()
+    );
+
     this->do_update_();
     this->write_display_data();
     App.feed_wdt();
