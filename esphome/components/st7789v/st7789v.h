@@ -124,7 +124,7 @@ class ST7789V : public display::DisplayBuffer,
   void set_width(uint16_t width) { this->width_ = width; }
   void set_offset_height(uint32_t offset_height) { this->offset_height_ = offset_height; }
   void set_offset_width(uint16_t offset_width) { this->offset_width_ = offset_width; }
-  void set_buffer_fragmentation(uint16_t buffer_fragmentation) { this->buffer_fragmentation_= buffer_fragmentation; }
+  void set_buffer_fragmentation(uint16_t buffer_fragmentation) { this->buffer_fragmentation_ = buffer_fragmentation; }
 
   // ========== INTERNAL METHODS ==========
   // (In most use cases you won't need these)

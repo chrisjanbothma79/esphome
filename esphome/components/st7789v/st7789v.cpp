@@ -116,7 +116,8 @@ void ST7789V::setup() {
 
   backlight_(true);
 
-  this->buffer_fragment_length_pixels_ = this->get_width_internal() * this->get_height_internal() / this->buffer_fragmentation_;
+  this->buffer_fragment_length_pixels_ =
+      this->get_width_internal() * this->get_height_internal() / this->buffer_fragmentation_;
   this->init_internal_(this->get_buffer_length_());
   memset(this->buffer_, 0x00, this->get_buffer_length_());
 }
@@ -145,14 +146,11 @@ float ST7789V::get_setup_priority() const { return setup_priority::PROCESSOR; }
 
 void ST7789V::update() {
   this->current_fragment_offset_pixels_ = 0;
-  for (unsigned frag=0; frag < this->buffer_fragmentation_; frag++) {
+  for (unsigned frag = 0; frag < this->buffer_fragmentation_; frag++) {
     this->clear_clipping_();
     this->start_clipping(
-      0,
-      this->current_fragment_offset_pixels_/this->get_width_internal(),
-      this->get_width_internal(),
-      (this->current_fragment_offset_pixels_ + this->buffer_fragment_length_pixels_)/this->get_width_internal()
-    );
+      0, this->current_fragment_offset_pixels_ / this->get_width_internal(), this->get_width_internal(),
+      (this->current_fragment_offset_pixels_ + this->buffer_fragment_length_pixels_) / this->get_width_internal());
 
     this->do_update_();
     this->write_display_data();
@@ -167,8 +165,8 @@ void ST7789V::fill(Color color) {
     memset(this->buffer_, color332, this->buffer_fragment_length_pixels_);
   } else {
     auto color565 = display::ColorUtil::color_to_565(color);
-    uint16_t *buff = (uint16_t *)this->buffer_;
-    for (unsigned pos=0; pos<this->buffer_fragment_length_pixels_; pos++)
+    uint16_t *buff = (uint16_t *) this->buffer_;
+    for (unsigned pos = 0; pos < this->buffer_fragment_length_pixels_; pos++)
       *buff++ = color565;
   }
 }
@@ -331,8 +329,8 @@ void HOT ST7789V::draw_absolute_pixel_internal(int x, int y, Color color) {
     this->buffer_[pos] = color332;
   } else {
     auto color565 = display::ColorUtil::color_to_565(color);
-    this->buffer_[2*pos+0] = (color565 >> 8) & 0xff;
-    this->buffer_[2*pos+1] = color565 & 0xff;
+    this->buffer_[2 * pos + 0] = (color565 >> 8) & 0xff;
+    this->buffer_[2 * pos + 1] = color565 & 0xff;
   }
 }
 
