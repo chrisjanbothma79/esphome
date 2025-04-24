@@ -155,14 +155,14 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::perform(std::string url, std::str
   ESP_LOGV(TAG, "HTTP Request has content_length %d", container->content_length);
   container->feed_wdt();
   container->status_code = esp_http_client_get_status_code(client);
-  
+
   container->feed_wdt();
   container->chunked = container->content_length == 0 ? esp_http_client_is_chunked_response(client) : false;
   if (container->chunked) {
     container->content_length = SIZE_MAX;
     ESP_LOGV(TAG, "Got chunked HTTP Response");
   }
-  
+
   container->feed_wdt();
   container->set_response_headers(user_data.response_headers);
   if (is_success(container->status_code)) {
