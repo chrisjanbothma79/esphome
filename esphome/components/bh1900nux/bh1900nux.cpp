@@ -35,7 +35,7 @@ void BH1900NUXSensor::update() {
   }
 
   float_t temperature_value = (((temperature_raw[0] << 8) | temperature_raw[1]) >> 4) * 0.0625f;
-  ESP_LOGV(TAG, "Temperature value: %f", temperature_value);
+  ESP_LOGV(TAG, "Temperature value: %Lf", temperature_value);
 
   this->publish_state(temperature_value);
 }
