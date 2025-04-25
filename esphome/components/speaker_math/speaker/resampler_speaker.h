@@ -41,17 +41,14 @@ class ResamplerSpeaker : public Component, public speaker::Speaker {
   float get_volume() override { return this->output_speaker_->get_volume(); }
 
   void set_output_speaker(speaker::Speaker *speaker) { this->output_speaker_ = speaker; }
-  void set_task_stack_in_psram(bool task_stack_in_psram) { this->task_stack_in_psram_ = task_stack_in_psram; }
 
   void set_target_bits_per_sample(uint8_t target_bits_per_sample) {
     this->target_bits_per_sample_ = target_bits_per_sample;
   }
-  void set_target_sample_rate(uint32_t target_sample_rate) { this->target_sample_rate_ = target_sample_rate; }
 
-  void set_filters(uint16_t filters) { this->filters_ = filters; }
-  void set_taps(uint16_t taps) { this->taps_ = taps; }
-
-  void set_buffer_duration(uint32_t buffer_duration_ms) { this->buffer_duration_ms_ = buffer_duration_ms; }
+  void set_convert_unsigned(bool convert_unsigned) { this->convert_unsigned_ = convert_unsigned; }
+  void set_convert_factor(int8_t convert_factor) { this->convert_factor_ = convert_factor; }
+  void set_convert_offset(int16_t convert_offset) { this->convert_offset_ = convert_offset; }
 
  protected:
   /// @brief Starts the output speaker after setting the resampled stream info. If resampling is required, it starts the
@@ -60,43 +57,20 @@ class ResamplerSpeaker : public Component, public speaker::Speaker {
   ///         return value of start_task_() if resampling is required
   esp_err_t start_();
 
-  /// @brief Starts the resampler task after allocating the task stack
-  /// @return ESP_OK if successful,
-  ///         ESP_ERR_NO_MEM if the task stack couldn't be allocated
-  ///         ESP_ERR_INVALID_STATE if the task wasn't created
-  esp_err_t start_task_();
-
   /// @brief Stops the output speaker. If the resampling task is running, it sends the stop command.
   void stop_();
 
-  /// @brief Deallocates the task stack and resets the pointers.
-  /// @return ESP_OK if successful
-  ///         ESP_ERR_INVALID_STATE if the task hasn't stopped itself
-  esp_err_t delete_task_();
-
-  inline bool requires_resampling_() const;
-  static void resample_task(void *params);
-
   EventGroupHandle_t event_group_{nullptr};
-
-  std::weak_ptr<RingBuffer> ring_buffer_;
 
   speaker::Speaker *output_speaker_{nullptr};
 
-  bool task_stack_in_psram_{false};
-  bool task_created_{false};
-
-  TaskHandle_t task_handle_{nullptr};
-  StaticTask_t task_stack_;
-  StackType_t *task_stack_buffer_{nullptr};
+  bool convert_unsigned_;
+  int8_t convert_factor_;
+  int16_t convert_offset_;
 
   audio::AudioStreamInfo target_stream_info_;
 
-  uint16_t taps_;
-  uint16_t filters_;
-
   uint8_t target_bits_per_sample_;
-  uint32_t target_sample_rate_;
 
   uint32_t buffer_duration_ms_;
 
