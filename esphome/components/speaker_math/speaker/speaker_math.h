@@ -72,7 +72,7 @@ class SpeakerMath : public Component, public speaker::Speaker {
   ///         ESP_ERR_INVALID_STATE if the task hasn't stopped itself
   esp_err_t delete_task_();
 
-  static void resample_task(void *params);
+  static void convert_task(void *params);
 
   EventGroupHandle_t event_group_{nullptr};
 

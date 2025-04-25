@@ -22,7 +22,7 @@ static const uint32_t TASK_STACK_SIZE = 3072;
 
 static const char *const TAG = "speaker_math";
 
-enum ResamplingEventGroupBits : uint32_t {
+enum SpeakerMathEventGroupBits : uint32_t {
   COMMAND_STOP = (1 << 0),  // stops the speaker math task
   STATE_STARTING = (1 << 10),
   STATE_RUNNING = (1 << 11),
@@ -43,6 +43,7 @@ void SpeakerMath::setup() {
     return;
   }
 
+  // pass callbacks alone
   this->output_speaker_->add_audio_output_callback(
       [this](uint32_t new_playback_ms, uint32_t remainder_us, uint32_t pending_ms, uint32_t write_timestamp) {
         this->audio_output_callback_(new_playback_ms, remainder_us, pending_ms, write_timestamp);
@@ -52,40 +53,40 @@ void SpeakerMath::setup() {
 void SpeakerMath::loop() {
   uint32_t event_group_bits = xEventGroupGetBits(this->event_group_);
 
-  if (event_group_bits & ResamplingEventGroupBits::STATE_STARTING) {
+  if (event_group_bits & SpeakerMathEventGroupBits::STATE_STARTING) {
     ESP_LOGD(TAG, "Starting speaker_math task");
-    xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::STATE_STARTING);
+    xEventGroupClearBits(this->event_group_, SpeakerMathEventGroupBits::STATE_STARTING);
   }
 
-  if (event_group_bits & ResamplingEventGroupBits::ERR_ESP_NO_MEM) {
+  if (event_group_bits & SpeakerMathEventGroupBits::ERR_ESP_NO_MEM) {
     this->status_set_error("Speaker math task failed to allocate the internal buffers");
-    xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::ERR_ESP_NO_MEM);
+    xEventGroupClearBits(this->event_group_, SpeakerMathEventGroupBits::ERR_ESP_NO_MEM);
     this->state_ = speaker::STATE_STOPPING;
   }
-  if (event_group_bits & ResamplingEventGroupBits::ERR_ESP_NOT_SUPPORTED) {
-    this->status_set_error("Cannot resample due to an unsupported audio stream");
-    xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::ERR_ESP_NOT_SUPPORTED);
+  if (event_group_bits & SpeakerMathEventGroupBits::ERR_ESP_NOT_SUPPORTED) {
+    this->status_set_error("Cannot apply math due to an unsupported audio stream");
+    xEventGroupClearBits(this->event_group_, SpeakerMathEventGroupBits::ERR_ESP_NOT_SUPPORTED);
     this->state_ = speaker::STATE_STOPPING;
   }
-  if (event_group_bits & ResamplingEventGroupBits::ERR_ESP_FAIL) {
+  if (event_group_bits & SpeakerMathEventGroupBits::ERR_ESP_FAIL) {
     this->status_set_error("Speaker math task failed");
-    xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::ERR_ESP_FAIL);
+    xEventGroupClearBits(this->event_group_, SpeakerMathEventGroupBits::ERR_ESP_FAIL);
     this->state_ = speaker::STATE_STOPPING;
   }
 
-  if (event_group_bits & ResamplingEventGroupBits::STATE_RUNNING) {
+  if (event_group_bits & SpeakerMathEventGroupBits::STATE_RUNNING) {
     ESP_LOGD(TAG, "Started speaker math task");
     this->status_clear_error();
-    xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::STATE_RUNNING);
+    xEventGroupClearBits(this->event_group_, SpeakerMathEventGroupBits::STATE_RUNNING);
   }
-  if (event_group_bits & ResamplingEventGroupBits::STATE_STOPPING) {
+  if (event_group_bits & SpeakerMathEventGroupBits::STATE_STOPPING) {
     ESP_LOGD(TAG, "Stopping speaker math task");
-    xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::STATE_STOPPING);
+    xEventGroupClearBits(this->event_group_, SpeakerMathEventGroupBits::STATE_STOPPING);
   }
-  if (event_group_bits & ResamplingEventGroupBits::STATE_STOPPED) {
+  if (event_group_bits & SpeakerMathEventGroupBits::STATE_STOPPED) {
     if (this->delete_task_() == ESP_OK) {
       ESP_LOGD(TAG, "Stopped speaker math task");
-      xEventGroupClearBits(this->event_group_, ResamplingEventGroupBits::ALL_BITS);
+      xEventGroupClearBits(this->event_group_, SpeakerMathEventGroupBits::ALL_BITS);
     }
   }
 
@@ -173,7 +174,7 @@ esp_err_t SpeakerMath::start_task_() {
   }
 
   if (this->task_handle_ == nullptr) {
-    this->task_handle_ = xTaskCreateStatic(resample_task, "sample", TASK_STACK_SIZE, (void *) this,
+    this->task_handle_ = xTaskCreateStatic(convert_task, "sample", TASK_STACK_SIZE, (void *) this,
                                            SPEAKER_MATH_TASK_PRIORITY, this->task_stack_buffer_, &this->task_stack_);
   }
 
@@ -188,7 +189,7 @@ void SpeakerMath::stop() { this->state_ = speaker::STATE_STOPPING; }
 
 void SpeakerMath::stop_() {
   if (this->task_handle_ != nullptr) {
-    xEventGroupSetBits(this->event_group_, ResamplingEventGroupBits::COMMAND_STOP);
+    xEventGroupSetBits(this->event_group_, SpeakerMathEventGroupBits::COMMAND_STOP);
   }
   this->output_speaker_->stop();
 }
@@ -232,11 +233,11 @@ void SpeakerMath::set_volume(float volume) {
   this->output_speaker_->set_volume(volume);
 }
 
-void SpeakerMath::resample_task(void *params) {
+void SpeakerMath::convert_task(void *params) {
   SpeakerMath *this_speaker_math = (SpeakerMath *) params;
 
   this_speaker_math->task_created_ = true;
-  xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_STARTING);
+  xEventGroupSetBits(this_speaker_math->event_group_, SpeakerMathEventGroupBits::STATE_STARTING);
 
   esp_err_t err = ESP_OK;
 
@@ -260,11 +261,11 @@ void SpeakerMath::resample_task(void *params) {
   }
 
   if (err == ESP_OK) {
-    xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_RUNNING);
+    xEventGroupSetBits(this_speaker_math->event_group_, SpeakerMathEventGroupBits::STATE_RUNNING);
   } else if (err == ESP_ERR_NO_MEM) {
-    xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::ERR_ESP_NO_MEM);
+    xEventGroupSetBits(this_speaker_math->event_group_, SpeakerMathEventGroupBits::ERR_ESP_NO_MEM);
   } else if (err == ESP_ERR_NOT_SUPPORTED) {
-    xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::ERR_ESP_NOT_SUPPORTED);
+    xEventGroupSetBits(this_speaker_math->event_group_, SpeakerMathEventGroupBits::ERR_ESP_NOT_SUPPORTED);
   }
 
   // make local const copies of data to reduce pointer dereferences in inner loops
@@ -281,12 +282,12 @@ void SpeakerMath::resample_task(void *params) {
   while (err == ESP_OK) { \
     uint32_t event_bits = xEventGroupGetBits(this_speaker_math->event_group_); \
 \
-    if (event_bits & ResamplingEventGroupBits::COMMAND_STOP) { \
+    if (event_bits & SpeakerMathEventGroupBits::COMMAND_STOP) { \
       break; \
     } \
     if (output_buffer->available() > 0) { \
       ESP_LOGE(TAG, "Conversion buffer did not empty"); \
-      xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::ERR_ESP_FAIL); \
+      xEventGroupSetBits(this_speaker_math->event_group_, SpeakerMathEventGroupBits::ERR_ESP_FAIL); \
       break; \
     } \
     /* read data from ring into processing buffer */ \
@@ -349,8 +350,8 @@ void SpeakerMath::resample_task(void *params) {
   if (bits_per_sample == 32 && !convert_unsigned)
     SPEAKER_MATH_LOOP_CORE(int32_t)
 
-  xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_STOPPING);
-  xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_STOPPED);
+  xEventGroupSetBits(this_speaker_math->event_group_, SpeakerMathEventGroupBits::STATE_STOPPING);
+  xEventGroupSetBits(this_speaker_math->event_group_, SpeakerMathEventGroupBits::STATE_STOPPED);
   this_speaker_math->task_created_ = false;
   vTaskDelete(nullptr);
 }
