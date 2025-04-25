@@ -101,20 +101,19 @@ async def to_code(config):
     await cg.register_component(var, config)
 
     for service in config[CONF_SERVICES]:
-        txt = []
-        args = []
-        for txt_key, txt_value in service[CONF_TXT].items():
-            template_txt_value_ = await cg.templatable(txt_value, args, cg.std_string)
-            txt.append(
-                cg.StructInitializer(
-                    MDNSTXTRecord,
-                    ("key", txt_key),
-                    ("value", template_txt_value_),
-                )
+        txt = [
+            cg.StructInitializer(
+                MDNSTXTRecord,
+                ("key", txt_key),
+                ("value", await cg.templatable(txt_value, [], cg.std_string)),
             )
-        template_port_value_ = await cg.templatable(service[CONF_PORT], args, cg.uint16)
+            for txt_key, txt_value in service[CONF_TXT].items()
+        ]
         exp = mdns_service(
-            service[CONF_SERVICE], service[CONF_PROTOCOL], template_port_value_, txt
+            service[CONF_SERVICE],
+            service[CONF_PROTOCOL],
+            await cg.templatable(service[CONF_PORT], [], cg.uint16),
+            txt,
         )
 
         cg.add(var.add_extra_service(exp))
