@@ -2,15 +2,53 @@
 #include "bh1900nux.h"
 
 namespace esphome {
-namespace bh1900nux_i2c {
+namespace bh1900nux {
 
-static const char *TAG = "bh1900nux_i2c.sensor";
+static const char *TAG = "bh1900nux.sensor";
 
-void EmptyI2CSensor::setup() {}
+// I2C Registers
+static const uint8_t TEMPERATURE_REG = 0x00;
+static const uint8_t CONFIG_REG = 0x01;            // Not used and supported yet
+static const uint8_t TEMPERATURE_LOW_REG = 0x02;   // Not used and supported yet
+static const uint8_t TEMPERATURE_HIGH_REG = 0x03;  // Not used and supported yet
+static const uint8_t SOFT_RESET_REG = 0x04;
 
-void EmptyI2CSensor::update() {}
+static const uint8_t SOFT_RESET_PAYLOAD = 0x01;  // Soft Reset value
 
-void EmptyI2CSensor::dump_config() {}
+void BH1900NUXSensor::setup() {
+  ESP_LOGCONFIG(TAG, "Setting up BH1900NUX '%s'...", this->name_.c_str());
 
-}  // namespace bh1900nux_i2c
+  // Initialize I2C device
+  i2c::ErrorCode result_code =
+      this->write_register(0x04, &SOFT_RESET_PAYLOAD, 1);  // Software Reset to check communication
+  if (result_code != i2c::ERROR_OK) {
+    this->mark_failed();
+    return;
+  }
+}
+
+void BH1900NUXSensor::update() {
+  uint8_t temperature_raw[2];
+  if (this->read_register(TEMPERATURE_REG, temperature_raw, 2) != i2c::ERROR_OK) {
+    ESP_LOGE(TAG, "Failed to read temperature data");
+    return;
+  }
+
+  float_t temperature_value = (((temperature_raw[0] << 8) | temperature_raw[1]) >> 4) * 0.0625f;
+  ESP_LOGV(TAG, "Temperature value: %f", temperature_value);
+
+  this->publish_state(temperature_value);
+}
+
+void BH1900NUXSensor::dump_config() {
+  LOG_SENSOR("", "BH1900NUX", this);
+  LOG_I2C_DEVICE(this);
+  if (this->is_failed()) {
+    ESP_LOGE(TAG, "Communication with BH1900NUX failed!");
+  }
+
+  LOG_UPDATE_INTERVAL(this);
+}
+
+}  // namespace bh1900nux
 }  // namespace esphome
