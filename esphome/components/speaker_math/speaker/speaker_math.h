@@ -95,8 +95,6 @@ class SpeakerMath : public Component, public speaker::Speaker {
   uint8_t target_bits_per_sample_;
 
   uint32_t buffer_duration_ms_;
-
-  int32_t playback_differential_ms_{0};
 };
 
 }  // namespace speaker_math

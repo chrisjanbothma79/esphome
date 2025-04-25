@@ -2,7 +2,7 @@
 
 #ifdef USE_ESP32
 
-#include "esphome/components/audio/audio_resampler.h"
+#include "esphome/components/audio/audio_transfer_buffer.h"
 
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
@@ -45,10 +45,7 @@ void SpeakerMath::setup() {
 
   this->output_speaker_->add_audio_output_callback(
       [this](uint32_t new_playback_ms, uint32_t remainder_us, uint32_t pending_ms, uint32_t write_timestamp) {
-        int32_t adjustment = this->playback_differential_ms_;
-        this->playback_differential_ms_ -= adjustment;
-        int32_t adjusted_playback_ms = static_cast<int32_t>(new_playback_ms) + adjustment;
-        this->audio_output_callback_(adjusted_playback_ms, remainder_us, pending_ms, write_timestamp);
+        this->audio_output_callback_(new_playback_ms, remainder_us, pending_ms, write_timestamp);
       });
 }
 
@@ -147,16 +144,15 @@ size_t SpeakerMath::play(const uint8_t *data, size_t length, TickType_t ticks_to
 void SpeakerMath::start() { this->state_ = speaker::STATE_STARTING; }
 
 esp_err_t SpeakerMath::start_() {
-  this->target_stream_info_ = audio::AudioStreamInfo(
-      this->target_bits_per_sample_, this->audio_stream_info_.get_channels(), this->target_sample_rate_);
+  this->target_stream_info_ =
+      audio::AudioStreamInfo(this->target_bits_per_sample_, this->audio_stream_info_.get_channels(),
+                             this->audio_stream_info_.get_sample_rate());
 
   this->output_speaker_->set_audio_stream_info(this->target_stream_info_);
   this->output_speaker_->start();
 
-  if (this->requires_resampling_()) {
-    // Start the speaker math task to handle converting sample rates
-    return this->start_task_();
-  }
+  // Start the speaker math task to handle converting data
+  return this->start_task_();
 
   return ESP_OK;
 }
@@ -242,26 +238,25 @@ void SpeakerMath::resample_task(void *params) {
   this_speaker_math->task_created_ = true;
   xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_STARTING);
 
-  std::unique_ptr<audio::AudioResampler> resampler = make_unique<audio::AudioResampler>(
-      this_speaker_math->audio_stream_info_.ms_to_bytes(TRANSFER_BUFFER_DURATION_MS),
-      this_speaker_math->target_stream_info_.ms_to_bytes(TRANSFER_BUFFER_DURATION_MS));
+  esp_err_t err = ESP_OK;
 
-  esp_err_t err = resampler->start(this_speaker_math->audio_stream_info_, this_speaker_math->target_stream_info_,
-                                   this_speaker_math->taps_, this_speaker_math->filters_);
+  std::shared_ptr<RingBuffer> temp_ring_buffer =
+      RingBuffer::create(this_speaker_math->audio_stream_info_.ms_to_bytes(this_speaker_math->buffer_duration_ms_));
 
-  if (err == ESP_OK) {
-    std::shared_ptr<RingBuffer> temp_ring_buffer =
-        RingBuffer::create(this_speaker_math->audio_stream_info_.ms_to_bytes(this_speaker_math->buffer_duration_ms_));
+  // size an output buffer that's somewhat smaller than the buffer that passes data to the task
+  size_t output_buffer_size =
+      this_speaker_math->audio_stream_info_.ms_to_bytes(this_speaker_math->buffer_duration_ms_) / 2;
 
-    if (temp_ring_buffer.use_count() == 0) {
-      err = ESP_ERR_NO_MEM;
-    } else {
-      this_speaker_math->ring_buffer_ = temp_ring_buffer;
-      resampler->add_source(this_speaker_math->ring_buffer_);
+  // buffer which will hold data while we process it
+  auto output_buffer = audio::AudioSinkTransferBuffer::create(output_buffer_size);
+  output_buffer->set_sink(this_speaker_math->output_speaker_);
 
-      this_speaker_math->output_speaker_->set_audio_stream_info(this_speaker_math->target_stream_info_);
-      resampler->add_sink(this_speaker_math->output_speaker_);
-    }
+  if (temp_ring_buffer.use_count() == 0 || output_buffer == nullptr) {
+    err = ESP_ERR_NO_MEM;
+  } else {
+    this_speaker_math->ring_buffer_ = temp_ring_buffer;
+
+    this_speaker_math->output_speaker_->set_audio_stream_info(this_speaker_math->target_stream_info_);
   }
 
   if (err == ESP_OK) {
@@ -272,30 +267,43 @@ void SpeakerMath::resample_task(void *params) {
     xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::ERR_ESP_NOT_SUPPORTED);
   }
 
-  this_speaker_math->playback_differential_ms_ = 0;
-  while (err == ESP_OK) {
-    uint32_t event_bits = xEventGroupGetBits(this_speaker_math->event_group_);
+  // make local const copies of data to reduce pointer dereferences in inner loops
+  const auto convert_unsigned = this_speaker_math->convert_unsigned_;
+  const auto convert_factor = this_speaker_math->convert_factor_;
+  const auto convert_offset = this_speaker_math->convert_offset_;
+  const auto bits_per_sample = this_speaker_math->audio_stream_info_.get_bits_per_sample();
 
-    if (event_bits & ResamplingEventGroupBits::COMMAND_STOP) {
-      break;
-    }
-
-    // Stop gracefully if the decoder is done
-    int32_t ms_differential = 0;
-    audio::AudioResamplerState resampler_state = resampler->resample(false, &ms_differential);
-
-    this_speaker_math->playback_differential_ms_ += ms_differential;
-
-    if (resampler_state == audio::AudioResamplerState::FINISHED) {
-      break;
-    } else if (resampler_state == audio::AudioResamplerState::FAILED) {
-      xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::ERR_ESP_FAIL);
-      break;
-    }
+#define SPEAKER_MATH_LOOP(DATATYPE) \
+  while (err == ESP_OK) { \
+    uint32_t event_bits = xEventGroupGetBits(this_speaker_math->event_group_); \
+\
+    if (event_bits & ResamplingEventGroupBits::COMMAND_STOP) { \
+      break; \
+    } \
+    if (output_buffer->available() > 0) { \
+      ESP_LOGE("Conversion buffer did not empty"); \
+      xEventGroupSetBits(ResamplingEventGroupBits::ERR_ESP_FAIL); \
+      break; \
+    } \
+    /* read data from ring into processing buffer */ \
+    auto bytes_read = temp_ring_buffer->read(output_buffer->get_buffer_end(), output_buffer->free()); \
+    output_buffer->increase_buffer_length(bytes_read); \
+    DATATYPE *convert_buffer = (DATATYPE *) output_buffer->get_buffer_start(); \
+    const auto available = output_buffer->available(); \
+\
+    for (int i = 0; i < available; i++) { \
+      /*we already cast into the unsigned data type, but we still need to actually convert it  to the new range*/ \
+      if (convert_unsigned) { \
+        convert_buffer[i] ^= (1ULL << bits_per_sample) \
+      } \
+      convert_buffer[i] += convert_offset; \
+      convert_buffer[i] += convert_factor; \
+    } \
+    /* code will go boom if we don't empty the whole darn buffer*/ \
+    output_buffer->transfer_data_to_sink(1000); \
   }
 
   xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_STOPPING);
-  resampler.reset();
   xEventGroupSetBits(this_speaker_math->event_group_, ResamplingEventGroupBits::STATE_STOPPED);
   this_speaker_math->task_created_ = false;
   vTaskDelete(nullptr);
