@@ -24,3 +24,5 @@ select:
     es8388_id: es8388_parent
     dac_output:
       name: "DAC Output"
+    adc_input_mic:
+      name: "ADC Input MIC"

@@ -13,16 +13,6 @@
 namespace esphome {
 namespace es8388 {
 
-using ES8388_ADCInput = enum {
-  ADC_INPUT_MIN = -1,
-  ADC_INPUT_LINPUT1_RINPUT1 = 0x00,
-  ADC_INPUT_MIC1 = 0x05,
-  ADC_INPUT_MIC2 = 0x06,
-  ADC_INPUT_LINPUT2_RINPUT2 = 0x50,
-  ADC_INPUT_DIFFERENCE = 0xf0,
-  ADC_INPUT_MAX,
-};
-
 class ES8388 : public audio_dac::AudioDac, public Component, public i2c::I2CDevice {
  public:
   /////////////////////////
@@ -58,7 +48,10 @@ class ES8388 : public audio_dac::AudioDac, public Component, public i2c::I2CDevi
 
   bool set_dac_power(const std::uint8_t &reg);
 
+  bool set_mic_input(const std::uint8_t &reg);
+
   uint8_t get_dac_power();
+  uint8_t get_mic_input();
 
  protected:
   /// @brief Mutes or unmutes the DAC audio out

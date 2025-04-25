@@ -63,11 +63,6 @@ void ES8388::setup() {
   ES8388_ERROR_FAILED(
       this->write_byte(ES8388_ADCCONTROL1, 0x00));  // +21dB : recommended value for ALC & voice recording
 
-  // Mic input : L-R differential
-  // ES8388_ERROR_FAILED(this->write_byte(ES8388_ADCCONTROL2, ADC_INPUT_DIFFERENCE));
-  ES8388_ERROR_FAILED(this->write_byte(ES8388_ADCCONTROL2, ADC_INPUT_LINPUT2_RINPUT2));
-  // ES8388_ERROR_FAILED(this->write_byte(ES8388_ADCCONTROL2,ADC_INPUT_LINPUT1_RINPUT1 ));  //original
-
   // set to Mono Right
   ES8388_ERROR_FAILED(this->write_byte(ES8388_ADCCONTROL3, 0x02));
 
@@ -126,6 +121,9 @@ void ES8388::dump_config() {
 
   ESP_LOGCONFIG(TAG, "  ES8388_DACPOWER:");
   ESP_LOGCONFIG(TAG, "    Value: 0x%02X", (uint16_t) this->get_dac_power());
+
+  ESP_LOGCONFIG(TAG, "  ES8388_ADCCONTROL2:");
+  ESP_LOGCONFIG(TAG, "    Value: 0x%02X", (uint16_t) this->get_mic_input());
 
   if (this->is_failed()) {
     ESP_LOGCONFIG(TAG, "  Failed to initialize");
@@ -201,6 +199,20 @@ bool ES8388::set_dac_power(const std::uint8_t &reg) {
 uint8_t ES8388::get_dac_power() {
   uint8_t reg;
   ES8388_ERROR_CHECK(this->read_byte(ES8388_DACPOWER, &reg));
+  return reg;
+}
+
+// Set ADC input MIC
+bool ES8388::set_mic_input(const std::uint8_t &reg) {
+  ESP_LOGV(TAG, "Setting ES8388_ADCCONTROL2 to 0x%02X", reg);
+  ES8388_ERROR_CHECK(this->write_byte(ES8388_ADCCONTROL2, reg));
+
+  return true;
+}
+
+uint8_t ES8388::get_mic_input() {
+  uint8_t reg;
+  ES8388_ERROR_CHECK(this->read_byte(ES8388_ADCCONTROL2, &reg));
   return reg;
 }
 

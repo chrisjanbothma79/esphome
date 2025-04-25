@@ -73,5 +73,11 @@ static const uint8_t ES8388_DAC_OUTPUT_LOUT1_ROUT1 = 0x30;
 static const uint8_t ES8388_DAC_OUTPUT_LOUT2_ROUT2 = 0x0C;
 static const uint8_t ES8388_DAC_OUTPUT_BOTH = 0x3C;
 
+static const uint8_t ES8388_ADC_INPUT_LINPUT1_RINPUT1 = 0x00;
+static const uint8_t ES8388_ADC_INPUT_MIC1 = 0x05;
+static const uint8_t ES8388_ADC_INPUT_MIC2 = 0x06;
+static const uint8_t ES8388_ADC_INPUT_LINPUT2_RINPUT2 = 0x50;
+static const uint8_t ES8388_ADC_INPUT_DIFFERENCE = 0xf0;
+
 }  // namespace es8388
 }  // namespace esphome
