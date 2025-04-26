@@ -20,7 +20,7 @@ void BH1900NUXSensor::setup() {
 
   // Initialize I2C device
   i2c::ErrorCode result_code =
-      this->write_register(0x04, &SOFT_RESET_PAYLOAD, 1);  // Software Reset to check communication
+      this->write_register(SOFT_RESET_REG, &SOFT_RESET_PAYLOAD, 1);  // Software Reset to check communication
   if (result_code != i2c::ERROR_OK) {
     this->mark_failed();
     return;
