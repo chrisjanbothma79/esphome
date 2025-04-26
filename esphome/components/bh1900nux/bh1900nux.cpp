@@ -4,7 +4,7 @@
 namespace esphome {
 namespace bh1900nux {
 
-static const char *TAG = "bh1900nux.sensor";
+static const char *const TAG = "bh1900nux.sensor";
 
 // I2C Registers
 static const uint8_t TEMPERATURE_REG = 0x00;
