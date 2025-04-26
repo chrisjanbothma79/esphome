@@ -34,8 +34,9 @@ void BH1900NUXSensor::update() {
     return;
   }
 
-  float_t temperature_value = (((temperature_raw[0] << 8) | temperature_raw[1]) >> 4) * 0.0625f;
-  ESP_LOGV(TAG, "Temperature value: %Lf", temperature_value);
+  float sensor_resolution = 0.0625f;  // Sensor resolution in degrees Celsius
+  float temperature_value = (((temperature_raw[0] << 8) | temperature_raw[1]) >> 4) * sensor_resolution;
+  ESP_LOGV(TAG, "Temperature value read from sensor: %f", temperature_value);
 
   this->publish_state(temperature_value);
 }
