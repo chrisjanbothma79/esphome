@@ -3314,17 +3314,15 @@ int WaveshareEPaper7P5InBV3BWRalt::get_width_internal() { return 800; }
 int WaveshareEPaper7P5InBV3BWRalt::get_height_internal() { return 480; }
 void WaveshareEPaper7P5InBV3BWRalt::initialize() { this->init_display_(); }
 void WaveshareEPaper7P5InBV3BWRalt::init_display_() {
-
   this->reset_();
 
   this->command(0x00);
-  this->data(0x00); // reset device to defaults
+  this->data(0x00);  // reset device to defaults
 
   // COMMAND POWER SETTING
   this->command(0x01);
   this->data(0x07);  // VRS_EN=1, VS_EN=1, VG_EN=1
   this->data(0x17);
-
 
   // VCOM DC Setting
   this->command(0x82);
@@ -3340,8 +3338,9 @@ void WaveshareEPaper7P5InBV3BWRalt::init_display_() {
   this->data(0x0F);  // This is actually this panels default, no need to set it?
 
   // COMMAND VCOM AND DATA INTERVAL SETTING
-  // This is the most important command differentiating these panels, the lookup tables and border control are not the same.
-  // A red border remains with BDV[10] (0x40) on this panel, black border when you enable border control 0xC0. Setting DDX[1:0] seems to have no affect?
+  // This is the most important command differentiating these panels, the lookup tables and border control are not the 
+  // same. A red border remains with BDV[10] (0x40) on this panel, black border when you enable border control 0xC0.
+  // Setting DDX[1:0] seems to have no affect?
   this->command(0x50);
   this->data(0x43);
   this->data(0x00);
@@ -3352,7 +3351,6 @@ void WaveshareEPaper7P5InBV3BWRalt::init_display_() {
   this->data(0x20);
   this->data(0x01);  // gate 480
   this->data(0xE0);
-
 }
 
 void WaveshareEPaper7P5InBV3BWRalt::dump_config() {
