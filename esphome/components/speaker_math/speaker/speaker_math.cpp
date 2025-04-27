@@ -292,7 +292,7 @@ void SpeakerMath::convert_task(void *params) {
       break; \
     } \
     /* read data from ring into processing buffer */ \
-    auto bytes_read = temp_ring_buffer->read(output_buffer->get_buffer_end(), output_buffer->free()); \
+    auto bytes_read = temp_ring_buffer->read(output_buffer->get_buffer_end(), output_buffer->free(), 1); \
     output_buffer->increase_buffer_length(bytes_read); \
     DATATYPE *convert_buffer = (DATATYPE *) output_buffer->get_buffer_start(); \
     const auto available_elements = output_buffer->available() / sizeof(DATATYPE); \
