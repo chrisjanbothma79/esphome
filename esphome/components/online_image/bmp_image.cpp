@@ -86,36 +86,44 @@ int HOT BmpDecoder::decode(uint8_t *buffer, size_t size) {
     index = this->data_offset_;
   }
   while (index < size) {
-    if (this->bits_per_pixel_ == 1) {
-      uint8_t current_byte = buffer[index];
-      for (uint8_t i = 0; i < 8; i++) {
-        size_t x = (this->paint_index_ % this->width_) + i;
+    switch (this->bits_per_pixel_) {
+      case 1: {
+        uint8_t current_byte = buffer[index];
+        for (uint8_t i = 0; i < 8; i++) {
+          size_t x = (this->paint_index_ % this->width_) + i;
+          size_t y = (this->height_ - 1) - (this->paint_index_ / this->width_);
+          Color c = (current_byte & (1 << (7 - i))) ? display::COLOR_ON : display::COLOR_OFF;
+          this->draw(x, y, 1, 1, c);
+        }
+        this->paint_index_ += 8;
+        this->current_index_++;
+        index++;
+        break;
+      }
+      case 24: {
+        if (index + 2 >= size) {
+          this->decoded_bytes_ += index;
+          return index;
+        }
+        uint8_t b = buffer[index];
+        uint8_t g = buffer[index + 1];
+        uint8_t r = buffer[index + 2];
+        size_t x = this->paint_index_ % this->width_;
         size_t y = (this->height_ - 1) - (this->paint_index_ / this->width_);
-        Color c = (current_byte & (1 << (7 - i))) ? display::COLOR_ON : display::COLOR_OFF;
+        Color c = Color(r, g, b);
         this->draw(x, y, 1, 1, c);
+        this->paint_index_++;
+        this->current_index_ += 3;
+        index += 3;
+        if (x == this->width_ - 1 && this->padding_bytes_ > 0) {
+          index += this->padding_bytes_;
+          this->current_index_ += this->padding_bytes_;
+        }
+        break;
       }
-      this->paint_index_ += 8;
-      this->current_index_++;
-      index++;
-    } else if (this->bits_per_pixel_ == 24) {
-      if (index + 2 >= size) {
-        this->decoded_bytes_ += index;
-        return index;
-      }
-      uint8_t b = buffer[index];
-      uint8_t g = buffer[index + 1];
-      uint8_t r = buffer[index + 2];
-      size_t x = this->paint_index_ % this->width_;
-      size_t y = (this->height_ - 1) - (this->paint_index_ / this->width_);
-      Color c = Color(r, g, b);
-      this->draw(x, y, 1, 1, c);
-      this->paint_index_++;
-      this->current_index_ += 3;
-      index += 3;
-      if (x == this->width_ - 1 && this->padding_bytes_ > 0) {
-        index += this->padding_bytes_;
-        this->current_index_ += this->padding_bytes_;
-      }
+      default:
+        ESP_LOGE(TAG, "Unsupported bits per pixel: %d", this->bits_per_pixel_);
+        return DECODE_ERROR_UNSUPPORTED_FORMAT;
     }
   }
   this->decoded_bytes_ += size;
