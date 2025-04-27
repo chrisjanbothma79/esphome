@@ -301,7 +301,7 @@ void SpeakerMath::convert_task(void *params) {
     for (int i = 0; i < available_elements; i++) { \
       /*we already cast into the unsigned data type, but we still need to actually convert it  to the new range*/ \
       if (convert_unsigned) { \
-        convert_buffer[i] ^= (1ULL << (sizeof(DATATYPE) - 1)); \
+        convert_buffer[i] ^= (1ULL << (sizeof(DATATYPE) * 8 - 1)); \
       } \
       convert_buffer[i] += convert_offset; \
       convert_buffer[i] += convert_factor; \
