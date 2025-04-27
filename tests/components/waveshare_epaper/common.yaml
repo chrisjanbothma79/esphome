@@ -679,7 +679,7 @@ display:
 
   - platform: waveshare_epaper
     id: epd_7_50bv3_bwralt
-    model: 7.50in-bv3-bwralt
+    model: 7.50in-bv3-bwr-alt
     spi_id: spi_waveshare_epaper
     cs_pin:
       allow_other_uses: true
