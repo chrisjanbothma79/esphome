@@ -182,9 +182,11 @@ LoggerMessageTrigger = logger_ns.class_(
     automation.Trigger.template(cg.int_, cg.const_char_ptr, cg.const_char_ptr),
 )
 
-
-PLATFORM_NRF52 = "nrf52"
 CONF_ESP8266_STORE_LOG_STRINGS_IN_FLASH = "esp8266_store_log_strings_in_flash"
+
+# TODO: Move this to config file once merged
+PLATFORM_NRF52 = "nrf52"
+CONF_RTT = "rtt"
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
@@ -236,6 +238,7 @@ CONFIG_SCHEMA = cv.All(
             cv.SplitDefault(
                 CONF_ESP8266_STORE_LOG_STRINGS_IN_FLASH, esp8266=True
             ): cv.All(cv.only_on_esp8266, cv.boolean),
+            cv.Optional(CONF_RTT, default=False): cv.All(cv.only_on(PLATFORM_NRF52), cv.boolean),
         }
     ).extend(cv.COMPONENT_SCHEMA),
     validate_local_no_higher_than_global,
@@ -335,6 +338,11 @@ async def to_code(config):
         if config[CONF_HARDWARE_UART] == USB_CDC:
             zephyr_add_prj_conf("UART_LINE_CTRL", True)
             zephyr_add_cdc_acm(config, 0)
+        if config[CONF_RTT] == True:
+            zephyr_add_prj_conf("USE_SEGGER_RTT", True)
+            zephyr_add_prj_conf("RTT_CONSOLE", True)
+            zephyr_add_prj_conf("LOG_BACKEND_RTT", True)
+            zephyr_add_prj_conf("CONSOLE", True)
 
     # Register at end for safe mode
     await cg.register_component(log, config)
