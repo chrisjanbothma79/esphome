@@ -304,7 +304,7 @@ void SpeakerMath::convert_task(void *params) {
         convert_buffer[i] ^= (1ULL << (sizeof(DATATYPE) * 8 - 1)); \
       } \
       convert_buffer[i] += convert_offset; \
-      convert_buffer[i] += convert_factor; \
+      convert_buffer[i] *= convert_factor; \
     } \
     ESP_LOGV(TAG, "Did math on %zd elements,, first element was %x, is now %x", available_elements, first_element, \
              convert_buffer[0]); \
