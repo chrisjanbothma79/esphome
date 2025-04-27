@@ -207,6 +207,14 @@ async def to_code(config):
     zephyr_add_prj_conf("DNS_RESOLVER_ADDITIONAL_BUF_CTR", 2)
     zephyr_add_prj_conf("DNS_RESOLVER_ADDITIONAL_QUERIES", 2)
 
+    # Setup SRP services if mDNS is enabled
+    if "mdns" in CORE.config:
+        zephyr_add_prj_conf("CONFIG_OPENTHREAD_SRP_CLIENT", True)
+        zephyr_add_prj_conf("CONFIG_OPENTHREAD_DNS_CLIENT", True)
+        _LOGGER.debug("mDNS component found, enabling OpenThread SRP client features.")
+    else:
+        _LOGGER.debug("mDNS component not found, OpenThread SRP client features disabled.")
+
     # Stack sizes
     zephyr_add_prj_conf("MAIN_STACK_SIZE", 10240)
     
@@ -255,15 +263,3 @@ async def to_code(config):
     };
 };
     """)
-
-    # Setup SRP services if mDNS is enabled
-    if "mdns" in CORE.config:
-        # This assumes the mDNS component correctly populates its services
-        # The C++ code in OpenThreadZephyr::setup_srp_services() will handle
-        # reading these services from the mDNS component via the pointer we set earlier.
-        # No specific C++ calls needed here for SRP itself, just enabling the feature.
-        zephyr_add_prj_conf("CONFIG_OPENTHREAD_SRP_CLIENT", True)
-        zephyr_add_prj_conf("CONFIG_OPENTHREAD_DNS_CLIENT", True)
-        _LOGGER.debug("mDNS component found, enabling OpenThread SRP client features.")
-    else:
-        _LOGGER.debug("mDNS component not found, OpenThread SRP client features disabled.")
