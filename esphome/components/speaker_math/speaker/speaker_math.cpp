@@ -319,16 +319,16 @@ void SpeakerMath::convert_task(void *params) {
     if (convert_factor == 1 && convert_offset == 0) { \
       SPEAKER_MATH_LOOP_CORE(DATATYPE) \
     } \
-    \ 
-  else if (convert_offset == 0) { \
+\
+    else if (convert_offset == 0) { \
       SPEAKER_MATH_LOOP_CORE(DATATYPE) \
     } \
-    \ 
-  else if (convert_factor == 1) { \
+\
+    else if (convert_factor == 1) { \
       SPEAKER_MATH_LOOP_CORE(DATATYPE) \
     } \
-    \ 
-  else { \
+\
+    else { \
       SPEAKER_MATH_LOOP_CORE(DATATYPE) \
     } \
   }
