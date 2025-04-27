@@ -281,7 +281,6 @@ class VoiceAssistant : public Component {
   uint32_t conversation_timeout_;
 
   uint8_t *send_buffer_{nullptr};
-  int16_t *vad_input_buffer_{nullptr};
 
   bool continuous_{false};
   bool silence_detection_;
