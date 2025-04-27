@@ -854,7 +854,7 @@ class WaveshareEPaper7P5InBV3BWR : public WaveshareEPaperBWR {
 };
 
 class WaveshareEPaper7P5InBV3BWRalt : public WaveshareEPaperBWR {
-  public:
+ public:
   bool wait_until_idle_();
 
   void initialize() override;
@@ -872,23 +872,23 @@ class WaveshareEPaper7P5InBV3BWRalt : public WaveshareEPaperBWR {
 
   void clear_screen();
 
-  protected:
-    int get_width_internal() override;
+ protected:
+  int get_width_internal() override;
 
-    int get_height_internal() override;
+  int get_height_internal() override;
 
-    void reset_() {
-      if (this->reset_pin_ != nullptr) {
-        this->reset_pin_->digital_write(true);
-        delay(200);  // NOLINT
-        this->reset_pin_->digital_write(false);
-        delay(5);
-        this->reset_pin_->digital_write(true);
-        delay(200);  // NOLINT
-      }
-    };
+  void reset_() {
+    if (this->reset_pin_ != nullptr) {
+      this->reset_pin_->digital_write(true);
+      delay(200);  // NOLINT
+      this->reset_pin_->digital_write(false);
+      delay(5);
+      this->reset_pin_->digital_write(true);
+      delay(200);  // NOLINT
+    }
+  };
 
-    void init_display_();
+  void init_display_();
 };
 
 class WaveshareEPaper7P5InBC : public WaveshareEPaper {
