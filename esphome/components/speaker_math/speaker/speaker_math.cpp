@@ -296,7 +296,7 @@ void SpeakerMath::convert_task(void *params) {
     output_buffer->increase_buffer_length(bytes_read); \
     DATATYPE *convert_buffer = (DATATYPE *) output_buffer->get_buffer_start(); \
     const auto available_elements = output_buffer->available() / sizeof(DATATYPE); \
-    ESP_LOGV(TAG, "Got %zd elements to do math on", available_elements); \
+    auto first_element = convert_buffer[0]; \
 \
     for (int i = 0; i < available_elements; i++) { \
       /*we already cast into the unsigned data type, but we still need to actually convert it  to the new range*/ \
@@ -306,6 +306,8 @@ void SpeakerMath::convert_task(void *params) {
       convert_buffer[i] += convert_offset; \
       convert_buffer[i] += convert_factor; \
     } \
+    ESP_LOGV(TAG, "Did math on %zd elements,, first element was %x, is now %x", available_elements, first_element, \
+             convert_buffer[0]); \
     /* code will go boom if we don't empty the whole darn buffer*/ \
     output_buffer->transfer_data_to_sink(1000); \
   }
