@@ -154,6 +154,7 @@ def zephyr_to_code(config):
     # disable console
     zephyr_add_prj_conf("UART_CONSOLE", False)
     zephyr_add_prj_conf("CONSOLE", False, False)
+
     # use NFC pins as GPIO
     zephyr_add_prj_conf("NFCT_PINS_AS_GPIOS", True)
 
@@ -267,6 +268,19 @@ def copy_files():
             CORE.relative_build_path(f"boards/{zephyr_data()[KEY_BOARD]}.json"),
             fake_board_manifest,
         )
+
+        if zephyr_data()[KEY_BOOTLOADER] == BOOTLOADER_MCUBOOT:
+            zephyr_add_prj_conf("NORDIC_QSPI_NOR", True)
+            zephyr_add_prj_conf("NORDIC_QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE", 4096)
+            zephyr_add_prj_conf("PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY", True)
+
+            # External flash for secondary slot
+            zephyr_add_mcuboot_conf("PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY", True)
+            zephyr_add_mcuboot_conf("PM_OVERRIDE_EXTERNAL_DRIVER_CHECK", True)
+            # Enable flash operations
+            zephyr_add_mcuboot_conf("NORDIC_QSPI_NOR", True)
+            zephyr_add_mcuboot_conf("NORDIC_QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE", 4096)
+            zephyr_add_mcuboot_conf("BOOT_MAX_IMG_SECTORS", 256)
 
     for file in zephyr_data()[KEY_EXTRA_BUILD_FILES].values():
         copy_file_if_changed(
