@@ -308,6 +308,7 @@ void BL0940::dump_config() {  // NOLINT(readability-function-cognitive-complexit
   ESP_LOGCONFIG(TAG, "  Energy calibration: %f", this->energy_cal_);
   ESP_LOGCONFIG(TAG, "  Power calibration: %f", this->power_cal_);
   ESP_LOGCONFIG(TAG, "  Voltage calibration: %f", this->voltage_cal_);
+  ESP_LOGCONFIG(TAG, "  ------------------");
   LOG_SENSOR("", "Voltage", this->voltage_sensor_);
   LOG_SENSOR("", "Current", this->current_sensor_);
   LOG_SENSOR("", "Power", this->power_sensor_);
