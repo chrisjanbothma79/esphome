@@ -3189,7 +3189,7 @@ bool WaveshareEPaper7P5InBV3BWR::wait_until_idle_() {
 };
 void WaveshareEPaper7P5InBV3BWR::init_display_() {
   this->reset_();
-  
+
   // COMMAND POWER SETTING
   this->command(0x01);
 
@@ -3314,16 +3314,16 @@ int WaveshareEPaper7P5InBV3BWRalt::get_width_internal() { return 800; }
 int WaveshareEPaper7P5InBV3BWRalt::get_height_internal() { return 480; }
 void WaveshareEPaper7P5InBV3BWRalt::initialize() { this->init_display_(); }
 void WaveshareEPaper7P5InBV3BWRalt::init_display_() {
-  
+
   this->reset_();
 
   this->command(0x00);
   this->data(0x00); // reset device to defaults
-  
+
   // COMMAND POWER SETTING
   this->command(0x01);
   this->data(0x07);  // VRS_EN=1, VS_EN=1, VG_EN=1
-  this->data(0x17);  // 
+  this->data(0x17);
 
 
   // VCOM DC Setting
