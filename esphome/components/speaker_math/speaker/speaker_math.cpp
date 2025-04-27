@@ -342,17 +342,17 @@ void SpeakerMath::convert_task(void *params) {
 #endif
 
   if (bits_per_sample == 8 && convert_unsigned)
-    SPEAKER_MATH_LOOP_CORE(uint8_t)
-  if (bits_per_sample == 8 && !convert_unsigned)
-    SPEAKER_MATH_LOOP_CORE(int8_t)
-  if (bits_per_sample == 16 && convert_unsigned)
-    SPEAKER_MATH_LOOP_CORE(uint16_t)
-  if (bits_per_sample == 16 && !convert_unsigned)
-    SPEAKER_MATH_LOOP_CORE(int16_t)
-  if (bits_per_sample == 32 && convert_unsigned)
-    SPEAKER_MATH_LOOP_CORE(uint32_t)
-  if (bits_per_sample == 32 && !convert_unsigned)
-    SPEAKER_MATH_LOOP_CORE(int32_t)
+    SPEAKER_MATH_LOOP(uint8_t)
+  else if (bits_per_sample == 8 && !convert_unsigned)
+    SPEAKER_MATH_LOOP(int8_t)
+  else if (bits_per_sample == 16 && convert_unsigned)
+    SPEAKER_MATH_LOOP(uint16_t)
+  else if (bits_per_sample == 16 && !convert_unsigned)
+    SPEAKER_MATH_LOOP(int16_t)
+  else if (bits_per_sample == 32 && convert_unsigned)
+    SPEAKER_MATH_LOOP(uint32_t)
+  else if (bits_per_sample == 32 && !convert_unsigned)
+    SPEAKER_MATH_LOOP(int32_t)
 
   xEventGroupSetBits(this_speaker_math->event_group_, SpeakerMathEventGroupBits::STATE_STOPPING);
   xEventGroupSetBits(this_speaker_math->event_group_, SpeakerMathEventGroupBits::STATE_STOPPED);
