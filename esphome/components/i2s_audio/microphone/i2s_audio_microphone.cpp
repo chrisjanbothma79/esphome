@@ -56,6 +56,33 @@ void I2SAudioMicrophone::start_() {
   }
   esp_err_t err;
 
+  uint8_t channel_count = 1;
+#ifdef USE_I2S_LEGACY
+  uint8_t bits_per_sample = this->bits_per_sample_;
+
+  if (this->channel_ == I2S_CHANNEL_FMT_RIGHT_LEFT) {
+    channel_count = 2;
+  }
+#else
+  if (this->slot_bit_width_ == I2S_SLOT_BIT_WIDTH_AUTO) {
+    this->slot_bit_width_ = I2S_SLOT_BIT_WIDTH_16BIT;
+  }
+  uint8_t bits_per_sample = this->slot_bit_width_;
+
+  if (this->slot_mode_ == I2S_SLOT_MODE_STEREO) {
+    channel_count = 2;
+  }
+#endif
+
+#ifdef USE_ESP32_VARIANT_ESP32
+  // ESP32 reads audio aligned to a multiple of 2 bytes. For example, if configured for 24 bits per sample, then it will
+  // produce 32 bits per sample, where the actual data is in the most significant bits. Other ESP32 variants produce 24
+  // bits per sample in this situation.
+  if ((bits_per_sample > 16) && (bits_per_sample <= 32)) {
+    bits_per_sample = 32;
+  }
+#endif
+
 #ifdef USE_I2S_LEGACY
   i2s_driver_config_t config = {
       .mode = (i2s_mode_t) (this->i2s_mode_ | I2S_MODE_RX),
@@ -144,6 +171,8 @@ void I2SAudioMicrophone::start_() {
   i2s_std_gpio_config_t pin_config = this->parent_->get_pin_config();
 #if SOC_I2S_SUPPORTS_PDM_RX
   if (this->pdm_) {
+    bits_per_sample = 16;  // PDM mics are always 16 bits per sample with the IDF 5 driver
+
     i2s_pdm_rx_clk_config_t clk_cfg = {
         .sample_rate_hz = this->sample_rate_,
         .clk_src = clk_src,
@@ -221,6 +250,8 @@ void I2SAudioMicrophone::start_() {
     return;
   }
 #endif
+
+  this->audio_stream_info_ = audio::AudioStreamInfo(bits_per_sample, channel_count, this->sample_rate_);
 
   this->state_ = microphone::STATE_RUNNING;
   this->high_freq_.start();
