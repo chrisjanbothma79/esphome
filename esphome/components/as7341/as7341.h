@@ -21,6 +21,7 @@ static const uint8_t AS7341_AUXID = 0x90;
 static const uint8_t AS7341_REVID = 0x91;
 static const uint8_t AS7341_ID = 0x92;
 static const uint8_t AS7341_STATUS = 0x93;
+static const uint8_t AS7341_ASTATUS = 0x94;
 
 static const uint8_t AS7341_CH0_DATA_L = 0x95;
 static const uint8_t AS7341_CH0_DATA_H = 0x96;
@@ -40,6 +41,7 @@ static const uint8_t AS7341_STATUS2 = 0xA3;
 static const uint8_t AS7341_CFG1 = 0xAA;  ///< Controls ADC Gain
 
 static const uint8_t AS7341_CFG6 = 0xAF;  // Stores SMUX command
+static const uint8_t AS7341_CFG8 = 0xB1;  // AGC
 static const uint8_t AS7341_CFG9 = 0xB2;  // Config for system interrupts (SMUX, Flicker detection)
 
 static const uint8_t AS7341_ASTEP = 0xCA;      // LSB
@@ -75,7 +77,50 @@ enum AS7341Gain {
   AS7341_GAIN_COUNT,
 };
 
+union AS7341RegAStatus {
+  uint8_t raw;
+  struct {
+    AS7341Gain again_status : 4;
+    uint8_t reserved_4_6 : 3;
+    uint8_t asat_status : 1;
+  } __attribute__((packed));
+};
+
+union AS7341RegStatus2 {
+  uint8_t raw;
+  struct {
+    bool fdsat_digital : 1;
+    bool fdsat_analog : 1;
+    bool reserved_2 : 1;
+    bool asat_analog : 1;
+    bool asat_digital : 1;
+    bool reserved_5 : 1;
+    bool avalid : 1;
+    bool reserved_7 : 1;
+  } __attribute__((packed));
+};
+
+union As7341Cfg8 {
+  uint8_t raw;
+  struct {
+    uint8_t reserved_0_1 : 2;
+    uint8_t sp_agc_enable : 1;  // Spectral AGC enable
+    uint8_t fd_agc_enable : 1;  // Flicker detection AGC enable
+    uint8_t reserved_4_5 : 2;
+    uint8_t fifo_th : 2;
+  } __attribute__((packed));
+};
+
 constexpr uint16_t AS7341_NUM_CHANNELS = 12;
+
+typedef std::array<const char *, AS7341_NUM_CHANNELS> ChannelValuesString;
+typedef std::array<uint16_t, AS7341_NUM_CHANNELS> ChannelValuesUint16;
+typedef std::array<float, AS7341_NUM_CHANNELS> ChannelValuesFloat;
+typedef std::array<float, AS7341_NUM_CHANNELS - 2> CalibrationCoeffs;
+
+typedef std::array<sensor::Sensor *, AS7341_NUM_CHANNELS> SensorArray;
+
+#define SUB_SENSOR_ARRAY
 
 class AS7341Component : public PollingComponent, public i2c::I2CDevice {
  public:
@@ -85,98 +130,120 @@ class AS7341Component : public PollingComponent, public i2c::I2CDevice {
   void loop() override;
   void update() override;
 
-  void set_f1_sensor(sensor::Sensor *f1_sensor) { this->f1_ = f1_sensor; }
-  void set_f2_sensor(sensor::Sensor *f2_sensor) { f2_ = f2_sensor; }
-  void set_f3_sensor(sensor::Sensor *f3_sensor) { f3_ = f3_sensor; }
-  void set_f4_sensor(sensor::Sensor *f4_sensor) { f4_ = f4_sensor; }
-  void set_f5_sensor(sensor::Sensor *f5_sensor) { f5_ = f5_sensor; }
-  void set_f6_sensor(sensor::Sensor *f6_sensor) { f6_ = f6_sensor; }
-  void set_f7_sensor(sensor::Sensor *f7_sensor) { f7_ = f7_sensor; }
-  void set_f8_sensor(sensor::Sensor *f8_sensor) { f8_ = f8_sensor; }
-  void set_clear_sensor(sensor::Sensor *clear_sensor) { clear_ = clear_sensor; }
-  void set_nir_sensor(sensor::Sensor *nir_sensor) { nir_ = nir_sensor; }
-
   void set_gain(AS7341Gain gain) { gain_ = gain; }
   void set_atime(uint8_t atime) { atime_ = atime; }
   void set_astep(uint16_t astep) { astep_ = astep; }
 
+  // calibration coeefs
+  void set_dark_current_calibration(const CalibrationCoeffs &vals);
+  void set_channel_correction(const CalibrationCoeffs &vals);
+  void set_glass_attenuation_factor(float factor) { this->glass_attenuation_factor_ = factor; }
+
+  // hardware
   AS7341Gain get_gain();
   uint8_t get_atime();
   uint16_t get_astep();
+
+  // hardware registers update
   bool setup_gain(AS7341Gain gain);
   bool setup_atime(uint8_t atime);
   bool setup_astep(uint16_t astep);
 
-  uint16_t read_channel(AS7341AdcChannel channel);
-  bool read_channels();
-  void set_smux_low_channels(bool enable);
-  bool set_smux_command(AS7341SmuxCommand command);
-  void configure_smux_low_channels();
-  void configure_smux_high_channels();
-  bool enable_smux();
-
-  bool wait_for_data();
-  bool is_data_ready();
   bool enable_power(bool enable);
-  bool enable_spectral_measurement(bool enable);
 
-  bool read_register_bit(uint8_t address, uint8_t bit_position);
-  bool write_register_bit(uint8_t address, bool value, uint8_t bit_position);
-  bool set_register_bit(uint8_t address, uint8_t bit_position);
-  bool clear_register_bit(uint8_t address, uint8_t bit_position);
-  uint16_t swap_bytes(uint16_t data);
+#ifdef USE_SENSOR
+ protected:
+  SensorArray band_counts_sensors_{};
+  SensorArray band_basic_counts_sensors_{};
+
+ public:
+  void set_band_counts_sensor(sensor::Sensor *sensor, uint8_t channel) {
+    if (channel < AS7341_NUM_CHANNELS) {
+      band_counts_sensors_[channel] = sensor;
+    }
+  }
+  void set_band_basic_counts_sensor(sensor::Sensor *sensor, uint8_t channel) {
+    if (channel < AS7341_NUM_CHANNELS) {
+      band_basic_counts_sensors_[channel] = sensor;
+    }
+  }
+
+  SUB_SENSOR(illuminance);
+  SUB_SENSOR(irradiance);
+  SUB_SENSOR(irradiance_photopic);
+  SUB_SENSOR(irradiance_par);
+  SUB_SENSOR(ppfd);
+  SUB_SENSOR(ct);
+  SUB_SENSOR(color_temperature);
+  SUB_SENSOR(saturation_level);
+#endif
 
  protected:
+  uint16_t astep_;
+  AS7341Gain gain_;
+  uint8_t atime_;
+
+  ChannelValuesFloat dark_current_offset_{};
+  ChannelValuesFloat channel_correction_{
+      1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+  };
+  float glass_attenuation_factor_{1.0f};
+  float corr_lx_y_cie1931_{683.002f};
+
   enum class State : uint8_t {
     NOT_INITIALIZED,
     INITIAL_SETUP_COMPLETED,
     IDLE,
     START_MEASUREMENT,
-    COLLECTING_DATA,
-    COLLECTING_DATA_AUTO,
+    ENABLE_SMUX_LOW,
+    WAIT_SMUX_LOW,
+    READ_SMUX_LOW,
+    ENABLE_SMUX_HIGH,
+    WAIT_SMUX_HIGH,
+    READ_SMUX_HIGH,
     DATA_COLLECTED,
+    CALCULATE_CIE,
+    CALCULATE_SPECTRAL,
+    VALIDATE_VALUES,
     READY_TO_PUBLISH_PART_1,
     READY_TO_PUBLISH_PART_2,
     READY_TO_PUBLISH_PART_3
   } state_{State::NOT_INITIALIZED};
 
-  sensor::Sensor *f1_{nullptr};
-  sensor::Sensor *f2_{nullptr};
-  sensor::Sensor *f3_{nullptr};
-  sensor::Sensor *f4_{nullptr};
-  sensor::Sensor *f5_{nullptr};
-  sensor::Sensor *f6_{nullptr};
-  sensor::Sensor *f7_{nullptr};
-  sensor::Sensor *f8_{nullptr};
-  sensor::Sensor *clear_{nullptr};
-  sensor::Sensor *nir_{nullptr};
-
-  uint16_t astep_;
-  AS7341Gain gain_;
-  uint8_t atime_;
-  float glass_attenuation_factor_{1.0f};
-  // uint16_t channel_readings_[12];
-  std::array<uint16_t, AS7341_NUM_CHANNELS> channel_readings_{};  // extra channel for safe inverse mapping
-
   struct {
-    std::array<float, AS7341_NUM_CHANNELS> basic_counts{};
-    AS7341Gain gain;
+    uint32_t millis_start;
     uint8_t atime;
     uint16_t astep;
+    bool first_run{true};
+
+    ChannelValuesUint16 raw_counts{};
+
+    AS7341Gain low_gain;
+    bool low_saturated{false};
+    bool low_success{false};
+    AS7341Gain high_gain;
+    bool high_saturated{false};
+    bool high_success{false};
+
+    AS7341Gain gain{};
     float gain_x{};
     float t_int_us{};
-    uint32_t millis_start;
-    bool first_run{true};
+
   } readings_;
+
   struct {
-    float lux;
+    ChannelValuesFloat basic_counts{};
+    ChannelValuesFloat mW_per_band{};
     float irradiance;
     float irradiance_photopic;
+    float irradiance_par;
     float ppfd;
-    float par;
     float cct;
     float duv;
+    float saturation_level;
+    float lux_from_irradiance;
     float lux_from_xyz;
+    float lux;
   } calculated_values_;
 
   float get_gain_multiplier(AS7341Gain gain);
@@ -187,7 +254,39 @@ class AS7341Component : public PollingComponent, public i2c::I2CDevice {
   void calculate_color_(float &ct, float &duv, float &lux);
 
   void publish_channel_readings_();
+  void publish_basic_counts_();
   void publish_derived_readings_();
+
+  uint16_t get_maximum_spectral_adc_();
+  uint16_t get_maximum_spectral_adc_(uint16_t atime, uint16_t astep);
+
+  template<typename T, size_t N> T get_highest_value(std::array<T, N> &data);
+#ifdef USE_SENSOR
+  void publish_sensor(sensor::Sensor *sensor, float value) {
+    if (sensor != nullptr) {
+      sensor->publish_state(value);
+    }
+  }
+#endif
+
+ protected:
+  bool set_smux_command(AS7341SmuxCommand command);
+  void configure_smux_low_channels();
+  void configure_smux_high_channels();
+  bool enable_smux();
+
+  bool is_data_ready();
+  bool enable_spectral_measurement(bool enable);
+
+  bool read_low_channels_();
+  bool read_high_channels_();
+  bool read_and_discard_channels_();
+
+  bool read_register_bit(uint8_t address, uint8_t bit_position);
+  bool write_register_bit(uint8_t address, bool value, uint8_t bit_position);
+  bool set_register_bit(uint8_t address, uint8_t bit_position);
+  bool clear_register_bit(uint8_t address, uint8_t bit_position);
+  uint16_t swap_bytes(uint16_t data);
 };
 
 }  // namespace as7341
