@@ -9,9 +9,6 @@
 
 #include "utils.h"
 
-#include "esphome/components/web_server/web_server.h"
-#include "esphome/components/web_server/list_entities.h"
-
 #include "web_server_idf.h"
 
 namespace esphome {
