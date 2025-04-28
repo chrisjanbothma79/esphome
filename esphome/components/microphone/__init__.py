@@ -6,6 +6,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_BITS_PER_SAMPLE,
     CONF_CHANNELS,
+    CONF_GAIN_FACTOR,
     CONF_ID,
     CONF_MICROPHONE,
     CONF_TRIGGER_ID,
@@ -18,7 +19,6 @@ CODEOWNERS = ["@jesserockz"]
 
 IS_PLATFORM_COMPONENT = True
 
-CONF_GAIN_FACTOR = "gain_factor"
 CONF_ON_DATA = "on_data"
 
 microphone_ns = cg.esphome_ns.namespace("microphone")
