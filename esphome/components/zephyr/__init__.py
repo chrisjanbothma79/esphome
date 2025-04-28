@@ -219,7 +219,7 @@ def copy_files():
 "vendor": "esphome"
 }
 """
-        if zephyr_data()[KEY_BOOTLOADER] == BOOTLOADER_MCUBOOT:
+        if zephyr_data()[KEY_BOARD] in ["xiao_ble"]:
             zephyr_add_prj_conf("NORDIC_QSPI_NOR", True)
             zephyr_add_prj_conf("NORDIC_QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE", 4096)
             zephyr_add_prj_conf("PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY", True)
