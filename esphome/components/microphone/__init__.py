@@ -36,7 +36,7 @@ StopCaptureAction = microphone_ns.class_(
 
 DataTrigger = microphone_ns.class_(
     "DataTrigger",
-    automation.Trigger.template(cg.std_vector.template(cg.int16).operator("ref")),
+    automation.Trigger.template(cg.std_vector.template(cg.uint8).operator("ref")),
 )
 
 IsCapturingCondition = microphone_ns.class_(
