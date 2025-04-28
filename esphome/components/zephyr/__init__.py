@@ -203,6 +203,58 @@ def zephyr_add_pm_static(section: Section):
 def copy_files():
     want_opts = zephyr_data()[KEY_PRJ_CONF]
 
+    # Move MCUBOOT/xiao_ble config block here so all config is set before writing files
+    if zephyr_data()[KEY_BOOTLOADER] == BOOTLOADER_MCUBOOT or zephyr_data()[KEY_BOARD] in ["xiao_ble"]:
+        fake_board_manifest = """
+{
+"frameworks": [
+    "zephyr"
+],
+"name": "esphome nrf52",
+"upload": {
+    "maximum_ram_size": 248832,
+    "maximum_size": 815104
+},
+"url": "https://esphome.io/",
+"vendor": "esphome"
+}
+"""
+        if zephyr_data()[KEY_BOOTLOADER] == BOOTLOADER_MCUBOOT:
+            zephyr_add_prj_conf("NORDIC_QSPI_NOR", True)
+            zephyr_add_prj_conf("NORDIC_QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE", 4096)
+            zephyr_add_prj_conf("PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY", True)
+
+            # External flash for secondary slot
+            zephyr_add_mcuboot_conf("PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY", True)
+            zephyr_add_mcuboot_conf("PM_OVERRIDE_EXTERNAL_DRIVER_CHECK", True)
+            # Enable flash operations
+            zephyr_add_mcuboot_conf("NORDIC_QSPI_NOR", True)
+            zephyr_add_mcuboot_conf("NORDIC_QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE", 4096)
+            zephyr_add_mcuboot_conf("BOOT_MAX_IMG_SECTORS", 256)
+
+            zephyr_add_mcuboot_overlay("""
+&p25q16h {
+	status = "okay";
+};
+
+/ {
+    chosen {
+        nordic,pm-ext-flash = &p25q16h;
+    };
+};
+    """)
+            zephyr_add_overlay("""
+&p25q16h {
+	status = "okay";
+};
+
+/ {
+    chosen {
+        nordic,pm-ext-flash = &p25q16h;
+    };
+};
+    """)
+
     prj_conf = (
         "\n".join(
             f"{name}={_format_prj_conf_val(value[0])}"
@@ -230,10 +282,10 @@ def copy_files():
                 f"""
 / {{
     zephyr,user {{
-        {[f"{key} = {', '.join(value)};" for key, value in zephyr_data()[KEY_USER].items()][0]}
+        {{[f\"{key} = {', '.join(value)};\" for key, value in zephyr_data()[KEY_USER].items()][0]}}
 }};
 }};"""
-        )
+            )
 
     write_file_if_changed(
         CORE.relative_build_path("zephyr/app.overlay"),
@@ -247,40 +299,11 @@ def copy_files():
             zephyr_data()[KEY_MCUBOOT_OVERLAY],
         )
 
-    if zephyr_data()[KEY_BOOTLOADER] == BOOTLOADER_MCUBOOT or zephyr_data()[
-        KEY_BOARD
-    ] in ["xiao_ble"]:
-        fake_board_manifest = """
-{
-"frameworks": [
-    "zephyr"
-],
-"name": "esphome nrf52",
-"upload": {
-    "maximum_ram_size": 248832,
-    "maximum_size": 815104
-},
-"url": "https://esphome.io/",
-"vendor": "esphome"
-}
-"""
+    if zephyr_data()[KEY_BOOTLOADER] == BOOTLOADER_MCUBOOT or zephyr_data()[KEY_BOARD] in ["xiao_ble"]:
         write_file_if_changed(
             CORE.relative_build_path(f"boards/{zephyr_data()[KEY_BOARD]}.json"),
             fake_board_manifest,
         )
-
-        if zephyr_data()[KEY_BOOTLOADER] == BOOTLOADER_MCUBOOT:
-            zephyr_add_prj_conf("NORDIC_QSPI_NOR", True)
-            zephyr_add_prj_conf("NORDIC_QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE", 4096)
-            zephyr_add_prj_conf("PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY", True)
-
-            # External flash for secondary slot
-            zephyr_add_mcuboot_conf("PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY", True)
-            zephyr_add_mcuboot_conf("PM_OVERRIDE_EXTERNAL_DRIVER_CHECK", True)
-            # Enable flash operations
-            zephyr_add_mcuboot_conf("NORDIC_QSPI_NOR", True)
-            zephyr_add_mcuboot_conf("NORDIC_QSPI_NOR_FLASH_LAYOUT_PAGE_SIZE", 4096)
-            zephyr_add_mcuboot_conf("BOOT_MAX_IMG_SECTORS", 256)
 
     for file in zephyr_data()[KEY_EXTRA_BUILD_FILES].values():
         copy_file_if_changed(

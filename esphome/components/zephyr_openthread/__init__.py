@@ -240,26 +240,4 @@ async def to_code(config):
 &ieee802154 {
     status = "okay";
 };
-
-&p25q16h {
-	status = "okay";
-};
-
-/ {
-    chosen {
-        nordic,pm-ext-flash = &p25q16h;
-    };
-};
-    """)
-    
-    zephyr_add_mcuboot_overlay("""
-&p25q16h {
-	status = "okay";
-};
-
-/ {
-    chosen {
-        nordic,pm-ext-flash = &p25q16h;
-    };
-};
     """)

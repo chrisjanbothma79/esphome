@@ -341,7 +341,6 @@ async def to_code(config):
         if config[CONF_RTT] == True:
             zephyr_add_prj_conf("USE_SEGGER_RTT", True)
             zephyr_add_prj_conf("RTT_CONSOLE", True)
-            zephyr_add_prj_conf("LOG_BACKEND_RTT", True)
             zephyr_add_prj_conf("CONSOLE", True)
 
     # Register at end for safe mode
