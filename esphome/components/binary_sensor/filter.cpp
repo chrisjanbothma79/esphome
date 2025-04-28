@@ -101,7 +101,7 @@ void AutorepeatFilter::next_timing_() {
 
 void AutorepeatFilter::next_value_(bool val) {
   const AutorepeatFilterTiming &timing = this->timings_[this->active_timing_ - 2];
-  this->output(val);  // This is at least the second one so not initial
+  this->output(val);
   this->set_timeout("ON_OFF", val ? timing.time_on : timing.time_off, [this, val]() { this->next_value_(!val); });
 }
 
