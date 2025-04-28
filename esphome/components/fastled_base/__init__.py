@@ -40,6 +40,6 @@ async def new_fastled_light(config):
     if CONF_MAX_REFRESH_RATE in config:
         cg.add(var.set_max_refresh_rate(config[CONF_MAX_REFRESH_RATE]))
 
-    cg.add_library("fastled/FastLED", "3.9.14")
+    cg.add_library("fastled/FastLED", "3.9.16")
     await light.register_light(var, config)
     return var
