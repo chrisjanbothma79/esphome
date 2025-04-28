@@ -279,37 +279,39 @@ void SpeakerMath::convert_task(void *params) {
   // We sacrifice compile time and (to a much lesser extent with optimizations enabled)
   // code size in order to gain improved performance (much fewer conditionals)
 #define SPEAKER_MATH_LOOP_CORE(DATATYPE) \
-  ESP_LOGD(TAG, "Starting speaker math task with bits per sample %" PRIu8 "of type " #DATATYPE, bits_per_sample); \
-  while (err == ESP_OK) { \
-    uint32_t event_bits = xEventGroupGetBits(this_speaker_math->event_group_); \
+  { \
+    ESP_LOGD(TAG, "Starting speaker math task with bits per sample %" PRIu8 "of type " #DATATYPE, bits_per_sample); \
+    while (err == ESP_OK) { \
+      uint32_t event_bits = xEventGroupGetBits(this_speaker_math->event_group_); \
 \
-    if (event_bits & SpeakerMathEventGroupBits::COMMAND_STOP) { \
-      break; \
-    } \
-    if (output_buffer->available() > 0) { \
-      ESP_LOGE(TAG, "Conversion buffer did not empty"); \
-      xEventGroupSetBits(this_speaker_math->event_group_, SpeakerMathEventGroupBits::ERR_ESP_FAIL); \
-      break; \
-    } \
-    /* read data from ring into processing buffer */ \
-    auto bytes_read = temp_ring_buffer->read(output_buffer->get_buffer_end(), output_buffer->free(), 1); \
-    output_buffer->increase_buffer_length(bytes_read); \
-    DATATYPE *convert_buffer = (DATATYPE *) output_buffer->get_buffer_start(); \
-    const auto available_elements = output_buffer->available() / sizeof(DATATYPE); \
-    auto first_element = convert_buffer[0]; \
-\
-    for (int i = 0; i < available_elements; i++) { \
-      /*we already cast into the unsigned data type, but we still need to actually convert it  to the new range*/ \
-      if (convert_unsigned) { \
-        convert_buffer[i] ^= (1ULL << (sizeof(DATATYPE) * 8 - 1)); \
+      if (event_bits & SpeakerMathEventGroupBits::COMMAND_STOP) { \
+        break; \
       } \
-      convert_buffer[i] += convert_offset; \
-      convert_buffer[i] *= convert_factor; \
+      if (output_buffer->available() > 0) { \
+        ESP_LOGE(TAG, "Conversion buffer did not empty"); \
+        xEventGroupSetBits(this_speaker_math->event_group_, SpeakerMathEventGroupBits::ERR_ESP_FAIL); \
+        break; \
+      } \
+      /* read data from ring into processing buffer */ \
+      auto bytes_read = temp_ring_buffer->read(output_buffer->get_buffer_end(), output_buffer->free(), 1); \
+      output_buffer->increase_buffer_length(bytes_read); \
+      DATATYPE *convert_buffer = (DATATYPE *) output_buffer->get_buffer_start(); \
+      const auto available_elements = output_buffer->available() / sizeof(DATATYPE); \
+      auto first_element = convert_buffer[0]; \
+\
+      for (int i = 0; i < available_elements; i++) { \
+        /*we already cast into the unsigned data type, but we still need to actually convert it  to the new range*/ \
+        if (convert_unsigned) { \
+          convert_buffer[i] ^= (1ULL << (sizeof(DATATYPE) * 8 - 1)); \
+        } \
+        convert_buffer[i] += convert_offset; \
+        convert_buffer[i] *= convert_factor; \
+      } \
+      ESP_LOGV(TAG, "Did math on %zd elements,, first element was %x, is now %x", available_elements, first_element, \
+               convert_buffer[0]); \
+      /* code will go boom if we don't empty the whole darn buffer*/ \
+      output_buffer->transfer_data_to_sink(1000); \
     } \
-    ESP_LOGV(TAG, "Did math on %zd elements,, first element was %x, is now %x", available_elements, first_element, \
-             convert_buffer[0]); \
-    /* code will go boom if we don't empty the whole darn buffer*/ \
-    output_buffer->transfer_data_to_sink(1000); \
   }
 
 // In most cases, one or both of the offset/factor will be the identity.  A check with the
