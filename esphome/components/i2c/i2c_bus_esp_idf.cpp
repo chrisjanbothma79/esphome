@@ -67,7 +67,11 @@ void IDFI2CBus::setup() {
       ESP_LOGV(TAG, "i2c_timeout set to %" PRIu32 " ticks (%" PRIu32 " us)", timeout_ * 80, timeout_);
     }
   }
+#ifdef USE_PSRAM
+  err = i2c_driver_install(port_, I2C_MODE_MASTER, 0, 0, 0);
+#else
   err = i2c_driver_install(port_, I2C_MODE_MASTER, 0, 0, ESP_INTR_FLAG_IRAM);
+#endif
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "i2c_driver_install failed: %s", esp_err_to_name(err));
     this->mark_failed();
