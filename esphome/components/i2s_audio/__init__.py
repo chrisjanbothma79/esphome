@@ -182,9 +182,7 @@ async def register_i2s_audio_component(var, config):
             slot_mask = CONF_BOTH
         cg.add(var.set_slot_mode(I2S_SLOT_MODE[slot_mode]))
         cg.add(var.set_std_slot_mask(I2S_STD_SLOT_MASK[slot_mask]))
-        cg.add(
-            var.set_slot_bit_width(I2S_SLOT_BIT_WIDTH[config[CONF_BITS_PER_CHANNEL]])
-        )
+        cg.add(var.set_slot_bit_width(I2S_SLOT_BIT_WIDTH[config[CONF_BITS_PER_SAMPLE]]))
     cg.add(var.set_sample_rate(config[CONF_SAMPLE_RATE]))
     cg.add(var.set_use_apll(config[CONF_USE_APLL]))
 
