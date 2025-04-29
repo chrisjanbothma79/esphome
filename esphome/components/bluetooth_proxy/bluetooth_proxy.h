@@ -129,6 +129,7 @@ class BluetoothProxy : public esp32_ble_tracker::ESPBTDeviceListener, public Com
 
  protected:
   void send_api_packet_(const esp32_ble_tracker::ESPBTDevice &device);
+  void send_bluetooth_scanner_state_(esp32_ble_tracker::ScannerState state);
 
   BluetoothConnection *get_connection_(uint64_t address, bool reserve);
 

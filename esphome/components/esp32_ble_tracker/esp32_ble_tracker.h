@@ -245,6 +245,7 @@ class ESP32BLETracker : public Component,
   void add_scanner_state_callback(std::function<void(ScannerState)> &&callback) {
     this->scanner_state_callbacks_.add(std::move(callback));
   }
+  ScannerState get_scanner_state() const { return this->scanner_state_; }
 
  protected:
   void stop_scan_();

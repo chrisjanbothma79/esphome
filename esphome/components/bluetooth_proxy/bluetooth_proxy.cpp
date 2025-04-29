@@ -28,13 +28,17 @@ BluetoothProxy::BluetoothProxy() { global_bluetooth_proxy = this; }
 void BluetoothProxy::setup() {
   this->parent_->add_scanner_state_callback([this](esp32_ble_tracker::ScannerState state) {
     if (this->api_connection_ != nullptr) {
-      api::BluetoothScannerStateResponse resp;
-      resp.state = static_cast<api::enums::BluetoothScannerState>(state);
-      resp.mode = this->parent_->get_scan_active() ? api::enums::BluetoothScannerMode::BLUETOOTH_SCANNER_MODE_ACTIVE
-                                                   : api::enums::BluetoothScannerMode::BLUETOOTH_SCANNER_MODE_PASSIVE;
-      this->api_connection_->send_bluetooth_scanner_state_response(resp);
+      this->send_bluetooth_scanner_state_(state);
     }
   });
+}
+
+void BluetoothProxy::send_bluetooth_scanner_state_(esp32_ble_tracker::ScannerState state) {
+  api::BluetoothScannerStateResponse resp;
+  resp.state = static_cast<api::enums::BluetoothScannerState>(state);
+  resp.mode = this->parent_->get_scan_active() ? api::enums::BluetoothScannerMode::BLUETOOTH_SCANNER_MODE_ACTIVE
+                                               : api::enums::BluetoothScannerMode::BLUETOOTH_SCANNER_MODE_PASSIVE;
+  this->api_connection_->send_bluetooth_scanner_state_response(resp);
 }
 
 bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) {
@@ -465,6 +469,8 @@ void BluetoothProxy::subscribe_api_connection(api::APIConnection *api_connection
   this->api_connection_ = api_connection;
   this->raw_advertisements_ = flags & BluetoothProxySubscriptionFlag::SUBSCRIPTION_RAW_ADVERTISEMENTS;
   this->parent_->recalculate_advertisement_parser_types();
+
+  this->send_bluetooth_scanner_state_(this->parent_->get_scanner_state());
 }
 
 void BluetoothProxy::unsubscribe_api_connection(api::APIConnection *api_connection) {
