@@ -344,7 +344,8 @@ void I2SAudioMicrophone::mic_task(void *params) {
   uint8_t start_counter = 0;
   bool started = this_microphone->start_driver_();
   while (!started && start_counter < 10) {
-    delay(100);
+    // Attempt to load the driver again in 100 ms. Doesn't slow down main loop since its in a task.
+    vTaskDelay(pdMS_TO_TICKS(100));
     ++start_counter;
     started = this_microphone->start_driver_();
   }
