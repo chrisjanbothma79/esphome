@@ -53,6 +53,7 @@ class BluetoothProxy : public esp32_ble_tracker::ESPBTDeviceListener, public Com
   bool parse_device(const esp32_ble_tracker::ESPBTDevice &device) override;
   bool parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_param *advertisements, size_t count) override;
   void dump_config() override;
+  void setup() override;
   void loop() override;
   esp32_ble_tracker::AdvertisementParserType get_advertisement_parser_type() override;
 
@@ -83,6 +84,8 @@ class BluetoothProxy : public esp32_ble_tracker::ESPBTDeviceListener, public Com
   void send_device_pairing(uint64_t address, bool paired, esp_err_t error = ESP_OK);
   void send_device_unpairing(uint64_t address, bool success, esp_err_t error = ESP_OK);
   void send_device_clear_cache(uint64_t address, bool success, esp_err_t error = ESP_OK);
+
+  void bluetooth_scanner_set_mode(bool active);
 
   static void uint64_to_bd_addr(uint64_t address, esp_bd_addr_t bd_addr) {
     bd_addr[0] = (address >> 40) & 0xff;
