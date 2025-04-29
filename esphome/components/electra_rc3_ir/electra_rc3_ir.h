@@ -18,8 +18,6 @@ class ElectraRC3IR : public climate_ir::ClimateIR {
                               {climate::CLIMATE_SWING_OFF, climate::CLIMATE_SWING_VERTICAL},
                               {climate::CLIMATE_PRESET_NONE, climate::CLIMATE_PRESET_SLEEP}) {}
 
-  // void control(const climate::ClimateCall &call) override;
-
  protected:
   /// Transmit via IR the state of this climate controller.
   void transmit_state() override;

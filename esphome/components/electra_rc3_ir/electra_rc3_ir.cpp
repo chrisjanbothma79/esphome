@@ -6,8 +6,6 @@
 namespace esphome {
 namespace electra_rc3_ir {
 
-// using climate::ClimateMode;
-// using climate::ClimateFanMode;
 using remote_base::ElectraRC3Data;
 
 static const char *const TAG = "electra_rc3_ir.climate";
@@ -27,15 +25,6 @@ using ElectraRC3Fan = enum ElectraRC3Fan {
   ELECTRA_RC3_FAN_HIGH = 0b10,
   ELECTRA_RC3_FAN_AUTO = 0b11
 };
-
-// void ElectraRC3IR::control(const climate::ClimateCall &call) {
-//   // swing and preset resets after unit powered off
-//   if (call.get_mode().has_value() && (climate::CLIMATE_MODE_OFF == call.get_mode())) {
-//     this->current_mode = call.get_mode();
-//   }
-
-//   climate_ir::ClimateIR::control(call);
-// }
 
 void ElectraRC3IR::transmit_state() {
   ElectraRC3Data data;
