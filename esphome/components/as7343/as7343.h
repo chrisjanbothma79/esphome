@@ -9,6 +9,13 @@
 namespace esphome {
 namespace as7343 {
 
+typedef std::array<float, AS7343_NUM_CHANNELS> CalibrationParams;
+
+// 1 extra place for safe inverse map (CLEAR0,CLEAR1)
+typedef std::array<uint16_t, AS7343_NUM_CHANNELS + 1> ChannelValuesUint16;
+typedef std::array<float, AS7343_NUM_CHANNELS + 1> ChannelValuesFloat;
+typedef std::array<const char *, AS7343_NUM_CHANNELS + 1> ChannelNames;
+
 class AS7343Component : public PollingComponent, public i2c::I2CDevice {
  public:
   void setup() override;
@@ -17,11 +24,15 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   void update() override;
   void loop() override;
 
-  void set_gain(AS7343Gain gain) { gain_ = gain; }
-  void set_atime(uint8_t atime) { atime_ = atime; }
-  void set_astep(uint16_t astep) { astep_ = astep; }
+  void set_gain(AS7343Gain gain) { this->gain_ = gain; }
+  void set_atime(uint8_t atime) { this->atime_ = atime; }
+  void set_astep(uint16_t astep) { this->astep_ = astep; }
+  void set_led_enabled(bool enabled) { this->led_enabled_ = enabled; }
 
+  void set_dark_current_calibration(const CalibrationParams &vals);
+  void set_channel_correction(const CalibrationParams &vals);
   void set_glass_attenuation_factor(float factor) { this->glass_attenuation_factor_ = factor; }
+
   void enable_auto_gain(bool enable) { this->auto_gain_enabled_ = enable; }
   void enable_continuous_mode(bool enable) { this->continuous_mode_ = enable; }
   void enable_scaling(bool enable) { this->scaling_enabled_ = enable; }
@@ -43,6 +54,7 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   bool is_data_ready();
 
   bool enable_power(bool enable);
+  bool enable_led(bool enable);
   bool enable_spectral_measurement(bool enable);
 
   bool read_register_bit(uint8_t address, uint8_t bit_position);
@@ -72,20 +84,53 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   void set_bank_for_reg_(AS7343Registers reg = AS7343Registers::ENABLE);
   bool bank_{false};
 
-  //#ifdef USE_SENSOR
-  SUB_SENSOR(f1);
-  SUB_SENSOR(f2);
-  SUB_SENSOR(fz);
-  SUB_SENSOR(f3);
-  SUB_SENSOR(f4);
-  SUB_SENSOR(fy);
-  SUB_SENSOR(f5);
-  SUB_SENSOR(fxl);
-  SUB_SENSOR(f6);
-  SUB_SENSOR(f7);
-  SUB_SENSOR(f8);
-  SUB_SENSOR(nir);
-  SUB_SENSOR(clear);
+  // counts_xxx
+  SUB_SENSOR(band_counts_f1);
+  SUB_SENSOR(band_counts_f2);
+  SUB_SENSOR(band_counts_fz);
+  SUB_SENSOR(band_counts_f3);
+  SUB_SENSOR(band_counts_f4);
+  SUB_SENSOR(band_counts_fy);
+  SUB_SENSOR(band_counts_f5);
+  SUB_SENSOR(band_counts_fxl);
+  SUB_SENSOR(band_counts_f6);
+  SUB_SENSOR(band_counts_f7);
+  SUB_SENSOR(band_counts_f8);
+  SUB_SENSOR(band_counts_nir);
+  SUB_SENSOR(band_counts_clear);
+
+  // basic_counts_xxx
+  SUB_SENSOR(band_basic_counts_f1);
+  SUB_SENSOR(band_basic_counts_f2);
+  SUB_SENSOR(band_basic_counts_fz);
+  SUB_SENSOR(band_basic_counts_f3);
+  SUB_SENSOR(band_basic_counts_f4);
+  SUB_SENSOR(band_basic_counts_fy);
+  SUB_SENSOR(band_basic_counts_f5);
+  SUB_SENSOR(band_basic_counts_fxl);
+  SUB_SENSOR(band_basic_counts_f6);
+  SUB_SENSOR(band_basic_counts_f7);
+  SUB_SENSOR(band_basic_counts_f8);
+  SUB_SENSOR(band_basic_counts_nir);
+  SUB_SENSOR(band_basic_counts_clear);
+
+  // irrad_xxx
+  SUB_SENSOR(band_irrad_f1);
+  SUB_SENSOR(band_irrad_f2);
+  SUB_SENSOR(band_irrad_fz);
+  SUB_SENSOR(band_irrad_f3);
+  SUB_SENSOR(band_irrad_f4);
+  SUB_SENSOR(band_irrad_fy);
+  SUB_SENSOR(band_irrad_f5);
+  SUB_SENSOR(band_irrad_fxl);
+  SUB_SENSOR(band_irrad_f6);
+  SUB_SENSOR(band_irrad_f7);
+  SUB_SENSOR(band_irrad_f8);
+  SUB_SENSOR(band_irrad_nir);
+  SUB_SENSOR(band_irrad_clear);
+
+  // derived values
+
   SUB_SENSOR(illuminance);
   SUB_SENSOR(irradiance);
   SUB_SENSOR(irradiance_photopic);
@@ -96,29 +141,28 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   SUB_SENSOR(saturation_level);
 
  protected:
-  //#endif
-
-  sensor::Sensor *saturated_{nullptr};
+  sensor::Sensor *saturated_{nullptr};  // ???????????????????? shall change to binary
 
   uint16_t astep_;
   AS7343Gain gain_;
   uint8_t atime_;
+  bool led_enabled_{false};
 
+  ChannelValuesFloat dark_current_offset_{};
+  // from GD
+  ChannelValuesFloat channel_correction_{1.055464349, 1.043509797, 1.029576268, 1.0175052,   1.00441899,
+                                         0.987356499, 0.957597044, 0.995863485, 1.014628964, 0.996500814,
+                                         0.933072749, 1.052236338, 0.999570232};
   float glass_attenuation_factor_{1.0f};
-  float corr_lx_y_cie1931_{683.0f};
+  float corr_lx_y_cie1931_{683.002f};
 
   bool scaling_enabled_{false};
 
   bool auto_gain_enabled_{false};
   bool continuous_mode_{false};
 
-  // enum : uint8_t {
-  //   AS7343_LIGHT_DETECTION = 0,
-  //   AS7343_COLOR_DETECTION = 1,
-  // } detection_mode_{AS7343_LIGHT_DETECTION};
-
   struct {
-    std::array<uint16_t, AS7343_NUM_CHANNELS + 1> raw_counts{};  // extra channel for safe inverse mapping
+    ChannelValuesUint16 raw_counts{};
 
     bool saturated{false};
     AS7343Gain gain;
@@ -134,8 +178,9 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   } readings_;
 
   struct {
-    std::array<float, AS7343_NUM_CHANNELS + 1> basic_counts{};  // extra channel for safe inverse mapping
-    float lux;
+    ChannelValuesFloat basic_counts{};
+    ChannelValuesFloat mw_per_band{};
+    float lux_from_irradiance;
     float irradiance;
     float irradiance_photopic;
     float irradiance_par;
@@ -146,6 +191,17 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
     float saturation_level;
   } calculated_values_;
 
+  void calculate_();
+  void calculate_basic_counts_();
+  void calculate_spectral_(float &lux, float &par, float &ppfd, float &irradiance, float &irradiance_photopic);
+  void calculate_color_(float &ct, float &duv, float &lux);
+  void calculate_cri_();
+
+  void publish_channel_readings_();
+  void publish_channel_irradiance_();
+  void publish_derived_readings_();
+
+  // auto gain section
   enum {
     GAIN_OK = 0,
     GAIN_TOO_LOW = 1,
@@ -155,6 +211,10 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   uint8_t auto_gain_tries_{0};
 
   float get_tint_();
+  uint16_t get_maximum_spectral_adc_();
+  uint16_t get_maximum_spectral_adc_(uint16_t atime, uint16_t astep);
+
+  template<typename T, size_t N> T get_highest_value(std::array<T, N> &data);
   void optimizer_(float max_TINT);
   void direct_config_3_chain_();
   void setup_tint_(float tint);
@@ -163,21 +223,7 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   void get_optimized_gain_(uint16_t maximum_adc, uint16_t highest_adc, uint8_t lower_gain_limit,
                            uint8_t upper_gain_limit, uint8_t &out_gain, bool &out_saturation);
 
-  uint16_t get_maximum_spectral_adc_();
-  uint16_t get_maximum_spectral_adc_(uint16_t atime, uint16_t astep);
-
-  template<typename T, size_t N> T get_highest_value(std::array<T, N> &data);
-
   bool check_if_adjustments_needed_();
-  void calculate_();
-  void calculate_basic_counts_();
-  void calculate_spectral_(float &lux, float &par, float &ppfd, float &irradiance, float &irradiance_photopic);
-  void calculate_color_(float &ct, float &duv, float &lux);
-
-  void calculate_cri_();
-
-  void publish_channel_readings_();
-  void publish_derived_readings_();
 
  public:
   bool as7352_set_integration_time_us(uint32_t time_us);

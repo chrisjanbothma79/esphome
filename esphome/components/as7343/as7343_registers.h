@@ -54,6 +54,7 @@ static constexpr uint8_t AS7343_CHIP_ID = 0b10000001;
 static constexpr uint8_t AS7343_ENABLE_PON_BIT = 0;
 static constexpr uint8_t AS7343_ENABLE_SP_EN_BIT = 1;
 static constexpr uint8_t AS7343_CFG0_REG_BANK_BIT = 4;
+static constexpr uint8_t AS7343_LED_ENABLE_BIT = 7;
 
 enum AS7343Gain : uint8_t {
   AS7343_GAIN_0_5X,
@@ -140,6 +141,14 @@ union AS7343RegAStatus {
     uint8_t reserved_4_6 : 3;
     uint8_t asat_status : 1;
 
+  } __attribute__((packed));
+};
+
+union AS7343RegLed {
+  uint8_t raw;
+  struct {
+    uint8_t drive_current : 7;  // current in mA = 4 + 2 * value;
+    bool led_enable : 1;
   } __attribute__((packed));
 };
 

@@ -2,6 +2,7 @@ import esphome.codegen as cg
 from esphome.components import i2c, sensor
 import esphome.config_validation as cv
 from esphome.const import (
+    CONF_CALIBRATION,
     CONF_COLOR_TEMPERATURE,
     CONF_GAIN,
     CONF_GLASS_ATTENUATION_FACTOR,
@@ -26,6 +27,8 @@ AS7343Component = as7343_ns.class_(
 
 CONF_ATIME = "atime"
 CONF_ASTEP = "astep"
+CONF_DARK_CURRENT = "dark_current"
+CONF_CHANNEL_CORRECTION = "channel_correction"
 
 CONF_F1 = "f1"
 CONF_F2 = "f2"
@@ -41,6 +44,10 @@ CONF_F8 = "f8"
 CONF_NIR = "nir"
 CONF_CLEAR = "clear"
 
+CONF_BAND_COUNTS = "band_counts"
+CONF_BAND_BASIC_COUNTS = "band_basic_counts"
+CONF_BAND_IRRADIANCE = "band_irradiance"
+
 CONF_IRRADIANCE = "irradiance"
 CONF_IRRADIANCE_PHOTOPIC = "irradiance_photopic"
 CONF_PPFD = "ppfd"
@@ -52,7 +59,8 @@ UNIT_COUNTS = "#"
 UNIT_IRRADIANCE = "W/m²"
 UNIT_PPFD = "µmol/s⋅m²"
 
-ICON_COUNTS = "mdi:waveform"
+ICON_BAND_COUNTS = "mdi:counter"
+ICON_BAND_IRRADIANCE = "mdi:waveform"
 ICON_IRRADIANCE = "mdi:radioactive"
 ICON_ILLUMINANCE = "mdi:weather-sunny"
 ICON_IRRADIANCE_PHOTOPIC = "mdi:sun-wireless-outline"
@@ -79,10 +87,47 @@ GAIN_OPTIONS = {
 }
 
 
-SENSOR_SCHEMA = cv.maybe_simple_value(
+FLOAT_10_SCHEMA = cv.Schema(
+    cv.All(
+        cv.ensure_list(cv.float_),
+        cv.Length(min=10, max=10),
+    ),
+)
+
+CALIBRATION_SCHEMA = cv.Schema(
+    {
+        cv.Optional(CONF_CHANNEL_CORRECTION, default=[1.0] * 13): FLOAT_10_SCHEMA,
+        cv.Optional(CONF_DARK_CURRENT, default=[0.0] * 13): FLOAT_10_SCHEMA,
+        cv.Optional(CONF_GLASS_ATTENUATION_FACTOR, default=1.0): cv.float_,
+    }
+)
+
+COUNTS_SENSOR_SCHEMA = cv.maybe_simple_value(
     sensor.sensor_schema(
         unit_of_measurement=UNIT_COUNTS,
-        icon=ICON_COUNTS,
+        icon=ICON_BAND_COUNTS,
+        accuracy_decimals=0,
+        device_class=DEVICE_CLASS_ILLUMINANCE,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ),
+    key=CONF_NAME,
+)
+
+BASIC_COUNTS_SENSOR_SCHEMA = cv.maybe_simple_value(
+    sensor.sensor_schema(
+        unit_of_measurement=UNIT_COUNTS,
+        icon=ICON_BAND_COUNTS,
+        accuracy_decimals=6,
+        device_class=DEVICE_CLASS_ILLUMINANCE,
+        state_class=STATE_CLASS_MEASUREMENT,
+    ),
+    key=CONF_NAME,
+)
+
+IRRAD_SENSOR_SCHEMA = cv.maybe_simple_value(
+    sensor.sensor_schema(
+        unit_of_measurement=UNIT_IRRADIANCE,
+        icon=ICON_BAND_IRRADIANCE,
         accuracy_decimals=6,
         device_class=DEVICE_CLASS_ILLUMINANCE,
         state_class=STATE_CLASS_MEASUREMENT,
@@ -91,6 +136,60 @@ SENSOR_SCHEMA = cv.maybe_simple_value(
 )
 
 
+BAND_COUNTS_SCHEMA = cv.Schema(
+    {
+        cv.Optional(CONF_F1): COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F2): COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_FZ): COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F3): COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F4): COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_FY): COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F5): COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_FXL): COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F6): COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F7): COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F8): COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_NIR): COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_CLEAR): COUNTS_SENSOR_SCHEMA,
+    }
+)
+
+BAND_BASIC_COUNTS_SCHEMA = cv.Schema(
+    {
+        cv.Optional(CONF_F1): BASIC_COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F2): BASIC_COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_FZ): BASIC_COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F3): BASIC_COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F4): BASIC_COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_FY): BASIC_COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F5): BASIC_COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_FXL): BASIC_COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F6): BASIC_COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F7): BASIC_COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_F8): BASIC_COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_NIR): BASIC_COUNTS_SENSOR_SCHEMA,
+        cv.Optional(CONF_CLEAR): BASIC_COUNTS_SENSOR_SCHEMA,
+    }
+)
+
+BAND_IRRAD_SCHEMA = cv.Schema(
+    {
+        cv.Optional(CONF_F1): IRRAD_SENSOR_SCHEMA,
+        cv.Optional(CONF_F2): IRRAD_SENSOR_SCHEMA,
+        cv.Optional(CONF_FZ): IRRAD_SENSOR_SCHEMA,
+        cv.Optional(CONF_F3): IRRAD_SENSOR_SCHEMA,
+        cv.Optional(CONF_F4): IRRAD_SENSOR_SCHEMA,
+        cv.Optional(CONF_FY): IRRAD_SENSOR_SCHEMA,
+        cv.Optional(CONF_F5): IRRAD_SENSOR_SCHEMA,
+        cv.Optional(CONF_FXL): IRRAD_SENSOR_SCHEMA,
+        cv.Optional(CONF_F6): IRRAD_SENSOR_SCHEMA,
+        cv.Optional(CONF_F7): IRRAD_SENSOR_SCHEMA,
+        cv.Optional(CONF_F8): IRRAD_SENSOR_SCHEMA,
+        cv.Optional(CONF_NIR): IRRAD_SENSOR_SCHEMA,
+        cv.Optional(CONF_CLEAR): IRRAD_SENSOR_SCHEMA,
+    }
+)
+
 CONFIG_SCHEMA = (
     cv.Schema(
         {
@@ -98,22 +197,10 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_GAIN, default="X8"): cv.enum(GAIN_OPTIONS),
             cv.Optional(CONF_ATIME, default=29): cv.int_range(min=0, max=255),
             cv.Optional(CONF_ASTEP, default=599): cv.int_range(min=0, max=65534),
-            cv.Optional(CONF_GLASS_ATTENUATION_FACTOR, default=1.0): cv.float_range(
-                min=1.0
-            ),
-            cv.Optional(CONF_F1): SENSOR_SCHEMA,
-            cv.Optional(CONF_F2): SENSOR_SCHEMA,
-            cv.Optional(CONF_FZ): SENSOR_SCHEMA,
-            cv.Optional(CONF_F3): SENSOR_SCHEMA,
-            cv.Optional(CONF_F4): SENSOR_SCHEMA,
-            cv.Optional(CONF_FY): SENSOR_SCHEMA,
-            cv.Optional(CONF_F5): SENSOR_SCHEMA,
-            cv.Optional(CONF_FXL): SENSOR_SCHEMA,
-            cv.Optional(CONF_F6): SENSOR_SCHEMA,
-            cv.Optional(CONF_F7): SENSOR_SCHEMA,
-            cv.Optional(CONF_F8): SENSOR_SCHEMA,
-            cv.Optional(CONF_NIR): SENSOR_SCHEMA,
-            cv.Optional(CONF_CLEAR): SENSOR_SCHEMA,
+            cv.Optional(CONF_CALIBRATION): CALIBRATION_SCHEMA,
+            cv.Optional(CONF_BAND_COUNTS): BAND_COUNTS_SCHEMA,
+            cv.Optional(CONF_BAND_BASIC_COUNTS): BAND_BASIC_COUNTS_SCHEMA,
+            cv.Optional(CONF_BAND_IRRADIANCE): BAND_IRRAD_SCHEMA,
             cv.Optional(CONF_ILLUMINANCE): cv.maybe_simple_value(
                 sensor.sensor_schema(
                     unit_of_measurement=UNIT_LUX,
@@ -199,7 +286,7 @@ CONFIG_SCHEMA = (
     .extend(i2c.i2c_device_schema(0x39))
 )
 
-SENSORS = [
+BANDS = [
     CONF_F1,
     CONF_F2,
     CONF_FZ,
@@ -213,6 +300,9 @@ SENSORS = [
     CONF_F8,
     CONF_NIR,
     CONF_CLEAR,
+]
+
+SENSORS_INTEGRAL = [
     CONF_ILLUMINANCE,
     CONF_IRRADIANCE,
     CONF_IRRADIANCE_PHOTOPIC,
@@ -232,13 +322,33 @@ async def to_code(config):
     cg.add(var.set_gain(config[CONF_GAIN]))
     cg.add(var.set_atime(config[CONF_ATIME]))
     cg.add(var.set_astep(config[CONF_ASTEP]))
-    cg.add(var.set_glass_attenuation_factor(config[CONF_GLASS_ATTENUATION_FACTOR]))
 
-    # for conf_id, set_sensor_func in SENSORS.items():
-    #     if sens_config := config.get(conf_id):
-    #         sens = await sensor.new_sensor(sens_config)
-    #         cg.add(getattr(var, set_sensor_func)(sens))
-    for sensor_id in SENSORS:
+    if calibration := config.get(CONF_CALIBRATION):
+        cg.add(var.set_dark_current_calibration(calibration[CONF_DARK_CURRENT]))
+        cg.add(var.set_channel_correction(calibration[CONF_CHANNEL_CORRECTION]))
+        cg.add(
+            var.set_glass_attenuation_factor(calibration[CONF_GLASS_ATTENUATION_FACTOR])
+        )
+
+    if counts_config := config.get(CONF_BAND_COUNTS):
+        for sensor_id in BANDS:
+            if sensor_config := counts_config.get(sensor_id):
+                sens = await sensor.new_sensor(sensor_config)
+                cg.add(getattr(var, f"set_band_counts_{sensor_id}_sensor")(sens))
+
+    if basic_counts_config := config.get(CONF_BAND_BASIC_COUNTS):
+        for sensor_id in BANDS:
+            if sensor_config := basic_counts_config.get(sensor_id):
+                sens = await sensor.new_sensor(sensor_config)
+                cg.add(getattr(var, f"set_band_basic_counts_{sensor_id}_sensor")(sens))
+
+    if irrad_config := config.get(CONF_BAND_IRRADIANCE):
+        for sensor_id in BANDS:
+            if sensor_config := irrad_config.get(sensor_id):
+                sens = await sensor.new_sensor(sensor_config)
+                cg.add(getattr(var, f"set_band_irrad_{sensor_id}_sensor")(sens))
+
+    for sensor_id in SENSORS_INTEGRAL:
         if sensor_config := config.get(sensor_id):
             sens = await sensor.new_sensor(sensor_config)
             cg.add(getattr(var, f"set_{sensor_id}_sensor")(sens))
