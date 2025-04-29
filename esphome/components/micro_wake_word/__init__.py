@@ -334,6 +334,7 @@ CONFIG_SCHEMA = cv.All(
                 min_bits_per_sample=16,
                 max_bits_per_sample=16,
                 min_channels=1,
+                max_channels=1,
             ),
             cv.Required(CONF_MODELS): cv.ensure_list(
                 cv.maybe_simple_value(MODEL_SCHEMA, key=CONF_MODEL)

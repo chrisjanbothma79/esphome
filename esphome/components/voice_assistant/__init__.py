@@ -94,6 +94,7 @@ CONFIG_SCHEMA = cv.All(
                 min_bits_per_sample=16,
                 max_bits_per_sample=16,
                 min_channels=1,
+                max_channels=1,
             ),
             cv.Exclusive(CONF_SPEAKER, "output"): cv.use_id(speaker.Speaker),
             cv.Exclusive(CONF_MEDIA_PLAYER, "output"): cv.use_id(
