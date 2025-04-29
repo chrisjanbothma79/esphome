@@ -123,11 +123,11 @@ bool I2SAudioMicrophone::start_driver_() {
       .communication_format = I2S_COMM_FORMAT_STAND_I2S,
       .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,
       .dma_buf_count = 4,
-      .dma_buf_len = 256,
+      .dma_buf_len = 240,  // Must be divisible by 3 to support 24 bits per sample on old driver and newer variants
       .use_apll = this->use_apll_,
       .tx_desc_auto_clear = false,
       .fixed_mclk = 0,
-      .mclk_multiple = I2S_MCLK_MULTIPLE_256,
+      .mclk_multiple = this->mclk_multiple_,
       .bits_per_chan = this->bits_per_channel_,
   };
 
@@ -207,7 +207,7 @@ bool I2SAudioMicrophone::start_driver_() {
     i2s_pdm_rx_clk_config_t clk_cfg = {
         .sample_rate_hz = this->sample_rate_,
         .clk_src = clk_src,
-        .mclk_multiple = I2S_MCLK_MULTIPLE_256,
+        .mclk_multiple = this->mclk_multiple_,
         .dn_sample_mode = I2S_PDM_DSR_8S,
     };
 
@@ -245,7 +245,7 @@ bool I2SAudioMicrophone::start_driver_() {
     i2s_std_clk_config_t clk_cfg = {
         .sample_rate_hz = this->sample_rate_,
         .clk_src = clk_src,
-        .mclk_multiple = I2S_MCLK_MULTIPLE_256,
+        .mclk_multiple = this->mclk_multiple_,
     };
     i2s_std_slot_config_t std_slot_cfg =
         I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG((i2s_data_bit_width_t) this->slot_bit_width_, this->slot_mode_);
