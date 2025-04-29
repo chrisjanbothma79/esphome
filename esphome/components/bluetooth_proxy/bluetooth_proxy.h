@@ -41,6 +41,7 @@ enum BluetoothProxyFeature : uint32_t {
   FEATURE_PAIRING = 1 << 3,
   FEATURE_CACHE_CLEARING = 1 << 4,
   FEATURE_RAW_ADVERTISEMENTS = 1 << 5,
+  FEATURE_STATE_AND_MODE = 1 << 6,
 };
 
 enum BluetoothProxySubscriptionFlag : uint32_t {
@@ -110,6 +111,7 @@ class BluetoothProxy : public esp32_ble_tracker::ESPBTDeviceListener, public Com
     uint32_t flags = 0;
     flags |= BluetoothProxyFeature::FEATURE_PASSIVE_SCAN;
     flags |= BluetoothProxyFeature::FEATURE_RAW_ADVERTISEMENTS;
+    flags |= BluetoothProxyFeature::FEATURE_STATE_AND_MODE;
     if (this->active_) {
       flags |= BluetoothProxyFeature::FEATURE_ACTIVE_CONNECTIONS;
       flags |= BluetoothProxyFeature::FEATURE_REMOTE_CACHING;
