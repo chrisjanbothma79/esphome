@@ -341,42 +341,45 @@ void I2SAudioMicrophone::mic_task(void *params) {
 
   xEventGroupSetBits(this_microphone->event_group_, MicrophoneEventGroupBits::TASK_STARTING);
 
-  uint8_t start_counter = 0;
-  bool started = this_microphone->start_driver_();
-  while (!started && start_counter < 10) {
-    delay(100);
-    ++start_counter;
-    started = this_microphone->start_driver_();
-  }
-
-  if (started) {
-    xEventGroupSetBits(this_microphone->event_group_, MicrophoneEventGroupBits::TASK_RUNNING);
-  }
-
-  const size_t bytes_to_read = this_microphone->audio_stream_info_.ms_to_bytes(READ_DURATION_MS);
-  std::vector<uint8_t> samples;
-  samples.reserve(bytes_to_read);
-
-  while (started) {
-    uint32_t event_group_bits = xEventGroupGetBits(this_microphone->event_group_);
-    if (event_group_bits & MicrophoneEventGroupBits::COMMAND_STOP) {
-      break;
+  {  // Ensures C++ objects fall out of scop and are deallocated when task stops
+    uint8_t start_counter = 0;
+    bool started = this_microphone->start_driver_();
+    while (!started && start_counter < 10) {
+      delay(100);
+      ++start_counter;
+      started = this_microphone->start_driver_();
     }
 
-    if (this_microphone->data_callbacks_.size() > 0) {
-      samples.resize(bytes_to_read);
-      size_t bytes_read = this_microphone->read_(samples.data(), bytes_to_read, 2 * pdMS_TO_TICKS(READ_DURATION_MS));
-      samples.resize(bytes_read);
-      this_microphone->data_callbacks_.call(samples);
-    } else {
-      delay(READ_DURATION_MS);
+    if (started) {
+      xEventGroupSetBits(this_microphone->event_group_, MicrophoneEventGroupBits::TASK_RUNNING);
     }
+
+    const size_t bytes_to_read = this_microphone->audio_stream_info_.ms_to_bytes(READ_DURATION_MS);
+    std::vector<uint8_t> samples;
+    samples.reserve(bytes_to_read);
+
+    while (started) {
+      uint32_t event_group_bits = xEventGroupGetBits(this_microphone->event_group_);
+      if (event_group_bits & MicrophoneEventGroupBits::COMMAND_STOP) {
+        break;
+      }
+
+      if (this_microphone->data_callbacks_.size() > 0) {
+        samples.resize(bytes_to_read);
+        size_t bytes_read = this_microphone->read_(samples.data(), bytes_to_read, 2 * pdMS_TO_TICKS(READ_DURATION_MS));
+        samples.resize(bytes_read);
+        this_microphone->data_callbacks_.call(samples);
+      } else {
+        delay(READ_DURATION_MS);
+      }
+    }
+
+    xEventGroupSetBits(this_microphone->event_group_, MicrophoneEventGroupBits::TASK_STOPPING);
+    this_microphone->stop_driver_();
+
+    xEventGroupSetBits(this_microphone->event_group_, MicrophoneEventGroupBits::TASK_STOPPED);
   }
 
-  xEventGroupSetBits(this_microphone->event_group_, MicrophoneEventGroupBits::TASK_STOPPING);
-  this_microphone->stop_driver_();
-
-  xEventGroupSetBits(this_microphone->event_group_, MicrophoneEventGroupBits::TASK_STOPPED);
   while (true) {
     delay(10);
   }
