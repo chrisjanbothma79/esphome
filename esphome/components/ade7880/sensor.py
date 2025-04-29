@@ -1,7 +1,7 @@
-import esphome.codegen as cg
-import esphome.config_validation as cv
-from esphome.components import sensor, i2c
 from esphome import pins
+import esphome.codegen as cg
+from esphome.components import i2c, sensor
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_ACTIVE_POWER,
     CONF_APPARENT_POWER,
@@ -19,6 +19,7 @@ from esphome.const import (
     CONF_RESET_PIN,
     CONF_REVERSE_ACTIVE_ENERGY,
     CONF_VOLTAGE,
+    CONF_VOLTAGE_GAIN,
     DEVICE_CLASS_APPARENT_POWER,
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_ENERGY,
@@ -47,7 +48,6 @@ CONF_CURRENT_GAIN = "current_gain"
 CONF_IRQ0_PIN = "irq0_pin"
 CONF_IRQ1_PIN = "irq1_pin"
 CONF_POWER_GAIN = "power_gain"
-CONF_VOLTAGE_GAIN = "voltage_gain"
 
 CONF_NEUTRAL = "neutral"
 

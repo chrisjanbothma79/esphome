@@ -1,13 +1,13 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import fan, output
 from esphome.components.fan import validate_preset_modes
+import esphome.config_validation as cv
 from esphome.const import (
-    CONF_PRESET_MODES,
     CONF_DIRECTION_OUTPUT,
     CONF_OSCILLATION_OUTPUT,
     CONF_OUTPUT,
     CONF_OUTPUT_ID,
+    CONF_PRESET_MODES,
     CONF_SPEED,
     CONF_SPEED_COUNT,
 )
@@ -19,7 +19,7 @@ SpeedFan = speed_ns.class_("SpeedFan", cg.Component, fan.Fan)
 CONFIG_SCHEMA = fan.FAN_SCHEMA.extend(
     {
         cv.GenerateID(CONF_OUTPUT_ID): cv.declare_id(SpeedFan),
-        cv.Optional(CONF_OUTPUT): cv.use_id(output.FloatOutput),
+        cv.Required(CONF_OUTPUT): cv.use_id(output.FloatOutput),
         cv.Optional(CONF_OSCILLATION_OUTPUT): cv.use_id(output.BinaryOutput),
         cv.Optional(CONF_DIRECTION_OUTPUT): cv.use_id(output.BinaryOutput),
         cv.Optional(CONF_SPEED): cv.invalid(
@@ -36,9 +36,8 @@ async def to_code(config):
     await cg.register_component(var, config)
     await fan.register_fan(var, config)
 
-    if CONF_OUTPUT in config:
-        output_ = await cg.get_variable(config[CONF_OUTPUT])
-        cg.add(var.set_output(output_))
+    output_ = await cg.get_variable(config[CONF_OUTPUT])
+    cg.add(var.set_output(output_))
 
     if CONF_OSCILLATION_OUTPUT in config:
         oscillation_output = await cg.get_variable(config[CONF_OSCILLATION_OUTPUT])
