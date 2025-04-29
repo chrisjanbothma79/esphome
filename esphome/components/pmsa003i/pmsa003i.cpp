@@ -1,5 +1,6 @@
 #include "pmsa003i.h"
 #include "esphome/core/log.h"
+#include "esphome/core/helpers.h"
 #include <cstring>
 
 namespace esphome {
@@ -7,14 +8,15 @@ namespace pmsa003i {
 
 static const char *const TAG = "pmsa003i";
 
-static const uint8_t START_CHARACTER_1 = 0x42;
-static const uint8_t START_CHARACTER_2 = 0x4D;
-static const uint8_t COUNT_START_CHARACTER_BYTES = 2;
-static const uint8_t COUNT_PAYLOAD_LENGTH_BYTES = 2;
 static const uint8_t COUNT_PAYLOAD_BYTES = 28;
-static const uint8_t COUNT_16_BIT_VALUES = (COUNT_PAYLOAD_LENGTH_BYTES + COUNT_PAYLOAD_BYTES) / 2;
+static const uint8_t COUNT_PAYLOAD_LENGTH_BYTES = 2;
+static const uint8_t COUNT_START_CHARACTER_BYTES = 2;
 static const uint8_t COUNT_DATA_BYTES = COUNT_START_CHARACTER_BYTES + COUNT_PAYLOAD_LENGTH_BYTES + COUNT_PAYLOAD_BYTES;
 static const uint8_t CHECKSUM_START_INDEX = COUNT_DATA_BYTES - 2;
+static const uint8_t COUNT_16_BIT_VALUES = (COUNT_PAYLOAD_LENGTH_BYTES + COUNT_PAYLOAD_BYTES) / 2;
+static const uint8_t START_CHARACTER_1 = 0x42;
+static const uint8_t START_CHARACTER_2 = 0x4D;
+static const uint8_t READ_DATA_RETRY_COUNT = 3;
 
 void PMSA003IComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up pmsa003i...");
@@ -23,7 +25,7 @@ void PMSA003IComponent::setup() {
   bool successful_read = this->read_data_(&data);
 
   if (!successful_read) {
-    for (uint8_t i = 0; i < 3; i++) {
+    for (uint8_t i = 0; i < READ_DATA_RETRY_COUNT; i++) {
       successful_read = this->read_data_(&data);
       if (successful_read) {
         break;
@@ -100,7 +102,7 @@ bool PMSA003IComponent::read_data_(PM25AQIData *data) {
     return false;
   }
 
-  const uint16_t payload_length = (uint16_t(buffer[2]) << 8) | uint16_t(buffer[3]);
+  const uint16_t payload_length = encode_uint16(buffer[2], buffer[3]);
   if (payload_length != COUNT_PAYLOAD_BYTES) {
     ESP_LOGW(TAG, "Payload length mismatch: %u != %u", payload_length, COUNT_PAYLOAD_BYTES);
     return false;
@@ -112,7 +114,7 @@ bool PMSA003IComponent::read_data_(PM25AQIData *data) {
     checksum += buffer[i];
   }
 
-  const uint16_t check = (uint16_t(buffer[CHECKSUM_START_INDEX]) << 8) | uint16_t(buffer[CHECKSUM_START_INDEX + 1]);
+  const uint16_t check = encode_uint16(buffer[CHECKSUM_START_INDEX], buffer[CHECKSUM_START_INDEX + 1]);
   if (checksum != check) {
     ESP_LOGW(TAG, "Checksum mismatch: %u != %u", checksum, check);
     return false;
@@ -122,7 +124,7 @@ bool PMSA003IComponent::read_data_(PM25AQIData *data) {
   uint16_t buffer_u16[COUNT_16_BIT_VALUES];
   for (uint8_t i = 0; i < COUNT_16_BIT_VALUES; i++) {
     const uint8_t buffer_index = COUNT_START_CHARACTER_BYTES + i * 2;
-    buffer_u16[i] = (uint16_t(buffer[buffer_index]) << 8) | uint16_t(buffer[buffer_index + 1]);
+    buffer_u16[i] = encode_uint16(buffer[buffer_index], buffer[buffer_index + 1]);
   }
 
   // put it into a nice struct :)
