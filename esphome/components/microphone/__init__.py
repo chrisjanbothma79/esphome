@@ -98,10 +98,11 @@ def microphone_source_schema(
         return config
 
     return cv.All(
-        cv.maybe_simple_value(
+        automation.maybe_conf(
+            CONF_MICROPHONE,
             {
                 cv.GenerateID(CONF_ID): cv.declare_id(MicrophoneSource),
-                cv.Required(CONF_MICROPHONE): cv.use_id(Microphone),
+                cv.GenerateID(CONF_MICROPHONE): cv.use_id(Microphone),
                 cv.Optional(CONF_BITS_PER_SAMPLE, default=16): cv.int_range(
                     min_bits_per_sample, max_bits_per_sample
                 ),
@@ -112,7 +113,6 @@ def microphone_source_schema(
                 ),
                 cv.Optional(CONF_GAIN_FACTOR, default="1"): cv.int_range(1, 64),
             },
-            key=CONF_MICROPHONE,
         ),
     )
 
