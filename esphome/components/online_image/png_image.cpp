@@ -10,6 +10,9 @@ static const char *const TAG = "online_image.png";
 namespace esphome {
 namespace online_image {
 
+// pngle_t is hidden away inside the .c file, so we cannot use sizeof(pngle_t).
+static const size_t PNGLE_T_SIZE = 43288U;  // Size of pngle_t structure
+
 /**
  * @brief Callback method that will be called by the PNGLE engine when the basic
  * data of the image is received (i.e. width and height);
@@ -42,11 +45,12 @@ static void draw_callback(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, ui
 
 PngDecoder::PngDecoder(OnlineImage *image) : ImageDecoder(image) {
   {
-    pngle_t *pngle = this->allocator_.allocate(1, 43888U);
+    pngle_t *pngle = this->allocator_.allocate(1, PNGLE_T_SIZE);
     if (!pngle) {
       ESP_LOGE(TAG, "Failed to allocate memory for PNGLE engine!");
       return;
     }
+    memset(pngle, 0, PNGLE_T_SIZE);
     pngle_reset(pngle);
     this->pngle_ = pngle;
   }
@@ -55,7 +59,7 @@ PngDecoder::PngDecoder(OnlineImage *image) : ImageDecoder(image) {
 PngDecoder::~PngDecoder() {
   if (this->pngle_) {
     pngle_reset(this->pngle_);
-    this->allocator_.deallocate(this->pngle_, 1);
+    this->allocator_.deallocate(this->pngle_, PNGLE_T_SIZE);
   }
 }
 
