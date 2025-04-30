@@ -1,0 +1,30 @@
+esphome:
+  name: ld2413_test
+
+esp32:
+  board: esp32dev
+
+
+
+wifi:
+  ssid: "TP-Link_AX10"
+  password: "70663701"
+
+logger:
+
+api:
+
+ota:
+  platform: esphome
+
+
+uart:
+  rx_pin: GPIO16
+  tx_pin: GPIO17
+  baud_rate: 115200
+
+sensor:
+  - platform: ld2413
+    name: "LD2413 Distance"
+
+web_server:
