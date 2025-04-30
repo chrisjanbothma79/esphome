@@ -112,7 +112,7 @@ class MicroWakeWord : public Component {
 
   /// @brief Processes any new probabilities for each model. If any wake word is detected, it will send a DetectionEvent
   /// to the detection_queue_.
-  void process_probabilities();
+  void process_probabilities_();
 
   /// @brief Deletes each model's TFLite interpreters and frees tensor arena memory.
   void unload_models_();

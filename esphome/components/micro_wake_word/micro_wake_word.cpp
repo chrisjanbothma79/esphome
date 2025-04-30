@@ -188,7 +188,7 @@ void MicroWakeWord::inference_task(void *params) {
         }
 
         // Process each model's probabilities and possibly send a Detection Event to the queue
-        this_mww->process_probabilities();
+        this_mww->process_probabilities_();
       }
     }
   }
@@ -208,7 +208,7 @@ void MicroWakeWord::inference_task(void *params) {
 
 std::vector<WakeWordModel *> MicroWakeWord::get_wake_words() {
   std::vector<WakeWordModel *> external_wake_word_models;
-  for (auto model : this->wake_word_models_) {
+  for (auto *model : this->wake_word_models_) {
     if (!model->get_internal_only()) {
       external_wake_word_models.push_back(model);
     }
@@ -411,7 +411,7 @@ size_t MicroWakeWord::generate_features_(int16_t *audio_buffer, size_t samples_a
   return processed_samples;
 }
 
-void MicroWakeWord::process_probabilities() {
+void MicroWakeWord::process_probabilities_() {
 #ifdef USE_MICRO_WAKE_WORD_VAD
   DetectionEvent vad_state = this->vad_model_->determine_detected();
 

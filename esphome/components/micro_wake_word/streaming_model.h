@@ -113,10 +113,10 @@ class WakeWordModel final : public StreamingModel {
   const std::vector<std::string> &get_trained_languages() const { return this->trained_languages_; }
 
   /// @brief Enable the model and save to flash. The next performing_streaming_inference call will load it.
-  virtual void enable() override;
+  void enable() override;
 
   /// @brief Disable the model and save to flash. The next performing_streaming_inference call will unload it.
-  virtual void disable() override;
+  void disable() override;
 
   bool get_internal_only() { return this->internal_only_; }
 
