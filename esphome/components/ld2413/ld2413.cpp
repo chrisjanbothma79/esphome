@@ -6,13 +6,9 @@ namespace ld2413 {
 
 static const char *const TAG = "ld2413";
 
-void LD2413Sensor::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up LD2413 Sensor...");
-}
+void LD2413Sensor::setup() { ESP_LOGCONFIG(TAG, "Setting up LD2413 Sensor..."); }
 
-void LD2413Sensor::update() {
-  this->read_sensor_();
-}
+void LD2413Sensor::update() { this->read_sensor_(); }
 
 void LD2413Sensor::read_sensor_() {
   const uint8_t HEADER[4] = {0xF4, 0xF3, 0xF2, 0xF1};
