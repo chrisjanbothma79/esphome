@@ -11,13 +11,13 @@ void LD2413Sensor::setup() { ESP_LOGCONFIG(TAG, "Setting up LD2413 Sensor..."); 
 void LD2413Sensor::update() { this->read_sensor_(); }
 
 void LD2413Sensor::read_sensor_() {
-  const uint8_t HEADER[4] = {0xF4, 0xF3, 0xF2, 0xF1};
+  const uint8_t header[4] = {0xF4, 0xF3, 0xF2, 0xF1};
 
   while (available() >= 14) {
     uint8_t buffer[14];
     read_array(buffer, 14);
 
-    if (memcmp(buffer, HEADER, 4) == 0) {
+    if (memcmp(buffer, header, 4) == 0) {
       float distance_mm;
       memcpy(&distance_mm, &buffer[6], sizeof(float));
 
