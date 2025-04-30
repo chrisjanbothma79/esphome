@@ -483,7 +483,7 @@ template<typename... Ts> class WiFiConfigureAction : public Action<Ts...>, publi
     // Enable WiFi
     global_wifi_component->enable();
     // Set timeout for the connection
-    this->set_timeout("wifi-connect-timeout", this->connection_timeout_.value(x...), [this, x]() {
+    this->set_timeout("wifi-connect-timeout", this->connection_timeout_.value(x...), [this, x...]() {
       // If the timeout is reached, stop connecting and revert to the old AP
       global_wifi_component->disable();
       global_wifi_component->save_wifi_sta(old_sta_.get_ssid(), old_sta_.get_password());
