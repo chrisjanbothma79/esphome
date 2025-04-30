@@ -106,20 +106,6 @@ void AS7343Component::dump_config() {
   ESP_LOGCONFIG(TAG, "  ATIME: %u", get_atime());
   ESP_LOGCONFIG(TAG, "  ASTEP: %u", get_astep());
   ESP_LOGCONFIG(TAG, "  Glass attenuation factor: %f", this->glass_attenuation_factor_);
-
-  LOG_SENSOR("  ", "F1", this->band_counts_f1_sensor_);
-  LOG_SENSOR("  ", "F2", this->band_counts_f2_sensor_);
-  LOG_SENSOR("  ", "FZ", this->band_counts_fz_sensor_);
-  LOG_SENSOR("  ", "F3", this->band_counts_f3_sensor_);
-  LOG_SENSOR("  ", "F4", this->band_counts_f4_sensor_);
-  LOG_SENSOR("  ", "FY", this->band_counts_fy_sensor_);
-  LOG_SENSOR("  ", "F5", this->band_counts_f5_sensor_);
-  LOG_SENSOR("  ", "FXL", this->band_counts_fxl_sensor_);
-  LOG_SENSOR("  ", "F6", this->band_counts_f6_sensor_);
-  LOG_SENSOR("  ", "F7", this->band_counts_f7_sensor_);
-  LOG_SENSOR("  ", "F8", this->band_counts_f8_sensor_);
-  LOG_SENSOR("  ", "NIR", this->band_counts_nir_sensor_);
-  LOG_SENSOR("  ", "Clear", this->band_counts_clear_sensor_);
 }
 
 float AS7343Component::get_setup_priority() const { return setup_priority::DATA; }
@@ -149,7 +135,7 @@ void AS7343Component::loop() {
     // pre-read all channels so values are up to date
     // readings are valid when 1) valid flag is set and 2) all channels are read
     if (this->continuous_mode_ && this->is_data_ready()) {
-      this->readings_.valid = this->read_all_channels();
+      this->readings_.valid = this->read_channels_();
     }
 
     switch (this->state_) {
@@ -159,58 +145,186 @@ void AS7343Component::loop() {
         }
         break;
 
-      case State::START_MEASUREMENT:
-        // start measurement
+        // case State::START_MEASUREMENT:
+        //   // start measurement
+        //   this->readings_.millis_start = millis();
+
+        //   this->enable_spectral_measurement(false);
+        //   this->change_gain(this->gain_);
+        //   this->enable_spectral_measurement(true);
+        //   this->readings_.valid = false;
+        //   this->state_ = State::COLLECTING_DATA;
+        //   break;
+
+        // case State::COLLECTING_DATA:
+        //   if (!this->continuous_mode_ && this->is_data_ready()) {
+        //     this->readings_.valid = this->read_all_channels();
+        //   }
+        //   if (this->readings_.valid) {
+        //     this->enable_spectral_measurement(true);  // keep measurements on
+        //     if (this->readings_.first_run) {
+        //       this->readings_.first_run = false;
+        //       this->state_ = State::START_MEASUREMENT;
+        //     } else {
+        //       this->state_ = State::DATA_COLLECTED;
+        //     }
+        //   } else if (millis() - this->readings_.millis_start > DATA_COLLECTION_TIMEOUT_MS) {
+        //     ESP_LOGW(TAG, "Data collection timeout");
+        //     this->state_ = State::IDLE;
+        //   }
+        //   break;
+
+        // case State::DATA_COLLECTED:
+        //   if (this->auto_gain_enabled_ && this->check_if_adjustments_needed_()) {
+        //     this->state_ = State::WAIT_FOR_DATA;
+        //   } else {
+        //     // apply modifications
+        //     this->calculate_();
+        //     this->state_ = State::READY_TO_PUBLISH_PART_1;
+        //   }
+        //   break;
+
+      case State::START_MEASUREMENT: {
+        ESP_LOGE(TAG, "START_MEASUREMENT");
         this->readings_.millis_start = millis();
-
-        this->enable_spectral_measurement(false);
-        this->change_gain(this->gain_);
+        this->setup_atime(this->atime_);
+        this->setup_astep(this->astep_);
+        this->setup_gain(this->gain_);
         this->enable_spectral_measurement(true);
+        this->readings_.first_run = true;  // to discard first read
         this->readings_.valid = false;
-        this->state_ = State::COLLECTING_DATA;
-        break;
+        this->state_ = State::WAIT_FOR_DATA;
+      } break;
 
-      case State::COLLECTING_DATA:
-        if (!this->continuous_mode_ && this->is_data_ready()) {
-          this->readings_.valid = this->read_all_channels();
-        }
-        if (this->readings_.valid) {
-          this->enable_spectral_measurement(true);  // keep measurements on
+      case State::WAIT_FOR_DATA: {
+        ESP_LOGE(TAG, "WAIT_SMUX_HIGH");
+        if (this->is_data_ready()) {
           if (this->readings_.first_run) {
             this->readings_.first_run = false;
-            this->state_ = State::START_MEASUREMENT;
+            this->read_and_discard_channels_();  // discard first read, data is unstable
           } else {
-            this->state_ = State::DATA_COLLECTED;
+            this->state_ = State::READ_CHANNELS;
           }
         } else if (millis() - this->readings_.millis_start > DATA_COLLECTION_TIMEOUT_MS) {
           ESP_LOGW(TAG, "Data collection timeout");
           this->state_ = State::IDLE;
         }
-        break;
+      } break;
 
-      case State::DATA_COLLECTED:
-        if (this->auto_gain_enabled_ && this->check_if_adjustments_needed_()) {
-          this->state_ = State::COLLECTING_DATA;
-        } else {
-          // apply modifications
-          this->calculate_();
-          this->state_ = State::READY_TO_PUBLISH_PART_1;
+      case State::READ_CHANNELS: {
+        ESP_LOGE(TAG, "READ_CHANNELS");
+        this->read_channels_();
+        this->enable_spectral_measurement(false);
+        this->state_ = State::DATA_COLLECTED;
+      } break;
+
+      case State::DATA_COLLECTED: {
+        ESP_LOGE(TAG, "DATA_COLLECTED");
+
+        this->readings_.gain_x = this->get_gain_multiplier(this->readings_.gain);
+        this->readings_.atime = this->get_atime();
+        this->readings_.astep = this->get_astep();
+        this->readings_.t_int_us = (1.0f + this->readings_.atime) * (1.0f + this->readings_.astep) * 2.78f;
+
+        this->calculate_basic_counts_();
+        uint16_t max_adc = this->get_maximum_spectral_adc_(this->readings_.atime, this->readings_.astep);
+        uint16_t highest_adc = this->get_highest_value(this->readings_.raw_counts);
+        this->calculated_values_.saturation_level = (max_adc == 0) ? 0 : 100.0f * highest_adc / (float) max_adc;
+
+        ESP_LOGD(TAG, "Parameters:");
+        ESP_LOGD(TAG, "  Gain  =  %.1f", this->readings_.gain_x);
+        ESP_LOGD(TAG, "  ATIME = %u ", this->readings_.atime);
+        ESP_LOGD(TAG, "  ASTEP = %u ", this->readings_.astep);
+        ESP_LOGD(TAG, "  TINT  = %.4f ms", this->readings_.t_int_us / 1000.0f);
+        ESP_LOGD(TAG, "Readings:");
+        ESP_LOGD(TAG, "  Max ADC: %u", max_adc);
+        ESP_LOGD(TAG, "  Highest ADC: %.2f%%", this->calculated_values_.saturation_level);
+        log_cn_s(TAG, "  Channel", CHANNEL_NAME);
+        log_cn_d(TAG, "  Nm", CHANNEL_WAVE_NM);
+        log_cn_d(TAG, "  Counts", this->readings_.raw_counts);
+        log_cn_f(TAG, "    - Corr Dark", this->dark_current_offset_);
+        log_cn_f(TAG, "    * Corr Coeff", this->channel_correction_);
+        ESP_LOGD(TAG, "    * Glass attn. %.2f", this->glass_attenuation_factor_);
+        log_cn_f(TAG, "  Basic", this->calculated_values_.basic_counts);
+
+        this->state_ = State::CALCULATE_CIE;
+      } break;
+
+      case State::CALCULATE_CIE: {
+        ESP_LOGE(TAG, "CALCULATE_CIE");
+        this->calculate_color_(this->calculated_values_.cct, this->calculated_values_.duv,
+                               this->calculated_values_.lux_from_xyz);
+        this->state_ = State::CALCULATE_SPECTRAL;
+      } break;
+
+      case State::CALCULATE_SPECTRAL: {
+        ESP_LOGE(TAG, "CALCULATE_SPECTRAL");
+        this->calculate_spectral_(this->calculated_values_.lux_from_irradiance, this->calculated_values_.irradiance_par,
+                                  this->calculated_values_.ppfd, this->calculated_values_.irradiance,
+                                  this->calculated_values_.irradiance_photopic);
+        this->state_ = State::VALIDATE_VALUES;
+      } break;
+
+      case State::VALIDATE_VALUES: {
+        ESP_LOGE(TAG, "VALIDATE_VALUES");
+        //
+        // check for wrong readings due to underexposure or overexposure, replace with 0
+        //
+        this->calculated_values_.lux_from_irradiance = std::max(this->calculated_values_.lux_from_irradiance, 0.0f);
+        this->calculated_values_.irradiance = std::max(this->calculated_values_.irradiance, 0.0f);
+        this->calculated_values_.irradiance_photopic = std::max(this->calculated_values_.irradiance_photopic, 0.0f);
+        this->calculated_values_.irradiance_par = std::max(this->calculated_values_.irradiance_par, 0.0f);
+        this->calculated_values_.ppfd = std::max(this->calculated_values_.ppfd, 0.0f);
+
+        this->calculated_values_.lux_from_xyz = std::max(this->calculated_values_.lux_from_xyz, 0.0f);
+        this->calculated_values_.cct = std::max(this->calculated_values_.cct, 0.0f);
+        this->calculated_values_.duv = std::max(this->calculated_values_.duv, 0.0f);
+
+        ESP_LOGD(TAG, "Calculated values (glass attenuation = %.2f):", this->glass_attenuation_factor_);
+        ESP_LOGD(TAG, "  CIE");
+        ESP_LOGD(TAG, "    Color temp(XYZ)     : %f K", this->calculated_values_.cct);
+        ESP_LOGD(TAG, "    Duv(XYZ)            : %f", this->calculated_values_.duv);
+        ESP_LOGD(TAG, "    Illuminance(XYZ)    : %f lx", this->calculated_values_.lux_from_xyz);
+        ESP_LOGD(TAG, "  Spectral");
+        ESP_LOGD(TAG, "    Irradiance          : %f W/m²", this->calculated_values_.irradiance);
+        ESP_LOGD(TAG, "    Irradiance(photopic): %f W/m²", this->calculated_values_.irradiance_photopic);
+        ESP_LOGD(TAG, "    PAR                 : %f W/m²", this->calculated_values_.irradiance_par);
+        ESP_LOGD(TAG, "    PPFD                : %f µmol/s⋅m²", this->calculated_values_.ppfd);
+        ESP_LOGD(TAG, "    Illuminance         : %f lx", this->calculated_values_.lux_from_irradiance);
+
+        float &cct = this->calculated_values_.cct;
+        constexpr float CCT_LOW_LIMIT = 2865.0f;
+        constexpr float CCT_HIGH_LIMIT = 10000.f;  // 6500.0f;
+        if (cct < CCT_LOW_LIMIT) {
+          ESP_LOGW(TAG, "CCT is too low: %f K", cct);
+          cct = CCT_LOW_LIMIT;
+        } else if (cct > CCT_HIGH_LIMIT) {
+          ESP_LOGW(TAG, "CCT is too high: %f K", cct);
+          cct = CCT_HIGH_LIMIT;
         }
-        break;
+
+        constexpr float LUX_MAX = 125000.0f;
+        this->calculated_values_.lux = std::min(this->calculated_values_.lux_from_xyz, LUX_MAX);
+        ESP_LOGD(TAG, "  Clamping values");
+        ESP_LOGD(TAG, "    Color temp(XYZ)     : %f K", this->calculated_values_.cct);
+        ESP_LOGD(TAG, "    Illuminance (XYZ)   : %f lx", this->calculated_values_.lux);
+        this->state_ = State::READY_TO_PUBLISH_PART_1;
+      } break;
 
       case State::READY_TO_PUBLISH_PART_1:
-        // publish
+        ESP_LOGE(TAG, "READY_TO_PUBLISH_PART_1");
         this->publish_channel_readings_();
         this->state_ = State::READY_TO_PUBLISH_PART_2;
         break;
 
       case State::READY_TO_PUBLISH_PART_2:
-        this->publish_channel_irradiance_();
+        ESP_LOGE(TAG, "READY_TO_PUBLISH_PART_2");
+        this->publish_basic_counts_();
         this->state_ = State::READY_TO_PUBLISH_PART_3;
         break;
 
       case State::READY_TO_PUBLISH_PART_3:
-        // publish
+        ESP_LOGE(TAG, "READY_TO_PUBLISH_PART_3");
         this->publish_derived_readings_();
         this->state_ = State::IDLE;
         break;
@@ -219,86 +333,14 @@ void AS7343Component::loop() {
 }
 
 void AS7343Component::publish_channel_readings_() {
-  if (this->band_counts_f1_sensor_ != nullptr) {
-    this->band_counts_f1_sensor_->publish_state(this->readings_.raw_counts[0]);
-  }
-  if (this->band_counts_f2_sensor_ != nullptr) {
-    this->band_counts_f2_sensor_->publish_state(this->readings_.raw_counts[1]);
-  }
-  if (this->band_counts_fz_sensor_ != nullptr) {
-    this->band_counts_fz_sensor_->publish_state(this->readings_.raw_counts[2]);
-  }
-  if (this->band_counts_f3_sensor_ != nullptr) {
-    this->band_counts_f3_sensor_->publish_state(this->readings_.raw_counts[3]);
-  }
-  if (this->band_counts_f4_sensor_ != nullptr) {
-    this->band_counts_f4_sensor_->publish_state(this->readings_.raw_counts[4]);
-  }
-  if (this->band_counts_fy_sensor_ != nullptr) {
-    this->band_counts_fy_sensor_->publish_state(this->readings_.raw_counts[5]);
-  }
-  if (this->band_counts_f5_sensor_ != nullptr) {
-    this->band_counts_f5_sensor_->publish_state(this->readings_.raw_counts[6]);
-  }
-  if (this->band_counts_fxl_sensor_ != nullptr) {
-    this->band_counts_fxl_sensor_->publish_state(this->readings_.raw_counts[7]);
-  }
-  if (this->band_counts_f6_sensor_ != nullptr) {
-    this->band_counts_f6_sensor_->publish_state(this->readings_.raw_counts[8]);
-  }
-  if (this->band_counts_f7_sensor_ != nullptr) {
-    this->band_counts_f7_sensor_->publish_state(this->readings_.raw_counts[9]);
-  }
-  if (this->band_counts_f8_sensor_ != nullptr) {
-    this->band_counts_f8_sensor_->publish_state(this->readings_.raw_counts[10]);
-  }
-  if (this->band_counts_nir_sensor_ != nullptr) {
-    this->band_counts_nir_sensor_->publish_state(this->readings_.raw_counts[11]);
-  }
-  if (this->band_counts_clear_sensor_ != nullptr) {
-    this->band_counts_clear_sensor_->publish_state(this->readings_.raw_counts[12]);
+  for (int i = 0; i < AS7343_NUM_CHANNELS; i++) {
+    this->publish_sensor(this->band_counts_sensors_[i], this->readings_.raw_counts[i]);
   }
 }
 
-void AS7343Component::publish_channel_irradiance_() {
-  if (this->band_basic_counts_f1_sensor_ != nullptr) {
-    this->band_basic_counts_f1_sensor_->publish_state(this->calculated_values_.basic_counts[0]);
-  }
-  if (this->band_basic_counts_f2_sensor_ != nullptr) {
-    this->band_basic_counts_f2_sensor_->publish_state(this->calculated_values_.basic_counts[1]);
-  }
-  if (this->band_basic_counts_fz_sensor_ != nullptr) {
-    this->band_basic_counts_fz_sensor_->publish_state(this->calculated_values_.basic_counts[2]);
-  }
-  if (this->band_basic_counts_f3_sensor_ != nullptr) {
-    this->band_basic_counts_f3_sensor_->publish_state(this->calculated_values_.basic_counts[3]);
-  }
-  if (this->band_basic_counts_f4_sensor_ != nullptr) {
-    this->band_basic_counts_f4_sensor_->publish_state(this->calculated_values_.basic_counts[4]);
-  }
-  if (this->band_basic_counts_fy_sensor_ != nullptr) {
-    this->band_basic_counts_fy_sensor_->publish_state(this->calculated_values_.basic_counts[5]);
-  }
-  if (this->band_basic_counts_f5_sensor_ != nullptr) {
-    this->band_basic_counts_f5_sensor_->publish_state(this->calculated_values_.basic_counts[6]);
-  }
-  if (this->band_basic_counts_fxl_sensor_ != nullptr) {
-    this->band_basic_counts_fxl_sensor_->publish_state(this->calculated_values_.basic_counts[7]);
-  }
-  if (this->band_basic_counts_f6_sensor_ != nullptr) {
-    this->band_basic_counts_f6_sensor_->publish_state(this->calculated_values_.basic_counts[8]);
-  }
-  if (this->band_basic_counts_f7_sensor_ != nullptr) {
-    this->band_basic_counts_f7_sensor_->publish_state(this->calculated_values_.basic_counts[9]);
-  }
-  if (this->band_basic_counts_f8_sensor_ != nullptr) {
-    this->band_basic_counts_f8_sensor_->publish_state(this->calculated_values_.basic_counts[10]);
-  }
-  if (this->band_basic_counts_nir_sensor_ != nullptr) {
-    this->band_basic_counts_nir_sensor_->publish_state(this->calculated_values_.basic_counts[11]);
-  }
-  if (this->band_basic_counts_clear_sensor_ != nullptr) {
-    this->band_basic_counts_clear_sensor_->publish_state(this->calculated_values_.basic_counts[12]);
+void AS7343Component::publish_basic_counts_() {
+  for (int i = 0; i < AS7343_NUM_CHANNELS; i++) {
+    this->publish_sensor(this->band_basic_counts_sensors_[i], this->calculated_values_.basic_counts[i]);
   }
 }
 
@@ -324,9 +366,9 @@ void AS7343Component::publish_derived_readings_() {
   if (this->saturation_level_sensor_ != nullptr) {
     this->saturation_level_sensor_->publish_state(this->calculated_values_.saturation_level);
   }
-  if (this->saturated_ != nullptr) {
-    this->saturated_->publish_state(this->readings_.saturated);
-  }
+  // if (this->saturated_ != nullptr) {
+  //   this->saturated_->publish_state(this->readings_.saturated);
+  // }
 }
 
 AS7343Gain AS7343Component::get_gain() {
@@ -659,7 +701,12 @@ void AS7343Component::calculate_cri_() {
   // todo
 }
 
-bool AS7343Component::read_all_channels() {
+bool AS7343Component::read_and_discard_channels_() {
+  std::array<uint16_t, AS7343_NUM_CHANNELS_MAX> data;
+  return this->read_bytes_16((uint8_t) AS7343Registers::DATA_O, data.data(), AS7343_NUM_CHANNELS_MAX);
+}
+
+bool AS7343Component::read_channels_() {
   std::array<uint16_t, AS7343_NUM_CHANNELS_MAX> data;
 
   AS7343RegStatus status{0};

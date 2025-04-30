@@ -16,6 +16,8 @@ typedef std::array<uint16_t, AS7343_NUM_CHANNELS + 1> ChannelValuesUint16;
 typedef std::array<float, AS7343_NUM_CHANNELS + 1> ChannelValuesFloat;
 typedef std::array<const char *, AS7343_NUM_CHANNELS + 1> ChannelNames;
 
+typedef std::array<sensor::Sensor *, AS7343_NUM_CHANNELS> SensorArray;
+
 class AS7343Component : public PollingComponent, public i2c::I2CDevice {
  public:
   void setup() override;
@@ -49,7 +51,8 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
 
   float get_gain_multiplier(AS7343Gain gain);
 
-  bool read_all_channels();
+  bool read_and_discard_channels_();
+  bool read_channels_();
 
   bool is_data_ready();
 
@@ -73,9 +76,14 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
     INITIAL_SETUP_COMPLETED,
     IDLE,
     START_MEASUREMENT,
-    COLLECTING_DATA,
-    COLLECTING_DATA_AUTO,
+    WAIT_FOR_DATA,
+    READ_CHANNELS,
+    // COLLECTING_DATA,
+    // COLLECTING_DATA_AUTO,
     DATA_COLLECTED,
+    CALCULATE_CIE,
+    CALCULATE_SPECTRAL,
+    VALIDATE_VALUES,
     READY_TO_PUBLISH_PART_1,
     READY_TO_PUBLISH_PART_2,
     READY_TO_PUBLISH_PART_3
@@ -84,53 +92,24 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   void set_bank_for_reg_(AS7343Registers reg = AS7343Registers::ENABLE);
   bool bank_{false};
 
-  // counts_xxx
-  SUB_SENSOR(band_counts_f1);
-  SUB_SENSOR(band_counts_f2);
-  SUB_SENSOR(band_counts_fz);
-  SUB_SENSOR(band_counts_f3);
-  SUB_SENSOR(band_counts_f4);
-  SUB_SENSOR(band_counts_fy);
-  SUB_SENSOR(band_counts_f5);
-  SUB_SENSOR(band_counts_fxl);
-  SUB_SENSOR(band_counts_f6);
-  SUB_SENSOR(band_counts_f7);
-  SUB_SENSOR(band_counts_f8);
-  SUB_SENSOR(band_counts_nir);
-  SUB_SENSOR(band_counts_clear);
+#ifdef USE_SENSOR
+ protected:
+  SensorArray band_counts_sensors_{};
+  SensorArray band_basic_counts_sensors_{};
 
-  // basic_counts_xxx
-  SUB_SENSOR(band_basic_counts_f1);
-  SUB_SENSOR(band_basic_counts_f2);
-  SUB_SENSOR(band_basic_counts_fz);
-  SUB_SENSOR(band_basic_counts_f3);
-  SUB_SENSOR(band_basic_counts_f4);
-  SUB_SENSOR(band_basic_counts_fy);
-  SUB_SENSOR(band_basic_counts_f5);
-  SUB_SENSOR(band_basic_counts_fxl);
-  SUB_SENSOR(band_basic_counts_f6);
-  SUB_SENSOR(band_basic_counts_f7);
-  SUB_SENSOR(band_basic_counts_f8);
-  SUB_SENSOR(band_basic_counts_nir);
-  SUB_SENSOR(band_basic_counts_clear);
-
-  // irrad_xxx
-  SUB_SENSOR(band_irrad_f1);
-  SUB_SENSOR(band_irrad_f2);
-  SUB_SENSOR(band_irrad_fz);
-  SUB_SENSOR(band_irrad_f3);
-  SUB_SENSOR(band_irrad_f4);
-  SUB_SENSOR(band_irrad_fy);
-  SUB_SENSOR(band_irrad_f5);
-  SUB_SENSOR(band_irrad_fxl);
-  SUB_SENSOR(band_irrad_f6);
-  SUB_SENSOR(band_irrad_f7);
-  SUB_SENSOR(band_irrad_f8);
-  SUB_SENSOR(band_irrad_nir);
-  SUB_SENSOR(band_irrad_clear);
+ public:
+  void set_band_counts_sensor(sensor::Sensor *sensor, uint8_t channel) {
+    if (channel < AS7343_NUM_CHANNELS) {
+      band_counts_sensors_[channel] = sensor;
+    }
+  }
+  void set_band_basic_counts_sensor(sensor::Sensor *sensor, uint8_t channel) {
+    if (channel < AS7343_NUM_CHANNELS) {
+      band_basic_counts_sensors_[channel] = sensor;
+    }
+  }
 
   // derived values
-
   SUB_SENSOR(illuminance);
   SUB_SENSOR(irradiance);
   SUB_SENSOR(irradiance_photopic);
@@ -139,10 +118,9 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   SUB_SENSOR(ct);
   SUB_SENSOR(color_temperature);
   SUB_SENSOR(saturation_level);
+#endif
 
  protected:
-  sensor::Sensor *saturated_{nullptr};  // ???????????????????? shall change to binary
-
   uint16_t astep_;
   AS7343Gain gain_;
   uint8_t atime_;
@@ -188,6 +166,7 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
     float cct;
     float duv;
     float lux_from_xyz;
+    float lux;
     float saturation_level;
   } calculated_values_;
 
@@ -198,7 +177,7 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
   void calculate_cri_();
 
   void publish_channel_readings_();
-  void publish_channel_irradiance_();
+  void publish_basic_counts_();
   void publish_derived_readings_();
 
   // auto gain section
@@ -227,6 +206,14 @@ class AS7343Component : public PollingComponent, public i2c::I2CDevice {
 
  public:
   bool as7352_set_integration_time_us(uint32_t time_us);
+
+#ifdef USE_SENSOR
+  void publish_sensor(sensor::Sensor *sensor, float value) {
+    if (sensor != nullptr) {
+      sensor->publish_state(value);
+    }
+  }
+#endif
 };
 
 }  // namespace as7343

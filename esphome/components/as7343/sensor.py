@@ -46,7 +46,6 @@ CONF_CLEAR = "clear"
 
 CONF_BAND_COUNTS = "band_counts"
 CONF_BAND_BASIC_COUNTS = "band_basic_counts"
-CONF_BAND_IRRADIANCE = "band_irradiance"
 
 CONF_IRRADIANCE = "irradiance"
 CONF_IRRADIANCE_PHOTOPIC = "irradiance_photopic"
@@ -124,17 +123,6 @@ BASIC_COUNTS_SENSOR_SCHEMA = cv.maybe_simple_value(
     key=CONF_NAME,
 )
 
-IRRAD_SENSOR_SCHEMA = cv.maybe_simple_value(
-    sensor.sensor_schema(
-        unit_of_measurement=UNIT_IRRADIANCE,
-        icon=ICON_BAND_IRRADIANCE,
-        accuracy_decimals=6,
-        device_class=DEVICE_CLASS_ILLUMINANCE,
-        state_class=STATE_CLASS_MEASUREMENT,
-    ),
-    key=CONF_NAME,
-)
-
 
 BAND_COUNTS_SCHEMA = cv.Schema(
     {
@@ -172,24 +160,6 @@ BAND_BASIC_COUNTS_SCHEMA = cv.Schema(
     }
 )
 
-BAND_IRRAD_SCHEMA = cv.Schema(
-    {
-        cv.Optional(CONF_F1): IRRAD_SENSOR_SCHEMA,
-        cv.Optional(CONF_F2): IRRAD_SENSOR_SCHEMA,
-        cv.Optional(CONF_FZ): IRRAD_SENSOR_SCHEMA,
-        cv.Optional(CONF_F3): IRRAD_SENSOR_SCHEMA,
-        cv.Optional(CONF_F4): IRRAD_SENSOR_SCHEMA,
-        cv.Optional(CONF_FY): IRRAD_SENSOR_SCHEMA,
-        cv.Optional(CONF_F5): IRRAD_SENSOR_SCHEMA,
-        cv.Optional(CONF_FXL): IRRAD_SENSOR_SCHEMA,
-        cv.Optional(CONF_F6): IRRAD_SENSOR_SCHEMA,
-        cv.Optional(CONF_F7): IRRAD_SENSOR_SCHEMA,
-        cv.Optional(CONF_F8): IRRAD_SENSOR_SCHEMA,
-        cv.Optional(CONF_NIR): IRRAD_SENSOR_SCHEMA,
-        cv.Optional(CONF_CLEAR): IRRAD_SENSOR_SCHEMA,
-    }
-)
-
 CONFIG_SCHEMA = (
     cv.Schema(
         {
@@ -200,7 +170,6 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_CALIBRATION): CALIBRATION_SCHEMA,
             cv.Optional(CONF_BAND_COUNTS): BAND_COUNTS_SCHEMA,
             cv.Optional(CONF_BAND_BASIC_COUNTS): BAND_BASIC_COUNTS_SCHEMA,
-            cv.Optional(CONF_BAND_IRRADIANCE): BAND_IRRAD_SCHEMA,
             cv.Optional(CONF_ILLUMINANCE): cv.maybe_simple_value(
                 sensor.sensor_schema(
                     unit_of_measurement=UNIT_LUX,
@@ -286,21 +255,23 @@ CONFIG_SCHEMA = (
     .extend(i2c.i2c_device_schema(0x39))
 )
 
-BANDS = [
-    CONF_F1,
-    CONF_F2,
-    CONF_FZ,
-    CONF_F3,
-    CONF_F4,
-    CONF_FY,
-    CONF_F5,
-    CONF_FXL,
-    CONF_F6,
-    CONF_F7,
-    CONF_F8,
-    CONF_NIR,
-    CONF_CLEAR,
-]
+# "F1",  "F2", "FZ", "F3", "F4",  "FY",    "F5",
+# "FXL", "F6", "F7", "F8", "NIR", "Clear", "*"};
+BANDS = {
+    CONF_F1: 0,
+    CONF_F2: 1,
+    CONF_FZ: 2,
+    CONF_F3: 3,
+    CONF_F4: 4,
+    CONF_FY: 5,
+    CONF_F5: 6,
+    CONF_FXL: 7,
+    CONF_F6: 8,
+    CONF_F7: 9,
+    CONF_F8: 10,
+    CONF_NIR: 11,
+    CONF_CLEAR: 12,
+}
 
 SENSORS_INTEGRAL = [
     CONF_ILLUMINANCE,
@@ -331,22 +302,16 @@ async def to_code(config):
         )
 
     if counts_config := config.get(CONF_BAND_COUNTS):
-        for sensor_id in BANDS:
-            if sensor_config := counts_config.get(sensor_id):
+        for key, ch in BANDS.items():
+            if sensor_config := counts_config.get(key):
                 sens = await sensor.new_sensor(sensor_config)
-                cg.add(getattr(var, f"set_band_counts_{sensor_id}_sensor")(sens))
+                cg.add(getattr(var, "set_band_counts_sensor")(sens, ch))
 
     if basic_counts_config := config.get(CONF_BAND_BASIC_COUNTS):
-        for sensor_id in BANDS:
-            if sensor_config := basic_counts_config.get(sensor_id):
+        for key, ch in BANDS.items():
+            if sensor_config := basic_counts_config.get(key):
                 sens = await sensor.new_sensor(sensor_config)
-                cg.add(getattr(var, f"set_band_basic_counts_{sensor_id}_sensor")(sens))
-
-    if irrad_config := config.get(CONF_BAND_IRRADIANCE):
-        for sensor_id in BANDS:
-            if sensor_config := irrad_config.get(sensor_id):
-                sens = await sensor.new_sensor(sensor_config)
-                cg.add(getattr(var, f"set_band_irrad_{sensor_id}_sensor")(sens))
+                cg.add(getattr(var, "set_band_basic_counts_sensor")(sens, ch))
 
     for sensor_id in SENSORS_INTEGRAL:
         if sensor_config := config.get(sensor_id):
