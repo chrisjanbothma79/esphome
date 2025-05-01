@@ -54,10 +54,8 @@ async def to_code(config):
     cg.add(var.set_select_mappings(list(options_map.keys())))
     parent = await cg.get_variable(config[CONF_TUYA_ID])
     cg.add(var.set_tuya_parent(parent))
-    if CONF_ENUM_DATAPOINT in config:
-        cg.add(var.set_select_id(config[CONF_ENUM_DATAPOINT]))
-        cg.add(var.set_is_int(False))
-    if CONF_INT_DATAPOINT in config:
-        cg.add(var.set_select_id(config[CONF_INT_DATAPOINT]))
-        cg.add(var.set_is_int(True))
+    if (enum_datapoint := config.get(CONF_ENUM_DATAPOINT, None) is not None:
+        cg.add(var.set_select_id(enum_datapoint, False))
+    if (int_datapoint := config.get(CONF_INT_DATAPOINT, None) is not None:
+        cg.add(var.set_select_id(int_datapoint, True))
     cg.add(var.set_optimistic(config[CONF_OPTIMISTIC]))

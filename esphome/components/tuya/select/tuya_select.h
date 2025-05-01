@@ -16,9 +16,11 @@ class TuyaSelect : public select::Select, public Component {
 
   void set_tuya_parent(Tuya *parent) { this->parent_ = parent; }
   void set_optimistic(bool optimistic) { this->optimistic_ = optimistic; }
-  void set_select_id(uint8_t select_id) { this->select_id_ = select_id; }
+  void set_select_id(uint8_t select_id, bool is_int) {
+    this->select_id_ = select_id;
+    this->is_int_ = is_int;
+  }
   void set_select_mappings(std::vector<uint8_t> mappings) { this->mappings_ = std::move(mappings); }
-  void set_is_int(bool is_int) { this->is_int_ = is_int; }
 
  protected:
   void control(const std::string &value) override;
