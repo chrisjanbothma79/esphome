@@ -3,11 +3,15 @@ from esphome.components import number
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
-    CONF_NAME,
+    CONF_MAX_VALUE,
+    CONF_MIN_VALUE,
+    CONF_MODE,
+    CONF_OPTIMISTIC,
     CONF_PHASE_A,
     CONF_PHASE_B,
     CONF_PHASE_C,
     CONF_REFERENCE_VOLTAGE,
+    CONF_STEP,
     ENTITY_CATEGORY_CONFIG,
     UNIT_AMPERE,
     UNIT_VOLT,
@@ -24,69 +28,65 @@ CONF_REFERENCE_CURRENT = "reference_current"
 PHASE_KEYS = [CONF_PHASE_A, CONF_PHASE_B, CONF_PHASE_C]
 
 
-def reference_voltage_schema():
-    return cv.All(
-        cv.Schema(
-            {
-                cv.Required(CONF_NAME): cv.string,
-                cv.Optional("mode", default="box"): cv.string,
-                cv.Optional("optimistic", default=True): cv.boolean,
-                cv.Optional("min_value", default=100.0): cv.float_,
-                cv.Optional("max_value", default=260.0): cv.float_,
-                cv.Optional("step", default=0.1): cv.float_,
-            }
-        ).extend(
-            number.number_schema(
-                class_=ATM90E32Number,
-                unit_of_measurement=UNIT_VOLT,
-                entity_category=ENTITY_CATEGORY_CONFIG,
-                icon="mdi:power-plug",
-            )
+REFERENCE_VOLTAGE_PHASE_SCHEMA = cv.All(
+    cv.Schema(
+        {
+            cv.Optional(CONF_MODE, default="box"): cv.string,
+            cv.Optional(CONF_OPTIMISTIC, default=True): cv.boolean,
+            cv.Optional(CONF_MIN_VALUE, default=100.0): cv.float_,
+            cv.Optional(CONF_MAX_VALUE, default=260.0): cv.float_,
+            cv.Optional(CONF_STEP, default=0.1): cv.float_,
+        }
+    ).extend(
+        number.number_schema(
+            class_=ATM90E32Number,
+            unit_of_measurement=UNIT_VOLT,
+            entity_category=ENTITY_CATEGORY_CONFIG,
+            icon="mdi:power-plug",
         )
     )
+)
 
 
-def reference_current_schema():
-    return cv.All(
-        cv.Schema(
-            {
-                cv.Required(CONF_NAME): cv.string,
-                cv.Optional("mode", default="box"): cv.string,
-                cv.Optional("optimistic", default=True): cv.boolean,
-                cv.Optional("min_value", default=1.0): cv.float_,
-                cv.Optional("max_value", default=200.0): cv.float_,
-                cv.Optional("step", default=0.1): cv.float_,
-            }
-        ).extend(
-            number.number_schema(
-                class_=ATM90E32Number,
-                unit_of_measurement=UNIT_AMPERE,
-                entity_category=ENTITY_CATEGORY_CONFIG,
-                icon="mdi:home-lightning-bolt",
-            )
+REFERENCE_CURRENT_PHASE_SCHEMA = cv.All(
+    cv.Schema(
+        {
+            cv.Optional(CONF_MODE, default="box"): cv.string,
+            cv.Optional(CONF_OPTIMISTIC, default=True): cv.boolean,
+            cv.Optional(CONF_MIN_VALUE, default=1.0): cv.float_,
+            cv.Optional(CONF_MAX_VALUE, default=200.0): cv.float_,
+            cv.Optional(CONF_STEP, default=0.1): cv.float_,
+        }
+    ).extend(
+        number.number_schema(
+            class_=ATM90E32Number,
+            unit_of_measurement=UNIT_AMPERE,
+            entity_category=ENTITY_CATEGORY_CONFIG,
+            icon="mdi:home-lightning-bolt",
         )
     )
+)
 
 
 REFERENCE_VOLTAGE_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_PHASE_A): reference_voltage_schema(),
-        cv.Optional(CONF_PHASE_B): reference_voltage_schema(),
-        cv.Optional(CONF_PHASE_C): reference_voltage_schema(),
+        cv.Optional(CONF_PHASE_A): REFERENCE_VOLTAGE_PHASE_SCHEMA,
+        cv.Optional(CONF_PHASE_B): REFERENCE_VOLTAGE_PHASE_SCHEMA,
+        cv.Optional(CONF_PHASE_C): REFERENCE_VOLTAGE_PHASE_SCHEMA,
     }
 )
 
 REFERENCE_CURRENT_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_PHASE_A): reference_current_schema(),
-        cv.Optional(CONF_PHASE_B): reference_current_schema(),
-        cv.Optional(CONF_PHASE_C): reference_current_schema(),
+        cv.Optional(CONF_PHASE_A): REFERENCE_CURRENT_PHASE_SCHEMA,
+        cv.Optional(CONF_PHASE_B): REFERENCE_CURRENT_PHASE_SCHEMA,
+        cv.Optional(CONF_PHASE_C): REFERENCE_CURRENT_PHASE_SCHEMA,
     }
 )
 
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.Required(CONF_ID): cv.use_id(ATM90E32Component),
+        cv.GenerateID(CONF_ID): cv.use_id(ATM90E32Component),
         cv.Optional(CONF_REFERENCE_VOLTAGE): REFERENCE_VOLTAGE_SCHEMA,
         cv.Optional(CONF_REFERENCE_CURRENT): REFERENCE_CURRENT_SCHEMA,
     }
@@ -96,13 +96,11 @@ CONFIG_SCHEMA = cv.Schema(
 async def to_code(config):
     parent = await cg.get_variable(config[CONF_ID])
 
-    if CONF_REFERENCE_VOLTAGE in config:
-        voltage_cfg = config[CONF_REFERENCE_VOLTAGE]
+    if voltage_cfg := config.get(CONF_REFERENCE_VOLTAGE):
         voltage_objs = [None, None, None]
 
         for i, key in enumerate(PHASE_KEYS):
-            if key in voltage_cfg:
-                validated = reference_voltage_schema()(voltage_cfg[key])
+            if validated := voltage_cfg.get(key):
                 obj = await number.new_number(
                     validated,
                     min_value=validated["min_value"],
@@ -118,15 +116,13 @@ async def to_code(config):
                 if voltage_objs[i] is None:
                     voltage_objs[i] = voltage_objs[0]
 
-        for i in range(3):
-            if voltage_objs[i] is not None:
-                cg.add(parent.set_reference_voltage(i, voltage_objs[i]))
+        for i, obj in enumerate(voltage_objs):
+            if obj is not None:
+                cg.add(parent.set_reference_voltage(i, obj))
 
-    if CONF_REFERENCE_CURRENT in config:
-        current_cfg = config[CONF_REFERENCE_CURRENT]
+    if current_cfg := config.get(CONF_REFERENCE_CURRENT):
         for i, key in enumerate(PHASE_KEYS):
-            if key in current_cfg:
-                validated = reference_current_schema()(current_cfg[key])
+            if validated := current_cfg.get(key):
                 obj = await number.new_number(
                     validated,
                     min_value=validated["min_value"],

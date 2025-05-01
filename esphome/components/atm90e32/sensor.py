@@ -1,5 +1,5 @@
 import esphome.codegen as cg
-from esphome.components import number, sensor, spi
+from esphome.components import sensor, spi
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_APPARENT_POWER,
@@ -8,7 +8,6 @@ from esphome.const import (
     CONF_FREQUENCY,
     CONF_ID,
     CONF_LINE_FREQUENCY,
-    CONF_NAME,
     CONF_PHASE_A,
     CONF_PHASE_ANGLE,
     CONF_PHASE_B,
@@ -41,8 +40,6 @@ from esphome.const import (
 )
 
 from . import atm90e32_ns
-
-ATM90E32Number = atm90e32_ns.class_("ATM90E32Number", number.Number)
 
 CONF_CHIP_TEMPERATURE = "chip_temperature"
 CONF_GAIN_PGA = "gain_pga"
@@ -160,7 +157,6 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(ATM90E32Component),
-            cv.Optional(CONF_NAME): cv.string,
             cv.Optional(CONF_PHASE_A): ATM90E32_PHASE_SCHEMA,
             cv.Optional(CONF_PHASE_B): ATM90E32_PHASE_SCHEMA,
             cv.Optional(CONF_PHASE_C): ATM90E32_PHASE_SCHEMA,

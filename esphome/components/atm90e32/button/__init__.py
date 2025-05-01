@@ -33,7 +33,7 @@ ATM90E32ClearPowerOffsetCalibrationButton = atm90e32_ns.class_(
 )
 
 CONFIG_SCHEMA = {
-    cv.Required(CONF_ID): cv.use_id(ATM90E32Component),
+    cv.GeneratedID(CONF_ID): cv.use_id(ATM90E32Component),
     cv.Optional(CONF_RUN_GAIN_CALIBRATION): button.button_schema(
         ATM90E32GainCalibrationButton,
         entity_category=ENTITY_CATEGORY_CONFIG,

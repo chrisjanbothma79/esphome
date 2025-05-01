@@ -19,7 +19,7 @@ ATM90E32FreqStatusSensor = atm90e32_ns.class_(
 )
 
 CONF_PHASE_STATUS = "phase_status"
-CONF_FREQ_STATUS = "freq_status"
+CONF_FREQUENCY_STATUS = "frequency_status"
 PHASE_KEYS = [CONF_PHASE_A, CONF_PHASE_B, CONF_PHASE_C]
 
 PHASE_STATUS_SCHEMA = cv.Schema(
@@ -40,7 +40,7 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ID): cv.use_id(ATM90E32Component),
         cv.Optional(CONF_PHASE_STATUS): PHASE_STATUS_SCHEMA,
-        cv.Optional(CONF_FREQ_STATUS): text_sensor.text_sensor_schema(
+        cv.Optional(CONF_FREQUENCY_STATUS): text_sensor.text_sensor_schema(
             ATM90E32FreqStatusSensor, icon="mdi:lightbulb-alert"
         ),
     }
@@ -50,15 +50,14 @@ CONFIG_SCHEMA = cv.Schema(
 async def to_code(config):
     parent = await cg.get_variable(config[CONF_ID])
 
-    if CONF_PHASE_STATUS in config:
-        phase_cfg = config[CONF_PHASE_STATUS]
+    if phase_cfg := config.get(CONF_PHASE_STATUS):
         for i, key in enumerate(PHASE_KEYS):
-            if key in phase_cfg:
-                sens = await text_sensor.new_text_sensor(phase_cfg[key])
+            if sub_phase_cfg := phase_cfg.get(key):
+                sens = await text_sensor.new_text_sensor(sub_phase_cfg)
                 await cg.register_parented(sens, parent)
                 cg.add(parent.set_phase_status_text_sensor(i, sens))
 
-    if CONF_FREQ_STATUS in config:
-        sens = await text_sensor.new_text_sensor(config[CONF_FREQ_STATUS])
+    if freq_status_config := config.get(CONF_FREQUENCY_STATUS):
+        sens = await text_sensor.new_text_sensor(freq_status_config)
         await cg.register_parented(sens, parent)
         cg.add(parent.set_freq_status_text_sensor(sens))
