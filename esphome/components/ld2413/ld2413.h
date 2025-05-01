@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include "esphome/components/sensor/sensor.h"
@@ -17,5 +18,6 @@ class LD2413Sensor : public sensor::Sensor, public uart::UARTDevice, public Poll
   uint32_t last_publish_{0};
   float latest_distance_cm_{NAN};
 };
+
 }  // namespace ld2413
 }  // namespace esphome

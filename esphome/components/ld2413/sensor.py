@@ -1,12 +1,7 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
-from esphome import automation
 from esphome.components import sensor, uart
-from esphome.const import (
-    CONF_ID,
-    ICON_RULER,
-    UNIT_CENTIMETER,
-)
+import esphome.config_validation as cv
+from esphome.const import ICON_RULER, UNIT_CENTIMETER
 
 DEPENDENCIES = ["uart"]
 
