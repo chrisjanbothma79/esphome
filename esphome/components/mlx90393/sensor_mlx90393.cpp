@@ -6,15 +6,27 @@ namespace mlx90393 {
 
 static const char *const TAG = "mlx90393";
 
-const char *MLX90393Cls::setting_names[] = {
-    "gain",
-    "resolution",
-    "oversampling",
-    "digital filtering",
-    "temperature oversampling",
-    "temperature compensation",
-    "hallconf",
-    "error",
+const LogString *settings_to_string(MLX90393Setting setting) {
+  switch (setting) {
+    case MLX90393_GAIN_SEL:
+      return LOG_STR("gain");
+    case MLX90393_RESOLUTION:
+      return LOG_STR("resolution");
+    case MLX90393_OVER_SAMPLING:
+      return LOG_STR("oversampling");
+    case MLX90393_DIGITAL_FILTERING:
+      return LOG_STR("digital filtering");
+    case MLX90393_TEMPERATURE_OVER_SAMPLING:
+      return LOG_STR("temperature oversampling");
+    case MLX90393_TEMPERATURE_COMPENSATION:
+      return LOG_STR("temperature compensation");
+    case MLX90393_HALLCONF:
+      return LOG_STR("hallconf");
+    case MLX90393_LAST:
+      return LOG_STR("error");
+    default:
+      return LOG_STR("unknown");
+  }
 };
 
 bool MLX90393Cls::transceive(const uint8_t *request, size_t request_size, uint8_t *response, size_t response_size) {
@@ -71,7 +83,7 @@ uint8_t MLX90393Cls::apply_setting_(MLX90393Setting which) {
       break;
   }
   if (ret != MLX90393::STATUS_OK) {
-    ESP_LOGE(TAG, "failed to apply %s", setting_names[which]);
+    ESP_LOGE(TAG, "failed to apply %s", LOG_STR_ARG(settings_to_string(which)));
   }
   return ret;
 }
@@ -211,7 +223,7 @@ bool MLX90393Cls::verify_setting_(MLX90393Setting which) {
     }
   }
   if (read_status != MLX90393::STATUS_OK) {
-    ESP_LOGE(TAG, "verify error: failed to read %s", setting_names[which]);
+    ESP_LOGE(TAG, "verify error: failed to read %s", LOG_STR_ARG(settings_to_string(which)));
     return false;
   }
   if (read_back_str[0] == 0x0) {
@@ -219,10 +231,10 @@ bool MLX90393Cls::verify_setting_(MLX90393Setting which) {
   }
   bool is_correct = read_value == expected_value;
   if (!is_correct) {
-    ESP_LOGW(TAG, "verify failed: read back wrong %s: got %s", setting_names[which], read_back_str);
+    ESP_LOGW(TAG, "verify failed: read back wrong %s: got %s", LOG_STR_ARG(settings_to_string(which)), read_back_str);
     return false;
   }
-  ESP_LOGD(TAG, "verify succeeded for %s. got %s", setting_names[which], read_back_str);
+  ESP_LOGD(TAG, "verify succeeded for %s. got %s", LOG_STR_ARG(settings_to_string(which)), read_back_str);
   return true;
 }
 

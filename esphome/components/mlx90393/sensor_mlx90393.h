@@ -1,14 +1,25 @@
 #pragma once
 
-#include "esphome/core/component.h"
-#include "esphome/components/sensor/sensor.h"
-#include "esphome/components/i2c/i2c.h"
-#include "esphome/core/hal.h"
 #include <MLX90393.h>
 #include <MLX90393Hal.h>
+#include "esphome/components/i2c/i2c.h"
+#include "esphome/components/sensor/sensor.h"
+#include "esphome/core/component.h"
+#include "esphome/core/hal.h"
 
 namespace esphome {
 namespace mlx90393 {
+
+enum MLX90393Setting {
+  MLX90393_GAIN_SEL = 0,
+  MLX90393_RESOLUTION,
+  MLX90393_OVER_SAMPLING,
+  MLX90393_DIGITAL_FILTERING,
+  MLX90393_TEMPERATURE_OVER_SAMPLING,
+  MLX90393_TEMPERATURE_COMPENSATION,
+  MLX90393_HALLCONF,
+  MLX90393_LAST,
+};
 
 class MLX90393Cls : public PollingComponent, public i2c::I2CDevice, public MLX90393Hal {
  public:
@@ -58,18 +69,6 @@ class MLX90393Cls : public PollingComponent, public i2c::I2CDevice, public MLX90
   bool temperature_compensation_{false};
   uint8_t hallconf_{0xC};
   GPIOPin *drdy_pin_{nullptr};
-
-  enum MLX90393Setting {
-    MLX90393_GAIN_SEL = 0,
-    MLX90393_RESOLUTION,
-    MLX90393_OVER_SAMPLING,
-    MLX90393_DIGITAL_FILTERING,
-    MLX90393_TEMPERATURE_OVER_SAMPLING,
-    MLX90393_TEMPERATURE_COMPENSATION,
-    MLX90393_HALLCONF,
-    MLX90393_LAST,
-  };
-  static const char *setting_names[];
 
   bool apply_all_settings_();
   uint8_t apply_setting_(MLX90393Setting which);
