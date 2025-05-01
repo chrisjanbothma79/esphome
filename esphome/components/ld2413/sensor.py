@@ -21,10 +21,9 @@ CONFIG_SCHEMA = (
             cv.GenerateID(): cv.declare_id(LD2413Sensor),
         }
     )
-    .extend(cv.polling_component_schema("0.5s"))
+    .extend(cv.polling_component_schema("1s"))
     .extend(uart.UART_DEVICE_SCHEMA)
 )
-
 
 async def to_code(config):
     var = await sensor.new_sensor(config)
