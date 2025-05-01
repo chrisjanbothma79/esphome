@@ -41,7 +41,7 @@ template<typename T, T N> class CachedGpioExpander {
 
   /// @brief Invalidate cache. This function should be called in component loop().
   void reset_pin_cache_() {
-    for (T i = 0; i < cache_byte_size_; i++) {
+    for (T i = 0; i < this->cache_byte_size_; i++) {
       this->read_cache_invalidated_[i] = true;
     }
   }
