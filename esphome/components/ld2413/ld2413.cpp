@@ -12,11 +12,10 @@ void LD2413Sensor::setup() {
 }
 
 void LD2413Sensor::loop() {
-
   while (available() >= 14) {
     uint8_t buffer[14];
     read_array(buffer, 14);
-    
+
     if (memcmp(buffer, "\xF4\xF3\xF2\xF1", 4) == 0) {
       float distance_mm;
       memcpy(&distance_mm, &buffer[6], sizeof(float));
@@ -27,7 +26,7 @@ void LD2413Sensor::loop() {
 
 void LD2413Sensor::update() {
   const uint32_t current_time = millis();
-  
+
   if (current_time - last_publish_ >= this->get_update_interval()) {
     if (!isnan(latest_distance_cm_)) {
       ESP_LOGD(TAG, "Distance: %.2f cm", latest_distance_cm_);
