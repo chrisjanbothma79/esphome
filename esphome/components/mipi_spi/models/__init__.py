@@ -1,5 +1,8 @@
 from esphome.components.spi import TYPE_OCTAL, TYPE_QUAD, TYPE_SINGLE
 import esphome.config_validation as cv
+from esphome.const import CONF_HEIGHT, CONF_OFFSET_HEIGHT, CONF_OFFSET_WIDTH, CONF_WIDTH
+
+from .. import CONF_NATIVE_HEIGHT, CONF_NATIVE_WIDTH
 
 MADCTL_MY = 0x80  # Bit 7 Bottom to top
 MADCTL_MX = 0x40  # Bit 6 Right to left
@@ -40,6 +43,18 @@ class DriverChip:
 
     def extend(self, name, **kwargs):
         defaults = self.defaults.copy()
+        if (
+            CONF_WIDTH in defaults
+            and CONF_OFFSET_WIDTH in kwargs
+            and CONF_NATIVE_WIDTH not in defaults
+        ):
+            defaults[CONF_NATIVE_WIDTH] = defaults[CONF_WIDTH]
+        if (
+            CONF_HEIGHT in defaults
+            and CONF_OFFSET_HEIGHT in kwargs
+            and CONF_NATIVE_HEIGHT not in defaults
+        ):
+            defaults[CONF_NATIVE_HEIGHT] = defaults[CONF_HEIGHT]
         defaults.update(kwargs)
         return DriverChip(name, self.modes, initsequence=self.initsequence, **defaults)
 

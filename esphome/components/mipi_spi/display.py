@@ -37,6 +37,8 @@ from ..lvgl.defines import CONF_COLOR_DEPTH
 from . import (
     CONF_BUS_MODE,
     CONF_DRAW_FROM_ORIGIN,
+    CONF_NATIVE_HEIGHT,
+    CONF_NATIVE_WIDTH,
     CONF_PIXEL_MODE,
     CONF_SPI_16,
     CONF_USE_AXIS_FLIPS,
@@ -398,6 +400,7 @@ async def to_code(config):
     model = MODELS[config[CONF_MODEL]]
     transform = get_transform(model, config)
     if CONF_DIMENSIONS in config:
+        # Explicit dimensions, just use as is
         dimensions = config[CONF_DIMENSIONS]
         if isinstance(dimensions, dict):
             width = dimensions[CONF_WIDTH]
@@ -409,15 +412,29 @@ async def to_code(config):
             offset_width = 0
             offset_height = 0
     else:
+        # Default dimensions, use model defaults and transform if needed
         width = model.get_default(CONF_WIDTH)
         height = model.get_default(CONF_HEIGHT)
         offset_width = model.get_default(CONF_OFFSET_WIDTH, 0)
         offset_height = model.get_default(CONF_OFFSET_HEIGHT, 0)
 
-        # Swap default dimensions if swap_xy is set (not for explicit dimensions)
+        # if mirroring axes and there are offsets, also mirror the offsets to cater for situations where
+        # the offset is asymmetric
+        if transform[CONF_MIRROR_X]:
+            native_width = model.get_default(
+                CONF_NATIVE_WIDTH, width + offset_width * 2
+            )
+            offset_width = native_width - width - offset_width
+        if transform[CONF_MIRROR_Y]:
+            native_height = model.get_default(
+                CONF_NATIVE_HEIGHT, height + offset_height * 2
+            )
+            offset_height = native_height - height - offset_height
+        # Swap default dimensions if swap_xy is set
         if transform[CONF_SWAP_XY] is True:
             width, height = height, width
             offset_height, offset_width = offset_width, offset_height
+
     color_depth = config[CONF_COLOR_DEPTH]
     if color_depth.endswith("bit"):
         color_depth = color_depth[:-3]
