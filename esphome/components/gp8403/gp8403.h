@@ -11,17 +11,24 @@ enum GP8403Voltage {
   GP8403_VOLTAGE_10V = 0x11,
 };
 
+enum GP8403Model {
+  GP8403,
+  GP8413,
+};
+
 class GP8403 : public Component, public i2c::I2CDevice {
  public:
   void setup() override;
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
-  void set_gp8413(bool gp8413) { this->gp8413_ = gp8413; }
+  void set_model(GP8403Model model) { this->model_ = model; }
   void set_voltage(gp8403::GP8403Voltage voltage) { this->voltage_ = voltage; }
-  bool gp8413_{false};
+
+  void write_value(float value, uint8_t channel);
 
  protected:
   GP8403Voltage voltage_;
+  GP8403Model model_{GP8403Model::GP8403};
 };
 
 }  // namespace gp8403
