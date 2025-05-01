@@ -80,7 +80,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
    * @brief Set the command spacing for the display
    * @param spacing_ms Time in milliseconds between commands
    */
-  void set_command_spacing(uint32_t spacing_ms) { command_pacer_.set_spacing(spacing_ms); }
+  void set_command_spacing(uint32_t spacing_ms) { this->command_pacer_.set_spacing(spacing_ms); }
 #endif  // USE_NEXTION_COMMAND_SPACING
 
   /**
