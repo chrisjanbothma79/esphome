@@ -5,9 +5,9 @@ from esphome.const import (
     CONF_MAX_VALUE,
     CONF_MIN_VALUE,
     CONF_MODE,
+    CONF_RESTORE_VALUE,
     CONF_STEP,
     ENTITY_CATEGORY_CONFIG,
-    ICON_PERCENT,
     UNIT_PERCENT,
 )
 
@@ -39,13 +39,13 @@ CALIBRATION_SCHEMA = cv.All(
         CalibrationNumber,
         entity_category=ENTITY_CATEGORY_CONFIG,
         unit_of_measurement=UNIT_PERCENT,
-        icon=ICON_PERCENT,
     )
     .extend(
         {
             cv.Optional(CONF_MAX_VALUE, default=10): cv.float_,
             cv.Optional(CONF_MIN_VALUE, default=-10): cv.float_,
             cv.Optional(CONF_STEP, default=0.1): cv.positive_float,
+            cv.Optional(CONF_RESTORE_VALUE): cv.boolean,
         }
     )
     .extend(cv.polling_component_schema("never")),
@@ -87,4 +87,6 @@ async def to_code(config):
             )
             await cg.register_component(var, conf)
 
+            if CONF_RESTORE_VALUE in config:
+                cg.add(var.set_restore_value(config[CONF_RESTORE_VALUE]))
             cg.add(getattr(bl0940, setter_method)(var))
