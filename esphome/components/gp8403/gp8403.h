@@ -16,7 +16,7 @@ enum GP8403Model {
   GP8413,
 };
 
-class GP8403 : public Component, public i2c::I2CDevice {
+class GP8403Component : public Component, public i2c::I2CDevice {
  public:
   void setup() override;
   void dump_config() override;

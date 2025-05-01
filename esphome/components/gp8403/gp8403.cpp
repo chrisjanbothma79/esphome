@@ -18,18 +18,18 @@ const LogString *model_to_string(GP8403Model model) {
       return LOG_STR("GP8413");
   }
   return LOG_STR("Unknown");
-}
+};
 
-void GP8403::setup() { this->write_register(RANGE_REGISTER, (uint8_t *) (&this->voltage_), 1); }
+void GP8403Component::setup() { this->write_register(RANGE_REGISTER, (uint8_t *) (&this->voltage_), 1); }
 
-void GP8403::dump_config() {
+void GP8403Component::dump_config() {
   ESP_LOGCONFIG(TAG, "GP8403:");
   ESP_LOGCONFIG(TAG, "  Voltage: %dV", this->voltage_ == GP8403_VOLTAGE_5V ? 5 : 10);
   ESP_LOGCONFIG(TAG, "  Model: %s", LOG_STR_ARG(model_to_string(this->model_)));
   LOG_I2C_DEVICE(this);
 }
 
-void GP8403::write_value(float value, uint8_t channel) {
+void GP8403Component::write_value(float value, uint8_t channel) {
   uint16_t val = 0;
   switch (this->model_) {
     case GP8403Model::GP8403:
@@ -47,6 +47,7 @@ void GP8403::write_value(float value, uint8_t channel) {
   if (err != i2c::ERROR_OK) {
     ESP_LOGE(TAG, "Error writing to %s, code %d", LOG_STR_ARG(model_to_string(this->model_)), err);
   }
+}
 
 }  // namespace gp8403
 }  // namespace esphome

@@ -8,7 +8,7 @@ DEPENDENCIES = ["i2c"]
 MULTI_CONF = True
 
 gp8403_ns = cg.esphome_ns.namespace("gp8403")
-GP8403 = gp8403_ns.class_("GP8403", cg.Component, i2c.I2CDevice)
+GP8403Component = gp8403_ns.class_("GP8403Component", cg.Component, i2c.I2CDevice)
 
 GP8403Voltage = gp8403_ns.enum("GP8403Voltage")
 GP8403Model = gp8403_ns.enum("GP8403Model")
@@ -28,7 +28,7 @@ VOLTAGES = {
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(GP8403),
+            cv.GenerateID(): cv.declare_id(GP8403Component),
             cv.Optional(CONF_MODEL, default="GP8403"): cv.enum(MODELS, upper=True),
             cv.Required(CONF_VOLTAGE): cv.enum(VOLTAGES, upper=True),
         }
