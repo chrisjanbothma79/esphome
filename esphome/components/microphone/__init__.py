@@ -32,6 +32,12 @@ CaptureAction = microphone_ns.class_(
 StopCaptureAction = microphone_ns.class_(
     "StopCaptureAction", automation.Action, cg.Parented.template(Microphone)
 )
+MuteAction = microphone_ns.class_(
+    "MuteAction", automation.Action, cg.Parented.template(Microphone)
+)
+UnmuteAction = microphone_ns.class_(
+    "UnmuteAction", automation.Action, cg.Parented.template(Microphone)
+)
 
 
 DataTrigger = microphone_ns.class_(
@@ -42,6 +48,7 @@ DataTrigger = microphone_ns.class_(
 IsCapturingCondition = microphone_ns.class_(
     "IsCapturingCondition", automation.Condition
 )
+IsMutedCondition = microphone_ns.class_("IsMutedCondition", automation.Condition)
 
 
 async def setup_microphone_core_(var, config):
@@ -186,8 +193,18 @@ automation.register_action(
     "microphone.stop_capture", StopCaptureAction, MICROPHONE_ACTION_SCHEMA
 )(microphone_action)
 
+automation.register_action("microphone.mute", MuteAction, MICROPHONE_ACTION_SCHEMA)(
+    microphone_action
+)
+automation.register_action("microphone.unmute", UnmuteAction, MICROPHONE_ACTION_SCHEMA)(
+    microphone_action
+)
+
 automation.register_condition(
     "microphone.is_capturing", IsCapturingCondition, MICROPHONE_ACTION_SCHEMA
+)(microphone_action)
+automation.register_condition(
+    "microphone.is_muted", IsMutedCondition, MICROPHONE_ACTION_SCHEMA
 )(microphone_action)
 
 
