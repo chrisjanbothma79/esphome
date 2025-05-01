@@ -2944,7 +2944,8 @@ void WaveshareEPaper5P8InV2::dump_config() {
 //  - https://www.good-display.com/product/440.html
 //  - https://www.seeedstudio.com/5-83-Monochrome-ePaper-Display-with-648x480-Pixels-p-5785.html
 // Datasheet:
-//  - https://www.good-display.com/public/html/pdfjs/viewer/viewernew.html?file=https://v4.cecdn.yun300.cn/100001_1909185148/GDEY0583T81-new.pdf
+//  -
+//  https://www.good-display.com/public/html/pdfjs/viewer/viewernew.html?file=https://v4.cecdn.yun300.cn/100001_1909185148/GDEY0583T81-new.pdf
 //  - https://v4.cecdn.yun300.cn/100001_1909185148/GDEY0583T81-new.pdf
 // Reference code from GoodDisplay:
 //  - https://www.good-display.com/companyfile/903.html
@@ -3133,7 +3134,8 @@ void HOT GDEY0583T81::display() {
   } else {
     // Partial out (PTOUT), makes the display exit partial mode
     this->command(0x92);
-    ESP_LOGD(TAG, "Partial update done, next full update after %d cycles", this->full_update_every_ - this->at_update_ - 1);
+    ESP_LOGD(TAG, "Partial update done, next full update after %d cycles",
+             this->full_update_every_ - this->at_update_ - 1);
   }
 
   this->at_update_ = (this->at_update_ + 1) % this->full_update_every_;
