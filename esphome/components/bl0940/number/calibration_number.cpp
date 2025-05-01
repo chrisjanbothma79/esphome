@@ -11,9 +11,17 @@ void CalibrationNumber::setup() {
     return;
 
   float value;
-  this->pref_ = global_preferences->make_preference<float>(this->get_object_id_hash());
-  if (!this->pref_.load(&value)) {
+  if (!this->restore_value_) {
     value = this->initial_value_;
+  } else {
+    this->pref_ = global_preferences->make_preference<float>(this->get_object_id_hash());
+    if (!this->pref_.load(&value)) {
+      if (!std::isnan(this->initial_value_)) {
+        value = this->initial_value_;
+      } else {
+        value = this->traits.get_min_value();
+      }
+    }
   }
   this->publish_state(value);
 }
@@ -31,7 +39,8 @@ void CalibrationNumber::update() {
 
 void CalibrationNumber::control(float value) {
   this->publish_state(value);
-  this->pref_.save(&value);
+  if (this->restore_value_)
+    this->pref_.save(&value);
 }
 
 void CalibrationNumber::dump_config() {

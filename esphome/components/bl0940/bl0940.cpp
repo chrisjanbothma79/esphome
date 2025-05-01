@@ -208,16 +208,16 @@ float BL0940::calculate_calibration_value_(float state) { return (100 + state) /
 void BL0940::reset_calibration_callback_() {
 #ifdef USE_NUMBER
   if (this->current_calibration_ != nullptr && this->current_cal_ != 1) {
-    this->current_calibration_->publish_state(0);
+    this->current_calibration_->make_call().set_value(0).perform();
   }
   if (this->voltage_calibration_ != nullptr && this->voltage_cal_ != 1) {
-    this->voltage_calibration_->publish_state(0);
+    this->voltage_calibration_->make_call().set_value(0).perform();
   }
   if (this->power_calibration_ != nullptr && this->power_cal_ != 1) {
-    this->power_calibration_->publish_state(0);
+    this->power_calibration_->make_call().set_value(0).perform();
   }
   if (this->energy_calibration_ != nullptr && this->energy_cal_ != 1) {
-    this->energy_calibration_->publish_state(0);
+    this->energy_calibration_->make_call().set_value(0).perform();
   }
 #endif
   ESP_LOGD(TAG, "external calibration values restored to initial state");
