@@ -99,7 +99,7 @@ text_sensor:
         name: "Phase B Status"
       phase_c:
         name: "Phase C Status"
-    freq_status:
+    frequency_status:
       name: "Frequency Status"
 
 button:
