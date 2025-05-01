@@ -1,7 +1,0 @@
-foreach i (S3BOX S3BOXLITE Pico-ResTouch-LCD-3.5 WT32-SC01-PLUS ESP32-2432S028 JC3248W535 JC3636W518 T4-S3 T-EMBED T-DISPLAY T-DISPLAY-S3 T-DISPLAY-S3-PRO T-DISPLAY-S3-AMOLED T-DISPLAY-S3-AMOLED-PLUS)
-set f=`echo $i|tr "[A-Z]" "[a-z]"`
-set name=test-$f.esp32-s3-idf.yaml
-echo $i $f $name
-cp test.esp32-s3-idf.yaml $name
-echo "    model: $i" >> $name
-end
