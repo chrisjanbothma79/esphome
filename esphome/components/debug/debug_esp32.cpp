@@ -1,4 +1,5 @@
 #include "debug_component.h"
+#include <map>
 
 #ifdef USE_ESP32
 #include "esphome/core/application.h"
