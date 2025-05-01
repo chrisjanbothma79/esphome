@@ -79,6 +79,7 @@
 #define USE_LVGL_TEXTAREA
 #define USE_LVGL_TILEVIEW
 #define USE_LVGL_TOUCHSCREEN
+#define USE_MICRO_WAKE_WORD
 #define USE_MD5
 #define USE_MDNS
 #define USE_MEDIA_PLAYER
@@ -115,6 +116,7 @@
 #ifdef USE_ARDUINO
 #define USE_PROMETHEUS
 #define USE_WIFI_WPA2_EAP
+#define USE_I2S_LEGACY
 #endif
 
 // IDF-specific feature flags
@@ -148,7 +150,7 @@
 #endif
 
 #ifdef USE_ESP_IDF
-#define USE_ESP_IDF_VERSION_CODE VERSION_CODE(5, 1, 5)
+#define USE_ESP_IDF_VERSION_CODE VERSION_CODE(5, 1, 6)
 #endif
 
 #if defined(USE_ESP32_VARIANT_ESP32S2)
