@@ -9,7 +9,7 @@ from esphome.const import (
     CONF_ON_TOUCH,
     CONF_TRIGGER_ID,
 )
-from esphome.core import CORE
+from esphome.core import CORE, TimePeriod
 
 from . import Nextion, nextion_ns, nextion_ref
 from .base_component import (
