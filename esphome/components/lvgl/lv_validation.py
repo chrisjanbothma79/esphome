@@ -263,6 +263,15 @@ def pixels_validator(value):
 pixels = LValidator(pixels_validator, uint32, retmapper=literal)
 
 
+def padding_validator(value):
+    if isinstance(value, str) and value.lower().endswith("px"):
+        value = value[:-2]
+    return cv.int_(value)
+
+
+padding = LValidator(padding_validator, uint32, retmapper=literal)
+
+
 def zoom_validator(value):
     value = cv.float_range(0.1, 10.0)(value)
     return value
