@@ -74,7 +74,7 @@ CONFIG_SCHEMA = cv.All(
 
 def _validate_audio_intercept(config):
     if config[CONF_UNSIGNED]:
-        if config[CONF_INTERCEPT_VOLUME]:
+        if not config[CONF_INTERCEPT_VOLUME]:
             raise cv.Invalid(
                 "Must intercept volume control if you want to use unsigned data"
             )
