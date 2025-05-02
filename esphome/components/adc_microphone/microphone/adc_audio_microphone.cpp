@@ -199,6 +199,11 @@ void ADCAudioMicrophone::read_() {
 #error "Unknown DMA_FORMAT_TYPE"
 #endif
     seen_nonzero |= (buf_writing[i]);
+    // shift to have the correct max value for 16 bit data
+    buf_writing[i] <<= 16 - SOC_ADC_DIGI_MAX_BITWIDTH;
+
+    // convert to signed format for other readers; flip the most significant bit
+    buf_writing[i] ^= (1ULL << (sizeof(uint16_t) * 8 - 1));
   }
   if (seen_nonzero == 0) {
     this->status_set_warning("All-zero data from ADC; confirm your connections!");
