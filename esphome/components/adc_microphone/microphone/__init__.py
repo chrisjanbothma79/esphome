@@ -1,7 +1,7 @@
 import logging
 
 import esphome.codegen as cg
-from esphome.components import esp32, microphone
+from esphome.components import audio, esp32, microphone
 from esphome.components.adc import ESP32_VARIANT_ADC2_PIN_TO_CHANNEL, validate_adc_pin
 from esphome.components.esp32.const import (
     VARIANT_ESP32,
@@ -43,6 +43,20 @@ ADCAudioMicrophone = adc_microphone_ns.class_(
     "ADCAudioMicrophone", microphone.Microphone, cg.Component
 )
 
+
+def _set_stream_limits(config):
+    audio.set_stream_limits(
+        min_bits_per_sample=16,
+        max_bits_per_sample=16,
+        min_channels=1,
+        max_channels=1,
+        min_sample_rate=config.get(CONF_SAMPLE_RATE),
+        max_sample_rate=config.get(CONF_SAMPLE_RATE),
+    )(config)
+
+    return config
+
+
 BASE_SCHEMA = microphone.MICROPHONE_SCHEMA.extend(
     {
         cv.GenerateID(): cv.declare_id(ADCAudioMicrophone),
@@ -83,6 +97,7 @@ CONFIG_SCHEMA = cv.All(
     BASE_SCHEMA,
     cv.require_framework_version(esp_idf=cv.Version(5, 0, 0)),
     validate_config,
+    _set_stream_limits,
 )
 
 FINAL_VALIDATE_SCHEMA = final_validate_config
