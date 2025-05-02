@@ -40,7 +40,7 @@ int main() {
   // #endif
 
   setup();
-  esphome::stm32::log_clock_config();
+
   while (1) {
     loop();
   }
