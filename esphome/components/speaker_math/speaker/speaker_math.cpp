@@ -337,7 +337,7 @@ void SpeakerMath::convert_task(void *params) {
       /* Apply volume gain now, before it is (potentially) transformed into unsigned data */ \
       if (intercept_volume) { \
         auto volume_factor = this_speaker_math->q15_volume_factor_; \
-        auto buffer_start = (int16_t *) output_buffer->get_buffer_start(); \
+        auto buffer_start = (int16_t *) convert_buffer; \
         auto buffer_len = output_buffer->available() / sizeof(int16_t); \
         q15_multiplication(buffer_start, buffer_start, buffer_len, volume_factor); \
       } \

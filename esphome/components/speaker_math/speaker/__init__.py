@@ -99,6 +99,7 @@ async def to_code(config):
     cg.add(var.set_convert_unsigned(config[CONF_UNSIGNED]))
     cg.add(var.set_convert_factor(config[CONF_MULTIPLY]))
     cg.add(var.set_convert_offset(config[CONF_OFFSET]))
+    cg.add(var.set_intercept_volume(config[CONF_INTERCEPT_VOLUME]))
 
     if task_stack_in_psram := config.get(CONF_TASK_STACK_IN_PSRAM):
         cg.add(var.set_task_stack_in_psram(task_stack_in_psram))
