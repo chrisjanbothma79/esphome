@@ -13,6 +13,7 @@ from esphome.const import (
     CONF_ON_TURN_OFF,
     CONF_ON_TURN_ON,
     CONF_RESTORE_MODE,
+    CONF_STATE,
     CONF_TRIGGER_ID,
     CONF_WEB_SERVER,
     DEVICE_CLASS_EMPTY,
@@ -186,13 +187,29 @@ SWITCH_ACTION_SCHEMA = maybe_simple_id(
 )
 
 
-@automation.register_action("switch.control", ControlAction, SWITCH_ACTION_SCHEMA)
 @automation.register_action("switch.toggle", ToggleAction, SWITCH_ACTION_SCHEMA)
 @automation.register_action("switch.turn_off", TurnOffAction, SWITCH_ACTION_SCHEMA)
 @automation.register_action("switch.turn_on", TurnOnAction, SWITCH_ACTION_SCHEMA)
 async def switch_toggle_to_code(config, action_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
     return cg.new_Pvariable(action_id, template_arg, paren)
+
+
+@automation.register_action(
+    "switch.control",
+    ControlAction,
+    SWITCH_ACTION_SCHEMA.extend(
+        {
+            cv.Required(CONF_STATE): cv.templatable(cv.boolean),
+        }
+    ),
+)
+async def switch_control_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, paren)
+    template_ = await cg.templatable(config[CONF_STATE], args, cg.std_boolean)
+    cg.add(var.control(template_))
+    return var
 
 
 @automation.register_condition("switch.is_on", SwitchCondition, SWITCH_ACTION_SCHEMA)
