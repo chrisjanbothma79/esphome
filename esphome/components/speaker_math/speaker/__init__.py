@@ -19,6 +19,7 @@ AUTO_LOAD = ["audio"]
 CODEOWNERS = ["@calumapplepie"]
 
 CONF_UNSIGNED = "convert_to_unsigned"
+CONF_INTERCEPT_VOLUME = "intercept_volume"
 
 speaker_math_ns = cg.esphome_ns.namespace("speaker_math")
 SpeakerMath = speaker_math_ns.class_("SpeakerMath", cg.Component, speaker.Speaker)
@@ -61,6 +62,7 @@ CONFIG_SCHEMA = cv.All(
             cv.SplitDefault(CONF_TASK_STACK_IN_PSRAM, esp32_idf=False): cv.All(
                 cv.boolean, cv.only_with_esp_idf
             ),
+            cv.Optional(CONF_INTERCEPT_VOLUME, default=False): cv.boolean,
         }
     ).extend(cv.COMPONENT_SCHEMA),
     cv.only_on([PLATFORM_ESP32]),
@@ -68,7 +70,17 @@ CONFIG_SCHEMA = cv.All(
 )
 
 
-FINAL_VALIDATE_SCHEMA = _validate_audio_compatability
+def _validate_audio_intercept(config):
+    if config[CONF_UNSIGNED]:
+        if config[CONF_INTERCEPT_VOLUME]:
+            raise cv.Invalid(
+                "Must intercept volume control if you want to use unsigned data"
+            )
+
+
+FINAL_VALIDATE_SCHEMA = cv.All(
+    _validate_audio_compatability,
+)
 
 
 async def to_code(config):

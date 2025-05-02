@@ -34,6 +34,33 @@ enum SpeakerMathEventGroupBits : uint32_t {
   ALL_BITS = 0x00FFFFFF,  // All valid FreeRTOS event group bits
 };
 
+// Copied from i2s_audio_speaker.cpp
+// TODO: Consider finding a way to deduplicate
+static const std::vector<int16_t> Q15_VOLUME_SCALING_FACTORS = {
+    0,     116,   122,   130,   137,   146,   154,   163,   173,   183,   194,   206,   218,   231,   244,
+    259,   274,   291,   308,   326,   345,   366,   388,   411,   435,   461,   488,   517,   548,   580,
+    615,   651,   690,   731,   774,   820,   868,   920,   974,   1032,  1094,  1158,  1227,  1300,  1377,
+    1459,  1545,  1637,  1734,  1837,  1946,  2061,  2184,  2313,  2450,  2596,  2750,  2913,  3085,  3269,
+    3462,  3668,  3885,  4116,  4360,  4619,  4893,  5183,  5490,  5816,  6161,  6527,  6914,  7324,  7758,
+    8218,  8706,  9222,  9770,  10349, 10963, 11613, 12302, 13032, 13805, 14624, 15491, 16410, 17384, 18415,
+    19508, 20665, 21891, 23189, 24565, 26022, 27566, 29201, 30933, 32767};
+
+/// @brief Multiplies the input array of Q15 numbers by a Q15 constant factor
+///
+/// Based on `dsps_mulc_s16_ansi` from the esp-dsp library:
+/// https://github.com/espressif/esp-dsp/blob/master/modules/math/mulc/fixed/dsps_mulc_s16_ansi.c
+/// (accessed on 2024-09-30).
+/// @param input Array of Q15 numbers
+/// @param output Array of Q15 numbers
+/// @param len Length of array
+/// @param c Q15 constant factor
+static void q15_multiplication(const int16_t *input, int16_t *output, size_t len, int16_t c) {
+  for (int i = 0; i < len; i++) {
+    int32_t acc = (int32_t) input[i] * (int32_t) c;
+    output[i] = (int16_t) (acc >> 15);
+  }
+}
+
 void SpeakerMath::setup() {
   this->event_group_ = xEventGroupCreate();
 
@@ -230,7 +257,12 @@ void SpeakerMath::set_mute_state(bool mute_state) {
 
 void SpeakerMath::set_volume(float volume) {
   this->volume_ = volume;
-  this->output_speaker_->set_volume(volume);
+  if (!intercept_volume_) {
+    this->output_speaker_->set_volume(volume);
+  } else {
+    ssize_t decibel_index = remap<ssize_t, float>(volume, 0.0f, 1.0f, 0, Q15_VOLUME_SCALING_FACTORS.size() - 1);
+    this->q15_volume_factor_ = Q15_VOLUME_SCALING_FACTORS[decibel_index];
+  }
 }
 
 void SpeakerMath::convert_task(void *params) {
@@ -273,6 +305,7 @@ void SpeakerMath::convert_task(void *params) {
   const auto convert_factor = this_speaker_math->convert_factor_;
   const auto convert_offset = this_speaker_math->convert_offset_;
   const auto bits_per_sample = this_speaker_math->audio_stream_info_.get_bits_per_sample();
+  const auto intercept_volume = this_speaker_math->intercept_volume_;
 
   // The core operation of the loop varies with the target data type, and so to
   // avoid a mess of repetition, we define the loop core based on datatype
@@ -298,6 +331,12 @@ void SpeakerMath::convert_task(void *params) {
       DATATYPE *convert_buffer = (DATATYPE *) output_buffer->get_buffer_start(); \
       const auto available_elements = output_buffer->available() / sizeof(DATATYPE); \
       auto first_element = convert_buffer[0]; \
+      if (intercept_volume) { \
+        auto volume_factor = this_speaker_math->q15_volume_factor_; \
+        auto buffer_start = (int16_t *) output_buffer->get_buffer_start(); \
+        auto buffer_len = output_buffer->available() / sizeof(int16_t); \
+        q15_multiplication(buffer_start, buffer_start, buffer_len, volume_factor); \
+      } \
 \
       for (int i = 0; i < available_elements; i++) { \
         /*we already cast into the unsigned data type, but we still need to actually convert it  to the new range*/ \

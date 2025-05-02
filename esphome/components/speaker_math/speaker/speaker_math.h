@@ -36,9 +36,9 @@ class SpeakerMath : public Component, public speaker::Speaker {
   void set_mute_state(bool mute_state) override;
   bool get_mute_state() override { return this->output_speaker_->get_mute_state(); }
 
-  /// @brief Volume state changes are passed to the parent's output speaker
+  /// @brief Volume state changes are usually passed to the parent's output speaker
   void set_volume(float volume) override;
-  float get_volume() override { return this->output_speaker_->get_volume(); }
+  float get_volume() override { return this->volume_; }
 
   void set_output_speaker(speaker::Speaker *speaker) { this->output_speaker_ = speaker; }
   void set_task_stack_in_psram(bool task_stack_in_psram) { this->task_stack_in_psram_ = task_stack_in_psram; }
@@ -48,6 +48,7 @@ class SpeakerMath : public Component, public speaker::Speaker {
   }
 
   void set_convert_unsigned(bool convert_unsigned) { this->convert_unsigned_ = convert_unsigned; }
+  void set_intercept_volume(bool intercept_volume) { this->intercept_volume_ = intercept_volume; }
   void set_convert_factor(int8_t convert_factor) { this->convert_factor_ = convert_factor; }
   void set_convert_offset(int16_t convert_offset) { this->convert_offset_ = convert_offset; }
   void set_buffer_duration(uint32_t buffer_duration_ms) { this->buffer_duration_ms_ = buffer_duration_ms; }
@@ -89,8 +90,10 @@ class SpeakerMath : public Component, public speaker::Speaker {
   StackType_t *task_stack_buffer_{nullptr};
 
   bool convert_unsigned_;
+  bool intercept_volume_;
   int8_t convert_factor_;
   int16_t convert_offset_;
+  int16_t q15_volume_factor_;
 
   audio::AudioStreamInfo target_stream_info_;
 
