@@ -24,7 +24,10 @@ class STM32Preferences : public ESPPreferences {
     return make_preference(length, type);
   }
 
-  ESPPreferenceObject make_preference(size_t length, uint32_t type) override { return {}; }
+  ESPPreferenceObject make_preference(size_t length, uint32_t type) override {
+    ESP_LOGW(TAG, "TODO: storing preferences is not supported yet!");
+    return {};
+  }
 
   bool sync() override { return false; }
 
