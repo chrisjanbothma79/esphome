@@ -56,7 +56,7 @@ CONF_PEAK_CURRENT_SIGNED = "peak_current_signed"
 CONF_ENABLE_OFFSET_CALIBRATION = "enable_offset_calibration"
 CONF_ENABLE_GAIN_CALIBRATION = "enable_gain_calibration"
 CONF_PHASE_STATUS = "phase_status"
-CONF_FREQ_STATUS = "freq_status"
+CONF_FREQUENCY_STATUS = "frequency_status"
 UNIT_DEG = "degrees"
 LINE_FREQS = {
     "50HZ": 50,
