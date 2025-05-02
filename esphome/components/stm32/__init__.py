@@ -16,8 +16,7 @@ from esphome.core import CORE, EsphomeError, coroutine_with_priority
 from esphome.helpers import copy_file_if_changed, mkdir_p, read_file, write_file
 
 from .boards import detect_board_family
-from .clock import board_clock_config, generate_clock_config, optional_dict
-from .const import CONF_BOARD_FAMILY, CONF_CLOCK, KEY_BOARD, KEY_PIO_FILES, KEY_STM32
+from .const import CONF_BOARD_FAMILY, KEY_BOARD, KEY_PIO_FILES, KEY_STM32
 from .gpio import stm32_pin_to_code  # noqa
 
 # force import gpio to register pin schema
@@ -65,11 +64,9 @@ CONFIG_SCHEMA = cv.All(
                 cv.string_strict,
             ),
             cv.Optional(CONF_BOARD_FAMILY): cv.string_strict,
-            cv.Optional(CONF_CLOCK): optional_dict(dict),
         }
     ),
     detect_board_family,
-    board_clock_config,
     set_core_data,
 )
 
@@ -93,12 +90,6 @@ async def to_code(config):
     cg.add_platformio_option("platform", "ststm32")
     cg.add_platformio_option("monitor_speed", "115200")
     cg.add_platformio_option("upload_protocol", "stlink")
-
-    if CONF_CLOCK not in config:
-        _LOGGER.warning("no clock configuraton, add 'config:' to generate default one")
-    generate_clock_config(config)
-
-    # print(config["clock"]["foo"])
 
 
 def add_pio_file(component: str, key: str, data: str):
