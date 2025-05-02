@@ -91,7 +91,7 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_SKIP_CONNECTION_HANDSHAKE, default=False): cv.boolean,
             cv.Optional(CONF_COMMAND_SPACING): cv.All(
                 cv.positive_time_period_milliseconds,
-                cv.Range(max=TimePeriod(milliseconds=255),
+                cv.Range(max=TimePeriod(milliseconds=255)),
             ),
         }
     )
