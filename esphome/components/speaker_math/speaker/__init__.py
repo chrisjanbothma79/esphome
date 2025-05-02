@@ -78,9 +78,7 @@ def _validate_audio_intercept(config):
             )
 
 
-FINAL_VALIDATE_SCHEMA = cv.All(
-    _validate_audio_compatability,
-)
+FINAL_VALIDATE_SCHEMA = cv.All(_validate_audio_compatability, _validate_audio_intercept)
 
 
 async def to_code(config):
