@@ -8,6 +8,7 @@
 namespace esphome {
 namespace adc_microphone {
 
+// The number of SAMPLES to buffer
 static const size_t BUFFER_SIZE = 1024;
 
 static const char *const TAG = "adc_microphone";
@@ -121,6 +122,8 @@ void ADCAudioMicrophone::start_() {
 
   dma_out_buffer_ = new uint8_t[BUFFER_SIZE * sizeof(adc_digi_output_data_t)];
 
+  this->audio_stream_info_ = audio::AudioStreamInfo(16, 1, this->sample_rate_);
+
   this->samples_.reserve(BUFFER_SIZE);
   this->state_ = microphone::STATE_RUNNING;
   this->high_freq_.start();
@@ -160,52 +163,49 @@ void ADCAudioMicrophone::stop_() {
   this->status_clear_error();
 }
 
-size_t ADCAudioMicrophone::read(int16_t *buf, size_t len) {
+void ADCAudioMicrophone::read_() {
+  // NOTE: Could acheive a possible speedup with
+  // https://hackingcpp.com/cpp/recipe/uninitialized_numeric_array.html#no_init
+  // (ie, avoiding the possible 0-initializing of the end of the buffer).
+  samples_.resize(BUFFER_SIZE * sizeof(uint16_t));
   uint32_t bytes_read = 0;
+  auto out_buffer = samples_.data();
+
   // We have an intermediate buffer; we can't read more data than is available in it
-  // NOTE: extraneous cast is because vscode claims its a type error.
-  size_t max_read = std::min((size_t) (len / sizeof(int16_t)), BUFFER_SIZE) * sizeof(adc_digi_output_data_t);
-  ADC_ESP_ERROR_CHECK(adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 1),
-                      "read data from buffer", 0);
+  size_t max_read = BUFFER_SIZE * sizeof(adc_digi_output_data_t);
+  ADC_ESP_ERROR_CHECK(adc_continuous_read(adc_handle_, dma_out_buffer_, max_read, &bytes_read, 0),
+                      "read data from buffer", );
   ESP_LOGD(TAG, "read %" PRIu32 " of maximum %zu bytes from ADC", bytes_read, max_read);
 
   if (bytes_read == 0) {
     this->status_set_warning("Zero bytes read from ADC");
-    return 0;
+    return;
   }
   this->status_clear_warning();
 
   // remove the extra data (channel, etc), only leaving what we care about
   // skip calibration, since that looks performance-intensive
   size_t samples_read = bytes_read / SOC_ADC_DIGI_DATA_BYTES_PER_CONV;
-  adc_digi_output_data_t *temp = reinterpret_cast<adc_digi_output_data_t *>(dma_out_buffer_);
+  adc_digi_output_data_t *input_buf = reinterpret_cast<adc_digi_output_data_t *>(dma_out_buffer_);
   int16_t seen_nonzero = 0;
-  ESP_LOGVV(TAG, "First sample is %" PRIX32, temp[0].val);
+  ESP_LOGVV(TAG, "First sample is %" PRIX32, input_buf[0].val);
+  auto buf_writing = reinterpret_cast<uint16_t *>(out_buffer);
   for (size_t i = 0; i < samples_read; i++) {
 #ifdef DMA_FORMAT_TYPE_1
-    buf[i] = temp[i].type1.data;
+    buf_writing[i] = input_buf[i].type1.data;
 #elif DMA_FORMAT_TYPE_2
-    buf[i] = temp[i].type2.data;
+    buf_writing[i] = input_buf[i].type2.data;
 #else
 #error "Unknown DMA_FORMAT_TYPE"
 #endif
-    seen_nonzero |= (buf[i]);
+    seen_nonzero |= (buf_writing[i]);
   }
   if (seen_nonzero == 0) {
     this->status_set_warning("All-zero data from ADC; confirm your connections!");
   }
-  return samples_read * sizeof(int16_t);
-}
 
-void ADCAudioMicrophone::read_() {
-  // NOTE: Could acheive a possible speedup with
-  // https://hackingcpp.com/cpp/recipe/uninitialized_numeric_array.html#no_init
-  // (ie, avoiding the possible 0-initializing of the end of the buffer).
-  samples_.resize(BUFFER_SIZE);
-  size_t bytes_read = this->read(samples_.data(), BUFFER_SIZE * sizeof(int16_t));
-  samples_.resize(bytes_read / sizeof(int16_t));
-  ESP_LOGV(TAG, "Processing %zu ADC samples", samples_.size());
-  ESP_LOGVV(TAG, "First four samples: %d %d %d %d", samples_[0], samples_[1], samples_[2], samples_[3]);
+  samples_.resize(samples_read * sizeof(uint16_t));
+  ESP_LOGV(TAG, "Processing %zu ADC samples", samples_read);
   this->data_callbacks_.call(samples_);
 }
 
