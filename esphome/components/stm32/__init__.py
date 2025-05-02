@@ -70,8 +70,6 @@ CONFIG_SCHEMA = cv.All(
 
 @coroutine_with_priority(1000)
 async def to_code(config):
-    cg.add(stm32_ns.setup_preferences())
-
     cg.add_platformio_option("board", config[CONF_BOARD])
     cg.add_build_flag("-DUSE_STM32")
     cg.add_build_flag("-D" + config[CONF_BOARD_FAMILY])
