@@ -851,7 +851,7 @@ uint16_t ATM90E32Component::calculate_voltage_threshold(int line_freq, uint16_t 
   return static_cast<uint16_t>(threshold);
 }
 
-bool ATM90E32Component::validate_spi_read_(uint16_t expected, const char *context = nullptr) {
+bool ATM90E32Component::validate_spi_read_(uint16_t expected, const char *context) {
   uint16_t last = this->read16_(ATM90E32_REGISTER_LASTSPIDATA);
   if (last != expected) {
     if (context != nullptr) {
