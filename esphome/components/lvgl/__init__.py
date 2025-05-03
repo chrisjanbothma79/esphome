@@ -245,7 +245,7 @@ def final_validation(configs):
             widget_conf = global_config.get_config_for_path(path[:-1])
             if not any(isinstance(v, Lambda) for v in widget_conf.values()):
                 raise cv.Invalid(
-                    f"Widget '{w}'does not have any templated properties to refresh",
+                    f"Widget '{w}' does not have any templated properties to refresh",
                 )
 
 
