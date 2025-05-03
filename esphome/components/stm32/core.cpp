@@ -130,9 +130,7 @@ void arch_init() { ::esphome::stm32::init_uart(); }
 
 void IRAM_ATTR HOT arch_feed_wdt() {}
 
-uint8_t progmem_read_byte(const uint8_t *addr) {
-  return *addr;
-}
+uint8_t progmem_read_byte(const uint8_t *addr) { return *addr; }
 
 uint32_t IRAM_ATTR HOT arch_get_cpu_cycle_count() {
 #if (__CORTEX_M >= 0x03)
