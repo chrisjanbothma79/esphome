@@ -44,6 +44,7 @@ CONF_SCAN_PARAMETERS = "scan_parameters"
 CONF_WINDOW = "window"
 CONF_CONTINUOUS = "continuous"
 CONF_ON_SCAN_END = "on_scan_end"
+CONF_SOFTWARE_COEXISTENCE = "software_coexistence"
 
 DEFAULT_MAX_CONNECTIONS = 3
 IDF_MAX_CONNECTIONS = 9
@@ -203,6 +204,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_ON_SCAN_END): automation.validate_automation(
                 {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(BLEEndOfScanTrigger)}
             ),
+            cv.Optional(CONF_SOFTWARE_COEXISTENCE, default=True): bool,
         }
     ).extend(cv.COMPONENT_SCHEMA),
 )
@@ -308,8 +310,11 @@ async def to_code(config):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [], conf)
 
+    has_wifi = "wifi" in CORE.loaded_integrations
     if CORE.using_esp_idf:
         add_idf_sdkconfig_option("CONFIG_BT_ENABLED", True)
+        if has_wifi and config[CONF_SOFTWARE_COEXISTENCE]:
+            add_idf_sdkconfig_option("CONFIG_SW_COEXIST_ENABLE", True)
         # https://github.com/espressif/esp-idf/issues/4101
         # https://github.com/espressif/esp-idf/issues/2503
         # Match arduino CONFIG_BTU_TASK_STACK_SIZE
@@ -331,6 +336,8 @@ async def to_code(config):
 
     cg.add_define("USE_OTA_STATE_CALLBACK")  # To be notified when an OTA update starts
     cg.add_define("USE_ESP32_BLE_CLIENT")
+    if has_wifi and config[CONF_SOFTWARE_COEXISTENCE]:
+        cg.add_define("USE_ESP32_BLE_SOFTWARE_COEXISTENCE")
 
 
 ESP32_BLE_START_SCAN_ACTION_SCHEMA = cv.Schema(

@@ -21,6 +21,10 @@
 #include "esphome/components/ota/ota_backend.h"
 #endif
 
+#ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
+#include <esp_coexist.h>
+#endif
+
 #ifdef USE_ARDUINO
 #include <esp32-hal-bt.h>
 #endif
@@ -196,6 +200,10 @@ void ESP32BLETracker::loop() {
   */
   if (this->scanner_state_ == ScannerState::IDLE && this->scan_continuous_ && !connecting && !disconnecting &&
       !promote_to_connecting) {
+#ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
+    ESP_LOGD(TAG, "Setting coexistence preference to balanced.");
+    esp_coex_preference_set(ESP_COEX_PREFER_BALANCE);  // Reset to default
+#endif
     this->start_scan_(false);  // first = false
   }
   // If there is a discovered client and no connecting
@@ -213,6 +221,10 @@ void ESP32BLETracker::loop() {
           ESP_LOGD(TAG, "Promoting client to connect...");
           // We only want to promote one client at a time.
           // once the scanner is fully stopped.
+#ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE
+          ESP_LOGD(TAG, "Setting coexistence to Bluetooth to make connection.");
+          esp_coex_preference_set(ESP_COEX_PREFER_BT);  // Prioritize Bluetooth
+#endif
           client->set_state(ClientState::READY_TO_CONNECT);
         }
         break;
