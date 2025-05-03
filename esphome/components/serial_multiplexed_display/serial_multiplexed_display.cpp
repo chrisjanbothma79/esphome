@@ -20,10 +20,10 @@ will work as expected, because the interrupt handler will call the correct insta
 to redefine the hw_timer_t struct in order to make this work.
 */
 
-typedef struct hw_timer_s {
+using hw_timer_t = struct hw_timer_s {
   uint8_t group;
   uint8_t num;
-} hw_timer_t;
+};
 
 static bool IRAM_ATTR HOT timer_intr(void *arg) {
   esphome::serial_multiplexed_display::SerialMultiplexedDisplay *inst =
@@ -49,17 +49,17 @@ void SerialMultiplexedDisplay::dump_config() {
     ESP_LOGCONFIG(TAG, "  Model: SN74HC595");
   }
   ESP_LOGCONFIG(TAG, "  Length: %d", this->length_);
-  LOG_PIN("  CLK Pin: ", this->_clk_pin);
-  LOG_PIN("  DATA Pin: ", this->_data_pin);
-  if (this->_latch_pin != nullptr) {
-    LOG_PIN("  LATCH Pin: ", this->_latch_pin);
+  LOG_PIN("  CLK Pin: ", this->clk_pin_);
+  LOG_PIN("  DATA Pin: ", this->data_pin_);
+  if (this->latch_pin_ != nullptr) {
+    LOG_PIN("  LATCH Pin: ", this->latch_pin_);
   }
-  if (this->is_common_cathode == true) {
+  if (this->is_common_cathode_ == true) {
     ESP_LOGCONFIG(TAG, "  Common Cathode: True");
   } else {
     ESP_LOGCONFIG(TAG, "  Common Cathode: False");
   }
-  if (this->is_reversed == true) {
+  if (this->is_reversed_ == true) {
     ESP_LOGCONFIG(TAG, "  Display Reversed: True");
   } else {
     ESP_LOGCONFIG(TAG, "  Display Reversed: False");
@@ -68,89 +68,91 @@ void SerialMultiplexedDisplay::dump_config() {
 
 void SerialMultiplexedDisplay::setup() {
   ESP_LOGCONFIG(TAG, "Setting up....");
-  _data_pin->setup();
-  _clk_pin->setup();
-  if (this->_latch_pin != nullptr) {
-    this->_latch_pin->setup();
+  data_pin_->setup();
+  clk_pin_->setup();
+  if (this->latch_pin_ != nullptr) {
+    this->latch_pin_->setup();
   }
 
   // calculate to get around 16ms for the full display based on length. (around 17ms for the entire display)
   //  timer clk = 80Mhz prescaled by 2 = 40Mhz clock.
-  uint32_t per_digit_time = 17000 / length_;
-  uint64_t timer_match_time = ((uint64_t) per_digit_time * 40000000) / 1000000;
-  ESP_LOGCONFIG(TAG, "Calculated display parameters: %d ms per digit, interrupt every %llu cycles", per_digit_time,
-                timer_match_time);
+  uint32_t per_digit_time_ = 17000 / length_;
+  uint64_t timer_match_time_ = ((uint64_t) per_digit_time_ * 40000000) / 1000000;
+  ESP_LOGCONFIG(TAG, "Calculated display parameters: %d ms per digit, interrupt every %llu cycles", per_digit_time_,
+                timer_match_time_);
 
-  timer = timerBegin(0, 2, true);
-  ESP_LOGCONFIG(TAG, "GRP: %d, NUM: %d", timer->group, timer->num);
-  timer_group_t grp = static_cast<timer_group_t>(timer->group);
-  timer_idx_t num = static_cast<timer_idx_t>(timer->num);
+#ifdef USE_ESP32
+  timer_ = timerBegin(0, 2, true);
+  ESP_LOGCONFIG(TAG, "GRP: %d, NUM: %d", timer_->group, timer_->num);
+  timer_group_t grp = static_cast<timer_group_t>(timer_->group);
+  timer_idx_t num = static_cast<timer_idx_t>(timer_->num);
   timer_isr_callback_add(grp, num, &timer_intr, this, 0);
-  timerAlarmWrite(timer, timer_match_time, true);
-  timerAlarmEnable(timer);
+  timerAlarmWrite(timer_, timer_match_time_, true);
+  timerAlarmEnable(timer_);
+#endif
 }
 
 void IRAM_ATTR HOT SerialMultiplexedDisplay::timer_interrupt() {
   // push data to the display, as quickly as possible.
 
-  if (!can_update) {
+  if (!can_update_) {
     return;
   }
 
-  if (current_segment >= length_) {
-    current_segment = 0;
+  if (current_segment_ >= length_) {
+    current_segment_ = 0;
   }
 
   if (model_ == SerialDeviceModel::SN74HC595) {
-    uint8_t segment_select = 1 << current_segment;
+    uint8_t segment_select_ = 1 << current_segment_;
 
-    _latch_pin->digital_write(LOW);
-    if (is_common_cathode) {
-      serial_shift_out(segment_select, 8, false);
-      serial_shift_out(~(buffer_[current_segment]), 8, false);
+    latch_pin_->digital_write(LOW);
+    if (is_common_cathode_) {
+      serial_shift_out_(segment_select_, 8, false);
+      serial_shift_out_(~(buffer_[current_segment_]), 8, false);
     } else {
-      serial_shift_out(~(segment_select), 8, false);
-      serial_shift_out(buffer_[current_segment], 8, false);
+      serial_shift_out_(~(segment_select_), 8, false);
+      serial_shift_out_(buffer_[current_segment_], 8, false);
     }
-    _latch_pin->digital_write(HIGH);
+    latch_pin_->digital_write(HIGH);
   }
 
   if (model_ == SerialDeviceModel::CT1642) {
-    switch (current_segment) {
+    switch (current_segment_) {
       case 0: {
-        serial_shift_out(0x7f, 4, true);
+        serial_shift_out_(0x7f, 4, true);
         break;
       }
       case 1: {
-        serial_shift_out(0xbf, 4, true);
+        serial_shift_out_(0xbf, 4, true);
         break;
       }
       case 2: {
-        serial_shift_out(0xdf, 4, true);
+        serial_shift_out_(0xdf, 4, true);
         break;
       }
       case 3: {
-        serial_shift_out(0xef, 4, true);
+        serial_shift_out_(0xef, 4, true);
         break;
       }
     }
-    serial_shift_out(0, 6, true);
-    serial_shift_out(buffer_[current_segment], 8, true);
-    _data_pin->digital_write(LOW);
-    _data_pin->digital_write(HIGH);
-    _clk_pin->digital_write(LOW);
-    _data_pin->digital_write(LOW);
-    _data_pin->digital_write(HIGH);
+    serial_shift_out_(0, 6, true);
+    serial_shift_out_(buffer_[current_segment_], 8, true);
+    data_pin_->digital_write(LOW);
+    data_pin_->digital_write(HIGH);
+    clk_pin_->digital_write(LOW);
+    data_pin_->digital_write(LOW);
+    data_pin_->digital_write(HIGH);
   }
 
-  current_segment++;
+  current_segment_++;
 }
 
-void IRAM_ATTR HOT SerialMultiplexedDisplay::serial_shift_out(uint8_t val, uint8_t num_bits, bool polarity) {
+void IRAM_ATTR HOT SerialMultiplexedDisplay::serial_shift_out_(uint8_t val, uint8_t num_bits, bool polarity) {
   for (int i = 0; i < num_bits; i++) {
-    this->_data_pin->digital_write(val & (1 << (7 - i)));
-    this->_clk_pin->digital_write(true);
-    this->_clk_pin->digital_write(false);
+    this->data_pin_->digital_write(val & (1 << (7 - i)));
+    this->clk_pin_->digital_write(true);
+    this->clk_pin_->digital_write(false);
   }
 }
 
@@ -163,9 +165,9 @@ void SerialMultiplexedDisplay::update() {
 }
 
 void SerialMultiplexedDisplay::display() {
-  can_update = false;
+  can_update_ = false;
   memcpy(buffer_, back_buffer_, 4);
-  can_update = true;
+  can_update_ = true;
 }
 
 uint8_t SerialMultiplexedDisplay::print(uint8_t pos, const char *str) {
@@ -185,7 +187,7 @@ uint8_t SerialMultiplexedDisplay::print(uint8_t pos, const char *str) {
       return 0;
     }
 
-    if (is_reversed) {
+    if (is_reversed_) {
       back_buffer_[(length_ - 1) - pos] = disp_data;
     } else {
       back_buffer_[pos] = disp_data;
