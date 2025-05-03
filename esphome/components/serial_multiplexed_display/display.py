@@ -22,7 +22,7 @@ SerialMultiplexedDisplayRef = SerialMultiplexedDisplay.operator("ref")
 
 SerialDeviceModel = serial_multiplexed_display_ns.enum("SerialDeviceModel")
 SERIAL_DEVICE_MODELS = {
-    "74hc595": SerialDeviceModel.SN74HC595,
+    "sn74hc595": SerialDeviceModel.SN74HC595,
     "ct1642": SerialDeviceModel.CT1642,
 }
 
