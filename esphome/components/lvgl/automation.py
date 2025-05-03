@@ -35,7 +35,13 @@ from .lvcode import (
     lv_obj,
     lvgl_comp,
 )
-from .schemas import DISP_BG_SCHEMA, LIST_ACTION_SCHEMA, LVGL_SCHEMA, base_update_schema
+from .schemas import (
+    DISP_BG_SCHEMA,
+    LIST_ACTION_SCHEMA,
+    LVGL_SCHEMA,
+    base_update_schema,
+    id_list_schema,
+)
 from .types import (
     LV_STATE,
     LvglAction,
@@ -57,6 +63,7 @@ from .widgets import (
 
 # Record widgets that are used in a focused action here
 focused_widgets = set()
+refreshed_widgets = set()
 
 
 async def action_to_code(
@@ -361,3 +368,31 @@ async def obj_update_to_code(config, action_id, template_arg, args):
     return await action_to_code(
         widgets, do_update, action_id, template_arg, args, config
     )
+
+
+def validate_refresh_config(config):
+    for w in config[CONF_ID]:
+        refreshed_widgets.add(w[CONF_ID])
+    return config
+
+
+@automation.register_action(
+    "lvgl.widget.refresh",
+    ObjUpdateAction,
+    cv.All(id_list_schema(lv_obj_t), validate_refresh_config),
+)
+async def obj_refresh_to_code(config, action_id, template_arg, args):
+    widget = await get_widgets(config[CONF_ID])
+
+    async def do_refresh(widget: Widget):
+        # only update things that might have changed, i.e. are templated
+        config = {k: v for k, v in widget.config.items() if isinstance(v, Lambda)}
+        await set_obj_properties(widget, config)
+        await widget.type.to_code(widget, config)
+        if (
+            widget.type.w_type.value_property is not None
+            and widget.type.w_type.value_property in config
+        ):
+            lv.event_send(widget.obj, UPDATE_EVENT, nullptr)
+
+    return await action_to_code(widget, do_refresh, action_id, template_arg, args)
