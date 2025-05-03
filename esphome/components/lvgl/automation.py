@@ -398,11 +398,11 @@ async def obj_refresh_to_code(config, action_id, template_arg, args):
         # only update style properties that might have changed, i.e. are templated
         config = {k: v for k, v in widget.config.items() if isinstance(v, Lambda)}
         await set_obj_properties(widget, config)
-        # must pass full widget config here as some may be required, even if not templated.
-        # so first check if any non-style properties are templated, if not we can skip the update
+        # must pass all widget-specific options here, even if not templated, but only do so if at least one is
+        # templated. First filter out common style properties.
         config = {k: v for k, v in widget.config.items() if k not in ALL_STYLES}
         if any(isinstance(v, Lambda) for v in config.values()):
-            await widget.type.to_code(widget, widget.config)
+            await widget.type.to_code(widget, config)
             if (
                 widget.type.w_type.value_property is not None
                 and widget.type.w_type.value_property in config
