@@ -402,12 +402,11 @@ async def obj_refresh_to_code(config, action_id, template_arg, args):
         # so first check if any non-style properties are templated, if not we can skip the update
         config = {k: v for k, v in widget.config.items() if k not in ALL_STYLES}
         if any(isinstance(v, Lambda) for v in config.values()):
-            await set_obj_properties(widget, config)
-        await widget.type.to_code(widget, widget.config)
-        if (
-            widget.type.w_type.value_property is not None
-            and widget.type.w_type.value_property in config
-        ):
-            lv.event_send(widget.obj, UPDATE_EVENT, nullptr)
+            await widget.type.to_code(widget, widget.config)
+            if (
+                widget.type.w_type.value_property is not None
+                and widget.type.w_type.value_property in config
+            ):
+                lv.event_send(widget.obj, UPDATE_EVENT, nullptr)
 
     return await action_to_code(widget, do_refresh, action_id, template_arg, args)
