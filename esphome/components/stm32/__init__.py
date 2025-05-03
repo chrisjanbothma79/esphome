@@ -16,7 +16,7 @@ from .const import CONF_BOARD_SERIES, KEY_BOARD, KEY_STM32
 from .gpio import stm32_pin_to_code  # noqa
 
 _LOGGER = logging.getLogger(__name__)
-CODEOWNERS = ["@mrk"]
+CODEOWNERS = ["@mrk-its"]
 # AUTO_LOAD = ["preferences"]
 AUTO_LOAD = []
 IS_TARGET_PLATFORM = True
