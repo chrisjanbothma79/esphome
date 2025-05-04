@@ -54,12 +54,12 @@ void SerialMultiplexedDisplay::dump_config() {
   if (this->latch_pin_ != nullptr) {
     LOG_PIN("  LATCH Pin: ", this->latch_pin_);
   }
-  if (this->is_common_cathode_ == true) {
+  if (this->is_common_cathode_) {
     ESP_LOGCONFIG(TAG, "  Common Cathode: True");
   } else {
     ESP_LOGCONFIG(TAG, "  Common Cathode: False");
   }
-  if (this->is_reversed_ == true) {
+  if (this->is_reversed_) {
     ESP_LOGCONFIG(TAG, "  Display Reversed: True");
   } else {
     ESP_LOGCONFIG(TAG, "  Display Reversed: False");
@@ -76,10 +76,10 @@ void SerialMultiplexedDisplay::setup() {
 
   // calculate to get around 16ms for the full display based on length. (around 17ms for the entire display)
   //  timer clk = 80Mhz prescaled by 2 = 40Mhz clock.
-  uint32_t per_digit_time_ = 17000 / length_;
-  uint64_t timer_match_time_ = ((uint64_t) per_digit_time_ * 40000000) / 1000000;
-  ESP_LOGCONFIG(TAG, "Calculated display parameters: %d ms per digit, interrupt every %llu cycles", per_digit_time_,
-                timer_match_time_);
+  uint32_t per_digit_time = 17000 / length_;
+  uint64_t timer_match_time = ((uint64_t) per_digit_time * 40000000) / 1000000;
+  ESP_LOGCONFIG(TAG, "Calculated display parameters: %d ms per digit, interrupt every %llu cycles", per_digit_time,
+                timer_match_time);
 
 #ifdef USE_ESP32
   timer_ = timerBegin(0, 2, true);
@@ -87,7 +87,7 @@ void SerialMultiplexedDisplay::setup() {
   timer_group_t grp = static_cast<timer_group_t>(timer_->group);
   timer_idx_t num = static_cast<timer_idx_t>(timer_->num);
   timer_isr_callback_add(grp, num, &timer_intr, this, 0);
-  timerAlarmWrite(timer_, timer_match_time_, true);
+  timerAlarmWrite(timer_, timer_match_time, true);
   timerAlarmEnable(timer_);
 #endif
 }
@@ -104,14 +104,14 @@ void IRAM_ATTR HOT SerialMultiplexedDisplay::timer_interrupt() {
   }
 
   if (model_ == SerialDeviceModel::SN74HC595) {
-    uint8_t segment_select_ = 1 << current_segment_;
+    uint8_t segment_select = 1 << current_segment_;
 
     latch_pin_->digital_write(LOW);
     if (is_common_cathode_) {
-      serial_shift_out_(segment_select_, 8, false);
+      serial_shift_out_(segment_select, 8, false);
       serial_shift_out_(~(buffer_[current_segment_]), 8, false);
     } else {
-      serial_shift_out_(~(segment_select_), 8, false);
+      serial_shift_out_(~(segment_select), 8, false);
       serial_shift_out_(buffer_[current_segment_], 8, false);
     }
     latch_pin_->digital_write(HIGH);
