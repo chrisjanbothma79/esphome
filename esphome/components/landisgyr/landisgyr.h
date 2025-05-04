@@ -9,8 +9,6 @@
 namespace esphome {
 namespace landisgyr {
 
-#define BUF_SIZE 2048
-
 enum class State { Idle, RecieveInit, ReceiveValues };
 
 class LandisSensor : public sensor::Sensor, public PollingComponent, public uart::UARTDevice {
