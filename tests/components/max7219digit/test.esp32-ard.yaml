@@ -4,5 +4,4 @@ substitutions:
   miso_pin: GPIO15
   cs_pin: GPIO5
 
-
 <<: !include common.yaml
