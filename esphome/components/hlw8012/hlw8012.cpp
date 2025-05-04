@@ -14,8 +14,8 @@ void HLW8012Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up HLW8012...");
   this->sel_pin_->setup();
   this->sel_pin_->digital_write(this->current_mode_);
-  this->cf_store_.pulse_counter_setup(this->cf_pin_);
-  this->cf1_store_.pulse_counter_setup(this->cf1_pin_);
+  this->cf_store_.pulse_counter_setup(this->cf_pin_, nullptr);
+  this->cf1_store_.pulse_counter_setup(this->cf1_pin_, nullptr);
 
   // Initialize multipliers
   if (this->sensor_model_ == HLW8012_SENSOR_MODEL_BL0937) {
