@@ -14,7 +14,7 @@ from esphome.const import (
 
 DEPENDENCIES = ["uart"]
 
-landis_sensor_ns = cg.esphome_ns.namespace("landis")
+landis_sensor_ns = cg.esphome_ns.namespace("landisgyr")
 
 LandisSensor = landis_sensor_ns.class_(
     "LandisSensor ", sensor.Sensor, cg.PollingComponent, uart.UARTDevice
@@ -38,7 +38,7 @@ CONFIG_SCHEMA = (
             ),
         }
     )
-    .extend(cv.polling_component_schema("60"))
+    .extend(cv.polling_component_schema("15s"))
     .extend(uart.UART_DEVICE_SCHEMA)
 )
 

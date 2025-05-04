@@ -7,7 +7,7 @@
 #include "esphome/core/component.h"
 
 namespace esphome {
-namespace landis {
+namespace landisgyr {
 
 #define BUF_SIZE 2048
 
@@ -40,5 +40,5 @@ class LandisSensor : public sensor::Sensor, public PollingComponent, public uart
   std::string buffer_string;
 };
 
-}  // namespace landis
+}  // namespace landisgyr
 }  // namespace esphome
