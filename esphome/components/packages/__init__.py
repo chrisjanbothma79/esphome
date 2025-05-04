@@ -24,6 +24,9 @@ DOMAIN = CONF_PACKAGES
 
 
 def validate_git_package(config: dict):
+    if CONF_URL not in config:
+        return config
+    config = BASE_SCHEMA(config)
     new_config = config
     if CONF_FILE in config:
         new_config[CONF_FILES] = [config[CONF_FILE]]
@@ -86,10 +89,11 @@ BASE_SCHEMA = cv.All(
         }
     ),
     cv.has_at_least_one_key(CONF_FILE, CONF_FILES),
-    validate_git_package,
 )
 
-PACKAGE_SCHEMA = cv.Any(validate_source_shorthand, BASE_SCHEMA, dict)
+PACKAGE_SCHEMA = cv.All(
+    cv.Any(validate_source_shorthand, BASE_SCHEMA, dict), validate_git_package
+)
 
 CONFIG_SCHEMA = cv.Any(
     cv.Schema(
@@ -173,6 +177,16 @@ def _process_base_package(config: dict) -> dict:
     return {"packages": packages}
 
 
+def _process_package(package_config, config):
+    recursive_package = package_config
+    if CONF_URL in package_config:
+        package_config = _process_base_package(package_config)
+    if isinstance(package_config, dict):
+        recursive_package = do_packages_pass(package_config)
+    config = merge_config(recursive_package, config)
+    return config
+
+
 def do_packages_pass(config: dict):
     if CONF_PACKAGES not in config:
         return config
@@ -182,20 +196,10 @@ def do_packages_pass(config: dict):
         if isinstance(packages, dict):
             for package_name, package_config in reversed(packages.items()):
                 with cv.prepend_path(package_name):
-                    recursive_package = package_config
-                    if CONF_URL in package_config:
-                        package_config = _process_base_package(package_config)
-                    if isinstance(package_config, dict):
-                        recursive_package = do_packages_pass(package_config)
-                    config = merge_config(recursive_package, config)
+                    config = _process_package(package_config, config)
         elif isinstance(packages, list):
             for package_config in reversed(packages):
-                recursive_package = package_config
-                if CONF_URL in package_config:
-                    package_config = _process_base_package(package_config)
-                if isinstance(package_config, dict):
-                    recursive_package = do_packages_pass(package_config)
-                config = merge_config(recursive_package, config)
+                config = _process_package(package_config, config)
         else:
             raise cv.Invalid(
                 f"Packages must be a key to value mapping or list, got {type(packages)} instead"
