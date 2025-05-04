@@ -27,10 +27,11 @@ using pulse_counter_t = int32_t;
 #endif  // HAS_PCNT
 
 struct PulseCounterStorageBase {
-  virtual bool pulse_counter_setup(InternalGPIOPin *pin) = 0;
+  virtual bool pulse_counter_setup(InternalGPIOPin *pin, InternalGPIOPin *dir_pin) = 0;
   virtual pulse_counter_t read_raw_value() = 0;
 
   InternalGPIOPin *pin;
+  InternalGPIOPin *dir_pin;
   PulseCounterCountMode rising_edge_mode{PULSE_COUNTER_INCREMENT};
   PulseCounterCountMode falling_edge_mode{PULSE_COUNTER_DISABLE};
   uint32_t filter_us{0};
@@ -40,7 +41,7 @@ struct PulseCounterStorageBase {
 struct BasicPulseCounterStorage : public PulseCounterStorageBase {
   static void gpio_intr(BasicPulseCounterStorage *arg);
 
-  bool pulse_counter_setup(InternalGPIOPin *pin) override;
+  bool pulse_counter_setup(InternalGPIOPin *pin, InternalGPIOPin *dir_pin) override;
   pulse_counter_t read_raw_value() override;
 
   volatile pulse_counter_t counter{0};
@@ -51,7 +52,7 @@ struct BasicPulseCounterStorage : public PulseCounterStorageBase {
 
 #ifdef HAS_PCNT
 struct HwPulseCounterStorage : public PulseCounterStorageBase {
-  bool pulse_counter_setup(InternalGPIOPin *pin) override;
+  bool pulse_counter_setup(InternalGPIOPin *pin, InternalGPIOPin *dir_pin) override;
   pulse_counter_t read_raw_value() override;
 
   pcnt_unit_t pcnt_unit;
@@ -66,6 +67,7 @@ class PulseCounterSensor : public sensor::Sensor, public PollingComponent {
   explicit PulseCounterSensor(bool hw_pcnt = false) : storage_(*get_storage(hw_pcnt)) {}
 
   void set_pin(InternalGPIOPin *pin) { pin_ = pin; }
+  void set_dir_pin(InternalGPIOPin *pin) { dir_pin_ = pin; }
   void set_rising_edge_mode(PulseCounterCountMode mode) { storage_.rising_edge_mode = mode; }
   void set_falling_edge_mode(PulseCounterCountMode mode) { storage_.falling_edge_mode = mode; }
   void set_filter_us(uint32_t filter) { storage_.filter_us = filter; }
@@ -81,6 +83,7 @@ class PulseCounterSensor : public sensor::Sensor, public PollingComponent {
 
  protected:
   InternalGPIOPin *pin_;
+  InternalGPIOPin *dir_pin_;
   PulseCounterStorageBase &storage_;
   uint32_t last_time_{0};
   int32_t current_total_{0};
