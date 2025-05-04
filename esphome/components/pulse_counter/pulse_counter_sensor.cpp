@@ -32,8 +32,7 @@ void IRAM_ATTR BasicPulseCounterStorage::gpio_intr(BasicPulseCounterStorage *arg
       if (arg->dir_pin != nullptr && arg->dir_pin->digital_read()) {
         auto x = arg->counter - 1;
         arg->counter = x;
-      }
-      else {
+      } else {
         auto x = arg->counter + 1;
         arg->counter = x;
       }
@@ -42,8 +41,7 @@ void IRAM_ATTR BasicPulseCounterStorage::gpio_intr(BasicPulseCounterStorage *arg
       if (arg->dir_pin != nullptr && arg->dir_pin->digital_read()) {
         auto x = arg->counter + 1;
         arg->counter = x;
-      }
-      else {
+      } else {
         auto x = arg->counter - 1;
         arg->counter = x;
       }
@@ -129,19 +127,18 @@ bool HwPulseCounterStorage::pulse_counter_setup(InternalGPIOPin *pin, InternalGP
         .unit = this->pcnt_unit,
         .channel = this->pcnt_channel,
     };
-  }
-  else {
+  } else {
     pcnt_config = {
-      .pulse_gpio_num = this->pin->get_pin(),
-      .ctrl_gpio_num = PCNT_PIN_NOT_USED,
-      .lctrl_mode = PCNT_MODE_KEEP,
-      .hctrl_mode = PCNT_MODE_KEEP,
-      .pos_mode = rising,
-      .neg_mode = falling,
-      .counter_h_lim = 0,
-      .counter_l_lim = 0,
-      .unit = this->pcnt_unit,
-      .channel = this->pcnt_channel,
+        .pulse_gpio_num = this->pin->get_pin(),
+        .ctrl_gpio_num = PCNT_PIN_NOT_USED,
+        .lctrl_mode = PCNT_MODE_KEEP,
+        .hctrl_mode = PCNT_MODE_KEEP,
+        .pos_mode = rising,
+        .neg_mode = falling,
+        .counter_h_lim = 0,
+        .counter_l_lim = 0,
+        .unit = this->pcnt_unit,
+        .channel = this->pcnt_channel,
     };
   }
   esp_err_t error = pcnt_unit_config(&pcnt_config);
