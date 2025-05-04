@@ -9,7 +9,7 @@
 namespace esphome {
 namespace landisgyr {
 
-enum class State { Idle, RecieveInit, ReceiveValues };
+enum class State { IDLE, RECIEVE_INIT, RECEIVE_VALUES };
 
 class LandisSensor : public sensor::Sensor, public PollingComponent, public uart::UARTDevice {
  public:
@@ -24,18 +24,18 @@ class LandisSensor : public sensor::Sensor, public PollingComponent, public uart
   sensor::Sensor *kwh_sensor_{nullptr};
   sensor::Sensor *volume_sensor_{nullptr};
 
-  State state = State::Idle;
+  State state_ = State::IDLE;
 
-  std::string ReadLine();
-  void ParseFirstLine(std::string string);
-  std::string ParseDelimiter(std::string stringToParse, std::string first, std::string second);
+  std::string readLine_();
+  void parse_first_line_(std::string string);
+  std::string parse_delimiter_(std::string string_to_parse, std::string first, std::string second);
 
-  void SendRequest();
+  void send_request_();
 
-  bool ReadOnlyFirstLine{true};
+  bool read_only_first_line_{true};
 
-  std::string InitMessage{"/LUGCUH50"};
-  std::string buffer_string;
+  std::string init_message_{"/LUGCUH50"};
+  std::string buffer_string_;
 };
 
 }  // namespace landisgyr
