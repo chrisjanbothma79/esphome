@@ -72,8 +72,8 @@ def validate_pulse_counter_pin(value):
 def validate_pulse_counter_dir_pin(value):
     value = pins.internal_gpio_input_pin_schema(value)
     return value
-    
-    
+
+
 def validate_count_mode(value):
     rising_edge = value[CONF_RISING_EDGE]
     falling_edge = value[CONF_FALLING_EDGE]
@@ -139,7 +139,7 @@ async def to_code(config):
     if dir_pin_config := config.get(CONF_DIR_PIN):
         dir_pin = await cg.gpio_pin_expression(dir_pin_config)
         cg.add(var.set_dir_pin(dir_pin))
-    
+
     count = config[CONF_COUNT_MODE]
     cg.add(var.set_rising_edge_mode(count[CONF_RISING_EDGE]))
     cg.add(var.set_falling_edge_mode(count[CONF_FALLING_EDGE]))
