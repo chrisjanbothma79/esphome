@@ -7,6 +7,7 @@ import pytest
 
 from esphome.components.packages import do_packages_pass
 from esphome.config_helpers import Extend, Remove
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_DEFAULTS,
     CONF_DOMAIN,
@@ -71,6 +72,18 @@ def test_package_unused(basic_esphome, basic_wifi):
 
     actual = do_packages_pass(config)
     assert actual == config
+
+
+def test_package_invalid_dict(basic_esphome, basic_wifi):
+    """
+    If a url: key is present, it's expected to be well-formed remote package spec. Ensure an error is raised if not.
+    Any other simple dict passed as a package will be merged as usual but may fail later validation.
+
+    """
+    config = {CONF_ESPHOME: basic_esphome, CONF_PACKAGES: basic_wifi | {CONF_URL: ""}}
+
+    with pytest.raises(cv.Invalid):
+        do_packages_pass(config)
 
 
 def test_package_include(basic_wifi, basic_esphome):
