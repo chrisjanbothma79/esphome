@@ -5,6 +5,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_BORDER,
     CONF_COLOR,
+    CONF_CONTINUOUS,
     CONF_DIRECTION,
     CONF_DURATION,
     CONF_HEIGHT,
@@ -27,7 +28,6 @@ from esphome.const import (
     CONF_WIDTH,
     CONF_X_GRID,
     CONF_Y_GRID,
-    CONF_CONTINUOUS,
 )
 
 CODEOWNERS = ["@synco"]
