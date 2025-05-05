@@ -1,7 +1,6 @@
 import esphome.codegen as cg
 from esphome.components import binary_sensor
 import esphome.config_validation as cv
-from esphome.const import CONF_INDEX
 
 from .. import cst226_ns
 from ..touchscreen import CST226ButtonListener, CST226Touchscreen
@@ -19,7 +18,6 @@ CST226Button = cst226_ns.class_(
 CONFIG_SCHEMA = binary_sensor.binary_sensor_schema(CST226Button).extend(
     {
         cv.GenerateID(CONF_CST226_ID): cv.use_id(CST226Touchscreen),
-        cv.Optional(CONF_INDEX, default=0): cv.int_range(min=0, max=3),
     }
 )
 
