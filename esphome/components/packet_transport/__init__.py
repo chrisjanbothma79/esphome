@@ -94,7 +94,7 @@ STATUS_SENSOR_SCHEMA = binary_sensor_schema(
 
 PROVIDER_SCHEMA = cv.Schema(
     {
-        cv.Required(CONF_NAME): cv.string,
+        cv.Required(CONF_NAME): provider_name_validate,
         cv.Optional(CONF_STATUS_SENSOR): STATUS_SENSOR_SCHEMA,
     }
 ).extend(ENCRYPTION_SCHEMA)
