@@ -11,19 +11,20 @@ namespace max7219digit {
 template<typename... Ts> class DisplayInvertAction : public Action<Ts...>, public Parented<MAX7219Component> {
  public:
   TEMPLATABLE_VALUE(bool, state)
-  
-  void play(Ts... x) override { 
+
+  void play(Ts... x) override {
     bool state = this->state_.optional_value(x...);
-    this->parent_->invert_on_off(state); }
+    this->parent_->invert_on_off(state);
+  }
 };
 
 template<typename... Ts> class DisplayVisiblityAction : public Action<Ts...>, public Parented<MAX7219Component> {
  public:
   TEMPLATABLE_VALUE(bool, state)
-  
-  void play(Ts... x) override { 
+
+  void play(Ts... x) override {
     bool state = this->state_.optional_value(x...);
-    this->parent_->turn_on_off(state); 
+    this->parent_->turn_on_off(state);
   }
 };
 
@@ -31,18 +32,20 @@ template<typename... Ts> class DisplayReverseAction : public Action<Ts...>, publ
  public:
   TEMPLATABLE_VALUE(bool, state)
 
-  void play(Ts... x) override { 
+  void play(Ts... x) override {
     bool state = this->state_.optional_value(x...);
-    this->parent_->set_reverse(state); }
+    this->parent_->set_reverse(state);
+  }
 };
 
 template<typename... Ts> class DisplayIntensityAction : public Action<Ts...>, public Parented<MAX7219Component> {
  public:
   TEMPLATABLE_VALUE(uint8_t, state)
 
-  void play(Ts... x) override { 
+  void play(Ts... x) override {
     uint8_t state = this->state_.optional_value(x...);
-    this->parent_->intensity(state); }
+    this->parent_->intensity(state);
+  }
 };
 
 }  // namespace max7219digit
