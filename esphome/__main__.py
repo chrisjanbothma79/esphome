@@ -51,6 +51,7 @@ from esphome.util import (
     run_external_process,
     safe_print,
 )
+from esphome.zeroconf import get_mac_suffix_nodes
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -96,9 +97,13 @@ def choose_upload_log_host(
     if default == "SERIAL":
         return choose_prompt(options, purpose=purpose)
     if (show_ota and "ota" in CORE.config) or (show_api and "api" in CORE.config):
-        options.append((f"Over The Air ({CORE.address})", CORE.address))
-        if default == "OTA":
-            return CORE.address
+        if CORE.config["esphome"]["name_add_mac_suffix"]:
+            for addr in get_mac_suffix_nodes(CORE.config["esphome"]["name"]):
+                options.append((f"Over The Air ({addr})", addr))
+        else:
+            options.append((f"Over The Air ({CORE.address})", CORE.address))
+            if default == "OTA":
+                return CORE.address
     if (
         show_mqtt
         and (mqtt_config := CORE.config.get(CONF_MQTT))
