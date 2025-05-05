@@ -25,4 +25,4 @@ esphome:
         - max7129digit.turn_off:
         - max7129digit.reverse_on:
         - max7129digit.reverse_off:
-        # - max7129digit.intensity: 10
+        - max7129digit.intensity: 10

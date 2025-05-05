@@ -188,6 +188,6 @@ MAX7219_INTENSITY_SCHEMA = cv.maybe_simple_value(
 async def max7129digit_intensity_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
-    template_ = await cg.templatable(config[CONF_INTENSITY], args, cg.int_)
+    template_ = await cg.templatable(config[CONF_INTENSITY], args, cg.uint8)
     cg.add(var.set_state(template_))
     return var
