@@ -1,5 +1,4 @@
 #include "debug_component.h"
-#include <map>
 
 #ifdef USE_ESP32
 #include "esphome/core/application.h"
@@ -12,11 +11,11 @@
 #include <esp_chip_info.h>
 #include <esp_partition.h>
 
+#include <map>
+
 #ifdef USE_ARDUINO
 #include <Esp.h>
 #endif
-
-#include <map>
 
 namespace esphome {
 namespace debug {
