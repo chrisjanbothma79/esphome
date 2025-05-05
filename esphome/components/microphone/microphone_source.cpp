@@ -13,6 +13,11 @@ void MicrophoneSource::add_data_callback(std::function<void(const std::vector<ui
   this->mic_->add_data_callback(std::move(filtered_callback));
 }
 
+audio::AudioStreamInfo MicrophoneSource::get_audio_stream_info() {
+  return audio::AudioStreamInfo(this->bits_per_sample_, this->channels_.count(),
+                                this->mic_->get_audio_stream_info().get_sample_rate());
+}
+
 void MicrophoneSource::start() {
   if (!this->enabled_) {
     this->enabled_ = true;

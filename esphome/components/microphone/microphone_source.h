@@ -1,14 +1,19 @@
 #pragma once
 
+#include "microphone.h"
+
+#include "esphome/components/audio/audio.h"
+
 #include <bitset>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <vector>
-#include "microphone.h"
 
 namespace esphome {
 namespace microphone {
+
+static const int32_t MAX_GAIN_FACTOR = 64;
 
 class MicrophoneSource {
   /*
@@ -43,6 +48,14 @@ class MicrophoneSource {
   void add_channel(uint8_t channel) { this->channels_.set(channel); }
 
   void add_data_callback(std::function<void(const std::vector<uint8_t> &)> &&data_callback);
+
+  void set_gain_factor(int32_t gain_factor) { this->gain_factor_ = clamp<int32_t>(gain_factor, 1, MAX_GAIN_FACTOR); }
+  int32_t get_gain_factor() { return this->gain_factor_; }
+
+  /// @brief Gets the AudioStreamInfo of the data after processing
+  /// @return audio::AudioStreamInfo with the configured bits per sample, configured channel count, and source
+  ///         microphone's sample rate
+  audio::AudioStreamInfo get_audio_stream_info();
 
   void start();
   void stop();
