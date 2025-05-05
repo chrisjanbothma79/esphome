@@ -310,10 +310,9 @@ async def to_code(config):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [], conf)
 
-    has_wifi = "wifi" in CORE.loaded_integrations
     if CORE.using_esp_idf:
         add_idf_sdkconfig_option("CONFIG_BT_ENABLED", True)
-        if has_wifi and config[CONF_SOFTWARE_COEXISTENCE]:
+        if config[CONF_SOFTWARE_COEXISTENCE]:
             add_idf_sdkconfig_option("CONFIG_SW_COEXIST_ENABLE", True)
         # https://github.com/espressif/esp-idf/issues/4101
         # https://github.com/espressif/esp-idf/issues/2503
@@ -336,7 +335,7 @@ async def to_code(config):
 
     cg.add_define("USE_OTA_STATE_CALLBACK")  # To be notified when an OTA update starts
     cg.add_define("USE_ESP32_BLE_CLIENT")
-    if has_wifi and config[CONF_SOFTWARE_COEXISTENCE]:
+    if config[CONF_SOFTWARE_COEXISTENCE]:
         cg.add_define("USE_ESP32_BLE_SOFTWARE_COEXISTENCE")
 
 
