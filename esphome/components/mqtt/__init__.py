@@ -54,7 +54,6 @@ from esphome.const import (
     PLATFORM_BK72XX,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
-    PLATFORM_BK72XX,
     PLATFORM_RP2040,
 )
 from esphome.core import CORE, coroutine_with_priority
