@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include "atm90e32_reg.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/spi/spi.h"
@@ -7,7 +8,6 @@
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/preferences.h"
-#include <unordered_map>
 
 namespace esphome {
 namespace atm90e32 {
@@ -88,17 +88,25 @@ class ATM90E32Component : public PollingComponent,
   void set_enable_gain_calibration(bool flag) { enable_gain_calibration_ = flag; }
   int16_t calibrate_offset(uint8_t phase, bool voltage);
   int16_t calibrate_power_offset(uint8_t phase, bool reactive);
-#ifdef USE_NUMBER
   void run_gain_calibrations();
+#ifdef USE_NUMBER
   void set_reference_voltage(uint8_t phase, number::Number *ref_voltage) { ref_voltages_[phase] = ref_voltage; }
   void set_reference_current(uint8_t phase, number::Number *ref_current) { ref_currents_[phase] = ref_current; }
+#endif
   float get_reference_voltage(uint8_t phase) {
+#ifdef USE_NUMBER
     return (phase >= 0 && phase < 3 && ref_voltages_[phase]) ? ref_voltages_[phase]->state : 120.0;  // Default voltage
+#else
+    return 120.0;  // Default voltage
+#endif
   }
   float get_reference_current(uint8_t phase) {
+#ifdef USE_NUMBER
     return (phase >= 0 && phase < 3 && ref_currents_[phase]) ? ref_currents_[phase]->state : 5.0f;  // Default current
-  }
+#else
+    return 5.0f;   // Default current
 #endif
+  }
   bool using_saved_calibrations_ = false;  // Track if stored calibrations are being used
 #ifdef USE_TEXT_SENSOR
   void check_phase_status();

@@ -1,6 +1,5 @@
-#include "esphome/core/component.h"
 #include "atm90e32_button.h"
-#include "esphome/components/number/number.h"
+#include "esphome/core/component.h"
 #include "esphome/core/log.h"
 
 namespace esphome {

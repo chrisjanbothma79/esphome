@@ -1,7 +1,7 @@
 #include "atm90e32.h"
-#include "esphome/core/log.h"
 #include <cinttypes>
 #include <cmath>
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace atm90e32 {
@@ -440,7 +440,6 @@ float ATM90E32Component::get_chip_temperature_() {
   return (float) ctemp;
 }
 
-#ifdef USE_NUMBER
 void ATM90E32Component::run_gain_calibrations() {
   if (!this->enable_gain_calibration_) {
     ESP_LOGW("CALIBRATION", "Gain calibration is disabled! Enable it first with enable_gain_calibration: true");
@@ -530,7 +529,6 @@ void ATM90E32Component::run_gain_calibrations() {
   this->write_gains_to_registers_();
   this->verify_gain_writes_();
 }
-#endif
 
 void ATM90E32Component::save_gain_calibration_to_memory_() {
   bool success = this->gain_calibration_pref_.save(&this->gain_phase_);
