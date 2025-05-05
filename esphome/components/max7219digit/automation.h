@@ -18,7 +18,7 @@ template<typename... Ts> class DisplayInvertAction : public Action<Ts...>, publi
   }
 };
 
-template<typename... Ts> class DisplayVisiblityAction : public Action<Ts...>, public Parented<MAX7219Component> {
+template<typename... Ts> class DisplayVisibilityAction : public Action<Ts...>, public Parented<MAX7219Component> {
  public:
   TEMPLATABLE_VALUE(bool, state)
 
