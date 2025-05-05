@@ -227,7 +227,7 @@ def validate_modbus_register(config):
 
 
 def _final_validate(config):
-    if CONF_SERVER_REGISTERS in config:
+    if CONF_SERVER_REGISTERS in config or CONF_SERVER_COIL_REGISTERS in config:
         return modbus.final_validate_modbus_device("modbus_controller", role="server")(
             config
         )
