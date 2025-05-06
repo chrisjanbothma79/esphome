@@ -24,7 +24,7 @@ void LandisSensor::update() {
 }
 
 void LandisSensor::loop() {
-  if (!(state_ == State::RECEIVE_VALUES || state_ == State::RECIEVE_INIT))
+  if (state_ != State::RECEIVE_VALUES && state_ != State::RECIEVE_INIT)
     return;
 
   auto line = read_line_();
@@ -66,7 +66,7 @@ void LandisSensor::send_request_() {
 std::string LandisSensor::read_line_() {
   while (available()) {
     auto c = read();
-    buffer_string_ += c;
+    buffer_string_ += std::to_string(c);
     if (c == '\n') {
       auto r = buffer_string_;
       buffer_string_.clear();
@@ -76,7 +76,8 @@ std::string LandisSensor::read_line_() {
   return "";
 }
 
-std::string LandisSensor::parse_delimiter_(std::string string_to_parse, std::string first, std::string second) {
+std::string LandisSensor::parse_delimiter_(const std::string &string_to_parse, const std::string &first,
+                                           const std::string &second) {
   auto pos1 = string_to_parse.find(first);
   auto pos2 = string_to_parse.find(second);
   if (pos1 == -1 || pos2 == -1) {
@@ -87,14 +88,14 @@ std::string LandisSensor::parse_delimiter_(std::string string_to_parse, std::str
   return string_to_parse.substr(pos1 + first.length(), pos2 - pos1 - first.length());
 }
 
-void LandisSensor::parse_first_line_(std::string line) {
-  std::string Energy = parse_delimiter_(line, "6.8(", "*MWh");
-  std::string Water = parse_delimiter_(line, "6.26(", "*m3");
+void LandisSensor::parse_first_line_(const std::string &line) {
+  std::string energy = parse_delimiter_(line, "6.8(", "*MWh");
+  std::string water = parse_delimiter_(line, "6.26(", "*m3");
 
   if (kwh_sensor_ != nullptr)
-    kwh_sensor_->publish_state(strtof(Energy.c_str(), nullptr));
+    kwh_sensor_->publish_state(strtof(energy.c_str(), nullptr));
   if (volume_sensor_ != nullptr)
-    volume_sensor_->publish_state(strtof(Water.c_str(), nullptr));
+    volume_sensor_->publish_state(strtof(water.c_str(), nullptr));
 }
 
 }  // namespace landisgyr
