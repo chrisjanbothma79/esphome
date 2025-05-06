@@ -250,7 +250,11 @@ class TypeInfo(ABC):
         return f"// No size calculation for type {self.__class__.__name__}"
 
     def size_calc_fixed(
-        self, name: str, bytes_count: int, zero_value: str = "0", force: bool = False
+        self,
+        name: str,
+        bytes_count: Literal[4, 8],
+        zero_value: str = "0",
+        force: bool = False,
     ) -> str:
         """Helper to generate size calculation code for fixed-size fields.
 
