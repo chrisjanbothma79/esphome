@@ -11,14 +11,8 @@ class SwitchCall {
   explicit SwitchCall(Switch *parent) : parent_(parent) {}
   void perform();
 
-  SwitchCall &set_state(bool state) {
-    this->state_ = state;
-    return *this;
-  }
-  SwitchCall &set_inverted(bool inverted) {
-    this->inverted_ = inverted;
-    return *this;
-  }
+  SwitchCall &set_state(bool state);
+  SwitchCall &set_inverted(bool inverted);
 
  protected:
   Switch *const parent_;
