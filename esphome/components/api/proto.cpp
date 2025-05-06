@@ -85,6 +85,10 @@ void ProtoService::log_mismatch_size(uint32_t msg_size, uint32_t actual_size, ui
            msg_size, actual_size, message_type);
 }
 
+void ProtoService::log_matched_size(uint32_t msg_size, uint32_t message_type) {
+  ESP_LOGI("api.proto", "Message size match - Actual: %" PRIu32 ", Type: %" PRIu32, msg_size, message_type);
+}
+
 #ifdef HAS_PROTO_MESSAGE_DUMP
 std::string ProtoMessage::dump() const {
   std::string out;
