@@ -179,7 +179,7 @@ void MicroWakeWord::inference_task(void *params) {
 
         // Generate new spectrogram features
         uint32_t processed_samples = this_mww->generate_features_(
-            (int16_t *) audio_buffer->get_buffer_start(), new_bytes_to_process / sizeof(int16_t), features_buffer);
+            (int16_t *) audio_buffer->get_buffer_start(), audio_buffer->available() / sizeof(int16_t), features_buffer);
         audio_buffer->decrease_buffer_length(processed_samples * sizeof(int16_t));
 
         // Run inference using the new spectorgram features
