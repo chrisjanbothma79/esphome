@@ -269,7 +269,8 @@ class TypeInfo(ABC):
         """
         # According to protobuf spec, fixed32 should use wire type 5 and fixed64 should use wire type 1
         # However, ESPHome's implementation uses wire type 5 for both fixed32 and fixed64, so we use FIXED32
-        # regardless of bytes_count
+        # regardless of bytes_count.
+        # Note that this is wrong but since ESPHome never uses any fixed64, it doesn't matter.
         wire_type = WireType.FIXED32
         field_id_size = self.calculate_field_id_size(wire_type)
 
