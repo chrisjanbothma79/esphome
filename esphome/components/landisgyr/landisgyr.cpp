@@ -66,7 +66,7 @@ void LandisSensor::send_request_() {
 
 std::string LandisSensor::read_line_() {
   while (available()) {
-    auto c = read();
+    char c = read();
     buffer_string_ += std::to_string(c);
     if (c == '\n') {
       auto r = buffer_string_;
