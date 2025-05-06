@@ -324,9 +324,9 @@ class ProtoService {
 
     // Log the calculated vs actual size
     uint32_t actual_size = buffer.get_buffer()->size();
-    if (actual_size != msg_size) {
-      log_mismatch_size(msg_size, actual_size, message_type);
-    }
+    // if (actual_size != msg_size) {
+    log_mismatch_size(msg_size, actual_size, message_type);
+    //}
 
     // Send the buffer
     return this->send_buffer(buffer, message_type);
