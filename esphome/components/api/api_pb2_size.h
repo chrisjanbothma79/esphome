@@ -83,7 +83,7 @@ class ProtoSizeCalculator {
    * @param value The int32 value to calculate size for
    * @return The total size in bytes (field ID + value)
    */
-  static uint32_t int32_field_with_value_size(uint32_t field_id_size, int32_t value) {
+  static inline uint32_t int32_field_with_value_size(uint32_t field_id_size, int32_t value) {
     if (value < 0) {
       // Negative values are encoded as 10-byte varints in protobuf
       return field_id_size + 10;
@@ -91,6 +91,23 @@ class ProtoSizeCalculator {
       // For non-negative values, use the standard varint size
       return field_id_size + varint_size(static_cast<uint32_t>(value));
     }
+  }
+
+  /**
+   * @brief Optimized size calculation for string and bytes fields with field ID
+   *
+   * This method is a specialized version for string/bytes fields that combines the field ID size
+   * and the length-delimited value size calculation. It's more efficient than separate calls
+   * and avoids code duplication in the generated C++.
+   *
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param str The string or bytes value to calculate size for
+   * @return The total size in bytes (field ID + length varint + content)
+   */
+  static inline uint32_t string_field_with_value_size(uint32_t field_id_size, const std::string &str) {
+    // Calculate total size: field ID + length varint + string/bytes length
+    const uint32_t str_size = static_cast<uint32_t>(str.size());
+    return field_id_size + varint_size(str_size) + str_size;
   }
 };
 

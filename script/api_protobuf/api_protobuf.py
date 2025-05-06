@@ -527,14 +527,12 @@ class StringType(TypeInfo):
         # String size calculation: if non-empty, add field_id bytes + size varint + string length
         if force:
             return f"""// Always include for repeated fields (force=true)
-          // Using precalculated field ID size ({field_id_size} bytes)
-          const uint32_t str_size = static_cast<uint32_t>({name}.size());
-          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(str_size) + str_size;"""
+          // Using optimized string/bytes calculation with precalculated field ID size ({field_id_size} bytes)
+          total_size += ProtoSizeCalculator::string_field_with_value_size({field_id_size}, {name});"""
         else:
             return f"""if (!{name}.empty()) {{
-          // Using precalculated field ID size ({field_id_size} bytes)
-          const uint32_t str_size = static_cast<uint32_t>({name}.size());
-          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(str_size) + str_size;
+          // Using optimized string/bytes calculation with precalculated field ID size ({field_id_size} bytes)
+          total_size += ProtoSizeCalculator::string_field_with_value_size({field_id_size}, {name});
         }}"""
 
 
@@ -611,14 +609,12 @@ class BytesType(TypeInfo):
         # Bytes size calculation: if non-empty, add field_id bytes + size varint + bytes length
         if force:
             return f"""// Always include for repeated fields (force=true)
-          // Using precalculated field ID size ({field_id_size} bytes)
-          const uint32_t bytes_size = static_cast<uint32_t>({name}.size());
-          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(bytes_size) + bytes_size;"""
+          // Using optimized string/bytes calculation with precalculated field ID size ({field_id_size} bytes)
+          total_size += ProtoSizeCalculator::string_field_with_value_size({field_id_size}, {name});"""
         else:
             return f"""if (!{name}.empty()) {{
-          // Using precalculated field ID size ({field_id_size} bytes)
-          const uint32_t bytes_size = static_cast<uint32_t>({name}.size());
-          total_size += {field_id_size} + ProtoSizeCalculator::varint_size(bytes_size) + bytes_size;
+          // Using optimized string/bytes calculation with precalculated field ID size ({field_id_size} bytes)
+          total_size += ProtoSizeCalculator::string_field_with_value_size({field_id_size}, {name});
         }}"""
 
 
