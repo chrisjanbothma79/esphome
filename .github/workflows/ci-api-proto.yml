@@ -37,8 +37,6 @@ jobs:
         run: pip install aioesphomeapi -c requirements.txt -r requirements_dev.txt
       - name: Generate files
         run: script/api_protobuf/api_protobuf.py
-      - name: Show changes
-        run: git diff
       - name: Check for changes
         run: |
           if ! git diff --quiet; then
