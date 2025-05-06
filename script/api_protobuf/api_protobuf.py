@@ -249,26 +249,20 @@ class TypeInfo(ABC):
         # To be implemented by subclasses
         return f"// No size calculation for type {self.__class__.__name__}"
 
-    def size_calc_fixed_bytes(
-        self, name: str, bytes_count: int, force: bool = False
+    def size_calc_fixed(
+        self, name: str, bytes_count: int, zero_value: str = "0", force: bool = False
     ) -> str:
-        """Helper to generate size calculation code for fixed-size fields."""
-        field_id_size = self.calculate_field_id_size(WireType.FIXED32)
+        """Helper to generate size calculation code for fixed-size fields.
 
-        if force:
-            return f"""// Always include for repeated fields (force=true)
-          // Field ID takes {field_id_size} byte(s) + {bytes_count} bytes for value
-          total_size += {field_id_size + bytes_count};"""
-        else:
-            return f"""if ({name} != 0) {{
-          // Field ID takes {field_id_size} byte(s) + {bytes_count} bytes for value
-          total_size += {field_id_size + bytes_count};
-        }}"""
+        Works for both numeric fixed types (like fixed32/fixed64) and
+        floating point types (float/double).
 
-    def size_calc_float_fixed(
-        self, name: str, bytes_count: int, zero_value: str, force: bool = False
-    ) -> str:
-        """Helper to generate size calculation code for float/double fields."""
+        Args:
+            name: The name of the field
+            bytes_count: The size of the field value in bytes (4 for fixed32/float, 8 for fixed64/double)
+            zero_value: The zero value for the field (default "0" for integer types, "0.0" for double, "0.0f" for float)
+            force: Whether to force encoding the field even if it has a default value
+        """
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         if force:
@@ -387,9 +381,7 @@ class DoubleType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # Double is handled like fixed64 - 9 bytes when non-zero (1 for field + 8 for value)
-        return self.size_calc_float_fixed(
-            name, bytes_count=8, zero_value="0.0", force=force
-        )
+        return self.size_calc_fixed(name, bytes_count=8, zero_value="0.0", force=force)
 
 
 @register_type(2)
@@ -406,9 +398,7 @@ class FloatType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # Float is handled like fixed32 - 5 bytes when non-zero (1 for field + 4 for value)
-        return self.size_calc_float_fixed(
-            name, bytes_count=4, zero_value="0.0f", force=force
-        )
+        return self.size_calc_fixed(name, bytes_count=4, zero_value="0.0f", force=force)
 
 
 @register_type(3)
@@ -476,7 +466,7 @@ class Fixed64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # Fixed64 is always 9 bytes when non-zero (1 for field + 8 for value)
-        return self.size_calc_fixed_bytes(name, bytes_count=8, force=force)
+        return self.size_calc_fixed(name, bytes_count=8, force=force)
 
 
 @register_type(7)
@@ -493,7 +483,7 @@ class Fixed32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # Fixed32 is always 5 bytes when non-zero (1 for field + 4 for value)
-        return self.size_calc_fixed_bytes(name, bytes_count=4, force=force)
+        return self.size_calc_fixed(name, bytes_count=4, force=force)
 
 
 @register_type(8)
@@ -685,7 +675,7 @@ class SFixed32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # SFixed32 is always 5 bytes when non-zero (1 for field + 4 for value)
-        return self.size_calc_fixed_bytes(name, bytes_count=4, force=force)
+        return self.size_calc_fixed(name, bytes_count=4, force=force)
 
 
 @register_type(16)
@@ -702,7 +692,7 @@ class SFixed64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # SFixed64 is always 9 bytes when non-zero (1 for field + 8 for value)
-        return self.size_calc_fixed_bytes(name, bytes_count=8, force=force)
+        return self.size_calc_fixed(name, bytes_count=8, force=force)
 
 
 @register_type(17)
