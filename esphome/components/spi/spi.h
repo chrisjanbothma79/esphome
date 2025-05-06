@@ -28,7 +28,7 @@ using SPIInterface = spi_host_device_t;
 #endif  // USE_ESP_IDF
 
 #ifdef USE_ZEPHYR
-// supprse clang-tidy
+// TODO supprse clang-tidy, remove after SPI driver for nrf52 is added
 using SPIInterface = void *;
 #endif
 
