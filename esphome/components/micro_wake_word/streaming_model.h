@@ -54,6 +54,9 @@ class StreamingModel {
 
   bool get_unprocessed_probability_status() { return this->unprocessed_probability_status_; }
 
+  void set_probability_cutoff(uint8_t probability_cutoff) { this->probability_cutoff_ = probability_cutoff; }
+  uint8_t get_probability_cutoff() { return this->probability_cutoff_; }
+
  protected:
   /// @brief Allocates tensor and variable arenas and sets up the model interpreter
   /// @return True if successful, false otherwise
