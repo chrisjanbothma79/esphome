@@ -1885,13 +1885,8 @@ void ListEntitiesFanResponse::calculate_size(uint32_t &total_size) const {
     total_size += 2;
   }
   if (this->supported_speed_count != 0) {
-    if (this->supported_speed_count < 0) {
-      // Precalculated: field ID (1 bytes) + 10 bytes for negative int32
-      total_size += 11;
-    } else {
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSizeCalculator::varint_size(this->supported_speed_count);
-    }
+    // Optimized int32 calculation with precalculated field ID size (1 bytes)
+    total_size += ProtoSizeCalculator::int32_field_with_value_size(1, this->supported_speed_count);
   }
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
@@ -2050,13 +2045,8 @@ void FanStateResponse::calculate_size(uint32_t &total_size) const {
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->direction));
   }
   if (this->speed_level != 0) {
-    if (this->speed_level < 0) {
-      // Precalculated: field ID (1 bytes) + 10 bytes for negative int32
-      total_size += 11;
-    } else {
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSizeCalculator::varint_size(this->speed_level);
-    }
+    // Optimized int32 calculation with precalculated field ID size (1 bytes)
+    total_size += ProtoSizeCalculator::int32_field_with_value_size(1, this->speed_level);
   }
   if (!this->preset_mode.empty()) {
     // Using precalculated field ID size (1 bytes)
@@ -2227,13 +2217,8 @@ void FanCommandRequest::calculate_size(uint32_t &total_size) const {
     total_size += 2;
   }
   if (this->speed_level != 0) {
-    if (this->speed_level < 0) {
-      // Precalculated: field ID (1 bytes) + 10 bytes for negative int32
-      total_size += 11;
-    } else {
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSizeCalculator::varint_size(this->speed_level);
-    }
+    // Optimized int32 calculation with precalculated field ID size (1 bytes)
+    total_size += ProtoSizeCalculator::int32_field_with_value_size(1, this->speed_level);
   }
   if (this->has_preset_mode) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
@@ -3266,13 +3251,8 @@ void ListEntitiesSensorResponse::calculate_size(uint32_t &total_size) const {
     total_size += 1 + ProtoSizeCalculator::varint_size(str_size) + str_size;
   }
   if (this->accuracy_decimals != 0) {
-    if (this->accuracy_decimals < 0) {
-      // Precalculated: field ID (1 bytes) + 10 bytes for negative int32
-      total_size += 11;
-    } else {
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSizeCalculator::varint_size(this->accuracy_decimals);
-    }
+    // Optimized int32 calculation with precalculated field ID size (1 bytes)
+    total_size += ProtoSizeCalculator::int32_field_with_value_size(1, this->accuracy_decimals);
   }
   if (this->force_update) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
@@ -4577,13 +4557,8 @@ void ExecuteServiceArgument::calculate_size(uint32_t &total_size) const {
     total_size += 2;
   }
   if (this->legacy_int != 0) {
-    if (this->legacy_int < 0) {
-      // Precalculated: field ID (1 bytes) + 10 bytes for negative int32
-      total_size += 11;
-    } else {
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSizeCalculator::varint_size(this->legacy_int);
-    }
+    // Optimized int32 calculation with precalculated field ID size (1 bytes)
+    total_size += ProtoSizeCalculator::int32_field_with_value_size(1, this->legacy_int);
   }
   if (this->float_ != 0.0f) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
@@ -7963,13 +7938,8 @@ void BluetoothDeviceConnectionResponse::calculate_size(uint32_t &total_size) con
     total_size += 1 + ProtoSizeCalculator::varint_size(this->mtu);
   }
   if (this->error != 0) {
-    if (this->error < 0) {
-      // Precalculated: field ID (1 bytes) + 10 bytes for negative int32
-      total_size += 11;
-    } else {
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSizeCalculator::varint_size(this->error);
-    }
+    // Optimized int32 calculation with precalculated field ID size (1 bytes)
+    total_size += ProtoSizeCalculator::int32_field_with_value_size(1, this->error);
   }
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -8864,13 +8834,8 @@ void BluetoothGATTErrorResponse::calculate_size(uint32_t &total_size) const {
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
   if (this->error != 0) {
-    if (this->error < 0) {
-      // Precalculated: field ID (1 bytes) + 10 bytes for negative int32
-      total_size += 11;
-    } else {
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSizeCalculator::varint_size(this->error);
-    }
+    // Optimized int32 calculation with precalculated field ID size (1 bytes)
+    total_size += ProtoSizeCalculator::int32_field_with_value_size(1, this->error);
   }
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -9015,13 +8980,8 @@ void BluetoothDevicePairingResponse::calculate_size(uint32_t &total_size) const 
     total_size += 2;
   }
   if (this->error != 0) {
-    if (this->error < 0) {
-      // Precalculated: field ID (1 bytes) + 10 bytes for negative int32
-      total_size += 11;
-    } else {
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSizeCalculator::varint_size(this->error);
-    }
+    // Optimized int32 calculation with precalculated field ID size (1 bytes)
+    total_size += ProtoSizeCalculator::int32_field_with_value_size(1, this->error);
   }
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -9077,13 +9037,8 @@ void BluetoothDeviceUnpairingResponse::calculate_size(uint32_t &total_size) cons
     total_size += 2;
   }
   if (this->error != 0) {
-    if (this->error < 0) {
-      // Precalculated: field ID (1 bytes) + 10 bytes for negative int32
-      total_size += 11;
-    } else {
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSizeCalculator::varint_size(this->error);
-    }
+    // Optimized int32 calculation with precalculated field ID size (1 bytes)
+    total_size += ProtoSizeCalculator::int32_field_with_value_size(1, this->error);
   }
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -9146,13 +9101,8 @@ void BluetoothDeviceClearCacheResponse::calculate_size(uint32_t &total_size) con
     total_size += 2;
   }
   if (this->error != 0) {
-    if (this->error < 0) {
-      // Precalculated: field ID (1 bytes) + 10 bytes for negative int32
-      total_size += 11;
-    } else {
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSizeCalculator::varint_size(this->error);
-    }
+    // Optimized int32 calculation with precalculated field ID size (1 bytes)
+    total_size += ProtoSizeCalculator::int32_field_with_value_size(1, this->error);
   }
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP

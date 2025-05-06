@@ -346,28 +346,15 @@ class TypeInfo(ABC):
     def size_calc_int32(self, name: str, force: bool = False) -> str:
         """Helper to generate size calculation code for int32 fields with special handling for negative values."""
         field_id_size = self.calculate_field_id_size(WireType.VARINT)
-        negative_size = (
-            field_id_size + 10
-        )  # Precalculated: field ID + 10 bytes for negative int32
 
         if force:
             return f"""// Always include for repeated fields (force=true)
-          if ({name} < 0) {{
-            // Precalculated: field ID ({field_id_size} bytes) + 10 bytes for negative int32
-            total_size += {negative_size};
-          }} else {{
-            // Using precalculated field ID size ({field_id_size} bytes)
-            total_size += {field_id_size} + ProtoSizeCalculator::varint_size({name});
-          }}"""
+          // Optimized int32 calculation with precalculated field ID size ({field_id_size} bytes)
+          total_size += ProtoSizeCalculator::int32_field_with_value_size({field_id_size}, {name});"""
         else:
             return f"""if ({name} != 0) {{
-          if ({name} < 0) {{
-            // Precalculated: field ID ({field_id_size} bytes) + 10 bytes for negative int32
-            total_size += {negative_size};
-          }} else {{
-            // Using precalculated field ID size ({field_id_size} bytes)
-            total_size += {field_id_size} + ProtoSizeCalculator::varint_size({name});
-          }}
+          // Optimized int32 calculation with precalculated field ID size ({field_id_size} bytes)
+          total_size += ProtoSizeCalculator::int32_field_with_value_size({field_id_size}, {name});
         }}"""
 
 

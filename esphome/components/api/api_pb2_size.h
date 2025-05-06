@@ -71,6 +71,27 @@ class ProtoSizeCalculator {
     uint32_t tag = (field_id << 3) | (type & 0b111);
     return varint_size(tag);
   }
+
+  /**
+   * @brief Optimized size calculation for int32 fields with field ID
+   *
+   * This method is a specialized version for int32 fields that combines the field ID size
+   * and the value size calculation. It's more efficient than separate calls to field_size
+   * and varint_size, especially for negative values which have a fixed size.
+   *
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param value The int32 value to calculate size for
+   * @return The total size in bytes (field ID + value)
+   */
+  static uint32_t int32_field_with_value_size(uint32_t field_id_size, int32_t value) {
+    if (value < 0) {
+      // Negative values are encoded as 10-byte varints in protobuf
+      return field_id_size + 10;
+    } else {
+      // For non-negative values, use the standard varint size
+      return field_id_size + varint_size(static_cast<uint32_t>(value));
+    }
+  }
 };
 
 }  // namespace api
