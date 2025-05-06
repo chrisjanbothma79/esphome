@@ -373,10 +373,8 @@ void I2SAudioSpeaker::speaker_task(void *params) {
           if (bytes_written != bytes_to_write) {
             xEventGroupSetBits(this_speaker->event_group_, SpeakerEventGroupBits::ERR_ESP_INVALID_SIZE);
           }
-
           bytes_read -= bytes_written;
 
-          last_data_received_time = millis();
           this_speaker->audio_output_callback_(audio_stream_info.bytes_to_frames(bytes_written),
                                                now + dma_buffers_duration_ms * 1000);
 
