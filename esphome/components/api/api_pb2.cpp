@@ -657,16 +657,16 @@ void HelloRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void HelloRequest::calculate_size(uint32_t &total_size) const {
   if (!this->client_info.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->client_info.size())) +
                   this->client_info.size();
   }
   if (this->api_version_major != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->api_version_major);
   }
   if (this->api_version_minor != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->api_version_minor);
   }
 }
@@ -726,20 +726,20 @@ void HelloResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void HelloResponse::calculate_size(uint32_t &total_size) const {
   if (this->api_version_major != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->api_version_major);
   }
   if (this->api_version_minor != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->api_version_minor);
   }
   if (!this->server_info.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->server_info.size())) +
                   this->server_info.size();
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
 }
@@ -780,7 +780,7 @@ bool ConnectRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value
 void ConnectRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_string(1, this->password); }
 void ConnectRequest::calculate_size(uint32_t &total_size) const {
   if (!this->password.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->password.size())) + this->password.size();
   }
@@ -808,7 +808,7 @@ bool ConnectResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
 void ConnectResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->invalid_password); }
 void ConnectResponse::calculate_size(uint32_t &total_size) const {
   if (this->invalid_password) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -937,171 +937,111 @@ bool DeviceInfoResponse::decode_length(uint32_t field_id, ProtoLengthDelimited v
 }
 void DeviceInfoResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(1, this->uses_password);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding uses_password",
-           buffer.get_buffer()->size());
   buffer.encode_string(2, this->name);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding name", buffer.get_buffer()->size());
   buffer.encode_string(3, this->mac_address);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding mac_address", buffer.get_buffer()->size());
   buffer.encode_string(4, this->esphome_version);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding esphome_version",
-           buffer.get_buffer()->size());
   buffer.encode_string(5, this->compilation_time);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding compilation_time",
-           buffer.get_buffer()->size());
   buffer.encode_string(6, this->model);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding model", buffer.get_buffer()->size());
   buffer.encode_bool(7, this->has_deep_sleep);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding has_deep_sleep",
-           buffer.get_buffer()->size());
   buffer.encode_string(8, this->project_name);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding project_name",
-           buffer.get_buffer()->size());
   buffer.encode_string(9, this->project_version);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding project_version",
-           buffer.get_buffer()->size());
   buffer.encode_uint32(10, this->webserver_port);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding webserver_port",
-           buffer.get_buffer()->size());
   buffer.encode_uint32(11, this->legacy_bluetooth_proxy_version);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding legacy_bluetooth_proxy_version",
-           buffer.get_buffer()->size());
   buffer.encode_uint32(15, this->bluetooth_proxy_feature_flags);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding bluetooth_proxy_feature_flags",
-           buffer.get_buffer()->size());
   buffer.encode_string(12, this->manufacturer);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding manufacturer",
-           buffer.get_buffer()->size());
   buffer.encode_string(13, this->friendly_name);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding friendly_name",
-           buffer.get_buffer()->size());
   buffer.encode_uint32(14, this->legacy_voice_assistant_version);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding legacy_voice_assistant_version",
-           buffer.get_buffer()->size());
   buffer.encode_uint32(17, this->voice_assistant_feature_flags);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding voice_assistant_feature_flags",
-           buffer.get_buffer()->size());
   buffer.encode_string(16, this->suggested_area);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding suggested_area",
-           buffer.get_buffer()->size());
   buffer.encode_string(18, this->bluetooth_mac_address);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding bluetooth_mac_address",
-           buffer.get_buffer()->size());
   buffer.encode_bool(19, this->api_encryption_supported);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding api_encryption_supported",
-           buffer.get_buffer()->size());
 }
 void DeviceInfoResponse::calculate_size(uint32_t &total_size) const {
   if (this->uses_password) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding uses_password", total_size);
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding name", total_size);
   if (!this->mac_address.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->mac_address.size())) +
                   this->mac_address.size();
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding mac_address", total_size);
   if (!this->esphome_version.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->esphome_version.size())) +
                   this->esphome_version.size();
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding esphome_version", total_size);
   if (!this->compilation_time.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->compilation_time.size())) +
                   this->compilation_time.size();
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding compilation_time", total_size);
   if (!this->model.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->model.size())) + this->model.size();
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding model", total_size);
   if (this->has_deep_sleep) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding has_deep_sleep", total_size);
   if (!this->project_name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->project_name.size())) +
                   this->project_name.size();
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding project_name", total_size);
   if (!this->project_version.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->project_version.size())) +
                   this->project_version.size();
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding project_version", total_size);
   if (this->webserver_port != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->webserver_port);
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding webserver_port", total_size);
   if (this->legacy_bluetooth_proxy_version != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->legacy_bluetooth_proxy_version);
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding legacy_bluetooth_proxy_version",
-           total_size);
   if (this->bluetooth_proxy_feature_flags != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->bluetooth_proxy_feature_flags);
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding bluetooth_proxy_feature_flags",
-           total_size);
   if (!this->manufacturer.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->manufacturer.size())) +
                   this->manufacturer.size();
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding manufacturer", total_size);
   if (!this->friendly_name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->friendly_name.size())) +
                   this->friendly_name.size();
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding friendly_name", total_size);
   if (this->legacy_voice_assistant_version != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->legacy_voice_assistant_version);
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding legacy_voice_assistant_version",
-           total_size);
   if (this->voice_assistant_feature_flags != 0) {
-    // 1 byte for field_id + varint bytes
-    total_size += 1 + ProtoSizeCalculator::varint_size(this->voice_assistant_feature_flags);
+    // Field ID takes 2 byte(s) + varint bytes
+    total_size += 2 + ProtoSizeCalculator::varint_size(this->voice_assistant_feature_flags);
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding voice_assistant_feature_flags",
-           total_size);
   if (!this->suggested_area.empty()) {
-    // 1 byte field_id + size varint + string length
-    total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->suggested_area.size())) +
+    // Field ID takes 2 byte(s) + size varint + string length
+    total_size += 2 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->suggested_area.size())) +
                   this->suggested_area.size();
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding suggested_area", total_size);
   if (!this->bluetooth_mac_address.empty()) {
-    // 1 byte field_id + size varint + string length
-    total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->bluetooth_mac_address.size())) +
+    // Field ID takes 2 byte(s) + size varint + string length
+    total_size += 2 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->bluetooth_mac_address.size())) +
                   this->bluetooth_mac_address.size();
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding bluetooth_mac_address",
-           total_size);
   if (this->api_encryption_supported) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
-  ESP_LOGW("api.proto", "DeviceInfoResponse calculated_size is %" PRIu32 " after adding api_encryption_supported",
-           total_size);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DeviceInfoResponse::dump_to(std::string &out) const {
@@ -1272,42 +1212,42 @@ void ListEntitiesBinarySensorResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesBinarySensorResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->device_class.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->device_class.size())) +
                   this->device_class.size();
   }
   if (this->is_status_binary_sensor) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
 }
@@ -1385,15 +1325,15 @@ void BinarySensorStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BinarySensorStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->missing_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -1498,54 +1438,54 @@ void ListEntitiesCoverResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesCoverResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (this->assumed_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->supports_position) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->supports_tilt) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->device_class.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->device_class.size())) +
                   this->device_class.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (this->supports_stop) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -1645,23 +1585,23 @@ void CoverStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void CoverStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->legacy_state != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->legacy_state));
   }
   if (this->position != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->tilt != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->current_operation != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->current_operation));
   }
 }
@@ -1750,35 +1690,35 @@ void CoverCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void CoverCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_legacy_command) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->legacy_command != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->legacy_command));
   }
   if (this->has_position) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->position != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_tilt) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->tilt != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->stop) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -1907,59 +1847,59 @@ void ListEntitiesFanResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesFanResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (this->supports_oscillation) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->supports_speed) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->supports_direction) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->supported_speed_count != 0) {
     if (this->supported_speed_count < 0) {
-      // Field ID byte + 10 bytes for negative int32 (encoded as int64)
-      total_size += 11;
+      // Field ID takes 1 byte(s) + 10 bytes for negative int32 (encoded as int64)
+      total_size += 1 + 10;
     } else {
-      // Field ID byte + varint bytes for the value
+      // Field ID takes 1 byte(s) + varint bytes for the value
       total_size += 1 + ProtoSizeCalculator::varint_size(this->supported_speed_count);
     }
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   for (const auto &it : this->supported_preset_modes) {
     // Always include for repeated fields (force=true)
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it.size())) + it.size();
   }
 }
@@ -2078,36 +2018,36 @@ void FanStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void FanStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->oscillating) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->speed != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->speed));
   }
   if (this->direction != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->direction));
   }
   if (this->speed_level != 0) {
     if (this->speed_level < 0) {
-      // Field ID byte + 10 bytes for negative int32 (encoded as int64)
-      total_size += 11;
+      // Field ID takes 1 byte(s) + 10 bytes for negative int32 (encoded as int64)
+      total_size += 1 + 10;
     } else {
-      // Field ID byte + varint bytes for the value
+      // Field ID takes 1 byte(s) + varint bytes for the value
       total_size += 1 + ProtoSizeCalculator::varint_size(this->speed_level);
     }
   }
   if (!this->preset_mode.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->preset_mode.size())) +
                   this->preset_mode.size();
   }
@@ -2235,60 +2175,60 @@ void FanCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void FanCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->has_speed) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->speed != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->speed));
   }
   if (this->has_oscillating) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->oscillating) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->has_direction) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->direction != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->direction));
   }
   if (this->has_speed_level) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->speed_level != 0) {
     if (this->speed_level < 0) {
-      // Field ID byte + 10 bytes for negative int32 (encoded as int64)
-      total_size += 11;
+      // Field ID takes 1 byte(s) + 10 bytes for negative int32 (encoded as int64)
+      total_size += 1 + 10;
     } else {
-      // Field ID byte + varint bytes for the value
+      // Field ID takes 1 byte(s) + varint bytes for the value
       total_size += 1 + ProtoSizeCalculator::varint_size(this->speed_level);
     }
   }
   if (this->has_preset_mode) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->preset_mode.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->preset_mode.size())) +
                   this->preset_mode.size();
   }
@@ -2454,67 +2394,67 @@ void ListEntitiesLightResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesLightResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   for (const auto &it : this->supported_color_modes) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it));
   }
   if (this->legacy_supports_brightness) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->legacy_supports_rgb) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->legacy_supports_white_value) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->legacy_supports_color_temperature) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->min_mireds != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->max_mireds != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   for (const auto &it : this->effects) {
     // Always include for repeated fields (force=true)
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it.size())) + it.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
 }
@@ -2678,55 +2618,55 @@ void LightStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void LightStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->brightness != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->color_mode != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->color_mode));
   }
   if (this->color_brightness != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->red != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->green != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->blue != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->white != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->color_temperature != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->cold_white != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->warm_white != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->effect.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->effect.size())) + this->effect.size();
   }
@@ -2956,113 +2896,113 @@ void LightCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void LightCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->has_brightness) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->brightness != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_color_mode) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (this->color_mode != 0) {
-    // 1 byte for field_id + varint bytes
-    total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->color_mode));
+    // Field ID takes 2 byte(s) + varint bytes
+    total_size += 2 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->color_mode));
   }
   if (this->has_color_brightness) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (this->color_brightness != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
-    total_size += 5;
+    // Field ID takes 2 byte(s) + 4 bytes for value
+    total_size += 6;
   }
   if (this->has_rgb) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->red != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->green != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->blue != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_white) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->white != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_color_temperature) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->color_temperature != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_cold_white) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (this->cold_white != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
-    total_size += 5;
+    // Field ID takes 2 byte(s) + 4 bytes for value
+    total_size += 6;
   }
   if (this->has_warm_white) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (this->warm_white != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
-    total_size += 5;
+    // Field ID takes 2 byte(s) + 4 bytes for value
+    total_size += 6;
   }
   if (this->has_transition_length) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->transition_length != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->transition_length);
   }
   if (this->has_flash_length) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (this->flash_length != 0) {
-    // 1 byte for field_id + varint bytes
-    total_size += 1 + ProtoSizeCalculator::varint_size(this->flash_length);
+    // Field ID takes 2 byte(s) + varint bytes
+    total_size += 2 + ProtoSizeCalculator::varint_size(this->flash_length);
   }
   if (this->has_effect) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (!this->effect.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 2 byte(s) + size varint + string length
     total_size +=
-        1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->effect.size())) + this->effect.size();
+        2 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->effect.size())) + this->effect.size();
   }
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3278,64 +3218,64 @@ void ListEntitiesSensorResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesSensorResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (!this->unit_of_measurement.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unit_of_measurement.size())) +
                   this->unit_of_measurement.size();
   }
   if (this->accuracy_decimals != 0) {
     if (this->accuracy_decimals < 0) {
-      // Field ID byte + 10 bytes for negative int32 (encoded as int64)
-      total_size += 11;
+      // Field ID takes 1 byte(s) + 10 bytes for negative int32 (encoded as int64)
+      total_size += 1 + 10;
     } else {
-      // Field ID byte + varint bytes for the value
+      // Field ID takes 1 byte(s) + varint bytes for the value
       total_size += 1 + ProtoSizeCalculator::varint_size(this->accuracy_decimals);
     }
   }
   if (this->force_update) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->device_class.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->device_class.size())) +
                   this->device_class.size();
   }
   if (this->state_class != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->state_class));
   }
   if (this->legacy_last_reset_type != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->legacy_last_reset_type));
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
 }
@@ -3430,15 +3370,15 @@ void SensorStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void SensorStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->state != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->missing_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -3529,41 +3469,41 @@ void ListEntitiesSwitchResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesSwitchResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->assumed_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (!this->device_class.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->device_class.size())) +
                   this->device_class.size();
   }
@@ -3637,11 +3577,11 @@ void SwitchStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void SwitchStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -3686,11 +3626,11 @@ void SwitchCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void SwitchCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -3771,37 +3711,37 @@ void ListEntitiesTextSensorResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesTextSensorResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (!this->device_class.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->device_class.size())) +
                   this->device_class.size();
   }
@@ -3882,15 +3822,15 @@ void TextSensorStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void TextSensorStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->state.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->state.size())) + this->state.size();
   }
   if (this->missing_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -3933,11 +3873,11 @@ void SubscribeLogsRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void SubscribeLogsRequest::calculate_size(uint32_t &total_size) const {
   if (this->level != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->level));
   }
   if (this->dump_config) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -3986,16 +3926,16 @@ void SubscribeLogsResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void SubscribeLogsResponse::calculate_size(uint32_t &total_size) const {
   if (this->level != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->level));
   }
   if (!this->message.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->message.size())) + this->message.size();
   }
   if (this->send_failed) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -4030,7 +3970,7 @@ bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthD
 void NoiseEncryptionSetKeyRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_string(1, this->key); }
 void NoiseEncryptionSetKeyRequest::calculate_size(uint32_t &total_size) const {
   if (!this->key.empty()) {
-    // 1 byte field_id + size varint + bytes length
+    // Field ID takes 1 byte(s) + size varint + bytes length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->key.size())) + this->key.size();
   }
 }
@@ -4057,7 +3997,7 @@ bool NoiseEncryptionSetKeyResponse::decode_varint(uint32_t field_id, ProtoVarInt
 void NoiseEncryptionSetKeyResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->success); }
 void NoiseEncryptionSetKeyResponse::calculate_size(uint32_t &total_size) const {
   if (this->success) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -4098,11 +4038,11 @@ void HomeassistantServiceMap::encode(ProtoWriteBuffer buffer) const {
 }
 void HomeassistantServiceMap::calculate_size(uint32_t &total_size) const {
   if (!this->key.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->key.size())) + this->key.size();
   }
   if (!this->value.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->value.size())) + this->value.size();
   }
 }
@@ -4167,7 +4107,7 @@ void HomeassistantServiceResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void HomeassistantServiceResponse::calculate_size(uint32_t &total_size) const {
   if (!this->service.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->service.size())) + this->service.size();
   }
@@ -4176,7 +4116,7 @@ void HomeassistantServiceResponse::calculate_size(uint32_t &total_size) const {
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(2, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
   for (const auto &it : this->data_template) {
@@ -4184,7 +4124,7 @@ void HomeassistantServiceResponse::calculate_size(uint32_t &total_size) const {
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(3, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
   for (const auto &it : this->variables) {
@@ -4192,11 +4132,11 @@ void HomeassistantServiceResponse::calculate_size(uint32_t &total_size) const {
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(4, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
   if (this->is_event) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -4270,17 +4210,17 @@ void SubscribeHomeAssistantStateResponse::encode(ProtoWriteBuffer buffer) const 
 }
 void SubscribeHomeAssistantStateResponse::calculate_size(uint32_t &total_size) const {
   if (!this->entity_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_id.size())) + this->entity_id.size();
   }
   if (!this->attribute.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->attribute.size())) + this->attribute.size();
   }
   if (this->once) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -4327,16 +4267,16 @@ void HomeAssistantStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void HomeAssistantStateResponse::calculate_size(uint32_t &total_size) const {
   if (!this->entity_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_id.size())) + this->entity_id.size();
   }
   if (!this->state.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->state.size())) + this->state.size();
   }
   if (!this->attribute.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->attribute.size())) + this->attribute.size();
   }
@@ -4377,7 +4317,7 @@ bool GetTimeResponse::decode_32bit(uint32_t field_id, Proto32Bit value) {
 void GetTimeResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_fixed32(1, this->epoch_seconds); }
 void GetTimeResponse::calculate_size(uint32_t &total_size) const {
   if (this->epoch_seconds != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
 }
@@ -4418,11 +4358,11 @@ void ListEntitiesServicesArgument::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesServicesArgument::calculate_size(uint32_t &total_size) const {
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (this->type != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->type));
   }
 }
@@ -4473,11 +4413,11 @@ void ListEntitiesServicesResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesServicesResponse::calculate_size(uint32_t &total_size) const {
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   for (const auto &it : this->args) {
@@ -4485,7 +4425,7 @@ void ListEntitiesServicesResponse::calculate_size(uint32_t &total_size) const {
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(3, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
 }
@@ -4585,49 +4525,49 @@ void ExecuteServiceArgument::encode(ProtoWriteBuffer buffer) const {
 }
 void ExecuteServiceArgument::calculate_size(uint32_t &total_size) const {
   if (this->bool_) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->legacy_int != 0) {
     if (this->legacy_int < 0) {
-      // Field ID byte + 10 bytes for negative int32 (encoded as int64)
-      total_size += 11;
+      // Field ID takes 1 byte(s) + 10 bytes for negative int32 (encoded as int64)
+      total_size += 1 + 10;
     } else {
-      // Field ID byte + varint bytes for the value
+      // Field ID takes 1 byte(s) + varint bytes for the value
       total_size += 1 + ProtoSizeCalculator::varint_size(this->legacy_int);
     }
   }
   if (this->float_ != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->string_.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->string_.size())) + this->string_.size();
   }
   if (this->int_ != 0) {
-    // 1 byte for field_id + zigzag31 varint bytes
+    // Field ID takes 1 byte(s) + zigzag31 varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(((this->int_ << 1) ^ (this->int_ >> 31)));
   }
   for (const auto it : this->bool_array) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   for (const auto &it : this->int_array) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id + zigzag31 varint bytes
+    // Field ID takes 1 byte(s) + zigzag31 varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(((it << 1) ^ (it >> 31)));
   }
   for (const auto &it : this->float_array) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   for (const auto &it : this->string_array) {
     // Always include for repeated fields (force=true)
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it.size())) + it.size();
   }
 }
@@ -4714,7 +4654,7 @@ void ExecuteServiceRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void ExecuteServiceRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   for (const auto &it : this->args) {
@@ -4722,7 +4662,7 @@ void ExecuteServiceRequest::calculate_size(uint32_t &total_size) const {
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(2, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
 }
@@ -4800,33 +4740,33 @@ void ListEntitiesCameraResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesCameraResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
 }
@@ -4902,15 +4842,15 @@ void CameraImageResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void CameraImageResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->data.empty()) {
-    // 1 byte field_id + size varint + bytes length
+    // Field ID takes 1 byte(s) + size varint + bytes length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->data.size())) + this->data.size();
   }
   if (this->done) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -4953,11 +4893,11 @@ void CameraImageRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void CameraImageRequest::calculate_size(uint32_t &total_size) const {
   if (this->single) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->stream) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -5134,112 +5074,112 @@ void ListEntitiesClimateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesClimateResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (this->supports_current_temperature) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->supports_two_point_target_temperature) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   for (const auto &it : this->supported_modes) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it));
   }
   if (this->visual_min_temperature != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->visual_max_temperature != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->visual_target_temperature_step != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->legacy_supports_away) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->supports_action) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   for (const auto &it : this->supported_fan_modes) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it));
   }
   for (const auto &it : this->supported_swing_modes) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it));
   }
   for (const auto &it : this->supported_custom_fan_modes) {
     // Always include for repeated fields (force=true)
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it.size())) + it.size();
   }
   for (const auto &it : this->supported_presets) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id + varint bytes
-    total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it));
+    // Field ID takes 2 byte(s) + varint bytes
+    total_size += 2 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it));
   }
   for (const auto &it : this->supported_custom_presets) {
     // Always include for repeated fields (force=true)
-    // 1 byte field_id + size varint + string length
-    total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it.size())) + it.size();
+    // Field ID takes 2 byte(s) + size varint + string length
+    total_size += 2 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it.size())) + it.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
-    total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
+    // Field ID takes 2 byte(s) + size varint + string length
+    total_size += 2 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
-    total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
+    // Field ID takes 2 byte(s) + varint bytes
+    total_size += 2 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (this->visual_current_temperature_step != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
-    total_size += 5;
+    // Field ID takes 2 byte(s) + 4 bytes for value
+    total_size += 6;
   }
   if (this->supports_current_humidity) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (this->supports_target_humidity) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (this->visual_min_humidity != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
-    total_size += 5;
+    // Field ID takes 2 byte(s) + 4 bytes for value
+    total_size += 6;
   }
   if (this->visual_max_humidity != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
-    total_size += 5;
+    // Field ID takes 2 byte(s) + 4 bytes for value
+    total_size += 6;
   }
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -5464,65 +5404,65 @@ void ClimateStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ClimateStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->mode != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->mode));
   }
   if (this->current_temperature != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->target_temperature != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->target_temperature_low != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->target_temperature_high != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->unused_legacy_away) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->action != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->action));
   }
   if (this->fan_mode != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->fan_mode));
   }
   if (this->swing_mode != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->swing_mode));
   }
   if (!this->custom_fan_mode.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->custom_fan_mode.size())) +
                   this->custom_fan_mode.size();
   }
   if (this->preset != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->preset));
   }
   if (!this->custom_preset.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->custom_preset.size())) +
                   this->custom_preset.size();
   }
   if (this->current_humidity != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->target_humidity != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
 }
@@ -5736,98 +5676,98 @@ void ClimateCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void ClimateCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_mode) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->mode != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->mode));
   }
   if (this->has_target_temperature) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->target_temperature != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_target_temperature_low) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->target_temperature_low != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_target_temperature_high) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->target_temperature_high != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->unused_has_legacy_away) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->unused_legacy_away) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->has_fan_mode) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->fan_mode != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->fan_mode));
   }
   if (this->has_swing_mode) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->swing_mode != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->swing_mode));
   }
   if (this->has_custom_fan_mode) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (!this->custom_fan_mode.empty()) {
-    // 1 byte field_id + size varint + string length
-    total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->custom_fan_mode.size())) +
+    // Field ID takes 2 byte(s) + size varint + string length
+    total_size += 2 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->custom_fan_mode.size())) +
                   this->custom_fan_mode.size();
   }
   if (this->has_preset) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (this->preset != 0) {
-    // 1 byte for field_id + varint bytes
-    total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->preset));
+    // Field ID takes 2 byte(s) + varint bytes
+    total_size += 2 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->preset));
   }
   if (this->has_custom_preset) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (!this->custom_preset.empty()) {
-    // 1 byte field_id + size varint + string length
-    total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->custom_preset.size())) +
+    // Field ID takes 2 byte(s) + size varint + string length
+    total_size += 2 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->custom_preset.size())) +
                   this->custom_preset.size();
   }
   if (this->has_target_humidity) {
-    // 1 byte for field_id, 1 byte for value
-    total_size += 2;
+    // Field ID takes 2 byte(s) + 1 byte for value
+    total_size += 3;
   }
   if (this->target_humidity != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
-    total_size += 5;
+    // Field ID takes 2 byte(s) + 4 bytes for value
+    total_size += 6;
   }
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -6020,58 +5960,58 @@ void ListEntitiesNumberResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesNumberResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->min_value != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->max_value != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->step != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (!this->unit_of_measurement.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unit_of_measurement.size())) +
                   this->unit_of_measurement.size();
   }
   if (this->mode != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->mode));
   }
   if (!this->device_class.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->device_class.size())) +
                   this->device_class.size();
   }
@@ -6169,15 +6109,15 @@ void NumberStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void NumberStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->state != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->missing_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -6221,11 +6161,11 @@ void NumberCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void NumberCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->state != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
 }
@@ -6309,38 +6249,38 @@ void ListEntitiesSelectResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesSelectResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   for (const auto &it : this->options) {
     // Always include for repeated fields (force=true)
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it.size())) + it.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
 }
@@ -6422,15 +6362,15 @@ void SelectStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void SelectStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->state.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->state.size())) + this->state.size();
   }
   if (this->missing_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -6479,11 +6419,11 @@ void SelectCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void SelectCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->state.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->state.size())) + this->state.size();
   }
 }
@@ -6579,49 +6519,49 @@ void ListEntitiesLockResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesLockResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (this->assumed_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->supports_open) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->requires_code) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->code_format.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->code_format.size())) +
                   this->code_format.size();
   }
@@ -6703,11 +6643,11 @@ void LockStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void LockStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->state != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->state));
   }
 }
@@ -6768,19 +6708,19 @@ void LockCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void LockCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->command != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->command));
   }
   if (this->has_code) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->code.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->code.size())) + this->code.size();
   }
 }
@@ -6869,37 +6809,37 @@ void ListEntitiesButtonResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesButtonResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (!this->device_class.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->device_class.size())) +
                   this->device_class.size();
   }
@@ -6956,7 +6896,7 @@ bool ButtonCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
 void ButtonCommandRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_fixed32(1, this->key); }
 void ButtonCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
 }
@@ -7012,24 +6952,24 @@ void MediaPlayerSupportedFormat::encode(ProtoWriteBuffer buffer) const {
 }
 void MediaPlayerSupportedFormat::calculate_size(uint32_t &total_size) const {
   if (!this->format.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->format.size())) + this->format.size();
   }
   if (this->sample_rate != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->sample_rate);
   }
   if (this->num_channels != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->num_channels);
   }
   if (this->purpose != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->purpose));
   }
   if (this->sample_bytes != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->sample_bytes);
   }
 }
@@ -7131,37 +7071,37 @@ void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (this->supports_pause) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   for (const auto &it : this->supported_formats) {
@@ -7169,7 +7109,7 @@ void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(9, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
 }
@@ -7254,19 +7194,19 @@ void MediaPlayerStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void MediaPlayerStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->state != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->state));
   }
   if (this->volume != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->muted) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -7361,40 +7301,40 @@ void MediaPlayerCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void MediaPlayerCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_command) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->command != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->command));
   }
   if (this->has_volume) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->volume != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_media_url) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->media_url.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->media_url.size())) + this->media_url.size();
   }
   if (this->has_announcement) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->announcement) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -7457,7 +7397,7 @@ void SubscribeBluetoothLEAdvertisementsRequest::encode(ProtoWriteBuffer buffer) 
 }
 void SubscribeBluetoothLEAdvertisementsRequest::calculate_size(uint32_t &total_size) const {
   if (this->flags != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->flags);
   }
 }
@@ -7505,16 +7445,16 @@ void BluetoothServiceData::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothServiceData::calculate_size(uint32_t &total_size) const {
   if (!this->uuid.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->uuid.size())) + this->uuid.size();
   }
   for (const auto &it : this->legacy_data) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(it);
   }
   if (!this->data.empty()) {
-    // 1 byte field_id + size varint + bytes length
+    // Field ID takes 1 byte(s) + size varint + bytes length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->data.size())) + this->data.size();
   }
 }
@@ -7596,20 +7536,20 @@ void BluetoothLEAdvertisementResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothLEAdvertisementResponse::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (this->rssi != 0) {
-    // 1 byte for field_id + zigzag31 varint bytes
+    // Field ID takes 1 byte(s) + zigzag31 varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(((this->rssi << 1) ^ (this->rssi >> 31)));
   }
   for (const auto &it : this->service_uuids) {
     // Always include for repeated fields (force=true)
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it.size())) + it.size();
   }
   for (const auto &it : this->service_data) {
@@ -7617,7 +7557,7 @@ void BluetoothLEAdvertisementResponse::calculate_size(uint32_t &total_size) cons
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(5, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
   for (const auto &it : this->manufacturer_data) {
@@ -7625,11 +7565,11 @@ void BluetoothLEAdvertisementResponse::calculate_size(uint32_t &total_size) cons
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(6, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
   if (this->address_type != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address_type);
   }
 }
@@ -7712,19 +7652,19 @@ void BluetoothLERawAdvertisement::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothLERawAdvertisement::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->rssi != 0) {
-    // 1 byte for field_id + zigzag31 varint bytes
+    // Field ID takes 1 byte(s) + zigzag31 varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(((this->rssi << 1) ^ (this->rssi >> 31)));
   }
   if (this->address_type != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address_type);
   }
   if (!this->data.empty()) {
-    // 1 byte field_id + size varint + bytes length
+    // Field ID takes 1 byte(s) + size varint + bytes length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->data.size())) + this->data.size();
   }
 }
@@ -7774,7 +7714,7 @@ void BluetoothLERawAdvertisementsResponse::calculate_size(uint32_t &total_size) 
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(1, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
 }
@@ -7820,19 +7760,19 @@ void BluetoothDeviceRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothDeviceRequest::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->request_type != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->request_type));
   }
   if (this->has_address_type) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->address_type != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address_type);
   }
 }
@@ -7890,23 +7830,23 @@ void BluetoothDeviceConnectionResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothDeviceConnectionResponse::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->connected) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->mtu != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->mtu);
   }
   if (this->error != 0) {
     if (this->error < 0) {
-      // Field ID byte + 10 bytes for negative int32 (encoded as int64)
-      total_size += 11;
+      // Field ID takes 1 byte(s) + 10 bytes for negative int32 (encoded as int64)
+      total_size += 1 + 10;
     } else {
-      // Field ID byte + varint bytes for the value
+      // Field ID takes 1 byte(s) + varint bytes for the value
       total_size += 1 + ProtoSizeCalculator::varint_size(this->error);
     }
   }
@@ -7949,7 +7889,7 @@ bool BluetoothGATTGetServicesRequest::decode_varint(uint32_t field_id, ProtoVarI
 void BluetoothGATTGetServicesRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_uint64(1, this->address); }
 void BluetoothGATTGetServicesRequest::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
 }
@@ -7987,11 +7927,11 @@ void BluetoothGATTDescriptor::encode(ProtoWriteBuffer buffer) const {
 void BluetoothGATTDescriptor::calculate_size(uint32_t &total_size) const {
   for (const auto &it : this->uuid) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(it);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
 }
@@ -8054,15 +7994,15 @@ void BluetoothGATTCharacteristic::encode(ProtoWriteBuffer buffer) const {
 void BluetoothGATTCharacteristic::calculate_size(uint32_t &total_size) const {
   for (const auto &it : this->uuid) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(it);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
   if (this->properties != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->properties);
   }
   for (const auto &it : this->descriptors) {
@@ -8070,7 +8010,7 @@ void BluetoothGATTCharacteristic::calculate_size(uint32_t &total_size) const {
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(4, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
 }
@@ -8139,11 +8079,11 @@ void BluetoothGATTService::encode(ProtoWriteBuffer buffer) const {
 void BluetoothGATTService::calculate_size(uint32_t &total_size) const {
   for (const auto &it : this->uuid) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(it);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
   for (const auto &it : this->characteristics) {
@@ -8151,7 +8091,7 @@ void BluetoothGATTService::calculate_size(uint32_t &total_size) const {
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(3, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
 }
@@ -8207,7 +8147,7 @@ void BluetoothGATTGetServicesResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothGATTGetServicesResponse::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   for (const auto &it : this->services) {
@@ -8215,7 +8155,7 @@ void BluetoothGATTGetServicesResponse::calculate_size(uint32_t &total_size) cons
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(2, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
 }
@@ -8251,7 +8191,7 @@ void BluetoothGATTGetServicesDoneResponse::encode(ProtoWriteBuffer buffer) const
 }
 void BluetoothGATTGetServicesDoneResponse::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
 }
@@ -8286,11 +8226,11 @@ void BluetoothGATTReadRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothGATTReadRequest::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
 }
@@ -8341,15 +8281,15 @@ void BluetoothGATTReadResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothGATTReadResponse::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
   if (!this->data.empty()) {
-    // 1 byte field_id + size varint + bytes length
+    // Field ID takes 1 byte(s) + size varint + bytes length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->data.size())) + this->data.size();
   }
 }
@@ -8409,19 +8349,19 @@ void BluetoothGATTWriteRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothGATTWriteRequest::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
   if (this->response) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->data.empty()) {
-    // 1 byte field_id + size varint + bytes length
+    // Field ID takes 1 byte(s) + size varint + bytes length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->data.size())) + this->data.size();
   }
 }
@@ -8469,11 +8409,11 @@ void BluetoothGATTReadDescriptorRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothGATTReadDescriptorRequest::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
 }
@@ -8524,15 +8464,15 @@ void BluetoothGATTWriteDescriptorRequest::encode(ProtoWriteBuffer buffer) const 
 }
 void BluetoothGATTWriteDescriptorRequest::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
   if (!this->data.empty()) {
-    // 1 byte field_id + size varint + bytes length
+    // Field ID takes 1 byte(s) + size varint + bytes length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->data.size())) + this->data.size();
   }
 }
@@ -8581,15 +8521,15 @@ void BluetoothGATTNotifyRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothGATTNotifyRequest::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
   if (this->enable) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -8644,15 +8584,15 @@ void BluetoothGATTNotifyDataResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothGATTNotifyDataResponse::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
   if (!this->data.empty()) {
-    // 1 byte field_id + size varint + bytes length
+    // Field ID takes 1 byte(s) + size varint + bytes length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->data.size())) + this->data.size();
   }
 }
@@ -8710,16 +8650,16 @@ void BluetoothConnectionsFreeResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothConnectionsFreeResponse::calculate_size(uint32_t &total_size) const {
   if (this->free != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->free);
   }
   if (this->limit != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->limit);
   }
   for (const auto &it : this->allocated) {
     // Always include for repeated fields (force=true)
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(it);
   }
 }
@@ -8771,19 +8711,19 @@ void BluetoothGATTErrorResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothGATTErrorResponse::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
   if (this->error != 0) {
     if (this->error < 0) {
-      // Field ID byte + 10 bytes for negative int32 (encoded as int64)
-      total_size += 11;
+      // Field ID takes 1 byte(s) + 10 bytes for negative int32 (encoded as int64)
+      total_size += 1 + 10;
     } else {
-      // Field ID byte + varint bytes for the value
+      // Field ID takes 1 byte(s) + varint bytes for the value
       total_size += 1 + ProtoSizeCalculator::varint_size(this->error);
     }
   }
@@ -8829,11 +8769,11 @@ void BluetoothGATTWriteResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothGATTWriteResponse::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
 }
@@ -8873,11 +8813,11 @@ void BluetoothGATTNotifyResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothGATTNotifyResponse::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->handle != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
 }
@@ -8922,19 +8862,19 @@ void BluetoothDevicePairingResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothDevicePairingResponse::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->paired) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->error != 0) {
     if (this->error < 0) {
-      // Field ID byte + 10 bytes for negative int32 (encoded as int64)
-      total_size += 11;
+      // Field ID takes 1 byte(s) + 10 bytes for negative int32 (encoded as int64)
+      total_size += 1 + 10;
     } else {
-      // Field ID byte + varint bytes for the value
+      // Field ID takes 1 byte(s) + varint bytes for the value
       total_size += 1 + ProtoSizeCalculator::varint_size(this->error);
     }
   }
@@ -8984,19 +8924,19 @@ void BluetoothDeviceUnpairingResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothDeviceUnpairingResponse::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->success) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->error != 0) {
     if (this->error < 0) {
-      // Field ID byte + 10 bytes for negative int32 (encoded as int64)
-      total_size += 11;
+      // Field ID takes 1 byte(s) + 10 bytes for negative int32 (encoded as int64)
+      total_size += 1 + 10;
     } else {
-      // Field ID byte + varint bytes for the value
+      // Field ID takes 1 byte(s) + varint bytes for the value
       total_size += 1 + ProtoSizeCalculator::varint_size(this->error);
     }
   }
@@ -9053,19 +8993,19 @@ void BluetoothDeviceClearCacheResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothDeviceClearCacheResponse::calculate_size(uint32_t &total_size) const {
   if (this->address != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
   if (this->success) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->error != 0) {
     if (this->error < 0) {
-      // Field ID byte + 10 bytes for negative int32 (encoded as int64)
-      total_size += 11;
+      // Field ID takes 1 byte(s) + 10 bytes for negative int32 (encoded as int64)
+      total_size += 1 + 10;
     } else {
-      // Field ID byte + varint bytes for the value
+      // Field ID takes 1 byte(s) + varint bytes for the value
       total_size += 1 + ProtoSizeCalculator::varint_size(this->error);
     }
   }
@@ -9110,11 +9050,11 @@ void BluetoothScannerStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothScannerStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->state != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->state));
   }
   if (this->mode != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->mode));
   }
 }
@@ -9147,7 +9087,7 @@ void BluetoothScannerSetModeRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothScannerSetModeRequest::calculate_size(uint32_t &total_size) const {
   if (this->mode != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->mode));
   }
 }
@@ -9181,11 +9121,11 @@ void SubscribeVoiceAssistantRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void SubscribeVoiceAssistantRequest::calculate_size(uint32_t &total_size) const {
   if (this->subscribe) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->flags != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->flags);
   }
 }
@@ -9235,15 +9175,15 @@ void VoiceAssistantAudioSettings::encode(ProtoWriteBuffer buffer) const {
 }
 void VoiceAssistantAudioSettings::calculate_size(uint32_t &total_size) const {
   if (this->noise_suppression_level != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->noise_suppression_level);
   }
   if (this->auto_gain != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->auto_gain);
   }
   if (this->volume_multiplier != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
 }
@@ -9309,27 +9249,27 @@ void VoiceAssistantRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void VoiceAssistantRequest::calculate_size(uint32_t &total_size) const {
   if (this->start) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (!this->conversation_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->conversation_id.size())) +
                   this->conversation_id.size();
   }
   if (this->flags != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->flags);
   }
   {
     uint32_t nested_size = 0;
     this->audio_settings.calculate_size(nested_size);
     if (nested_size > 0) {
-      total_size += ProtoSizeCalculator::field_size(4, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
   if (!this->wake_word_phrase.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->wake_word_phrase.size())) +
                   this->wake_word_phrase.size();
   }
@@ -9381,11 +9321,11 @@ void VoiceAssistantResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void VoiceAssistantResponse::calculate_size(uint32_t &total_size) const {
   if (this->port != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->port);
   }
   if (this->error) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -9424,11 +9364,11 @@ void VoiceAssistantEventData::encode(ProtoWriteBuffer buffer) const {
 }
 void VoiceAssistantEventData::calculate_size(uint32_t &total_size) const {
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->value.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->value.size())) + this->value.size();
   }
 }
@@ -9474,7 +9414,7 @@ void VoiceAssistantEventResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void VoiceAssistantEventResponse::calculate_size(uint32_t &total_size) const {
   if (this->event_type != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->event_type));
   }
   for (const auto &it : this->data) {
@@ -9482,7 +9422,7 @@ void VoiceAssistantEventResponse::calculate_size(uint32_t &total_size) const {
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(2, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
 }
@@ -9528,11 +9468,11 @@ void VoiceAssistantAudio::encode(ProtoWriteBuffer buffer) const {
 }
 void VoiceAssistantAudio::calculate_size(uint32_t &total_size) const {
   if (!this->data.empty()) {
-    // 1 byte field_id + size varint + bytes length
+    // Field ID takes 1 byte(s) + size varint + bytes length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->data.size())) + this->data.size();
   }
   if (this->end) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -9596,28 +9536,28 @@ void VoiceAssistantTimerEventResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void VoiceAssistantTimerEventResponse::calculate_size(uint32_t &total_size) const {
   if (this->event_type != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->event_type));
   }
   if (!this->timer_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->timer_id.size())) + this->timer_id.size();
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (this->total_seconds != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->total_seconds);
   }
   if (this->seconds_left != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->seconds_left);
   }
   if (this->is_active) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -9689,21 +9629,21 @@ void VoiceAssistantAnnounceRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void VoiceAssistantAnnounceRequest::calculate_size(uint32_t &total_size) const {
   if (!this->media_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->media_id.size())) + this->media_id.size();
   }
   if (!this->text.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->text.size())) + this->text.size();
   }
   if (!this->preannounce_media_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->preannounce_media_id.size())) +
                   this->preannounce_media_id.size();
   }
   if (this->start_conversation) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -9742,7 +9682,7 @@ bool VoiceAssistantAnnounceFinished::decode_varint(uint32_t field_id, ProtoVarIn
 void VoiceAssistantAnnounceFinished::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->success); }
 void VoiceAssistantAnnounceFinished::calculate_size(uint32_t &total_size) const {
   if (this->success) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -9783,17 +9723,17 @@ void VoiceAssistantWakeWord::encode(ProtoWriteBuffer buffer) const {
 }
 void VoiceAssistantWakeWord::calculate_size(uint32_t &total_size) const {
   if (!this->id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->id.size())) + this->id.size();
   }
   if (!this->wake_word.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->wake_word.size())) + this->wake_word.size();
   }
   for (const auto &it : this->trained_languages) {
     // Always include for repeated fields (force=true)
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it.size())) + it.size();
   }
 }
@@ -9863,16 +9803,16 @@ void VoiceAssistantConfigurationResponse::calculate_size(uint32_t &total_size) c
       uint32_t nested_size = 0;
       it.calculate_size(nested_size);
       // Always include for repeated fields (force=true), even if nested_size is 0
-      total_size += ProtoSizeCalculator::field_size(1, 2) + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
+      total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
   for (const auto &it : this->active_wake_words) {
     // Always include for repeated fields (force=true)
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it.size())) + it.size();
   }
   if (this->max_active_wake_words != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->max_active_wake_words);
   }
 }
@@ -9917,7 +9857,7 @@ void VoiceAssistantSetConfiguration::encode(ProtoWriteBuffer buffer) const {
 void VoiceAssistantSetConfiguration::calculate_size(uint32_t &total_size) const {
   for (const auto &it : this->active_wake_words) {
     // Always include for repeated fields (force=true)
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it.size())) + it.size();
   }
 }
@@ -10005,45 +9945,45 @@ void ListEntitiesAlarmControlPanelResponse::encode(ProtoWriteBuffer buffer) cons
 }
 void ListEntitiesAlarmControlPanelResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (this->supported_features != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->supported_features);
   }
   if (this->requires_code) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->requires_code_to_arm) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -10121,11 +10061,11 @@ void AlarmControlPanelStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void AlarmControlPanelStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->state != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->state));
   }
 }
@@ -10181,15 +10121,15 @@ void AlarmControlPanelCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void AlarmControlPanelCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->command != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->command));
   }
   if (!this->code.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->code.size())) + this->code.size();
   }
 }
@@ -10289,50 +10229,50 @@ void ListEntitiesTextResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesTextResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (this->min_length != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->min_length);
   }
   if (this->max_length != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->max_length);
   }
   if (!this->pattern.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->pattern.size())) + this->pattern.size();
   }
   if (this->mode != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->mode));
   }
 }
@@ -10426,15 +10366,15 @@ void TextStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void TextStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->state.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->state.size())) + this->state.size();
   }
   if (this->missing_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -10483,11 +10423,11 @@ void TextCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void TextCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->state.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->state.size())) + this->state.size();
   }
 }
@@ -10563,33 +10503,33 @@ void ListEntitiesDateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesDateResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
 }
@@ -10669,23 +10609,23 @@ void DateStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void DateStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->missing_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->year != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->year);
   }
   if (this->month != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->month);
   }
   if (this->day != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->day);
   }
 }
@@ -10755,19 +10695,19 @@ void DateCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void DateCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->year != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->year);
   }
   if (this->month != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->month);
   }
   if (this->day != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->day);
   }
 }
@@ -10854,33 +10794,33 @@ void ListEntitiesTimeResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesTimeResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
 }
@@ -10960,23 +10900,23 @@ void TimeStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void TimeStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->missing_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->hour != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->hour);
   }
   if (this->minute != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->minute);
   }
   if (this->second != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->second);
   }
 }
@@ -11046,19 +10986,19 @@ void TimeCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void TimeCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->hour != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->hour);
   }
   if (this->minute != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->minute);
   }
   if (this->second != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(this->second);
   }
 }
@@ -11157,43 +11097,43 @@ void ListEntitiesEventResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesEventResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (!this->device_class.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->device_class.size())) +
                   this->device_class.size();
   }
   for (const auto &it : this->event_types) {
     // Always include for repeated fields (force=true)
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(it.size())) + it.size();
   }
 }
@@ -11268,11 +11208,11 @@ void EventResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void EventResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->event_type.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->event_type.size())) + this->event_type.size();
   }
@@ -11369,50 +11309,50 @@ void ListEntitiesValveResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesValveResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (!this->device_class.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->device_class.size())) +
                   this->device_class.size();
   }
   if (this->assumed_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->supports_position) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->supports_stop) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -11498,15 +11438,15 @@ void ValveStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ValveStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->position != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->current_operation != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->current_operation));
   }
 }
@@ -11566,19 +11506,19 @@ void ValveCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void ValveCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->has_position) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->position != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->stop) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
 }
@@ -11663,33 +11603,33 @@ void ListEntitiesDateTimeResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesDateTimeResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
 }
@@ -11759,15 +11699,15 @@ void DateTimeStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void DateTimeStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->missing_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->epoch_seconds != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
 }
@@ -11811,11 +11751,11 @@ void DateTimeCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void DateTimeCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->epoch_seconds != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
 }
@@ -11897,37 +11837,37 @@ void ListEntitiesUpdateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesUpdateResponse::calculate_size(uint32_t &total_size) const {
   if (!this->object_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->object_id.size())) + this->object_id.size();
   }
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->name.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->name.size())) + this->name.size();
   }
   if (!this->unique_id.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size +=
         1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->unique_id.size())) + this->unique_id.size();
   }
   if (!this->icon.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->icon.size())) + this->icon.size();
   }
   if (this->disabled_by_default) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->entity_category != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (!this->device_class.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->device_class.size())) +
                   this->device_class.size();
   }
@@ -12043,46 +11983,46 @@ void UpdateStateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void UpdateStateResponse::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->missing_state) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->in_progress) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->has_progress) {
-    // 1 byte for field_id, 1 byte for value
+    // Field ID takes 1 byte(s) + 1 byte for value
     total_size += 2;
   }
   if (this->progress != 0.0f) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (!this->current_version.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->current_version.size())) +
                   this->current_version.size();
   }
   if (!this->latest_version.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->latest_version.size())) +
                   this->latest_version.size();
   }
   if (!this->title.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->title.size())) + this->title.size();
   }
   if (!this->release_summary.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->release_summary.size())) +
                   this->release_summary.size();
   }
   if (!this->release_url.empty()) {
-    // 1 byte field_id + size varint + string length
+    // Field ID takes 1 byte(s) + size varint + string length
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->release_url.size())) +
                   this->release_url.size();
   }
@@ -12161,11 +12101,11 @@ void UpdateCommandRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void UpdateCommandRequest::calculate_size(uint32_t &total_size) const {
   if (this->key != 0) {
-    // 1 byte for field_id, 4 bytes for value
+    // Field ID takes 1 byte(s) + 4 bytes for value
     total_size += 5;
   }
   if (this->command != 0) {
-    // 1 byte for field_id + varint bytes
+    // Field ID takes 1 byte(s) + varint bytes
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->command));
   }
 }
