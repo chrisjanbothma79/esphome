@@ -656,10 +656,8 @@ void HelloRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(3, this->api_version_minor);
 }
 void HelloRequest::calculate_size(uint32_t &total_size) const {
-  if (!this->client_info.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->client_info);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->client_info, false);
   if (this->api_version_major != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->api_version_major);
@@ -732,14 +730,10 @@ void HelloResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->api_version_minor);
   }
-  if (!this->server_info.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->server_info);
-  }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->server_info, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void HelloResponse::dump_to(std::string &out) const {
@@ -777,10 +771,8 @@ bool ConnectRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value
 }
 void ConnectRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_string(1, this->password); }
 void ConnectRequest::calculate_size(uint32_t &total_size) const {
-  if (!this->password.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->password);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->password, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ConnectRequest::dump_to(std::string &out) const {
@@ -958,38 +950,24 @@ void DeviceInfoResponse::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->mac_address.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->mac_address);
-  }
-  if (!this->esphome_version.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->esphome_version);
-  }
-  if (!this->compilation_time.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->compilation_time);
-  }
-  if (!this->model.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->model);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->mac_address, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->esphome_version, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->compilation_time, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->model, false);
   if (this->has_deep_sleep) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->project_name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->project_name);
-  }
-  if (!this->project_version.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->project_version);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->project_name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->project_version, false);
   if (this->webserver_port != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->webserver_port);
@@ -1002,14 +980,10 @@ void DeviceInfoResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->bluetooth_proxy_feature_flags);
   }
-  if (!this->manufacturer.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->manufacturer);
-  }
-  if (!this->friendly_name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->friendly_name);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->manufacturer, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->friendly_name, false);
   if (this->legacy_voice_assistant_version != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->legacy_voice_assistant_version);
@@ -1018,14 +992,10 @@ void DeviceInfoResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (2 bytes)
     total_size += 2 + ProtoSizeCalculator::varint_size(this->voice_assistant_feature_flags);
   }
-  if (!this->suggested_area.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(2, this->suggested_area);
-  }
-  if (!this->bluetooth_mac_address.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(2, this->bluetooth_mac_address);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(2, this->suggested_area, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(2, this->bluetooth_mac_address, false);
   if (this->api_encryption_supported) {
     // Precalculated: field ID (2 bytes) + value (1 byte)
     total_size += 3;
@@ -1199,26 +1169,18 @@ void ListEntitiesBinarySensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(9, this->entity_category);
 }
 void ListEntitiesBinarySensorResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->device_class.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class, false);
   if (this->is_status_binary_sensor) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -1227,10 +1189,8 @@ void ListEntitiesBinarySensorResponse::calculate_size(uint32_t &total_size) cons
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->entity_category != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
@@ -1422,22 +1382,16 @@ void ListEntitiesCoverResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(12, this->supports_stop);
 }
 void ListEntitiesCoverResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
   if (this->assumed_state) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -1450,18 +1404,14 @@ void ListEntitiesCoverResponse::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->device_class.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->entity_category != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
@@ -1828,22 +1778,16 @@ void ListEntitiesFanResponse::encode(ProtoWriteBuffer buffer) const {
   }
 }
 void ListEntitiesFanResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
   if (this->supports_oscillation) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -1864,19 +1808,16 @@ void ListEntitiesFanResponse::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->entity_category != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
   if (!this->supported_preset_modes.empty()) {
     for (const auto &it : this->supported_preset_modes) {
-      // Always include for repeated fields (force=true)
       // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it);
+      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it, true);
     }
   }
 }
@@ -2018,10 +1959,8 @@ void FanStateResponse::calculate_size(uint32_t &total_size) const {
     // Optimized int32 calculation with precalculated field ID size (1 bytes)
     total_size += ProtoSizeCalculator::int32_field_with_value_size(1, this->speed_level);
   }
-  if (!this->preset_mode.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->preset_mode);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->preset_mode, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void FanStateResponse::dump_to(std::string &out) const {
@@ -2193,10 +2132,8 @@ void FanCommandRequest::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->preset_mode.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->preset_mode);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->preset_mode, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void FanCommandRequest::dump_to(std::string &out) const {
@@ -2358,22 +2295,16 @@ void ListEntitiesLightResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(15, this->entity_category);
 }
 void ListEntitiesLightResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
   if (!this->supported_color_modes.empty()) {
     for (const auto &it : this->supported_color_modes) {
       // Always include for repeated fields (force=true)
@@ -2407,19 +2338,16 @@ void ListEntitiesLightResponse::calculate_size(uint32_t &total_size) const {
   }
   if (!this->effects.empty()) {
     for (const auto &it : this->effects) {
-      // Always include for repeated fields (force=true)
       // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it);
+      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it, true);
     }
   }
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->entity_category != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
@@ -2632,10 +2560,8 @@ void LightStateResponse::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->effect.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->effect);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->effect, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void LightStateResponse::dump_to(std::string &out) const {
@@ -2965,10 +2891,8 @@ void LightCommandRequest::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (2 bytes) + value (1 byte)
     total_size += 3;
   }
-  if (!this->effect.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(2, this->effect);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(2, this->effect, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void LightCommandRequest::dump_to(std::string &out) const {
@@ -3182,30 +3106,20 @@ void ListEntitiesSensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(13, this->entity_category);
 }
 void ListEntitiesSensorResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
-  if (!this->unit_of_measurement.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unit_of_measurement);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unit_of_measurement, false);
   if (this->accuracy_decimals != 0) {
     // Optimized int32 calculation with precalculated field ID size (1 bytes)
     total_size += ProtoSizeCalculator::int32_field_with_value_size(1, this->accuracy_decimals);
@@ -3214,10 +3128,8 @@ void ListEntitiesSensorResponse::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->device_class.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class, false);
   if (this->state_class != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->state_class));
@@ -3424,26 +3336,18 @@ void ListEntitiesSwitchResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(9, this->device_class);
 }
 void ListEntitiesSwitchResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->assumed_state) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -3456,10 +3360,8 @@ void ListEntitiesSwitchResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
-  if (!this->device_class.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
@@ -3663,26 +3565,18 @@ void ListEntitiesTextSensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(8, this->device_class);
 }
 void ListEntitiesTextSensorResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -3691,10 +3585,8 @@ void ListEntitiesTextSensorResponse::calculate_size(uint32_t &total_size) const 
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
-  if (!this->device_class.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
@@ -3775,10 +3667,8 @@ void TextSensorStateResponse::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->state.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->state);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->state, false);
   if (this->missing_state) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -3879,10 +3769,8 @@ void SubscribeLogsResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->level));
   }
-  if (!this->message.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->message);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->message, false);
   if (this->send_failed) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -3918,10 +3806,8 @@ bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthD
 }
 void NoiseEncryptionSetKeyRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_string(1, this->key); }
 void NoiseEncryptionSetKeyRequest::calculate_size(uint32_t &total_size) const {
-  if (!this->key.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->key);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->key, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void NoiseEncryptionSetKeyRequest::dump_to(std::string &out) const {
@@ -3986,14 +3872,10 @@ void HomeassistantServiceMap::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(2, this->value);
 }
 void HomeassistantServiceMap::calculate_size(uint32_t &total_size) const {
-  if (!this->key.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->key);
-  }
-  if (!this->value.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->value);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->key, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->value, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void HomeassistantServiceMap::dump_to(std::string &out) const {
@@ -4055,10 +3937,8 @@ void HomeassistantServiceResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(5, this->is_event);
 }
 void HomeassistantServiceResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->service.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->service);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->service, false);
   if (!this->data.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->data) {
@@ -4169,14 +4049,10 @@ void SubscribeHomeAssistantStateResponse::encode(ProtoWriteBuffer buffer) const 
   buffer.encode_bool(3, this->once);
 }
 void SubscribeHomeAssistantStateResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->entity_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->entity_id);
-  }
-  if (!this->attribute.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->attribute);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->entity_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->attribute, false);
   if (this->once) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -4224,18 +4100,12 @@ void HomeAssistantStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(3, this->attribute);
 }
 void HomeAssistantStateResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->entity_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->entity_id);
-  }
-  if (!this->state.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->state);
-  }
-  if (!this->attribute.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->attribute);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->entity_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->state, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->attribute, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void HomeAssistantStateResponse::dump_to(std::string &out) const {
@@ -4313,10 +4183,8 @@ void ListEntitiesServicesArgument::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::ServiceArgType>(2, this->type);
 }
 void ListEntitiesServicesArgument::calculate_size(uint32_t &total_size) const {
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
   if (this->type != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->type));
@@ -4368,10 +4236,8 @@ void ListEntitiesServicesResponse::encode(ProtoWriteBuffer buffer) const {
   }
 }
 void ListEntitiesServicesResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
@@ -4496,10 +4362,8 @@ void ExecuteServiceArgument::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->string_.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->string_);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->string_, false);
   if (this->int_ != 0) {
     // Using precalculated field ID size (1 bytes) zigzag31
     total_size += 1 + ProtoSizeCalculator::varint_size(((this->int_ << 1) ^ (this->int_ >> 31)));
@@ -4527,9 +4391,8 @@ void ExecuteServiceArgument::calculate_size(uint32_t &total_size) const {
   }
   if (!this->string_array.empty()) {
     for (const auto &it : this->string_array) {
-      // Always include for repeated fields (force=true)
       // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it);
+      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it, true);
     }
   }
 }
@@ -4705,30 +4568,22 @@ void ListEntitiesCameraResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
 }
 void ListEntitiesCameraResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->entity_category != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
@@ -4809,10 +4664,8 @@ void CameraImageResponse::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->data.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data, false);
   if (this->done) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -5037,22 +4890,16 @@ void ListEntitiesClimateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_float(25, this->visual_max_humidity);
 }
 void ListEntitiesClimateResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
   if (this->supports_current_temperature) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -5104,9 +4951,8 @@ void ListEntitiesClimateResponse::calculate_size(uint32_t &total_size) const {
   }
   if (!this->supported_custom_fan_modes.empty()) {
     for (const auto &it : this->supported_custom_fan_modes) {
-      // Always include for repeated fields (force=true)
       // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it);
+      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it, true);
     }
   }
   if (!this->supported_presets.empty()) {
@@ -5118,19 +4964,16 @@ void ListEntitiesClimateResponse::calculate_size(uint32_t &total_size) const {
   }
   if (!this->supported_custom_presets.empty()) {
     for (const auto &it : this->supported_custom_presets) {
-      // Always include for repeated fields (force=true)
       // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
-      total_size += ProtoSizeCalculator::string_field_with_value_size(2, it);
+      total_size += ProtoSizeCalculator::string_field_with_value_size(2, it, true);
     }
   }
   if (this->disabled_by_default) {
     // Precalculated: field ID (2 bytes) + value (1 byte)
     total_size += 3;
   }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(2, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(2, this->icon, false);
   if (this->entity_category != 0) {
     // Using precalculated field ID size (2 bytes)
     total_size += 2 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
@@ -5417,18 +5260,14 @@ void ClimateStateResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->swing_mode));
   }
-  if (!this->custom_fan_mode.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->custom_fan_mode);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->custom_fan_mode, false);
   if (this->preset != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->preset));
   }
-  if (!this->custom_preset.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->custom_preset);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->custom_preset, false);
   if (this->current_humidity != 0.0f) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
@@ -5711,10 +5550,8 @@ void ClimateCommandRequest::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (2 bytes) + value (1 byte)
     total_size += 3;
   }
-  if (!this->custom_fan_mode.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(2, this->custom_fan_mode);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(2, this->custom_fan_mode, false);
   if (this->has_preset) {
     // Precalculated: field ID (2 bytes) + value (1 byte)
     total_size += 3;
@@ -5727,10 +5564,8 @@ void ClimateCommandRequest::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (2 bytes) + value (1 byte)
     total_size += 3;
   }
-  if (!this->custom_preset.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(2, this->custom_preset);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (2 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(2, this->custom_preset, false);
   if (this->has_target_humidity) {
     // Precalculated: field ID (2 bytes) + value (1 byte)
     total_size += 3;
@@ -5929,26 +5764,18 @@ void ListEntitiesNumberResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(13, this->device_class);
 }
 void ListEntitiesNumberResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->min_value != 0.0f) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
@@ -5969,18 +5796,14 @@ void ListEntitiesNumberResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
-  if (!this->unit_of_measurement.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unit_of_measurement);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unit_of_measurement, false);
   if (this->mode != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->mode));
   }
-  if (!this->device_class.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesNumberResponse::dump_to(std::string &out) const {
@@ -6214,31 +6037,22 @@ void ListEntitiesSelectResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(8, this->entity_category);
 }
 void ListEntitiesSelectResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (!this->options.empty()) {
     for (const auto &it : this->options) {
-      // Always include for repeated fields (force=true)
       // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it);
+      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it, true);
     }
   }
   if (this->disabled_by_default) {
@@ -6331,10 +6145,8 @@ void SelectStateResponse::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->state.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->state);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->state, false);
   if (this->missing_state) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -6388,10 +6200,8 @@ void SelectCommandRequest::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->state.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->state);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->state, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SelectCommandRequest::dump_to(std::string &out) const {
@@ -6484,26 +6294,18 @@ void ListEntitiesLockResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(11, this->code_format);
 }
 void ListEntitiesLockResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -6524,10 +6326,8 @@ void ListEntitiesLockResponse::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->code_format.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->code_format);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->code_format, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesLockResponse::dump_to(std::string &out) const {
@@ -6682,10 +6482,8 @@ void LockCommandRequest::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->code.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->code);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->code, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void LockCommandRequest::dump_to(std::string &out) const {
@@ -6771,26 +6569,18 @@ void ListEntitiesButtonResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(8, this->device_class);
 }
 void ListEntitiesButtonResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -6799,10 +6589,8 @@ void ListEntitiesButtonResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
-  if (!this->device_class.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesButtonResponse::dump_to(std::string &out) const {
@@ -6911,10 +6699,8 @@ void MediaPlayerSupportedFormat::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(5, this->sample_bytes);
 }
 void MediaPlayerSupportedFormat::calculate_size(uint32_t &total_size) const {
-  if (!this->format.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->format);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->format, false);
   if (this->sample_rate != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->sample_rate);
@@ -7029,26 +6815,18 @@ void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
   }
 }
 void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -7285,10 +7063,8 @@ void MediaPlayerCommandRequest::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->media_url.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->media_url);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->media_url, false);
   if (this->has_announcement) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -7404,10 +7180,8 @@ void BluetoothServiceData::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(3, this->data);
 }
 void BluetoothServiceData::calculate_size(uint32_t &total_size) const {
-  if (!this->uuid.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->uuid);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->uuid, false);
   if (!this->legacy_data.empty()) {
     for (const auto &it : this->legacy_data) {
       // Always include for repeated fields (force=true)
@@ -7415,10 +7189,8 @@ void BluetoothServiceData::calculate_size(uint32_t &total_size) const {
       total_size += 1 + ProtoSizeCalculator::varint_size(it);
     }
   }
-  if (!this->data.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothServiceData::dump_to(std::string &out) const {
@@ -7501,19 +7273,16 @@ void BluetoothLEAdvertisementResponse::calculate_size(uint32_t &total_size) cons
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address);
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
   if (this->rssi != 0) {
     // Using precalculated field ID size (1 bytes) zigzag31
     total_size += 1 + ProtoSizeCalculator::varint_size(((this->rssi << 1) ^ (this->rssi >> 31)));
   }
   if (!this->service_uuids.empty()) {
     for (const auto &it : this->service_uuids) {
-      // Always include for repeated fields (force=true)
       // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it);
+      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it, true);
     }
   }
   if (!this->service_data.empty()) {
@@ -7635,10 +7404,8 @@ void BluetoothLERawAdvertisement::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->address_type);
   }
-  if (!this->data.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothLERawAdvertisement::dump_to(std::string &out) const {
@@ -8277,10 +8044,8 @@ void BluetoothGATTReadResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
-  if (!this->data.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTReadResponse::dump_to(std::string &out) const {
@@ -8349,10 +8114,8 @@ void BluetoothGATTWriteRequest::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->data.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTWriteRequest::dump_to(std::string &out) const {
@@ -8460,10 +8223,8 @@ void BluetoothGATTWriteDescriptorRequest::calculate_size(uint32_t &total_size) c
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
-  if (!this->data.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTWriteDescriptorRequest::dump_to(std::string &out) const {
@@ -8580,10 +8341,8 @@ void BluetoothGATTNotifyDataResponse::calculate_size(uint32_t &total_size) const
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->handle);
   }
-  if (!this->data.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTNotifyDataResponse::dump_to(std::string &out) const {
@@ -9223,10 +8982,8 @@ void VoiceAssistantRequest::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
   }
-  if (!this->conversation_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->conversation_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->conversation_id, false);
   if (this->flags != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->flags);
@@ -9239,10 +8996,8 @@ void VoiceAssistantRequest::calculate_size(uint32_t &total_size) const {
       total_size += 1 + ProtoSizeCalculator::varint_size(nested_size) + nested_size;
     }
   }
-  if (!this->wake_word_phrase.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->wake_word_phrase);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->wake_word_phrase, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantRequest::dump_to(std::string &out) const {
@@ -9333,14 +9088,10 @@ void VoiceAssistantEventData::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(2, this->value);
 }
 void VoiceAssistantEventData::calculate_size(uint32_t &total_size) const {
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->value.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->value);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->value, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantEventData::dump_to(std::string &out) const {
@@ -9441,10 +9192,8 @@ void VoiceAssistantAudio::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(2, this->end);
 }
 void VoiceAssistantAudio::calculate_size(uint32_t &total_size) const {
-  if (!this->data.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->data, false);
   if (this->end) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -9513,14 +9262,10 @@ void VoiceAssistantTimerEventResponse::calculate_size(uint32_t &total_size) cons
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->event_type));
   }
-  if (!this->timer_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->timer_id);
-  }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->timer_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
   if (this->total_seconds != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->total_seconds);
@@ -9601,18 +9346,12 @@ void VoiceAssistantAnnounceRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(4, this->start_conversation);
 }
 void VoiceAssistantAnnounceRequest::calculate_size(uint32_t &total_size) const {
-  if (!this->media_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->media_id);
-  }
-  if (!this->text.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->text);
-  }
-  if (!this->preannounce_media_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->preannounce_media_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->media_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->text, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->preannounce_media_id, false);
   if (this->start_conversation) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -9693,19 +9432,14 @@ void VoiceAssistantWakeWord::encode(ProtoWriteBuffer buffer) const {
   }
 }
 void VoiceAssistantWakeWord::calculate_size(uint32_t &total_size) const {
-  if (!this->id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->id);
-  }
-  if (!this->wake_word.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->wake_word);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->wake_word, false);
   if (!this->trained_languages.empty()) {
     for (const auto &it : this->trained_languages) {
-      // Always include for repeated fields (force=true)
       // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it);
+      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it, true);
     }
   }
 }
@@ -9784,9 +9518,8 @@ void VoiceAssistantConfigurationResponse::calculate_size(uint32_t &total_size) c
   }
   if (!this->active_wake_words.empty()) {
     for (const auto &it : this->active_wake_words) {
-      // Always include for repeated fields (force=true)
       // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it);
+      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it, true);
     }
   }
   if (this->max_active_wake_words != 0) {
@@ -9835,9 +9568,8 @@ void VoiceAssistantSetConfiguration::encode(ProtoWriteBuffer buffer) const {
 void VoiceAssistantSetConfiguration::calculate_size(uint32_t &total_size) const {
   if (!this->active_wake_words.empty()) {
     for (const auto &it : this->active_wake_words) {
-      // Always include for repeated fields (force=true)
       // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it);
+      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it, true);
     }
   }
 }
@@ -9924,26 +9656,18 @@ void ListEntitiesAlarmControlPanelResponse::encode(ProtoWriteBuffer buffer) cons
   buffer.encode_bool(10, this->requires_code_to_arm);
 }
 void ListEntitiesAlarmControlPanelResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -10106,10 +9830,8 @@ void AlarmControlPanelCommandRequest::calculate_size(uint32_t &total_size) const
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->command));
   }
-  if (!this->code.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->code);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->code, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
@@ -10206,26 +9928,18 @@ void ListEntitiesTextResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::TextMode>(11, this->mode);
 }
 void ListEntitiesTextResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -10242,10 +9956,8 @@ void ListEntitiesTextResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(this->max_length);
   }
-  if (!this->pattern.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->pattern);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->pattern, false);
   if (this->mode != 0) {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->mode));
@@ -10344,10 +10056,8 @@ void TextStateResponse::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->state.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->state);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->state, false);
   if (this->missing_state) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -10401,10 +10111,8 @@ void TextCommandRequest::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->state.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->state);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->state, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void TextCommandRequest::dump_to(std::string &out) const {
@@ -10477,26 +10185,18 @@ void ListEntitiesDateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
 }
 void ListEntitiesDateResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -10766,26 +10466,18 @@ void ListEntitiesTimeResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
 }
 void ListEntitiesTimeResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -11067,26 +10759,18 @@ void ListEntitiesEventResponse::encode(ProtoWriteBuffer buffer) const {
   }
 }
 void ListEntitiesEventResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -11095,15 +10779,12 @@ void ListEntitiesEventResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
-  if (!this->device_class.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class, false);
   if (!this->event_types.empty()) {
     for (const auto &it : this->event_types) {
-      // Always include for repeated fields (force=true)
       // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it);
+      total_size += ProtoSizeCalculator::string_field_with_value_size(1, it, true);
     }
   }
 }
@@ -11181,10 +10862,8 @@ void EventResponse::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->event_type.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->event_type);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->event_type, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void EventResponse::dump_to(std::string &out) const {
@@ -11277,26 +10956,18 @@ void ListEntitiesValveResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(11, this->supports_stop);
 }
 void ListEntitiesValveResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -11305,10 +10976,8 @@ void ListEntitiesValveResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
-  if (!this->device_class.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class, false);
   if (this->assumed_state) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -11568,26 +11237,18 @@ void ListEntitiesDateTimeResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
 }
 void ListEntitiesDateTimeResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -11800,26 +11461,18 @@ void ListEntitiesUpdateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(8, this->device_class);
 }
 void ListEntitiesUpdateResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->object_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->object_id, false);
   if (this->key != 0) {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->name.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name);
-  }
-  if (!this->unique_id.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id);
-  }
-  if (!this->icon.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->name, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->unique_id, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->icon, false);
   if (this->disabled_by_default) {
     // Precalculated: field ID (1 bytes) + value (1 byte)
     total_size += 2;
@@ -11828,10 +11481,8 @@ void ListEntitiesUpdateResponse::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSizeCalculator::varint_size(static_cast<uint32_t>(this->entity_category));
   }
-  if (!this->device_class.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->device_class, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
@@ -11963,26 +11614,16 @@ void UpdateStateResponse::calculate_size(uint32_t &total_size) const {
     // Precalculated: field ID (1 bytes) + value (4 bytes)
     total_size += 5;
   }
-  if (!this->current_version.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->current_version);
-  }
-  if (!this->latest_version.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->latest_version);
-  }
-  if (!this->title.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->title);
-  }
-  if (!this->release_summary.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->release_summary);
-  }
-  if (!this->release_url.empty()) {
-    // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->release_url);
-  }
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->current_version, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->latest_version, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->title, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->release_summary, false);
+  // Using optimized string/bytes calculation with precalculated field ID size (1 bytes)
+  total_size += ProtoSizeCalculator::string_field_with_value_size(1, this->release_url, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void UpdateStateResponse::dump_to(std::string &out) const {

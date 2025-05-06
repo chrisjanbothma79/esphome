@@ -102,9 +102,16 @@ class ProtoSizeCalculator {
    *
    * @param field_id_size Pre-calculated size of the field ID in bytes
    * @param str The string or bytes value to calculate size for
-   * @return The total size in bytes (field ID + length varint + content)
+   * @param force Whether to calculate size even if the string is empty
+   * @return The total size in bytes (field ID + length varint + content), or 0 if string is empty and not forced
    */
-  static inline uint32_t string_field_with_value_size(uint32_t field_id_size, const std::string &str) {
+  static inline uint32_t string_field_with_value_size(uint32_t field_id_size, const std::string &str,
+                                                      bool force = false) {
+    // Skip calculation if string is empty and not forced
+    if (str.empty() && !force) {
+      return 0;
+    }
+
     // Calculate total size: field ID + length varint + string/bytes length
     const uint32_t str_size = static_cast<uint32_t>(str.size());
     return field_id_size + varint_size(str_size) + str_size;

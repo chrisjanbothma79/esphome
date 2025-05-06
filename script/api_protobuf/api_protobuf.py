@@ -524,16 +524,9 @@ class StringType(TypeInfo):
         # Calculate the field ID size for wire type LENGTH_DELIMITED
         field_id_size = self.calculate_field_id_size(WireType.LENGTH_DELIMITED)
 
-        # String size calculation: if non-empty, add field_id bytes + size varint + string length
-        if force:
-            return f"""// Always include for repeated fields (force=true)
-          // Using optimized string/bytes calculation with precalculated field ID size ({field_id_size} bytes)
-          total_size += ProtoSizeCalculator::string_field_with_value_size({field_id_size}, {name});"""
-        else:
-            return f"""if (!{name}.empty()) {{
-          // Using optimized string/bytes calculation with precalculated field ID size ({field_id_size} bytes)
-          total_size += ProtoSizeCalculator::string_field_with_value_size({field_id_size}, {name});
-        }}"""
+        # String size calculation with empty check moved inside the helper function
+        return f"""// Using optimized string/bytes calculation with precalculated field ID size ({field_id_size} bytes)
+          total_size += ProtoSizeCalculator::string_field_with_value_size({field_id_size}, {name}, {str(force).lower()});"""
 
 
 @register_type(11)
@@ -606,16 +599,9 @@ class BytesType(TypeInfo):
         # Calculate the field ID size for wire type LENGTH_DELIMITED
         field_id_size = self.calculate_field_id_size(WireType.LENGTH_DELIMITED)
 
-        # Bytes size calculation: if non-empty, add field_id bytes + size varint + bytes length
-        if force:
-            return f"""// Always include for repeated fields (force=true)
-          // Using optimized string/bytes calculation with precalculated field ID size ({field_id_size} bytes)
-          total_size += ProtoSizeCalculator::string_field_with_value_size({field_id_size}, {name});"""
-        else:
-            return f"""if (!{name}.empty()) {{
-          // Using optimized string/bytes calculation with precalculated field ID size ({field_id_size} bytes)
-          total_size += ProtoSizeCalculator::string_field_with_value_size({field_id_size}, {name});
-        }}"""
+        # Bytes size calculation with empty check moved inside the helper function
+        return f"""// Using optimized string/bytes calculation with precalculated field ID size ({field_id_size} bytes)
+          total_size += ProtoSizeCalculator::string_field_with_value_size({field_id_size}, {name}, {str(force).lower()});"""
 
 
 @register_type(13)
