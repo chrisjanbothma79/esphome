@@ -253,7 +253,6 @@ class TypeInfo(ABC):
         self, name: str, bytes_count: int, force: bool = False
     ) -> str:
         """Helper to generate size calculation code for fixed-size fields."""
-        # Calculate the field ID size for wire type FIXED32
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         if force:
@@ -270,7 +269,6 @@ class TypeInfo(ABC):
         self, name: str, bytes_count: int, zero_value: str, force: bool = False
     ) -> str:
         """Helper to generate size calculation code for float/double fields."""
-        # Calculate the field ID size for wire type FIXED32
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         if force:
@@ -285,7 +283,6 @@ class TypeInfo(ABC):
 
     def size_calc_bool(self, name: str, force: bool = False) -> str:
         """Helper to generate size calculation code for boolean fields."""
-        # Calculate the field ID size for wire type VARINT
         field_id_size = self.calculate_field_id_size(WireType.VARINT)
 
         if force:
@@ -321,7 +318,6 @@ class TypeInfo(ABC):
         if cast:
             value = f"{cast}({value})"
 
-        # Calculate the field ID size for wire type VARINT
         field_id_size = self.calculate_field_id_size(WireType.VARINT)
 
         if force:
@@ -336,7 +332,6 @@ class TypeInfo(ABC):
 
     def size_calc_int32(self, name: str, force: bool = False) -> str:
         """Helper to generate size calculation code for int32 fields with special handling for negative values."""
-        # Calculate the field ID size for wire type VARINT
         field_id_size = self.calculate_field_id_size(WireType.VARINT)
 
         if force:
