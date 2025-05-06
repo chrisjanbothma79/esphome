@@ -263,7 +263,11 @@ class TypeInfo(ABC):
             zero_value: The zero value for the field (default "0" for integer types, "0.0" for double, "0.0f" for float)
             force: Whether to force encoding the field even if it has a default value
         """
-        field_id_size = self.calculate_field_id_size(WireType.FIXED32)
+        # According to protobuf spec, fixed32 should use wire type 5 and fixed64 should use wire type 1
+        # However, ESPHome's implementation uses wire type 5 for both fixed32 and fixed64, so we use FIXED32
+        # regardless of bytes_count
+        wire_type = WireType.FIXED32
+        field_id_size = self.calculate_field_id_size(wire_type)
 
         if force:
             return f"""// Always include for repeated fields (force=true)
@@ -380,7 +384,7 @@ class DoubleType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Double is handled like fixed64 - 9 bytes when non-zero (1 for field + 8 for value)
+        # Double is handled like fixed64 - field ID bytes plus 8 bytes for value
         return self.size_calc_fixed(name, bytes_count=8, zero_value="0.0", force=force)
 
 
@@ -397,7 +401,7 @@ class FloatType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Float is handled like fixed32 - 5 bytes when non-zero (1 for field + 4 for value)
+        # Float is handled like fixed32 - field ID bytes plus 4 bytes for value
         return self.size_calc_fixed(name, bytes_count=4, zero_value="0.0f", force=force)
 
 
@@ -465,7 +469,7 @@ class Fixed64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Fixed64 is always 9 bytes when non-zero (1 for field + 8 for value)
+        # Fixed64 is always field ID bytes plus 8 bytes for non-zero value
         return self.size_calc_fixed(name, bytes_count=8, force=force)
 
 
@@ -482,7 +486,7 @@ class Fixed32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Fixed32 is always 5 bytes when non-zero (1 for field + 4 for value)
+        # Fixed32 is always field ID bytes plus 4 bytes for non-zero value
         return self.size_calc_fixed(name, bytes_count=4, force=force)
 
 
@@ -498,7 +502,7 @@ class BoolType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # For bool, we know the exact size: 2 bytes when true (field_id + 1), 0 when false
+        # For bool, we know the exact size: field ID bytes plus 1 byte when true, 0 when false
         return self.size_calc_bool(name, force=force)
 
 
@@ -674,7 +678,7 @@ class SFixed32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # SFixed32 is always 5 bytes when non-zero (1 for field + 4 for value)
+        # SFixed32 is always field ID bytes plus 4 bytes for non-zero value
         return self.size_calc_fixed(name, bytes_count=4, force=force)
 
 
@@ -691,7 +695,7 @@ class SFixed64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # SFixed64 is always 9 bytes when non-zero (1 for field + 8 for value)
+        # SFixed64 is always field ID bytes plus 8 bytes for non-zero value
         return self.size_calc_fixed(name, bytes_count=8, force=force)
 
 
