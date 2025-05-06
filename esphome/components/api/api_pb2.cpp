@@ -796,10 +796,6 @@ void DeviceInfoRequest::dump_to(std::string &out) const { out.append("DeviceInfo
 #endif
 bool SubDeviceInfo::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
-    case 1: {
-      this->id = value.as_string();
-      return true;
-    }
     case 2: {
       this->name = value.as_string();
       return true;
@@ -813,7 +809,7 @@ bool SubDeviceInfo::decode_length(uint32_t field_id, ProtoLengthDelimited value)
   }
 }
 void SubDeviceInfo::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_string(1, this->id);
+  buffer.encode_fixed32(1, this->uid);
   buffer.encode_string(2, this->name);
   buffer.encode_string(3, this->suggested_area);
 }
@@ -821,8 +817,9 @@ void SubDeviceInfo::encode(ProtoWriteBuffer buffer) const {
 void SubDeviceInfo::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SubDeviceInfo {\n");
-  out.append("  id: ");
-  out.append("'").append(this->id).append("'");
+  out.append("  uid: ");
+  sprintf(buffer, "%" PRIu32, this->uid);
+  out.append(buffer);
   out.append("\n");
 
   out.append("  name: ");
@@ -1096,10 +1093,6 @@ bool ListEntitiesBinarySensorResponse::decode_length(uint32_t field_id, ProtoLen
       this->icon = value.as_string();
       return true;
     }
-    case 10: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -1124,7 +1117,7 @@ void ListEntitiesBinarySensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(7, this->disabled_by_default);
   buffer.encode_string(8, this->icon);
   buffer.encode_enum<enums::EntityCategory>(9, this->entity_category);
-  buffer.encode_string(10, this->device_id);
+  buffer.encode_fixed32(10, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
@@ -1167,8 +1160,9 @@ void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -1273,10 +1267,6 @@ bool ListEntitiesCoverResponse::decode_length(uint32_t field_id, ProtoLengthDeli
       this->icon = value.as_string();
       return true;
     }
-    case 13: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -1304,7 +1294,7 @@ void ListEntitiesCoverResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(10, this->icon);
   buffer.encode_enum<enums::EntityCategory>(11, this->entity_category);
   buffer.encode_bool(12, this->supports_stop);
-  buffer.encode_string(13, this->device_id);
+  buffer.encode_fixed32(13, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesCoverResponse::dump_to(std::string &out) const {
@@ -1359,8 +1349,9 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->supports_stop));
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -1580,10 +1571,6 @@ bool ListEntitiesFanResponse::decode_length(uint32_t field_id, ProtoLengthDelimi
       this->supported_preset_modes.push_back(value.as_string());
       return true;
     }
-    case 13: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -1613,7 +1600,7 @@ void ListEntitiesFanResponse::encode(ProtoWriteBuffer buffer) const {
   for (auto &it : this->supported_preset_modes) {
     buffer.encode_string(12, it, true);
   }
-  buffer.encode_string(13, this->device_id);
+  buffer.encode_fixed32(13, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesFanResponse::dump_to(std::string &out) const {
@@ -1671,8 +1658,9 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
     out.append("\n");
   }
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -1969,10 +1957,6 @@ bool ListEntitiesLightResponse::decode_length(uint32_t field_id, ProtoLengthDeli
       this->icon = value.as_string();
       return true;
     }
-    case 16: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -2015,7 +1999,7 @@ void ListEntitiesLightResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(13, this->disabled_by_default);
   buffer.encode_string(14, this->icon);
   buffer.encode_enum<enums::EntityCategory>(15, this->entity_category);
-  buffer.encode_string(16, this->device_id);
+  buffer.encode_fixed32(16, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesLightResponse::dump_to(std::string &out) const {
@@ -2088,8 +2072,9 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -2584,10 +2569,6 @@ bool ListEntitiesSensorResponse::decode_length(uint32_t field_id, ProtoLengthDel
       this->device_class = value.as_string();
       return true;
     }
-    case 14: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -2616,7 +2597,7 @@ void ListEntitiesSensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::SensorLastResetType>(11, this->legacy_last_reset_type);
   buffer.encode_bool(12, this->disabled_by_default);
   buffer.encode_enum<enums::EntityCategory>(13, this->entity_category);
-  buffer.encode_string(14, this->device_id);
+  buffer.encode_fixed32(14, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesSensorResponse::dump_to(std::string &out) const {
@@ -2676,8 +2657,9 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -2771,10 +2753,6 @@ bool ListEntitiesSwitchResponse::decode_length(uint32_t field_id, ProtoLengthDel
       this->device_class = value.as_string();
       return true;
     }
-    case 10: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -2799,7 +2777,7 @@ void ListEntitiesSwitchResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(7, this->disabled_by_default);
   buffer.encode_enum<enums::EntityCategory>(8, this->entity_category);
   buffer.encode_string(9, this->device_class);
-  buffer.encode_string(10, this->device_id);
+  buffer.encode_fixed32(10, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
@@ -2842,8 +2820,9 @@ void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -2962,10 +2941,6 @@ bool ListEntitiesTextSensorResponse::decode_length(uint32_t field_id, ProtoLengt
       this->device_class = value.as_string();
       return true;
     }
-    case 9: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -2989,7 +2964,7 @@ void ListEntitiesTextSensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
   buffer.encode_string(8, this->device_class);
-  buffer.encode_string(9, this->device_id);
+  buffer.encode_fixed32(9, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
@@ -3028,8 +3003,9 @@ void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -3737,10 +3713,6 @@ bool ListEntitiesCameraResponse::decode_length(uint32_t field_id, ProtoLengthDel
       this->icon = value.as_string();
       return true;
     }
-    case 8: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -3763,7 +3735,7 @@ void ListEntitiesCameraResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(5, this->disabled_by_default);
   buffer.encode_string(6, this->icon);
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
-  buffer.encode_string(8, this->device_id);
+  buffer.encode_fixed32(8, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesCameraResponse::dump_to(std::string &out) const {
@@ -3798,8 +3770,9 @@ void ListEntitiesCameraResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -3970,10 +3943,6 @@ bool ListEntitiesClimateResponse::decode_length(uint32_t field_id, ProtoLengthDe
       this->icon = value.as_string();
       return true;
     }
-    case 26: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -4050,7 +4019,7 @@ void ListEntitiesClimateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(23, this->supports_target_humidity);
   buffer.encode_float(24, this->visual_min_humidity);
   buffer.encode_float(25, this->visual_max_humidity);
-  buffer.encode_string(26, this->device_id);
+  buffer.encode_fixed32(26, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesClimateResponse::dump_to(std::string &out) const {
@@ -4175,8 +4144,9 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -4631,10 +4601,6 @@ bool ListEntitiesNumberResponse::decode_length(uint32_t field_id, ProtoLengthDel
       this->device_class = value.as_string();
       return true;
     }
-    case 14: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -4675,7 +4641,7 @@ void ListEntitiesNumberResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(11, this->unit_of_measurement);
   buffer.encode_enum<enums::NumberMode>(12, this->mode);
   buffer.encode_string(13, this->device_class);
-  buffer.encode_string(14, this->device_id);
+  buffer.encode_fixed32(14, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesNumberResponse::dump_to(std::string &out) const {
@@ -4737,8 +4703,9 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -4862,10 +4829,6 @@ bool ListEntitiesSelectResponse::decode_length(uint32_t field_id, ProtoLengthDel
       this->options.push_back(value.as_string());
       return true;
     }
-    case 9: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -4891,7 +4854,7 @@ void ListEntitiesSelectResponse::encode(ProtoWriteBuffer buffer) const {
   }
   buffer.encode_bool(7, this->disabled_by_default);
   buffer.encode_enum<enums::EntityCategory>(8, this->entity_category);
-  buffer.encode_string(9, this->device_id);
+  buffer.encode_fixed32(9, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesSelectResponse::dump_to(std::string &out) const {
@@ -4932,8 +4895,9 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -5079,10 +5043,6 @@ bool ListEntitiesLockResponse::decode_length(uint32_t field_id, ProtoLengthDelim
       this->code_format = value.as_string();
       return true;
     }
-    case 12: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -5109,7 +5069,7 @@ void ListEntitiesLockResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(9, this->supports_open);
   buffer.encode_bool(10, this->requires_code);
   buffer.encode_string(11, this->code_format);
-  buffer.encode_string(12, this->device_id);
+  buffer.encode_fixed32(12, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesLockResponse::dump_to(std::string &out) const {
@@ -5160,8 +5120,9 @@ void ListEntitiesLockResponse::dump_to(std::string &out) const {
   out.append("'").append(this->code_format).append("'");
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -5304,10 +5265,6 @@ bool ListEntitiesButtonResponse::decode_length(uint32_t field_id, ProtoLengthDel
       this->device_class = value.as_string();
       return true;
     }
-    case 9: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -5331,7 +5288,7 @@ void ListEntitiesButtonResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
   buffer.encode_string(8, this->device_class);
-  buffer.encode_string(9, this->device_id);
+  buffer.encode_fixed32(9, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesButtonResponse::dump_to(std::string &out) const {
@@ -5370,8 +5327,9 @@ void ListEntitiesButtonResponse::dump_to(std::string &out) const {
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -5506,10 +5464,6 @@ bool ListEntitiesMediaPlayerResponse::decode_length(uint32_t field_id, ProtoLeng
       this->supported_formats.push_back(value.as_message<MediaPlayerSupportedFormat>());
       return true;
     }
-    case 10: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -5536,7 +5490,7 @@ void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
   for (auto &it : this->supported_formats) {
     buffer.encode_message<MediaPlayerSupportedFormat>(9, it, true);
   }
-  buffer.encode_string(10, this->device_id);
+  buffer.encode_fixed32(10, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
@@ -5581,8 +5535,9 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
     out.append("\n");
   }
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -7667,10 +7622,6 @@ bool ListEntitiesAlarmControlPanelResponse::decode_length(uint32_t field_id, Pro
       this->icon = value.as_string();
       return true;
     }
-    case 11: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -7696,7 +7647,7 @@ void ListEntitiesAlarmControlPanelResponse::encode(ProtoWriteBuffer buffer) cons
   buffer.encode_uint32(8, this->supported_features);
   buffer.encode_bool(9, this->requires_code);
   buffer.encode_bool(10, this->requires_code_to_arm);
-  buffer.encode_string(11, this->device_id);
+  buffer.encode_fixed32(11, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
@@ -7744,8 +7695,9 @@ void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->requires_code_to_arm));
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -7891,10 +7843,6 @@ bool ListEntitiesTextResponse::decode_length(uint32_t field_id, ProtoLengthDelim
       this->pattern = value.as_string();
       return true;
     }
-    case 12: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -7921,7 +7869,7 @@ void ListEntitiesTextResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(9, this->max_length);
   buffer.encode_string(10, this->pattern);
   buffer.encode_enum<enums::TextMode>(11, this->mode);
-  buffer.encode_string(12, this->device_id);
+  buffer.encode_fixed32(12, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesTextResponse::dump_to(std::string &out) const {
@@ -7974,8 +7922,9 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::TextMode>(this->mode));
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -8105,10 +8054,6 @@ bool ListEntitiesDateResponse::decode_length(uint32_t field_id, ProtoLengthDelim
       this->icon = value.as_string();
       return true;
     }
-    case 8: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -8131,7 +8076,7 @@ void ListEntitiesDateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
-  buffer.encode_string(8, this->device_id);
+  buffer.encode_fixed32(8, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesDateResponse::dump_to(std::string &out) const {
@@ -8166,8 +8111,9 @@ void ListEntitiesDateResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -8333,10 +8279,6 @@ bool ListEntitiesTimeResponse::decode_length(uint32_t field_id, ProtoLengthDelim
       this->icon = value.as_string();
       return true;
     }
-    case 8: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -8359,7 +8301,7 @@ void ListEntitiesTimeResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
-  buffer.encode_string(8, this->device_id);
+  buffer.encode_fixed32(8, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesTimeResponse::dump_to(std::string &out) const {
@@ -8394,8 +8336,9 @@ void ListEntitiesTimeResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -8569,10 +8512,6 @@ bool ListEntitiesEventResponse::decode_length(uint32_t field_id, ProtoLengthDeli
       this->event_types.push_back(value.as_string());
       return true;
     }
-    case 10: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -8599,7 +8538,7 @@ void ListEntitiesEventResponse::encode(ProtoWriteBuffer buffer) const {
   for (auto &it : this->event_types) {
     buffer.encode_string(9, it, true);
   }
-  buffer.encode_string(10, this->device_id);
+  buffer.encode_fixed32(10, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesEventResponse::dump_to(std::string &out) const {
@@ -8644,8 +8583,9 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
     out.append("\n");
   }
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -8737,10 +8677,6 @@ bool ListEntitiesValveResponse::decode_length(uint32_t field_id, ProtoLengthDeli
       this->device_class = value.as_string();
       return true;
     }
-    case 12: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -8767,7 +8703,7 @@ void ListEntitiesValveResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(9, this->assumed_state);
   buffer.encode_bool(10, this->supports_position);
   buffer.encode_bool(11, this->supports_stop);
-  buffer.encode_string(12, this->device_id);
+  buffer.encode_fixed32(12, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesValveResponse::dump_to(std::string &out) const {
@@ -8818,8 +8754,9 @@ void ListEntitiesValveResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->supports_stop));
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -8963,10 +8900,6 @@ bool ListEntitiesDateTimeResponse::decode_length(uint32_t field_id, ProtoLengthD
       this->icon = value.as_string();
       return true;
     }
-    case 8: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -8989,7 +8922,7 @@ void ListEntitiesDateTimeResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
-  buffer.encode_string(8, this->device_id);
+  buffer.encode_fixed32(8, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
@@ -9024,8 +8957,9 @@ void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -9149,10 +9083,6 @@ bool ListEntitiesUpdateResponse::decode_length(uint32_t field_id, ProtoLengthDel
       this->device_class = value.as_string();
       return true;
     }
-    case 9: {
-      this->device_id = value.as_string();
-      return true;
-    }
     default:
       return false;
   }
@@ -9176,7 +9106,7 @@ void ListEntitiesUpdateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
   buffer.encode_string(8, this->device_class);
-  buffer.encode_string(9, this->device_id);
+  buffer.encode_fixed32(9, this->device_uid);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
@@ -9215,8 +9145,9 @@ void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
 
-  out.append("  device_id: ");
-  out.append("'").append(this->device_id).append("'");
+  out.append("  device_uid: ");
+  sprintf(buffer, "%" PRIu32, this->device_uid);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }

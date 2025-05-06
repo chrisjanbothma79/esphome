@@ -287,7 +287,7 @@ bool APIConnection::try_send_binary_sensor_info(APIConnection *api, void *v_bina
   msg.disabled_by_default = binary_sensor->is_disabled_by_default();
   msg.icon = binary_sensor->get_icon();
   msg.entity_category = static_cast<enums::EntityCategory>(binary_sensor->get_entity_category());
-  msg.device_id = binary_sensor->get_device_id();
+  msg.device_uid = binary_sensor->get_device_uid();
   return api->send_list_entities_binary_sensor_response(msg);
 }
 #endif
@@ -338,7 +338,7 @@ bool APIConnection::try_send_cover_info(APIConnection *api, void *v_cover) {
   msg.disabled_by_default = cover->is_disabled_by_default();
   msg.icon = cover->get_icon();
   msg.entity_category = static_cast<enums::EntityCategory>(cover->get_entity_category());
-  msg.device_id = cover->get_device_id();
+  msg.device_uid = cover->get_device_uid();
   return api->send_list_entities_cover_response(msg);
 }
 void APIConnection::cover_command(const CoverCommandRequest &msg) {
@@ -421,6 +421,7 @@ bool APIConnection::try_send_fan_info(APIConnection *api, void *v_fan) {
   msg.disabled_by_default = fan->is_disabled_by_default();
   msg.icon = fan->get_icon();
   msg.entity_category = static_cast<enums::EntityCategory>(fan->get_entity_category());
+  msg.device_uid = fan->get_device_uid();
   return api->send_list_entities_fan_response(msg);
 }
 void APIConnection::fan_command(const FanCommandRequest &msg) {
@@ -518,6 +519,7 @@ bool APIConnection::try_send_light_info(APIConnection *api, void *v_light) {
     for (auto *effect : light->get_effects())
       msg.effects.push_back(effect->get_name());
   }
+  msg.device_uid = light->get_device_uid();
   return api->send_list_entities_light_response(msg);
 }
 void APIConnection::light_command(const LightCommandRequest &msg) {
@@ -602,6 +604,7 @@ bool APIConnection::try_send_sensor_info(APIConnection *api, void *v_sensor) {
   msg.state_class = static_cast<enums::SensorStateClass>(sensor->get_state_class());
   msg.disabled_by_default = sensor->is_disabled_by_default();
   msg.entity_category = static_cast<enums::EntityCategory>(sensor->get_entity_category());
+  msg.device_uid = sensor->get_device_uid();
   return api->send_list_entities_sensor_response(msg);
 }
 #endif
@@ -645,6 +648,7 @@ bool APIConnection::try_send_switch_info(APIConnection *api, void *v_a_switch) {
   msg.disabled_by_default = a_switch->is_disabled_by_default();
   msg.entity_category = static_cast<enums::EntityCategory>(a_switch->get_entity_category());
   msg.device_class = a_switch->get_device_class();
+  msg.device_uid = a_switch->get_device_uid();
   return api->send_list_entities_switch_response(msg);
 }
 void APIConnection::switch_command(const SwitchCommandRequest &msg) {
@@ -701,6 +705,7 @@ bool APIConnection::try_send_text_sensor_info(APIConnection *api, void *v_text_s
   msg.disabled_by_default = text_sensor->is_disabled_by_default();
   msg.entity_category = static_cast<enums::EntityCategory>(text_sensor->get_entity_category());
   msg.device_class = text_sensor->get_device_class();
+  msg.device_uid = text_sensor->get_device_uid();
   return api->send_list_entities_text_sensor_response(msg);
 }
 #endif
@@ -795,6 +800,7 @@ bool APIConnection::try_send_climate_info(APIConnection *api, void *v_climate) {
     msg.supported_custom_presets.push_back(custom_preset);
   for (auto swing_mode : traits.get_supported_swing_modes())
     msg.supported_swing_modes.push_back(static_cast<enums::ClimateSwingMode>(swing_mode));
+  msg.device_uid = climate->get_device_uid();
   return api->send_list_entities_climate_response(msg);
 }
 void APIConnection::climate_command(const ClimateCommandRequest &msg) {
@@ -873,6 +879,8 @@ bool APIConnection::try_send_number_info(APIConnection *api, void *v_number) {
   msg.max_value = number->traits.get_max_value();
   msg.step = number->traits.get_step();
 
+  msg.device_uid = number->get_device_uid();
+
   return api->send_list_entities_number_response(msg);
 }
 void APIConnection::number_command(const NumberCommandRequest &msg) {
@@ -923,6 +931,7 @@ bool APIConnection::try_send_date_info(APIConnection *api, void *v_date) {
   msg.icon = date->get_icon();
   msg.disabled_by_default = date->is_disabled_by_default();
   msg.entity_category = static_cast<enums::EntityCategory>(date->get_entity_category());
+  msg.device_uid = date->get_device_uid();
 
   return api->send_list_entities_date_response(msg);
 }
@@ -974,6 +983,7 @@ bool APIConnection::try_send_time_info(APIConnection *api, void *v_time) {
   msg.icon = time->get_icon();
   msg.disabled_by_default = time->is_disabled_by_default();
   msg.entity_category = static_cast<enums::EntityCategory>(time->get_entity_category());
+  msg.device_uid = time->get_device_uid();
 
   return api->send_list_entities_time_response(msg);
 }
@@ -1026,6 +1036,7 @@ bool APIConnection::try_send_datetime_info(APIConnection *api, void *v_datetime)
   msg.icon = datetime->get_icon();
   msg.disabled_by_default = datetime->is_disabled_by_default();
   msg.entity_category = static_cast<enums::EntityCategory>(datetime->get_entity_category());
+  msg.device_uid = datetime->get_device_uid();
 
   return api->send_list_entities_date_time_response(msg);
 }
@@ -1081,6 +1092,7 @@ bool APIConnection::try_send_text_info(APIConnection *api, void *v_text) {
   msg.min_length = text->traits.get_min_length();
   msg.max_length = text->traits.get_max_length();
   msg.pattern = text->traits.get_pattern();
+  msg.device_uid = text->get_device_uid();
 
   return api->send_list_entities_text_response(msg);
 }
@@ -1136,6 +1148,7 @@ bool APIConnection::try_send_select_info(APIConnection *api, void *v_select) {
 
   for (const auto &option : select->traits.get_options())
     msg.options.push_back(option);
+  msg.device_uid = select->get_device_uid();
 
   return api->send_list_entities_select_response(msg);
 }
@@ -1168,6 +1181,7 @@ bool APIConnection::try_send_button_info(APIConnection *api, void *v_button) {
   msg.disabled_by_default = button->is_disabled_by_default();
   msg.entity_category = static_cast<enums::EntityCategory>(button->get_entity_category());
   msg.device_class = button->get_device_class();
+  msg.device_uid = button->get_device_uid();
   return api->send_list_entities_button_response(msg);
 }
 void APIConnection::button_command(const ButtonCommandRequest &msg) {
@@ -1219,6 +1233,7 @@ bool APIConnection::try_send_lock_info(APIConnection *api, void *v_a_lock) {
   msg.entity_category = static_cast<enums::EntityCategory>(a_lock->get_entity_category());
   msg.supports_open = a_lock->traits.get_supports_open();
   msg.requires_code = a_lock->traits.get_requires_code();
+  msg.device_uid = a_lock->get_device_uid();
   return api->send_list_entities_lock_response(msg);
 }
 void APIConnection::lock_command(const LockCommandRequest &msg) {
@@ -1280,6 +1295,7 @@ bool APIConnection::try_send_valve_info(APIConnection *api, void *v_valve) {
   msg.assumed_state = traits.get_is_assumed_state();
   msg.supports_position = traits.get_supports_position();
   msg.supports_stop = traits.get_supports_stop();
+  msg.device_uid = valve->get_device_uid();
   return api->send_list_entities_valve_response(msg);
 }
 void APIConnection::valve_command(const ValveCommandRequest &msg) {
@@ -1349,6 +1365,7 @@ bool APIConnection::try_send_media_player_info(APIConnection *api, void *v_media
     media_format.sample_bytes = supported_format.sample_bytes;
     msg.supported_formats.push_back(media_format);
   }
+  msg.device_uid = media_player->get_device_uid();
 
   return api->send_list_entities_media_player_response(msg);
 }
@@ -1400,6 +1417,7 @@ bool APIConnection::try_send_camera_info(APIConnection *api, void *v_camera) {
   msg.disabled_by_default = camera->is_disabled_by_default();
   msg.icon = camera->get_icon();
   msg.entity_category = static_cast<enums::EntityCategory>(camera->get_entity_category());
+  msg.device_uid = camera->get_device_uid();
   return api->send_list_entities_camera_response(msg);
 }
 void APIConnection::camera_image(const CameraImageRequest &msg) {
@@ -1625,6 +1643,7 @@ bool APIConnection::try_send_alarm_control_panel_info(APIConnection *api, void *
   msg.supported_features = a_alarm_control_panel->get_supported_features();
   msg.requires_code = a_alarm_control_panel->get_requires_code();
   msg.requires_code_to_arm = a_alarm_control_panel->get_requires_code_to_arm();
+  msg.device_uid = a_alarm_control_panel->get_device_uid();
   return api->send_list_entities_alarm_control_panel_response(msg);
 }
 void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRequest &msg) {
@@ -1696,6 +1715,7 @@ bool APIConnection::try_send_event_info(APIConnection *api, void *v_event) {
   msg.device_class = event->get_device_class();
   for (const auto &event_type : event->get_event_types())
     msg.event_types.push_back(event_type);
+  msg.device_uid = event->get_device_uid();
   return api->send_list_entities_event_response(msg);
 }
 #endif
@@ -1748,6 +1768,7 @@ bool APIConnection::try_send_update_info(APIConnection *api, void *v_update) {
   msg.disabled_by_default = update->is_disabled_by_default();
   msg.entity_category = static_cast<enums::EntityCategory>(update->get_entity_category());
   msg.device_class = update->get_device_class();
+  msg.device_uid = update->get_device_uid();
   return api->send_list_entities_update_response(msg);
 }
 void APIConnection::update_command(const UpdateCommandRequest &msg) {
@@ -1865,6 +1886,15 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
 #endif
 #ifdef USE_API_NOISE
   resp.api_encryption_supported = true;
+#endif
+#ifdef USE_SUB_DEVICE
+  for (auto const &sub_device : App.get_sub_devices()) {
+    SubDeviceInfo sub_device_info;
+    sub_device_info.uid = sub_device->get_uid();
+    sub_device_info.name = sub_device->get_name();
+    sub_device_info.suggested_area = sub_device->get_area();
+    resp.sub_devices.push_back(sub_device_info);
+  }
 #endif
   return resp;
 }

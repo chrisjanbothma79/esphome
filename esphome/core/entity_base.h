@@ -48,8 +48,8 @@ class EntityBase {
   void set_icon(const char *icon);
 
   // Get/set this entity's device id
-  const StringRef &get_device_id() const { return this->device_id_; }
-  void set_device_id(const std::string &device_id) { this->device_id_ = StringRef(device_id); }
+  const uint32_t get_device_uid() const { return this->device_uid_; }
+  void set_device_uid(const uint32_t device_uid) { this->device_uid_ = device_uid; }
 
  protected:
   /// The hash_base() function has been deprecated. It is kept in this
@@ -65,7 +65,7 @@ class EntityBase {
   bool internal_{false};
   bool disabled_by_default_{false};
   EntityCategory entity_category_{ENTITY_CATEGORY_NONE};
-  StringRef device_id_{""};
+  uint32_t device_uid_{};
 };
 
 class EntityBase_DeviceClass {  // NOLINT(readability-identifier-naming)

@@ -19,7 +19,7 @@ CONFIG_SCHEMA = cv.Schema(
 
 async def to_code(config):
     dev = cg.new_Pvariable(config[CONF_ID])
-    cg.add(dev.set_id(str(config[CONF_ID])))
+    cg.add(dev.set_uid(hash(str(config[CONF_ID])) % 0xFFFFFFFF))
     cg.add(dev.set_name(config[CONF_NAME]))
     cg.add(dev.set_area(config[CONF_AREA]))
     cg.add(cg.App.register_sub_device(dev))
