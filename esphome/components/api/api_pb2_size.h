@@ -12,7 +12,7 @@ class ProtoSizeCalculator {
   // Only the varint_size and field_size methods are actually used
   // in the generated code. All other methods have been removed as they're unused.
 
-  static uint32_t varint_size(uint32_t value) {
+  static inline uint32_t varint_size(uint32_t value) {
     // Optimized varint size calculation using leading zeros
     // Each 7 bits requires one byte in the varint encoding
     if (value < 128)
@@ -29,7 +29,7 @@ class ProtoSizeCalculator {
       return 5;  // 32 bits (maximum for uint32_t)
   }
 
-  static uint32_t varint_size(uint64_t value) {
+  static inline uint32_t varint_size(uint64_t value) {
     // Handle common case of values fitting in uint32_t (vast majority of use cases)
     if (value <= UINT32_MAX) {
       return varint_size(static_cast<uint32_t>(value));
@@ -50,7 +50,7 @@ class ProtoSizeCalculator {
       return 10;  // 64 bits (maximum for uint64_t)
   }
 
-  static uint32_t varint_size(int32_t value) {
+  static inline uint32_t varint_size(int32_t value) {
     // Negative values are sign-extended to 64 bits in protocol buffers,
     // which always results in a 10-byte varint for negative int32
     if (value < 0) {
@@ -60,14 +60,14 @@ class ProtoSizeCalculator {
     return varint_size(static_cast<uint32_t>(value));
   }
 
-  static uint32_t varint_size(int64_t value) {
+  static inline uint32_t varint_size(int64_t value) {
     // For int64_t, we convert to uint64_t and calculate the size
     // This works because the bit pattern determines the encoding size,
     // and we've handled negative int32 values as a special case above
     return varint_size(static_cast<uint64_t>(value));
   }
 
-  static uint32_t field_size(uint32_t field_id, uint32_t type) {
+  static inline uint32_t field_size(uint32_t field_id, uint32_t type) {
     uint32_t tag = (field_id << 3) | (type & 0b111);
     return varint_size(tag);
   }
