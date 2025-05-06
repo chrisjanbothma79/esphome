@@ -141,13 +141,6 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
   Trigger<> *mute_trigger_ = new Trigger<>();
   Trigger<> *unmute_trigger_ = new Trigger<>();
   Trigger<float> *volume_trigger_ = new Trigger<float>();
-
-  uint32_t decoded_playback_ms_{0};
-  uint32_t playback_us_{0};
-  uint32_t playback_ms_{0};
-  uint32_t remainder_us_{0};
-  uint32_t pending_ms_{0};
-  uint32_t last_audio_write_timestamp_{0};
 };
 
 }  // namespace speaker
