@@ -937,47 +937,59 @@ bool DeviceInfoResponse::decode_length(uint32_t field_id, ProtoLengthDelimited v
 }
 void DeviceInfoResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(1, this->uses_password);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding uses_password", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding uses_password",
+           buffer.get_buffer()->size());
   buffer.encode_string(2, this->name);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding name", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding name", buffer.get_buffer()->size());
   buffer.encode_string(3, this->mac_address);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding mac_address", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding mac_address", buffer.get_buffer()->size());
   buffer.encode_string(4, this->esphome_version);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding esphome_version", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding esphome_version",
+           buffer.get_buffer()->size());
   buffer.encode_string(5, this->compilation_time);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding compilation_time", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding compilation_time",
+           buffer.get_buffer()->size());
   buffer.encode_string(6, this->model);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding model", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding model", buffer.get_buffer()->size());
   buffer.encode_bool(7, this->has_deep_sleep);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding has_deep_sleep", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding has_deep_sleep",
+           buffer.get_buffer()->size());
   buffer.encode_string(8, this->project_name);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding project_name", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding project_name",
+           buffer.get_buffer()->size());
   buffer.encode_string(9, this->project_version);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding project_version", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding project_version",
+           buffer.get_buffer()->size());
   buffer.encode_uint32(10, this->webserver_port);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding webserver_port", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding webserver_port",
+           buffer.get_buffer()->size());
   buffer.encode_uint32(11, this->legacy_bluetooth_proxy_version);
   ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding legacy_bluetooth_proxy_version",
-           buffer->size());
+           buffer.get_buffer()->size());
   buffer.encode_uint32(15, this->bluetooth_proxy_feature_flags);
   ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding bluetooth_proxy_feature_flags",
-           buffer->size());
+           buffer.get_buffer()->size());
   buffer.encode_string(12, this->manufacturer);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding manufacturer", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding manufacturer",
+           buffer.get_buffer()->size());
   buffer.encode_string(13, this->friendly_name);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding friendly_name", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding friendly_name",
+           buffer.get_buffer()->size());
   buffer.encode_uint32(14, this->legacy_voice_assistant_version);
   ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding legacy_voice_assistant_version",
-           buffer->size());
+           buffer.get_buffer()->size());
   buffer.encode_uint32(17, this->voice_assistant_feature_flags);
   ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding voice_assistant_feature_flags",
-           buffer->size());
+           buffer.get_buffer()->size());
   buffer.encode_string(16, this->suggested_area);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding suggested_area", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding suggested_area",
+           buffer.get_buffer()->size());
   buffer.encode_string(18, this->bluetooth_mac_address);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding bluetooth_mac_address", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding bluetooth_mac_address",
+           buffer.get_buffer()->size());
   buffer.encode_bool(19, this->api_encryption_supported);
-  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding api_encryption_supported", buffer->size());
+  ESP_LOGW("api.proto", "DeviceInfoResponse size is %" PRIu32 " after adding api_encryption_supported",
+           buffer.get_buffer()->size());
 }
 void DeviceInfoResponse::calculate_size(uint32_t &total_size) const {
   if (this->uses_password) {
