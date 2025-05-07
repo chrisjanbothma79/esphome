@@ -9,7 +9,7 @@ import re
 from subprocess import call
 import sys
 from textwrap import dedent
-from typing import Any, Literal
+from typing import Any
 
 import aioesphomeapi.api_options_pb2 as pb
 import google.protobuf.descriptor_pb2 as descriptor
@@ -249,44 +249,6 @@ class TypeInfo(ABC):
         # To be implemented by subclasses
         return f"// No size calculation for type {self.__class__.__name__}"
 
-    def size_calc_fixed(
-        self,
-        name: str,
-        bytes_count: Literal[4, 8],
-        zero_value: str = "0",
-        force: bool = False,
-    ) -> str:
-        """Helper to generate size calculation code for fixed-size fields.
-
-        Works for both numeric fixed types (like fixed32/fixed64) and
-        floating point types (float/double).
-
-        Args:
-            name: The name of the field
-            bytes_count: The size of the field value in bytes (4 for fixed32/float, 8 for fixed64/double)
-            zero_value: The zero value for the field (default "0" for integer types, "0.0" for double, "0.0f" for float)
-            force: Whether to force encoding the field even if it has a default value
-        """
-        # According to protobuf spec, fixed32 should use wire type 5 and fixed64 should use wire type 1
-        # However, ESPHome's implementation uses wire type 5 for both fixed32 and fixed64, so we use FIXED32
-        # regardless of bytes_count.
-        # Note that this is wrong but since ESPHome never uses any fixed64, it doesn't matter.
-        wire_type = WireType.FIXED32
-        field_id_size = self.calculate_field_id_size(wire_type)
-
-        # Precalculate the total byte count for this field (field ID + value)
-        total_bytes = field_id_size + bytes_count
-
-        if force:
-            return f"""// Always include for repeated fields (force=true)
-          // Precalculated: field ID ({field_id_size} bytes) + value ({bytes_count} bytes)
-          total_size += {total_bytes};"""
-        else:
-            return f"""if ({name} != {zero_value}) {{
-          // Precalculated: field ID ({field_id_size} bytes) + value ({bytes_count} bytes)
-          total_size += {total_bytes};
-        }}"""
-
     def size_calc_bool(self, name: str, force: bool = False) -> str:
         """Helper to generate size calculation code for boolean fields."""
         field_id_size = self.calculate_field_id_size(WireType.VARINT)
@@ -377,7 +339,8 @@ class DoubleType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type FIXED32 (see note in size_calc_fixed about ESPHome's implementation)
+        # Calculate the field ID size for wire type FIXED32
+        # Note: According to protobuf spec, fixed64 should use wire type 1, but ESPHome uses wire type 5 for both
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # Double size calculation with direct total_size update
@@ -468,7 +431,8 @@ class Fixed64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type FIXED32 (see note in size_calc_fixed about ESPHome's implementation)
+        # Calculate the field ID size for wire type FIXED32
+        # Note: According to protobuf spec, fixed64 should use wire type 1, but ESPHome uses wire type 5 for both
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # Fixed64 size calculation with direct total_size update
@@ -690,7 +654,8 @@ class SFixed64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type FIXED32 (see note in size_calc_fixed about ESPHome's implementation)
+        # Calculate the field ID size for wire type FIXED32
+        # Note: According to protobuf spec, fixed64 should use wire type 1, but ESPHome uses wire type 5 for both
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # SFixed64 size calculation with direct total_size update
