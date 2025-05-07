@@ -84,6 +84,7 @@ MODBUS_REGISTER_TYPE = {
 SensorValueType_ns = modbus_controller_ns.namespace("SensorValueType")
 SensorValueType = SensorValueType_ns.enum("SensorValueType")
 SENSOR_VALUE_TYPE = {
+    "COIL": SensorValueType.COIL,
     "RAW": SensorValueType.RAW,
     "U_WORD": SensorValueType.U_WORD,
     "S_WORD": SensorValueType.S_WORD,
@@ -100,6 +101,7 @@ SENSOR_VALUE_TYPE = {
 }
 
 TYPE_REGISTER_MAP = {
+    "COIL": 1,
     "RAW": 1,
     "U_WORD": 1,
     "S_WORD": 1,
@@ -153,8 +155,17 @@ def validate_address(register_set: set):
 
     return validator
 
+def update_dict(other: dict):
+    def validator(register: dict):
+        register.update(other)
+
+        return register
+
+    return validator
+
 
 ModbusServerRegisterSet = set()
+ModbusServerCoilRegisterSet = set()
 
 ModbusServerRegisterSchema = cv.Schema(
     cv.All(
@@ -169,11 +180,15 @@ ModbusServerRegisterSchema = cv.Schema(
 )
 
 ModbusServerCoilRegisterSchema = cv.Schema(
-    {
-        cv.GenerateID(): cv.declare_id(ServerCoilRegister),
-        cv.Required(CONF_ADDRESS): cv.positive_int,
-        cv.Required(CONF_WRITE_LAMBDA): cv.lambda_,
-    }
+    cv.All(
+        {
+            cv.GenerateID(): cv.declare_id(ServerCoilRegister),
+            cv.Required(CONF_ADDRESS): cv.positive_int,
+            cv.Required(CONF_WRITE_LAMBDA): cv.lambda_,
+        },
+        update_dict({CONF_VALUE_TYPE: "COIL"}),
+        validate_address(ModbusServerCoilRegisterSet),
+    )
 )
 
 CONFIG_SCHEMA = cv.All(
