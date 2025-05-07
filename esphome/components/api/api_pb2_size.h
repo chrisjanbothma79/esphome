@@ -417,6 +417,32 @@ class ProtoSize {
     // Use the base implementation with the calculated nested_size
     add_message_field(total_size, field_id_size, nested_size, force);
   }
+
+  /**
+   * @brief Calculates and adds the sizes of all messages in a repeated field to the total message size
+   *
+   * This helper processes a vector of message objects, calculating the size for each message
+   * and adding it to the total size. It handles the empty vector check and iterating through
+   * the collection internally, making the calling code simpler and more DRY.
+   *
+   * @tparam MessageType The type of the nested messages in the vector
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param messages Vector of message objects
+   */
+  template<typename MessageType>
+  static inline void add_repeated_message(uint32_t &total_size, uint32_t field_id_size,
+                                          const std::vector<MessageType> &messages) {
+    // Skip if the vector is empty
+    if (messages.empty()) {
+      return;
+    }
+
+    // For repeated fields, always use force=true
+    for (const auto &message : messages) {
+      add_message_object(total_size, field_id_size, message, true);
+    }
+  }
 };
 
 }  // namespace api

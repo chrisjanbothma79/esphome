@@ -3456,24 +3456,9 @@ void HomeassistantServiceResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void HomeassistantServiceResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->service, false);
-  if (!this->data.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->data) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
-  if (!this->data_template.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->data_template) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
-  if (!this->variables.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->variables) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
+  ProtoSize::add_repeated_message(total_size, 1, this->data);
+  ProtoSize::add_repeated_message(total_size, 1, this->data_template);
+  ProtoSize::add_repeated_message(total_size, 1, this->variables);
   ProtoSize::add_bool_field(total_size, 1, this->is_event, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3719,12 +3704,7 @@ void ListEntitiesServicesResponse::encode(ProtoWriteBuffer buffer) const {
 void ListEntitiesServicesResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->name, false);
   ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  if (!this->args.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->args) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
+  ProtoSize::add_repeated_message(total_size, 1, this->args);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesServicesResponse::dump_to(std::string &out) const {
@@ -3930,12 +3910,7 @@ void ExecuteServiceRequest::encode(ProtoWriteBuffer buffer) const {
 }
 void ExecuteServiceRequest::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  if (!this->args.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->args) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
+  ProtoSize::add_repeated_message(total_size, 1, this->args);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ExecuteServiceRequest::dump_to(std::string &out) const {
@@ -5938,12 +5913,7 @@ void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
   ProtoSize::add_bool_field(total_size, 1, this->supports_pause, false);
-  if (!this->supported_formats.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->supported_formats) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
+  ProtoSize::add_repeated_message(total_size, 1, this->supported_formats);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
@@ -6326,18 +6296,8 @@ void BluetoothLEAdvertisementResponse::calculate_size(uint32_t &total_size) cons
       ProtoSize::add_string_field(total_size, 1, it, true);
     }
   }
-  if (!this->service_data.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->service_data) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
-  if (!this->manufacturer_data.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->manufacturer_data) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
+  ProtoSize::add_repeated_message(total_size, 1, this->service_data);
+  ProtoSize::add_repeated_message(total_size, 1, this->manufacturer_data);
   ProtoSize::add_uint32_field(total_size, 1, this->address_type, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -6464,12 +6424,7 @@ void BluetoothLERawAdvertisementsResponse::encode(ProtoWriteBuffer buffer) const
   }
 }
 void BluetoothLERawAdvertisementsResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->advertisements.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->advertisements) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
+  ProtoSize::add_repeated_message(total_size, 1, this->advertisements);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothLERawAdvertisementsResponse::dump_to(std::string &out) const {
@@ -6717,12 +6672,7 @@ void BluetoothGATTCharacteristic::calculate_size(uint32_t &total_size) const {
   }
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
   ProtoSize::add_uint32_field(total_size, 1, this->properties, false);
-  if (!this->descriptors.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->descriptors) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
+  ProtoSize::add_repeated_message(total_size, 1, this->descriptors);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTCharacteristic::dump_to(std::string &out) const {
@@ -6793,12 +6743,7 @@ void BluetoothGATTService::calculate_size(uint32_t &total_size) const {
     }
   }
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  if (!this->characteristics.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->characteristics) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
+  ProtoSize::add_repeated_message(total_size, 1, this->characteristics);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTService::dump_to(std::string &out) const {
@@ -6852,12 +6797,7 @@ void BluetoothGATTGetServicesResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void BluetoothGATTGetServicesResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  if (!this->services.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->services) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
+  ProtoSize::add_repeated_message(total_size, 1, this->services);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTGetServicesResponse::dump_to(std::string &out) const {
@@ -7921,12 +7861,7 @@ void VoiceAssistantEventResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void VoiceAssistantEventResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->event_type), false);
-  if (!this->data.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->data) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
+  ProtoSize::add_repeated_message(total_size, 1, this->data);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantEventResponse::dump_to(std::string &out) const {
@@ -8251,12 +8186,7 @@ void VoiceAssistantConfigurationResponse::encode(ProtoWriteBuffer buffer) const 
   buffer.encode_uint32(3, this->max_active_wake_words);
 }
 void VoiceAssistantConfigurationResponse::calculate_size(uint32_t &total_size) const {
-  if (!this->available_wake_words.empty()) {
-    // Optimize: use reserve to reduce allocations in nested messages
-    for (const auto &it : this->available_wake_words) {
-      ProtoSize::add_message_object(total_size, 1, it, true);
-    }
-  }
+  ProtoSize::add_repeated_message(total_size, 1, this->available_wake_words);
   if (!this->active_wake_words.empty()) {
     for (const auto &it : this->active_wake_words) {
       ProtoSize::add_string_field(total_size, 1, it, true);

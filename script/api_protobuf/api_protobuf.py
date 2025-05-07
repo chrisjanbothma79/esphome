@@ -729,17 +729,12 @@ class RepeatedTypeInfo(TypeInfo):
         # For repeated fields, we always need to pass force=True to the underlying type's calculation
         # This is because the encode method always sets force=true for repeated fields
 
-        # Short-circuit optimization for empty repeated fields
         if isinstance(self._ti, MessageType):
-            # For repeated messages, use the templated helper function for message size calculation
+            # For repeated messages, use the dedicated helper that handles iteration internally
             field_id_size = self._ti.calculate_field_id_size(WireType.LENGTH_DELIMITED)
-            o = f"""if (!{name}.empty()) {{
-  // Optimize: use reserve to reduce allocations in nested messages
-  for (const auto& it : {name}) {{
-    ProtoSize::add_message_object(total_size, {field_id_size}, it, true);
-  }}
-}}"""
-            return o
+            return (
+                f"ProtoSize::add_repeated_message(total_size, {field_id_size}, {name});"
+            )
         else:
             # For other repeated types, use the underlying type's size calculation with force=True
             o = f"""if (!{name}.empty()) {{
