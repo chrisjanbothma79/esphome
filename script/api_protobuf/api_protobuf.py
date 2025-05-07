@@ -478,24 +478,11 @@ class MessageType(TypeInfo):
         # Calculate the field ID size for wire type LENGTH_DELIMITED
         field_id_size = self.calculate_field_id_size(WireType.LENGTH_DELIMITED)
 
-        # For messages, we need to calculate the size of the nested message and add it to the total
-        # We need a temporary variable here since we need to check if it's greater than 0 and use it multiple times
-        if force:
-            return f"""{{
-          // Using precalculated field ID size ({field_id_size} bytes)
+        # Use the specialized helper function for message size calculation (separating calculation from addition)
+        return f"""{{
           uint32_t nested_size = 0;
           {name}.calculate_size(nested_size);
-          // Always include for repeated fields (force=true), even if nested_size is 0
-          total_size += {field_id_size} + ProtoSize::varint(nested_size) + nested_size;
-        }}"""
-        else:
-            return f"""{{
-          uint32_t nested_size = 0;
-          {name}.calculate_size(nested_size);
-          if (nested_size > 0) {{
-            // Using precalculated field ID size ({field_id_size} bytes)
-            total_size += {field_id_size} + ProtoSize::varint(nested_size) + nested_size;
-          }}
+          ProtoSize::add_message_field_size(total_size, {field_id_size}, nested_size, {str(force).lower()});
         }}"""
 
 
@@ -748,11 +735,14 @@ class RepeatedTypeInfo(TypeInfo):
 
         # Short-circuit optimization for empty repeated fields
         if isinstance(self._ti, MessageType):
-            # For repeated messages, directly use the message's size calculation with force=True
+            # For repeated messages, use the specialized helper function for message size calculation
+            field_id_size = self._ti.calculate_field_id_size(WireType.LENGTH_DELIMITED)
             o = f"""if (!{name}.empty()) {{
   // Optimize: use reserve to reduce allocations in nested messages
   for (const auto& it : {name}) {{
-    {self._ti.get_size_calculation("it", True)}
+    uint32_t nested_size = 0;
+    it.calculate_size(nested_size);
+    ProtoSize::add_message_field_size(total_size, {field_id_size}, nested_size, true);
   }}
 }}"""
             return o

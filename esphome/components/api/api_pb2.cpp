@@ -3459,37 +3459,25 @@ void HomeassistantServiceResponse::calculate_size(uint32_t &total_size) const {
   if (!this->data.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->data) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
   if (!this->data_template.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->data_template) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
   if (!this->variables.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->variables) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
   ProtoSize::add_bool_field(total_size, 1, this->is_event, false);
@@ -3740,13 +3728,9 @@ void ListEntitiesServicesResponse::calculate_size(uint32_t &total_size) const {
   if (!this->args.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->args) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
 }
@@ -3957,13 +3941,9 @@ void ExecuteServiceRequest::calculate_size(uint32_t &total_size) const {
   if (!this->args.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->args) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
 }
@@ -5971,13 +5951,9 @@ void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const
   if (!this->supported_formats.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->supported_formats) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
 }
@@ -6365,25 +6341,17 @@ void BluetoothLEAdvertisementResponse::calculate_size(uint32_t &total_size) cons
   if (!this->service_data.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->service_data) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
   if (!this->manufacturer_data.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->manufacturer_data) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
   ProtoSize::add_uint32_field(total_size, 1, this->address_type, false);
@@ -6515,13 +6483,9 @@ void BluetoothLERawAdvertisementsResponse::calculate_size(uint32_t &total_size) 
   if (!this->advertisements.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->advertisements) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
 }
@@ -6774,13 +6738,9 @@ void BluetoothGATTCharacteristic::calculate_size(uint32_t &total_size) const {
   if (!this->descriptors.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->descriptors) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
 }
@@ -6856,13 +6816,9 @@ void BluetoothGATTService::calculate_size(uint32_t &total_size) const {
   if (!this->characteristics.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->characteristics) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
 }
@@ -6921,13 +6877,9 @@ void BluetoothGATTGetServicesResponse::calculate_size(uint32_t &total_size) cons
   if (!this->services.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->services) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
 }
@@ -7865,10 +7817,7 @@ void VoiceAssistantRequest::calculate_size(uint32_t &total_size) const {
   {
     uint32_t nested_size = 0;
     this->audio_settings.calculate_size(nested_size);
-    if (nested_size > 0) {
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-    }
+    ProtoSize::add_message_field_size(total_size, 1, nested_size, false);
   }
   ProtoSize::add_string_field(total_size, 1, this->wake_word_phrase, false);
 }
@@ -8003,13 +7952,9 @@ void VoiceAssistantEventResponse::calculate_size(uint32_t &total_size) const {
   if (!this->data.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->data) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
 }
@@ -8339,13 +8284,9 @@ void VoiceAssistantConfigurationResponse::calculate_size(uint32_t &total_size) c
   if (!this->available_wake_words.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->available_wake_words) {
-      {
-        // Using precalculated field ID size (1 bytes)
-        uint32_t nested_size = 0;
-        it.calculate_size(nested_size);
-        // Always include for repeated fields (force=true), even if nested_size is 0
-        total_size += 1 + ProtoSize::varint(nested_size) + nested_size;
-      }
+      uint32_t nested_size = 0;
+      it.calculate_size(nested_size);
+      ProtoSize::add_message_field_size(total_size, 1, nested_size, true);
     }
   }
   if (!this->active_wake_words.empty()) {
