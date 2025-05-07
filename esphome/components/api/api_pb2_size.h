@@ -7,7 +7,7 @@
 namespace esphome {
 namespace api {
 
-class ProtoSizeCalculator {
+class ProtoSizer {
  public:
   // Only the varint_size and field_size methods are actually used
   // in the generated code. All other methods have been removed as they're unused.
@@ -94,6 +94,145 @@ class ProtoSizeCalculator {
   }
 
   /**
+   * @brief Directly adds the size of an int32 field to the total message size
+   *
+   * This version directly updates the total_size reference, which avoids an unnecessary
+   * addition operation when the value is zero. This is more efficient for the common
+   * case in Protocol Buffer messages where many fields have default values.
+   *
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param value The int32 value to calculate size for
+   * @param force Whether to calculate size even if the value is zero
+   */
+  static inline void add_int32_field_size(uint32_t &total_size, uint32_t field_id_size, int32_t value,
+                                          bool force = false) {
+    // Skip calculation if value is zero and not forced
+    if (value == 0 && !force) {
+      return;  // No need to update total_size
+    }
+
+    // Calculate and directly add to total_size
+    if (value < 0) {
+      // Negative values are encoded as 10-byte varints in protobuf
+      total_size += field_id_size + 10;
+    } else {
+      // For non-negative values, use the standard varint size
+      total_size += field_id_size + varint_size(static_cast<uint32_t>(value));
+    }
+  }
+
+  /**
+   * @brief Directly adds the size of a uint32 field to the total message size
+   *
+   * This version directly updates the total_size reference, avoiding unnecessary
+   * addition operations when the value is zero and not forced.
+   *
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param value The uint32 value to calculate size for
+   * @param force Whether to calculate size even if the value is zero
+   */
+  static inline void add_uint32_field_size(uint32_t &total_size, uint32_t field_id_size, uint32_t value,
+                                           bool force = false) {
+    // Skip calculation if value is zero and not forced
+    if (value == 0 && !force) {
+      return;  // No need to update total_size
+    }
+
+    // Calculate and directly add to total_size
+    total_size += field_id_size + varint_size(value);
+  }
+
+  /**
+   * @brief Directly adds the size of a boolean field to the total message size
+   *
+   * This version directly updates the total_size reference, which avoids an unnecessary
+   * addition operation when the value is false and not forced. Boolean fields use
+   * a varint encoding and take exactly 1 byte when true.
+   *
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param value The boolean value to calculate size for
+   * @param force Whether to calculate size even if the value is false
+   */
+  static inline void add_bool_field_size(uint32_t &total_size, uint32_t field_id_size, bool value, bool force = false) {
+    // Skip calculation if value is false and not forced
+    if (!value && !force) {
+      return;  // No need to update total_size
+    }
+
+    // Boolean fields always use 1 byte when true
+    total_size += field_id_size + 1;
+  }
+
+  /**
+   * @brief Directly adds the size of a fixed32 or float field to the total message size
+   *
+   * Fixed32 fields always take exactly 4 bytes. This method directly updates the total_size
+   * reference, avoiding unnecessary addition operations when the value is zero.
+   *
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param value The value to check if it's zero (for float, use 0.0f)
+   * @param force Whether to calculate size even if the value is zero
+   */
+  static inline void add_fixed32_field_size(uint32_t &total_size, uint32_t field_id_size, bool is_nonzero,
+                                            bool force = false) {
+    // Skip calculation if value is zero and not forced
+    if (!is_nonzero && !force) {
+      return;  // No need to update total_size
+    }
+
+    // Fixed32 fields always take exactly 4 bytes
+    total_size += field_id_size + 4;
+  }
+
+  /**
+   * @brief Directly adds the size of a fixed64 or double field to the total message size
+   *
+   * Fixed64 fields always take exactly 8 bytes. This method directly updates the total_size
+   * reference, avoiding unnecessary addition operations when the value is zero.
+   *
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param value The value to check if it's zero (for double, use 0.0)
+   * @param force Whether to calculate size even if the value is zero
+   */
+  static inline void add_fixed64_field_size(uint32_t &total_size, uint32_t field_id_size, bool is_nonzero,
+                                            bool force = false) {
+    // Skip calculation if value is zero and not forced
+    if (!is_nonzero && !force) {
+      return;  // No need to update total_size
+    }
+
+    // Fixed64 fields always take exactly 8 bytes
+    total_size += field_id_size + 8;
+  }
+
+  /**
+   * @brief Directly adds the size of an enum field to the total message size
+   *
+   * Enum fields are encoded as uint32 varints. This method directly updates the total_size
+   * reference, avoiding unnecessary addition operations when the value is zero.
+   *
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param value The enum value as an integer
+   * @param force Whether to calculate size even if the value is zero
+   */
+  static inline void add_enum_field_size(uint32_t &total_size, uint32_t field_id_size, uint32_t value,
+                                         bool force = false) {
+    // Skip calculation if value is zero and not forced
+    if (value == 0 && !force) {
+      return;  // No need to update total_size
+    }
+
+    // Enums are encoded as uint32
+    total_size += field_id_size + varint_size(value);
+  }
+
+  /**
    * @brief Optimized size calculation for string and bytes fields with field ID
    *
    * This method is a specialized version for string/bytes fields that combines the field ID size
@@ -115,6 +254,30 @@ class ProtoSizeCalculator {
     // Calculate total size: field ID + length varint + string/bytes length
     const uint32_t str_size = static_cast<uint32_t>(str.size());
     return field_id_size + varint_size(str_size) + str_size;
+  }
+
+  /**
+   * @brief Directly adds the size of a string/bytes field to the total message size
+   *
+   * This version directly updates the total_size reference, which avoids an unnecessary
+   * addition operation when the string is empty and not forced. This is more efficient
+   * for the common case in Protocol Buffer messages.
+   *
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param str The string or bytes value to calculate size for
+   * @param force Whether to calculate size even if the string is empty
+   */
+  static inline void add_string_field_size(uint32_t &total_size, uint32_t field_id_size, const std::string &str,
+                                           bool force = false) {
+    // Skip calculation if string is empty and not forced
+    if (str.empty() && !force) {
+      return;  // No need to update total_size
+    }
+
+    // Calculate and directly add to total_size
+    const uint32_t str_size = static_cast<uint32_t>(str.size());
+    total_size += field_id_size + varint_size(str_size) + str_size;
   }
 };
 
