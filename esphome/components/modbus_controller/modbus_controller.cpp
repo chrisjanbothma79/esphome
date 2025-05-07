@@ -173,7 +173,7 @@ void ModbusController::on_modbus_write_coil_register(uint8_t function_code, uint
     ESP_LOGW(TAG, "Could not match any register to address %02X. Sending exception response.", address);
     std::vector<uint8_t> error_response;
     error_response.push_back(this->address_);
-    error_response.push_back(0x81);
+    error_response.push_back(0x80 | function_code);
     error_response.push_back(0x02);
     this->send_raw(error_response);
     return;
