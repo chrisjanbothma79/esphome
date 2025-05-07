@@ -3864,10 +3864,7 @@ void ExecuteServiceArgument::calculate_size(uint32_t &total_size) const {
   }
   ProtoSize::add_fixed_field<4>(total_size, 1, this->float_ != 0.0f, false);
   ProtoSize::add_string_field(total_size, 1, this->string_, false);
-  if (this->int_ != 0) {
-    // Using precalculated field ID size (1 bytes) zigzag31
-    total_size += 1 + ProtoSize::varint(((this->int_ << 1) ^ (this->int_ >> 31)));
-  }
+  ProtoSize::add_sint32_field(total_size, 1, this->int_, false);
   if (!this->bool_array.empty()) {
     for (const auto it : this->bool_array) {
       ProtoSize::add_bool_field(total_size, 1, it, true);
@@ -3875,9 +3872,7 @@ void ExecuteServiceArgument::calculate_size(uint32_t &total_size) const {
   }
   if (!this->int_array.empty()) {
     for (const auto &it : this->int_array) {
-      // Always include for repeated fields (force=true)
-      // Using precalculated field ID size (1 bytes) zigzag31
-      total_size += 1 + ProtoSize::varint(((it << 1) ^ (it >> 31)));
+      ProtoSize::add_sint32_field(total_size, 1, it, true);
     }
   }
   if (!this->float_array.empty()) {
@@ -6379,10 +6374,7 @@ void BluetoothLEAdvertisementResponse::calculate_size(uint32_t &total_size) cons
     total_size += 1 + ProtoSize::varint(this->address);
   }
   ProtoSize::add_string_field(total_size, 1, this->name, false);
-  if (this->rssi != 0) {
-    // Using precalculated field ID size (1 bytes) zigzag31
-    total_size += 1 + ProtoSize::varint(((this->rssi << 1) ^ (this->rssi >> 31)));
-  }
+  ProtoSize::add_sint32_field(total_size, 1, this->rssi, false);
   if (!this->service_uuids.empty()) {
     for (const auto &it : this->service_uuids) {
       ProtoSize::add_string_field(total_size, 1, it, true);
@@ -6496,10 +6488,7 @@ void BluetoothLERawAdvertisement::calculate_size(uint32_t &total_size) const {
     // Using precalculated field ID size (1 bytes)
     total_size += 1 + ProtoSize::varint(this->address);
   }
-  if (this->rssi != 0) {
-    // Using precalculated field ID size (1 bytes) zigzag31
-    total_size += 1 + ProtoSize::varint(((this->rssi << 1) ^ (this->rssi >> 31)));
-  }
+  ProtoSize::add_sint32_field(total_size, 1, this->rssi, false);
   ProtoSize::add_uint32_field(total_size, 1, this->address_type, false);
   ProtoSize::add_string_field(total_size, 1, this->data, false);
 }

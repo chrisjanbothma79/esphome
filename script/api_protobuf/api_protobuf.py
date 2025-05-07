@@ -308,7 +308,6 @@ class TypeInfo(ABC):
         self,
         name: str,
         cast: str = None,
-        zigzag: Literal["31", "63"] = None,
         force: bool = False,
     ) -> str:
         """Helper to generate size calculation code for various varint fields.
@@ -316,16 +315,9 @@ class TypeInfo(ABC):
         Args:
             name: The name of the field
             cast: Optional cast type (e.g., "static_cast<uint32_t>")
-            zigzag: Optional zigzag expression, either "31" for sint32 or "63" for sint64
             force: Whether to force encoding the field even if it has a default value
         """
         value = name
-        comment = ""
-
-        # Apply zigzag encoding if specified
-        if zigzag:
-            value = f"(({name} << 1) ^ ({name} >> {zigzag}))"
-            comment = f" zigzag{zigzag}"
 
         # Apply type cast if specified
         if cast:
@@ -335,11 +327,11 @@ class TypeInfo(ABC):
 
         if force:
             return f"""// Always include for repeated fields (force=true)
-          // Using precalculated field ID size ({field_id_size} bytes){comment}
+          // Using precalculated field ID size ({field_id_size} bytes)
           total_size += {field_id_size} + ProtoSize::varint({value});"""
         else:
             return f"""if ({name} != 0) {{
-          // Using precalculated field ID size ({field_id_size} bytes){comment}
+          // Using precalculated field ID size ({field_id_size} bytes)
           total_size += {field_id_size} + ProtoSize::varint({value});
         }}"""
 
@@ -718,8 +710,11 @@ class SInt32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # SInt32 uses ZigZag encoding, which is more efficient for negative values
-        return self.size_calc_varint(name, zigzag="31", force=force)
+        # Calculate the field ID size for wire type VARINT
+        field_id_size = self.calculate_field_id_size(WireType.VARINT)
+
+        # Sint32 size calculation using the specialized function
+        return f"""ProtoSize::add_sint32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
 
 
 @register_type(18)
@@ -735,8 +730,11 @@ class SInt64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # SInt64 uses ZigZag encoding, which is more efficient for negative values
-        return self.size_calc_varint(name, zigzag="63", force=force)
+        # Calculate the field ID size for wire type VARINT
+        field_id_size = self.calculate_field_id_size(WireType.VARINT)
+
+        # Sint64 size calculation using the specialized function
+        return f"""ProtoSize::add_sint64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
 
 
 class RepeatedTypeInfo(TypeInfo):

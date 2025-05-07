@@ -215,6 +215,52 @@ class ProtoSize {
   }
 
   /**
+   * @brief Directly adds the size of a sint32 field to the total message size
+   *
+   * Sint32 fields use ZigZag encoding, which is more efficient for negative values.
+   * This method directly updates the total_size reference, avoiding unnecessary
+   * addition operations when the value is zero.
+   *
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param value The sint32 value to calculate size for
+   * @param force Whether to calculate size even if the value is zero
+   */
+  static inline void add_sint32_field(uint32_t &total_size, uint32_t field_id_size, int32_t value, bool force = false) {
+    // Skip calculation if value is zero and not forced
+    if (value == 0 && !force) {
+      return;  // No need to update total_size
+    }
+
+    // ZigZag encoding for sint32: (n << 1) ^ (n >> 31)
+    uint32_t zigzag = (static_cast<uint32_t>(value) << 1) ^ (static_cast<uint32_t>(value >> 31));
+    total_size += field_id_size + varint(zigzag);
+  }
+
+  /**
+   * @brief Directly adds the size of a sint64 field to the total message size
+   *
+   * Sint64 fields use ZigZag encoding, which is more efficient for negative values.
+   * This method directly updates the total_size reference, avoiding unnecessary
+   * addition operations when the value is zero.
+   *
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param value The sint64 value to calculate size for
+   * @param force Whether to calculate size even if the value is zero
+   */
+  static inline void add_sint64_field(uint32_t &total_size, uint32_t field_id_size, int64_t value, bool force = false) {
+    // Skip calculation if value is zero and not forced
+    if (value == 0 && !force) {
+      return;  // No need to update total_size
+    }
+
+    // ZigZag encoding for sint64: (n << 1) ^ (n >> 63)
+    uint64_t zigzag = (static_cast<uint64_t>(value) << 1) ^ (static_cast<uint64_t>(value >> 63));
+    total_size += field_id_size + varint(zigzag);
+  }
+
+  /**
    * @brief Directly adds the size of a string/bytes field to the total message size
    *
    * This version directly updates the total_size reference, which avoids an unnecessary
