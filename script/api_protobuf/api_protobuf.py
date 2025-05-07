@@ -238,14 +238,13 @@ class TypeInfo(ABC):
         # Calculate the varint size
         if tag < 128:
             return 1  # 7 bits
-        elif tag < 16384:
+        if tag < 16384:
             return 2  # 14 bits
-        elif tag < 2097152:
+        if tag < 2097152:
             return 3  # 21 bits
-        elif tag < 268435456:
+        if tag < 268435456:
             return 4  # 28 bits
-        else:
-            return 5  # 32 bits (maximum for uint32_t)
+        return 5  # 32 bits (maximum for uint32_t)
 
     @abstractmethod
     def get_size_calculation(self, name: str, force: bool = False) -> str:
@@ -723,20 +722,18 @@ class RepeatedTypeInfo(TypeInfo):
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # For repeated fields, we always need to pass force=True to the underlying type's calculation
         # This is because the encode method always sets force=true for repeated fields
-
         if isinstance(self._ti, MessageType):
             # For repeated messages, use the dedicated helper that handles iteration internally
             field_id_size = self._ti.calculate_field_id_size()
             o = f"ProtoSize::add_repeated_message(total_size, {field_id_size}, {name});"
             return o
-        else:
-            # For other repeated types, use the underlying type's size calculation with force=True
-            o = f"if (!{name}.empty()) {{\n"
-            o += f"  for (const auto {'' if self._ti_is_bool else '&'}it : {name}) {{\n"
-            o += f"    {self._ti.get_size_calculation('it', True)}\n"
-            o += "  }\n"
-            o += "}"
-            return o
+        # For other repeated types, use the underlying type's size calculation with force=True
+        o = f"if (!{name}.empty()) {{\n"
+        o += f"  for (const auto {'' if self._ti_is_bool else '&'}it : {name}) {{\n"
+        o += f"    {self._ti.get_size_calculation('it', True)}\n"
+        o += "  }\n"
+        o += "}"
+        return o
 
 
 def build_enum_type(desc) -> tuple[str, str]:
