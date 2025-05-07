@@ -285,11 +285,9 @@ class DoubleType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # Double size calculation with direct total_size update
-        return f"""ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0.0, {str(force).lower()});"""
+        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0.0, {str(force).lower()});"
+        return o
 
 
 @register_type(2)
@@ -307,9 +305,8 @@ class FloatType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-
-        # Float size calculation with direct total_size update
-        return f"""ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0.0f, {str(force).lower()});"""
+        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0.0f, {str(force).lower()});"
+        return o
 
 
 @register_type(3)
@@ -326,11 +323,9 @@ class Int64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # Int64 size calculation using the specialized function
-        return f"""ProtoSize::add_int64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        o = f"ProtoSize::add_int64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        return o
 
 
 @register_type(4)
@@ -347,11 +342,9 @@ class UInt64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # UInt64 size calculation using the specialized function
-        return f"""ProtoSize::add_uint64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        o = f"ProtoSize::add_uint64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        return o
 
 
 @register_type(5)
@@ -368,11 +361,9 @@ class Int32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # Int32 size calculation with direct total_size update
-        return f"""ProtoSize::add_int32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        o = f"ProtoSize::add_int32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        return o
 
 
 @register_type(6)
@@ -389,11 +380,9 @@ class Fixed64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # Fixed64 size calculation with direct total_size update
-        return f"""ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
+        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"
+        return o
 
 
 @register_type(7)
@@ -410,11 +399,9 @@ class Fixed32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # Fixed32 size calculation with direct total_size update
-        return f"""ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
+        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"
+        return o
 
 
 @register_type(8)
@@ -430,11 +417,9 @@ class BoolType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # Boolean size calculation with direct total_size update
-        return f"""ProtoSize::add_bool_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        o = f"ProtoSize::add_bool_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        return o
 
 
 @register_type(9)
@@ -452,11 +437,9 @@ class StringType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # String size calculation with direct total_size update to avoid unnecessary addition
-        return f"""ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        o = f"ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        return o
 
 
 @register_type(11)
@@ -489,11 +472,9 @@ class MessageType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # Use the templated helper function that takes the message directly, avoiding temp variables
-        return f"ProtoSize::add_message_object(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        o = f"ProtoSize::add_message_object(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        return o
 
 
 @register_type(12)
@@ -511,11 +492,9 @@ class BytesType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # Bytes size calculation with direct total_size update to avoid unnecessary addition
-        return f"""ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        o = f"ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        return o
 
 
 @register_type(13)
@@ -532,11 +511,9 @@ class UInt32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # uint32 size calculation with direct total_size update
-        return f"""ProtoSize::add_uint32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        o = f"ProtoSize::add_uint32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        return o
 
 
 @register_type(14)
@@ -561,11 +538,9 @@ class EnumType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # Enum size calculation with direct total_size update (using static cast to uint32_t)
-        return f"""ProtoSize::add_enum_field(total_size, {field_id_size}, static_cast<uint32_t>({name}), {str(force).lower()});"""
+        o = f"ProtoSize::add_enum_field(total_size, {field_id_size}, static_cast<uint32_t>({name}), {str(force).lower()});"
+        return o
 
 
 @register_type(15)
@@ -582,11 +557,9 @@ class SFixed32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # SFixed32 size calculation with direct total_size update
-        return f"""ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
+        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"
+        return o
 
 
 @register_type(16)
@@ -603,11 +576,9 @@ class SFixed64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # SFixed64 size calculation with direct total_size update
-        return f"""ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
+        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"
+        return o
 
 
 @register_type(17)
@@ -624,11 +595,9 @@ class SInt32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # Sint32 size calculation using the specialized function
-        return f"""ProtoSize::add_sint32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        o = f"ProtoSize::add_sint32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        return o
 
 
 @register_type(18)
@@ -645,11 +614,9 @@ class SInt64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size based on the field's wire type
         field_id_size = self.calculate_field_id_size()
-
-        # Sint64 size calculation using the specialized function
-        return f"""ProtoSize::add_sint64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        o = f"ProtoSize::add_sint64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        return o
 
 
 class RepeatedTypeInfo(TypeInfo):
@@ -760,16 +727,15 @@ class RepeatedTypeInfo(TypeInfo):
         if isinstance(self._ti, MessageType):
             # For repeated messages, use the dedicated helper that handles iteration internally
             field_id_size = self._ti.calculate_field_id_size()
-            return (
-                f"ProtoSize::add_repeated_message(total_size, {field_id_size}, {name});"
-            )
+            o = f"ProtoSize::add_repeated_message(total_size, {field_id_size}, {name});"
+            return o
         else:
             # For other repeated types, use the underlying type's size calculation with force=True
-            o = f"""if (!{name}.empty()) {{
-  for (const auto {"" if self._ti_is_bool else "&"}it : {name}) {{
-    {self._ti.get_size_calculation("it", True)}
-  }}
-}}"""
+            o = f"if (!{name}.empty()) {{\n"
+            o += f"  for (const auto {'' if self._ti_is_bool else '&'}it : {name}) {{\n"
+            o += f"    {self._ti.get_size_calculation('it', True)}\n"
+            o += "  }\n"
+            o += "}"
             return o
 
 
