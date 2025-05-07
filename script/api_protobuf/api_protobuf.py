@@ -78,6 +78,11 @@ def camel_to_snake(name: str) -> str:
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
 
 
+def force_str(force: bool) -> str:
+    """Convert a boolean force value to string format for C++ code."""
+    return str(force).lower()
+
+
 class TypeInfo(ABC):
     """Base class for all type information."""
 
@@ -220,20 +225,14 @@ class TypeInfo(ABC):
     def dump(self, name: str) -> str:
         """Dump the value to the output."""
 
-    def calculate_field_id_size(self, wire_type: WireType = None) -> int:
+    def calculate_field_id_size(self) -> int:
         """Calculates the size of a field ID in bytes.
-
-        Args:
-            wire_type: Optional wire type override. If not provided, uses the field's wire_type.
 
         Returns:
             The number of bytes needed to encode the field ID
         """
-        # Use the provided wire_type or the field's wire_type
-        wt = wire_type if wire_type is not None else self.wire_type
-
         # Calculate the tag by combining field_id and wire_type
-        tag = (self.number << 3) | (wt & 0b111)
+        tag = (self.number << 3) | (self.wire_type & 0b111)
 
         # Calculate the varint size
         if tag < 128:
@@ -285,7 +284,7 @@ class DoubleType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0.0, {str(force).lower()});"
+        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0.0, {force_str(force)});"
         return o
 
 
@@ -304,7 +303,7 @@ class FloatType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0.0f, {str(force).lower()});"
+        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0.0f, {force_str(force)});"
         return o
 
 
@@ -323,7 +322,7 @@ class Int64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_int64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        o = f"ProtoSize::add_int64_field(total_size, {field_id_size}, {name}, {force_str(force)});"
         return o
 
 
@@ -342,7 +341,7 @@ class UInt64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_uint64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        o = f"ProtoSize::add_uint64_field(total_size, {field_id_size}, {name}, {force_str(force)});"
         return o
 
 
@@ -361,7 +360,7 @@ class Int32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_int32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        o = f"ProtoSize::add_int32_field(total_size, {field_id_size}, {name}, {force_str(force)});"
         return o
 
 
@@ -380,7 +379,7 @@ class Fixed64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"
+        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {force_str(force)});"
         return o
 
 
@@ -399,7 +398,7 @@ class Fixed32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"
+        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {force_str(force)});"
         return o
 
 
@@ -417,7 +416,7 @@ class BoolType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_bool_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        o = f"ProtoSize::add_bool_field(total_size, {field_id_size}, {name}, {force_str(force)});"
         return o
 
 
@@ -437,7 +436,7 @@ class StringType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        o = f"ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {force_str(force)});"
         return o
 
 
@@ -472,7 +471,7 @@ class MessageType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_message_object(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        o = f"ProtoSize::add_message_object(total_size, {field_id_size}, {name}, {force_str(force)});"
         return o
 
 
@@ -492,7 +491,7 @@ class BytesType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        o = f"ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {force_str(force)});"
         return o
 
 
@@ -511,7 +510,7 @@ class UInt32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_uint32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        o = f"ProtoSize::add_uint32_field(total_size, {field_id_size}, {name}, {force_str(force)});"
         return o
 
 
@@ -538,7 +537,7 @@ class EnumType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_enum_field(total_size, {field_id_size}, static_cast<uint32_t>({name}), {str(force).lower()});"
+        o = f"ProtoSize::add_enum_field(total_size, {field_id_size}, static_cast<uint32_t>({name}), {force_str(force)});"
         return o
 
 
@@ -557,7 +556,7 @@ class SFixed32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"
+        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {force_str(force)});"
         return o
 
 
@@ -576,7 +575,7 @@ class SFixed64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"
+        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {force_str(force)});"
         return o
 
 
@@ -595,7 +594,7 @@ class SInt32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_sint32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        o = f"ProtoSize::add_sint32_field(total_size, {field_id_size}, {name}, {force_str(force)});"
         return o
 
 
@@ -614,7 +613,7 @@ class SInt64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_sint64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"
+        o = f"ProtoSize::add_sint64_field(total_size, {field_id_size}, {name}, {force_str(force)});"
         return o
 
 
