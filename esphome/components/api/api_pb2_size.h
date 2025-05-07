@@ -9,15 +9,22 @@ namespace api {
 
 class ProtoSize {
  public:
-  // Core methods for Protocol Buffer serialization size calculation.
-  // These methods calculate the exact byte counts needed for encoding various field types.
+  /**
+   * @brief ProtoSize class for Protocol Buffer serialization size calculation
+   *
+   * This class provides static methods to calculate the exact byte counts needed
+   * for encoding various Protocol Buffer field types. All methods are designed to be
+   * efficient for the common case where many fields have default values.
+   *
+   * Key features:
+   * - Early-return optimization for zero/default values
+   * - Direct total_size updates to avoid unnecessary additions
+   * - Specialized handling for different field types according to protobuf spec
+   * - Templated helpers for repeated fields and messages
+   */
 
   /**
    * @brief Calculates the size in bytes needed to encode a uint32_t value as a varint
-   *
-   * This is a core helper function for Protocol Buffer serialization size calculation.
-   * It determines how many bytes are needed to represent an unsigned 32-bit integer
-   * using the variable-length encoding scheme defined by Protocol Buffers.
    *
    * @param value The uint32_t value to calculate size for
    * @return The number of bytes needed to encode the value
@@ -41,10 +48,6 @@ class ProtoSize {
 
   /**
    * @brief Calculates the size in bytes needed to encode a uint64_t value as a varint
-   *
-   * This is a core helper function for Protocol Buffer serialization size calculation.
-   * It determines how many bytes are needed to represent an unsigned 64-bit integer
-   * using the variable-length encoding scheme defined by Protocol Buffers.
    *
    * @param value The uint64_t value to calculate size for
    * @return The number of bytes needed to encode the value
@@ -73,10 +76,8 @@ class ProtoSize {
   /**
    * @brief Calculates the size in bytes needed to encode an int32_t value as a varint
    *
-   * This is a core helper function for Protocol Buffer serialization size calculation.
-   * It determines how many bytes are needed to represent a signed 32-bit integer
-   * using the variable-length encoding scheme defined by Protocol Buffers.
-   * Negative values require special handling as they are sign-extended to 64 bits.
+   * Special handling is needed for negative values, which are sign-extended to 64 bits
+   * in Protocol Buffers, resulting in a 10-byte varint.
    *
    * @param value The int32_t value to calculate size for
    * @return The number of bytes needed to encode the value
@@ -94,10 +95,6 @@ class ProtoSize {
   /**
    * @brief Calculates the size in bytes needed to encode an int64_t value as a varint
    *
-   * This is a core helper function for Protocol Buffer serialization size calculation.
-   * It determines how many bytes are needed to represent a signed 64-bit integer
-   * using the variable-length encoding scheme defined by Protocol Buffers.
-   *
    * @param value The int64_t value to calculate size for
    * @return The number of bytes needed to encode the value
    */
@@ -111,10 +108,6 @@ class ProtoSize {
   /**
    * @brief Calculates the size in bytes needed to encode a field ID and wire type
    *
-   * This is a helper function for Protocol Buffer serialization size calculation.
-   * It determines how many bytes are needed to represent a field ID and wire type
-   * combined into a tag value, which is encoded as a varint.
-   *
    * @param field_id The field identifier
    * @param type The wire type value (from the WireType enum in the protobuf spec)
    * @return The number of bytes needed to encode the field ID and wire type
@@ -125,19 +118,23 @@ class ProtoSize {
   }
 
   /**
-   * @brief Calculates and adds the size of an int32 field to the total message size
+   * @brief Common parameters for all add_*_field methods
    *
-   * This version directly updates the total_size reference, which avoids an unnecessary
-   * addition operation when the value is zero. This is more efficient for the common
-   * case in Protocol Buffer messages where many fields have default values.
-   * Used during Protocol Buffer message serialization to determine the exact byte count needed.
-   *
-   * Special handling is included for negative values, which have a fixed size in Protocol Buffers.
+   * All add_*_field methods follow these common patterns:
    *
    * @param total_size Reference to the total message size to update
    * @param field_id_size Pre-calculated size of the field ID in bytes
-   * @param value The int32 value to calculate size for
-   * @param force Whether to calculate size even if the value is zero
+   * @param value The value to calculate size for (type varies)
+   * @param force Whether to calculate size even if the value is default/zero/empty
+   *
+   * Each method follows this implementation pattern:
+   * 1. Skip calculation if value is default (0, false, empty) and not forced
+   * 2. Calculate the size based on the field's encoding rules
+   * 3. Add the field_id_size + calculated value size to total_size
+   */
+
+  /**
+   * @brief Calculates and adds the size of an int32 field to the total message size
    */
   static inline void add_int32_field(uint32_t &total_size, uint32_t field_id_size, int32_t value, bool force = false) {
     // Skip calculation if value is zero and not forced
@@ -157,15 +154,6 @@ class ProtoSize {
 
   /**
    * @brief Calculates and adds the size of a uint32 field to the total message size
-   *
-   * This version directly updates the total_size reference, avoiding unnecessary
-   * addition operations when the value is zero and not forced. Used during Protocol Buffer
-   * message serialization to determine the exact byte count needed.
-   *
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
-   * @param value The uint32 value to calculate size for
-   * @param force Whether to calculate size even if the value is zero
    */
   static inline void add_uint32_field(uint32_t &total_size, uint32_t field_id_size, uint32_t value,
                                       bool force = false) {
@@ -180,16 +168,6 @@ class ProtoSize {
 
   /**
    * @brief Calculates and adds the size of a boolean field to the total message size
-   *
-   * This version directly updates the total_size reference, which avoids an unnecessary
-   * addition operation when the value is false and not forced. Boolean fields use
-   * a varint encoding and take exactly 1 byte when true. Used during Protocol Buffer
-   * message serialization to determine the exact byte count needed.
-   *
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
-   * @param value The boolean value to calculate size for
-   * @param force Whether to calculate size even if the value is false
    */
   static inline void add_bool_field(uint32_t &total_size, uint32_t field_id_size, bool value, bool force = false) {
     // Skip calculation if value is false and not forced
@@ -205,15 +183,9 @@ class ProtoSize {
    * @brief Calculates and adds the size of a fixed field to the total message size
    *
    * Fixed fields always take exactly N bytes (4 for fixed32/float, 8 for fixed64/double).
-   * This method directly updates the total_size reference, avoiding unnecessary
-   * addition operations when the value is zero. Used during Protocol Buffer
-   * message serialization to determine the exact byte count needed.
    *
    * @tparam NumBytes The number of bytes for this fixed field (4 or 8)
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
    * @param is_nonzero Whether the value is non-zero
-   * @param force Whether to calculate size even if the value is zero
    */
   template<uint32_t NumBytes>
   static inline void add_fixed_field(uint32_t &total_size, uint32_t field_id_size, bool is_nonzero,
@@ -233,14 +205,7 @@ class ProtoSize {
   /**
    * @brief Calculates and adds the size of an enum field to the total message size
    *
-   * Enum fields are encoded as uint32 varints. This method directly updates the total_size
-   * reference, avoiding unnecessary addition operations when the value is zero.
-   * Used during Protocol Buffer message serialization to determine the exact byte count needed.
-   *
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
-   * @param value The enum value as an integer
-   * @param force Whether to calculate size even if the value is zero
+   * Enum fields are encoded as uint32 varints.
    */
   static inline void add_enum_field(uint32_t &total_size, uint32_t field_id_size, uint32_t value, bool force = false) {
     // Skip calculation if value is zero and not forced
@@ -256,14 +221,6 @@ class ProtoSize {
    * @brief Calculates and adds the size of a sint32 field to the total message size
    *
    * Sint32 fields use ZigZag encoding, which is more efficient for negative values.
-   * This method directly updates the total_size reference, avoiding unnecessary
-   * addition operations when the value is zero. Used during Protocol Buffer
-   * message serialization to determine the exact byte count needed.
-   *
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
-   * @param value The sint32 value to calculate size for
-   * @param force Whether to calculate size even if the value is zero
    */
   static inline void add_sint32_field(uint32_t &total_size, uint32_t field_id_size, int32_t value, bool force = false) {
     // Skip calculation if value is zero and not forced
@@ -278,16 +235,6 @@ class ProtoSize {
 
   /**
    * @brief Calculates and adds the size of an int64 field to the total message size
-   *
-   * This version directly updates the total_size reference, which avoids an unnecessary
-   * addition operation when the value is zero. This is more efficient for the common
-   * case in Protocol Buffer messages where many fields have default values.
-   * Used during Protocol Buffer message serialization to determine the exact byte count needed.
-   *
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
-   * @param value The int64 value to calculate size for
-   * @param force Whether to calculate size even if the value is zero
    */
   static inline void add_int64_field(uint32_t &total_size, uint32_t field_id_size, int64_t value, bool force = false) {
     // Skip calculation if value is zero and not forced
@@ -301,16 +248,6 @@ class ProtoSize {
 
   /**
    * @brief Calculates and adds the size of a uint64 field to the total message size
-   *
-   * This version directly updates the total_size reference, which avoids an unnecessary
-   * addition operation when the value is zero. This is more efficient for the common
-   * case in Protocol Buffer messages where many fields have default values.
-   * Used during Protocol Buffer message serialization to determine the exact byte count needed.
-   *
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
-   * @param value The uint64 value to calculate size for
-   * @param force Whether to calculate size even if the value is zero
    */
   static inline void add_uint64_field(uint32_t &total_size, uint32_t field_id_size, uint64_t value,
                                       bool force = false) {
@@ -327,14 +264,6 @@ class ProtoSize {
    * @brief Calculates and adds the size of a sint64 field to the total message size
    *
    * Sint64 fields use ZigZag encoding, which is more efficient for negative values.
-   * This method directly updates the total_size reference, avoiding unnecessary
-   * addition operations when the value is zero. Used during Protocol Buffer
-   * message serialization to determine the exact byte count needed.
-   *
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
-   * @param value The sint64 value to calculate size for
-   * @param force Whether to calculate size even if the value is zero
    */
   static inline void add_sint64_field(uint32_t &total_size, uint32_t field_id_size, int64_t value, bool force = false) {
     // Skip calculation if value is zero and not forced
@@ -349,16 +278,6 @@ class ProtoSize {
 
   /**
    * @brief Calculates and adds the size of a string/bytes field to the total message size
-   *
-   * This version directly updates the total_size reference, which avoids an unnecessary
-   * addition operation when the string is empty and not forced. This is more efficient
-   * for the common case in Protocol Buffer messages. Used during Protocol Buffer
-   * message serialization to determine the exact byte count needed.
-   *
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
-   * @param str The string or bytes value to calculate size for
-   * @param force Whether to calculate size even if the string is empty
    */
   static inline void add_string_field(uint32_t &total_size, uint32_t field_id_size, const std::string &str,
                                       bool force = false) {
@@ -378,10 +297,7 @@ class ProtoSize {
    * This helper function directly updates the total_size reference if the nested size
    * is greater than zero or force is true.
    *
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
    * @param nested_size The pre-calculated size of the nested message
-   * @param force Whether to calculate size even if the nested message is empty (nested_size = 0)
    */
   static inline void add_message_field(uint32_t &total_size, uint32_t field_id_size, uint32_t nested_size,
                                        bool force = false) {
@@ -399,14 +315,11 @@ class ProtoSize {
    * @brief Calculates and adds the size of a nested message field to the total message size
    *
    * This templated version directly takes a message object, calculates its size internally,
-   * and updates the total_size reference. This version eliminates the need for a
-   * temporary variable at the call site.
+   * and updates the total_size reference. This eliminates the need for a temporary variable
+   * at the call site.
    *
    * @tparam MessageType The type of the nested message (inferred from parameter)
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
    * @param message The nested message object
-   * @param force Whether to calculate size even if the nested message is empty
    */
   template<typename MessageType>
   static inline void add_message_object(uint32_t &total_size, uint32_t field_id_size, const MessageType &message,
@@ -422,12 +335,9 @@ class ProtoSize {
    * @brief Calculates and adds the sizes of all messages in a repeated field to the total message size
    *
    * This helper processes a vector of message objects, calculating the size for each message
-   * and adding it to the total size. It handles the empty vector check and iterating through
-   * the collection internally, making the calling code simpler and more DRY.
+   * and adding it to the total size.
    *
    * @tparam MessageType The type of the nested messages in the vector
-   * @param total_size Reference to the total message size to update
-   * @param field_id_size Pre-calculated size of the field ID in bytes
    * @param messages Vector of message objects
    */
   template<typename MessageType>

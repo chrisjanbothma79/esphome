@@ -247,6 +247,7 @@ class TypeInfo(ABC):
         else:
             return 5  # 32 bits (maximum for uint32_t)
 
+    @abstractmethod
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         """Calculate the size needed for encoding this field.
 
@@ -254,8 +255,6 @@ class TypeInfo(ABC):
             name: The name of the field
             force: Whether to force encoding the field even if it has a default value
         """
-        # To be implemented by subclasses
-        return f"// No size calculation for type {self.__class__.__name__}"
 
 
 TYPE_INFO: dict[int, TypeInfo] = {}
