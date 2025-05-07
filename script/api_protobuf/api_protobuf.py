@@ -386,16 +386,8 @@ class Int32Type(TypeInfo):
         # Calculate the field ID size for wire type VARINT
         field_id_size = self.calculate_field_id_size(WireType.VARINT)
 
-        # Int32 size calculation with special handling for negative values
-        if force:
-            return f"""// Always include for repeated fields (force=true)
-          // Optimized int32 calculation with precalculated field ID size ({field_id_size} bytes)
-          total_size += ProtoSize::int32_field_with_value({field_id_size}, {name});"""
-        else:
-            return f"""if ({name} != 0) {{
-          // Optimized int32 calculation with precalculated field ID size ({field_id_size} bytes)
-          total_size += ProtoSize::int32_field_with_value({field_id_size}, {name});
-        }}"""
+        # Int32 size calculation with direct total_size update
+        return f"""ProtoSize::add_int32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
 
 
 @register_type(6)
