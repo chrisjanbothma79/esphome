@@ -1640,10 +1640,7 @@ void ListEntitiesFanResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->supports_oscillation, false);
   ProtoSize::add_bool_field(total_size, 1, this->supports_speed, false);
   ProtoSize::add_bool_field(total_size, 1, this->supports_direction, false);
-  if (this->supported_speed_count != 0) {
-    // Optimized int32 calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSize::int32_field_with_value(1, this->supported_speed_count);
-  }
+  ProtoSize::add_int32_field(total_size, 1, this->supported_speed_count, false);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
   ProtoSize::add_string_field(total_size, 1, this->icon, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
@@ -1772,10 +1769,7 @@ void FanStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->oscillating, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->speed), false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->direction), false);
-  if (this->speed_level != 0) {
-    // Optimized int32 calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSize::int32_field_with_value(1, this->speed_level);
-  }
+  ProtoSize::add_int32_field(total_size, 1, this->speed_level, false);
   ProtoSize::add_string_field(total_size, 1, this->preset_mode, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1910,10 +1904,7 @@ void FanCommandRequest::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->has_direction, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->direction), false);
   ProtoSize::add_bool_field(total_size, 1, this->has_speed_level, false);
-  if (this->speed_level != 0) {
-    // Optimized int32 calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSize::int32_field_with_value(1, this->speed_level);
-  }
+  ProtoSize::add_int32_field(total_size, 1, this->speed_level, false);
   ProtoSize::add_bool_field(total_size, 1, this->has_preset_mode, false);
   ProtoSize::add_string_field(total_size, 1, this->preset_mode, false);
 }
@@ -2744,10 +2735,7 @@ void ListEntitiesSensorResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
   ProtoSize::add_string_field(total_size, 1, this->icon, false);
   ProtoSize::add_string_field(total_size, 1, this->unit_of_measurement, false);
-  if (this->accuracy_decimals != 0) {
-    // Optimized int32 calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSize::int32_field_with_value(1, this->accuracy_decimals);
-  }
+  ProtoSize::add_int32_field(total_size, 1, this->accuracy_decimals, false);
   ProtoSize::add_bool_field(total_size, 1, this->force_update, false);
   ProtoSize::add_string_field(total_size, 1, this->device_class, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->state_class), false);
@@ -3858,10 +3846,7 @@ void ExecuteServiceArgument::encode(ProtoWriteBuffer buffer) const {
 }
 void ExecuteServiceArgument::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->bool_, false);
-  if (this->legacy_int != 0) {
-    // Optimized int32 calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSize::int32_field_with_value(1, this->legacy_int);
-  }
+  ProtoSize::add_int32_field(total_size, 1, this->legacy_int, false);
   ProtoSize::add_fixed_field<4>(total_size, 1, this->float_ != 0.0f, false);
   ProtoSize::add_string_field(total_size, 1, this->string_, false);
   ProtoSize::add_sint32_field(total_size, 1, this->int_, false);
@@ -6369,10 +6354,7 @@ void BluetoothLEAdvertisementResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(7, this->address_type);
 }
 void BluetoothLEAdvertisementResponse::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_string_field(total_size, 1, this->name, false);
   ProtoSize::add_sint32_field(total_size, 1, this->rssi, false);
   if (!this->service_uuids.empty()) {
@@ -6484,10 +6466,7 @@ void BluetoothLERawAdvertisement::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(4, this->data);
 }
 void BluetoothLERawAdvertisement::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_sint32_field(total_size, 1, this->rssi, false);
   ProtoSize::add_uint32_field(total_size, 1, this->address_type, false);
   ProtoSize::add_string_field(total_size, 1, this->data, false);
@@ -6587,10 +6566,7 @@ void BluetoothDeviceRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->address_type);
 }
 void BluetoothDeviceRequest::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->request_type), false);
   ProtoSize::add_bool_field(total_size, 1, this->has_address_type, false);
   ProtoSize::add_uint32_field(total_size, 1, this->address_type, false);
@@ -6648,16 +6624,10 @@ void BluetoothDeviceConnectionResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_int32(4, this->error);
 }
 void BluetoothDeviceConnectionResponse::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_bool_field(total_size, 1, this->connected, false);
   ProtoSize::add_uint32_field(total_size, 1, this->mtu, false);
-  if (this->error != 0) {
-    // Optimized int32 calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSize::int32_field_with_value(1, this->error);
-  }
+  ProtoSize::add_int32_field(total_size, 1, this->error, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothDeviceConnectionResponse::dump_to(std::string &out) const {
@@ -6696,10 +6666,7 @@ bool BluetoothGATTGetServicesRequest::decode_varint(uint32_t field_id, ProtoVarI
 }
 void BluetoothGATTGetServicesRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_uint64(1, this->address); }
 void BluetoothGATTGetServicesRequest::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTGetServicesRequest::dump_to(std::string &out) const {
@@ -6735,9 +6702,7 @@ void BluetoothGATTDescriptor::encode(ProtoWriteBuffer buffer) const {
 void BluetoothGATTDescriptor::calculate_size(uint32_t &total_size) const {
   if (!this->uuid.empty()) {
     for (const auto &it : this->uuid) {
-      // Always include for repeated fields (force=true)
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSize::varint(it);
+      ProtoSize::add_uint64_field(total_size, 1, it, true);
     }
   }
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
@@ -6801,9 +6766,7 @@ void BluetoothGATTCharacteristic::encode(ProtoWriteBuffer buffer) const {
 void BluetoothGATTCharacteristic::calculate_size(uint32_t &total_size) const {
   if (!this->uuid.empty()) {
     for (const auto &it : this->uuid) {
-      // Always include for repeated fields (force=true)
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSize::varint(it);
+      ProtoSize::add_uint64_field(total_size, 1, it, true);
     }
   }
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
@@ -6886,9 +6849,7 @@ void BluetoothGATTService::encode(ProtoWriteBuffer buffer) const {
 void BluetoothGATTService::calculate_size(uint32_t &total_size) const {
   if (!this->uuid.empty()) {
     for (const auto &it : this->uuid) {
-      // Always include for repeated fields (force=true)
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSize::varint(it);
+      ProtoSize::add_uint64_field(total_size, 1, it, true);
     }
   }
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
@@ -6956,10 +6917,7 @@ void BluetoothGATTGetServicesResponse::encode(ProtoWriteBuffer buffer) const {
   }
 }
 void BluetoothGATTGetServicesResponse::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   if (!this->services.empty()) {
     // Optimize: use reserve to reduce allocations in nested messages
     for (const auto &it : this->services) {
@@ -7004,10 +6962,7 @@ void BluetoothGATTGetServicesDoneResponse::encode(ProtoWriteBuffer buffer) const
   buffer.encode_uint64(1, this->address);
 }
 void BluetoothGATTGetServicesDoneResponse::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTGetServicesDoneResponse::dump_to(std::string &out) const {
@@ -7039,10 +6994,7 @@ void BluetoothGATTReadRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, this->handle);
 }
 void BluetoothGATTReadRequest::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -7091,10 +7043,7 @@ void BluetoothGATTReadResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(3, this->data);
 }
 void BluetoothGATTReadResponse::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
   ProtoSize::add_string_field(total_size, 1, this->data, false);
 }
@@ -7153,10 +7102,7 @@ void BluetoothGATTWriteRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(4, this->data);
 }
 void BluetoothGATTWriteRequest::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
   ProtoSize::add_bool_field(total_size, 1, this->response, false);
   ProtoSize::add_string_field(total_size, 1, this->data, false);
@@ -7204,10 +7150,7 @@ void BluetoothGATTReadDescriptorRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, this->handle);
 }
 void BluetoothGATTReadDescriptorRequest::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -7256,10 +7199,7 @@ void BluetoothGATTWriteDescriptorRequest::encode(ProtoWriteBuffer buffer) const 
   buffer.encode_string(3, this->data);
 }
 void BluetoothGATTWriteDescriptorRequest::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
   ProtoSize::add_string_field(total_size, 1, this->data, false);
 }
@@ -7307,10 +7247,7 @@ void BluetoothGATTNotifyRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(3, this->enable);
 }
 void BluetoothGATTNotifyRequest::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
   ProtoSize::add_bool_field(total_size, 1, this->enable, false);
 }
@@ -7364,10 +7301,7 @@ void BluetoothGATTNotifyDataResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(3, this->data);
 }
 void BluetoothGATTNotifyDataResponse::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
   ProtoSize::add_string_field(total_size, 1, this->data, false);
 }
@@ -7428,9 +7362,7 @@ void BluetoothConnectionsFreeResponse::calculate_size(uint32_t &total_size) cons
   ProtoSize::add_uint32_field(total_size, 1, this->limit, false);
   if (!this->allocated.empty()) {
     for (const auto &it : this->allocated) {
-      // Always include for repeated fields (force=true)
-      // Using precalculated field ID size (1 bytes)
-      total_size += 1 + ProtoSize::varint(it);
+      ProtoSize::add_uint64_field(total_size, 1, it, true);
     }
   }
 }
@@ -7481,15 +7413,9 @@ void BluetoothGATTErrorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_int32(3, this->error);
 }
 void BluetoothGATTErrorResponse::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  if (this->error != 0) {
-    // Optimized int32 calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSize::int32_field_with_value(1, this->error);
-  }
+  ProtoSize::add_int32_field(total_size, 1, this->error, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTErrorResponse::dump_to(std::string &out) const {
@@ -7531,10 +7457,7 @@ void BluetoothGATTWriteResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, this->handle);
 }
 void BluetoothGATTWriteResponse::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -7572,10 +7495,7 @@ void BluetoothGATTNotifyResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, this->handle);
 }
 void BluetoothGATTNotifyResponse::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -7618,15 +7538,9 @@ void BluetoothDevicePairingResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_int32(3, this->error);
 }
 void BluetoothDevicePairingResponse::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_bool_field(total_size, 1, this->paired, false);
-  if (this->error != 0) {
-    // Optimized int32 calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSize::int32_field_with_value(1, this->error);
-  }
+  ProtoSize::add_int32_field(total_size, 1, this->error, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothDevicePairingResponse::dump_to(std::string &out) const {
@@ -7672,15 +7586,9 @@ void BluetoothDeviceUnpairingResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_int32(3, this->error);
 }
 void BluetoothDeviceUnpairingResponse::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_bool_field(total_size, 1, this->success, false);
-  if (this->error != 0) {
-    // Optimized int32 calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSize::int32_field_with_value(1, this->error);
-  }
+  ProtoSize::add_int32_field(total_size, 1, this->error, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothDeviceUnpairingResponse::dump_to(std::string &out) const {
@@ -7733,15 +7641,9 @@ void BluetoothDeviceClearCacheResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_int32(3, this->error);
 }
 void BluetoothDeviceClearCacheResponse::calculate_size(uint32_t &total_size) const {
-  if (this->address != 0) {
-    // Using precalculated field ID size (1 bytes)
-    total_size += 1 + ProtoSize::varint(this->address);
-  }
+  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
   ProtoSize::add_bool_field(total_size, 1, this->success, false);
-  if (this->error != 0) {
-    // Optimized int32 calculation with precalculated field ID size (1 bytes)
-    total_size += ProtoSize::int32_field_with_value(1, this->error);
-  }
+  ProtoSize::add_int32_field(total_size, 1, this->error, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothDeviceClearCacheResponse::dump_to(std::string &out) const {

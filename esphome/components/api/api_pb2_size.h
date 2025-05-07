@@ -371,6 +371,30 @@ class ProtoSize {
     const uint32_t str_size = static_cast<uint32_t>(str.size());
     total_size += field_id_size + varint(str_size) + str_size;
   }
+
+  /**
+   * @brief Calculates and adds the size of a nested message field to the total message size
+   *
+   * This helper function directly updates the total_size reference if the nested size
+   * is greater than zero or force is true. This function is simpler than doing
+   * a full lambda-based approach but achieves the same result.
+   *
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param nested_size The pre-calculated size of the nested message
+   * @param force Whether to calculate size even if the nested message is empty (nested_size = 0)
+   */
+  static inline void add_message_field_size(uint32_t &total_size, uint32_t field_id_size, uint32_t nested_size,
+                                            bool force = false) {
+    // Skip calculation if nested message is empty and not forced
+    if (nested_size == 0 && !force) {
+      return;  // No need to update total_size
+    }
+
+    // Calculate and directly add to total_size
+    // Field ID + length varint + nested message content
+    total_size += field_id_size + varint(nested_size) + nested_size;
+  }
 };
 
 }  // namespace api
