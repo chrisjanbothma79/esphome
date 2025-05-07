@@ -16,6 +16,9 @@ class ProtoSize {
    * for encoding various Protocol Buffer field types. All methods are designed to be
    * efficient for the common case where many fields have default values.
    *
+   * Implements Protocol Buffer encoding size calculation according to:
+   * https://protobuf.dev/programming-guides/encoding/
+   *
    * Key features:
    * - Early-return optimization for zero/default values
    * - Direct total_size updates to avoid unnecessary additions

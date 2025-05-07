@@ -16,7 +16,11 @@ import google.protobuf.descriptor_pb2 as descriptor
 
 
 class WireType(IntEnum):
-    """Protocol Buffer wire types as defined in the proto spec."""
+    """Protocol Buffer wire types as defined in the protobuf spec.
+
+    As specified in the Protocol Buffers encoding guide:
+    https://protobuf.dev/programming-guides/encoding/#structure
+    """
 
     VARINT = 0  # int32, int64, uint32, uint64, sint32, sint64, bool, enum
     FIXED64 = 1  # fixed64, sfixed64, double
