@@ -277,6 +277,53 @@ class ProtoSize {
   }
 
   /**
+   * @brief Calculates and adds the size of an int64 field to the total message size
+   *
+   * This version directly updates the total_size reference, which avoids an unnecessary
+   * addition operation when the value is zero. This is more efficient for the common
+   * case in Protocol Buffer messages where many fields have default values.
+   * Used during Protocol Buffer message serialization to determine the exact byte count needed.
+   *
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param value The int64 value to calculate size for
+   * @param force Whether to calculate size even if the value is zero
+   */
+  static inline void add_int64_field(uint32_t &total_size, uint32_t field_id_size, int64_t value, bool force = false) {
+    // Skip calculation if value is zero and not forced
+    if (value == 0 && !force) {
+      return;  // No need to update total_size
+    }
+
+    // Calculate and directly add to total_size
+    total_size += field_id_size + varint(value);
+  }
+
+  /**
+   * @brief Calculates and adds the size of a uint64 field to the total message size
+   *
+   * This version directly updates the total_size reference, which avoids an unnecessary
+   * addition operation when the value is zero. This is more efficient for the common
+   * case in Protocol Buffer messages where many fields have default values.
+   * Used during Protocol Buffer message serialization to determine the exact byte count needed.
+   *
+   * @param total_size Reference to the total message size to update
+   * @param field_id_size Pre-calculated size of the field ID in bytes
+   * @param value The uint64 value to calculate size for
+   * @param force Whether to calculate size even if the value is zero
+   */
+  static inline void add_uint64_field(uint32_t &total_size, uint32_t field_id_size, uint64_t value,
+                                      bool force = false) {
+    // Skip calculation if value is zero and not forced
+    if (value == 0 && !force) {
+      return;  // No need to update total_size
+    }
+
+    // Calculate and directly add to total_size
+    total_size += field_id_size + varint(value);
+  }
+
+  /**
    * @brief Calculates and adds the size of a sint64 field to the total message size
    *
    * Sint64 fields use ZigZag encoding, which is more efficient for negative values.

@@ -249,37 +249,6 @@ class TypeInfo(ABC):
         # To be implemented by subclasses
         return f"// No size calculation for type {self.__class__.__name__}"
 
-    def size_calc_varint(
-        self,
-        name: str,
-        cast: str = None,
-        force: bool = False,
-    ) -> str:
-        """Helper to generate size calculation code for various varint fields.
-
-        Args:
-            name: The name of the field
-            cast: Optional cast type (e.g., "static_cast<uint32_t>")
-            force: Whether to force encoding the field even if it has a default value
-        """
-        value = name
-
-        # Apply type cast if specified
-        if cast:
-            value = f"{cast}({value})"
-
-        field_id_size = self.calculate_field_id_size(WireType.VARINT)
-
-        if force:
-            return f"""// Always include for repeated fields (force=true)
-          // Using precalculated field ID size ({field_id_size} bytes)
-          total_size += {field_id_size} + ProtoSize::varint({value});"""
-        else:
-            return f"""if ({name} != 0) {{
-          // Using precalculated field ID size ({field_id_size} bytes)
-          total_size += {field_id_size} + ProtoSize::varint({value});
-        }}"""
-
 
 TYPE_INFO: dict[int, TypeInfo] = {}
 
@@ -349,8 +318,11 @@ class Int64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Int64 size calculation - effectively handled like uint64
-        return self.size_calc_varint(name, cast="static_cast<uint64_t>", force=force)
+        # Calculate the field ID size for wire type VARINT
+        field_id_size = self.calculate_field_id_size(WireType.VARINT)
+
+        # Int64 size calculation using the specialized function
+        return f"""ProtoSize::add_int64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
 
 
 @register_type(4)
@@ -366,8 +338,11 @@ class UInt64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # UInt64 size calculation
-        return self.size_calc_varint(name, force=force)
+        # Calculate the field ID size for wire type VARINT
+        field_id_size = self.calculate_field_id_size(WireType.VARINT)
+
+        # UInt64 size calculation using the specialized function
+        return f"""ProtoSize::add_uint64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
 
 
 @register_type(5)
