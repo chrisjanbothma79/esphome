@@ -129,13 +129,43 @@ ModbusOfflineTrigger = modbus_controller_ns.class_(
 
 _LOGGER = logging.getLogger(__name__)
 
+
+def validate_address(register_set: set):
+    def validator(register: dict):
+        address = register[CONF_ADDRESS]
+        register_count = register.get(
+            CONF_REGISTER_COUNT, TYPE_REGISTER_MAP[register[CONF_VALUE_TYPE]]
+        )
+        last_address = address + register_count - 1
+        try:
+            cv.uint16_t(last_address)
+        except cv.MultipleInvalid as exc:
+            raise cv.Invalid(
+                f"Address {address} + register_count {register_count} for selected value_type outside of valid range {last_address}.\n"
+                + exc.msg
+            )
+        check_set = set(range(address, last_address + 1))
+        if not register_set.isdisjoint(check_set):
+            raise cv.Invalid(f"Address range overlap for {address}..{last_address}")
+        register_set.update(check_set)
+
+        return register
+
+    return validator
+
+
+ModbusServerRegisterSet = set()
+
 ModbusServerRegisterSchema = cv.Schema(
-    {
-        cv.GenerateID(): cv.declare_id(ServerRegister),
-        cv.Required(CONF_ADDRESS): cv.positive_int,
-        cv.Optional(CONF_VALUE_TYPE, default="U_WORD"): cv.enum(SENSOR_VALUE_TYPE),
-        cv.Required(CONF_READ_LAMBDA): cv.returning_lambda,
-    }
+    cv.All(
+        {
+            cv.GenerateID(): cv.declare_id(ServerRegister),
+            cv.Required(CONF_ADDRESS): cv.uint16_t,
+            cv.Optional(CONF_VALUE_TYPE, default="U_WORD"): cv.enum(SENSOR_VALUE_TYPE),
+            cv.Required(CONF_READ_LAMBDA): cv.returning_lambda,
+        },
+        validate_address(ModbusServerRegisterSet),
+    )
 )
 
 ModbusServerCoilRegisterSchema = cv.Schema(
