@@ -80,7 +80,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
   }
 }
 
-void ProtoService::log_mismatch_size(uint32_t msg_size, uint32_t actual_size, uint32_t message_type) {
+void ProtoService::log_mismatch_size_(uint32_t msg_size, uint32_t actual_size, uint32_t message_type) {
   ESP_LOGW(TAG, "Message size mismatch - Calculated: %" PRIu32 ", Actual: %" PRIu32 ", Type: %" PRIu32, msg_size,
            actual_size, message_type);
 }
