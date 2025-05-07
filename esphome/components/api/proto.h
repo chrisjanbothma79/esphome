@@ -305,14 +305,8 @@ class ProtoService {
   void log_mismatch_size(uint32_t msg_size, uint32_t actual_size, uint32_t message_type);
   void log_matched_size(uint32_t msg_size, uint32_t message_type);
 
+  // Optimized method that pre-allocates buffer based on message size
   template<class C> bool send_message_(const C &msg, uint32_t message_type) {
-    auto buffer = this->create_buffer();
-    msg.encode(buffer);
-    return this->send_buffer(buffer, message_type);
-  }
-
-  // Pre-allocate buffer based on message size to optimize memory usage
-  template<class C> bool send_message_with_size_(const C &msg, uint32_t message_type) {
     uint32_t msg_size = 0;
     msg.calculate_size(msg_size);
 
