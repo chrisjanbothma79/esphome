@@ -7,7 +7,7 @@
 namespace esphome {
 namespace api {
 
-class ProtoSizer {
+class ProtoSize {
  public:
   // Core methods for Protocol Buffer serialization size calculation.
   // These methods calculate the exact byte counts needed for encoding various field types.

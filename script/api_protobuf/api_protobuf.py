@@ -336,11 +336,11 @@ class TypeInfo(ABC):
         if force:
             return f"""// Always include for repeated fields (force=true)
           // Using precalculated field ID size ({field_id_size} bytes){comment}
-          total_size += {field_id_size} + ProtoSizer::varint({value});"""
+          total_size += {field_id_size} + ProtoSize::varint({value});"""
         else:
             return f"""if ({name} != 0) {{
           // Using precalculated field ID size ({field_id_size} bytes){comment}
-          total_size += {field_id_size} + ProtoSizer::varint({value});
+          total_size += {field_id_size} + ProtoSize::varint({value});
         }}"""
 
     def size_calc_int32(self, name: str, force: bool = False) -> str:
@@ -350,11 +350,11 @@ class TypeInfo(ABC):
         if force:
             return f"""// Always include for repeated fields (force=true)
           // Optimized int32 calculation with precalculated field ID size ({field_id_size} bytes)
-          total_size += ProtoSizer::int32_field_with_value({field_id_size}, {name});"""
+          total_size += ProtoSize::int32_field_with_value({field_id_size}, {name});"""
         else:
             return f"""if ({name} != 0) {{
           // Optimized int32 calculation with precalculated field ID size ({field_id_size} bytes)
-          total_size += ProtoSizer::int32_field_with_value({field_id_size}, {name});
+          total_size += ProtoSize::int32_field_with_value({field_id_size}, {name});
         }}"""
 
 
@@ -389,7 +389,7 @@ class DoubleType(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # Double size calculation with direct total_size update
-        return f"""ProtoSizer::add_fixed64_field(total_size, {field_id_size}, {name} != 0.0, {str(force).lower()});"""
+        return f"""ProtoSize::add_fixed64_field(total_size, {field_id_size}, {name} != 0.0, {str(force).lower()});"""
 
 
 @register_type(2)
@@ -409,7 +409,7 @@ class FloatType(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # Float size calculation with direct total_size update
-        return f"""ProtoSizer::add_fixed32_field(total_size, {field_id_size}, {name} != 0.0f, {str(force).lower()});"""
+        return f"""ProtoSize::add_fixed32_field(total_size, {field_id_size}, {name} != 0.0f, {str(force).lower()});"""
 
 
 @register_type(3)
@@ -480,7 +480,7 @@ class Fixed64Type(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # Fixed64 size calculation with direct total_size update
-        return f"""ProtoSizer::add_fixed64_field(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
+        return f"""ProtoSize::add_fixed64_field(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
 
 
 @register_type(7)
@@ -500,7 +500,7 @@ class Fixed32Type(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # Fixed32 size calculation with direct total_size update
-        return f"""ProtoSizer::add_fixed32_field(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
+        return f"""ProtoSize::add_fixed32_field(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
 
 
 @register_type(8)
@@ -519,7 +519,7 @@ class BoolType(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.VARINT)
 
         # Boolean size calculation with direct total_size update
-        return f"""ProtoSizer::add_bool_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        return f"""ProtoSize::add_bool_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
 
 
 @register_type(9)
@@ -540,7 +540,7 @@ class StringType(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.LENGTH_DELIMITED)
 
         # String size calculation with direct total_size update to avoid unnecessary addition
-        return f"""ProtoSizer::add_string_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        return f"""ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
 
 
 @register_type(11)
@@ -583,7 +583,7 @@ class MessageType(TypeInfo):
           uint32_t nested_size = 0;
           {name}.calculate_size(nested_size);
           // Always include for repeated fields (force=true), even if nested_size is 0
-          total_size += {field_id_size} + ProtoSizer::varint(nested_size) + nested_size;
+          total_size += {field_id_size} + ProtoSize::varint(nested_size) + nested_size;
         }}"""
         else:
             return f"""{{
@@ -591,7 +591,7 @@ class MessageType(TypeInfo):
           {name}.calculate_size(nested_size);
           if (nested_size > 0) {{
             // Using precalculated field ID size ({field_id_size} bytes)
-            total_size += {field_id_size} + ProtoSizer::varint(nested_size) + nested_size;
+            total_size += {field_id_size} + ProtoSize::varint(nested_size) + nested_size;
           }}
         }}"""
 
@@ -614,7 +614,7 @@ class BytesType(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.LENGTH_DELIMITED)
 
         # Bytes size calculation with direct total_size update to avoid unnecessary addition
-        return f"""ProtoSizer::add_string_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        return f"""ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
 
 
 @register_type(13)
@@ -634,7 +634,7 @@ class UInt32Type(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.VARINT)
 
         # uint32 size calculation with direct total_size update
-        return f"""ProtoSizer::add_uint32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
+        return f"""ProtoSize::add_uint32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
 
 
 @register_type(14)
@@ -662,7 +662,7 @@ class EnumType(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.VARINT)
 
         # Enum size calculation with direct total_size update (using static cast to uint32_t)
-        return f"""ProtoSizer::add_enum_field(total_size, {field_id_size}, static_cast<uint32_t>({name}), {str(force).lower()});"""
+        return f"""ProtoSize::add_enum_field(total_size, {field_id_size}, static_cast<uint32_t>({name}), {str(force).lower()});"""
 
 
 @register_type(15)
@@ -682,7 +682,7 @@ class SFixed32Type(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # SFixed32 size calculation with direct total_size update
-        return f"""ProtoSizer::add_fixed32_field(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
+        return f"""ProtoSize::add_fixed32_field(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
 
 
 @register_type(16)
@@ -702,7 +702,7 @@ class SFixed64Type(TypeInfo):
         field_id_size = self.calculate_field_id_size(WireType.FIXED32)
 
         # SFixed64 size calculation with direct total_size update
-        return f"""ProtoSizer::add_fixed64_field(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
+        return f"""ProtoSize::add_fixed64_field(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
 
 
 @register_type(17)
