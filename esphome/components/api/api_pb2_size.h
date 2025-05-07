@@ -204,9 +204,6 @@ class ProtoSize {
     total_size += field_id_size + NumBytes;
   }
 
-  // Backward compatibility wrappers have been removed now that the generator
-  // uses the templated add_fixed_field<NumBytes> function directly
-
   /**
    * @brief Calculates and adds the size of an enum field to the total message size
    *
