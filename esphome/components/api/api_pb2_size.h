@@ -9,10 +9,10 @@ namespace api {
 
 class ProtoSizer {
  public:
-  // Only the varint_size and field_size methods are actually used
-  // in the generated code. All other methods have been removed as they're unused.
+  // Core methods for Protocol Buffer serialization size calculation.
+  // These methods calculate the exact byte counts needed for encoding various field types.
 
-  static inline uint32_t varint_size(uint32_t value) {
+  static inline uint32_t varint(uint32_t value) {
     // Optimized varint size calculation using leading zeros
     // Each 7 bits requires one byte in the varint encoding
     if (value < 128)
@@ -29,10 +29,10 @@ class ProtoSizer {
       return 5;  // 32 bits (maximum for uint32_t)
   }
 
-  static inline uint32_t varint_size(uint64_t value) {
+  static inline uint32_t varint(uint64_t value) {
     // Handle common case of values fitting in uint32_t (vast majority of use cases)
     if (value <= UINT32_MAX) {
-      return varint_size(static_cast<uint32_t>(value));
+      return varint(static_cast<uint32_t>(value));
     }
 
     // For larger values, determine size based on highest bit position
@@ -50,26 +50,26 @@ class ProtoSizer {
       return 10;  // 64 bits (maximum for uint64_t)
   }
 
-  static inline uint32_t varint_size(int32_t value) {
+  static inline uint32_t varint(int32_t value) {
     // Negative values are sign-extended to 64 bits in protocol buffers,
     // which always results in a 10-byte varint for negative int32
     if (value < 0) {
       return 10;  // Negative int32 is always 10 bytes long
     }
     // For non-negative values, use the uint32_t implementation
-    return varint_size(static_cast<uint32_t>(value));
+    return varint(static_cast<uint32_t>(value));
   }
 
-  static inline uint32_t varint_size(int64_t value) {
+  static inline uint32_t varint(int64_t value) {
     // For int64_t, we convert to uint64_t and calculate the size
     // This works because the bit pattern determines the encoding size,
     // and we've handled negative int32 values as a special case above
-    return varint_size(static_cast<uint64_t>(value));
+    return varint(static_cast<uint64_t>(value));
   }
 
-  static inline uint32_t field_size(uint32_t field_id, uint32_t type) {
+  static inline uint32_t field(uint32_t field_id, uint32_t type) {
     uint32_t tag = (field_id << 3) | (type & 0b111);
-    return varint_size(tag);
+    return varint(tag);
   }
 
   /**
@@ -83,13 +83,13 @@ class ProtoSizer {
    * @param value The int32 value to calculate size for
    * @return The total size in bytes (field ID + value)
    */
-  static inline uint32_t int32_field_with_value_size(uint32_t field_id_size, int32_t value) {
+  static inline uint32_t int32_field_with_value(uint32_t field_id_size, int32_t value) {
     if (value < 0) {
       // Negative values are encoded as 10-byte varints in protobuf
       return field_id_size + 10;
     } else {
       // For non-negative values, use the standard varint size
-      return field_id_size + varint_size(static_cast<uint32_t>(value));
+      return field_id_size + varint(static_cast<uint32_t>(value));
     }
   }
 
@@ -105,8 +105,7 @@ class ProtoSizer {
    * @param value The int32 value to calculate size for
    * @param force Whether to calculate size even if the value is zero
    */
-  static inline void add_int32_field_size(uint32_t &total_size, uint32_t field_id_size, int32_t value,
-                                          bool force = false) {
+  static inline void add_int32_field(uint32_t &total_size, uint32_t field_id_size, int32_t value, bool force = false) {
     // Skip calculation if value is zero and not forced
     if (value == 0 && !force) {
       return;  // No need to update total_size
@@ -118,7 +117,7 @@ class ProtoSizer {
       total_size += field_id_size + 10;
     } else {
       // For non-negative values, use the standard varint size
-      total_size += field_id_size + varint_size(static_cast<uint32_t>(value));
+      total_size += field_id_size + varint(static_cast<uint32_t>(value));
     }
   }
 
@@ -133,15 +132,15 @@ class ProtoSizer {
    * @param value The uint32 value to calculate size for
    * @param force Whether to calculate size even if the value is zero
    */
-  static inline void add_uint32_field_size(uint32_t &total_size, uint32_t field_id_size, uint32_t value,
-                                           bool force = false) {
+  static inline void add_uint32_field(uint32_t &total_size, uint32_t field_id_size, uint32_t value,
+                                      bool force = false) {
     // Skip calculation if value is zero and not forced
     if (value == 0 && !force) {
       return;  // No need to update total_size
     }
 
     // Calculate and directly add to total_size
-    total_size += field_id_size + varint_size(value);
+    total_size += field_id_size + varint(value);
   }
 
   /**
@@ -156,7 +155,7 @@ class ProtoSizer {
    * @param value The boolean value to calculate size for
    * @param force Whether to calculate size even if the value is false
    */
-  static inline void add_bool_field_size(uint32_t &total_size, uint32_t field_id_size, bool value, bool force = false) {
+  static inline void add_bool_field(uint32_t &total_size, uint32_t field_id_size, bool value, bool force = false) {
     // Skip calculation if value is false and not forced
     if (!value && !force) {
       return;  // No need to update total_size
@@ -177,8 +176,8 @@ class ProtoSizer {
    * @param value The value to check if it's zero (for float, use 0.0f)
    * @param force Whether to calculate size even if the value is zero
    */
-  static inline void add_fixed32_field_size(uint32_t &total_size, uint32_t field_id_size, bool is_nonzero,
-                                            bool force = false) {
+  static inline void add_fixed32_field(uint32_t &total_size, uint32_t field_id_size, bool is_nonzero,
+                                       bool force = false) {
     // Skip calculation if value is zero and not forced
     if (!is_nonzero && !force) {
       return;  // No need to update total_size
@@ -199,8 +198,8 @@ class ProtoSizer {
    * @param value The value to check if it's zero (for double, use 0.0)
    * @param force Whether to calculate size even if the value is zero
    */
-  static inline void add_fixed64_field_size(uint32_t &total_size, uint32_t field_id_size, bool is_nonzero,
-                                            bool force = false) {
+  static inline void add_fixed64_field(uint32_t &total_size, uint32_t field_id_size, bool is_nonzero,
+                                       bool force = false) {
     // Skip calculation if value is zero and not forced
     if (!is_nonzero && !force) {
       return;  // No need to update total_size
@@ -221,15 +220,14 @@ class ProtoSizer {
    * @param value The enum value as an integer
    * @param force Whether to calculate size even if the value is zero
    */
-  static inline void add_enum_field_size(uint32_t &total_size, uint32_t field_id_size, uint32_t value,
-                                         bool force = false) {
+  static inline void add_enum_field(uint32_t &total_size, uint32_t field_id_size, uint32_t value, bool force = false) {
     // Skip calculation if value is zero and not forced
     if (value == 0 && !force) {
       return;  // No need to update total_size
     }
 
     // Enums are encoded as uint32
-    total_size += field_id_size + varint_size(value);
+    total_size += field_id_size + varint(value);
   }
 
   /**
@@ -244,8 +242,7 @@ class ProtoSizer {
    * @param force Whether to calculate size even if the string is empty
    * @return The total size in bytes (field ID + length varint + content), or 0 if string is empty and not forced
    */
-  static inline uint32_t string_field_with_value_size(uint32_t field_id_size, const std::string &str,
-                                                      bool force = false) {
+  static inline uint32_t string_field_with_value(uint32_t field_id_size, const std::string &str, bool force = false) {
     // Skip calculation if string is empty and not forced
     if (str.empty() && !force) {
       return 0;
@@ -253,7 +250,7 @@ class ProtoSizer {
 
     // Calculate total size: field ID + length varint + string/bytes length
     const uint32_t str_size = static_cast<uint32_t>(str.size());
-    return field_id_size + varint_size(str_size) + str_size;
+    return field_id_size + varint(str_size) + str_size;
   }
 
   /**
@@ -268,8 +265,8 @@ class ProtoSizer {
    * @param str The string or bytes value to calculate size for
    * @param force Whether to calculate size even if the string is empty
    */
-  static inline void add_string_field_size(uint32_t &total_size, uint32_t field_id_size, const std::string &str,
-                                           bool force = false) {
+  static inline void add_string_field(uint32_t &total_size, uint32_t field_id_size, const std::string &str,
+                                      bool force = false) {
     // Skip calculation if string is empty and not forced
     if (str.empty() && !force) {
       return;  // No need to update total_size
@@ -277,7 +274,7 @@ class ProtoSizer {
 
     // Calculate and directly add to total_size
     const uint32_t str_size = static_cast<uint32_t>(str.size());
-    total_size += field_id_size + varint_size(str_size) + str_size;
+    total_size += field_id_size + varint(str_size) + str_size;
   }
 };
 
