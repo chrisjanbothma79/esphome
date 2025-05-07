@@ -115,6 +115,11 @@ class TypeInfo(ABC):
         return self._field.label == 3
 
     @property
+    def wire_type(self) -> WireType:
+        """Get the wire type for the field."""
+        raise NotImplementedError
+
+    @property
     def cpp_type(self) -> str:
         raise NotImplementedError
 
@@ -215,17 +220,20 @@ class TypeInfo(ABC):
     def dump(self, name: str) -> str:
         """Dump the value to the output."""
 
-    def calculate_field_id_size(self, wire_type: WireType) -> int:
+    def calculate_field_id_size(self, wire_type: WireType = None) -> int:
         """Calculates the size of a field ID in bytes.
 
         Args:
-            wire_type: The wire type of the field using the WireType enum
+            wire_type: Optional wire type override. If not provided, uses the field's wire_type.
 
         Returns:
             The number of bytes needed to encode the field ID
         """
+        # Use the provided wire_type or the field's wire_type
+        wt = wire_type if wire_type is not None else self.wire_type
+
         # Calculate the tag by combining field_id and wire_type
-        tag = (self.number << 3) | (wire_type & 0b111)
+        tag = (self.number << 3) | (wt & 0b111)
 
         # Calculate the varint size
         if tag < 128:
@@ -270,6 +278,7 @@ class DoubleType(TypeInfo):
     default_value = "0.0"
     decode_64bit = "value.as_double()"
     encode_func = "encode_double"
+    wire_type = WireType.FIXED64  # Uses wire type 1 according to protobuf spec
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%g", {name});\n'
@@ -277,9 +286,8 @@ class DoubleType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type FIXED32
-        # Note: According to protobuf spec, fixed64 should use wire type 1, but ESPHome uses wire type 5 for both
-        field_id_size = self.calculate_field_id_size(WireType.FIXED32)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # Double size calculation with direct total_size update
         return f"""ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0.0, {str(force).lower()});"""
@@ -291,6 +299,7 @@ class FloatType(TypeInfo):
     default_value = "0.0f"
     decode_32bit = "value.as_float()"
     encode_func = "encode_float"
+    wire_type = WireType.FIXED32  # Uses wire type 5
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%g", {name});\n'
@@ -298,8 +307,7 @@ class FloatType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type FIXED32
-        field_id_size = self.calculate_field_id_size(WireType.FIXED32)
+        field_id_size = self.calculate_field_id_size()
 
         # Float size calculation with direct total_size update
         return f"""ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0.0f, {str(force).lower()});"""
@@ -311,6 +319,7 @@ class Int64Type(TypeInfo):
     default_value = "0"
     decode_varint = "value.as_int64()"
     encode_func = "encode_int64"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%lld", {name});\n'
@@ -318,8 +327,8 @@ class Int64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type VARINT
-        field_id_size = self.calculate_field_id_size(WireType.VARINT)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # Int64 size calculation using the specialized function
         return f"""ProtoSize::add_int64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
@@ -331,6 +340,7 @@ class UInt64Type(TypeInfo):
     default_value = "0"
     decode_varint = "value.as_uint64()"
     encode_func = "encode_uint64"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%llu", {name});\n'
@@ -338,8 +348,8 @@ class UInt64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type VARINT
-        field_id_size = self.calculate_field_id_size(WireType.VARINT)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # UInt64 size calculation using the specialized function
         return f"""ProtoSize::add_uint64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
@@ -351,6 +361,7 @@ class Int32Type(TypeInfo):
     default_value = "0"
     decode_varint = "value.as_int32()"
     encode_func = "encode_int32"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRId32, {name});\n'
@@ -358,8 +369,8 @@ class Int32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type VARINT
-        field_id_size = self.calculate_field_id_size(WireType.VARINT)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # Int32 size calculation with direct total_size update
         return f"""ProtoSize::add_int32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
@@ -371,6 +382,7 @@ class Fixed64Type(TypeInfo):
     default_value = "0"
     decode_64bit = "value.as_fixed64()"
     encode_func = "encode_fixed64"
+    wire_type = WireType.FIXED64  # Uses wire type 1
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%llu", {name});\n'
@@ -378,9 +390,8 @@ class Fixed64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type FIXED32
-        # Note: According to protobuf spec, fixed64 should use wire type 1, but ESPHome uses wire type 5 for both
-        field_id_size = self.calculate_field_id_size(WireType.FIXED32)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # Fixed64 size calculation with direct total_size update
         return f"""ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
@@ -392,6 +403,7 @@ class Fixed32Type(TypeInfo):
     default_value = "0"
     decode_32bit = "value.as_fixed32()"
     encode_func = "encode_fixed32"
+    wire_type = WireType.FIXED32  # Uses wire type 5
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRIu32, {name});\n'
@@ -399,8 +411,8 @@ class Fixed32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type FIXED32
-        field_id_size = self.calculate_field_id_size(WireType.FIXED32)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # Fixed32 size calculation with direct total_size update
         return f"""ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
@@ -412,14 +424,15 @@ class BoolType(TypeInfo):
     default_value = "false"
     decode_varint = "value.as_bool()"
     encode_func = "encode_bool"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f"out.append(YESNO({name}));"
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type VARINT
-        field_id_size = self.calculate_field_id_size(WireType.VARINT)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # Boolean size calculation with direct total_size update
         return f"""ProtoSize::add_bool_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
@@ -433,14 +446,15 @@ class StringType(TypeInfo):
     const_reference_type = "const std::string &"
     decode_length = "value.as_string()"
     encode_func = "encode_string"
+    wire_type = WireType.LENGTH_DELIMITED  # Uses wire type 2
 
     def dump(self, name):
         o = f'out.append("\'").append({name}).append("\'");'
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type LENGTH_DELIMITED
-        field_id_size = self.calculate_field_id_size(WireType.LENGTH_DELIMITED)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # String size calculation with direct total_size update to avoid unnecessary addition
         return f"""ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
@@ -453,6 +467,7 @@ class MessageType(TypeInfo):
         return self._field.type_name[1:]
 
     default_value = ""
+    wire_type = WireType.LENGTH_DELIMITED  # Uses wire type 2
 
     @property
     def reference_type(self) -> str:
@@ -475,8 +490,8 @@ class MessageType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type LENGTH_DELIMITED
-        field_id_size = self.calculate_field_id_size(WireType.LENGTH_DELIMITED)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # Use the templated helper function that takes the message directly, avoiding temp variables
         return f"ProtoSize::add_message_object(total_size, {field_id_size}, {name}, {str(force).lower()});"
@@ -490,14 +505,15 @@ class BytesType(TypeInfo):
     const_reference_type = "const std::string &"
     decode_length = "value.as_string()"
     encode_func = "encode_string"
+    wire_type = WireType.LENGTH_DELIMITED  # Uses wire type 2
 
     def dump(self, name: str) -> str:
         o = f'out.append("\'").append({name}).append("\'");'
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type LENGTH_DELIMITED
-        field_id_size = self.calculate_field_id_size(WireType.LENGTH_DELIMITED)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # Bytes size calculation with direct total_size update to avoid unnecessary addition
         return f"""ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
@@ -509,6 +525,7 @@ class UInt32Type(TypeInfo):
     default_value = "0"
     decode_varint = "value.as_uint32()"
     encode_func = "encode_uint32"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRIu32, {name});\n'
@@ -516,8 +533,8 @@ class UInt32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type VARINT
-        field_id_size = self.calculate_field_id_size(WireType.VARINT)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # uint32 size calculation with direct total_size update
         return f"""ProtoSize::add_uint32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
@@ -534,6 +551,7 @@ class EnumType(TypeInfo):
         return f"value.as_enum<{self.cpp_type}>()"
 
     default_value = ""
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     @property
     def encode_func(self) -> str:
@@ -544,8 +562,8 @@ class EnumType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type VARINT
-        field_id_size = self.calculate_field_id_size(WireType.VARINT)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # Enum size calculation with direct total_size update (using static cast to uint32_t)
         return f"""ProtoSize::add_enum_field(total_size, {field_id_size}, static_cast<uint32_t>({name}), {str(force).lower()});"""
@@ -557,6 +575,7 @@ class SFixed32Type(TypeInfo):
     default_value = "0"
     decode_32bit = "value.as_sfixed32()"
     encode_func = "encode_sfixed32"
+    wire_type = WireType.FIXED32  # Uses wire type 5
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRId32, {name});\n'
@@ -564,8 +583,8 @@ class SFixed32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type FIXED32
-        field_id_size = self.calculate_field_id_size(WireType.FIXED32)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # SFixed32 size calculation with direct total_size update
         return f"""ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
@@ -577,6 +596,7 @@ class SFixed64Type(TypeInfo):
     default_value = "0"
     decode_64bit = "value.as_sfixed64()"
     encode_func = "encode_sfixed64"
+    wire_type = WireType.FIXED64  # Uses wire type 1
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%lld", {name});\n'
@@ -584,9 +604,8 @@ class SFixed64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type FIXED32
-        # Note: According to protobuf spec, fixed64 should use wire type 1, but ESPHome uses wire type 5 for both
-        field_id_size = self.calculate_field_id_size(WireType.FIXED32)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # SFixed64 size calculation with direct total_size update
         return f"""ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {str(force).lower()});"""
@@ -598,6 +617,7 @@ class SInt32Type(TypeInfo):
     default_value = "0"
     decode_varint = "value.as_sint32()"
     encode_func = "encode_sint32"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRId32, {name});\n'
@@ -605,8 +625,8 @@ class SInt32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type VARINT
-        field_id_size = self.calculate_field_id_size(WireType.VARINT)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # Sint32 size calculation using the specialized function
         return f"""ProtoSize::add_sint32_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
@@ -618,6 +638,7 @@ class SInt64Type(TypeInfo):
     default_value = "0"
     decode_varint = "value.as_sint64()"
     encode_func = "encode_sint64"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%lld", {name});\n'
@@ -625,8 +646,8 @@ class SInt64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        # Calculate the field ID size for wire type VARINT
-        field_id_size = self.calculate_field_id_size(WireType.VARINT)
+        # Calculate the field ID size based on the field's wire type
+        field_id_size = self.calculate_field_id_size()
 
         # Sint64 size calculation using the specialized function
         return f"""ProtoSize::add_sint64_field(total_size, {field_id_size}, {name}, {str(force).lower()});"""
@@ -648,6 +669,14 @@ class RepeatedTypeInfo(TypeInfo):
     @property
     def const_reference_type(self) -> str:
         return f"const {self.cpp_type} &"
+
+    @property
+    def wire_type(self) -> WireType:
+        """Get the wire type for this repeated field.
+
+        For repeated fields, we use the same wire type as the underlying field.
+        """
+        return self._ti.wire_type
 
     @property
     def decode_varint_content(self) -> str:
@@ -731,7 +760,7 @@ class RepeatedTypeInfo(TypeInfo):
 
         if isinstance(self._ti, MessageType):
             # For repeated messages, use the dedicated helper that handles iteration internally
-            field_id_size = self._ti.calculate_field_id_size(WireType.LENGTH_DELIMITED)
+            field_id_size = self._ti.calculate_field_id_size()
             return (
                 f"ProtoSize::add_repeated_message(total_size, {field_id_size}, {name});"
             )
