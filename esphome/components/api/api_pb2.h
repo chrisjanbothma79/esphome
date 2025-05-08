@@ -10,34 +10,47 @@ namespace api {
 
 namespace enums {
 
+#ifdef USE_UPDATE
 enum EntityCategory : uint32_t {
   ENTITY_CATEGORY_NONE = 0,
   ENTITY_CATEGORY_CONFIG = 1,
   ENTITY_CATEGORY_DIAGNOSTIC = 2,
 };
+#endif  // USE_UPDATE
+#ifdef USE_COVER
 enum LegacyCoverState : uint32_t {
   LEGACY_COVER_STATE_OPEN = 0,
   LEGACY_COVER_STATE_CLOSED = 1,
 };
+#endif  // USE_COVER
+#ifdef USE_COVER
 enum CoverOperation : uint32_t {
   COVER_OPERATION_IDLE = 0,
   COVER_OPERATION_IS_OPENING = 1,
   COVER_OPERATION_IS_CLOSING = 2,
 };
+#endif  // USE_COVER
+#ifdef USE_COVER
 enum LegacyCoverCommand : uint32_t {
   LEGACY_COVER_COMMAND_OPEN = 0,
   LEGACY_COVER_COMMAND_CLOSE = 1,
   LEGACY_COVER_COMMAND_STOP = 2,
 };
+#endif  // USE_COVER
+#ifdef USE_FAN
 enum FanSpeed : uint32_t {
   FAN_SPEED_LOW = 0,
   FAN_SPEED_MEDIUM = 1,
   FAN_SPEED_HIGH = 2,
 };
+#endif  // USE_FAN
+#ifdef USE_FAN
 enum FanDirection : uint32_t {
   FAN_DIRECTION_FORWARD = 0,
   FAN_DIRECTION_REVERSE = 1,
 };
+#endif  // USE_FAN
+#ifdef USE_LIGHT
 enum ColorMode : uint32_t {
   COLOR_MODE_UNKNOWN = 0,
   COLOR_MODE_ON_OFF = 1,
@@ -50,17 +63,22 @@ enum ColorMode : uint32_t {
   COLOR_MODE_RGB_COLOR_TEMPERATURE = 47,
   COLOR_MODE_RGB_COLD_WARM_WHITE = 51,
 };
+#endif  // USE_LIGHT
+#ifdef USE_SENSOR
 enum SensorStateClass : uint32_t {
   STATE_CLASS_NONE = 0,
   STATE_CLASS_MEASUREMENT = 1,
   STATE_CLASS_TOTAL_INCREASING = 2,
   STATE_CLASS_TOTAL = 3,
 };
+#endif  // USE_SENSOR
+#ifdef USE_SENSOR
 enum SensorLastResetType : uint32_t {
   LAST_RESET_NONE = 0,
   LAST_RESET_NEVER = 1,
   LAST_RESET_AUTO = 2,
 };
+#endif  // USE_SENSOR
 enum LogLevel : uint32_t {
   LOG_LEVEL_NONE = 0,
   LOG_LEVEL_ERROR = 1,
@@ -81,6 +99,7 @@ enum ServiceArgType : uint32_t {
   SERVICE_ARG_TYPE_FLOAT_ARRAY = 6,
   SERVICE_ARG_TYPE_STRING_ARRAY = 7,
 };
+#ifdef USE_CLIMATE
 enum ClimateMode : uint32_t {
   CLIMATE_MODE_OFF = 0,
   CLIMATE_MODE_HEAT_COOL = 1,
@@ -90,6 +109,8 @@ enum ClimateMode : uint32_t {
   CLIMATE_MODE_DRY = 5,
   CLIMATE_MODE_AUTO = 6,
 };
+#endif  // USE_CLIMATE
+#ifdef USE_CLIMATE
 enum ClimateFanMode : uint32_t {
   CLIMATE_FAN_ON = 0,
   CLIMATE_FAN_OFF = 1,
@@ -102,12 +123,16 @@ enum ClimateFanMode : uint32_t {
   CLIMATE_FAN_DIFFUSE = 8,
   CLIMATE_FAN_QUIET = 9,
 };
+#endif  // USE_CLIMATE
+#ifdef USE_CLIMATE
 enum ClimateSwingMode : uint32_t {
   CLIMATE_SWING_OFF = 0,
   CLIMATE_SWING_BOTH = 1,
   CLIMATE_SWING_VERTICAL = 2,
   CLIMATE_SWING_HORIZONTAL = 3,
 };
+#endif  // USE_CLIMATE
+#ifdef USE_CLIMATE
 enum ClimateAction : uint32_t {
   CLIMATE_ACTION_OFF = 0,
   CLIMATE_ACTION_COOLING = 2,
@@ -116,6 +141,8 @@ enum ClimateAction : uint32_t {
   CLIMATE_ACTION_DRYING = 5,
   CLIMATE_ACTION_FAN = 6,
 };
+#endif  // USE_CLIMATE
+#ifdef USE_CLIMATE
 enum ClimatePreset : uint32_t {
   CLIMATE_PRESET_NONE = 0,
   CLIMATE_PRESET_HOME = 1,
@@ -126,11 +153,15 @@ enum ClimatePreset : uint32_t {
   CLIMATE_PRESET_SLEEP = 6,
   CLIMATE_PRESET_ACTIVITY = 7,
 };
+#endif  // USE_CLIMATE
+#ifdef USE_NUMBER
 enum NumberMode : uint32_t {
   NUMBER_MODE_AUTO = 0,
   NUMBER_MODE_BOX = 1,
   NUMBER_MODE_SLIDER = 2,
 };
+#endif  // USE_NUMBER
+#ifdef USE_LOCK
 enum LockState : uint32_t {
   LOCK_STATE_NONE = 0,
   LOCK_STATE_LOCKED = 1,
@@ -139,17 +170,23 @@ enum LockState : uint32_t {
   LOCK_STATE_LOCKING = 4,
   LOCK_STATE_UNLOCKING = 5,
 };
+#endif  // USE_LOCK
+#ifdef USE_LOCK
 enum LockCommand : uint32_t {
   LOCK_UNLOCK = 0,
   LOCK_LOCK = 1,
   LOCK_OPEN = 2,
 };
+#endif  // USE_LOCK
+#ifdef USE_MEDIA_PLAYER
 enum MediaPlayerState : uint32_t {
   MEDIA_PLAYER_STATE_NONE = 0,
   MEDIA_PLAYER_STATE_IDLE = 1,
   MEDIA_PLAYER_STATE_PLAYING = 2,
   MEDIA_PLAYER_STATE_PAUSED = 3,
 };
+#endif  // USE_MEDIA_PLAYER
+#ifdef USE_MEDIA_PLAYER
 enum MediaPlayerCommand : uint32_t {
   MEDIA_PLAYER_COMMAND_PLAY = 0,
   MEDIA_PLAYER_COMMAND_PAUSE = 1,
@@ -157,10 +194,14 @@ enum MediaPlayerCommand : uint32_t {
   MEDIA_PLAYER_COMMAND_MUTE = 3,
   MEDIA_PLAYER_COMMAND_UNMUTE = 4,
 };
+#endif  // USE_MEDIA_PLAYER
+#ifdef USE_MEDIA_PLAYER
 enum MediaPlayerFormatPurpose : uint32_t {
   MEDIA_PLAYER_FORMAT_PURPOSE_DEFAULT = 0,
   MEDIA_PLAYER_FORMAT_PURPOSE_ANNOUNCEMENT = 1,
 };
+#endif  // USE_MEDIA_PLAYER
+#ifdef USE_BLUETOOTH_PROXY
 enum BluetoothDeviceRequestType : uint32_t {
   BLUETOOTH_DEVICE_REQUEST_TYPE_CONNECT = 0,
   BLUETOOTH_DEVICE_REQUEST_TYPE_DISCONNECT = 1,
@@ -170,6 +211,8 @@ enum BluetoothDeviceRequestType : uint32_t {
   BLUETOOTH_DEVICE_REQUEST_TYPE_CONNECT_V3_WITHOUT_CACHE = 5,
   BLUETOOTH_DEVICE_REQUEST_TYPE_CLEAR_CACHE = 6,
 };
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 enum BluetoothScannerState : uint32_t {
   BLUETOOTH_SCANNER_STATE_IDLE = 0,
   BLUETOOTH_SCANNER_STATE_STARTING = 1,
@@ -178,10 +221,13 @@ enum BluetoothScannerState : uint32_t {
   BLUETOOTH_SCANNER_STATE_STOPPING = 4,
   BLUETOOTH_SCANNER_STATE_STOPPED = 5,
 };
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 enum BluetoothScannerMode : uint32_t {
   BLUETOOTH_SCANNER_MODE_PASSIVE = 0,
   BLUETOOTH_SCANNER_MODE_ACTIVE = 1,
 };
+#endif  // USE_BLUETOOTH_PROXY
 enum VoiceAssistantSubscribeFlag : uint32_t {
   VOICE_ASSISTANT_SUBSCRIBE_NONE = 0,
   VOICE_ASSISTANT_SUBSCRIBE_API_AUDIO = 1,
@@ -191,6 +237,7 @@ enum VoiceAssistantRequestFlag : uint32_t {
   VOICE_ASSISTANT_REQUEST_USE_VAD = 1,
   VOICE_ASSISTANT_REQUEST_USE_WAKE_WORD = 2,
 };
+#ifdef USE_VOICE_ASSISTANT
 enum VoiceAssistantEvent : uint32_t {
   VOICE_ASSISTANT_ERROR = 0,
   VOICE_ASSISTANT_RUN_START = 1,
@@ -208,12 +255,16 @@ enum VoiceAssistantEvent : uint32_t {
   VOICE_ASSISTANT_TTS_STREAM_START = 98,
   VOICE_ASSISTANT_TTS_STREAM_END = 99,
 };
+#endif  // USE_VOICE_ASSISTANT
+#ifdef USE_VOICE_ASSISTANT
 enum VoiceAssistantTimerEvent : uint32_t {
   VOICE_ASSISTANT_TIMER_STARTED = 0,
   VOICE_ASSISTANT_TIMER_UPDATED = 1,
   VOICE_ASSISTANT_TIMER_CANCELLED = 2,
   VOICE_ASSISTANT_TIMER_FINISHED = 3,
 };
+#endif  // USE_VOICE_ASSISTANT
+#ifdef USE_ALARM_CONTROL_PANEL
 enum AlarmControlPanelState : uint32_t {
   ALARM_STATE_DISARMED = 0,
   ALARM_STATE_ARMED_HOME = 1,
@@ -226,6 +277,8 @@ enum AlarmControlPanelState : uint32_t {
   ALARM_STATE_DISARMING = 8,
   ALARM_STATE_TRIGGERED = 9,
 };
+#endif  // USE_ALARM_CONTROL_PANEL
+#ifdef USE_ALARM_CONTROL_PANEL
 enum AlarmControlPanelStateCommand : uint32_t {
   ALARM_CONTROL_PANEL_DISARM = 0,
   ALARM_CONTROL_PANEL_ARM_AWAY = 1,
@@ -235,20 +288,27 @@ enum AlarmControlPanelStateCommand : uint32_t {
   ALARM_CONTROL_PANEL_ARM_CUSTOM_BYPASS = 5,
   ALARM_CONTROL_PANEL_TRIGGER = 6,
 };
+#endif  // USE_ALARM_CONTROL_PANEL
+#ifdef USE_TEXT
 enum TextMode : uint32_t {
   TEXT_MODE_TEXT = 0,
   TEXT_MODE_PASSWORD = 1,
 };
+#endif  // USE_TEXT
+#ifdef USE_VALVE
 enum ValveOperation : uint32_t {
   VALVE_OPERATION_IDLE = 0,
   VALVE_OPERATION_IS_OPENING = 1,
   VALVE_OPERATION_IS_CLOSING = 2,
 };
+#endif  // USE_VALVE
+#ifdef USE_UPDATE
 enum UpdateCommand : uint32_t {
   UPDATE_COMMAND_NONE = 0,
   UPDATE_COMMAND_UPDATE = 1,
   UPDATE_COMMAND_CHECK = 2,
 };
+#endif  // USE_UPDATE
 
 }  // namespace enums
 

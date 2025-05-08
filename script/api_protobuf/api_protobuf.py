@@ -739,15 +739,57 @@ class RepeatedTypeInfo(TypeInfo):
         return o
 
 
-def build_enum_type(desc) -> tuple[str, str]:
+SOURCE_BOTH = 0
+SOURCE_SERVER = 1
+SOURCE_CLIENT = 2
+
+RECEIVE_CASES: dict[int, str] = {}
+
+ifdefs: dict[str, str] = {}
+
+
+def get_opt(
+    desc: descriptor.DescriptorProto | descriptor.EnumDescriptorProto,
+    opt: descriptor.MessageOptions,
+    default: Any = None,
+) -> Any:
+    """Get the option from the descriptor."""
+    try:
+        if not desc.options.HasExtension(opt):
+            return default
+        return desc.options.Extensions[opt]
+    except (AttributeError, KeyError):
+        return default
+
+
+# Create a mapping to associate enums with components
+enum_component_map: dict[str, str] = {}
+
+
+def build_enum_type(desc: descriptor.EnumDescriptorProto) -> tuple[str, str]:
     """Builds the enum type."""
     name = desc.name
-    out = f"enum {name} : uint32_t {{\n"
+
+    # Get ifdef from the enum_component_map, or default to None
+    ifdef = enum_component_map.get(name, None)
+
+    out = ""
+    if ifdef is not None:
+        out += f"#ifdef {ifdef}\n"
+
+    out += f"enum {name} : uint32_t {{\n"
     for v in desc.value:
         out += f"  {v.name} = {v.number},\n"
     out += "};\n"
 
-    cpp = "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
+    if ifdef is not None:
+        out += f"#endif  // {ifdef}\n"
+
+    cpp = ""
+    if ifdef is not None:
+        cpp += f"#ifdef {ifdef}\n"
+
+    cpp += "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
     cpp += f"template<> const char *proto_enum_to_string<enums::{name}>(enums::{name} value) {{\n"
     cpp += "  switch (value) {\n"
     for v in desc.value:
@@ -758,6 +800,9 @@ def build_enum_type(desc) -> tuple[str, str]:
     cpp += "  }\n"
     cpp += "}\n"
     cpp += "#endif\n"
+
+    if ifdef is not None:
+        cpp += f"#endif  // {ifdef}\n"
 
     return out, cpp
 
@@ -775,6 +820,13 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
 
     # Check if this message has an ifdef option
     ifdef = get_opt(desc, pb.ifdef)
+
+    # If it has an ifdef, check all enum fields to map them to the component
+    if ifdef is not None:
+        for field in desc.field:
+            if field.type == 14:  # ENUM type
+                enum_name = field.type_name.split(".")[-1]
+                enum_component_map[enum_name] = ifdef
 
     for field in desc.field:
         if field.label == 3:
@@ -926,26 +978,6 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     return out, cpp
 
 
-SOURCE_BOTH = 0
-SOURCE_SERVER = 1
-SOURCE_CLIENT = 2
-
-RECEIVE_CASES: dict[int, str] = {}
-
-ifdefs: dict[str, str] = {}
-
-
-def get_opt(
-    desc: descriptor.DescriptorProto,
-    opt: descriptor.MessageOptions,
-    default: Any = None,
-) -> Any:
-    """Get the option from the descriptor."""
-    if not desc.options.HasExtension(opt):
-        return default
-    return desc.options.Extensions[opt]
-
-
 def build_service_message_type(
     mt: descriptor.DescriptorProto,
 ) -> tuple[str, str] | None:
@@ -1041,6 +1073,16 @@ def main() -> None:
     namespace api {
 
     """
+
+    # The first pass: identify all message types with ifdef guards
+    # and build the enum_component_map
+    for m in file.message_type:
+        ifdef = get_opt(m, pb.ifdef)
+        if ifdef is not None:
+            for field in m.field:
+                if field.type == 14:  # ENUM type
+                    enum_name = field.type_name.split(".")[-1]
+                    enum_component_map[enum_name] = ifdef
 
     content += "namespace enums {\n\n"
 

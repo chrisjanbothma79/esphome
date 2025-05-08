@@ -9,6 +9,7 @@
 namespace esphome {
 namespace api {
 
+#ifdef USE_UPDATE
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::EntityCategory>(enums::EntityCategory value) {
   switch (value) {
@@ -23,6 +24,8 @@ template<> const char *proto_enum_to_string<enums::EntityCategory>(enums::Entity
   }
 }
 #endif
+#endif  // USE_UPDATE
+#ifdef USE_COVER
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::LegacyCoverState>(enums::LegacyCoverState value) {
   switch (value) {
@@ -35,6 +38,8 @@ template<> const char *proto_enum_to_string<enums::LegacyCoverState>(enums::Lega
   }
 }
 #endif
+#endif  // USE_COVER
+#ifdef USE_COVER
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::CoverOperation>(enums::CoverOperation value) {
   switch (value) {
@@ -49,6 +54,8 @@ template<> const char *proto_enum_to_string<enums::CoverOperation>(enums::CoverO
   }
 }
 #endif
+#endif  // USE_COVER
+#ifdef USE_COVER
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::LegacyCoverCommand>(enums::LegacyCoverCommand value) {
   switch (value) {
@@ -63,6 +70,8 @@ template<> const char *proto_enum_to_string<enums::LegacyCoverCommand>(enums::Le
   }
 }
 #endif
+#endif  // USE_COVER
+#ifdef USE_FAN
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::FanSpeed>(enums::FanSpeed value) {
   switch (value) {
@@ -77,6 +86,8 @@ template<> const char *proto_enum_to_string<enums::FanSpeed>(enums::FanSpeed val
   }
 }
 #endif
+#endif  // USE_FAN
+#ifdef USE_FAN
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::FanDirection>(enums::FanDirection value) {
   switch (value) {
@@ -89,6 +100,8 @@ template<> const char *proto_enum_to_string<enums::FanDirection>(enums::FanDirec
   }
 }
 #endif
+#endif  // USE_FAN
+#ifdef USE_LIGHT
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::ColorMode>(enums::ColorMode value) {
   switch (value) {
@@ -117,6 +130,8 @@ template<> const char *proto_enum_to_string<enums::ColorMode>(enums::ColorMode v
   }
 }
 #endif
+#endif  // USE_LIGHT
+#ifdef USE_SENSOR
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::SensorStateClass>(enums::SensorStateClass value) {
   switch (value) {
@@ -133,6 +148,8 @@ template<> const char *proto_enum_to_string<enums::SensorStateClass>(enums::Sens
   }
 }
 #endif
+#endif  // USE_SENSOR
+#ifdef USE_SENSOR
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::SensorLastResetType>(enums::SensorLastResetType value) {
   switch (value) {
@@ -147,6 +164,7 @@ template<> const char *proto_enum_to_string<enums::SensorLastResetType>(enums::S
   }
 }
 #endif
+#endif  // USE_SENSOR
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::LogLevel>(enums::LogLevel value) {
   switch (value) {
@@ -195,6 +213,7 @@ template<> const char *proto_enum_to_string<enums::ServiceArgType>(enums::Servic
   }
 }
 #endif
+#ifdef USE_CLIMATE
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::ClimateMode>(enums::ClimateMode value) {
   switch (value) {
@@ -217,6 +236,8 @@ template<> const char *proto_enum_to_string<enums::ClimateMode>(enums::ClimateMo
   }
 }
 #endif
+#endif  // USE_CLIMATE
+#ifdef USE_CLIMATE
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::ClimateFanMode>(enums::ClimateFanMode value) {
   switch (value) {
@@ -245,6 +266,8 @@ template<> const char *proto_enum_to_string<enums::ClimateFanMode>(enums::Climat
   }
 }
 #endif
+#endif  // USE_CLIMATE
+#ifdef USE_CLIMATE
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::ClimateSwingMode>(enums::ClimateSwingMode value) {
   switch (value) {
@@ -261,6 +284,8 @@ template<> const char *proto_enum_to_string<enums::ClimateSwingMode>(enums::Clim
   }
 }
 #endif
+#endif  // USE_CLIMATE
+#ifdef USE_CLIMATE
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::ClimateAction>(enums::ClimateAction value) {
   switch (value) {
@@ -281,6 +306,8 @@ template<> const char *proto_enum_to_string<enums::ClimateAction>(enums::Climate
   }
 }
 #endif
+#endif  // USE_CLIMATE
+#ifdef USE_CLIMATE
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::ClimatePreset>(enums::ClimatePreset value) {
   switch (value) {
@@ -305,6 +332,8 @@ template<> const char *proto_enum_to_string<enums::ClimatePreset>(enums::Climate
   }
 }
 #endif
+#endif  // USE_CLIMATE
+#ifdef USE_NUMBER
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::NumberMode>(enums::NumberMode value) {
   switch (value) {
@@ -319,6 +348,8 @@ template<> const char *proto_enum_to_string<enums::NumberMode>(enums::NumberMode
   }
 }
 #endif
+#endif  // USE_NUMBER
+#ifdef USE_LOCK
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::LockState>(enums::LockState value) {
   switch (value) {
@@ -339,6 +370,8 @@ template<> const char *proto_enum_to_string<enums::LockState>(enums::LockState v
   }
 }
 #endif
+#endif  // USE_LOCK
+#ifdef USE_LOCK
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::LockCommand>(enums::LockCommand value) {
   switch (value) {
@@ -353,6 +386,8 @@ template<> const char *proto_enum_to_string<enums::LockCommand>(enums::LockComma
   }
 }
 #endif
+#endif  // USE_LOCK
+#ifdef USE_MEDIA_PLAYER
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::MediaPlayerState>(enums::MediaPlayerState value) {
   switch (value) {
@@ -369,6 +404,8 @@ template<> const char *proto_enum_to_string<enums::MediaPlayerState>(enums::Medi
   }
 }
 #endif
+#endif  // USE_MEDIA_PLAYER
+#ifdef USE_MEDIA_PLAYER
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::MediaPlayerCommand>(enums::MediaPlayerCommand value) {
   switch (value) {
@@ -387,6 +424,8 @@ template<> const char *proto_enum_to_string<enums::MediaPlayerCommand>(enums::Me
   }
 }
 #endif
+#endif  // USE_MEDIA_PLAYER
+#ifdef USE_MEDIA_PLAYER
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::MediaPlayerFormatPurpose>(enums::MediaPlayerFormatPurpose value) {
   switch (value) {
@@ -399,6 +438,8 @@ template<> const char *proto_enum_to_string<enums::MediaPlayerFormatPurpose>(enu
   }
 }
 #endif
+#endif  // USE_MEDIA_PLAYER
+#ifdef USE_BLUETOOTH_PROXY
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<>
 const char *proto_enum_to_string<enums::BluetoothDeviceRequestType>(enums::BluetoothDeviceRequestType value) {
@@ -422,6 +463,8 @@ const char *proto_enum_to_string<enums::BluetoothDeviceRequestType>(enums::Bluet
   }
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::BluetoothScannerState>(enums::BluetoothScannerState value) {
   switch (value) {
@@ -442,6 +485,8 @@ template<> const char *proto_enum_to_string<enums::BluetoothScannerState>(enums:
   }
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
+#ifdef USE_BLUETOOTH_PROXY
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::BluetoothScannerMode>(enums::BluetoothScannerMode value) {
   switch (value) {
@@ -454,6 +499,7 @@ template<> const char *proto_enum_to_string<enums::BluetoothScannerMode>(enums::
   }
 }
 #endif
+#endif  // USE_BLUETOOTH_PROXY
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<>
 const char *proto_enum_to_string<enums::VoiceAssistantSubscribeFlag>(enums::VoiceAssistantSubscribeFlag value) {
@@ -481,6 +527,7 @@ template<> const char *proto_enum_to_string<enums::VoiceAssistantRequestFlag>(en
   }
 }
 #endif
+#ifdef USE_VOICE_ASSISTANT
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::VoiceAssistantEvent>(enums::VoiceAssistantEvent value) {
   switch (value) {
@@ -519,6 +566,8 @@ template<> const char *proto_enum_to_string<enums::VoiceAssistantEvent>(enums::V
   }
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
+#ifdef USE_VOICE_ASSISTANT
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::VoiceAssistantTimerEvent>(enums::VoiceAssistantTimerEvent value) {
   switch (value) {
@@ -535,6 +584,8 @@ template<> const char *proto_enum_to_string<enums::VoiceAssistantTimerEvent>(enu
   }
 }
 #endif
+#endif  // USE_VOICE_ASSISTANT
+#ifdef USE_ALARM_CONTROL_PANEL
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::AlarmControlPanelState>(enums::AlarmControlPanelState value) {
   switch (value) {
@@ -563,6 +614,8 @@ template<> const char *proto_enum_to_string<enums::AlarmControlPanelState>(enums
   }
 }
 #endif
+#endif  // USE_ALARM_CONTROL_PANEL
+#ifdef USE_ALARM_CONTROL_PANEL
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<>
 const char *proto_enum_to_string<enums::AlarmControlPanelStateCommand>(enums::AlarmControlPanelStateCommand value) {
@@ -586,6 +639,8 @@ const char *proto_enum_to_string<enums::AlarmControlPanelStateCommand>(enums::Al
   }
 }
 #endif
+#endif  // USE_ALARM_CONTROL_PANEL
+#ifdef USE_TEXT
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::TextMode>(enums::TextMode value) {
   switch (value) {
@@ -598,6 +653,8 @@ template<> const char *proto_enum_to_string<enums::TextMode>(enums::TextMode val
   }
 }
 #endif
+#endif  // USE_TEXT
+#ifdef USE_VALVE
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::ValveOperation>(enums::ValveOperation value) {
   switch (value) {
@@ -612,6 +669,8 @@ template<> const char *proto_enum_to_string<enums::ValveOperation>(enums::ValveO
   }
 }
 #endif
+#endif  // USE_VALVE
+#ifdef USE_UPDATE
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::UpdateCommand>(enums::UpdateCommand value) {
   switch (value) {
@@ -626,6 +685,7 @@ template<> const char *proto_enum_to_string<enums::UpdateCommand>(enums::UpdateC
   }
 }
 #endif
+#endif  // USE_UPDATE
 bool HelloRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2: {
