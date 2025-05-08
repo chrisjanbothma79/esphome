@@ -204,6 +204,7 @@ async def to_code(config):
             # Enable heap tracing in sdkconfig
             add_idf_sdkconfig_option("CONFIG_HEAP_TRACING", True)
             add_idf_sdkconfig_option("CONFIG_HEAP_TRACE_STACK_DEPTH", "30")
+            add_idf_sdkconfig_option("CONFIG_ESP32_APPTRACE_ENABLE", True)
 
             # Set tracing mode (standalone or system)
             if heap_tracing_config[CONF_HEAP_TRACING_STANDALONE]:
