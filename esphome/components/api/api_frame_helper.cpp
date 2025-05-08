@@ -942,7 +942,8 @@ APIError APIPlaintextFrameHelper::write_packet(uint16_t type, const uint8_t *pay
   }
 
   std::vector<uint8_t> header;
-  header.reserve(1 + api::ProtoSize::varint(payload_len) + api::ProtoSize::varint(type));
+  header.reserve(1 + api::ProtoSize::varint(static_cast<uint32_t>(payload_len)) +
+                 api::ProtoSize::varint(static_cast<uint32_t>(type)));
   header.push_back(0x00);
   ProtoVarInt(payload_len).encode(header);
   ProtoVarInt(type).encode(header);
