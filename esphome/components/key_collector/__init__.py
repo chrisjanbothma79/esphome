@@ -104,7 +104,7 @@ async def to_code(config):
 @automation.register_action(
     "key_collector.enable",
     EnableAction,
-    cv.Schema(
+    automation.maybe_simple_id(
         {
             cv.GenerateID(): cv.use_id(KeyCollector),
         }
@@ -119,7 +119,7 @@ async def enable_to_code(config, action_id, template_arg, args):
 @automation.register_action(
     "key_collector.disable",
     DisableAction,
-    cv.Schema(
+    automation.maybe_simple_id(
         {
             cv.GenerateID(): cv.use_id(KeyCollector),
         }
