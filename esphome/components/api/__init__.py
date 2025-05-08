@@ -56,6 +56,8 @@ CONF_ENCRYPTION = "encryption"
 CONF_HEAP_TRACING = "heap_tracing"
 CONF_HEAP_TRACING_STANDALONE = "standalone"  # vs SYSTEM
 CONF_HEAP_TRACING_RECORDS = "num_records"
+CONF_HEAP_TASK_TRACKING = "task_tracking"
+CONF_HEAP_TASK_MAX = "max_tasks"
 
 
 def validate_encryption_key(value):
@@ -106,6 +108,8 @@ HEAP_TRACING_SCHEMA = cv.Schema(
     {
         cv.Optional(CONF_HEAP_TRACING_STANDALONE, default=True): cv.boolean,
         cv.Optional(CONF_HEAP_TRACING_RECORDS, default=100): cv.positive_int,
+        cv.Optional(CONF_HEAP_TASK_TRACKING, default=True): cv.boolean,
+        cv.Optional(CONF_HEAP_TASK_MAX, default=10): cv.positive_int,
     }
 )
 
@@ -212,6 +216,10 @@ async def to_code(config):
             else:
                 add_idf_sdkconfig_option("CONFIG_HEAP_TRACING_SYSTEM", True)
 
+            # Enable heap task tracking if requested
+            if heap_tracing_config[CONF_HEAP_TASK_TRACKING]:
+                add_idf_sdkconfig_option("CONFIG_HEAP_TASK_TRACKING", True)
+
             # Generate code to implement heap tracing
             cg.add_global(cg.RawStatement('#include "esp_heap_trace.h"'))
 
@@ -222,6 +230,12 @@ async def to_code(config):
                     f"static heap_trace_record_t trace_record[{num_records}];"
                 )
             )
+
+            # If task tracking is enabled, add the task tracking code
+            if heap_tracing_config[CONF_HEAP_TASK_TRACKING]:
+                max_tasks = heap_tracing_config[CONF_HEAP_TASK_MAX]
+                # Add the global define to update the max tasks value in the implementation
+                cg.add_define(f"MAX_HEAP_TASKS {max_tasks}")
 
             # Add helper functions for heap tracing with extern "C" to make them globally accessible
             cg.add_global(

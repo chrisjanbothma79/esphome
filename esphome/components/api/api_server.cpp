@@ -16,10 +16,48 @@
 
 #ifdef USE_API_HEAP_TRACE
 #include "esp_heap_trace.h"
+#include "esp_heap_task_info.h"
 
 // Forward declare heap tracing functions that will be used in the API class
 extern "C" void start_heap_trace();
 extern "C" void stop_and_dump_heap_trace();
+
+// Maximum number of tasks we expect to track
+#define MAX_HEAP_TASKS 10
+
+// Global storage for task heap info
+static heap_task_info_t task_info[MAX_HEAP_TASKS];
+static size_t tcb_info_size = 0;
+static heap_task_totals_t heap_totals[1] = {{.caps = MALLOC_CAP_DEFAULT}};
+
+// Dump task heap information
+extern "C" void dump_task_heap_info() {
+  heap_task_info_params_t heap_info = {
+      .task_info = task_info,
+      .size = MAX_HEAP_TASKS,
+      .totals = heap_totals,
+      .totals_size = 1,
+  };
+
+  esp_err_t err = heap_caps_get_per_task_info(&heap_info, &tcb_info_size);
+  if (err != ESP_OK) {
+    ESP_LOGE("HEAP", "Failed to get per-task heap info: %d", err);
+    return;
+  }
+
+  ESP_LOGI("HEAP", "Task Heap Information (%d tasks):", tcb_info_size);
+  ESP_LOGI("HEAP", "-------------------------------------");
+  ESP_LOGI("HEAP", "%-20s %10s", "Task", "Heap Usage");
+  ESP_LOGI("HEAP", "-------------------------------------");
+
+  for (size_t i = 0; i < tcb_info_size; i++) {
+    ESP_LOGI("HEAP", "%-20s %10d bytes", task_info[i].task_name, task_info[i].caps[0]);
+  }
+
+  ESP_LOGI("HEAP", "-------------------------------------");
+  ESP_LOGI("HEAP", "Total heap allocated: %d bytes", heap_totals[0].size);
+  ESP_LOGI("HEAP", "-------------------------------------");
+}
 #endif
 
 #include <algorithm>
@@ -175,6 +213,9 @@ void APIServer::loop() {
   if (now - last_heap_trace_dump > 30000) {  // 30 seconds
     ESP_LOGI(TAG, "Dumping heap trace information");
     stop_and_dump_heap_trace();
+
+    // Also dump task-specific heap information
+    dump_task_heap_info();
 
     // Start a new trace for the next period
     start_heap_trace();
@@ -499,6 +540,10 @@ void APIServer::on_shutdown() {
   // Make sure to stop tracing on shutdown to get final results
   ESP_LOGI(TAG, "Final heap trace dump on shutdown");
   stop_and_dump_heap_trace();
+
+  // Dump final task heap information
+  ESP_LOGI(TAG, "Final task heap information dump on shutdown");
+  dump_task_heap_info();
 #endif
 }
 
