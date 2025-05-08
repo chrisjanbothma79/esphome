@@ -221,18 +221,19 @@ async def to_code(config):
                 )
             )
 
-            # Add helper functions for heap tracing
+            # Add helper functions for heap tracing with extern "C" to make them globally accessible
             cg.add_global(
                 cg.RawStatement(
                     """
-void start_heap_trace() {
+// Global heap tracing functions that can be called from any context
+extern "C" void start_heap_trace() {
     heap_trace_init_standalone(trace_record, """
                     + str(num_records)
                     + """);
     heap_trace_start(HEAP_TRACE_LEAKS);
 }
 
-void stop_and_dump_heap_trace() {
+extern "C" void stop_and_dump_heap_trace() {
     heap_trace_stop();
     heap_trace_dump();
 }

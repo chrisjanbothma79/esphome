@@ -14,6 +14,14 @@
 #include "esphome/components/logger/logger.h"
 #endif
 
+#ifdef USE_API_HEAP_TRACE
+#include "esp_heap_trace.h"
+
+// Forward declare heap tracing functions that will be used in the API class
+extern "C" void start_heap_trace();
+extern "C" void stop_and_dump_heap_trace();
+#endif
+
 #include <algorithm>
 
 namespace esphome {
