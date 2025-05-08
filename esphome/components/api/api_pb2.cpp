@@ -9,7 +9,6 @@
 namespace esphome {
 namespace api {
 
-#ifdef USE_UPDATE
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::EntityCategory>(enums::EntityCategory value) {
   switch (value) {
@@ -24,7 +23,6 @@ template<> const char *proto_enum_to_string<enums::EntityCategory>(enums::Entity
   }
 }
 #endif
-#endif  // USE_UPDATE
 #ifdef USE_COVER
 #ifdef HAS_PROTO_MESSAGE_DUMP
 template<> const char *proto_enum_to_string<enums::LegacyCoverState>(enums::LegacyCoverState value) {

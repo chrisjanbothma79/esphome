@@ -11,13 +11,11 @@ namespace api {
 
 namespace enums {
 
-#ifdef USE_UPDATE
 enum EntityCategory : uint32_t {
   ENTITY_CATEGORY_NONE = 0,
   ENTITY_CATEGORY_CONFIG = 1,
   ENTITY_CATEGORY_DIAGNOSTIC = 2,
 };
-#endif  // USE_UPDATE
 #ifdef USE_COVER
 enum LegacyCoverState : uint32_t {
   LEGACY_COVER_STATE_OPEN = 0,
