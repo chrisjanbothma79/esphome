@@ -4,6 +4,7 @@
 
 #include "proto.h"
 #include "api_pb2_size.h"
+#include "esphome/core/defines.h"
 
 namespace esphome {
 namespace api {
