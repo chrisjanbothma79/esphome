@@ -4,15 +4,20 @@ import esphome.codegen as cg
 from esphome.components.packet_transport import (
     CONF_BINARY_SENSORS,
     CONF_ENCRYPTION,
-    CONF_INTERNAL,
-    CONF_NAME,
     CONF_PING_PONG_ENABLE,
     CONF_PROVIDERS,
     CONF_ROLLING_CODE_ENABLE,
     CONF_SENSORS,
 )
 import esphome.config_validation as cv
-from esphome.const import CONF_DATA, CONF_ID, CONF_PORT, CONF_TRIGGER_ID
+from esphome.const import (
+    CONF_DATA,
+    CONF_ENABLE_IPV6,
+    CONF_ID,
+    CONF_NETWORK,
+    CONF_PORT,
+    CONF_TRIGGER_ID,
+)
 from esphome.core import Lambda
 from esphome.cpp_generator import ExpressionStatement, MockObj
 import esphome.final_validate as fv
@@ -42,17 +47,11 @@ UDP_SCHEMA = cv.Schema(
 
 
 def _final_validate(config):
-    enable_ipv6 = fv.full_config.get().get("network").get("enable_ipv6")
+    enable_ipv6 = fv.full_config.get().get(CONF_NETWORK).get(CONF_ENABLE_IPV6)
     if not enable_ipv6:
         for address in config[CONF_ADDRESSES]:
             cv.ipv4address(address)
         cv.ipv4address_multi_broadcast(config[CONF_LISTEN_ADDRESS])
-    return config
-
-
-def require_internal_with_name(config):
-    if CONF_NAME in config and CONF_INTERNAL not in config:
-        raise cv.Invalid("Must provide internal: config when using name:")
     return config
 
 
