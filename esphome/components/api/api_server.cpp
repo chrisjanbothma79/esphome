@@ -41,22 +41,65 @@ extern "C" void dump_task_heap_info() {
   ESP_LOGI("HEAP", "Total blocks: %u", info.total_blocks);
   ESP_LOGI("HEAP", "-------------------------------------");
 
-  // Get information about running tasks
-  char buffer[128];
+  // Get information about running tasks with a much larger buffer to prevent overflow
+  // The FreeRTOS functions don't provide a way to check buffer size requirements in advance
+  static char buffer[2048];
+
+  // Zero out the buffer for safety
+  memset(buffer, 0, sizeof(buffer));
+
+  // Get task list
   vTaskList(buffer);
 
-  ESP_LOGI("HEAP", "Task Information:");
-  ESP_LOGI("HEAP", "Name          State  Priority  Stack   Num");
-  ESP_LOGI("HEAP", "-------------------------------------");
-  ESP_LOGI("HEAP", "%s", buffer);
+  // Check if buffer has valid content
+  if (buffer[0] != '\0') {
+    ESP_LOGI("HEAP", "Task Information:");
+    ESP_LOGI("HEAP", "Name          State  Priority  Stack   Num");
+    ESP_LOGI("HEAP", "-------------------------------------");
+
+    // Process the buffer line by line to add the log prefix to each line
+    char *line = strtok(buffer, "\n\r");
+    int count = 0;
+    while (line != nullptr && strlen(line) > 0 && count < 20) {
+      ESP_LOGI("HEAP", "%s", line);
+      line = strtok(nullptr, "\n\r");
+      count++;
+    }
+  } else {
+    ESP_LOGE("HEAP", "Could not get task information");
+  }
+
   ESP_LOGI("HEAP", "-------------------------------------");
 
-  // Additional runtime statistics about tasks
-  vTaskGetRunTimeStats(buffer);
-  ESP_LOGI("HEAP", "Task Runtime Statistics:");
-  ESP_LOGI("HEAP", "Name          Time      Percentage");
-  ESP_LOGI("HEAP", "-------------------------------------");
-  ESP_LOGI("HEAP", "%s", buffer);
+  // Runtime statistics - use a separate section with a different buffer to avoid corruption
+  static char stats_buffer[2048];
+  memset(stats_buffer, 0, sizeof(stats_buffer));
+
+  // Get runtime stats
+  vTaskGetRunTimeStats(stats_buffer);
+
+  // Check if buffer has valid content
+  if (stats_buffer[0] != '\0') {
+    ESP_LOGI("HEAP", "Task Runtime Statistics:");
+    ESP_LOGI("HEAP", "Name          Time      Percentage");
+    ESP_LOGI("HEAP", "-------------------------------------");
+
+    // Process the runtime stats buffer line by line safely
+    char *line = strtok(stats_buffer, "\n\r");
+    int count = 0;
+    // Limit to 20 lines to prevent buffer overruns
+    while (line != nullptr && count < 20) {
+      // Skip empty lines
+      if (strlen(line) > 0) {
+        ESP_LOGI("HEAP", "%s", line);
+      }
+      line = strtok(nullptr, "\n\r");
+      count++;
+    }
+  } else {
+    ESP_LOGE("HEAP", "Could not get task runtime statistics");
+  }
+
   ESP_LOGI("HEAP", "-------------------------------------");
 }
 #endif

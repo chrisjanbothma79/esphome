@@ -19,6 +19,8 @@ api:
     standalone: true
     # Number of trace records to keep (more records = more memory usage)
     num_records: 100
+    # Enable task statistics tracking (shows task names, stack usage, etc.)
+    task_tracking: true
 
 # Enable OTA updates
 ota:
