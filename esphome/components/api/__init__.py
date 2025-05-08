@@ -1,8 +1,10 @@
 import base64
+import logging
 
 from esphome import automation
 from esphome.automation import Condition
 import esphome.codegen as cg
+from esphome.components.esp32 import add_idf_sdkconfig_option
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ACTION,
@@ -23,11 +25,13 @@ from esphome.const import (
     CONF_TRIGGER_ID,
     CONF_VARIABLES,
 )
-from esphome.core import coroutine_with_priority
+from esphome.core import CORE, coroutine_with_priority
 
 DEPENDENCIES = ["network"]
 AUTO_LOAD = ["socket"]
 CODEOWNERS = ["@OttoWinter"]
+
+_LOGGER = logging.getLogger(__name__)
 
 api_ns = cg.esphome_ns.namespace("api")
 APIServer = api_ns.class_("APIServer", cg.Component, cg.Controller)
@@ -49,6 +53,9 @@ SERVICE_ARG_NATIVE_TYPES = {
     "string[]": cg.std_vector.template(cg.std_string),
 }
 CONF_ENCRYPTION = "encryption"
+CONF_HEAP_TRACING = "heap_tracing"
+CONF_HEAP_TRACING_STANDALONE = "standalone"  # vs SYSTEM
+CONF_HEAP_TRACING_RECORDS = "num_records"
 
 
 def validate_encryption_key(value):
@@ -95,6 +102,20 @@ def _encryption_schema(config):
     return ENCRYPTION_SCHEMA(config)
 
 
+HEAP_TRACING_SCHEMA = cv.Schema(
+    {
+        cv.Optional(CONF_HEAP_TRACING_STANDALONE, default=True): cv.boolean,
+        cv.Optional(CONF_HEAP_TRACING_RECORDS, default=100): cv.positive_int,
+    }
+)
+
+
+def _heap_tracing_schema(config):
+    if config is None:
+        config = {}
+    return HEAP_TRACING_SCHEMA(config)
+
+
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
@@ -109,6 +130,7 @@ CONFIG_SCHEMA = cv.All(
             ): ACTIONS_SCHEMA,
             cv.Exclusive(CONF_ACTIONS, group_of_exclusion=CONF_ACTIONS): ACTIONS_SCHEMA,
             cv.Optional(CONF_ENCRYPTION): _encryption_schema,
+            cv.Optional(CONF_HEAP_TRACING): _heap_tracing_schema,
             cv.Optional(CONF_ON_CLIENT_CONNECTED): automation.validate_automation(
                 single=True
             ),
@@ -175,6 +197,59 @@ async def to_code(config):
         cg.add_library("esphome/noise-c", "0.1.6")
     else:
         cg.add_define("USE_API_PLAINTEXT")
+
+    # Handle heap tracing configuration if ESP32 platform and using ESP-IDF
+    if (heap_tracing_config := config.get(CONF_HEAP_TRACING, None)) is not None:
+        if CORE.using_esp_idf:
+            # Enable heap tracing in sdkconfig
+            add_idf_sdkconfig_option("CONFIG_HEAP_TRACING", True)
+
+            # Set tracing mode (standalone or system)
+            if heap_tracing_config[CONF_HEAP_TRACING_STANDALONE]:
+                add_idf_sdkconfig_option("CONFIG_HEAP_TRACING_STANDALONE", True)
+            else:
+                add_idf_sdkconfig_option("CONFIG_HEAP_TRACING_SYSTEM", True)
+
+            # Generate code to implement heap tracing
+            cg.add_global(cg.RawStatement('#include "esp_heap_trace.h"'))
+
+            # Define the trace record buffer
+            num_records = heap_tracing_config[CONF_HEAP_TRACING_RECORDS]
+            cg.add_global(
+                cg.RawStatement(
+                    f"static heap_trace_record_t trace_record[{num_records}];"
+                )
+            )
+
+            # Add helper functions for heap tracing
+            cg.add_global(
+                cg.RawStatement(
+                    """
+void start_heap_trace() {
+    heap_trace_init_standalone(trace_record, """
+                    + str(num_records)
+                    + """);
+    heap_trace_start(HEAP_TRACE_LEAKS);
+}
+
+void stop_and_dump_heap_trace() {
+    heap_trace_stop();
+    heap_trace_dump();
+}
+"""
+                )
+            )
+
+            # Add periodic heap trace dumping to the api_server.cpp file
+            # This will be added in C++ code
+            cg.add_define("USE_API_HEAP_TRACE")
+
+        else:
+            # Not using ESP-IDF, so we can't use heap tracing
+            _LOGGER.warning(
+                "Heap tracing is only available when using ESP-IDF. "
+                "Disabling heap tracing configuration."
+            )
 
     cg.add_define("USE_API")
     cg.add_global(api_ns.using)

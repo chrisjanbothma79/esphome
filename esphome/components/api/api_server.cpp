@@ -30,6 +30,11 @@ void APIServer::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Home Assistant API server...");
   this->setup_controller();
 
+#ifdef USE_API_HEAP_TRACE
+  ESP_LOGI(TAG, "Initializing heap tracing");
+  start_heap_trace();
+#endif
+
 #ifdef USE_API_NOISE
   uint32_t hash = 88491486UL;
 
@@ -154,6 +159,21 @@ void APIServer::loop() {
       this->status_clear_warning();
     }
   }
+
+#ifdef USE_API_HEAP_TRACE
+  // Periodically dump heap trace information (every 30 seconds)
+  static uint32_t last_heap_trace_dump = 0;
+  const uint32_t now = millis();
+  if (now - last_heap_trace_dump > 30000) {  // 30 seconds
+    ESP_LOGI(TAG, "Dumping heap trace information");
+    stop_and_dump_heap_trace();
+
+    // Start a new trace for the next period
+    start_heap_trace();
+
+    last_heap_trace_dump = now;
+  }
+#endif
 }
 
 void APIServer::dump_config() {
@@ -466,6 +486,12 @@ void APIServer::on_shutdown() {
     c->send_disconnect_request(DisconnectRequest());
   }
   delay(10);
+
+#ifdef USE_API_HEAP_TRACE
+  // Make sure to stop tracing on shutdown to get final results
+  ESP_LOGI(TAG, "Final heap trace dump on shutdown");
+  stop_and_dump_heap_trace();
+#endif
 }
 
 }  // namespace api

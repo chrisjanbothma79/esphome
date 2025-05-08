@@ -1,0 +1,33 @@
+esphome:
+  name: esp32-heap-trace
+  platform: ESP32
+  board: esp32dev
+  # Use ESP-IDF framework which is required for heap tracing
+  framework:
+    type: esp-idf
+    version: recommended
+
+# Enable logging
+logger:
+  level: INFO
+
+# Enable Home Assistant API
+api:
+  # Enable heap tracing with the following configuration
+  heap_tracing:
+    # Use standalone tracing (vs system tracing)
+    standalone: true
+    # Number of trace records to keep (more records = more memory usage)
+    num_records: 100
+
+# Enable OTA updates
+ota:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot in case wifi connection fails
+  ap:
+    ssid: "Esp32-Heap-Trace"
+    password: "12345678"
