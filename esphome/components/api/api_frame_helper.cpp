@@ -94,10 +94,10 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt, socket:
     total_write_len += iov[i].iov_len;
   }
 
-  if (!tx_buf_.empty()) {
-    // try to empty tx_buf_ first
-    while (!tx_buf_.empty()) {
-      ssize_t sent = socket->write(tx_buf_.data(), tx_buf_.size());
+  if (!tx_buf.empty()) {
+    // try to empty tx_buf first
+    while (!tx_buf.empty()) {
+      ssize_t sent = socket->write(tx_buf.data(), tx_buf.size());
       if (is_would_block(sent)) {
         break;
       } else if (sent == -1) {
@@ -107,29 +107,29 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt, socket:
       }
       // TODO: inefficient if multiple packets in txbuf
       // replace with deque of buffers
-      tx_buf_.erase(tx_buf_.begin(), tx_buf_.begin() + sent);
+      tx_buf.erase(tx_buf.begin(), tx_buf.begin() + sent);
     }
   }
 
-  if (!tx_buf_.empty()) {
+  if (!tx_buf.empty()) {
     // tx buf not empty, can't write now because then stream would be inconsistent
     // Reserve space upfront to avoid multiple reallocations
-    tx_buf_.reserve(tx_buf_.size() + total_write_len);
+    tx_buf.reserve(tx_buf.size() + total_write_len);
     for (int i = 0; i < iovcnt; i++) {
-      tx_buf_.insert(tx_buf_.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base),
-                     reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
+      tx_buf.insert(tx_buf.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base),
+                    reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
     }
     return APIError::OK;  // Success, data buffered
   }
 
   ssize_t sent = socket->writev(iov, iovcnt);
   if (is_would_block(sent)) {
-    // operation would block, add buffer to tx_buf_
+    // operation would block, add buffer to tx_buf
     // Reserve space upfront to avoid multiple reallocations
-    tx_buf_.reserve(tx_buf_.size() + total_write_len);
+    tx_buf.reserve(tx_buf.size() + total_write_len);
     for (int i = 0; i < iovcnt; i++) {
-      tx_buf_.insert(tx_buf_.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base),
-                     reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
+      tx_buf.insert(tx_buf.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base),
+                    reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
     }
     return APIError::OK;  // Success, data buffered
   } else if (sent == -1) {
@@ -138,18 +138,18 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt, socket:
     state = failed_state;
     return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
   } else if ((size_t) sent != total_write_len) {
-    // partially sent, add end to tx_buf_
+    // partially sent, add end to tx_buf
     size_t remaining = total_write_len - sent;
     // Reserve space upfront to avoid multiple reallocations
-    tx_buf_.reserve(tx_buf_.size() + remaining);
+    tx_buf.reserve(tx_buf.size() + remaining);
 
     size_t to_consume = sent;
     for (int i = 0; i < iovcnt; i++) {
       if (to_consume >= iov[i].iov_len) {
         to_consume -= iov[i].iov_len;
       } else {
-        tx_buf_.insert(tx_buf_.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base) + to_consume,
-                       reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
+        tx_buf.insert(tx_buf.end(), reinterpret_cast<uint8_t *>(iov[i].iov_base) + to_consume,
+                      reinterpret_cast<uint8_t *>(iov[i].iov_base) + iov[i].iov_len);
         to_consume = 0;
       }
     }
