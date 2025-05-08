@@ -6,7 +6,6 @@ from esphome.const import (
     CONF_MAX_VALUE,
     CONF_MIN_VALUE,
     CONF_MODE,
-    CONF_OPTIMISTIC,
     CONF_PHASE_A,
     CONF_PHASE_B,
     CONF_PHASE_C,
@@ -32,7 +31,6 @@ REFERENCE_VOLTAGE_PHASE_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.Optional(CONF_MODE, default="box"): cv.string,
-            cv.Optional(CONF_OPTIMISTIC, default=True): cv.boolean,
             cv.Optional(CONF_MIN_VALUE, default=100.0): cv.float_,
             cv.Optional(CONF_MAX_VALUE, default=260.0): cv.float_,
             cv.Optional(CONF_STEP, default=0.1): cv.float_,
@@ -52,7 +50,6 @@ REFERENCE_CURRENT_PHASE_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.Optional(CONF_MODE, default="box"): cv.string,
-            cv.Optional(CONF_OPTIMISTIC, default=True): cv.boolean,
             cv.Optional(CONF_MIN_VALUE, default=1.0): cv.float_,
             cv.Optional(CONF_MAX_VALUE, default=200.0): cv.float_,
             cv.Optional(CONF_STEP, default=0.1): cv.float_,
