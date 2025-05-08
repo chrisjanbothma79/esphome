@@ -76,7 +76,7 @@ const char *api_error_to_str(APIError err) {
 // Common implementation for writing raw data to socket
 template<typename StateEnum>
 APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt, socket::Socket *socket,
-                                    std::vector<uint8_t> &tx_buf_, const std::string &info, StateEnum &state,
+                                    std::vector<uint8_t> &tx_buf, const std::string &info, StateEnum &state,
                                     StateEnum failed_state) {
   // This method writes data to socket or buffers it
   // Returns APIError::OK if successful (or would block, but data has been buffered)
