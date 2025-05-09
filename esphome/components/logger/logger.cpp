@@ -79,22 +79,14 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
   recursion_guard_ = true;
   this->reset_buffer_();
   // copy format string
-
-  // Optimization: Pre-calculate buffer capacity
   auto *format_pgm_p = reinterpret_cast<const uint8_t *>(format);
-  const int max_format_len = this->buffer_remaining_capacity_() - 1;  // Reserve 1 for null terminator
-  int i = 0;
+  size_t len = 0;
   char ch = '.';
-
-  // Optimization: Perform a single boundary check outside the loop
-  // and combine the null-terminator check with the increment operation
-  for (; i < max_format_len && (ch = (char) progmem_read_byte(format_pgm_p++)) != '\0'; i++) {
-    this->tx_buffer_[this->tx_buffer_at_++] = ch;
+  while (!this->is_buffer_full_() && ch != '\0') {
+    this->tx_buffer_[this->tx_buffer_at_++] = ch = (char) progmem_read_byte(format_pgm_p++);
   }
-
-  // Optimization: Early return for buffer overflow cases avoids further processing
-  // when we know the result would be truncated
-  if (i == max_format_len && ch != '\0')
+  // Buffer full form copying format
+  if (this->is_buffer_full_())
     return;
 
   // length of format string, includes null terminator
