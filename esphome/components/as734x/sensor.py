@@ -9,6 +9,7 @@ from esphome.const import (
     CONF_ID,
     CONF_ILLUMINANCE,
     CONF_NAME,
+    CONF_TYPE,
     DEVICE_CLASS_ILLUMINANCE,
     DEVICE_CLASS_IRRADIANCE,
     STATE_CLASS_MEASUREMENT,
@@ -21,11 +22,9 @@ CODEOWNERS = ["@mrgnr", "@latonita"]
 AUTO_LOAD = ["text_sensor"]
 DEPENDENCIES = ["i2c", "sensor"]
 
-as7343_ns = cg.esphome_ns.namespace("as7343")
+# MULTI_CONF = True
 
-AS7343Component = as7343_ns.class_(
-    "AS7343Component", cg.PollingComponent, i2c.I2CDevice
-)
+CONF_AS734X_ID = "as734x_id"
 
 CONF_ATIME = "atime"
 CONF_ASTEP = "astep"
@@ -46,8 +45,9 @@ CONF_F8 = "f8"
 CONF_NIR = "nir"
 CONF_CLEAR = "clear"
 
-CONF_BAND_COUNTS = "band_counts"
-CONF_BAND_BASIC_COUNTS = "band_basic_counts"
+CONF_COUNTS = "counts"
+CONF_BASIC_COUNTS = "basic_counts"
+CONF_NORMALIZE_BASIC_COUNTS = "normalize_basic_counts"
 
 CONF_IRRADIANCE = "irradiance"
 CONF_IRRADIANCE_PHOTOPIC = "irradiance_photopic"
@@ -61,8 +61,8 @@ UNIT_COUNTS = "#"
 UNIT_IRRADIANCE = "W/m²"
 UNIT_PPFD = "µmol/s⋅m²"
 
-ICON_BAND_COUNTS = "mdi:counter"
-ICON_BAND_IRRADIANCE = "mdi:waveform"
+ICON_COUNTS = "mdi:counter"
+ICON_BASIC_COUNTS = "mdi:waveform"
 ICON_IRRADIANCE = "mdi:radioactive"
 ICON_ILLUMINANCE = "mdi:weather-sunny"
 ICON_IRRADIANCE_PHOTOPIC = "mdi:sun-wireless-outline"
@@ -73,43 +73,93 @@ ICON_SATURATION = "mdi:weather-sunny-alert"
 ICON_PALETTE = "mdi:palette"
 
 
-AS7343_GAIN = as7343_ns.enum("AS7343Gain")
-GAIN_OPTIONS = {
-    "X0.5": AS7343_GAIN.AS7343_GAIN_0_5X,
-    "X1": AS7343_GAIN.AS7343_GAIN_1X,
-    "X2": AS7343_GAIN.AS7343_GAIN_2X,
-    "X4": AS7343_GAIN.AS7343_GAIN_4X,
-    "X8": AS7343_GAIN.AS7343_GAIN_8X,
-    "X16": AS7343_GAIN.AS7343_GAIN_16X,
-    "X32": AS7343_GAIN.AS7343_GAIN_32X,
-    "X64": AS7343_GAIN.AS7343_GAIN_64X,
-    "X128": AS7343_GAIN.AS7343_GAIN_128X,
-    "X256": AS7343_GAIN.AS7343_GAIN_256X,
-    "X512": AS7343_GAIN.AS7343_GAIN_512X,
-    "X1024": AS7343_GAIN.AS7343_GAIN_1024X,
-    "X2048": AS7343_GAIN.AS7343_GAIN_2048X,
+MODEL_AS7341 = "AS7341"
+MODEL_AS7343 = "AS7343"
+
+as734x_ns = cg.esphome_ns.namespace("as734x")
+AS734XComponent = as734x_ns.class_(
+    "AS734XComponent", cg.PollingComponent, i2c.I2CDevice
+)
+
+AS734X_Models = as734x_ns.enum("Model", True)
+AS734X_MODELS = {
+    MODEL_AS7341: AS734X_Models.AS7341,
+    MODEL_AS7343: AS734X_Models.AS7343,
+}
+
+Gain = as734x_ns.enum("Gain")
+GAIN_OPTIONS_41 = {
+    "X0.5": Gain.GAIN_0_5X,
+    "X1": Gain.GAIN_1X,
+    "X2": Gain.GAIN_2X,
+    "X4": Gain.GAIN_4X,
+    "X8": Gain.GAIN_8X,
+    "X16": Gain.GAIN_16X,
+    "X32": Gain.GAIN_32X,
+    "X64": Gain.GAIN_64X,
+    "X128": Gain.GAIN_128X,
+    "X256": Gain.GAIN_256X,
+    "X512": Gain.GAIN_512X,
+}
+
+GAIN_OPTIONS_43 = {
+    **GAIN_OPTIONS_41,
+    "X1024": Gain.GAIN_1024X,
+    "X2048": Gain.GAIN_2048X,
 }
 
 
-FLOAT_10_SCHEMA = cv.Schema(
-    cv.All(
-        cv.ensure_list(cv.float_),
-        cv.Length(min=10, max=10),
-    ),
-)
+def float_list_schema(length):
+    return cv.Schema(
+        cv.All(
+            cv.ensure_list(cv.float_),
+            cv.Length(min=length, max=length),
+        ),
+    )
 
-CALIBRATION_SCHEMA = cv.Schema(
+
+DEFAULT_CHANNEL_CORRECTION_41 = [1.0] * 10
+DEFAULT_CHANNEL_CORRECTION_43 = [
+    1.055464349,
+    1.043509797,
+    1.029576268,
+    1.0175052,
+    1.00441899,
+    0.987356499,
+    0.957597044,
+    0.995863485,
+    1.014628964,
+    0.996500814,
+    0.933072749,
+    1.052236338,
+    0.999570232,
+]
+
+CALIBRATION_SCHEMA_41 = cv.Schema(
     {
-        cv.Optional(CONF_CHANNEL_CORRECTION, default=[1.0] * 13): FLOAT_10_SCHEMA,
-        cv.Optional(CONF_DARK_CURRENT, default=[0.0] * 13): FLOAT_10_SCHEMA,
+        cv.Optional(
+            CONF_CHANNEL_CORRECTION, default=DEFAULT_CHANNEL_CORRECTION_41
+        ): float_list_schema(10),
+        cv.Optional(CONF_DARK_CURRENT, default=[0.0] * 10): float_list_schema(10),
         cv.Optional(CONF_GLASS_ATTENUATION_FACTOR, default=1.0): cv.float_,
     }
 )
 
+CALIBRATION_SCHEMA_43 = cv.Schema(
+    {
+        cv.Optional(
+            CONF_CHANNEL_CORRECTION, default=DEFAULT_CHANNEL_CORRECTION_43
+        ): float_list_schema(13),
+        cv.Optional(CONF_DARK_CURRENT, default=[0.0] * 13): float_list_schema(13),
+        cv.Optional(CONF_GLASS_ATTENUATION_FACTOR, default=1.0): cv.float_,
+    }
+)
+
+
 COUNTS_SENSOR_SCHEMA = cv.maybe_simple_value(
     sensor.sensor_schema(
         unit_of_measurement=UNIT_COUNTS,
-        icon=ICON_BAND_COUNTS,
+        icon=ICON_COUNTS,
         accuracy_decimals=0,
         device_class=DEVICE_CLASS_ILLUMINANCE,
         state_class=STATE_CLASS_MEASUREMENT,
@@ -120,7 +170,7 @@ COUNTS_SENSOR_SCHEMA = cv.maybe_simple_value(
 BASIC_COUNTS_SENSOR_SCHEMA = cv.maybe_simple_value(
     sensor.sensor_schema(
         unit_of_measurement=UNIT_COUNTS,
-        icon=ICON_BAND_COUNTS,
+        icon=ICON_COUNTS,
         accuracy_decimals=6,
         device_class=DEVICE_CLASS_ILLUMINANCE,
         state_class=STATE_CLASS_MEASUREMENT,
@@ -128,53 +178,56 @@ BASIC_COUNTS_SENSOR_SCHEMA = cv.maybe_simple_value(
     key=CONF_NAME,
 )
 
-
-BAND_COUNTS_SCHEMA = cv.Schema(
-    {
-        cv.Optional(CONF_F1): COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F2): COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_FZ): COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F3): COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F4): COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_FY): COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F5): COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_FXL): COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F6): COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F7): COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F8): COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_NIR): COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_CLEAR): COUNTS_SENSOR_SCHEMA,
-    }
+# order is important here, as the index is used to set the sensor
+BANDS_41 = (
+    CONF_F1,
+    CONF_F2,
+    CONF_F3,
+    CONF_F4,
+    CONF_F5,
+    CONF_F6,
+    CONF_F7,
+    CONF_F8,
+    CONF_NIR,
+    CONF_CLEAR,
+)
+BANDS_43 = (
+    CONF_F1,
+    CONF_F2,
+    CONF_FZ,
+    CONF_F3,
+    CONF_F4,
+    CONF_FY,
+    CONF_F5,
+    CONF_FXL,
+    CONF_F6,
+    CONF_F7,
+    CONF_F8,
+    CONF_NIR,
+    CONF_CLEAR,
 )
 
-BAND_BASIC_COUNTS_SCHEMA = cv.Schema(
-    {
-        cv.Optional(CONF_F1): BASIC_COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F2): BASIC_COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_FZ): BASIC_COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F3): BASIC_COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F4): BASIC_COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_FY): BASIC_COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F5): BASIC_COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_FXL): BASIC_COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F6): BASIC_COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F7): BASIC_COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_F8): BASIC_COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_NIR): BASIC_COUNTS_SENSOR_SCHEMA,
-        cv.Optional(CONF_CLEAR): BASIC_COUNTS_SENSOR_SCHEMA,
-    }
+COUNTS_SCHEMA_41 = cv.Schema(
+    {cv.Optional(band): COUNTS_SENSOR_SCHEMA for band in BANDS_41}
+)
+COUNTS_SCHEMA_43 = cv.Schema(
+    {cv.Optional(band): COUNTS_SENSOR_SCHEMA for band in BANDS_43}
 )
 
-CONFIG_SCHEMA = (
+BASIC_COUNTS_SCHEMA_41 = cv.Schema(
+    {cv.Optional(band): BASIC_COUNTS_SENSOR_SCHEMA for band in BANDS_41}
+)
+BASIC_COUNTS_SCHEMA_43 = cv.Schema(
+    {cv.Optional(band): BASIC_COUNTS_SENSOR_SCHEMA for band in BANDS_43}
+)
+
+_COMMON_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(AS7343Component),
-            cv.Optional(CONF_GAIN, default="X8"): cv.enum(GAIN_OPTIONS),
+            cv.GenerateID(): cv.declare_id(AS734XComponent),
             cv.Optional(CONF_ATIME, default=29): cv.int_range(min=0, max=255),
             cv.Optional(CONF_ASTEP, default=599): cv.int_range(min=0, max=65534),
-            cv.Optional(CONF_CALIBRATION): CALIBRATION_SCHEMA,
-            cv.Optional(CONF_BAND_COUNTS): BAND_COUNTS_SCHEMA,
-            cv.Optional(CONF_BAND_BASIC_COUNTS): BAND_BASIC_COUNTS_SCHEMA,
+            cv.Optional(CONF_NORMALIZE_BASIC_COUNTS, default=False): cv.boolean,
             cv.Optional(CONF_ILLUMINANCE): cv.maybe_simple_value(
                 sensor.sensor_schema(
                     unit_of_measurement=UNIT_LUX,
@@ -266,22 +319,44 @@ CONFIG_SCHEMA = (
     .extend(i2c.i2c_device_schema(0x39))
 )
 
-# "F1",  "F2", "FZ", "F3", "F4",  "FY",    "F5",
-# "FXL", "F6", "F7", "F8", "NIR", "Clear", "*"};
+CONFIG_SCHEMA = cv.typed_schema(
+    {
+        MODEL_AS7341: _COMMON_SCHEMA.extend(
+            {
+                cv.Optional(CONF_GAIN, default="X8"): cv.enum(GAIN_OPTIONS_41),
+                cv.Optional(CONF_CALIBRATION): CALIBRATION_SCHEMA_41,
+                cv.Optional(CONF_COUNTS): COUNTS_SCHEMA_41,
+                cv.Optional(CONF_BASIC_COUNTS): BASIC_COUNTS_SCHEMA_41,
+            }
+        ),
+        MODEL_AS7343: _COMMON_SCHEMA.extend(
+            {
+                cv.Optional(CONF_GAIN, default="X8"): cv.enum(GAIN_OPTIONS_43),
+                cv.Optional(CONF_CALIBRATION): CALIBRATION_SCHEMA_43,
+                cv.Optional(CONF_COUNTS): COUNTS_SCHEMA_43,
+                cv.Optional(CONF_BASIC_COUNTS): BASIC_COUNTS_SCHEMA_43,
+            }
+        ),
+    },
+    upper=True,
+    enum=AS734X_MODELS,
+)
+
+
 BANDS = {
-    CONF_F1: 0,
-    CONF_F2: 1,
-    CONF_FZ: 2,
+    CONF_F1: 1,
+    CONF_F2: 2,
     CONF_F3: 3,
     CONF_F4: 4,
-    CONF_FY: 5,
-    CONF_F5: 6,
-    CONF_FXL: 7,
-    CONF_F6: 8,
-    CONF_F7: 9,
-    CONF_F8: 10,
-    CONF_NIR: 11,
-    CONF_CLEAR: 12,
+    CONF_F5: 5,
+    CONF_F6: 6,
+    CONF_F7: 7,
+    CONF_F8: 8,
+    CONF_NIR: 9,
+    CONF_CLEAR: 10,
+    CONF_FZ: 11,
+    CONF_FY: 12,
+    CONF_FXL: 13,
 }
 
 SENSORS_INTEGRAL = [
@@ -297,13 +372,19 @@ SENSORS_INTEGRAL = [
 
 
 async def to_code(config):
+    model = config[CONF_TYPE]
+    cg.add_build_flag("-DUSE_" + str(model))
+
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
 
+    cg.add(var.setup_model(model))
+
     cg.add(var.set_gain(config[CONF_GAIN]))
     cg.add(var.set_atime(config[CONF_ATIME]))
     cg.add(var.set_astep(config[CONF_ASTEP]))
+    cg.add(var.set_normalize_basic_counts(config[CONF_NORMALIZE_BASIC_COUNTS]))
 
     if calibration := config.get(CONF_CALIBRATION):
         cg.add(var.set_dark_current_calibration(calibration[CONF_DARK_CURRENT]))
@@ -312,17 +393,21 @@ async def to_code(config):
             var.set_glass_attenuation_factor(calibration[CONF_GLASS_ATTENUATION_FACTOR])
         )
 
-    if counts_config := config.get(CONF_BAND_COUNTS):
-        for key, ch in BANDS.items():
-            if sensor_config := counts_config.get(key):
-                sens = await sensor.new_sensor(sensor_config)
-                cg.add(getattr(var, "set_band_counts_sensor")(sens, ch))
+    if model == MODEL_AS7341:
+        bands = BANDS_41
+    else:
+        bands = BANDS_43
 
-    if basic_counts_config := config.get(CONF_BAND_BASIC_COUNTS):
-        for key, ch in BANDS.items():
-            if sensor_config := basic_counts_config.get(key):
+    basic_counts_config = config.get(CONF_BASIC_COUNTS)
+    for i, band in enumerate(bands):
+        if counts_config := config.get(CONF_COUNTS):
+            if sensor_config := counts_config.get(band):
                 sens = await sensor.new_sensor(sensor_config)
-                cg.add(getattr(var, "set_band_basic_counts_sensor")(sens, ch))
+                cg.add(getattr(var, "set_counts_sensor")(sens, i))
+        if basic_counts_config := config.get(CONF_BASIC_COUNTS):
+            if sensor_config := basic_counts_config.get(band):
+                sens = await sensor.new_sensor(sensor_config)
+                cg.add(getattr(var, "set_basic_counts_sensor")(sens, i))
 
     for sensor_id in SENSORS_INTEGRAL:
         if sensor_config := config.get(sensor_id):
