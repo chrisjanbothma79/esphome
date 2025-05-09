@@ -4,6 +4,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_CALIBRATION,
     CONF_COLOR_TEMPERATURE,
+    CONF_COUNTS,
     CONF_GAIN,
     CONF_GLASS_ATTENUATION_FACTOR,
     CONF_ID,
@@ -45,7 +46,6 @@ CONF_F8 = "f8"
 CONF_NIR = "nir"
 CONF_CLEAR = "clear"
 
-CONF_COUNTS = "counts"
 CONF_BASIC_COUNTS = "basic_counts"
 CONF_NORMALIZE_BASIC_COUNTS = "normalize_basic_counts"
 

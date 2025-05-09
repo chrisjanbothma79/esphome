@@ -7,7 +7,7 @@ namespace esphome {
 namespace as734x {
 static const char *const TAG = "as734x.as7341";
 
-static constexpr uint8_t AS7341_CHIP_ID = 0X09;
+static constexpr uint8_t AS7341_CHIP_ID = 0x09;
 
 static const uint8_t AS7341_ENABLE = 0x80;
 static const uint8_t AS7341_ASTATUS = 0x94;

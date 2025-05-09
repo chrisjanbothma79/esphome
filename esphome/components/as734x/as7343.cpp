@@ -141,7 +141,7 @@ const CalibrationParams AS7343::DEFAULT_CORRECTION = {
     0.995863485, 1.014628964, 0.996500814, 0.933072749, 1.052236338, 0.999570232
 };
 
-// 0.3 GD XYZ calculation Matrix per Channel (copy from calculation CM), channels F5, NIR and CLEAR are not used = 0 
+// 0.3 GD XYZ calculation Matrix per Channel (copy from calculation CM), channels F5, NIR and CLEAR are not used = 0
 const float AS7343::XYZ_PER_COUNT[3][NUM_CHANNELS] = {
     {-0.07879, -0.12235, 1.99879, -0.33364, -0.06795, -0.45419, 0.00000, 5.27242, -0.05072, -0.04666, -0.03931, 0, 0},
     {-0.03269, -0.01297, -0.04011, -0.06889, -0.17453, 5.69083, 0.00000, -0.22956, -0.04762, -0.01295, -0.02797, 0, 0},
@@ -151,7 +151,7 @@ const float AS7343::XYZ_PER_COUNT[3][NUM_CHANNELS] = {
 // 1.  as per Golden Device calibration matrix - convoluted matrices for quick calculations
 // 1.1. E fullband irradiance (W/m²)
 const float AS7343::IRRAD_MW_PER_COUNT[NUM_CHANNELS] = {
-    15.24248081,3.761606341,-5.578085497,8.400505925,2.780903659,0.850080092,0,4.126948838,0.663050905,2.146279738,3.908525219,6.820076603,0    
+    15.24248081,3.761606341,-5.578085497,8.400505925,2.780903659,0.850080092,0,4.126948838,0.663050905,2.146279738,3.908525219,6.820076603,0
 };
 
 // 1.2. E PAR band 400-700 nm irradiance (W/m²)
