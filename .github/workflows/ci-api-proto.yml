@@ -62,9 +62,9 @@ jobs:
         run: git diff
       - if: failure()
         name: Archive artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
-          name: genrated-proto-files
+          name: generated-proto-files
           path: esphome/components/api/api_pb2.*
       - if: success()
         name: Dismiss review
