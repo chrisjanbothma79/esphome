@@ -120,24 +120,36 @@ class Logger : public Component {
       this->tx_buffer_[this->tx_buffer_at_++] = value;
   }
   inline void write_to_buffer_(const char *value, int length) {
-    for (int i = 0; i < length && !this->is_buffer_full_(); i++) {
-      this->tx_buffer_[this->tx_buffer_at_++] = value[i];
+    // Optimization: Calculate available space once
+    const int available = this->buffer_remaining_capacity_();
+    if (available <= 0)
+      return;
+
+    // Optimization: Determine max copy length upfront to avoid boundary checks
+    // Use the smaller of available space and requested length
+    const int copy_len = (length < available) ? length : available;
+
+    // Optimization: Use memcpy for bulk copy
+    if (copy_len > 0) {
+      memcpy(this->tx_buffer_ + this->tx_buffer_at_, value, copy_len);
+      this->tx_buffer_at_ += copy_len;
     }
   }
   inline void vprintf_to_buffer_(const char *format, va_list args) {
-    if (this->is_buffer_full_())
+    // Optimization: Quick return for full buffer but avoid is_buffer_full_() call
+    const int remaining = this->buffer_remaining_capacity_();
+    if (remaining <= 0)
       return;
-    int remaining = this->buffer_remaining_capacity_();
-    int ret = vsnprintf(this->tx_buffer_ + this->tx_buffer_at_, remaining, format, args);
+
+    const int ret = vsnprintf(this->tx_buffer_ + this->tx_buffer_at_, remaining, format, args);
+
     if (ret < 0) {
       // Encoding error, do not increment buffer_at
       return;
     }
-    if (ret >= remaining) {
-      // output was too long, truncated
-      ret = remaining;
-    }
-    this->tx_buffer_at_ += ret;
+
+    // If ret >= remaining, output was too long and is truncated
+    this->tx_buffer_at_ += (ret >= remaining) ? remaining : ret;
   }
   inline void printf_to_buffer_(const char *format, ...) {
     va_list arg;

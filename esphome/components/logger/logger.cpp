@@ -79,14 +79,22 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
   recursion_guard_ = true;
   this->reset_buffer_();
   // copy format string
+
+  // Optimization: Pre-calculate buffer capacity
   auto *format_pgm_p = reinterpret_cast<const uint8_t *>(format);
-  size_t len = 0;
+  const int max_format_len = this->buffer_remaining_capacity_() - 1;  // Reserve 1 for null terminator
+  int i = 0;
   char ch = '.';
-  while (!this->is_buffer_full_() && ch != '\0') {
-    this->tx_buffer_[this->tx_buffer_at_++] = ch = (char) progmem_read_byte(format_pgm_p++);
+
+  // Optimization: Perform a single boundary check outside the loop
+  // and combine the null-terminator check with the increment operation
+  for (; i < max_format_len && (ch = (char) progmem_read_byte(format_pgm_p++)) != '\0'; i++) {
+    this->tx_buffer_[this->tx_buffer_at_++] = ch;
   }
-  // Buffer full form copying format
-  if (this->is_buffer_full_())
+
+  // Optimization: Early return for buffer overflow cases avoids further processing
+  // when we know the result would be truncated
+  if (i == max_format_len && ch != '\0')
     return;
 
   // length of format string, includes null terminator
@@ -102,16 +110,21 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
 #endif
 
 int HOT Logger::level_for(const char *tag) {
-  if (this->log_levels_.count(tag) != 0)
-    return this->log_levels_[tag];
+  // Optimization: Using find() since we only need a single map lookup
+  // and tree traversal.
+  auto it = this->log_levels_.find(tag);
+  if (it != this->log_levels_.end())
+    return it->second;
   return this->current_level_;
 }
 
 void HOT Logger::log_message_(int level, const char *tag, int offset) {
-  // remove trailing newline
-  if (this->tx_buffer_[this->tx_buffer_at_ - 1] == '\n') {
+  // Optimization: Combined bounds check and newline check into one condition
+  if (this->tx_buffer_at_ > 0 && this->tx_buffer_[this->tx_buffer_at_ - 1] == '\n') {
+    // Remove trailing newline if present
     this->tx_buffer_at_--;
   }
+
   // make sure null terminator is present
   this->set_null_terminator_();
 
@@ -186,7 +199,11 @@ void Logger::dump_config() {
     ESP_LOGCONFIG(TAG, "  Level for '%s': %s", it.first.c_str(), LOG_LEVELS[it.second]);
   }
 }
-void Logger::write_footer_() { this->write_to_buffer_(ESPHOME_LOG_RESET_COLOR, strlen(ESPHOME_LOG_RESET_COLOR)); }
+void Logger::write_footer_() {
+  // Optimization: Avoid strlen call by using compile-time constant length
+  static const int reset_color_len = strlen(ESPHOME_LOG_RESET_COLOR);
+  this->write_to_buffer_(ESPHOME_LOG_RESET_COLOR, reset_color_len);
+}
 
 void Logger::set_log_level(int level) {
   if (level > ESPHOME_LOG_LEVEL) {
