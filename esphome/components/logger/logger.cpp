@@ -193,8 +193,8 @@ void Logger::dump_config() {
 }
 void Logger::write_footer_() {
   // Optimization: Avoid strlen call by using compile-time constant length
-  static const int reset_color_len = strlen(ESPHOME_LOG_RESET_COLOR);
-  this->write_to_buffer_(ESPHOME_LOG_RESET_COLOR, reset_color_len);
+  static const int RESET_COLOR_LEN = strlen(ESPHOME_LOG_RESET_COLOR);
+  this->write_to_buffer_(ESPHOME_LOG_RESET_COLOR, RESET_COLOR_LEN);
 }
 
 void Logger::set_log_level(int level) {
