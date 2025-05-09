@@ -70,7 +70,7 @@ def lock_schema(
         (CONF_ICON, icon, cv.icon),
         (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
     ]:
-        if key is not cv.UNDEFINED:
+        if default is not cv.UNDEFINED:
             schema[cv.Optional(key, default=default)] = validator
 
     return _LOCK_SCHEMA.extend(schema)
