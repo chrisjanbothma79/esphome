@@ -8,7 +8,7 @@ namespace pcf8574 {
 static const char *const TAG = "pcf8574";
 
 void IRAM_ATTR HOT PCF8574ComponentStore::gpio_intr(PCF8574ComponentStore *arg) {
-  arg->changes++;
+  arg->changes = arg->changes + 1;
   // Try to get our loop() to be called asap
   arg->high_freq.start();
 }
@@ -54,7 +54,7 @@ void PCF8574Component::loop() {
     }
 #if ESPHOME_LOG_LEVEL >= ESPHOME_LOG_LEVEL_VERY_VERBOSE
     if (changes > 1) {
-      ESP_LOGVV(TAG, "Missed %d events", changes-1);
+      ESP_LOGVV(TAG, "Missed %d events", changes - 1);
     }
 #endif
   }
