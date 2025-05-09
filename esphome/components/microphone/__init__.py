@@ -163,6 +163,14 @@ def final_validate_microphone_source_schema(
 
 
 async def microphone_source_to_code(config, passive=False):
+    """Creates a MicrophoneSource variable for codegen.
+
+    Setting passive to true makes the MicrophoneSource never start/stop the microphone, but only receives audio when another component has actively started the Microphone. If false, then the microphone needs to be explicitly started/stopped.
+
+    Args:
+        config (Schema): Created with `microphone_source_schema` specifying bits per sample, channels, and gain factor
+        passive (bool): Enable passive mode for the MicrophoneSource
+    """
     mic = await cg.get_variable(config[CONF_MICROPHONE])
     mic_source = cg.new_Pvariable(
         config[CONF_ID],
