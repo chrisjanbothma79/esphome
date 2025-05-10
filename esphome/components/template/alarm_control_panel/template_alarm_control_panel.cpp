@@ -42,17 +42,17 @@ void TemplateAlarmControlPanel::dump_config() {
   ESP_LOGCONFIG(TAG, "  Trigger Time: %" PRIu32 "s", (this->trigger_time_ / 1000));
   ESP_LOGCONFIG(TAG, "  Supported Features: %" PRIu32, this->get_supported_features());
 #ifdef USE_BINARY_SENSOR
-  for (auto sensor_info : this->sensor_map_) {
+  for (const auto &sensor_info : this->sensor_map_) {
+    auto *sensor = sensor_info.first;
+    auto &info = sensor_info.second;
     ESP_LOGCONFIG(TAG, "  Binary Sensor:");
-    ESP_LOGCONFIG(TAG, "    Name: %s", sensor_info.first->get_name().c_str());
-    ESP_LOGCONFIG(TAG, "    Armed home bypass: %s",
-                  TRUEFALSE(sensor_info.second.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_HOME));
-    ESP_LOGCONFIG(TAG, "    Armed night bypass: %s",
-                  TRUEFALSE(sensor_info.second.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_NIGHT));
-    ESP_LOGCONFIG(TAG, "    Auto bypass: %s", TRUEFALSE(sensor_info.second.flags & BINARY_SENSOR_MODE_BYPASS_AUTO));
-    ESP_LOGCONFIG(TAG, "    Chime mode: %s", TRUEFALSE(sensor_info.second.flags & BINARY_SENSOR_MODE_CHIME));
+    ESP_LOGCONFIG(TAG, "    Name: %s", sensor->get_name().c_str());
+    ESP_LOGCONFIG(TAG, "    Armed home bypass: %s", TRUEFALSE(info.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_HOME));
+    ESP_LOGCONFIG(TAG, "    Armed night bypass: %s", TRUEFALSE(info.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_NIGHT));
+    ESP_LOGCONFIG(TAG, "    Auto bypass: %s", TRUEFALSE(info.flags & BINARY_SENSOR_MODE_BYPASS_AUTO));
+    ESP_LOGCONFIG(TAG, "    Chime mode: %s", TRUEFALSE(info.flags & BINARY_SENSOR_MODE_CHIME));
     const char *sensor_type;
-    switch (sensor_info.second.type) {
+    switch (info.type) {
       case ALARM_SENSOR_TYPE_INSTANT:
         sensor_type = "instant";
         break;
@@ -97,10 +97,12 @@ void TemplateAlarmControlPanel::loop() {
     if ((millis() - this->last_update_) > delay) {
 #ifdef USE_BINARY_SENSOR
       for (auto sensor_info : this->sensor_map_) {
+        auto *sensor = sensor_info.first;
+        auto &info = sensor_info.second;
         // Check for faulted bypass_auto sensors and remove them from monitoring
-        if ((sensor_info.second.flags & BINARY_SENSOR_MODE_BYPASS_AUTO) && (sensor_info.first->state)) {
-          ESP_LOGW(TAG, "%s is faulted and will be automatically bypassed", sensor_info.first->get_name().c_str());
-          this->bypassed_sensor_indicies_.push_back(sensor_info.second.store_index);
+        if ((info.flags & BINARY_SENSOR_MODE_BYPASS_AUTO) && (sensor->state)) {
+          ESP_LOGW(TAG, "%s is faulted and will be automatically bypassed", sensor->get_name().c_str());
+          this->bypassed_sensor_indicies_.push_back(info.store_index);
         }
       }
 #endif
@@ -124,39 +126,39 @@ void TemplateAlarmControlPanel::loop() {
   bool instant_sensor_faulted = false;
 
 #ifdef USE_BINARY_SENSOR
-  // Test all of the sensors in the list regardless of the alarm panel state
-  for (auto sensor_info : this->sensor_map_) {
+  // Test all of the sensors regardless of the alarm panel state
+  for (auto &sensor_info : this->sensor_map_) {
+    auto *sensor = sensor_info.first;
+    auto &info = sensor_info.second;
     // Check for chime zones
-    if ((sensor_info.second.flags & BINARY_SENSOR_MODE_CHIME)) {
+    if (info.flags & BINARY_SENSOR_MODE_CHIME) {
       // Look for the transition from closed to open
-      if ((!this->sensor_data_[sensor_info.second.store_index].last_chime_state) && (sensor_info.first->state)) {
+      if ((!this->sensor_data_[info.store_index].last_chime_state) && (sensor->state)) {
         // Must be disarmed to chime
         if (this->current_state_ == ACP_STATE_DISARMED) {
           this->chime_callback_.call();
         }
       }
       // Record the sensor state change
-      this->sensor_data_[sensor_info.second.store_index].last_chime_state = sensor_info.first->state;
+      this->sensor_data_[info.store_index].last_chime_state = sensor->state;
     }
     // Check for faulted sensors
-    if (sensor_info.first->state) {  // Sensor triggered?
+    if (sensor->state) {
       // Skip if auto bypassed
       if (std::count(this->bypassed_sensor_indicies_.begin(), this->bypassed_sensor_indicies_.end(),
-                     sensor_info.second.store_index) == 1) {
+                     info.store_index) == 1) {
         continue;
       }
       // Skip if bypass armed home
-      if (this->current_state_ == ACP_STATE_ARMED_HOME &&
-          (sensor_info.second.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_HOME)) {
+      if ((this->current_state_ == ACP_STATE_ARMED_HOME) && (info.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_HOME)) {
         continue;
       }
       // Skip if bypass armed night
-      if (this->current_state_ == ACP_STATE_ARMED_NIGHT &&
-          (sensor_info.second.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_NIGHT)) {
+      if ((this->current_state_ == ACP_STATE_ARMED_NIGHT) && (info.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_NIGHT)) {
         continue;
       }
 
-      switch (sensor_info.second.type) {
+      switch (info.type) {
         case ALARM_SENSOR_TYPE_INSTANT_ALWAYS:
           next_state = ACP_STATE_TRIGGERED;
           [[fallthrough]];
