@@ -6,8 +6,8 @@ from esphome.cpp_helpers import setup_entity
 
 CODEOWNERS = ["@DT-art1"]
 
-CONF_IDLE_UPDATE_INTERVAL = "idle_update"
-CONF_MAX_UPDATE_INTERVAL = "max_update"
+CONF_IDLE_UPDATE_INTERVAL = "idle_update_interval"
+CONF_MAX_UPDATE_INTERVAL = "max_update_interval"
 
 CONF_ENCODER_ID = "encoder_id"
 CONF_ENCODER_BUFFER_SIZE = "encoder_buffer_size"

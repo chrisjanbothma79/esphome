@@ -1,7 +1,8 @@
 #include "camera_impl.h"
 #include "camera_image_reader_impl.h"
 
-#include "esphome.h"
+#include "esphome/core/hal.h"
+#include "esphome/core/log.h"
 
 static const char *const TAG = "camera_impl";
 
