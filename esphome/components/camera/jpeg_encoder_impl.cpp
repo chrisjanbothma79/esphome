@@ -1,0 +1,111 @@
+#ifdef USE_CAMERA_SW_JPEG_ENCODER
+
+#include "jpeg_encoder_impl.h"
+
+namespace esphome {
+namespace camera {
+
+void JPEGEncoderImpl::set_quality(EncoderQuality quality) { this->quality_ = to_internal(quality); }
+
+void JPEGEncoderImpl::set_subsampling(EncoderSubsampling subsampling) { this->subsampling_ = to_internal(subsampling); }
+
+size_t JPEGEncoderImpl::encode_pixels(CameraImageSpec *spec, CameraImage *pixels, CameraImage *jpeg) {
+  uint8_t *buffer = jpeg->get_data_buffer();
+  size_t buffer_length = jpeg->get_data_length();
+
+  // Encoder uses internally BGR for 888 and RGB for 565
+  switch (spec->format) {
+    case IMAGE_FORMAT_RGB888:
+      rgb_to_bgr_inplace(pixels);
+      break;
+    default:
+      break;
+  }
+
+  if (encoder_.open(buffer, buffer_length) != JPEGE_SUCCESS)
+    return 0;
+
+  if (encoder_.encodeBegin(&encoder_state_, spec->width, spec->height, to_internal(spec->format), this->subsampling_,
+                           this->quality_) != JPEGE_SUCCESS)
+    return 0;
+
+  if (encoder_.addFrame(&encoder_state_, pixels->get_data_buffer(), spec->bytes_per_row()) != JPEGE_SUCCESS)
+    return 0;
+
+  return encoder_.close();
+}
+
+EncoderError JPEGEncoderImpl::get_last_error() {
+  switch (encoder_.getLastError()) {
+    case JPEGE_SUCCESS:
+      return ENCODER_ERROR_SUCCESS;
+    case JPEGE_INVALID_PARAMETER:
+      return ENCODER_ERROR_INVALID_PARAMETER;
+    case JPEGE_ENCODE_ERROR:
+      return ENCODER_ERROR_ENCODE_ERROR;
+    case JPEGE_MEM_ERROR:
+      return ENCODER_ERROR_MEMORY_ERROR;
+    case JPEGE_NO_BUFFER:
+      return ENCODER_ERROR_OUT_OF_MEMORY;
+    case JPEGE_UNSUPPORTED_FEATURE:
+      return ENCODER_ERROR_UNSUPPORTED_FEATURE;
+    default:
+      return ENCODER_ERROR_GENERIC;
+  }
+
+  return ENCODER_ERROR_GENERIC;
+}
+
+int JPEGEncoderImpl::to_internal(EncoderQuality quality) {
+  switch (quality) {
+    case ENCODER_QUALITY_BEST:
+      return JPEGE_Q_BEST;
+    case ENCODER_QUALITY_HIGH:
+      return JPEGE_Q_HIGH;
+    case ENCODER_QUALITY_MED:
+      return JPEGE_Q_MED;
+    case ENCODER_QUALITY_LOW:
+      return JPEGE_Q_LOW;
+  }
+
+  return JPEGE_Q_BEST;
+}
+
+int JPEGEncoderImpl::to_internal(ImageFormat format) {
+  switch (format) {
+    case IMAGE_FORMAT_GRAYSCALE:
+      return JPEGE_PIXEL_GRAYSCALE;
+    case IMAGE_FORMAT_RGB565:
+      return JPEGE_PIXEL_RGB565;
+    case IMAGE_FORMAT_RGB888:
+      return JPEGE_PIXEL_RGB888;
+  }
+
+  return JPEGE_PIXEL_RGB888;
+}
+
+int JPEGEncoderImpl::to_internal(EncoderSubsampling sampling) {
+  switch (sampling) {
+    case ENCODER_SUBSAMPLING_444:
+      return JPEGE_SUBSAMPLE_444;
+    case ENCODER_SUBSAMPLING_420:
+      return JPEGE_SUBSAMPLE_420;
+  }
+
+  return JPEGE_SUBSAMPLE_444;
+}
+
+void JPEGEncoderImpl::rgb_to_bgr_inplace(CameraImage *pixels) {
+  uint8_t *buffer = pixels->get_data_buffer();
+  size_t length = pixels->get_data_length();
+  for (size_t i = 0; i + 2 < length; i += 3) {
+    uint8_t t = buffer[i];
+    buffer[i] = buffer[i + 2];
+    buffer[i + 2] = t;
+  }
+}
+
+}  // namespace camera
+}  // namespace esphome
+
+#endif

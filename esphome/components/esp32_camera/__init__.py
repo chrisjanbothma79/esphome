@@ -203,7 +203,7 @@ CONFIG_SCHEMA = (
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
-    .extend(camera.CAMERA_SCHEMA)
+    .extend(camera.CAMERA_AUTOMATION_SCHEMA)
 )
 
 SETTERS = {
@@ -239,10 +239,11 @@ SETTERS = {
 
 
 async def to_code(config):
+    cg.add_define("USE_CAMERA")
     var = cg.new_Pvariable(config[CONF_ID])
     await setup_entity(var, config)
     await cg.register_component(var, config)
-    await camera.setup_camera(var, config)
+    await camera.setup_camera_automation(var, config)
 
     for key, setter in SETTERS.items():
         if key in config:

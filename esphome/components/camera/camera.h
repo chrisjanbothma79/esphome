@@ -15,6 +15,17 @@ namespace camera {
  */
 enum CameraRequester { IDLE, API_REQUESTER, WEB_REQUESTER };
 
+/** Enumeration of different image formats.
+ *  IMAGE_FORMAT_GRAYSCALE: 1 byte.
+ *  IMAGE_FORMAT_RGB565: 2 bytes of color information.
+ *  IMAGE_FORMAT_RGB888: 3 bytes of colors in RGB order.
+ */
+enum ImageFormat {
+  IMAGE_FORMAT_GRAYSCALE = 0,
+  IMAGE_FORMAT_RGB565,
+  IMAGE_FORMAT_RGB888,
+};
+
 /** Abstract camera image base class.
  *  Encapsulates the JPEG encoded data and it is shared among
  *  all connected clients.
@@ -43,6 +54,33 @@ class CameraImageReader {
   virtual ~CameraImageReader() {}
 };
 
+/** Struct that encapsulates the image data for the CameraImageTrigger */
+struct CameraImageData {
+  uint8_t *data;
+  size_t length;
+};
+
+/** Struct that encapsulates the image spec for the CameraCaptureImageTrigger */
+struct CameraImageSpec {
+  int width;
+  int height;
+  ImageFormat format;
+  size_t bytes_per_pixel() {
+    switch (format) {
+      case IMAGE_FORMAT_GRAYSCALE:
+        return 1;
+      case IMAGE_FORMAT_RGB565:
+        return 2;
+      case IMAGE_FORMAT_RGB888:
+        return 3;
+    }
+
+    return 1;
+  }
+  size_t bytes_per_row() { return bytes_per_pixel() * width; }
+  size_t bytes_per_image() { return bytes_per_pixel() * width * height; }
+};
+
 /** Abstract camera base class. Collaborates with API.
  *  1) API server starts and installs callback (add_image_callback)
  *     which is called by the camera when a new image is available.
@@ -52,11 +90,13 @@ class CameraImageReader {
  *  4) Camera implementation provides JPEG data in the CameraImage and calls callback.
  *  5) API connection sets the image in the image reader.
  *  6) API connection consumes data from the image reader and returns the image when finished.
- *  7.a) Camera caputes new image and continues with 4) until start_stream is called.
+ *  7.a) Camera captures a new image and continues with 4) until start_stream is called.
  */
 class Camera : public Component, public EntityBase {
  public:
   Camera();
+  // Camera implementation invokes callback to capture a new image.
+  virtual void add_capture_callback(std::function<void(std::shared_ptr<CameraImage>, CameraImageSpec)> &&callback);
   // Camera implementation invokes callback to publish a new image.
   virtual void add_image_callback(std::function<void(std::shared_ptr<CameraImage>)> &&callback);
   // Camera implementation invokes callback when start_stream is called.
@@ -76,6 +116,7 @@ class Camera : public Component, public EntityBase {
   static Camera *instance();
 
  protected:
+  CallbackManager<void(std::shared_ptr<camera::CameraImage>, CameraImageSpec)> image_capture_callback_{};
   CallbackManager<void(std::shared_ptr<camera::CameraImage>)> new_image_callback_{};
   CallbackManager<void()> stream_start_callback_{};
   CallbackManager<void()> stream_stop_callback_{};
@@ -83,14 +124,24 @@ class Camera : public Component, public EntityBase {
   static Camera *global_camera;
 };
 
-/** Struct that encapsulates the image data for the CameraImageTrigger */
-struct CameraImageData {
-  uint8_t *data;
-  size_t length;
+/** Class that installs a camera callback which is triggered
+ *  every time a new image can be captured.
+ */
+class CameraCaptureImageTrigger : public Trigger<CameraImageData, CameraImageSpec> {
+ public:
+  explicit CameraCaptureImageTrigger(Camera *camera) {
+    camera->add_capture_callback(
+        [this](const std::shared_ptr<camera::CameraImage> &image, const CameraImageSpec &spec) {
+          CameraImageData camera_image_data{};
+          camera_image_data.length = image->get_data_length();
+          camera_image_data.data = image->get_data_buffer();
+          this->trigger(camera_image_data, spec);
+        });
+  }
 };
 
 /** Class that installs a camera callback which is triggered
- *  every time a new image is captured.
+ *  every time a new jpeg encoded image is available.
  */
 class CameraImageTrigger : public Trigger<CameraImageData> {
  public:
