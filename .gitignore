@@ -142,4 +142,4 @@ sdkconfig.*
 
 /components
 /managed_components
-
+esp-dev.code-workspace
