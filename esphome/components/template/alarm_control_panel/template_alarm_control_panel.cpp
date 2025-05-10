@@ -165,19 +165,13 @@ void TemplateAlarmControlPanel::loop() {
   }
 
 #endif
-  if (this->is_state_armed(next_state) && (!this->sensors_ready_)) {
-    // Instant sensors
-    if (instant_sensor_faulted) {
-      this->publish_state(ACP_STATE_TRIGGERED);
-    } else if (delayed_sensor_faulted) {
-      // Delayed sensors
-      if ((this->pending_time_ > 0) && (this->current_state_ != ACP_STATE_TRIGGERED)) {
-        this->publish_state(ACP_STATE_PENDING);
-      } else {
-        this->publish_state(ACP_STATE_TRIGGERED);
-      }
-    }
-  } else if (next_state != this->current_state_) {
+  // Update next_state based on faulted sensors.
+  if (instant_sensor_faulted && (next_state != ACP_STATE_DISARMED)) {
+    next_state = ACP_STATE_TRIGGERED;
+  } else if (delayed_sensor_faulted && this->is_state_armed(next_state)) {
+    next_state = (this->pending_time_ > 0) ? ACP_STATE_PENDING : ACP_STATE_TRIGGERED;
+  }
+  if (next_state != this->current_state_) {
     this->publish_state(next_state);
   }
 }
