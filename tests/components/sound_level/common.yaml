@@ -7,7 +7,6 @@ microphone:
     id: i2s_microphone
     i2s_din_pin: ${i2s_dout_pin}
     adc_type: external
-    pdm: true
     bits_per_sample: 16bit
 
 sensor:
