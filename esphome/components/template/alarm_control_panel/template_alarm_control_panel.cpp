@@ -80,24 +80,31 @@ void TemplateAlarmControlPanel::setup() {
 }
 
 void TemplateAlarmControlPanel::loop() {
-  // change from ARMING to ARMED_x after the arming_time_ has passed
-  if (this->current_state_ == ACP_STATE_ARMING) {
-    if ((millis() - this->last_update_) > this->desired_arming_delay_()) {
-      this->auto_bypass_sensors_();
-      this->publish_state(this->desired_state_);
-    }
-    return;
-  }
-  // change from PENDING to TRIGGERED after the delay_time_ has passed
-  if (this->current_state_ == ACP_STATE_PENDING && (millis() - this->last_update_) > this->pending_time_) {
-    this->publish_state(ACP_STATE_TRIGGERED);
-    return;
-  }
   auto next_state = this->current_state_;
-  // reset triggered if all clear
-  if (this->current_state_ == ACP_STATE_TRIGGERED && this->trigger_time_ > 0 &&
-      (millis() - this->last_update_) > this->trigger_time_) {
-    next_state = this->desired_state_;
+
+  // Update next_state based on timeouts.
+  switch (this->current_state_) {
+    case ACP_STATE_ARMING: {
+      if ((millis() - this->last_update_) > this->desired_arming_delay_()) {
+        next_state = this->desired_state_;
+      }
+      break;
+    }
+    case ACP_STATE_PENDING: {
+      if ((millis() - this->last_update_) > this->pending_time_) {
+        next_state = ACP_STATE_TRIGGERED;
+      }
+      break;
+    }
+    case ACP_STATE_TRIGGERED: {
+      if ((this->trigger_time_ > 0) && ((millis() - this->last_update_) > this->trigger_time_)) {
+        next_state = this->desired_state_;
+      }
+      break;
+    }
+    default:
+      // no timeout transitions from other states
+      break;
   }
 
 #ifdef USE_BINARY_SENSOR
@@ -210,6 +217,7 @@ void TemplateAlarmControlPanel::arm_(const optional<std::string> &code,
     return;
   }
   this->desired_state_ = state;
+  this->auto_bypass_sensors_();
   auto next_state = (this->desired_arming_delay_() > 0) ? ACP_STATE_ARMING : state;
   this->publish_state(next_state);
 }
