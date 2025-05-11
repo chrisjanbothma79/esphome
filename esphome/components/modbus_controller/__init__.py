@@ -139,9 +139,10 @@ def validate_address(register_set_key: str):
         try:
             cv.uint16_t(last_address)
         except cv.MultipleInvalid as exc:
-            raise cv.Invalid(
-                f"Address {address} + register_count {register_count} for selected value_type outside of valid range {last_address}.\n"
-                + exc.msg
+            exc.add(
+                cv.Invalid(
+                    f"Address {address} + register_count {register_count} for selected value_type outside of valid range {last_address}."
+                )
             )
         check_set = set(range(address, last_address + 1))
         if not register_set.isdisjoint(check_set):
