@@ -56,16 +56,12 @@ void DallasTemperatureSensor::update() {
   });
 }
 
-void IRAM_ATTR DallasTemperatureSensor::read_scratch_pad_int_() {
-  for (uint8_t &i : this->scratch_pad_) {
-    i = this->bus_->read8();
-  }
-}
-
 bool DallasTemperatureSensor::read_scratch_pad_() {
   bool success = this->send_command_(DALLAS_COMMAND_READ_SCRATCH_PAD);
   if (success) {
-    this->read_scratch_pad_int_();
+    for (uint8_t &i : this->scratch_pad_) {
+      i = this->bus_->read8();
+    }
   } else {
     ESP_LOGW(TAG, "'%s' - reading scratch pad failed bus reset", this->get_name().c_str());
     this->status_set_warning("bus reset failed");
