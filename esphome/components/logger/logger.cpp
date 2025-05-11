@@ -35,12 +35,9 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   const char *thread_name = pcTaskGetName(current_task);
 
   // Use the log buffer for messages from non-main tasks
-  // Try to send the message using the log buffer
-  bool use_ring_buffer = this->log_buffer_->send_message(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
-                                                         thread_name, format, args);
-
   // If we successfully used the log buffer, return
-  if (use_ring_buffer) {
+  if (this->log_buffer_->send_message(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line), thread_name,
+                                      format, args)) {
     recursion_guard_.store(false, std::memory_order_release);
     return;
   }
