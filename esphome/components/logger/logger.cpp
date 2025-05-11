@@ -266,56 +266,67 @@ void Logger::loop() {
     }
   }
 
-  logger::LogBuffer::LogMessage *message;
-  const char *text;
-  void *received_token;
-  bool any_messages = false;
-  int msg_count = 0;
+  // Check if it's worth looking for messages based on the commit/borrow stats
+  bool should_check = false;
 
-  // Force buffer processing on each loop to avoid messages getting stuck
-  while (msg_count < 50 && this->log_buffer_->borrow_message(&message, &text, &received_token)) {
-    any_messages = true;
-    msg_count++;
-
-    this->tx_buffer_at_ = 0;
-    this->write_header_to_buffer_(message->level, message->tag, message->line, this->tx_buffer_, &this->tx_buffer_at_,
-                                  this->tx_buffer_size_, message->thread_name);
-    this->write_body_to_buffer_(text, message->text_length, this->tx_buffer_, &this->tx_buffer_at_,
-                                this->tx_buffer_size_);
-    this->write_footer_to_buffer_(this->tx_buffer_, &this->tx_buffer_at_, this->tx_buffer_size_);
-    this->log_message_(message->level, message->tag);
-
-    this->log_buffer_->release_message(received_token);
+  // Only check for messages if:
+  // 1. Commit count > Borrow success count (meaning there are unprocessed messages)
+  // 2. Or we're doing an occasional check anyway (every 10 loops)
+  if (this->log_buffer_->get_commit_success() > this->log_buffer_->get_borrow_success() || (loop_count % 10) == 0) {
+    should_check = true;
   }
 
-  // If messages were processed, occasionally print the count
-  if (msg_count > 0 && loop_count % 50 == 0 && this->baud_rate_ > 0) {
-    char count_buf[60];
-    snprintf(count_buf, sizeof(count_buf), "DBGINFO: Processed %d buffered messages", msg_count);
-    this->write_msg_(count_buf);
-  }
+  if (should_check) {
+    logger::LogBuffer::LogMessage *message;
+    const char *text;
+    void *received_token;
+    bool any_messages = false;
+    int msg_count = 0;
 
-  // Count empty ring buffer events but report much less frequently
-  static uint32_t empty_count = 0;
-  static uint32_t last_reported_count = 0;
+    // Process some messages if available
+    while (msg_count < 50 && this->log_buffer_->borrow_message(&message, &text, &received_token)) {
+      any_messages = true;
+      msg_count++;
 
-  if (!any_messages) {
-    // Only report at powers of 2
-    empty_count++;
-    if (empty_count >= 100 && (empty_count >= (last_reported_count * 2) || empty_count == 100)) {
-      // Log directly to serial using emergency path - won't go through the buffer
-      char emergency_buffer[80];
-      snprintf(emergency_buffer, sizeof(emergency_buffer),
-               "DBGINFO: No log messages in ring buffer for %u consecutive calls", empty_count);
-      last_reported_count = empty_count;  // Update report threshold
-      if (this->baud_rate_ > 0) {
-        this->write_msg_(emergency_buffer);
-      }
+      this->tx_buffer_at_ = 0;
+      this->write_header_to_buffer_(message->level, message->tag, message->line, this->tx_buffer_, &this->tx_buffer_at_,
+                                    this->tx_buffer_size_, message->thread_name);
+      this->write_body_to_buffer_(text, message->text_length, this->tx_buffer_, &this->tx_buffer_at_,
+                                  this->tx_buffer_size_);
+      this->write_footer_to_buffer_(this->tx_buffer_, &this->tx_buffer_at_, this->tx_buffer_size_);
+      this->log_message_(message->level, message->tag);
+
+      this->log_buffer_->release_message(received_token);
     }
-  } else {
-    // Messages were processed, reset counter
-    empty_count = 0;
-    last_reported_count = 0;
+
+    // If messages were processed, occasionally print the count
+    if (msg_count > 0 && loop_count % 50 == 0 && this->baud_rate_ > 0) {
+      char count_buf[60];
+      snprintf(count_buf, sizeof(count_buf), "DBGINFO: Processed %d buffered messages", msg_count);
+      this->write_msg_(count_buf);
+    }
+
+    // Update empty check counter
+    static uint32_t empty_checks = 0;
+
+    if (!any_messages) {
+      // Only count when we expected to find messages
+      if (this->log_buffer_->get_commit_success() > this->log_buffer_->get_borrow_success()) {
+        empty_checks++;
+
+        // Report occasionally about missing messages we expected to find
+        if (empty_checks % 10 == 0 && this->baud_rate_ > 0) {
+          char buf[120];
+          snprintf(buf, sizeof(buf), "WARN: %u committed messages not found after %u checks (commit:%u borrow:%u)",
+                   this->log_buffer_->get_commit_success() - this->log_buffer_->get_borrow_success(), empty_checks,
+                   this->log_buffer_->get_commit_success(), this->log_buffer_->get_borrow_success());
+          this->write_msg_(buf);
+        }
+      }
+    } else {
+      // Reset counter when messages are processed
+      empty_checks = 0;
+    }
   }
 #endif
 }
