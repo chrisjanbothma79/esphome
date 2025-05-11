@@ -118,10 +118,11 @@ bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text
 
 void LogBuffer::cancel_message(void *token) {
   // Check if there's a valid token to cancel
-  if (token != nullptr) {
-    // Return the item to the ring buffer without committing
-    vRingbufferReturnItem(ring_buffer_, token);
+  if (token == nullptr) {
+    return;  // Nothing to cancel
   }
+  // Return the item to the ring buffer without committing
+  vRingbufferReturnItem(ring_buffer_, token);
 }
 
 bool LogBuffer::send_message(uint8_t level, const char *tag, uint16_t line, const char *thread_name, const char *format,
