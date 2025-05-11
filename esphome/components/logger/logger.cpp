@@ -41,41 +41,46 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   char *buffer = this->log_buffer_->prepare_message(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
                                                     thread_name, capacity, &message_token);
 
-  if (buffer == nullptr) {
-    return;
+  // If buffer is null, we couldn't allocate space in the ring buffer
+  // In this case, we'll fall through to the emergency console logging below
+  if (buffer != nullptr) {
+    // Format the message into the ring buffer
+    int ret = vsnprintf(buffer, capacity, format, args);
+
+    // Calculate actual text length based on vsnprintf result:
+    // - zero or negative: empty or encoding error, skip message
+    // - exceeds capacity: truncated, use capacity-1
+    // - otherwise: use actual length
+    bool use_ring_buffer = true;
+    if (ret <= 0) {
+      // Empty message or error in vsnprintf, cancel the prepared message and use emergency console
+      this->log_buffer_->release_message(message_token);
+      use_ring_buffer = false;
+    } else {
+      size_t text_length = (static_cast<size_t>(ret) >= capacity) ? capacity - 1 : ret;
+
+      // Remove trailing newlines
+      while (text_length > 0 && buffer[text_length - 1] == '\n') {
+        text_length--;
+      }
+
+      // Check if we have any text to log after processing
+      if (text_length > 0) {
+        this->log_buffer_->commit_message(text_length, message_token);
+      } else {
+        // No text to log, cancel the prepared message and use emergency console
+        this->log_buffer_->release_message(message_token);
+        use_ring_buffer = false;
+      }
+    }
+
+    // If we successfully used the log buffer, return
+    if (use_ring_buffer) {
+      recursion_guard_.store(false, std::memory_order_release);
+      return;
+    }
+    // Otherwise fall through to emergency console
   }
-
-  // Format the message into the ring buffer
-  int ret = vsnprintf(buffer, capacity, format, args);
-
-  // Calculate actual text length based on vsnprintf result:
-  // - zero or negative: empty or encoding error, skip message
-  // - exceeds capacity: truncated, use capacity-1
-  // - otherwise: use actual length
-  if (ret <= 0) {
-    // Empty message or error in vsnprintf, cancel the prepared message
-    this->log_buffer_->release_message(message_token);
-    recursion_guard_.store(false, std::memory_order_release);
-    return;
-  }
-
-  size_t text_length = (static_cast<size_t>(ret) >= capacity) ? capacity - 1 : ret;
-
-  // Remove trailing newlines
-  while (text_length > 0 && buffer[text_length - 1] == '\n') {
-    text_length--;
-  }
-
-  // Check if we have any text to log after processing
-  if (text_length > 0) {
-    this->log_buffer_->commit_message(text_length, message_token);
-  } else {
-    // No text to log, cancel the prepared message
-    this->log_buffer_->release_message(message_token);
-  }
-
-  recursion_guard_.store(false, std::memory_order_release);
-  return;
 #endif  // USE_ESPHOME_LOG_BUFFER
 
   // Log buffer is disabled or full, use emergency console logging
