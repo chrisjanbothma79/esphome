@@ -40,13 +40,9 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   if (this->baud_rate_ > 0) {
     // Console output - MUST be stack allocated for thread safety
     char console_buffer[LOG_MSG_SIZE_WITH_NULL];
-    int buffer_at = 0;
 
-    this->format_log_to_buffer_(level, tag, line, format, args, console_buffer, &buffer_at, LOG_MSG_SIZE_WITH_NULL);
-
-    // Add null terminator before sending to output
-    if (buffer_at < LOG_MSG_SIZE_WITH_NULL)
-      console_buffer[buffer_at] = '\0';
+    // Format to buffer and prepare for output (no need to capture the return value here)
+    this->format_to_buffer_with_terminator_(level, tag, line, format, args, console_buffer, LOG_MSG_SIZE_WITH_NULL);
 
     // Send directly to output
     this->write_msg_(console_buffer);
