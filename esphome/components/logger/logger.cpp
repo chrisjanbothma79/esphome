@@ -55,6 +55,21 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
     this->format_log_to_buffer_(level, tag, line, format, args, emergency_buffer, &buffer_at, LOG_MSG_SIZE_WITH_NULL);
 
+    // Wrap emergency message content in markers to help with debugging thread-related issues
+    if (buffer_at < LOG_MSG_SIZE_WITH_NULL - 24) {  // Make sure we have enough space for the markers
+      // We need a temp buffer to store the original message
+      char temp_buffer[LOG_MSG_SIZE_WITH_NULL];
+      memcpy(temp_buffer, emergency_buffer, buffer_at);
+
+      // Format wrapped message back to emergency_buffer
+      buffer_at = snprintf(emergency_buffer, LOG_MSG_SIZE_WITH_NULL, "[-EMERGENCY-MSG-%.*s-EMERGENCY-MSG]", buffer_at,
+                           temp_buffer);
+
+      // Ensure we don't exceed the buffer
+      if (buffer_at > LOG_MSG_SIZE_WITH_NULL - 1)
+        buffer_at = LOG_MSG_SIZE_WITH_NULL - 1;
+    }
+
     // Add null terminator before sending to output
     if (buffer_at < LOG_MSG_SIZE_WITH_NULL)
       emergency_buffer[buffer_at] = '\0';
