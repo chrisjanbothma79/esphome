@@ -53,8 +53,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     char emergency_buffer[LOG_MSG_SIZE_WITH_NULL];
     int buffer_at = 0;
 
-    this->format_log_to_buffer_(level, "EMERGENCY", line, format, args, emergency_buffer, &buffer_at,
-                                LOG_MSG_SIZE_WITH_NULL);
+    this->format_log_to_buffer_(level, tag, line, format, args, emergency_buffer, &buffer_at, LOG_MSG_SIZE_WITH_NULL);
 
     // Remove trailing newlines to prevent double empty lines
     while (buffer_at > 0 && emergency_buffer[buffer_at - 1] == '\n') {
