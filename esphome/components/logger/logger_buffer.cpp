@@ -31,7 +31,8 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
   void *acquired_item = nullptr;
 
   // Request space for a message of adequate size
-  if (xRingbufferSendAcquire(ring_buffer_, &acquired_item, min_size, 0) != pdTRUE || acquired_item == nullptr) {
+  BaseType_t result = xRingbufferSendAcquire(ring_buffer_, &acquired_item, min_size, 0);
+  if (result != pdTRUE || acquired_item == nullptr) {
     // Failed to acquire space in the ring buffer
     capacity = 0;
     *message_token = nullptr;
@@ -93,7 +94,8 @@ void LogBuffer::commit_message(size_t text_length, void *message_token) {
   msg->text_data()[text_length] = '\0';
 
   // Commit the message to the ring buffer
-  xRingbufferSendComplete(ring_buffer_, message_token);
+  BaseType_t result = xRingbufferSendComplete(ring_buffer_, message_token);
+  // Nothing we can do if this fails, but it shouldn't under normal circumstances
 }
 
 bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **received_token) {
@@ -105,6 +107,7 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
   // Try to receive an item from the ring buffer
   size_t item_size = 0;
   void *received_item = xRingbufferReceive(ring_buffer_, &item_size, 0);
+  // xRingbufferReceive returns NULL if no items are available, otherwise returns a pointer to the received item
 
   if (received_item == nullptr || item_size < sizeof(LogMessage)) {
     // No message available or item too small to be valid
