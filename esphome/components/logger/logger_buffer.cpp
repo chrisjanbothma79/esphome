@@ -71,7 +71,7 @@ void LogBuffer::commit_message(size_t text_length, void *message_token) {
   if (message_token == nullptr || text_length == 0) {
     // Nothing to commit or zero text length, cancel the preparation
     if (message_token != nullptr) {
-      release_message(message_token);
+      cancel_message(message_token);
     }
     return;
   }
@@ -137,10 +137,10 @@ bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text
   return true;
 }
 
-void LogBuffer::release_message(void *token) {
-  // Check if there's a valid token to release
+void LogBuffer::cancel_message(void *token) {
+  // Check if there's a valid token to cancel
   if (token != nullptr) {
-    // Return the item to the ring buffer
+    // Return the item to the ring buffer without committing
     vRingbufferReturnItem(ring_buffer_, token);
   }
 }

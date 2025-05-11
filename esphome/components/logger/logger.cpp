@@ -54,7 +54,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     bool use_ring_buffer = true;
     if (ret <= 0) {
       // Empty message or error in vsnprintf, cancel the prepared message and use emergency console
-      this->log_buffer_->release_message(message_token);
+      this->log_buffer_->cancel_message(message_token);
       use_ring_buffer = false;
     } else {
       size_t text_length = (static_cast<size_t>(ret) >= capacity) ? capacity - 1 : ret;
@@ -69,7 +69,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
         this->log_buffer_->commit_message(text_length, message_token);
       } else {
         // No text to log, cancel the prepared message and use emergency console
-        this->log_buffer_->release_message(message_token);
+        this->log_buffer_->cancel_message(message_token);
         use_ring_buffer = false;
       }
     }

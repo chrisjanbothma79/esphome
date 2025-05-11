@@ -61,11 +61,10 @@ class LogBuffer {
   // Also returns a token that must be used with release_message_main_loop
   bool borrow_message_main_loop(LogMessage **message, const char **text, void **received_token);
 
-  // Release a message buffer (either borrowed or prepared)
+  // Cancel a prepared message without committing it
   // Use with message_token from prepare_message when canceling preparation
   // This function is thread-safe and can be called from any context
-  // Used to cancel a prepared message without committing
-  void release_message(void *token);
+  void cancel_message(void *token);
 
   // Release a message buffer and update the message counter
   // NOT thread-safe - only to be called from the main loop after borrowing a message
