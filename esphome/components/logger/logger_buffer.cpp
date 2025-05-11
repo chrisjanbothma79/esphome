@@ -104,20 +104,6 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
   // Empty messages are valid (like blank lines in log output)
   // We'll allow them to continue through the normal path
 
-  // Wrap message content in markers to help with debugging thread-related issues
-  char temp_buffer[LOG_MSG_SIZE];
-  if (text_length < LOG_MSG_SIZE - 24) {  // Make sure we have enough space for the markers
-    // Copy original message to temp buffer
-    memcpy(temp_buffer, text_area, text_length);
-
-    // Format wrapped message back to text_area
-    text_length = snprintf(text_area, LOG_MSG_SIZE, "[-THREAD-MSG-%.*s-THREAD-MSG]", (int) text_length, temp_buffer);
-
-    // Ensure we don't exceed the buffer
-    if (text_length > LOG_MSG_SIZE)
-      text_length = LOG_MSG_SIZE;
-  }
-
   // Set the final text length in the header
   msg->text_length = text_length;
 

@@ -28,55 +28,50 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
 
+  // For main task: use the tx_buffer_ for both console and callbacks to avoid duplicating work
   if (current_task == main_task_) {
-    this->log_message_sync_(level, tag, line, format, args);
+    // Format directly into the tx_buffer
+    this->tx_buffer_at_ = 0;
+    this->format_log_to_buffer_(level, tag, line, format, args, this->tx_buffer_, &this->tx_buffer_at_,
+                                this->tx_buffer_size_);
+
+    // Make sure null terminator is present
+    this->tx_buffer_[this->tx_buffer_at_] = '\0';
+
+    // If logging is enabled, write to console
+    if (this->baud_rate_ > 0) {
+      this->write_msg_(this->tx_buffer_);
+    }
+
+    // Also send to callbacks
+    this->log_message_(level, tag);
     recursion_guard_.store(false, std::memory_order_release);
     return;
   }
 
-#ifdef USE_ESPHOME_LOG_BUFFER
-
-  // Use the log buffer for messages from non-main tasks
-  // If we successfully used the log buffer, return
-  if (this->log_buffer_->send_message_thread_safe(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
-                                                  current_task, format, args)) {
-    recursion_guard_.store(false, std::memory_order_release);
-    return;
-  }
-  // Otherwise fall through to emergency console
-#endif  // USE_ESPHOME_LOG_BUFFER
-
-  // Log buffer is disabled or full, use emergency console logging
-  // Check if logging is disabled
+  // For non-main tasks: use stack-allocated buffer only for console output
   if (this->baud_rate_ > 0) {
-    // Emergency console-only fallback - MUST be stack allocated for thread safety
-    char emergency_buffer[LOG_MSG_SIZE_WITH_NULL];
+    // Console output - MUST be stack allocated for thread safety
+    char console_buffer[LOG_MSG_SIZE_WITH_NULL];
     int buffer_at = 0;
 
-    this->format_log_to_buffer_(level, tag, line, format, args, emergency_buffer, &buffer_at, LOG_MSG_SIZE_WITH_NULL);
-
-    // Wrap emergency message content in markers to help with debugging thread-related issues
-    if (buffer_at < LOG_MSG_SIZE_WITH_NULL - 24) {  // Make sure we have enough space for the markers
-      // We need a temp buffer to store the original message
-      char temp_buffer[LOG_MSG_SIZE_WITH_NULL];
-      memcpy(temp_buffer, emergency_buffer, buffer_at);
-
-      // Format wrapped message back to emergency_buffer
-      buffer_at = snprintf(emergency_buffer, LOG_MSG_SIZE_WITH_NULL, "[-EMERGENCY-MSG-%.*s-EMERGENCY-MSG]", buffer_at,
-                           temp_buffer);
-
-      // Ensure we don't exceed the buffer
-      if (buffer_at > LOG_MSG_SIZE_WITH_NULL - 1)
-        buffer_at = LOG_MSG_SIZE_WITH_NULL - 1;
-    }
+    this->format_log_to_buffer_(level, tag, line, format, args, console_buffer, &buffer_at, LOG_MSG_SIZE_WITH_NULL);
 
     // Add null terminator before sending to output
     if (buffer_at < LOG_MSG_SIZE_WITH_NULL)
-      emergency_buffer[buffer_at] = '\0';
+      console_buffer[buffer_at] = '\0';
 
-    // Send directly to output, skip callbacks
-    this->write_msg_(emergency_buffer);
+    // Send directly to output
+    this->write_msg_(console_buffer);
   }
+
+#ifdef USE_ESPHOME_LOG_BUFFER
+  // For non-main tasks, queue the message for callbacks
+  // This will be processed in the main loop
+  this->log_buffer_->send_message_thread_safe(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
+                                              current_task, format, args);
+#endif  // USE_ESPHOME_LOG_BUFFER
+
   recursion_guard_.store(false, std::memory_order_release);
 }
 #endif  // USE_ESP32
@@ -89,7 +84,23 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     return;
 
   recursion_guard_ = true;
-  this->log_message_sync_(level, tag, line, format, args);
+
+  // Format once into the tx_buffer for both console and callbacks
+  this->tx_buffer_at_ = 0;
+  this->format_log_to_buffer_(level, tag, line, format, args, this->tx_buffer_, &this->tx_buffer_at_,
+                              this->tx_buffer_size_);
+
+  // Add null terminator
+  this->tx_buffer_[this->tx_buffer_at_] = '\0';
+
+  // First, output to console directly for immediacy if logging is enabled
+  if (this->baud_rate_ > 0) {
+    this->write_msg_(this->tx_buffer_);
+  }
+
+  // Also send to callbacks
+  this->log_message_(level, tag);
+
   recursion_guard_ = false;
 }
 #endif  // !USE_ESP32
@@ -135,13 +146,12 @@ void HOT Logger::log_message_(int level, const char *tag, int offset) {
 
   const char *msg = this->tx_buffer_ + offset;
 
-  if (this->baud_rate_ > 0) {
-    this->write_msg_(msg);
-  }
+  // Note: Console output for all messages now happens directly in log_vprintf_
+  // This function is now primarily responsible for callbacks
 
 #ifdef USE_ESP32
-  // Suppress network-logging if memory constrained, but still log to serial
-  // ports. In some configurations (eg BLE enabled) there may be some transient
+  // Suppress network-logging if memory constrained
+  // In some configurations (eg BLE enabled) there may be some transient
   // memory exhaustion, and trying to log when OOM can lead to a crash. Skipping
   // here usually allows the stack to recover instead.
   // See issue #1234 for analysis.
@@ -206,7 +216,20 @@ void Logger::loop() {
       this->write_body_to_buffer_(text, message->text_length, this->tx_buffer_, &this->tx_buffer_at_,
                                   this->tx_buffer_size_);
       this->write_footer_to_buffer_(this->tx_buffer_, &this->tx_buffer_at_, this->tx_buffer_size_);
-      this->log_message_(message->level, message->tag);
+
+      // Make sure null terminator is present
+      this->tx_buffer_[this->tx_buffer_at_] = '\0';
+
+      // Only send to callbacks, not to console (console output already happened in log_vprintf_)
+      const char *msg = this->tx_buffer_;
+#ifdef USE_ESP32
+      // Suppress network-logging if memory constrained to avoid crashes
+      if (xPortGetFreeHeapSize() >= 2048) {
+        this->log_callback_.call(message->level, message->tag, msg);
+      }
+#else
+      this->log_callback_.call(message->level, message->tag, msg);
+#endif
 
       // Use main loop version of release_message that updates the counter tracking
       this->log_buffer_->release_message_main_loop(received_token);
