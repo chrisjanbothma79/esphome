@@ -64,6 +64,9 @@ class LogBuffer {
 
  private:
   RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle
+  StaticRingbuffer_t structure_;          // Static structure for the ring buffer
+  uint8_t *storage_{nullptr};             // Pointer to allocated memory
+  size_t size_{0};                        // Size of allocated memory
 
   // Atomic counter for tracking messages - uint16_t is fine as we only care about changes
   std::atomic<uint16_t> message_counter_{0};    // Incremented when a message is committed

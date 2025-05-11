@@ -2,6 +2,7 @@
 
 #ifdef USE_ESPHOME_LOG_BUFFER
 
+#include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
@@ -10,15 +11,30 @@ namespace logger {
 static const char *const TAG = "logger_buffer";
 
 LogBuffer::LogBuffer(size_t total_buffer_size) {
-  // Create a byte buffer for message operations
-  // The size is guaranteed to be at least 1024 bytes by the config validation
-  ring_buffer_ = xRingbufferCreate(total_buffer_size, RINGBUF_TYPE_BYTEBUF);
+  // Store the buffer size
+  this->size_ = total_buffer_size;
+
+  // Allocate memory for the ring buffer using ESPHome's RAM allocator
+  RAMAllocator<uint8_t> allocator;
+  this->storage_ = allocator.allocate(this->size_);
+
+  // Create a static ring buffer with the allocated memory
+  this->ring_buffer_ = xRingbufferCreateStatic(this->size_, RINGBUF_TYPE_BYTEBUF, this->storage_, &this->structure_);
+
+  ESP_LOGD(TAG, "Created logger buffer with size %u", total_buffer_size);
 }
 
 LogBuffer::~LogBuffer() {
-  // Delete the ring buffer (frees the memory automatically)
-  vRingbufferDelete(ring_buffer_);
-  ring_buffer_ = nullptr;
+  if (this->ring_buffer_ != nullptr) {
+    // Delete the ring buffer
+    vRingbufferDelete(this->ring_buffer_);
+    this->ring_buffer_ = nullptr;
+
+    // Free the allocated memory
+    RAMAllocator<uint8_t> allocator;
+    allocator.deallocate(this->storage_, this->size_);
+    this->storage_ = nullptr;
+  }
 }
 
 bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text, void **received_token) {
