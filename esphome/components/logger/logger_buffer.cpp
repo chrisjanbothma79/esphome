@@ -13,15 +13,11 @@ static const char *const TAG = "logger_buffer";
 LogBuffer::LogBuffer(size_t total_buffer_size) {
   // Store the buffer size
   this->size_ = total_buffer_size;
-
   // Allocate memory for the ring buffer using ESPHome's RAM allocator
   RAMAllocator<uint8_t> allocator;
   this->storage_ = allocator.allocate(this->size_);
-
   // Create a static ring buffer with the allocated memory
   this->ring_buffer_ = xRingbufferCreateStatic(this->size_, RINGBUF_TYPE_BYTEBUF, this->storage_, &this->structure_);
-
-  ESP_LOGD(TAG, "Created logger buffer with size %u", total_buffer_size);
 }
 
 LogBuffer::~LogBuffer() {
