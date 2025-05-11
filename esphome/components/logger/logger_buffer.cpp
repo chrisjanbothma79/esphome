@@ -96,8 +96,6 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
   // Set the final text length in the header
   msg->text_length = text_length;
 
-  // No need to add null terminator as we track the length explicitly
-
   // Calculate total size to send (header + text)
   size_t total_size = sizeof(LogMessage) + text_length;
 
