@@ -119,15 +119,17 @@ bool IRAM_ATTR ISRInternalGPIOPin::digital_read() {
 void IRAM_ATTR ISRInternalGPIOPin::digital_write(bool value) {
   auto *arg = reinterpret_cast<ISRPinArg *>(arg_);
   if (arg->pin < 16) {
-    if (value != arg->inverted)
+    if (value != arg->inverted) {
       *arg->out_set_reg = arg->mask;
-    else
+    } else {
       *arg->out_clr_reg = arg->mask;
+    }
   } else {
-    if (value != arg->inverted)
+    if (value != arg->inverted) {
       *arg->out_set_reg |= 1;
-    else
+    } else {
       *arg->out_set_reg &= ~1;
+    }
   }
 }
 
