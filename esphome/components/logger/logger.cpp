@@ -66,10 +66,12 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   }
 
 #ifdef USE_ESPHOME_LOG_BUFFER
-  // For non-main tasks, queue the message for callbacks
-  // This will be processed in the main loop
-  this->log_buffer_->send_message_thread_safe(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
-                                              current_task, format, args);
+  // For non-main tasks, queue the message for callbacks - but only if we have any callbacks registered
+  if (this->log_callback_.size() > 0) {
+    // This will be processed in the main loop
+    this->log_buffer_->send_message_thread_safe(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
+                                                current_task, format, args);
+  }
 #endif  // USE_ESPHOME_LOG_BUFFER
 
   recursion_guard_.store(false, std::memory_order_release);

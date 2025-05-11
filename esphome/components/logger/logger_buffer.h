@@ -60,7 +60,9 @@ class LogBuffer {
   void release_message_main_loop(void *token);
 
   // Check if there are messages ready to be processed using an atomic counter for performance
-  bool has_messages() const { return message_counter_.load(std::memory_order_relaxed) != last_processed_counter_; }
+  inline bool HOT has_messages() const {
+    return message_counter_.load(std::memory_order_relaxed) != last_processed_counter_;
+  }
 
  private:
   RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle
