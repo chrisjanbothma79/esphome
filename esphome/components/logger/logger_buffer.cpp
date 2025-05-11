@@ -80,6 +80,7 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
   msg->level = level;
   msg->tag = tag;
   msg->line = line;
+  // Store the current task handle
   msg->task_handle = xTaskGetCurrentTaskHandle();
 
   // Format the message text directly after the header
