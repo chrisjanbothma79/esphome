@@ -316,11 +316,31 @@ void Logger::loop() {
 
         // Report occasionally about missing messages we expected to find
         if (empty_checks % 10 == 0 && this->baud_rate_ > 0) {
+          // Create a special message for debugging and also attempt to reset buffer
+          // since we're stuck in a state where messages can't be retrieved
           char buf[120];
-          snprintf(buf, sizeof(buf), "WARN: %u committed messages not found after %u checks (commit:%u borrow:%u)",
-                   this->log_buffer_->get_commit_success() - this->log_buffer_->get_borrow_success(), empty_checks,
-                   this->log_buffer_->get_commit_success(), this->log_buffer_->get_borrow_success());
-          this->write_msg_(buf);
+
+          if (empty_checks >= 100) {
+            // After many failed attempts, try a more drastic approach - reinitialize the ring buffer
+            // This is an emergency solution to recover from buffer issues
+            snprintf(buf, sizeof(buf), "ERROR: Buffer stuck with %u messages after %u checks - emergency reset",
+                     this->log_buffer_->get_commit_success() - this->log_buffer_->get_borrow_success(), empty_checks);
+            this->write_msg_(buf);
+
+            // Re-initialize the log buffer with original size
+            size_t buffer_size = 1024;    // Default fallback
+            this->log_buffer_ = nullptr;  // Delete old buffer
+            this->log_buffer_ = esphome::make_unique<logger::LogBuffer>(buffer_size);
+
+            this->write_msg_("Log buffer reset complete");
+            empty_checks = 0;  // Reset counter
+          } else {
+            // Normal warning during initial attempts
+            snprintf(buf, sizeof(buf), "WARN: %u committed messages not found after %u checks (commit:%u borrow:%u)",
+                     this->log_buffer_->get_commit_success() - this->log_buffer_->get_borrow_success(), empty_checks,
+                     this->log_buffer_->get_commit_success(), this->log_buffer_->get_borrow_success());
+            this->write_msg_(buf);
+          }
         }
       }
     } else {
