@@ -53,23 +53,29 @@ void SoundLevelComponent::loop() {
 
   if (this->microphone_source_->is_running()) {
     // Allocate buffers, if necessary
+    this->status_clear_warning();
     this->start_();
   } else {
-    // Deallocate buffers, if necessary
-    this->stop_();
+    if (!this->status_has_warning()) {
+      this->status_set_warning("Microphone isn't running, can't compute statistics");
 
-    // Reset sensor outputs
-    if (this->peak_sensor_ != nullptr) {
-      this->peak_sensor_->publish_state(NAN);
-    }
-    if (this->rms_sensor_ != nullptr) {
-      this->rms_sensor_->publish_state(NAN);
+      // Deallocate buffers, if necessary
+      this->stop_();
+
+      // Reset sensor outputs
+      if (this->peak_sensor_ != nullptr) {
+        this->peak_sensor_->publish_state(NAN);
+      }
+      if (this->rms_sensor_ != nullptr) {
+        this->rms_sensor_->publish_state(NAN);
+      }
+
+      // Reset accumulators
+      this->squared_peak_ = 0;
+      this->squared_samples_sum_ = 0;
+      this->sample_count_ = 0;
     }
 
-    // Reset accumulators
-    this->squared_peak_ = 0;
-    this->squared_samples_sum_ = 0;
-    this->sample_count_ = 0;
     return;
   }
 
