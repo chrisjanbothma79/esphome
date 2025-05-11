@@ -51,10 +51,11 @@ void SoundLevelComponent::loop() {
     return;
   }
 
-  if (this->microphone_source_->is_running()) {
-    // Allocate buffers, if necessary
-    this->status_clear_warning();
-    this->start_();
+  if (this->microphone_source_->is_running() && !this->status_has_error()) {
+    // Allocate buffers
+    if (this->start_()) {
+      this->status_clear_warning();
+    }
   } else {
     if (!this->status_has_warning()) {
       this->status_set_warning("Microphone isn't running, can't compute statistics");
@@ -76,6 +77,10 @@ void SoundLevelComponent::loop() {
       this->sample_count_ = 0;
     }
 
+    return;
+  }
+
+  if (this->status_has_error()) {
     return;
   }
 
@@ -140,10 +145,6 @@ void SoundLevelComponent::loop() {
 }
 
 void SoundLevelComponent::start() {
-  if (this->status_has_error()) {
-    return;
-  }
-
   if (this->microphone_source_->is_passive()) {
     ESP_LOGW(TAG, "Can't start the microphone in passive mode");
     return;
@@ -159,31 +160,34 @@ void SoundLevelComponent::stop() {
   this->microphone_source_->stop();
 }
 
-void SoundLevelComponent::start_() {
-  if (this->audio_buffer_ == nullptr) {
-    // Allocate a transfer buffer
-    this->audio_buffer_ = audio::AudioSourceTransferBuffer::create(
-        this->microphone_source_->get_audio_stream_info().ms_to_bytes(AUDIO_BUFFER_DURATION_MS));
-    if (this->audio_buffer_ == nullptr) {
-      this->status_set_error("Failed to allocate transfer buffer");
-      return;
-    }
+bool SoundLevelComponent::start_() {
+  if (this->audio_buffer_ != nullptr) {
+    return true;
+  }
 
-    // Allocates a new ring buffer, adds it as a source for the transfer buffer, and points ring_buffer_ to it
-    this->ring_buffer_.reset();  // Reset pointer to any previous ring buffer allocation
-    std::shared_ptr<RingBuffer> temp_ring_buffer =
-        RingBuffer::create(this->microphone_source_->get_audio_stream_info().ms_to_bytes(RING_BUFFER_DURATION_MS));
-    if (temp_ring_buffer.use_count() == 0) {
-      this->status_set_error("Failed to allocate ring buffer");
-      this->stop_();
-      return;
-    } else {
-      this->ring_buffer_ = temp_ring_buffer;
-      this->audio_buffer_->set_source(temp_ring_buffer);
-    }
+  // Allocate a transfer buffer
+  this->audio_buffer_ = audio::AudioSourceTransferBuffer::create(
+      this->microphone_source_->get_audio_stream_info().ms_to_bytes(AUDIO_BUFFER_DURATION_MS));
+  if (this->audio_buffer_ == nullptr) {
+    this->status_momentary_error("Failed to allocate transfer buffer", 15000);
+    return false;
+  }
+
+  // Allocates a new ring buffer, adds it as a source for the transfer buffer, and points ring_buffer_ to it
+  this->ring_buffer_.reset();  // Reset pointer to any previous ring buffer allocation
+  std::shared_ptr<RingBuffer> temp_ring_buffer =
+      RingBuffer::create(this->microphone_source_->get_audio_stream_info().ms_to_bytes(RING_BUFFER_DURATION_MS));
+  if (temp_ring_buffer.use_count() == 0) {
+    this->status_momentary_error("Failed to allocate ring buffer", 15000);
+    this->stop_();
+    return false;
+  } else {
+    this->ring_buffer_ = temp_ring_buffer;
+    this->audio_buffer_->set_source(temp_ring_buffer);
   }
 
   this->status_clear_error();
+  return true;
 }
 
 void SoundLevelComponent::stop_() { this->audio_buffer_.reset(); }

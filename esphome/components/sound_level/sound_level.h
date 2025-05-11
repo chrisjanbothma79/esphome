@@ -37,8 +37,8 @@ class SoundLevelComponent : public Component {
 
  protected:
   /// @brief Internal start command that, if necessary, allocates ``audio_buffer_`` and a ring buffer which
-  /// ``audio_buffer_`` owns and ``ring_buffer_`` points to.
-  void start_();
+  /// ``audio_buffer_`` owns and ``ring_buffer_`` points to. Returns true if allocations were successful.
+  bool start_();
 
   /// @brief Internal stop command the deallocates ``audio_buffer_`` (which automatically deallocates its ring buffer)
   void stop_();
