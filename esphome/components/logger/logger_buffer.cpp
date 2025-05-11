@@ -103,21 +103,12 @@ bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text
   size_t item_size = 0;
   void *received_item = xRingbufferReceive(ring_buffer_, &item_size, 0);
   // xRingbufferReceive returns NULL if no items are available, otherwise returns a pointer to the received item
-
   if (received_item == nullptr) {
     return false;
   }
 
   // Cast to LogMessage - we know the item is valid because we control the allocation
   LogMessage *msg = static_cast<LogMessage *>(received_item);
-
-  // Skip validation of total size since we're using fixed allocation with NOSPLIT buffer
-  // This avoids potential issues with how the message size is calculated
-
-  // We control the text_length in commit_message, so this should always be valid
-  // No need to check if it exceeds LOG_MSG_SIZE since we enforce that during commit
-
-  // Set the output parameters
   *message = msg;
   *text = msg->text_data();
   *received_token = received_item;
@@ -196,14 +187,15 @@ bool LogBuffer::send_message(uint8_t level, const char *tag, uint16_t line, cons
 
 void LogBuffer::release_message_main_loop(void *token) {
   // Check if there's a valid token to release
-  if (token != nullptr) {
-    // Return the item to the ring buffer
-    vRingbufferReturnItem(ring_buffer_, token);
-
-    // Update the last processed counter to match the current message counter
-    // This marks all messages as processed up to the current point
-    last_processed_counter_ = message_counter_.load(std::memory_order_relaxed);
+  if (token == nullptr) {
+    return;  // Nothing to release
   }
+  // Return the item to the ring buffer
+  vRingbufferReturnItem(ring_buffer_, token);
+
+  // Update the last processed counter to match the current message counter
+  // This marks all messages as processed up to the current point
+  last_processed_counter_ = message_counter_.load(std::memory_order_relaxed);
 }
 
 }  // namespace logger
