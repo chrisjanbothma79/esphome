@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstring>
 #include <memory>
+#include <atomic>
 #include <freertos/FreeRTOS.h>
 #include <freertos/ringbuf.h>
 
@@ -56,29 +57,36 @@ class LogBuffer {
   // Borrow the next message from the ring buffer along with its text
   // Returns the message metadata and the message text through the out parameters
   // Returns false if the buffer is empty
-  // Also returns a token that must be used with release_message for thread safety
-  bool borrow_message(LogMessage **message, const char **text, void **received_token);
+  // NOT thread-safe - only to be called from the main loop
+  // Also returns a token that must be used with release_message_main_loop
+  bool borrow_message_main_loop(LogMessage **message, const char **text, void **received_token);
 
   // Release a message buffer (either borrowed or prepared)
-  // Use with received_token from borrow_message or message_token from prepare_message
-  // This function is used to:
-  // 1. Release a borrowed message after processing
-  // 2. Cancel a prepared message without committing
+  // Use with message_token from prepare_message when canceling preparation
+  // This function is thread-safe and can be called from any context
+  // Used to cancel a prepared message without committing
   void release_message(void *token);
+
+  // Release a message buffer and update the message counter
+  // NOT thread-safe - only to be called from the main loop after borrowing a message
+  // This updates internal state tracking for has_messages efficiency
+  void release_message_main_loop(void *token);
 
   // For tracking buffer usage - used by logger.cpp to detect if messages need processing
   // Returns true if there are messages in the buffer ready to be processed
   bool has_messages() const {
-    // Get actual buffer info directly from FreeRTOS
-    UBaseType_t items_waiting = 0;
-    vRingbufferGetInfo(ring_buffer_, NULL, NULL, NULL, NULL, &items_waiting);
-    return items_waiting > 0;
+    // Use atomic counter for better performance than directly querying the buffer
+    return message_counter_.load(std::memory_order_relaxed) != last_processed_counter_;
   }
+
+  // These methods are only used internally, removed to simplify API
 
  private:
   RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle
 
-  // No counters needed - using direct buffer info instead
+  // Atomic counter for tracking messages - uint16_t is fine as we only care about changes
+  std::atomic<uint16_t> message_counter_{0};    // Incremented when a message is committed
+  mutable uint16_t last_processed_counter_{0};  // Last processed message counter
 
   // Return total message size needed for given text length
   inline size_t message_size_for(size_t text_length) const {

@@ -222,7 +222,7 @@ void Logger::loop() {
     void *received_token;
 
     // Process messages from the buffer
-    while (this->log_buffer_->borrow_message(&message, &text, &received_token)) {
+    while (this->log_buffer_->borrow_message_main_loop(&message, &text, &received_token)) {
       this->tx_buffer_at_ = 0;
       this->write_header_to_buffer_(message->level, message->tag, message->line, this->tx_buffer_, &this->tx_buffer_at_,
                                     this->tx_buffer_size_, message->thread_name);
@@ -231,7 +231,8 @@ void Logger::loop() {
       this->write_footer_to_buffer_(this->tx_buffer_, &this->tx_buffer_at_, this->tx_buffer_size_);
       this->log_message_(message->level, message->tag);
 
-      this->log_buffer_->release_message(received_token);
+      // Use main loop version of release_message that updates the counter tracking
+      this->log_buffer_->release_message_main_loop(received_token);
     }
   }
 #endif

@@ -11,9 +11,8 @@ static const char *const TAG = "logger_buffer";
 
 LogBuffer::LogBuffer(size_t total_buffer_size) {
   // Create a no-split buffer for acquire/complete operations
-  // Make sure the buffer is at least large enough for a couple of messages plus overhead
-  size_t actual_size = (total_buffer_size < 1024) ? 1024 : total_buffer_size;
-  ring_buffer_ = xRingbufferCreate(actual_size, RINGBUF_TYPE_NOSPLIT);
+  // The size is guaranteed to be at least 1024 bytes by the config validation
+  ring_buffer_ = xRingbufferCreate(total_buffer_size, RINGBUF_TYPE_NOSPLIT);
 }
 
 LogBuffer::~LogBuffer() {
@@ -80,14 +79,6 @@ void LogBuffer::commit_message(size_t text_length, void *message_token) {
   // Get the message header from the token
   LogMessage *msg = static_cast<LogMessage *>(message_token);
 
-  // Calculate available space for text (excluding header and null terminator)
-  size_t max_allowed_text = MAX_MESSAGE_TEXT_SIZE;
-
-  // Limit text length if necessary
-  if (text_length > max_allowed_text) {
-    text_length = max_allowed_text;
-  }
-
   // Set the text length in the message header
   msg->text_length = text_length;
 
@@ -97,10 +88,13 @@ void LogBuffer::commit_message(size_t text_length, void *message_token) {
   // Commit the message to the ring buffer
   xRingbufferSendComplete(ring_buffer_, message_token);
 
+  // Increment the message counter to notify the logger task
+  message_counter_.fetch_add(1, std::memory_order_relaxed);
+
   // Logging complete
 }
 
-bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **received_token) {
+bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text, void **received_token) {
   // Check for valid output parameters
   if (message == nullptr || text == nullptr || received_token == nullptr) {
     return false;
@@ -130,6 +124,7 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
   // Just check that text_length is reasonable
   if (msg->text_length > MAX_MESSAGE_TEXT_SIZE) {
     // Text length exceeds expected range
+    // At this point, received_item is guaranteed to be non-null from earlier checks
     vRingbufferReturnItem(ring_buffer_, received_item);
     return false;
   }
@@ -147,6 +142,18 @@ void LogBuffer::release_message(void *token) {
   if (token != nullptr) {
     // Return the item to the ring buffer
     vRingbufferReturnItem(ring_buffer_, token);
+  }
+}
+
+void LogBuffer::release_message_main_loop(void *token) {
+  // Check if there's a valid token to release
+  if (token != nullptr) {
+    // Return the item to the ring buffer
+    vRingbufferReturnItem(ring_buffer_, token);
+
+    // Update the last processed counter to match the current message counter
+    // This marks all messages as processed up to the current point
+    last_processed_counter_ = message_counter_.load(std::memory_order_relaxed);
   }
 }
 

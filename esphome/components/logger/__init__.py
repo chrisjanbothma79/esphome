@@ -189,7 +189,7 @@ CONFIG_SCHEMA = cv.All(
                 cv.Any(
                     cv.int_(0),  # Disabled
                     cv.int_range(
-                        min=512,  # Min: ~4-5 messages with 70-byte text
+                        min=1024,  # Min: ~8-10 messages with 70-byte text
                         max=32768,  # Max: Depends on message sizes, typically ~350 messages with default size
                     ),
                 ),
