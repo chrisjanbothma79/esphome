@@ -269,6 +269,9 @@ class Logger : public Component {
     while (*buffer_at > 0 && buffer[*buffer_at - 1] == '\n') {
       (*buffer_at)--;
     }
+
+    // Note: We intentionally do not check for empty messages here
+    // Empty messages (like blank lines) are valid and should be preserved
   }
 
   inline void HOT write_footer_to_buffer_(char *buffer, int *buffer_at, int buffer_size) {
