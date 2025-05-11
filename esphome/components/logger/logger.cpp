@@ -43,11 +43,11 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     int ret = vsnprintf(buffer, capacity, format, args);
 
     // Calculate actual text length based on vsnprintf result:
-    // - negative: encoding error, skip message
+    // - zero or negative: empty or encoding error, skip message
     // - exceeds capacity: truncated, use capacity-1
     // - otherwise: use actual length
-    if (ret < 0) {
-      // Error in vsnprintf, cancel the prepared message
+    if (ret <= 0) {
+      // Empty message or error in vsnprintf, cancel the prepared message
       this->log_buffer_->cancel_prepare();
       recursion_guard_.store(false, std::memory_order_release);
       return;
