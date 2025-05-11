@@ -12,7 +12,7 @@ static const char *const TAG = "logger_buffer";
 LogBuffer::LogBuffer(size_t total_buffer_size) {
   // Create a byte buffer for message operations
   // The size is guaranteed to be at least 1024 bytes by the config validation
-  ring_buffer_ = xRingbufferCreate(total_buffer_size, RINGBUF_TYPE_BYTES);
+  ring_buffer_ = xRingbufferCreate(total_buffer_size, RINGBUF_TYPE_BYTEBUF);
 }
 
 LogBuffer::~LogBuffer() {

@@ -50,15 +50,6 @@ class LogBuffer {
   // Buffer size that includes space for LogMessage struct, text content, and temporary null terminator
   static constexpr size_t LOG_MSG_BUFFER_SIZE = LOG_MSG_STRUCT_SIZE + LOG_MSG_SIZE_WITH_NULL;
 
-  // Implementation of LogMessage methods using the struct size constant
-  inline char *LogMessage::text_data() { return reinterpret_cast<char *>(this) + LOG_MSG_STRUCT_SIZE; }
-
-  inline const char *LogMessage::text_data() const {
-    return reinterpret_cast<const char *>(this) + LOG_MSG_STRUCT_SIZE;
-  }
-
-  inline size_t LogMessage::total_size() const { return LOG_MSG_STRUCT_SIZE + text_length; }
-
   // Constructor that takes a total buffer size
   explicit LogBuffer(size_t total_buffer_size);
   ~LogBuffer();
@@ -75,6 +66,9 @@ class LogBuffer {
   // NOT thread-safe - only to be called from the main loop
   // Also returns a token that must be used with release_message_main_loop
   bool borrow_message_main_loop(LogMessage **message, const char **text, void **received_token);
+
+  // Cancel a message without updating counters
+  void cancel_message(void *token);
 
   // Release a message buffer and update the message counter
   // NOT thread-safe - only to be called from the main loop after borrowing a message
@@ -99,6 +93,17 @@ class LogBuffer {
 
   // We no longer need this function since we use LOG_MSG_BUFFER_SIZE directly
 };
+
+// Implementation of LogMessage methods outside the LogBuffer class
+inline char *LogBuffer::LogMessage::text_data() {
+  return reinterpret_cast<char *>(this) + LogBuffer::LOG_MSG_STRUCT_SIZE;
+}
+
+inline const char *LogBuffer::LogMessage::text_data() const {
+  return reinterpret_cast<const char *>(this) + LogBuffer::LOG_MSG_STRUCT_SIZE;
+}
+
+inline size_t LogBuffer::LogMessage::total_size() const { return LogBuffer::LOG_MSG_STRUCT_SIZE + text_length; }
 
 }  // namespace logger
 }  // namespace esphome
