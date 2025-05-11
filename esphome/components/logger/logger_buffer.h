@@ -33,22 +33,16 @@ class LogBuffer {
     uint16_t line;            // Source code line number
     uint8_t level;            // Log level (0-7)
 
-    // Helper to get pointer to text data following this header
-    char *text_data();  // Defined after LOG_MSG_STRUCT_SIZE is declared
+    // Methods defined inline within the struct
+    inline char *text_data() { return reinterpret_cast<char *>(this) + sizeof(LogMessage); }
 
-    // Helper to get const pointer to text data following this header
-    const char *text_data() const;  // Defined after LOG_MSG_STRUCT_SIZE is declared
+    inline const char *text_data() const { return reinterpret_cast<const char *>(this) + sizeof(LogMessage); }
 
-    // Get total size including header and text
-    // We don't need null terminator since we track the length explicitly
-    size_t total_size() const;  // Defined after LOG_MSG_STRUCT_SIZE is declared
+    inline size_t total_size() const { return sizeof(LogMessage) + text_length; }
   };
 
-  // Size of the LogMessage struct
-  static constexpr size_t LOG_MSG_STRUCT_SIZE = sizeof(LogMessage);
-
   // Buffer size that includes space for LogMessage struct, text content, and temporary null terminator
-  static constexpr size_t LOG_MSG_BUFFER_SIZE = LOG_MSG_STRUCT_SIZE + LOG_MSG_SIZE_WITH_NULL;
+  static constexpr size_t LOG_MSG_BUFFER_SIZE = sizeof(LogMessage) + LOG_MSG_SIZE_WITH_NULL;
 
   // Constructor that takes a total buffer size
   explicit LogBuffer(size_t total_buffer_size);
@@ -93,17 +87,6 @@ class LogBuffer {
 
   // We no longer need this function since we use LOG_MSG_BUFFER_SIZE directly
 };
-
-// Implementation of LogMessage methods outside the LogBuffer class
-inline char *LogBuffer::LogMessage::text_data() {
-  return reinterpret_cast<char *>(this) + LogBuffer::LOG_MSG_STRUCT_SIZE;
-}
-
-inline const char *LogBuffer::LogMessage::text_data() const {
-  return reinterpret_cast<const char *>(this) + LogBuffer::LOG_MSG_STRUCT_SIZE;
-}
-
-inline size_t LogBuffer::LogMessage::total_size() const { return LogBuffer::LOG_MSG_STRUCT_SIZE + text_length; }
 
 }  // namespace logger
 }  // namespace esphome
