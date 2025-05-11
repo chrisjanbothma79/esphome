@@ -44,6 +44,8 @@ CONF_READ_LAMBDA = "read_lambda"
 CONF_SERVER_REGISTERS = "server_registers"
 MULTI_CONF = True
 
+KEY_SERVER_REGISTERS = "server_registers"
+
 modbus_controller_ns = cg.esphome_ns.namespace("modbus_controller")
 ModbusController = modbus_controller_ns.class_(
     "ModbusController", cg.PollingComponent, modbus.ModbusDevice
@@ -162,7 +164,7 @@ ModbusServerRegisterSchema = cv.Schema(
             cv.Optional(CONF_VALUE_TYPE, default="U_WORD"): cv.enum(SENSOR_VALUE_TYPE),
             cv.Required(CONF_READ_LAMBDA): cv.returning_lambda,
         },
-        validate_address("ServerRegisters"),
+        validate_address(KEY_SERVER_REGISTERS),
     )
 )
 
