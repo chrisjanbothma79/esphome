@@ -65,8 +65,9 @@ class LogBuffer {
 
   // Send a message to the ring buffer
   // Returns true if the message was successfully sent, false otherwise
-  bool send_message(uint8_t level, const char *tag, uint16_t line, const char *thread_name, const char *format,
-                    va_list args);
+  // Thread-safe - can be called from any thread including interrupts
+  bool send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, const char *thread_name,
+                                const char *format, va_list args);
 
   // Borrow the next message from the ring buffer along with its text
   // Returns the message metadata and the message text through the out parameters

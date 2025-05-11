@@ -53,8 +53,8 @@ void LogBuffer::cancel_message(void *token) {
   vRingbufferReturnItem(ring_buffer_, token);
 }
 
-bool LogBuffer::send_message(uint8_t level, const char *tag, uint16_t line, const char *thread_name, const char *format,
-                             va_list args) {
+bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, const char *thread_name,
+                                         const char *format, va_list args) {
   // Create a buffer for the entire message (header + text + null terminator)
   // Stack allocation is fine for this size (typically ~150 bytes total)
   uint8_t buffer[LOG_MSG_BUFFER_SIZE];
