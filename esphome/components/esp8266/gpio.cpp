@@ -139,23 +139,27 @@ void IRAM_ATTR ISRInternalGPIOPin::clear_interrupt() {
 void IRAM_ATTR ISRInternalGPIOPin::pin_mode(gpio::Flags flags) {
   auto *arg = reinterpret_cast<ISRPinArg *>(this->arg_);
   if (arg->pin < 16) {
-    if (flags & gpio::FLAG_OUTPUT)
+    if (flags & gpio::FLAG_OUTPUT) {
       *arg->mode_set_reg = arg->mask;
-    else
+    } else {
       *arg->mode_clr_reg = arg->mask;
-    if (flags & gpio::FLAG_PULLUP)
+    }
+    if (flags & gpio::FLAG_PULLUP) {
       *arg->func_reg |= 1 << GPFPU;
-    else
+    } else {
       *arg->func_reg &= ~(1 << GPFPU);
+    }
   } else {
-    if (flags & gpio::FLAG_OUTPUT)
+    if (flags & gpio::FLAG_OUTPUT) {
       *arg->mode_set_reg |= 1;
-    else
+    } else {
       *arg->mode_set_reg &= ~1;
-    if (flags & gpio::FLAG_PULLDOWN)
+    }
+    if (flags & gpio::FLAG_PULLDOWN) {
       *arg->func_reg |= 1 << GP16FPD;
-    else
+    } else {
       *arg->func_reg &= ~(1 << GP16FPD);
+    }
   }
 }
 

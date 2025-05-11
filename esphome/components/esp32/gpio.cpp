@@ -28,20 +28,18 @@ bool ESP32InternalGPIOPin::isr_service_installed = false;  // NOLINT(cppcoreguid
 
 static gpio_mode_t flags_to_mode(gpio::Flags flags) {
   flags = (gpio::Flags)(flags & ~(gpio::FLAG_PULLUP | gpio::FLAG_PULLDOWN));
-  if (flags == gpio::FLAG_INPUT) {
+  if (flags == gpio::FLAG_INPUT)
     return GPIO_MODE_INPUT;
-  } else if (flags == gpio::FLAG_OUTPUT) {
+  if (flags == gpio::FLAG_OUTPUT)
     return GPIO_MODE_OUTPUT;
-  } else if (flags == (gpio::FLAG_OUTPUT | gpio::FLAG_OPEN_DRAIN)) {
+  if (flags == (gpio::FLAG_OUTPUT | gpio::FLAG_OPEN_DRAIN))
     return GPIO_MODE_OUTPUT_OD;
-  } else if (flags == (gpio::FLAG_INPUT | gpio::FLAG_OUTPUT | gpio::FLAG_OPEN_DRAIN)) {
+  if (flags == (gpio::FLAG_INPUT | gpio::FLAG_OUTPUT | gpio::FLAG_OPEN_DRAIN))
     return GPIO_MODE_INPUT_OUTPUT_OD;
-  } else if (flags == (gpio::FLAG_INPUT | gpio::FLAG_OUTPUT)) {
+  if (flags == (gpio::FLAG_INPUT | gpio::FLAG_OUTPUT))
     return GPIO_MODE_INPUT_OUTPUT;
-  } else {
-    // unsupported or gpio::FLAG_NONE
-    return GPIO_MODE_DISABLE;
-  }
+  // unsupported or gpio::FLAG_NONE
+  return GPIO_MODE_DISABLE;
 }
 
 struct ISRPinArg {
@@ -171,25 +169,29 @@ void IRAM_ATTR ISRInternalGPIOPin::pin_mode(gpio::Flags flags) {
       gpio_hal_input_enable(&_gpio_hal, arg->pin);
 #if defined(USE_ESP32_VARIANT_ESP32)
       if (arg->use_rtc) {
-        if (flags & gpio::FLAG_PULLUP)
+        if (flags & gpio::FLAG_PULLUP) {
           rtcio_hal_pullup_enable(arg->rtc_pin);
-        else
+        } else {
           rtcio_hal_pullup_disable(arg->rtc_pin);
-        if (flags & gpio::FLAG_PULLDOWN)
+        }
+        if (flags & gpio::FLAG_PULLDOWN) {
           rtcio_hal_pulldown_enable(arg->rtc_pin);
-        else
+        } else {
           rtcio_hal_pulldown_disable(arg->rtc_pin);
+        }
       } else
 #endif
       {
-        if (flags & gpio::FLAG_PULLUP)
+        if (flags & gpio::FLAG_PULLUP) {
           gpio_hal_pullup_en(&_gpio_hal, arg->pin);
-        else
+        } else {
           gpio_hal_pullup_dis(&_gpio_hal, arg->pin);
-        if (flags & gpio::FLAG_PULLDOWN)
+        }
+        if (flags & gpio::FLAG_PULLDOWN) {
           gpio_hal_pulldown_en(&_gpio_hal, arg->pin);
-        else
+        } else {
           gpio_hal_pulldown_dis(&_gpio_hal, arg->pin);
+        }
       }
     } else {
       gpio_hal_input_disable(&_gpio_hal, arg->pin);
