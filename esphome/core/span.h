@@ -32,7 +32,6 @@ http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/n4820.pdf
 // DEALINGS IN THE SOFTWARE.
 
 #pragma once
-#define TCB_SPAN_NAMESPACE_NAME esphome
 // clang-format off
 // NOLINTBEGIN
 
