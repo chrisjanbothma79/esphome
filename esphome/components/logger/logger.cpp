@@ -5,7 +5,7 @@
 #include "logger_buffer.h"
 #else
 // When log buffer is not enabled, define this constant locally
-constexpr size_t LOG_MSG_SIZE_WITH_NULL = 160;
+constexpr size_t LOG_MSG_SIZE_WITH_NULL = 129;
 #endif
 
 #include "esphome/core/hal.h"
