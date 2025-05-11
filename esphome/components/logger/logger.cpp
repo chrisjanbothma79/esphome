@@ -207,10 +207,30 @@ void Logger::loop() {
 #endif
 
 #ifdef USE_ESPHOME_LOG_BUFFER
+  // Add debug counter for loop calls
+  static uint32_t loop_count = 0;
+  loop_count++;
+
+  // Every 100 loops, print diagnostic directly to console
+  if (loop_count % 100 == 0) {
+    char dbg_buf[80];
+    snprintf(dbg_buf, sizeof(dbg_buf), "DBGINFO: Logger loop called %u times", loop_count);
+    if (this->baud_rate_ > 0) {
+      this->write_msg_(dbg_buf);
+    }
+  }
+
   logger::LogBuffer::LogMessage *message;
   const char *text;
   void *received_token;
-  while (this->log_buffer_->borrow_message(&message, &text, &received_token)) {
+  bool any_messages = false;
+  int msg_count = 0;
+
+  // Process up to 10 messages per loop call to avoid blocking too long
+  while (msg_count < 10 && this->log_buffer_->borrow_message(&message, &text, &received_token)) {
+    any_messages = true;
+    msg_count++;
+
     this->tx_buffer_at_ = 0;
     this->write_header_to_buffer_(message->level, message->tag, message->line, this->tx_buffer_, &this->tx_buffer_at_,
                                   this->tx_buffer_size_, message->thread_name);
@@ -220,6 +240,29 @@ void Logger::loop() {
     this->log_message_(message->level, message->tag);
 
     this->log_buffer_->release_message(received_token);
+  }
+
+  // If messages were processed, occasionally print the count
+  if (msg_count > 0 && loop_count % 50 == 0 && this->baud_rate_ > 0) {
+    char count_buf[60];
+    snprintf(count_buf, sizeof(count_buf), "DBGINFO: Processed %d buffered messages", msg_count);
+    this->write_msg_(count_buf);
+  }
+
+  // If no messages were processed for 10 consecutive calls, something might be wrong
+  static uint8_t empty_count = 0;
+  if (!any_messages) {
+    if (++empty_count >= 10) {
+      // Log directly to serial using emergency path - won't go through the buffer
+      char emergency_buffer[80];
+      snprintf(emergency_buffer, sizeof(emergency_buffer),
+               "DBGINFO: No log messages in ring buffer for %u consecutive calls", empty_count);
+      if (this->baud_rate_ > 0) {
+        this->write_msg_(emergency_buffer);
+      }
+    }
+  } else {
+    empty_count = 0;
   }
 #endif
 }

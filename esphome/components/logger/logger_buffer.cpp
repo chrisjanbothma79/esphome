@@ -129,6 +129,10 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
   *text = msg->text_data();
   *received_token = received_item;
 
+  // Debug counter - increment each time we successfully borrow a message
+  static uint32_t msg_count = 0;
+  msg_count++;
+
   return true;
 }
 
