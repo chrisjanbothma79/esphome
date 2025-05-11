@@ -171,17 +171,12 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text) {
 }
 
 void LogBuffer::release_message() {
-  // Check if buffer is empty using atomic indices
+  // Check if buffer is empty or read position is invalid
   size_t read_idx = read_index_.load(std::memory_order_acquire);
   size_t write_idx = write_index_.load(std::memory_order_acquire);
 
-  if (read_idx == write_idx) {
-    return;  // Buffer empty
-  }
-
-  // Extra validation: ensure read_pos_ is not null and text_length is valid
-  if (read_pos_ == nullptr) {
-    return;  // Invalid read position
+  if (read_idx == write_idx || read_pos_ == nullptr) {
+    return;  // Buffer empty or invalid read position
   }
 
   // Calculate next read position based on the current message's size
