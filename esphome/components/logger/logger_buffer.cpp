@@ -22,19 +22,10 @@ LogBuffer::LogBuffer(size_t total_buffer_size) {
     ESP_LOGE(TAG, "Failed to create ring buffer");
     return;
   }
-
-  // Initialize tracking pointers for received items
-  received_item_ = nullptr;
 }
 
 LogBuffer::~LogBuffer() {
   if (ring_buffer_ != nullptr) {
-    // Check if there's a received item and release it
-    if (received_item_ != nullptr) {
-      xRingbufferReturnItem(ring_buffer_, received_item_);
-      received_item_ = nullptr;
-    }
-
     // Delete the ring buffer (frees the memory automatically)
     vRingbufferDelete(ring_buffer_);
     ring_buffer_ = nullptr;
@@ -116,54 +107,47 @@ void LogBuffer::commit_message(size_t text_length, void *message_token) {
   xRingbufferSendComplete(ring_buffer_, message_token);
 }
 
-bool LogBuffer::borrow_message(LogMessage **message, const char **text) {
+bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **received_token) {
   // Check for valid output parameters
-  if (message == nullptr || text == nullptr) {
+  if (message == nullptr || text == nullptr || received_token == nullptr) {
     return false;
-  }
-
-  // Make sure we don't have a previously unreleased message
-  if (received_item_ != nullptr) {
-    release_message();
   }
 
   // Try to receive an item from the ring buffer
   size_t item_size = 0;
-  received_item_ = xRingbufferReceive(ring_buffer_, &item_size, 0);
+  void *received_item = xRingbufferReceive(ring_buffer_, &item_size, 0);
 
-  if (received_item_ == nullptr || item_size < sizeof(LogMessage)) {
+  if (received_item == nullptr || item_size < sizeof(LogMessage)) {
     // No message available or item too small to be valid
-    if (received_item_ != nullptr) {
-      xRingbufferReturnItem(ring_buffer_, received_item_);
-      received_item_ = nullptr;
+    if (received_item != nullptr) {
+      xRingbufferReturnItem(ring_buffer_, received_item);
     }
     return false;
   }
 
   // Cast to LogMessage
-  LogMessage *msg = static_cast<LogMessage *>(received_item_);
+  LogMessage *msg = static_cast<LogMessage *>(received_item);
 
   // Validate the message size
   if (item_size < msg->total_size()) {
     // Message is truncated or invalid
-    xRingbufferReturnItem(ring_buffer_, received_item_);
-    received_item_ = nullptr;
+    xRingbufferReturnItem(ring_buffer_, received_item);
     return false;
   }
 
   // Set the output parameters
   *message = msg;
   *text = msg->text_data();
+  *received_token = received_item;
 
   return true;
 }
 
-void LogBuffer::release_message() {
-  // Check if there's a received item to release
-  if (received_item_ != nullptr) {
+void LogBuffer::release_message(void *received_token) {
+  // Check if there's a valid received token to release
+  if (received_token != nullptr) {
     // Return the item to the ring buffer
-    xRingbufferReturnItem(ring_buffer_, received_item_);
-    received_item_ = nullptr;
+    xRingbufferReturnItem(ring_buffer_, received_token);
   }
 }
 

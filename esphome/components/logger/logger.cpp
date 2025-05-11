@@ -209,7 +209,8 @@ void Logger::loop() {
 #ifdef USE_ESPHOME_LOG_BUFFER
   logger::LogBuffer::LogMessage *message;
   const char *text;
-  while (this->log_buffer_->borrow_message(&message, &text)) {
+  void *received_token;
+  while (this->log_buffer_->borrow_message(&message, &text, &received_token)) {
     this->tx_buffer_at_ = 0;
     this->write_header_to_buffer_(message->level, message->tag, message->line, this->tx_buffer_, &this->tx_buffer_at_,
                                   this->tx_buffer_size_, message->thread_name);
@@ -218,7 +219,7 @@ void Logger::loop() {
     this->write_footer_to_buffer_(this->tx_buffer_, &this->tx_buffer_at_, this->tx_buffer_size_);
     this->log_message_(message->level, message->tag);
 
-    this->log_buffer_->release_message();
+    this->log_buffer_->release_message(received_token);
   }
 #endif
 }

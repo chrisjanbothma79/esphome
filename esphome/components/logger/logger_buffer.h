@@ -56,11 +56,12 @@ class LogBuffer {
   // Borrow the next message from the ring buffer along with its text
   // Returns the message metadata and the message text through the out parameters
   // Returns false if the buffer is empty
-  bool borrow_message(LogMessage **message, const char **text);
+  // Also returns a token that must be used with release_message for thread safety
+  bool borrow_message(LogMessage **message, const char **text, void **received_token);
 
-  // Release a previously borrowed message
+  // Release a previously borrowed message with the received token
   // Must be called after processing a message returned by borrow_message
-  void release_message();
+  void release_message(void *received_token);
 
   // Cancel a prepared message without committing it
   // Call this if you want to abort a message preparation without committing
@@ -68,9 +69,6 @@ class LogBuffer {
 
  private:
   RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle
-
-  // For tracking received items in borrow/release operations
-  void *received_item_{nullptr};  // Pointer to currently received item (for borrow/release)
 
   // Return total message size needed for given text length
   inline size_t message_size_for(size_t text_length) const {
