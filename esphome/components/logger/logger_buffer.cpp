@@ -134,7 +134,8 @@ void LogBuffer::commit_message(size_t text_length) {
   char *next_msg_pos = reinterpret_cast<char *>(prepared_pos_) + total_msg_size;
 
   // Check if we need to wrap to the beginning of the buffer
-  if (next_msg_pos + sizeof(LogMessage) >= buffer_end) {
+  // Use a more conservative check to ensure we never write past the buffer end
+  if (next_msg_pos + sizeof(LogMessage) > buffer_ + buffer_size_ - 1) {
     next_msg_pos = buffer_;
   }
 
@@ -185,7 +186,8 @@ void LogBuffer::release_message() {
   char *next_read_pos = reinterpret_cast<char *>(read_pos_) + msg_size;
 
   // Check if we need to wrap around to beginning of buffer
-  if (next_read_pos >= buffer_end || next_read_pos + sizeof(LogMessage) > buffer_end) {
+  // Use a more conservative check to ensure we never read past the buffer end
+  if (next_read_pos + sizeof(LogMessage) > buffer_ + buffer_size_ - 1) {
     next_read_pos = buffer_;
   }
 
