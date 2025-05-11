@@ -25,11 +25,11 @@ class LogBuffer {
  public:
   // Structure for a log message header (text data follows immediately after)
   struct LogMessage {
-    const char *tag;          // We store the pointer, assuming tags are static
-    const char *thread_name;  // Thread name pointer (or nullptr for main thread)
-    uint16_t text_length;     // Length of the message text (up to ~64KB)
-    uint16_t line;            // Source code line number
-    uint8_t level;            // Log level (0-7)
+    const char *tag;           // We store the pointer, assuming tags are static
+    TaskHandle_t task_handle;  // Task handle instead of thread name (0 for main thread)
+    uint16_t text_length;      // Length of the message text (up to ~64KB)
+    uint16_t line;             // Source code line number
+    uint8_t level;             // Log level (0-7)
 
     // Methods defined inline within the struct
     inline char *text_data() { return reinterpret_cast<char *>(this) + sizeof(LogMessage); }
@@ -47,8 +47,7 @@ class LogBuffer {
   ~LogBuffer();
 
   // Thread-safe - send a message to the ring buffer from any thread
-  bool send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, const char *thread_name,
-                                const char *format, va_list args);
+  bool send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, const char *format, va_list args);
 
   // NOT thread-safe - borrow a message from the ring buffer, only call from main loop
   bool borrow_message_main_loop(LogMessage **message, const char **text, void **received_token);

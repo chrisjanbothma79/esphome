@@ -35,13 +35,11 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   }
 
 #ifdef USE_ESPHOME_LOG_BUFFER
-  // Only get thread name if needed (non-main task) and log buffer is enabled
-  const char *thread_name = pcTaskGetName(current_task);
 
   // Use the log buffer for messages from non-main tasks
   // If we successfully used the log buffer, return
-  if (this->log_buffer_->send_message_thread_safe(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
-                                                  thread_name, format, args)) {
+  if (this->log_buffer_->send_message_thread_safe(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line), format,
+                                                  args)) {
     recursion_guard_.store(false, std::memory_order_release);
     return;
   }
@@ -194,8 +192,9 @@ void Logger::loop() {
     // Process messages from the buffer
     while (this->log_buffer_->borrow_message_main_loop(&message, &text, &received_token)) {
       this->tx_buffer_at_ = 0;
+      const char *thread_name = pcTaskGetName(message->task_handle);
       this->write_header_to_buffer_(message->level, message->tag, message->line, this->tx_buffer_, &this->tx_buffer_at_,
-                                    this->tx_buffer_size_, message->thread_name);
+                                    this->tx_buffer_size_, thread_name);
       this->write_body_to_buffer_(text, message->text_length, this->tx_buffer_, &this->tx_buffer_at_,
                                   this->tx_buffer_size_);
       this->write_footer_to_buffer_(this->tx_buffer_, &this->tx_buffer_at_, this->tx_buffer_size_);
