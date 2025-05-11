@@ -66,7 +66,7 @@ class LogBuffer {
   // 2. Cancel a prepared message without committing
   void release_message(void *token);
 
-  // For tracking buffer usage
+  // For tracking buffer usage - used by logger.cpp to detect if messages need processing
   uint32_t get_commit_success() const { return commit_success_; }
   uint32_t get_borrow_success() const { return borrow_success_; }
 
