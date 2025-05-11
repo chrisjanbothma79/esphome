@@ -1,0 +1,4 @@
+<<: !include common-default_uart.yaml
+
+logger:
+  log_buffer_size: 512  # Minimum buffer size
