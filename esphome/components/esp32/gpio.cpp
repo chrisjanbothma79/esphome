@@ -14,7 +14,7 @@
 #endif
 
 #ifndef SOC_GPIO_SUPPORT_RTC_INDEPENDENT
-#define SOC_GPIO_SUPPORT_RTC_INDEPENDENT 0
+#define SOC_GPIO_SUPPORT_RTC_INDEPENDENT 0  // nolint
 #endif
 
 namespace esphome {
