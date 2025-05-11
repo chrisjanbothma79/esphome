@@ -1,0 +1,11 @@
+esphome:
+  name: test
+sdfs:
+  id: sdfs_1
+  type: sdspi
+  bus_width: "1bit"
+  bus_slot: ${bus_id_name}
+  miso_pin: ${miso_pin_name}
+  mosi_pin: ${mosi_pin_name}
+  clk_pin: ${clk_pin_name}
+  cs_pin: ${cs_pin_name}

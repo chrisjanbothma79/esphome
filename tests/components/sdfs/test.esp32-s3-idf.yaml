@@ -1,0 +1,10 @@
+esphome:
+  name: "test"
+
+substitutions:
+  slot_id_name: "1"
+  type_str: "sdmmc"
+  clk_pin_name: GPIO11
+  cmd_pin_name: GPIO12
+  data0_pin_name: GPIO13
+<<: !include common-sdmmc.yaml
