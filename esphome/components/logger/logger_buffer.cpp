@@ -125,13 +125,6 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
     return false;
   }
 
-  // For debugging purposes, show the actual item size we received
-  if (borrow_attempts_ % 500 == 0) {
-    const char *err = "RINGBUF-DBG: Received item size: %u bytes";
-    // We can't directly print here since we're in the logger
-    borrow_items_null_--;  // Adjust counter since we did find an item
-  }
-
   if (item_size < sizeof(LogMessage)) {
     // Item too small to be valid
     borrow_items_invalid_++;

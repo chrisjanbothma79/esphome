@@ -38,70 +38,44 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   size_t capacity;
   void *message_token = nullptr;
 
-  // Debug counters for buffer acquisition
-  static uint32_t prepare_attempt_count = 0;
-  static uint32_t prepare_success_count = 0;
-  static uint32_t prepare_fail_count = 0;
-  prepare_attempt_count++;
-
   char *buffer = this->log_buffer_->prepare_message(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
                                                     thread_name, capacity, &message_token);
 
-  // Print prepare stats less frequently
-  if (prepare_attempt_count % 200 == 0 && this->baud_rate_ > 0) {
-    char dbg[80];
-    snprintf(dbg, sizeof(dbg), "MSGDBG: prepare %u success %u fail %u", prepare_attempt_count, prepare_success_count,
-             prepare_fail_count);
-    this->write_msg_(dbg);
-  }
-
   if (buffer == nullptr) {
-    prepare_fail_count++;
+    return;
   }
 
-  if (buffer != nullptr) {
-    prepare_success_count++;
-    // Format the message into the ring buffer
-    int ret = vsnprintf(buffer, capacity, format, args);
+  // Format the message into the ring buffer
+  int ret = vsnprintf(buffer, capacity, format, args);
 
-    // Calculate actual text length based on vsnprintf result:
-    // - zero or negative: empty or encoding error, skip message
-    // - exceeds capacity: truncated, use capacity-1
-    // - otherwise: use actual length
-    if (ret <= 0) {
-      // Empty message or error in vsnprintf, cancel the prepared message
-      this->log_buffer_->release_message(message_token);
-      recursion_guard_.store(false, std::memory_order_release);
-      return;
-    }
-
-    size_t text_length = (static_cast<size_t>(ret) >= capacity) ? capacity - 1 : ret;
-
-    // Remove trailing newlines
-    while (text_length > 0 && buffer[text_length - 1] == '\n') {
-      text_length--;
-    }
-
-    // Check if we have any text to log after processing
-    if (text_length > 0) {
-      this->log_buffer_->commit_message(text_length, message_token);
-
-      // Debug message for successful commits - very infrequent output
-      static uint32_t commit_count = 0;
-      if ((++commit_count % 100) == 0 && this->baud_rate_ > 0) {
-        char cbuf[60];
-        snprintf(cbuf, sizeof(cbuf), "MSGDBG: Committed message #%u len=%u", commit_count, (unsigned int) text_length);
-        this->write_msg_(cbuf);
-      }
-
-    } else {
-      // No text to log, cancel the prepared message
-      this->log_buffer_->release_message(message_token);
-    }
-
+  // Calculate actual text length based on vsnprintf result:
+  // - zero or negative: empty or encoding error, skip message
+  // - exceeds capacity: truncated, use capacity-1
+  // - otherwise: use actual length
+  if (ret <= 0) {
+    // Empty message or error in vsnprintf, cancel the prepared message
+    this->log_buffer_->release_message(message_token);
     recursion_guard_.store(false, std::memory_order_release);
     return;
   }
+
+  size_t text_length = (static_cast<size_t>(ret) >= capacity) ? capacity - 1 : ret;
+
+  // Remove trailing newlines
+  while (text_length > 0 && buffer[text_length - 1] == '\n') {
+    text_length--;
+  }
+
+  // Check if we have any text to log after processing
+  if (text_length > 0) {
+    this->log_buffer_->commit_message(text_length, message_token);
+  } else {
+    // No text to log, cancel the prepared message
+    this->log_buffer_->release_message(message_token);
+  }
+
+  recursion_guard_.store(false, std::memory_order_release);
+  return;
 #endif  // USE_ESPHOME_LOG_BUFFER
 
   // Log buffer is disabled or full, use emergency console logging
@@ -219,16 +193,7 @@ void Logger::init_log_buffer(size_t total_buffer_size) {
 }
 
 void Logger::report_buffer_stats() {
-  if (this->log_buffer_ == nullptr || this->baud_rate_ == 0)
-    return;
-
-  char stats_buf[160];
-  snprintf(stats_buf, sizeof(stats_buf),
-           "LOG-BUFFER STATS: Commit %u/%u success, Borrow %u/%u success (%u null, %u invalid)",
-           this->log_buffer_->get_commit_success(), this->log_buffer_->get_commit_attempts(),
-           this->log_buffer_->get_borrow_success(), this->log_buffer_->get_borrow_attempts(),
-           this->log_buffer_->get_borrow_items_null(), this->log_buffer_->get_borrow_items_invalid());
-  this->write_msg_(stats_buf);
+  // Debug function removed
 }
 #endif
 
@@ -250,44 +215,14 @@ void Logger::loop() {
 #endif
 
 #ifdef USE_ESPHOME_LOG_BUFFER
-  // Add debug counter for loop calls
-  static uint32_t loop_count = 0;
-  loop_count++;
-
-  // Occasional diagnostics and buffer stats
-  if (loop_count % 1000 == 0) {
-    if (this->baud_rate_ > 0) {
-      char dbg_buf[80];
-      snprintf(dbg_buf, sizeof(dbg_buf), "DBGINFO: Logger loop called %u times", loop_count);
-      this->write_msg_(dbg_buf);
-
-      // Also report buffer stats
-      this->report_buffer_stats();
-    }
-  }
-
-  // Check if it's worth looking for messages based on the commit/borrow stats
-  bool should_check = false;
-
-  // Only check for messages if:
-  // 1. Commit count > Borrow success count (meaning there are unprocessed messages)
-  // 2. Or we're doing an occasional check anyway (every 10 loops)
-  if (this->log_buffer_->get_commit_success() > this->log_buffer_->get_borrow_success() || (loop_count % 10) == 0) {
-    should_check = true;
-  }
-
-  if (should_check) {
+  // Process any buffered messages
+  if (this->log_buffer_->get_commit_success() > this->log_buffer_->get_borrow_success()) {
     logger::LogBuffer::LogMessage *message;
     const char *text;
     void *received_token;
-    bool any_messages = false;
-    int msg_count = 0;
 
-    // Process some messages if available
-    while (msg_count < 50 && this->log_buffer_->borrow_message(&message, &text, &received_token)) {
-      any_messages = true;
-      msg_count++;
-
+    // Process messages from the buffer
+    while (this->log_buffer_->borrow_message(&message, &text, &received_token)) {
       this->tx_buffer_at_ = 0;
       this->write_header_to_buffer_(message->level, message->tag, message->line, this->tx_buffer_, &this->tx_buffer_at_,
                                     this->tx_buffer_size_, message->thread_name);
@@ -297,55 +232,6 @@ void Logger::loop() {
       this->log_message_(message->level, message->tag);
 
       this->log_buffer_->release_message(received_token);
-    }
-
-    // If messages were processed, occasionally print the count
-    if (msg_count > 0 && loop_count % 50 == 0 && this->baud_rate_ > 0) {
-      char count_buf[60];
-      snprintf(count_buf, sizeof(count_buf), "DBGINFO: Processed %d buffered messages", msg_count);
-      this->write_msg_(count_buf);
-    }
-
-    // Update empty check counter
-    static uint32_t empty_checks = 0;
-
-    if (!any_messages) {
-      // Only count when we expected to find messages
-      if (this->log_buffer_->get_commit_success() > this->log_buffer_->get_borrow_success()) {
-        empty_checks++;
-
-        // Report occasionally about missing messages we expected to find
-        if (empty_checks % 10 == 0 && this->baud_rate_ > 0) {
-          // Create a special message for debugging and also attempt to reset buffer
-          // since we're stuck in a state where messages can't be retrieved
-          char buf[120];
-
-          if (empty_checks >= 100) {
-            // After many failed attempts, try a more drastic approach - reinitialize the ring buffer
-            // This is an emergency solution to recover from buffer issues
-            snprintf(buf, sizeof(buf), "ERROR: Buffer stuck with %u messages after %u checks - emergency reset",
-                     this->log_buffer_->get_commit_success() - this->log_buffer_->get_borrow_success(), empty_checks);
-            this->write_msg_(buf);
-
-            // Re-initialize the log buffer with original size
-            size_t buffer_size = 1024;    // Default fallback
-            this->log_buffer_ = nullptr;  // Delete old buffer
-            this->log_buffer_ = esphome::make_unique<logger::LogBuffer>(buffer_size);
-
-            this->write_msg_("Log buffer reset complete");
-            empty_checks = 0;  // Reset counter
-          } else {
-            // Normal warning during initial attempts
-            snprintf(buf, sizeof(buf), "WARN: %u committed messages not found after %u checks (commit:%u borrow:%u)",
-                     this->log_buffer_->get_commit_success() - this->log_buffer_->get_borrow_success(), empty_checks,
-                     this->log_buffer_->get_commit_success(), this->log_buffer_->get_borrow_success());
-            this->write_msg_(buf);
-          }
-        }
-      }
-    } else {
-      // Reset counter when messages are processed
-      empty_checks = 0;
     }
   }
 #endif

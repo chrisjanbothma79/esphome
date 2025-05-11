@@ -90,7 +90,7 @@ class Logger : public Component {
 #ifdef USE_ESPHOME_LOG_BUFFER
   void init_log_buffer(size_t total_buffer_size);
 
-  // Get buffer stats
+  // Kept for API compatibility
   void report_buffer_stats();
 #endif
 #if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32)
