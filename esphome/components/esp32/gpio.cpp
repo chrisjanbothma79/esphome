@@ -22,7 +22,7 @@ namespace esp32 {
 
 static const char *const TAG = "esp32";
 
-static gpio_hal_context_t _gpio_hal = {.dev = GPIO_HAL_GET_HW(GPIO_PORT_0)};
+static const gpio_hal_context_t _gpio_hal = {.dev = GPIO_HAL_GET_HW(GPIO_PORT_0)};
 
 bool ESP32InternalGPIOPin::isr_service_installed = false;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
@@ -58,7 +58,8 @@ ISRInternalGPIOPin ESP32InternalGPIOPin::to_isr() const {
   arg->flags = gpio::FLAG_NONE;
   arg->inverted = inverted_;
 #if defined(USE_ESP32_VARIANT_ESP32)
-  if ((arg->use_rtc = rtc_gpio_is_valid_gpio(this->pin_)))
+  arg->use_rtc = rtc_gpio_is_valid_gpio(this->pin_);
+  if (arg->use_rtc)
     arg->rtc_pin = rtc_io_number_get(this->pin_);
 #endif
   return ISRInternalGPIOPin((void *) arg);
