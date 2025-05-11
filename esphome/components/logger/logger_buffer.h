@@ -59,13 +59,12 @@ class LogBuffer {
   // Also returns a token that must be used with release_message for thread safety
   bool borrow_message(LogMessage **message, const char **text, void **received_token);
 
-  // Release a previously borrowed message with the received token
-  // Must be called after processing a message returned by borrow_message
-  void release_message(void *received_token);
-
-  // Cancel a prepared message without committing it
-  // Call this if you want to abort a message preparation without committing
-  void cancel_prepare(void *message_token);
+  // Release a message buffer (either borrowed or prepared)
+  // Use with received_token from borrow_message or message_token from prepare_message
+  // This function is used to:
+  // 1. Release a borrowed message after processing
+  // 2. Cancel a prepared message without committing
+  void release_message(void *token);
 
  private:
   RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle

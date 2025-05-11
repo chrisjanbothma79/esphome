@@ -10,11 +10,6 @@ namespace logger {
 static const char *const TAG = "logger_buffer";
 
 LogBuffer::LogBuffer(size_t total_buffer_size) {
-  // Ensure minimum buffer size for reasonable operation
-  if (total_buffer_size < 512) {
-    total_buffer_size = 512;  // 512 bytes minimum
-  }
-
   // Create a byte buffer using xRingbufferCreate which handles memory allocation
   ring_buffer_ = xRingbufferCreate(total_buffer_size, RINGBUF_TYPE_BYTEBUF);
 
@@ -81,7 +76,7 @@ void LogBuffer::commit_message(size_t text_length, void *message_token) {
   if (message_token == nullptr || text_length == 0) {
     // Nothing to commit or zero text length, cancel the preparation
     if (message_token != nullptr) {
-      cancel_prepare(message_token);
+      release_message(message_token);
     }
     return;
   }
@@ -143,19 +138,11 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
   return true;
 }
 
-void LogBuffer::release_message(void *received_token) {
-  // Check if there's a valid received token to release
-  if (received_token != nullptr) {
+void LogBuffer::release_message(void *token) {
+  // Check if there's a valid token to release
+  if (token != nullptr) {
     // Return the item to the ring buffer
-    xRingbufferReturnItem(ring_buffer_, received_token);
-  }
-}
-
-void LogBuffer::cancel_prepare(void *message_token) {
-  // Check if we have a valid message token to cancel
-  if (message_token != nullptr) {
-    // Return the acquired item without committing
-    xRingbufferReturnItem(ring_buffer_, message_token);
+    xRingbufferReturnItem(ring_buffer_, token);
   }
 }
 

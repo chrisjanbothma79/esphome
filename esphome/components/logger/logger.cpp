@@ -49,7 +49,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     // - otherwise: use actual length
     if (ret <= 0) {
       // Empty message or error in vsnprintf, cancel the prepared message
-      this->log_buffer_->cancel_prepare(message_token);
+      this->log_buffer_->release_message(message_token);
       recursion_guard_.store(false, std::memory_order_release);
       return;
     }
@@ -66,7 +66,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
       this->log_buffer_->commit_message(text_length, message_token);
     } else {
       // No text to log, cancel the prepared message
-      this->log_buffer_->cancel_prepare(message_token);
+      this->log_buffer_->release_message(message_token);
     }
 
     recursion_guard_.store(false, std::memory_order_release);
