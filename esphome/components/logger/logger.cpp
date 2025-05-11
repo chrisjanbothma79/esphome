@@ -215,8 +215,8 @@ void Logger::loop() {
 #endif
 
 #ifdef USE_ESPHOME_LOG_BUFFER
-  // Process any buffered messages
-  if (this->log_buffer_->get_commit_success() > this->log_buffer_->get_borrow_success()) {
+  // Process any buffered messages when available
+  if (this->log_buffer_->has_messages()) {
     logger::LogBuffer::LogMessage *message;
     const char *text;
     void *received_token;

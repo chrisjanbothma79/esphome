@@ -68,9 +68,6 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
 }
 
 void LogBuffer::commit_message(size_t text_length, void *message_token) {
-  // Update commit operation counters
-  commit_attempts_++;
-
   // Check if we have a valid message token to commit
   if (message_token == nullptr || text_length == 0) {
     // Nothing to commit or zero text length, cancel the preparation
@@ -112,22 +109,17 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
     return false;
   }
 
-  // Update borrow counters
-  borrow_attempts_++;
-
   // Try to receive an item from the ring buffer - no timeout to avoid blocking
   size_t item_size = 0;
   void *received_item = xRingbufferReceive(ring_buffer_, &item_size, 0);
   // xRingbufferReceive returns NULL if no items are available, otherwise returns a pointer to the received item
 
   if (received_item == nullptr) {
-    borrow_items_null_++;
     return false;
   }
 
   if (item_size < sizeof(LogMessage)) {
     // Item too small to be valid
-    borrow_items_invalid_++;
     vRingbufferReturnItem(ring_buffer_, received_item);
     return false;
   }
@@ -141,7 +133,6 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
   // Just check that text_length is reasonable
   if (msg->text_length > MAX_MESSAGE_TEXT_SIZE) {
     // Text length exceeds expected range
-    borrow_items_invalid_++;
     vRingbufferReturnItem(ring_buffer_, received_item);
     return false;
   }

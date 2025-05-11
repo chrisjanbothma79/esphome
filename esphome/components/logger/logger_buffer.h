@@ -67,19 +67,15 @@ class LogBuffer {
   void release_message(void *token);
 
   // For tracking buffer usage - used by logger.cpp to detect if messages need processing
-  uint32_t get_commit_success() const { return commit_success_; }
-  uint32_t get_borrow_success() const { return borrow_success_; }
+  // Returns true if there are messages in the buffer ready to be processed
+  bool has_messages() const { return commit_success_ != borrow_success_; }
 
  private:
   RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle
 
-  // Statistics counters
-  uint32_t commit_attempts_{0};
+  // Statistics counters - only tracking the ones needed for buffer operation
   uint32_t commit_success_{0};
-  uint32_t borrow_attempts_{0};
   uint32_t borrow_success_{0};
-  uint32_t borrow_items_null_{0};
-  uint32_t borrow_items_invalid_{0};
 
   // Return total message size needed for given text length
   inline size_t message_size_for(size_t text_length) const {
