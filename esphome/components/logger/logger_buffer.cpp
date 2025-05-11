@@ -28,19 +28,18 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
   size_t min_size = message_size_for(MIN_USEFUL_MESSAGE_SIZE);
 
   // Try to acquire space in the ring buffer for a new message
-  size_t item_size = 0;
-  void *acquired_item = xRingbufferSendAcquire(ring_buffer_, &item_size, 0);
+  void *acquired_item = nullptr;
 
-  if (acquired_item == nullptr || item_size < min_size) {
-    // Not enough space, we'll let the consumer handle discarding old messages
-    if (acquired_item != nullptr) {
-      xRingbufferReturnItem(ring_buffer_, acquired_item);
-    }
-
+  // Request space for a message of adequate size
+  if (xRingbufferSendAcquire(ring_buffer_, &acquired_item, min_size, 0) != pdTRUE || acquired_item == nullptr) {
+    // Failed to acquire space in the ring buffer
     capacity = 0;
     *message_token = nullptr;
     return nullptr;
   }
+
+  // We successfully acquired space for our message
+  size_t item_size = min_size;
 
   // We have successfully acquired space in the ring buffer
   // Set up the message header at the start of the acquired space
@@ -110,7 +109,7 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
   if (received_item == nullptr || item_size < sizeof(LogMessage)) {
     // No message available or item too small to be valid
     if (received_item != nullptr) {
-      xRingbufferReturnItem(ring_buffer_, received_item);
+      vRingbufferReturnItem(ring_buffer_, received_item);
     }
     return false;
   }
@@ -121,7 +120,7 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text, void **r
   // Validate the message size
   if (item_size < msg->total_size()) {
     // Message is truncated or invalid
-    xRingbufferReturnItem(ring_buffer_, received_item);
+    vRingbufferReturnItem(ring_buffer_, received_item);
     return false;
   }
 
@@ -137,7 +136,7 @@ void LogBuffer::release_message(void *token) {
   // Check if there's a valid token to release
   if (token != nullptr) {
     // Return the item to the ring buffer
-    xRingbufferReturnItem(ring_buffer_, token);
+    vRingbufferReturnItem(ring_buffer_, token);
   }
 }
 
