@@ -15,10 +15,13 @@
 namespace esphome {
 namespace logger {
 
-// Maximum size for large messages (header size will be added to this)
-constexpr size_t MAX_MESSAGE_TEXT_SIZE = 120;
-// Minimum useful message text size
-constexpr size_t MIN_USEFUL_MESSAGE_SIZE = 52;
+// Size for log message text (power of 2 for efficiency)
+// Note: We don't need to add a null terminator since we track the length explicitly
+constexpr size_t LOG_MSG_SIZE = 128;
+// Size for the text area including temporary null terminator
+constexpr size_t LOG_MSG_SIZE_WITH_NULL = LOG_MSG_SIZE + 1;
+// Buffer size that includes space for LogMessage header, text content, and temporary null terminator
+// This is calculated after the LogMessage struct is defined
 
 class LogBuffer {
  public:
@@ -31,28 +34,39 @@ class LogBuffer {
     uint8_t level;            // Log level (0-7)
 
     // Helper to get pointer to text data following this header
-    char *text_data() { return reinterpret_cast<char *>(this) + sizeof(LogMessage); }
+    char *text_data();  // Defined after LOG_MSG_STRUCT_SIZE is declared
 
     // Helper to get const pointer to text data following this header
-    const char *text_data() const { return reinterpret_cast<const char *>(this) + sizeof(LogMessage); }
+    const char *text_data() const;  // Defined after LOG_MSG_STRUCT_SIZE is declared
 
-    // Get total size including header and text (plus null terminator)
-    size_t total_size() const { return sizeof(LogMessage) + text_length + 1; }
+    // Get total size including header and text
+    // We don't need null terminator since we track the length explicitly
+    size_t total_size() const;  // Defined after LOG_MSG_STRUCT_SIZE is declared
   };
+
+  // Size of the LogMessage struct
+  static constexpr size_t LOG_MSG_STRUCT_SIZE = sizeof(LogMessage);
+
+  // Buffer size that includes space for LogMessage struct, text content, and temporary null terminator
+  static constexpr size_t LOG_MSG_BUFFER_SIZE = LOG_MSG_STRUCT_SIZE + LOG_MSG_SIZE_WITH_NULL;
+
+  // Implementation of LogMessage methods using the struct size constant
+  inline char *LogMessage::text_data() { return reinterpret_cast<char *>(this) + LOG_MSG_STRUCT_SIZE; }
+
+  inline const char *LogMessage::text_data() const {
+    return reinterpret_cast<const char *>(this) + LOG_MSG_STRUCT_SIZE;
+  }
+
+  inline size_t LogMessage::total_size() const { return LOG_MSG_STRUCT_SIZE + text_length; }
 
   // Constructor that takes a total buffer size
   explicit LogBuffer(size_t total_buffer_size);
   ~LogBuffer();
 
-  // Attempt to reserve space in the ring buffer for a new message
-  // Returns buffer to write text to, or nullptr if the buffer is full
-  // Also returns the acquired item as token to make prepare/commit thread-safe
-  char *prepare_message(uint8_t level, const char *tag, uint16_t line, const char *thread_name, size_t &capacity,
-                        void **message_token);
-
-  // Commit the message with the given text length and token
-  // Must be called after a successful prepare_message
-  void commit_message(size_t text_length, void *message_token);
+  // Send a message to the ring buffer
+  // Returns true if the message was successfully sent, false otherwise
+  bool send_message(uint8_t level, const char *tag, uint16_t line, const char *thread_name, const char *format,
+                    va_list args);
 
   // Borrow the next message from the ring buffer along with its text
   // Returns the message metadata and the message text through the out parameters
@@ -60,11 +74,6 @@ class LogBuffer {
   // NOT thread-safe - only to be called from the main loop
   // Also returns a token that must be used with release_message_main_loop
   bool borrow_message_main_loop(LogMessage **message, const char **text, void **received_token);
-
-  // Cancel a prepared message without committing it
-  // Use with message_token from prepare_message when canceling preparation
-  // This function is thread-safe and can be called from any context
-  void cancel_message(void *token);
 
   // Release a message buffer and update the message counter
   // NOT thread-safe - only to be called from the main loop after borrowing a message
@@ -87,10 +96,7 @@ class LogBuffer {
   std::atomic<uint16_t> message_counter_{0};    // Incremented when a message is committed
   mutable uint16_t last_processed_counter_{0};  // Last processed message counter
 
-  // Return total message size needed for given text length
-  inline size_t message_size_for(size_t text_length) const {
-    return sizeof(LogMessage) + text_length + 1;  // +1 for null terminator
-  }
+  // We no longer need this function since we use LOG_MSG_BUFFER_SIZE directly
 };
 
 }  // namespace logger
