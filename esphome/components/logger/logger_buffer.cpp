@@ -108,6 +108,7 @@ char *LogBuffer::prepare_message(uint8_t level, const char *tag, uint16_t line, 
 }
 
 void LogBuffer::commit_message(size_t text_length) {
+  // Basic validation checks before committing
   if (!message_prepared_.load(std::memory_order_relaxed) || prepared_pos_ == nullptr || text_length == 0) {
     // Reset prepared flag and abort if zero text length or no prepared message
     message_prepared_.store(false, std::memory_order_release);
@@ -157,6 +158,11 @@ bool LogBuffer::borrow_message(LogMessage **message, const char **text) {
     return false;  // Buffer empty
   }
 
+  // Validate pointers before dereferencing
+  if (message == nullptr || text == nullptr || read_pos_ == nullptr) {
+    return false;  // Invalid parameters or read position
+  }
+
   // Get message and its text
   *message = read_pos_;
   *text = read_pos_->text_data();
@@ -171,6 +177,11 @@ void LogBuffer::release_message() {
 
   if (read_idx == write_idx) {
     return;  // Buffer empty
+  }
+
+  // Extra validation: ensure read_pos_ is not null and text_length is valid
+  if (read_pos_ == nullptr) {
+    return;  // Invalid read position
   }
 
   // Calculate next read position based on the current message's size

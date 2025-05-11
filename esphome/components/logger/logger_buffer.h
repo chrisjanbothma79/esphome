@@ -99,9 +99,6 @@ class LogBuffer {
     message_prepared_.store(false, std::memory_order_release);
     return nullptr;
   }
-
-  // Public method to release the prepared lock without committing
-  inline void cancel_prepare() { message_prepared_.store(false, std::memory_order_release); }
 };
 
 }  // namespace logger
