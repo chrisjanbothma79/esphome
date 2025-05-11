@@ -12,11 +12,6 @@ static const char *const TAG = "logger_buffer";
 LogBuffer::LogBuffer(size_t total_buffer_size) {
   // Create a byte buffer using xRingbufferCreate which handles memory allocation
   ring_buffer_ = xRingbufferCreate(total_buffer_size, RINGBUF_TYPE_BYTEBUF);
-
-  if (ring_buffer_ == nullptr) {
-    ESP_LOGE(TAG, "Failed to create ring buffer");
-    return;
-  }
 }
 
 LogBuffer::~LogBuffer() {
