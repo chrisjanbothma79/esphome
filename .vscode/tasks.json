@@ -14,46 +14,35 @@
       "problemMatcher": []
     },
     {
-      "label": "clang-tidy",
-      "type": "shell",
-      "command": "${command:python.interpreterPath}",
-      "args": [
-        "./script/clang-tidy"
-      ],
-      "problemMatcher": [
-        {
-          "owner": "clang-tidy",
-          "fileLocation": "absolute",
-          "pattern": [
-            {
-              "regexp": "^(.*):(\\d+):(\\d+):\\s+(error):\\s+(.*) \\[([a-z0-9,\\-]+)\\]\\s*$",
-              "file": 1,
-              "line": 2,
-              "column": 3,
-              "severity": 4,
-              "message": 5
-            }
+       "type": "shell",
+       "label": "Test",
+       "command": "script/test_build_components -e compile -c  sdfs",
+       "problemMatcher": {
+          "owner" : "esphome",
+          "fileLocation":[
+             "relative",
+             "${workspaceFolder}"
+          ],
+          "pattern":[
+             {
+                "regexp": "^src(.*):(\\d+):(\\d+):\\s+(warning|error|note):\\s+(.*)$",
+                "file":1,
+                "line": 2,
+                "column": 3,
+                "severity": 4,
+                "message": 5
+             }
           ]
+       },
+       "group": {
+          "kind": "build",
+          "isDefault": true,
+       },
+       "presentation": {
+          "reveal": "always",
+          "panel": "shared",
+          "clear": true,
         }
-      ]
-    },
-    {
-      "label": "Generate proto files",
-      "type": "shell",
-      "command": "${command:python.interpreterPath}",
-      "args": [
-        "./script/api_protobuf/api_protobuf.py"
-      ],
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      },
-      "presentation": {
-        "reveal": "never",
-        "close": true,
-        "panel": "new"
-      },
-      "problemMatcher": []
     }
   ]
 }

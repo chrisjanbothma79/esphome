@@ -1,0 +1,18 @@
+esphome:
+  name: "test"
+
+#  *  Schematic SD connections
+#  * 1  DATA2      HS2DATA2  GPIO12   x
+#  * 2  CD/DATA3   HS2DATA3  GPIO13   CS    CS
+#  * 3  CMD        HS2CMD    GPIO15   DI    MOSI
+#  * 4  3.3v
+#  * 5  CLK        HS@CLK    GPIO14   SCLK  SCLK
+#  * 6  GND
+#  * 7  DATA0      HS2DATA0  GPIO02   DO    MISO
+#  * 8  DATA1                         x
+substitutions:
+  clk_pin_name: "14"
+  miso_pin_name: "12"
+  mosi_pin_name: "13"
+  cs_pin_name: "5"
+<<: !include common-sdspi-ard.yaml
