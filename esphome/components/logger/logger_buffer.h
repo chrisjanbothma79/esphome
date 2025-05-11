@@ -15,13 +15,11 @@
 namespace esphome {
 namespace logger {
 
-// Size for log message text (power of 2 for efficiency)
-// Note: We don't need to add a null terminator since we track the length explicitly
+// Size for log message text (power of 2 for efficiency), no null terminator needed
 constexpr size_t LOG_MSG_SIZE = 128;
+
 // Size for the text area including temporary null terminator
 constexpr size_t LOG_MSG_SIZE_WITH_NULL = LOG_MSG_SIZE + 1;
-// Buffer size that includes space for LogMessage header, text content, and temporary null terminator
-// This is calculated after the LogMessage struct is defined
 
 class LogBuffer {
  public:
@@ -48,35 +46,21 @@ class LogBuffer {
   explicit LogBuffer(size_t total_buffer_size);
   ~LogBuffer();
 
-  // Send a message to the ring buffer
-  // Returns true if the message was successfully sent, false otherwise
-  // Thread-safe - can be called from any thread including interrupts
+  // Thread-safe - send a message to the ring buffer from any thread
   bool send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, const char *thread_name,
                                 const char *format, va_list args);
 
-  // Borrow the next message from the ring buffer along with its text
-  // Returns the message metadata and the message text through the out parameters
-  // Returns false if the buffer is empty
-  // NOT thread-safe - only to be called from the main loop
-  // Also returns a token that must be used with release_message_main_loop
+  // NOT thread-safe - borrow a message from the ring buffer, only call from main loop
   bool borrow_message_main_loop(LogMessage **message, const char **text, void **received_token);
 
-  // Cancel a message without updating counters
+  // Cancel a borrowed message without updating counters
   void cancel_message(void *token);
 
-  // Release a message buffer and update the message counter
-  // NOT thread-safe - only to be called from the main loop after borrowing a message
-  // This updates internal state tracking for has_messages efficiency
+  // NOT thread-safe - release a message buffer and update the counter, only call from main loop
   void release_message_main_loop(void *token);
 
-  // For tracking buffer usage - used by logger.cpp to detect if messages need processing
-  // Returns true if there are messages in the buffer ready to be processed
-  bool has_messages() const {
-    // Use atomic counter for better performance than directly querying the buffer
-    return message_counter_.load(std::memory_order_relaxed) != last_processed_counter_;
-  }
-
-  // These methods are only used internally, removed to simplify API
+  // Check if there are messages ready to be processed using an atomic counter for performance
+  bool has_messages() const { return message_counter_.load(std::memory_order_relaxed) != last_processed_counter_; }
 
  private:
   RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle
@@ -84,8 +68,6 @@ class LogBuffer {
   // Atomic counter for tracking messages - uint16_t is fine as we only care about changes
   std::atomic<uint16_t> message_counter_{0};    // Incremented when a message is committed
   mutable uint16_t last_processed_counter_{0};  // Last processed message counter
-
-  // We no longer need this function since we use LOG_MSG_BUFFER_SIZE directly
 };
 
 }  // namespace logger
