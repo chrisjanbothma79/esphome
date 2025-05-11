@@ -68,7 +68,7 @@ class LogBuffer {
 
   // For tracking buffer usage - used by logger.cpp to detect if messages need processing
   // Returns true if there are messages in the buffer ready to be processed
-  bool has_messages() const { return commit_success_ != borrow_success_; }
+  bool has_messages() const { return commit_success_ > borrow_success_; }
 
  private:
   RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle
