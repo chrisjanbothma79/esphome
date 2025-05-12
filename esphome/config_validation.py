@@ -116,7 +116,7 @@ RequiredFieldInvalid = vol.RequiredFieldInvalid
 ROOT_CONFIG_PATH = object()
 
 RESERVED_IDS = [
-    # C++ keywords http://en.cppreference.com/w/cpp/keyword
+    # C++ keywords https://en.cppreference.com/w/cpp/keyword
     "alarm",
     "alignas",
     "alignof",
@@ -1498,29 +1498,8 @@ def dimensions(value):
 
 
 def directory(value):
-    import json
-
     value = string(value)
     path = CORE.relative_config_path(value)
-
-    if CORE.vscode and (
-        not CORE.ace or os.path.abspath(path) == os.path.abspath(CORE.config_path)
-    ):
-        print(
-            json.dumps(
-                {
-                    "type": "check_directory_exists",
-                    "path": path,
-                }
-            )
-        )
-        data = json.loads(input())
-        assert data["type"] == "directory_exists_response"
-        if data["content"]:
-            return value
-        raise Invalid(
-            f"Could not find directory '{path}'. Please make sure it exists (full path: {os.path.abspath(path)})."
-        )
 
     if not os.path.exists(path):
         raise Invalid(
@@ -1534,29 +1513,8 @@ def directory(value):
 
 
 def file_(value):
-    import json
-
     value = string(value)
     path = CORE.relative_config_path(value)
-
-    if CORE.vscode and (
-        not CORE.ace or os.path.abspath(path) == os.path.abspath(CORE.config_path)
-    ):
-        print(
-            json.dumps(
-                {
-                    "type": "check_file_exists",
-                    "path": path,
-                }
-            )
-        )
-        data = json.loads(input())
-        assert data["type"] == "file_exists_response"
-        if data["content"]:
-            return value
-        raise Invalid(
-            f"Could not find file '{path}'. Please make sure it exists (full path: {os.path.abspath(path)})."
-        )
 
     if not os.path.exists(path):
         raise Invalid(
@@ -2111,6 +2069,23 @@ def rename_key(old_key, new_key):
         config = config.copy()
         if old_key in config:
             config[new_key] = config.pop(old_key)
+        return config
+
+    return validator
+
+
+# Remove before 2025.11.0
+def deprecated_schema_constant(entity_type: str):
+    def validator(config):
+        _LOGGER.warning(
+            "Using `%s.%s_SCHEMA` is deprecated and will be removed in ESPHome 2025.11.0. "
+            "Please use `%s.%s_schema(...)` instead. "
+            "If you are seeing this, report an issue to the external_component author and ask them to update it.",
+            entity_type,
+            entity_type.upper(),
+            entity_type,
+            entity_type,
+        )
         return config
 
     return validator
