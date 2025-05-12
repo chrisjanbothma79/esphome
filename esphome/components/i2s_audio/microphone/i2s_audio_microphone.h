@@ -53,6 +53,9 @@ class I2SAudioMicrophone : public I2SAudioIn, public microphone::Microphone, pub
 
   size_t read_(uint8_t *buf, size_t len, TickType_t ticks_to_wait);
 
+  /// @brief Sets the Microphone ``audio_stream_info_`` member variable to the configured I2S settings.
+  void configure_stream_settings_();
+
   static void mic_task(void *params);
 
   SemaphoreHandle_t active_listeners_semaphore_{nullptr};
