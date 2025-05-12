@@ -131,6 +131,17 @@ class Logger : public Component {
   // add a listener for log level changes
   void add_listener(std::function<void(int)> &&callback) { this->level_callback_.add(std::move(callback)); }
 
+  float get_setup_priority() const override;
+
+  void log_vprintf_(int level, const char *tag, int line, const char *format, va_list args);  // NOLINT
+#ifdef USE_STORE_LOG_STR_IN_FLASH
+  void log_vprintf_(int level, const char *tag, int line, const __FlashStringHelper *format, va_list args);  // NOLINT
+#endif
+
+ protected:
+  void call_log_callbacks_(int level, const char *tag, const char *msg);
+  void write_msg_(const char *msg);
+
   // Format a log message with printf-style arguments and write it to a buffer with header, footer, and null terminator
   // It's the caller's responsibility to initialize buffer_at (typically to 0)
   inline void HOT format_log_to_buffer_with_terminator_(int level, const char *tag, int line, const char *format,
@@ -162,17 +173,6 @@ class Logger : public Component {
     // Also send to callbacks
     this->call_log_callbacks_(level, tag, this->tx_buffer_);
   }
-
-  float get_setup_priority() const override;
-
-  void log_vprintf_(int level, const char *tag, int line, const char *format, va_list args);  // NOLINT
-#ifdef USE_STORE_LOG_STR_IN_FLASH
-  void log_vprintf_(int level, const char *tag, int line, const __FlashStringHelper *format, va_list args);  // NOLINT
-#endif
-
- protected:
-  void call_log_callbacks_(int level, const char *tag, const char *msg);
-  void write_msg_(const char *msg);
 
   // Write the body of the log message to the buffer
   inline void write_body_to_buffer_(const char *value, size_t length, char *buffer, int *buffer_at, int buffer_size) {
