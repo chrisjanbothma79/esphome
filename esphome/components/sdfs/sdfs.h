@@ -6,12 +6,13 @@
 
 #ifdef USE_ARDUINO_SPI_FS
 #define SPI_DRIVER_SELECT 3
-#define SD_CHIP_SELECT_MODE 0
+#define SD_CHIP_SELECT_MODE 2
 // #include "sdio_drv_ard.h"
 #include "esphome/components/spi/spi.h"
+#include "spi_connector.h"
 
-#include "SdFat.h"
-#include "SpiDriver/SdSpiBaseClass.h"
+// #include "SdFat.h"
+// #include "SpiDriver/SdSpiBaseClass.h"
 #endif
 
 namespace esphome {
@@ -40,11 +41,10 @@ enum SdConnType {
   SD_SPI = 1,
 };
 
-class SdmmcDriver;
 #ifdef USE_ARDUINO_SPI_FS
-class EspHomeConnector;
+class SpiConnector;
 #endif
-
+class DriverInterface;
 class SdmmcHost : public Component {
   friend class SdmmcDriver;
   friend class SdmmcIdfDriver;
@@ -91,11 +91,11 @@ class SdmmcHost : public Component {
 
  protected:
 #ifdef USE_ARDUINO_SPI_FS
-  EspHomeConnector *connector_;
+  SpiConnector *connector_;
 #endif
   bool last_card_staus = false;
   time_t last_time_check_;
-  SdmmcDriver *drv_;
+  DriverInterface *drv_;
   SdConnType type_;
   SdDriverStatus state_;
   std::string path_;
@@ -120,25 +120,18 @@ class SdmmcHost : public Component {
   uint8_t mosi_pin_{255};
 };
 
-/**
- * @brief   Interface clss  to serve slot initializing,  card check, mout and unmount fs
- *          with warious frameworks
- *          SdmmcHost used for access to cpu pin assignements for initialize SPI or SDIO driver on cpu
- */
-class SdmmcDriver {
+class DriverInterface {
  public:
-  SdmmcDriver(SdmmcHost *);
+  virtual void set_parent(SdmmcHost *);
   virtual bool init_host(SdConnType);
   virtual bool is_card();
   virtual bool attach_card();
   virtual bool mount(bool);
+  virtual uint32_t get_last_err();
   virtual void unmount();
 
-  void set_last_err(uint32_t);
-  uint32_t get_last_err();
-  bool is_last_err(uint16_t dom, uint16_t rc);
-
  protected:
+  SdConnType bus_type_;
   uint32_t last_err_;
   SdmmcHost *parent_;
 };

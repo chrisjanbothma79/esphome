@@ -1,3 +1,4 @@
+#include "sdfs.h"
 #if defined(USE_ESP_IDF)
 #include "diskio_impl.h"
 #include "esphome/core/log.h"
@@ -75,11 +76,13 @@ static void call_host_deinit_(const sdmmc_host_t *host_config) {
 }
 
 /***********************************************************************************
- * @brief Construct a new Sdmmc Host:: Sdmmc Host object.
- *        Allocate memory for internal driver structures
+ * @brief   Save pointer to parentclass (host controller)
  *
+ * @param p
  */
-SdmmcIdfDriver::SdmmcIdfDriver(SdmmcHost *parent) : SdmmcDriver() { this->parent_ = parent; }
+
+void SdmmcIdfDriver::set_parent(SdmmcHost *p) { this->parent_ = p; }
+uint32_t SdmmcIdfDriver::get_last_err() { return this->last_err_; }
 
 bool SdmmcIdfDriver::sdspi_allocate() {
   ESP_LOGD(TAG, "SdmmcHost init");
@@ -247,7 +250,9 @@ uint8_t SdmmcIdfDriver::init_sdmmc(sdmmc_host_t *host_config) {
   //   Check for card and load host params
   //
   if (!this->attach_card()) {
-    if (this->is_last_err(LC_ERR, ESP_ERR_TIMEOUT))
+    // if (this->is_last_err(LC_ERR, ESP_ERR_TIMEOUT))
+    //   return RET_STATUS_NOTCRITICAL;
+    if (IS_LAST_ERR(LC_ERR, ESP_ERR_TIMEOUT))
       return RET_STATUS_NOTCRITICAL;
   } else {
     return RET_STATUS_FAIL;
@@ -366,7 +371,7 @@ uint8_t SdmmcIdfDriver::init_sdspi(sdmmc_host_t *host_config) {
   this->host_config_->slot = out_slot;
 
   if (!this->attach_card()) {
-    if (this->is_last_err(LC_ERR, ESP_ERR_TIMEOUT))
+    if (IS_LAST_ERR(LC_ERR, ESP_ERR_TIMEOUT))
       return RET_STATUS_NOTCRITICAL;
   } else {
     return RET_STATUS_FAIL;

@@ -201,8 +201,13 @@ CONFIG_SCHEMA = cv.All(
 async def to_code(config):
     if CORE.using_arduino and (config[CONF_TYPE] == "sdspi"):
         cg.add_define("USE_ARDUINO_SPI_FS")
+        # cg.add_platformio_option("extra_scripts", ["pre:build_pio.py"])
+        # cg.add_platformio_option("lib_ldf_mode", "chain+")  #deep+  chain+
+        # cg.add_platformio_option("lib_extra_dirs", "src/esphome/components/sdfs")
         cg.add_library("SPI", None)
         cg.add_library("SdFat", None)
+    #       lib_extra_di  rs = lib/MyLibFolder/ExternalLibFolder
+    #       lib_ldf_mode = chain+
 
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)

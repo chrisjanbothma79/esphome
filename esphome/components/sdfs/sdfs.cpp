@@ -2,8 +2,9 @@
 #include "esphome/core/log.h"
 
 #ifdef USE_ARDUINO_SPI_FS
-#include "sdio_drv_ard.h"
 #include "esphome/components/spi/spi.h"
+#include "sdspi_drv_ard.h"
+#include "spi_connector.h"
 #else
 #include "sdmmc_drv_idf.h"
 #endif
@@ -17,18 +18,19 @@ static const char *TAG = "sdfs";
  * @brief  EspHome component for univeral interface for card attach and mount controll
  *
  */
+class ArduinoSdFatDriver;
 SdmmcHost::SdmmcHost() {
   this->set_state(SD_SLOT_ST_NOTINIT);
 
 #ifdef USE_ARDUINO_SPI_FS
-
-  SdArduinoDriver *drv = new SdArduinoDriver(this);
-  this->connector_ = new EspHomeConnector();
+  this->connector_ = new SpiConnector();
+  ArduinoSdFatDriver *drv = new ArduinoSdFatDriver();
   drv->set_connector(this->connector_);
+  drv->set_parent(this);
   this->drv_ = drv;
-
 #else
-  this->drv_ = new SdmmcIdfDriver(this);
+  this->drv_ = new SdmmcIdfDriver();
+  this->drv_->set_parent(this);
 #endif
 }
 
@@ -105,7 +107,10 @@ void SdmmcHost::set_bus_width(BusWidth bus_width) { this->spi_bus_width_ = bus_w
 #ifdef USE_ARDUINO_SPI_FS
 void SdmmcHost::set_spi_parent(spi::SPIComponent *parent) { this->connector_->set_spi_parent(parent); }
 void SdmmcHost::set_cs_pin(GPIOPin *cs) { this->connector_->set_cs_pin(cs); }
-void SdmmcHost::set_data_rate(uint32_t data_rate) { this->connector_->set_data_rate(data_rate); }
+void SdmmcHost::set_data_rate(uint32_t data_rate) {
+  this->connector_->set_data_rate(data_rate);
+  this->connector_->setSckSpeed(data_rate);
+}
 void SdmmcHost::set_mode(spi::SPIMode mode) { this->connector_->set_mode(mode); }
 #endif
 
@@ -164,24 +169,6 @@ void SdmmcHost::loop() {
       }
     }
   }
-}
-
-// #ifdef USE_ARDUINO_SPI_FS
-//   void SdmmcHost::add_spi_driver(EspHomeConnector* drv_){
-//     thid->thard_spi_driver_ = drv_;
-//   }
-// #endif
-
-// SdmmcDriver::SdmmcDriver(SdmmcHost* parent): parent_(parent) {
-//   // this->parent_ = parent;
-// }
-
-SdmmcDriver::SdmmcDriver(SdmmcHost *parent) { this->parent_ = parent; }
-
-uint32_t SdmmcDriver::get_last_err() { return this->last_err_; }
-void SdmmcDriver::set_last_err(uint32_t err) { this->last_err_ = err; }
-bool SdmmcDriver::is_last_err(uint16_t dom, uint16_t rc) {
-  return (((this->last_err_ >> 16) == dom) && ((this->last_err_ & 0x00FF) == rc));
 }
 
 }  // namespace sdfs

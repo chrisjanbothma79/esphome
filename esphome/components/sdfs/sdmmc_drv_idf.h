@@ -27,6 +27,8 @@ namespace sdfs {
     ptr = NULL; \
   }
 
+#define IS_LAST_ERR(x, y) (((this->last_err_ >> 16) == x) && ((this->last_err_ & 0x0000ffff) == y))
+
 #define FW_ERR 1  // Errors from framework
 #define FS_ERR 2  // Errors from filesysytems
 #define LC_ERR 3  // Local errors
@@ -57,15 +59,16 @@ class SdmmcHost;
  *         in esp_idf framework
  *
  */
-class SdmmcIdfDriver : public SdmmcDriver {
+class SdmmcIdfDriver : public DriverInterface {
  public:
-  SdmmcIdfDriver(SdmmcHost *);
+  // SdmmcIdfDriver(SdmmcHost *);
+  void set_parent(SdmmcHost *) override;
   bool init_host(SdConnType) override;
   bool is_card() override;
   bool attach_card() override;
   bool mount(bool) override;
   void unmount() override;
-
+  uint32_t get_last_err() override;
   // void mount_fs();
   // void umount_fs();
   // virtual void set_state(SdDriverStatus);   /// ??????

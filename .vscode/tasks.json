@@ -1,48 +1,56 @@
 {
   "version": "2.0.0",
   "tasks": [
-    {
+   {
       "label": "Run Dashboard",
       "type": "shell",
       "command": "${command:python.interpreterPath}",
       "args": [
-        "-m",
-        "esphome",
-        "dashboard",
-        "config/"
+         "-m",
+         "esphome",
+         "dashboard",
+         "config/"
       ],
       "problemMatcher": []
-    },
-    {
-       "type": "shell",
-       "label": "Test",
-       "command": "script/test_build_components -e compile -c  sdfs",
-       "problemMatcher": {
-          "owner" : "esphome",
-          "fileLocation":[
-             "relative",
-             "${workspaceFolder}"
-          ],
-          "pattern":[
-             {
-                "regexp": "^src(.*):(\\d+):(\\d+):\\s+(warning|error|note):\\s+(.*)$",
-                "file":1,
-                "line": 2,
-                "column": 3,
-                "severity": 4,
-                "message": 5
-             }
-          ]
-       },
-       "group": {
-          "kind": "build",
-          "isDefault": true,
-       },
-       "presentation": {
-          "reveal": "always",
-          "panel": "shared",
-          "clear": true,
-        }
-    }
-  ]
+   },
+   {
+      "type": "shell",
+      "label": "Test",
+      "command": "script/run_cmd  -t sdfs",
+      "problemMatcher": {
+         "owner": "esphome",
+         "fileLocation": [
+            "relative",
+            "${workspaceFolder}/"
+         ],
+         "pattern": [
+            {
+               "regexp": "^src.(.*):(\\d+):(\\d+):\\s+(warning|error|note|fatal error):\\s+(.*)$",
+               "file": 1,
+               "line": 2,
+               "column": 3,
+               "severity": 4,
+               "message": 5
+            }
+         ]
+      },
+      "group": {
+         "kind": "build",
+         "isDefault": true
+      },
+      "presentation": {
+         "reveal": "always",
+         "panel": "shared",
+         "clear": true
+      }
+   },
+   {
+      "type": "shell",
+      "label": "Clean all",
+      "command": "script/run_cmd -c sdfs",
+      "problemMatcher": [
+         "$platformio"
+      ],
+   }
+]
 }

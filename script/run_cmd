@@ -1,0 +1,114 @@
+#!/bin/bash
+MY_NAME=$0
+WORK_FOLDER=$(dirname $(readlink -f $0))
+if [  $WORK_FOLDER == "." ]; then
+    WORK_FOLDER="$PWD"
+fi
+
+COMPONENT=""
+CMD="-"
+IS_CLEAN="NO"
+
+function usage() {
+    echo "Usage:  $0 -c -t component_name -w work_dir"
+    echo "           -c for clean; -t for test compile for 'component_name'"
+    exit 1
+}
+
+while getopts w:t:c: flag
+do
+    case $flag in
+        w) WORK_FOLDER=${OPTARG};;
+        c) COMPONENT=${OPTARG}
+            IS_CLEAN="YES"
+            ;;
+        t) COMPONENT=${OPTARG}
+            CMD="TEST"
+            ;;
+        \?) usage;;
+    esac
+done
+
+
+
+# while [ $# -gt 0 ] ; do
+#     case "$1" in
+#         -w ) shift;
+#             WORK_FOLDER="$1"
+#             shift;
+#             ;;
+#         -t) shift;
+#             CMD="TEST"
+#             ;;
+#         -c) shift;
+#             IS_CLEAN="YES"
+#             ;;
+#         *) shift;
+#             COMPONENT="$1"
+#     esac
+#     shift
+# done
+
+
+if [ "$CMD" == "-" ]  && [  "$IS_CLEAN" == "NO" ]; then
+    usage
+fi
+
+wf=$WORK_FOLDER
+echo "Work folder" $WORK_FOLDER
+
+while [  "${wf##*/}" != "esphome" ]  && [ ! -z "${wf##*/}" ]  &&  [ "$wf" != "." ]; do
+    wf="${wf%/*}"
+    echo ${wf}
+done 
+
+if [ -z "$wf" ]; then
+    echo "Incorret path. Path sholup be abcolute and pint on directory inside esphome folder"
+    exit 2
+else 
+    WORK_FOLDER="$wf"
+fi
+
+pushd $WORK_FOLDER
+source $WORK_FOLDER/venv/bin/activate
+export IDF_PATH="$HOME/.platformio/packages/framework-espidf/tools/idf.py"
+
+if [  "$IS_CLEAN" == "YES" ]; then
+    set -x
+    #platformio run --target clean
+    script/test_build_components -e clean -c  $COMPONENT 
+    set +x
+fi
+
+platform=$(cat platformio.ini  | grep -e '^\s*default_envs' | awk -F'=' '{print $2;}' | sed 's/ //g')
+
+case "$platform" in
+    "esp32c3-arduino" ) shift;
+        PLATFORM_OPT="esp32-c3-ard"
+        ;;
+    "esp32c3-idf" ) shift;
+        PLATFORM_OPT="esp32-c3-idf"
+        ;;
+    "*")
+        PLATFORM_OPT=""
+        ;;
+    esac
+
+echo 
+echo "=== Select platform [ $PLATFORM_OPT ] ==="
+echo 
+
+PLATFORM_OPT="-t $PLATFORM_OPT"
+
+if [ "$CMD" == "TEST" ]; then
+    if [ -z "$COMPONENT" ]; then
+        echo "Component required"
+        exit 2
+    fi
+
+    echo "PWD - $PWD"
+    set -x
+    script/test_build_components -e compile -c $COMPONENT $PLATFORM_OPT
+    set +x
+fi
+popd
