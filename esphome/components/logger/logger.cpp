@@ -151,8 +151,7 @@ void Logger::init_log_buffer(size_t total_buffer_size) {
 
 #if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32)
 void Logger::loop() {
-#ifdef USE_LOGGER_USB_CDC
-#ifdef USE_ARDUINO
+#if defined(USE_LOGGER_USB_CDC) && defined(USE_ARDUINO)
   if (this->uart_ == UART_SELECTION_USB_CDC) {
     static bool opened = false;
     if (opened == Serial) {
@@ -163,7 +162,6 @@ void Logger::loop() {
     }
     opened = !opened;
   }
-#endif
 #endif
 
 #ifdef USE_ESPHOME_LOG_BUFFER
@@ -180,21 +178,13 @@ void Logger::loop() {
       if (message->task_handle != nullptr) {
         thread_name = pcTaskGetName(message->task_handle);
       }
-
-      // Rebuild the log message in tx_buffer using the previously stored text and metadata
       this->write_header_to_buffer_(message->level, message->tag, message->line, thread_name, this->tx_buffer_,
                                     &this->tx_buffer_at_, this->tx_buffer_size_);
       this->write_body_to_buffer_(text, message->text_length, this->tx_buffer_, &this->tx_buffer_at_,
                                   this->tx_buffer_size_);
       this->write_footer_to_buffer_(this->tx_buffer_, &this->tx_buffer_at_, this->tx_buffer_size_);
-
-      // Make sure null terminator is present
       this->tx_buffer_[this->tx_buffer_at_] = '\0';
-
-      // Call the callbacks through our helper which includes the ESP32 memory check
       this->call_log_callbacks_(message->level, message->tag, this->tx_buffer_);
-
-      // Use main loop version of release_message that updates the counter tracking
       this->log_buffer_->release_message_main_loop(received_token);
     }
   }
