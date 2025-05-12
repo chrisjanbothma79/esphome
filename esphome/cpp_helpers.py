@@ -111,7 +111,7 @@ async def setup_entity(var, config):
                 object_id = sanitize(snake_case(str(config[CONF_ID])))
             else:
                 raise cv.Invalid(
-                    f"The name '{config[CONF_NAME]}' is not valid for object_id generation. "
+                    f"The name '{config[CONF_NAME]}' is not valid for object_id generation. \n"
                     f"Please set an explicit 'id:' for this entity."
                 )
     add(var.set_object_id(object_id))
