@@ -22,6 +22,9 @@ static const uint32_t READ_DURATION_MS = 16;
 static const size_t TASK_STACK_SIZE = 4096;
 static const ssize_t TASK_PRIORITY = 23;
 
+// Use an exponential moving average to correct a DC offset with weight factor 1/10
+static const int32_t DC_OFFSET_MOVING_AVERAGE_COEFFICIENT_DENOMINATOR = 10;
+
 static const char *const TAG = "i2s_audio.microphone";
 
 enum MicrophoneEventGroupBits : uint32_t {
@@ -361,6 +364,9 @@ void I2SAudioMicrophone::mic_task(void *params) {
         samples.resize(bytes_to_read);
         size_t bytes_read = this_microphone->read_(samples.data(), bytes_to_read, 2 * pdMS_TO_TICKS(READ_DURATION_MS));
         samples.resize(bytes_read);
+        if (this_microphone->correct_dc_offset_) {
+          this_microphone->fix_dc_offset_(samples);
+        }
         this_microphone->data_callbacks_.call(samples);
       } else {
         delay(READ_DURATION_MS);
@@ -373,9 +379,30 @@ void I2SAudioMicrophone::mic_task(void *params) {
 
   xEventGroupSetBits(this_microphone->event_group_, MicrophoneEventGroupBits::TASK_STOPPED);
   while (true) {
-    // Continuously delay until the loop method delete the task
+    // Continuously delay until the loop method deletes the task
     delay(10);
   }
+}
+
+void I2SAudioMicrophone::fix_dc_offset_(std::vector<uint8_t> &data) {
+  const size_t bytes_per_sample = this->audio_stream_info_.samples_to_bytes(1);
+  const uint32_t total_samples = this->audio_stream_info_.bytes_to_samples(data.size());
+
+  int64_t offset_accumulator = 0;
+  for (uint32_t sample_index = 0; sample_index < total_samples; ++sample_index) {
+    const uint32_t byte_index = sample_index * bytes_per_sample;
+    int32_t sample = audio::unpack_audio_sample_to_q31(&data[byte_index], bytes_per_sample);
+    offset_accumulator += sample;
+    sample -= this->dc_offset_;
+    audio::pack_q31_as_audio_sample(sample, &data[byte_index], bytes_per_sample);
+  }
+
+  const int32_t new_offset = offset_accumulator / total_samples;
+
+  // Apply an exponential moving average with factor 0.1
+  this->dc_offset_ = new_offset / DC_OFFSET_MOVING_AVERAGE_COEFFICIENT_DENOMINATOR +
+                     (DC_OFFSET_MOVING_AVERAGE_COEFFICIENT_DENOMINATOR - 1) * this->dc_offset_ /
+                         DC_OFFSET_MOVING_AVERAGE_COEFFICIENT_DENOMINATOR;
 }
 
 size_t I2SAudioMicrophone::read_(uint8_t *buf, size_t len, TickType_t ticks_to_wait) {

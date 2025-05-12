@@ -20,6 +20,9 @@ class I2SAudioMicrophone : public I2SAudioIn, public microphone::Microphone, pub
   void stop() override;
 
   void loop() override;
+
+  void set_correct_dc_offset(bool correct_dc_offset) { this->correct_dc_offset_ = correct_dc_offset; }
+
 #ifdef USE_I2S_LEGACY
   void set_din_pin(int8_t pin) { this->din_pin_ = pin; }
 #else
@@ -41,6 +44,11 @@ class I2SAudioMicrophone : public I2SAudioIn, public microphone::Microphone, pub
   bool start_driver_();
   void stop_driver_();
 
+  /// @brief Attempts to correct a microphone DC offset; e.g., a microphones silent level is offset from 0. Applies a
+  /// correction offset that is updated using an exponential moving average for all samples away from 0.
+  /// @param data
+  void fix_dc_offset_(std::vector<uint8_t> &data);
+
   size_t read_(uint8_t *buf, size_t len, TickType_t ticks_to_wait);
 
   static void mic_task(void *params);
@@ -61,6 +69,9 @@ class I2SAudioMicrophone : public I2SAudioIn, public microphone::Microphone, pub
   i2s_chan_handle_t rx_handle_;
 #endif
   bool pdm_{false};
+
+  bool correct_dc_offset_;
+  int32_t dc_offset_{0};
 };
 
 }  // namespace i2s_audio
