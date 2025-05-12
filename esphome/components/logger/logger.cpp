@@ -28,25 +28,19 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
 
-  // For main task: use the tx_buffer_ for both console and callbacks to avoid duplicating work
+  // For main task: call log_message_to_buffer_and_send_ which does console and callback logging
   if (current_task == main_task_) {
-    // Format and send to both console and callbacks
     this->log_message_to_buffer_and_send_(level, tag, line, format, args);
     recursion_guard_.store(false, std::memory_order_release);
     return;
   }
 
   // For non-main tasks: use stack-allocated buffer only for console output
-  if (this->baud_rate_ > 0) {
-    // Console output - MUST be stack allocated for thread safety
-    char console_buffer[LOG_MSG_SIZE_WITH_NULL];
-
-    // Format to buffer and prepare for output (no need to capture the return value here)
-    int buffer_at = 0;  // Initialize buffer position
+  if (this->baud_rate_ > 0) {                     // If logging is enabled, write to console
+    char console_buffer[LOG_MSG_SIZE_WITH_NULL];  // MUST be stack allocated for thread safety
+    int buffer_at = 0;                            // Initialize buffer position
     this->format_log_to_buffer_with_terminator_(level, tag, line, format, args, console_buffer, &buffer_at,
                                                 LOG_MSG_SIZE_WITH_NULL);
-
-    // Send directly to output
     this->write_msg_(console_buffer);
   }
 

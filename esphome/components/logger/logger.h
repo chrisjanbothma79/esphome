@@ -162,12 +162,9 @@ class Logger : public Component {
     this->format_log_to_buffer_with_terminator_(level, tag, line, format, args, this->tx_buffer_, &this->tx_buffer_at_,
                                                 this->tx_buffer_size_);
 
-    // If logging is enabled, write to console
     if (this->baud_rate_ > 0) {
-      this->write_msg_(this->tx_buffer_);
+      this->write_msg_(this->tx_buffer_);  // If logging is enabled, write to console
     }
-
-    // Also send to callbacks
     this->call_log_callbacks_(level, tag, this->tx_buffer_);
   }
 
