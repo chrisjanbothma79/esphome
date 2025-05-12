@@ -35,8 +35,6 @@ class LogBuffer {
     inline char *text_data() { return reinterpret_cast<char *>(this) + sizeof(LogMessage); }
 
     inline const char *text_data() const { return reinterpret_cast<const char *>(this) + sizeof(LogMessage); }
-
-    inline size_t total_size() const { return sizeof(LogMessage) + text_length; }
   };
 
   // Total buffer size for complete message storage
