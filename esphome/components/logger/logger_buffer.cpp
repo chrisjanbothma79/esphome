@@ -56,15 +56,6 @@ bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text
   return true;
 }
 
-void LogBuffer::cancel_message(void *token) {
-  // Check if there's a valid token to cancel
-  if (token == nullptr) {
-    return;  // Nothing to cancel
-  }
-  // Return the item to the ring buffer without committing
-  vRingbufferReturnItem(ring_buffer_, token);
-}
-
 bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, TaskHandle_t task_handle,
                                          const char *format, va_list args) {
   // First, calculate the exact length needed using a null buffer (no actual writing)

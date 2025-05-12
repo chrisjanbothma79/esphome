@@ -53,9 +53,6 @@ class LogBuffer {
   // NOT thread-safe - borrow a message from the ring buffer, only call from main loop
   bool borrow_message_main_loop(LogMessage **message, const char **text, void **received_token);
 
-  // Cancel a borrowed message without updating counters
-  void cancel_message(void *token);
-
   // NOT thread-safe - release a message buffer and update the counter, only call from main loop
   void release_message_main_loop(void *token);
 
