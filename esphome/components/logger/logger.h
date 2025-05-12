@@ -120,7 +120,7 @@ class Logger : public Component {
   void pre_setup();
   void dump_config() override;
 
-  inline int HOT level_for(const char *tag);
+  inline int level_for(const char *tag);
 
   /// Register a callback that will be called for every log message sent
   void add_on_log_callback(std::function<void(int, const char *, const char *)> &&callback);

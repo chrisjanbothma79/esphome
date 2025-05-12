@@ -119,7 +119,7 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
 }
 #endif  // USE_STORE_LOG_STR_IN_FLASH
 
-inline int HOT Logger::level_for(const char *tag) {
+inline int Logger::level_for(const char *tag) {
   auto it = this->log_levels_.find(tag);
   if (it != this->log_levels_.end())
     return it->second;
