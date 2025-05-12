@@ -1,11 +1,9 @@
 #include "logger.h"
 #include <cinttypes>
+#include "logger_common.h"  // For common constants
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include <memory>
 #include "task_log_buffer.h"
-#else
-// When log buffer is not enabled, define this constant locally
-constexpr size_t LOG_MSG_SIZE_WITH_NULL = 129;
 #endif
 
 #include "esphome/core/hal.h"

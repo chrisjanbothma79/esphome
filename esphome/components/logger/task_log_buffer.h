@@ -2,6 +2,10 @@
 
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
+#include "logger_common.h"
+
+namespace esphome {
+namespace logger {
 
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
 
@@ -11,15 +15,6 @@
 #include <atomic>
 #include <freertos/FreeRTOS.h>
 #include <freertos/ringbuf.h>
-
-namespace esphome {
-namespace logger {
-
-// Maximum log message text size (power of 2 for efficiency)
-constexpr size_t LOG_MSG_SIZE = 128;
-
-// Size for temporary text storage with null terminator
-constexpr size_t LOG_MSG_SIZE_WITH_NULL = LOG_MSG_SIZE + 1;
 
 class TaskLogBuffer {
  public:
@@ -70,7 +65,7 @@ class TaskLogBuffer {
   mutable uint16_t last_processed_counter_{0};  // Tracks last processed message
 };
 
+#endif  // USE_ESPHOME_TASK_LOG_BUFFER
+
 }  // namespace logger
 }  // namespace esphome
-
-#endif  // USE_ESPHOME_TASK_LOG_BUFFER
