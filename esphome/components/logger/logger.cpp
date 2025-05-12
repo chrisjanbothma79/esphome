@@ -203,10 +203,8 @@ void Logger::loop() {
       // Make sure null terminator is present
       this->tx_buffer_[this->tx_buffer_at_] = '\0';
 
-      // Only send to callbacks, not to console (console output already happened in log_vprintf_)
-      const char *msg = this->tx_buffer_;
       // Call the callbacks through our helper which includes the ESP32 memory check
-      this->call_log_callbacks_(message->level, message->tag, msg);
+      this->call_log_callbacks_(message->level, message->tag, this->tx_buffer_);
 
       // Use main loop version of release_message that updates the counter tracking
       this->log_buffer_->release_message_main_loop(received_token);
