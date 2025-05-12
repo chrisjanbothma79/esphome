@@ -24,8 +24,8 @@ static const uint32_t READ_DURATION_MS = 16;
 static const size_t TASK_STACK_SIZE = 4096;
 static const ssize_t TASK_PRIORITY = 23;
 
-// Use an exponential moving average to correct a DC offset with weight factor 1/10
-static const int32_t DC_OFFSET_MOVING_AVERAGE_COEFFICIENT_DENOMINATOR = 10;
+// Use an exponential moving average to correct a DC offset with weight factor 1/1000
+static const int32_t DC_OFFSET_MOVING_AVERAGE_COEFFICIENT_DENOMINATOR = 1000;
 
 static const char *const TAG = "i2s_audio.microphone";
 
@@ -410,8 +410,6 @@ void I2SAudioMicrophone::fix_dc_offset_(std::vector<uint8_t> &data) {
   }
 
   const int32_t new_offset = offset_accumulator / total_samples;
-
-  // Apply an exponential moving average with factor 0.1
   this->dc_offset_ = new_offset / DC_OFFSET_MOVING_AVERAGE_COEFFICIENT_DENOMINATOR +
                      (DC_OFFSET_MOVING_AVERAGE_COEFFICIENT_DENOMINATOR - 1) * this->dc_offset_ /
                          DC_OFFSET_MOVING_AVERAGE_COEFFICIENT_DENOMINATOR;
