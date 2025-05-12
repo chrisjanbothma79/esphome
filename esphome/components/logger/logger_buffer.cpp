@@ -67,33 +67,51 @@ void LogBuffer::cancel_message(void *token) {
 
 bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, TaskHandle_t task_handle,
                                          const char *format, va_list args) {
-  // Stack allocation is required for thread safety
-  // Buffer contains entire message (header + text + null terminator)
-  uint8_t buffer[LOG_MSG_BUFFER_SIZE];
-
-  // Set up the message header at the start of the buffer
-  LogMessage *msg = reinterpret_cast<LogMessage *>(buffer);
-  msg->level = level;
-  msg->tag = tag;
-  msg->line = line;
-  // Use the provided task handle
-  msg->task_handle = task_handle;
-
-  // Format the message text directly after the header
-  char *text_area = msg->text_data();
-  // Format text with space for null terminator
-  int ret = vsnprintf(text_area, LOG_MSG_SIZE_WITH_NULL, format, args);
-  // vsnprintf handles truncation and adds a null terminator (not needed for storage but useful during formatting)
+  // First, calculate the exact length needed using a null buffer (no actual writing)
+  va_list args_copy;
+  va_copy(args_copy, args);
+  int ret = vsnprintf(nullptr, 0, format, args_copy);
+  va_end(args_copy);
 
   // Check for formatting error or empty message
   if (ret <= 0) {
     return false;  // Formatting error or empty message
   }
 
-  // Calculate actual text length (excluding null terminator)
+  // Calculate actual text length (capped to maximum size)
   size_t text_length = (static_cast<size_t>(ret) > LOG_MSG_SIZE) ? LOG_MSG_SIZE : ret;
 
-  // Remove trailing newlines immediately after formatting
+  // Calculate total size needed (header + text)
+  size_t total_size = sizeof(LogMessage) + text_length;
+
+  // Acquire memory directly from the ring buffer
+  void *acquired_memory = nullptr;
+  BaseType_t result = xRingbufferSendAcquire(ring_buffer_, &acquired_memory, total_size, 0);
+
+  // Check if memory acquisition failed
+  if (result != pdTRUE || acquired_memory == nullptr) {
+    return false;  // Failed to acquire memory
+  }
+
+  // Set up the message header in the acquired memory
+  LogMessage *msg = static_cast<LogMessage *>(acquired_memory);
+  msg->level = level;
+  msg->tag = tag;
+  msg->line = line;
+  msg->task_handle = task_handle;
+
+  // Format the message text directly into the acquired memory
+  // We add 1 to text_length to ensure space for null terminator during formatting
+  char *text_area = msg->text_data();
+  ret = vsnprintf(text_area, text_length + 1, format, args);
+
+  // Handle unexpected formatting error
+  if (ret <= 0) {
+    vRingbufferReturnItem(ring_buffer_, acquired_memory);
+    return false;
+  }
+
+  // Remove trailing newlines
   while (text_length > 0 && text_area[text_length - 1] == '\n') {
     text_length--;
   }
@@ -101,15 +119,12 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
   // Set the final text length in the header
   msg->text_length = text_length;
 
-  // Calculate total size to send (header + text)
-  size_t total_size = sizeof(LogMessage) + text_length;
-
-  // Send the message to the ring buffer
-  BaseType_t result = xRingbufferSend(ring_buffer_, buffer, total_size, 0);
+  // Complete the send operation with the acquired memory
+  result = xRingbufferSendComplete(ring_buffer_, acquired_memory);
 
   // Check if sending failed
   if (result != pdTRUE) {
-    return false;  // Failed to send the message
+    return false;  // Failed to complete the message send
   }
 
   // Message sent successfully, increment the counter
