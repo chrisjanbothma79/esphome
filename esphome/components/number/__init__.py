@@ -220,7 +220,7 @@ def number_schema(
 
 
 # Remove before 2025.11.0
-NUMBER_SCHEMA = number_schema(cv.UNDEFINED)
+NUMBER_SCHEMA = number_schema(Number)
 NUMBER_SCHEMA.add_extra(cv.deprecated_schema_constant("number"))
 
 

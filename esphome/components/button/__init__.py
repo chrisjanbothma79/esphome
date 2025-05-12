@@ -82,7 +82,7 @@ def button_schema(
 
 
 # Remove before 2025.11.0
-BUTTON_SCHEMA = button_schema(cv.UNDEFINED)
+BUTTON_SCHEMA = button_schema(Button)
 BUTTON_SCHEMA.add_extra(cv.deprecated_schema_constant("button"))
 
 
