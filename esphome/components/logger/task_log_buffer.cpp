@@ -91,7 +91,17 @@ bool TaskLogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uin
   msg->level = level;
   msg->tag = tag;
   msg->line = line;
-  msg->task_handle = task_handle;
+
+  // Store the thread name now instead of waiting until main loop processing
+  // This avoids crashes if the task completes or is deleted between when this message
+  // is enqueued and when it's processed by the main loop
+  const char *thread_name = pcTaskGetName(task_handle);
+  if (thread_name != nullptr) {
+    strncpy(msg->thread_name, thread_name, sizeof(msg->thread_name) - 1);
+    msg->thread_name[sizeof(msg->thread_name) - 1] = '\0';  // Ensure null termination
+  } else {
+    msg->thread_name[0] = '\0';  // Empty string if no thread name
+  }
 
   // Format the message text directly into the acquired memory
   // We add 1 to text_length to ensure space for null terminator during formatting

@@ -18,11 +18,11 @@ class TaskLogBuffer {
  public:
   // Structure for a log message header (text data follows immediately after)
   struct LogMessage {
-    const char *tag;           // We store the pointer, assuming tags are static
-    TaskHandle_t task_handle;  // Task handle instead of thread name (0 for main thread)
-    uint16_t text_length;      // Length of the message text (up to ~64KB)
-    uint16_t line;             // Source code line number
-    uint8_t level;             // Log level (0-7)
+    const char *tag;       // We store the pointer, assuming tags are static
+    char thread_name[16];  // Store thread name directly (only used for non-main threads)
+    uint16_t text_length;  // Length of the message text (up to ~64KB)
+    uint16_t line;         // Source code line number
+    uint8_t level;         // Log level (0-7)
 
     // Methods for accessing message contents
     inline char *text_data() { return reinterpret_cast<char *>(this) + sizeof(LogMessage); }

@@ -183,14 +183,14 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_DEASSERT_RTS_DTR, default=False): cv.boolean,
             cv.SplitDefault(
                 CONF_TASK_LOG_BUFFER_SIZE,
-                esp32=576,  # Default: 576 bytes (~5-6 messages with 70-byte text)
+                esp32=768,  # Default: 768 bytes (~5-6 messages with 70-byte text plus thread names)
             ): cv.All(
                 cv.only_on_esp32,
                 cv.Any(
                     cv.int_(0),  # Disabled
                     cv.int_range(
-                        min=512,  # Min: ~4-5 messages with 70-byte text
-                        max=32768,  # Max: Depends on message sizes, typically ~350 messages with default size
+                        min=640,  # Min: ~4-5 messages with 70-byte text plus thread names
+                        max=32768,  # Max: Depends on message sizes, typically ~300 messages with default size
                     ),
                 ),
             ),
