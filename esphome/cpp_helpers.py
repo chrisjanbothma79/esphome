@@ -20,6 +20,7 @@ from esphome.cpp_types import App
 from esphome.helpers import sanitize, snake_case
 from esphome.types import ConfigFragmentType, ConfigType
 from esphome.util import Registry, RegistryEntry
+from esphome import config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -109,8 +110,10 @@ async def setup_entity(var, config):
             if CONF_ID in config:
                 object_id = sanitize(snake_case(str(config[CONF_ID])))
             else:
-                from hashlib import md5
-                object_id = md5(config[CONF_NAME].encode("utf-8")).hexdigest()[:8]
+                raise cv.Invalid(
+                    f"The name '{config[CONF_NAME]}' is not valid for object_id generation. "
+                    f"Please set an explicit 'id:' for this entity."
+                )
     add(var.set_object_id(object_id))
     add(var.set_disabled_by_default(config[CONF_DISABLED_BY_DEFAULT]))
     if CONF_INTERNAL in config:
