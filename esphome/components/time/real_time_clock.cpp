@@ -23,12 +23,6 @@ namespace time {
 static const char *const TAG = "time";
 
 RealTimeClock::RealTimeClock() = default;
-void RealTimeClock::call_setup() {
-#ifndef USE_ZEPHYR
-  this->apply_timezone_();
-#endif
-  PollingComponent::call_setup();
-}
 void RealTimeClock::synchronize_epoch_(uint32_t epoch) {
   ESP_LOGVV(TAG, "Got epoch %" PRIu32, epoch);
   // Update UTC epoch time.
