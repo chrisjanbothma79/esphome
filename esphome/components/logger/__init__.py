@@ -256,8 +256,6 @@ async def to_code(config):
         task_log_buffer_size = config[CONF_TASK_LOG_BUFFER_SIZE]
         if task_log_buffer_size > 0:
             cg.add_define("USE_ESPHOME_TASK_LOG_BUFFER")
-            # Ensure task_log_buffer.cpp gets compiled
-            cg.add_source_files("esphome/components/logger/task_log_buffer.cpp")
             cg.add(log.init_log_buffer(task_log_buffer_size))
 
     cg.add(log.set_log_level(initial_level))
