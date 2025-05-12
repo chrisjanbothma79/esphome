@@ -12,7 +12,7 @@
 #include "esphome/core/log.h"
 
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
-#include "logger_buffer.h"
+#include "task_log_buffer.h"
 #endif
 
 #ifdef USE_ARDUINO
@@ -219,7 +219,7 @@ class Logger : public Component {
 #ifdef USE_ESP32
   std::atomic<bool> recursion_guard_{false};
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
-  std::unique_ptr<logger::LogBuffer> log_buffer_;  // Will be initialized with init_log_buffer
+  std::unique_ptr<logger::TaskLogBuffer> log_buffer_;  // Will be initialized with init_log_buffer
 #endif
 #else
   bool recursion_guard_{false};

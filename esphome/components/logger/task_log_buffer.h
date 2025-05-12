@@ -21,7 +21,7 @@ constexpr size_t LOG_MSG_SIZE = 128;
 // Size for temporary text storage with null terminator
 constexpr size_t LOG_MSG_SIZE_WITH_NULL = LOG_MSG_SIZE + 1;
 
-class LogBuffer {
+class TaskLogBuffer {
  public:
   // Structure for a log message header (text data follows immediately after)
   struct LogMessage {
@@ -41,8 +41,8 @@ class LogBuffer {
   static constexpr size_t LOG_MSG_BUFFER_SIZE = sizeof(LogMessage) + LOG_MSG_SIZE_WITH_NULL;
 
   // Constructor that takes a total buffer size
-  explicit LogBuffer(size_t total_buffer_size);
-  ~LogBuffer();
+  explicit TaskLogBuffer(size_t total_buffer_size);
+  ~TaskLogBuffer();
 
   // NOT thread-safe - borrow a message from the ring buffer, only call from main loop
   bool borrow_message_main_loop(LogMessage **message, const char **text, void **received_token);

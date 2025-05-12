@@ -2,7 +2,7 @@
 #include <cinttypes>
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include <memory>
-#include "logger_buffer.h"
+#include "task_log_buffer.h"
 #else
 // When log buffer is not enabled, define this constant locally
 constexpr size_t LOG_MSG_SIZE_WITH_NULL = 129;
@@ -139,7 +139,7 @@ Logger::Logger(uint32_t baud_rate, size_t tx_buffer_size) : baud_rate_(baud_rate
 }
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
 void Logger::init_log_buffer(size_t total_buffer_size) {
-  this->log_buffer_ = esphome::make_unique<logger::LogBuffer>(total_buffer_size);
+  this->log_buffer_ = esphome::make_unique<logger::TaskLogBuffer>(total_buffer_size);
 }
 #endif
 
@@ -161,7 +161,7 @@ void Logger::loop() {
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
   // Process any buffered messages when available
   if (this->log_buffer_->has_messages()) {
-    logger::LogBuffer::LogMessage *message;
+    logger::TaskLogBuffer::LogMessage *message;
     const char *text;
     void *received_token;
 

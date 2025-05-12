@@ -1,4 +1,4 @@
-#include "logger_buffer.h"
+#include "task_log_buffer.h"
 
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
 
@@ -8,9 +8,7 @@
 namespace esphome {
 namespace logger {
 
-static const char *const TAG = "logger_buffer";
-
-LogBuffer::LogBuffer(size_t total_buffer_size) {
+TaskLogBuffer::TaskLogBuffer(size_t total_buffer_size) {
   // Store the buffer size
   this->size_ = total_buffer_size;
   // Allocate memory for the ring buffer using ESPHome's RAM allocator
@@ -20,7 +18,7 @@ LogBuffer::LogBuffer(size_t total_buffer_size) {
   this->ring_buffer_ = xRingbufferCreateStatic(this->size_, RINGBUF_TYPE_NOSPLIT, this->storage_, &this->structure_);
 }
 
-LogBuffer::~LogBuffer() {
+TaskLogBuffer::~TaskLogBuffer() {
   if (this->ring_buffer_ != nullptr) {
     // Delete the ring buffer
     vRingbufferDelete(this->ring_buffer_);
@@ -33,7 +31,7 @@ LogBuffer::~LogBuffer() {
   }
 }
 
-bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text, void **received_token) {
+bool TaskLogBuffer::borrow_message_main_loop(LogMessage **message, const char **text, void **received_token) {
   if (message == nullptr || text == nullptr || received_token == nullptr) {
     return false;
   }
@@ -52,7 +50,7 @@ bool LogBuffer::borrow_message_main_loop(LogMessage **message, const char **text
   return true;
 }
 
-void LogBuffer::release_message_main_loop(void *token) {
+void TaskLogBuffer::release_message_main_loop(void *token) {
   if (token == nullptr) {
     return;
   }
@@ -61,8 +59,8 @@ void LogBuffer::release_message_main_loop(void *token) {
   last_processed_counter_ = message_counter_.load(std::memory_order_relaxed);
 }
 
-bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, TaskHandle_t task_handle,
-                                         const char *format, va_list args) {
+bool TaskLogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, TaskHandle_t task_handle,
+                                             const char *format, va_list args) {
   // First, calculate the exact length needed using a null buffer (no actual writing)
   va_list args_copy;
   va_copy(args_copy, args);
