@@ -294,8 +294,9 @@ jobs:
             pio_cache_key: tidyesp32-idf
           - id: clang-tidy
             name: Run script/clang-tidy for ZEPHYR
-            options: --environment nrf52-tidy --grep USE_ZEPHYR || true
+            options: --environment nrf52-tidy --grep USE_ZEPHYR
             pio_cache_key: tidy-zephyr
+            ignore_errors: true
 
     steps:
       - name: Check out code from GitHub
@@ -335,7 +336,7 @@ jobs:
       - name: Run clang-tidy
         run: |
           . venv/bin/activate
-          script/clang-tidy --all-headers --fix ${{ matrix.options }}
+          script/clang-tidy --all-headers --fix ${{ matrix.options }} ${{ matrix.ignore_errors && '|| true' || '' }}
         env:
           # Also cache libdeps, store them in a ~/.platformio subfolder
           PLATFORMIO_LIBDEPS_DIR: ~/.platformio/libdeps
@@ -343,7 +344,7 @@ jobs:
       - name: Suggested changes
         run: script/ci-suggest-changes
         # yamllint disable-line rule:line-length
-        if: always()
+        if: always() && matrix.ignore_errors != true
 
   list-components:
     runs-on: ubuntu-24.04
