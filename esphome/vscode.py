@@ -104,7 +104,7 @@ def _print_version():
         json.dumps(
             {
                 "type": "version",
-                "_value": ESPHOME_VERSION,
+                "value": ESPHOME_VERSION,
             }
         )
     )
