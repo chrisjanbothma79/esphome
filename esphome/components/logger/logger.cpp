@@ -194,8 +194,8 @@ void Logger::loop() {
       }
 
       // Rebuild the log message in tx_buffer using the previously stored text and metadata
-      this->write_header_to_buffer_(message->level, message->tag, message->line, this->tx_buffer_, &this->tx_buffer_at_,
-                                    this->tx_buffer_size_, thread_name);
+      this->write_header_to_buffer_(message->level, message->tag, message->line, thread_name, this->tx_buffer_,
+                                    &this->tx_buffer_at_, this->tx_buffer_size_);
       this->write_body_to_buffer_(text, message->text_length, this->tx_buffer_, &this->tx_buffer_at_,
                                   this->tx_buffer_size_);
       this->write_footer_to_buffer_(this->tx_buffer_, &this->tx_buffer_at_, this->tx_buffer_size_);

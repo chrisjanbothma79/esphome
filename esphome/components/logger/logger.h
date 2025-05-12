@@ -136,9 +136,9 @@ class Logger : public Component {
   inline void HOT format_log_to_buffer_with_terminator_(int level, const char *tag, int line, const char *format,
                                                         va_list args, char *buffer, int *buffer_at, int buffer_size) {
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
-    this->write_header_to_buffer_(level, tag, line, buffer, buffer_at, buffer_size, this->get_thread_name_());
+    this->write_header_to_buffer_(level, tag, line, this->get_thread_name_(), buffer, buffer_at, buffer_size);
 #else
-    this->write_header_to_buffer_(level, tag, line, buffer, buffer_at, buffer_size, nullptr);
+    this->write_header_to_buffer_(level, tag, line, nullptr, buffer, buffer_at, buffer_size);
 #endif
     this->format_body_to_buffer_(buffer, buffer_at, buffer_size, format, args);
     this->write_footer_to_buffer_(buffer, buffer_at, buffer_size);
@@ -248,8 +248,8 @@ class Logger : public Component {
   }
 #endif
 
-  inline void HOT write_header_to_buffer_(int level, const char *tag, int line, char *buffer, int *buffer_at,
-                                          int buffer_size, const char *thread_name) {
+  inline void HOT write_header_to_buffer_(int level, const char *tag, int line, const char *thread_name, char *buffer,
+                                          int *buffer_at, int buffer_size) {
     // Format header
     if (level < 0)
       level = 0;
