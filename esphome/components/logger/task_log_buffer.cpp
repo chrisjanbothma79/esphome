@@ -1,7 +1,7 @@
 
-#ifdef USE_ESPHOME_TASK_LOG_BUFFER
-
 #include "task_log_buffer.h"
+
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
