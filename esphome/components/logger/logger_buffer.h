@@ -46,15 +46,15 @@ class LogBuffer {
   explicit LogBuffer(size_t total_buffer_size);
   ~LogBuffer();
 
-  // Thread-safe - send a message to the ring buffer from any thread
-  bool send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, TaskHandle_t task_handle,
-                                const char *format, va_list args);
-
   // NOT thread-safe - borrow a message from the ring buffer, only call from main loop
   bool borrow_message_main_loop(LogMessage **message, const char **text, void **received_token);
 
   // NOT thread-safe - release a message buffer and update the counter, only call from main loop
   void release_message_main_loop(void *token);
+
+  // Thread-safe - send a message to the ring buffer from any thread
+  bool send_message_thread_safe(uint8_t level, const char *tag, uint16_t line, TaskHandle_t task_handle,
+                                const char *format, va_list args);
 
   // Check if there are messages ready to be processed using an atomic counter for performance
   inline bool HOT has_messages() const {
