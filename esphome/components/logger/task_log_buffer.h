@@ -49,6 +49,9 @@ class TaskLogBuffer {
     return message_counter_.load(std::memory_order_relaxed) != last_processed_counter_;
   }
 
+  // Get the total buffer size in bytes
+  inline size_t size() const { return size_; }
+
  private:
   RingbufHandle_t ring_buffer_{nullptr};  // FreeRTOS ring buffer handle
   StaticRingbuffer_t structure_;          // Static structure for the ring buffer

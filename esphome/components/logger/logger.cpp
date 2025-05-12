@@ -205,6 +205,11 @@ void Logger::dump_config() {
   ESP_LOGCONFIG(TAG, "  Log Baud Rate: %" PRIu32, this->baud_rate_);
   ESP_LOGCONFIG(TAG, "  Hardware UART: %s", get_uart_selection_());
 #endif
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
+  if (this->log_buffer_) {
+    ESP_LOGCONFIG(TAG, "  Task Log Buffer Size: %u bytes", this->log_buffer_->size());
+  }
+#endif
 
   for (auto &it : this->log_levels_) {
     ESP_LOGCONFIG(TAG, "  Level for '%s': %s", it.first.c_str(), LOG_LEVELS[it.second]);
