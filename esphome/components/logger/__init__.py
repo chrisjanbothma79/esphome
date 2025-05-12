@@ -183,13 +183,13 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_DEASSERT_RTS_DTR, default=False): cv.boolean,
             cv.SplitDefault(
                 CONF_LOG_BUFFER_SIZE,
-                esp32=1024,  # Default: 1024 bytes for better ring buffer compatibility
+                esp32=576,  # Default: 576 bytes (~5-6 messages with 70-byte text)
             ): cv.All(
                 cv.only_on(PLATFORM_ESP32),
                 cv.Any(
                     cv.int_(0),  # Disabled
                     cv.int_range(
-                        min=1024,  # Min: ~8-10 messages with 70-byte text
+                        min=512,  # Min: ~4-5 messages with 70-byte text
                         max=32768,  # Max: Depends on message sizes, typically ~350 messages with default size
                     ),
                 ),
