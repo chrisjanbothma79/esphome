@@ -7,8 +7,10 @@
 #include "esphome/components/microphone/microphone.h"
 #include "esphome/core/component.h"
 
+#include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 #include <freertos/semphr.h>
+#include <freertos/task.h>
 
 namespace esphome {
 namespace i2s_audio {

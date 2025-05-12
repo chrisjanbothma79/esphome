@@ -369,7 +369,7 @@ void I2SAudioMicrophone::mic_task(void *params) {
         }
         this_microphone->data_callbacks_.call(samples);
       } else {
-        delay(READ_DURATION_MS);
+        vTaskDelay(pdMS_TO_TICKS(READ_DURATION_MS));
       }
     }
   }
@@ -380,7 +380,7 @@ void I2SAudioMicrophone::mic_task(void *params) {
   xEventGroupSetBits(this_microphone->event_group_, MicrophoneEventGroupBits::TASK_STOPPED);
   while (true) {
     // Continuously delay until the loop method deletes the task
-    delay(10);
+    vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
 
