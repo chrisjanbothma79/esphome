@@ -22,7 +22,7 @@ namespace esp32 {
 
 static const char *const TAG = "esp32";
 
-static const gpio_hal_context_t _gpio_hal = {.dev = GPIO_HAL_GET_HW(GPIO_PORT_0)};
+static const gpio_hal_context_t GPIO_HAL = {.dev = GPIO_HAL_GET_HW(GPIO_PORT_0)};
 
 bool ESP32InternalGPIOPin::isr_service_installed = false;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
@@ -141,12 +141,12 @@ using namespace esp32;
 
 bool IRAM_ATTR ISRInternalGPIOPin::digital_read() {
   auto *arg = reinterpret_cast<ISRPinArg *>(this->arg_);
-  return bool(gpio_hal_get_level(&_gpio_hal, arg->pin)) != arg->inverted;
+  return bool(gpio_hal_get_level(&GPIO_HAL, arg->pin)) != arg->inverted;
 }
 
 void IRAM_ATTR ISRInternalGPIOPin::digital_write(bool value) {
   auto *arg = reinterpret_cast<ISRPinArg *>(this->arg_);
-  gpio_hal_set_level(&_gpio_hal, arg->pin, value != arg->inverted);
+  gpio_hal_set_level(&GPIO_HAL, arg->pin, value != arg->inverted);
 }
 
 void IRAM_ATTR ISRInternalGPIOPin::clear_interrupt() {
@@ -158,16 +158,16 @@ void IRAM_ATTR ISRInternalGPIOPin::pin_mode(gpio::Flags flags) {
   gpio::Flags diff = (gpio::Flags)(flags ^ arg->flags);
   if (diff & gpio::FLAG_OUTPUT) {
     if (flags & gpio::FLAG_OUTPUT) {
-      gpio_hal_output_enable(&_gpio_hal, arg->pin);
+      gpio_hal_output_enable(&GPIO_HAL, arg->pin);
       if (flags & gpio::FLAG_OPEN_DRAIN)
-        gpio_hal_od_enable(&_gpio_hal, arg->pin);
+        gpio_hal_od_enable(&GPIO_HAL, arg->pin);
     } else {
-      gpio_hal_output_disable(&_gpio_hal, arg->pin);
+      gpio_hal_output_disable(&GPIO_HAL, arg->pin);
     }
   }
   if (diff & gpio::FLAG_INPUT) {
     if (flags & gpio::FLAG_INPUT) {
-      gpio_hal_input_enable(&_gpio_hal, arg->pin);
+      gpio_hal_input_enable(&GPIO_HAL, arg->pin);
 #if defined(USE_ESP32_VARIANT_ESP32)
       if (arg->use_rtc) {
         if (flags & gpio::FLAG_PULLUP) {
@@ -184,18 +184,18 @@ void IRAM_ATTR ISRInternalGPIOPin::pin_mode(gpio::Flags flags) {
 #endif
       {
         if (flags & gpio::FLAG_PULLUP) {
-          gpio_hal_pullup_en(&_gpio_hal, arg->pin);
+          gpio_hal_pullup_en(&GPIO_HAL, arg->pin);
         } else {
-          gpio_hal_pullup_dis(&_gpio_hal, arg->pin);
+          gpio_hal_pullup_dis(&GPIO_HAL, arg->pin);
         }
         if (flags & gpio::FLAG_PULLDOWN) {
-          gpio_hal_pulldown_en(&_gpio_hal, arg->pin);
+          gpio_hal_pulldown_en(&GPIO_HAL, arg->pin);
         } else {
-          gpio_hal_pulldown_dis(&_gpio_hal, arg->pin);
+          gpio_hal_pulldown_dis(&GPIO_HAL, arg->pin);
         }
       }
     } else {
-      gpio_hal_input_disable(&_gpio_hal, arg->pin);
+      gpio_hal_input_disable(&GPIO_HAL, arg->pin);
     }
   }
   arg->flags = flags;
