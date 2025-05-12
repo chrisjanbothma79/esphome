@@ -11,7 +11,7 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
-#ifdef USE_ESPHOME_LOG_BUFFER
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include "logger_buffer.h"
 #endif
 
@@ -87,7 +87,7 @@ enum UARTSelection {
 class Logger : public Component {
  public:
   explicit Logger(uint32_t baud_rate, size_t tx_buffer_size);
-#ifdef USE_ESPHOME_LOG_BUFFER
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
   void init_log_buffer(size_t total_buffer_size);
 #endif
 #if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32)
@@ -218,7 +218,7 @@ class Logger : public Component {
   int current_level_{ESPHOME_LOG_LEVEL_VERY_VERBOSE};
 #ifdef USE_ESP32
   std::atomic<bool> recursion_guard_{false};
-#ifdef USE_ESPHOME_LOG_BUFFER
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
   std::unique_ptr<logger::LogBuffer> log_buffer_;  // Will be initialized with init_log_buffer
 #endif
 #else

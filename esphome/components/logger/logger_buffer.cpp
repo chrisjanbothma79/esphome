@@ -1,6 +1,6 @@
 #include "logger_buffer.h"
 
-#ifdef USE_ESPHOME_LOG_BUFFER
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
 
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
@@ -127,4 +127,4 @@ bool LogBuffer::send_message_thread_safe(uint8_t level, const char *tag, uint16_
 }  // namespace logger
 }  // namespace esphome
 
-#endif  // USE_ESPHOME_LOG_BUFFER
+#endif  // USE_ESPHOME_TASK_LOG_BUFFER

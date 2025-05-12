@@ -1,6 +1,6 @@
 #include "logger.h"
 #include <cinttypes>
-#ifdef USE_ESPHOME_LOG_BUFFER
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include <memory>
 #include "logger_buffer.h"
 #else
@@ -44,14 +44,14 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     this->write_msg_(console_buffer);
   }
 
-#ifdef USE_ESPHOME_LOG_BUFFER
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
   // For non-main tasks, queue the message for callbacks - but only if we have any callbacks registered
   if (this->log_callback_.size() > 0) {
     // This will be processed in the main loop
     this->log_buffer_->send_message_thread_safe(static_cast<uint8_t>(level), tag, static_cast<uint16_t>(line),
                                                 current_task, format, args);
   }
-#endif  // USE_ESPHOME_LOG_BUFFER
+#endif  // USE_ESPHOME_TASK_LOG_BUFFER
 
   recursion_guard_.store(false, std::memory_order_release);
 }
@@ -137,7 +137,7 @@ Logger::Logger(uint32_t baud_rate, size_t tx_buffer_size) : baud_rate_(baud_rate
   this->main_task_ = xTaskGetCurrentTaskHandle();
 #endif
 }
-#ifdef USE_ESPHOME_LOG_BUFFER
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
 void Logger::init_log_buffer(size_t total_buffer_size) {
   this->log_buffer_ = esphome::make_unique<logger::LogBuffer>(total_buffer_size);
 }
@@ -158,7 +158,7 @@ void Logger::loop() {
   }
 #endif
 
-#ifdef USE_ESPHOME_LOG_BUFFER
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
   // Process any buffered messages when available
   if (this->log_buffer_->has_messages()) {
     logger::LogBuffer::LogMessage *message;

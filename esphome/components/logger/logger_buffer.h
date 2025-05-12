@@ -3,7 +3,7 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 
-#ifdef USE_ESPHOME_LOG_BUFFER
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
 
 #include <cstddef>
 #include <cstring>
@@ -73,4 +73,4 @@ class LogBuffer {
 }  // namespace logger
 }  // namespace esphome
 
-#endif  // USE_ESPHOME_LOG_BUFFER
+#endif  // USE_ESPHOME_TASK_LOG_BUFFER
