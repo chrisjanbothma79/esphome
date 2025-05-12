@@ -1,14 +1,13 @@
 #pragma once
 
-#ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include <cstddef>
 #include <cstring>
 #include <memory>
 #include <atomic>
-
 #include <freertos/FreeRTOS.h>
 #include <freertos/ringbuf.h>
 
