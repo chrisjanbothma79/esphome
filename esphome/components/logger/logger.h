@@ -272,12 +272,10 @@ class Logger : public Component {
     if (remaining <= 0)
       return;
 
-    // Format the string into the buffer
     const int ret = vsnprintf(buffer + *buffer_at, remaining, format, args);
 
     if (ret < 0) {
-      // Encoding error, do not increment buffer_at
-      return;
+      return;  // Encoding error, do not increment buffer_at
     }
 
     // Update buffer_at with the formatted length (handle truncation)
@@ -288,9 +286,6 @@ class Logger : public Component {
     while (*buffer_at > 0 && buffer[*buffer_at - 1] == '\n') {
       (*buffer_at)--;
     }
-
-    // Note: We intentionally do not check for empty messages here
-    // Empty messages (like blank lines) are valid and should be preserved
   }
 
   inline void HOT write_footer_to_buffer_(char *buffer, int *buffer_at, int buffer_size) {
