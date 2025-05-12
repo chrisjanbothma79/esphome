@@ -124,9 +124,6 @@ inline int Logger::level_for(const char *tag) {
 }
 
 void HOT Logger::call_log_callbacks_(int level, const char *tag, const char *msg) {
-  // Note: Console output for all messages now happens directly in log_vprintf_
-  // This function is now primarily responsible for callbacks
-
 #ifdef USE_ESP32
   // Suppress network-logging if memory constrained
   // In some configurations (eg BLE enabled) there may be some transient
@@ -136,7 +133,6 @@ void HOT Logger::call_log_callbacks_(int level, const char *tag, const char *msg
   if (xPortGetFreeHeapSize() < 2048)
     return;
 #endif
-
   this->log_callback_.call(level, tag, msg);
 }
 
