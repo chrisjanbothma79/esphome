@@ -11,7 +11,6 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
-#include "logger_common.h"  // Common constants
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include "task_log_buffer.h"
 #endif

@@ -3,7 +3,6 @@
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
-#include "logger_common.h"
 
 #include <cstddef>
 #include <cstring>
@@ -31,9 +30,6 @@ class TaskLogBuffer {
 
     inline const char *text_data() const { return reinterpret_cast<const char *>(this) + sizeof(LogMessage); }
   };
-
-  // Total buffer size for complete message storage
-  static constexpr size_t LOG_MSG_BUFFER_SIZE = sizeof(LogMessage) + LOG_MSG_SIZE_WITH_NULL;
 
   // Constructor that takes a total buffer size
   explicit TaskLogBuffer(size_t total_buffer_size);

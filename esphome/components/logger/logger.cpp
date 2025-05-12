@@ -1,4 +1,4 @@
-#include "logger.h"  // This already includes logger_common.h and task_log_buffer.h
+#include "logger.h"
 #include <cinttypes>
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include <memory>  // For unique_ptr
@@ -32,7 +32,9 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   }
 
   // For non-main tasks: use stack-allocated buffer only for console output
-  if (this->baud_rate_ > 0) {                     // If logging is enabled, write to console
+  if (this->baud_rate_ > 0) {  // If logging is enabled, write to console
+    // Size for temporary text storage with null terminator
+    static const size_t LOG_MSG_SIZE_WITH_NULL = 130;
     char console_buffer[LOG_MSG_SIZE_WITH_NULL];  // MUST be stack allocated for thread safety
     int buffer_at = 0;                            // Initialize buffer position
     this->format_log_to_buffer_with_terminator_(level, tag, line, format, args, console_buffer, &buffer_at,
