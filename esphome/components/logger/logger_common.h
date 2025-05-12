@@ -1,7 +1,9 @@
 #pragma once
 
 #include "esphome/core/defines.h"
+#include <cstddef>  // For size_t
 
+// Constants defined at global scope to ensure they're available everywhere
 namespace esphome {
 namespace logger {
 

@@ -1,9 +1,7 @@
-#include "logger.h"
+#include "logger.h"  // This already includes logger_common.h and task_log_buffer.h
 #include <cinttypes>
-#include "logger_common.h"  // For common constants
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
-#include <memory>
-#include "task_log_buffer.h"
+#include <memory>  // For unique_ptr
 #endif
 
 #include "esphome/core/hal.h"

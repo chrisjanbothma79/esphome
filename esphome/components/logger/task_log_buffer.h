@@ -1,20 +1,20 @@
 #pragma once
 
+#ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 #include "logger_common.h"
-
-namespace esphome {
-namespace logger {
-
-#ifdef USE_ESPHOME_TASK_LOG_BUFFER
 
 #include <cstddef>
 #include <cstring>
 #include <memory>
 #include <atomic>
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/ringbuf.h>
+
+namespace esphome {
+namespace logger {
 
 class TaskLogBuffer {
  public:
@@ -65,7 +65,7 @@ class TaskLogBuffer {
   mutable uint16_t last_processed_counter_{0};  // Tracks last processed message
 };
 
-#endif  // USE_ESPHOME_TASK_LOG_BUFFER
-
 }  // namespace logger
 }  // namespace esphome
+
+#endif  // USE_ESPHOME_TASK_LOG_BUFFER
