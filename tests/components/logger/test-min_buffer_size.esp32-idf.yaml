@@ -2,4 +2,4 @@
 
 logger:
   id: logger_id
-  log_buffer_size: 512  # Minimum buffer size
+  task_log_buffer_size: 512  # Minimum buffer size

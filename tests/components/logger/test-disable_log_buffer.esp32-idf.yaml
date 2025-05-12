@@ -2,4 +2,4 @@
 
 logger:
   id: logger_id
-  log_buffer_size: 0
+  task_log_buffer_size: 0
