@@ -107,12 +107,9 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
   this->format_log_to_buffer_with_terminator_(level, tag, line, this->tx_buffer_, args, this->tx_buffer_,
                                               &this->tx_buffer_at_, this->tx_buffer_size_);
 
-  // Console output already has null terminator from format_log_to_buffer_with_terminator_
   if (this->baud_rate_ > 0) {
     this->write_msg_(this->tx_buffer_ + offset);
   }
-
-  // Send to callbacks via call_log_callbacks_
   this->call_log_callbacks_(level, tag, this->tx_buffer_ + offset);
 
   recursion_guard_ = false;
