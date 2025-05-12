@@ -186,6 +186,7 @@ CONFIG_SCHEMA = cv.All(
                 esp32=768,  # Default: 768 bytes (~5-6 messages with 70-byte text plus thread names)
             ): cv.All(
                 cv.only_on_esp32,
+                cv.validate_bytes,
                 cv.Any(
                     cv.int_(0),  # Disabled
                     cv.int_range(
