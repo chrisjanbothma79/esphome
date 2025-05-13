@@ -3,7 +3,8 @@
 #include <cstdarg>
 #include <map>
 #ifdef USE_ESP32
-#include <atomic>
+#include <freertos/FreeRTOS.h>
+#include "esp_pthread.h"
 #endif
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
@@ -226,7 +227,13 @@ class Logger : public Component {
   std::unique_ptr<logger::TaskLogBuffer> log_buffer_;  // Will be initialized with init_log_buffer
 #endif
 #ifdef USE_ESP32
-  std::map<void *, bool> task_recursion_guards_;  // Map from task handle to recursion state
+  // Special handling for main task - no synchronization needed
+  bool main_task_recursion_guard_{false};  // Dedicated guard for main task
+
+  // For non-main tasks:
+  // We use ESP's pthread TLS with key 1 to store per-task recursion state
+  //
+  // IMPORTANT: This requires CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS >= 2 in ESP-IDF
 #else
   bool recursion_guard_{false};  // Simple global recursion guard
 #endif
@@ -245,6 +252,32 @@ class Logger : public Component {
       return pcTaskGetTaskName(current_task);
 #endif
     }
+  }
+#endif
+
+#ifdef USE_ESP32
+  inline bool HOT check_and_set_task_log_recursion_(TaskHandle_t current_task) {
+    if (current_task == main_task_) {
+      const bool was_recursive = main_task_recursion_guard_;
+      main_task_recursion_guard_ = true;
+      return was_recursive;
+    }
+
+    intptr_t current = (intptr_t) esp_pthread_getspecific(1);
+    if (current != 0)
+      return true;
+
+    esp_pthread_setspecific(1, (void *) 1);
+    return false;
+  }
+
+  inline void HOT reset_task_log_recursion_(TaskHandle_t current_task) {
+    if (current_task == main_task_) {
+      main_task_recursion_guard_ = false;
+      return;
+    }
+
+    esp_pthread_setspecific(1, (void *) 0);
   }
 #endif
 

@@ -25,18 +25,15 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
 
-  // Find task in recursion guards map (or insert with default false value if not found)
-  auto &is_recursive_call = this->task_recursion_guards_[current_task];
-  if (is_recursive_call) {
-    return;  // Guard already set - recursion detected
+  // Check and set recursion guard - uses pthread TLS for per-task state
+  if (this->check_and_set_task_log_recursion_(current_task)) {
+    return;  // Recursion detected
   }
 
-  is_recursive_call = true;  // Set guard for this task
-
-  // Only main task uses direct buffer method on ESP32
+  // Main task uses the shared buffer for efficiency
   if (current_task == main_task_) {
     this->log_message_to_buffer_and_send_(level, tag, line, format, args);
-    is_recursive_call = false;
+    this->reset_task_log_recursion_(current_task);
     return;
   }
 
@@ -60,17 +57,11 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   }
 #endif  // USE_ESPHOME_TASK_LOG_BUFFER
 
-  is_recursive_call = false;
+  // Reset the recursion guard for this task
+  this->reset_task_log_recursion_(current_task);
 }
 #else
 // Implementation for all other platforms
-//
-// For multi-tasking platforms like LibreTiny, this implementation uses a global recursion guard.
-// Note: The global recursion guard is NOT atomic, so there's still risk of race conditions.
-// When a working ring buffer is available for LibreTiny, we should use the same task-specific
-// solution as ESP32. See https://github.com/esphome/esphome/pull/8736 for more details.
-//
-// For single-task platforms, this implementation provides standard logging behavior.
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
   if (level > this->level_for(tag) || recursion_guard_)
     return;
