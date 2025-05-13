@@ -57,7 +57,6 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   }
 #endif  // USE_ESPHOME_TASK_LOG_BUFFER
 
-  // Clear recursion guard
   this->task_recursion_guards_[current_task] = false;
 }
 #else   // !defined(USE_ESP32) && !defined(USE_LIBRETINY)
