@@ -97,8 +97,8 @@ async def to_code(config):
         sens = await sensor.new_sensor(config[CONF_SATELLITES])
         cg.add(var.set_satellites_sensor(sens))
 
-    if CONF_HDOP in config:
-        sens = await sensor.new_sensor(config[CONF_HDOP])
+    if hdop_config := config.get(CONF_HDOP):
+        sens = await sensor.new_sensor(hdop_config)
         cg.add(var.set_hdop_sensor(sens))
 
     # https://platformio.org/lib/show/1655/TinyGPSPlus
