@@ -84,6 +84,22 @@ enum UARTSelection {
 };
 #endif  // USE_ESP32 || USE_ESP8266 || USE_RP2040 || USE_LIBRETINY
 
+/**
+ * @brief Logger component for all ESPHome logging.
+ *
+ * This class implements a multi-platform logging system with protection against recursion.
+ *
+ * Recursion Protection Strategy:
+ * - On ESP32: Uses task-specific recursion guards
+ *   * Main task: Uses a dedicated boolean member variable for efficiency
+ *   * Other tasks: Uses pthread TLS with key 1 for task-specific state
+ * - On other platforms: Uses a simple global recursion guard
+ *
+ * We use pthread TLS key 1 specifically because:
+ * 1. Key 0 is reserved by ESP-IDF's pthread implementation for internal use
+ * 2. We can use a direct key without the overhead of pthread_key_create
+ * 3. TLS enables per-task state without locks or mutexes
+ */
 class Logger : public Component {
  public:
   explicit Logger(uint32_t baud_rate, size_t tx_buffer_size);
@@ -231,7 +247,7 @@ class Logger : public Component {
   // - Other tasks use pthread TLS with key 1 (requires CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS >= 2)
   bool main_task_recursion_guard_{false};
 #else
-  bool recursion_guard_{false};  // Simple global recursion guard for single-task platforms
+  bool global_recursion_guard_{false};  // Simple global recursion guard for single-task platforms
 #endif
   CallbackManager<void(int)> level_callback_{};
 
@@ -253,6 +269,8 @@ class Logger : public Component {
 
 #ifdef USE_ESP32
   // Logger recursion guard pthread key (slot 1)
+  // Using key 1 because slot 0 is used internally by ESP-IDF's pthread implementation
+  // We use a direct key value to avoid the overhead of pthread_key_create
   static const pthread_key_t LOG_RECURSION_KEY = (pthread_key_t) 1;
 
   inline bool HOT check_and_set_task_log_recursion_(bool is_main_task) {

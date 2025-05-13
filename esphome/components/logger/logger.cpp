@@ -64,15 +64,15 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 #else
 // Implementation for all other platforms
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
-  if (level > this->level_for(tag) || recursion_guard_)
+  if (level > this->level_for(tag) || global_recursion_guard_)
     return;
 
-  recursion_guard_ = true;
+  global_recursion_guard_ = true;
 
   // Format and send to both console and callbacks
   this->log_message_to_buffer_and_send_(level, tag, line, format, args);
 
-  recursion_guard_ = false;
+  global_recursion_guard_ = false;
 }
 #endif  // !USE_ESP32
 
@@ -81,10 +81,10 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 // Note: USE_STORE_LOG_STR_IN_FLASH is only defined for ESP8266.
 void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStringHelper *format,
                           va_list args) {  // NOLINT
-  if (level > this->level_for(tag) || recursion_guard_)
+  if (level > this->level_for(tag) || global_recursion_guard_)
     return;
 
-  recursion_guard_ = true;
+  global_recursion_guard_ = true;
   this->tx_buffer_at_ = 0;
 
   // Copy format string from progmem
@@ -96,7 +96,7 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
 
   // Buffer full from copying format
   if (this->tx_buffer_at_ >= this->tx_buffer_size_) {
-    recursion_guard_ = false;  // Make sure to reset the recursion guard before returning
+    global_recursion_guard_ = false;  // Make sure to reset the recursion guard before returning
     return;
   }
 
@@ -112,7 +112,7 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
   }
   this->call_log_callbacks_(level, tag, this->tx_buffer_ + msg_start);
 
-  recursion_guard_ = false;
+  global_recursion_guard_ = false;
 }
 #endif  // USE_STORE_LOG_STR_IN_FLASH
 
