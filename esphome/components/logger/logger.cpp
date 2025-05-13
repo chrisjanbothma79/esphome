@@ -14,7 +14,7 @@ namespace logger {
 static const char *const TAG = "logger";
 
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
-// Implementation for multi-threaded platforms (ESP32 and LibreTiny)
+// Implementation for multi-task platforms (ESP32 and LibreTiny)
 // Main task: synchronous logging with direct buffer access
 // Other tasks: console output with stack buffer, callbacks via async buffer
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
@@ -23,7 +23,6 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
 
-  // Check and set recursion guard for this task
   auto it = this->task_recursion_guards_.find(current_task);
   if (it != this->task_recursion_guards_.end() && it->second) {
     return;  // Guard already set - recursion detected
@@ -34,7 +33,6 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   // For main task: call log_message_to_buffer_and_send_ which does console and callback logging
   if (current_task == main_task_) {
     this->log_message_to_buffer_and_send_(level, tag, line, format, args);
-    // Clear recursion guard
     this->task_recursion_guards_[current_task] = false;
     return;
   }
