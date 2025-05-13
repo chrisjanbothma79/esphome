@@ -225,9 +225,12 @@ class Logger : public Component {
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
   std::unique_ptr<logger::TaskLogBuffer> log_buffer_;  // Will be initialized with init_log_buffer
 #endif
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+#if defined(USE_ESP32)
   std::map<void *, bool> task_recursion_guards_;  // Map from task handle to recursion guard state
-  void *main_task_ = nullptr;                     // Only used on FreeRTOS platforms
+  void *main_task_ = nullptr;                     // Used on ESP32
+#elif defined(USE_LIBRETINY)
+  void *main_task_ = nullptr;    // Used for thread name lookups only
+  bool recursion_guard_{false};  // Global recursion guard for thread safety
 #else
   bool recursion_guard_{false};  // Used for platforms without task handles
 #endif
