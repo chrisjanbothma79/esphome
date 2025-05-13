@@ -256,6 +256,9 @@ class Logger : public Component {
 #endif
 
 #ifdef USE_ESP32
+  // Logger recursion guard pthread key (slot 1)
+  static const pthread_key_t LOG_RECURSION_KEY = (pthread_key_t) 1;
+
   inline bool HOT check_and_set_task_log_recursion_(TaskHandle_t current_task) {
     if (current_task == main_task_) {
       const bool was_recursive = main_task_recursion_guard_;
@@ -263,12 +266,11 @@ class Logger : public Component {
       return was_recursive;
     }
 
-    static pthread_key_t log_recursion_key = (pthread_key_t) 1;
-    intptr_t current = (intptr_t) pthread_getspecific(log_recursion_key);
+    intptr_t current = (intptr_t) pthread_getspecific(LOG_RECURSION_KEY);
     if (current != 0)
       return true;
 
-    pthread_setspecific(log_recursion_key, (void *) 1);
+    pthread_setspecific(LOG_RECURSION_KEY, (void *) 1);
     return false;
   }
 
@@ -278,8 +280,7 @@ class Logger : public Component {
       return;
     }
 
-    static pthread_key_t log_recursion_key = (pthread_key_t) 1;
-    pthread_setspecific(log_recursion_key, (void *) 0);
+    pthread_setspecific(LOG_RECURSION_KEY, (void *) 0);
   }
 #endif
 
