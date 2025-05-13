@@ -9,6 +9,11 @@
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
 
+#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#endif
+
 namespace esphome {
 namespace logger {
 
