@@ -10,9 +10,6 @@ static const char *const TAG = "online_image.png";
 namespace esphome {
 namespace online_image {
 
-// pngle_t is hidden away inside the .c file, so we cannot use sizeof(pngle_t).
-static const size_t PNGLE_T_SIZE = 43288U;  // Size of pngle_t structure
-
 /**
  * @brief Callback method that will be called by the PNGLE engine when the basic
  * data of the image is received (i.e. width and height);
