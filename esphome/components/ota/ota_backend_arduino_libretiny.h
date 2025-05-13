@@ -1,8 +1,9 @@
 #pragma once
-#ifdef USE_LIBRETINY
-#include "ota_backend.h"
-
 #include "esphome/core/defines.h"
+#ifdef USE_LIBRETINY
+
+#include "ota_component.h"
+#include "ota_backend.h"
 
 namespace esphome {
 namespace ota {

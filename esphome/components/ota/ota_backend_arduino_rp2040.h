@@ -1,10 +1,11 @@
 #pragma once
+#include "esphome/core/defines.h"
 #ifdef USE_ARDUINO
 #ifdef USE_RP2040
-#include "ota_backend.h"
 
-#include "esphome/core/defines.h"
 #include "esphome/core/macros.h"
+#include "ota_backend.h"
+#include "ota_component.h"
 
 namespace esphome {
 namespace ota {

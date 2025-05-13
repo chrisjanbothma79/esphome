@@ -1,9 +1,9 @@
 #pragma once
-#ifdef USE_ESP32_FRAMEWORK_ARDUINO
-#include "ota_backend.h"
-
 #include "esphome/core/defines.h"
-#include "esphome/core/helpers.h"
+#ifdef USE_ESP32_FRAMEWORK_ARDUINO
+
+#include "ota_component.h"
+#include "ota_backend.h"
 
 namespace esphome {
 namespace ota {
