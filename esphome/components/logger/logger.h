@@ -3,7 +3,6 @@
 #include <cstdarg>
 #include <map>
 #ifdef USE_ESP32
-#include <freertos/FreeRTOS.h>
 #include <pthread.h>
 #endif
 #include "esphome/core/automation.h"
@@ -227,15 +226,12 @@ class Logger : public Component {
   std::unique_ptr<logger::TaskLogBuffer> log_buffer_;  // Will be initialized with init_log_buffer
 #endif
 #ifdef USE_ESP32
-  // Special handling for main task - no synchronization needed
-  bool main_task_recursion_guard_{false};  // Dedicated guard for main task
-
-  // For non-main tasks:
-  // We use ESP's pthread TLS with key 1 to store per-task recursion state
-  //
-  // IMPORTANT: This requires CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS >= 2 in ESP-IDF
+  // Task-specific recursion guards:
+  // - Main task uses a dedicated member variable for efficiency
+  // - Other tasks use pthread TLS with key 1 (requires CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS >= 2)
+  bool main_task_recursion_guard_{false};
 #else
-  bool recursion_guard_{false};  // Simple global recursion guard
+  bool recursion_guard_{false};  // Simple global recursion guard for single-task platforms
 #endif
   CallbackManager<void(int)> level_callback_{};
 
