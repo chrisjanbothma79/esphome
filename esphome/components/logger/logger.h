@@ -14,10 +14,21 @@
 // Temporary: Define TLS indices in logger.h for testing
 // This will later be moved to core/defines.h
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
+/* ESP-IDF uses index 0 for pthread TLS as defined in components/pthread/pthread_local_storage.c:
+ * #define PTHREAD_TLS_INDEX 0
+ * We must use a different index to avoid conflicts.
+ */
 enum ESPHomeTLSIndices {
-  TLS_INDEX_LOGGER_RECURSION_GUARD = 0,  // Index for task-specific logger recursion guards
+  TLS_INDEX_LOGGER_RECURSION_GUARD = 1,  // Index for task-specific logger recursion guards
   TLS_INDEX_MAX
 };
+
+/* Sanity check to ensure that the number of FreeRTOS TLSPs is at least 2
+ * (index 0 for pthread, index 1 for our logger recursion guard)
+ */
+#if (CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS < 2)
+#error "CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS must be at least 2 (one for pthread, one for logger)"
+#endif
 #endif
 
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER

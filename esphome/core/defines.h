@@ -8,12 +8,7 @@
 #include "esphome/core/macros.h"
 
 // Task Local Storage (TLS) indices for FreeRTOS
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
-enum ESPHomeTLSIndices {
-  TLS_INDEX_LOGGER_RECURSION_GUARD = 0,  // Index for task-specific logger recursion guards
-  TLS_INDEX_MAX
-};
-#endif
+// TLS indices now defined in logger.h
 
 // Informative flags
 #define ESPHOME_BOARD "dummy_board"
