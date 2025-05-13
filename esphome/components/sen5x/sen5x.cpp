@@ -88,8 +88,9 @@ void SEN5XComponent::setup() {
           product_name_.push_back(current_char);
           // second char
           current_char = *current_int & 0xFF;
-          if (current_char)
+          if (current_char) {
             product_name_.push_back(current_char);
+          }
         }
         current_int++;
       } while (current_char && --max);
@@ -337,47 +338,71 @@ void SEN5XComponent::update() {
       ESP_LOGD(TAG, "read data error (%d)", this->last_error_);
       return;
     }
+    ESP_LOGVV(TAG, "pm_1_0 raw = 0x%.4x", measurements[0]);
     float pm_1_0 = measurements[0] / 10.0;
-    if (measurements[0] == 0xFFFF)
+    if (measurements[0] == UINT16_MAX) {
       pm_1_0 = NAN;
+    }
+    ESP_LOGVV(TAG, "pm_2_5 raw = 0x%.4x", measurements[1]);
     float pm_2_5 = measurements[1] / 10.0;
-    if (measurements[1] == 0xFFFF)
+    if (measurements[1] == UINT16_MAX) {
       pm_2_5 = NAN;
+    }
+    ESP_LOGVV(TAG, "pm_4_0 raw = 0x%.4x", measurements[2]);
     float pm_4_0 = measurements[2] / 10.0;
-    if (measurements[2] == 0xFFFF)
+    if (measurements[2] == UINT16_MAX) {
       pm_4_0 = NAN;
+    }
+    ESP_LOGVV(TAG, "pm_10_0 raw = 0x%.4x", measurements[3]);
     float pm_10_0 = measurements[3] / 10.0;
-    if (measurements[3] == 0xFFFF)
+    if (measurements[3] == UINT16_MAX) {
       pm_10_0 = NAN;
+    }
+    ESP_LOGVV(TAG, "humidity raw = 0x%.4x", measurements[4]);
     float humidity = measurements[4] / 100.0;
-    if (measurements[4] == 0xFFFF)
+    if (measurements[4] == INT16_MAX) {
       humidity = NAN;
+    }
+    ESP_LOGVV(TAG, "temperature raw = 0x%.4x", measurements[5]);
     float temperature = (int16_t) measurements[5] / 200.0;
-    if (measurements[5] == 0xFFFF)
+    if (measurements[5] == INT16_MAX) {
       temperature = NAN;
+    }
+    ESP_LOGVV(TAG, "voc raw = 0x%.4x", measurements[6]);
     float voc = measurements[6] / 10.0;
-    if (measurements[6] == 0xFFFF)
+    if (measurements[6] == INT16_MAX) {
       voc = NAN;
+    }
+    ESP_LOGVV(TAG, "nox raw = 0x%.4x", measurements[7]);
     float nox = measurements[7] / 10.0;
-    if (measurements[7] == 0xFFFF)
+    if (measurements[7] == INT16_MAX) {
       nox = NAN;
+    }
 
-    if (this->pm_1_0_sensor_ != nullptr)
+    if (this->pm_1_0_sensor_ != nullptr) {
       this->pm_1_0_sensor_->publish_state(pm_1_0);
-    if (this->pm_2_5_sensor_ != nullptr)
+    }
+    if (this->pm_2_5_sensor_ != nullptr) {
       this->pm_2_5_sensor_->publish_state(pm_2_5);
-    if (this->pm_4_0_sensor_ != nullptr)
+    }
+    if (this->pm_4_0_sensor_ != nullptr) {
       this->pm_4_0_sensor_->publish_state(pm_4_0);
-    if (this->pm_10_0_sensor_ != nullptr)
+    }
+    if (this->pm_10_0_sensor_ != nullptr) {
       this->pm_10_0_sensor_->publish_state(pm_10_0);
-    if (this->temperature_sensor_ != nullptr)
+    }
+    if (this->temperature_sensor_ != nullptr) {
       this->temperature_sensor_->publish_state(temperature);
-    if (this->humidity_sensor_ != nullptr)
+    }
+    if (this->humidity_sensor_ != nullptr) {
       this->humidity_sensor_->publish_state(humidity);
-    if (this->voc_sensor_ != nullptr)
+    }
+    if (this->voc_sensor_ != nullptr) {
       this->voc_sensor_->publish_state(voc);
-    if (this->nox_sensor_ != nullptr)
+    }
+    if (this->nox_sensor_ != nullptr) {
       this->nox_sensor_->publish_state(nox);
+    }
     this->status_clear_warning();
   });
 }
