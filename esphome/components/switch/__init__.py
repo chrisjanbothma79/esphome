@@ -100,16 +100,19 @@ def switch_schema(
     entity_category: str = cv.UNDEFINED,
     icon: str = cv.UNDEFINED,
 ):
-    schema = {}
-
-    if class_ is not cv.UNDEFINED:
-        schema[cv.GenerateID()] = cv.declare_id(class_)
+    schema = {cv.GenerateID(): cv.declare_id(class_)}
 
     for key, default, validator in [
         (CONF_DEVICE_CLASS, device_class, validate_device_class),
         (CONF_ENTITY_CATEGORY, entity_category, cv.entity_category),
         (CONF_ICON, icon, cv.icon),
-        (CONF_RESTORE_MODE, default_restore_mode, cv.enum(RESTORE_MODES, upper=True)),
+        (
+            CONF_RESTORE_MODE,
+            default_restore_mode,
+            cv.enum(RESTORE_MODES, upper=True, space="_")
+            if default_restore_mode is not cv.UNDEFINED
+            else cv.UNDEFINED,
+        ),
     ]:
         if default is not cv.UNDEFINED:
             schema[cv.Optional(key, default=default)] = validator
