@@ -14,7 +14,7 @@ namespace ota {
 
 static const char *const TAG = "ota.arduino_rp2040";
 
-// Function is now defined in ota_component.cpp
+std::unique_ptr<ota::OTABackend> make_ota_backend() { return make_unique<ota::ArduinoRP2040OTABackend>(); }
 
 OTAResponseTypes ArduinoRP2040OTABackend::begin(size_t image_size) {
   bool ret = Update.begin(image_size, U_FLASH);
