@@ -268,9 +268,6 @@ class Logger : public Component {
 #endif
 
 #ifdef USE_ESP32
-  // Logger recursion guard pthread key (slot 1)
-  // Using key 1 because slot 0 is used internally by ESP-IDF's pthread implementation
-  // We use a direct key value to avoid the overhead of pthread_key_create
   static const pthread_key_t LOG_RECURSION_KEY = (pthread_key_t) 1;
 
   inline bool HOT check_and_set_task_log_recursion_(bool is_main_task) {
