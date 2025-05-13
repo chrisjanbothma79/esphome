@@ -59,6 +59,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
                                                 current_task, format, args);
   }
 #endif  // USE_ESPHOME_TASK_LOG_BUFFER
+
   is_recursive_call = false;
 }
 #else
