@@ -15,11 +15,11 @@ static const char *const TAG = "logger";
 
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
 // Implementation for multi-task platforms (ESP32 and LibreTiny)
-// Main task always uses direct buffer access
+// Main task always uses direct buffer access for console output and callbacks
 // Other tasks:
-//  - When task log buffer is enabled: stack buffer for console output, async buffer for callbacks
-//  - When task log buffer is disabled (LibreTiny or ESP32 without USE_ESPHOME_TASK_LOG_BUFFER):
-//    direct buffer for both console and callbacks
+//  - On ESP32 with task log buffer: stack buffer for console output, async buffer for callbacks
+//  - On ESP32 without task log buffer: only console output, no callbacks
+//  - On LibreTiny (which doesn't support task log buffer): direct buffer for both console and callbacks
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
   if (level > this->level_for(tag))
     return;
