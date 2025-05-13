@@ -37,10 +37,11 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   // For main task OR on LibreTiny, use direct buffer method
 #ifdef USE_LIBRETINY
   // LibreTiny doesn't currently support task log buffer, so we use direct buffer method for all tasks
-  // (using tx_buffer_ for formatting). This preserves callback behavior but is normally not task-safe
-  // because multiple tasks could write to tx_buffer_ concurrently. This has lower risk on LibreTiny
-  // since there's no Bluetooth support (which is a main source of concurrent task logging).
-  // When task log buffer support is implemented for LibreTiny in the future,
+  // (using tx_buffer_ for formatting). This preserves callback behavior but isn't task-safe as
+  // multiple tasks can write to tx_buffer_ concurrently, potentially corrupting memory before
+  // it's consumed by log callbacks or other consumers, which may result in API disconnects.
+  // This risk is lower on LibreTiny since it lacks Bluetooth support (a common source of
+  // concurrent task logging). When task log buffer support is implemented for LibreTiny in the future,
   // this special case can be removed. See https://github.com/esphome/esphome/pull/8736
   this->log_message_to_buffer_and_send_(level, tag, line, format, args);
   is_recursive_call = false;
