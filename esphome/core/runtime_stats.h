@@ -16,42 +16,70 @@ class Component;  // Forward declaration
 
 class ComponentRuntimeStats {
  public:
-  ComponentRuntimeStats() : count_(0), total_time_ms_(0), max_time_ms_(0) {}
+  ComponentRuntimeStats()
+      : period_count_(0),
+        total_count_(0),
+        period_time_ms_(0),
+        total_time_ms_(0),
+        period_max_time_ms_(0),
+        total_max_time_ms_(0) {}
 
   void record_time(uint32_t duration_ms) {
-    this->count_++;
+    // Update period counters
+    this->period_count_++;
+    this->period_time_ms_ += duration_ms;
+    if (duration_ms > this->period_max_time_ms_)
+      this->period_max_time_ms_ = duration_ms;
+
+    // Update total counters
+    this->total_count_++;
     this->total_time_ms_ += duration_ms;
-
-    if (duration_ms > this->max_time_ms_)
-      this->max_time_ms_ = duration_ms;
+    if (duration_ms > this->total_max_time_ms_)
+      this->total_max_time_ms_ = duration_ms;
   }
 
-  void reset() {
-    this->count_ = 0;
-    this->total_time_ms_ = 0;
-    this->max_time_ms_ = 0;
+  void reset_period_stats() {
+    this->period_count_ = 0;
+    this->period_time_ms_ = 0;
+    this->period_max_time_ms_ = 0;
   }
 
-  uint32_t get_count() const { return this->count_; }
+  // Period stats (reset each logging interval)
+  uint32_t get_period_count() const { return this->period_count_; }
+  uint32_t get_period_time_ms() const { return this->period_time_ms_; }
+  uint32_t get_period_max_time_ms() const { return this->period_max_time_ms_; }
+  float get_period_avg_time_ms() const {
+    return this->period_count_ > 0 ? this->period_time_ms_ / static_cast<float>(this->period_count_) : 0.0f;
+  }
+
+  // Total stats (persistent until reboot)
+  uint32_t get_total_count() const { return this->total_count_; }
   uint32_t get_total_time_ms() const { return this->total_time_ms_; }
-  uint32_t get_max_time_ms() const { return this->max_time_ms_; }
-  float get_avg_time_ms() const {
-    return this->count_ > 0 ? this->total_time_ms_ / static_cast<float>(this->count_) : 0.0f;
+  uint32_t get_total_max_time_ms() const { return this->total_max_time_ms_; }
+  float get_total_avg_time_ms() const {
+    return this->total_count_ > 0 ? this->total_time_ms_ / static_cast<float>(this->total_count_) : 0.0f;
   }
 
  protected:
-  uint32_t count_;
+  // Period stats (reset each logging interval)
+  uint32_t period_count_;
+  uint32_t period_time_ms_;
+  uint32_t period_max_time_ms_;
+
+  // Total stats (persistent until reboot)
+  uint32_t total_count_;
   uint32_t total_time_ms_;
-  uint32_t max_time_ms_;
+  uint32_t total_max_time_ms_;
 };
 
-// For sorting components by total run time
+// For sorting components by run time
 struct ComponentStatPair {
   std::string name;
   const ComponentRuntimeStats *stats;
 
   bool operator>(const ComponentStatPair &other) const {
-    return stats->get_total_time_ms() > other.stats->get_total_time_ms();
+    // Sort by period time as that's what we're displaying in the logs
+    return stats->get_period_time_ms() > other.stats->get_period_time_ms();
   }
 };
 
@@ -69,36 +97,55 @@ class RuntimeStatsCollector {
 
  protected:
   void log_stats_() {
-    ESP_LOGI(RUNTIME_TAG, "Component Runtime Statistics (over last %" PRIu32 "ms):", this->log_interval_);
+    ESP_LOGI(RUNTIME_TAG, "Component Runtime Statistics");
+    ESP_LOGI(RUNTIME_TAG, "Period stats (last %" PRIu32 "ms):", this->log_interval_);
 
     // First collect stats we want to display
     std::vector<ComponentStatPair> stats_to_display;
 
     for (const auto &it : this->component_stats_) {
       const ComponentRuntimeStats &stats = it.second;
-      if (stats.get_count() > 0) {
+      if (stats.get_period_count() > 0) {
         ComponentStatPair pair = {it.first, &stats};
         stats_to_display.push_back(pair);
       }
     }
 
-    // Sort by total runtime (descending)
+    // Sort by period runtime (descending)
     std::sort(stats_to_display.begin(), stats_to_display.end(), std::greater<ComponentStatPair>());
 
-    // Log top components by runtime
+    // Log top components by period runtime
     for (const auto &it : stats_to_display) {
       const std::string &source = it.name;
       const ComponentRuntimeStats *stats = it.stats;
 
       ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms",
-               source.c_str(), stats->get_count(), stats->get_avg_time_ms(), stats->get_max_time_ms(),
+               source.c_str(), stats->get_period_count(), stats->get_period_avg_time_ms(),
+               stats->get_period_max_time_ms(), stats->get_period_time_ms());
+    }
+
+    // Log total stats since boot
+    ESP_LOGI(RUNTIME_TAG, "Total stats (since boot):");
+
+    // Re-sort by total runtime for all-time stats
+    std::sort(stats_to_display.begin(), stats_to_display.end(),
+              [](const ComponentStatPair &a, const ComponentStatPair &b) {
+                return a.stats->get_total_time_ms() > b.stats->get_total_time_ms();
+              });
+
+    for (const auto &it : stats_to_display) {
+      const std::string &source = it.name;
+      const ComponentRuntimeStats *stats = it.stats;
+
+      ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms",
+               source.c_str(), stats->get_total_count(), stats->get_total_avg_time_ms(), stats->get_total_max_time_ms(),
                stats->get_total_time_ms());
     }
   }
 
   void reset_stats_() {
     for (auto &it : this->component_stats_) {
-      it.second.reset();
+      it.second.reset_period_stats();
     }
   }
 
