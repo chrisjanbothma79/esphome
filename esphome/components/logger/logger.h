@@ -4,7 +4,7 @@
 #include <map>
 #ifdef USE_ESP32
 #include <freertos/FreeRTOS.h>
-#include "esp_pthread.h"
+#include <pthread.h>
 #endif
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
@@ -263,11 +263,12 @@ class Logger : public Component {
       return was_recursive;
     }
 
-    intptr_t current = (intptr_t) esp_pthread_getspecific(1);
+    static pthread_key_t log_recursion_key = (pthread_key_t) 1;
+    intptr_t current = (intptr_t) pthread_getspecific(log_recursion_key);
     if (current != 0)
       return true;
 
-    esp_pthread_setspecific(1, (void *) 1);
+    pthread_setspecific(log_recursion_key, (void *) 1);
     return false;
   }
 
@@ -277,7 +278,8 @@ class Logger : public Component {
       return;
     }
 
-    esp_pthread_setspecific(1, (void *) 0);
+    static pthread_key_t log_recursion_key = (pthread_key_t) 1;
+    pthread_setspecific(log_recursion_key, (void *) 0);
   }
 #endif
 
