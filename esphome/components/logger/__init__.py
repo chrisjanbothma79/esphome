@@ -257,12 +257,14 @@ async def to_code(config):
         # For ESP32 platforms, ensure we have at least 2 thread local storage pointers
         # Index 0 is used by pthread, we need index 1 for our logger recursion guard
         add_idf_sdkconfig_option("CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS", 2)
-
         task_log_buffer_size = config[CONF_TASK_LOG_BUFFER_SIZE]
         if task_log_buffer_size > 0:
             cg.add_define("USE_ESPHOME_TASK_LOG_BUFFER")
             cg.add(log.init_log_buffer(task_log_buffer_size))
-
+    elif CORE.is_libretiny:
+        # For LibreTiny platforms, ensure we have enough thread local storage pointers
+        # Similar to ESP32, we need to ensure index 1 is available
+        cg.add_build_flag("-DCONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS=2")
     cg.add(log.set_log_level(initial_level))
     if CONF_HARDWARE_UART in config:
         cg.add(
