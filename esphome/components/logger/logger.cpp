@@ -143,8 +143,8 @@ void Logger::init_log_buffer(size_t total_buffer_size) {
 }
 #endif
 
-#if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32)
 #ifndef USE_ZEPHYR
+#if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32)
 void Logger::loop() {
 #if defined(USE_LOGGER_USB_CDC) && defined(USE_ARDUINO)
   if (this->uart_ == UART_SELECTION_USB_CDC) {
@@ -158,8 +158,12 @@ void Logger::loop() {
     opened = !opened;
   }
 #endif
+  process_messages_();
+}
+#endif
 #endif
 
+void Logger::process_messages_() {
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
   // Process any buffered messages when available
   if (this->log_buffer_->has_messages()) {
@@ -185,8 +189,6 @@ void Logger::loop() {
   }
 #endif
 }
-#endif
-#endif
 
 void Logger::set_baud_rate(uint32_t baud_rate) { this->baud_rate_ = baud_rate; }
 void Logger::set_log_level(const std::string &tag, int log_level) { this->log_levels_[tag] = log_level; }

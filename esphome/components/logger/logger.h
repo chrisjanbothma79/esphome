@@ -87,7 +87,7 @@ enum UARTSelection {
   UART_SELECTION_UART0_SWAP,
 #endif  // USE_ESP8266
 };
-#endif  // USE_ESP32 || USE_ESP8266 || USE_RP2040 || USE_LIBRETINY
+#endif  // USE_ESP32 || USE_ESP8266 || USE_RP2040 || USE_LIBRETINY || USE_ZEPHYR
 
 class Logger : public Component {
  public:
@@ -95,7 +95,7 @@ class Logger : public Component {
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
   void init_log_buffer(size_t total_buffer_size);
 #endif
-#if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32)
+#if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32) || defined(USE_ZEPHYR)
   void loop() override;
 #endif
   /// Manually set the baud rate for serial, set to 0 to disable.
@@ -141,6 +141,7 @@ class Logger : public Component {
 #endif
 
  protected:
+  void process_messages_();
   void call_log_callbacks_(int level, const char *tag, const char *msg);
   void write_msg_(const char *msg);
 

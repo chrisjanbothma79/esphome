@@ -13,8 +13,8 @@ namespace logger {
 
 static const char *const TAG = "logger";
 
-#ifdef USE_LOGGER_USB_CDC
 void Logger::loop() {
+#ifdef USE_LOGGER_USB_CDC
   if (this->uart_ != UART_SELECTION_USB_CDC || nullptr == this->uart_dev_) {
     return;
   }
@@ -31,8 +31,9 @@ void Logger::loop() {
     App.schedule_dump_config();
   }
   opened = !opened;
-}
 #endif
+  process_messages_();
+}
 
 void Logger::pre_setup() {
   if (this->baud_rate_ > 0) {
