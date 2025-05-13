@@ -382,7 +382,6 @@ async def to_code(config):
 
     for conf in config[CONF_CLIMATES]:
         var = await climate.new_climate(conf)
-        print(var, conf)
         await cg.register_component(var, conf)
         cg.add(var.set_type(conf[CONF_TYPE]))
 
