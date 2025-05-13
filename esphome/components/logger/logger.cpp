@@ -19,33 +19,29 @@ namespace logger {
 
 static const char *const TAG = "logger";
 
-#if defined(USE_ESP32)
-// Implementation for ESP32 (with task-specific recursion guards)
+#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+// Implementation for multi-threaded platforms (ESP32 and LibreTiny)
 // Main task: synchronous logging with direct buffer access
 // Other tasks: console output with stack buffer, callbacks via async buffer
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
   if (level > this->level_for(tag))
     return;
 
-  // Get the task-specific recursion guard using FreeRTOS task local storage
-  bool *recursion_guard_ptr =
-      static_cast<bool *>(pvTaskGetThreadLocalStoragePointer(NULL, TLS_INDEX_LOGGER_RECURSION_GUARD));
-  // If this is the first time this task is logging, create a new recursion guard
-  if (recursion_guard_ptr == NULL) {
-    recursion_guard_ptr = new bool(false);
-    vTaskSetThreadLocalStoragePointer(NULL, TLS_INDEX_LOGGER_RECURSION_GUARD, recursion_guard_ptr);
-  }
-  if (*recursion_guard_ptr) {
-    return;  // Prevent recursion within the same task
-  }
-  *recursion_guard_ptr = true;
-
   TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
+
+  // Check and set recursion guard for this task
+  auto it = this->task_recursion_guards_.find(current_task);
+  if (it != this->task_recursion_guards_.end() && it->second) {
+    return;  // Guard already set - recursion detected
+  }
+
+  this->task_recursion_guards_[current_task] = true;  // Set guard for this task
 
   // For main task: call log_message_to_buffer_and_send_ which does console and callback logging
   if (current_task == main_task_) {
     this->log_message_to_buffer_and_send_(level, tag, line, format, args);
-    *recursion_guard_ptr = false;  // Clear recursion guard
+    // Clear recursion guard
+    this->task_recursion_guards_[current_task] = false;
     return;
   }
 
@@ -68,9 +64,11 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
                                                 current_task, format, args);
   }
 #endif  // USE_ESPHOME_TASK_LOG_BUFFER
-  *recursion_guard_ptr = false;
+
+  // Clear recursion guard
+  this->task_recursion_guards_[current_task] = false;
 }
-#endif  // USE_ESP32
+#endif  // defined(USE_ESP32) || defined(USE_LIBRETINY)
 
 #if !defined(USE_ESP32)
 // Implementation for platforms that don't use task-specific recursion guards
@@ -149,20 +147,6 @@ Logger::Logger(uint32_t baud_rate, size_t tx_buffer_size) : baud_rate_(baud_rate
   this->tx_buffer_ = new char[this->tx_buffer_size_ + 1];  // NOLINT
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
   this->main_task_ = xTaskGetCurrentTaskHandle();
-#endif
-
-#if defined(USE_ESP32)
-  // Initialize task local storage for task-specific recursion guards
-  vTaskSetThreadLocalStoragePointerAndDelCallback(
-      NULL, TLS_INDEX_LOGGER_RECURSION_GUARD,
-      NULL,  // Initial value is NULL (recursion guards will be created per-task as needed)
-      // Cleanup function to prevent memory leaks when tasks are deleted
-      [](int index, void *value) {
-        if (value != nullptr) {
-          bool *guard_ptr = static_cast<bool *>(value);
-          delete guard_ptr;
-        }
-      });
 #endif
 }
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
