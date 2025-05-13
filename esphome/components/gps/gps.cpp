@@ -52,8 +52,8 @@ void GPS::loop() {
         this->longitude_ = this->tiny_gps_.location.lng();
 
         ESP_LOGD(TAG, "Location:");
-        ESP_LOGD(TAG, "  Lat: %f", this->latitude_);
-        ESP_LOGD(TAG, "  Lon: %f", this->longitude_);
+        ESP_LOGD(TAG, "  Lat: %.6f °", this->latitude_);
+        ESP_LOGD(TAG, "  Lon: %.6f °", this->longitude_);
       }
 
       if (this->tiny_gps_.speed.isUpdated()) {
