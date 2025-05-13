@@ -161,6 +161,7 @@ def text_sensor_schema(
     icon: str = cv.UNDEFINED,
 ) -> cv.Schema:
     schema = {}
+
     if class_ is not cv.UNDEFINED:
         schema[cv.GenerateID()] = cv.declare_id(class_)
 
