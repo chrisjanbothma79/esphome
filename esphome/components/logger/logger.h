@@ -222,12 +222,10 @@ class Logger : public Component {
   std::map<std::string, int> log_levels_{};
   CallbackManager<void(int, const char *, const char *)> log_callback_{};
   int current_level_{ESPHOME_LOG_LEVEL_VERY_VERBOSE};
-#ifdef USE_ESP32
-  std::atomic<bool> recursion_guard_{false};
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
   std::unique_ptr<logger::TaskLogBuffer> log_buffer_;  // Will be initialized with init_log_buffer
 #endif
-#else
+#if !defined(USE_ESP32) && !defined(USE_LIBRETINY)  // Only non-FreeRTOS platforms need the recursion guard member
   bool recursion_guard_{false};
 #endif
   void *main_task_ = nullptr;

@@ -13,21 +13,33 @@ namespace logger {
 
 static const char *const TAG = "logger";
 
-#ifdef USE_ESP32
-// Implementation for ESP32 (multi-core with atomic support)
-// Main thread: synchronous logging with direct buffer access
-// Other threads: console output with stack buffer, callbacks via async buffer
+#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+// Implementation for ESP32/LibreTiny (with task-specific recursion guards)
+// Main task: synchronous logging with direct buffer access
+// Other tasks: console output with stack buffer, callbacks via async buffer
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
-  if (level > this->level_for(tag) || recursion_guard_.load(std::memory_order_relaxed))
+  if (level > this->level_for(tag))
     return;
-  recursion_guard_.store(true, std::memory_order_relaxed);
+
+  // Get the task-specific recursion guard using FreeRTOS task local storage
+  bool *recursion_guard_ptr =
+      static_cast<bool *>(pvTaskGetThreadLocalStoragePointer(NULL, TLS_INDEX_LOGGER_RECURSION_GUARD));
+  // If this is the first time this task is logging, create a new recursion guard
+  if (recursion_guard_ptr == NULL) {
+    recursion_guard_ptr = new bool(false);
+    vTaskSetThreadLocalStoragePointer(NULL, TLS_INDEX_LOGGER_RECURSION_GUARD, recursion_guard_ptr);
+  }
+  if (*recursion_guard_ptr) {
+    return;  // Prevent recursion within the same task
+  }
+  *recursion_guard_ptr = true;
 
   TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
 
   // For main task: call log_message_to_buffer_and_send_ which does console and callback logging
   if (current_task == main_task_) {
     this->log_message_to_buffer_and_send_(level, tag, line, format, args);
-    recursion_guard_.store(false, std::memory_order_release);
+    *recursion_guard_ptr = false;  // Clear recursion guard
     return;
   }
 
@@ -50,14 +62,13 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
                                                 current_task, format, args);
   }
 #endif  // USE_ESPHOME_TASK_LOG_BUFFER
-
-  recursion_guard_.store(false, std::memory_order_release);
+  *recursion_guard_ptr = false;
 }
-#endif  // USE_ESP32
+#endif  // USE_ESP32 || USE_LIBRETINY
 
-#ifndef USE_ESP32
-// Implementation for platforms that do not support atomic operations
-// or have to consider logging in other tasks
+#if !defined(USE_ESP32) && !defined(USE_LIBRETINY)
+// Implementation for platforms that do not support thread-local storage
+// or don't need it because they are single-threaded
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
   if (level > this->level_for(tag) || recursion_guard_)
     return;
@@ -69,10 +80,11 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   recursion_guard_ = false;
 }
-#endif  // !USE_ESP32
+#endif  // !defined(USE_ESP32) && !defined(USE_LIBRETINY)
 
 #ifdef USE_STORE_LOG_STR_IN_FLASH
-// Implementation for ESP8266 with flash string support
+// Implementation for ESP8266 with flash string support.
+// Note: USE_STORE_LOG_STR_IN_FLASH is only defined for ESP8266, which doesn't use thread-local storage.
 void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStringHelper *format,
                           va_list args) {  // NOLINT
   if (level > this->level_for(tag) || recursion_guard_)
@@ -89,8 +101,10 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
   }
 
   // Buffer full from copying format
-  if (this->tx_buffer_at_ >= this->tx_buffer_size_)
+  if (this->tx_buffer_at_ >= this->tx_buffer_size_) {
+    recursion_guard_ = false;
     return;
+  }
 
   // Save the offset before calling format_log_to_buffer_with_terminator_
   // since it will increment tx_buffer_at_ to the end of the formatted string
@@ -98,7 +112,7 @@ void Logger::log_vprintf_(int level, const char *tag, int line, const __FlashStr
   this->format_log_to_buffer_with_terminator_(level, tag, line, this->tx_buffer_, args, this->tx_buffer_,
                                               &this->tx_buffer_at_, this->tx_buffer_size_);
 
-  // No write console and callback starting at the msg_start
+  // Write console and callback starting at the msg_start
   if (this->baud_rate_ > 0) {
     this->write_msg_(this->tx_buffer_ + msg_start);
   }
@@ -128,11 +142,27 @@ void HOT Logger::call_log_callbacks_(int level, const char *tag, const char *msg
   this->log_callback_.call(level, tag, msg);
 }
 
+// Forward declaration of the task-local storage cleanup function
+#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+static void tls_recursion_guard_cleanup(int index, void *value) {
+  if (value != nullptr) {
+    bool *guard_ptr = static_cast<bool *>(value);
+    delete guard_ptr;
+  }
+}
+#endif
+
 Logger::Logger(uint32_t baud_rate, size_t tx_buffer_size) : baud_rate_(baud_rate), tx_buffer_size_(tx_buffer_size) {
   // add 1 to buffer size for null terminator
   this->tx_buffer_ = new char[this->tx_buffer_size_ + 1];  // NOLINT
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
   this->main_task_ = xTaskGetCurrentTaskHandle();
+
+  // Initialize task local storage for task-specific recursion guards
+  vTaskSetThreadLocalStoragePointerAndDelCallback(
+      NULL, TLS_INDEX_LOGGER_RECURSION_GUARD,
+      NULL,                          // Initial value is NULL (recursion guards will be created per-task as needed)
+      tls_recursion_guard_cleanup);  // Cleanup function to prevent memory leaks
 #endif
 }
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
