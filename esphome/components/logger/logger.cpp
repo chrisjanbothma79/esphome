@@ -62,9 +62,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
   // Clear recursion guard
   this->task_recursion_guards_[current_task] = false;
 }
-#endif  // defined(USE_ESP32) || defined(USE_LIBRETINY)
-
-#if !defined(USE_ESP32)
+#else   // !defined(USE_ESP32) && !defined(USE_LIBRETINY)
 // Implementation for platforms that don't use task-specific recursion guards
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
   if (level > this->level_for(tag) || recursion_guard_)
@@ -77,7 +75,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   recursion_guard_ = false;
 }
-#endif  // !defined(USE_ESP32)
+#endif  // defined(USE_ESP32) || defined(USE_LIBRETINY)
 
 #ifdef USE_STORE_LOG_STR_IN_FLASH
 // Implementation for ESP8266 with flash string support
