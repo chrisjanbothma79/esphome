@@ -241,7 +241,9 @@ class Logger : public Component {
 #if !defined(USE_ESP32)  // Only ESP32 uses task-specific recursion guards, other platforms use a simple bool
   bool recursion_guard_{false};
 #endif
-  void *main_task_ = nullptr;
+#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+  void *main_task_ = nullptr;  // Only used on FreeRTOS platforms
+#endif
   CallbackManager<void(int)> level_callback_{};
 
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
