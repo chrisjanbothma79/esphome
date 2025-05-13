@@ -4,7 +4,7 @@
 #include <memory>  // For unique_ptr
 #endif
 
-#include "esphome/core/defines.h"  // For TLS_INDEX_LOGGER_RECURSION_GUARD
+#include "esphome/core/defines.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
@@ -23,12 +23,12 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     return;
 
   // Get the task-specific recursion guard using FreeRTOS task local storage
-  bool *recursion_guard_ptr = static_cast<bool *>(
-      pvTaskGetThreadLocalStoragePointer(NULL, ESPHomeTLSIndices::TLS_INDEX_LOGGER_RECURSION_GUARD));
+  bool *recursion_guard_ptr =
+      static_cast<bool *>(pvTaskGetThreadLocalStoragePointer(NULL, TLS_INDEX_LOGGER_RECURSION_GUARD));
   // If this is the first time this task is logging, create a new recursion guard
   if (recursion_guard_ptr == NULL) {
     recursion_guard_ptr = new bool(false);
-    vTaskSetThreadLocalStoragePointer(NULL, ESPHomeTLSIndices::TLS_INDEX_LOGGER_RECURSION_GUARD, recursion_guard_ptr);
+    vTaskSetThreadLocalStoragePointer(NULL, TLS_INDEX_LOGGER_RECURSION_GUARD, recursion_guard_ptr);
   }
   if (*recursion_guard_ptr) {
     return;  // Prevent recursion within the same task
@@ -161,7 +161,7 @@ Logger::Logger(uint32_t baud_rate, size_t tx_buffer_size) : baud_rate_(baud_rate
 
   // Initialize task local storage for task-specific recursion guards
   vTaskSetThreadLocalStoragePointerAndDelCallback(
-      NULL, ESPHomeTLSIndices::TLS_INDEX_LOGGER_RECURSION_GUARD,
+      NULL, TLS_INDEX_LOGGER_RECURSION_GUARD,
       NULL,                          // Initial value is NULL (recursion guards will be created per-task as needed)
       tls_recursion_guard_cleanup);  // Cleanup function to prevent memory leaks
 #endif

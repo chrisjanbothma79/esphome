@@ -11,6 +11,15 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
+// Temporary: Define TLS indices in logger.h for testing
+// This will later be moved to core/defines.h
+#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+enum ESPHomeTLSIndices {
+  TLS_INDEX_LOGGER_RECURSION_GUARD = 0,  // Index for task-specific logger recursion guards
+  TLS_INDEX_MAX
+};
+#endif
+
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include "task_log_buffer.h"
 #endif
