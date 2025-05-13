@@ -13,7 +13,7 @@ namespace logger {
 
 static const char *const TAG = "logger";
 
-#if defined(USE_ESP32)
+#ifdef USE_ESP32
 // Implementation for ESP32 (multi-task platform with task-specific tracking)
 // Main task always uses direct buffer access for console output and callbacks
 // Other tasks:
@@ -39,7 +39,6 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     is_recursive_call = false;
     return;
   }
-#endif
 
   // For non-main tasks: use stack-allocated buffer only for console output
   if (this->baud_rate_ > 0) {  // If logging is enabled, write to console
@@ -60,10 +59,9 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
                                                 current_task, format, args);
   }
 #endif  // USE_ESPHOME_TASK_LOG_BUFFER
-
   is_recursive_call = false;
 }
-#elif defined(USE_LIBRETINY)
+#else
 // Implementation for LibreTiny (multi-task platform with global recursion guard)
 //
 // LibreTiny uses a global recursion guard instead of the per-task guards used by ESP32.
@@ -83,21 +81,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   recursion_guard_ = false;
 }
-#else  // !defined(USE_ESP32) && !defined(USE_LIBRETINY)
-// Implementation for other platforms without multi-task support (ESP8266, RP2040, Host)
-// Uses a single global recursion guard for recursive call detection
-void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
-  if (level > this->level_for(tag) || recursion_guard_)
-    return;
-
-  recursion_guard_ = true;
-
-  // Format and send to both console and callbacks
-  this->log_message_to_buffer_and_send_(level, tag, line, format, args);
-
-  recursion_guard_ = false;
-}
-#endif  // defined(USE_ESP32)
+#endif  // USE_ESP32
 
 #ifdef USE_STORE_LOG_STR_IN_FLASH
 // Implementation for ESP8266 with flash string support.
