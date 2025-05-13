@@ -85,9 +85,9 @@ int HOT BmpDecoder::decode(uint8_t *buffer, size_t size) {
     this->current_index_ = this->data_offset_;
     index = this->data_offset_;
   }
-  while (index < size) {
-    switch (this->bits_per_pixel_) {
-      case 1: {
+  switch (this->bits_per_pixel_) {
+    case 1: {
+      while (index < size) {
         uint8_t current_byte = buffer[index];
         for (uint8_t i = 0; i < 8; i++) {
           size_t x = (this->paint_index_ % this->width_) + i;
@@ -98,9 +98,11 @@ int HOT BmpDecoder::decode(uint8_t *buffer, size_t size) {
         this->paint_index_ += 8;
         this->current_index_++;
         index++;
-        break;
       }
-      case 24: {
+      break;
+    }
+    case 24: {
+      while (index < size) {
         if (index + 2 >= size) {
           this->decoded_bytes_ += index;
           return index;
@@ -119,12 +121,12 @@ int HOT BmpDecoder::decode(uint8_t *buffer, size_t size) {
           index += this->padding_bytes_;
           this->current_index_ += this->padding_bytes_;
         }
-        break;
       }
-      default:
-        ESP_LOGE(TAG, "Unsupported bits per pixel: %d", this->bits_per_pixel_);
-        return DECODE_ERROR_UNSUPPORTED_FORMAT;
+      break;
     }
+    default:
+      ESP_LOGE(TAG, "Unsupported bits per pixel: %d", this->bits_per_pixel_);
+      return DECODE_ERROR_UNSUPPORTED_FORMAT;
   }
   this->decoded_bytes_ += size;
   return size;
