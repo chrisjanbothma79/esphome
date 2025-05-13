@@ -106,7 +106,7 @@ async def setup_entity(var, config):
     else:
         object_id = sanitize(snake_case(config[CONF_NAME]))
         #    If the result is empty or only underscores (e.g. from non-ASCII characters),fallback to a more reliable identifier
-        if not object_id or set(object_id) == {'_'}:
+        if not object_id or set(object_id) == {"_"}:
             if CONF_ID in config:
                 object_id = sanitize(snake_case(str(config[CONF_ID])))
             else:
