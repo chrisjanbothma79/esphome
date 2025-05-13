@@ -13,7 +13,7 @@
 
 // Temporary: Define TLS indices in logger.h for testing
 // This will later be moved to core/defines.h
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+#if defined(USE_ESP32)
 /* ESP-IDF uses index 0 for pthread TLS as defined in components/pthread/pthread_local_storage.c:
  * #define PTHREAD_TLS_INDEX 0
  * We must use a different index to avoid conflicts.
@@ -29,7 +29,7 @@ enum ESPHomeTLSIndices {
 #if (CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS < 2)
 #error "CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS must be at least 2 (one for pthread, one for logger)"
 #endif  // CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS < 2
-#endif  // defined(USE_ESP32) || defined(USE_LIBRETINY)
+#endif  // defined(USE_ESP32)
 
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
 #include "task_log_buffer.h"
@@ -245,7 +245,7 @@ class Logger : public Component {
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
   std::unique_ptr<logger::TaskLogBuffer> log_buffer_;  // Will be initialized with init_log_buffer
 #endif
-#if !defined(USE_ESP32) && !defined(USE_LIBRETINY)  // Only non-FreeRTOS platforms need the recursion guard member
+#if !defined(USE_ESP32)  // Only ESP32 uses task-specific recursion guards, other platforms use a simple bool
   bool recursion_guard_{false};
 #endif
   void *main_task_ = nullptr;

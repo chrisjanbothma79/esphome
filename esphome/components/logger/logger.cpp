@@ -12,9 +12,6 @@
 #if defined(USE_ESP32)
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#elif defined(USE_LIBRETINY)
-#include "FreeRTOS.h"
-#include "task.h"
 #endif
 
 namespace esphome {
@@ -22,8 +19,8 @@ namespace logger {
 
 static const char *const TAG = "logger";
 
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
-// Implementation for ESP32/LibreTiny (with task-specific recursion guards)
+#if defined(USE_ESP32)
+// Implementation for ESP32 (with task-specific recursion guards)
 // Main task: synchronous logging with direct buffer access
 // Other tasks: console output with stack buffer, callbacks via async buffer
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
@@ -73,11 +70,10 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 #endif  // USE_ESPHOME_TASK_LOG_BUFFER
   *recursion_guard_ptr = false;
 }
-#endif  // USE_ESP32 || USE_LIBRETINY
+#endif  // USE_ESP32
 
-#if !defined(USE_ESP32) && !defined(USE_LIBRETINY)
-// Implementation for platforms that do not support thread-local storage
-// or don't need it because they are single-threaded
+#if !defined(USE_ESP32)
+// Implementation for platforms that don't use task-specific recursion guards
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
   if (level > this->level_for(tag) || recursion_guard_)
     return;
@@ -89,7 +85,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 
   recursion_guard_ = false;
 }
-#endif  // !defined(USE_ESP32) && !defined(USE_LIBRETINY)
+#endif  // !defined(USE_ESP32)
 
 #ifdef USE_STORE_LOG_STR_IN_FLASH
 // Implementation for ESP8266 with flash string support
@@ -149,7 +145,7 @@ void HOT Logger::call_log_callbacks_(int level, const char *tag, const char *msg
 }
 
 // Forward declaration of the task-local storage cleanup function
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+#if defined(USE_ESP32)
 static void tls_recursion_guard_cleanup(int index, void *value) {
   if (value != nullptr) {
     bool *guard_ptr = static_cast<bool *>(value);
@@ -163,7 +159,9 @@ Logger::Logger(uint32_t baud_rate, size_t tx_buffer_size) : baud_rate_(baud_rate
   this->tx_buffer_ = new char[this->tx_buffer_size_ + 1];  // NOLINT
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)
   this->main_task_ = xTaskGetCurrentTaskHandle();
+#endif
 
+#if defined(USE_ESP32)
   // Initialize task local storage for task-specific recursion guards
   vTaskSetThreadLocalStoragePointerAndDelCallback(
       NULL, TLS_INDEX_LOGGER_RECURSION_GUARD,
