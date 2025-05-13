@@ -24,16 +24,17 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
     return;
 
   TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
+  bool is_main_task = (current_task == main_task_);
 
   // Check and set recursion guard - uses pthread TLS for per-task state
-  if (this->check_and_set_task_log_recursion_(current_task)) {
+  if (this->check_and_set_task_log_recursion_(is_main_task)) {
     return;  // Recursion detected
   }
 
   // Main task uses the shared buffer for efficiency
-  if (current_task == main_task_) {
+  if (is_main_task) {
     this->log_message_to_buffer_and_send_(level, tag, line, format, args);
-    this->reset_task_log_recursion_(current_task);
+    this->reset_task_log_recursion_(is_main_task);
     return;
   }
 
@@ -58,7 +59,7 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 #endif  // USE_ESPHOME_TASK_LOG_BUFFER
 
   // Reset the recursion guard for this task
-  this->reset_task_log_recursion_(current_task);
+  this->reset_task_log_recursion_(is_main_task);
 }
 #else
 // Implementation for all other platforms

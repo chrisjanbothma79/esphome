@@ -255,8 +255,8 @@ class Logger : public Component {
   // Logger recursion guard pthread key (slot 1)
   static const pthread_key_t LOG_RECURSION_KEY = (pthread_key_t) 1;
 
-  inline bool HOT check_and_set_task_log_recursion_(TaskHandle_t current_task) {
-    if (current_task == main_task_) {
+  inline bool HOT check_and_set_task_log_recursion_(bool is_main_task) {
+    if (is_main_task) {
       const bool was_recursive = main_task_recursion_guard_;
       main_task_recursion_guard_ = true;
       return was_recursive;
@@ -270,8 +270,8 @@ class Logger : public Component {
     return false;
   }
 
-  inline void HOT reset_task_log_recursion_(TaskHandle_t current_task) {
-    if (current_task == main_task_) {
+  inline void HOT reset_task_log_recursion_(bool is_main_task) {
+    if (is_main_task) {
       main_task_recursion_guard_ = false;
       return;
     }
