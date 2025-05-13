@@ -65,9 +65,9 @@ void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *
 // Implementation for all other platforms
 //
 // For multi-tasking platforms like LibreTiny, this implementation uses a global recursion guard.
-// Note: The global recursion guard is NOT atomic so there is still some risk
-// when we have a working ring buffer on LibreTiny we should use the same solution
-// as ESP32. See https://github.com/esphome/esphome/pull/8736 for more details.
+// Note: The global recursion guard is NOT atomic, so there's still risk of race conditions.
+// When a working ring buffer is available for LibreTiny, we should use the same task-specific
+// solution as ESP32. See https://github.com/esphome/esphome/pull/8736 for more details.
 //
 // For single-task platforms, this implementation provides standard logging behavior.
 void HOT Logger::log_vprintf_(int level, const char *tag, int line, const char *format, va_list args) {  // NOLINT
