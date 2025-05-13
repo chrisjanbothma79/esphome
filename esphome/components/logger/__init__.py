@@ -256,7 +256,8 @@ async def to_code(config):
     if CORE.is_esp32:
         # For ESP32 platforms, ensure we have at least 2 thread local storage pointers
         # Index 0 is used by pthread, we need index 1 for our logger recursion guard
-        add_idf_sdkconfig_option("CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS", 2)
+        if CORE.using_esp_idf:
+            add_idf_sdkconfig_option("CONFIG_FREERTOS_THREAD_LOCAL_STORAGE_POINTERS", 2)
         task_log_buffer_size = config[CONF_TASK_LOG_BUFFER_SIZE]
         if task_log_buffer_size > 0:
             cg.add_define("USE_ESPHOME_TASK_LOG_BUFFER")
