@@ -144,16 +144,6 @@ void HOT Logger::call_log_callbacks_(int level, const char *tag, const char *msg
   this->log_callback_.call(level, tag, msg);
 }
 
-// Forward declaration of the task-local storage cleanup function
-#if defined(USE_ESP32)
-static void tls_recursion_guard_cleanup(int index, void *value) {
-  if (value != nullptr) {
-    bool *guard_ptr = static_cast<bool *>(value);
-    delete guard_ptr;
-  }
-}
-#endif
-
 Logger::Logger(uint32_t baud_rate, size_t tx_buffer_size) : baud_rate_(baud_rate), tx_buffer_size_(tx_buffer_size) {
   // add 1 to buffer size for null terminator
   this->tx_buffer_ = new char[this->tx_buffer_size_ + 1];  // NOLINT
@@ -165,8 +155,14 @@ Logger::Logger(uint32_t baud_rate, size_t tx_buffer_size) : baud_rate_(baud_rate
   // Initialize task local storage for task-specific recursion guards
   vTaskSetThreadLocalStoragePointerAndDelCallback(
       NULL, TLS_INDEX_LOGGER_RECURSION_GUARD,
-      NULL,                          // Initial value is NULL (recursion guards will be created per-task as needed)
-      tls_recursion_guard_cleanup);  // Cleanup function to prevent memory leaks
+      NULL,  // Initial value is NULL (recursion guards will be created per-task as needed)
+      // Cleanup function to prevent memory leaks when tasks are deleted
+      [](int index, void *value) {
+        if (value != nullptr) {
+          bool *guard_ptr = static_cast<bool *>(value);
+          delete guard_ptr;
+        }
+      });
 #endif
 }
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
