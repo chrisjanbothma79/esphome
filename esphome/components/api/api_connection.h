@@ -478,11 +478,11 @@ class APIConnection : public APIServerConnection {
    * @param entity The entity to send info for
    * @param try_send_func The function that tries to send the info
    */
-  template<typename EntityT> void send_info_(EntityT *entity, bool (APIConnection::*try_send_func)(EntityT *)) {
+  void send_info_(esphome::EntityBase *entity, send_message_t try_send_func) {
     if (this->try_to_clear_buffer(true) && (this->*try_send_func)(entity)) {
       return;
     }
-    this->deferred_message_queue_.defer(entity, reinterpret_cast<send_message_t>(try_send_func));
+    this->deferred_message_queue_.defer(entity, try_send_func);
   }
 
   /**

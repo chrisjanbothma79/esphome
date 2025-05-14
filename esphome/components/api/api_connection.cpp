@@ -273,7 +273,8 @@ bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary
                                       &APIConnection::try_send_binary_sensor_state_, state);
 }
 void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor) {
-  this->send_info_(binary_sensor, &APIConnection::try_send_binary_sensor_info_);
+  this->send_info_(static_cast<EntityBase *>(binary_sensor),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_binary_sensor_info_));
 }
 bool APIConnection::try_send_binary_sensor_state_(binary_sensor::BinarySensor *binary_sensor) {
   return this->try_send_binary_sensor_state_(binary_sensor, binary_sensor->state);
@@ -299,7 +300,8 @@ bool APIConnection::send_cover_state(cover::Cover *cover) {
   return this->send_state_(cover, &APIConnection::try_send_cover_state_);
 }
 void APIConnection::send_cover_info(cover::Cover *cover) {
-  this->send_info_(cover, &APIConnection::try_send_cover_info_);
+  this->send_info_(static_cast<EntityBase *>(cover),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_cover_info_));
 }
 bool APIConnection::try_send_cover_state_(cover::Cover *cover) {
   CoverStateResponse msg;
@@ -357,7 +359,10 @@ void APIConnection::cover_command(const CoverCommandRequest &msg) {
 bool APIConnection::send_fan_state(fan::Fan *fan) {
   return this->send_state_(fan, &APIConnection::try_send_fan_state_);
 }
-void APIConnection::send_fan_info(fan::Fan *fan) { this->send_info_(fan, &APIConnection::try_send_fan_info_); }
+void APIConnection::send_fan_info(fan::Fan *fan) {
+  this->send_info_(static_cast<EntityBase *>(fan),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_fan_info_));
+}
 bool APIConnection::try_send_fan_state_(fan::Fan *fan) {
   FanStateResponse msg;
   auto traits = fan->get_traits();
@@ -413,7 +418,8 @@ bool APIConnection::send_light_state(light::LightState *light) {
   return this->send_state_(light, &APIConnection::try_send_light_state_);
 }
 void APIConnection::send_light_info(light::LightState *light) {
-  this->send_info_(light, &APIConnection::try_send_light_info_);
+  this->send_info_(static_cast<EntityBase *>(light),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_light_info_));
 }
 bool APIConnection::try_send_light_state_(light::LightState *light) {
   LightStateResponse resp;
@@ -504,7 +510,8 @@ bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
                                       &APIConnection::try_send_sensor_state_, state);
 }
 void APIConnection::send_sensor_info(sensor::Sensor *sensor) {
-  this->send_info_(sensor, &APIConnection::try_send_sensor_info_);
+  this->send_info_(static_cast<EntityBase *>(sensor),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_sensor_info_));
 }
 bool APIConnection::try_send_sensor_state_(sensor::Sensor *sensor) {
   return this->try_send_sensor_state_(sensor, sensor->state);
@@ -537,7 +544,8 @@ bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
                                       &APIConnection::try_send_switch_state_, state);
 }
 void APIConnection::send_switch_info(switch_::Switch *a_switch) {
-  this->send_info_(a_switch, &APIConnection::try_send_switch_info_);
+  this->send_info_(static_cast<EntityBase *>(a_switch),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_switch_info_));
 }
 bool APIConnection::try_send_switch_state_(switch_::Switch *a_switch) {
   return this->try_send_switch_state_(a_switch, a_switch->state);
@@ -575,7 +583,8 @@ bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor,
                                       &APIConnection::try_send_text_sensor_state_, std::move(state));
 }
 void APIConnection::send_text_sensor_info(text_sensor::TextSensor *text_sensor) {
-  this->send_info_(text_sensor, &APIConnection::try_send_text_sensor_info_);
+  this->send_info_(static_cast<EntityBase *>(text_sensor),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_text_sensor_info_));
 }
 bool APIConnection::try_send_text_sensor_state_(text_sensor::TextSensor *text_sensor) {
   return this->try_send_text_sensor_state_(text_sensor, text_sensor->state);
@@ -603,7 +612,8 @@ bool APIConnection::send_climate_state(climate::Climate *climate) {
   return this->send_state_(climate, &APIConnection::try_send_climate_state_);
 }
 void APIConnection::send_climate_info(climate::Climate *climate) {
-  this->send_info_(climate, &APIConnection::try_send_climate_info_);
+  this->send_info_(static_cast<EntityBase *>(climate),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_climate_info_));
 }
 bool APIConnection::try_send_climate_state_(climate::Climate *climate) {
   ClimateStateResponse resp;
@@ -702,7 +712,8 @@ bool APIConnection::send_number_state(number::Number *number, float state) {
                                       &APIConnection::try_send_number_state_, state);
 }
 void APIConnection::send_number_info(number::Number *number) {
-  this->send_info_(number, &APIConnection::try_send_number_info_);
+  this->send_info_(static_cast<EntityBase *>(number),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_number_info_));
 }
 bool APIConnection::try_send_number_state_(number::Number *number) {
   return this->try_send_number_state_(number, number->state);
@@ -742,7 +753,8 @@ bool APIConnection::send_date_state(datetime::DateEntity *date) {
   return this->send_state_(date, &APIConnection::try_send_date_state_);
 }
 void APIConnection::send_date_info(datetime::DateEntity *date) {
-  this->send_info_(date, &APIConnection::try_send_date_info_);
+  this->send_info_(static_cast<EntityBase *>(date),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_date_info_));
 }
 bool APIConnection::try_send_date_state_(datetime::DateEntity *date) {
   DateStateResponse resp;
@@ -775,7 +787,8 @@ bool APIConnection::send_time_state(datetime::TimeEntity *time) {
   return this->send_state_(time, &APIConnection::try_send_time_state_);
 }
 void APIConnection::send_time_info(datetime::TimeEntity *time) {
-  this->send_info_(time, &APIConnection::try_send_time_info_);
+  this->send_info_(static_cast<EntityBase *>(time),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_time_info_));
 }
 bool APIConnection::try_send_time_state_(datetime::TimeEntity *time) {
   TimeStateResponse resp;
@@ -808,7 +821,8 @@ bool APIConnection::send_datetime_state(datetime::DateTimeEntity *datetime) {
   return this->send_state_(datetime, &APIConnection::try_send_datetime_state_);
 }
 void APIConnection::send_datetime_info(datetime::DateTimeEntity *datetime) {
-  this->send_info_(datetime, &APIConnection::try_send_datetime_info_);
+  this->send_info_(static_cast<EntityBase *>(datetime),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_datetime_info_));
 }
 bool APIConnection::try_send_datetime_state_(datetime::DateTimeEntity *datetime) {
   DateTimeStateResponse resp;
@@ -842,7 +856,10 @@ bool APIConnection::send_text_state(text::Text *text, std::string state) {
   return this->send_state_with_value_(text, &APIConnection::try_send_text_state_, &APIConnection::try_send_text_state_,
                                       state);
 }
-void APIConnection::send_text_info(text::Text *text) { this->send_info_(text, &APIConnection::try_send_text_info_); }
+void APIConnection::send_text_info(text::Text *text) {
+  this->send_info_(static_cast<EntityBase *>(text),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_text_info_));
+}
 bool APIConnection::try_send_text_state_(text::Text *text) { return this->try_send_text_state_(text, text->state); }
 bool APIConnection::try_send_text_state_(text::Text *text, std::string state) {
   TextStateResponse resp;
@@ -878,7 +895,8 @@ bool APIConnection::send_select_state(select::Select *select, std::string state)
                                       &APIConnection::try_send_select_state_, state);
 }
 void APIConnection::send_select_info(select::Select *select) {
-  this->send_info_(select, &APIConnection::try_send_select_info_);
+  this->send_info_(static_cast<EntityBase *>(select),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_select_info_));
 }
 bool APIConnection::try_send_select_state_(select::Select *select) {
   return this->try_send_select_state_(select, select->state);
@@ -911,7 +929,8 @@ void APIConnection::select_command(const SelectCommandRequest &msg) {
 
 #ifdef USE_BUTTON
 void esphome::api::APIConnection::send_button_info(button::Button *button) {
-  this->send_info_(button, &APIConnection::try_send_button_info_);
+  this->send_info_(static_cast<EntityBase *>(button),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_button_info_));
 }
 bool esphome::api::APIConnection::try_send_button_info_(button::Button *button) {
   ListEntitiesButtonResponse msg;
@@ -934,7 +953,8 @@ bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
                                       &APIConnection::try_send_lock_state_, state);
 }
 void APIConnection::send_lock_info(lock::Lock *a_lock) {
-  this->send_info_(a_lock, &APIConnection::try_send_lock_info_);
+  this->send_info_(static_cast<EntityBase *>(a_lock),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_lock_info_));
 }
 bool APIConnection::try_send_lock_state_(lock::Lock *a_lock) {
   return this->try_send_lock_state_(a_lock, a_lock->state);
@@ -978,7 +998,8 @@ bool APIConnection::send_valve_state(valve::Valve *valve) {
   return this->send_state_(valve, &APIConnection::try_send_valve_state_);
 }
 void APIConnection::send_valve_info(valve::Valve *valve) {
-  this->send_info_(valve, &APIConnection::try_send_valve_info_);
+  this->send_info_(static_cast<EntityBase *>(valve),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_valve_info_));
 }
 bool APIConnection::try_send_valve_state_(valve::Valve *valve) {
   ValveStateResponse resp;
@@ -1017,7 +1038,8 @@ bool APIConnection::send_media_player_state(media_player::MediaPlayer *media_pla
   return this->send_state_(media_player, &APIConnection::try_send_media_player_state_);
 }
 void APIConnection::send_media_player_info(media_player::MediaPlayer *media_player) {
-  this->send_info_(media_player, &APIConnection::try_send_media_player_info_);
+  this->send_info_(static_cast<EntityBase *>(media_player),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_media_player_info_));
 }
 bool APIConnection::try_send_media_player_state_(media_player::MediaPlayer *media_player) {
   MediaPlayerStateResponse resp;
@@ -1080,7 +1102,8 @@ void APIConnection::set_camera_state(std::shared_ptr<esp32_camera::CameraImage> 
     this->image_reader_.set_image(std::move(image));
 }
 void APIConnection::send_camera_info(esp32_camera::ESP32Camera *camera) {
-  this->send_info_(camera, &APIConnection::try_send_camera_info_);
+  this->send_info_(static_cast<EntityBase *>(camera),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_camera_info_));
 }
 bool APIConnection::try_send_camera_info_(esp32_camera::ESP32Camera *camera) {
   ListEntitiesCameraResponse msg;
@@ -1277,7 +1300,8 @@ bool APIConnection::send_alarm_control_panel_state(alarm_control_panel::AlarmCon
   return this->send_state_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_state_);
 }
 void APIConnection::send_alarm_control_panel_info(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
-  this->send_info_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_info_);
+  this->send_info_(static_cast<EntityBase *>(a_alarm_control_panel),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_alarm_control_panel_info_));
 }
 bool APIConnection::try_send_alarm_control_panel_state_(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
   AlarmControlPanelStateResponse resp;
@@ -1335,7 +1359,8 @@ void APIConnection::send_event(event::Event *event, std::string event_type) {
                                std::move(event_type));
 }
 void APIConnection::send_event_info(event::Event *event) {
-  this->send_info_(event, &APIConnection::try_send_event_info_);
+  this->send_info_(static_cast<EntityBase *>(event),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_event_info_));
 }
 bool APIConnection::try_send_event_(event::Event *event) {
   return this->try_send_event_(event, *(event->last_event_type));
@@ -1362,7 +1387,8 @@ bool APIConnection::send_update_state(update::UpdateEntity *update) {
   return this->send_state_(update, &APIConnection::try_send_update_state_);
 }
 void APIConnection::send_update_info(update::UpdateEntity *update) {
-  this->send_info_(update, &APIConnection::try_send_update_info_);
+  this->send_info_(static_cast<EntityBase *>(update),
+                   reinterpret_cast<send_message_t>(&APIConnection::try_send_update_info_));
 }
 bool APIConnection::try_send_update_state_(update::UpdateEntity *update) {
   UpdateStateResponse resp;
