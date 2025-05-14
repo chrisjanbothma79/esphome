@@ -594,43 +594,33 @@ void APIConnection::send_climate_info(climate::Climate *climate) {
 }
 bool APIConnection::try_send_climate_state_(climate::Climate *climate) {
   ClimateStateResponse resp;
+  resp.key = climate->get_object_id_hash();
   auto traits = climate->get_traits();
   resp.mode = static_cast<enums::ClimateMode>(climate->mode);
   resp.action = static_cast<enums::ClimateAction>(climate->action);
-
   if (traits.get_supports_current_temperature())
     resp.current_temperature = climate->current_temperature;
-
   if (traits.get_supports_two_point_target_temperature()) {
     resp.target_temperature_low = climate->target_temperature_low;
     resp.target_temperature_high = climate->target_temperature_high;
   } else {
     resp.target_temperature = climate->target_temperature;
   }
-
   if (traits.get_supports_fan_modes() && climate->fan_mode.has_value())
     resp.fan_mode = static_cast<enums::ClimateFanMode>(climate->fan_mode.value());
-
   if (!traits.get_supported_custom_fan_modes().empty() && climate->custom_fan_mode.has_value())
     resp.custom_fan_mode = climate->custom_fan_mode.value();
-
   if (traits.get_supports_presets() && climate->preset.has_value()) {
     resp.preset = static_cast<enums::ClimatePreset>(climate->preset.value());
   }
-
   if (!traits.get_supported_custom_presets().empty() && climate->custom_preset.has_value())
     resp.custom_preset = climate->custom_preset.value();
-
   if (traits.get_supports_swing_modes())
     resp.swing_mode = static_cast<enums::ClimateSwingMode>(climate->swing_mode);
-
   if (traits.get_supports_current_humidity())
     resp.current_humidity = climate->current_humidity;
-
   if (traits.get_supports_target_humidity())
     resp.target_humidity = climate->target_humidity;
-
-  resp.key = climate->get_object_id_hash();
   return this->send_climate_state_response(resp);
 }
 bool APIConnection::try_send_climate_info_(climate::Climate *climate) {
