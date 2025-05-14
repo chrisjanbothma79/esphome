@@ -298,7 +298,8 @@ bool APIConnection::try_send_binary_sensor_info_(binary_sensor::BinarySensor *bi
 
 #ifdef USE_COVER
 bool APIConnection::send_cover_state(cover::Cover *cover) {
-  return this->send_state_(cover, &APIConnection::try_send_cover_state_);
+  return this->send_state_(static_cast<EntityBase *>(cover),
+                           reinterpret_cast<send_message_t>(&APIConnection::try_send_cover_state_));
 }
 void APIConnection::send_cover_info(cover::Cover *cover) {
   this->send_info_(static_cast<EntityBase *>(cover),
@@ -359,7 +360,8 @@ void APIConnection::cover_command(const CoverCommandRequest &msg) {
 
 #ifdef USE_FAN
 bool APIConnection::send_fan_state(fan::Fan *fan) {
-  return this->send_state_(fan, &APIConnection::try_send_fan_state_);
+  return this->send_state_(static_cast<EntityBase *>(fan),
+                           reinterpret_cast<send_message_t>(&APIConnection::try_send_fan_state_));
 }
 void APIConnection::send_fan_info(fan::Fan *fan) {
   this->send_info_(static_cast<EntityBase *>(fan),
@@ -418,7 +420,8 @@ void APIConnection::fan_command(const FanCommandRequest &msg) {
 
 #ifdef USE_LIGHT
 bool APIConnection::send_light_state(light::LightState *light) {
-  return this->send_state_(light, &APIConnection::try_send_light_state_);
+  return this->send_state_(static_cast<EntityBase *>(light),
+                           reinterpret_cast<send_message_t>(&APIConnection::try_send_light_state_));
 }
 void APIConnection::send_light_info(light::LightState *light) {
   this->send_info_(static_cast<EntityBase *>(light),
@@ -616,7 +619,8 @@ bool APIConnection::try_send_text_sensor_info_(text_sensor::TextSensor *text_sen
 
 #ifdef USE_CLIMATE
 bool APIConnection::send_climate_state(climate::Climate *climate) {
-  return this->send_state_(climate, &APIConnection::try_send_climate_state_);
+  return this->send_state_(static_cast<EntityBase *>(climate),
+                           reinterpret_cast<send_message_t>(&APIConnection::try_send_climate_state_));
 }
 void APIConnection::send_climate_info(climate::Climate *climate) {
   this->send_info_(static_cast<EntityBase *>(climate),
@@ -759,7 +763,8 @@ void APIConnection::number_command(const NumberCommandRequest &msg) {
 
 #ifdef USE_DATETIME_DATE
 bool APIConnection::send_date_state(datetime::DateEntity *date) {
-  return this->send_state_(date, &APIConnection::try_send_date_state_);
+  return this->send_state_(static_cast<EntityBase *>(date),
+                           reinterpret_cast<send_message_t>(&APIConnection::try_send_date_state_));
 }
 void APIConnection::send_date_info(datetime::DateEntity *date) {
   this->send_info_(static_cast<EntityBase *>(date),
@@ -794,7 +799,8 @@ void APIConnection::date_command(const DateCommandRequest &msg) {
 
 #ifdef USE_DATETIME_TIME
 bool APIConnection::send_time_state(datetime::TimeEntity *time) {
-  return this->send_state_(time, &APIConnection::try_send_time_state_);
+  return this->send_state_(static_cast<EntityBase *>(time),
+                           reinterpret_cast<send_message_t>(&APIConnection::try_send_time_state_));
 }
 void APIConnection::send_time_info(datetime::TimeEntity *time) {
   this->send_info_(static_cast<EntityBase *>(time),
@@ -829,7 +835,8 @@ void APIConnection::time_command(const TimeCommandRequest &msg) {
 
 #ifdef USE_DATETIME_DATETIME
 bool APIConnection::send_datetime_state(datetime::DateTimeEntity *datetime) {
-  return this->send_state_(datetime, &APIConnection::try_send_datetime_state_);
+  return this->send_state_(static_cast<EntityBase *>(datetime),
+                           reinterpret_cast<send_message_t>(&APIConnection::try_send_datetime_state_));
 }
 void APIConnection::send_datetime_info(datetime::DateTimeEntity *datetime) {
   this->send_info_(static_cast<EntityBase *>(datetime),
@@ -1011,7 +1018,8 @@ void APIConnection::lock_command(const LockCommandRequest &msg) {
 
 #ifdef USE_VALVE
 bool APIConnection::send_valve_state(valve::Valve *valve) {
-  return this->send_state_(valve, &APIConnection::try_send_valve_state_);
+  return this->send_state_(static_cast<EntityBase *>(valve),
+                           reinterpret_cast<send_message_t>(&APIConnection::try_send_valve_state_));
 }
 void APIConnection::send_valve_info(valve::Valve *valve) {
   this->send_info_(static_cast<EntityBase *>(valve),
@@ -1052,7 +1060,8 @@ void APIConnection::valve_command(const ValveCommandRequest &msg) {
 
 #ifdef USE_MEDIA_PLAYER
 bool APIConnection::send_media_player_state(media_player::MediaPlayer *media_player) {
-  return this->send_state_(media_player, &APIConnection::try_send_media_player_state_);
+  return this->send_state_(static_cast<EntityBase *>(media_player),
+                           reinterpret_cast<send_message_t>(&APIConnection::try_send_media_player_state_));
 }
 void APIConnection::send_media_player_info(media_player::MediaPlayer *media_player) {
   this->send_info_(static_cast<EntityBase *>(media_player),
@@ -1316,7 +1325,8 @@ void APIConnection::voice_assistant_set_configuration(const VoiceAssistantSetCon
 
 #ifdef USE_ALARM_CONTROL_PANEL
 bool APIConnection::send_alarm_control_panel_state(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
-  return this->send_state_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_state_);
+  return this->send_state_(static_cast<EntityBase *>(a_alarm_control_panel),
+                           reinterpret_cast<send_message_t>(&APIConnection::try_send_alarm_control_panel_state_));
 }
 void APIConnection::send_alarm_control_panel_info(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
   this->send_info_(static_cast<EntityBase *>(a_alarm_control_panel),
@@ -1404,7 +1414,8 @@ bool APIConnection::try_send_event_info_(event::Event *event) {
 
 #ifdef USE_UPDATE
 bool APIConnection::send_update_state(update::UpdateEntity *update) {
-  return this->send_state_(update, &APIConnection::try_send_update_state_);
+  return this->send_state_(static_cast<EntityBase *>(update),
+                           reinterpret_cast<send_message_t>(&APIConnection::try_send_update_state_));
 }
 void APIConnection::send_update_info(update::UpdateEntity *update) {
   this->send_info_(static_cast<EntityBase *>(update),

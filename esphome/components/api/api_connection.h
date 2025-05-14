@@ -431,13 +431,13 @@ class APIConnection : public APIServerConnection {
    * @param try_send_func The function that tries to send the state
    * @return True on success or message deferred, false if subscription check failed
    */
-  template<typename EntityT> bool send_state_(EntityT *entity, bool (APIConnection::*try_send_func)(EntityT *)) {
+  bool send_state_(esphome::EntityBase *entity, send_message_t try_send_func) {
     if (!this->state_subscription_)
       return false;
     if (this->try_to_clear_buffer(true) && (this->*try_send_func)(entity)) {
       return true;
     }
-    this->deferred_message_queue_.defer(entity, reinterpret_cast<send_message_t>(try_send_func));
+    this->deferred_message_queue_.defer(entity, try_send_func);
     return true;
   }
 
