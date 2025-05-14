@@ -132,8 +132,6 @@ class Fan : public EntityBase {
   /// Set the restore mode of this fan.
   void set_restore_mode(FanRestoreMode restore_mode) { this->restore_mode_ = restore_mode; }
 
-  // Get the component type for this entity
-
  protected:
   friend FanCall;
 
