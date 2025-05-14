@@ -153,7 +153,9 @@ void APIConnection::loop() {
       return;
   }
 
-  this->deferred_message_queue_.process_queue();
+  if (this->can_write_without_blocking()) {
+    this->deferred_message_queue_.process_queue();
+  }
 
   if (!this->list_entities_iterator_.completed())
     this->list_entities_iterator_.advance();
