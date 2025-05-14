@@ -51,7 +51,7 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
   return true;
 }
 
-static constexpr size_t MAX_BATCH_SIZE = 8;
+static constexpr size_t FLUSH_BATCH_SIZE = 8;
 static std::vector<api::BluetoothLERawAdvertisement> &get_batch_buffer() {
   static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
   return batch_buffer;
@@ -88,7 +88,7 @@ bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_p
 
   // Only send if we've accumulated a good batch size to maximize batching efficiency
   // https://github.com/esphome/backlog/issues/21
-  if (batch_buffer.size() >= MAX_BATCH_SIZE) {
+  if (batch_buffer.size() >= FLUSH_BATCH_SIZE) {
     this->flush_pending_advertisements();
   }
 
