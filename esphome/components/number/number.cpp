@@ -17,5 +17,7 @@ void Number::add_on_state_callback(std::function<void(float)> &&callback) {
   this->state_callback_.add(std::move(callback));
 }
 
+const char *Number::get_component_type() const { return "number"; }
+
 }  // namespace number
 }  // namespace esphome

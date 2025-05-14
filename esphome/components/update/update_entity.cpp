@@ -34,5 +34,7 @@ void UpdateEntity::publish_state() {
   this->state_callback_.call();
 }
 
+const char *UpdateEntity::get_component_type() const { return "update"; }
+
 }  // namespace update
 }  // namespace esphome

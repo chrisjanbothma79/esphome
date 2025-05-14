@@ -165,6 +165,8 @@ optional<ValveRestoreState> Valve::restore_state_() {
 bool Valve::is_fully_open() const { return this->position == VALVE_OPEN; }
 bool Valve::is_fully_closed() const { return this->position == VALVE_CLOSED; }
 
+const char *Valve::get_component_type() const { return "valve"; }
+
 ValveCall ValveRestoreState::to_call(Valve *valve) {
   auto call = valve->make_call();
   call.set_position(this->position);

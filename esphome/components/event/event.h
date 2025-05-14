@@ -30,6 +30,8 @@ class Event : public EntityBase, public EntityBase_DeviceClass {
   std::set<std::string> get_event_types() const { return this->types_; }
   void add_on_event_callback(std::function<void(const std::string &event_type)> &&callback);
 
+  const char *get_component_type() const override;
+
  protected:
   CallbackManager<void(const std::string &event_type)> event_callback_;
   std::set<std::string> types_;

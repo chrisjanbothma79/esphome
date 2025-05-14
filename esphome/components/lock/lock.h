@@ -145,6 +145,8 @@ class Lock : public EntityBase {
    */
   void add_on_state_callback(std::function<void()> &&callback);
 
+  const char *get_component_type() const override;
+
  protected:
   friend LockCall;
 

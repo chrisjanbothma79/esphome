@@ -205,5 +205,7 @@ void Fan::dump_traits_(const char *tag, const char *prefix) {
   }
 }
 
+const char *Fan::get_component_type() const { return "fan"; }
+
 }  // namespace fan
 }  // namespace esphome

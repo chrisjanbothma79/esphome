@@ -57,6 +57,8 @@ void Lock::publish_state(LockState state) {
 
 void Lock::add_on_state_callback(std::function<void()> &&callback) { this->state_callback_.add(std::move(callback)); }
 
+const char *Lock::get_component_type() const { return "lock"; }
+
 void LockCall::perform() {
   ESP_LOGD(TAG, "'%s' - Setting", this->parent_->get_name().c_str());
   this->validate_();

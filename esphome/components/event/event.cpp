@@ -22,5 +22,7 @@ void Event::add_on_event_callback(std::function<void(const std::string &event_ty
   this->event_callback_.add(std::move(callback));
 }
 
+const char *Event::get_component_type() const { return "event"; }
+
 }  // namespace event
 }  // namespace esphome

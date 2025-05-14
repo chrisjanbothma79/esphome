@@ -40,6 +40,8 @@ class Button : public EntityBase, public EntityBase_DeviceClass {
    */
   void add_on_press_callback(std::function<void()> &&callback);
 
+  const char *get_component_type() const override;
+
  protected:
   /** You should implement this virtual method if you want to create your own button.
    */

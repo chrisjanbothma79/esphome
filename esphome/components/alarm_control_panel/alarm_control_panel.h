@@ -29,6 +29,8 @@ class AlarmControlPanel : public EntityBase {
    */
   AlarmControlPanelCall make_call();
 
+  const char *get_component_type() const override;
+
   /** Set the state of the alarm_control_panel.
    *
    * @param state The AlarmControlPanelState.

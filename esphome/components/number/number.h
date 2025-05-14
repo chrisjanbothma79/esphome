@@ -51,6 +51,8 @@ class Number : public EntityBase {
   /// Return whether this number has gotten a full state yet.
   bool has_state() const { return has_state_; }
 
+  const char *get_component_type() const override;
+
  protected:
   friend class NumberCall;
 

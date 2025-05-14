@@ -58,5 +58,7 @@ optional<std::string> Select::at(size_t index) const {
   }
 }
 
+const char *Select::get_component_type() const { return "select"; }
+
 }  // namespace select
 }  // namespace esphome

@@ -566,6 +566,8 @@ bool Climate::set_custom_preset_(const std::string &preset) {
   return set_alternative(this->custom_preset, this->preset, preset);
 }
 
+const char *Climate::get_component_type() const { return "climate"; }
+
 void Climate::dump_traits_(const char *tag) {
   auto traits = this->get_traits();
   ESP_LOGCONFIG(tag, "ClimateTraits:");
