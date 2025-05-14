@@ -414,13 +414,6 @@ class APIConnection : public APIServerConnection {
   bool try_to_send_buffer(bool log_out_of_space);
   bool send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) override;
 
-  /**
-   * Check if the connection can write without blocking.
-   * This should be called before constructing any protobuf messages to avoid
-   * unnecessary message construction when the buffer is full.
-   */
-  inline bool can_write_without_blocking() { return this->helper_->can_write_without_blocking(); }
-
   std::string get_client_combined_info() const { return this->client_combined_info_; }
 
   // Template helper methods are in the protected section
