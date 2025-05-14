@@ -30,7 +30,7 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(CM1106Component),
-            cv.Optional(CONF_CO2): sensor.sensor_schema(
+            cv.Required(CONF_CO2): sensor.sensor_schema(
                 unit_of_measurement=UNIT_PARTS_PER_MILLION,
                 icon=ICON_MOLECULE_CO2,
                 accuracy_decimals=0,
