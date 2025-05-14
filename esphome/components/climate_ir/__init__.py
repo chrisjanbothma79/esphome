@@ -85,6 +85,6 @@ async def register_climate_ir(var, config):
 
 
 async def new_climate_ir(config, *args):
-    var = climate.new_climate(config, *args)
+    var = await climate.new_climate(config, *args)
     await register_climate_ir(var, config)
     return var
