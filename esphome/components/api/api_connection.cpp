@@ -153,7 +153,7 @@ void APIConnection::loop() {
       return;
   }
 
-  if (this->try_to_clear_buffer(true)) {
+  if (this->helper_->can_write_without_blocking()) {
     this->deferred_message_queue_.process_queue();
   }
 
