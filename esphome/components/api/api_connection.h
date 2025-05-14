@@ -428,20 +428,6 @@ class APIConnection : public APIServerConnection {
   friend APIServer;
 
   /**
-   * Helper template that attempts to send a message only if the transmit buffer is available.
-   * Otherwise, defers the message to the queue.
-   *
-   * @tparam EntityT The entity type
-   * @tparam FuncT The function type (typically a member function pointer)
-   * @tparam ArgsT Additional argument types (if any)
-   * @param entity The entity to send the message for
-   * @param func The function to call for sending the message
-   * @param defer_func The function to defer if sending fails (may be the same as func)
-   * @param args Additional arguments to pass to the function
-   * @return True if successful or message deferred
-   */
-
-  /**
    * Generic send entity state method to reduce code duplication.
    * Only attempts to build and send the message if the transmit buffer is available.
    *
