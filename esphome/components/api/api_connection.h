@@ -412,8 +412,6 @@ class APIConnection : public APIServerConnection {
 
   std::string get_client_combined_info() const { return this->client_combined_info_; }
 
-  // Template helper methods are in the protected section
-
  protected:
   friend APIServer;
 
