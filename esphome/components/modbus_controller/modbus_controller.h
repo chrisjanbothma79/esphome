@@ -316,13 +316,6 @@ class ServerRegister {
     this->data = data_t(register_count * 2);
     this->read_lambda = std::move(read_lambda);
   }
-  template<SensorValueType V, typename T, enable_if_t<V == SensorValueType::RAW> * = nullptr>
-  static read_lambda_t read_lambda_eraser(T callable) {
-    return [=](span<uint8_t> data) -> void {
-      auto result = callable();
-      std::copy_n(result.data(), std::min(result.size(), data.size()), data.begin());
-    };
-  }
   template<SensorValueType V, typename T, typename M = SensorValueTypeMap_t<V>,
            enable_if_t<std::is_same<M, float>::value> * = nullptr>
   static read_lambda_t read_lambda_eraser(T callable) {
@@ -332,7 +325,7 @@ class ServerRegister {
     };
   }
   template<SensorValueType V, typename T, typename M = SensorValueTypeMap_t<V>,
-           enable_if_t<(V != SensorValueType::RAW) && !std::is_same<M, float>::value, bool> * = nullptr>
+           enable_if_t<!std::is_same<M, float>::value, bool> * = nullptr>
   static read_lambda_t read_lambda_eraser(T callable) {
     return [=](span<uint8_t> data) -> void {
       auto result = callable();
