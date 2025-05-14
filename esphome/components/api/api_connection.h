@@ -497,7 +497,7 @@ class APIConnection : public APIServerConnection {
    * @return True if the message was sent successfully
    */
   template<typename EntityT, typename ResponseT>
-  bool try_send_entity_info_(EntityT *entity, ResponseT &response, const char *component_type,
+  bool try_send_entity_info_(EntityT *entity, ResponseT &response,
                              bool (APIServerConnectionBase::*send_response_func)(const ResponseT &)) {
     // Set common fields that are shared by all entity types
     response.key = entity->get_object_id_hash();
