@@ -20,12 +20,20 @@ class ProtoVarInt {
   explicit ProtoVarInt(uint64_t value) : value_(value) {}
 
   static optional<ProtoVarInt> parse(const uint8_t *buffer, uint32_t len, uint32_t *consumed) {
-    if (consumed != nullptr)
-      *consumed = 0;
-
-    if (len == 0)
+    if (len == 0) {
+      if (consumed != nullptr)
+        *consumed = 0;
       return {};
+    }
 
+    // Most common case: single-byte varint (values 0-127)
+    if ((buffer[0] & 0x80) == 0) {
+      if (consumed != nullptr)
+        *consumed = 1;
+      return ProtoVarInt(buffer[0]);
+    }
+
+    // General case for multi-byte varints
     uint64_t result = 0;
     uint8_t bitpos = 0;
 
@@ -40,7 +48,9 @@ class ProtoVarInt {
       }
     }
 
-    return {};
+    if (consumed != nullptr)
+      *consumed = 0;
+    return {};  // Incomplete or invalid varint
   }
 
   uint32_t as_uint32() const { return this->value_; }
