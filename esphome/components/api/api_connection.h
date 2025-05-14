@@ -14,7 +14,6 @@
 namespace esphome {
 namespace api {
 
-// Function signature for deferred message handlers
 using send_message_t = bool (APIConnection::*)(void *);
 
 /*
