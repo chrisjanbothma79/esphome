@@ -153,7 +153,7 @@ void APIConnection::loop() {
       return;
   }
 
-  if (this->can_write_without_blocking()) {
+  if (this->try_to_send_buffer(true)) {
     this->deferred_message_queue_.process_queue();
   }
 
@@ -1535,7 +1535,7 @@ NoiseEncryptionSetKeyResponse APIConnection::noise_encryption_set_key(const Nois
 void APIConnection::subscribe_home_assistant_states(const SubscribeHomeAssistantStatesRequest &msg) {
   state_subs_at_ = 0;
 }
-bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) {
+bool APIConnection::try_to_send_buffer(bool log_out_of_space) {
   if (this->remove_)
     return false;
   if (!this->helper_->can_write_without_blocking()) {
@@ -1548,13 +1548,17 @@ bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) 
       return false;
     }
     if (!this->helper_->can_write_without_blocking()) {
-      // SubscribeLogsResponse
-      if (message_type != 29) {
+      if (log_out_of_space) {
         ESP_LOGV(TAG, "Cannot send message because of TCP buffer space");
       }
       delay(0);
       return false;
     }
+  }
+}
+bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) {
+  if (!this->try_to_send_buffer(message_type != 29)) {  // SubscribeLogsResponse
+    return false;
   }
 
   APIError err = this->helper_->write_packet(message_type, buffer.get_buffer()->data(), buffer.get_buffer()->size());
