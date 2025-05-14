@@ -438,11 +438,12 @@ class APIConnection : public APIServerConnection {
   }
 
   /**
-   * Enhanced send entity state method that handles explicit state values.
+   * Send entity state method that handles explicit state values.
    * Only attempts to build and send the message if the transmit buffer is available.
    *
-   * This overload accepts additional state parameter(s) to be used instead of the entity's current state.
-   * It works with specialized try_send functions that accept additional parameters.
+   * This method accepts a state parameter to be used instead of the entity's current state.
+   * It attempts to send the state with the provided value first, and if that fails due to buffer constraints,
+   * it defers the entity for later processing using the entity-only function.
    *
    * @tparam EntityT The entity type
    * @tparam StateT Type of the state parameter
