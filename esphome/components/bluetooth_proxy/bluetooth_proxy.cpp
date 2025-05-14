@@ -51,9 +51,7 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
   return true;
 }
 
-// Static buffer to store advertisements between batches
 static constexpr size_t MAX_BATCH_SIZE = 8;
-// Use a function-local static instead of a global to reduce scope and avoid global state
 static std::vector<api::BluetoothLERawAdvertisement> &get_batch_buffer() {
   static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
   return batch_buffer;
