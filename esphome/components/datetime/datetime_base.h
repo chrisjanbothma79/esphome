@@ -20,7 +20,7 @@ class DateTimeBase : public EntityBase {
 
   void add_on_state_callback(std::function<void()> &&callback) { this->state_callback_.add(std::move(callback)); }
 
-  virtual const char *get_component_type() const override = 0;
+  const char *get_component_type() const override = 0;
 
 #ifdef USE_TIME
   void set_rtc(time::RealTimeClock *rtc) { this->rtc_ = rtc; }

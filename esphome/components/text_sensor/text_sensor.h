@@ -65,7 +65,7 @@ class TextSensor : public EntityBase, public EntityBase_DeviceClass {
    *
    * @deprecated Do not use for new sensors, a suitable unique ID is automatically generated (2023.4).
    */
-  virtual std::string unique_id();
+  std::string unique_id() override;
 
   bool has_state();
 
