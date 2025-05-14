@@ -44,8 +44,6 @@ class TimeEntity : public DateTimeBase {
   void publish_state();
   TimeCall make_call();
 
-  const char *get_component_type() const override { return "time"; }
-
   ESPTime state_as_esptime() const override {
     ESPTime obj;
     obj.hour = this->hour_;

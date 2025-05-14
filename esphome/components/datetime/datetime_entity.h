@@ -49,8 +49,6 @@ class DateTimeEntity : public DateTimeBase {
   void publish_state();
   DateTimeCall make_call();
 
-  const char *get_component_type() const override { return "datetime"; }
-
   ESPTime state_as_esptime() const override;
 
   const uint16_t &year = year_;

@@ -137,7 +137,5 @@ void MediaPlayer::add_on_state_callback(std::function<void()> &&callback) {
 
 void MediaPlayer::publish_state() { this->state_callback_.call(); }
 
-const char *MediaPlayer::get_component_type() const { return "media_player"; }
-
 }  // namespace media_player
 }  // namespace esphome

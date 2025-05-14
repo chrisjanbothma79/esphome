@@ -41,8 +41,6 @@ class UpdateEntity : public EntityBase, public EntityBase_DeviceClass {
 
   void add_on_state_callback(std::function<void()> &&callback) { this->state_callback_.add(std::move(callback)); }
 
-  const char *get_component_type() const override;
-
  protected:
   UpdateState state_{UPDATE_STATE_UNKNOWN};
   UpdateInfo update_info_;

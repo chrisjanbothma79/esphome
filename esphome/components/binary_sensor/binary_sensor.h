@@ -74,9 +74,6 @@ class BinarySensor : public EntityBase, public EntityBase_DeviceClass {
 
   virtual bool is_status_binary_sensor() const;
 
-  // Get the component type for this entity
-  const char *get_component_type() const override;
-
  protected:
   CallbackManager<void(bool)> state_callback_{};
   Filter *filter_list_{nullptr};

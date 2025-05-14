@@ -11,8 +11,6 @@ static const char *const TAG = "light";
 
 LightState::LightState(LightOutput *output) : output_(output) {}
 
-const char *LightState::get_component_type() const { return "light"; }
-
 LightTraits LightState::get_traits() { return this->output_->get_traits(); }
 LightCall LightState::turn_on() { return this->make_call().set_state(true); }
 LightCall LightState::turn_off() { return this->make_call().set_state(false); }

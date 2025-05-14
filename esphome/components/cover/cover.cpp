@@ -207,7 +207,6 @@ optional<CoverRestoreState> Cover::restore_state_() {
 
 bool Cover::is_fully_open() const { return this->position == COVER_OPEN; }
 bool Cover::is_fully_closed() const { return this->position == COVER_CLOSED; }
-const char *Cover::get_component_type() const { return "cover"; }
 
 CoverCall CoverRestoreState::to_call(Cover *cover) {
   auto call = cover->make_call();

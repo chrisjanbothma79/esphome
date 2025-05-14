@@ -22,7 +22,5 @@ void Text::add_on_state_callback(std::function<void(std::string)> &&callback) {
   this->state_callback_.add(std::move(callback));
 }
 
-const char *Text::get_component_type() const { return "text"; }
-
 }  // namespace text
 }  // namespace esphome

@@ -164,7 +164,6 @@ class Cover : public EntityBase, public EntityBase_DeviceClass {
   bool is_fully_closed() const;
 
   // Get the component type for this entity
-  const char *get_component_type() const override;
 
  protected:
   friend CoverCall;

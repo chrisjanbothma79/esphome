@@ -497,7 +497,7 @@ class APIConnection : public APIServerConnection {
    * @return True if the message was sent successfully
    */
   template<typename EntityT, typename ResponseT>
-  bool try_send_entity_info_(EntityT *entity, ResponseT &response,
+  bool try_send_entity_info_(EntityT *entity, ResponseT &response, const char *component_type,
                              bool (APIServerConnectionBase::*send_response_func)(const ResponseT &)) {
     // Set common fields that are shared by all entity types
     response.key = entity->get_object_id_hash();
@@ -511,7 +511,7 @@ class APIConnection : public APIServerConnection {
     response.unique_id = entity->unique_id();
     // Fall back to default if empty
     if (response.unique_id.empty())
-      response.unique_id = get_default_unique_id(entity->get_component_type(), entity);
+      response.unique_id = get_default_unique_id(component_type, entity);
 
     // Set common EntityBase properties
     response.icon = entity->get_icon();

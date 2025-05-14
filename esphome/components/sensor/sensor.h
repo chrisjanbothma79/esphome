@@ -146,7 +146,6 @@ class Sensor : public EntityBase, public EntityBase_DeviceClass, public EntityBa
   std::string unique_id() override;
 
   // Get the component type for this entity
-  const char *get_component_type() const override;
 
   void internal_send_state_to_frontend(float state);
 

@@ -133,7 +133,6 @@ class Fan : public EntityBase {
   void set_restore_mode(FanRestoreMode restore_mode) { this->restore_mode_ = restore_mode; }
 
   // Get the component type for this entity
-  const char *get_component_type() const override;
 
  protected:
   friend FanCall;

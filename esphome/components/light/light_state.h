@@ -64,8 +64,6 @@ class LightState : public EntityBase, public Component {
  public:
   LightState(LightOutput *output);
 
-  const char *get_component_type() const override;
-
   LightTraits get_traits();
 
   /// Make a light state call

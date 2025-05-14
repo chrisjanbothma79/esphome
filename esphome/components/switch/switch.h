@@ -113,7 +113,6 @@ class Switch : public EntityBase, public EntityBase_DeviceClass {
   void set_restore_mode(SwitchRestoreMode restore_mode) { this->restore_mode = restore_mode; }
 
   // Get the component type for this entity
-  const char *get_component_type() const override;
 
  protected:
   /** Write the given state to hardware. You should implement this

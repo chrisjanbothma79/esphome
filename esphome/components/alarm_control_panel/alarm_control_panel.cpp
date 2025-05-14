@@ -13,8 +13,6 @@ static const char *const TAG = "alarm_control_panel";
 
 AlarmControlPanelCall AlarmControlPanel::make_call() { return AlarmControlPanelCall(this); }
 
-const char *AlarmControlPanel::get_component_type() const { return "alarm_control_panel"; }
-
 bool AlarmControlPanel::is_state_armed(AlarmControlPanelState state) {
   switch (state) {
     case ACP_STATE_ARMED_AWAY:

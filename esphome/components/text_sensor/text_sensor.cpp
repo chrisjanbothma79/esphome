@@ -67,7 +67,6 @@ void TextSensor::internal_send_state_to_frontend(const std::string &state) {
 
 std::string TextSensor::unique_id() { return ""; }
 bool TextSensor::has_state() { return this->has_state_; }
-const char *TextSensor::get_component_type() const { return "text_sensor"; }
 
 }  // namespace text_sensor
 }  // namespace esphome

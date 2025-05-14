@@ -136,8 +136,6 @@ class Valve : public EntityBase, public EntityBase_DeviceClass {
   /// Helper method to check if the valve is fully closed. Equivalent to comparing .position against 0.0
   bool is_fully_closed() const;
 
-  const char *get_component_type() const override;
-
  protected:
   friend ValveCall;
 

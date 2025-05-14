@@ -59,8 +59,6 @@ void BinarySensor::add_filters(const std::vector<Filter *> &filters) {
 bool BinarySensor::has_state() const { return this->has_state_; }
 bool BinarySensor::is_status_binary_sensor() const { return false; }
 
-const char *BinarySensor::get_component_type() const { return "binary_sensor"; }
-
 }  // namespace binary_sensor
 
 }  // namespace esphome

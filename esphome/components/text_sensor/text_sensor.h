@@ -72,7 +72,6 @@ class TextSensor : public EntityBase, public EntityBase_DeviceClass {
   void internal_send_state_to_frontend(const std::string &state);
 
   // Get the component type for this entity
-  const char *get_component_type() const override;
 
  protected:
   CallbackManager<void(std::string)> raw_callback_;  ///< Storage for raw state callbacks.

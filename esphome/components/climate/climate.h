@@ -169,8 +169,6 @@ class Climate : public EntityBase {
  public:
   Climate() {}
 
-  const char *get_component_type() const override;
-
   /// The active mode of the climate device.
   ClimateMode mode{CLIMATE_MODE_OFF};
 

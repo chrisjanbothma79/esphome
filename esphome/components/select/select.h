@@ -61,8 +61,6 @@ class Select : public EntityBase {
 
   void add_on_state_callback(std::function<void(std::string, size_t)> &&callback);
 
-  const char *get_component_type() const override;
-
  protected:
   friend class SelectCall;
 

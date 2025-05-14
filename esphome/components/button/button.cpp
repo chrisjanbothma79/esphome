@@ -13,7 +13,5 @@ void Button::press() {
 }
 void Button::add_on_press_callback(std::function<void()> &&callback) { this->press_callback_.add(std::move(callback)); }
 
-const char *Button::get_component_type() const { return "button"; }
-
 }  // namespace button
 }  // namespace esphome

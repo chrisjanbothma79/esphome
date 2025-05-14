@@ -105,8 +105,6 @@ class MediaPlayer : public EntityBase {
 
   virtual MediaPlayerTraits get_traits() = 0;
 
-  const char *get_component_type() const override;
-
  protected:
   friend MediaPlayerCall;
 
