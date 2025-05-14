@@ -5,6 +5,10 @@ FROM ghcr.io/esphome/docker-base:debian-${BUILD_BASE_VERSION} AS base
 
 RUN git config --system --add safe.directory "*"
 
+RUN apt update \
+    && apt install -y \
+      protobuf-compiler
+
 RUN pip install uv
 
 RUN useradd esphome -m
