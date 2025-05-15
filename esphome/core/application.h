@@ -239,7 +239,7 @@ class Application {
 
   void schedule_dump_config() { this->dump_config_at_ = 0; }
 
-  void IRAM_ATTR HOT feed_wdt(uint32_t time = 0);
+  void feed_wdt(uint32_t time = 0);
 
   void reboot();
 

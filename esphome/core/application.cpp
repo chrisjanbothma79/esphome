@@ -119,7 +119,7 @@ void Application::loop() {
   }
 }
 
-void Application::feed_wdt(uint32_t time) {
+void IRAM_ATTR HOT Application::feed_wdt(uint32_t time) {
   static uint32_t last_feed = 0;
   // Use provided time if available, otherwise get current time
   uint32_t now = time ? time : millis();
