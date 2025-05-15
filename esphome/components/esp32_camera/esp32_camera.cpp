@@ -162,7 +162,7 @@ void ESP32Camera::loop() {
   }
 
   // request idle image every idle_update_interval
-  const uint32_t now = millis();
+  const uint32_t now = App.get_loop_component_start_time();
   if (this->idle_update_interval_ != 0 && now - this->last_idle_request_ > this->idle_update_interval_) {
     this->last_idle_request_ = now;
     this->request_image(IDLE);

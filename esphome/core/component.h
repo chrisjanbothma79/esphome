@@ -339,11 +339,16 @@ class PollingComponent : public Component {
 
 class WarnIfComponentBlockingGuard {
  public:
-  WarnIfComponentBlockingGuard(Component *component);
+  WarnIfComponentBlockingGuard(Component *component, uint32_t start_time);
+
+  // Finish the timing operation and return the current time
+  uint32_t finish();
+
   ~WarnIfComponentBlockingGuard();
 
  protected:
   uint32_t started_;
+  uint32_t end_time_{0};
   Component *component_;
 };
 
