@@ -135,6 +135,9 @@ class Logger : public Component {
   /// Set up this component.
   void pre_setup();
   void dump_config() override;
+#ifdef USE_ESP32
+  void create_pthread_key();
+#endif
 
   inline int level_for(const char *tag);
 
@@ -268,7 +271,10 @@ class Logger : public Component {
 #endif
 
 #ifdef USE_ESP32
-  static const pthread_key_t LOG_RECURSION_KEY = (pthread_key_t) 1;
+  static pthread_key_t LOG_RECURSION_KEY;
+
+  // Method to create the pthread key
+  void create_pthread_key() { pthread_key_create(&LOG_RECURSION_KEY, nullptr); }
 
   inline bool HOT check_and_set_task_log_recursion_(bool is_main_task) {
     if (is_main_task) {
