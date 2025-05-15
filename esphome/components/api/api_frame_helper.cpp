@@ -92,13 +92,13 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
     ssize_t sent = this->socket_->write(front_buffer.current_data(), front_buffer.remaining());
 
     if (sent == -1) {
-      if (errno == EWOULDBLOCK || errno == EAGAIN) {
-        // Socket would block, we'll try again later
-      } else {
+      if (errno != EWOULDBLOCK && errno != EAGAIN) {
+        // Real socket error (not just would block)
         ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
         this->state_ = State::FAILED;
         return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
       }
+      // Socket would block, we'll try again later and continue execution to append new data to the buffer
     } else if (sent > 0 && static_cast<size_t>(sent) < front_buffer.remaining()) {
       // Partially sent, update offset
       front_buffer.offset += sent;
