@@ -135,9 +135,6 @@ class Logger : public Component {
   /// Set up this component.
   void pre_setup();
   void dump_config() override;
-#ifdef USE_ESP32
-  void create_pthread_key();
-#endif
 
   inline int level_for(const char *tag);
 
