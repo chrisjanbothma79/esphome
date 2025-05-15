@@ -169,7 +169,7 @@ class Logger : public Component {
   // It's the caller's responsibility to initialize buffer_at (typically to 0)
   inline void HOT format_log_to_buffer_with_terminator_(int level, const char *tag, int line, const char *format,
                                                         va_list args, char *buffer, int *buffer_at, int buffer_size) {
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+#if defined(USE_ESP32) || defined(USE_LIBRETINY) || defined(USE_ZEPHYR)
     this->write_header_to_buffer_(level, tag, line, this->get_thread_name_(), buffer, buffer_at, buffer_size);
 #else
     this->write_header_to_buffer_(level, tag, line, nullptr, buffer, buffer_at, buffer_size);
@@ -265,10 +265,14 @@ class Logger : public Component {
 #endif
   CallbackManager<void(int)> level_callback_{};
 
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+#if defined(USE_ESP32) || defined(USE_LIBRETINY) || defined(USE_ZEPHYR)
   void *main_task_ = nullptr;  // Only used for thread name identification
   const char *HOT get_thread_name_() {
+#ifdef USE_ZEPHYR
+    k_tid_t current_task = k_current_get();
+#else
     TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
+#endif
     if (current_task == main_task_) {
       return nullptr;  // Main task
     } else {
@@ -276,6 +280,8 @@ class Logger : public Component {
       return pcTaskGetName(current_task);
 #elif defined(USE_LIBRETINY)
       return pcTaskGetTaskName(current_task);
+#elif defined(USE_ZEPHYR)
+      return k_thread_name_get(current_task);
 #endif
     }
   }
@@ -318,7 +324,7 @@ class Logger : public Component {
     const char *color = esphome::logger::LOG_LEVEL_COLORS[level];
     const char *letter = esphome::logger::LOG_LEVEL_LETTERS[level];
 
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
+#if defined(USE_ESP32) || defined(USE_LIBRETINY) || defined(USE_ZEPHYR)
     if (thread_name != nullptr) {
       // Non-main task with thread name
       this->printf_to_buffer_("%s[%s][%s:%03u]%s[%s]%s: ", buffer, buffer_at, buffer_size, color, letter, tag, line,
