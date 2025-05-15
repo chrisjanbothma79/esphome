@@ -92,13 +92,14 @@ enum UARTSelection {
  * Recursion Protection Strategy:
  * - On ESP32: Uses task-specific recursion guards
  *   * Main task: Uses a dedicated boolean member variable for efficiency
- *   * Other tasks: Uses pthread TLS with key 1 for task-specific state
+ *   * Other tasks: Uses pthread TLS with a dynamically allocated key for task-specific state
  * - On other platforms: Uses a simple global recursion guard
  *
- * We use pthread TLS key 1 specifically because:
- * 1. Key 0 is reserved by ESP-IDF's pthread implementation for internal use
- * 2. We can use a direct key without the overhead of pthread_key_create
- * 3. TLS enables per-task state without locks or mutexes
+ * We use pthread TLS via pthread_key_create to create a unique key for storing
+ * task-specific recursion state, which:
+ * 1. Efficiently handles multiple tasks without locks or mutexes
+ * 2. Works with ESP-IDF's pthread implementation that uses a linked list for TLS variables
+ * 3. Avoids the limitations of the fixed FreeRTOS task local storage slots
  */
 class Logger : public Component {
  public:
