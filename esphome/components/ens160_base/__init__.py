@@ -64,7 +64,7 @@ async def to_code_base(config):
 
     if eco2_config := config.get(CONF_ECO2):
         sens = await sensor.new_sensor(eco2_config)
-        cg.add(var.set_eco2(sens))
+        cg.add(var.set_co2(sens))
     if tvoc_config := config.get(CONF_TVOC):
         sens = await sensor.new_sensor(tvoc_config)
         cg.add(var.set_tvoc(sens))
