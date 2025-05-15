@@ -56,7 +56,7 @@ async def to_code(config) -> None:
 
 CALIBRATION_ACTION_SCHEMA = maybe_simple_id(
     {
-        cv.Required(CONF_ID): cv.use_id(CM1106Component),
+        cv.GenerateID(): cv.use_id(CM1106Component),
     },
 )
 
