@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import esphome.codegen as cg
@@ -22,6 +24,8 @@ from esphome.const import (
     KEY_TARGET_PLATFORM,
 )
 from esphome.core import CORE, EsphomeError, coroutine_with_priority
+from esphome.storage_json import StorageJSON
+from esphome.types import ConfigType
 
 from .boards import BOARDS_ZEPHYR, BOOTLOADER_CONFIG
 from .const import (
@@ -40,7 +44,7 @@ IS_TARGET_PLATFORM = True
 PLATFORM_NRF52 = "nrf52"
 
 
-def set_core_data(config):
+def set_core_data(config: ConfigType) -> ConfigType:
     zephyr_set_core_data(config)
     CORE.data[KEY_CORE][KEY_TARGET_PLATFORM] = PLATFORM_NRF52
     CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK] = KEY_ZEPHYR
@@ -61,29 +65,28 @@ BOOTLOADERS = [
 ]
 
 
-def _detect_bootloader(value):
-    value = value.copy()
-    bootloaders = []
+def _detect_bootloader(config: ConfigType) -> ConfigType:
+    """Detect the bootloader for the given board."""
+    config = config.copy()
+    bootloaders: list[str] = []
+    board = config[CONF_BOARD]
 
-    if (
-        value[CONF_BOARD] in BOARDS_ZEPHYR
-        and KEY_BOOTLOADER in BOARDS_ZEPHYR[value[CONF_BOARD]]
-    ):
+    if board in BOARDS_ZEPHYR and KEY_BOOTLOADER in BOARDS_ZEPHYR[board]:
         # this board have bootloaders config available
-        bootloaders = BOARDS_ZEPHYR[value[CONF_BOARD]][KEY_BOOTLOADER]
+        bootloaders = BOARDS_ZEPHYR[board][KEY_BOOTLOADER]
 
-    if KEY_BOOTLOADER not in value:
+    if KEY_BOOTLOADER not in config:
         if bootloaders:
             # there is no bootloader in config -> take first one
-            value[KEY_BOOTLOADER] = bootloaders[0]
+            config[KEY_BOOTLOADER] = bootloaders[0]
         else:
             # make mcuboot as default if there is no configuration for that board
-            value[KEY_BOOTLOADER] = BOOTLOADER_MCUBOOT
-    elif bootloaders and value[KEY_BOOTLOADER] not in bootloaders:
+            config[KEY_BOOTLOADER] = BOOTLOADER_MCUBOOT
+    elif bootloaders and config[KEY_BOOTLOADER] not in bootloaders:
         raise cv.Invalid(
-            f"{value[CONF_BOARD]} does not support {value[KEY_BOOTLOADER]}, select one of: {', '.join(bootloaders)}"
+            f"{board} does not support {config[KEY_BOOTLOADER]}, select one of: {', '.join(bootloaders)}"
         )
-    return value
+    return config
 
 
 CONFIG_SCHEMA = cv.All(
@@ -99,7 +102,8 @@ CONFIG_SCHEMA = cv.All(
 
 
 @coroutine_with_priority(1000)
-async def to_code(config):
+async def to_code(config: ConfigType) -> None:
+    """Convert the configuration to code."""
     cg.add_platformio_option("board", config[CONF_BOARD])
     cg.add_build_flag("-DUSE_NRF52")
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
@@ -128,11 +132,13 @@ async def to_code(config):
     zephyr_to_code(config)
 
 
-def copy_files():
+def copy_files() -> None:
+    """Copy files to the build directory."""
     zephyr_copy_files()
 
 
-def get_download_types(storage_json):
+def get_download_types(storage_json: StorageJSON) -> list[dict[str, str]]:
+    """Get the download types for the firmware."""
     types = []
     UF2_PATH = "zephyr/zephyr.uf2"
     DFU_PATH = "firmware.zip"
@@ -181,7 +187,9 @@ def get_download_types(storage_json):
     return types
 
 
-def _upload_using_platformio(config, port, upload_args):
+def _upload_using_platformio(
+    config: ConfigType, port: str, upload_args: list[str]
+) -> int | str:
     from esphome import platformio_api
 
     if port is not None:
@@ -189,7 +197,7 @@ def _upload_using_platformio(config, port, upload_args):
     return platformio_api.run_platformio_cli_run(config, CORE.verbose, *upload_args)
 
 
-def upload_program(config, args, host):
+def upload_program(config: ConfigType, args, host: str) -> bool:
     from esphome.__main__ import check_permissions, get_port_type
 
     result = 0
