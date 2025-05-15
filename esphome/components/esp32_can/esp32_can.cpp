@@ -2,8 +2,6 @@
 #include "esp32_can.h"
 #include "esphome/core/log.h"
 
-#include <driver/twai.h>
-
 // WORKAROUND, because CAN_IO_UNUSED is just defined as (-1) in this version
 // of the framework which does not work with -fpermissive
 #undef CAN_IO_UNUSED
@@ -67,8 +65,10 @@ static bool get_bitrate(canbus::CanSpeed bitrate, twai_timing_config_t *t_config
 }
 
 bool ESP32Can::setup_internal() {
+  static int controller_id = 0;
   twai_general_config_t g_config =
       TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t) this->tx_, (gpio_num_t) this->rx_, TWAI_MODE_NORMAL);
+  g_config.controller_id = controller_id++;
   if (this->tx_queue_len_.has_value()) {
     g_config.tx_queue_len = this->tx_queue_len_.value();
   }
@@ -79,22 +79,28 @@ bool ESP32Can::setup_internal() {
   twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
   twai_timing_config_t t_config;
 
+  ESP_LOGV(TAG, "Finding bitrate");
   if (!get_bitrate(this->bit_rate_, &t_config)) {
-    // invalid bit rate
+    ESP_LOGE(TAG, "invalid bit rate");
     this->mark_failed();
     return false;
   }
-
-  // Install TWAI driver
-  if (twai_driver_install(&g_config, &t_config, &f_config) != ESP_OK) {
-    // Failed to install driver
-    this->mark_failed();
-    return false;
+  
+  ESP_LOGV(TAG, "Install TWAI driver");
+  const auto install_err = twai_driver_install_v2(&g_config, &t_config, &f_config, &this->twai_handle_);
+  switch(install_err) {
+    case ESP_OK:
+      break;
+    default:
+      ESP_LOGE(TAG, "Failed to install driver: %s", esp_err_to_name(install_err));
+      this->mark_failed();
+      return false;
   }
 
-  // Start TWAI driver
-  if (twai_start() != ESP_OK) {
-    // Failed to start driver
+  ESP_LOGV(TAG, "Start TWAI driver");
+  const auto start_err = twai_start_v2(this->twai_handle_);
+  if (start_err != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to start driver: %s", esp_err_to_name(start_err));
     this->mark_failed();
     return false;
   }
@@ -124,9 +130,11 @@ canbus::Error ESP32Can::send_message(struct canbus::CanFrame *frame) {
     memcpy(message.data, frame->data, frame->can_data_length_code);
   }
 
-  if (twai_transmit(&message, this->tx_enqueue_timeout_ticks_) == ESP_OK) {
+  const auto err = twai_transmit_v2(this->twai_handle_, &message, this->tx_enqueue_timeout_ticks_);
+  if (err == ESP_OK) {
     return canbus::ERROR_OK;
   } else {
+    ESP_LOGE(TAG, "Failed to send: %s", esp_err_to_name(err));
     return canbus::ERROR_ALLTXBUSY;
   }
 }
@@ -134,8 +142,14 @@ canbus::Error ESP32Can::send_message(struct canbus::CanFrame *frame) {
 canbus::Error ESP32Can::read_message(struct canbus::CanFrame *frame) {
   twai_message_t message;
 
-  if (twai_receive(&message, 0) != ESP_OK) {
-    return canbus::ERROR_NOMSG;
+  const auto err = twai_receive_v2(this->twai_handle_, &message, 0);
+  switch(err) {
+    case ESP_ERR_TIMEOUT:
+      return canbus::ERROR_NOMSG;
+    case ESP_OK:
+      break;
+    default:
+      ESP_LOGE(TAG, "Failed to read: %s", esp_err_to_name(err));
   }
 
   frame->can_id = message.identifier;
