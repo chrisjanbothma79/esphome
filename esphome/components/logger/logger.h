@@ -118,6 +118,9 @@ class Logger : public Component {
 #ifdef USE_ESP_IDF
   uart_port_t get_uart_num() const { return uart_num_; }
 #endif
+#ifdef USE_ESP32
+  void create_pthread_key() { pthread_key_create(&log_recursion_key_, nullptr); }
+#endif
 #if defined(USE_ESP32) || defined(USE_ESP8266) || defined(USE_RP2040) || defined(USE_LIBRETINY)
   void set_uart_selection(UARTSelection uart_selection) { uart_ = uart_selection; }
   /// Get the UART used by the logger.
@@ -268,10 +271,7 @@ class Logger : public Component {
 #endif
 
 #ifdef USE_ESP32
-  static pthread_key_t LOG_RECURSION_KEY;
-
-  // Method to create the pthread key
-  void create_pthread_key() { pthread_key_create(&LOG_RECURSION_KEY, nullptr); }
+  static pthread_key_t log_recursion_key_;
 
   inline bool HOT check_and_set_task_log_recursion_(bool is_main_task) {
     if (is_main_task) {
@@ -280,11 +280,11 @@ class Logger : public Component {
       return was_recursive;
     }
 
-    intptr_t current = (intptr_t) pthread_getspecific(LOG_RECURSION_KEY);
+    intptr_t current = (intptr_t) pthread_getspecific(log_recursion_key_);
     if (current != 0)
       return true;
 
-    pthread_setspecific(LOG_RECURSION_KEY, (void *) 1);
+    pthread_setspecific(log_recursion_key_, (void *) 1);
     return false;
   }
 
@@ -294,7 +294,7 @@ class Logger : public Component {
       return;
     }
 
-    pthread_setspecific(LOG_RECURSION_KEY, (void *) 0);
+    pthread_setspecific(log_recursion_key_, (void *) 0);
   }
 #endif
 
