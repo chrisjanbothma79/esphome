@@ -155,10 +155,9 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
     }
 
     this->tx_buf_.push_back(std::move(buffer));
-    return APIError::OK;  // Success, remaining data buffered
   }
 
-  return APIError::OK;  // Success, all data sent
+  return APIError::OK;  // Success, all data sent or buffered
 }
 
 // Common implementation for trying to send buffered data
