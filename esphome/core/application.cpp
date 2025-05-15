@@ -104,7 +104,7 @@ void Application::loop() {
     delay_time = std::min(next_schedule, delay_time);
     delay(delay_time);
   }
-  this->last_loop_ = millis();
+  this->last_loop_ = last_op_end_time;
 
   if (this->dump_config_at_ < this->components_.size()) {
     if (this->dump_config_at_ == 0) {
