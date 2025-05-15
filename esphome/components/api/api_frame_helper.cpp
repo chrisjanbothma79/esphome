@@ -84,7 +84,8 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
   }
 
   // Try to send any existing buffered data first
-  while (!this->tx_buf_.empty()) {
+  bool tx_buf_empty = this->tx_buf_.empty();
+  while (!tx_buf_empty) {
     // Get the first buffer in the queue
     SendBuffer &front_buffer = this->tx_buf_.front();
 
@@ -110,12 +111,14 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
     } else {
       // Buffer completely sent, remove it from the queue
       this->tx_buf_.pop_front();
+      // Update empty status for the loop condition
+      tx_buf_empty = this->tx_buf_.empty();
       // Continue loop to try sending the next buffer
     }
   }
 
   // If we still have pending data, append the new data to the queue
-  if (!this->tx_buf_.empty()) {
+  if (!tx_buf_empty) {
     // Add new data as a new buffer
     SendBuffer buffer;
 
