@@ -338,43 +338,43 @@ void SEN5XComponent::update() {
       ESP_LOGD(TAG, "read data error (%d)", this->last_error_);
       return;
     }
-    ESP_LOGVV(TAG, "pm_1_0 raw = 0x%.4x", measurements[0]);
+    ESP_LOGVV(TAG, "pm_1_0 = 0x%.4x", measurements[0]);
     float pm_1_0 = measurements[0] / 10.0;
     if (measurements[0] == UINT16_MAX) {
       pm_1_0 = NAN;
     }
-    ESP_LOGVV(TAG, "pm_2_5 raw = 0x%.4x", measurements[1]);
+    ESP_LOGVV(TAG, "pm_2_5 = 0x%.4x", measurements[1]);
     float pm_2_5 = measurements[1] / 10.0;
     if (measurements[1] == UINT16_MAX) {
       pm_2_5 = NAN;
     }
-    ESP_LOGVV(TAG, "pm_4_0 raw = 0x%.4x", measurements[2]);
+    ESP_LOGVV(TAG, "pm_4_0 = 0x%.4x", measurements[2]);
     float pm_4_0 = measurements[2] / 10.0;
     if (measurements[2] == UINT16_MAX) {
       pm_4_0 = NAN;
     }
-    ESP_LOGVV(TAG, "pm_10_0 raw = 0x%.4x", measurements[3]);
+    ESP_LOGVV(TAG, "pm_10_0 = 0x%.4x", measurements[3]);
     float pm_10_0 = measurements[3] / 10.0;
     if (measurements[3] == UINT16_MAX) {
       pm_10_0 = NAN;
     }
-    ESP_LOGVV(TAG, "humidity raw = 0x%.4x", measurements[4]);
-    float humidity = measurements[4] / 100.0;
+    ESP_LOGVV(TAG, "humidity = 0x%.4x", measurements[4]);
+    float humidity = static_cast<int16_t>(measurements[4]) / 100.0;
     if (measurements[4] == INT16_MAX) {
       humidity = NAN;
     }
-    ESP_LOGVV(TAG, "temperature raw = 0x%.4x", measurements[5]);
-    float temperature = (int16_t) measurements[5] / 200.0;
+    ESP_LOGVV(TAG, "temperature = 0x%.4x", measurements[5]);
+    float temperature = static_cast<int16_t>(measurements[5]) / 200.0;
     if (measurements[5] == INT16_MAX) {
       temperature = NAN;
     }
-    ESP_LOGVV(TAG, "voc raw = 0x%.4x", measurements[6]);
-    float voc = measurements[6] / 10.0;
+    ESP_LOGVV(TAG, "voc = 0x%.4x", measurements[6]);
+    float voc = static_cast<int16_t>(measurements[6]) / 10.0;
     if (measurements[6] == INT16_MAX) {
       voc = NAN;
     }
-    ESP_LOGVV(TAG, "nox raw = 0x%.4x", measurements[7]);
-    float nox = measurements[7] / 10.0;
+    ESP_LOGVV(TAG, "nox = 0x%.4x", measurements[7]);
+    float nox = static_cast<int16_t>(measurements[7]) / 10.0;
     if (measurements[7] == INT16_MAX) {
       nox = NAN;
     }
