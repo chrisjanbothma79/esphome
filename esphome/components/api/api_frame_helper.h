@@ -68,28 +68,7 @@ class APIFrameHelper {
   virtual APIError init() = 0;
   virtual APIError loop() = 0;
   virtual APIError read_packet(ReadPacketBuffer *buffer) = 0;
-  bool can_write_without_blocking() {
-    // First check if we're in the DATA state
-    if (state_ != State::DATA) {
-      return false;
-    }
-
-    // Empty buffer can always accept more data
-    if (tx_buf_.empty()) {
-      return true;
-    }
-
-    // Optimization: Allow writing even with a small buffer backlog to reduce delays in message processing.
-    // This improves throughput for real-time data like sensor readings and prevents high-priority
-    // messages from being unnecessarily delayed by a small queue backlog.
-    // The 256-byte threshold is small enough to not impact memory usage significantly
-    // but large enough to improve overall system responsiveness.
-    if (tx_buf_.size() == 1 && tx_buf_.front().remaining() < 256) {
-      return true;
-    }
-
-    return false;
-  }
+  bool can_write_without_blocking() { return state_ == State::DATA && tx_buf_.empty(); }
   virtual APIError write_packet(uint16_t type, const uint8_t *data, size_t len) = 0;
   std::string getpeername() { return socket_->getpeername(); }
   int getpeername(struct sockaddr *addr, socklen_t *addrlen) { return socket_->getpeername(addr, addrlen); }
