@@ -84,7 +84,7 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
   }
 
   // Try to send any existing buffered data first
-  if (!this->tx_buf_.empty()) {
+  while (!this->tx_buf_.empty()) {
     // Get the first buffer in the queue
     SendBuffer &front_buffer = this->tx_buf_.front();
 
@@ -99,12 +99,18 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
         return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
       }
       // Socket would block, we'll try again later and continue execution to append new data to the buffer
-    } else if (sent > 0 && static_cast<size_t>(sent) < front_buffer.remaining()) {
+      break;
+    } else if (sent == 0) {
+      // Nothing sent but not an error
+      break;
+    } else if (static_cast<size_t>(sent) < front_buffer.remaining()) {
       // Partially sent, update offset
       front_buffer.offset += sent;
-    } else if (sent > 0) {
+      break;  // Stop processing more buffers if we couldn't send a complete buffer
+    } else {
       // Buffer completely sent, remove it from the queue
       this->tx_buf_.pop_front();
+      // Continue loop to try sending the next buffer
     }
   }
 
@@ -202,9 +208,11 @@ APIError APIFrameHelper::try_send_tx_buf_() {
     } else if (static_cast<size_t>(sent) < front_buffer.remaining()) {
       // Partially sent, update offset
       front_buffer.offset += sent;
+      break;  // Stop if we couldn't send a complete buffer
     } else {
       // Buffer completely sent, remove it from the queue
       this->tx_buf_.pop_front();
+      // Continue loop to try sending the next buffer
     }
   }
 
