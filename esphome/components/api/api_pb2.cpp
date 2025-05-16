@@ -795,32 +795,27 @@ void ConnectResponse::dump_to(std::string &out) const {
 }
 #endif
 void DisconnectRequest::encode(ProtoWriteBuffer buffer) const {}
-void DisconnectRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
-}
+void DisconnectRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DisconnectRequest::dump_to(std::string &out) const { out.append("DisconnectRequest {}"); }
 #endif
 void DisconnectResponse::encode(ProtoWriteBuffer buffer) const {}
-void DisconnectResponse::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
-}
+void DisconnectResponse::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DisconnectResponse::dump_to(std::string &out) const { out.append("DisconnectResponse {}"); }
 #endif
 void PingRequest::encode(ProtoWriteBuffer buffer) const {}
-void PingRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
-}
+void PingRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void PingRequest::dump_to(std::string &out) const { out.append("PingRequest {}"); }
 #endif
 void PingResponse::encode(ProtoWriteBuffer buffer) const {}
-void PingResponse::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
-}
+void PingResponse::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void PingResponse::dump_to(std::string &out) const { out.append("PingResponse {}"); }
 #endif
 void DeviceInfoRequest::encode(ProtoWriteBuffer buffer) const {}
-void DeviceInfoRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
-}
+void DeviceInfoRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DeviceInfoRequest::dump_to(std::string &out) const { out.append("DeviceInfoRequest {}"); }
 #endif
@@ -1042,20 +1037,17 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
 }
 #endif
 void ListEntitiesRequest::encode(ProtoWriteBuffer buffer) const {}
-void ListEntitiesRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
-}
+void ListEntitiesRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesRequest::dump_to(std::string &out) const { out.append("ListEntitiesRequest {}"); }
 #endif
 void ListEntitiesDoneResponse::encode(ProtoWriteBuffer buffer) const {}
-void ListEntitiesDoneResponse::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
-}
+void ListEntitiesDoneResponse::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesDoneResponse::dump_to(std::string &out) const { out.append("ListEntitiesDoneResponse {}"); }
 #endif
 void SubscribeStatesRequest::encode(ProtoWriteBuffer buffer) const {}
-void SubscribeStatesRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
-}
+void SubscribeStatesRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeStatesRequest::dump_to(std::string &out) const { out.append("SubscribeStatesRequest {}"); }
 #endif
@@ -3359,8 +3351,7 @@ void NoiseEncryptionSetKeyResponse::dump_to(std::string &out) const {
 }
 #endif
 void SubscribeHomeassistantServicesRequest::encode(ProtoWriteBuffer buffer) const {}
-void SubscribeHomeassistantServicesRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
-}
+void SubscribeHomeassistantServicesRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeHomeassistantServicesRequest::dump_to(std::string &out) const {
   out.append("SubscribeHomeassistantServicesRequest {}");
@@ -3487,8 +3478,7 @@ void HomeassistantServiceResponse::dump_to(std::string &out) const {
 }
 #endif
 void SubscribeHomeAssistantStatesRequest::encode(ProtoWriteBuffer buffer) const {}
-void SubscribeHomeAssistantStatesRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
-}
+void SubscribeHomeAssistantStatesRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeHomeAssistantStatesRequest::dump_to(std::string &out) const {
   out.append("SubscribeHomeAssistantStatesRequest {}");
@@ -3593,8 +3583,7 @@ void HomeAssistantStateResponse::dump_to(std::string &out) const {
 }
 #endif
 void GetTimeRequest::encode(ProtoWriteBuffer buffer) const {}
-void GetTimeRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
-}
+void GetTimeRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void GetTimeRequest::dump_to(std::string &out) const { out.append("GetTimeRequest {}"); }
 #endif
@@ -7471,9 +7460,7 @@ void BluetoothGATTNotifyDataResponse::dump_to(std::string &out) const {
 }
 #endif
 void SubscribeBluetoothConnectionsFreeRequest::encode(ProtoWriteBuffer buffer) const {}
-void SubscribeBluetoothConnectionsFreeRequest::calculate_size(
-    uint32_t &total_size) const { /* Empty message - no size */
-}
+void SubscribeBluetoothConnectionsFreeRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeBluetoothConnectionsFreeRequest::dump_to(std::string &out) const {
   out.append("SubscribeBluetoothConnectionsFreeRequest {}");
@@ -7750,9 +7737,7 @@ void BluetoothDeviceUnpairingResponse::dump_to(std::string &out) const {
 }
 #endif
 void UnsubscribeBluetoothLEAdvertisementsRequest::encode(ProtoWriteBuffer buffer) const {}
-void UnsubscribeBluetoothLEAdvertisementsRequest::calculate_size(
-    uint32_t &total_size) const { /* Empty message - no size */
-}
+void UnsubscribeBluetoothLEAdvertisementsRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void UnsubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) const {
   out.append("UnsubscribeBluetoothLEAdvertisementsRequest {}");
@@ -8412,8 +8397,7 @@ void VoiceAssistantWakeWord::dump_to(std::string &out) const {
 }
 #endif
 void VoiceAssistantConfigurationRequest::encode(ProtoWriteBuffer buffer) const {}
-void VoiceAssistantConfigurationRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
-}
+void VoiceAssistantConfigurationRequest::calculate_size(uint32_t &total_size) const {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantConfigurationRequest::dump_to(std::string &out) const {
   out.append("VoiceAssistantConfigurationRequest {}");

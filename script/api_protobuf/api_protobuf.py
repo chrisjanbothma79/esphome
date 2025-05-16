@@ -263,7 +263,7 @@ class TypeInfo(ABC):
         """
 
 
-TYPE_INFO: dict[int, TypeInfo] = {}
+TYPE_INFO: dict[int, type[TypeInfo]] = {}
 
 
 def register_type(name: int):
@@ -645,7 +645,7 @@ class RepeatedTypeInfo(TypeInfo):
 
     def __init__(self, field: descriptor.FieldDescriptorProto) -> None:
         super().__init__(field)
-        self._ti: TypeInfo = TYPE_INFO[field.type](field)
+        self._ti = TYPE_INFO[field.type](field)
 
     @property
     def cpp_type(self) -> str:
@@ -790,7 +790,7 @@ PROTOBUF_TYPE_SIZES = {
 
 def calculate_fixed_message_size(desc: descriptor.DescriptorProto) -> int:
     """Calculate the maximum size of a fixed-size message."""
-    total_size = 0
+    total_size: int = 0
 
     for field in desc.field:
         if field.label == 3:  # Repeated field
@@ -907,7 +907,7 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     if fixed_size >= 0:
         # For messages with no variable length or repeated fields, use pre-calculated size
         if fixed_size == 0:
-            o += " /* Empty message - no size */ "
+            o += ""  # No size calculation needed - empty message
         else:
             o += f"\n  total_size += {fixed_size};  // Pre-calculated maximum size\n"
     elif size_calc:
