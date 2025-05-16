@@ -782,7 +782,7 @@ bool ConnectResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
 }
 void ConnectResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->invalid_password); }
 void ConnectResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_bool_field(total_size, 1, this->invalid_password, false);
+  total_size += 2;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ConnectResponse::dump_to(std::string &out) const {
@@ -795,27 +795,32 @@ void ConnectResponse::dump_to(std::string &out) const {
 }
 #endif
 void DisconnectRequest::encode(ProtoWriteBuffer buffer) const {}
-void DisconnectRequest::calculate_size(uint32_t &total_size) const {}
+void DisconnectRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DisconnectRequest::dump_to(std::string &out) const { out.append("DisconnectRequest {}"); }
 #endif
 void DisconnectResponse::encode(ProtoWriteBuffer buffer) const {}
-void DisconnectResponse::calculate_size(uint32_t &total_size) const {}
+void DisconnectResponse::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DisconnectResponse::dump_to(std::string &out) const { out.append("DisconnectResponse {}"); }
 #endif
 void PingRequest::encode(ProtoWriteBuffer buffer) const {}
-void PingRequest::calculate_size(uint32_t &total_size) const {}
+void PingRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void PingRequest::dump_to(std::string &out) const { out.append("PingRequest {}"); }
 #endif
 void PingResponse::encode(ProtoWriteBuffer buffer) const {}
-void PingResponse::calculate_size(uint32_t &total_size) const {}
+void PingResponse::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void PingResponse::dump_to(std::string &out) const { out.append("PingResponse {}"); }
 #endif
 void DeviceInfoRequest::encode(ProtoWriteBuffer buffer) const {}
-void DeviceInfoRequest::calculate_size(uint32_t &total_size) const {}
+void DeviceInfoRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DeviceInfoRequest::dump_to(std::string &out) const { out.append("DeviceInfoRequest {}"); }
 #endif
@@ -1037,17 +1042,20 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
 }
 #endif
 void ListEntitiesRequest::encode(ProtoWriteBuffer buffer) const {}
-void ListEntitiesRequest::calculate_size(uint32_t &total_size) const {}
+void ListEntitiesRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesRequest::dump_to(std::string &out) const { out.append("ListEntitiesRequest {}"); }
 #endif
 void ListEntitiesDoneResponse::encode(ProtoWriteBuffer buffer) const {}
-void ListEntitiesDoneResponse::calculate_size(uint32_t &total_size) const {}
+void ListEntitiesDoneResponse::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesDoneResponse::dump_to(std::string &out) const { out.append("ListEntitiesDoneResponse {}"); }
 #endif
 void SubscribeStatesRequest::encode(ProtoWriteBuffer buffer) const {}
-void SubscribeStatesRequest::calculate_size(uint32_t &total_size) const {}
+void SubscribeStatesRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeStatesRequest::dump_to(std::string &out) const { out.append("SubscribeStatesRequest {}"); }
 #endif
@@ -1200,9 +1208,7 @@ void BinarySensorStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(3, this->missing_state);
 }
 void BinarySensorStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->missing_state, false);
+  total_size += 9;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BinarySensorStateResponse::dump_to(std::string &out) const {
@@ -1412,11 +1418,7 @@ void CoverStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::CoverOperation>(5, this->current_operation);
 }
 void CoverStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->legacy_state), false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->position != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->tilt != 0.0f, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->current_operation), false);
+  total_size += 27;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void CoverStateResponse::dump_to(std::string &out) const {
@@ -1502,14 +1504,7 @@ void CoverCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(8, this->stop);
 }
 void CoverCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_legacy_command, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->legacy_command), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_position, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->position != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_tilt, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->tilt != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->stop, false);
+  total_size += 29;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void CoverCommandRequest::dump_to(std::string &out) const {
@@ -2835,9 +2830,7 @@ void SensorStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(3, this->missing_state);
 }
 void SensorStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->state != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->missing_state, false);
+  total_size += 12;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SensorStateResponse::dump_to(std::string &out) const {
@@ -3003,8 +2996,7 @@ void SwitchStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(2, this->state);
 }
 void SwitchStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
+  total_size += 7;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SwitchStateResponse::dump_to(std::string &out) const {
@@ -3046,8 +3038,7 @@ void SwitchCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(2, this->state);
 }
 void SwitchCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
+  total_size += 7;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SwitchCommandRequest::dump_to(std::string &out) const {
@@ -3251,8 +3242,7 @@ void SubscribeLogsRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(2, this->dump_config);
 }
 void SubscribeLogsRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->level), false);
-  ProtoSize::add_bool_field(total_size, 1, this->dump_config, false);
+  total_size += 8;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeLogsRequest::dump_to(std::string &out) const {
@@ -3356,7 +3346,7 @@ bool NoiseEncryptionSetKeyResponse::decode_varint(uint32_t field_id, ProtoVarInt
 }
 void NoiseEncryptionSetKeyResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->success); }
 void NoiseEncryptionSetKeyResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_bool_field(total_size, 1, this->success, false);
+  total_size += 2;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void NoiseEncryptionSetKeyResponse::dump_to(std::string &out) const {
@@ -3369,7 +3359,8 @@ void NoiseEncryptionSetKeyResponse::dump_to(std::string &out) const {
 }
 #endif
 void SubscribeHomeassistantServicesRequest::encode(ProtoWriteBuffer buffer) const {}
-void SubscribeHomeassistantServicesRequest::calculate_size(uint32_t &total_size) const {}
+void SubscribeHomeassistantServicesRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeHomeassistantServicesRequest::dump_to(std::string &out) const {
   out.append("SubscribeHomeassistantServicesRequest {}");
@@ -3496,7 +3487,8 @@ void HomeassistantServiceResponse::dump_to(std::string &out) const {
 }
 #endif
 void SubscribeHomeAssistantStatesRequest::encode(ProtoWriteBuffer buffer) const {}
-void SubscribeHomeAssistantStatesRequest::calculate_size(uint32_t &total_size) const {}
+void SubscribeHomeAssistantStatesRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeHomeAssistantStatesRequest::dump_to(std::string &out) const {
   out.append("SubscribeHomeAssistantStatesRequest {}");
@@ -3601,7 +3593,8 @@ void HomeAssistantStateResponse::dump_to(std::string &out) const {
 }
 #endif
 void GetTimeRequest::encode(ProtoWriteBuffer buffer) const {}
-void GetTimeRequest::calculate_size(uint32_t &total_size) const {}
+void GetTimeRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void GetTimeRequest::dump_to(std::string &out) const { out.append("GetTimeRequest {}"); }
 #endif
@@ -3617,7 +3610,7 @@ bool GetTimeResponse::decode_32bit(uint32_t field_id, Proto32Bit value) {
 }
 void GetTimeResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_fixed32(1, this->epoch_seconds); }
 void GetTimeResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->epoch_seconds != 0, false);
+  total_size += 5;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void GetTimeResponse::dump_to(std::string &out) const {
@@ -4108,8 +4101,7 @@ void CameraImageRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(2, this->stream);
 }
 void CameraImageRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_bool_field(total_size, 1, this->single, false);
-  ProtoSize::add_bool_field(total_size, 1, this->stream, false);
+  total_size += 4;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void CameraImageRequest::dump_to(std::string &out) const {
@@ -5098,9 +5090,7 @@ void NumberStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(3, this->missing_state);
 }
 void NumberStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->state != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->missing_state, false);
+  total_size += 12;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void NumberStateResponse::dump_to(std::string &out) const {
@@ -5141,8 +5131,7 @@ void NumberCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_float(2, this->state);
 }
 void NumberCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->state != 0.0f, false);
+  total_size += 10;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void NumberCommandRequest::dump_to(std::string &out) const {
@@ -5541,8 +5530,7 @@ void SirenStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(2, this->state);
 }
 void SirenStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
+  total_size += 7;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SirenStateResponse::dump_to(std::string &out) const {
@@ -5844,8 +5832,7 @@ void LockStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::LockState>(2, this->state);
 }
 void LockStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->state), false);
+  total_size += 11;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void LockStateResponse::dump_to(std::string &out) const {
@@ -6052,7 +6039,7 @@ bool ButtonCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
 }
 void ButtonCommandRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_fixed32(1, this->key); }
 void ButtonCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
+  total_size += 5;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ButtonCommandRequest::dump_to(std::string &out) const {
@@ -6298,10 +6285,7 @@ void MediaPlayerStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(4, this->muted);
 }
 void MediaPlayerStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->state), false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->volume != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->muted, false);
+  total_size += 18;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void MediaPlayerStateResponse::dump_to(std::string &out) const {
@@ -6461,7 +6445,7 @@ void SubscribeBluetoothLEAdvertisementsRequest::encode(ProtoWriteBuffer buffer) 
   buffer.encode_uint32(1, this->flags);
 }
 void SubscribeBluetoothLEAdvertisementsRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint32_field(total_size, 1, this->flags, false);
+  total_size += 6;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) const {
@@ -6770,10 +6754,7 @@ void BluetoothDeviceRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->address_type);
 }
 void BluetoothDeviceRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->request_type), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_address_type, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->address_type, false);
+  total_size += 25;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothDeviceRequest::dump_to(std::string &out) const {
@@ -6828,10 +6809,7 @@ void BluetoothDeviceConnectionResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_int32(4, this->error);
 }
 void BluetoothDeviceConnectionResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_bool_field(total_size, 1, this->connected, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->mtu, false);
-  ProtoSize::add_int32_field(total_size, 1, this->error, false);
+  total_size += 25;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothDeviceConnectionResponse::dump_to(std::string &out) const {
@@ -6870,7 +6848,7 @@ bool BluetoothGATTGetServicesRequest::decode_varint(uint32_t field_id, ProtoVarI
 }
 void BluetoothGATTGetServicesRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_uint64(1, this->address); }
 void BluetoothGATTGetServicesRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
+  total_size += 11;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTGetServicesRequest::dump_to(std::string &out) const {
@@ -7133,7 +7111,7 @@ void BluetoothGATTGetServicesDoneResponse::encode(ProtoWriteBuffer buffer) const
   buffer.encode_uint64(1, this->address);
 }
 void BluetoothGATTGetServicesDoneResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
+  total_size += 11;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTGetServicesDoneResponse::dump_to(std::string &out) const {
@@ -7165,8 +7143,7 @@ void BluetoothGATTReadRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, this->handle);
 }
 void BluetoothGATTReadRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
+  total_size += 17;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTReadRequest::dump_to(std::string &out) const {
@@ -7321,8 +7298,7 @@ void BluetoothGATTReadDescriptorRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, this->handle);
 }
 void BluetoothGATTReadDescriptorRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
+  total_size += 17;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTReadDescriptorRequest::dump_to(std::string &out) const {
@@ -7418,9 +7394,7 @@ void BluetoothGATTNotifyRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(3, this->enable);
 }
 void BluetoothGATTNotifyRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  ProtoSize::add_bool_field(total_size, 1, this->enable, false);
+  total_size += 19;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTNotifyRequest::dump_to(std::string &out) const {
@@ -7497,7 +7471,9 @@ void BluetoothGATTNotifyDataResponse::dump_to(std::string &out) const {
 }
 #endif
 void SubscribeBluetoothConnectionsFreeRequest::encode(ProtoWriteBuffer buffer) const {}
-void SubscribeBluetoothConnectionsFreeRequest::calculate_size(uint32_t &total_size) const {}
+void SubscribeBluetoothConnectionsFreeRequest::calculate_size(
+    uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeBluetoothConnectionsFreeRequest::dump_to(std::string &out) const {
   out.append("SubscribeBluetoothConnectionsFreeRequest {}");
@@ -7584,9 +7560,7 @@ void BluetoothGATTErrorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_int32(3, this->error);
 }
 void BluetoothGATTErrorResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  ProtoSize::add_int32_field(total_size, 1, this->error, false);
+  total_size += 23;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTErrorResponse::dump_to(std::string &out) const {
@@ -7628,8 +7602,7 @@ void BluetoothGATTWriteResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, this->handle);
 }
 void BluetoothGATTWriteResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
+  total_size += 17;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTWriteResponse::dump_to(std::string &out) const {
@@ -7666,8 +7639,7 @@ void BluetoothGATTNotifyResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, this->handle);
 }
 void BluetoothGATTNotifyResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
+  total_size += 17;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTNotifyResponse::dump_to(std::string &out) const {
@@ -7709,9 +7681,7 @@ void BluetoothDevicePairingResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_int32(3, this->error);
 }
 void BluetoothDevicePairingResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_bool_field(total_size, 1, this->paired, false);
-  ProtoSize::add_int32_field(total_size, 1, this->error, false);
+  total_size += 19;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothDevicePairingResponse::dump_to(std::string &out) const {
@@ -7757,9 +7727,7 @@ void BluetoothDeviceUnpairingResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_int32(3, this->error);
 }
 void BluetoothDeviceUnpairingResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_bool_field(total_size, 1, this->success, false);
-  ProtoSize::add_int32_field(total_size, 1, this->error, false);
+  total_size += 19;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothDeviceUnpairingResponse::dump_to(std::string &out) const {
@@ -7782,7 +7750,9 @@ void BluetoothDeviceUnpairingResponse::dump_to(std::string &out) const {
 }
 #endif
 void UnsubscribeBluetoothLEAdvertisementsRequest::encode(ProtoWriteBuffer buffer) const {}
-void UnsubscribeBluetoothLEAdvertisementsRequest::calculate_size(uint32_t &total_size) const {}
+void UnsubscribeBluetoothLEAdvertisementsRequest::calculate_size(
+    uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void UnsubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) const {
   out.append("UnsubscribeBluetoothLEAdvertisementsRequest {}");
@@ -7812,9 +7782,7 @@ void BluetoothDeviceClearCacheResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_int32(3, this->error);
 }
 void BluetoothDeviceClearCacheResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_bool_field(total_size, 1, this->success, false);
-  ProtoSize::add_int32_field(total_size, 1, this->error, false);
+  total_size += 19;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothDeviceClearCacheResponse::dump_to(std::string &out) const {
@@ -7855,8 +7823,7 @@ void BluetoothScannerStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::BluetoothScannerMode>(2, this->mode);
 }
 void BluetoothScannerStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->state), false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->mode), false);
+  total_size += 12;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothScannerStateResponse::dump_to(std::string &out) const {
@@ -7886,7 +7853,7 @@ void BluetoothScannerSetModeRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::BluetoothScannerMode>(1, this->mode);
 }
 void BluetoothScannerSetModeRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->mode), false);
+  total_size += 6;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothScannerSetModeRequest::dump_to(std::string &out) const {
@@ -7917,8 +7884,7 @@ void SubscribeVoiceAssistantRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, this->flags);
 }
 void SubscribeVoiceAssistantRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_bool_field(total_size, 1, this->subscribe, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->flags, false);
+  total_size += 8;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeVoiceAssistantRequest::dump_to(std::string &out) const {
@@ -7965,9 +7931,7 @@ void VoiceAssistantAudioSettings::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_float(3, this->volume_multiplier);
 }
 void VoiceAssistantAudioSettings::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint32_field(total_size, 1, this->noise_suppression_level, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->auto_gain, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->volume_multiplier != 0.0f, false);
+  total_size += 17;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantAudioSettings::dump_to(std::string &out) const {
@@ -8082,8 +8046,7 @@ void VoiceAssistantResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(2, this->error);
 }
 void VoiceAssistantResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint32_field(total_size, 1, this->port, false);
-  ProtoSize::add_bool_field(total_size, 1, this->error, false);
+  total_size += 8;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantResponse::dump_to(std::string &out) const {
@@ -8382,7 +8345,7 @@ bool VoiceAssistantAnnounceFinished::decode_varint(uint32_t field_id, ProtoVarIn
 }
 void VoiceAssistantAnnounceFinished::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->success); }
 void VoiceAssistantAnnounceFinished::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_bool_field(total_size, 1, this->success, false);
+  total_size += 2;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantAnnounceFinished::dump_to(std::string &out) const {
@@ -8449,7 +8412,8 @@ void VoiceAssistantWakeWord::dump_to(std::string &out) const {
 }
 #endif
 void VoiceAssistantConfigurationRequest::encode(ProtoWriteBuffer buffer) const {}
-void VoiceAssistantConfigurationRequest::calculate_size(uint32_t &total_size) const {}
+void VoiceAssistantConfigurationRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
+}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantConfigurationRequest::dump_to(std::string &out) const {
   out.append("VoiceAssistantConfigurationRequest {}");
@@ -8709,8 +8673,7 @@ void AlarmControlPanelStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::AlarmControlPanelState>(2, this->state);
 }
 void AlarmControlPanelStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->state), false);
+  total_size += 11;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void AlarmControlPanelStateResponse::dump_to(std::string &out) const {
@@ -9168,11 +9131,7 @@ void DateStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(5, this->day);
 }
 void DateStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->missing_state, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->year, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->month, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->day, false);
+  total_size += 25;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DateStateResponse::dump_to(std::string &out) const {
@@ -9239,10 +9198,7 @@ void DateCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->day);
 }
 void DateCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->year, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->month, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->day, false);
+  total_size += 23;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DateCommandRequest::dump_to(std::string &out) const {
@@ -9409,11 +9365,7 @@ void TimeStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(5, this->second);
 }
 void TimeStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->missing_state, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->hour, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->minute, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->second, false);
+  total_size += 25;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void TimeStateResponse::dump_to(std::string &out) const {
@@ -9480,10 +9432,7 @@ void TimeCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->second);
 }
 void TimeCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->hour, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->minute, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->second, false);
+  total_size += 23;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void TimeCommandRequest::dump_to(std::string &out) const {
@@ -9850,9 +9799,7 @@ void ValveStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::ValveOperation>(3, this->current_operation);
 }
 void ValveStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->position != 0.0f, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->current_operation), false);
+  total_size += 16;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ValveStateResponse::dump_to(std::string &out) const {
@@ -9909,10 +9856,7 @@ void ValveCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(4, this->stop);
 }
 void ValveCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_position, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->position != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->stop, false);
+  total_size += 14;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ValveCommandRequest::dump_to(std::string &out) const {
@@ -10067,9 +10011,7 @@ void DateTimeStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(3, this->epoch_seconds);
 }
 void DateTimeStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->missing_state, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->epoch_seconds != 0, false);
+  total_size += 12;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DateTimeStateResponse::dump_to(std::string &out) const {
@@ -10110,8 +10052,7 @@ void DateTimeCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(2, this->epoch_seconds);
 }
 void DateTimeCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->epoch_seconds != 0, false);
+  total_size += 10;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DateTimeCommandRequest::dump_to(std::string &out) const {
@@ -10393,8 +10334,7 @@ void UpdateCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::UpdateCommand>(2, this->command);
 }
 void UpdateCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->command), false);
+  total_size += 11;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void UpdateCommandRequest::dump_to(std::string &out) const {

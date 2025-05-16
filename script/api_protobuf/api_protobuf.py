@@ -762,6 +762,60 @@ def build_enum_type(desc) -> tuple[str, str]:
     return out, cpp
 
 
+# Maximum sizes for fixed-size protobuf types
+PROTOBUF_TYPE_SIZES = {
+    1: 8,  # DOUBLE
+    2: 4,  # FLOAT
+    3: 10,  # INT64 (max varint size)
+    4: 10,  # UINT64 (max varint size)
+    5: 5,  # INT32 (max varint size)
+    6: 8,  # FIXED64
+    7: 4,  # FIXED32
+    8: 1,  # BOOL
+    # 9: STRING (variable)
+    # 10: GROUP (deprecated)
+    # 11: MESSAGE (variable)
+    # 12: BYTES (variable)
+    13: 5,  # UINT32 (max varint size)
+    14: 5,  # ENUM (same as uint32)
+    15: 4,  # SFIXED32
+    16: 8,  # SFIXED64
+    17: 5,  # SINT32 (max varint size)
+    18: 10,  # SINT64 (max varint size)
+}
+
+# Variable length types that cannot have fixed size
+VARIABLE_LENGTH_TYPES = {9, 11, 12}  # STRING, MESSAGE, BYTES
+
+
+def calculate_fixed_message_size(desc: descriptor.DescriptorProto) -> int:
+    """Calculate the maximum size of a fixed-size message."""
+    total_size = 0
+
+    for field in desc.field:
+        if field.label == 3:  # Repeated field
+            return -1  # Can't be fixed size
+
+        if field.type in VARIABLE_LENGTH_TYPES:
+            return -1  # Variable length, can't be fixed size
+
+        max_data_size = PROTOBUF_TYPE_SIZES.get(field.type)
+        if max_data_size is None:
+            return -1  # Unknown type
+
+        ti = TYPE_INFO.get(field.type)
+        if ti is None:
+            return -1
+
+        # Get field ID size
+        field_id_size = ti(field).calculate_field_id_size()
+
+        # Total field size is field ID size + data size
+        total_size += field_id_size + max_data_size
+
+    return total_size
+
+
 def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     public_content: list[str] = []
     protected_content: list[str] = []
@@ -772,6 +826,9 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     encode: list[str] = []
     dump: list[str] = []
     size_calc: list[str] = []
+
+    # Calculate if this message has a fixed size
+    fixed_size = calculate_fixed_message_size(desc)
 
     for field in desc.field:
         if field.label == 3:
@@ -851,9 +908,14 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     # Add calculate_size method
     o = f"void {desc.name}::calculate_size(uint32_t &total_size) const {{"
 
-    # Add a check for empty/default objects to short-circuit the calculation
-    # Only add this optimization if we have fields to check
-    if size_calc:
+    # Check if this message has a pre-calculated fixed size
+    if fixed_size >= 0:
+        # For messages with no variable length or repeated fields, use pre-calculated size
+        if fixed_size == 0:
+            o += " /* Empty message - no size */ "
+        else:
+            o += f"\n  total_size += {fixed_size};  // Pre-calculated maximum size\n"
+    elif size_calc:
         # For a single field, just inline it for simplicity
         if len(size_calc) == 1 and len(size_calc[0]) + len(o) + 3 < 120:
             o += f" {size_calc[0]} "
