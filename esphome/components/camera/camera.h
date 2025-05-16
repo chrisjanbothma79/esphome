@@ -92,7 +92,7 @@ struct CameraImageSpec {
  *  6) API connection consumes data from the image reader and returns the image when finished.
  *  7.a) Camera captures a new image and continues with 4) until start_stream is called.
  */
-class Camera : public Component, public EntityBase {
+class Camera : public EntityBase, public Component {
  public:
   Camera();
   // Camera implementation invokes callback to capture a new image.
