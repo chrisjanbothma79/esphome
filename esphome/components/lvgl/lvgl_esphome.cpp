@@ -87,7 +87,7 @@ lv_event_code_t lv_update_event;  // NOLINT
 void LvglComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "LVGL:");
   ESP_LOGCONFIG(TAG, "  Display width/height: %d x %d", this->disp_drv_.hor_res, this->disp_drv_.ver_res);
-  ESP_LOGCONFIG(TAG, "  Buffer size: %d%%", 100 / this->buffer_frac_);
+  ESP_LOGCONFIG(TAG, "  Buffer size: %zu%%", 100 / this->buffer_frac_);
   ESP_LOGCONFIG(TAG, "  Rotation: %d", this->rotation);
   ESP_LOGCONFIG(TAG, "  Draw rounding: %d", (int) this->draw_rounding);
 }
