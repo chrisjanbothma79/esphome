@@ -789,7 +789,13 @@ PROTOBUF_TYPE_SIZES = {
 
 
 def calculate_fixed_message_size(desc: descriptor.DescriptorProto) -> int:
-    """Calculate the maximum size of a fixed-size message."""
+    """Calculate the maximum size of a fixed-size message.
+
+    Args:
+        desc: The descriptor of the message to calculate the size for.
+    Returns:
+        The maximum size of the message, or -1 if it has variable length
+    """
     total_size: int = 0
 
     for field in desc.field:
