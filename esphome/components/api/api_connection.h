@@ -152,7 +152,7 @@ class APIConnection : public APIServerConnection {
   void camera_image(const CameraImageRequest &msg) override;
 
  protected:
-  bool try_send_camera_info_(esp32_camera::ESP32Camera *camera);
+  bool try_send_camera_info_(camera::Camera *camera);
 
  public:
 #endif
