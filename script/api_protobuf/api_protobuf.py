@@ -783,25 +783,9 @@ def build_enum_type(desc) -> tuple[str, str]:
     return out, cpp
 
 
-def get_type_sizes():
-    """Dynamically build type size dictionaries from registered types."""
-    # Build PROTOBUF_TYPE_SIZES from TYPE_INFO
-    type_sizes = {}
-    variable_length_types = set()
-
-    for type_id, type_class in TYPE_INFO.items():
-        if hasattr(type_class, "maximum_size"):
-            if type_class.maximum_size == -1:
-                variable_length_types.add(type_id)
-            else:
-                type_sizes[type_id] = type_class.maximum_size
-
-    return type_sizes, variable_length_types
-
-
-# Build the type size mappings once when the module loads
-# This avoids recalculating these dictionaries for every message
-PROTOBUF_TYPE_SIZES, VARIABLE_LENGTH_TYPES = get_type_sizes()
+PROTOBUF_TYPE_SIZES = {
+    type_id: type_class.maximum_size for type_id, type_class in TYPE_INFO.items()
+}
 
 
 def calculate_fixed_message_size(desc: descriptor.DescriptorProto) -> int:
@@ -812,16 +796,8 @@ def calculate_fixed_message_size(desc: descriptor.DescriptorProto) -> int:
         if field.label == 3:  # Repeated field
             return -1  # Can't be fixed size
 
-        if field.type in VARIABLE_LENGTH_TYPES:
-            return -1  # Variable length, can't be fixed size
-
-        max_data_size = PROTOBUF_TYPE_SIZES.get(field.type)
-        if max_data_size is None:
-            return -1  # Unknown type
-
-        ti = TYPE_INFO.get(field.type)
-        if ti is None:
-            return -1
+        max_data_size = PROTOBUF_TYPE_SIZES[field.type]
+        ti = TYPE_INFO[field.type]
 
         # Get field ID size
         field_id_size = ti(field).calculate_field_id_size()

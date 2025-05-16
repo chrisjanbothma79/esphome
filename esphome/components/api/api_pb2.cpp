@@ -658,9 +658,7 @@ void HelloRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(3, this->api_version_minor);
 }
 void HelloRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->client_info, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->api_version_major, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->api_version_minor, false);
+  total_size += 12;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void HelloRequest::dump_to(std::string &out) const {
@@ -717,10 +715,7 @@ void HelloResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(4, this->name);
 }
 void HelloResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint32_field(total_size, 1, this->api_version_major, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->api_version_minor, false);
-  ProtoSize::add_string_field(total_size, 1, this->server_info, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
+  total_size += 12;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void HelloResponse::dump_to(std::string &out) const {
@@ -757,8 +752,7 @@ bool ConnectRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value
   }
 }
 void ConnectRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_string(1, this->password); }
-void ConnectRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->password, false);
+void ConnectRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ConnectRequest::dump_to(std::string &out) const {
@@ -934,25 +928,7 @@ void DeviceInfoResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(19, this->api_encryption_supported);
 }
 void DeviceInfoResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_bool_field(total_size, 1, this->uses_password, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->mac_address, false);
-  ProtoSize::add_string_field(total_size, 1, this->esphome_version, false);
-  ProtoSize::add_string_field(total_size, 1, this->compilation_time, false);
-  ProtoSize::add_string_field(total_size, 1, this->model, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_deep_sleep, false);
-  ProtoSize::add_string_field(total_size, 1, this->project_name, false);
-  ProtoSize::add_string_field(total_size, 1, this->project_version, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->webserver_port, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->legacy_bluetooth_proxy_version, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->bluetooth_proxy_feature_flags, false);
-  ProtoSize::add_string_field(total_size, 1, this->manufacturer, false);
-  ProtoSize::add_string_field(total_size, 1, this->friendly_name, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->legacy_voice_assistant_version, false);
-  ProtoSize::add_uint32_field(total_size, 2, this->voice_assistant_feature_flags, false);
-  ProtoSize::add_string_field(total_size, 2, this->suggested_area, false);
-  ProtoSize::add_string_field(total_size, 2, this->bluetooth_mac_address, false);
-  ProtoSize::add_bool_field(total_size, 2, this->api_encryption_supported, false);
+  total_size += 40;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DeviceInfoResponse::dump_to(std::string &out) const {
@@ -1125,15 +1101,7 @@ void ListEntitiesBinarySensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(9, this->entity_category);
 }
 void ListEntitiesBinarySensorResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->device_class, false);
-  ProtoSize::add_bool_field(total_size, 1, this->is_status_binary_sensor, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  total_size += 15;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
@@ -1310,18 +1278,7 @@ void ListEntitiesCoverResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(12, this->supports_stop);
 }
 void ListEntitiesCoverResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_bool_field(total_size, 1, this->assumed_state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->supports_position, false);
-  ProtoSize::add_bool_field(total_size, 1, this->supports_tilt, false);
-  ProtoSize::add_string_field(total_size, 1, this->device_class, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
-  ProtoSize::add_bool_field(total_size, 1, this->supports_stop, false);
+  total_size += 21;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesCoverResponse::dump_to(std::string &out) const {
@@ -1761,13 +1718,7 @@ void FanStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(7, this->preset_mode);
 }
 void FanStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->oscillating, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->speed), false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->direction), false);
-  ProtoSize::add_int32_field(total_size, 1, this->speed_level, false);
-  ProtoSize::add_string_field(total_size, 1, this->preset_mode, false);
+  total_size += 27;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void FanStateResponse::dump_to(std::string &out) const {
@@ -1891,19 +1842,7 @@ void FanCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(13, this->preset_mode);
 }
 void FanCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_speed, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->speed), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_oscillating, false);
-  ProtoSize::add_bool_field(total_size, 1, this->oscillating, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_direction, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->direction), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_speed_level, false);
-  ProtoSize::add_int32_field(total_size, 1, this->speed_level, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_preset_mode, false);
-  ProtoSize::add_string_field(total_size, 1, this->preset_mode, false);
+  total_size += 39;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void FanCommandRequest::dump_to(std::string &out) const {
@@ -2248,19 +2187,7 @@ void LightStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(9, this->effect);
 }
 void LightStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->brightness != 0.0f, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->color_mode), false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->color_brightness != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->red != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->green != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->blue != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->white != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->color_temperature != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->cold_white != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->warm_white != 0.0f, false);
-  ProtoSize::add_string_field(total_size, 1, this->effect, false);
+  total_size += 58;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void LightStateResponse::dump_to(std::string &out) const {
@@ -2486,33 +2413,7 @@ void LightCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(19, this->effect);
 }
 void LightCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_brightness, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->brightness != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_color_mode, false);
-  ProtoSize::add_enum_field(total_size, 2, static_cast<uint32_t>(this->color_mode), false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_color_brightness, false);
-  ProtoSize::add_fixed_field<4>(total_size, 2, this->color_brightness != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_rgb, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->red != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->green != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->blue != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_white, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->white != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_color_temperature, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->color_temperature != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_cold_white, false);
-  ProtoSize::add_fixed_field<4>(total_size, 2, this->cold_white != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_warm_white, false);
-  ProtoSize::add_fixed_field<4>(total_size, 2, this->warm_white != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_transition_length, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->transition_length, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_flash_length, false);
-  ProtoSize::add_uint32_field(total_size, 2, this->flash_length, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_effect, false);
-  ProtoSize::add_string_field(total_size, 2, this->effect, false);
+  total_size += 106;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void LightCommandRequest::dump_to(std::string &out) const {
@@ -2726,19 +2627,7 @@ void ListEntitiesSensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(13, this->entity_category);
 }
 void ListEntitiesSensorResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_string_field(total_size, 1, this->unit_of_measurement, false);
-  ProtoSize::add_int32_field(total_size, 1, this->accuracy_decimals, false);
-  ProtoSize::add_bool_field(total_size, 1, this->force_update, false);
-  ProtoSize::add_string_field(total_size, 1, this->device_class, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->state_class), false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->legacy_last_reset_type), false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  total_size += 33;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesSensorResponse::dump_to(std::string &out) const {
@@ -2918,15 +2807,7 @@ void ListEntitiesSwitchResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(9, this->device_class);
 }
 void ListEntitiesSwitchResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_bool_field(total_size, 1, this->assumed_state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
-  ProtoSize::add_string_field(total_size, 1, this->device_class, false);
+  total_size += 15;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
@@ -3116,14 +2997,7 @@ void ListEntitiesTextSensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(8, this->device_class);
 }
 void ListEntitiesTextSensorResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
-  ProtoSize::add_string_field(total_size, 1, this->device_class, false);
+  total_size += 13;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
@@ -3200,9 +3074,7 @@ void TextSensorStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(3, this->missing_state);
 }
 void TextSensorStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->missing_state, false);
+  total_size += 7;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void TextSensorStateResponse::dump_to(std::string &out) const {
@@ -3288,9 +3160,7 @@ void SubscribeLogsResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(4, this->send_failed);
 }
 void SubscribeLogsResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->level), false);
-  ProtoSize::add_string_field(total_size, 1, this->message, false);
-  ProtoSize::add_bool_field(total_size, 1, this->send_failed, false);
+  total_size += 8;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeLogsResponse::dump_to(std::string &out) const {
@@ -3321,8 +3191,7 @@ bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthD
   }
 }
 void NoiseEncryptionSetKeyRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_string(1, this->key); }
-void NoiseEncryptionSetKeyRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->key, false);
+void NoiseEncryptionSetKeyRequest::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void NoiseEncryptionSetKeyRequest::dump_to(std::string &out) const {
@@ -3384,9 +3253,7 @@ void HomeassistantServiceMap::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->key);
   buffer.encode_string(2, this->value);
 }
-void HomeassistantServiceMap::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->key, false);
-  ProtoSize::add_string_field(total_size, 1, this->value, false);
+void HomeassistantServiceMap::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void HomeassistantServiceMap::dump_to(std::string &out) const {
@@ -3524,9 +3391,7 @@ void SubscribeHomeAssistantStateResponse::encode(ProtoWriteBuffer buffer) const 
   buffer.encode_bool(3, this->once);
 }
 void SubscribeHomeAssistantStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->entity_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->attribute, false);
-  ProtoSize::add_bool_field(total_size, 1, this->once, false);
+  total_size += 2;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SubscribeHomeAssistantStateResponse::dump_to(std::string &out) const {
@@ -3569,10 +3434,7 @@ void HomeAssistantStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(2, this->state);
   buffer.encode_string(3, this->attribute);
 }
-void HomeAssistantStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->entity_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->state, false);
-  ProtoSize::add_string_field(total_size, 1, this->attribute, false);
+void HomeAssistantStateResponse::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void HomeAssistantStateResponse::dump_to(std::string &out) const {
@@ -3648,8 +3510,7 @@ void ListEntitiesServicesArgument::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::ServiceArgType>(2, this->type);
 }
 void ListEntitiesServicesArgument::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->type), false);
+  total_size += 6;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesServicesArgument::dump_to(std::string &out) const {
@@ -3980,13 +3841,7 @@ void ListEntitiesCameraResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
 }
 void ListEntitiesCameraResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  total_size += 13;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesCameraResponse::dump_to(std::string &out) const {
@@ -4059,9 +3914,7 @@ void CameraImageResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(3, this->done);
 }
 void CameraImageResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->data, false);
-  ProtoSize::add_bool_field(total_size, 1, this->done, false);
+  total_size += 7;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void CameraImageResponse::dump_to(std::string &out) const {
@@ -4546,21 +4399,7 @@ void ClimateStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_float(15, this->target_humidity);
 }
 void ClimateStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->mode), false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->current_temperature != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_temperature != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_temperature_low != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_temperature_high != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->unused_legacy_away, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->action), false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->fan_mode), false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->swing_mode), false);
-  ProtoSize::add_string_field(total_size, 1, this->custom_fan_mode, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->preset), false);
-  ProtoSize::add_string_field(total_size, 1, this->custom_preset, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->current_humidity != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_humidity != 0.0f, false);
+  total_size += 67;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ClimateStateResponse::dump_to(std::string &out) const {
@@ -4771,29 +4610,7 @@ void ClimateCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_float(23, this->target_humidity);
 }
 void ClimateCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_mode, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->mode), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_target_temperature, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_temperature != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_target_temperature_low, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_temperature_low != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_target_temperature_high, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_temperature_high != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->unused_has_legacy_away, false);
-  ProtoSize::add_bool_field(total_size, 1, this->unused_legacy_away, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_fan_mode, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->fan_mode), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_swing_mode, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->swing_mode), false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_custom_fan_mode, false);
-  ProtoSize::add_string_field(total_size, 2, this->custom_fan_mode, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_preset, false);
-  ProtoSize::add_enum_field(total_size, 2, static_cast<uint32_t>(this->preset), false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_custom_preset, false);
-  ProtoSize::add_string_field(total_size, 2, this->custom_preset, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_target_humidity, false);
-  ProtoSize::add_fixed_field<4>(total_size, 2, this->target_humidity != 0.0f, false);
+  total_size += 81;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ClimateCommandRequest::dump_to(std::string &out) const {
@@ -4984,19 +4801,7 @@ void ListEntitiesNumberResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(13, this->device_class);
 }
 void ListEntitiesNumberResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->min_value != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->max_value != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->step != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
-  ProtoSize::add_string_field(total_size, 1, this->unit_of_measurement, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->mode), false);
-  ProtoSize::add_string_field(total_size, 1, this->device_class, false);
+  total_size += 34;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesNumberResponse::dump_to(std::string &out) const {
@@ -5302,9 +5107,7 @@ void SelectStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(3, this->missing_state);
 }
 void SelectStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->missing_state, false);
+  total_size += 7;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SelectStateResponse::dump_to(std::string &out) const {
@@ -5350,8 +5153,7 @@ void SelectCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(2, this->state);
 }
 void SelectCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->state, false);
+  total_size += 5;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SelectCommandRequest::dump_to(std::string &out) const {
@@ -5613,15 +5415,7 @@ void SirenCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_float(9, this->volume);
 }
 void SirenCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_tone, false);
-  ProtoSize::add_string_field(total_size, 1, this->tone, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_duration, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->duration, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_volume, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->volume != 0.0f, false);
+  total_size += 26;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void SirenCommandRequest::dump_to(std::string &out) const {
@@ -5744,17 +5538,7 @@ void ListEntitiesLockResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(11, this->code_format);
 }
 void ListEntitiesLockResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
-  ProtoSize::add_bool_field(total_size, 1, this->assumed_state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->supports_open, false);
-  ProtoSize::add_bool_field(total_size, 1, this->requires_code, false);
-  ProtoSize::add_string_field(total_size, 1, this->code_format, false);
+  total_size += 19;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesLockResponse::dump_to(std::string &out) const {
@@ -5890,10 +5674,7 @@ void LockCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(4, this->code);
 }
 void LockCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->command), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_code, false);
-  ProtoSize::add_string_field(total_size, 1, this->code, false);
+  total_size += 13;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void LockCommandRequest::dump_to(std::string &out) const {
@@ -5979,14 +5760,7 @@ void ListEntitiesButtonResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(8, this->device_class);
 }
 void ListEntitiesButtonResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
-  ProtoSize::add_string_field(total_size, 1, this->device_class, false);
+  total_size += 13;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesButtonResponse::dump_to(std::string &out) const {
@@ -6092,11 +5866,7 @@ void MediaPlayerSupportedFormat::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(5, this->sample_bytes);
 }
 void MediaPlayerSupportedFormat::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->format, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->sample_rate, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->num_channels, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->purpose), false);
-  ProtoSize::add_uint32_field(total_size, 1, this->sample_bytes, false);
+  total_size += 24;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void MediaPlayerSupportedFormat::dump_to(std::string &out) const {
@@ -6377,15 +6147,7 @@ void MediaPlayerCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(9, this->announcement);
 }
 void MediaPlayerCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_command, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->command), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_volume, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->volume != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_media_url, false);
-  ProtoSize::add_string_field(total_size, 1, this->media_url, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_announcement, false);
-  ProtoSize::add_bool_field(total_size, 1, this->announcement, false);
+  total_size += 26;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void MediaPlayerCommandRequest::dump_to(std::string &out) const {
@@ -6665,10 +6427,7 @@ void BluetoothLERawAdvertisement::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(4, this->data);
 }
 void BluetoothLERawAdvertisement::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_sint32_field(total_size, 1, this->rssi, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->address_type, false);
-  ProtoSize::add_string_field(total_size, 1, this->data, false);
+  total_size += 23;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothLERawAdvertisement::dump_to(std::string &out) const {
@@ -7191,9 +6950,7 @@ void BluetoothGATTReadResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(3, this->data);
 }
 void BluetoothGATTReadResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  ProtoSize::add_string_field(total_size, 1, this->data, false);
+  total_size += 17;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTReadResponse::dump_to(std::string &out) const {
@@ -7250,10 +7007,7 @@ void BluetoothGATTWriteRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(4, this->data);
 }
 void BluetoothGATTWriteRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  ProtoSize::add_bool_field(total_size, 1, this->response, false);
-  ProtoSize::add_string_field(total_size, 1, this->data, false);
+  total_size += 19;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTWriteRequest::dump_to(std::string &out) const {
@@ -7346,9 +7100,7 @@ void BluetoothGATTWriteDescriptorRequest::encode(ProtoWriteBuffer buffer) const 
   buffer.encode_string(3, this->data);
 }
 void BluetoothGATTWriteDescriptorRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  ProtoSize::add_string_field(total_size, 1, this->data, false);
+  total_size += 17;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTWriteDescriptorRequest::dump_to(std::string &out) const {
@@ -7446,9 +7198,7 @@ void BluetoothGATTNotifyDataResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(3, this->data);
 }
 void BluetoothGATTNotifyDataResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  ProtoSize::add_string_field(total_size, 1, this->data, false);
+  total_size += 17;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void BluetoothGATTNotifyDataResponse::dump_to(std::string &out) const {
@@ -7994,11 +7744,7 @@ void VoiceAssistantRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(5, this->wake_word_phrase);
 }
 void VoiceAssistantRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_bool_field(total_size, 1, this->start, false);
-  ProtoSize::add_string_field(total_size, 1, this->conversation_id, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->flags, false);
-  ProtoSize::add_message_object(total_size, 1, this->audio_settings, false);
-  ProtoSize::add_string_field(total_size, 1, this->wake_word_phrase, false);
+  total_size += 8;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantRequest::dump_to(std::string &out) const {
@@ -8081,9 +7827,7 @@ void VoiceAssistantEventData::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->name);
   buffer.encode_string(2, this->value);
 }
-void VoiceAssistantEventData::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->value, false);
+void VoiceAssistantEventData::calculate_size(uint32_t &total_size) const { /* Empty message - no size */
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantEventData::dump_to(std::string &out) const {
@@ -8170,8 +7914,7 @@ void VoiceAssistantAudio::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(2, this->end);
 }
 void VoiceAssistantAudio::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->data, false);
-  ProtoSize::add_bool_field(total_size, 1, this->end, false);
+  total_size += 2;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantAudio::dump_to(std::string &out) const {
@@ -8232,12 +7975,7 @@ void VoiceAssistantTimerEventResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(6, this->is_active);
 }
 void VoiceAssistantTimerEventResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->event_type), false);
-  ProtoSize::add_string_field(total_size, 1, this->timer_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->total_seconds, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->seconds_left, false);
-  ProtoSize::add_bool_field(total_size, 1, this->is_active, false);
+  total_size += 20;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantTimerEventResponse::dump_to(std::string &out) const {
@@ -8306,10 +8044,7 @@ void VoiceAssistantAnnounceRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(4, this->start_conversation);
 }
 void VoiceAssistantAnnounceRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->media_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->text, false);
-  ProtoSize::add_string_field(total_size, 1, this->preannounce_media_id, false);
-  ProtoSize::add_bool_field(total_size, 1, this->start_conversation, false);
+  total_size += 2;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void VoiceAssistantAnnounceRequest::dump_to(std::string &out) const {
@@ -8589,16 +8324,7 @@ void ListEntitiesAlarmControlPanelResponse::encode(ProtoWriteBuffer buffer) cons
   buffer.encode_bool(10, this->requires_code_to_arm);
 }
 void ListEntitiesAlarmControlPanelResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
-  ProtoSize::add_uint32_field(total_size, 1, this->supported_features, false);
-  ProtoSize::add_bool_field(total_size, 1, this->requires_code, false);
-  ProtoSize::add_bool_field(total_size, 1, this->requires_code_to_arm, false);
+  total_size += 23;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
@@ -8726,9 +8452,7 @@ void AlarmControlPanelCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(3, this->code);
 }
 void AlarmControlPanelCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->command), false);
-  ProtoSize::add_string_field(total_size, 1, this->code, false);
+  total_size += 11;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
@@ -8825,17 +8549,7 @@ void ListEntitiesTextResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::TextMode>(11, this->mode);
 }
 void ListEntitiesTextResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
-  ProtoSize::add_uint32_field(total_size, 1, this->min_length, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->max_length, false);
-  ProtoSize::add_string_field(total_size, 1, this->pattern, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->mode), false);
+  total_size += 31;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesTextResponse::dump_to(std::string &out) const {
@@ -8926,9 +8640,7 @@ void TextStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(3, this->missing_state);
 }
 void TextStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->missing_state, false);
+  total_size += 7;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void TextStateResponse::dump_to(std::string &out) const {
@@ -8974,8 +8686,7 @@ void TextCommandRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(2, this->state);
 }
 void TextCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->state, false);
+  total_size += 5;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void TextCommandRequest::dump_to(std::string &out) const {
@@ -9048,13 +8759,7 @@ void ListEntitiesDateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
 }
 void ListEntitiesDateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  total_size += 13;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesDateResponse::dump_to(std::string &out) const {
@@ -9282,13 +8987,7 @@ void ListEntitiesTimeResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
 }
 void ListEntitiesTimeResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  total_size += 13;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesTimeResponse::dump_to(std::string &out) const {
@@ -9612,8 +9311,7 @@ void EventResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(2, this->event_type);
 }
 void EventResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->event_type, false);
+  total_size += 5;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void EventResponse::dump_to(std::string &out) const {
@@ -9706,17 +9404,7 @@ void ListEntitiesValveResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(11, this->supports_stop);
 }
 void ListEntitiesValveResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
-  ProtoSize::add_string_field(total_size, 1, this->device_class, false);
-  ProtoSize::add_bool_field(total_size, 1, this->assumed_state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->supports_position, false);
-  ProtoSize::add_bool_field(total_size, 1, this->supports_stop, false);
+  total_size += 19;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesValveResponse::dump_to(std::string &out) const {
@@ -9938,13 +9626,7 @@ void ListEntitiesDateTimeResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::EntityCategory>(7, this->entity_category);
 }
 void ListEntitiesDateTimeResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  total_size += 13;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
@@ -10131,14 +9813,7 @@ void ListEntitiesUpdateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(8, this->device_class);
 }
 void ListEntitiesUpdateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->object_id, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->icon, false);
-  ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
-  ProtoSize::add_string_field(total_size, 1, this->device_class, false);
+  total_size += 13;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
@@ -10250,16 +9925,7 @@ void UpdateStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(10, this->release_url);
 }
 void UpdateStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->missing_state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->in_progress, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_progress, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->progress != 0.0f, false);
-  ProtoSize::add_string_field(total_size, 1, this->current_version, false);
-  ProtoSize::add_string_field(total_size, 1, this->latest_version, false);
-  ProtoSize::add_string_field(total_size, 1, this->title, false);
-  ProtoSize::add_string_field(total_size, 1, this->release_summary, false);
-  ProtoSize::add_string_field(total_size, 1, this->release_url, false);
+  total_size += 16;  // Pre-calculated maximum size
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void UpdateStateResponse::dump_to(std::string &out) const {
