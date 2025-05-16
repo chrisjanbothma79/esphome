@@ -97,7 +97,7 @@ def channel_schema(channels, baud_rate_required):
                         }
                     )
                 ),
-                cv.Length(channels),
+                cv.Length(max=channels),
             )
         }
     )

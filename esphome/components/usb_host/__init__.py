@@ -38,15 +38,15 @@ def usb_device_schema(cls=USBClient, vid: int = None, pid: [int] = None) -> cv.S
     return schema
 
 
-CONFIG_SCHEMA = (
+CONFIG_SCHEMA = cv.All(
     cv.COMPONENT_SCHEMA.extend(
         {
             cv.GenerateID(): cv.declare_id(USBHost),
             cv.Optional(CONF_DEVICES): cv.ensure_list(usb_device_schema()),
         }
-    )
-    .extend(cv.only_with_esp_idf)
-    .extend(only_on_variant(supported=[VARIANT_ESP32S2, VARIANT_ESP32S3]))
+    ),
+    cv.only_with_esp_idf,
+    only_on_variant(supported=[VARIANT_ESP32S2, VARIANT_ESP32S3]),
 )
 
 
