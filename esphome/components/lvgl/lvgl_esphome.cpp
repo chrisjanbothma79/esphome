@@ -11,6 +11,8 @@ namespace esphome {
 namespace lvgl {
 static const char *const TAG = "lvgl";
 
+static const size_t MIN_BUFFER_FRAC = 8;
+
 static const char *const EVENT_NAMES[] = {
     "NONE",
     "PRESSED",
@@ -439,15 +441,15 @@ void LvglComponent::setup() {
   size_t buffer_pixels = width * height / frac;
   auto buf_bytes = buffer_pixels * LV_COLOR_DEPTH / 8;
   void *buffer = nullptr;
-  if (this->buffer_frac_ >= 4)
+  if (this->buffer_frac_ >= MIN_BUFFER_FRAC / 2)
     buffer = malloc(buf_bytes);  // NOLINT
   if (buffer == nullptr)
     buffer = lv_custom_mem_alloc(buf_bytes);  // NOLINT
   // if specific buffer size not set and can't get 100%, try for a smaller one
   if (buffer == nullptr && this->buffer_frac_ == 0) {
-    frac = 8;
-    buffer_pixels /= 8;
-    buffer = lv_custom_mem_alloc(buf_bytes / 8);  // NOLINT
+    frac = MIN_BUFFER_FRAC;
+    buffer_pixels /= MIN_BUFFER_FRAC;
+    buffer = lv_custom_mem_alloc(buf_bytes / MIN_BUFFER_FRAC);  // NOLINT
   }
   if (buffer == nullptr) {
     this->mark_failed();
