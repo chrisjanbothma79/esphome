@@ -34,7 +34,6 @@ CONF_MISO_PIN = "miso_pin"
 CONF_MOSI_PIN = "mosi_pin"
 
 sdfs_ns = cg.esphome_ns.namespace("sdfs")
-
 BusWidth = sdfs_ns.enum("BusWidth")
 BUS_WIDTH_OPTION = {
     "1bit": BusWidth.BUS_WIDTH_1BIT,
@@ -48,6 +47,7 @@ SD_CONN_TYPE = {
     "sdmmc": BusWidth.SD_MMC,
 }
 
+# spi_ns = cg.esphome_ns.namespace("spi")
 SdmmcHost = sdfs_ns.class_("SdmmcHost", cg.Component)
 SpiDrv = sdfs_ns.class_("EsphomeSpiDrv", spi.SPIDevice)
 
@@ -204,8 +204,10 @@ async def to_code(config):
         # cg.add_platformio_option("extra_scripts", ["pre:build_pio.py"])
         # cg.add_platformio_option("lib_ldf_mode", "chain+")  #deep+  chain+
         # cg.add_platformio_option("lib_extra_dirs", "src/esphome/components/sdfs")
-        cg.add_library("SPI", None)
-        cg.add_library("SdFat", None)
+        cg.add_library("FS", None)
+        # cg.add_library("SD", None)
+        # cg.add_library("SPI", None)
+        # cg.add_library("SdFat", None)
     #       lib_extra_di  rs = lib/MyLibFolder/ExternalLibFolder
     #       lib_ldf_mode = chain+
 

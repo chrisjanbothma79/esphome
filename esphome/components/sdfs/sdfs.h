@@ -7,7 +7,6 @@
 #ifdef USE_ARDUINO_SPI_FS
 #define SPI_DRIVER_SELECT 3
 #define SD_CHIP_SELECT_MODE 2
-// #include "sdio_drv_ard.h"
 #include "esphome/components/spi/spi.h"
 #include "spi_connector.h"
 

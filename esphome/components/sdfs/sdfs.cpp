@@ -2,9 +2,12 @@
 #include "esphome/core/log.h"
 
 #ifdef USE_ARDUINO_SPI_FS
+#include "spi_connector.h"
 #include "esphome/components/spi/spi.h"
 #include "sdspi_drv_ard.h"
-#include "spi_connector.h"
+#include "vfs_api.h"
+#include "FS.h"
+#include "SPI.h"
 #else
 #include "sdmmc_drv_idf.h"
 #endif
@@ -19,19 +22,11 @@ static const char *TAG = "sdfs";
  *
  */
 class ArduinoSdFatDriver;
+
 SdmmcHost::SdmmcHost() {
   this->set_state(SD_SLOT_ST_NOTINIT);
-
-#ifdef USE_ARDUINO_SPI_FS
   this->connector_ = new SpiConnector();
-  ArduinoSdFatDriver *drv = new ArduinoSdFatDriver();
-  drv->set_connector(this->connector_);
-  drv->set_parent(this);
-  this->drv_ = drv;
-#else
-  this->drv_ = new SdmmcIdfDriver();
-  this->drv_->set_parent(this);
-#endif
+  ESP_LOGD(TAG, "Host class init");
 }
 
 void SdmmcHost::dump_config() {
@@ -107,14 +102,54 @@ void SdmmcHost::set_bus_width(BusWidth bus_width) { this->spi_bus_width_ = bus_w
 #ifdef USE_ARDUINO_SPI_FS
 void SdmmcHost::set_spi_parent(spi::SPIComponent *parent) { this->connector_->set_spi_parent(parent); }
 void SdmmcHost::set_cs_pin(GPIOPin *cs) { this->connector_->set_cs_pin(cs); }
-void SdmmcHost::set_data_rate(uint32_t data_rate) {
-  this->connector_->set_data_rate(data_rate);
-  this->connector_->setSckSpeed(data_rate);
-}
+void SdmmcHost::set_data_rate(uint32_t data_rate) { this->connector_->set_data_rate(data_rate); }
 void SdmmcHost::set_mode(spi::SPIMode mode) { this->connector_->set_mode(mode); }
 #endif
 
+/**
+ * @brief  init SPI connector and SD disk driver
+ *
+ */
 void SdmmcHost::setup() {
+  ESP_LOGD(TAG, "Setup called");
+
+#ifdef USE_ARDUINO_SPI_FS
+  // fs::FSImplPtr* fs = new fs::FSImplPtr();
+  ArduinoSdFatDriver *drv = new ArduinoSdFatDriver(fs::FSImplPtr(new VFSImpl()));
+
+  ESP_LOGD(TAG, "Setup/Init spi");
+
+  // clk_pin_name: GPIO4
+  // miso_pin_name: GPIO5
+  // mosi_pin_name: GPIO6
+  // cs_pin_name: GPIO7
+  // void SPIClass::begin(int8_t sck, int8_t miso, int8_t mosi, int8_t ss)
+  // SPIClass* spi_ = new SPIClass(FSPI);
+  //   spi_->begin(
+  //   4,  // SCK
+  //   5,  //  MISO
+  //   6,  //  MOSI
+  //   7  //  SS
+  //  );
+
+  SPI.begin(4,  // SCK
+            5,  //  MISO
+            6,  //  MOSI
+            7   //  SS
+  );
+
+  ESP_LOGD(TAG, "Setup/Set spi");
+  drv->set_spi(7, &SPI, 4000000, "/sd");
+
+  ESP_LOGD(TAG, "Setup/Set connector");
+  drv->set_connector(this->connector_);
+  drv->set_parent(this);
+  this->drv_ = drv;
+#else
+  this->drv_ = new SdmmcIdfDriver();
+  this->drv_->set_parent(this);
+#endif
+
   ESP_LOGD(TAG, "Setup");
   this->last_time_check_ = ::time(nullptr);
   this->dump_config();
@@ -124,6 +159,7 @@ void SdmmcHost::setup() {
     return;
   }
 
+  ESP_LOGD(TAG, "Start init host");
   if (!this->drv_->init_host(this->type_)) {
     this->mark_failed();
     this->set_state(SD_SLOT_ST_NOTINIT);

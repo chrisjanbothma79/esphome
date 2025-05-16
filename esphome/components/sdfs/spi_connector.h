@@ -3,43 +3,35 @@
 #include "sdfs.h"
 #ifdef USE_ARDUINO_SPI_FS
 #include "esphome/components/spi/spi.h"
-#include "SpiDriver/SdSpiDriver.h"
-#include "SpiDriver/SdSpiBaseClass.h"
-#include "SdCard/SdCard.h"
 
 namespace esphome {
 namespace sdfs {
 
-// class SdSpiConfig;
-// You can write a driver entirely independent of SPI.h.
-// It can be optimized for your board or a different SPI port can be used.
-// The driver must be derived from SdSpiBaseClass.
-// See: SdFat/src/SpiDriver/SdSpiBaseClass.h
-class SpiConnector : public SdSpiBaseClass,
-                     public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
+class SpiConnector : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                            spi::DATA_RATE_40MHZ> {
  public:
-  void activate() override;  // Activate SPI hardware with correct speed and mode.
-  void begin();
-  void begin(SdSpiConfig) override;  // Initialize the SPI bus.
-                                     //   void begin(SdSpiConfig config) override; // Initialize the SPI bus.
-  void deactivate() override;        // Deactivate SPI hardware.
-  uint8_t receive() override;        // Receive a byte.
-  uint8_t receive(uint8_t *buf, size_t count) override;  // Receive multiple bytes.
-  void send(uint8_t data) override;                      // Send a byte.
-  void send(const uint8_t *buf, size_t count) override;  // Send multiple bytes.
-  void setSckSpeed(uint32_t maxSck) override;            // Save SPISettings for new max SCK frequency
-  void end() override;
-  uint8_t get_errCode();
-  uint32_t get_status();
-  SdSpiConfig *get_config();
+  virtual void begin();
+  virtual void end();
+  virtual void beginTransaction(SPISettings settings);
+  virtual void endTransaction(void);
+  virtual void transfer(void *data, uint32_t size);
+  virtual uint8_t transfer(uint8_t data);
+  virtual uint16_t transfer16(uint16_t data);
+  virtual uint32_t transfer32(uint32_t data);
+
+  virtual void transferBytes(const uint8_t *data, uint8_t *out, uint32_t size);
+  // virtual void transferBits(uint32_t data, uint32_t * out, uint8_t bits);
+
+  virtual void write(uint8_t data);
+  virtual void write16(uint16_t data);
+  virtual void write32(uint32_t data);
+  virtual void writeBytes(const uint8_t *data, uint32_t size);
+  // virtual void writePixels(const void * data, uint32_t size);//ili9341 compatible
+  virtual void writePattern(const uint8_t *data, uint8_t size, uint32_t repeat);
 
  private:
-  void set_last_err(uint8_t);
-  int last_err_ = 0;
-  SdSpiConfig *config_;
-  uint32_t maxSck_ = spi::DATA_RATE_40MHZ;
-  SdCard *card_;
+  void writePattern_(const uint8_t *data, uint8_t size, uint8_t repeat);
+  bool in_transaction = false;
 };
 
 }  // namespace sdfs
