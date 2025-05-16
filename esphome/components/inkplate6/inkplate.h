@@ -225,7 +225,7 @@ class Inkplate6 : public display::DisplayBuffer, public i2c::I2CDevice {
   bool block_partial_{true};
   bool greyscale_;
   bool mirror_y_{false};
-  bool mirror_x_;
+  bool mirror_x_{false};
   bool partial_updating_;
 
   InkplateModel model_;
