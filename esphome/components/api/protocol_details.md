@@ -341,9 +341,8 @@ Same temperature reading:
 Hex: 00 0B 08 06 12 04 08 96 42 10
 ```
 - `00`: Plaintext indicator
-- `0B`: Frame size (11 bytes, varint unsigned)
+- `06`: Payload size (6 bytes, varint unsigned)
 - `08`: Message type 8 (varint unsigned)
-- `06`: Data length 6 (varint unsigned)
 - `12 04 08 96 42 10`: Protocol buffer data
 
 ## Performance Considerations
@@ -355,7 +354,7 @@ Hex: 00 0B 08 06 12 04 08 96 42 10
 - Better for security-sensitive applications
 
 ### Plaintext Protocol
-- Variable 4-10 byte overhead (depending on sizes)
+- Variable 3-5 byte overhead (depending on sizes)
 - Dynamic header positioning
 - Lower CPU usage
 - Better for high-frequency, non-sensitive data
