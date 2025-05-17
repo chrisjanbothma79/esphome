@@ -278,7 +278,7 @@ The plaintext protocol dynamically calculates the optimal header position to min
    - And so on (each additional byte adds 7 bits of capacity)
 
 3. **Header Offset Calculation**: The header is positioned as late as possible in the 6-byte padding area:
-   - Total header length = 1 (indicator) + frame size varint + message type varint + data length varint
+   - Total header length = 1 (indicator) + payload size varint + message type varint
    - Offset = 6 - total header length
    - This ensures minimal unused bytes at the beginning of the buffer
 
