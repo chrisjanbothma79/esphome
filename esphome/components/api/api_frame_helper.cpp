@@ -1050,10 +1050,10 @@ APIError APIPlaintextFrameHelper::write_protobuf_packet(uint16_t type, ProtoWrit
   buf_start[header_offset] = 0x00;  // indicator
 
   // Encode size varint directly into buffer
-  ProtoVarInt(payload_len).encode_to_buffer(buf_start + header_offset + 1, size_varint_len);
+  ProtoVarInt(payload_len).encode_to_buffer_unchecked(buf_start + header_offset + 1, size_varint_len);
 
   // Encode type varint directly into buffer
-  ProtoVarInt(type).encode_to_buffer(buf_start + header_offset + 1 + size_varint_len, type_varint_len);
+  ProtoVarInt(type).encode_to_buffer_unchecked(buf_start + header_offset + 1 + size_varint_len, type_varint_len);
 
   struct iovec iov;
   // Point iov_base to the beginning of our header (skip unused padding)

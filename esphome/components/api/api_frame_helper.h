@@ -93,7 +93,7 @@ class APIFrameHelper {
 class APINoiseFrameHelper : public APIFrameHelper {
  public:
   APINoiseFrameHelper(std::unique_ptr<socket::Socket> socket, std::shared_ptr<APINoiseContext> ctx)
-      : socket_(std::move(socket)), ctx_(std::move(std::move(ctx))) {
+      : socket_(std::move(socket)), ctx_(std::move(ctx)) {
     // Noise header structure:
     // Pos 0: indicator (0x01)
     // Pos 1-2: encrypted payload size (16-bit big-endian)

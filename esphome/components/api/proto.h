@@ -83,7 +83,18 @@ class ProtoVarInt {
       return static_cast<int64_t>(this->value_ >> 1);
     }
   }
-  void encode_to_buffer(uint8_t *buffer, size_t len) {
+  /**
+   * Encode the varint value to a pre-allocated buffer without bounds checking.
+   *
+   * @param buffer The pre-allocated buffer to write the encoded varint to
+   * @param len The size of the buffer in bytes
+   *
+   * @note The caller is responsible for ensuring the buffer is large enough
+   *       to hold the encoded value. Use ProtoSize::varint() to calculate
+   *       the exact size needed before calling this method.
+   * @note No bounds checking is performed for performance reasons.
+   */
+  void encode_to_buffer_unchecked(uint8_t *buffer, size_t len) {
     uint64_t val = this->value_;
     if (val <= 0x7F) {
       buffer[0] = val;
