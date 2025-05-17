@@ -191,6 +191,31 @@ For post-handshake errors (during encrypted data exchange):
 - Invalid frame structure closes the connection immediately
 - No error messages are sent for these failures to prevent information leakage
 
+### Data Type Summary
+
+| Field | Type | Size | Encoding | Notes |
+|-------|------|------|----------|-------|
+| Indicator | uint8 | 1 byte | - | Always 0x01 |
+| Encrypted Size | uint16 | 2 bytes | Big-endian | Not encrypted |
+| Message Type | uint16 | 2 bytes | Big-endian | Encrypted |
+| Data Length | uint16 | 2 bytes | Big-endian | Encrypted |
+| Data | bytes | Variable | - | Protocol buffer payload, encrypted |
+
+### Wire Format Example
+
+Sending a temperature reading (value: 23.5°C):
+```
+Hex: 01 00 0E 00 08 00 06 12 04 08 96 42 10 B4 46
+     [C H A C H A 2 0 - P O L Y  M A C - 1 6 bytes]
+```
+- `01`: Noise indicator
+- `00 0E`: Encrypted size (14 bytes, big-endian unsigned)
+- Encrypted payload (before encryption):
+  - `00 08`: Message type 8 (big-endian unsigned)
+  - `00 06`: Data length 6 (big-endian unsigned)
+  - `12 04 08 96 42 10`: Protocol buffer data
+- 16-byte MAC appended
+
 ## Plaintext Protocol
 
 ### Overview
@@ -294,35 +319,6 @@ This dynamic positioning maximizes buffer efficiency while maintaining a fixed p
 3. **Message Type**: VarInt encoding of the 16-bit message type (unsigned)
 4. **Payload**: Protocol buffer data
 
-## Noise Protocol Specification
-
-### Data Type Summary
-
-| Field | Type | Size | Encoding | Notes |
-|-------|------|------|----------|-------|
-| Indicator | uint8 | 1 byte | - | Always 0x01 |
-| Encrypted Size | uint16 | 2 bytes | Big-endian | Not encrypted |
-| Message Type | uint16 | 2 bytes | Big-endian | Encrypted |
-| Data Length | uint16 | 2 bytes | Big-endian | Encrypted |
-| Data | bytes | Variable | - | Protocol buffer payload, encrypted |
-
-### Wire Format Example
-
-Sending a temperature reading (value: 23.5°C):
-```
-Hex: 01 00 0E 00 08 00 06 12 04 08 96 42 10 B4 46
-     [C H A C H A 2 0 - P O L Y  M A C - 1 6 bytes]
-```
-- `01`: Noise indicator
-- `00 0E`: Encrypted size (14 bytes, big-endian unsigned)
-- Encrypted payload (before encryption):
-  - `00 08`: Message type 8 (big-endian unsigned)
-  - `00 06`: Data length 6 (big-endian unsigned)
-  - `12 04 08 96 42 10`: Protocol buffer data
-- 16-byte MAC appended
-
-## Plaintext Protocol Specification
-
 ### Data Type Summary
 
 | Field | Type | Size | Encoding | Notes |
@@ -342,6 +338,7 @@ Hex: 00 06 08 12 04 08 96 42 10
 - `06`: Payload size (6 bytes, varint unsigned)
 - `08`: Message type 8 (varint unsigned)
 - `12 04 08 96 42 10`: Protocol buffer data
+
 
 ## Performance Considerations
 
