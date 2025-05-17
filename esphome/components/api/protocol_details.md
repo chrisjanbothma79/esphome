@@ -34,7 +34,7 @@ Size ranges:
 ## Noise Protocol
 
 ### Overview
-The Noise protocol provides encrypted, authenticated communication using the Noise XX handshake pattern.
+The Noise protocol provides encrypted, authenticated communication using the [Noise XX handshake pattern](https://www.noiseprotocol.org/noise.html#interactive-handshake-patterns-fundamental).
 
 ### Frame Structure
 ```
