@@ -269,10 +269,7 @@ Where:
 
 The plaintext protocol dynamically calculates the optimal header position to minimize unused padding:
 
-1. **Frame Size Computation**: The frame size includes all components after the indicator byte:
-   - Message type varint (1-3 bytes)
-   - Data length varint (1-5 bytes)
-   - Actual payload data
+1. **Payload Size Computation**: The payload size includes only the actual protobuf data bytes, not the header components. This differs from the Noise protocol which includes type and length in its data length field.
 
 2. **VarInt Length Determination**: Based on the value being encoded:
    - Values 0-127: 1 byte
