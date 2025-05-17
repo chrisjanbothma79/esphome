@@ -125,9 +125,10 @@ class DriverInterface {
   virtual bool init_host(SdConnType);
   virtual bool is_card();
   virtual bool attach_card();
-  virtual bool mount(bool);
+  virtual bool mount(std::string, bool);
   virtual uint32_t get_last_err();
   virtual void unmount();
+  virtual bool test();
 
  protected:
   SdConnType bus_type_;

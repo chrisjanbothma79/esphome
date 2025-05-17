@@ -12,8 +12,9 @@ class SpiConnector : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_
  public:
   virtual void begin();
   virtual void end();
-  virtual void beginTransaction(SPISettings settings);
-  virtual void endTransaction(void);
+  virtual bool is_transaction();
+  virtual void beginTransaction();
+  virtual void endTransaction();
   virtual void transfer(void *data, uint32_t size);
   virtual uint8_t transfer(uint8_t data);
   virtual uint16_t transfer16(uint16_t data);
@@ -30,6 +31,7 @@ class SpiConnector : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_
   virtual void writePattern(const uint8_t *data, uint8_t size, uint32_t repeat);
 
  private:
+  int trans_level_ = 0;
   void writePattern_(const uint8_t *data, uint8_t size, uint8_t repeat);
   bool in_transaction = false;
 };

@@ -156,7 +156,7 @@ ARDUINO_SPI_SCHEMA = cv.All(
         }
     )
     .extend(BASE_SCHEMA)
-    .extend(spi.spi_device_schema(cs_pin_required=True)),
+    .extend(spi.spi_device_schema(cs_pin_required=True, default_mode="MODE0")),
     cv.only_with_arduino,
 )
 

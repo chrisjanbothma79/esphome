@@ -22,6 +22,17 @@ extern "C" {
 namespace esphome {
 namespace sdfs {
 
+// #define BEGIN_TRNS s_cards[pdrv]->conn->beginTransaction()
+// #define END_TRNS s_cards[pdrv]->conn->endTransaction()
+
+#define BEGIN_TRNS \
+  {}
+#define END_TRNS \
+  {}
+
+#define LOCK_SPI s_cards[pdrv]->conn->beginTransaction()
+#define UNLOCK_SPI s_cards[pdrv]->conn->endTransaction()
+
 static const char *const TAG = "sdspi_drv_ard";
 
 typedef enum {
@@ -49,18 +60,17 @@ typedef enum {
 } ardu_sdcard_command_t;
 
 typedef struct {
-  uint8_t ssPin;
-  SPIClass *spi;
+  SpiConnector *conn;
   int frequency;
   char *base_path;
   sdcard_type_t type;
   unsigned long sectors;
   bool supports_crc;
   int status;
-} ardu_sdcard_t;
+} esp_ardu_sdcard_t;
 
-static ardu_sdcard_t *s_cards[FF_VOLUMES] = {NULL};
-static uint32_t sector_size = 512;
+static esp_ardu_sdcard_t *s_cards[FF_VOLUMES] = {NULL};
+static uint32_t def_sector_size = 512;
 
 #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_ERROR
 const char *fferr2str[] = {"(0) Succeeded",
@@ -85,7 +95,7 @@ const char *fferr2str[] = {"(0) Succeeded",
                            "(19) Given parameter is invalid"};
 #endif
 
-uint8_t sdcard_init(uint8_t cs, SPIClass *spi, int hz);
+// uint8_t sdcard_init(uint8_t cs, SPIClass *spi, int hz);
 static const ff_diskio_impl_t *sdimpl_init();
 uint8_t sdcard_uninit(uint8_t);
 bool sdcard_mount(uint8_t, const char *, uint8_t, bool);
@@ -95,6 +105,7 @@ uint8_t sdcard_unmount(uint8_t);
 // uint32_t sdcard_sector_size(uint8_t);
 bool sd_read_raw(uint8_t, uint8_t *, uint32_t);
 bool sd_write_raw(uint8_t, uint8_t *, uint32_t);
+char sdTransaction(uint8_t, char, unsigned int, unsigned int *);
 
 char CRC7(const char *data, int length);
 unsigned short CRC16(const char *data, int length);
@@ -109,7 +120,7 @@ unsigned short CRC16(const char *data, int length);
  */
 ArduinoSdFatDriver::ArduinoSdFatDriver(fs::FSImplPtr impl) : fs::FS(impl) {
   // this->localFS = FS(impl);
-  this->_pdrv = 0xFF;
+  this->pdrv_ = 0xFF;
   _impl->mountpoint("/sd_pld");
   //   this->_impl = impl;
 }
@@ -119,122 +130,144 @@ void ArduinoSdFatDriver::set_connector(SpiConnector *cn) { this->connector_ = cn
 // uint8_t ssPin=SS, SPIClass &spi=SPI, uint32_t frequency=4000000, const char * mountpoint="/sd", uint8_t max_files=5,
 // bool format_if_empty=false
 
-void ArduinoSdFatDriver::set_spi(uint8_t ss, SPIClass *spi, uint32_t frequency, const char *mountpoint) {
-  ESP_LOGD(TAG, "set_spi ");
-
-  this->ssPin_ = ss;
-  this->frequency_ = frequency;
-  this->mountpoint_ = mountpoint;
-  this->spi_ = &SPI;
-
-  ESP_LOGD(TAG, "set_spi %d, %s", this->ssPin_, this->mountpoint_);
-}
-
+/****************************************************************
+ * @brief Start SPI  snd SD card slot.
+ *
+ * @return true
+ * @return false
+ */
 bool ArduinoSdFatDriver::init_host(SdConnType) {
   uint8_t pdrv = 0xFF;
   ESP_LOGD(TAG, " ArduinoSdFatDriver/init_host ");
-  // this->spi_->begin();
+  this->connector_->begin();
+  // TODO: check for SPI initilized ?
 
-  // if (ff_diskio_get_drive(&pdrv) != ESP_OK || pdrv == 0xFF) {
-  //     return pdrv;
-  // }
+  if (ff_diskio_get_drive(&pdrv) != ESP_OK || pdrv == 0xFF) {
+    return pdrv;
+  }
 
-  // ardu_sdcard_t * card = (ardu_sdcard_t *)malloc(sizeof(ardu_sdcard_t));
-  // if (!card) {
-  //     return 0xFF;
-  // }
+  esp_ardu_sdcard_t *card = (esp_ardu_sdcard_t *) malloc(sizeof(esp_ardu_sdcard_t));
+  if (!card) {
+    return 0xFF;
+  }
 
-  // card->base_path = NULL;
-  // card->frequency = this->frequency_;
-  // card->spi = this->spi_;
-  // card->ssPin = this->ssPin_;
+  card->base_path = NULL;
+  card->frequency = this->frequency_;
+  card->conn = this->connector_;
+  card->supports_crc = true;
+  card->type = CARD_NONE;
+  card->status = STA_NOINIT;
 
-  // card->supports_crc = true;
-  // card->type = CARD_NONE;
-  // card->status = STA_NOINIT;
+  s_cards[pdrv] = card;
 
-  // pinMode(card->ssPin, OUTPUT);
-  // digitalWrite(card->ssPin, HIGH);
+  // static const ff_diskio_impl_t sd_impl = {.init = &ff_sd_initialize,
+  //                                          .status = &ff_sd_status,
+  //                                          .read = &ff_sd_read,
+  //                                          .write = &ff_sd_write,
+  //                                          .ioctl = &ff_sd_ioctl};
 
-  // s_cards[pdrv] = card;
-
-  // static const ff_diskio_impl_t* sd_impl =  sdimpl_init();
-  // ff_diskio_register(pdrv, sd_impl);
-  ESP_LOGD(TAG, "sdcard_init");
-  this->_pdrv = sdcard_init(this->ssPin_, this->spi_, this->frequency_);
+  static const ff_diskio_impl_t *sd_impl = sdimpl_init();
+  ff_diskio_register(pdrv, sd_impl);
+  pdrv_ = pdrv;
+  ESP_LOGD(TAG, "sdspi slot initilized. pdrv %d", pdrv_);
+  //   this->_pdrv = sdcard_init(this->ssPin_, this->spi_, this->frequency_);
   return true;
 }
 
-void ArduinoSdFatDriver::end() {
-  if (_pdrv != 0xFF) {
-    _impl->mountpoint(NULL);
-    sdcard_unmount(_pdrv);
+// TODO: Add destructor
 
-    sdcard_uninit(_pdrv);
-    _pdrv = 0xFF;
+void ArduinoSdFatDriver::end() {
+  if (pdrv_ != 0xFF) {
+    esp_err_t err;
+    _impl->mountpoint(NULL);
+    sdcard_unmount(pdrv_);
+
+    esp_ardu_sdcard_t *card = s_cards[pdrv_];
+
+    // sdTransaction
+    if (!connector_->is_transaction()) {
+      connector_->beginTransaction();
+    }
+    sdTransaction(pdrv_, GO_IDLE_STATE, 0, NULL);
+    // connector_->endTransaction();
+    // close transaction
+
+    ff_diskio_register(pdrv_, NULL);
+    s_cards[pdrv_] = NULL;
+    // err = ESP_OK;
+    if (card->base_path) {
+      err = esp_vfs_fat_unregister_path(card->base_path);
+      free(card->base_path);
+    }
+    free(card);
+    pdrv_ = 0xFF;
+    if (err != ESP_OK) {
+      SET_RC(IDF_ERR, err, "Failed to unregister path ");
+    }
   }
 }
 
 bool ArduinoSdFatDriver::is_card() {
-  ESP_LOGD(TAG, "is_card");
+  ESP_LOGD(TAG, "IS_CARD");
   return true;
 }
 bool ArduinoSdFatDriver::attach_card() {
-  ESP_LOGD(TAG, "attach_card");
+  ESP_LOGD(TAG, "ATTACH CARD");
   return true;
 }
 
-bool ArduinoSdFatDriver::mount(bool) {
-  ESP_LOGD(TAG, "mount");
-  if (!sdcard_mount(_pdrv, mountpoint_, 5, false)) {
-    ESP_LOGD(TAG, "Start mount %s, pdrv %d", mountpoint_, _pdrv);
-    sdcard_unmount(_pdrv);
-    _pdrv = 0xFF;
+bool ArduinoSdFatDriver::mount(std::string mountpoint, bool format) {
+  mountpoint_ = mountpoint;
+  format_if_empty_ = format;
+  ESP_LOGD(TAG, "MOUNT pdrv=%d, mountpoint=%s", pdrv_, mountpoint_.c_str());
+  if (!sdcard_mount(pdrv_, mountpoint_.c_str(), 5, format_if_empty_)) {
+    ESP_LOGE(TAG, "Cannot mount");
+    sdcard_unmount(pdrv_);
+    // TODO: Unmounting normal case it is donot nneed to clear pdrv
+    pdrv_ = 0xFF;
     return false;
   }
-  ESP_LOGD(TAG, "Load impl %s", mountpoint_);
+  _impl->mountpoint(mountpoint_.c_str());
+  ESP_LOGD(TAG, "sdcard mounted at %s", mountpoint_.c_str());
 
-  //   !!!!!!!!     Break
-  _impl->mountpoint(this->mountpoint_);
+  bool res = this->test();
   return true;
 }
 
 void ArduinoSdFatDriver::unmount() {
-  ESP_LOGD(TAG, "unmount");
-  sdcard_unmount(_pdrv);
+  ESP_LOGD(TAG, "UNMOUNT");
+  sdcard_unmount(pdrv_);
 }
 
 uint32_t ArduinoSdFatDriver::get_last_err() { return this->last_err_; }
 
 sdcard_type_t ArduinoSdFatDriver::cardType() {
-  if (_pdrv == 0xFF) {
+  if (pdrv_ == 0xFF) {
     return CARD_NONE;
   }
   // return sdcard_type(_pdrv);
-  return s_cards[_pdrv]->type;
+  return s_cards[pdrv_]->type;
 }
 
 uint64_t ArduinoSdFatDriver::cardSize() {
-  if (_pdrv == 0xFF) {
+  if (pdrv_ == 0xFF) {
     return 0;
   }
-  // size_t sectors = sdcard_num_sectors(_pdrv);
-  // size_t sectorSize = sdcard_sector_size(_pdrv);
   return (uint64_t) numSectors() * this->sectorSize();
 }
 
 size_t ArduinoSdFatDriver::numSectors() {
-  if (_pdrv == 0xFF) {
+  if (pdrv_ == 0xFF) {
     return 0;
   }
-  return s_cards[_pdrv]->sectors;
+  return s_cards[pdrv_]->sectors;
 }
 
 size_t ArduinoSdFatDriver::sectorSize() {
-  if (_pdrv == 0xFF) {
+  if (pdrv_ == 0xFF) {
     return 0;
   }
-  return sector_size;
+  return def_sector_size;
 }
 
 uint64_t ArduinoSdFatDriver::totalBytes() {
@@ -265,9 +298,35 @@ uint64_t ArduinoSdFatDriver::usedBytes() {
   return size;
 }
 
-bool ArduinoSdFatDriver::readRAW(uint8_t *buffer, uint32_t sector) { return sd_read_raw(_pdrv, buffer, sector); }
+/**
+ * @brief   Testing connected driver. Open and list root dir.
+ *
+ * @return true
+ * @return false
+ */
+bool ArduinoSdFatDriver::test() {
+  ESP_LOGD(TAG, "TEST FS");
+  File fl = this->open("/");
 
-bool ArduinoSdFatDriver::writeRAW(uint8_t *buffer, uint32_t sector) { return sd_write_raw(_pdrv, buffer, sector); }
+  ESP_LOGW(TAG, "Card size %d", this->cardSize());
+
+  if (fl.isDirectory()) {
+    ESP_LOGW(TAG, " Root path %s, size %d", fl.name(), fl.size());
+  } else {
+    ESP_LOGW(TAG, " Root path %s, in not directory", fl.name());
+  }
+  return true;
+}
+
+bool ArduinoSdFatDriver::readRAW(uint8_t *buffer, uint32_t sector) {
+  ESP_LOGD(TAG, "readRAW");
+  return sd_read_raw(pdrv_, buffer, sector);
+}
+
+bool ArduinoSdFatDriver::writeRAW(uint8_t *buffer, uint32_t sector) {
+  ESP_LOGD(TAG, "writeRAW");
+  return sd_write_raw(pdrv_, buffer, sector);
+}
 
 //*********************************************************************
 //
@@ -280,11 +339,12 @@ bool ArduinoSdFatDriver::writeRAW(uint8_t *buffer, uint32_t sector) { return sd_
  * */
 
 bool sdWait(uint8_t pdrv, int timeout) {
+  // ESP_LOGD(TAG, "sdWait");
   char resp;
   uint32_t start = millis();
 
   do {
-    resp = s_cards[pdrv]->spi->transfer(0xFF);
+    resp = s_cards[pdrv]->conn->transfer(0xFF);
   } while (resp == 0x00 && (millis() - start) < (unsigned int) timeout);
 
   if (!resp) {
@@ -293,20 +353,31 @@ bool sdWait(uint8_t pdrv, int timeout) {
   return (resp > 0x00);
 }
 
-void sdStop(uint8_t pdrv) { s_cards[pdrv]->spi->write(0xFD); }
+void sdStop(uint8_t pdrv) {
+  // ESP_LOGD(TAG, "sdStop");
+  s_cards[pdrv]->conn->write(0xFD);
+}
 
 void sdDeselectCard(uint8_t pdrv) {
-  ardu_sdcard_t *card = s_cards[pdrv];
-  digitalWrite(card->ssPin, HIGH);
+  // ESP_LOGD(TAG, "sdDeselectCard -");
+  esp_ardu_sdcard_t *card = s_cards[pdrv];
+  //   digitalWrite(card->ssPin, HIGH);
+  // card->conn->endTransaction();
+  END_TRNS;
 }
 
 bool sdSelectCard(uint8_t pdrv) {
-  ardu_sdcard_t *card = s_cards[pdrv];
-  digitalWrite(card->ssPin, LOW);
+  // ESP_LOGD(TAG, "sdSelectCard  +");
+  esp_ardu_sdcard_t *card = s_cards[pdrv];
+  BEGIN_TRNS;
+  // card->conn->beginTransaction();
+  // digitalWrite(card->ssPin, LOW);
   bool s = sdWait(pdrv, 500);
   if (!s) {
     ESP_LOGE(TAG, "Select Failed");
-    digitalWrite(card->ssPin, HIGH);
+    END_TRNS;
+    // card->conn->endTransaction();
+    // digitalWrite(card->ssPin, HIGH);
     return false;
   }
   return true;
@@ -314,13 +385,16 @@ bool sdSelectCard(uint8_t pdrv) {
 
 char sdCommand(uint8_t pdrv, char cmd, unsigned int arg, unsigned int *resp) {
   char token;
-  ardu_sdcard_t *card = s_cards[pdrv];
+  esp_ardu_sdcard_t *card = s_cards[pdrv];
+  ESP_LOGD(TAG, "sdCommand, cmd=%d, arg=0x%x", cmd, arg);
 
   for (int f = 0; f < 3; f++) {
     if (cmd == SEND_NUM_WR_BLOCKS || cmd == SET_WR_BLK_ERASE_COUNT || cmd == APP_OP_COND ||
         cmd == APP_CLR_CARD_DETECT) {
       token = sdCommand(pdrv, APP_CMD, 0, NULL);
-      sdDeselectCard(pdrv);
+      END_TRNS;
+      // sdDeselectCard(pdrv);
+      // card->conn->endTransaction();
       if (token > 1) {
         break;
       }
@@ -343,24 +417,30 @@ char sdCommand(uint8_t pdrv, char cmd, unsigned int arg, unsigned int *resp) {
     }
     cmdPacket[6] = 0xFF;
 
-    card->spi->writeBytes((uint8_t *) cmdPacket, (cmd == STOP_TRANSMISSION) ? 7 : 6);
+    card->conn->writeBytes((uint8_t *) cmdPacket, (cmd == STOP_TRANSMISSION) ? 7 : 6);
 
     for (int i = 0; i < 9; i++) {
-      token = card->spi->transfer(0xFF);
+      token = card->conn->transfer(0xFF);
       if (!(token & 0x80)) {
         break;
       }
     }
 
+    // ESP_LOGD(TAG, "sdCommand, got token 0x%.02x",token);
+
     if (token == 0xFF) {
       ESP_LOGW(TAG, "no token received");
-      sdDeselectCard(pdrv);
+      END_TRNS;
+      // sdDeselectCard(pdrv);
+      // card->conn->endTransaction();
       delay(100);
       sdSelectCard(pdrv);
       continue;
     } else if (token & 0x08) {
       ESP_LOGW(TAG, "crc error");
-      sdDeselectCard(pdrv);
+      END_TRNS;
+      // sdDeselectCard(pdrv);
+      // card->conn->endTransaction();
       delay(100);
       sdSelectCard(pdrv);
       continue;
@@ -370,50 +450,53 @@ char sdCommand(uint8_t pdrv, char cmd, unsigned int arg, unsigned int *resp) {
     }
 
     if (cmd == SEND_STATUS && resp) {
-      *resp = card->spi->transfer(0xFF);
+      *resp = card->conn->transfer(0xFF);
     } else if ((cmd == SEND_IF_COND || cmd == READ_OCR) && resp) {
-      *resp = card->spi->transfer32(0xFFFFFFFF);
+      *resp = card->conn->transfer32(0xFFFFFFFF);
+      ESP_LOGD(TAG, "sdCommand, transfer32 complete 0x%x", *resp);
     }
-
     break;
   }
   if (token == 0xFF) {
-    ESP_LOGE(TAG, "Card Failed! cmd: 0x%02x", cmd);
+    ESP_LOGE(TAG, "Card Failed! cmd: %d", cmd);
     card->status = STA_NOINIT;
   }
+  ESP_LOGD(TAG, "sdCommand, transfer complete token=%u", token);
   return token;
 }
 
 bool sdReadBytes(uint8_t pdrv, char *buffer, int length) {
+  ESP_LOGD(TAG, "sdReadBytes len %d", length);
   char token;
   unsigned short crc;
-  ardu_sdcard_t *card = s_cards[pdrv];
+  esp_ardu_sdcard_t *card = s_cards[pdrv];
 
   uint32_t start = millis();
   do {
-    token = card->spi->transfer(0xFF);
+    token = card->conn->transfer(0xFF);
   } while (token == 0xFF && (millis() - start) < 500);
 
   if (token != 0xFE) {
     return false;
   }
 
-  card->spi->transferBytes(NULL, (uint8_t *) buffer, length);
-  crc = card->spi->transfer16(0xFFFF);
+  card->conn->transferBytes(NULL, (uint8_t *) buffer, length);
+  crc = card->conn->transfer16(0xFFFF);
   return (!card->supports_crc || crc == CRC16(buffer, length));
 }
 
 char sdWriteBytes(uint8_t pdrv, const char *buffer, char token) {
-  ardu_sdcard_t *card = s_cards[pdrv];
+  ESP_LOGD(TAG, "sdWriteBytes, token=%u", token);
+  esp_ardu_sdcard_t *card = s_cards[pdrv];
   unsigned short crc = (card->supports_crc) ? CRC16(buffer, 512) : 0xFFFF;
   if (!sdWait(pdrv, 500)) {
     return false;
   }
 
-  card->spi->write(token);
-  card->spi->writeBytes((uint8_t *) buffer, 512);
-  card->spi->write16(crc);
-  return (card->spi->transfer(0xFF) & 0x1F);
+  card->conn->write(token);
+  card->conn->writeBytes((uint8_t *) buffer, 512);
+  card->conn->write16(crc);
+  return (card->conn->transfer(0xFF) & 0x1F);
 }
 
 /*
@@ -421,22 +504,28 @@ char sdWriteBytes(uint8_t pdrv, const char *buffer, char token) {
  * */
 
 char sdTransaction(uint8_t pdrv, char cmd, unsigned int arg, unsigned int *resp) {
+  // ESP_LOGD(TAG, "sdTransaction");
   if (!sdSelectCard(pdrv)) {
     return 0xFF;
   }
   char token = sdCommand(pdrv, cmd, arg, resp);
-  sdDeselectCard(pdrv);
+  END_TRNS;
+  // sdDeselectCard(pdrv);
+  // s_cards[pdrv]->conn->endTransaction();
   return token;
 }
 
 bool sdReadSector(uint8_t pdrv, char *buffer, unsigned long long sector) {
+  ESP_LOGD(TAG, "sdReadSector %d", sector);
   for (int f = 0; f < 3; f++) {
     if (!sdSelectCard(pdrv)) {
       return false;
     }
     if (!sdCommand(pdrv, READ_BLOCK_SINGLE, (s_cards[pdrv]->type == CARD_SDHC) ? sector : sector << 9, NULL)) {
       bool success = sdReadBytes(pdrv, buffer, 512);
-      sdDeselectCard(pdrv);
+      END_TRNS;
+      // sdDeselectCard(pdrv);
+      // s_cards[pdrv]->conn->endTransaction();
       if (success) {
         return true;
       }
@@ -444,11 +533,15 @@ bool sdReadSector(uint8_t pdrv, char *buffer, unsigned long long sector) {
       break;
     }
   }
-  sdDeselectCard(pdrv);
+
+  END_TRNS;
+  // sdDeselectCard(pdrv);
+  // s_cards[pdrv]->conn->endTransaction();
   return false;
 }
 
 bool sdReadSectors(uint8_t pdrv, char *buffer, unsigned long long sector, int count) {
+  ESP_LOGD(TAG, "sdReadSectors %d, num=%d", sector, count);
   for (int f = 0; f < 3;) {
     if (!sdSelectCard(pdrv)) {
       return false;
@@ -471,7 +564,9 @@ bool sdReadSectors(uint8_t pdrv, char *buffer, unsigned long long sector, int co
         break;
       }
 
-      sdDeselectCard(pdrv);
+      END_TRNS;
+      // sdDeselectCard(pdrv);
+      // s_cards[pdrv]->conn->endTransaction();
       if (count == 0) {
         return true;
       }
@@ -479,18 +574,23 @@ bool sdReadSectors(uint8_t pdrv, char *buffer, unsigned long long sector, int co
       break;
     }
   }
-  sdDeselectCard(pdrv);
+  END_TRNS;
+  // sdDeselectCard(pdrv);
+  // s_cards[pdrv]->conn->endTransaction();
   return false;
 }
 
 bool sdWriteSector(uint8_t pdrv, const char *buffer, unsigned long long sector) {
+  ESP_LOGD(TAG, "sdWriteSector");
   for (int f = 0; f < 3; f++) {
     if (!sdSelectCard(pdrv)) {
       return false;
     }
     if (!sdCommand(pdrv, WRITE_BLOCK_SINGLE, (s_cards[pdrv]->type == CARD_SDHC) ? sector : sector << 9, NULL)) {
       char token = sdWriteBytes(pdrv, buffer, 0xFE);
-      sdDeselectCard(pdrv);
+      END_TRNS;
+      // s_cards[pdrv]->conn->endTransaction();
+      // sdDeselectCard(pdrv);
 
       if (token == 0x0A) {
         continue;
@@ -507,16 +607,19 @@ bool sdWriteSector(uint8_t pdrv, const char *buffer, unsigned long long sector) 
       break;
     }
   }
-  sdDeselectCard(pdrv);
+  END_TRNS;
+  // sdDeselectCard(pdrv);
+  // s_cards[pdrv]->conn->endTransaction();
   return false;
 }
 
 bool sdWriteSectors(uint8_t pdrv, const char *buffer, unsigned long long sector, int count) {
+  ESP_LOGD(TAG, "sdWriteSectors");
   char token;
   const char *currentBuffer = buffer;
   unsigned long long currentSector = sector;
   int currentCount = count;
-  ardu_sdcard_t *card = s_cards[pdrv];
+  esp_ardu_sdcard_t *card = s_cards[pdrv];
 
   for (int f = 0; f < 3;) {
     if (card->type != CARD_MMC) {
@@ -546,7 +649,9 @@ bool sdWriteSectors(uint8_t pdrv, const char *buffer, unsigned long long sector,
 
       if (currentCount == 0) {
         sdStop(pdrv);
-        sdDeselectCard(pdrv);
+        END_TRNS;
+        // s_cards[pdrv]->conn->endTransaction();
+        // sdDeselectCard(pdrv);
 
         unsigned int resp;
         if (sdTransaction(pdrv, SEND_STATUS, 0, &resp) || resp) {
@@ -559,7 +664,9 @@ bool sdWriteSectors(uint8_t pdrv, const char *buffer, unsigned long long sector,
         }
 
         if (token == 0x0A) {
-          sdDeselectCard(pdrv);
+          END_TRNS;
+          // sdDeselectCard(pdrv);
+          // s_cards[pdrv]->conn->endTransaction();
           unsigned int writtenBlocks = 0;
           if (card->type != CARD_MMC && sdSelectCard(pdrv)) {
             if (!sdCommand(pdrv, SEND_NUM_WR_BLOCKS, 0, NULL)) {
@@ -571,7 +678,9 @@ bool sdWriteSectors(uint8_t pdrv, const char *buffer, unsigned long long sector,
                 writtenBlocks |= acmdData[3];
               }
             }
-            sdDeselectCard(pdrv);
+            // sdDeselectCard(pdrv);
+            // s_cards[pdrv]->conn->endTransaction();
+            END_TRNS;
           }
           currentBuffer = buffer + (writtenBlocks << 9);
           currentSector = sector + writtenBlocks;
@@ -585,91 +694,116 @@ bool sdWriteSectors(uint8_t pdrv, const char *buffer, unsigned long long sector,
       break;
     }
   }
-  sdDeselectCard(pdrv);
+  END_TRNS;
+  // sdDeselectCard(pdrv);
+  // s_cards[pdrv]->conn->endTransaction();
   return false;
 }
 
 unsigned long sdGetSectorsCount(uint8_t pdrv) {
+  ESP_LOGD(TAG, "sdGetSectorsCount");
+  LOCK_SPI;
   for (int f = 0; f < 3; f++) {
     if (!sdSelectCard(pdrv)) {
-      return false;
+      UNLOCK_SPI;
+      return 0;
     }
 
     if (!sdCommand(pdrv, SEND_CSD, 0, NULL)) {
       char csd[16];
       bool success = sdReadBytes(pdrv, csd, 16);
-      sdDeselectCard(pdrv);
+      END_TRNS;
+      // sdDeselectCard(pdrv);
+      // s_cards[pdrv]->conn->endTransaction();
       if (success) {
         if ((csd[0] >> 6) == 0x01) {
           unsigned long size = (((unsigned long) (csd[7] & 0x3F) << 16) | ((unsigned long) csd[8] << 8) | csd[9]) + 1;
+          UNLOCK_SPI;
           return size << 10;
         }
         unsigned long size =
             (((unsigned long) (csd[6] & 0x03) << 10) | ((unsigned long) csd[7] << 2) | ((csd[8] & 0xC0) >> 6)) + 1;
         size <<= ((((csd[9] & 0x03) << 1) | ((csd[10] & 0x80) >> 7)) + 2);
         size <<= (csd[5] & 0x0F);
+        UNLOCK_SPI;
         return size >> 9;
       }
     } else {
       break;
     }
   }
-
-  sdDeselectCard(pdrv);
+  END_TRNS;
+  // sdDeselectCard(pdrv);
+  // s_cards[pdrv]->conn->endTransaction();
   return 0;
 }
 
-namespace {
+// namespace {
 
-struct AcquireSPI {
-  ardu_sdcard_t *card;
-  explicit AcquireSPI(ardu_sdcard_t *card) : card(card) {
-    card->spi->beginTransaction(SPISettings(card->frequency, MSBFIRST, SPI_MODE0));
-  }
-  AcquireSPI(ardu_sdcard_t *card, int frequency) : card(card) {
-    card->spi->beginTransaction(SPISettings(frequency, MSBFIRST, SPI_MODE0));
-  }
-  ~AcquireSPI() { card->spi->endTransaction(); }
+// struct AcquireSPI {
+//   esp_ardu_sdcard_t *card;
+//   explicit AcquireSPI(esp_ardu_sdcard_t *card) : card(card) {
+//     ESP_LOGD(TAG, "LOCK. AcquireSPI");
+//     // card->spi->beginTransaction(SPISettings(card->frequency, MSBFIRST, SPI_MODE0));
+//     card->conn->beginTransaction();
+//   }
+//   AcquireSPI(esp_ardu_sdcard_t *card, int frequency) : card(card) {
+//     ESP_LOGD(TAG, "LOCK. cquireSPI, freq=%d",frequency);
+//     // card->spi->beginTransaction(SPISettings(frequency, MSBFIRST, SPI_MODE0));
+//     card->conn->beginTransaction();
+//   }
+//   ~AcquireSPI() {
+//     // card->spi->endTransaction();
+//     ESP_LOGD(TAG, "UNLOCK. AcquireSPI");
+//     card->conn->endTransaction();
+// }
 
- private:
-  AcquireSPI(AcquireSPI const &);
-  AcquireSPI &operator=(AcquireSPI const &);
-};
+//  private:
+//   AcquireSPI(AcquireSPI const &);
+//   AcquireSPI &operator=(AcquireSPI const &);
+// };
 
-}  // namespace
+// }  // namespace
 
 /*
  * FATFS API
  * */
 
 DSTATUS ff_sd_initialize(uint8_t pdrv) {
+  ESP_LOGD(TAG, ">>> ff_sd_initialize");
   char token;
   unsigned int resp;
   unsigned int start;
-  ardu_sdcard_t *card = s_cards[pdrv];
+  esp_ardu_sdcard_t *card = s_cards[pdrv];
 
   if (!(card->status & STA_NOINIT)) {
     return card->status;
   }
-
-  AcquireSPI card_locked(card, 400000);
-
-  digitalWrite(card->ssPin, HIGH);
+  LOCK_SPI;
+  // AcquireSPI card_locked(card, 400000);
+  // digitalWrite(card->ssPin, HIGH);
+  // card->conn->beginTransaction();
   for (uint8_t i = 0; i < 20; i++) {
-    card->spi->transfer(0XFF);
+    card->conn->transfer(0XFF);
   }
 
   // Fix mount issue - sdWait fail ignored before command GO_IDLE_STATE
-  digitalWrite(card->ssPin, LOW);
+  //   digitalWrite(card->ssPin, LOW);
+  //   card->conn->endTransaction();
+
   if (!sdWait(pdrv, 500)) {
     ESP_LOGW(TAG, "sdWait fail ignored, card initialize continues");
   }
   if (sdCommand(pdrv, GO_IDLE_STATE, 0, NULL) != 1) {
-    sdDeselectCard(pdrv);
+    END_TRNS;
+    // sdDeselectCard(pdrv);
+    // card->conn->endTransaction();
     ESP_LOGW(TAG, "GO_IDLE_STATE failed");
     goto unknown_card;
   }
-  sdDeselectCard(pdrv);
+  END_TRNS;
+  // sdDeselectCard(pdrv);
+  // card->conn->endTransaction();
 
   token = sdTransaction(pdrv, CRC_ON_OFF, 1, NULL);
   if (token == 0x5) {
@@ -760,40 +894,59 @@ DSTATUS ff_sd_initialize(uint8_t pdrv) {
   }
 
   card->status &= ~STA_NOINIT;
+
+  ESP_LOGD(TAG, " <<< ff_sd_initialize initialized status=0x%.02x", card->status);
+  UNLOCK_SPI;
   return card->status;
 
 unknown_card:
+  ESP_LOGD(TAG, "ff_sd_initialize CARD unknown ");
   card->type = CARD_UNKNOWN;
+  UNLOCK_SPI;
   return card->status;
 }
 
 DSTATUS ff_sd_status(uint8_t pdrv) {
+  ESP_LOGD(TAG, "ff_sd_status");
+  LOCK_SPI;
   if (sdTransaction(pdrv, SEND_STATUS, 0, NULL)) {
     ESP_LOGE(TAG, "Check status failed");
+    UNLOCK_SPI;
     return STA_NOINIT;
   }
+  UNLOCK_SPI;
   return s_cards[pdrv]->status;
 }
 
 DRESULT ff_sd_read(uint8_t pdrv, uint8_t *buffer, DWORD sector, UINT count) {
-  ardu_sdcard_t *card = s_cards[pdrv];
+  ESP_LOGD(TAG, ">>> ff_sd_read, sector=%d, count=%d", sector, count);
+  esp_ardu_sdcard_t *card = s_cards[pdrv];
+
   if (card->status & STA_NOINIT) {
+    ESP_LOGD(TAG, "ff_sd_read = STA_NOINIT. Return");
     return RES_NOTRDY;
   }
   DRESULT res = RES_OK;
 
-  AcquireSPI lock(card);
+  // card->conn->beginTransaction();
+  // AcquireSPI lock(card);
+  LOCK_SPI;
 
+  ESP_LOGD(TAG, "ff_sd_read.  Start reading");
   if (count > 1) {
     res = sdReadSectors(pdrv, (char *) buffer, sector, count) ? RES_OK : RES_ERROR;
   } else {
     res = sdReadSector(pdrv, (char *) buffer, sector) ? RES_OK : RES_ERROR;
   }
+  // card->conn->endTransaction();
+  UNLOCK_SPI;
+  ESP_LOGD(TAG, "<<< ff_sd_read, rc=%d", res);
   return res;
 }
 
 DRESULT ff_sd_write(uint8_t pdrv, const uint8_t *buffer, DWORD sector, UINT count) {
-  ardu_sdcard_t *card = s_cards[pdrv];
+  ESP_LOGD(TAG, ">>> ff_sd_write, sector=%d, count=%d", sector, count);
+  esp_ardu_sdcard_t *card = s_cards[pdrv];
   if (card->status & STA_NOINIT) {
     return RES_NOTRDY;
   }
@@ -803,24 +956,34 @@ DRESULT ff_sd_write(uint8_t pdrv, const uint8_t *buffer, DWORD sector, UINT coun
   }
   DRESULT res = RES_OK;
 
-  AcquireSPI lock(card);
+  // card->conn->beginTransaction();
+  // AcquireSPI lock(card);
+  LOCK_SPI;
 
   if (count > 1) {
     res = sdWriteSectors(pdrv, (const char *) buffer, sector, count) ? RES_OK : RES_ERROR;
   } else {
     res = sdWriteSector(pdrv, (const char *) buffer, sector) ? RES_OK : RES_ERROR;
   }
+  // card->conn->endTransaction();
+  UNLOCK_SPI;
+  ESP_LOGD(TAG, "<<< ff_sd_read, rc=%d", res);
   return res;
 }
 
 DRESULT ff_sd_ioctl(uint8_t pdrv, uint8_t cmd, void *buff) {
   switch (cmd) {
     case CTRL_SYNC: {
-      AcquireSPI lock(s_cards[pdrv]);
+      ESP_LOGD(TAG, ">>> ff_sd_ioctl cmd=%d", cmd);
+      LOCK_SPI;
       if (sdSelectCard(pdrv)) {
-        sdDeselectCard(pdrv);
+        // sdDeselectCard(pdrv);
+        UNLOCK_SPI;
+        ESP_LOGD(TAG, "<<< ff_sd_ioctl  OK");
         return RES_OK;
       }
+      UNLOCK_SPI;
+      ESP_LOGD(TAG, "<<< ff_sd_ioctl  ERROR");
     }
       return RES_ERROR;
     case GET_SECTOR_COUNT:
@@ -846,60 +1009,61 @@ bool sd_write_raw(uint8_t pdrv, uint8_t *buffer, DWORD sector) {
  * Public methods
  * */
 
-uint8_t sdcard_uninit(uint8_t pdrv) {
-  ardu_sdcard_t *card = s_cards[pdrv];
-  if (pdrv >= FF_VOLUMES || card == NULL) {
-    return 1;
-  }
-  sdTransaction(pdrv, GO_IDLE_STATE, 0, NULL);
-  ff_diskio_register(pdrv, NULL);
-  s_cards[pdrv] = NULL;
-  esp_err_t err = ESP_OK;
-  if (card->base_path) {
-    err = esp_vfs_fat_unregister_path(card->base_path);
-    free(card->base_path);
-  }
-  free(card);
-  return err;
-}
+// uint8_t sdcard_uninit(uint8_t pdrv) {
+//   esp_ardu_sdcard_t *card = s_cards[pdrv];
+//   if (pdrv >= FF_VOLUMES || card == NULL) {
+//     return 1;
+//   }
+//   sdTransaction(pdrv, GO_IDLE_STATE, 0, NULL);
+//   ff_diskio_register(pdrv, NULL);
+//   s_cards[pdrv] = NULL;
+//   esp_err_t err = ESP_OK;
+//   if (card->base_path) {
+//     err = esp_vfs_fat_unregister_path(card->base_path);
+//     free(card->base_path);
+//   }
+//   free(card);
+//   return err;
+// }
 
-uint8_t sdcard_init(uint8_t cs, SPIClass *spi, int hz) {
-  uint8_t pdrv = 0xFF;
-  if (ff_diskio_get_drive(&pdrv) != ESP_OK || pdrv == 0xFF) {
-    return pdrv;
-  }
+// uint8_t sdcard_init(uint8_t cs, SPIClass *spi, int hz) {
+//   uint8_t pdrv = 0xFF;
+//   if (ff_diskio_get_drive(&pdrv) != ESP_OK || pdrv == 0xFF) {
+//     return pdrv;
+//   }
 
-  ardu_sdcard_t *card = (ardu_sdcard_t *) malloc(sizeof(ardu_sdcard_t));
-  if (!card) {
-    return 0xFF;
-  }
+//   ardu_sdcard_t *card = (ardu_sdcard_t *) malloc(sizeof(ardu_sdcard_t));
+//   if (!card) {
+//     return 0xFF;
+//   }
 
-  card->base_path = NULL;
-  card->frequency = hz;
-  card->spi = spi;
-  card->ssPin = cs;
+//   card->base_path = NULL;
+//   card->frequency = hz;
+//   card->spi = spi;
+//   card->ssPin = cs;
 
-  card->supports_crc = true;
-  card->type = CARD_NONE;
-  card->status = STA_NOINIT;
+//   card->supports_crc = true;
+//   card->type = CARD_NONE;
+//   card->status = STA_NOINIT;
 
-  pinMode(card->ssPin, OUTPUT);
-  digitalWrite(card->ssPin, HIGH);
+//   pinMode(card->ssPin, OUTPUT);
+//   digitalWrite(card->ssPin, HIGH);
 
-  s_cards[pdrv] = card;
+//   s_cards[pdrv] = card;
 
-  static const ff_diskio_impl_t sd_impl = {.init = &ff_sd_initialize,
-                                           .status = &ff_sd_status,
-                                           .read = &ff_sd_read,
-                                           .write = &ff_sd_write,
-                                           .ioctl = &ff_sd_ioctl};
-  ff_diskio_register(pdrv, &sd_impl);
+//   static const ff_diskio_impl_t sd_impl = {.init = &ff_sd_initialize,
+//                                            .status = &ff_sd_status,
+//                                            .read = &ff_sd_read,
+//                                            .write = &ff_sd_write,
+//                                            .ioctl = &ff_sd_ioctl};
+//   ff_diskio_register(pdrv, &sd_impl);
 
-  return pdrv;
-}
+//   return pdrv;
+// }
 
 uint8_t sdcard_unmount(uint8_t pdrv) {
-  ardu_sdcard_t *card = s_cards[pdrv];
+  ESP_LOGD(TAG, "sdcard_unmount");
+  esp_ardu_sdcard_t *card = s_cards[pdrv];
   if (pdrv >= FF_VOLUMES || card == NULL) {
     return 1;
   }
@@ -912,7 +1076,8 @@ uint8_t sdcard_unmount(uint8_t pdrv) {
 }
 
 bool sdcard_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool format_if_empty) {
-  ardu_sdcard_t *card = s_cards[pdrv];
+  ESP_LOGD(TAG, "sdcard_mount");
+  esp_ardu_sdcard_t *card = s_cards[pdrv];
   if (pdrv >= FF_VOLUMES || card == NULL) {
     return false;
   }
@@ -960,8 +1125,9 @@ bool sdcard_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool format
       return false;
     }
   }
-  AcquireSPI lock(card);
+
   card->sectors = sdGetSectorsCount(pdrv);
+
   return true;
 }
 

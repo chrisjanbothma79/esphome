@@ -132,14 +132,14 @@ void SdmmcHost::setup() {
   //   7  //  SS
   //  );
 
-  SPI.begin(4,  // SCK
-            5,  //  MISO
-            6,  //  MOSI
-            7   //  SS
-  );
+  // SPI.begin(4,  // SCK
+  //           5,  //  MISO
+  //           6,  //  MOSI
+  //           7   //  SS
+  // );
 
-  ESP_LOGD(TAG, "Setup/Set spi");
-  drv->set_spi(7, &SPI, 4000000, "/sd");
+  // ESP_LOGD(TAG, "Setup/Set spi");
+  // drv->set_spi(7, &SPI, 4000000, "/sd");
 
   ESP_LOGD(TAG, "Setup/Set connector");
   drv->set_connector(this->connector_);
@@ -173,7 +173,7 @@ void SdmmcHost::setup() {
     this->set_state(SD_SLOT_ST_EMPTY);
     if (this->drv_->attach_card()) {
       this->set_state(SD_SLOT_ST_CARD);
-      if (this->drv_->mount(false)) {
+      if (this->drv_->mount(path_, false)) {
         this->set_state(SD_SLOT_ST_MOUNT);
       } else {
         this->set_state(SD_SLOT_ST_CARD);
@@ -197,7 +197,7 @@ void SdmmcHost::loop() {
       if (this->drv_->attach_card()) {
         this->set_state(SD_SLOT_ST_CARD);
 
-        if (this->drv_->mount(false)) {
+        if (this->drv_->mount(path_, false)) {
           this->set_state(SD_SLOT_ST_MOUNT);
         } else {
           ESP_LOGW(TAG, "Seems card present but cannot mount. %d", this->drv_->get_last_err());

@@ -12,6 +12,29 @@
 namespace esphome {
 namespace sdfs {
 
+#define FREE(ptr) \
+  { \
+    free(ptr); \
+    ptr = NULL; \
+  }
+
+#define IS_LAST_ERR(x, y) (((this->last_err_ >> 16) == x) && ((this->last_err_ & 0x0000ffff) == y))
+
+#define IDF_ERR 1    // Errors from framework
+#define FS_ERR 2     // Errors from filesysytems
+#define LOCAL_ERR 3  // Local errors
+
+#define RC_OK 0x1
+#define RC_NO_NMEM 0x2
+#define RC_INVALID_ARG 0x4
+#define RC_NO_CARD 0x8
+
+#define SET_RC(x, y, str) \
+  do { \
+    this->last_err_ = (x << 16) | y; \
+    ESP_LOGE(TAG, str " (0x%x).", y); \
+  } while (0)
+
 typedef enum { CARD_NONE, CARD_MMC, CARD_SD, CARD_SDHC, CARD_UNKNOWN } sdcard_type_t;
 
 //  SD - Esample  https://github.com/espressif/arduino-esp32/issues/6237
@@ -27,7 +50,7 @@ class ArduinoSdFatDriver : public fs::FS, public DriverInterface {
   bool init_host(SdConnType) override;
   bool is_card() override;
   bool attach_card() override;
-  bool mount(bool) override;
+  bool mount(std::string, bool) override;
   void unmount() override;
   uint32_t get_last_err() override;
 
@@ -37,20 +60,23 @@ class ArduinoSdFatDriver : public fs::FS, public DriverInterface {
   size_t sectorSize();
   uint64_t totalBytes();
   uint64_t usedBytes();
+  bool test() override;
   bool readRAW(uint8_t *buffer, uint32_t sector);
   bool writeRAW(uint8_t *buffer, uint32_t sector);
 
  protected:
   SpiConnector *connector_;
-  uint8_t _pdrv;
+  uint8_t pdrv_;
   SPIClass *spi_;
   int8_t ssPin_;
   uint32_t frequency_;
-  const char *mountpoint_;  // base_path
+  bool format_if_empty_ = false;
+  std::string mountpoint_;  // base_path
   unsigned long sectors_;
   bool supports_crc_;
   int status_;
   sdcard_type_t type_;
+  uint32_t last_err_ = 0;
 };
 
 using fs::FS;

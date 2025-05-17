@@ -66,9 +66,10 @@ class SdmmcIdfDriver : public DriverInterface {
   bool init_host(SdConnType) override;
   bool is_card() override;
   bool attach_card() override;
-  bool mount(bool) override;
+  bool mount(std::string, bool) override;
   void unmount() override;
   uint32_t get_last_err() override;
+  bool test() override;
   // void mount_fs();
   // void umount_fs();
   // virtual void set_state(SdDriverStatus);   /// ??????
@@ -77,7 +78,7 @@ class SdmmcIdfDriver : public DriverInterface {
   SdConnType bus_type_;
   BYTE pdrv_ = FF_DRV_NOT_USED;
   FATFS *fs_ = NULL;
-  // std::string *base_path_;
+  std::string *mountpoint_;
   // SdConnType sd_conn_type_ = SD_MMC;
   // FRESULT fsError;
 

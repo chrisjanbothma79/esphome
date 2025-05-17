@@ -460,9 +460,9 @@ bool SdmmcIdfDriver::attach_card() {
  * @return true
  * @return false
  */
-bool SdmmcIdfDriver::mount(bool format) {
+bool SdmmcIdfDriver::mount(std::string mountpoint, bool format) {
   ESP_LOGD(TAG, "Mount FS");
-
+  mountpoint_ = mountpoint;
   BYTE pdrv = FF_DRV_NOT_USED;
   FATFS *fs = NULL;
   esp_err_t rc = ESP_OK;
@@ -495,9 +495,9 @@ bool SdmmcIdfDriver::mount(bool format) {
 #endif
 
   char drv[3] = {(char) ('0' + pdrv), ':', 0};
-  ESP_LOGD(TAG, "Disk registered. pdrv=%i, drv=%s, path=%s", pdrv, drv, this->parent_->path_.c_str());
+  ESP_LOGD(TAG, "Disk registered. pdrv=%i, drv=%s, path=%s", pdrv, drv, mountpoint_.c_str());
 
-  rc = esp_vfs_fat_register(this->parent_->path_.c_str(), drv, this->mount_config_->max_files, &fs);
+  rc = esp_vfs_fat_register(mountpoint_.c_str(), drv, this->mount_config_->max_files, &fs);
   if (rc == ESP_ERR_INVALID_STATE) {
     // it's okay, already registered with VFS
   } else if (rc != ESP_OK) {
@@ -536,7 +536,7 @@ bool SdmmcIdfDriver::mount(bool format) {
 
 unregister_fs:
   ESP_LOGD(TAG, "Reset registration");
-  esp_vfs_fat_unregister_path(this->parent_->path_.c_str());
+  esp_vfs_fat_unregister_path(mountpoint_.c_str());
   FREE(this->mount_config_);
   this->fs_ = NULL;
   return false;
@@ -548,7 +548,7 @@ unregister_fs:
  */
 void SdmmcIdfDriver::unmount() {
   esp_err_t rc = ESP_OK;
-  ESP_LOGVV(TAG, "Unmount FS, path %s, pdrv %d", this->parent_->path_.c_str(), this->pdrv_);
+  ESP_LOGVV(TAG, "Unmount FS, path %s, pdrv %d", mountpoint_.c_str(), this->pdrv_);
 
   //  Unmount filesystem
   char drv[3] = {(char) ('0' + this->pdrv_), ':', 0};
@@ -560,7 +560,7 @@ void SdmmcIdfDriver::unmount() {
   //  Clear registration
   ff_diskio_register(this->pdrv_, NULL);
 
-  rc = esp_vfs_fat_unregister_path(this->parent_->path_.c_str());
+  rc = esp_vfs_fat_unregister_path(mountpoint_.c_str());
   if (rc != ESP_OK) {
     SET_RC(FW_ERR, rc, "Cannot unregister root path");
   }
@@ -586,6 +586,13 @@ void SdmmcIdfDriver::unmount() {
   }
 #endif
 }
+/**
+ * @brief   Testing connected driver. Open and list root dir.
+ *
+ * @return true
+ * @return false
+ */
+bool SdmmcIdfDriver::test() { return true; }
 
 /***********************************************************************************
  * @brief  Create default partition table  for new card.
