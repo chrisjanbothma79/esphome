@@ -276,10 +276,10 @@ void SEN5XComponent::dump_config() {
         ESP_LOGCONFIG(TAG, "  Low RH/T acceleration mode");
         break;
       case MEDIUM_ACCELERATION:
-        ESP_LOGCONFIG(TAG, "  Medium RH/T accelertion mode");
+        ESP_LOGCONFIG(TAG, "  Medium RH/T acceleration mode");
         break;
       case HIGH_ACCELERATION:
-        ESP_LOGCONFIG(TAG, "  High RH/T accelertion mode");
+        ESP_LOGCONFIG(TAG, "  High RH/T acceleration mode");
         break;
     }
   }
@@ -344,22 +344,22 @@ void SEN5XComponent::update() {
     }
 
     ESP_LOGVV(TAG, "pm_1_0 = 0x%.4x", measurements[0]);
-    float pm_1_0 = measurements[0] == UINT16_MAX ? NAN : measurements[0] / 10.0;
+    float pm_1_0 = measurements[0] == UINT16_MAX ? NAN : measurements[0] / 10.0f;
 
     ESP_LOGVV(TAG, "pm_2_5 = 0x%.4x", measurements[1]);
-    float pm_2_5 = measurements[1] == UINT16_MAX ? NAN : measurements[1] / 10.0;
+    float pm_2_5 = measurements[1] == UINT16_MAX ? NAN : measurements[1] / 10.0f;
 
     ESP_LOGVV(TAG, "pm_4_0 = 0x%.4x", measurements[2]);
-    float pm_4_0 = measurements[2] == UINT16_MAX ? NAN : measurements[2] / 10.0;
+    float pm_4_0 = measurements[2] == UINT16_MAX ? NAN : measurements[2] / 10.0f;
 
     ESP_LOGVV(TAG, "pm_10_0 = 0x%.4x", measurements[3]);
-    float pm_10_0 = measurements[3] == UINT16_MAX ? NAN : measurements[3] / 10.0;
+    float pm_10_0 = measurements[3] == UINT16_MAX ? NAN : measurements[3] / 10.0f;
 
     ESP_LOGVV(TAG, "humidity = 0x%.4x", measurements[4]);
-    float humidity = measurements[4] == INT16_MAX ? NAN : static_cast<int16_t>(measurements[4]) / 100.0;
+    float humidity = measurements[4] == INT16_MAX ? NAN : static_cast<int16_t>(measurements[4]) / 100.0f;
 
     ESP_LOGVV(TAG, "temperature = 0x%.4x", measurements[5]);
-    float temperature = measurements[5] == INT16_MAX ? NAN : static_cast<int16_t>(measurements[5]) / 200.0;
+    float temperature = measurements[5] == INT16_MAX ? NAN : static_cast<int16_t>(measurements[5]) / 200.0f;
 
     ESP_LOGVV(TAG, "voc = 0x%.4x", measurements[6]);
     int16_t voc_idx = static_cast<int16_t>(measurements[6]);
