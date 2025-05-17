@@ -42,6 +42,26 @@ The Noise protocol provides encrypted, authenticated communication using the Noi
     1 byte      2 bytes         Variable      16 bytes
 ```
 
+### Message Format
+1. **Unencrypted Header** (3 bytes):
+   - Indicator: 0x01
+   - Encrypted payload size: 16-bit unsigned, big-endian
+2. **Encrypted Payload**:
+   - Message type: 16-bit unsigned, big-endian (encrypted)
+   - Data length: 16-bit unsigned, big-endian (encrypted)
+   - Protocol buffer data
+3. **MAC** (16 bytes)
+
+### Data Type Summary
+
+| Field | Type | Size | Encoding | Notes |
+|-------|------|------|----------|-------|
+| Indicator | uint8 | 1 byte | - | Always 0x01 |
+| Encrypted Size | uint16 | 2 bytes | Big-endian | Not encrypted |
+| Message Type | uint16 | 2 bytes | Big-endian | Encrypted |
+| Data Length | uint16 | 2 bytes | Big-endian | Encrypted |
+| Data | bytes | Variable | - | Protocol buffer payload, encrypted |
+
 ### Buffer Layout
 ```
 Position:  [0] [1] [2] [3] [4] [5] [6] [7]  ...  [N-15] ... [N]
@@ -63,15 +83,6 @@ Where:
 - The encrypted size field in the header is NOT encrypted
 - MAC provides authentication for the entire encrypted payload
 
-### Message Format
-1. **Unencrypted Header** (3 bytes):
-   - Indicator: 0x01
-   - Encrypted payload size: 16-bit unsigned, big-endian
-2. **Encrypted Payload**:
-   - Message type: 16-bit unsigned, big-endian (encrypted)
-   - Data length: 16-bit unsigned, big-endian (encrypted)
-   - Protocol buffer data
-3. **MAC** (16 bytes)
 
 ### State Machine
 
@@ -191,16 +202,6 @@ For post-handshake errors (during encrypted data exchange):
 - Invalid frame structure closes the connection immediately
 - No error messages are sent for these failures to prevent information leakage
 
-### Data Type Summary
-
-| Field | Type | Size | Encoding | Notes |
-|-------|------|------|----------|-------|
-| Indicator | uint8 | 1 byte | - | Always 0x01 |
-| Encrypted Size | uint16 | 2 bytes | Big-endian | Not encrypted |
-| Message Type | uint16 | 2 bytes | Big-endian | Encrypted |
-| Data Length | uint16 | 2 bytes | Big-endian | Encrypted |
-| Data | bytes | Variable | - | Protocol buffer payload, encrypted |
-
 ### Wire Format Example
 
 Sending a temperature reading (value: 23.5°C):
@@ -255,6 +256,21 @@ No handshake is required for the plaintext protocol - it transitions directly to
 [Indicator][Payload Size VarInt][Message Type VarInt][Payload]
     1 byte       1-3 bytes           1-2 bytes       Variable
 ```
+
+### Data Type Summary
+
+| Field | Type | Size | Encoding | Notes |
+|-------|------|------|----------|-------|
+| Indicator | uint8 | 1 byte | - | Always 0x00 |
+| Payload Size | varint | 1-3 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned |
+| Message Type | varint | 1-2 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned, max 65535 |
+| Data | bytes | Variable | - | Protocol buffer payload |
+
+### Message Format
+1. **Indicator**: 0x00 (1 byte)
+2. **Payload Size**: VarInt encoding of payload size (unsigned)
+3. **Message Type**: VarInt encoding of the 16-bit message type (unsigned)
+4. **Payload**: Protocol buffer data
 
 ### Buffer Layout
 
@@ -312,21 +328,6 @@ The plaintext protocol dynamically calculates the optimal header position to min
    - Large messages can use offset 0 (utilizing all padding bytes)
 
 This dynamic positioning maximizes buffer efficiency while maintaining a fixed pre-allocation size.
-
-### Message Format
-1. **Indicator**: 0x00 (1 byte)
-2. **Payload Size**: VarInt encoding of payload size (unsigned)
-3. **Message Type**: VarInt encoding of the 16-bit message type (unsigned)
-4. **Payload**: Protocol buffer data
-
-### Data Type Summary
-
-| Field | Type | Size | Encoding | Notes |
-|-------|------|------|----------|-------|
-| Indicator | uint8 | 1 byte | - | Always 0x00 |
-| Payload Size | varint | 1-3 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned |
-| Message Type | varint | 1-2 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned, max 65535 |
-| Data | bytes | Variable | - | Protocol buffer payload |
 
 ### Wire Format Example
 
