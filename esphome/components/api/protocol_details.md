@@ -368,3 +368,5 @@ Hex: 00 06 08 12 04 08 96 42 10
 5. **Maximum Sizes**:
    - Message types: 0-65,535 (16-bit unsigned)
    - Frame/data sizes: up to 2^32-1 bytes (varint can encode up to 64-bit values, but practically limited by memory)
+
+
