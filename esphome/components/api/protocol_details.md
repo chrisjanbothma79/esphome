@@ -294,9 +294,9 @@ This dynamic positioning maximizes buffer efficiency while maintaining a fixed p
 3. **Message Type**: VarInt encoding of the 16-bit message type (unsigned)
 4. **Payload**: Protocol buffer data
 
-## Data Type Summary
+## Noise Protocol Specification
 
-### Noise Protocol Fields
+### Data Type Summary
 
 | Field | Type | Size | Encoding | Notes |
 |-------|------|------|----------|-------|
@@ -306,19 +306,8 @@ This dynamic positioning maximizes buffer efficiency while maintaining a fixed p
 | Data Length | uint16 | 2 bytes | Big-endian | Encrypted |
 | Data | bytes | Variable | - | Protocol buffer payload, encrypted |
 
-### Plaintext Protocol Fields
+### Wire Format Example
 
-| Field | Type | Size | Encoding | Notes |
-|-------|------|------|----------|-------|
-| Indicator | uint8 | 1 byte | - | Always 0x00 |
-| Payload Size | varint | 1-3 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned |
-| Message Type | varint | 1-2 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned, max 65535 |
-| Data | bytes | Variable | - | Protocol buffer payload |
-
-
-## Wire Format Examples
-
-### Noise Protocol Example
 Sending a temperature reading (value: 23.5°C):
 ```
 Hex: 01 00 0E 00 08 00 06 12 04 08 96 42 10 B4 46
@@ -332,7 +321,19 @@ Hex: 01 00 0E 00 08 00 06 12 04 08 96 42 10 B4 46
   - `12 04 08 96 42 10`: Protocol buffer data
 - 16-byte MAC appended
 
-### Plaintext Protocol Example
+## Plaintext Protocol Specification
+
+### Data Type Summary
+
+| Field | Type | Size | Encoding | Notes |
+|-------|------|------|----------|-------|
+| Indicator | uint8 | 1 byte | - | Always 0x00 |
+| Payload Size | varint | 1-3 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned |
+| Message Type | varint | 1-2 bytes | [VarInt](https://protobuf.dev/programming-guides/encoding/) | Unsigned, max 65535 |
+| Data | bytes | Variable | - | Protocol buffer payload |
+
+### Wire Format Example
+
 Same temperature reading:
 ```
 Hex: 00 06 08 12 04 08 96 42 10
