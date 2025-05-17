@@ -89,8 +89,8 @@ stateDiagram-v2
     EXPLICIT_REJECT --> FAILED: after sending reject
     
     INITIALIZE --> FAILED: tcp setup
-    CLIENT_HELLO --> FAILED: socket read
-    SERVER_HELLO --> FAILED: socket write
+    CLIENT_HELLO --> FAILED: socket error
+    SERVER_HELLO --> FAILED: socket error
     HANDSHAKE --> FAILED: handshake failed
     DATA --> FAILED: decrypt failed
     
