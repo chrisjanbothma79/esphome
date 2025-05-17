@@ -293,10 +293,9 @@ This dynamic positioning maximizes buffer efficiency while maintaining a fixed p
 
 ### Message Format
 1. **Indicator**: 0x00 (1 byte)
-2. **Frame Size**: VarInt encoding of total frame size (unsigned)
+2. **Payload Size**: VarInt encoding of payload size (unsigned)
 3. **Message Type**: VarInt encoding of the 16-bit message type (unsigned)
-4. **Data Length**: VarInt encoding of payload length (unsigned)
-5. **Payload**: Protocol buffer data
+4. **Payload**: Protocol buffer data
 
 ## Data Type Summary
 
