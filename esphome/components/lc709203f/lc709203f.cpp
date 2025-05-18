@@ -150,13 +150,10 @@ void Lc709203f::dump_config() {
   LOG_UPDATE_INTERVAL(this);
   ESP_LOGCONFIG(TAG, "  Pack Size: %d mAH", this->pack_size_);
   ESP_LOGCONFIG(TAG, "  Pack APA: 0x%02X", this->apa_);
-  if (this->pack_voltage_ == 0x0000) {
-    ESP_LOGCONFIG(TAG, "  Pack Rated Voltage: 3.8V");
-  } else {
-    // This is only true if the pack_voltage_ is 0x0001. The config validator should
-    //  have already made sure that this value can be only 0 or 1.
-    ESP_LOGCONFIG(TAG, "  Pack Rated Voltage: 3.7V");
-  }
+
+  // This is only true if the pack_voltage_ is either 0x0000 or 0x0001. The config validator 
+  //  should have already verified this.
+  ESP_LOGCONFIG(TAG, "  Pack Rated Voltage: 3.%sV", this->pack_voltage_ == 0x0000 ? "8" : "7");
 
   LOG_SENSOR("  ", "Voltage", this->voltage_sensor_);
   LOG_SENSOR("  ", "Battery Remaining", this->battery_remaining_sensor_);
