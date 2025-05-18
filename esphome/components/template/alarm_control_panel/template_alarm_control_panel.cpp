@@ -205,15 +205,15 @@ void TemplateAlarmControlPanel::loop() {
 }
 
 bool TemplateAlarmControlPanel::is_code_valid_(optional<std::string> code) {
-  if (!this->codes_.empty()) {
-    if (code.has_value()) {
-      ESP_LOGVV(TAG, "Checking code: %s", code.value().c_str());
-      return (std::count(this->codes_.begin(), this->codes_.end(), code.value()) == 1);
-    }
+  if (this->codes_.empty()) {
+    return true;
+  }
+  if (!code.has_value()) {
     ESP_LOGD(TAG, "No code provided");
     return false;
   }
-  return true;
+  ESP_LOGVV(TAG, "Checking code: %s", code.value().c_str());
+  return (this->codes_.count(code.value()) == 1);
 }
 
 uint32_t TemplateAlarmControlPanel::get_supported_features() const {

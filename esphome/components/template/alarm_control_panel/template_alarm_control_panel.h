@@ -2,6 +2,7 @@
 
 #include <cinttypes>
 #include <map>
+#include <set>
 
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
@@ -76,7 +77,7 @@ class TemplateAlarmControlPanel : public alarm_control_panel::AlarmControlPanel,
    *
    * @param code The code
    */
-  void add_code(const std::string &code) { this->codes_.push_back(code); }
+  void add_code(const std::string &code) { this->codes_.insert(code); }
 
   /** set requires a code to arm
    *
@@ -138,8 +139,8 @@ class TemplateAlarmControlPanel : public alarm_control_panel::AlarmControlPanel,
   uint32_t pending_time_;
   // the time in trigger
   uint32_t trigger_time_;
-  // a list of codes
-  std::vector<std::string> codes_;
+  // the set of disarming codes
+  std::set<std::string> codes_;
   // Per sensor data store
   std::vector<SensorDataStore> sensor_data_;
   // requires a code to arm
