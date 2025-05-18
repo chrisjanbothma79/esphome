@@ -12,6 +12,7 @@ CONF_MAX_UPDATE_INTERVAL = "max_update_interval"
 CONF_ENCODER_ID = "encoder_id"
 CONF_ENCODER_BUFFER_SIZE = "encoder_buffer_size"
 CONF_ENCODER_BUFFER_GROW = "encoder_buffer_grow"
+CONF_ENCODER_MCU_COUNT = "encoder_mcu_count"
 
 CONF_ON_STREAM_START = "on_stream_start"
 CONF_ON_STREAM_STOP = "on_stream_stop"
@@ -24,6 +25,8 @@ Encoder = camera_ns.class_("JPEGEncoderImpl")
 
 CameraImageData = camera_ns.struct("CameraImageData")
 CameraImageSpec = camera_ns.struct("CameraImageSpec")
+CameraCaptureContext = camera_ns.struct("CameraCaptureContext")
+CameraCaptureContextRef = CameraCaptureContext.operator("ref")
 
 CameraImageImpl = camera_ns.class_("CameraImageImpl")
 CameraImageTrigger = camera_ns.class_(
@@ -120,6 +123,7 @@ CAMERA_SCHEMA = (
             cv.Optional(CONF_MAX_UPDATE_INTERVAL, default=100): cv.int_range(0),
             cv.Optional(CONF_ENCODER_BUFFER_SIZE, default=4096): cv.int_range(1024),
             cv.Optional(CONF_ENCODER_BUFFER_GROW, default=0): cv.int_range(0),
+            cv.Optional(CONF_ENCODER_MCU_COUNT, default=0): cv.int_range(0),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -169,7 +173,13 @@ async def setup_camera_automation(var, config):
     for conf in config.get(CONF_ON_CAPTURE_IMAGE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(
-            trigger, [(CameraImageData, "image"), (CameraImageSpec, "spec")], conf
+            trigger,
+            [
+                (CameraImageData, "image"),
+                (CameraImageSpec, "spec"),
+                (CameraCaptureContextRef, "context"),
+            ],
+            conf,
         )
 
 
@@ -185,6 +195,7 @@ async def setup_encoder(var, config):
     encoder = cg.new_Pvariable(config[CONF_ENCODER_ID])
     cg.add(encoder.set_quality(config[CONF_ENCODER_QUALITY]))
     cg.add(encoder.set_subsampling(config[CONF_ENCODER_SUBSAMPLING]))
+    cg.add(encoder.set_mcu_count(config[CONF_ENCODER_MCU_COUNT]))
     cg.add(var.set_encoder(encoder))
 
 

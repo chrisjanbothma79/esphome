@@ -23,6 +23,13 @@ class CameraImpl : public Camera {
   void set_encoder_buffer_size(size_t encoder_buffer_size);
   // Specifies how many bytes the buffer should grow after an underflow error
   void set_encoder_buffer_grow(size_t encoder_buffer_grow);
+  // Performs camera processing tasks such as image capture and JPEG encoding spread
+  // over multiple loop cycles to avoid blocking and ensure real-time responsiveness.
+  // This method is intended to be called repeatedly from the loop.
+  // It performs a portion of the image capture or encoding process each time it runs.
+  // Returns true if additional processing is needed and the loop should continue running.
+  // Returns false if all camera-related tasks are complete.
+  bool camera_loop();
   // ---- Camera interface ----
   CameraImageReader *create_image_reader() override;
   void request_image(CameraRequester requester) override;
@@ -35,6 +42,7 @@ class CameraImpl : public Camera {
   // --------------------------
  protected:
   CameraImageSpec camera_image_spec_{0};
+  CameraCaptureContext camera_capture_context_;
   std::shared_ptr<CameraImageImpl> pixels_;
   std::shared_ptr<CameraImageImpl> jpeg_;
   Encoder *encoder_{nullptr};
@@ -46,6 +54,8 @@ class CameraImpl : public Camera {
   uint32_t idle_update_interval_{0};
   uint32_t last_update_{0};
   uint32_t max_update_interval_{0};
+  bool is_capturing_{false};
+  bool is_encoding_{false};
 };
 
 }  // namespace camera

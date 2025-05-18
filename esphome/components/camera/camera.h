@@ -81,6 +81,21 @@ struct CameraImageSpec {
   size_t bytes_per_image() { return bytes_per_pixel() * width * height; }
 };
 
+/** Struct that maintains progress and optional user data during incremental image capture operations */
+struct CameraCaptureContext {
+  int x;
+  int y;
+  void *user_data;
+  bool done;
+  CameraCaptureContext *that;
+  CameraCaptureContext() : user_data(nullptr) { reset(); }
+  void reset() {
+    x = 0;
+    y = 0;
+    done = true;
+  }
+};
+
 /** Abstract camera base class. Collaborates with API.
  *  1) API server starts and installs callback (add_image_callback)
  *     which is called by the camera when a new image is available.
@@ -96,7 +111,8 @@ class Camera : public EntityBase, public Component {
  public:
   Camera();
   // Camera implementation invokes callback to capture a new image.
-  virtual void add_capture_callback(std::function<void(std::shared_ptr<CameraImage>, CameraImageSpec)> &&callback);
+  virtual void add_capture_callback(
+      std::function<void(std::shared_ptr<CameraImage>, CameraImageSpec, CameraCaptureContext &)> &&callback);
   // Camera implementation invokes callback to publish a new image.
   virtual void add_image_callback(std::function<void(std::shared_ptr<CameraImage>)> &&callback);
   // Camera implementation invokes callback when start_stream is called.
@@ -116,7 +132,8 @@ class Camera : public EntityBase, public Component {
   static Camera *instance();
 
  protected:
-  CallbackManager<void(std::shared_ptr<camera::CameraImage>, CameraImageSpec)> image_capture_callback_{};
+  CallbackManager<void(std::shared_ptr<camera::CameraImage>, CameraImageSpec, CameraCaptureContext &)>
+      image_capture_callback_{};
   CallbackManager<void(std::shared_ptr<camera::CameraImage>)> new_image_callback_{};
   CallbackManager<void()> stream_start_callback_{};
   CallbackManager<void()> stream_stop_callback_{};
@@ -127,16 +144,16 @@ class Camera : public EntityBase, public Component {
 /** Class that installs a camera callback which is triggered
  *  every time a new image can be captured.
  */
-class CameraCaptureImageTrigger : public Trigger<CameraImageData, CameraImageSpec> {
+class CameraCaptureImageTrigger : public Trigger<CameraImageData, CameraImageSpec, CameraCaptureContext &> {
  public:
   explicit CameraCaptureImageTrigger(Camera *camera) {
-    camera->add_capture_callback(
-        [this](const std::shared_ptr<camera::CameraImage> &image, const CameraImageSpec &spec) {
-          CameraImageData camera_image_data{};
-          camera_image_data.length = image->get_data_length();
-          camera_image_data.data = image->get_data_buffer();
-          this->trigger(camera_image_data, spec);
-        });
+    camera->add_capture_callback([this](const std::shared_ptr<camera::CameraImage> &image, const CameraImageSpec &spec,
+                                        CameraCaptureContext &context) {
+      CameraImageData camera_image_data{};
+      camera_image_data.length = image->get_data_length();
+      camera_image_data.data = image->get_data_buffer();
+      this->trigger(camera_image_data, spec, context);
+    });
   }
 };
 

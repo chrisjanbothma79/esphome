@@ -15,7 +15,8 @@ Camera::Camera() {
   global_camera = this;
 }
 
-void Camera::add_capture_callback(std::function<void(std::shared_ptr<CameraImage>, CameraImageSpec)> &&callback) {
+void Camera::add_capture_callback(
+    std::function<void(std::shared_ptr<CameraImage>, CameraImageSpec, CameraCaptureContext &)> &&callback) {
   this->image_capture_callback_.add(std::move(callback));
 }
 

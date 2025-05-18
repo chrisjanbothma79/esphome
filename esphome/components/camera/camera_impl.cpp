@@ -57,23 +57,24 @@ void CameraImpl::setup() {
   this->pixels_ = std::make_shared<CameraImageImpl>(this->camera_image_spec_.bytes_per_image());
   this->pixels_->set_data_length(this->camera_image_spec_.bytes_per_image());
   this->jpeg_ = std::make_shared<CameraImageImpl>(this->encoder_buffer_size_);
+  this->camera_capture_context_.that = &this->camera_capture_context_;
 }
 
-void CameraImpl::loop() {
+bool CameraImpl::camera_loop() {
   if (!this->pixels_ || !this->jpeg_) {
     ESP_LOGE(TAG, "Missing setup() call detected. Are you overriding setup() without calling CameraImpl::setup() ?");
     mark_failed();
-    return;
+    return false;
   }
 
   // Is image still in use ?
   if (this->jpeg_.use_count() > 1)
-    return;
+    return false;
 
   const uint32_t now = millis();
   // Framerate limiter
   if (now - this->last_update_ <= this->max_update_interval_)
-    return;
+    return false;
 
   // Request idle image every idle_update_interval
   if (this->idle_update_interval_ != 0 && now - this->last_idle_request_ > this->idle_update_interval_) {
@@ -83,28 +84,49 @@ void CameraImpl::loop() {
 
   // No new image requested
   if (!image_requesters_ && !stream_requesters_)
-    return;
+    return false;
 
-  // Capture a new image
-  this->image_capture_callback_.call(this->pixels_, this->camera_image_spec_);
+  // No incremental image encoding
+  if (!this->is_encoding_) {
+    // Start capturing
+    if (!this->is_capturing_) {
+      this->camera_capture_context_.reset();
+      this->is_capturing_ = true;
+    }
 
-  // Check that we have a valid image for the encoder
-  if (this->camera_image_spec_.bytes_per_image() != this->pixels_->get_data_length()) {
-    ESP_LOGE(TAG, "Spec bytes %d != %d image bytes!", this->camera_image_spec_.bytes_per_image(),
-             this->pixels_->get_data_length());
-    return;
+    // Capture a new image
+    this->camera_capture_context_.done = true;
+    this->image_capture_callback_.call(this->pixels_, this->camera_image_spec_, this->camera_capture_context_);
+    // Incremental image capture
+    if (!this->camera_capture_context_.done)
+      return true;
+
+    this->is_capturing_ = false;
+    // Check that we have a valid image for the encoder
+    if (this->camera_image_spec_.bytes_per_image() != this->pixels_->get_data_length()) {
+      ESP_LOGE(TAG, "Spec bytes %d != %d image bytes!", this->camera_image_spec_.bytes_per_image(),
+               this->pixels_->get_data_length());
+      return false;
+    }
   }
 
   size_t length = 0;
   if (this->encoder_) {
     // Set available data to max for encoder.
-    this->jpeg_->set_data_length(this->jpeg_->get_max_data_length());
+    if (!this->is_encoding_)
+      this->jpeg_->set_data_length(this->jpeg_->get_max_data_length());
 
     // Encodes the pixels and returns the number of bytes written.
+    this->is_encoding_ = false;
     length = this->encoder_->encode_pixels(&camera_image_spec_, this->pixels_.get(), this->jpeg_.get());
     switch (this->encoder_->get_last_error()) {
-      case ENCODER_ERROR_SUCCESS:
-        break;
+      case ENCODER_ERROR_SUCCESS: {
+        // Incremental image encoding
+        if (length == 0) {
+          this->is_encoding_ = true;
+          return true;
+        }
+      } break;
       case ENCODER_ERROR_OUT_OF_MEMORY: {
         ESP_LOGE(TAG, "The encoder buffer is too small. The encoding failed. Buffer size: %u",
                  this->jpeg_->get_max_data_length());
@@ -112,7 +134,7 @@ void CameraImpl::loop() {
           size_t new_size = this->jpeg_->get_max_data_length() + this->encoder_buffer_grow_;
           ESP_LOGI(TAG, "Increasing encoder buffer size with %u bytes. Retry...", this->encoder_buffer_grow_);
           this->jpeg_->set_data_length(new_size);
-          return;
+          return false;
         }
       } break;
       default:
@@ -128,7 +150,10 @@ void CameraImpl::loop() {
 
   this->image_requesters_ = 0;
   this->last_update_ = now;
+  return false;
 }
+
+void CameraImpl::loop() { camera_loop(); }
 
 void CameraImpl::dump_config() {
   ESP_LOGCONFIG(TAG, "Camera:");

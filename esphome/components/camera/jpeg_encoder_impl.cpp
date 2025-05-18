@@ -9,30 +9,52 @@ void JPEGEncoderImpl::set_quality(EncoderQuality quality) { this->quality_ = to_
 
 void JPEGEncoderImpl::set_subsampling(EncoderSubsampling subsampling) { this->subsampling_ = to_internal(subsampling); }
 
+void JPEGEncoderImpl::set_mcu_count(size_t mcu_count) { this->mcu_count_ = mcu_count; }
+
 size_t JPEGEncoderImpl::encode_pixels(CameraImageSpec *spec, CameraImage *pixels, CameraImage *jpeg) {
   uint8_t *buffer = jpeg->get_data_buffer();
   size_t buffer_length = jpeg->get_data_length();
 
-  // Encoder uses internally BGR for 888 and RGB for 565
-  switch (spec->format) {
-    case IMAGE_FORMAT_RGB888:
-      rgb_to_bgr_inplace(pixels);
-      break;
-    default:
-      break;
+  if (!this->incremental_) {
+    if (encoder_.open(buffer, buffer_length) != JPEGE_SUCCESS)
+      return 0;
+
+    if (encoder_.encodeBegin(&encoder_state_, spec->width, spec->height, to_internal(spec->format), this->subsampling_,
+                             this->quality_) != JPEGE_SUCCESS)
+      return 0;
+
+    this->incremental_ = this->mcu_count_ > 0;
+
+    // Encoder uses internally BGR for 888 and RGB for 565
+    switch (spec->format) {
+      case IMAGE_FORMAT_RGB888:
+        rgb_to_bgr_inplace(pixels);
+        break;
+      default:
+        break;
+    }
   }
 
-  if (encoder_.open(buffer, buffer_length) != JPEGE_SUCCESS)
-    return 0;
+  int bpr = spec->bytes_per_row();
+  int bpp = spec->bytes_per_pixel();
+  int rc = JPEGE_SUCCESS;
+  ssize_t mcus = this->mcu_count_;
+  while (encoder_state_.y < spec->height && rc == JPEGE_SUCCESS && (this->mcu_count_ == 0 || mcus > 0)) {
+    rc = encoder_.addMCU(&encoder_state_,
+                         &pixels->get_data_buffer()[(encoder_state_.x * bpp) + (encoder_state_.y * bpr)], bpr);
+    --mcus;
+  }
 
-  if (encoder_.encodeBegin(&encoder_state_, spec->width, spec->height, to_internal(spec->format), this->subsampling_,
-                           this->quality_) != JPEGE_SUCCESS)
+  if (rc != JPEGE_SUCCESS) {
+    this->incremental_ = false;
     return 0;
+  }
 
-  if (encoder_.addFrame(&encoder_state_, pixels->get_data_buffer(), spec->bytes_per_row()) != JPEGE_SUCCESS)
-    return 0;
+  this->incremental_ = encoder_state_.y < spec->height;
+  if (!this->incremental_)
+    return encoder_.close();
 
-  return encoder_.close();
+  return 0;
 }
 
 EncoderError JPEGEncoderImpl::get_last_error() {

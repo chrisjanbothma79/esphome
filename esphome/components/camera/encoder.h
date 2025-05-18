@@ -37,6 +37,9 @@ class Encoder {
   virtual void set_quality(EncoderQuality quality) = 0;
   // Specify whether the color information should be reduced to reduce memory consumption at the expense of quality.
   virtual void set_subsampling(EncoderSubsampling subsampling) = 0;
+  // MCU_count number of MCUs to encode in every encoding call. Encoding will continue sequentially from the current MCU
+  // position. A zero value disables incremental encoding and causes the full image to be encoded in a single call.
+  virtual void set_mcu_count(size_t mcu_count) = 0;
   // Encodes the pixels and returns the number of bytes written.
   // Spec contains information about the format of the pixel image.
   virtual size_t encode_pixels(CameraImageSpec *spec, CameraImage *pixels, CameraImage *jpeg) = 0;

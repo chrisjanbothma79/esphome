@@ -14,6 +14,8 @@ class JPEGEncoderImpl : public Encoder {
   // -------- Encoder --------
   void set_quality(EncoderQuality quality) override;
   void set_subsampling(EncoderSubsampling subsampling) override;
+  void set_mcu_count(size_t mcu_count) override;
+
   size_t encode_pixels(CameraImageSpec *spec, CameraImage *pixels, CameraImage *jpeg) override;
   EncoderError get_last_error() override;
   // -------------------------
@@ -28,6 +30,8 @@ class JPEGEncoderImpl : public Encoder {
   int subsampling_{0};
   JPEGENC encoder_;
   JPEGENCODE encoder_state_;
+  bool incremental_{false};
+  ssize_t mcu_count_;
 };
 
 }  // namespace camera
