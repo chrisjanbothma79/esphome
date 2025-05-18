@@ -55,16 +55,16 @@ void Lc709203f::setup() {
   //  does not record power usage. If there is significant power consumption during sleep mode,
   //  the pack RSOC will likely no longer be correct. Because of that, I do not implement
   //  sleep mode on this device.
-  
+
   // Initialize device registers. If any of these fail, retry during the update() function.
   if (this->set_register_(LC709203F_IC_POWER_MODE, LC709203F_POWER_MODE_ON) != i2c::NO_ERROR) {
     return;
   }
-  
+
   if (this->set_register_(LC709203F_APA, this->apa_) != i2c::NO_ERROR) {
      return;
   }
-  
+
   if (this->set_register_(LC709203F_CHANGE_OF_THE_PARAMETER, this->pack_voltage_) != i2c::NO_ERROR) {
      return;
   }
@@ -109,11 +109,11 @@ void Lc709203f::update() {
     if (this->set_register_(LC709203F_IC_POWER_MODE, LC709203F_POWER_MODE_ON) != i2c::NO_ERROR) {
       return;
     }
-    
+
     if (this->set_register_(LC709203F_APA, this->apa_) != i2c::NO_ERROR) {
        return;
     }
-    
+
     if (this->set_register_(LC709203F_CHANGE_OF_THE_PARAMETER, this->pack_voltage_) != i2c::NO_ERROR) {
        return;
     }
@@ -159,7 +159,7 @@ void Lc709203f::dump_config() {
   ESP_LOGCONFIG(TAG, "  Pack Size: %d mAH", this->pack_size_);
   ESP_LOGCONFIG(TAG, "  Pack APA: 0x%02X", this->apa_);
 
-  // This is only true if the pack_voltage_ is either 0x0000 or 0x0001. The config validator 
+  // This is only true if the pack_voltage_ is either 0x0000 or 0x0001. The config validator
   //  should have already verified this.
   ESP_LOGCONFIG(TAG, "  Pack Rated Voltage: 3.%sV", this->pack_voltage_ == 0x0000 ? "8" : "7");
 
