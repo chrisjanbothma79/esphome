@@ -36,6 +36,7 @@ namespace sdfs {
   } while (0)
 
 typedef enum { CARD_NONE, CARD_MMC, CARD_SD, CARD_SDHC, CARD_UNKNOWN } sdcard_type_t;
+typedef enum { ST_NOTINIT, ST_INIT, ST_MOUNT } slot_status_t;
 
 //  SD - Esample  https://github.com/espressif/arduino-esp32/issues/6237
 
@@ -49,6 +50,7 @@ class ArduinoSdFatDriver : public fs::FS, public DriverInterface {
   void set_connector(SpiConnector *);
   bool init_host(SdConnType) override;
   bool is_card() override;
+  bool init_card();
   bool attach_card() override;
   bool mount(std::string, bool) override;
   void unmount() override;
@@ -74,7 +76,7 @@ class ArduinoSdFatDriver : public fs::FS, public DriverInterface {
   std::string mountpoint_;  // base_path
   unsigned long sectors_;
   bool supports_crc_;
-  int status_;
+  slot_status_t status_;
   sdcard_type_t type_;
   uint32_t last_err_ = 0;
 };
