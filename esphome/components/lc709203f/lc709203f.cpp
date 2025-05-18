@@ -62,11 +62,11 @@ void Lc709203f::setup() {
   }
 
   if (this->set_register_(LC709203F_APA, this->apa_) != i2c::NO_ERROR) {
-     return;
+    return;
   }
 
   if (this->set_register_(LC709203F_CHANGE_OF_THE_PARAMETER, this->pack_voltage_) != i2c::NO_ERROR) {
-     return;
+    return;
   }
 
   this->state_ = LC709203F_STATE_RSOC;
@@ -111,11 +111,11 @@ void Lc709203f::update() {
     }
 
     if (this->set_register_(LC709203F_APA, this->apa_) != i2c::NO_ERROR) {
-       return;
+      return;
     }
 
     if (this->set_register_(LC709203F_CHANGE_OF_THE_PARAMETER, this->pack_voltage_) != i2c::NO_ERROR) {
-       return;
+      return;
     }
 
     this->state_ = LC709203F_STATE_RSOC;
@@ -196,12 +196,12 @@ uint8_t Lc709203f::get_register_(uint8_t register_to_read, uint16_t *register_va
                register_to_read);
       this->status_set_warning(this->error_code_buffer_);
     } else if (this->crc8_(read_buffer, 5) != read_buffer[5]) {
-        // I2C indicated OK, but the CRC of the data does not matcth.
-        snprintf(this->error_code_buffer_, 50, "CRC error reading from register 0x%02X", register_to_read);
-        this->status_set_warning(this->error_code_buffer_);
+      // I2C indicated OK, but the CRC of the data does not matcth.
+      snprintf(this->error_code_buffer_, 50, "CRC error reading from register 0x%02X", register_to_read);
+      this->status_set_warning(this->error_code_buffer_);
     } else {
-        *register_value = ((uint16_t) read_buffer[4] << 8) | (uint16_t) read_buffer[3];
-        return i2c::NO_ERROR;
+      *register_value = ((uint16_t) read_buffer[4] << 8) | (uint16_t) read_buffer[3];
+      return i2c::NO_ERROR;
     }
   }
 
