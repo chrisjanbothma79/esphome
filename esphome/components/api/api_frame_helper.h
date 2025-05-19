@@ -71,7 +71,6 @@ class APIFrameHelper {
   virtual APIError loop() = 0;
   virtual APIError read_packet(ReadPacketBuffer *buffer) = 0;
   bool can_write_without_blocking() { return state_ == State::DATA && tx_buf_.empty(); }
-  virtual APIError write_packet(uint16_t type, const uint8_t *data, size_t len) = 0;
   std::string getpeername() { return socket_->getpeername(); }
   int getpeername(struct sockaddr *addr, socklen_t *addrlen) { return socket_->getpeername(addr, addrlen); }
   APIError close() {
@@ -93,12 +92,6 @@ class APIFrameHelper {
   // Give this helper a name for logging
   void set_log_info(std::string info) { info_ = std::move(info); }
   virtual APIError write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) = 0;
-  virtual std::string getpeername() = 0;
-  virtual int getpeername(struct sockaddr *addr, socklen_t *addrlen) = 0;
-  virtual APIError close() = 0;
-  virtual APIError shutdown(int how) = 0;
-  // Give this helper a name for logging
-  virtual void set_log_info(std::string info) = 0;
   // Get the frame header padding required by this protocol
   virtual uint8_t frame_header_padding() = 0;
   // Get the frame footer size required by this protocol
@@ -166,6 +159,10 @@ class APIFrameHelper {
 
   uint8_t frame_header_padding_{0};
   uint8_t frame_footer_size_{0};
+
+  // Receive buffer for reading frame data
+  std::vector<uint8_t> rx_buf_;
+  size_t rx_buf_len_ = 0;
 };
 
 #ifdef USE_API_NOISE
@@ -202,8 +199,6 @@ class APINoiseFrameHelper : public APIFrameHelper {
   // Note: Maximum message size is 65535, with a limit of 128 bytes during handshake phase
   uint8_t rx_header_buf_[3];
   size_t rx_header_buf_len_ = 0;
-  std::vector<uint8_t> rx_buf_;
-  size_t rx_buf_len_ = 0;
 
   std::vector<uint8_t> prologue_;
 
@@ -250,9 +245,6 @@ class APIPlaintextFrameHelper : public APIFrameHelper {
   bool rx_header_parsed_ = false;
   uint32_t rx_header_parsed_type_ = 0;
   uint32_t rx_header_parsed_len_ = 0;
-
-  std::vector<uint8_t> rx_buf_;
-  size_t rx_buf_len_ = 0;
 };
 #endif
 

@@ -1049,24 +1049,6 @@ APIError APIPlaintextFrameHelper::write_protobuf_packet(uint16_t type, ProtoWrit
 
   return write_raw_(&iov, 1);
 }
-APIError APIPlaintextFrameHelper::try_send_tx_buf_() {
-  // try send from tx_buf
-  while (state_ != State::CLOSED && !tx_buf_.empty()) {
-    ssize_t sent = socket_->write(tx_buf_.data(), tx_buf_.size());
-    if (is_would_block(sent)) {
-      break;
-    } else if (sent == -1) {
-      state_ = State::FAILED;
-      HELPER_LOG("Socket write failed with errno %d", errno);
-      return APIError::SOCKET_WRITE_FAILED;
-    }
-    // TODO: inefficient if multiple packets in txbuf
-    // replace with deque of buffers
-    tx_buf_.erase(tx_buf_.begin(), tx_buf_.begin() + sent);
-  }
-
-  return APIError::OK;
-}
 
 #endif  // USE_API_PLAINTEXT
 
