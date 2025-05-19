@@ -150,6 +150,7 @@ canbus::Error ESP32Can::read_message(struct canbus::CanFrame *frame) {
       break;
     default:
       ESP_LOGE(TAG, "Failed to read: %s", esp_err_to_name(err));
+      return canbus::ERROR_FAIL;
   }
 
   frame->can_id = message.identifier;
