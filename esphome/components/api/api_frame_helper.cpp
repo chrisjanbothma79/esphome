@@ -664,7 +664,7 @@ APIError APINoiseFrameHelper::write_protobuf_packet(uint16_t type, ProtoWriteBuf
   iov.iov_len = total_len;
 
   // write raw to not have two packets sent if NAGLE disabled
-  return APIFrameHelper::write_raw_(&iov, 1);
+  return this->write_raw_(&iov, 1);
 }
 APIError APINoiseFrameHelper::write_frame_(const uint8_t *data, uint16_t len) {
   uint8_t header[3];
@@ -676,12 +676,12 @@ APIError APINoiseFrameHelper::write_frame_(const uint8_t *data, uint16_t len) {
   iov[0].iov_base = header;
   iov[0].iov_len = 3;
   if (len == 0) {
-    return APIFrameHelper::write_raw_(iov, 1);
+    return this->write_raw_(iov, 1);
   }
   iov[1].iov_base = const_cast<uint8_t *>(data);
   iov[1].iov_len = len;
 
-  return APIFrameHelper::write_raw_(iov, 2);
+  return this->write_raw_(iov, 2);
 }
 
 /** Initiate the data structures for the handshake.
@@ -988,7 +988,7 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
                          "Bad indicator byte";
       iov[0].iov_base = (void *) msg;
       iov[0].iov_len = 19;
-      APIFrameHelper::write_raw_(iov, 1);
+      this->write_raw_(iov, 1);
     }
     return aerr;
   }
