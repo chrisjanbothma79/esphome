@@ -22,9 +22,6 @@
 #include "esphome/components/dashboard_import/dashboard_import.h"
 #endif
 
-#include <iostream>
-#include <sstream>
-
 namespace esphome {
 namespace mqtt {
 
@@ -88,15 +85,17 @@ void MQTTClientComponent::setup() {
 }
 
 void MQTTClientComponent::parse_topic_(const std::string &topic, std::string &top_name, std::string &rest) {
-  std::stringstream ss(topic);
-  // Extract the first part
-  if (std::getline(ss, top_name, '/')) {
-    // Extract the rest of the string
-    std::getline(ss, rest);  // Reads everything after the first '/'
-    rest = "/" + rest;
+  size_t pos = topic.find('/');
+
+  if (pos != std::string::npos) {
+    // Extract the first part
+    top_name = topic.substr(0, pos);
+    // Extract the rest including the '/'
+    rest = topic.substr(pos);
   } else {
-    top_name = topic;  // If no delimiter, the whole string is the first name
-    rest = "";         // No rest part
+    // No '/' found, assign the entire string to top_name
+    top_name = topic;
+    rest.clear();
   }
 }
 
