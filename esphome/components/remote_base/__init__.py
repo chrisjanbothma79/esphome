@@ -837,6 +837,39 @@ async def nec_action(var, config, args):
     cg.add(var.set_command_repeats(template_))
 
 
+# NEC-like Air Conditioner, uses NEC encoding for arbitrary length codes
+NECLikeData, NECLikeBinarySensor, NECLikeTrigger, NECLikeAction, NECLikeDumper = (
+    declare_protocol("NECLike")
+)
+
+NEC_LIKE_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_DATA): cv.string,
+    }
+)
+
+
+@register_binary_sensor("nec_like", NECLikeBinarySensor, NEC_LIKE_SCHEMA)
+def nec_like_binary_sensor(var, config):
+    cg.add(var.set_data(config[CONF_DATA]))
+
+
+@register_trigger("nec_like", NECLikeTrigger, NECLikeData)
+def nec_like_trigger(var, config):
+    pass
+
+
+@register_dumper("nec_like", NECLikeDumper)
+def nec_like_dumper(var, config):
+    pass
+
+
+@register_action("nec_like", NECLikeAction, NEC_LIKE_SCHEMA)
+async def nec_like_action(var, config, args):
+    bits = await cg.templatable(config[CONF_DATA], args, cg.std_string)
+    cg.add(var.set_bits(bits))
+
+
 # Pioneer
 (
     PioneerData,
