@@ -578,7 +578,7 @@ APIError APINoiseFrameHelper::read_packet(ReadPacketBuffer *buffer) {
     return APIError::CIPHERSTATE_DECRYPT_FAILED;
   }
 
-  size_t msg_size = mbuf.size;
+  uint16_t msg_size = mbuf.size;
   uint8_t *msg_data = frame.msg.data();
   if (msg_size < 4) {
     state_ = State::FAILED;
@@ -618,9 +618,9 @@ APIError APINoiseFrameHelper::write_protobuf_packet(uint16_t type, ProtoWriteBuf
 
   std::vector<uint8_t> *raw_buffer = buffer.get_buffer();
   // Message data starts after padding
-  size_t payload_len = raw_buffer->size() - frame_header_padding_;
-  size_t padding = 0;
-  size_t msg_len = 4 + payload_len + padding;
+  uint16_t payload_len = raw_buffer->size() - frame_header_padding_;
+  uint16_t padding = 0;
+  uint16_t msg_len = 4 + payload_len + padding;
 
   // We need to resize to include MAC space, but we already reserved it in create_buffer
   raw_buffer->resize(raw_buffer->size() + frame_footer_size_);
@@ -653,7 +653,7 @@ APIError APINoiseFrameHelper::write_protobuf_packet(uint16_t type, ProtoWriteBuf
     return APIError::CIPHERSTATE_ENCRYPT_FAILED;
   }
 
-  size_t total_len = 3 + mbuf.size;
+  uint16_t total_len = 3 + mbuf.size;
   buf_start[1] = (uint8_t) (mbuf.size >> 8);
   buf_start[2] = (uint8_t) mbuf.size;
 
@@ -666,7 +666,7 @@ APIError APINoiseFrameHelper::write_protobuf_packet(uint16_t type, ProtoWriteBuf
   // write raw to not have two packets sent if NAGLE disabled
   return APIFrameHelper::write_raw_(&iov, 1);
 }
-APIError APINoiseFrameHelper::write_frame_(const uint8_t *data, size_t len) {
+APIError APINoiseFrameHelper::write_frame_(const uint8_t *data, uint16_t len) {
   uint8_t header[3];
   header[0] = 0x01;  // indicator
   header[1] = (uint8_t) (len >> 8);
