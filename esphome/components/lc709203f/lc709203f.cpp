@@ -271,7 +271,7 @@ void Lc709203f::set_pack_size(uint16_t pack_size) {
 
   // The size is used to calculate the 'Adjustment Pack Application' number.
   // Here we assume a type 01 or type 03 battery and do a linear curve fit to find the APA.
-  for (uint8_t i = 0; i < sizeof(PACK_SIZE_ARRAY) / sizeof(PACK_SIZE_ARRAY[0]); i++) {
+  for (uint8_t i = 0; i < 6; i++) {
     if (PACK_SIZE_ARRAY[i] == pack_size) {
       // If the pack size is exactly one of the values in the array.
       this->apa_ = APA_ARRAY[i];
