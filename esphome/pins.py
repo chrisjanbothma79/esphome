@@ -1,5 +1,7 @@
 from functools import reduce
+from logging import Logger
 import operator
+from typing import Any, Callable
 
 import esphome.config_validation as cv
 from esphome.const import (
@@ -262,7 +264,7 @@ internal_gpio_input_pullup_pin_number = _internal_number_creator(
 )
 
 
-def check_strapping_pin(conf, strapping_pin_list, logger):
+def check_strapping_pin(conf, strapping_pin_list: set[int], logger: Logger):
     num = conf[CONF_NUMBER]
     if num in strapping_pin_list and not conf.get(CONF_IGNORE_STRAPPING_WARNING):
         logger.warning(
@@ -292,10 +294,10 @@ def gpio_validate_modes(value):
 
 def gpio_base_schema(
     pin_type,
-    number_validator,
+    number_validator: Callable[[Any], Any],
     modes=GPIO_STANDARD_MODES,
-    mode_validator=gpio_validate_modes,
-    invertable=True,
+    mode_validator: Callable[[Any], Any] = gpio_validate_modes,
+    invertable: bool = True,
 ):
     """
     Generate a base gpio pin schema
