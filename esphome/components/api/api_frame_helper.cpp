@@ -67,7 +67,7 @@ const char *api_error_to_str(APIError err) {
 }
 
 // Helper method to buffer data from IOVs
-void APIFrameHelper::buffer_data_from_iov_(const struct iovec *iov, int iovcnt, size_t total_write_len) {
+void APIFrameHelper::buffer_data_from_iov_(const struct iovec *iov, int iovcnt, uint16_t total_write_len) {
   SendBuffer buffer;
   buffer.data.reserve(total_write_len);
   for (int i = 0; i < iovcnt; i++) {
@@ -85,13 +85,13 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
   if (iovcnt == 0)
     return APIError::OK;  // Nothing to do, success
 
-  size_t total_write_len = 0;
+  uint16_t total_write_len = 0;
   for (int i = 0; i < iovcnt; i++) {
 #ifdef HELPER_LOG_PACKETS
     ESP_LOGVV(TAG, "Sending raw: %s",
               format_hex_pretty(reinterpret_cast<uint8_t *>(iov[i].iov_base), iov[i].iov_len).c_str());
 #endif
-    total_write_len += iov[i].iov_len;
+    total_write_len += static_cast<uint16_t>(iov[i].iov_len);
   }
 
   // Try to send any existing buffered data first if there is any
@@ -123,22 +123,22 @@ APIError APIFrameHelper::write_raw_(const struct iovec *iov, int iovcnt) {
     ESP_LOGVV(TAG, "%s: Socket write failed with errno %d", this->info_.c_str(), errno);
     this->state_ = State::FAILED;
     return APIError::SOCKET_WRITE_FAILED;  // Socket write failed
-  } else if (static_cast<size_t>(sent) < total_write_len) {
+  } else if (static_cast<uint16_t>(sent) < total_write_len) {
     // Partially sent, buffer the remaining data
     SendBuffer buffer;
-    size_t to_consume = sent;
-    size_t remaining = total_write_len - sent;
+    uint16_t to_consume = static_cast<uint16_t>(sent);
+    uint16_t remaining = total_write_len - static_cast<uint16_t>(sent);
 
     buffer.data.reserve(remaining);
 
     for (int i = 0; i < iovcnt; i++) {
       if (to_consume >= iov[i].iov_len) {
         // This segment was fully sent
-        to_consume -= iov[i].iov_len;
+        to_consume -= static_cast<uint16_t>(iov[i].iov_len);
       } else {
         // This segment was partially sent or not sent at all
         const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base) + to_consume;
-        size_t len = iov[i].iov_len - to_consume;
+        uint16_t len = static_cast<uint16_t>(iov[i].iov_len) - to_consume;
         buffer.data.insert(buffer.data.end(), data, data + len);
         to_consume = 0;
       }
@@ -357,7 +357,7 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
 
   if (rx_buf_len_ < msg_size) {
     // more data to read
-    size_t to_read = msg_size - rx_buf_len_;
+    uint16_t to_read = msg_size - rx_buf_len_;
     ssize_t received = this->socket_->read(&rx_buf_[rx_buf_len_], to_read);
     if (received == -1) {
       if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -372,7 +372,7 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
       return APIError::CONNECTION_CLOSED;
     }
     rx_buf_len_ += static_cast<uint16_t>(received);
-    if ((size_t) received != to_read) {
+    if (static_cast<uint16_t>(received) != to_read) {
       // not all read
       return APIError::WOULD_BLOCK;
     }
@@ -928,7 +928,7 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
 
   if (rx_buf_len_ < rx_header_parsed_len_) {
     // more data to read
-    size_t to_read = rx_header_parsed_len_ - rx_buf_len_;
+    uint16_t to_read = rx_header_parsed_len_ - rx_buf_len_;
     ssize_t received = this->socket_->read(&rx_buf_[rx_buf_len_], to_read);
     if (received == -1) {
       if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -943,7 +943,7 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
       return APIError::CONNECTION_CLOSED;
     }
     rx_buf_len_ += static_cast<uint16_t>(received);
-    if ((size_t) received != to_read) {
+    if (static_cast<uint16_t>(received) != to_read) {
       // not all read
       return APIError::WOULD_BLOCK;
     }
@@ -1006,12 +1006,12 @@ APIError APIPlaintextFrameHelper::write_protobuf_packet(uint16_t type, ProtoWrit
 
   std::vector<uint8_t> *raw_buffer = buffer.get_buffer();
   // Message data starts after padding (frame_header_padding_ = 6)
-  size_t payload_len = raw_buffer->size() - frame_header_padding_;
+  uint16_t payload_len = static_cast<uint16_t>(raw_buffer->size() - frame_header_padding_);
 
   // Calculate varint sizes for header components
-  size_t size_varint_len = api::ProtoSize::varint(static_cast<uint32_t>(payload_len));
-  size_t type_varint_len = api::ProtoSize::varint(static_cast<uint32_t>(type));
-  size_t total_header_len = 1 + size_varint_len + type_varint_len;
+  uint8_t size_varint_len = api::ProtoSize::varint(static_cast<uint32_t>(payload_len));
+  uint8_t type_varint_len = api::ProtoSize::varint(static_cast<uint32_t>(type));
+  uint8_t total_header_len = 1 + size_varint_len + type_varint_len;
 
   if (total_header_len > frame_header_padding_) {
     // Header is too large to fit in the padding
@@ -1041,7 +1041,7 @@ APIError APIPlaintextFrameHelper::write_protobuf_packet(uint16_t type, ProtoWrit
   // [4-5]  - Message type varint (2 bytes, for types 128-32767)
   // [6...] - Actual payload data
   uint8_t *buf_start = raw_buffer->data();
-  size_t header_offset = frame_header_padding_ - total_header_len;
+  uint8_t header_offset = frame_header_padding_ - total_header_len;
 
   // Write the plaintext header
   buf_start[header_offset] = 0x00;  // indicator
