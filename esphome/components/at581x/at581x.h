@@ -17,8 +17,10 @@ class AT581XComponent : public Component, public i2c::I2CDevice {
 #ifdef USE_SWITCH
  protected:
   switch_::Switch *rf_power_switch_{nullptr};
+#endif
 
  public:
+#ifdef USE_SWITCH
   void set_rf_power_switch(switch_::Switch *s) {
     this->rf_power_switch_ = s;
     s->turn_on();
