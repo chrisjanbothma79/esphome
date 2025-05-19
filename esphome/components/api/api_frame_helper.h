@@ -163,6 +163,9 @@ class APIFrameHelper {
   // Receive buffer for reading frame data
   std::vector<uint8_t> rx_buf_;
   size_t rx_buf_len_ = 0;
+
+  // Common initialization for both plaintext and noise protocols
+  APIError init_common_();
 };
 
 #ifdef USE_API_NOISE

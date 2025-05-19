@@ -190,6 +190,28 @@ APIError APIFrameHelper::try_send_tx_buf_() {
   return APIError::OK;  // All buffers sent successfully
 }
 
+APIError APIFrameHelper::init_common_() {
+  if (state_ != State::INITIALIZE || this->socket_ == nullptr) {
+    ESP_LOGVV(TAG, "%s: Bad state for init %d", this->info_.c_str(), (int) state_);
+    return APIError::BAD_STATE;
+  }
+  int err = this->socket_->setblocking(false);
+  if (err != 0) {
+    state_ = State::FAILED;
+    ESP_LOGVV(TAG, "%s: Setting nonblocking failed with errno %d", this->info_.c_str(), errno);
+    return APIError::TCP_NONBLOCKING_FAILED;
+  }
+
+  int enable = 1;
+  err = this->socket_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
+  if (err != 0) {
+    state_ = State::FAILED;
+    ESP_LOGVV(TAG, "%s: Setting nodelay failed with errno %d", this->info_.c_str(), errno);
+    return APIError::TCP_NODELAY_FAILED;
+  }
+  return APIError::OK;
+}
+
 #define HELPER_LOG(msg, ...) ESP_LOGVV(TAG, "%s: " msg, this->info_.c_str(), ##__VA_ARGS__)
 // uncomment to log raw packets
 //#define HELPER_LOG_PACKETS
@@ -238,23 +260,9 @@ std::string noise_err_to_str(int err) {
 
 /// Initialize the frame helper, returns OK if successful.
 APIError APINoiseFrameHelper::init() {
-  if (state_ != State::INITIALIZE || this->socket_ == nullptr) {
-    HELPER_LOG("Bad state for init %d", (int) state_);
-    return APIError::BAD_STATE;
-  }
-  int err = this->socket_->setblocking(false);
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("Setting nonblocking failed with errno %d", errno);
-    return APIError::TCP_NONBLOCKING_FAILED;
-  }
-
-  int enable = 1;
-  err = this->socket_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("Setting nodelay failed with errno %d", errno);
-    return APIError::TCP_NODELAY_FAILED;
+  APIError err = init_common_();
+  if (err != APIError::OK) {
+    return err;
   }
 
   // init prologue
@@ -777,22 +785,9 @@ void noise_rand_bytes(void *output, size_t len) {
 
 /// Initialize the frame helper, returns OK if successful.
 APIError APIPlaintextFrameHelper::init() {
-  if (state_ != State::INITIALIZE || this->socket_ == nullptr) {
-    HELPER_LOG("Bad state for init %d", (int) state_);
-    return APIError::BAD_STATE;
-  }
-  int err = this->socket_->setblocking(false);
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("Setting nonblocking failed with errno %d", errno);
-    return APIError::TCP_NONBLOCKING_FAILED;
-  }
-  int enable = 1;
-  err = this->socket_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
-  if (err != 0) {
-    state_ = State::FAILED;
-    HELPER_LOG("Setting nodelay failed with errno %d", errno);
-    return APIError::TCP_NODELAY_FAILED;
+  APIError err = init_common_();
+  if (err != APIError::OK) {
+    return err;
   }
 
   state_ = State::DATA;
@@ -949,7 +944,6 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
   rx_header_parsed_ = false;
   return APIError::OK;
 }
-
 APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
   APIError aerr;
 
