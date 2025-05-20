@@ -593,12 +593,12 @@ def command_update_all(args):
         middle_text = f" {middle_text} "
         width = len(click.unstyle(middle_text))
         half_line = "=" * ((twidth - width) // 2)
-        click.echo(f"{half_line}{middle_text}{half_line}")
+        safe_print(f"{half_line}{middle_text}{half_line}")
 
     for f in files:
-        print(f"Updating {color(AnsiFore.CYAN, f)}")
-        print("-" * twidth)
-        print()
+        safe_print(f"Updating {color(AnsiFore.CYAN, f)}")
+        safe_print("-" * twidth)
+        safe_print()
         rc = run_external_process(
             "esphome", "--dashboard", "run", f, "--no-logs", "--device", "OTA"
         )
@@ -609,17 +609,17 @@ def command_update_all(args):
             print_bar(f"[{color(AnsiFore.BOLD_RED, 'ERROR')}] {f}")
             success[f] = False
 
-        print()
-        print()
-        print()
+        safe_print()
+        safe_print()
+        safe_print()
 
     print_bar(f"[{color(AnsiFore.BOLD_WHITE, 'SUMMARY')}]")
     failed = 0
     for f in files:
         if success[f]:
-            print(f"  - {f}: {color(AnsiFore.GREEN, 'SUCCESS')}")
+            safe_print(f"  - {f}: {color(AnsiFore.GREEN, 'SUCCESS')}")
         else:
-            print(f"  - {f}: {color(AnsiFore.BOLD_RED, 'FAILED')}")
+            safe_print(f"  - {f}: {color(AnsiFore.BOLD_RED, 'FAILED')}")
             failed += 1
     return failed
 
