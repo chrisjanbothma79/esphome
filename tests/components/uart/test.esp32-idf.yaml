@@ -16,3 +16,6 @@ uart:
     rx_timeout: 1
     parity: EVEN
     stop_bits: 2
+
+packet_transport:
+  - platform: uart
