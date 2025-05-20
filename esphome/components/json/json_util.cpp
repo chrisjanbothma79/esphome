@@ -44,8 +44,6 @@ std::string build_json(const json_build_t &f) {
       request_size = std::min(request_size * 2, free_heap);
       continue;
     }
-    json_document.shrinkToFit();
-    ESP_LOGV(TAG, "Size after shrink %zu bytes", json_document.capacity());
     std::string output;
     serializeJson(json_document, output);
     return output;
