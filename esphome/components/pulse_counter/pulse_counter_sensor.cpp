@@ -29,17 +29,27 @@ void IRAM_ATTR BasicPulseCounterStorage::gpio_intr(BasicPulseCounterStorage *arg
     case PULSE_COUNTER_DISABLE:
       break;
     case PULSE_COUNTER_INCREMENT: {
-      auto x = arg->counter + 1;
-      arg->counter = x;
+      if (arg->dir_pin != nullptr && arg->dir_pin->digital_read()) {
+        arg->counter = arg->counter - 1;
+      } else {
+        arg->counter = arg->counter + 1;
+      }
     } break;
     case PULSE_COUNTER_DECREMENT: {
-      auto x = arg->counter - 1;
-      arg->counter = x;
+      if (arg->dir_pin != nullptr && arg->dir_pin->digital_read()) {
+        arg->counter = arg->counter + 1;
+      } else {
+        arg->counter = arg->counter - 1;
+      }
     } break;
   }
 }
 
-bool BasicPulseCounterStorage::pulse_counter_setup(InternalGPIOPin *pin) {
+bool BasicPulseCounterStorage::pulse_counter_setup(InternalGPIOPin *pin, InternalGPIOPin *dir_pin) {
+  if (dir_pin != nullptr) {
+    this->dir_pin = dir_pin;
+    this->dir_pin->setup();
+  }
   this->pin = pin;
   this->pin->setup();
   this->isr_pin = this->pin->to_isr();
@@ -55,9 +65,13 @@ pulse_counter_t BasicPulseCounterStorage::read_raw_value() {
 }
 
 #ifdef HAS_PCNT
-bool HwPulseCounterStorage::pulse_counter_setup(InternalGPIOPin *pin) {
+bool HwPulseCounterStorage::pulse_counter_setup(InternalGPIOPin *pin, InternalGPIOPin *dir_pin) {
   static pcnt_unit_t next_pcnt_unit = PCNT_UNIT_0;
   static pcnt_channel_t next_pcnt_channel = PCNT_CHANNEL_0;
+  if (dir_pin != nullptr) {
+    this->dir_pin = dir_pin;
+    this->dir_pin->setup();
+  }
   this->pin = pin;
   this->pin->setup();
   this->pcnt_unit = next_pcnt_unit;
@@ -95,18 +109,34 @@ bool HwPulseCounterStorage::pulse_counter_setup(InternalGPIOPin *pin) {
       break;
   }
 
-  pcnt_config_t pcnt_config = {
-      .pulse_gpio_num = this->pin->get_pin(),
-      .ctrl_gpio_num = PCNT_PIN_NOT_USED,
-      .lctrl_mode = PCNT_MODE_KEEP,
-      .hctrl_mode = PCNT_MODE_KEEP,
-      .pos_mode = rising,
-      .neg_mode = falling,
-      .counter_h_lim = 0,
-      .counter_l_lim = 0,
-      .unit = this->pcnt_unit,
-      .channel = this->pcnt_channel,
-  };
+  pcnt_config_t pcnt_config;
+  if (dir_pin != nullptr) {
+    pcnt_config = {
+        .pulse_gpio_num = this->pin->get_pin(),
+        .ctrl_gpio_num = this->dir_pin->get_pin(),
+        .lctrl_mode = PCNT_MODE_KEEP,
+        .hctrl_mode = PCNT_MODE_REVERSE,
+        .pos_mode = rising,
+        .neg_mode = falling,
+        .counter_h_lim = 0,
+        .counter_l_lim = 0,
+        .unit = this->pcnt_unit,
+        .channel = this->pcnt_channel,
+    };
+  } else {
+    pcnt_config = {
+        .pulse_gpio_num = this->pin->get_pin(),
+        .ctrl_gpio_num = PCNT_PIN_NOT_USED,
+        .lctrl_mode = PCNT_MODE_KEEP,
+        .hctrl_mode = PCNT_MODE_KEEP,
+        .pos_mode = rising,
+        .neg_mode = falling,
+        .counter_h_lim = 0,
+        .counter_l_lim = 0,
+        .unit = this->pcnt_unit,
+        .channel = this->pcnt_channel,
+    };
+  }
   esp_err_t error = pcnt_unit_config(&pcnt_config);
   if (error != ESP_OK) {
     ESP_LOGE(TAG, "Configuring Pulse Counter failed: %s", esp_err_to_name(error));
@@ -157,13 +187,13 @@ pulse_counter_t HwPulseCounterStorage::read_raw_value() {
 
 void PulseCounterSensor::setup() {
   ESP_LOGCONFIG(TAG, "Setting up pulse counter '%s'...", this->name_.c_str());
-  if (!this->storage_.pulse_counter_setup(this->pin_)) {
+  if (!this->storage_.pulse_counter_setup(this->pin_, this->dir_pin_)) {
     this->mark_failed();
     return;
   }
 }
 
-void PulseCounterSensor::set_total_pulses(uint32_t pulses) {
+void PulseCounterSensor::set_total_pulses(int32_t pulses) {
   this->current_total_ = pulses;
   this->total_sensor_->publish_state(pulses);
 }
@@ -171,6 +201,7 @@ void PulseCounterSensor::set_total_pulses(uint32_t pulses) {
 void PulseCounterSensor::dump_config() {
   LOG_SENSOR("", "Pulse Counter", this);
   LOG_PIN("  Pin: ", this->pin_);
+  LOG_PIN("  Dir Pin: ", this->dir_pin_);
   ESP_LOGCONFIG(TAG, "  Rising Edge: %s", EDGE_MODE_TO_STRING[this->storage_.rising_edge_mode]);
   ESP_LOGCONFIG(TAG, "  Falling Edge: %s", EDGE_MODE_TO_STRING[this->storage_.falling_edge_mode]);
   ESP_LOGCONFIG(TAG, "  Filtering pulses shorter than %" PRIu32 " µs", this->storage_.filter_us);
