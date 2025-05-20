@@ -8,6 +8,9 @@
 // #include <SD.h>
 #include "FSImpl.h"
 // #include "sd_defines.h"
+extern "C" {
+#include "ff.h"
+}
 
 namespace esphome {
 namespace sdfs {
@@ -44,7 +47,7 @@ class ArduinoSdFatDriver : public fs::FS, public DriverInterface {
  public:
   ArduinoSdFatDriver(fs::FSImplPtr);
   //   void set_spi(uint8_t ss, SPIClass *spi, uint32_t frequency=4000000, const char* mountpoint="/sd");
-  void set_spi(uint8_t, SPIClass *, uint32_t, const char *);
+  // void set_spi(uint8_t, SPIClass *, uint32_t, const char *);
   void end();
   void set_parent(SdmmcHost *) override;
   void set_connector(SpiConnector *);
@@ -68,9 +71,10 @@ class ArduinoSdFatDriver : public fs::FS, public DriverInterface {
 
  protected:
   SpiConnector *connector_;
+  FATFS *fs_ = NULL;
   uint8_t pdrv_;
-  SPIClass *spi_;
-  int8_t ssPin_;
+  // SPIClass *spi_;
+  // int8_t ssPin_;
   uint32_t frequency_;
   bool format_if_empty_ = false;
   std::string mountpoint_;  // base_path
@@ -81,7 +85,7 @@ class ArduinoSdFatDriver : public fs::FS, public DriverInterface {
   uint32_t last_err_ = 0;
 };
 
-using fs::FS;
+// using fs::FS;
 
 }  // namespace sdfs
 }  // namespace esphome

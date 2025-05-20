@@ -21,6 +21,8 @@ namespace sdfs {
 
 // #endif
 
+extern const char *fs_err2str[];
+
 enum SdDriverStatus : int {
   SD_SLOT_ST_NOTINIT = 0,
   SD_SLOT_ST_INIT = 1,
