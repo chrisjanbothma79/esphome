@@ -42,15 +42,21 @@ bool ModbusController::send_next_command_() {
     } else {
       ESP_LOGV(TAG, "Sending next modbus command to device %d register 0x%02X count %d", this->address_,
                command->register_address, command->register_count);
-      command->send();
 
-      this->last_command_timestamp_ = millis();
-
-      this->command_sent_callback_.call((int) command->function_code, command->register_address);
-
-      // remove from queue if no handler is defined
-      if (!command->on_data_func) {
+      if (command->register_type == ModbusRegisterType::LAST) {
+        this->loop_done_callback_.call();
         this->command_queue_.pop_front();
+        ESP_LOGW(TAG, "Modbus data updated", this->address_);
+      } else {
+        command->send();
+
+        this->last_command_timestamp_ = millis();
+
+        this->command_sent_callback_.call((int) command->function_code, command->register_address);
+        // remove from queue if no handler is defined
+        if (!command->on_data_func) {
+          this->command_queue_.pop_front();
+        }
       }
     }
   }
@@ -235,6 +241,11 @@ void ModbusController::update() {
   for (auto &r : this->register_ranges_) {
     ESP_LOGVV(TAG, "Updating range 0x%X", r.start_address);
     update_range_(r);
+  }
+
+  if (this->loop_done_callback_.size() > 0) {
+    RegisterRange last = {.register_type = ModbusRegisterType::LAST};
+    update_range_(last);
   }
 }
 
@@ -704,6 +715,10 @@ int64_t payload_to_number(const std::vector<uint8_t> &data, SensorValueType sens
   if (error)
     ESP_LOGE(TAG, "not enough data for value");
   return value;
+}
+
+void ModbusController::add_on_loop_done_callback(std::function<void()> &&callback) {
+  this->loop_done_callback_.add(std::move(callback));
 }
 
 void ModbusController::add_on_command_sent_callback(std::function<void(int, int)> &&callback) {

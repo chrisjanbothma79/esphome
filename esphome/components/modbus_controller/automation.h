@@ -7,6 +7,13 @@
 namespace esphome {
 namespace modbus_controller {
 
+class ModbusLoopDoneTrigger : public Trigger<> {
+ public:
+  ModbusLoopDoneTrigger(ModbusController *a_modbuscontroller) {
+    a_modbuscontroller->add_on_loop_done_callback([this]() { this->trigger(); });
+  }
+};
+
 class ModbusCommandSentTrigger : public Trigger<int, int> {
  public:
   ModbusCommandSentTrigger(ModbusController *a_modbuscontroller) {
