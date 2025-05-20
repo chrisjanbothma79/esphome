@@ -62,9 +62,7 @@ CONFIG_SCHEMA = (
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
             ).extend(
                 {
-                    cv.Optional(
-                        CONF_THERMISTOR_B_CONSTANT, default="0x0D34"
-                    ): cv.int_range(0, 0xFFFF),
+                    cv.Required(CONF_THERMISTOR_B_CONSTANT): cv.int_range(0, 0xFFFF),
                 }
             ),
         }
