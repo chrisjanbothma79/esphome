@@ -1633,6 +1633,10 @@ BOARDS = {
         "name": "Espressif ESP32-H2-DevKit",
         "variant": VARIANT_ESP32H2,
     },
+    "esp32-p4": {
+        "name": "Espressif ESP32-P4 generic",
+        "variant": VARIANT_ESP32P4,
+    },
     "esp32-p4-evboard": {
         "name": "Espressif ESP32-P4 Function EV Board",
         "variant": VARIANT_ESP32P4,
