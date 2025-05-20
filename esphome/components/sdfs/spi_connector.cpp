@@ -17,10 +17,14 @@ void SpiConnector::beginTransaction() {
   if (trans_level_ <= 0) {
     this->enable();
   } else {
-    ESP_LOGD(TAG, "Start Transaction when was in transaction.");
+#if defined(SPI_CALL_TRACE)
+    ESP_LOGW(TAG, "Start Transaction when was in transaction.");
+#endif
   }
   trans_level_++;
+#if defined(SPI_CALL_TRACE)
   ESP_LOGD(TAG, "Transaction + Level=%d", trans_level_);
+#endif
   // ESP_LOGD(TAG,"start transaction +");
   // if (! in_transaction )  {
   //   this->enable();
@@ -36,7 +40,9 @@ void SpiConnector::endTransaction() {
     ESP_LOGE(TAG, "close transaction w/o begin transaction");
   }
   trans_level_--;
+#if defined(SPI_CALL_TRACE)
   ESP_LOGD(TAG, "Transaction - Level=%d", trans_level_);
+#endif
   if (trans_level_ <= 0) {
     this->disable();
   }
@@ -47,22 +53,30 @@ void SpiConnector::endTransaction() {
 }
 
 uint8_t SpiConnector::transfer(uint8_t data) {
-  // ESP_LOGD(TAG, "transfer  0x%.02X",data);
+#if defined(SPI_CALL_TRACE)
+// ESP_LOGD(TAG, "transfer  0x%.02X",data);
+#endif
   return this->transfer_byte(data);
 }
 
 void SpiConnector::write16(uint16_t data) {
+#if defined(SPI_CALL_TRACE)
   ESP_LOGD(TAG, "write16  0x%.04X", data);
+#endif
   this->write_byte16(data);
 }
 
 void SpiConnector::write(uint8_t data) {
+#if defined(SPI_CALL_TRACE)
   ESP_LOGD(TAG, "write 0x%.02X", data);
+#endif
   this->write_byte(data);
 }
 
 void SpiConnector::write32(uint32_t data) {
+#if defined(SPI_CALL_TRACE)
   ESP_LOGD(TAG, "write32  0x%.08X", data);
+#endif
   std::array<uint8_t, 4> _value;
   _value[0] = data >> 24;
   _value[1] = data >> 16;
@@ -73,20 +87,25 @@ void SpiConnector::write32(uint32_t data) {
 }
 
 uint16_t SpiConnector::transfer16(uint16_t data) {
-  // ESP_LOGD(TAG, "Start transfer16  0x%.04X",data);
+#if defined(SPI_CALL_TRACE)
+  ESP_LOGD(TAG, "transfer16  0x%.04X", data);
+#endif
   std::array<uint8_t, 2> _value;
   _value[0] = data >> 8;
   _value[1] = data;
 
   this->transfer_array(_value);
   data = (_value[0] << 8) | (_value[1]);
-  // ESP_LOGD(TAG, "Complete transfer16 0x%.04X",data);
+#if defined(SPI_CALL_TRACE)
+  ESP_LOGD(TAG, "transfer16 recv 0x%.04X", data);
+#endif
   return data;
 }
 
 uint32_t SpiConnector::transfer32(uint32_t data) {
-  // ESP_LOGD(TAG, "Start transfer32 0x%.08X",data);
-
+#if defined(SPI_CALL_TRACE)
+  ESP_LOGD(TAG, "transfer32 0x%.08X", data);
+#endif
   std::array<uint8_t, 4> _value;
   _value[0] = data >> 24;
   _value[1] = data >> 16;
@@ -97,7 +116,9 @@ uint32_t SpiConnector::transfer32(uint32_t data) {
 
   data = (_value[0] << 24) | (_value[1] << 16) | (_value[2] << 8) | (_value[3]);
   _value.empty();
-  // ESP_LOGD(TAG, "End transfer32 0x%.08X",data);
+#if defined(SPI_CALL_TRACE)
+  ESP_LOGD(TAG, "transfer32  recv 0x%.08X", data);
+#endif
   return data;
 }
 
@@ -107,12 +128,18 @@ uint32_t SpiConnector::transfer32(uint32_t data) {
 //   return;
 // }
 
-void SpiConnector::writeBytes(const uint8_t *data, uint32_t size) { this->write_array(data, size); }
+void SpiConnector::writeBytes(const uint8_t *data, uint32_t size) {
+#if defined(SPI_CALL_TRACE)
+  ESP_LOGD(TAG, "writeBytes data, len %d", size);
+#endif
+  this->write_array(data, size);
+}
 
 void SpiConnector::transfer(void *data, uint32_t size) {
-  // ESP_LOGD(TAG, "transfer %d bytes",size);
+#if defined(SPI_CALL_TRACE)
+  ESP_LOGD(TAG, "transfer data, len %d", size);
+#endif
   this->delegate_->transfer((uint8_t *) data, size);
-  // transferBytes((const uint8_t *) data, (uint8_t *) data, size);
 }
 
 // void SpiConnector::writePixels(const void * data, uint32_t size)
@@ -127,7 +154,9 @@ void SpiConnector::transfer(void *data, uint32_t size) {
  * @param size uint32_t
  */
 void SpiConnector::transferBytes(const uint8_t *data, uint8_t *out, uint32_t size) {
-  // ESP_LOGD(TAG, "transferBytes %d bytes",size);
+#if defined(SPI_CALL_TRACE)
+  ESP_LOGD(TAG, "transferBytes %d bytes", size);
+#endif
   uint8_t *txbuff = NULL;
   if (data == NULL) {
     txbuff = (uint8_t *) malloc(size);
@@ -148,6 +177,9 @@ void SpiConnector::transferBytes(const uint8_t *data, uint8_t *out, uint32_t siz
  * @param repeat uint32_t
  */
 void SpiConnector::writePattern(const uint8_t *data, uint8_t size, uint32_t repeat) {
+#if defined(SPI_CALL_TRACE)
+  ESP_LOGD(TAG, "writePattern %d repeats", size);
+#endif
   if (size > 64) {
     return;  // max Hardware FIFO
   }

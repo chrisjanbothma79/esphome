@@ -5,9 +5,9 @@
 #include "spi_connector.h"
 #include "esphome/components/spi/spi.h"
 #include "sdspi_drv_ard.h"
-#include "vfs_api.h"
-#include "FS.h"
-#include "SPI.h"
+// #include "vfs_api.h"
+// #include "FS.h"
+// #include "SPI.h"
 #else
 #include "sdmmc_drv_idf.h"
 #endif
@@ -138,7 +138,8 @@ void SdmmcHost::setup() {
 
 #ifdef USE_ARDUINO_SPI_FS
   // fs::FSImplPtr* fs = new fs::FSImplPtr();
-  ArduinoSdFatDriver *drv = new ArduinoSdFatDriver(fs::FSImplPtr(new VFSImpl()));
+  // ArduinoSdFatDriver *drv = new ArduinoSdFatDriver(fs::FSImplPtr(new VFSImpl()));
+  ArduinoSdFatDriver *drv = new ArduinoSdFatDriver();
 
   ESP_LOGD(TAG, "Setup/Init spi");
 
@@ -182,7 +183,7 @@ void SdmmcHost::setup() {
     return;
   }
 
-  ESP_LOGD(TAG, "Start init host");
+  ESP_LOGD(TAG, "Init host");
   if (!this->drv_->init_host(this->type_)) {
     this->mark_failed();
     this->set_state(SD_SLOT_ST_NOTINIT);
@@ -191,7 +192,7 @@ void SdmmcHost::setup() {
   this->set_state(SD_SLOT_ST_INIT);
   this->last_card_staus = true;
 
-  ESP_LOGD(TAG, " Start attach card.");
+  ESP_LOGD(TAG, "Chack card.");
   if (this->drv_->is_card()) {
     this->set_state(SD_SLOT_ST_EMPTY);
     if (this->drv_->attach_card()) {
@@ -203,14 +204,14 @@ void SdmmcHost::setup() {
       }
     }
   }
-  ESP_LOGD(TAG, "setup complete");
+  ESP_LOGD(TAG, "Setup complete");
 }
 
 void SdmmcHost::loop() {
   time_t cur_time = ::time(nullptr);
 
   if ((cur_time - this->last_time_check_) > 10) {
-    ESP_LOGD(TAG, "Check card status. %ds", cur_time - this->last_time_check_);
+    ESP_LOGD(TAG, "Check card status. %d", cur_time - this->last_time_check_);
     this->last_time_check_ = cur_time;
 
     bool card_present = this->drv_->is_card();

@@ -14,6 +14,8 @@
 // #include "SpiDriver/SdSpiBaseClass.h"
 #endif
 
+// #define SPI_CALL_TRACE
+
 namespace esphome {
 namespace sdfs {
 // #ifdef USE_ESP_IDF

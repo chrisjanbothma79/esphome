@@ -204,7 +204,7 @@ async def to_code(config):
         # cg.add_platformio_option("extra_scripts", ["pre:build_pio.py"])
         # cg.add_platformio_option("lib_ldf_mode", "chain+")  #deep+  chain+
         # cg.add_platformio_option("lib_extra_dirs", "src/esphome/components/sdfs")
-        cg.add_library("FS", None)
+        # cg.add_library("FS", None)s
         # cg.add_library("SD", None)
         # cg.add_library("SPI", None)
         # cg.add_library("SdFat", None)

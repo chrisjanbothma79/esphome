@@ -4,9 +4,9 @@
 #ifdef USE_ARDUINO_SPI_FS
 // #include "esphome/components/spi/spi.h"
 #include <SPI.h>
-#include <FS.h>
+// #include <FS.h>
 // #include <SD.h>
-#include "FSImpl.h"
+// #include "FSImpl.h"
 // #include "sd_defines.h"
 extern "C" {
 #include "ff.h"
@@ -43,9 +43,9 @@ typedef enum { ST_NOTINIT, ST_INIT, ST_MOUNT } slot_status_t;
 
 //  SD - Esample  https://github.com/espressif/arduino-esp32/issues/6237
 
-class ArduinoSdFatDriver : public fs::FS, public DriverInterface {
+class ArduinoSdFatDriver : public DriverInterface {
  public:
-  ArduinoSdFatDriver(fs::FSImplPtr);
+  ArduinoSdFatDriver();
   //   void set_spi(uint8_t ss, SPIClass *spi, uint32_t frequency=4000000, const char* mountpoint="/sd");
   // void set_spi(uint8_t, SPIClass *, uint32_t, const char *);
   void end();
