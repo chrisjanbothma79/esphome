@@ -1,3 +1,5 @@
+#include "esphome/core/defines.h"
+
 #ifdef USE_ESP32
 #include "esp32_can.h"
 #include "esphome/core/log.h"
@@ -85,10 +87,10 @@ bool ESP32Can::setup_internal() {
     this->mark_failed();
     return false;
   }
-  
+
   ESP_LOGV(TAG, "Install TWAI driver");
   const auto install_err = twai_driver_install_v2(&g_config, &t_config, &f_config, &this->twai_handle_);
-  switch(install_err) {
+  switch (install_err) {
     case ESP_OK:
       break;
     default:
@@ -143,7 +145,7 @@ canbus::Error ESP32Can::read_message(struct canbus::CanFrame *frame) {
   twai_message_t message;
 
   const auto err = twai_receive_v2(this->twai_handle_, &message, 0);
-  switch(err) {
+  switch (err) {
     case ESP_ERR_TIMEOUT:
       return canbus::ERROR_NOMSG;
     case ESP_OK:
@@ -165,6 +167,79 @@ canbus::Error ESP32Can::read_message(struct canbus::CanFrame *frame) {
   }
 
   return canbus::ERROR_OK;
+}
+
+void ESP32Can::loop() {
+#ifdef USE_SENSOR
+  if (this->alerts_sensor_) {
+    uint32_t alerts = 0;
+    const auto err = twai_read_alerts_v2(this->twai_handle_, &alerts, 0);
+    switch (err) {
+      case ESP_OK:
+        this->alerts_sensor_->publish_state(static_cast<float>(alerts));
+        break;
+      case ESP_ERR_TIMEOUT:
+        break;
+      default:
+        ESP_LOGE(TAG, "Failed to read alerts: %s", esp_err_to_name(err));
+        this->alerts_sensor_->publish_state(NAN);
+    }
+  }
+#endif  // USE_SENSOR
+
+  {
+    twai_status_info_t status;
+    const auto err = twai_get_status_info_v2(this->twai_handle_, &status);
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to get status info: %s", esp_err_to_name(err));
+    } else {
+#ifdef USE_SENSOR
+      if (this->msgs_to_tx_sensor_) {
+        this->msgs_to_tx_sensor_->publish_state(status.msgs_to_tx);
+      }
+      if (this->msgs_to_rx_sensor_) {
+        this->msgs_to_rx_sensor_->publish_state(status.msgs_to_rx);
+      }
+      if (this->tx_error_counter_sensor_) {
+        this->tx_error_counter_sensor_->publish_state(status.tx_error_counter);
+      }
+      if (this->rx_error_counter_sensor_) {
+        this->rx_error_counter_sensor_->publish_state(status.rx_error_counter);
+      }
+      if (this->tx_failed_count_sensor_) {
+        this->tx_failed_count_sensor_->publish_state(status.tx_failed_count);
+      }
+      if (this->rx_missed_count_sensor_) {
+        this->rx_missed_count_sensor_->publish_state(status.rx_missed_count);
+      }
+      if (this->rx_overrun_count_sensor_) {
+        this->rx_overrun_count_sensor_->publish_state(status.rx_overrun_count);
+      }
+      if (this->arb_lost_count_sensor_) {
+        this->arb_lost_count_sensor_->publish_state(status.arb_lost_count);
+      }
+      if (this->bus_error_count_sensor_) {
+        this->bus_error_count_sensor_->publish_state(status.bus_error_count);
+      }
+#endif // USE_SENSOR
+#ifdef USE_TEXT_SENSOR
+      if(this->state_text_sensor_ && twai_last_state_ != status.state) {
+        twai_last_state_ = status.state;
+        this->state_text_sensor_->publish_state([&]() -> const char* {
+          switch(status.state) {
+            case TWAI_STATE_STOPPED: return "Stopped";
+            case TWAI_STATE_RUNNING: return "Running";
+            case TWAI_STATE_BUS_OFF: return "Bus Off";
+            case TWAI_STATE_RECOVERING: return "Recovering";
+          }
+          return "Unknown";
+        }());
+      }
+#endif
+    }
+  }
+
+  canbus::Canbus::loop();
 }
 
 }  // namespace esp32_can

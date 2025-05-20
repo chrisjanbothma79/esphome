@@ -3,7 +3,7 @@ import math
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import canbus
-from esphome.components.canbus import CONF_BIT_RATE, CanbusComponent, CanSpeed
+from esphome.components.canbus import CONF_BIT_RATE, CanSpeed
 from esphome.components.esp32 import get_esp32_variant
 from esphome.components.esp32.const import (
     VARIANT_ESP32,
@@ -21,14 +21,15 @@ from esphome.const import (
     CONF_TX_PIN,
     CONF_TX_QUEUE_LEN,
 )
+from . import (
+    ESP32Can,
+    esp32_can_ns,
+)
 
 CODEOWNERS = ["@Sympatron"]
 DEPENDENCIES = ["esp32"]
 
 CONF_TX_ENQUEUE_TIMEOUT = "tx_enqueue_timeout"
-
-esp32_can_ns = cg.esphome_ns.namespace("esp32_can")
-esp32_can = esp32_can_ns.class_("ESP32Can", CanbusComponent)
 
 # Currently the driver only supports a subset of the bit rates defined in canbus
 # The supported bit rates differ between ESP32 variants.
@@ -82,7 +83,7 @@ def validate_bit_rate(value):
 
 CONFIG_SCHEMA = canbus.CANBUS_SCHEMA.extend(
     {
-        cv.GenerateID(): cv.declare_id(esp32_can),
+        cv.GenerateID(): cv.declare_id(ESP32Can),
         cv.Optional(CONF_BIT_RATE, default="125KBPS"): validate_bit_rate,
         cv.Required(CONF_RX_PIN): pins.internal_gpio_input_pin_number,
         cv.Required(CONF_TX_PIN): pins.internal_gpio_output_pin_number,
