@@ -40,6 +40,9 @@ extern "C" {
 #endif
 
 #ifdef USE_RP2040
+#ifdef ARDUINO_RASPBERRY_PI_PICO_W
+#undef USE_RP2040_ESPHOST
+#endif
 #ifndef USE_RP2040_ESPHOST
 extern "C" {
 #include "cyw43.h"
