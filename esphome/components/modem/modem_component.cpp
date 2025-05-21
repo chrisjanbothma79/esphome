@@ -180,6 +180,10 @@ void ModemComponent::loop() {
 }
 
 void ModemComponent::modem_netif_init_() {
+#ifndef ESP_NETIF_DEFAULT_PPP
+#define ESP_NETIF_DEFAULT_PPP() \
+  { .base = NULL, .driver = NULL, .stack = NULL }
+#endif
   esp_netif_config_t netif_ppp_config = ESP_NETIF_DEFAULT_PPP();
   this->modem_netif_ = esp_netif_new(&netif_ppp_config);
   assert(this->modem_netif_);
