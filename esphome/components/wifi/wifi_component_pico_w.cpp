@@ -296,7 +296,11 @@ void WiFiComponent::wifi_pre_setup_() {
   watchdog_disable();
   // communicate with esp-hosted and get the MAC address
   WiFi.macAddress(mac_addr);
-  watchdog_enable(0x7fffff, false);
+#if USE_RP2040_WATCHDOG_TIMEOUT > 0
+  watchdog_enable(USE_RP2040_WATCHDOG_TIMEOUT, false);
+#else
+  watchdog_disable();
+#endif
   // if it's unchanged, an error occurred
   if (memcmp(mac_addr, mac_invalid, 6) == 0) {
     ESP_LOGE(TAG, "Couldn't initialize ESPHost, check the connections");
