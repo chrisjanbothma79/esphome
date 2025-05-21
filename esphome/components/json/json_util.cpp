@@ -8,23 +8,22 @@ namespace json {
 
 static const char *const TAG = "json";
 
-static auto ALLOCATOR = RAMAllocator<uint8_t>(
-    RAMAllocator<uint8_t>::NONE);  // Attempt to allocate in PSRAM before falling back into internal
-
 // Build an allocator for the JSON Library using the RAMAllocator class
 struct SpiRamAllocator : ArduinoJson::Allocator {
-  void *allocate(size_t size) override { return ALLOCATOR.allocate(size); }
+  void *allocate(size_t size) override { return this->allocator_.allocate(size); }
 
   void deallocate(void *pointer) override {
+    // RAMAllocator requires passing the size of the allocated space which don't know, so use free directly
     free(pointer);  // NOLINT(cppcoreguidelines-owning-memory,cppcoreguidelines-no-malloc)
   }
 
   void *reallocate(void *ptr, size_t new_size) override {
-    return ALLOCATOR.reallocate(static_cast<uint8_t *>(ptr), new_size);
+    return this->allocator_.reallocate(static_cast<uint8_t *>(ptr), new_size);
   }
-};
 
-static auto DOC_ALLOCATOR = SpiRamAllocator();
+ protected:
+  RAMAllocator<uint8_t> allocator_{RAMAllocator<uint8_t>(RAMAllocator<uint8_t>::NONE)};
+};
 
 std::string build_json(const json_build_t &f) {
   // Here we are allocating up to 5kb of memory,
@@ -32,9 +31,9 @@ std::string build_json(const json_build_t &f) {
   // as we can not have a true dynamic sized document.
   // The excess memory is freed below with `shrinkToFit()`
   while (true) {
-    ESP_LOGV(TAG, "Attempting to allocate %zu bytes for JSON serialization", request_size);
-    DynamicJsonDocument json_document(request_size);
-    if (json_document.capacity() == 0) {
+    auto DOC_ALLOCATOR = SpiRamAllocator();
+    JsonDocument json_document(&DOC_ALLOCATOR);
+    if (json_document.overflowed()) {
       ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
       return "{}";
     }
@@ -60,8 +59,9 @@ bool parse_json(const std::string &data, const json_parse_t &f) {
   // as we can not have a true dynamic sized document.
   // The excess memory is freed below with `shrinkToFit()`
   while (true) {
-    DynamicJsonDocument json_document(request_size);
-    if (json_document.capacity() == 0) {
+    auto DOC_ALLOCATOR = SpiRamAllocator();
+    JsonDocument json_document(&DOC_ALLOCATOR);
+    if (json_document.overflowed()) {
       ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
       return false;
     }
