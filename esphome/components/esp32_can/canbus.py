@@ -39,8 +39,8 @@ DEPENDENCIES = ["esp32"]
 
 CONF_TX_ENQUEUE_TIMEOUT = "tx_enqueue_timeout"
 CONF_USE_V2 = "use_v2"
-CONF_USE_V2_YES = "yes"
-CONF_USE_V2_FIND_OUT = "find_out"
+CONF_USE_V2_YES = "use_v2_yes"
+CONF_USE_V2_FIND_OUT = "use_v2_find_out"
 
 # Currently the driver only supports a subset of the bit rates defined in canbus
 # The supported bit rates differ between ESP32 variants.
