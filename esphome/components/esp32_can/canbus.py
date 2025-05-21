@@ -23,7 +23,6 @@ from esphome.const import (
     CONF_TX_PIN,
     CONF_TX_QUEUE_LEN,
     PLATFORM_ESP32,
-    CONF_PLATFORM_VERSION,
     CONF_PLATFORM,
     CONF_FRAMEWORK,
     CONF_TYPE,
