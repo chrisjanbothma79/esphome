@@ -16,7 +16,6 @@ from . import (
 )
 
 DEPENDENCIES = ["canbus"]
-CONF_ALERTS = "alerts"
 
 CANBUS_SENSOR_SCHEMA = cv.Schema({
         cv.GenerateID(CONF_CANBUS_ID): cv.use_id(ESP32Can),
@@ -25,7 +24,6 @@ CANBUS_SENSOR_SCHEMA = cv.Schema({
 
 CONFIG_SCHEMA = cv.typed_schema(
     {
-        CONF_ALERTS : sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_BUG, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),
         "msgs_to_tx": sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_CHIP, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),
         "msgs_to_rx": sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_CHIP, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),
         "tx_error_counter" : sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_BUG, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),

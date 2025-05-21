@@ -19,7 +19,6 @@ namespace esp32_can {
 
 class ESP32Can : public canbus::Canbus {
 #ifdef USE_SENSOR
-  SUB_SENSOR(alerts)
   SUB_SENSOR(msgs_to_tx)
   SUB_SENSOR(msgs_to_rx)
   SUB_SENSOR(tx_error_counter)
