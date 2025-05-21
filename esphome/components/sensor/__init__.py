@@ -93,6 +93,7 @@ from esphome.const import (
     DEVICE_CLASS_WATER,
     DEVICE_CLASS_WEIGHT,
     DEVICE_CLASS_WIND_SPEED,
+    DEVICE_CLASS_WIND_DIRECTION,
     ENTITY_CATEGORY_CONFIG,
 )
 from esphome.core import CORE, coroutine_with_priority
@@ -154,6 +155,7 @@ DEVICE_CLASSES = [
     DEVICE_CLASS_WATER,
     DEVICE_CLASS_WEIGHT,
     DEVICE_CLASS_WIND_SPEED,
+    DEVICE_CLASS_WIND_DIRECTION,
 ]
 
 _LOGGER = logging.getLogger(__name__)
