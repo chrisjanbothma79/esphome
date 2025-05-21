@@ -15,9 +15,10 @@ DEPENDENCIES = ["canbus"]
 CONFIG_SCHEMA = {
     cv.GenerateID(CONF_CANBUS_ID): cv.use_id(ESP32Can),
     cv.Optional(CONF_STATE): text_sensor.text_sensor_schema(
-        entity_category=ENTITY_CATEGORY_DIAGNOSTICF
+        entity_category=ENTITY_CATEGORY_DIAGNOSTIC
     ),
 }
+
 
 async def to_code(config):
     esp32can = await cg.get_variable(config[CONF_CANBUS_ID])

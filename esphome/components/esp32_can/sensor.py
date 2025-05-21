@@ -1,19 +1,15 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import sensor
-from esphome.components.canbus import (
-    CONF_CANBUS_ID
-)
+from esphome.components.canbus import CONF_CANBUS_ID
 from esphome.const import (
     CONF_TYPE,
     STATE_CLASS_MEASUREMENT,
     UNIT_EMPTY,
     ICON_BUG,
-    ICON_CHIP
+    ICON_CHIP,
 )
-from . import (
-    ESP32Can
-)
+from . import ESP32Can
 
 DEPENDENCIES = ["canbus"]
 
@@ -26,15 +22,60 @@ CANBUS_SENSOR_SCHEMA = cv.Schema(
 
 CONFIG_SCHEMA = cv.typed_schema(
     {
-        "msgs_to_tx": sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_CHIP, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),
-        "msgs_to_rx": sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_CHIP, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),
-        "tx_error_counter": sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_BUG, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),
-        "rx_error_counter": sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_BUG, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),
-        "tx_failed_count": sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_BUG, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),
-        "rx_missed_count": sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_BUG, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),
-        "rx_overrun_count": sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_BUG, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),
-        "arb_lost_count": sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_BUG, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),
-        "bus_error_count": sensor.sensor_schema(unit_of_measurement=UNIT_EMPTY, icon=ICON_BUG, accuracy_decimals=0, state_class=STATE_CLASS_MEASUREMENT).extend(CANBUS_SENSOR_SCHEMA),
+        "msgs_to_tx": sensor.sensor_schema(
+            unit_of_measurement=UNIT_EMPTY,
+            icon=ICON_CHIP,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(CANBUS_SENSOR_SCHEMA),
+        "msgs_to_rx": sensor.sensor_schema(
+            unit_of_measurement=UNIT_EMPTY,
+            icon=ICON_CHIP,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(CANBUS_SENSOR_SCHEMA),
+        "tx_error_counter": sensor.sensor_schema(
+            unit_of_measurement=UNIT_EMPTY,
+            icon=ICON_BUG,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(CANBUS_SENSOR_SCHEMA),
+        "rx_error_counter": sensor.sensor_schema(
+            unit_of_measurement=UNIT_EMPTY,
+            icon=ICON_BUG,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(CANBUS_SENSOR_SCHEMA),
+        "tx_failed_count": sensor.sensor_schema(
+            unit_of_measurement=UNIT_EMPTY,
+            icon=ICON_BUG,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(CANBUS_SENSOR_SCHEMA),
+        "rx_missed_count": sensor.sensor_schema(
+            unit_of_measurement=UNIT_EMPTY,
+            icon=ICON_BUG,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(CANBUS_SENSOR_SCHEMA),
+        "rx_overrun_count": sensor.sensor_schema(
+            unit_of_measurement=UNIT_EMPTY,
+            icon=ICON_BUG,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(CANBUS_SENSOR_SCHEMA),
+        "arb_lost_count": sensor.sensor_schema(
+            unit_of_measurement=UNIT_EMPTY,
+            icon=ICON_BUG,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(CANBUS_SENSOR_SCHEMA),
+        "bus_error_count": sensor.sensor_schema(
+            unit_of_measurement=UNIT_EMPTY,
+            icon=ICON_BUG,
+            accuracy_decimals=0,
+            state_class=STATE_CLASS_MEASUREMENT,
+        ).extend(CANBUS_SENSOR_SCHEMA),
     },
     lower=True,
 )
