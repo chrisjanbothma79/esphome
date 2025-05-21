@@ -9,6 +9,14 @@
 #undef CAN_IO_UNUSED
 #define CAN_IO_UNUSED ((gpio_num_t) -1)
 
+#ifdef ESP32_CAN_V2_SUPPORTED
+#define twai_driver_install(args...) twai_driver_install_v2(args, &this->twai_handle_)
+#define twai_start() twai_start_v2(this->twai_handle_)
+#define twai_transmit(args...) twai_transmit_v2(this->twai_handle_, args)
+#define twai_receive(args...) twai_receive_v2(this->twai_handle_, args)
+#define twai_get_status_info(args...) twai_get_status_info_v2(this->twai_handle_, args)
+#endif
+
 namespace esphome {
 namespace esp32_can {
 
@@ -67,10 +75,12 @@ static bool get_bitrate(canbus::CanSpeed bitrate, twai_timing_config_t *t_config
 }
 
 bool ESP32Can::setup_internal() {
-  static int controller_id = 0;
   twai_general_config_t g_config =
       TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t) this->tx_, (gpio_num_t) this->rx_, TWAI_MODE_NORMAL);
+#ifdef ESP32_CAN_V2_SUPPORTED
+  static int controller_id = 0;
   g_config.controller_id = controller_id++;
+#endif
   if (this->tx_queue_len_.has_value()) {
     g_config.tx_queue_len = this->tx_queue_len_.value();
   }
@@ -89,7 +99,7 @@ bool ESP32Can::setup_internal() {
   }
 
   ESP_LOGV(TAG, "Install TWAI driver");
-  const auto install_err = twai_driver_install_v2(&g_config, &t_config, &f_config, &this->twai_handle_);
+  const auto install_err = twai_driver_install(&g_config, &t_config, &f_config);
   switch (install_err) {
     case ESP_OK:
       break;
@@ -100,7 +110,7 @@ bool ESP32Can::setup_internal() {
   }
 
   ESP_LOGV(TAG, "Start TWAI driver");
-  const auto start_err = twai_start_v2(this->twai_handle_);
+  const auto start_err = twai_start();
   if (start_err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to start driver: %s", esp_err_to_name(start_err));
     this->mark_failed();
@@ -132,7 +142,7 @@ canbus::Error ESP32Can::send_message(struct canbus::CanFrame *frame) {
     memcpy(message.data, frame->data, frame->can_data_length_code);
   }
 
-  const auto err = twai_transmit_v2(this->twai_handle_, &message, this->tx_enqueue_timeout_ticks_);
+  const auto err = twai_transmit(&message, this->tx_enqueue_timeout_ticks_);
   if (err == ESP_OK) {
     return canbus::ERROR_OK;
   } else {
@@ -144,7 +154,7 @@ canbus::Error ESP32Can::send_message(struct canbus::CanFrame *frame) {
 canbus::Error ESP32Can::read_message(struct canbus::CanFrame *frame) {
   twai_message_t message;
 
-  const auto err = twai_receive_v2(this->twai_handle_, &message, 0);
+  const auto err = twai_receive(&message, 0);
   switch (err) {
     case ESP_ERR_TIMEOUT:
       return canbus::ERROR_NOMSG;
@@ -172,7 +182,7 @@ canbus::Error ESP32Can::read_message(struct canbus::CanFrame *frame) {
 void ESP32Can::loop() {
 #if defined(USE_SENSOR) || defined(USE_TEXT_SENSOR)
   twai_status_info_t status;
-  const auto err = twai_get_status_info_v2(this->twai_handle_, &status);
+  const auto err = twai_get_status_info(&status);
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to get status info: %s", esp_err_to_name(err));
   } else {
@@ -231,8 +241,8 @@ void ESP32Can::loop() {
       }());
     }
 #endif  // USE_TEXT_SENSOR
-#endif  // defined(USE_SENSOR) || defined(USE_TEXT_SENSOR)
   }
+#endif  // defined(USE_SENSOR) || defined(USE_TEXT_SENSOR)
 
   canbus::Canbus::loop();
 }

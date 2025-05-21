@@ -1,6 +1,11 @@
 #pragma once
 #include "esphome/core/defines.h"
 #ifdef USE_ESP32
+#include "esp_idf_version.h"
+
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 2, 0)
+#define ESP32_CAN_V2_SUPPORTED
+#endif
 
 #include "esphome/components/canbus/canbus.h"
 #include "esphome/core/component.h"
@@ -55,7 +60,9 @@ class ESP32Can : public canbus::Canbus {
   optional<uint32_t> tx_queue_len_{};
   optional<uint32_t> rx_queue_len_{};
 
+#ifdef ESP32_CAN_V2_SUPPORTED
   twai_handle_t twai_handle_{};
+#endif
   twai_state_t twai_last_state_ = static_cast<twai_state_t>(-1);
   optional<twai_status_info_t> prev_status_;
 };
