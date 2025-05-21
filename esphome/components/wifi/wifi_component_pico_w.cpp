@@ -286,7 +286,24 @@ void WiFiComponent::wifi_loop_() {
 #endif
 }
 
-void WiFiComponent::wifi_pre_setup_() {}
+void WiFiComponent::wifi_pre_setup_() {
+#ifdef USE_RP2040_ESPHOST
+  // check if initHW() returns false by verifying the esp-hosted MAC address
+  uint8_t mac_addr[6], mac_invalid[6];
+  memset(mac_addr, 0xAA, 6);
+  memset(mac_invalid, 0xAA, 6);
+  // disable the watchdog temporarily (the connection check takes time)
+  watchdog_disable();
+  // communicate with esp-hosted and get the MAC address
+  WiFi.macAddress(mac_addr);
+  watchdog_enable(0x7fffff, false);
+  // if it's unchanged, an error occurred
+  if (memcmp(mac_addr, mac_invalid, 6) == 0) {
+    ESP_LOGE(TAG, "Couldn't initialize ESPHost, check the connections");
+    this->mark_failed("ESPHost init failed");
+  }
+#endif
+}
 
 }  // namespace wifi
 }  // namespace esphome
