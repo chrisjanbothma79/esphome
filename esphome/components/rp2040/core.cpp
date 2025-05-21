@@ -23,8 +23,6 @@ void arch_restart() {
 void arch_init() {
 #if USE_RP2040_WATCHDOG_TIMEOUT > 0
   watchdog_enable(USE_RP2040_WATCHDOG_TIMEOUT, false);
-#else
-  watchdog_disable();
 #endif
 }
 
