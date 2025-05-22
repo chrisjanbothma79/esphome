@@ -31,21 +31,20 @@ dependencies:
       type: git
     version: 4394f845fccf93bc49111808c24bbd25fbbb20f4
   espressif/esp-nn:
-    component_hash: f6f2851ce82137a66e4265071c9b852bbe0130b882a18dea9f03faea7bf1295a
+    component_hash: 5d99b2991c109211ea5722bae481bbe243dc7e064d9ffd9e5dfa58aba7be9d88
     dependencies:
     - name: idf
-      registry_url: https://components.espressif.com
       require: private
       version: '>=4.2'
     source:
       pre_release: true
       registry_url: https://components.espressif.com/
       type: service
-    version: 1.1.0
+    version: 1.1.1
   idf:
     source:
       type: idf
-    version: 5.1.5
+    version: 5.3.2
   mdns:
     component_hash: 40c443f09fa68ea1bfc1d873e9eb8684e9b25965c992498226e2628408266dd8
     dependencies:
@@ -61,6 +60,6 @@ direct_dependencies:
 - esp32_camera
 - esp_modem
 - mdns
-manifest_hash: 5a2d46dbd960c80c3fec044d26b6205ed55c71fd7c52a2f2904a591be37d2e93
+manifest_hash: 33d8471b5ea94859a72a060a95482afb39ed60387c783275dfe332b02d5d6e37
 target: esp32
 version: 2.0.0
