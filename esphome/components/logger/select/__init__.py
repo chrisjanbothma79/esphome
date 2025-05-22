@@ -21,7 +21,7 @@ CONFIG_SCHEMA = select.select_schema(
 
 
 async def to_code(config):
-    levels = LOG_LEVELS.keys()
+    levels = list(LOG_LEVELS)
     index = levels.index(CORE.data[CONF_LOGGER][CONF_LEVEL])
     levels = levels[: index + 1]
     var = await select.new_select(config, options=levels)
