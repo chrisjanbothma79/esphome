@@ -36,29 +36,38 @@ from .types import (
 # this will be populated later, in __init__.py to avoid circular imports.
 WIDGET_TYPES: dict = {}
 
-# A schema for text properties
-TEXT_SCHEMA = cv.Schema(
-    {
-        cv.Optional(CONF_TEXT): cv.Any(
-            cv.All(
-                cv.Schema(
-                    {
-                        cv.Required(CONF_FORMAT): cv.string,
-                        cv.Optional(CONF_ARGS, default=list): cv.ensure_list(
-                            cv.lambda_
-                        ),
-                    },
-                ),
-                validate_printf,
-            ),
-            cv.Schema(
+
+def _validate_text(value):
+    """
+    Do some sanity checking of the format to get better error messages
+    than using cv.Any
+    """
+    if isinstance(value, dict):
+        if CONF_TIME_FORMAT in value:
+            return cv.Schema(
                 {
                     cv.Required(CONF_TIME_FORMAT): cv.string,
                     cv.GenerateID(CONF_TIME): cv.templatable(cv.use_id(RealTimeClock)),
                 }
+            )(value)
+
+        return cv.All(
+            cv.Schema(
+                {
+                    cv.Required(CONF_FORMAT): cv.string,
+                    cv.Optional(CONF_ARGS, default=list): cv.ensure_list(cv.lambda_),
+                },
             ),
-            cv.templatable(cv.string),
-        )
+            validate_printf,
+        )(value)
+
+    return cv.templatable(cv.string)(value)
+
+
+# A schema for text properties
+TEXT_SCHEMA = cv.Schema(
+    {
+        cv.Optional(CONF_TEXT): _validate_text,
     }
 )
 
