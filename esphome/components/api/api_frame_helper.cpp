@@ -901,9 +901,10 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
       continue;
     }
 
-    if (msg_size_varint->as_uint32() > UINT16_MAX) {
+    if (msg_size_varint->as_uint32() > std::numeric_limits<uint16_t>::max()) {
       state_ = State::FAILED;
-      HELPER_LOG("Bad packet: message size %" PRIu32 " exceeds maximum %u", msg_size_varint->as_uint32(), UINT16_MAX);
+      HELPER_LOG("Bad packet: message size %" PRIu32 " exceeds maximum %u", msg_size_varint->as_uint32(),
+                 std::numeric_limits<uint16_t>::max());
       return APIError::BAD_DATA_PACKET;
     }
     rx_header_parsed_len_ = msg_size_varint->as_uint16();
@@ -913,9 +914,10 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
       // not enough data there yet
       continue;
     }
-    if (msg_type_varint->as_uint32() > UINT16_MAX) {
+    if (msg_type_varint->as_uint32() > std::numeric_limits<uint16_t>::max()) {
       state_ = State::FAILED;
-      HELPER_LOG("Bad packet: message type %" PRIu32 " exceeds maximum %u", msg_type_varint->as_uint32(), UINT16_MAX);
+      HELPER_LOG("Bad packet: message type %" PRIu32 " exceeds maximum %u", msg_type_varint->as_uint32(),
+                 std::numeric_limits<uint16_t>::max());
       return APIError::BAD_DATA_PACKET;
     }
     rx_header_parsed_type_ = msg_type_varint->as_uint16();
