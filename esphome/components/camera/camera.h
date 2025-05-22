@@ -5,6 +5,8 @@
 #include "esphome/core/entity_base.h"
 #include "esphome/core/helpers.h"
 
+#include "camera_incremental_context.h"
+
 namespace esphome {
 namespace camera {
 
@@ -81,21 +83,6 @@ struct CameraImageSpec {
   size_t bytes_per_image() { return bytes_per_pixel() * width * height; }
 };
 
-/** Struct that maintains progress and optional user data during incremental image capture operations */
-struct CameraCaptureContext {
-  int x;
-  int y;
-  void *user_data;
-  bool done;
-  CameraCaptureContext *that;
-  CameraCaptureContext() : user_data(nullptr) { reset(); }
-  void reset() {
-    x = 0;
-    y = 0;
-    done = true;
-  }
-};
-
 /** Abstract camera base class. Collaborates with API.
  *  1) API server starts and installs callback (add_image_callback)
  *     which is called by the camera when a new image is available.
@@ -112,7 +99,10 @@ class Camera : public EntityBase, public Component {
   Camera();
   // Camera implementation invokes callback to capture a new image.
   virtual void add_capture_callback(
-      std::function<void(std::shared_ptr<CameraImage>, CameraImageSpec, CameraCaptureContext &)> &&callback);
+      std::function<void(std::shared_ptr<CameraImage>, CameraImageSpec, CameraIncrementalContext &)> &&callback);
+  // Camera implementation invokes callback to render overlays on the captured image.
+  virtual void add_overlay_callback(
+      std::function<void(std::shared_ptr<CameraImage>, CameraImageSpec, CameraIncrementalContext &)> &&callback);
   // Camera implementation invokes callback to publish a new image.
   virtual void add_image_callback(std::function<void(std::shared_ptr<CameraImage>)> &&callback);
   // Camera implementation invokes callback when start_stream is called.
@@ -132,8 +122,10 @@ class Camera : public EntityBase, public Component {
   static Camera *instance();
 
  protected:
-  CallbackManager<void(std::shared_ptr<camera::CameraImage>, CameraImageSpec, CameraCaptureContext &)>
+  CallbackManager<void(std::shared_ptr<camera::CameraImage>, CameraImageSpec, CameraIncrementalContext &)>
       image_capture_callback_{};
+  CallbackManager<void(std::shared_ptr<camera::CameraImage>, CameraImageSpec, CameraIncrementalContext &)>
+      overlay_callback_{};
   CallbackManager<void(std::shared_ptr<camera::CameraImage>)> new_image_callback_{};
   CallbackManager<void()> stream_start_callback_{};
   CallbackManager<void()> stream_stop_callback_{};
@@ -144,11 +136,27 @@ class Camera : public EntityBase, public Component {
 /** Class that installs a camera callback which is triggered
  *  every time a new image can be captured.
  */
-class CameraCaptureImageTrigger : public Trigger<CameraImageData, CameraImageSpec, CameraCaptureContext &> {
+class CameraCaptureImageTrigger : public Trigger<CameraImageData, CameraImageSpec, CameraIncrementalContext &> {
  public:
   explicit CameraCaptureImageTrigger(Camera *camera) {
     camera->add_capture_callback([this](const std::shared_ptr<camera::CameraImage> &image, const CameraImageSpec &spec,
-                                        CameraCaptureContext &context) {
+                                        CameraIncrementalContext &context) {
+      CameraImageData camera_image_data{};
+      camera_image_data.length = image->get_data_length();
+      camera_image_data.data = image->get_data_buffer();
+      this->trigger(camera_image_data, spec, context);
+    });
+  }
+};
+
+/** Class that installs a overlay callback which is triggered
+ *  every time to overlay graphics on the captured image.
+ */
+class CameraOverlayTrigger : public Trigger<CameraImageData, CameraImageSpec, CameraIncrementalContext &> {
+ public:
+  explicit CameraOverlayTrigger(Camera *camera) {
+    camera->add_overlay_callback([this](const std::shared_ptr<camera::CameraImage> &image, const CameraImageSpec &spec,
+                                        CameraIncrementalContext &context) {
       CameraImageData camera_image_data{};
       camera_image_data.length = image->get_data_length();
       camera_image_data.data = image->get_data_buffer();

@@ -18,6 +18,7 @@ CONF_ON_STREAM_START = "on_stream_start"
 CONF_ON_STREAM_STOP = "on_stream_stop"
 CONF_ON_IMAGE = "on_image"
 CONF_ON_CAPTURE_IMAGE = "on_capture_image"
+CONF_ON_OVERLAY = "on_overlay"
 
 camera_ns = cg.esphome_ns.namespace("camera")
 Camera = camera_ns.class_("CameraImpl", cg.Component, cg.EntityBase)
@@ -25,8 +26,8 @@ Encoder = camera_ns.class_("JPEGEncoderImpl")
 
 CameraImageData = camera_ns.struct("CameraImageData")
 CameraImageSpec = camera_ns.struct("CameraImageSpec")
-CameraCaptureContext = camera_ns.struct("CameraCaptureContext")
-CameraCaptureContextRef = CameraCaptureContext.operator("ref")
+CameraIncrementalContext = camera_ns.struct("CameraIncrementalContext")
+CameraIncrementalContextRef = CameraIncrementalContext.operator("ref")
 
 CameraImageImpl = camera_ns.class_("CameraImageImpl")
 CameraImageTrigger = camera_ns.class_(
@@ -42,6 +43,9 @@ CameraStreamStopTrigger = camera_ns.class_(
 )
 CameraCaptureImageTrigger = camera_ns.class_(
     "CameraCaptureImageTrigger", automation.Trigger.template()
+)
+CameraOverlayTrigger = camera_ns.class_(
+    "CameraOverlayTrigger", automation.Trigger.template()
 )
 
 ImageFormat = camera_ns.enum("ImageFormat")
@@ -94,6 +98,11 @@ CAMERA_AUTOMATION_SCHEMA = cv.Schema(
                 cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
                     CameraCaptureImageTrigger
                 ),
+            }
+        ),
+        cv.Optional(CONF_ON_OVERLAY): automation.validate_automation(
+            {
+                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(CameraOverlayTrigger),
             }
         ),
     }
@@ -177,7 +186,19 @@ async def setup_camera_automation(var, config):
             [
                 (CameraImageData, "image"),
                 (CameraImageSpec, "spec"),
-                (CameraCaptureContextRef, "context"),
+                (CameraIncrementalContextRef, "context"),
+            ],
+            conf,
+        )
+
+    for conf in config.get(CONF_ON_OVERLAY, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(
+            trigger,
+            [
+                (CameraImageData, "image"),
+                (CameraImageSpec, "spec"),
+                (CameraIncrementalContextRef, "context"),
             ],
             conf,
         )

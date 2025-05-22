@@ -57,99 +57,134 @@ void CameraImpl::setup() {
   this->pixels_ = std::make_shared<CameraImageImpl>(this->camera_image_spec_.bytes_per_image());
   this->pixels_->set_data_length(this->camera_image_spec_.bytes_per_image());
   this->jpeg_ = std::make_shared<CameraImageImpl>(this->encoder_buffer_size_);
-  this->camera_capture_context_.that = &this->camera_capture_context_;
 }
 
 bool CameraImpl::camera_loop() {
-  if (!this->pixels_ || !this->jpeg_) {
-    ESP_LOGE(TAG, "Missing setup() call detected. Are you overriding setup() without calling CameraImpl::setup() ?");
-    mark_failed();
-    return false;
-  }
-
-  // Is image still in use ?
-  if (this->jpeg_.use_count() > 1)
-    return false;
-
   const uint32_t now = millis();
-  // Framerate limiter
-  if (now - this->last_update_ <= this->max_update_interval_)
-    return false;
 
-  // Request idle image every idle_update_interval
-  if (this->idle_update_interval_ != 0 && now - this->last_idle_request_ > this->idle_update_interval_) {
-    this->last_idle_request_ = now;
-    this->request_image(camera::IDLE);
-  }
-
-  // No new image requested
-  if (!image_requesters_ && !stream_requesters_)
-    return false;
-
-  // No incremental image encoding
-  if (!this->is_encoding_) {
-    // Start capturing
-    if (!this->is_capturing_) {
-      this->camera_capture_context_.reset();
-      this->is_capturing_ = true;
+  if (state_ == CAMERA_STATE_INIT) {
+    if (!this->pixels_ || !this->jpeg_) {
+      ESP_LOGE(TAG, "Missing setup() call detected. Are you overriding setup() without calling CameraImpl::setup() ?");
+      mark_failed();
+      return false;
     }
 
-    // Capture a new image
-    this->camera_capture_context_.done = true;
-    this->image_capture_callback_.call(this->pixels_, this->camera_image_spec_, this->camera_capture_context_);
+    state_ = CAMERA_STATE_WAIT_FOR_REQUEST;
+  }
+
+  if (state_ == CAMERA_STATE_WAIT_FOR_REQUEST) {
+    // Request idle image every idle_update_interval
+    if (this->idle_update_interval_ != 0 && now - this->last_idle_request_ > this->idle_update_interval_) {
+      this->last_idle_request_ = now;
+      this->request_image(camera::IDLE);
+    }
+
+    // No new image requested
+    if (!image_requesters_ && !stream_requesters_)
+      return false;
+
+    state_ = CAMERA_STATE_CAPTURE_BEGIN;
+  }
+
+  if (state_ == CAMERA_STATE_CAPTURE_BEGIN) {
+    this->camera_incremental_context_.reset();
+    state_ = CAMERA_STATE_CAPTURING;
+  }
+
+  if (state_ == CAMERA_STATE_CAPTURING) {
+    this->camera_incremental_context_.done = true;
+    this->image_capture_callback_.call(this->pixels_, this->camera_image_spec_, this->camera_incremental_context_);
     // Incremental image capture
-    if (!this->camera_capture_context_.done)
+    if (!this->camera_incremental_context_.done)
       return true;
 
-    this->is_capturing_ = false;
     // Check that we have a valid image for the encoder
     if (this->camera_image_spec_.bytes_per_image() != this->pixels_->get_data_length()) {
       ESP_LOGE(TAG, "Spec bytes %d != %d image bytes!", this->camera_image_spec_.bytes_per_image(),
                this->pixels_->get_data_length());
-      return false;
+      state_ = CAMERA_STATE_CLEAR_REQUEST;
+    } else {
+      state_ = CAMERA_STATE_OVERLAY_BEGIN;
     }
   }
 
-  size_t length = 0;
-  if (this->encoder_) {
-    // Set available data to max for encoder.
-    if (!this->is_encoding_)
-      this->jpeg_->set_data_length(this->jpeg_->get_max_data_length());
+  if (state_ == CAMERA_STATE_OVERLAY_BEGIN) {
+    this->camera_incremental_context_.reset();
+    state_ = CAMERA_STATE_OVERLAYING;
+  }
 
+  if (state_ == CAMERA_STATE_OVERLAYING) {
+    this->camera_incremental_context_.done = true;
+    this->overlay_callback_.call(this->pixels_, this->camera_image_spec_, this->camera_incremental_context_);
+    // Incremental image overlay
+    if (!this->camera_incremental_context_.done)
+      return true;
+
+    state_ = CAMERA_STATE_ENCODE_BEGIN;
+  }
+
+  if (state_ == CAMERA_STATE_ENCODE_BEGIN) {
+    // Is image still in publishing ?
+    if (this->jpeg_.use_count() > 1) {
+      return false;
+    }
+
+    // Set available data to max for encoder.
+    this->jpeg_->set_data_length(this->jpeg_->get_max_data_length());
+    state_ = CAMERA_STATE_ENCODING;
+  }
+
+  if (state_ == CAMERA_STATE_ENCODING) {
     // Encodes the pixels and returns the number of bytes written.
-    this->is_encoding_ = false;
-    length = this->encoder_->encode_pixels(&camera_image_spec_, this->pixels_.get(), this->jpeg_.get());
+    size_t length = this->encoder_->encode_pixels(&camera_image_spec_, this->pixels_.get(), this->jpeg_.get());
     switch (this->encoder_->get_last_error()) {
       case ENCODER_ERROR_SUCCESS: {
         // Incremental image encoding
-        if (length == 0) {
-          this->is_encoding_ = true;
+        if (length == 0)
           return true;
-        }
+
+        // Image encoded
+        this->jpeg_->set_data_length(length);
+        state_ = CAMERA_STATE_RATE_LIMITING;
       } break;
       case ENCODER_ERROR_OUT_OF_MEMORY: {
         ESP_LOGE(TAG, "The encoder buffer is too small. The encoding failed. Buffer size: %u",
                  this->jpeg_->get_max_data_length());
+        state_ = CAMERA_STATE_CLEAR_REQUEST;
         if (this->encoder_buffer_grow_ > 0) {
           size_t new_size = this->jpeg_->get_max_data_length() + this->encoder_buffer_grow_;
           ESP_LOGI(TAG, "Increasing encoder buffer size with %u bytes. Retry...", this->encoder_buffer_grow_);
           this->jpeg_->set_data_length(new_size);
-          return false;
+          // Retry encoding with more memory. Encoder resets itself in case of an error.
+          state_ = CAMERA_STATE_ENCODING;
+          return true;
         }
       } break;
       default:
         ESP_LOGE(TAG, "Encoder failed with error code: %u", this->encoder_->get_last_error());
+        state_ = CAMERA_STATE_CLEAR_REQUEST;
     }
   }
 
-  if (length > 0) {
-    this->jpeg_->set_data_length(length);
-    this->jpeg_->set_requesters(this->image_requesters_ | this->stream_requesters_);
-    this->new_image_callback_.call(this->jpeg_);
+  if (state_ == CAMERA_STATE_RATE_LIMITING) {
+    if (now - this->last_update_ <= this->max_update_interval_)
+      return false;
+
+    state_ = CAMERA_STATE_PUBLISHING;
   }
 
-  this->image_requesters_ = 0;
-  this->last_update_ = now;
+  if (state_ == CAMERA_STATE_PUBLISHING) {
+    this->jpeg_->set_requesters(this->image_requesters_ | this->stream_requesters_);
+    this->new_image_callback_.call(this->jpeg_);
+    this->last_update_ = now;
+    state_ = CAMERA_STATE_CLEAR_REQUEST;
+  }
+
+  if (state_ == CAMERA_STATE_CLEAR_REQUEST) {
+    this->image_requesters_ = 0;
+    state_ = CAMERA_STATE_WAIT_FOR_REQUEST;
+  }
+
   return false;
 }
 

@@ -11,6 +11,20 @@ namespace camera {
  */
 class CameraImpl : public Camera {
  public:
+  enum CameraState {
+    CAMERA_STATE_INIT = 0,
+    CAMERA_STATE_WAIT_FOR_REQUEST,
+    CAMERA_STATE_CAPTURE_BEGIN,
+    CAMERA_STATE_CAPTURING,
+    CAMERA_STATE_OVERLAY_BEGIN,
+    CAMERA_STATE_OVERLAYING,
+    CAMERA_STATE_ENCODE_BEGIN,
+    CAMERA_STATE_ENCODING,
+    CAMERA_STATE_RATE_LIMITING,
+    CAMERA_STATE_PUBLISHING,
+    CAMERA_STATE_CLEAR_REQUEST,
+  };
+
   // Sets the camera's image specifications
   void set_camera_image_spec(int width, int height, ImageFormat format);
   // Sets the update interval in milliseconds for images without requests
@@ -42,7 +56,7 @@ class CameraImpl : public Camera {
   // --------------------------
  protected:
   CameraImageSpec camera_image_spec_{0};
-  CameraCaptureContext camera_capture_context_;
+  CameraIncrementalContext camera_incremental_context_;
   std::shared_ptr<CameraImageImpl> pixels_;
   std::shared_ptr<CameraImageImpl> jpeg_;
   Encoder *encoder_{nullptr};
@@ -54,8 +68,7 @@ class CameraImpl : public Camera {
   uint32_t idle_update_interval_{0};
   uint32_t last_update_{0};
   uint32_t max_update_interval_{0};
-  bool is_capturing_{false};
-  bool is_encoding_{false};
+  CameraState state_{CAMERA_STATE_INIT};
 };
 
 }  // namespace camera
