@@ -1,5 +1,6 @@
 
 #pragma once
+#include "esphome/core/defines.h"
 #ifdef USE_ESP_IDF
 #include "sdfs.h"
 #include "esphome/core/gpio.h"
@@ -9,8 +10,8 @@
 // #include "esp_vfs.h"
 #include "esp_vfs_fat.h"
 // #include "esphome/components/spi_device/spi_device.h"
-
 #include "driver/sdspi_host.h"
+
 #if defined(SOC_SDMMC_HOST_SUPPORTED)
 #include "sdmmc_cmd.h"
 #include "driver/sdmmc_host.h"
@@ -55,32 +56,37 @@ struct FilePtr {
 class SdmmcHost;
 
 /******************************************************************************
+ *
  * @brief  Driver for serve slot initializing,  card check, mout and unmount fs
  *         in esp_idf framework
  *
  */
 class SdmmcIdfDriver : public DriverInterface {
  public:
-  // SdmmcIdfDriver(SdmmcHost *);
   void set_parent(SdmmcHost *) override;
+#if defined(USE_SDSPI_MODE)
+  void set_connector(SpiConnector *);
+#endif
   bool init_host(SdConnType) override;
   bool is_card() override;
   bool attach_card() override;
   bool mount(std::string, bool) override;
+  FATFS *mount_sdmmc(uint8_t, std::string, bool);
+  FATFS *mount_sdspi(uint8_t, std::string, bool);
   void unmount() override;
+  void unmount_sdmmc(uint8_t, std::string);
+  void unmount_sdspi(uint8_t, std::string);
   uint32_t get_last_err() override;
   bool test() override;
-  // void mount_fs();
-  // void umount_fs();
-  // virtual void set_state(SdDriverStatus);   /// ??????
 
  protected:
+#if defined(USE_SDSPI_MODE)
+  SpiConnector *connector_;
+#endif
   SdConnType bus_type_;
   BYTE pdrv_ = FF_DRV_NOT_USED;
   FATFS *fs_ = NULL;
-  std::string *mountpoint_;
-  // SdConnType sd_conn_type_ = SD_MMC;
-  // FRESULT fsError;
+  std::string mountpoint_;
 
   bool sdmmc_allocate();
   bool sdspi_allocate();

@@ -4,13 +4,16 @@ from esphome.components import spi
 from esphome.components.esp32.const import KEY_ESP32, VARIANT_ESP32, VARIANT_ESP32S3
 import esphome.config_validation as cv
 from esphome.const import (
-    CONF_CS_PIN,
+    # CONF_CLK_PIN,
+    # CONF_CS_PIN,
     CONF_ID,
     CONF_PATH,
     CONF_TYPE,
+    # KEY_CORE,
+    # KEY_TARGET_FRAMEWORK,
     KEY_VARIANT,
     PLATFORM_ESP32,
-    PLATFORM_ESP8266,
+    # PLATFORM_ESP8266,
 )
 from esphome.core import CORE
 
@@ -63,58 +66,53 @@ def validate_raw_data(value):
 
 
 def _validate(config):
-    if CORE.target_platform == PLATFORM_ESP8266:
+    platform = CORE.target_platform
+    variant = CORE.data[KEY_ESP32][KEY_VARIANT]
+
+    if config[CONF_TYPE] == "sdspi":
         pass
-    elif CORE.target_platform == PLATFORM_ESP32:
-        variant = CORE.data[KEY_ESP32][KEY_VARIANT]
-        if config[CONF_TYPE] == "sdspi":
-            if (CONF_BUS_SLOT not in config) and (
-                config[CONF_MISO_PIN] not in config
-                or config[CONF_MOSI_PIN] not in config
-                or config[CONF_SCLK_PIN] not in config
+    elif config[CONF_TYPE] == "sdmmc" and platform != PLATFORM_ESP32:
+        raise cv.Invalid(
+            "SDMMC host adapter available only on {PLATFORM_ESP32} platform with {VARIANT_ESP32} or {VARIANT_ESP32S3} chip"
+        )
+    else:
+        if variant not in [VARIANT_ESP32, VARIANT_ESP32S3]:
+            raise cv.Invalid(
+                "SDMMC host adapter available only on {VARIANT_ESP32} or {VARIANT_ESP32S3} chips"
+            )
+
+        if config[CONF_BUS_WIDTH] == "8bit":
+            if variant != VARIANT_ESP32:
+                raise cv.Invalid(
+                    "Useing 8bit bus available only in SLOT_0 on ESP32 chip."
+                )
+            elif config[CONF_BUS_SLOT] != 0:
+                raise cv.Invalid("8bit bus with available only on SPI_0 ")
+
+            if (
+                config[CONF_DATA0_PIN] not in config
+                or config[CONF_DATA1_PIN] not in config
+                or config[CONF_DATA2_PIN] not in config
+                or config[CONF_DATA3_PIN] not in config
+                or config[CONF_DATA4_PIN] not in config
+                or config[CONF_DATA5_PIN] not in config
+                or config[CONF_DATA6_PIN] not in config
+                or config[CONF_DATA7_PIN] not in config
             ):
                 raise cv.Invalid(
-                    "{CONF_BUS_SLOT}  or [{CONF_MOSI_PIN}, {CONF_MISO_PIN}, {CONF_SCLK_PIN}] required"
+                    f"With 8bit bus definition of {CONF_DATA4_PIN}, {CONF_DATA5_PIN}, {CONF_DATA6_PIN}, {CONF_DATA7_PIN} required."
                 )
 
-        if config[CONF_TYPE] == "sdmmc":
-            if variant not in [VARIANT_ESP32, VARIANT_ESP32S3]:
+        elif config[CONF_BUS_WIDTH] == "4bit":
+            if (
+                config[CONF_DATA0_PIN] not in config
+                or config[CONF_DATA1_PIN] not in config
+                or config[CONF_DATA2_PIN] not in config
+                or config[CONF_DATA3_PIN] not in config
+            ):
                 raise cv.Invalid(
-                    "SD mmc host adapter available only on {VARIANT_ESP32} or {VARIANT_ESP32S3} chips"
+                    f"With 8bit bus definition of {CONF_DATA0_PIN}, {CONF_DATA1_PIN}, {CONF_DATA2_PIN}, {CONF_DATA3_PIN} required."
                 )
-
-            if config[CONF_BUS_WIDTH] == "8bit":
-                if variant != VARIANT_ESP32:
-                    raise cv.Invalid(
-                        "Useing 8bit bus available only in SLOT_0 on ESP32 chip."
-                    )
-                elif config[CONF_BUS_SLOT] != 0:
-                    raise cv.Invalid("8bit bus with available only on SPI_0 ")
-
-                if (
-                    config[CONF_DATA0_PIN] not in config
-                    or config[CONF_DATA1_PIN] not in config
-                    or config[CONF_DATA2_PIN] not in config
-                    or config[CONF_DATA3_PIN] not in config
-                    or config[CONF_DATA4_PIN] not in config
-                    or config[CONF_DATA5_PIN] not in config
-                    or config[CONF_DATA6_PIN] not in config
-                    or config[CONF_DATA7_PIN] not in config
-                ):
-                    raise cv.Invalid(
-                        f"With 8bit bus definition of {CONF_DATA4_PIN}, {CONF_DATA5_PIN}, {CONF_DATA6_PIN}, {CONF_DATA7_PIN} required."
-                    )
-
-            elif config[CONF_BUS_WIDTH] == "4bit":
-                if (
-                    config[CONF_DATA0_PIN] not in config
-                    or config[CONF_DATA1_PIN] not in config
-                    or config[CONF_DATA2_PIN] not in config
-                    or config[CONF_DATA3_PIN] not in config
-                ):
-                    raise cv.Invalid(
-                        f"With 8bit bus definition of {CONF_DATA0_PIN}, {CONF_DATA1_PIN}, {CONF_DATA2_PIN}, {CONF_DATA3_PIN} required."
-                    )
     return config
 
 
@@ -149,43 +147,46 @@ SDMMC_SCHEMA = BASE_SCHEMA.extend(
     ),
 )
 
-ARDUINO_SPI_SCHEMA = cv.All(
+SDSPI_SCHEMA = (
     cv.Schema(
         {
             cv.Optional(CONF_BUS_SLOT, default=2): cv.int_range(min=0, max=3),
         }
     )
     .extend(BASE_SCHEMA)
-    .extend(spi.spi_device_schema(cs_pin_required=True, default_mode="MODE0")),
-    cv.only_with_arduino,
+    .extend(spi.spi_device_schema(cs_pin_required=True, default_mode="MODE0"))
 )
 
-IDF_SPI_SCHEMA = BASE_SCHEMA.extend(
-    cv.Schema(
-        {
-            cv.Optional(CONF_BUS_SLOT, default=2): cv.int_range(
-                min=0, max=3
-            ),  # TODO:  rename to CONF_SPI_MODE
-            cv.Required(CONF_SCLK_PIN): pins.internal_gpio_output_pin_number,
-            cv.Required(
-                CONF_CS_PIN
-            ): pins.internal_gpio_output_pin_number,  # pins.gpio_output_pin_schema
-            cv.Required(CONF_MISO_PIN): pins.internal_gpio_output_pin_number,
-            cv.Required(CONF_MOSI_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_INT_PIN): pins.internal_gpio_output_pin_number,
-        }
-    )
-)
+# cv.only_with_arduino,
 
 
-def select_spi():
-    if CORE.using_arduino:
-        return ARDUINO_SPI_SCHEMA
-    else:
-        return IDF_SPI_SCHEMA
+# IDF_SPI_SCHEMA = BASE_SCHEMA.extend(
+#     cv.Schema(
+#         {
+#             cv.Optional(CONF_BUS_SLOT, default=2): cv.int_range(
+#                 min=0, max=3
+#             ),  # TODO:  rename to CONF_SPI_MODE
+#             cv.Required(CONF_SCLK_PIN): pins.internal_gpio_output_pin_number,
+#             cv.Required(
+#                 CONF_CS_PIN
+#             ): pins.internal_gpio_output_pin_number,  # pins.gpio_output_pin_schema
+#             cv.Required(CONF_MISO_PIN): pins.internal_gpio_output_pin_number,
+#             cv.Required(CONF_MOSI_PIN): pins.internal_gpio_output_pin_number,
+#             cv.Optional(CONF_INT_PIN): pins.internal_gpio_output_pin_number,
+#         }
+#     )
+# )
 
 
-SDSPI_SCHEMA = cv.Schema(select_spi())
+# def select_spi():
+#     if CORE.using_arduino:
+#         return ARDUINO_SPI_SCHEMA
+#     else:
+#         # return IDF_SPI_SCHEMA
+#         return ARDUINO_SPI_SCHEMA
+
+
+# SDSPI_SCHEMA = cv.Schema(select_spi())
 
 CONFIG_SCHEMA = cv.All(
     cv.typed_schema(
@@ -199,15 +200,29 @@ CONFIG_SCHEMA = cv.All(
 
 
 async def to_code(config):
-    if CORE.using_arduino and (config[CONF_TYPE] == "sdspi"):
-        cg.add_define("USE_ARDUINO_SPI_FS")
-        # cg.add_platformio_option("extra_scripts", ["pre:build_pio.py"])
-        # cg.add_platformio_option("lib_ldf_mode", "chain+")  #deep+  chain+
-        # cg.add_platformio_option("lib_extra_dirs", "src/esphome/components/sdfs")
-        # cg.add_library("FS", None)s
-        # cg.add_library("SD", None)
-        # cg.add_library("SPI", None)
-        # cg.add_library("SdFat", None)
+    # core_data = CORE.data[KEY_CORE]
+    # framework = core_data[KEY_TARGET_FRAMEWORK]
+
+    if CORE.using_esp_idf and (config[CONF_TYPE] == "sdspi"):
+        cg.add_define("USE_SDSPI_MODE")
+    elif CORE.using_esp_idf and (config[CONF_TYPE] == "sdmmc"):
+        cg.add_define("USE_SDMMC_MODE")
+    elif CORE.using_arduino and (config[CONF_TYPE] == "sdspi"):
+        cg.add_define("USE_SDSPI_MODE")
+    elif CORE.using_arduino and (config[CONF_TYPE] == "sdmmc"):
+        cg.add_define("USE_SDMMC_MODE")
+    else:
+        raise cv.Invalid("Unsupported platform")
+
+    # if CORE.using_arduino and (config[CONF_TYPE] == "sdspi"):
+    #     cg.add_define("USE_ARDUINO_SPI_FS")
+    # cg.add_platformio_option("extra_scripts", ["pre:build_pio.py"])
+    # cg.add_platformio_option("lib_ldf_mode", "chain+")  #deep+  chain+
+    # cg.add_platformio_option("lib_extra_dirs", "src/esphome/components/sdfs")
+    # cg.add_library("FS", None)s
+    # cg.add_library("SD", None)
+    # cg.add_library("SPI", None)
+    # cg.add_library("SdFat", None)
     #       lib_extra_di  rs = lib/MyLibFolder/ExternalLibFolder
     #       lib_ldf_mode = chain+
 
@@ -215,39 +230,23 @@ async def to_code(config):
     await cg.register_component(var, config)
     cg.add(var.set_conn_type(cv.enum(SD_CONN_TYPE)(config[CONF_TYPE])))
 
-    cg.add(var.set_bus_slot(config[CONF_BUS_SLOT]))
-    if CONF_SCLK_PIN in config:
-        cg.add(var.set_clk_pin(config[CONF_SCLK_PIN]))
-    cg.add(var.set_path(config[CONF_PATH]))
-
     if CONF_CD_PIN in config:
         cg.add(var.set_cd_pin(config[CONF_CD_PIN]))
     if CONF_WP_PIN in config:
         cg.add(var.set_wp_pin(config[CONF_WP_PIN]))
+    if CONF_PATH in config:
+        cg.add(var.set_path(config[CONF_PATH]))
+    if CONF_POWER_CTRL_PIN in config:
+        cg.add(var.set_pw_ctrl_pin(config[CONF_POWER_CTRL_PIN]))
 
-    #
-    #   ESP_IDF &&  SDSPI
-    #
-    if (CORE.using_esp_idf) and (config[CONF_TYPE] == "sdspi"):
-        cg.add(var.set_cs_pin(config[CONF_CS_PIN]))
-        cg.add(var.set_miso_pin(config[CONF_MISO_PIN]))
-        cg.add(var.set_mosi_pin(config[CONF_MOSI_PIN]))
-        if CONF_INT_PIN in config:
-            cg.add(var.set_int_pin(config[CONF_INT_PIN]))
-
-    #
-    #   ARDUINO &&  SDSPI
-    #
-    elif CORE.using_arduino and (config[CONF_TYPE] == "sdspi"):
-        # cg.add_define("USE_ARDUINO_SPI_FS")
-        # cg.add_library("SPI", None)
-        # cg.add_library("SdFat", None)
+    if config[CONF_TYPE] == "sdspi":
         await spi.register_spi_device(var, config)
+    elif config[CONF_TYPE] == "sdmmc":
+        cg.add(var.set_bus_slot(config[CONF_BUS_SLOT]))
+        if CONF_SCLK_PIN in config:
+            cg.add(var.set_clk_pin(config[CONF_SCLK_PIN]))
+        cg.add(var.set_path(config[CONF_PATH]))
 
-    #
-    #   ESP_IDF &&  SDMMC
-    #
-    elif CORE.using_esp_idf and (config[CONF_TYPE] == "sdmmc"):
         cg.add(var.set_cmd_pin(config[CONF_CMD_PIN]))
         cg.add(var.set_data0_pin(config[CONF_DATA0_PIN]))
         cg.add(var.set_bus_width(config[CONF_BUS_WIDTH]))
@@ -257,11 +256,8 @@ async def to_code(config):
             cg.add(var.set_data2_pin(config[CONF_DATA2_PIN]))
             cg.add(var.set_data3_pin(config[CONF_DATA3_PIN]))
 
-        if config[CONF_BUS_WIDTH] == "8bit":
+        elif config[CONF_BUS_WIDTH] == "8bit":
             cg.add(var.set_data4_pin(config[CONF_DATA4_PIN]))
             cg.add(var.set_data5_pin(config[CONF_DATA5_PIN]))
             cg.add(var.set_data6_pin(config[CONF_DATA6_PIN]))
             cg.add(var.set_data7_pin(config[CONF_DATA7_PIN]))
-
-    if CONF_POWER_CTRL_PIN in config:
-        cg.add(var.set_pw_ctrl_pin(config[CONF_POWER_CTRL_PIN]))

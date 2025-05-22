@@ -1,6 +1,6 @@
 
 #include "spi_connector.h"
-#ifdef USE_ARDUINO_SPI_FS
+#ifdef USE_SDSPI_MODE
 // #include "SdFat.h"
 
 namespace esphome {
@@ -10,6 +10,7 @@ namespace sdfs {
 
 static const char *const TAG = "spi_connector";
 
+SpiConnector::SpiConnector() {}
 bool SpiConnector::is_transaction() { return this->in_transaction; }
 void SpiConnector::begin() { this->spi_setup(); }
 void SpiConnector::end() { this->spi_teardown(); }
@@ -23,9 +24,9 @@ void SpiConnector::beginTransaction() {
   }
   trans_level_++;
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "Transaction + Level=%d", trans_level_);
+  ESP_LOGV(TAG, "Transaction + Level=%d", trans_level_);
 #endif
-  // ESP_LOGD(TAG,"start transaction +");
+  // ESP_LOGV(TAG,"start transaction +");
   // if (! in_transaction )  {
   //   this->enable();
   //   in_transaction = true;
@@ -41,41 +42,41 @@ void SpiConnector::endTransaction() {
   }
   trans_level_--;
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "Transaction - Level=%d", trans_level_);
+  ESP_LOGV(TAG, "Transaction - Level=%d", trans_level_);
 #endif
   if (trans_level_ <= 0) {
     this->disable();
   }
 
-  // ESP_LOGD(TAG,"end transaction -");
+  // ESP_LOGV(TAG,"end transaction -");
   // this->disable();
   // in_transaction = false;
 }
 
 uint8_t SpiConnector::transfer(uint8_t data) {
 #if defined(SPI_CALL_TRACE)
-// ESP_LOGD(TAG, "transfer  0x%.02X",data);
+// ESP_LOGV(TAG, "transfer  0x%.02X",data);
 #endif
   return this->transfer_byte(data);
 }
 
 void SpiConnector::write16(uint16_t data) {
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "write16  0x%.04X", data);
+  ESP_LOGV(TAG, "write16  0x%.04X", data);
 #endif
   this->write_byte16(data);
 }
 
 void SpiConnector::write(uint8_t data) {
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "write 0x%.02X", data);
+  ESP_LOGV(TAG, "write 0x%.02X", data);
 #endif
   this->write_byte(data);
 }
 
 void SpiConnector::write32(uint32_t data) {
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "write32  0x%.08X", data);
+  ESP_LOGV(TAG, "write32  0x%.08X", data);
 #endif
   std::array<uint8_t, 4> _value;
   _value[0] = data >> 24;
@@ -88,7 +89,7 @@ void SpiConnector::write32(uint32_t data) {
 
 uint16_t SpiConnector::transfer16(uint16_t data) {
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "transfer16  0x%.04X", data);
+  ESP_LOGV(TAG, "transfer16  0x%.04X", data);
 #endif
   std::array<uint8_t, 2> _value;
   _value[0] = data >> 8;
@@ -97,14 +98,14 @@ uint16_t SpiConnector::transfer16(uint16_t data) {
   this->transfer_array(_value);
   data = (_value[0] << 8) | (_value[1]);
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "transfer16 recv 0x%.04X", data);
+  ESP_LOGV(TAG, "transfer16 recv 0x%.04X", data);
 #endif
   return data;
 }
 
 uint32_t SpiConnector::transfer32(uint32_t data) {
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "transfer32 0x%.08X", data);
+  ESP_LOGV(TAG, "transfer32 0x%.08X", data);
 #endif
   std::array<uint8_t, 4> _value;
   _value[0] = data >> 24;
@@ -115,9 +116,10 @@ uint32_t SpiConnector::transfer32(uint32_t data) {
   this->transfer_array(_value);
 
   data = (_value[0] << 24) | (_value[1] << 16) | (_value[2] << 8) | (_value[3]);
-  _value.empty();
+  // _value.empty();
+  // delete _value;
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "transfer32  recv 0x%.08X", data);
+  ESP_LOGV(TAG, "transfer32  recv 0x%.08X", data);
 #endif
   return data;
 }
@@ -130,14 +132,14 @@ uint32_t SpiConnector::transfer32(uint32_t data) {
 
 void SpiConnector::writeBytes(const uint8_t *data, uint32_t size) {
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "writeBytes data, len %d", size);
+  ESP_LOGV(TAG, "writeBytes data, len %d", size);
 #endif
   this->write_array(data, size);
 }
 
 void SpiConnector::transfer(void *data, uint32_t size) {
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "transfer data, len %d", size);
+  ESP_LOGV(TAG, "transfer data, len %d", size);
 #endif
   this->delegate_->transfer((uint8_t *) data, size);
 }
@@ -155,7 +157,7 @@ void SpiConnector::transfer(void *data, uint32_t size) {
  */
 void SpiConnector::transferBytes(const uint8_t *data, uint8_t *out, uint32_t size) {
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "transferBytes %d bytes", size);
+  ESP_LOGV(TAG, "transferBytes %d bytes", size);
 #endif
   uint8_t *txbuff = NULL;
   if (data == NULL) {
@@ -178,7 +180,7 @@ void SpiConnector::transferBytes(const uint8_t *data, uint8_t *out, uint32_t siz
  */
 void SpiConnector::writePattern(const uint8_t *data, uint8_t size, uint32_t repeat) {
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGD(TAG, "writePattern %d repeats", size);
+  ESP_LOGV(TAG, "writePattern %d repeats", size);
 #endif
   if (size > 64) {
     return;  // max Hardware FIFO

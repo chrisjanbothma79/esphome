@@ -4,12 +4,14 @@
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
 
-#ifdef USE_ARDUINO_SPI_FS
-#define SPI_DRIVER_SELECT 3
-#define SD_CHIP_SELECT_MODE 2
+// #define SPI_CALL_TRACE
+
+#ifdef USE_SDSPI_MODE
+// #define SPI_DRIVER_SELECT 3
+// #define SD_CHIP_SELECT_MODE 2
+
 #include "esphome/components/spi/spi.h"
 #include "spi_connector.h"
-
 // #include "SdFat.h"
 // #include "SpiDriver/SdSpiBaseClass.h"
 #endif
@@ -18,12 +20,6 @@
 
 namespace esphome {
 namespace sdfs {
-// #ifdef USE_ESP_IDF
-// #else
-
-// #endif
-
-extern const char *fs_err2str[];
 
 enum SdDriverStatus : int {
   SD_SLOT_ST_NOTINIT = 0,
@@ -44,10 +40,18 @@ enum SdConnType {
   SD_SPI = 1,
 };
 
-#ifdef USE_ARDUINO_SPI_FS
+extern const char *fat_type2str[];
+
+#ifdef USE_SDSPI_MODE
+extern const char *fs_err2str[];
+#endif
+extern const char *host_st2str[];
+
+#ifdef USE_SDSPI_MODE
 class SpiConnector;
 #endif
 class DriverInterface;
+
 class SdmmcHost : public Component {
   friend class SdmmcDriver;
   friend class SdmmcIdfDriver;
@@ -58,7 +62,7 @@ class SdmmcHost : public Component {
   void loop() override;
   void dump_config() override;
 
-#ifdef USE_ARDUINO_SPI_FS
+#if defined(USE_SDSPI_MODE)
   void set_spi_parent(spi::SPIComponent *);
   void set_cs_pin(GPIOPin *);
   void set_data_rate(uint32_t);
@@ -93,7 +97,7 @@ class SdmmcHost : public Component {
   void set_path(std::string);
 
  protected:
-#ifdef USE_ARDUINO_SPI_FS
+#if defined(USE_SDSPI_MODE)
   SpiConnector *connector_;
 #endif
   bool last_card_staus = false;

@@ -1,9 +1,12 @@
 #include "sdfs.h"
 #include "esphome/core/log.h"
 
-#ifdef USE_ARDUINO_SPI_FS
-#include "spi_connector.h"
+#if defined(USE_SDSPI_MODE)
 #include "esphome/components/spi/spi.h"
+#include "spi_connector.h"
+#endif
+
+#if defined(USE_ARDUINO)
 #include "sdspi_drv_ard.h"
 // #include "vfs_api.h"
 // #include "FS.h"
@@ -17,28 +20,12 @@ namespace sdfs {
 
 static const char *TAG = "sdfs";
 
-// #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_ERROR
-const char *fs_err2str[] = {"(0) Succeeded",
-                            "(1) A hard error occurred in the low level disk I/O layer",
-                            "(2) Assertion failed",
-                            "(3) The physical drive cannot work",
-                            "(4) Could not find the file",
-                            "(5) Could not find the path",
-                            "(6) The path name format is invalid",
-                            "(7) Access denied due to prohibited access or directory full",
-                            "(8) Access denied due to prohibited access",
-                            "(9) The file/directory object is invalid",
-                            "(10) The physical drive is write protected",
-                            "(11) The logical drive number is invalid",
-                            "(12) The volume has no work area",
-                            "(13) There is no valid FAT volume",
-                            "(14) The f_mkfs() aborted due to any problem",
-                            "(15) Could not get a grant to access the volume within defined period",
-                            "(16) The operation is rejected according to the file sharing policy",
-                            "(17) LFN working buffer could not be allocated",
-                            "(18) Number of open files > FF_FS_LOCK",
-                            "(19) Given parameter is invalid"};
-// #endif
+const char *host_st2str[] = {
+    "(0) ST: Slot not init", "(1) ST: Slot initiallized", "(2) ST: Slot empty",
+    "(3) ST: Card present",  "(4) ST: Card mount",
+};
+
+const char *fat_type2str[] = {"NO_FS", "FS_FAT12", "FS_FAT16", "FS_FAT32", "FS_EXFAT"};
 
 /**
  * @brief  EspHome component for univeral interface for card attach and mount controll
@@ -48,7 +35,10 @@ class ArduinoSdFatDriver;
 
 SdmmcHost::SdmmcHost() {
   this->set_state(SD_SLOT_ST_NOTINIT);
+
+#if defined(USE_SDSPI_MODE)
   this->connector_ = new SpiConnector();
+#endif
   ESP_LOGD(TAG, "Host class init");
 }
 
@@ -98,7 +88,6 @@ void SdmmcHost::dump_config() {
 }
 
 SdDriverStatus SdmmcHost::get_state() { return this->state_; }
-void SdmmcHost::set_state(SdDriverStatus state) { this->state_ = state; }
 void SdmmcHost::set_conn_type(SdConnType type) { this->type_ = type; }
 void SdmmcHost::set_bus_slot(uint8_t gpio_num) { this->bus_slot_ = gpio_num; }
 void SdmmcHost::set_clk_pin(uint8_t gpio_num) { this->clk_pin_ = gpio_num; }
@@ -111,7 +100,6 @@ void SdmmcHost::set_data4_pin(uint8_t gpio_num) { this->data4_pin_ = gpio_num; }
 void SdmmcHost::set_data5_pin(uint8_t gpio_num) { this->data5_pin_ = gpio_num; }
 void SdmmcHost::set_data6_pin(uint8_t gpio_num) { this->data6_pin_ = gpio_num; }
 void SdmmcHost::set_data7_pin(uint8_t gpio_num) { this->data7_pin_ = gpio_num; }
-
 void SdmmcHost::set_pw_ctrl_pin(uint8_t gpio_num) { this->pw_ctrl_pin_ = gpio_num; }
 void SdmmcHost::set_cs_pin(uint8_t gpio_num) { this->cs_pin_ = gpio_num; }
 void SdmmcHost::set_cd_pin(uint8_t gpio_num) { this->cd_pin_ = gpio_num; }
@@ -122,12 +110,17 @@ void SdmmcHost::set_mosi_pin(uint8_t gpio_num) { this->mosi_pin_ = gpio_num; }
 void SdmmcHost::set_path(std::string path) { this->path_ = path; }
 void SdmmcHost::set_bus_width(BusWidth bus_width) { this->spi_bus_width_ = bus_width; }
 
-#ifdef USE_ARDUINO_SPI_FS
+#if defined(USE_SDSPI_MODE)
 void SdmmcHost::set_spi_parent(spi::SPIComponent *parent) { this->connector_->set_spi_parent(parent); }
 void SdmmcHost::set_cs_pin(GPIOPin *cs) { this->connector_->set_cs_pin(cs); }
 void SdmmcHost::set_data_rate(uint32_t data_rate) { this->connector_->set_data_rate(data_rate); }
 void SdmmcHost::set_mode(spi::SPIMode mode) { this->connector_->set_mode(mode); }
 #endif
+
+void SdmmcHost::set_state(SdDriverStatus state) {
+  ESP_LOGD(TAG, "Change state to: %s", host_st2str[state]);
+  this->state_ = state;
+}
 
 /**
  * @brief  init SPI connector and SD disk driver
@@ -136,42 +129,22 @@ void SdmmcHost::set_mode(spi::SPIMode mode) { this->connector_->set_mode(mode); 
 void SdmmcHost::setup() {
   ESP_LOGD(TAG, "Setup called");
 
-#ifdef USE_ARDUINO_SPI_FS
-  // fs::FSImplPtr* fs = new fs::FSImplPtr();
-  // ArduinoSdFatDriver *drv = new ArduinoSdFatDriver(fs::FSImplPtr(new VFSImpl()));
+#if defined(USE_ARDUINO)
   ArduinoSdFatDriver *drv = new ArduinoSdFatDriver();
-
-  ESP_LOGD(TAG, "Setup/Init spi");
-
-  // clk_pin_name: GPIO4
-  // miso_pin_name: GPIO5
-  // mosi_pin_name: GPIO6
-  // cs_pin_name: GPIO7
-  // void SPIClass::begin(int8_t sck, int8_t miso, int8_t mosi, int8_t ss)
-  // SPIClass* spi_ = new SPIClass(FSPI);
-  //   spi_->begin(
-  //   4,  // SCK
-  //   5,  //  MISO
-  //   6,  //  MOSI
-  //   7  //  SS
-  //  );
-
-  // SPI.begin(4,  // SCK
-  //           5,  //  MISO
-  //           6,  //  MOSI
-  //           7   //  SS
-  // );
-
-  // ESP_LOGD(TAG, "Setup/Set spi");
-  // drv->set_spi(7, &SPI, 4000000, "/sd");
-
-  ESP_LOGD(TAG, "Setup/Set connector");
+#if defined(USE_SDSPI_MODE)
   drv->set_connector(this->connector_);
+#endif
   drv->set_parent(this);
   this->drv_ = drv;
-#else
-  this->drv_ = new SdmmcIdfDriver();
-  this->drv_->set_parent(this);
+
+#else  // USE_ESP_IDF
+  SdmmcIdfDriver *drv = new SdmmcIdfDriver();
+  drv = new SdmmcIdfDriver();
+#if defined(USE_SDSPI_MODE)
+  drv->set_connector(this->connector_);
+#endif
+  drv->set_parent(this);
+  this->drv_ = drv;
 #endif
 
   ESP_LOGD(TAG, "Setup");
@@ -199,6 +172,13 @@ void SdmmcHost::setup() {
       this->set_state(SD_SLOT_ST_CARD);
       if (this->drv_->mount(path_, false)) {
         this->set_state(SD_SLOT_ST_MOUNT);
+
+        if (this->drv_->test()) {
+          ESP_LOGD(TAG, "FS test OK");
+        } else {
+          ESP_LOGD(TAG, "FS test FAIL");
+        }
+
       } else {
         this->set_state(SD_SLOT_ST_CARD);
       }

@@ -1,15 +1,16 @@
 #pragma once
-
+#include "esphome/core/defines.h"
 #include "sdfs.h"
-#ifdef USE_ARDUINO_SPI_FS
+#ifdef USE_SDSPI_MODE
 #include "esphome/components/spi/spi.h"
 
 namespace esphome {
 namespace sdfs {
 
 class SpiConnector : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
-                                           spi::DATA_RATE_40MHZ> {
+                                           spi::DATA_RATE_20MHZ> {
  public:
+  SpiConnector();
   virtual void begin();
   virtual void end();
   virtual bool is_transaction();
