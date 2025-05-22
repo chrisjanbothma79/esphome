@@ -23,7 +23,6 @@ class MAX31855Sensor : public sensor::Sensor,
   void update() override;
 
  protected:
-  void read_data_();
   sensor::Sensor *temperature_reference_{nullptr};
 };
 

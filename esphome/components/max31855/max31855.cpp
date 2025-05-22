@@ -7,16 +7,6 @@ namespace max31855 {
 
 static const char *const TAG = "max31855";
 
-void MAX31855Sensor::update() {
-  this->enable();
-  delay(1);
-  // conversion initiated by rising edge
-  this->disable();
-
-  // Conversion time typ: 170ms, max: 220ms
-  auto f = std::bind(&MAX31855Sensor::read_data_, this);
-  this->set_timeout("value", 220, f);
-}
 
 void MAX31855Sensor::setup() {
   ESP_LOGCONFIG(TAG, "Setting up MAX31855Sensor '%s'...", this->name_.c_str());
@@ -34,7 +24,7 @@ void MAX31855Sensor::dump_config() {
   }
 }
 float MAX31855Sensor::get_setup_priority() const { return setup_priority::DATA; }
-void MAX31855Sensor::read_data_() {
+void MAX31855Sensor::update() {
   this->enable();
   delay(1);
   uint8_t data[4];
@@ -42,6 +32,7 @@ void MAX31855Sensor::read_data_() {
   this->disable();
 
   const uint32_t mem = encode_uint32(data[0], data[1], data[2], data[3]);
+  ESP_LOGD(TAG, "Got data from MAX31855: 0x%08" PRIX32, mem);
 
   // Verify we got data
   if (mem != 0xFFFFFFFF) {
