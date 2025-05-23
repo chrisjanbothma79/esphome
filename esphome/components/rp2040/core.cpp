@@ -1,6 +1,7 @@
 #ifdef USE_RP2040
 
 #include "core.h"
+#include "esphome/core/defines.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 
