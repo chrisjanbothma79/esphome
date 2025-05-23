@@ -84,7 +84,7 @@ bool HX711Sensor::read_sensor_(uint32_t *result, const bool force) {
     return false;
   }
 
-  if (!this->settled_ && !force) {
+  if (!this->is_settled() && !force) {
     ESP_LOGW(TAG, "Cannot read sensor before it is settled.");
     this->status_set_warning("not settled");
     return false;
