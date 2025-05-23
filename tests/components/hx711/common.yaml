@@ -3,6 +3,8 @@ esphome:
     then:
       - hx711.power_down
       - hx711.power_up
+      - hx711.set_gain:
+          gain: 128
 
 sensor:
   - platform: hx711

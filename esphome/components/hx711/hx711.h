@@ -17,22 +17,29 @@ enum HX711Gain : uint8_t {
 
 class HX711Sensor : public sensor::Sensor, public PollingComponent {
  public:
-  void set_dout_pin(GPIOPin *dout_pin) { dout_pin_ = dout_pin; }
-  void set_sck_pin(GPIOPin *sck_pin) { sck_pin_ = sck_pin; }
-  void set_gain(HX711Gain gain) { gain_ = gain; }
+  void set_dout_pin(GPIOPin *dout_pin) { this->dout_pin_ = dout_pin; }
+  void set_sck_pin(GPIOPin *sck_pin) { this->sck_pin_ = sck_pin; }
+  void set_gain(HX711Gain gain) { this->gain_ = gain; }
   void set_settling_time(uint16_t settling_time_ms) { this->settling_time_ms_ = settling_time_ms; }
-  void set_settle_on_boot(bool settle_on_boot) { this->settle_on_boot_ = settle_on_boot; }
   void set_power_down_after_reading(bool power_down_after_reading) {
     this->power_down_after_reading_ = power_down_after_reading;
   }
+  void set_channel_b_sensor(sensor::Sensor *channel_b_sensor) { this->channel_b_sensor_ = channel_b_sensor; }
 
-  void call_setup() override;
+  void call_setup() override { this->setup(); };
   void setup() override;
   void dump_config() override;
   float get_setup_priority() const override;
   void update() override;
   void on_safe_shutdown() override { this->power_down(); };
   void on_shutdown() override { this->power_down_internal_(); };
+
+  /// @brief Logs the new gain setting and sets internal gain variable
+  ///
+  /// This function is called by set gain automation. It serves as a helper function for logging
+  ///
+  /// @param[in] gain New gain setting
+  void set_new_gain(HX711Gain gain);
 
   /// @brief Powers up the HX711 sensor if it is currently powered down.
   ///
@@ -93,10 +100,11 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
 
   /// @brief Flag to indicate whether the ADC has reached a stable state.
   bool settled_{false};
-  /// @brief Flag to indicate whether the settling has to be done at startup.
-  bool settle_on_boot_;
   /// @brief Flag to indicate whether to power down the sensor after reading.
   bool power_down_after_reading_;
+
+  /// @brief Channel B sensor
+  sensor::Sensor *channel_b_sensor_{nullptr};
 
   GPIOPin *dout_pin_;
   GPIOPin *sck_pin_;
@@ -106,6 +114,11 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   ///
   /// After a reset or power-down event, input selection defaults to Channel A with a gain of 128.
   HX711Gain last_gain_{HX711_GAIN_128};
+
+  /// @brief The global gain that was set before the channel B sensor update
+  HX711Gain gain_before_channel_b_update_{HX711_GAIN_128};
+  /// @brief Flag to indicate whether to update the channel B sensor after settling
+  bool update_channel_b_after_settling_{false};
 };
 
 template<typename... Ts> class HX711SensorActionBase : public Action<Ts...> {
@@ -131,6 +144,17 @@ template<typename... Ts> class PowerDownAction : public HX711SensorActionBase<Ts
     if (!this->parent_->is_ready())
       return;
     this->parent_->power_down();
+  }
+};
+
+template<typename... Ts> class SetGainAction : public HX711SensorActionBase<Ts...> {
+ public:
+  TEMPLATABLE_VALUE(HX711Gain, gain)
+
+  void play(Ts... x) override {
+    if (!this->parent_->is_ready())
+      return;
+    this->parent_->set_new_gain(this->gain_.value(x...));
   }
 };
 
