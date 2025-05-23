@@ -31,13 +31,35 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   void dump_config() override;
   float get_setup_priority() const override;
   void update() override;
+  void on_safe_shutdown() override { this->power_down(); };
+  void on_shutdown() override { this->power_down_internal_(); };
 
+  /// @brief Powers up the HX711 sensor if it is currently powered down.
+  ///
+  /// Restores power to the HX711 and reinitializes the input channel and gain settings.
+  /// After power-up, the HX711 defaults to Channel A with a gain of 128. If that is the desired
+  /// configuration, the settling timeout is started immediately. Otherwise, a dummy read is performed
+  /// (without publishing) to set the configured gain and trigger the settling process.
+  ///
+  /// If the sensor is already powered up, a warning is logged and no further action is taken.
   void power_up();
-  void power_down();
+  /// @brief Powers down the HX711 sensor if it is currently powered up.
+  ///
+  /// This function cancels any active settling timeout and stops the polling process
+  /// before initiating the HX711 power-down sequence. A delay of 60 microseconds is introduced
+  /// after pulling the clock pin high, as required by the HX711 datasheet.
+  ///
+  /// If the sensor is already powered down, a warning is logged and no action is taken.
+  ///
+  /// @param[in] stop_poller Whether to stop the polling process. Defaults to true.
+  void power_down(bool stop_poller = true);
 
   /// @brief Returns whether the HX711 ADC has reached a stable state.
   /// @return True if the HX711 ADC has reached a stable state, false otherwise.
   bool is_settled() const { return this->settled_; }
+  /// @brief Returns whether the HX711 ADC is powered down (PD_SCK pin is high).
+  /// @return True if the HX711 ADC is powered down, false otherwise.
+  bool is_powered_down() const;
 
  protected:
   /// @brief Starts the settling timeout sequence for the HX711 sensor.
@@ -48,6 +70,11 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// Once the configured settling time has elapsed, marks the sensor as settled,
   /// clears any warning status, and restarts the poller.
   void start_settle_timeout_();
+
+  /// @brief Power down the HX711 sensor by setting the PD_SCK pin low.
+  void power_down_internal_();
+  /// @brief Power up the HX711 sensor by setting the PD_SCK pin high.
+  void power_up_internal_();
 
   /// @brief Read sensor data from HX711.
   /// @param[out] result Pointer to store the read value.
