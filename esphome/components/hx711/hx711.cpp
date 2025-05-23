@@ -21,7 +21,7 @@ void HX711Sensor::call_setup() {
   this->setup();
 
   if (this->settle_on_boot_) {
-    this->start_settle_timeoout();
+    this->start_settle_timeoout_();
   } else {
     // Assume the sensor is already settled
     this->settled_ = true;
@@ -39,7 +39,7 @@ void HX711Sensor::setup() {
   this->read_sensor_(nullptr, true);
 }
 
-void HX711Sensor::start_settle_timeoout() {
+void HX711Sensor::start_settle_timeoout_() {
   this->settled_ = false;
   this->stop_poller();
 
@@ -118,7 +118,7 @@ bool HX711Sensor::read_sensor_(uint32_t *result, const bool force) {
   if (last_gain != this->gain_) {
     last_gain = this->gain_;
     ESP_LOGD(TAG, "HX711 gain changed to x%u to x%u", last_gain, hx711_gain_to_linear_gain(this->gain_));
-    this->start_settle_timeoout();
+    this->start_settle_timeoout_();
   }
 
   if (!final_dout) {
