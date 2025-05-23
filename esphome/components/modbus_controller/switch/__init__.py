@@ -63,8 +63,9 @@ async def to_code(config):
     paren = await cg.get_variable(config[CONF_MODBUS_CONTROLLER_ID])
     cg.add(var.set_parent(paren))
     cg.add(var.set_use_write_mutiple(config[CONF_USE_WRITE_MULTIPLE]))
-    cg.add(var.set_assumed_state(config[CONF_ASSUMED_STATE]))
-    if config[CONF_ASSUMED_STATE] is False:
+    assumed_state = config[CONF_ASSUMED_STATE]
+    cg.add(var.set_assumed_state(assumed_state))
+    if not assumed_state:
         cg.add(paren.add_sensor_item(var))
     if CONF_WRITE_LAMBDA in config:
         template_ = await cg.process_lambda(
