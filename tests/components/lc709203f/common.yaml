@@ -13,4 +13,4 @@ sensor:
       name: "Battery"
     temperature:
       name: "Pack Temperature"
-      thermistor_b_constant: 0xA5A5
+      b_constant: 0xA5A5

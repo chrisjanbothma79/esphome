@@ -22,7 +22,7 @@ DEPENDENCIES = ["i2c"]
 
 lc709203f_ns = cg.esphome_ns.namespace("lc709203f")
 
-CONF_THERMISTOR_B_CONSTANT = "thermistor_b_constant"
+CONF_B_CONSTANT = "b_constant"
 
 LC709203FBatteryVoltage = lc709203f_ns.enum("LC709203FBatteryVoltage")
 BATTERY_VOLTAGE_OPTIONS = {
@@ -62,7 +62,7 @@ CONFIG_SCHEMA = (
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
             ).extend(
                 {
-                    cv.Required(CONF_THERMISTOR_B_CONSTANT): cv.int_range(0, 0xFFFF),
+                    cv.Required(CONF_B_CONSTANT): cv.int_range(0, 0xFFFF),
                 }
             ),
         }
@@ -92,6 +92,6 @@ async def to_code(config):
         cg.add(var.set_temperature_sensor(sens))
         cg.add(
             var.set_thermistor_b_constant(
-                config[CONF_TEMPERATURE][CONF_THERMISTOR_B_CONSTANT]
+                config[CONF_TEMPERATURE][CONF_B_CONSTANT]
             )
         )
