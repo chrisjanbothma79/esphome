@@ -362,7 +362,6 @@ async def to_code(config):
     cg.add(var.set_volume_max(config[CONF_VOLUME_MAX]))
     cg.add(var.set_volume_min(config[CONF_VOLUME_MIN]))
 
-
     announcement_pipeline_config = config[CONF_ANNOUNCEMENT_PIPELINE]
     spkr = await cg.get_variable(announcement_pipeline_config[CONF_SPEAKER])
     cg.add(var.set_announcement_speaker(spkr))
