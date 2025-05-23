@@ -102,6 +102,10 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   GPIOPin *sck_pin_;
   /// Gain to set after new measurement.
   HX711Gain gain_{HX711_GAIN_128};
+  /// @brief The last gain that was set.
+  ///
+  /// After a reset or power-down event, input selection defaults to Channel A with a gain of 128.
+  HX711Gain last_gain_{HX711_GAIN_128};
 };
 
 template<typename... Ts> class HX711SensorActionBase : public Action<Ts...> {

@@ -6,6 +6,8 @@ from esphome.const import (
     CONF_CLK_PIN,
     CONF_GAIN,
     CONF_ID,
+    CONF_INPUT,
+    CONF_OUTPUT,
     ICON_SCALE,
     STATE_CLASS_MEASUREMENT,
 )
@@ -45,7 +47,9 @@ CONFIG_SCHEMA = (
     .extend(
         {
             cv.Required(CONF_DOUT_PIN): pins.gpio_input_pin_schema,
-            cv.Required(CONF_CLK_PIN): pins.gpio_output_pin_schema,
+            cv.Required(CONF_CLK_PIN): pins.gpio_pin_schema(
+                {CONF_OUTPUT: True, CONF_INPUT: True}
+            ),
             cv.Optional(CONF_GAIN, default=128): cv.enum(GAINS, int=True),
             cv.Optional(CONF_SETTLING_TIME, default="400ms"): cv.All(
                 cv.positive_time_period_milliseconds,
