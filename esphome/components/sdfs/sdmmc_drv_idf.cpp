@@ -87,40 +87,42 @@ static void call_host_deinit_(const sdmmc_host_t *host_config) {
  */
 
 void SdmmcIdfDriver::set_parent(SdmmcHost *p) { this->parent_ = p; }
+#if defined(USE_SDSPI_MODE)
 void SdmmcIdfDriver::set_connector(SpiConnector *conn) { this->connector_ = conn; }
+#endif
 uint32_t SdmmcIdfDriver::get_last_err() { return this->last_err_; }
 
-bool SdmmcIdfDriver::sdspi_allocate() {
-  ESP_LOGD(TAG, "SdmmcHost init");
-  //   Allocate mem for SPI HOST_CONFIG
-  sdmmc_host_t new_config = SDSPI_HOST_DEFAULT();
-  this->host_config_ = (sdmmc_host_t *) calloc(sizeof(sdmmc_host_t), 1);
-  if (this->host_config_ == NULL) {
-    ESP_LOGD(TAG, "Not enaught memeory for initialize sdmmc");
-    FREE(this->host_config_);
-    return false;
-  }
-  memcpy(this->host_config_, &new_config, sizeof(sdmmc_host_t));
+// bool SdmmcIdfDriver::sdspi_allocate() {
+//   ESP_LOGD(TAG, "SdmmcHost init");
+//   //   Allocate mem for SPI HOST_CONFIG
+//   sdmmc_host_t new_config = SDSPI_HOST_DEFAULT();
+//   this->host_config_ = (sdmmc_host_t *) calloc(sizeof(sdmmc_host_t), 1);
+//   if (this->host_config_ == NULL) {
+//     ESP_LOGD(TAG, "Not enaught memeory for initialize sdmmc");
+//     FREE(this->host_config_);
+//     return false;
+//   }
+//   memcpy(this->host_config_, &new_config, sizeof(sdmmc_host_t));
 
-  // spi_bus_config_t *spi_bus_config_{nullptr};
+//   // spi_bus_config_t *spi_bus_config_{nullptr};
 
-  this->spi_dev_config_ = (sdspi_device_config_t *) calloc(sizeof(sdspi_device_config_t), 1);
-  if (this->spi_dev_config_ == NULL) {
-    ESP_LOGD(TAG, "Not enaught memeory for initialize sdmmc");
-    FREE(this->host_config_);
-    return false;
-  }
+//   this->spi_dev_config_ = (sdspi_device_config_t *) calloc(sizeof(sdspi_device_config_t), 1);
+//   if (this->spi_dev_config_ == NULL) {
+//     ESP_LOGD(TAG, "Not enaught memeory for initialize sdmmc");
+//     FREE(this->host_config_);
+//     return false;
+//   }
 
-  //   Allocate mem for Detected  CARD_CONFIG
-  // this->card_info_ = (sdmmc_card_t *) calloc(sizeof(sdmmc_card_t), 1);
-  // if (this->card_info_ == NULL) {
-  //   ESP_LOGD(TAG, "Not enaught memeory for initialize sdmmc");
-  //   FREE(this->host_config_);
-  //   FREE(this->spi_dev_config_);
-  //   return false;
-  // }
-  return true;
-}
+//   //   Allocate mem for Detected  CARD_CONFIG
+//   // this->card_info_ = (sdmmc_card_t *) calloc(sizeof(sdmmc_card_t), 1);
+//   // if (this->card_info_ == NULL) {
+//   //   ESP_LOGD(TAG, "Not enaught memeory for initialize sdmmc");
+//   //   FREE(this->host_config_);
+//   //   FREE(this->spi_dev_config_);
+//   //   return false;
+//   // }
+//   return true;
+// }
 
 /***********************************************************************************
  * @brief  Allocate required emory vof SDIO host structures
@@ -175,9 +177,11 @@ bool SdmmcIdfDriver::init_host(SdConnType bus_type) {
       return false;
     ret_status = init_sdmmc(this->host_config_);
   } else {
-    ret_status = init_sdspi(this->host_config_);
+    ret_status = init_sdspi();
   }
+
   if (ret_status == RET_STATUS_FAIL) {
+    ESP_LOGD(TAG, "Init host RET_STATUS_FAIL");
     return false;
   }
   ESP_LOGD(TAG, "Init host TRUE");
@@ -190,7 +194,9 @@ bool SdmmcIdfDriver::init_host(SdConnType bus_type) {
  * @return sdmmc_host_t*
  */
 uint8_t SdmmcIdfDriver::init_sdmmc(sdmmc_host_t *host_config) {
+  ESP_LOGD(TAG, "Init SDMMC");
 #if defined(SOC_SDMMC_HOST_SUPPORTED)
+  ESP_LOGD(TAG, "Init SDMMC : SOC_SDMMC_HOST_SUPPORTED");
 
   esp_err_t rc = ESP_OK;
   uint8_t slot_num;
@@ -210,6 +216,7 @@ uint8_t SdmmcIdfDriver::init_sdmmc(sdmmc_host_t *host_config) {
     SET_RC(FW_ERR, rc, "the maximum count of volumes is already mounted");
     return RET_STATUS_FAIL;
   }
+  this->pdrv_ = pdrv;
 
   //
   //   Define bus connection pins
@@ -256,22 +263,22 @@ uint8_t SdmmcIdfDriver::init_sdmmc(sdmmc_host_t *host_config) {
     SET_RC(FW_ERR, rc, "Failed to init slot host");
     return RET_STATUS_FAIL;
   }
-  ESP_LOGI(TAG, "SDSPI Init bus, slot %d, width %d", slot_num, this->slot_config_->width);
+  ESP_LOGI(TAG, "SDMMC Init bus, slot %d, width %d", slot_num, this->slot_config_->width);
   this->host_config_->slot = slot_num;
-
-  this->pdrv_ = pdrv;
 
   //   Check for card and load host params
   //
+  bool ret = this->attach_card();
   if (!this->attach_card()) {
     // if (this->is_last_err(LC_ERR, ESP_ERR_TIMEOUT))
     //   return RET_STATUS_NOTCRITICAL;
-    if (IS_LAST_ERR(LC_ERR, ESP_ERR_TIMEOUT))
+    if (IS_LAST_ERR(LC_ERR, ESP_ERR_TIMEOUT)) {
       return RET_STATUS_NOTCRITICAL;
-  } else {
-    return RET_STATUS_FAIL;
+    } else {
+      return RET_STATUS_FAIL;
+    }
   }
-
+  ESP_LOGI(TAG, "SDMMC got card status %s", TRUEFALSE(ret));
   return RET_STATUS_OK;
 #else
   return RET_STATUS_FAIL;
@@ -283,8 +290,11 @@ uint8_t SdmmcIdfDriver::init_sdmmc(sdmmc_host_t *host_config) {
  *
  * @return sdmmc_host_t*
  */
-uint8_t SdmmcIdfDriver::init_sdspi(sdmmc_host_t *host_config) {
+uint8_t SdmmcIdfDriver::init_sdspi() {
+#if defined(USE_SDSPI_MODE)
+  ESP_LOGD(TAG, "Init SDSPI");
   this->connector_->begin();
+
   this->pdrv_ = sdspi_init(this->connector_);
   if (this->pdrv_ == 0xFF)
     return RET_STATUS_FAIL;
@@ -293,6 +303,7 @@ uint8_t SdmmcIdfDriver::init_sdspi(sdmmc_host_t *host_config) {
   if (res & STA_NOINIT) {
     return RET_STATUS_NOTCRITICAL;
   }
+#endif
   return RET_STATUS_OK;
 }
 
@@ -313,7 +324,7 @@ bool SdmmcIdfDriver::is_card() {
   if (this->bus_type_ == SD_MMC) {
     if ((this->fs_ != NULL) && (this->fs_->fs_type != 0)) {
       DSTATUS status = ff_disk_status(this->pdrv_);
-      ESP_LOGV(TAG, "FS is 0x%X", status);
+      ESP_LOGV(TAG, "Disk retstat 0x%X", status);
       if (status & STA_NOINIT) {
         ESP_LOGD(TAG, "Seems disk ejected");
         unmount();
@@ -324,6 +335,7 @@ bool SdmmcIdfDriver::is_card() {
   }
   //  For SDSPI
   else {
+#if defined(USE_SDSPI_MODE)
     if ((this->fs_ != NULL) && (this->fs_->fs_type != 0)) {
       connector_->beginTransaction();
       bool res = sdGetSectorsCount(this->pdrv_) != 0;
@@ -334,6 +346,7 @@ bool SdmmcIdfDriver::is_card() {
       }
     } else
       return attach_card();
+#endif
   }
   ESP_LOGD(TAG, "Check card OK");
   return true;
@@ -352,23 +365,24 @@ bool SdmmcIdfDriver::attach_card() {
   esp_err_t rc = ESP_OK;
   bool is_card = false;
 
+#if defined(USE_SDSPI_MODE)
+  if (this->bus_type_ == SD_SPI)
+    is_card = !(ff_sd_initialize(this->pdrv_) & STA_NOINIT);
+#endif
+
+#if defined(SOC_SDMMC_HOST_SUPPORTED) && defined(USE_SDMMC_MODE)
   if (this->bus_type_ == SD_MMC) {
     rc = sdmmc_card_init(this->host_config_, this->card_info_);
     is_card = rc == ESP_OK;
-  } else  //   SDSPI
-    is_card = !(ff_sd_initialize(this->pdrv_) & STA_NOINIT);
 
-  //  Process result
-  if (this->bus_type_ == SD_MMC) {
+    //  Process result
     if (is_card) {
       int freq, sl_width;
-#if defined(SOC_SDMMC_HOST_SUPPORTED)
       rc = sdmmc_host_get_real_freq(this->host_config_->slot, &freq);
       sl_width = sdmmc_host_get_slot_width(this->host_config_->slot);
-#else
-      freq = this->card_info_->real_freq_khz;
-      sl_width = this->card_info_->log_bus_width;
-#endif
+      // freq = this->card_info_->real_freq_khz;
+      // sl_width = this->card_info_->log_bus_width;
+
       ESP_LOGI(TAG, "Init SDCARD, slot %d, bus width %d bit, freq=%d khz", this->host_config_->slot, sl_width, freq);
 
     } else if (rc == ESP_ERR_TIMEOUT) {  // Timout. Lookslike no card in slot
@@ -379,8 +393,9 @@ bool SdmmcIdfDriver::attach_card() {
       is_card = false;
     }
   }
+#endif
 
-  ESP_LOGD(TAG, "Attach card. ret=%s", is_card ? "TRUE" : "FALSE");
+  ESP_LOGD(TAG, "Attach card. ret=%s", TRUEFALSE(is_card));
   return is_card;
 }
 
@@ -456,6 +471,7 @@ bool SdmmcIdfDriver::mount(std::string mountpoint, bool format) {
  * @return FATFS*
  */
 FATFS *SdmmcIdfDriver::mount_sdspi(uint8_t pdrv, std::string mountpoint, bool format) {
+#if defined(USE_SDAPI_MODE)
   FATFS *fs = NULL;
   mountpoint_ = mountpoint;
   fs = sdcard_mount(pdrv, mountpoint.c_str(), 5, format);
@@ -466,6 +482,9 @@ FATFS *SdmmcIdfDriver::mount_sdspi(uint8_t pdrv, std::string mountpoint, bool fo
     // _impl->mountpoint(NULL);
   }
   return fs;
+#else
+  return NULL;
+#endif
 }
 /***********************************************************************************
  *
@@ -493,9 +512,8 @@ FATFS *SdmmcIdfDriver::mount_sdmmc(uint8_t pdrv, std::string mountpoint, bool fo
   }
 
   ff_diskio_register_sdmmc(pdrv, this->card_info_);
-#if defined(USE_ESP_IDF) && defined(USE_ESP32_VARIANT_ESP32)
+
   ff_sdmmc_set_disk_status_check(pdrv, true);
-#endif
 
   char drv[3] = {(char) ('0' + pdrv), ':', 0};
   ESP_LOGD(TAG, "Disk registered. pdrv=%i, drv=%s, path=%s", pdrv, drv, mountpoint_.c_str());
@@ -605,7 +623,9 @@ void SdmmcIdfDriver::unmount_sdmmc(uint8_t pdrv, std::string mountpoint) {
  * @param mountpoint
  */
 void SdmmcIdfDriver::unmount_sdspi(uint8_t pdrv, std::string mountpoint) {
+#if defined(USE_SDSPI_MODE)
   sdcard_unmount(pdrv);
+#endif
   this->fs_ = NULL;
 }
 

@@ -89,10 +89,10 @@ class SdmmcIdfDriver : public DriverInterface {
   std::string mountpoint_;
 
   bool sdmmc_allocate();
-  bool sdspi_allocate();
+  // bool sdspi_allocate();
 
   uint8_t init_sdmmc(sdmmc_host_t *);
-  uint8_t init_sdspi(sdmmc_host_t *);
+  uint8_t init_sdspi();
   sdmmc_host_t *host_config_{nullptr};
   sdmmc_card_t *card_info_{nullptr};
 

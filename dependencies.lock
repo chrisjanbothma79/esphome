@@ -50,5 +50,5 @@ direct_dependencies:
 - esp32_camera
 - mdns
 manifest_hash: 9c12909b58c1a5a7c218938cab009ee00afa94c566341574b2ac82e07270451b
-target: esp32c3
+target: esp32s3
 version: 2.0.0

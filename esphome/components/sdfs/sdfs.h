@@ -41,6 +41,7 @@ enum SdConnType {
 };
 
 extern const char *fat_type2str[];
+extern const char *fs_err2str[];
 
 #ifdef USE_SDSPI_MODE
 extern const char *fs_err2str[];

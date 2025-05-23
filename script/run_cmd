@@ -89,6 +89,12 @@ case "$platform" in
     "esp32c3-idf" ) shift;
         PLATFORM_OPT="esp32-c3-idf"
         ;;
+    "esp32-idf" ) shift;
+        PLATFORM_OPT="esp32-idf"
+        ;;
+    "esp32s3-idf" ) shift;
+        PLATFORM_OPT="esp32-s3-idf"
+        ;;
     "*")
         PLATFORM_OPT=""
         ;;
