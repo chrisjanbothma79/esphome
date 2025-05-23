@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef USE_DISPLAY
+
 #include "camera.h"
 #include "esphome/components/display/display.h"
 
@@ -14,7 +16,7 @@ using overlay_display_writer_t = std::function<void(CameraOverlayDisplay &, Came
  */
 class CameraOverlayDisplay : public display::Display {
  public:
-  void setup() {
+  void setup() override {
     this->set_auto_clear(false);
     Camera::instance()->add_overlay_callback([this](const std::shared_ptr<camera::CameraImage> &image,
                                                     camera::CameraImageSpec spec,
@@ -23,10 +25,11 @@ class CameraOverlayDisplay : public display::Display {
       this->data_buffer_ = image->get_data_buffer();
       this->spec_ = spec;
       this->bpr_ = spec.bytes_per_row();
-      if (spec.format == camera::IMAGE_FORMAT_GRAYSCALE)
+      if (spec.format == camera::IMAGE_FORMAT_GRAYSCALE) {
         this->display_type_ = display::DISPLAY_TYPE_GRAYSCALE;
-      else
+      } else {
         this->display_type_ = display::DISPLAY_TYPE_COLOR;
+      }
 
       do_update_();
     });
@@ -72,3 +75,5 @@ class CameraOverlayDisplay : public display::Display {
 
 }  // namespace camera
 }  // namespace esphome
+
+#endif
