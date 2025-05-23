@@ -17,11 +17,11 @@ class S300Component : public PollingComponent, public i2c::I2CDevice {
   void update() override;
   float get_setup_priority() const override { return setup_priority::DATA; };
   void dump_config() override;
+  bool start_command(const uint8_t *command_byte);
 
   float read_co2_data();
 
  protected:
-  bool start_command(const uint8_t *command_byte);
   sensor::Sensor *co2_sensor_{nullptr};
 };
 

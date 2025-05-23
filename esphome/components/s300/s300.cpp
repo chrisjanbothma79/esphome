@@ -9,6 +9,9 @@ static const char *const TAG = "s300";
 static const uint8_t S300_START_TRANSMISSION[] = {0x62};
 static const uint8_t S300_COMMAND_READ_DATA[] = {0x52};
 
+// Time after writing command before reading i2c data (minimum is 10ms per S300 I2C programming guide)
+static const uint16_t S300_I2C_RESPONSE_WAIT_MS = 10;
+
 float S300Component::read_co2_data() {
   uint8_t i2c_out_data[7];
   if (this->read(i2c_out_data, 7) != i2c::ERROR_OK) {
@@ -37,9 +40,7 @@ void S300Component::update() {
   ESP_LOGV(TAG, "Update S300 CO2 Sensor");
 
   if (this->start_command(S300_COMMAND_READ_DATA)) {
-    // Wait before reading i2c data to give sensor time to process the command (minimum is 10ms per I2C programming
-    // guide)
-    this->set_timeout(20, [this]() {
+    this->set_timeout(S300_I2C_RESPONSE_WAIT_MS, [this]() {
       const float co2_val = this->read_co2_data();
       if (this->status_has_warning())
         return;
