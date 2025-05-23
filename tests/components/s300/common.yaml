@@ -8,4 +8,4 @@ sensor:
     co2:
       name: S300 CO2
     address: 0x31
-    update_interval: 30s
+    update_interval: 60s
