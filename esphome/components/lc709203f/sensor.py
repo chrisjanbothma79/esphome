@@ -86,12 +86,8 @@ async def to_code(config):
     if level_config := config.get(CONF_BATTERY_LEVEL):
         sens = await sensor.new_sensor(level_config)
         cg.add(var.set_battery_remaining_sensor(sens))
-    
+
     if temp_config := config.get(CONF_TEMPERATURE):
         sens = await sensor.new_sensor(temp_config)
         cg.add(var.set_temperature_sensor(sens))
-        cg.add(
-            var.set_thermistor_b_constant(
-                temp_config[CONF_B_CONSTANT]
-            )
-        )
+        cg.add(var.set_thermistor_b_constant(temp_config[CONF_B_CONSTANT]))

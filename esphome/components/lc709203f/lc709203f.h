@@ -7,12 +7,7 @@
 namespace esphome {
 namespace lc709203f {
 
-enum LC709203F_STATE {
-  STATE_INIT,
-  STATE_RSOC,
-  STATE_TEMP_SETUP,
-  STATE_NORMAL
-};
+enum LC709203F_STATE { STATE_INIT, STATE_RSOC, STATE_TEMP_SETUP, STATE_NORMAL };
 
 /// Enum listing allowable voltage settings for the LC709203F.
 enum LC709203FBatteryVoltage {
@@ -29,11 +24,11 @@ class Lc709203f : public sensor::Sensor, public PollingComponent, public i2c::I2
   void set_pack_size(uint16_t pack_size);
   void set_thermistor_b_constant(uint16_t b_constant);
   void set_pack_voltage(LC709203FBatteryVoltage pack_voltage);
-  void set_voltage_sensor(sensor::Sensor *voltage_sensor) { this->voltage_sensor_ = voltage_sensor; }
+  void set_voltage_sensor(sensor::Sensor *voltage_sensor) { voltage_sensor_ = voltage_sensor; }
   void set_battery_remaining_sensor(sensor::Sensor *battery_remaining_sensor) {
-    this->battery_remaining_sensor_ = battery_remaining_sensor;
+    battery_remaining_sensor_ = battery_remaining_sensor;
   }
-  void set_temperature_sensor(sensor::Sensor *temperature_sensor) { this->temperature_sensor_ = temperature_sensor; }
+  void set_temperature_sensor(sensor::Sensor *temperature_sensor) { temperature_sensor_ = temperature_sensor; }
 
  private:
   uint8_t get_register_(uint8_t register_to_read, uint16_t *register_value);
@@ -48,7 +43,6 @@ class Lc709203f : public sensor::Sensor, public PollingComponent, public i2c::I2
   uint16_t apa_;
   uint16_t b_constant_;
   LC709203F_STATE state_ = STATE_INIT;
-  //uint8_t state_ = LC709203F_STATE_INIT;
   uint16_t pack_voltage_;
 
   // A buffer to store error code messages. We put this here so as to not have to
