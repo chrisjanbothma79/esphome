@@ -40,7 +40,7 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   ///
   /// Once the configured settling time has elapsed, marks the sensor as settled,
   /// clears any warning status, and restarts the poller.
-  void start_settle_timeoout_();
+  void start_settle_timeout_();
 
   /// @brief Read sensor data from HX711.
   /// @param[out] result Pointer to store the read value.
