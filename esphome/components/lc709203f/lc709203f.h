@@ -45,9 +45,6 @@ class Lc709203f : public sensor::Sensor, public PollingComponent, public i2c::I2
   LC709203F_STATE state_ = STATE_INIT;
   uint16_t pack_voltage_;
 
-  // A buffer to store error code messages. We put this here so as to not have to
-  //  duplicate buffers in the different functions
-  char error_code_buffer_[50];
 };
 
 }  // namespace lc709203f
