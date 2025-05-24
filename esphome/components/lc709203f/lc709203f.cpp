@@ -81,14 +81,14 @@ void Lc709203f::update() {
     if (this->voltage_sensor_ != nullptr) {
       if (this->get_register_(LC709203F_CELL_VOLTAGE, &buffer) == i2c::NO_ERROR) {
         // Raw units are mV
-        this->voltage_sensor_->publish_state(static_cast<float>(buffer) / 1000.0);
+        this->voltage_sensor_->publish_state(static_cast<float>(buffer) / 1000.0f);
         this->status_clear_warning();
       }
     }
     if (this->battery_remaining_sensor_ != nullptr) {
       if (this->get_register_(LC709203F_ITE, &buffer) == i2c::NO_ERROR) {
         // Raw units are .1%
-        this->battery_remaining_sensor_->publish_state(static_cast<float>(buffer) / 10.0);
+        this->battery_remaining_sensor_->publish_state(static_cast<float>(buffer) / 10.0f);
         this->status_clear_warning();
       }
     }
@@ -98,7 +98,7 @@ void Lc709203f::update() {
       //  sets up the registers properly.
       if (this->get_register_(LC709203F_CELL_TEMPERATURE, &buffer) == i2c::NO_ERROR) {
         // Raw units are .1 K
-        this->temperature_sensor_->publish_state((static_cast<float>(buffer) / 10.0) - 273.15);
+        this->temperature_sensor_->publish_state((static_cast<float>(buffer) / 10.0f) - 273.15f);
         this->status_clear_warning();
       }
     }
