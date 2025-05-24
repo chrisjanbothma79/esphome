@@ -16,7 +16,7 @@ CODEOWNERS = ["@neffs", "@kbx81"]
 
 DOMAIN = "bme68x_bsec2"
 
-BSEC2_LIBRARY_VERSION = "v1.8.2610"
+BSEC2_LIBRARY_VERSION = "1.10.2610"
 
 CONF_ALGORITHM_OUTPUT = "algorithm_output"
 CONF_BME68X_BSEC2_ID = "bme68x_bsec2_id"
@@ -183,13 +183,13 @@ async def to_code_base(config):
         cg.add_library("SPI", None)
     cg.add_library(
         "BME68x Sensor library",
-        None,
-        "https://github.com/luar123/Bosch-BME68x-Library",
+        "1.3.40408",
+        "https://github.com/boschsensortec/Bosch-BME68x-Library",
     )
     cg.add_library(
         "BSEC2 Software Library",
         None,
-        "https://github.com/luar123/Bosch-BSEC2-Library",
+        f"https://github.com/boschsensortec/Bosch-BSEC2-Library.git#{BSEC2_LIBRARY_VERSION}",
     )
 
     cg.add_define("USE_BSEC2")
