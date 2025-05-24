@@ -22,6 +22,7 @@ void MAX31855Sensor::dump_config() {
   } else {
     ESP_LOGCONFIG(TAG, "  Reference temperature disabled.");
   }
+  ESP_LOGCONFIG(TAG, "  Faults ignored: %s", this->ignore_faults_ ? "YES" : "NO");
 }
 float MAX31855Sensor::get_setup_priority() const { return setup_priority::DATA; }
 void MAX31855Sensor::update() {
@@ -58,6 +59,14 @@ void MAX31855Sensor::update() {
     this->temperature_reference_->publish_state(t_ref);
   }
 
+  // Decode thermocouple temperature because it is usually valid even if there are faults
+  int16_t val = (mem & 0xFFFC0000) >> 18;
+  if (val & 0x2000) {
+    val |= 0xC000;  // Pad out 2's complement
+  }
+  const float t_sense = float(val) * 0.25f;
+  ESP_LOGD(TAG, "Got thermocouple temperature: %.2f°C", t_sense);
+
   // Check thermocouple faults
   if (mem & 0x00000001) {
     ESP_LOGW(TAG, "Thermocouple open circuit (not connected) fault from MAX31855 (0x%08" PRIX32 ")", mem);
@@ -65,34 +74,25 @@ void MAX31855Sensor::update() {
     this->status_set_warning();
     return;
   }
-  #ifdef DO_NOT_IGNORE_FAULTS
-  if (mem & 0x00000002) {
+  if (!ignore_faults_ && mem & 0x00000002) {
     ESP_LOGW(TAG, "Thermocouple short circuit to ground fault from MAX31855 (0x%08" PRIX32 ")", mem);
     this->publish_state(NAN);
     this->status_set_warning();
     return;
   }
-  if (mem & 0x00000004) {
+  if (!ignore_faults_ && mem & 0x00000004) {
     ESP_LOGW(TAG, "Thermocouple short circuit to VCC fault from MAX31855 (0x%08" PRIX32 ")", mem);
     this->publish_state(NAN);
     this->status_set_warning();
     return;
   }
-  if (mem & 0x00010000) {
+  if (!ignore_faults_ && mem & 0x00010000) {
     ESP_LOGW(TAG, "Got faulty reading from MAX31855 (0x%08" PRIX32 ")", mem);
     this->publish_state(NAN);
     this->status_set_warning();
     return;
   }
-  #endif
 
-  // Decode thermocouple temperature
-  int16_t val = (mem & 0xFFFC0000) >> 18;
-  if (val & 0x2000) {
-    val |= 0xC000;  // Pad out 2's complement
-  }
-  const float t_sense = float(val) * 0.25f;
-  ESP_LOGD(TAG, "Got thermocouple temperature: %.2f°C", t_sense);
   this->publish_state(t_sense);
   this->status_clear_warning();
 }

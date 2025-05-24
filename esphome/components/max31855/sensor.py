@@ -8,6 +8,8 @@ from esphome.const import (
     UNIT_CELSIUS,
 )
 
+CONF_IGNORE_FAULTS = "ignore_faults" 
+
 max31855_ns = cg.esphome_ns.namespace("max31855")
 MAX31855Sensor = max31855_ns.class_(
     "MAX31855Sensor", sensor.Sensor, cg.PollingComponent, spi.SPIDevice
@@ -32,6 +34,7 @@ CONFIG_SCHEMA = (
     )
     .extend(cv.polling_component_schema("60s"))
     .extend(spi.spi_device_schema())
+    .extend({cv.Optional(CONF_IGNORE_FAULTS, default=False): cv.boolean})
 )
 
 
@@ -42,3 +45,4 @@ async def to_code(config):
     if CONF_REFERENCE_TEMPERATURE in config:
         tc_ref = await sensor.new_sensor(config[CONF_REFERENCE_TEMPERATURE])
         cg.add(var.set_reference_sensor(tc_ref))
+    cg.add(var.set_ignore_faults(config[CONF_IGNORE_FAULTS]))
