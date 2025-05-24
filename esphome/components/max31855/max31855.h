@@ -22,7 +22,6 @@ class MAX31855Sensor : public sensor::Sensor,
 
   void set_ignore_faults(bool ignore) { this->ignore_faults_ = ignore; }
 
-
   void update() override;
 
  protected:

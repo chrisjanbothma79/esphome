@@ -8,7 +8,7 @@ from esphome.const import (
     UNIT_CELSIUS,
 )
 
-CONF_IGNORE_FAULTS = "ignore_faults" 
+CONF_IGNORE_FAULTS = "ignore_faults"
 
 max31855_ns = cg.esphome_ns.namespace("max31855")
 MAX31855Sensor = max31855_ns.class_(

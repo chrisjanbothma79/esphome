@@ -7,7 +7,6 @@ namespace max31855 {
 
 static const char *const TAG = "max31855";
 
-
 void MAX31855Sensor::setup() {
   ESP_LOGCONFIG(TAG, "Setting up MAX31855Sensor '%s'...", this->name_.c_str());
   this->spi_setup();
