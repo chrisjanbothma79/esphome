@@ -192,10 +192,12 @@ uint8_t Lc709203f::get_register_(uint8_t register_to_read, uint16_t *register_va
     return_code = this->read_register(register_to_read, &read_buffer[3], 3, false);
     if (return_code != i2c::NO_ERROR) {
       // Error on the i2c bus
-      this->status_set_warning(str_sprintf("Error code %d when reading from register 0x%02X", return_code, register_to_read).c_str());
+      this->status_set_warning(
+          str_sprintf("Error code %d when reading from register 0x%02X", return_code, register_to_read).c_str());
     } else if (this->crc8_(read_buffer, 5) != read_buffer[5]) {
       // I2C indicated OK, but the CRC of the data does not matcth.
-      this->status_set_warning(str_sprintf("CRC error reading from register 0x%02X", register_to_read).c_str());
+      this->status_set_warning(
+          str_sprintf("CRC error reading from register 0x%02X", register_to_read).c_str());
     } else {
       *register_value = ((uint16_t) read_buffer[4] << 8) | (uint16_t) read_buffer[3];
       return i2c::NO_ERROR;

@@ -44,7 +44,6 @@ class Lc709203f : public sensor::Sensor, public PollingComponent, public i2c::I2
   uint16_t b_constant_;
   LC709203FState state_ = STATE_INIT;
   uint16_t pack_voltage_;
-
 };
 
 }  // namespace lc709203f
