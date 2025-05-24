@@ -52,7 +52,9 @@ void HX711Sensor::power_up() {
   // After a reset or power-down event, input selection is default to Channel A with a gain of 128.
   this->last_gain_ = HX711Gain::HX711_GAIN_128;
 
-  ESP_LOGD(TAG, "Setting gain to x%u", hx711_gain_to_linear_gain(this->gain_));
+  if (this->gain_ != this->last_gain_) {
+    ESP_LOGD(TAG, "Setting gain to x%u", hx711_gain_to_linear_gain(this->gain_));
+  }
 
   this->set_retry("gain_set", 100, 10, [this](const uint8_t remaining_attempts) {
     // Wait for HX711 to be ready
@@ -82,11 +84,11 @@ bool HX711Sensor::is_powered_down() const {
 
 void HX711Sensor::power_down(const bool stop_poller) {
   if (this->is_powered_down()) {
-    ESP_LOGW(TAG, "HX711 is already powered down.");
+    ESP_LOGW(TAG, "Already powered down.");
     return;
   }
 
-  ESP_LOGI(TAG, "Powering down HX711.");
+  ESP_LOGI(TAG, "Powering down.");
   this->cancel_timeout("settling");
   this->cancel_retry("gain_set");
   if (stop_poller) {
@@ -106,39 +108,13 @@ void HX711Sensor::start_settle_timeout_() {
     this->status_clear_warning();
 
     ESP_LOGD(TAG, "HX711 ADC settled.");
-
-    if (this->update_channel_b_after_settling_ && this->channel_b_sensor_ != nullptr) {
-      this->update_channel_b_after_settling_ = false;
-      this->gain_ = this->gain_before_channel_b_update_;
-
-      this->set_retry("ch_b", 100, 10, [this](const uint8_t remaining_attempts) {
-        // Wait for HX711 to be ready
-        if (!this->dout_pin_->digital_read()) {
-          ESP_LOGD(TAG, "Reading Channel B data");
-          // Read the sensor and Restore the gain (throws not ready error)
-          uint32_t result;
-          if (this->read_sensor_(&result, true)) {
-            int32_t value = static_cast<int32_t>(result);
-            ESP_LOGD(TAG, "'%s': Got Channel B value %" PRId32, this->channel_b_sensor_->get_name().c_str(), value);
-            this->channel_b_sensor_->publish_state(value);
-          }
-          return RetryResult::DONE;
-        }
-
-        if (remaining_attempts == 0) {
-          this->mark_failed("failed to read channel B");
-        }
-
-        return RetryResult::RETRY;
-      });
-    } else {
-      this->start_poller();
-    }
+    this->start_poller();
   });
 }
 
 void HX711Sensor::set_new_gain(HX711Gain gain) {
-  ESP_LOGD(TAG, "Gain %s set to x%u", this->gain_ == gain ? "is already" : "will be", hx711_gain_to_linear_gain(gain));
+  const char *gain_operation_str = this->gain_ == gain ? "is already" : "will be";
+  ESP_LOGD(TAG, "Gain %s set to x%u", gain_operation_str, hx711_gain_to_linear_gain(gain));
   this->set_gain(gain);
 }
 
@@ -150,24 +126,24 @@ void HX711Sensor::dump_config() {
   ESP_LOGCONFIG(TAG, "  Last gain: x%u", hx711_gain_to_linear_gain(this->last_gain_));
   ESP_LOGCONFIG(TAG, "  Settling time: %u ms", this->settling_time_ms_);
   ESP_LOGCONFIG(TAG, "  Power-down after reading: %s", YESNO(this->power_down_after_reading_));
-  LOG_SENSOR("  ", "Channel B", this->channel_b_sensor_);
   LOG_UPDATE_INTERVAL(this);
 }
-float HX711Sensor::get_setup_priority() const { return setup_priority::DATA; }
+
 void HX711Sensor::update() {
   if (this->is_powered_down()) {
     if (!this->power_down_after_reading_) {
-      ESP_LOGW(TAG, "HX711 is powered down, skipping update.");
+      ESP_LOGW(TAG, "HX711 is powered down");
       return;
     }
 
     ESP_LOGV(TAG, "Powering up HX711 before reading.");
-    this->stop_poller();  // Poller will be restarted after settling
+    this->stop_poller();  // Poller will be restarted after power-on settling
     this->power_up();
     return;
   }
 
   if (this->gain_ != this->last_gain_) {
+    ESP_LOGV(TAG, "Setting gain before reading");
     this->stop_poller();
     // Force a read to set the gain
     this->read_sensor_(nullptr, true);
@@ -175,46 +151,27 @@ void HX711Sensor::update() {
   }
 
   if (!this->is_settled()) {
-    ESP_LOGW(TAG, "HX711 not settled, skipping update.");
+    ESP_LOGW(TAG, "HX711 not settled yet.");
     this->status_set_warning("not settled");
     return;
   }
 
-  // Check if current gain is set to channel B
-  bool publish_channel_b_state = this->last_gain_ == HX711Gain::HX711_GAIN_32;
-
-  // If current gain is set to channel A and there is a channel B sensor, set the gain to channel B after current
-  // reading
-  if (this->channel_b_sensor_ != nullptr && !publish_channel_b_state) {
-    ESP_LOGD(TAG, "Setting gain for channel B after current reading");
-    this->gain_before_channel_b_update_ = this->gain_;
-    this->gain_ = HX711Gain::HX711_GAIN_32;
-    this->update_channel_b_after_settling_ = true;
-  }
-
   // Read the sensor
   uint32_t result;
-  if (!this->read_sensor_(&result)) {
-    // Restore the gain in case of an error
-    if (!publish_channel_b_state) {
-      this->gain_ = this->gain_before_channel_b_update_;
-    }
-    return;
+  if (this->read_sensor_(&result)) {
+    int32_t value = static_cast<int32_t>(result);
+    ESP_LOGD(TAG, "'%s': Got value %" PRId32, this->name_.c_str(), value);
+    this->publish_state(value);
   }
 
-  int32_t value = static_cast<int32_t>(result);
-  ESP_LOGD(TAG, "'%s': Got value %" PRId32, this->name_.c_str(), value);
-  this->publish_state(value);
-
-  // If current gain was set to 32, also publish the channel B value
-  if (this->channel_b_sensor_ != nullptr && publish_channel_b_state) {
-    ESP_LOGD(TAG, "'%s': Also got Channel B value %" PRId32, this->channel_b_sensor_->get_name().c_str(), value);
-    this->channel_b_sensor_->publish_state(value);
+  if (this->power_down_after_reading_) {
+    // Power down but don't stop the poller
+    this->power_down(false);
   }
 }
 bool HX711Sensor::read_sensor_(uint32_t *result, const bool force) {
   if (this->is_powered_down()) {
-    ESP_LOGE(TAG, "HX711 is powered down, cannot read.");
+    ESP_LOGE(TAG, "HX711 is powered down");
     return false;
   }
 
@@ -263,12 +220,6 @@ bool HX711Sensor::read_sensor_(uint32_t *result, const bool force) {
     if (!this->power_down_after_reading_ || force) {
       this->start_settle_timeout_();
     }
-  }
-
-  // HX711 will be powered down after reading only if reading is not forced
-  if (this->power_down_after_reading_ && !force) {
-    // Don't stop the poller here
-    this->power_down(false);
   }
 
   if (!final_dout) {

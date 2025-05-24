@@ -24,12 +24,11 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   void set_power_down_after_reading(bool power_down_after_reading) {
     this->power_down_after_reading_ = power_down_after_reading;
   }
-  void set_channel_b_sensor(sensor::Sensor *channel_b_sensor) { this->channel_b_sensor_ = channel_b_sensor; }
 
   void call_setup() override { this->setup(); };
   void setup() override;
   void dump_config() override;
-  float get_setup_priority() const override;
+  float get_setup_priority() const override { return setup_priority::DATA; };
   void update() override;
   void on_safe_shutdown() override { this->power_down(); };
   void on_shutdown() override { this->power_down_internal_(); };
@@ -103,9 +102,6 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// @brief Flag to indicate whether to power down the sensor after reading.
   bool power_down_after_reading_;
 
-  /// @brief Channel B sensor
-  sensor::Sensor *channel_b_sensor_{nullptr};
-
   GPIOPin *dout_pin_;
   GPIOPin *sck_pin_;
   /// Gain to set after new measurement.
@@ -114,11 +110,6 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   ///
   /// After a reset or power-down event, input selection defaults to Channel A with a gain of 128.
   HX711Gain last_gain_{HX711_GAIN_128};
-
-  /// @brief The global gain that was set before the channel B sensor update
-  HX711Gain gain_before_channel_b_update_{HX711_GAIN_128};
-  /// @brief Flag to indicate whether to update the channel B sensor after settling
-  bool update_channel_b_after_settling_{false};
 };
 
 template<typename... Ts> class HX711SensorActionBase : public Action<Ts...> {
