@@ -10,7 +10,6 @@ namespace cm1106 {
 
 enum CM1106ABCLogic { CM1106_ABC_NONE = 0, CM1106_ABC_ENABLED, CM1106_ABC_DISABLED };
 
-
 class CM1106Component : public PollingComponent, public uart::UARTDevice {
  public:
   float get_setup_priority() const override { return esphome::setup_priority::DATA; }
@@ -26,7 +25,6 @@ class CM1106Component : public PollingComponent, public uart::UARTDevice {
   void set_co2_sensor(sensor::Sensor *co2_sensor) { this->co2_sensor_ = co2_sensor; }
   void set_abc_enabled(bool abc_enabled) { abc_boot_logic_ = abc_enabled ? CM1106_ABC_ENABLED : CM1106_ABC_DISABLED; }
 
-
  protected:
   sensor::Sensor *co2_sensor_{nullptr};
 
@@ -35,7 +33,7 @@ class CM1106Component : public PollingComponent, public uart::UARTDevice {
   CM1106ABCLogic abc_boot_logic_{CM1106_ABC_NONE};
 
  private:
-  void send_abc_command(uint8_t flag);
+  void send_abc_command_(uint8_t flag);
 };
 
 template<typename... Ts> class CM1106CalibrateZeroAction : public Action<Ts...> {

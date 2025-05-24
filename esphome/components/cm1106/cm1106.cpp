@@ -13,10 +13,12 @@ static const uint8_t C_M1106_CMD_SET_CO2_CALIB_RESPONSE[4] = {0x16, 0x01, 0x03, 
 static const uint8_t C_M1106_CMD_SET_ABC_STATUS[10] = {0x11, 0x07, 0x10, 0x64, 0x00, 0x0F, 0x01, 0x90, 0x64, 0x00};
 static const uint8_t C_M1106_CMD_SET_ABC_STATUS_RESPONSE[4] = {0x16, 0x01, 0x10, 0xD9};
 
+static const uint8_t CM1106_ABC_FLAG_ENABLE = 0x0;
+static const uint8_t CM1106_ABC_FLAG_DISABLE = 0x2;
 
 uint8_t cm1106_checksum(const uint8_t *response, size_t len) {
   uint8_t crc = 0;
-  for (uint8_t i = 0; i < len - 1; i++) {
+  for (size_t i = 0; i < len - 1; i++) {
     crc -= response[i];
   }
   return crc;
@@ -99,7 +101,7 @@ void CM1106Component::calibrate_zero(uint16_t ppm) {
   ESP_LOGD(TAG, "CM1106 Successfully calibrated sensor to %uppm", ppm);
 }
 
-void CM1106Component::send_abc_command(uint8_t flag) {
+void CM1106Component::send_abc_command_(uint8_t flag) {
   uint8_t cmd[10];
   memcpy(cmd, C_M1106_CMD_SET_ABC_STATUS, sizeof(cmd));
   cmd[4] = flag;
@@ -125,12 +127,12 @@ void CM1106Component::send_abc_command(uint8_t flag) {
 
 void CM1106Component::abc_enable() {
   ESP_LOGD(TAG, "CM1106 Enabling automatic baseline calibration");
-  this->send_abc_command(0x0);
+  this->send_abc_command_(CM1106_ABC_FLAG_ENABLE);
 }
 
 void CM1106Component::abc_disable() {
   ESP_LOGD(TAG, "CM1106 Disabling automatic baseline calibration");
-  this->send_abc_command(0x2);
+  this->send_abc_command_(CM1106_ABC_FLAG_DISABLE);
 }
 
 bool CM1106Component::cm1106_write_command_(const uint8_t *command, size_t command_len, uint8_t *response,
