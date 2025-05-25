@@ -31,6 +31,7 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   void set_channel_b_sensor(sensor::Sensor *channel_b_sensor) { this->channel_b_sensor_ = channel_b_sensor; }
 #endif
 
+  /// @brief Overriden to prevent automatic poller start
   void call_setup() override { this->setup(); };
   void setup() override;
   void loop() override;
@@ -44,71 +45,107 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   ///
   /// This function is called by set gain automation. It serves as a helper function for logging
   ///
+  /// @note Gain will not be applied right away, it's applied during normal component operation if needed
+  ///
   /// @param[in] gain New gain setting
   void set_new_gain(HX711Gain gain);
 
-  /// @brief Powers up the HX711 sensor if it is currently powered down.
+  /// @brief Powers up the HX711 sensor and optionally starts the polling process.
   ///
-  /// Restores power to the HX711 and reinitializes the input channel and gain settings.
-  /// After power-up, the HX711 defaults to Channel A with a gain of 128. If that is the desired
-  /// configuration, the settling timeout is started immediately. Otherwise, a dummy read is performed
-  /// (without publishing) to set the configured gain and trigger the settling process.
+  /// This function checks if the HX711 sensor is currently powered down. If it is, it powers
+  /// up the sensor (Channel A, gain 128 is the default setting in HX711 as per datasheet),
+  /// If the desired gain is different from the default, a log message is generated.
+  /// It also prepares for the power-up sequence and optionally starts the poller if it was previously stopped.
   ///
-  /// If the sensor is already powered up, a warning is logged and no further action is taken.
-  /// UPDATE COMMENT
+  /// @param[in] should_start_poller A boolean indicating whether to start the polling process after powering up.
+  /// @return `true` if the sensor was successfully powered up, `false` if it was already powered up.
   bool power_up(bool should_start_poller = false);
-  /// @brief Powers down the HX711 sensor if it is currently powered up.
+
+  /// @brief Powers down the HX711 sensor and optionally stops the polling process.
   ///
-  /// This function cancels any active settling timeout and stops the polling process
-  /// before initiating the HX711 power-down sequence. A delay of 60 microseconds is introduced
-  /// after pulling the clock pin high, as required by the HX711 datasheet.
+  /// This function powers down the HX711 sensor if it is not already powered down.
+  /// If the sensor is already powered down but automatic power-down after reading was enabled,
+  /// it disables wakeup behavior. It also cancels any active timeouts related to settling or
+  /// measurement readiness. If requested, it stops the update poller.
   ///
-  /// If the sensor is already powered down, a warning is logged and no action is taken.
-  ///
-  /// @param[in] stop_poller Whether to stop the polling process. Defaults to true.
-  /// UPDATE COMMENT
+  /// @param[in] stop_poller A boolean indicating whether to stop the polling process during power down.
+  /// @return `true` if the sensor was successfully powered down or already in a managed power-down state,
+  ///         `false` if the sensor was already powered down and no further action was needed.
   bool power_down(bool stop_poller = true);
 
   /// @brief Returns whether the HX711 ADC has reached a stable state.
   /// @return True if the HX711 ADC has reached a stable state, false otherwise.
   bool is_settled() const { return this->settled_; }
+
+  /// @brief Returns whether the poller is stopped.
+  /// @return True if the polling interval is stopped, false otherwise.
   bool is_poller_stopped() const { return this->poller_stopped_; }
+
   /// @brief Returns whether the HX711 ADC is powered down (PD_SCK pin is high).
   /// @return True if the HX711 ADC is powered down, false otherwise.
   bool is_powered_down() const;
+
   /// @brief Returns whether the HX711 ADC measurement is ready to be read. (DOUT pin is low).
   /// @return True if the HX711 ADC conversion is done, false otherwise.
   bool is_measurement_ready();
 
  protected:
+  /// @brief Logs error, powers down the HX711 and marks component as failed.
+  /// @param[in] message Pointer to C-style null terminated string error message.
   void mark_failed_internal_(const char *message);
-  // returns true if timeout is started, false if its already running
-  bool start_measurement_ready_timeout_();
-  void update_internal_();
 
-  /// @brief Starts the settling timeout sequence for the HX711 sensor.
+  /// @brief Starts the measurement-ready timeout timer for the HX711 sensor.
   ///
-  /// Stops the poller and resets the settled state, then initiates a timeout
-  /// to allow the HX711 to stabilize after power-up, reset, or gain/channel changes.
+  /// This function sets a timeout to wait for the HX711 sensor's data output (DOUT) pin to indicate
+  /// that a measurement is ready. If the timeout expires before the sensor signals readiness,
+  /// the sensor is powered down and marked as failed with an appropriate error message.
+  /// This prevents the system from hanging indefinitely in case of sensor failure or disconnection.
   ///
-  /// Once the configured settling time has elapsed, marks the sensor as settled,
-  /// clears any warning status, and restarts the poller.
+  /// @warning is_measurement_ready() must be called to check sensor's data output and stop timeout.
+  ///
+  /// @return `true` if the timeout was successfully started, `false` if it was already running.
+  bool start_measurement_ready_timeout_();
+
+  /// @brief Starts the settling timeout for the HX711 ADC after power-up.
+  ///
+  /// This function begins a timeout to allow the HX711 ADC to settle after being powered up or
+  /// after gain change.
+  /// During this period, the sensor is considered not yet ready to produce accurate measurements.
+  /// Once the timeout completes:
+  /// - The sensor is marked as settled,
+  /// - Any warning status is cleared,
+  /// - And if polling was deferred until after settling, the poller is started.
   void start_settle_timeout_();
 
-  /// @brief Power down the HX711 sensor by setting the PD_SCK pin low.
+  /// @brief Powers down the HX711 sensor by setting the PD_SCK pin low and resets settled state.
   void power_down_internal_();
-  /// @brief Power up the HX711 sensor by setting the PD_SCK pin high.
+  /// @brief Powers up the HX711 sensor by setting the PD_SCK pin high and resets settled state.
   void power_up_internal_();
 
-  /// @brief Read sensor data from HX711.
-  /// @param[out] result Pointer to store the read value.
-  /// @param[in] start_settle_timeout If true calls start_settle_timeout_() after gain change.
-  /// @param[in] force Force reading even if settling time has not elapsed. start_settle_timeout_() will also be called.
-  /// @return True if data was successfully read, false otherwise.
+  /// @brief Reads raw data from the HX711 sensor, handling gain cycling and optional settling.
+  ///
+  /// This function performs a raw 24-bit data read from the HX711 sensor using bit-banging,
+  /// and cycles the clock pin to set the desired gain for the next measurement. It validates
+  /// the sensor's readiness, power state, and settling status before proceeding with the read.
+  ///
+  /// If the gain setting has changed or a forced read is requested, the sensor will be marked as
+  /// unsettled and a new settling timeout can optionally be started.
+  ///
+  /// @warning Settling timeout will not be started if function returns `false`.
+  ///
+  /// @param[out] result Pointer to a `uint32_t` where the read value will be stored. Can be `nullptr`
+  ///                    if the caller doesn't need the raw result.
+  /// @param[in] start_settle_timeout If `true`, triggers a settling timeout if conditions require it
+  ///                             (e.g., gain changed or forced read).
+  /// @param[in] force If `true`,forces a read and gain set, starts settling timeout.
+  ///
+  /// @return `true` if the read was successful and the sensor is in a valid state,
+  ///         `false` if any preconditions (e.g., power state, readiness, or settling) were not met
+  ///         or if the data read indicated a potential fault (e.g., DOUT not high after read).
   bool read_sensor_(uint32_t *result, bool start_settle_timeout, bool force = false);
 
 #ifdef USE_HX711_CHANNEL_B_SENSOR
-  /// @brief Logs the value for channel B sensor and publishes it.
+  /// @brief Logs the value for Channel B sensor and publishes it.
   ///
   /// Helper function to reduce flash usage.
   ///
@@ -125,14 +162,18 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   ///       after the start (400ms at 10 Hz) are usually containing errors and must be discarded.
   uint16_t settling_time_ms_;
 
-
+  /// @brief Timeout in milliseconds to wait before marking component as failed.
   uint16_t measurement_ready_timeout_ms_;
 
+  /// @brief Flag to indicate wether to start the poller after settling.
   bool should_start_poller_{false};
+
+  /// @brief Flag to indicate wheter the poller is stopped. Used to prevent polling interval restart.
   bool poller_stopped_{true};
 
   /// @brief Flag to indicate whether the ADC has reached a stable state.
   bool settled_{false};
+
   /// @brief Flag to indicate whether to power down the sensor after reading.
   bool power_down_after_reading_;
 
@@ -140,13 +181,18 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   ///
   /// Gets set in update(), reset in loop()
   bool update_in_progress_{false};
+
   /// @brief Flag to indicate whether the power up process is not complete yet.
   ///
   /// Gets set in power_up(), reset in loop().
   bool power_up_sequence_running_{false};
-  /// @brief Flag to indicate whether the timeout for conversion complete is running.
+
+  /// @brief Indicates whether the measurement-ready timeout is currently active.
   ///
-  /// Gets set when timeout is set, reset in loop()
+  /// This flag is set to `true` when `start_measurement_ready_timeout_()` initiates the timeout
+  /// waiting for the HX711's DOUT pin to signal readiness. It is reset to `false` when the timeout
+  /// expires or is explicitly cleared in the processing loop. Used to prevent timeout
+  /// from restarting.
   bool measurement_ready_timeout_running_{false};
 
 #ifdef USE_HX711_CHANNEL_B_SENSOR
@@ -186,7 +232,7 @@ template<typename... Ts> class PowerUpAction : public HX711SensorActionBase<Ts..
     if (!this->parent_->is_ready()) {
       return;
     }
-    
+
     // Start poller after settling
     this->parent_->power_up(true);
   }
