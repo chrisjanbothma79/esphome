@@ -95,7 +95,7 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// @param[in] message Pointer to C-style null terminated string error message.
   void mark_failed_internal_(const char *message);
 
-  /// @brief Starts the measurement-ready timeout timer for the HX711 sensor.
+  /// @brief Starts the measurement-ready timeout for the HX711 sensor.
   ///
   /// This function sets a timeout to wait for the HX711 sensor's data output (DOUT) pin to indicate
   /// that a measurement is ready. If the timeout expires before the sensor signals readiness,
