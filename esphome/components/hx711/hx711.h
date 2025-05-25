@@ -9,10 +9,11 @@
 namespace esphome {
 namespace hx711 {
 
+/// @brief Available HX711 gain settings.
 enum HX711Gain : uint8_t {
-  HX711_GAIN_128 = 1,
-  HX711_GAIN_32 = 2,
-  HX711_GAIN_64 = 3,
+  HX711_GAIN_128 = 1,  ///< 128x gain, channel A (Default after power on)
+  HX711_GAIN_32 = 2,   ///< 32x gain, channel B
+  HX711_GAIN_64 = 3,   ///< 64x gain, channel A
 };
 
 class HX711Sensor : public sensor::Sensor, public PollingComponent {
@@ -101,7 +102,7 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// the sensor is powered down and marked as failed with an appropriate error message.
   /// This prevents the system from hanging indefinitely in case of sensor failure or disconnection.
   ///
-  /// @warning is_measurement_ready() must be called to check sensor's data output and stop timeout.
+  /// @warning `is_measurement_ready()` must be called to check sensor's data output and stop timeout.
   ///
   /// @return `true` if the timeout was successfully started, `false` if it was already running.
   bool start_measurement_ready_timeout_();
@@ -165,6 +166,9 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// @brief Timeout in milliseconds to wait before marking component as failed.
   uint16_t measurement_ready_timeout_ms_;
 
+  /// @brief Flag to indicate whether to power down the sensor after reading.
+  bool power_down_after_reading_;
+
   /// @brief Flag to indicate wether to start the poller after settling.
   bool should_start_poller_{false};
 
@@ -173,9 +177,6 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
 
   /// @brief Flag to indicate whether the ADC has reached a stable state.
   bool settled_{false};
-
-  /// @brief Flag to indicate whether to power down the sensor after reading.
-  bool power_down_after_reading_;
 
   /// @brief Flag to indicate whether the update process is not complete yet.
   ///
@@ -198,13 +199,12 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
 #ifdef USE_HX711_CHANNEL_B_SENSOR
   /// @brief Flag to indicate whether the channel B reading is pending.
   ///
-  /// If this is true, that means that poller is stopped and that settling timeout
-  /// should read the channel b sensor and publish its value before starting the poller again.
+  /// If this is true, that means that in next loop() we need to read channel B.
   ///
-  /// @note This flag must be reset before starting the poller.
+  /// @note This flag must be reset after reading channel b in loop().
   bool channel_b_sensor_read_pending_{false};
 
-  /// @brief Sensor for additional channel B readings
+  /// @brief Sensor for additional simultaneous channel B readings
   sensor::Sensor *channel_b_sensor_{nullptr};
 #endif
 

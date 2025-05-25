@@ -32,141 +32,11 @@ void HX711Sensor::setup() {
   this->power_up(true);
 }
 
-bool HX711Sensor::is_measurement_ready() {
-  bool ready = !this->dout_pin_->digital_read();
-  if (ready) {
-    this->cancel_timeout(TIMEOUT_NAME_MEASUREMENT_READY);
-    this->measurement_ready_timeout_running_ = false;
-  }
-  return ready;
-}
-
-void HX711Sensor::power_down_internal_() {
-  // When PD_SCK pin changes from low to high and stays at high for longer than 60µs, HX711 enters power down mode.
-  this->sck_pin_->digital_write(true);
-  this->settled_ = false;
-}
-
-void HX711Sensor::power_up_internal_() {
-  // When PD_SCK pin changes from high to low and stays at low, HX711 exits power down mode.
-  this->sck_pin_->digital_write(false);
-  this->settled_ = false;
-}
-
-bool HX711Sensor::power_up(const bool should_start_poller) {
-  if (!this->is_powered_down()) {
-    ESP_LOGW(TAG, "HX711 is already powered up.");
-    return false;
-  }
-
-  ESP_LOGI(TAG, "Powering up HX711.");
-  this->power_up_internal_();
-
-  // After a reset or power-down event, input selection is default to Channel A with a gain of 128.
-  this->last_gain_ = HX711Gain::HX711_GAIN_128;
-
-  if (this->gain_ != this->last_gain_) {
-    ESP_LOGD(TAG, "Setting gain to x%u", hx711_gain_to_linear_gain(this->gain_));
-  }
-
-  this->power_up_sequence_running_ = true;
-
-  if (this->poller_stopped_) {
-    this->should_start_poller_ = should_start_poller;
-  }
-  return true;
-}
-
-bool HX711Sensor::is_powered_down() const {
-  // PD_SCK pin is always left low after reading data.
-  return this->sck_pin_->digital_read();
-}
-
-bool HX711Sensor::power_down(const bool stop_poller) {
-  if (this->is_powered_down()) {
-    if (!this->power_down_after_reading_) {
-      ESP_LOGW(TAG, "HX711 already powered down.");
-      return false;
-    }
-
-    ESP_LOGD(TAG, "Disabling wakeup from automatic power-down");
-  }
-
-  ESP_LOGI(TAG, "Powering down and canceling timeouts");
-  this->cancel_timeout(TIMEOUT_NAME_SETTLING);
-  this->cancel_timeout(TIMEOUT_NAME_MEASUREMENT_READY);
-  if (stop_poller) {
-    ESP_LOGW(TAG, "Stopping update poller");
-    this->stop_poller();
-    this->poller_stopped_ = true;
-  }
-  this->power_down_internal_();
-  delayMicroseconds(60);
-  return true;
-}
-
-void HX711Sensor::start_settle_timeout_() {
-  this->settled_ = false;
-  ESP_LOGV(TAG, "Waiting %u ms for HX711 ADC to settle", this->settling_time_ms_);
-  this->set_timeout(TIMEOUT_NAME_SETTLING, this->settling_time_ms_, [this]() {
-    this->settled_ = true;
-    this->status_clear_warning();
-    ESP_LOGD(TAG, "HX711 ADC settled.");
-    if (this->should_start_poller_) {
-      this->should_start_poller_ = false;
-      this->poller_stopped_ = false;
-      ESP_LOGD(TAG, "Starting poller");
-      this->start_poller();
-    }
-  });
-}
-
-void HX711Sensor::set_new_gain(HX711Gain gain) {
-  const char *gain_operation_str = this->gain_ == gain ? "is already" : "will be";
-  ESP_LOGD(TAG, "Gain %s set to x%u", gain_operation_str, hx711_gain_to_linear_gain(gain));
-  this->set_gain(gain);
-}
-
-void HX711Sensor::dump_config() {
-  LOG_SENSOR("", "HX711", this);
-  LOG_PIN("  DOUT Pin: ", this->dout_pin_);
-  LOG_PIN("  SCK Pin: ", this->sck_pin_);
-  ESP_LOGCONFIG(TAG, "  Gain: x%u", hx711_gain_to_linear_gain(this->gain_));
-  ESP_LOGCONFIG(TAG, "  Last gain: x%u", hx711_gain_to_linear_gain(this->last_gain_));
-  ESP_LOGCONFIG(TAG, "  Settling time: %u ms", this->settling_time_ms_);
-  ESP_LOGCONFIG(TAG, "  Measurement timeout: %u ms", this->measurement_ready_timeout_ms_);
-  ESP_LOGCONFIG(TAG, "  Power-down after reading: %s", YESNO(this->power_down_after_reading_));
-#if defined(USE_HX711_CHANNEL_B_SENSOR)
-  LOG_SENSOR("  ", "Channel B Sensor", this->channel_b_sensor_);
-#endif
-  LOG_UPDATE_INTERVAL(this);
-}
-
-bool HX711Sensor::start_measurement_ready_timeout_() {
-  if (!this->measurement_ready_timeout_running_) {
-    this->measurement_ready_timeout_running_ = true;
-    this->set_timeout(TIMEOUT_NAME_MEASUREMENT_READY, this->measurement_ready_timeout_ms_, [this]() {
-      this->measurement_ready_timeout_running_ = false;
-      this->power_down_internal_();
-      this->mark_failed("dout timeout - hx711 not ready");
-    });
-    return true;
-  }
-
-  return false;
-}
-
-void HX711Sensor::mark_failed_internal_(const char *message) {
-  ESP_LOGE(TAG, "Critical error, powering down");
-  this->power_down_internal_();
-  this->mark_failed(message);
-}
-
 void HX711Sensor::loop() {
   if (this->power_up_sequence_running_) {
     // Wait for HX711 to be ready
-    this->start_measurement_ready_timeout_();
     if (!this->is_measurement_ready()) {
+      this->start_measurement_ready_timeout_();
       return;
     }
 
@@ -192,8 +62,8 @@ void HX711Sensor::loop() {
     return;
   }
 
-  this->start_measurement_ready_timeout_();
   if (!this->is_measurement_ready()) {
+    this->start_measurement_ready_timeout_();
     return;
   }
 
@@ -225,11 +95,11 @@ void HX711Sensor::loop() {
 #endif
 
   bool start_settle_timeout_after_read = !this->power_down_after_reading_;
-  HX711Gain gain_for_current_reading = this->last_gain_;
+  HX711Gain expected_gain_for_current_reading = this->last_gain_;
 
 #if defined(USE_HX711_CHANNEL_B_SENSOR)
-  bool current_measurement_is_channel_b = this->last_gain_ == HX711Gain::HX711_GAIN_32;
-  HX711Gain gain_to_restore = this->last_gain_;
+  bool current_measurement_is_channel_b = expected_gain_for_current_reading == HX711Gain::HX711_GAIN_32;
+  HX711Gain &gain_to_restore = expected_gain_for_current_reading;
 
   // If needed, after reading the value, set the channel to channel B
   if (!current_measurement_is_channel_b) {
@@ -257,7 +127,7 @@ void HX711Sensor::loop() {
 
     int32_t value = static_cast<int32_t>(result);
     ESP_LOGD(TAG, "'%s': Got value %" PRId32 " (gain x%u)", this->name_.c_str(), value,
-             hx711_gain_to_linear_gain(gain_for_current_reading));
+             hx711_gain_to_linear_gain(expected_gain_for_current_reading));
     this->publish_state(value);
 
 #if defined(USE_HX711_CHANNEL_B_SENSOR)
@@ -304,6 +174,137 @@ void HX711Sensor::update() {
   ESP_LOGD(TAG, "Updating from loop");
 
   this->update_in_progress_ = true;
+}
+
+void HX711Sensor::dump_config() {
+  LOG_SENSOR("", "HX711", this);
+  LOG_PIN("  DOUT Pin: ", this->dout_pin_);
+  LOG_PIN("  SCK Pin: ", this->sck_pin_);
+  ESP_LOGCONFIG(TAG, "  Gain: x%u", hx711_gain_to_linear_gain(this->gain_));
+  ESP_LOGCONFIG(TAG, "  Last gain: x%u", hx711_gain_to_linear_gain(this->last_gain_));
+  ESP_LOGCONFIG(TAG, "  Settling time: %u ms", this->settling_time_ms_);
+  ESP_LOGCONFIG(TAG, "  Measurement timeout: %u ms", this->measurement_ready_timeout_ms_);
+  ESP_LOGCONFIG(TAG, "  Power-down after reading: %s", YESNO(this->power_down_after_reading_));
+#if defined(USE_HX711_CHANNEL_B_SENSOR)
+  LOG_SENSOR("  ", "Channel B Sensor", this->channel_b_sensor_);
+#endif
+  LOG_UPDATE_INTERVAL(this);
+}
+
+bool HX711Sensor::is_measurement_ready() {
+  bool ready = !this->dout_pin_->digital_read();
+  if (ready) {
+    this->cancel_timeout(TIMEOUT_NAME_MEASUREMENT_READY);
+    this->measurement_ready_timeout_running_ = false;
+  }
+  return ready;
+}
+
+bool HX711Sensor::is_powered_down() const {
+  // PD_SCK pin is always left low after reading data.
+  return this->sck_pin_->digital_read();
+}
+
+bool HX711Sensor::power_up(const bool should_start_poller) {
+  if (!this->is_powered_down()) {
+    ESP_LOGW(TAG, "HX711 is already powered up.");
+    return false;
+  }
+
+  ESP_LOGI(TAG, "Powering up HX711.");
+  this->power_up_internal_();
+
+  // After a reset or power-down event, input selection is default to Channel A with a gain of 128.
+  this->last_gain_ = HX711Gain::HX711_GAIN_128;
+
+  if (this->gain_ != this->last_gain_) {
+    ESP_LOGD(TAG, "Setting gain to x%u", hx711_gain_to_linear_gain(this->gain_));
+  }
+
+  this->power_up_sequence_running_ = true;
+
+  if (this->poller_stopped_) {
+    this->should_start_poller_ = should_start_poller;
+  }
+
+  return true;
+}
+
+bool HX711Sensor::power_down(const bool stop_poller) {
+  if (this->is_powered_down()) {
+    if (!this->power_down_after_reading_) {
+      ESP_LOGW(TAG, "HX711 already powered down.");
+      return false;
+    }
+
+    ESP_LOGD(TAG, "Disabling wakeup from automatic power-down");
+  }
+
+  ESP_LOGI(TAG, "Powering down and canceling timeouts");
+  this->cancel_timeout(TIMEOUT_NAME_SETTLING);
+  this->cancel_timeout(TIMEOUT_NAME_MEASUREMENT_READY);
+  if (stop_poller) {
+    ESP_LOGW(TAG, "Stopping update poller");
+    this->stop_poller();
+    this->poller_stopped_ = true;
+  }
+  this->power_down_internal_();
+  delayMicroseconds(60);
+  return true;
+}
+
+void HX711Sensor::set_new_gain(HX711Gain gain) {
+  const char *gain_operation_str = this->gain_ == gain ? "is already" : "will be";
+  ESP_LOGD(TAG, "Gain %s set to x%u", gain_operation_str, hx711_gain_to_linear_gain(gain));
+  this->set_gain(gain);
+}
+
+void HX711Sensor::start_settle_timeout_() {
+  this->settled_ = false;
+  ESP_LOGV(TAG, "Waiting %u ms for HX711 ADC to settle", this->settling_time_ms_);
+  this->set_timeout(TIMEOUT_NAME_SETTLING, this->settling_time_ms_, [this]() {
+    this->settled_ = true;
+    this->status_clear_warning();
+    ESP_LOGD(TAG, "HX711 ADC settled.");
+    if (this->should_start_poller_) {
+      this->should_start_poller_ = false;
+      this->poller_stopped_ = false;
+      ESP_LOGD(TAG, "Starting poller");
+      this->start_poller();
+    }
+  });
+}
+
+bool HX711Sensor::start_measurement_ready_timeout_() {
+  if (!this->measurement_ready_timeout_running_) {
+    this->measurement_ready_timeout_running_ = true;
+    this->set_timeout(TIMEOUT_NAME_MEASUREMENT_READY, this->measurement_ready_timeout_ms_, [this]() {
+      this->measurement_ready_timeout_running_ = false;
+      this->power_down_internal_();
+      this->mark_failed("dout timeout - hx711 not ready");
+    });
+    return true;
+  }
+
+  return false;
+}
+
+void HX711Sensor::mark_failed_internal_(const char *message) {
+  ESP_LOGE(TAG, "Critical error, powering down");
+  this->power_down_internal_();
+  this->mark_failed(message);
+}
+
+void HX711Sensor::power_down_internal_() {
+  // When PD_SCK pin changes from low to high and stays at high for longer than 60µs, HX711 enters power down mode.
+  this->sck_pin_->digital_write(true);
+  this->settled_ = false;
+}
+
+void HX711Sensor::power_up_internal_() {
+  // When PD_SCK pin changes from high to low and stays at low, HX711 exits power down mode.
+  this->sck_pin_->digital_write(false);
+  this->settled_ = false;
 }
 
 #if defined(USE_HX711_CHANNEL_B_SENSOR)
