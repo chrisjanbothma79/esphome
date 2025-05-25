@@ -84,7 +84,7 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
 
   /// @brief Returns whether the HX711 ADC is powered down (PD_SCK pin is high).
   /// @return True if the HX711 ADC is powered down, false otherwise.
-  bool is_powered_down() const;
+  bool is_powered_down();
 
   /// @brief Returns whether the HX711 ADC measurement is ready to be read. (DOUT pin is low).
   /// @return True if the HX711 ADC conversion is done, false otherwise.

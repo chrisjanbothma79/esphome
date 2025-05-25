@@ -54,11 +54,7 @@ void HX711Sensor::loop() {
     return;
   }
 
-  if (!this->update_in_progress_ || this->is_powered_down()) {
-    return;
-  }
-
-  if (!this->is_settled()) {
+  if (!this->update_in_progress_ || this->is_powered_down() || !this->is_settled()) {
     return;
   }
 
@@ -131,15 +127,15 @@ void HX711Sensor::loop() {
     this->publish_state(value);
 
 #if defined(USE_HX711_CHANNEL_B_SENSOR)
-    if (current_measurement_is_channel_b) {
-      // Since current measurement is from channel b, publish it.
-      this->log_and_publish_channel_b_value_(value);
-    } else {
+    if (!current_measurement_is_channel_b) {
       this->gain_ = gain_to_restore;
 
       // early return to prevent update_in_progress_ from being set to false
       return;
     }
+
+    // Since current measurement is from channel b, publish it.
+    this->log_and_publish_channel_b_value_(value);
 #endif
   }
 
@@ -183,8 +179,8 @@ void HX711Sensor::dump_config() {
   ESP_LOGCONFIG(TAG, "  Gain: x%u", hx711_gain_to_linear_gain(this->gain_));
   ESP_LOGCONFIG(TAG, "  Last gain: x%u", hx711_gain_to_linear_gain(this->last_gain_));
   ESP_LOGCONFIG(TAG, "  Settling time: %u ms", this->settling_time_ms_);
-  ESP_LOGCONFIG(TAG, "  Measurement timeout: %u ms", this->measurement_ready_timeout_ms_);
   ESP_LOGCONFIG(TAG, "  Power-down after reading: %s", YESNO(this->power_down_after_reading_));
+  ESP_LOGCONFIG(TAG, "  Measurement ready timeout: %u ms", this->measurement_ready_timeout_ms_);
 #if defined(USE_HX711_CHANNEL_B_SENSOR)
   LOG_SENSOR("  ", "Channel B Sensor", this->channel_b_sensor_);
 #endif
@@ -200,7 +196,7 @@ bool HX711Sensor::is_measurement_ready() {
   return ready;
 }
 
-bool HX711Sensor::is_powered_down() const {
+bool HX711Sensor::is_powered_down() {
   // PD_SCK pin is always left low after reading data.
   return this->sck_pin_->digital_read();
 }
