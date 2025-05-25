@@ -1,15 +1,15 @@
 #include "debug_component.h"
 
 #ifdef USE_ESP32
-#include <esp_sleep.h>
 #include "esphome/core/application.h"
-#include "esphome/core/hal.h"
 #include "esphome/core/log.h"
+#include "esphome/core/hal.h"
+#include <esp_sleep.h>
 
-#include <esp_chip_info.h>
 #include <esp_heap_caps.h>
-#include <esp_partition.h>
 #include <esp_system.h>
+#include <esp_chip_info.h>
+#include <esp_partition.h>
 
 #include <map>
 
