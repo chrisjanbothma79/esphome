@@ -1,15 +1,12 @@
 #pragma once
 
+#include "esphome/components/es8388/es8388.h"
 #include "esphome/components/select/select.h"
-#include "esphome/components/es8388/es8388_hub.h"
 
 namespace esphome {
 namespace es8388 {
 
-class ADCInputMicSelect : public select::Select, public Parented<ES8388Hub> {
- public:
-  ADCInputMicSelect() = default;
-
+class ADCInputMicSelect : public select::Select, public Parented<ES8388> {
  protected:
   void control(const std::string &value) override;
 };

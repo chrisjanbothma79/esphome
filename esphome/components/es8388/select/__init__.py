@@ -3,7 +3,7 @@ from esphome.components import select
 import esphome.config_validation as cv
 from esphome.const import ENTITY_CATEGORY_CONFIG, ICON_CHIP  # noqa: F401
 
-from .. import CONF_ES8388_ID, ES8388_BASE_SCHEMA, ES8388Hub, es8388_ns
+from ..audio_dac import CONF_ES8388_ID, ES8388, es8388_ns
 
 CONF_DAC_OUTPUT = "dac_output"
 CONF_ADC_INPUT_MIC = "adc_input_mic"
@@ -13,7 +13,7 @@ ADCInputMicSelect = es8388_ns.class_("ADCInputMicSelect", select.Select)
 
 CONFIG_SCHEMA = cv.All(
     {
-        cv.GenerateID(CONF_ES8388_ID): cv.use_id(ES8388Hub),
+        cv.GenerateID(CONF_ES8388_ID): cv.use_id(ES8388),
         cv.Optional(CONF_DAC_OUTPUT): select.select_schema(
             DacOutputSelect,
             entity_category=ENTITY_CATEGORY_CONFIG,
@@ -23,25 +23,25 @@ CONFIG_SCHEMA = cv.All(
             ADCInputMicSelect,
             entity_category=ENTITY_CATEGORY_CONFIG,
             icon=ICON_CHIP,
-        ).extend(ES8388_BASE_SCHEMA),
+        ),
     }
 )
 
 
 async def to_code(config):
-    es8388_hub = await cg.get_variable(config[CONF_ES8388_ID])
+    parent = await cg.get_variable(config[CONF_ES8388_ID])
     if dac_output_config := config.get(CONF_DAC_OUTPUT):
         s = await select.new_select(
             dac_output_config,
             options=["LINE1", "LINE2", "BOTH"],
         )
-        await cg.register_parented(s, config[CONF_ES8388_ID])
-        cg.add(es8388_hub.set_dac_output_select(s))
+        await cg.register_parented(s, parent)
+        cg.add(parent.set_dac_output_select(s))
 
     if adc_input_mic_config := config.get(CONF_ADC_INPUT_MIC):
         s = await select.new_select(
             adc_input_mic_config,
             options=["LINE1", "LINE2", "DIFFERENCE"],
         )
-        await cg.register_parented(s, config[CONF_ES8388_ID])
-        cg.add(es8388_hub.set_adc_input_mic_select(s))
+        await cg.register_parented(s, parent)
+        cg.add(parent.set_adc_input_mic_select(s))
