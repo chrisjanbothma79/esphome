@@ -103,8 +103,8 @@ void ADCSensor::setup() {
   }
 
   // Only initialize native calibration if we're using native mode
-  if (this->calibration_mode_ == CalibrationMode::NATIVE || 
-      this->calibration_mode_ == CalibrationMode::AUTO) {
+  if (this->calibration_mode_ == NATIVE || 
+      this->calibration_mode_ == AUTO) {
     // Initialize ADC calibration if not already done
     if (this->calibration_handle_ == nullptr) {
       adc_cali_handle_t handle = nullptr;
@@ -152,7 +152,7 @@ void ADCSensor::setup() {
     }
   }
 #ifdef HAS_ESP_ADC_CAL
-  else if (this->calibration_mode_ == CalibrationMode::LEGACY) {
+  else if (this->calibration_mode_ == LEGACY) {
     // Initialize legacy calibration characteristics
     adc_unit_t unit_id = this->is_adc1_ ? ADC_UNIT_1 : ADC_UNIT_2;
     
@@ -184,17 +184,17 @@ void ADCSensor::dump_config() {
   
   // Add calibration mode info
   switch (this->calibration_mode_) {
-    case CalibrationMode::AUTO:
+    case AUTO:
       ESP_LOGCONFIG(TAG, "  Calibration Mode: Auto");
       break;
-    case CalibrationMode::LEGACY:
+    case LEGACY:
 #ifdef HAS_ESP_ADC_CAL
       ESP_LOGCONFIG(TAG, "  Calibration Mode: Legacy");
 #else
       ESP_LOGCONFIG(TAG, "  Calibration Mode: Legacy (not available, using Native)");
 #endif  // HAS_ESP_ADC_CAL
       break;
-    case CalibrationMode::NATIVE:
+    case NATIVE:
       ESP_LOGCONFIG(TAG, "  Calibration Mode: Native");
       break;
   }
@@ -226,7 +226,7 @@ void ADCSensor::dump_config() {
 
 float ADCSensor::sample() {
 #ifdef HAS_ESP_ADC_CAL
-  if (this->calibration_mode_ == CalibrationMode::LEGACY) {
+  if (this->calibration_mode_ == LEGACY) {
     return this->legacy_sample();
   }
 #endif  // HAS_ESP_ADC_CAL

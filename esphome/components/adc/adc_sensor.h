@@ -91,7 +91,7 @@ static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_12;
 static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_11;
 #endif  // ESP_IDF_VERSION check for ADC_ATTEN_DB_12_COMPAT
 
-enum class CalibrationMode {
+enum CalibrationMode {
   AUTO = 0,
   LEGACY = 1,
   NATIVE = 2
@@ -323,7 +323,7 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
 #endif  // ESP_IDF_VERSION_MAJOR >= 5
 #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 
-  CalibrationMode calibration_mode_{CalibrationMode::AUTO};
+  CalibrationMode calibration_mode_{AUTO};
   
 #endif  // USE_ESP32
 

@@ -51,6 +51,11 @@ CALIBRATION_MODES = {
     "native": CalibrationMode.NATIVE,  # Use ESP-IDF 5.0+ native calibration
 }
 
+# Also export the enum values to the namespace for backward compatibility
+AUTO = CalibrationMode.AUTO
+LEGACY = CalibrationMode.LEGACY
+NATIVE = CalibrationMode.NATIVE
+
 adc1_channel_t = cg.global_ns.enum("adc1_channel_t")
 adc2_channel_t = cg.global_ns.enum("adc2_channel_t")
 

@@ -62,13 +62,13 @@ void ADCSensor::dump_config() {
   
   // Add calibration mode info
   switch (this->calibration_mode_) {
-    case CalibrationMode::AUTO:
+    case AUTO:
       ESP_LOGCONFIG(TAG, "  Calibration Mode: Legacy (only option on ESP-IDF 4.x)");
       break;
-    case CalibrationMode::LEGACY:
+    case LEGACY:
       ESP_LOGCONFIG(TAG, "  Calibration Mode: Legacy");
       break;
-    case CalibrationMode::NATIVE:
+    case NATIVE:
       ESP_LOGCONFIG(TAG, "  Calibration Mode: Legacy (Native not available on ESP-IDF 4.x)");
       break;
   }
