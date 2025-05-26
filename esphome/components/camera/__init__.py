@@ -131,7 +131,7 @@ CAMERA_SCHEMA = (
             cv.Optional(CONF_IDLE_UPDATE_INTERVAL, default=0): cv.int_range(0),
             cv.Optional(CONF_MAX_UPDATE_INTERVAL, default=100): cv.int_range(0),
             cv.Optional(CONF_ENCODER_BUFFER_SIZE, default=4096): cv.int_range(1024),
-            cv.Optional(CONF_ENCODER_BUFFER_GROW, default=0): cv.int_range(0),
+            cv.Optional(CONF_ENCODER_BUFFER_GROW, default=4096): cv.int_range(0),
             cv.Optional(CONF_ENCODER_MCU_COUNT, default=0): cv.int_range(0),
         }
     )
@@ -206,12 +206,10 @@ async def setup_camera_automation(var, config):
 
 async def setup_encoder(var, config):
     cg.add_build_flag("-DUSE_CAMERA_SW_JPEG_ENCODER")
-    # Remove the following line when the PR is merged
+    # Add jpeg encoder from bitbank2/JPEGENC
     cg.add_library(
-        "esphome-integration-pr", None, "https://github.com/DT-art1/JPEGENC#1c6073c"
+        "esphome-consolidate", None, "https://github.com/DT-art1/JPEGENC#eb8e6e7"
     )
-    # and add the following one with the correct version instead.
-    # cg.add_library("bitbank2/JPEGENC", "1.2.0")
 
     encoder = cg.new_Pvariable(config[CONF_ENCODER_ID])
     cg.add(encoder.set_quality(config[CONF_ENCODER_QUALITY]))

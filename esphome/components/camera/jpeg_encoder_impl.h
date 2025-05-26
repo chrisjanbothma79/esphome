@@ -24,7 +24,6 @@ class JPEGEncoderImpl : public Encoder {
   int to_internal(EncoderQuality quality);
   int to_internal(ImageFormat format);
   int to_internal(EncoderSubsampling subsampling);
-  void rgb_to_bgr_inplace(CameraImage *pixels);
 
   int quality_{0};
   int subsampling_{0};

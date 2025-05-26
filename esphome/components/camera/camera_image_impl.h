@@ -9,12 +9,11 @@ namespace camera {
  */
 class CameraImageImpl : public CameraImage {
  public:
-  // Allocates buffer with max_data_length uint8 data to store JPEG data.
-  CameraImageImpl(size_t max_data_length);
   // Specifies the filter used in add_image_callback.
   void set_requesters(uint8_t requesters);
-  // Sets the length of encoded JPEG data. Can be used to increase the buffer.
-  void set_data_length(size_t data_length);
+  // Sets the length of the image or jpeg buffer data. Can be used to increase the buffer.
+  // returns false if allocation failed.
+  bool set_data_length(size_t data_length);
   // Returns the allocated size of the buffer.
   size_t get_max_data_length();
 
@@ -23,8 +22,13 @@ class CameraImageImpl : public CameraImage {
   size_t get_data_length() override;
   bool was_requested_by(CameraRequester requester) const override;
   // -------------------------------
+  ~CameraImageImpl();
+
  protected:
-  std::vector<uint8_t, RAMAllocator<uint8_t>> data_;
+  RAMAllocator<uint8_t> allocator_;
+  uint8_t *data_{nullptr};
+  size_t capacity_{0};
+  size_t length_{0};
   uint8_t requesters_{0};
 };
 

@@ -24,15 +24,6 @@ size_t JPEGEncoderImpl::encode_pixels(CameraImageSpec *spec, CameraImage *pixels
       return 0;
 
     this->incremental_ = this->mcu_count_ > 0;
-
-    // Encoder uses internally BGR for 888 and RGB for 565
-    switch (spec->format) {
-      case IMAGE_FORMAT_RGB888:
-        rgb_to_bgr_inplace(pixels);
-        break;
-      default:
-        break;
-    }
   }
 
   int bpr = spec->bytes_per_row();
@@ -115,16 +106,6 @@ int JPEGEncoderImpl::to_internal(EncoderSubsampling sampling) {
   }
 
   return JPEGE_SUBSAMPLE_444;
-}
-
-void JPEGEncoderImpl::rgb_to_bgr_inplace(CameraImage *pixels) {
-  uint8_t *buffer = pixels->get_data_buffer();
-  size_t length = pixels->get_data_length();
-  for (size_t i = 0; i + 2 < length; i += 3) {
-    uint8_t t = buffer[i];
-    buffer[i] = buffer[i + 2];
-    buffer[i + 2] = t;
-  }
 }
 
 }  // namespace camera

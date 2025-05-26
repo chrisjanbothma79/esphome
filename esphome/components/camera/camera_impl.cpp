@@ -54,9 +54,19 @@ void CameraImpl::stop_stream(CameraRequester requester) {
 }
 
 void CameraImpl::setup() {
-  this->pixels_ = std::make_shared<CameraImageImpl>(this->camera_image_spec_.bytes_per_image());
-  this->pixels_->set_data_length(this->camera_image_spec_.bytes_per_image());
-  this->jpeg_ = std::make_shared<CameraImageImpl>(this->encoder_buffer_size_);
+  this->pixels_ = std::make_shared<CameraImageImpl>();
+  if (!this->pixels_->set_data_length(this->camera_image_spec_.bytes_per_image())) {
+    this->status_set_error("Failed to allocate memory for image buffer.");
+    this->mark_failed();
+    return;
+  }
+
+  this->jpeg_ = std::make_shared<CameraImageImpl>();
+  if (!this->jpeg_->set_data_length(this->encoder_buffer_size_)) {
+    this->status_set_error("Failed to allocate memory for encoder buffer.");
+    this->mark_failed();
+    return;
+  }
 }
 
 bool CameraImpl::camera_loop() {
@@ -64,8 +74,9 @@ bool CameraImpl::camera_loop() {
 
   if (state_ == CAMERA_STATE_INIT) {
     if (!this->pixels_ || !this->jpeg_) {
-      ESP_LOGE(TAG, "Missing setup() call detected. Are you overriding setup() without calling CameraImpl::setup() ?");
-      mark_failed();
+      this->status_set_error(
+          "Missing setup() call detected. Are you overriding setup() without calling CameraImpl::setup() ?");
+      this->mark_failed();
       return false;
     }
 
@@ -148,13 +159,18 @@ bool CameraImpl::camera_loop() {
         state_ = CAMERA_STATE_RATE_LIMITING;
       } break;
       case ENCODER_ERROR_OUT_OF_MEMORY: {
-        ESP_LOGE(TAG, "The encoder buffer is too small. The encoding failed. Buffer size: %u",
+        ESP_LOGW(TAG, "The encoder buffer is too small. The encoding failed. Buffer size: %u",
                  this->jpeg_->get_max_data_length());
         state_ = CAMERA_STATE_CLEAR_REQUEST;
         if (this->encoder_buffer_grow_ > 0) {
           size_t new_size = this->jpeg_->get_max_data_length() + this->encoder_buffer_grow_;
           ESP_LOGI(TAG, "Increasing encoder buffer size with %u bytes. Retry...", this->encoder_buffer_grow_);
-          this->jpeg_->set_data_length(new_size);
+          if (!this->jpeg_->set_data_length(new_size)) {
+            this->status_set_error("Failed to increase encoder buffer.");
+            this->mark_failed();
+            return false;
+          }
+
           // Retry encoding with more memory. Encoder resets itself in case of an error.
           state_ = CAMERA_STATE_ENCODING;
           return true;
