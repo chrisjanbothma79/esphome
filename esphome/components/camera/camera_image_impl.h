@@ -22,7 +22,7 @@ class CameraImageImpl : public CameraImage {
   size_t get_data_length() override;
   bool was_requested_by(CameraRequester requester) const override;
   // -------------------------------
-  ~CameraImageImpl();
+  ~CameraImageImpl() override;
 
  protected:
   RAMAllocator<uint8_t> allocator_;
