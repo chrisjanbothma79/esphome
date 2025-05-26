@@ -18,7 +18,7 @@
 namespace esphome {
 namespace wifi {
 
-static const char *const TAG = "wifi_pico_w";
+static const char *const TAG = "wifi_rp2040";
 
 #ifdef USE_RP2040_ESPHOST
 static bool s_sta_connecting = false;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
