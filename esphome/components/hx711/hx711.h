@@ -34,11 +34,17 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
 
   /// @brief Overriden to prevent automatic poller start
   void call_setup() override { this->setup(); };
+  /// @brief Setups pins and starts power up sequence
   void setup() override;
+  /// @brief Handles HX711 power-up and polling
   void loop() override;
+  /// @brief Initiates a sensor reading cycle if no update is in progress.
+  ///
+  /// Handles HX711 power-up if powered down, and resets gain if needed.
+  /// Logs warnings if update collisions or power issues are detected.
+  void update() override;
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
-  void update() override;
   void on_safe_shutdown() override { this->power_down(); }
   void on_shutdown() override { this->power_down_internal_(); }
 
@@ -56,7 +62,10 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// This function checks if the HX711 sensor is currently powered down. If it is, it powers
   /// up the sensor (Channel A, gain 128 is the default setting in HX711 as per datasheet),
   /// If the desired gain is different from the default, a log message is generated.
-  /// It also prepares for the power-up sequence and optionally starts the poller if it was previously stopped.
+  /// It also prepares for the power-up sequence and optionally sets the flag to
+  /// start the poller if it was previously stopped.
+  ///
+  /// @note Actual power-up sequence (like setting the gain and settling) is handled in the loop() function.
   ///
   /// @param[in] should_start_poller A boolean indicating whether to start the polling process after powering up.
   /// @return `true` if the sensor was successfully powered up, `false` if it was already powered up.
@@ -75,6 +84,13 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   bool power_down(bool stop_poller = true);
 
   /// @brief Returns whether the HX711 ADC has reached a stable state.
+  ///
+  /// Taken from the datasheet: "Settling time refers to the time from power up,
+  /// reset, input channel change and gain change to valid stable output data."
+  ///
+  /// @note Delta Sigma ADC conversion needs priming, and first four ADC readings
+  ///       after the start (400ms at 10 Hz) are usually containing errors and must be discarded.
+  ///
   /// @return True if the HX711 ADC has reached a stable state, false otherwise.
   bool is_settled() const { return this->settled_; }
 
@@ -102,7 +118,7 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// the sensor is powered down and marked as failed with an appropriate error message.
   /// This prevents the system from hanging indefinitely in case of sensor failure or disconnection.
   ///
-  /// @warning `is_measurement_ready()` must be called to check sensor's data output and stop timeout.
+  /// @warning `is_measurement_ready()` must be called to check sensor's data output and cancel timeout.
   ///
   /// @return `true` if the timeout was successfully started, `false` if it was already running.
   bool start_measurement_ready_timeout_();
@@ -155,12 +171,6 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
 #endif
 
   /// @brief Settling time in milliseconds.
-  ///
-  /// Taken from the datasheet: "Settling time refers to the time from power up,
-  /// reset, input channel change and gain change to valid stable output data."
-  ///
-  /// @note Delta Sigma ADC conversion needs priming, and first four ADC readings
-  ///       after the start (400ms at 10 Hz) are usually containing errors and must be discarded.
   uint16_t settling_time_ms_;
 
   /// @brief Timeout in milliseconds to wait before marking component as failed.
