@@ -20,12 +20,15 @@ import esphome.final_validate as fv
 
 from . import (
     ATTENUATION_MODES,
+    CALIBRATION_MODES,
     ESP32_VARIANT_ADC1_PIN_TO_CHANNEL,
     ESP32_VARIANT_ADC2_PIN_TO_CHANNEL,
     SAMPLING_MODES,
     adc_ns,
     validate_adc_pin,
 )
+
+CONF_CALIBRATION_MODE = "calibration_mode"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,6 +96,9 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(CONF_SAMPLES, default=1): cv.int_range(min=1, max=255),
             cv.Optional(CONF_SAMPLING_MODE, default="avg"): _sampling_mode,
+            cv.Optional(CONF_CALIBRATION_MODE, default="auto"): cv.All(
+                cv.only_on_esp32, cv.enum(CALIBRATION_MODES, lower=True)
+            ),
         }
     )
     .extend(cv.polling_component_schema("60s")),
@@ -126,6 +132,10 @@ async def to_code(config):
             cg.add(var.set_attenuation(attenuation))
 
     if CORE.is_esp32:
+        # Setup calibration mode
+        calibration_mode = config.get(CONF_CALIBRATION_MODE, "auto")
+        cg.add(var.set_calibration_mode(calibration_mode))
+        
         variant = get_esp32_variant()
         pin_num = config[CONF_PIN][CONF_NUMBER]
         if (

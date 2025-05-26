@@ -44,6 +44,13 @@ SAMPLING_MODES = {
     "max": sampling_mode.MAX,
 }
 
+CalibrationMode = adc_ns.enum("CalibrationMode")
+CALIBRATION_MODES = {
+    "auto": CalibrationMode.AUTO,      # Automatically choose based on ESP-IDF version
+    "legacy": CalibrationMode.LEGACY,  # Use pre-ESP-IDF 5.0 calibration
+    "native": CalibrationMode.NATIVE,  # Use ESP-IDF 5.0+ native calibration
+}
+
 adc1_channel_t = cg.global_ns.enum("adc1_channel_t")
 adc2_channel_t = cg.global_ns.enum("adc2_channel_t")
 
