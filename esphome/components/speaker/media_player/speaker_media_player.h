@@ -52,11 +52,11 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
   void set_buffer_size(size_t buffer_size) { this->buffer_size_ = buffer_size; }
   void set_task_stack_in_psram(bool task_stack_in_psram) { this->task_stack_in_psram_ = task_stack_in_psram; }
 
-  // Volume used for first boot when no volume had been previously saved
-  void set_volume_first_boot(float volume_first_boot) { this->volume_first_boot_ = volume_first_boot; }
-
   // Percentage to increase or decrease the volume for volume up or volume down commands
   void set_volume_increment(float volume_increment) { this->volume_increment_ = volume_increment; }
+
+  // Volume used initially on first boot when no volume had been previously saved
+  void set_volume_initial(float volume_initial) { this->volume_initial_ = volume_initial; }
 
   void set_volume_max(float volume_max) { this->volume_max_ = volume_max; }
   void set_volume_min(float volume_min) { this->volume_min_ = volume_min; }
@@ -128,11 +128,11 @@ class SpeakerMediaPlayer : public Component, public media_player::MediaPlayer {
   bool is_paused_{false};
   bool is_muted_{false};
 
-  // The initial volume used by Setup for first boot or when not previous volume was saved
-  float volume_first_boot_;
-
   // The amount to change the volume on volume up/down commands
   float volume_increment_;
+
+   // The initial volume used by Setup for first boot or when not previous volume was saved
+  float volume_initial_;
 
   float volume_max_;
   float volume_min_;
