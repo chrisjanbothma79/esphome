@@ -54,6 +54,8 @@ class DemoAlarmControlPanel : public AlarmControlPanel, public Component {
       case ACP_STATE_PENDING:
         this->publish_state(ACP_STATE_PENDING);
         return;
+      default:
+        break;
     }
   }
   DemoAlarmControlPanelType type_{};

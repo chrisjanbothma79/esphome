@@ -34,7 +34,7 @@ class DemoValve : public valve::Valve {
         if (this->position == valve::VALVE_OPEN) {
           this->publish_state(valve::VALVE_CLOSED);
         } else {
-          this->publish_state(valve::VALVE_CLOSED);
+          this->publish_state(valve::VALVE_OPEN);
         }
       }
       return;
