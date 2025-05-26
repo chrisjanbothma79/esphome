@@ -358,6 +358,10 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
   if (rx_buf_len_ < msg_size) {
     // more data to read
     uint16_t to_read = msg_size - rx_buf_len_;
+    if (to_read == 0) {
+      // Nothing to read, this shouldn't happen but handle it safely
+      return APIError::OK;
+    }
     ssize_t received = this->socket_->read(&rx_buf_[rx_buf_len_], to_read);
     if (received == -1) {
       if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -932,6 +936,10 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
   if (rx_buf_len_ < rx_header_parsed_len_) {
     // more data to read
     uint16_t to_read = rx_header_parsed_len_ - rx_buf_len_;
+    if (to_read == 0) {
+      // Nothing to read, this shouldn't happen but handle it safely
+      return APIError::OK;
+    }
     ssize_t received = this->socket_->read(&rx_buf_[rx_buf_len_], to_read);
     if (received == -1) {
       if (errno == EWOULDBLOCK || errno == EAGAIN) {
