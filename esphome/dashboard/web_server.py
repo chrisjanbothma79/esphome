@@ -602,7 +602,7 @@ class DownloadListRequestHandler(BaseHandler):
         try:
             downloads_json = await loop.run_in_executor(None, self._get, configuration)
         except vol.Invalid as exc:
-            _LOGGER.error(exc)
+            _LOGGER.exception("Error while fetching downloads", exc_info=exc)
             self.send_error(404)
             return
         if downloads_json is None:
