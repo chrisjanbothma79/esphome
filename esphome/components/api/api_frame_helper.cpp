@@ -350,6 +350,16 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
     return APIError::BAD_HANDSHAKE_PACKET_LEN;
   }
 
+  // If msg_size is 0, we have an empty frame
+  if (msg_size == 0) {
+    // empty frame - consume and return
+    frame->msg = {};
+    rx_buf_ = {};
+    rx_buf_len_ = 0;
+    rx_header_buf_len_ = 0;
+    return APIError::OK;
+  }
+
   // reserve space for body
   if (rx_buf_.size() != msg_size) {
     rx_buf_.resize(msg_size);
@@ -361,6 +371,13 @@ APIError APINoiseFrameHelper::try_read_frame_(ParsedFrame *frame) {
     if (to_read == 0) {
       // Nothing to read, this shouldn't happen but handle it safely
       return APIError::OK;
+    }
+    // Ensure rx_buf_len_ is within bounds before accessing the buffer
+    if (rx_buf_len_ >= rx_buf_.size()) {
+      // Buffer position out of bounds, this shouldn't happen
+      state_ = State::FAILED;
+      HELPER_LOG("Buffer position %u out of bounds (size %zu)", rx_buf_len_, rx_buf_.size());
+      return APIError::BAD_STATE;
     }
     ssize_t received = this->socket_->read(&rx_buf_[rx_buf_len_], to_read);
     if (received == -1) {
@@ -928,6 +945,17 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
   }
   // header reading done
 
+  // If rx_header_parsed_len_ is 0, we have an empty frame
+  if (rx_header_parsed_len_ == 0) {
+    // empty frame - consume and return
+    frame->msg = {};
+    rx_buf_ = {};
+    rx_buf_len_ = 0;
+    rx_header_buf_pos_ = 0;
+    rx_header_parsed_ = false;
+    return APIError::OK;
+  }
+
   // reserve space for body
   if (rx_buf_.size() != rx_header_parsed_len_) {
     rx_buf_.resize(rx_header_parsed_len_);
@@ -939,6 +967,13 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
     if (to_read == 0) {
       // Nothing to read, this shouldn't happen but handle it safely
       return APIError::OK;
+    }
+    // Ensure rx_buf_len_ is within bounds before accessing the buffer
+    if (rx_buf_len_ >= rx_buf_.size()) {
+      // Buffer position out of bounds, this shouldn't happen
+      state_ = State::FAILED;
+      HELPER_LOG("Buffer position %u out of bounds (size %zu)", rx_buf_len_, rx_buf_.size());
+      return APIError::BAD_STATE;
     }
     ssize_t received = this->socket_->read(&rx_buf_[rx_buf_len_], to_read);
     if (received == -1) {
