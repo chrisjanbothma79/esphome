@@ -93,18 +93,13 @@ def get_config_schema(config):
     if not speeds:
         return cv.Invalid("PSRAM is not supported on this chip")
     modes = SPIRAM_MODES[variant]
-    return cv.All(
-        cv.Schema(
-            {
-                cv.GenerateID(): cv.declare_id(PsramComponent),
-                cv.Optional(CONF_MODE, default=modes[0]): cv.one_of(*modes, lower=True),
-                cv.Optional(CONF_ENABLE_ECC, default=False): cv.boolean,
-                cv.Optional(CONF_SPEED, default=speeds[0]): cv.one_of(
-                    *speeds, upper=True
-                ),
-            }
-        ),
-        validate_psram_mode,
+    return cv.Schema(
+        {
+            cv.GenerateID(): cv.declare_id(PsramComponent),
+            cv.Optional(CONF_MODE, default=modes[0]): cv.one_of(*modes, lower=True),
+            cv.Optional(CONF_ENABLE_ECC, default=False): cv.boolean,
+            cv.Optional(CONF_SPEED, default=speeds[0]): cv.one_of(*speeds, upper=True),
+        }
     )(config)
 
 
