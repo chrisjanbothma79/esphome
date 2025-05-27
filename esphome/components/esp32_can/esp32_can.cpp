@@ -7,7 +7,7 @@
 // WORKAROUND, because CAN_IO_UNUSED is just defined as (-1) in this version
 // of the framework which does not work with -fpermissive
 #undef CAN_IO_UNUSED
-#define CAN_IO_UNUSED ((gpio_num_t) -1)
+#define CAN_IO_UNUSED ((gpio_num_t) - 1)
 
 #ifdef ESP32_CAN_V2_SUPPORTED
 #define twai_driver_install(args...) twai_driver_install_v2(args, &this->twai_handle_)
@@ -76,7 +76,7 @@ static bool get_bitrate(canbus::CanSpeed bitrate, twai_timing_config_t *t_config
 
 bool ESP32Can::setup_internal() {
   twai_general_config_t g_config =
-      TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t) this->tx_, (gpio_num_t) this->rx_, TWAI_MODE_NORMAL);
+      TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t) this->tx_, (gpio_num_t) this->rx_, this->tx_mode_);
 #ifdef ESP32_CAN_V2_SUPPORTED
   static int controller_id = 0;
   g_config.controller_id = controller_id++;

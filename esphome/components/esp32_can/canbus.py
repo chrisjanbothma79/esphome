@@ -31,12 +31,14 @@ from esphome.const import (
 from . import (
     ESP32Can,
     esp32_can_ns,
+    TXMode,
 )
 
 CODEOWNERS = ["@Sympatron"]
 DEPENDENCIES = ["esp32"]
 
 CONF_TX_ENQUEUE_TIMEOUT = "tx_enqueue_timeout"
+CONF_TX_MODE = "tx_mode"
 CONF_USE_V2 = "use_v2"
 CONF_USE_V2_YES = "use_v2_yes"
 CONF_USE_V2_FIND_OUT = "use_v2_find_out"
@@ -80,11 +82,16 @@ CAN_SPEEDS = {
     VARIANT_ESP32H2: CAN_SPEEDS_ESP32_H2,
 }
 
+CAN_TX_MODE_NORMAL = "normal"
+CAN_TX_MODE_NO_ACK = "no_ack"
+CAN_TX_MODE_LISTEN_ONLY = "listen_only"
+
 
 def validate_bit_rate(value):
     variant = get_esp32_variant()
     if variant not in CAN_SPEEDS:
-        raise cv.Invalid(f"{variant} is not supported by component {esp32_can_ns}")
+        raise cv.Invalid(
+            f"{variant} is not supported by component {esp32_can_ns}")
     value = value.upper()
     if value not in CAN_SPEEDS[variant]:
         raise cv.Invalid(f"Bit rate {value} is not supported on {variant}")
@@ -100,6 +107,11 @@ CONFIG_SCHEMA = canbus.CANBUS_SCHEMA.extend(
         cv.Optional(CONF_RX_QUEUE_LEN): cv.uint32_t,
         cv.Optional(CONF_TX_QUEUE_LEN): cv.uint32_t,
         cv.Optional(CONF_TX_ENQUEUE_TIMEOUT): cv.positive_time_period_milliseconds,
+        cv.Optional(CONF_TX_MODE, CAN_TX_MODE_NORMAL): cv.enum({
+            CAN_TX_MODE_LISTEN_ONLY: TXMode.LISTEN_ONLY,
+            CAN_TX_MODE_NO_ACK: TXMode.NO_ACK,
+            CAN_TX_MODE_NORMAL: TXMode.NORMAL
+        }),
     }
 )
 
@@ -186,6 +198,8 @@ async def to_code(config):
     if CONF_TX_ENQUEUE_TIMEOUT in config:
         tx_enqueue_timeout_ms = config[CONF_TX_ENQUEUE_TIMEOUT].total_milliseconds
     else:
-        tx_enqueue_timeout_ms = get_default_tx_enqueue_timeout(config[CONF_BIT_RATE])
+        tx_enqueue_timeout_ms = get_default_tx_enqueue_timeout(
+            config[CONF_BIT_RATE])
 
     cg.add(var.set_tx_enqueue_timeout_ms(tx_enqueue_timeout_ms))
+    cg.add(var.set_tx_mode(config[CONF_TX_MODE]))

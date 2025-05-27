@@ -1,5 +1,6 @@
 #pragma once
 #include "esphome/core/defines.h"
+#include "hal/twai_types.h"
 #ifdef USE_ESP32
 
 #ifdef ESP32_CAN_V2_FIND_OUT
@@ -25,6 +26,14 @@
 namespace esphome {
 namespace esp32_can {
 
+enum class TXMode {
+  NORMAL = TWAI_MODE_NORMAL,
+  NO_ACK = TWAI_MODE_NO_ACK,
+  LISTEN_ONLY = TWAI_MODE_LISTEN_ONLY,
+};
+
+// using TXMode = twai_mode_t;
+
 class ESP32Can : public canbus::Canbus {
 #ifdef USE_SENSOR
   SUB_SENSOR(msgs_to_tx)
@@ -48,6 +57,7 @@ class ESP32Can : public canbus::Canbus {
   void set_tx_enqueue_timeout_ms(uint32_t tx_enqueue_timeout_ms) {
     this->tx_enqueue_timeout_ticks_ = pdMS_TO_TICKS(tx_enqueue_timeout_ms);
   }
+  void set_tx_mode(TXMode mode) { this->tx_mode_ = static_cast<twai_mode_t>(mode); }
   ESP32Can() {}
 
   void loop() override;
@@ -68,6 +78,7 @@ class ESP32Can : public canbus::Canbus {
 #endif
   twai_state_t twai_last_state_ = static_cast<twai_state_t>(-1);
   optional<twai_status_info_t> prev_status_;
+  twai_mode_t tx_mode_ = TWAI_MODE_NORMAL;
 };
 
 }  // namespace esp32_can
