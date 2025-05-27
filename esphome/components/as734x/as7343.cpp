@@ -4,52 +4,42 @@
 
 namespace esphome {
 namespace as734x {
+
 static const char *const TAG = "as734x.as7343";
 
-enum class AS7343Registers : uint8_t {
-  AUXID = 0x58,
-  REVID = 0x59,
-  ID = 0x5A,
-  CFG12 = 0x66,
-  ENABLE = 0x80,
-  ATIME = 0x81,
-  WTIME = 0x83,
-  SP_TH_L_LSB = 0x84,
-  SP_TH_L_MSB = 0x85,
-  SP_TH_H_LSB = 0x86,
-  SP_TH_H_MSB = 0x87,
-  STATUS = 0x93,
-  ASTATUS = 0x94,
-  DATA_O = 0x95,
-  STATUS2 = 0x90,
-  STATUS3 = 0x91,
-  STATUS5 = 0xBB,
-  STATUS4 = 0xBC,
-  CFG0 = 0xBF,
-  CFG1 = 0xC6,
-  CFG3 = 0xC7,
-  CFG6 = 0xF5,
-  CFG8 = 0xC9,
-  CFG9 = 0xCA,
-  CFG10 = 0x65,
-  PERS = 0xCF,
-  GPIO = 0x6B,
-  ASTEP_LSB = 0xD4,
-  ASTEP_MSB = 0xD5,
-  CFG20 = 0xD6,
-  LED = 0xCD,
-  AGC_GAIN_MAX = 0xD7,
-  AZ_CONFIG = 0xDE,
-  FD_TIME_1 = 0xE0,
-  FD_TIME_2 = 0xE2,
-  FD_CFG0 = 0xDF,
-  FD_STATUS = 0xE3,
-  INTENAB = 0xF9,
-  CONTROL = 0xFA,
-  FIFO_MAP = 0xFC,
-  FIFO_LVL = 0xFD,
-  FDATA_L = 0xFE,
-  FDATA_H = 0xFF,
+static constexpr uint8_t AS7343_CHIP_ID = 0b10000001;
+
+static constexpr uint8_t AS7343_AGC_GAIN_MAX = 0xD7;
+static constexpr uint8_t AS7343_ASTATUS = 0x94;
+static constexpr uint8_t AS7343_CFG0 = 0xBF;
+static constexpr uint8_t AS7343_CFG1 = 0xC6;
+static constexpr uint8_t AS7343_CFG10 = 0x65;
+static constexpr uint8_t AS7343_CFG20 = 0xD6;
+static constexpr uint8_t AS7343_CFG6 = 0xF5;
+static constexpr uint8_t AS7343_CFG8 = 0xC9;
+static constexpr uint8_t AS7343_CHAIN_CMD = 0xE4;
+static constexpr uint8_t AS7343_CHAIN_SMUX = 0xE7;
+static constexpr uint8_t AS7343_DATA_0 = 0x95;
+static constexpr uint8_t AS7343_FD_CFG0 = 0xDF;
+static constexpr uint8_t AS7343_FD_TIME_1 = 0xE0;
+static constexpr uint8_t AS7343_FD_TIME_2 = 0xE2;
+static constexpr uint8_t AS7343_ID = 0x5A;
+static constexpr uint8_t AS7343_STATUS = 0x93;
+
+const RegisterMap AS7343::REG_MAP = {
+    .ASTEP = 0xD4,
+    .ATIME = 0x81,
+    .CFG0 = AS7343_CFG0,
+    .CFG0_REG_BANK_BIT = 4,
+    .CFG1 = AS7343_CFG1,
+    .ENABLE = 0x80,
+    .ENABLE_PON_BIT = 0,
+    .ENABLE_SP_EN_BIT = 1,
+    .ENABLE_SMUX_EN_BIT = 4,
+    .LED = 0xCD,
+    .LED_ACT_BIT = 7,
+    .STATUS2 = 0x90,
+    .STATUS2_AVALID_BIT = 6,
 };
 
 enum AS7343Channel : uint8_t {
@@ -77,7 +67,7 @@ enum AS7343Channel : uint8_t {
   AS7343_NUM_CHANNELS_MAX
 };
 
-union AS7343RegCfg20 {
+union RegCfg20 {
   uint8_t raw;
   struct {
     uint8_t reserved : 5;
@@ -86,7 +76,7 @@ union AS7343RegCfg20 {
   } __attribute__((packed));
 };
 
-union AS7343RegStatus {
+union RegStatus {
   uint8_t raw;
   struct {
     uint8_t sint : 1;
@@ -98,28 +88,11 @@ union AS7343RegStatus {
   } __attribute__((packed));
 };
 
-const RegisterMap AS7343::REG_MAP = {
-    .ASTEP = 0xD4,
-    .ATIME = 0x81,
-    .CFG0 = 0xBF,
-    .CFG0_REG_BANK_BIT = 4,
-    .CFG1 = 0xC6,
-    .ENABLE = 0x80,
-    .ENABLE_PON_BIT = 0,
-    .ENABLE_SP_EN_BIT = 1,
-    .ENABLE_SMUX_EN_BIT = 4,
-    .ID = 0x5A,
-    .LED = 0xCD,
-    .LED_ACT_BIT = 7,
-    .STATUS2 = 0x90,
-    .STATUS2_AVALID_BIT = 6,
-};
-
 // clang-format off
-
+/////////////////////////////////////////////////////////////////
 // 0. Datasheet values from Excel sheet
 // 0.1 Gain correction values for each channel
-const float AS7343::GAIN_CORRECTION[Gain::AS734X_MAX_GAIN][NUM_CHANNELS]  = {
+const float AS7343::GAIN_CORRECTION[Gain::MAX_GAIN][NUM_CHANNELS]  = {
     {1.149000, 1.100000, 1.060000, 1.070000, 1.063000, 1.051000, 1.062000, 1.056000, 1.049000, 1.040000, 1.080000, 1.038000, 1.065000},  // 0.5x
     {1.090000, 1.128000, 1.064000, 1.071000, 1.063000, 1.050000, 1.068000, 1.055000, 1.047000, 1.039000, 1.075000, 1.038000, 1.085000},  // 1x
     {1.083000, 1.086000, 1.062000, 1.070000, 1.062000, 1.049000, 1.057000, 1.053000, 1.045000, 1.038000, 1.063000, 1.037000, 1.069000},  // 2x
@@ -148,7 +121,8 @@ const float AS7343::XYZ_PER_COUNT[3][NUM_CHANNELS] = {
     {-0.31295, -0.57885, 10.00197, -0.31281, -0.19657, -0.11077, 0.00000, -0.06132, -0.03536, -0.06025, -0.12174, 0, 0}
 };
 
-// 1.  as per Golden Device calibration matrix - convoluted matrices for quick calculations
+// 1. Following matrices are based on Golden Device calibration matrix 
+//    These are convoluted matrices for quick calculations based on SPD reconstruction
 // 1.1. E fullband irradiance (W/m²)
 const float AS7343::IRRAD_MW_PER_COUNT[NUM_CHANNELS] = {
     15.24248081,3.761606341,-5.578085497,8.400505925,2.780903659,0.850080092,0,4.126948838,0.663050905,2.146279738,3.908525219,6.820076603,0
@@ -179,127 +153,50 @@ const float AS7343::PPFD_UMOL_PER_COUNT[NUM_CHANNELS] = {
 AS7343::AS7343(i2c::I2CDevice *i2c_device) : AS734xBase(i2c_device, AS7343::NUM_CHANNELS) {}
 
 bool AS7343::verify_device_id() {
-  this->set_bank_for_reg_(this->registers().ID);
+  this->set_bank_for_reg_(AS7343_ID);
 
-  static constexpr uint8_t AS7343_CHIP_ID = 0b10000001;
   uint8_t id;
-  this->i2c_device_->read_byte(this->registers().ID, &id);
+  this->i2c_device_->read_byte(AS7343_ID, &id);
   ESP_LOGCONFIG(TAG, "  Read ID: 0x%X", id);
   return (id == AS7343_CHIP_ID);
 }
 
 void AS7343::write_default_config() {
   // Set configuration
-  AS7343RegCfg20 cfg20;
-  cfg20.raw = this->i2c_device_->reg((uint8_t) AS7343Registers::CFG20).get();
+  RegCfg20 cfg20;
+  cfg20.raw = this->i2c_device_->reg(AS7343_CFG20).get();
   cfg20.auto_smux = 0b11;
-  this->i2c_device_->reg((uint8_t) AS7343Registers::CFG20) = cfg20.raw;
+  this->i2c_device_->reg(AS7343_CFG20) = cfg20.raw;
 
   this->direct_config_3_chain_();
 }
 
 void AS7343::direct_config_3_chain_() {
-  this->i2c_device_->write_byte((uint8_t) AS7343Registers::CFG6, 0x0);
-  this->i2c_device_->write_byte((uint8_t) AS7343Registers::FD_CFG0, 0xa1);
-  this->i2c_device_->write_byte((uint8_t) AS7343Registers::CFG10, 0xf2);
+  this->i2c_device_->write_byte(AS7343_CFG6, 0x0);
+  this->i2c_device_->write_byte(AS7343_FD_CFG0, 0xa1);
+  this->i2c_device_->write_byte(AS7343_CFG10, 0xf2);
 
-  this->i2c_device_->write_byte((uint8_t) AS7343Registers::CFG0, 0x10);
-  this->i2c_device_->write_byte((uint8_t) AS7343Registers::CFG1, 0x0c);
-  this->i2c_device_->write_byte((uint8_t) AS7343Registers::CFG8, 0xc8);
-  this->i2c_device_->write_byte((uint8_t) AS7343Registers::CFG20, 0x62);
-  this->i2c_device_->write_byte((uint8_t) AS7343Registers::AGC_GAIN_MAX, 0x99);
-  this->i2c_device_->write_byte((uint8_t) AS7343Registers::FD_TIME_1, 0x64);
-  this->i2c_device_->write_byte((uint8_t) AS7343Registers::FD_TIME_2, 0x21);
+  this->i2c_device_->write_byte(AS7343_CFG0, 0x10);
+  this->i2c_device_->write_byte(AS7343_CFG1, 0x0c);
+  this->i2c_device_->write_byte(AS7343_CFG8, 0xc8);
+  this->i2c_device_->write_byte(AS7343_CFG20, 0x62);
+  this->i2c_device_->write_byte(AS7343_AGC_GAIN_MAX, 0x99);
+  this->i2c_device_->write_byte(AS7343_FD_TIME_1, 0x64);
+  this->i2c_device_->write_byte(AS7343_FD_TIME_2, 0x21);
 
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x00);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x46);
+  constexpr uint8_t CHAINS = 3;
+  constexpr uint8_t CHAIN_LEN = 10;
 
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x04);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x46);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x65);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x46);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x02);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x46);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x00);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x46);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x05);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x46);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x00);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x46);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x01);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x46);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x00);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x46);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x30);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x46);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x00);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x56);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x00);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x56);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x60);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x56);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x20);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x56);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x04);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x56);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x50);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x56);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x03);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x56);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x00);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x56);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x01);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x56);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x05);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x56);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x05);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x66);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x00);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x66);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x60);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x66);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x00);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x66);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x30);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x66);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x00);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x66);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x40);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x66);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x10);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x66);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x20);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x66);
-
-  this->i2c_device_->write_byte((uint8_t) 0xe7, 0x00);
-  this->i2c_device_->write_byte((uint8_t) 0xe4, 0x66);
+  const uint8_t SMUX_CMD[CHAINS] = {0x46, 0x56, 0x66};
+  const uint8_t ADC_MAP[CHAINS][CHAIN_LEN] = {{0x00, 0x04, 0x65, 0x02, 0x00, 0x05, 0x00, 0x01, 0x00, 0x30},
+                                              {0x00, 0x00, 0x60, 0x20, 0x04, 0x50, 0x03, 0x00, 0x01, 0x05},
+                                              {0x05, 0x00, 0x60, 0x00, 0x30, 0x00, 0x40, 0x10, 0x20, 0x00}};
+  for (size_t chain = 0; chain < CHAINS; chain++) {
+    for (size_t i = 0; i < CHAIN_LEN; i++) {
+      this->i2c_device_->write_byte(AS7343_CHAIN_SMUX, ADC_MAP[chain][i]);
+      this->i2c_device_->write_byte(AS7343_CHAIN_CMD, SMUX_CMD[chain]);
+    }
+  }
 
   // this->write_byte((uint8_t)0x80, 0x11);
 }
@@ -323,7 +220,7 @@ void AS7343::get_xyz_conversion(uint8_t channel, float &tri_x, float &tri_y, flo
 
 bool AS7343::read_and_discard_channels() {
   std::array<uint16_t, MAX_CHANNELS> data;
-  return this->i2c_device_->read_bytes_16((uint8_t) AS7343Registers::DATA_O, data.data(), NUM_CHANNELS);
+  return this->i2c_device_->read_bytes_16(AS7343_DATA_0, data.data(), NUM_CHANNELS);
 }
 
 bool AS7343::read_channels(uint8_t step, ChannelValuesUint16 &values, Gain &gain, bool &saturated) {
@@ -335,14 +232,14 @@ bool AS7343::read_channels(uint8_t step, ChannelValuesUint16 &values, Gain &gain
 
   std::array<uint16_t, AS7343_NUM_CHANNELS_MAX> data;
 
-  AS7343RegStatus status{0};
-  status.raw = this->i2c_device_->reg((uint8_t) AS7343Registers::STATUS).get();
+  RegStatus status{0};
+  status.raw = this->i2c_device_->reg(AS7343_STATUS).get();
   ESP_LOGVV(TAG, "Status 0x%02x, sint %d, fint %d, aint %d, asat %d", status.raw, status.sint, status.fint, status.aint,
             status.asat);
-  this->i2c_device_->reg((uint8_t) AS7343Registers::STATUS) = status.raw;
+  this->i2c_device_->reg(AS7343_STATUS) = status.raw;
 
-  AS734xRegAStatus astatus{0};
-  astatus.raw = this->i2c_device_->reg((uint8_t) AS7343Registers::ASTATUS).get();
+  RegAStatus astatus{0};
+  astatus.raw = this->i2c_device_->reg(AS7343_ASTATUS).get();
   ESP_LOGVV(TAG, "AStatus 0x%02x, again_status %d, asat_status %d", astatus.raw, astatus.again_status,
             astatus.asat_status);
 
@@ -350,7 +247,7 @@ bool AS7343::read_channels(uint8_t step, ChannelValuesUint16 &values, Gain &gain
     ESP_LOGVV(TAG, "AS7343 affected by analog or digital saturation. Readings are not reliable.");
   }
 
-  auto ret = this->i2c_device_->read_bytes_16((uint8_t) AS7343Registers::DATA_O, data.data(), AS7343_NUM_CHANNELS_MAX);
+  auto ret = this->i2c_device_->read_bytes_16(AS7343_DATA_0, data.data(), AS7343_NUM_CHANNELS_MAX);
 
   for (uint8_t i = 0; i < NUM_CHANNELS; i++) {
     values[i] = data[SMUX_CHANNEL_MAP[i]];

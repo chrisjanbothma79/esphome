@@ -24,9 +24,9 @@ enum Gain : uint8_t {
   GAIN_128X,
   GAIN_256X,
   GAIN_512X,
-  GAIN_1024X,
-  GAIN_2048X,
-  AS734X_MAX_GAIN
+  GAIN_1024X,  // only for AS7343
+  GAIN_2048X,  // only for AS7343
+  MAX_GAIN
 };
 
 constexpr uint8_t MAX_CHANNELS = 18;  // 3 SMUX x 6 channels for AS7343
@@ -36,7 +36,7 @@ using ChannelValuesUint16 = std::array<uint16_t, MAX_CHANNELS>;
 using ChannelValuesFloat = std::array<float, MAX_CHANNELS>;
 using SensorArray = std::array<sensor::Sensor *, MAX_CHANNELS>;
 
-union AS734xRegAStatus {
+union RegAStatus {
   uint8_t raw;
   struct {
     Gain again_status : 4;
@@ -55,7 +55,6 @@ struct RegisterMap {
   uint8_t ENABLE_PON_BIT;
   uint8_t ENABLE_SP_EN_BIT;
   uint8_t ENABLE_SMUX_EN_BIT;
-  uint8_t ID;
   uint8_t LED;
   uint8_t LED_ACT_BIT;
   uint8_t STATUS2;

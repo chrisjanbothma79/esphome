@@ -5,20 +5,21 @@
 
 namespace esphome {
 namespace as734x {
+
 static const char *const TAG = "as734x.as7341";
 
 static constexpr uint8_t AS7341_CHIP_ID = 0x09;
 
-static const uint8_t AS7341_CONFIG = 0x70;
-static const uint8_t AS7341_ENABLE = 0x80;
-static const uint8_t AS7341_ASTATUS = 0x94;
-static const uint8_t AS7341_CH0_DATA_L = 0x95;
-static const uint8_t AS7341_CFG6 = 0xAF;  // Stores SMUX command
+static constexpr uint8_t AS7341_ASTATUS = 0x94;
+static constexpr uint8_t AS7341_CFG6 = 0xAF;
+static constexpr uint8_t AS7341_CONFIG = 0x70;
+static constexpr uint8_t AS7341_DATA_0 = 0x95;
+static constexpr uint8_t AS7341_ID = 0x92;
+static constexpr uint8_t AS7341_SMUX_CMD_READ = 1;       ///< Read SMUX configuration to RAM from SMUX chain
+static constexpr uint8_t AS7341_SMUX_CMD_ROM_RESET = 0;  ///< ROM code initialization of SMUX
+static constexpr uint8_t AS7341_SMUX_CMD_WRITE = 2;      ///< Write SMUX configuration from RAM to SMUX chain
 
-static const uint8_t AS7341_SMUX_CMD_ROM_RESET = 0;  ///< ROM code initialization of SMUX
-static const uint8_t AS7341_SMUX_CMD_READ = 1;       ///< Read SMUX configuration to RAM from SMUX chain
-static const uint8_t AS7341_SMUX_CMD_WRITE = 2;      ///< Write SMUX configuration from RAM to SMUX chain
-
+// register map for base class
 const RegisterMap AS7341::REG_MAP = {
     .ASTEP = 0xCA,
     .ATIME = 0x81,
@@ -29,26 +30,29 @@ const RegisterMap AS7341::REG_MAP = {
     .ENABLE_PON_BIT = 0,
     .ENABLE_SP_EN_BIT = 1,
     .ENABLE_SMUX_EN_BIT = 4,
-    .ID = 0x92,
     .LED = 0x74,
     .LED_ACT_BIT = 7,
     .STATUS2 = 0xA3,
     .STATUS2_AVALID_BIT = 6,
 };
-
+/////////////////////////////////////////////////////////////////
+// 0. Datasheet values from Excel sheet for Golden Device (GD)
+// 0.1 Gain correction values for each channel
+const float AS7341::GAIN_CORRECTION[Gain::MAX_GAIN] = {1.0577, 1.0491, 1.0479, 1.0491, 1.0207, 1.0158, 1.0109,
+                                                       1.0000, 1.0003, 0.9873, 0.9593, 0.0,    0.0};
+// 0.2 Default correction values for each channel
 const CalibrationParams AS7341::DEFAULT_CORRECTION = {
     1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 };
 
-const float AS7341::GAIN_CORRECTION[Gain::AS734X_MAX_GAIN] = {1.0577, 1.0491, 1.0479, 1.0491, 1.0207, 1.0158, 1.0109,
-                                                              1.0000, 1.0003, 0.9873, 0.9593, 0.0,    0.0};
-
+// 0.3 XYZ caclulation matrix
 const float AS7341::XYZ_PER_COUNT[3][NUM_CHANNELS] = {
     {0.39814, 1.29540, 0.36956, 0.10902, 0.71942, 1.78180, 1.10110, -0.03991, -0.27597, -0.02347},
     {0.01396, 0.16748, 0.23538, 1.42750, 1.88670, 1.14200, 0.46497, -0.02702, -0.24468, -0.01993},
     {1.95010, 6.45490, 2.78010, 0.18501, 0.15325, 0.09539, 0.10563, 0.08866, -0.61140, -0.00938}};
 
-// 1.  as per Golden Device calibration matrix - convoluted matrices for quick calculations
+// 1. Following matrices are based on Golden Device calibration matrix
+//    These are convoluted matrices for quick calculations based on SPD reconstruction
 // 1.1. E fullband irradiance (W/m²)
 const float AS7341::IRRAD_MW_PER_COUNT[NUM_CHANNELS] = {8.110691277, 0.988166817, 1.513167954, 0.823071218, 0.529502926,
                                                         0.35304952,  0.255581795, 0.132104073, 2.423065737, 0.63983804};
@@ -78,10 +82,10 @@ const float AS7341::PPFD_UMOL_PER_COUNT[NUM_CHANNELS] = {0.020518273,  0.0135254
 AS7341::AS7341(i2c::I2CDevice *i2c_device) : AS734xBase(i2c_device, AS7341::NUM_CHANNELS) {}
 
 bool AS7341::verify_device_id() {
-  this->set_bank_for_reg_(this->registers().ID);
+  this->set_bank_for_reg_(AS7341_ID);
 
   uint8_t id;
-  this->i2c_device_->read_byte(this->registers().ID, &id);
+  this->i2c_device_->read_byte(AS7341_ID, &id);
   ESP_LOGCONFIG(TAG, "  Read ID: 0x%X", id);
   return ((id & 0xFC) == (AS7341_CHIP_ID << 2));
 }
@@ -129,12 +133,16 @@ bool AS7341::prepare_for_smux_step(uint8_t step) {
 bool AS7341::read_and_discard_channels() { return false; }
 
 bool AS7341::read_channels(uint8_t smux_step, ChannelValuesUint16 &values, Gain &gain, bool &saturated) {
-  std::array<uint16_t, 6> raw{};
-  AS734xRegAStatus astatus{};
+  constexpr uint8_t ADC_CHANNELS = 6;
+
+  std::array<uint16_t, ADC_CHANNELS> raw{};
+  RegAStatus astatus{};
   this->i2c_device_->read_byte(AS7341_ASTATUS, &astatus.raw);
-  gain = astatus.again_status;
-  saturated = astatus.asat_status;
-  bool ret = this->i2c_device_->read_bytes_16(AS7341_CH0_DATA_L, raw.data(), 6);
+  if (astatus.asat_status) {
+    ESP_LOGVV(TAG, "AS7341 affected by analog or digital saturation. Readings are not reliable.");
+  }
+
+  bool ret = this->i2c_device_->read_bytes_16(AS7341_DATA_0, raw.data(), ADC_CHANNELS);
   if (smux_step == 0) {
     values[0] = raw[0];
     values[1] = raw[1];
@@ -148,6 +156,8 @@ bool AS7341::read_channels(uint8_t smux_step, ChannelValuesUint16 &values, Gain 
     values[8] = raw[4];
     values[9] = raw[5];
   }
+  gain = astatus.again_status;      // gain applied to the latest spectral measurement
+  saturated = astatus.asat_status;  // latched data affected by saturation
   return ret;
 }
 
