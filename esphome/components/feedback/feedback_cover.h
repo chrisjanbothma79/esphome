@@ -75,6 +75,9 @@ class FeedbackCover : public cover::Cover, public Component {
   bool assumed_state_{false};
   bool infer_endstop_{false};
   float obstacle_rollback_{0};
+  
+  bool last_stop_at_fully_open_state = false;
+  bool last_stop_at_fully_close_state = false;
 
   cover::CoverOperation last_operation_{cover::COVER_OPERATION_OPENING};
   cover::CoverOperation current_trigger_operation_{cover::COVER_OPERATION_IDLE};

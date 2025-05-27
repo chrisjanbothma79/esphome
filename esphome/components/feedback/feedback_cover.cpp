@@ -25,8 +25,10 @@ void FeedbackCover::setup() {
   // if available, get position from endstop sensors
   if (this->open_endstop_ != nullptr && this->open_endstop_->state) {
     this->position = COVER_OPEN;
+	last_stop_at_fully_open_state = true;
   } else if (this->close_endstop_ != nullptr && this->close_endstop_->state) {
     this->position = COVER_CLOSED;
+	last_stop_at_fully_close_state = true;
   }
 
   // if available, get moving state from sensors
@@ -144,13 +146,29 @@ void FeedbackCover::endstop_reached_(bool open_endstop) {
   if (this->current_trigger_operation_ == (open_endstop ? COVER_OPERATION_OPENING : COVER_OPERATION_CLOSING)) {
     float dur = (now - this->start_dir_time_) / 1e3f;
     ESP_LOGD(TAG, "'%s' - %s endstop reached. Took %.1fs.", this->name_.c_str(), open_endstop ? "Open" : "Close", dur);
-
+	
+	
+	ESP_LOGD(TAG, "'%s' - Endstop reached : %s %s", this->name_.c_str(), this->last_stop_at_fully_open_state ? "open true" : "open false", this->last_stop_at_fully_close_state ? "close true" : "close false");
+	
+	
     // if there is no external mechanism, stop the cover
     if (!this->has_built_in_endstop_) {
       this->start_direction_(COVER_OPERATION_IDLE);
     } else {
       this->set_current_operation_(COVER_OPERATION_IDLE, true);
     }
+	
+	//Set bool for next move
+	ESP_LOGD(TAG, "'%s' - Set last_stop_at_fully !!", this->name_.c_str());
+	
+	if(open_endstop) {
+		this->last_stop_at_fully_open_state = true;
+		this->last_stop_at_fully_close_state = false;
+	}
+	else {
+		this->last_stop_at_fully_open_state = false;
+		this->last_stop_at_fully_close_state = true;
+	}
   }
 
   // always sync position and publish
@@ -179,6 +197,14 @@ void FeedbackCover::set_current_operation_(cover::CoverOperation operation, bool
     this->start_dir_time_ = this->last_recompute_time_ = now;
     this->publish_state();
     this->last_publish_time_ = now;
+	
+	if(operation == COVER_OPERATION_IDLE) {
+		this->last_stop_at_fully_open_state = false;
+		this->last_stop_at_fully_close_state = false;
+		
+		ESP_LOGD(TAG, "'%s' - Set last_stop_at_fully false !!", this->name_.c_str());
+	
+	}
   }
 }
 
