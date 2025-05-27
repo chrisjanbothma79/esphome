@@ -76,4 +76,5 @@ pytest -s tests/integration/test_host_mode_basic.py
 - Tests automatically wait for the API port to be available before connecting
 - Process cleanup is handled automatically, with graceful shutdown using SIGINT
 - Each test gets its own temporary directory and unique port
+- Port allocation minimizes race conditions by holding the socket until just before ESPHome starts
 - Output from ESPHome processes is displayed for debugging
