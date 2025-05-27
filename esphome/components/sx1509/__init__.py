@@ -94,8 +94,8 @@ async def to_code(config):
             cg.add(var.set_sleep_time(conf[CONF_SLEEP_TIME]))
             cg.add(var.set_scan_time(conf[CONF_SCAN_TIME]))
             cg.add(var.set_debounce_time(conf[CONF_DEBOUNCE_TIME]))
-        if CONF_KEYS in conf:
-            cg.add(var.set_keys(conf[CONF_KEYS]))
+        if keys := conf.get(CONF_KEYS):
+            cg.add(var.set_keys(keys))
         for tconf in conf.get(CONF_ON_KEY, []):
             trigger = cg.new_Pvariable(tconf[CONF_TRIGGER_ID])
             cg.add(var.register_key_trigger(trigger))
