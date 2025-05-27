@@ -42,7 +42,7 @@ std::string format_sockaddr(const struct sockaddr_storage &storage) {
 class BSDSocketImpl : public Socket {
  public:
   BSDSocketImpl(int fd, bool monitor_loop = false) : fd_(fd) {
-    monitored_ = monitor_loop;
+    loop_monitored_ = monitor_loop;
     // Register new socket with the application for select() if monitoring requested
     if (monitor_loop && fd_ >= 0) {
       App.register_socket_fd(fd_);
@@ -60,7 +60,7 @@ class BSDSocketImpl : public Socket {
       return {};
     return make_unique<BSDSocketImpl>(fd);
   }
-  std::unique_ptr<Socket> accept_monitored(struct sockaddr *addr, socklen_t *addrlen) override {
+  std::unique_ptr<Socket> accept_loop_monitored(struct sockaddr *addr, socklen_t *addrlen) override {
     int fd = ::accept(fd_, addr, addrlen);
     if (fd == -1)
       return {};
@@ -70,7 +70,7 @@ class BSDSocketImpl : public Socket {
   int close() override {
     if (!closed_) {
       // Unregister from select() before closing if monitored
-      if (monitored_) {
+      if (loop_monitored_) {
         App.unregister_socket_fd(fd_);
       }
       int ret = ::close(fd_);
@@ -160,7 +160,7 @@ std::unique_ptr<Socket> socket(int domain, int type, int protocol) {
   return std::unique_ptr<Socket>{new BSDSocketImpl(ret)};
 }
 
-std::unique_ptr<Socket> socket_monitored(int domain, int type, int protocol) {
+std::unique_ptr<Socket> socket_loop_monitored(int domain, int type, int protocol) {
   int ret = ::socket(domain, type, protocol);
   if (ret == -1)
     return nullptr;

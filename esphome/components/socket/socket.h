@@ -17,9 +17,9 @@ class Socket {
   Socket &operator=(const Socket &) = delete;
 
   virtual std::unique_ptr<Socket> accept(struct sockaddr *addr, socklen_t *addrlen) = 0;
-  /// Accept a connection and optionally monitor it in the main loop
-  /// NOTE: Setting monitor_loop is NOT thread-safe and must only be called from the main loop
-  virtual std::unique_ptr<Socket> accept_monitored(struct sockaddr *addr, socklen_t *addrlen) {
+  /// Accept a connection and monitor it in the main loop
+  /// NOTE: This function is NOT thread-safe and must only be called from the main loop
+  virtual std::unique_ptr<Socket> accept_loop_monitored(struct sockaddr *addr, socklen_t *addrlen) {
     return accept(addr, addrlen);  // Default implementation for backward compatibility
   }
   virtual int bind(const struct sockaddr *addr, socklen_t addrlen) = 0;
@@ -53,25 +53,26 @@ class Socket {
   /// Get the underlying file descriptor (returns -1 if not supported)
   virtual int get_fd() const { return -1; }
 
+  /// Check if socket has data ready to read
+  /// For loop-monitored sockets, checks with the Application's select() results
+  /// For non-monitored sockets, always returns true (assumes data may be available)
+  bool ready() const;
+
  protected:
-  bool monitored_{false};  ///< Whether this socket is monitored by the event loop
+  bool loop_monitored_{false};  ///< Whether this socket is monitored by the event loop
 };
 
 /// Create a socket of the given domain, type and protocol.
 std::unique_ptr<Socket> socket(int domain, int type, int protocol);
-
-/// Create a socket and monitor it for data in the main loop
-/// WARNING: This function is NOT thread-safe. It must only be called from the main loop
-/// as it registers the socket file descriptor with the global Application instance.
-std::unique_ptr<Socket> socket_monitored(int domain, int type, int protocol);
-
 /// Create a socket in the newest available IP domain (IPv6 or IPv4) of the given type and protocol.
 std::unique_ptr<Socket> socket_ip(int type, int protocol);
 
-/// Create a socket in the newest available IP domain and monitor it for data in the main loop
-/// WARNING: This function is NOT thread-safe. It must only be called from the main loop
-/// as it registers the socket file descriptor with the global Application instance.
-std::unique_ptr<Socket> socket_ip_monitored(int type, int protocol);
+/// Create a socket and monitor it for data in the main loop.
+/// Like socket() but also registers the socket with the Application's select() loop.
+/// WARNING: These functions are NOT thread-safe. They must only be called from the main loop
+/// as they register the socket file descriptor with the global Application instance.
+std::unique_ptr<Socket> socket_loop_monitored(int domain, int type, int protocol);
+std::unique_ptr<Socket> socket_ip_loop_monitored(int type, int protocol);
 
 /// Set a sockaddr to the specified address and port for the IP version used by socket_ip().
 socklen_t set_sockaddr(struct sockaddr *addr, socklen_t addrlen, const std::string &ip_address, uint16_t port);

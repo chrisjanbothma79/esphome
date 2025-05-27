@@ -606,7 +606,7 @@ std::unique_ptr<Socket> socket(int domain, int type, int protocol) {
   return std::unique_ptr<Socket>{sock};
 }
 
-std::unique_ptr<Socket> socket_monitored(int domain, int type, int protocol) {
+std::unique_ptr<Socket> socket_loop_monitored(int domain, int type, int protocol) {
   // LWIPRawImpl doesn't use file descriptors, so monitoring is not applicable
   return socket(domain, type, protocol);
 }

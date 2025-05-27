@@ -474,11 +474,10 @@ class Application {
 
   Scheduler scheduler;
 
-  /// Register a socket file descriptor to be monitored for read events
-  /// WARNING: This function is NOT thread-safe. It must only be called from the main loop.
+  /// Register/unregister a socket file descriptor to be monitored for read events.
+  /// These functions update the fd_set used by select() in the main loop.
+  /// WARNING: These functions are NOT thread-safe. They must only be called from the main loop.
   void register_socket_fd(int fd);
-  /// Unregister a socket file descriptor
-  /// WARNING: This function is NOT thread-safe. It must only be called from the main loop.
   void unregister_socket_fd(int fd);
   /// Check if there's data available on a socket without blocking
   /// This function is thread-safe for reading, but should be called after select() has run

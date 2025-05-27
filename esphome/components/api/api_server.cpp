@@ -43,7 +43,7 @@ void APIServer::setup() {
   }
 #endif
 
-  this->socket_ = socket::socket_ip_monitored(SOCK_STREAM, 0);  // monitored for incoming connections
+  this->socket_ = socket::socket_ip_loop_monitored(SOCK_STREAM, 0);  // monitored for incoming connections
   if (this->socket_ == nullptr) {
     ESP_LOGW(TAG, "Could not create socket");
     this->mark_failed();
@@ -113,12 +113,11 @@ void APIServer::setup() {
 
 void APIServer::loop() {
   // Accept new clients only if the socket has incoming connections
-  int server_fd = this->socket_->get_fd();
-  if (server_fd >= 0 && App.is_socket_ready(server_fd)) {
+  if (this->socket_->ready()) {
     while (true) {
       struct sockaddr_storage source_addr;
       socklen_t addr_len = sizeof(source_addr);
-      auto sock = this->socket_->accept_monitored((struct sockaddr *) &source_addr, &addr_len);
+      auto sock = this->socket_->accept_loop_monitored((struct sockaddr *) &source_addr, &addr_len);
       if (!sock)
         break;
       ESP_LOGD(TAG, "Accepted %s", sock->getpeername().c_str());

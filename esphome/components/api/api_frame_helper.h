@@ -93,12 +93,6 @@ class APIFrameHelper {
   virtual uint8_t frame_footer_size() = 0;
 
  protected:
-  // Helper to check if socket has data available
-  inline bool is_socket_ready_for_read_() const {
-    int fd = socket_->get_fd();
-    return fd < 0 || App.is_socket_ready(fd);  // If no fd, assume ready (fallback behavior)
-  }
-
   // Struct for holding parsed frame data
   struct ParsedFrame {
     std::vector<uint8_t> msg;
