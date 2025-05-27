@@ -3,6 +3,7 @@
 #ifdef USE_MDNS
 #include <string>
 #include <vector>
+#include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "esphome/components/network/ip_address.h"
 
@@ -11,7 +12,7 @@ namespace mdns {
 
 struct MDNSTXTRecord {
   std::string key;
-  std::string value;
+  TemplatableValue<std::string> value;
 };
 
 struct MDNSService {
@@ -21,7 +22,7 @@ struct MDNSService {
   // second label indicating protocol _including_ underscore character prefix
   // as defined in RFC6763 Section 7, like "_tcp" or "_udp"
   std::string proto;
-  uint16_t port;
+  TemplatableValue<uint16_t> port;
   std::vector<MDNSTXTRecord> txt_records;
 };
 
