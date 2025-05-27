@@ -1,5 +1,5 @@
 #include "ota_esphome.h"
-
+#ifdef USE_OTA
 #include "esphome/components/md5/md5.h"
 #include "esphome/components/network/util.h"
 #include "esphome/components/ota/ota_backend.h"
@@ -111,6 +111,8 @@ void ESPHomeOTAComponent::handle_() {
   int err = client_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
   if (err != 0) {
     ESP_LOGW(TAG, "Socket could not enable TCP nodelay, errno %d", errno);
+    client_->close();
+    client_ = nullptr;
     return;
   }
 
@@ -410,3 +412,4 @@ float ESPHomeOTAComponent::get_setup_priority() const { return setup_priority::A
 uint16_t ESPHomeOTAComponent::get_port() const { return this->port_; }
 void ESPHomeOTAComponent::set_port(uint16_t port) { this->port_ = port; }
 }  // namespace esphome
+#endif
