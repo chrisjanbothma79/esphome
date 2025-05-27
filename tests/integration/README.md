@@ -23,7 +23,8 @@ The `yaml_config` fixture automatically loads YAML configurations based on the t
 
 - `run_compiled` - Combines write, compile, and run operations into a single context manager
 - `api_client_connected` - Creates an API client that automatically connects using ReconnectLogic
-- `unused_tcp_port` - Provides a unique TCP port for each test to avoid conflicts
+- `reserved_tcp_port` - Reserves a TCP port by holding the socket open until ESPHome needs it
+- `unused_tcp_port` - Provides the reserved port number for each test
 
 ### Writing Tests
 
