@@ -14,6 +14,15 @@ from aioesphomeapi import APIClient, APIConnectionError, ReconnectLogic
 import pytest
 import pytest_asyncio
 
+from .const import (
+    API_CONNECTION_TIMEOUT,
+    DEFAULT_API_PORT,
+    LOCALHOST,
+    PORT_POLL_INTERVAL,
+    PORT_WAIT_TIMEOUT,
+    SIGINT_TIMEOUT,
+    SIGTERM_TIMEOUT,
+)
 from .types import (
     APIClientConnectedFactory,
     APIClientFactory,
@@ -35,6 +44,7 @@ def integration_test_dir() -> Generator[Path]:
 def unused_tcp_port() -> int:
     """Find an unused TCP port."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setblocking(False)  # Set socket to non-blocking mode
         s.bind(("", 0))
         return s.getsockname()[1]
 
@@ -43,42 +53,24 @@ def unused_tcp_port() -> int:
 async def yaml_config(request: pytest.FixtureRequest, unused_tcp_port: int) -> str:
     """Load YAML configuration based on test name."""
     # Get the test function name
-    test_name = request.node.name
+    test_name: str = request.node.name
     # Extract the base test name (remove test_ prefix and any parametrization)
-    base_name = test_name.replace("test_", "").split("[")[0]
+    base_name = test_name.replace("test_", "").partition("[")[0]
 
-    # Check if yaml_fixture marker is present
-    markers = request.node.iter_markers("yaml_fixture")
-    fixture_names = []
-    for marker in markers:
-        if marker.args:
-            fixture_names.extend(marker.args)
+    # Load the fixture file
+    fixture_path = Path(__file__).parent / "fixtures" / f"{base_name}.yaml"
+    if not fixture_path.exists():
+        raise FileNotFoundError(f"Fixture file not found: {fixture_path}")
 
-    # If no explicit fixture name, use the base test name
-    if not fixture_names:
-        fixture_names = [base_name]
-
-    # Try to load fixtures in order using executor
     loop = asyncio.get_running_loop()
-    for fixture_name in fixture_names:
-        fixture_path = Path(__file__).parent / "fixtures" / f"{fixture_name}.yaml"
-        if fixture_path.exists():
-            content = await loop.run_in_executor(None, fixture_path.read_text)
-            # Replace the port in the config if it contains api section
-            if "api:" in content:
-                # Add port configuration after api:
-                content = content.replace("api:", f"api:\n  port: {unused_tcp_port}")
-            return content
+    content = await loop.run_in_executor(None, fixture_path.read_text)
 
-    # Fallback to default config with dynamic port
-    return f"""
-esphome:
-  name: host-test
-host:
-api:
-  port: {unused_tcp_port}
-logger:
-"""
+    # Replace the port in the config if it contains api section
+    if "api:" in content:
+        # Add port configuration after api:
+        content = content.replace("api:", f"api:\n  port: {unused_tcp_port}")
+
+    return content
 
 
 @pytest_asyncio.fixture
@@ -157,12 +149,12 @@ async def run_esphome_process(
             # Send SIGINT (Ctrl+C) for graceful shutdown of the running ESPHome instance
             process.send_signal(signal.SIGINT)
             try:
-                await asyncio.wait_for(process.wait(), timeout=5)
+                await asyncio.wait_for(process.wait(), timeout=SIGINT_TIMEOUT)
             except asyncio.TimeoutError:
                 # If SIGINT didn't work, try SIGTERM
                 process.terminate()
                 try:
-                    await asyncio.wait_for(process.wait(), timeout=2)
+                    await asyncio.wait_for(process.wait(), timeout=SIGTERM_TIMEOUT)
                 except asyncio.TimeoutError:
                     # Last resort: SIGKILL
                     process.kill()
@@ -171,8 +163,8 @@ async def run_esphome_process(
 
 @asynccontextmanager
 async def create_api_client(
-    address: str = "localhost",
-    port: int = 6053,
+    address: str = LOCALHOST,
+    port: int = DEFAULT_API_PORT,
     password: str = "",
     client_info: str = "integration-test",
 ) -> AsyncGenerator[APIClient]:
@@ -193,7 +185,7 @@ async def api_client_factory(
     """Factory for creating API client context managers."""
 
     def _create_client(
-        address: str = "localhost",
+        address: str = LOCALHOST,
         port: int | None = None,
         password: str = "",
         client_info: str = "integration-test",
@@ -210,11 +202,11 @@ async def api_client_factory(
 
 @asynccontextmanager
 async def wait_and_connect_api_client(
-    address: str = "localhost",
-    port: int = 6053,
+    address: str = LOCALHOST,
+    port: int = DEFAULT_API_PORT,
     password: str = "",
     client_info: str = "integration-test",
-    timeout: float = 30,
+    timeout: float = API_CONNECTION_TIMEOUT,
 ) -> AsyncGenerator[APIClient]:
     """Wait for API to be available and connect."""
     client = APIClient(
@@ -276,11 +268,11 @@ async def api_client_connected(
     """Factory for creating connected API client context managers."""
 
     def _connect_client(
-        address: str = "localhost",
+        address: str = LOCALHOST,
         port: int | None = None,
         password: str = "",
         client_info: str = "integration-test",
-        timeout: float = 30,
+        timeout: float = API_CONNECTION_TIMEOUT,
     ) -> AbstractAsyncContextManager[APIClient]:
         return wait_and_connect_api_client(
             address=address,
@@ -293,6 +285,26 @@ async def api_client_connected(
     yield _connect_client
 
 
+async def wait_for_port_open(
+    host: str, port: int, timeout: float = PORT_WAIT_TIMEOUT
+) -> None:
+    """Wait for a TCP port to be open and accepting connections."""
+    start_time = asyncio.get_running_loop().time()
+
+    while asyncio.get_running_loop().time() - start_time < timeout:
+        try:
+            # Try to connect to the port
+            _, writer = await asyncio.open_connection(host, port)
+            writer.close()
+            await writer.wait_closed()
+            return  # Port is open
+        except (ConnectionRefusedError, OSError):
+            # Port not open yet, wait a bit and try again
+            await asyncio.sleep(PORT_POLL_INTERVAL)
+
+    raise TimeoutError(f"Port {port} on {host} did not open within {timeout} seconds")
+
+
 @asynccontextmanager
 async def run_compiled_context(
     yaml_content: str,
@@ -300,6 +312,7 @@ async def run_compiled_context(
     write_yaml_config: ConfigWriter,
     compile_esphome: CompileFunction,
     run_esphome_process: RunFunction,
+    port: int,
 ) -> AsyncGenerator[asyncio.subprocess.Process]:
     """Context manager to write, compile and run an ESPHome configuration."""
     # Write the YAML config
@@ -312,8 +325,8 @@ async def run_compiled_context(
     process = await run_esphome_process(config_path)
     assert process.returncode is None, "Process died immediately"
 
-    # Give the process a moment to actually start listening
-    await asyncio.sleep(1)
+    # Wait for the API server to start listening
+    await wait_for_port_open(LOCALHOST, port, timeout=PORT_WAIT_TIMEOUT)
 
     try:
         yield process
@@ -327,6 +340,7 @@ async def run_compiled(
     write_yaml_config: ConfigWriter,
     compile_esphome: CompileFunction,
     run_esphome_process: RunFunction,
+    unused_tcp_port: int,
 ) -> AsyncGenerator[RunCompiledFunction]:
     """Write, compile and run an ESPHome configuration."""
 
@@ -339,6 +353,7 @@ async def run_compiled(
             write_yaml_config,
             compile_esphome,
             run_esphome_process,
+            unused_tcp_port,
         )
 
     yield _run_compiled

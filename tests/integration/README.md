@@ -5,6 +5,8 @@ This directory contains end-to-end integration tests for ESPHome, focusing on te
 ## Structure
 
 - `conftest.py` - Common fixtures and utilities
+- `const.py` - Constants used throughout the integration tests
+- `types.py` - Type definitions for fixtures and functions
 - `fixtures/` - YAML configuration files for tests
 - `test_*.py` - Individual test files
 
@@ -13,39 +15,46 @@ This directory contains end-to-end integration tests for ESPHome, focusing on te
 ### Automatic YAML Loading
 
 The `yaml_config` fixture automatically loads YAML configurations based on the test name:
+- It looks for a file named after the test function (e.g., `test_host_mode_basic` → `fixtures/host_mode_basic.yaml`)
+- The fixture file must exist or the test will fail with a clear error message
+- The fixture automatically injects a dynamic port number into the API configuration
 
-1. By default, it looks for a file named after the test function (e.g., `test_host_mode_basic` → `fixtures/host_mode_basic.yaml`)
-2. You can override this with the `@pytest.mark.yaml_fixture("custom_name")` decorator
-3. If no fixture file is found, it falls back to a default configuration
+### Key Fixtures
+
+- `run_compiled` - Combines write, compile, and run operations into a single context manager
+- `api_client_connected` - Creates an API client that automatically connects using ReconnectLogic
+- `unused_tcp_port` - Provides a unique TCP port for each test to avoid conflicts
 
 ### Writing Tests
 
-Each test should:
-1. Use the `yaml_config` fixture to get its configuration
-2. Write the config to a file using `write_yaml_config`
-3. Compile the configuration using `compile_esphome`
-4. Run the device using `run_esphome_process`
-5. Connect and test using `api_client_connected` context manager
-
-### Example
+The simplest way to write a test is to use the `run_compiled` and `api_client_connected` fixtures:
 
 ```python
 @pytest.mark.asyncio
-@pytest.mark.yaml_fixture("my_custom_fixture")  # Optional: specify custom fixture
 async def test_my_feature(
     yaml_config: str,
-    write_yaml_config: ConfigWriter,
-    compile_esphome: CompileFunction,
-    run_esphome_process: RunFunction,
-    api_client_connected: Callable[..., AsyncContextManager[APIClient]],
+    run_compiled: RunCompiledFunction,
+    api_client_connected: APIClientConnectedFactory,
 ) -> None:
-    config_path = await write_yaml_config("test.yaml", yaml_config)
-    await compile_esphome(config_path)
-    process = await run_esphome_process(config_path)
-    
-    async with api_client_connected() as client:
-        # Test your feature
-        pass
+    # Write, compile and run the ESPHome device, then connect to API
+    async with run_compiled(yaml_config), api_client_connected() as client:
+        # Test your feature using the connected client
+        device_info = await client.device_info()
+        assert device_info is not None
+```
+
+### Creating YAML Fixtures
+
+Create a YAML file in the `fixtures/` directory with the same name as your test function (without the `test_` prefix):
+
+```yaml
+# fixtures/my_feature.yaml
+esphome:
+  name: my-test-device
+host:
+api:  # Port will be automatically injected
+logger:
+# Add your components here
 ```
 
 ## Running Tests
@@ -57,3 +66,10 @@ script/integration_test
 # Run a specific test
 pytest -vv tests/integration/test_host_mode_basic.py
 ```
+
+## Implementation Details
+
+- Tests automatically wait for the API port to be available before connecting
+- Process cleanup is handled automatically, with graceful shutdown using SIGINT
+- Each test gets its own temporary directory and unique port
+- Output from ESPHome processes is displayed for debugging
