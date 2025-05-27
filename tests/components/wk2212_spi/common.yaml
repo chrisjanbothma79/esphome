@@ -18,7 +18,7 @@ wk2212_spi:
         parity: none
       - id: id1
         channel: 1
-        baud_rate: 9800
+        baud_rate: 9600
 
 # Ensures a sensor doesn't break validation
 sensor:

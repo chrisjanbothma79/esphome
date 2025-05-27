@@ -17,7 +17,7 @@ wk2132_i2c:
         parity: none
       - id: wk2132_id_1
         channel: 1
-        baud_rate: 9800
+        baud_rate: 9600
 
 # Ensures a sensor doesn't break validation
 sensor:

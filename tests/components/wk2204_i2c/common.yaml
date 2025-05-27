@@ -25,7 +25,7 @@ wk2204_i2c:
         parity: none
       - id: wk2204_id_3
         channel: 3
-        baud_rate: 9800
+        baud_rate: 9600
 
 # Ensures a sensor doesn't break validation
 sensor:

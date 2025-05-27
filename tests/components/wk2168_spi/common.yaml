@@ -24,7 +24,7 @@ wk2168_spi:
         baud_rate: 115200
       - id: id3
         channel: 3
-        baud_rate: 9800
+        baud_rate: 9600
 
 # Ensures a sensor doesn't break validation
 sensor:
