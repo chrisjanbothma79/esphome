@@ -71,6 +71,8 @@ std::unique_ptr<Socket> socket_ip(int type, int protocol);
 /// Like socket() but also registers the socket with the Application's select() loop.
 /// WARNING: These functions are NOT thread-safe. They must only be called from the main loop
 /// as they register the socket file descriptor with the global Application instance.
+/// NOTE: On ESP platforms, FD_SETSIZE is typically 10, limiting the number of monitored sockets.
+/// File descriptors >= FD_SETSIZE will not be monitored and will log an error.
 std::unique_ptr<Socket> socket_loop_monitored(int domain, int type, int protocol);
 std::unique_ptr<Socket> socket_ip_loop_monitored(int type, int protocol);
 

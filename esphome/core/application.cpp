@@ -227,11 +227,19 @@ void Application::calculate_looping_components_() {
   }
 }
 
-void Application::register_socket_fd(int fd) {
+bool Application::register_socket_fd(int fd) {
   // WARNING: This function is NOT thread-safe and must only be called from the main loop
   // It modifies socket_fds_ and related variables without locking
   if (fd < 0)
-    return;
+    return false;
+
+#ifdef FD_SETSIZE
+  if (fd >= FD_SETSIZE) {
+    ESP_LOGE(TAG, "Cannot monitor socket fd %d: exceeds FD_SETSIZE (%d)", fd, FD_SETSIZE);
+    ESP_LOGE(TAG, "Socket will not be monitored for data - may cause performance issues!");
+    return false;
+  }
+#endif
 
   this->socket_fds_.insert(fd);
   this->socket_fds_changed_ = true;
@@ -239,6 +247,8 @@ void Application::register_socket_fd(int fd) {
   if (fd > this->max_fd_) {
     this->max_fd_ = fd;
   }
+
+  return true;
 }
 
 void Application::unregister_socket_fd(int fd) {
@@ -265,6 +275,7 @@ bool Application::is_socket_ready(int fd) const {
 #ifdef FD_SETSIZE
   if (fd < 0 || fd >= FD_SETSIZE)
     return false;
+
   return FD_ISSET(fd, &this->read_fds_);
 #else
   // If we don't have select support, assume socket is always ready

@@ -35,10 +35,12 @@ std::string format_sockaddr(const struct sockaddr_storage &storage) {
 class LwIPSocketImpl : public Socket {
  public:
   LwIPSocketImpl(int fd, bool monitor_loop = false) : fd_(fd) {
-    loop_monitored_ = monitor_loop;
     // Register new socket with the application for select() if monitoring requested
     if (monitor_loop && fd_ >= 0) {
-      App.register_socket_fd(fd_);
+      // Only set loop_monitored_ to true if registration succeeds
+      loop_monitored_ = App.register_socket_fd(fd_);
+    } else {
+      loop_monitored_ = false;
     }
   }
   ~LwIPSocketImpl() override {

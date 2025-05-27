@@ -477,7 +477,9 @@ class Application {
   /// Register/unregister a socket file descriptor to be monitored for read events.
   /// These functions update the fd_set used by select() in the main loop.
   /// WARNING: These functions are NOT thread-safe. They must only be called from the main loop.
-  void register_socket_fd(int fd);
+  /// NOTE: File descriptors >= FD_SETSIZE (typically 10 on ESP) will be rejected with an error.
+  /// @return true if registration was successful, false if fd exceeds limits
+  bool register_socket_fd(int fd);
   void unregister_socket_fd(int fd);
   /// Check if there's data available on a socket without blocking
   /// This function is thread-safe for reading, but should be called after select() has run
