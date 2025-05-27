@@ -15,8 +15,8 @@
 #include "driver/adc_types_legacy.h"
 // Include legacy calibration API only if explicitly requested
 #ifdef USE_ADC_LEGACY_CALIBRATION
-  #define HAS_ESP_ADC_CAL
-  #include "esp_adc_cal.h"
+#define HAS_ESP_ADC_CAL
+#include "esp_adc_cal.h"
 #endif  // USE_ADC_LEGACY_CALIBRATION
 #else
 #include <esp_adc_cal.h>
@@ -85,11 +85,7 @@ static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_12;
 static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_11;
 #endif  // ESP_IDF_VERSION check for ADC_ATTEN_DB_12_COMPAT
 
-enum CalibrationMode {
-  AUTO = 0,
-  LEGACY = 1,
-  NATIVE = 2
-};
+enum CalibrationMode { AUTO = 0, LEGACY = 1, NATIVE = 2 };
 
 #endif  // USE_ESP32
 
@@ -231,19 +227,19 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   /**
    * @brief Native ADC sampling method for ESP-IDF 5.0+
-   * 
+   *
    * This method uses the native ESP-IDF 5.0+ ADC calibration API, which
    * may provide more accurate readings on newer ESP32 hardware and
    * firmware versions. It takes advantage of the improved ADC oneshot
    * API and calibration schemes (curve fitting for newer variants, line
    * fitting for older ESP32 variants).
-   * 
+   *
    * For single attenuation mode, it takes multiple samples if configured
    * and applies calibration based on the adc_cali_raw_to_voltage() function.
-   * 
+   *
    * For auto-range mode, it reads with all attenuation levels and combines
    * them using weighted averaging to provide an extended measurement range.
-   * 
+   *
    * @return float The calibrated voltage measurement in volts
    */
   float native_sample();
@@ -318,7 +314,7 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
 #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 
   CalibrationMode calibration_mode_{AUTO};
-  
+
 #endif  // USE_ESP32
 
 #ifdef USE_RP2040

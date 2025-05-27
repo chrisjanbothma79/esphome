@@ -46,7 +46,7 @@ SAMPLING_MODES = {
 
 CalibrationMode = adc_ns.enum("CalibrationMode")
 CALIBRATION_MODES = {
-    "auto": CalibrationMode.AUTO,      # Automatically choose based on ESP-IDF version
+    "auto": CalibrationMode.AUTO,  # Automatically choose based on ESP-IDF version
     "legacy": CalibrationMode.LEGACY,  # Use pre-ESP-IDF 5.0 calibration
     "native": CalibrationMode.NATIVE,  # Use ESP-IDF 5.0+ native calibration
 }
