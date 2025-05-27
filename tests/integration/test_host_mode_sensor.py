@@ -21,25 +21,29 @@ async def test_host_mode_with_sensor(
     async with run_compiled(yaml_config), api_client_connected() as client:
         # Subscribe to state changes
         states: dict[int, EntityState] = {}
+        sensor_future: asyncio.Future[EntityState] = asyncio.Future()
 
         def on_state(state: EntityState) -> None:
             states[state.key] = state
+            # If this is our sensor with value 42.0, resolve the future
+            if (
+                hasattr(state, "state")
+                and state.state == 42.0
+                and not sensor_future.done()
+            ):
+                sensor_future.set_result(state)
 
         client.subscribe_states(on_state)
 
-        # Wait for sensor data
-        await asyncio.sleep(0.2)
+        # Wait for sensor with specific value (42.0) with timeout
+        try:
+            test_sensor_state = await asyncio.wait_for(sensor_future, timeout=5.0)
+        except asyncio.TimeoutError:
+            pytest.fail(
+                f"Sensor with value 42.0 not received within 5 seconds. "
+                f"Received states: {list(states.values())}"
+            )
 
-        # Verify we received sensor data
-        assert len(states) > 0, "No states received"
-
-        # We should have received a sensor state with value 42.0
-        sensor_states = [
-            state
-            for state in states.values()
-            if hasattr(state, "state") and state.state == 42.0
-        ]
-        assert len(sensor_states) > 0, "No sensor state with value 42.0 found"
-
-        test_sensor_state = sensor_states[0]
+        # Verify the sensor state
         assert test_sensor_state.state == 42.0
+        assert len(states) > 0, "No states received"

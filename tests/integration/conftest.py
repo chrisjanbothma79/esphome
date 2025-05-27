@@ -41,12 +41,22 @@ def integration_test_dir() -> Generator[Path]:
 
 
 @pytest.fixture
-def unused_tcp_port() -> int:
-    """Find an unused TCP port."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setblocking(False)  # Set socket to non-blocking mode
-        s.bind(("", 0))
-        return s.getsockname()[1]
+def reserved_tcp_port() -> Generator[tuple[int, socket.socket]]:
+    """Reserve an unused TCP port by holding the socket open."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(("", 0))
+    port = s.getsockname()[1]
+    try:
+        yield port, s
+    finally:
+        s.close()
+
+
+@pytest.fixture
+def unused_tcp_port(reserved_tcp_port: tuple[int, socket.socket]) -> int:
+    """Get the reserved TCP port number."""
+    return reserved_tcp_port[0]
 
 
 @pytest_asyncio.fixture
@@ -123,7 +133,8 @@ async def compile_esphome(
         await proc.wait()
         if proc.returncode != 0:
             raise RuntimeError(
-                f"Failed to compile {config_path}, return code: {proc.returncode}"
+                f"Failed to compile {config_path}, return code: {proc.returncode}. "
+                f"Run with 'pytest -s' to see compilation output."
             )
 
     yield _compile
@@ -306,6 +317,9 @@ async def wait_for_port_open(
     loop = asyncio.get_running_loop()
     start_time = loop.time()
 
+    # Small yield to ensure the process has a chance to start
+    await asyncio.sleep(0)
+
     while loop.time() - start_time < timeout:
         try:
             # Try to connect to the port
@@ -328,6 +342,7 @@ async def run_compiled_context(
     compile_esphome: CompileFunction,
     run_esphome_process: RunFunction,
     port: int,
+    port_socket: socket.socket | None = None,
 ) -> AsyncGenerator[asyncio.subprocess.Process]:
     """Context manager to write, compile and run an ESPHome configuration."""
     # Write the YAML config
@@ -335,6 +350,10 @@ async def run_compiled_context(
 
     # Compile the configuration
     await compile_esphome(config_path)
+
+    # Close the port socket right before running to release the port
+    if port_socket is not None:
+        port_socket.close()
 
     # Run the ESPHome device
     process = await run_esphome_process(config_path)
@@ -355,9 +374,10 @@ async def run_compiled(
     write_yaml_config: ConfigWriter,
     compile_esphome: CompileFunction,
     run_esphome_process: RunFunction,
-    unused_tcp_port: int,
+    reserved_tcp_port: tuple[int, socket.socket],
 ) -> AsyncGenerator[RunCompiledFunction]:
     """Write, compile and run an ESPHome configuration."""
+    port, port_socket = reserved_tcp_port
 
     def _run_compiled(
         yaml_content: str, filename: str | None = None
@@ -368,7 +388,8 @@ async def run_compiled(
             write_yaml_config,
             compile_esphome,
             run_esphome_process,
-            unused_tcp_port,
+            port,
+            port_socket,
         )
 
     yield _run_compiled
