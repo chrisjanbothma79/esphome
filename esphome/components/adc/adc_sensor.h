@@ -13,18 +13,10 @@
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 #include "driver/adc_types_legacy.h"
-// Include legacy calibration API only if explicitly needed
+// Include legacy calibration API only if explicitly requested
 #ifdef USE_ADC_LEGACY_CALIBRATION
-  #ifdef __has_include
-    #if __has_include("esp_adc_cal.h")
-      #define HAS_ESP_ADC_CAL
-      #include "esp_adc_cal.h"
-    #endif
-  #else
-    // Assume it's available for older compilers
-    #define HAS_ESP_ADC_CAL
-    #include "esp_adc_cal.h"
-  #endif
+  #define HAS_ESP_ADC_CAL
+  #include "esp_adc_cal.h"
 #endif  // USE_ADC_LEGACY_CALIBRATION
 #else
 #include <esp_adc_cal.h>
