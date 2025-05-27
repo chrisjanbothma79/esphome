@@ -148,17 +148,22 @@ void Application::loop() {
       // Call select with timeout
       int ret = ::select(this->max_fd_ + 1, &this->read_fds_, nullptr, nullptr, &tv);
 
-      if (ret < 0 && errno != EINTR) {
-        // Log error but continue - fall back to delay
-        ESP_LOGW(TAG, "select() failed with errno %d", errno);
-        delay(delay_time);
+      if (ret < 0) {
+        if (errno == EINTR) {
+          // Interrupted by signal - this is normal, just continue
+          // No need to delay as some time has already passed
+          ESP_LOGVV(TAG, "select() interrupted by signal");
+        } else {
+          // Actual error - log and fall back to delay
+          ESP_LOGW(TAG, "select() failed with errno %d", errno);
+          delay(delay_time);
+        }
       } else if (ret > 0) {
         ESP_LOGVV(TAG, "select() woke early: %d socket(s) ready (saved up to %ums)", ret, delay_time);
-      } else if (ret == 0) {
+      } else {
+        // ret == 0: timeout occurred (normal)
         ESP_LOGVV(TAG, "select() timeout after %ums (no sockets ready)", delay_time);
       }
-      // If ret == 0, timeout occurred (normal)
-      // If ret > 0, socket(s) ready for reading (will be handled in component loops)
     } else {
       // No sockets registered, use regular delay
       delay(delay_time);
