@@ -7,11 +7,11 @@
 #include <map>
 #include <string>
 #include "esphome/components/network/util.h"
+#include "esphome/core/application.h"
 #include "esphome/core/entity_base.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include "esphome/core/version.h"
-#include "esphome/core/application.h"
 
 #ifdef USE_DEEP_SLEEP
 #include "esphome/components/deep_sleep/deep_sleep_component.h"
@@ -179,7 +179,11 @@ void APIConnection::loop() {
 
     // Section: Process Message
     start_time = millis();
-    this->read_message(buffer.data_len, buffer.type, &buffer.container[buffer.data_offset]);
+    if (buffer.data_len > 0) {
+      this->read_message(buffer.data_len, buffer.type, &buffer.container[buffer.data_offset]);
+    } else {
+      this->read_message(0, buffer.type, nullptr);
+    }
     duration = millis() - start_time;
     this->section_stats_["process_message"].record_time(duration);
 
