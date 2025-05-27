@@ -94,13 +94,29 @@ void FeedbackCover::set_open_sensor(binary_sensor::BinarySensor *open_feedback) 
 
   // setup callbacks to react to sensor changes
   open_feedback->add_on_state_callback([this](bool state) {
-    ESP_LOGD(TAG, "'%s' - Open feedback '%s'.", this->name_.c_str(), state ? "STARTED" : "ENDED");
-	
-	this->recompute_position_();
-    if (!state && this->infer_endstop_ && this->current_trigger_operation_ == COVER_OPERATION_OPENING) {
-      this->endstop_reached_(true);
-    }
-	if(this->current_trigger_operation_ != COVER_OPERATION_CLOSING) this->set_current_operation_(state ? COVER_OPERATION_OPENING : COVER_OPERATION_IDLE, false);
+	if(this->open_feedback_ == this->close_feedback_) {
+		ESP_LOGD(TAG, "'%s' - Open/Close feedback '%s'.", this->name_.c_str(), state ? "STARTED" : "ENDED");
+		this->recompute_position_();
+		
+		if (!state && this->infer_endstop_ && this->current_trigger_operation_ == COVER_OPERATION_OPENING) {
+		  this->endstop_reached_(true);
+		}
+		else if (!state && this->infer_endstop_ && this->current_trigger_operation_ == COVER_OPERATION_CLOSING) {
+		  this->endstop_reached_(false);
+		}
+		
+		if(this->current_trigger_operation_ != COVER_OPERATION_CLOSING) this->set_current_operation_(state ? COVER_OPERATION_OPENING : COVER_OPERATION_IDLE, false);
+		else if(this->current_trigger_operation_ != COVER_OPERATION_OPENING) this->set_current_operation_(state ? COVER_OPERATION_CLOSING : COVER_OPERATION_IDLE, false);
+	}
+	else {
+		ESP_LOGD(TAG, "'%s' - Open feedback '%s'.", this->name_.c_str(), state ? "STARTED" : "ENDED");
+		
+		this->recompute_position_();
+		if (!state && this->infer_endstop_ && this->current_trigger_operation_ == COVER_OPERATION_OPENING) {
+		  this->endstop_reached_(true);
+		}
+		this->set_current_operation_(state ? COVER_OPERATION_OPENING : COVER_OPERATION_IDLE, false);
+	}
   });
 }
 
@@ -108,12 +124,17 @@ void FeedbackCover::set_close_sensor(binary_sensor::BinarySensor *close_feedback
   this->close_feedback_ = close_feedback;
 
   close_feedback->add_on_state_callback([this](bool state) {
-	ESP_LOGD(TAG, "'%s' - Close feedback '%s'.", this->name_.c_str(), state ? "STARTED" : "ENDED");
-	this->recompute_position_();
-	if (!state && this->infer_endstop_ && this->current_trigger_operation_ == COVER_OPERATION_CLOSING) {
-	  this->endstop_reached_(false);
+	if(this->open_feedback_ == this->close_feedback_) {
+		//To nothing because it's done by open_feedback callback
 	}
-	if(this->current_trigger_operation_ != COVER_OPERATION_OPENING) this->set_current_operation_(state ? COVER_OPERATION_CLOSING : COVER_OPERATION_IDLE, false);
+	else {
+		ESP_LOGD(TAG, "'%s' - Close feedback '%s'.", this->name_.c_str(), state ? "STARTED" : "ENDED");
+		this->recompute_position_();
+		if (!state && this->infer_endstop_ && this->current_trigger_operation_ == COVER_OPERATION_CLOSING) {
+		  this->endstop_reached_(false);
+		}
+		this->set_current_operation_(state ? COVER_OPERATION_CLOSING : COVER_OPERATION_IDLE, false);
+	}
   });
 }
 
