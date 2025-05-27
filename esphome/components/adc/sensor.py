@@ -134,6 +134,11 @@ async def to_code(config):
     if CORE.is_esp32:
         # Setup calibration mode
         calibration_mode = config.get(CONF_CALIBRATION_MODE, "auto")
+        
+        # Only define USE_ADC_LEGACY_CALIBRATION if legacy mode is explicitly requested
+        if calibration_mode == "legacy":
+            cg.add_define("USE_ADC_LEGACY_CALIBRATION")
+        
         cg.add(var.set_calibration_mode(calibration_mode))
         
         variant = get_esp32_variant()
