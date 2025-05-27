@@ -458,9 +458,9 @@ float ADCSensor::legacy_sample() {
 
       aggr.add_sample(raw);
     }
-    
+
     uint32_t final_value = aggr.aggregate();
-    
+
     if (this->output_raw_) {
       return final_value;
     }
@@ -517,7 +517,7 @@ float ADCSensor::legacy_sample() {
 
     if (raw6 < ADC_MAX && raw6 != -1) {
       raw2 = read_with_attenuation(ADC_ATTEN_DB_2_5);
-      
+
       if (raw2 < ADC_MAX && raw2 != -1) {
         raw0 = read_with_attenuation(ADC_ATTEN_DB_0);
       }
