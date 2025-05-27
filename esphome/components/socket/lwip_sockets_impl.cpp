@@ -35,6 +35,7 @@ std::string format_sockaddr(const struct sockaddr_storage &storage) {
 class LwIPSocketImpl : public Socket {
  public:
   LwIPSocketImpl(int fd, bool monitor_loop = false) : fd_(fd) {
+    monitored_ = monitor_loop;
     // Register new socket with the application for select() if monitoring requested
     if (monitor_loop && fd_ >= 0) {
       App.register_socket_fd(fd_);
@@ -61,8 +62,10 @@ class LwIPSocketImpl : public Socket {
   int bind(const struct sockaddr *addr, socklen_t addrlen) override { return lwip_bind(fd_, addr, addrlen); }
   int close() override {
     if (!closed_) {
-      // Unregister from select() before closing
-      App.unregister_socket_fd(fd_);
+      // Unregister from select() before closing if monitored
+      if (monitored_) {
+        App.unregister_socket_fd(fd_);
+      }
       int ret = lwip_close(fd_);
       closed_ = true;
       return ret;

@@ -42,6 +42,7 @@ std::string format_sockaddr(const struct sockaddr_storage &storage) {
 class BSDSocketImpl : public Socket {
  public:
   BSDSocketImpl(int fd, bool monitor_loop = false) : fd_(fd) {
+    monitored_ = monitor_loop;
     // Register new socket with the application for select() if monitoring requested
     if (monitor_loop && fd_ >= 0) {
       App.register_socket_fd(fd_);
@@ -57,7 +58,7 @@ class BSDSocketImpl : public Socket {
     int fd = ::accept(fd_, addr, addrlen);
     if (fd == -1)
       return {};
-    return make_unique<BSDSocketImpl>(fd);  // Default: not monitored
+    return make_unique<BSDSocketImpl>(fd);
   }
   std::unique_ptr<Socket> accept_monitored(struct sockaddr *addr, socklen_t *addrlen) override {
     int fd = ::accept(fd_, addr, addrlen);
@@ -68,8 +69,10 @@ class BSDSocketImpl : public Socket {
   int bind(const struct sockaddr *addr, socklen_t addrlen) override { return ::bind(fd_, addr, addrlen); }
   int close() override {
     if (!closed_) {
-      // Unregister from select() before closing
-      App.unregister_socket_fd(fd_);
+      // Unregister from select() before closing if monitored
+      if (monitored_) {
+        App.unregister_socket_fd(fd_);
+      }
       int ret = ::close(fd_);
       closed_ = true;
       return ret;

@@ -52,6 +52,9 @@ class Socket {
 
   /// Get the underlying file descriptor (returns -1 if not supported)
   virtual int get_fd() const { return -1; }
+
+ protected:
+  bool monitored_{false};  ///< Whether this socket is monitored by the event loop
 };
 
 /// Create a socket of the given domain, type and protocol.
