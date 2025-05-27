@@ -239,8 +239,6 @@ void Application::register_socket_fd(int fd) {
   if (fd > this->max_fd_) {
     this->max_fd_ = fd;
   }
-
-  ESP_LOGD(TAG, "Registered socket fd %d (total: %zu)", fd, this->socket_fds_.size());
 }
 
 void Application::unregister_socket_fd(int fd) {
@@ -258,8 +256,6 @@ void Application::unregister_socket_fd(int fd) {
   } else if (this->socket_fds_.empty()) {
     this->max_fd_ = -1;
   }
-
-  ESP_LOGD(TAG, "Unregistered socket fd %d (remaining: %zu)", fd, this->socket_fds_.size());
 }
 
 bool Application::is_socket_ready(int fd) const {
