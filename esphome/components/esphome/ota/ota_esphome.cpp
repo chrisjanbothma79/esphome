@@ -26,7 +26,7 @@ void ESPHomeOTAComponent::setup() {
   ota::register_ota_platform(this);
 #endif
 
-  server_ = socket::socket_ip(SOCK_STREAM, 0);
+  server_ = socket::socket_ip_monitored(SOCK_STREAM, 0);  // monitored for incoming connections
   if (server_ == nullptr) {
     ESP_LOGW(TAG, "Could not create socket");
     this->mark_failed();

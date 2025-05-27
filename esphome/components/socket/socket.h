@@ -17,6 +17,11 @@ class Socket {
   Socket &operator=(const Socket &) = delete;
 
   virtual std::unique_ptr<Socket> accept(struct sockaddr *addr, socklen_t *addrlen) = 0;
+  /// Accept a connection and optionally monitor it in the main loop
+  /// NOTE: Setting monitor_loop is NOT thread-safe and must only be called from the main loop
+  virtual std::unique_ptr<Socket> accept_monitored(struct sockaddr *addr, socklen_t *addrlen) {
+    return accept(addr, addrlen);  // Default implementation for backward compatibility
+  }
   virtual int bind(const struct sockaddr *addr, socklen_t addrlen) = 0;
   virtual int close() = 0;
   // not supported yet:
@@ -52,8 +57,16 @@ class Socket {
 /// Create a socket of the given domain, type and protocol.
 std::unique_ptr<Socket> socket(int domain, int type, int protocol);
 
+/// Create a socket and monitor it for data in the main loop
+/// NOTE: Setting monitor_loop is NOT thread-safe and must only be called from the main loop
+std::unique_ptr<Socket> socket_monitored(int domain, int type, int protocol);
+
 /// Create a socket in the newest available IP domain (IPv6 or IPv4) of the given type and protocol.
 std::unique_ptr<Socket> socket_ip(int type, int protocol);
+
+/// Create a socket in the newest available IP domain and monitor it for data in the main loop
+/// NOTE: Setting monitor_loop is NOT thread-safe and must only be called from the main loop
+std::unique_ptr<Socket> socket_ip_monitored(int type, int protocol);
 
 /// Set a sockaddr to the specified address and port for the IP version used by socket_ip().
 socklen_t set_sockaddr(struct sockaddr *addr, socklen_t addrlen, const std::string &ip_address, uint16_t port);

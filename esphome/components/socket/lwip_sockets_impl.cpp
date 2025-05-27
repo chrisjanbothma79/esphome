@@ -34,9 +34,9 @@ std::string format_sockaddr(const struct sockaddr_storage &storage) {
 
 class LwIPSocketImpl : public Socket {
  public:
-  LwIPSocketImpl(int fd) : fd_(fd) {
-    // Register new socket with the application for select()
-    if (fd_ >= 0) {
+  LwIPSocketImpl(int fd, bool monitor_loop = false) : fd_(fd) {
+    // Register new socket with the application for select() if monitoring requested
+    if (monitor_loop && fd_ >= 0) {
       App.register_socket_fd(fd_);
     }
   }
@@ -50,7 +50,13 @@ class LwIPSocketImpl : public Socket {
     int fd = lwip_accept(fd_, addr, addrlen);
     if (fd == -1)
       return {};
-    return make_unique<LwIPSocketImpl>(fd);
+    return make_unique<LwIPSocketImpl>(fd);  // Default: not monitored
+  }
+  std::unique_ptr<Socket> accept_monitored(struct sockaddr *addr, socklen_t *addrlen) override {
+    int fd = lwip_accept(fd_, addr, addrlen);
+    if (fd == -1)
+      return {};
+    return make_unique<LwIPSocketImpl>(fd, true);  // Monitored for incoming data
   }
   int bind(const struct sockaddr *addr, socklen_t addrlen) override { return lwip_bind(fd_, addr, addrlen); }
   int close() override {
@@ -121,6 +127,13 @@ std::unique_ptr<Socket> socket(int domain, int type, int protocol) {
   if (ret == -1)
     return nullptr;
   return std::unique_ptr<Socket>{new LwIPSocketImpl(ret)};
+}
+
+std::unique_ptr<Socket> socket_monitored(int domain, int type, int protocol) {
+  int ret = lwip_socket(domain, type, protocol);
+  if (ret == -1)
+    return nullptr;
+  return std::unique_ptr<Socket>{new LwIPSocketImpl(ret, true)};
 }
 
 }  // namespace socket

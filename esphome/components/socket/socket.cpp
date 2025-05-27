@@ -18,6 +18,14 @@ std::unique_ptr<Socket> socket_ip(int type, int protocol) {
 #endif /* USE_NETWORK_IPV6 */
 }
 
+std::unique_ptr<Socket> socket_ip_monitored(int type, int protocol) {
+#if USE_NETWORK_IPV6
+  return socket_monitored(AF_INET6, type, protocol);
+#else
+  return socket_monitored(AF_INET, type, protocol);
+#endif /* USE_NETWORK_IPV6 */
+}
+
 socklen_t set_sockaddr(struct sockaddr *addr, socklen_t addrlen, const std::string &ip_address, uint16_t port) {
 #if USE_NETWORK_IPV6
   if (ip_address.find(':') != std::string::npos) {
