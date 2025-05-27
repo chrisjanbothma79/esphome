@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <functional>
 #include <limits>
@@ -715,6 +716,25 @@ template<class T> class RAMAllocator {
 #else
     // Ignore ALLOC_EXTERNAL/ALLOC_INTERNAL flags if external allocation is not supported
     ptr = static_cast<T *>(malloc(size));  // NOLINT(cppcoreguidelines-owning-memory,cppcoreguidelines-no-malloc)
+#endif
+    return ptr;
+  }
+
+  T *reallocate(T *p, size_t n) { return this->reallocate(p, n, sizeof(T)); }
+
+  T *reallocate(T *p, size_t n, size_t manual_size) {
+    size_t size = n * sizeof(T);
+    T *ptr = nullptr;
+#ifdef USE_ESP32
+    if (this->flags_ & Flags::ALLOC_EXTERNAL) {
+      ptr = static_cast<T *>(heap_caps_realloc(p, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+    }
+    if (ptr == nullptr && this->flags_ & Flags::ALLOC_INTERNAL) {
+      ptr = static_cast<T *>(heap_caps_realloc(p, size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
+    }
+#else
+    // Ignore ALLOC_EXTERNAL/ALLOC_INTERNAL flags if external allocation is not supported
+    ptr = static_cast<T *>(realloc(p, size));  // NOLINT(cppcoreguidelines-owning-memory,cppcoreguidelines-no-malloc)
 #endif
     return ptr;
   }

@@ -1,6 +1,6 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import sensor, uart
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
     CONF_VOLTAGE,
@@ -10,8 +10,8 @@ from esphome.const import (
     DEVICE_CLASS_VOLTAGE,
     ICON_CURRENT_AC,
     STATE_CLASS_MEASUREMENT,
-    UNIT_VOLT,
     UNIT_AMPERE,
+    UNIT_VOLT,
     UNIT_WATT,
     UNIT_HERTZ,
 )
