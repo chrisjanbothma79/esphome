@@ -15,14 +15,19 @@ namespace camera {
 struct CameraIncrementalContext {
   enum ValueType { VALUE_TYPE_NONE = 0, VALUE_TYPE_INT, VALUE_TYPE_FLOAT, VALUE_TYPE_BOOL, VALUE_TYPE_STRING };
   struct Value {
-    ValueType type = VALUE_TYPE_NONE;
+    ValueType value_type_ = VALUE_TYPE_NONE;
     union {
-      int i;
-      float f;
-      bool b;
+      int i_;
+      float f_;
+      bool b_;
     };
-    std::string s;
-    Value() : type(ValueType::VALUE_TYPE_NONE), i(0) {}
+    std::string s_;
+    Value() : value_type_(ValueType::VALUE_TYPE_NONE), i_(0) {}
+    Value(int value) : value_type_(ValueType::VALUE_TYPE_INT), i_(value) {}
+    Value(float value) : value_type_(ValueType::VALUE_TYPE_FLOAT), f_(value) {}
+    Value(bool value) : value_type_(ValueType::VALUE_TYPE_BOOL), b_(value) {}
+    Value(std::string value) : value_type_(ValueType::VALUE_TYPE_STRING), s_(value) {}
+    Value(const char *value) : value_type_(ValueType::VALUE_TYPE_STRING), s_(value) {}
   };
   // Common coordinates
   int x = 0;
@@ -34,65 +39,57 @@ struct CameraIncrementalContext {
   // Reset to false to leave capture or overlay states.
   bool done = true;
   // Sets user specific persisten data
-  template<typename T> void set(const std::string &key, const T &value) {
-    Value v;
-    if (std::is_same<T, int>::value) {
-      v.type = ValueType::VALUE_TYPE_INT;
-      v.i = value;
-    } else if (std::is_same<T, float>::value) {
-      v.type = ValueType::VALUE_TYPE_FLOAT;
-      v.f = value;
-    } else if (std::is_same<T, bool>::value) {
-      v.type = ValueType::VALUE_TYPE_BOOL;
-      v.b = value;
-    } else if (std::is_same<T, std::string>::value) {
-      v.type = ValueType::VALUE_TYPE_STRING;
-      v.s = value;
-    } else {
-      static_assert(!sizeof(T), "Unsupported type in CameraIncrementalContext::set");
-    }
-
+  void set(const std::string &key, const int value) {
+    Value v(value);
     values_[key] = std::move(v);
   }
-  // Overload for const *char handling
+  void set(const std::string &key, const float value) {
+    Value v(value);
+    values_[key] = std::move(v);
+  }
+  void set(const std::string &key, const bool value) {
+    Value v(value);
+    values_[key] = std::move(v);
+  }
+  void set(const std::string &key, const std::string value) {
+    Value v(value);
+    values_[key] = std::move(v);
+  }
   void set(const std::string &key, const char *value) {
-    Value v;
-    v.type = ValueType::VALUE_TYPE_STRING;
-    v.s = value;
+    Value v(value);
     values_[key] = std::move(v);
   }
-  // Gets user specific persisten data
-  template<typename T> bool get(const std::string &key, T *out) const {
+  bool get(const std::string &key, int *out) const {
     auto it = values_.find(key);
-    if (it == values_.end())
+    if (it == values_.end() || it->second.value_type_ != ValueType::VALUE_TYPE_INT)
       return false;
 
-    const Value &v = it->second;
-    if (std::is_same<T, int>::value) {
-      if (v.type == ValueType::VALUE_TYPE_INT) {
-        *out = v.i;
-        return true;
-      }
-    } else if (std::is_same<T, float>::value) {
-      if (v.type == ValueType::VALUE_TYPE_FLOAT) {
-        *out = v.f;
-        return true;
-      }
-    } else if (std::is_same<T, bool>::value) {
-      if (v.type == ValueType::VALUE_TYPE_BOOL) {
-        *out = v.b;
-        return true;
-      }
-    } else if (std::is_same<T, std::string>::value) {
-      if (v.type == ValueType::VALUE_TYPE_STRING) {
-        *out = v.s;
-        return true;
-      }
-    } else {
-      static_assert(!sizeof(T), "Unsupported type in CameraIncrementalContext::get");
-    }
+    *out = it->second.i_;
+    return true;
+  }
+  bool get(const std::string &key, float *out) const {
+    auto it = values_.find(key);
+    if (it == values_.end() || it->second.value_type_ != ValueType::VALUE_TYPE_FLOAT)
+      return false;
 
-    return false;
+    *out = it->second.f_;
+    return true;
+  }
+  bool get(const std::string &key, bool *out) const {
+    auto it = values_.find(key);
+    if (it == values_.end() || it->second.value_type_ != ValueType::VALUE_TYPE_BOOL)
+      return false;
+
+    *out = it->second.b_;
+    return true;
+  }
+  bool get(const std::string &key, std::string *out) const {
+    auto it = values_.find(key);
+    if (it == values_.end() || it->second.value_type_ != ValueType::VALUE_TYPE_STRING)
+      return false;
+
+    *out = it->second.s_;
+    return true;
   }
   bool has_value(const std::string &key) const { return values_.count(key) > 0; }
   void reset() {

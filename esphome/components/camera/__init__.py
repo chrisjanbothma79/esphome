@@ -132,7 +132,7 @@ CAMERA_SCHEMA = (
             cv.Optional(CONF_MAX_UPDATE_INTERVAL, default=100): cv.int_range(0),
             cv.Optional(CONF_ENCODER_BUFFER_SIZE, default=4096): cv.int_range(1024),
             cv.Optional(CONF_ENCODER_BUFFER_GROW, default=4096): cv.int_range(0),
-            cv.Optional(CONF_ENCODER_MCU_COUNT, default=0): cv.int_range(0),
+            cv.Optional(CONF_ENCODER_MCU_COUNT, default=256): cv.int_range(0),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
