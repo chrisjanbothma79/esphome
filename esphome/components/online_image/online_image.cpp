@@ -3,10 +3,10 @@
 #include "esphome/core/log.h"
 
 static const char *const TAG = "online_image";
-static const std::string ETAG_HEADER_NAME = "etag";
-static const std::string IF_NONE_MATCH_HEADER_NAME = "if-none-match";
-static const std::string LAST_MODIFIED_HEADER_NAME = "last-modified";
-static const std::string IF_MODIFIED_SINCE_HEADER_NAME = "if-modified-since";
+static const char *const ETAG_HEADER_NAME = "etag";
+static const char *const IF_NONE_MATCH_HEADER_NAME = "if-none-match";
+static const char *const LAST_MODIFIED_HEADER_NAME = "last-modified";
+static const char *const IF_MODIFIED_SINCE_HEADER_NAME = "if-modified-since";
 
 #include "image_decoder.h"
 
