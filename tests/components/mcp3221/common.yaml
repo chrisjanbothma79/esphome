@@ -4,4 +4,3 @@ sensor:
     name: voltage
     i2c_id: i2c_mcp3221
     reference_voltage: 3.3V
-    samples_per_second: 10
