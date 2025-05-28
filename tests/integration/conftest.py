@@ -6,8 +6,10 @@ import asyncio
 from collections.abc import AsyncGenerator, Generator
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 import logging
+import os
 from pathlib import Path
 import platform
+import pty
 import signal
 import socket
 import sys
@@ -346,14 +348,30 @@ async def run_binary_and_wait_for_port(
     timeout: float = PORT_WAIT_TIMEOUT,
 ) -> AsyncGenerator[None]:
     """Run a binary, wait for it to open a port, and clean up on exit."""
-    # Run the compiled binary directly with output capture
+    # Create a pseudo-terminal to make the binary think it's running interactively
+    # This is needed because the ESPHome host logger checks isatty()
+    master_fd, slave_fd = pty.openpty()
+
+    # Run the compiled binary with PTY
     process = await asyncio.create_subprocess_exec(
         str(binary_path),
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
+        stdout=slave_fd,
+        stderr=slave_fd,
         stdin=asyncio.subprocess.DEVNULL,
         # Start in a new process group to isolate signal handling
         start_new_session=True,
+        pass_fds=(slave_fd,),
+    )
+
+    # Close the slave end in the parent process
+    os.close(slave_fd)
+
+    # Convert master_fd to async streams for reading
+    loop = asyncio.get_running_loop()
+    master_reader = asyncio.StreamReader()
+    master_protocol = asyncio.StreamReaderProtocol(master_reader)
+    master_transport, _ = await loop.connect_read_pipe(
+        lambda: master_protocol, os.fdopen(master_fd, "rb", 0)
     )
 
     assert process.returncode is None, "Process died immediately"
@@ -364,19 +382,15 @@ async def run_binary_and_wait_for_port(
 
     # Start collecting output
     stdout_lines: list[str] = []
-    stderr_lines: list[str] = []
     output_tasks: list[asyncio.Task] = []
 
     try:
-        if process.stdout and process.stderr:
-            output_tasks = [
-                asyncio.create_task(
-                    _read_stream_lines(process.stdout, stdout_lines, sys.stdout)
-                ),
-                asyncio.create_task(
-                    _read_stream_lines(process.stderr, stderr_lines, sys.stderr)
-                ),
-            ]
+        # Read from the PTY master (combines stdout and stderr)
+        output_tasks = [
+            asyncio.create_task(
+                _read_stream_lines(master_reader, stdout_lines, sys.stdout)
+            )
+        ]
 
         # Small yield to ensure the process has a chance to start
         await asyncio.sleep(0)
@@ -404,16 +418,9 @@ async def run_binary_and_wait_for_port(
             error_msg += f"\nProcess exited with code: {process.returncode}"
 
         # Include any output collected so far
-        if stdout_lines or stderr_lines:
-            error_msg += "\n\n--- Process Output ---"
-            if stdout_lines:
-                error_msg += "\nSTDOUT:\n" + "\n".join(
-                    stdout_lines[-100:]
-                )  # Last 100 lines
-            if stderr_lines:
-                error_msg += "\n\nSTDERR:\n" + "\n".join(
-                    stderr_lines[-100:]
-                )  # Last 100 lines
+        if stdout_lines:
+            error_msg += "\n\n--- Process Output ---\n"
+            error_msg += "\n".join(stdout_lines[-100:])  # Last 100 lines
 
         raise TimeoutError(error_msg)
 
@@ -428,9 +435,12 @@ async def run_binary_and_wait_for_port(
                 result, asyncio.CancelledError
             ):
                 print(
-                    f"Error reading from {'stdout' if i == 0 else 'stderr'}: {result}",
+                    f"Error reading from PTY: {result}",
                     file=sys.stderr,
                 )
+
+        # Close the PTY transport
+        master_transport.close()
 
         # Cleanup: terminate the process gracefully
         if process.returncode is None:
