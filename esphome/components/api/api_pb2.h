@@ -41,7 +41,8 @@ enum FanDirection : uint32_t {
 enum ColorMode : uint32_t {
   COLOR_MODE_UNKNOWN = 0,
   COLOR_MODE_ON_OFF = 1,
-  COLOR_MODE_BRIGHTNESS = 2,
+  COLOR_MODE_LEGACY_BRIGHTNESS = 2,
+  COLOR_MODE_BRIGHTNESS = 3,
   COLOR_MODE_WHITE = 7,
   COLOR_MODE_COLOR_TEMPERATURE = 11,
   COLOR_MODE_COLD_WARM_WHITE = 19,
@@ -1283,6 +1284,65 @@ class SelectCommandRequest : public ProtoMessage {
  protected:
   bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
+};
+class ListEntitiesSirenResponse : public ProtoMessage {
+ public:
+  std::string object_id{};
+  uint32_t key{0};
+  std::string name{};
+  std::string unique_id{};
+  std::string icon{};
+  bool disabled_by_default{false};
+  std::vector<std::string> tones{};
+  bool supports_duration{false};
+  bool supports_volume{false};
+  enums::EntityCategory entity_category{};
+  void encode(ProtoWriteBuffer buffer) const override;
+  void calculate_size(uint32_t &total_size) const override;
+#ifdef HAS_PROTO_MESSAGE_DUMP
+  void dump_to(std::string &out) const override;
+#endif
+
+ protected:
+  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
+  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
+  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
+};
+class SirenStateResponse : public ProtoMessage {
+ public:
+  uint32_t key{0};
+  bool state{false};
+  void encode(ProtoWriteBuffer buffer) const override;
+  void calculate_size(uint32_t &total_size) const override;
+#ifdef HAS_PROTO_MESSAGE_DUMP
+  void dump_to(std::string &out) const override;
+#endif
+
+ protected:
+  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
+  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
+};
+class SirenCommandRequest : public ProtoMessage {
+ public:
+  uint32_t key{0};
+  bool has_state{false};
+  bool state{false};
+  bool has_tone{false};
+  std::string tone{};
+  bool has_duration{false};
+  uint32_t duration{0};
+  bool has_volume{false};
+  float volume{0.0f};
+  void encode(ProtoWriteBuffer buffer) const override;
+  void calculate_size(uint32_t &total_size) const override;
+#ifdef HAS_PROTO_MESSAGE_DUMP
+  void dump_to(std::string &out) const override;
+#endif
+
+ protected:
+  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
+  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
+  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class ListEntitiesLockResponse : public ProtoMessage {
  public:
