@@ -28,7 +28,6 @@ from . import (
     validate_adc_pin,
     AUTO,
     LEGACY,
-    NATIVE,
 )
 
 CONF_CALIBRATION_MODE = "calibration_mode"
