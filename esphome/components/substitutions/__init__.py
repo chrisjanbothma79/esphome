@@ -4,10 +4,24 @@ from esphome import core
 from esphome.config_helpers import Extend, Remove, merge_config
 import esphome.config_validation as cv
 from esphome.const import CONF_SUBSTITUTIONS, VALID_SUBSTITUTIONS_CHARACTERS
+from esphome.jinja import (
+    UndefinedError,
+    expand_str,
+    has_jinja,
+    TemplateError,
+    TemplateSyntaxError,
+    TemplateRuntimeError,
+)
 from esphome.yaml_util import ESPHomeDataBase, make_data_base
 
 CODEOWNERS = ["@esphome/core"]
 _LOGGER = logging.getLogger(__name__)
+
+
+class ExpressionEvalError(Exception):
+    def __init__(self, message, path=None):
+        super().__init__(message)
+        self.path = path
 
 
 def validate_substitution_key(value):
@@ -28,7 +42,7 @@ def validate_substitution_key(value):
 
 CONFIG_SCHEMA = cv.Schema(
     {
-        validate_substitution_key: cv.string_strict,
+        validate_substitution_key: object,
     }
 )
 
@@ -47,7 +61,34 @@ def _expand_substitutions(substitutions, value, path, ignore_missing):
     while True:
         m = cv.VARIABLE_PROG.search(value, i)
         if not m:
-            # Nothing more to match. Done
+            # No more variable substitutions found. See if the remainder looks like a jinja template
+            if has_jinja(value):
+                try:
+                    # Invoke the jinja engine to evaluate the expression.
+                    value = expand_str(value, substitutions)
+                except UndefinedError as err:
+                    if not ignore_missing and "password" not in path:
+                        _LOGGER.warning(
+                            "Found '%s' (see %s) which looks like an expression,"
+                            " but could not resolve all the variables: %s",
+                            value,
+                            "->".join(str(x) for x in path),
+                            err.message,
+                        )
+                except (
+                    TemplateError,
+                    TemplateSyntaxError,
+                    TemplateRuntimeError,
+                    RuntimeError,
+                    ArithmeticError,
+                    AttributeError,
+                    TypeError,
+                ) as err:
+                    raise cv.Invalid(
+                        f"{type(err).__name__} Error evaluating jinja expression '{value}': {str(err)}",
+                        path,
+                    )
+
             break
 
         i, j = m.span(0)
@@ -67,8 +108,15 @@ def _expand_substitutions(substitutions, value, path, ignore_missing):
             continue
 
         sub = substitutions[name]
+
+        if i == 0 and j == len(value):
+            # The variable spans the whole expression, e.g., "${varName}". Return its resolved value directly
+            # to conserve its type.
+            value = sub
+            break
+
         tail = value[j:]
-        value = value[:i] + sub
+        value = value[:i] + str(sub)
         i = len(value)
         value += tail
 
@@ -133,7 +181,7 @@ def do_substitution_pass(config, command_line_substitutions, ignore_missing=Fals
                 sub = validate_substitution_key(key)
                 if sub != key:
                     replace_keys.append((key, sub))
-                substitutions[key] = cv.string_strict(value)
+                substitutions[key] = value
         for old, new in replace_keys:
             substitutions[new] = substitutions[old]
             del substitutions[old]
