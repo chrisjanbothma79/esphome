@@ -738,6 +738,8 @@ async def to_code(config):
                 _LOGGER.warning("Local components are not implemented yet.")
 
     elif conf[CONF_TYPE] == FRAMEWORK_ARDUINO:
+        if framework_ver.major < 3:
+            cg.add_platformio_option("lib_ldf_mode", "off")
         cg.add_platformio_option("framework", "arduino")
         cg.add_build_flag("-DUSE_ARDUINO")
         cg.add_build_flag("-DUSE_ESP32_FRAMEWORK_ARDUINO")
