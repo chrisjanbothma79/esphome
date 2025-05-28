@@ -20,6 +20,10 @@ from aioesphomeapi import APIClient, APIConnectionError, ReconnectLogic
 import pytest
 import pytest_asyncio
 
+import esphome.config
+from esphome.core import CORE
+from esphome.platformio_api import get_idedata
+
 # Skip all integration tests on Windows
 if platform.system() == "Windows":
     pytest.skip(
@@ -142,9 +146,6 @@ async def compile_esphome(
     integration_test_dir: Path,
 ) -> AsyncGenerator[CompileFunction]:
     """Compile an ESPHome configuration and return the binary path."""
-    import esphome.config
-    from esphome.core import CORE
-    from esphome.platformio_api import get_idedata
 
     async def _compile(config_path: Path) -> Path:
         # Compile using subprocess, inheriting stdout/stderr to show progress
