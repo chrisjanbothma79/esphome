@@ -148,24 +148,39 @@ async def compile_esphome(
     """Compile an ESPHome configuration and return the binary path."""
 
     async def _compile(config_path: Path) -> Path:
-        # Compile using subprocess, inheriting stdout/stderr to show progress
-        proc = await asyncio.create_subprocess_exec(
-            "esphome",
-            "compile",
-            str(config_path),
-            cwd=integration_test_dir,
-            stdout=None,  # Inherit stdout
-            stderr=None,  # Inherit stderr
-            stdin=asyncio.subprocess.DEVNULL,
-            # Start in a new process group to isolate signal handling
-            start_new_session=True,
-        )
-        await proc.wait()
-        if proc.returncode != 0:
-            raise RuntimeError(
-                f"Failed to compile {config_path}, return code: {proc.returncode}. "
-                f"Run with 'pytest -s' to see compilation output."
+        # Retry compilation up to 3 times if we get a segfault
+        max_retries = 3
+        for attempt in range(max_retries):
+            # Compile using subprocess, inheriting stdout/stderr to show progress
+            proc = await asyncio.create_subprocess_exec(
+                "esphome",
+                "compile",
+                str(config_path),
+                cwd=integration_test_dir,
+                stdout=None,  # Inherit stdout
+                stderr=None,  # Inherit stderr
+                stdin=asyncio.subprocess.DEVNULL,
+                # Start in a new process group to isolate signal handling
+                start_new_session=True,
             )
+            await proc.wait()
+
+            if proc.returncode == 0:
+                # Success!
+                break
+            elif proc.returncode == -11 and attempt < max_retries - 1:
+                # Segfault (-11 = SIGSEGV), retry
+                print(
+                    f"Compilation segfaulted (attempt {attempt + 1}/{max_retries}), retrying..."
+                )
+                await asyncio.sleep(1)  # Brief pause before retry
+                continue
+            else:
+                # Other error or final retry
+                raise RuntimeError(
+                    f"Failed to compile {config_path}, return code: {proc.returncode}. "
+                    f"Run with 'pytest -s' to see compilation output."
+                )
 
         # Load the config to get idedata (blocking call, must use executor)
         loop = asyncio.get_running_loop()
