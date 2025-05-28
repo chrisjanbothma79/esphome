@@ -350,28 +350,28 @@ async def run_binary_and_wait_for_port(
     """Run a binary, wait for it to open a port, and clean up on exit."""
     # Create a pseudo-terminal to make the binary think it's running interactively
     # This is needed because the ESPHome host logger checks isatty()
-    master_fd, slave_fd = pty.openpty()
+    controller_fd, device_fd = pty.openpty()
 
     # Run the compiled binary with PTY
     process = await asyncio.create_subprocess_exec(
         str(binary_path),
-        stdout=slave_fd,
-        stderr=slave_fd,
+        stdout=device_fd,
+        stderr=device_fd,
         stdin=asyncio.subprocess.DEVNULL,
         # Start in a new process group to isolate signal handling
         start_new_session=True,
-        pass_fds=(slave_fd,),
+        pass_fds=(device_fd,),
     )
 
-    # Close the slave end in the parent process
-    os.close(slave_fd)
+    # Close the device end in the parent process
+    os.close(device_fd)
 
-    # Convert master_fd to async streams for reading
+    # Convert controller_fd to async streams for reading
     loop = asyncio.get_running_loop()
-    master_reader = asyncio.StreamReader()
-    master_protocol = asyncio.StreamReaderProtocol(master_reader)
-    master_transport, _ = await loop.connect_read_pipe(
-        lambda: master_protocol, os.fdopen(master_fd, "rb", 0)
+    controller_reader = asyncio.StreamReader()
+    controller_protocol = asyncio.StreamReaderProtocol(controller_reader)
+    controller_transport, _ = await loop.connect_read_pipe(
+        lambda: controller_protocol, os.fdopen(controller_fd, "rb", 0)
     )
 
     assert process.returncode is None, "Process died immediately"
@@ -385,10 +385,10 @@ async def run_binary_and_wait_for_port(
     output_tasks: list[asyncio.Task] = []
 
     try:
-        # Read from the PTY master (combines stdout and stderr)
+        # Read from the PTY controller (combines stdout and stderr)
         output_tasks = [
             asyncio.create_task(
-                _read_stream_lines(master_reader, stdout_lines, sys.stdout)
+                _read_stream_lines(controller_reader, stdout_lines, sys.stdout)
             )
         ]
 
@@ -440,7 +440,7 @@ async def run_binary_and_wait_for_port(
                 )
 
         # Close the PTY transport
-        master_transport.close()
+        controller_transport.close()
 
         # Cleanup: terminate the process gracefully
         if process.returncode is None:
