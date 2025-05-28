@@ -9,12 +9,16 @@ static const char *const TAG = "output.float";
 
 void FloatOutput::set_max_power(float max_power) {
   this->max_power_ = clamp(max_power, this->min_power_, 1.0f);  // Clamp to MIN>=MAX>=1.0
+  const char *const clamp_str = this->max_power_ != max_power ? "clamped and " : "";
+  ESP_LOGD(TAG, "Max power %sset to: %.1f%%", clamp_str, this->max_power_ * 100.0f);
 }
 
 float FloatOutput::get_max_power() const { return this->max_power_; }
 
 void FloatOutput::set_min_power(float min_power) {
   this->min_power_ = clamp(min_power, 0.0f, this->max_power_);  // Clamp to 0.0>=MIN>=MAX
+  const char *const clamp_str = this->min_power_ != min_power ? "clamped and " : "";
+  ESP_LOGD(TAG, "Min power %sset to: %.1f%%", clamp_str, this->min_power_ * 100.0f);
 }
 
 void FloatOutput::set_zero_means_zero(bool zero_means_zero) { this->zero_means_zero_ = zero_means_zero; }
