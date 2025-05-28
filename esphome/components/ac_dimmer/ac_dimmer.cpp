@@ -195,12 +195,11 @@ void AcDimmer::setup() {
 #ifdef USE_ESP32
   // timer frequency of 1mhz
   dimmer_timer = timerBegin(1000000);
-  timerAttachInterrupt(dimmer_timer, &AcDimmerDataStore::s_timer_intr, true);
+  timerAttachInterrupt(dimmer_timer, &AcDimmerDataStore::s_timer_intr);
   // For ESP32, we can't use dynamic interval calculation because the timerX functions
   // are not callable from ISR (placed in flash storage).
   // Here we just use an interrupt firing every 50 µs.
-  timerAlarmWrite(dimmer_timer, 50, true);
-  timerAlarmEnable(dimmer_timer);
+  timerAlarm(dimmer_timer, 50, true, 0);
 #endif
 }
 void AcDimmer::write_state(float state) {
