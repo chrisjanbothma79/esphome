@@ -392,7 +392,11 @@ async def run_binary_and_wait_for_port(
     )
     output_reader = controller_reader
 
-    assert process.returncode is None, "Process died immediately"
+    if process.returncode is not None:
+        raise RuntimeError(
+            f"Process died immediately with return code {process.returncode}. "
+            "Ensure the binary is valid and can run successfully."
+        )
 
     # Wait for the API server to start listening
     loop = asyncio.get_running_loop()
