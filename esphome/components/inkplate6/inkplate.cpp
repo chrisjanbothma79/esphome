@@ -6,6 +6,7 @@
 #ifdef USE_ESP32_FRAMEWORK_ARDUINO
 
 #include <esp32-hal-gpio.h>
+#include <soc/gpio_struct.h>
 
 namespace esphome {
 namespace inkplate6 {
