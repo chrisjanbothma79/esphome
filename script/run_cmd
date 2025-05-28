@@ -8,6 +8,7 @@ fi
 COMPONENT=""
 CMD="-"
 IS_CLEAN="NO"
+ALL_VARIANTS="NO"
 
 function usage() {
     echo "Usage:  $0 -c -t component_name -w work_dir"
@@ -15,9 +16,10 @@ function usage() {
     exit 1
 }
 
-while getopts w:t:c: flag
+while getopts aw:t:c: flag
 do
     case $flag in
+        a) ALL_VARIANTS="YES";;
         w) WORK_FOLDER=${OPTARG};;
         c) COMPONENT=${OPTARG}
             IS_CLEAN="YES"
@@ -80,31 +82,42 @@ if [  "$IS_CLEAN" == "YES" ]; then
     set +x
 fi
 
-platform=$(cat platformio.ini  | grep -e '^\s*default_envs' | awk -F'=' '{print $2;}' | sed 's/ //g')
+if [ "$ALL_VARIANTS" == "NO" ]; then
+    platform=$(cat platformio.ini  | grep -e '^\s*default_envs' | awk -F'=' '{print $2;}' | sed 's/ //g')
 
-case "$platform" in
-    "esp32c3-arduino" ) shift;
-        PLATFORM_OPT="esp32-c3-ard"
-        ;;
-    "esp32c3-idf" ) shift;
-        PLATFORM_OPT="esp32-c3-idf"
-        ;;
-    "esp32-idf" ) shift;
-        PLATFORM_OPT="esp32-idf"
-        ;;
-    "esp32s3-idf" ) shift;
-        PLATFORM_OPT="esp32-s3-idf"
-        ;;
-    "*")
-        PLATFORM_OPT=""
-        ;;
-    esac
+    case "$platform" in
+        "esp32c3-arduino" ) shift;
+            PLATFORM_OPT="esp32-c3-ard"
+            ;;
+        "esp32c3-idf" ) shift;
+            PLATFORM_OPT="esp32-c3-idf"
+            ;;
+        "esp32-idf" ) shift;
+            PLATFORM_OPT="esp32-idf"
+            ;;
+        "esp32s3-idf" ) shift;
+            PLATFORM_OPT="esp32-s3-idf"
+            ;;
+        "esp32s3-arduino" ) shift;
+            PLATFORM_OPT="esp32-s3-ard"
+            ;;
+        "esp8266-arduino" ) shift;
+            PLATFORM_OPT="esp8266-ard"
+            ;;
+        "*")
+            PLATFORM_OPT=""
+            ;;
+        esac
 
-echo 
-echo "=== Select platform [ $PLATFORM_OPT ] ==="
-echo 
+    echo 
+    echo "=== Select platform [ $PLATFORM_OPT ] ==="
+    echo 
 
-PLATFORM_OPT="-t $PLATFORM_OPT"
+    PLATFORM_OPT="-t $PLATFORM_OPT"
+else 
+    PLATFORM_OPT=""
+fi
+
 
 if [ "$CMD" == "TEST" ]; then
     if [ -z "$COMPONENT" ]; then

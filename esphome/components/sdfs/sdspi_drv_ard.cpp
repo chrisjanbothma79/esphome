@@ -1,5 +1,6 @@
 #include "sdspi_drv_ard.h"
-#if defined(USE_ARDUINO)
+#include "sd_defines.h"
+#if defined(USE_ARDUINO) && !defined(USE_ESP8266)
 #include "dirent.h"
 #include "esp_system.h"
 extern "C" {
@@ -8,9 +9,14 @@ extern "C" {
 #endif
 #include "esp_vfs_fat.h"
 }
+#ifdef USE_SDMMC_MODE
+#include "SD_MMC.h"
+#endif
 
 #if defined(USE_SDSPI_MODE)
 #include "sdspi_io.h"
+#else
+#include "sdmmc_io.h"
 #endif
 
 namespace esphome {
@@ -18,45 +24,95 @@ namespace sdfs {
 
 uint32_t IRAM_ATTR HOT millis() { return (uint32_t) (esp_timer_get_time() / 1000ULL); }
 static const char *const TAG = "sdspi_drv_ard";
-static esp_ardu_sdcard_t *s_cards[FF_VOLUMES] = {NULL};
 
 /****************************************************************
  *
- *             ArduinoSdFatDriver
+ *             ArduinoFatFsDriver
  *
- * @brief   SD card accessed throug SPI Interface  processin
- *
+ * @brief Arduino frameework processing interaction with SDMMC and SDSPI card drivers/controllers
+ *        in ESP32 platform.
+ *        For SDMMC mode it use  SdmmcIO calss for commenication through HAL
+ *        For SDSPI mode it use SPIConnector  classfor use esphome dafault SPI interface.
+ *                  SPIConnector class defined in upper level in SdmmcHost class
  * @param impl   FAT.   Esp fs implementation class
  */
-ArduinoSdFatDriver::ArduinoSdFatDriver() { this->pdrv_ = 0xFF; }
+ArduinoFatFsDriver::ArduinoFatFsDriver() {
+  this->pdrv_ = 0xFF;
+#if defined(USE_SDMMC_MODE)
+  this->mmc_connector = new SdmmcIO();
+#endif
+}
 
-void ArduinoSdFatDriver::set_parent(SdmmcHost *p) { this->parent_ = p; }
-void ArduinoSdFatDriver::set_connector(SpiConnector *cn) { this->connector_ = cn; }
+void ArduinoFatFsDriver::set_parent(SdmmcHost *p) { this->parent_ = p; }
+#if defined(USE_SDSPI_MODE)
+void ArduinoFatFsDriver::set_connector(SpiConnector *cn) { this->connector_ = cn; }
+#endif
 
 /****************************************************************
  *
- * @brief Start SPI  snd SD card slot.
+ * @brief Start SPI snd SD card slot.
  *
  * @return true
  * @return false
  */
-bool ArduinoSdFatDriver::init_host(SdConnType bus_type) {
+bool ArduinoFatFsDriver::init_host(SdConnType bus_type) {
   this->bus_type_ = bus_type;
+  bool ret = false;
 
-  this->connector_->begin();
-  this->pdrv_ = sdspi_init(this->connector_);
-  if (this->pdrv_ == 0xFF)
-    return false;
+#if defined(USE_SDSPI_MODE)
+  if (this->bus_type_ == SD_SPI) {
+    this->connector_->begin();
+    this->pdrv_ = sdspi_init(this->connector_);
 
-  DSTATUS res = ff_sd_initialize(this->pdrv_);
-  if (res & STA_NOINIT) {
-    return false;
+    if (this->pdrv_ != 0xFF) {
+      DSTATUS res = ff_sd_initialize(this->pdrv_);
+      if (res & STA_NOINIT) {
+        ret = false;
+      } else {
+        ret = true;
+      }
+    }
   }
-  return true;
+#endif
+#if defined(USE_SDMMC_MODE)
+  // TODO:  set pins
+  if (this->bus_type_ == SD_MMC) {
+    this->mmc_connector->set_bus_width(this->parent_->spi_bus_width_);
+    this->mmc_connector->set_wp_pin(this->parent_->wp_pin_);
+    this->mmc_connector->set_cd_pin(this->parent_->cd_pin_);
+    this->mmc_connector->set_clk_pin(this->parent_->clk_pin_);
+    this->mmc_connector->set_cmd_pin(this->parent_->cmd_pin_);
+    this->mmc_connector->set_bus_slot(this->parent_->bus_slot_);
+    this->mmc_connector->set_data0_pin(this->parent_->data0_pin_);
+    this->mmc_connector->set_data1_pin(this->parent_->data1_pin_);
+    this->mmc_connector->set_data2_pin(this->parent_->data2_pin_);
+    this->mmc_connector->set_data3_pin(this->parent_->data3_pin_);
+    this->mmc_connector->set_data4_pin(this->parent_->data4_pin_);
+    this->mmc_connector->set_data5_pin(this->parent_->data5_pin_);
+    this->mmc_connector->set_data6_pin(this->parent_->data6_pin_);
+    this->mmc_connector->set_data7_pin(this->parent_->data7_pin_);
+
+    ret = this->mmc_connector->init();
+    this->pdrv_ = this->mmc_connector->get_pdrv();
+    if (ret) {
+      if (this->mmc_connector->init_card() != SDMMC_RET_STATUS_OK) {
+        ret = false;
+      }
+    }
+  }
+#endif
+
+  return ret;
 }
 
 // TODO: Add destructor
-void ArduinoSdFatDriver::end() { sdspi_uninit(this->pdrv_); }
+void ArduinoFatFsDriver::end() {
+#if defined(USE_SDSPI_MODE)
+  if (this->bus_type_ == SD_SPI) {
+    sdspi_uninit(this->pdrv_);
+  }
+#endif
+}
 /****************************************************************
  *
  * @brief check if filesystem is mounted
@@ -64,7 +120,7 @@ void ArduinoSdFatDriver::end() { sdspi_uninit(this->pdrv_); }
  * @return true
  * @return false
  */
-bool ArduinoSdFatDriver::is_mount() { return (this->fs_ != NULL) && (this->fs_->fs_type != 0); }
+bool ArduinoFatFsDriver::is_mount() { return (this->fs_ != NULL) && (this->fs_->fs_type != 0); }
 
 /****************************************************************
  *
@@ -73,17 +129,33 @@ bool ArduinoSdFatDriver::is_mount() { return (this->fs_ != NULL) && (this->fs_->
  * @return true
  * @return false
  */
-bool ArduinoSdFatDriver::is_card() {
+bool ArduinoFatFsDriver::is_card() {
   if (is_mount()) {
-    connector_->beginTransaction();
-    bool res = sdGetSectorsCount(this->pdrv_) != 0;
-    connector_->endTransaction();
-    if (!res) {
-      unmount();
-      return false;
+#if defined(USE_SDSPI_MODE)
+    if (this->bus_type_ == SD_SPI) {
+      connector_->beginTransaction();
+      bool res = sdGetSectorsCount(this->pdrv_) != 0;
+      connector_->endTransaction();
+      if (!res) {
+        unmount();
+        return false;
+      }
     }
-  } else
+#endif
+#if defined(USE_SDSMMC_MODE)
+    if (this->bus_type_ == SD_MMC) {
+      init_status_t st = this->mmc_connector->get_disk_status();
+      if (st = SDMMC_RET_STATUS_OK)
+        return true;
+      else {
+        this->mmc_connector->unmount();
+        return false;
+      }
+    }
+#endif
+  } else {
     return attach_card();
+  }
   return true;
 }
 
@@ -106,9 +178,22 @@ bool ArduinoSdFatDriver::is_card() {
  * @return true
  * @return false
  */
-bool ArduinoSdFatDriver::attach_card() {
-  bool is_card = !(ff_sd_initialize(pdrv_) & STA_NOINIT);
-  ESP_LOGD(TAG, "Attach card. ret=%s", is_card ? "TRUE" : "FALSE");
+bool ArduinoFatFsDriver::attach_card() {
+  bool is_card = false;
+
+#if defined(USE_SDSPI_MODE)
+  if (this->bus_type_ == SD_SPI) {
+    is_card = !(ff_sd_initialize(pdrv_) & STA_NOINIT);
+    ESP_LOGD(TAG, "Attach card. ret=%s", is_card ? "TRUE" : "FALSE");
+  }
+#endif
+#if defined(USE_SDMMC_MODE)
+  if (this->bus_type_ == SD_MMC) {
+    // init_status_t status = this->mmc_connector->init_card();
+    // if ( status == SDMMC_RET_STATUS_OK )
+    is_card = this->mmc_connector->init_card() == SDMMC_RET_STATUS_OK;
+  }
+#endif
   return is_card;
 }
 
@@ -121,36 +206,36 @@ bool ArduinoSdFatDriver::attach_card() {
  * @return true  Mouned
  * @return false  Not mounted
  */
-bool ArduinoSdFatDriver::mount(std::string mountpoint, bool format) {
+bool ArduinoFatFsDriver::mount(std::string mountpoint, bool format) {
   ESP_LOGV(TAG, "Mount FS. pdrv=%d, Mountpoint %s", this->pdrv_, mountpoint);
-  this->fs_ = mount_sdspi(this->pdrv_, mountpoint, format);
+#if defined(USE_SDSPI_MODE)
+  if (this->bus_type_ == SD_SPI) {
+    this->fs_ = sdcard_mount(this->pdrv_, mountpoint.c_str(), 5, format);
+    if (this->fs_ == NULL) {
+      sdcard_unmount(this->pdrv_);
+    }
+  }
+#endif
 
-  if (this->fs_ != NULL) {
-    ESP_LOGD(TAG, "Disk mounnted. pdrv=%d, fs type %s", this->pdrv_, fat_type2str[this->fs_->fs_type]);
-    return true;
-  } else {
+#if defined(USE_SDMMC_MODE)
+  if (this->bus_type_ == SD_MMC) {
+    this->fs_ = this->mmc_connector->mount(mountpoint);
+    if ((this->fs_ != NULL) && (IS_LAST_ERR(ERR_TYPE_LOCAL, RC_NOT_FORMATED)) && format) {
+      ESP_LOGD(TAG, "Disk mount fail.  Will formated pdrv=%d", this->pdrv_);
+      local_rc_t format_res = this->mmc_connector->format();
+      if (format_res == RC_OK) {
+        this->fs_ = this->mmc_connector->mount(mountpoint);
+      }
+    }
+  }
+#endif
+
+  if (this->fs_ == NULL) {
     ESP_LOGD(TAG, "Disk mount fail. pdrv=%d", this->pdrv_);
     return false;
   }
+  ESP_LOGD(TAG, "Disk mounnted. pdrv=%d, fs type %s", this->pdrv_, fat_type2str[this->fs_->fs_type]);
   return true;
-}
-
-/****************************************************************
- *
- * @brief  Mount sdcard in spi mode
- *
- * @param pdrv
- * @param mountpoint
- * @param format
- * @return FATFS*
- */
-FATFS *ArduinoSdFatDriver::mount_sdspi(uint8_t pdrv, std::string mountpoint, bool format) {
-  FATFS *fs = sdcard_mount(pdrv, mountpoint.c_str(), 5, format);
-  if (fs == NULL) {
-    ESP_LOGE(TAG, "Cannot mount");
-    sdcard_unmount(this->pdrv_);
-  }
-  return fs;
 }
 
 /****************************************************************
@@ -160,7 +245,7 @@ FATFS *ArduinoSdFatDriver::mount_sdspi(uint8_t pdrv, std::string mountpoint, boo
  * @return true
  * @return false
  */
-bool ArduinoSdFatDriver::test() {
+bool ArduinoFatFsDriver::test() {
   FF_DIR dir;
   FILINFO fno;
   FRESULT res;
@@ -194,39 +279,91 @@ bool ArduinoSdFatDriver::test() {
  * @brief Unmount driver. Ckear mount point registration.
  *
  */
-void ArduinoSdFatDriver::unmount() {
+void ArduinoFatFsDriver::unmount() {
   // _impl->mountpoint(NULL);
-  sdcard_unmount(this->pdrv_);
+#if defined(USE_SDSPI_MODE)
+  if (this->bus_type_ == SD_SPI) {
+    sdcard_unmount(this->pdrv_);
+  }
+#endif
+#if defined(USE_SDMMC_MODE)
+  if (this->bus_type_ == SD_MMC) {
+    this->mmc_connector->unmount();
+  }
+#endif
   this->fs_ = NULL;
 }
 
-uint32_t ArduinoSdFatDriver::get_last_err() { return this->last_err_; }
+uint32_t ArduinoFatFsDriver::get_last_err() { return this->last_err_; }
 
-sdcard_type_t ArduinoSdFatDriver::cardType() {
+sdcard_type_t ArduinoFatFsDriver::cardType() {
+  sdcard_type_t type = CARD_NONE;
   if (!is_mount())
-    return CARD_NONE;
-  return s_cards[pdrv_]->type;
+    return type;
+
+#if defined(USE_SDSPI_MODE)
+  if (this->bus_type_ == SD_SPI) {
+    type = ff_sd_type(this->pdrv_);
+  }
+#endif
+#if defined(USE_SDMMC_MODE)
+  if (this->bus_type_ == SD_MMC) {
+    if (this->mmc_connector->is_card_mem())
+      type = CARD_UNKNOWN;
+    else if (this->mmc_connector->is_card_sdio())
+      type = CARD_SD;
+    else if (this->mmc_connector->is_card_mmc())
+      type = CARD_MMC;
+    else
+      type = CARD_UNKNOWN;
+  }
+#endif
+  return type;
 }
 
-uint64_t ArduinoSdFatDriver::cardSize() {
+uint64_t ArduinoFatFsDriver::cardSize() {
   if (!is_mount())
     return 0;
   return (uint64_t) numSectors() * this->sectorSize();
 }
 
-size_t ArduinoSdFatDriver::numSectors() {
+size_t ArduinoFatFsDriver::numSectors() {
+  size_t sectors = 0;
   if (!is_mount())
     return 0;
-  return s_cards[pdrv_]->sectors;
+
+#if defined(USE_SDSPI_MODE)
+  if (this->bus_type_ == SD_SPI) {
+    sectors = ff_sd_sectors(this->pdrv_);
+  }
+#endif
+#if defined(USE_SDMMC_MODE)
+  if (this->bus_type_ == SD_MMC) {
+    sectors = this->mmc_connector->sectors();
+  }
+#endif
+  return sectors;
 }
 
-size_t ArduinoSdFatDriver::sectorSize() {
+size_t ArduinoFatFsDriver::sectorSize() {
+  size_t size = 0;
   if (!is_mount())
     return 0;
-  return FF_SS_SDCARD;
+
+#if defined(USE_SDSPI_MODE)
+  if (this->bus_type_ == SD_SPI) {
+    size = FF_SS_SDCARD;
+  }
+#endif
+#if defined(USE_SDMMC_MODE)
+  if (this->bus_type_ == SD_MMC) {
+    size = this->mmc_connector->sector_size();
+  }
+#endif
+  return size;
 }
 
-uint64_t ArduinoSdFatDriver::totalBytes() {
+uint64_t ArduinoFatFsDriver::totalBytes() {
   uint64_t size = 0;
   if (is_mount()) {
     DWORD fre_clust;
@@ -242,7 +379,7 @@ uint64_t ArduinoSdFatDriver::totalBytes() {
   return size;
 }
 
-uint64_t ArduinoSdFatDriver::usedBytes() {
+uint64_t ArduinoFatFsDriver::usedBytes() {
   uint64_t size = 0;
   if (is_mount()) {
     DWORD fre_clust;

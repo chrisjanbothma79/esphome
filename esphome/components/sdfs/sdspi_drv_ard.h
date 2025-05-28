@@ -1,7 +1,7 @@
 #pragma once
 #include "esphome/core/defines.h"
 #include "sdfs.h"
-#if defined(USE_ARDUINO)
+#if defined(USE_ARDUINO) && !defined(USE_ESP8266)
 #include "spi_connector.h"
 // #include "esphome/components/spi/spi.h"
 // #include <SPI.h>
@@ -9,51 +9,32 @@
 // #include <SD.h>
 // #include "FSImpl.h"
 // #include "sd_defines.h"
+
 extern "C" {
 #include "ff.h"
 }
 #include "sdspi_io.h"
+#include "sdmmc_io.h"
 
 namespace esphome {
 namespace sdfs {
 
-#define FREE(ptr) \
-  { \
-    free(ptr); \
-    ptr = NULL; \
-  }
-
-#define IS_LAST_ERR(x, y) (((this->last_err_ >> 16) == x) && ((this->last_err_ & 0x0000ffff) == y))
-
-#define IDF_ERR 1    // Errors from framework
-#define FS_ERR 2     // Errors from filesysytems
-#define LOCAL_ERR 3  // Local errors
-
-#define RC_OK 0x1
-#define RC_NO_NMEM 0x2
-#define RC_INVALID_ARG 0x4
-#define RC_NO_CARD 0x8
-
-#define SET_RC(x, y, str) \
-  do { \
-    this->last_err_ = (x << 16) | y; \
-    ESP_LOGE(TAG, str " (0x%x).", y); \
-  } while (0)
-
 //  SD - Esample  https://github.com/espressif/arduino-esp32/issues/6237
 
-class ArduinoSdFatDriver : public DriverInterface {
+class ArduinoFatFsDriver : public DriverInterface {
  public:
-  ArduinoSdFatDriver();
+  ArduinoFatFsDriver();
   void end();
   void set_parent(SdmmcHost *) override;
+#if defined(USE_SDSPI_MODE)
   void set_connector(SpiConnector *);
+#endif
   bool init_host(SdConnType) override;
   bool is_card() override;
   // bool init_card();
   bool attach_card() override;
   bool mount(std::string, bool) override;
-  FATFS *mount_sdspi(uint8_t, std::string, bool);
+  // FATFS *mount_sdspi(uint8_t, std::string, bool);
   bool is_mount();
   bool test() override;
   void unmount() override;
@@ -69,7 +50,11 @@ class ArduinoSdFatDriver : public DriverInterface {
   bool writeRAW(uint8_t *buffer, uint32_t sector);
 
  protected:
-  SpiConnector *connector_;
+#if defined(USE_SDSPI_MODE)
+  SpiConnector *connector_ = {NULL};
+#else
+  SdmmcIO *mmc_connector = {NULL};
+#endif
   FATFS *fs_ = NULL;
   uint8_t pdrv_;
   uint32_t frequency_;

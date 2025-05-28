@@ -1,13 +1,16 @@
 #pragma once
 #include "esphome/core/defines.h"
-#ifdef USE_SDSPI_MODE
+#include "sdfs.h"
+#if defined(USE_SDSPI_MODE) && !defined(USE_ESP8266)
 // #include "esphome/components/spi/spi.h"
+
 #if defined(USE_ARDUINO)
 #include <SPI.h>
 #else
 #include "driver/spi_master.h"
 #endif
 
+// #include "ffconf.h"
 #include "diskio_impl.h"
 #include "spi_connector.h"
 // #include <FS.h>
@@ -21,7 +24,7 @@ extern "C" {
 namespace esphome {
 namespace sdfs {
 
-typedef enum { CARD_NONE, CARD_MMC, CARD_SD, CARD_SDHC, CARD_UNKNOWN } sdcard_type_t;
+// typedef enum { CARD_NONE, CARD_MMC, CARD_SD, CARD_SDHC, CARD_UNKNOWN } sdcard_type_t;
 typedef enum { ST_NOTINIT, ST_INIT, ST_MOUNT } slot_status_t;
 
 typedef enum {
@@ -58,11 +61,15 @@ typedef struct {
   int status;
 } esp_ardu_sdcard_t;
 
+// static esp_ardu_sdcard_t *s_cards[FF_VOLUMES] = {NULL};
+
 uint8_t sdspi_init(SpiConnector *);
 void sdspi_uninit(uint8_t);
 static const ff_diskio_impl_t *sdimpl_init();
 unsigned long sdGetSectorsCount(uint8_t);
-DSTATUS ff_sd_initialize(uint8_t pdrv);
+DSTATUS ff_sd_initialize(uint8_t);
+sdcard_type_t ff_sd_type(uint8_t);
+size_t ff_sd_sectors(uint8_t);
 
 // uint8_t sdcard_uninit(uint8_t);
 FATFS *sdcard_mount(uint8_t, const char *, uint8_t, bool);

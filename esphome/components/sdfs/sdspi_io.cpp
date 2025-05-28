@@ -1,5 +1,5 @@
 #include "sdspi_io.h"
-#ifdef USE_SDSPI_MODE
+#if defined(USE_SDSPI_MODE) && !defined(USE_ESP8266)
 #include "dirent.h"
 #include "esp_system.h"
 #include "esp_log.h"
@@ -53,6 +53,9 @@ static size_t allocation_unit_size = 16 * 1024;
 FATFS *fs_handler;
 
 // uint32_t millis() { return (uint32_t) (esp_timer_get_time() / 1000ULL); }
+
+sdcard_type_t ff_sd_type(uint8_t pdrv) { return s_cards[pdrv]->type; }
+size_t ff_sd_sectors(uint8_t pdrv) { return s_cards[pdrv]->sectors; }
 
 uint8_t sdspi_init(SpiConnector *connector_) {
   uint8_t pdrv = FF_DRV_NOT_USED;

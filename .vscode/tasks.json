@@ -44,6 +44,42 @@
          "clear": true
       }
    },
+
+   {
+      "type": "shell",
+      "label": "Test All variants",
+      "command": "script/run_cmd  -a -t sdfs",
+      "problemMatcher": {
+         "owner": "esphome",
+         "fileLocation": [
+            "relative",
+            "${workspaceFolder}/"
+         ],
+         "pattern": [
+            {
+               "regexp": "^src.(.*):(\\d+):(\\d+):\\s+(warning|error|note|fatal error):\\s+(.*)$",
+               "file": 1,
+               "line": 2,
+               "column": 3,
+               "severity": 4,
+               "message": 5
+            }
+         ]
+      },
+      "group": {
+         "kind": "build",
+         "isDefault": false
+      },
+      "presentation": {
+         "reveal": "always",
+         "panel": "shared",
+         "clear": true
+      }
+   },
+
+
+
+
    {
       "type": "shell",
       "label": "Clean all",

@@ -12,6 +12,7 @@
 
 #include "esphome/components/spi/spi.h"
 #include "spi_connector.h"
+
 // #include "SdFat.h"
 // #include "SpiDriver/SdSpiBaseClass.h"
 #endif
@@ -20,6 +21,12 @@
 
 namespace esphome {
 namespace sdfs {
+
+typedef enum { CARD_NONE, CARD_MMC, CARD_SD, CARD_SDHC, CARD_UNKNOWN } sdcard_type_t;
+
+#define RET_STATUS_OK 0
+#define RET_STATUS_FAIL 1
+#define RET_STATUS_NOTCRITICAL 2
 
 enum SdDriverStatus : int {
   SD_SLOT_ST_NOTINIT = 0,
@@ -43,19 +50,27 @@ enum SdConnType {
 extern const char *fat_type2str[];
 extern const char *fs_err2str[];
 
-#ifdef USE_SDSPI_MODE
-extern const char *fs_err2str[];
-#endif
+// #ifdef USE_SDSPI_MODE
+// extern const char *fs_err2str[];
+// #endif
+
 extern const char *host_st2str[];
 
 #ifdef USE_SDSPI_MODE
 class SpiConnector;
 #endif
+
 class DriverInterface;
 
 class SdmmcHost : public Component {
   friend class SdmmcDriver;
   friend class SdmmcIdfDriver;
+  friend class ArduinoFatFsDriver;
+
+  // #ifdef USE_ESP_IDF
+  // #endif
+  // #ifdef USE_ARDUINO
+  // #endif
 
  public:
   SdmmcHost();

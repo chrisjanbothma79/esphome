@@ -18,4 +18,4 @@ substitutions:
   miso_pin_name: GPIO5
   mosi_pin_name: GPIO6
   cs_pin_name: GPIO7
-<<: !include common-sdspi-idf.yaml
+<<: !include common-sdspi.yaml

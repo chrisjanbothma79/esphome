@@ -15,4 +15,4 @@ substitutions:
   miso_pin_name: "12"
   mosi_pin_name: "13"
   cs_pin_name: "5"
-<<: !include common-sdspi-ard.yaml
+<<: !include common-sdspi.yaml

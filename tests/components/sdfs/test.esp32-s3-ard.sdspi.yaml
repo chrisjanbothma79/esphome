@@ -1,0 +1,13 @@
+esphome:
+  name: "test"
+
+substitutions:
+  type_str: "sdspi"
+  # clk_pin_name: GPIO11
+  # cmd_pin_name: GPIO12
+  # data0_pin_name: GPIO13
+  clk_pin_name: GPIO11
+  miso_pin_name: GPIO12
+  mosi_pin_name: GPIO13
+  cs_pin_name: GPIO5
+<<: !include common-sdspi.yaml

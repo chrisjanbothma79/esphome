@@ -22,36 +22,36 @@
 namespace esphome {
 namespace sdfs {
 
-#define FREE(ptr) \
-  { \
-    free(ptr); \
-    ptr = NULL; \
-  }
+// #define FREE(ptr) \
+//   { \
+//     free(ptr); \
+//     ptr = NULL; \
+//   }
 
-#define IS_LAST_ERR(x, y) (((this->last_err_ >> 16) == x) && ((this->last_err_ & 0x0000ffff) == y))
+// #define IS_LAST_ERR(x, y) (((this->last_err_ >> 16) == x) && ((this->last_err_ & 0x0000ffff) == y))
 
-#define FW_ERR 1  // Errors from framework
-#define FS_ERR 2  // Errors from filesysytems
-#define LC_ERR 3  // Local errors
+// #define FW_ERR 1  // Errors from framework
+// #define FS_ERR 2  // Errors from filesysytems
+// #define LC_ERR 3  // Local errors
 
-#define RC_OK 0x1
-#define RC_NO_NMEM 0x2
-#define RC_INVALID_ARG 0x4
-#define RC_NO_CARD 0x8
+// #define RC_OK 0x1
+// #define RC_NO_NMEM 0x2
+// #define RC_INVALID_ARG 0x4
+// #define RC_NO_CARD 0x8
 
-#define SET_RC(x, y, str) \
-  do { \
-    this->last_err_ = (x << 16) | y; \
-    ESP_LOGE(TAG, str " (0x%x).", y); \
-  } while (0)
+// #define SET_RC(x, y, str) \
+//   do { \
+//     this->last_err_ = (x << 16) | y; \
+//     ESP_LOGE(TAG, str " (0x%x).", y); \
+//   } while (0)
 
-struct FilePtr {
-  FILE *FL;
-};
+// struct FilePtr {
+//   FILE *FL;
+// };
 
-#define RET_STATUS_OK 0
-#define RET_STATUS_FAIL 1
-#define RET_STATUS_NOTCRITICAL 2
+// #define RET_STATUS_OK 0
+// #define RET_STATUS_FAIL 1
+// #define RET_STATUS_NOTCRITICAL 2
 
 class SdmmcHost;
 

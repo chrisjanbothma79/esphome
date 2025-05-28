@@ -9,5 +9,6 @@ spi:
 
 sdfs:
   id: sdfs_1
+  spi_id: spi_1
   type: sdspi
   cs_pin: ${cs_pin_name}

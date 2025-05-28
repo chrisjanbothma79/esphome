@@ -1,4 +1,5 @@
 #include "sdfs.h"
+#include "sd_defines.h"
 
 #if defined(USE_ESP_IDF)
 #include "diskio_impl.h"
@@ -10,14 +11,13 @@
 #include "driver/sdmmc_host.h"
 #include "driver/sdmmc_types.h"
 #if defined(SOC_SDMMC_HOST_SUPPORTED)
-
+#include "sdmmc_io.h"
 #endif
 #include "driver/sdspi_host.h"
 // #include "diskio_impl.h"
 #include "hal/spi_types.h"
 #include "esp_vfs_fat.h"
 #include "vfs_fat_internal.h"
-#include "sdfs.h"
 #include "sdmmc_drv_idf.h"
 #include "stdio.h"
 
@@ -213,7 +213,7 @@ uint8_t SdmmcIdfDriver::init_sdmmc(sdmmc_host_t *host_config) {
 
   //   Select  drive for mount.
   if (ff_diskio_get_drive(&pdrv) != ESP_OK || pdrv == FF_DRV_NOT_USED) {
-    SET_RC(FW_ERR, rc, "the maximum count of volumes is already mounted");
+    SET_RC(ERR_TYPE_FRAMEWORK, rc, "the maximum count of volumes is already mounted");
     return RET_STATUS_FAIL;
   }
   this->pdrv_ = pdrv;
@@ -260,7 +260,7 @@ uint8_t SdmmcIdfDriver::init_sdmmc(sdmmc_host_t *host_config) {
   slot_num = this->parent_->bus_slot_ == 0 ? SDMMC_HOST_SLOT_0 : SDMMC_HOST_SLOT_1;
   rc = sdmmc_host_init_slot(slot_num, this->slot_config_);
   if (rc != ESP_OK) {
-    SET_RC(FW_ERR, rc, "Failed to init slot host");
+    SET_RC(ERR_TYPE_FRAMEWORK, rc, "Failed to init slot host");
     return RET_STATUS_FAIL;
   }
   ESP_LOGI(TAG, "SDMMC Init bus, slot %d, width %d", slot_num, this->slot_config_->width);
@@ -272,7 +272,7 @@ uint8_t SdmmcIdfDriver::init_sdmmc(sdmmc_host_t *host_config) {
   if (!this->attach_card()) {
     // if (this->is_last_err(LC_ERR, ESP_ERR_TIMEOUT))
     //   return RET_STATUS_NOTCRITICAL;
-    if (IS_LAST_ERR(LC_ERR, ESP_ERR_TIMEOUT)) {
+    if (IS_LAST_ERR(ERR_TYPE_LOCAL, ESP_ERR_TIMEOUT)) {
       return RET_STATUS_NOTCRITICAL;
     } else {
       return RET_STATUS_FAIL;
@@ -386,10 +386,10 @@ bool SdmmcIdfDriver::attach_card() {
       ESP_LOGI(TAG, "Init SDCARD, slot %d, bus width %d bit, freq=%d khz", this->host_config_->slot, sl_width, freq);
 
     } else if (rc == ESP_ERR_TIMEOUT) {  // Timout. Lookslike no card in slot
-      SET_RC(LC_ERR, ESP_ERR_TIMEOUT, "Card timeout.");
+      SET_RC(ERR_TYPE_LOCAL, RC_NO_CARD, "Card timeout.");
       is_card = false;
     } else {
-      SET_RC(LC_ERR, RC_NO_CARD, "No sd card in slot");
+      SET_RC(ERR_TYPE_FRAMEWORK, rc, "Cannot init card");
       is_card = false;
     }
   }
@@ -507,7 +507,7 @@ FATFS *SdmmcIdfDriver::mount_sdmmc(uint8_t pdrv, std::string mountpoint, bool fo
   this->mount_config_->allocation_unit_size = 16 * 1024;
 
   if (this->mount_config_ == NULL) {
-    SET_RC(FW_ERR, ESP_ERR_NO_MEM, "Not enough memory");
+    SET_RC(ERR_TYPE_LOCAL, RC_NO_MEM, "Mount. Not enough memory");
     return NULL;
   }
 
@@ -522,19 +522,19 @@ FATFS *SdmmcIdfDriver::mount_sdmmc(uint8_t pdrv, std::string mountpoint, bool fo
   if (rc == ESP_ERR_INVALID_STATE) {
     // it's okay, already registered with VFS
   } else if (rc != ESP_OK) {
-    SET_RC(FW_ERR, rc, "esp_vfs_fat_register failed");
+    SET_RC(ERR_TYPE_FRAMEWORK, rc, "esp_vfs_fat_register failed");
     goto unregister_fs;
   }
 
   mount_rc = f_mount(fs, drv, 1);
   if ((mount_rc != FR_OK) && (!format)) {
-    SET_RC(FS_ERR, mount_rc, "Cannot mount");
+    SET_RC(ERR_TYPE_FILESYS, mount_rc, "Cannot mount");
     goto unregister_fs;
 
   } else if (format) {  // this->mount_config_->format_if_mount_failed
     bool need_mount_again = (mount_rc == FR_NO_FILESYSTEM || mount_rc == FR_INT_ERR);
     if (!need_mount_again) {
-      SET_RC(FS_ERR, mount_rc, "Cannot format");
+      SET_RC(ERR_TYPE_FILESYS, mount_rc, "Cannot format");
       goto unregister_fs;
     }
     ESP_LOGD(TAG, "FAT Prtitioning");
@@ -545,7 +545,7 @@ FATFS *SdmmcIdfDriver::mount_sdmmc(uint8_t pdrv, std::string mountpoint, bool fo
     ESP_LOGD(TAG, "FAT mount again");
     mount_rc = f_mount(fs, drv, 1);
     if (mount_rc != FR_OK) {
-      SET_RC(FS_ERR, mount_rc, "f_mount failed after formatting");
+      SET_RC(ERR_TYPE_FILESYS, mount_rc, "f_mount failed after formatting");
       goto unregister_fs;
     }
   }
@@ -590,13 +590,13 @@ void SdmmcIdfDriver::unmount_sdmmc(uint8_t pdrv, std::string mountpoint) {
   char drv[3] = {(char) ('0' + pdrv), ':', 0};
   FRESULT res = f_mount(0, drv, 0);
   if (res != FR_OK) {
-    SET_RC(FS_ERR, res, "Unmount return");
+    SET_RC(ERR_TYPE_FILESYS, res, "Unmount return");
   }
   //  Clear registration
   ff_diskio_register(pdrv, NULL);
   rc = esp_vfs_fat_unregister_path(mountpoint_.c_str());
   if (rc != ESP_OK) {
-    SET_RC(FW_ERR, rc, "Cannot unregister root path");
+    SET_RC(ERR_TYPE_FRAMEWORK, rc, "Cannot unregister root path");
   }
   FREE(this->mount_config_);
 
@@ -607,7 +607,7 @@ void SdmmcIdfDriver::unmount_sdmmc(uint8_t pdrv, std::string mountpoint) {
   uint8_t slot_num = this->parent_->bus_slot_ == 0 ? SDMMC_HOST_SLOT_0 : SDMMC_HOST_SLOT_1;
   rc = sdmmc_host_init_slot(slot_num, this->slot_config_);
   if (rc != ESP_OK) {
-    SET_RC(FW_ERR, rc, "Failed to init slot host");
+    SET_RC(ERR_TYPE_FRAMEWORK, rc, "Failed to init slot host");
     return;
   }
   ESP_LOGI(TAG, "Reset slot inicialization, slot %d, width %d", slot_num, this->slot_config_->width);
@@ -649,7 +649,7 @@ uint16_t partition_card(const esp_vfs_fat_mount_config_t *mount_config, const ch
   workbuf = ff_memalloc(workbuf_size);
   if (workbuf == NULL) {
     ESP_LOGE(TAG, "not enough mem");
-    return FW_ERR << 8 | ESP_ERR_NO_MEM;
+    return ERR_TYPE_FRAMEWORK << 8 | ESP_ERR_NO_MEM;
   }
 
 #ifdef USE_ESP_IDF
@@ -659,7 +659,7 @@ uint16_t partition_card(const esp_vfs_fat_mount_config_t *mount_config, const ch
     err = ESP_FAIL;
     ESP_LOGD(TAG, "f_fdisk failed (%d)", res);
     free(workbuf);
-    return FS_ERR << 8 | err;
+    return ERR_TYPE_FILESYS << 8 | err;
   }
 #endif
 
@@ -677,7 +677,7 @@ uint16_t partition_card(const esp_vfs_fat_mount_config_t *mount_config, const ch
     err = ESP_FAIL;
     ESP_LOGD(TAG, "f_mkfs failed (%d)", res);
     free(workbuf);
-    return FS_ERR << 8 | err;
+    return ERR_TYPE_FILESYS << 8 | err;
   }
 
   free(workbuf);

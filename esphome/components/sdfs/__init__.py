@@ -13,6 +13,7 @@ from esphome.const import (
     # KEY_TARGET_FRAMEWORK,
     KEY_VARIANT,
     PLATFORM_ESP32,
+    PLATFORM_ESP8266,
     # PLATFORM_ESP8266,
 )
 from esphome.core import CORE
@@ -67,7 +68,11 @@ def validate_raw_data(value):
 
 def _validate(config):
     platform = CORE.target_platform
-    variant = CORE.data[KEY_ESP32][KEY_VARIANT]
+    # CORE.data[KEY_CORE][KEY_TARGET_PLATFORM]
+    if platform == PLATFORM_ESP32:
+        variant = CORE.data[KEY_ESP32][KEY_VARIANT]
+    elif platform == PLATFORM_ESP8266:
+        variant = PLATFORM_ESP8266
 
     if config[CONF_TYPE] == "sdspi":
         pass
@@ -200,17 +205,22 @@ CONFIG_SCHEMA = cv.All(
 
 
 async def to_code(config):
-    # core_data = CORE.data[KEY_CORE]
-    # framework = core_data[KEY_TARGET_FRAMEWORK]
-
     if CORE.using_esp_idf and (config[CONF_TYPE] == "sdspi"):
         cg.add_define("USE_SDSPI_MODE")
+        print("SDSPI ESP")
     elif CORE.using_esp_idf and (config[CONF_TYPE] == "sdmmc"):
         cg.add_define("USE_SDMMC_MODE")
+        print("SDMMC ESP")
     elif CORE.using_arduino and (config[CONF_TYPE] == "sdspi"):
+        if CORE.target_platform == PLATFORM_ESP8266:
+            cg.add_library("SdFat", None)
         cg.add_define("USE_SDSPI_MODE")
+        print("SDSPI ARDUINO")
     elif CORE.using_arduino and (config[CONF_TYPE] == "sdmmc"):
         cg.add_define("USE_SDMMC_MODE")
+        cg.add_library("FS", None)
+        cg.add_library("SD_MMC", None)
+        print("SDMMC ARDUINO")
     else:
         raise cv.Invalid("Unsupported platform")
 

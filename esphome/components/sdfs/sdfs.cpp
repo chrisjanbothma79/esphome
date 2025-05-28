@@ -151,7 +151,7 @@ void SdmmcHost::setup() {
   ESP_LOGD(TAG, "Setup called");
 
 #if defined(USE_ARDUINO)
-  ArduinoSdFatDriver *drv = new ArduinoSdFatDriver();
+  ArduinoFatFsDriver *drv = new ArduinoFatFsDriver();
 #if defined(USE_SDSPI_MODE)
   drv->set_connector(this->connector_);
 #endif
