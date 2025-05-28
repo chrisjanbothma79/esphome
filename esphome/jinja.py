@@ -9,6 +9,7 @@ TemplateError = jinja.TemplateError
 TemplateSyntaxError = jinja.TemplateSyntaxError
 TemplateRuntimeError = jinja.TemplateRuntimeError
 UndefinedError = jinja.UndefinedError
+Undefined = jinja.Undefined
 
 _LOGGER = logging.getLogger(__name__)
 DETECT_JINJA = r"(\$\{)"

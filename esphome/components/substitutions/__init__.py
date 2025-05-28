@@ -11,6 +11,7 @@ from esphome.jinja import (
     TemplateError,
     TemplateSyntaxError,
     TemplateRuntimeError,
+    Undefined,
 )
 from esphome.yaml_util import ESPHomeDataBase, make_data_base
 
@@ -63,9 +64,13 @@ def _expand_substitutions(substitutions, value, path, ignore_missing):
         if not m:
             # No more variable substitutions found. See if the remainder looks like a jinja template
             if has_jinja(value):
+                expr_result = None
                 try:
                     # Invoke the jinja engine to evaluate the expression.
-                    value = expand_str(value, substitutions)
+                    expr_result = expand_str(value, substitutions)
+                    if isinstance(expr_result, Undefined):
+                        "" + expr_result  # force a UndefinedError exception
+                    value = expr_result
                 except UndefinedError as err:
                     if not ignore_missing and "password" not in path:
                         _LOGGER.warning(
@@ -85,7 +90,8 @@ def _expand_substitutions(substitutions, value, path, ignore_missing):
                     TypeError,
                 ) as err:
                     raise cv.Invalid(
-                        f"{type(err).__name__} Error evaluating jinja expression '{value}': {str(err)}",
+                        f"{type(err).__name__} Error evaluating jinja expression '{value}': {str(err)}."
+                        f" See {"->".join(str(x) for x in path)}",
                         path,
                     )
 
