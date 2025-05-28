@@ -96,7 +96,7 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(CONF_SAMPLES, default=1): cv.int_range(min=1, max=255),
             cv.Optional(CONF_SAMPLING_MODE, default="avg"): _sampling_mode,
-            cv.Optional(CONF_CALIBRATION_MODE, default="auto"): cv.All(
+            cv.Optional(CONF_CALIBRATION_MODE): cv.All(
                 cv.only_on_esp32, cv.enum(CALIBRATION_MODES, lower=True)
             ),
         }
