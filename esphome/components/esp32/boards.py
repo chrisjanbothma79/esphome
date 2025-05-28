@@ -2,7 +2,6 @@ from .const import (
     VARIANT_ESP32,
     VARIANT_ESP32C2,
     VARIANT_ESP32C3,
-    VARIANT_ESP32C5,
     VARIANT_ESP32C6,
     VARIANT_ESP32H2,
     VARIANT_ESP32P4,
@@ -1594,10 +1593,6 @@ BOARDS = {
         "name": "Ai-Thinker ESP-C3-M1-I-Kit",
         "variant": VARIANT_ESP32C3,
     },
-    "esp32-c5-devkitc-1": {
-        "name": "Espressif ESP32-C5-DevKitC-1",
-        "variant": VARIANT_ESP32C5,
-    },
     "esp32-c6-devkitc-1": {
         "name": "Espressif ESP32-C6-DevKitC-1",
         "variant": VARIANT_ESP32C6,
@@ -1638,12 +1633,12 @@ BOARDS = {
         "name": "Espressif ESP32-H2-DevKit",
         "variant": VARIANT_ESP32H2,
     },
-    "esp32-p4": {
-        "name": "Espressif ESP32-P4 generic",
-        "variant": VARIANT_ESP32P4,
-    },
     "esp32-p4-evboard": {
         "name": "Espressif ESP32-P4 Function EV Board",
+        "variant": VARIANT_ESP32P4,
+    },
+    "esp32-p4": {
+        "name": "Espressif ESP32-P4 generic",
         "variant": VARIANT_ESP32P4,
     },
     "esp32-pico-devkitm-2": {
@@ -1673,6 +1668,10 @@ BOARDS = {
     "esp32-s2-saola-1": {
         "name": "Espressif ESP32-S2-Saola-1",
         "variant": VARIANT_ESP32S2,
+    },
+    "esp32s3_120_16_8-qio_opi": {
+        "name": "ESP32-S3 16MB QIO, 8MB OPI PSRAM",
+        "variant": VARIANT_ESP32S3,
     },
     "esp32s3box": {
         "name": "Espressif ESP32-S3-Box",
@@ -1758,6 +1757,14 @@ BOARDS = {
         "name": "Franzininho WiFi MSC",
         "variant": VARIANT_ESP32S2,
     },
+    "freenove_esp32_s3_wroom": {
+        "name": "Freenove ESP32-S3 WROOM N8R8 (8MB Flash / 8MB PSRAM)",
+        "variant": VARIANT_ESP32S3,
+    },
+    "freenove_esp32_wrover": {
+        "name": "Freenove ESP32-Wrover",
+        "variant": VARIANT_ESP32,
+    },
     "frogboard": {
         "name": "Frog Board ESP32",
         "variant": VARIANT_ESP32,
@@ -1768,6 +1775,10 @@ BOARDS = {
     },
     "heltec_wifi_kit_32": {
         "name": "Heltec WiFi Kit 32",
+        "variant": VARIANT_ESP32,
+    },
+    "heltec_wifi_kit_32_v2": {
+        "name": "Heltec WiFi Kit 32 (V2)",
         "variant": VARIANT_ESP32,
     },
     "heltec_wifi_kit_32_V3": {
@@ -1806,6 +1817,14 @@ BOARDS = {
         "name": "Hornbill ESP32 Minima",
         "variant": VARIANT_ESP32,
     },
+    "huidu_hd_wf2": {
+        "name": "Huidu HD-WF2",
+        "variant": VARIANT_ESP32S3,
+    },
+    "huidu_hd_wf4": {
+        "name": "Huidu HD-WF4",
+        "variant": VARIANT_ESP32S3,
+    },
     "imbrios-logsens-v1p1": {
         "name": "Imbrios LogSens V1P1",
         "variant": VARIANT_ESP32,
@@ -1838,6 +1857,10 @@ BOARDS = {
         "name": "ArtronShop IOXESP32PS",
         "variant": VARIANT_ESP32,
     },
+    "jczn_2432s028r": {
+        "name": "ESP32-2432S028R CYD",
+        "variant": VARIANT_ESP32,
+    },
     "kb32-ft": {
         "name": "MakerAsia KB32-FT",
         "variant": VARIANT_ESP32,
@@ -1852,6 +1875,10 @@ BOARDS = {
     },
     "lilka_v2": {
         "name": "Lilka v2",
+        "variant": VARIANT_ESP32S3,
+    },
+    "lilygo-t3-s3": {
+        "name": "LilyGo T3-S3",
         "variant": VARIANT_ESP32S3,
     },
     "lilygo-t-display": {
@@ -1900,6 +1927,10 @@ BOARDS = {
     },
     "lolin_s3_mini": {
         "name": "WEMOS LOLIN S3 Mini",
+        "variant": VARIANT_ESP32S3,
+    },
+    "lolin_s3_mini_pro": {
+        "name": "WEMOS LOLIN S3 Mini Pro",
         "variant": VARIANT_ESP32S3,
     },
     "lolin_s3": {
@@ -2094,9 +2125,17 @@ BOARDS = {
         "name": "RoboHeart Hercules",
         "variant": VARIANT_ESP32,
     },
+    "rymcu-esp32-s3-devkitc-1": {
+        "name": "RYMCU ESP32-S3-DevKitC-1-N8R2 (8 MB QD, 2 MB PSRAM)",
+        "variant": VARIANT_ESP32S3,
+    },
     "seeed_xiao_esp32c3": {
         "name": "Seeed Studio XIAO ESP32C3",
         "variant": VARIANT_ESP32C3,
+    },
+    "seeed_xiao_esp32c6": {
+        "name": "Seeed Studio XIAO ESP32C6",
+        "variant": VARIANT_ESP32C6,
     },
     "seeed_xiao_esp32s3": {
         "name": "Seeed Studio XIAO ESP32S3",
@@ -2138,9 +2177,17 @@ BOARDS = {
         "name": "SparkFun ESP32-S2 Thing Plus",
         "variant": VARIANT_ESP32S2,
     },
+    "sparkfun_esp32s3_thing_plus": {
+        "name": "SPARKFUN_ESP32S3_THING_PLUS",
+        "variant": VARIANT_ESP32S3,
+    },
     "sparkfun_lora_gateway_1-channel": {
         "name": "SparkFun LoRa Gateway 1-Channel",
         "variant": VARIANT_ESP32,
+    },
+    "sparkfun_qwiic_pocket_esp32c6": {
+        "name": "SparkFun ESP32-C6 Qwiic Pocket",
+        "variant": VARIANT_ESP32C6,
     },
     "tamc_termod_s3": {
         "name": "TAMC Termod S3",
@@ -2270,6 +2317,18 @@ BOARDS = {
         "name": "SQFMI Watchy v2.0",
         "variant": VARIANT_ESP32,
     },
+    "waveshare_esp32s3_touch_lcd_128": {
+        "name": "Waveshare ESP32-S3-Touch-LCD-1.28 (16 MB QD, 2MB PSRAM)",
+        "variant": VARIANT_ESP32S3,
+    },
+    "waveshare_esp32_s3_zero": {
+        "name": "Waveshare ESP32-S3-Zero",
+        "variant": VARIANT_ESP32S3,
+    },
+    "weactstudio_esp32c3coreboard": {
+        "name": "WeAct Studio ESP32C3CoreBoard",
+        "variant": VARIANT_ESP32C3,
+    },
     "wemosbat": {
         "name": "WeMos WiFi and Bluetooth Battery",
         "variant": VARIANT_ESP32,
@@ -2306,12 +2365,32 @@ BOARDS = {
         "name": "Pycom WiPy3",
         "variant": VARIANT_ESP32,
     },
+    "ws_esp32_s3_matrix": {
+        "name": "Waveshare ESP32-S3-Matrix",
+        "variant": VARIANT_ESP32S3,
+    },
     "wt32-eth01": {
         "name": "Wireless-Tag WT32-ETH01 Ethernet Module",
         "variant": VARIANT_ESP32,
     },
+    "wt32-sc01-plus": {
+        "name": "wt32-sc01-plus",
+        "variant": VARIANT_ESP32S3,
+    },
     "xinabox_cw02": {
         "name": "XinaBox CW02",
         "variant": VARIANT_ESP32,
+    },
+    "yb_esp32s3_amp_v2": {
+        "name": "YelloByte YB-ESP32-S3-AMP (Rev.2)",
+        "variant": VARIANT_ESP32S3,
+    },
+    "yb_esp32s3_amp_v3": {
+        "name": "YelloByte YB-ESP32-S3-AMP (Rev.3)",
+        "variant": VARIANT_ESP32S3,
+    },
+    "yb_esp32s3_eth": {
+        "name": "YelloByte YB-ESP32-S3-ETH",
+        "variant": VARIANT_ESP32S3,
     },
 }
