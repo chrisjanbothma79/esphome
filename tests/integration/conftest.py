@@ -378,6 +378,9 @@ async def run_binary_and_wait_for_port(
                 ),
             ]
 
+        # Small yield to ensure the process has a chance to start
+        await asyncio.sleep(0)
+
         while loop.time() - start_time < timeout:
             try:
                 # Try to connect to the port
