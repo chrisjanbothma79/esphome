@@ -59,6 +59,7 @@ void ADCSensor::setup() {
 void ADCSensor::dump_config() {
   LOG_SENSOR("", "ADC Sensor", this);
   LOG_PIN("  Pin: ", this->pin_);
+
   if (this->autorange_) {
     ESP_LOGCONFIG(TAG, "  Attenuation: auto");
   } else {
