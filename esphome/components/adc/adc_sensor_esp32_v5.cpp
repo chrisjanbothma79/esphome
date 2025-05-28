@@ -129,11 +129,11 @@ void ADCSensor::setup() {
     }
 #else  // Other ESP32 variants use line fitting calibration
     adc_cali_line_fitting_config_t cali_config = {
-        .unit_id = unit_id,
-        .atten = this->attenuation_,
-        .bitwidth = ADC_BITWIDTH_DEFAULT,
+      .unit_id = unit_id,
+      .atten = this->attenuation_,
+      .bitwidth = ADC_BITWIDTH_DEFAULT,
 #if !defined(USE_ESP32_VARIANT_ESP32S2)
-        .default_vref = 1100,  // Default reference voltage in mV
+      .default_vref = 1100,  // Default reference voltage in mV
 #endif  // !defined(USE_ESP32_VARIANT_ESP32S2)
     };
     err = adc_cali_create_scheme_line_fitting(&cali_config, &handle);
@@ -288,11 +288,11 @@ float ADCSensor::sample() {
       err = adc_cali_create_scheme_curve_fitting(&cali_config, &handle);
 #else
       adc_cali_line_fitting_config_t cali_config = {
-          .unit_id = unit_id,
-          .atten = atten,
-          .bitwidth = ADC_BITWIDTH_DEFAULT,
+        .unit_id = unit_id,
+        .atten = atten,
+        .bitwidth = ADC_BITWIDTH_DEFAULT,
 #if !defined(USE_ESP32_VARIANT_ESP32S2)
-          .default_vref = 1100,
+        .default_vref = 1100,
 #endif
       };
       err = adc_cali_create_scheme_line_fitting(&cali_config, &handle);
