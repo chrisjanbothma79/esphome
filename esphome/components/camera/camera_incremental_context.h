@@ -26,7 +26,7 @@ struct CameraIncrementalContext {
     Value(int value) : value_type_(ValueType::VALUE_TYPE_INT), i_(value) {}
     Value(float value) : value_type_(ValueType::VALUE_TYPE_FLOAT), f_(value) {}
     Value(bool value) : value_type_(ValueType::VALUE_TYPE_BOOL), b_(value) {}
-    Value(std::string value) : value_type_(ValueType::VALUE_TYPE_STRING), s_(value) {}
+    Value(std::string value) : value_type_(ValueType::VALUE_TYPE_STRING), s_(std::move(std::move(value))) {}
     Value(const char *value) : value_type_(ValueType::VALUE_TYPE_STRING), s_(value) {}
   };
   // Common coordinates
@@ -51,7 +51,7 @@ struct CameraIncrementalContext {
     Value v(value);
     values_[key] = std::move(v);
   }
-  void set(const std::string &key, const std::string value) {
+  void set(const std::string &key, const std::string &value) {
     Value v(value);
     values_[key] = std::move(v);
   }
