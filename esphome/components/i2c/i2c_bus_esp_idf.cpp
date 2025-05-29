@@ -18,7 +18,7 @@ namespace i2c {
 static const char *const TAG = "i2c.idf";
 
 void IDFI2CBus::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up I2C bus...");
+  ESP_LOGCONFIG(TAG, "Running setup");
   static i2c_port_t next_port = I2C_NUM_0;
   port_ = next_port;
 #if SOC_HP_I2C_NUM > 1
@@ -67,7 +67,7 @@ void IDFI2CBus::setup() {
       ESP_LOGV(TAG, "i2c_timeout set to %" PRIu32 " ticks (%" PRIu32 " us)", timeout_ * 80, timeout_);
     }
   }
-  err = i2c_driver_install(port_, I2C_MODE_MASTER, 0, 0, ESP_INTR_FLAG_IRAM);
+  err = i2c_driver_install(port_, I2C_MODE_MASTER, 0, 0, 0);
   if (err != ESP_OK) {
     ESP_LOGW(TAG, "i2c_driver_install failed: %s", esp_err_to_name(err));
     this->mark_failed();
