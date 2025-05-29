@@ -55,7 +55,7 @@ void PM2005Component::setup() {
   }
 
   if (this->read(this->data_buffer_, 12) != i2c::ERROR_OK) {
-    ESP_LOGE(TAG, "Communication failed");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
     this->mark_failed();
     return;
   }
