@@ -15,8 +15,6 @@ static const uint8_t TMP102_REGISTER_HIGH_LIMIT = 0x03;
 
 static const float TMP102_CONVERSION_FACTOR = 0.0625;
 
-void TMP102Component::setup() { ESP_LOGCONFIG(TAG, "Running setup"); }
-
 void TMP102Component::dump_config() {
   ESP_LOGCONFIG(TAG, "TMP102:");
   LOG_I2C_DEVICE(this);
