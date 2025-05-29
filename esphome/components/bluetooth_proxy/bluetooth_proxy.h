@@ -4,6 +4,7 @@
 
 #include <map>
 #include <vector>
+#include <string>
 
 #include "esphome/components/api/api_connection.h"
 #include "esphome/components/api/api_pb2.h"
@@ -12,6 +13,8 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
+#include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 #include "bluetooth_connection.h"
 
@@ -24,6 +27,62 @@ namespace bluetooth_proxy {
 static const esp_err_t ESP_GATT_NOT_CONNECTED = -1;
 
 using namespace esp32_ble_client;
+
+// Stats class for tracking section performance
+class BluetoothProxySectionStats {
+ public:
+  BluetoothProxySectionStats()
+      : period_count_(0),
+        total_count_(0),
+        period_time_ms_(0),
+        total_time_ms_(0),
+        period_max_time_ms_(0),
+        total_max_time_ms_(0) {}
+
+  void record_time(uint32_t duration_ms) {
+    // Update period counters
+    this->period_count_++;
+    this->period_time_ms_ += duration_ms;
+    if (duration_ms > this->period_max_time_ms_)
+      this->period_max_time_ms_ = duration_ms;
+
+    // Update total counters
+    this->total_count_++;
+    this->total_time_ms_ += duration_ms;
+    if (duration_ms > this->total_max_time_ms_)
+      this->total_max_time_ms_ = duration_ms;
+  }
+
+  void reset_period_stats() {
+    this->period_count_ = 0;
+    this->period_time_ms_ = 0;
+    this->period_max_time_ms_ = 0;
+  }
+
+  // Getters for period stats
+  uint32_t get_period_count() const { return this->period_count_; }
+  uint32_t get_period_time_ms() const { return this->period_time_ms_; }
+  uint32_t get_period_max_time_ms() const { return this->period_max_time_ms_; }
+  float get_period_avg_time_ms() const {
+    return this->period_count_ > 0 ? static_cast<float>(this->period_time_ms_) / this->period_count_ : 0.0f;
+  }
+
+  // Getters for total stats
+  uint32_t get_total_count() const { return this->total_count_; }
+  uint32_t get_total_time_ms() const { return this->total_time_ms_; }
+  uint32_t get_total_max_time_ms() const { return this->total_max_time_ms_; }
+  float get_total_avg_time_ms() const {
+    return this->total_count_ > 0 ? static_cast<float>(this->total_time_ms_) / this->total_count_ : 0.0f;
+  }
+
+ private:
+  uint32_t period_count_;
+  uint32_t total_count_;
+  uint32_t period_time_ms_;
+  uint32_t total_time_ms_;
+  uint32_t period_max_time_ms_;
+  uint32_t total_max_time_ms_;
+};
 
 // Legacy versions:
 // Version 1: Initial version without active connections
@@ -139,6 +198,14 @@ class BluetoothProxy : public esp32_ble_tracker::ESPBTDeviceListener, public Com
   std::vector<BluetoothConnection *> connections_{};
   api::APIConnection *api_connection_{nullptr};
   bool raw_advertisements_{false};
+
+  // Performance statistics tracking
+  std::map<std::string, BluetoothProxySectionStats> section_stats_;
+  uint32_t stats_log_interval_{60000};  // 60 seconds default
+  uint32_t next_stats_log_{0};
+  bool stats_enabled_{true};
+  void log_section_stats_();
+  void reset_section_stats_();
 };
 
 extern BluetoothProxy *global_bluetooth_proxy;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)

@@ -4,6 +4,9 @@
 #include "esphome/core/macros.h"
 #include "esphome/core/application.h"
 
+#include <algorithm>
+#include <cinttypes>
+
 #ifdef USE_ESP32
 
 namespace esphome {
@@ -46,9 +49,16 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
   if (!api::global_api_server->is_connected() || this->api_connection_ == nullptr || this->raw_advertisements_)
     return false;
 
+  // Measure time for processing single device
+  const uint32_t start_time = millis();
+
   ESP_LOGV(TAG, "Proxying packet from %s - %s. RSSI: %d dB", device.get_name().c_str(), device.address_str().c_str(),
            device.get_rssi());
   this->send_api_packet_(device);
+
+  const uint32_t duration = millis() - start_time;
+  this->section_stats_["parse_device"].record_time(duration);
+
   return true;
 }
 
@@ -61,6 +71,9 @@ static std::vector<api::BluetoothLERawAdvertisement> &get_batch_buffer() {
 bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_param *advertisements, size_t count) {
   if (!api::global_api_server->is_connected() || this->api_connection_ == nullptr || !this->raw_advertisements_)
     return false;
+
+  // Measure time for processing batch of devices
+  const uint32_t start_time = millis();
 
   // Get the batch buffer reference
   auto &batch_buffer = get_batch_buffer();
@@ -93,6 +106,9 @@ bool BluetoothProxy::parse_devices(esp_ble_gap_cb_param_t::ble_scan_result_evt_p
     this->flush_pending_advertisements();
   }
 
+  const uint32_t duration = millis() - start_time;
+  this->section_stats_["parse_devices"].record_time(duration);
+
   return true;
 }
 
@@ -101,12 +117,52 @@ void BluetoothProxy::flush_pending_advertisements() {
   if (batch_buffer.empty() || !api::global_api_server->is_connected() || this->api_connection_ == nullptr)
     return;
 
+  // Measure time for flushing advertisements
+  const uint32_t start_time = millis();
+
+  // Track the batch size for analysis
+  size_t batch_size = batch_buffer.size();
+
+  // Measure swap operation
+  uint32_t swap_start = millis();
   api::BluetoothLERawAdvertisementsResponse resp;
   resp.advertisements.swap(batch_buffer);
+  uint32_t swap_duration = millis() - swap_start;
+  if (swap_duration > 0) {
+    this->section_stats_["flush_swap"].record_time(swap_duration);
+  }
+
+  // Measure API send operation
+  uint32_t send_start = millis();
   this->api_connection_->send_bluetooth_le_raw_advertisements_response(resp);
+  uint32_t send_duration = millis() - send_start;
+  this->section_stats_["flush_api_send"].record_time(send_duration);
+
+  const uint32_t duration = millis() - start_time;
+  this->section_stats_["flush_advertisements"].record_time(duration);
+
+  // Log if this was a particularly slow flush
+  if (duration > 10) {
+    ESP_LOGW(TAG, "Slow flush: %dms for %d advertisements", duration, batch_size);
+  }
+
+  // Track average advertisements per flush
+  static uint32_t total_ads_flushed = 0;
+  static uint32_t total_flushes = 0;
+  total_ads_flushed += batch_size;
+  total_flushes++;
+
+  if (total_flushes % 100 == 0) {
+    float avg_ads_per_flush = static_cast<float>(total_ads_flushed) / total_flushes;
+    ESP_LOGD(TAG, "Avg advertisements per flush: %.2f (total: %d ads in %d flushes)", avg_ads_per_flush,
+             total_ads_flushed, total_flushes);
+  }
 }
 
 void BluetoothProxy::send_api_packet_(const esp32_ble_tracker::ESPBTDevice &device) {
+  // Measure time for sending API packet
+  const uint32_t start_time = millis();
+
   api::BluetoothLEAdvertisementResponse resp;
   resp.address = device.address_uint64();
   resp.address_type = device.get_address_type();
@@ -142,6 +198,9 @@ void BluetoothProxy::send_api_packet_(const esp32_ble_tracker::ESPBTDevice &devi
   }
 
   this->api_connection_->send_bluetooth_le_advertisement(resp);
+
+  const uint32_t duration = millis() - start_time;
+  this->section_stats_["send_api_packet"].record_time(duration);
 }
 
 void BluetoothProxy::dump_config() {
@@ -149,6 +208,8 @@ void BluetoothProxy::dump_config() {
   ESP_LOGCONFIG(TAG, "  Active: %s", YESNO(this->active_));
   ESP_LOGCONFIG(TAG, "  Connections: %d", this->connections_.size());
   ESP_LOGCONFIG(TAG, "  Raw advertisements: %s", YESNO(this->raw_advertisements_));
+  ESP_LOGCONFIG(TAG, "  Stats enabled: %s", YESNO(this->stats_enabled_));
+  ESP_LOGCONFIG(TAG, "  Stats interval: %" PRIu32 "ms", this->stats_log_interval_);
 }
 
 int BluetoothProxy::get_bluetooth_connections_free() {
@@ -166,6 +227,9 @@ int BluetoothProxy::get_bluetooth_connections_free() {
 }
 
 void BluetoothProxy::loop() {
+  // Measure total time for entire loop function
+  const uint32_t loop_start_time = millis();
+
   if (!api::global_api_server->is_connected() || this->api_connection_ == nullptr) {
     for (auto *connection : this->connections_) {
       if (connection->get_address() != 0) {
@@ -175,17 +239,28 @@ void BluetoothProxy::loop() {
     return;
   }
 
-  // Flush any pending BLE advertisements that have been accumulated but not yet sent
+  const uint32_t now = millis();
+  uint32_t start_time;
+  uint32_t duration;
+
+  // Section: Flush advertisements
   if (this->raw_advertisements_) {
     static uint32_t last_flush_time = 0;
-    uint32_t now = App.get_loop_component_start_time();
+    uint32_t app_time = App.get_loop_component_start_time();
 
     // Flush accumulated advertisements every 100ms
-    if (now - last_flush_time >= 100) {
+    if (app_time - last_flush_time >= 100) {
+      start_time = millis();
       this->flush_pending_advertisements();
-      last_flush_time = now;
+      duration = millis() - start_time;
+      this->section_stats_["loop_flush_ads"].record_time(duration);
+      last_flush_time = app_time;
     }
   }
+
+  // Section: Service discovery
+  start_time = millis();
+  bool did_service_discovery = false;
   for (auto *connection : this->connections_) {
     if (connection->send_service_ == connection->service_count_) {
       connection->send_service_ = DONE_SENDING_SERVICES;
@@ -194,7 +269,9 @@ void BluetoothProxy::loop() {
           connection->connection_type_ == espbt::ConnectionType::V3_WITHOUT_CACHE) {
         connection->release_services();
       }
+      did_service_discovery = true;
     } else if (connection->send_service_ >= 0) {
+      did_service_discovery = true;
       esp_gattc_service_elem_t service_result;
       uint16_t service_count = 1;
       esp_gatt_status_t service_status =
@@ -303,6 +380,27 @@ void BluetoothProxy::loop() {
       this->api_connection_->send_bluetooth_gatt_get_services_response(resp);
     }
   }
+
+  if (did_service_discovery) {
+    duration = millis() - start_time;
+    this->section_stats_["service_discovery"].record_time(duration);
+  }
+
+  // Log stats periodically
+  if (this->stats_enabled_) {
+    // If next_stats_log_ is 0, initialize it
+    if (this->next_stats_log_ == 0) {
+      this->next_stats_log_ = now + this->stats_log_interval_;
+    } else if (now >= this->next_stats_log_) {
+      this->log_section_stats_();
+      this->reset_section_stats_();
+      this->next_stats_log_ = now + this->stats_log_interval_;
+    }
+  }
+
+  // Record total loop execution time
+  const uint32_t total_loop_duration = millis() - loop_start_time;
+  this->section_stats_["total_loop"].record_time(total_loop_duration);
 }
 
 esp32_ble_tracker::AdvertisementParserType BluetoothProxy::get_advertisement_parser_type() {
@@ -337,6 +435,9 @@ BluetoothConnection *BluetoothProxy::get_connection_(uint64_t address, bool rese
 }
 
 void BluetoothProxy::bluetooth_device_request(const api::BluetoothDeviceRequest &msg) {
+  // Measure time for processing device requests
+  const uint32_t start_time = millis();
+
   switch (msg.request_type) {
     case api::enums::BLUETOOTH_DEVICE_REQUEST_TYPE_CONNECT_V3_WITH_CACHE:
     case api::enums::BLUETOOTH_DEVICE_REQUEST_TYPE_CONNECT_V3_WITHOUT_CACHE:
@@ -458,6 +559,9 @@ void BluetoothProxy::bluetooth_device_request(const api::BluetoothDeviceRequest 
       break;
     }
   }
+
+  const uint32_t duration = millis() - start_time;
+  this->section_stats_["device_request"].record_time(duration);
 }
 
 void BluetoothProxy::bluetooth_gatt_read(const api::BluetoothGATTReadRequest &msg) {
@@ -638,6 +742,74 @@ void BluetoothProxy::bluetooth_scanner_set_mode(bool active) {
   this->parent_->stop_scan();
   this->parent_->set_scan_continuous(
       true);  // Set this to true to automatically start scanning again when it has cleaned up.
+}
+
+void BluetoothProxy::log_section_stats_() {
+  const char *STATS_TAG = "bluetooth_proxy.stats";
+  ESP_LOGI(STATS_TAG,
+           "Logging Bluetooth Proxy section stats now (current time: %" PRIu32 ", scheduled time: %" PRIu32 ")",
+           millis(), this->next_stats_log_);
+  ESP_LOGI(STATS_TAG, "Stats collection status: enabled=%d, sections=%zu", this->stats_enabled_,
+           this->section_stats_.size());
+
+  // Check if we have minimal data
+  bool has_data = false;
+  for (const auto &it : this->section_stats_) {
+    if (it.second.get_period_count() > 0) {
+      has_data = true;
+      break;
+    }
+  }
+
+  if (!has_data) {
+    ESP_LOGI(STATS_TAG, "No stats data collected in this period");
+    return;
+  }
+
+  ESP_LOGI(STATS_TAG, "Bluetooth Proxy Section Runtime Statistics");
+  ESP_LOGI(STATS_TAG, "Period stats (last %" PRIu32 "ms):", this->stats_log_interval_);
+
+  // First collect stats we want to display
+  std::vector<std::pair<std::string, const BluetoothProxySectionStats *>> stats_to_display;
+
+  for (const auto &it : this->section_stats_) {
+    const BluetoothProxySectionStats &stats = it.second;
+    if (stats.get_period_count() > 0) {
+      stats_to_display.push_back({it.first, &stats});
+    }
+  }
+
+  // Sort by period runtime (descending)
+  std::sort(stats_to_display.begin(), stats_to_display.end(), [](const auto &a, const auto &b) {
+    return a.second->get_period_time_ms() > b.second->get_period_time_ms();
+  });
+
+  // Log top sections by period runtime
+  for (const auto &it : stats_to_display) {
+    const std::string &section_name = it.first;
+    const BluetoothProxySectionStats &stats = *it.second;
+
+    ESP_LOGI(STATS_TAG, "  %-25s: count=%-6" PRIu32 " runtime=%-8" PRIu32 "ms avg=%-6.2fms max=%-6" PRIu32 "ms",
+             section_name.c_str(), stats.get_period_count(), stats.get_period_time_ms(), stats.get_period_avg_time_ms(),
+             stats.get_period_max_time_ms());
+  }
+
+  // Log total accumulated stats
+  ESP_LOGI(STATS_TAG, "Total accumulated stats:");
+  for (const auto &it : stats_to_display) {
+    const std::string &section_name = it.first;
+    const BluetoothProxySectionStats &stats = *it.second;
+
+    ESP_LOGI(STATS_TAG, "  %-25s: count=%-8" PRIu32 " runtime=%-10" PRIu32 "ms avg=%-6.2fms max=%-6" PRIu32 "ms",
+             section_name.c_str(), stats.get_total_count(), stats.get_total_time_ms(), stats.get_total_avg_time_ms(),
+             stats.get_total_max_time_ms());
+  }
+}
+
+void BluetoothProxy::reset_section_stats_() {
+  for (auto &it : this->section_stats_) {
+    it.second.reset_period_stats();
+  }
 }
 
 BluetoothProxy *global_bluetooth_proxy = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
