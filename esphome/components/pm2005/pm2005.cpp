@@ -108,7 +108,7 @@ void PM2005Component::dump_config() {
 
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with PM2%u05 failed", this->sensor_type_ == PM2105);
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
 
   LOG_SENSOR("  ", "PM1.0", this->pm_1_0_sensor_);
