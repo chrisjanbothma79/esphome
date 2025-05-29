@@ -266,7 +266,7 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
       this->send_wifi_status_();
       break;
     case TuyaCommandType::WIFI_RESET:
-      cut_cloud_mode = true;
+      cut_cloud_mode_ = true;
       break;
     case TuyaCommandType::DATAPOINT_REPORT:
       this->init_state_ = TuyaInitState::INIT_DONE;
@@ -548,7 +548,7 @@ uint8_t Tuya::get_wifi_status_code_() {
 
     // Protocol version 3 and low energy (0) also supports specifying when connected to "the cloud" - in pair mode, we
     // try to keep the device as long as possible activated (version 0) wi-fi devices
-    if ((this->protocol_version_ >= 0x03 || (!cut_cloud_mode && this->protocol_version_ == 0x00)) &&
+    if ((this->protocol_version_ >= 0x03 || (!cut_cloud_mode_ && this->protocol_version_ == 0x00)) &&
         remote_is_connected()) {
       status = 0x04;
     }

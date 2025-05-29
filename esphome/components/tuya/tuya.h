@@ -169,7 +169,7 @@ class Tuya : public Component, public uart::UARTDevice {
   optional<TuyaCommandType> expected_response_{};
   uint8_t wifi_status_ = -1;
   CallbackManager<void()> initialized_callback_{};
-  bool cut_cloud_mode = false;
+  bool cut_cloud_mode_ = false;
 };
 
 }  // namespace tuya
