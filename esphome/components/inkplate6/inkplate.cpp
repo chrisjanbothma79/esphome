@@ -1,7 +1,7 @@
 #include "inkplate.h"
-#include "esphome/core/log.h"
 #include "esphome/core/application.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 #ifdef USE_ESP32_FRAMEWORK_ARDUINO
 

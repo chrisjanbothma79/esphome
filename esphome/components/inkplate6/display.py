@@ -1,18 +1,18 @@
-import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome import pins
+import esphome.codegen as cg
 from esphome.components import display, i2c
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_FULL_UPDATE_EVERY,
     CONF_ID,
     CONF_LAMBDA,
+    CONF_MIRROR_X,
+    CONF_MIRROR_Y,
     CONF_MODEL,
     CONF_OE_PIN,
     CONF_PAGES,
-    CONF_WAKEUP_PIN,
     CONF_TRANSFORM,
-    CONF_MIRROR_X,
-    CONF_MIRROR_Y,
+    CONF_WAKEUP_PIN,
 )
 
 DEPENDENCIES = ["i2c", "esp32"]
