@@ -563,15 +563,15 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
                     ): cv.boolean,
                     cv.Optional(CONF_IGNORE_EFUSE_MAC_CRC): cv.boolean,
                     cv.Optional(CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES): cv.boolean,
-                    cv.Optional(
-                        CONF_ENABLE_LWIP_DHCP_SERVER, default=False
-                    ): cv.boolean,
-                    cv.Optional(
-                        CONF_ENABLE_LWIP_MDNS_QUERIES, default=False
-                    ): cv.boolean,
+                    cv.Optional(CONF_ENABLE_LWIP_DHCP_SERVER, default=False): cv.All(
+                        cv.boolean, cv.only_with_esp_idf
+                    ),
+                    cv.Optional(CONF_ENABLE_LWIP_MDNS_QUERIES, default=False): cv.All(
+                        cv.boolean, cv.only_with_esp_idf
+                    ),
                     cv.Optional(
                         CONF_ENABLE_LWIP_BRIDGE_INTERFACE, default=False
-                    ): cv.boolean,
+                    ): cv.All(cv.boolean, cv.only_with_esp_idf),
                 }
             ),
             cv.Optional(CONF_COMPONENTS, default=[]): cv.ensure_list(
