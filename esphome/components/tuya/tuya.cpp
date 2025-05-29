@@ -449,7 +449,8 @@ void Tuya::handle_datapoints_(const uint8_t *buffer, size_t len) {
         listener.on_datapoint(datapoint);
     }
 #ifdef TUYA_LOW_ENERGY
-    // after updating everything we report the confirmation of sending them "to the cloud" - the device could stay a little longer, maybe postpone this?
+    // after updating everything we report the confirmation of sending them "to the cloud" - the device could stay a
+    // little longer, maybe postpone this?
     this->send_command_(TuyaCommand{.cmd = TuyaCommandType::DATAPOINT_REPORT, .payload = std::vector<uint8_t>{0x00}});
 #endif
   }
@@ -545,8 +546,8 @@ uint8_t Tuya::get_wifi_status_code_() {
   if (network::is_connected()) {
     status = 0x03;
 
-    // Protocol version 3 and low energy (0) also supports specifying when connected to "the cloud" - in pair mode, we try to keep the device as long as possible activated (version 0)
-    // wi-fi devices
+    // Protocol version 3 and low energy (0) also supports specifying when connected to "the cloud" - in pair mode, we
+    // try to keep the device as long as possible activated (version 0) wi-fi devices
     if ((this->protocol_version_ >= 0x03 || (!cut_cloud_mode && this->protocol_version_ == 0x00)) &&
         remote_is_connected()) {
       status = 0x04;

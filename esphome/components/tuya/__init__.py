@@ -79,6 +79,7 @@ def assign_declare_id(value):
     )(value[CONF_TRIGGER_ID].id)
     return value
 
+
 CONF_LOW_ENERGY = "low_energy"
 CONF_TUYA_ID = "tuya_id"
 CONFIG_SCHEMA = (
