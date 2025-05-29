@@ -16,10 +16,6 @@ adc_oneshot_unit_handle_t ADCSensor::shared_adc2_handle = nullptr;
 void ADCSensor::setup() {
   ESP_LOGCONFIG(TAG, "Setting up ADC '%s'...", this->get_name().c_str());
 
-  if (!this->do_setup_) {
-    return;
-  }
-
   this->init_complete_ = false;
   this->handle_init_complete_ = false;
   this->config_complete_ = false;
