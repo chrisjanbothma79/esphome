@@ -15,7 +15,7 @@ void DeepSleepComponent::setup() {
 
   const optional<uint32_t> run_duration = get_run_duration_();
   if (run_duration.has_value()) {
-    ESP_LOGI(TAG, "Scheduling to start in %" PRIu32 " ms", *run_duration);
+    ESP_LOGI(TAG, "Scheduling in %" PRIu32 " ms", *run_duration);
     this->set_timeout(*run_duration, [this]() { this->begin_sleep(); });
   } else {
     ESP_LOGD(TAG, "Not scheduling; no run duration configured");

@@ -427,7 +427,7 @@ void WiFiComponent::print_connect_params_() {
 
   ESP_LOGCONFIG(TAG, "  Local MAC: %s", get_mac_address_pretty().c_str());
   if (this->is_disabled()) {
-    ESP_LOGCONFIG(TAG, "  Disabled!");
+    ESP_LOGCONFIG(TAG, "  Disabled");
     return;
   }
   ESP_LOGCONFIG(TAG, "  SSID: " LOG_SECRET("'%s'"), wifi_ssid().c_str());

@@ -101,7 +101,7 @@ void IDFI2CBus::dump_config() {
   if (this->scan_) {
     ESP_LOGI(TAG, "Results from bus scan:");
     if (scan_results_.empty()) {
-      ESP_LOGI(TAG, "Found no devices!");
+      ESP_LOGI(TAG, "Found no devices");
     } else {
       for (const auto &s : scan_results_) {
         if (s.second) {
