@@ -1,6 +1,7 @@
 #include "growatt_solar.h"
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
+#include "esphome/core/helpers.h"
 
 namespace esphome {
 namespace growatt_solar {

@@ -2,6 +2,7 @@
 #include <vector>
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
+#include "esphome/core/helpers.h"
 
 namespace esphome {
 namespace daly_bms {
