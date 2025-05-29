@@ -259,6 +259,9 @@ ESP_BLE_DEVICE_SCHEMA = cv.Schema(
 
 
 async def to_code(config):
+    # Register the loggers this component needs
+    esp32_ble.register_bt_logger("BLE_SCAN")
+
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
 

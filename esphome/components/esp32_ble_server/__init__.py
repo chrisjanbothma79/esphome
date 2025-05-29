@@ -525,6 +525,9 @@ async def to_code_characteristic(service_var, char_conf):
 
 
 async def to_code(config):
+    # Register the loggers this component needs
+    esp32_ble.register_bt_logger("GATT", "SMP")
+
     var = cg.new_Pvariable(config[CONF_ID])
 
     await cg.register_component(var, config)

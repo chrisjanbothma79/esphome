@@ -12,9 +12,53 @@ import esphome.final_validate as fv
 DEPENDENCIES = ["esp32"]
 CODEOWNERS = ["@jesserockz", "@Rapsssito"]
 
+# Bluetooth logger categories that can be registered by components
+BT_LOGGERS = {
+    "HCI": "CONFIG_BT_LOG_HCI_TRACE_LEVEL",
+    "BTM": "CONFIG_BT_LOG_BTM_TRACE_LEVEL",
+    "L2CAP": "CONFIG_BT_LOG_L2CAP_TRACE_LEVEL",
+    "RFCOMM": "CONFIG_BT_LOG_RFCOMM_TRACE_LEVEL",
+    "SDP": "CONFIG_BT_LOG_SDP_TRACE_LEVEL",
+    "GAP": "CONFIG_BT_LOG_GAP_TRACE_LEVEL",
+    "BNEP": "CONFIG_BT_LOG_BNEP_TRACE_LEVEL",
+    "PAN": "CONFIG_BT_LOG_PAN_TRACE_LEVEL",
+    "A2D": "CONFIG_BT_LOG_A2D_TRACE_LEVEL",
+    "AVDT": "CONFIG_BT_LOG_AVDT_TRACE_LEVEL",
+    "AVCT": "CONFIG_BT_LOG_AVCT_TRACE_LEVEL",
+    "AVRC": "CONFIG_BT_LOG_AVRC_TRACE_LEVEL",
+    "SMP": "CONFIG_BT_LOG_SMP_TRACE_LEVEL",
+    "BTIF": "CONFIG_BT_LOG_BTIF_TRACE_LEVEL",
+    "BTC": "CONFIG_BT_LOG_BTC_TRACE_LEVEL",
+    "BLE_SCAN": "CONFIG_BT_LOG_BLE_SCAN_TRACE_LEVEL",
+    "GATT": "CONFIG_BT_LOG_GATT_TRACE_LEVEL",
+    "MCA": "CONFIG_BT_LOG_MCA_TRACE_LEVEL",
+    "HID": "CONFIG_BT_LOG_HID_TRACE_LEVEL",
+    "APPL": "CONFIG_BT_LOG_APPL_TRACE_LEVEL",
+    "OSI": "CONFIG_BT_LOG_OSI_TRACE_LEVEL",
+    "BLUFI": "CONFIG_BT_LOG_BLUFI_TRACE_LEVEL",
+}
+
+# Set to track which loggers are needed by components
+_required_loggers: set[str] = set()
+
+
+def register_bt_logger(*loggers: str) -> None:
+    """Register Bluetooth logger categories that a component needs.
+
+    Args:
+        *loggers: One or more logger names from BT_LOGGERS keys
+    """
+    for logger in loggers:
+        if logger in BT_LOGGERS:
+            _required_loggers.add(logger)
+        else:
+            raise ValueError(f"Unknown Bluetooth logger category: {logger}")
+
+
 CONF_BLE_ID = "ble_id"
 CONF_IO_CAPABILITY = "io_capability"
 CONF_ADVERTISING_CYCLE_TIME = "advertising_cycle_time"
+CONF_DISABLE_BT_LOGS = "disable_bt_logs"
 
 NO_BLUETOOTH_VARIANTS = [const.VARIANT_ESP32S2]
 
@@ -62,6 +106,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(
             CONF_ADVERTISING_CYCLE_TIME, default="10s"
         ): cv.positive_time_period_milliseconds,
+        cv.Optional(CONF_DISABLE_BT_LOGS, default=True): cv.boolean,
     }
 ).extend(cv.COMPONENT_SCHEMA)
 
@@ -139,6 +184,16 @@ async def to_code(config):
     if CORE.using_esp_idf:
         add_idf_sdkconfig_option("CONFIG_BT_ENABLED", True)
         add_idf_sdkconfig_option("CONFIG_BT_BLE_42_FEATURES_SUPPORTED", True)
+
+        # Register the core BLE loggers that are always needed
+        register_bt_logger("GAP", "BTM", "HCI")
+
+        # Apply logger settings if log disabling is enabled
+        if config[CONF_DISABLE_BT_LOGS]:
+            # Disable all Bluetooth loggers that are not required
+            for logger_name, config_name in BT_LOGGERS.items():
+                if logger_name not in _required_loggers:
+                    add_idf_sdkconfig_option(f"{config_name}_NONE", True)
 
     cg.add_define("USE_ESP32_BLE")
 
