@@ -26,28 +26,26 @@ void ADCSensor::setup() {
   this->calibration_complete_ = false;
 
   if (this->is_adc1_) {
-    if (this->adc1_handle_ == nullptr) {
-      // Check if another sensor already initialized ADC1
-      if (shared_adc1_handle != nullptr) {
-        this->adc1_handle_ = ADCSensor::shared_adc1_handle;
-        this->handle_init_complete_ = true;
-      } else {
-        adc_oneshot_unit_init_cfg_t init_config1 = {};  // Zero initialize
-        init_config1.unit_id = ADC_UNIT_1;
-        init_config1.ulp_mode = ADC_ULP_MODE_DISABLE;
+    // Check if another sensor already initialized ADC1
+    if (shared_adc1_handle != nullptr) {
+      this->adc1_handle_ = ADCSensor::shared_adc1_handle;
+      this->handle_init_complete_ = true;
+    } else {
+      adc_oneshot_unit_init_cfg_t init_config1 = {};  // Zero initialize
+      init_config1.unit_id = ADC_UNIT_1;
+      init_config1.ulp_mode = ADC_ULP_MODE_DISABLE;
 #if USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32H2
-        init_config1.clk_src = ADC_DIGI_CLK_SRC_DEFAULT;
+      init_config1.clk_src = ADC_DIGI_CLK_SRC_DEFAULT;
 #endif  // USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C6 || USE_ESP32_VARIANT_ESP32H2
-        esp_err_t err = adc_oneshot_new_unit(&init_config1, &this->adc1_handle_);
-        if (err != ESP_OK) {
-          ESP_LOGE(TAG, "Error initializing ADC1 unit: %d", err);
-          this->handle_init_complete_ = false;
-          this->mark_failed();
-          return;
-        }
-        shared_adc1_handle = this->adc1_handle_;
-        this->handle_init_complete_ = true;
+      esp_err_t err = adc_oneshot_new_unit(&init_config1, &this->adc1_handle_);
+      if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Error initializing ADC1 unit: %d", err);
+        this->handle_init_complete_ = false;
+        this->mark_failed();
+        return;
       }
+      shared_adc1_handle = this->adc1_handle_;
+      this->handle_init_complete_ = true;
     }
 
     adc_oneshot_chan_cfg_t config = {
