@@ -297,7 +297,7 @@ def gpio_base_schema(
     number_validator: Callable[[Any], Any],
     modes=GPIO_STANDARD_MODES,
     mode_validator: Callable[[Any], Any] = gpio_validate_modes,
-    invertable: bool = True,
+    invertible: bool = True,
 ):
     """
     Generate a base gpio pin schema
@@ -305,7 +305,7 @@ def gpio_base_schema(
     :param number_validator: A validator for the pin number
     :param modes: The available modes, default is all standard modes
     :param mode_validator: A validator function for the pin mode
-    :param invertable: If the pin supports hardware inversion
+    :param invertible: If the pin supports hardware inversion
     :return: A schema for the pin
     """
     mode_default = len(modes) == 1
@@ -330,7 +330,7 @@ def gpio_base_schema(
         }
     )
 
-    if invertable:
+    if invertible:
         return schema.extend({cv.Optional(CONF_INVERTED, default=False): cv.boolean})
 
     return schema
