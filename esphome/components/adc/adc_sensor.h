@@ -233,8 +233,8 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   static adc_oneshot_unit_handle_t shared_adc2_handle;
 #else
   adc_atten_t attenuation_{ADC_ATTEN_DB_0};
-  adc1_channel_t channel1_{ADC1_CHANNEL_MAX};
-  adc2_channel_t channel2_{ADC2_CHANNEL_MAX};
+  adc_channel_t channel1_{ADC_CHANNEL_MAX};
+  adc_channel_t channel2_{ADC_CHANNEL_MAX};
 #if ESP_IDF_VERSION_MAJOR >= 5
   esp_adc_cal_characteristics_t cal_characteristics_[SOC_ADC_ATTEN_NUM] = {};
 #else
