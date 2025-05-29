@@ -865,7 +865,7 @@ APIError APIPlaintextFrameHelper::try_read_frame_(ParsedFrame *frame) {
     rx_header_buf_pos_ += received;
 
     // Check for buffer overflow
-    if (rx_header_buf_pos_ > sizeof(rx_header_buf_)) {
+    if (rx_header_buf_pos_ >= sizeof(rx_header_buf_)) {
       state_ = State::FAILED;
       HELPER_LOG("Header buffer overflow");
       return APIError::BAD_DATA_PACKET;
