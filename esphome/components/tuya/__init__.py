@@ -2,7 +2,7 @@ from esphome import automation, pins
 import esphome.codegen as cg
 from esphome.components import time, uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_SENSOR_DATAPOINT, CONF_TIME_ID, CONF_TRIGGER_ID
+from esphome.const import CONF_ID, CONF_SENSOR_DATAPOINT, CONF_TIME_ID, CONF_TRIGGER_ID, CONF_LOW
 
 DEPENDENCIES = ["uart"]
 
@@ -79,7 +79,7 @@ def assign_declare_id(value):
     )(value[CONF_TRIGGER_ID].id)
     return value
 
-
+CONF_LOW = "low_energy"
 CONF_TUYA_ID = "tuya_id"
 CONFIG_SCHEMA = (
     cv.Schema(
@@ -102,6 +102,7 @@ CONFIG_SCHEMA = (
                 },
                 extra_validators=assign_declare_id,
             ),
+            cv.Optional(CONF_LOW, default=False): cv.boolean,
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -113,6 +114,8 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
+    if config[CONF_LOW]:
+        cg.add_define("TUYA_LOW_ENERGY")
     if CONF_TIME_ID in config:
         time_ = await cg.get_variable(config[CONF_TIME_ID])
         cg.add(var.set_time_id(time_))
