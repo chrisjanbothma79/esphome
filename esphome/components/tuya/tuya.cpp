@@ -265,7 +265,8 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
     case TuyaCommandType::WIFI_STATE:
       this->send_wifi_status_();
       break;
-    case TuyaCommandType::WIFI_RESET:
+    case TuyaCommandType::WIFI_RESET: //to handle this we should enable AP mode (or factory mode), instead we use pair mode
+    case TuyaCommandType::WIFI_PAIR:
       cut_cloud_mode_ = true;
       break;
     case TuyaCommandType::DATAPOINT_REPORT:
