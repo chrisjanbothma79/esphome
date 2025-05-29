@@ -157,8 +157,7 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   /// This sets the channel for single-shot or continuous ADC measurements.
   /// @param channel The ADC1 channel to configure, such as ADC_CHANNEL_0, ADC_CHANNEL_3, etc.
   void set_channel1(adc_channel_t channel) {
-    this->channel1_ = channel;
-    this->channel2_ = ADC_CHANNEL_MAX;
+    this->channel_ = channel;
     this->is_adc1_ = true;
     this->do_setup_ = true;
   }
@@ -168,8 +167,7 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   /// ADC2 is shared with other peripherals, so care must be taken to avoid conflicts.
   /// @param channel The ADC2 channel to configure, such as ADC_CHANNEL_0, ADC_CHANNEL_3, etc.
   void set_channel2(adc_channel_t channel) {
-    this->channel2_ = channel;
-    this->channel1_ = ADC_CHANNEL_MAX;
+    this->channel_ = channel;
     this->is_adc1_ = false;
     this->do_setup_ = true;
   }
@@ -186,7 +184,6 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   void set_channel1(adc1_channel_t channel) {
     this->channel1_ = channel;
     this->channel2_ = ADC2_CHANNEL_MAX;
-    this->is_adc1_ = true;
   }
 
   /// Configure the ADC to use a specific channel on ADC2.
@@ -196,7 +193,6 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   void set_channel2(adc2_channel_t channel) {
     this->channel2_ = channel;
     this->channel1_ = ADC1_CHANNEL_MAX;
-    this->is_adc1_ = false;
   }
 #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
   /// Set whether autoranging should be enabled for the ADC.
@@ -235,14 +231,15 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   bool calibration_complete_{false};
   static adc_oneshot_unit_handle_t shared_adc1_handle;
   static adc_oneshot_unit_handle_t shared_adc2_handle;
-  adc_channel_t channel1_{ADC_CHANNEL_MAX};
-  adc_channel_t channel2_{ADC_CHANNEL_MAX};
-  esp_adc_cal_characteristics_t cal_characteristics_[SOC_ADC_ATTEN_NUM] = {};
 #else
   adc_atten_t attenuation_{ADC_ATTEN_DB_0};
-  adc_channel_t channel1_{ADC1_CHANNEL_MAX};
-  adc_channel_t channel2_{ADC2_CHANNEL_MAX};
+  adc_channel_t channel1_{ADC_CHANNEL_MAX};
+  adc_channel_t channel2_{ADC_CHANNEL_MAX};
+#if ESP_IDF_VERSION_MAJOR >= 5
+  esp_adc_cal_characteristics_t cal_characteristics_[SOC_ADC_ATTEN_NUM] = {};
+#else
   esp_adc_cal_characteristics_t cal_characteristics_[ADC_ATTEN_MAX] = {};
+#endif  // ESP_IDF_VERSION_MAJOR >= 5
 #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 #endif  // USE_ESP32
 
