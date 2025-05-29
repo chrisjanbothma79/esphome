@@ -10,7 +10,7 @@ static const char *const TAG = "pmsx003";
 static const uint8_t START_CHARACTER_1 = 0x42;
 static const uint8_t START_CHARACTER_2 = 0x4D;
 
-static const uint16_t PMS_STABILISING_MS = 30000;  // time taken for the sensor to become stable after power on in ms
+static const uint16_t PMS_STABILIZING_MS = 30000;  // time taken for the sensor to become stable after power on in ms
 
 static const uint16_t PMS_CMD_MEASUREMENT_MODE_PASSIVE =
     0x0000;  // use `PMS_CMD_MANUAL_MEASUREMENT` to trigger a measurement
@@ -45,10 +45,10 @@ void PMSX003Component::dump_config() {
 void PMSX003Component::loop() {
   const uint32_t now = App.get_loop_component_start_time();
 
-  // If we update less often than it takes the device to stabilise, spin the fan down
-  // rather than running it constantly. It does take some time to stabilise, so we
+  // If we update less often than it takes the device to stabilize, spin the fan down
+  // rather than running it constantly. It does take some time to stabilize, so we
   // need to keep track of what state we're in.
-  if (this->update_interval_ > PMS_STABILISING_MS) {
+  if (this->update_interval_ > PMS_STABILIZING_MS) {
     if (this->initialised_ == 0) {
       this->send_command_(PMS_CMD_MEASUREMENT_MODE, PMS_CMD_MEASUREMENT_MODE_PASSIVE);
       this->send_command_(PMS_CMD_SLEEP_MODE, PMS_CMD_SLEEP_MODE_WAKEUP);
@@ -57,16 +57,16 @@ void PMSX003Component::loop() {
     switch (this->state_) {
       case PMSX003_STATE_IDLE:
         // Power on the sensor now so it'll be ready when we hit the update time
-        if (now - this->last_update_ < (this->update_interval_ - PMS_STABILISING_MS))
+        if (now - this->last_update_ < (this->update_interval_ - PMS_STABILIZING_MS))
           return;
 
-        this->state_ = PMSX003_STATE_STABILISING;
+        this->state_ = PMSX003_STATE_STABILIZING;
         this->send_command_(PMS_CMD_SLEEP_MODE, PMS_CMD_SLEEP_MODE_WAKEUP);
         this->fan_on_time_ = now;
         return;
-      case PMSX003_STATE_STABILISING:
+      case PMSX003_STATE_STABILIZING:
         // wait for the sensor to be stable
-        if (now - this->fan_on_time_ < PMS_STABILISING_MS)
+        if (now - this->fan_on_time_ < PMS_STABILIZING_MS)
           return;
         // consume any command responses that are in the serial buffer
         while (this->available())
@@ -305,8 +305,8 @@ void PMSX003Component::parse_data_() {
   }
 
   // Spin down the sensor again if we aren't going to need it until more time has
-  // passed than it takes to stabilise
-  if (this->update_interval_ > PMS_STABILISING_MS) {
+  // passed than it takes to stabilize
+  if (this->update_interval_ > PMS_STABILIZING_MS) {
     this->send_command_(PMS_CMD_SLEEP_MODE, PMS_CMD_SLEEP_MODE_SLEEP);
     this->state_ = PMSX003_STATE_IDLE;
   }
