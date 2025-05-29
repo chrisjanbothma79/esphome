@@ -336,18 +336,18 @@ bool HX711Sensor::read_sensor_(uint32_t *result, const bool start_settle_timeout
   }
 
   if (this->is_powered_down()) {
-    ESP_LOGE(TAG, LOG_STR_POWERED_DOWN);
+    ESP_LOGE(TAG, "%s", LOG_STR_POWERED_DOWN);
     return false;
   }
 
   if (!this->is_measurement_ready()) {
-    ESP_LOGW(TAG, LOG_STR_NOT_READY);
+    ESP_LOGW(TAG, "%s", LOG_STR_NOT_READY);
     this->status_set_warning(LOG_STR_NOT_READY);
     return false;
   }
 
   if (!this->is_settled() && !force) {
-    ESP_LOGW(TAG, LOG_STR_NOT_SETTLED);
+    ESP_LOGW(TAG, "%s", LOG_STR_NOT_SETTLED);
     this->status_set_warning(LOG_STR_NOT_SETTLED);
     return false;
   }
