@@ -1,3 +1,4 @@
+from enum import Enum
 import re
 
 from esphome import automation
@@ -12,47 +13,104 @@ import esphome.final_validate as fv
 DEPENDENCIES = ["esp32"]
 CODEOWNERS = ["@jesserockz", "@Rapsssito"]
 
-# Bluetooth logger categories that can be registered by components
-BT_LOGGERS = {
-    "HCI": "CONFIG_BT_LOG_HCI_TRACE_LEVEL",
-    "BTM": "CONFIG_BT_LOG_BTM_TRACE_LEVEL",
-    "L2CAP": "CONFIG_BT_LOG_L2CAP_TRACE_LEVEL",
-    "RFCOMM": "CONFIG_BT_LOG_RFCOMM_TRACE_LEVEL",
-    "SDP": "CONFIG_BT_LOG_SDP_TRACE_LEVEL",
-    "GAP": "CONFIG_BT_LOG_GAP_TRACE_LEVEL",
-    "BNEP": "CONFIG_BT_LOG_BNEP_TRACE_LEVEL",
-    "PAN": "CONFIG_BT_LOG_PAN_TRACE_LEVEL",
-    "A2D": "CONFIG_BT_LOG_A2D_TRACE_LEVEL",
-    "AVDT": "CONFIG_BT_LOG_AVDT_TRACE_LEVEL",
-    "AVCT": "CONFIG_BT_LOG_AVCT_TRACE_LEVEL",
-    "AVRC": "CONFIG_BT_LOG_AVRC_TRACE_LEVEL",
-    "SMP": "CONFIG_BT_LOG_SMP_TRACE_LEVEL",
-    "BTIF": "CONFIG_BT_LOG_BTIF_TRACE_LEVEL",
-    "BTC": "CONFIG_BT_LOG_BTC_TRACE_LEVEL",
-    "BLE_SCAN": "CONFIG_BT_LOG_BLE_SCAN_TRACE_LEVEL",
-    "GATT": "CONFIG_BT_LOG_GATT_TRACE_LEVEL",
-    "MCA": "CONFIG_BT_LOG_MCA_TRACE_LEVEL",
-    "HID": "CONFIG_BT_LOG_HID_TRACE_LEVEL",
-    "APPL": "CONFIG_BT_LOG_APPL_TRACE_LEVEL",
-    "OSI": "CONFIG_BT_LOG_OSI_TRACE_LEVEL",
-    "BLUFI": "CONFIG_BT_LOG_BLUFI_TRACE_LEVEL",
-}
+
+class BTLoggers(Enum):
+    """Bluetooth logger categories available in ESP-IDF.
+
+    Each logger controls debug output for a specific Bluetooth subsystem.
+    The value is the ESP-IDF sdkconfig option name for controlling the log level.
+    """
+
+    # Core Stack Layers
+    HCI = "CONFIG_BT_LOG_HCI_TRACE_LEVEL"
+    """Host Controller Interface - Low-level interface between host and controller"""
+
+    BTM = "CONFIG_BT_LOG_BTM_TRACE_LEVEL"
+    """Bluetooth Manager - Core device control, connections, and security"""
+
+    L2CAP = "CONFIG_BT_LOG_L2CAP_TRACE_LEVEL"
+    """Logical Link Control and Adaptation Protocol - Connection multiplexing"""
+
+    RFCOMM = "CONFIG_BT_LOG_RFCOMM_TRACE_LEVEL"
+    """Serial port emulation over Bluetooth (Classic only)"""
+
+    SDP = "CONFIG_BT_LOG_SDP_TRACE_LEVEL"
+    """Service Discovery Protocol - Service discovery (Classic only)"""
+
+    GAP = "CONFIG_BT_LOG_GAP_TRACE_LEVEL"
+    """Generic Access Profile - Device discovery and connections"""
+
+    # Network Protocols
+    BNEP = "CONFIG_BT_LOG_BNEP_TRACE_LEVEL"
+    """Bluetooth Network Encapsulation Protocol - IP over Bluetooth"""
+
+    PAN = "CONFIG_BT_LOG_PAN_TRACE_LEVEL"
+    """Personal Area Networking - Ethernet over Bluetooth"""
+
+    # Audio/Video Profiles (Classic Bluetooth)
+    A2D = "CONFIG_BT_LOG_A2D_TRACE_LEVEL"
+    """Advanced Audio Distribution - A2DP audio streaming"""
+
+    AVDT = "CONFIG_BT_LOG_AVDT_TRACE_LEVEL"
+    """Audio/Video Distribution Transport - A2DP transport protocol"""
+
+    AVCT = "CONFIG_BT_LOG_AVCT_TRACE_LEVEL"
+    """Audio/Video Control Transport - AVRCP transport protocol"""
+
+    AVRC = "CONFIG_BT_LOG_AVRC_TRACE_LEVEL"
+    """Audio/Video Remote Control - Media playback control"""
+
+    # Security
+    SMP = "CONFIG_BT_LOG_SMP_TRACE_LEVEL"
+    """Security Manager Protocol - BLE pairing and encryption"""
+
+    # Application Layer
+    BTIF = "CONFIG_BT_LOG_BTIF_TRACE_LEVEL"
+    """Bluetooth Interface - Application interface layer"""
+
+    BTC = "CONFIG_BT_LOG_BTC_TRACE_LEVEL"
+    """Bluetooth Common - Task handling and coordination"""
+
+    # BLE Specific
+    BLE_SCAN = "CONFIG_BT_LOG_BLE_SCAN_TRACE_LEVEL"
+    """BLE scanning operations"""
+
+    GATT = "CONFIG_BT_LOG_GATT_TRACE_LEVEL"
+    """Generic Attribute Profile - BLE data exchange protocol"""
+
+    # Other Profiles
+    MCA = "CONFIG_BT_LOG_MCA_TRACE_LEVEL"
+    """Multi-Channel Adaptation - Health device profile"""
+
+    HID = "CONFIG_BT_LOG_HID_TRACE_LEVEL"
+    """Human Interface Device - Keyboards, mice, controllers"""
+
+    APPL = "CONFIG_BT_LOG_APPL_TRACE_LEVEL"
+    """Application layer logging"""
+
+    OSI = "CONFIG_BT_LOG_OSI_TRACE_LEVEL"
+    """OS abstraction layer - Threading, memory, timers"""
+
+    BLUFI = "CONFIG_BT_LOG_BLUFI_TRACE_LEVEL"
+    """ESP32 WiFi provisioning over Bluetooth"""
+
 
 # Set to track which loggers are needed by components
-_required_loggers: set[str] = set()
+_required_loggers: set[BTLoggers] = set()
 
 
-def register_bt_logger(*loggers: str) -> None:
+def register_bt_logger(*loggers: BTLoggers) -> None:
     """Register Bluetooth logger categories that a component needs.
 
     Args:
-        *loggers: One or more logger names from BT_LOGGERS keys
+        *loggers: One or more BTLoggers enum members
     """
     for logger in loggers:
-        if logger in BT_LOGGERS:
-            _required_loggers.add(logger)
-        else:
-            raise ValueError(f"Unknown Bluetooth logger category: {logger}")
+        if not isinstance(logger, BTLoggers):
+            raise TypeError(
+                f"Logger must be a BTLoggers enum member, got {type(logger)}"
+            )
+        _required_loggers.add(logger)
 
 
 CONF_BLE_ID = "ble_id"
@@ -186,14 +244,14 @@ async def to_code(config):
         add_idf_sdkconfig_option("CONFIG_BT_BLE_42_FEATURES_SUPPORTED", True)
 
         # Register the core BLE loggers that are always needed
-        register_bt_logger("GAP", "BTM", "HCI")
+        register_bt_logger(BTLoggers.GAP, BTLoggers.BTM, BTLoggers.HCI)
 
         # Apply logger settings if log disabling is enabled
         if config[CONF_DISABLE_BT_LOGS]:
             # Disable all Bluetooth loggers that are not required
-            for logger_name, config_name in BT_LOGGERS.items():
-                if logger_name not in _required_loggers:
-                    add_idf_sdkconfig_option(f"{config_name}_NONE", True)
+            for logger in BTLoggers:
+                if logger not in _required_loggers:
+                    add_idf_sdkconfig_option(f"{logger.value}_NONE", True)
 
     cg.add_define("USE_ESP32_BLE")
 
