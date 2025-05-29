@@ -17,6 +17,7 @@ from esphome.const import (
     CONF_PULLUP,
 )
 from esphome.core import CORE
+from esphome.cpp_generator import MockObjClass
 
 
 class PinRegistry(dict):
@@ -293,7 +294,7 @@ def gpio_validate_modes(value):
 
 
 def gpio_base_schema(
-    pin_type,
+    pin_type: MockObjClass,
     number_validator: Callable[[Any], Any],
     modes=GPIO_STANDARD_MODES,
     mode_validator: Callable[[Any], Any] = gpio_validate_modes,
