@@ -21,7 +21,7 @@ constexpr uint8_t hx711_gain_to_linear_gain(const HX711Gain gain) {
 }
 
 void HX711Sensor::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up HX711 '%s'...", this->name_.c_str());
+  ESP_LOGCONFIG(TAG, "Running setup for '%s'", this->name_.c_str());
   this->sck_pin_->setup();
   this->dout_pin_->setup();
 

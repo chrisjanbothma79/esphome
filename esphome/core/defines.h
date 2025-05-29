@@ -96,6 +96,7 @@
 
 // Feature flags which do not work for zephyr
 #ifndef USE_ZEPHYR
+#define USE_AUDIO_DAC
 #define USE_AUDIO_FLAC_SUPPORT
 #define USE_AUDIO_MP3_SUPPORT
 #define USE_API
@@ -140,6 +141,7 @@
 #define USE_MICROPHONE
 #define USE_PSRAM
 #define USE_SOCKET_IMPL_BSD_SOCKETS
+#define USE_SOCKET_SELECT_SUPPORT
 #define USE_SPEAKER
 #define USE_SPI
 #define USE_VOICE_ASSISTANT
@@ -199,12 +201,14 @@
 #ifdef USE_LIBRETINY
 #define USE_CAPTIVE_PORTAL
 #define USE_SOCKET_IMPL_LWIP_SOCKETS
+#define USE_SOCKET_SELECT_SUPPORT
 #define USE_WEBSERVER
 #define USE_WEBSERVER_PORT 80  // NOLINT
 #endif
 
 #ifdef USE_HOST
 #define USE_SOCKET_IMPL_BSD_SOCKETS
+#define USE_SOCKET_SELECT_SUPPORT
 #endif
 
 // Disabled feature flags
