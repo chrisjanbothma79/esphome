@@ -1,7 +1,8 @@
+from collections.abc import Callable
 from functools import reduce
 from logging import Logger
 import operator
-from typing import Any, Callable
+from typing import Any
 
 import esphome.config_validation as cv
 from esphome.const import (
