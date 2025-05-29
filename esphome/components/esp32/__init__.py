@@ -563,8 +563,11 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
                     ): cv.boolean,
                     cv.Optional(CONF_IGNORE_EFUSE_MAC_CRC): cv.boolean,
                     cv.Optional(CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES): cv.boolean,
-                    cv.Optional(
-                        CONF_ENABLE_LWIP_DHCP_SERVER, default=False
+                    # DHCP server is needed for WiFi AP mode. When WiFi component is used,
+                    # it will handle disabling DHCP server when AP is not configured.
+                    # Default to false (disabled) when WiFi is not used.
+                    cv.OnlyWithout(
+                        CONF_ENABLE_LWIP_DHCP_SERVER, "wifi", default=False
                     ): cv.boolean,
                     cv.Optional(
                         CONF_ENABLE_LWIP_MDNS_QUERIES, default=False
@@ -703,7 +706,12 @@ async def to_code(config):
         # Apply LWIP optimization settings
         if CONF_ADVANCED in conf:
             advanced = conf[CONF_ADVANCED]
-            if not advanced.get(CONF_ENABLE_LWIP_DHCP_SERVER, False):
+            # DHCP server: only disable if explicitly set to false
+            # WiFi component handles its own optimization when AP mode is not used
+            if (
+                CONF_ENABLE_LWIP_DHCP_SERVER in advanced
+                and not advanced[CONF_ENABLE_LWIP_DHCP_SERVER]
+            ):
                 add_idf_sdkconfig_option("CONFIG_LWIP_DHCPS", False)
             if not advanced.get(CONF_ENABLE_LWIP_MDNS_QUERIES, False):
                 add_idf_sdkconfig_option("CONFIG_LWIP_DNS_SUPPORT_MDNS_QUERIES", False)
