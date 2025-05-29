@@ -44,8 +44,8 @@ SAMPLING_MODES = {
     "max": sampling_mode.MAX,
 }
 
-adc1_channel_t = cg.global_ns.enum("adc1_channel_t")
-adc2_channel_t = cg.global_ns.enum("adc2_channel_t")
+adc1_channel_t = cg.global_ns.enum("adc_channel_t")
+adc2_channel_t = cg.global_ns.enum("adc_channel_t")
 
 # pin to adc1 channel mapping
 # https://github.com/espressif/esp-idf/blob/v4.4.8/components/driver/include/driver/adc.h
