@@ -3,7 +3,6 @@ esp32:
   framework:
     type: esp-idf
     advanced:
-      enable_lwip_dhcp_server: true
       enable_lwip_mdns_queries: true
       enable_lwip_bridge_interface: true
 
