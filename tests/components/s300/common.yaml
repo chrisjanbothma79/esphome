@@ -5,7 +5,6 @@ i2c:
 
 sensor:
   - platform: s300
-    co2:
-      name: S300 CO2
+    name: S300_CO2_Sensor
     address: 0x31
     update_interval: 60s

@@ -44,15 +44,13 @@ void S300Component::update() {
       const float co2_val = this->read_co2_data();
       if (this->status_has_warning())
         return;
-
-      if (this->co2_sensor_ != nullptr)
-        this->co2_sensor_->publish_state(co2_val);
+      this->publish_state(co2_val);
     });
   }
 }
 
 void S300Component::dump_config() {
-  LOG_SENSOR("  ", "CO2", this->co2_sensor_);
+  LOG_SENSOR("", "S300", this);
   LOG_I2C_DEVICE(this);
   LOG_UPDATE_INTERVAL(this);
 }
