@@ -28,7 +28,7 @@ void IDFI2CBus::setup() {
 #endif
 
   if (port_ == I2C_NUM_MAX) {
-    ESP_LOGE(TAG, "Too many buses configured. Max %u supported.", SOC_HP_I2C_NUM);
+    ESP_LOGE(TAG, "No more than %u buses supported", SOC_HP_I2C_NUM);
     this->mark_failed();
     return;
   }

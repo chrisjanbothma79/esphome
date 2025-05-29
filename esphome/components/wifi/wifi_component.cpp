@@ -160,7 +160,7 @@ void WiFiComponent::loop() {
 
       case WIFI_COMPONENT_STATE_STA_CONNECTED: {
         if (!this->is_connected()) {
-          ESP_LOGW(TAG, "Connection lost... Reconnecting...");
+          ESP_LOGW(TAG, "Connection lost; reconnecting");
           this->state_ = WIFI_COMPONENT_STATE_STA_CONNECTING;
           this->retry_connect();
         } else {
