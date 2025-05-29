@@ -153,7 +153,7 @@ void Lc709203f::dump_config() {
     // Nothing in this code actually sets the device to failed, so this should never trigger.
     //  I am leaving this in incase I want to implement a check during init to verify the
     //  correct device is on the bus.
-    ESP_LOGCONFIG(TAG, "  I2C Device at 0x0B does not appear to be a LC709203F");
+    ESP_LOGCONFIG(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
   LOG_UPDATE_INTERVAL(this);
   ESP_LOGCONFIG(TAG, "  Pack Size: %d mAH", this->pack_size_);
