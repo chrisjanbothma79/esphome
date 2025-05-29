@@ -16,7 +16,6 @@ class MCP3221Sensor : public sensor::Sensor,
                       public voltage_sampler::VoltageSampler,
                       public i2c::I2CDevice {
  public:
-  void setup() override;
   void set_reference_voltage(float reference_voltage) { this->reference_voltage_ = reference_voltage; }
   float get_setup_priority() const override;
   void update() override;
