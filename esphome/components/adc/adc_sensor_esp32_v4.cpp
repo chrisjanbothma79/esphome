@@ -26,19 +26,19 @@ static const int ADC_HALF = (1 << SOC_ADC_RTC_MAX_BITWIDTH) >> 1;
 void ADCSensor::setup() {
   ESP_LOGCONFIG(TAG, "Running setup for '%s'...", this->get_name().c_str());
 
-  if (this->channel1_ != ADC_CHANNEL_MAX) {
+  if (this->channel1_ != ADC1_CHANNEL_MAX) {
     adc1_config_width(ADC_WIDTH_MAX_SOC_BITS);
     if (!this->autorange_) {
       adc1_config_channel_atten(this->channel1_, this->attenuation_);
     }
-  } else if (this->channel2_ != ADC_CHANNEL_MAX) {
+  } else if (this->channel2_ != ADC2_CHANNEL_MAX) {
     if (!this->autorange_) {
       adc2_config_channel_atten(this->channel2_, this->attenuation_);
     }
   }
 
   for (int32_t i = 0; i <= ADC_ATTEN_DB_12_COMPAT; i++) {
-    auto adc_unit = this->channel1_ != ADC_CHANNEL_MAX ? ADC_UNIT_1 : ADC_UNIT_2;
+    auto adc_unit = this->channel1_ != ADC1_CHANNEL_MAX ? ADC_UNIT_1 : ADC_UNIT_2;
     auto cal_value = esp_adc_cal_characterize(adc_unit, (adc_atten_t) i, ADC_WIDTH_MAX_SOC_BITS,
                                               1100,  // default vref
                                               &this->cal_characteristics_[i]);
@@ -91,9 +91,9 @@ float ADCSensor::sample() {
 
     for (uint8_t sample = 0; sample < this->sample_count_; sample++) {
       int raw = -1;
-      if (this->channel1_ != ADC_CHANNEL_MAX) {
+      if (this->channel1_ != ADC1_CHANNEL_MAX) {
         raw = adc1_get_raw(this->channel1_);
-      } else if (this->channel2_ != ADC_CHANNEL_MAX) {
+      } else if (this->channel2_ != ADC2_CHANNEL_MAX) {
         adc2_get_raw(this->channel2_, ADC_WIDTH_MAX_SOC_BITS, &raw);
       }
       if (raw == -1) {
@@ -112,7 +112,7 @@ float ADCSensor::sample() {
 
   int raw12 = ADC_MAX, raw6 = ADC_MAX, raw2 = ADC_MAX, raw0 = ADC_MAX;
 
-  if (this->channel1_ != ADC_CHANNEL_MAX) {
+  if (this->channel1_ != ADC1_CHANNEL_MAX) {
     adc1_config_channel_atten(this->channel1_, ADC_ATTEN_DB_12_COMPAT);
     raw12 = adc1_get_raw(this->channel1_);
     if (raw12 < ADC_MAX) {
@@ -127,7 +127,7 @@ float ADCSensor::sample() {
         }
       }
     }
-  } else if (this->channel2_ != ADC_CHANNEL_MAX) {
+  } else if (this->channel2_ != ADC2_CHANNEL_MAX) {
     adc2_config_channel_atten(this->channel2_, ADC_ATTEN_DB_12_COMPAT);
     adc2_get_raw(this->channel2_, ADC_WIDTH_MAX_SOC_BITS, &raw12);
     if (raw12 < ADC_MAX) {
