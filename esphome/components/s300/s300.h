@@ -12,13 +12,14 @@ namespace s300 {
 /// This class implements support for ELT Sensor's s300 co2 sensor using i2c.
 class S300Component : public sensor::Sensor, public PollingComponent, public i2c::I2CDevice {
  public:
+  void setup() override;
   void update() override;
   float get_setup_priority() const override { return setup_priority::DATA; };
   void dump_config() override;
 
  protected:
-  bool start_command(const uint8_t *command_byte);
-  float read_co2_data();
+  bool start_command_(const uint8_t *command_byte);
+  float read_co2_data_();
 };
 
 }  // namespace s300
