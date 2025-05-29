@@ -28,7 +28,7 @@ static RAMAllocator<BLEEvent> EVENT_ALLOCATOR(  // NOLINT(cppcoreguidelines-avoi
 
 void ESP32BLE::setup() {
   global_ble = this;
-  ESP_LOGCONFIG(TAG, "Setting up BLE...");
+  ESP_LOGCONFIG(TAG, "Running setup");
 
   if (!ble_pre_setup_()) {
     ESP_LOGE(TAG, "BLE could not be prepared for configuration");
@@ -110,6 +110,7 @@ void ESP32BLE::advertising_init_() {
 
   this->advertising_->set_scan_response(true);
   this->advertising_->set_min_preferred_interval(0x06);
+  this->advertising_->set_appearance(this->appearance_);
 }
 
 bool ESP32BLE::ble_setup_() {
