@@ -4,12 +4,12 @@
 
 #include <freertos/portmacro.h>
 
-#include <openthread/srp_client.h>
-#include <openthread/srp_client_buffers.h>
-#include <openthread/netdata.h>
 #include <openthread/cli.h>
 #include <openthread/instance.h>
 #include <openthread/logging.h>
+#include <openthread/netdata.h>
+#include <openthread/srp_client.h>
+#include <openthread/srp_client_buffers.h>
 #include <openthread/tasklet.h>
 
 #include <cstring>
@@ -157,7 +157,7 @@ void OpenThreadSrpComponent::setup() {
     memcpy(string, this->host_name_.c_str(), this->host_name_.size() + 1);
 
     // Set port
-    entry->mService.mPort = service.port;
+    entry->mService.mPort = const_cast<TemplatableValue<uint16_t> &>(service.port).value();
 
     otDnsTxtEntry *mTxtEntries =
         reinterpret_cast<otDnsTxtEntry *>(this->pool_alloc_(sizeof(otDnsTxtEntry) * service.txt_records.size()));
@@ -165,9 +165,10 @@ void OpenThreadSrpComponent::setup() {
     entry->mService.mNumTxtEntries = service.txt_records.size();
     for (size_t i = 0; i < service.txt_records.size(); i++) {
       const auto &txt = service.txt_records[i];
+      auto value = const_cast<TemplatableValue<std::string> &>(txt.value).value();
       mTxtEntries[i].mKey = txt.key.c_str();
-      mTxtEntries[i].mValue = reinterpret_cast<const uint8_t *>(txt.value.c_str());
-      mTxtEntries[i].mValueLength = txt.value.size();
+      mTxtEntries[i].mValue = reinterpret_cast<const uint8_t *>(value.c_str());
+      mTxtEntries[i].mValueLength = value.size();
     }
     entry->mService.mTxtEntries = mTxtEntries;
     entry->mService.mNumTxtEntries = service.txt_records.size();
