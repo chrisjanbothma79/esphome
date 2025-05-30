@@ -7,8 +7,9 @@ from esphome.components.esp32 import (
 )
 from esphome.components.mdns import MDNSComponent
 import esphome.config_validation as cv
-from esphome.const import CONF_CHANNEL, CONF_ID
+from esphome.const import CONF_CHANNEL, CONF_ENABLE_IPV6, CONF_ID
 from esphome.core import CORE
+import esphome.final_validate as fv
 
 from .const import (
     CONF_EXT_PAN_ID,
@@ -117,6 +118,19 @@ CONFIG_SCHEMA = cv.All(
     cv.only_with_esp_idf,
     only_on_variant(supported=[VARIANT_ESP32C6, VARIANT_ESP32H2]),
 )
+
+
+def _final_validate(_):
+    full_config = fv.full_config.get()
+    network_config = full_config.get("network", {})
+    if not network_config.get(CONF_ENABLE_IPV6, False):
+        raise cv.Invalid(
+            "OpenThread requires IPv6 to be enabled in the network component. "
+            "Please set `enable_ipv6: true` in the `network` configuration."
+        )
+
+
+FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 async def to_code(config):
