@@ -148,31 +148,33 @@ void Nextion::reset_(bool reset_nextion) {
 void Nextion::dump_config() {
   ESP_LOGCONFIG(TAG, "Nextion:");
   if (this->skip_connection_handshake_) {
-    ESP_LOGCONFIG(TAG, "  Skip handshake:   %s", YESNO(this->skip_connection_handshake_));
+    ESP_LOGCONFIG(TAG, "  Skip handshake:        %s", YESNO(this->skip_connection_handshake_));
   } else {
-    ESP_LOGCONFIG(TAG, "  Device Model:     %s", this->device_model_.c_str());
-    ESP_LOGCONFIG(TAG, "  Firmware Version: %s", this->firmware_version_.c_str());
-    ESP_LOGCONFIG(TAG, "  Serial Number:    %s", this->serial_number_.c_str());
-    ESP_LOGCONFIG(TAG, "  Flash Size:       %s", this->flash_size_.c_str());
+    ESP_LOGCONFIG(TAG, "  Device Model:          %s", this->device_model_.c_str());
+    ESP_LOGCONFIG(TAG, "  Firmware Version:      %s", this->firmware_version_.c_str());
+    ESP_LOGCONFIG(TAG, "  Serial Number:         %s", this->serial_number_.c_str());
+    ESP_LOGCONFIG(TAG, "  Flash Size:            %s", this->flash_size_.c_str());
   }
-  ESP_LOGCONFIG(TAG, "  Wake On Touch:    %s", YESNO(this->auto_wake_on_touch_));
-  ESP_LOGCONFIG(TAG, "  Exit reparse:     %s", YESNO(this->exit_reparse_on_start_));
+  ESP_LOGCONFIG(TAG, "  Wake On Touch:         %s", YESNO(this->auto_wake_on_touch_));
+  ESP_LOGCONFIG(TAG, "  Exit reparse:          %s", YESNO(this->exit_reparse_on_start_));
+  ESP_LOGCONFIG(TAG, "  Max commands per loop: %" PRIu16, this->max_commands_per_loop_);
 
   if (this->touch_sleep_timeout_ != 0) {
-    ESP_LOGCONFIG(TAG, "  Touch Timeout:    %" PRIu32, this->touch_sleep_timeout_);
+    ESP_LOGCONFIG(TAG, "  Touch Timeout:         %" PRIu32, this->touch_sleep_timeout_);
   }
 
   if (this->wake_up_page_ != -1) {
-    ESP_LOGCONFIG(TAG, "  Wake Up Page:     %" PRId16, this->wake_up_page_);
+    ESP_LOGCONFIG(TAG, "  Wake Up Page:          %" PRId16, this->wake_up_page_);
   }
 
   if (this->start_up_page_ != -1) {
-    ESP_LOGCONFIG(TAG, "  Start Up Page:    %" PRId16, this->start_up_page_);
+    ESP_LOGCONFIG(TAG, "  Start Up Page:         %" PRId16, this->start_up_page_);
   }
 
 #ifdef USE_NEXTION_COMMAND_SPACING
-  ESP_LOGCONFIG(TAG, "  Command spacing:  %" PRIu8 "ms", this->command_pacer_.get_spacing());
+  ESP_LOGCONFIG(TAG, "  Command spacing:       %" PRIu8 "ms", this->command_pacer_.get_spacing());
 #endif  // USE_NEXTION_COMMAND_SPACING
+
 }
 
 float Nextion::get_setup_priority() const { return setup_priority::DATA; }
@@ -361,6 +363,8 @@ void Nextion::process_nextion_commands_() {
     return;
   }
 
+  size_t commands_processed = 0;
+
 #ifdef USE_NEXTION_COMMAND_SPACING
   if (!this->command_pacer_.can_send()) {
     return;  // Will try again in next loop iteration
@@ -375,6 +379,10 @@ void Nextion::process_nextion_commands_() {
   this->print_queue_members_();
 #endif
   while ((to_process_length = this->command_data_.find(COMMAND_DELIMITER)) != std::string::npos) {
+    if (++commands_processed > this->max_commands_per_loop_) {
+      ESP_LOGW(TAG, "Processed too many commands in one loop. Deferring remaining commands.");
+      break;
+    }
     ESP_LOGN(TAG, "print_queue_members_ size %zu", this->nextion_queue_.size());
     while (to_process_length + COMMAND_DELIMITER.length() < this->command_data_.length() &&
            static_cast<uint8_t>(this->command_data_[to_process_length + COMMAND_DELIMITER.length()]) == 0xFF) {
@@ -808,8 +816,6 @@ void Nextion::process_nextion_commands_() {
 
     // ESP_LOGN(TAG, "nextion_event_ deleting from 0 to %d", to_process_length + COMMAND_DELIMITER.length() + 1);
     this->command_data_.erase(0, to_process_length + COMMAND_DELIMITER.length() + 1);
-    // App.feed_wdt(); Remove before master merge
-    this->process_serial_();
   }
 
   uint32_t ms = millis();
@@ -850,7 +856,7 @@ void Nextion::process_nextion_commands_() {
   ESP_LOGN(TAG, "Loop End");
   // App.feed_wdt(); Remove before master merge
   this->process_serial_();
-}  // namespace nextion
+}  // Nextion::process_nextion_commands_()
 
 void Nextion::set_nextion_sensor_state(int queue_type, const std::string &name, float state) {
   this->set_nextion_sensor_state(static_cast<NextionQueueType>(queue_type), name, state);

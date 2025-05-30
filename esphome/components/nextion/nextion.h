@@ -75,6 +75,21 @@ class NextionCommandPacer {
 
 class Nextion : public NextionBase, public PollingComponent, public uart::UARTDevice {
  public:
+  /**
+   * @brief Set the maximum number of commands to process in each loop iteration
+   * @param value Maximum number of commands (default: 20)
+   *
+   * Limiting the number of commands per loop helps prevent stack overflows
+   * when a large number of commands are queued at once, especially during boot.
+   */
+  inline void set_max_commands_per_loop(uint16_t value) { this->max_commands_per_loop_ = value; }
+
+  /**
+   * @brief Get the current maximum number of commands allowed per loop iteration
+   * @return Configured command limit per loop
+   */
+  inline uint16_t get_max_commands_per_loop() const { return this->max_commands_per_loop_; }
+
 #ifdef USE_NEXTION_COMMAND_SPACING
   /**
    * @brief Set the command spacing for the display
@@ -1273,6 +1288,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   bool is_connected() { return this->is_connected_; }
 
  protected:
+  uint16_t max_commands_per_loop_{1000};
 #ifdef USE_NEXTION_COMMAND_SPACING
   NextionCommandPacer command_pacer_{0};
 #endif  // USE_NEXTION_COMMAND_SPACING
