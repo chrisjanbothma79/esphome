@@ -54,25 +54,28 @@ enum class TuyaCommandType : uint8_t {
   WIFI_RESET = 0x04,
   WIFI_SELECT = 0x05,
   DATAPOINT_DELIVER = 0x06,
+  DATAPOINT_REPORT_ASYNC = 0x07,
+  DATAPOINT_QUERY = 0x08,
+  WIFI_TEST = 0x0E,
   LOCAL_TIME_QUERY = 0x1C,
+  DATAPOINT_REPORT_SYNC = 0x22,
+  DATAPOINT_REPORT_ACK = 0x23,
   WIFI_RSSI = 0x24,
+  VACUUM_MAP_UPLOAD = 0x28,
+  GET_NETWORK_STATUS = 0x2B,
+  EXTENDED_SERVICES = 0x34,
 #else
   WIFI_STATE = 0x02,
   WIFI_RESET = 0x03,  // factory mode, same as below, since not yet implemented as ap mode
   WIFI_PAIR = 0x04,   // pairing mode, will made the device available for 2 minutes
-  DATAPOINT_REPORT = 0x05,
+  DATAPOINT_REPORT_SYNC = 0x05,
   LOCAL_TIME_QUERY = 0x06,
-  DP_CACHE = 0x10,
+  WIFI_TEST = 0x07,
+  DATAPOINT_REPORT_ASYNC = 0x08,
+  DATAPOINT_DELIVER = 0x09,
+  DATAPOINT_CACHE_DELIVER = 0x10,
   WIFI_RSSI = 0x0B,
 #endif
-  DATAPOINT_REPORT_ASYNC = 0x07,
-  DATAPOINT_QUERY = 0x08,
-  WIFI_TEST = 0x0E,
-  DATAPOINT_REPORT_SYNC = 0x22,
-  DATAPOINT_REPORT_ACK = 0x23,
-  VACUUM_MAP_UPLOAD = 0x28,
-  GET_NETWORK_STATUS = 0x2B,
-  EXTENDED_SERVICES = 0x34,
 };
 
 enum class TuyaExtendedServicesCommandType : uint8_t {

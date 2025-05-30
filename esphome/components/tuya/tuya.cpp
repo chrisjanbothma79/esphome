@@ -26,13 +26,14 @@ void Tuya::setup() {
   this->set_interval("heartbeat", 15000, [this] { this->send_empty_command_(TuyaCommandType::HEARTBEAT); });
 #else
   this->protocol_version_ = 0;
-  this->write_byte(0x00);
   this->init_state_ = TuyaInitState::INIT_PRODUCT;
   this->set_retry(
       "initquery", 100, 20,
       [this](const uint8_t remaining_attempts) {
         if (remaining_attempts > 0) {
-          this->send_empty_command_(TuyaCommandType::PRODUCT_QUERY);
+          if (remaining_attempts < 20) {
+            this->send_empty_command_(TuyaCommandType::PRODUCT_QUERY);
+          }
           return RetryResult::RETRY;
         }
         return RetryResult::DONE;
@@ -261,47 +262,7 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
             TuyaCommand{.cmd = TuyaCommandType::DATAPOINT_REPORT_ACK, .payload = std::vector<uint8_t>{0x01}});
       }
       break;
-#else
-    case TuyaCommandType::WIFI_STATE:
-      this->send_wifi_status_();
-      break;
-    case TuyaCommandType::WIFI_RESET:  // enable AP (factory) mode (not implemented yet), instead use pair
-    case TuyaCommandType::WIFI_PAIR:   // we'll remain UP for at most 2 minutes (maybe less with boot time)
-      cut_cloud_mode_ = true;
-      break;
-    case TuyaCommandType::DATAPOINT_REPORT:
-      this->init_state_ = TuyaInitState::INIT_DONE;
-      this->handle_datapoints_(buffer, len);
-      // report that we received the data after handling them!
-      break;
-    case TuyaCommandType::DP_CACHE:
-      this->send_command_(TuyaCommand{.cmd = TuyaCommandType::DP_CACHE, .payload = std::vector<uint8_t>{0x01}});
-      break;
-#endif
     case TuyaCommandType::DATAPOINT_QUERY:
-      break;
-    case TuyaCommandType::WIFI_TEST:
-      this->send_command_(TuyaCommand{.cmd = TuyaCommandType::WIFI_TEST, .payload = std::vector<uint8_t>{0x00, 0x00}});
-      break;
-    case TuyaCommandType::WIFI_RSSI:
-      this->send_command_(
-          TuyaCommand{.cmd = TuyaCommandType::WIFI_RSSI, .payload = std::vector<uint8_t>{get_wifi_rssi_()}});
-      break;
-    case TuyaCommandType::LOCAL_TIME_QUERY:
-#ifdef USE_TIME
-      if (this->time_id_ != nullptr) {
-        this->send_local_time_();
-
-        if (!this->time_sync_callback_registered_) {
-          // tuya mcu supports time, so we let them know when our time changed
-          this->time_id_->add_on_time_sync_callback([this] { this->send_local_time_(); });
-          this->time_sync_callback_registered_ = true;
-        }
-      } else
-#endif
-      {
-        ESP_LOGW(TAG, "LOCAL_TIME_QUERY is not handled because time is not configured");
-      }
       break;
     case TuyaCommandType::VACUUM_MAP_UPLOAD:
       this->send_command_(
@@ -340,6 +301,65 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
       }
       break;
     }
+#else
+    case TuyaCommandType::WIFI_STATE:
+      // wifi-state ACK from MCU
+      break;
+    case TuyaCommandType::WIFI_RESET:  // enable AP (factory) mode (not implemented yet), same as pair
+      this->send_empty_command_(TuyaCommandType::WIFI_RESET);
+      cut_cloud_mode_ = true;
+      break;
+    case TuyaCommandType::WIFI_PAIR:  // we'll remain UP for at most 2 minutes (maybe less with boot time)
+      // len > 0, buffer[0] contains 0x00 for EZ mode or 0x01 for AP mode
+      /* 
+      if (len > 0) {
+        buffer[0];
+      }*/
+      this->send_empty_command_(TuyaCommandType::WIFI_PAIR);
+      cut_cloud_mode_ = true;
+      break;
+    case TuyaCommandType::DATAPOINT_REPORT_ASYNC:
+    case TuyaCommandType::DATAPOINT_REPORT_SYNC:
+      this->init_state_ = TuyaInitState::INIT_DONE;
+      this->handle_datapoints_(buffer, len);
+      // after updating everything we report the confirmation of sending them "to the cloud" - the device could stay a
+      // little longer, maybe postpone this?
+      this->send_command_(TuyaCommand{.cmd = command_type, .payload = std::vector<uint8_t>{0x00}});  // 0x00 == report OK - 0x01 report FAIL
+      break;
+    case TuyaCommandType::DATAPOINT_DELIVER:
+      break;
+    case TuyaCommandType::DATAPOINT_CACHE_DELIVER:
+      /*
+      * TODO: we need to make this work for multiple cached commands done on
+      * battery powered devices, example:
+      * a device that does an action on multiple DP delayed, as a lock or an
+      * intermittent light, or anything else with that behaviour
+      */
+      break;
+#endif
+    case TuyaCommandType::WIFI_TEST:
+      this->send_command_(TuyaCommand{.cmd = TuyaCommandType::WIFI_TEST, .payload = std::vector<uint8_t>{0x00, 0x00}});
+      break;
+    case TuyaCommandType::WIFI_RSSI:
+      this->send_command_(
+          TuyaCommand{.cmd = TuyaCommandType::WIFI_RSSI, .payload = std::vector<uint8_t>{get_wifi_rssi_()}});
+      break;
+    case TuyaCommandType::LOCAL_TIME_QUERY:
+#ifdef USE_TIME
+      if (this->time_id_ != nullptr) {
+        this->send_local_time_();
+
+        if (!this->time_sync_callback_registered_) {
+          // tuya mcu supports time, so we let them know when our time changed
+          this->time_id_->add_on_time_sync_callback([this] { this->send_local_time_(); });
+          this->time_sync_callback_registered_ = true;
+        }
+      } else
+#endif
+      {
+        ESP_LOGW(TAG, "LOCAL_TIME_QUERY is not handled because time is not configured");
+      }
+      break;
     default:
       ESP_LOGE(TAG, "Invalid command (0x%02X) received", command);
   }
@@ -449,11 +469,6 @@ void Tuya::handle_datapoints_(const uint8_t *buffer, size_t len) {
       if (listener.datapoint_id == datapoint.id)
         listener.on_datapoint(datapoint);
     }
-#ifdef TUYA_LOW_ENERGY
-    // after updating everything we report the confirmation of sending them "to the cloud" - the device could stay a
-    // little longer, maybe postpone this?
-    this->send_command_(TuyaCommand{.cmd = TuyaCommandType::DATAPOINT_REPORT, .payload = std::vector<uint8_t>{0x00}});
-#endif
   }
 }
 
@@ -741,13 +756,7 @@ void Tuya::send_datapoint_command_(uint8_t datapoint_id, TuyaDatapointType datap
   buffer.push_back(data.size() >> 0);
   buffer.insert(buffer.end(), data.begin(), data.end());
 
-  this->send_command_(TuyaCommand{.cmd =
-#ifndef TUYA_LOW_ENERGY
-                                      TuyaCommandType::DATAPOINT_DELIVER,
-#else
-                                      TuyaCommandType::DATAPOINT_REPORT,
-#endif
-                                  .payload = buffer});
+  this->send_command_(TuyaCommand{.cmd = TuyaCommandType::DATAPOINT_DELIVER, .payload = buffer});
 }
 
 void Tuya::register_listener(uint8_t datapoint_id, const std::function<void(TuyaDatapoint)> &func) {
