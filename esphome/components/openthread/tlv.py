@@ -1,7 +1,9 @@
 # Sourced from https://gist.github.com/agners/0338576e0003318b63ec1ea75adc90f9
 import binascii
 
-from esphome.components.openthread import (
+from esphome.const import CONF_CHANNEL
+
+from . import (
     CONF_EXT_PAN_ID,
     CONF_MESH_LOCAL_PREFIX,
     CONF_NETWORK_KEY,
@@ -9,7 +11,6 @@ from esphome.components.openthread import (
     CONF_PAN_ID,
     CONF_PSKC,
 )
-from esphome.const import CONF_CHANNEL
 
 TLV_TYPES = {
     0: CONF_CHANNEL,
