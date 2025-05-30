@@ -94,7 +94,6 @@ void Sensor::internal_send_state_to_frontend(float state) {
            this->get_unit_of_measurement().c_str(), this->get_accuracy_decimals());
   this->callback_.call(state);
 }
-bool Sensor::has_state() const { return this->has_state_; }
 
 }  // namespace sensor
 }  // namespace esphome

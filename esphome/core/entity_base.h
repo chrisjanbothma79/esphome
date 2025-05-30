@@ -46,6 +46,8 @@ class EntityBase {
   // Get/set this entity's icon
   std::string get_icon() const;
   void set_icon(const char *icon);
+  virtual bool has_state() const { return this->has_state_; }
+  void invalidate_state() { this->has_state_ = false; }
 
  protected:
   /// The hash_base() function has been deprecated. It is kept in this
@@ -61,6 +63,7 @@ class EntityBase {
   bool internal_{false};
   bool disabled_by_default_{false};
   EntityCategory entity_category_{ENTITY_CATEGORY_NONE};
+  bool has_state_{};
 };
 
 class EntityBase_DeviceClass {  // NOLINT(readability-identifier-naming)

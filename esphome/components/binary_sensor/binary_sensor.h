@@ -70,14 +70,11 @@ class BinarySensor : public EntityBase, public EntityBase_DeviceClass {
   void send_state_internal(bool state, bool is_initial);
 
   /// Return whether this binary sensor has outputted a state.
-  virtual bool has_state() const;
-
   virtual bool is_status_binary_sensor() const;
 
  protected:
   CallbackManager<void(bool)> state_callback_{};
   Filter *filter_list_{nullptr};
-  bool has_state_{false};
   bool publish_initial_state_{false};
   Deduplicator<bool> publish_dedup_;
 };

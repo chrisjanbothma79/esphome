@@ -405,4 +405,14 @@ template<typename... Ts> class ResumeComponentAction : public Action<Ts...> {
   PollingComponent *component_;
 };
 
+template<typename... Ts> class InvalidateEntityAction : public Action<Ts...> {
+ public:
+  InvalidateEntityAction(EntityBase *entity) : entity_(entity) {}
+
+  void play(Ts... x) override { this->entity_->invalidate_state(); }
+
+ protected:
+  EntityBase *entity_;
+};
+
 }  // namespace esphome
