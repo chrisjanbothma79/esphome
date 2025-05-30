@@ -174,7 +174,6 @@ void Nextion::dump_config() {
 #ifdef USE_NEXTION_COMMAND_SPACING
   ESP_LOGCONFIG(TAG, "  Command spacing:       %" PRIu8 "ms", this->command_pacer_.get_spacing());
 #endif  // USE_NEXTION_COMMAND_SPACING
-
 }
 
 float Nextion::get_setup_priority() const { return setup_priority::DATA; }
