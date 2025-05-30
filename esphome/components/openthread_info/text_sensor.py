@@ -1,19 +1,18 @@
 import esphome.codegen as cg
 from esphome.components import text_sensor
+from esphome.components.openthread.const import (
+    CONF_EXT_PAN_ID,
+    CONF_NETWORK_KEY,
+    CONF_NETWORK_NAME,
+    CONF_PAN_ID,
+)
 import esphome.config_validation as cv
 from esphome.const import CONF_CHANNEL, CONF_IP_ADDRESS, ENTITY_CATEGORY_DIAGNOSTIC
 
 CONF_ROLE = "role"
 CONF_RLOC16 = "rloc16"
 CONF_EUI64 = "eui64"
-CONF_EXTADDR = "extaddr"
-
-# TODO: Move these to const.py
-CONF_NETWORK_NAME = "network_name"
-CONF_NETWORK_KEY = "network_key"
-CONF_PSKC = "pskc"
-CONF_PANID = "panid"
-CONF_EXTPANID = "extpanid"
+CONF_EXT_ADDR = "ext_addr"
 
 
 DEPENDENCIES = ["openthread"]
@@ -62,7 +61,7 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_RLOC16): text_sensor.text_sensor_schema(
             Rloc16OpenThreadInfo, entity_category=ENTITY_CATEGORY_DIAGNOSTIC
         ).extend(cv.polling_component_schema("1s")),
-        cv.Optional(CONF_EXTADDR): text_sensor.text_sensor_schema(
+        cv.Optional(CONF_EXT_ADDR): text_sensor.text_sensor_schema(
             ExtAddrOpenThreadInfo, entity_category=ENTITY_CATEGORY_DIAGNOSTIC
         ).extend(cv.polling_component_schema("1s")),
         cv.Optional(CONF_EUI64): text_sensor.text_sensor_schema(
@@ -77,19 +76,18 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_NETWORK_KEY): text_sensor.text_sensor_schema(
             NetworkKeyOpenThreadInfo, entity_category=ENTITY_CATEGORY_DIAGNOSTIC
         ).extend(cv.polling_component_schema("1s")),
-        cv.Optional(CONF_PANID): text_sensor.text_sensor_schema(
+        cv.Optional(CONF_PAN_ID): text_sensor.text_sensor_schema(  # noqa: F821
             PanIdOpenThreadInfo, entity_category=ENTITY_CATEGORY_DIAGNOSTIC
         ).extend(cv.polling_component_schema("1s")),
-        cv.Optional(CONF_EXTPANID): text_sensor.text_sensor_schema(
+        cv.Optional(CONF_EXT_PAN_ID): text_sensor.text_sensor_schema(
             ExtPanIdOpenThreadInfo, entity_category=ENTITY_CATEGORY_DIAGNOSTIC
         ).extend(cv.polling_component_schema("1s")),
     }
 )
 
 
-async def setup_conf(config, key):
-    if key in config:
-        conf = config[key]
+async def setup_conf(config: dict, key: str):
+    if conf := config.get(key):
         var = await text_sensor.new_text_sensor(conf)
         await cg.register_component(var, conf)
 
@@ -98,10 +96,10 @@ async def to_code(config):
     await setup_conf(config, CONF_IP_ADDRESS)
     await setup_conf(config, CONF_ROLE)
     await setup_conf(config, CONF_RLOC16)
-    await setup_conf(config, CONF_EXTADDR)
+    await setup_conf(config, CONF_EXT_ADDR)
     await setup_conf(config, CONF_EUI64)
     await setup_conf(config, CONF_CHANNEL)
     await setup_conf(config, CONF_NETWORK_NAME)
     await setup_conf(config, CONF_NETWORK_KEY)
-    await setup_conf(config, CONF_PANID)
-    await setup_conf(config, CONF_EXTPANID)
+    await setup_conf(config, CONF_PAN_ID)
+    await setup_conf(config, CONF_EXT_PAN_ID)
