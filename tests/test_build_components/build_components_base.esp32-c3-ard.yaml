@@ -4,11 +4,12 @@ esphome:
 
 esp32:
   board: lolin_c3_mini
+  flash_size: 8MB
   framework:
     type: arduino
 
 logger:
-  level: INFO
+  level: VERY_VERBOSE
 
 packages:
   component_under_test: !include
