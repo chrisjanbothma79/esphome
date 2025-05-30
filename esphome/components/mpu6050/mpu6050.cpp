@@ -99,7 +99,7 @@ void MPU6050Component::dump_config() {
 }
 
 void MPU6050Component::update() {
-  ESP_LOGV(TAG, "    Updating MPU6050");
+  ESP_LOGV(TAG, "Updating");
   uint16_t raw_data[7];
   if (!this->read_bytes_16(MPU6050_REGISTER_ACCEL_XOUT_H, raw_data, 7)) {
     this->status_set_warning();
