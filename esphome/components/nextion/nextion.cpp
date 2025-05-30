@@ -365,7 +365,9 @@ void Nextion::process_nextion_commands_() {
     return;
   }
 
+#ifdef USE_NEXTION_MAX_COMMANDS_PER_LOOP
   size_t commands_processed = 0;
+#endif  // USE_NEXTION_MAX_COMMANDS_PER_LOOP
 
 #ifdef USE_NEXTION_COMMAND_SPACING
   if (!this->command_pacer_.can_send()) {
