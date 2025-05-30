@@ -33,7 +33,6 @@ CONF_BREATH_VOC_EQUIVALENT = "breath_voc_equivalent"
 CONF_CO2_EQUIVALENT = "co2_equivalent"
 CONF_IAQ = "iaq"
 ICON_ACCURACY = "mdi:checkbox-marked-circle-outline"
-ICON_TEST_TUBE = "mdi:test-tube"
 UNIT_IAQ = "IAQ"
 
 TYPES = [
@@ -61,7 +60,6 @@ CONFIG_SCHEMA = cv.Schema(
         ),
         cv.Optional(CONF_PRESSURE): sensor.sensor_schema(
             unit_of_measurement=UNIT_HECTOPASCAL,
-            icon=ICON_GAUGE,
             accuracy_decimals=1,
             device_class=DEVICE_CLASS_ATMOSPHERIC_PRESSURE,
             state_class=STATE_CLASS_MEASUREMENT,
@@ -96,14 +94,12 @@ CONFIG_SCHEMA = cv.Schema(
         ),
         cv.Optional(CONF_CO2_EQUIVALENT): sensor.sensor_schema(
             unit_of_measurement=UNIT_PARTS_PER_MILLION,
-            icon=ICON_TEST_TUBE,
             accuracy_decimals=1,
             device_class=DEVICE_CLASS_CARBON_DIOXIDE,
             state_class=STATE_CLASS_MEASUREMENT,
         ),
         cv.Optional(CONF_BREATH_VOC_EQUIVALENT): sensor.sensor_schema(
             unit_of_measurement=UNIT_PARTS_PER_MILLION,
-            icon=ICON_TEST_TUBE,
             accuracy_decimals=1,
             device_class=DEVICE_CLASS_VOLATILE_ORGANIC_COMPOUNDS_PARTS,
             state_class=STATE_CLASS_MEASUREMENT,
