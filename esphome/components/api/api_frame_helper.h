@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <deque>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -12,6 +13,7 @@
 
 #include "api_noise_context.h"
 #include "esphome/components/socket/socket.h"
+#include "esphome/core/application.h"
 
 namespace esphome {
 namespace api {
@@ -89,6 +91,8 @@ class APIFrameHelper {
   virtual uint8_t frame_header_padding() = 0;
   // Get the frame footer size required by this protocol
   virtual uint8_t frame_footer_size() = 0;
+  // Check if socket has data ready to read
+  bool is_socket_ready() const { return socket_ != nullptr && socket_->ready(); }
 
  protected:
   // Struct for holding parsed frame data
@@ -101,7 +105,7 @@ class APIFrameHelper {
     std::vector<uint8_t> data;
     uint16_t offset{0};  // Current offset within the buffer (uint16_t to reduce memory usage)
 
-    // Using uint16_t reduces memory usage since ESPHome API messages are limited to 64KB max
+    // Using uint16_t reduces memory usage since ESPHome API messages are limited to UINT16_MAX (65535) bytes
     uint16_t remaining() const { return static_cast<uint16_t>(data.size()) - offset; }
     const uint8_t *current_data() const { return data.data() + offset; }
   };
@@ -192,7 +196,7 @@ class APINoiseFrameHelper : public APIFrameHelper {
   void send_explicit_handshake_reject_(const std::string &reason);
   // Fixed-size header buffer for noise protocol:
   // 1 byte for indicator + 2 bytes for message size (16-bit value, not varint)
-  // Note: Maximum message size is 65535, with a limit of 128 bytes during handshake phase
+  // Note: Maximum message size is UINT16_MAX (65535), with a limit of 128 bytes during handshake phase
   uint8_t rx_header_buf_[3];
   uint8_t rx_header_buf_len_ = 0;
 
@@ -229,14 +233,14 @@ class APIPlaintextFrameHelper : public APIFrameHelper {
  protected:
   APIError try_read_frame_(ParsedFrame *frame);
   // Fixed-size header buffer for plaintext protocol:
-  // We only need space for the two varints since we validate the indicator byte separately.
-  // To match noise protocol's maximum message size (65535), we need:
-  // 3 bytes for message size varint (supports up to 2097151) + 2 bytes for message type varint
+  // We now store the indicator byte + the two varints.
+  // To match noise protocol's maximum message size (UINT16_MAX = 65535), we need:
+  // 1 byte for indicator + 3 bytes for message size varint (supports up to 2097151) + 2 bytes for message type varint
   //
   // While varints could theoretically be up to 10 bytes each for 64-bit values,
   // attempting to process messages with headers that large would likely crash the
   // ESP32 due to memory constraints.
-  uint8_t rx_header_buf_[5];  // 5 bytes for varints (3 for size + 2 for type)
+  uint8_t rx_header_buf_[6];  // 1 byte indicator + 5 bytes for varints (3 for size + 2 for type)
   uint8_t rx_header_buf_pos_ = 0;
   bool rx_header_parsed_ = false;
   uint16_t rx_header_parsed_type_ = 0;
