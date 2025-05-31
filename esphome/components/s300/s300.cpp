@@ -14,9 +14,9 @@ static const uint16_t S300_I2C_RESPONSE_WAIT_MS = 10;
 float S300Component::read_co2_data_() {
   uint8_t i2c_out_data[7];
   if (this->read(i2c_out_data, 7) != i2c::ERROR_OK) {
-    static const char *const message = "Couldn't read CO2 data via I2C";
-    ESP_LOGE(TAG, "%s", message);
-    this->status_set_warning(message);
+    static const char *const ERROR_MSG = "Couldn't read CO2 data via I2C";
+    ESP_LOGE(TAG, "%s", ERROR_MSG);
+    this->status_set_warning(ERROR_MSG);
     return NAN;
   }
 
@@ -28,9 +28,9 @@ float S300Component::read_co2_data_() {
 
 bool S300Component::start_command_(const uint8_t *command_byte) {
   if (this->write(command_byte, 1) != i2c::ERROR_OK) {
-    static const char *const message = "Couldn't start measurement via I2C";
-    ESP_LOGE(TAG, "%s", message);
-    this->status_set_warning(message);
+    static const char *const ERROR_MSG = "Couldn't start measurement via I2C";
+    ESP_LOGE(TAG, "%s", ERROR_MSG);
+    this->status_set_warning(ERROR_MSG);
     return false;
   }
 
