@@ -69,7 +69,7 @@ class OnlineImage : public PollingComponent,
 
   /** Add the request header */
   template<typename V> void add_request_header(const std::string &header, V value) {
-    this->request_headers_.push_back(std::pair(header, value));
+    this->request_headers_.push_back(std::pair<std::string, TemplatableValue<std::string> >(header, value));
   }
 
   /**
