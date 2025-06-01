@@ -330,11 +330,12 @@ void PacketTransport::update() {
           provider.second.status_sensor->publish_state(false);
         }
         for (auto &sensor : this->remote_sensors_[provider.first]) {
-          sensor.second->publish_state(0);
+          sensor.second->publish_state(NAN);
         }
-        for (auto &sensor : this->remote_binary_sensors_[provider.first]) {
-          sensor.second->publish_state(false);
-        }
+        /* Not possibe to set a binary sensor unavailable. */
+        // for (auto &binary_sensor : this->remote_binary_sensors_[provider.first]) {
+        //   binary_sensor.second->publish_state(false);
+        // }
       } else {
         if (!provider.second.status_sensor->state) {
           ESP_LOGI(TAG, "Ping status for %s restored at %u with age %u", provider.first.c_str(), now, key_response_age);
@@ -463,7 +464,7 @@ void PacketTransport::process_(const std::vector<uint8_t> &data) {
       if (key == this->ping_key_) {
         ping_key_seen = true;
         provider.last_key_response_time = millis() / 1000;
-        ESP_LOGV(TAG, "Found good ping key %X at timestamp %u", (unsigned) key, provider.last_key_response_time);
+        ESP_LOGV(TAG, "Found good ping key %X at timestamp %" PRIu32, (unsigned) key, provider.last_key_response_time);
       } else {
         ESP_LOGV(TAG, "Unknown ping key %X", (unsigned) key);
       }

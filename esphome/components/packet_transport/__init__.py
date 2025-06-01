@@ -86,10 +86,6 @@ ENCRYPTION_SCHEMA = {
 STATUS_SENSOR_SCHEMA = binary_sensor_schema(
     device_class=DEVICE_CLASS_CONNECTIVITY,
     entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-).extend(
-    {
-        cv.GenerateID(CONF_TRANSPORT_ID): cv.use_id(PacketTransport),
-    }
 )
 
 PROVIDER_SCHEMA = cv.Schema(
@@ -109,6 +105,10 @@ def validate_(config):
     if config[CONF_PING_PONG_ENABLE]:
         if not any(CONF_ENCRYPTION in p for p in config.get(CONF_PROVIDERS) or ()):
             raise cv.Invalid("Ping-pong requires at least one encrypted provider")
+    elif any(CONF_STATUS_SENSOR in p for p in config.get(CONF_PROVIDERS) or ()):
+        raise cv.Invalid(
+            "Ping-pong needs to be enabled when using providers with status sensor"
+        )
     return config
 
 
@@ -191,16 +191,14 @@ async def register_packet_transport(var, config):
     for provider in providers:
         cg.add(var.add_provider(provider))
 
-    define_binary_sensor = False
     for provider in config[CONF_PROVIDERS]:
         name = provider[CONF_NAME]
         if encryption := provider.get(CONF_ENCRYPTION):
             cg.add(var.set_provider_encryption(name, hash_encryption_key(encryption)))
         if status_sensor := provider.get(CONF_STATUS_SENSOR):
-            define_binary_sensor = True
             sens = await new_binary_sensor(status_sensor)
             cg.add(var.set_provider_status_sensor(name, sens))
-    if define_binary_sensor:
+    if any(CONF_STATUS_SENSOR in p for p in config[CONF_PROVIDERS]):
         cg.add_define("USE_STATUS_SENSOR")
 
     for sens_conf in config.get(CONF_SENSORS, ()):
