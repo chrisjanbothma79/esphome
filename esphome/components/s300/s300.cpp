@@ -27,9 +27,10 @@ float S300Component::read_co2_data_() {
 }
 
 bool S300Component::start_command_(const uint8_t *command_byte) {
-  if (this->write(command_byte, 1) != i2c::ERROR_OK) {
+  const auto i2c_write_err = this->write(command_byte, 1);
+  if (i2c_write_err != i2c::ERROR_OK) {
     static const char *const ERROR_MSG = "Couldn't start measurement via I2C";
-    ESP_LOGE(TAG, "%s", ERROR_MSG);
+    ESP_LOGE(TAG, "%s, error #%d", ERROR_MSG, i2c_write_err);
     this->status_set_warning(ERROR_MSG);
     return false;
   }
@@ -38,11 +39,8 @@ bool S300Component::start_command_(const uint8_t *command_byte) {
 }
 
 void S300Component::setup() {
-  const auto err = this->write(nullptr, 0);
-  if (err != i2c::ERROR_OK) {
-    this->mark_failed(ESP_LOG_MSG_COMM_FAIL);
-    return;
-  }
+  // Dummy read command, will set warning if there's an i2c issue
+  this->start_command_(S300_COMMAND_READ_DATA);
 }
 
 void S300Component::update() {
@@ -60,9 +58,6 @@ void S300Component::dump_config() {
   LOG_SENSOR("", "S300", this);
   LOG_I2C_DEVICE(this);
   LOG_UPDATE_INTERVAL(this);
-  if (this->is_failed()) {
-    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL_FOR, this->name_.c_str());
-  }
 }
 
 }  // namespace s300
