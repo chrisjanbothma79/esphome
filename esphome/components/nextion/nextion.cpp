@@ -1020,8 +1020,13 @@ void Nextion::add_no_result_to_queue_(const std::string &variable_name) {
   }
 #endif
 
-  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-  nextion::NextionQueue *nextion_queue = new nextion::NextionQueue;
+  ExternalRAMAllocator<nextion::NextionQueue> allocator(ExternalRAMAllocator<nextion::NextionQueue>::ALLOW_FAILURE);
+  nextion::NextionQueue *nextion_queue = allocator.allocate(1);
+  if (nextion_queue == nullptr) {
+    ESP_LOGW(TAG, "Failed to allocate NextionQueue");
+    return;
+  }
+  new (nextion_queue) nextion::NextionQueue();
 
   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
   nextion_queue->component = new nextion::NextionComponentBase;
@@ -1171,8 +1176,13 @@ void Nextion::add_to_get_queue(NextionComponentBase *component) {
   }
 #endif
 
-  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-  nextion::NextionQueue *nextion_queue = new nextion::NextionQueue;
+  ExternalRAMAllocator<nextion::NextionQueue> allocator(ExternalRAMAllocator<nextion::NextionQueue>::ALLOW_FAILURE);
+  nextion::NextionQueue *nextion_queue = allocator.allocate(1);
+  if (nextion_queue == nullptr) {
+    ESP_LOGW(TAG, "Failed to allocate NextionQueue");
+    return;
+  }
+  new (nextion_queue) nextion::NextionQueue();
 
   nextion_queue->component = component;
   nextion_queue->queue_time = millis();
@@ -1199,8 +1209,13 @@ void Nextion::add_addt_command_to_queue(NextionComponentBase *component) {
   if ((!this->is_setup() && !this->ignore_is_setup_) || this->is_sleeping())
     return;
 
-  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
-  nextion::NextionQueue *nextion_queue = new nextion::NextionQueue;
+  ExternalRAMAllocator<nextion::NextionQueue> allocator(ExternalRAMAllocator<nextion::NextionQueue>::ALLOW_FAILURE);
+  nextion::NextionQueue *nextion_queue = allocator.allocate(1);
+  if (nextion_queue == nullptr) {
+    ESP_LOGW(TAG, "Failed to allocate NextionQueue");
+    return;
+  }
+  new (nextion_queue) nextion::NextionQueue();
 
   nextion_queue->component = component;
   nextion_queue->queue_time = millis();
