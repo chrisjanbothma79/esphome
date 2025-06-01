@@ -4,7 +4,7 @@ from esphome import core
 from esphome.config_helpers import Extend, Remove, merge_config
 import esphome.config_validation as cv
 from esphome.const import CONF_SUBSTITUTIONS, VALID_SUBSTITUTIONS_CHARACTERS
-from esphome.jinja import (
+from esphome.components.substitutions.jinja import (
     UndefinedError,
     expand_str,
     has_jinja,
