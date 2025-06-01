@@ -149,12 +149,7 @@ void Lc709203f::update() {
 void Lc709203f::dump_config() {
   ESP_LOGCONFIG(TAG, "LC709203F:");
   LOG_I2C_DEVICE(this);
-  if (this->is_failed()) {
-    // Nothing in this code actually sets the device to failed, so this should never trigger.
-    //  I am leaving this in incase I want to implement a check during init to verify the
-    //  correct device is on the bus.
-    ESP_LOGCONFIG(TAG, ESP_LOG_MSG_COMM_FAIL);
-  }
+
   LOG_UPDATE_INTERVAL(this);
   ESP_LOGCONFIG(TAG, "  Pack Size: %d mAH", this->pack_size_);
   ESP_LOGCONFIG(TAG, "  Pack APA: 0x%02X", this->apa_);
