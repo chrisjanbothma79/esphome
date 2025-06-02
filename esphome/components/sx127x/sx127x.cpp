@@ -157,7 +157,7 @@ void SX127x::configure_fsk_ook_() {
       this->write_register_(REG_PAYLOAD_LENGTH_LSB, this->payload_length_);
       this->write_register_(REG_PACKET_CONFIG_1, crc_mode | FIXED_LENGTH);
     } else {
-      this->write_register_(REG_PAYLOAD_LENGTH_LSB, this->get_max_packet_size());
+      this->write_register_(REG_PAYLOAD_LENGTH_LSB, this->get_max_packet_size() - 1);
       this->write_register_(REG_PACKET_CONFIG_1, crc_mode | VARIABLE_LENGTH);
     }
     this->write_register_(REG_PACKET_CONFIG_2, PACKET_MODE);
