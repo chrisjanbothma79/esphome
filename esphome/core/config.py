@@ -34,7 +34,12 @@ from esphome.const import (
     __version__ as ESPHOME_VERSION,
 )
 from esphome.core import CORE, coroutine_with_priority
-from esphome.helpers import copy_file_if_changed, get_str_env, walk_files
+from esphome.helpers import (
+    copy_file_if_changed,
+    fnv1a_32bit_hash,
+    get_str_env,
+    walk_files,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -338,15 +343,6 @@ async def _add_automations(config):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID])
         await cg.register_component(trigger, conf)
         await automation.build_automation(trigger, [], conf)
-
-
-def fnv1a_32bit_hash(string: str) -> int:
-    """FNV-1a 32-bit hash function."""
-    hash_value = 2166136261
-    for char in string:
-        hash_value ^= ord(char)
-        hash_value = (hash_value * 16777619) & 0xFFFFFFFF
-    return hash_value
 
 
 @coroutine_with_priority(100.0)

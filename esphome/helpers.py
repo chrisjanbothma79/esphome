@@ -29,6 +29,15 @@ def ensure_unique_string(preferred_string, current_strings):
     return test_string
 
 
+def fnv1a_32bit_hash(string: str) -> int:
+    """FNV-1a 32-bit hash function."""
+    hash_value = 2166136261
+    for char in string:
+        hash_value ^= ord(char)
+        hash_value = (hash_value * 16777619) & 0xFFFFFFFF
+    return hash_value
+
+
 def indent_all_but_first_and_last(text, padding="  "):
     lines = text.splitlines(True)
     if len(lines) <= 2:

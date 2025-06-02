@@ -13,11 +13,11 @@ from esphome.const import (
     CONF_UPDATE_INTERVAL,
     KEY_PAST_SAFE_MODE,
 )
-from esphome.core import CORE, ID, coroutine, fnv1a_32bit_hash
+from esphome.core import CORE, ID, coroutine
 from esphome.coroutine import FakeAwaitable
 from esphome.cpp_generator import add, get_variable
 from esphome.cpp_types import App
-from esphome.helpers import sanitize, snake_case
+from esphome.helpers import fnv1a_32bit_hash, sanitize, snake_case
 from esphome.types import ConfigFragmentType, ConfigType
 from esphome.util import Registry, RegistryEntry
 
