@@ -5,10 +5,10 @@
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #endif
-#if defined(USE_BINARY_SENSOR) || defined(USE_STATUS_SENSOR)
+#ifdef USE_BINARY_SENSOR
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #endif
-#
+
 #include <vector>
 #include <map>
 
