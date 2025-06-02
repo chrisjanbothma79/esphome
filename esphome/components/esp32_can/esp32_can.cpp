@@ -16,6 +16,7 @@
 #define twai_driver_uninstall() twai_driver_uninstall_v2(this->twai_handle_)
 #define twai_start() twai_start_v2(this->twai_handle_)
 #define twai_stop() twai_stop_v2(this->twai_handle_)
+#define twai_initiate_recovery() twai_initiate_recovery_v2(this->twai_handle_)
 #define twai_transmit(args...) twai_transmit_v2(this->twai_handle_, args)
 #define twai_receive(args...) twai_receive_v2(this->twai_handle_, args)
 #define twai_get_status_info(args...) twai_get_status_info_v2(this->twai_handle_, args)
@@ -257,6 +258,10 @@ void ESP32Can::loop() {
   canbus::Canbus::loop();
 }
 
+esp_err_t ESP32Can::start() { return twai_start(); }
+esp_err_t ESP32Can::stop() { return twai_stop(); }
+esp_err_t ESP32Can::initiate_recovery() { return twai_initiate_recovery(); }
+
 bool ESP32Can::install_and_start_() {
   ESP_LOGV(TAG, "Install TWAI driver");
   this->initialized_g_config_.reset();
@@ -273,7 +278,7 @@ bool ESP32Can::install_and_start_() {
   }
 
   ESP_LOGV(TAG, "Start TWAI driver");
-  const auto start_err = twai_start();
+  const auto start_err = this->start();
   if (start_err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to start driver: %s", esp_err_to_name(start_err));
     this->mark_failed();

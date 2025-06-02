@@ -76,6 +76,10 @@ class ESP32Can : public canbus::Canbus {
     this->config_callback_manager_.add(std::move(foo));
   }
 
+  esp_err_t start();
+  esp_err_t stop();
+  esp_err_t initiate_recovery();
+
  protected:
   bool setup_internal() override;
   canbus::Error send_message(struct canbus::CanFrame *frame) override;
