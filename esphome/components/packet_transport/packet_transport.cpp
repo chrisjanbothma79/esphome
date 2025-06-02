@@ -329,13 +329,17 @@ void PacketTransport::update() {
           ESP_LOGW(TAG, "Ping status for %s timeout at %u with age %u", provider.first.c_str(), now, key_response_age);
           provider.second.status_sensor->publish_state(false);
         }
+#ifdef USE_SENSOR
         for (auto &sensor : this->remote_sensors_[provider.first]) {
           sensor.second->publish_state(NAN);
         }
-        /* Not possibe to set a binary sensor unavailable. */
+#endif
+#ifdef USE_BINARY_SENSOR
+        /* Not possible to set a binary sensor unavailable. */
         // for (auto &binary_sensor : this->remote_binary_sensors_[provider.first]) {
         //   binary_sensor.second->publish_state(false);
         // }
+#endif
       } else {
         if (!provider.second.status_sensor->state) {
           ESP_LOGI(TAG, "Ping status for %s restored at %u with age %u", provider.first.c_str(), now, key_response_age);
