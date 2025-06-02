@@ -23,6 +23,8 @@ packet_transport:
   providers:
     - name: some-device-name
       encryption: "their key goes here"
+      status_sensor:
+        name: "Status sensor"
 
 sensor:
   - platform: template

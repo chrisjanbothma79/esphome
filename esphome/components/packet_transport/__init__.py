@@ -88,12 +88,21 @@ STATUS_SENSOR_SCHEMA = binary_sensor_schema(
     entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
 )
 
+
+def validate_provider(config):
+    if CONF_STATUS_SENSOR in config and CONF_ENCRYPTION not in config:
+        raise cv.Invalid(
+            f"Provider {config[CONF_NAME]} needs to have encryption key set for enabling status sensor"
+        )
+    return config
+
+
 PROVIDER_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_NAME): provider_name_validate,
         cv.Optional(CONF_STATUS_SENSOR): STATUS_SENSOR_SCHEMA,
     }
-).extend(ENCRYPTION_SCHEMA)
+).extend(ENCRYPTION_SCHEMA).add_extra(validate_provider)
 
 
 def validate_(config):
