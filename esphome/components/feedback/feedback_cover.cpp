@@ -21,6 +21,9 @@ void FeedbackCover::setup() {
   }
   this->current_operation = COVER_OPERATION_IDLE;
 
+  this->last_stop_at_fully_open_state = false;
+  this->last_stop_at_fully_close_state = false;
+  
 #ifdef USE_BINARY_SENSOR
   // if available, get position from endstop sensors
   if (this->open_endstop_ != nullptr && this->open_endstop_->state) {
@@ -40,6 +43,7 @@ void FeedbackCover::setup() {
 	  }
   }
 #endif
+
 
   this->last_recompute_time_ = this->start_dir_time_ = millis();
 }
@@ -107,8 +111,23 @@ void FeedbackCover::set_open_sensor(binary_sensor::BinarySensor *open_feedback) 
 		  this->endstop_reached_(false);
 		}
 		
+		cover::CoverOperation operation_when_sensor_detected{this->current_trigger_operation_};
+
 		if(this->current_trigger_operation_ != COVER_OPERATION_CLOSING) this->set_current_operation_(state ? COVER_OPERATION_OPENING : COVER_OPERATION_IDLE, false);
 		else if(this->current_trigger_operation_ != COVER_OPERATION_OPENING) this->set_current_operation_(state ? COVER_OPERATION_CLOSING : COVER_OPERATION_IDLE, false);
+		
+		
+		//Set bool for next move
+		if(!state) {
+			if(operation_when_sensor_detected == COVER_OPERATION_OPENING) {
+				this->last_stop_at_fully_open_state = true;
+				this->last_stop_at_fully_close_state = false;
+			}
+			else if(operation_when_sensor_detected == COVER_OPERATION_CLOSING) {
+				this->last_stop_at_fully_open_state = false;
+				this->last_stop_at_fully_close_state = true;
+			}
+		}
 	}
 	else {
 		ESP_LOGD(TAG, "'%s' - Open feedback '%s'.", this->name_.c_str(), state ? "STARTED" : "ENDED");
@@ -117,7 +136,16 @@ void FeedbackCover::set_open_sensor(binary_sensor::BinarySensor *open_feedback) 
 		if (!state && this->infer_endstop_ && this->current_trigger_operation_ == COVER_OPERATION_OPENING) {
 		  this->endstop_reached_(true);
 		}
+		cover::CoverOperation operation_when_sensor_detected{this->current_trigger_operation_};
 		this->set_current_operation_(state ? COVER_OPERATION_OPENING : COVER_OPERATION_IDLE, false);
+		
+		//Set bool for next move
+		if(!state) {
+			if(operation_when_sensor_detected == COVER_OPERATION_OPENING) {
+				this->last_stop_at_fully_open_state = true;
+				this->last_stop_at_fully_close_state = false;
+			}
+		}
 	}
   });
 }
@@ -135,7 +163,15 @@ void FeedbackCover::set_close_sensor(binary_sensor::BinarySensor *close_feedback
 		if (!state && this->infer_endstop_ && this->current_trigger_operation_ == COVER_OPERATION_CLOSING) {
 		  this->endstop_reached_(false);
 		}
+		cover::CoverOperation operation_when_sensor_detected{this->current_trigger_operation_};
 		this->set_current_operation_(state ? COVER_OPERATION_CLOSING : COVER_OPERATION_IDLE, false);
+		
+		if(!state) {
+			if(operation_when_sensor_detected == COVER_OPERATION_CLOSING) {
+				this->last_stop_at_fully_open_state = false;
+				this->last_stop_at_fully_close_state = true;
+			}
+		}
 	}
   });
 }
@@ -168,11 +204,19 @@ void FeedbackCover::endstop_reached_(bool open_endstop) {
   // from a position slightly past the endpoint
   if (this->current_trigger_operation_ == (open_endstop ? COVER_OPERATION_OPENING : COVER_OPERATION_CLOSING)) {
     float dur = (now - this->start_dir_time_) / 1e3f;
+	float durMs = now - this->start_dir_time_;
     ESP_LOGD(TAG, "'%s' - %s endstop reached. Took %.1fs.", this->name_.c_str(), open_endstop ? "Open" : "Close", dur);
 	
-	
-	ESP_LOGD(TAG, "'%s' - Endstop reached : %s %s", this->name_.c_str(), this->last_stop_at_fully_open_state ? "open true" : "open false", this->last_stop_at_fully_close_state ? "close true" : "close false");
-	
+	if(this->enable_duration_autocalibration_) {
+		if(this->last_stop_at_fully_open_state) {
+			ESP_LOGI(TAG, "'%s' - Close duration autocalibration : %.1fs.", this->name_.c_str(), dur);
+			this->close_duration_ = durMs;
+		}
+		else if(this->last_stop_at_fully_close_state) {
+			ESP_LOGI(TAG, "'%s' - Open duration autocalibration : %.1fs.", this->name_.c_str(), dur);
+			this->open_duration_ = durMs;
+		}
+	}
 	
     // if there is no external mechanism, stop the cover
     if (!this->has_built_in_endstop_) {
@@ -182,8 +226,6 @@ void FeedbackCover::endstop_reached_(bool open_endstop) {
     }
 	
 	//Set bool for next move
-	ESP_LOGD(TAG, "'%s' - Set last_stop_at_fully !!", this->name_.c_str());
-	
 	if(open_endstop) {
 		this->last_stop_at_fully_open_state = true;
 		this->last_stop_at_fully_close_state = false;
@@ -220,14 +262,6 @@ void FeedbackCover::set_current_operation_(cover::CoverOperation operation, bool
     this->start_dir_time_ = this->last_recompute_time_ = now;
     this->publish_state();
     this->last_publish_time_ = now;
-	
-	if(operation == COVER_OPERATION_IDLE) {
-		this->last_stop_at_fully_open_state = false;
-		this->last_stop_at_fully_close_state = false;
-		
-		ESP_LOGD(TAG, "'%s' - Set last_stop_at_fully false !!", this->name_.c_str());
-	
-	}
   }
 }
 
@@ -434,6 +468,12 @@ void FeedbackCover::start_direction_(CoverOperation dir) {
              : dir == COVER_OPERATION_CLOSING ? "CLOSE"
                                               : "STOP");
     trig->trigger();
+  }
+  
+  //If the stop is ask, we cannot known if it's because of endstop
+  if(dir == COVER_OPERATION_IDLE) {
+	this->last_stop_at_fully_open_state = false;
+	this->last_stop_at_fully_close_state = false;
   }
 }
 
