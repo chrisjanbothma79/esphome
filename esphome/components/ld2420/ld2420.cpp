@@ -67,8 +67,8 @@ float LD2420Component::get_setup_priority() const { return setup_priority::BUS; 
 void LD2420Component::dump_config() {
   ESP_LOGCONFIG(TAG, "LD2420:");
   ESP_LOGCONFIG(TAG, "  Firmware Version : %7s", this->ld2420_firmware_ver_);
-  ESP_LOGCONFIG(TAG, "LD2420 Number:");
 #ifdef USE_NUMBER
+  ESP_LOGCONFIG(TAG, "LD2420 Number:");
   LOG_NUMBER(TAG, "  Gate Timeout:", this->gate_timeout_number_);
   LOG_NUMBER(TAG, "  Gate Max Distance:", this->max_gate_distance_number_);
   LOG_NUMBER(TAG, "  Gate Min Distance:", this->min_gate_distance_number_);
@@ -84,8 +84,10 @@ void LD2420Component::dump_config() {
   LOG_BUTTON(TAG, "  Factory Reset:", this->factory_reset_button_);
   LOG_BUTTON(TAG, "  Restart Module:", this->restart_module_button_);
 #endif
+#ifdef USE_SELECT
   ESP_LOGCONFIG(TAG, "LD2420 Select:");
   LOG_SELECT(TAG, "  Operating Mode", this->operating_selector_);
+#endif
   if (this->get_firmware_int_(ld2420_firmware_ver_) < CALIBRATE_VERSION_MIN) {
     ESP_LOGW(TAG, "LD2420 Firmware Version %s and older are only supported in Simple Mode", ld2420_firmware_ver_);
   }
@@ -137,12 +139,18 @@ void LD2420Component::setup() {
   memcpy(&this->new_config, &this->current_config, sizeof(this->current_config));
   if (get_firmware_int_(ld2420_firmware_ver_) < CALIBRATE_VERSION_MIN) {
     this->set_operating_mode(OP_SIMPLE_MODE_STRING);
-    this->operating_selector_->publish_state(OP_SIMPLE_MODE_STRING);
+#ifdef USE_SELECT
+    if (this->operating_selector_ != nullptr)
+      this->operating_selector_->publish_state(OP_SIMPLE_MODE_STRING);
+#endif
     this->set_mode_(CMD_SYSTEM_MODE_SIMPLE);
     ESP_LOGW(TAG, "LD2420 Frimware Version %s and older are only supported in Simple Mode", ld2420_firmware_ver_);
   } else {
     this->set_mode_(CMD_SYSTEM_MODE_ENERGY);
-    this->operating_selector_->publish_state(OP_NORMAL_MODE_STRING);
+#ifdef USE_SELECT
+    if (this->operating_selector_ != nullptr)
+      this->operating_selector_->publish_state(OP_NORMAL_MODE_STRING);
+#endif
   }
 #ifdef USE_NUMBER
   this->init_gate_config_numbers();
@@ -293,7 +301,10 @@ void LD2420Component::set_operating_mode(const std::string &state) {
   if (get_firmware_int_(ld2420_firmware_ver_) >= CALIBRATE_VERSION_MIN) {
     this->current_operating_mode = OP_MODE_TO_UINT.at(state);
     // Entering Auto Calibrate we need to clear the privoiuos data collection
-    this->operating_selector_->publish_state(state);
+#ifdef USE_SELECT
+    if (this->operating_selector_ != nullptr)
+      this->operating_selector_->publish_state(state);
+#endif
     if (current_operating_mode == OP_CALIBRATE_MODE) {
       this->set_calibration_(true);
       for (uint8_t gate = 0; gate < LD2420_TOTAL_GATES; gate++) {
@@ -312,7 +323,10 @@ void LD2420Component::set_operating_mode(const std::string &state) {
     }
   } else {
     this->current_operating_mode = OP_SIMPLE_MODE;
-    this->operating_selector_->publish_state(OP_SIMPLE_MODE_STRING);
+#ifdef USE_SELECT
+    if (this->operating_selector_ != nullptr)
+      this->operating_selector_->publish_state(OP_SIMPLE_MODE_STRING);
+#endif
   }
 }
 
