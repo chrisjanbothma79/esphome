@@ -108,7 +108,7 @@ template<typename T> class StatefulEntityBase : public EntityBase {
 
  protected:
   optional<T> state_{};
-  virtual void set_state_(const optional<T> &state) {
+  void set_state_(const optional<T> &state) {
     if (this->state_ != state) {
       this->full_state_callbacks_.call(this->state_, state);
       // trigger legacy callbacks only if the new state is valid and either the trigger on initial state is enabled or
