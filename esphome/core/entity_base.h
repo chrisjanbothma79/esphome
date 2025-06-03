@@ -46,8 +46,6 @@ class EntityBase {
   // Get/set this entity's icon
   std::string get_icon() const;
   void set_icon(const char *icon);
-  virtual bool has_state() const { return this->has_state_; }
-  void invalidate_state() { this->has_state_ = false; }
 
  protected:
   /// The hash_base() function has been deprecated. It is kept in this
@@ -88,4 +86,16 @@ class EntityBase_UnitOfMeasurement {  // NOLINT(readability-identifier-naming)
   const char *unit_of_measurement_{nullptr};  ///< Unit of measurement override
 };
 
+template<typename T> class StatefulEntityBase : public EntityBase<T> {
+ public:
+  virtual bool has_state() const { return this->state_.has_value(); }
+  virtual void set_set_state(const T &state) { this->state_ = state; }
+  virtual void set_set_state(const optional<T> &state) { this->state_ = state; }
+  virtual const T &get_state() const { return this->state_.value(); }
+  virtual const T &get_state_default(T default_value) const { return this->state_.value_or(default_value); }
+  void invalidate_state() { this->set_set_state({}); }
+
+ protected:
+  optional<T> state_{};
+};
 }  // namespace esphome
