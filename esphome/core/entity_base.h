@@ -89,7 +89,7 @@ class EntityBase_UnitOfMeasurement {  // NOLINT(readability-identifier-naming)
 };
 
 /**
- * An entitye that has a state.
+ * An entity that has a state.
  * @tparam T The type of the state
  */
 template<typename T> class StatefulEntityBase : public EntityBase {
