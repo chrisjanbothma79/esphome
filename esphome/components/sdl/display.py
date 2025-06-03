@@ -8,6 +8,7 @@ from esphome.const import (
     CONF_HEIGHT,
     CONF_ID,
     CONF_LAMBDA,
+    CONF_POSITION,
     CONF_WIDTH,
     PLATFORM_HOST,
 )
@@ -18,6 +19,13 @@ Sdl = sdl_ns.class_("Sdl", display.Display, cg.Component)
 
 CONF_SDL_OPTIONS = "sdl_options"
 CONF_SDL_ID = "sdl_id"
+CONF_WINDOW_OPTIONS = "window_options"
+CONF_BORDERLESS = "borderless"
+CONF_ALWAYS_ON_TOP = "always_on_top"
+CONF_FULLSCREEN = "fullscreen"
+CONF_SKIP_TASKBAR = "skip_taskbar"
+CONF_X = "x"
+CONF_Y = "y"
 
 
 def get_sdl_options(value):
@@ -44,6 +52,26 @@ CONFIG_SCHEMA = cv.All(
                         }
                     ),
                 ),
+                cv.Optional(CONF_WINDOW_OPTIONS): cv.Any(
+                    None,
+                    cv.Schema(
+                        {
+                            cv.Optional(CONF_BORDERLESS, default=False): cv.boolean,
+                            cv.Optional(CONF_ALWAYS_ON_TOP, default=False): cv.boolean,
+                            cv.Optional(CONF_FULLSCREEN, default=False): cv.boolean,
+                            cv.Optional(CONF_SKIP_TASKBAR, default=False): cv.boolean,
+                            cv.Optional(CONF_POSITION): cv.Any(
+                                None,
+                                cv.Schema(
+                                    {
+                                        cv.Required(CONF_X): cv.int_,
+                                        cv.Required(CONF_Y): cv.int_,
+                                    }
+                                ),
+                            ),
+                        }
+                    ),
+                ),
             }
         )
     ),
@@ -64,6 +92,19 @@ async def to_code(config):
     else:
         (width, height) = dimensions
         cg.add(var.set_dimensions(width, height))
+
+    if window_options := config.get(CONF_WINDOW_OPTIONS):
+        cg.add(var.set_borderless(window_options[CONF_BORDERLESS]))
+        cg.add(var.set_always_on_top(window_options[CONF_ALWAYS_ON_TOP]))
+        cg.add(var.set_fullscreen(window_options[CONF_FULLSCREEN]))
+        cg.add(var.set_skip_taskbar(window_options[CONF_SKIP_TASKBAR]))
+
+        if position := window_options.get(CONF_POSITION):
+            if isinstance(position, dict):
+                cg.add(var.set_position(position[CONF_X], position[CONF_Y]))
+            else:
+                (pos_x, pos_y) = position
+                cg.add(var.set_position(pos_x, pos_y))
 
     if lamb := config.get(CONF_LAMBDA):
         lambda_ = await cg.process_lambda(
