@@ -28,7 +28,7 @@ void BinarySensor::send_state_internal(optional<bool> state) {
   }
   // copy current state to the visible property for backwards compatibility
   this->state = state;
-  this->set_state(state);
+  this->set_state_(state);
 }
 
 void BinarySensor::add_filter(Filter *filter) {

@@ -95,20 +95,9 @@ class EntityBase_UnitOfMeasurement {  // NOLINT(readability-identifier-naming)
 template<typename T> class StatefulEntityBase : public EntityBase {
  public:
   virtual bool has_state() const { return this->state_.has_value(); }
-  virtual void set_state(const optional<T> &state) {
-    if (this->state_ != state) {
-      this->full_state_callbacks_.call(this->state_, state);
-      // trigger legacy callbacks only if the new state is valid and either the trigger on initial state is enabled or
-      // the previous state was valid
-      auto had_state = this->has_state();
-      this->state_ = state;
-      if (state.has_value() && (this->trigger_on_initial_state_ || had_state))
-        this->state_callbacks_.call(state.value());
-    }
-  }
   virtual const T &get_state() const { return this->state_.value(); }
   virtual T get_state_default(T default_value) const { return this->state_.value_or(default_value); }
-  void invalidate_state() { this->set_state({}); }
+  void invalidate_state() { this->set_state_({}); }
   void add_full_state_callback(std::function<void(optional<T> previous, optional<T> current)> &&callback) {
     this->full_state_callbacks_.add(std::move(callback));
   }
@@ -119,6 +108,17 @@ template<typename T> class StatefulEntityBase : public EntityBase {
 
  protected:
   optional<T> state_{};
+  virtual void set_state_(const optional<T> &state) {
+    if (this->state_ != state) {
+      this->full_state_callbacks_.call(this->state_, state);
+      // trigger legacy callbacks only if the new state is valid and either the trigger on initial state is enabled or
+      // the previous state was valid
+      auto had_state = this->has_state();
+      this->state_ = state;
+      if (state.has_value() && (this->trigger_on_initial_state_ || had_state))
+        this->state_callbacks_.call(state.value());
+    }
+  }
   bool trigger_on_initial_state_{true};
   // callbacks with full state and previous state
   CallbackManager<void(optional<T> previous, optional<T> current)> full_state_callbacks_;
