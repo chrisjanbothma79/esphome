@@ -35,6 +35,9 @@ class Select : public EntityBase {
 
   void publish_state(const std::string &state);
 
+  /// Return whether this select component has gotten a full state yet.
+  bool has_state() const { return has_state_; }
+
   /// Instantiate a SelectCall object to modify this select component's state.
   SelectCall make_call() { return SelectCall(this); }
 
@@ -70,6 +73,7 @@ class Select : public EntityBase {
   virtual void control(const std::string &value) = 0;
 
   CallbackManager<void(std::string, size_t)> state_callback_;
+  bool has_state_{false};
 };
 
 }  // namespace select

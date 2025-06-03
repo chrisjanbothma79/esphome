@@ -72,12 +72,12 @@ class APIConnection : public APIServerConnection {
     return this->send_list_entities_done_response(resp);
   }
 #ifdef USE_BINARY_SENSOR
-  bool send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state);
+  bool send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, optional<bool> state);
   void send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor);
 
  protected:
   bool try_send_binary_sensor_state_(binary_sensor::BinarySensor *binary_sensor);
-  bool try_send_binary_sensor_state_(binary_sensor::BinarySensor *binary_sensor, bool state);
+  bool try_send_binary_sensor_with_state_(binary_sensor::BinarySensor *binary_sensor, optional<bool> state);
   bool try_send_binary_sensor_info_(binary_sensor::BinarySensor *binary_sensor);
 
  public:

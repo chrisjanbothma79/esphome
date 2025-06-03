@@ -280,21 +280,22 @@ void APIConnection::on_disconnect_response(const DisconnectResponse &value) {
 }
 
 #ifdef USE_BINARY_SENSOR
-bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state) {
+bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, optional<bool> state) {
   return this->send_state_with_value_(binary_sensor, &APIConnection::try_send_binary_sensor_state_,
-                                      &APIConnection::try_send_binary_sensor_state_, state);
+                                      &APIConnection::try_send_binary_sensor_with_state_, state);
 }
 void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor) {
   this->send_info_(static_cast<EntityBase *>(binary_sensor),
                    reinterpret_cast<send_message_t>(&APIConnection::try_send_binary_sensor_info_));
 }
 bool APIConnection::try_send_binary_sensor_state_(binary_sensor::BinarySensor *binary_sensor) {
-  return this->try_send_binary_sensor_state_(binary_sensor, binary_sensor->state);
+  return this->try_send_binary_sensor_with_state_(binary_sensor, binary_sensor->get_state());
 }
-bool APIConnection::try_send_binary_sensor_state_(binary_sensor::BinarySensor *binary_sensor, bool state) {
+bool APIConnection::try_send_binary_sensor_with_state_(binary_sensor::BinarySensor *binary_sensor,
+                                                       optional<bool> state) {
   BinarySensorStateResponse msg;
-  msg.state = state;
-  msg.missing_state = !binary_sensor->has_state();
+  msg.state = state.has_value() ? state.value() : false;
+  msg.missing_state = !state.has_value();
   msg.key = binary_sensor->get_object_id_hash();
   return this->send_binary_sensor_state_response(msg);
 }

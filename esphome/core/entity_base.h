@@ -3,6 +3,7 @@
 #include <string>
 #include <cstdint>
 #include "string_ref.h"
+#include "helpers.h"
 
 namespace esphome {
 
@@ -29,7 +30,7 @@ class EntityBase {
   // Get the unique Object ID of this Entity
   uint32_t get_object_id_hash();
 
-  // Get/set whether this Entity should be hidden from outside of ESPHome
+  // Get/set whether this Entity should be hidden outside ESPHome
   bool is_internal() const;
   void set_internal(bool internal);
 
@@ -56,7 +57,7 @@ class EntityBase {
   StringRef name_;
   const char *object_id_c_str_{nullptr};
   const char *icon_c_str_{nullptr};
-  uint32_t object_id_hash_;
+  uint32_t object_id_hash_{};
   bool has_own_name_{false};
   bool internal_{false};
   bool disabled_by_default_{false};
@@ -86,16 +87,40 @@ class EntityBase_UnitOfMeasurement {  // NOLINT(readability-identifier-naming)
   const char *unit_of_measurement_{nullptr};  ///< Unit of measurement override
 };
 
-template<typename T> class StatefulEntityBase : public EntityBase<T> {
+/**
+ * An entitye that has a state.
+ * @tparam T The type of the state
+ */
+template<typename T> class StatefulEntityBase : public EntityBase {
  public:
   virtual bool has_state() const { return this->state_.has_value(); }
-  virtual void set_set_state(const T &state) { this->state_ = state; }
-  virtual void set_set_state(const optional<T> &state) { this->state_ = state; }
+  virtual void set_state(const optional<T> &state) {
+    if (this->state_ != state) {
+      auto const previous_state = this->state_;
+      this->state_ = state;
+      this->full_state_callbacks_.call(previous_state, state);
+      // trigger regular callbacks only if the new state is valid and either the trigger on initial state is enabled or
+      // the previous state was valid
+      if (state_.has_value() && (this->trigger_on_initial_state_ || previous_state.has_value()))
+        this->state_callbacks_.call(this->state_.value());
+    }
+  }
   virtual const T &get_state() const { return this->state_.value(); }
-  virtual const T &get_state_default(T default_value) const { return this->state_.value_or(default_value); }
-  void invalidate_state() { this->set_set_state({}); }
+  virtual T get_state_default(T default_value) const { return this->state_.value_or(default_value); }
+  void invalidate_state() { this->set_state({}); }
+  void add_full_state_callback(std::function<void(optional<T> previous, optional<T> current)> &&callback) {
+    this->full_state_callbacks_.add(std::move(callback));
+  }
+  void add_on_state_callback(std::function<void(T)> &&callback) { this->state_callbacks_.add(std::move(callback)); }
+  void set_trigger_on_initial_state(bool trigger_on_initial_state) {
+    this->trigger_on_initial_state_ = trigger_on_initial_state;
+  }
 
  protected:
   optional<T> state_{};
+  bool trigger_on_initial_state_{true};
+  // callbacks with full state and previous state
+  CallbackManager<void(optional<T> previous, optional<T> current)> full_state_callbacks_;
+  CallbackManager<void(T)> state_callbacks_;
 };
 }  // namespace esphome

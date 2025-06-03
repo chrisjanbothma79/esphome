@@ -8,7 +8,8 @@ void Controller::setup_controller(bool include_internal) {
 #ifdef USE_BINARY_SENSOR
   for (auto *obj : App.get_binary_sensors()) {
     if (include_internal || !obj->is_internal())
-      obj->add_on_state_callback([this, obj](bool state) { this->on_binary_sensor_update(obj, state); });
+      obj->add_full_state_callback(
+          [this, obj](optional<bool> previous, optional<bool> state) { this->on_binary_sensor_update(obj, state); });
   }
 #endif
 #ifdef USE_FAN

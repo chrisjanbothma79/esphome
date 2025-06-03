@@ -7,42 +7,28 @@ namespace binary_sensor {
 
 static const char *const TAG = "binary_sensor";
 
-void BinarySensor::add_on_state_callback(std::function<void(bool)> &&callback) {
-  this->state_callback_.add(std::move(callback));
-}
-
 void BinarySensor::publish_state(bool state) {
-  if (!this->publish_dedup_.next(state))
-    return;
   if (this->filter_list_ == nullptr) {
-    this->send_state_internal(state, false);
+    this->send_state_internal(state);
   } else {
-    this->filter_list_->input(state, false);
+    this->filter_list_->input(state);
   }
 }
 void BinarySensor::publish_initial_state(bool state) {
-  if (!this->publish_dedup_.next(state))
-    return;
-  if (this->filter_list_ == nullptr) {
-    this->send_state_internal(state, true);
-  } else {
-    this->filter_list_->input(state, true);
-  }
+  this->invalidate_state();
+  this->publish_state(state);
 }
-void BinarySensor::send_state_internal(bool state, bool is_initial) {
-  if (is_initial) {
+void BinarySensor::send_state_internal(optional<bool> state) {
+  if (!state.has_value()) {
+    return;
+  }
+  if (!this->has_state()) {
     ESP_LOGD(TAG, "'%s': Sending initial state %s", this->get_name().c_str(), ONOFF(state));
   } else {
     ESP_LOGD(TAG, "'%s': Sending state %s", this->get_name().c_str(), ONOFF(state));
   }
-  this->has_state_ = true;
-  this->state = state;
-  if (!is_initial || this->publish_initial_state_) {
-    this->state_callback_.call(state);
-  }
+  this->set_state(state);
 }
-
-BinarySensor::BinarySensor() : state(false) {}
 
 void BinarySensor::add_filter(Filter *filter) {
   filter->parent_ = this;

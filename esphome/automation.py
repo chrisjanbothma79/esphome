@@ -91,7 +91,6 @@ WaitUntilAction = cg.esphome_ns.class_("WaitUntilAction", Action, cg.Component)
 UpdateComponentAction = cg.esphome_ns.class_("UpdateComponentAction", Action)
 SuspendComponentAction = cg.esphome_ns.class_("SuspendComponentAction", Action)
 ResumeComponentAction = cg.esphome_ns.class_("ResumeComponentAction", Action)
-InvalidateEntityAction = cg.esphome_ns.class_("InvalidateEntityAction", Action)
 Automation = cg.esphome_ns.class_("Automation")
 
 LambdaCondition = cg.esphome_ns.class_("LambdaCondition", Condition)
@@ -384,20 +383,6 @@ async def component_resume_action_to_code(config, action_id, template_arg, args)
         template_ = await cg.templatable(config[CONF_UPDATE_INTERVAL], args, int)
         cg.add(var.set_update_interval(template_))
     return var
-
-
-@register_action(
-    "entity.invalidate_state",
-    InvalidateEntityAction,
-    maybe_simple_id(
-        {
-            cv.Required(CONF_ID): cv.use_id(cg.EntityBase),
-        }
-    ),
-)
-async def entity_invalidate_state_action_to_code(config, action_id, template_arg, args):
-    comp = await cg.get_variable(config[CONF_ID])
-    return cg.new_Pvariable(action_id, template_arg, comp)
 
 
 async def build_action(full_config, template_arg, args):

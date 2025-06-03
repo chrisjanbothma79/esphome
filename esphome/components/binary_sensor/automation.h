@@ -96,7 +96,7 @@ class MultiClickTrigger : public Trigger<>, public Component {
       : parent_(parent), timing_(std::move(timing)) {}
 
   void setup() override {
-    this->last_state_ = this->parent_->state;
+    this->last_state_ = this->parent_->get_state_default(false);
     auto f = std::bind(&MultiClickTrigger::on_state_, this, std::placeholders::_1);
     this->parent_->add_on_state_callback(f);
   }
@@ -149,6 +149,16 @@ template<typename... Ts> class BinarySensorPublishAction : public Action<Ts...> 
     auto val = this->state_.value(x...);
     this->sensor_->publish_state(val);
   }
+
+ protected:
+  BinarySensor *sensor_;
+};
+
+template<typename... Ts> class BinarySensorInvalidateAction : public Action<Ts...> {
+ public:
+  explicit BinarySensorInvalidateAction(BinarySensor *sensor) : sensor_(sensor) {}
+
+  void play(Ts... x) override { this->sensor_->invalidate_state(); }
 
  protected:
   BinarySensor *sensor_;

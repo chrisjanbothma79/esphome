@@ -8,7 +8,7 @@ namespace api {
 
 #ifdef USE_BINARY_SENSOR
 bool InitialStateIterator::on_binary_sensor(binary_sensor::BinarySensor *binary_sensor) {
-  return this->client_->send_binary_sensor_state(binary_sensor, binary_sensor->state);
+  return this->client_->send_binary_sensor_state(binary_sensor, binary_sensor->get_state());
 }
 #endif
 #ifdef USE_COVER

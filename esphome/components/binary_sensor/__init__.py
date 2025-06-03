@@ -130,6 +130,9 @@ StateTrigger = binary_sensor_ns.class_(
 BinarySensorPublishAction = binary_sensor_ns.class_(
     "BinarySensorPublishAction", automation.Action
 )
+BinarySensorInvalidateAction = binary_sensor_ns.class_(
+    "BinarySensorInvalidateAction", automation.Action
+)
 
 # Condition
 BinarySensorCondition = binary_sensor_ns.class_("BinarySensorCondition", Condition)
@@ -395,7 +398,7 @@ _BINARY_SENSOR_SCHEMA = (
             cv.OnlyWith(CONF_MQTT_ID, "mqtt"): cv.declare_id(
                 mqtt.MQTTBinarySensorComponent
             ),
-            cv.Optional(CONF_PUBLISH_INITIAL_STATE): cv.boolean,
+            cv.Optional(CONF_PUBLISH_INITIAL_STATE, default=False): cv.boolean,
             cv.Optional(CONF_DEVICE_CLASS): validate_device_class,
             cv.Optional(CONF_FILTERS): validate_filters,
             cv.Optional(CONF_ON_PRESS): automation.validate_automation(
@@ -493,8 +496,7 @@ async def setup_binary_sensor_core_(var, config):
 
     if (device_class := config.get(CONF_DEVICE_CLASS)) is not None:
         cg.add(var.set_device_class(device_class))
-    if publish_initial_state := config.get(CONF_PUBLISH_INITIAL_STATE):
-        cg.add(var.set_publish_initial_state(publish_initial_state))
+    cg.add(var.set_trigger_on_initial_state(config[CONF_PUBLISH_INITIAL_STATE]))
     if inverted := config.get(CONF_INVERTED):
         cg.add(var.set_inverted(inverted))
     if filters_config := config.get(CONF_FILTERS):
@@ -590,3 +592,18 @@ async def binary_sensor_is_off_to_code(config, condition_id, template_arg, args)
 async def to_code(config):
     cg.add_define("USE_BINARY_SENSOR")
     cg.add_global(binary_sensor_ns.using)
+
+
+@automation.register_action(
+    "binary_sensor.invalidate_state",
+    BinarySensorInvalidateAction,
+    cv.maybe_simple_value(
+        {
+            cv.Required(CONF_ID): cv.use_id(BinarySensor),
+        },
+        key=CONF_ID,
+    ),
+)
+async def binary_sensor_invalidate_state_to_code(config, action_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, paren)

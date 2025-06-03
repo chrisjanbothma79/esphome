@@ -215,7 +215,7 @@ bool APIServer::check_password(const std::string &password) const {
 void APIServer::handle_disconnect(APIConnection *conn) {}
 
 #ifdef USE_BINARY_SENSOR
-void APIServer::on_binary_sensor_update(binary_sensor::BinarySensor *obj, bool state) {
+void APIServer::on_binary_sensor_update(binary_sensor::BinarySensor *obj, optional<bool> state) {
   if (obj->is_internal())
     return;
   for (auto &c : this->clients_)
