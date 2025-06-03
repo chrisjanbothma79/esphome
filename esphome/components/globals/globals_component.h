@@ -104,7 +104,6 @@ template<typename T, uint8_t SZ> class RestoringGlobalStringComponent : public C
       unsigned char temp[SZ];
 
       // If string is bigger than the allocation, do not save it.
-      // We don't need to waste ram setting prev_value either.
       int size = this->value_.size();
       // Less than, not less than or equal, SZ includes the length byte.
       if (size < SZ) {
@@ -112,8 +111,8 @@ template<typename T, uint8_t SZ> class RestoringGlobalStringComponent : public C
         // SZ should be pre checked at the schema level, it can't go past the char range.
         temp[0] = ((unsigned char) size);
         this->rtc_.save(&temp);
-        this->prev_value_.assign(this->value_);
       }
+      this->prev_value_.assign(this->value_);  // To avoid this routine repeating on every loop
     }
   }
 
