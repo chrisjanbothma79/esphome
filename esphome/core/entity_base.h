@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "string_ref.h"
 #include "helpers.h"
+#include "log.h"
 
 namespace esphome {
 
@@ -96,13 +97,13 @@ template<typename T> class StatefulEntityBase : public EntityBase {
   virtual bool has_state() const { return this->state_.has_value(); }
   virtual void set_state(const optional<T> &state) {
     if (this->state_ != state) {
-      auto const previous_state = this->state_;
-      this->state_ = state;
-      this->full_state_callbacks_.call(previous_state, state);
-      // trigger regular callbacks only if the new state is valid and either the trigger on initial state is enabled or
+      this->full_state_callbacks_.call(this->state_, state);
+      // trigger legacy callbacks only if the new state is valid and either the trigger on initial state is enabled or
       // the previous state was valid
-      if (state_.has_value() && (this->trigger_on_initial_state_ || previous_state.has_value()))
-        this->state_callbacks_.call(this->state_.value());
+      auto had_state = this->has_state();
+      this->state_ = state;
+      if (state.has_value() && (this->trigger_on_initial_state_ || had_state))
+        this->state_callbacks_.call(state.value());
     }
   }
   virtual const T &get_state() const { return this->state_.value(); }

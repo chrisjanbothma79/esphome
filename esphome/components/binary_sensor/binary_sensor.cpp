@@ -26,9 +26,9 @@ void BinarySensor::send_state_internal(optional<bool> state) {
   } else {
     ESP_LOGD(TAG, "'%s': Sending state %s", this->get_name().c_str(), ONOFF(state));
   }
-  this->set_state(state);
   // copy current state to the visible property for backwards compatibility
   this->state = state;
+  this->set_state(state);
 }
 
 void BinarySensor::add_filter(Filter *filter) {

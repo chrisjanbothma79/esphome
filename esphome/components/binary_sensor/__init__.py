@@ -2,6 +2,7 @@ from esphome import automation, core
 from esphome.automation import Condition, maybe_simple_id
 import esphome.codegen as cg
 from esphome.components import mqtt, web_server
+from esphome.components.const import CONF_ON_STATE_CHANGE
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_DELAY,
@@ -127,6 +128,11 @@ MultiClickTriggerEvent = binary_sensor_ns.struct("MultiClickTriggerEvent")
 StateTrigger = binary_sensor_ns.class_(
     "StateTrigger", automation.Trigger.template(bool)
 )
+StateChangeTrigger = binary_sensor_ns.class_(
+    "StateChangeTrigger",
+    automation.Trigger.template(cg.optional.template(bool), cg.optional.template(bool)),
+)
+
 BinarySensorPublishAction = binary_sensor_ns.class_(
     "BinarySensorPublishAction", automation.Action
 )
@@ -457,6 +463,11 @@ _BINARY_SENSOR_SCHEMA = (
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(StateTrigger),
                 }
             ),
+            cv.Optional(CONF_ON_STATE_CHANGE): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(StateChangeTrigger),
+                }
+            ),
         }
     )
 )
@@ -543,6 +554,17 @@ async def setup_binary_sensor_core_(var, config):
     for conf in config.get(CONF_ON_STATE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(bool, "x")], conf)
+
+    for conf in config.get(CONF_ON_STATE_CHANGE, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(
+            trigger,
+            [
+                (cg.optional.template(bool), "x_previous"),
+                (cg.optional.template(bool), "x"),
+            ],
+            conf,
+        )
 
     if mqtt_id := config.get(CONF_MQTT_ID):
         mqtt_ = cg.new_Pvariable(mqtt_id, var)

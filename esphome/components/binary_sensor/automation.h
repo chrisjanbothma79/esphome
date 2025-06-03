@@ -130,6 +130,14 @@ class StateTrigger : public Trigger<bool> {
   }
 };
 
+class StateChangeTrigger : public Trigger<optional<bool>, optional<bool> > {
+ public:
+  explicit StateChangeTrigger(BinarySensor *parent) {
+    parent->add_full_state_callback(
+        [this](optional<bool> old_state, optional<bool> state) { this->trigger(old_state, state); });
+  }
+};
+
 template<typename... Ts> class BinarySensorCondition : public Condition<Ts...> {
  public:
   BinarySensorCondition(BinarySensor *parent, bool state) : parent_(parent), state_(state) {}
