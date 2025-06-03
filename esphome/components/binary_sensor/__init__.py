@@ -1,3 +1,5 @@
+from logging import getLogger
+
 from esphome import automation, core
 from esphome.automation import Condition, maybe_simple_id
 import esphome.codegen as cg
@@ -99,6 +101,7 @@ IS_PLATFORM_COMPONENT = True
 
 CONF_TIME_OFF = "time_off"
 CONF_TIME_ON = "time_on"
+CONF_TRIGGER_ON_INITIAL_STATE = "trigger_on_initial_state"
 
 DEFAULT_DELAY = "1s"
 DEFAULT_TIME_OFF = "100ms"
@@ -152,6 +155,8 @@ InvertFilter = binary_sensor_ns.class_("InvertFilter", Filter)
 AutorepeatFilter = binary_sensor_ns.class_("AutorepeatFilter", Filter, cg.Component)
 LambdaFilter = binary_sensor_ns.class_("LambdaFilter", Filter)
 SettleFilter = binary_sensor_ns.class_("SettleFilter", Filter, cg.Component)
+
+_LOGGER = getLogger(__name__)
 
 FILTER_REGISTRY = Registry()
 validate_filters = cv.validate_registry("filter", FILTER_REGISTRY)
@@ -395,6 +400,14 @@ def validate_click_timing(value):
     return value
 
 
+def validate_publish_initial_state(value):
+    value = cv.boolean(value)
+    _LOGGER.warning(
+        "The 'publish_initial_state' option has been replaced by 'trigger_on_initial_state' and will be removed in a future release"
+    )
+    return value
+
+
 _BINARY_SENSOR_SCHEMA = (
     cv.ENTITY_BASE_SCHEMA.extend(web_server.WEBSERVER_SORTING_SCHEMA)
     .extend(cv.MQTT_COMPONENT_SCHEMA)
@@ -404,7 +417,12 @@ _BINARY_SENSOR_SCHEMA = (
             cv.OnlyWith(CONF_MQTT_ID, "mqtt"): cv.declare_id(
                 mqtt.MQTTBinarySensorComponent
             ),
-            cv.Optional(CONF_PUBLISH_INITIAL_STATE, default=False): cv.boolean,
+            cv.Exclusive(
+                CONF_PUBLISH_INITIAL_STATE, CONF_TRIGGER_ON_INITIAL_STATE
+            ): validate_publish_initial_state,
+            cv.Exclusive(
+                CONF_TRIGGER_ON_INITIAL_STATE, CONF_TRIGGER_ON_INITIAL_STATE
+            ): cv.boolean,
             cv.Optional(CONF_DEVICE_CLASS): validate_device_class,
             cv.Optional(CONF_FILTERS): validate_filters,
             cv.Optional(CONF_ON_PRESS): automation.validate_automation(
@@ -507,7 +525,10 @@ async def setup_binary_sensor_core_(var, config):
 
     if (device_class := config.get(CONF_DEVICE_CLASS)) is not None:
         cg.add(var.set_device_class(device_class))
-    cg.add(var.set_trigger_on_initial_state(config[CONF_PUBLISH_INITIAL_STATE]))
+    trigger = config.get(CONF_TRIGGER_ON_INITIAL_STATE, False) or config.get(
+        CONF_PUBLISH_INITIAL_STATE, False
+    )
+    cg.add(var.set_trigger_on_initial_state(trigger))
     if inverted := config.get(CONF_INVERTED):
         cg.add(var.set_inverted(inverted))
     if filters_config := config.get(CONF_FILTERS):
