@@ -1,5 +1,6 @@
 binary_sensor:
   - platform: template
+    trigger_on_initial_state: true
     id: some_binary_sensor
     name: "Random binary"
     lambda: return (random_uint32() & 1) == 0;
