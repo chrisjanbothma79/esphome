@@ -224,7 +224,9 @@ void Application::reboot() {
 void Application::safe_reboot() {
   ESP_LOGI(TAG, "Rebooting safely");
   run_safe_shutdown_hooks();
-  teardown_components(1500);  // 1.5 second timeout for teardown
+  // 2.5 second timeout for teardown. Note: aioesphomeapi only waits 5s after
+  // disconnect before trying to reconnect, so we can't make this too high
+  teardown_components(2500);
   arch_restart();
 }
 
