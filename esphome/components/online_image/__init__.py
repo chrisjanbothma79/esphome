@@ -2,6 +2,7 @@ import logging
 
 from esphome import automation
 import esphome.codegen as cg
+from esphome.components.const import CONF_REQUEST_HEADERS
 from esphome.components.http_request import CONF_HTTP_REQUEST_ID, HttpRequestComponent
 from esphome.components.image import (
     CONF_INVERT_ALPHA,
@@ -19,7 +20,6 @@ from esphome.const import (
     CONF_FORMAT,
     CONF_ID,
     CONF_ON_ERROR,
-    CONF_REQUEST_HEADERS,
     CONF_RESIZE,
     CONF_TRIGGER_ID,
     CONF_TYPE,
