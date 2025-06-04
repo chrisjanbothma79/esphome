@@ -251,6 +251,12 @@ class Application {
 
   void run_safe_shutdown_hooks();
 
+  /** Teardown all components with a timeout.
+   *
+   * @param timeout_ms Maximum time to wait for teardown in milliseconds
+   */
+  void teardown_components(uint32_t timeout_ms);
+
   uint32_t get_app_state() const { return this->app_state_; }
 
 #ifdef USE_BINARY_SENSOR

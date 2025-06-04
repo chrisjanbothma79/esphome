@@ -191,6 +191,20 @@ APIError APIFrameHelper::try_send_tx_buf_() {
   return APIError::OK;  // All buffers sent successfully
 }
 
+bool APIFrameHelper::teardown() {
+  // Try to flush tx_buffer
+  if (!tx_buf_.empty()) {
+    APIError err = try_send_tx_buf_();
+    if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
+      // Fatal error during teardown
+      ESP_LOGW(TAG, "%s: Failed to flush tx_buffer during teardown: %s", info_.c_str(), api_error_to_str(err));
+      return true;
+    }
+  }
+  // Return true when tx_buffer is empty
+  return tx_buf_.empty();
+}
+
 APIError APIFrameHelper::init_common_() {
   if (state_ != State::INITIALIZE || this->socket_ == nullptr) {
     ESP_LOGVV(TAG, "%s: Bad state for init %d", this->info_.c_str(), (int) state_);

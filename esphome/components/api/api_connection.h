@@ -64,6 +64,15 @@ class APIConnection : public APIServerConnection {
   APIConnection(std::unique_ptr<socket::Socket> socket, APIServer *parent);
   virtual ~APIConnection();
 
+  bool teardown() {
+    // Check if helper exists
+    if (!this->helper_) {
+      return true;  // No helper, nothing to teardown
+    }
+    // Delegate to helper's teardown
+    return this->helper_->teardown();
+  }
+
   void start();
   void loop();
 

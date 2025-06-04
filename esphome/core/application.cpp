@@ -224,6 +224,7 @@ void Application::reboot() {
 void Application::safe_reboot() {
   ESP_LOGI(TAG, "Rebooting safely");
   run_safe_shutdown_hooks();
+  teardown_components(1500);  // 1.5 second timeout for teardown
   arch_restart();
 }
 
@@ -233,6 +234,40 @@ void Application::run_safe_shutdown_hooks() {
   }
   for (auto it = this->components_.rbegin(); it != this->components_.rend(); ++it) {
     (*it)->on_shutdown();
+  }
+}
+
+void Application::teardown_components(uint32_t timeout_ms) {
+  uint32_t start_time = millis();
+
+  // Copy all components in reverse order using reverse iterators
+  // Reverse order matches the behavior of run_safe_shutdown_hooks() above and ensures
+  // components are torn down in the opposite order of their setup_priority (which is
+  // used to sort components during Application::setup())
+  std::vector<Component *> pending_components(this->components_.rbegin(), this->components_.rend());
+
+  while (!pending_components.empty() && (millis() - start_time) < timeout_ms) {
+    // Use iterator to safely erase elements
+    for (auto it = pending_components.begin(); it != pending_components.end();) {
+      if ((*it)->teardown()) {
+        // Component finished teardown, erase it
+        it = pending_components.erase(it);
+      } else {
+        // Component still needs time
+        ++it;
+      }
+    }
+
+    // Give some time for I/O operations if components are still pending
+    if (!pending_components.empty()) {
+      delay(1);
+    }
+  }
+
+  if (!pending_components.empty()) {
+    for (auto *component : pending_components) {
+      ESP_LOGW(TAG, "%s did not complete teardown within %u ms", component->get_component_source(), timeout_ms);
+    }
   }
 }
 

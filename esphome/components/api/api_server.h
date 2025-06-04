@@ -34,6 +34,7 @@ class APIServer : public Component, public Controller {
   void loop() override;
   void dump_config() override;
   void on_shutdown() override;
+  bool teardown() override;
   bool check_password(const std::string &password) const;
   bool uses_password() const;
   void set_port(uint16_t port);
