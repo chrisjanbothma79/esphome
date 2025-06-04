@@ -1,19 +1,93 @@
 import esphome.codegen as cg
 from esphome.components import binary_sensor
-from esphome.const import CONF_ID
+import esphome.config_validation as cv
+from esphome.const import (
+    CONF_DATA,
+    CONF_ID,
+    CONF_NAME,
+    CONF_STATUS,
+    CONF_TYPE,
+    DEVICE_CLASS_CONNECTIVITY,
+    ENTITY_CATEGORY_DIAGNOSTIC,
+)
+import esphome.final_validate as fv
 
 from . import (
+    CONF_ENCRYPTION,
+    CONF_PING_PONG_ENABLE,
     CONF_PROVIDER,
+    CONF_PROVIDERS,
     CONF_REMOTE_ID,
     CONF_TRANSPORT_ID,
+    PacketTransport,
     packet_transport_sensor_schema,
+    provider_name_validate,
 )
 
-CONFIG_SCHEMA = packet_transport_sensor_schema(binary_sensor.binary_sensor_schema())
+STATUS_SENSOR_SCHEMA = binary_sensor.binary_sensor_schema(
+    device_class=DEVICE_CLASS_CONNECTIVITY,
+    entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+).extend(
+    {
+        cv.GenerateID(CONF_TRANSPORT_ID): cv.use_id(PacketTransport),
+        cv.Required(CONF_PROVIDER): provider_name_validate,
+    }
+)
+
+CONFIG_SCHEMA = cv.typed_schema(
+    {
+        CONF_DATA: packet_transport_sensor_schema(binary_sensor.binary_sensor_schema()),
+        CONF_STATUS: STATUS_SENSOR_SCHEMA,
+    },
+    key=CONF_TYPE,
+    default_type=CONF_DATA,
+)
+
+
+def _final_validate(config):
+    if config[CONF_TYPE] != CONF_STATUS:
+        # Only run this validation if a status sensor is being configured
+        return config
+    full_config = fv.full_config.get()
+    transport_path = full_config.get_path_for_id(config[CONF_TRANSPORT_ID])[:-1]
+    transport_config = full_config.get_config_for_path(transport_path)
+    if not transport_config.get(CONF_PING_PONG_ENABLE, False):
+        raise cv.Invalid(
+            f"Status sensor {config[CONF_ID]} cannot be used without ping-pong enabled "
+            f"in {config[CONF_TRANSPORT_ID]}"
+        )
+    if providers := transport_config.get(CONF_PROVIDERS):
+        if provider := next(
+            (p for p in providers if p.get(CONF_NAME) == config[CONF_PROVIDER]), None
+        ):
+            if CONF_ENCRYPTION not in provider:
+                raise cv.Invalid(
+                    f"Provider {config[CONF_PROVIDER]} in {config[CONF_TRANSPORT_ID]} "
+                    f"must have encryption set to use status sensor {config[CONF_ID]}"
+                )
+        else:
+            raise cv.Invalid(
+                f"Provider {config[CONF_PROVIDER]} not found in {config[CONF_TRANSPORT_ID]}"
+            )
+    else:
+        # In current config logic this will never be reached since by enforcing ping-pong-enable
+        # at lest one provider needs to be configured, but keep it for future-proofing.
+        raise cv.Invalid(
+            f"No providers configured for {config[CONF_TRANSPORT_ID]}, "
+            f"but status sensor {config[CONF_ID]} requires one"
+        )
+    return config
+
+
+FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 async def to_code(config):
     var = await binary_sensor.new_binary_sensor(config)
     comp = await cg.get_variable(config[CONF_TRANSPORT_ID])
-    remote_id = str(config.get(CONF_REMOTE_ID) or config.get(CONF_ID))
-    cg.add(comp.add_remote_binary_sensor(config[CONF_PROVIDER], remote_id, var))
+    if config[CONF_TYPE] == CONF_DATA:
+        remote_id = str(config.get(CONF_REMOTE_ID) or config.get(CONF_ID))
+        cg.add(comp.add_remote_binary_sensor(config[CONF_PROVIDER], remote_id, var))
+    elif config[CONF_TYPE] == CONF_STATUS:
+        cg.add(comp.set_provider_status_sensor(config[CONF_PROVIDER], var))
+        cg.add_define("USE_STATUS_SENSOR")
