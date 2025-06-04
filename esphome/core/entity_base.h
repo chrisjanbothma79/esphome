@@ -108,6 +108,11 @@ template<typename T> class StatefulEntityBase : public EntityBase {
 
  protected:
   optional<T> state_{};
+  /**
+   * Set a new state for this entity. This will trigger callbacks only if the new state is different from the previous.
+   *
+   * @param state The new state.
+   */
   void set_state_(const optional<T> &state) {
     if (this->state_ != state) {
       this->full_state_callbacks_.call(this->state_, state);

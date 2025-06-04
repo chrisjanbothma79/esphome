@@ -21,8 +21,9 @@ void BinarySensor::publish_initial_state(bool state) {
 void BinarySensor::send_state_internal(bool state) {
   ESP_LOGD(TAG, "'%s': Sending%s state %s", this->get_name().c_str(), this->has_state() ? "" : " initial",
            ONOFF(state));
-  // copy current state to the visible property for backwards compatibility, before any callbacks
+  // copy the new state to the visible property for backwards compatibility, before any callbacks
   this->state = state;
+  // Note that set_state_ will only trigger callbacks if the state has actually changed
   this->set_state_(state);
 }
 
