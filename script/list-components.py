@@ -57,6 +57,7 @@ def create_components_graph():
 
     components_graph = {}
     platforms = []
+    components = []
 
     for path in components_dir.iterdir():
         if not path.is_dir():
@@ -71,9 +72,13 @@ def create_components_graph():
             )
             sys.exit(1)
 
+        components.append((comp, name, path))
         if comp.is_platform_component:
             platforms.append(name)
 
+    platforms = set(platforms)
+
+    for comp, name, path in components:
         add_item_to_components_graph(components_graph, name, name)
         for dependency in comp.dependencies:
             add_item_to_components_graph(
