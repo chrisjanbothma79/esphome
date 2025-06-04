@@ -484,18 +484,7 @@ bool APIServer::teardown() {
   if (!network::is_connected()) {
     return true;
   }
-
-  // Process teardown for all connected clients
-  for (auto it = this->clients_.begin(); it != this->clients_.end();) {
-    if ((*it)->teardown()) {
-      // Client teardown complete, can remove
-      it = this->clients_.erase(it);
-    } else {
-      // Client still needs time
-      ++it;
-    }
-  }
-
+  this->loop();
   // Return true only when all clients have been torn down
   return this->clients_.empty();
 }
