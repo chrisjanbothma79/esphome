@@ -1,5 +1,4 @@
 #include "sdspi_io.h"
-#include "sd_defines.h"
 #if defined(USE_SDMMC_MODE) && (SOC_SDMMC_HOST_SUPPORTED)
 #include "esp_log.h"
 #include "sdmmc_io.h"

@@ -6,11 +6,13 @@
 #include "spi_connector.h"
 #endif
 
-#if defined(USE_ARDUINO)
+#if defined(USE_ARDUINO) && !defined(USE_ESP8266)
 #include "sdspi_drv_ard.h"
 // #include "vfs_api.h"
 // #include "FS.h"
 // #include "SPI.h"
+#elif defined(USE_ESP8266)
+#include "esp8266_drv.h"
 #else
 #include "sdmmc_drv_idf.h"
 #endif
@@ -150,15 +152,20 @@ void SdmmcHost::set_state(SdDriverStatus state) {
 void SdmmcHost::setup() {
   ESP_LOGD(TAG, "Setup called");
 
-#if defined(USE_ARDUINO)
+#if defined(USE_ARDUINO) && !defined(USE_ESP8266)
   ArduinoFatFsDriver *drv = new ArduinoFatFsDriver();
 #if defined(USE_SDSPI_MODE)
   drv->set_connector(this->connector_);
 #endif
   drv->set_parent(this);
   this->drv_ = drv;
+#elif defined(USE_ARDUINO) && defined(USE_ESP8266)  // USE_ARDUINO  with USE_ESP8266
+  esp8266SpiDriver *drv = new esp8266SpiDriver();
+  drv->set_connector(this->connector_);
+  drv->set_parent(this);
+  this->drv_ = drv;
 
-#else  // USE_ESP_IDF
+#elif defined(USE_ESP_IDF)  // USE_ESP_IDF
   SdmmcIdfDriver *drv = new SdmmcIdfDriver();
   drv = new SdmmcIdfDriver();
 #if defined(USE_SDSPI_MODE)

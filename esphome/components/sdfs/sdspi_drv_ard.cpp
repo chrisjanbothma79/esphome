@@ -1,5 +1,5 @@
 #include "sdspi_drv_ard.h"
-#include "sd_defines.h"
+#include "sdfs_defines.h"
 #if defined(USE_ARDUINO) && !defined(USE_ESP8266)
 #include "dirent.h"
 #include "esp_system.h"

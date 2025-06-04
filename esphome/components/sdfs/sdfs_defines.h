@@ -1,5 +1,7 @@
 #pragma once
 
+#include "esphome/core/log.h"
+
 #define FREE(ptr) \
   do { \
     free(ptr); \
@@ -12,6 +14,18 @@
     this->last_err_ = (x << 16) | y; \
     ESP_LOGE(TAG, str " (0x%x).", y); \
   } while (0)
+
+#define SPI_CALL_TRACE
+
+#ifdef SPI_CALL_TRACE
+#define DEBUG_TRACE(msg, ...) \
+  do { \
+    ESP_LOGD(TAG, msg, ##__VA_ARGS__); \
+  } while (0)
+
+#else
+#define DEBUG_TRACE(msg, ...)
+#endif
 
 #define ERR_TYPE_FRAMEWORK 1  // Errors from framework
 #define ERR_TYPE_FILESYS 2    // Errors from filesysytems

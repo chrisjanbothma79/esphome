@@ -1,6 +1,6 @@
 #pragma once
 #include "esphome/core/defines.h"
-#include "sd_defines.h"
+#include "sdfs_defines.h"
 #ifdef USE_SDMMC_MODE
 // #include "ffconf.h"
 #include "driver/sdmmc_host.h"

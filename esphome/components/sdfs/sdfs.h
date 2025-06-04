@@ -3,16 +3,31 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
+#include "sdfs_defines.h"
 
-// #define SPI_CALL_TRACE
+// #define DISABLE_FS_H_WARNING // Disable SdFat.h warning
 
 #ifdef USE_SDSPI_MODE
-// #define SPI_DRIVER_SELECT 3
+
+// #define ENABLE_DEDICATED_SPI 0
+// // #define USE_BLOCK_DEVICE_INTERFACE 1
+// // #define SDFAT_FILE_TYPE 3
+
+// // #define ENABLE_DEDICATED_SPI 0
+// // #define SPI_DRIVER_SELECT 3
+// // #define SD_CHIP_SELECT_MODE 2
+// // #define HOST_MOCK
+// // #define USE_SD_CRC 1
+// // #define FS_NO_GLOBALS
 // #define SD_CHIP_SELECT_MODE 2
+// #define SPI_DRIVER_SELECT 3
+// #ifndef SDFAT_FILE_TYPE
+// #define SDFAT_FILE_TYPE 1
+// #endif
 
 #include "esphome/components/spi/spi.h"
 #include "spi_connector.h"
-
+#include "SPI.h"
 // #include "SdFat.h"
 // #include "SpiDriver/SdSpiBaseClass.h"
 #endif

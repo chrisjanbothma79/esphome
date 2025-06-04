@@ -1,6 +1,11 @@
 #pragma once
 #include "sdfs.h"
+
+#if !defined(USE_ESP8266)
 #include "ff.h"
+#else
+typedef uint8_t FRESULT;
+#endif
 
 namespace esphome {
 namespace sdfs {

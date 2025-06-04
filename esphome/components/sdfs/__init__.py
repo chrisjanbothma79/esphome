@@ -212,9 +212,31 @@ async def to_code(config):
         cg.add_define("USE_SDMMC_MODE")
         print("SDMMC ESP")
     elif CORE.using_arduino and (config[CONF_TYPE] == "sdspi"):
-        if CORE.target_platform == PLATFORM_ESP8266:
-            cg.add_library("SdFat", None)
         cg.add_define("USE_SDSPI_MODE")
+        if CORE.target_platform == PLATFORM_ESP8266:
+            cg.add_library("ESP8266SdFat", None)
+            # cg.add_library("SdFat", "2.3.50")
+            # cg.add_library("FS", None)
+            # cg.add_library("SDFS", None)
+            # cg.add_library("SD", None)
+
+            cg.add_build_flag("-DSPI_DRIVER_SELECT=3")
+            cg.add_define("SPI_DRIVER_SELECT", 3)
+
+            cg.add_build_flag("-DUSE_BLOCK_DEVICE_INTERFACE=1")
+            cg.add_define("USE_BLOCK_DEVICE_INTERFACE", 1)
+
+            cg.add_build_flag("-DSD_CHIP_SELECT_MODE=2")
+            cg.add_define("SD_CHIP_SELECT_MODE", 2)
+
+            # cg.add_build_flag("-DENABLE_DEDICATED_SPI=1")
+            # cg.add_build_flag("-DSD_USE_CUSTOM_SPI")
+
+            # cg.add_build_flag("-DFS_NO_GLOBALS")
+            # cg.add_define("FS_NO_GLOBALS")
+            # # SPI_DRIVER_SELECT
+            # cg.add_define("ENABLE_DEDICATED_SPI",1)
+
         print("SDSPI ARDUINO")
     elif CORE.using_arduino and (config[CONF_TYPE] == "sdmmc"):
         cg.add_define("USE_SDMMC_MODE")

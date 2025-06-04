@@ -1,5 +1,4 @@
 #include "sdfs.h"
-#include "sd_defines.h"
 
 #if defined(USE_ESP_IDF)
 #include "diskio_impl.h"

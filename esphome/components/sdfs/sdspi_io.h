@@ -1,6 +1,7 @@
 #pragma once
 #include "esphome/core/defines.h"
 #include "sdfs.h"
+#include "sdfs_defines.h"
 #if defined(USE_SDSPI_MODE) && !defined(USE_ESP8266)
 // #include "esphome/components/spi/spi.h"
 
@@ -16,7 +17,7 @@
 // #include <FS.h>
 // #include <SD.h>
 // #include "FSImpl.h"
-// #include "sd_defines.h"
+
 extern "C" {
 #include "ff.h"
 }
