@@ -435,7 +435,8 @@ class APIConnection : public APIServerConnection {
   struct DeferredBatch {
     struct BatchItem {
       std::unique_ptr<ProtoMessage> message;
-      uint32_t timestamp;  // When this update was queued
+      uint16_t message_size;  // Pre-calculated message size
+      uint32_t timestamp;     // When this update was queued
     };
 
     std::vector<BatchItem> items;
