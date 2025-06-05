@@ -1108,7 +1108,6 @@ def main() -> None:
     out += "  return true;\n"
     out += "}\n"
     cpp += out
-
     hpp += "};\n"
 
     serv = file.service[0]
