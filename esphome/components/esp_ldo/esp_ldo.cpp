@@ -23,10 +23,16 @@ void EspLdo::setup() {
 void EspLdo::dump_config() {
   ESP_LOGCONFIG(TAG, "ESP LDO Channel %d:", this->channel_);
   ESP_LOGCONFIG(TAG, "  Voltage: %fV", this->voltage_);
-  ESP_LOGCONFIG(TAG, "  Adjustable: %s", this->adjustable_ ? "YES" : "NO");
+  ESP_LOGCONFIG(TAG, "  Adjustable: %s", YESNO(this->adjustable_));
 }
 
-void EspLdo::adjust_voltage(float voltage) { esp_ldo_channel_adjust_voltage(this->handle_, (int) (voltage * 1000.0f)); }
+void EspLdo::adjust_voltage(float voltage) {
+  if (!std::isfinite(voltage) || voltage < 0.5f || voltage > 2.7f) {
+    ESP_LOGE(TAG, "Invalid voltage %fV for LDO channel %d", voltage, this->channel_);
+    return;
+  }
+  esp_ldo_channel_adjust_voltage(this->handle_, (int) (voltage * 1000.0f));
+}
 
 }  // namespace esp_ldo
 }  // namespace esphome

@@ -83,7 +83,7 @@ def adjusted_ldo_id(value):
         }
     ),
 )
-async def delay_action_to_code(config, action_id, template_arg, args):
+async def ldo_voltage_adjust_to_code(config, action_id, template_arg, args):
     parent = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, parent)
     template_ = await cg.templatable(config[CONF_VOLTAGE], args, cg.float_)
