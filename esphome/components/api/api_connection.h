@@ -98,10 +98,6 @@ class APIConnection : public APIServerConnection {
   void send_fan_info(fan::Fan *fan);
   void fan_command(const FanCommandRequest &msg) override;
 
- protected:
-  bool try_send_fan_state_(fan::Fan *fan);
-  bool try_send_fan_info_(fan::Fan *fan);
-
  public:
 #endif
 #ifdef USE_LIGHT
@@ -109,20 +105,11 @@ class APIConnection : public APIServerConnection {
   void send_light_info(light::LightState *light);
   void light_command(const LightCommandRequest &msg) override;
 
- protected:
-  bool try_send_light_state_(light::LightState *light);
-  bool try_send_light_info_(light::LightState *light);
-
  public:
 #endif
 #ifdef USE_SENSOR
   bool send_sensor_state(sensor::Sensor *sensor, float state);
   void send_sensor_info(sensor::Sensor *sensor);
-
- protected:
-  bool try_send_sensor_state_(sensor::Sensor *sensor);
-  bool try_send_sensor_state_(sensor::Sensor *sensor, float state);
-  bool try_send_sensor_info_(sensor::Sensor *sensor);
 
  public:
 #endif
@@ -546,6 +533,14 @@ class APIConnection : public APIServerConnection {
     // Send the response using the generic send_message method
     return this->send_message(response);
   }
+
+  /**
+   * Generic function for sending entity state messages.
+   *
+   * @param response The state response object with key already set
+   * @return True if the message was sent successfully
+   */
+  template<typename ResponseT> bool try_send_entity_state(ResponseT &response) { return this->send_message(response); }
 
   bool send_(const void *buf, size_t len, bool force);
 
