@@ -31,7 +31,10 @@ void EspLdo::adjust_voltage(float voltage) {
     ESP_LOGE(TAG, "Invalid voltage %fV for LDO channel %d", voltage, this->channel_);
     return;
   }
-  esp_ldo_channel_adjust_voltage(this->handle_, (int) (voltage * 1000.0f));
+  auto erro = esp_ldo_channel_adjust_voltage(this->handle_, (int) (voltage * 1000.0f));
+  if (erro != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to adjust LDO channel %d to voltage %fV: %s", this->channel_, voltage, esp_err_to_name(erro));
+  }
 }
 
 }  // namespace esp_ldo
