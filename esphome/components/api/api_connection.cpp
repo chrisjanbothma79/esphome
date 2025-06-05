@@ -170,10 +170,10 @@ void APIConnection::loop() {
     this->deferred_message_queue_.process_queue();
   }
 
-  // Process deferred state batch if scheduled
-  if (this->deferred_state_batch_.batch_scheduled &&
-      App.get_loop_component_start_time() - this->deferred_state_batch_.batch_start_time >= STATE_BATCH_DELAY_MS) {
-    this->process_state_batch_();
+  // Process deferred batch if scheduled
+  if (this->deferred_batch_.batch_scheduled &&
+      App.get_loop_component_start_time() - this->deferred_batch_.batch_start_time >= BATCH_DELAY_MS) {
+    this->process_batch_();
   }
 
   if (!this->list_entities_iterator_.completed())
@@ -1696,30 +1696,30 @@ void APIConnection::on_fatal_error() {
   this->remove_ = true;
 }
 
-void APIConnection::DeferredStateBatch::add_update(void *entity, send_message_t send_func) {
-  // Check if we already have an update for this entity
-  for (auto &update : updates) {
-    if (update.entity == entity && update.send_func == send_func) {
+void APIConnection::DeferredBatch::add_item(void *entity, send_message_t send_func) {
+  // Check if we already have an item for this entity
+  for (auto &item : items) {
+    if (item.entity == entity && item.send_func == send_func) {
       // Update timestamp to latest
-      update.timestamp = App.get_loop_component_start_time();
+      item.timestamp = App.get_loop_component_start_time();
       return;
     }
   }
 
-  // Add new update
-  updates.push_back({entity, send_func, App.get_loop_component_start_time()});
+  // Add new item
+  items.push_back({entity, send_func, App.get_loop_component_start_time()});
 }
 
-void APIConnection::schedule_state_batch_() {
-  if (!this->deferred_state_batch_.batch_scheduled) {
-    this->deferred_state_batch_.batch_scheduled = true;
-    this->deferred_state_batch_.batch_start_time = App.get_loop_component_start_time();
+void APIConnection::schedule_batch_() {
+  if (!this->deferred_batch_.batch_scheduled) {
+    this->deferred_batch_.batch_scheduled = true;
+    this->deferred_batch_.batch_start_time = App.get_loop_component_start_time();
   }
 }
 
-void APIConnection::process_state_batch_() {
-  if (this->deferred_state_batch_.empty()) {
-    this->deferred_state_batch_.batch_scheduled = false;
+void APIConnection::process_batch_() {
+  if (this->deferred_batch_.empty()) {
+    this->deferred_batch_.batch_scheduled = false;
     return;
   }
 
