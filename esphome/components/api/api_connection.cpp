@@ -1723,6 +1723,8 @@ void APIConnection::process_batch_() {
     return;
   }
 
+  ESP_LOGD(TAG, "Processing batch with %zu items", this->deferred_batch_.items.size());
+
   // Try to clear buffer first
   if (!this->helper_->can_write_without_blocking()) {
     // Can't write now, defer everything to the regular deferred queue
@@ -1732,9 +1734,6 @@ void APIConnection::process_batch_() {
     this->deferred_batch_.clear();
     return;
   }
-
-  // Enable batch mode to capture message types
-  this->batch_mode_ = true;
 
   // Track packet information (type, offset, length)
   std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> packet_info;
@@ -1749,6 +1748,9 @@ void APIConnection::process_batch_() {
   uint32_t estimated_size = std::min(static_cast<uint32_t>(min_next_packet_size * this->deferred_batch_.items.size()),
                                      static_cast<uint32_t>(MAX_BATCH_SIZE_BYTES));
   ProtoWriteBuffer batch_buffer = this->create_buffer(estimated_size);
+
+  // Enable batch mode AFTER creating the initial buffer to capture message types
+  this->batch_mode_ = true;
 
   for (size_t i = 0; i < this->deferred_batch_.items.size(); i++) {
     const auto &item = this->deferred_batch_.items[i];
@@ -1765,12 +1767,18 @@ void APIConnection::process_batch_() {
 
     // Save current buffer position before extending
     uint32_t msg_offset = 0;
+    uint32_t msg_content_start = 0;
     this->captured_message_type_ = 0;
 
     // For messages after the first, extend the buffer with padding
     if (processed_count > 0) {
       msg_offset = static_cast<uint32_t>(this->proto_write_buffer_.size());
       batch_buffer = this->extend_buffer();
+      // After extend_buffer(), the actual message content starts after the padding
+      msg_content_start = static_cast<uint32_t>(this->proto_write_buffer_.size());
+    } else {
+      // For the first message, content starts after the header padding
+      msg_content_start = this->helper_->frame_header_padding();
     }
 
     // Try to encode the message
@@ -1783,9 +1791,8 @@ void APIConnection::process_batch_() {
     // Get the captured message type
     uint16_t message_type = this->captured_message_type_;
 
-    // Calculate message length
-    uint16_t msg_len =
-        static_cast<uint16_t>(this->proto_write_buffer_.size() - msg_offset - this->helper_->frame_header_padding());
+    // Calculate message length - from content start to current buffer end
+    uint16_t msg_len = static_cast<uint16_t>(this->proto_write_buffer_.size() - msg_content_start);
 
     // Record packet info
     packet_info.push_back(std::make_tuple(message_type, msg_offset, msg_len));
