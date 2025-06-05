@@ -29,38 +29,8 @@ namespace api {
 static const char *const TAG = "api.connection";
 static const int ESP32_CAMERA_STOP_STREAM = 5000;
 
-// helper for allowing only unique entries in the queue
-void DeferredMessageQueue::dmq_push_back_with_dedup_(void *source, send_message_t send_message) {
-  DeferredMessage item(source, send_message);
-
-  auto iter = std::find_if(this->deferred_queue_.begin(), this->deferred_queue_.end(),
-                           [&item](const DeferredMessage &test) -> bool { return test == item; });
-
-  if (iter != this->deferred_queue_.end()) {
-    (*iter) = item;
-  } else {
-    this->deferred_queue_.push_back(item);
-  }
-}
-
-void DeferredMessageQueue::process_queue() {
-  while (!deferred_queue_.empty()) {
-    DeferredMessage &de = deferred_queue_.front();
-    if ((this->api_connection_->*(de.send_message_))(de.source_)) {
-      // O(n) but memory efficiency is more important than speed here which is why std::vector was chosen
-      deferred_queue_.erase(deferred_queue_.begin());
-    } else {
-      break;
-    }
-  }
-}
-
-void DeferredMessageQueue::defer(void *source, send_message_t send_message) {
-  this->dmq_push_back_with_dedup_(source, send_message);
-}
-
 APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *parent)
-    : parent_(parent), deferred_message_queue_(this), initial_state_iterator_(this), list_entities_iterator_(this) {
+    : parent_(parent), initial_state_iterator_(this), list_entities_iterator_(this) {
   this->proto_write_buffer_.reserve(64);
 
 #if defined(USE_API_PLAINTEXT) && defined(USE_API_NOISE)
@@ -164,10 +134,6 @@ void APIConnection::loop() {
       if (this->remove_)
         return;
     }
-  }
-
-  if (!this->deferred_message_queue_.empty() && this->helper_->can_write_without_blocking()) {
-    this->deferred_message_queue_.process_queue();
   }
 
   // Process deferred batch if scheduled

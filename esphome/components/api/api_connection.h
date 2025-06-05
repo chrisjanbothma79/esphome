@@ -426,7 +426,6 @@ class APIConnection : public APIServerConnection {
   bool service_call_subscription_{false};
   bool next_close_ = false;
   APIServer *parent_;
-  DeferredMessageQueue deferred_message_queue_;
   InitialStateIterator initial_state_iterator_;
   ListEntitiesIterator list_entities_iterator_;
   int state_subs_at_ = -1;
