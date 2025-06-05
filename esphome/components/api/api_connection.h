@@ -18,47 +18,6 @@ namespace api {
 // Keepalive timeout in milliseconds
 static constexpr uint32_t KEEPALIVE_TIMEOUT_MS = 60000;
 
-using send_message_t = bool (APIConnection::*)(void *);
-
-/*
-  This class holds a pointer to the source component that wants to publish a message, and a pointer to a function that
-  will lazily publish that message.  The two pointers allow dedup in the deferred queue if multiple publishes for the
-  same component are backed up, and take up only 8 bytes of memory.  The entry in the deferred queue (a std::vector) is
-  the DeferredMessage instance itself (not a pointer to one elsewhere in heap) so still only 8 bytes per entry.  Even
-  100 backed up messages (you'd have to have at least 100 sensors publishing because of dedup) would take up only 0.8
-  kB.
-*/
-class DeferredMessageQueue {
-  struct DeferredMessage {
-    friend class DeferredMessageQueue;
-
-   protected:
-    void *source_;
-    send_message_t send_message_;
-
-   public:
-    DeferredMessage(void *source, send_message_t send_message) : source_(source), send_message_(send_message) {}
-    bool operator==(const DeferredMessage &test) const {
-      return (source_ == test.source_ && send_message_ == test.send_message_);
-    }
-  } __attribute__((packed));
-
- protected:
-  // vector is used very specifically for its zero memory overhead even though items are popped from the front (memory
-  // footprint is more important than speed here)
-  std::vector<DeferredMessage> deferred_queue_;
-  APIConnection *api_connection_;
-
-  // helper for allowing only unique entries in the queue
-  void dmq_push_back_with_dedup_(void *source, send_message_t send_message);
-
- public:
-  DeferredMessageQueue(APIConnection *api_connection) : api_connection_(api_connection) {}
-  void process_queue();
-  void defer(void *source, send_message_t send_message);
-  bool empty() const { return deferred_queue_.empty(); }
-};
-
 class APIConnection : public APIServerConnection {
  public:
   APIConnection(std::unique_ptr<socket::Socket> socket, APIServer *parent);
