@@ -1376,19 +1376,36 @@ void APIConnection::voice_assistant_set_configuration(const VoiceAssistantSetCon
 
 #ifdef USE_ALARM_CONTROL_PANEL
 bool APIConnection::send_alarm_control_panel_state(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
-  AlarmControlPanelStateResponse resp;
-  resp.state = static_cast<enums::AlarmControlPanelState>(a_alarm_control_panel->get_state());
-
-  resp.key = a_alarm_control_panel->get_object_id_hash();
-  return this->try_send_entity_state(resp);
+  // Alarm control panel state doesn't need to capture extra values, so we can use bind
+  this->deferred_batch_.add_item(a_alarm_control_panel, std::bind(&APIConnection::try_send_alarm_control_panel_state_,
+                                                                  this, std::placeholders::_1));
+  return this->schedule_batch_();
+}
+std::unique_ptr<ProtoMessage> APIConnection::try_send_alarm_control_panel_state_(EntityBase *entity) {
+  auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
+  auto msg = std::make_unique<AlarmControlPanelStateResponse>();
+  msg->state = static_cast<enums::AlarmControlPanelState>(a_alarm_control_panel->get_state());
+  msg->key = a_alarm_control_panel->get_object_id_hash();
+  return msg;
 }
 void APIConnection::send_alarm_control_panel_info(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
-  ListEntitiesAlarmControlPanelResponse msg;
-  msg.supported_features = a_alarm_control_panel->get_supported_features();
-  msg.requires_code = a_alarm_control_panel->get_requires_code();
-  msg.requires_code_to_arm = a_alarm_control_panel->get_requires_code_to_arm();
-  msg.unique_id = get_default_unique_id("alarm_control_panel", a_alarm_control_panel);
-  this->try_send_entity_info_(static_cast<EntityBase *>(a_alarm_control_panel), msg);
+  // For info messages, we can use bind to avoid lambda overhead
+  this->deferred_batch_.add_item(a_alarm_control_panel, std::bind(&APIConnection::try_send_alarm_control_panel_info_,
+                                                                  this, std::placeholders::_1));
+  this->schedule_batch_();
+}
+std::unique_ptr<ProtoMessage> APIConnection::try_send_alarm_control_panel_info_(EntityBase *entity) {
+  auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
+  auto msg = std::make_unique<ListEntitiesAlarmControlPanelResponse>();
+  msg->supported_features = a_alarm_control_panel->get_supported_features();
+  msg->requires_code = a_alarm_control_panel->get_requires_code();
+  msg->requires_code_to_arm = a_alarm_control_panel->get_requires_code_to_arm();
+  msg->unique_id = get_default_unique_id("alarm_control_panel", a_alarm_control_panel);
+
+  // Fill common entity fields
+  this->fill_entity_info_base_(a_alarm_control_panel, *msg);
+
+  return msg;
 }
 void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRequest &msg) {
   alarm_control_panel::AlarmControlPanel *a_alarm_control_panel = App.get_alarm_control_panel_by_key(msg.key);
@@ -1426,47 +1443,78 @@ void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRe
 
 #ifdef USE_EVENT
 void APIConnection::send_event(event::Event *event, std::string event_type) {
-  EventResponse resp;
-  resp.event_type = std::move(event_type);
-
-  resp.key = event->get_object_id_hash();
-  this->try_send_entity_state(resp);
+  // Use lambda to capture the event_type value
+  this->deferred_batch_.add_item(
+      event, [this, event_type = std::move(event_type)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+        auto *e = static_cast<event::Event *>(entity);
+        auto msg = std::make_unique<EventResponse>();
+        msg->event_type = std::move(event_type);
+        msg->key = e->get_object_id_hash();
+        return msg;
+      });
+  this->schedule_batch_();
 }
 void APIConnection::send_event_info(event::Event *event) {
-  ListEntitiesEventResponse msg;
-  msg.device_class = event->get_device_class();
+  // For info messages, we can use bind to avoid lambda overhead
+  this->deferred_batch_.add_item(event, std::bind(&APIConnection::try_send_event_info_, this, std::placeholders::_1));
+  this->schedule_batch_();
+}
+std::unique_ptr<ProtoMessage> APIConnection::try_send_event_info_(EntityBase *entity) {
+  auto *event = static_cast<event::Event *>(entity);
+  auto msg = std::make_unique<ListEntitiesEventResponse>();
+  msg->device_class = event->get_device_class();
   for (const auto &event_type : event->get_event_types())
-    msg.event_types.push_back(event_type);
-  msg.unique_id = get_default_unique_id("event", event);
-  this->try_send_entity_info_(static_cast<EntityBase *>(event), msg);
+    msg->event_types.push_back(event_type);
+  msg->unique_id = get_default_unique_id("event", event);
+
+  // Fill common entity fields
+  this->fill_entity_info_base_(event, *msg);
+
+  return msg;
 }
 #endif
 
 #ifdef USE_UPDATE
 bool APIConnection::send_update_state(update::UpdateEntity *update) {
-  UpdateStateResponse resp;
-  resp.missing_state = !update->has_state();
+  // Update state doesn't need to capture extra values, so we can use bind
+  this->deferred_batch_.add_item(update,
+                                 std::bind(&APIConnection::try_send_update_state_, this, std::placeholders::_1));
+  return this->schedule_batch_();
+}
+std::unique_ptr<ProtoMessage> APIConnection::try_send_update_state_(EntityBase *entity) {
+  auto *update = static_cast<update::UpdateEntity *>(entity);
+  auto msg = std::make_unique<UpdateStateResponse>();
+  msg->missing_state = !update->has_state();
   if (update->has_state()) {
-    resp.in_progress = update->state == update::UpdateState::UPDATE_STATE_INSTALLING;
+    msg->in_progress = update->state == update::UpdateState::UPDATE_STATE_INSTALLING;
     if (update->update_info.has_progress) {
-      resp.has_progress = true;
-      resp.progress = update->update_info.progress;
+      msg->has_progress = true;
+      msg->progress = update->update_info.progress;
     }
-    resp.current_version = update->update_info.current_version;
-    resp.latest_version = update->update_info.latest_version;
-    resp.title = update->update_info.title;
-    resp.release_summary = update->update_info.summary;
-    resp.release_url = update->update_info.release_url;
+    msg->current_version = update->update_info.current_version;
+    msg->latest_version = update->update_info.latest_version;
+    msg->title = update->update_info.title;
+    msg->release_summary = update->update_info.summary;
+    msg->release_url = update->update_info.release_url;
   }
-
-  resp.key = update->get_object_id_hash();
-  return this->try_send_entity_state(resp);
+  msg->key = update->get_object_id_hash();
+  return msg;
 }
 void APIConnection::send_update_info(update::UpdateEntity *update) {
-  ListEntitiesUpdateResponse msg;
-  msg.device_class = update->get_device_class();
-  msg.unique_id = get_default_unique_id("update", update);
-  this->try_send_entity_info_(static_cast<EntityBase *>(update), msg);
+  // For info messages, we can use bind to avoid lambda overhead
+  this->deferred_batch_.add_item(update, std::bind(&APIConnection::try_send_update_info_, this, std::placeholders::_1));
+  this->schedule_batch_();
+}
+std::unique_ptr<ProtoMessage> APIConnection::try_send_update_info_(EntityBase *entity) {
+  auto *update = static_cast<update::UpdateEntity *>(entity);
+  auto msg = std::make_unique<ListEntitiesUpdateResponse>();
+  msg->device_class = update->get_device_class();
+  msg->unique_id = get_default_unique_id("update", update);
+
+  // Fill common entity fields
+  this->fill_entity_info_base_(update, *msg);
+
+  return msg;
 }
 void APIConnection::update_command(const UpdateCommandRequest &msg) {
   update::UpdateEntity *update = App.get_update_by_key(msg.key);
