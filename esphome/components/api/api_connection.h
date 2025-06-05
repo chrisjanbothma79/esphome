@@ -11,6 +11,7 @@
 #include "esphome/core/entity_base.h"
 
 #include <vector>
+#include <functional>
 
 namespace esphome {
 namespace api {
@@ -333,10 +334,11 @@ class APIConnection : public APIServerConnection {
     response.disabled_by_default = entity->is_disabled_by_default();
     response.entity_category = static_cast<enums::EntityCategory>(entity->get_entity_category());
 
-    // Add to deferred batch
-    this->deferred_batch_.add_item(std::make_unique<ResponseT>(response));
-    this->schedule_batch_();
-    return true;
+    // Add to deferred batch with a lambda that creates the message
+    this->deferred_batch_.add_item(entity, [response](EntityBase *) -> std::unique_ptr<ProtoMessage> {
+      return std::make_unique<ResponseT>(response);
+    });
+    return this->schedule_batch_();
   }
 
   /**
@@ -346,13 +348,112 @@ class APIConnection : public APIServerConnection {
    * @return True if the message was sent successfully
    */
   template<typename ResponseT> bool try_send_entity_state(ResponseT &response) {
-    // Add to deferred batch
-    this->deferred_batch_.add_item(std::make_unique<ResponseT>(response));
+    // Add to deferred batch with a lambda that creates the message
+    this->deferred_batch_.add_item(
+        [response]() -> std::unique_ptr<ProtoMessage> { return std::make_unique<ResponseT>(response); });
     this->schedule_batch_();
     return true;
   }
 
   bool send_(const void *buf, size_t len, bool force);
+
+ protected:
+  // Helper function to fill common entity fields
+  template<typename ResponseT> void fill_entity_info_base_(esphome::EntityBase *entity, ResponseT &response) {
+    // Set common fields that are shared by all entity types
+    response.key = entity->get_object_id_hash();
+    response.object_id = entity->get_object_id();
+
+    if (entity->has_own_name())
+      response.name = entity->get_name();
+
+    // Set common EntityBase properties
+    response.icon = entity->get_icon();
+    response.disabled_by_default = entity->is_disabled_by_default();
+    response.entity_category = static_cast<enums::EntityCategory>(entity->get_entity_category());
+  }
+#ifdef USE_BINARY_SENSOR
+  std::unique_ptr<ProtoMessage> try_send_binary_sensor_state_(EntityBase *binary_sensor);
+  std::unique_ptr<ProtoMessage> try_send_binary_sensor_info_(EntityBase *binary_sensor);
+#endif
+#ifdef USE_COVER
+  std::unique_ptr<ProtoMessage> try_send_cover_state_(EntityBase *cover);
+  std::unique_ptr<ProtoMessage> try_send_cover_info_(EntityBase *cover);
+#endif
+#ifdef USE_FAN
+  std::unique_ptr<ProtoMessage> try_send_fan_state_(EntityBase *fan);
+  std::unique_ptr<ProtoMessage> try_send_fan_info_(EntityBase *fan);
+#endif
+#ifdef USE_LIGHT
+  std::unique_ptr<ProtoMessage> try_send_light_state_(EntityBase *light);
+  std::unique_ptr<ProtoMessage> try_send_light_info_(EntityBase *light);
+#endif
+#ifdef USE_SENSOR
+  std::unique_ptr<ProtoMessage> try_send_sensor_state_(EntityBase *sensor);
+  std::unique_ptr<ProtoMessage> try_send_sensor_info_(EntityBase *sensor);
+#endif
+#ifdef USE_SWITCH
+  std::unique_ptr<ProtoMessage> try_send_switch_state_(EntityBase *a_switch);
+  std::unique_ptr<ProtoMessage> try_send_switch_info_(EntityBase *a_switch);
+#endif
+#ifdef USE_TEXT_SENSOR
+  std::unique_ptr<ProtoMessage> try_send_text_sensor_state_(EntityBase *text_sensor);
+  std::unique_ptr<ProtoMessage> try_send_text_sensor_info_(EntityBase *text_sensor);
+#endif
+#ifdef USE_CLIMATE
+  std::unique_ptr<ProtoMessage> try_send_climate_state_(EntityBase *climate);
+  std::unique_ptr<ProtoMessage> try_send_climate_info_(EntityBase *climate);
+#endif
+#ifdef USE_NUMBER
+  std::unique_ptr<ProtoMessage> try_send_number_state_(EntityBase *number);
+  std::unique_ptr<ProtoMessage> try_send_number_info_(EntityBase *number);
+#endif
+#ifdef USE_DATETIME_DATE
+  std::unique_ptr<ProtoMessage> try_send_date_state_(EntityBase *date);
+  std::unique_ptr<ProtoMessage> try_send_date_info_(EntityBase *date);
+#endif
+#ifdef USE_DATETIME_TIME
+  std::unique_ptr<ProtoMessage> try_send_time_state_(EntityBase *time);
+  std::unique_ptr<ProtoMessage> try_send_time_info_(EntityBase *time);
+#endif
+#ifdef USE_DATETIME_DATETIME
+  std::unique_ptr<ProtoMessage> try_send_datetime_state_(EntityBase *datetime);
+  std::unique_ptr<ProtoMessage> try_send_datetime_info_(EntityBase *datetime);
+#endif
+#ifdef USE_TEXT
+  std::unique_ptr<ProtoMessage> try_send_text_state_(EntityBase *text);
+  std::unique_ptr<ProtoMessage> try_send_text_info_(EntityBase *text);
+#endif
+#ifdef USE_SELECT
+  std::unique_ptr<ProtoMessage> try_send_select_state_(EntityBase *select);
+  std::unique_ptr<ProtoMessage> try_send_select_info_(EntityBase *select);
+#endif
+#ifdef USE_BUTTON
+  std::unique_ptr<ProtoMessage> try_send_button_info_(EntityBase *button);
+#endif
+#ifdef USE_LOCK
+  std::unique_ptr<ProtoMessage> try_send_lock_state_(EntityBase *a_lock);
+  std::unique_ptr<ProtoMessage> try_send_lock_info_(EntityBase *a_lock);
+#endif
+#ifdef USE_VALVE
+  std::unique_ptr<ProtoMessage> try_send_valve_state_(EntityBase *valve);
+  std::unique_ptr<ProtoMessage> try_send_valve_info_(EntityBase *valve);
+#endif
+#ifdef USE_MEDIA_PLAYER
+  std::unique_ptr<ProtoMessage> try_send_media_player_state_(EntityBase *media_player);
+  std::unique_ptr<ProtoMessage> try_send_media_player_info_(EntityBase *media_player);
+#endif
+#ifdef USE_ALARM_CONTROL_PANEL
+  std::unique_ptr<ProtoMessage> try_send_alarm_control_panel_state_(EntityBase *a_alarm_control_panel);
+  std::unique_ptr<ProtoMessage> try_send_alarm_control_panel_info_(EntityBase *a_alarm_control_panel);
+#endif
+#ifdef USE_EVENT
+  std::unique_ptr<ProtoMessage> try_send_event_info_(EntityBase *event);
+#endif
+#ifdef USE_UPDATE
+  std::unique_ptr<ProtoMessage> try_send_update_state_(EntityBase *update);
+  std::unique_ptr<ProtoMessage> try_send_update_info_(EntityBase *update);
+#endif
 
   enum class ConnectionState {
     WAITING_FOR_HELLO,
@@ -389,12 +490,15 @@ class APIConnection : public APIServerConnection {
   ListEntitiesIterator list_entities_iterator_;
   int state_subs_at_ = -1;
 
+  // Function type that creates a ProtoMessage from an entity
+  using MessageCreator = std::function<std::unique_ptr<ProtoMessage>(EntityBase *)>;
+
   // Generic batching mechanism for both state updates and entity info
   struct DeferredBatch {
     struct BatchItem {
-      std::unique_ptr<ProtoMessage> message;
-      uint16_t message_size;  // Pre-calculated message size
-      uint32_t timestamp;     // When this update was queued
+      EntityBase *entity;      // Entity pointer
+      MessageCreator creator;  // Function that creates the message when needed
+      uint32_t timestamp;      // When this update was queued
     };
 
     std::vector<BatchItem> items;
@@ -402,7 +506,7 @@ class APIConnection : public APIServerConnection {
     bool batch_scheduled{false};
 
     // Add item to the batch
-    void add_item(std::unique_ptr<ProtoMessage> message);
+    void add_item(EntityBase *entity, MessageCreator creator);
     void clear() {
       items.clear();
       batch_scheduled = false;
@@ -415,7 +519,7 @@ class APIConnection : public APIServerConnection {
   static constexpr uint32_t BATCH_DELAY_MS = 100;
   static constexpr size_t MAX_BATCH_SIZE_BYTES = 1360;  // MTU - 100 bytes safety margin
 
-  void schedule_batch_();
+  bool schedule_batch_();
   void process_batch_();
 };
 
