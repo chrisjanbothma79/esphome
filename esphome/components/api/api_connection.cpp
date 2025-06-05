@@ -1516,13 +1516,7 @@ void APIConnection::process_batch_() {
     }
 
     // Encode the message directly from the stored ProtoMessage
-    bool success = item.message->encode(batch_buffer);
-
-    if (!success) {
-      ESP_LOGW(TAG, "Failed to encode message type %u", item.message->get_message_type());
-      // Since we pre-calculated sizes, encoding should not fail
-      // If it does, we have a serious issue
-    }
+    item.message->encode(batch_buffer);
   }
 
   // Send all collected packets
