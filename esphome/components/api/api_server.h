@@ -136,8 +136,6 @@ class APIServer : public Component, public Controller {
     return this->client_disconnected_trigger_;
   }
 
-  bool is_shutting_down() const { return this->shutting_down_; }
-
  protected:
   bool shutting_down_ = false;
   std::unique_ptr<socket::Socket> socket_ = nullptr;
