@@ -87,10 +87,6 @@ class APIConnection : public APIServerConnection {
   void send_cover_info(cover::Cover *cover);
   void cover_command(const CoverCommandRequest &msg) override;
 
- protected:
-  bool try_send_cover_state_(cover::Cover *cover);
-  bool try_send_cover_info_(cover::Cover *cover);
-
  public:
 #endif
 #ifdef USE_FAN
@@ -118,21 +114,11 @@ class APIConnection : public APIServerConnection {
   void send_switch_info(switch_::Switch *a_switch);
   void switch_command(const SwitchCommandRequest &msg) override;
 
- protected:
-  bool try_send_switch_state_(switch_::Switch *a_switch);
-  bool try_send_switch_state_(switch_::Switch *a_switch, bool state);
-  bool try_send_switch_info_(switch_::Switch *a_switch);
-
  public:
 #endif
 #ifdef USE_TEXT_SENSOR
   bool send_text_sensor_state(text_sensor::TextSensor *text_sensor, std::string state);
   void send_text_sensor_info(text_sensor::TextSensor *text_sensor);
-
- protected:
-  bool try_send_text_sensor_state_(text_sensor::TextSensor *text_sensor);
-  bool try_send_text_sensor_state_(text_sensor::TextSensor *text_sensor, std::string state);
-  bool try_send_text_sensor_info_(text_sensor::TextSensor *text_sensor);
 
  public:
 #endif
@@ -141,19 +127,12 @@ class APIConnection : public APIServerConnection {
   void send_camera_info(esp32_camera::ESP32Camera *camera);
   void camera_image(const CameraImageRequest &msg) override;
 
- protected:
-  bool try_send_camera_info_(esp32_camera::ESP32Camera *camera);
-
  public:
 #endif
 #ifdef USE_CLIMATE
   bool send_climate_state(climate::Climate *climate);
   void send_climate_info(climate::Climate *climate);
   void climate_command(const ClimateCommandRequest &msg) override;
-
- protected:
-  bool try_send_climate_state_(climate::Climate *climate);
-  bool try_send_climate_info_(climate::Climate *climate);
 
  public:
 #endif
@@ -162,21 +141,12 @@ class APIConnection : public APIServerConnection {
   void send_number_info(number::Number *number);
   void number_command(const NumberCommandRequest &msg) override;
 
- protected:
-  bool try_send_number_state_(number::Number *number);
-  bool try_send_number_state_(number::Number *number, float state);
-  bool try_send_number_info_(number::Number *number);
-
  public:
 #endif
 #ifdef USE_DATETIME_DATE
   bool send_date_state(datetime::DateEntity *date);
   void send_date_info(datetime::DateEntity *date);
   void date_command(const DateCommandRequest &msg) override;
-
- protected:
-  bool try_send_date_state_(datetime::DateEntity *date);
-  bool try_send_date_info_(datetime::DateEntity *date);
 
  public:
 #endif
@@ -185,20 +155,12 @@ class APIConnection : public APIServerConnection {
   void send_time_info(datetime::TimeEntity *time);
   void time_command(const TimeCommandRequest &msg) override;
 
- protected:
-  bool try_send_time_state_(datetime::TimeEntity *time);
-  bool try_send_time_info_(datetime::TimeEntity *time);
-
  public:
 #endif
 #ifdef USE_DATETIME_DATETIME
   bool send_datetime_state(datetime::DateTimeEntity *datetime);
   void send_datetime_info(datetime::DateTimeEntity *datetime);
   void datetime_command(const DateTimeCommandRequest &msg) override;
-
- protected:
-  bool try_send_datetime_state_(datetime::DateTimeEntity *datetime);
-  bool try_send_datetime_info_(datetime::DateTimeEntity *datetime);
 
  public:
 #endif
@@ -207,11 +169,6 @@ class APIConnection : public APIServerConnection {
   void send_text_info(text::Text *text);
   void text_command(const TextCommandRequest &msg) override;
 
- protected:
-  bool try_send_text_state_(text::Text *text);
-  bool try_send_text_state_(text::Text *text, std::string state);
-  bool try_send_text_info_(text::Text *text);
-
  public:
 #endif
 #ifdef USE_SELECT
@@ -219,19 +176,11 @@ class APIConnection : public APIServerConnection {
   void send_select_info(select::Select *select);
   void select_command(const SelectCommandRequest &msg) override;
 
- protected:
-  bool try_send_select_state_(select::Select *select);
-  bool try_send_select_state_(select::Select *select, std::string state);
-  bool try_send_select_info_(select::Select *select);
-
  public:
 #endif
 #ifdef USE_BUTTON
   void send_button_info(button::Button *button);
   void button_command(const ButtonCommandRequest &msg) override;
-
- protected:
-  bool try_send_button_info_(button::Button *button);
 
  public:
 #endif
@@ -240,11 +189,6 @@ class APIConnection : public APIServerConnection {
   void send_lock_info(lock::Lock *a_lock);
   void lock_command(const LockCommandRequest &msg) override;
 
- protected:
-  bool try_send_lock_state_(lock::Lock *a_lock);
-  bool try_send_lock_state_(lock::Lock *a_lock, lock::LockState state);
-  bool try_send_lock_info_(lock::Lock *a_lock);
-
  public:
 #endif
 #ifdef USE_VALVE
@@ -252,20 +196,12 @@ class APIConnection : public APIServerConnection {
   void send_valve_info(valve::Valve *valve);
   void valve_command(const ValveCommandRequest &msg) override;
 
- protected:
-  bool try_send_valve_state_(valve::Valve *valve);
-  bool try_send_valve_info_(valve::Valve *valve);
-
  public:
 #endif
 #ifdef USE_MEDIA_PLAYER
   bool send_media_player_state(media_player::MediaPlayer *media_player);
   void send_media_player_info(media_player::MediaPlayer *media_player);
   void media_player_command(const MediaPlayerCommandRequest &msg) override;
-
- protected:
-  bool try_send_media_player_state_(media_player::MediaPlayer *media_player);
-  bool try_send_media_player_info_(media_player::MediaPlayer *media_player);
 
  public:
 #endif
@@ -316,21 +252,12 @@ class APIConnection : public APIServerConnection {
   void send_alarm_control_panel_info(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel);
   void alarm_control_panel_command(const AlarmControlPanelCommandRequest &msg) override;
 
- protected:
-  bool try_send_alarm_control_panel_state_(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel);
-  bool try_send_alarm_control_panel_info_(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel);
-
  public:
 #endif
 
 #ifdef USE_EVENT
   void send_event(event::Event *event, std::string event_type);
   void send_event_info(event::Event *event);
-
- protected:
-  bool try_send_event_(event::Event *event);
-  bool try_send_event_(event::Event *event, std::string event_type);
-  bool try_send_event_info_(event::Event *event);
 
  public:
 #endif
@@ -339,10 +266,6 @@ class APIConnection : public APIServerConnection {
   bool send_update_state(update::UpdateEntity *update);
   void send_update_info(update::UpdateEntity *update);
   void update_command(const UpdateCommandRequest &msg) override;
-
- protected:
-  bool try_send_update_state_(update::UpdateEntity *update);
-  bool try_send_update_info_(update::UpdateEntity *update);
 
  public:
 #endif
