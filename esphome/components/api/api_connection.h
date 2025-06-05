@@ -364,69 +364,6 @@ class APIConnection : public APIServerConnection {
   std::string get_client_combined_info() const { return this->client_combined_info_; }
 
   /**
-   * Generic send entity state method to reduce code duplication.
-   * Only attempts to build and send the message if the transmit buffer is available.
-   *
-   * This is the base version for entities that use their current state.
-   *
-   * @param entity The entity to send state for
-   * @param try_send_func The function that tries to send the state
-   * @return True on success or message deferred, false if subscription check failed
-   */
-  bool send_state_(esphome::EntityBase *entity, send_message_t try_send_func) {
-    if (!this->state_subscription_)
-      return false;
-    // Add to batch instead of sending immediately
-    this->deferred_batch_.add_item(entity, try_send_func);
-    this->schedule_batch_();
-    return true;
-  }
-
-  /**
-   * Send entity state method that handles explicit state values.
-   * Only attempts to build and send the message if the transmit buffer is available.
-   *
-   * This method accepts a state parameter to be used instead of the entity's current state.
-   * It attempts to send the state with the provided value first, and if that fails due to buffer constraints,
-   * it defers the entity for later processing using the entity-only function.
-   *
-   * @tparam EntityT The entity type
-   * @tparam StateT Type of the state parameter
-   * @tparam Args Additional argument types (if any)
-   * @param entity The entity to send state for
-   * @param try_send_entity_func The function that tries to send the state with entity pointer only
-   * @param try_send_state_func The function that tries to send the state with entity and state parameters
-   * @param state The state value to send
-   * @param args Additional arguments to pass to the try_send_state_func
-   * @return True on success or message deferred, false if subscription check failed
-   */
-  template<typename EntityT, typename StateT, typename... Args>
-  bool send_state_with_value_(EntityT *entity, bool (APIConnection::*try_send_entity_func)(EntityT *),
-                              bool (APIConnection::*try_send_state_func)(EntityT *, StateT, Args...), StateT state,
-                              Args... args) {
-    if (!this->state_subscription_)
-      return false;
-    // For state updates with values, we defer using the entity-only function
-    // The current state will be read when the batch is processed
-    this->deferred_batch_.add_item(entity, reinterpret_cast<send_message_t>(try_send_entity_func));
-    this->schedule_batch_();
-    return true;
-  }
-
-  /**
-   * Generic send entity info method to reduce code duplication.
-   * Only attempts to build and send the message if the transmit buffer is available.
-   *
-   * @param entity The entity to send info for
-   * @param try_send_func The function that tries to send the info
-   */
-  void send_info_(esphome::EntityBase *entity, send_message_t try_send_func) {
-    // Always batch entity info messages
-    this->deferred_batch_.add_item(entity, try_send_func);
-    this->schedule_batch_();
-  }
-
-  /**
    * Generic function for generating entity info response messages.
    * This is used to reduce duplication in the try_send_*_info functions.
    *
