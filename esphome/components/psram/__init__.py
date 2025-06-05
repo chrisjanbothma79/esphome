@@ -60,7 +60,7 @@ SPIRAM_SPEEDS = {
 
 def validate_psram_mode(config):
     esp32_config = fv.full_config.get()[PLATFORM_ESP32]
-    if config[CONF_SPEED] == 120e6:
+    if config[CONF_SPEED] == "120MHZ":
         if esp32_config[CONF_CPU_FREQUENCY] != "240MHZ":
             raise cv.Invalid(
                 "PSRAM 120MHz requires 240MHz CPU frequency (set in esp32 component)"
@@ -132,8 +132,9 @@ async def to_code(config):
         speed = int(config[CONF_SPEED][:-3])
         add_idf_sdkconfig_option(f"CONFIG_SPIRAM_SPEED_{speed}M", True)
         add_idf_sdkconfig_option("CONFIG_SPIRAM_SPEED", speed)
-        if config[CONF_MODE] == TYPE_OCTAL and config[CONF_SPEED] == 120e6:
+        if config[CONF_MODE] == TYPE_OCTAL and config[CONF_SPEED] == "120MHZ":
             add_idf_sdkconfig_option("CONFIG_ESPTOOLPY_FLASHFREQ_120M", True)
+            add_idf_sdkconfig_option("CONFIG_BOOTLOADER_FLASH_DC_AWARE", True)
             if CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION] >= cv.Version(5, 4, 0):
                 add_idf_sdkconfig_option(
                     "CONFIG_SPIRAM_TIMING_TUNING_POINT_VIA_TEMPERATURE_SENSOR", True
