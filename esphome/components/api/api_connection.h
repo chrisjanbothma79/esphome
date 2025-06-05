@@ -467,9 +467,8 @@ class APIConnection : public APIServerConnection {
   static constexpr uint32_t BATCH_DELAY_MS = 100;
   static constexpr size_t MAX_BATCH_SIZE_BYTES = 1360;  // MTU - 100 bytes safety margin
 
-  // Batch mode state for capturing message types
+  // Batch mode state
   bool batch_mode_{false};
-  uint16_t captured_message_type_{0};
 
   void schedule_batch_();
   void process_batch_();
