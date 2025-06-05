@@ -1,6 +1,5 @@
 from esphome.automation import Action, register_action
 import esphome.codegen as cg
-from esphome.components.const import CONF_ADJUSTABLE
 from esphome.components.esp32 import VARIANT_ESP32P4, only_on_variant
 import esphome.config_validation as cv
 from esphome.const import CONF_CHANNEL, CONF_ID, CONF_VOLTAGE
@@ -15,6 +14,7 @@ EspLdo = esp_ldo_ns.class_("EspLdo", cg.Component)
 AdjustAction = esp_ldo_ns.class_("AdjustAction", Action)
 
 CHANNELS = (3, 4)
+CONF_ADJUSTABLE = "adjustable"
 
 adjusted_ids = set()
 
