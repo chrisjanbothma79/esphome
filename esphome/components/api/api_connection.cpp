@@ -1726,10 +1726,10 @@ void APIConnection::process_batch_() {
   // Try to clear buffer first
   if (!this->helper_->can_write_without_blocking()) {
     // Can't write now, defer everything to the regular deferred queue
-    for (const auto &update : this->deferred_state_batch_.updates) {
-      this->deferred_message_queue_.defer(update.entity, update.send_func);
+    for (const auto &item : this->deferred_batch_.items) {
+      this->deferred_message_queue_.defer(item.entity, item.send_func);
     }
-    this->deferred_state_batch_.clear();
+    this->deferred_batch_.clear();
     return;
   }
 
@@ -1747,8 +1747,8 @@ void APIConnection::process_batch_() {
   // Conservative estimate for minimum packet size: 6 byte header + 100 bytes minimum message + footer
   const uint16_t min_next_packet_size = 106 + this->helper_->frame_footer_size();
 
-  for (size_t i = 0; i < this->deferred_state_batch_.updates.size(); i++) {
-    const auto &update = this->deferred_state_batch_.updates[i];
+  for (size_t i = 0; i < this->deferred_batch_.items.size(); i++) {
+    const auto &item = this->deferred_batch_.items[i];
 
     // For the first message, check if we have enough space for at least one message
     // Use conservative estimates: max header (6 bytes) + some payload + footer
@@ -1771,7 +1771,7 @@ void APIConnection::process_batch_() {
     }
 
     // Try to encode the message
-    if (!(this->*update.send_func)(update.entity)) {
+    if (!(this->*item.send_func)(item.entity)) {
       // Encoding failed, revert buffer to previous size
       this->proto_write_buffer_.resize(msg_offset);
       continue;
