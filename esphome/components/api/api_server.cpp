@@ -112,8 +112,8 @@ void APIServer::setup() {
 }
 
 void APIServer::loop() {
-  // Accept new clients only if the socket has incoming connections
-  if (this->socket_->ready()) {
+  // Accept new clients only if the socket exists and has incoming connections
+  if (this->socket_ && this->socket_->ready()) {
     while (true) {
       struct sockaddr_storage source_addr;
       socklen_t addr_len = sizeof(source_addr);
@@ -474,6 +474,13 @@ void APIServer::request_time() {
 bool APIServer::is_connected() const { return !this->clients_.empty(); }
 
 void APIServer::on_shutdown() {
+  // Close the listening socket to prevent new connections
+  if (this->socket_) {
+    this->socket_->close();
+    this->socket_ = nullptr;
+  }
+
+  // Send disconnect requests to all connected clients
   for (auto &c : this->clients_) {
     c->send_disconnect_request(DisconnectRequest());
   }
