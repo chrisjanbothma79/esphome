@@ -418,8 +418,30 @@ class APIConnection : public APIServerConnection {
     this->proto_write_buffer_.insert(this->proto_write_buffer_.begin(), header_padding, 0);
     return {&this->proto_write_buffer_};
   }
+
+  // Extend buffer for batching - adds padding for next message
+  ProtoWriteBuffer extend_buffer() {
+    // Get current size
+    size_t current_size = this->proto_write_buffer_.size();
+
+    // Add padding for next message
+    uint8_t header_padding = this->helper_->frame_header_padding();
+    uint8_t footer_size = this->helper_->frame_footer_size();
+
+    // Add footer space for previous message (if using Noise)
+    if (footer_size > 0) {
+      this->proto_write_buffer_.resize(current_size + footer_size);
+      current_size += footer_size;
+    }
+
+    // Add header padding for next message
+    this->proto_write_buffer_.resize(current_size + header_padding);
+
+    return {&this->proto_write_buffer_};
+  }
+
   bool try_to_clear_buffer(bool log_out_of_space);
-  bool send_buffer(ProtoWriteBuffer buffer, uint32_t message_type) override;
+  bool send_buffer(ProtoWriteBuffer buffer, uint16_t message_type) override;
 
   std::string get_client_combined_info() const { return this->client_combined_info_; }
 
@@ -439,10 +461,9 @@ class APIConnection : public APIServerConnection {
   bool send_state_(esphome::EntityBase *entity, send_message_t try_send_func) {
     if (!this->state_subscription_)
       return false;
-    if (this->try_to_clear_buffer(true) && (this->*try_send_func)(entity)) {
-      return true;
-    }
-    this->deferred_message_queue_.defer(entity, try_send_func);
+    // Add to batch instead of sending immediately
+    this->deferred_state_batch_.add_update(entity, try_send_func);
+    this->schedule_state_batch_();
     return true;
   }
 
@@ -470,10 +491,10 @@ class APIConnection : public APIServerConnection {
                               Args... args) {
     if (!this->state_subscription_)
       return false;
-    if (this->try_to_clear_buffer(true) && (this->*try_send_state_func)(entity, state, args...)) {
-      return true;
-    }
-    this->deferred_message_queue_.defer(entity, reinterpret_cast<send_message_t>(try_send_entity_func));
+    // For state updates with values, we defer using the entity-only function
+    // The current state will be read when the batch is processed
+    this->deferred_state_batch_.add_update(entity, reinterpret_cast<send_message_t>(try_send_entity_func));
+    this->schedule_state_batch_();
     return true;
   }
 
@@ -556,6 +577,39 @@ class APIConnection : public APIServerConnection {
   InitialStateIterator initial_state_iterator_;
   ListEntitiesIterator list_entities_iterator_;
   int state_subs_at_ = -1;
+
+  // State batching mechanism
+  struct DeferredStateBatch {
+    struct StateUpdate {
+      void *entity;
+      send_message_t send_func;
+      uint32_t timestamp;  // When this update was queued
+    };
+
+    std::vector<StateUpdate> updates;
+    uint32_t batch_start_time{0};
+    bool batch_scheduled{false};
+
+    // Add update with deduplication - newer updates replace older ones for same entity
+    void add_update(void *entity, send_message_t send_func);
+    void clear() {
+      updates.clear();
+      batch_scheduled = false;
+      batch_start_time = 0;
+    }
+    bool empty() const { return updates.empty(); }
+  };
+
+  DeferredStateBatch deferred_state_batch_;
+  static constexpr uint32_t STATE_BATCH_DELAY_MS = 10;
+  static constexpr size_t MAX_BATCH_SIZE_BYTES = 1360;  // MTU - 100 bytes safety margin
+
+  // Batch mode state for capturing message types
+  bool batch_mode_{false};
+  uint16_t captured_message_type_{0};
+
+  void schedule_state_batch_();
+  void process_state_batch_();
 };
 
 }  // namespace api

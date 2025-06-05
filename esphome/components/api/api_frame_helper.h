@@ -87,10 +87,17 @@ class APIFrameHelper {
   // Give this helper a name for logging
   void set_log_info(std::string info) { info_ = std::move(info); }
   virtual APIError write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) = 0;
+  // Write multiple protobuf packets in a single operation
+  // packets contains (message_type, offset, length) for each message in the buffer
+  // The buffer contains all messages with appropriate padding before each
+  virtual APIError write_protobuf_packets(ProtoWriteBuffer buffer,
+                                          const std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> &packets) = 0;
   // Get the frame header padding required by this protocol
   virtual uint8_t frame_header_padding() = 0;
   // Get the frame footer size required by this protocol
   virtual uint8_t frame_footer_size() = 0;
+  // Calculate the actual packet overhead (header + footer) for a given message
+  virtual uint16_t calculate_packet_overhead(uint16_t message_type, uint16_t payload_len) = 0;
   // Check if socket has data ready to read
   bool is_socket_ready() const { return socket_ != nullptr && socket_->ready(); }
 
@@ -182,10 +189,17 @@ class APINoiseFrameHelper : public APIFrameHelper {
   APIError loop() override;
   APIError read_packet(ReadPacketBuffer *buffer) override;
   APIError write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) override;
+  APIError write_protobuf_packets(ProtoWriteBuffer buffer,
+                                  const std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> &packets) override;
   // Get the frame header padding required by this protocol
   uint8_t frame_header_padding() override { return frame_header_padding_; }
   // Get the frame footer size required by this protocol
   uint8_t frame_footer_size() override { return frame_footer_size_; }
+  // Calculate the actual packet overhead for Noise protocol
+  uint16_t calculate_packet_overhead(uint16_t message_type, uint16_t payload_len) override {
+    // Noise: fixed 3 byte header (indicator + 2-byte size) + 16 byte MAC
+    return 3 + frame_footer_size_;
+  }
 
  protected:
   APIError state_action_();
@@ -226,9 +240,13 @@ class APIPlaintextFrameHelper : public APIFrameHelper {
   APIError loop() override;
   APIError read_packet(ReadPacketBuffer *buffer) override;
   APIError write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) override;
+  APIError write_protobuf_packets(ProtoWriteBuffer buffer,
+                                  const std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> &packets) override;
   uint8_t frame_header_padding() override { return frame_header_padding_; }
   // Get the frame footer size required by this protocol
   uint8_t frame_footer_size() override { return frame_footer_size_; }
+  // Calculate the actual packet overhead for Plaintext protocol
+  uint16_t calculate_packet_overhead(uint16_t message_type, uint16_t payload_len) override;  // Implemented in .cpp
 
  protected:
   APIError try_read_frame_(ParsedFrame *frame);
