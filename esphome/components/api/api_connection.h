@@ -610,7 +610,7 @@ class APIConnection : public APIServerConnection {
   };
 
   DeferredBatch deferred_batch_;
-  static constexpr uint32_t BATCH_DELAY_MS = 50;
+  static constexpr uint32_t BATCH_DELAY_MS = 100;
   static constexpr size_t MAX_BATCH_SIZE_BYTES = 1360;  // MTU - 100 bytes safety margin
 
   // Batch mode state for capturing message types

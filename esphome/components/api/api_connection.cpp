@@ -1814,6 +1814,8 @@ void APIConnection::process_batch_() {
       this->proto_write_buffer_.resize(this->proto_write_buffer_.size() + this->helper_->frame_footer_size());
     }
 
+    ESP_LOGD(TAG, "Sending batch: %zu messages, %zu total bytes", processed_count, this->proto_write_buffer_.size());
+
     APIError err = this->helper_->write_protobuf_packets(batch_buffer, packet_info);
     if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
       on_fatal_error();
