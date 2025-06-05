@@ -1741,11 +1741,14 @@ void APIConnection::process_batch_() {
   size_t total_size = 0;
   size_t processed_count = 0;
 
-  // Create initial buffer with estimated size
-  ProtoWriteBuffer batch_buffer = this->create_buffer(MAX_BATCH_SIZE_BYTES);
-
   // Conservative estimate for minimum packet size: 6 byte header + 100 bytes minimum message + footer
   const uint16_t min_next_packet_size = 106 + this->helper_->frame_footer_size();
+
+  // Create initial buffer with estimated size based on number of items
+  // Use min of (estimated total size, MAX_BATCH_SIZE_BYTES)
+  uint32_t estimated_size = std::min(static_cast<uint32_t>(min_next_packet_size * this->deferred_batch_.items.size()),
+                                     static_cast<uint32_t>(MAX_BATCH_SIZE_BYTES));
+  ProtoWriteBuffer batch_buffer = this->create_buffer(estimated_size);
 
   for (size_t i = 0; i < this->deferred_batch_.items.size(); i++) {
     const auto &item = this->deferred_batch_.items[i];
