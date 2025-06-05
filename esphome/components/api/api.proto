@@ -268,6 +268,7 @@ message ListEntitiesBinarySensorResponse {
   option (id) = 12;
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_BINARY_SENSOR";
+  option (batchable) = true;
 
   string object_id = 1;
   fixed32 key = 2;
@@ -285,6 +286,7 @@ message BinarySensorStateResponse {
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_BINARY_SENSOR";
   option (no_delay) = true;
+  option (batchable) = true;
 
   fixed32 key = 1;
   bool state = 2;
@@ -298,6 +300,7 @@ message ListEntitiesCoverResponse {
   option (id) = 13;
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_COVER";
+  option (batchable) = true;
 
   string object_id = 1;
   fixed32 key = 2;
@@ -328,6 +331,7 @@ message CoverStateResponse {
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_COVER";
   option (no_delay) = true;
+  option (batchable) = true;
 
   fixed32 key = 1;
   // legacy: state has been removed in 1.13
@@ -369,6 +373,7 @@ message ListEntitiesFanResponse {
   option (id) = 14;
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_FAN";
+  option (batchable) = true;
 
   string object_id = 1;
   fixed32 key = 2;
@@ -398,6 +403,7 @@ message FanStateResponse {
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_FAN";
   option (no_delay) = true;
+  option (batchable) = true;
 
   fixed32 key = 1;
   bool state = 2;
@@ -446,6 +452,7 @@ message ListEntitiesLightResponse {
   option (id) = 15;
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_LIGHT";
+  option (batchable) = true;
 
   string object_id = 1;
   fixed32 key = 2;
@@ -470,6 +477,7 @@ message LightStateResponse {
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_LIGHT";
   option (no_delay) = true;
+  option (batchable) = true;
 
   fixed32 key = 1;
   bool state = 2;
@@ -538,6 +546,7 @@ message ListEntitiesSensorResponse {
   option (id) = 16;
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_SENSOR";
+  option (batchable) = true;
 
   string object_id = 1;
   fixed32 key = 2;
@@ -560,6 +569,7 @@ message SensorStateResponse {
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_SENSOR";
   option (no_delay) = true;
+  option (batchable) = true;
 
   fixed32 key = 1;
   float state = 2;
@@ -573,6 +583,7 @@ message ListEntitiesSwitchResponse {
   option (id) = 17;
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_SWITCH";
+  option (batchable) = true;
 
   string object_id = 1;
   fixed32 key = 2;
@@ -590,6 +601,7 @@ message SwitchStateResponse {
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_SWITCH";
   option (no_delay) = true;
+  option (batchable) = true;
 
   fixed32 key = 1;
   bool state = 2;
@@ -609,6 +621,7 @@ message ListEntitiesTextSensorResponse {
   option (id) = 18;
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_TEXT_SENSOR";
+  option (batchable) = true;
 
   string object_id = 1;
   fixed32 key = 2;
@@ -625,6 +638,7 @@ message TextSensorStateResponse {
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_TEXT_SENSOR";
   option (no_delay) = true;
+  option (batchable) = true;
 
   fixed32 key = 1;
   string state = 2;

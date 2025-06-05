@@ -377,6 +377,13 @@ class ProtoService {
     // Send the buffer
     return this->send_buffer(buffer, message_type);
   }
+
+  // Batchable version for deferrable messages (state updates, entity info)
+  // This should be implemented by subclasses that support batching
+  template<class C> bool send_message_batchable_(const C &msg, uint16_t message_type) {
+    // Default implementation just sends immediately
+    return this->send_message_(msg, message_type);
+  }
 };
 
 }  // namespace api
