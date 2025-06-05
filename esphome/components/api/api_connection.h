@@ -75,11 +75,6 @@ class APIConnection : public APIServerConnection {
   bool send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state);
   void send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor);
 
- protected:
-  bool try_send_binary_sensor_state_(binary_sensor::BinarySensor *binary_sensor);
-  bool try_send_binary_sensor_state_(binary_sensor::BinarySensor *binary_sensor, bool state);
-  bool try_send_binary_sensor_info_(binary_sensor::BinarySensor *binary_sensor);
-
  public:
 #endif
 #ifdef USE_COVER

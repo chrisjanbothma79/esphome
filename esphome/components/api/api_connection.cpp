@@ -286,29 +286,18 @@ void APIConnection::on_disconnect_response(const DisconnectResponse &value) {
 
 #ifdef USE_BINARY_SENSOR
 bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state) {
-  return this->send_state_with_value_(binary_sensor, &APIConnection::try_send_binary_sensor_state_,
-                                      &APIConnection::try_send_binary_sensor_state_, state);
-}
-void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor) {
-  this->send_info_(static_cast<EntityBase *>(binary_sensor),
-                   reinterpret_cast<send_message_t>(&APIConnection::try_send_binary_sensor_info_));
-}
-bool APIConnection::try_send_binary_sensor_state_(binary_sensor::BinarySensor *binary_sensor) {
-  return this->try_send_binary_sensor_state_(binary_sensor, binary_sensor->state);
-}
-bool APIConnection::try_send_binary_sensor_state_(binary_sensor::BinarySensor *binary_sensor, bool state) {
   BinarySensorStateResponse msg;
   msg.state = state;
   msg.missing_state = !binary_sensor->has_state();
   msg.key = binary_sensor->get_object_id_hash();
   return this->try_send_entity_state(msg);
 }
-bool APIConnection::try_send_binary_sensor_info_(binary_sensor::BinarySensor *binary_sensor) {
+void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor) {
   ListEntitiesBinarySensorResponse msg;
   msg.device_class = binary_sensor->get_device_class();
   msg.is_status_binary_sensor = binary_sensor->is_status_binary_sensor();
   msg.unique_id = get_default_unique_id("binary_sensor", binary_sensor);
-  return this->try_send_entity_info_(static_cast<EntityBase *>(binary_sensor), msg);
+  this->try_send_entity_info_(static_cast<EntityBase *>(binary_sensor), msg);
 }
 #endif
 
