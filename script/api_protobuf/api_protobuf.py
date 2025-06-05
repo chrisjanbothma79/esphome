@@ -773,6 +773,22 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     dump: list[str] = []
     size_calc: list[str] = []
 
+    # Get message ID if it's a service message
+    message_id: int | None = get_opt(desc, pb.id)
+
+    # Add message_type method if this is a service message
+    if message_id is not None:
+        public_content.append(
+            f"static constexpr uint32_t message_type() {{ return {message_id}; }}"
+        )
+        # Add message_name method for debugging
+        public_content.append("#ifdef HAS_PROTO_MESSAGE_DUMP")
+        snake_name = camel_to_snake(desc.name)
+        public_content.append(
+            f'static constexpr const char *message_name() {{ return "{snake_name}"; }}'
+        )
+        public_content.append("#endif")
+
     for field in desc.field:
         if field.label == 3:
             ti = RepeatedTypeInfo(field)
@@ -947,17 +963,9 @@ def build_service_message_type(
         cout += f"#ifdef {ifdef}\n"
 
     if source in (SOURCE_BOTH, SOURCE_SERVER):
-        # Generate send
-        func = f"send_{snake}"
-        hout += f"bool {func}(const {mt.name} &msg);\n"
-        cout += f"bool APIServerConnectionBase::{func}(const {mt.name} &msg) {{\n"
-        if log:
-            cout += "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
-            cout += f'  ESP_LOGVV(TAG, "{func}: %s", msg.dump().c_str());\n'
-            cout += "#endif\n"
-        # cout += f'  this->set_nodelay({str(nodelay).lower()});\n'
-        cout += f"  return this->send_message_(msg, {id_});\n"
-        cout += "}\n"
+        # Don't generate individual send methods anymore
+        # The generic send_message method will be used instead
+        pass
     if source in (SOURCE_BOTH, SOURCE_CLIENT):
         # Generate receive
         func = f"on_{snake}"
@@ -1083,6 +1091,15 @@ def main() -> None:
     hpp += f"class {class_name} : public ProtoService {{\n"
     hpp += " public:\n"
 
+    # Add generic send_message method
+    hpp += "  template<typename T>\n"
+    hpp += "  bool send_message(const T &msg) {\n"
+    hpp += "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
+    hpp += '    ESP_LOGVV(TAG, "send_message %s: %s", T::message_name(), msg.dump().c_str());\n'
+    hpp += "#endif\n"
+    hpp += "    return this->send_message_(msg, T::message_type());\n"
+    hpp += "  }\n\n"
+
     for mt in file.message_type:
         obj = build_service_message_type(mt)
         if obj is None:
@@ -1155,8 +1172,7 @@ def main() -> None:
             body += f"this->{func}(msg);\n"
         else:
             body += f"{ret} ret = this->{func}(msg);\n"
-            ret_snake = camel_to_snake(ret)
-            body += f"if (!this->send_{ret_snake}(ret)) {{\n"
+            body += "if (!this->send_message(ret)) {\n"
             body += "  this->on_fatal_error();\n"
             body += "}\n"
         cpp += indent(body) + "\n" + "}\n"

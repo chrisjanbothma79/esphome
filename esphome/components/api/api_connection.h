@@ -530,9 +530,7 @@ class APIConnection : public APIServerConnection {
    * @param send_response_func Function pointer to send the response
    * @return True if the message was sent successfully
    */
-  template<typename ResponseT>
-  bool try_send_entity_info_(esphome::EntityBase *entity, ResponseT &response,
-                             bool (APIServerConnectionBase::*send_response_func)(const ResponseT &)) {
+  template<typename ResponseT> bool try_send_entity_info_(esphome::EntityBase *entity, ResponseT &response) {
     // Set common fields that are shared by all entity types
     response.key = entity->get_object_id_hash();
     response.object_id = entity->get_object_id();
@@ -545,8 +543,8 @@ class APIConnection : public APIServerConnection {
     response.disabled_by_default = entity->is_disabled_by_default();
     response.entity_category = static_cast<enums::EntityCategory>(entity->get_entity_category());
 
-    // Send the response using the provided send method
-    return (this->*send_response_func)(response);
+    // Send the response using the generic send_message method
+    return this->send_message(response);
   }
 
   bool send_(const void *buf, size_t len, bool force);
