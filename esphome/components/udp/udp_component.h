@@ -18,9 +18,7 @@ static const size_t MAX_PACKET_SIZE = 508;
 class UDPComponent : public Component {
  public:
   void add_address(const char *addr) { this->addresses_.emplace_back(addr); }
-  void set_listen_address(const char *listen_addr) {
-    this->listen_address_ = network::IPAddress(std::string(listen_addr));
-  }
+  void set_listen_address(const char *listen_addr) { this->listen_address_ = network::IPAddress(listen_addr); }
   void set_listen_port(uint16_t port) { this->listen_port_ = port; }
   void set_broadcast_port(uint16_t port) { this->broadcast_port_ = port; }
   void set_should_broadcast() { this->should_broadcast_ = true; }

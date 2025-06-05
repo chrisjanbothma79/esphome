@@ -256,11 +256,11 @@ FINAL_VALIDATE_SCHEMA = _final_validate
 def manual_ip(config):
     return cg.StructInitializer(
         ManualIP,
-        ("static_ip", IPAddress(cg.std_string(str(config[CONF_STATIC_IP])))),
-        ("gateway", IPAddress(cg.std_string(str(config[CONF_GATEWAY])))),
-        ("subnet", IPAddress(cg.std_string(str(config[CONF_SUBNET])))),
-        ("dns1", IPAddress(cg.std_string(str(config[CONF_DNS1])))),
-        ("dns2", IPAddress(cg.std_string(str(config[CONF_DNS2])))),
+        ("static_ip", IPAddress(str(config[CONF_STATIC_IP]))),
+        ("gateway", IPAddress(str(config[CONF_GATEWAY]))),
+        ("subnet", IPAddress(str(config[CONF_SUBNET]))),
+        ("dns1", IPAddress(str(config[CONF_DNS1]))),
+        ("dns2", IPAddress(str(config[CONF_DNS2]))),
     )
 
 
