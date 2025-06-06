@@ -1105,7 +1105,8 @@ void APIConnection::valve_command(const ValveCommandRequest &msg) {
 
 #ifdef USE_MEDIA_PLAYER
 bool APIConnection::send_media_player_state(media_player::MediaPlayer *media_player) {
-  return this->schedule_message_(media_player, &APIConnection::try_send_media_player_state_);
+  return this->schedule_message_(media_player, &APIConnection::try_send_media_player_state_,
+                                 MediaPlayerStateResponse::message_type);
 }
 APIConnection::EncodedMessage APIConnection::try_send_media_player_state_(EntityBase *entity, APIConnection *conn,
                                                                           uint32_t remaining_size, bool is_single) {
@@ -1477,7 +1478,7 @@ APIConnection::EncodedMessage APIConnection::try_send_event_info_(EntityBase *en
 
 #ifdef USE_UPDATE
 bool APIConnection::send_update_state(update::UpdateEntity *update) {
-  return this->schedule_message_(update, &APIConnection::try_send_update_state_);
+  return this->schedule_message_(update, &APIConnection::try_send_update_state_, UpdateStateResponse::message_type);
 }
 APIConnection::EncodedMessage APIConnection::try_send_update_state_(EntityBase *entity, APIConnection *conn,
                                                                     uint32_t remaining_size, bool is_single) {
