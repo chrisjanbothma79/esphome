@@ -223,7 +223,7 @@ void VoiceAssistant::loop() {
       msg.wake_word_phrase = this->wake_word_;
       this->wake_word_ = "";
 
-      if (this->api_client_ == nullptr || !this->api_client_->send_voice_assistant_request(msg)) {
+      if (this->api_client_ == nullptr || !this->api_client_->send_message(msg)) {
         ESP_LOGW(TAG, "Could not request start");
         this->error_trigger_->trigger("not-connected", "Could not request start");
         this->continuous_ = false;
