@@ -525,7 +525,7 @@ class APIConnection : public APIServerConnection {
 
   // Helper function to schedule a deferred message with known message type
   bool schedule_message_(EntityBase *entity, MessageCreator creator, uint16_t message_type) {
-    this->deferred_batch_.add_item(entity, creator, message_type);
+    this->deferred_batch_.add_item(entity, std::move(creator), message_type);
     return this->schedule_batch_();
   }
 };
