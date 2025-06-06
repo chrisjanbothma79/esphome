@@ -7,6 +7,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/log.h"
+#include "esphome/core/helpers.h"
 #include "esphome/components/json/json_util.h"
 #include "esphome/components/network/ip_address.h"
 #if defined(USE_ESP32)
@@ -332,6 +333,7 @@ class MQTTClientComponent : public Component {
   uint32_t connect_begin_;
   uint32_t last_connected_{0};
   optional<MQTTClientDisconnectReason> disconnect_reason_{};
+  CallbackManager<MQTTBackend::on_disconnect_callback_t> on_disconnect_;
 
   bool publish_nan_as_none_{false};
 };
