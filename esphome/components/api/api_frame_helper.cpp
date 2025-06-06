@@ -612,14 +612,13 @@ APIError APINoiseFrameHelper::write_protobuf_packet(uint16_t type, ProtoWriteBuf
   raw_buffer->resize(raw_buffer->size() + frame_footer_size_);
 
   // Use write_protobuf_packets with a single packet
-  std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> packets;
+  std::vector<PacketInfo> packets;
   packets.emplace_back(type, 0, payload_len);
 
   return write_protobuf_packets(buffer, packets);
 }
 
-APIError APINoiseFrameHelper::write_protobuf_packets(
-    ProtoWriteBuffer buffer, const std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> &packets) {
+APIError APINoiseFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer, const std::vector<PacketInfo> &packets) {
   APIError aerr = state_action_();
   if (aerr != APIError::OK) {
     return aerr;
@@ -639,9 +638,9 @@ APIError APINoiseFrameHelper::write_protobuf_packets(
 
   // We need to encrypt each packet in place
   for (const auto &packet : packets) {
-    uint16_t type = std::get<0>(packet);
-    uint32_t offset = std::get<1>(packet);
-    uint16_t payload_len = std::get<2>(packet);
+    uint16_t type = packet.message_type;
+    uint16_t offset = packet.offset;
+    uint16_t payload_len = packet.payload_size;
     uint16_t msg_len = 4 + payload_len;  // type(2) + data_len(2) + payload
 
     // The buffer already has padding at offset
@@ -1031,14 +1030,14 @@ APIError APIPlaintextFrameHelper::write_protobuf_packet(uint16_t type, ProtoWrit
   uint16_t payload_len = static_cast<uint16_t>(raw_buffer->size() - frame_header_padding_);
 
   // Use write_protobuf_packets with a single packet
-  std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> packets;
+  std::vector<PacketInfo> packets;
   packets.emplace_back(type, 0, payload_len);
 
   return write_protobuf_packets(buffer, packets);
 }
 
-APIError APIPlaintextFrameHelper::write_protobuf_packets(
-    ProtoWriteBuffer buffer, const std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> &packets) {
+APIError APIPlaintextFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer,
+                                                         const std::vector<PacketInfo> &packets) {
   if (state_ != State::DATA) {
     return APIError::BAD_STATE;
   }
@@ -1052,9 +1051,9 @@ APIError APIPlaintextFrameHelper::write_protobuf_packets(
   iovs.reserve(packets.size());
 
   for (const auto &packet : packets) {
-    uint16_t type = std::get<0>(packet);
-    uint32_t offset = std::get<1>(packet);
-    uint16_t payload_len = std::get<2>(packet);
+    uint16_t type = packet.message_type;
+    uint16_t offset = packet.offset;
+    uint16_t payload_len = packet.payload_size;
 
     // Calculate varint sizes for header components
     uint8_t size_varint_len = api::ProtoSize::varint(static_cast<uint32_t>(payload_len));

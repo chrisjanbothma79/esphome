@@ -1778,7 +1778,7 @@ void APIConnection::process_batch_() {
   }
 
   // Pre-allocate storage for packet info
-  std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> packet_info;
+  std::vector<PacketInfo> packet_info;
   packet_info.reserve(num_items);
 
   // Cache these values to avoid repeated virtual calls
@@ -1787,7 +1787,7 @@ void APIConnection::process_batch_() {
 
   // Initialize buffer and tracking variables
   this->proto_write_buffer_.clear();
-  // Reserve based on typical message size (24 bytes) + overhead per message
+  // Reserve based on typical message size + overhead per message
   this->proto_write_buffer_.reserve((24 + header_padding + footer_size) * num_items);
   this->batch_first_message_ = true;
 
