@@ -492,6 +492,11 @@ class APIConnection : public APIServerConnection {
     uint32_t batch_start_time{0};
     bool batch_scheduled{false};
 
+    DeferredBatch() {
+      // Pre-allocate capacity for typical batch sizes to avoid reallocation
+      items.reserve(16);
+    }
+
     // Add item to the batch
     void add_item(EntityBase *entity, MessageCreator creator, uint16_t message_type);
     void clear() {
