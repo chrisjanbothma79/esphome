@@ -141,7 +141,7 @@ void BluetoothProxy::send_api_packet_(const esp32_ble_tracker::ESPBTDevice &devi
     manufacturer_data.data.assign(data.data.begin(), data.data.end());
   }
 
-  this->api_connection_->send_bluetooth_le_advertisement(resp);
+  this->api_connection_->send_message(resp);
 }
 
 void BluetoothProxy::dump_config() {
