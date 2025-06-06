@@ -807,9 +807,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_time_state_(EntityBase *en
   return msg;
 }
 void APIConnection::send_time_info(datetime::TimeEntity *time) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(time, &APIConnection::try_send_time_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(time, &APIConnection::try_send_time_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_time_info_(EntityBase *entity) {
   auto *time = static_cast<datetime::TimeEntity *>(entity);
@@ -850,9 +848,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_datetime_state_(EntityBase
   return msg;
 }
 void APIConnection::send_datetime_info(datetime::DateTimeEntity *datetime) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(datetime, &APIConnection::try_send_datetime_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(datetime, &APIConnection::try_send_datetime_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_datetime_info_(EntityBase *entity) {
   auto *datetime = static_cast<datetime::DateTimeEntity *>(entity);
@@ -889,9 +885,7 @@ bool APIConnection::send_text_state(text::Text *text, std::string state) {
   return this->schedule_batch_();
 }
 void APIConnection::send_text_info(text::Text *text) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(text, &APIConnection::try_send_text_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(text, &APIConnection::try_send_text_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_text_info_(EntityBase *entity) {
   auto *text = static_cast<text::Text *>(entity);
@@ -933,9 +927,7 @@ bool APIConnection::send_select_state(select::Select *select, std::string state)
   return this->schedule_batch_();
 }
 void APIConnection::send_select_info(select::Select *select) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(select, &APIConnection::try_send_select_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(select, &APIConnection::try_send_select_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_select_info_(EntityBase *entity) {
   auto *select = static_cast<select::Select *>(entity);
@@ -962,9 +954,7 @@ void APIConnection::select_command(const SelectCommandRequest &msg) {
 
 #ifdef USE_BUTTON
 void esphome::api::APIConnection::send_button_info(button::Button *button) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(button, &APIConnection::try_send_button_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(button, &APIConnection::try_send_button_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_button_info_(EntityBase *entity) {
   auto *button = static_cast<button::Button *>(entity);
@@ -999,9 +989,7 @@ bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
   return this->schedule_batch_();
 }
 void APIConnection::send_lock_info(lock::Lock *a_lock) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(a_lock, &APIConnection::try_send_lock_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(a_lock, &APIConnection::try_send_lock_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_lock_info_(EntityBase *entity) {
   auto *a_lock = static_cast<lock::Lock *>(entity);
@@ -1050,9 +1038,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_valve_state_(EntityBase *e
   return msg;
 }
 void APIConnection::send_valve_info(valve::Valve *valve) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(valve, &APIConnection::try_send_valve_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(valve, &APIConnection::try_send_valve_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_valve_info_(EntityBase *entity) {
   auto *valve = static_cast<valve::Valve *>(entity);
@@ -1102,9 +1088,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_media_player_state_(Entity
   return msg;
 }
 void APIConnection::send_media_player_info(media_player::MediaPlayer *media_player) {
-  // For info messages, we can use bind to avoid lambda overhead
-  this->deferred_batch_.add_item(media_player, &APIConnection::try_send_media_player_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(media_player, &APIConnection::try_send_media_player_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_media_player_info_(EntityBase *entity) {
   auto *media_player = static_cast<media_player::MediaPlayer *>(entity);
@@ -1160,9 +1144,7 @@ void APIConnection::set_camera_state(std::shared_ptr<esp32_camera::CameraImage> 
     this->image_reader_.set_image(std::move(image));
 }
 void APIConnection::send_camera_info(esp32_camera::ESP32Camera *camera) {
-  // For info messages, we can use function pointer directly since it's static
-  this->deferred_batch_.add_item(camera, &APIConnection::try_send_camera_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(camera, &APIConnection::try_send_camera_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_camera_info_(EntityBase *entity) {
   auto *camera = static_cast<esp32_camera::ESP32Camera *>(entity);
@@ -1373,9 +1355,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_alarm_control_panel_state_
   return msg;
 }
 void APIConnection::send_alarm_control_panel_info(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
-  // For info messages, we can use function pointer directly since it's static
-  this->deferred_batch_.add_item(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_info_);
-  this->schedule_batch_();
+  this->schedule_info_message_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_info_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_alarm_control_panel_info_(EntityBase *entity) {
   auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
