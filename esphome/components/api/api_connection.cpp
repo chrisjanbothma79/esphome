@@ -1155,7 +1155,7 @@ APIConnection::EncodedMessage APIConnection::try_send_media_player_info_(EntityB
   // Fill common entity fields
   fill_entity_info_base_(media_player, msg);
 
-  return encode_message_to_buffer(msg, conn, remaining_size, is_single);
+  return encode_message_to_buffer(msg, ListEntitiesMediaPlayerResponse::message_type, conn, remaining_size, is_single);
 }
 void APIConnection::media_player_command(const MediaPlayerCommandRequest &msg) {
   media_player::MediaPlayer *media_player = App.get_media_player_by_key(msg.key);
