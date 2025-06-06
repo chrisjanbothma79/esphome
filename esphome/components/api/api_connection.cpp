@@ -1397,10 +1397,10 @@ APIConnection::EncodedMessage APIConnection::try_send_alarm_control_panel_state_
                                                                                  uint32_t remaining_size,
                                                                                  bool is_single) {
   auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
-  AlarmControlPanelStateResponse msg;
-  msg.state = static_cast<enums::AlarmControlPanelState>(a_alarm_control_panel->get_state());
-  msg.key = a_alarm_control_panel->get_object_id_hash();
-  return encode_message_to_buffer(msg, AlarmControlPanelStateResponse::message_type, conn, remaining_size, is_single);
+  AlarmControlPanelStateResponse resp;
+  resp.state = static_cast<enums::AlarmControlPanelState>(a_alarm_control_panel->get_state());
+  resp.key = a_alarm_control_panel->get_object_id_hash();
+  return encode_message_to_buffer(resp, AlarmControlPanelStateResponse::message_type, conn, remaining_size, is_single);
 }
 void APIConnection::send_alarm_control_panel_info(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
   this->schedule_message_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_info_,
