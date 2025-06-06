@@ -28,12 +28,12 @@ const char *TAG = "esp8266_cdio";
 void sdCsInit(SdCsPin_t pin) {
   // initCalls++;
   // pinMode(pin, OUTPUT);
-  DEBUG_TRACE("esp8266_drv", "sdCsInit called");
+  DEBUG_TRACE("sdCsInit called");
 }
 void sdCsWrite(SdCsPin_t pin, bool level) {
   // writeCalls++;
   // digitalWrite(pin, level);
-  DEBUG_TRACE("esp8266_drv", "sdCsWrite called");
+  DEBUG_TRACE("sdCsWrite called");
 }
 
 //==============================================================================
@@ -140,7 +140,6 @@ bool SdfsSpiCard::begin(SdSpiConfig spiConfig) {
   m_type = 0;
   m_csPin = spiConfig.csPin;
 #if SPI_DRIVER_SELECT >= 2
-  ESP_LOGD(TAG, "SPI_DRIVER_SELECT >= 2");
   m_spiDriverPtr = spiConfig.spiPort;
   if (!m_spiDriverPtr) {
     error(SD_CARD_ERROR_INVALID_CARD_CONFIG);
@@ -465,6 +464,7 @@ fail:
 //------------------------------------------------------------------------------
 bool SdfsSpiCard::readStatus(uint8_t *status) {
   // retrun is R2 so read extra status byte.
+  ESP_LOGD(TAG, "Read status");
   if (cardAcmd(ACMD13, 0) || spiReceive()) {
     error(SD_CARD_ERROR_ACMD13);
     goto fail;

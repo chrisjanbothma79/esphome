@@ -3,13 +3,6 @@
 #include "sdfs.h"
 
 #if defined(USE_SDSPI_MODE) && defined(USE_ESP8266)
-#include "spi_connector.h"
-#include "SpiDriver/SdSpiDriver.h"
-
-#include "SpiDriver/SdSpiBaseClass.h"
-// #include "SdCard/SdCardInfo.h"
-#include "SdFat.h"
-#include "esp8266_cdio.h"
 
 #ifdef SD_CHIP_SELECT_MODE
 #define SD_CHIP_SELECT_MODE 2
@@ -27,6 +20,22 @@
 #define SDFAT_FILE_TYPE 1
 #endif
 
+#ifndef USE_SD_CRC
+#define USE_SD_CRC 1
+#endif
+
+#include "spi_connector.h"
+#include "SpiDriver/SdSpiDriver.h"
+#include "SpiDriver/SdSpiBaseClass.h"
+// #include "SdCard/SdCardInfo.h"
+#include "SdFat.h"
+#include "esp8266_cdio.h"
+
+#include "SdCard/SdCardInfo.h"
+
+namespace esphome {
+namespace sdfs {
+
 // #undef SD_CARD_ERROR
 // #define SD_CARD_ERROR(e, m) case SD_CARD_ERROR_##e: return F(m); break;
 // String sd_err2str(uint8_t code) {
@@ -37,10 +46,12 @@
 //   }
 // };
 
-// #include "esp8266_cdio.h"
-
-namespace esphome {
-namespace sdfs {
+#undef SD_CARD_ERROR
+#define SD_CARD_ERROR(e, m) \
+  case SD_CARD_ERROR_##e: \
+    return F(m); \
+    break;
+String sdcard_err2str(uint8_t code);
 
 class SdSpiImpl;
 class esp8266SpiDriver : public DriverInterface {
@@ -61,9 +72,6 @@ class esp8266SpiDriver : public DriverInterface {
   SdConnType bus_type_;
   uint32_t last_err_ = 0;
   SdmmcHost *parent_;
-  // SdFs *fs;
-  // FatVolume *fat_fs;
-  // SdFs *fs;
   SdfsSpiCard *sd_card = NULL;
   FsVolume *vol;
 };

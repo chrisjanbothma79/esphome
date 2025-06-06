@@ -229,6 +229,9 @@ async def to_code(config):
             cg.add_build_flag("-DSD_CHIP_SELECT_MODE=2")
             cg.add_define("SD_CHIP_SELECT_MODE", 2)
 
+            cg.add_build_flag("-DUSE_SD_CRC=1")
+            cg.add_define("USE_SD_CRC", 1)
+
             # cg.add_build_flag("-DENABLE_DEDICATED_SPI=1")
             # cg.add_build_flag("-DSD_USE_CUSTOM_SPI")
 

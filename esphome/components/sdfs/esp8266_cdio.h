@@ -26,8 +26,7 @@
  * \file
  * \brief SdSpiCard class for V2 SD/SDHC cards
  */
-#ifndef esp8266_cdio_h
-#define esp8266_cdio_h
+#pragma once
 // #include "esp8266_drv.h"
 #include "sdfs_defines.h"
 #include <stddef.h>
@@ -269,4 +268,3 @@ class SdfsSpiCard : public BlockDeviceInterface {
   uint8_t m_status;
   uint8_t m_type = 0;
 };
-#endif  // SdSpiCard_h

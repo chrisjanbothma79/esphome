@@ -10,6 +10,15 @@ namespace sdfs {
 
 const char *TAG = "esp8266_drv";
 
+String sdcard_err2str(uint8_t code) {
+  // pr->print(F("SD_CARD_ERROR_"));
+  switch (code) {
+    SD_ERROR_CODE_LIST
+    default:
+      return F("UNKNOWN");
+  }
+};
+
 /***********************************************************************
  *
  *    @brief  esp8266SpiDriver member function
@@ -21,16 +30,18 @@ void esp8266SpiDriver::set_connector(SpiConnector *c) {
 }
 void esp8266SpiDriver::set_parent(SdmmcHost *p) { this->parent_ = p; }
 bool esp8266SpiDriver::is_card() {
-  // if (! this->sd_card) {
-  // 	return false;
-  // }
-  // uint8_t st;
-  // bool st_bool = this->sd_card->readStatus(&st);
-  // uint8_t rc = this->sd_card->errorCode();
-  // if ((!st_bool)  && (rc != SD_CARD_ERROR_READ_TIMEOUT)){
-  // 	ESP_LOGE(TAG,"cd_card error = (%d)%s", rc, sd_err2str(rc).c_str());
-  // }
-  // return st_bool;
+  if (!this->sd_card) {
+    return false;
+  }
+  uint8_t *st = (uint8_t *) malloc(64);
+  memset(st, 0x00, 64);
+  bool st_bool = this->sd_card->readStatus(st);
+  uint8_t rc = this->sd_card->errorCode();
+  if ((!st_bool) && (rc != SD_CARD_ERROR_READ_TIMEOUT)) {
+    ESP_LOGE(TAG, "cd_card error = %d, %s", rc, sdcard_err2str(rc).c_str());
+  }
+  free(st);
+  return st_bool;
   return true;
 }
 bool esp8266SpiDriver::attach_card() { return true; }
@@ -45,16 +56,16 @@ bool esp8266SpiDriver::init_host(SdConnType ctype) {
   bool is_begin = false;
   this->spi_impl_->set_spi(this->connector_);
   SpiConf = new SdSpiConfig((SdCsPin_t) 0, (uint8_t) SHARED_SPI, (uint32_t) SD_SCK_MHZ(50), this->spi_impl_);
-
   SdfsSpiCard *sd_card = new SdfsSpiCard();
   sd_card->begin(*SpiConf);
   is_begin = fs->begin(sd_card);
 
   if (!is_begin) {
-    ESP_LOGD(TAG, "init_host failed");
+    ESP_LOGE(TAG, "init cd_card error = %d, %s", sd_card->errorCode(), sdcard_err2str(sd_card->errorCode()).c_str());
     return false;
   }
   this->vol = fs;
+  this->sd_card = sd_card;
   ESP_LOGD(TAG, "init_host OK");
   return true;
 }
@@ -76,7 +87,6 @@ bool esp8266SpiDriver::test() {
     return false;
   }
 
-  // // FsFile file = root.openNextFile();
   FsFile newFile;
   FsFile file = root.openNextFile();
   ;
@@ -143,7 +153,7 @@ uint8_t SdSpiImpl::receive(uint8_t *buf, size_t count) {
   // this->connector_->transfer(buf,count);
   this->connector_->transferBytes(NULL, buf, count);
   // transferBytes
-  return count;
+  return 0;
 }
 void SdSpiImpl::send(uint8_t data) {
   DEBUG_TRACE("SdSpiImpl:send ");
