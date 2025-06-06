@@ -8,90 +8,30 @@ namespace api {
 
 static const char *const TAG = "api.service";
 
-#ifdef USE_BINARY_SENSOR
-#endif
-#ifdef USE_BINARY_SENSOR
-#endif
 #ifdef USE_COVER
-#endif
-#ifdef USE_COVER
-#endif
-#ifdef USE_COVER
-#endif
-#ifdef USE_FAN
-#endif
-#ifdef USE_FAN
 #endif
 #ifdef USE_FAN
 #endif
 #ifdef USE_LIGHT
 #endif
-#ifdef USE_LIGHT
-#endif
-#ifdef USE_LIGHT
-#endif
-#ifdef USE_SENSOR
-#endif
-#ifdef USE_SENSOR
-#endif
 #ifdef USE_SWITCH
-#endif
-#ifdef USE_SWITCH
-#endif
-#ifdef USE_SWITCH
-#endif
-#ifdef USE_TEXT_SENSOR
-#endif
-#ifdef USE_TEXT_SENSOR
-#endif
-#ifdef USE_API_NOISE
 #endif
 #ifdef USE_API_NOISE
 #endif
 #ifdef USE_ESP32_CAMERA
 #endif
-#ifdef USE_ESP32_CAMERA
-#endif
-#ifdef USE_ESP32_CAMERA
-#endif
 #ifdef USE_CLIMATE
-#endif
-#ifdef USE_CLIMATE
-#endif
-#ifdef USE_CLIMATE
-#endif
-#ifdef USE_NUMBER
-#endif
-#ifdef USE_NUMBER
 #endif
 #ifdef USE_NUMBER
 #endif
 #ifdef USE_SELECT
 #endif
-#ifdef USE_SELECT
-#endif
-#ifdef USE_SELECT
-#endif
 #ifdef USE_SIREN
-#endif
-#ifdef USE_SIREN
-#endif
-#ifdef USE_SIREN
-#endif
-#ifdef USE_LOCK
-#endif
-#ifdef USE_LOCK
 #endif
 #ifdef USE_LOCK
 #endif
 #ifdef USE_BUTTON
 #endif
-#ifdef USE_BUTTON
-#endif
-#ifdef USE_MEDIA_PLAYER
-#endif
-#ifdef USE_MEDIA_PLAYER
-#endif
 #ifdef USE_MEDIA_PLAYER
 #endif
 #ifdef USE_BLUETOOTH_PROXY
@@ -116,42 +56,6 @@ static const char *const TAG = "api.service";
 #endif
 #ifdef USE_BLUETOOTH_PROXY
 #endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_VOICE_ASSISTANT
-#endif
-#ifdef USE_VOICE_ASSISTANT
-#endif
-#ifdef USE_VOICE_ASSISTANT
-#endif
 #ifdef USE_VOICE_ASSISTANT
 #endif
 #ifdef USE_VOICE_ASSISTANT
@@ -170,47 +74,15 @@ static const char *const TAG = "api.service";
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
 #endif
-#ifdef USE_ALARM_CONTROL_PANEL
-#endif
-#ifdef USE_ALARM_CONTROL_PANEL
-#endif
 #ifdef USE_TEXT
-#endif
-#ifdef USE_TEXT
-#endif
-#ifdef USE_TEXT
-#endif
-#ifdef USE_DATETIME_DATE
-#endif
-#ifdef USE_DATETIME_DATE
 #endif
 #ifdef USE_DATETIME_DATE
 #endif
 #ifdef USE_DATETIME_TIME
 #endif
-#ifdef USE_DATETIME_TIME
-#endif
-#ifdef USE_DATETIME_TIME
-#endif
-#ifdef USE_EVENT
-#endif
-#ifdef USE_EVENT
-#endif
-#ifdef USE_VALVE
-#endif
-#ifdef USE_VALVE
-#endif
 #ifdef USE_VALVE
 #endif
 #ifdef USE_DATETIME_DATETIME
-#endif
-#ifdef USE_DATETIME_DATETIME
-#endif
-#ifdef USE_DATETIME_DATETIME
-#endif
-#ifdef USE_UPDATE
-#endif
-#ifdef USE_UPDATE
 #endif
 #ifdef USE_UPDATE
 #endif

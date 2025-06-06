@@ -956,16 +956,19 @@ def build_service_message_type(
     hout = ""
     cout = ""
 
+    # Store ifdef for later use
     if ifdef is not None:
         ifdefs[str(mt.name)] = ifdef
-        hout += f"#ifdef {ifdef}\n"
-        cout += f"#ifdef {ifdef}\n"
 
     if source in (SOURCE_BOTH, SOURCE_SERVER):
         # Don't generate individual send methods anymore
         # The generic send_message method will be used instead
         pass
     if source in (SOURCE_BOTH, SOURCE_CLIENT):
+        # Only add ifdef when we're actually generating content
+        if ifdef is not None:
+            hout += f"#ifdef {ifdef}\n"
+            cout += f"#ifdef {ifdef}\n"
         # Generate receive
         func = f"on_{snake}"
         hout += f"virtual void {func}(const {mt.name} &value){{}};\n"
@@ -984,9 +987,10 @@ def build_service_message_type(
         case += "break;"
         RECEIVE_CASES[id_] = case
 
-    if ifdef is not None:
-        hout += "#endif\n"
-        cout += "#endif\n"
+        # Only close ifdef if we opened it
+        if ifdef is not None:
+            hout += "#endif\n"
+            cout += "#endif\n"
 
     return hout, cout
 
