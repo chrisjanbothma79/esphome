@@ -445,25 +445,25 @@ void APIConnection::send_light_info(light::LightState *light) {
 APIConnection::EncodedMessage APIConnection::try_send_light_state_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
   auto *light = static_cast<light::LightState *>(entity);
-  LightStateResponse msg;
+  LightStateResponse resp;
   auto traits = light->get_traits();
   auto values = light->remote_values;
   auto color_mode = values.get_color_mode();
-  msg.state = values.is_on();
-  msg.color_mode = static_cast<enums::ColorMode>(color_mode);
-  msg.brightness = values.get_brightness();
-  msg.color_brightness = values.get_color_brightness();
-  msg.red = values.get_red();
-  msg.green = values.get_green();
-  msg.blue = values.get_blue();
-  msg.white = values.get_white();
-  msg.color_temperature = values.get_color_temperature();
-  msg.cold_white = values.get_cold_white();
-  msg.warm_white = values.get_warm_white();
+  resp.state = values.is_on();
+  resp.color_mode = static_cast<enums::ColorMode>(color_mode);
+  resp.brightness = values.get_brightness();
+  resp.color_brightness = values.get_color_brightness();
+  resp.red = values.get_red();
+  resp.green = values.get_green();
+  resp.blue = values.get_blue();
+  resp.white = values.get_white();
+  resp.color_temperature = values.get_color_temperature();
+  resp.cold_white = values.get_cold_white();
+  resp.warm_white = values.get_warm_white();
   if (light->supports_effects())
-    msg.effect = light->get_effect_name();
-  msg.key = light->get_object_id_hash();
-  return encode_message_to_buffer(msg, LightStateResponse::message_type, conn, remaining_size, is_single);
+    resp.effect = light->get_effect_name();
+  resp.key = light->get_object_id_hash();
+  return encode_message_to_buffer(resp, LightStateResponse::message_type, conn, remaining_size, is_single);
 }
 APIConnection::EncodedMessage APIConnection::try_send_light_info_(EntityBase *entity, APIConnection *conn,
                                                                   uint32_t remaining_size, bool is_single) {
