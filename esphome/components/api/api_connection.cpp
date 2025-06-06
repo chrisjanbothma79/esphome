@@ -282,9 +282,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_binary_sensor_info_(Entity
 
 #ifdef USE_COVER
 bool APIConnection::send_cover_state(cover::Cover *cover) {
-  // Cover state doesn't need to capture extra values, so we can use function pointer directly
-  this->deferred_batch_.add_item(cover, &APIConnection::try_send_cover_state_);
-  return this->schedule_batch_();
+  return this->schedule_state_message_(cover, &APIConnection::try_send_cover_state_);
 }
 void APIConnection::send_cover_info(cover::Cover *cover) {
   this->schedule_info_message_(cover, &APIConnection::try_send_cover_info_);
@@ -346,8 +344,7 @@ void APIConnection::cover_command(const CoverCommandRequest &msg) {
 
 #ifdef USE_FAN
 bool APIConnection::send_fan_state(fan::Fan *fan) {
-  this->deferred_batch_.add_item(fan, &APIConnection::try_send_fan_state_);
-  return this->schedule_batch_();
+  return this->schedule_state_message_(fan, &APIConnection::try_send_fan_state_);
 }
 void APIConnection::send_fan_info(fan::Fan *fan) {
   this->schedule_info_message_(fan, &APIConnection::try_send_fan_info_);
@@ -407,8 +404,7 @@ void APIConnection::fan_command(const FanCommandRequest &msg) {
 
 #ifdef USE_LIGHT
 bool APIConnection::send_light_state(light::LightState *light) {
-  this->deferred_batch_.add_item(light, &APIConnection::try_send_light_state_);
-  return this->schedule_batch_();
+  return this->schedule_state_message_(light, &APIConnection::try_send_light_state_);
 }
 void APIConnection::send_light_info(light::LightState *light) {
   this->schedule_info_message_(light, &APIConnection::try_send_light_info_);
@@ -603,9 +599,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_text_sensor_info_(EntityBa
 
 #ifdef USE_CLIMATE
 bool APIConnection::send_climate_state(climate::Climate *climate) {
-  // Climate state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(climate, &APIConnection::try_send_climate_state_);
-  return this->schedule_batch_();
+  return this->schedule_state_message_(climate, &APIConnection::try_send_climate_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_climate_state_(EntityBase *entity) {
   auto *climate = static_cast<climate::Climate *>(entity);
@@ -752,9 +746,7 @@ void APIConnection::number_command(const NumberCommandRequest &msg) {
 
 #ifdef USE_DATETIME_DATE
 bool APIConnection::send_date_state(datetime::DateEntity *date) {
-  // Date state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(date, &APIConnection::try_send_date_state_);
-  return this->schedule_batch_();
+  return this->schedule_state_message_(date, &APIConnection::try_send_date_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_date_state_(EntityBase *entity) {
   auto *date = static_cast<datetime::DateEntity *>(entity);
@@ -792,9 +784,7 @@ void APIConnection::date_command(const DateCommandRequest &msg) {
 
 #ifdef USE_DATETIME_TIME
 bool APIConnection::send_time_state(datetime::TimeEntity *time) {
-  // Time state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(time, &APIConnection::try_send_time_state_);
-  return this->schedule_batch_();
+  return this->schedule_state_message_(time, &APIConnection::try_send_time_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_time_state_(EntityBase *entity) {
   auto *time = static_cast<datetime::TimeEntity *>(entity);
@@ -832,9 +822,7 @@ void APIConnection::time_command(const TimeCommandRequest &msg) {
 
 #ifdef USE_DATETIME_DATETIME
 bool APIConnection::send_datetime_state(datetime::DateTimeEntity *datetime) {
-  // DateTime state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(datetime, &APIConnection::try_send_datetime_state_);
-  return this->schedule_batch_();
+  return this->schedule_state_message_(datetime, &APIConnection::try_send_datetime_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_datetime_state_(EntityBase *entity) {
   auto *datetime = static_cast<datetime::DateTimeEntity *>(entity);
@@ -1025,9 +1013,7 @@ void APIConnection::lock_command(const LockCommandRequest &msg) {
 
 #ifdef USE_VALVE
 bool APIConnection::send_valve_state(valve::Valve *valve) {
-  // Valve state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(valve, &APIConnection::try_send_valve_state_);
-  return this->schedule_batch_();
+  return this->schedule_state_message_(valve, &APIConnection::try_send_valve_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_valve_state_(EntityBase *entity) {
   auto *valve = static_cast<valve::Valve *>(entity);
@@ -1071,9 +1057,7 @@ void APIConnection::valve_command(const ValveCommandRequest &msg) {
 
 #ifdef USE_MEDIA_PLAYER
 bool APIConnection::send_media_player_state(media_player::MediaPlayer *media_player) {
-  // Media player state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(media_player, &APIConnection::try_send_media_player_state_);
-  return this->schedule_batch_();
+  return this->schedule_state_message_(media_player, &APIConnection::try_send_media_player_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_media_player_state_(EntityBase *entity) {
   auto *media_player = static_cast<media_player::MediaPlayer *>(entity);
@@ -1343,9 +1327,7 @@ void APIConnection::voice_assistant_set_configuration(const VoiceAssistantSetCon
 
 #ifdef USE_ALARM_CONTROL_PANEL
 bool APIConnection::send_alarm_control_panel_state(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
-  // Alarm control panel state doesn't need to capture extra values, so we can use function pointer directly
-  this->deferred_batch_.add_item(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_state_);
-  return this->schedule_batch_();
+  return this->schedule_state_message_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_alarm_control_panel_state_(EntityBase *entity) {
   auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
@@ -1437,9 +1419,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_event_info_(EntityBase *en
 
 #ifdef USE_UPDATE
 bool APIConnection::send_update_state(update::UpdateEntity *update) {
-  // Update state doesn't need to capture extra values, so we can use bind
-  this->deferred_batch_.add_item(update, &APIConnection::try_send_update_state_);
-  return this->schedule_batch_();
+  return this->schedule_state_message_(update, &APIConnection::try_send_update_state_);
 }
 std::unique_ptr<ProtoMessage> APIConnection::try_send_update_state_(EntityBase *entity) {
   auto *update = static_cast<update::UpdateEntity *>(entity);

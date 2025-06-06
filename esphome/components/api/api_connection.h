@@ -320,6 +320,12 @@ class APIConnection : public APIServerConnection {
     this->schedule_batch_();
   }
 
+  // Helper function to schedule a deferred state message and return result
+  bool schedule_state_message_(EntityBase *entity, MessageCreator creator) {
+    this->deferred_batch_.add_item(entity, creator);
+    return this->schedule_batch_();
+  }
+
   // Helper function to fill common entity fields
   template<typename ResponseT> static void fill_entity_info_base_(esphome::EntityBase *entity, ResponseT &response) {
     // Set common fields that are shared by all entity types
