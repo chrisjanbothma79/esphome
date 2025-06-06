@@ -21,7 +21,7 @@ class APIServerConnectionBase : public ProtoService {
 #ifdef HAS_PROTO_MESSAGE_DUMP
     this->log_send_message_(T::message_name(), msg.dump());
 #endif
-    return this->send_message_(msg, T::message_type);
+    return this->send_message_(msg, T::MESSAGE_TYPE);
   }
 
   virtual void on_hello_request(const HelloRequest &value){};

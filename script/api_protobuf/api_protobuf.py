@@ -776,10 +776,10 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     # Get message ID if it's a service message
     message_id: int | None = get_opt(desc, pb.id)
 
-    # Add message_type method if this is a service message
+    # Add MESSAGE_TYPE method if this is a service message
     if message_id is not None:
         # Add static constexpr for message type
-        public_content.append(f"static constexpr uint16_t message_type = {message_id};")
+        public_content.append(f"static constexpr uint16_t MESSAGE_TYPE = {message_id};")
         # Add message_name method for debugging
         public_content.append("#ifdef HAS_PROTO_MESSAGE_DUMP")
         snake_name = camel_to_snake(desc.name)
