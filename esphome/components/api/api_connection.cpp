@@ -1079,7 +1079,7 @@ void APIConnection::lock_command(const LockCommandRequest &msg) {
 
 #ifdef USE_VALVE
 bool APIConnection::send_valve_state(valve::Valve *valve) {
-  return this->schedule_message_(valve, &APIConnection::try_send_valve_state_);
+  return this->schedule_message_(valve, &APIConnection::try_send_valve_state_, ValveStateResponse::message_type);
 }
 APIConnection::EncodedMessage APIConnection::try_send_valve_state_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
@@ -1399,7 +1399,8 @@ void APIConnection::voice_assistant_set_configuration(const VoiceAssistantSetCon
 
 #ifdef USE_ALARM_CONTROL_PANEL
 bool APIConnection::send_alarm_control_panel_state(alarm_control_panel::AlarmControlPanel *a_alarm_control_panel) {
-  return this->schedule_message_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_state_);
+  return this->schedule_message_(a_alarm_control_panel, &APIConnection::try_send_alarm_control_panel_state_,
+                                 AlarmControlPanelStateResponse::message_type);
 }
 APIConnection::EncodedMessage APIConnection::try_send_alarm_control_panel_state_(EntityBase *entity,
                                                                                  APIConnection *conn,
@@ -1476,7 +1477,8 @@ void APIConnection::send_event(event::Event *event, std::string event_type) {
         msg.event_type = event_type;
         msg.key = e->get_object_id_hash();
         return encode_message_to_buffer(msg, EventResponse::message_type, conn, remaining_size, is_single);
-      });
+      },
+      EventResponse::message_type);
 }
 void APIConnection::send_event_info(event::Event *event) {
   this->schedule_message_(event, &APIConnection::try_send_event_info_, ListEntitiesEventResponse::message_type);
