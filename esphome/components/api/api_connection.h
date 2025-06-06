@@ -327,15 +327,20 @@ class APIConnection : public APIServerConnection {
   ProtoWriteBuffer allocate_single_message_buffer(uint32_t size);
   ProtoWriteBuffer allocate_batch_message_buffer(uint32_t size);
 
-  // Info about an encoded message
-  struct MessageInfo {
-    uint16_t type;
-    uint16_t size;
-    bool encoded;
-  };
-
   // Function to allocate buffer space for a message
   using BufferAllocator = std::function<ProtoWriteBuffer(uint32_t)>;
+
+  // Function to calculate packet overhead for a given message type and size
+  using OverheadCalculator = std::function<uint16_t(uint16_t, uint16_t)>;
+
+  // Result of message encoding
+  struct EncodedMessage {
+    uint16_t payload_size;  // Size of the message payload only
+    uint16_t total_size;    // Total size including overhead
+
+    // Returns true if message was encoded (both sizes > 0)
+    operator bool() const { return total_size > 0; }
+  };
 
  protected:
   // Helper function to fill common entity fields
@@ -355,115 +360,154 @@ class APIConnection : public APIServerConnection {
 
   // Helper function to encode a message to buffer
   template<typename MessageT>
-  static MessageInfo encode_message_to_buffer(MessageT &msg, BufferAllocator allocator, uint32_t remaining_size) {
+  static EncodedMessage encode_message_to_buffer(MessageT &msg, BufferAllocator allocator, uint32_t remaining_size,
+                                                 OverheadCalculator overhead_calc) {
     // Calculate size
     uint32_t size = 0;
     msg.calculate_size(size);
 
+    // Calculate overhead for this message
+    uint16_t overhead = overhead_calc(MessageT::message_type, static_cast<uint16_t>(size));
+    uint32_t total_size = size + overhead;
+
     // Check if it fits
-    if (size > remaining_size) {
-      return {MessageT::message_type, static_cast<uint16_t>(size), false};
+    if (total_size > remaining_size) {
+      return {0, 0};  // Doesn't fit
     }
 
-    // Allocate exact buffer space needed
+    // Allocate exact buffer space needed (just the payload, not the overhead)
     ProtoWriteBuffer buffer = allocator(size);
 
     // Encode directly into buffer
     msg.encode(buffer);
-    return {MessageT::message_type, static_cast<uint16_t>(size), true};
+    return {static_cast<uint16_t>(size), static_cast<uint16_t>(total_size)};
   }
 #ifdef USE_BINARY_SENSOR
-  static MessageInfo try_send_binary_sensor_state_(EntityBase *binary_sensor, BufferAllocator allocator,
-                                                   uint32_t remaining_size);
-  static MessageInfo try_send_binary_sensor_info_(EntityBase *binary_sensor, BufferAllocator allocator,
-                                                  uint32_t remaining_size);
+  static EncodedMessage try_send_binary_sensor_state_(EntityBase *binary_sensor, BufferAllocator allocator,
+                                                      uint32_t remaining_size, OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_binary_sensor_info_(EntityBase *binary_sensor, BufferAllocator allocator,
+                                                     uint32_t remaining_size, OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_COVER
-  static MessageInfo try_send_cover_state_(EntityBase *cover, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_cover_info_(EntityBase *cover, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_cover_state_(EntityBase *cover, BufferAllocator allocator, uint32_t remaining_size,
+                                              OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_cover_info_(EntityBase *cover, BufferAllocator allocator, uint32_t remaining_size,
+                                             OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_FAN
-  static MessageInfo try_send_fan_state_(EntityBase *fan, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_fan_info_(EntityBase *fan, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_fan_state_(EntityBase *fan, BufferAllocator allocator, uint32_t remaining_size,
+                                            OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_fan_info_(EntityBase *fan, BufferAllocator allocator, uint32_t remaining_size,
+                                           OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_LIGHT
-  static MessageInfo try_send_light_state_(EntityBase *light, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_light_info_(EntityBase *light, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_light_state_(EntityBase *light, BufferAllocator allocator, uint32_t remaining_size,
+                                              OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_light_info_(EntityBase *light, BufferAllocator allocator, uint32_t remaining_size,
+                                             OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_SENSOR
-  static MessageInfo try_send_sensor_state_(EntityBase *sensor, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_sensor_info_(EntityBase *sensor, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_sensor_state_(EntityBase *sensor, BufferAllocator allocator, uint32_t remaining_size,
+                                               OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_sensor_info_(EntityBase *sensor, BufferAllocator allocator, uint32_t remaining_size,
+                                              OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_SWITCH
-  static MessageInfo try_send_switch_state_(EntityBase *a_switch, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_switch_info_(EntityBase *a_switch, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_switch_state_(EntityBase *a_switch, BufferAllocator allocator, uint32_t remaining_size,
+                                               OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_switch_info_(EntityBase *a_switch, BufferAllocator allocator, uint32_t remaining_size,
+                                              OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_TEXT_SENSOR
-  static MessageInfo try_send_text_sensor_state_(EntityBase *text_sensor, BufferAllocator allocator,
-                                                 uint32_t remaining_size);
-  static MessageInfo try_send_text_sensor_info_(EntityBase *text_sensor, BufferAllocator allocator,
-                                                uint32_t remaining_size);
+  static EncodedMessage try_send_text_sensor_state_(EntityBase *text_sensor, BufferAllocator allocator,
+                                                    uint32_t remaining_size, OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_text_sensor_info_(EntityBase *text_sensor, BufferAllocator allocator,
+                                                   uint32_t remaining_size, OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_CLIMATE
-  static MessageInfo try_send_climate_state_(EntityBase *climate, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_climate_info_(EntityBase *climate, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_climate_state_(EntityBase *climate, BufferAllocator allocator, uint32_t remaining_size,
+                                                OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_climate_info_(EntityBase *climate, BufferAllocator allocator, uint32_t remaining_size,
+                                               OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_NUMBER
-  static MessageInfo try_send_number_state_(EntityBase *number, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_number_info_(EntityBase *number, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_number_state_(EntityBase *number, BufferAllocator allocator, uint32_t remaining_size,
+                                               OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_number_info_(EntityBase *number, BufferAllocator allocator, uint32_t remaining_size,
+                                              OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_DATETIME_DATE
-  static MessageInfo try_send_date_state_(EntityBase *date, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_date_info_(EntityBase *date, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_date_state_(EntityBase *date, BufferAllocator allocator, uint32_t remaining_size,
+                                             OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_date_info_(EntityBase *date, BufferAllocator allocator, uint32_t remaining_size,
+                                            OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_DATETIME_TIME
-  static MessageInfo try_send_time_state_(EntityBase *time, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_time_info_(EntityBase *time, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_time_state_(EntityBase *time, BufferAllocator allocator, uint32_t remaining_size,
+                                             OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_time_info_(EntityBase *time, BufferAllocator allocator, uint32_t remaining_size,
+                                            OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_DATETIME_DATETIME
-  static MessageInfo try_send_datetime_state_(EntityBase *datetime, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_datetime_info_(EntityBase *datetime, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_datetime_state_(EntityBase *datetime, BufferAllocator allocator,
+                                                 uint32_t remaining_size, OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_datetime_info_(EntityBase *datetime, BufferAllocator allocator,
+                                                uint32_t remaining_size, OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_TEXT
-  static MessageInfo try_send_text_state_(EntityBase *text, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_text_info_(EntityBase *text, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_text_state_(EntityBase *text, BufferAllocator allocator, uint32_t remaining_size,
+                                             OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_text_info_(EntityBase *text, BufferAllocator allocator, uint32_t remaining_size,
+                                            OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_SELECT
-  static MessageInfo try_send_select_state_(EntityBase *select, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_select_info_(EntityBase *select, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_select_state_(EntityBase *select, BufferAllocator allocator, uint32_t remaining_size,
+                                               OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_select_info_(EntityBase *select, BufferAllocator allocator, uint32_t remaining_size,
+                                              OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_BUTTON
-  static MessageInfo try_send_button_info_(EntityBase *button, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_button_info_(EntityBase *button, BufferAllocator allocator, uint32_t remaining_size,
+                                              OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_LOCK
-  static MessageInfo try_send_lock_state_(EntityBase *a_lock, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_lock_info_(EntityBase *a_lock, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_lock_state_(EntityBase *a_lock, BufferAllocator allocator, uint32_t remaining_size,
+                                             OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_lock_info_(EntityBase *a_lock, BufferAllocator allocator, uint32_t remaining_size,
+                                            OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_VALVE
-  static MessageInfo try_send_valve_state_(EntityBase *valve, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_valve_info_(EntityBase *valve, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_valve_state_(EntityBase *valve, BufferAllocator allocator, uint32_t remaining_size,
+                                              OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_valve_info_(EntityBase *valve, BufferAllocator allocator, uint32_t remaining_size,
+                                             OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_MEDIA_PLAYER
-  static MessageInfo try_send_media_player_state_(EntityBase *media_player, BufferAllocator allocator,
-                                                  uint32_t remaining_size);
-  static MessageInfo try_send_media_player_info_(EntityBase *media_player, BufferAllocator allocator,
-                                                 uint32_t remaining_size);
+  static EncodedMessage try_send_media_player_state_(EntityBase *media_player, BufferAllocator allocator,
+                                                     uint32_t remaining_size, OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_media_player_info_(EntityBase *media_player, BufferAllocator allocator,
+                                                    uint32_t remaining_size, OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
-  static MessageInfo try_send_alarm_control_panel_state_(EntityBase *a_alarm_control_panel, BufferAllocator allocator,
-                                                         uint32_t remaining_size);
-  static MessageInfo try_send_alarm_control_panel_info_(EntityBase *a_alarm_control_panel, BufferAllocator allocator,
-                                                        uint32_t remaining_size);
+  static EncodedMessage try_send_alarm_control_panel_state_(EntityBase *a_alarm_control_panel,
+                                                            BufferAllocator allocator, uint32_t remaining_size,
+                                                            OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_alarm_control_panel_info_(EntityBase *a_alarm_control_panel, BufferAllocator allocator,
+                                                           uint32_t remaining_size, OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_EVENT
-  static MessageInfo try_send_event_info_(EntityBase *event, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_event_info_(EntityBase *event, BufferAllocator allocator, uint32_t remaining_size,
+                                             OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_UPDATE
-  static MessageInfo try_send_update_state_(EntityBase *update, BufferAllocator allocator, uint32_t remaining_size);
-  static MessageInfo try_send_update_info_(EntityBase *update, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_update_state_(EntityBase *update, BufferAllocator allocator, uint32_t remaining_size,
+                                               OverheadCalculator overhead_calc);
+  static EncodedMessage try_send_update_info_(EntityBase *update, BufferAllocator allocator, uint32_t remaining_size,
+                                              OverheadCalculator overhead_calc);
 #endif
 #ifdef USE_ESP32_CAMERA
-  static MessageInfo try_send_camera_info_(EntityBase *camera, BufferAllocator allocator, uint32_t remaining_size);
+  static EncodedMessage try_send_camera_info_(EntityBase *camera, BufferAllocator allocator, uint32_t remaining_size,
+                                              OverheadCalculator overhead_calc);
 #endif
 
   enum class ConnectionState {
@@ -502,7 +546,9 @@ class APIConnection : public APIServerConnection {
   int state_subs_at_ = -1;
 
   // Function type that encodes a message directly to buffer
-  using MessageCreator = std::function<MessageInfo(EntityBase *, BufferAllocator, uint32_t remaining_size)>;
+  // Returns EncodedMessage with sizes if successful, {0, 0} if it doesn't fit
+  using MessageCreator =
+      std::function<EncodedMessage(EntityBase *, BufferAllocator, uint32_t remaining_size, OverheadCalculator)>;
 
   // Generic batching mechanism for both state updates and entity info
   struct DeferredBatch {
