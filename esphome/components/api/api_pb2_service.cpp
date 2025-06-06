@@ -8,6 +8,12 @@ namespace api {
 
 static const char *const TAG = "api.service";
 
+#ifdef HAS_PROTO_MESSAGE_DUMP
+void APIServerConnectionBase::log_send_message_(const char *name, const std::string &dump) {
+  ESP_LOGVV(TAG, "send_message %s: %s", name, dump.c_str());
+}
+#endif
+
 #ifdef USE_COVER
 #endif
 #ifdef USE_FAN

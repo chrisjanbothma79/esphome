@@ -10,9 +10,16 @@ namespace api {
 
 class APIServerConnectionBase : public ProtoService {
  public:
+#ifdef HAS_PROTO_MESSAGE_DUMP
+ protected:
+  void log_send_message_(const char *name, const std::string &dump);
+
+ public:
+#endif
+
   template<typename T> bool send_message(const T &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
-    ESP_LOGVV(TAG, "send_message %s: %s", T::message_name(), msg.dump().c_str());
+    this->log_send_message_(T::message_name(), msg.dump());
 #endif
     return this->send_message_(msg, T::message_type);
   }

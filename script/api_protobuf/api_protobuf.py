@@ -1094,14 +1094,28 @@ def main() -> None:
     hpp += f"class {class_name} : public ProtoService {{\n"
     hpp += " public:\n"
 
+    # Add logging helper method declaration
+    hpp += "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
+    hpp += " protected:\n"
+    hpp += "  void log_send_message_(const char *name, const std::string &dump);\n"
+    hpp += " public:\n"
+    hpp += "#endif\n\n"
+
     # Add generic send_message method
     hpp += "  template<typename T>\n"
     hpp += "  bool send_message(const T &msg) {\n"
     hpp += "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
-    hpp += '    ESP_LOGVV(TAG, "send_message %s: %s", T::message_name(), msg.dump().c_str());\n'
+    hpp += "    this->log_send_message_(T::message_name(), msg.dump());\n"
     hpp += "#endif\n"
     hpp += "    return this->send_message_(msg, T::message_type);\n"
     hpp += "  }\n\n"
+
+    # Add logging helper method implementation to cpp
+    cpp += "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
+    cpp += f"void {class_name}::log_send_message_(const char *name, const std::string &dump) {{\n"
+    cpp += '  ESP_LOGVV(TAG, "send_message %s: %s", name, dump.c_str());\n'
+    cpp += "}\n"
+    cpp += "#endif\n\n"
 
     for mt in file.message_type:
         obj = build_service_message_type(mt)
