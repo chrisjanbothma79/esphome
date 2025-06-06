@@ -488,14 +488,13 @@ class APIConnection : public APIServerConnection {
     struct BatchItem {
       EntityBase *entity;      // Entity pointer
       MessageCreator creator;  // Function that creates the message when needed
-      uint32_t timestamp;      // When this update was queued
       uint16_t message_type;   // Message type for overhead calculation
 
       // Constructor for creating BatchItem
       BatchItem(EntityBase *entity,
                 std::function<EncodedMessage(EntityBase *, APIConnection *, uint32_t, bool)> creator,
-                uint32_t timestamp, uint16_t message_type)
-          : entity(entity), creator(std::move(creator)), timestamp(timestamp), message_type(message_type) {}
+                uint16_t message_type)
+          : entity(entity), creator(std::move(creator)), message_type(message_type) {}
     };
 
     std::vector<BatchItem> items;

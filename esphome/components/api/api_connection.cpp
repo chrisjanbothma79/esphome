@@ -1707,17 +1707,17 @@ void APIConnection::on_fatal_error() {
 void APIConnection::DeferredBatch::add_item(EntityBase *entity, MessageCreator creator, uint16_t message_type) {
   // Check if we already have a message of this type for this entity
   // This provides deduplication per entity/message_type combination
+  // O(n) but optimized for RAM and not performance.
   for (auto &item : items) {
     if (item.entity == entity && item.message_type == message_type) {
-      // Update the existing item with the new creator and timestamp
+      // Update the existing item with the new creator
       item.creator = std::move(creator);
-      item.timestamp = App.get_loop_component_start_time();
       return;
     }
   }
 
   // No existing item found, add new one
-  items.emplace_back(entity, std::move(creator), App.get_loop_component_start_time(), message_type);
+  items.emplace_back(entity, std::move(creator), message_type);
 }
 
 bool APIConnection::schedule_batch_() {
