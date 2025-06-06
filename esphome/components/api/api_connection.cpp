@@ -1820,7 +1820,8 @@ void APIConnection::process_batch_() {
 
   // Initialize buffer and tracking variables
   this->proto_write_buffer_.clear();
-  this->proto_write_buffer_.reserve(MAX_BATCH_SIZE_BYTES);
+  // Reserve based on typical message size (24 bytes) * number of messages
+  this->proto_write_buffer_.reserve(24 * num_items);
   this->batch_first_message_ = true;
 
   size_t items_processed = 0;
