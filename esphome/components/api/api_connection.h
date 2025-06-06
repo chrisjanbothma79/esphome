@@ -287,23 +287,37 @@ class APIConnection : public APIServerConnection {
     return {&this->proto_write_buffer_};
   }
 
-  // Extend buffer for batching - adds padding for next message
-  ProtoWriteBuffer extend_buffer() {
-    // Get current size
+  // Prepare buffer for next message in batch
+  ProtoWriteBuffer prepare_message_buffer(uint32_t message_size, bool is_first_message) {
     size_t current_size = this->proto_write_buffer_.size();
 
-    // Add padding for next message
-    uint8_t header_padding = this->helper_->frame_header_padding();
-    uint8_t footer_size = this->helper_->frame_footer_size();
+    if (is_first_message) {
+      // For first message, initialize buffer with header padding
+      uint8_t header_padding = this->helper_->frame_header_padding();
+      this->proto_write_buffer_.clear();
+      this->proto_write_buffer_.reserve(message_size + header_padding);
+      this->proto_write_buffer_.resize(header_padding);
+      // Fill header padding with zeros
+      std::fill(this->proto_write_buffer_.begin(), this->proto_write_buffer_.end(), 0);
+    } else {
+      // For subsequent messages, add footer space for previous message and header for this message
+      uint8_t footer_size = this->helper_->frame_footer_size();
+      uint8_t header_padding = this->helper_->frame_header_padding();
 
-    // Add footer space for previous message (if using Noise)
-    if (footer_size > 0) {
-      this->proto_write_buffer_.resize(current_size + footer_size);
-      current_size += footer_size;
+      // Reserve additional space
+      this->proto_write_buffer_.reserve(current_size + footer_size + header_padding + message_size);
+
+      // Add footer space for previous message
+      if (footer_size > 0) {
+        this->proto_write_buffer_.resize(current_size + footer_size);
+      }
+
+      // Add header padding for this message
+      size_t new_start = this->proto_write_buffer_.size();
+      this->proto_write_buffer_.resize(new_start + header_padding);
+      // Fill new header padding with zeros
+      std::fill(this->proto_write_buffer_.begin() + new_start, this->proto_write_buffer_.end(), 0);
     }
-
-    // Add header padding for next message
-    this->proto_write_buffer_.resize(current_size + header_padding);
 
     return {&this->proto_write_buffer_};
   }
@@ -313,12 +327,19 @@ class APIConnection : public APIServerConnection {
 
   std::string get_client_combined_info() const { return this->client_combined_info_; }
 
+  // Buffer allocator methods for batch processing
+  ProtoWriteBuffer allocate_single_message_buffer(uint32_t size);
+  ProtoWriteBuffer allocate_batch_message_buffer(uint32_t size);
+
   // Info about an encoded message
   struct MessageInfo {
     uint16_t type;
     uint16_t size;
     bool encoded;
   };
+
+  // Function to allocate buffer space for a message
+  using BufferAllocator = std::function<ProtoWriteBuffer(uint32_t)>;
 
  protected:
   // Helper function to fill common entity fields
@@ -338,109 +359,115 @@ class APIConnection : public APIServerConnection {
 
   // Helper function to encode a message to buffer
   template<typename MessageT>
-  static MessageInfo encode_message_to_buffer(MessageT &msg, ProtoWriteBuffer &buffer, uint32_t max_size) {
+  static MessageInfo encode_message_to_buffer(MessageT &msg, BufferAllocator allocator, uint32_t remaining_size) {
     // Calculate size
     uint32_t size = 0;
     msg.calculate_size(size);
 
     // Check if it fits
-    if (size > max_size) {
+    if (size > remaining_size) {
       return {msg.get_message_type(), static_cast<uint16_t>(size), false};
     }
+
+    // Allocate exact buffer space needed
+    ProtoWriteBuffer buffer = allocator(size);
 
     // Encode directly into buffer
     msg.encode(buffer);
     return {msg.get_message_type(), static_cast<uint16_t>(size), true};
   }
 #ifdef USE_BINARY_SENSOR
-  static MessageInfo try_send_binary_sensor_state_(EntityBase *binary_sensor, ProtoWriteBuffer &buffer,
-                                                   uint32_t max_size);
-  static MessageInfo try_send_binary_sensor_info_(EntityBase *binary_sensor, ProtoWriteBuffer &buffer,
-                                                  uint32_t max_size);
+  static MessageInfo try_send_binary_sensor_state_(EntityBase *binary_sensor, BufferAllocator allocator,
+                                                   uint32_t remaining_size);
+  static MessageInfo try_send_binary_sensor_info_(EntityBase *binary_sensor, BufferAllocator allocator,
+                                                  uint32_t remaining_size);
 #endif
 #ifdef USE_COVER
-  static MessageInfo try_send_cover_state_(EntityBase *cover, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_cover_info_(EntityBase *cover, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_cover_state_(EntityBase *cover, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_cover_info_(EntityBase *cover, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_FAN
-  static MessageInfo try_send_fan_state_(EntityBase *fan, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_fan_info_(EntityBase *fan, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_fan_state_(EntityBase *fan, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_fan_info_(EntityBase *fan, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_LIGHT
-  static MessageInfo try_send_light_state_(EntityBase *light, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_light_info_(EntityBase *light, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_light_state_(EntityBase *light, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_light_info_(EntityBase *light, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_SENSOR
-  static MessageInfo try_send_sensor_state_(EntityBase *sensor, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_sensor_info_(EntityBase *sensor, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_sensor_state_(EntityBase *sensor, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_sensor_info_(EntityBase *sensor, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_SWITCH
-  static MessageInfo try_send_switch_state_(EntityBase *a_switch, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_switch_info_(EntityBase *a_switch, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_switch_state_(EntityBase *a_switch, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_switch_info_(EntityBase *a_switch, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_TEXT_SENSOR
-  static MessageInfo try_send_text_sensor_state_(EntityBase *text_sensor, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_text_sensor_info_(EntityBase *text_sensor, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_text_sensor_state_(EntityBase *text_sensor, BufferAllocator allocator,
+                                                 uint32_t remaining_size);
+  static MessageInfo try_send_text_sensor_info_(EntityBase *text_sensor, BufferAllocator allocator,
+                                                uint32_t remaining_size);
 #endif
 #ifdef USE_CLIMATE
-  static MessageInfo try_send_climate_state_(EntityBase *climate, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_climate_info_(EntityBase *climate, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_climate_state_(EntityBase *climate, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_climate_info_(EntityBase *climate, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_NUMBER
-  static MessageInfo try_send_number_state_(EntityBase *number, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_number_info_(EntityBase *number, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_number_state_(EntityBase *number, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_number_info_(EntityBase *number, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_DATETIME_DATE
-  static MessageInfo try_send_date_state_(EntityBase *date, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_date_info_(EntityBase *date, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_date_state_(EntityBase *date, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_date_info_(EntityBase *date, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_DATETIME_TIME
-  static MessageInfo try_send_time_state_(EntityBase *time, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_time_info_(EntityBase *time, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_time_state_(EntityBase *time, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_time_info_(EntityBase *time, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_DATETIME_DATETIME
-  static MessageInfo try_send_datetime_state_(EntityBase *datetime, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_datetime_info_(EntityBase *datetime, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_datetime_state_(EntityBase *datetime, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_datetime_info_(EntityBase *datetime, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_TEXT
-  static MessageInfo try_send_text_state_(EntityBase *text, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_text_info_(EntityBase *text, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_text_state_(EntityBase *text, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_text_info_(EntityBase *text, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_SELECT
-  static MessageInfo try_send_select_state_(EntityBase *select, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_select_info_(EntityBase *select, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_select_state_(EntityBase *select, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_select_info_(EntityBase *select, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_BUTTON
-  static MessageInfo try_send_button_info_(EntityBase *button, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_button_info_(EntityBase *button, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_LOCK
-  static MessageInfo try_send_lock_state_(EntityBase *a_lock, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_lock_info_(EntityBase *a_lock, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_lock_state_(EntityBase *a_lock, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_lock_info_(EntityBase *a_lock, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_VALVE
-  static MessageInfo try_send_valve_state_(EntityBase *valve, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_valve_info_(EntityBase *valve, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_valve_state_(EntityBase *valve, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_valve_info_(EntityBase *valve, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_MEDIA_PLAYER
-  static MessageInfo try_send_media_player_state_(EntityBase *media_player, ProtoWriteBuffer &buffer,
-                                                  uint32_t max_size);
-  static MessageInfo try_send_media_player_info_(EntityBase *media_player, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_media_player_state_(EntityBase *media_player, BufferAllocator allocator,
+                                                  uint32_t remaining_size);
+  static MessageInfo try_send_media_player_info_(EntityBase *media_player, BufferAllocator allocator,
+                                                 uint32_t remaining_size);
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
-  static MessageInfo try_send_alarm_control_panel_state_(EntityBase *a_alarm_control_panel, ProtoWriteBuffer &buffer,
-                                                         uint32_t max_size);
-  static MessageInfo try_send_alarm_control_panel_info_(EntityBase *a_alarm_control_panel, ProtoWriteBuffer &buffer,
-                                                        uint32_t max_size);
+  static MessageInfo try_send_alarm_control_panel_state_(EntityBase *a_alarm_control_panel, BufferAllocator allocator,
+                                                         uint32_t remaining_size);
+  static MessageInfo try_send_alarm_control_panel_info_(EntityBase *a_alarm_control_panel, BufferAllocator allocator,
+                                                        uint32_t remaining_size);
 #endif
 #ifdef USE_EVENT
-  static MessageInfo try_send_event_info_(EntityBase *event, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_event_info_(EntityBase *event, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_UPDATE
-  static MessageInfo try_send_update_state_(EntityBase *update, ProtoWriteBuffer &buffer, uint32_t max_size);
-  static MessageInfo try_send_update_info_(EntityBase *update, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_update_state_(EntityBase *update, BufferAllocator allocator, uint32_t remaining_size);
+  static MessageInfo try_send_update_info_(EntityBase *update, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 #ifdef USE_ESP32_CAMERA
-  static MessageInfo try_send_camera_info_(EntityBase *camera, ProtoWriteBuffer &buffer, uint32_t max_size);
+  static MessageInfo try_send_camera_info_(EntityBase *camera, BufferAllocator allocator, uint32_t remaining_size);
 #endif
 
   enum class ConnectionState {
@@ -479,7 +506,7 @@ class APIConnection : public APIServerConnection {
   int state_subs_at_ = -1;
 
   // Function type that encodes a message directly to buffer
-  using MessageCreator = std::function<MessageInfo(EntityBase *, ProtoWriteBuffer &, uint32_t max_size)>;
+  using MessageCreator = std::function<MessageInfo(EntityBase *, BufferAllocator, uint32_t remaining_size)>;
 
   // Generic batching mechanism for both state updates and entity info
   struct DeferredBatch {
@@ -509,6 +536,9 @@ class APIConnection : public APIServerConnection {
 
   bool schedule_batch_();
   void process_batch_();
+
+  // State for batch buffer allocation
+  bool batch_first_message_{false};
 
   // Helper function to schedule a deferred message
   bool schedule_message_(EntityBase *entity, MessageCreator creator) {
