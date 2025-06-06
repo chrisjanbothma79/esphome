@@ -928,7 +928,8 @@ bool APIConnection::send_text_state(text::Text *text, std::string state) {
         resp.missing_state = !t->has_state();
         resp.key = t->get_object_id_hash();
         return encode_message_to_buffer(resp, TextStateResponse::message_type, conn, remaining_size, is_single);
-      });
+      },
+      TextStateResponse::message_type);
 }
 void APIConnection::send_text_info(text::Text *text) {
   this->schedule_message_(text, &APIConnection::try_send_text_info_, ListEntitiesTextResponse::message_type);
