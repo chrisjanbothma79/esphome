@@ -5,14 +5,14 @@ xiaomi_jtyjgd03mi:
     mac_address: 18:C2:3C:31:77:7B
     bindkey: 520d1864d53ce8010101010101010101
 binary_sensor:
-   - platform: xiaomi_jtyjgd03mi
-     id: smoke_one
-     button:
-       name:  "smoke button"
-       id: button_smoke
-     smoke:
-       name: "smoke_detection"
-       id: detection_smoke
+  - platform: xiaomi_jtyjgd03mi
+    id: smoke_one
+    button:
+      name:  "smoke button"
+      id: button_smoke
+    smoke:
+      name: "smoke_detection"
+      id: detection_smoke
 sensor:
   - platform: xiaomi_jtyjgd03mi
     id: smoke_one
