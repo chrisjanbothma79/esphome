@@ -244,11 +244,10 @@ optional<XiaomiParseResult> parse_xiaomi_header(const esp32_ble_tracker::Service
     result.name = "RTCGQ02LM";
     if (raw.size() == 19)
       result.raw_offset -= 6;
+  } else if (device_uuid == 0x0997) {  // Xiaomi (Honeywell)  smoke sensor JTYJGD03MI
+    result.type = XiaomiParseResult::TYPE_JTYJGD03MI;
+    result.name = "JTYJGD03MI";
   }
-}
-else if (device_uuid == 0x0997) {  // Xiaomi (Honeywell)  smoke sensor JTYJGD03MI
-  result.type = XiaomiParseResult::TYPE_JTYJGD03MI;
-  result.name = "JTYJGD03MI";
   else {
     ESP_LOGVV(TAG, "parse_xiaomi_header(): unknown device, no magic bytes.");
     return {};
