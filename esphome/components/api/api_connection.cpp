@@ -252,8 +252,7 @@ void APIConnection::on_disconnect_response(const DisconnectResponse &value) {
 
 #ifdef USE_BINARY_SENSOR
 bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state) {
-  // Use lambda to capture the state value
-  this->deferred_batch_.add_item(binary_sensor, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  return this->schedule_state_message_(binary_sensor, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *bs = static_cast<binary_sensor::BinarySensor *>(entity);
     auto msg = std::make_unique<BinarySensorStateResponse>();
     msg->state = state;
@@ -261,7 +260,6 @@ bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary
     msg->key = bs->get_object_id_hash();
     return msg;
   });
-  return this->schedule_batch_();
 }
 void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor) {
   this->schedule_info_message_(binary_sensor, &APIConnection::try_send_binary_sensor_info_);
@@ -498,8 +496,7 @@ void APIConnection::light_command(const LightCommandRequest &msg) {
 
 #ifdef USE_SENSOR
 bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
-  // Use lambda to capture the float state value
-  this->deferred_batch_.add_item(sensor, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  return this->schedule_state_message_(sensor, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *s = static_cast<sensor::Sensor *>(entity);
     auto msg = std::make_unique<SensorStateResponse>();
     msg->state = state;
@@ -507,7 +504,6 @@ bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
     msg->key = s->get_object_id_hash();
     return msg;
   });
-  return this->schedule_batch_();
 }
 void APIConnection::send_sensor_info(sensor::Sensor *sensor) {
   this->schedule_info_message_(sensor, &APIConnection::try_send_sensor_info_);
@@ -530,15 +526,13 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_sensor_info_(EntityBase *e
 
 #ifdef USE_SWITCH
 bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
-  // Use lambda to capture the bool state value
-  this->deferred_batch_.add_item(a_switch, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  return this->schedule_state_message_(a_switch, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *sw = static_cast<switch_::Switch *>(entity);
     auto msg = std::make_unique<SwitchStateResponse>();
     msg->state = state;
     msg->key = sw->get_object_id_hash();
     return msg;
   });
-  return this->schedule_batch_();
 }
 void APIConnection::send_switch_info(switch_::Switch *a_switch) {
   this->schedule_info_message_(a_switch, &APIConnection::try_send_switch_info_);
@@ -567,17 +561,15 @@ void APIConnection::switch_command(const SwitchCommandRequest &msg) {
 
 #ifdef USE_TEXT_SENSOR
 bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor, std::string state) {
-  // Use lambda to capture the state value
-  this->deferred_batch_.add_item(text_sensor,
-                                 [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
-                                   auto *ts = static_cast<text_sensor::TextSensor *>(entity);
-                                   auto msg = std::make_unique<TextSensorStateResponse>();
-                                   msg->state = std::move(state);
-                                   msg->missing_state = !ts->has_state();
-                                   msg->key = ts->get_object_id_hash();
-                                   return msg;
-                                 });
-  return this->schedule_batch_();
+  return this->schedule_state_message_(text_sensor,
+                                       [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+                                         auto *ts = static_cast<text_sensor::TextSensor *>(entity);
+                                         auto msg = std::make_unique<TextSensorStateResponse>();
+                                         msg->state = std::move(state);
+                                         msg->missing_state = !ts->has_state();
+                                         msg->key = ts->get_object_id_hash();
+                                         return msg;
+                                       });
 }
 void APIConnection::send_text_sensor_info(text_sensor::TextSensor *text_sensor) {
   this->schedule_info_message_(text_sensor, &APIConnection::try_send_text_sensor_info_);
@@ -703,8 +695,7 @@ void APIConnection::climate_command(const ClimateCommandRequest &msg) {
 
 #ifdef USE_NUMBER
 bool APIConnection::send_number_state(number::Number *number, float state) {
-  // Use lambda to capture the state value
-  this->deferred_batch_.add_item(number, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  return this->schedule_state_message_(number, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *n = static_cast<number::Number *>(entity);
     auto msg = std::make_unique<NumberStateResponse>();
     msg->state = state;
@@ -712,7 +703,6 @@ bool APIConnection::send_number_state(number::Number *number, float state) {
     msg->key = n->get_object_id_hash();
     return msg;
   });
-  return this->schedule_batch_();
 }
 void APIConnection::send_number_info(number::Number *number) {
   this->schedule_info_message_(number, &APIConnection::try_send_number_info_);
