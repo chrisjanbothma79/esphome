@@ -303,7 +303,6 @@ APIConnection::EncodedMessage APIConnection::try_send_binary_sensor_info_(Entity
   msg.is_status_binary_sensor = binary_sensor->is_status_binary_sensor();
   msg.unique_id = get_default_unique_id("binary_sensor", binary_sensor);
 
-  // Fill common entity fields
   fill_entity_info_base_(binary_sensor, msg);
 
   return encode_message_to_buffer(msg, ListEntitiesBinarySensorResponse::message_type, conn, remaining_size, is_single);
