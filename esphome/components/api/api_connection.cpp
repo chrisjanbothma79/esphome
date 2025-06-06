@@ -1694,12 +1694,12 @@ void APIConnection::process_batch_() {
     uint16_t message_size;
   };
 
-  // Use a small vector optimization - most batches are small
+  // Reserve exact space needed
   std::vector<MessageData> messages;
-  messages.reserve(std::min(size_t(8), this->deferred_batch_.items.size()));
+  messages.reserve(this->deferred_batch_.items.size());
 
   std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> packet_info;
-  packet_info.reserve(messages.capacity());
+  packet_info.reserve(this->deferred_batch_.items.size());
 
   uint32_t total_buffer_size = 0;
   uint32_t current_offset = 0;
