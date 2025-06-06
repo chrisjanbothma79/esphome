@@ -283,7 +283,7 @@ bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary
       binary_sensor,
       [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single) -> EncodedMessage {
         auto *bs = static_cast<binary_sensor::BinarySensor *>(entity);
-        BinarySensorStateResponse msg;  // Stack allocated!
+        BinarySensorStateResponse msg;
         msg.state = state;
         msg.missing_state = !bs->has_state();
         msg.key = bs->get_object_id_hash();
@@ -297,7 +297,7 @@ void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_
 APIConnection::EncodedMessage APIConnection::try_send_binary_sensor_info_(EntityBase *entity, APIConnection *conn,
                                                                           uint32_t remaining_size, bool is_single) {
   auto *binary_sensor = static_cast<binary_sensor::BinarySensor *>(entity);
-  ListEntitiesBinarySensorResponse msg;  // Stack allocated!
+  ListEntitiesBinarySensorResponse msg;
   msg.device_class = binary_sensor->get_device_class();
   msg.is_status_binary_sensor = binary_sensor->is_status_binary_sensor();
   msg.unique_id = get_default_unique_id("binary_sensor", binary_sensor);
@@ -319,7 +319,7 @@ void APIConnection::send_cover_info(cover::Cover *cover) {
 APIConnection::EncodedMessage APIConnection::try_send_cover_state_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
   auto *cover = static_cast<cover::Cover *>(entity);
-  CoverStateResponse msg;  // Stack allocated!
+  CoverStateResponse msg;
   auto traits = cover->get_traits();
   msg.legacy_state =
       (cover->position == cover::COVER_OPEN) ? enums::LEGACY_COVER_STATE_OPEN : enums::LEGACY_COVER_STATE_CLOSED;
@@ -333,7 +333,7 @@ APIConnection::EncodedMessage APIConnection::try_send_cover_state_(EntityBase *e
 APIConnection::EncodedMessage APIConnection::try_send_cover_info_(EntityBase *entity, APIConnection *conn,
                                                                   uint32_t remaining_size, bool is_single) {
   auto *cover = static_cast<cover::Cover *>(entity);
-  ListEntitiesCoverResponse msg;  // Stack allocated!
+  ListEntitiesCoverResponse msg;
   auto traits = cover->get_traits();
   msg.assumed_state = traits.get_is_assumed_state();
   msg.supports_position = traits.get_supports_position();
@@ -383,7 +383,7 @@ void APIConnection::send_fan_info(fan::Fan *fan) {
 APIConnection::EncodedMessage APIConnection::try_send_fan_state_(EntityBase *entity, APIConnection *conn,
                                                                  uint32_t remaining_size, bool is_single) {
   auto *fan = static_cast<fan::Fan *>(entity);
-  FanStateResponse msg;  // Stack allocated!
+  FanStateResponse msg;
   auto traits = fan->get_traits();
   msg.state = fan->state;
   if (traits.supports_oscillation())
@@ -401,7 +401,7 @@ APIConnection::EncodedMessage APIConnection::try_send_fan_state_(EntityBase *ent
 APIConnection::EncodedMessage APIConnection::try_send_fan_info_(EntityBase *entity, APIConnection *conn,
                                                                 uint32_t remaining_size, bool is_single) {
   auto *fan = static_cast<fan::Fan *>(entity);
-  ListEntitiesFanResponse msg;  // Stack allocated!
+  ListEntitiesFanResponse msg;
   auto traits = fan->get_traits();
   msg.supports_oscillation = traits.supports_oscillation();
   msg.supports_speed = traits.supports_speed();
@@ -445,7 +445,7 @@ void APIConnection::send_light_info(light::LightState *light) {
 APIConnection::EncodedMessage APIConnection::try_send_light_state_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
   auto *light = static_cast<light::LightState *>(entity);
-  LightStateResponse msg;  // Stack allocated!
+  LightStateResponse msg;
   auto traits = light->get_traits();
   auto values = light->remote_values;
   auto color_mode = values.get_color_mode();
@@ -468,7 +468,7 @@ APIConnection::EncodedMessage APIConnection::try_send_light_state_(EntityBase *e
 APIConnection::EncodedMessage APIConnection::try_send_light_info_(EntityBase *entity, APIConnection *conn,
                                                                   uint32_t remaining_size, bool is_single) {
   auto *light = static_cast<light::LightState *>(entity);
-  ListEntitiesLightResponse msg;  // Stack allocated!
+  ListEntitiesLightResponse msg;
   auto traits = light->get_traits();
   for (auto mode : traits.get_supported_color_modes())
     msg.supported_color_modes.push_back(static_cast<enums::ColorMode>(mode));
@@ -536,7 +536,7 @@ bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
                                  [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                          bool is_single) -> APIConnection::EncodedMessage {
                                    auto *s = static_cast<sensor::Sensor *>(entity);
-                                   SensorStateResponse msg;  // Stack allocated!
+                                   SensorStateResponse msg;
                                    msg.state = state;
                                    msg.missing_state = !s->has_state();
                                    msg.key = s->get_object_id_hash();
@@ -550,7 +550,7 @@ void APIConnection::send_sensor_info(sensor::Sensor *sensor) {
 APIConnection::EncodedMessage APIConnection::try_send_sensor_info_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
   auto *sensor = static_cast<sensor::Sensor *>(entity);
-  ListEntitiesSensorResponse msg;  // Stack allocated!
+  ListEntitiesSensorResponse msg;
   msg.unit_of_measurement = sensor->get_unit_of_measurement();
   msg.accuracy_decimals = sensor->get_accuracy_decimals();
   msg.force_update = sensor->get_force_update();
@@ -570,7 +570,7 @@ bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
                                  [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                          bool is_single) -> APIConnection::EncodedMessage {
                                    auto *sw = static_cast<switch_::Switch *>(entity);
-                                   SwitchStateResponse msg;  // Stack allocated!
+                                   SwitchStateResponse msg;
                                    msg.state = state;
                                    msg.key = sw->get_object_id_hash();
                                    return encode_message_to_buffer(msg, SwitchStateResponse::message_type, conn,
@@ -583,7 +583,7 @@ void APIConnection::send_switch_info(switch_::Switch *a_switch) {
 APIConnection::EncodedMessage APIConnection::try_send_switch_info_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
   auto *a_switch = static_cast<switch_::Switch *>(entity);
-  ListEntitiesSwitchResponse msg;  // Stack allocated!
+  ListEntitiesSwitchResponse msg;
   msg.assumed_state = a_switch->assumed_state();
   msg.device_class = a_switch->get_device_class();
   msg.unique_id = get_default_unique_id("switch", a_switch);
@@ -610,7 +610,7 @@ bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor,
       [state = std::move(state)](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                  bool is_single) -> APIConnection::EncodedMessage {
         auto *ts = static_cast<text_sensor::TextSensor *>(entity);
-        TextSensorStateResponse msg;  // Stack allocated!
+        TextSensorStateResponse msg;
         msg.state = state;
         msg.missing_state = !ts->has_state();
         msg.key = ts->get_object_id_hash();
@@ -624,7 +624,7 @@ void APIConnection::send_text_sensor_info(text_sensor::TextSensor *text_sensor) 
 APIConnection::EncodedMessage APIConnection::try_send_text_sensor_info_(EntityBase *entity, APIConnection *conn,
                                                                         uint32_t remaining_size, bool is_single) {
   auto *text_sensor = static_cast<text_sensor::TextSensor *>(entity);
-  ListEntitiesTextSensorResponse msg;  // Stack allocated!
+  ListEntitiesTextSensorResponse msg;
   msg.device_class = text_sensor->get_device_class();
   msg.unique_id = text_sensor->unique_id();
   if (msg.unique_id.empty())
@@ -644,7 +644,7 @@ bool APIConnection::send_climate_state(climate::Climate *climate) {
 APIConnection::EncodedMessage APIConnection::try_send_climate_state_(EntityBase *entity, APIConnection *conn,
                                                                      uint32_t remaining_size, bool is_single) {
   auto *climate = static_cast<climate::Climate *>(entity);
-  ClimateStateResponse msg;  // Stack allocated!
+  ClimateStateResponse msg;
   msg.key = climate->get_object_id_hash();
   auto traits = climate->get_traits();
   msg.mode = static_cast<enums::ClimateMode>(climate->mode);
@@ -680,7 +680,7 @@ void APIConnection::send_climate_info(climate::Climate *climate) {
 APIConnection::EncodedMessage APIConnection::try_send_climate_info_(EntityBase *entity, APIConnection *conn,
                                                                     uint32_t remaining_size, bool is_single) {
   auto *climate = static_cast<climate::Climate *>(entity);
-  ListEntitiesClimateResponse msg;  // Stack allocated!
+  ListEntitiesClimateResponse msg;
   auto traits = climate->get_traits();
   msg.supports_current_temperature = traits.get_supports_current_temperature();
   msg.supports_current_humidity = traits.get_supports_current_humidity();
@@ -749,7 +749,7 @@ bool APIConnection::send_number_state(number::Number *number, float state) {
                                  [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                          bool is_single) -> APIConnection::EncodedMessage {
                                    auto *n = static_cast<number::Number *>(entity);
-                                   NumberStateResponse msg;  // Stack allocated!
+                                   NumberStateResponse msg;
                                    msg.state = state;
                                    msg.missing_state = !n->has_state();
                                    msg.key = n->get_object_id_hash();
@@ -763,7 +763,7 @@ void APIConnection::send_number_info(number::Number *number) {
 APIConnection::EncodedMessage APIConnection::try_send_number_info_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
   auto *number = static_cast<number::Number *>(entity);
-  ListEntitiesNumberResponse msg;  // Stack allocated!
+  ListEntitiesNumberResponse msg;
   msg.unit_of_measurement = number->traits.get_unit_of_measurement();
   msg.mode = static_cast<enums::NumberMode>(number->traits.get_mode());
   msg.device_class = number->traits.get_device_class();
@@ -795,7 +795,7 @@ bool APIConnection::send_date_state(datetime::DateEntity *date) {
 APIConnection::EncodedMessage APIConnection::try_send_date_state_(EntityBase *entity, APIConnection *conn,
                                                                   uint32_t remaining_size, bool is_single) {
   auto *date = static_cast<datetime::DateEntity *>(entity);
-  DateStateResponse msg;  // Stack allocated!
+  DateStateResponse msg;
   msg.missing_state = !date->has_state();
   msg.year = date->year;
   msg.month = date->month;
@@ -809,7 +809,7 @@ void APIConnection::send_date_info(datetime::DateEntity *date) {
 APIConnection::EncodedMessage APIConnection::try_send_date_info_(EntityBase *entity, APIConnection *conn,
                                                                  uint32_t remaining_size, bool is_single) {
   auto *date = static_cast<datetime::DateEntity *>(entity);
-  ListEntitiesDateResponse msg;  // Stack allocated!
+  ListEntitiesDateResponse msg;
   msg.unique_id = get_default_unique_id("date", date);
 
   // Fill common entity fields
@@ -835,7 +835,7 @@ bool APIConnection::send_time_state(datetime::TimeEntity *time) {
 APIConnection::EncodedMessage APIConnection::try_send_time_state_(EntityBase *entity, APIConnection *conn,
                                                                   uint32_t remaining_size, bool is_single) {
   auto *time = static_cast<datetime::TimeEntity *>(entity);
-  TimeStateResponse msg;  // Stack allocated!
+  TimeStateResponse msg;
   msg.missing_state = !time->has_state();
   msg.hour = time->hour;
   msg.minute = time->minute;
@@ -849,7 +849,7 @@ void APIConnection::send_time_info(datetime::TimeEntity *time) {
 APIConnection::EncodedMessage APIConnection::try_send_time_info_(EntityBase *entity, APIConnection *conn,
                                                                  uint32_t remaining_size, bool is_single) {
   auto *time = static_cast<datetime::TimeEntity *>(entity);
-  ListEntitiesTimeResponse msg;  // Stack allocated!
+  ListEntitiesTimeResponse msg;
   msg.unique_id = get_default_unique_id("time", time);
 
   // Fill common entity fields
@@ -875,7 +875,7 @@ bool APIConnection::send_datetime_state(datetime::DateTimeEntity *datetime) {
 APIConnection::EncodedMessage APIConnection::try_send_datetime_state_(EntityBase *entity, APIConnection *conn,
                                                                       uint32_t remaining_size, bool is_single) {
   auto *datetime = static_cast<datetime::DateTimeEntity *>(entity);
-  DateTimeStateResponse msg;  // Stack allocated!
+  DateTimeStateResponse msg;
   msg.missing_state = !datetime->has_state();
   if (datetime->has_state()) {
     ESPTime state = datetime->state_as_esptime();
@@ -891,7 +891,7 @@ void APIConnection::send_datetime_info(datetime::DateTimeEntity *datetime) {
 APIConnection::EncodedMessage APIConnection::try_send_datetime_info_(EntityBase *entity, APIConnection *conn,
                                                                      uint32_t remaining_size, bool is_single) {
   auto *datetime = static_cast<datetime::DateTimeEntity *>(entity);
-  ListEntitiesDateTimeResponse msg;  // Stack allocated!
+  ListEntitiesDateTimeResponse msg;
   msg.unique_id = get_default_unique_id("datetime", datetime);
 
   // Fill common entity fields
@@ -917,7 +917,7 @@ bool APIConnection::send_text_state(text::Text *text, std::string state) {
       [state = std::move(state)](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                  bool is_single) -> APIConnection::EncodedMessage {
         auto *t = static_cast<text::Text *>(entity);
-        TextStateResponse msg;  // Stack allocated!
+        TextStateResponse msg;
         msg.state = state;
         msg.missing_state = !t->has_state();
         msg.key = t->get_object_id_hash();
@@ -930,7 +930,7 @@ void APIConnection::send_text_info(text::Text *text) {
 APIConnection::EncodedMessage APIConnection::try_send_text_info_(EntityBase *entity, APIConnection *conn,
                                                                  uint32_t remaining_size, bool is_single) {
   auto *text = static_cast<text::Text *>(entity);
-  ListEntitiesTextResponse msg;  // Stack allocated!
+  ListEntitiesTextResponse msg;
   msg.mode = static_cast<enums::TextMode>(text->traits.get_mode());
   msg.min_length = text->traits.get_min_length();
   msg.max_length = text->traits.get_max_length();
@@ -960,7 +960,7 @@ bool APIConnection::send_select_state(select::Select *select, std::string state)
       [state = std::move(state)](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                  bool is_single) -> APIConnection::EncodedMessage {
         auto *s = static_cast<select::Select *>(entity);
-        SelectStateResponse msg;  // Stack allocated!
+        SelectStateResponse msg;
         msg.state = state;
         msg.missing_state = !s->has_state();
         msg.key = s->get_object_id_hash();
@@ -973,7 +973,7 @@ void APIConnection::send_select_info(select::Select *select) {
 APIConnection::EncodedMessage APIConnection::try_send_select_info_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
   auto *select = static_cast<select::Select *>(entity);
-  ListEntitiesSelectResponse msg;  // Stack allocated!
+  ListEntitiesSelectResponse msg;
   for (const auto &option : select->traits.get_options())
     msg.options.push_back(option);
   msg.unique_id = get_default_unique_id("select", select);
@@ -1001,7 +1001,7 @@ void esphome::api::APIConnection::send_button_info(button::Button *button) {
 APIConnection::EncodedMessage APIConnection::try_send_button_info_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
   auto *button = static_cast<button::Button *>(entity);
-  ListEntitiesButtonResponse msg;  // Stack allocated!
+  ListEntitiesButtonResponse msg;
   msg.device_class = button->get_device_class();
   msg.unique_id = get_default_unique_id("button", button);
 
@@ -1025,7 +1025,7 @@ bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
                                  [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                          bool is_single) -> APIConnection::EncodedMessage {
                                    auto *l = static_cast<lock::Lock *>(entity);
-                                   LockStateResponse msg;  // Stack allocated!
+                                   LockStateResponse msg;
                                    msg.state = static_cast<enums::LockState>(state);
                                    msg.key = l->get_object_id_hash();
                                    return encode_message_to_buffer(msg, LockStateResponse::message_type, conn,
@@ -1038,7 +1038,7 @@ void APIConnection::send_lock_info(lock::Lock *a_lock) {
 APIConnection::EncodedMessage APIConnection::try_send_lock_info_(EntityBase *entity, APIConnection *conn,
                                                                  uint32_t remaining_size, bool is_single) {
   auto *a_lock = static_cast<lock::Lock *>(entity);
-  ListEntitiesLockResponse msg;  // Stack allocated!
+  ListEntitiesLockResponse msg;
   msg.assumed_state = a_lock->traits.get_assumed_state();
   msg.supports_open = a_lock->traits.get_supports_open();
   msg.requires_code = a_lock->traits.get_requires_code();
@@ -1075,7 +1075,7 @@ bool APIConnection::send_valve_state(valve::Valve *valve) {
 APIConnection::EncodedMessage APIConnection::try_send_valve_state_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
   auto *valve = static_cast<valve::Valve *>(entity);
-  ValveStateResponse msg;  // Stack allocated!
+  ValveStateResponse msg;
   msg.position = valve->position;
   msg.current_operation = static_cast<enums::ValveOperation>(valve->current_operation);
   msg.key = valve->get_object_id_hash();
@@ -1087,7 +1087,7 @@ void APIConnection::send_valve_info(valve::Valve *valve) {
 APIConnection::EncodedMessage APIConnection::try_send_valve_info_(EntityBase *entity, APIConnection *conn,
                                                                   uint32_t remaining_size, bool is_single) {
   auto *valve = static_cast<valve::Valve *>(entity);
-  ListEntitiesValveResponse msg;  // Stack allocated!
+  ListEntitiesValveResponse msg;
   auto traits = valve->get_traits();
   msg.device_class = valve->get_device_class();
   msg.assumed_state = traits.get_is_assumed_state();
@@ -1121,7 +1121,7 @@ bool APIConnection::send_media_player_state(media_player::MediaPlayer *media_pla
 APIConnection::EncodedMessage APIConnection::try_send_media_player_state_(EntityBase *entity, APIConnection *conn,
                                                                           uint32_t remaining_size, bool is_single) {
   auto *media_player = static_cast<media_player::MediaPlayer *>(entity);
-  MediaPlayerStateResponse msg;  // Stack allocated!
+  MediaPlayerStateResponse msg;
   media_player::MediaPlayerState report_state = media_player->state == media_player::MEDIA_PLAYER_STATE_ANNOUNCING
                                                     ? media_player::MEDIA_PLAYER_STATE_PLAYING
                                                     : media_player->state;
@@ -1138,7 +1138,7 @@ void APIConnection::send_media_player_info(media_player::MediaPlayer *media_play
 APIConnection::EncodedMessage APIConnection::try_send_media_player_info_(EntityBase *entity, APIConnection *conn,
                                                                          uint32_t remaining_size, bool is_single) {
   auto *media_player = static_cast<media_player::MediaPlayer *>(entity);
-  ListEntitiesMediaPlayerResponse msg;  // Stack allocated!
+  ListEntitiesMediaPlayerResponse msg;
   auto traits = media_player->get_traits();
   msg.supports_pause = traits.get_supports_pause();
   for (auto &supported_format : traits.get_supported_formats()) {
@@ -1195,7 +1195,7 @@ void APIConnection::send_camera_info(esp32_camera::ESP32Camera *camera) {
 APIConnection::EncodedMessage APIConnection::try_send_camera_info_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
   auto *camera = static_cast<esp32_camera::ESP32Camera *>(entity);
-  ListEntitiesCameraResponse msg;  // Stack allocated!
+  ListEntitiesCameraResponse msg;
   msg.unique_id = get_default_unique_id("camera", camera);
 
   // Fill common entity fields
@@ -1397,7 +1397,7 @@ APIConnection::EncodedMessage APIConnection::try_send_alarm_control_panel_state_
                                                                                  uint32_t remaining_size,
                                                                                  bool is_single) {
   auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
-  AlarmControlPanelStateResponse msg;  // Stack allocated!
+  AlarmControlPanelStateResponse msg;
   msg.state = static_cast<enums::AlarmControlPanelState>(a_alarm_control_panel->get_state());
   msg.key = a_alarm_control_panel->get_object_id_hash();
   return encode_message_to_buffer(msg, AlarmControlPanelStateResponse::message_type, conn, remaining_size, is_single);
@@ -1410,7 +1410,7 @@ APIConnection::EncodedMessage APIConnection::try_send_alarm_control_panel_info_(
                                                                                 uint32_t remaining_size,
                                                                                 bool is_single) {
   auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
-  ListEntitiesAlarmControlPanelResponse msg;  // Stack allocated!
+  ListEntitiesAlarmControlPanelResponse msg;
   msg.supported_features = a_alarm_control_panel->get_supported_features();
   msg.requires_code = a_alarm_control_panel->get_requires_code();
   msg.requires_code_to_arm = a_alarm_control_panel->get_requires_code_to_arm();
@@ -1463,7 +1463,7 @@ void APIConnection::send_event(event::Event *event, std::string event_type) {
       [event_type = std::move(event_type)](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                            bool is_single) -> APIConnection::EncodedMessage {
         auto *e = static_cast<event::Event *>(entity);
-        EventResponse msg;  // Stack allocated!
+        EventResponse msg;
         msg.event_type = event_type;
         msg.key = e->get_object_id_hash();
         return encode_message_to_buffer(msg, EventResponse::message_type, conn, remaining_size, is_single);
@@ -1475,7 +1475,7 @@ void APIConnection::send_event_info(event::Event *event) {
 APIConnection::EncodedMessage APIConnection::try_send_event_info_(EntityBase *entity, APIConnection *conn,
                                                                   uint32_t remaining_size, bool is_single) {
   auto *event = static_cast<event::Event *>(entity);
-  ListEntitiesEventResponse msg;  // Stack allocated!
+  ListEntitiesEventResponse msg;
   msg.device_class = event->get_device_class();
   for (const auto &event_type : event->get_event_types())
     msg.event_types.push_back(event_type);
@@ -1495,7 +1495,7 @@ bool APIConnection::send_update_state(update::UpdateEntity *update) {
 APIConnection::EncodedMessage APIConnection::try_send_update_state_(EntityBase *entity, APIConnection *conn,
                                                                     uint32_t remaining_size, bool is_single) {
   auto *update = static_cast<update::UpdateEntity *>(entity);
-  UpdateStateResponse msg;  // Stack allocated!
+  UpdateStateResponse msg;
   msg.missing_state = !update->has_state();
   if (update->has_state()) {
     msg.in_progress = update->state == update::UpdateState::UPDATE_STATE_INSTALLING;
@@ -1518,7 +1518,7 @@ void APIConnection::send_update_info(update::UpdateEntity *update) {
 APIConnection::EncodedMessage APIConnection::try_send_update_info_(EntityBase *entity, APIConnection *conn,
                                                                    uint32_t remaining_size, bool is_single) {
   auto *update = static_cast<update::UpdateEntity *>(entity);
-  ListEntitiesUpdateResponse msg;  // Stack allocated!
+  ListEntitiesUpdateResponse msg;
   msg.device_class = update->get_device_class();
   msg.unique_id = get_default_unique_id("update", update);
 
