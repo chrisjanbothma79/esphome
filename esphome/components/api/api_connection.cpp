@@ -972,7 +972,8 @@ bool APIConnection::send_select_state(select::Select *select, std::string state)
         resp.missing_state = !s->has_state();
         resp.key = s->get_object_id_hash();
         return encode_message_to_buffer(resp, SelectStateResponse::message_type, conn, remaining_size, is_single);
-      });
+      },
+      SelectStateResponse::message_type);
 }
 void APIConnection::send_select_info(select::Select *select) {
   this->schedule_message_(select, &APIConnection::try_send_select_info_, ListEntitiesSelectResponse::message_type);
@@ -1028,16 +1029,17 @@ void esphome::api::APIConnection::button_command(const ButtonCommandRequest &msg
 
 #ifdef USE_LOCK
 bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
-  return this->schedule_message_(a_lock,
-                                 [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                         bool is_single) -> APIConnection::EncodedMessage {
-                                   auto *l = static_cast<lock::Lock *>(entity);
-                                   LockStateResponse resp;
-                                   resp.state = static_cast<enums::LockState>(state);
-                                   resp.key = l->get_object_id_hash();
-                                   return encode_message_to_buffer(resp, LockStateResponse::message_type, conn,
-                                                                   remaining_size, is_single);
-                                 });
+  return this->schedule_message_(
+      a_lock,
+      [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+              bool is_single) -> APIConnection::EncodedMessage {
+        auto *l = static_cast<lock::Lock *>(entity);
+        LockStateResponse resp;
+        resp.state = static_cast<enums::LockState>(state);
+        resp.key = l->get_object_id_hash();
+        return encode_message_to_buffer(resp, LockStateResponse::message_type, conn, remaining_size, is_single);
+      },
+      LockStateResponse::message_type);
 }
 void APIConnection::send_lock_info(lock::Lock *a_lock) {
   this->schedule_message_(a_lock, &APIConnection::try_send_lock_info_, ListEntitiesLockResponse::message_type);
