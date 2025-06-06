@@ -1393,7 +1393,8 @@ bool APIConnection::send_alarm_control_panel_state(alarm_control_panel::AlarmCon
 }
 APIConnection::EncodedMessage APIConnection::try_send_alarm_control_panel_state_(EntityBase *entity,
                                                                                  BufferAllocator allocator,
-                                                                                 uint32_t remaining_size) {
+                                                                                 uint32_t remaining_size,
+                                                                                 OverheadCalculator overhead_calc) {
   auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
   AlarmControlPanelStateResponse msg;  // Stack allocated!
   msg.state = static_cast<enums::AlarmControlPanelState>(a_alarm_control_panel->get_state());
@@ -1406,7 +1407,8 @@ void APIConnection::send_alarm_control_panel_info(alarm_control_panel::AlarmCont
 }
 APIConnection::EncodedMessage APIConnection::try_send_alarm_control_panel_info_(EntityBase *entity,
                                                                                 BufferAllocator allocator,
-                                                                                uint32_t remaining_size) {
+                                                                                uint32_t remaining_size,
+                                                                                OverheadCalculator overhead_calc) {
   auto *a_alarm_control_panel = static_cast<alarm_control_panel::AlarmControlPanel *>(entity);
   ListEntitiesAlarmControlPanelResponse msg;  // Stack allocated!
   msg.supported_features = a_alarm_control_panel->get_supported_features();
