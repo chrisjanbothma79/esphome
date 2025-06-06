@@ -1687,6 +1687,24 @@ void APIConnection::process_batch_() {
     return;
   }
 
+  // Fast path for single message
+  if (this->deferred_batch_.items.size() == 1) {
+    const auto &item = this->deferred_batch_.items[0];
+    auto message = item.creator(item.entity);
+    if (message) {
+      if (this->send_message(*message)) {
+        this->deferred_batch_.clear();
+      } else {
+        // Message couldn't be sent, keep it for retry
+        // Batch is still scheduled, will retry later
+      }
+    } else {
+      this->deferred_batch_.clear();  // Creator failed, remove item
+    }
+    return;
+  }
+
+  // Multiple messages - use batching
   // Single pass: create messages, calculate sizes and check what fits
   struct MessageData {
     std::unique_ptr<ProtoMessage> message;
