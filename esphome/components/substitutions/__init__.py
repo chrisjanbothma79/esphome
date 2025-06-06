@@ -4,9 +4,9 @@ from esphome import core
 from esphome.config_helpers import Extend, Remove, merge_config
 import esphome.config_validation as cv
 from esphome.const import CONF_SUBSTITUTIONS, VALID_SUBSTITUTIONS_CHARACTERS
-from esphome.components.substitutions.jinja import (
+from esphome.components.jinja import (
+    Jinja,
     UndefinedError,
-    expand_str,
     has_jinja,
     TemplateError,
     TemplateSyntaxError,
@@ -52,7 +52,7 @@ async def to_code(config):
     pass
 
 
-def _expand_substitutions(substitutions, value, path, ignore_missing):
+def _expand_substitutions(substitutions, value, path, jinja, ignore_missing):
     if "$" not in value:
         return value
 
@@ -67,7 +67,7 @@ def _expand_substitutions(substitutions, value, path, ignore_missing):
                 expr_result = None
                 try:
                     # Invoke the jinja engine to evaluate the expression.
-                    expr_result = expand_str(value, substitutions)
+                    expr_result = jinja.expand(value, substitutions)
                     if isinstance(expr_result, Undefined):
                         print("" + expr_result)  # force a UndefinedError exception
                     value = expr_result
@@ -136,31 +136,35 @@ def _expand_substitutions(substitutions, value, path, ignore_missing):
     return value
 
 
-def _substitute_item(substitutions, item, path, ignore_missing):
+def _substitute_item(substitutions, item, path, jinja, ignore_missing):
     if isinstance(item, list):
         for i, it in enumerate(item):
-            sub = _substitute_item(substitutions, it, path + [i], ignore_missing)
+            sub = _substitute_item(substitutions, it, path + [i], jinja, ignore_missing)
             if sub is not None:
                 item[i] = sub
     elif isinstance(item, dict):
         replace_keys = []
         for k, v in item.items():
             if path or k != CONF_SUBSTITUTIONS:
-                sub = _substitute_item(substitutions, k, path + [k], ignore_missing)
+                sub = _substitute_item(
+                    substitutions, k, path + [k], jinja, ignore_missing
+                )
                 if sub is not None:
                     replace_keys.append((k, sub))
-            sub = _substitute_item(substitutions, v, path + [k], ignore_missing)
+            sub = _substitute_item(substitutions, v, path + [k], jinja, ignore_missing)
             if sub is not None:
                 item[k] = sub
         for old, new in replace_keys:
             item[new] = merge_config(item.get(old), item.get(new))
             del item[old]
     elif isinstance(item, str):
-        sub = _expand_substitutions(substitutions, item, path, ignore_missing)
+        sub = _expand_substitutions(substitutions, item, path, jinja, ignore_missing)
         if sub != item:
             return sub
     elif isinstance(item, (core.Lambda, Extend, Remove)):
-        sub = _expand_substitutions(substitutions, item.value, path, ignore_missing)
+        sub = _expand_substitutions(
+            substitutions, item.value, path, jinja, ignore_missing
+        )
         if sub != item:
             item.value = sub
     return None
@@ -195,4 +199,5 @@ def do_substitution_pass(config, command_line_substitutions, ignore_missing=Fals
     config[CONF_SUBSTITUTIONS] = substitutions
     # Move substitutions to the first place to replace substitutions in them correctly
     config.move_to_end(CONF_SUBSTITUTIONS, False)
-    _substitute_item(substitutions, config, [], ignore_missing)
+    jinja = Jinja(config)
+    _substitute_item(substitutions, config, [], jinja, ignore_missing)
