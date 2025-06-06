@@ -396,6 +396,8 @@ void APIServer::set_port(uint16_t port) { this->port_ = port; }
 
 void APIServer::set_password(const std::string &password) { this->password_ = password; }
 
+void APIServer::set_batch_delay(uint32_t batch_delay) { this->batch_delay_ = batch_delay; }
+
 void APIServer::send_homeassistant_service_call(const HomeassistantServiceResponse &call) {
   for (auto &client : this->clients_) {
     client->send_homeassistant_service_call(call);

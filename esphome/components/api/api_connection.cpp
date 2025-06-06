@@ -50,6 +50,9 @@ APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *pa
 #error "No frame helper defined"
 #endif
 }
+
+uint32_t APIConnection::get_batch_delay_ms_() const { return this->parent_->get_batch_delay(); }
+
 void APIConnection::start() {
   this->last_traffic_ = App.get_loop_component_start_time();
 
@@ -140,7 +143,7 @@ void APIConnection::loop() {
 
   // Process deferred batch if scheduled
   if (this->deferred_batch_.batch_scheduled &&
-      App.get_loop_component_start_time() - this->deferred_batch_.batch_start_time >= BATCH_DELAY_MS) {
+      App.get_loop_component_start_time() - this->deferred_batch_.batch_start_time >= this->get_batch_delay_ms_()) {
     this->process_batch_();
   }
 

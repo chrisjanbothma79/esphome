@@ -547,7 +547,7 @@ class APIConnection : public APIServerConnection {
   };
 
   DeferredBatch deferred_batch_;
-  static constexpr uint32_t BATCH_DELAY_MS = 100;
+  uint32_t get_batch_delay_ms_() const;
   // Message will use 8 more bytes than the minimum size, and typical
   // MTU is 1500. Sometimes users will see as low as 1460 MTU.
   // If its IPv6 the header is 40 bytes, and if its IPv4
