@@ -4,17 +4,14 @@ from esphome.core import TimePeriod
 from . import XiaomiJTYJQD03MI
 from esphome.components import binary_sensor
 from esphome.const import (
-#    CONF_SMOKE,
     CONF_TIMEOUT,
     DEVICE_CLASS_SMOKE,
     CONF_ID,
     CONF_BUTTON,
 )
 
-CONF_SMOKE = "smoke"     
-ICON_SMOKE_SENSOR = "mdi:smoke-sensor"  
-
-
+CONF_SMOKE = "smoke"
+ICON_SMOKE_SENSOR = "mdi:smoke-sensor"
 DEPENDENCIES = ["xiaomi_jtyjgd03mi"]
 
 
