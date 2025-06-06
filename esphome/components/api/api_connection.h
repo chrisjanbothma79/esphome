@@ -315,8 +315,8 @@ class APIConnection : public APIServerConnection {
 #ifdef USE_BINARY_SENSOR
   static EncodedMessage try_send_binary_sensor_state(EntityBase *binary_sensor, APIConnection *conn,
                                                      uint32_t remaining_size, bool is_single);
-  static EncodedMessage try_send_binary_sensor_info(EntityBase *binary_sensor, APIConnection *conn,
-                                                    uint32_t remaining_size, bool is_single);
+  static EncodedMessage try_send_binary_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                                    bool is_single);
 #endif
 #ifdef USE_COVER
   static EncodedMessage try_send_cover_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,

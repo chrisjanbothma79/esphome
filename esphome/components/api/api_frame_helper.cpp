@@ -613,7 +613,7 @@ APIError APINoiseFrameHelper::write_protobuf_packet(uint16_t type, ProtoWriteBuf
 
   // Use write_protobuf_packets with a single packet
   std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> packets;
-  packets.push_back(std::make_tuple(type, 0, payload_len));
+  packets.emplace_back(type, 0, payload_len);
 
   return write_protobuf_packets(buffer, packets);
 }
