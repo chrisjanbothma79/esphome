@@ -61,7 +61,7 @@ class APIConnection : public APIServerConnection {
   void switch_command(const SwitchCommandRequest &msg) override;
 #endif
 #ifdef USE_TEXT_SENSOR
-  bool send_text_sensor_state(text_sensor::TextSensor *text_sensor, std::string state);
+  bool send_text_sensor_state(text_sensor::TextSensor *text_sensor, const std::string &state);
   void send_text_sensor_info(text_sensor::TextSensor *text_sensor);
 #endif
 #ifdef USE_ESP32_CAMERA
@@ -95,12 +95,12 @@ class APIConnection : public APIServerConnection {
   void datetime_command(const DateTimeCommandRequest &msg) override;
 #endif
 #ifdef USE_TEXT
-  bool send_text_state(text::Text *text, std::string state);
+  bool send_text_state(text::Text *text, const std::string &state);
   void send_text_info(text::Text *text);
   void text_command(const TextCommandRequest &msg) override;
 #endif
 #ifdef USE_SELECT
-  bool send_select_state(select::Select *select, std::string state);
+  bool send_select_state(select::Select *select, const std::string &state);
   void send_select_info(select::Select *select);
   void select_command(const SelectCommandRequest &msg) override;
 #endif
@@ -172,7 +172,7 @@ class APIConnection : public APIServerConnection {
 #endif
 
 #ifdef USE_EVENT
-  void send_event(event::Event *event, std::string event_type);
+  void send_event(event::Event *event, const std::string &event_type);
   void send_event_info(event::Event *event);
 #endif
 
@@ -506,7 +506,7 @@ class APIConnection : public APIServerConnection {
     // Destructor
     ~MessageCreator() {
       // Clean up string data for string-based message types
-      if (uses_string_data()) {
+      if (uses_string_data_()) {
         delete data_.string_ptr;
       }
     }
@@ -515,7 +515,7 @@ class APIConnection : public APIServerConnection {
     MessageCreator(const MessageCreator &other) : message_type_(other.message_type_) {
       if (message_type_ == 0) {
         data_.ptr = other.data_.ptr;
-      } else if (uses_string_data()) {
+      } else if (uses_string_data_()) {
         data_.string_ptr = new std::string(*other.data_.string_ptr);
       } else {
         data_ = other.data_;  // For POD types
@@ -523,7 +523,7 @@ class APIConnection : public APIServerConnection {
     }
 
     // Move constructor
-    MessageCreator(MessageCreator &&other) noexcept : message_type_(other.message_type_), data_(other.data_) {
+    MessageCreator(MessageCreator &&other) noexcept : data_(other.data_), message_type_(other.message_type_) {
       other.message_type_ = 0;  // Reset other to function pointer type
       other.data_.ptr = nullptr;
     }
@@ -532,14 +532,14 @@ class APIConnection : public APIServerConnection {
     MessageCreator &operator=(const MessageCreator &other) {
       if (this != &other) {
         // Clean up current string data if needed
-        if (uses_string_data()) {
+        if (uses_string_data_()) {
           delete data_.string_ptr;
         }
         // Copy new data
         message_type_ = other.message_type_;
         if (other.message_type_ == 0) {
           data_.ptr = other.data_.ptr;
-        } else if (other.uses_string_data()) {
+        } else if (other.uses_string_data_()) {
           data_.string_ptr = new std::string(*other.data_.string_ptr);
         } else {
           data_ = other.data_;
@@ -551,7 +551,7 @@ class APIConnection : public APIServerConnection {
     MessageCreator &operator=(MessageCreator &&other) noexcept {
       if (this != &other) {
         // Clean up current string data if needed
-        if (uses_string_data()) {
+        if (uses_string_data_()) {
           delete data_.string_ptr;
         }
         // Move data
@@ -569,7 +569,7 @@ class APIConnection : public APIServerConnection {
 
    private:
     // Helper to check if this message type uses heap-allocated strings
-    bool uses_string_data() const {
+    bool uses_string_data_() const {
       return message_type_ == TextSensorStateResponse::MESSAGE_TYPE ||
              message_type_ == SelectStateResponse::MESSAGE_TYPE || message_type_ == TextStateResponse::MESSAGE_TYPE ||
              message_type_ == EventResponse::MESSAGE_TYPE;

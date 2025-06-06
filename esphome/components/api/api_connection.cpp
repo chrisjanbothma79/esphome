@@ -568,7 +568,7 @@ void APIConnection::switch_command(const SwitchCommandRequest &msg) {
 #endif
 
 #ifdef USE_TEXT_SENSOR
-bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor, std::string state) {
+bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor, const std::string &state) {
   return this->schedule_message_(text_sensor, MessageCreator(state, TextSensorStateResponse::MESSAGE_TYPE),
                                  TextSensorStateResponse::MESSAGE_TYPE);
 }
@@ -839,7 +839,7 @@ void APIConnection::datetime_command(const DateTimeCommandRequest &msg) {
 #endif
 
 #ifdef USE_TEXT
-bool APIConnection::send_text_state(text::Text *text, std::string state) {
+bool APIConnection::send_text_state(text::Text *text, const std::string &state) {
   return this->schedule_message_(text, MessageCreator(state, TextStateResponse::MESSAGE_TYPE),
                                  TextStateResponse::MESSAGE_TYPE);
 }
@@ -870,7 +870,7 @@ void APIConnection::text_command(const TextCommandRequest &msg) {
 #endif
 
 #ifdef USE_SELECT
-bool APIConnection::send_select_state(select::Select *select, std::string state) {
+bool APIConnection::send_select_state(select::Select *select, const std::string &state) {
   return this->schedule_message_(select, MessageCreator(state, SelectStateResponse::MESSAGE_TYPE),
                                  SelectStateResponse::MESSAGE_TYPE);
 }
@@ -1336,7 +1336,7 @@ void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRe
 #endif
 
 #ifdef USE_EVENT
-void APIConnection::send_event(event::Event *event, std::string event_type) {
+void APIConnection::send_event(event::Event *event, const std::string &event_type) {
   this->schedule_message_(event, MessageCreator(event_type, EventResponse::MESSAGE_TYPE), EventResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_event_info(event::Event *event) {
