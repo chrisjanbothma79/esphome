@@ -245,7 +245,7 @@ void VoiceAssistant::loop() {
         if (this->audio_mode_ == AUDIO_MODE_API) {
           api::VoiceAssistantAudio msg;
           msg.data.assign((char *) this->send_buffer_, read_bytes);
-          this->api_client_->send_voice_assistant_audio(msg);
+          this->api_client_->send_message(msg);
         } else {
           if (!this->udp_socket_running_) {
             if (!this->start_udp_socket_()) {
@@ -580,7 +580,7 @@ void VoiceAssistant::signal_stop_() {
   ESP_LOGD(TAG, "Signaling stop");
   api::VoiceAssistantRequest msg;
   msg.start = false;
-  this->api_client_->send_voice_assistant_request(msg);
+  this->api_client_->send_message(msg);
 }
 
 void VoiceAssistant::start_playback_timeout_() {
