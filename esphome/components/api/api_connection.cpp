@@ -1788,8 +1788,11 @@ void APIConnection::process_batch_() {
   size_t items_processed = 0;
   uint32_t remaining_size = MAX_PACKET_SIZE;
 
-  // Track current position in buffer as we build it
-  uint32_t current_offset = header_padding;
+  // Track where each message's header padding begins in the buffer
+  // For plaintext: this is where the 6-byte header padding starts
+  // For noise: this is where the 7-byte header padding starts
+  // The actual message data follows after the header padding
+  uint32_t current_offset = 0;
 
   // Process items and encode directly to buffer
   for (const auto &item : this->deferred_batch_.items) {
@@ -1807,7 +1810,9 @@ void APIConnection::process_batch_() {
 
     // Update tracking variables
     remaining_size -= msg.total_size;
-    current_offset = this->proto_write_buffer_.size() + footer_size + header_padding;
+    // The next message's header padding will start at the current buffer size
+    // (prepare_message_buffer will add footer+header padding before the next message)
+    current_offset = this->proto_write_buffer_.size();
     items_processed++;
   }
 
