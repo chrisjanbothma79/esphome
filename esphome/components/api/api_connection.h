@@ -294,7 +294,7 @@ class APIConnection : public APIServerConnection {
 
  protected:
   // Helper function to fill common entity fields
-  template<typename ResponseT> static void fill_entity_info_base_(esphome::EntityBase *entity, ResponseT &response) {
+  template<typename ResponseT> static void fill_entity_info_base(esphome::EntityBase *entity, ResponseT &response) {
     // Set common fields that are shared by all entity types
     response.key = entity->get_object_id_hash();
     response.object_id = entity->get_object_id();
@@ -313,130 +313,130 @@ class APIConnection : public APIServerConnection {
                                                  uint32_t remaining_size, bool is_single);
 
 #ifdef USE_BINARY_SENSOR
-  static EncodedMessage try_send_binary_sensor_state_(EntityBase *binary_sensor, APIConnection *conn,
-                                                      uint32_t remaining_size, bool is_single);
-  static EncodedMessage try_send_binary_sensor_info_(EntityBase *binary_sensor, APIConnection *conn,
+  static EncodedMessage try_send_binary_sensor_state(EntityBase *binary_sensor, APIConnection *conn,
                                                      uint32_t remaining_size, bool is_single);
+  static EncodedMessage try_send_binary_sensor_info(EntityBase *binary_sensor, APIConnection *conn,
+                                                    uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_COVER
-  static EncodedMessage try_send_cover_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
-  static EncodedMessage try_send_cover_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_cover_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                              bool is_single);
+  static EncodedMessage try_send_cover_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                            bool is_single);
 #endif
 #ifdef USE_FAN
-  static EncodedMessage try_send_fan_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                            bool is_single);
-  static EncodedMessage try_send_fan_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_fan_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                            bool is_single);
+  static EncodedMessage try_send_fan_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                          bool is_single);
 #endif
 #ifdef USE_LIGHT
-  static EncodedMessage try_send_light_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
-  static EncodedMessage try_send_light_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_light_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                              bool is_single);
+  static EncodedMessage try_send_light_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                            bool is_single);
 #endif
 #ifdef USE_SENSOR
-  static EncodedMessage try_send_sensor_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                               bool is_single);
-  static EncodedMessage try_send_sensor_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                               bool is_single);
+  static EncodedMessage try_send_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                             bool is_single);
 #endif
 #ifdef USE_SWITCH
-  static EncodedMessage try_send_switch_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                               bool is_single);
-  static EncodedMessage try_send_switch_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_switch_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                               bool is_single);
+  static EncodedMessage try_send_switch_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                             bool is_single);
 #endif
 #ifdef USE_TEXT_SENSOR
-  static EncodedMessage try_send_text_sensor_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                    bool is_single);
-  static EncodedMessage try_send_text_sensor_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_text_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                    bool is_single);
+  static EncodedMessage try_send_text_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                                  bool is_single);
 #endif
 #ifdef USE_CLIMATE
-  static EncodedMessage try_send_climate_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                bool is_single);
-  static EncodedMessage try_send_climate_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_climate_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                bool is_single);
+  static EncodedMessage try_send_climate_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                              bool is_single);
 #endif
 #ifdef USE_NUMBER
-  static EncodedMessage try_send_number_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                               bool is_single);
-  static EncodedMessage try_send_number_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_number_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                               bool is_single);
+  static EncodedMessage try_send_number_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                             bool is_single);
 #endif
 #ifdef USE_DATETIME_DATE
-  static EncodedMessage try_send_date_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
-  static EncodedMessage try_send_date_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_date_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                             bool is_single);
+  static EncodedMessage try_send_date_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                           bool is_single);
 #endif
 #ifdef USE_DATETIME_TIME
-  static EncodedMessage try_send_time_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
-  static EncodedMessage try_send_time_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_time_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                             bool is_single);
+  static EncodedMessage try_send_time_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                           bool is_single);
 #endif
 #ifdef USE_DATETIME_DATETIME
-  static EncodedMessage try_send_datetime_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                 bool is_single);
-  static EncodedMessage try_send_datetime_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_datetime_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                 bool is_single);
+  static EncodedMessage try_send_datetime_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                               bool is_single);
 #endif
 #ifdef USE_TEXT
-  static EncodedMessage try_send_text_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
-  static EncodedMessage try_send_text_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_text_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                             bool is_single);
+  static EncodedMessage try_send_text_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                           bool is_single);
 #endif
 #ifdef USE_SELECT
-  static EncodedMessage try_send_select_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                               bool is_single);
-  static EncodedMessage try_send_select_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_select_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                               bool is_single);
+  static EncodedMessage try_send_select_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                             bool is_single);
 #endif
 #ifdef USE_BUTTON
-  static EncodedMessage try_send_button_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
+  static EncodedMessage try_send_button_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                             bool is_single);
 #endif
 #ifdef USE_LOCK
-  static EncodedMessage try_send_lock_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
-  static EncodedMessage try_send_lock_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_lock_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                             bool is_single);
+  static EncodedMessage try_send_lock_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                           bool is_single);
 #endif
 #ifdef USE_VALVE
-  static EncodedMessage try_send_valve_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
-  static EncodedMessage try_send_valve_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_valve_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                              bool is_single);
+  static EncodedMessage try_send_valve_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                            bool is_single);
 #endif
 #ifdef USE_MEDIA_PLAYER
-  static EncodedMessage try_send_media_player_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                     bool is_single);
-  static EncodedMessage try_send_media_player_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_media_player_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                     bool is_single);
+  static EncodedMessage try_send_media_player_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                                   bool is_single);
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
-  static EncodedMessage try_send_alarm_control_panel_state_(EntityBase *entity, APIConnection *conn,
-                                                            uint32_t remaining_size, bool is_single);
-  static EncodedMessage try_send_alarm_control_panel_info_(EntityBase *entity, APIConnection *conn,
+  static EncodedMessage try_send_alarm_control_panel_state(EntityBase *entity, APIConnection *conn,
                                                            uint32_t remaining_size, bool is_single);
+  static EncodedMessage try_send_alarm_control_panel_info(EntityBase *entity, APIConnection *conn,
+                                                          uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_EVENT
-  static EncodedMessage try_send_event_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                             bool is_single);
+  static EncodedMessage try_send_event_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                            bool is_single);
 #endif
 #ifdef USE_UPDATE
-  static EncodedMessage try_send_update_state_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                               bool is_single);
-  static EncodedMessage try_send_update_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+  static EncodedMessage try_send_update_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                               bool is_single);
+  static EncodedMessage try_send_update_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                             bool is_single);
 #endif
 #ifdef USE_ESP32_CAMERA
-  static EncodedMessage try_send_camera_info_(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single);
+  static EncodedMessage try_send_camera_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                             bool is_single);
 #endif
 
   enum class ConnectionState {
