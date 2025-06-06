@@ -261,7 +261,7 @@ APIConnection::EncodedMessage APIConnection::encode_message_to_buffer(ProtoMessa
 
   // Calculate overhead for this message
   uint16_t overhead = conn->helper_->calculate_packet_overhead(message_type, static_cast<uint16_t>(size));
-  uint32_t total_size = size + overhead;
+  uint16_t total_size = static_cast<uint16_t>(size) + overhead;
 
   // Check if it fits
   if (total_size > remaining_size) {
@@ -274,7 +274,7 @@ APIConnection::EncodedMessage APIConnection::encode_message_to_buffer(ProtoMessa
 
   // Encode directly into buffer
   msg.encode(buffer);
-  return {static_cast<uint16_t>(size), static_cast<uint16_t>(total_size)};
+  return {static_cast<uint16_t>(size), total_size};
 }
 
 #ifdef USE_BINARY_SENSOR
