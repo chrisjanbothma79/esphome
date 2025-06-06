@@ -1105,7 +1105,7 @@ def main() -> None:
     hpp += "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
     hpp += "    this->log_send_message_(T::message_name(), msg.dump());\n"
     hpp += "#endif\n"
-    hpp += "    return this->send_message_(msg, T::message_type);\n"
+    hpp += "    return this->send_message_(msg, T::MESSAGE_TYPE);\n"
     hpp += "  }\n\n"
 
     # Add logging helper method implementation to cpp
