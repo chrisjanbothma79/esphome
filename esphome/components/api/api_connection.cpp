@@ -1510,7 +1510,7 @@ APIConnection::EncodedMessage APIConnection::try_send_update_state_(EntityBase *
     msg.release_url = update->update_info.release_url;
   }
   msg.key = update->get_object_id_hash();
-  return encode_message_to_buffer(msg, conn, remaining_size, is_single);
+  return encode_message_to_buffer(msg, UpdateStateResponse::message_type, conn, remaining_size, is_single);
 }
 void APIConnection::send_update_info(update::UpdateEntity *update) {
   this->schedule_message_(update, &APIConnection::try_send_update_info_, ListEntitiesUpdateResponse::message_type);
