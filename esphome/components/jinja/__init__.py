@@ -12,7 +12,7 @@ TemplateRuntimeError = jinja.TemplateRuntimeError
 UndefinedError = jinja.UndefinedError
 Undefined = jinja.Undefined
 
-CODEOWNERS = ["@esphome/core"]
+CODEOWNERS = ["@jpeletier"]
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -47,7 +47,7 @@ DETECT_JINJA = r"(\$\{)"
 
 
 detect_jinja_re = re.compile(
-    r"\{\$.+?\$\}"  # Block form expression: {$ ... $}
+    r"<%.+?%>"  # Block form expression: <% ... %>
     r"|\$\{[^}]+\}",  # Braced form expression: ${ ... }
     flags=re.MULTILINE,
 )
@@ -69,8 +69,8 @@ class Jinja:
         self.env = NativeEnvironment(
             trim_blocks=True,
             lstrip_blocks=True,
-            block_start_string="{$",
-            block_end_string="$}",
+            block_start_string="<%",
+            block_end_string="%>",
             line_comment_prefix="##",
             variable_start_string="${",
             variable_end_string="}",
