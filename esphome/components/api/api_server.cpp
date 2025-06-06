@@ -456,7 +456,7 @@ bool APIServer::save_noise_psk(psk_t psk, bool make_active) {
       ESP_LOGW(TAG, "Disconnecting all clients to reset connections");
       this->set_noise_psk(psk);
       for (auto &c : this->clients_) {
-        c->send_disconnect_request(DisconnectRequest());
+        c->send_message(DisconnectRequest());
       }
     });
   }
