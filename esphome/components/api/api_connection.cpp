@@ -525,7 +525,7 @@ APIConnection::MessageInfo APIConnection::try_send_sensor_info_(EntityBase *enti
   msg.device_class = sensor->get_device_class();
   msg.state_class = static_cast<enums::SensorStateClass>(sensor->get_state_class());
   msg.unique_id = sensor->unique_id();
-  if (msg->unique_id.empty())
+  if (msg.unique_id.empty())
     msg.unique_id = get_default_unique_id("sensor", sensor);
   fill_entity_info_base_(sensor, msg);
   return encode_message_to_buffer(msg, buffer, max_size);
@@ -591,7 +591,7 @@ APIConnection::MessageInfo APIConnection::try_send_text_sensor_info_(EntityBase 
   ListEntitiesTextSensorResponse msg;  // Stack allocated!
   msg.device_class = text_sensor->get_device_class();
   msg.unique_id = text_sensor->unique_id();
-  if (msg->unique_id.empty())
+  if (msg.unique_id.empty())
     msg.unique_id = get_default_unique_id("text_sensor", text_sensor);
 
   // Fill common entity fields
