@@ -18,7 +18,6 @@ display:
           it.filled_circle(196, 128, 15, Color(0, 0, 255));
         }
 
-
 camera:
   name: Test Camera
   width: 256
