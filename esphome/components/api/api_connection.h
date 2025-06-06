@@ -487,9 +487,6 @@ class APIConnection : public APIServerConnection {
       uint32_t timestamp;      // When this update was queued
       uint16_t message_type;   // Message type for overhead calculation
 
-      // Default constructor
-      BatchItem() : entity(nullptr), timestamp(0), message_type(0) {}
-
       // Constructor for creating BatchItem
       BatchItem(EntityBase *entity,
                 std::function<EncodedMessage(EntityBase *, APIConnection *, uint32_t, bool)> creator,

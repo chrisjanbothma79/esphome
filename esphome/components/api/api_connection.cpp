@@ -1838,10 +1838,9 @@ void APIConnection::process_batch_() {
 
   // Handle remaining items more efficiently
   if (items_processed < this->deferred_batch_.items.size()) {
-    // Move unprocessed items to the beginning using std::move
-    std::move(this->deferred_batch_.items.begin() + items_processed, this->deferred_batch_.items.end(),
-              this->deferred_batch_.items.begin());
-    this->deferred_batch_.items.resize(this->deferred_batch_.items.size() - items_processed);
+    // Remove processed items from the beginning
+    this->deferred_batch_.items.erase(this->deferred_batch_.items.begin(),
+                                      this->deferred_batch_.items.begin() + items_processed);
 
     // Reschedule for remaining items
     this->schedule_batch_();
