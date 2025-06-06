@@ -1810,9 +1810,9 @@ void APIConnection::process_batch_() {
 
     // Update tracking variables
     remaining_size -= msg.total_size;
-    // The next message's header padding will start at the current buffer size
-    // (prepare_message_buffer will add footer+header padding before the next message)
-    current_offset = this->proto_write_buffer_.size();
+    // Calculate where the next message's header padding will start
+    // Current buffer size + footer space (that prepare_message_buffer will add for this message)
+    current_offset = this->proto_write_buffer_.size() + footer_size;
     items_processed++;
   }
 
@@ -1821,7 +1821,7 @@ void APIConnection::process_batch_() {
     return;
   }
 
-  // Add final footer space for Noise if needed
+  // Add footer space for the last message (for Noise protocol MAC)
   if (footer_size > 0) {
     this->proto_write_buffer_.resize(this->proto_write_buffer_.size() + footer_size);
   }
