@@ -331,7 +331,7 @@ void VoiceAssistant::loop() {
 
           api::VoiceAssistantAnnounceFinished msg;
           msg.success = true;
-          this->api_client_->send_voice_assistant_announce_finished(msg);
+          this->api_client_->send_message(msg);
           break;
         }
       }
@@ -590,7 +590,7 @@ void VoiceAssistant::start_playback_timeout_() {
 
     api::VoiceAssistantAnnounceFinished msg;
     msg.success = true;
-    this->api_client_->send_voice_assistant_announce_finished(msg);
+    this->api_client_->send_message(msg);
   });
 }
 
