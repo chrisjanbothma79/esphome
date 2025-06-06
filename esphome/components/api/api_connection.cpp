@@ -253,7 +253,7 @@ void APIConnection::on_disconnect_response(const DisconnectResponse &value) {
 #ifdef USE_BINARY_SENSOR
 bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state) {
   // Use lambda to capture the state value
-  this->deferred_batch_.add_item(binary_sensor, [this, state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  this->deferred_batch_.add_item(binary_sensor, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *bs = static_cast<binary_sensor::BinarySensor *>(entity);
     auto msg = std::make_unique<BinarySensorStateResponse>();
     msg->state = state;
@@ -508,7 +508,7 @@ void APIConnection::light_command(const LightCommandRequest &msg) {
 #ifdef USE_SENSOR
 bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
   // Use lambda to capture the float state value
-  this->deferred_batch_.add_item(sensor, [this, state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  this->deferred_batch_.add_item(sensor, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *s = static_cast<sensor::Sensor *>(entity);
     auto msg = std::make_unique<SensorStateResponse>();
     msg->state = state;
@@ -541,7 +541,7 @@ std::unique_ptr<ProtoMessage> APIConnection::try_send_sensor_info_(EntityBase *e
 #ifdef USE_SWITCH
 bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
   // Use lambda to capture the bool state value
-  this->deferred_batch_.add_item(a_switch, [this, state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  this->deferred_batch_.add_item(a_switch, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *sw = static_cast<switch_::Switch *>(entity);
     auto msg = std::make_unique<SwitchStateResponse>();
     msg->state = state;
@@ -580,7 +580,7 @@ void APIConnection::switch_command(const SwitchCommandRequest &msg) {
 bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor, std::string state) {
   // Use lambda to capture the state value
   this->deferred_batch_.add_item(text_sensor,
-                                 [this, state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+                                 [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
                                    auto *ts = static_cast<text_sensor::TextSensor *>(entity);
                                    auto msg = std::make_unique<TextSensorStateResponse>();
                                    msg->state = std::move(state);
@@ -721,7 +721,7 @@ void APIConnection::climate_command(const ClimateCommandRequest &msg) {
 #ifdef USE_NUMBER
 bool APIConnection::send_number_state(number::Number *number, float state) {
   // Use lambda to capture the state value
-  this->deferred_batch_.add_item(number, [this, state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  this->deferred_batch_.add_item(number, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *n = static_cast<number::Number *>(entity);
     auto msg = std::make_unique<NumberStateResponse>();
     msg->state = state;
@@ -893,15 +893,14 @@ void APIConnection::datetime_command(const DateTimeCommandRequest &msg) {
 #ifdef USE_TEXT
 bool APIConnection::send_text_state(text::Text *text, std::string state) {
   // Use lambda to capture the state value
-  this->deferred_batch_.add_item(text,
-                                 [this, state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
-                                   auto *t = static_cast<text::Text *>(entity);
-                                   auto msg = std::make_unique<TextStateResponse>();
-                                   msg->state = std::move(state);
-                                   msg->missing_state = !t->has_state();
-                                   msg->key = t->get_object_id_hash();
-                                   return msg;
-                                 });
+  this->deferred_batch_.add_item(text, [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+    auto *t = static_cast<text::Text *>(entity);
+    auto msg = std::make_unique<TextStateResponse>();
+    msg->state = std::move(state);
+    msg->missing_state = !t->has_state();
+    msg->key = t->get_object_id_hash();
+    return msg;
+  });
   return this->schedule_batch_();
 }
 void APIConnection::send_text_info(text::Text *text) {
@@ -938,7 +937,7 @@ void APIConnection::text_command(const TextCommandRequest &msg) {
 bool APIConnection::send_select_state(select::Select *select, std::string state) {
   // Use lambda to capture the state value
   this->deferred_batch_.add_item(select,
-                                 [this, state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+                                 [state = std::move(state)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
                                    auto *s = static_cast<select::Select *>(entity);
                                    auto msg = std::make_unique<SelectStateResponse>();
                                    msg->state = std::move(state);
@@ -1005,7 +1004,7 @@ void esphome::api::APIConnection::button_command(const ButtonCommandRequest &msg
 #ifdef USE_LOCK
 bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
   // Use lambda to capture the state value
-  this->deferred_batch_.add_item(a_lock, [this, state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+  this->deferred_batch_.add_item(a_lock, [state](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
     auto *l = static_cast<lock::Lock *>(entity);
     auto msg = std::make_unique<LockStateResponse>();
     msg->state = static_cast<enums::LockState>(state);
@@ -1176,18 +1175,19 @@ void APIConnection::set_camera_state(std::shared_ptr<esp32_camera::CameraImage> 
     this->image_reader_.set_image(std::move(image));
 }
 void APIConnection::send_camera_info(esp32_camera::ESP32Camera *camera) {
-  // Camera info can use a simple lambda without captures since functions are static
-  this->deferred_batch_.add_item(camera, [](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
-    auto *cam = static_cast<esp32_camera::ESP32Camera *>(entity);
-    auto msg = std::make_unique<ListEntitiesCameraResponse>();
-    msg->unique_id = get_default_unique_id("camera", cam);
-
-    // Fill common entity fields
-    fill_entity_info_base_(cam, *msg);
-
-    return msg;
-  });
+  // For info messages, we can use function pointer directly since it's static
+  this->deferred_batch_.add_item(camera, &APIConnection::try_send_camera_info_);
   this->schedule_batch_();
+}
+std::unique_ptr<ProtoMessage> APIConnection::try_send_camera_info_(EntityBase *entity) {
+  auto *camera = static_cast<esp32_camera::ESP32Camera *>(entity);
+  auto msg = std::make_unique<ListEntitiesCameraResponse>();
+  msg->unique_id = get_default_unique_id("camera", camera);
+
+  // Fill common entity fields
+  fill_entity_info_base_(camera, *msg);
+
+  return msg;
 }
 void APIConnection::camera_image(const CameraImageRequest &msg) {
   if (esp32_camera::global_esp32_camera == nullptr)
@@ -1443,7 +1443,7 @@ void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRe
 void APIConnection::send_event(event::Event *event, std::string event_type) {
   // Use lambda to capture the event_type value
   this->deferred_batch_.add_item(
-      event, [this, event_type = std::move(event_type)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
+      event, [event_type = std::move(event_type)](EntityBase *entity) -> std::unique_ptr<ProtoMessage> {
         auto *e = static_cast<event::Event *>(entity);
         auto msg = std::make_unique<EventResponse>();
         msg->event_type = std::move(event_type);

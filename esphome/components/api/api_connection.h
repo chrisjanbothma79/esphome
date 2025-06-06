@@ -410,6 +410,9 @@ class APIConnection : public APIServerConnection {
   static std::unique_ptr<ProtoMessage> try_send_update_state_(EntityBase *update);
   static std::unique_ptr<ProtoMessage> try_send_update_info_(EntityBase *update);
 #endif
+#ifdef USE_ESP32_CAMERA
+  static std::unique_ptr<ProtoMessage> try_send_camera_info_(EntityBase *camera);
+#endif
 
   enum class ConnectionState {
     WAITING_FOR_HELLO,
