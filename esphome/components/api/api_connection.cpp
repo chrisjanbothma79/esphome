@@ -271,17 +271,8 @@ APIConnection::EncodedMessage APIConnection::encode_message_to_buffer(ProtoMessa
 
 #ifdef USE_BINARY_SENSOR
 bool APIConnection::send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state) {
-  return this->schedule_message_(
-      binary_sensor,
-      [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single) -> EncodedMessage {
-        auto *bs = static_cast<binary_sensor::BinarySensor *>(entity);
-        BinarySensorStateResponse resp;
-        resp.state = state;
-        resp.missing_state = !bs->has_state();
-        resp.key = bs->get_object_id_hash();
-        return encode_message_to_buffer(resp, BinarySensorStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-      },
-      BinarySensorStateResponse::MESSAGE_TYPE);
+  return this->schedule_message_(binary_sensor, MessageCreator(state, BinarySensorStateResponse::MESSAGE_TYPE),
+                                 BinarySensorStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor) {
   this->schedule_message_(binary_sensor, &APIConnection::try_send_binary_sensor_info,
@@ -522,18 +513,8 @@ void APIConnection::light_command(const LightCommandRequest &msg) {
 
 #ifdef USE_SENSOR
 bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
-  return this->schedule_message_(
-      sensor,
-      [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-              bool is_single) -> APIConnection::EncodedMessage {
-        auto *s = static_cast<sensor::Sensor *>(entity);
-        SensorStateResponse resp;
-        resp.state = state;
-        resp.missing_state = !s->has_state();
-        resp.key = s->get_object_id_hash();
-        return encode_message_to_buffer(resp, SensorStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-      },
-      SensorStateResponse::MESSAGE_TYPE);
+  return this->schedule_message_(sensor, MessageCreator(state, SensorStateResponse::MESSAGE_TYPE),
+                                 SensorStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_sensor_info(sensor::Sensor *sensor) {
   this->schedule_message_(sensor, &APIConnection::try_send_sensor_info, ListEntitiesSensorResponse::MESSAGE_TYPE);
@@ -557,17 +538,8 @@ APIConnection::EncodedMessage APIConnection::try_send_sensor_info(EntityBase *en
 
 #ifdef USE_SWITCH
 bool APIConnection::send_switch_state(switch_::Switch *a_switch, bool state) {
-  return this->schedule_message_(
-      a_switch,
-      [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-              bool is_single) -> APIConnection::EncodedMessage {
-        auto *sw = static_cast<switch_::Switch *>(entity);
-        SwitchStateResponse resp;
-        resp.state = state;
-        resp.key = sw->get_object_id_hash();
-        return encode_message_to_buffer(resp, SwitchStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-      },
-      SwitchStateResponse::MESSAGE_TYPE);
+  return this->schedule_message_(a_switch, MessageCreator(state, SwitchStateResponse::MESSAGE_TYPE),
+                                 SwitchStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_switch_info(switch_::Switch *a_switch) {
   this->schedule_message_(a_switch, &APIConnection::try_send_switch_info, ListEntitiesSwitchResponse::MESSAGE_TYPE);
@@ -597,20 +569,8 @@ void APIConnection::switch_command(const SwitchCommandRequest &msg) {
 
 #ifdef USE_TEXT_SENSOR
 bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor, std::string state) {
-  // TODO: Use [state = std::move(state)] when C++14 is available
-  std::string moved_state = std::move(state);
-  return this->schedule_message_(
-      text_sensor,
-      [moved_state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                    bool is_single) -> APIConnection::EncodedMessage {
-        auto *ts = static_cast<text_sensor::TextSensor *>(entity);
-        TextSensorStateResponse resp;
-        resp.state = moved_state;
-        resp.missing_state = !ts->has_state();
-        resp.key = ts->get_object_id_hash();
-        return encode_message_to_buffer(resp, TextSensorStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-      },
-      TextSensorStateResponse::MESSAGE_TYPE);
+  return this->schedule_message_(text_sensor, MessageCreator(state, TextSensorStateResponse::MESSAGE_TYPE),
+                                 TextSensorStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_text_sensor_info(text_sensor::TextSensor *text_sensor) {
   this->schedule_message_(text_sensor, &APIConnection::try_send_text_sensor_info,
@@ -734,18 +694,8 @@ void APIConnection::climate_command(const ClimateCommandRequest &msg) {
 
 #ifdef USE_NUMBER
 bool APIConnection::send_number_state(number::Number *number, float state) {
-  return this->schedule_message_(
-      number,
-      [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-              bool is_single) -> APIConnection::EncodedMessage {
-        auto *n = static_cast<number::Number *>(entity);
-        NumberStateResponse resp;
-        resp.state = state;
-        resp.missing_state = !n->has_state();
-        resp.key = n->get_object_id_hash();
-        return encode_message_to_buffer(resp, NumberStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-      },
-      NumberStateResponse::MESSAGE_TYPE);
+  return this->schedule_message_(number, MessageCreator(state, NumberStateResponse::MESSAGE_TYPE),
+                                 NumberStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_number_info(number::Number *number) {
   this->schedule_message_(number, &APIConnection::try_send_number_info, ListEntitiesNumberResponse::MESSAGE_TYPE);
@@ -890,20 +840,8 @@ void APIConnection::datetime_command(const DateTimeCommandRequest &msg) {
 
 #ifdef USE_TEXT
 bool APIConnection::send_text_state(text::Text *text, std::string state) {
-  // TODO: Use [state = std::move(state)] when C++14 is available
-  std::string moved_state = std::move(state);
-  return this->schedule_message_(
-      text,
-      [moved_state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                    bool is_single) -> APIConnection::EncodedMessage {
-        auto *t = static_cast<text::Text *>(entity);
-        TextStateResponse resp;
-        resp.state = moved_state;
-        resp.missing_state = !t->has_state();
-        resp.key = t->get_object_id_hash();
-        return encode_message_to_buffer(resp, TextStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-      },
-      TextStateResponse::MESSAGE_TYPE);
+  return this->schedule_message_(text, MessageCreator(state, TextStateResponse::MESSAGE_TYPE),
+                                 TextStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_text_info(text::Text *text) {
   this->schedule_message_(text, &APIConnection::try_send_text_info, ListEntitiesTextResponse::MESSAGE_TYPE);
@@ -933,20 +871,8 @@ void APIConnection::text_command(const TextCommandRequest &msg) {
 
 #ifdef USE_SELECT
 bool APIConnection::send_select_state(select::Select *select, std::string state) {
-  // TODO: Use [state = std::move(state)] when C++14 is available
-  std::string moved_state = std::move(state);
-  return this->schedule_message_(
-      select,
-      [moved_state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                    bool is_single) -> APIConnection::EncodedMessage {
-        auto *s = static_cast<select::Select *>(entity);
-        SelectStateResponse resp;
-        resp.state = moved_state;
-        resp.missing_state = !s->has_state();
-        resp.key = s->get_object_id_hash();
-        return encode_message_to_buffer(resp, SelectStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-      },
-      SelectStateResponse::MESSAGE_TYPE);
+  return this->schedule_message_(select, MessageCreator(state, SelectStateResponse::MESSAGE_TYPE),
+                                 SelectStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_select_info(select::Select *select) {
   this->schedule_message_(select, &APIConnection::try_send_select_info, ListEntitiesSelectResponse::MESSAGE_TYPE);
@@ -996,17 +922,8 @@ void esphome::api::APIConnection::button_command(const ButtonCommandRequest &msg
 
 #ifdef USE_LOCK
 bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
-  return this->schedule_message_(
-      a_lock,
-      [state](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-              bool is_single) -> APIConnection::EncodedMessage {
-        auto *l = static_cast<lock::Lock *>(entity);
-        LockStateResponse resp;
-        resp.state = static_cast<enums::LockState>(state);
-        resp.key = l->get_object_id_hash();
-        return encode_message_to_buffer(resp, LockStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-      },
-      LockStateResponse::MESSAGE_TYPE);
+  return this->schedule_message_(a_lock, MessageCreator(state, LockStateResponse::MESSAGE_TYPE),
+                                 LockStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_lock_info(lock::Lock *a_lock) {
   this->schedule_message_(a_lock, &APIConnection::try_send_lock_info, ListEntitiesLockResponse::MESSAGE_TYPE);
@@ -1420,19 +1337,7 @@ void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRe
 
 #ifdef USE_EVENT
 void APIConnection::send_event(event::Event *event, std::string event_type) {
-  // TODO: Use [event_type = std::move(event_type)] when C++14 is available
-  std::string moved_event_type = std::move(event_type);
-  this->schedule_message_(
-      event,
-      [moved_event_type](EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                         bool is_single) -> APIConnection::EncodedMessage {
-        auto *e = static_cast<event::Event *>(entity);
-        EventResponse msg;
-        msg.event_type = moved_event_type;
-        msg.key = e->get_object_id_hash();
-        return encode_message_to_buffer(msg, EventResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-      },
-      EventResponse::MESSAGE_TYPE);
+  this->schedule_message_(event, MessageCreator(event_type, EventResponse::MESSAGE_TYPE), EventResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_event_info(event::Event *event) {
   this->schedule_message_(event, &APIConnection::try_send_event_info, ListEntitiesEventResponse::MESSAGE_TYPE);
@@ -1855,6 +1760,114 @@ void APIConnection::process_batch_() {
   } else {
     // All items processed
     this->deferred_batch_.clear();
+  }
+}
+
+APIConnection::EncodedMessage APIConnection::MessageCreator::operator()(EntityBase *entity, APIConnection *conn,
+                                                                        uint32_t remaining_size, bool is_single) const {
+  switch (message_type_) {
+    case 0:  // Function pointer
+      return data_.ptr(entity, conn, remaining_size, is_single);
+
+#ifdef USE_BINARY_SENSOR
+    case BinarySensorStateResponse::MESSAGE_TYPE: {
+      auto *bs = static_cast<binary_sensor::BinarySensor *>(entity);
+      BinarySensorStateResponse resp;
+      resp.state = data_.bool_value;
+      resp.missing_state = !bs->has_state();
+      resp.key = bs->get_object_id_hash();
+      return encode_message_to_buffer(resp, message_type_, conn, remaining_size, is_single);
+    }
+#endif
+
+#ifdef USE_SENSOR
+    case SensorStateResponse::MESSAGE_TYPE: {
+      auto *s = static_cast<sensor::Sensor *>(entity);
+      SensorStateResponse resp;
+      resp.state = data_.float_value;
+      resp.missing_state = !s->has_state();
+      resp.key = s->get_object_id_hash();
+      return encode_message_to_buffer(resp, message_type_, conn, remaining_size, is_single);
+    }
+#endif
+
+#ifdef USE_SWITCH
+    case SwitchStateResponse::MESSAGE_TYPE: {
+      auto *sw = static_cast<switch_::Switch *>(entity);
+      SwitchStateResponse resp;
+      resp.state = data_.bool_value;
+      resp.key = sw->get_object_id_hash();
+      return encode_message_to_buffer(resp, message_type_, conn, remaining_size, is_single);
+    }
+#endif
+
+#ifdef USE_TEXT_SENSOR
+    case TextSensorStateResponse::MESSAGE_TYPE: {
+      auto *ts = static_cast<text_sensor::TextSensor *>(entity);
+      TextSensorStateResponse resp;
+      resp.state = *data_.string_ptr;
+      resp.missing_state = !ts->has_state();
+      resp.key = ts->get_object_id_hash();
+      return encode_message_to_buffer(resp, message_type_, conn, remaining_size, is_single);
+    }
+#endif
+
+#ifdef USE_SELECT
+    case SelectStateResponse::MESSAGE_TYPE: {
+      auto *s = static_cast<select::Select *>(entity);
+      SelectStateResponse resp;
+      resp.state = *data_.string_ptr;
+      resp.missing_state = !s->has_state();
+      resp.key = s->get_object_id_hash();
+      return encode_message_to_buffer(resp, message_type_, conn, remaining_size, is_single);
+    }
+#endif
+
+#ifdef USE_NUMBER
+    case NumberStateResponse::MESSAGE_TYPE: {
+      auto *n = static_cast<number::Number *>(entity);
+      NumberStateResponse resp;
+      resp.state = data_.float_value;
+      resp.missing_state = !n->has_state();
+      resp.key = n->get_object_id_hash();
+      return encode_message_to_buffer(resp, message_type_, conn, remaining_size, is_single);
+    }
+#endif
+
+#ifdef USE_TEXT
+    case TextStateResponse::MESSAGE_TYPE: {
+      auto *t = static_cast<text::Text *>(entity);
+      TextStateResponse resp;
+      resp.state = *data_.string_ptr;
+      resp.missing_state = !t->has_state();
+      resp.key = t->get_object_id_hash();
+      return encode_message_to_buffer(resp, message_type_, conn, remaining_size, is_single);
+    }
+#endif
+
+#ifdef USE_LOCK
+    case LockStateResponse::MESSAGE_TYPE: {
+      auto *l = static_cast<lock::Lock *>(entity);
+      LockStateResponse resp;
+      resp.state = static_cast<enums::LockState>(data_.lock_value);
+      resp.key = l->get_object_id_hash();
+      return encode_message_to_buffer(resp, message_type_, conn, remaining_size, is_single);
+    }
+#endif
+
+#ifdef USE_EVENT
+    case EventResponse::MESSAGE_TYPE: {
+      auto *e = static_cast<event::Event *>(entity);
+      EventResponse resp;
+      resp.event_type = *data_.string_ptr;
+      resp.key = e->get_object_id_hash();
+      return encode_message_to_buffer(resp, message_type_, conn, remaining_size, is_single);
+    }
+#endif
+
+    default:
+      // Should not happen, return empty message
+      return {0, 0};
   }
 }
 

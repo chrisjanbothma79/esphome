@@ -478,10 +478,113 @@ class APIConnection : public APIServerConnection {
   ListEntitiesIterator list_entities_iterator_;
   int state_subs_at_ = -1;
 
-  // Function type that encodes a message directly to buffer
-  // Returns EncodedMessage with sizes if successful, {0, 0} if it doesn't fit
-  using MessageCreator =
-      std::function<EncodedMessage(EntityBase *, APIConnection *, uint32_t remaining_size, bool is_single)>;
+  // Function pointer type for message encoding
+  using MessageCreatorPtr = EncodedMessage (*)(EntityBase *, APIConnection *, uint32_t remaining_size, bool is_single);
+
+  // Optimized MessageCreator class using union dispatch
+  class MessageCreator {
+   public:
+    // Constructor for function pointer (message_type = 0)
+    MessageCreator(MessageCreatorPtr ptr) : message_type_(0) { data_.ptr = ptr; }
+
+    // Constructor for bool state capture
+    MessageCreator(bool value, uint16_t msg_type) : message_type_(msg_type) { data_.bool_value = value; }
+
+    // Constructor for float state capture
+    MessageCreator(float value, uint16_t msg_type) : message_type_(msg_type) { data_.float_value = value; }
+
+    // Constructor for string state capture
+    MessageCreator(const std::string &value, uint16_t msg_type) : message_type_(msg_type) {
+      data_.string_ptr = new std::string(value);
+    }
+
+#ifdef USE_LOCK
+    // Constructor for lock state capture
+    MessageCreator(lock::LockState value, uint16_t msg_type) : message_type_(msg_type) { data_.lock_value = value; }
+#endif
+
+    // Destructor
+    ~MessageCreator() {
+      // Clean up string data for string-based message types
+      if (uses_string_data()) {
+        delete data_.string_ptr;
+      }
+    }
+
+    // Copy constructor
+    MessageCreator(const MessageCreator &other) : message_type_(other.message_type_) {
+      if (message_type_ == 0) {
+        data_.ptr = other.data_.ptr;
+      } else if (uses_string_data()) {
+        data_.string_ptr = new std::string(*other.data_.string_ptr);
+      } else {
+        data_ = other.data_;  // For POD types
+      }
+    }
+
+    // Move constructor
+    MessageCreator(MessageCreator &&other) noexcept : message_type_(other.message_type_), data_(other.data_) {
+      other.message_type_ = 0;  // Reset other to function pointer type
+      other.data_.ptr = nullptr;
+    }
+
+    // Assignment operators (needed for batch deduplication)
+    MessageCreator &operator=(const MessageCreator &other) {
+      if (this != &other) {
+        // Clean up current string data if needed
+        if (uses_string_data()) {
+          delete data_.string_ptr;
+        }
+        // Copy new data
+        message_type_ = other.message_type_;
+        if (other.message_type_ == 0) {
+          data_.ptr = other.data_.ptr;
+        } else if (other.uses_string_data()) {
+          data_.string_ptr = new std::string(*other.data_.string_ptr);
+        } else {
+          data_ = other.data_;
+        }
+      }
+      return *this;
+    }
+
+    MessageCreator &operator=(MessageCreator &&other) noexcept {
+      if (this != &other) {
+        // Clean up current string data if needed
+        if (uses_string_data()) {
+          delete data_.string_ptr;
+        }
+        // Move data
+        message_type_ = other.message_type_;
+        data_ = other.data_;
+        // Reset other to safe state
+        other.message_type_ = 0;
+        other.data_.ptr = nullptr;
+      }
+      return *this;
+    }
+
+    // Call operator
+    EncodedMessage operator()(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single) const;
+
+   private:
+    // Helper to check if this message type uses heap-allocated strings
+    bool uses_string_data() const {
+      return message_type_ == TextSensorStateResponse::MESSAGE_TYPE ||
+             message_type_ == SelectStateResponse::MESSAGE_TYPE || message_type_ == TextStateResponse::MESSAGE_TYPE ||
+             message_type_ == EventResponse::MESSAGE_TYPE;
+    }
+    union CreatorData {
+      MessageCreatorPtr ptr;    // 8 bytes
+      bool bool_value;          // 1 byte
+      float float_value;        // 4 bytes
+      std::string *string_ptr;  // 8 bytes
+#ifdef USE_LOCK
+      lock::LockState lock_value;  // 4 bytes
+#endif
+    } data_;                 // 8 bytes
+    uint16_t message_type_;  // 2 bytes (0 = function ptr, >0 = state capture)
+  };
 
   // Generic batching mechanism for both state updates and entity info
   struct DeferredBatch {
@@ -491,9 +594,7 @@ class APIConnection : public APIServerConnection {
       uint16_t message_type;   // Message type for overhead calculation
 
       // Constructor for creating BatchItem
-      BatchItem(EntityBase *entity,
-                std::function<EncodedMessage(EntityBase *, APIConnection *, uint32_t, bool)> creator,
-                uint16_t message_type)
+      BatchItem(EntityBase *entity, MessageCreator creator, uint16_t message_type)
           : entity(entity), creator(std::move(creator)), message_type(message_type) {}
     };
 
@@ -541,6 +642,11 @@ class APIConnection : public APIServerConnection {
   bool schedule_message_(EntityBase *entity, MessageCreator creator, uint16_t message_type) {
     this->deferred_batch_.add_item(entity, std::move(creator), message_type);
     return this->schedule_batch_();
+  }
+
+  // Overload for function pointers (for info messages and current state reads)
+  bool schedule_message_(EntityBase *entity, MessageCreatorPtr function_ptr, uint16_t message_type) {
+    return schedule_message_(entity, MessageCreator(function_ptr), message_type);
   }
 };
 
