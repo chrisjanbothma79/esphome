@@ -548,6 +548,17 @@ class APIConnection : public APIServerConnection {
 
   DeferredBatch deferred_batch_;
   static constexpr uint32_t BATCH_DELAY_MS = 100;
+  // Message will use 8 more bytes than the minimum size, and typical
+  // MTU is 1500. Sometimes users will see as low as 1460 MTU.
+  // If its IPv6 the header is 40 bytes, and if its IPv4
+  // the header is 20 bytes. So we have 1460 - 40 = 1420 bytes
+  // available for the payload. But we also need to add the size of
+  // the protobuf overhead, which is 8 bytes.
+  //
+  // To be safe we pick 1390 bytes as the maximum size
+  // to send in one go. This is the maximum size of a single packet
+  // that can be sent over the network.
+  // This is to avoid fragmentation of the packet.
   static constexpr size_t MAX_PACKET_SIZE = 1390;  // MTU
 
   bool schedule_batch_();
