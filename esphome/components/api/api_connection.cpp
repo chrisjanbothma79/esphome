@@ -1818,18 +1818,18 @@ void APIConnection::process_batch_() {
   std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> packet_info;
   packet_info.reserve(num_items);
 
+  // Cache these values to avoid repeated virtual calls
+  const uint8_t header_padding = this->helper_->frame_header_padding();
+  const uint8_t footer_size = this->helper_->frame_footer_size();
+
   // Initialize buffer and tracking variables
   this->proto_write_buffer_.clear();
-  // Reserve based on typical message size (24 bytes) * number of messages
-  this->proto_write_buffer_.reserve(24 * num_items);
+  // Reserve based on typical message size (24 bytes) + overhead per message
+  this->proto_write_buffer_.reserve((24 + header_padding + footer_size) * num_items);
   this->batch_first_message_ = true;
 
   size_t items_processed = 0;
   uint32_t remaining_size = MAX_BATCH_SIZE_BYTES;
-
-  // Cache these values to avoid repeated virtual calls
-  const uint8_t header_padding = this->helper_->frame_header_padding();
-  const uint8_t footer_size = this->helper_->frame_footer_size();
 
   // Track current position in buffer as we build it
   uint32_t current_offset = header_padding;
