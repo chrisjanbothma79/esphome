@@ -1788,18 +1788,16 @@ void APIConnection::process_batch_() {
     return;
   }
 
+  // Create overhead calculator once for the entire batch
+  OverheadCalculator overhead_calc = std::bind(&APIFrameHelper::calculate_packet_overhead, this->helper_.get(),
+                                               std::placeholders::_1, std::placeholders::_2);
+
   size_t num_items = this->deferred_batch_.items.size();
 
   // Fast path for single message - allocate exact size needed
   if (num_items == 1) {
     const auto &item = this->deferred_batch_.items[0];
-
-    // Use bound method for single message allocation
     BufferAllocator allocator = std::bind(&APIConnection::allocate_single_message_buffer, this, std::placeholders::_1);
-
-    // Bind the overhead calculator
-    OverheadCalculator overhead_calc = std::bind(&APIFrameHelper::calculate_packet_overhead, this->helper_.get(),
-                                                 std::placeholders::_1, std::placeholders::_2);
 
     // Let the creator calculate size and encode if it fits
     EncodedMessage msg = item.creator(item.entity, allocator, std::numeric_limits<uint16_t>::max(), overhead_calc);
@@ -1816,42 +1814,32 @@ void APIConnection::process_batch_() {
 
   ESP_LOGD(TAG, "Processing batch with %zu items", num_items);
 
+  // Pre-allocate storage for packet info
   std::vector<std::tuple<uint16_t, uint32_t, uint16_t>> packet_info;
   packet_info.reserve(num_items);
 
-  size_t items_processed = 0;
-  uint32_t current_offset = 0;
-  uint32_t remaining_size = MAX_BATCH_SIZE_BYTES;
-
-  // Initialize buffer for batch
+  // Initialize buffer and tracking variables
   this->proto_write_buffer_.clear();
+  this->proto_write_buffer_.reserve(MAX_BATCH_SIZE_BYTES);
   this->batch_first_message_ = true;
 
-  // Use bound method for batch allocation
+  size_t items_processed = 0;
+  uint32_t remaining_size = MAX_BATCH_SIZE_BYTES;
+
+  // Cache these values to avoid repeated virtual calls
+  const uint8_t header_padding = this->helper_->frame_header_padding();
+  const uint8_t footer_size = this->helper_->frame_footer_size();
+
+  // Create batch allocator
   BufferAllocator allocator = std::bind(&APIConnection::allocate_batch_message_buffer, this, std::placeholders::_1);
 
-  // Bind the overhead calculator
-  OverheadCalculator overhead_calc = std::bind(&APIFrameHelper::calculate_packet_overhead, this->helper_.get(),
-                                               std::placeholders::_1, std::placeholders::_2);
+  // Track current position in buffer as we build it
+  uint32_t current_offset = header_padding;
 
   // Process items and encode directly to buffer
-  for (size_t i = 0; i < this->deferred_batch_.items.size(); i++) {
-    const auto &item = this->deferred_batch_.items[i];
-
-    // Calculate where this message will start in the buffer
-    // The allocator will add footer (for previous message) + header padding before the message
-    if (i == 0) {
-      // First message starts after initial header padding
-      current_offset = this->helper_->frame_header_padding();
-    } else {
-      // Subsequent messages start after previous content + footer + header padding
-      current_offset =
-          this->proto_write_buffer_.size() + this->helper_->frame_footer_size() + this->helper_->frame_header_padding();
-    }
-
+  for (const auto &item : this->deferred_batch_.items) {
     // Try to encode message with allocator and overhead calculator
     // The creator will use the overhead calculator to determine if the message fits
-    // Pass the raw remaining size - the creator will calculate the overhead
     EncodedMessage msg = item.creator(item.entity, allocator, remaining_size, overhead_calc);
 
     if (!msg) {
@@ -1860,10 +1848,11 @@ void APIConnection::process_batch_() {
     }
 
     // Message was encoded successfully
-    packet_info.push_back(std::make_tuple(item.message_type, current_offset, msg.payload_size));
+    packet_info.emplace_back(item.message_type, current_offset, msg.payload_size);
 
-    // Update remaining size based on what was actually used
+    // Update tracking variables
     remaining_size -= msg.total_size;
+    current_offset = this->proto_write_buffer_.size() + footer_size + header_padding;
     items_processed++;
   }
 
@@ -1873,8 +1862,8 @@ void APIConnection::process_batch_() {
   }
 
   // Add final footer space for Noise if needed
-  if (this->helper_->frame_footer_size() > 0) {
-    this->proto_write_buffer_.resize(this->proto_write_buffer_.size() + this->helper_->frame_footer_size());
+  if (footer_size > 0) {
+    this->proto_write_buffer_.resize(this->proto_write_buffer_.size() + footer_size);
   }
 
   ESP_LOGD(TAG, "Sending batch: %zu messages, %zu total bytes", items_processed, this->proto_write_buffer_.size());
