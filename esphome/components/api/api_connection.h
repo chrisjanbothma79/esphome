@@ -246,7 +246,7 @@ class APIConnection : public APIServerConnection {
   }
 
   // Prepare buffer for next message in batch
-  ProtoWriteBuffer prepare_message_buffer(uint32_t message_size, bool is_first_message) {
+  ProtoWriteBuffer prepare_message_buffer(uint16_t message_size, bool is_first_message) {
     // Get reference to shared buffer (it maintains state between batch messages)
     std::vector<uint8_t> &shared_buf = this->parent_->get_shared_buffer_ref();
     size_t current_size = shared_buf.size();
@@ -284,8 +284,8 @@ class APIConnection : public APIServerConnection {
   std::string get_client_combined_info() const { return this->client_combined_info_; }
 
   // Buffer allocator methods for batch processing
-  ProtoWriteBuffer allocate_single_message_buffer(uint32_t size);
-  ProtoWriteBuffer allocate_batch_message_buffer(uint32_t size);
+  ProtoWriteBuffer allocate_single_message_buffer(uint16_t size);
+  ProtoWriteBuffer allocate_batch_message_buffer(uint16_t size);
 
  protected:
   // Helper function to fill common entity fields

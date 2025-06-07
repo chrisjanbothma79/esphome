@@ -1638,9 +1638,9 @@ bool APIConnection::schedule_batch_() {
   return true;
 }
 
-ProtoWriteBuffer APIConnection::allocate_single_message_buffer(uint32_t size) { return this->create_buffer(size); }
+ProtoWriteBuffer APIConnection::allocate_single_message_buffer(uint16_t size) { return this->create_buffer(size); }
 
-ProtoWriteBuffer APIConnection::allocate_batch_message_buffer(uint32_t size) {
+ProtoWriteBuffer APIConnection::allocate_batch_message_buffer(uint16_t size) {
   ProtoWriteBuffer result = this->prepare_message_buffer(size, this->batch_first_message_);
   this->batch_first_message_ = false;
   return result;
