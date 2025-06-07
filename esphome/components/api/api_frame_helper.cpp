@@ -1108,15 +1108,6 @@ APIError APIPlaintextFrameHelper::write_protobuf_packets(ProtoWriteBuffer buffer
   return write_raw_(this->reusable_iovs_.data(), this->reusable_iovs_.size());
 }
 
-uint8_t APIPlaintextFrameHelper::calculate_header_footer_size(uint16_t message_type, uint16_t payload_len) {
-  // Calculate varint sizes (actual encoding, not padded)
-  uint8_t size_varint_len = api::ProtoSize::varint(static_cast<uint32_t>(payload_len));
-  uint8_t type_varint_len = api::ProtoSize::varint(static_cast<uint32_t>(message_type));
-
-  // Plaintext header + footer size (without padding): indicator(1) + size_varint + type_varint + footer(0)
-  return 1 + size_varint_len + type_varint_len + frame_footer_size_;
-}
-
 #endif  // USE_API_PLAINTEXT
 
 }  // namespace api

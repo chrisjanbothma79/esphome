@@ -584,7 +584,7 @@ class APIConnection : public APIServerConnection {
 
     DeferredBatch() {
       // Pre-allocate capacity for typical batch sizes to avoid reallocation
-      items.reserve(16);
+      items.reserve(8);
     }
 
     // Add item to the batch
