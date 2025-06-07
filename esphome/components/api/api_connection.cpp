@@ -1722,12 +1722,11 @@ void APIConnection::process_batch_() {
     }
 
     // Message was encoded successfully
-    // payload_size now includes overhead, calculate actual payload size for PacketInfo
-    uint16_t actual_payload_size = payload_size - header_padding - footer_size;
-    packet_info.emplace_back(item.message_type, current_offset, actual_payload_size);
+    // payload_size is header_padding + actual payload size + footer_size
+    uint16_t proto_payload_size = payload_size - header_padding - footer_size;
+    packet_info.emplace_back(item.message_type, current_offset, proto_payload_size);
 
     // Update tracking variables
-    // payload_size now includes header_padding + footer_size
     remaining_size -= payload_size;
     // Calculate where the next message's header padding will start
     // Current buffer size + footer space (that prepare_message_buffer will add for this message)
