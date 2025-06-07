@@ -96,9 +96,11 @@ binary_sensor:
   - platform: template
     name: "Test Binary Sensor 1"
     lambda: return true;
+    update_interval: 0.1s
   - platform: template
     name: "Test Binary Sensor 2"
     lambda: return false;
+    update_interval: 0.1s
 
 text_sensor:
   - platform: template
