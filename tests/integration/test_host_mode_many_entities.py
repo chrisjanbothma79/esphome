@@ -18,10 +18,11 @@ async def test_host_mode_many_entities(
 ) -> None:
     """Test API batching with many entities of different types."""
     # Write, compile and run the ESPHome device, then connect to API
+    loop = asyncio.get_running_loop()
     async with run_compiled(yaml_config), api_client_connected() as client:
         # Subscribe to state changes
         states: dict[int, EntityState] = {}
-        entity_count_future: asyncio.Future[int] = asyncio.Future()
+        entity_count_future: asyncio.Future[int] = loop.create_future()
 
         def on_state(state: EntityState) -> None:
             states[state.key] = state

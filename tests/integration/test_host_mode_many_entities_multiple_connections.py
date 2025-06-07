@@ -18,6 +18,7 @@ async def test_host_mode_many_entities_multiple_connections(
 ) -> None:
     """Test shared buffer optimization with multiple API connections."""
     # Write, compile and run the ESPHome device
+    loop = asyncio.get_running_loop()
     async with (
         run_compiled(yaml_config),
         api_client_connected() as client1,
@@ -27,8 +28,8 @@ async def test_host_mode_many_entities_multiple_connections(
         states1: dict[int, EntityState] = {}
         states2: dict[int, EntityState] = {}
 
-        client1_ready = asyncio.Future()
-        client2_ready = asyncio.Future()
+        client1_ready = loop.create_future()
+        client2_ready = loop.create_future()
 
         def on_state1(state: EntityState) -> None:
             states1[state.key] = state
