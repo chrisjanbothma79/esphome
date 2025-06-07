@@ -318,7 +318,7 @@ class APIConnection : public APIServerConnection {
 #ifdef USE_BINARY_SENSOR
   static uint16_t try_send_binary_sensor_state_response(binary_sensor::BinarySensor *binary_sensor, bool state,
                                                         APIConnection *conn, uint32_t remaining_size, bool is_single);
-  static uint16_t try_send_binary_sensor_state(EntityBase *binary_sensor, APIConnection *conn, uint32_t remaining_size,
+  static uint16_t try_send_binary_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                bool is_single);
   static uint16_t try_send_binary_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                               bool is_single);
