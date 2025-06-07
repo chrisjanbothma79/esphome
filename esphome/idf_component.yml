@@ -7,7 +7,7 @@ dependencies:
     version: v2.0.15
   esp_modem:
     git: https://github.com/espressif/esp-protocols.git
-    version: modem-v1.1.0
+    version: modem-v1.4.0
     path: components/esp_modem
   mdns:
     git: https://github.com/espressif/esp-protocols.git
