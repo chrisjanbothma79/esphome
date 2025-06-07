@@ -399,6 +399,37 @@ def _arduino_check_versions(value):
     return value
 
 
+def _is_plaform_supports_idf_version(value, idf_version):
+    split = value[CONF_PLATFORM_VERSION].split('@')
+    if len(split) != 2:
+        _LOGGER.warning(
+            "Can't check if platform_version supports esp-idf version. "
+            "If there are connectivity or build issues please remove the manual platform_version."
+        )
+        return False
+    
+    for op, platform_version_str in cv.platformio_version_constraint(split[1]):
+        platform_version = cv.Version.parse(platform_version_str)
+        if supported_version := SUPPORTED_IDF_BY_PLATFORM.get(platform_version):
+            if op in (None, "^", ">=", ">", "~"):
+                if not _version_less(supported_version, idf_version):
+                    return True
+            elif op in ("<="):
+                if _version_less(supported_version, idf_version):
+                    raise cv.Invalid(f"because version constraint specified {op}{platform_version_str}", CONF_PLATFORM_VERSION)
+            elif op in ("<"):
+                if not _version_less(idf_version, supported_version):
+                    raise cv.Invalid(f"because version constraint specified {op}{platform_version_str}", CONF_PLATFORM_VERSION)
+            elif op in ("!="):
+                continue
+
+    _LOGGER.warning(
+        "Can't check if platform_version supports esp-idf version. "
+        "If there are connectivity or build issues please remove the manual platform_version."
+    )
+
+    return False
+
 def _esp_idf_check_versions(value):
     value = value.copy()
     lookups = {
@@ -452,35 +483,7 @@ def _esp_idf_check_versions(value):
 
     is_platformio = _platform_is_platformio(value[CONF_PLATFORM_VERSION])
     if is_platformio:
-        split = value[CONF_PLATFORM_VERSION].split('@')
-        if len(split) != 2:
-            _LOGGER.warning(
-                "Can't check if platform_version supports esp-idf version. "
-                "If there are connectivity or build issues please remove the manual platform_version."
-            )
-        else:
-            supported = None
-            for op, platform_version_str in cv.platformio_version_constraint(split[1]):
-                platform_version = cv.Version.parse(platform_version_str)
-                if supported_version := SUPPORTED_IDF_BY_PLATFORM.get(platform_version):
-                    if op in (None, "^", ">=", ">", "~"):
-                        if not _version_less(supported_version, version):
-                            supported = True
-                            break
-                    elif op in ("<="):
-                        if _version_less(supported_version, version):
-                            raise cv.Invalid(f"because version constraint specified {op}{platform_version_str}", CONF_PLATFORM_VERSION)
-                    elif op in ("<"):
-                        if not _version_less(version, supported_version):
-                            raise cv.Invalid(f"because version constraint specified {op}{platform_version_str}", CONF_PLATFORM_VERSION)
-                    elif op in ("!="):
-                        continue
-
-                if not supported:
-                    _LOGGER.warning(
-                        "Can't check if platform_version supports esp-idf version. "
-                        "If there are connectivity or build issues please remove the manual platform_version."
-                    )
+        _is_plaform_supports_idf_version(value, version)
     else:
         if (
             version.major < 5
@@ -520,7 +523,6 @@ def _esp_idf_check_versions(value):
 
 
 def _check_versions(config):
-    print(config)
     framework = config[CONF_FRAMEWORK]
     if framework[CONF_TYPE] == FRAMEWORK_ESP_IDF:
         config[CONF_FRAMEWORK] = _esp_idf_check_versions(framework)
