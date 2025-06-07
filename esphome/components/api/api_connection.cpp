@@ -1015,28 +1015,20 @@ void esphome::api::APIConnection::button_command(const ButtonCommandRequest &msg
 #endif
 
 #ifdef USE_LOCK
-bool APIConnection::send_lock_state(lock::Lock *a_lock, lock::LockState state) {
-  return this->schedule_message_(a_lock, MessageCreator(state, LockStateResponse::MESSAGE_TYPE),
-                                 LockStateResponse::MESSAGE_TYPE);
-}
 bool APIConnection::send_lock_state(lock::Lock *a_lock) {
   return this->schedule_message_(a_lock, &APIConnection::try_send_lock_state, LockStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_lock_info(lock::Lock *a_lock) {
   this->schedule_message_(a_lock, &APIConnection::try_send_lock_info, ListEntitiesLockResponse::MESSAGE_TYPE);
 }
-uint16_t APIConnection::try_send_lock_state_response(lock::Lock *a_lock, lock::LockState state, APIConnection *conn,
-                                                     uint32_t remaining_size, bool is_single) {
-  LockStateResponse resp;
-  resp.state = static_cast<enums::LockState>(state);
-  resp.key = a_lock->get_object_id_hash();
-  return encode_message_to_buffer(resp, LockStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-}
 
 uint16_t APIConnection::try_send_lock_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                             bool is_single) {
   auto *a_lock = static_cast<lock::Lock *>(entity);
-  return try_send_lock_state_response(a_lock, a_lock->state, conn, remaining_size, is_single);
+  LockStateResponse resp;
+  resp.state = static_cast<enums::LockState>(a_lock->state);
+  resp.key = a_lock->get_object_id_hash();
+  return encode_message_to_buffer(resp, LockStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 
 uint16_t APIConnection::try_send_lock_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -1917,13 +1909,6 @@ uint16_t APIConnection::MessageCreator::operator()(EntityBase *entity, APIConnec
     case TextStateResponse::MESSAGE_TYPE: {
       auto *t = static_cast<text::Text *>(entity);
       return APIConnection::try_send_text_state_response(t, *data_.string_ptr, conn, remaining_size, is_single);
-    }
-#endif
-
-#ifdef USE_LOCK
-    case LockStateResponse::MESSAGE_TYPE: {
-      auto *l = static_cast<lock::Lock *>(entity);
-      return APIConnection::try_send_lock_state_response(l, data_.lock_value, conn, remaining_size, is_single);
     }
 #endif
 

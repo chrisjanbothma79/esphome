@@ -112,7 +112,6 @@ class APIConnection : public APIServerConnection {
   void button_command(const ButtonCommandRequest &msg) override;
 #endif
 #ifdef USE_LOCK
-  bool send_lock_state(lock::Lock *a_lock, lock::LockState state);
   bool send_lock_state(lock::Lock *a_lock);
   void send_lock_info(lock::Lock *a_lock);
   void lock_command(const LockCommandRequest &msg) override;
@@ -396,8 +395,6 @@ class APIConnection : public APIServerConnection {
                                        bool is_single);
 #endif
 #ifdef USE_LOCK
-  static uint16_t try_send_lock_state_response(lock::Lock *a_lock, lock::LockState state, APIConnection *conn,
-                                               uint32_t remaining_size, bool is_single);
   static uint16_t try_send_lock_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
   static uint16_t try_send_lock_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
@@ -487,11 +484,6 @@ class APIConnection : public APIServerConnection {
       data_.string_ptr = new std::string(value);
     }
 
-#ifdef USE_LOCK
-    // Constructor for lock state capture
-    MessageCreator(lock::LockState value, uint16_t msg_type) : message_type_(msg_type) { data_.lock_value = value; }
-#endif
-
     // Destructor
     ~MessageCreator() {
       // Clean up string data for string-based message types
@@ -566,11 +558,8 @@ class APIConnection : public APIServerConnection {
     union CreatorData {
       MessageCreatorPtr ptr;    // 8 bytes
       std::string *string_ptr;  // 8 bytes
-#ifdef USE_LOCK
-      lock::LockState lock_value;  // 4 bytes
-#endif
-    } data_;                 // 8 bytes
-    uint16_t message_type_;  // 2 bytes (0 = function ptr, >0 = state capture)
+    } data_;                    // 8 bytes
+    uint16_t message_type_;     // 2 bytes (0 = function ptr, >0 = state capture)
   };
 
   // Generic batching mechanism for both state updates and entity info
