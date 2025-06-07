@@ -222,9 +222,8 @@ void APIServer::handle_disconnect(APIConnection *conn) {}
 void APIServer::on_binary_sensor_update(binary_sensor::BinarySensor *obj, bool state) {
   if (obj->is_internal())
     return;
-  bool use_current = (state == obj->state);
   for (auto &c : this->clients_)
-    use_current ? c->send_binary_sensor_state(obj) : c->send_binary_sensor_state(obj, state);
+    c->send_binary_sensor_state(obj);
 }
 #endif
 
@@ -269,9 +268,8 @@ void APIServer::on_sensor_update(sensor::Sensor *obj, float state) {
 void APIServer::on_switch_update(switch_::Switch *obj, bool state) {
   if (obj->is_internal())
     return;
-  bool use_current = (state == obj->state);
   for (auto &c : this->clients_)
-    use_current ? c->send_switch_state(obj) : c->send_switch_state(obj, state);
+    c->send_switch_state(obj);
 }
 #endif
 

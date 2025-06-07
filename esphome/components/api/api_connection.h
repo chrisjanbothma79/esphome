@@ -33,7 +33,6 @@ class APIConnection : public APIServerConnection {
                                    ListEntitiesDoneResponse::MESSAGE_TYPE);
   }
 #ifdef USE_BINARY_SENSOR
-  bool send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor, bool state);
   bool send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor);
   void send_binary_sensor_info(binary_sensor::BinarySensor *binary_sensor);
 #endif
@@ -58,7 +57,6 @@ class APIConnection : public APIServerConnection {
   void send_sensor_info(sensor::Sensor *sensor);
 #endif
 #ifdef USE_SWITCH
-  bool send_switch_state(switch_::Switch *a_switch, bool state);
   bool send_switch_state(switch_::Switch *a_switch);
   void send_switch_info(switch_::Switch *a_switch);
   void switch_command(const SwitchCommandRequest &msg) override;
@@ -316,8 +314,6 @@ class APIConnection : public APIServerConnection {
                                            uint32_t remaining_size, bool is_single);
 
 #ifdef USE_BINARY_SENSOR
-  static uint16_t try_send_binary_sensor_state_response(binary_sensor::BinarySensor *binary_sensor, bool state,
-                                                        APIConnection *conn, uint32_t remaining_size, bool is_single);
   static uint16_t try_send_binary_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                bool is_single);
   static uint16_t try_send_binary_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -346,8 +342,6 @@ class APIConnection : public APIServerConnection {
                                        bool is_single);
 #endif
 #ifdef USE_SWITCH
-  static uint16_t try_send_switch_state_response(switch_::Switch *a_switch, bool state, APIConnection *conn,
-                                                 uint32_t remaining_size, bool is_single);
   static uint16_t try_send_switch_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                         bool is_single);
   static uint16_t try_send_switch_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -494,9 +488,6 @@ class APIConnection : public APIServerConnection {
     // Constructor for function pointer (message_type = 0)
     MessageCreator(MessageCreatorPtr ptr) : message_type_(0) { data_.ptr = ptr; }
 
-    // Constructor for bool state capture
-    MessageCreator(bool value, uint16_t msg_type) : message_type_(msg_type) { data_.bool_value = value; }
-
     // Constructor for float state capture
     MessageCreator(float value, uint16_t msg_type) : message_type_(msg_type) { data_.float_value = value; }
 
@@ -583,7 +574,6 @@ class APIConnection : public APIServerConnection {
     }
     union CreatorData {
       MessageCreatorPtr ptr;    // 8 bytes
-      bool bool_value;          // 1 byte
       float float_value;        // 4 bytes
       std::string *string_ptr;  // 8 bytes
 #ifdef USE_LOCK
