@@ -1653,7 +1653,7 @@ void APIConnection::process_batch_() {
   }
 
   // Try to clear buffer first
-  if (!this->helper_->can_write_without_blocking()) {
+  if (!this->try_to_clear_buffer(true)) {
     // Can't write now, we'll try again later
     return;
   }
