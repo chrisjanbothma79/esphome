@@ -14,7 +14,7 @@ adc_oneshot_unit_handle_t ADCSensor::shared_adc1_handle = nullptr;
 adc_oneshot_unit_handle_t ADCSensor::shared_adc2_handle = nullptr;
 
 void ADCSensor::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up ADC '%s'...", this->get_name().c_str());
+  ESP_LOGCONFIG(TAG, "Running setup for '%s'", this->get_name().c_str());
 
   this->init_complete_ = false;
   this->handle_init_complete_ = false;
