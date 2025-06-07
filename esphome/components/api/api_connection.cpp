@@ -597,10 +597,6 @@ void APIConnection::switch_command(const SwitchCommandRequest &msg) {
 #endif
 
 #ifdef USE_TEXT_SENSOR
-bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor, const std::string &state) {
-  return this->schedule_message_(text_sensor, MessageCreator(state, TextSensorStateResponse::MESSAGE_TYPE),
-                                 TextSensorStateResponse::MESSAGE_TYPE);
-}
 bool APIConnection::send_text_sensor_state(text_sensor::TextSensor *text_sensor) {
   return this->schedule_message_(text_sensor, &APIConnection::try_send_text_sensor_state,
                                  TextSensorStateResponse::MESSAGE_TYPE);
@@ -609,20 +605,15 @@ void APIConnection::send_text_sensor_info(text_sensor::TextSensor *text_sensor) 
   this->schedule_message_(text_sensor, &APIConnection::try_send_text_sensor_info,
                           ListEntitiesTextSensorResponse::MESSAGE_TYPE);
 }
-uint16_t APIConnection::try_send_text_sensor_state_response(text_sensor::TextSensor *text_sensor,
-                                                            const std::string &state, APIConnection *conn,
-                                                            uint32_t remaining_size, bool is_single) {
-  TextSensorStateResponse resp;
-  resp.state = state;
-  resp.missing_state = !text_sensor->has_state();
-  resp.key = text_sensor->get_object_id_hash();
-  return encode_message_to_buffer(resp, TextSensorStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-}
 
 uint16_t APIConnection::try_send_text_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                    bool is_single) {
   auto *text_sensor = static_cast<text_sensor::TextSensor *>(entity);
-  return try_send_text_sensor_state_response(text_sensor, text_sensor->get_state(), conn, remaining_size, is_single);
+  TextSensorStateResponse resp;
+  resp.state = text_sensor->state;
+  resp.missing_state = !text_sensor->has_state();
+  resp.key = text_sensor->get_object_id_hash();
+  return encode_message_to_buffer(resp, TextSensorStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 uint16_t APIConnection::try_send_text_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                   bool is_single) {
@@ -897,29 +888,21 @@ void APIConnection::datetime_command(const DateTimeCommandRequest &msg) {
 #endif
 
 #ifdef USE_TEXT
-bool APIConnection::send_text_state(text::Text *text, const std::string &state) {
-  return this->schedule_message_(text, MessageCreator(state, TextStateResponse::MESSAGE_TYPE),
-                                 TextStateResponse::MESSAGE_TYPE);
-}
 bool APIConnection::send_text_state(text::Text *text) {
   return this->schedule_message_(text, &APIConnection::try_send_text_state, TextStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_text_info(text::Text *text) {
   this->schedule_message_(text, &APIConnection::try_send_text_info, ListEntitiesTextResponse::MESSAGE_TYPE);
 }
-uint16_t APIConnection::try_send_text_state_response(text::Text *text, const std::string &state, APIConnection *conn,
-                                                     uint32_t remaining_size, bool is_single) {
-  TextStateResponse resp;
-  resp.state = state;
-  resp.missing_state = !text->has_state();
-  resp.key = text->get_object_id_hash();
-  return encode_message_to_buffer(resp, TextStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-}
 
 uint16_t APIConnection::try_send_text_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                             bool is_single) {
   auto *text = static_cast<text::Text *>(entity);
-  return try_send_text_state_response(text, text->state, conn, remaining_size, is_single);
+  TextStateResponse resp;
+  resp.state = text->state;
+  resp.missing_state = !text->has_state();
+  resp.key = text->get_object_id_hash();
+  return encode_message_to_buffer(resp, TextStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 
 uint16_t APIConnection::try_send_text_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -946,29 +929,21 @@ void APIConnection::text_command(const TextCommandRequest &msg) {
 #endif
 
 #ifdef USE_SELECT
-bool APIConnection::send_select_state(select::Select *select, const std::string &state) {
-  return this->schedule_message_(select, MessageCreator(state, SelectStateResponse::MESSAGE_TYPE),
-                                 SelectStateResponse::MESSAGE_TYPE);
-}
 bool APIConnection::send_select_state(select::Select *select) {
   return this->schedule_message_(select, &APIConnection::try_send_select_state, SelectStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_select_info(select::Select *select) {
   this->schedule_message_(select, &APIConnection::try_send_select_info, ListEntitiesSelectResponse::MESSAGE_TYPE);
 }
-uint16_t APIConnection::try_send_select_state_response(select::Select *select, const std::string &state,
-                                                       APIConnection *conn, uint32_t remaining_size, bool is_single) {
-  SelectStateResponse resp;
-  resp.state = state;
-  resp.missing_state = !select->has_state();
-  resp.key = select->get_object_id_hash();
-  return encode_message_to_buffer(resp, SelectStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-}
 
 uint16_t APIConnection::try_send_select_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                               bool is_single) {
   auto *select = static_cast<select::Select *>(entity);
-  return try_send_select_state_response(select, select->state, conn, remaining_size, is_single);
+  SelectStateResponse resp;
+  resp.state = select->state;
+  resp.missing_state = !select->has_state();
+  resp.key = select->get_object_id_hash();
+  return encode_message_to_buffer(resp, SelectStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 
 uint16_t APIConnection::try_send_select_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -1890,27 +1865,6 @@ uint16_t APIConnection::MessageCreator::operator()(EntityBase *entity, APIConnec
   switch (message_type_) {
     case 0:  // Function pointer
       return data_.ptr(entity, conn, remaining_size, is_single);
-
-#ifdef USE_TEXT_SENSOR
-    case TextSensorStateResponse::MESSAGE_TYPE: {
-      auto *ts = static_cast<text_sensor::TextSensor *>(entity);
-      return APIConnection::try_send_text_sensor_state_response(ts, *data_.string_ptr, conn, remaining_size, is_single);
-    }
-#endif
-
-#ifdef USE_SELECT
-    case SelectStateResponse::MESSAGE_TYPE: {
-      auto *s = static_cast<select::Select *>(entity);
-      return APIConnection::try_send_select_state_response(s, *data_.string_ptr, conn, remaining_size, is_single);
-    }
-#endif
-
-#ifdef USE_TEXT
-    case TextStateResponse::MESSAGE_TYPE: {
-      auto *t = static_cast<text::Text *>(entity);
-      return APIConnection::try_send_text_state_response(t, *data_.string_ptr, conn, remaining_size, is_single);
-    }
-#endif
 
 #ifdef USE_EVENT
     case EventResponse::MESSAGE_TYPE: {

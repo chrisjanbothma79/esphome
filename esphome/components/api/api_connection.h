@@ -61,7 +61,6 @@ class APIConnection : public APIServerConnection {
   void switch_command(const SwitchCommandRequest &msg) override;
 #endif
 #ifdef USE_TEXT_SENSOR
-  bool send_text_sensor_state(text_sensor::TextSensor *text_sensor, const std::string &state);
   bool send_text_sensor_state(text_sensor::TextSensor *text_sensor);
   void send_text_sensor_info(text_sensor::TextSensor *text_sensor);
 #endif
@@ -96,13 +95,11 @@ class APIConnection : public APIServerConnection {
   void datetime_command(const DateTimeCommandRequest &msg) override;
 #endif
 #ifdef USE_TEXT
-  bool send_text_state(text::Text *text, const std::string &state);
   bool send_text_state(text::Text *text);
   void send_text_info(text::Text *text);
   void text_command(const TextCommandRequest &msg) override;
 #endif
 #ifdef USE_SELECT
-  bool send_select_state(select::Select *select, const std::string &state);
   bool send_select_state(select::Select *select);
   void send_select_info(select::Select *select);
   void select_command(const SelectCommandRequest &msg) override;
@@ -343,8 +340,6 @@ class APIConnection : public APIServerConnection {
                                        bool is_single);
 #endif
 #ifdef USE_TEXT_SENSOR
-  static uint16_t try_send_text_sensor_state_response(text_sensor::TextSensor *text_sensor, const std::string &state,
-                                                      APIConnection *conn, uint32_t remaining_size, bool is_single);
   static uint16_t try_send_text_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                              bool is_single);
   static uint16_t try_send_text_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -377,14 +372,10 @@ class APIConnection : public APIServerConnection {
                                          bool is_single);
 #endif
 #ifdef USE_TEXT
-  static uint16_t try_send_text_state_response(text::Text *text, const std::string &state, APIConnection *conn,
-                                               uint32_t remaining_size, bool is_single);
   static uint16_t try_send_text_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
   static uint16_t try_send_text_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_SELECT
-  static uint16_t try_send_select_state_response(select::Select *select, const std::string &state, APIConnection *conn,
-                                                 uint32_t remaining_size, bool is_single);
   static uint16_t try_send_select_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                         bool is_single);
   static uint16_t try_send_select_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -550,11 +541,7 @@ class APIConnection : public APIServerConnection {
 
    private:
     // Helper to check if this message type uses heap-allocated strings
-    bool uses_string_data_() const {
-      return message_type_ == TextSensorStateResponse::MESSAGE_TYPE ||
-             message_type_ == SelectStateResponse::MESSAGE_TYPE || message_type_ == TextStateResponse::MESSAGE_TYPE ||
-             message_type_ == EventResponse::MESSAGE_TYPE;
-    }
+    bool uses_string_data_() const { return message_type_ == EventResponse::MESSAGE_TYPE; }
     union CreatorData {
       MessageCreatorPtr ptr;    // 8 bytes
       std::string *string_ptr;  // 8 bytes
