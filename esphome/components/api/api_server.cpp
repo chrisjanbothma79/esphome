@@ -258,9 +258,8 @@ void APIServer::on_light_update(light::LightState *obj) {
 void APIServer::on_sensor_update(sensor::Sensor *obj, float state) {
   if (obj->is_internal())
     return;
-  bool use_current = (state == obj->state);
   for (auto &c : this->clients_)
-    use_current ? c->send_sensor_state(obj) : c->send_sensor_state(obj, state);
+    c->send_sensor_state(obj);
 }
 #endif
 
@@ -296,9 +295,8 @@ void APIServer::on_climate_update(climate::Climate *obj) {
 void APIServer::on_number_update(number::Number *obj, float state) {
   if (obj->is_internal())
     return;
-  bool use_current = (state == obj->state);
   for (auto &c : this->clients_)
-    use_current ? c->send_number_state(obj) : c->send_number_state(obj, state);
+    c->send_number_state(obj);
 }
 #endif
 

@@ -522,29 +522,21 @@ void APIConnection::light_command(const LightCommandRequest &msg) {
 #endif
 
 #ifdef USE_SENSOR
-bool APIConnection::send_sensor_state(sensor::Sensor *sensor, float state) {
-  return this->schedule_message_(sensor, MessageCreator(state, SensorStateResponse::MESSAGE_TYPE),
-                                 SensorStateResponse::MESSAGE_TYPE);
-}
 bool APIConnection::send_sensor_state(sensor::Sensor *sensor) {
   return this->schedule_message_(sensor, &APIConnection::try_send_sensor_state, SensorStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_sensor_info(sensor::Sensor *sensor) {
   this->schedule_message_(sensor, &APIConnection::try_send_sensor_info, ListEntitiesSensorResponse::MESSAGE_TYPE);
 }
-uint16_t APIConnection::try_send_sensor_state_response(sensor::Sensor *sensor, float state, APIConnection *conn,
-                                                       uint32_t remaining_size, bool is_single) {
-  SensorStateResponse resp;
-  resp.state = state;
-  resp.missing_state = !sensor->has_state();
-  resp.key = sensor->get_object_id_hash();
-  return encode_message_to_buffer(resp, SensorStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-}
 
 uint16_t APIConnection::try_send_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                               bool is_single) {
   auto *sensor = static_cast<sensor::Sensor *>(entity);
-  return try_send_sensor_state_response(sensor, sensor->state, conn, remaining_size, is_single);
+  SensorStateResponse resp;
+  resp.state = sensor->state;
+  resp.missing_state = !sensor->has_state();
+  resp.key = sensor->get_object_id_hash();
+  return encode_message_to_buffer(resp, SensorStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 
 uint16_t APIConnection::try_send_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -749,29 +741,21 @@ void APIConnection::climate_command(const ClimateCommandRequest &msg) {
 #endif
 
 #ifdef USE_NUMBER
-bool APIConnection::send_number_state(number::Number *number, float state) {
-  return this->schedule_message_(number, MessageCreator(state, NumberStateResponse::MESSAGE_TYPE),
-                                 NumberStateResponse::MESSAGE_TYPE);
-}
 bool APIConnection::send_number_state(number::Number *number) {
   return this->schedule_message_(number, &APIConnection::try_send_number_state, NumberStateResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_number_info(number::Number *number) {
   this->schedule_message_(number, &APIConnection::try_send_number_info, ListEntitiesNumberResponse::MESSAGE_TYPE);
 }
-uint16_t APIConnection::try_send_number_state_response(number::Number *number, float state, APIConnection *conn,
-                                                       uint32_t remaining_size, bool is_single) {
-  NumberStateResponse resp;
-  resp.state = state;
-  resp.missing_state = !number->has_state();
-  resp.key = number->get_object_id_hash();
-  return encode_message_to_buffer(resp, NumberStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
-}
 
 uint16_t APIConnection::try_send_number_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                               bool is_single) {
   auto *number = static_cast<number::Number *>(entity);
-  return try_send_number_state_response(number, number->state, conn, remaining_size, is_single);
+  NumberStateResponse resp;
+  resp.state = number->state;
+  resp.missing_state = !number->has_state();
+  resp.key = number->get_object_id_hash();
+  return encode_message_to_buffer(resp, NumberStateResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 
 uint16_t APIConnection::try_send_number_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -1915,13 +1899,6 @@ uint16_t APIConnection::MessageCreator::operator()(EntityBase *entity, APIConnec
     case 0:  // Function pointer
       return data_.ptr(entity, conn, remaining_size, is_single);
 
-#ifdef USE_SENSOR
-    case SensorStateResponse::MESSAGE_TYPE: {
-      auto *s = static_cast<sensor::Sensor *>(entity);
-      return APIConnection::try_send_sensor_state_response(s, data_.float_value, conn, remaining_size, is_single);
-    }
-#endif
-
 #ifdef USE_TEXT_SENSOR
     case TextSensorStateResponse::MESSAGE_TYPE: {
       auto *ts = static_cast<text_sensor::TextSensor *>(entity);
@@ -1933,13 +1910,6 @@ uint16_t APIConnection::MessageCreator::operator()(EntityBase *entity, APIConnec
     case SelectStateResponse::MESSAGE_TYPE: {
       auto *s = static_cast<select::Select *>(entity);
       return APIConnection::try_send_select_state_response(s, *data_.string_ptr, conn, remaining_size, is_single);
-    }
-#endif
-
-#ifdef USE_NUMBER
-    case NumberStateResponse::MESSAGE_TYPE: {
-      auto *n = static_cast<number::Number *>(entity);
-      return APIConnection::try_send_number_state_response(n, data_.float_value, conn, remaining_size, is_single);
     }
 #endif
 

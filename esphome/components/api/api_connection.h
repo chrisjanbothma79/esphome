@@ -52,7 +52,6 @@ class APIConnection : public APIServerConnection {
   void light_command(const LightCommandRequest &msg) override;
 #endif
 #ifdef USE_SENSOR
-  bool send_sensor_state(sensor::Sensor *sensor, float state);
   bool send_sensor_state(sensor::Sensor *sensor);
   void send_sensor_info(sensor::Sensor *sensor);
 #endif
@@ -77,7 +76,6 @@ class APIConnection : public APIServerConnection {
   void climate_command(const ClimateCommandRequest &msg) override;
 #endif
 #ifdef USE_NUMBER
-  bool send_number_state(number::Number *number, float state);
   bool send_number_state(number::Number *number);
   void send_number_info(number::Number *number);
   void number_command(const NumberCommandRequest &msg) override;
@@ -334,8 +332,6 @@ class APIConnection : public APIServerConnection {
   static uint16_t try_send_light_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single);
 #endif
 #ifdef USE_SENSOR
-  static uint16_t try_send_sensor_state_response(sensor::Sensor *sensor, float state, APIConnection *conn,
-                                                 uint32_t remaining_size, bool is_single);
   static uint16_t try_send_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                         bool is_single);
   static uint16_t try_send_sensor_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -362,8 +358,6 @@ class APIConnection : public APIServerConnection {
                                         bool is_single);
 #endif
 #ifdef USE_NUMBER
-  static uint16_t try_send_number_state_response(number::Number *number, float state, APIConnection *conn,
-                                                 uint32_t remaining_size, bool is_single);
   static uint16_t try_send_number_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                         bool is_single);
   static uint16_t try_send_number_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -488,9 +482,6 @@ class APIConnection : public APIServerConnection {
     // Constructor for function pointer (message_type = 0)
     MessageCreator(MessageCreatorPtr ptr) : message_type_(0) { data_.ptr = ptr; }
 
-    // Constructor for float state capture
-    MessageCreator(float value, uint16_t msg_type) : message_type_(msg_type) { data_.float_value = value; }
-
     // Constructor for string state capture
     MessageCreator(const std::string &value, uint16_t msg_type) : message_type_(msg_type) {
       data_.string_ptr = new std::string(value);
@@ -574,7 +565,6 @@ class APIConnection : public APIServerConnection {
     }
     union CreatorData {
       MessageCreatorPtr ptr;    // 8 bytes
-      float float_value;        // 4 bytes
       std::string *string_ptr;  // 8 bytes
 #ifdef USE_LOCK
       lock::LockState lock_value;  // 4 bytes
