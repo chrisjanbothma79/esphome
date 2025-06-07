@@ -244,6 +244,8 @@ void APIConnection::on_disconnect_response(const DisconnectResponse &value) {
   // pass
 }
 
+// Encodes a message to the buffer and returns the total number of bytes used,
+// including header and footer overhead. Returns 0 if the message doesn't fit.
 uint16_t APIConnection::encode_message_to_buffer(ProtoMessage &msg, uint16_t message_type, APIConnection *conn,
                                                  uint32_t remaining_size, bool is_single) {
   // Calculate size
