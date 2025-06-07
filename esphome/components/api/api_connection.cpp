@@ -33,8 +33,6 @@ static const int ESP32_CAMERA_STOP_STREAM = 5000;
 
 APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *parent)
     : parent_(parent), initial_state_iterator_(this), list_entities_iterator_(this) {
-  this->proto_write_buffer_.reserve(64);
-
 #if defined(USE_API_PLAINTEXT) && defined(USE_API_NOISE)
   auto noise_ctx = parent->get_noise_ctx();
   if (noise_ctx->has_psk()) {
@@ -1669,7 +1667,8 @@ void APIConnection::process_batch_() {
     // Let the creator calculate size and encode if it fits
     uint16_t payload_size = item.creator(item.entity, this, std::numeric_limits<uint16_t>::max(), true);
 
-    if (payload_size > 0 && this->send_buffer(ProtoWriteBuffer{&this->proto_write_buffer_}, item.message_type)) {
+    if (payload_size > 0 &&
+        this->send_buffer(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, item.message_type)) {
       this->deferred_batch_.clear();
     } else if (payload_size == 0) {
       // Message too large
@@ -1688,7 +1687,7 @@ void APIConnection::process_batch_() {
   const uint8_t footer_size = this->helper_->frame_footer_size();
 
   // Initialize buffer and tracking variables
-  this->proto_write_buffer_.clear();
+  this->parent_->get_shared_buffer_ref().clear();
 
   // Pre-calculate exact buffer size needed based on message types
   uint32_t total_estimated_size = 0;
@@ -1700,7 +1699,7 @@ void APIConnection::process_batch_() {
   uint32_t total_overhead = (header_padding + footer_size) * num_items;
 
   // Reserve based on estimated size (much more accurate than 24-byte worst-case)
-  this->proto_write_buffer_.reserve(total_estimated_size + total_overhead);
+  this->parent_->get_shared_buffer_ref().reserve(total_estimated_size + total_overhead);
   this->batch_first_message_ = true;
 
   size_t items_processed = 0;
@@ -1732,7 +1731,7 @@ void APIConnection::process_batch_() {
     remaining_size -= payload_size;
     // Calculate where the next message's header padding will start
     // Current buffer size + footer space (that prepare_message_buffer will add for this message)
-    current_offset = this->proto_write_buffer_.size() + footer_size;
+    current_offset = this->parent_->get_shared_buffer_ref().size() + footer_size;
     items_processed++;
   }
 
@@ -1743,11 +1742,13 @@ void APIConnection::process_batch_() {
 
   // Add footer space for the last message (for Noise protocol MAC)
   if (footer_size > 0) {
-    this->proto_write_buffer_.resize(this->proto_write_buffer_.size() + footer_size);
+    auto &shared_buf = this->parent_->get_shared_buffer_ref();
+    shared_buf.resize(shared_buf.size() + footer_size);
   }
 
   // Send all collected packets
-  APIError err = this->helper_->write_protobuf_packets(ProtoWriteBuffer{&this->proto_write_buffer_}, packet_info);
+  APIError err =
+      this->helper_->write_protobuf_packets(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, packet_info);
   if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
     on_fatal_error();
     if (err == APIError::SOCKET_WRITE_FAILED && errno == ECONNRESET) {

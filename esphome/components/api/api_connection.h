@@ -233,45 +233,49 @@ class APIConnection : public APIServerConnection {
     // Get header padding size - used for both reserve and insert
     uint8_t header_padding = this->helper_->frame_header_padding();
 
-    this->proto_write_buffer_.clear();
+    // Get shared buffer from parent server
+    std::vector<uint8_t> &shared_buf = this->parent_->get_shared_buffer_ref();
+    shared_buf.clear();
     // Reserve space for header padding + message + footer
     // - Header padding: space for protocol headers (7 bytes for Noise, 6 for Plaintext)
     // - Footer: space for MAC (16 bytes for Noise, 0 for Plaintext)
-    this->proto_write_buffer_.reserve(reserve_size + header_padding + this->helper_->frame_footer_size());
+    shared_buf.reserve(reserve_size + header_padding + this->helper_->frame_footer_size());
     // Insert header padding bytes so message encoding starts at the correct position
-    this->proto_write_buffer_.insert(this->proto_write_buffer_.begin(), header_padding, 0);
-    return {&this->proto_write_buffer_};
+    shared_buf.insert(shared_buf.begin(), header_padding, 0);
+    return {&shared_buf};
   }
 
   // Prepare buffer for next message in batch
   ProtoWriteBuffer prepare_message_buffer(uint32_t message_size, bool is_first_message) {
-    size_t current_size = this->proto_write_buffer_.size();
+    // Get reference to shared buffer (it maintains state between batch messages)
+    std::vector<uint8_t> &shared_buf = this->parent_->get_shared_buffer_ref();
+    size_t current_size = shared_buf.size();
 
     if (is_first_message) {
       // For first message, initialize buffer with header padding
       uint8_t header_padding = this->helper_->frame_header_padding();
-      this->proto_write_buffer_.clear();
-      this->proto_write_buffer_.reserve(message_size + header_padding);
-      this->proto_write_buffer_.resize(header_padding);
+      shared_buf.clear();
+      shared_buf.reserve(message_size + header_padding);
+      shared_buf.resize(header_padding);
       // Fill header padding with zeros
-      std::fill(this->proto_write_buffer_.begin(), this->proto_write_buffer_.end(), 0);
+      std::fill(shared_buf.begin(), shared_buf.end(), 0);
     } else {
       // For subsequent messages, add footer space for previous message and header for this message
       uint8_t footer_size = this->helper_->frame_footer_size();
       uint8_t header_padding = this->helper_->frame_header_padding();
 
       // Reserve additional space for everything
-      this->proto_write_buffer_.reserve(current_size + footer_size + header_padding + message_size);
+      shared_buf.reserve(current_size + footer_size + header_padding + message_size);
 
       // Single resize to add both footer and header padding
       size_t new_size = current_size + footer_size + header_padding;
-      this->proto_write_buffer_.resize(new_size);
+      shared_buf.resize(new_size);
 
       // Fill the newly added bytes with zeros (footer + header padding)
-      std::fill(this->proto_write_buffer_.begin() + current_size, this->proto_write_buffer_.end(), 0);
+      std::fill(shared_buf.begin() + current_size, shared_buf.end(), 0);
     }
 
-    return {&this->proto_write_buffer_};
+    return {&shared_buf};
   }
 
   bool try_to_clear_buffer(bool log_out_of_space);
@@ -431,9 +435,6 @@ class APIConnection : public APIServerConnection {
 
   bool remove_{false};
 
-  // Buffer used to encode proto messages
-  // Re-use to prevent allocations
-  std::vector<uint8_t> proto_write_buffer_;
   std::unique_ptr<APIFrameHelper> helper_;
 
   std::string client_info_;

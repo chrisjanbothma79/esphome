@@ -24,7 +24,11 @@ static const char *const TAG = "api";
 // APIServer
 APIServer *global_api_server = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
-APIServer::APIServer() { global_api_server = this; }
+APIServer::APIServer() {
+  global_api_server = this;
+  // Pre-allocate shared write buffer
+  shared_write_buffer_.reserve(64);
+}
 
 void APIServer::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
