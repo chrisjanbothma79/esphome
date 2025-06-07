@@ -109,6 +109,8 @@ def set_core_data(config):
         choices = CPU_FREQUENCIES[variant]
         if "160MHZ" in choices:
             cpu_frequency = "160MHZ"
+        elif "360MHZ" in choices:
+            cpu_frequency = "360MHZ"
         else:
             cpu_frequency = choices[-1]
         config[CONF_CPU_FREQUENCY] = cpu_frequency
