@@ -247,8 +247,7 @@ light::ESPColorView ESP32RMTLEDStripLightOutput::get_view_internal(int32_t index
 }
 
 void ESP32RMTLEDStripLightOutput::dump_config() {
-  ESP_LOGCONFIG(TAG, "ESP32 RMT LED Strip:");
-  ESP_LOGCONFIG(TAG, "  Pin: %u", this->pin_);
+  ESP_LOGCONFIG(TAG, "ESP32 RMT LED Strip:\n  Pin: %u", this->pin_);
 #if ESP_IDF_VERSION_MAJOR >= 5
   ESP_LOGCONFIG(TAG, "  RMT Symbols: %" PRIu32, this->rmt_symbols_);
 #else
