@@ -186,8 +186,11 @@ void HOT Inkplate6::draw_absolute_pixel_internal(int x, int y, Color color) {
 
 void Inkplate6::dump_config() {
   LOG_DISPLAY("", "Inkplate", this);
-  ESP_LOGCONFIG(TAG, "  Greyscale: %s\n  Partial Updating: %s\n  Full Update Every: %d", YESNO(this->greyscale_),
-                YESNO(this->partial_updating_), this->full_update_every_);
+  ESP_LOGCONFIG(TAG,
+                "  Greyscale: %s\n"
+                "  Partial Updating: %s\n"
+                "  Full Update Every: %d",
+                YESNO(this->greyscale_), YESNO(this->partial_updating_), this->full_update_every_);
   // Log pins
   LOG_PIN("  CKV Pin: ", this->ckv_pin_);
   LOG_PIN("  CL Pin: ", this->cl_pin_);

@@ -222,8 +222,11 @@ void VEML3235Sensor::dump_config() {
                   "as initial values only",
                   this->auto_gain_threshold_high_ * 100.0, this->auto_gain_threshold_low_ * 100.0);
   }
-  ESP_LOGCONFIG(TAG, "  Digital gain: %uX\n  Gain: %uX\n  Integration time: %ums", digital_gain, gain,
-                integration_time);
+  ESP_LOGCONFIG(TAG,
+                "  Digital gain: %uX\n"
+                "  Gain: %uX\n"
+                "  Integration time: %ums",
+                digital_gain, gain, integration_time);
 }
 
 }  // namespace veml3235

@@ -8,7 +8,12 @@ namespace qr_code {
 
 static const char *const TAG = "qr_code";
 
-void QrCode::dump_config() { ESP_LOGCONFIG(TAG, "QR code:\n  Value: '%s'", this->value_.c_str()); }
+void QrCode::dump_config() {
+  ESP_LOGCONFIG(TAG,
+                "QR code:\n"
+                "  Value: '%s'",
+                this->value_.c_str());
+}
 
 void QrCode::set_value(const std::string &value) {
   this->value_ = value;

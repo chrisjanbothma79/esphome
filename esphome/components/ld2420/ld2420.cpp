@@ -65,7 +65,11 @@ static const char *const TAG = "ld2420";
 float LD2420Component::get_setup_priority() const { return setup_priority::BUS; }
 
 void LD2420Component::dump_config() {
-  ESP_LOGCONFIG(TAG, "LD2420:\n  Firmware Version : %7s\nLD2420 Number:", this->ld2420_firmware_ver_);
+  ESP_LOGCONFIG(TAG,
+                "LD2420:\n"
+                "  Firmware Version : %7s\n"
+                "LD2420 Number:",
+                this->ld2420_firmware_ver_);
 #ifdef USE_NUMBER
   LOG_NUMBER(TAG, "  Gate Timeout:", this->gate_timeout_number_);
   LOG_NUMBER(TAG, "  Gate Max Distance:", this->max_gate_distance_number_);

@@ -290,7 +290,10 @@ void SourceSpeaker::duck_samples(int16_t *input_buffer, uint32_t input_samples_t
 }
 
 void MixerSpeaker::dump_config() {
-  ESP_LOGCONFIG(TAG, "Speaker Mixer:\n  Number of output channels: %u", this->output_channels_);
+  ESP_LOGCONFIG(TAG,
+                "Speaker Mixer:\n"
+                "  Number of output channels: %u",
+                this->output_channels_);
 }
 
 void MixerSpeaker::setup() {

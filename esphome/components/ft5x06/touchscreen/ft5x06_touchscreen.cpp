@@ -81,8 +81,11 @@ void FT5x06Touchscreen::update_touches() {
 }
 
 void FT5x06Touchscreen::dump_config() {
-  ESP_LOGCONFIG(TAG, "FT5x06 Touchscreen:\n  Address: 0x%02X\n  Vendor ID: 0x%X", this->address_,
-                (int) this->vendor_id_);
+  ESP_LOGCONFIG(TAG,
+                "FT5x06 Touchscreen:\n"
+                "  Address: 0x%02X\n"
+                "  Vendor ID: 0x%X",
+                this->address_, (int) this->vendor_id_);
 }
 
 bool FT5x06Touchscreen::err_check_(i2c::ErrorCode err, const char *msg) {

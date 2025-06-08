@@ -40,7 +40,10 @@ void AbsoluteHumidityComponent::dump_config() {
       break;
   }
 
-  ESP_LOGCONFIG(TAG, "Sources\n  Temperature: '%s'\n  Relative Humidity: '%s'",
+  ESP_LOGCONFIG(TAG,
+                "Sources\n"
+                "  Temperature: '%s'\n"
+                "  Relative Humidity: '%s'",
                 this->temperature_sensor_->get_name().c_str(), this->humidity_sensor_->get_name().c_str());
 }
 

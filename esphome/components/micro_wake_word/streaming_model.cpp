@@ -11,12 +11,18 @@ namespace esphome {
 namespace micro_wake_word {
 
 void WakeWordModel::log_model_config() {
-  ESP_LOGCONFIG(TAG, "    - Wake Word: %s\n      Probability cutoff: %.2f\n      Sliding window size: %d",
+  ESP_LOGCONFIG(TAG,
+                "    - Wake Word: %s\n"
+                "      Probability cutoff: %.2f\n"
+                "      Sliding window size: %d",
                 this->wake_word_.c_str(), this->probability_cutoff_ / 255.0f, this->sliding_window_size_);
 }
 
 void VADModel::log_model_config() {
-  ESP_LOGCONFIG(TAG, "    - VAD Model\n      Probability cutoff: %.2f\n      Sliding window size: %d",
+  ESP_LOGCONFIG(TAG,
+                "    - VAD Model\n"
+                "      Probability cutoff: %.2f\n"
+                "      Sliding window size: %d",
                 this->probability_cutoff_ / 255.0f, this->sliding_window_size_);
 }
 

@@ -8,7 +8,10 @@ static const char *const TAG = "resistance";
 
 void ResistanceSensor::dump_config() {
   LOG_SENSOR("", "Resistance Sensor", this);
-  ESP_LOGCONFIG(TAG, "  Configuration: %s\n  Resistor: %.2fΩ\n  Reference Voltage: %.1fV",
+  ESP_LOGCONFIG(TAG,
+                "  Configuration: %s\n"
+                "  Resistor: %.2fΩ\n"
+                "  Reference Voltage: %.1fV",
                 this->configuration_ == UPSTREAM ? "UPSTREAM" : "DOWNSTREAM", this->resistor_,
                 this->reference_voltage_);
 }

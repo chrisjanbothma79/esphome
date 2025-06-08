@@ -58,7 +58,10 @@ void WiFiComponent::setup() {
 }
 
 void WiFiComponent::start() {
-  ESP_LOGCONFIG(TAG, "Starting\n  Local MAC: %s", get_mac_address_pretty().c_str());
+  ESP_LOGCONFIG(TAG,
+                "Starting\n"
+                "  Local MAC: %s",
+                get_mac_address_pretty().c_str());
   this->last_connected_ = millis();
 
   uint32_t hash = this->has_sta() ? fnv1_hash(App.get_compilation_time()) : 88491487UL;
@@ -261,8 +264,10 @@ void WiFiComponent::setup_ap_config_() {
 
   ESP_LOGCONFIG(TAG, "Setting up AP");
 
-  ESP_LOGCONFIG(TAG, "  AP SSID: '%s'\n  AP Password: '%s'", this->ap_.get_ssid().c_str(),
-                this->ap_.get_password().c_str());
+  ESP_LOGCONFIG(TAG,
+                "  AP SSID: '%s'\n"
+                "  AP Password: '%s'",
+                this->ap_.get_ssid().c_str(), this->ap_.get_password().c_str());
   if (this->ap_.get_manual_ip().has_value()) {
     auto manual = *this->ap_.get_manual_ip();
     ESP_LOGCONFIG(TAG,

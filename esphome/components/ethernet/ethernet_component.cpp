@@ -340,7 +340,10 @@ void EthernetComponent::dump_config() {
   {
     ESP_LOGCONFIG(TAG, "  IRQ Pin: %d", this->interrupt_pin_);
   }
-  ESP_LOGCONFIG(TAG, "  Reset Pin: %d\n  Clock Speed: %d MHz", this->reset_pin_, this->clock_speed_ / 1000000);
+  ESP_LOGCONFIG(TAG,
+                "  Reset Pin: %d\n"
+                "  Clock Speed: %d MHz",
+                this->reset_pin_, this->clock_speed_ / 1000000);
 #else
   if (this->power_pin_ != -1) {
     ESP_LOGCONFIG(TAG, "  Power Pin: %u", this->power_pin_);

@@ -86,7 +86,11 @@ lv_event_code_t lv_api_event;     // NOLINT
 lv_event_code_t lv_update_event;  // NOLINT
 void LvglComponent::dump_config() {
   ESP_LOGCONFIG(TAG,
-                "LVGL:\n  Display width/height: %d x %d\n  Buffer size: %zu%%\n  Rotation: %d\n  Draw rounding: %d",
+                "LVGL:\n"
+                "  Display width/height: %d x %d\n"
+                "  Buffer size: %zu%%\n"
+                "  Rotation: %d\n"
+                "  Draw rounding: %d",
                 this->disp_drv_.hor_res, this->disp_drv_.ver_res, 100 / this->buffer_frac_, this->rotation,
                 (int) this->draw_rounding);
 }

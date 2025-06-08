@@ -19,8 +19,12 @@ void LCDCharacterMenuComponent::setup() {
 float LCDCharacterMenuComponent::get_setup_priority() const { return setup_priority::PROCESSOR - 1.0f; }
 
 void LCDCharacterMenuComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "LCD Menu\n  Columns: %u, Rows: %u\n  Mark characters: %02x, %02x, %02x, %02x", this->columns_,
-                this->rows_, this->mark_selected_, this->mark_editing_, this->mark_submenu_, this->mark_back_);
+  ESP_LOGCONFIG(TAG,
+                "LCD Menu\n"
+                "  Columns: %u, Rows: %u\n"
+                "  Mark characters: %02x, %02x, %02x, %02x",
+                this->columns_, this->rows_, this->mark_selected_, this->mark_editing_, this->mark_submenu_,
+                this->mark_back_);
   if (this->is_failed()) {
     ESP_LOGE(TAG, "The connected display failed, the menu is disabled!");
   }

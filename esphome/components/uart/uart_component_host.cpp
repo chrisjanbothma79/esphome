@@ -188,7 +188,12 @@ void HostUartComponent::dump_config() {
     }
     return;
   }
-  ESP_LOGCONFIG(TAG, "  Port status: opened\n  Baud Rate: %d\n  Data Bits: %d\n  Parity: %s\n  Stop Bits: %d",
+  ESP_LOGCONFIG(TAG,
+                "  Port status: opened\n"
+                "  Baud Rate: %d\n"
+                "  Data Bits: %d\n"
+                "  Parity: %s\n"
+                "  Stop Bits: %d",
                 this->baud_rate_, this->data_bits_,
                 this->parity_ == UART_CONFIG_PARITY_NONE   ? "None"
                 : this->parity_ == UART_CONFIG_PARITY_EVEN ? "Even"

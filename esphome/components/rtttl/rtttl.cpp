@@ -26,7 +26,12 @@ inline double deg2rad(double degrees) {
   return degrees * PI_ON_180;
 }
 
-void Rtttl::dump_config() { ESP_LOGCONFIG(TAG, "Rtttl:\n  Gain: %f", this->gain_); }
+void Rtttl::dump_config() {
+  ESP_LOGCONFIG(TAG,
+                "Rtttl:\n"
+                "  Gain: %f",
+                this->gain_);
+}
 
 void Rtttl::play(std::string rtttl) {
   if (this->state_ != State::STATE_STOPPED && this->state_ != State::STATE_STOPPING) {

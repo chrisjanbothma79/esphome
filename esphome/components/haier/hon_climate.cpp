@@ -339,7 +339,10 @@ void HonClimate::set_handlers() {
 
 void HonClimate::dump_config() {
   HaierClimateBase::dump_config();
-  ESP_LOGCONFIG(TAG, "  Protocol version: hOn\n  Control method: %d", (uint8_t) this->control_method_);
+  ESP_LOGCONFIG(TAG,
+                "  Protocol version: hOn\n"
+                "  Control method: %d",
+                (uint8_t) this->control_method_);
   if (this->hvac_hardware_info_.has_value()) {
     ESP_LOGCONFIG(TAG,
                   "  Device protocol version: %s\n  Device software version: %s\n  Device hardware version: %s\n  "

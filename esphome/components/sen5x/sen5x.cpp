@@ -264,7 +264,10 @@ void SEN5XComponent::dump_config() {
         break;
     }
   }
-  ESP_LOGCONFIG(TAG, "  Productname: %s\n  Firmware version: %d\n  Serial number %02d.%02d.%02d",
+  ESP_LOGCONFIG(TAG,
+                "  Productname: %s\n"
+                "  Firmware version: %d\n"
+                "  Serial number %02d.%02d.%02d",
                 this->product_name_.c_str(), this->firmware_version_, serial_number_[0], serial_number_[1],
                 serial_number_[2]);
   if (this->auto_cleaning_interval_.has_value()) {

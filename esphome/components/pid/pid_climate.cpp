@@ -73,8 +73,10 @@ climate::ClimateTraits PIDClimate::traits() {
 }
 void PIDClimate::dump_config() {
   LOG_CLIMATE("", "PID Climate", this);
-  ESP_LOGCONFIG(TAG, "  Control Parameters:\n    kp: %.5f, ki: %.5f, kd: %.5f, output samples: %d", controller_.kp_,
-                controller_.ki_, controller_.kd_, controller_.output_samples_);
+  ESP_LOGCONFIG(TAG,
+                "  Control Parameters:\n"
+                "    kp: %.5f, ki: %.5f, kd: %.5f, output samples: %d",
+                controller_.kp_, controller_.ki_, controller_.kd_, controller_.output_samples_);
 
   if (controller_.threshold_low_ == 0 && controller_.threshold_high_ == 0) {
     ESP_LOGCONFIG(TAG, "  Deadband disabled.");

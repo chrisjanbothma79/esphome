@@ -345,7 +345,10 @@ light::ESPColorView BekenSPILEDStripLightOutput::get_view_internal(int32_t index
 }
 
 void BekenSPILEDStripLightOutput::dump_config() {
-  ESP_LOGCONFIG(TAG, "Beken SPI LED Strip:\n  Pin: %u", this->pin_);
+  ESP_LOGCONFIG(TAG,
+                "Beken SPI LED Strip:\n"
+                "  Pin: %u",
+                this->pin_);
   const char *rgb_order;
   switch (this->rgb_order_) {
     case ORDER_RGB:
