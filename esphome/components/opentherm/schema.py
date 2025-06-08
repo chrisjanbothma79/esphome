@@ -2,6 +2,7 @@
 # inputs of the OpenTherm component.
 
 from dataclasses import dataclass
+from enum import Flag, auto
 from typing import Any, TypeVar
 
 import esphome.config_validation as cv
@@ -25,7 +26,12 @@ from esphome.const import (
 )
 
 
-@dataclass
+class DeviceMode(Flag):
+    CONTROLLER = auto()
+    DEVICE = auto()
+
+
+@dataclass(kw_only=True)
 class EntitySchema:
     description: str
     """Description of the item, based on the OpenTherm spec"""
@@ -53,11 +59,14 @@ class EntitySchema:
       - s16: data is a signed 16-bit integer
     """
 
+    device_mode: DeviceMode = DeviceMode.CONTROLLER
+    """Whether the entity can be used in controller mode or device mode"""
+
 
 TSchema = TypeVar("TSchema", bound=EntitySchema)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SensorSchema(EntitySchema):
     accuracy_decimals: int
     state_class: str
@@ -340,6 +349,7 @@ SENSORS: dict[str, SensorSchema] = {
         device_class=DEVICE_CLASS_TEMPERATURE,
         state_class=STATE_CLASS_MEASUREMENT,
         message="DHW_SETPOINT",
+        device_mode=DeviceMode.CONTROLLER | DeviceMode.DEVICE,
         keep_updated=True,
         message_data="f88",
     ),
@@ -350,6 +360,7 @@ SENSORS: dict[str, SensorSchema] = {
         device_class=DEVICE_CLASS_TEMPERATURE,
         state_class=STATE_CLASS_MEASUREMENT,
         message="MAX_CH_SETPOINT",
+        device_mode=DeviceMode.CONTROLLER | DeviceMode.DEVICE,
         keep_updated=True,
         message_data="f88",
     ),
@@ -456,10 +467,87 @@ SENSORS: dict[str, SensorSchema] = {
         keep_updated=False,
         message_data="u8_lb",
     ),
+    "t_set": SensorSchema(
+        description="Control setpoint: temperature setpoint for the boiler's supply water",
+        unit_of_measurement=UNIT_CELSIUS,
+        accuracy_decimals=2,
+        device_class=DEVICE_CLASS_TEMPERATURE,
+        state_class=STATE_CLASS_MEASUREMENT,
+        message="CH_SETPOINT",
+        device_mode=DeviceMode.DEVICE,
+        keep_updated=False,
+        message_data="f88",
+    ),
+    "t_set_ch2": SensorSchema(
+        description="Control setpoint 2: temperature setpoint for the boiler's supply water on the second heating circuit",
+        unit_of_measurement=UNIT_CELSIUS,
+        accuracy_decimals=2,
+        device_class=DEVICE_CLASS_TEMPERATURE,
+        state_class=STATE_CLASS_MEASUREMENT,
+        message="CH2_SETPOINT",
+        device_mode=DeviceMode.DEVICE,
+        keep_updated=False,
+        message_data="f88",
+    ),
+    "cooling_control": SensorSchema(
+        description="Cooling control signal",
+        unit_of_measurement=UNIT_PERCENT,
+        accuracy_decimals=2,
+        icon="mdi:percent",
+        state_class=STATE_CLASS_MEASUREMENT,
+        message="COOLING_CONTROL",
+        device_mode=DeviceMode.DEVICE,
+        keep_updated=False,
+        message_data="f88",
+    ),
+    "t_room_set": SensorSchema(
+        description="Current room temperature setpoint (informational)",
+        unit_of_measurement=UNIT_CELSIUS,
+        accuracy_decimals=2,
+        device_class=DEVICE_CLASS_TEMPERATURE,
+        state_class=STATE_CLASS_MEASUREMENT,
+        message="ROOM_SETPOINT",
+        device_mode=DeviceMode.DEVICE,
+        keep_updated=False,
+        message_data="f88",
+    ),
+    "t_room_set_ch2": SensorSchema(
+        description="Current room temperature setpoint on CH2 (informational)",
+        unit_of_measurement=UNIT_CELSIUS,
+        accuracy_decimals=2,
+        device_class=DEVICE_CLASS_TEMPERATURE,
+        state_class=STATE_CLASS_MEASUREMENT,
+        message="ROOM_SETPOINT_CH2",
+        device_mode=DeviceMode.DEVICE,
+        keep_updated=False,
+        message_data="f88",
+    ),
+    "t_room": SensorSchema(
+        description="Current sensed room temperature (informational)",
+        unit_of_measurement=UNIT_CELSIUS,
+        accuracy_decimals=2,
+        device_class=DEVICE_CLASS_TEMPERATURE,
+        state_class=STATE_CLASS_MEASUREMENT,
+        message="ROOM_TEMP",
+        device_mode=DeviceMode.DEVICE,
+        keep_updated=False,
+        message_data="f88",
+    ),
+    "max_rel_mod_level": SensorSchema(
+        description="Maximum relative modulation level",
+        unit_of_measurement=UNIT_PERCENT,
+        accuracy_decimals=2,
+        icon="mdi:percent",
+        state_class=STATE_CLASS_MEASUREMENT,
+        message="MAX_MODULATION_LEVEL",
+        device_mode=DeviceMode.DEVICE,
+        keep_updated=False,
+        message_data="f88",
+    ),
 }
 
 
-@dataclass
+@dataclass(kw_only=True)
 class BinarySensorSchema(EntitySchema):
     icon: str | None = None
     device_class: str | None = None
@@ -652,7 +740,7 @@ BINARY_SENSORS: dict[str, BinarySensorSchema] = {
 }
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SwitchSchema(EntitySchema):
     default_mode: str | None = None
 
@@ -710,13 +798,13 @@ SWITCHES: dict[str, SwitchSchema] = {
 }
 
 
-@dataclass
+@dataclass(kw_only=True)
 class AutoConfigure:
     message: str
     message_data: str
 
 
-@dataclass
+@dataclass(kw_only=True)
 class InputSchema(EntitySchema):
     unit_of_measurement: str
     step: float
@@ -829,7 +917,7 @@ INPUTS: dict[str, InputSchema] = {
 }
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SettingSchema(EntitySchema):
     backing_type: str
     validation_schema: cv.Schema
@@ -887,5 +975,55 @@ SETTINGS: dict[str, SettingSchema] = {
         validation_schema=cv.int_range(min=0, max=255),
         default_value=0,
         order=5,
+    ),
+    "device_product_type": SettingSchema(
+        description="Controller product type",
+        message="VERSION_DEVICE",
+        device_mode=DeviceMode.DEVICE,
+        keep_updated=False,
+        message_data="u8_hb",
+        backing_type="uint8_t",
+        validation_schema=cv.int_range(min=0, max=255),
+        default_value=0,
+    ),
+    "device_product_version": SettingSchema(
+        description="Controller product version",
+        message="VERSION_DEVICE",
+        device_mode=DeviceMode.DEVICE,
+        keep_updated=False,
+        message_data="u8_lb",
+        backing_type="uint8_t",
+        validation_schema=cv.int_range(min=0, max=255),
+        default_value=0,
+    ),
+    "opentherm_version_device": SettingSchema(
+        description="Version of OpenTherm implemented by device",
+        message="OT_VERSION_DEVICE",
+        device_mode=DeviceMode.DEVICE,
+        keep_updated=False,
+        message_data="f88",
+        backing_type="float",
+        validation_schema=cv.positive_float,
+        default_value=0,
+    ),
+    "device_configuration": SettingSchema(
+        description="Device configuration",
+        message="DEVICE_CONFIG",
+        device_mode=DeviceMode.DEVICE,
+        keep_updated=False,
+        message_data="u8_hb",
+        backing_type="uint8_t",
+        validation_schema=cv.int_range(min=0, max=255),
+        default_value=0,
+    ),
+    "device_id": SettingSchema(
+        description="Controller ID code",
+        message="DEVICE_CONFIG",
+        device_mode=DeviceMode.DEVICE,
+        keep_updated=False,
+        message_data="u8_lb",
+        backing_type="uint8_t",
+        validation_schema=cv.int_range(min=0, max=255),
+        default_value=0,
     ),
 }

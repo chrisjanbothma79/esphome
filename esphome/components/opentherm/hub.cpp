@@ -127,7 +127,7 @@ OpenthermData OpenthermHub::build_request_(MessageId request_id) const {
   return {};
 }
 
-OpenthermHub::OpenthermHub() : Component(), in_pin_{}, out_pin_{} {}
+OpenthermHub::OpenthermHub() : Component(), in_pin_{}, out_pin_{}, device_mode_{} {}
 
 void OpenthermHub::process_response(OpenthermData &data) {
   ESP_LOGD(TAG, "Received OpenTherm response with id %d (%s)", data.id,
@@ -144,9 +144,81 @@ void OpenthermHub::process_response(OpenthermData &data) {
   }
 }
 
+void OpenthermHub::process_request(OpenthermData &data) {
+  ESP_LOGD(TAG, "Received OpenTherm request with id %d (%s)", data.id,
+           this->opentherm_->message_id_to_str((MessageId) data.id));
+  this->opentherm_->debug_data(data);
+
+  auto response = build_response_(data);
+
+  this->before_send_callback_.call(response);
+
+  ESP_LOGD(TAG, "Sending response with id %d (%s)", response.id,
+           this->opentherm_->message_id_to_str((MessageId) response.id));
+  this->opentherm_->debug_data(response);
+
+  // Send the response
+  this->opentherm_->send(response);
+}
+
+OpenthermData OpenthermHub::build_response_(const OpenthermData &request) {
+  OpenthermData data = request;
+
+  // Respond with UNKNOWN_DATAID to any request about an ID that we don't handle
+  switch (request.id) {
+    // Required messages
+#ifndef OPENTHERM_HAS_SETTING_device_configuration
+    case DEVICE_CONFIG:
+      break;
+#endif
+
+      OPENTHERM_SENSOR_MESSAGE_HANDLERS(OPENTHERM_MESSAGE_RESPONSE_MESSAGE, OPENTHERM_IGNORE, ,
+                                        OPENTHERM_MESSAGE_RESPONSE_POSTSCRIPT, )
+      OPENTHERM_SETTING_MESSAGE_HANDLERS(OPENTHERM_MESSAGE_RESPONSE_MESSAGE, OPENTHERM_IGNORE, ,
+                                         OPENTHERM_MESSAGE_RESPONSE_POSTSCRIPT, )
+      OPENTHERM_SWITCH_MESSAGE_HANDLERS(OPENTHERM_MESSAGE_RESPONSE_MESSAGE, OPENTHERM_IGNORE, ,
+                                        OPENTHERM_MESSAGE_RESPONSE_POSTSCRIPT, )
+
+    default:
+      data.type = UNKNOWN_DATAID;
+      return data;
+  }
+
+  if (request.type == READ_DATA) {
+    switch (request.id) {
+      // Required messages
+#ifndef OPENTHERM_HAS_SETTING_device_configuration
+      case DEVICE_CONFIG:
+        data.type = READ_ACK;
+        data.u16(0);
+        return data;
+#endif
+
+        OPENTHERM_SETTING_MESSAGE_HANDLERS(OPENTHERM_MESSAGE_READ_RESPONSE_MESSAGE, OPENTHERM_MESSAGE_WRITE_SETTING, ,
+                                           OPENTHERM_MESSAGE_READ_RESPONSE_POSTSCRIPT, )
+        OPENTHERM_SWITCH_MESSAGE_HANDLERS(OPENTHERM_MESSAGE_READ_RESPONSE_MESSAGE, OPENTHERM_MESSAGE_WRITE_ENTITY, ,
+                                          OPENTHERM_MESSAGE_READ_RESPONSE_POSTSCRIPT, )
+    }
+  } else if (request.type == WRITE_DATA) {
+    switch (request.id) {
+      OPENTHERM_SENSOR_MESSAGE_HANDLERS(OPENTHERM_MESSAGE_WRITE_RESPONSE_MESSAGE, OPENTHERM_MESSAGE_RESPONSE_ENTITY, ,
+                                        OPENTHERM_MESSAGE_WRITE_RESPONSE_POSTSCRIPT, )
+    }
+  }
+
+  data.type = DATA_INVALID;
+  return data;
+}
+
 void OpenthermHub::setup() {
+  int32_t device_timeout = 800;
+
   ESP_LOGD(TAG, "Setting up OpenTherm component");
-  this->opentherm_ = make_unique<OpenTherm>(this->in_pin_, this->out_pin_);
+
+  if (this->device_mode_ == DEVICE_MODE_DEVICE)
+    device_timeout = 60000;
+
+  this->opentherm_ = make_unique<OpenTherm>(this->in_pin_, this->out_pin_, device_timeout);
   if (!this->opentherm_->initialize()) {
     ESP_LOGE(TAG, "Failed to initialize OpenTherm protocol. See previous log messages for details.");
     this->mark_failed();
@@ -207,11 +279,16 @@ void OpenthermHub::loop() {
     case OperationMode::LISTEN:
       break;
     case OperationMode::IDLE:
-      this->check_timings_(cur_time);
-      if (this->should_skip_loop_(cur_time)) {
-        break;
+      if (this->device_mode_ == DEVICE_MODE_DEVICE) {
+        // Listen to requests from the thermostat
+        this->opentherm_->listen();
+      } else {
+        this->check_timings_(cur_time);
+        if (this->should_skip_loop_(cur_time)) {
+          break;
+        }
+        this->start_conversation_();
       }
-      this->start_conversation_();
       break;
     case OperationMode::SENT:
       // Message sent, now listen for the response.
@@ -358,10 +435,18 @@ void OpenthermHub::read_response_() {
 
   this->stop_opentherm_();
 
-  this->before_process_response_callback_.call(response);
-  this->process_response(response);
+  if (this->device_mode_ == DEVICE_MODE_DEVICE) {
+    this->last_conversation_start_ = millis();
+  }
 
-  this->message_iterator_++;
+  this->before_process_response_callback_.call(response);
+
+  if (this->device_mode_ == DEVICE_MODE_DEVICE) {
+    this->process_request(response);
+  } else {
+    this->process_response(response);
+    this->message_iterator_++;
+  }
 }
 
 void OpenthermHub::stop_opentherm_() {
@@ -391,14 +476,10 @@ void OpenthermHub::handle_timer_error_() {
 }
 
 void OpenthermHub::dump_config() {
-  std::vector<MessageId> initial_messages;
-  std::vector<MessageId> repeating_messages;
-  this->write_initial_messages_(initial_messages);
-  this->write_repeating_messages_(repeating_messages);
-
   ESP_LOGCONFIG(TAG, "OpenTherm:");
   LOG_PIN("  In: ", this->in_pin_);
   LOG_PIN("  Out: ", this->out_pin_);
+  ESP_LOGCONFIG(TAG, "  Device mode: %s", device_mode_to_str(this->device_mode_));
   ESP_LOGCONFIG(TAG, "  Sync mode: %s", YESNO(this->sync_mode_));
   ESP_LOGCONFIG(TAG, "  Sensors: %s", SHOW(OPENTHERM_SENSOR_LIST(ID, )));
   ESP_LOGCONFIG(TAG, "  Binary sensors: %s", SHOW(OPENTHERM_BINARY_SENSOR_LIST(ID, )));
@@ -406,13 +487,21 @@ void OpenthermHub::dump_config() {
   ESP_LOGCONFIG(TAG, "  Input sensors: %s", SHOW(OPENTHERM_INPUT_SENSOR_LIST(ID, )));
   ESP_LOGCONFIG(TAG, "  Outputs: %s", SHOW(OPENTHERM_OUTPUT_LIST(ID, )));
   ESP_LOGCONFIG(TAG, "  Numbers: %s", SHOW(OPENTHERM_NUMBER_LIST(ID, )));
-  ESP_LOGCONFIG(TAG, "  Initial requests:");
-  for (auto type : initial_messages) {
-    ESP_LOGCONFIG(TAG, "  - %d (%s)", type, this->opentherm_->message_id_to_str(type));
-  }
-  ESP_LOGCONFIG(TAG, "  Repeating requests:");
-  for (auto type : repeating_messages) {
-    ESP_LOGCONFIG(TAG, "  - %d (%s)", type, this->opentherm_->message_id_to_str(type));
+
+  if (this->device_mode_ == DEVICE_MODE_CONTROLLER) {
+    std::vector<MessageId> initial_messages;
+    std::vector<MessageId> repeating_messages;
+    this->write_initial_messages_(initial_messages);
+    this->write_repeating_messages_(repeating_messages);
+
+    ESP_LOGCONFIG(TAG, "  Initial requests:");
+    for (auto type : initial_messages) {
+      ESP_LOGCONFIG(TAG, "  - %d (%s)", type, this->opentherm_->message_id_to_str(type));
+    }
+    ESP_LOGCONFIG(TAG, "  Repeating requests:");
+    for (auto type : repeating_messages) {
+      ESP_LOGCONFIG(TAG, "  - %d (%s)", type, this->opentherm_->message_id_to_str(type));
+    }
   }
 }
 
