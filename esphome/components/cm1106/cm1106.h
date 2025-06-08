@@ -23,7 +23,9 @@ class CM1106Component : public PollingComponent, public uart::UARTDevice {
   void abc_disable() { this->abc_set_(CM1106_ABC_DISABLED); };
 
   void set_co2_sensor(sensor::Sensor *co2_sensor) { this->co2_sensor_ = co2_sensor; }
-  void set_abc_enabled(bool abc_enabled) { this->abc_boot_logic_ = abc_enabled ? CM1106_ABC_ENABLED : CM1106_ABC_DISABLED; }
+  void set_abc_enabled(bool abc_enabled) {
+    this->abc_boot_logic_ = abc_enabled ? CM1106_ABC_ENABLED : CM1106_ABC_DISABLED;
+  }
 
  protected:
   sensor::Sensor *co2_sensor_{nullptr};

@@ -130,16 +130,16 @@ void CM1106Component::send_abc_command_(uint8_t flag) {
   ESP_LOGD(TAG, "CM1106 Successfully set ABC status");
 }
 
-void CM1106Component::abc_set_(CM1106ABCLogic abc_logic) {  
-  if (abc_logic == CM1106_ABC_NONE) {  
-    ESP_LOGE(TAG, "Invalid ABC logic");  
-    return;  
-  }  
-  const bool abc_enabled = (abc_logic == CM1106_ABC_ENABLED);  
-  const char *abc_operation = abc_enabled ? "En" : "Dis";  
-  ESP_LOGD(TAG, "CM1106 %sabling automatic baseline calibration", abc_operation);  
-  const uint8_t flag = abc_enabled ? CM1106_ABC_FLAG_ENABLE : CM1106_ABC_FLAG_DISABLE;  
-  this->send_abc_command_(flag);  
+void CM1106Component::abc_set_(CM1106ABCLogic abc_logic) {
+  if (abc_logic == CM1106_ABC_NONE) {
+    ESP_LOGE(TAG, "Invalid ABC logic");
+    return;
+  }
+  const bool abc_enabled = (abc_logic == CM1106_ABC_ENABLED);
+  const char *abc_operation = abc_enabled ? "En" : "Dis";
+  ESP_LOGD(TAG, "CM1106 %sabling automatic baseline calibration", abc_operation);
+  const uint8_t flag = abc_enabled ? CM1106_ABC_FLAG_ENABLE : CM1106_ABC_FLAG_DISABLE;
+  this->send_abc_command_(flag);
 }
 
 bool CM1106Component::cm1106_write_command_(const uint8_t *command, size_t command_len, uint8_t *response,
@@ -162,8 +162,8 @@ void CM1106Component::dump_config() {
   LOG_SENSOR("  ", "CO2", this->co2_sensor_);
   this->check_uart_settings(9600);
 
-  if (this->abc_boot_logic_ != CM1106_ABC_NONE) {  
-    ESP_LOGCONFIG(TAG, "  Automatic baseline calibration on boot: %s", ONOFF(this->abc_boot_logic_ == CM1106_ABC_ENABLED));  
+  if (this->abc_boot_logic_ != CM1106_ABC_NONE) {
+    ESP_LOGCONFIG(TAG, "  Automatic baseline calibration on boot: %s", ONOFF(this->abc_boot_logic_ == CM1106_ABC_ENABLED));
   }
 
   if (this->is_failed()) {
