@@ -51,6 +51,12 @@ HT16K33_DEVICE_TYPES = {
     "ADAFRUIT_14_SEG_FLIPPED": {
         "CLASS_NAME": "Adafruit14SegFlip",
     },
+    "SPARKFUN_14_SEG": {
+        "CLASS_NAME": "Sparkfun14Seg",
+    },
+    "SPARKFUN_14_SEG_FLIPPED": {
+        "CLASS_NAME": "Sparkfun14SegFlip",
+    },
 }
 
 HT16k33Char_BaseClassTypeRef = HT16k33Char_BaseClassType.operator("ref")
