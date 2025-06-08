@@ -100,7 +100,7 @@ uint8_t Sparkfun14Seg::send_to_display(i2c::I2CDevice *display, uint8_t position
           char_buffer_location++;
           this->buffer_[2] |= 0x01;
           continue;
-        } else if((char_to_find == '.') && (i == 3)) {
+        } else if ((char_to_find == '.') && (i == 3)) {
           // Period at position 4
           special_character_found = true;
           char_buffer_location++;
@@ -157,9 +157,9 @@ void Sparkfun14Seg::write_to_buffer_(uint16_t char_to_write, uint8_t char_positi
   if ((char_position >= 0) && (char_position <= 3)) {
     uint16_t DigitDef = this->convert_font_(char_to_write);
 
-    for(uint8_t i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
       // i counts through the com positions
-      this->buffer_[i * 2 + 1] |= ((DigitDef >>  i) & 0x01) << (char_position);
+      this->buffer_[i * 2 + 1] |= ((DigitDef >> i) & 0x01) << (char_position);
       this->buffer_[i * 2 + 1] |= ((DigitDef >> (i + 8)) & 0x01) << (char_position + 4);
     }
   }
@@ -307,15 +307,14 @@ void Sparkfun14SegFlip::write_to_buffer_(uint16_t char_to_write, uint8_t char_po
     uint16_t DigitDef = this->convert_font_(char_to_write);
     uint8_t flipped_char_position = 3 - char_position;
 
-    for(uint8_t i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
       // i counts through the com positions
-      this->buffer_[i * 2 + 1] |= ((DigitDef >>  i) & 0x01) << (flipped_char_position);
+      this->buffer_[i * 2 + 1] |= ((DigitDef >> i) & 0x01) << (flipped_char_position);
       this->buffer_[i * 2 + 1] |= ((DigitDef >> (i + 8)) & 0x01) << (flipped_char_position + 4);
     }
   }
   return;
 }
-
 
 }  // namespace ht16k33_char
 }  // namespace esphome
