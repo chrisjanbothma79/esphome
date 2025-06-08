@@ -6,6 +6,8 @@
 #include <vector>
 #include <array>
 
+// {"MSG":355,"V1":234.75,"V2":234.80,"V3":234.86,"P1":0,"P2":0,"P3":0,"P4":0,"P5":0,"P6":0,"E1":0,"E2":0,"E3":0,"E4":0,"E5":0,"E6":0,"pulse":0}
+
 namespace esphome {
 namespace emontx {
 /*
@@ -17,34 +19,34 @@ constexpr uint16_t MAX_VAL_SIZE = 16;
 constexpr uint16_t MAX_BUF_SIZE = 1048;
 
 /**
- * @class emonTxListener
- * @brief Listener interface for receiving updates from the emonTx.
+ * @class EmonTxListener
+ * @brief Listener interface for receiving updates from the EmonTx.
  *
  * This class allows other components to register as listeners to receive updates
- * for specific tags published by the emonTx.
+ * for specific tags published by the EmonTx.
  */
-class emonTxListener {
+class EmonTxListener {
  public:
   std::string tag;
   virtual void publish_val(const std::string &val){};
 };
 
 /**
- * @class emonTx
- * @brief Main class for the emonTx component.
+ * @class EmonTx
+ * @brief Main class for the EmonTx component.
  *
- * The emonTx processes incoming data frames via UART, validates their CRC,
+ * The EmonTx processes incoming data frames via UART, validates their CRC,
  * extracts tags and values, and publishes them to registered listeners.
  */
-class emonTx : public PollingComponent, public uart::UARTDevice {
+class EmonTx : public PollingComponent, public uart::UARTDevice {
  public:
-  emonTx();
-  void register_emontx_listener(emonTxListener *listener);
+  EmonTx();
+  void register_emontx_listener(EmonTxListener *listener);
   void loop() override;
   void setup() override;
   void update() override;
   void dump_config() override;
-  std::vector<emonTxListener *> emontx_listeners_{};
+  std::vector<EmonTxListener *> emontx_listeners_{};
 
  protected:
   uint32_t baud_rate_;

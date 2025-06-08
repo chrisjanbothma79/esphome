@@ -6,14 +6,14 @@ from esphome.const import CONF_ID
 CODEOWNERS = ["@FredM67"]
 
 emontx_ns = cg.esphome_ns.namespace("emontx")
-emonTx = emontx_ns.class_("emonTx", cg.PollingComponent, uart.UARTDevice)
+EmonTx = emontx_ns.class_("EmonTx", cg.PollingComponent, uart.UARTDevice)
 
 CONF_EMONTX_ID = "emontx_id"
 CONF_TAG_NAME = "tag_name"
 
 EMONTX_LISTENER_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(CONF_EMONTX_ID): cv.use_id(emonTx),
+        cv.GenerateID(CONF_EMONTX_ID): cv.use_id(EmonTx),
         cv.Required(CONF_TAG_NAME): cv.string,
     }
 )
@@ -21,7 +21,7 @@ EMONTX_LISTENER_SCHEMA = cv.Schema(
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(emonTx),
+            cv.GenerateID(): cv.declare_id(EmonTx),
         }
     )
     .extend(cv.polling_component_schema("5s"))

@@ -4,11 +4,11 @@ from esphome.const import CONF_ID
 
 from .. import CONF_EMONTX_ID, CONF_TAG_NAME, EMONTX_LISTENER_SCHEMA, emontx_ns
 
-emonTxBinarySensor = emontx_ns.class_(
-    "emonTxBinarySensor", binary_sensor.BinarySensor, cg.Component
+EmonTxBinarySensor = emontx_ns.class_(
+    "EmonTxBinarySensor", binary_sensor.BinarySensor, cg.Component
 )
 
-CONFIG_SCHEMA = binary_sensor.binary_sensor_schema(emonTxBinarySensor).extend(
+CONFIG_SCHEMA = binary_sensor.binary_sensor_schema(EmonTxBinarySensor).extend(
     EMONTX_LISTENER_SCHEMA
 )
 

@@ -4,9 +4,9 @@
 #include "esphome/components/text_sensor/text_sensor.h"
 namespace esphome {
 namespace emontx {
-class emonTxTextSensor : public emonTxListener, public text_sensor::TextSensor, public Component {
+class EmonTxTextSensor : public EmonTxListener, public text_sensor::TextSensor, public Component {
  public:
-  emonTxTextSensor(const char *tag);
+  EmonTxTextSensor(const char *tag);
   void publish_val(const std::string &val) override;
   void dump_config() override;
 };

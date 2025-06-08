@@ -5,9 +5,9 @@
 
 namespace esphome {
 namespace emontx {
-class emonTxBinarySensor : public emonTxListener, public binary_sensor::BinarySensor, public Component {
+class EmonTxBinarySensor : public EmonTxListener, public binary_sensor::BinarySensor, public Component {
  public:
-  explicit emonTxBinarySensor(const char *tag);
+  explicit EmonTxBinarySensor(const char *tag);
   void publish_val(const std::string &val) override;
   void dump_config() override;
 };

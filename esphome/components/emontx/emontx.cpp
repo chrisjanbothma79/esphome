@@ -42,7 +42,7 @@ static size_t get_field(std::string &dest, const char *buf_start, const char *bu
  * @param grp_len Length of the group.
  * @return uint8_t The calculated CRC value.
  */
-uint8_t emonTx::calculate_crc_(const char *grp, size_t grp_len) {
+uint8_t EmonTx::calculate_crc_(const char *grp, size_t grp_len) {
   uint8_t crc_tmp{0};
   const auto effective_len = grp_len - checksum_area_end_;
   for (int i = 0; i < effective_len; i++) {
@@ -62,7 +62,7 @@ uint8_t emonTx::calculate_crc_(const char *grp, size_t grp_len) {
  * @return false If there is a mismatch.
  * @note Logs an error message if the CRC does not match.
  */
-bool emonTx::check_crc_(const char *grp, const char *grp_end) {
+bool EmonTx::check_crc_(const char *grp, const char *grp_end) {
   const auto grp_len = grp_end - grp;
   const auto raw_crc = grp[grp_len - 1];
 
@@ -84,7 +84,7 @@ bool emonTx::check_crc_(const char *grp, const char *grp_end) {
  * @return false If the buffer is full or the target character is not found.
  * @note Logs a warning if the internal buffer is full.
  */
-bool emonTx::read_chars_until_(bool drop, uint8_t c) {
+bool EmonTx::read_chars_until_(bool drop, uint8_t c) {
   uint8_t j{0};
 
   while (available() > 0 && j++ < MAX_ITERATIONS) {
@@ -109,14 +109,14 @@ bool emonTx::read_chars_until_(bool drop, uint8_t c) {
 }
 
 /**
- * @brief Initializes the emonTx by setting the initial state to OFF.
+ * @brief Initializes the EmonTx by setting the initial state to OFF.
  */
-void emonTx::setup() { state_ = State::OFF; }
+void EmonTx::setup() { state_ = State::OFF; }
 
 /**
- * @brief Updates the emonTx state. Resets the buffer index and transitions the state from OFF to ON.
+ * @brief Updates the EmonTx state. Resets the buffer index and transitions the state from OFF to ON.
  */
-void emonTx::update() {
+void EmonTx::update() {
   if (state_ == State::OFF) {
     buf_index_ = 0;
     state_ = State::ON;
@@ -132,7 +132,7 @@ void emonTx::update() {
  * - START_FRAME_RECEIVED: Reads characters until the end frame (0x3) is found.
  * - END_FRAME_RECEIVED: Processes the buffer to extract groups, validate CRC, and publish values.
  */
-void emonTx::loop() {
+void EmonTx::loop() {
   switch (state_) {
     case State::OFF:
       break;
@@ -211,7 +211,7 @@ void emonTx::loop() {
  * @param tag The tag associated with the value.
  * @param val The value to publish.
  */
-void emonTx::publish_value_(const std::string &tag, const std::string &val) {
+void EmonTx::publish_value_(const std::string &tag, const std::string &val) {
   for (auto *element : emontx_listeners_) {
     if (tag != element->tag)
       continue;
@@ -220,19 +220,19 @@ void emonTx::publish_value_(const std::string &tag, const std::string &val) {
 }
 
 /**
- * @brief Dumps the emonTx configuration to the log.
+ * @brief Dumps the EmonTx configuration to the log.
  *
  * @note Logs the UART settings and other configuration details.
  */
-void emonTx::dump_config() {
-  ESP_LOGCONFIG(TAG, "emonTx:");
+void EmonTx::dump_config() {
+  ESP_LOGCONFIG(TAG, "EmonTx:");
   this->check_uart_settings(baud_rate_, 1, uart::UART_CONFIG_PARITY_EVEN, 7);
 }
 
 /**
- * @brief Constructor for the emonTx class. Initializes default values for checksum_area_end_ and baud_rate_.
+ * @brief Constructor for the EmonTx class. Initializes default values for checksum_area_end_ and baud_rate_.
  */
-emonTx::emonTx() {
+EmonTx::EmonTx() {
   checksum_area_end_ = 1;
   baud_rate_ = 9600;
 }
@@ -242,7 +242,7 @@ emonTx::emonTx() {
  *
  * @param listener Pointer to the listener to register.
  */
-void emonTx::register_emontx_listener(emonTxListener *listener) { emontx_listeners_.push_back(listener); }
+void EmonTx::register_emontx_listener(EmonTxListener *listener) { emontx_listeners_.push_back(listener); }
 
 }  // namespace emontx
 }  // namespace esphome

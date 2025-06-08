@@ -4,11 +4,11 @@ from esphome.const import CONF_ID
 
 from .. import CONF_EMONTX_ID, CONF_TAG_NAME, EMONTX_LISTENER_SCHEMA, emontx_ns
 
-emonTxTextSensor = emontx_ns.class_(
-    "emonTxTextSensor", text_sensor.TextSensor, cg.Component
+EmonTxTextSensor = emontx_ns.class_(
+    "EmonTxTextSensor", text_sensor.TextSensor, cg.Component
 )
 
-CONFIG_SCHEMA = text_sensor.text_sensor_schema(emonTxTextSensor).extend(
+CONFIG_SCHEMA = text_sensor.text_sensor_schema(EmonTxTextSensor).extend(
     EMONTX_LISTENER_SCHEMA
 )
 

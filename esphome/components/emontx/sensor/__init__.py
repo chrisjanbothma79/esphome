@@ -4,10 +4,10 @@ from esphome.const import CONF_ID, ICON_FLASH, UNIT_WATT_HOURS
 
 from .. import CONF_EMONTX_ID, CONF_TAG_NAME, EMONTX_LISTENER_SCHEMA, emontx_ns
 
-emonTxSensor = emontx_ns.class_("emonTxSensor", sensor.Sensor, cg.Component)
+EmonTxSensor = emontx_ns.class_("EmonTxSensor", sensor.Sensor, cg.Component)
 
 CONFIG_SCHEMA = sensor.sensor_schema(
-    emonTxSensor,
+    EmonTxSensor,
     unit_of_measurement=UNIT_WATT_HOURS,
     icon=ICON_FLASH,
     accuracy_decimals=0,
