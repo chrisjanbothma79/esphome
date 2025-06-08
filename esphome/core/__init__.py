@@ -513,7 +513,7 @@ class EsphomeCore:
         # A set of strings of names of loaded integrations, used to find namespace ID conflicts
         self.loaded_integrations = set()
         # A set of strings for platform/integration combos
-        self.loaded_platforms = set()
+        self.loaded_platforms: set[str] = set()
         # A set of component IDs to track what Component subclasses are declared
         self.component_ids = set()
         # Whether ESPHome was started in verbose mode
