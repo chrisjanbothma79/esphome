@@ -7,6 +7,10 @@ gp8403:
   - id: gp8403_5v
     voltage: 5V
   - id: gp8403_10v
+    model: GP8403
+    voltage: 10V
+  - id: gp8413
+    model: GP8413
     voltage: 10V
 
 output:
@@ -17,4 +21,8 @@ output:
   - platform: gp8403
     gp8403_id: gp8403_10v
     id: gp8403_output_1
+    channel: 1
+  - platform: gp8403
+    gp8403_id: gp8413
+    id: gp8413_output_2
     channel: 1
