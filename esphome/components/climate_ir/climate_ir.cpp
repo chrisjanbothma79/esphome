@@ -75,10 +75,9 @@ void ClimateIR::control(const climate::ClimateCall &call) {
 }
 void ClimateIR::dump_config() {
   LOG_CLIMATE("", "IR Climate", this);
-  ESP_LOGCONFIG(TAG, "  Min. Temperature: %.1f°C", this->minimum_temperature_);
-  ESP_LOGCONFIG(TAG, "  Max. Temperature: %.1f°C", this->maximum_temperature_);
-  ESP_LOGCONFIG(TAG, "  Supports HEAT: %s", YESNO(this->supports_heat_));
-  ESP_LOGCONFIG(TAG, "  Supports COOL: %s", YESNO(this->supports_cool_));
+  ESP_LOGCONFIG(TAG, "  Min. Temperature: %.1f°C\n  Max. Temperature: %.1f°C\n  Supports HEAT: %s\n  Supports COOL: %s",
+                this->minimum_temperature_, this->maximum_temperature_, YESNO(this->supports_heat_),
+                YESNO(this->supports_cool_));
 }
 
 }  // namespace climate_ir
