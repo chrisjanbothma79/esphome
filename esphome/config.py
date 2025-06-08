@@ -965,7 +965,7 @@ def line_info(config, path, highlight=True):
 
 
 def _print_on_next_line(obj):
-    if isinstance(obj, list | tuple | dict):
+    if isinstance(obj, (list, tuple, dict)):
         return True
     if isinstance(obj, str):
         return len(obj) > 80
