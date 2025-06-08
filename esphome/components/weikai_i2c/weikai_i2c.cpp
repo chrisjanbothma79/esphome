@@ -164,11 +164,12 @@ void WeikaiComponentI2C::dump_config() {
                 "Initialization of %s with %d UARTs completed\n"
                 "  Crystal: %" PRIu32,
                 this->get_name(), this->children_.size(), this->crystal_);
-  if (test_mode_)
+  if (test_mode_) {
     ESP_LOGCONFIG(TAG,
                   "  Test mode: %d\n"
                   "  Transfer buffer size: %d",
                   test_mode_, XFER_MAX_SIZE);
+  }
   this->address_ = this->base_address_;  // we restore the base_address before display (less confusing)
   LOG_I2C_DEVICE(this);
 
