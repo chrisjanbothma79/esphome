@@ -1319,8 +1319,8 @@ void ThermostatClimate::dump_config() {
                   this->timer_duration_(thermostat::TIMER_COOLING_ON) / 1000);
   }
   if (this->supports_heat_) {
-    ESP_LOGCONFIG(TAG, "  Heating Parameters:");
     ESP_LOGCONFIG(TAG,
+                  "  Heating Parameters:\n"
                   "    Deadband: %.1f°C\n"
                   "    Overrun: %.1f°C",
                   this->heating_deadband_, this->heating_overrun_);
