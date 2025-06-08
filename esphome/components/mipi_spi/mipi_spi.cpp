@@ -447,8 +447,8 @@ void MipiSpi::write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) {
 }
 
 void MipiSpi::dump_config() {
-  ESP_LOGCONFIG(TAG, "MIPI_SPI Display");
-  ESP_LOGCONFIG(TAG, "  Model: %s\n  Width: %u\n  Height: %u", this->model_, this->width_, this->height_);
+  ESP_LOGCONFIG(TAG, "MIPI_SPI Display\n  Model: %s\n  Width: %u\n  Height: %u", this->model_, this->width_,
+                this->height_);
   if (this->offset_width_ != 0)
     ESP_LOGCONFIG(TAG, "  Offset width: %u", this->offset_width_);
   if (this->offset_height_ != 0)
