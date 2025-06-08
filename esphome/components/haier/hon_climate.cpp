@@ -345,8 +345,10 @@ void HonClimate::dump_config() {
                 (uint8_t) this->control_method_);
   if (this->hvac_hardware_info_.has_value()) {
     ESP_LOGCONFIG(TAG,
-                  "  Device protocol version: %s\n  Device software version: %s\n  Device hardware version: %s\n  "
-                  "Device name: %s",
+                  "  Device protocol version: %s\n"
+                  "  Device software version: %s\n"
+                  "  Device hardware version: %s\n"
+                  "  Device name: %s",
                   this->hvac_hardware_info_.value().protocol_version_.c_str(),
                   this->hvac_hardware_info_.value().software_version_.c_str(),
                   this->hvac_hardware_info_.value().hardware_version_.c_str(),
