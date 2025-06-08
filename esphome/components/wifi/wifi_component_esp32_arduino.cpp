@@ -11,9 +11,18 @@
 #ifdef USE_WIFI_WPA2_EAP
 #include <esp_wpa2.h>
 #endif
+
+#ifdef USE_WIFI_AP
+#include "dhcpserver/dhcpserver.h"
+#endif  // USE_WIFI_AP
+
 #include "lwip/apps/sntp.h"
 #include "lwip/dns.h"
 #include "lwip/err.h"
+
+#ifdef CONFIG_LWIP_TCPIP_CORE_LOCKING
+#include "lwip/priv/tcpip_priv.h"
+#endif
 
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
@@ -82,7 +91,7 @@ bool WiFiComponent::wifi_mode_(optional<bool> sta, optional<bool> ap) {
   bool ret = WiFiClass::mode(set_mode);
 
   if (!ret) {
-    ESP_LOGW(TAG, "Setting WiFi mode failed!");
+    ESP_LOGW(TAG, "Setting mode failed");
     return false;
   }
 
@@ -286,10 +295,25 @@ bool WiFiComponent::wifi_sta_ip_config_(optional<ManualIP> manual_ip) {
   }
 
   if (!manual_ip.has_value()) {
+// sntp_servermode_dhcp lwip/sntp.c (Required to lock TCPIP core functionality!)
+// https://github.com/esphome/issues/issues/6591
+// https://github.com/espressif/arduino-esp32/issues/10526
+#ifdef CONFIG_LWIP_TCPIP_CORE_LOCKING
+    if (!sys_thread_tcpip(LWIP_CORE_LOCK_QUERY_HOLDER)) {
+      LOCK_TCPIP_CORE();
+    }
+#endif
+
     // lwIP starts the SNTP client if it gets an SNTP server from DHCP. We don't need the time, and more importantly,
     // the built-in SNTP client has a memory leak in certain situations. Disable this feature.
     // https://github.com/esphome/issues/issues/2299
     sntp_servermode_dhcp(false);
+
+#ifdef CONFIG_LWIP_TCPIP_CORE_LOCKING
+    if (sys_thread_tcpip(LWIP_CORE_LOCK_QUERY_HOLDER)) {
+      UNLOCK_TCPIP_CORE();
+    }
+#endif
 
     // No manual IP is set; use DHCP client
     if (dhcp_status != ESP_NETIF_DHCP_STARTED) {
@@ -566,7 +590,7 @@ void WiFiComponent::wifi_event_callback_(esphome_wifi_event_id_t event, esphome_
       // Mitigate CVE-2020-12638
       // https://lbsfilm.at/blog/wpa2-authenticationmode-downgrade-in-espressif-microprocessors
       if (it.old_mode != WIFI_AUTH_OPEN && it.new_mode == WIFI_AUTH_OPEN) {
-        ESP_LOGW(TAG, "Potential Authmode downgrade detected, disconnecting...");
+        ESP_LOGW(TAG, "Potential Authmode downgrade detected, disconnecting");
         // we can't call retry_connect() from this context, so disconnect immediately
         // and notify main thread with error_from_callback_
         err_t err = esp_wifi_disconnect();
@@ -638,7 +662,12 @@ void WiFiComponent::wifi_event_callback_(esphome_wifi_event_id_t event, esphome_
 }
 
 WiFiSTAConnectStatus WiFiComponent::wifi_sta_connect_status_() {
-  auto status = WiFiClass::status();
+#if USE_ARDUINO_VERSION_CODE < VERSION_CODE(3, 1, 0)
+  const auto status = WiFiClass::status();
+#else
+  const auto status = WiFi.status();
+#endif
+
   if (status == WL_CONNECT_FAILED || status == WL_CONNECTION_LOST) {
     return WiFiSTAConnectStatus::ERROR_CONNECT_FAILED;
   }
