@@ -76,8 +76,11 @@ void log_switch(const char *tag, const char *prefix, const char *type, Switch *o
     }
 
     // Build the base message with mandatory fields
-    ESP_LOGCONFIG(tag, "%s%s '%s'\n%s  Restore Mode: %s%s %s", prefix, type, obj->get_name().c_str(), prefix,
-                  LOG_STR_ARG(inverted), LOG_STR_ARG(restore), LOG_STR_ARG(onoff));
+    ESP_LOGCONFIG(tag,
+                  "%s%s '%s'\n"
+                  "%s  Restore Mode: %s%s %s",
+                  prefix, type, obj->get_name().c_str(), prefix, LOG_STR_ARG(inverted), LOG_STR_ARG(restore),
+                  LOG_STR_ARG(onoff));
 
     // Add optional fields separately
     if (!obj->get_icon().empty()) {
