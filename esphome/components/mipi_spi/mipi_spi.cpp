@@ -475,9 +475,8 @@ void MipiSpi::dump_config() {
   LOG_PIN("  CS Pin: ", this->cs_);
   LOG_PIN("  Reset Pin: ", this->reset_pin_);
   LOG_PIN("  DC Pin: ", this->dc_pin_);
-  ESP_LOGCONFIG(TAG, "  SPI Mode: %d", this->mode_);
-  ESP_LOGCONFIG(TAG, "  SPI Data rate: %dMHz", static_cast<unsigned>(this->data_rate_ / 1000000));
-  ESP_LOGCONFIG(TAG, "  SPI Bus width: %d", this->bus_width_);
+  ESP_LOGCONFIG(TAG, "  SPI Mode: %d\n  SPI Data rate: %dMHz\n  SPI Bus width: %d", this->mode_,
+                static_cast<unsigned>(this->data_rate_ / 1000000), this->bus_width_);
 }
 
 }  // namespace mipi_spi
