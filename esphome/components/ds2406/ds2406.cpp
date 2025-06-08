@@ -69,7 +69,6 @@ void Ds2406::update() {
     }
   }
 #endif
-  this->bus_->reset_();
 }
 
 void Ds2406::setup() {}
@@ -91,7 +90,6 @@ void Ds2406::write_state(uint8_t channel, bool state) {
   this->bus_->read8();
   // write PIO STATE (one bit is enough)
   this->bus_->write8(state ? 0xFF : 0x00);
-  this->bus_->reset_();
 }
 
 }  // namespace ds2406
