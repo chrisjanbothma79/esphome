@@ -1718,9 +1718,11 @@ void Sprinkler::dump_config() {
     }
   }
   for (size_t valve_number = 0; valve_number < this->number_of_valves(); valve_number++) {
-    ESP_LOGCONFIG(TAG, "  Valve %zu:", valve_number);
-    ESP_LOGCONFIG(TAG, "    Name: %s", this->valve_name(valve_number));
-    ESP_LOGCONFIG(TAG, "    Run Duration: %" PRIu32 " seconds", this->valve_run_duration(valve_number));
+    ESP_LOGCONFIG(TAG,
+                  "  Valve %zu:\n"
+                  "    Name: %s\n"
+                  "    Run Duration: %" PRIu32 " seconds",
+                  valve_number, this->valve_name(valve_number), this->valve_run_duration(valve_number));
     if (this->valve_[valve_number].valve_switch.pulse_duration()) {
       ESP_LOGCONFIG(TAG, "    Pulse Duration: %" PRIu32 " milliseconds",
                     this->valve_[valve_number].valve_switch.pulse_duration());
