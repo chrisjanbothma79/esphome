@@ -320,26 +320,23 @@ void PacketTransport::update() {
     ESP_LOGV(TAG, "Ping request, age %u", now - this->last_key_time_);
     this->last_key_time_ = now;
   }
-#ifdef USE_STATUS_SENSOR
   for (const auto &provider : this->providers_) {
     if (provider.second.status_sensor != nullptr) {
       uint32_t key_response_age = now - provider.second.last_key_response_time;
       if (key_response_age > (this->ping_pong_recyle_time_ * 2u)) {
+#ifdef USE_STATUS_SENSOR
         if (provider.second.status_sensor->state) {
           ESP_LOGW(TAG, "Ping status for %s timeout at %u with age %u", provider.first.c_str(), now, key_response_age);
           provider.second.status_sensor->publish_state(false);
         }
+#endif
 #ifdef USE_SENSOR
         for (auto &sensor : this->remote_sensors_[provider.first]) {
           sensor.second->publish_state(NAN);
         }
 #endif
-#ifdef USE_BINARY_SENSOR
-        /* Not possible to set a binary sensor unavailable. */
-        // for (auto &binary_sensor : this->remote_binary_sensors_[provider.first]) {
-        //   binary_sensor.second->publish_state(false);
-        // }
-#endif
+        // Not possible to set a binary sensor unavailable, hence no equivalent loop
+        // as for the sensors above.
       } else {
         if (!provider.second.status_sensor->state) {
           ESP_LOGI(TAG, "Ping status for %s restored at %u with age %u", provider.first.c_str(), now, key_response_age);
@@ -348,7 +345,6 @@ void PacketTransport::update() {
       }
     }
   }
-#endif
 }
 
 void PacketTransport::add_key_(const char *name, uint32_t key) {
