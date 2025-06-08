@@ -45,7 +45,10 @@ void MQTTAlarmControlPanelComponent::setup() {
 void MQTTAlarmControlPanelComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "MQTT alarm_control_panel '%s':", this->alarm_control_panel_->get_name().c_str());
   LOG_MQTT_COMPONENT(true, true)
-  ESP_LOGCONFIG(TAG, "  Supported Features: %" PRIu32 "\n  Requires Code to Disarm: %s\n  Requires Code To Arm: %s",
+  ESP_LOGCONFIG(TAG,
+                "  Supported Features: %" PRIu32 "\n"
+                "  Requires Code to Disarm: %s\n"
+                "  Requires Code To Arm: %s",
                 this->alarm_control_panel_->get_supported_features(),
                 YESNO(this->alarm_control_panel_->get_requires_code()),
                 YESNO(this->alarm_control_panel_->get_requires_code_to_arm()));

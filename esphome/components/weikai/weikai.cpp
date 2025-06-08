@@ -267,7 +267,12 @@ void WeikaiChannel::setup_channel() {
 }
 
 void WeikaiChannel::dump_channel() {
-  ESP_LOGCONFIG(TAG, "  UART %s\n    Baud rate: %" PRIu32 " Bd\n    Data bits: %u\n    Stop bits: %u\n    Parity: %s",
+  ESP_LOGCONFIG(TAG,
+                "  UART %s\n"
+                "    Baud rate: %" PRIu32 " Bd\n"
+                "    Data bits: %u\n"
+                "    Stop bits: %u\n"
+                "    Parity: %s",
                 this->get_channel_name(), this->baud_rate_, this->data_bits_, this->stop_bits_, p2s(this->parity_));
 }
 

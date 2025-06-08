@@ -171,7 +171,10 @@ void PulseCounterSensor::set_total_pulses(uint32_t pulses) {
 void PulseCounterSensor::dump_config() {
   LOG_SENSOR("", "Pulse Counter", this);
   LOG_PIN("  Pin: ", this->pin_);
-  ESP_LOGCONFIG(TAG, "  Rising Edge: %s\n  Falling Edge: %s\n  Filtering pulses shorter than %" PRIu32 " µs",
+  ESP_LOGCONFIG(TAG,
+                "  Rising Edge: %s\n"
+                "  Falling Edge: %s\n"
+                "  Filtering pulses shorter than %" PRIu32 " µs",
                 EDGE_MODE_TO_STRING[this->storage_.rising_edge_mode],
                 EDGE_MODE_TO_STRING[this->storage_.falling_edge_mode], this->storage_.filter_us);
   LOG_UPDATE_INTERVAL(this);
