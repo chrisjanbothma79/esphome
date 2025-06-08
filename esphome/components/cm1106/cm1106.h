@@ -19,11 +19,11 @@ class CM1106Component : public PollingComponent, public uart::UARTDevice {
   void dump_config() override;
 
   void calibrate_zero(uint16_t ppm);
-  void abc_enable();
-  void abc_disable();
+  void abc_enable() { this->abc_set_(CM1106_ABC_ENABLED); };
+  void abc_disable() { this->abc_set_(CM1106_ABC_DISABLED); };
 
   void set_co2_sensor(sensor::Sensor *co2_sensor) { this->co2_sensor_ = co2_sensor; }
-  void set_abc_enabled(bool abc_enabled) { abc_boot_logic_ = abc_enabled ? CM1106_ABC_ENABLED : CM1106_ABC_DISABLED; }
+  void set_abc_enabled(bool abc_enabled) { this->abc_boot_logic_ = abc_enabled ? CM1106_ABC_ENABLED : CM1106_ABC_DISABLED; }
 
  protected:
   sensor::Sensor *co2_sensor_{nullptr};
@@ -33,6 +33,7 @@ class CM1106Component : public PollingComponent, public uart::UARTDevice {
   CM1106ABCLogic abc_boot_logic_{CM1106_ABC_NONE};
 
  private:
+  void abc_set_(CM1106ABCLogic abc_logic);
   void send_abc_command_(uint8_t flag);
 };
 
