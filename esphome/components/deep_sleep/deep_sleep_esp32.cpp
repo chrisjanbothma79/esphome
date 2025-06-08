@@ -47,8 +47,9 @@ void DeepSleepComponent::dump_config_platform_() {
   }
   if (this->wakeup_cause_to_run_duration_.has_value()) {
     ESP_LOGCONFIG(TAG,
-                  "  Default Wakeup Run Duration: %" PRIu32 " ms\n  Touch Wakeup Run Duration: %" PRIu32
-                  " ms\n  GPIO Wakeup Run Duration: %" PRIu32 " ms",
+                  "  Default Wakeup Run Duration: %" PRIu32 " ms\n"
+                  "  Touch Wakeup Run Duration: %" PRIu32 " ms\n"
+                  "  GPIO Wakeup Run Duration: %" PRIu32 " ms",
                   this->wakeup_cause_to_run_duration_->default_cause, this->wakeup_cause_to_run_duration_->touch_cause,
                   this->wakeup_cause_to_run_duration_->gpio_cause);
   }
