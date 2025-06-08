@@ -51,30 +51,20 @@ def _final_validate(config):
     full_config = fv.full_config.get()
     transport_path = full_config.get_path_for_id(config[CONF_TRANSPORT_ID])[:-1]
     transport_config = full_config.get_config_for_path(transport_path)
-    if not transport_config.get(CONF_PING_PONG_ENABLE, False):
-        raise cv.Invalid(
-            f"Status sensor {config[CONF_ID]} cannot be used without ping-pong enabled "
-            f"in {config[CONF_TRANSPORT_ID]}"
-        )
-    if providers := transport_config.get(CONF_PROVIDERS):
-        if provider := next(
-            (p for p in providers if p.get(CONF_NAME) == config[CONF_PROVIDER]), None
-        ):
-            if CONF_ENCRYPTION not in provider:
-                raise cv.Invalid(
-                    f"Provider {config[CONF_PROVIDER]} in {config[CONF_TRANSPORT_ID]} "
-                    f"must have encryption set to use status sensor {config[CONF_ID]}"
-                )
-        else:
-            raise cv.Invalid(
-                f"Provider {config[CONF_PROVIDER]} not found in {config[CONF_TRANSPORT_ID]}"
-            )
+    ping_pong_enabled = transport_config.get(CONF_PING_PONG_ENABLE, False)
+    provider_encryption_enabled = True
+    if provider := next(
+        p
+        for p in transport_config.get(CONF_PROVIDERS)
+        if p.get(CONF_NAME) == config[CONF_PROVIDER]
+    ):
+        if CONF_ENCRYPTION not in provider:
+            provider_encryption_enabled = False
     else:
-        # In current config logic this will never be reached since by enforcing ping-pong-enable
-        # at lest one provider needs to be configured, but keep it for future-proofing.
+        provider_encryption_enabled = False
+    if not (ping_pong_enabled and provider_encryption_enabled):
         raise cv.Invalid(
-            f"No providers configured for {config[CONF_TRANSPORT_ID]}, "
-            f"but status sensor {config[CONF_ID]} requires one"
+            f"Status sensor {config[CONF_ID]} requires provider {config[CONF_PROVIDER]} to have enctryption defined and ping-pong enabled for {config[CONF_TRANSPORT_ID]}"
         )
     return config
 
