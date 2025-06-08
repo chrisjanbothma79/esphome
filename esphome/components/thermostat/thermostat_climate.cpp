@@ -1300,8 +1300,8 @@ void ThermostatClimate::dump_config() {
   }
   ESP_LOGCONFIG(TAG, "  Start-up Delay Enabled: %s", YESNO(this->use_startup_delay_));
   if (this->supports_cool_) {
-    ESP_LOGCONFIG(TAG, "  Cooling Parameters:");
     ESP_LOGCONFIG(TAG,
+                  "  Cooling Parameters:\n"
                   "    Deadband: %.1f°C\n"
                   "    Overrun: %.1f°C",
                   this->cooling_deadband_, this->cooling_overrun_);
