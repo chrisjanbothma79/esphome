@@ -94,19 +94,19 @@ uint8_t Sparkfun14Seg::send_to_display(i2c::I2CDevice *display, uint8_t position
       //  like a very edge case, so I did not try to fix it. A period in any other location will
       //  display as blank.
       if (!special_character_found) {
-          if ((char_to_find == ':') && (i == 2)) {
-            // Colon at position 3
-            special_character_found = true;
-            char_buffer_location++;
-            this->buffer_[2] |= 0x01;
-            continue;
-          } else if((char_to_find == '.') && (i == 3)) {
-            // Period at position 4
-            special_character_found = true;
-            char_buffer_location++;
-            this->buffer_[4] |= 0x01;
-            continue;
-          }
+        if ((char_to_find == ':') && (i == 2)) {
+          // Colon at position 3
+          special_character_found = true;
+          char_buffer_location++;
+          this->buffer_[2] |= 0x01;
+          continue;
+        } else if((char_to_find == '.') && (i == 3)) {
+          // Period at position 4
+          special_character_found = true;
+          char_buffer_location++;
+          this->buffer_[4] |= 0x01;
+          continue;
+        }
       }
 
       auto it = char_map.find(char_to_find);
@@ -140,7 +140,7 @@ uint8_t Sparkfun14Seg::send_to_display(i2c::I2CDevice *display, uint8_t position
 uint16_t Sparkfun14Seg::convert_font_(uint16_t font_in) {
   uint16_t font_out = ((font_in & 0xFF80) << 1) | (font_in & 0x7F);
 
-  if ( ((font_out & 0x1000) != 0x0000) && !((font_out & 0x4000) != 0x0000) ) {
+  if (((font_out & 0x1000) != 0x0000) && !((font_out & 0x4000) != 0x0000)) {
     // Segment L is lit, need to switch to segment N
     font_out = (font_out | 0x4000) & ~(0x1000);
   } else if ((font_out & 0x4000) != 0x0000) {
@@ -157,10 +157,10 @@ void Sparkfun14Seg::write_to_buffer_(uint16_t char_to_write, uint8_t char_positi
   if ((char_position >= 0) && (char_position <= 3)) {
     uint16_t DigitDef = this->convert_font_(char_to_write);
 
-    for(uint8_t i = 0; i<8; i++) {
+    for(uint8_t i = 0; i < 8; i++) {
       // i counts through the com positions
-      this->buffer_[i * 2 + 1] |= ((DigitDef >>  i     ) & 0x01) << (char_position);
-      this->buffer_[i * 2 + 1] |= ((DigitDef >> (i + 8)) & 0x01) << (char_position+4);
+      this->buffer_[i * 2 + 1] |= ((DigitDef >>  i) & 0x01) << (char_position);
+      this->buffer_[i * 2 + 1] |= ((DigitDef >> (i + 8)) & 0x01) << (char_position + 4);
     }
   }
   return;
@@ -238,13 +238,13 @@ uint8_t Sparkfun14SegFlip::send_to_display(i2c::I2CDevice *display, uint8_t posi
       //  scrolling with a colon to look wierd. This seems like a very edge case, so I did not try
       //  to fix it. The period at the top of the display is not implemented.
       if (!special_character_found) {
-          if ((char_to_find == ':') && (i == 2)) {
-            // Colon at position 3
-            special_character_found = true;
-            char_buffer_location++;
-            this->buffer_[2] |= 0x01;
-            continue;
-          }
+        if ((char_to_find == ':') && (i == 2)) {
+          // Colon at position 3
+          special_character_found = true;
+          char_buffer_location++;
+          this->buffer_[2] |= 0x01;
+          continue;
+        }
       }
 
       auto it = char_map.find(char_to_find);
@@ -273,7 +273,7 @@ uint8_t Sparkfun14SegFlip::send_to_display(i2c::I2CDevice *display, uint8_t posi
 //    - Adding an extra zero between bit six and seven(the MSB of the first byte of the font).
 //    - Switching segment L and N. The Adafruit and Sparkfun devices have different definitaions
 //      of this segment.
-//  Additionally, this function flips the font so that it will look correct when the device is 
+//  Additionally, this function flips the font so that it will look correct when the device is
 //  upside-down.
 //
 //  This could be precomputed, but the simple bit shifting allows us to use a common font table for
@@ -282,7 +282,7 @@ uint16_t Sparkfun14SegFlip::convert_font_(uint16_t font_in) {
   uint16_t font_out = ((font_in & 0xFF80) << 1) | (font_in & 0x7F);
   uint16_t font_out2 = 0;
 
-  if ( ((font_out & 0x1000) != 0x0000) && !((font_out & 0x4000) != 0x0000) ) {
+  if (((font_out & 0x1000) != 0x0000) && !((font_out & 0x4000) != 0x0000)) {
     // Segment L is lit, need to switch to segment N
     font_out = (font_out | 0x4000) & ~(0x1000);
   } else if ((font_out & 0x4000) != 0x0000) {
@@ -291,12 +291,8 @@ uint16_t Sparkfun14SegFlip::convert_font_(uint16_t font_in) {
   }
 
   // Flip the font.
-  font_out2 = ((font_out & 0x0007) << 3) |
-              ((font_out & 0x0038) >> 3) |
-              ((font_out & 0x0E00) << 3) |
-              ((font_out & 0x7000) >> 3) |
-              ((font_out & 0x0040) << 2) |
-              ((font_out & 0x0100) >> 2);
+  font_out2 = ((font_out & 0x0007) << 3) | ((font_out & 0x0038) >> 3) | ((font_out & 0x0E00) << 3) |
+              ((font_out & 0x7000) >> 3) | ((font_out & 0x0040) << 2) | ((font_out & 0x0100) >> 2);
 
   return font_out2;
 }
@@ -309,13 +305,12 @@ void Sparkfun14SegFlip::write_to_buffer_(uint16_t char_to_write, uint8_t char_po
   // char_position should be 0-3
   if ((char_position >= 0) && (char_position <= 3)) {
     uint16_t DigitDef = this->convert_font_(char_to_write);
-    uint8_t flipped_char_position = 3-char_position;
+    uint8_t flipped_char_position = 3 - char_position;
 
-    for(uint8_t i = 0; i<8; i++)
-    {
+    for(uint8_t i = 0; i < 8; i++) {
       // i counts through the com positions
-      this->buffer_[i*2 + 1] |= ((DigitDef >>  i     ) & 0x01) << (flipped_char_position);
-      this->buffer_[i*2 + 1] |= ((DigitDef >> (i + 8)) & 0x01) << (flipped_char_position+4);
+      this->buffer_[i * 2 + 1] |= ((DigitDef >>  i) & 0x01) << (flipped_char_position);
+      this->buffer_[i * 2 + 1] |= ((DigitDef >> (i + 8)) & 0x01) << (flipped_char_position + 4);
     }
   }
   return;
