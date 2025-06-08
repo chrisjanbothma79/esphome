@@ -130,32 +130,24 @@ void Wireguard::update() {
 
 void Wireguard::dump_config() {
   ESP_LOGCONFIG(TAG, "WireGuard:");
-  ESP_LOGCONFIG(
-      TAG,
-      "  Address: %s\n"
-      "  Netmask: %s\n"
-      "  Private Key: " LOG_SECRET("%s") "\n"
-                                         "  Peer Endpoint: " LOG_SECRET(
-                                             "%s") "\n"
-                                                   "  Peer Port: " LOG_SECRET(
-                                                       "%d") "\n"
-                                                             "  Peer Public Key: " LOG_SECRET(
-                                                                 "%s") "\n"
-                                                                       "  Peer Pre-shared Key: " LOG_SECRET("%s"),
-      this->address_.c_str(), this->netmask_.c_str(), mask_key(this->private_key_).c_str(),
-      this->peer_endpoint_.c_str(), this->peer_port_, this->peer_public_key_.c_str(),
-      (!this->preshared_key_.empty() ? mask_key(this->preshared_key_).c_str() : "NOT IN USE"));
+  ESP_LOGCONFIG(TAG, "  Address: %s", this->address_.c_str());
+  ESP_LOGCONFIG(TAG, "  Netmask: %s", this->netmask_.c_str());
+  ESP_LOGCONFIG(TAG, "  Private Key: " LOG_SECRET("%s"), mask_key(this->private_key_).c_str());
+  ESP_LOGCONFIG(TAG, "  Peer Endpoint: " LOG_SECRET("%s"), this->peer_endpoint_.c_str());
+  ESP_LOGCONFIG(TAG, "  Peer Port: " LOG_SECRET("%d"), this->peer_port_);
+  ESP_LOGCONFIG(TAG, "  Peer Public Key: " LOG_SECRET("%s"), this->peer_public_key_.c_str());
+  ESP_LOGCONFIG(TAG, "  Peer Pre-shared Key: " LOG_SECRET("%s"),
+                (!this->preshared_key_.empty() ? mask_key(this->preshared_key_).c_str() : "NOT IN USE"));
   ESP_LOGCONFIG(TAG, "  Peer Allowed IPs:");
   for (auto &allowed_ip : this->allowed_ips_) {
     ESP_LOGCONFIG(TAG, "    - %s/%s", std::get<0>(allowed_ip).c_str(), std::get<1>(allowed_ip).c_str());
   }
+  ESP_LOGCONFIG(TAG, "  Peer Persistent Keepalive: %d%s", this->keepalive_,
+                (this->keepalive_ > 0 ? "s" : " (DISABLED)"));
+  ESP_LOGCONFIG(TAG, "  Reboot Timeout: %" PRIu32 "%s", (this->reboot_timeout_ / 1000),
+                (this->reboot_timeout_ != 0 ? "s" : " (DISABLED)"));
   // be careful: if proceed_allowed_ is true, require connection is false
-  ESP_LOGCONFIG(TAG,
-                "  Peer Persistent Keepalive: %d%s\n"
-                "  Reboot Timeout: %" PRIu32 "%s\n"
-                "  Require Connection to Proceed: %s",
-                this->keepalive_, (this->keepalive_ > 0 ? "s" : " (DISABLED)"), (this->reboot_timeout_ / 1000),
-                (this->reboot_timeout_ != 0 ? "s" : " (DISABLED)"), (this->proceed_allowed_ ? "NO" : "YES"));
+  ESP_LOGCONFIG(TAG, "  Require Connection to Proceed: %s", (this->proceed_allowed_ ? "NO" : "YES"));
   LOG_UPDATE_INTERVAL(this);
 }
 
