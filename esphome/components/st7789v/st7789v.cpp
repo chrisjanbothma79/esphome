@@ -123,10 +123,8 @@ void ST7789V::setup() {
 void ST7789V::dump_config() {
   LOG_DISPLAY("", "SPI ST7789V", this);
   ESP_LOGCONFIG(TAG, "  Model: %s", this->model_str_);
-  ESP_LOGCONFIG(TAG, "  Height: %u", this->height_);
-  ESP_LOGCONFIG(TAG, "  Width: %u", this->width_);
-  ESP_LOGCONFIG(TAG, "  Height Offset: %u", this->offset_height_);
-  ESP_LOGCONFIG(TAG, "  Width Offset: %u", this->offset_width_);
+  ESP_LOGCONFIG(TAG, "  Height: %u\n  Width: %u\n  Height Offset: %u\n  Width Offset: %u", this->height_, this->width_,
+                this->offset_height_, this->offset_width_);
   ESP_LOGCONFIG(TAG, "  8-bit color mode: %s", YESNO(this->eightbitcolor_));
   LOG_PIN("  CS Pin: ", this->cs_);
   LOG_PIN("  DC Pin: ", this->dc_pin_);
