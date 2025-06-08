@@ -239,7 +239,8 @@ DisconnectResponse APIConnection::disconnect(const DisconnectRequest &msg) {
   return resp;
 }
 void APIConnection::on_disconnect_response(const DisconnectResponse &value) {
-  // pass
+  this->helper_->close();
+  this->remove_ = true;
 }
 
 // Encodes a message to the buffer and returns the total number of bytes used,
