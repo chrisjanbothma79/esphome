@@ -160,8 +160,11 @@ void BME680BSECComponent::dump_config() {
   }
 
   ESP_LOGCONFIG(TAG,
-                "  Temperature Offset: %.2f\n  IAQ Mode: %s\n  Supply Voltage: %sV\n  Sample Rate: %s\n  State Save "
-                "Interval: %ims",
+                "  Temperature Offset: %.2f\n"
+                "  IAQ Mode: %s\n"
+                "  Supply Voltage: %sV\n"
+                "  Sample Rate: %s\n"
+                "  State Save Interval: %ims",
                 this->temperature_offset_, this->iaq_mode_ == IAQ_MODE_STATIC ? "Static" : "Mobile",
                 this->supply_voltage_ == SUPPLY_VOLTAGE_3V3 ? "3.3" : "1.8",
                 BME680_BSEC_SAMPLE_RATE_LOG(this->sample_rate_), this->state_save_interval_ms_);

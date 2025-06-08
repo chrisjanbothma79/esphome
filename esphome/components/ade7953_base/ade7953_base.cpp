@@ -59,8 +59,15 @@ void ADE7953::dump_config() {
   LOG_SENSOR("  ", "Rective Power A Sensor", this->reactive_power_a_sensor_);
   LOG_SENSOR("  ", "Reactive Power B Sensor", this->reactive_power_b_sensor_);
   ESP_LOGCONFIG(TAG,
-                "  USE_ACC_ENERGY_REGS: %d\n  PGA_V_8: 0x%X\n  PGA_IA_8: 0x%X\n  PGA_IB_8: 0x%X\n  VGAIN_32: 0x%08jX\n"
-                "  AIGAIN_32: 0x%08jX\n  BIGAIN_32: 0x%08jX\n  AWGAIN_32: 0x%08jX\n  BWGAIN_32: 0x%08jX",
+                "  USE_ACC_ENERGY_REGS: %d\n"
+                "  PGA_V_8: 0x%X\n"
+                "  PGA_IA_8: 0x%X\n"
+                "  PGA_IB_8: 0x%X\n"
+                "  VGAIN_32: 0x%08jX\n"
+                "  AIGAIN_32: 0x%08jX\n"
+                "  BIGAIN_32: 0x%08jX\n"
+                "  AWGAIN_32: 0x%08jX\n"
+                "  BWGAIN_32: 0x%08jX",
                 this->use_acc_energy_regs_, pga_v_, pga_ia_, pga_ib_, (uintmax_t) vgain_, (uintmax_t) aigain_,
                 (uintmax_t) bigain_, (uintmax_t) awgain_, (uintmax_t) bwgain_);
 }
