@@ -133,10 +133,7 @@ void GrowattSolar::on_modbus_data(const std::vector<uint8_t> &data) {
   }
 }
 
-void GrowattSolar::dump_config() {
-  ESP_LOGCONFIG(TAG, "GROWATT Solar:");
-  ESP_LOGCONFIG(TAG, "  Address: 0x%02X", this->address_);
-}
+void GrowattSolar::dump_config() { ESP_LOGCONFIG(TAG, "GROWATT Solar:\n  Address: 0x%02X", this->address_); }
 
 }  // namespace growatt_solar
 }  // namespace esphome
