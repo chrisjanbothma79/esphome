@@ -87,19 +87,19 @@ void Hpma115C0PollingComponent::update() {
 
   // Call all listeners' callbacks for value updates
   for (int i = 0; i < this->listeners_.size(); i++) {
-    this->listeners_[i]->on_new_values(pm_1_0, pm_2_5, pm_4_0, pm_10_0, aqi_2_5, aqi_10_0);
+    listeners_[i]->on_new_values(pm_1_0, pm_2_5, pm_4_0, pm_10_0, aqi_2_5, aqi_10_0);
   }
 }
 
 // Scale a float value
-const float Hpma115C0PollingComponent::scale_value_(float value, float inMin, float inMax, float outMin, float outMax) {
-  if (abs(inMax - inMin) <= 0.0)
+float Hpma115C0PollingComponent::scale_value_(float value, float in_min, float in_max, float out_min, float out_max) {
+  if (abs(in_max - in_min) <= 0.0)
     return NAN;
-  return (value - inMin) / (inMax - inMin) * (outMax - outMin) + outMin;
+  return (value - in_min) / (in_max - in_min) * (out_max - out_min) + out_min;
 }
 
 // Compute and update frame CRC
-bool Hpma115C0PollingComponent::update_frame_crc_(Frame_t &frame) {
+bool Hpma115C0PollingComponent::update_frame_crc_(HpmaFrameT &frame) {
   uint16_t crc;
 
   // Sanity check on lentgh
@@ -121,7 +121,7 @@ bool Hpma115C0PollingComponent::update_frame_crc_(Frame_t &frame) {
 }
 
 // Check frame CRC return computed
-bool Hpma115C0PollingComponent::check_frame_crc_(const Frame_t &frame) {
+bool Hpma115C0PollingComponent::check_frame_crc_(const HpmaFrameT &frame) {
   uint16_t crc;
 
   // Sanity check on lentgh
@@ -152,7 +152,7 @@ bool Hpma115C0PollingComponent::check_frame_crc_(const Frame_t &frame) {
 }
 
 // Clear UART buffer(s)
-void Hpma115C0PollingComponent::clear_uart_buffer_(void) {
+void Hpma115C0PollingComponent::clear_uart_buffer_() {
   this->flush();
 
   while (this->available()) {
@@ -163,7 +163,7 @@ void Hpma115C0PollingComponent::clear_uart_buffer_(void) {
 // Print full frame to log (debug level)
 // REQUEST : (HEAD-LEN-CMD)[DATA]#CRC
 // REPLY :   (HEAD-LEN-CMD)[DATA]#CRC  or Ack code
-void Hpma115C0PollingComponent::print_frame_(const Frame_t frame) {
+void Hpma115C0PollingComponent::print_frame_(const HpmaFrameT frame) {
   char buffer[1024];
 
   // Sanity check on lentgh
@@ -192,8 +192,8 @@ void Hpma115C0PollingComponent::print_frame_(const Frame_t frame) {
 }
 
 // Send a command to the sensor, read and parse reply
-bool Hpma115C0PollingComponent::send_request_(Cmd_t command, uint8_t *data, Frame_t &reply) {
-  Frame_t request;
+bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, HpmaFrameT &reply) {
+  HpmaFrameT request;
   uint16_t first_two_bytes;
   uint8_t expected_reply_data_length = 0;
 
@@ -253,15 +253,15 @@ bool Hpma115C0PollingComponent::send_request_(Cmd_t command, uint8_t *data, Fram
   this->write_array(request.bytes, request.length + 3);
 
   // Wait until first reply byte becomes available, (measured around 27ms)
-  uint64_t waitTime, waitStart = millis();
+  uint64_t wait_time, wait_start = millis();
   while (true) {
-    waitTime = millis() - waitStart;
+    wait_time = millis() - wait_start;
     if (this->available() > 0) {
-      ESP_LOGD(TAG, "response time is %d ms", waitTime);
+      ESP_LOGD(TAG, "response time is %d ms", wait_time);
       break;
     };
 
-    if (waitTime > MAX_ALLOWED_REPLY_DELAY) {
+    if (wait_time > MAX_ALLOWED_REPLY_DELAY) {
       ESP_LOGE(TAG, "Communication timeout, reply took more than %d ms", MAX_ALLOWED_REPLY_DELAY);
       this->last_error_ = ERROR_TIMEOUT;
       return false;
@@ -338,7 +338,7 @@ bool Hpma115C0PollingComponent::send_request_(Cmd_t command, uint8_t *data, Fram
 // Read current particulate mater values from sensor
 bool Hpma115C0PollingComponent::read_particle_measuring_results_(float *pm_1_0, float *pm_2_5, float *pm_4_0,
                                                                  float *pm_10_0) {
-  Frame_t request, reply;
+  HpmaFrameT request, reply;
 
   if (!this->send_request_(CMD_READ_PARTICLE_MEASURING_RESULTS, nullptr, reply)) {
     return false;
@@ -354,22 +354,22 @@ bool Hpma115C0PollingComponent::read_particle_measuring_results_(float *pm_1_0, 
 }
 
 // Start measurements
-bool Hpma115C0PollingComponent::start_particle_measurement_(void) {
-  Frame_t request, reply;
+bool Hpma115C0PollingComponent::start_particle_measurement_() {
+  HpmaFrameT request, reply;
 
   return this->send_request_(CMD_START_PARTICLE_MEASUREMENT, nullptr, reply);
 }
 
 // Stop measurements
-bool Hpma115C0PollingComponent::stop_particle_measurement_(void) {
-  Frame_t request, reply;
+bool Hpma115C0PollingComponent::stop_particle_measurement_() {
+  HpmaFrameT request, reply;
 
   return this->send_request_(CMD_STOP_PARTICLE_MEASUREMENT, nullptr, reply);
 }
 
 // Set adjustment coefficient
 bool Hpma115C0PollingComponent::set_customer_adjustment_coefficient_(AdjustmentCoefficient_t new_coefficient) {
-  Frame_t request, reply;
+  HpmaFrameT request, reply;
 
   if ((new_coefficient < ADJUSTMENT_COEFFICIENT_MIN) || (new_coefficient > ADJUSTMENT_COEFFICIENT_MAX)) {
     ESP_LOGE(TAG, "Adjustment coefficient %d not in range [%d, %d]", ADJUSTMENT_COEFFICIENT_MIN,
@@ -382,13 +382,13 @@ bool Hpma115C0PollingComponent::set_customer_adjustment_coefficient_(AdjustmentC
 }
 
 // Reset adjustment coefficient to default value
-bool Hpma115C0PollingComponent::reset_customer_adjustment_coefficient_(void) {
+bool Hpma115C0PollingComponent::reset_customer_adjustment_coefficient_() {
   return this->set_customer_adjustment_coefficient_(ADJUSTMENT_COEFFICIENT_DEFAULT);
 }
 
 // Get current adjustment coefficient
 bool Hpma115C0PollingComponent::read_customer_adjustment_coefficient_(float *value) {
-  Frame_t reply;
+  HpmaFrameT reply;
 
   if (!this->send_request_(CMD_READ_CUSTOMER_ADJUSTMENT_COEFFICIENT, nullptr, reply))
     return false;
@@ -407,15 +407,15 @@ bool Hpma115C0PollingComponent::read_customer_adjustment_coefficient_(float *val
 }
 
 // Stop autosend mode
-bool Hpma115C0PollingComponent::stop_autosend_(void) {
-  Frame_t request, reply;
+bool Hpma115C0PollingComponent::stop_autosend_() {
+  HpmaFrameT request, reply;
 
   return this->send_request_(CMD_STOP_AUTO_SEND, nullptr, reply);
 }
 
 // Enable autosend mode
-bool Hpma115C0PollingComponent::enable_autosend_(void) {
-  Frame_t request, reply;
+bool Hpma115C0PollingComponent::enable_autosend_() {
+  HpmaFrameT request, reply;
 
   return this->send_request_(CMD_ENABLE_AUTO_SEND, nullptr, reply);
 }
