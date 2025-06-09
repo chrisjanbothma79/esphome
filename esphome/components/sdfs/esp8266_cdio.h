@@ -27,7 +27,8 @@
  * \brief SdSpiCard class for V2 SD/SDHC cards
  */
 #pragma once
-// #include "esp8266_drv.h"
+#if defined(USE_ARDUINO) && defined(USE_ESP8266)
+
 #include "sdfs_defines.h"
 #include <stddef.h>
 #include "common/SysCall.h"
@@ -276,3 +277,4 @@ class SdfsSpiCard : public BlockDeviceInterface {
 
 }  // namespace sdfs
 }  // namespace esphome
+#endif

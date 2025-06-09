@@ -1,19 +1,16 @@
 #include "sdfs.h"
 #include "esphome/core/log.h"
 
-#if defined(USE_SDSPI_MODE)
-#include "esphome/components/spi/spi.h"
-#include "spi_connector.h"
-#endif
+// #if defined(USE_SDSPI_MODE)
+// #include "esphome/components/spi/spi.h"
+// #include "spi_connector.h"
+// #endif
 
 #if defined(USE_ARDUINO) && !defined(USE_ESP8266)
 #include "sdspi_drv_ard.h"
-// #include "vfs_api.h"
-// #include "FS.h"
-// #include "SPI.h"
-#elif defined(USE_ESP8266)
+#elif defined(USE_ARDUINO) && defined(USE_ESP8266)
 #include "esp8266_drv.h"
-#else
+#elif defined(USE_ESP_IDF)
 #include "sdmmc_drv_idf.h"
 #endif
 

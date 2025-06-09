@@ -23,8 +23,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 #include "esp8266_cdio.h"
-const char *TAG = "esp8266_cdio";
+#if defined(USE_ARDUINO) && defined(USE_ESP8266)
 
+const char *TAG = "esp8266_cdio";
 void sdCsInit(SdCsPin_t pin) {
   // initCalls++;
   // pinMode(pin, OUTPUT);
@@ -667,3 +668,4 @@ fail:
 
 }  // namespace sdfs
 }  // namespace esphome
+#endif
