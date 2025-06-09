@@ -171,7 +171,7 @@ void Nextion::dump_config() {
   }
 
   if (this->wake_up_page_ != -1) {
-    ESP_LOGCONFIG(TAG, "  Wake Up Page:          %" PRId16, this->wake_up_page_);
+    ESP_LOGCONFIG(TAG, "  Wake Up Page:          %d", this->wake_up_page_);
   }
 
   if (this->start_up_page_ != -1) {
