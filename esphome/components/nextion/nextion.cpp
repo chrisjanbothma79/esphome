@@ -393,7 +393,7 @@ void Nextion::process_nextion_commands_() {
   while ((to_process_length = this->command_data_.find(COMMAND_DELIMITER)) != std::string::npos) {
 #ifdef USE_NEXTION_MAX_COMMANDS_PER_LOOP
     if (++commands_processed > this->max_commands_per_loop_) {
-      ESP_LOGW(TAG, "Processed too many commands in one loop. Deferring remaining commands.");
+      ESP_LOGW(TAG, "Command processing limit exceeded");
       break;
     }
 #endif  // USE_NEXTION_MAX_COMMANDS_PER_LOOP
