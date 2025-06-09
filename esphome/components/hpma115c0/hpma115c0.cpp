@@ -163,8 +163,9 @@ void Hpma115C0PollingComponent::clear_uart_buffer_() {
 // Print full frame to log (debug level)
 // REQUEST : (HEAD-LEN-CMD)[DATA]#CRC
 // REPLY :   (HEAD-LEN-CMD)[DATA]#CRC  or Ack code
+#define DEBUG_PRINT_BUFFER_MAX_SIZE 1024
 void Hpma115C0PollingComponent::print_frame_(const HpmaFrameT frame) {
-  char buffer[1024];
+  char buffer[DEBUG_PRINT_BUFFER_MAX_SIZE];
 
   // Sanity check on lentgh
   if (frame.length > MAX_FRAME_DATA_LENGTH) {
@@ -183,7 +184,7 @@ void Hpma115C0PollingComponent::print_frame_(const HpmaFrameT frame) {
 
   for (byte_index = 0; byte_index < frame.length - 1; byte_index++) {
     if (byte_index > 0)
-      strcat(buffer, ".");
+      strlcat(buffer, ".", DEBUG_PRINT_BUFFER_MAX_SIZE);
     sprintf(buffer + strlen(buffer), "%02X", frame.data[byte_index]);
   }
   sprintf(buffer + strlen(buffer), "]#%02X", frame.data[byte_index]);
@@ -194,7 +195,6 @@ void Hpma115C0PollingComponent::print_frame_(const HpmaFrameT frame) {
 // Send a command to the sensor, read and parse reply
 bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, HpmaFrameT &reply) {
   HpmaFrameT request;
-  uint16_t first_two_bytes;
   uint8_t expected_reply_data_length = 0;
 
   // Set frame type for request
@@ -202,12 +202,6 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, H
 
   // Sanity check on command data length
   switch (command) {
-    case CMD_READ_PARTICLE_MEASURING_RESULTS:
-      request.length = 1;
-      request.command = command;
-      expected_reply_data_length = 13;
-      break;
-
     case CMD_START_PARTICLE_MEASUREMENT:
       request.length = 1;
       request.command = command;
@@ -218,6 +212,12 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, H
       request.length = 1;
       request.command = command;
       expected_reply_data_length = 0;
+      break;
+
+    case CMD_READ_PARTICLE_MEASURING_RESULTS:
+      request.length = 1;
+      request.command = command;
+      expected_reply_data_length = 13;
       break;
 
     case CMD_SET_CUSTOMER_ADJUSTMENT_COEFFICIENT:
@@ -242,6 +242,7 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, H
       ESP_LOGE(TAG, "Unknown command 0x%02X.", request.command);
       this->last_error_ = ERROR_UNKNOWN_COMMAND;
       return false;
+      break;
   }
 
   // Compute crc and update request frame
@@ -257,7 +258,7 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, H
   while (true) {
     wait_time = millis() - wait_start;
     if (this->available() > 0) {
-      ESP_LOGD(TAG, "response time is %d ms", wait_time);
+      ESP_LOGD(TAG, "response time is %d ms", (int16_t) wait_time);
       break;
     };
 
@@ -320,7 +321,7 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, H
 
   // Check length consistency
   if (reply.length != expected_reply_data_length) {
-    ESP_LOGE(TAG, "Invalid reply data length %d in command 0x%02X, should have been %d.", reply.length,
+    ESP_LOGE(TAG, "Invalid reply data length %d in command 0x%02X, should have been %d.", reply.length, command,
              expected_reply_data_length);
     this->last_error_ = ERROR_INVALID_REPLY_LENGTH;
     return false;
@@ -338,7 +339,7 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, H
 // Read current particulate mater values from sensor
 bool Hpma115C0PollingComponent::read_particle_measuring_results_(float *pm_1_0, float *pm_2_5, float *pm_4_0,
                                                                  float *pm_10_0) {
-  HpmaFrameT request, reply;
+  HpmaFrameT reply;
 
   if (!this->send_request_(CMD_READ_PARTICLE_MEASURING_RESULTS, nullptr, reply)) {
     return false;
@@ -355,24 +356,24 @@ bool Hpma115C0PollingComponent::read_particle_measuring_results_(float *pm_1_0, 
 
 // Start measurements
 bool Hpma115C0PollingComponent::start_particle_measurement_() {
-  HpmaFrameT request, reply;
+  HpmaFrameT reply;
 
   return this->send_request_(CMD_START_PARTICLE_MEASUREMENT, nullptr, reply);
 }
 
 // Stop measurements
 bool Hpma115C0PollingComponent::stop_particle_measurement_() {
-  HpmaFrameT request, reply;
+  HpmaFrameT reply;
 
   return this->send_request_(CMD_STOP_PARTICLE_MEASUREMENT, nullptr, reply);
 }
 
 // Set adjustment coefficient
 bool Hpma115C0PollingComponent::set_customer_adjustment_coefficient_(AdjustmentCoefficient_t new_coefficient) {
-  HpmaFrameT request, reply;
+  HpmaFrameT reply;
 
   if ((new_coefficient < ADJUSTMENT_COEFFICIENT_MIN) || (new_coefficient > ADJUSTMENT_COEFFICIENT_MAX)) {
-    ESP_LOGE(TAG, "Adjustment coefficient %d not in range [%d, %d]", ADJUSTMENT_COEFFICIENT_MIN,
+    ESP_LOGE(TAG, "Adjustment coefficient %d not in range [%d, %d]", new_coefficient, ADJUSTMENT_COEFFICIENT_MIN,
              ADJUSTMENT_COEFFICIENT_MAX);
     this->last_error_ = ERROR_COEFFICIENT_OUT_OF_RANGE;
     return false;
@@ -408,14 +409,14 @@ bool Hpma115C0PollingComponent::read_customer_adjustment_coefficient_(float *val
 
 // Stop autosend mode
 bool Hpma115C0PollingComponent::stop_autosend_() {
-  HpmaFrameT request, reply;
+  HpmaFrameT reply;
 
   return this->send_request_(CMD_STOP_AUTO_SEND, nullptr, reply);
 }
 
 // Enable autosend mode
 bool Hpma115C0PollingComponent::enable_autosend_() {
-  HpmaFrameT request, reply;
+  HpmaFrameT reply;
 
   return this->send_request_(CMD_ENABLE_AUTO_SEND, nullptr, reply);
 }
