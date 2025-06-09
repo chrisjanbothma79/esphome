@@ -35,7 +35,7 @@ void EmonTx::loop() {
 
     if (c == '\n' || c == '\r') {
       if (!buffer_.empty()) {
-        parse_json(buffer_);
+        parse_json_(buffer_);
         buffer_.clear();
       }
     } else {
@@ -49,7 +49,7 @@ void EmonTx::loop() {
   }
 }
 
-void EmonTx::parse_json(const std::string &data) {
+void EmonTx::parse_json_(const std::string &data) {
   ESP_LOGV(TAG, "Parsing JSON: %s", data.c_str());
 
   StaticJsonDocument<1024> doc;
@@ -85,7 +85,6 @@ void EmonTx::register_sensor(const std::string &tag, sensor::Sensor *sensor) {
  */
 void EmonTx::dump_config() {
   ESP_LOGCONFIG(TAG, "EmonTx Component:");
-  ESP_LOGCONFIG(TAG, "  UART: %s", this->parent_->get_hw_serial_string().c_str());
   ESP_LOGCONFIG(TAG, "  Registered sensors: %d", sensors_.size());
   for (auto &sensor_pair : sensors_) {
     ESP_LOGCONFIG(TAG, "    Tag: %s", sensor_pair.first.c_str());
