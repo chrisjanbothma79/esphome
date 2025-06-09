@@ -6,121 +6,18 @@ namespace emontx {
 
 static const char *const TAG = "emontx";
 
-constexpr uint8_t START_FRAME = 0x2;
-constexpr uint8_t END_FRAME = 0x3;
-constexpr uint8_t LINE_FEED = 0xa;
-constexpr uint8_t CARRIAGE_RETURN = 0xd;
-constexpr uint8_t TAB = 0x9;
-constexpr uint8_t MAX_ITERATIONS = 128;
-
-/**
- * @brief Extracts a field (substring) from a buffer, delimited by a TAB character (0x9).
- *
- * @param dest Reference to a std::string where the extracted field will be stored.
- * @param buf_start Pointer to the start of the buffer to extract the field from.
- * @param buf_end Pointer to the end of the buffer.
- * @param max_len Maximum length of the destination buffer.
- * @return int Length of the extracted field if successful, 0 if no TAB delimiter is found,
- *             or the length of the field if it exceeds max_len (but the field is not copied).
- */
-static size_t get_field(std::string &dest, const char *buf_start, const char *buf_end, size_t max_len) {
-  const auto *const field_end = static_cast<const char *>(memchr(buf_start, TAB, buf_end - buf_start));
-  if (!field_end)
-    return 0;
-  const auto len = field_end - buf_start;
-  if (len >= max_len)
-    return len;
-
-  dest.assign(buf_start, len);  // Assign the substring to the std::string
-  return len;
-}
-
-/**
- * @brief Calculates the CRC (checksum) for a given group of characters.
- *
- * @param grp Pointer to the start of the group.
- * @param grp_len Length of the group.
- * @return uint8_t The calculated CRC value.
- */
-uint8_t EmonTx::calculate_crc_(const char *grp, size_t grp_len) {
-  uint8_t crc_tmp{0};
-  const auto effective_len = grp_len - checksum_area_end_;
-  for (int i = 0; i < effective_len; i++) {
-    crc_tmp += grp[i];
-  }
-  crc_tmp &= 0x3F;
-  crc_tmp += 0x20;
-  return crc_tmp;
-}
-
-/**
- * @brief Verifies the CRC of a group by comparing the calculated CRC with the provided CRC.
- *
- * @param grp Pointer to the start of the group.
- * @param grp_end Pointer to the end of the group.
- * @return true If the CRC matches.
- * @return false If there is a mismatch.
- * @note Logs an error message if the CRC does not match.
- */
-bool EmonTx::check_crc_(const char *grp, const char *grp_end) {
-  const auto grp_len = grp_end - grp;
-  const auto raw_crc = grp[grp_len - 1];
-
-  const auto calculated_crc = calculate_crc_(grp, grp_len);
-
-  if (raw_crc != calculated_crc) {
-    ESP_LOGE(TAG, "CRC mismatch: expected %d, got %d", calculated_crc, raw_crc);
-    return false;
-  }
-  return true;
-}
-
-/**
- * @brief Reads characters from the input buffer until a specific character is found or the buffer is full.
- *
- * @param drop If true, discards characters until the target character is found.
- * @param c The target character to stop reading at.
- * @return true If the target character is found.
- * @return false If the buffer is full or the target character is not found.
- * @note Logs a warning if the internal buffer is full.
- */
-bool EmonTx::read_chars_until_(bool drop, uint8_t c) {
-  uint8_t j{0};
-
-  while (available() > 0 && j++ < MAX_ITERATIONS) {
-    const auto received = read();
-    if (received == c)
-      return true;
-    if (drop)
-      continue;
-    /*
-     * Internal buffer is full, switch to OFF mode.
-     * Data will be retrieved on next update.
-     */
-    if (buf_index_ >= (buf_.size() - 1)) {
-      ESP_LOGW(TAG, "Internal buffer full");
-      state_ = State::OFF;
-      return false;
-    }
-    buf_[buf_index_++] = received;
-  }
-
-  return false;
-}
-
 /**
  * @brief Initializes the EmonTx by setting the initial state to OFF.
  */
-void EmonTx::setup() { state_ = State::OFF; }
+void EmonTx::setup() { ESP_LOGCONFIG(TAG, "Setting up EmonTx Component..."); }
 
 /**
  * @brief Updates the EmonTx state. Resets the buffer index and transitions the state from OFF to ON.
  */
 void EmonTx::update() {
-  if (state_ == State::OFF) {
-    buf_index_ = 0;
-    state_ = State::ON;
-  }
+  ESP_LOGD(TAG, "Updating EmonTx state...");
+  buffer_.clear();  // Clear the buffer for new data
+  ESP_LOGD(TAG, "EmonTx is now ready to receive data.");
 }
 
 /**
@@ -133,90 +30,52 @@ void EmonTx::update() {
  * - END_FRAME_RECEIVED: Processes the buffer to extract groups, validate CRC, and publish values.
  */
 void EmonTx::loop() {
-  switch (state_) {
-    case State::OFF:
-      break;
-    case State::ON:
-      ESP_LOGVV(TAG, "State transition: ON -> START_FRAME_RECEIVED");
-      /* Dequeue chars until start frame (0x2) */
-      if (read_chars_until_(true, START_FRAME))
-        state_ = State::START_FRAME_RECEIVED;
-      break;
-    case State::START_FRAME_RECEIVED:
-      ESP_LOGVV(TAG, "State transition: START_FRAME_RECEIVED -> END_FRAME_RECEIVED");
-      /* Dequeue chars until end frame (0x3) */
-      if (read_chars_until_(false, END_FRAME))
-        state_ = State::END_FRAME_RECEIVED;
-      break;
-    case State::END_FRAME_RECEIVED:
-      ESP_LOGVV(TAG, "State transition: END_FRAME_RECEIVED -> DoWork");
-      size_t field_len;
+  while (available()) {
+    char c = read();
 
-      auto *buf_finger = buf_.data();
-      auto *buf_end = buf_.data() + buf_index_;
-
-      /* Each frame is composed of multiple groups starting by 0xa(Line Feed) and ending by
-       * 0xd ('\r').
-       *
-       * Each group contains tag, data and a CRC separated by 0x9 (\t)
-       * 0xa | Tag | 0x9 | Data | 0x9 | CRC | 0xd
-       *     ^^^^^^^^^^^^^^^^^^^^^^^^^
-       * Checksum is computed on the above in standard mode.
-       *
-       */
-      while ((buf_finger = static_cast<char *>(memchr(buf_finger, LINE_FEED, buf_index_ - 1))) &&
-             ((buf_finger - buf_.data()) < buf_index_)) {  // NOLINT(clang-diagnostic-sign-compare)
-        /* Point to the first char of the group after 0xa */
-        ++buf_finger;
-
-        /* Group len */
-        auto *const grp_end = static_cast<char *>(memchr(buf_finger, CARRIAGE_RETURN, buf_end - buf_finger));
-        if (!grp_end) {
-          ESP_LOGE(TAG, "No group found");
-          break;
-        }
-
-        if (!check_crc_(buf_finger, grp_end))
-          continue;
-
-        /* Get tag */
-        field_len = get_field(tag_, buf_finger, grp_end, MAX_TAG_SIZE);
-        if (!field_len || field_len >= MAX_TAG_SIZE) {
-          ESP_LOGE(TAG, "Invalid tag.");
-          continue;
-        }
-
-        /* Advance buf_finger to after the tag and the separator. */
-        buf_finger += field_len + 1;
-
-        field_len = get_field(val_, buf_finger, grp_end, MAX_VAL_SIZE);
-        if (!field_len || field_len >= MAX_VAL_SIZE) {
-          ESP_LOGE(TAG, "Invalid value for tag %s", tag_.c_str());
-          continue;
-        }
-
-        /* Advance buf_finger to end of group */
-        buf_finger += field_len + 1 + 1 + 1;
-
-        publish_value_(tag_, val_);
+    if (c == '\n' || c == '\r') {
+      if (!buffer_.empty()) {
+        parse_json(buffer_);
+        buffer_.clear();
       }
-      state_ = State::OFF;
-      break;
+    } else {
+      buffer_ += c;
+      // Prevent buffer overflow
+      if (buffer_.length() > 1024) {
+        ESP_LOGW(TAG, "Buffer overflow, clearing buffer");
+        buffer_.clear();
+      }
+    }
   }
 }
 
-/**
- * @brief Publishes a value to all registered listeners that match the given tag.
- *
- * @param tag The tag associated with the value.
- * @param val The value to publish.
- */
-void EmonTx::publish_value_(const std::string &tag, const std::string &val) {
-  for (auto *element : emontx_listeners_) {
-    if (tag != element->tag)
-      continue;
-    element->publish_val(val);
+void EmonTx::parse_json(const std::string &data) {
+  ESP_LOGV(TAG, "Parsing JSON: %s", data.c_str());
+
+  StaticJsonDocument<1024> doc;
+  DeserializationError error = deserializeJson(doc, data);
+
+  if (error) {
+    ESP_LOGW(TAG, "Failed to parse JSON: %s", error.c_str());
+    return;
   }
+
+  // Update all registered sensors
+  for (auto &sensor_pair : sensors_) {
+    const std::string &tag = sensor_pair.first;
+    sensor::Sensor *sensor = sensor_pair.second;
+
+    if (doc.containsKey(tag)) {
+      float value = doc[tag];
+      ESP_LOGD(TAG, "Updating sensor '%s' with value: %.2f", tag.c_str(), value);
+      sensor->publish_state(value);
+    }
+  }
+}
+
+void EmonTx::register_sensor(const std::string &tag, sensor::Sensor *sensor) {
+  ESP_LOGD(TAG, "Registering sensor for tag: %s", tag.c_str());
+  sensors_[tag] = sensor;
 }
 
 /**
@@ -225,16 +84,12 @@ void EmonTx::publish_value_(const std::string &tag, const std::string &val) {
  * @note Logs the UART settings and other configuration details.
  */
 void EmonTx::dump_config() {
-  ESP_LOGCONFIG(TAG, "EmonTx:");
-  this->check_uart_settings(baud_rate_, 1, uart::UART_CONFIG_PARITY_EVEN, 7);
-}
-
-/**
- * @brief Constructor for the EmonTx class. Initializes default values for checksum_area_end_ and baud_rate_.
- */
-EmonTx::EmonTx() {
-  checksum_area_end_ = 1;
-  baud_rate_ = 9600;
+  ESP_LOGCONFIG(TAG, "EmonTx Component:");
+  ESP_LOGCONFIG(TAG, "  UART: %s", this->parent_->get_hw_serial_string().c_str());
+  ESP_LOGCONFIG(TAG, "  Registered sensors: %d", sensors_.size());
+  for (auto &sensor_pair : sensors_) {
+    ESP_LOGCONFIG(TAG, "    Tag: %s", sensor_pair.first.c_str());
+  }
 }
 
 /**

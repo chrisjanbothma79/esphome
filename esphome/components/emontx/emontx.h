@@ -2,9 +2,11 @@
 
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
+#include "esphome/components/sensor/sensor.h"
 
+#include <ArduinoJson.h>
+#include <map>
 #include <vector>
-#include <array>
 
 // {"MSG":355,"V1":234.75,"V2":234.80,"V3":234.86,"P1":0,"P2":0,"P3":0,"P4":0,"P5":0,"P6":0,"E1":0,"E2":0,"E3":0,"E4":0,"E5":0,"E6":0,"pulse":0}
 
@@ -14,10 +16,6 @@ namespace emontx {
  * 198 bytes should be enough to contain a full session in historical mode with
  * three phases. But go with 1024 just to be sure.
  */
-constexpr uint8_t MAX_TAG_SIZE = 16;
-constexpr uint16_t MAX_VAL_SIZE = 16;
-constexpr uint16_t MAX_BUF_SIZE = 1048;
-
 /**
  * @class EmonTxListener
  * @brief Listener interface for receiving updates from the EmonTx.
@@ -48,27 +46,13 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   void dump_config() override;
   std::vector<EmonTxListener *> emontx_listeners_{};
 
+  void register_sensor(const std::string &tag, sensor::Sensor *sensor);
+
  protected:
-  uint32_t baud_rate_;
-  size_t checksum_area_end_;
-  std::array<char, MAX_BUF_SIZE> buf_;
-  size_t buf_index_{0};
-  std::string tag_;
-  std::string val_;
-
-  enum class State {
-    OFF,
-    ON,
-    START_FRAME_RECEIVED,
-    END_FRAME_RECEIVED,
-  };
-
-  State state_{State::OFF};
-
-  bool read_chars_until_(bool drop, uint8_t c);
-  uint8_t calculate_crc_(const char *grp, size_t grp_len);
-  bool check_crc_(const char *grp, const char *grp_end);
-  void publish_value_(const std::string &tag, const std::string &val);
+  std::map<std::string, sensor::Sensor *> sensors_;
+  std::string buffer_;
+  void parse_json(const std::string &data);
 };
+
 }  // namespace emontx
 }  // namespace esphome
