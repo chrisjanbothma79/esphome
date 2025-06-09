@@ -319,7 +319,13 @@ RECOMMENDED_ESP_IDF_FRAMEWORK_VERSION = cv.Version(5, 3, 2)
 # The platformio/espressif32 version to use for esp-idf frameworks
 #  - https://github.com/platformio/platform-espressif32/releases
 #  - https://api.registry.platformio.org/v3/packages/platformio/platform/espressif32
-ESP_IDF_PLATFORM_VERSION = cv.Version(53, 3, 13)
+PIOARDUINO_PLATFORM_VERSION = cv.Version(53, 3, 13)
+
+ESP_EDF_DEV_VERSION = cv.Version(6, 0, 0)
+
+LATEST_PLATFORMIO_ESP_IDF_VERSION = cv.Version(5, 4, 1)
+LATEST_PLATFORMIO_PLATFORM_VERSION = cv.Version(6, 11, 0)
+
 
 # List based on https://registry.platformio.org/tools/platformio/framework-espidf/versions
 SUPPORTED_PLATFORMIO_ESP_IDF_5X = [
@@ -339,9 +345,11 @@ SUPPORTED_PLATFORMIO_ESP_IDF_5X = [
 # pioarduino versions that don't require a release number
 # List based on https://github.com/pioarduino/esp-idf/releases
 SUPPORTED_PIOARDUINO_ESP_IDF_5X = [
-    cv.Version(5, 5, 0),
-    cv.Version(5, 4, 1),
-    cv.Version(5, 4, 0),
+    # pioarduino platform 55.xx not released yet
+    # cv.Version(5, 5, 0),
+    # pioarduino platform 54.xx not released yet
+    # cv.Version(5, 4, 1),
+    # cv.Version(5, 4, 0),
     cv.Version(5, 3, 3),
     cv.Version(5, 3, 2),
     cv.Version(5, 3, 1),
@@ -390,19 +398,19 @@ def _esp_idf_check_versions(value):
     value = value.copy()
     lookups = {
         "dev": (
-            cv.Version(6, 0, 0),
+            ESP_EDF_DEV_VERSION,
             "https://github.com/espressif/esp-idf.git",
             "https://github.com/platformio/platform-espressif32.git",
         ),
         "latest": (
-            cv.Version(5, 4, 1),
+            LATEST_PLATFORMIO_ESP_IDF_VERSION,
             None,
-            _parse_platform_version(str(cv.Version(6, 11, 0))),
+            _parse_platform_version(str(LATEST_PLATFORMIO_PLATFORM_VERSION)),
         ),
         "recommended": (
             RECOMMENDED_ESP_IDF_FRAMEWORK_VERSION,
             None,
-            _parse_platform_version(str(ESP_IDF_PLATFORM_VERSION)),
+            _parse_platform_version(str(PIOARDUINO_PLATFORM_VERSION)),
         ),
     }
 
@@ -416,7 +424,13 @@ def _esp_idf_check_versions(value):
     else:
         version = cv.Version.parse(cv.version_number(value[CONF_VERSION]))
         source = value.get(CONF_SOURCE, None)
-        default_platform = _parse_platform_version(str(ESP_IDF_PLATFORM_VERSION))
+        default_platform = _parse_platform_version(
+            str(
+                PIOARDUINO_PLATFORM_VERSION
+                if version in SUPPORTED_PIOARDUINO_ESP_IDF_5X
+                else LATEST_PLATFORMIO_PLATFORM_VERSION
+            )
+        )
 
     if version < cv.Version(4, 0, 0):
         raise cv.Invalid("Only ESP-IDF 4.0+ is supported.")
@@ -430,10 +444,10 @@ def _esp_idf_check_versions(value):
         (is_platformio := _platform_is_platformio(value[CONF_PLATFORM_VERSION]))
         and version.major >= 5
         and version not in SUPPORTED_PLATFORMIO_ESP_IDF_5X
-        and version != cv.Version(6, 0, 0)  # esp-idf dev version
+        and version != ESP_EDF_DEV_VERSION  # esp-idf dev version
     ):
         raise cv.Invalid(
-            f"ESP-IDF {str(version)} not supported by platformio/espressif32"
+            f"ESP-IDF {value[CONF_VERSION]} may be supported by platformio/espressif32; please specify '{CONF_PLATFORM_VERSION}'"
         )
 
     if (
@@ -443,8 +457,8 @@ def _esp_idf_check_versions(value):
             and version not in SUPPORTED_PIOARDUINO_ESP_IDF_5X
         )
     ) and not has_platform_ver:
-        raise cv.Invalid(
-            f"ESP-IDF {value[CONF_VERSION]} may be supported by platformio/espressif32; please specify '{CONF_PLATFORM_VERSION}'"
+        value[CONF_PLATFORM_VERSION] = _parse_platform_version(
+            str(LATEST_PLATFORMIO_PLATFORM_VERSION)
         )
 
     if (
