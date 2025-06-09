@@ -107,14 +107,17 @@ void RemoteReceiverComponent::setup() {
 void RemoteReceiverComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Remote Receiver:");
   LOG_PIN("  Pin: ", this->pin_);
-  ESP_LOGCONFIG(TAG, "  Clock resolution: %" PRIu32 " hz", this->clock_resolution_);
-  ESP_LOGCONFIG(TAG, "  RMT symbols: %" PRIu32, this->rmt_symbols_);
-  ESP_LOGCONFIG(TAG, "  Filter symbols: %" PRIu32, this->filter_symbols_);
-  ESP_LOGCONFIG(TAG, "  Receive symbols: %" PRIu32, this->receive_symbols_);
-  ESP_LOGCONFIG(TAG, "  Tolerance: %" PRIu32 "%s", this->tolerance_,
-                (this->tolerance_mode_ == remote_base::TOLERANCE_MODE_TIME) ? " us" : "%");
-  ESP_LOGCONFIG(TAG, "  Filter out pulses shorter than: %" PRIu32 " us", this->filter_us_);
-  ESP_LOGCONFIG(TAG, "  Signal is done after %" PRIu32 " us of no changes", this->idle_us_);
+  ESP_LOGCONFIG(TAG,
+                "  Clock resolution: %" PRIu32 " hz\n"
+                "  RMT symbols: %" PRIu32 "\n"
+                "  Filter symbols: %" PRIu32 "\n"
+                "  Receive symbols: %" PRIu32 "\n"
+                "  Tolerance: %" PRIu32 "%s\n"
+                "  Filter out pulses shorter than: %" PRIu32 " us\n"
+                "  Signal is done after %" PRIu32 " us of no changes",
+                this->clock_resolution_, this->rmt_symbols_, this->filter_symbols_, this->receive_symbols_,
+                this->tolerance_, (this->tolerance_mode_ == remote_base::TOLERANCE_MODE_TIME) ? " us" : "%",
+                this->filter_us_, this->idle_us_);
   if (this->is_failed()) {
     ESP_LOGE(TAG, "Configuring RMT driver failed: %s (%s)", esp_err_to_name(this->error_code_),
              this->error_string_.c_str());

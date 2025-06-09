@@ -18,8 +18,10 @@ void RemoteTransmitterComponent::setup() {
 
 void RemoteTransmitterComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "Remote Transmitter:");
-  ESP_LOGCONFIG(TAG, "  Clock resolution: %" PRIu32 " hz", this->clock_resolution_);
-  ESP_LOGCONFIG(TAG, "  RMT symbols: %" PRIu32, this->rmt_symbols_);
+  ESP_LOGCONFIG(TAG,
+                "  Clock resolution: %" PRIu32 " hz\n"
+                "  RMT symbols: %" PRIu32,
+                this->clock_resolution_, this->rmt_symbols_);
   LOG_PIN("  Pin: ", this->pin_);
 
   if (this->current_carrier_frequency_ != 0 && this->carrier_duty_percent_ != 100) {
