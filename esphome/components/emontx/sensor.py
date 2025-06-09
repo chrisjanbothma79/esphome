@@ -85,7 +85,8 @@ def apply_sensor_defaults(config):
     defaults = get_sensor_defaults(tag)
 
     # Create a new config with defaults applied only if not already specified
-    new_config = defaults.copy()
+    new_config = {}
+    new_config.update(defaults)
     new_config.update(config)  # User config takes precedence
 
     return new_config
