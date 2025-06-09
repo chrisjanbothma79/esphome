@@ -744,12 +744,12 @@ async def to_code(config):
                 "partitions.csv", CORE.relative_config_path(config[CONF_PARTITIONS])
             )
 
-        if assertion_level := conf[CONF_ADVANCED].get(CONF_ASSERTION_LEVEL):
+        if assertion_level := advanced.get(CONF_ASSERTION_LEVEL):
             for key, flag in ASSERTION_LEVELS.items():
                 add_idf_sdkconfig_option(flag, assertion_level == key)
 
         add_idf_sdkconfig_option("CONFIG_COMPILER_OPTIMIZATION_DEFAULT", False)
-        compiler_optimization = conf[CONF_ADVANCED].get(CONF_COMPILER_OPTIMIZATION)
+        compiler_optimization = advanced.get(CONF_COMPILER_OPTIMIZATION)
         for key, flag in COMPILER_OPTIMIZATIONS.items():
             add_idf_sdkconfig_option(flag, compiler_optimization == key)
 
@@ -758,7 +758,7 @@ async def to_code(config):
             conf[CONF_ADVANCED][CONF_ENABLE_LWIP_ASSERT],
         )
 
-        if conf[CONF_ADVANCED].get(CONF_IGNORE_EFUSE_MAC_CRC):
+        if advanced.get(CONF_IGNORE_EFUSE_MAC_CRC):
             add_idf_sdkconfig_option("CONFIG_ESP_MAC_IGNORE_MAC_CRC_ERROR", True)
             if (framework_ver.major, framework_ver.minor) >= (4, 4):
                 add_idf_sdkconfig_option(
@@ -768,7 +768,7 @@ async def to_code(config):
                 add_idf_sdkconfig_option(
                     "CONFIG_ESP32_PHY_CALIBRATION_AND_DATA_STORAGE", False
                 )
-        if conf[CONF_ADVANCED].get(CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES):
+        if advanced.get(CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES):
             _LOGGER.warning(
                 "Using experimental features in ESP-IDF may result in unexpected failures."
             )
