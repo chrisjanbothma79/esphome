@@ -112,7 +112,11 @@ template<typename T, uint8_t SZ> class RestoringGlobalStringComponent : public C
         temp[0] = ((unsigned char) size);
         this->rtc_.save(&temp);
       }
-      this->prev_value_.assign(this->value_);  // To avoid this routine repeating on every loop
+      // Always update prev_value_ to match current value, even for oversized strings.
+      // This prevents redundant size checks on every loop iteration when a string 
+      // remains oversized. Without this, the diff != 0 check would pass repeatedly
+      // for the same oversized string, wasting CPU cycles on size comparisons.
+      this->prev_value_.assign(this->value_);
     }
   }
 
