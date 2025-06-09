@@ -11,8 +11,8 @@ static const char *const TAG = "servo";
 uint32_t global_servo_id = 1911044085ULL;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 void Servo::dump_config() {
-  ESP_LOGCONFIG(TAG, "Servo:");
   ESP_LOGCONFIG(TAG,
+                "Servo:\n"
                 "  Idle Level: %.1f%%\n"
                 "  Min Level: %.1f%%\n"
                 "  Max Level: %.1f%%\n"
