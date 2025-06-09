@@ -342,14 +342,17 @@ SUPPORTED_PLATFORMIO_ESP_IDF_5X = [
     cv.Version(5, 0, 0),
 ]
 
+SUPPORTED_BY_DEFAULT_PIOARDUINO_PLATFORM_ESP_IDF_5X = [
+    # pioarduino platform 55.xx not released yet
+    cv.Version(5, 5, 0),
+    # pioarduino platform 54.xx not released yet
+    cv.Version(5, 4, 1),
+    cv.Version(5, 4, 0),
+]
+
 # pioarduino versions that don't require a release number
 # List based on https://github.com/pioarduino/esp-idf/releases
 SUPPORTED_PIOARDUINO_ESP_IDF_5X = [
-    # pioarduino platform 55.xx not released yet
-    # cv.Version(5, 5, 0),
-    # pioarduino platform 54.xx not released yet
-    # cv.Version(5, 4, 1),
-    # cv.Version(5, 4, 0),
     cv.Version(5, 3, 3),
     cv.Version(5, 3, 2),
     cv.Version(5, 3, 1),
@@ -466,9 +469,10 @@ def _esp_idf_check_versions(value):
         and CONF_RELEASE not in value
         and version not in SUPPORTED_PIOARDUINO_ESP_IDF_5X
     ):
-        raise cv.Invalid(
-            f"ESP-IDF {value[CONF_VERSION]} is not available with pioarduino; you may need to specify '{CONF_RELEASE}'"
-        )
+        if version not in SUPPORTED_BY_DEFAULT_PIOARDUINO_PLATFORM_ESP_IDF_5X:
+            raise cv.Invalid(
+                f"ESP-IDF {value[CONF_VERSION]} is not available with pioarduino; you may need to specify '{CONF_RELEASE}'"
+            )
 
     value[CONF_VERSION] = str(version)
     value[CONF_SOURCE] = source or _format_framework_espidf_version(
