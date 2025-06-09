@@ -2,10 +2,6 @@ import esphome.codegen as cg
 from esphome.components import sensor
 import esphome.config_validation as cv
 from esphome.const import (
-    CONF_ACCURACY_DECIMALS,
-    CONF_DEVICE_CLASS,
-    CONF_STATE_CLASS,
-    CONF_UNIT_OF_MEASUREMENT,
     DEVICE_CLASS_ENERGY,
     DEVICE_CLASS_POWER,
     DEVICE_CLASS_TEMPERATURE,
@@ -23,83 +19,67 @@ from . import CONF_EMONTX_ID, CONF_TAG_NAME, EmonTx
 DEPENDENCIES = ["emontx"]
 
 
-def get_sensor_defaults(tag):
-    """
-    Automatically determine sensor properties based on tag patterns.
-    Returns a dictionary with default properties that can be overridden by user.
-    """
+# First define the base schema with mandatory EmonTx listener fields
+BASE_SCHEMA = {
+    cv.GenerateID(CONF_EMONTX_ID): cv.use_id(EmonTx),
+    cv.Required(CONF_TAG_NAME): cv.string,
+}
+
+
+# Create a schema for each sensor type
+def create_sensor_schema(tag):
+    """Create appropriate schema based on tag pattern"""
     tag_upper = tag.upper()
-    defaults = {}
 
     # Power sensors (P1, P2, P3, etc.)
     if tag_upper.startswith("P") and len(tag_upper) >= 2 and len(tag_upper) <= 3:
-        defaults = {
-            CONF_UNIT_OF_MEASUREMENT: UNIT_WATT,
-            CONF_DEVICE_CLASS: DEVICE_CLASS_POWER,
-            CONF_STATE_CLASS: STATE_CLASS_MEASUREMENT,
-            CONF_ACCURACY_DECIMALS: 1,
-        }
+        return sensor.sensor_schema(
+            unit_of_measurement=UNIT_WATT,
+            device_class=DEVICE_CLASS_POWER,
+            state_class=STATE_CLASS_MEASUREMENT,
+            accuracy_decimals=1,
+        ).extend(BASE_SCHEMA)
+
     # Energy sensors (E1, E2, E3, etc.)
     elif tag_upper.startswith("E") and len(tag_upper) >= 2 and len(tag_upper) <= 3:
-        defaults = {
-            CONF_UNIT_OF_MEASUREMENT: UNIT_WATT_HOURS,
-            CONF_DEVICE_CLASS: DEVICE_CLASS_ENERGY,
-            CONF_STATE_CLASS: STATE_CLASS_TOTAL_INCREASING,
-            CONF_ACCURACY_DECIMALS: 0,
-        }
-    # Voltage sensors (Vrms1, Vrms2, Vrms3, etc.)
+        return sensor.sensor_schema(
+            unit_of_measurement=UNIT_WATT_HOURS,
+            device_class=DEVICE_CLASS_ENERGY,
+            state_class=STATE_CLASS_TOTAL_INCREASING,
+            accuracy_decimals=0,
+        ).extend(BASE_SCHEMA)
+
+    # Voltage sensors
     elif tag_upper.startswith("VRMS") and len(tag_upper) == 5:
-        defaults = {
-            CONF_UNIT_OF_MEASUREMENT: UNIT_VOLT,
-            CONF_DEVICE_CLASS: DEVICE_CLASS_VOLTAGE,
-            CONF_STATE_CLASS: STATE_CLASS_MEASUREMENT,
-            CONF_ACCURACY_DECIMALS: 2,
-        }
+        return sensor.sensor_schema(
+            unit_of_measurement=UNIT_VOLT,
+            device_class=DEVICE_CLASS_VOLTAGE,
+            state_class=STATE_CLASS_MEASUREMENT,
+            accuracy_decimals=2,
+        ).extend(BASE_SCHEMA)
+
     # Temperature sensors (T1, T2, etc.)
     elif tag_upper.startswith("T") and len(tag_upper) == 2:
-        defaults = {
-            CONF_UNIT_OF_MEASUREMENT: UNIT_CELSIUS,
-            CONF_DEVICE_CLASS: DEVICE_CLASS_TEMPERATURE,
-            CONF_STATE_CLASS: STATE_CLASS_MEASUREMENT,
-            CONF_ACCURACY_DECIMALS: 1,
-        }
-    # Counter/pulse sensors (MSG, PULSE, COUNT, etc.)
-    elif tag_upper in ["MSG", "PULSE", "ANALOG", "DIGPULSE", "ANAPULSE"]:
-        defaults = {
-            CONF_STATE_CLASS: STATE_CLASS_MEASUREMENT,
-            CONF_ACCURACY_DECIMALS: 0,
-        }
-    # Default for unknown patterns
+        return sensor.sensor_schema(
+            unit_of_measurement=UNIT_CELSIUS,
+            device_class=DEVICE_CLASS_TEMPERATURE,
+            state_class=STATE_CLASS_MEASUREMENT,
+            accuracy_decimals=1,
+        ).extend(BASE_SCHEMA)
+
+    # Default for all other sensors
     else:
-        defaults = {
-            CONF_STATE_CLASS: STATE_CLASS_MEASUREMENT,
-            CONF_ACCURACY_DECIMALS: 0,
-        }
-
-    return defaults
+        return sensor.sensor_schema(
+            state_class=STATE_CLASS_MEASUREMENT,
+            accuracy_decimals=0,
+        ).extend(BASE_SCHEMA)
 
 
-def apply_sensor_defaults(config):
-    """Apply automatic defaults based on tag, but allow user overrides."""
-    tag = config[CONF_TAG_NAME]
-    defaults = get_sensor_defaults(tag)
-
-    # Create a new config with defaults applied only if not already specified
-    new_config = {}
-    new_config.update(defaults)
-    new_config.update(config)  # User config takes precedence
-
-    return new_config
-
-
-CONFIG_SCHEMA = cv.All(
-    sensor.sensor_schema().extend(
-        {
-            cv.GenerateID(CONF_EMONTX_ID): cv.use_id(EmonTx),
-            cv.Required(CONF_TAG_NAME): cv.string,
-        }
-    ),
-    apply_sensor_defaults,  # Apply defaults after schema validation
+# Use a multi schema validator to select the right schema based on the tag
+CONFIG_SCHEMA = cv.typed_schema(
+    {
+        CONF_TAG_NAME: create_sensor_schema,
+    }
 )
 
 
