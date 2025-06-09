@@ -34,6 +34,10 @@
 #include "SdCard/SdCardInfo.h"
 #include "SdCard/SdCardInterface.h"
 #include "SpiDriver/SdSpiDriver.h"
+#include "spi_connector.h"
+
+namespace esphome {
+namespace sdfs {
 
 //==============================================================================
 /**
@@ -57,8 +61,9 @@ class SdfsSpiCard : public BlockDeviceInterface {
    * \param[in] spiConfig SPI card configuration.
    * \return true for success or false for failure.
    */
-
   bool begin(SdSpiConfig spiConfig);
+
+  bool begin(SdSpiImpl *spiImpl);
   /** Erase a range of sectors.
    *
    * \param[in] firstSector The address of the first sector in the range.
@@ -251,7 +256,7 @@ class SdfsSpiCard : public BlockDeviceInterface {
   void spiActivate() { m_spiDriverPtr->activate(); }
   void spiBegin(SdSpiConfig spiConfig) {
     // ESP_LOGD("test","spiBegin");
-    m_spiDriverPtr->begin(spiConfig);
+    m_spiDriverPtr->begin();
   }
   void spiDeactivate() { m_spiDriverPtr->deactivate(); }
   uint8_t spiReceive() { return m_spiDriverPtr->receive(); }
@@ -259,7 +264,7 @@ class SdfsSpiCard : public BlockDeviceInterface {
   void spiSend(uint8_t data) { m_spiDriverPtr->send(data); }
   void spiSend(const uint8_t *buf, size_t n) { m_spiDriverPtr->send(buf, n); }
   void spiSetSckSpeed(uint32_t maxSck) { m_spiDriverPtr->setSckSpeed(maxSck); }
-  SdSpiDriver *m_spiDriverPtr;
+  SdSpiImpl *m_spiDriverPtr;
 
   SdCsPin_t m_csPin;
   uint8_t m_errorCode = SD_CARD_ERROR_INIT_NOT_CALLED;
@@ -268,3 +273,6 @@ class SdfsSpiCard : public BlockDeviceInterface {
   uint8_t m_status;
   uint8_t m_type = 0;
 };
+
+}  // namespace sdfs
+}  // namespace esphome

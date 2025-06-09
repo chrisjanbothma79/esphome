@@ -220,6 +220,64 @@ void SpiConnector::writePattern_(const uint8_t *data, uint8_t size, uint8_t repe
   this->write_array(&buffer[0], bytes);
 }
 
+#if defined(USE_SDSPI_MODE) && defined(USE_ESP8266)
+/***********************************************************************
+ *
+ *    @brief  SdSpiImpl member function
+ *
+ */
+SdSpiImpl::SdSpiImpl() { DEBUG_TRACE("SdSpiImpl:INIT"); }
+
+void SdSpiImpl::set_spi(SpiConnector *c) {
+  DEBUG_TRACE("SdSpiImpl:set_spi");
+  connector_ = c;
+}
+
+void SdSpiImpl::begin() {
+  DEBUG_TRACE("SdSpiImpl:begin");
+  if (!connector_) {
+    ESP_LOGE(TAG, "SPI connector unknown.  Run set_spi before.");
+  } else {
+    connector_->begin();
+  }
+}
+void SdSpiImpl::end() {
+  ESP_LOGD(TAG, "SdSpiImpl:end");
+  this->connector_->end();
+}
+void SdSpiImpl::activate() {
+  DEBUG_TRACE("SdSpiImpl:activate aka beginTransaction");
+  this->connector_->beginTransaction();
+}
+void SdSpiImpl::deactivate() {
+  DEBUG_TRACE("SdSpiImpl:deactivate aka endTransaction");
+  this->connector_->endTransaction();
+}
+uint8_t SdSpiImpl::receive() {
+  DEBUG_TRACE("SdSpiImpl:receive byte");
+  return this->connector_->transfer(0xFF);
+}
+uint8_t SdSpiImpl::receive(uint8_t *buf, size_t count) {
+  DEBUG_TRACE("SdSpiImpl:receive buffer");
+  // this->connector_->transfer(buf,count);
+  this->connector_->transferBytes(NULL, buf, count);
+  // transferBytes
+  return 0;
+}
+void SdSpiImpl::send(uint8_t data) {
+  DEBUG_TRACE("SdSpiImpl:send ");
+  this->connector_->write(data);
+}
+void SdSpiImpl::send(const uint8_t *buf, size_t count) {
+  DEBUG_TRACE("SdSpiImpl:send  buffer");
+  this->connector_->writeBytes(buf, count);
+}
+void SdSpiImpl::setSckSpeed(uint32_t maxSck) {
+  DEBUG_TRACE("SdSpiImpl:setSckSpeed  %d", maxSck);
+  // (void)maxSck;
+}
+#endif
+
 }  // namespace sdfs
 }  // namespace esphome
 #endif

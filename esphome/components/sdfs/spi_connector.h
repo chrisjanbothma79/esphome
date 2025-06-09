@@ -37,6 +37,30 @@ class SpiConnector : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_
   bool in_transaction = false;
 };
 
+#if defined(USE_SDSPI_MODE) && defined(USE_ESP8266)
+
+class SdSpiImpl {
+ public:
+  SdSpiImpl();
+  void set_spi(SpiConnector *);
+  void begin();
+  void end();
+  void activate();
+  void deactivate();
+  // void end() override;
+  uint8_t receive();
+  uint8_t receive(uint8_t *buf, size_t count);
+  void send(uint8_t data);
+  void send(const uint8_t *buf, size_t count);
+  void setSckSpeed(uint32_t);
+
+ private:
+  // SpiConnector *m_spi;
+  // SPISettings m_spiSettings;
+  SpiConnector *connector_{NULL};
+};
+#endif
+
 }  // namespace sdfs
 }  // namespace esphome
 #endif

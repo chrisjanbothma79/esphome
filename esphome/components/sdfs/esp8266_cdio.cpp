@@ -35,6 +35,8 @@ void sdCsWrite(SdCsPin_t pin, bool level) {
   // digitalWrite(pin, level);
   DEBUG_TRACE("sdCsWrite called");
 }
+namespace esphome {
+namespace sdfs {
 
 //==============================================================================
 class Timeout {
@@ -132,15 +134,17 @@ static uint16_t CRC_CCITT(const uint8_t *data, size_t n) {
 //==============================================================================
 // SdfsSpiCard member functions
 //------------------------------------------------------------------------------
-bool SdfsSpiCard::begin(SdSpiConfig spiConfig) {
-  ESP_LOGD(TAG, "Begin");
+bool SdfsSpiCard::begin(SdSpiConfig spiConfig) { return true; }
+
+bool SdfsSpiCard::begin(SdSpiImpl *spiImpl) {
+  ESP_LOGD(TAG, "SdfsSpiCard::Begin");
   Timeout timeout;
   m_spiActive = false;
   m_errorCode = SD_CARD_ERROR_NONE;
   m_type = 0;
-  m_csPin = spiConfig.csPin;
+  // m_csPin = spiConfig.csPin;
 #if SPI_DRIVER_SELECT >= 2
-  m_spiDriverPtr = spiConfig.spiPort;
+  m_spiDriverPtr = spiImpl;
   if (!m_spiDriverPtr) {
     error(SD_CARD_ERROR_INVALID_CARD_CONFIG);
     goto fail;
@@ -149,7 +153,7 @@ bool SdfsSpiCard::begin(SdSpiConfig spiConfig) {
   sdCsInit(m_csPin);
   spiUnselect();
   spiSetSckSpeed(1000UL * SD_MAX_INIT_RATE_KHZ);
-  spiBegin(spiConfig);
+  // spiBegin(spiConfig);
   uint32_t arg;
   m_state = IDLE_STATE;
   spiStart();
@@ -216,7 +220,7 @@ bool SdfsSpiCard::begin(SdSpiConfig spiConfig) {
     }
   }
   spiStop();
-  spiSetSckSpeed(spiConfig.maxSck);
+  // spiSetSckSpeed(spiConfig.maxSck);
   return true;
 
 fail:
@@ -660,3 +664,6 @@ fail:
   spiStop();
   return false;
 }
+
+}  // namespace sdfs
+}  // namespace esphome

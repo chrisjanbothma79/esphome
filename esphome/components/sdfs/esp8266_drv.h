@@ -73,27 +73,8 @@ class esp8266SpiDriver : public DriverInterface {
   uint32_t last_err_ = 0;
   SdmmcHost *parent_;
   SdfsSpiCard *sd_card = NULL;
+  bool is_card_connected = false;
   FsVolume *vol;
-};
-
-class SdSpiImpl : public SdSpiBaseClass {
- public:
-  SdSpiImpl();
-  void set_spi(SpiConnector *);
-  void begin(SdSpiConfig config) override;
-  void activate() override;
-  void deactivate() override;
-  // void end() override;
-  uint8_t receive() override;
-  uint8_t receive(uint8_t *buf, size_t count) override;
-  void send(uint8_t data) override;
-  void send(const uint8_t *buf, size_t count) override;
-  void setSckSpeed(uint32_t) override;
-
- private:
-  // SpiConnector *m_spi;
-  // SPISettings m_spiSettings;
-  SpiConnector *connector_{NULL};
 };
 
 }  // namespace sdfs
