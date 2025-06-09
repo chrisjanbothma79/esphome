@@ -29,6 +29,6 @@ emontx:
 sensor:
   - platform: emontx
     name: Power
-    tag_name: P
+    tag_name: P1
     emontx_id: test_emontx
     unit_of_measurement: W

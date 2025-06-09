@@ -2,7 +2,6 @@ import esphome.codegen as cg
 from esphome.components import sensor
 import esphome.config_validation as cv
 from esphome.const import (
-    CONF_TAG,
     DEVICE_CLASS_ENERGY,
     DEVICE_CLASS_POWER,
     DEVICE_CLASS_TEMPERATURE,
@@ -15,7 +14,7 @@ from esphome.const import (
     UNIT_WATT_HOURS,
 )
 
-from . import EmonTx
+from . import CONF_TAG_NAME, EmonTx
 
 DEPENDENCIES = ["emontx"]
 
@@ -86,7 +85,7 @@ def get_sensor_defaults(tag):
 
 def apply_sensor_defaults(config):
     """Apply automatic defaults based on tag, but allow user overrides."""
-    tag = config[CONF_TAG]
+    tag = config[CONF_TAG_NAME]
     defaults = get_sensor_defaults(tag)
 
     # Create a new config with defaults applied only if not already specified
@@ -100,7 +99,7 @@ CONFIG_SCHEMA = cv.All(
     sensor.sensor_schema().extend(
         {
             cv.GenerateID(CONF_EMONTX_ID): cv.use_id(EmonTx),
-            cv.Required(CONF_TAG): cv.string,
+            cv.Required(CONF_TAG_NAME): cv.string,
         }
     ),
     apply_sensor_defaults,  # Apply defaults after schema validation
@@ -112,4 +111,4 @@ async def to_code(config):
     parent = await cg.get_variable(config[CONF_EMONTX_ID])
 
     # Register the sensor with the parent component
-    cg.add(parent.register_sensor(config[CONF_TAG], var))
+    cg.add(parent.register_sensor(config[CONF_TAG_NAME], var))
