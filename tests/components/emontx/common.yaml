@@ -32,9 +32,3 @@ sensor:
     tag_name: P
     emontx_id: test_emontx
     unit_of_measurement: W
-
-text_sensor:
-  - platform: emontx
-    name: S per MC
-    tag_name: S_MC
-    emontx_id: test_emontx
