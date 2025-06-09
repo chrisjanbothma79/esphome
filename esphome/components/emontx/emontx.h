@@ -51,7 +51,7 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
  protected:
   std::map<std::string, sensor::Sensor *> sensors_;
   std::string buffer_;
-  void parse_json(const std::string &data);
+  void parse_json_(const std::string &data);
 };
 
 }  // namespace emontx
