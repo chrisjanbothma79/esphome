@@ -642,6 +642,8 @@ async def to_code(config):
     cg.add_build_flag(f"-DUSE_ESP32_VARIANT_{config[CONF_VARIANT]}")
     cg.add_define("ESPHOME_VARIANT", VARIANT_FRIENDLY[config[CONF_VARIANT]])
 
+    cg.add_platformio_option("lib_ldf_mode", "off")
+
     framework_ver: cv.Version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
 
     conf = config[CONF_FRAMEWORK]
@@ -658,7 +660,6 @@ async def to_code(config):
 
     freq = config[CONF_CPU_FREQUENCY][:-3]
     if conf[CONF_TYPE] == FRAMEWORK_ESP_IDF:
-        cg.add_platformio_option("lib_ldf_mode", "off")
         cg.add_platformio_option("framework", "espidf")
         cg.add_build_flag("-DUSE_ESP_IDF")
         cg.add_build_flag("-DUSE_ESP32_FRAMEWORK_ESP_IDF")
