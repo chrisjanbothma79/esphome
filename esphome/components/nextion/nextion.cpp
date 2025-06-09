@@ -446,17 +446,15 @@ void Nextion::process_nextion_commands_() {
         break;
       case 0x12:  // invalid Waveform ID or Channel # was used
         if (this->waveform_queue_.empty()) {
-          ESP_LOGW(TAG,
-                   "Invalid waveform ID %d/ch %d");
+          ESP_LOGW(TAG, "Invalid waveform ID %d/ch %d");
         } else {
           auto &nb = this->waveform_queue_.front();
           NextionComponentBase *component = nb->component;
 
-          ESP_LOGW(TAG, "Invalid waveform ID %d/ch %d",
-                   component->get_component_id(), component->get_wave_channel_id());
+          ESP_LOGW(TAG, "Invalid waveform ID %d/ch %d", component->get_component_id(),
+                   component->get_wave_channel_id());
 
-          ESP_LOGN(TAG, "Remove waveform ID %d/ch %d",
-                   component->get_component_id(), component->get_wave_channel_id());
+          ESP_LOGN(TAG, "Remove waveform ID %d/ch %d", component->get_component_id(), component->get_wave_channel_id());
 
           delete nb;  // NOLINT(cppcoreguidelines-owning-memory)
           this->waveform_queue_.pop_front();
@@ -563,12 +561,10 @@ void Nextion::process_nextion_commands_() {
         NextionComponentBase *component = nb->component;
 
         if (component->get_queue_type() != NextionQueueType::TEXT_SENSOR) {
-          ESP_LOGE(TAG, "String return but '%s' not text sensor",
-                   component->get_variable_name().c_str());
+          ESP_LOGE(TAG, "String return but '%s' not text sensor", component->get_variable_name().c_str());
         } else {
-          ESP_LOGN(TAG, "String resp: '%s' id: %s type: %s", to_process.c_str(),
-                   component->get_variable_name().c_str(), component->get_queue_type_string().c_str());
-          component->set_state_from_string(to_process, true, false);
+          ESP_LOGN(TAG, "String resp: '%s' id: %s type: %s", to_process.c_str(), component->get_variable_name().c_str(),
+                   component->get_queue_type_string().c_str());
         }
 
         delete nb;  // NOLINT(cppcoreguidelines-owning-memory)
@@ -610,12 +606,11 @@ void Nextion::process_nextion_commands_() {
         if (component->get_queue_type() != NextionQueueType::SENSOR &&
             component->get_queue_type() != NextionQueueType::BINARY_SENSOR &&
             component->get_queue_type() != NextionQueueType::SWITCH) {
-          ESP_LOGE(TAG, "Numeric return but '%s' invalid type %d",
-                   component->get_variable_name().c_str(), component->get_queue_type());
+          ESP_LOGE(TAG, "Numeric return but '%s' invalid type %d", component->get_variable_name().c_str(),
+                   component->get_queue_type());
         } else {
-          ESP_LOGN(TAG, "Numeric: %s type %d:%s val %d",
-                   component->get_variable_name().c_str(), component->get_queue_type(),
-                   component->get_queue_type_string().c_str(), value);
+          ESP_LOGN(TAG, "Numeric: %s type %d:%s val %d", component->get_variable_name().c_str(),
+                   component->get_queue_type(), component->get_queue_type_string().c_str(), value);
           component->set_state_from_int(value, true, false);
         }
 
@@ -788,8 +783,8 @@ void Nextion::process_nextion_commands_() {
 
         this->write_array(component->get_wave_buffer().data(), static_cast<int>(buffer_to_send));
 
-        ESP_LOGN(TAG, "Send waveform: component id %d, waveform id %d, size %zu",
-                 component->get_component_id(), component->get_wave_channel_id(), buffer_to_send);
+        ESP_LOGN(TAG, "Send waveform: component id %d, waveform id %d, size %zu", component->get_component_id(),
+                 component->get_wave_channel_id(), buffer_to_send);
 
         component->clear_wave_buffer(buffer_to_send);
         delete nb;  // NOLINT(cppcoreguidelines-owning-memory)
@@ -814,8 +809,8 @@ void Nextion::process_nextion_commands_() {
       NextionComponentBase *component = this->nextion_queue_[i]->component;
       if (this->nextion_queue_[i]->queue_time + this->max_q_age_ms_ < ms) {
         if (this->nextion_queue_[i]->queue_time == 0) {
-          ESP_LOGD(TAG, "Remove old queue '%s':'%s' (t=0)",
-                   component->get_queue_type_string().c_str(), component->get_variable_name().c_str());
+          ESP_LOGD(TAG, "Remove old queue '%s':'%s' (t=0)", component->get_queue_type_string().c_str(),
+                   component->get_variable_name().c_str());
         }
 
         if (component->get_variable_name() == "sleep_wake") {
@@ -1000,8 +995,7 @@ uint16_t Nextion::recv_ret_string_(std::string &response, uint32_t timeout, bool
 void Nextion::add_no_result_to_queue_(const std::string &variable_name) {
 #ifdef USE_NEXTION_MAX_QUEUE_SIZE
   if (this->max_queue_size_ > 0 && this->nextion_queue_.size() >= this->max_queue_size_) {
-    ESP_LOGW(TAG, "Queue full (%zu), drop: %s", this->nextion_queue_.size(),
-             variable_name.c_str());
+    ESP_LOGW(TAG, "Queue full (%zu), drop: %s", this->nextion_queue_.size(), variable_name.c_str());
     return;
   }
 #endif
@@ -1173,8 +1167,7 @@ void Nextion::add_to_get_queue(NextionComponentBase *component) {
   nextion_queue->component = component;
   nextion_queue->queue_time = millis();
 
-  ESP_LOGN(TAG, "Queue %s: %s", component->get_queue_type_string().c_str(),
-           component->get_variable_name().c_str());
+  ESP_LOGN(TAG, "Queue %s: %s", component->get_queue_type_string().c_str(), component->get_variable_name().c_str());
 
   std::string command = "get " + component->get_variable_name_to_send();
 

@@ -96,19 +96,17 @@ int Nextion::upload_by_chunks_(HTTPClient &http_client, uint32_t &range_start) {
       this->content_length_ -= read_len;
       const float upload_percentage = 100.0f * (this->tft_size_ - this->content_length_) / this->tft_size_;
 #if defined(USE_ESP32) && defined(USE_PSRAM)
-      ESP_LOGD(
-          TAG,
-          "Upload: %0.2f%% (%" PRIu32 " left, heap: %" PRIu32 "+%" PRIu32 ")",
-          upload_percentage, this->content_length_, static_cast<uint32_t>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
-          static_cast<uint32_t>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)));
+      ESP_LOGD(TAG, "Upload: %0.2f%% (%" PRIu32 " left, heap: %" PRIu32 "+%" PRIu32 ")", upload_percentage,
+               this->content_length_, static_cast<uint32_t>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
+               static_cast<uint32_t>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)));
 #else
       ESP_LOGD(TAG, "Upload: %0.2f%% (%" PRIu32 " left, heap: %" PRIu32 ")", upload_percentage, this->content_length_,
                this->get_free_heap_());
 #endif
       upload_first_chunk_sent_ = true;
       if (recv_string[0] == 0x08 && recv_string.size() == 5) {  // handle partial upload request
-        ESP_LOGD(TAG, "Recv: [%s]", format_hex_pretty(reinterpret_cast<const uint8_t *>(recv_string.data()),
-                 recv_string.size()).c_str());
+        ESP_LOGD(TAG, "Recv: [%s]",
+                 format_hex_pretty(reinterpret_cast<const uint8_t *>(recv_string.data()), recv_string.size()).c_str());
         uint32_t result = 0;
         for (int j = 0; j < 4; ++j) {
           result += static_cast<uint8_t>(recv_string[j + 1]) << (8 * j);
@@ -125,8 +123,8 @@ int Nextion::upload_by_chunks_(HTTPClient &http_client, uint32_t &range_start) {
         buffer = nullptr;
         return range_end + 1;
       } else if (recv_string[0] != 0x05 and recv_string[0] != 0x08) {  // 0x05 == "ok"
-        ESP_LOGE(TAG, "Invalid response: [%s]", format_hex_pretty(reinterpret_cast<const uint8_t *>(recv_string.data()),
-                 recv_string.size()).c_str());
+        ESP_LOGE(TAG, "Invalid response: [%s]",
+                 format_hex_pretty(reinterpret_cast<const uint8_t *>(recv_string.data()), recv_string.size()).c_str());
         // Deallocate buffer
         allocator.deallocate(buffer, 4096);
         buffer = nullptr;

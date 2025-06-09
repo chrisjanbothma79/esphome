@@ -99,14 +99,12 @@ int Nextion::upload_by_chunks_(esp_http_client_handle_t http_client, uint32_t &r
       this->content_length_ -= read_len;
       const float upload_percentage = 100.0f * (this->tft_size_ - this->content_length_) / this->tft_size_;
 #ifdef USE_PSRAM
-      ESP_LOGD(
-          TAG,
-          "Upload: %0.2f%% (%" PRIu32 " left, heap: %" PRIu32 "+%" PRIu32 ")", upload_percentage, this->content_length_,
-          static_cast<uint32_t>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
-          static_cast<uint32_t>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)));
+      ESP_LOGD(TAG, "Upload: %0.2f%% (%" PRIu32 " left, heap: %" PRIu32 "+%" PRIu32 ")", upload_percentage,
+               this->content_length_, static_cast<uint32_t>(heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
+               static_cast<uint32_t>(heap_caps_get_free_size(MALLOC_CAP_SPIRAM)));
 #else
-      ESP_LOGD(TAG, "Upload: %0.2f%% (%" PRIu32 " left, heap: %" PRIu32 ")", upload_percentage,
-               this->content_length_, static_cast<uint32_t>(esp_get_free_heap_size()));
+      ESP_LOGD(TAG, "Upload: %0.2f%% (%" PRIu32 " left, heap: %" PRIu32 ")", upload_percentage, this->content_length_,
+               static_cast<uint32_t>(esp_get_free_heap_size()));
 #endif
       upload_first_chunk_sent_ = true;
       if (recv_string[0] == 0x08 && recv_string.size() == 5) {  // handle partial upload request
@@ -128,8 +126,8 @@ int Nextion::upload_by_chunks_(esp_http_client_handle_t http_client, uint32_t &r
         buffer = nullptr;
         return range_end + 1;
       } else if (recv_string[0] != 0x05 and recv_string[0] != 0x08) {  // 0x05 == "ok"
-        ESP_LOGE(TAG, "Invalid response: [%s]", format_hex_pretty(reinterpret_cast<const uint8_t *>(recv_string.data()),
-                 recv_string.size()).c_str());
+        ESP_LOGE(TAG, "Invalid response: [%s]",
+                 format_hex_pretty(reinterpret_cast<const uint8_t *>(recv_string.data()), recv_string.size()).c_str());
         // Deallocate buffer
         allocator.deallocate(buffer, 4096);
         buffer = nullptr;
@@ -281,8 +279,8 @@ bool Nextion::upload_tft(uint32_t baud_rate, bool exit_reparse) {
   this->recv_ret_string_(response, 5000, true);  // This can take some time to return
 
   // The Nextion display will, if it's ready to accept data, send a 0x05 byte.
-  ESP_LOGD(TAG, "Upload resp: [%s] %zu B", format_hex_pretty(reinterpret_cast<const uint8_t *>(response.data()),
-           response.size()).c_str(),
+  ESP_LOGD(TAG, "Upload resp: [%s] %zu B",
+           format_hex_pretty(reinterpret_cast<const uint8_t *>(response.data()), response.size()).c_str(),
            response.length());
   ESP_LOGV(TAG, "Heap: %" PRIu32, esp_get_free_heap_size());
 
