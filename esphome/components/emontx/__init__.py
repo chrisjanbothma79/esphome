@@ -63,9 +63,6 @@ async def to_code(config):
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
 
-    # Need to add include for http_request component
-    cg.add_library("esphome/components/http_request", None)
-
     # Set EmonCMS configuration if provided
     if CONF_EMONCMS in config:
         emoncms_config = config[CONF_EMONCMS]
