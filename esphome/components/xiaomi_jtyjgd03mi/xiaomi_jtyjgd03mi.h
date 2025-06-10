@@ -34,7 +34,7 @@ class XiaomiJTYJQD03MI : public Component, public esp32_ble_tracker::ESPBTDevice
 #endif
 
 #ifdef USE_SENSOR
-  void set_battery_level(sensor::Sensor *battery_level) { battery_level_ = battery_level; }
+  void set_battery_level(sensor::Sensor *battery_level) { this->battery_level_ = battery_level; }
 #endif
 
  protected:
