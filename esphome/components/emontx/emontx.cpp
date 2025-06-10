@@ -3,13 +3,6 @@
 #include "esphome/components/json/json_util.h"
 #include "esphome/components/network/util.h"
 
-#ifdef USE_ESP32
-#include <HTTPClient.h>
-#elif defined(USE_ESP8266)
-#include <ESP8266HTTPClient.h>
-#include <WiFiClient.h>
-#endif
-
 namespace esphome {
 namespace emontx {
 
@@ -213,5 +206,9 @@ void EmonTx::dump_config() {
  */
 void EmonTx::register_emontx_listener(EmonTxListener *listener) { emontx_listeners_.push_back(listener); }
 
+void EmonTx::register_sensor(const std::string &tag_name, sensor::Sensor *sensor) {
+  ESP_LOGCONFIG(TAG, "Registering sensor for tag: %s", tag_name.c_str());
+  this->sensors_[tag_name] = sensor;
+}
 }  // namespace emontx
 }  // namespace esphome
