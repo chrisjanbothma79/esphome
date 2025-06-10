@@ -3,7 +3,10 @@
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/sensor/sensor.h"
+// Conditionally include http_request
+#ifdef USE_HTTP_REQUEST
 #include "esphome/components/http_request/http_request.h"
+#endif
 
 #include <map>
 #include <vector>
@@ -47,7 +50,8 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 
   void register_sensor(const std::string &tag_name, sensor::Sensor *sensor);
 
-  // Set EmonCMS configuration
+#ifdef USE_HTTP_REQUEST
+  // EmonCMS configuration - only available when http_request is enabled
   void set_emoncms_config(const std::string &server, const std::string &node, const std::string &apikey,
                           http_request::HttpRequestComponent *http_client) {
     emoncms_server_ = server;
@@ -56,23 +60,22 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
     http_client_ = http_client;
     has_emoncms_config_ = true;
   }
+#endif
 
  protected:
   std::map<std::string, sensor::Sensor *> sensors_{};
   std::string buffer_;
   void parse_json_(const std::string &data);
 
-  // EmonCMS configuration
+#ifdef USE_HTTP_REQUEST
+  // EmonCMS configuration - only declared when http_request is enabled
   bool has_emoncms_config_{false};
   std::string emoncms_server_;
   std::string emoncms_node_;
   std::string emoncms_apikey_;
-
-  // Reference to external HTTP client component
   http_request::HttpRequestComponent *http_client_{nullptr};
-
-  // Send data to EmonCMS
   void send_to_emoncms_(const std::string &json_data);
+#endif
 };
 
 }  // namespace emontx

@@ -2,13 +2,6 @@ wifi:
   ssid: MySSID
   password: password1
 
-# Required: Define an HTTP request component
-http_request:
-  id: my_http
-  useragent: esphome/emontx
-  verify_ssl: false
-  timeout: 10s
-
 uart:
   - id: uart_emontx
     tx_pin: ${tx_pin}
@@ -33,14 +26,10 @@ button:
           id: test_emontx
           update_interval: !lambda return 2500;
 
+# EmonTx without EmonCMS configuration
 emontx:
   id: test_emontx
   update_interval: 60s
-  emoncms:
-    server: "https://emoncms.org"
-    node: "emontx_node1"
-    apikey: "your_api_key_here"
-    http_id: my_http  # Reference to the HTTP component
 
 sensor:
   - platform: emontx

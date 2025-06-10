@@ -62,15 +62,17 @@ def validate_server_url(value):
     # Let ESPHome's URL validator handle the rest
     try:
         return cv.url(value)
-    except cv.Invalid:
-        raise cv.Invalid("Please enter a valid server URL")
+    except Exception as exc:  # Capture the exception as a variable
+        raise cv.Invalid("Please enter a valid server URL") from exc
 
 
 # Conditionally add EmonCMS schema
 def validate_emoncms(config):
-    from esphome.components import http_request
-
     if CONF_EMONCMS in config:
+        from esphome.components import http_request
+
+        cg.add_define("USE_HTTP_REQUEST")
+
         emoncms_schema = cv.Schema(
             {
                 cv.Required(CONF_SERVER): validate_server_url,

@@ -20,6 +20,7 @@ void EmonTx::setup() {
     ESP_LOGCONFIG(TAG, "  Sensor '%s' registered", sensor_pair.first.c_str());
   }
 
+#ifdef USE_HTTP_REQUEST
   // Initialize HTTP client if EmonCMS is configured
   if (has_emoncms_config_) {
     ESP_LOGCONFIG(TAG, "EmonCMS forwarding enabled:");
@@ -27,6 +28,7 @@ void EmonTx::setup() {
     ESP_LOGCONFIG(TAG, "  Node: %s", this->emoncms_node_.c_str());
     ESP_LOGCONFIG(TAG, "  API Key: %s...", this->emoncms_apikey_.substr(0, 5).c_str());
   }
+#endif
 }
 
 /**
@@ -55,10 +57,12 @@ void EmonTx::loop() {
       if (!buffer_.empty()) {
         parse_json_(buffer_);
 
+#ifdef USE_HTTP_REQUEST
         // Forward to EmonCMS if configured
         if (has_emoncms_config_ && network::is_connected()) {
           send_to_emoncms_(buffer_);
         }
+#endif
 
         buffer_.clear();
       }
@@ -105,6 +109,7 @@ void EmonTx::parse_json_(const std::string &data) {
   }
 }
 
+#ifdef USE_HTTP_REQUEST
 void EmonTx::send_to_emoncms_(const std::string &json_data) {
   if (!has_emoncms_config_) {
     return;
@@ -173,6 +178,7 @@ void EmonTx::send_to_emoncms_(const std::string &json_data) {
     ESP_LOGW(TAG, "Failed to initiate HTTP POST request to EmonCMS");
   }
 }
+#endif
 
 /**
  * @brief Dumps the EmonTx configuration to the log.
@@ -188,6 +194,7 @@ void EmonTx::dump_config() {
     ESP_LOGCONFIG(TAG, "  Sensor: %s", sensor_pair.first.c_str());
   }
 
+#ifdef USE_HTTP_REQUEST
   // Show EmonCMS configuration
   if (has_emoncms_config_) {
     ESP_LOGCONFIG(TAG, "  EmonCMS Forwarding: ENABLED");
@@ -197,6 +204,9 @@ void EmonTx::dump_config() {
   } else {
     ESP_LOGCONFIG(TAG, "  EmonCMS Forwarding: DISABLED");
   }
+#else
+  ESP_LOGCONFIG(TAG, "  EmonCMS Forwarding: DISABLED");
+#endif
 }
 
 /**
