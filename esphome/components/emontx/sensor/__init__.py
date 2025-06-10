@@ -1,30 +1,88 @@
 import esphome.codegen as cg
 from esphome.components import sensor
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
-    # DEVICE_CLASS_ENERGY,
-    # DEVICE_CLASS_POWER,
-    # DEVICE_CLASS_TEMPERATURE,
+    DEVICE_CLASS_ENERGY,
+    DEVICE_CLASS_POWER,
+    DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_VOLTAGE,
     STATE_CLASS_MEASUREMENT,
-    # STATE_CLASS_TOTAL_INCREASING,
-    # UNIT_CELSIUS,
+    STATE_CLASS_TOTAL_INCREASING,
+    UNIT_CELSIUS,
     UNIT_VOLT,
-    # UNIT_WATT,
-    # UNIT_WATT_HOURS,
+    UNIT_WATT,
+    UNIT_WATT_HOURS,
 )
 
-from .. import CONF_EMONTX_ID, CONF_TAG_NAME, EMONTX_LISTENER_SCHEMA, emontx_ns
+from .. import CONF_EMONTX_ID, CONF_TAG_NAME, EmonTx, emontx_ns
 
 EmonTxSensor = emontx_ns.class_("EmonTxSensor", sensor.Sensor, cg.Component)
 
-CONFIG_SCHEMA = sensor.sensor_schema(
+# Define sensor type configurations by prefix
+SENSOR_CONFIGS = {
+    "P": {
+        "unit_of_measurement": UNIT_WATT,
+        "device_class": DEVICE_CLASS_POWER,
+        "state_class": STATE_CLASS_MEASUREMENT,
+        "accuracy_decimals": 1,
+    },
+    "E": {
+        "unit_of_measurement": UNIT_WATT_HOURS,
+        "device_class": DEVICE_CLASS_ENERGY,
+        "state_class": STATE_CLASS_TOTAL_INCREASING,
+        "accuracy_decimals": 3,
+    },
+    "V": {
+        "unit_of_measurement": UNIT_VOLT,
+        "device_class": DEVICE_CLASS_VOLTAGE,
+        "state_class": STATE_CLASS_MEASUREMENT,
+        "accuracy_decimals": 2,
+    },
+    "T": {
+        "unit_of_measurement": UNIT_CELSIUS,
+        "device_class": DEVICE_CLASS_TEMPERATURE,
+        "state_class": STATE_CLASS_MEASUREMENT,
+        "accuracy_decimals": 1,
+    },
+}
+
+# Create a base schema that's flexible for any tag
+BASE_SCHEMA = sensor.sensor_schema(
     EmonTxSensor,
-    unit_of_measurement=UNIT_VOLT,
-    device_class=DEVICE_CLASS_VOLTAGE,
     state_class=STATE_CLASS_MEASUREMENT,
-    accuracy_decimals=2,
-).extend(EMONTX_LISTENER_SCHEMA)
+    accuracy_decimals=0,
+).extend(
+    {
+        cv.GenerateID(CONF_EMONTX_ID): cv.use_id(EmonTx),
+        cv.Required(CONF_TAG_NAME): cv.string,
+    }
+)
+
+
+def apply_tag_defaults(config):
+    """Apply defaults based on tag prefix if applicable, but don't restrict any tags"""
+    tag = config[CONF_TAG_NAME]
+
+    # Skip if tag is too short
+    if len(tag) < 1:
+        return config
+
+    # Check if this tag starts with a known prefix
+    prefix = tag[0].upper()
+
+    # Only apply defaults for known prefixes with numeric indices
+    if prefix in SENSOR_CONFIGS and len(tag) > 1 and tag[1:].isdigit():
+        # Apply defaults for known tag types, but only if not overridden by user
+        defaults = SENSOR_CONFIGS[prefix]
+        for key, value in defaults.items():
+            if key not in config:
+                config[key] = value
+
+    return config
+
+
+CONFIG_SCHEMA = cv.All(BASE_SCHEMA, apply_tag_defaults)
 
 
 async def to_code(config):

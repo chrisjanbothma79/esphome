@@ -75,7 +75,7 @@ void EmonTx::parse_json_(const std::string &data) {
     }
 
     // Also update all listeners
-    for (auto listener : this->emontx_listeners_) {
+    for (auto *listener : this->emontx_listeners_) {
       if (root.containsKey(listener->tag)) {
         String value = root[listener->tag].as<String>();
         listener->publish_val(value.c_str());
