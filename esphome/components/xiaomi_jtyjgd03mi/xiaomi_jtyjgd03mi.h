@@ -27,8 +27,10 @@ class XiaomiJTYJQD03MI : public Component, public esp32_ble_tracker::ESPBTDevice
 
 #ifdef USE_BINARY_SENSOR
   void set_smoke(binary_sensor::BinarySensor *smoke) { this->smoke_ = smoke; }
-  void set_button(binary_sensor::BinarySensor *button) { this->button_ = button; }
-  void set_button_timeout(uint16_t timeout) { this->button_timeout_ = timeout; }
+  void set_button(binary_sensor::BinarySensor *button, uint16_t timeout) {
+    this->button_ = button;
+    this->button_timeout_ = timeout;
+  }
 #endif
 
 #ifdef USE_SENSOR
