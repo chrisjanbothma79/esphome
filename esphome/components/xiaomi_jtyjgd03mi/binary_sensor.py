@@ -36,8 +36,8 @@ CONFIG_SCHEMA = cv.Schema(
 async def to_code(config):
     parent = await cg.get_variable(config[CONF_ID])
 
-    if CONF_SMOKE in config:
-        sens = await binary_sensor.new_binary_sensor(config[CONF_SMOKE])
+    if smoke_config := config.get(CONF_SMOKE):
+        sens = await binary_sensor.new_binary_sensor(smoke_config)
         cg.add(parent.set_smoke(sens))
 
     if CONF_BUTTON in config:
