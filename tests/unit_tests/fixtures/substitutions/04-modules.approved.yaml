@@ -1,17 +1,17 @@
 substitutions:
   display_scale: 1.5
-  a: 7
-  b: 9
-  c: 3
-  d: 82
+  a: 10
+  b: 4
+  c: 79
+  func: double
 jinja:
   macros:
-    - name: multiply
+    multiply:
       parameters:
         a: 3
         b: 4
       return: a*b
-    - name: modulus
+    modulus:
       parameters:
         vec:
           x: 0
@@ -20,7 +20,8 @@ jinja:
   vars:
     a: 7
     b: 0
-    c: 99
+    c: 3
+    d: 82
     position:
       x: 4
       y: 3
@@ -51,17 +52,19 @@ jinja:
       : true\n    }\n  }<% else %>${\n    {\n        \"number\": number,\n       \
       \ \"inverted\" : inverted,\n    }\n  }<% endif %>\n<% endmacro %>\n"
 testlist:
-  - The value of c is 3, substitution overriden by var
-  - The value of d is 82 since it has not been overriden
+  - The value of c is 79, substitution is evaluated first
+  - Even if I do this, c is still 79.
+  - Substitutions are evaluated before jinja, 20
+  - The value of d is 82 since it is defined as a var
   - Position x=4, y=3
-  - Distance = 5.0
+  - Distance = 5
   - multiply(6,7) = 42
   - multiply(2) = 8, because parameter b has a default value of 4
   - multiply(a=5, b=7) = 35
   - scale(100) = 150
   - scale(100, 1.377892) = 138
-  - square(a) = 49
-  - double(b) = 18
+  - square(a) = 100
+  - double(b) = 8
   - number: 10
     inverted: true
   - number: 10

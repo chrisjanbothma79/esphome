@@ -37,16 +37,17 @@ def validate_module_name(value):
 
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.Optional("macros"): cv.ensure_list(
-            cv.Schema(
-                {
-                    cv.Required("name"): validate_module_name,
-                    cv.Optional("parameters"): cv.ensure_schema(
-                        cv.Schema({validate_module_name: object})
-                    ),
-                    cv.Required("return"): cv.string,
-                }
-            )
+        cv.Optional("macros"): cv.ensure_schema(
+            {
+                validate_module_name: cv.Schema(
+                    {
+                        cv.Optional("parameters"): cv.ensure_schema(
+                            cv.Schema({validate_module_name: object})
+                        ),
+                        cv.Required("return"): cv.string,
+                    }
+                )
+            }
         ),
         cv.Optional("vars"): cv.ensure_schema(
             cv.Schema({validate_module_name: object})
@@ -72,8 +73,8 @@ def has_jinja(st):
 
 class VariableResolver(jinja.runtime.Context):
     def resolve_or_missing(self, key):
-        if key in self.environment.globals["__vars"]:
-            return self.environment.globals["__vars"][key]
+        if key in self.environment.globals["##vars"]:
+            return self.environment.globals["##vars"][key]
         return super().resolve_or_missing(key)
 
 
@@ -113,8 +114,7 @@ class Jinja:
             self.env.globals[symbol_name] = getattr(template.module, symbol_name)
 
     def load_macros(self, macros):
-        for macro in macros:
-            name = macro["name"]
+        for name, macro in macros.items():
             parameters = ", ".join(
                 [f"{k}={json.dumps(v)}" for k, v in macro["parameters"].items()]
             )
@@ -135,8 +135,8 @@ class Jinja:
         """
         Evaluates a jinja expression, considering `vars`.
         """
-        self.env.globals["__vars"] = vars
+        self.env.globals["##vars"] = vars
         template = self.env.from_string(st)
         result = template.render()
-        self.env.globals["__vars"] = {}
+        self.env.globals["##vars"] = {}
         return result

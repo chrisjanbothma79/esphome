@@ -1,64 +1,67 @@
 substitutions:
   display_scale: 1.5
-  a: 7
-  b: 9
-  c: 3
-  d: 82
+  a: 10
+  b: 4
+  c: 79
+  func: double
 
 jinja:
-    macros:
-      - name: multiply
-        parameters:
-          a: 3
-          b: 4
-        return: a*b
-      - name: modulus
-        parameters:
-          vec:
-            x: 0
-            y: 0
-        return: math.sqrt(vec.x*vec.x+vec.y*vec.y)
-    vars:
-        a: 7
-        b: 0
-        c: 99
-        position:
-          x: 4
-          y: 3
-    templates:
-      - | # define the scale() macro
-        <% macro scale(x, factor = None) %>
-        ${ (x * (display_scale if factor is none else factor)) | round | int }
-        <% endmacro %>
-      - | # define the square() macro
-        <% macro square(x) %>
-        ${ x*x }
-        <% endmacro %>
-      - | # define the double() macro
-        <% macro double(x) %>
-        ${ 2*x }
-        <% endmacro %>
-      - |
-        <% macro pin(number=10, inverted=false) %>
-          <% if number > 20 %>${
-            {
-                "number": number,
-                "inverted" : inverted,
-                "pullup": true
-            }
-          }<% else %>${
-            {
-                "number": number,
-                "inverted" : inverted,
-            }
-          }<% endif %>
-        <% endmacro %>
+  macros:
+    multiply:
+      parameters:
+        a: 3   # default value
+        b: 4   # default value
+      return: a*b
+    modulus:
+      parameters:
+        vec:   # default value {"x":0, "y":0}
+          x: 0
+          y: 0
+      return: math.sqrt(vec.x*vec.x+vec.y*vec.y)
+  vars:
+    a: 7
+    b: 0
+    c: 3
+    d: 82
+    position:
+      x: 4
+      y: 3
+  templates:
+    - | # define the scale() macro
+      <% macro scale(x, factor = None) %>
+      ${ (x * (display_scale if factor is none else factor)) | round | int }
+      <% endmacro %>
+    - | # define the square() macro
+      <% macro square(x) %>
+      ${ x*x }
+      <% endmacro %>
+    - | # define the double() macro
+      <% macro double(x) %>
+      ${ 2*x }
+      <% endmacro %>
+    - |
+      <% macro pin(number=10, inverted=false) %>
+        <% if number > 20 %>${
+          {
+              "number": number,
+              "inverted" : inverted,
+              "pullup": true
+          }
+        }<% else %>${
+          {
+              "number": number,
+              "inverted" : inverted,
+          }
+        }<% endif %>
+      <% endmacro %>
 
 testlist:
-  - The value of c is ${c}, substitution overriden by var
-  - The value of d is ${d} since it has not been overriden
+  - The value of c is ${c}, substitution is evaluated first
+  - Even if I do this, c is still ${ c * 1 }.
+  - Substitutions are evaluated before jinja, ${ ${func}(a) }
+  - The value of d is ${d} since it is defined as a var
   - Position x=${position.x}, y=${position.y}
-  - Distance = ${modulus(position)}
+  - Distance = ${modulus(position) | int}
   - multiply(6,7) = ${ multiply(6,7) }
   - multiply(2) = ${ multiply(2) }, because parameter b has a default value of 4
   - multiply(a=5, b=7) = ${multiply(a=5, b=7)}
