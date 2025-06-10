@@ -41,7 +41,7 @@ CONFIG_SCHEMA = (
         }
     )
     .extend(cv.polling_component_schema("10s"))
-    .extend(uart.UART_DEVICE_SCHEMA),
+    .extend(uart.UART_DEVICE_SCHEMA)
 )
 
 FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(

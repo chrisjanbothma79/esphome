@@ -1,7 +1,6 @@
 #include "emontx.h"
 #include "esphome/core/log.h"
 #include "esphome/components/json/json_util.h"
-#include "esphome/core/application.h"
 #include "esphome/components/network/util.h"
 
 #ifdef USE_ESP32
@@ -118,10 +117,12 @@ void EmonTx::send_to_emoncms_(const std::string &json_data) {
     return;
   }
 
-  ESP_LOGV(TAG, "Sending data to EmonCMS: %s", json_data.c_str());
+  if (!network::is_connected()) {
+    ESP_LOGW(TAG, "Network not connected, skipping EmonCMS update");
+    return;
+  }
 
-#if defined(USE_ESP32) || defined(USE_ESP8266)
-  HTTPClient http;
+  ESP_LOGV(TAG, "Sending data to EmonCMS: %s", json_data.c_str());
 
   // Build the URL - format: server/input/post.json?node=nodename&apikey=apikey&json={...}
   std::string url = emoncms_server_;
@@ -138,12 +139,17 @@ void EmonTx::send_to_emoncms_(const std::string &json_data) {
 
   ESP_LOGV(TAG, "EmonCMS URL: %s", url.c_str());
 
+#if defined(USE_ESP32) || defined(USE_ESP8266)
+  HTTPClient http;
+
 #ifdef USE_ESP32
   http.begin(url.c_str());
 #elif defined(USE_ESP8266)
   WiFiClient client;
   http.begin(client, url.c_str());
 #endif
+
+  http.setUserAgent("esphome/emontx");
 
   int http_response_code = http.GET();
 

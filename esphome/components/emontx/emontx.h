@@ -7,8 +7,6 @@
 #include <map>
 #include <vector>
 
-// {"MSG":355,"V1":234.75,"V2":234.80,"V3":234.86,"P1":0,"P2":0,"P3":0,"P4":0,"P5":0,"P6":0,"E1":0,"E2":0,"E3":0,"E4":0,"E5":0,"E6":0,"pulse":0}
-
 namespace esphome {
 namespace emontx {
 /*
