@@ -8,15 +8,15 @@ namespace emontx {
 static const char *const TAG = "emontx";
 
 /**
- * @brief Initializes the EmonTx by setting the initial state to OFF.
+ * @brief Initializes the EmonTx.
  */
 void EmonTx::setup() {
-  ESP_LOGD(TAG, "Setting up EmonTx component");
+  ESP_LOGCONFIG(TAG, "Setting up EmonTx component");
 
   // Log sensors at setup time
-  ESP_LOGD(TAG, "Currently registered sensors: %u", this->sensors_.size());
+  ESP_LOGCONFIG(TAG, "Currently registered sensors: %u", this->sensors_.size());
   for (const auto &sensor_pair : this->sensors_) {
-    ESP_LOGD(TAG, "  Sensor '%s' registered", sensor_pair.first.c_str());
+    ESP_LOGCONFIG(TAG, "  Sensor '%s' registered", sensor_pair.first.c_str());
   }
 }
 
@@ -73,6 +73,15 @@ void EmonTx::parse_json_(const std::string &data) {
         sensor->publish_state(value);
       }
     }
+
+    // Also update all listeners
+    for (auto listener : this->emontx_listeners_) {
+      if (root.containsKey(listener->tag)) {
+        String value = root[listener->tag].as<String>();
+        listener->publish_val(value.c_str());
+      }
+    }
+
     return true;  // Parsing was handled successfully
   });
 
@@ -82,7 +91,7 @@ void EmonTx::parse_json_(const std::string &data) {
 }
 
 void EmonTx::register_sensor(const std::string &tag_name, sensor::Sensor *sensor) {
-  ESP_LOGD(TAG, "Registering sensor for tag: %s", tag_name.c_str());
+  ESP_LOGCONFIG(TAG, "Registering sensor for tag: %s", tag_name.c_str());
   this->sensors_[tag_name] = sensor;
 }
 

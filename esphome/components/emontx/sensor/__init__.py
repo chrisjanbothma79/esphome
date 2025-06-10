@@ -33,3 +33,4 @@ async def to_code(config):
     await sensor.register_sensor(var, config)
     emontx = await cg.get_variable(config[CONF_EMONTX_ID])
     cg.add(emontx.register_emontx_listener(var))
+    cg.add(emontx.register_sensor(config[CONF_TAG_NAME], var))
