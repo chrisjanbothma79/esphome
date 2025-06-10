@@ -1,3 +1,5 @@
+import re
+
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
@@ -38,6 +40,46 @@ CONFIG_SCHEMA = (
 )
 
 
+# Create a reusable function to validate non-empty strings
+def not_empty(name):
+    def validator(value):
+        value = cv.string(value)
+        if not value:
+            raise cv.Invalid(f"{name} cannot be empty")
+        return value
+
+    return validator
+
+
+# Validate and normalize server URL
+def validate_server_url(value):
+    value = cv.string(value)
+    if not value:
+        raise cv.Invalid("Server URL cannot be empty")
+
+    # Add https:// prefix if no protocol specified
+    if not value.startswith(("http://", "https://")):
+        value = "https://" + value
+
+    # Now validate as URL
+    try:
+        value = cv.url(value)
+    except cv.Invalid as e:
+        raise cv.Invalid(f"Invalid server URL: {e}")
+
+    # Extract domain/IP from URL
+    match = re.search(r"https?://([^/:]+)", value)
+    if not match:
+        raise cv.Invalid("Server URL must contain a valid domain or IP address")
+
+    domain = match.group(1)
+    # Simple domain validation
+    if len(domain) < 2:
+        raise cv.Invalid("Server domain/IP is too short")
+
+    return value
+
+
 # Conditionally add EmonCMS schema
 def validate_emoncms(config):
     from esphome.components import http_request
@@ -45,9 +87,9 @@ def validate_emoncms(config):
     if CONF_EMONCMS in config:
         emoncms_schema = cv.Schema(
             {
-                cv.Required(CONF_SERVER): cv.url,
-                cv.Required(CONF_NODE): cv.string,
-                cv.Required(CONF_APIKEY): cv.string,
+                cv.Required(CONF_SERVER): validate_server_url,
+                cv.Required(CONF_NODE): not_empty("Node name"),
+                cv.Required(CONF_APIKEY): not_empty("API key"),
                 cv.Required(CONF_HTTP_ID): cv.use_id(http_request.HttpRequestComponent),
             }
         )
