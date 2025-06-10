@@ -46,8 +46,6 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 
   void register_sensor(const std::string &tag_name, sensor::Sensor *sensor);
 
-  float get_setup_priority() const override { return setup_priority::DATA; }
-
  protected:
   std::map<std::string, sensor::Sensor *> sensors_{};
   std::string buffer_;
