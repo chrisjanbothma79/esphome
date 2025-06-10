@@ -10,6 +10,7 @@ from esphome.const import (
     STATE_CLASS_MEASUREMENT,
     STATE_CLASS_TOTAL_INCREASING,
     UNIT_CELSIUS,
+    UNIT_PULSES,
     UNIT_VOLT,
     UNIT_WATT,
     UNIT_WATT_HOURS,
@@ -47,6 +48,14 @@ SENSOR_CONFIGS = {
     },
 }
 
+# Pattern-based configurations
+PATTERN_CONFIGS = {
+    "PULSE": {
+        "unit_of_measurement": UNIT_PULSES,
+        "accuracy_decimals": 0,
+    }
+}
+
 # Create a base schema that's flexible for any tag
 BASE_SCHEMA = sensor.sensor_schema(
     EmonTxSensor,
@@ -65,13 +74,23 @@ def apply_tag_defaults(config):
     tag = config[CONF_TAG_NAME]
 
     # Skip if tag is too short
-    if len(tag) < 1:
+    if len(tag) < 2:
         return config
 
     # Check if this tag starts with a known prefix
-    prefix = tag[0].upper()
+    tag_upper = tag.upper()
+
+    for pattern, pattern_config in PATTERN_CONFIGS.items():
+        if pattern.upper() in tag_upper:
+            # Apply pattern defaults if not overridden by user
+            for key, value in pattern_config.items():
+                if key not in config:
+                    config[key] = value
+            # Once matched a pattern, don't check prefixes
+            return config
 
     # Only apply defaults for known prefixes with numeric indices
+    prefix = tag_upper[0]
     if prefix in SENSOR_CONFIGS and len(tag) > 1 and tag[1:].isdigit():
         # Apply defaults for known tag types, but only if not overridden by user
         defaults = SENSOR_CONFIGS[prefix]
