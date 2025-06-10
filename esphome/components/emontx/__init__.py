@@ -1,11 +1,11 @@
 import esphome.codegen as cg
-from esphome.components import http_request, uart
+from esphome.components import uart
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67"]
-DEPENDENCIES = ["uart", "network", "http_request"]
+DEPENDENCIES = ["uart", "network"]
 
 emontx_ns = cg.esphome_ns.namespace("emontx")
 EmonTx = emontx_ns.class_("EmonTx", cg.PollingComponent, uart.UARTDevice)
@@ -17,7 +17,7 @@ CONF_EMONCMS = "emoncms"
 CONF_SERVER = "server"
 CONF_NODE = "node"
 CONF_APIKEY = "apikey"
-CONF_HTTP_ID = "http_id"  # ID for the HTTP request component
+CONF_HTTP_ID = "http_id"
 
 EMONTX_LISTENER_SCHEMA = cv.Schema(
     {
@@ -26,25 +26,43 @@ EMONTX_LISTENER_SCHEMA = cv.Schema(
     }
 )
 
-# Schema for the EmonCMS configuration block
-EMONCMS_SCHEMA = cv.Schema(
-    {
-        cv.Required(CONF_SERVER): cv.url,
-        cv.Required(CONF_NODE): cv.string,
-        cv.Required(CONF_APIKEY): cv.string,
-        cv.Required(CONF_HTTP_ID): cv.use_id(http_request.HttpRequestComponent),
-    }
-)
-
+# Base schema without EmonCMS
 CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(EmonTx),
-            cv.Optional(CONF_EMONCMS): EMONCMS_SCHEMA,
         }
     )
     .extend(cv.polling_component_schema("10s"))
     .extend(uart.UART_DEVICE_SCHEMA)
+)
+
+
+# Conditionally add EmonCMS schema
+def validate_emoncms(config):
+    from esphome.components import http_request
+
+    if CONF_EMONCMS in config:
+        emoncms_schema = cv.Schema(
+            {
+                cv.Required(CONF_SERVER): cv.url,
+                cv.Required(CONF_NODE): cv.string,
+                cv.Required(CONF_APIKEY): cv.string,
+                cv.Required(CONF_HTTP_ID): cv.use_id(http_request.HttpRequestComponent),
+            }
+        )
+        config[CONF_EMONCMS] = emoncms_schema(config[CONF_EMONCMS])
+    return config
+
+
+# Apply conditional schema
+CONFIG_SCHEMA = cv.All(
+    CONFIG_SCHEMA.extend(
+        {
+            cv.Optional(CONF_EMONCMS): cv.Any(dict),
+        }
+    ),
+    validate_emoncms,
 )
 
 FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
