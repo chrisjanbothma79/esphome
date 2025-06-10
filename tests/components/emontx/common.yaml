@@ -6,6 +6,7 @@ wifi:
 http_request:
   id: my_http
   useragent: esphome/emontx
+  verify_ssl: false
   timeout: 10s
 
 uart:
