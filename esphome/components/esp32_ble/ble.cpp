@@ -354,7 +354,7 @@ void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_pa
   }
 
   if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
-    ESP_LOGV(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
+    ESP_LOGD(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
     return;
   }
 
@@ -377,7 +377,7 @@ void ESP32BLE::real_gap_event_handler_(esp_gap_ble_cb_event_t event, esp_ble_gap
 void ESP32BLE::gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                                    esp_ble_gatts_cb_param_t *param) {
   if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
-    ESP_LOGV(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
+    ESP_LOGD(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
     return;
   }
 
@@ -401,7 +401,7 @@ void ESP32BLE::real_gatts_event_handler_(esp_gatts_cb_event_t event, esp_gatt_if
 void ESP32BLE::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                    esp_ble_gattc_cb_param_t *param) {
   if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
-    ESP_LOGV(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
+    ESP_LOGD(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
     return;
   }
 
