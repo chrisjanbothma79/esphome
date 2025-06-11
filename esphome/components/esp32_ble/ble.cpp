@@ -306,11 +306,11 @@ void ESP32BLE::loop() {
     switch (ble_event->type_) {
       case BLEEvent::GATTS:
         this->real_gatts_event_handler_(ble_event->event_.gatts.gatts_event, ble_event->event_.gatts.gatts_if,
-                                        &ble_event->event_.gatts.gatts_param);
+                                        ble_event->event_.gatts.gatts_param);
         break;
       case BLEEvent::GATTC:
         this->real_gattc_event_handler_(ble_event->event_.gattc.gattc_event, ble_event->event_.gattc.gattc_if,
-                                        &ble_event->event_.gattc.gattc_param);
+                                        ble_event->event_.gattc.gattc_param);
         break;
       case BLEEvent::GAP: {
         esp_gap_ble_cb_event_t gap_event = ble_event->event_.gap.gap_event;
@@ -341,6 +341,7 @@ void ESP32BLE::loop() {
       default:
         break;
     }
+    // Destructor will clean up external allocations for GATTC/GATTS
     ble_event->~BLEEvent();
     EVENT_ALLOCATOR.deallocate(ble_event, 1);
     ble_event = this->ble_events_.pop();

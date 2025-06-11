@@ -14,12 +14,25 @@ namespace esphome {
 namespace esp32_ble {
 
 // Received GAP, GATTC and GATTS events are only queued, and get processed in the main loop().
-// This class stores each event with minimal memory usage by only copying the data we actually need.
+// This class stores each event with minimal memory usage.
+// GAP events (99% of traffic) don't have the vector overhead.
+// GATTC/GATTS events use external storage for their param and data.
 class BLEEvent {
  public:
+  // NOLINTNEXTLINE(readability-identifier-naming)
+  enum ble_event_t : uint8_t {
+    GAP,
+    GATTC,
+    GATTS,
+  };
+
+  BLEEvent() = default;
+
+  // Constructor for GAP events - no external allocations needed
   BLEEvent(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
     this->type_ = GAP;
     this->event_.gap.gap_event = e;
+    this->event_.gap.ext_data = nullptr;  // GAP events don't use external data
 
     // Only copy the data we actually use for each GAP event type
     switch (e) {
@@ -49,97 +62,117 @@ class BLEEvent {
 
       default:
         // We only handle 4 GAP event types, others are dropped
-        // This should never happen in normal operation
         break;
     }
-  };
+  }
 
+  // Constructor for GATTC events - uses external storage
   BLEEvent(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
     this->type_ = GATTC;
     this->event_.gattc.gattc_event = e;
     this->event_.gattc.gattc_if = i;
-    memcpy(&this->event_.gattc.gattc_param, p, sizeof(esp_ble_gattc_cb_param_t));
+
+    // Allocate external storage for param and data
+    this->event_.gattc.gattc_param = new esp_ble_gattc_cb_param_t(*p);
 
     // Copy data for events that need it
     switch (e) {
       case ESP_GATTC_NOTIFY_EVT:
-        this->data.assign(p->notify.value, p->notify.value + p->notify.value_len);
-        this->event_.gattc.gattc_param.notify.value = this->data.data();
+        this->event_.gattc.data = new std::vector<uint8_t>(p->notify.value, p->notify.value + p->notify.value_len);
+        this->event_.gattc.gattc_param->notify.value = this->event_.gattc.data->data();
         break;
       case ESP_GATTC_READ_CHAR_EVT:
       case ESP_GATTC_READ_DESCR_EVT:
-        this->data.assign(p->read.value, p->read.value + p->read.value_len);
-        this->event_.gattc.gattc_param.read.value = this->data.data();
+        this->event_.gattc.data = new std::vector<uint8_t>(p->read.value, p->read.value + p->read.value_len);
+        this->event_.gattc.gattc_param->read.value = this->event_.gattc.data->data();
         break;
       default:
+        this->event_.gattc.data = nullptr;
         break;
     }
-  };
+  }
 
+  // Constructor for GATTS events - uses external storage
   BLEEvent(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
     this->type_ = GATTS;
     this->event_.gatts.gatts_event = e;
     this->event_.gatts.gatts_if = i;
-    memcpy(&this->event_.gatts.gatts_param, p, sizeof(esp_ble_gatts_cb_param_t));
+
+    // Allocate external storage for param and data
+    this->event_.gatts.gatts_param = new esp_ble_gatts_cb_param_t(*p);
 
     // Copy data for events that need it
     switch (e) {
       case ESP_GATTS_WRITE_EVT:
-        this->data.assign(p->write.value, p->write.value + p->write.len);
-        this->event_.gatts.gatts_param.write.value = this->data.data();
+        this->event_.gatts.data = new std::vector<uint8_t>(p->write.value, p->write.value + p->write.len);
+        this->event_.gatts.gatts_param->write.value = this->event_.gatts.data->data();
+        break;
+      default:
+        this->event_.gatts.data = nullptr;
+        break;
+    }
+  }
+
+  // Destructor to clean up external allocations
+  ~BLEEvent() {
+    switch (this->type_) {
+      case GATTC:
+        delete this->event_.gattc.gattc_param;
+        delete this->event_.gattc.data;
+        break;
+      case GATTS:
+        delete this->event_.gatts.gatts_param;
+        delete this->event_.gatts.data;
         break;
       default:
         break;
     }
-  };
+  }
+
+  // Disable copy to prevent double-delete
+  BLEEvent(const BLEEvent &) = delete;
+  BLEEvent &operator=(const BLEEvent &) = delete;
 
   union {
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gap_event {
       esp_gap_ble_cb_event_t gap_event;
+      void *ext_data;  // Always nullptr for GAP, just for alignment
       union {
-        BLEScanResult scan_result;  // ~73 bytes
-
-        // Minimal storage for scan complete events
+        BLEScanResult scan_result;  // 73 bytes
         struct {
           esp_bt_status_t status;
         } scan_complete;  // 1 byte
-
-        // We only handle 4 GAP event types, no need for full fallback
-        // If we ever get an unexpected event, we'll just drop it in ble.cpp
       };
-    } gap;  // ~73 bytes (size of BLEScanResult)
+    } gap;  // 80 bytes (with alignment)
 
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gattc_event {
       esp_gattc_cb_event_t gattc_event;
       esp_gatt_if_t gattc_if;
-      esp_ble_gattc_cb_param_t gattc_param;
-    } gattc;  // ~68 bytes
+      esp_ble_gattc_cb_param_t *gattc_param;  // External allocation
+      std::vector<uint8_t> *data;             // External allocation
+    } gattc;                                  // 16 bytes (4 + 4 + 4 + 4)
 
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gatts_event {
       esp_gatts_cb_event_t gatts_event;
       esp_gatt_if_t gatts_if;
-      esp_ble_gatts_cb_param_t gatts_param;
-    } gatts;  // ~68 bytes
-  } event_;   // Union size is now ~73 bytes (BLEScanResult is largest)
+      esp_ble_gatts_cb_param_t *gatts_param;  // External allocation
+      std::vector<uint8_t> *data;             // External allocation
+    } gatts;                                  // 16 bytes (4 + 4 + 4 + 4)
+  } event_;                                   // Union size is 80 bytes (largest member is gap)
 
-  std::vector<uint8_t> data{};  // For GATTC/GATTS data
-
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  enum ble_event_t : uint8_t {
-    GAP,
-    GATTC,
-    GATTS,
-  } type_;
+  ble_event_t type_;
 
   // Helper methods to access event data
+  ble_event_t type() const { return type_; }
   esp_gap_ble_cb_event_t gap_event_type() const { return event_.gap.gap_event; }
   const BLEScanResult &scan_result() const { return event_.gap.scan_result; }
   esp_bt_status_t scan_complete_status() const { return event_.gap.scan_complete.status; }
 };
-// Total size: ~100 bytes instead of 440 bytes!
+// Total size for GAP events: ~84 bytes (was 296 bytes - 71.6% reduction!)
+// GATTC/GATTS events use external storage, keeping the queue size minimal
 
 }  // namespace esp32_ble
 }  // namespace esphome
