@@ -369,9 +369,6 @@ void ESP32BLETracker::recalculate_advertisement_parser_types() {
 
 void ESP32BLETracker::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
   switch (event) {
-    case ESP_GAP_BLE_SCAN_RESULT_EVT:
-      // This will be handled by gap_scan_event_handler instead
-      break;
     case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT:
       this->gap_scan_set_param_complete_(param->scan_param_cmpl);
       break;
@@ -384,11 +381,9 @@ void ESP32BLETracker::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_ga
     default:
       break;
   }
-  // Still forward non-scan events to clients
-  if (event != ESP_GAP_BLE_SCAN_RESULT_EVT) {
-    for (auto *client : this->clients_) {
-      client->gap_event_handler(event, param);
-    }
+  // Forward all events to clients (scan results are handled separately via gap_scan_event_handler)
+  for (auto *client : this->clients_) {
+    client->gap_event_handler(event, param);
   }
 }
 
