@@ -36,7 +36,7 @@ class BLEEvent {
     // Only copy the data we actually use for each GAP event type
     switch (e) {
       case ESP_GAP_BLE_SCAN_RESULT_EVT:
-        // Copy only the fields we use from scan results (~72 bytes)
+        // Copy only the fields we use from scan results
         memcpy(this->event_.gap.scan_result.bda, p->scan_rst.bda, sizeof(esp_bd_addr_t));
         this->event_.gap.scan_result.ble_addr_type = p->scan_rst.ble_addr_type;
         this->event_.gap.scan_result.rssi = p->scan_rst.rssi;
@@ -142,24 +142,24 @@ class BLEEvent {
           esp_bt_status_t status;
         } scan_complete;  // 1 byte
       };
-    } gap;  // 77 bytes (4 + 73)
+    } gap;  // 80 bytes total
 
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gattc_event {
       esp_gattc_cb_event_t gattc_event;
       esp_gatt_if_t gattc_if;
-      esp_ble_gattc_cb_param_t *gattc_param;  // External allocation
-      std::vector<uint8_t> *data;             // External allocation
-    } gattc;                                  // 16 bytes (4 + 4 + 4 + 4)
+      esp_ble_gattc_cb_param_t *gattc_param;
+      std::vector<uint8_t> *data;
+    } gattc;  // 16 bytes (pointers only)
 
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gatts_event {
       esp_gatts_cb_event_t gatts_event;
       esp_gatt_if_t gatts_if;
-      esp_ble_gatts_cb_param_t *gatts_param;  // External allocation
-      std::vector<uint8_t> *data;             // External allocation
-    } gatts;                                  // 16 bytes (4 + 4 + 4 + 4)
-  } event_;                                   // Union size is 80 bytes with padding
+      esp_ble_gatts_cb_param_t *gatts_param;
+      std::vector<uint8_t> *data;
+    } gatts;  // 16 bytes (pointers only)
+  } event_;   // 80 bytes
 
   ble_event_t type_;
 
@@ -169,9 +169,8 @@ class BLEEvent {
   const BLEScanResult &scan_result() const { return event_.gap.scan_result; }
   esp_bt_status_t scan_complete_status() const { return event_.gap.scan_complete.status; }
 };
-// Total size: 84 bytes (80 byte union + 1 byte type + 3 bytes padding)
-// Was 296 bytes - 71.6% reduction!
-// GATTC/GATTS events use external storage, keeping the queue size minimal
+
+// BLEEvent total size: 84 bytes (80 byte union + 1 byte type + 3 bytes padding)
 
 }  // namespace esp32_ble
 }  // namespace esphome

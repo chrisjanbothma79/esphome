@@ -139,6 +139,7 @@ class ESP32BLE : public Component {
   bool ble_pre_setup_();
   void advertising_init_();
 
+ private:
   std::vector<GAPEventHandler *> gap_event_handlers_;
   std::vector<GAPScanEventHandler *> gap_scan_event_handlers_;
   std::vector<GATTcEventHandler *> gattc_event_handlers_;

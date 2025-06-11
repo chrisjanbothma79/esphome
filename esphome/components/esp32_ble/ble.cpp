@@ -23,6 +23,9 @@ namespace esp32_ble {
 
 static const char *const TAG = "esp32_ble";
 
+// Maximum size of the BLE event queue
+static constexpr size_t MAX_BLE_QUEUE_SIZE = SCAN_RESULT_BUFFER_SIZE * 2;
+
 static RAMAllocator<BLEEvent> EVENT_ALLOCATOR(  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
     RAMAllocator<BLEEvent>::ALLOW_FAILURE | RAMAllocator<BLEEvent>::ALLOC_INTERNAL);
 
@@ -333,8 +336,8 @@ void ESP32BLE::loop() {
           // Cast is safe because all three event structures start with status
           this->real_gap_event_handler_(gap_event, (esp_ble_gap_cb_param_t *) &scan_complete_param);
         } else {
-          // Unexpected GAP event - log and drop
-          ESP_LOGW(TAG, "Unexpected GAP event type: %d", gap_event);
+          // Unexpected GAP event - drop it
+          ESP_LOGV(TAG, "Unexpected GAP event type: %d", gap_event);
         }
         break;
       }
@@ -352,17 +355,14 @@ void ESP32BLE::loop() {
 }
 
 void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
-  static constexpr size_t MAX_BLE_QUEUE_SIZE = SCAN_RESULT_BUFFER_SIZE * 2;
-
   // Only queue the 4 GAP events we actually handle
   if (event != ESP_GAP_BLE_SCAN_RESULT_EVT && event != ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT &&
       event != ESP_GAP_BLE_SCAN_START_COMPLETE_EVT && event != ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT) {
-    ESP_LOGW(TAG, "Ignoring unexpected GAP event type: %d", event);
     return;
   }
 
   if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
-    ESP_LOGW(TAG, "BLE event queue full (%d), dropping GAP event %d", MAX_BLE_QUEUE_SIZE, event);
+    ESP_LOGV(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
     return;
   }
 
@@ -384,10 +384,8 @@ void ESP32BLE::real_gap_event_handler_(esp_gap_ble_cb_event_t event, esp_ble_gap
 
 void ESP32BLE::gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                                    esp_ble_gatts_cb_param_t *param) {
-  static constexpr size_t MAX_BLE_QUEUE_SIZE = SCAN_RESULT_BUFFER_SIZE * 2;
-
   if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
-    ESP_LOGW(TAG, "BLE event queue full (%d), dropping GATTS event %d", MAX_BLE_QUEUE_SIZE, event);
+    ESP_LOGV(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
     return;
   }
 
@@ -410,10 +408,8 @@ void ESP32BLE::real_gatts_event_handler_(esp_gatts_cb_event_t event, esp_gatt_if
 
 void ESP32BLE::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                    esp_ble_gattc_cb_param_t *param) {
-  static constexpr size_t MAX_BLE_QUEUE_SIZE = SCAN_RESULT_BUFFER_SIZE * 2;
-
   if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
-    ESP_LOGW(TAG, "BLE event queue full (%d), dropping GATTC event %d", MAX_BLE_QUEUE_SIZE, event);
+    ESP_LOGV(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
     return;
   }
 
