@@ -24,6 +24,7 @@ class XiaomiJTYJQD03MI : public Component, public esp32_ble_tracker::ESPBTDevice
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
   void set_smoke(binary_sensor::BinarySensor *smoke) { this->smoke_ = smoke; }
+  void set_button(binary_sensor::BinarySensor *button) { this->button_ = button; }
   void set_button_timeout(uint16_t timeout) { this->button_timeout_ = timeout; }
   void set_battery_level(sensor::Sensor *battery_level) { this->battery_level_ = battery_level; }
 
