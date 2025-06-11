@@ -45,6 +45,10 @@ template<class T> class Queue {
     return element;
   }
 
+  size_t size() const {
+    return q_.size();  // Atomic read, no lock needed
+  }
+
  protected:
   std::queue<T *> q_;
   SemaphoreHandle_t m_;

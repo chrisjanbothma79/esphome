@@ -312,9 +312,36 @@ void ESP32BLE::loop() {
         this->real_gattc_event_handler_(ble_event->event_.gattc.gattc_event, ble_event->event_.gattc.gattc_if,
                                         &ble_event->event_.gattc.gattc_param);
         break;
-      case BLEEvent::GAP:
-        this->real_gap_event_handler_(ble_event->event_.gap.gap_event, &ble_event->event_.gap.gap_param);
+      case BLEEvent::GAP: {
+        esp_gap_ble_cb_event_t gap_event = ble_event->event_.gap.gap_event;
+        if (gap_event == ESP_GAP_BLE_SCAN_RESULT_EVT) {
+          // Use the new scan event handler - no memcpy!
+          for (auto *scan_handler : this->gap_scan_event_handlers_) {
+            scan_handler->gap_scan_event_handler(ble_event->scan_result());
+          }
+        } else if (gap_event == ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT ||
+                   gap_event == ESP_GAP_BLE_SCAN_START_COMPLETE_EVT ||
+                   gap_event == ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT) {
+          // Create temporary param for scan complete events
+          esp_ble_gap_cb_param_t param;
+          memset(&param, 0, sizeof(param));
+
+          // Set the appropriate status field based on event type
+          if (gap_event == ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT) {
+            param.scan_param_cmpl.status = ble_event->event_.gap.scan_complete.status;
+          } else if (gap_event == ESP_GAP_BLE_SCAN_START_COMPLETE_EVT) {
+            param.scan_start_cmpl.status = ble_event->event_.gap.scan_complete.status;
+          } else if (gap_event == ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT) {
+            param.scan_stop_cmpl.status = ble_event->event_.gap.scan_complete.status;
+          }
+
+          this->real_gap_event_handler_(gap_event, &param);
+        } else {
+          // Fallback for unexpected events (uses full param copy)
+          this->real_gap_event_handler_(gap_event, &ble_event->event_.gap.gap_param);
+        }
         break;
+      }
       default:
         break;
     }
@@ -328,6 +355,13 @@ void ESP32BLE::loop() {
 }
 
 void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
+  static constexpr size_t MAX_BLE_QUEUE_SIZE = SCAN_RESULT_BUFFER_SIZE * 2;
+
+  if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
+    ESP_LOGW(TAG, "BLE event queue full (%d), dropping GAP event %d", MAX_BLE_QUEUE_SIZE, event);
+    return;
+  }
+
   BLEEvent *new_event = EVENT_ALLOCATOR.allocate(1);
   if (new_event == nullptr) {
     // Memory too fragmented to allocate new event. Can only drop it until memory comes back
@@ -346,6 +380,13 @@ void ESP32BLE::real_gap_event_handler_(esp_gap_ble_cb_event_t event, esp_ble_gap
 
 void ESP32BLE::gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                                    esp_ble_gatts_cb_param_t *param) {
+  static constexpr size_t MAX_BLE_QUEUE_SIZE = SCAN_RESULT_BUFFER_SIZE * 2;
+
+  if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
+    ESP_LOGW(TAG, "BLE event queue full (%d), dropping GATTS event %d", MAX_BLE_QUEUE_SIZE, event);
+    return;
+  }
+
   BLEEvent *new_event = EVENT_ALLOCATOR.allocate(1);
   if (new_event == nullptr) {
     // Memory too fragmented to allocate new event. Can only drop it until memory comes back
@@ -365,6 +406,13 @@ void ESP32BLE::real_gatts_event_handler_(esp_gatts_cb_event_t event, esp_gatt_if
 
 void ESP32BLE::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                    esp_ble_gattc_cb_param_t *param) {
+  static constexpr size_t MAX_BLE_QUEUE_SIZE = SCAN_RESULT_BUFFER_SIZE * 2;
+
+  if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
+    ESP_LOGW(TAG, "BLE event queue full (%d), dropping GATTC event %d", MAX_BLE_QUEUE_SIZE, event);
+    return;
+  }
+
   BLEEvent *new_event = EVENT_ALLOCATOR.allocate(1);
   if (new_event == nullptr) {
     // Memory too fragmented to allocate new event. Can only drop it until memory comes back
