@@ -16,7 +16,7 @@ namespace esp32_ble {
 // Received GAP, GATTC and GATTS events are only queued, and get processed in the main loop().
 // This class stores each event with minimal memory usage.
 // GAP events (99% of traffic) don't have the vector overhead.
-// GATTC/GATTS events use external storage for their param and data.
+// GATTC/GATTS events use heap allocation for their param and data.
 //
 // Event flow:
 // 1. ESP-IDF BLE stack calls our static handlers in the BLE task context
@@ -27,7 +27,7 @@ namespace esp32_ble {
 //
 // Thread safety:
 // - GAP events: We copy only the fields we need directly into the union
-// - GATTC/GATTS events: We allocate and copy the entire param struct, ensuring
+// - GATTC/GATTS events: We heap-allocate and copy the entire param struct, ensuring
 //   the data remains valid even after the BLE callback returns. The original
 //   param pointer from ESP-IDF is only valid during the callback.
 class BLEEvent {
@@ -78,15 +78,15 @@ class BLEEvent {
     }
   }
 
-  // Constructor for GATTC events - uses external storage
+  // Constructor for GATTC events - uses heap allocation
   // Creates a copy of the param struct since the original is only valid during the callback
   BLEEvent(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
     this->type_ = GATTC;
     this->event_.gattc.gattc_event = e;
     this->event_.gattc.gattc_if = i;
 
-    // Allocate external storage for param and data
-    // External allocation is used because GATTC/GATTS events are rare (<1% of events)
+    // Heap-allocate param and data
+    // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
     // while GAP events (99%) are stored inline to minimize memory usage
     this->event_.gattc.gattc_param = new esp_ble_gattc_cb_param_t(*p);
 
@@ -107,15 +107,15 @@ class BLEEvent {
     }
   }
 
-  // Constructor for GATTS events - uses external storage
+  // Constructor for GATTS events - uses heap allocation
   // Creates a copy of the param struct since the original is only valid during the callback
   BLEEvent(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
     this->type_ = GATTS;
     this->event_.gatts.gatts_event = e;
     this->event_.gatts.gatts_if = i;
 
-    // Allocate external storage for param and data
-    // External allocation is used because GATTC/GATTS events are rare (<1% of events)
+    // Heap-allocate param and data
+    // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
     // while GAP events (99%) are stored inline to minimize memory usage
     this->event_.gatts.gatts_param = new esp_ble_gatts_cb_param_t(*p);
 
@@ -131,7 +131,7 @@ class BLEEvent {
     }
   }
 
-  // Destructor to clean up external allocations
+  // Destructor to clean up heap allocations
   ~BLEEvent() {
     switch (this->type_) {
       case GATTC:
@@ -167,18 +167,18 @@ class BLEEvent {
     struct gattc_event {
       esp_gattc_cb_event_t gattc_event;
       esp_gatt_if_t gattc_if;
-      esp_ble_gattc_cb_param_t *gattc_param;
-      std::vector<uint8_t> *data;
-    } gattc;  // 16 bytes (pointers only)
+      esp_ble_gattc_cb_param_t *gattc_param;  // Heap-allocated
+      std::vector<uint8_t> *data;             // Heap-allocated
+    } gattc;                                  // 16 bytes (pointers only)
 
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gatts_event {
       esp_gatts_cb_event_t gatts_event;
       esp_gatt_if_t gatts_if;
-      esp_ble_gatts_cb_param_t *gatts_param;
-      std::vector<uint8_t> *data;
-    } gatts;  // 16 bytes (pointers only)
-  } event_;   // 80 bytes
+      esp_ble_gatts_cb_param_t *gatts_param;  // Heap-allocated
+      std::vector<uint8_t> *data;             // Heap-allocated
+    } gatts;                                  // 16 bytes (pointers only)
+  } event_;                                   // 80 bytes
 
   ble_event_t type_;
 
