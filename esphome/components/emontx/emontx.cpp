@@ -27,6 +27,24 @@ void EmonTx::setup() {
     ESP_LOGCONFIG(TAG, "  Server: %s", this->emoncms_server_.c_str());
     ESP_LOGCONFIG(TAG, "  Node: %s", this->emoncms_node_.c_str());
     ESP_LOGCONFIG(TAG, "  API Key: %s...", this->emoncms_apikey_.substr(0, 5).c_str());
+
+    // Pre-build the URL - only done once
+    std::string url = emoncms_server_;
+    if (url.back() != '/') {
+      url += '/';
+    }
+    url += "input/post";
+    this->emoncms_url_ = url;
+
+    // Pre-build the body prefix - only done once
+    std::string body_prefix = "node=";
+    body_prefix += emoncms_node_;
+    body_prefix += "&apikey=";
+    body_prefix += emoncms_apikey_;
+    body_prefix += "&data=";
+    this->emoncms_body_prefix_ = body_prefix;
+
+    ESP_LOGD(TAG, "EmonCMS URL constructed: %s", this->emoncms_url_.c_str());
   }
 #endif
 }
@@ -122,25 +140,15 @@ void EmonTx::send_to_emoncms_(const std::string &json_data) {
 
   ESP_LOGV(TAG, "Sending data to EmonCMS: %s", json_data.c_str());
 
-  // Build the URL for POST
-  std::string url = emoncms_server_;
-  if (url.back() != '/') {
-    url += '/';
-  }
-  url += "input/post";
+  // Use the pre-built body prefix and just append the JSON data
+  // This avoids rebuilding the same strings every time
+  std::string body = this->emoncms_body_prefix_ + json_data;
 
-  // Create body format: node=nodename&apikey=apikey&json=jsondata
-  std::string body = "node=";
-  body += emoncms_node_;
-  body += "&apikey=";
-  body += emoncms_apikey_;
-  body += "&data=";
-  body += json_data;
-
+  ESP_LOGV(TAG, "EmonCMS request to URL: %s", this->emoncms_url_.c_str());
   ESP_LOGV(TAG, "EmonCMS POST data: %s", body.c_str());
 
   // Send POST request and capture the response container
-  auto container = http_client_->post(url, body);
+  auto container = http_client_->post(this->emoncms_url_, body);
 
   // Check if request was successfully initiated
   if (container != nullptr) {

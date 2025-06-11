@@ -74,6 +74,11 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   std::string emoncms_node_;
   std::string emoncms_apikey_;
   http_request::HttpRequestComponent *http_client_{nullptr};
+
+  // Pre-built URL and body template
+  std::string emoncms_url_;          // The base URL including endpoint
+  std::string emoncms_body_prefix_;  // "node=X&apikey=Y&json="
+
   void send_to_emoncms_(const std::string &json_data);
 #endif
 };
