@@ -420,9 +420,6 @@ void ESP32BLETracker::gap_scan_event_handler(const BLEScanResult &scan_result) {
     }
     this->set_scanner_state_(ScannerState::STOPPED);
   }
-
-  // Note: BLE clients don't actually process ESP_GAP_BLE_SCAN_RESULT_EVT
-  // They use parse_device() instead, so we don't need to forward scan results
 }
 
 void ESP32BLETracker::gap_scan_set_param_complete_(const esp_ble_gap_cb_param_t::ble_scan_param_cmpl_evt_param &param) {
