@@ -421,27 +421,8 @@ void ESP32BLETracker::gap_scan_event_handler(const BLEScanResult &scan_result) {
     this->set_scanner_state_(ScannerState::STOPPED);
   }
 
-  // Forward scan results to clients - they still expect the old format
-  if (scan_result.search_evt == ESP_GAP_SEARCH_INQ_RES_EVT) {
-    esp_ble_gap_cb_param_t param;
-    memset(&param, 0, sizeof(param));
-    memcpy(param.scan_rst.bda, scan_result.bda, sizeof(esp_bd_addr_t));
-    param.scan_rst.ble_addr_type = static_cast<esp_ble_addr_type_t>(scan_result.ble_addr_type);
-    param.scan_rst.rssi = scan_result.rssi;
-    param.scan_rst.adv_data_len = scan_result.adv_data_len;
-    param.scan_rst.scan_rsp_len = scan_result.scan_rsp_len;
-    param.scan_rst.search_evt = static_cast<esp_gap_search_evt_t>(scan_result.search_evt);
-    memcpy(param.scan_rst.ble_adv, scan_result.ble_adv, ESP_BLE_ADV_DATA_LEN_MAX + ESP_BLE_SCAN_RSP_DATA_LEN_MAX);
-    param.scan_rst.dev_type = static_cast<esp_bt_dev_type_t>(0);
-    param.scan_rst.ble_evt_type = static_cast<esp_ble_evt_type_t>(0);
-    param.scan_rst.flag = 0;
-    param.scan_rst.num_resps = 1;
-    param.scan_rst.num_dis = 0;
-
-    for (auto *client : this->clients_) {
-      client->gap_event_handler(ESP_GAP_BLE_SCAN_RESULT_EVT, &param);
-    }
-  }
+  // Note: BLE clients don't actually process ESP_GAP_BLE_SCAN_RESULT_EVT
+  // They use parse_device() instead, so we don't need to forward scan results
 }
 
 void ESP32BLETracker::gap_scan_set_param_complete_(const esp_ble_gap_cb_param_t::ble_scan_param_cmpl_evt_param &param) {
