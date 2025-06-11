@@ -148,7 +148,7 @@ std::optional<InstanceLock> InstanceLock::try_acquire(int delay) {
   return {};
 }
 
-std::optional<InstanceLock> InstanceLock::acquire() {
+InstanceLock InstanceLock::acquire() {
   while (!esp_openthread_lock_acquire(100)) {
     esp_task_wdt_reset();
   }

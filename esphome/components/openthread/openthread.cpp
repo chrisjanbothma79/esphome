@@ -23,7 +23,8 @@ static const char *const TAG = "openthread";
 namespace esphome {
 namespace openthread {
 
-OpenThreadComponent *global_openthread_component = nullptr;
+OpenThreadComponent *global_openthread_component =  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    nullptr;                                        // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 OpenThreadComponent::OpenThreadComponent() { global_openthread_component = this; }
 
@@ -59,53 +60,55 @@ bool OpenThreadComponent::is_connected() {
 
 // Gets the off-mesh routable address
 std::optional<otIp6Address> OpenThreadComponent::get_omr_address() {
-  auto lock = InstanceLock::acquire();
+  InstanceLock lock = InstanceLock::acquire();
   return this->get_omr_address_(lock);
 }
 
-std::optional<otIp6Address> OpenThreadComponent::get_omr_address_(std::optional<InstanceLock> &lock) {
+std::optional<otIp6Address> OpenThreadComponent::get_omr_address_(InstanceLock &lock) {
   otNetworkDataIterator iterator = OT_NETWORK_DATA_ITERATOR_INIT;
   otInstance *instance = nullptr;
 
-  instance = lock->get_instance();
+  instance = lock.get_instance();
 
-  otBorderRouterConfig aConfig;
-  if (otNetDataGetNextOnMeshPrefix(instance, &iterator, &aConfig) != OT_ERROR_NONE) {
+  otBorderRouterConfig config;
+  if (otNetDataGetNextOnMeshPrefix(instance, &iterator, &config) != OT_ERROR_NONE) {
     return std::nullopt;
   }
 
-  const otIp6Prefix *omrPrefix = &aConfig.mPrefix;
-  const otNetifAddress *unicastAddrs = otIp6GetUnicastAddresses(instance);
-  for (const otNetifAddress *addr = unicastAddrs; addr; addr = addr->mNext) {
-    const otIp6Address *localIp = &addr->mAddress;
-    if (otIp6PrefixMatch(&omrPrefix->mPrefix, localIp)) {
-      return *localIp;
+  const otIp6Prefix *omr_prefix = &config.mPrefix;
+  const otNetifAddress *unicast_addresses = otIp6GetUnicastAddresses(instance);
+  for (const otNetifAddress *addr = unicast_addresses; addr; addr = addr->mNext) {
+    const otIp6Address *local_ip = &addr->mAddress;
+    if (otIp6PrefixMatch(&omr_prefix->mPrefix, local_ip)) {
+      return *local_ip;
     }
   }
   return {};
 }
 
-void srpCallback(otError aError, const otSrpClientHostInfo *aHostInfo, const otSrpClientService *aServices,
-                 const otSrpClientService *aRemovedServices, void *aContext) {
-  if (aError != 0) {
-    ESP_LOGW(TAG, "SRP client reported an error: %s", otThreadErrorToString(aError));
-    for (const otSrpClientHostInfo *host = aHostInfo; host; host = nullptr) {
+void srp_callback(otError err, const otSrpClientHostInfo *host_info, const otSrpClientService *services,
+                  const otSrpClientService *removed_services, void *context) {
+  if (err != 0) {
+    ESP_LOGW(TAG, "SRP client reported an error: %s", otThreadErrorToString(err));
+    for (const otSrpClientHostInfo *host = host_info; host; host = nullptr) {
       ESP_LOGW(TAG, "  Host: %s", host->mName);
     }
-    for (const otSrpClientService *service = aServices; service; service = service->mNext) {
+    for (const otSrpClientService *service = services; service; service = service->mNext) {
       ESP_LOGW(TAG, "  Service: %s", service->mName);
     }
   }
 }
 
-void srpStartCallback(const otSockAddr *aServerSockAddr, void *aContext) { ESP_LOGI(TAG, "SRP client has started"); }
+void srp_start_callback(const otSockAddr *server_socket_address, void *context) {
+  ESP_LOGI(TAG, "SRP client has started");
+}
 
 void OpenThreadSrpComponent::setup() {
   otError error;
-  auto lock = InstanceLock::acquire();
-  otInstance *instance = lock->get_instance();
+  InstanceLock lock = InstanceLock::acquire();
+  otInstance *instance = lock.get_instance();
 
-  otSrpClientSetCallback(instance, srpCallback, nullptr);
+  otSrpClientSetCallback(instance, srp_callback, nullptr);
 
   // set the host name
   uint16_t size;
@@ -163,18 +166,18 @@ void OpenThreadSrpComponent::setup() {
     // Set port
     entry->mService.mPort = const_cast<TemplatableValue<uint16_t> &>(service.port).value();
 
-    otDnsTxtEntry *mTxtEntries =
+    otDnsTxtEntry *txt_entries =
         reinterpret_cast<otDnsTxtEntry *>(this->pool_alloc_(sizeof(otDnsTxtEntry) * service.txt_records.size()));
     // Set TXT records
     entry->mService.mNumTxtEntries = service.txt_records.size();
     for (size_t i = 0; i < service.txt_records.size(); i++) {
       const auto &txt = service.txt_records[i];
       auto value = const_cast<TemplatableValue<std::string> &>(txt.value).value();
-      mTxtEntries[i].mKey = strdup(txt.key.c_str());
-      mTxtEntries[i].mValue = reinterpret_cast<const uint8_t *>(strdup(value.c_str()));
-      mTxtEntries[i].mValueLength = value.size();
+      txt_entries[i].mKey = strdup(txt.key.c_str());
+      txt_entries[i].mValue = reinterpret_cast<const uint8_t *>(strdup(value.c_str()));
+      txt_entries[i].mValueLength = value.size();
     }
-    entry->mService.mTxtEntries = mTxtEntries;
+    entry->mService.mTxtEntries = txt_entries;
     entry->mService.mNumTxtEntries = service.txt_records.size();
 
     // Add service
@@ -185,8 +188,8 @@ void OpenThreadSrpComponent::setup() {
     ESP_LOGW(TAG, "Added service: %s", full_service.c_str());
   }
 
-  otSrpClientEnableAutoStartMode(instance, srpStartCallback, nullptr);
-  ESP_LOGW(TAG, "Finished SRP setup **** ");
+  otSrpClientEnableAutoStartMode(instance, srp_start_callback, nullptr);
+  ESP_LOGW(TAG, "Finished SRP setup");
 }
 
 void *OpenThreadSrpComponent::pool_alloc_(size_t size) {

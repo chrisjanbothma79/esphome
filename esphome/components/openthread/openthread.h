@@ -29,21 +29,19 @@ class OpenThreadComponent : public Component {
   void ot_main();
 
  protected:
-  std::optional<otIp6Address> get_omr_address_(std::optional<InstanceLock> &lock);
+  std::optional<otIp6Address> get_omr_address_(InstanceLock &lock);
 };
 
-extern OpenThreadComponent *global_openthread_component;
+extern OpenThreadComponent *global_openthread_component;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 class OpenThreadSrpComponent : public Component {
  public:
   void set_mdns(esphome::mdns::MDNSComponent *mdns);
   // This has to run after the mdns component or else no services are available to advertise
   float get_setup_priority() const override { return this->mdns_->get_setup_priority() - 1.0; }
-
- protected:
   void setup() override;
 
- private:
+ protected:
   esphome::mdns::MDNSComponent *mdns_{nullptr};
   std::vector<esphome::mdns::MDNSService> mdns_services_;
   std::vector<std::unique_ptr<uint8_t[]>> memory_pool_;
@@ -53,7 +51,7 @@ class OpenThreadSrpComponent : public Component {
 class InstanceLock {
  public:
   static std::optional<InstanceLock> try_acquire(int delay);
-  static std::optional<InstanceLock> acquire();
+  static InstanceLock acquire();
   ~InstanceLock();
 
   // Returns the global openthread instance guarded by this lock

@@ -18,12 +18,12 @@ class OpenThreadInstancePollingComponent : public PollingComponent {
       return;
     }
 
-    this->update_instance_(lock->get_instance());
+    this->update_instance(lock->get_instance());
   }
   float get_setup_priority() const override { return setup_priority::AFTER_WIFI; }
 
  protected:
-  virtual void update_instance_(otInstance *instance) = 0;
+  virtual void update_instance(otInstance *instance) = 0;
 };
 
 class IPAddressOpenThreadInfo : public PollingComponent, public text_sensor::TextSensor {
@@ -34,9 +34,9 @@ class IPAddressOpenThreadInfo : public PollingComponent, public text_sensor::Tex
       return;
     }
 
-    char addressAsString[40];
-    otIp6AddressToString(&*address, addressAsString, 40);
-    std::string ip = addressAsString;
+    char address_as_string[40];
+    otIp6AddressToString(&*address, address_as_string, 40);
+    std::string ip = address_as_string;
 
     if (this->last_ip_ != ip) {
       this->last_ip_ = ip;
@@ -52,7 +52,7 @@ class IPAddressOpenThreadInfo : public PollingComponent, public text_sensor::Tex
 
 class RoleOpenThreadInfo : public OpenThreadInstancePollingComponent, public text_sensor::TextSensor {
  public:
-  void update_instance_(otInstance *instance) override {
+  void update_instance(otInstance *instance) override {
     otDeviceRole role = otThreadGetDeviceRole(instance);
 
     if (this->last_role_ != role) {
@@ -68,7 +68,7 @@ class RoleOpenThreadInfo : public OpenThreadInstancePollingComponent, public tex
 
 class Rloc16OpenThreadInfo : public OpenThreadInstancePollingComponent, public text_sensor::TextSensor {
  public:
-  void update_instance_(otInstance *instance) override {
+  void update_instance(otInstance *instance) override {
     uint16_t rloc16 = otThreadGetRloc16(instance);
     if (this->last_rloc16_ != rloc16) {
       this->last_rloc16_ = rloc16;
@@ -86,8 +86,8 @@ class Rloc16OpenThreadInfo : public OpenThreadInstancePollingComponent, public t
 
 class ExtAddrOpenThreadInfo : public OpenThreadInstancePollingComponent, public text_sensor::TextSensor {
  public:
-  void update_instance_(otInstance *instance) override {
-    auto extaddr = otLinkGetExtendedAddress(instance);
+  void update_instance(otInstance *instance) override {
+    const auto *extaddr = otLinkGetExtendedAddress(instance);
     if (!std::equal(this->last_extaddr_.begin(), this->last_extaddr_.end(), extaddr->m8)) {
       std::copy(extaddr->m8, extaddr->m8 + 8, this->last_extaddr_.begin());
       this->publish_state(format_hex(extaddr->m8, 8));
@@ -102,7 +102,7 @@ class ExtAddrOpenThreadInfo : public OpenThreadInstancePollingComponent, public 
 
 class Eui64OpenThreadInfo : public OpenThreadInstancePollingComponent, public text_sensor::TextSensor {
  public:
-  void update_instance_(otInstance *instance) override {
+  void update_instance(otInstance *instance) override {
     otExtAddress addr;
     otLinkGetFactoryAssignedIeeeEui64(instance, &addr);
 
@@ -120,7 +120,7 @@ class Eui64OpenThreadInfo : public OpenThreadInstancePollingComponent, public te
 
 class ChannelOpenThreadInfo : public OpenThreadInstancePollingComponent, public text_sensor::TextSensor {
  public:
-  void update_instance_(otInstance *instance) override {
+  void update_instance(otInstance *instance) override {
     uint8_t channel = otLinkGetChannel(instance);
     if (this->last_channel_ != channel) {
       this->last_channel_ = channel;
@@ -136,22 +136,22 @@ class ChannelOpenThreadInfo : public OpenThreadInstancePollingComponent, public 
 
 class DatasetOpenThreadInfo : public OpenThreadInstancePollingComponent {
  public:
-  void update_instance_(otInstance *instance) override {
+  void update_instance(otInstance *instance) override {
     otOperationalDataset dataset;
     if (otDatasetGetActive(instance, &dataset) != OT_ERROR_NONE) {
       return;
     }
 
-    this->update_dataset_(&dataset);
+    this->update_dataset(&dataset);
   }
 
  protected:
-  virtual void update_dataset_(otOperationalDataset *dataset) = 0;
+  virtual void update_dataset(otOperationalDataset *dataset) = 0;
 };
 
 class NetworkNameOpenThreadInfo : public DatasetOpenThreadInfo, public text_sensor::TextSensor {
  public:
-  void update_dataset_(otOperationalDataset *dataset) override {
+  void update_dataset(otOperationalDataset *dataset) override {
     if (this->last_network_name_ != dataset->mNetworkName.m8) {
       this->last_network_name_ = dataset->mNetworkName.m8;
       this->publish_state(this->last_network_name_);
@@ -166,7 +166,7 @@ class NetworkNameOpenThreadInfo : public DatasetOpenThreadInfo, public text_sens
 
 class NetworkKeyOpenThreadInfo : public DatasetOpenThreadInfo, public text_sensor::TextSensor {
  public:
-  void update_dataset_(otOperationalDataset *dataset) override {
+  void update_dataset(otOperationalDataset *dataset) override {
     if (!std::equal(this->last_key_.begin(), this->last_key_.end(), dataset->mNetworkKey.m8)) {
       std::copy(dataset->mNetworkKey.m8, dataset->mNetworkKey.m8 + 16, this->last_key_.begin());
       this->publish_state(format_hex(dataset->mNetworkKey.m8, 16));
@@ -181,7 +181,7 @@ class NetworkKeyOpenThreadInfo : public DatasetOpenThreadInfo, public text_senso
 
 class PanIdOpenThreadInfo : public DatasetOpenThreadInfo, public text_sensor::TextSensor {
  public:
-  void update_dataset_(otOperationalDataset *dataset) override {
+  void update_dataset(otOperationalDataset *dataset) override {
     uint16_t panid = dataset->mPanId;
     if (this->last_panid_ != panid) {
       this->last_panid_ = panid;
@@ -199,7 +199,7 @@ class PanIdOpenThreadInfo : public DatasetOpenThreadInfo, public text_sensor::Te
 
 class ExtPanIdOpenThreadInfo : public DatasetOpenThreadInfo, public text_sensor::TextSensor {
  public:
-  void update_dataset_(otOperationalDataset *dataset) override {
+  void update_dataset(otOperationalDataset *dataset) override {
     if (!std::equal(this->last_extpanid_.begin(), this->last_extpanid_.end(), dataset->mExtendedPanId.m8)) {
       std::copy(dataset->mExtendedPanId.m8, dataset->mExtendedPanId.m8 + 8, this->last_extpanid_.begin());
       this->publish_state(format_hex(this->last_extpanid_.begin(), 8));
