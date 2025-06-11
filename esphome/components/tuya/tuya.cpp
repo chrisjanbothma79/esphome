@@ -310,7 +310,7 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
       break;
     case TuyaCommandType::WIFI_RESET:  // enable AP (factory) mode (not implemented yet), same as pair
       this->send_empty_command_(TuyaCommandType::WIFI_RESET);
-      cut_cloud_mode_ = true;
+      this->cut_cloud_mode_ = true;
       break;
     case TuyaCommandType::WIFI_PAIR:  // we'll remain UP for at most 2 minutes (maybe less with boot time)
       // len > 0, buffer[0] contains 0x00 for EZ mode or 0x01 for AP mode
@@ -319,7 +319,7 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
         buffer[0];
       }*/
       this->send_empty_command_(TuyaCommandType::WIFI_PAIR);
-      cut_cloud_mode_ = true;
+      this->cut_cloud_mode_ = true;
       break;
     case TuyaCommandType::WIFI_TEST:
       // we report fake OK signal 0x01 with 50 signal, since there are implications in sending 0x00
@@ -327,7 +327,11 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
       break;
     case TuyaCommandType::DATAPOINT_REPORT_ASYNC:
     case TuyaCommandType::DATAPOINT_REPORT_SYNC:
-      this->init_state_ = TuyaInitState::INIT_DONE;
+      if (this->init_state_ == TuyaInitState::INIT_DATAPOINT) {
+        this->init_state_ = TuyaInitState::INIT_DONE;
+        this->set_timeout("datapoint_dump", 1000, [this] { this->dump_config(); });
+        this->initialized_callback_.call();
+      }
       this->handle_datapoints_(buffer, len);
       // after updating everything we report the confirmation of sending them "to the cloud" - the device could stay a
       // little longer, maybe postpone this?
@@ -569,7 +573,7 @@ uint8_t Tuya::get_wifi_status_code_() {
 
     // Protocol version 3 and low energy (0) also supports specifying when connected to "the cloud" - in pair mode, we
     // try to keep the device as long as possible activated (version 0) wi-fi devices
-    if ((this->protocol_version_ >= 0x03 || (!cut_cloud_mode_ && this->protocol_version_ == 0x00)) &&
+    if ((this->protocol_version_ >= 0x03 || (!this->cut_cloud_mode_ && this->protocol_version_ == 0x00)) &&
         remote_is_connected()) {
       status = 0x04;
     }
