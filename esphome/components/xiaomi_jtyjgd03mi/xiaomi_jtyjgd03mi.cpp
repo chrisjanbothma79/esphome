@@ -12,7 +12,6 @@ void XiaomiJTYJQD03MI::dump_config() {
   ESP_LOGCONFIG(TAG, "Xiaomi JTYJQD03MI");
   ESP_LOGCONFIG(TAG, "  Bindkey: %s", format_hex_pretty(this->bindkey_, 16).c_str());
   LOG_BINARY_SENSOR("  ", "Smoke", this->smoke_);
-  LOG_BINARY_SENSOR("  ", "Button", this->button_);
   LOG_SENSOR("  ", "Battery Level", this->battery_level_);
 }
 
@@ -46,10 +45,6 @@ bool XiaomiJTYJQD03MI::parse_device(const esp32_ble_tracker::ESPBTDevice &device
     }
     if (res->has_smoke.has_value() && this->smoke_ != nullptr) {
       this->smoke_->publish_state(*res->has_smoke);
-    }
-
-    if (res->button_press.has_value() && this->button_ != nullptr) {
-      this->button_->publish_state(*res->button_press);
     }
 
     if (res->battery_level.has_value() && this->battery_level_ != nullptr)

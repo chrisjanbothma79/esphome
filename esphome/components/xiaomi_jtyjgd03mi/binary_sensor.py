@@ -3,7 +3,6 @@ import esphome.config_validation as cv
 from esphome.components import binary_sensor
 from esphome.const import (
     DEVICE_CLASS_SMOKE,
-    DEVICE_CLASS_BUTTON,
     CONF_ID,
     CONF_BUTTON,
 )
@@ -20,9 +19,6 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_SMOKE): binary_sensor.binary_sensor_schema(
             device_class=DEVICE_CLASS_SMOKE
         ),
-        cv.Optional(CONF_BUTTON): binary_sensor.binary_sensor_schema(
-            device_class=DEVICE_CLASS_BUTTON
-        ),
     }
 )
 
@@ -34,6 +30,3 @@ async def to_code(config):
         sens = await binary_sensor.new_binary_sensor(smoke_config)
         cg.add(parent.set_smoke(sens))
 
-    if button_config := config.get(CONF_BUTTON):
-        sens = await binary_sensor.new_binary_sensor(button_config)
-        cg.add(parent.set_button(sens))

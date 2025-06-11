@@ -7,9 +7,6 @@ xiaomi_jtyjgd03mi:
 binary_sensor:
   - platform: xiaomi_jtyjgd03mi
     id: smoke_one
-    button:
-      name: "smoke button"
-      id: button_smoke
     smoke:
       name: "smoke_detection"
       id: detection_smoke
