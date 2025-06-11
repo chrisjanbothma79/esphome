@@ -134,7 +134,6 @@ uint8_t Sparkfun14Seg::send_to_display(i2c::I2CDevice *display, uint8_t position
 void Sparkfun14Seg::write_to_buffer_(uint16_t char_to_write, uint8_t char_position) {
   // char_position should be 0-3
   if ((char_position >= 0) && (char_position <= 3)) {
-
     for (uint8_t i = 0; i < 8; i++) {
       // i counts through the com positions
       this->buffer_[i * 2 + 1] |= ((char_to_write >> i) & 0x01) << (char_position);
