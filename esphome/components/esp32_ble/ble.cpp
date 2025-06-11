@@ -360,7 +360,7 @@ void ESP32BLE::loop() {
   }
 }
 
-template<typename... Args> static void enqueue_ble_event(Args... args) {
+template<typename... Args> void enqueue_ble_event(Args... args) {
   if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
     ESP_LOGD(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
     return;
@@ -374,6 +374,11 @@ template<typename... Args> static void enqueue_ble_event(Args... args) {
   new (new_event) BLEEvent(args...);
   global_ble->ble_events_.push(new_event);
 }  // NOLINT(clang-analyzer-unix.Malloc)
+
+// Explicit template instantiations for the friend function
+template void enqueue_ble_event(esp_gap_ble_cb_event_t, esp_ble_gap_cb_param_t *);
+template void enqueue_ble_event(esp_gatts_cb_event_t, esp_gatt_if_t, esp_ble_gatts_cb_param_t *);
+template void enqueue_ble_event(esp_gattc_cb_event_t, esp_gatt_if_t, esp_ble_gattc_cb_param_t *);
 
 void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
   // Only queue the 4 GAP events we actually handle
