@@ -331,7 +331,7 @@ void ESP32BLE::loop() {
           this->real_gap_event_handler_(gap_event, (esp_ble_gap_cb_param_t *) &ble_event->event_.gap.scan_complete);
         } else {
           // Unexpected GAP event - drop it
-          ESP_LOGV(TAG, "Unexpected GAP event type: %d", gap_event);
+          ESP_LOGW(TAG, "Unexpected GAP event type: %d", gap_event);
         }
         break;
       }
