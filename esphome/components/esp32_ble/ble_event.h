@@ -157,7 +157,9 @@ class BLEEvent {
       esp_gap_ble_cb_event_t gap_event;
       union {
         BLEScanResult scan_result;  // 73 bytes
-        struct {
+        // This struct matches ESP-IDF's scan complete event structures
+        // All three (scan_param_cmpl, scan_start_cmpl, scan_stop_cmpl) have identical layout
+        struct ble_scan_complete_evt_param {
           esp_bt_status_t status;
         } scan_complete;  // 1 byte
       };

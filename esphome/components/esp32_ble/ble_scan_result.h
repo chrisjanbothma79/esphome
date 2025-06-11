@@ -8,7 +8,7 @@ namespace esphome {
 namespace esp32_ble {
 
 // Structure for BLE scan results - only fields we actually use
-struct BLEScanResult {
+struct __attribute__((packed)) BLEScanResult {
   esp_bd_addr_t bda;
   uint8_t ble_addr_type;
   int8_t rssi;
