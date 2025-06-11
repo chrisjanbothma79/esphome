@@ -327,6 +327,7 @@ void ESP32BLE::loop() {
                    gap_event == ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT) {
           // All three scan complete events have the same structure with just status
           // Cast is safe because all three ESP-IDF event structures are identical with just status field
+          // The scan_complete struct already contains our copy of the status (copied in BLEEvent constructor)
           this->real_gap_event_handler_(gap_event, (esp_ble_gap_cb_param_t *) &ble_event->event_.gap.scan_complete);
         } else {
           // Unexpected GAP event - drop it
