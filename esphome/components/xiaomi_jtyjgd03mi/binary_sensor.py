@@ -4,7 +4,6 @@ from esphome.components import binary_sensor
 from esphome.const import (
     DEVICE_CLASS_SMOKE,
     CONF_ID,
-    CONF_BUTTON,
 )
 from . import XiaomiJTYJQD03MI
 
@@ -29,4 +28,3 @@ async def to_code(config):
     if smoke_config := config.get(CONF_SMOKE):
         sens = await binary_sensor.new_binary_sensor(smoke_config)
         cg.add(parent.set_smoke(sens))
-
