@@ -46,6 +46,10 @@ class BLEEvent {
     this->type_ = GAP;
     this->event_.gap.gap_event = e;
 
+    if (p == nullptr) {
+      return;  // Invalid event, but we can't log in header file
+    }
+
     // Only copy the data we actually use for each GAP event type
     switch (e) {
       case ESP_GAP_BLE_SCAN_RESULT_EVT:
@@ -85,6 +89,12 @@ class BLEEvent {
     this->event_.gattc.gattc_event = e;
     this->event_.gattc.gattc_if = i;
 
+    if (p == nullptr) {
+      this->event_.gattc.gattc_param = nullptr;
+      this->event_.gattc.data = nullptr;
+      return;  // Invalid event, but we can't log in header file
+    }
+
     // Heap-allocate param and data
     // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
     // while GAP events (99%) are stored inline to minimize memory usage
@@ -113,6 +123,12 @@ class BLEEvent {
     this->type_ = GATTS;
     this->event_.gatts.gatts_event = e;
     this->event_.gatts.gatts_if = i;
+
+    if (p == nullptr) {
+      this->event_.gatts.gatts_param = nullptr;
+      this->event_.gatts.data = nullptr;
+      return;  // Invalid event, but we can't log in header file
+    }
 
     // Heap-allocate param and data
     // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
