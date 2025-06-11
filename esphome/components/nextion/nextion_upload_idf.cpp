@@ -350,7 +350,7 @@ bool Nextion::upload_end_(bool successful) {
   if (successful) {
     ESP_LOGD(TAG, "Restart");
     delay(1500);  // NOLINT
-    App.safe_reboot();
+    arch_restart();
   } else {
     ESP_LOGE(TAG, "TFT upload failed");
   }
