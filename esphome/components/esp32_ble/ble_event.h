@@ -13,6 +13,26 @@
 namespace esphome {
 namespace esp32_ble {
 
+// Compile-time verification that ESP-IDF scan complete events only contain a status field
+// This ensures our reinterpret_cast in ble.cpp is safe
+static_assert(sizeof(esp_ble_gap_cb_param_t::ble_scan_param_cmpl_evt_param) == sizeof(esp_bt_status_t),
+              "ESP-IDF scan_param_cmpl structure has unexpected size");
+static_assert(sizeof(esp_ble_gap_cb_param_t::ble_scan_start_cmpl_evt_param) == sizeof(esp_bt_status_t),
+              "ESP-IDF scan_start_cmpl structure has unexpected size");
+static_assert(sizeof(esp_ble_gap_cb_param_t::ble_scan_stop_cmpl_evt_param) == sizeof(esp_bt_status_t),
+              "ESP-IDF scan_stop_cmpl structure has unexpected size");
+
+// Verify the status field is at offset 0 (first member)
+static_assert(offsetof(esp_ble_gap_cb_param_t, scan_param_cmpl.status) ==
+                  offsetof(esp_ble_gap_cb_param_t, scan_param_cmpl),
+              "status must be first member of scan_param_cmpl");
+static_assert(offsetof(esp_ble_gap_cb_param_t, scan_start_cmpl.status) ==
+                  offsetof(esp_ble_gap_cb_param_t, scan_start_cmpl),
+              "status must be first member of scan_start_cmpl");
+static_assert(offsetof(esp_ble_gap_cb_param_t, scan_stop_cmpl.status) ==
+                  offsetof(esp_ble_gap_cb_param_t, scan_stop_cmpl),
+              "status must be first member of scan_stop_cmpl");
+
 // Received GAP, GATTC and GATTS events are only queued, and get processed in the main loop().
 // This class stores each event with minimal memory usage.
 // GAP events (99% of traffic) don't have the vector overhead.
