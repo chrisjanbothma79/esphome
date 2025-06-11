@@ -11,13 +11,9 @@ static const char *const TAG = "xiaomi_jtyjgd03mi";
 void XiaomiJTYJQD03MI::dump_config() {
   ESP_LOGCONFIG(TAG, "Xiaomi JTYJQD03MI");
   ESP_LOGCONFIG(TAG, "  Bindkey: %s", format_hex_pretty(this->bindkey_, 16).c_str());
-#ifdef USE_BINARY_SENSOR
   LOG_BINARY_SENSOR("  ", "Smoke", this->smoke_);
   LOG_BINARY_SENSOR("  ", "Button", this->button_);
-#endif
-#ifdef USE_SENSOR
   LOG_SENSOR("  ", "Battery Level", this->battery_level_);
-#endif
 }
 
 bool XiaomiJTYJQD03MI::parse_device(const esp32_ble_tracker::ESPBTDevice &device) {
@@ -48,7 +44,6 @@ bool XiaomiJTYJQD03MI::parse_device(const esp32_ble_tracker::ESPBTDevice &device
     if (!(xiaomi_ble::report_xiaomi_results(res, device.address_str()))) {
       continue;
     }
-#ifdef USE_BINARY_SENSOR
     if (res->has_smoke.has_value() && this->smoke_ != nullptr) {
       this->smoke_->publish_state(*res->has_smoke);
     }
@@ -58,11 +53,9 @@ bool XiaomiJTYJQD03MI::parse_device(const esp32_ble_tracker::ESPBTDevice &device
       this->set_timeout("button_timeout", this->button_timeout_,
                         [this, res]() { this->button_->publish_state(false); });
     }
-#endif
-#ifdef USE_SENSOR
+
     if (res->battery_level.has_value() && this->battery_level_ != nullptr)
       this->battery_level_->publish_state(*res->battery_level);
-#endif
     success = true;
   }
 
