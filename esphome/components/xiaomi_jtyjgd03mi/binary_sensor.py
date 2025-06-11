@@ -42,4 +42,5 @@ async def to_code(config):
 
     if button_config := config.get(CONF_BUTTON):
         sens = await binary_sensor.new_binary_sensor(button_config)
-        cg.add(parent.set_button(sens, button_config[CONF_TIMEOUT]))
+        cg.add(parent.set_button(sens))
+        cg.add(parent.set_button_timeout(sens, button_config[CONF_TIMEOUT]))
