@@ -20,37 +20,20 @@ class XiaomiJTYJQD03MI : public Component, public esp32_ble_tracker::ESPBTDevice
  public:
   void set_address(uint64_t address) { this->address_ = address; };
   void set_bindkey(const std::string &bindkey);
-
   bool parse_device(const esp32_ble_tracker::ESPBTDevice &device) override;
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
-
-#ifdef USE_BINARY_SENSOR
   void set_smoke(binary_sensor::BinarySensor *smoke) { this->smoke_ = smoke; }
-  void set_button(binary_sensor::BinarySensor *button, uint16_t timeout) {
-    this->button_ = button;
-    this->button_timeout_ = timeout;
-  }
-#endif
-
-#ifdef USE_SENSOR
   void set_battery_level(sensor::Sensor *battery_level) { this->battery_level_ = battery_level; }
-#endif
+
+
 
  protected:
   uint64_t address_;
   uint8_t bindkey_[16];
-
-#ifdef USE_BINARY_SENSOR
-  uint16_t smoke_timeout_;
-  uint16_t button_timeout_;
-
   binary_sensor::BinarySensor *smoke_{nullptr};
   binary_sensor::BinarySensor *button_{nullptr};
-#endif
-#ifdef USE_SENSOR
   sensor::Sensor *battery_level_{nullptr};
-#endif
 };
 
 }  // namespace xiaomi_jtyjgd03mi
