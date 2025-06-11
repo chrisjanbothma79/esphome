@@ -284,7 +284,6 @@ class ESP32BLETracker : public Component,
   bool parse_advertisements_{false};
   SemaphoreHandle_t scan_result_lock_;
   size_t scan_result_index_{0};
-  // SCAN_RESULT_BUFFER_SIZE is now defined in esp32_ble/ble.h
   BLEScanResult *scan_result_buffer_;
   esp_bt_status_t scan_start_failed_{ESP_BT_STATUS_SUCCESS};
   esp_bt_status_t scan_set_param_failed_{ESP_BT_STATUS_SUCCESS};

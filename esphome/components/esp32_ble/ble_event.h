@@ -17,6 +17,19 @@ namespace esp32_ble {
 // This class stores each event with minimal memory usage.
 // GAP events (99% of traffic) don't have the vector overhead.
 // GATTC/GATTS events use external storage for their param and data.
+//
+// Event flow:
+// 1. ESP-IDF BLE stack calls our static handlers in the BLE task context
+// 2. The handlers create a BLEEvent instance, copying only the data we need
+// 3. The event is pushed to a thread-safe queue
+// 4. In the main loop(), events are popped from the queue and processed
+// 5. The event destructor cleans up any external allocations
+//
+// Thread safety:
+// - GAP events: We copy only the fields we need directly into the union
+// - GATTC/GATTS events: We allocate and copy the entire param struct, ensuring
+//   the data remains valid even after the BLE callback returns. The original
+//   param pointer from ESP-IDF is only valid during the callback.
 class BLEEvent {
  public:
   // NOLINTNEXTLINE(readability-identifier-naming)
@@ -66,6 +79,7 @@ class BLEEvent {
   }
 
   // Constructor for GATTC events - uses external storage
+  // Creates a copy of the param struct since the original is only valid during the callback
   BLEEvent(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
     this->type_ = GATTC;
     this->event_.gattc.gattc_event = e;
@@ -92,6 +106,7 @@ class BLEEvent {
   }
 
   // Constructor for GATTS events - uses external storage
+  // Creates a copy of the param struct since the original is only valid during the callback
   BLEEvent(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
     this->type_ = GATTS;
     this->event_.gatts.gatts_event = e;

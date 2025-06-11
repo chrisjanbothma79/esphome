@@ -479,8 +479,6 @@ void ESP32BLETracker::gap_scan_stop_complete_(const esp_ble_gap_cb_param_t::ble_
   this->set_scanner_state_(ScannerState::STOPPED);
 }
 
-// Removed - functionality moved to gap_scan_event_handler
-
 void ESP32BLETracker::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                           esp_ble_gattc_cb_param_t *param) {
   for (auto *client : this->clients_) {
