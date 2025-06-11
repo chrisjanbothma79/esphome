@@ -67,7 +67,6 @@ class GAPEventHandler {
 
 class GAPScanEventHandler {
  public:
-  // Receives scan results directly without memcpy
   virtual void gap_scan_event_handler(const BLEScanResult &scan_result) = 0;
 };
 
