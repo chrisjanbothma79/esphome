@@ -139,6 +139,8 @@ class ESP32BLE : public Component {
   void advertising_init_();
 
  private:
+  template<typename... Args> friend void enqueue_ble_event(Args... args);
+
   std::vector<GAPEventHandler *> gap_event_handlers_;
   std::vector<GAPScanEventHandler *> gap_scan_event_handlers_;
   std::vector<GATTcEventHandler *> gattc_event_handlers_;

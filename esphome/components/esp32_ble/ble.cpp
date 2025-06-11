@@ -345,14 +345,7 @@ void ESP32BLE::loop() {
   }
 }
 
-void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
-  // Only queue the 4 GAP events we actually handle
-  if (event != ESP_GAP_BLE_SCAN_RESULT_EVT && event != ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT &&
-      event != ESP_GAP_BLE_SCAN_START_COMPLETE_EVT && event != ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT) {
-    ESP_LOGW(TAG, "Ignoring unexpected GAP event type: %d", event);
-    return;
-  }
-
+template<typename... Args> static void enqueue_ble_event(Args... args) {
   if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
     ESP_LOGD(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
     return;
@@ -363,9 +356,20 @@ void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_pa
     // Memory too fragmented to allocate new event. Can only drop it until memory comes back
     return;
   }
-  new (new_event) BLEEvent(event, param);
+  new (new_event) BLEEvent(args...);
   global_ble->ble_events_.push(new_event);
 }  // NOLINT(clang-analyzer-unix.Malloc)
+
+void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
+  // Only queue the 4 GAP events we actually handle
+  if (event != ESP_GAP_BLE_SCAN_RESULT_EVT && event != ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT &&
+      event != ESP_GAP_BLE_SCAN_START_COMPLETE_EVT && event != ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT) {
+    ESP_LOGW(TAG, "Ignoring unexpected GAP event type: %d", event);
+    return;
+  }
+
+  enqueue_ble_event(event, param);
+}
 
 void ESP32BLE::real_gap_event_handler_(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
   ESP_LOGV(TAG, "(BLE) gap_event_handler - %d", event);
@@ -376,19 +380,8 @@ void ESP32BLE::real_gap_event_handler_(esp_gap_ble_cb_event_t event, esp_ble_gap
 
 void ESP32BLE::gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                                    esp_ble_gatts_cb_param_t *param) {
-  if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
-    ESP_LOGD(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
-    return;
-  }
-
-  BLEEvent *new_event = EVENT_ALLOCATOR.allocate(1);
-  if (new_event == nullptr) {
-    // Memory too fragmented to allocate new event. Can only drop it until memory comes back
-    return;
-  }
-  new (new_event) BLEEvent(event, gatts_if, param);
-  global_ble->ble_events_.push(new_event);
-}  // NOLINT(clang-analyzer-unix.Malloc)
+  enqueue_ble_event(event, gatts_if, param);
+}
 
 void ESP32BLE::real_gatts_event_handler_(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                                          esp_ble_gatts_cb_param_t *param) {
@@ -400,19 +393,8 @@ void ESP32BLE::real_gatts_event_handler_(esp_gatts_cb_event_t event, esp_gatt_if
 
 void ESP32BLE::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                    esp_ble_gattc_cb_param_t *param) {
-  if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
-    ESP_LOGD(TAG, "BLE event queue full (%d), dropping event", MAX_BLE_QUEUE_SIZE);
-    return;
-  }
-
-  BLEEvent *new_event = EVENT_ALLOCATOR.allocate(1);
-  if (new_event == nullptr) {
-    // Memory too fragmented to allocate new event. Can only drop it until memory comes back
-    return;
-  }
-  new (new_event) BLEEvent(event, gattc_if, param);
-  global_ble->ble_events_.push(new_event);
-}  // NOLINT(clang-analyzer-unix.Malloc)
+  enqueue_ble_event(event, gattc_if, param);
+}
 
 void ESP32BLE::real_gattc_event_handler_(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                          esp_ble_gattc_cb_param_t *param) {
