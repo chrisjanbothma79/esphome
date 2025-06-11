@@ -48,9 +48,8 @@ class BLEEvent {
         break;
 
       default:
-        // For any other GAP events, copy the full param
-        // This is a safety fallback but shouldn't happen in normal operation
-        memcpy(&this->event_.gap.gap_param, p, sizeof(esp_ble_gap_cb_param_t));
+        // We only handle 4 GAP event types, others are dropped
+        // This should never happen in normal operation
         break;
     }
   };
@@ -106,10 +105,10 @@ class BLEEvent {
           esp_bt_status_t status;
         } scan_complete;  // 1 byte
 
-        // Fallback for unexpected events (shouldn't be used)
-        esp_ble_gap_cb_param_t gap_param;
+        // We only handle 4 GAP event types, no need for full fallback
+        // If we ever get an unexpected event, we'll just drop it in ble.cpp
       };
-    } gap;  // ~80 bytes instead of 400+
+    } gap;  // ~73 bytes (size of BLEScanResult)
 
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gattc_event {
@@ -124,7 +123,7 @@ class BLEEvent {
       esp_gatt_if_t gatts_if;
       esp_ble_gatts_cb_param_t gatts_param;
     } gatts;  // ~68 bytes
-  } event_;   // Union size is now ~80 bytes (largest member)
+  } event_;   // Union size is now ~73 bytes (BLEScanResult is largest)
 
   std::vector<uint8_t> data{};  // For GATTC/GATTS data
 
@@ -140,7 +139,7 @@ class BLEEvent {
   const BLEScanResult &scan_result() const { return event_.gap.scan_result; }
   esp_bt_status_t scan_complete_status() const { return event_.gap.scan_complete.status; }
 };
-// Total size: ~110 bytes instead of 440 bytes!
+// Total size: ~100 bytes instead of 440 bytes!
 
 }  // namespace esp32_ble
 }  // namespace esphome

@@ -322,23 +322,19 @@ void ESP32BLE::loop() {
         } else if (gap_event == ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT ||
                    gap_event == ESP_GAP_BLE_SCAN_START_COMPLETE_EVT ||
                    gap_event == ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT) {
-          // Create temporary param for scan complete events
-          esp_ble_gap_cb_param_t param;
-          memset(&param, 0, sizeof(param));
+          // All three scan complete events have the same structure with just status
+          // We can create a minimal structure that matches their layout
+          struct {
+            esp_bt_status_t status;
+          } scan_complete_param;
 
-          // Set the appropriate status field based on event type
-          if (gap_event == ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT) {
-            param.scan_param_cmpl.status = ble_event->event_.gap.scan_complete.status;
-          } else if (gap_event == ESP_GAP_BLE_SCAN_START_COMPLETE_EVT) {
-            param.scan_start_cmpl.status = ble_event->event_.gap.scan_complete.status;
-          } else if (gap_event == ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT) {
-            param.scan_stop_cmpl.status = ble_event->event_.gap.scan_complete.status;
-          }
+          scan_complete_param.status = ble_event->event_.gap.scan_complete.status;
 
-          this->real_gap_event_handler_(gap_event, &param);
+          // Cast is safe because all three event structures start with status
+          this->real_gap_event_handler_(gap_event, (esp_ble_gap_cb_param_t *) &scan_complete_param);
         } else {
-          // Fallback for unexpected events (uses full param copy)
-          this->real_gap_event_handler_(gap_event, &ble_event->event_.gap.gap_param);
+          // Unexpected GAP event - log and drop
+          ESP_LOGW(TAG, "Unexpected GAP event type: %d", gap_event);
         }
         break;
       }
@@ -356,6 +352,13 @@ void ESP32BLE::loop() {
 
 void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
   static constexpr size_t MAX_BLE_QUEUE_SIZE = SCAN_RESULT_BUFFER_SIZE * 2;
+
+  // Only queue the 4 GAP events we actually handle
+  if (event != ESP_GAP_BLE_SCAN_RESULT_EVT && event != ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT &&
+      event != ESP_GAP_BLE_SCAN_START_COMPLETE_EVT && event != ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT) {
+    ESP_LOGW(TAG, "Ignoring unexpected GAP event type: %d", event);
+    return;
+  }
 
   if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
     ESP_LOGW(TAG, "BLE event queue full (%d), dropping GAP event %d", MAX_BLE_QUEUE_SIZE, event);
