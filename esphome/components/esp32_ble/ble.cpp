@@ -307,14 +307,26 @@ void ESP32BLE::loop() {
   BLEEvent *ble_event = this->ble_events_.pop();
   while (ble_event != nullptr) {
     switch (ble_event->type_) {
-      case BLEEvent::GATTS:
-        this->real_gatts_event_handler_(ble_event->event_.gatts.gatts_event, ble_event->event_.gatts.gatts_if,
-                                        ble_event->event_.gatts.gatts_param);
+      case BLEEvent::GATTS: {
+        esp_gatts_cb_event_t event = ble_event->event_.gatts.gatts_event;
+        esp_gatt_if_t gatts_if = ble_event->event_.gatts.gatts_if;
+        esp_ble_gatts_cb_param_t *param = ble_event->event_.gatts.gatts_param;
+        ESP_LOGV(TAG, "gatts_event [esp_gatt_if: %d] - %d", gatts_if, event);
+        for (auto *gatts_handler : this->gatts_event_handlers_) {
+          gatts_handler->gatts_event_handler(event, gatts_if, param);
+        }
         break;
-      case BLEEvent::GATTC:
-        this->real_gattc_event_handler_(ble_event->event_.gattc.gattc_event, ble_event->event_.gattc.gattc_if,
-                                        ble_event->event_.gattc.gattc_param);
+      }
+      case BLEEvent::GATTC: {
+        esp_gattc_cb_event_t event = ble_event->event_.gattc.gattc_event;
+        esp_gatt_if_t gattc_if = ble_event->event_.gattc.gattc_if;
+        esp_ble_gattc_cb_param_t *param = ble_event->event_.gattc.gattc_param;
+        ESP_LOGV(TAG, "gattc_event [esp_gatt_if: %d] - %d", gattc_if, event);
+        for (auto *gattc_handler : this->gattc_event_handlers_) {
+          gattc_handler->gattc_event_handler(event, gattc_if, param);
+        }
         break;
+      }
       case BLEEvent::GAP: {
         esp_gap_ble_cb_event_t gap_event = ble_event->event_.gap.gap_event;
         if (gap_event == ESP_GAP_BLE_SCAN_RESULT_EVT) {
@@ -328,7 +340,10 @@ void ESP32BLE::loop() {
           // All three scan complete events have the same structure with just status
           // Cast is safe because all three ESP-IDF event structures are identical with just status field
           // The scan_complete struct already contains our copy of the status (copied in BLEEvent constructor)
-          this->real_gap_event_handler_(gap_event, (esp_ble_gap_cb_param_t *) &ble_event->event_.gap.scan_complete);
+          ESP_LOGV(TAG, "gap_event_handler - %d", gap_event);
+          for (auto *gap_handler : this->gap_event_handlers_) {
+            gap_handler->gap_event_handler(gap_event, (esp_ble_gap_cb_param_t *) &ble_event->event_.gap.scan_complete);
+          }
         }
         break;
       }
@@ -371,37 +386,14 @@ void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_pa
   enqueue_ble_event(event, param);
 }
 
-void ESP32BLE::real_gap_event_handler_(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
-  ESP_LOGV(TAG, "(BLE) gap_event_handler - %d", event);
-  for (auto *gap_handler : this->gap_event_handlers_) {
-    gap_handler->gap_event_handler(event, param);
-  }
-}
-
 void ESP32BLE::gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
                                    esp_ble_gatts_cb_param_t *param) {
   enqueue_ble_event(event, gatts_if, param);
 }
 
-void ESP32BLE::real_gatts_event_handler_(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
-                                         esp_ble_gatts_cb_param_t *param) {
-  ESP_LOGV(TAG, "(BLE) gatts_event [esp_gatt_if: %d] - %d", gatts_if, event);
-  for (auto *gatts_handler : this->gatts_event_handlers_) {
-    gatts_handler->gatts_event_handler(event, gatts_if, param);
-  }
-}
-
 void ESP32BLE::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                    esp_ble_gattc_cb_param_t *param) {
   enqueue_ble_event(event, gattc_if, param);
-}
-
-void ESP32BLE::real_gattc_event_handler_(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
-                                         esp_ble_gattc_cb_param_t *param) {
-  ESP_LOGV(TAG, "(BLE) gattc_event [esp_gatt_if: %d] - %d", gattc_if, event);
-  for (auto *gattc_handler : this->gattc_event_handlers_) {
-    gattc_handler->gattc_event_handler(event, gattc_if, param);
-  }
 }
 
 float ESP32BLE::get_setup_priority() const { return setup_priority::BLUETOOTH; }
