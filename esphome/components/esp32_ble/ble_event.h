@@ -32,7 +32,6 @@ class BLEEvent {
   BLEEvent(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
     this->type_ = GAP;
     this->event_.gap.gap_event = e;
-    this->event_.gap.ext_data = nullptr;  // GAP events don't use external data
 
     // Only copy the data we actually use for each GAP event type
     switch (e) {
@@ -137,14 +136,13 @@ class BLEEvent {
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gap_event {
       esp_gap_ble_cb_event_t gap_event;
-      void *ext_data;  // Always nullptr for GAP, just for alignment
       union {
         BLEScanResult scan_result;  // 73 bytes
         struct {
           esp_bt_status_t status;
         } scan_complete;  // 1 byte
       };
-    } gap;  // 80 bytes (with alignment)
+    } gap;  // 77 bytes (4 + 73)
 
     // NOLINTNEXTLINE(readability-identifier-naming)
     struct gattc_event {
@@ -161,7 +159,7 @@ class BLEEvent {
       esp_ble_gatts_cb_param_t *gatts_param;  // External allocation
       std::vector<uint8_t> *data;             // External allocation
     } gatts;                                  // 16 bytes (4 + 4 + 4 + 4)
-  } event_;                                   // Union size is 80 bytes (largest member is gap)
+  } event_;                                   // Union size is 80 bytes with padding
 
   ble_event_t type_;
 
@@ -171,7 +169,8 @@ class BLEEvent {
   const BLEScanResult &scan_result() const { return event_.gap.scan_result; }
   esp_bt_status_t scan_complete_status() const { return event_.gap.scan_complete.status; }
 };
-// Total size for GAP events: ~84 bytes (was 296 bytes - 71.6% reduction!)
+// Total size: 84 bytes (80 byte union + 1 byte type + 3 bytes padding)
+// Was 296 bytes - 71.6% reduction!
 // GATTC/GATTS events use external storage, keeping the queue size minimal
 
 }  // namespace esp32_ble
