@@ -2,6 +2,7 @@
 
 #ifdef USE_ESP32
 
+#include <cstddef>  // for offsetof
 #include <vector>
 
 #include <esp_gap_ble_api.h>
