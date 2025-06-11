@@ -51,8 +51,7 @@ void TemplateAlarmControlPanel::dump_config() {
                   "    Armed night bypass: %s\n"
                   "    Auto bypass: %s\n"
                   "    Chime mode: %s",
-                  sensor->get_name().c_str(),
-                  TRUEFALSE(info.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_HOME),
+                  sensor->get_name().c_str(), TRUEFALSE(info.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_HOME),
                   TRUEFALSE(info.flags & BINARY_SENSOR_MODE_BYPASS_ARMED_NIGHT),
                   TRUEFALSE(info.flags & BINARY_SENSOR_MODE_BYPASS_AUTO),
                   TRUEFALSE(info.flags & BINARY_SENSOR_MODE_CHIME));
