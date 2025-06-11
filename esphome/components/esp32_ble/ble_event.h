@@ -60,8 +60,6 @@ class BLEEvent {
     GATTS,
   };
 
-  BLEEvent() = default;
-
   // Constructor for GAP events - no external allocations needed
   BLEEvent(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
     this->type_ = GAP;
