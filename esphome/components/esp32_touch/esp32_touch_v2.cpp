@@ -23,16 +23,6 @@ struct TouchPadEventV2 {
 };
 
 void ESP32TouchComponent::setup() {
-  // Add a delay to allow serial connection, but feed the watchdog
-  ESP_LOGCONFIG(TAG, "Waiting 5 seconds before touch sensor setup...");
-  for (int i = 0; i < 50; i++) {
-    vTaskDelay(100 / portTICK_PERIOD_MS);
-    App.feed_wdt();
-  }
-
-  ESP_LOGCONFIG(TAG, "=== ESP32 Touch Sensor v2 Setup Starting ===");
-  ESP_LOGCONFIG(TAG, "Configuring %d touch pads", this->children_.size());
-
   // Create queue for touch events first
   size_t queue_size = this->children_.size() * 4;
   if (queue_size < 8)
@@ -46,7 +36,6 @@ void ESP32TouchComponent::setup() {
   }
 
   // Initialize touch pad peripheral
-  ESP_LOGD(TAG, "Initializing touch pad peripheral...");
   esp_err_t init_err = touch_pad_init();
   if (init_err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to initialize touch pad: %s", esp_err_to_name(init_err));
@@ -55,13 +44,10 @@ void ESP32TouchComponent::setup() {
   }
 
   // Configure each touch pad first
-  ESP_LOGD(TAG, "Configuring individual touch pads...");
   for (auto *child : this->children_) {
     esp_err_t config_err = touch_pad_config(child->get_touch_pad());
     if (config_err != ESP_OK) {
       ESP_LOGE(TAG, "Failed to configure touch pad %d: %s", child->get_touch_pad(), esp_err_to_name(config_err));
-    } else {
-      ESP_LOGD(TAG, "Configured touch pad %d", child->get_touch_pad());
     }
   }
 
