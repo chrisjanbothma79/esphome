@@ -8,9 +8,6 @@
 #include <algorithm>
 #include <cinttypes>
 
-// Include for ISR-safe printing
-#include "rom/ets_sys.h"
-
 namespace esphome {
 namespace esp32_touch {
 
