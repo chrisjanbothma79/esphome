@@ -354,8 +354,10 @@ void ESP32TouchComponent::loop() {
         if (new_state != child->last_state_) {
           child->last_state_ = new_state;
           child->publish_state(new_state);
-          ESP_LOGD(TAG, "Touch Pad '%s' state: %s (value: %" PRIu32 ", threshold: %" PRIu32 ")",
-                   child->get_name().c_str(), new_state ? "ON" : "OFF", event.value, child->get_threshold());
+          // Note: In practice, this will always show ON because the ISR only fires when a pad is touched
+          // OFF events are detected by the timeout logic, not the ISR
+          ESP_LOGD(TAG, "Touch Pad '%s' state: ON (value: %" PRIu32 ", threshold: %" PRIu32 ")",
+                   child->get_name().c_str(), event.value, child->get_threshold());
         }
         break;
       }
@@ -379,7 +381,7 @@ void ESP32TouchComponent::loop() {
       child->publish_state(false);
       this->last_touch_time_[pad] = 1;  // Mark as "initial state published"
       ESP_LOGD(TAG, "Touch Pad '%s' state: OFF (initial)", child->get_name().c_str());
-    } else if (child->last_state_) {
+    } else if (child->last_state_ && last_time > 1) {  // last_time > 1 means it's a real timestamp
       uint32_t time_diff = now - last_time;
 
       // Check if we haven't seen this pad recently
@@ -387,7 +389,7 @@ void ESP32TouchComponent::loop() {
         // Haven't seen this pad recently, assume it's released
         child->last_state_ = false;
         child->publish_state(false);
-        this->last_touch_time_[pad] = 0;
+        this->last_touch_time_[pad] = 1;  // Reset to "initial published" state
         ESP_LOGD(TAG, "Touch Pad '%s' state: OFF (timeout)", child->get_name().c_str());
       }
     }
