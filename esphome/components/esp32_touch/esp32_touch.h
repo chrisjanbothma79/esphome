@@ -80,6 +80,8 @@ class ESP32TouchComponent : public Component {
 
 #ifdef USE_ESP32_VARIANT_ESP32
   // ESP32 v1 specific
+  static constexpr uint32_t MINIMUM_RELEASE_TIME_MS = 100;
+
   static void touch_isr_handler(void *arg);
   QueueHandle_t touch_queue_{nullptr};
 

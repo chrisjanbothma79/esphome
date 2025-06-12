@@ -74,11 +74,11 @@ void ESP32TouchComponent::setup() {
   // Calculate release timeout based on sleep cycle
   // Design note: ESP32 v1 hardware limitation - interrupts only fire on touch (not release)
   // We must use timeout-based detection for release events
-  // Formula: 3 sleep cycles converted to ms, with 100ms minimum
+  // Formula: 3 sleep cycles converted to ms, with MINIMUM_RELEASE_TIME_MS minimum
   uint32_t rtc_freq = rtc_clk_slow_freq_get_hz();
   this->release_timeout_ms_ = (this->sleep_cycle_ * 1000 * 3) / (rtc_freq * 2);
-  if (this->release_timeout_ms_ < 100) {
-    this->release_timeout_ms_ = 100;
+  if (this->release_timeout_ms_ < MINIMUM_RELEASE_TIME_MS) {
+    this->release_timeout_ms_ = MINIMUM_RELEASE_TIME_MS;
   }
   this->release_check_interval_ms_ = std::min(this->release_timeout_ms_ / 4, (uint32_t) 50);
 
