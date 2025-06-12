@@ -296,46 +296,48 @@ void ESP32TouchComponent::loop() {
 
       // Find the child for the pad that triggered the interrupt
       for (auto *child : this->children_) {
-        if (child->get_touch_pad() == event.pad an && d child->last_state_ != is_touch_event) {
-          // Read current value
-          uint32_t value = 0;
-          if (this->filter_configured_()) {
-            touch_pad_filter_read_smooth(event.pad, &value);
-          } else {
-            touch_pad_read_benchmark(event.pad, &value);
+        if (child->get_touch_pad() == event.pad)
+          if (child->last_state_ != is_touch_event) {
+            // Read current value
+            uint32_t value = 0;
+            if (this->filter_configured_()) {
+              touch_pad_filter_read_smooth(event.pad, &value);
+            } else {
+              touch_pad_read_benchmark(event.pad, &value);
+            }
+
+            child->last_state_ = is_touch_event;
+            child->publish_state(is_touch_event);
+            ESP_LOGD(TAG, "Touch Pad '%s' %s (value: %d, threshold: %d)", child->get_name().c_str(),
+                     is_touch_event ? "touched" : "released", value, child->get_threshold());
           }
-
-          child->last_state_ = is_touch_event;
-          child->publish_state(is_touch_event);
-          ESP_LOGD(TAG, "Touch Pad '%s' %s (value: %d, threshold: %d)", child->get_name().c_str(),
-                   is_touch_event ? "touched" : "released", value, child->get_threshold());
-          break;
-        }
+        break;
       }
     }
   }
+}
 
-  // In setup mode, periodically log all pad values
-  if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > SETUP_MODE_LOG_INTERVAL_MS) {
-    for (auto *child : this->children_) {
-      uint32_t raw = 0;
-      uint32_t benchmark = 0;
-      uint32_t smooth = 0;
+// In setup mode, periodically log all pad values
+if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > SETUP_MODE_LOG_INTERVAL_MS) {
+  for (auto *child : this->children_) {
+    uint32_t raw = 0;
+    uint32_t benchmark = 0;
+    uint32_t smooth = 0;
 
-      touch_pad_read_raw_data(child->get_touch_pad(), &raw);
-      touch_pad_read_benchmark(child->get_touch_pad(), &benchmark);
+    touch_pad_read_raw_data(child->get_touch_pad(), &raw);
+    touch_pad_read_benchmark(child->get_touch_pad(), &benchmark);
 
-      if (this->filter_configured_()) {
-        touch_pad_filter_read_smooth(child->get_touch_pad(), &smooth);
-        ESP_LOGD(TAG, "  Pad T%d: raw=%d, benchmark=%d, smooth=%d, threshold=%d", child->get_touch_pad(), raw,
-                 benchmark, smooth, child->get_threshold());
-      } else {
-        ESP_LOGD(TAG, "  Pad T%d: raw=%d, benchmark=%d, threshold=%d", child->get_touch_pad(), raw, benchmark,
-                 child->get_threshold());
-      }
+    if (this->filter_configured_()) {
+      touch_pad_filter_read_smooth(child->get_touch_pad(), &smooth);
+      ESP_LOGD(TAG, "  Pad T%d: raw=%d, benchmark=%d, smooth=%d, threshold=%d", child->get_touch_pad(), raw, benchmark,
+               smooth, child->get_threshold());
+    } else {
+      ESP_LOGD(TAG, "  Pad T%d: raw=%d, benchmark=%d, threshold=%d", child->get_touch_pad(), raw, benchmark,
+               child->get_threshold());
     }
-    this->setup_mode_last_log_print_ = now;
   }
+  this->setup_mode_last_log_print_ = now;
+}
 }
 
 void ESP32TouchComponent::on_shutdown() {
