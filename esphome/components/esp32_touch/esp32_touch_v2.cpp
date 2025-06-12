@@ -23,10 +23,7 @@ static const char *const TAG = "esp32_touch";
 void ESP32TouchComponent::setup() {
   ESP_LOGCONFIG(TAG, "Running setup for ESP32-S2/S3");
 
-  touch_pad_init();
-  touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
-
-  // Create queue for touch events
+  // Create queue for touch events first
   size_t queue_size = this->children_.size() * 4;
   if (queue_size < 8)
     queue_size = 8;
@@ -36,6 +33,14 @@ void ESP32TouchComponent::setup() {
     ESP_LOGE(TAG, "Failed to create touch event queue of size %d", queue_size);
     this->mark_failed();
     return;
+  }
+
+  // Initialize touch pad peripheral
+  touch_pad_init();
+
+  // Configure each touch pad first
+  for (auto *child : this->children_) {
+    touch_pad_config(child->get_touch_pad());
   }
 
   // Set up filtering if configured
@@ -70,40 +75,48 @@ void ESP32TouchComponent::setup() {
   }
 
   // Configure measurement parameters
+  touch_pad_set_voltage(this->high_voltage_reference_, this->low_voltage_reference_, this->voltage_attenuation_);
   touch_pad_set_charge_discharge_times(this->meas_cycle_);
   touch_pad_set_measurement_interval(this->sleep_cycle_);
-  touch_pad_set_voltage(this->high_voltage_reference_, this->low_voltage_reference_, this->voltage_attenuation_);
 
-  // Set up the channel mask for all configured pads
-  uint16_t channel_mask = 0;
-  for (auto *child : this->children_) {
-    channel_mask |= BIT(child->get_touch_pad());
-  }
-  touch_pad_set_channel_mask(channel_mask);
-
-  // Configure each touch pad
-  for (auto *child : this->children_) {
-    // Initialize the touch pad
-    touch_pad_config(child->get_touch_pad());
-
-    // Set threshold
-    if (child->get_threshold() != 0) {
-      touch_pad_set_thresh(child->get_touch_pad(), child->get_threshold());
-    }
-  }
-
-  // Configure timeout
-  touch_pad_timeout_set(true, TOUCH_PAD_THRESHOLD_MAX);
-
-  // Register ISR handler with all interrupts
-  esp_err_t err =
-      touch_pad_isr_register(touch_isr_handler, this, static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ALL));
+  // Register ISR handler
+  esp_err_t err = touch_pad_isr_register(touch_isr_handler, this);
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to register touch ISR: %s", esp_err_to_name(err));
     vQueueDelete(this->touch_queue_);
     this->touch_queue_ = nullptr;
     this->mark_failed();
     return;
+  }
+
+  // Enable interrupts
+  touch_pad_intr_enable(static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE));
+
+  // Set FSM mode
+  touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
+
+  // Start FSM
+  touch_pad_fsm_start();
+
+  // Wait a bit for initial measurements
+  vTaskDelay(10 / portTICK_PERIOD_MS);
+
+  // Read initial benchmark values and set thresholds if not explicitly configured
+  for (auto *child : this->children_) {
+    uint32_t benchmark = 0;
+    touch_pad_read_benchmark(child->get_touch_pad(), &benchmark);
+
+    ESP_LOGD(TAG, "Touch pad %d benchmark value: %d", child->get_touch_pad(), benchmark);
+
+    // If threshold is 0, calculate it as 80% of benchmark (20% change threshold)
+    if (child->get_threshold() == 0 && benchmark > 0) {
+      uint32_t threshold = benchmark * 0.8;
+      child->set_threshold(threshold);
+      ESP_LOGD(TAG, "Setting threshold for pad %d to %d (80%% of benchmark)", child->get_touch_pad(), threshold);
+    }
+
+    // Set the threshold
+    touch_pad_set_thresh(child->get_touch_pad(), child->get_threshold());
   }
 
   // Calculate release timeout based on sleep cycle
@@ -113,13 +126,6 @@ void ESP32TouchComponent::setup() {
     this->release_timeout_ms_ = 100;
   }
   this->release_check_interval_ms_ = std::min(this->release_timeout_ms_ / 4, (uint32_t) 50);
-
-  // Enable the interrupts we need
-  touch_pad_intr_enable(static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE |
-                                                           TOUCH_PAD_INTR_MASK_TIMEOUT));
-
-  // Start the FSM after all configuration is complete
-  touch_pad_fsm_start();
 }
 
 void ESP32TouchComponent::dump_config() {
@@ -246,19 +252,6 @@ void ESP32TouchComponent::dump_config() {
 
 void ESP32TouchComponent::loop() {
   const uint32_t now = App.get_loop_component_start_time();
-  bool should_print = this->setup_mode_ && now - this->setup_mode_last_log_print_ > 250;
-
-  // Print debug info for all pads in setup mode
-  if (should_print) {
-    for (auto *child : this->children_) {
-      uint32_t value = 0;
-      touch_pad_read_raw_data(child->get_touch_pad(), &value);
-      child->value_ = value;
-      ESP_LOGD(TAG, "Touch Pad '%s' (T%" PRIu32 "): %" PRIu32, child->get_name().c_str(),
-               (uint32_t) child->get_touch_pad(), value);
-    }
-    this->setup_mode_last_log_print_ = now;
-  }
 
   // Process any queued touch events from interrupts
   TouchPadEvent event;
@@ -283,7 +276,7 @@ void ESP32TouchComponent::loop() {
           if (this->filter_configured_()) {
             touch_pad_filter_read_smooth(pad, &value);
           } else {
-            touch_pad_read_raw_data(pad, &value);
+            touch_pad_read_benchmark(pad, &value);
           }
 
           child->value_ = value;
@@ -297,9 +290,36 @@ void ESP32TouchComponent::loop() {
             ESP_LOGV(TAG, "Touch Pad '%s' state: %s (value: %" PRIu32 ", threshold: %" PRIu32 ")",
                      child->get_name().c_str(), is_touched ? "ON" : "OFF", value, child->get_threshold());
           }
+
+          // In setup mode, log every event
+          if (this->setup_mode_) {
+            ESP_LOGD(TAG, "Touch Pad '%s' (T%d): value=%d, threshold=%d, touched=%s", child->get_name().c_str(), pad,
+                     value, child->get_threshold(), is_touched ? "YES" : "NO");
+          }
         }
       }
     }
+  }
+
+  // In setup mode, periodically log all pad values
+  if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > 1000) {
+    ESP_LOGD(TAG, "=== Touch Pad Status ===");
+    for (auto *child : this->children_) {
+      uint32_t benchmark = 0;
+      uint32_t smooth = 0;
+
+      touch_pad_read_benchmark(child->get_touch_pad(), &benchmark);
+
+      if (this->filter_configured_()) {
+        touch_pad_filter_read_smooth(child->get_touch_pad(), &smooth);
+        ESP_LOGD(TAG, "  Pad T%d: benchmark=%d, smooth=%d, threshold=%d", child->get_touch_pad(), benchmark, smooth,
+                 child->get_threshold());
+      } else {
+        ESP_LOGD(TAG, "  Pad T%d: benchmark=%d, threshold=%d", child->get_touch_pad(), benchmark,
+                 child->get_threshold());
+      }
+    }
+    this->setup_mode_last_log_print_ = now;
   }
 }
 
