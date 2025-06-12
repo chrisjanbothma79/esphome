@@ -12,7 +12,7 @@ static const char *const TAG = "esp32_touch";
 
 void ESP32TouchComponent::setup() {
   // Create queue for touch events first
-  if (!this->create_touch_queue()) {
+  if (!this->create_touch_queue_()) {
     return;
   }
 
@@ -302,7 +302,7 @@ void ESP32TouchComponent::on_shutdown() {
   this->cleanup_touch_queue_();
 
   // Configure wakeup pads if any are set
-  this->configure_wakeup_pads();
+  this->configure_wakeup_pads_();
 }
 
 void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
