@@ -270,26 +270,15 @@ void ESP32TouchComponent::loop() {
     if (event.intr_mask & (TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE)) {
       bool is_touch_event = (event.intr_mask & TOUCH_PAD_INTR_MASK_ACTIVE) != 0;
 
-      // For INACTIVE events, we check specific pad. For ACTIVE events, check pad status mask
+      // Find the child for the pad that triggered the interrupt
       for (auto *child : this->children_) {
-        touch_pad_t pad = child->get_touch_pad();
-        bool should_process = false;
-
-        if (is_touch_event) {
-          // ACTIVE event - check if this pad is in the status mask
-          should_process = (event.pad_status & BIT(pad)) != 0;
-        } else {
-          // INACTIVE event - check if this is the specific pad that was released
-          should_process = (pad == event.pad);
-        }
-
-        if (should_process) {
+        if (child->get_touch_pad() == event.pad) {
           // Read current value
           uint32_t value = 0;
           if (this->filter_configured_()) {
-            touch_pad_filter_read_smooth(pad, &value);
+            touch_pad_filter_read_smooth(event.pad, &value);
           } else {
-            touch_pad_read_benchmark(pad, &value);
+            touch_pad_read_benchmark(event.pad, &value);
           }
 
           child->value_ = value;
@@ -301,11 +290,7 @@ void ESP32TouchComponent::loop() {
             ESP_LOGD(TAG, "Touch Pad '%s' %s (value: %d, threshold: %d)", child->get_name().c_str(),
                      is_touch_event ? "touched" : "released", value, child->get_threshold());
           }
-
-          // For INACTIVE events, we only process one pad
-          if (!is_touch_event) {
-            break;
-          }
+          break;
         }
       }
     }
