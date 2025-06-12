@@ -13,19 +13,11 @@ static const char *const TAG = "esp32_touch";
 struct TouchPadEventV2 {
   touch_pad_t pad;
   uint32_t intr_mask;
-  uint32_t pad_status;
 };
 
 void ESP32TouchComponent::setup() {
   // Create queue for touch events first
-  size_t queue_size = this->children_.size() * 4;
-  if (queue_size < 8)
-    queue_size = 8;
-
-  this->touch_queue_ = xQueueCreate(queue_size, sizeof(TouchPadEventV2));
-  if (this->touch_queue_ == nullptr) {
-    ESP_LOGE(TAG, "Failed to create touch event queue of size %d", queue_size);
-    this->mark_failed();
+  if (!this->create_touch_queue()) {
     return;
   }
 
@@ -89,8 +81,7 @@ void ESP32TouchComponent::setup() {
       touch_pad_isr_register(touch_isr_handler, this, static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ALL));
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to register touch ISR: %s", esp_err_to_name(err));
-    vQueueDelete(this->touch_queue_);
-    this->touch_queue_ = nullptr;
+    this->cleanup_touch_queue();
     this->mark_failed();
     return;
   }
@@ -313,9 +304,7 @@ void ESP32TouchComponent::on_shutdown() {
   touch_pad_intr_disable(static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE |
                                                             TOUCH_PAD_INTR_MASK_TIMEOUT));
   touch_pad_isr_deregister(touch_isr_handler, this);
-  if (this->touch_queue_) {
-    vQueueDelete(this->touch_queue_);
-  }
+  this->cleanup_touch_queue();
 
   // Check if any pad is configured for wakeup
   bool is_wakeup_source = false;
@@ -338,10 +327,9 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   ESP32TouchComponent *component = static_cast<ESP32TouchComponent *>(arg);
   BaseType_t x_higher_priority_task_woken = pdFALSE;
 
-  // Read interrupt status and pad status
+  // Read interrupt status
   TouchPadEventV2 event;
   event.intr_mask = touch_pad_read_intr_status_mask();
-  event.pad_status = touch_pad_get_status();
   event.pad = touch_pad_get_current_meas_channel();
 
   // Send event to queue for processing in main loop

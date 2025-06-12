@@ -34,14 +34,7 @@ void ESP32TouchComponent::setup() {
   // Queue size calculation: children * 4 allows for burst scenarios where ISR
   // fires multiple times before main loop processes. This is important because
   // ESP32 v1 scans all pads on each interrupt, potentially sending multiple events.
-  size_t queue_size = this->children_.size() * 4;
-  if (queue_size < 8)
-    queue_size = 8;
-
-  this->touch_queue_ = xQueueCreate(queue_size, sizeof(TouchPadEventV1));
-  if (this->touch_queue_ == nullptr) {
-    ESP_LOGE(TAG, "Failed to create touch event queue of size %d", queue_size);
-    this->mark_failed();
+  if (!this->create_touch_queue()) {
     return;
   }
 
@@ -68,8 +61,7 @@ void ESP32TouchComponent::setup() {
   esp_err_t err = touch_pad_isr_register(touch_isr_handler, this);
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to register touch ISR: %s", esp_err_to_name(err));
-    vQueueDelete(this->touch_queue_);
-    this->touch_queue_ = nullptr;
+    this->cleanup_touch_queue();
     this->mark_failed();
     return;
   }
@@ -192,9 +184,7 @@ void ESP32TouchComponent::loop() {
 void ESP32TouchComponent::on_shutdown() {
   touch_pad_intr_disable();
   touch_pad_isr_deregister(touch_isr_handler, this);
-  if (this->touch_queue_) {
-    vQueueDelete(this->touch_queue_);
-  }
+  this->cleanup_touch_queue();
 
   bool is_wakeup_source = false;
 
