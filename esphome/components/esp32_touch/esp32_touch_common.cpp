@@ -33,7 +33,7 @@ void ESP32TouchComponent::dump_config_sensors_() {
   }
 }
 
-bool ESP32TouchComponent::create_touch_queue() {
+bool ESP32TouchComponent::create_touch_queue_() {
   // Queue size calculation: children * 4 allows for burst scenarios where ISR
   // fires multiple times before main loop processes.
   size_t queue_size = this->children_.size() * 4;
@@ -54,14 +54,14 @@ bool ESP32TouchComponent::create_touch_queue() {
   return true;
 }
 
-void ESP32TouchComponent::cleanup_touch_queue() {
+void ESP32TouchComponent::cleanup_touch_queue_() {
   if (this->touch_queue_) {
     vQueueDelete(this->touch_queue_);
     this->touch_queue_ = nullptr;
   }
 }
 
-void ESP32TouchComponent::configure_wakeup_pads() {
+void ESP32TouchComponent::configure_wakeup_pads_() {
   bool is_wakeup_source = false;
 
   // Check if any pad is configured for wakeup

@@ -68,9 +68,9 @@ class ESP32TouchComponent : public Component {
   // Common helper methods
   void dump_config_base_();
   void dump_config_sensors_();
-  bool create_touch_queue();
-  void cleanup_touch_queue();
-  void configure_wakeup_pads();
+  bool create_touch_queue_();
+  void cleanup_touch_queue_();
+  void configure_wakeup_pads_();
 
   // Common members
   std::vector<ESP32TouchBinarySensor *> children_;
