@@ -91,6 +91,15 @@ void ESP32TouchComponent::setup() {
 #endif
   touch_pad_set_voltage(this->high_voltage_reference_, this->low_voltage_reference_, this->voltage_attenuation_);
 
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+  // For ESP32-S2/S3, we need to set up the channel mask
+  uint16_t channel_mask = 0;
+  for (auto *child : this->children_) {
+    channel_mask |= BIT(child->get_touch_pad());
+  }
+  touch_pad_set_channel_mask(channel_mask);
+#endif
+
   for (auto *child : this->children_) {
     // Configure touch pad
 #if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
@@ -475,8 +484,15 @@ void ESP32TouchComponent::on_shutdown() {
 void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   ESP32TouchComponent *component = static_cast<ESP32TouchComponent *>(arg);
 
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+  // For S2/S3, read the interrupt status mask to see what type of interrupt occurred
+  uint32_t intr_mask = touch_pad_read_intr_status_mask();
+  touch_pad_intr_clear(static_cast<touch_pad_intr_mask_t>(intr_mask));
+#else
+  // For original ESP32
   uint32_t pad_status = touch_pad_get_status();
   touch_pad_clear_status();
+#endif
 
   // Process all configured pads to check their current state
   // Send events for ALL pads with valid readings so we catch both touches and releases
