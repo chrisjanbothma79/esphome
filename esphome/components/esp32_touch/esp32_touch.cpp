@@ -79,7 +79,11 @@ void ESP32TouchComponent::setup() {
   }
 #endif
 
-#if ESP_IDF_VERSION_MAJOR >= 5 && defined(USE_ESP32_VARIANT_ESP32)
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+  // For ESP32-S2/S3, use the new API
+  touch_pad_set_charge_discharge_times(this->meas_cycle_);
+  touch_pad_set_measurement_interval(this->sleep_cycle_);
+#elif ESP_IDF_VERSION_MAJOR >= 5 && defined(USE_ESP32_VARIANT_ESP32)
   touch_pad_set_measurement_clock_cycles(this->meas_cycle_);
   touch_pad_set_measurement_interval(this->sleep_cycle_);
 #else
@@ -88,12 +92,31 @@ void ESP32TouchComponent::setup() {
   touch_pad_set_voltage(this->high_voltage_reference_, this->low_voltage_reference_, this->voltage_attenuation_);
 
   for (auto *child : this->children_) {
-    // Set interrupt threshold
+    // Configure touch pad
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+    // For ESP32-S2/S3, config and threshold are separate
+    touch_pad_config(child->get_touch_pad());
+    if (child->get_threshold() != 0) {
+      // Only set threshold if it's non-zero
+      touch_pad_set_thresh(child->get_touch_pad(), child->get_threshold());
+    }
+#else
+    // For original ESP32, config includes threshold
     touch_pad_config(child->get_touch_pad(), child->get_threshold());
+#endif
   }
 
   // Register ISR handler
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+  // For ESP32-S2/S3, we need to specify which interrupts to enable
+  // We want active/inactive interrupts to detect touch state changes
+  esp_err_t err = touch_pad_isr_register(
+      touch_isr_handler, this,
+      static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE));
+#else
+  // For original ESP32
   esp_err_t err = touch_pad_isr_register(touch_isr_handler, this);
+#endif
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to register touch ISR: %s", esp_err_to_name(err));
     vQueueDelete(this->touch_queue_);
@@ -117,7 +140,13 @@ void ESP32TouchComponent::setup() {
   this->release_check_interval_ms_ = std::min(this->release_timeout_ms_ / 4, (uint32_t) 50);
 
   // Enable touch pad interrupt
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+  // For ESP32-S2/S3, enable the interrupts we registered for
+  touch_pad_intr_enable(static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE));
+#else
+  // For original ESP32
   touch_pad_intr_enable();
+#endif
 }
 
 void ESP32TouchComponent::dump_config() {
@@ -354,10 +383,15 @@ void ESP32TouchComponent::loop() {
         if (new_state != child->last_state_) {
           child->last_state_ = new_state;
           child->publish_state(new_state);
-          // Note: In practice, this will always show ON because the ISR only fires when a pad is touched
-          // OFF events are detected by the timeout logic, not the ISR
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+          // ESP32-S2/S3: ISR fires for both touch (ACTIVE) and release (INACTIVE) events
+          ESP_LOGV(TAG, "Touch Pad '%s' state: %s (value: %" PRIu32 ", threshold: %" PRIu32 ")",
+                   child->get_name().c_str(), new_state ? "ON" : "OFF", event.value, child->get_threshold());
+#else
+          // Original ESP32: ISR only fires when touched, release is detected by timeout
           ESP_LOGV(TAG, "Touch Pad '%s' state: ON (value: %" PRIu32 ", threshold: %" PRIu32 ")",
                    child->get_name().c_str(), event.value, child->get_threshold());
+#endif
         }
         break;
       }
@@ -397,7 +431,13 @@ void ESP32TouchComponent::loop() {
 }
 
 void ESP32TouchComponent::on_shutdown() {
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+  // For ESP32-S2/S3, disable the interrupts we enabled
+  touch_pad_intr_disable(static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE));
+#else
+  // For original ESP32
   touch_pad_intr_disable();
+#endif
   touch_pad_isr_deregister(touch_isr_handler, this);
   if (this->touch_queue_) {
     vQueueDelete(this->touch_queue_);
