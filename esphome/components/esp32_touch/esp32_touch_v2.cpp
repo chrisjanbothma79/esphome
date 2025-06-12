@@ -122,22 +122,6 @@ void ESP32TouchComponent::setup() {
 
   // Start FSM
   touch_pad_fsm_start();
-
-  // Wait for initial measurements
-  vTaskDelay(50 / portTICK_PERIOD_MS);
-
-  // Read initial values and set thresholds
-  for (auto *child : this->children_) {
-    if (child->get_threshold() != 0) {
-      touch_pad_set_thresh(child->get_touch_pad(), child->get_threshold());
-    }
-
-    // Try to read initial values for debugging
-    uint32_t raw = 0, benchmark = 0;
-    touch_pad_read_raw_data(child->get_touch_pad(), &raw);
-    touch_pad_read_benchmark(child->get_touch_pad(), &benchmark);
-    ESP_LOGD(TAG, "Initial pad %d: raw=%d, benchmark=%d", child->get_touch_pad(), raw, benchmark);
-  }
 }
 
 void ESP32TouchComponent::dump_config() {
