@@ -262,6 +262,30 @@ void ESP32TouchComponent::dump_config() {
 void ESP32TouchComponent::loop() {
   const uint32_t now = App.get_loop_component_start_time();
 
+  // Read initial states if not done yet
+  if (!this->initial_state_read_) {
+    this->initial_state_read_ = true;
+    for (auto *child : this->children_) {
+      // Read current value
+      uint32_t value = 0;
+      if (this->filter_configured_()) {
+        touch_pad_filter_read_smooth(child->get_touch_pad(), &value);
+      } else {
+        touch_pad_read_benchmark(child->get_touch_pad(), &value);
+      }
+
+      child->value_ = value;
+
+      // For S2/S3 v2, higher value means touched (opposite of v1)
+      bool is_touched = value > child->get_threshold();
+      child->last_state_ = is_touched;
+      child->publish_state(is_touched);
+
+      ESP_LOGD(TAG, "Touch Pad '%s' initial state: %s (value: %d, threshold: %d)", child->get_name().c_str(),
+               is_touched ? "touched" : "released", value, child->get_threshold());
+    }
+  }
+
   // Process any queued touch events from interrupts
   TouchPadEventV2 event;
   while (xQueueReceive(this->touch_queue_, &event, 0) == pdTRUE) {
@@ -363,8 +387,8 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
 
   // Debug logging from ISR (using ROM functions for ISR safety) - only log non-timeout events for now
   // if (event.intr_mask != 0x10 || event.pad_status != 0) {
-  ets_printf("ISR: intr=0x%x, status=0x%x, pad=%d\n", event.intr_mask, event.pad_status, event.pad);
-  //}
+  //   ets_printf("ISR: intr=0x%x, status=0x%x, pad=%d\n", event.intr_mask, event.pad_status, event.pad);
+  // }
 
   // Send event to queue for processing in main loop
   xQueueSendFromISR(component->touch_queue_, &event, &xHigherPriorityTaskWoken);

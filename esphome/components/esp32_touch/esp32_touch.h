@@ -35,6 +35,14 @@ class ESP32TouchComponent : public Component {
   void set_voltage_attenuation(touch_volt_atten_t voltage_attenuation) {
     this->voltage_attenuation_ = voltage_attenuation;
   }
+
+  void setup() override;
+  void dump_config() override;
+  void loop() override;
+  float get_setup_priority() const override { return setup_priority::DATA; }
+
+  void on_shutdown() override;
+
 #if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
   void set_filter_mode(touch_filter_mode_t filter_mode) { this->filter_mode_ = filter_mode; }
   void set_debounce_count(uint32_t debounce_count) { this->debounce_count_ = debounce_count; }
@@ -51,25 +59,57 @@ class ESP32TouchComponent : public Component {
   void set_iir_filter(uint32_t iir_filter) { this->iir_filter_ = iir_filter; }
 #endif
 
-  void setup() override;
-  void dump_config() override;
-  void loop() override;
-  float get_setup_priority() const override { return setup_priority::DATA; }
-
-  void on_shutdown() override;
-
  protected:
-  static void touch_isr_handler(void *arg);
-
-  // Common helper methods used by both v1 and v2
+  // Common helper methods
   void dump_config_base_();
   void dump_config_sensors_();
 
+  // Common members
+  std::vector<ESP32TouchBinarySensor *> children_;
+  bool setup_mode_{false};
+  uint32_t setup_mode_last_log_print_{0};
+
+  // Common configuration parameters
+  uint16_t sleep_cycle_{4095};
+  uint16_t meas_cycle_{65535};
+  touch_low_volt_t low_voltage_reference_{TOUCH_LVOLT_0V5};
+  touch_high_volt_t high_voltage_reference_{TOUCH_HVOLT_2V7};
+  touch_volt_atten_t voltage_attenuation_{TOUCH_HVOLT_ATTEN_0V};
+
+  // ==================== PLATFORM SPECIFIC ====================
+
+#ifdef USE_ESP32_VARIANT_ESP32
+  // ESP32 v1 specific
+  static void touch_isr_handler(void *arg);
   QueueHandle_t touch_queue_{nullptr};
-  uint32_t last_touch_time_[TOUCH_PAD_MAX] = {0};  // Track last time each pad was seen as touched
-  uint32_t release_timeout_ms_{1500};              // Calculated timeout for release detection
-  uint32_t release_check_interval_ms_{50};         // How often to check for releases
-#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+  uint32_t last_touch_time_[TOUCH_PAD_MAX] = {0};
+  uint32_t release_timeout_ms_{1500};
+  uint32_t release_check_interval_ms_{50};
+  uint32_t iir_filter_{0};
+
+  bool iir_filter_enabled_() const { return this->iir_filter_ > 0; }
+
+#elif defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+  // ESP32-S2/S3 v2 specific
+  static void touch_isr_handler(void *arg);
+  QueueHandle_t touch_queue_{nullptr};
+  bool initial_state_read_{false};
+
+  // Filter configuration
+  touch_filter_mode_t filter_mode_{TOUCH_PAD_FILTER_MAX};
+  uint32_t debounce_count_{0};
+  uint32_t noise_threshold_{0};
+  uint32_t jitter_step_{0};
+  touch_smooth_mode_t smooth_level_{TOUCH_PAD_SMOOTH_MAX};
+
+  // Denoise configuration
+  touch_pad_denoise_grade_t grade_{TOUCH_PAD_DENOISE_MAX};
+  touch_pad_denoise_cap_t cap_level_{TOUCH_PAD_DENOISE_CAP_MAX};
+
+  // Waterproof configuration
+  touch_pad_t waterproof_guard_ring_pad_{TOUCH_PAD_MAX};
+  touch_pad_shield_driver_t waterproof_shield_driver_{TOUCH_PAD_SHIELD_DRV_MAX};
+
   bool filter_configured_() const {
     return (this->filter_mode_ != TOUCH_PAD_FILTER_MAX) && (this->smooth_level_ != TOUCH_PAD_SMOOTH_MAX);
   }
@@ -80,8 +120,6 @@ class ESP32TouchComponent : public Component {
     return (this->waterproof_guard_ring_pad_ != TOUCH_PAD_MAX) &&
            (this->waterproof_shield_driver_ != TOUCH_PAD_SHIELD_DRV_MAX);
   }
-#else
-  bool iir_filter_enabled_() const { return this->iir_filter_ > 0; }
 #endif
 
   // Helper functions for dump_config - common to both implementations
@@ -129,29 +167,6 @@ class ESP32TouchComponent : public Component {
         return "UNKNOWN";
     }
   }
-
-  std::vector<ESP32TouchBinarySensor *> children_;
-  bool setup_mode_{false};
-  uint32_t setup_mode_last_log_print_{0};
-  // common parameters
-  uint16_t sleep_cycle_{4095};
-  uint16_t meas_cycle_{65535};
-  touch_low_volt_t low_voltage_reference_{TOUCH_LVOLT_0V5};
-  touch_high_volt_t high_voltage_reference_{TOUCH_HVOLT_2V7};
-  touch_volt_atten_t voltage_attenuation_{TOUCH_HVOLT_ATTEN_0V};
-#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
-  touch_filter_mode_t filter_mode_{TOUCH_PAD_FILTER_MAX};
-  uint32_t debounce_count_{0};
-  uint32_t noise_threshold_{0};
-  uint32_t jitter_step_{0};
-  touch_smooth_mode_t smooth_level_{TOUCH_PAD_SMOOTH_MAX};
-  touch_pad_denoise_grade_t grade_{TOUCH_PAD_DENOISE_MAX};
-  touch_pad_denoise_cap_t cap_level_{TOUCH_PAD_DENOISE_CAP_MAX};
-  touch_pad_t waterproof_guard_ring_pad_{TOUCH_PAD_MAX};
-  touch_pad_shield_driver_t waterproof_shield_driver_{TOUCH_PAD_SHIELD_DRV_MAX};
-#else
-  uint32_t iir_filter_{0};
-#endif
 };
 
 /// Simple helper class to expose a touch pad value as a binary sensor.

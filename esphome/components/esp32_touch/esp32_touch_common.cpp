@@ -20,12 +20,9 @@ void ESP32TouchComponent::dump_config_base_() {
                 "  Sleep cycle: %.2fms\n"
                 "  Low Voltage Reference: %s\n"
                 "  High Voltage Reference: %s\n"
-                "  Voltage Attenuation: %s\n"
-                "  ISR Configuration:\n"
-                "    Release timeout: %" PRIu32 "ms\n"
-                "    Release check interval: %" PRIu32 "ms",
+                "  Voltage Attenuation: %s",
                 this->meas_cycle_ / (8000000.0f / 1000.0f), this->sleep_cycle_ / (150000.0f / 1000.0f), lv_s, hv_s,
-                atten_s, this->release_timeout_ms_, this->release_check_interval_ms_);
+                atten_s);
 }
 
 void ESP32TouchComponent::dump_config_sensors_() {
