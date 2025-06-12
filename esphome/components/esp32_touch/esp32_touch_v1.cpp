@@ -171,7 +171,7 @@ void ESP32TouchComponent::loop() {
     // If we've never seen this pad touched (last_time == 0) and enough time has passed
     // since startup, publish OFF state and mark as published with value 1
     if (last_time == 0 && now > this->release_timeout_ms_) {
-      child->publish_state(false);
+      child->publish_initial_state(false);
       this->last_touch_time_[pad] = 1;  // Mark as "initial state published"
       ESP_LOGV(TAG, "Touch Pad '%s' state: OFF (initial)", child->get_name().c_str());
     } else if (child->last_state_ && last_time > 1) {  // last_time > 1 means it's a real timestamp
