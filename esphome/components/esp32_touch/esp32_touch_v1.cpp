@@ -110,28 +110,31 @@ void ESP32TouchComponent::loop() {
   while (xQueueReceive(this->touch_queue_, &event, 0) == pdTRUE) {
     // Find the corresponding sensor - O(n) search is acceptable since events are infrequent
     for (auto *child : this->children_) {
-      if (child->get_touch_pad() == event.pad) {
-        child->value_ = event.value;
-
-        // The interrupt gives us the touch state directly
-        bool new_state = event.is_touched;
-
-        // Track when we last saw this pad as touched
-        if (new_state) {
-          this->last_touch_time_[event.pad] = now;
-        }
-
-        // Only publish if state changed - this filters out repeated events
-        if (new_state != child->last_state_) {
-          child->last_state_ = new_state;
-          child->publish_state(new_state);
-          // Original ESP32: ISR only fires when touched, release is detected by timeout
-          // Note: ESP32 v1 uses inverted logic - touched when value < threshold
-          ESP_LOGV(TAG, "Touch Pad '%s' state: ON (value: %" PRIu32 " < threshold: %" PRIu32 ")",
-                   child->get_name().c_str(), event.value, child->get_threshold());
-        }
-        break;
+      if (child->get_touch_pad() != event.pad) {
+        continue;
       }
+
+      // Found matching pad - process it
+      child->value_ = event.value;
+
+      // The interrupt gives us the touch state directly
+      bool new_state = event.is_touched;
+
+      // Track when we last saw this pad as touched
+      if (new_state) {
+        this->last_touch_time_[event.pad] = now;
+      }
+
+      // Only publish if state changed - this filters out repeated events
+      if (new_state != child->last_state_) {
+        child->last_state_ = new_state;
+        child->publish_state(new_state);
+        // Original ESP32: ISR only fires when touched, release is detected by timeout
+        // Note: ESP32 v1 uses inverted logic - touched when value < threshold
+        ESP_LOGV(TAG, "Touch Pad '%s' state: ON (value: %" PRIu32 " < threshold: %" PRIu32 ")",
+                 child->get_name().c_str(), event.value, child->get_threshold());
+      }
+      break;  // Exit inner loop after processing matching pad
     }
   }
 
