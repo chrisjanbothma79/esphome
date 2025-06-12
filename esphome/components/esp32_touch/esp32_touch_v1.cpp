@@ -181,29 +181,13 @@ void ESP32TouchComponent::on_shutdown() {
   touch_pad_isr_deregister(touch_isr_handler, this);
   this->cleanup_touch_queue();
 
-  bool is_wakeup_source = false;
-
   if (this->iir_filter_enabled_()) {
     touch_pad_filter_stop();
     touch_pad_filter_delete();
   }
 
-  for (auto *child : this->children_) {
-    if (child->get_wakeup_threshold() != 0) {
-      if (!is_wakeup_source) {
-        is_wakeup_source = true;
-        // Touch sensor FSM mode must be 'TOUCH_FSM_MODE_TIMER' to use it to wake-up.
-        touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
-      }
-
-      // No filter available when using as wake-up source.
-      touch_pad_config(child->get_touch_pad(), child->get_wakeup_threshold());
-    }
-  }
-
-  if (!is_wakeup_source) {
-    touch_pad_deinit();
-  }
+  // Configure wakeup pads if any are set
+  this->configure_wakeup_pads();
 }
 
 void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {

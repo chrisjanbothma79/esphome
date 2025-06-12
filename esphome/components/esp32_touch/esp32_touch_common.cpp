@@ -61,6 +61,30 @@ void ESP32TouchComponent::cleanup_touch_queue() {
   }
 }
 
+void ESP32TouchComponent::configure_wakeup_pads() {
+  bool is_wakeup_source = false;
+
+  // Check if any pad is configured for wakeup
+  for (auto *child : this->children_) {
+    if (child->get_wakeup_threshold() != 0) {
+      is_wakeup_source = true;
+
+#ifdef USE_ESP32_VARIANT_ESP32
+      // ESP32 v1: No filter available when using as wake-up source.
+      touch_pad_config(child->get_touch_pad(), child->get_wakeup_threshold());
+#else
+      // ESP32-S2/S3 v2: Set threshold for wakeup
+      touch_pad_set_thresh(child->get_touch_pad(), child->get_wakeup_threshold());
+#endif
+    }
+  }
+
+  if (!is_wakeup_source) {
+    // If no pad is configured for wakeup, deinitialize touch pad
+    touch_pad_deinit();
+  }
+}
+
 }  // namespace esp32_touch
 }  // namespace esphome
 
