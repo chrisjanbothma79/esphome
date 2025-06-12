@@ -9,11 +9,18 @@
 #include <vector>
 
 #include <driver/touch_sensor.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 
 namespace esphome {
 namespace esp32_touch {
 
 class ESP32TouchBinarySensor;
+
+struct TouchPadEvent {
+  touch_pad_t pad;
+  uint32_t value;
+};
 
 class ESP32TouchComponent : public Component {
  public:
@@ -57,6 +64,9 @@ class ESP32TouchComponent : public Component {
   void on_shutdown() override;
 
  protected:
+  static void touch_isr_handler(void *arg);
+
+  QueueHandle_t touch_queue_{nullptr};
 #if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
   bool filter_configured_() const {
     return (this->filter_mode_ != TOUCH_PAD_FILTER_MAX) && (this->smooth_level_ != TOUCH_PAD_SMOOTH_MAX);
@@ -113,6 +123,7 @@ class ESP32TouchBinarySensor : public binary_sensor::BinarySensor {
   touch_pad_t touch_pad_{TOUCH_PAD_MAX};
   uint32_t threshold_{0};
   uint32_t value_{0};
+  bool last_state_{false};
   const uint32_t wakeup_threshold_{0};
 };
 

@@ -15,6 +15,20 @@ static const char *const TAG = "esp32_touch";
 void ESP32TouchComponent::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
   touch_pad_init();
+
+  // Create queue for touch events - size based on number of touch pads
+  // Each pad can have at most a few events queued (press/release)
+  // Use 4x the number of pads to handle burst events
+  size_t queue_size = this->children_.size() * 4;
+  if (queue_size < 8)
+    queue_size = 8;  // Minimum queue size
+
+  this->touch_queue_ = xQueueCreate(queue_size, sizeof(TouchPadEvent));
+  if (this->touch_queue_ == nullptr) {
+    ESP_LOGE(TAG, "Failed to create touch event queue of size %d", queue_size);
+    this->mark_failed();
+    return;
+  }
 // set up and enable/start filtering based on ESP32 variant
 #if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
   if (this->filter_configured_()) {
@@ -63,15 +77,32 @@ void ESP32TouchComponent::setup() {
   for (auto *child : this->children_) {
 #if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
     touch_pad_config(child->get_touch_pad());
+    if (child->get_threshold() > 0) {
+      touch_pad_set_thresh(child->get_touch_pad(), child->get_threshold());
+    }
 #else
-    // Disable interrupt threshold
-    touch_pad_config(child->get_touch_pad(), 0);
+    // Set interrupt threshold
+    touch_pad_config(child->get_touch_pad(), child->get_threshold());
 #endif
   }
 #if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
   touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
   touch_pad_fsm_start();
 #endif
+
+  // Register ISR handler
+  esp_err_t err = touch_pad_isr_register(touch_isr_handler, this);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to register touch ISR: %s", esp_err_to_name(err));
+    vQueueDelete(this->touch_queue_);
+    this->touch_queue_ = nullptr;
+    this->mark_failed();
+    return;
+  }
+
+  // Enable touch pad interrupt
+  touch_pad_intr_enable();
+  ESP_LOGI(TAG, "Touch pad interrupts enabled");
 }
 
 void ESP32TouchComponent::dump_config() {
@@ -294,29 +325,48 @@ uint32_t ESP32TouchComponent::component_touch_pad_read(touch_pad_t tp) {
 void ESP32TouchComponent::loop() {
   const uint32_t now = App.get_loop_component_start_time();
   bool should_print = this->setup_mode_ && now - this->setup_mode_last_log_print_ > 250;
-  for (auto *child : this->children_) {
-    child->value_ = this->component_touch_pad_read(child->get_touch_pad());
-#if !(defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3))
-    child->publish_state(child->value_ < child->get_threshold());
-#else
-    child->publish_state(child->value_ > child->get_threshold());
-#endif
 
-    if (should_print) {
+  // In setup mode, also read values directly for calibration
+  if (this->setup_mode_ && should_print) {
+    for (auto *child : this->children_) {
+      uint32_t value = this->component_touch_pad_read(child->get_touch_pad());
       ESP_LOGD(TAG, "Touch Pad '%s' (T%" PRIu32 "): %" PRIu32, child->get_name().c_str(),
-               (uint32_t) child->get_touch_pad(), child->value_);
+               (uint32_t) child->get_touch_pad(), value);
     }
-
-    App.feed_wdt();
+    this->setup_mode_last_log_print_ = now;
   }
 
-  if (should_print) {
-    // Avoid spamming logs
-    this->setup_mode_last_log_print_ = now;
+  // Process any queued touch events
+  TouchPadEvent event;
+  while (xQueueReceive(this->touch_queue_, &event, 0) == pdTRUE) {
+    // Find the corresponding sensor
+    for (auto *child : this->children_) {
+      if (child->get_touch_pad() == event.pad) {
+        child->value_ = event.value;
+        bool new_state;
+#if !(defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3))
+        new_state = child->value_ < child->get_threshold();
+#else
+        new_state = child->value_ > child->get_threshold();
+#endif
+        // Only publish if state changed
+        if (new_state != child->last_state_) {
+          child->last_state_ = new_state;
+          child->publish_state(new_state);
+        }
+        break;
+      }
+    }
   }
 }
 
 void ESP32TouchComponent::on_shutdown() {
+  touch_pad_intr_disable();
+  touch_pad_isr_deregister(touch_isr_handler, this);
+  if (this->touch_queue_) {
+    vQueueDelete(this->touch_queue_);
+  }
+
   bool is_wakeup_source = false;
 
 #if !(defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3))
@@ -343,6 +393,36 @@ void ESP32TouchComponent::on_shutdown() {
 
   if (!is_wakeup_source) {
     touch_pad_deinit();
+  }
+}
+
+void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
+  ESP32TouchComponent *component = static_cast<ESP32TouchComponent *>(arg);
+  uint32_t pad_intr = touch_pad_get_status();
+  touch_pad_clear_status();
+
+  // Check which pads triggered
+  for (int i = 0; i < TOUCH_PAD_MAX; i++) {
+    if ((pad_intr >> i) & 0x01) {
+      touch_pad_t pad = static_cast<touch_pad_t>(i);
+      TouchPadEvent event;
+      event.pad = pad;
+      // Read value in ISR
+      event.value = 0;
+#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
+      touch_pad_read_raw_data(pad, &event.value);
+#else
+      uint16_t val = 0;
+      touch_pad_read(pad, &val);
+      event.value = val;
+#endif
+      // Send to queue from ISR
+      BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+      xQueueSendFromISR(component->touch_queue_, &event, &xHigherPriorityTaskWoken);
+      if (xHigherPriorityTaskWoken) {
+        portYIELD_FROM_ISR();
+      }
+    }
   }
 }
 
