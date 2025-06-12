@@ -116,7 +116,11 @@ void Application::loop() {
 
   // Use the last component's end time instead of calling millis() again
   auto elapsed = last_op_end_time - this->last_loop_;
-  if (elapsed >= this->loop_interval_ || HighFrequencyLoopRequester::is_high_frequency()) {
+  if (elapsed >= this->loop_interval_) {
+    // Even if we overran the loop interval, we still need to select()
+    // to know if any sockets have data ready
+    this->delay_with_select_(0);
+  } else if (HighFrequencyLoopRequester::is_high_frequency()) {
     yield();
   } else {
     uint32_t delay_time = this->loop_interval_ - elapsed;
