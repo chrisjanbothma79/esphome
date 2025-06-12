@@ -82,6 +82,13 @@ class ESP32TouchComponent : public Component {
   // ESP32 v1 specific
   static void touch_isr_handler(void *arg);
   QueueHandle_t touch_queue_{nullptr};
+
+  // Design note: last_touch_time_ does not require synchronization primitives because:
+  // 1. ESP32 guarantees atomic 32-bit aligned reads/writes
+  // 2. ISR only writes timestamps, main loop only reads (except sentinel value 1)
+  // 3. Timing tolerance allows for occasional stale reads (50ms check interval)
+  // 4. Queue operations provide implicit memory barriers
+  // Using atomic/critical sections would add overhead without meaningful benefit
   uint32_t last_touch_time_[TOUCH_PAD_MAX] = {0};
   uint32_t release_timeout_ms_{1500};
   uint32_t release_check_interval_ms_{50};

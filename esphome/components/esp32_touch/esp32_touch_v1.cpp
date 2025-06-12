@@ -72,6 +72,9 @@ void ESP32TouchComponent::setup() {
   }
 
   // Calculate release timeout based on sleep cycle
+  // Design note: ESP32 v1 hardware limitation - interrupts only fire on touch (not release)
+  // We must use timeout-based detection for release events
+  // Formula: 3 sleep cycles converted to ms, with 100ms minimum
   uint32_t rtc_freq = rtc_clk_slow_freq_get_hz();
   this->release_timeout_ms_ = (this->sleep_cycle_ * 1000 * 3) / (rtc_freq * 2);
   if (this->release_timeout_ms_ < 100) {
@@ -150,6 +153,12 @@ void ESP32TouchComponent::loop() {
   for (auto *child : this->children_) {
     touch_pad_t pad = child->get_touch_pad();
     uint32_t last_time = this->last_touch_time_[pad];
+
+    // Design note: Sentinel value pattern explanation
+    // - 0: Never touched since boot (waiting for initial timeout)
+    // - 1: Initial OFF state has been published (prevents repeated publishes)
+    // - >1: Actual timestamp of last touch event
+    // This avoids needing a separate boolean flag for initial state tracking
 
     // If we've never seen this pad touched (last_time == 0) and enough time has passed
     // since startup, publish OFF state and mark as published with value 1
