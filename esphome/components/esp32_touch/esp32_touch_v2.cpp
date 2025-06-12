@@ -40,7 +40,12 @@ void ESP32TouchComponent::setup() {
 
   // Configure each touch pad first
   for (auto *child : this->children_) {
-    touch_pad_config(child->get_touch_pad());
+    esp_err_t config_err = touch_pad_config(child->get_touch_pad());
+    if (config_err != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to configure touch pad %d: %s", child->get_touch_pad(), esp_err_to_name(config_err));
+    } else {
+      ESP_LOGD(TAG, "Configured touch pad %d", child->get_touch_pad());
+    }
   }
 
   // Set up filtering if configured
@@ -79,16 +84,6 @@ void ESP32TouchComponent::setup() {
   touch_pad_set_charge_discharge_times(this->meas_cycle_);
   touch_pad_set_measurement_interval(this->sleep_cycle_);
 
-  // Set FSM mode before starting
-  touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
-
-  // Configure which pads to scan
-  uint16_t channel_mask = 0;
-  for (auto *child : this->children_) {
-    channel_mask |= BIT(child->get_touch_pad());
-  }
-  touch_pad_set_channel_mask(channel_mask);
-
   // Configure timeout if needed
   touch_pad_timeout_set(true, TOUCH_PAD_THRESHOLD_MAX);
 
@@ -104,40 +99,21 @@ void ESP32TouchComponent::setup() {
   }
 
   // Enable interrupts
-  touch_pad_intr_enable(static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE));
+  touch_pad_intr_enable(static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE |
+                                                           TOUCH_PAD_INTR_MASK_TIMEOUT));
+
+  // Set FSM mode before starting
+  touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
 
   // Start FSM
   touch_pad_fsm_start();
 
-  // Wait longer for initial measurements to complete
-  // Need to wait for at least one full measurement cycle
-  vTaskDelay(100 / portTICK_PERIOD_MS);
-
   // Read initial benchmark values and set thresholds if not explicitly configured
   for (auto *child : this->children_) {
-    uint32_t benchmark = 0;
-    touch_pad_read_benchmark(child->get_touch_pad(), &benchmark);
-
-    ESP_LOGD(TAG, "Touch pad %d benchmark value: %d", child->get_touch_pad(), benchmark);
-
-    // If threshold is 0, calculate it as 80% of benchmark (20% change threshold)
-    if (child->get_threshold() == 0 && benchmark > 0) {
-      uint32_t threshold = benchmark * 0.8;
-      child->set_threshold(threshold);
-      ESP_LOGD(TAG, "Setting threshold for pad %d to %d (80%% of benchmark)", child->get_touch_pad(), threshold);
+    if (child->get_threshold() != 0) {
+      touch_pad_set_thresh(child->get_touch_pad(), child->get_threshold());
     }
-
-    // Set the threshold
-    touch_pad_set_thresh(child->get_touch_pad(), child->get_threshold());
   }
-
-  // Calculate release timeout based on sleep cycle
-  uint32_t rtc_freq = rtc_clk_slow_freq_get_hz();
-  this->release_timeout_ms_ = (this->sleep_cycle_ * 1000 * 3) / (rtc_freq * 2);
-  if (this->release_timeout_ms_ < 100) {
-    this->release_timeout_ms_ = 100;
-  }
-  this->release_check_interval_ms_ = std::min(this->release_timeout_ms_ / 4, (uint32_t) 50);
 }
 
 void ESP32TouchComponent::dump_config() {
