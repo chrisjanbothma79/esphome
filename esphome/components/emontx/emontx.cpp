@@ -206,12 +206,17 @@ void EmonTx::send_to_emoncms_(const std::string &json_data) {
  */
 void EmonTx::dump_config() {
   ESP_LOGCONFIG(TAG, "EmonTx:");
+
+#ifdef USE_SENSOR
   ESP_LOGCONFIG(TAG, "  Registered sensors: %u", this->sensors_.size());
 
   // List all registered sensors with their tags
   for (const auto &sensor_pair : this->sensors_) {
     ESP_LOGCONFIG(TAG, "  Sensor: %s", sensor_pair.first.c_str());
   }
+#else
+  ESP_LOGCONFIG(TAG, "  Sensor support: DISABLED");
+#endif
 
 #ifdef USE_HTTP_REQUEST
   // Show EmonCMS configuration
