@@ -11,6 +11,7 @@
 #include <driver/touch_sensor.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
+#include <freertos/ringbuf.h>
 
 namespace esphome {
 namespace esp32_touch {
@@ -83,13 +84,16 @@ class ESP32TouchComponent : public Component {
   static constexpr uint32_t MINIMUM_RELEASE_TIME_MS = 100;
 
   static void touch_isr_handler(void *arg);
-  QueueHandle_t touch_queue_{nullptr};
+
+  // Ring buffer handle for FreeRTOS ring buffer
+  RingbufHandle_t ring_buffer_handle_{nullptr};
+  uint32_t ring_buffer_overflow_count_{0};
 
   // Design note: last_touch_time_ does not require synchronization primitives because:
   // 1. ESP32 guarantees atomic 32-bit aligned reads/writes
   // 2. ISR only writes timestamps, main loop only reads (except sentinel value 1)
   // 3. Timing tolerance allows for occasional stale reads (50ms check interval)
-  // 4. Queue operations provide implicit memory barriers
+  // 4. Ring buffer operations provide implicit memory barriers
   // Using atomic/critical sections would add overhead without meaningful benefit
   uint32_t last_touch_time_[TOUCH_PAD_MAX] = {0};
   uint32_t release_timeout_ms_{1500};
