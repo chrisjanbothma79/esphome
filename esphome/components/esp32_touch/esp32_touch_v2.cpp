@@ -8,10 +8,6 @@
 #include <algorithm>
 #include <cinttypes>
 
-// Include HAL for ISR-safe touch reading
-#include "hal/touch_sensor_ll.h"
-// Include for RTC clock frequency
-#include "soc/rtc.h"
 // Include for ISR-safe printing
 #include "rom/ets_sys.h"
 
@@ -102,8 +98,8 @@ void ESP32TouchComponent::setup() {
 
   // Configure measurement parameters
   touch_pad_set_voltage(this->high_voltage_reference_, this->low_voltage_reference_, this->voltage_attenuation_);
-  touch_pad_set_charge_discharge_times(this->meas_cycle_);
-  touch_pad_set_measurement_interval(this->sleep_cycle_);
+  // ESP32-S2/S3 always use the older API
+  touch_pad_set_meas_time(this->sleep_cycle_, this->meas_cycle_);
 
   // Configure timeout if needed
   touch_pad_timeout_set(true, TOUCH_PAD_THRESHOLD_MAX);
