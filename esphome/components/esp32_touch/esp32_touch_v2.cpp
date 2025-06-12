@@ -258,8 +258,9 @@ void ESP32TouchComponent::loop() {
       child->last_state_ = is_touched;
       child->publish_state(is_touched);
 
-      ESP_LOGD(TAG, "Touch Pad '%s' initial state: %s (value: %d, threshold: %d)", child->get_name().c_str(),
-               is_touched ? "touched" : "released", value, child->get_threshold());
+      // Note: ESP32-S2/S3 v2 uses inverted logic compared to v1 - touched when value > threshold
+      ESP_LOGD(TAG, "Touch Pad '%s' initial state: %s (value: %d %s threshold: %d)", child->get_name().c_str(),
+               is_touched ? "touched" : "released", value, is_touched ? ">" : "<=", child->get_threshold());
     }
   }
 
@@ -301,8 +302,9 @@ void ESP32TouchComponent::loop() {
 
       child->last_state_ = is_touch_event;
       child->publish_state(is_touch_event);
-      ESP_LOGD(TAG, "Touch Pad '%s' %s (value: %d, threshold: %d)", child->get_name().c_str(),
-               is_touch_event ? "touched" : "released", value, child->get_threshold());
+      // Note: ESP32-S2/S3 v2 uses inverted logic compared to v1 - touched when value > threshold
+      ESP_LOGD(TAG, "Touch Pad '%s' %s (value: %d %s threshold: %d)", child->get_name().c_str(),
+               is_touch_event ? "touched" : "released", value, is_touch_event ? ">" : "<=", child->get_threshold());
       break;
     }
   }

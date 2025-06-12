@@ -15,6 +15,11 @@
 namespace esphome {
 namespace esp32_touch {
 
+// IMPORTANT: Touch detection logic differs between ESP32 variants:
+// - ESP32 v1 (original): Touch detected when value < threshold (capacitance increase causes value decrease)
+// - ESP32-S2/S3 v2: Touch detected when value > threshold (capacitance increase causes value increase)
+// This inversion is due to different hardware implementations between chip generations.
+
 static const uint32_t SETUP_MODE_LOG_INTERVAL_MS = 250;
 
 class ESP32TouchBinarySensor;
