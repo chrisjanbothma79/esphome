@@ -107,7 +107,6 @@ class ESP32TouchComponent : public Component {
   // ESP32-S2/S3 v2 specific
   static void touch_isr_handler(void *arg);
   QueueHandle_t touch_queue_{nullptr};
-  bool initial_state_read_{false};
 
   // Filter configuration
   touch_filter_mode_t filter_mode_{TOUCH_PAD_FILTER_MAX};

@@ -111,6 +111,29 @@ void ESP32TouchComponent::setup() {
       touch_pad_set_thresh(child->get_touch_pad(), child->get_threshold());
     }
   }
+
+  // Read initial states after all hardware is initialized
+  for (auto *child : this->children_) {
+    // Read current value
+    uint32_t value = 0;
+    if (this->filter_configured_()) {
+      touch_pad_filter_read_smooth(child->get_touch_pad(), &value);
+    } else {
+      touch_pad_read_raw_data(child->get_touch_pad(), &value);
+    }
+
+    // IMPORTANT: ESP32-S2/S3 v2 touch detection logic - INVERTED compared to v1!
+    // ESP32-S2/S3 v2: Touch is detected when capacitance INCREASES, causing the measured value to INCREASE
+    // Therefore: touched = (value > threshold)
+    // This is opposite to original ESP32 v1 where touched = (value < threshold)
+    bool is_touched = value > child->get_threshold();
+    child->last_state_ = is_touched;
+    child->publish_initial_state(is_touched);
+
+    // Note: ESP32-S2/S3 v2 uses inverted logic compared to v1 - touched when value > threshold
+    ESP_LOGD(TAG, "Touch Pad '%s' initial state: %s (value: %d %s threshold: %d)", child->get_name().c_str(),
+             is_touched ? "touched" : "released", value, is_touched ? ">" : "<=", child->get_threshold());
+  }
 }
 
 void ESP32TouchComponent::dump_config() {
@@ -238,32 +261,6 @@ void ESP32TouchComponent::dump_config() {
 void ESP32TouchComponent::loop() {
   const uint32_t now = App.get_loop_component_start_time();
 
-  // Read initial states if not done yet
-  if (!this->initial_state_read_) {
-    this->initial_state_read_ = true;
-    for (auto *child : this->children_) {
-      // Read current value
-      uint32_t value = 0;
-      if (this->filter_configured_()) {
-        touch_pad_filter_read_smooth(child->get_touch_pad(), &value);
-      } else {
-        touch_pad_read_benchmark(child->get_touch_pad(), &value);
-      }
-
-      // IMPORTANT: ESP32-S2/S3 v2 touch detection logic - INVERTED compared to v1!
-      // ESP32-S2/S3 v2: Touch is detected when capacitance INCREASES, causing the measured value to INCREASE
-      // Therefore: touched = (value > threshold)
-      // This is opposite to original ESP32 v1 where touched = (value < threshold)
-      bool is_touched = value > child->get_threshold();
-      child->last_state_ = is_touched;
-      child->publish_state(is_touched);
-
-      // Note: ESP32-S2/S3 v2 uses inverted logic compared to v1 - touched when value > threshold
-      ESP_LOGD(TAG, "Touch Pad '%s' initial state: %s (value: %d %s threshold: %d)", child->get_name().c_str(),
-               is_touched ? "touched" : "released", value, is_touched ? ">" : "<=", child->get_threshold());
-    }
-  }
-
   // Process any queued touch events from interrupts
   TouchPadEventV2 event;
   while (xQueueReceive(this->touch_queue_, &event, 0) == pdTRUE) {
@@ -297,7 +294,7 @@ void ESP32TouchComponent::loop() {
       if (this->filter_configured_()) {
         touch_pad_filter_read_smooth(event.pad, &value);
       } else {
-        touch_pad_read_benchmark(event.pad, &value);
+        touch_pad_read_raw_data(event.pad, &value);
       }
 
       child->last_state_ = is_touch_event;
