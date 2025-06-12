@@ -21,7 +21,15 @@ namespace esp32_touch {
 static const char *const TAG = "esp32_touch";
 
 void ESP32TouchComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup for ESP32-S2/S3");
+  // Add a delay to allow serial connection, but feed the watchdog
+  ESP_LOGCONFIG(TAG, "Waiting 5 seconds before touch sensor setup...");
+  for (int i = 0; i < 50; i++) {
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    App.feed_wdt();
+  }
+
+  ESP_LOGCONFIG(TAG, "=== ESP32 Touch Sensor v2 Setup Starting ===");
+  ESP_LOGCONFIG(TAG, "Configuring %d touch pads", this->children_.size());
 
   // Create queue for touch events first
   size_t queue_size = this->children_.size() * 4;
@@ -36,9 +44,16 @@ void ESP32TouchComponent::setup() {
   }
 
   // Initialize touch pad peripheral
-  touch_pad_init();
+  ESP_LOGD(TAG, "Initializing touch pad peripheral...");
+  esp_err_t init_err = touch_pad_init();
+  if (init_err != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to initialize touch pad: %s", esp_err_to_name(init_err));
+    this->mark_failed();
+    return;
+  }
 
   // Configure each touch pad first
+  ESP_LOGD(TAG, "Configuring individual touch pads...");
   for (auto *child : this->children_) {
     esp_err_t config_err = touch_pad_config(child->get_touch_pad());
     if (config_err != ESP_OK) {
@@ -108,11 +123,20 @@ void ESP32TouchComponent::setup() {
   // Start FSM
   touch_pad_fsm_start();
 
-  // Read initial benchmark values and set thresholds if not explicitly configured
+  // Wait for initial measurements
+  vTaskDelay(50 / portTICK_PERIOD_MS);
+
+  // Read initial values and set thresholds
   for (auto *child : this->children_) {
     if (child->get_threshold() != 0) {
       touch_pad_set_thresh(child->get_touch_pad(), child->get_threshold());
     }
+
+    // Try to read initial values for debugging
+    uint32_t raw = 0, benchmark = 0;
+    touch_pad_read_raw_data(child->get_touch_pad(), &raw);
+    touch_pad_read_benchmark(child->get_touch_pad(), &benchmark);
+    ESP_LOGD(TAG, "Initial pad %d: raw=%d, benchmark=%d", child->get_touch_pad(), raw, benchmark);
   }
 }
 
@@ -293,17 +317,19 @@ void ESP32TouchComponent::loop() {
   if (this->setup_mode_ && now - this->setup_mode_last_log_print_ > 1000) {
     ESP_LOGD(TAG, "=== Touch Pad Status ===");
     for (auto *child : this->children_) {
+      uint32_t raw = 0;
       uint32_t benchmark = 0;
       uint32_t smooth = 0;
 
+      touch_pad_read_raw_data(child->get_touch_pad(), &raw);
       touch_pad_read_benchmark(child->get_touch_pad(), &benchmark);
 
       if (this->filter_configured_()) {
         touch_pad_filter_read_smooth(child->get_touch_pad(), &smooth);
-        ESP_LOGD(TAG, "  Pad T%d: benchmark=%d, smooth=%d, threshold=%d", child->get_touch_pad(), benchmark, smooth,
-                 child->get_threshold());
+        ESP_LOGD(TAG, "  Pad T%d: raw=%d, benchmark=%d, smooth=%d, threshold=%d", child->get_touch_pad(), raw,
+                 benchmark, smooth, child->get_threshold());
       } else {
-        ESP_LOGD(TAG, "  Pad T%d: benchmark=%d, threshold=%d", child->get_touch_pad(), benchmark,
+        ESP_LOGD(TAG, "  Pad T%d: raw=%d, benchmark=%d, threshold=%d", child->get_touch_pad(), raw, benchmark,
                  child->get_threshold());
       }
     }
@@ -346,6 +372,11 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   event.intr_mask = touch_pad_read_intr_status_mask();
   event.pad_status = touch_pad_get_status();
   event.pad = touch_pad_get_current_meas_channel();
+
+  // Debug logging from ISR (using ROM functions for ISR safety) - only log non-timeout events for now
+  // if (event.intr_mask != 0x10 || event.pad_status != 0) {
+  ets_printf("ISR: intr=0x%x, status=0x%x, pad=%d\n", event.intr_mask, event.pad_status, event.pad);
+  //}
 
   // Send event to queue for processing in main loop
   xQueueSendFromISR(component->touch_queue_, &event, &xHigherPriorityTaskWoken);
