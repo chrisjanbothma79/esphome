@@ -2,7 +2,10 @@
 
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
+// Conditionally include sensor
+#ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
+#endif
 // Conditionally include http_request
 #ifdef USE_HTTP_REQUEST
 #include "esphome/components/http_request/http_request.h"
@@ -48,7 +51,9 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   void dump_config() override;
   std::vector<EmonTxListener *> emontx_listeners_{};
 
+#ifdef USE_SENSOR
   void register_sensor(const std::string &tag_name, sensor::Sensor *sensor);
+#endif
 
 #ifdef USE_HTTP_REQUEST
   // EmonCMS configuration - only available when http_request is enabled
@@ -63,7 +68,9 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 #endif
 
  protected:
+#ifdef USE_SENSOR
   std::map<std::string, sensor::Sensor *> sensors_{};
+#endif
   std::string buffer_;
   void parse_json_(const std::string &data);
 

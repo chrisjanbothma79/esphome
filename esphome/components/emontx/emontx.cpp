@@ -1,7 +1,9 @@
 #include "emontx.h"
 #include "esphome/core/log.h"
 #include "esphome/components/json/json_util.h"
+#ifdef USE_HTTP_REQUEST
 #include "esphome/components/network/util.h"
+#endif
 
 namespace esphome {
 namespace emontx {
@@ -14,11 +16,15 @@ static const char *const TAG = "emontx";
 void EmonTx::setup() {
   ESP_LOGCONFIG(TAG, "Setting up EmonTx component");
 
+#ifdef USE_SENSOR
   // Log sensors at setup time
   ESP_LOGCONFIG(TAG, "Currently registered sensors: %u", this->sensors_.size());
   for (const auto &sensor_pair : this->sensors_) {
     ESP_LOGCONFIG(TAG, "  Sensor '%s' registered", sensor_pair.first.c_str());
   }
+#else
+  ESP_LOGCONFIG(TAG, "Sensor support: DISABLED");
+#endif
 
 #ifdef USE_HTTP_REQUEST
   // Initialize HTTP client if EmonCMS is configured
@@ -99,6 +105,7 @@ void EmonTx::parse_json_(const std::string &data) {
   ESP_LOGV(TAG, "Parsing JSON: %s", data.c_str());
 
   bool success = json::parse_json(data, [this](JsonObject root) {
+#ifdef USE_SENSOR
     // Update all registered sensors
     for (auto &sensor_pair : this->sensors_) {
       const std::string &tag = sensor_pair.first;
@@ -110,6 +117,7 @@ void EmonTx::parse_json_(const std::string &data) {
         sensor->publish_state(value);
       }
     }
+#endif
 
     // Also update all listeners
     for (auto *listener : this->emontx_listeners_) {
@@ -225,11 +233,13 @@ void EmonTx::dump_config() {
  *
  * @param listener Pointer to the listener to register.
  */
+#ifdef USE_SENSOR
 void EmonTx::register_emontx_listener(EmonTxListener *listener) { emontx_listeners_.push_back(listener); }
 
 void EmonTx::register_sensor(const std::string &tag_name, sensor::Sensor *sensor) {
   ESP_LOGCONFIG(TAG, "Registering sensor for tag: %s", tag_name.c_str());
   this->sensors_[tag_name] = sensor;
 }
+#endif
 }  // namespace emontx
 }  // namespace esphome

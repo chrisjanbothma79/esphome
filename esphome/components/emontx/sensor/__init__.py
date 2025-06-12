@@ -26,6 +26,9 @@ from esphome.const import (
 
 from .. import CONF_EMONTX_ID, CONF_TAG_NAME, EmonTx, emontx_ns
 
+# Define USE_SENSOR when this file is loaded
+cg.add_define("USE_SENSOR")
+
 EmonTxSensor = emontx_ns.class_("EmonTxSensor", sensor.Sensor, cg.Component)
 
 # Define sensor type configurations by prefix
