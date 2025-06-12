@@ -630,6 +630,21 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
 )
 
 
+def _set_default_framework(config):
+    if CONF_FRAMEWORK not in config:
+        config = config.copy()
+
+        variant = config[CONF_VARIANT]
+        if variant in ARDUINO_ALLOWED_VARIANTS:
+            config[CONF_FRAMEWORK] = ARDUINO_FRAMEWORK_SCHEMA({})
+            config[CONF_FRAMEWORK][CONF_TYPE] = FRAMEWORK_ARDUINO
+        else:
+            config[CONF_FRAMEWORK] = ESP_IDF_FRAMEWORK_SCHEMA({})
+            config[CONF_FRAMEWORK][CONF_TYPE] = FRAMEWORK_ESP_IDF
+
+    return config
+
+
 FRAMEWORK_ESP_IDF = "esp-idf"
 FRAMEWORK_ARDUINO = "arduino"
 FRAMEWORK_SCHEMA = cv.typed_schema(
@@ -639,7 +654,6 @@ FRAMEWORK_SCHEMA = cv.typed_schema(
     },
     lower=True,
     space="-",
-    default_type=FRAMEWORK_ARDUINO,
 )
 
 
@@ -666,10 +680,11 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(CONF_PARTITIONS): cv.file_,
             cv.Optional(CONF_VARIANT): cv.one_of(*VARIANTS, upper=True),
-            cv.Optional(CONF_FRAMEWORK, default={}): FRAMEWORK_SCHEMA,
+            cv.Optional(CONF_FRAMEWORK): FRAMEWORK_SCHEMA,
         }
     ),
     _detect_variant,
+    _set_default_framework,
     set_core_data,
 )
 
