@@ -76,7 +76,7 @@ void ESP32TouchComponent::setup() {
       touch_pad_isr_register(touch_isr_handler, this, static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ALL));
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to register touch ISR: %s", esp_err_to_name(err));
-    this->cleanup_touch_queue();
+    this->cleanup_touch_queue_();
     this->mark_failed();
     return;
   }
@@ -299,7 +299,7 @@ void ESP32TouchComponent::on_shutdown() {
   touch_pad_intr_disable(static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE |
                                                             TOUCH_PAD_INTR_MASK_TIMEOUT));
   touch_pad_isr_deregister(touch_isr_handler, this);
-  this->cleanup_touch_queue();
+  this->cleanup_touch_queue_();
 
   // Configure wakeup pads if any are set
   this->configure_wakeup_pads();
