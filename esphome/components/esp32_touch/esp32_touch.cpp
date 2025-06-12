@@ -336,9 +336,7 @@ void ESP32TouchComponent::loop() {
 
   // Process any queued touch events from interrupts
   TouchPadEvent event;
-  uint32_t processed_pads = 0;  // Bitmask of pads we processed events for
   while (xQueueReceive(this->touch_queue_, &event, 0) == pdTRUE) {
-    processed_pads |= (1 << event.pad);
     // Find the corresponding sensor
     for (auto *child : this->children_) {
       if (child->get_touch_pad() == event.pad) {
@@ -373,12 +371,6 @@ void ESP32TouchComponent::loop() {
 
   for (auto *child : this->children_) {
     touch_pad_t pad = child->get_touch_pad();
-
-    // Skip if we just processed an event for this pad
-    if ((processed_pads >> pad) & 0x01) {
-      continue;
-    }
-
     uint32_t last_time = this->last_touch_time_[pad];
 
     // If we've never seen this pad touched (last_time == 0) and enough time has passed
