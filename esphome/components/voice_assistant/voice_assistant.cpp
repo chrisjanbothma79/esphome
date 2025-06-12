@@ -204,7 +204,7 @@ void VoiceAssistant::loop() {
       break;
     }
     case State::START_PIPELINE: {
-      ESP_LOGD(TAG, "Requesting start...");
+      ESP_LOGD(TAG, "Requesting start");
       uint32_t flags = 0;
       if (!this->continue_conversation_ && this->use_wake_word_)
         flags |= api::enums::VOICE_ASSISTANT_REQUEST_USE_WAKE_WORD;
@@ -223,7 +223,7 @@ void VoiceAssistant::loop() {
       msg.wake_word_phrase = this->wake_word_;
       this->wake_word_ = "";
 
-      if (this->api_client_ == nullptr || !this->api_client_->send_voice_assistant_request(msg)) {
+      if (this->api_client_ == nullptr || !this->api_client_->send_message(msg)) {
         ESP_LOGW(TAG, "Could not request start");
         this->error_trigger_->trigger("not-connected", "Could not request start");
         this->continuous_ = false;
@@ -245,7 +245,7 @@ void VoiceAssistant::loop() {
         if (this->audio_mode_ == AUDIO_MODE_API) {
           api::VoiceAssistantAudio msg;
           msg.data.assign((char *) this->send_buffer_, read_bytes);
-          this->api_client_->send_voice_assistant_audio(msg);
+          this->api_client_->send_message(msg);
         } else {
           if (!this->udp_socket_running_) {
             if (!this->start_udp_socket_()) {
@@ -331,7 +331,7 @@ void VoiceAssistant::loop() {
 
           api::VoiceAssistantAnnounceFinished msg;
           msg.success = true;
-          this->api_client_->send_voice_assistant_announce_finished(msg);
+          this->api_client_->send_message(msg);
           break;
         }
       }
@@ -577,10 +577,10 @@ void VoiceAssistant::signal_stop_() {
   if (this->api_client_ == nullptr) {
     return;
   }
-  ESP_LOGD(TAG, "Signaling stop...");
+  ESP_LOGD(TAG, "Signaling stop");
   api::VoiceAssistantRequest msg;
   msg.start = false;
-  this->api_client_->send_voice_assistant_request(msg);
+  this->api_client_->send_message(msg);
 }
 
 void VoiceAssistant::start_playback_timeout_() {
@@ -590,7 +590,7 @@ void VoiceAssistant::start_playback_timeout_() {
 
     api::VoiceAssistantAnnounceFinished msg;
     msg.success = true;
-    this->api_client_->send_voice_assistant_announce_finished(msg);
+    this->api_client_->send_message(msg);
   });
 }
 
@@ -695,12 +695,12 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
     }
     case api::enums::VOICE_ASSISTANT_RUN_END: {
       ESP_LOGD(TAG, "Assist Pipeline ended");
-      if ((this->state_ == State::STARTING_PIPELINE) || (this->state_ == State::AWAITING_RESPONSE)) {
-        // Pipeline ended before starting microphone
-        // Or there wasn't a TTS start event ("nevermind")
-        this->set_state_(State::IDLE, State::IDLE);
-      } else if (this->state_ == State::STREAMING_MICROPHONE) {
-        this->ring_buffer_->reset();
+      if ((this->state_ == State::START_PIPELINE) || (this->state_ == State::STARTING_PIPELINE) ||
+          (this->state_ == State::STREAMING_MICROPHONE)) {
+        // Microphone is running, stop it
+        this->set_state_(State::STOP_MICROPHONE, State::IDLE);
+      } else if (this->state_ == State::AWAITING_RESPONSE) {
+        // No TTS start event ("nevermind")
         this->set_state_(State::IDLE, State::IDLE);
       }
       this->defer([this]() { this->end_trigger_->trigger(); });
@@ -868,6 +868,59 @@ void VoiceAssistant::on_announce(const api::VoiceAssistantAnnounceRequest &msg) 
   }
 #endif
 }
+
+void VoiceAssistant::on_set_configuration(const std::vector<std::string> &active_wake_words) {
+#ifdef USE_MICRO_WAKE_WORD
+  if (this->micro_wake_word_) {
+    // Disable all wake words first
+    for (auto &model : this->micro_wake_word_->get_wake_words()) {
+      model->disable();
+    }
+
+    // Enable only active wake words
+    for (auto ww_id : active_wake_words) {
+      for (auto &model : this->micro_wake_word_->get_wake_words()) {
+        if (model->get_id() == ww_id) {
+          model->enable();
+          ESP_LOGD(TAG, "Enabled wake word: %s (id=%s)", model->get_wake_word().c_str(), model->get_id().c_str());
+        }
+      }
+    }
+  }
+#endif
+};
+
+const Configuration &VoiceAssistant::get_configuration() {
+  this->config_.available_wake_words.clear();
+  this->config_.active_wake_words.clear();
+
+#ifdef USE_MICRO_WAKE_WORD
+  if (this->micro_wake_word_) {
+    this->config_.max_active_wake_words = 1;
+
+    for (auto &model : this->micro_wake_word_->get_wake_words()) {
+      if (model->is_enabled()) {
+        this->config_.active_wake_words.push_back(model->get_id());
+      }
+
+      WakeWord wake_word;
+      wake_word.id = model->get_id();
+      wake_word.wake_word = model->get_wake_word();
+      for (const auto &lang : model->get_trained_languages()) {
+        wake_word.trained_languages.push_back(lang);
+      }
+      this->config_.available_wake_words.push_back(std::move(wake_word));
+    }
+  } else {
+#endif
+    // No microWakeWord
+    this->config_.max_active_wake_words = 0;
+#ifdef USE_MICRO_WAKE_WORD
+  }
+#endif
+
+  return this->config_;
+};
 
 VoiceAssistant *global_voice_assistant = nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 

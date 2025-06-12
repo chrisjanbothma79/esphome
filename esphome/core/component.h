@@ -65,6 +65,8 @@ extern const uint32_t STATUS_LED_ERROR;
 
 enum class RetryResult { DONE, RETRY };
 
+extern const uint32_t WARN_IF_BLOCKING_OVER_MS;
+
 class Component {
  public:
   /** Where the component's initialization should happen.
@@ -107,6 +109,19 @@ class Component {
 
   virtual void on_shutdown() {}
   virtual void on_safe_shutdown() {}
+
+  /** Called during teardown to allow component to gracefully finish operations.
+   *
+   * @return true if teardown is complete, false if more time is needed
+   */
+  virtual bool teardown() { return true; }
+
+  /** Called after teardown is complete to power down hardware.
+   *
+   * This is called after all components have finished their teardown process,
+   * making it safe to power down hardware like ethernet PHY.
+   */
+  virtual void on_powerdown() {}
 
   uint32_t get_component_state() const;
 
@@ -157,6 +172,8 @@ class Component {
    * Returns "<unknown>" if source not set
    */
   const char *get_component_source() const;
+
+  bool should_warn_of_blocking(uint32_t blocking_time);
 
  protected:
   friend class Application;
@@ -284,6 +301,7 @@ class Component {
   uint32_t component_state_{0x0000};  ///< State of this component.
   float setup_priority_override_{NAN};
   const char *component_source_{nullptr};
+  uint32_t warn_if_blocking_over_{WARN_IF_BLOCKING_OVER_MS};
   std::string error_message_{};
 };
 
@@ -334,7 +352,11 @@ class PollingComponent : public Component {
 
 class WarnIfComponentBlockingGuard {
  public:
-  WarnIfComponentBlockingGuard(Component *component);
+  WarnIfComponentBlockingGuard(Component *component, uint32_t start_time);
+
+  // Finish the timing operation and return the current time
+  uint32_t finish();
+
   ~WarnIfComponentBlockingGuard();
 
  protected:
