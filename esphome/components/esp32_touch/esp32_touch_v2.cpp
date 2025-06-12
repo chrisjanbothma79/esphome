@@ -79,8 +79,22 @@ void ESP32TouchComponent::setup() {
   touch_pad_set_charge_discharge_times(this->meas_cycle_);
   touch_pad_set_measurement_interval(this->sleep_cycle_);
 
-  // Register ISR handler
-  esp_err_t err = touch_pad_isr_register(touch_isr_handler, this);
+  // Set FSM mode before starting
+  touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
+
+  // Configure which pads to scan
+  uint16_t channel_mask = 0;
+  for (auto *child : this->children_) {
+    channel_mask |= BIT(child->get_touch_pad());
+  }
+  touch_pad_set_channel_mask(channel_mask);
+
+  // Configure timeout if needed
+  touch_pad_timeout_set(true, TOUCH_PAD_THRESHOLD_MAX);
+
+  // Register ISR handler with interrupt mask
+  esp_err_t err =
+      touch_pad_isr_register(touch_isr_handler, this, static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ALL));
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to register touch ISR: %s", esp_err_to_name(err));
     vQueueDelete(this->touch_queue_);
@@ -91,9 +105,6 @@ void ESP32TouchComponent::setup() {
 
   // Enable interrupts
   touch_pad_intr_enable(static_cast<touch_pad_intr_mask_t>(TOUCH_PAD_INTR_MASK_ACTIVE | TOUCH_PAD_INTR_MASK_INACTIVE));
-
-  // Set FSM mode
-  touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
 
   // Start FSM
   touch_pad_fsm_start();
