@@ -56,7 +56,7 @@ class BarType(NumberType):
         var = w.obj
         if mode := config.get(CONF_MODE):
             lv.bar_set_mode(var, literal(mode))
-        animated = literal(config[CONF_ANIMATED])
+        is_animated = literal(config[CONF_ANIMATED])
         if CONF_MIN_VALUE in config:
             lv.bar_set_range(
                 var,
@@ -64,9 +64,9 @@ class BarType(NumberType):
                 await lv_int.process(config[CONF_MAX_VALUE]),
             )
         if value := await lv_int.process(config.get(CONF_VALUE)):
-            lv.bar_set_value(var, value, animated)
+            lv.bar_set_value(var, value, is_animated)
         if start_value := await lv_int.process(config.get(CONF_START_VALUE)):
-            lv.bar_set_start_value(var, start_value, animated)
+            lv.bar_set_start_value(var, start_value, is_animated)
 
     @property
     def animated(self):
