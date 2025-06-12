@@ -19,16 +19,6 @@ static const uint32_t SETUP_MODE_LOG_INTERVAL_MS = 250;
 
 class ESP32TouchBinarySensor;
 
-struct TouchPadEvent {
-  touch_pad_t pad;
-  uint32_t value;
-  bool is_touched;  // Whether this pad is currently touched
-#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
-  uint32_t intr_mask;   // Interrupt mask for S2/S3
-  uint32_t pad_status;  // Pad status bitmap for S2/S3
-#endif
-};
-
 class ESP32TouchComponent : public Component {
  public:
   void register_touch_pad(ESP32TouchBinarySensor *pad) { this->children_.push_back(pad); }

@@ -18,6 +18,12 @@ namespace esp32_touch {
 
 static const char *const TAG = "esp32_touch";
 
+struct TouchPadEventV1 {
+  touch_pad_t pad;
+  uint32_t value;
+  bool is_touched;
+};
+
 void ESP32TouchComponent::setup() {
   ESP_LOGCONFIG(TAG, "Running setup for ESP32");
 
@@ -29,7 +35,7 @@ void ESP32TouchComponent::setup() {
   if (queue_size < 8)
     queue_size = 8;
 
-  this->touch_queue_ = xQueueCreate(queue_size, sizeof(TouchPadEvent));
+  this->touch_queue_ = xQueueCreate(queue_size, sizeof(TouchPadEventV1));
   if (this->touch_queue_ == nullptr) {
     ESP_LOGE(TAG, "Failed to create touch event queue of size %d", queue_size);
     this->mark_failed();
@@ -106,7 +112,7 @@ void ESP32TouchComponent::loop() {
   }
 
   // Process any queued touch events from interrupts
-  TouchPadEvent event;
+  TouchPadEventV1 event;
   while (xQueueReceive(this->touch_queue_, &event, 0) == pdTRUE) {
     // Find the corresponding sensor
     for (auto *child : this->children_) {
@@ -228,7 +234,7 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
     bool is_touched = value < child->get_threshold();
 
     // Always send the current state - the main loop will filter for changes
-    TouchPadEvent event;
+    TouchPadEventV1 event;
     event.pad = pad;
     event.value = value;
     event.is_touched = is_touched;

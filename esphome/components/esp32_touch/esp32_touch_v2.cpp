@@ -20,6 +20,12 @@ namespace esp32_touch {
 
 static const char *const TAG = "esp32_touch";
 
+struct TouchPadEventV2 {
+  touch_pad_t pad;
+  uint32_t intr_mask;
+  uint32_t pad_status;
+};
+
 void ESP32TouchComponent::setup() {
   // Add a delay to allow serial connection, but feed the watchdog
   ESP_LOGCONFIG(TAG, "Waiting 5 seconds before touch sensor setup...");
@@ -36,7 +42,7 @@ void ESP32TouchComponent::setup() {
   if (queue_size < 8)
     queue_size = 8;
 
-  this->touch_queue_ = xQueueCreate(queue_size, sizeof(TouchPadEvent));
+  this->touch_queue_ = xQueueCreate(queue_size, sizeof(TouchPadEventV2));
   if (this->touch_queue_ == nullptr) {
     ESP_LOGE(TAG, "Failed to create touch event queue of size %d", queue_size);
     this->mark_failed();
@@ -257,7 +263,7 @@ void ESP32TouchComponent::loop() {
   const uint32_t now = App.get_loop_component_start_time();
 
   // Process any queued touch events from interrupts
-  TouchPadEvent event;
+  TouchPadEventV2 event;
   while (xQueueReceive(this->touch_queue_, &event, 0) == pdTRUE) {
     // Handle timeout events
     if (event.intr_mask & TOUCH_PAD_INTR_MASK_TIMEOUT) {
@@ -350,7 +356,7 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
   // Read interrupt status and pad status
-  TouchPadEvent event;
+  TouchPadEventV2 event;
   event.intr_mask = touch_pad_read_intr_status_mask();
   event.pad_status = touch_pad_get_status();
   event.pad = touch_pad_get_current_meas_channel();
