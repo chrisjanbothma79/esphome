@@ -122,6 +122,13 @@ void ESP32TouchComponent::setup() {
 
   // Start FSM
   touch_pad_fsm_start();
+
+  // Set thresholds for each pad
+  for (auto *child : this->children_) {
+    if (child->get_threshold() != 0) {
+      touch_pad_set_thresh(child->get_touch_pad(), child->get_threshold());
+    }
+  }
 }
 
 void ESP32TouchComponent::dump_config() {
@@ -278,12 +285,10 @@ void ESP32TouchComponent::loop() {
             child->value_ = value;
 
             // This is an INACTIVE event, so not touched
-            if (child->last_state_) {
-              child->last_state_ = false;
-              child->publish_state(false);
-              ESP_LOGD(TAG, "Touch Pad '%s' released (value: %d, threshold: %d)", child->get_name().c_str(), value,
-                       child->get_threshold());
-            }
+            child->last_state_ = false;
+            child->publish_state(false);
+            ESP_LOGD(TAG, "Touch Pad '%s' released (value: %d, threshold: %d)", child->get_name().c_str(), value,
+                     child->get_threshold());
             break;
           }
         }
