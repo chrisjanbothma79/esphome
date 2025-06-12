@@ -92,6 +92,16 @@ class ESP32TouchComponent : public Component {
   static void touch_isr_handler(void *arg);
   QueueHandle_t touch_queue_{nullptr};
 
+ private:
+  // Touch event structure for ESP32 v1
+  // Contains touch pad info, value, and touch state for queue communication
+  struct TouchPadEventV1 {
+    touch_pad_t pad;
+    uint32_t value;
+    bool is_touched;
+  };
+
+ protected:
   // Design note: last_touch_time_ does not require synchronization primitives because:
   // 1. ESP32 guarantees atomic 32-bit aligned reads/writes
   // 2. ISR only writes timestamps, main loop only reads (except sentinel value 1)
@@ -110,6 +120,15 @@ class ESP32TouchComponent : public Component {
   static void touch_isr_handler(void *arg);
   QueueHandle_t touch_queue_{nullptr};
 
+ private:
+  // Touch event structure for ESP32 v2 (S2/S3)
+  // Contains touch pad and interrupt mask for queue communication
+  struct TouchPadEventV2 {
+    touch_pad_t pad;
+    uint32_t intr_mask;
+  };
+
+ protected:
   // Filter configuration
   touch_filter_mode_t filter_mode_{TOUCH_PAD_FILTER_MAX};
   uint32_t debounce_count_{0};

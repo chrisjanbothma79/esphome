@@ -9,20 +9,6 @@ namespace esp32_touch {
 
 static const char *const TAG = "esp32_touch";
 
-// Forward declare the event structures that are defined in the variant-specific files
-#ifdef USE_ESP32_VARIANT_ESP32
-struct TouchPadEventV1 {
-  touch_pad_t pad;
-  uint32_t value;
-  bool is_touched;
-};
-#else
-struct TouchPadEventV2 {
-  touch_pad_t pad;
-  uint32_t intr_mask;
-};
-#endif
-
 void ESP32TouchComponent::dump_config_base_() {
   const char *lv_s = get_low_voltage_reference_str(this->low_voltage_reference_);
   const char *hv_s = get_high_voltage_reference_str(this->high_voltage_reference_);

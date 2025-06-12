@@ -10,11 +10,6 @@ namespace esp32_touch {
 
 static const char *const TAG = "esp32_touch";
 
-struct TouchPadEventV2 {
-  touch_pad_t pad;
-  uint32_t intr_mask;
-};
-
 void ESP32TouchComponent::setup() {
   // Create queue for touch events first
   if (!this->create_touch_queue()) {

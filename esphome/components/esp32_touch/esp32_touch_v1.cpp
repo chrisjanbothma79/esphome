@@ -18,18 +18,7 @@ namespace esp32_touch {
 
 static const char *const TAG = "esp32_touch";
 
-struct TouchPadEventV1 {
-  touch_pad_t pad;
-  uint32_t value;
-  bool is_touched;
-};
-
 void ESP32TouchComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup for ESP32");
-
-  touch_pad_init();
-  touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
-
   // Create queue for touch events
   // Queue size calculation: children * 4 allows for burst scenarios where ISR
   // fires multiple times before main loop processes. This is important because
@@ -37,6 +26,9 @@ void ESP32TouchComponent::setup() {
   if (!this->create_touch_queue()) {
     return;
   }
+
+  touch_pad_init();
+  touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
 
   // Set up IIR filter if enabled
   if (this->iir_filter_enabled_()) {
