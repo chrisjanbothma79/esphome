@@ -366,12 +366,6 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   }
 }
 
-bool ESP32TouchComponent::filter_configured_() const { return this->filter_mode_ != TOUCH_PAD_FILTER_MAX; }
-
-bool ESP32TouchComponent::denoise_configured_() const { return this->grade_ != TOUCH_PAD_DENOISE_MAX; }
-
-bool ESP32TouchComponent::waterproof_configured_() const { return this->waterproof_guard_ring_pad_ != TOUCH_PAD_MAX; }
-
 }  // namespace esp32_touch
 }  // namespace esphome
 

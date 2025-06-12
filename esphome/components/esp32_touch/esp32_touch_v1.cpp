@@ -262,8 +262,6 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
   }
 }
 
-bool ESP32TouchComponent::iir_filter_enabled_() const { return this->iir_filter_ > 0; }
-
 }  // namespace esp32_touch
 }  // namespace esphome
 
