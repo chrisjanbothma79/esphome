@@ -12,19 +12,16 @@
 #include "hal/touch_sensor_ll.h"
 // Include for RTC clock frequency
 #include "soc/rtc.h"
-// Include FreeRTOS ring buffer
-#include "freertos/ringbuf.h"
 
 namespace esphome {
 namespace esp32_touch {
 
 static const char *const TAG = "esp32_touch";
 
-// Structure for a single pad's state in the ring buffer
-struct TouchPadState {
-  uint8_t pad;      // touch_pad_t
-  uint32_t value;   // Current reading
-  bool is_touched;  // Touch state
+struct TouchPadEventV1 {
+  touch_pad_t pad;
+  uint32_t value;
+  bool is_touched;
 };
 
 void ESP32TouchComponent::setup() {
@@ -33,19 +30,14 @@ void ESP32TouchComponent::setup() {
   touch_pad_init();
   touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
 
-  // Create ring buffer for touch events
-  // Size calculation: We need space for multiple snapshots
-  // Each snapshot contains: array of TouchPadState structures
-  size_t pad_state_size = sizeof(TouchPadState);
-  size_t snapshot_size = this->children_.size() * pad_state_size;
+  // Create queue for touch events
+  size_t queue_size = this->children_.size() * 4;
+  if (queue_size < 8)
+    queue_size = 8;
 
-  // Allow for 4 snapshots in the buffer to handle normal operation and bursts
-  size_t buffer_size = snapshot_size * 4;
-
-  // Create a byte buffer ring buffer (allows variable sized items)
-  this->ring_buffer_handle_ = xRingbufferCreate(buffer_size, RINGBUF_TYPE_BYTEBUF);
-  if (this->ring_buffer_handle_ == nullptr) {
-    ESP_LOGE(TAG, "Failed to create ring buffer of size %d", buffer_size);
+  this->touch_queue_ = xQueueCreate(queue_size, sizeof(TouchPadEventV1));
+  if (this->touch_queue_ == nullptr) {
+    ESP_LOGE(TAG, "Failed to create touch event queue of size %d", queue_size);
     this->mark_failed();
     return;
   }
@@ -73,8 +65,8 @@ void ESP32TouchComponent::setup() {
   esp_err_t err = touch_pad_isr_register(touch_isr_handler, this);
   if (err != ESP_OK) {
     ESP_LOGE(TAG, "Failed to register touch ISR: %s", esp_err_to_name(err));
-    vRingbufferDelete(this->ring_buffer_handle_);
-    this->ring_buffer_handle_ = nullptr;
+    vQueueDelete(this->touch_queue_);
+    this->touch_queue_ = nullptr;
     this->mark_failed();
     return;
   }
@@ -122,44 +114,33 @@ void ESP32TouchComponent::loop() {
     this->setup_mode_last_log_print_ = now;
   }
 
-  // Process ring buffer entries
-  size_t item_size;
-  TouchPadState *pad_states;
+  // Process any queued touch events from interrupts
+  TouchPadEventV1 event;
+  while (xQueueReceive(this->touch_queue_, &event, 0) == pdTRUE) {
+    // Find the corresponding sensor
+    for (auto *child : this->children_) {
+      if (child->get_touch_pad() == event.pad) {
+        child->value_ = event.value;
 
-  // Receive all available items from ring buffer (non-blocking)
-  while ((pad_states = (TouchPadState *) xRingbufferReceive(this->ring_buffer_handle_, &item_size, 0)) != nullptr) {
-    // Calculate number of pads in this snapshot
-    size_t num_pads = item_size / sizeof(TouchPadState);
+        // The interrupt gives us the touch state directly
+        bool new_state = event.is_touched;
 
-    // Process each pad in the snapshot
-    for (size_t i = 0; i < num_pads; i++) {
-      const TouchPadState &pad_state = pad_states[i];
-
-      // Find the corresponding sensor
-      for (auto *child : this->children_) {
-        if (child->get_touch_pad() == static_cast<touch_pad_t>(pad_state.pad)) {
-          child->value_ = pad_state.value;
-
-          // Track when we last saw this pad as touched
-          if (pad_state.is_touched) {
-            this->last_touch_time_[pad_state.pad] = now;
-          }
-
-          // Only publish if state changed
-          if (pad_state.is_touched != child->last_state_) {
-            child->last_state_ = pad_state.is_touched;
-            child->publish_state(pad_state.is_touched);
-            ESP_LOGV(TAG, "Touch Pad '%s' state: %s (value: %" PRIu32 ", threshold: %" PRIu32 ")",
-                     child->get_name().c_str(), pad_state.is_touched ? "ON" : "OFF", pad_state.value,
-                     child->get_threshold());
-          }
-          break;
+        // Track when we last saw this pad as touched
+        if (new_state) {
+          this->last_touch_time_[event.pad] = now;
         }
+
+        // Only publish if state changed
+        if (new_state != child->last_state_) {
+          child->last_state_ = new_state;
+          child->publish_state(new_state);
+          // Original ESP32: ISR only fires when touched, release is detected by timeout
+          ESP_LOGV(TAG, "Touch Pad '%s' state: ON (value: %" PRIu32 ", threshold: %" PRIu32 ")",
+                   child->get_name().c_str(), event.value, child->get_threshold());
+        }
+        break;
       }
     }
-
-    // Return item to ring buffer
-    vRingbufferReturnItem(this->ring_buffer_handle_, (void *) pad_states);
   }
 
   // Check for released pads periodically
@@ -203,10 +184,8 @@ void ESP32TouchComponent::loop() {
 void ESP32TouchComponent::on_shutdown() {
   touch_pad_intr_disable();
   touch_pad_isr_deregister(touch_isr_handler, this);
-
-  if (this->ring_buffer_handle_) {
-    vRingbufferDelete(this->ring_buffer_handle_);
-    this->ring_buffer_handle_ = nullptr;
+  if (this->touch_queue_) {
+    vQueueDelete(this->touch_queue_);
   }
 
   bool is_wakeup_source = false;
@@ -239,23 +218,7 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
 
   touch_pad_clear_status();
 
-  // Calculate size needed for this snapshot
-  size_t num_pads = component->children_.size();
-  size_t snapshot_size = num_pads * sizeof(TouchPadState);
-
-  // Allocate space in ring buffer (ISR-safe version)
-  void *buffer = xRingbufferSendAcquireFromISR(component->ring_buffer_handle_, snapshot_size);
-  if (buffer == nullptr) {
-    // Buffer full - track overflow
-    component->ring_buffer_overflow_count_++;
-    return;
-  }
-
-  // Fill the buffer with pad states
-  TouchPadState *pad_states = (TouchPadState *) buffer;
-
-  // Process all configured pads
-  size_t pad_index = 0;
+  // Process all configured pads to check their current state
   for (auto *child : component->children_) {
     touch_pad_t pad = child->get_touch_pad();
 
@@ -275,24 +238,21 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
       continue;
     }
 
-    // Store pad state
-    pad_states[pad_index].pad = static_cast<uint8_t>(pad);
-    pad_states[pad_index].value = value;
     // For original ESP32, lower value means touched
-    pad_states[pad_index].is_touched = value < child->get_threshold();
+    bool is_touched = value < child->get_threshold();
 
-    pad_index++;
-  }
+    // Always send the current state - the main loop will filter for changes
+    TouchPadEventV1 event;
+    event.pad = pad;
+    event.value = value;
+    event.is_touched = is_touched;
 
-  // Adjust size if we skipped any pads
-  size_t actual_size = pad_index * sizeof(TouchPadState);
-
-  // Send the item
-  BaseType_t higher_priority_task_woken = pdFALSE;
-  xRingbufferSendCompleteFromISR(component->ring_buffer_handle_, buffer, actual_size, &higher_priority_task_woken);
-
-  if (higher_priority_task_woken) {
-    portYIELD_FROM_ISR();
+    // Send to queue from ISR
+    BaseType_t x_higher_priority_task_woken = pdFALSE;
+    xQueueSendFromISR(component->touch_queue_, &event, &x_higher_priority_task_woken);
+    if (x_higher_priority_task_woken) {
+      portYIELD_FROM_ISR();
+    }
   }
 }
 
