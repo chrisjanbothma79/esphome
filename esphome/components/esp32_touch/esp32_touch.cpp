@@ -354,8 +354,8 @@ void ESP32TouchComponent::loop() {
         if (new_state != child->last_state_) {
           child->last_state_ = new_state;
           child->publish_state(new_state);
-          ESP_LOGD(TAG, "Touch Pad '%s' state: %s (value: %" PRIu32 ", threshold: %" PRIu32 ")",
-                   child->get_name().c_str(), new_state ? "ON" : "OFF", event.value, child->get_threshold());
+          ESP_LOGD(TAG, "Touch Pad '%s' state: ON (value: %" PRIu32 ", threshold: %" PRIu32 ")",
+                   child->get_name().c_str(), event.value, child->get_threshold());
         }
         break;
       }
