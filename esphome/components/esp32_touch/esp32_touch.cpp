@@ -119,26 +119,12 @@ void ESP32TouchComponent::setup() {
   // Enable touch pad interrupt
   touch_pad_intr_enable();
 
-  // Log which pads are configured and initialize their state
-  ESP_LOGI(TAG, "Configured touch pads:");
+  // Initialize all sensors as not touched
+  // The ISR will immediately update with actual state
   for (auto *child : this->children_) {
-    uint32_t value = this->component_touch_pad_read(child->get_touch_pad());
-    ESP_LOGI(TAG, "  Touch Pad %d: threshold=%d, current value=%d", (int) child->get_touch_pad(),
-             (int) child->get_threshold(), (int) value);
-
-    // Initialize the sensor state based on current value
-#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
-    bool is_touched = value > child->get_threshold();
-#else
-    bool is_touched = value < child->get_threshold();
-#endif
-
-    child->last_state_ = is_touched;
-    child->publish_initial_state(is_touched);
-
-    if (is_touched) {
-      this->last_touch_time_[child->get_touch_pad()] = App.get_loop_component_start_time();
-    }
+    // Initialize as not touched
+    child->last_state_ = false;
+    child->publish_initial_state(false);
   }
 }
 
@@ -341,25 +327,6 @@ void ESP32TouchComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "    Pad: T%" PRIu32, (uint32_t) child->get_touch_pad());
     ESP_LOGCONFIG(TAG, "    Threshold: %" PRIu32, child->get_threshold());
   }
-}
-
-uint32_t ESP32TouchComponent::component_touch_pad_read(touch_pad_t tp) {
-#if defined(USE_ESP32_VARIANT_ESP32S2) || defined(USE_ESP32_VARIANT_ESP32S3)
-  uint32_t value = 0;
-  if (this->filter_configured_()) {
-    touch_pad_filter_read_smooth(tp, &value);
-  } else {
-    touch_pad_read_raw_data(tp, &value);
-  }
-#else
-  uint16_t value = 0;
-  if (this->iir_filter_enabled_()) {
-    touch_pad_read_filtered(tp, &value);
-  } else {
-    touch_pad_read(tp, &value);
-  }
-#endif
-  return value;
 }
 
 void ESP32TouchComponent::loop() {
