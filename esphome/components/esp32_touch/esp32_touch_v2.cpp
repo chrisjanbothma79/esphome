@@ -5,9 +5,6 @@
 #include "esphome/core/log.h"
 #include "esphome/core/hal.h"
 
-#include <algorithm>
-#include <cinttypes>
-
 namespace esphome {
 namespace esp32_touch {
 
