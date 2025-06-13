@@ -114,17 +114,17 @@ start_esphome() {
   # Start esphome process in background
   build_count=$((build_count + 1))
   echo "> [$build_count/$total_builds] [$target_component] [$test_name] [$target_platform_with_version]"
-  
+
   (
     # Add compile process limit for ESPHome internal parallelization
     export ESPHOME_COMPILE_PROCESS_LIMIT=2
     python3 -m esphome -s component_name $target_component -s component_dir ../../components/$target_component -s test_name $test_name -s target_platform $target_platform $esphome_command $component_test_file
   ) &
-  
+
   local pid=$!
   pids+=($pid)
   build_info+=("$target_component/$test_name/$target_platform_with_version")
-  
+
   # Wait if we've reached the job limit
   wait_for_jobs $num_jobs
 }
@@ -145,7 +145,7 @@ for f in ./tests/components/$target_component/*.*.yaml; do
       target_platform="${file_name[1]}"
       target_platform_with_version=${target_platform_file:52}
       target_platform_with_version=${target_platform_with_version%.*}
-      
+
       if [ -n "$platform_filter" ] && [[ ! "$target_platform_with_version" =~ ^$platform_filter ]]; then
         continue
       fi
@@ -160,7 +160,7 @@ for f in ./tests/components/$target_component/*.*.yaml; do
       for target_platform_file in ./tests/test_build_components/build_components_base.$target_platform*.yaml; do
         target_platform_with_version=${target_platform_file:52}
         target_platform_with_version=${target_platform_with_version%.*}
-        
+
         if [ -n "$platform_filter" ] && [[ ! "$target_platform_with_version" =~ ^$platform_filter ]]; then
           continue
         fi
@@ -189,7 +189,7 @@ for f in ./tests/components/$target_component/*.*.yaml; do
 
   if [ "$target_platform" = "all" ] || [ $file_name_parts = 2 ]; then
     # Test has *not* defined a specific target platform. Need to run tests for all possible target platforms.
-    
+
     for target_platform_file in ./tests/test_build_components/build_components_base.*.yaml; do
       IFS='/' read -r -a folder_name <<< "$target_platform_file"
       IFS='.' read -r -a file_name <<< "${folder_name[3]}"
@@ -202,7 +202,7 @@ for f in ./tests/components/$target_component/*.*.yaml; do
 
   else
     # Test has defined a specific target platform.
-  
+
     # Validate we have a base test yaml for selected platform.
     target_platform_file="./tests/test_build_components/build_components_base.$target_platform.yaml"
     if ! [ -f "$target_platform_file" ]; then
