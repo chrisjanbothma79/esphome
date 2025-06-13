@@ -415,11 +415,15 @@ jobs:
       - name: test_build_components -e config -c ${{ matrix.file }}
         run: |
           . venv/bin/activate
-          ./script/test_build_components -e config -c ${{ matrix.file }}
+          # Use 4 parallel jobs for config validation
+          ./script/test_build_components -e config -c ${{ matrix.file }} -j 4 -f
       - name: test_build_components -e compile -c ${{ matrix.file }}
         run: |
           . venv/bin/activate
-          ./script/test_build_components -e compile -c ${{ matrix.file }}
+          mkdir -p build_cache
+          export PLATFORMIO_BUILD_CACHE_DIR=$PWD/build_cache
+          # Use 2 parallel jobs for compilation (resource intensive)
+          ./script/test_build_components -e compile -c ${{ matrix.file }} -j 2 -f -b $PWD/build_cache
 
   test-build-components-splitter:
     name: Split components for testing into 20 groups maximum
@@ -471,17 +475,28 @@ jobs:
       - name: Validate config
         run: |
           . venv/bin/activate
-          for component in ${{ matrix.components }}; do
-            ./script/test_build_components -e config -c $component
+          # Process all components in parallel for config validation
+          components="${{ matrix.components }}"
+          # Convert space-separated list to multiple -c flags
+          component_args=""
+          for component in $components; do
+            component_args="$component_args -c $component"
           done
+          # Use 8 parallel jobs for lightweight config validation
+          ./script/test_build_components -e config $component_args -j 8 -f
       - name: Compile config
         run: |
           . venv/bin/activate
-          mkdir build_cache
+          mkdir -p build_cache
           export PLATFORMIO_BUILD_CACHE_DIR=$PWD/build_cache
-          for component in ${{ matrix.components }}; do
-            ./script/test_build_components -e compile -c $component
+          # Process all components in parallel for compilation
+          components="${{ matrix.components }}"
+          component_args=""
+          for component in $components; do
+            component_args="$component_args -c $component"
           done
+          # Use 4 parallel jobs for resource-intensive compilation
+          ./script/test_build_components -e compile $component_args -j 4 -f -b $PWD/build_cache
 
   ci-status:
     name: CI Status
