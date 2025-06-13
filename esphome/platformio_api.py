@@ -86,35 +86,9 @@ def run_platformio_cli(*args, **kwargs) -> str | int:
     if os.environ.get("ESPHOME_USE_SUBPROCESS") is not None:
         return run_external_process(*cmd, **kwargs)
 
-    # Import platformio with lock to prevent race conditions during initialization
-    from esphome.git_lock import platformio_init_lock, platformio_install_lock
-
-    # Check if ~/.platformio exists to determine if initial setup is needed
-    home_pio = Path.home() / ".platformio"
-    needs_init = not home_pio.exists()
-
-    with platformio_init_lock():
-        import platformio.__main__
-
-        # If this is the first time, ensure the directory is created
-        if needs_init:
-            _LOGGER.info("Initializing PlatformIO for the first time...")
-            home_pio.mkdir(exist_ok=True)
+    import platformio.__main__
 
     patch_structhash()
-
-    # For run commands, check if this is the first run that might need package installation
-    if len(args) > 0 and args[0] == "run":
-        # Check if .pio directory exists - if not, we need to lock for initial setup
-        pio_dir = Path(CORE.build_path) / ".pio"
-        if not pio_dir.exists():
-            _LOGGER.info("First build detected, using lock for PlatformIO setup...")
-            with platformio_install_lock("initial_setup", timeout=600.0):
-                result = run_external_command(platformio.__main__.main, *cmd, **kwargs)
-                _LOGGER.info("Initial PlatformIO setup completed")
-                return result
-
-    # For subsequent runs or non-run commands, no locking needed
     return run_external_command(platformio.__main__.main, *cmd, **kwargs)
 
 
