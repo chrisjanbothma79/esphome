@@ -5,7 +5,6 @@ from esphome.const import (
     PLATFORM_BK72XX,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
-    PLATFORM_RP2040,
     PLATFORM_RTL87XX,
 )
 from esphome.core import CORE, coroutine_with_priority
@@ -15,15 +14,7 @@ CODEOWNERS = ["@OttoWinter"]
 CONFIG_SCHEMA = cv.All(
     cv.Schema({}),
     cv.only_with_arduino,
-    cv.only_on(
-        [
-            PLATFORM_ESP32,
-            PLATFORM_ESP8266,
-            PLATFORM_BK72XX,
-            PLATFORM_RTL87XX,
-            PLATFORM_RP2040,
-        ]
-    ),
+    cv.only_on([PLATFORM_ESP32, PLATFORM_ESP8266, PLATFORM_BK72XX, PLATFORM_RTL87XX]),
 )
 
 
@@ -35,6 +26,3 @@ async def to_code(config):
     elif CORE.is_esp8266:
         # https://github.com/ESP32Async/ESPAsyncTCP
         cg.add_library("ESP32Async/ESPAsyncTCP", "2.0.0")
-    elif CORE.is_rp2040:
-        # https://github.com/ayushsharma82/RPAsyncTCP/blob/main/library.json
-        cg.add_library("ayushsharma82/RPAsyncTCP", "1.3.2")
