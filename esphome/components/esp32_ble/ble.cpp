@@ -383,14 +383,22 @@ template void enqueue_ble_event(esp_gatts_cb_event_t, esp_gatt_if_t, esp_ble_gat
 template void enqueue_ble_event(esp_gattc_cb_event_t, esp_gatt_if_t, esp_ble_gattc_cb_param_t *);
 
 void ESP32BLE::gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
-  // Only queue the 4 GAP events we actually handle
-  if (event != ESP_GAP_BLE_SCAN_RESULT_EVT && event != ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT &&
-      event != ESP_GAP_BLE_SCAN_START_COMPLETE_EVT && event != ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT) {
-    ESP_LOGW(TAG, "Ignoring unexpected GAP event type: %d", event);
-    return;
-  }
+  switch (event) {
+    // Only queue the 4 GAP events we actually handle
+    case ESP_GAP_BLE_SCAN_RESULT_EVT:
+    case ESP_GAP_BLE_SCAN_PARAM_SET_COMPLETE_EVT:
+    case ESP_GAP_BLE_SCAN_START_COMPLETE_EVT:
+    case ESP_GAP_BLE_SCAN_STOP_COMPLETE_EVT:
+      enqueue_ble_event(event, param);
+      return;
 
-  enqueue_ble_event(event, param);
+    // Ignore these GAP events as they are not relevant for our use case
+    case ESP_GAP_BLE_UPDATE_CONN_PARAMS_EVT:
+    case ESP_GAP_BLE_SET_PKT_LENGTH_COMPLETE_EVT:
+
+      return;
+  }
+  ESP_LOGW(TAG, "Ignoring unexpected GAP event type: %d", event);
 }
 
 void ESP32BLE::gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if,
