@@ -1,6 +1,7 @@
 #pragma once
 #ifdef USE_ESP_IDF
 
+#include "esphome/core/defines.h"
 #include <esp_http_server.h>
 
 #include <functional>
