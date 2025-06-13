@@ -1791,7 +1791,7 @@ void APIConnection::process_batch_() {
   this->batch_first_message_ = true;
 
   size_t items_processed = 0;
-  uint32_t remaining_size = std::numeric_limits<uint16_t>::max();
+  uint16_t remaining_size = std::numeric_limits<uint16_t>::max();
 
   // Track where each message's header padding begins in the buffer
   // For plaintext: this is where the 6-byte header padding starts
