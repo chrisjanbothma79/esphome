@@ -87,13 +87,20 @@ def run_platformio_cli(*args, **kwargs) -> str | int:
         return run_external_process(*cmd, **kwargs)
 
     # Import platformio with lock to prevent race conditions during initialization
-    from esphome.git_lock import platformio_init_lock
+    from esphome.git_lock import platformio_init_lock, platformio_install_lock
 
     with platformio_init_lock():
         import platformio.__main__
 
     patch_structhash()
-    return run_external_command(platformio.__main__.main, *cmd, **kwargs)
+
+    # For run commands that might install packages, use global locking
+    # This prevents concurrent package installations which cause conflicts
+    if len(args) > 0 and args[0] == "run":
+        with platformio_install_lock("global_packages"):
+            return run_external_command(platformio.__main__.main, *cmd, **kwargs)
+    else:
+        return run_external_command(platformio.__main__.main, *cmd, **kwargs)
 
 
 def run_platformio_cli_run(config, verbose, *args, **kwargs) -> str | int:
