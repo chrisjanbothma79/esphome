@@ -29,7 +29,7 @@ from esphome.const import (
     CONF_VERSION,
 )
 from . import (
-    ESP32Can,
+    esp32_can,
     esp32_can_ns,
 )
 
@@ -93,7 +93,7 @@ def validate_bit_rate(value):
 
 CONFIG_SCHEMA = canbus.CANBUS_SCHEMA.extend(
     {
-        cv.GenerateID(): cv.declare_id(ESP32Can),
+        cv.GenerateID(): cv.declare_id(esp32_can),
         cv.Optional(CONF_BIT_RATE, default="125KBPS"): validate_bit_rate,
         cv.Required(CONF_RX_PIN): pins.internal_gpio_input_pin_number,
         cv.Required(CONF_TX_PIN): pins.internal_gpio_output_pin_number,
