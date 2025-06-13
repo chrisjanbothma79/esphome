@@ -38,6 +38,7 @@ CONF_OPAQUE = "opaque"
 CONF_CHROMA_KEY = "chroma_key"
 CONF_ALPHA_CHANNEL = "alpha_channel"
 CONF_INVERT_ALPHA = "invert_alpha"
+CONF_BYTE_ORDER = "byte_order"
 
 TRANSPARENCY_TYPES = (
     CONF_OPAQUE,
@@ -469,6 +470,9 @@ BASE_SCHEMA = cv.Schema(
             "NONE", "FLOYDSTEINBERG", upper=True
         ),
         cv.Optional(CONF_INVERT_ALPHA, default=False): cv.boolean,
+        cv.Optional(CONF_BYTE_ORDER, default="big_endian"): cv.one_of(
+            "big_endian", "little_endian"
+        ),
         cv.GenerateID(CONF_RAW_DATA_ID): cv.declare_id(cg.uint8),
     }
 ).add_extra(validate_settings)
