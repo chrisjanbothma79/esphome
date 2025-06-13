@@ -260,6 +260,27 @@ void ESP32TouchComponent::loop() {
     if (event.intr_mask & TOUCH_PAD_INTR_MASK_TIMEOUT) {
       // Resume measurement after timeout
       touch_pad_timeout_resume();
+
+      // For timeout events, we should check if the pad is actually touched
+      // Timeout occurs when a pad stays above threshold for too long
+      for (auto *child : this->children_) {
+        if (child->get_touch_pad() != event.pad) {
+          continue;
+        }
+
+        // Read current value to determine actual state
+        uint32_t value = this->read_touch_value(event.pad);
+        bool is_touched = value > child->get_threshold();
+
+        // Update state if changed
+        if (child->last_state_ != is_touched) {
+          child->last_state_ = is_touched;
+          child->publish_state(is_touched);
+          ESP_LOGD(TAG, "Touch Pad '%s' %s via timeout (value: %d %s threshold: %d)", child->get_name().c_str(),
+                   is_touched ? "touched" : "released", value, is_touched ? ">" : "<=", child->get_threshold());
+        }
+        break;
+      }
       continue;
     }
 
