@@ -118,6 +118,13 @@ start_esphome() {
   (
     # Add compile process limit for ESPHome internal parallelization
     export ESPHOME_COMPILE_PROCESS_LIMIT=2
+    
+    # For compilation, add a small random delay to reduce thundering herd effect
+    # This helps stagger the package installation requests
+    if [ "$esphome_command" = "compile" ]; then
+      sleep $((RANDOM % 3))
+    fi
+    
     python3 -m esphome -s component_name $target_component -s component_dir ../../components/$target_component -s test_name $test_name -s target_platform $target_platform $esphome_command $component_test_file
   ) &
 
