@@ -42,6 +42,78 @@ _LOGGER = logging.getLogger(__name__)
 SECRET_YAML = "secrets.yaml"
 _SECRET_CACHE = {}
 _SECRET_VALUES = {}
+_SECRET_FILE_CACHE: dict[
+    str, tuple[float, int, dict[str, Any]]
+] = {}  # Cache for loaded secret files with mtime and size
+_YAML_FILE_CACHE: OrderedDict[str, tuple[float, int, dict[str, Any]]] = (
+    OrderedDict()
+)  # LRU cache for all loaded YAML files
+
+# Maximum number of YAML files to cache to prevent memory leaks in dashboard
+_MAX_YAML_CACHE_SIZE = 100
+
+
+def _load_with_cache(
+    cache: dict[str, tuple[float, int, dict[str, Any]]],
+    file_path: str,
+    loader_func: Callable[[str], dict[str, Any]],
+) -> dict[str, Any]:
+    """Load a file with mtime-based caching.
+
+    Args:
+        cache: Dictionary to store cached data
+        file_path: Path to the file to load
+        loader_func: Function to call to load the file
+
+    Returns:
+        The loaded content (from cache if available and fresh)
+    """
+    try:
+        return _try_load_with_cache(cache, file_path, loader_func)
+    except OSError:
+        # File doesn't exist or can't be accessed
+        return loader_func(file_path)
+
+
+def _try_load_with_cache(
+    cache: dict[str, tuple[float, int, dict[str, Any]]],
+    file_path: str,
+    loader_func: Callable[[str], dict[str, Any]],
+) -> dict[str, Any]:
+    """Internal helper for cache loading logic."""
+    stat = os.stat(file_path)
+    mtime = stat.st_mtime
+    size = stat.st_size
+
+    if file_path in cache:
+        cached_mtime, cached_size, cached_content = cache[file_path]
+        if cached_mtime == mtime and cached_size == size:
+            # Move to end for LRU if using OrderedDict
+            if isinstance(cache, OrderedDict):
+                cache.move_to_end(file_path)
+            # Return cached content (deep copy for YAML to avoid modifications)
+            if cache is _YAML_FILE_CACHE:
+                import copy
+
+                return copy.deepcopy(cached_content)
+            return cached_content
+
+    # Load the file
+    content = loader_func(file_path)
+
+    # Cache it
+    if cache is _YAML_FILE_CACHE:
+        import copy
+
+        # Implement LRU eviction for YAML cache
+        if len(cache) >= _MAX_YAML_CACHE_SIZE:
+            # Remove oldest entry
+            cache.popitem(last=False)
+        cache[file_path] = (mtime, size, copy.deepcopy(content))
+    else:
+        cache[file_path] = (mtime, size, content)
+
+    return content
 
 
 class ESPHomeDataBase:
@@ -260,16 +332,26 @@ class ESPHomeLoaderMixin:
 
     @_add_data_ref
     def construct_secret(self, node: yaml.Node) -> str:
+        # Try local secrets file first
+        secret_path = self._rel_path(SECRET_YAML)
+
         try:
-            secrets = self.yaml_loader(self._rel_path(SECRET_YAML))
-        except EsphomeError as e:
+            secrets = _load_with_cache(
+                _SECRET_FILE_CACHE, secret_path, self.yaml_loader
+            )
+        except (OSError, EsphomeError) as e:
+            # Try main config directory
             if self.name == CORE.config_path:
-                raise e
+                raise EsphomeError(f"Could not load secrets: {e}") from e
+
+            main_config_dir = os.path.dirname(CORE.config_path)
+            main_secret_yml = os.path.join(main_config_dir, SECRET_YAML)
+
             try:
-                main_config_dir = os.path.dirname(CORE.config_path)
-                main_secret_yml = os.path.join(main_config_dir, SECRET_YAML)
-                secrets = self.yaml_loader(main_secret_yml)
-            except EsphomeError as er:
+                secrets = _load_with_cache(
+                    _SECRET_FILE_CACHE, main_secret_yml, self.yaml_loader
+                )
+            except (OSError, EsphomeError) as er:
                 raise EsphomeError(f"{e}\n{er}") from er
 
         if node.value not in secrets:
@@ -418,16 +500,24 @@ def load_yaml(fname: str, clear_secrets: bool = True) -> Any:
     if clear_secrets:
         _SECRET_VALUES.clear()
         _SECRET_CACHE.clear()
+        _SECRET_FILE_CACHE.clear()
+        _YAML_FILE_CACHE.clear()
     return _load_yaml_internal(fname)
 
 
 def _load_yaml_internal(fname: str) -> Any:
-    """Load a YAML file."""
-    try:
-        with open(fname, encoding="utf-8") as f_handle:
-            return parse_yaml(fname, f_handle)
-    except (UnicodeDecodeError, OSError) as err:
-        raise EsphomeError(f"Error reading file {fname}: {err}") from err
+    """Load a YAML file with caching."""
+    # Normalize path for consistent caching
+    fname = os.path.abspath(fname)
+
+    def loader(path: str) -> Any:
+        try:
+            with open(path, encoding="utf-8") as f_handle:
+                return parse_yaml(path, f_handle)
+        except (UnicodeDecodeError, OSError) as err:
+            raise EsphomeError(f"Error reading file {path}: {err}") from err
+
+    return _load_with_cache(_YAML_FILE_CACHE, fname, loader)
 
 
 def parse_yaml(
