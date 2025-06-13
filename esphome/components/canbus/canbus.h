@@ -7,8 +7,6 @@
 #include <cinttypes>
 #include <vector>
 
-#define USE_CANBUS_TX_CALLBACK
-
 namespace esphome {
 namespace canbus {
 
@@ -97,7 +95,7 @@ class Canbus : public Component {
       std::function<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)> callback) {
     this->callback_manager_.add(std::move(callback));
   }
-#ifdef USE_CANBUS_TX_CALLBACK
+#ifdef USE_CAN_DEBUGGER
   void add_transmit_callback(
       std::function<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)> callback) {
     this->transmit_callback_manager_.add(std::move(callback));
@@ -112,7 +110,7 @@ class Canbus : public Component {
   CanSpeed bit_rate_;
   CallbackManager<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)>
       callback_manager_{};
-#ifdef USE_CANBUS_TX_CALLBACK
+#ifdef USE_ESP32_CAN
   CallbackManager<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)>
       transmit_callback_manager_{};
 #endif

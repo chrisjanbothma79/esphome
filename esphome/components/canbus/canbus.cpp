@@ -46,7 +46,7 @@ void Canbus::send_data(uint32_t can_id, bool use_extended_id, bool remote_transm
     can_message.data[i] = data[i];
     ESP_LOGVV(TAG, "  data[%d]=%02x", i, can_message.data[i]);
   }
-#ifdef USE_CANBUS_TX_CALLBACK
+#ifdef USE_CAN_DEBUGGER
   this->transmit_callback_manager_(can_message.can_id, can_message.use_extended_id,
                                    can_message.remote_transmission_request, data);
 #endif
