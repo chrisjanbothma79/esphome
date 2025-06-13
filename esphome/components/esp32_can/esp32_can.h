@@ -97,7 +97,7 @@ class ESP32Can : public canbus::Canbus {
   twai_filter_config_t f_config_ = TWAI_FILTER_CONFIG_ACCEPT_ALL();
   twai_timing_config_t t_config_;
   optional<twai_general_config_t> initialized_g_config_;
-#ifdef USE_ESP32_CAN
+#ifdef USE_CAN_DEBUGGER
   CallbackManager<void(const twai_general_config_t &g_config, const twai_timing_config_t &t_config,
                        const twai_filter_config_t &f_config, esp_err_t err)>
       config_callback_manager_{};
