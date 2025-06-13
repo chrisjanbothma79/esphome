@@ -153,7 +153,7 @@ def final_validate_(config):
         VARIANT_ESP32H2: 1,
     }[get_esp32_variant()]
 
-    if can_controller_count > count:
+    if can_controller_count < count:
         raise cv.Invalid(
             f"Only {can_controller_count} CAN bus controllers available. {count} requested"
         )
