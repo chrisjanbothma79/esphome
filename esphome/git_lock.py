@@ -120,7 +120,12 @@ def platformio_init_lock(timeout: float = 30.0):
 
 
 @contextmanager
-def platformio_install_lock(package_name: str, timeout: float = 60.0):
+def platformio_install_lock(package_name: str, timeout: float = 300.0):
     """Lock for PlatformIO package installation to prevent race conditions."""
+    _LOGGER.info(
+        f"Waiting for PlatformIO package installation lock ({package_name})..."
+    )
     with git_operation_lock(f"platformio_install_{package_name}", timeout=timeout):
+        _LOGGER.info(f"Acquired PlatformIO package installation lock ({package_name})")
         yield
+        _LOGGER.info(f"Released PlatformIO package installation lock ({package_name})")
