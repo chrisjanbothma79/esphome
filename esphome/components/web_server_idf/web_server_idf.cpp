@@ -14,7 +14,7 @@
 #ifdef USE_WEBSERVER
 #include "esphome/components/web_server/web_server.h"
 #include "esphome/components/web_server/list_entities.h"
-#endif // USE_WEBSERVER
+#endif  // USE_WEBSERVER
 
 namespace esphome {
 namespace web_server_idf {
