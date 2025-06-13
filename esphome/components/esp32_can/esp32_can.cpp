@@ -1,15 +1,13 @@
-#include <cstring>
-#include "driver/twai.h"
-#include "esphome/core/defines.h"
+#include "esp32_can.h"
 
 #ifdef USE_ESP32
-#include "esp32_can.h"
+#include "driver/twai.h"
 #include "esphome/core/log.h"
 
 // WORKAROUND, because CAN_IO_UNUSED is just defined as (-1) in this version
 // of the framework which does not work with -fpermissive
 #undef CAN_IO_UNUSED
-#define CAN_IO_UNUSED ((gpio_num_t) - 1)
+#define CAN_IO_UNUSED ((gpio_num_t) -1)
 
 #ifdef ESP32_CAN_V2_SUPPORTED
 #define twai_driver_install(args...) twai_driver_install_v2(args, &this->twai_handle_)

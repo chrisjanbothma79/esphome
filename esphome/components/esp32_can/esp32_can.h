@@ -2,9 +2,8 @@
 #include "esp_err.h"
 #include "esphome/core/defines.h"
 #include "esphome/core/optional.h"
-#include "hal/twai_types.h"
-#include "soc/gpio_num.h"
 #ifdef USE_ESP32
+#include "hal/twai_types.h"
 
 #ifdef ESP32_CAN_V2_FIND_OUT
 #include "esp_idf_version.h"
