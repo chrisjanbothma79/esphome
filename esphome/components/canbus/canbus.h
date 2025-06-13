@@ -110,7 +110,7 @@ class Canbus : public Component {
   CanSpeed bit_rate_;
   CallbackManager<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)>
       callback_manager_{};
-#ifdef USE_ESP32_CAN
+#ifdef USE_CAN_DEBUGGER
   CallbackManager<void(uint32_t can_id, bool extended_id, bool rtr, const std::vector<uint8_t> &data)>
       transmit_callback_manager_{};
 #endif
