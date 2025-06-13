@@ -377,7 +377,15 @@ jobs:
         id: list-components
         run: |
           . venv/bin/activate
-          components=$(script/list-components.py --changed --branch ${{ steps.target-branch.outputs.branch }})
+
+          # Check if we should test all components (via label)
+          if [[ "${{ contains(github.event.pull_request.labels.*.name, 'test-all-components') }}" == "true" ]]; then
+            echo "Label 'test-all-components' found - testing ALL components"
+            components=$(script/list-components.py)
+          else
+            components=$(script/list-components.py --changed --branch ${{ steps.target-branch.outputs.branch }})
+          fi
+
           output_components=$(echo "$components" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
           count=$(echo "$output_components" | jq length)
 
