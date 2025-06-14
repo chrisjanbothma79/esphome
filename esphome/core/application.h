@@ -649,21 +649,27 @@ class Application {
   const char *area_{nullptr};
   const char *comment_{nullptr};
   const char *compilation_time_{nullptr};
-  bool name_add_mac_suffix_;
+  Component *current_component_{nullptr};
   uint32_t last_loop_{0};
   uint32_t loop_interval_{16};
+<<<<<<< Updated upstream
   size_t dump_config_at_{SIZE_MAX};
   uint8_t app_state_{0};
   Component *current_component_{nullptr};
+=======
+>>>>>>> Stashed changes
   uint32_t loop_component_start_time_{0};
+  size_t dump_config_at_{SIZE_MAX};
+  bool name_add_mac_suffix_;
+  uint8_t app_state_{0};
 
 #ifdef USE_SOCKET_SELECT_SUPPORT
   // Socket select management
   std::vector<int> socket_fds_;     // Vector of all monitored socket file descriptors
-  bool socket_fds_changed_{false};  // Flag to rebuild base_read_fds_ when socket_fds_ changes
-  int max_fd_{-1};                  // Highest file descriptor number for select()
   fd_set base_read_fds_{};          // Cached fd_set rebuilt only when socket_fds_ changes
   fd_set read_fds_{};               // Working fd_set for select(), copied from base_read_fds_
+  int max_fd_{-1};                  // Highest file descriptor number for select()
+  bool socket_fds_changed_{false};  // Flag to rebuild base_read_fds_ when socket_fds_ changes
 #endif
 };
 
