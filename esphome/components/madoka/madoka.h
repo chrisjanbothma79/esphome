@@ -49,11 +49,11 @@ struct Status {
 
 namespace espbt = esphome::esp32_ble_tracker;
 
-#define TO_ESPBTUUID(x) espbt::ESPBTUUID::from_raw(std::string(x))
-
-#define MADOKA_SERVICE_UUID TO_ESPBTUUID("2141e110-213a-11e6-b67b-9e71128cae77")
-#define NOTIFY_CHARACTERISTIC_UUID TO_ESPBTUUID("2141e111-213a-11e6-b67b-9e71128cae77")
-#define WWR_CHARACTERISTIC_UUID TO_ESPBTUUID("2141e112-213a-11e6-b67b-9e71128cae77")
+static const espbt::ESPBTUUID MADOKA_SERVICE_UUID = espbt::ESPBTUUID::from_raw("2141e110-213a-11e6-b67b-9e71128cae77");
+static const espbt::ESPBTUUID NOTIFY_CHARACTERISTIC_UUID =
+    espbt::ESPBTUUID::from_raw("2141e111-213a-11e6-b67b-9e71128cae77");
+static const espbt::ESPBTUUID WWR_CHARACTERISTIC_UUID =
+    espbt::ESPBTUUID::from_raw("2141e112-213a-11e6-b67b-9e71128cae77");
 
 class Madoka : public climate::Climate, public esphome::ble_client::BLEClientNode, public PollingComponent {
  protected:
