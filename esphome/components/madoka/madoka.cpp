@@ -272,7 +272,7 @@ void Madoka::query_(uint16_t cmd, std::vector<uint8_t> args, int t_d) {
     esp_err_t status;
     for (int j = 0; j < BLE_SEND_MAX_RETRIES; j++) {
       status = esp_ble_gattc_write_char(this->parent_->get_gattc_if(), this->parent_->get_conn_id(), this->wwr_handle_,
-                                        chk.size(), &chk[0], ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
+                                        chk.size(), chk.data(), ESP_GATT_WRITE_TYPE_NO_RSP, ESP_GATT_AUTH_REQ_NONE);
       if (!status) {
         break;
       }
