@@ -63,7 +63,7 @@ extern const uint32_t STATUS_LED_OK;
 extern const uint32_t STATUS_LED_WARNING;
 extern const uint32_t STATUS_LED_ERROR;
 
-enum class RetryResult { DONE, RETRY };
+enum class RetryResult : uint8_t { DONE, RETRY };
 
 extern const uint32_t WARN_IF_BLOCKING_OVER_MS;
 
