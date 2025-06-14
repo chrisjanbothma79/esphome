@@ -54,14 +54,14 @@ class EntityBase {
   // Check if this entity has state
   bool has_state() const { return this->flags_.has_state; }
 
+  // Set has_state - for components that need to manually set this
+  void set_has_state(bool state) { this->flags_.has_state = state; }
+
  protected:
   /// The hash_base() function has been deprecated. It is kept in this
   /// class for now, to prevent external components from not compiling.
   virtual uint32_t hash_base() { return 0L; }
   void calc_object_id_();
-
-  // Helper method for components that need to set has_state
-  void set_has_state(bool state) { this->flags_.has_state = state; }
 
   StringRef name_;
   const char *object_id_c_str_{nullptr};
