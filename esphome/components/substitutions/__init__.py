@@ -18,12 +18,6 @@ CODEOWNERS = ["@esphome/core"]
 _LOGGER = logging.getLogger(__name__)
 
 
-class ExpressionEvalError(Exception):
-    def __init__(self, message, path=None):
-        super().__init__(message)
-        self.path = path
-
-
 def validate_substitution_key(value):
     value = cv.string(value)
     if not value:
@@ -51,6 +45,42 @@ async def to_code(config):
     pass
 
 
+def _expand_jinja(value, orig_value, path, jinja, ignore_missing):
+    if has_jinja(value):
+        # If the original value passed in to this function is a JinjaStr, it means it contains an unresolved
+        # Jinja expression from a previous pass.
+        if isinstance(orig_value, JinjaStr):
+            # Rebuild the JinjaStr in case it was lost while replacing substitutions.
+            value = JinjaStr(value, orig_value.vars)
+        try:
+            # Invoke the jinja engine to evaluate the expression.
+            value, err = jinja.expand(value)
+            if err is not None:
+                if not ignore_missing and "password" not in path:
+                    _LOGGER.warning(
+                        "Found '%s' (see %s) which looks like an expression,"
+                        " but could not resolve all the variables: %s",
+                        value,
+                        "->".join(str(x) for x in path),
+                        err.message,
+                    )
+        except (
+            TemplateError,
+            TemplateSyntaxError,
+            TemplateRuntimeError,
+            RuntimeError,
+            ArithmeticError,
+            AttributeError,
+            TypeError,
+        ) as err:
+            raise cv.Invalid(
+                f"{type(err).__name__} Error evaluating jinja expression '{value}': {str(err)}."
+                f" See {'->'.join(str(x) for x in path)}",
+                path,
+            )
+    return value
+
+
 def _expand_substitutions(substitutions, value, path, jinja, ignore_missing):
     if "$" not in value:
         return value
@@ -62,39 +92,7 @@ def _expand_substitutions(substitutions, value, path, jinja, ignore_missing):
         m = cv.VARIABLE_PROG.search(value, i)
         if not m:
             # No more variable substitutions found. See if the remainder looks like a jinja template
-            if has_jinja(value):
-                # If value passed in to this function is a JinjaStr, it means it contains an unresolved
-                # Jinja expression from a previous pass. Therefore, extract the captured scope from that
-                # previous pass
-                if isinstance(orig_value, JinjaStr):
-                    value = JinjaStr(value, orig_value.vars)
-                try:
-                    # Invoke the jinja engine to evaluate the expression.
-                    value, err = jinja.expand(value)
-                    if err is not None:
-                        if not ignore_missing and "password" not in path:
-                            _LOGGER.warning(
-                                "Found '%s' (see %s) which looks like an expression,"
-                                " but could not resolve all the variables: %s",
-                                value,
-                                "->".join(str(x) for x in path),
-                                err.message,
-                            )
-                except (
-                    TemplateError,
-                    TemplateSyntaxError,
-                    TemplateRuntimeError,
-                    RuntimeError,
-                    ArithmeticError,
-                    AttributeError,
-                    TypeError,
-                ) as err:
-                    raise cv.Invalid(
-                        f"{type(err).__name__} Error evaluating jinja expression '{value}': {str(err)}."
-                        f" See {'->'.join(str(x) for x in path)}",
-                        path,
-                    )
-
+            value = _expand_jinja(value, orig_value, path, jinja, ignore_missing)
             break
 
         i, j = m.span(0)

@@ -57,8 +57,6 @@ CONFIG_SCHEMA = cv.Schema(
 
 
 DETECT_JINJA = r"(\$\{)"
-
-
 detect_jinja_re = re.compile(
     r"<%.+?%>"  # Block form expression: <% ... %>
     r"|\$\{[^}]+\}",  # Braced form expression: ${ ... }
@@ -70,19 +68,18 @@ def has_jinja(st):
     return detect_jinja_re.search(st) is not None
 
 
-"""
-Wraps a string containing an unresolved Jinja expression,
-storing the variables visible to it when it failed to resolve.
-For example, an expression inside a package, `${ A * B }` may fail
-to resolve at package parsing time if `A` is a local package var
-but `B` is a substitution defined in the root yaml.
-Therefore, we store the value of `A` bound to the original string
-so we may be able to resolve `${ A * B }` in the main substitutions pass.
-"""
-
-
 class JinjaStr(str):
-    __slots__ = "vars"
+    """
+    Wraps a string containing an unresolved Jinja expression,
+    storing the variables visible to it when it failed to resolve.
+    For example, an expression inside a package, `${ A * B }` may fail
+    to resolve at package parsing time if `A` is a local package var
+    but `B` is a substitution defined in the root yaml.
+    Therefore, we store the value of `A` bound to the original string
+    so we may be able to resolve `${ A * B }` later in the main substitutions pass.
+    """
+
+    __slots__ = ("vars",)
 
     def __new__(cls, value: str, vars=None):
         obj = super().__new__(cls, value)
@@ -90,12 +87,11 @@ class JinjaStr(str):
         return obj
 
 
-"""
-Wraps a Jinja environment
-"""
-
-
 class Jinja:
+    """
+    Wraps a Jinja environment
+    """
+
     def __init__(self, config, context_vars):
         self.env = NativeEnvironment(
             trim_blocks=True,
@@ -125,9 +121,9 @@ class Jinja:
 
         self.env.globals = {**self.env.globals, **self.context_vars}
 
-    def parse_template(self, content, override_vars=None):
+    def parse_template(self, content, override_vars):
         local_env = self.env
-        if override_vars is not None:
+        if len(override_vars) > 0:
             local_env = self.env.overlay()
             local_env.globals = ChainMap(override_vars, self.env.globals)
         template = local_env.from_string(content)
@@ -145,6 +141,12 @@ class Jinja:
             if var_name not in self.context_vars:
                 self.context_vars[var_name] = value
 
+    def capture_vars(self, st):
+        vars = self.context_vars
+        if isinstance(st, JinjaStr):
+            vars = st.vars = {**self.context_vars, **st.vars}
+        return JinjaStr(st, vars)
+
     def load_macros(self, macros):
         """
         Creates Jinja macros out of a simplified yaml syntax
@@ -154,23 +156,20 @@ class Jinja:
                 [f"{k}={json.dumps(v)}" for k, v in macro["parameters"].items()]
             )
             return_value = macro["return"]
-            vars = self.context_vars
-            if isinstance(return_value, JinjaStr):
-                vars = return_value.vars = {**self.context_vars, **return_value.vars}
-            macro["return"] = return_value = JinjaStr(return_value, vars)
+            macro["return"] = return_value = self.capture_vars(return_value)
 
             self.parse_template(
                 f"<% macro {name}({parameters}) %>${{{return_value}}}<% endmacro %>",
-                vars,
+                return_value.vars,
             )
 
     def load_templates(self, templates):
+        """
+        Adds Jinja templates to the environment
+        """
         for i, content in enumerate(templates):
-            vars = self.context_vars
-            if isinstance(content, JinjaStr):
-                vars = content.vars = {**self.context_vars, **content.vars}
-            templates[i] = content = JinjaStr(content, vars)
-            self.parse_template(content, vars)
+            templates[i] = content = self.capture_vars(content)
+            self.parse_template(content, content.vars)
 
     def expand(self, value):
         """
@@ -194,8 +193,8 @@ class Jinja:
         except UndefinedError as err:
             # `value` contains a Jinja expression that refers to a variable that is undefined
             # in this scope. Perhaps it refers to a root substitution that is not visible yet.
-            # Therefore, return the value as a JinjaStr, which contains the variables
-            # that are actually visible to it at this point.
+            # Therefore, return `value` as a JinjaStr, which contains the variables
+            # that are actually visible to it at this point to postpone evaluation.
             return JinjaStr(value, {**self.context_vars, **override_vars}), err
 
         return result, None
