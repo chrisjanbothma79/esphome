@@ -47,7 +47,6 @@ void Madoka::control(const ClimateCall &call) {
     return;
   if (call.get_mode().has_value()) {
     ClimateMode mode = *call.get_mode();
-    std::vector<std::vector<uint8_t>> pkt;
     uint8_t mode_out = 255, status_out = 0;
     switch (mode) {
       case climate::CLIMATE_MODE_OFF:
@@ -79,18 +78,17 @@ void Madoka::control(const ClimateCall &call) {
     }
     ESP_LOGD(TAG, "status: %d, mode: %d", status_out, mode_out);
     if (mode_out != 255) {
-      this->query_(CMD_SET_OPERATION_MODE, std::vector<uint8_t>({0x20, 0x01, (uint8_t) mode_out}), 600);
+      this->query_(CMD_SET_OPERATION_MODE, std::vector<uint8_t>{0x20, 0x01, (uint8_t) mode_out}, 600);
     }
-    this->query_(CMD_SET_SETTING_STATUS, std::vector<uint8_t>({0x20, 0x01, (uint8_t) status_out}), 200);
+    this->query_(CMD_SET_SETTING_STATUS, std::vector<uint8_t>{0x20, 0x01, (uint8_t) status_out}, 200);
   }
   if (call.get_target_temperature_low().has_value() && call.get_target_temperature_high().has_value()) {
     uint16_t target_low = *call.get_target_temperature_low() * 128;
     uint16_t target_high = *call.get_target_temperature_high() * 128;
-    this->query_(
-        CMD_SET_SETPOINT,
-        std::vector<uint8_t>({0x20, 0x02, (uint8_t) ((target_high >> 8) & 0xFF), (uint8_t) (target_high & 0xFF), 0x21,
-                              0x02, (uint8_t) ((target_low >> 8) & 0xFF), (uint8_t) (target_low & 0xFF)}),
-        400);
+    this->query_(CMD_SET_SETPOINT,
+                 std::vector<uint8_t>{0x20, 0x02, (uint8_t) ((target_high >> 8) & 0xFF), (uint8_t) (target_high & 0xFF),
+                                      0x21, 0x02, (uint8_t) ((target_low >> 8) & 0xFF), (uint8_t) (target_low & 0xFF)},
+                 400);
   }
   if (call.get_fan_mode().has_value()) {
     uint8_t fan_mode = call.get_fan_mode().value();
@@ -114,7 +112,7 @@ void Madoka::control(const ClimateCall &call) {
     }
     if (fan_mode_out != 255) {
       this->query_(CMD_SET_FAN_SPEED,
-                   std::vector<uint8_t>({0x20, 0x01, (uint8_t) fan_mode_out, 0x21, 0x01, (uint8_t) fan_mode_out}), 200);
+                   std::vector<uint8_t>{0x20, 0x01, (uint8_t) fan_mode_out, 0x21, 0x01, (uint8_t) fan_mode_out}, 200);
     }
   }
   this->should_update_ = true;
@@ -187,7 +185,7 @@ void Madoka::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc
         break;
       }
       std::vector<uint8_t> chk =
-          std::vector<uint8_t>(param->notify.value, param->notify.value + param->notify.value_len);
+          std::vector<uint8_t>{param->notify.value, param->notify.value + param->notify.value_len};
       xSemaphoreTake(this->receive_semaphore_, portMAX_DELAY);
       this->received_chunks_.push(chk);
       xSemaphoreGive(this->receive_semaphore_);
@@ -205,10 +203,10 @@ void Madoka::update() {
     return;
   }
 
-  std::vector<uint16_t> all_cmds({CMD_GET_SETTING_STATUS, CMD_GET_OPERATION_MODE, CMD_GET_SETPOINT, CMD_GET_FAN_SPEED,
-                                  CMD_GET_SENSOR_INFORMATION});
+  std::vector<uint16_t> all_cmds{CMD_GET_SETTING_STATUS, CMD_GET_OPERATION_MODE, CMD_GET_SETPOINT, CMD_GET_FAN_SPEED,
+                                 CMD_GET_SENSOR_INFORMATION};
   for (auto cmd : all_cmds) {
-    this->query_(cmd, std::vector<uint8_t>({0x00, 0x00}), 50);
+    this->query_(cmd, std::vector<uint8_t>{0x00, 0x00}, 50);
   }
 }
 
@@ -220,7 +218,7 @@ void Madoka::process_incoming_chunk_(std::vector<uint8_t> chk) {
     return;
   }
   uint8_t chunk_id = chk[0];
-  std::vector<uint8_t> stripped(chk.begin() + 1, chk.end());
+  std::vector<uint8_t> stripped{chk.begin() + 1, chk.end()};
   if (chunk_id == 0 && validate_buffer(stripped)) {
     this->parse_cb_(stripped);
     return;

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 #include <vector>
 #include <queue>
 #include <map>
@@ -9,8 +8,6 @@
 #include "esphome/components/ble_client/ble_client.h"
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
 #include "esphome/components/climate/climate.h"
-
-// #define USE_ESP32
 
 #ifdef USE_ESP32
 
