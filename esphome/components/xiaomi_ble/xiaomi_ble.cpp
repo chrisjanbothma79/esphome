@@ -385,7 +385,7 @@ bool report_xiaomi_results(const optional<XiaomiParseResult> &result, const std:
     ESP_LOGD(TAG, "  Button: %s", (*result->button_press) ? "pressed" : "");
   }
   if (result->has_smoke.has_value()) {
-    ESP_LOGI(TAG, "  Smoke: %s", (*result->has_smoke) ? "yes" : "no");
+    ESP_LOGI(TAG, "  Smoke: %s", YESNO(*result->has_smoke));
   }
   return true;
 }
