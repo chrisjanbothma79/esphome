@@ -10,6 +10,16 @@ namespace madoka {
 
 using namespace esphome::climate;
 
+static const uint16_t CMD_GET_SETTING_STATUS = 0x0020;
+static const uint16_t CMD_SET_SETTING_STATUS = 0x4020;
+static const uint16_t CMD_GET_OPERATION_MODE = 0x0030;
+static const uint16_t CMD_SET_OPERATION_MODE = 0x4030;
+static const uint16_t CMD_GET_SETPOINT = 0x0040;
+static const uint16_t CMD_SET_SETPOINT = 0x4040;
+static const uint16_t CMD_GET_FAN_SPEED = 0x0050;
+static const uint16_t CMD_SET_FAN_SPEED = 0x4050;
+static const uint16_t CMD_GET_SENSOR_INFORMATION = 0x0110;
+
 void Madoka::dump_config() { LOG_CLIMATE(TAG, "Daikin Madoka Climate Controller", this); }
 
 void Madoka::setup() { this->receive_semaphore_ = xSemaphoreCreateMutex(); }
@@ -69,15 +79,15 @@ void Madoka::control(const ClimateCall &call) {
     }
     ESP_LOGD(TAG, "status: %d, mode: %d", status_out, mode_out);
     if (mode_out != 255) {
-      this->query_(0x4030, std::vector<uint8_t>({0x20, 0x01, (uint8_t) mode_out}), 600);
+      this->query_(CMD_SET_OPERATION_MODE, std::vector<uint8_t>({0x20, 0x01, (uint8_t) mode_out}), 600);
     }
-    this->query_(0x4020, std::vector<uint8_t>({0x20, 0x01, (uint8_t) status_out}), 200);
+    this->query_(CMD_SET_SETTING_STATUS, std::vector<uint8_t>({0x20, 0x01, (uint8_t) status_out}), 200);
   }
   if (call.get_target_temperature_low().has_value() && call.get_target_temperature_high().has_value()) {
     uint16_t target_low = *call.get_target_temperature_low() * 128;
     uint16_t target_high = *call.get_target_temperature_high() * 128;
     this->query_(
-        0x4040,
+        CMD_SET_SETPOINT,
         std::vector<uint8_t>({0x20, 0x02, (uint8_t) ((target_high >> 8) & 0xFF), (uint8_t) (target_high & 0xFF), 0x21,
                               0x02, (uint8_t) ((target_low >> 8) & 0xFF), (uint8_t) (target_low & 0xFF)}),
         400);
@@ -103,7 +113,7 @@ void Madoka::control(const ClimateCall &call) {
         break;
     }
     if (fan_mode_out != 255) {
-      this->query_(0x4050,
+      this->query_(CMD_SET_FAN_SPEED,
                    std::vector<uint8_t>({0x20, 0x01, (uint8_t) fan_mode_out, 0x21, 0x01, (uint8_t) fan_mode_out}), 200);
     }
   }
@@ -195,7 +205,8 @@ void Madoka::update() {
     return;
   }
 
-  std::vector<uint16_t> all_cmds({0x0020, 0x0030, 0x0040, 0x0050, 0x0110});
+  std::vector<uint16_t> all_cmds({CMD_GET_SETTING_STATUS, CMD_GET_OPERATION_MODE, CMD_GET_SETPOINT, CMD_GET_FAN_SPEED,
+                                  CMD_GET_SENSOR_INFORMATION});
   for (auto cmd : all_cmds) {
     this->query_(cmd, std::vector<uint8_t>({0x00, 0x00}), 50);
   }
@@ -293,7 +304,7 @@ void Madoka::parse_cb_(std::vector<uint8_t> msg) {
   uint8_t message_size = msg.size();
 
   switch (function_id) {
-    case 0x0020:
+    case CMD_GET_SETTING_STATUS:
       while (i < message_size) {
         uint8_t argument_id = msg[i++];
         uint8_t len = msg[i++];
@@ -303,7 +314,7 @@ void Madoka::parse_cb_(std::vector<uint8_t> msg) {
         }
         i += len;
       }
-    case 0x0030:
+    case CMD_GET_OPERATION_MODE:
       while (i < message_size) {
         uint8_t argument_id = msg[i++];
         uint8_t len = msg[i++];
@@ -317,8 +328,8 @@ void Madoka::parse_cb_(std::vector<uint8_t> msg) {
       break;
   }
   switch (function_id) {
-    case 0x0020:
-    case 0x0030:
+    case CMD_GET_SETTING_STATUS:
+    case CMD_GET_OPERATION_MODE:
       // ESP_LOGI(TAG, "status: %d, mode: %d", this->cur_status_.status, this->cur_status_.mode);
       if (this->cur_status_.status) {
         switch (this->cur_status_.mode) {
@@ -342,7 +353,7 @@ void Madoka::parse_cb_(std::vector<uint8_t> msg) {
         this->mode = climate::CLIMATE_MODE_OFF;
       }
       break;
-    case 0x0040:
+    case CMD_GET_SETPOINT:
       while (i < message_size) {
         uint8_t argument_id = msg[i++];
         uint8_t len = msg[i++];
@@ -361,7 +372,7 @@ void Madoka::parse_cb_(std::vector<uint8_t> msg) {
         i += len;
       }
       break;
-    case 0x0050: {
+    case CMD_GET_FAN_SPEED: {
       uint8_t fan_mode = 255;
       while (i < message_size) {
         uint8_t argument_id = msg[i++];
@@ -392,7 +403,7 @@ void Madoka::parse_cb_(std::vector<uint8_t> msg) {
       }
       break;
     }
-    case 0x0110:
+    case CMD_GET_SENSOR_INFORMATION:
       while (i < message_size) {
         uint8_t argument_id = msg[i++];
         uint8_t len = msg[i++];
