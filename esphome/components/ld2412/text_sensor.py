@@ -11,7 +11,7 @@ from esphome.const import (
 
 from . import CONF_LD2412_ID, LD2412Component
 
-DEPENDENCIES = ["LD2412"]
+DEPENDENCIES = ["ld2412"]
 
 CONFIG_SCHEMA = {
     cv.GenerateID(CONF_LD2412_ID): cv.use_id(LD2412Component),
