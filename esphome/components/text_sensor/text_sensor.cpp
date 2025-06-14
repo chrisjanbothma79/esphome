@@ -6,11 +6,9 @@ namespace text_sensor {
 
 static const char *const TAG = "text_sensor";
 
-TextSensor::~TextSensor() { delete this->raw_callback_; }
-
 void TextSensor::publish_state(const std::string &state) {
   this->raw_state = state;
-  if (this->raw_callback_ != nullptr) {
+  if (this->raw_callback_) {
     this->raw_callback_->call(state);
   }
 
@@ -57,8 +55,8 @@ void TextSensor::add_on_state_callback(std::function<void(std::string)> callback
   this->callback_.add(std::move(callback));
 }
 void TextSensor::add_on_raw_state_callback(std::function<void(std::string)> callback) {
-  if (this->raw_callback_ == nullptr) {
-    this->raw_callback_ = new CallbackManager<void(std::string)>();  // NOLINT
+  if (!this->raw_callback_) {
+    this->raw_callback_ = std::make_unique<CallbackManager<void(std::string)>>();
   }
   this->raw_callback_->add(std::move(callback));
 }
