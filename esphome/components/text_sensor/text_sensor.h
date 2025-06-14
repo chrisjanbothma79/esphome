@@ -33,6 +33,9 @@ namespace text_sensor {
 
 class TextSensor : public EntityBase, public EntityBase_DeviceClass {
  public:
+  TextSensor() = default;
+  ~TextSensor();
+
   /// Getter-syntax for .state.
   std::string get_state() const;
   /// Getter-syntax for .raw_state
@@ -72,8 +75,8 @@ class TextSensor : public EntityBase, public EntityBase_DeviceClass {
   void internal_send_state_to_frontend(const std::string &state);
 
  protected:
-  CallbackManager<void(std::string)> raw_callback_;  ///< Storage for raw state callbacks.
-  CallbackManager<void(std::string)> callback_;      ///< Storage for filtered state callbacks.
+  CallbackManager<void(std::string)> *raw_callback_{nullptr};  ///< Storage for raw state callbacks (lazy allocated).
+  CallbackManager<void(std::string)> callback_;                ///< Storage for filtered state callbacks.
 
   Filter *filter_list_{nullptr};  ///< Store all active filters.
 
