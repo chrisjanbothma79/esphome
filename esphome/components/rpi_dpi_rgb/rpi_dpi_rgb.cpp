@@ -6,7 +6,7 @@ namespace esphome {
 namespace rpi_dpi_rgb {
 
 void RpiDpiRgb::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up RPI_DPI_RGB");
+  ESP_LOGCONFIG(TAG, "Running setup");
   this->reset_display_();
   esp_lcd_rgb_panel_config_t config{};
   config.flags.fb_in_psram = 1;
@@ -82,6 +82,26 @@ void RpiDpiRgb::draw_pixels_at(int x_start, int y_start, int w, int h, const uin
   }
   if (err != ESP_OK)
     ESP_LOGE(TAG, "lcd_lcd_panel_draw_bitmap failed: %s", esp_err_to_name(err));
+}
+
+int RpiDpiRgb::get_width() {
+  switch (this->rotation_) {
+    case display::DISPLAY_ROTATION_90_DEGREES:
+    case display::DISPLAY_ROTATION_270_DEGREES:
+      return this->get_height_internal();
+    default:
+      return this->get_width_internal();
+  }
+}
+
+int RpiDpiRgb::get_height() {
+  switch (this->rotation_) {
+    case display::DISPLAY_ROTATION_90_DEGREES:
+    case display::DISPLAY_ROTATION_270_DEGREES:
+      return this->get_width_internal();
+    default:
+      return this->get_height_internal();
+  }
 }
 
 void RpiDpiRgb::draw_pixel_at(int x, int y, Color color) {
