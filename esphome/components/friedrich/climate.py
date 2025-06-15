@@ -12,12 +12,12 @@ FriedrichClimate = friedrich_ns.class_(
 
 Model = friedrich_ns.enum("Model")
 MODELS = {
-    "M12YH": Model.MODEL_M12YH,
+    "MW12Y3H": Model.MODEL_MW12Y3H,
 }
 
 CONFIG_SCHEMA = climate_ir.climate_ir_with_receiver_schema(FriedrichClimate).extend(
     {
-        cv.Optional(CONF_MODEL, default="M12YH"): cv.enum(MODELS, upper=True),
+        cv.Optional(CONF_MODEL, default="MW12Y3H"): cv.enum(MODELS, upper=True),
         cv.Optional(CONF_USE_FAHRENHEIT, default=True): cv.boolean,
     }
 )

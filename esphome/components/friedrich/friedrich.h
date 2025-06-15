@@ -12,7 +12,7 @@ namespace friedrich {
 // Simple enum to represent models.
 // Stub for future develpment of other models, currently nothing depends upon Model.
 enum Model {
-  MODEL_M12YH = 0, // M12YH built from a remote that only provided Fahrenheit
+  MODEL_MW12Y3H = 0, // MW12Y3H built from a remote that only provided Fahrenheit
 };
 
 const uint8_t TEMP_MIN = 60; //F, actually 64 For anything but Heating
