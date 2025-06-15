@@ -572,6 +572,9 @@ class Application {
 
   void calculate_looping_components_();
 
+  // These methods are called by Component::disable_loop() and Component::enable_loop()
+  // Components should not call these directly - use this->disable_loop() or this->enable_loop()
+  // to ensure component state is properly updated along with the loop partition
   void disable_component_loop(Component *component);
   void enable_component_loop(Component *component);
 

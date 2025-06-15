@@ -155,6 +155,9 @@ class Component {
    *
    * This is useful for components that only need to run for a certain period of time
    * or when inactive, saving CPU cycles.
+   *
+   * @note Components should call this->disable_loop() on themselves, not on other components.
+   *       This ensures the component's state is properly updated along with the loop partition.
    */
   void disable_loop();
 
@@ -162,6 +165,9 @@ class Component {
    *
    * This is useful for components that transition between active and inactive states
    * and need to re-enable their loop() method when becoming active again.
+   *
+   * @note Components should call this->enable_loop() on themselves, not on other components.
+   *       This ensures the component's state is properly updated along with the loop partition.
    */
   void enable_loop();
 
