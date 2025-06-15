@@ -61,7 +61,7 @@ CONFIG_SCHEMA = cv.Schema(
 
 CONFIG_SCHEMA = CONFIG_SCHEMA.extend(
     {
-        cv.Optional(f"g{x}"): cv.Schema(
+        cv.Optional(f"gate_{x}"): (
             {
                 cv.Optional(CONF_MOVE_ENERGY): sensor.sensor_schema(
                     unit_of_measurement=UNIT_PERCENT,

@@ -34,76 +34,76 @@ number:
       name: Minimum distance gate
     max_distance_gate:
       name: Maximum distance gate
-    g0:
+    gate_0:
       move_threshold:
-        name: Gate 0 move threshold
+        name: Gate 0 Move Threshold
       still_threshold:
-        name: Gate 0 still threshold
-    g1:
+        name: Gate 0 Still Threshold
+    gate_1:
       move_threshold:
-        name: Gate 1 move threshold
+        name: Gate 1 Move Threshold
       still_threshold:
-        name: Gate 1 still threshold
-    g2:
+        name: Gate 1 Still Threshold
+    gate_2:
       move_threshold:
-        name: Gate 2 move threshold
+        name: Gate 2 Move Threshold
       still_threshold:
-        name: Gate 2 still threshold
-    g3:
+        name: Gate 2 Still Threshold
+    gate_3:
       move_threshold:
-        name: Gate 3 move threshold
+        name: Gate 3 Move Threshold
       still_threshold:
-        name: Gate 3 still threshold
-    g4:
+        name: Gate 3 Still Threshold
+    gate_4:
       move_threshold:
-        name: Gate 4 move threshold
+        name: Gate 4 Move Threshold
       still_threshold:
-        name: Gate 4 still threshold
-    g5:
+        name: Gate 4 Still Threshold
+    gate_5:
       move_threshold:
-        name: Gate 5 move threshold
+        name: Gate 5 Move Threshold
       still_threshold:
-        name: Gate 5 still threshold
-    g6:
+        name: Gate 5 Still Threshold
+    gate_6:
       move_threshold:
-        name: Gate 6 move threshold
+        name: Gate 6 Move Threshold
       still_threshold:
-        name: Gate 6 still threshold
-    g7:
+        name: Gate 6 Still Threshold
+    gate_7:
       move_threshold:
-        name: Gate 7 move threshold
+        name: Gate 7 Move Threshold
       still_threshold:
-        name: Gate 7 still threshold
-    g8:
+        name: Gate 7 Still Threshold
+    gate_8:
       move_threshold:
-        name: Gate 8 move threshold
+        name: Gate 8 Move Threshold
       still_threshold:
-        name: Gate 8 still threshold
-    g9:
+        name: Gate 8 Still Threshold
+    gate_9:
       move_threshold:
-        name: Gate 9 move threshold
+        name: Gate 9 Move Threshold
       still_threshold:
-        name: Gate 9 still threshold
-    g10:
+        name: Gate 9 Still Threshold
+    gate_10:
       move_threshold:
-        name: Gate 10 move threshold
+        name: Gate 10 Move Threshold
       still_threshold:
-        name: Gate 10 still threshold
-    g11:
+        name: Gate 10 Still Threshold
+    gate_11:
       move_threshold:
-        name: Gate 11 move threshold
+        name: Gate 11 Move Threshold
       still_threshold:
-        name: Gate 11 still threshold
-    g12:
+        name: Gate 11 Still Threshold
+    gate_12:
       move_threshold:
-        name: Gate 12 move threshold
+        name: Gate 12 Move Threshold
       still_threshold:
-        name: Gate 12 still threshold
-    g13:
+        name: Gate 12 Still Threshold
+    gate_13:
       move_threshold:
-        name: Gate 13 move threshold
+        name: Gate 13 Move Threshold
       still_threshold:
-        name: Gate 13 still threshold
+        name: Gate 13 Still Threshold
 
 select:
   - platform: ld2412
@@ -142,76 +142,76 @@ sensor:
       name: Detection Distance
     light:
       name: light
-    g0:
+    gate_0:
       move_energy:
-        name: Gate 0 move energy
+        name: Gate 0 Move Energy
       still_energy:
-        name: Gate 0 still energy
-    g1:
+        name: Gate 0 Still Energy
+    gate_1:
       move_energy:
-        name: Gate 1 move energy
+        name: Gate 1 Move Energy
       still_energy:
-        name: Gate 1 still energy
-    g2:
+        name: Gate 1 Still Energy
+    gate_2:
       move_energy:
-        name: Gate 2 move energy
+        name: Gate 2 Move Energy
       still_energy:
-        name: Gate 2 still energy
-    g3:
+        name: Gate 2 Still Energy
+    gate_3:
       move_energy:
-        name: Gate 3 move energy
+        name: Gate 3 Move Energy
       still_energy:
-        name: Gate 3 still energy
-    g4:
+        name: Gate 3 Still Energy
+    gate_4:
       move_energy:
-        name: Gate 4 move energy
+        name: Gate 4 Move Energy
       still_energy:
-        name: Gate 4 still energy
-    g5:
+        name: Gate 4 Still Energy
+    gate_5:
       move_energy:
-        name: Gate 5 move energy
+        name: Gate 5 Move Energy
       still_energy:
-        name: Gate 5 still energy
-    g6:
+        name: Gate 5 Still Energy
+    gate_6:
       move_energy:
-        name: Gate 6 move energy
+        name: Gate 6 Move Energy
       still_energy:
-        name: Gate 6 still energy
-    g7:
+        name: Gate 6 Still Energy
+    gate_7:
       move_energy:
-        name: Gate 7 move energy
+        name: Gate 7 Move Energy
       still_energy:
-        name: Gate 7 still energy
-    g8:
+        name: Gate 7 Still Energy
+    gate_8:
       move_energy:
-        name: Gate 8 move energy
+        name: Gate 8 Move Energy
       still_energy:
-        name: Gate 8 still energy
-    g9:
+        name: Gate 8 Still Energy
+    gate_9:
       move_energy:
-        name: Gate 9 move energy
+        name: Gate 9 Move Energy
       still_energy:
-        name: Gate 9 still energy
-    g10:
+        name: Gate 9 Still Energy
+    gate_10:
       move_energy:
-        name: Gate 10 move energy
+        name: Gate 10 Move Energy
       still_energy:
-        name: Gate 10 still energy
-    g11:
+        name: Gate 10 Still Energy
+    gate_11:
       move_energy:
-        name: Gate 11 move energy
+        name: Gate 11 Move Energy
       still_energy:
-        name: Gate 11 still energy
-    g12:
+        name: Gate 11 Still Energy
+    gate_12:
       move_energy:
-        name: Gate 12 move energy
+        name: Gate 12 Move Energy
       still_energy:
-        name: Gate 12 still energy
-    g13:
+        name: Gate 12 Still Energy
+    gate_13:
       move_energy:
-        name: Gate 13 move energy
+        name: Gate 13 Move Energy
       still_energy:
-        name: Gate 13 still energy
+        name: Gate 13 Still Energy
 
 switch:
   - platform: ld2412
