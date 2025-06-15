@@ -182,7 +182,7 @@ class Hpma115C0PollingComponent : public PollingComponent, public uart::UARTDevi
 #pragma pack(pop)
 
   using StandardFrameT = union StandardFrame;
-  using AutosendFrameT = union _AutosendFrame;
+  using AutosendFrameT = union AutosendFrame;
 
   // Protected member variables
   HpmaErrorT hpma_last_error_ = HPMA_ERROR_SUCCESS;
@@ -199,8 +199,8 @@ class Hpma115C0PollingComponent : public PollingComponent, public uart::UARTDevi
 #endif
 
   // Protected member functions
-  const float scale_value(float value, float in_min, float in_max, float out_min, float out_max);
-  void print_frame_(const StandardFrameT frame);
+  float scale_value_(float value, float in_min, float in_max, float out_min, float out_max);
+  void print_frame_(StandardFrameT frame);
   bool update_frame_crc_(StandardFrameT &frame);
   bool check_frame_crc_(const StandardFrameT &frame);
   bool send_request_(HpmaCmdT command, uint8_t *data, StandardFrameT &reply);
