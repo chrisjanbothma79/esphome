@@ -101,7 +101,7 @@ async def to_code(config):
         sens = await sensor.new_sensor(detection_distance_config)
         cg.add(LD2412_component.set_detection_distance_sensor(sens))
     for x in range(14):
-        if gate_conf := config.get(f"g{x}"):
+        if gate_conf := config.get(f"gate_{x}"):
             if move_config := gate_conf.get(CONF_MOVE_ENERGY):
                 sens = await sensor.new_sensor(move_config)
                 cg.add(LD2412_component.set_gate_move_sensor(x, sens))
