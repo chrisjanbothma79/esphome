@@ -68,8 +68,11 @@ void ESP32TouchComponent::setup() {
   if (this->release_timeout_ms_ < MINIMUM_RELEASE_TIME_MS) {
     this->release_timeout_ms_ = MINIMUM_RELEASE_TIME_MS;
   }
-  // Check for releases at 1/4 the timeout interval, capped at 50ms
-  this->release_check_interval_ms_ = std::min(this->release_timeout_ms_ / 4, (uint32_t) 50);
+  // Check for releases at 1/4 the timeout interval
+  // Since the ESP32 v1 hardware doesn't generate release interrupts, we must poll
+  // for releases in the main loop. Checking at 1/4 the timeout interval provides
+  // a good balance between responsiveness and efficiency.
+  this->release_check_interval_ms_ = this->release_timeout_ms_ / 4;
 
   // Enable touch pad interrupt
   touch_pad_intr_enable();
