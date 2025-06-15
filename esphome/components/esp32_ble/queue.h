@@ -11,8 +11,8 @@
  * task to enqueue events without blocking. The main loop() then processes
  * these events at a safer time.
  *
- * The queue uses atomic operations to ensure thread safety without locks.
- * This prevents blocking the time-sensitive BLE stack callbacks.
+ * This is a Single-Producer Single-Consumer (SPSC) lock-free ring buffer.
+ * The BLE task is the only producer, and the main loop() is the only consumer.
  */
 
 namespace esphome {
@@ -20,57 +20,59 @@ namespace esp32_ble {
 
 template<class T, size_t SIZE> class LockFreeQueue {
  public:
-  LockFreeQueue() : write_index_(0), read_index_(0), size_(0), dropped_count_(0) {}
+  LockFreeQueue() : head_(0), tail_(0), dropped_count_(0) {}
 
   bool push(T *element) {
     if (element == nullptr)
       return false;
 
-    size_t current_size = size_.load(std::memory_order_acquire);
-    if (current_size >= SIZE - 1) {
-      // Buffer full, track dropped event
+    size_t current_tail = tail_.load(std::memory_order_relaxed);
+    size_t next_tail = (current_tail + 1) % SIZE;
+
+    if (next_tail == head_.load(std::memory_order_acquire)) {
+      // Buffer full
       dropped_count_.fetch_add(1, std::memory_order_relaxed);
       return false;
     }
 
-    size_t write_idx = write_index_.load(std::memory_order_relaxed);
-    size_t next_write_idx = (write_idx + 1) % SIZE;
-
-    // Store element in buffer
-    buffer_[write_idx] = element;
-    write_index_.store(next_write_idx, std::memory_order_release);
-    size_.fetch_add(1, std::memory_order_release);
+    buffer_[current_tail] = element;
+    tail_.store(next_tail, std::memory_order_release);
     return true;
   }
 
   T *pop() {
-    size_t current_size = size_.load(std::memory_order_acquire);
-    if (current_size == 0) {
-      return nullptr;
+    size_t current_head = head_.load(std::memory_order_relaxed);
+
+    if (current_head == tail_.load(std::memory_order_acquire)) {
+      return nullptr;  // Empty
     }
 
-    size_t read_idx = read_index_.load(std::memory_order_relaxed);
-
-    // Get element from buffer
-    T *element = buffer_[read_idx];
-    read_index_.store((read_idx + 1) % SIZE, std::memory_order_release);
-    size_.fetch_sub(1, std::memory_order_release);
+    T *element = buffer_[current_head];
+    head_.store((current_head + 1) % SIZE, std::memory_order_release);
     return element;
   }
 
-  size_t size() const { return size_.load(std::memory_order_acquire); }
+  size_t size() const {
+    size_t tail = tail_.load(std::memory_order_acquire);
+    size_t head = head_.load(std::memory_order_acquire);
+    return (tail - head + SIZE) % SIZE;
+  }
 
   size_t get_and_reset_dropped_count() { return dropped_count_.exchange(0, std::memory_order_relaxed); }
 
   void increment_dropped_count() { dropped_count_.fetch_add(1, std::memory_order_relaxed); }
 
-  bool empty() const { return size_.load(std::memory_order_acquire) == 0; }
+  bool empty() const { return head_.load(std::memory_order_acquire) == tail_.load(std::memory_order_acquire); }
+
+  bool full() const {
+    size_t next_tail = (tail_.load(std::memory_order_relaxed) + 1) % SIZE;
+    return next_tail == head_.load(std::memory_order_acquire);
+  }
 
  protected:
   T *buffer_[SIZE];
-  std::atomic<size_t> write_index_;
-  std::atomic<size_t> read_index_;
-  std::atomic<size_t> size_;
+  std::atomic<size_t> head_;
+  std::atomic<size_t> tail_;
   std::atomic<size_t> dropped_count_;
 };
 

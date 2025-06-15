@@ -366,21 +366,29 @@ void ESP32BLE::loop() {
 }
 
 template<typename... Args> void enqueue_ble_event(Args... args) {
-  // Check if buffer is full before allocating
-  if (global_ble->ble_events_.size() >= (MAX_BLE_QUEUE_SIZE - 1)) {
-    // Buffer is full, push will fail and increment dropped count internally
+  // Check if queue is full before allocating
+  if (global_ble->ble_events_.full()) {
+    // Queue is full, drop the event
+    global_ble->ble_events_.increment_dropped_count();
     return;
   }
 
   BLEEvent *new_event = EVENT_ALLOCATOR.allocate(1);
   if (new_event == nullptr) {
     // Memory too fragmented to allocate new event. Can only drop it until memory comes back
+    global_ble->ble_events_.increment_dropped_count();
     return;
   }
   new (new_event) BLEEvent(args...);
 
-  // With atomic size, this should never fail due to the size check above
-  global_ble->ble_events_.push(new_event);
+  // Push the event - since we're the only producer and we checked full() above,
+  // this should always succeed unless we have a bug
+  if (!global_ble->ble_events_.push(new_event)) {
+    // This should not happen in SPSC queue with single producer
+    ESP_LOGE(TAG, "BLE queue push failed unexpectedly");
+    new_event->~BLEEvent();
+    EVENT_ALLOCATOR.deallocate(new_event, 1);
+  }
 }  // NOLINT(clang-analyzer-unix.Malloc)
 
 // Explicit template instantiations for the friend function
