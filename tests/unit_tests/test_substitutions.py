@@ -65,53 +65,58 @@ def test_substitutions_fixtures(fixture_path):
 
     failures = []
     for source_path in sources:
-        expected_path = source_path.replace(".input.yaml", ".approved.yaml")
-        test_case = os.path.splitext(os.path.basename(source_path))[0].replace(
-            ".input", ""
-        )
-
-        # Load using ESPHome's YAML loader
-        config = yaml_util.load_yaml(source_path)
-
-        if CONF_PACKAGES in config:
-            from esphome.components.packages import do_packages_pass
-
-            config = do_packages_pass(config)
-
-        substitutions.do_substitution_pass(config, None)
-
-        # Also load expected using ESPHome's loader, or use {} if missing and DEV_MODE
-        if os.path.isfile(expected_path):
-            expected = yaml_util.load_yaml(expected_path)
-        elif DEV_MODE:
-            expected = {}
-        else:
-            assert os.path.isfile(expected_path), (
-                f"Expected file missing: {expected_path}"
+        try:
+            expected_path = source_path.replace(".input.yaml", ".approved.yaml")
+            test_case = os.path.splitext(os.path.basename(source_path))[0].replace(
+                ".input", ""
             )
 
-        # Sort dicts only (not lists) for comparison
-        got_sorted = sort_dicts(config)
-        expected_sorted = sort_dicts(expected)
+            # Load using ESPHome's YAML loader
+            config = yaml_util.load_yaml(source_path)
 
-        if got_sorted != expected_sorted:
-            diff = "\n".join(dict_diff(got_sorted, expected_sorted))
-            msg = (
-                f"Substitution result mismatch for {os.path.basename(source_path)}\n"
-                f"Diff:\n{diff}\n\n"
-                f"Got:      {got_sorted}\n"
-                f"Expected: {expected_sorted}"
-            )
-            # Write out the received file when test fails
-            if DEV_MODE:
-                received_path = os.path.join(
-                    os.path.dirname(source_path), f"{test_case}.received.yaml"
-                )
-                write_yaml(received_path, config)
-                print(msg)
-                failures.append(msg)
+            if CONF_PACKAGES in config:
+                from esphome.components.packages import do_packages_pass
+
+                config = do_packages_pass(config)
+
+            substitutions.do_substitution_pass(config, None)
+
+            # Also load expected using ESPHome's loader, or use {} if missing and DEV_MODE
+            if os.path.isfile(expected_path):
+                expected = yaml_util.load_yaml(expected_path)
+            elif DEV_MODE:
+                expected = {}
             else:
-                raise AssertionError(msg)
+                assert os.path.isfile(expected_path), (
+                    f"Expected file missing: {expected_path}"
+                )
+
+            # Sort dicts only (not lists) for comparison
+            got_sorted = sort_dicts(config)
+            expected_sorted = sort_dicts(expected)
+
+            if got_sorted != expected_sorted:
+                diff = "\n".join(dict_diff(got_sorted, expected_sorted))
+                msg = (
+                    f"Substitution result mismatch for {os.path.basename(source_path)}\n"
+                    f"Diff:\n{diff}\n\n"
+                    f"Got:      {got_sorted}\n"
+                    f"Expected: {expected_sorted}"
+                )
+                # Write out the received file when test fails
+                if DEV_MODE:
+                    received_path = os.path.join(
+                        os.path.dirname(source_path), f"{test_case}.received.yaml"
+                    )
+                    write_yaml(received_path, config)
+                    print(msg)
+                    failures.append(msg)
+                else:
+                    raise AssertionError(msg)
+        except Exception as err:
+            _LOGGER.error("Error in test file %s", source_path)
+            raise err
+
     if DEV_MODE and failures:
         print(f"\n{len(failures)} substitution test case(s) failed.")
 

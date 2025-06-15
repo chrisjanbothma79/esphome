@@ -51,7 +51,7 @@ def _expand_jinja(value, orig_value, path, jinja, ignore_missing):
         # Jinja expression from a previous pass.
         if isinstance(orig_value, JinjaStr):
             # Rebuild the JinjaStr in case it was lost while replacing substitutions.
-            value = JinjaStr(value, orig_value.vars)
+            value = JinjaStr(value, orig_value.upvalues)
         try:
             # Invoke the jinja engine to evaluate the expression.
             value, err = jinja.expand(value)
@@ -204,4 +204,10 @@ def do_substitution_pass(config, command_line_substitutions, ignore_missing=Fals
 
     # Create a Jinja environment that will consider substitutions in scope:
     jinja = Jinja(config, substitutions)
+    jinja_config = None
+    if CONF_JINJA in config:
+        jinja_config = config[CONF_JINJA]
+        config[CONF_JINJA] = {}
     _substitute_item(substitutions, config, [], jinja, ignore_missing)
+    if jinja_config is not None:
+        config[CONF_JINJA] = jinja_config

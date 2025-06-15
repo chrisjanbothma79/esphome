@@ -9,15 +9,49 @@ jinja:
   macros:
     multiply:
       parameters:
-        a: 3   # default value
-        b: 4   # default value
+        a: 3
+        b: 4
       return: a*b
     modulus:
       parameters:
-        vec:   # default value {"x":0, "y":0}
+        vec:
           x: 0
           y: 0
       return: math.sqrt(vec.x*vec.x+vec.y*vec.y)
+    scale:
+      parameters:
+        x: 0
+        factor: null
+      return: (x * (display_scale if factor is none else factor)) | round | int
+    square:
+      parameters:
+        x: 0
+      return: x*x
+    double:
+      parameters:
+        x: 0
+      return: x*2
+    pin:
+      parameters:
+        number: 10
+        inverted: false
+      body: |
+        #if number > 20
+        ${
+          {
+              "number": number,
+              "inverted" : inverted,
+              "pullup": true
+          }
+        }
+        #else
+        ${
+          {
+              "number": number,
+              "inverted" : inverted,
+          }
+        }
+        #endif
   vars:
     a: 7
     b: 0
@@ -26,34 +60,6 @@ jinja:
     position:
       x: 4
       y: 3
-  templates:
-    - | # define the scale() macro
-      <% macro scale(x, factor = None) %>
-      ${ (x * (display_scale if factor is none else factor)) | round | int }
-      <% endmacro %>
-    - | # define the square() macro
-      <% macro square(x) %>
-      ${ x*x }
-      <% endmacro %>
-    - | # define the double() macro
-      <% macro double(x) %>
-      ${ 2*x }
-      <% endmacro %>
-    - |
-      <% macro pin(number=10, inverted=false) %>
-        <% if number > 20 %>${
-          {
-              "number": number,
-              "inverted" : inverted,
-              "pullup": true
-          }
-        }<% else %>${
-          {
-              "number": number,
-              "inverted" : inverted,
-          }
-        }<% endif %>
-      <% endmacro %>
 
 testlist:
   - The value of c is ${c}, substitution is evaluated first

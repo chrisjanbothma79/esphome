@@ -5,7 +5,11 @@ jinja:
     testmacro:
       parameters:
         x: 1
-      return: factor * x
+      body: ${factor * x}
+      upvalues:
+        multiplier: 5
+        factor: 7
+        size: 9
 package_result: 'This result is 45.
 
   Size value of size=9 is captured from defaults
@@ -15,16 +19,16 @@ package_result: 'This result is 45.
   evaluated later, when substitution "multiplier"
 
   is available.'
-local_result: 'The value of testmacro(4) is ${testmacro(4)},
+local_results:
+  - 'The value of testmacro(4) is 28,
 
-  since the ''factor'' package var is captured
+    since the ''factor'' package var is captured
 
-  by testmacro() as a closure.
+    by testmacro() as a closure.'
+  - 'You will see, however, that
 
-  You will see, however, that
+    ${factor} is not substituted here, since
 
-  ${factor} is not substituted here, since
+    it is out of scope.
 
-  it is out of scope.
-
-  '
+    '
