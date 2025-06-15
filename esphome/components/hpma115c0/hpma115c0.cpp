@@ -67,6 +67,7 @@ void Hpma115C0PollingComponent::update() {
   ESP_LOGI(TAG, "pm(µg/m3):  1µm(%.0f), 2.5µm(%.0f), 4µm(%.0f), 10µm(%.0f)", pm_1_0, pm_2_5, pm_4_0, pm_10_0);
   ESP_LOGI(TAG, "aqi(index): 2.5(%.0f), 10(%.0f)", aqi_2_5, aqi_10_0);
 
+#ifdef USE_NUMBER
   // In case adjustment coefficient has been changed, request refresh in HA
   if (this->adjustment_coefficient_needs_refresh_) {
     float adjustment_coefficient;
@@ -76,6 +77,7 @@ void Hpma115C0PollingComponent::update() {
       this->adjustment_coefficient_needs_refresh_ = false;
     }
   }
+#endif  // USE_NUMBER
 
   // Call all listeners' callbacks for value updates
   for (auto &listener : this->listeners_)
