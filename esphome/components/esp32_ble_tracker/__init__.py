@@ -55,7 +55,7 @@ CONF_SOFTWARE_COEXISTENCE = "software_coexistence"
 #
 # With ESP-IDF, these could be increased via sdkconfig:
 # - ESP32/ESP32-S3: Runtime determined via HCI_BLE_READ_WHITE_LIST_SIZE
-# - ESP32-C2/C5/C6/H2: CONFIG_BT_LE_WHITELIST_SIZE (range 1-31, default 12)
+# - ESP32-C2/C5/C6/H2: CONFIG_BT_LE_WHITELIST_SIZE (range 1-31, default 12)  # NOLINT
 # - ESP32-S2: No BLE support
 # - ESP32-C3: Uses ESP controller, likely similar to C2/C6
 # - ESP32-P4: Unknown, assuming default
