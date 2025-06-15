@@ -121,7 +121,10 @@ void ESP32BLETracker::loop() {
   // Process scan results from lock-free SPSC ring buffer
   // Consumer side: This runs in the main loop thread
   if (this->scanner_state_ == ScannerState::RUNNING) {
+    // Load our own index with relaxed ordering (we're the only writer)
     size_t read_idx = this->ring_read_index_.load(std::memory_order_relaxed);
+
+    // Load producer's index with acquire to see their latest writes
     size_t write_idx = this->ring_write_index_.load(std::memory_order_acquire);
 
     while (read_idx != write_idx) {
@@ -163,6 +166,8 @@ void ESP32BLETracker::loop() {
 
       // Move to next entry in ring buffer
       read_idx = (read_idx + 1) % SCAN_RESULT_BUFFER_SIZE;
+
+      // Store with release to ensure reads complete before index update
       this->ring_read_index_.store(read_idx, std::memory_order_release);
     }
 
@@ -402,14 +407,20 @@ void ESP32BLETracker::gap_scan_event_handler(const BLEScanResult &scan_result) {
     // Lock-free SPSC ring buffer write (Producer side)
     // This runs in the ESP-IDF Bluetooth stack callback thread
     // IMPORTANT: Only this thread writes to ring_write_index_
+
+    // Load our own index with relaxed ordering (we're the only writer)
     size_t write_idx = this->ring_write_index_.load(std::memory_order_relaxed);
     size_t next_write_idx = (write_idx + 1) % SCAN_RESULT_BUFFER_SIZE;
+
+    // Load consumer's index with acquire to see their latest updates
     size_t read_idx = this->ring_read_index_.load(std::memory_order_acquire);
 
     // Check if buffer is full
     if (next_write_idx != read_idx) {
       // Write to ring buffer
       this->scan_ring_buffer_[write_idx] = scan_result;
+
+      // Store with release to ensure the write is visible before index update
       this->ring_write_index_.store(next_write_idx, std::memory_order_release);
     } else {
       // Buffer full, track dropped results
