@@ -755,23 +755,27 @@ void LD2412Component::set_basic_config() {
 }
 
 void LD2412Component::set_gate_threshold() {
-  if (this->gate_move_threshold_numbers_.empty()) {
-    return;  // No gate move threshold numbers exist, nothing we can do
+  if (this->gate_move_threshold_numbers_.empty() && this->gate_still_threshold_numbers_.empty()) {
+    return;  // No gate threshold numbers set; nothing to do here
   }
-  this->set_config_mode_(true);
   uint8_t value[14];  // = {0x00, 0x00, lowbyte(gate),   highbyte(gate),   0x00, 0x00,
                       //   0x01, 0x00, lowbyte(motion), highbyte(motion), 0x00, 0x00,
                       //   0x02, 0x00, lowbyte(still),  highbyte(still),  0x00, 0x00};
-  for (size_t i = 0; i < this->gate_move_threshold_numbers_.size(); i++) {
-    value[i] = lowbyte(static_cast<int>(this->gate_move_threshold_numbers_[i]->state));
+  this->set_config_mode_(true);
+  if (!this->gate_move_threshold_numbers_.empty()) {
+    for (size_t i = 0; i < this->gate_move_threshold_numbers_.size(); i++) {
+      value[i] = lowbyte(static_cast<int>(this->gate_move_threshold_numbers_[i]->state));
+    }
+    this->send_command_(CMD_MOTION_GATE_SENS, value, 14);
+    delay(50);  // NOLINT
   }
-  this->send_command_(CMD_MOTION_GATE_SENS, value, 14);
-  delay(50);  // NOLINT
-  for (size_t i = 0; i < this->gate_still_threshold_numbers_.size(); i++) {
-    value[i] = lowbyte(static_cast<int>(this->gate_still_threshold_numbers_[i]->state));
+  if (!this->gate_still_threshold_numbers_.empty()) {
+    for (size_t i = 0; i < this->gate_still_threshold_numbers_.size(); i++) {
+      value[i] = lowbyte(static_cast<int>(this->gate_still_threshold_numbers_[i]->state));
+    }
+    this->send_command_(CMD_STATIC_GATE_SENS, value, 14);
+    delay(50);  // NOLINT
   }
-  this->send_command_(CMD_STATIC_GATE_SENS, value, 14);
-  delay(50);  // NOLINT
   this->set_config_mode_(false);
   // this->query_parameters_();
 }
