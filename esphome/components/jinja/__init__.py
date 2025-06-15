@@ -212,7 +212,6 @@ class Jinja:
         Otherwise, it returns a tagged (JinjaStr) string that captures variables
         in scope (upvalues), like a closure for later evaluation.
         """
-        template = self.env.from_string(content_str)
         result = None
         override_vars = {}
         if isinstance(content_str, JinjaStr):
@@ -221,10 +220,11 @@ class Jinja:
             # Hopefully, all required variables are visible now.
             override_vars = content_str.upvalues
         try:
+            template = self.env.from_string(content_str)
             result = template.render(override_vars)
             if isinstance(result, Undefined):
                 print("" + result)  # force a UndefinedError exception
-        except UndefinedError as err:
+        except (TemplateSyntaxError, UndefinedError) as err:
             # `content_str` contains a Jinja expression that refers to a variable that is undefined
             # in this scope. Perhaps it refers to a root substitution that is not visible yet.
             # Therefore, return `content_str` as a JinjaStr, which contains the variables

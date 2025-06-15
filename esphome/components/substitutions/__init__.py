@@ -9,7 +9,6 @@ from esphome.components.jinja import (
     JinjaStr,
     has_jinja,
     TemplateError,
-    TemplateSyntaxError,
     TemplateRuntimeError,
 )
 from esphome.yaml_util import ESPHomeDataBase, make_data_base
@@ -66,7 +65,6 @@ def _expand_jinja(value, orig_value, path, jinja, ignore_missing):
                     )
         except (
             TemplateError,
-            TemplateSyntaxError,
             TemplateRuntimeError,
             RuntimeError,
             ArithmeticError,
