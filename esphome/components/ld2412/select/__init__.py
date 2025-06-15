@@ -3,6 +3,7 @@ from esphome.components import select
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BAUD_RATE,
+    CONF_MODE,
     ENTITY_CATEGORY_CONFIG,
     ICON_RULER,
     ICON_SCALE,
@@ -18,7 +19,6 @@ ModeSelect = LD2412_ns.class_("ModeSelect", select.Select)
 
 CONF_DISTANCE_RESOLUTION = "distance_resolution"
 CONF_LIGHT_FUNCTION = "light_function"
-CONF_MODE = "mode"
 CONF_OUT_PIN_LEVEL = "out_pin_level"
 
 
