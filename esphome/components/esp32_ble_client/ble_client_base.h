@@ -62,7 +62,9 @@ class BLEClientBase : public espbt::ESPBTClient, public Component {
                        (uint8_t) (this->address_ >> 32) & 0xff, (uint8_t) (this->address_ >> 24) & 0xff,
                        (uint8_t) (this->address_ >> 16) & 0xff, (uint8_t) (this->address_ >> 8) & 0xff,
                        (uint8_t) (this->address_ >> 0) & 0xff);
-      // Re-enable loop() when a new address is assigned
+    }
+    // Re-enable loop() when a non-zero address is assigned
+    if (address != 0) {
       this->enable_loop();
     }
   }
