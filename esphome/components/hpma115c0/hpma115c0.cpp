@@ -25,16 +25,16 @@ void Hpma115C0PollingComponent::setup() {
   this->should_warn_of_blocking(MAX_ALLOWED_REPLY_DELAY + 10U);
 
   // Stop autosend and emptyy uart receive buffer
-  this->reset_sensor_mode();
+  this->reset_sensor_mode_();
 }
 
 // Update called on regular interval
 void Hpma115C0PollingComponent::update() {
   float pm_1_0, pm_2_5, pm_4_0, pm_10_0, aqi_2_5, aqi_10_0;
 
-  if (!read_particle_measuring_results(&pm_1_0, &pm_2_5, &pm_4_0, &pm_10_0)) {
+  if (!read_particle_measuring_results_(&pm_1_0, &pm_2_5, &pm_4_0, &pm_10_0)) {
     // Mark inactive inernally
-    this->active_ = false;
+    this->sensor_active_ = false;
 
     // Count (re)activation attempts
     this->activation_attempts_ += 1;
@@ -47,22 +47,22 @@ void Hpma115C0PollingComponent::update() {
     }
 
     // Try to reset sensor mode
-    this->reset_sensor_mode();
+    this->reset_sensor_mode_();
 
     ESP_LOGI(TAG, "Run %d, sensor still not active", this->activation_attempts_);
     return;
   }
 
   // First time sensor becomes active, latch it
-  if (!this->active_) {
-    this->active_ = true;
+  if (!this->sensor_active_) {
+    this->sensor_active_ = true;
     this->activation_attempts_ = 0;  // Reset activation attempt counter
     ESP_LOGI(TAG, "Sensor is now active after %d runs", this->activation_attempts_);
   }
 
   // Compute air quality indexes
-  aqi_2_5 = compute_aqi_pm_2_5(pm_2_5);
-  aqi_10_0 = compute_aqi_pm_10_0(pm_10_0);
+  aqi_2_5 = compute_aqi_pm_2_5_(pm_2_5);
+  aqi_10_0 = compute_aqi_pm_10_0_(pm_10_0);
 
   ESP_LOGI(TAG, "pm(µg/m3):  1µm(%.0f), 2.5µm(%.0f), 4µm(%.0f), 10µm(%.0f)", pm_1_0, pm_2_5, pm_4_0, pm_10_0);
   ESP_LOGI(TAG, "aqi(index): 2.5(%.0f), 10(%.0f)", aqi_2_5, aqi_10_0);
@@ -71,7 +71,7 @@ void Hpma115C0PollingComponent::update() {
   if (this->adjustment_coefficient_needs_refresh_) {
     float adjustment_coefficient;
 
-    if (read_customer_adjustment_coefficient(&adjustment_coefficient)) {
+    if (read_customer_adjustment_coefficient_(&adjustment_coefficient)) {
       this->adjustment_coefficient_number_->publish_state(adjustment_coefficient);
       this->adjustment_coefficient_needs_refresh_ = false;
     }
@@ -84,20 +84,21 @@ void Hpma115C0PollingComponent::update() {
 }
 
 // Scale a float value
-const float Hpma115C0PollingComponent::scale_value(float value, float inMin, float inMax, float outMin, float outMax) {
-  if (abs(inMax - inMin) <= 0.0)
+const float Hpma115C0PollingComponent::scale_value(float value, float in_min, float in_max, float out_min,
+                                                   float out_max) {
+  if (abs(in_max - in_min) <= 0.0)
     return NAN;
-  return (value - inMin) / (inMax - inMin) * (outMax - outMin) + outMin;
+  return (value - in_min) / (in_max - in_min) * (out_max - out_min) + out_min;
 }
 
 // Compute and update frame CRC
-bool Hpma115C0PollingComponent::update_frame_crc(Frame_t &frame) {
+bool Hpma115C0PollingComponent::update_frame_crc_(StandardFrameT &frame) {
   uint16_t crc;
 
   // Sanity check on lentgh
   if (frame.length > MAX_FRAME_DATA_LENGTH) {
     ESP_LOGE(TAG, "Invalid length %d for CMD=0x%d", frame.length, frame.command);
-    this->last_error_ = ERROR_DATA_LENGTH_TOO_LONG;
+    this->hpma_last_error_ = HPMA_ERROR_DATA_LENGTH_TOO_LONG;
     return false;
   }
 
@@ -108,18 +109,18 @@ bool Hpma115C0PollingComponent::update_frame_crc(Frame_t &frame) {
   crc = (0x10000UL - crc) & 0xFF;
   frame.data[frame.length - 1] = (uint8_t) crc;
 
-  this->last_error_ = ERROR_SUCCESS;
+  this->hpma_last_error_ = HPMA_ERROR_SUCCESS;
   return true;
 }
 
 // Check frame CRC return computed
-bool Hpma115C0PollingComponent::check_frame_crc(const Frame_t &frame) {
+bool Hpma115C0PollingComponent::check_frame_crc_(const StandardFrameT &frame) {
   uint16_t crc;
 
   // Sanity check on lentgh
   if (frame.length > MAX_FRAME_DATA_LENGTH) {
     ESP_LOGE(TAG, "Invalid length %d in reply %d for CMD=%02X", frame.length, frame.type, frame.command);
-    this->last_error_ = ERROR_DATA_LENGTH_TOO_LONG;
+    this->hpma_last_error_ = HPMA_ERROR_DATA_LENGTH_TOO_LONG;
     return false;
   }
 
@@ -136,15 +137,15 @@ bool Hpma115C0PollingComponent::check_frame_crc(const Frame_t &frame) {
   if (((uint8_t) crc) != frame.data[frame.length - 1]) {
     ESP_LOGE(TAG, "Invalid crc %02X (%02X expected) for reply %02X to CMD=%02X, LEN=%02X", frame.data[frame.length - 1],
              crc, frame.type, frame.command, frame.length);
-    this->last_error_ = ERROR_CRC;
+    this->hpma_last_error_ = HPMA_ERROR_CRC;
   }
 
-  this->last_error_ = ERROR_SUCCESS;
+  this->hpma_last_error_ = HPMA_ERROR_SUCCESS;
   return true;
 }
 
 // Clear UART buffer(s)
-void Hpma115C0PollingComponent::reset_sensor_mode(void) {
+void Hpma115C0PollingComponent::reset_sensor_mode_() {
   uint32_t clear_start = millis();
   uint32_t clear_duration, byte_count = 0;
 
@@ -158,7 +159,7 @@ void Hpma115C0PollingComponent::reset_sensor_mode(void) {
 
   // Send command to stop autosend (default mode at power on)
   ESP_LOGI(TAG, "Attempting to Stop Autosend");
-  if (!this->stop_autosend()) {
+  if (!this->stop_autosend_()) {
     ESP_LOGW(TAG, "Failed to stop autosend.");
   }
 
@@ -174,7 +175,7 @@ void Hpma115C0PollingComponent::reset_sensor_mode(void) {
 // Print full frame to log (debug level)
 // REQUEST : (HEAD-LEN-CMD)[DATA]#CRC
 // REPLY :   (HEAD-LEN-CMD)[DATA]#CRC  or Ack code
-void Hpma115C0PollingComponent::print_frame(const Frame_t frame) {
+void Hpma115C0PollingComponent::print_frame_(const StandardFrameT frame) {
   char buffer[1024];
 
   // Sanity check on lentgh
@@ -199,12 +200,12 @@ void Hpma115C0PollingComponent::print_frame(const Frame_t frame) {
   }
   sprintf(buffer + strlen(buffer), "]#%02X", frame.data[byte_index]);
 
-  ESP_LOGD(TAG, buffer);
+  ESP_LOGD(TAG, "%s", buffer);
 }
 
 // Send a command to the sensor, read and parse reply
-bool Hpma115C0PollingComponent::send_request(Cmd_t command, uint8_t *data, Frame_t &reply) {
-  Frame_t request;
+bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, StandardFrameT &reply) {
+  StandardFrameT request;
   uint16_t first_two_bytes;
   uint8_t expected_reply_data_length = 0;
 
@@ -234,7 +235,7 @@ bool Hpma115C0PollingComponent::send_request(Cmd_t command, uint8_t *data, Frame
     case CMD_SET_CUSTOMER_ADJUSTMENT_COEFFICIENT:
       if (data == nullptr) {
         ESP_LOGE(TAG, "Data should not be null for command 0x%02X.", command);
-        this->last_error_ = ERROR_NULL_PARAMETER;
+        this->hpma_last_error_ = HPMA_ERROR_NULL_PARAMETER;
         return false;
       }
       request.length = 2;
@@ -263,14 +264,14 @@ bool Hpma115C0PollingComponent::send_request(Cmd_t command, uint8_t *data, Frame
 
     default:
       ESP_LOGE(TAG, "Unknown command 0x%02X.", request.command);
-      this->last_error_ = ERROR_UNKNOWN_COMMAND;
+      this->hpma_last_error_ = HPMA_ERROR_UNKNOWN_COMMAND;
       return false;
   }
 
   // Compute crc and update request frame
-  if (!this->update_frame_crc(request))
+  if (!this->update_frame_crc_(request))
     return false;
-  this->print_frame(request);
+  this->print_frame_(request);
 
   // Send request frame to sensor
   this->write_array(request.bytes, request.length + 3);
@@ -286,7 +287,7 @@ bool Hpma115C0PollingComponent::send_request(Cmd_t command, uint8_t *data, Frame
 
     if (waitTime > MAX_ALLOWED_REPLY_DELAY) {
       ESP_LOGE(TAG, "Communication timeout, reply took more than %d ms", MAX_ALLOWED_REPLY_DELAY);
-      this->last_error_ = ERROR_TIMEOUT;
+      this->hpma_last_error_ = HPMA_ERROR_TIMEOUT;
       return false;
     }
   }
@@ -294,7 +295,7 @@ bool Hpma115C0PollingComponent::send_request(Cmd_t command, uint8_t *data, Frame
   // Read first two bytes of response
   if (!this->read_array(reply.bytes, 2)) {
     ESP_LOGE(TAG, "Read timeout on first two response bytes.");
-    this->last_error_ = ERROR_TIMEOUT;
+    this->hpma_last_error_ = HPMA_ERROR_TIMEOUT;
     return false;
   }
 
@@ -302,42 +303,42 @@ bool Hpma115C0PollingComponent::send_request(Cmd_t command, uint8_t *data, Frame
   if (reply.code == RESPONSE_NEG_ACK) {
     ESP_LOGD(TAG, "REPLY  <--  0x%04X (Neg ACK)", reply.code);
     ESP_LOGE(TAG, "Got negative ack from sensor");
-    this->last_error_ = ERROR_NEGATIVE_ACK;
+    this->hpma_last_error_ = HPMA_ERROR_NEGATIVE_ACK;
     return false;
   }
 
   // Positive ack from sensor
   if (reply.code == RESPONSE_POS_ACK) {
     ESP_LOGD(TAG, "REPLY  <--  0x%04X (Pos ACK)", reply.code);
-    this->last_error_ = ERROR_SUCCESS;
+    this->hpma_last_error_ = HPMA_ERROR_SUCCESS;
     return true;
   }
 
   // Unexpected value for first reply byte
   if (reply.type != FRAME_TYPE_REPLY_WITH_DATA) {
     ESP_LOGE(TAG, "Got unexpected reply from sensor: 0x%02X.", reply.type);
-    this->last_error_ = ERROR_UNEXPECTED_REPLY;
+    this->hpma_last_error_ = HPMA_ERROR_UNEXPECTED_REPLY;
     return false;
   }
 
   // Sanity check on length
   if (reply.length > MAX_FRAME_DATA_LENGTH) {
     ESP_LOGE(TAG, "Got too long reply from sensor: %d bytes.", reply.length);
-    this->last_error_ = ERROR_DATA_LENGTH_TOO_LONG;
+    this->hpma_last_error_ = HPMA_ERROR_DATA_LENGTH_TOO_LONG;
     return false;
   }
 
   // Read rest of reply
   if (!this->read_array(reply.bytes + 2, reply.length + 1)) {
     ESP_LOGE(TAG, "Read timeout while reading remaining %d bytes from reply.", reply.length + 2);
-    this->last_error_ = ERROR_TIMEOUT;
+    this->hpma_last_error_ = HPMA_ERROR_TIMEOUT;
     return false;
   }
 
   // Check matching command in reply
   if (reply.command != request.command) {
     ESP_LOGE(TAG, "Command 0x%02X in reply does not match command 0x%02X in request .", reply.command, request.command);
-    this->last_error_ = ERROR_COMMAND_MISMATCH;
+    this->hpma_last_error_ = HPMA_ERROR_COMMAND_MISMATCH;
     return false;
   }
 
@@ -345,25 +346,25 @@ bool Hpma115C0PollingComponent::send_request(Cmd_t command, uint8_t *data, Frame
   if (reply.length != expected_reply_data_length) {
     ESP_LOGE(TAG, "Invalid reply data length %d in command 0x%02X, should have been %d.", reply.length,
              expected_reply_data_length);
-    this->last_error_ = ERROR_INVALID_REPLY_LENGTH;
+    this->hpma_last_error_ = HPMA_ERROR_INVALID_REPLY_LENGTH;
     return false;
   }
 
   // Print frame (debug) and check crc
-  this->print_frame(reply);
-  if (!this->check_frame_crc(reply))
+  this->print_frame_(reply);
+  if (!this->check_frame_crc_(reply))
     return false;
 
-  this->last_error_ = ERROR_SUCCESS;
+  this->hpma_last_error_ = HPMA_ERROR_SUCCESS;
   return true;
 }
 
 // Read current particulate mater values from sensor
-bool Hpma115C0PollingComponent::read_particle_measuring_results(float *pm_1_0, float *pm_2_5, float *pm_4_0,
-                                                                float *pm_10_0) {
-  Frame_t request, reply;
+bool Hpma115C0PollingComponent::read_particle_measuring_results_(float *pm_1_0, float *pm_2_5, float *pm_4_0,
+                                                                 float *pm_10_0) {
+  StandardFrameT request, reply;
 
-  if (!this->send_request(CMD_READ_PARTICLE_MEASURING_RESULTS, nullptr, reply)) {
+  if (!this->send_request_(CMD_READ_PARTICLE_MEASURING_RESULTS, nullptr, reply)) {
     return false;
   }
 
@@ -377,49 +378,49 @@ bool Hpma115C0PollingComponent::read_particle_measuring_results(float *pm_1_0, f
 }
 
 // Start measurements
-bool Hpma115C0PollingComponent::start_particle_measurement(void) {
-  Frame_t request, reply;
+bool Hpma115C0PollingComponent::start_particle_measurement_() {
+  StandardFrameT request, reply;
 
-  return this->send_request(CMD_START_PARTICLE_MEASUREMENT, nullptr, reply);
+  return this->send_request_(CMD_START_PARTICLE_MEASUREMENT, nullptr, reply);
 }
 
 // Stop measurements
-bool Hpma115C0PollingComponent::stop_particle_measurement(void) {
-  Frame_t request, reply;
+bool Hpma115C0PollingComponent::stop_particle_measurement_() {
+  StandardFrameT request, reply;
 
-  return this->send_request(CMD_STOP_PARTICLE_MEASUREMENT, nullptr, reply);
+  return this->send_request_(CMD_STOP_PARTICLE_MEASUREMENT, nullptr, reply);
 }
 
 // Set adjustment coefficient
-bool Hpma115C0PollingComponent::set_customer_adjustment_coefficient(AdjustmentCoefficient_t new_coefficient) {
-  Frame_t request, reply;
+bool Hpma115C0PollingComponent::set_customer_adjustment_coefficient_(AdjustmentCoefficient_t new_coefficient) {
+  StandardFrameT request, reply;
 
   if ((new_coefficient < ADJUSTMENT_COEFFICIENT_MIN) || (new_coefficient > ADJUSTMENT_COEFFICIENT_MAX)) {
     ESP_LOGE(TAG, "Adjustment coefficient %d not in range [%d, %d]", ADJUSTMENT_COEFFICIENT_MIN,
              ADJUSTMENT_COEFFICIENT_MAX);
-    this->last_error_ = ERROR_COEFFICIENT_OUT_OF_RANGE;
+    this->hpma_last_error_ = HPMA_ERROR_COEFFICIENT_OUT_OF_RANGE;
     return false;
   }
 
-  return this->send_request(CMD_SET_CUSTOMER_ADJUSTMENT_COEFFICIENT, &new_coefficient, reply);
+  return this->send_request_(CMD_SET_CUSTOMER_ADJUSTMENT_COEFFICIENT, &new_coefficient, reply);
 }
 
 // Reset adjustment coefficient to default value
-bool Hpma115C0PollingComponent::reset_customer_adjustment_coefficient(void) {
-  return this->set_customer_adjustment_coefficient(ADJUSTMENT_COEFFICIENT_DEFAULT);
+bool Hpma115C0PollingComponent::reset_customer_adjustment_coefficient_() {
+  return this->set_customer_adjustment_coefficient_(ADJUSTMENT_COEFFICIENT_DEFAULT);
 }
 
 // Get current adjustment coefficient
-bool Hpma115C0PollingComponent::read_customer_adjustment_coefficient(float *value) {
-  Frame_t reply;
+bool Hpma115C0PollingComponent::read_customer_adjustment_coefficient_(float *value) {
+  StandardFrameT reply;
 
-  if (!this->send_request(CMD_READ_CUSTOMER_ADJUSTMENT_COEFFICIENT, nullptr, reply))
+  if (!this->send_request_(CMD_READ_CUSTOMER_ADJUSTMENT_COEFFICIENT, nullptr, reply))
     return false;
 
   if ((reply.data[DATA_DF1] < ADJUSTMENT_COEFFICIENT_MIN) || (reply.data[DATA_DF1] > ADJUSTMENT_COEFFICIENT_MAX)) {
     ESP_LOGW(TAG, "Adjustment coefficient %d not in range [%d; %d].", reply.data[DATA_DF1], ADJUSTMENT_COEFFICIENT_MIN,
              ADJUSTMENT_COEFFICIENT_MAX);
-    this->last_error_ = ERROR_COEFFICIENT_OUT_OF_RANGE;
+    this->hpma_last_error_ = HPMA_ERROR_COEFFICIENT_OUT_OF_RANGE;
     return false;
   }
 
@@ -430,22 +431,22 @@ bool Hpma115C0PollingComponent::read_customer_adjustment_coefficient(float *valu
 }
 
 // Stop autosend mode
-bool Hpma115C0PollingComponent::stop_autosend(void) {
-  Frame_t request, reply;
+bool Hpma115C0PollingComponent::stop_autosend_() {
+  StandardFrameT request, reply;
 
-  return this->send_request(CMD_STOP_AUTO_SEND, nullptr, reply);
+  return this->send_request_(CMD_STOP_AUTO_SEND, nullptr, reply);
 }
 
 // Enable autosend mode
-bool Hpma115C0PollingComponent::enable_autosend(void) {
-  Frame_t request, reply;
+bool Hpma115C0PollingComponent::enable_autosend_() {
+  StandardFrameT request, reply;
 
-  return this->send_request(CMD_ENABLE_AUTO_SEND, nullptr, reply);
+  return this->send_request_(CMD_ENABLE_AUTO_SEND, nullptr, reply);
 }
 
 // Computation of AQI PM 2.5 according to airnow.gov
 // See https://document.airnow.gov/technical-assistance-document-for-the-reporting-of-daily-air-quailty.pdf
-float Hpma115C0PollingComponent::compute_aqi_pm_2_5(float value) {
+float Hpma115C0PollingComponent::compute_aqi_pm_2_5_(float value) {
   if (value < 0.0)
     return -1.0;
   if (value < 9.1)
@@ -463,7 +464,7 @@ float Hpma115C0PollingComponent::compute_aqi_pm_2_5(float value) {
 
 // Computation of AQI PM 10 according to airnow.gov
 // See https://document.airnow.gov/technical-assistance-document-for-the-reporting-of-daily-air-quailty.pdf
-float Hpma115C0PollingComponent::compute_aqi_pm_10_0(float value) {
+float Hpma115C0PollingComponent::compute_aqi_pm_10_0_(float value) {
   if (value < 0.0)
     return -1.0;
   if (value < 55)
