@@ -18,7 +18,7 @@ enum Rotations {
                 "  Acceleration: %.0f steps/s^2\n" \
                 "  Deceleration: %.0f steps/s^2\n" \
                 "  Max Speed: %.0f steps/s\n" \
-                "  Rotation: %d",
+                "  Rotation: %d", \
                 this->acceleration_, this->deceleration_, this->max_speed_, this->rotation_);
 
 class Stepper {
