@@ -490,27 +490,29 @@ bool LD2412Component::handle_ack_data_(uint8_t *buffer, int len) {
       //      ESP_LOGV(TAG, "Handled set bluetooth password command");
       //      break;
     case lowbyte(CMD_QUERY_MOTION_GATE_SENS): {
-      std::vector<std::function<void(void)>> updates;
 #ifdef USE_NUMBER
-      for (int i = 0; i < this->gate_still_threshold_numbers_.size(); i++) {
+      std::vector<std::function<void(void)>> updates;
+      updates.reserve(this->gate_still_threshold_numbers_.size());
+      for (size_t i = 0; i < this->gate_still_threshold_numbers_.size(); i++) {
         updates.push_back(set_number_value(this->gate_move_threshold_numbers_[i], buffer[10 + i]));
       }
-#endif
       for (auto &update : updates) {
         update();
       }
+#endif
       break;
     }
     case lowbyte(CMD_QUERY_STATIC_GATE_SENS): {
-      std::vector<std::function<void(void)>> updates;
 #ifdef USE_NUMBER
-      for (int i = 0; i < this->gate_still_threshold_numbers_.size(); i++) {
+      std::vector<std::function<void(void)>> updates;
+      updates.reserve(this->gate_still_threshold_numbers_.size());
+      for (size_t i = 0; i < this->gate_still_threshold_numbers_.size(); i++) {
         updates.push_back(set_number_value(this->gate_still_threshold_numbers_[i], buffer[10 + i]));
       }
-#endif
       for (auto &update : updates) {
         update();
       }
+#endif
       break;
     }
     case lowbyte(CMD_QUERY):  // Query parameters response
@@ -760,12 +762,12 @@ void LD2412Component::set_gate_threshold() {
   uint8_t value[14];  // = {0x00, 0x00, lowbyte(gate),   highbyte(gate),   0x00, 0x00,
                       //   0x01, 0x00, lowbyte(motion), highbyte(motion), 0x00, 0x00,
                       //   0x02, 0x00, lowbyte(still),  highbyte(still),  0x00, 0x00};
-  for (int i = 0; i < this->gate_move_threshold_numbers_.size(); i++) {
+  for (size_t i = 0; i < this->gate_move_threshold_numbers_.size(); i++) {
     value[i] = lowbyte(static_cast<int>(this->gate_move_threshold_numbers_[i]->state));
   }
   this->send_command_(CMD_MOTION_GATE_SENS, value, 14);
   delay(50);  // NOLINT
-  for (int i = 0; i < this->gate_still_threshold_numbers_.size(); i++) {
+  for (size_t i = 0; i < this->gate_still_threshold_numbers_.size(); i++) {
     value[i] = lowbyte(static_cast<int>(this->gate_still_threshold_numbers_[i]->state));
   }
   this->send_command_(CMD_STATIC_GATE_SENS, value, 14);
