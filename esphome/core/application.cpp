@@ -261,8 +261,7 @@ void Application::disable_component_loop(Component *component) {
       // Move last active component to this position
       this->looping_components_active_end_--;
       if (i != this->looping_components_active_end_) {
-        this->looping_components_[i] = this->looping_components_[this->looping_components_active_end_];
-        this->looping_components_[this->looping_components_active_end_] = component;
+        std::swap(this->looping_components_[i], this->looping_components_[this->looping_components_active_end_]);
 
         // If we're currently iterating and just swapped the current position
         if (this->in_loop_ && i == this->current_loop_index_) {
@@ -287,9 +286,7 @@ void Application::enable_component_loop(Component *component) {
       }
       // Found in inactive section - move to active
       if (i != this->looping_components_active_end_) {
-        Component *temp = this->looping_components_[this->looping_components_active_end_];
-        this->looping_components_[this->looping_components_active_end_] = component;
-        this->looping_components_[i] = temp;
+        std::swap(this->looping_components_[i], this->looping_components_[this->looping_components_active_end_]);
       }
       this->looping_components_active_end_++;
       return;
