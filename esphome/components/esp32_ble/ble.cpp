@@ -360,11 +360,18 @@ void ESP32BLE::loop() {
   if (this->advertising_ != nullptr) {
     this->advertising_->loop();
   }
+
+  // Log dropped events periodically
+  size_t dropped = this->ble_events_.get_and_reset_dropped_count();
+  if (dropped > 0) {
+    ESP_LOGW(TAG, "Dropped %zu BLE events due to buffer overflow", dropped);
+  }
 }
 
 template<typename... Args> void enqueue_ble_event(Args... args) {
-  if (global_ble->ble_events_.size() >= MAX_BLE_QUEUE_SIZE) {
-    ESP_LOGD(TAG, "BLE event queue full (%zu), dropping event", MAX_BLE_QUEUE_SIZE);
+  // Check if buffer is full before allocating
+  if (global_ble->ble_events_.size() >= (SCAN_RESULT_BUFFER_SIZE * 2 - 1)) {
+    // Buffer is full, push will fail and increment dropped count internally
     return;
   }
 
@@ -374,6 +381,8 @@ template<typename... Args> void enqueue_ble_event(Args... args) {
     return;
   }
   new (new_event) BLEEvent(args...);
+
+  // With atomic size, this should never fail due to the size check above
   global_ble->ble_events_.push(new_event);
 }  // NOLINT(clang-analyzer-unix.Malloc)
 
