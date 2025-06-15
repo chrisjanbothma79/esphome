@@ -256,6 +256,7 @@ void ESP32ImprovComponent::start() {
 
   ESP_LOGD(TAG, "Setting Improv to start");
   this->should_start_ = true;
+  this->enable_loop();
 }
 
 void ESP32ImprovComponent::stop() {
