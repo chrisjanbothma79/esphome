@@ -94,6 +94,13 @@ COMPILER_OPTIMIZATIONS = {
     "SIZE": "CONFIG_COMPILER_OPTIMIZATION_SIZE",
 }
 
+ARDUINO_ALLOWED_VARIANTS = [
+    VARIANT_ESP32,
+    VARIANT_ESP32C3,
+    VARIANT_ESP32S2,
+    VARIANT_ESP32S3,
+]
+
 
 def get_cpu_frequencies(*frequencies):
     return [str(x) + "MHZ" for x in frequencies]
@@ -143,12 +150,17 @@ def set_core_data(config):
         CORE.data[KEY_ESP32][KEY_COMPONENTS] = {}
     elif conf[CONF_TYPE] == FRAMEWORK_ARDUINO:
         CORE.data[KEY_CORE][KEY_TARGET_FRAMEWORK] = "arduino"
+        if variant not in ARDUINO_ALLOWED_VARIANTS:
+            raise cv.Invalid(
+                f"ESPHome does not support using the Arduino framework for the {variant}. Please use the ESP-IDF framework instead.",
+                path=[CONF_FRAMEWORK, CONF_TYPE],
+            )
     CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION] = cv.Version.parse(
         config[CONF_FRAMEWORK][CONF_VERSION]
     )
 
     CORE.data[KEY_ESP32][KEY_BOARD] = config[CONF_BOARD]
-    CORE.data[KEY_ESP32][KEY_VARIANT] = config[CONF_VARIANT]
+    CORE.data[KEY_ESP32][KEY_VARIANT] = variant
     CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES] = {}
 
     return config
@@ -467,8 +479,8 @@ def _parse_platform_version(value):
         if ver.major >= 50:  # a pioarduino version
             if "-" in value:
                 # maybe a release candidate?...definitely not our default, just use it as-is...
-                return f"https://github.com/pioarduino/platform-espressif32.git#{value}"
-            return f"https://github.com/pioarduino/platform-espressif32.git#{ver.major}.{ver.minor:02d}.{ver.patch:02d}"
+                return f"https://github.com/pioarduino/platform-espressif32/releases/download/{value}/platform-espressif32.zip"
+            return f"https://github.com/pioarduino/platform-espressif32/releases/download/{ver.major}.{ver.minor:02d}.{ver.patch:02d}/platform-espressif32.zip"
         # if platform version is a valid version constraint, prefix the default package
         cv.platformio_version_constraint(value)
         return f"platformio/espressif32@{value}"
@@ -558,6 +570,10 @@ ARDUINO_FRAMEWORK_SCHEMA = cv.All(
 )
 
 CONF_SDKCONFIG_OPTIONS = "sdkconfig_options"
+CONF_ENABLE_LWIP_DHCP_SERVER = "enable_lwip_dhcp_server"
+CONF_ENABLE_LWIP_MDNS_QUERIES = "enable_lwip_mdns_queries"
+CONF_ENABLE_LWIP_BRIDGE_INTERFACE = "enable_lwip_bridge_interface"
+
 ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
     cv.Schema(
         {
@@ -582,6 +598,18 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
                         CONF_IGNORE_EFUSE_CUSTOM_MAC, default=False
                     ): cv.boolean,
                     cv.Optional(CONF_IGNORE_EFUSE_MAC_CRC): cv.boolean,
+                    # DHCP server is needed for WiFi AP mode. When WiFi component is used,
+                    # it will handle disabling DHCP server when AP is not configured.
+                    # Default to false (disabled) when WiFi is not used.
+                    cv.OnlyWithout(
+                        CONF_ENABLE_LWIP_DHCP_SERVER, "wifi", default=False
+                    ): cv.boolean,
+                    cv.Optional(
+                        CONF_ENABLE_LWIP_MDNS_QUERIES, default=False
+                    ): cv.boolean,
+                    cv.Optional(
+                        CONF_ENABLE_LWIP_BRIDGE_INTERFACE, default=False
+                    ): cv.boolean,
                 }
             ),
             cv.Optional(CONF_COMPONENTS, default=[]): cv.ensure_list(
@@ -602,6 +630,21 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
 )
 
 
+def _set_default_framework(config):
+    if CONF_FRAMEWORK not in config:
+        config = config.copy()
+
+        variant = config[CONF_VARIANT]
+        if variant in ARDUINO_ALLOWED_VARIANTS:
+            config[CONF_FRAMEWORK] = ARDUINO_FRAMEWORK_SCHEMA({})
+            config[CONF_FRAMEWORK][CONF_TYPE] = FRAMEWORK_ARDUINO
+        else:
+            config[CONF_FRAMEWORK] = ESP_IDF_FRAMEWORK_SCHEMA({})
+            config[CONF_FRAMEWORK][CONF_TYPE] = FRAMEWORK_ESP_IDF
+
+    return config
+
+
 FRAMEWORK_ESP_IDF = "esp-idf"
 FRAMEWORK_ARDUINO = "arduino"
 FRAMEWORK_SCHEMA = cv.typed_schema(
@@ -611,7 +654,6 @@ FRAMEWORK_SCHEMA = cv.typed_schema(
     },
     lower=True,
     space="-",
-    default_type=FRAMEWORK_ARDUINO,
 )
 
 
@@ -638,10 +680,11 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(CONF_PARTITIONS): cv.file_,
             cv.Optional(CONF_VARIANT): cv.one_of(*VARIANTS, upper=True),
-            cv.Optional(CONF_FRAMEWORK, default={}): FRAMEWORK_SCHEMA,
+            cv.Optional(CONF_FRAMEWORK): FRAMEWORK_SCHEMA,
         }
     ),
     _detect_variant,
+    _set_default_framework,
     set_core_data,
 )
 
@@ -652,6 +695,7 @@ FINAL_VALIDATE_SCHEMA = cv.Schema(final_validate)
 async def to_code(config):
     cg.add_platformio_option("board", config[CONF_BOARD])
     cg.add_platformio_option("board_upload.flash_size", config[CONF_FLASH_SIZE])
+    cg.set_cpp_standard("gnu++17")
     cg.add_build_flag("-DUSE_ESP32")
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
     cg.add_build_flag(f"-DUSE_ESP32_VARIANT_{config[CONF_VARIANT]}")
@@ -664,7 +708,7 @@ async def to_code(config):
     conf = config[CONF_FRAMEWORK]
     cg.add_platformio_option("platform", conf[CONF_PLATFORM_VERSION])
 
-    if CONF_ADVANCED in conf and conf[CONF_ADVANCED][CONF_IGNORE_EFUSE_CUSTOM_MAC]:
+    if conf[CONF_ADVANCED][CONF_IGNORE_EFUSE_CUSTOM_MAC]:
         cg.add_define("USE_ESP32_IGNORE_EFUSE_CUSTOM_MAC")
 
     add_extra_script(
@@ -708,18 +752,32 @@ async def to_code(config):
         # Set default CPU frequency
         add_idf_sdkconfig_option(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_{freq}", True)
 
+        # Apply LWIP optimization settings
+        advanced = conf[CONF_ADVANCED]
+        # DHCP server: only disable if explicitly set to false
+        # WiFi component handles its own optimization when AP mode is not used
+        if (
+            CONF_ENABLE_LWIP_DHCP_SERVER in advanced
+            and not advanced[CONF_ENABLE_LWIP_DHCP_SERVER]
+        ):
+            add_idf_sdkconfig_option("CONFIG_LWIP_DHCPS", False)
+        if not advanced.get(CONF_ENABLE_LWIP_MDNS_QUERIES, False):
+            add_idf_sdkconfig_option("CONFIG_LWIP_DNS_SUPPORT_MDNS_QUERIES", False)
+        if not advanced.get(CONF_ENABLE_LWIP_BRIDGE_INTERFACE, False):
+            add_idf_sdkconfig_option("CONFIG_LWIP_BRIDGEIF_MAX_PORTS", 0)
+
         cg.add_platformio_option("board_build.partitions", "partitions.csv")
         if CONF_PARTITIONS in config:
             add_extra_build_file(
                 "partitions.csv", CORE.relative_config_path(config[CONF_PARTITIONS])
             )
 
-        if assertion_level := conf[CONF_ADVANCED].get(CONF_ASSERTION_LEVEL):
+        if assertion_level := advanced.get(CONF_ASSERTION_LEVEL):
             for key, flag in ASSERTION_LEVELS.items():
                 add_idf_sdkconfig_option(flag, assertion_level == key)
 
         add_idf_sdkconfig_option("CONFIG_COMPILER_OPTIMIZATION_DEFAULT", False)
-        compiler_optimization = conf[CONF_ADVANCED].get(CONF_COMPILER_OPTIMIZATION)
+        compiler_optimization = advanced.get(CONF_COMPILER_OPTIMIZATION)
         for key, flag in COMPILER_OPTIMIZATIONS.items():
             add_idf_sdkconfig_option(flag, compiler_optimization == key)
 
@@ -728,7 +786,7 @@ async def to_code(config):
             conf[CONF_ADVANCED][CONF_ENABLE_LWIP_ASSERT],
         )
 
-        if conf[CONF_ADVANCED].get(CONF_IGNORE_EFUSE_MAC_CRC):
+        if advanced.get(CONF_IGNORE_EFUSE_MAC_CRC):
             add_idf_sdkconfig_option("CONFIG_ESP_MAC_IGNORE_MAC_CRC_ERROR", True)
             if (framework_ver.major, framework_ver.minor) >= (4, 4):
                 add_idf_sdkconfig_option(
@@ -738,7 +796,7 @@ async def to_code(config):
                 add_idf_sdkconfig_option(
                     "CONFIG_ESP32_PHY_CALIBRATION_AND_DATA_STORAGE", False
                 )
-        if conf[CONF_ADVANCED].get(CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES):
+        if advanced.get(CONF_ENABLE_IDF_EXPERIMENTAL_FEATURES):
             _LOGGER.warning(
                 "Using experimental features in ESP-IDF may result in unexpected failures."
             )
