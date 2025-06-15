@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from enum import IntEnum
 import os
 from pathlib import Path
 import re
@@ -10,10 +11,28 @@ import sys
 from textwrap import dedent
 from typing import Any
 
-# Generate with
-# protoc --python_out=script/api_protobuf -I esphome/components/api/ api_options.proto
 import aioesphomeapi.api_options_pb2 as pb
 import google.protobuf.descriptor_pb2 as descriptor
+
+
+class WireType(IntEnum):
+    """Protocol Buffer wire types as defined in the protobuf spec.
+
+    As specified in the Protocol Buffers encoding guide:
+    https://protobuf.dev/programming-guides/encoding/#structure
+    """
+
+    VARINT = 0  # int32, int64, uint32, uint64, sint32, sint64, bool, enum
+    FIXED64 = 1  # fixed64, sfixed64, double
+    LENGTH_DELIMITED = 2  # string, bytes, embedded messages, packed repeated fields
+    START_GROUP = 3  # groups (deprecated)
+    END_GROUP = 4  # groups (deprecated)
+    FIXED32 = 5  # fixed32, sfixed32, float
+
+
+# Generate with
+# protoc --python_out=script/api_protobuf -I esphome/components/api/ api_options.proto
+
 
 """Python 3 script to automatically generate C++ classes for ESPHome's native API.
 
@@ -35,7 +54,7 @@ will be generated, they still need to be formatted
 
 
 FILE_HEADER = """// This file was automatically generated with a tool.
-// See scripts/api_protobuf/api_protobuf.py
+// See script/api_protobuf/api_protobuf.py
 """
 
 
@@ -61,6 +80,11 @@ def camel_to_snake(name: str) -> str:
     # https://stackoverflow.com/a/1176023
     s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
     return re.sub("([a-z0-9])([A-Z])", r"\1_\2", s1).lower()
+
+
+def force_str(force: bool) -> str:
+    """Convert a boolean force value to string format for C++ code."""
+    return str(force).lower()
 
 
 class TypeInfo(ABC):
@@ -98,6 +122,11 @@ class TypeInfo(ABC):
     def repeated(self) -> bool:
         """Check if the field is repeated."""
         return self._field.label == 3
+
+    @property
+    def wire_type(self) -> WireType:
+        """Get the wire type for the field."""
+        raise NotImplementedError
 
     @property
     def cpp_type(self) -> str:
@@ -200,6 +229,43 @@ class TypeInfo(ABC):
     def dump(self, name: str) -> str:
         """Dump the value to the output."""
 
+    def calculate_field_id_size(self) -> int:
+        """Calculates the size of a field ID in bytes.
+
+        Returns:
+            The number of bytes needed to encode the field ID
+        """
+        # Calculate the tag by combining field_id and wire_type
+        tag = (self.number << 3) | (self.wire_type & 0b111)
+
+        # Calculate the varint size
+        if tag < 128:
+            return 1  # 7 bits
+        if tag < 16384:
+            return 2  # 14 bits
+        if tag < 2097152:
+            return 3  # 21 bits
+        if tag < 268435456:
+            return 4  # 28 bits
+        return 5  # 32 bits (maximum for uint32_t)
+
+    @abstractmethod
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        """Calculate the size needed for encoding this field.
+
+        Args:
+            name: The name of the field
+            force: Whether to force encoding the field even if it has a default value
+        """
+
+    @abstractmethod
+    def get_estimated_size(self) -> int:
+        """Get estimated size in bytes for this field with typical values.
+
+        Returns:
+            Estimated size in bytes including field ID and typical data
+        """
+
 
 TYPE_INFO: dict[int, TypeInfo] = {}
 
@@ -221,11 +287,20 @@ class DoubleType(TypeInfo):
     default_value = "0.0"
     decode_64bit = "value.as_double()"
     encode_func = "encode_double"
+    wire_type = WireType.FIXED64  # Uses wire type 1 according to protobuf spec
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%g", {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0.0, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 8  # field ID + 8 bytes for double
 
 
 @register_type(2)
@@ -234,11 +309,20 @@ class FloatType(TypeInfo):
     default_value = "0.0f"
     decode_32bit = "value.as_float()"
     encode_func = "encode_float"
+    wire_type = WireType.FIXED32  # Uses wire type 5
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%g", {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0.0f, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 4  # field ID + 4 bytes for float
 
 
 @register_type(3)
@@ -247,11 +331,20 @@ class Int64Type(TypeInfo):
     default_value = "0"
     decode_varint = "value.as_int64()"
     encode_func = "encode_int64"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%lld", {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_int64_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
 
 
 @register_type(4)
@@ -260,11 +353,20 @@ class UInt64Type(TypeInfo):
     default_value = "0"
     decode_varint = "value.as_uint64()"
     encode_func = "encode_uint64"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%llu", {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_uint64_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
 
 
 @register_type(5)
@@ -273,11 +375,20 @@ class Int32Type(TypeInfo):
     default_value = "0"
     decode_varint = "value.as_int32()"
     encode_func = "encode_int32"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRId32, {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_int32_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
 
 
 @register_type(6)
@@ -286,11 +397,20 @@ class Fixed64Type(TypeInfo):
     default_value = "0"
     decode_64bit = "value.as_fixed64()"
     encode_func = "encode_fixed64"
+    wire_type = WireType.FIXED64  # Uses wire type 1
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%llu", {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 8  # field ID + 8 bytes fixed
 
 
 @register_type(7)
@@ -299,11 +419,20 @@ class Fixed32Type(TypeInfo):
     default_value = "0"
     decode_32bit = "value.as_fixed32()"
     encode_func = "encode_fixed32"
+    wire_type = WireType.FIXED32  # Uses wire type 5
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRIu32, {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 4  # field ID + 4 bytes fixed
 
 
 @register_type(8)
@@ -312,10 +441,19 @@ class BoolType(TypeInfo):
     default_value = "false"
     decode_varint = "value.as_bool()"
     encode_func = "encode_bool"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f"out.append(YESNO({name}));"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_bool_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 1  # field ID + 1 byte
 
 
 @register_type(9)
@@ -326,10 +464,19 @@ class StringType(TypeInfo):
     const_reference_type = "const std::string &"
     decode_length = "value.as_string()"
     encode_func = "encode_string"
+    wire_type = WireType.LENGTH_DELIMITED  # Uses wire type 2
 
     def dump(self, name):
         o = f'out.append("\'").append({name}).append("\'");'
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 8  # field ID + 8 bytes typical string
 
 
 @register_type(11)
@@ -339,6 +486,7 @@ class MessageType(TypeInfo):
         return self._field.type_name[1:]
 
     default_value = ""
+    wire_type = WireType.LENGTH_DELIMITED  # Uses wire type 2
 
     @property
     def reference_type(self) -> str:
@@ -360,6 +508,16 @@ class MessageType(TypeInfo):
         o = f"{name}.dump_to(out);"
         return o
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_message_object(total_size, {field_id_size}, {name}, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return (
+            self.calculate_field_id_size() + 16
+        )  # field ID + 16 bytes estimated submessage
+
 
 @register_type(12)
 class BytesType(TypeInfo):
@@ -369,10 +527,19 @@ class BytesType(TypeInfo):
     const_reference_type = "const std::string &"
     decode_length = "value.as_string()"
     encode_func = "encode_string"
+    wire_type = WireType.LENGTH_DELIMITED  # Uses wire type 2
 
     def dump(self, name: str) -> str:
         o = f'out.append("\'").append({name}).append("\'");'
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 8  # field ID + 8 bytes typical bytes
 
 
 @register_type(13)
@@ -381,11 +548,20 @@ class UInt32Type(TypeInfo):
     default_value = "0"
     decode_varint = "value.as_uint32()"
     encode_func = "encode_uint32"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRIu32, {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_uint32_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
 
 
 @register_type(14)
@@ -399,6 +575,7 @@ class EnumType(TypeInfo):
         return f"value.as_enum<{self.cpp_type}>()"
 
     default_value = ""
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     @property
     def encode_func(self) -> str:
@@ -408,6 +585,14 @@ class EnumType(TypeInfo):
         o = f"out.append(proto_enum_to_string<{self.cpp_type}>({name}));"
         return o
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_enum_field(total_size, {field_id_size}, static_cast<uint32_t>({name}), {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 1  # field ID + 1 byte typical enum
+
 
 @register_type(15)
 class SFixed32Type(TypeInfo):
@@ -415,11 +600,20 @@ class SFixed32Type(TypeInfo):
     default_value = "0"
     decode_32bit = "value.as_sfixed32()"
     encode_func = "encode_sfixed32"
+    wire_type = WireType.FIXED32  # Uses wire type 5
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRId32, {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 4  # field ID + 4 bytes fixed
 
 
 @register_type(16)
@@ -428,11 +622,20 @@ class SFixed64Type(TypeInfo):
     default_value = "0"
     decode_64bit = "value.as_sfixed64()"
     encode_func = "encode_sfixed64"
+    wire_type = WireType.FIXED64  # Uses wire type 1
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%lld", {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 8  # field ID + 8 bytes fixed
 
 
 @register_type(17)
@@ -441,11 +644,20 @@ class SInt32Type(TypeInfo):
     default_value = "0"
     decode_varint = "value.as_sint32()"
     encode_func = "encode_sint32"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%" PRId32, {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_sint32_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
 
 
 @register_type(18)
@@ -454,11 +666,20 @@ class SInt64Type(TypeInfo):
     default_value = "0"
     decode_varint = "value.as_sint64()"
     encode_func = "encode_sint64"
+    wire_type = WireType.VARINT  # Uses wire type 0
 
     def dump(self, name: str) -> str:
         o = f'sprintf(buffer, "%lld", {name});\n'
         o += "out.append(buffer);"
         return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        field_id_size = self.calculate_field_id_size()
+        o = f"ProtoSize::add_sint64_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        return o
+
+    def get_estimated_size(self) -> int:
+        return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
 
 
 class RepeatedTypeInfo(TypeInfo):
@@ -477,6 +698,14 @@ class RepeatedTypeInfo(TypeInfo):
     @property
     def const_reference_type(self) -> str:
         return f"const {self.cpp_type} &"
+
+    @property
+    def wire_type(self) -> WireType:
+        """Get the wire type for this repeated field.
+
+        For repeated fields, we use the same wire type as the underlying field.
+        """
+        return self._ti.wire_type
 
     @property
     def decode_varint_content(self) -> str:
@@ -554,6 +783,31 @@ class RepeatedTypeInfo(TypeInfo):
     def dump(self, _: str):
         pass
 
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # For repeated fields, we always need to pass force=True to the underlying type's calculation
+        # This is because the encode method always sets force=true for repeated fields
+        if isinstance(self._ti, MessageType):
+            # For repeated messages, use the dedicated helper that handles iteration internally
+            field_id_size = self._ti.calculate_field_id_size()
+            o = f"ProtoSize::add_repeated_message(total_size, {field_id_size}, {name});"
+            return o
+        # For other repeated types, use the underlying type's size calculation with force=True
+        o = f"if (!{name}.empty()) {{\n"
+        o += f"  for (const auto {'' if self._ti_is_bool else '&'}it : {name}) {{\n"
+        o += f"    {self._ti.get_size_calculation('it', True)}\n"
+        o += "  }\n"
+        o += "}"
+        return o
+
+    def get_estimated_size(self) -> int:
+        # For repeated fields, estimate underlying type size * 2 (assume 2 items typically)
+        underlying_size = (
+            self._ti.get_estimated_size()
+            if hasattr(self._ti, "get_estimated_size")
+            else 8
+        )
+        return underlying_size * 2
+
 
 def build_enum_type(desc) -> tuple[str, str]:
     """Builds the enum type."""
@@ -578,6 +832,22 @@ def build_enum_type(desc) -> tuple[str, str]:
     return out, cpp
 
 
+def calculate_message_estimated_size(desc: descriptor.DescriptorProto) -> int:
+    """Calculate estimated size for a complete message based on typical values."""
+    total_size = 0
+
+    for field in desc.field:
+        if field.label == 3:  # repeated
+            ti = RepeatedTypeInfo(field)
+        else:
+            ti = TYPE_INFO[field.type](field)
+
+        # Add estimated size for this field
+        total_size += ti.get_estimated_size()
+
+    return total_size
+
+
 def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     public_content: list[str] = []
     protected_content: list[str] = []
@@ -587,6 +857,29 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     decode_64bit: list[str] = []
     encode: list[str] = []
     dump: list[str] = []
+    size_calc: list[str] = []
+
+    # Get message ID if it's a service message
+    message_id: int | None = get_opt(desc, pb.id)
+
+    # Add MESSAGE_TYPE method if this is a service message
+    if message_id is not None:
+        # Add static constexpr for message type
+        public_content.append(f"static constexpr uint16_t MESSAGE_TYPE = {message_id};")
+
+        # Add estimated size constant
+        estimated_size = calculate_message_estimated_size(desc)
+        public_content.append(
+            f"static constexpr uint16_t ESTIMATED_SIZE = {estimated_size};"
+        )
+
+        # Add message_name method for debugging
+        public_content.append("#ifdef HAS_PROTO_MESSAGE_DUMP")
+        snake_name = camel_to_snake(desc.name)
+        public_content.append(
+            f'static constexpr const char *message_name() {{ return "{snake_name}"; }}'
+        )
+        public_content.append("#endif")
 
     for field in desc.field:
         if field.label == 3:
@@ -596,6 +889,7 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
         protected_content.extend(ti.protected_content)
         public_content.extend(ti.public_content)
         encode.append(ti.encode_content)
+        size_calc.append(ti.get_size_calculation(f"this->{ti.field_name}"))
 
         if ti.decode_varint_content:
             decode_varint.append(ti.decode_varint_content)
@@ -660,6 +954,25 @@ def build_message_type(desc: descriptor.DescriptorProto) -> tuple[str, str]:
     o += "}\n"
     cpp += o
     prot = "void encode(ProtoWriteBuffer buffer) const override;"
+    public_content.append(prot)
+
+    # Add calculate_size method
+    o = f"void {desc.name}::calculate_size(uint32_t &total_size) const {{"
+
+    # Add a check for empty/default objects to short-circuit the calculation
+    # Only add this optimization if we have fields to check
+    if size_calc:
+        # For a single field, just inline it for simplicity
+        if len(size_calc) == 1 and len(size_calc[0]) + len(o) + 3 < 120:
+            o += f" {size_calc[0]} "
+        else:
+            # For multiple fields, add a short-circuit check
+            o += "\n"
+            # Performance optimization: add all the size calculations
+            o += indent("\n".join(size_calc)) + "\n"
+    o += "}\n"
+    cpp += o
+    prot = "void calculate_size(uint32_t &total_size) const override;"
     public_content.append(prot)
 
     o = f"void {desc.name}::dump_to(std::string &out) const {{"
@@ -736,24 +1049,18 @@ def build_service_message_type(
     hout = ""
     cout = ""
 
+    # Store ifdef for later use
     if ifdef is not None:
         ifdefs[str(mt.name)] = ifdef
-        hout += f"#ifdef {ifdef}\n"
-        cout += f"#ifdef {ifdef}\n"
 
     if source in (SOURCE_BOTH, SOURCE_SERVER):
-        # Generate send
-        func = f"send_{snake}"
-        hout += f"bool {func}(const {mt.name} &msg);\n"
-        cout += f"bool APIServerConnectionBase::{func}(const {mt.name} &msg) {{\n"
-        if log:
-            cout += "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
-            cout += f'  ESP_LOGVV(TAG, "{func}: %s", msg.dump().c_str());\n'
-            cout += "#endif\n"
-        # cout += f'  this->set_nodelay({str(nodelay).lower()});\n'
-        cout += f"  return this->send_message_<{mt.name}>(msg, {id_});\n"
-        cout += "}\n"
+        # Don't generate individual send methods anymore
+        # The generic send_message method will be used instead
+        pass
     if source in (SOURCE_BOTH, SOURCE_CLIENT):
+        # Only add ifdef when we're actually generating content
+        if ifdef is not None:
+            hout += f"#ifdef {ifdef}\n"
         # Generate receive
         func = f"on_{snake}"
         hout += f"virtual void {func}(const {mt.name} &value){{}};\n"
@@ -772,9 +1079,9 @@ def build_service_message_type(
         case += "break;"
         RECEIVE_CASES[id_] = case
 
-    if ifdef is not None:
-        hout += "#endif\n"
-        cout += "#endif\n"
+        # Only close ifdef if we opened it
+        if ifdef is not None:
+            hout += "#endif\n"
 
     return hout, cout
 
@@ -796,6 +1103,7 @@ def main() -> None:
     #pragma once
 
     #include "proto.h"
+    #include "api_pb2_size.h"
 
     namespace esphome {
     namespace api {
@@ -805,6 +1113,7 @@ def main() -> None:
     cpp = FILE_HEADER
     cpp += """\
     #include "api_pb2.h"
+    #include "api_pb2_size.h"
     #include "esphome/core/log.h"
 
     #include <cinttypes>
@@ -875,6 +1184,29 @@ def main() -> None:
 
     hpp += f"class {class_name} : public ProtoService {{\n"
     hpp += " public:\n"
+
+    # Add logging helper method declaration
+    hpp += "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
+    hpp += " protected:\n"
+    hpp += "  void log_send_message_(const char *name, const std::string &dump);\n"
+    hpp += " public:\n"
+    hpp += "#endif\n\n"
+
+    # Add generic send_message method
+    hpp += "  template<typename T>\n"
+    hpp += "  bool send_message(const T &msg) {\n"
+    hpp += "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
+    hpp += "    this->log_send_message_(T::message_name(), msg.dump());\n"
+    hpp += "#endif\n"
+    hpp += "    return this->send_message_(msg, T::MESSAGE_TYPE);\n"
+    hpp += "  }\n\n"
+
+    # Add logging helper method implementation to cpp
+    cpp += "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
+    cpp += f"void {class_name}::log_send_message_(const char *name, const std::string &dump) {{\n"
+    cpp += '  ESP_LOGVV(TAG, "send_message %s: %s", name, dump.c_str());\n'
+    cpp += "}\n"
+    cpp += "#endif\n\n"
 
     for mt in file.message_type:
         obj = build_service_message_type(mt)
@@ -948,8 +1280,7 @@ def main() -> None:
             body += f"this->{func}(msg);\n"
         else:
             body += f"{ret} ret = this->{func}(msg);\n"
-            ret_snake = camel_to_snake(ret)
-            body += f"if (!this->send_{ret_snake}(ret)) {{\n"
+            body += "if (!this->send_message(ret)) {\n"
             body += "  this->on_fatal_error();\n"
             body += "}\n"
         cpp += indent(body) + "\n" + "}\n"
