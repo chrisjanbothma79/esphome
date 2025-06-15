@@ -169,12 +169,6 @@ class Component {
 
   bool is_ready() const;
 
-  /** Check if this component should skip its loop execution.
-   *
-   * @return True if the component is in FAILED or LOOP_DONE state
-   */
-  bool should_skip_loop() const;
-
   virtual bool can_proceed();
 
   bool status_has_warning() const;
