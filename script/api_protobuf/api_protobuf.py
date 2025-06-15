@@ -11,7 +11,7 @@ import sys
 from textwrap import dedent
 from typing import Any
 
-import api_options_pb2 as pb
+import aioesphomeapi.api_options_pb2 as pb
 import google.protobuf.descriptor_pb2 as descriptor
 
 
