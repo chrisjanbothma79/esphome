@@ -255,7 +255,7 @@ enum UpdateCommand : uint32_t {
 
 class InfoResponseProtoMessage : public ProtoMessage {
  public:
-  virtual ~InfoResponseProtoMessage() = default;
+  ~InfoResponseProtoMessage() override = default;
   std::string object_id{};
   uint32_t key{0};
   std::string name{};
@@ -269,7 +269,7 @@ class InfoResponseProtoMessage : public ProtoMessage {
 
 class StateResponseProtoMessage : public ProtoMessage {
  public:
-  virtual ~StateResponseProtoMessage() = default;
+  ~StateResponseProtoMessage() override = default;
   uint32_t key{0};
 
  protected:

@@ -1137,8 +1137,8 @@ def build_base_class(
     out = f"class {base_class_name} : public ProtoMessage {{\n"
     out += " public:\n"
 
-    # Add virtual destructor
-    public_content.insert(0, f"virtual ~{base_class_name}() = default;")
+    # Add destructor with override
+    public_content.insert(0, f"~{base_class_name}() override = default;")
 
     # Base classes don't implement encode/decode/calculate_size
     # Derived classes handle these with their specific field numbers
