@@ -66,17 +66,17 @@ typedef struct {
 
 uint8_t sdspi_init(SpiConnector *);
 void sdspi_uninit(uint8_t);
+FATFS *sdspi_mount(uint8_t, const char *, uint8_t, bool);
+void sdspi_unmount(uint8_t);
+
 static const ff_diskio_impl_t *sdimpl_init();
 unsigned long sdGetSectorsCount(uint8_t);
 DSTATUS ff_sd_initialize(uint8_t);
 sdcard_type_t ff_sd_type(uint8_t);
 size_t ff_sd_sectors(uint8_t);
-
 // uint8_t sdcard_uninit(uint8_t);
-FATFS *sdcard_mount(uint8_t, const char *, uint8_t, bool);
-void sdcard_unmount(uint8_t);
-bool sd_read_raw(uint8_t, uint8_t *, uint32_t);
-bool sd_write_raw(uint8_t, uint8_t *, uint32_t);
+// bool sd_read_raw(uint8_t, uint8_t *, uint32_t);
+// bool sd_write_raw(uint8_t, uint8_t *, uint32_t);
 char sdTransaction(uint8_t, char, unsigned int, unsigned int *);
 
 char CRC7(const char *data, int length);

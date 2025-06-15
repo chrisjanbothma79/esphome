@@ -6,12 +6,39 @@
 // #include "spi_connector.h"
 // #endif
 
+/**
+ * @brief  CDFS is module for connecting and mount FAT filesysyem on SD card.
+ *  Drives support SPI os MMC conncetion. In case SPI connection it use esphome's SPI module.
+ *  For MMC connection it ues ESP IDF internal libs, therefore  MMC communication
+ *  available oonly on pure ESP32 or ESP32S3 board variats.
+ *
+ *  CDFS  ( SdmmcHost  class)  is a central class for controlling, checking  and mounting card.
+ *  esp8266_drv (esp8266SpiDriver driver) reailzation of DriverInterface  for esp8266 based boards
+ *  spi_connector -  SPi interface  for connect card io operation and esphome spi module
+ *  fs_interface  -  FS and File  access, read and write interface
+ *
+ * esp8266 boards SPI inteface
+ * ---------------------------
+ * SdmmcHost (sdfs.cpp) -> esp8266SpiDriver (esp8266_drv.cpp) -> SdfsSpiCard (esp8266_cdio.cpp)
+ *
+ * Other boards with arduino framework
+ * -----------------------------------
+ * SdmmcHost (sdfs.cpp) -> SdfsArduinoDriver (sdspi_drv_ard.cpp) --> sdspi_io    - for SPI connections
+ *                                                               +-> SdmmcIO (sdmmc_io.cpp)  - for MMC connections
+ *
+ * Other boards with IDF framework
+ * -----------------------------------
+ * SdmmcHost (sdfs.cpp) -> SdfsIdfDriver (sdspi_drv_idf.cpp) --> - for MMC connections
+ *                                                 +-> sdspi_io  - for SPI connections
+ *
+ */
+
 #if defined(USE_ARDUINO) && !defined(USE_ESP8266)
-#include "sdspi_drv_ard.h"
+#include "sdfs_drv_ard.h"
 #elif defined(USE_ARDUINO) && defined(USE_ESP8266)
 #include "esp8266_drv.h"
 #elif defined(USE_ESP_IDF)
-#include "sdmmc_drv_idf.h"
+#include "sdfs_drv_idf.h"
 #endif
 
 namespace esphome {
@@ -46,13 +73,12 @@ const char *host_st2str[] = {
 };
 
 const char *fat_type2str[] = {"NO_FS", "FS_FAT12", "FS_FAT16", "FS_FAT32", "FS_EXFAT"};
+class SdfsArduinoDriver;
 
 /**
  * @brief  EspHome component for univeral interface for card attach and mount controll
  *
  */
-class ArduinoSdFatDriver;
-
 SdmmcHost::SdmmcHost() {
   this->set_state(SD_SLOT_ST_NOTINIT);
 
@@ -150,7 +176,7 @@ void SdmmcHost::setup() {
   ESP_LOGD(TAG, "Setup called");
 
 #if defined(USE_ARDUINO) && !defined(USE_ESP8266)
-  ArduinoFatFsDriver *drv = new ArduinoFatFsDriver();
+  SdfsArduinoDriver *drv = new SdfsArduinoDriver();
 #if defined(USE_SDSPI_MODE)
   drv->set_connector(this->connector_);
 #endif
@@ -163,8 +189,8 @@ void SdmmcHost::setup() {
   this->drv_ = drv;
 
 #elif defined(USE_ESP_IDF)  // USE_ESP_IDF
-  SdmmcIdfDriver *drv = new SdmmcIdfDriver();
-  drv = new SdmmcIdfDriver();
+  SdfsIdfDriver *drv = new SdfsIdfDriver();
+  drv = new SdfsIdfDriver();
 #if defined(USE_SDSPI_MODE)
   drv->set_connector(this->connector_);
 #endif

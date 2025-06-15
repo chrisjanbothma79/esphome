@@ -17,7 +17,7 @@
 #include "hal/spi_types.h"
 #include "esp_vfs_fat.h"
 #include "vfs_fat_internal.h"
-#include "sdmmc_drv_idf.h"
+#include "sdfs_drv_idf.h"
 #include "stdio.h"
 
 #if defined(USE_SDSPI_MODE)
@@ -85,13 +85,13 @@ static void call_host_deinit_(const sdmmc_host_t *host_config) {
  * @param p
  */
 
-void SdmmcIdfDriver::set_parent(SdmmcHost *p) { this->parent_ = p; }
+void SdfsIdfDriver::set_parent(SdmmcHost *p) { this->parent_ = p; }
 #if defined(USE_SDSPI_MODE)
-void SdmmcIdfDriver::set_connector(SpiConnector *conn) { this->connector_ = conn; }
+void SdfsIdfDriver::set_connector(SpiConnector *conn) { this->connector_ = conn; }
 #endif
-uint32_t SdmmcIdfDriver::get_last_err() { return this->last_err_; }
+uint32_t SdfsIdfDriver::get_last_err() { return this->last_err_; }
 
-// bool SdmmcIdfDriver::sdspi_allocate() {
+// bool SdfsIdfDriver::sdspi_allocate() {
 //   ESP_LOGD(TAG, "SdmmcHost init");
 //   //   Allocate mem for SPI HOST_CONFIG
 //   sdmmc_host_t new_config = SDSPI_HOST_DEFAULT();
@@ -129,7 +129,7 @@ uint32_t SdmmcIdfDriver::get_last_err() { return this->last_err_; }
  * @return true
  * @return false  if no mem
  */
-bool SdmmcIdfDriver::sdmmc_allocate() {
+bool SdfsIdfDriver::sdmmc_allocate() {
 #if defined(SOC_SDMMC_HOST_SUPPORTED)
   ESP_LOGD(TAG, "SdmmcHost init");
   //   Allocate mem for SPI HOST_CONFIG
@@ -167,7 +167,7 @@ bool SdmmcIdfDriver::sdmmc_allocate() {
  * @brief  Initialize perpirals driver
  *
  */
-bool SdmmcIdfDriver::init_host(SdConnType bus_type) {
+bool SdfsIdfDriver::init_host(SdConnType bus_type) {
   this->bus_type_ = bus_type;
   uint8_t ret_status = 0;
 
@@ -192,7 +192,7 @@ bool SdmmcIdfDriver::init_host(SdConnType bus_type) {
  *
  * @return sdmmc_host_t*
  */
-uint8_t SdmmcIdfDriver::init_sdmmc(sdmmc_host_t *host_config) {
+uint8_t SdfsIdfDriver::init_sdmmc(sdmmc_host_t *host_config) {
   ESP_LOGD(TAG, "Init SDMMC");
 #if defined(SOC_SDMMC_HOST_SUPPORTED)
   ESP_LOGD(TAG, "Init SDMMC : SOC_SDMMC_HOST_SUPPORTED");
@@ -289,7 +289,7 @@ uint8_t SdmmcIdfDriver::init_sdmmc(sdmmc_host_t *host_config) {
  *
  * @return sdmmc_host_t*
  */
-uint8_t SdmmcIdfDriver::init_sdspi() {
+uint8_t SdfsIdfDriver::init_sdspi() {
 #if defined(USE_SDSPI_MODE)
   ESP_LOGD(TAG, "Init SDSPI");
   this->connector_->begin();
@@ -312,7 +312,7 @@ uint8_t SdmmcIdfDriver::init_sdspi() {
  * @return true  card present and status ok
  * @return false  eny error
  */
-bool SdmmcIdfDriver::is_card() {
+bool SdfsIdfDriver::is_card() {
   //
   //   Check state if disk mounted
   //
@@ -358,7 +358,7 @@ bool SdmmcIdfDriver::is_card() {
  * @return  bool   True if card attached
  *     //https://github.com/espressif/esp-idf/blob/master/components/sdmmc/sdmmc_init.c
  */
-bool SdmmcIdfDriver::attach_card() {
+bool SdfsIdfDriver::attach_card() {
   ESP_LOGD(TAG, "Attach card.");
 
   esp_err_t rc = ESP_OK;
@@ -405,7 +405,7 @@ bool SdmmcIdfDriver::attach_card() {
  * @return true
  * @return false
  */
-bool SdmmcIdfDriver::test() {
+bool SdfsIdfDriver::test() {
   FF_DIR dir;
   FILINFO fno;
   FRESULT res;
@@ -442,7 +442,7 @@ bool SdmmcIdfDriver::test() {
  * @return true
  * @return false
  */
-bool SdmmcIdfDriver::mount(std::string mountpoint, bool format) {
+bool SdfsIdfDriver::mount(std::string mountpoint, bool format) {
   ESP_LOGV(TAG, "Mount FS. pdrv=%d, Mountpoint %s", this->pdrv_, mountpoint.c_str());
 
   if (this->bus_type_ == SD_MMC) {
@@ -469,7 +469,7 @@ bool SdmmcIdfDriver::mount(std::string mountpoint, bool format) {
  * @param format
  * @return FATFS*
  */
-FATFS *SdmmcIdfDriver::mount_sdspi(uint8_t pdrv, std::string mountpoint, bool format) {
+FATFS *SdfsIdfDriver::mount_sdspi(uint8_t pdrv, std::string mountpoint, bool format) {
 #if defined(USE_SDAPI_MODE)
   FATFS *fs = NULL;
   mountpoint_ = mountpoint;
@@ -494,7 +494,7 @@ FATFS *SdmmcIdfDriver::mount_sdspi(uint8_t pdrv, std::string mountpoint, bool fo
  * @param format
  * @return FATFS*
  */
-FATFS *SdmmcIdfDriver::mount_sdmmc(uint8_t pdrv, std::string mountpoint, bool format) {
+FATFS *SdfsIdfDriver::mount_sdmmc(uint8_t pdrv, std::string mountpoint, bool format) {
   mountpoint_ = mountpoint;
   FATFS *fs = NULL;
   esp_err_t rc = ESP_OK;
@@ -563,7 +563,7 @@ unregister_fs:
  * @brief  Unmount and reset all mem blocks.
  *
  */
-void SdmmcIdfDriver::unmount() {
+void SdfsIdfDriver::unmount() {
   ESP_LOGV(TAG, "Unmount FS, pdrv=%d, path=%s", this->pdrv_, this->mountpoint_.c_str());
 
   if (this->bus_type_ == SD_MMC) {
@@ -582,7 +582,7 @@ void SdmmcIdfDriver::unmount() {
  * @param pdrv
  * @param mountpoint
  */
-void SdmmcIdfDriver::unmount_sdmmc(uint8_t pdrv, std::string mountpoint) {
+void SdfsIdfDriver::unmount_sdmmc(uint8_t pdrv, std::string mountpoint) {
   esp_err_t rc = ESP_OK;
 
   //  Unmount filesystem
@@ -621,9 +621,9 @@ void SdmmcIdfDriver::unmount_sdmmc(uint8_t pdrv, std::string mountpoint) {
  * @param pdrv
  * @param mountpoint
  */
-void SdmmcIdfDriver::unmount_sdspi(uint8_t pdrv, std::string mountpoint) {
+void SdfsIdfDriver::unmount_sdspi(uint8_t pdrv, std::string mountpoint) {
 #if defined(USE_SDSPI_MODE)
-  sdcard_unmount(pdrv);
+  sdspi_unmount(pdrv);
 #endif
   this->fs_ = NULL;
 }

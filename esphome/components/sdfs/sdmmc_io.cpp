@@ -16,7 +16,8 @@ static const char *TAG = "sdspi_io";
 
 /**********************************************************************
  *
- * @brief Construct a new Sdmmc I O:: Sdmmc I O object
+ * @brief Construct a new SdmmcIO object. Provide  interface to low level
+ * io operations for MMC connection in ARDUINO framework.
  *
  */
 SdmmcIO::SdmmcIO() {
@@ -214,7 +215,7 @@ init_status_t SdmmcIO::get_disk_status() {  //  is_card
   assert(this->card_info_);
   esp_err_t err = sdmmc_get_status(this->card_info_);
   if (unlikely(err != ESP_OK)) {
-    ESP_LOGE(TAG, "Check status failed (0x%x)", err);
+    ESP_LOGE(TAG, "Check status failed (0x%x)%s", err, esp_err_to_name(err));
     return SDMMC_RET_STATUS_NOCARD;
   }
   return SDMMC_RET_STATUS_OK;
@@ -243,7 +244,7 @@ init_status_t SdmmcIO::init_card() {  //  attach_card
 
 /**********************************************************************
  *
- * @brief
+ * @brief Mount FS
  *
  * @param mountpoint
  * @param format
@@ -289,7 +290,7 @@ unregister_fs:
 
 /**********************************************************************
  *
- * @brief
+ * @brief unmount fs
  *
  * @return true
  * @return false
@@ -327,7 +328,7 @@ void SdmmcIO::unmount() {
 
 /**********************************************************************
  *
- * @brief
+ * @brief format cdcard with fat fs
  *
  * @return true
  * @return false

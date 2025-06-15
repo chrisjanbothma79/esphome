@@ -21,9 +21,9 @@ namespace sdfs {
 
 //  SD - Esample  https://github.com/espressif/arduino-esp32/issues/6237
 
-class ArduinoFatFsDriver : public DriverInterface {
+class SdfsArduinoDriver : public DriverInterface {
  public:
-  ArduinoFatFsDriver();
+  SdfsArduinoDriver();
   void end();
   void set_parent(SdmmcHost *) override;
 #if defined(USE_SDSPI_MODE)

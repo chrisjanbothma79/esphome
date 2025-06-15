@@ -1,4 +1,4 @@
-#include "sdspi_drv_ard.h"
+#include "sdfs_drv_ard.h"
 #include "sdfs_defines.h"
 #if defined(USE_ARDUINO) && !defined(USE_ESP8266)
 #include "dirent.h"
@@ -9,13 +9,14 @@ extern "C" {
 #endif
 #include "esp_vfs_fat.h"
 }
-#ifdef USE_SDMMC_MODE
-#include "SD_MMC.h"
-#endif
+// #ifdef USE_SDMMC_MODE
+
+// #endif
 
 #if defined(USE_SDSPI_MODE)
 #include "sdspi_io.h"
-#else
+#elif defined(USE_SDMMC_MODE)
+#include "SD_MMC.h"
 #include "sdmmc_io.h"
 #endif
 
@@ -27,7 +28,7 @@ static const char *const TAG = "sdspi_drv_ard";
 
 /****************************************************************
  *
- *             ArduinoFatFsDriver
+ *             SdfsArduinoDriver
  *
  * @brief Arduino frameework processing interaction with SDMMC and SDSPI card drivers/controllers
  *        in ESP32 platform.
@@ -36,16 +37,16 @@ static const char *const TAG = "sdspi_drv_ard";
  *                  SPIConnector class defined in upper level in SdmmcHost class
  * @param impl   FAT.   Esp fs implementation class
  */
-ArduinoFatFsDriver::ArduinoFatFsDriver() {
+SdfsArduinoDriver::SdfsArduinoDriver() {
   this->pdrv_ = 0xFF;
 #if defined(USE_SDMMC_MODE)
   this->mmc_connector = new SdmmcIO();
 #endif
 }
 
-void ArduinoFatFsDriver::set_parent(SdmmcHost *p) { this->parent_ = p; }
+void SdfsArduinoDriver::set_parent(SdmmcHost *p) { this->parent_ = p; }
 #if defined(USE_SDSPI_MODE)
-void ArduinoFatFsDriver::set_connector(SpiConnector *cn) { this->connector_ = cn; }
+void SdfsArduinoDriver::set_connector(SpiConnector *cn) { this->connector_ = cn; }
 #endif
 
 /****************************************************************
@@ -55,7 +56,7 @@ void ArduinoFatFsDriver::set_connector(SpiConnector *cn) { this->connector_ = cn
  * @return true
  * @return false
  */
-bool ArduinoFatFsDriver::init_host(SdConnType bus_type) {
+bool SdfsArduinoDriver::init_host(SdConnType bus_type) {
   this->bus_type_ = bus_type;
   bool ret = false;
 
@@ -106,7 +107,7 @@ bool ArduinoFatFsDriver::init_host(SdConnType bus_type) {
 }
 
 // TODO: Add destructor
-void ArduinoFatFsDriver::end() {
+void SdfsArduinoDriver::end() {
 #if defined(USE_SDSPI_MODE)
   if (this->bus_type_ == SD_SPI) {
     sdspi_uninit(this->pdrv_);
@@ -120,7 +121,7 @@ void ArduinoFatFsDriver::end() {
  * @return true
  * @return false
  */
-bool ArduinoFatFsDriver::is_mount() { return (this->fs_ != NULL) && (this->fs_->fs_type != 0); }
+bool SdfsArduinoDriver::is_mount() { return (this->fs_ != NULL) && (this->fs_->fs_type != 0); }
 
 /****************************************************************
  *
@@ -129,7 +130,7 @@ bool ArduinoFatFsDriver::is_mount() { return (this->fs_ != NULL) && (this->fs_->
  * @return true
  * @return false
  */
-bool ArduinoFatFsDriver::is_card() {
+bool SdfsArduinoDriver::is_card() {
   if (is_mount()) {
 #if defined(USE_SDSPI_MODE)
     if (this->bus_type_ == SD_SPI) {
@@ -178,7 +179,7 @@ bool ArduinoFatFsDriver::is_card() {
  * @return true
  * @return false
  */
-bool ArduinoFatFsDriver::attach_card() {
+bool SdfsArduinoDriver::attach_card() {
   bool is_card = false;
 
 #if defined(USE_SDSPI_MODE)
@@ -206,13 +207,13 @@ bool ArduinoFatFsDriver::attach_card() {
  * @return true  Mouned
  * @return false  Not mounted
  */
-bool ArduinoFatFsDriver::mount(std::string mountpoint, bool format) {
+bool SdfsArduinoDriver::mount(std::string mountpoint, bool format) {
   ESP_LOGV(TAG, "Mount FS. pdrv=%d, Mountpoint %s", this->pdrv_, mountpoint);
 #if defined(USE_SDSPI_MODE)
   if (this->bus_type_ == SD_SPI) {
-    this->fs_ = sdcard_mount(this->pdrv_, mountpoint.c_str(), 5, format);
+    this->fs_ = sdspi_mount(this->pdrv_, mountpoint.c_str(), 5, format);
     if (this->fs_ == NULL) {
-      sdcard_unmount(this->pdrv_);
+      sdspi_unmount(this->pdrv_);
     }
   }
 #endif
@@ -245,7 +246,7 @@ bool ArduinoFatFsDriver::mount(std::string mountpoint, bool format) {
  * @return true
  * @return false
  */
-bool ArduinoFatFsDriver::test() {
+bool SdfsArduinoDriver::test() {
   FF_DIR dir;
   FILINFO fno;
   FRESULT res;
@@ -279,11 +280,11 @@ bool ArduinoFatFsDriver::test() {
  * @brief Unmount driver. Ckear mount point registration.
  *
  */
-void ArduinoFatFsDriver::unmount() {
+void SdfsArduinoDriver::unmount() {
   // _impl->mountpoint(NULL);
 #if defined(USE_SDSPI_MODE)
   if (this->bus_type_ == SD_SPI) {
-    sdcard_unmount(this->pdrv_);
+    sdspi_unmount(this->pdrv_);
   }
 #endif
 #if defined(USE_SDMMC_MODE)
@@ -294,9 +295,9 @@ void ArduinoFatFsDriver::unmount() {
   this->fs_ = NULL;
 }
 
-uint32_t ArduinoFatFsDriver::get_last_err() { return this->last_err_; }
+uint32_t SdfsArduinoDriver::get_last_err() { return this->last_err_; }
 
-sdcard_type_t ArduinoFatFsDriver::cardType() {
+sdcard_type_t SdfsArduinoDriver::cardType() {
   sdcard_type_t type = CARD_NONE;
   if (!is_mount())
     return type;
@@ -321,13 +322,13 @@ sdcard_type_t ArduinoFatFsDriver::cardType() {
   return type;
 }
 
-uint64_t ArduinoFatFsDriver::cardSize() {
+uint64_t SdfsArduinoDriver::cardSize() {
   if (!is_mount())
     return 0;
   return (uint64_t) numSectors() * this->sectorSize();
 }
 
-size_t ArduinoFatFsDriver::numSectors() {
+size_t SdfsArduinoDriver::numSectors() {
   size_t sectors = 0;
   if (!is_mount())
     return 0;
@@ -345,7 +346,7 @@ size_t ArduinoFatFsDriver::numSectors() {
   return sectors;
 }
 
-size_t ArduinoFatFsDriver::sectorSize() {
+size_t SdfsArduinoDriver::sectorSize() {
   size_t size = 0;
   if (!is_mount())
     return 0;
@@ -363,7 +364,7 @@ size_t ArduinoFatFsDriver::sectorSize() {
   return size;
 }
 
-uint64_t ArduinoFatFsDriver::totalBytes() {
+uint64_t SdfsArduinoDriver::totalBytes() {
   uint64_t size = 0;
   if (is_mount()) {
     DWORD fre_clust;
@@ -379,7 +380,7 @@ uint64_t ArduinoFatFsDriver::totalBytes() {
   return size;
 }
 
-uint64_t ArduinoFatFsDriver::usedBytes() {
+uint64_t SdfsArduinoDriver::usedBytes() {
   uint64_t size = 0;
   if (is_mount()) {
     DWORD fre_clust;

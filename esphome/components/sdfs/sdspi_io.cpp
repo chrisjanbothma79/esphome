@@ -17,31 +17,10 @@ extern "C" {
 #include "esp_vfs_fat.h"
 }
 
+//  esp_err_to_name
+
 namespace esphome {
 namespace sdfs {
-
-// #if ARDUHAL_LOG_LEVEL >= ARDUHAL_LOG_LEVEL_ERROR
-// const char *fs_err2str[] = {"(0) Succeeded",
-//                             "(1) A hard error occurred in the low level disk I/O layer",
-//                             "(2) Assertion failed",
-//                             "(3) The physical drive cannot work",
-//                             "(4) Could not find the file",
-//                             "(5) Could not find the path",
-//                             "(6) The path name format is invalid",
-//                             "(7) Access denied due to prohibited access or directory full",
-//                             "(8) Access denied due to prohibited access",
-//                             "(9) The file/directory object is invalid",
-//                             "(10) The physical drive is write protected",
-//                             "(11) The logical drive number is invalid",
-//                             "(12) The volume has no work area",
-//                             "(13) There is no valid FAT volume",
-//                             "(14) The f_mkfs() aborted due to any problem",
-//                             "(15) Could not get a grant to access the volume within defined period",
-//                             "(16) The operation is rejected according to the file sharing policy",
-//                             "(17) LFN working buffer could not be allocated",
-//                             "(18) Number of open files > FF_FS_LOCK",
-//                             "(19) Given parameter is invalid"};
-// #endif
 
 #define LOCK_SPI s_cards[pdrv]->conn->beginTransaction()
 #define UNLOCK_SPI s_cards[pdrv]->conn->endTransaction()
@@ -56,64 +35,6 @@ FATFS *fs_handler;
 
 sdcard_type_t ff_sd_type(uint8_t pdrv) { return s_cards[pdrv]->type; }
 size_t ff_sd_sectors(uint8_t pdrv) { return s_cards[pdrv]->sectors; }
-
-uint8_t sdspi_init(SpiConnector *connector_) {
-  uint8_t pdrv = FF_DRV_NOT_USED;
-  // ESP_LOGD(TAG, "ArduinoSdFatDriver/init_host");
-  // this->connector_->begin();
-  // TODO: check for SPI initilized ?
-
-  if (ff_diskio_get_drive(&pdrv) != ESP_OK || pdrv == FF_DRV_NOT_USED) {
-    return pdrv;
-  }
-
-  esp_ardu_sdcard_t *card = (esp_ardu_sdcard_t *) malloc(sizeof(esp_ardu_sdcard_t));
-  if (!card) {
-    return FF_DRV_NOT_USED;
-  }
-
-  card->base_path = NULL;
-  // card->frequency = this->frequency_;
-  card->conn = connector_;
-  card->supports_crc = true;
-  card->type = CARD_NONE;
-  card->status = STA_NOINIT;
-  s_cards[pdrv] = card;
-
-  static const ff_diskio_impl_t *sd_impl = sdimpl_init();
-  ff_diskio_register(pdrv, sd_impl);
-
-  // DSTATUS res = ff_sd_initialize(pdrv);
-  // if ((res & STA_NOINIT) == STA_NOINIT) {
-  //   status_ = ST_MOUNT;
-  //   ESP_LOGD(TAG, "Slot initilized pdrv=%d. Status NOT INIT", pdrv_);
-  // } else {
-  //   status_ = ST_INIT;
-  //   ESP_LOGD(TAG, "Slot initilized pdrv=%d. Status INIT", pdrv_);
-  // }
-  return pdrv;
-}
-
-void sdspi_uninit(uint8_t pdrv) {
-  if (pdrv != FF_DRV_NOT_USED) {
-    esp_err_t err;
-    // _impl->mountpoint(NULL);
-    sdcard_unmount(pdrv);
-    esp_ardu_sdcard_t *card = s_cards[pdrv];
-
-    LOCK_SPI;
-    sdTransaction(pdrv, GO_IDLE_STATE, 0, NULL);
-    ff_diskio_register(pdrv, NULL);
-    UNLOCK_SPI;
-    s_cards[pdrv] = NULL;
-
-    if (card->base_path) {
-      err = esp_vfs_fat_unregister_path(card->base_path);
-      free(card->base_path);
-    }
-    free(card);
-  }
-}
 
 /* ********************************************************************
  *
@@ -728,11 +649,12 @@ DRESULT ff_sd_ioctl(uint8_t pdrv, uint8_t cmd, void *buff) {
   return RES_PARERR;
 }
 
-bool sd_read_raw(uint8_t pdrv, uint8_t *buffer, DWORD sector) { return ff_sd_read(pdrv, buffer, sector, 1) == ESP_OK; }
+// bool sd_read_raw(uint8_t pdrv, uint8_t *buffer, DWORD sector) { return ff_sd_read(pdrv, buffer, sector, 1) == ESP_OK;
+// }
 
-bool sd_write_raw(uint8_t pdrv, uint8_t *buffer, DWORD sector) {
-  return ff_sd_write(pdrv, buffer, sector, 1) == ESP_OK;
-}
+// bool sd_write_raw(uint8_t pdrv, uint8_t *buffer, DWORD sector) {
+//   return ff_sd_write(pdrv, buffer, sector, 1) == ESP_OK;
+// }
 
 /***********************************************************
  *
@@ -792,7 +714,7 @@ bool sd_write_raw(uint8_t pdrv, uint8_t *buffer, DWORD sector) {
 //   return pdrv;
 // }
 
-void sdcard_unmount(uint8_t pdrv) {
+void sdspi_unmount(uint8_t pdrv) {
 #if defined(SPI_CALL_TRACE)
   ESP_LOGV(TAG, "sdcard_unmount");
 #endif
@@ -821,7 +743,7 @@ void sdcard_unmount(uint8_t pdrv) {
   ESP_LOGV(TAG, "FS Unregister path");
 }
 
-FATFS *sdcard_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool format_if_empty) {
+FATFS *sdspi_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool format_if_empty) {
 #if defined(SPI_CALL_TRACE)
   ESP_LOGD(TAG, "sdcard_mount");
 #endif
@@ -840,10 +762,10 @@ FATFS *sdcard_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool form
   char drv[3] = {(char) ('0' + pdrv), ':', 0};
   esp_err_t err = esp_vfs_fat_register(card->base_path, drv, max_files, &local_fs);
   if (err == ESP_ERR_INVALID_STATE) {
-    ESP_LOGE(TAG, "esp_vfs_fat_register failed 0x(%x): SD is registered.", err);
+    ESP_LOGE(TAG, "esp_vfs_fat_register failed 0x(%x)%s: SD is registered.", err, esp_err_to_name(err));
     return NULL;
   } else if (err != ESP_OK) {
-    ESP_LOGE(TAG, "esp_vfs_fat_register failed 0x(%x)", err);
+    ESP_LOGE(TAG, "esp_vfs_fat_register failed 0x(%x)%s", err, esp_err_to_name(err));
     return NULL;
   }
 
@@ -923,15 +845,82 @@ FATFS *sdcard_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool form
 //     }
 //     return card->type;
 // }
-static const ff_diskio_impl_t *sdimpl_init() {
+
+// static const ff_diskio_impl_t *sdimpl_init() {
+//   static const ff_diskio_impl_t sd_impl = {.init = &ff_sd_initialize,
+//                                            .status = &ff_sd_status,
+//                                            .read = &ff_sd_read,
+//                                            .write = &ff_sd_write,
+//                                            .ioctl = &ff_sd_ioctl};
+//   return &sd_impl;
+// }
+
+/**-------------------------------------------------------------------------
+ * @brief
+ *
+ * @param connector_
+ * @return uint8_t
+ */
+uint8_t sdspi_init(SpiConnector *connector_) {
+  uint8_t pdrv = FF_DRV_NOT_USED;
+  // ESP_LOGD(TAG, "ArduinoSdFatDriver/init_host");
+  // this->connector_->begin();
+  // TODO: check for SPI initilized ?
+
+  if (ff_diskio_get_drive(&pdrv) != ESP_OK || pdrv == FF_DRV_NOT_USED) {
+    return pdrv;
+  }
+
+  esp_ardu_sdcard_t *card = (esp_ardu_sdcard_t *) malloc(sizeof(esp_ardu_sdcard_t));
+  if (!card) {
+    return FF_DRV_NOT_USED;
+  }
+
+  card->base_path = NULL;
+  // card->frequency = this->frequency_;
+  card->conn = connector_;
+  card->supports_crc = true;
+  card->type = CARD_NONE;
+  card->status = STA_NOINIT;
+  s_cards[pdrv] = card;
+
+  // static const ff_diskio_impl_t *sd_impl = sdimpl_init();
+
   static const ff_diskio_impl_t sd_impl = {.init = &ff_sd_initialize,
                                            .status = &ff_sd_status,
                                            .read = &ff_sd_read,
                                            .write = &ff_sd_write,
                                            .ioctl = &ff_sd_ioctl};
-  return &sd_impl;
-}
 
+  ff_diskio_register(pdrv, &sd_impl);
+
+  return pdrv;
+}
+/**---------------------------------------------------------------------------
+ * @brief
+ *
+ * @param pdrv
+ */
+void sdspi_uninit(uint8_t pdrv) {
+  if (pdrv != FF_DRV_NOT_USED) {
+    esp_err_t err;
+    // _impl->mountpoint(NULL);
+    sdspi_unmount(pdrv);
+    esp_ardu_sdcard_t *card = s_cards[pdrv];
+
+    LOCK_SPI;
+    sdTransaction(pdrv, GO_IDLE_STATE, 0, NULL);
+    ff_diskio_register(pdrv, NULL);
+    UNLOCK_SPI;
+    s_cards[pdrv] = NULL;
+
+    if (card->base_path) {
+      err = esp_vfs_fat_unregister_path(card->base_path);
+      free(card->base_path);
+    }
+    free(card);
+  }
+}
 /*****************************************************************
  */
 

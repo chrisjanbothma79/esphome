@@ -58,8 +58,8 @@ class DriverInterface;
 
 class SdmmcHost : public Component {
   friend class SdmmcDriver;
-  friend class SdmmcIdfDriver;
-  friend class ArduinoFatFsDriver;
+  friend class SdfsIdfDriver;
+  friend class SdfsArduinoDriver;
 
   // #ifdef USE_ESP_IDF
   // #endif

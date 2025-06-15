@@ -1,7 +1,7 @@
 
 #pragma once
 #include "esphome/core/defines.h"
-#ifdef USE_ESP_IDF
+#if defined(USE_ESP_IDF)
 #include "sdfs.h"
 #include "esphome/core/gpio.h"
 #include "esphome/core/defines.h"
@@ -30,7 +30,7 @@ class SdmmcHost;
  *         in esp_idf framework
  *
  */
-class SdmmcIdfDriver : public DriverInterface {
+class SdfsIdfDriver : public DriverInterface {
  public:
   void set_parent(SdmmcHost *) override;
 #if defined(USE_SDSPI_MODE)

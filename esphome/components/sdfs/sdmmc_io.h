@@ -1,7 +1,7 @@
 #pragma once
 #include "esphome/core/defines.h"
 #include "sdfs_defines.h"
-#ifdef USE_SDMMC_MODE
+#if defined(USE_SDMMC_MODE) && defined(SOC_SDMMC_HOST_SUPPORTED)
 // #include "ffconf.h"
 #include "driver/sdmmc_host.h"
 #include "driver/sdmmc_types.h"
