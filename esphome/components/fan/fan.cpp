@@ -52,8 +52,7 @@ void FanCall::validate_() {
   if (!this->preset_mode_.empty()) {
     const auto &preset_modes = traits.supported_preset_modes();
     if (preset_modes.find(this->preset_mode_) == preset_modes.end()) {
-      ESP_LOGW(TAG, "'%s' - This fan does not support preset mode '%s'!", this->parent_.get_name().c_str(),
-               this->preset_mode_.c_str());
+      ESP_LOGW(TAG, "%s: Preset mode '%s' not supported", this->parent_.get_name().c_str(), this->preset_mode_.c_str());
       this->preset_mode_.clear();
     }
   }
@@ -71,7 +70,7 @@ void FanCall::validate_() {
   }
 
   if (this->oscillating_.has_value() && !traits.supports_oscillation()) {
-    ESP_LOGW(TAG, "'%s' - This fan does not support oscillation!", this->parent_.get_name().c_str());
+    ESP_LOGW(TAG, "%s: Oscillation not supported", this->parent_.get_name().c_str());
     this->oscillating_.reset();
   }
 
