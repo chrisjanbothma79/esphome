@@ -35,8 +35,6 @@ class CaptivePortal : public AsyncWebHandler, public Component {
     this->dns_server_->stop();
     this->dns_server_ = nullptr;
 #endif
-    // Mark loop as done since we no longer need to process DNS requests
-    this->mark_loop_done();
   }
 
   bool canHandle(AsyncWebServerRequest *request) override {
