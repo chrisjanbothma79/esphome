@@ -242,7 +242,7 @@ void ESP32BLETracker::loop() {
 void ESP32BLETracker::start_scan() { this->start_scan_(true); }
 
 void ESP32BLETracker::stop_scan() {
-  ESP_LOGD(TAG, "Stopping scan.");
+  ESP_LOGD(TAG, "Stopping scan");
   this->scan_continuous_ = false;
   this->stop_scan_();
 }
@@ -291,7 +291,7 @@ void ESP32BLETracker::start_scan_(bool first) {
     return;
   }
   this->set_scanner_state_(ScannerState::STARTING);
-  ESP_LOGD(TAG, "Starting scan, set scanner state to STARTING.");
+  ESP_LOGD(TAG, "Starting scan");
   if (!first) {
     for (auto *listener : this->listeners_)
       listener->on_scan_end();
@@ -302,11 +302,8 @@ void ESP32BLETracker::start_scan_(bool first) {
   this->scan_params_.scan_interval = this->scan_interval_;
   this->scan_params_.scan_window = this->scan_window_;
 
-  if (!allowlist_address_vec_.empty()) {
-    this->scan_params_.scan_filter_policy = BLE_SCAN_FILTER_ALLOW_ONLY_WLST;
-  } else {
-    this->scan_params_.scan_filter_policy = BLE_SCAN_FILTER_ALLOW_ALL;
-  }
+  this->scan_params_.scan_filter_policy =
+      !this->allowlist_address_vec_.empty() ? BLE_SCAN_FILTER_ALLOW_ONLY_WLST : BLE_SCAN_FILTER_ALLOW_ALL;
 
   // Start timeout before scan is started. Otherwise scan never starts if any error.
   this->set_timeout("scan", this->scan_duration_ * 2000, []() {
@@ -321,14 +318,13 @@ void ESP32BLETracker::start_scan_(bool first) {
   }
 
   if (!this->allowlist_address_vec_.empty() && !this->allowlist_populated_) {
-    ESP_LOGD(TAG, "Clearing allowlist.");
+    ESP_LOGD(TAG, "Building allowlist with %zu entries", this->allowlist_address_vec_.size());
     esp_ble_gap_clear_whitelist();  // NOLINT(lint_inclusive_language)
 
-    ESP_LOGD(TAG, "Building allowlist...");
     for (uint64_t address : this->allowlist_address_vec_) {
-      ESP_LOGD(TAG, "Adding to allowlist");
       esp_bd_addr_t esp_address;
       uint64_to_bd_addr(address, esp_address);
+      ESP_LOGV(TAG, "  Adding %s", format_hex(esp_address, 6).c_str());
       esp_ble_gap_update_whitelist(true, esp_address, BLE_WL_ADDR_TYPE_PUBLIC);  // NOLINT(lint_inclusive_language)
     }
     this->allowlist_populated_ = true;
@@ -786,7 +782,7 @@ void ESP32BLETracker::dump_config() {
     ESP_LOGCONFIG(TAG, "  Scan Start Fail Count: %d", this->scan_start_fail_count_);
   }
   if (!this->allowlist_address_vec_.empty()) {
-    ESP_LOGCONFIG(TAG, "  Allowlist configured with %d addresses", this->allowlist_address_vec_.size());
+    ESP_LOGCONFIG(TAG, "  Allowlist: %zu addresses configured", this->allowlist_address_vec_.size());
   }
 }
 

@@ -62,7 +62,7 @@ CONF_SOFTWARE_COEXISTENCE = "software_coexistence"
 MAX_ALLOWLIST_SIZE = 12
 
 
-def get_max_allowlist_size():
+def get_max_allowlist_size() -> int:
     """Get the maximum allowlist size for the current ESP32 variant."""
     # For now, use the same limit for all variants since Arduino
     # framework doesn't allow configuration and 12 is the ESP-IDF default
@@ -71,7 +71,7 @@ def get_max_allowlist_size():
     return MAX_ALLOWLIST_SIZE
 
 
-def validate_allowlist_addresses(value):
+def validate_allowlist_addresses(value: list[cv.MacAddress]) -> list[cv.MacAddress]:
     """Validate allowlist addresses against platform-specific limit."""
     max_size = get_max_allowlist_size()
     if len(value) > max_size:
@@ -320,17 +320,13 @@ async def to_code(config):
     cg.add(var.set_scan_active(params[CONF_ACTIVE]))
     cg.add(var.set_scan_continuous(params[CONF_CONTINUOUS]))
     if CONF_ALLOWLIST_ADDRESS in params:
-        allowlist_addr_list = []
-        for it in params[CONF_ALLOWLIST_ADDRESS]:
-            allowlist_addr_list.append(it.as_hex)
+        allowlist_addr_list = [it.as_hex for it in params[CONF_ALLOWLIST_ADDRESS]]
         cg.add(var.set_allowlist_addresses(allowlist_addr_list))
 
     for conf in config.get(CONF_ON_BLE_ADVERTISE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         if CONF_MAC_ADDRESS in conf:
-            addr_list = []
-            for it in conf[CONF_MAC_ADDRESS]:
-                addr_list.append(it.as_hex)
+            addr_list = [it.as_hex for it in conf[CONF_MAC_ADDRESS]]
             cg.add(trigger.set_addresses(addr_list))
         await automation.build_automation(trigger, [(ESPBTDeviceConstRef, "x")], conf)
     for conf in config.get(CONF_ON_BLE_SERVICE_DATA_ADVERTISE, []):
