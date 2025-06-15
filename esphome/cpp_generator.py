@@ -416,7 +416,9 @@ class LineComment(Statement):
         self.value = value
 
     def __str__(self):
-        parts = re.sub(r"\\\s*\n", r"<cont>\n", self.value, re.MULTILINE).split("\n")
+        parts = re.sub(r"\\\s*\n", r"<cont>\n", self.value, flags=re.MULTILINE).split(
+            "\n"
+        )
         parts = [f"// {x}" for x in parts]
         return "\n".join(parts)
 
@@ -577,13 +579,13 @@ def new_Pvariable(id_: ID, *args: SafeExpType) -> Pvariable:
     return Pvariable(id_, rhs)
 
 
-def add(expression: Expression | Statement):
+def add(expression: Expression | Statement, prepend: bool = False):
     """Add an expression to the codegen section.
 
     After this is called, the given given expression will
     show up in the setup() function after this has been called.
     """
-    CORE.add(expression)
+    CORE.add(expression, prepend)
 
 
 def add_global(expression: SafeExpType | Statement, prepend: bool = False):
@@ -604,6 +606,17 @@ def add_library(name: str, version: str | None, repository: str | None = None):
 def add_build_flag(build_flag: str):
     """Add a global build flag to the compiler flags."""
     CORE.add_build_flag(build_flag)
+
+
+def add_build_unflag(build_unflag: str) -> None:
+    """Add a global build unflag to the compiler flags."""
+    CORE.add_build_unflag(build_unflag)
+
+
+def set_cpp_standard(standard: str) -> None:
+    """Set C++ standard with compiler flag `-std={standard}`."""
+    CORE.add_build_unflag("-std=gnu++11")
+    CORE.add_build_flag(f"-std={standard}")
 
 
 def add_define(name: str, value: SafeExpType = None):
