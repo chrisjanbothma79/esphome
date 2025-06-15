@@ -14,6 +14,7 @@ enum Rotations {
 };
 
 #define LOG_STEPPER(this) \
+  ESP_LOGCONFIG(TAG, \
                 "  Acceleration: %.0f steps/s^2\n" \
                 "  Deceleration: %.0f steps/s^2\n" \
                 "  Max Speed: %.0f steps/s\n" \
