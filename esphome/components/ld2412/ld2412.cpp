@@ -758,9 +758,7 @@ void LD2412Component::set_gate_threshold() {
   if (this->gate_move_threshold_numbers_.empty() && this->gate_still_threshold_numbers_.empty()) {
     return;  // No gate threshold numbers set; nothing to do here
   }
-  uint8_t value[14];  // = {0x00, 0x00, lowbyte(gate),   highbyte(gate),   0x00, 0x00,
-                      //   0x01, 0x00, lowbyte(motion), highbyte(motion), 0x00, 0x00,
-                      //   0x02, 0x00, lowbyte(still),  highbyte(still),  0x00, 0x00};
+  uint8_t value[14] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   this->set_config_mode_(true);
   if (!this->gate_move_threshold_numbers_.empty()) {
     for (size_t i = 0; i < this->gate_move_threshold_numbers_.size(); i++) {
