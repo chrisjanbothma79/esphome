@@ -46,8 +46,41 @@ CONF_SCAN_PARAMETERS = "scan_parameters"
 CONF_WINDOW = "window"
 CONF_ON_SCAN_END = "on_scan_end"
 CONF_ALLOWLIST_ADDRESS = "allowlist_address"
-MAX_ALLOWLIST = 10
 CONF_SOFTWARE_COEXISTENCE = "software_coexistence"
+
+# Maximum allowlist size for BLE scanning
+# ESP-IDF default for all variants is 12, and Arduino framework uses
+# precompiled libraries so we can't change it. Using 12 as a safe
+# default that works across all platforms and frameworks.
+#
+# With ESP-IDF, these could be increased via sdkconfig:
+# - ESP32/ESP32-S3: Runtime determined via HCI_BLE_READ_WHITE_LIST_SIZE
+# - ESP32-C2/C5/C6/H2: CONFIG_BT_LE_WHITELIST_SIZE (range 1-31, default 12)
+# - ESP32-S2: No BLE support
+# - ESP32-C3: Uses ESP controller, likely similar to C2/C6
+# - ESP32-P4: Unknown, assuming default
+MAX_ALLOWLIST_SIZE = 12
+
+
+def get_max_allowlist_size():
+    """Get the maximum allowlist size for the current ESP32 variant."""
+    # For now, use the same limit for all variants since Arduino
+    # framework doesn't allow configuration and 12 is the ESP-IDF default
+    # TODO: In the future, we could check CORE.using_esp_idf and allow
+    # higher limits for variants that support it (C2/C5/C6/H2 can go up to 31)
+    return MAX_ALLOWLIST_SIZE
+
+
+def validate_allowlist_addresses(value):
+    """Validate allowlist addresses against platform-specific limit."""
+    max_size = get_max_allowlist_size()
+    if len(value) > max_size:
+        raise cv.Invalid(
+            f"Maximum {max_size} allowlist addresses are supported. "
+            f"You have configured {len(value)} addresses."
+        )
+    return value
+
 
 DEFAULT_MAX_CONNECTIONS = 3
 IDF_MAX_CONNECTIONS = 9
@@ -172,7 +205,8 @@ CONFIG_SCHEMA = cv.All(
                         cv.Optional(CONF_CONTINUOUS, default=True): cv.boolean,
                         cv.Optional(CONF_ALLOWLIST_ADDRESS): cv.All(
                             cv.ensure_list(cv.mac_address),
-                            cv.Length(min=1, max=MAX_ALLOWLIST),
+                            cv.Length(min=1),
+                            validate_allowlist_addresses,
                         ),
                     }
                 ),

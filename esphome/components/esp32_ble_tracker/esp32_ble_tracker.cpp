@@ -785,6 +785,9 @@ void ESP32BLETracker::dump_config() {
   if (this->scan_start_fail_count_) {
     ESP_LOGCONFIG(TAG, "  Scan Start Fail Count: %d", this->scan_start_fail_count_);
   }
+  if (!this->allowlist_address_vec_.empty()) {
+    ESP_LOGCONFIG(TAG, "  Allowlist configured with %d addresses", this->allowlist_address_vec_.size());
+  }
 }
 
 void ESP32BLETracker::print_bt_device_info(const ESPBTDevice &device) {
