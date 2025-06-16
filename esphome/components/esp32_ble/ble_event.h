@@ -51,6 +51,13 @@ static_assert(offsetof(esp_ble_gap_cb_param_t, scan_stop_cmpl.status) ==
 // - GATTC/GATTS events: We heap-allocate and copy the entire param struct, ensuring
 //   the data remains valid even after the BLE callback returns. The original
 //   param pointer from ESP-IDF is only valid during the callback.
+//
+// CRITICAL DESIGN NOTE:
+// The heap allocations for GATTC/GATTS events are REQUIRED for memory safety.
+// DO NOT attempt to optimize by removing these allocations or storing pointers
+// to the original ESP-IDF data. The ESP-IDF callback data has a different lifetime
+// than our event processing, and accessing it after the callback returns would
+// result in use-after-free bugs and crashes.
 class BLEEvent {
  public:
   // NOLINTNEXTLINE(readability-identifier-naming)
@@ -67,14 +74,20 @@ class BLEEvent {
   }
 
   // Constructor for GATTC events - uses heap allocation
-  // Creates a copy of the param struct since the original is only valid during the callback
+  // IMPORTANT: The heap allocation is REQUIRED and must not be removed as an optimization.
+  // The param pointer from ESP-IDF is only valid during the callback execution.
+  // Since BLE events are processed asynchronously in the main loop, we must create
+  // our own copy to ensure the data remains valid until the event is processed.
   BLEEvent(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
     this->type_ = GATTC;
     this->init_gattc_data_(e, i, p);
   }
 
   // Constructor for GATTS events - uses heap allocation
-  // Creates a copy of the param struct since the original is only valid during the callback
+  // IMPORTANT: The heap allocation is REQUIRED and must not be removed as an optimization.
+  // The param pointer from ESP-IDF is only valid during the callback execution.
+  // Since BLE events are processed asynchronously in the main loop, we must create
+  // our own copy to ensure the data remains valid until the event is processed.
   BLEEvent(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
     this->type_ = GATTS;
     this->init_gatts_data_(e, i, p);
@@ -222,9 +235,15 @@ class BLEEvent {
     // Heap-allocate param and data
     // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
     // while GAP events (99%) are stored inline to minimize memory usage
+    // IMPORTANT: This heap allocation provides clear ownership semantics:
+    // - The BLEEvent owns the allocated memory for its lifetime
+    // - The data remains valid from the BLE callback context until processed in the main loop
+    // - Without this copy, we'd have use-after-free bugs as ESP-IDF reuses the callback memory
     this->event_.gattc.gattc_param = new esp_ble_gattc_cb_param_t(*p);
 
     // Copy data for events that need it
+    // The param struct contains pointers (e.g., notify.value) that point to temporary buffers.
+    // We must copy this data to ensure it remains valid when the event is processed later.
     switch (e) {
       case ESP_GATTC_NOTIFY_EVT:
         this->event_.gattc.data = new std::vector<uint8_t>(p->notify.value, p->notify.value + p->notify.value_len);
@@ -255,9 +274,15 @@ class BLEEvent {
     // Heap-allocate param and data
     // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
     // while GAP events (99%) are stored inline to minimize memory usage
+    // IMPORTANT: This heap allocation provides clear ownership semantics:
+    // - The BLEEvent owns the allocated memory for its lifetime
+    // - The data remains valid from the BLE callback context until processed in the main loop
+    // - Without this copy, we'd have use-after-free bugs as ESP-IDF reuses the callback memory
     this->event_.gatts.gatts_param = new esp_ble_gatts_cb_param_t(*p);
 
     // Copy data for events that need it
+    // The param struct contains pointers (e.g., write.value) that point to temporary buffers.
+    // We must copy this data to ensure it remains valid when the event is processed later.
     switch (e) {
       case ESP_GATTS_WRITE_EVT:
         this->event_.gatts.data = new std::vector<uint8_t>(p->write.value, p->write.value + p->write.len);
