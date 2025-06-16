@@ -826,6 +826,17 @@ INPUTS: dict[str, InputSchema] = {
         auto_min_value=AutoConfigure(message="OTC_CURVE_BOUNDS", message_data="u8_lb"),
         auto_max_value=AutoConfigure(message="OTC_CURVE_BOUNDS", message_data="u8_hb"),
     ),
+    ),
+    "Remote_Request": InputSchema(
+        description="Boiler OT Remote Request",
+        unit_of_measurement=UNIT_EMPTY,
+        step=1,
+        message="RemoteRequest",
+        keep_updated=True,
+        message_data="u8_hb",
+        range=(0, 255),
+        #default_mode="restore_default_off"
+    ),
 }
 
 
