@@ -456,6 +456,15 @@ SENSORS: dict[str, SensorSchema] = {
         keep_updated=False,
         message_data="u8_lb",
     ),
+    "rr_response": SensorSchema(
+        description="RemoteRequest response",
+        unit_of_measurement=UNIT_EMPTY,
+        accuracy_decimals=0,
+        state_class=STATE_CLASS_NONE,
+        message="RemoteRequest",
+        keep_updated=True,
+        message_data="u8_lb",
+    ),
 }
 
 
@@ -825,7 +834,6 @@ INPUTS: dict[str, InputSchema] = {
         range=(0, 127),
         auto_min_value=AutoConfigure(message="OTC_CURVE_BOUNDS", message_data="u8_lb"),
         auto_max_value=AutoConfigure(message="OTC_CURVE_BOUNDS", message_data="u8_hb"),
-    ),
     ),
     "Remote_Request": InputSchema(
         description="Boiler OT Remote Request",
