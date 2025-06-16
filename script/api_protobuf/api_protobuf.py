@@ -1353,6 +1353,27 @@ def main() -> None:
     hpp += " public:\n"
     hpp += "#endif\n\n"
 
+    # Add authentication check helper methods
+    hpp += " protected:\n"
+    hpp += "  bool check_connection_setup_() {\n"
+    hpp += "    if (!this->is_connection_setup()) {\n"
+    hpp += "      this->on_no_setup_connection();\n"
+    hpp += "      return false;\n"
+    hpp += "    }\n"
+    hpp += "    return true;\n"
+    hpp += "  }\n"
+    hpp += "  bool check_authenticated_() {\n"
+    hpp += "    if (!this->check_connection_setup_()) {\n"
+    hpp += "      return false;\n"
+    hpp += "    }\n"
+    hpp += "    if (!this->is_authenticated()) {\n"
+    hpp += "      this->on_unauthenticated_access();\n"
+    hpp += "      return false;\n"
+    hpp += "    }\n"
+    hpp += "    return true;\n"
+    hpp += "  }\n"
+    hpp += " public:\n\n"
+
     # Add generic send_message method
     hpp += "  template<typename T>\n"
     hpp += "  bool send_message(const T &msg) {\n"
@@ -1426,14 +1447,12 @@ def main() -> None:
         hpp += f"  virtual {ret} {func}(const {inp} &msg) = 0;\n"
         cpp += f"void {class_name}::{on_func}(const {inp} &msg) {{\n"
         body = ""
-        if needs_conn:
-            body += "if (!this->is_connection_setup()) {\n"
-            body += "  this->on_no_setup_connection();\n"
+        if needs_auth:
+            body += "if (!this->check_authenticated_()) {\n"
             body += "  return;\n"
             body += "}\n"
-        if needs_auth:
-            body += "if (!this->is_authenticated()) {\n"
-            body += "  this->on_unauthenticated_access();\n"
+        elif needs_conn:
+            body += "if (!this->check_connection_setup_()) {\n"
             body += "  return;\n"
             body += "}\n"
 
