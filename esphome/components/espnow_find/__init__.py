@@ -1,9 +1,6 @@
 from esphome import automation
 import esphome.codegen as cg
 from esphome.components.espnow import (
-    CONF_DEFAULT,
-    CONF_ON_FAILED,
-    CONF_ON_SUCCEED,
     ESPNOW_APP_SCHEMA,
     ESPNowInterface,
     espnow_ns,
@@ -20,6 +17,8 @@ CODEOWNERS = ["@nielsnl68"]
 
 DEPENDENCIES = ["espnow"]
 
+CONF_ON_SUCCEED = "on_succeed"
+CONF_ON_FAILED = "on_failed"
 
 ESPNowFindPeer = espnow_ns.class_("ESPNowFindPeer", ESPNowInterface)
 FindPeerAction = espnow_ns.class_("FindPeerAction", automation.Action, cg.Component)
@@ -42,7 +41,7 @@ async def to_code(config):
     cv.maybe_simple_value(
         {
             cv.GenerateID(): cv.use_id(ESPNowFindPeer),
-            cv.Optional(CONF_MAC_ADDRESS, default=CONF_DEFAULT): validate_peer,
+            cv.Optional(CONF_MAC_ADDRESS): validate_peer,
             cv.Optional(CONF_ON_SUCCEED): automation.validate_action_list,
             cv.Optional(CONF_ON_FAILED): automation.validate_action_list,
         },
