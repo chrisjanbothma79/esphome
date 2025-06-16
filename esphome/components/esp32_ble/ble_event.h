@@ -63,21 +63,21 @@ class BLEEvent {
   // Constructor for GAP events - no external allocations needed
   BLEEvent(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
     this->type_ = GAP;
-    this->init_gap_data(e, p);
+    this->init_gap_data_(e, p);
   }
 
   // Constructor for GATTC events - uses heap allocation
   // Creates a copy of the param struct since the original is only valid during the callback
   BLEEvent(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
     this->type_ = GATTC;
-    this->init_gattc_data(e, i, p);
+    this->init_gattc_data_(e, i, p);
   }
 
   // Constructor for GATTS events - uses heap allocation
   // Creates a copy of the param struct since the original is only valid during the callback
   BLEEvent(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
     this->type_ = GATTS;
-    this->init_gatts_data(e, i, p);
+    this->init_gatts_data_(e, i, p);
   }
 
   // Destructor to clean up heap allocations
@@ -110,19 +110,19 @@ class BLEEvent {
   void load_gap_event(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
     this->cleanup_heap_data();
     this->type_ = GAP;
-    this->init_gap_data(e, p);
+    this->init_gap_data_(e, p);
   }
 
   void load_gattc_event(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
     this->cleanup_heap_data();
     this->type_ = GATTC;
-    this->init_gattc_data(e, i, p);
+    this->init_gattc_data_(e, i, p);
   }
 
   void load_gatts_event(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
     this->cleanup_heap_data();
     this->type_ = GATTS;
-    this->init_gatts_data(e, i, p);
+    this->init_gatts_data_(e, i, p);
   }
 
   // Disable copy to prevent double-delete
@@ -170,7 +170,7 @@ class BLEEvent {
 
  private:
   // Initialize GAP event data
-  void init_gap_data(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
+  void init_gap_data_(esp_gap_ble_cb_event_t e, esp_ble_gap_cb_param_t *p) {
     this->event_.gap.gap_event = e;
 
     if (p == nullptr) {
@@ -209,7 +209,7 @@ class BLEEvent {
   }
 
   // Initialize GATTC event data
-  void init_gattc_data(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
+  void init_gattc_data_(esp_gattc_cb_event_t e, esp_gatt_if_t i, esp_ble_gattc_cb_param_t *p) {
     this->event_.gattc.gattc_event = e;
     this->event_.gattc.gattc_if = i;
 
@@ -242,7 +242,7 @@ class BLEEvent {
   }
 
   // Initialize GATTS event data
-  void init_gatts_data(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
+  void init_gatts_data_(esp_gatts_cb_event_t e, esp_gatt_if_t i, esp_ble_gatts_cb_param_t *p) {
     this->event_.gatts.gatts_event = e;
     this->event_.gatts.gatts_if = i;
 
