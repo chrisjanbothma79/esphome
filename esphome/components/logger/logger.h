@@ -197,7 +197,7 @@ class Logger : public Component {
     if (this->baud_rate_ > 0) {
       this->write_msg_(this->tx_buffer_);  // If logging is enabled, write to console
     }
-    this->call_log_callbacks_(level, tag, this->tx_buffer_);
+    this->log_callback_.call(level, tag, this->tx_buffer_);
   }
 
   // Write the body of the log message to the buffer
