@@ -162,7 +162,6 @@ class Logger : public Component {
 
  protected:
   void process_messages_();
-  void call_log_callbacks_(int level, const char *tag, const char *msg);
   void write_msg_(const char *msg);
 
   // Format a log message with printf-style arguments and write it to a buffer with header, footer, and null terminator
