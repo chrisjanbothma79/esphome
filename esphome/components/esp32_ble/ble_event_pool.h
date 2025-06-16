@@ -64,11 +64,8 @@ template<uint8_t SIZE> class BLEEventPool {
 
     // Events are reused - the load methods handle cleanup
     // Just return to free list
-    if (!this->free_list_.push(event)) {
-      // This should not happen if pool size matches queue size
-      // But if it does, delete the event to prevent leak
-      delete event;
-    }
+    this->free_list_.push(event);
+    // Push cannot fail: pool size = queue size, and we never exceed pool size
   }
 
   // Get total number of events created (high water mark)
