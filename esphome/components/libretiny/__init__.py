@@ -47,6 +47,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 CODEOWNERS = ["@kuba2k2"]
 AUTO_LOAD = ["preferences"]
+IS_TARGET_PLATFORM = True
 
 
 def _detect_variant(value):
@@ -263,6 +264,7 @@ async def component_to_code(config):
     # force using arduino framework
     cg.add_platformio_option("framework", "arduino")
     cg.add_build_flag("-DUSE_ARDUINO")
+    cg.set_cpp_standard("gnu++17")
 
     # disable library compatibility checks
     cg.add_platformio_option("lib_ldf_mode", "off")
