@@ -65,7 +65,7 @@ extern const uint8_t STATUS_LED_ERROR;
 
 enum class RetryResult { DONE, RETRY };
 
-extern const uint32_t WARN_IF_BLOCKING_OVER_MS;
+extern const uint16_t WARN_IF_BLOCKING_OVER_MS;
 
 class Component {
  public:
@@ -318,8 +318,8 @@ class Component {
   uint8_t component_state_{0x00};
   float setup_priority_override_{NAN};
   const char *component_source_{nullptr};
-  uint32_t warn_if_blocking_over_{WARN_IF_BLOCKING_OVER_MS};
-  std::string error_message_{};
+  uint16_t warn_if_blocking_over_{WARN_IF_BLOCKING_OVER_MS};  ///< Warn if blocked for this many ms (max 65.5s)
+  const char *error_message_{nullptr};
 };
 
 /** This class simplifies creating components that periodically check a state.
