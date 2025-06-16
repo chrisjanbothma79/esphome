@@ -307,7 +307,7 @@ void ESP32BLE::loop() {
     BLEEvent *ble_event = this->ble_event_pool_.get(event_idx);
     if (ble_event == nullptr) {
       // This should not happen - log error and continue
-      ESP_LOGE(TAG, "Invalid event index: %zu", event_idx);
+      ESP_LOGE(TAG, "Invalid event index: %u", static_cast<unsigned>(event_idx));
       event_idx = this->ble_events_.pop();
       continue;
     }
@@ -367,9 +367,9 @@ void ESP32BLE::loop() {
   }
 
   // Log dropped events periodically
-  size_t dropped = this->ble_events_.get_and_reset_dropped_count();
+  uint32_t dropped = this->ble_events_.get_and_reset_dropped_count();
   if (dropped > 0) {
-    ESP_LOGW(TAG, "Dropped %zu BLE events due to buffer overflow", dropped);
+    ESP_LOGW(TAG, "Dropped %u BLE events due to buffer overflow", dropped);
   }
 
   // Log pool usage periodically (every ~10 seconds)
@@ -418,7 +418,7 @@ template<typename... Args> void enqueue_ble_event(Args... args) {
   BLEEvent *event = global_ble->ble_event_pool_.get(event_idx);
   if (event == nullptr) {
     // This should not happen
-    ESP_LOGE(TAG, "Failed to get event from pool at index %zu", event_idx);
+    ESP_LOGE(TAG, "Failed to get event from pool at index %u", static_cast<unsigned>(event_idx));
     global_ble->ble_event_pool_.deallocate(event_idx);
     global_ble->ble_events_.increment_dropped_count();
     return;
