@@ -15,7 +15,7 @@ namespace esp32_ble {
 // Events are allocated on first use and reused thereafter, growing to peak usage
 template<uint8_t SIZE> class BLEEventPool {
  public:
-  BLEEventPool() { total_created_.store(0, std::memory_order_relaxed); }
+  BLEEventPool() : total_created_(0) {}
 
   ~BLEEventPool() {
     // Clean up any remaining events in the free list
@@ -50,7 +50,7 @@ template<uint8_t SIZE> class BLEEventPool {
 
     // Placement new to construct the object
     new (event) BLEEvent();
-    this->total_created_.fetch_add(1, std::memory_order_relaxed);
+    this->total_created_++;
     return event;
   }
 
@@ -63,7 +63,7 @@ template<uint8_t SIZE> class BLEEventPool {
 
  private:
   LockFreeQueue<BLEEvent, SIZE> free_list_;  // Free events ready for reuse
-  std::atomic<uint8_t> total_created_;       // Total events created (high water mark)
+  uint8_t total_created_;                    // Total events created (high water mark)
 };
 
 }  // namespace esp32_ble
