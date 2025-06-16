@@ -62,26 +62,6 @@ CONF_SOFTWARE_COEXISTENCE = "software_coexistence"
 MAX_ALLOWLIST_SIZE = 12
 
 
-def get_max_allowlist_size() -> int:
-    """Get the maximum allowlist size for the current ESP32 variant."""
-    # For now, use the same limit for all variants since Arduino
-    # framework doesn't allow configuration and 12 is the ESP-IDF default
-    # TODO: In the future, we could check CORE.using_esp_idf and allow
-    # higher limits for variants that support it (C2/C5/C6/H2 can go up to 31)
-    return MAX_ALLOWLIST_SIZE
-
-
-def validate_allowlist_addresses(value: list[cv.MacAddress]) -> list[cv.MacAddress]:
-    """Validate allowlist addresses against platform-specific limit."""
-    max_size = get_max_allowlist_size()
-    if len(value) > max_size:
-        raise cv.Invalid(
-            f"Maximum {max_size} allowlist addresses are supported. "
-            f"You have configured {len(value)} addresses."
-        )
-    return value
-
-
 DEFAULT_MAX_CONNECTIONS = 3
 IDF_MAX_CONNECTIONS = 9
 
@@ -122,6 +102,20 @@ ESP32BLEStartScanAction = esp32_ble_tracker_ns.class_(
 ESP32BLEStopScanAction = esp32_ble_tracker_ns.class_(
     "ESP32BLEStopScanAction", automation.Action
 )
+
+
+def validate_allowlist_addresses(value: list[cv.MacAddress]) -> list[cv.MacAddress]:
+    """Validate allowlist addresses against platform-specific limit."""
+    # For now, use the same limit for all variants since Arduino
+    # framework doesn't allow configuration and 12 is the ESP-IDF default
+    # In the future, we could check CORE.using_esp_idf and allow
+    # higher limits for variants that support it (C2/C5/C6/H2 can go up to 31)
+    if len(value) > MAX_ALLOWLIST_SIZE:
+        raise cv.Invalid(
+            f"Maximum {MAX_ALLOWLIST_SIZE} allowlist addresses are supported. "
+            f"You have configured {len(value)} addresses."
+        )
+    return value
 
 
 def validate_scan_parameters(config):
