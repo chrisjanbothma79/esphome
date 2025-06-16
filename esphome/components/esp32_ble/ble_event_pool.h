@@ -10,8 +10,8 @@
 namespace esphome {
 namespace esp32_ble {
 
-// BLE Event Pool - Pre-allocated pool of BLEEvent objects to avoid heap fragmentation
-// This is a lock-free pool that allows the BLE task to allocate events without malloc
+// BLE Event Pool - On-demand pool of BLEEvent objects to avoid heap fragmentation
+// Events are allocated on first use and reused thereafter, growing to peak usage
 template<size_t SIZE> class BLEEventPool {
  public:
   BLEEventPool() {
