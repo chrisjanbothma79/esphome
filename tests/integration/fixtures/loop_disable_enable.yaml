@@ -1,0 +1,24 @@
+esphome:
+  name: loop-test
+  on_boot:
+    - logger.log: "System booted!"
+    
+host:
+api:
+logger:
+  level: DEBUG
+
+external_components:
+  - source: 
+      type: local
+      path: EXTERNAL_COMPONENT_PATH
+
+loop_test_component:
+  id: loop_test
+
+interval:
+  - interval: 1s
+    then:
+      - logger.log: "Interval tick"
+
+# We'll check the loop behavior through logs and API
