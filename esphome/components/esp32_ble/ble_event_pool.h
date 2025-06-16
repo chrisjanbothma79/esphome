@@ -30,28 +30,27 @@ template<uint8_t SIZE> class BLEEventPool {
   BLEEvent *allocate() {
     // Try to get from free list first
     BLEEvent *event = this->free_list_.pop();
+    if (event != nullptr)
+      return event;
 
-    if (event == nullptr) {
-      // Need to create a new event
-      if (this->total_created_ >= SIZE) {
-        // Pool is at capacity
-        return nullptr;
-      }
-
-      // Use internal RAM for better performance
-      RAMAllocator<BLEEvent> allocator(RAMAllocator<BLEEvent>::ALLOC_INTERNAL);
-      event = allocator.allocate(1);
-
-      if (event == nullptr) {
-        // Memory allocation failed
-        return nullptr;
-      }
-
-      // Placement new to construct the object
-      new (event) BLEEvent();
-      this->total_created_.fetch_add(1, std::memory_order_relaxed);
+    // Need to create a new event
+    if (this->total_created_ >= SIZE) {
+      // Pool is at capacity
+      return nullptr;
     }
 
+    // Use internal RAM for better performance
+    RAMAllocator<BLEEvent> allocator(RAMAllocator<BLEEvent>::ALLOC_INTERNAL);
+    event = allocator.allocate(1);
+
+    if (event == nullptr) {
+      // Memory allocation failed
+      return nullptr;
+    }
+
+    // Placement new to construct the object
+    new (event) BLEEvent();
+    this->total_created_.fetch_add(1, std::memory_order_relaxed);
     return event;
   }
 
