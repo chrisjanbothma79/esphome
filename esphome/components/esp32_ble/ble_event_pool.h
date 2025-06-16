@@ -55,16 +55,13 @@ template<uint8_t SIZE> class BLEEventPool {
     return event;
   }
 
-  // Return an event to the pool
-  void deallocate(BLEEvent *event) {
+  // Return an event to the pool for reuse
+  void release(BLEEvent *event) {
     if (event == nullptr) {
       return;
     }
 
-    // Events are reused - the load methods handle cleanup
-    // Just return to free list
     this->free_list_.push(event);
-    // Push cannot fail: pool size = queue size, and we never exceed pool size
   }
 
   // Get total number of events created (high water mark)

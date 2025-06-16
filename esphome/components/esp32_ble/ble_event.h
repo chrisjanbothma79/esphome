@@ -174,7 +174,7 @@ class BLEEvent {
     this->event_.gap.gap_event = e;
 
     if (p == nullptr) {
-      return;
+      return;  // Invalid event, but we can't log in header file
     }
 
     // Copy data based on event type
@@ -216,10 +216,12 @@ class BLEEvent {
     if (p == nullptr) {
       this->event_.gattc.gattc_param = nullptr;
       this->event_.gattc.data = nullptr;
-      return;
+      return;  // Invalid event, but we can't log in header file
     }
 
     // Heap-allocate param
+    // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
+    // while GAP events (99%) are stored inline to minimize memory usage
     this->event_.gattc.gattc_param = new esp_ble_gattc_cb_param_t(*p);
 
     // Copy data for events that need it
@@ -247,10 +249,12 @@ class BLEEvent {
     if (p == nullptr) {
       this->event_.gatts.gatts_param = nullptr;
       this->event_.gatts.data = nullptr;
-      return;
+      return;  // Invalid event, but we can't log in header file
     }
 
     // Heap-allocate param
+    // Heap allocation is used because GATTC/GATTS events are rare (<1% of events)
+    // while GAP events (99%) are stored inline to minimize memory usage
     this->event_.gatts.gatts_param = new esp_ble_gatts_cb_param_t(*p);
 
     // Copy data for events that need it

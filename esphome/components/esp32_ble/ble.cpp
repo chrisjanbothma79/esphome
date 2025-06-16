@@ -348,7 +348,7 @@ void ESP32BLE::loop() {
         break;
     }
     // Return the event to the pool
-    this->ble_event_pool_.deallocate(ble_event);
+    this->ble_event_pool_.release(ble_event);
     ble_event = this->ble_events_.pop();
   }
   if (this->advertising_ != nullptr) {
@@ -411,7 +411,7 @@ template<typename... Args> void enqueue_ble_event(Args... args) {
     // This should not happen in SPSC queue with single producer
     ESP_LOGE(TAG, "BLE queue push failed unexpectedly");
     // Return to pool
-    global_ble->ble_event_pool_.deallocate(event);
+    global_ble->ble_event_pool_.release(event);
   }
 }
 
