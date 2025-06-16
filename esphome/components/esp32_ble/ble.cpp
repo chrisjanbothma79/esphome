@@ -407,12 +407,8 @@ template<typename... Args> void enqueue_ble_event(Args... args) {
   load_ble_event(event, args...);
 
   // Push the event to the queue
-  if (!global_ble->ble_events_.push(event)) {
-    // This should not happen in SPSC queue with single producer
-    ESP_LOGE(TAG, "BLE queue push failed unexpectedly");
-    // Return to pool
-    global_ble->ble_event_pool_.release(event);
-  }
+  global_ble->ble_events_.push(event);
+  // Push always succeeds: we checked full() above and we're the only producer
 }
 
 // Explicit template instantiations for the friend function
