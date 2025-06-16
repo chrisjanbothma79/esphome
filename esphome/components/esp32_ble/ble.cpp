@@ -388,17 +388,10 @@ void load_ble_event(BLEEvent *event, esp_gatts_cb_event_t e, esp_gatt_if_t i, es
 }
 
 template<typename... Args> void enqueue_ble_event(Args... args) {
-  // Check if queue is full before allocating
-  if (global_ble->ble_events_.full()) {
-    // Queue is full, drop the event
-    global_ble->ble_events_.increment_dropped_count();
-    return;
-  }
-
   // Allocate an event from the pool
   BLEEvent *event = global_ble->ble_event_pool_.allocate();
   if (event == nullptr) {
-    // Pool is full, drop the event
+    // No events available - queue is full or we're out of memory
     global_ble->ble_events_.increment_dropped_count();
     return;
   }
