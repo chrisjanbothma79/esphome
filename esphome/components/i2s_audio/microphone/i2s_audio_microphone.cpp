@@ -482,7 +482,8 @@ void I2SAudioMicrophone::loop() {
       }
 
       if (!this->start_driver_()) {
-        this->status_momentary_error("Driver failed to start; retrying in 1 second", 1000);
+        ESP_LOGE(TAG, "Driver failed to start; retrying in 1 second");
+        this->status_momentary_error("driver_fail", 1000);
         this->stop_driver_();  // Stop/frees whatever possibly started
         break;
       }
@@ -492,7 +493,8 @@ void I2SAudioMicrophone::loop() {
                     &this->task_handle_);
 
         if (this->task_handle_ == nullptr) {
-          this->status_momentary_error("Task failed to start, retrying in 1 second", 1000);
+          ESP_LOGE(TAG, "Task failed to start, retrying in 1 second");
+          this->status_momentary_error("task_fail", 1000);
           this->stop_driver_();  // Stops the driver to return the lock; will be reloaded in next attempt
         }
       }
