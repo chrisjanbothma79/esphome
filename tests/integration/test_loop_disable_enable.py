@@ -3,15 +3,12 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from pathlib import Path
 import re
 
 import pytest
 
 from .types import APIClientConnectedFactory, RunCompiledFunction
-
-_LOGGER = logging.getLogger(__name__)
 
 
 @pytest.mark.asyncio
@@ -32,13 +29,22 @@ async def test_loop_disable_enable(
     )
 
     # Track log messages and events
-    log_messages = []
+    log_messages: list[str] = []
+
+    # Event fired when self_disable_10 component disables itself after 10 loops
     self_disable_10_disabled = asyncio.Event()
+    # Event fired when normal_component reaches 10 loops
     normal_component_10_loops = asyncio.Event()
+    # Event fired when redundant_enable component tests enabling when already enabled
     redundant_enable_tested = asyncio.Event()
+    # Event fired when redundant_disable component tests disabling when already disabled
     redundant_disable_tested = asyncio.Event()
-    self_disable_10_counts = []
-    normal_component_counts = []
+    # Event fired when self_disable_10 component is re-enabled and runs again (count > 10)
+    self_disable_10_re_enabled = asyncio.Event()
+
+    # Track loop counts for components
+    self_disable_10_counts: list[int] = []
+    normal_component_counts: list[int] = []
 
     def on_log_line(line: str) -> None:
         """Process each log line from the process output."""
@@ -57,6 +63,9 @@ async def test_loop_disable_enable(
                 try:
                     count = int(clean_line.split("Loop count: ")[1])
                     self_disable_10_counts.append(count)
+                    # Check if component was re-enabled (count > 10)
+                    if count > 10:
+                        self_disable_10_re_enabled.set()
                 except (IndexError, ValueError):
                     pass
             elif "Disabling self after 10 loops" in clean_line:
@@ -99,12 +108,12 @@ async def test_loop_disable_enable(
         except asyncio.TimeoutError:
             pytest.fail("self_disable_10 did not disable itself within 10 seconds")
 
-        # Verify it ran exactly 10 times
-        assert len(self_disable_10_counts) == 10, (
-            f"Expected 10 loops for self_disable_10, got {len(self_disable_10_counts)}"
+        # Verify it ran at least 10 times before disabling
+        assert len([c for c in self_disable_10_counts if c <= 10]) == 10, (
+            f"Expected exactly 10 loops before disable, got {[c for c in self_disable_10_counts if c <= 10]}"
         )
-        assert self_disable_10_counts == list(range(1, 11)), (
-            f"Expected counts 1-10, got {self_disable_10_counts}"
+        assert self_disable_10_counts[:10] == list(range(1, 11)), (
+            f"Expected first 10 counts to be 1-10, got {self_disable_10_counts[:10]}"
         )
 
         # Wait for normal_component to run at least 10 times
@@ -128,14 +137,14 @@ async def test_loop_disable_enable(
                 "redundant_disable did not test disabling when will be disabled"
             )
 
-        # Wait a bit to see if self_disable_10 gets re-enabled
-        await asyncio.sleep(3)
+        # Wait to see if self_disable_10 gets re-enabled
+        try:
+            await asyncio.wait_for(self_disable_10_re_enabled.wait(), timeout=5.0)
+        except asyncio.TimeoutError:
+            pytest.fail("self_disable_10 was not re-enabled within 5 seconds")
 
-        # Check final counts
+        # Component was re-enabled - verify it ran more times
         later_self_disable_counts = [c for c in self_disable_10_counts if c > 10]
-        if later_self_disable_counts:
-            _LOGGER.info(
-                f"self_disable_10 was successfully re-enabled and ran {len(later_self_disable_counts)} more times"
-            )
-
-        _LOGGER.info("Loop disable/enable test passed - all assertions verified!")
+        assert len(later_self_disable_counts) > 0, (
+            "self_disable_10 was re-enabled but did not run additional times"
+        )
