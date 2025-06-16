@@ -48,40 +48,40 @@ async def test_loop_disable_enable(
         if "loop_test_component" not in clean_line:
             return
 
-            log_messages.append(clean_line)
+        log_messages.append(clean_line)
 
-            # Track specific events using the cleaned line
-            if "[self_disable_10]" in clean_line:
-                if "Loop count:" in clean_line:
-                    # Extract loop count
-                    try:
-                        count = int(clean_line.split("Loop count: ")[1])
-                        self_disable_10_counts.append(count)
-                    except (IndexError, ValueError):
-                        pass
-                elif "Disabling self after 10 loops" in clean_line:
-                    self_disable_10_disabled.set()
-
-            elif "[normal_component]" in clean_line and "Loop count:" in clean_line:
+        # Track specific events using the cleaned line
+        if "[self_disable_10]" in clean_line:
+            if "Loop count:" in clean_line:
+                # Extract loop count
                 try:
                     count = int(clean_line.split("Loop count: ")[1])
-                    normal_component_counts.append(count)
-                    if count >= 10:
-                        normal_component_10_loops.set()
+                    self_disable_10_counts.append(count)
                 except (IndexError, ValueError):
                     pass
+            elif "Disabling self after 10 loops" in clean_line:
+                self_disable_10_disabled.set()
 
-            elif (
-                "[redundant_enable]" in clean_line
-                and "Testing enable when already enabled" in clean_line
-            ):
-                redundant_enable_tested.set()
+        elif "[normal_component]" in clean_line and "Loop count:" in clean_line:
+            try:
+                count = int(clean_line.split("Loop count: ")[1])
+                normal_component_counts.append(count)
+                if count >= 10:
+                    normal_component_10_loops.set()
+            except (IndexError, ValueError):
+                pass
 
-            elif (
-                "[redundant_disable]" in clean_line
-                and "Testing disable when will be disabled" in clean_line
-            ):
-                redundant_disable_tested.set()
+        elif (
+            "[redundant_enable]" in clean_line
+            and "Testing enable when already enabled" in clean_line
+        ):
+            redundant_enable_tested.set()
+
+        elif (
+            "[redundant_disable]" in clean_line
+            and "Testing disable when will be disabled" in clean_line
+        ):
+            redundant_disable_tested.set()
 
     # Write, compile and run the ESPHome device with log callback
     async with (
