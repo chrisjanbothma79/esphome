@@ -2,8 +2,10 @@
 #include "espnow_find.h"
 #include "esphome/core/automation.h"
 #include "esphome/core/base_automation.h"
+
 #ifdef USE_WIFI
-#include "esphome/core/base_automation.h"
+#include "esphome/components/wifi/wifi_component.h"
+#endif
 
 namespace esphome {
 namespace espnow_find {

@@ -61,3 +61,4 @@ class ESPNowPairing : public pollingcomponent, public ESPNowProtocol {
 
 }  // namespace espnow_pairing
 }  // namespace esphome
+#endif
