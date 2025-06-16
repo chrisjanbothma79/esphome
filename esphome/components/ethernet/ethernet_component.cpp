@@ -274,6 +274,9 @@ void EthernetComponent::loop() {
         ESP_LOGW(TAG, "Connection lost; reconnecting");
         this->state_ = EthernetComponentState::CONNECTING;
         this->start_connect_();
+      } else {
+        // When connected and stable, disable the loop to save CPU cycles
+        this->disable_loop();
       }
       break;
   }
@@ -397,11 +400,13 @@ void EthernetComponent::eth_event_handler(void *arg, esp_event_base_t event_base
     case ETHERNET_EVENT_START:
       event_name = "ETH started";
       global_eth_component->started_ = true;
+      global_eth_component->enable_loop();
       break;
     case ETHERNET_EVENT_STOP:
       event_name = "ETH stopped";
       global_eth_component->started_ = false;
       global_eth_component->connected_ = false;
+      global_eth_component->enable_loop();
       break;
     case ETHERNET_EVENT_CONNECTED:
       event_name = "ETH connected";
@@ -409,6 +414,7 @@ void EthernetComponent::eth_event_handler(void *arg, esp_event_base_t event_base
     case ETHERNET_EVENT_DISCONNECTED:
       event_name = "ETH disconnected";
       global_eth_component->connected_ = false;
+      global_eth_component->enable_loop();
       break;
     default:
       return;
@@ -452,6 +458,8 @@ void EthernetComponent::start_connect_() {
 #endif /* USE_NETWORK_IPV6 */
   this->connect_begin_ = millis();
   this->status_set_warning("waiting for IP configuration");
+  // Enable loop during connection phase
+  this->enable_loop();
 
   esp_err_t err;
   err = esp_netif_set_hostname(this->eth_netif_, App.get_name().c_str());
@@ -620,6 +628,7 @@ bool EthernetComponent::powerdown() {
   }
   this->connected_ = false;
   this->started_ = false;
+  // No need to enable_loop() here as this is only called during shutdown/reboot
   if (this->phy_->pwrctl(this->phy_, false) != ESP_OK) {
     ESP_LOGE(TAG, "Error powering down ethernet PHY");
     return false;
