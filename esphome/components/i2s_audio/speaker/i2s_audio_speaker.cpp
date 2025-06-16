@@ -223,7 +223,6 @@ size_t I2SAudioSpeaker::play(const uint8_t *data, size_t length, TickType_t tick
     ESP_LOGE(TAG, "Setup failed; cannot play audio");
     return 0;
   }
-
   if (this->state_ != speaker::STATE_RUNNING && this->state_ != speaker::STATE_STARTING) {
     this->start();
   }
@@ -310,7 +309,6 @@ void I2SAudioSpeaker::speaker_task(void *params) {
         xEventGroupClearBits(this_speaker->event_group_, SpeakerEventGroupBits::COMMAND_STOP);
         break;
       }
-
       if (event_group_bits & SpeakerEventGroupBits::COMMAND_STOP_GRACEFULLY) {
         xEventGroupClearBits(this_speaker->event_group_, SpeakerEventGroupBits::COMMAND_STOP_GRACEFULLY);
         stop_gracefully = true;
