@@ -2,7 +2,6 @@
 
 #include "ble.h"
 #include "ble_event_pool.h"
-#include "queue_index.h"
 
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
@@ -302,16 +301,8 @@ void ESP32BLE::loop() {
       break;
   }
 
-  size_t event_idx = this->ble_events_.pop();
-  while (event_idx != LockFreeIndexQueue<MAX_BLE_QUEUE_SIZE>::INVALID_INDEX) {
-    BLEEvent *ble_event = this->ble_event_pool_.get(event_idx);
-    if (ble_event == nullptr) {
-      // This should not happen - log error and continue
-      ESP_LOGE(TAG, "Invalid event index: %u", static_cast<unsigned>(event_idx));
-      event_idx = this->ble_events_.pop();
-      continue;
-    }
-
+  BLEEvent *ble_event = this->ble_events_.pop();
+  while (ble_event != nullptr) {
     switch (ble_event->type_) {
       case BLEEvent::GATTS: {
         esp_gatts_cb_event_t event = ble_event->event_.gatts.gatts_event;
@@ -359,8 +350,8 @@ void ESP32BLE::loop() {
         break;
     }
     // Return the event to the pool
-    this->ble_event_pool_.deallocate(event_idx);
-    event_idx = this->ble_events_.pop();
+    this->ble_event_pool_.deallocate(ble_event);
+    ble_event = this->ble_events_.pop();
   }
   if (this->advertising_ != nullptr) {
     this->advertising_->loop();
@@ -376,10 +367,10 @@ void ESP32BLE::loop() {
   static uint32_t last_pool_log = 0;
   uint32_t now = millis();
   if (now - last_pool_log > 10000) {
-    size_t created = this->ble_event_pool_.get_total_created();
+    uint8_t created = this->ble_event_pool_.get_total_created();
     if (created > 0) {
-      ESP_LOGD(TAG, "BLE event pool: %zu events created (peak usage), %zu currently allocated", created,
-               this->ble_event_pool_.get_allocated_count());
+      ESP_LOGD(TAG, "BLE event pool: %u events created (peak usage), %zu free", created,
+               this->ble_event_pool_.get_free_count());
     }
     last_pool_log = now;
   }
@@ -407,19 +398,9 @@ template<typename... Args> void enqueue_ble_event(Args... args) {
   }
 
   // Allocate an event from the pool
-  size_t event_idx = global_ble->ble_event_pool_.allocate();
-  if (event_idx == BLEEventPool<MAX_BLE_QUEUE_SIZE>::INVALID_INDEX) {
-    // Pool is full, drop the event
-    global_ble->ble_events_.increment_dropped_count();
-    return;
-  }
-
-  // Get the event object
-  BLEEvent *event = global_ble->ble_event_pool_.get(event_idx);
+  BLEEvent *event = global_ble->ble_event_pool_.allocate();
   if (event == nullptr) {
-    // This should not happen
-    ESP_LOGE(TAG, "Failed to get event from pool at index %u", static_cast<unsigned>(event_idx));
-    global_ble->ble_event_pool_.deallocate(event_idx);
+    // Pool is full, drop the event
     global_ble->ble_events_.increment_dropped_count();
     return;
   }
@@ -427,12 +408,12 @@ template<typename... Args> void enqueue_ble_event(Args... args) {
   // Load new event data (replaces previous event)
   load_ble_event(event, args...);
 
-  // Push the event index to the queue
-  if (!global_ble->ble_events_.push(event_idx)) {
+  // Push the event to the queue
+  if (!global_ble->ble_events_.push(event)) {
     // This should not happen in SPSC queue with single producer
     ESP_LOGE(TAG, "BLE queue push failed unexpectedly");
     // Return to pool
-    global_ble->ble_event_pool_.deallocate(event_idx);
+    global_ble->ble_event_pool_.deallocate(event);
   }
 }
 
