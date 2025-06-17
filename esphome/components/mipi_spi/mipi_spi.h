@@ -55,12 +55,14 @@ class MipiSpi : public display::DisplayBuffer,
                 public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                       spi::DATA_RATE_1MHZ> {
  public:
-  MipiSpi(size_t width, size_t height, int16_t offset_width, int16_t offset_height, display::ColorBitness color_depth)
+  MipiSpi(size_t width, size_t height, int16_t offset_width, int16_t offset_height, display::ColorBitness color_depth,
+          size_t buffer_frac)
       : width_(width),
         height_(height),
         offset_width_(offset_width),
         offset_height_(offset_height),
-        color_depth_(color_depth) {}
+        color_depth_(color_depth),
+        buffer_frac_(buffer_frac) {}
   void set_model(const char *model) { this->model_ = model; }
   void update() override;
   void setup() override;
@@ -98,15 +100,23 @@ class MipiSpi : public display::DisplayBuffer,
     if (this->buffer_ != nullptr)
       return true;
     auto bytes_per_pixel = this->color_depth_ == display::COLOR_BITNESS_565 ? 2 : 1;
-    this->init_internal_(this->width_ * this->height_ * bytes_per_pixel);
+    this->init_internal_(this->width_ * this->height_ * bytes_per_pixel / this->buffer_frac_);
     if (this->buffer_ == nullptr) {
       this->mark_failed();
       return false;
     }
-    this->buffer_bytes_ = this->width_ * this->height_ * bytes_per_pixel;
+    this->buffer_bytes_ = this->width_ * this->height_ * bytes_per_pixel / this->buffer_frac_;
     return true;
   }
   void fill(Color color) override;
+  void draw_hline_internal_(int x, int y, int width, Color color);
+  void draw_vline_internal_(int x, int y, int height, Color color);
+
+ public:
+  void horizontal_line(int x, int y, int width, Color color) override;
+  void vertical_line(int x, int y, int height, Color color) override;
+
+ protected:
   void draw_absolute_pixel_internal(int x, int y, Color color) override;
   void draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override;
@@ -166,6 +176,9 @@ class MipiSpi : public display::DisplayBuffer,
   optional<uint8_t> brightness_{};
   const char *model_{"Unknown"};
   std::vector<uint8_t> init_sequence_{};
+  size_t buffer_frac_{1};
+  size_t start_line_{0};
+  size_t end_line_{0};
 };
 }  // namespace mipi_spi
 }  // namespace esphome

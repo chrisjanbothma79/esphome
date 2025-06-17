@@ -8,6 +8,7 @@ import esphome.config_validation as cv
 from esphome.config_validation import ALLOW_EXTRA
 from esphome.const import (
     CONF_BRIGHTNESS,
+    CONF_BUFFER_SIZE,
     CONF_COLOR_ORDER,
     CONF_CS_PIN,
     CONF_DATA_RATE,
@@ -245,6 +246,11 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
                 ]
             }
         )
+        .extend(
+            {
+                cv.Optional(CONF_BUFFER_SIZE, default=1.0): cv.percentage,
+            }
+        )
     )
     if brightness := model.get_default(CONF_BRIGHTNESS):
         schema = schema.extend(
@@ -440,8 +446,17 @@ async def to_code(config):
         color_depth = color_depth[:-3]
     color_depth = COLOR_DEPTHS[int(color_depth)]
 
+    frac = config[CONF_BUFFER_SIZE]
+    if frac >= 0.75:
+        frac = 1
+    elif frac >= 0.375:
+        frac = 2
+    elif frac > 0.19:
+        frac = 4
+    elif frac != 0:
+        frac = 8
     var = cg.new_Pvariable(
-        config[CONF_ID], width, height, offset_width, offset_height, color_depth
+        config[CONF_ID], width, height, offset_width, offset_height, color_depth, frac
     )
     cg.add(var.set_init_sequence(get_sequence(model, config)))
     if rotation_as_transform(model, config):
