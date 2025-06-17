@@ -31,7 +31,7 @@ void SM300D2Sensor::update() {
       uint8_t packet_length = (preamble == 0x3C) ? SM300D2_LEGACY_RESPONSE_LENGTH : SM300D2_NEW_RESPONSE_LENGTH;
       if (pos + packet_length <= buffer_.size()) {
         std::vector<uint8_t> packet(buffer_.begin() + pos, buffer_.begin() + pos + packet_length);
-        process_packet(packet, preamble == 0x01);
+        process_packet_(packet, preamble == 0x01);
         buffer_.erase(buffer_.begin(), buffer_.begin() + pos + packet_length);
         pos = 0;
       } else {
@@ -47,7 +47,7 @@ void SM300D2Sensor::update() {
   }
 }
 
-void SM300D2Sensor::process_packet(const std::vector<uint8_t> &packet, bool is_new_revision) {
+void SM300D2Sensor::process_packet_(const std::vector<uint8_t> &packet, bool is_new_revision) {
   std::string hex;
   for (uint8_t byte : packet) {
     char buf[4];
