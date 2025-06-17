@@ -26,11 +26,8 @@ void BLEClientBase::set_state(espbt::ClientState st) {
   ESP_LOGV(TAG, "[%d] [%s] Set state %d", this->connection_index_, this->address_str_.c_str(), (int) st);
   ESPBTClient::set_state(st);
 
-  // Disable loop when idle AND address is not set (unused connection slot)
-  if (st == espbt::ClientState::IDLE && this->address_ == 0) {
-    this->disable_loop();
-  } else if (st == espbt::ClientState::READY_TO_CONNECT || st == espbt::ClientState::INIT) {
-    // Enable loop when we need to initialize or connect
+  if (st == espbt::ClientState::READY_TO_CONNECT) {
+    // Enable loop when we need to connect
     this->enable_loop();
   }
 }
@@ -51,9 +48,8 @@ void BLEClientBase::loop() {
 
   // READY_TO_CONNECT means we have discovered the device
   // and the scanner has been stopped by the tracker.
-  if (this->state_ == espbt::ClientState::READY_TO_CONNECT) {
-    this->connect();
-  }
+  elif (this->state_ == espbt::ClientState::READY_TO_CONNECT) { this->connect(); }
+  elif (this->state_ == espbt::ClientState::IDLE) { this->disable_loop(); }
 }
 
 float BLEClientBase::get_setup_priority() const { return setup_priority::AFTER_BLUETOOTH; }
