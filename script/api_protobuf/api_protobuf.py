@@ -1353,8 +1353,6 @@ def main() -> None:
     hpp += " public:\n"
     hpp += "#endif\n\n"
 
-    hpp += " public:\n"
-
     # Add generic send_message method
     hpp += "  template<typename T>\n"
     hpp += "  bool send_message(const T &msg) {\n"
