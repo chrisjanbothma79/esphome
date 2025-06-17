@@ -26,7 +26,7 @@ class SM300D2Sensor : public PollingComponent, public uart::UARTDevice {
 
  protected:
   uint16_t sm300d2_checksum_(const uint8_t *ptr, uint8_t length);
-  void process_packet(const std::vector<uint8_t> &packet, bool is_new_revision);
+  void process_packet_(const std::vector<uint8_t> &packet, bool is_new_revision);
 
   sensor::Sensor *addr_sensor_{nullptr};
   sensor::Sensor *function_sensor_{nullptr};
