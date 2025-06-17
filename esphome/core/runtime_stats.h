@@ -96,54 +96,7 @@ class RuntimeStatsCollector {
   void record_component_time(Component *component, uint32_t duration_ms, uint32_t current_time);
 
  protected:
-  void log_stats_() {
-    ESP_LOGI(RUNTIME_TAG, "Component Runtime Statistics");
-    ESP_LOGI(RUNTIME_TAG, "Period stats (last %" PRIu32 "ms):", this->log_interval_);
-
-    // First collect stats we want to display
-    std::vector<ComponentStatPair> stats_to_display;
-
-    for (const auto &it : this->component_stats_) {
-      const ComponentRuntimeStats &stats = it.second;
-      if (stats.get_period_count() > 0) {
-        ComponentStatPair pair = {it.first, &stats};
-        stats_to_display.push_back(pair);
-      }
-    }
-
-    // Sort by period runtime (descending)
-    std::sort(stats_to_display.begin(), stats_to_display.end(), std::greater<ComponentStatPair>());
-
-    // Log top components by period runtime
-    for (const auto &it : stats_to_display) {
-      // Only get component name when actually logging
-      const char *source = it.component->get_component_source();
-      const ComponentRuntimeStats *stats = it.stats;
-
-      ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source,
-               stats->get_period_count(), stats->get_period_avg_time_ms(), stats->get_period_max_time_ms(),
-               stats->get_period_time_ms());
-    }
-
-    // Log total stats since boot
-    ESP_LOGI(RUNTIME_TAG, "Total stats (since boot):");
-
-    // Re-sort by total runtime for all-time stats
-    std::sort(stats_to_display.begin(), stats_to_display.end(),
-              [](const ComponentStatPair &a, const ComponentStatPair &b) {
-                return a.stats->get_total_time_ms() > b.stats->get_total_time_ms();
-              });
-
-    for (const auto &it : stats_to_display) {
-      // Only get component name when actually logging
-      const char *source = it.component->get_component_source();
-      const ComponentRuntimeStats *stats = it.stats;
-
-      ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source,
-               stats->get_total_count(), stats->get_total_avg_time_ms(), stats->get_total_max_time_ms(),
-               stats->get_total_time_ms());
-    }
-  }
+  void log_stats_();
 
   void reset_stats_() {
     for (auto &it : this->component_stats_) {
