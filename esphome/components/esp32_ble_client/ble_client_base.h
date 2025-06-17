@@ -63,10 +63,6 @@ class BLEClientBase : public espbt::ESPBTClient, public Component {
                        (uint8_t) (this->address_ >> 16) & 0xff, (uint8_t) (this->address_ >> 8) & 0xff,
                        (uint8_t) (this->address_ >> 0) & 0xff);
     }
-    // Re-enable loop() when a non-zero address is assigned
-    if (address != 0) {
-      this->enable_loop();
-    }
   }
   std::string address_str() const { return this->address_str_; }
 
@@ -96,6 +92,8 @@ class BLEClientBase : public espbt::ESPBTClient, public Component {
   virtual void set_connection_type(espbt::ConnectionType ct) { this->connection_type_ = ct; }
 
   bool check_addr(esp_bd_addr_t &addr) { return memcmp(addr, this->remote_bda_, sizeof(esp_bd_addr_t)) == 0; }
+
+  void set_state(espbt::ClientState st) override;
 
  protected:
   int gattc_if_;
