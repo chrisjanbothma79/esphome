@@ -41,6 +41,6 @@ async def to_code(config):
     pin = await cg.gpio_pin_expression(config[CONF_PIN])
     cg.add(var.set_pin(pin))
 
+    cg.add(var.set_use_interrupt(config[CONF_USE_INTERRUPT]))
     if config[CONF_USE_INTERRUPT]:
-        cg.add(var.set_use_interrupt(True))
         cg.add(var.set_interrupt_type(INTERRUPT_TYPES[config[CONF_INTERRUPT_TYPE]]))

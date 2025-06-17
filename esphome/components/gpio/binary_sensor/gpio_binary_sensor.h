@@ -2,6 +2,7 @@
 
 #include "esphome/core/component.h"
 #include "esphome/core/hal.h"
+#include "esphome/core/helpers.h"
 #include "esphome/components/binary_sensor/binary_sensor.h"
 
 namespace esphome {
@@ -37,7 +38,7 @@ class GPIOBinarySensorStore {
 
 class GPIOBinarySensor : public binary_sensor::BinarySensor, public Component {
  public:
-  ~GPIOBinarySensor() override;
+  ~GPIOBinarySensor();
 
   void set_pin(GPIOPin *pin) { pin_ = pin; }
   void set_use_interrupt(bool use_interrupt) { use_interrupt_ = use_interrupt; }
