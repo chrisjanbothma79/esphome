@@ -21,21 +21,14 @@ class GPIOBinarySensorStore {
     return this->state_;
   }
 
-  bool has_changed() {
-    // No lock needed: single writer (ISR) / single reader (main loop) pattern
-    // Volatile bool operations are atomic on all ESPHome-supported platforms
-    //
-    // Note: There's a benign race where ISR could set changed_ = true between
-    // our read and clear. This is intentional and causes no issues because:
-    // 1. We'll process the state change on the next loop iteration
-    // 2. Multiple rapid changes between loop iterations would only result in
-    //    one update anyway (we only care about the final state)
-    // 3. This avoids the overhead of atomic operations in the ISR
-    if (!this->changed_) {
-      return false;
-    }
+  bool is_changed() const {
+    // Simple read of volatile bool - no clearing here
+    return this->changed_;
+  }
+
+  void clear_changed() {
+    // Separate method to clear the flag
     this->changed_ = false;
-    return true;
   }
 
  protected:
