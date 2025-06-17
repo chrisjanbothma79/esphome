@@ -70,7 +70,12 @@ void GPIOBinarySensor::dump_config() {
 
 void GPIOBinarySensor::loop() {
   if (this->use_interrupt_) {
-    if (this->store_.has_changed()) {
+    if (this->store_.is_changed()) {
+      // Clear the flag immediately to minimize the window where we might miss changes
+      this->store_.clear_changed();
+      // Read the state and publish it
+      // Note: If the ISR fires between clear_changed() and get_state(), that's fine -
+      // we'll process the new change on the next loop iteration
       bool state = this->store_.get_state();
       this->publish_state(state);
     }
