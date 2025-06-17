@@ -19,11 +19,12 @@ void GPIOBinarySensorStore::setup(InternalGPIOPin *pin, gpio::InterruptType type
   this->pin_ = pin;
   pin->setup();
   this->isr_pin_ = pin->to_isr();
-  {
-    InterruptLock lock;
-    this->last_state_ = pin->digital_read();
-    this->state_ = this->last_state_;
-  }
+
+  // Read initial state
+  this->last_state_ = pin->digital_read();
+  this->state_ = this->last_state_;
+
+  // Attach interrupt - from this point on, any changes will be caught by the interrupt
   pin->attach_interrupt(&GPIOBinarySensorStore::gpio_intr, this, type);
 }
 
