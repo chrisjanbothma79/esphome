@@ -74,7 +74,7 @@ class ComponentRuntimeStats {
 
 // For sorting components by run time
 struct ComponentStatPair {
-  Component *component;
+  std::string name;
   const ComponentRuntimeStats *stats;
 
   bool operator>(const ComponentStatPair &other) const {
@@ -104,7 +104,9 @@ class RuntimeStatsCollector {
     }
   }
 
-  std::map<Component *, ComponentRuntimeStats> component_stats_;
+  // Back to string keys, but we'll cache the source name per component
+  std::map<std::string, ComponentRuntimeStats> component_stats_;
+  std::map<Component *, std::string> component_names_cache_;
   uint32_t log_interval_;
   uint32_t next_log_time_;
   bool enabled_;

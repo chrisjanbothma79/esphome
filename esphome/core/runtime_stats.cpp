@@ -10,8 +10,17 @@ void RuntimeStatsCollector::record_component_time(Component *component, uint32_t
   if (!this->enabled_ || component == nullptr)
     return;
 
-  // Use component pointer directly as key - no string operations
-  this->component_stats_[component].record_time(duration_ms);
+  // Check if we have cached the name for this component
+  auto name_it = this->component_names_cache_.find(component);
+  if (name_it == this->component_names_cache_.end()) {
+    // First time seeing this component, cache its name
+    const char *source = component->get_component_source();
+    this->component_names_cache_[component] = source;
+    this->component_stats_[source].record_time(duration_ms);
+  } else {
+    // Use cached name - no string operations, just map lookup
+    this->component_stats_[name_it->second].record_time(duration_ms);
+  }
 
   // If next_log_time_ is 0, initialize it
   if (this->next_log_time_ == 0) {
@@ -46,11 +55,10 @@ void RuntimeStatsCollector::log_stats_() {
 
   // Log top components by period runtime
   for (const auto &it : stats_to_display) {
-    // Only get component name when actually logging
-    const char *source = it.component->get_component_source();
+    const std::string &source = it.name;
     const ComponentRuntimeStats *stats = it.stats;
 
-    ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source,
+    ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source.c_str(),
              stats->get_period_count(), stats->get_period_avg_time_ms(), stats->get_period_max_time_ms(),
              stats->get_period_time_ms());
   }
@@ -65,11 +73,10 @@ void RuntimeStatsCollector::log_stats_() {
             });
 
   for (const auto &it : stats_to_display) {
-    // Only get component name when actually logging
-    const char *source = it.component->get_component_source();
+    const std::string &source = it.name;
     const ComponentRuntimeStats *stats = it.stats;
 
-    ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source,
+    ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source.c_str(),
              stats->get_total_count(), stats->get_total_avg_time_ms(), stats->get_total_max_time_ms(),
              stats->get_total_time_ms());
   }
