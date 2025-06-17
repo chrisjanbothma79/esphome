@@ -17,7 +17,6 @@ class APIServerConnectionBase : public ProtoService {
  public:
 #endif
 
- public:
   template<typename T> bool send_message(const T &msg) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
     this->log_send_message_(T::message_name(), msg.dump());
