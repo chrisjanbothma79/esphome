@@ -45,11 +45,16 @@ void BLEClientBase::loop() {
     }
     this->set_state(espbt::ClientState::IDLE);
   }
-
   // READY_TO_CONNECT means we have discovered the device
   // and the scanner has been stopped by the tracker.
-  elif (this->state_ == espbt::ClientState::READY_TO_CONNECT) { this->connect(); }
-  elif (this->state_ == espbt::ClientState::IDLE) { this->disable_loop(); }
+  else if (this->state_ == espbt::ClientState::READY_TO_CONNECT) {
+    this->connect();
+  }
+  // If its idle, we can disable the loop as set_state
+  // will enable it again when we need to connect.
+  else if (this->state_ == espbt::ClientState::IDLE) {
+    this->disable_loop();
+  }
 }
 
 float BLEClientBase::get_setup_priority() const { return setup_priority::AFTER_BLUETOOTH; }
