@@ -16,7 +16,6 @@ void IRAM_ATTR GPIOBinarySensorStore::gpio_intr(GPIOBinarySensorStore *arg) {
 }
 
 void GPIOBinarySensorStore::setup(InternalGPIOPin *pin, gpio::InterruptType type) {
-  this->pin_ = pin;
   pin->setup();
   this->isr_pin_ = pin->to_isr();
 
@@ -26,19 +25,6 @@ void GPIOBinarySensorStore::setup(InternalGPIOPin *pin, gpio::InterruptType type
 
   // Attach interrupt - from this point on, any changes will be caught by the interrupt
   pin->attach_interrupt(&GPIOBinarySensorStore::gpio_intr, this, type);
-}
-
-void GPIOBinarySensorStore::detach() {
-  if (this->pin_ != nullptr) {
-    this->pin_->detach_interrupt();
-    this->pin_ = nullptr;
-  }
-}
-
-GPIOBinarySensor::~GPIOBinarySensor() {
-  if (this->use_interrupt_) {
-    this->store_.detach();
-  }
 }
 
 void GPIOBinarySensor::setup() {

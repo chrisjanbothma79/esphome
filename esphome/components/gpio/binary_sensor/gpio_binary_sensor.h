@@ -12,7 +12,6 @@ namespace gpio {
 class GPIOBinarySensorStore {
  public:
   void setup(InternalGPIOPin *pin, gpio::InterruptType type);
-  void detach();
 
   static void gpio_intr(GPIOBinarySensorStore *arg);
 
@@ -29,7 +28,6 @@ class GPIOBinarySensorStore {
   }
 
  protected:
-  InternalGPIOPin *pin_{nullptr};
   ISRInternalGPIOPin isr_pin_;
   volatile bool state_{false};
   volatile bool last_state_{false};
@@ -38,8 +36,6 @@ class GPIOBinarySensorStore {
 
 class GPIOBinarySensor : public binary_sensor::BinarySensor, public Component {
  public:
-  ~GPIOBinarySensor();
-
   void set_pin(GPIOPin *pin) { pin_ = pin; }
   void set_use_interrupt(bool use_interrupt) { use_interrupt_ = use_interrupt; }
   void set_interrupt_type(gpio::InterruptType type) { interrupt_type_ = type; }
