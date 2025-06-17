@@ -197,8 +197,8 @@ void MipiSpi::draw_vline_internal_(int x, int y, int height, Color color) {
     height -= (this->start_line_ - y);
     y = this->start_line_;
   }
-  if (height > this->end_line_ - y) {
-    height = this->end_line_ - y;
+  if (height > this->end_line_ - y + 1) {
+    height = this->end_line_ - y + 1;
   }
   if (height < 0)
     return;
