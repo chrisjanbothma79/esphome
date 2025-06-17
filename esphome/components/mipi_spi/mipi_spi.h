@@ -110,11 +110,15 @@ class MipiSpi : public display::DisplayBuffer,
   }
   void fill(Color color) override;
   void draw_hline_internal_(int x, int y, int width, Color color);
+  unsigned clip_y_bounds(int &y, int &height) const;
   void draw_vline_internal_(int x, int y, int height, Color color);
 
  public:
   void horizontal_line(int x, int y, int width, Color color) override;
   void vertical_line(int x, int y, int height, Color color) override;
+  void image(int x, int y, display::BaseImage *image, display::ImageAlign align, Color color_on, Color color_off);
+  void print(int x, int y, display::BaseFont *font, Color color, display::TextAlign align, const char *text,
+             Color background);
 
  protected:
   void draw_absolute_pixel_internal(int x, int y, Color color) override;
