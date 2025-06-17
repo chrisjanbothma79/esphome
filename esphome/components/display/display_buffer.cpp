@@ -44,10 +44,7 @@ int DisplayBuffer::get_height() {
   }
 }
 
-void HOT DisplayBuffer::draw_pixel_at(int x, int y, Color color) {
-  if (!this->get_clipping().inside(x, y))
-    return;  // NOLINT
-
+void HOT DisplayBuffer::rotate_point_(int &x, int &y) {
   switch (this->rotation_) {
     case DISPLAY_ROTATION_0_DEGREES:
       break;
@@ -64,6 +61,12 @@ void HOT DisplayBuffer::draw_pixel_at(int x, int y, Color color) {
       y = this->get_height_internal() - y - 1;
       break;
   }
+}
+
+void HOT DisplayBuffer::draw_pixel_at(int x, int y, Color color) {
+  if (!this->get_clipping().inside(x, y))
+    return;  // NOLINT
+  this->rotate_point_(x, y);
   this->draw_absolute_pixel_internal(x, y, color);
   App.feed_wdt();
 }
