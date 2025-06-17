@@ -22,6 +22,19 @@ void BLEClientBase::setup() {
   this->connection_index_ = connection_index++;
 }
 
+void BLEClientBase::set_state(espbt::ClientState st) {
+  ESP_LOGV(TAG, "[%d] [%s] Set state %d", this->connection_index_, this->address_str_.c_str(), (int) st);
+  ESPBTClient::set_state(st);
+
+  // Disable loop when idle AND address is not set (unused connection slot)
+  if (st == espbt::ClientState::IDLE && this->address_ == 0) {
+    this->disable_loop();
+  } else if (st == espbt::ClientState::READY_TO_CONNECT || st == espbt::ClientState::INIT) {
+    // Enable loop when we need to initialize or connect
+    this->enable_loop();
+  }
+}
+
 void BLEClientBase::loop() {
   if (!esp32_ble::global_ble->is_active()) {
     this->set_state(espbt::ClientState::INIT);
@@ -34,12 +47,6 @@ void BLEClientBase::loop() {
       this->mark_failed();
     }
     this->set_state(espbt::ClientState::IDLE);
-  }
-
-  // If address is 0, this connection is not in use
-  if (this->address_ == 0) {
-    this->disable_loop();
-    return;
   }
 
   // READY_TO_CONNECT means we have discovered the device
