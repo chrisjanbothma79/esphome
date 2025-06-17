@@ -28,8 +28,7 @@ void SM300D2Sensor::update() {
   while (pos < buffer_.size()) {
     if (buffer_[pos] == 0x3C || buffer_[pos] == 0x01) {
       uint8_t preamble = buffer_[pos];
-      uint8_t packet_length =
-          (preamble == 0x3C) ? SM300D2_LEGACY_RESPONSE_LENGTH : SM300D2_NEW_RESPONSE_LENGTH;
+      uint8_t packet_length = (preamble == 0x3C) ? SM300D2_LEGACY_RESPONSE_LENGTH : SM300D2_NEW_RESPONSE_LENGTH;
       if (pos + packet_length <= buffer_.size()) {
         std::vector<uint8_t> packet(buffer_.begin() + pos, buffer_.begin() + pos + packet_length);
         process_packet(packet, preamble == 0x01);
@@ -55,8 +54,7 @@ void SM300D2Sensor::process_packet(const std::vector<uint8_t> &packet, bool is_n
     sprintf(buf, "%02X ", byte);
     hex += buf;
   }
-  ESP_LOGD(TAG, "Processing packet (%s): %s", is_new_revision ? "new revision" : "legacy",
-           hex.c_str());
+  ESP_LOGD(TAG, "Processing packet (%s): %s", is_new_revision ? "new revision" : "legacy", hex.c_str());
 
   if (is_new_revision && packet[0] != 0x01) {
     ESP_LOGW(TAG, "Invalid preamble for new revision: 0x%02X", packet[0]);
@@ -79,8 +77,7 @@ void SM300D2Sensor::process_packet(const std::vector<uint8_t> &packet, bool is_n
     uint8_t calculated_sum = 0;
     for (size_t i = 0; i < packet.size() - 2; i++)
       calculated_sum += packet[i];
-    ESP_LOGD(TAG, "New revision checksum (sum B0–B16): 0x%02X, expected: 0x%02X", calculated_sum,
-             expected_checksum);
+    ESP_LOGD(TAG, "New revision checksum (sum B0–B16): 0x%02X, expected: 0x%02X", calculated_sum, expected_checksum);
     uint8_t sum_b0_b14 = 0;
     for (size_t i = 0; i < 15; i++)
       sum_b0_b14 += packet[i];
@@ -95,10 +92,9 @@ void SM300D2Sensor::process_packet(const std::vector<uint8_t> &packet, bool is_n
   const uint16_t tvoc = (packet[offset + 4] * 256) + packet[offset + 5];
   const uint16_t pm_2_5 = (packet[offset + 6] * 256) + packet[offset + 7];
   const uint16_t pm_10_0 = (packet[offset + 8] * 256) + packet[offset + 9];
-  const float temperature =
-      ((packet[offset + 10] + (packet[offset + 11] * 0.1f)) > 128)
-          ? (((packet[offset + 10] + (packet[offset + 11] * 0.1f)) - 128) * -1)
-          : packet[offset + 10] + (packet[offset + 11] * 0.1f);
+  const float temperature = ((packet[offset + 10] + (packet[offset + 11] * 0.1f)) > 128)
+                                ? (((packet[offset + 10] + (packet[offset + 11] * 0.1f)) - 128) * -1)
+                                : packet[offset + 10] + (packet[offset + 11] * 0.1f);
   const float humidity = packet[offset + 12] + (packet[offset + 13] * 0.1f);
 
   bool valid_data = true;
@@ -175,5 +171,5 @@ void SM300D2Sensor::dump_config() {
   this->check_uart_settings(9600);
 }
 
-}
-}
+}  // namespace sm300d2
+}  // namespace esphome
