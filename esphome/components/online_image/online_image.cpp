@@ -56,7 +56,7 @@ void OnlineImage::draw(int x, int y, display::Display *display, Color color_on, 
 
 void OnlineImage::release() {
   if (this->buffer_) {
-    ESP_LOGV(TAG, "Deallocating old buffer...");
+    ESP_LOGV(TAG, "Deallocating old buffer");
     this->allocator_.deallocate(this->buffer_, this->get_buffer_size_());
     this->data_start_ = nullptr;
     this->buffer_ = nullptr;
@@ -143,6 +143,10 @@ void OnlineImage::update() {
 
   headers.push_back(accept_header);
 
+  for (auto &header : this->request_headers_) {
+    headers.push_back(http_request::Header{header.first, header.second.value()});
+  }
+
   this->downloader_ = this->parent_->get(this->url_, headers, {ETAG_HEADER_NAME, LAST_MODIFIED_HEADER_NAME});
 
   if (this->downloader_ == nullptr) {
@@ -174,18 +178,21 @@ void OnlineImage::update() {
   if (this->format_ == ImageFormat::BMP) {
     ESP_LOGD(TAG, "Allocating BMP decoder");
     this->decoder_ = make_unique<BmpDecoder>(this);
+    this->enable_loop();
   }
 #endif  // USE_ONLINE_IMAGE_BMP_SUPPORT
 #ifdef USE_ONLINE_IMAGE_JPEG_SUPPORT
   if (this->format_ == ImageFormat::JPEG) {
     ESP_LOGD(TAG, "Allocating JPEG decoder");
     this->decoder_ = esphome::make_unique<JpegDecoder>(this);
+    this->enable_loop();
   }
 #endif  // USE_ONLINE_IMAGE_JPEG_SUPPORT
 #ifdef USE_ONLINE_IMAGE_PNG_SUPPORT
   if (this->format_ == ImageFormat::PNG) {
     ESP_LOGD(TAG, "Allocating PNG decoder");
     this->decoder_ = make_unique<PngDecoder>(this);
+    this->enable_loop();
   }
 #endif  // USE_ONLINE_IMAGE_PNG_SUPPORT
 
@@ -208,6 +215,7 @@ void OnlineImage::update() {
 void OnlineImage::loop() {
   if (!this->decoder_) {
     // Not decoding at the moment => nothing to do.
+    this->disable_loop();
     return;
   }
   if (!this->downloader_ || this->decoder_->is_finished()) {
