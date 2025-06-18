@@ -11,8 +11,6 @@ static const uint8_t SM300D2_NEW_RESPONSE_LENGTH = 19;
 static const uint32_t MAX_BUFFER_SIZE = 256;
 static const uint16_t MAX_REASONABLE_PM = 1000;
 
-std::vector<uint8_t> buffer_;
-
 void SM300D2Sensor::update() {
   while (this->available()) {
     uint8_t byte = this->read();
