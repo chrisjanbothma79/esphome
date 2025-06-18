@@ -36,7 +36,7 @@ CONFIG_SCHEMA = cv.Schema(
 )
 
 
-@coroutine_with_priority(66.0)
+@coroutine_with_priority(201.0)
 async def to_code(config):
     cg.add_define("USE_NETWORK")
     if CORE.using_arduino and CORE.is_esp32:
