@@ -58,6 +58,7 @@ extern const uint8_t COMPONENT_STATE_CONSTRUCTION;
 extern const uint8_t COMPONENT_STATE_SETUP;
 extern const uint8_t COMPONENT_STATE_LOOP;
 extern const uint8_t COMPONENT_STATE_FAILED;
+extern const uint8_t COMPONENT_STATE_LOOP_DONE;
 extern const uint8_t STATUS_LED_MASK;
 extern const uint8_t STATUS_LED_OK;
 extern const uint8_t STATUS_LED_WARNING;
@@ -65,7 +66,7 @@ extern const uint8_t STATUS_LED_ERROR;
 
 enum class RetryResult { DONE, RETRY };
 
-extern const uint32_t WARN_IF_BLOCKING_OVER_MS;
+extern const uint16_t WARN_IF_BLOCKING_OVER_MS;
 
 class Component {
  public:
@@ -149,6 +150,26 @@ class Component {
     this->status_set_error(message);
     this->mark_failed();
   }
+
+  /** Disable this component's loop. The loop() method will no longer be called.
+   *
+   * This is useful for components that only need to run for a certain period of time
+   * or when inactive, saving CPU cycles.
+   *
+   * @note Components should call this->disable_loop() on themselves, not on other components.
+   *       This ensures the component's state is properly updated along with the loop partition.
+   */
+  void disable_loop();
+
+  /** Enable this component's loop. The loop() method will be called normally.
+   *
+   * This is useful for components that transition between active and inactive states
+   * and need to re-enable their loop() method when becoming active again.
+   *
+   * @note Components should call this->enable_loop() on themselves, not on other components.
+   *       This ensures the component's state is properly updated along with the loop partition.
+   */
+  void enable_loop();
 
   bool is_failed() const;
 
@@ -318,8 +339,8 @@ class Component {
   uint8_t component_state_{0x00};
   float setup_priority_override_{NAN};
   const char *component_source_{nullptr};
-  uint32_t warn_if_blocking_over_{WARN_IF_BLOCKING_OVER_MS};
-  std::string error_message_{};
+  uint16_t warn_if_blocking_over_{WARN_IF_BLOCKING_OVER_MS};  ///< Warn if blocked for this many ms (max 65.5s)
+  const char *error_message_{nullptr};
 };
 
 /** This class simplifies creating components that periodically check a state.
