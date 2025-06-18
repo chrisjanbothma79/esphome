@@ -1,6 +1,7 @@
 #include "emontx.h"
 #include "esphome/core/log.h"
 #include "esphome/components/json/json_util.h"
+
 #ifdef USE_HTTP_REQUEST
 #include "esphome/components/network/util.h"
 #endif
@@ -53,6 +54,14 @@ void EmonTx::setup() {
     ESP_LOGD(TAG, "EmonCMS URL constructed: %s", this->emoncms_url_.c_str());
   }
 #endif
+
+#ifdef USE_MQTT_FORWARD
+  // Log MQTT forwarding configuration
+  if (has_mqtt_config_) {
+    ESP_LOGCONFIG(TAG, "MQTT forwarding enabled:");
+    ESP_LOGCONFIG(TAG, "  Topic prefix: %s", this->mqtt_topic_prefix_.c_str());
+  }
+#endif
 }
 
 /**
@@ -88,6 +97,12 @@ void EmonTx::loop() {
         }
 #endif
 
+#ifdef USE_MQTT_FORWARD
+        // Forward to MQTT if configured
+        if (has_mqtt_config_ && mqtt::global_mqtt_client != nullptr && mqtt::global_mqtt_client->is_connected()) {
+          send_to_mqtt_(buffer_);
+        }
+#endif
         buffer_.clear();
       }
     } else {
@@ -199,6 +214,59 @@ void EmonTx::send_to_emoncms_(const std::string &json_data) {
 }
 #endif
 
+#ifdef USE_MQTT_FORWARD
+void EmonTx::send_to_mqtt_(const std::string &json_data) {
+  if (!has_mqtt_config_ || mqtt::global_mqtt_client == nullptr || !mqtt::global_mqtt_client->is_connected()) {
+    return;
+  }
+
+  // Use the topic prefix + /data for the raw JSON data
+  std::string topic = mqtt_topic_prefix_;
+  if (topic.back() != '/') {
+    topic += '/';
+  }
+  topic += "data";
+
+  // Send the raw JSON data
+  ESP_LOGV(TAG, "Publishing to MQTT topic %s: %s", topic.c_str(), json_data.c_str());
+  mqtt::global_mqtt_client->publish(topic, json_data, 0, false);
+
+  ESP_LOGI(TAG, "Data published to MQTT topic %s", topic.c_str());
+
+  // Optionally, also publish individual values to separate topics for easier consumption
+  bool success = json::parse_json(json_data, [this](JsonObject root) {
+    // For each key-value pair in the JSON
+    for (JsonPair kv : root) {
+      // Create topic for this value: prefix/key
+      std::string value_topic = mqtt_topic_prefix_;
+      if (value_topic.back() != '/') {
+        value_topic += '/';
+      }
+      value_topic += kv.key().c_str();
+
+      // Convert value to string
+      std::string value;
+      if (kv.value().is<float>() || kv.value().is<int>()) {
+        value = to_string(kv.value().as<float>());
+      } else if (kv.value().is<const char *>() || kv.value().is<char *>()) {
+        value = kv.value().as<const char *>();
+      } else {
+        value = "unknown";
+      }
+
+      // Publish this value
+      ESP_LOGV(TAG, "  Publishing %s = %s", kv.key().c_str(), value.c_str());
+      mqtt::global_mqtt_client->publish(value_topic, value, 0, false);
+    }
+    return true;
+  });
+
+  if (!success) {
+    ESP_LOGW(TAG, "Failed to parse JSON for MQTT individual topics");
+  }
+}
+#endif
+
 /**
  * @brief Dumps the EmonTx configuration to the log.
  *
@@ -230,6 +298,18 @@ void EmonTx::dump_config() {
   }
 #else
   ESP_LOGCONFIG(TAG, "  EmonCMS Forwarding: DISABLED");
+#endif
+
+#ifdef USE_MQTT_FORWARD
+  // Show MQTT forwarding configuration
+  if (has_mqtt_config_) {
+    ESP_LOGCONFIG(TAG, "  MQTT Forwarding: ENABLED");
+    ESP_LOGCONFIG(TAG, "    Topic prefix: %s", this->mqtt_topic_prefix_.c_str());
+  } else {
+    ESP_LOGCONFIG(TAG, "  MQTT Forwarding: DISABLED");
+  }
+#else
+  ESP_LOGCONFIG(TAG, "  MQTT Forwarding: NOT AVAILABLE");
 #endif
 }
 

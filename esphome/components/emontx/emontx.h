@@ -11,6 +11,10 @@
 #include "esphome/components/http_request/http_request.h"
 #endif
 
+#ifdef USE_MQTT_FORWARD
+#include "esphome/components/mqtt/mqtt_client.h"
+#endif
+
 #include <map>
 #include <vector>
 
@@ -67,6 +71,14 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   }
 #endif
 
+#ifdef USE_MQTT_FORWARD
+  // MQTT forwarding configuration
+  void set_mqtt_forward(const std::string &topic_prefix) {
+    mqtt_topic_prefix_ = topic_prefix;
+    has_mqtt_config_ = true;
+  }
+#endif
+
  protected:
 #ifdef USE_SENSOR
   std::map<std::string, sensor::Sensor *> sensors_{};
@@ -87,6 +99,13 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   std::string emoncms_body_prefix_;  // "node=X&apikey=Y&json="
 
   void send_to_emoncms_(const std::string &json_data);
+#endif
+
+#ifdef USE_MQTT_FORWARD
+  // MQTT forwarding config
+  bool has_mqtt_config_{false};
+  std::string mqtt_topic_prefix_;
+  void send_to_mqtt_(const std::string &json_data);
 #endif
 };
 
