@@ -37,6 +37,8 @@ class SM300D2Sensor : public PollingComponent, public uart::UARTDevice {
   sensor::Sensor *pm_10_0_sensor_{nullptr};
   sensor::Sensor *temperature_sensor_{nullptr};
   sensor::Sensor *humidity_sensor_{nullptr};
+
+  std::vector<uint8_t> buffer_;
 };
 
 }  // namespace sm300d2
