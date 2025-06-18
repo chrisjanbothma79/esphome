@@ -82,7 +82,13 @@ void ESPHomeOTAComponent::dump_config() {
 #endif
 }
 
-void ESPHomeOTAComponent::loop() { this->handle_(); }
+void ESPHomeOTAComponent::loop() {
+  // Skip handle_() call if no client connected and no incoming connections
+  // This optimization reduces idle loop overhead when OTA is not active
+  if (client_ != nullptr || (server_ && server_->ready())) {
+    this->handle_();
+  }
+}
 
 static const uint8_t FEATURE_SUPPORTS_COMPRESSION = 0x01;
 
@@ -102,12 +108,10 @@ void ESPHomeOTAComponent::handle_() {
 #endif
 
   if (client_ == nullptr) {
-    // Check if the server socket is ready before accepting
-    if (this->server_->ready()) {
-      struct sockaddr_storage source_addr;
-      socklen_t addr_len = sizeof(source_addr);
-      client_ = server_->accept((struct sockaddr *) &source_addr, &addr_len);
-    }
+    // We already checked server_->ready() in loop(), so we can accept directly
+    struct sockaddr_storage source_addr;
+    socklen_t addr_len = sizeof(source_addr);
+    client_ = server_->accept((struct sockaddr *) &source_addr, &addr_len);
   }
   if (client_ == nullptr)
     return;
