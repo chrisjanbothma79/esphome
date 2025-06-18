@@ -31,14 +31,16 @@ from esphome.const import (
     CONF_SOURCE,
     CONF_STATE,
     CONF_SYNC,
+    CONF_TIMEOUT,
     CONF_TIMES,
     CONF_TRIGGER_ID,
+    CONF_TYPE,
     CONF_TYPE_ID,
     CONF_WAIT_TIME,
     CONF_WAND_ID,
     CONF_ZERO,
 )
-from esphome.core import coroutine
+from esphome.core import TimePeriod, coroutine
 from esphome.schema_extractors import SCHEMA_EXTRACT, schema_extractor
 from esphome.util import Registry, SimpleRegistry
 
@@ -47,6 +49,10 @@ AUTO_LOAD = ["binary_sensor"]
 CONF_RECEIVER_ID = "receiver_id"
 CONF_TRANSMITTER_ID = "transmitter_id"
 CONF_FIRST = "first"
+
+# NEC
+NEC_TYPE_NEC1 = "NEC1"
+NEC_TYPE_NEC2 = "NEC2"
 
 ns = remote_base_ns = cg.esphome_ns.namespace("remote_base")
 RemoteProtocol = ns.class_("RemoteProtocol")
@@ -794,16 +800,51 @@ async def keeloq_action(var, config, args):
 
 # NEC
 NECData, NECBinarySensor, NECTrigger, NECAction, NECDumper = declare_protocol("NEC")
-NEC_SCHEMA = cv.Schema(
+NECCodeType = ns.enum("NECCodeType", is_class=True)
+NEC_CODE_TYPES = {
+    NEC_TYPE_NEC1: NECCodeType.NEC1_FRAME_WITH_REPEATS,
+    NEC_TYPE_NEC2: NECCodeType.NEC2_FRAME_WITH_REPEATS,
+}
+
+NEC_FRAME_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_ADDRESS): cv.hex_uint16_t,
         cv.Required(CONF_COMMAND): cv.hex_uint16_t,
-        cv.Optional(CONF_COMMAND_REPEATS, default=1): cv.uint16_t,
+        cv.Optional(CONF_COMMAND_REPEATS): cv.invalid(
+            "'command_repeats' option has been removed. Use 'repeat' instead. "
+            "Check Remote Transmitter/Receiver documentation for more details."
+        ),
     }
 )
 
+NEC_TRANSMIT_SCHEMA = cv.Schema(
+    {
+        cv.Optional(CONF_TYPE, default=NEC_TYPE_NEC1): cv.enum(
+            NEC_CODE_TYPES, upper=True
+        ),
+        cv.Optional(CONF_REPEAT, default={CONF_TIMES: 1}): cv.Schema(
+            {
+                cv.Required(CONF_TIMES): cv.templatable(cv.positive_int),
+                cv.Optional(CONF_WAIT_TIME): cv.invalid(
+                    "'wait_time' option is invalid for NEC protocol. "
+                    "Check Remote Transmitter documentation for more details."
+                ),
+            }
+        ),
+    }
+).extend(NEC_FRAME_SCHEMA)
 
-@register_binary_sensor("nec", NECBinarySensor, NEC_SCHEMA)
+NEC_RECEIVE_SCHEMA = cv.Schema(
+    {
+        cv.Optional(CONF_TIMEOUT, default="130ms"): cv.All(
+            cv.positive_time_period_milliseconds,
+            cv.Range(min=TimePeriod(milliseconds=90), max=TimePeriod(milliseconds=170)),
+        ),
+    }
+).extend(NEC_FRAME_SCHEMA)
+
+
+@register_binary_sensor("nec", NECBinarySensor, NEC_RECEIVE_SCHEMA)
 def nec_binary_sensor(var, config):
     cg.add(
         var.set_data(
@@ -811,10 +852,12 @@ def nec_binary_sensor(var, config):
                 NECData,
                 ("address", config[CONF_ADDRESS]),
                 ("command", config[CONF_COMMAND]),
-                ("command_repeats", config[CONF_COMMAND_REPEATS]),
+                ("repeats", 0),
+                ("type", NECCodeType.FRAME),
             )
         )
     )
+    cg.add(var.set_repeat_timeout_ms(config[CONF_TIMEOUT]))
 
 
 @register_trigger("nec", NECTrigger, NECData)
@@ -827,14 +870,14 @@ def nec_dumper(var, config):
     pass
 
 
-@register_action("nec", NECAction, NEC_SCHEMA)
+@register_action("nec", NECAction, NEC_TRANSMIT_SCHEMA)
 async def nec_action(var, config, args):
     template_ = await cg.templatable(config[CONF_ADDRESS], args, cg.uint16)
     cg.add(var.set_address(template_))
     template_ = await cg.templatable(config[CONF_COMMAND], args, cg.uint16)
     cg.add(var.set_command(template_))
-    template_ = await cg.templatable(config[CONF_COMMAND_REPEATS], args, cg.uint16)
-    cg.add(var.set_command_repeats(template_))
+    template_ = await cg.templatable(config[CONF_TYPE], args, NECCodeType)
+    cg.add(var.set_type(template_))
 
 
 # Pioneer
