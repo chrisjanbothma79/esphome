@@ -100,7 +100,7 @@ class BLEClientBase : public espbt::ESPBTClient, public Component {
   // Group 1: 8-byte types
   uint64_t address_{0};
 
-  // Group 2: Container types (typically 12 bytes on 32-bit)
+  // Group 2: Container types (grouped for memory optimization)
   std::string address_str_{};
   std::vector<BLEService *> services_;
 
