@@ -290,12 +290,9 @@ def add_extra_build_file(filename: str, path: str) -> bool:
     return False
 
 
-def _format_framework_arduino_version(ver: cv.Version, for_platformio: bool) -> str:
+def _format_framework_arduino_version(ver: cv.Version) -> str:
     # format the given arduino (https://github.com/espressif/arduino-esp32/releases) version to
-    # a PIO platformio/framework-arduinoespressif32 value
-    # List of package versions: https://api.registry.platformio.org/v3/packages/platformio/tool/framework-arduinoespressif32
-    if for_platformio:
-        return f"platformio/framework-arduinoespressif32@~3.{ver.major}{ver.minor:02d}{ver.patch:02d}.0"
+    # a PIO pioarduino/framework-arduinoespressif32 value
     return f"pioarduino/framework-arduinoespressif32@https://github.com/espressif/arduino-esp32/releases/download/{str(ver)}/esp32-{str(ver)}.zip"
 
 
@@ -384,13 +381,11 @@ def _arduino_check_versions(value):
         version = cv.Version.parse(cv.version_number(value[CONF_VERSION]))
         source = value.get(CONF_SOURCE, None)
 
+    value[CONF_VERSION] = str(version)
+    value[CONF_SOURCE] = source or _format_framework_arduino_version(version)
+
     value[CONF_PLATFORM_VERSION] = value.get(
         CONF_PLATFORM_VERSION, _parse_platform_version(str(ARDUINO_PLATFORM_VERSION))
-    )
-
-    value[CONF_VERSION] = str(version)
-    value[CONF_SOURCE] = source or _format_framework_arduino_version(
-        version, _platform_is_platformio(value[CONF_PLATFORM_VERSION])
     )
 
     if value[CONF_SOURCE].startswith("http"):
