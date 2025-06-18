@@ -405,16 +405,14 @@ void EthernetComponent::eth_event_handler(void *arg, esp_event_base_t event_base
     case ETHERNET_EVENT_STOP:
       event_name = "ETH stopped";
       global_eth_component->started_ = false;
-      global_eth_component->connected_ = false;
-      global_eth_component->enable_loop();
+      global_eth_component->set_connected_(false);  // This will enable the loop
       break;
     case ETHERNET_EVENT_CONNECTED:
       event_name = "ETH connected";
       break;
     case ETHERNET_EVENT_DISCONNECTED:
       event_name = "ETH disconnected";
-      global_eth_component->connected_ = false;
-      global_eth_component->enable_loop();
+      global_eth_component->set_connected_(false);  // This will enable the loop
       break;
     default:
       return;
@@ -430,9 +428,9 @@ void EthernetComponent::got_ip_event_handler(void *arg, esp_event_base_t event_b
   ESP_LOGV(TAG, "[Ethernet event] ETH Got IP " IPSTR, IP2STR(&ip_info->ip));
   global_eth_component->got_ipv4_address_ = true;
 #if USE_NETWORK_IPV6 && (USE_NETWORK_MIN_IPV6_ADDR_COUNT > 0)
-  global_eth_component->connected_ = global_eth_component->ipv6_count_ >= USE_NETWORK_MIN_IPV6_ADDR_COUNT;
+  global_eth_component->set_connected_(global_eth_component->ipv6_count_ >= USE_NETWORK_MIN_IPV6_ADDR_COUNT);
 #else
-  global_eth_component->connected_ = true;
+  global_eth_component->set_connected_(true);
 #endif /* USE_NETWORK_IPV6 */
 }
 
@@ -443,10 +441,10 @@ void EthernetComponent::got_ip6_event_handler(void *arg, esp_event_base_t event_
   ESP_LOGV(TAG, "[Ethernet event] ETH Got IPv6: " IPV6STR, IPV62STR(event->ip6_info.ip));
   global_eth_component->ipv6_count_ += 1;
 #if (USE_NETWORK_MIN_IPV6_ADDR_COUNT > 0)
-  global_eth_component->connected_ =
-      global_eth_component->got_ipv4_address_ && (global_eth_component->ipv6_count_ >= USE_NETWORK_MIN_IPV6_ADDR_COUNT);
+  global_eth_component->set_connected_(global_eth_component->got_ipv4_address_ &&
+                                       (global_eth_component->ipv6_count_ >= USE_NETWORK_MIN_IPV6_ADDR_COUNT));
 #else
-  global_eth_component->connected_ = global_eth_component->got_ipv4_address_;
+  global_eth_component->set_connected_(global_eth_component->got_ipv4_address_);
 #endif
 }
 #endif /* USE_NETWORK_IPV6 */
@@ -522,6 +520,15 @@ void EthernetComponent::start_connect_() {
 }
 
 bool EthernetComponent::is_connected() { return this->state_ == EthernetComponentState::CONNECTED; }
+
+void EthernetComponent::set_connected_(bool connected) {
+  if (this->connected_ != connected) {
+    this->connected_ = connected;
+    // Always enable loop when connection state changes
+    // so the state machine can process the state change
+    this->enable_loop();
+  }
+}
 
 void EthernetComponent::dump_connect_params_() {
   esp_netif_ip_info_t ip;
@@ -626,7 +633,7 @@ bool EthernetComponent::powerdown() {
     ESP_LOGE(TAG, "Ethernet PHY not assigned");
     return false;
   }
-  this->connected_ = false;
+  this->set_connected_(false);
   this->started_ = false;
   // No need to enable_loop() here as this is only called during shutdown/reboot
   if (this->phy_->pwrctl(this->phy_, false) != ESP_OK) {
