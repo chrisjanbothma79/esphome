@@ -1066,7 +1066,8 @@ void Nextion::add_no_result_to_queue_with_command_(const std::string &variable_n
 }
 
 #ifdef USE_NEXTION_COMMAND_SPACING
-void Nextion::add_no_result_to_queue_with_pending_command_(const std::string &variable_name, const std::string &command) {
+void Nextion::add_no_result_to_queue_with_pending_command_(const std::string &variable_name,
+                                                           const std::string &command) {
 #ifdef USE_NEXTION_MAX_QUEUE_SIZE
   if (this->max_queue_size_ > 0 && this->nextion_queue_.size() >= this->max_queue_size_) {
     ESP_LOGW(TAG, "Queue full (%zu), drop: %s", this->nextion_queue_.size(), variable_name.c_str());

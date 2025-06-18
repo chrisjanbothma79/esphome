@@ -1364,19 +1364,19 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
 
 #ifdef USE_NEXTION_COMMAND_SPACING
   /**
-  * @brief Add a command to the Nextion queue with a pending command for retry
-  *
-  * This method creates a queue entry for a command that was blocked by command spacing.
-  * The command string is stored in the queue item's pending_command field so it can
-  * be retried later when spacing allows. This ensures commands are not lost when
-  * sent too quickly.
-  *
-  * If the max_queue_size limit is configured and reached, the command will be dropped.
-  *
-  * @param variable_name Name of the variable or component associated with the command
-  * @param command The actual command string to be sent when spacing allows
-  */
-  void add_no_result_to_queue_with_pending_command_(const std::string &variable_name, const std::string &command); 
+   * @brief Add a command to the Nextion queue with a pending command for retry
+   *
+   * This method creates a queue entry for a command that was blocked by command spacing.
+   * The command string is stored in the queue item's pending_command field so it can
+   * be retried later when spacing allows. This ensures commands are not lost when
+   * sent too quickly.
+   *
+   * If the max_queue_size limit is configured and reached, the command will be dropped.
+   *
+   * @param variable_name Name of the variable or component associated with the command
+   * @param command The actual command string to be sent when spacing allows
+   */
+  void add_no_result_to_queue_with_pending_command_(const std::string &variable_name, const std::string &command);
 #endif  // USE_NEXTION_COMMAND_SPACING
 
   bool add_no_result_to_queue_with_printf_(const std::string &variable_name, const char *format, ...)
