@@ -55,14 +55,8 @@ class MipiSpi : public display::DisplayBuffer,
                 public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                       spi::DATA_RATE_1MHZ> {
  public:
-  MipiSpi(size_t width, size_t height, int16_t offset_width, int16_t offset_height, display::ColorBitness color_depth,
-          size_t buffer_frac)
-      : width_(width),
-        height_(height),
-        offset_width_(offset_width),
-        offset_height_(offset_height),
-        color_depth_(color_depth),
-        buffer_frac_(buffer_frac) {}
+  MipiSpi(size_t width, size_t height, int16_t offset_width, int16_t offset_height)
+      : width_(width), height_(height), offset_width_(offset_width), offset_height_(offset_height) {}
   void set_model(const char *model) { this->model_ = model; }
   void update() override;
   void setup() override;
@@ -94,61 +88,14 @@ class MipiSpi : public display::DisplayBuffer,
   void set_spi_16(bool spi_16) { this->spi_16_ = spi_16; }
 
  protected:
-  bool check_buffer_() {
-    if (this->is_failed())
-      return false;
-    if (this->buffer_ != nullptr)
-      return true;
-    auto bytes_per_pixel = this->color_depth_ == display::COLOR_BITNESS_565 ? 2 : 1;
-    this->init_internal_(this->width_ * this->height_ * bytes_per_pixel / this->buffer_frac_);
-    if (this->buffer_ == nullptr) {
-      this->mark_failed();
-      return false;
-    }
-    this->buffer_bytes_ = this->width_ * this->height_ * bytes_per_pixel / this->buffer_frac_;
-    return true;
-  }
   void fill(Color color) override;
-  void draw_hline_internal_(int x, int y, int width, Color color);
-  unsigned clip_y_bounds(int &y, int &height) const;
-  void draw_vline_internal_(int x, int y, int height, Color color);
-
- public:
-  void horizontal_line(int x, int y, int width, Color color) override;
-  void vertical_line(int x, int y, int height, Color color) override;
-  void image(int x, int y, display::BaseImage *image, display::ImageAlign align, Color color_on, Color color_off);
-  void print(int x, int y, display::BaseFont *font, Color color, display::TextAlign align, const char *text,
-             Color background);
-
- protected:
   void draw_absolute_pixel_internal(int x, int y, Color color) override;
   void draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override;
-  void write_18_from_16_bit_(const uint16_t *ptr, size_t w, size_t h, size_t stride);
-  void write_18_from_8_bit_(const uint8_t *ptr, size_t w, size_t h, size_t stride);
-  void write_16_from_8_bit_(const uint8_t *ptr, size_t w, size_t h, size_t stride);
-  void write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
-                         int x_pad);
-  /**
-   * the RM67162 in quad SPI mode seems to work like this (not in the datasheet, this is deduced from the
-   * sample code.)
-   *
-   * Immediately after enabling /CS send 4 bytes in single-dataline SPI mode:
-   *    0: either 0x2 or 0x32. The first indicates that any subsequent data bytes after the initial 4 will be
-   *        sent in 1-dataline SPI. The second indicates quad mode.
-   *    1: 0x00
-   *    2: The command (register address) byte.
-   *    3: 0x00
-   *
-   *    This is followed by zero or more data bytes in either 1-wire or 4-wire mode, depending on the first byte.
-   *    At the conclusion of the write, de-assert /CS.
-   *
-   * @param cmd
-   * @param bytes
-   * @param len
-   */
-  void write_command_(uint8_t cmd, const uint8_t *bytes, size_t len);
+  virtual void write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
+                                 int x_pad) = 0;
 
+  void write_command_(uint8_t cmd, const uint8_t *bytes, size_t len);
   void write_command_(uint8_t cmd, uint8_t data) { this->write_command_(cmd, &data, 1); }
   void write_command_(uint8_t cmd) { this->write_command_(cmd, &cmd, 0); }
   void reset_params_();
@@ -170,8 +117,7 @@ class MipiSpi : public display::DisplayBuffer,
   int16_t offset_width_;
   int16_t offset_height_;
   size_t buffer_bytes_{0};
-  display::ColorBitness color_depth_;
-  PixelMode pixel_mode_{PIXEL_MODE_16};
+  display::ColorBitness color_depth_{};
   uint8_t bus_width_{};
   bool spi_16_{};
   uint8_t madctl_{};
@@ -180,9 +126,33 @@ class MipiSpi : public display::DisplayBuffer,
   optional<uint8_t> brightness_{};
   const char *model_{"Unknown"};
   std::vector<uint8_t> init_sequence_{};
-  size_t buffer_frac_{1};
-  size_t start_line_{0};
-  size_t end_line_{0};
+};
+
+template<typename PIXELTYPE, display::DisplayRotation ROTATION> class MipiSpiImpl : public MipiSpi {
+  static_assert(std::is_same_v<PIXELTYPE, uint8_t> || std::is_same_v<PIXELTYPE, uint16_t>,
+                "MipiSpi: Template type PixelType must be uint8_t or uint16_t.");
+
+ public:
+  MipiSpiImpl(size_t width, size_t height, int16_t offset_width, int16_t offset_height)
+      : MipiSpi(width, height, offset_width, offset_height) {
+    this->set_rotation(ROTATION);
+    this->color_depth_ = sizeof(PIXELTYPE) == 1 ? display::COLOR_BITNESS_332 : display::COLOR_BITNESS_565;
+  }
+
+ protected:
+  bool check_buffer_() {
+    if (this->is_failed())
+      return false;
+    if (this->buffer_ != nullptr)
+      return true;
+    this->init_internal_(this->width_ * this->height_ * sizeof(PIXELTYPE));
+    if (this->buffer_ == nullptr) {
+      this->mark_failed();
+      return false;
+    }
+    this->buffer_bytes_ = this->width_ * this->height_ * sizeof(PIXELTYPE);
+    return true;
+  }
 };
 }  // namespace mipi_spi
 }  // namespace esphome

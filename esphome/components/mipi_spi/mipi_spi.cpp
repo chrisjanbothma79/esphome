@@ -84,7 +84,7 @@ void MipiSpi::setup() {
     }
   }
   this->setup_complete_ = true;
-  if (this->draw_from_origin_ || this->buffer_frac_ != 1)
+  if (this->draw_from_origin_)
     check_buffer_();
   ESP_LOGCONFIG(TAG, "MIPI SPI setup complete");
 }
@@ -93,53 +93,43 @@ void MipiSpi::update() {
   if (!this->setup_complete_ || this->is_failed()) {
     return;
   }
-  auto now = millis();
-  auto line_step = this->get_height_internal() / this->buffer_frac_;
-  for (this->start_line_ = 0; this->start_line_ < this->height_; this->start_line_ += line_step) {
-    this->end_line_ = this->start_line_ + line_step - 1;
-    if (this->end_line_ >= this->get_height_internal())
-      this->end_line_ = this->get_height_internal() - 1;
-    this->do_update_();
-    if (this->buffer_ == nullptr || this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
-      continue;
-    // Some chips require that the drawing window be aligned on certain boundaries
-    auto dr = this->draw_rounding_;
-    this->y_low_ -= this->start_line_;
-    this->y_high_ -= this->start_line_;
-    this->x_low_ = this->x_low_ / dr * dr;
-    this->y_low_ = this->y_low_ / dr * dr;
-    this->x_high_ = (this->x_high_ + dr) / dr * dr - 1;
-    this->y_high_ = (this->y_high_ + dr) / dr * dr - 1;
-    if (this->draw_from_origin_) {
-      this->x_low_ = 0;
-      this->y_low_ = 0;
-      this->x_high_ = this->width_ - 1;
-    }
-    int w = this->x_high_ - this->x_low_ + 1;
-    int h = this->y_high_ - this->y_low_ + 1;
-    this->write_to_display_(this->x_low_, this->y_low_ + this->start_line_, w, h, this->buffer_, this->x_low_,
-                            this->y_low_, this->width_ - w - this->x_low_);
-    // invalidate watermarks
-    this->x_low_ = this->width_;
-    this->y_low_ = this->height_;
-    this->x_high_ = 0;
-    this->y_high_ = 0;
-    arch_feed_wdt();
+  this->do_update_();
+  if (this->buffer_ == nullptr || this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
+    return;
+  ESP_LOGV(TAG, "x_low %d, y_low %d, x_high %d, y_high %d", this->x_low_, this->y_low_, this->x_high_, this->y_high_);
+  // Some chips require that the drawing window be aligned on certain boundaries
+  auto dr = this->draw_rounding_;
+  this->x_low_ = this->x_low_ / dr * dr;
+  this->y_low_ = this->y_low_ / dr * dr;
+  this->x_high_ = (this->x_high_ + dr) / dr * dr - 1;
+  this->y_high_ = (this->y_high_ + dr) / dr * dr - 1;
+  if (this->draw_from_origin_) {
+    this->x_low_ = 0;
+    this->y_low_ = 0;
+    this->x_high_ = this->width_ - 1;
   }
-  ESP_LOGD(TAG, "MIPI SPI update complete, elapsed %dms", (int) (millis() - now));
+  int w = this->x_high_ - this->x_low_ + 1;
+  int h = this->y_high_ - this->y_low_ + 1;
+  this->write_to_display_(this->x_low_, this->y_low_, w, h, this->buffer_, this->x_low_, this->y_low_,
+                          this->width_ - w - this->x_low_);
+  // invalidate watermarks
+  this->x_low_ = this->width_;
+  this->y_low_ = this->height_;
+  this->x_high_ = 0;
+  this->y_high_ = 0;
 }
 
 void MipiSpi::fill(Color color) {
   if (!this->check_buffer_())
     return;
   this->x_low_ = 0;
+  this->y_low_ = 0;
   this->x_high_ = this->get_width_internal() - 1;
-  this->y_low_ = this->start_line_;
-  this->y_high_ = this->end_line_;
+  this->y_high_ = this->get_height_internal() - 1;
   switch (this->color_depth_) {
     case display::COLOR_BITNESS_332: {
       auto new_color = display::ColorUtil::color_to_332(color, display::ColorOrder::COLOR_ORDER_RGB);
-      memset(this->buffer_, new_color, this->buffer_bytes_);
+      memset(this->buffer_, (uint8_t) new_color, this->buffer_bytes_);
       break;
     }
     default: {
@@ -158,233 +148,13 @@ void MipiSpi::fill(Color color) {
   }
 }
 
-void MipiSpi::draw_hline_internal_(int x, int y, int width, Color color) {
-  if (x >= this->get_width_internal() || x + width <= 0 || y > this->end_line_ || y < this->start_line_) {
-    return;
-  }
-  if (!this->check_buffer_())
-    return;
-  size_t pos = ((y - start_line_) * this->width_) + x;
-  switch (this->color_depth_) {
-    case display::COLOR_BITNESS_332: {
-      auto new_color = display::ColorUtil::color_to_332(color);
-      memset(this->buffer_, new_color, width);
-      break;
-    }
-
-    case display::COLOR_BITNESS_565: {
-      auto *ptr_16 = reinterpret_cast<uint16_t *>(this->buffer_);
-      auto hi_byte = static_cast<uint8_t>(color.r & 0xF8) | (color.g >> 5);
-      auto lo_byte = static_cast<uint8_t>((color.g & 0x1C) << 3) | (color.b >> 3);
-      if (lo_byte == hi_byte) {
-        // Upper and lower is equal can use quicker memset operation. Takes ~20ms.
-        memset(&ptr_16[pos], hi_byte, width * 2);
-        return;
-      }
-      uint16_t new_color = hi_byte | (lo_byte << 8);  // big endian
-      for (int i = 0; i != width; i++) {
-        ptr_16[pos + i] = new_color;
-      }
-      break;
-    }
-    default:
-      break;
-  }
-}
-
-// Clip y bounds to the start and end lines
-// update the y and height parameters and return the offset applied to the start
-unsigned MipiSpi::clip_y_bounds(int &y, int &height) const {
-  if (y > this->end_line_) {
-    height = 0;
-    return 0;
-  }
-  unsigned offset = 0;
-  if (y + height > this->end_line_) {
-    height = this->end_line_ - y + 1;
-  }
-  if (y < this->start_line_) {
-    offset = this->start_line_ - y;
-    height -= offset;
-    y = this->start_line_;
-  }
-  return offset;
-}
-
-void MipiSpi::draw_vline_internal_(int x, int y, int height, Color color) {
-  if (!this->check_buffer_())
-    return;
-  this->clip_y_bounds(y, height);
-  if (height <= 0)
-    return;
-  size_t pos = (y - this->start_line_) * this->width_ + x;
-  switch (this->color_depth_) {
-    case display::COLOR_BITNESS_332: {
-      uint8_t new_color = display::ColorUtil::color_to_332(color);
-      for (int i = 0; i != height; i++) {
-        this->buffer_[pos + i * this->width_] = new_color;
-      }
-      break;
-    }
-
-    case display::COLOR_BITNESS_565: {
-      auto *ptr_16 = reinterpret_cast<uint16_t *>(this->buffer_);
-      uint8_t hi_byte = static_cast<uint8_t>(color.r & 0xF8) | (color.g >> 5);
-      uint8_t lo_byte = static_cast<uint8_t>((color.g & 0x1C) << 3) | (color.b >> 3);
-      uint16_t new_color = hi_byte | (lo_byte << 8);  // big endian
-      for (int i = 0; i != height; i++) {
-        ptr_16[pos + i * this->width_] = new_color;
-      }
-      break;
-    }
-    default:
-      break;
-  }
-}
-void MipiSpi::horizontal_line(int x, int y, int width, Color color) {
-  this->rotate_point_(x, y);
-  if (this->rotation_ == display::DISPLAY_ROTATION_90_DEGREES ||
-      this->rotation_ == display::DISPLAY_ROTATION_270_DEGREES) {
-    this->draw_vline_internal_(x, y, width, color);
-  }
-  this->draw_hline_internal_(x, y, width, color);
-}
-
-void MipiSpi::vertical_line(int x, int y, int height, Color color) {
-  this->rotate_point_(x, y);
-  if (this->rotation_ == display::DISPLAY_ROTATION_0_DEGREES ||
-      this->rotation_ == display::DISPLAY_ROTATION_180_DEGREES) {
-    this->draw_vline_internal_(x, y, height, color);
-  } else {
-    this->draw_hline_internal_(x, y, height, color);
-  }
-}
-
-void MipiSpi::image(int x, int y, display::BaseImage *image, display::ImageAlign align, Color color_on,
-                    Color color_off) {
-  // Get image dimensions
-  int img_width = image->get_width();
-  int img_height = image->get_height();
-  auto x_align = display::ImageAlign(int(align) & (int(display::ImageAlign::HORIZONTAL_ALIGNMENT)));
-  auto y_align = display::ImageAlign(int(align) & (int(display::ImageAlign::VERTICAL_ALIGNMENT)));
-
-  // Calculate origin based on alignment
-  switch (x_align) {
-    case display::ImageAlign::RIGHT:
-      x -= image->get_width();
-      break;
-    case display::ImageAlign::CENTER_HORIZONTAL:
-      x -= image->get_width() / 2;
-      break;
-    case display::ImageAlign::LEFT:
-    default:
-      break;
-  }
-
-  switch (y_align) {
-    case display::ImageAlign::BOTTOM:
-      y -= image->get_height();
-      break;
-    case display::ImageAlign::CENTER_VERTICAL:
-      y -= image->get_height() / 2;
-      break;
-    case display::ImageAlign::TOP:
-    default:
-      break;
-  }
-
-  // Handle rotation
-  int rot_x = x;
-  int rot_y = y;
-  int rot_width = img_width;
-  int rot_height = img_height;
-
-  switch (this->rotation_) {
-    case display::DISPLAY_ROTATION_90_DEGREES:
-      std::swap(rot_x, rot_y);
-      std::swap(rot_width, rot_height);
-      rot_x = this->get_width_internal() - rot_y - rot_height;
-      break;
-    case display::DISPLAY_ROTATION_180_DEGREES:
-      rot_x = this->get_width_internal() - rot_x - rot_width;
-      rot_y = this->get_height_internal() - rot_y - rot_height;
-      break;
-    case display::DISPLAY_ROTATION_270_DEGREES:
-      std::swap(rot_x, rot_y);
-      std::swap(rot_width, rot_height);
-      rot_y = this->get_height_internal() - rot_x - rot_width;
-      break;
-    default:
-      break;
-  }
-
-  // Clip y bounds to start and end lines
-  unsigned y_offset = this->clip_y_bounds(rot_y, rot_height);
-
-  // If image is completely out of bounds, return
-  if (rot_height <= 0)
-    return;
-
-  // adjust the y coordinate to account for the start line
-  rot_y -= this->start_line_;
-
-  // Write pixels directly to the buffer
-  for (int j = 0; j != rot_height; j++) {
-    for (int i = 0; i != rot_width; i++) {
-      int src_x = i;
-      int src_y = j + y_offset;
-
-      // Convert back from rotated coordinates to source coordinates
-      switch (this->rotation_) {
-        case display::DISPLAY_ROTATION_90_DEGREES:
-          src_x = rot_height - src_y - 1;
-          src_y = i;
-          break;
-        case display::DISPLAY_ROTATION_180_DEGREES:
-          src_x = rot_width - i - 1;
-          src_y = rot_height - src_y - 1;
-          break;
-        case display::DISPLAY_ROTATION_270_DEGREES:
-          src_x = src_y;
-          src_y = rot_width - i - 1;
-          break;
-        default:
-          break;
-      }
-
-      // Get pixel from image and convert to buffer format
-      Color pixel = image->get_pixel(src_x, src_y, color_on, color_off);
-
-      // Calculate buffer position
-      int buffer_x = rot_x + i;
-      int buffer_y = buffer_y_offset + j;
-
-      // Write to buffer using draw_absolute_pixel_internal
-      this->draw_absolute_pixel_internal(buffer_x, buffer_y, color);
-    }
-  }
-}
-
-void MipiSpi::print(int x, int y, display::BaseFont *font, Color color, display::TextAlign align, const char *text,
-                    Color background) {
-  int x_start, y_start;
-  int width, height;
-  this->get_text_bounds(x, y, text, font, align, &x_start, &y_start, &width, &height);
-  auto rot_x = x_start;
-  auto rot_y = y_start;
-  this->rotate_point_(rot_x, rot_y);
-  if (rot_y > this->start_line_ || rot_y + height < this->end_line_)
-    return;
-  font->print(x_start, y_start, this, color, text, background);
-}
-
 void MipiSpi::draw_absolute_pixel_internal(int x, int y, Color color) {
-  if (x >= this->get_width_internal() || x < 0 || y > this->end_line_ || y < this->start_line_) {
+  if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0) {
     return;
   }
   if (!this->check_buffer_())
     return;
-  size_t pos = ((y - start_line_) * this->width_) + x;
+  size_t pos = (y * this->width_) + x;
   switch (this->color_depth_) {
     case display::COLOR_BITNESS_332: {
       uint8_t new_color = display::ColorUtil::color_to_332(color);
@@ -478,22 +248,8 @@ void MipiSpi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
   if (w <= 0 || h <= 0)
     return;
   if (bitness != this->color_depth_ || big_endian != (this->bit_order_ == spi::BIT_ORDER_MSB_FIRST)) {
-    Display::draw_pixels_at(x_start, y_start, w, h, ptr, order, bitness, big_endian, x_offset, y_offset, x_pad);
+    ESP_LOGE(TAG, "Unsupported color depth or bit order");
     return;
-  }
-  if (this->draw_from_origin_) {
-    auto stride = x_offset + w + x_pad;
-    for (int y = 0; y != h; y++) {
-      memcpy(this->buffer_ + ((y + y_start) * this->width_ + x_start) * 2,
-             ptr + ((y + y_offset) * stride + x_offset) * 2, w * 2);
-    }
-    ptr = this->buffer_;
-    w = this->width_;
-    h += y_start;
-    x_start = 0;
-    y_start = 0;
-    x_offset = 0;
-    y_offset = 0;
   }
   this->write_to_display_(x_start, y_start, w, h, ptr, x_offset, y_offset, x_pad);
 }
@@ -694,15 +450,11 @@ void MipiSpi::dump_config() {
                 "  Color depth: %d bits\n"
                 "  Invert colors: %s\n"
                 "  Color order: %s\n"
-                "  Pixel mode: %s\n"
-                "  Buffer size: %d%% (%zu bytes)"
-                "  Auto clear: %s",
+                "  Pixel mode: %s",
                 YESNO(this->madctl_ & MADCTL_MV), YESNO(this->madctl_ & (MADCTL_MX | MADCTL_XFLIP)),
                 YESNO(this->madctl_ & (MADCTL_MY | MADCTL_YFLIP)),
                 this->color_depth_ == display::COLOR_BITNESS_565 ? 16 : 8, YESNO(this->invert_colors_),
-                this->madctl_ & MADCTL_BGR ? "BGR" : "RGB", this->pixel_mode_ == PIXEL_MODE_18 ? "18bit" : "16bit",
-                100 / this->buffer_frac_, this->buffer_bytes_, YESNO(this->auto_clear_enabled_));
-
+                this->madctl_ & MADCTL_BGR ? "BGR" : "RGB", this->pixel_mode_ == PIXEL_MODE_18 ? "18bit" : "16bit");
   if (this->brightness_.has_value())
     ESP_LOGCONFIG(TAG, "  Brightness: %u", this->brightness_.value());
   if (this->spi_16_)
