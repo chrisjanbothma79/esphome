@@ -104,8 +104,6 @@ class EthernetComponent : public Component {
   void ksz8081_set_clock_reference_(esp_eth_mac_t *mac);
   /// @brief Set arbitratry PHY registers from config.
   void write_phy_register_(esp_eth_mac_t *mac, PHYRegister register_data);
-  /// @brief Safely set connected state and ensure loop is enabled for state machine processing
-  void set_connected_(bool connected);
 
   std::string use_address_;
 #ifdef USE_ETHERNET_SPI
