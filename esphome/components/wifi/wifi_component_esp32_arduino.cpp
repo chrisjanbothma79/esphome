@@ -662,12 +662,7 @@ void WiFiComponent::wifi_event_callback_(esphome_wifi_event_id_t event, esphome_
 }
 
 WiFiSTAConnectStatus WiFiComponent::wifi_sta_connect_status_() {
-#if USE_ARDUINO_VERSION_CODE < VERSION_CODE(3, 0, 0)
-  const auto status = WiFiClass::status();
-#else
   const auto status = WiFi.status();
-#endif
-
   if (status == WL_CONNECT_FAILED || status == WL_CONNECTION_LOST) {
     return WiFiSTAConnectStatus::ERROR_CONNECT_FAILED;
   }
