@@ -113,9 +113,9 @@ void ESPHomeOTAComponent::handle_() {
     struct sockaddr_storage source_addr;
     socklen_t addr_len = sizeof(source_addr);
     client_ = server_->accept((struct sockaddr *) &source_addr, &addr_len);
+    if (client_ == nullptr)
+      return;
   }
-  if (client_ == nullptr)
-    return;
 
   int enable = 1;
   int err = client_->setsockopt(IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(int));
