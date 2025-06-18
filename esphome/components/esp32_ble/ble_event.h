@@ -232,7 +232,9 @@ class BLEEvent {
   const BLEScanResult &scan_result() const { return event_.gap.scan_result; }
   esp_bt_status_t scan_complete_status() const { return event_.gap.scan_complete.status; }
   esp_bt_status_t adv_complete_status() const { return event_.gap.adv_complete.status; }
-  auto &read_rssi_complete() const -> decltype(event_.gap.read_rssi_complete) { return event_.gap.read_rssi_complete; }
+  auto read_rssi_complete() const -> const decltype(event_.gap.read_rssi_complete) & {
+    return event_.gap.read_rssi_complete;
+  }
   const esp_ble_sec_t &security() const { return event_.gap.security; }
 
  private:
