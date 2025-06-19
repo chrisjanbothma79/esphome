@@ -5,16 +5,18 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
+// clang-format off
 extern "C" {
+#include "rtos_pub.h"
+#include "spi.h"
 #include "arm_arch.h"
 #include "general_dma_pub.h"
 #include "gpio_pub.h"
 #include "icu_pub.h"
-#include "rtos_pub.h"
-#include "spi.h"
 #undef SPI_DAT
 #undef SPI_BASE
 };
+// clang-format on
 
 static const uint32_t SPI_TX_DMA_CHANNEL = GDMA_CHANNEL_3;
 
