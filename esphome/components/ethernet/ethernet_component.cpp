@@ -253,6 +253,9 @@ void EthernetComponent::loop() {
         ESP_LOGW(TAG, "Connection lost; reconnecting");
         this->state_ = EthernetComponentState::CONNECTING;
         this->start_connect_();
+      } else {
+        // When connected and stable, disable the loop to save CPU cycles
+        this->disable_loop();
       }
       break;
   }
@@ -376,11 +379,13 @@ void EthernetComponent::eth_event_handler(void *arg, esp_event_base_t event_base
     case ETHERNET_EVENT_START:
       event_name = "ETH started";
       global_eth_component->started_ = true;
+      global_eth_component->enable_loop_soon_any_context();
       break;
     case ETHERNET_EVENT_STOP:
       event_name = "ETH stopped";
       global_eth_component->started_ = false;
       global_eth_component->connected_ = false;
+      global_eth_component->enable_loop_soon_any_context();  // Enable loop when connection state changes
       break;
     case ETHERNET_EVENT_CONNECTED:
       event_name = "ETH connected";
@@ -388,6 +393,7 @@ void EthernetComponent::eth_event_handler(void *arg, esp_event_base_t event_base
     case ETHERNET_EVENT_DISCONNECTED:
       event_name = "ETH disconnected";
       global_eth_component->connected_ = false;
+      global_eth_component->enable_loop_soon_any_context();  // Enable loop when connection state changes
       break;
     default:
       return;
@@ -404,8 +410,10 @@ void EthernetComponent::got_ip_event_handler(void *arg, esp_event_base_t event_b
   global_eth_component->got_ipv4_address_ = true;
 #if USE_NETWORK_IPV6 && (USE_NETWORK_MIN_IPV6_ADDR_COUNT > 0)
   global_eth_component->connected_ = global_eth_component->ipv6_count_ >= USE_NETWORK_MIN_IPV6_ADDR_COUNT;
+  global_eth_component->enable_loop_soon_any_context();  // Enable loop when connection state changes
 #else
   global_eth_component->connected_ = true;
+  global_eth_component->enable_loop_soon_any_context();  // Enable loop when connection state changes
 #endif /* USE_NETWORK_IPV6 */
 }
 
@@ -418,8 +426,10 @@ void EthernetComponent::got_ip6_event_handler(void *arg, esp_event_base_t event_
 #if (USE_NETWORK_MIN_IPV6_ADDR_COUNT > 0)
   global_eth_component->connected_ =
       global_eth_component->got_ipv4_address_ && (global_eth_component->ipv6_count_ >= USE_NETWORK_MIN_IPV6_ADDR_COUNT);
+  global_eth_component->enable_loop_soon_any_context();  // Enable loop when connection state changes
 #else
   global_eth_component->connected_ = global_eth_component->got_ipv4_address_;
+  global_eth_component->enable_loop_soon_any_context();  // Enable loop when connection state changes
 #endif
 }
 #endif /* USE_NETWORK_IPV6 */
@@ -599,6 +609,7 @@ bool EthernetComponent::powerdown() {
   }
   this->connected_ = false;
   this->started_ = false;
+  // No need to enable_loop() here as this is only called during shutdown/reboot
   if (this->phy_->pwrctl(this->phy_, false) != ESP_OK) {
     ESP_LOGE(TAG, "Error powering down ethernet PHY");
     return false;
