@@ -18,7 +18,6 @@ CONF_EMONCMS = "emoncms"
 CONF_SERVER = "server"
 CONF_NODE = "node"
 CONF_APIKEY = "apikey"
-CONF_HTTP_ID = "http_id"
 
 # MQTT forwarding config
 CONF_MQTT_FORWARD = "mqtt_forward"
@@ -80,8 +79,6 @@ CONFIG_SCHEMA = (
 def validate_emoncms(config):
     # Skip if no EmonCMS configuration
     if CONF_EMONCMS in config:
-        from esphome.components import http_request
-
         cg.add_define("USE_HTTP_REQUEST")
 
         # Validate EmonCMS configuration
@@ -90,7 +87,6 @@ def validate_emoncms(config):
                 cv.Required(CONF_SERVER): validate_server_url,
                 cv.Required(CONF_NODE): not_empty("Node name"),
                 cv.Required(CONF_APIKEY): not_empty("API key"),
-                cv.Optional(CONF_HTTP_ID): cv.use_id(http_request.HttpRequestComponent),
             }
         )
         config[CONF_EMONCMS] = emoncms_schema(config[CONF_EMONCMS])
@@ -147,13 +143,8 @@ async def to_code(config):
 
         emoncms_config = config[CONF_EMONCMS]
 
-        # Get HTTP client - either specified or first found
-        if CONF_HTTP_ID in emoncms_config:
-            http_var = await cg.get_variable(emoncms_config[CONF_HTTP_ID])
-        else:
-            http_var = await cg.get_variable(http_request.CONFIG_SCHEMA.schema[CONF_ID])
+        http_var = await cg.get_variable(http_request.CONFIG_SCHEMA.schema[CONF_ID])
 
-        http_var = await cg.get_variable(emoncms_config[CONF_HTTP_ID])
         cg.add(
             var.set_emoncms_config(
                 emoncms_config[CONF_SERVER],
