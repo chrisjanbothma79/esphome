@@ -5,7 +5,7 @@ from esphome.const import CONF_ID, CONF_MQTT_ID, CONF_TOPIC_PREFIX
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67"]
-DEPENDENCIES = ["uart", "network"]
+MULTI_CONF = True
 
 emontx_ns = cg.esphome_ns.namespace("emontx")
 EmonTx = emontx_ns.class_("EmonTx", cg.PollingComponent, uart.UARTDevice)
