@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_MQTT_ID, CONF_TOPIC_PREFIX
+from esphome.const import CONF_ID, CONF_TOPIC_PREFIX
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67"]
@@ -103,16 +103,12 @@ def validate_emoncms(config):
 def validate_mqtt_forward(config):
     # Skip if no MQTT forwarding configuration
     if CONF_MQTT_FORWARD in config:
-        # Import mqtt only when validating MQTT forward config
-        from esphome.components import mqtt
-
         cg.add_define("USE_MQTT_FORWARD")
 
         # Validate MQTT forwarding configuration
         mqtt_schema = cv.Schema(
             {
                 cv.Required(CONF_TOPIC_PREFIX): not_empty("Topic prefix"),
-                cv.Required(CONF_MQTT_ID): cv.use_id(mqtt.MQTTClientComponent),
             }
         )
         config[CONF_MQTT_FORWARD] = mqtt_schema(config[CONF_MQTT_FORWARD])
