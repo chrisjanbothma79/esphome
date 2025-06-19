@@ -90,7 +90,7 @@ def validate_emoncms(config):
                 cv.Required(CONF_SERVER): validate_server_url,
                 cv.Required(CONF_NODE): not_empty("Node name"),
                 cv.Required(CONF_APIKEY): not_empty("API key"),
-                cv.Optional(CONF_HTTP_REQUEST_ID): cv.use_id(
+                cv.GenerateID(CONF_HTTP_REQUEST_ID): cv.use_id(
                     http_request.HttpRequestComponent
                 ),
             }
@@ -145,26 +145,9 @@ async def to_code(config):
 
     # Set EmonCMS configuration if provided
     if CONF_EMONCMS in config:
-        from esphome.components import http_request
         from esphome.components.http_request import CONF_HTTP_REQUEST_ID
 
         emoncms_config = config[CONF_EMONCMS]
-
-        # Get HTTP client - either specified or find one in dependencies
-        if CONF_HTTP_REQUEST_ID in emoncms_config:
-            http_var = await cg.get_variable(emoncms_config[CONF_HTTP_REQUEST_ID])
-        else:
-            # This is the key part - we use the first HTTP component reference
-            # from the config dependencies
-
-            for dependency in cg.core.CORE.dependencies:
-                if isinstance(dependency, http_request.HttpRequestComponent):
-                    http_var = dependency
-                    break
-            else:  # No break occurred - no HTTP component found
-                raise cv.Invalid(
-                    "No http_request component found. Please define an http_request component."
-                )
 
         http_var = await cg.get_variable(emoncms_config[CONF_HTTP_REQUEST_ID])
 
