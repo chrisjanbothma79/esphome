@@ -254,69 +254,6 @@ void MipiSpi::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8
   this->write_to_display_(x_start, y_start, w, h, ptr, x_offset, y_offset, x_pad);
 }
 
-void MipiSpi::write_18_from_16_bit_(const uint16_t *ptr, size_t w, size_t h, size_t stride) {
-  stride -= w;
-  uint8_t transfer_buffer[6 * 256];
-  size_t idx = 0;  // index into transfer_buffer
-  while (h-- != 0) {
-    for (auto x = w; x-- != 0;) {
-      auto color_val = *ptr++;
-      // deal with byte swapping
-      transfer_buffer[idx++] = (color_val & 0xF8);                                       // Blue
-      transfer_buffer[idx++] = ((color_val & 0x7) << 5) | ((color_val & 0xE000) >> 11);  // Green
-      transfer_buffer[idx++] = (color_val >> 5) & 0xF8;                                  // Red
-      if (idx == sizeof(transfer_buffer)) {
-        this->write_array(transfer_buffer, idx);
-        idx = 0;
-      }
-    }
-    ptr += stride;
-  }
-  if (idx != 0)
-    this->write_array(transfer_buffer, idx);
-}
-
-void MipiSpi::write_18_from_8_bit_(const uint8_t *ptr, size_t w, size_t h, size_t stride) {
-  stride -= w;
-  uint8_t transfer_buffer[6 * 256];
-  size_t idx = 0;  // index into transfer_buffer
-  while (h-- != 0) {
-    for (auto x = w; x-- != 0;) {
-      auto color_val = *ptr++;
-      transfer_buffer[idx++] = color_val & 0xE0;         // Red
-      transfer_buffer[idx++] = (color_val << 3) & 0xE0;  // Green
-      transfer_buffer[idx++] = color_val << 6;           // Blue
-      if (idx == sizeof(transfer_buffer)) {
-        this->write_array(transfer_buffer, idx);
-        idx = 0;
-      }
-    }
-    ptr += stride;
-  }
-  if (idx != 0)
-    this->write_array(transfer_buffer, idx);
-}
-
-void MipiSpi::write_16_from_8_bit_(const uint8_t *ptr, size_t w, size_t h, size_t stride) {
-  stride -= w;
-  uint8_t transfer_buffer[6 * 256];
-  size_t idx = 0;  // index into transfer_buffer
-  while (h-- != 0) {
-    for (auto x = w; x-- != 0;) {
-      auto color_val = *ptr++;
-      transfer_buffer[idx++] = (color_val & 0xE0) | ((color_val & 0x1C) >> 2);
-      transfer_buffer[idx++] = (color_val & 0x3) << 3;
-      if (idx == sizeof(transfer_buffer)) {
-        this->write_array(transfer_buffer, idx);
-        idx = 0;
-      }
-    }
-    ptr += stride;
-  }
-  if (idx != 0)
-    this->write_array(transfer_buffer, idx);
-}
-
 void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
                                 int x_pad) {
   this->set_addr_window_(x_start, y_start, x_start + w - 1, y_start + h - 1);
@@ -391,47 +328,6 @@ void MipiSpi::write_to_display_(int x_start, int y_start, int w, int h, const ui
   }
   this->disable();
 }
-
-void MipiSpi::write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) {
-  ESP_LOGV(TAG, "Command %02X, length %d, bytes %s", cmd, len, format_hex_pretty(bytes, len).c_str());
-  if (this->bus_width_ == 4) {
-    this->enable();
-    this->write_cmd_addr_data(8, 0x02, 24, cmd << 8, bytes, len);
-    this->disable();
-  } else if (this->bus_width_ == 8) {
-    this->dc_pin_->digital_write(false);
-    this->enable();
-    this->write_cmd_addr_data(0, 0, 0, 0, &cmd, 1, 8);
-    this->disable();
-    this->dc_pin_->digital_write(true);
-    if (len != 0) {
-      this->enable();
-      this->write_cmd_addr_data(0, 0, 0, 0, bytes, len, 8);
-      this->disable();
-    }
-  } else {
-    this->dc_pin_->digital_write(false);
-    this->enable();
-    this->write_byte(cmd);
-    this->disable();
-    this->dc_pin_->digital_write(true);
-    if (len != 0) {
-      if (this->spi_16_) {
-        for (size_t i = 0; i != len; i++) {
-          this->enable();
-          this->write_byte(0);
-          this->write_byte(bytes[i]);
-          this->disable();
-        }
-      } else {
-        this->enable();
-        this->write_array(bytes, len);
-        this->disable();
-      }
-    }
-  }
-}
-
 void MipiSpi::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "MIPI_SPI Display\n"

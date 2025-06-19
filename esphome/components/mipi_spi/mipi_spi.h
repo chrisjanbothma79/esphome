@@ -46,10 +46,24 @@ static inline void put16_be(uint8_t *buf, uint16_t value) {
   buf[1] = value;
 }
 
+// Buffer mode, conveniently also the number of bytes in a pixel
 enum PixelMode {
-  PIXEL_MODE_16,
-  PIXEL_MODE_18,
+  PIXEL_MODE_8 = 1,
+  PIXEL_MODE_16 = 2,
+  PIXEL_MODE_18 = 3,
 };
+
+enum BusType {
+  BUS_TYPE_SINGLE = 1,
+  BUS_TYPE_QUAD = 4,
+  BUS_TYPE_OCTAL = 8,
+  BUS_TYPE_SINGLE_16 = 16,  // Single bit bus, but 16 bits per transfer
+};
+
+/**
+ * Un-templated base class for MIPI SPI displays.
+ * This defines methods and properties that don't depend on the pixel mode or bus type.
+ */
 
 class MipiSpi : public display::DisplayBuffer,
                 public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
@@ -60,9 +74,6 @@ class MipiSpi : public display::DisplayBuffer,
   void set_model(const char *model) { this->model_ = model; }
   void update() override;
   void setup() override;
-  display::ColorOrder get_color_mode() {
-    return this->madctl_ & MADCTL_BGR ? display::COLOR_ORDER_BGR : display::COLOR_ORDER_RGB;
-  }
 
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
   void set_enable_pins(std::vector<GPIOPin *> enable_pins) { this->enable_pins_ = std::move(enable_pins); }
@@ -88,8 +99,6 @@ class MipiSpi : public display::DisplayBuffer,
   void set_spi_16(bool spi_16) { this->spi_16_ = spi_16; }
 
  protected:
-  void fill(Color color) override;
-  void draw_absolute_pixel_internal(int x, int y, Color color) override;
   void draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override;
   virtual void write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
@@ -128,31 +137,5 @@ class MipiSpi : public display::DisplayBuffer,
   std::vector<uint8_t> init_sequence_{};
 };
 
-template<typename PIXELTYPE, display::DisplayRotation ROTATION> class MipiSpiImpl : public MipiSpi {
-  static_assert(std::is_same_v<PIXELTYPE, uint8_t> || std::is_same_v<PIXELTYPE, uint16_t>,
-                "MipiSpi: Template type PixelType must be uint8_t or uint16_t.");
-
- public:
-  MipiSpiImpl(size_t width, size_t height, int16_t offset_width, int16_t offset_height)
-      : MipiSpi(width, height, offset_width, offset_height) {
-    this->set_rotation(ROTATION);
-    this->color_depth_ = sizeof(PIXELTYPE) == 1 ? display::COLOR_BITNESS_332 : display::COLOR_BITNESS_565;
-  }
-
- protected:
-  bool check_buffer_() {
-    if (this->is_failed())
-      return false;
-    if (this->buffer_ != nullptr)
-      return true;
-    this->init_internal_(this->width_ * this->height_ * sizeof(PIXELTYPE));
-    if (this->buffer_ == nullptr) {
-      this->mark_failed();
-      return false;
-    }
-    this->buffer_bytes_ = this->width_ * this->height_ * sizeof(PIXELTYPE);
-    return true;
-  }
-};
 }  // namespace mipi_spi
 }  // namespace esphome
