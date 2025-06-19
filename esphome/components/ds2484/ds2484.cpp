@@ -84,7 +84,7 @@ void DS2484OneWireBus::write8(uint8_t value) {
 };
 
 void DS2484OneWireBus::write64(uint64_t value) {
-  ESP_LOGVV(TAG, "write64: %s", format_hex(value).c_str());
+  ESP_LOGVV(TAG, "write64: %llx", value);
   for (int i = 0; i < 8; i++) {
     write8_((value >> (i * 8)) & 0xff);
   }
@@ -195,7 +195,7 @@ uint64_t IRAM_ATTR DS2484OneWireBus::search_int() {
     }
   }
   ESP_LOGVV(TAG, "last_discepancy: %d", last_zero);
-  ESP_LOGVV(TAG, "address: %s", format_hex(address).c_str());
+  ESP_LOGVV(TAG, "address: %llx", address);
   this->last_discrepancy_ = last_zero;
   if (this->last_discrepancy_ == 0) {
     // we're at root and have no choices left, so this was the last one.
