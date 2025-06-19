@@ -79,6 +79,9 @@ CONFIG_SCHEMA = (
 def validate_emoncms(config):
     # Skip if no EmonCMS configuration
     if CONF_EMONCMS in config:
+        from esphome.components import http_request
+        from esphome.components.http_request import CONF_HTTP_REQUEST_ID
+
         cg.add_define("USE_HTTP_REQUEST")
 
         # Validate EmonCMS configuration
@@ -87,6 +90,9 @@ def validate_emoncms(config):
                 cv.Required(CONF_SERVER): validate_server_url,
                 cv.Required(CONF_NODE): not_empty("Node name"),
                 cv.Required(CONF_APIKEY): not_empty("API key"),
+                cv.Optional(CONF_HTTP_REQUEST_ID): cv.use_id(
+                    http_request.HttpRequestComponent
+                ),
             }
         )
         config[CONF_EMONCMS] = emoncms_schema(config[CONF_EMONCMS])
@@ -139,11 +145,11 @@ async def to_code(config):
 
     # Set EmonCMS configuration if provided
     if CONF_EMONCMS in config:
-        from esphome.components import http_request
+        from esphome.components.http_request import CONF_HTTP_REQUEST_ID
 
         emoncms_config = config[CONF_EMONCMS]
 
-        http_var = await cg.get_variable(http_request.CONFIG_SCHEMA.schema[CONF_ID])
+        http_var = await cg.get_variable(emoncms_config[CONF_HTTP_REQUEST_ID])
 
         cg.add(
             var.set_emoncms_config(
