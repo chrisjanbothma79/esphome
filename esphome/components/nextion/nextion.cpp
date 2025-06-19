@@ -1075,7 +1075,7 @@ void Nextion::add_no_result_to_queue_with_pending_command_(const std::string &va
   }
 #endif
 
-  ExternalRAMAllocator<nextion::NextionQueue> allocator(ExternalRAMAllocator<nextion::NextionQueue>::ALLOW_FAILURE);
+  RAMAllocator<nextion::NextionQueue> allocator;
   nextion::NextionQueue *nextion_queue = allocator.allocate(1);
   if (nextion_queue == nullptr) {
     ESP_LOGW(TAG, "Queue alloc failed");
