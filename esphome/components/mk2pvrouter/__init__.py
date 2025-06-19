@@ -62,7 +62,7 @@ def validate_mqtt_forward(config):
 
         # Add MQTT component as a dependency
         # This checks if mqtt component exists in the configuration
-        config = cv.require_component("mqtt")(config)
+        config = cv.requires_component("mqtt")(config)
 
     return config
 
