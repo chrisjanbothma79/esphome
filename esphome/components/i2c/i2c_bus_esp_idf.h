@@ -2,13 +2,14 @@
 
 #ifdef USE_ESP_IDF
 
+#include "i2c_bus.h"
+#include "esphome/core/component.h"
+#include "esphome/core/application.h"
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
 #include <driver/i2c_master.h>
 #else
 #include <driver/i2c.h>
 #endif
-#include "esphome/core/component.h"
-#include "i2c_bus.h"
 
 namespace esphome {
 namespace i2c {
