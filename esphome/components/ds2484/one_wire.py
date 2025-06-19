@@ -4,7 +4,6 @@ from esphome.components.one_wire import OneWireBus
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
-# from .. import ds2484_ns
 ds2484_ns = cg.esphome_ns.namespace("ds2484")
 
 CONF_ACTIVE_PULLUP = "active_pullup"
