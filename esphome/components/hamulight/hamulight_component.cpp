@@ -51,16 +51,6 @@ void Hamulight::dump_config() {
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
 }
 
-
-void Hamulight::setup() {
-  // Setup-Code
-}
-
-
-void Hamulight::loop() {
-  // Loop-Code
-}
-
 /**
  * @brief Returns the supported features of the light to Home Assistant.
  *
