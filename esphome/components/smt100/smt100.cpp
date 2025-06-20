@@ -49,8 +49,8 @@ float SMT100Component::get_setup_priority() const { return setup_priority::DATA;
 void SMT100Component::dump_config() {
   ESP_LOGCONFIG(TAG, "SMT100:");
 
-  LOG_SENSOR(TAG, "Counts", this->temperature_sensor_);
-  LOG_SENSOR(TAG, "Dielectric Constant", this->temperature_sensor_);
+  LOG_SENSOR(TAG, "Counts", this->counts_sensor_);
+  LOG_SENSOR(TAG, "Dielectric Constant", this->dielectric_constant_sensor_);
   LOG_SENSOR(TAG, "Temperature", this->temperature_sensor_);
   LOG_SENSOR(TAG, "Moisture", this->moisture_sensor_);
   LOG_UPDATE_INTERVAL(this);
