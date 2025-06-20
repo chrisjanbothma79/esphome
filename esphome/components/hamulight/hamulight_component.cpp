@@ -1,7 +1,7 @@
 #include "hamulight_component.h"
 #include "esphome/core/log.h"          // For logging output in the ESPHome log
-#include "esphome/core/helpers.h"      // For bitRead (implicitly through ESPHome's framework)
-#include "esphome/core/hal.h"          // For delay_microseconds
+#include "esphome/core/helpers.h"      // For utility functions like round
+#include "esphome/core/hal.h"          // For GPIOPin methods and delay_microseconds
 
 namespace esphome {
 namespace hamulight {
@@ -27,10 +27,10 @@ void Hamulight::setup() {
 
   // Logs the successful initialization of the component and its configuration.
   ESP_LOGCONFIG(TAG, "Hamulight is being set up...");
-  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%d", this->rf_transmit_pin_->get_gpio_number());
+  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%d", this->rf_transmit_pin_->get_pin());
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%d", this->led_pin_->get_gpio_number());
+    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%d", this->led_pin_->get_pin());
   }
 }
 
@@ -42,9 +42,9 @@ void Hamulight::setup() {
  */
 void Hamulight::dump_config() {
   ESP_LOGCONFIG(TAG, "  Hamulight (RF Light)");
-  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%d", this->rf_transmit_pin_->get_gpio_number());
+  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%d", this->rf_transmit_pin_->get_pin());
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%d", this->led_pin_->get_gpio_number());
+    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%d", this->led_pin_->get_pin());
   }
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
 }
@@ -73,12 +73,13 @@ light::LightTraits Hamulight::get_traits() {
  * @param state The desired LightState object from Home Assistant.
  */
 void Hamulight::write_state(light::LightState *state) {
-  float brightness = state->get_brightness();                   // Get the current brightness from the state object
+  float brightness = state->remote_values.get_brightness();                   // Get the desired brightness from the remote values of the state object.
 
   // If the brightness value is very low (near 0.0), the power toggle command is sent.
   if (brightness < 0.05f) {                                     // A small threshold to detect turning off
     this->transmit_rf_command(RF_POWER_COMMAND);
-    state->set_power(false);                                    // Update the internal state of the light object to "off"
+    state->set_current_values_as_brightness(0.0F);            // Update the light's current values to reflect the "off" state and publish.
+    state->publish_state();                                   // Update the internal state of the light object to "off"
   } else {
     // 1. Convert Home Assistant float state (0.0 - 1.0) to a 0-127 range for dimming steps.
     // This provides 128 discrete steps (0 to 127).
@@ -103,8 +104,8 @@ void Hamulight::write_state(light::LightState *state) {
     }
 
     this->transmit_rf_brightness(brightness_to_transmit);     // Sends the brightness command
-    state->set_power(true);                                   // Update the internal state of the light object to "on"
-    state->set_brightness(brightness);                        // Update the brightness of the light object internally
+    state->set_current_values_as_brightness(brightness);      // Update the light's current values to reflect the new brightness and publish.
+    state->publish_state();                                   // Update the brightness of the light object internally
     ESP_LOGD(TAG, "HA state %.2f -> dim_value_0_127 %d -> RF value 0x%02X",
              brightness, dim_value_0_127, brightness_to_transmit);
   }
@@ -178,9 +179,9 @@ void Hamulight::send_rf_signal() {
     // (HIGH duration, LOW duration) defines a pulse.
     for (int j = 0; j < START_SEQUENCE_SIZE; j += 2) {
       this->rf_transmit_pin_->digital_write(true); // Set pin HIGH
-      delay_microseconds(BASE_PULSE * START_SEQUENCE[j]); // Wait for HIGH duration
+      esphome::delay_microseconds(BASE_PULSE * START_SEQUENCE[j]); // Wait for HIGH duration
       this->rf_transmit_pin_->digital_write(false); // Set pin LOW
-      delay_microseconds(BASE_PULSE * START_SEQUENCE[j + 1]); // Wait for LOW duration
+      esphome::delay_microseconds(BASE_PULSE * START_SEQUENCE[j + 1]); // Wait for LOW duration
     }
 
     // Transmission of the code sequence:
@@ -188,9 +189,9 @@ void Hamulight::send_rf_signal() {
     // (HIGH duration, LOW duration) defines a pulse for a bit.
     for (int k = 0; k < CODE_SEQUENCE_SIZE; k += 2) {
       this->rf_transmit_pin_->digital_write(true); // Set pin HIGH
-      delay_microseconds(BASE_PULSE * code_sequence_[k]); // Wait for HIGH duration
+      esphome::delay_microseconds(BASE_PULSE * code_sequence_[k]); // Wait for HIGH duration
       this->rf_transmit_pin_->digital_write(false); // Set pin LOW
-      delay_microseconds(BASE_PULSE * code_sequence_[k + 1]); // Wait for LOW duration
+      esphome::delay_microseconds(BASE_PULSE * code_sequence_[k + 1]); // Wait for LOW duration
     }
   }
 
