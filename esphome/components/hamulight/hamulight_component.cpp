@@ -6,6 +6,18 @@
 namespace esphome {
 namespace hamulight {
 
+// Helper to log the underlying pin number if it's an InternalGPIOPin
+static std::string describe_pin(esphome::GPIOPin *pin) {
+  if (!pin) return "not set";
+  auto *internal = dynamic_cast<esphome::InternalGPIOPin *>(pin);
+  if (internal) {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "GPIO%d", internal->get_pin());
+    return std::string(buf);
+  }
+  return "custom pin";
+}
+
 // Define a tag for logging output to identify messages from this component
 static const char *const TAG = "hamulight";
 
@@ -27,10 +39,10 @@ void Hamulight::setup() {
 
   // Logs the successful initialization of the component and its configuration.
   ESP_LOGCONFIG(TAG, "Hamulight is being set up...");
-  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%d", this->rf_transmit_pin_->get_pin());
+  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: %s", describe_pin(this->rf_transmit_pin_).c_str());
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%d", this->led_pin_->get_pin());
+    ESP_LOGCONFIG(TAG, "  LED Pin: %s", describe_pin(this->led_pin_).c_str());
   }
 }
 
@@ -42,9 +54,9 @@ void Hamulight::setup() {
  */
 void Hamulight::dump_config() {
   ESP_LOGCONFIG(TAG, "  Hamulight (RF Light)");
-  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%d", this->rf_transmit_pin_->get_pin());
+  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: %s", describe_pin(this->rf_transmit_pin_).c_str());
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%d", this->led_pin_->get_pin());
+    ESP_LOGCONFIG(TAG, "  LED Pin: %s", describe_pin(this->led_pin_).c_str());
   }
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
 }
