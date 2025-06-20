@@ -62,19 +62,19 @@ class Sim800LComponent : public uart::UARTDevice, public PollingComponent {
   void set_rssi_sensor(sensor::Sensor *rssi_sensor) { rssi_sensor_ = rssi_sensor; }
 #endif
   void add_on_sms_received_callback(const std::function<void(std::string, std::string)> &callback) {
-    this->sms_received_callback_.add(std::move(callback));
+    this->sms_received_callback_.add(callback);
   }
   void add_on_incoming_call_callback(const std::function<void(std::string)> &callback) {
-    this->incoming_call_callback_.add(std::move(callback));
+    this->incoming_call_callback_.add(callback);
   }
   void add_on_call_connected_callback(const std::function<void()> &callback) {
-    this->call_connected_callback_.add(std::move(callback));
+    this->call_connected_callback_.add(callback);
   }
   void add_on_call_disconnected_callback(const std::function<void()> &callback) {
-    this->call_disconnected_callback_.add(std::move(callback));
+    this->call_disconnected_callback_.add(callback);
   }
   void add_on_ussd_received_callback(const std::function<void(std::string)> &callback) {
-    this->ussd_received_callback_.add(std::move(callback));
+    this->ussd_received_callback_.add(callback);
   }
   void send_sms(const std::string &recipient, const std::string &message);
   void send_ussd(const std::string &ussd_code);

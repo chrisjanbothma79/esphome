@@ -49,7 +49,7 @@ class Rtttl : public Component {
   void loop() override;
 
   void add_on_finished_playback_callback(const std::function<void()> &callback) {
-    this->on_finished_playback_callback_.add(std::move(callback));
+    this->on_finished_playback_callback_.add(callback);
   }
 
  protected:
