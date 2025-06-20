@@ -39,7 +39,7 @@ def parse_tlv(tlv) -> dict:
             if tag == 3:
                 output[TLV_TYPES[tag]] = val.decode("utf-8")
             elif tag == 7:
-                mesh_local_prefix = binascii.hexlify(val).decode('utf-8')
+                mesh_local_prefix = binascii.hexlify(val).decode("utf-8")
                 mesh_local_prefix_str = f"{mesh_local_prefix}0000000000000000"
                 ipv6_bytes = bytes.fromhex(mesh_local_prefix_str)
                 ipv6_address = ipaddress.IPv6Address(ipv6_bytes)

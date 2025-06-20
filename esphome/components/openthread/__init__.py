@@ -13,7 +13,7 @@ import esphome.final_validate as fv
 from .const import (
     CONF_EXT_PAN_ID,
     CONF_FORCE_DATASET,
-    CONF_FTD,
+    CONF_FULL_TIME_DEVICE,
     CONF_MDNS_ID,
     CONF_MESH_LOCAL_PREFIX,
     CONF_NETWORK_KEY,
@@ -75,10 +75,11 @@ def set_sdkconfig_options(config):
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_SRP_CLIENT_MAX_SERVICES", 5)
 
     # TODO: Add suport for sleepy end devices
-    if config[CONF_FTD]:
+    if config[CONF_FULL_TIME_DEVICE]:
         add_idf_sdkconfig_option("CONFIG_OPENTHREAD_FTD", True)  # Full Thread Device
     else:
         add_idf_sdkconfig_option("CONFIG_OPENTHREAD_MTD", True)  # Minimum Thread Device
+
 
 openthread_ns = cg.esphome_ns.namespace("openthread")
 OpenThreadComponent = openthread_ns.class_("OpenThreadComponent", cg.Component)
@@ -114,7 +115,7 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(CONF_SRP_ID): cv.declare_id(OpenThreadSrpComponent),
             cv.GenerateID(CONF_MDNS_ID): cv.use_id(MDNSComponent),
             cv.Optional(CONF_FORCE_DATASET): cv.boolean,
-            cv.Optional(CONF_FTD, default=True): cv.boolean,
+            cv.Optional(CONF_FULL_TIME_DEVICE, default=True): cv.boolean,
             cv.Optional(CONF_TLV): cv.string_strict,
         }
     ).extend(_CONNECTION_SCHEMA),
