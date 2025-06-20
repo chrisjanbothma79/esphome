@@ -23,7 +23,6 @@ class DisplayBuffer : public Display {
   void draw_pixel_at(int x, int y, Color color) override;
 
  protected:
-  void rotate_point_(int &x, int &y);
   virtual void draw_absolute_pixel_internal(int x, int y, Color color) = 0;
 
   void init_internal_(uint32_t buffer_length);
