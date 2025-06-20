@@ -306,11 +306,17 @@ async def to_code(config):
                 server_register[CONF_ADDRESS],
                 server_register[CONF_VALUE_TYPE],
                 TYPE_REGISTER_MAP[server_register[CONF_VALUE_TYPE]],
-                await cg.process_lambda(
-                    server_register[CONF_READ_LAMBDA],
-                    [],
-                    return_type=cg.float_,
-                ),
+            )
+            cpp_type = CPP_TYPE_REGISTER_MAP[server_register[CONF_VALUE_TYPE]]
+            cg.add(
+                server_register_var.set_read_lambda(
+                    cg.TemplateArguments(cpp_type),
+                    await cg.process_lambda(
+                        server_register[CONF_READ_LAMBDA],
+                        [(cg.uint16, "address")],
+                        return_type=cpp_type,
+                    ),
+                )
             )
             cg.add(var.add_server_register(server_register_var))
     await register_modbus_device(var, config)

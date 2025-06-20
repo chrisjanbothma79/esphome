@@ -257,16 +257,49 @@ class SensorItem {
 };
 
 class ServerRegister {
-  using ReadLambda = std::function<float()>;
+  using ReadLambda = std::function<int64_t()>;
 
  public:
-  ServerRegister(uint16_t address, SensorValueType value_type, uint8_t register_count,
-                 std::function<float()> read_lambda) {
+  ServerRegister(uint16_t address, SensorValueType value_type, uint8_t register_count) {
     this->address = address;
     this->value_type = value_type;
     this->register_count = register_count;
-    this->read_lambda = std::move(read_lambda);
   }
+
+  template<typename T> void set_read_lambda(const std::function<T(uint16_t address)> &&user_read_lambda) {
+    this->read_lambda = [this, user_read_lambda]() -> int64_t {
+      T user_value = user_read_lambda(this->address);
+      if constexpr (std::is_same_v<T, float>) {
+        return bit_cast<uint32_t>(user_value);
+      } else {
+        return static_cast<int64_t>(user_value);
+      }
+    };
+  }
+
+  // Formats a raw value into a string representation based on the value type for debugging
+  std::string format_value(int64_t value) const {
+    switch (this->value_type) {
+      case SensorValueType::U_WORD:
+      case SensorValueType::U_DWORD:
+      case SensorValueType::U_DWORD_R:
+      case SensorValueType::U_QWORD:
+      case SensorValueType::U_QWORD_R:
+        return std::to_string(static_cast<uint64_t>(value));
+      case SensorValueType::S_WORD:
+      case SensorValueType::S_DWORD:
+      case SensorValueType::S_DWORD_R:
+      case SensorValueType::S_QWORD:
+      case SensorValueType::S_QWORD_R:
+        return std::to_string(value);
+      case SensorValueType::FP32_R:
+      case SensorValueType::FP32:
+        return str_sprintf("%.1f", bit_cast<float>(static_cast<uint32_t>(value)));
+      default:
+        return std::to_string(value);
+    }
+  }
+
   uint16_t address{0};
   SensorValueType value_type{SensorValueType::RAW};
   uint8_t register_count{0};

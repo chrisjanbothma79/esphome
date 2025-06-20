@@ -117,12 +117,17 @@ void ModbusController::on_modbus_read_registers(uint8_t function_code, uint16_t 
     bool found = false;
     for (auto *server_register : this->server_registers_) {
       if (server_register->address == current_address) {
-        float value = server_register->read_lambda();
-
-        ESP_LOGD(TAG, "Matched register. Address: 0x%02X. Value type: %zu. Register count: %u. Value: %0.1f.",
+        if (!server_register->read_lambda) {
+          break;
+        }
+        int64_t value = server_register->read_lambda();
+        ESP_LOGD(TAG, "Matched register. Address: 0x%02X. Value type: %zu. Register count: %u. Value: %s.",
                  server_register->address, static_cast<size_t>(server_register->value_type),
-                 server_register->register_count, value);
-        std::vector<uint16_t> payload = float_to_payload(value, server_register->value_type);
+                 server_register->register_count, server_register->format_value(value).c_str());
+
+        std::vector<uint16_t> payload;
+        payload.reserve(server_register->register_count * 2);
+        number_to_payload(payload, value, server_register->value_type);
         sixteen_bit_response.insert(sixteen_bit_response.end(), payload.cbegin(), payload.cend());
         current_address += server_register->register_count;
         found = true;
