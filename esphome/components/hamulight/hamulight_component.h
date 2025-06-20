@@ -52,7 +52,7 @@ class Hamulight : public light::LightOutput, public Component {
   const uint8_t RF_SLIDE_RANGE_MAX = 0xFF;                                      // Highest HEX value used by dimm slider
   const uint8_t RF_SLIDE_OFFSET = 0xA8;                                         // Offset needed for the slider value conversion
   const uint8_t RF_SLIDE_STEPS = RF_SLIDE_RANGE_MAX - RF_SLIDE_RANGE_MIN + 1;   // steps from 0% to 100% dimm value
-  const uint8_t RF_SLIDE_START = RF_SLIDE_RANGE_MIN + RF_SLIDE_OFFSET;          // is the 0% dimm value position
+  // const uint8_t RF_SLIDE_START = RF_SLIDE_RANGE_MIN + RF_SLIDE_OFFSET;        // is the 0% dimm value position - not used due to simplified input to output conversion
 
   // Pulse timings and sequence definitions
   const int BASE_PULSE = 200;                                                     // Base pulse length in microseconds
