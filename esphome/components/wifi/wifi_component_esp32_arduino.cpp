@@ -810,7 +810,7 @@ bool WiFiComponent::wifi_start_ap_(const WiFiAP &ap) {
   yield();
 
   if (!this->wifi_ap_ip_config_(ap.get_manual_ip())) {
-    ESP_LOGV(TAG, "wifi_ap_ip_config_ failed:");
+    ESP_LOGV(TAG, "wifi_ap_ip_config_ failed");
     return false;
   }
 

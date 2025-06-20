@@ -82,7 +82,7 @@ bool WiFiComponent::wifi_mode_(optional<bool> sta, optional<bool> ap) {
   ETS_UART_INTR_ENABLE();
 
   if (!ret) {
-    ESP_LOGW(TAG, "Setting mode failed");
+    ESP_LOGW(TAG, "Set mode failed");
   }
 
   return ret;
@@ -163,7 +163,7 @@ bool WiFiComponent::wifi_sta_ip_config_(optional<ManualIP> manual_ip) {
   }
   bool wifi_set_info_ret = wifi_set_ip_info(STATION_IF, &info);
   if (!wifi_set_info_ret) {
-    ESP_LOGV(TAG, "Setting manual IP info failed");
+    ESP_LOGV(TAG, "Set manual IP info failed");
     ret = false;
   }
 
@@ -202,7 +202,7 @@ bool WiFiComponent::wifi_apply_hostname_() {
   const std::string &hostname = App.get_name();
   bool ret = wifi_station_set_hostname(const_cast<char *>(hostname.c_str()));
   if (!ret) {
-    ESP_LOGV(TAG, "Setting hostname failed");
+    ESP_LOGV(TAG, "Set hostname failed");
   }
 
   // inform dhcp server of hostname change using dhcp_renew()
@@ -269,7 +269,7 @@ bool WiFiComponent::wifi_sta_connect_(const WiFiAP &ap) {
   ETS_UART_INTR_ENABLE();
 
   if (!ret) {
-    ESP_LOGV(TAG, "Setting Station config failed");
+    ESP_LOGV(TAG, "Set Station config failed");
     return false;
   }
 
@@ -729,7 +729,7 @@ bool WiFiComponent::wifi_ap_ip_config_(optional<ManualIP> manual_ip) {
   }
 
   if (!wifi_set_ip_info(SOFTAP_IF, &info)) {
-    ESP_LOGE(TAG, "Setting SoftAP info failed");
+    ESP_LOGE(TAG, "Set SoftAP info failed");
     return false;
   }
 
@@ -747,13 +747,13 @@ bool WiFiComponent::wifi_ap_ip_config_(optional<ManualIP> manual_ip) {
   lease.end_ip = start_address;
   ESP_LOGV(TAG, "DHCP server IP lease end: %s", start_address.str().c_str());
   if (!wifi_softap_set_dhcps_lease(&lease)) {
-    ESP_LOGE(TAG, "Setting SoftAP DHCP lease failed");
+    ESP_LOGE(TAG, "Set SoftAP DHCP lease failed");
     return false;
   }
 
   // lease time 1440 minutes (=24 hours)
   if (!wifi_softap_set_dhcps_lease_time(1440)) {
-    ESP_LOGE(TAG, "Setting SoftAP DHCP lease time failed");
+    ESP_LOGE(TAG, "Set SoftAP DHCP lease time failed");
     return false;
   }
 
