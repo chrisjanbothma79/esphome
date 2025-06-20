@@ -95,8 +95,8 @@ class Hamulight : public light::LightOutput, public Component {
   /**
    * @brief Needed for proper power on/off button handling
    */
-  void turn_on() override;
-  void turn_off() override;
+  void turn_on();
+  void turn_off();
 
  protected:
   GPIOPin *rf_transmit_pin_;     // GPIO Pin for RF transmission
