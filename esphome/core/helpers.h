@@ -45,18 +45,6 @@ namespace esphome {
 // Backports for various STL features we like to use. Pull in the STL implementation wherever available, to avoid
 // ambiguity and to provide a uniform API.
 
-// std::is_invocable from C++17
-#if __cpp_lib_is_invocable >= 201703
-using std::is_invocable;
-#else
-// https://stackoverflow.com/a/37161919/8924614
-template<class T, class... Args> struct is_invocable {  // NOLINT(readability-identifier-naming)
-  template<class U> static auto test(U *p) -> decltype((*p)(std::declval<Args>()...), void(), std::true_type());
-  template<class U> static auto test(...) -> decltype(std::false_type());
-  static constexpr auto value = decltype(test<T>(nullptr))::value;  // NOLINT
-};
-#endif
-
 // std::bit_cast from C++20
 #if __cpp_lib_bit_cast >= 201806
 using std::bit_cast;
