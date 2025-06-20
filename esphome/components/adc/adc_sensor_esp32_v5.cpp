@@ -363,11 +363,11 @@ float ADCSensor::sample() {
       return NAN;
     }
 
-    const int ADC_HALF = 2048;
-    uint32_t c12 = std::min(raw12, ADC_HALF);
-    uint32_t c6 = ADC_HALF - std::abs(raw6 - ADC_HALF);
-    uint32_t c2 = ADC_HALF - std::abs(raw2 - ADC_HALF);
-    uint32_t c0 = std::min(4095 - raw0, ADC_HALF);
+    const int adc_half = 2048;
+    uint32_t c12 = std::min(raw12, adc_half);
+    uint32_t c6 = adc_half - std::abs(raw6 - adc_half);
+    uint32_t c2 = adc_half - std::abs(raw2 - adc_half);
+    uint32_t c0 = std::min(4095 - raw0, adc_half);
     uint32_t csum = c12 + c6 + c2 + c0;
 
     if (csum == 0) {
