@@ -69,11 +69,6 @@ class Hamulight : public light::LightOutput, public Component {
   void setup() override;
 
   /**
-   * @brief ESP loop() - better not fiddle around...
-   */
-  void loop() override;
-
-  /**
    * @brief Displays the component's configuration in the log.
    */
   void dump_config() override;
