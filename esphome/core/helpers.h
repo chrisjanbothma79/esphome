@@ -74,10 +74,10 @@ template<class T, class... Args> struct is_invocable {  // NOLINT(readability-id
 using std::bit_cast;
 #else
 /// Convert data between types, without aliasing issues or undefined behaviour.
-template<
-    typename To, typename From,
-    std::enable_if_t<
-        sizeof(To) == sizeof(From) && is_trivially_copyable<From>::value && is_trivially_copyable<To>::value, int> = 0>
+template<typename To, typename From,
+         std::enable_if_t<sizeof(To) == sizeof(From) && std::is_trivially_copyable<From>::value &&
+                              std::is_trivially_copyable<To>::value,
+                          int> = 0>
 To bit_cast(const From &src) {
   To dst;
   memcpy(&dst, &src, sizeof(To));
