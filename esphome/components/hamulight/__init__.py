@@ -1,6 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_ADDRESS       # Konstanten für Konfigurationsschlüssel
+from esphome.const import CONF_ID       # Konstanten für Konfigurationsschlüssel
 from esphome import pins
 
 HAMULIGHT_NAMESPACE = cg.esphome_ns.namespace('hamulight')
@@ -28,4 +28,4 @@ async def to_code(config):
         cg.add(var.set_led_pin(led_pin_code))
 
     # set the RF address
-    cg.add(var.set_rf_address(config[CONF_ADDRESS]))
+    cg.add(var.set_rf_address(config["rf_address"]))
