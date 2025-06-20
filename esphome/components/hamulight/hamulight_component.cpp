@@ -77,40 +77,33 @@ void Hamulight::write_state(float state) {
     this->transmit_rf_command(RF_POWER_COMMAND);
     this->set_power(false); // Updates the internal state of the light to "off"
   } else {
-    // 1. Convert Home Assistant float state (0.0 - 1.0) to 0-127 steps.
-    // This assumes 128 steps (RF_SLIDE_STEPS) from min to max range, mapping 0% to 0 and 100% to 127.
-    uint8_t input_val_0_127 = (uint8_t) round(state * (RF_SLIDE_STEPS - 1));
+    // 1. Convert Home Assistant float state (0.0 - 1.0) to a 0-127 range for dimming steps.
+    // This provides 128 discrete steps (0 to 127).
+    uint8_t dim_value_0_127 = (uint8_t) round(state * (RF_SLIDE_STEPS - 1));
 
-    // 2. Apply the 'slideValConv' logic from the original C++ code.
-    // The original 'val--' part converts a 1-based index to a 0-based index.
-    // If input_val_0_127 is 0, it means 0%, so no decrement. Otherwise, decrement.
-    uint8_t converted_val_for_offset = input_val_0_127;
-    if (converted_val_for_offset > 0) {
-      converted_val_for_offset--;
-    }
+    // 2. Calculate the brightness value to transmit.
+    // This directly applies the offset and leverages uint8_t's natural overflow behavior
+    // as implemented in the RF protocol.
+    // Example: For dim_value_0_127 = 0 (0% brightness), result is 0xA8.
+    // Example: For dim_value_0_127 = 88, result is (0xA8 + 88) = 256, which becomes 0x00 as uint8_t.
+    uint8_t brightness_to_transmit = RF_SLIDE_OFFSET + dim_value_0_127;
 
-    // Add the offset and calculate the brightness value to transmit.
-    uint8_t brightness_to_transmit = RF_SLIDE_START + converted_val_for_offset;
-
-    // Apply boundary checks from the original 'slideValConv'
-    if (brightness_to_transmit < RF_SLIDE_RANGE_MIN) {
-        // This condition typically indicates an overflow and subsequent correction.
-        // Given RF_SLIDE_START might overflow (0x80+0xA8=0x128 becomes 0x28),
-        // adding RF_SLIDE_RANGE_MIN (0x80) again effectively shifts it into the desired range.
-        brightness_to_transmit = brightness_to_transmit + RF_SLIDE_RANGE_MIN;
-    }
-
+    // A general safeguard: if for some reason the calculated brightness falls outside
+    // the expected range, cap it to the maximum allowed RF value.
+    // Given the 0-127 input and 0xA8 offset, the values will naturally wrap.
+    // The max calculated value is 0xA8 + 127 = 0x127 (295 dec), which wraps to 0x27 (39 dec) as uint8_t.
+    // So this check might not be triggered with the current constants, but remains for robustness.
     if (brightness_to_transmit > RF_SLIDE_RANGE_MAX) {
         ESP_LOGW(TAG, "Slider input value (0x%02X) exceeding allowed RF range (0x%02X), capping to max (0x%02X).",
                  brightness_to_transmit, RF_SLIDE_RANGE_MAX, RF_SLIDE_RANGE_MAX);
         brightness_to_transmit = RF_SLIDE_RANGE_MAX;
     }
 
-    this->transmit_rf_brightness(brightness_to_transmit); // Sends the brightness command
-    this->set_power(true); // Updates the internal state of the light to "on"
-    this->set_brightness(state); // Updates the brightness of the light internally
-    ESP_LOGD(TAG, "HA state %.2f -> input_val_0_127 %d -> converted_val_for_offset %d -> RF value 0x%02X",
-             state, input_val_0_127, converted_val_for_offset, brightness_to_transmit);
+    this->transmit_rf_brightness(brightness_to_transmit);  // Sends the brightness command
+    this->set_power(true);                                 // Updates the internal state of the light to "on"
+    this->set_brightness(state);                           // Updates the brightness of the light internally
+    ESP_LOGD(TAG, "HA state %.2f -> dim_value_0_127 %d -> RF value 0x%02X",
+             state, dim_value_0_127, brightness_to_transmit);
   }
 }
 
