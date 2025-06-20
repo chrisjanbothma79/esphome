@@ -63,6 +63,10 @@ enum class SensorValueType : uint8_t {
   FP32_R = 0xD
 };
 
+inline bool value_type_is_float(SensorValueType v) {
+  return v == SensorValueType::FP32 || v == SensorValueType::FP32_R;
+}
+
 inline ModbusFunctionCode modbus_register_read_function(ModbusRegisterType reg_type) {
   switch (reg_type) {
     case ModbusRegisterType::COIL:
@@ -253,6 +257,8 @@ class SensorItem {
 };
 
 class ServerRegister {
+  using ReadLambda = std::function<float()>;
+
  public:
   ServerRegister(uint16_t address, SensorValueType value_type, uint8_t register_count,
                  std::function<float()> read_lambda) {
@@ -264,7 +270,7 @@ class ServerRegister {
   uint16_t address{0};
   SensorValueType value_type{SensorValueType::RAW};
   uint8_t register_count{0};
-  std::function<float()> read_lambda;
+  ReadLambda read_lambda;
 };
 
 // ModbusController::create_register_ranges_ tries to optimize register range
@@ -444,7 +450,7 @@ class ModbusController : public PollingComponent, public modbus::ModbusDevice {
   void on_modbus_data(const std::vector<uint8_t> &data) override;
   /// called when a modbus error response was received
   void on_modbus_error(uint8_t function_code, uint8_t exception_code) override;
-  /// called when a modbus request (function code 3 or 4) was parsed without errors
+  /// called when a modbus request (function code 0x03 or 0x04) was parsed without errors
   void on_modbus_read_registers(uint8_t function_code, uint16_t start_address, uint16_t number_of_registers) final;
   /// default delegate called by process_modbus_data when a response has retrieved from the incoming queue
   void on_register_data(ModbusRegisterType register_type, uint16_t start_address, const std::vector<uint8_t> &data);
@@ -529,7 +535,7 @@ inline float payload_to_float(const std::vector<uint8_t> &data, const SensorItem
   int64_t number = payload_to_number(data, item.sensor_value_type, item.offset, item.bitmask);
 
   float float_value;
-  if (item.sensor_value_type == SensorValueType::FP32 || item.sensor_value_type == SensorValueType::FP32_R) {
+  if (value_type_is_float(item.sensor_value_type)) {
     float_value = bit_cast<float>(static_cast<uint32_t>(number));
   } else {
     float_value = static_cast<float>(number);
@@ -541,7 +547,7 @@ inline float payload_to_float(const std::vector<uint8_t> &data, const SensorItem
 inline std::vector<uint16_t> float_to_payload(float value, SensorValueType value_type) {
   int64_t val;
 
-  if (value_type == SensorValueType::FP32 || value_type == SensorValueType::FP32_R) {
+  if (value_type_is_float(value_type)) {
     val = bit_cast<uint32_t>(value);
   } else {
     val = llroundf(value);
