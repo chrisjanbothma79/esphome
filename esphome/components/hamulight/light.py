@@ -12,7 +12,7 @@ CONF_HAMULIGHT_ID = "hamulight_id"
 # Define configuration schema for the light-platform
 # Which options are available in YAML under 'light: - platform: hamulight'
 CONFIG_SCHEMA = light.BRIGHTNESS_ONLY_LIGHT_SCHEMA.extend({
-    cv.GenerateID(CONF_LIGHT_ID): cv.declare_id(HamulightComponent), # Generates an ID for the Hamulight C++ instance
+    cv.GenerateID(CONF_LIGHT_ID): cv.declare_id(light.LightOutput), # Generates an ID for the Hamulight C++ instance
     cv.Required(CONF_HAMULIGHT_ID): cv.use_id(HamulightComponent),   # Links this light to an existing HamulightComponent instance
 }).extend(cv.COMPONENT_SCHEMA) # Extends with standard ESPHome component options
 
