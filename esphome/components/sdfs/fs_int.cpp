@@ -24,11 +24,15 @@ FsInterface::FsInterface(SdfsHost *host) : host(host) { fs = host->get_drv()->ge
  * @return false
  */
 bool FsInterface::is_ready() {
+  bool is_fs = true;
 #if defined(USE_ESP8266)
-  return vol != NULL;
-#else
-  return true;
+  is_fs = vol != NULL;
 #endif
+  is_fs = is_fs && host != NULL;
+  if (!is_fs) {
+    last_err = FR_INT_ERR;
+  }
+  return is_fs;
 }
 
 /***********************************************************************
@@ -40,7 +44,8 @@ bool FsInterface::is_ready() {
  */
 bool FsInterface::is_exist(std::string path) {
   FRESULT rc;
-  // auto cur_path = build_path(path);
+  if (!is_ready())
+    return false;
 
   if (this->is_dir(path)) {
     return true;
@@ -65,10 +70,6 @@ bool FsInterface::is_exist(std::string path) {
 bool FsInterface::is_dir(std::string path) {
   finfo info;
   last_err = f_stat(path.c_str(), &info);
-  // DIR *dir = opendir(build_path(mount_point + root_path).c_str());
-  // if (dir) {
-  //   closedir(dir);
-  // }
   return last_err == FR_OK && (info.fattrib & AM_DIR);
 }
 
@@ -152,16 +153,15 @@ FileInterface::FileInterface(std::string p, const char mode) : path(p) {
     case 'r':
       open_flag |= FA_READ;
       break;
-    case 'w':
+    case 'a':
       open_flag |= FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS | FA_OPEN_APPEND;
       break;
-    case 'a':
-      open_flag |= FA_OPEN_APPEND | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
+    case 'w':
+      open_flag |= FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
       break;
   }
 
   last_err = f_stat(path.c_str(), &info);
-
   last_err = f_open(&fp, path.c_str(), open_flag);
 }
 

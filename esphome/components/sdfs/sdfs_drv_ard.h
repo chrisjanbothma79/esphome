@@ -56,7 +56,7 @@ class SdfsArduinoDriver : public DriverInterface {
 #else
   SdmmcIO *mmc_connector = {NULL};
 #endif
-  FATFS *fs_ = NULL;
+  fsys_t *fs_ = NULL;
   uint8_t pdrv_;
   uint32_t frequency_;
   bool format_if_empty_ = false;
