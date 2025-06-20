@@ -1,7 +1,7 @@
 #include "hamulight_component.h"
 #include "esphome/core/log.h"          // For logging output in the ESPHome log
 #include "esphome/core/helpers.h"      // For utility functions like round
-#include "esphome/core/hal.h"          // For GPIOPin methods and delay_microseconds
+#include "esphome/core/hal.h"          // For GPIOPin methods and delayMicroseconds
 
 namespace esphome {
 namespace hamulight {
@@ -104,7 +104,7 @@ void Hamulight::write_state(light::LightState *state) {
     }
 
     this->transmit_rf_brightness(brightness_to_transmit);     // Sends the brightness command
-    state->set_current_values_as_brightness(brightness);      // Update the light's current values to reflect the new brightness and publish.
+    state->set_level(brightness);                             // Update the light's current values to reflect the new brightness and publish.
     state->publish_state();                                   // Update the brightness of the light object internally
     ESP_LOGD(TAG, "HA state %.2f -> dim_value_0_127 %d -> RF value 0x%02X",
              brightness, dim_value_0_127, brightness_to_transmit);
@@ -179,9 +179,9 @@ void Hamulight::send_rf_signal() {
     // (HIGH duration, LOW duration) defines a pulse.
     for (int j = 0; j < START_SEQUENCE_SIZE; j += 2) {
       this->rf_transmit_pin_->digital_write(true); // Set pin HIGH
-      esphome::delay_microseconds(BASE_PULSE * START_SEQUENCE[j]); // Wait for HIGH duration
+      esphome::delayMicroseconds(BASE_PULSE * START_SEQUENCE[j]); // Wait for HIGH duration
       this->rf_transmit_pin_->digital_write(false); // Set pin LOW
-      esphome::delay_microseconds(BASE_PULSE * START_SEQUENCE[j + 1]); // Wait for LOW duration
+      esphome::delayMicroseconds(BASE_PULSE * START_SEQUENCE[j + 1]); // Wait for LOW duration
     }
 
     // Transmission of the code sequence:
@@ -189,9 +189,9 @@ void Hamulight::send_rf_signal() {
     // (HIGH duration, LOW duration) defines a pulse for a bit.
     for (int k = 0; k < CODE_SEQUENCE_SIZE; k += 2) {
       this->rf_transmit_pin_->digital_write(true); // Set pin HIGH
-      esphome::delay_microseconds(BASE_PULSE * code_sequence_[k]); // Wait for HIGH duration
+      esphome::delayMicroseconds(BASE_PULSE * code_sequence_[k]); // Wait for HIGH duration
       this->rf_transmit_pin_->digital_write(false); // Set pin LOW
-      esphome::delay_microseconds(BASE_PULSE * code_sequence_[k + 1]); // Wait for LOW duration
+      esphome::delayMicroseconds(BASE_PULSE * code_sequence_[k + 1]); // Wait for LOW duration
     }
   }
 
