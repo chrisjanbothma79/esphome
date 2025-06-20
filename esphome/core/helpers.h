@@ -45,22 +45,6 @@ namespace esphome {
 // Backports for various STL features we like to use. Pull in the STL implementation wherever available, to avoid
 // ambiguity and to provide a uniform API.
 
-// std::to_string() from C++11, available from libstdc++/g++ 8
-// See https://github.com/espressif/esp-idf/issues/1445
-#if _GLIBCXX_RELEASE >= 8
-using std::to_string;
-#else
-std::string to_string(int value);                 // NOLINT
-std::string to_string(long value);                // NOLINT
-std::string to_string(long long value);           // NOLINT
-std::string to_string(unsigned value);            // NOLINT
-std::string to_string(unsigned long value);       // NOLINT
-std::string to_string(unsigned long long value);  // NOLINT
-std::string to_string(float value);
-std::string to_string(double value);
-std::string to_string(long double value);
-#endif
-
 // std::is_trivially_copyable from C++11, implemented in libstdc++/g++ 5.1 (but minor releases can't be detected)
 #if _GLIBCXX_RELEASE >= 6
 using std::is_trivially_copyable;
@@ -266,9 +250,6 @@ bool str_equals_case_insensitive(const std::string &a, const std::string &b);
 bool str_startswith(const std::string &str, const std::string &start);
 /// Check whether a string ends with a value.
 bool str_endswith(const std::string &str, const std::string &end);
-
-/// Convert the value to a string (added as extra overload so that to_string() can be used on all stringifiable types).
-inline std::string to_string(const std::string &val) { return val; }
 
 /// Truncate a string to a specific length.
 std::string str_truncate(const std::string &str, size_t length);

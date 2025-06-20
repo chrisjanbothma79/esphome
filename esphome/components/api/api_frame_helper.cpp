@@ -8,6 +8,7 @@
 #include "api_pb2_size.h"
 #include <cstring>
 #include <cinttypes>
+#include <string>
 
 namespace esphome {
 namespace api {
@@ -256,7 +257,7 @@ std::string noise_err_to_str(int err) {
     return "INVALID_FORMAT";
   if (err == NOISE_ERROR_INVALID_SIGNATURE)
     return "INVALID_SIGNATURE";
-  return to_string(err);
+  return std::to_string(err);
 }
 
 /// Initialize the frame helper, returns OK if successful.
