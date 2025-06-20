@@ -75,8 +75,8 @@ light::LightTraits Hamulight::get_traits() {
  */
 void Hamulight::write_state(light::LightState *state) {
   float brightness = state->remote_values.get_brightness();                   // Get the desired brightness from the remote values of the state object.
-
   ESP_LOGD(TAG, "HA requested brightness: %.4f", brightness);                 // Debug log: Value received from HomeAssistant
+  
   if (brightness > 1.0f) {
     ESP_LOGW(TAG, "Brightness value seems out of expected range (0.0–1.0): %.4f", brightness);
   }
@@ -179,7 +179,7 @@ void Hamulight::send_rf_signal() {
 
   // ATTENTION - ONLY for ESP32 - other devices might need to be limited to only the RF task
   // Enter critical section:
-  #ifdef ARDUINO_ARCH_ESP32
+  #if defined(ESP32) || defined(ARDUINO_ARCH_ESP32) || defined(ESP_PLATFORM)
     ESP_LOGD(TAG, "Entering critical section for RF transmission.");
     portMUX_TYPE myMux = portMUX_INITIALIZER_UNLOCKED;
     taskENTER_CRITICAL(&myMux);
@@ -214,7 +214,7 @@ void Hamulight::send_rf_signal() {
   this->rf_transmit_pin_->digital_write(false);
 
   // Exit critical section:
-  #ifdef ARDUINO_ARCH_ESP32
+  #if defined(ESP32) || defined(ARDUINO_ARCH_ESP32) || defined(ESP_PLATFORM)
     taskEXIT_CRITICAL(&myMux);
   #endif
   
