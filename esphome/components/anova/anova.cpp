@@ -13,7 +13,7 @@ using namespace esphome::climate;
 void Anova::dump_config() { LOG_CLIMATE("", "Anova BLE Cooker", this); }
 
 void Anova::setup() {
-  this->codec_ = make_unique<AnovaCodec>();
+  this->codec_ = std::make_unique<AnovaCodec>();
   this->current_request_ = 0;
 }
 
