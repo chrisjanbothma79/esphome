@@ -9,12 +9,12 @@ from . import HAMULIGHT_NAMESPACE, HamulightComponent
 # Define a constant for the ID linking to the HamulightComponent instance
 CONF_HAMULIGHT_ID = "hamulight_id"
 
-# Define configuration sceme for the light-platform
+# Define configuration schema for the light-platform
 # Which options are available in YAML under 'light: - platform: hamulight'
-CONFIG_SCEME = light.BRIGHTNESS_ONLY_LIGHT_SCEME.extend({
+CONFIG_SCHEMA = light.BRIGHTNESS_ONLY_LIGHT_SCHEMA.extend({
     cv.GenerateID(light.CONF_LIGHT_ID): cv.declare_id(light.LightOutput), # Generates an ID for the LightOutput instance
     cv.Required(CONF_HAMULIGHT_ID): cv.use_id(HamulightComponent), # Links this light to an existing HamulightComponent instance
-}).extend(cv.COMPONENT_SCEME) # Extends with standard ESPHome component options
+}).extend(cv.COMPONENT_SCHEMA) # Extends with standard ESPHome component options
 
 # Code generation function for the light platform
 async def to_code(config):
