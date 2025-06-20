@@ -67,6 +67,30 @@ inline bool value_type_is_float(SensorValueType v) {
   return v == SensorValueType::FP32 || v == SensorValueType::FP32_R;
 }
 
+inline uint8_t value_type_size_in_words(SensorValueType v) {
+  switch (v) {
+    case SensorValueType::RAW:
+    case SensorValueType::U_WORD:
+    case SensorValueType::S_WORD:
+    case SensorValueType::BIT:
+      return 1;
+    case SensorValueType::U_DWORD:
+    case SensorValueType::S_DWORD:
+    case SensorValueType::U_DWORD_R:
+    case SensorValueType::S_DWORD_R:
+    case SensorValueType::FP32:
+    case SensorValueType::FP32_R:
+      return 2;
+    case SensorValueType::U_QWORD:
+    case SensorValueType::S_QWORD:
+    case SensorValueType::U_QWORD_R:
+    case SensorValueType::S_QWORD_R:
+      return 4;
+    default:
+      return 0;  // unknown type
+  }
+}
+
 inline ModbusFunctionCode modbus_register_read_function(ModbusRegisterType reg_type) {
   switch (reg_type) {
     case ModbusRegisterType::COIL:
@@ -258,6 +282,7 @@ class SensorItem {
 
 class ServerRegister {
   using ReadLambda = std::function<int64_t()>;
+  using WriteLambda = std::function<bool(const void *, size_t)>;
 
  public:
   ServerRegister(uint16_t address, SensorValueType value_type, uint8_t register_count) {
@@ -304,6 +329,17 @@ class ServerRegister {
   SensorValueType value_type{SensorValueType::RAW};
   uint8_t register_count{0};
   ReadLambda read_lambda;
+  WriteLambda write_lambda;
+
+  template<typename T>
+  void set_write_lambda(const std::function<bool(uint16_t address, const T v)> &&user_write_lambda) {
+    this->write_lambda = [this, user_write_lambda](const void *value, size_t size) {
+      if (size != sizeof(T)) {
+        return false;
+      }
+      return user_write_lambda(this->address, *static_cast<const T *>(value));
+    };
+  }
 };
 
 // ModbusController::create_register_ranges_ tries to optimize register range
@@ -485,6 +521,8 @@ class ModbusController : public PollingComponent, public modbus::ModbusDevice {
   void on_modbus_error(uint8_t function_code, uint8_t exception_code) override;
   /// called when a modbus request (function code 0x03 or 0x04) was parsed without errors
   void on_modbus_read_registers(uint8_t function_code, uint16_t start_address, uint16_t number_of_registers) final;
+  /// called when a modbus request (function code 0x06 or 0x10) was parsed without errors
+  void on_modbus_write_registers(uint8_t function_code, const std::vector<uint8_t> &data) final;
   /// default delegate called by process_modbus_data when a response has retrieved from the incoming queue
   void on_register_data(ModbusRegisterType register_type, uint16_t start_address, const std::vector<uint8_t> &data);
   /// default delegate called by process_modbus_data when a response for a write response has retrieved from the
