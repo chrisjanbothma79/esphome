@@ -2,6 +2,8 @@
 #include "esphome/core/log.h"          // For logging output in the ESPHome log
 #include "esphome/core/helpers.h"      // For utility functions like round
 #include "esphome/core/hal.h"          // For GPIOPin methods and delayMicroseconds
+#include "freertos/FreeRTOS.h"         // needed for critical section (RF transmission w/o interruption)
+#include "freertos/task.h"             // needed for critical section (RF transmission w/o interruption)
 
 namespace esphome {
 namespace hamulight {
@@ -74,6 +76,11 @@ light::LightTraits Hamulight::get_traits() {
 void Hamulight::write_state(light::LightState *state) {
   float brightness = state->remote_values.get_brightness();                   // Get the desired brightness from the remote values of the state object.
 
+  ESP_LOGD(TAG, "HA requested brightness: %.4f", brightness);                 // Debug log: Value received from HomeAssistant
+  if (brightness > 1.0f) {
+    ESP_LOGW(TAG, "Brightness value seems out of expected range (0.0–1.0): %.4f", brightness);
+  }
+  
   // If the brightness value is very low (near 0.0), the power toggle command is sent.
   if (brightness < 0.05f) {                                     // A small threshold to detect turning off
     this->transmit_rf_command(RF_POWER_COMMAND);
@@ -170,6 +177,15 @@ void Hamulight::send_rf_signal() {
     this->led_pin_->digital_write(true); // LED ON
   }
 
+  // ATTENTION - ONLY for ESP32 - other devices might need to be limited to only the RF task
+  // Enter critical section:
+  #ifdef ARDUINO_ARCH_ESP32
+    ESP_LOGD(TAG, "Entering critical section for RF transmission.");
+    portMUX_TYPE myMux = portMUX_INITIALIZER_UNLOCKED;
+    taskENTER_CRITICAL(&myMux);
+  #endif
+  
+  
   // Repeats the entire signal transmission multiple times for robustness.
   for (int i = 0; i < SIGNAL_REPETITIONS; i++) {
 
@@ -196,6 +212,12 @@ void Hamulight::send_rf_signal() {
 
   // Ensures the transmit pin is LOW after transmission.
   this->rf_transmit_pin_->digital_write(false);
+
+  // Exit critical section:
+  #ifdef ARDUINO_ARCH_ESP32
+    taskEXIT_CRITICAL(&myMux);
+  #endif
+  
   // Turns off the LED, if configured.
   if (this->led_pin_ != nullptr) {
     this->led_pin_->digital_write(false); // LED OFF
