@@ -68,7 +68,7 @@ class ScanResultsWiFiInfo : public PollingComponent, public text_sensor::TextSen
 
       scan_results += scan.get_ssid();
       scan_results += ": ";
-      scan_results += esphome::to_string(scan.get_rssi());
+      scan_results += std::to_string(scan.get_rssi());
       scan_results += "dB\n";
     }
 

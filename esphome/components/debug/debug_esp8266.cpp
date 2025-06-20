@@ -39,10 +39,10 @@ void DebugComponent::get_device_info_(std::string &device_info) {
       flash_mode = "UNKNOWN";
   }
   ESP_LOGD(TAG, "Flash Chip: Size=%ukB Speed=%uMHz Mode=%s",
-           ESP.getFlashChipSize() / 1024,                                                   // NOLINT
-           ESP.getFlashChipSpeed() / 1000000, flash_mode);                                  // NOLINT
-  device_info += "|Flash: " + to_string(ESP.getFlashChipSize() / 1024) +                    // NOLINT
-                 "kB Speed:" + to_string(ESP.getFlashChipSpeed() / 1000000) + "MHz Mode:";  // NOLINT
+           ESP.getFlashChipSize() / 1024,                                                        // NOLINT
+           ESP.getFlashChipSpeed() / 1000000, flash_mode);                                       // NOLINT
+  device_info += "|Flash: " + std::to_string(ESP.getFlashChipSize() / 1024) +                    // NOLINT
+                 "kB Speed:" + std::to_string(ESP.getFlashChipSpeed() / 1000000) + "MHz Mode:";  // NOLINT
   device_info += flash_mode;
 
 #if !defined(CLANG_TIDY)
@@ -62,9 +62,9 @@ void DebugComponent::get_device_info_(std::string &device_info) {
   device_info += "|Core: ";
   device_info += ESP.getCoreVersion().c_str();
   device_info += "|Boot: ";
-  device_info += to_string(ESP.getBootVersion());
-  device_info += "|Mode: " + to_string(ESP.getBootMode());
-  device_info += "|CPU: " + to_string(ESP.getCpuFreqMHz());
+  device_info += std::to_string(ESP.getBootVersion());
+  device_info += "|Mode: " + std::to_string(ESP.getBootMode());
+  device_info += "|CPU: " + std::to_string(ESP.getCpuFreqMHz());
   device_info += "|Flash: 0x" + format_hex(ESP.getFlashChipId());
   device_info += "|Reset: ";
   device_info += reset_reason;
