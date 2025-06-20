@@ -6,18 +6,6 @@
 namespace esphome {
 namespace hamulight {
 
-// Helper to log the underlying pin number if it's an InternalGPIOPin
-static std::string describe_pin(esphome::GPIOPin *pin) {
-  if (!pin) return "not set";
-  auto *internal = dynamic_cast<esphome::InternalGPIOPin *>(pin);
-  if (internal) {
-    char buf[16];
-    snprintf(buf, sizeof(buf), "GPIO%d", internal->get_pin());
-    return std::string(buf);
-  }
-  return "custom pin";
-}
-
 // Define a tag for logging output to identify messages from this component
 static const char *const TAG = "hamulight";
 
@@ -39,10 +27,10 @@ void Hamulight::setup() {
 
   // Logs the successful initialization of the component and its configuration.
   ESP_LOGCONFIG(TAG, "Hamulight is being set up...");
-  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: %s", describe_pin(this->rf_transmit_pin_).c_str());
+  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: configured");
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  LED Pin: %s", describe_pin(this->led_pin_).c_str());
+    ESP_LOGCONFIG(TAG, "  LED Pin: configured");
   }
 }
 
@@ -54,9 +42,9 @@ void Hamulight::setup() {
  */
 void Hamulight::dump_config() {
   ESP_LOGCONFIG(TAG, "  Hamulight (RF Light)");
-  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: %s", describe_pin(this->rf_transmit_pin_).c_str());
+  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: configured");
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  LED Pin: %s", describe_pin(this->led_pin_).c_str());
+    ESP_LOGCONFIG(TAG, "  LED Pin: configured");
   }
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
 }
@@ -72,7 +60,6 @@ light::LightTraits Hamulight::get_traits() {
   auto traits = light::LightTraits();
   // Supports on/off and brightness control.
   traits.set_supported_color_modes({light::ColorMode::ON_OFF, light::ColorMode::BRIGHTNESS});
-  // Mired values (for color temperature) are not relevant here.
   traits.set_min_mireds(0);
   traits.set_max_mireds(0);
   return traits;
@@ -90,7 +77,7 @@ void Hamulight::write_state(light::LightState *state) {
   // If the brightness value is very low (near 0.0), the power toggle command is sent.
   if (brightness < 0.05f) {                                     // A small threshold to detect turning off
     this->transmit_rf_command(RF_POWER_COMMAND);
-    state->set_current_values_as_brightness(0.0F);            // Update the light's current values to reflect the "off" state and publish.
+    // state->set_current_values_as_brightness(0.0F);            // Update the light's current values to reflect the "off" state and publish.
     state->publish_state();                                   // Update the internal state of the light object to "off"
   } else {
     // 1. Convert Home Assistant float state (0.0 - 1.0) to a 0-127 range for dimming steps.
@@ -116,7 +103,7 @@ void Hamulight::write_state(light::LightState *state) {
     }
 
     this->transmit_rf_brightness(brightness_to_transmit);     // Sends the brightness command
-    state->set_level(brightness);                             // Update the light's current values to reflect the new brightness and publish.
+    //state->set_level(brightness);                             // Update the light's current values to reflect the new brightness and publish.
     state->publish_state();                                   // Update the brightness of the light object internally
     ESP_LOGD(TAG, "HA state %.2f -> dim_value_0_127 %d -> RF value 0x%02X",
              brightness, dim_value_0_127, brightness_to_transmit);
