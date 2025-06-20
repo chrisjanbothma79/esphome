@@ -1,5 +1,12 @@
+-------------------------
+
 Allows the control of multiple Hamulight drivers with one ESPHome Device
 
+-------------------------
+
+Pairing: no max brightness button -> use slider to the max!!
+
+-------------------------
 
 hamulight:
   id: remote_wohnzimmer
