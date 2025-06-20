@@ -79,7 +79,7 @@ void Hamulight::write_state(light::LightState *state) {
   bool is_on = state->remote_values.is_on();
   float brightness = state->remote_values.get_brightness();
 
-  ESP_LOGD(TAG, "write_state() called, HA is_on: %d, brightness: %.4f", is_on, brightness);
+  ESP_LOGD(TAG, "write_state() called, HA is_on: %d, brightness: %.4f", (int)is_on, brightness);
 
   if (!is_on) {
     ESP_LOGD(TAG, "Sending RF_POWER_COMMAND (OFF)");
