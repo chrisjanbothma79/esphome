@@ -1,15 +1,15 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_PIN, CONF_ADDRESS       # Konstanten für Konfigurationsschlüssel
-from esphome.components import output
+from esphome.components import gpio
 
 HAMULIGHT_NAMESPACE = cg.esphome_ns.namespace('hamulight')
 HamulightComponent = HAMULIGHT_NAMESPACE.class_('Hamulight', cg.Component)
 
 CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(HamulightComponent),                                      # unique instance ID
-    cv.Required("rf_transmit_pin"): output.PIN_SCHEMA,                                       # required PIN for RF transmission
-    cv.Optional("led_pin"): output.PIN_SCHEMA,                                               # optional PIN for feedback LED
+    cv.Required("rf_transmit_pin"): gpio.gpio_pin_schema,                                    # required PIN for RF transmission
+    cv.Optional("led_pin"): gpio.gpio_pin_schema,                                            # optional PIN for feedback LED
     cv.Required(CONF_ADDRESS): cv.hex_uint16,                                                # required 2-Byte RF address (HEX)
 }).extend(cv.COMPONENT_SCHEMA)
 
