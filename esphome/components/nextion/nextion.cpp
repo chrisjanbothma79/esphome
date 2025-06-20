@@ -1093,34 +1093,6 @@ void Nextion::add_no_result_to_queue_with_pending_command_(const std::string &va
 }
 #endif  // USE_NEXTION_COMMAND_SPACING
 
-#ifdef USE_NEXTION_COMMAND_SPACING
-void Nextion::add_no_result_to_queue_with_pending_command_(const std::string &variable_name,
-                                                           const std::string &command) {
-#ifdef USE_NEXTION_MAX_QUEUE_SIZE
-  if (this->max_queue_size_ > 0 && this->nextion_queue_.size() >= this->max_queue_size_) {
-    ESP_LOGW(TAG, "Queue full (%zu), drop: %s", this->nextion_queue_.size(), variable_name.c_str());
-    return;
-  }
-#endif
-
-  RAMAllocator<nextion::NextionQueue> allocator;
-  nextion::NextionQueue *nextion_queue = allocator.allocate(1);
-  if (nextion_queue == nullptr) {
-    ESP_LOGW(TAG, "Queue alloc failed");
-    return;
-  }
-  new (nextion_queue) nextion::NextionQueue();
-
-  nextion_queue->component = new nextion::NextionComponentBase;
-  nextion_queue->component->set_variable_name(variable_name);
-  nextion_queue->queue_time = millis();
-  nextion_queue->pending_command = command;  // Store command for retry
-
-  this->nextion_queue_.push_back(nextion_queue);
-  ESP_LOGVV(TAG, "Queue with pending command: %s", variable_name.c_str());
-}
-#endif  // USE_NEXTION_COMMAND_SPACING
-
 bool Nextion::add_no_result_to_queue_with_ignore_sleep_printf_(const std::string &variable_name, const char *format,
                                                                ...) {
   if ((!this->is_setup() && !this->ignore_is_setup_))
