@@ -85,14 +85,14 @@ static void call_host_deinit_(const sdmmc_host_t *host_config) {
  * @param p
  */
 
-void SdfsIdfDriver::set_parent(SdmmcHost *p) { this->parent_ = p; }
+void SdfsIdfDriver::set_parent(SdfsHost *p) { this->parent_ = p; }
 #if defined(USE_SDSPI_MODE)
 void SdfsIdfDriver::set_connector(SpiConnector *conn) { this->connector_ = conn; }
 #endif
 uint32_t SdfsIdfDriver::get_last_err() { return this->last_err_; }
 
 // bool SdfsIdfDriver::sdspi_allocate() {
-//   ESP_LOGD(TAG, "SdmmcHost init");
+//   ESP_LOGD(TAG, "SdfsHost init");
 //   //   Allocate mem for SPI HOST_CONFIG
 //   sdmmc_host_t new_config = SDSPI_HOST_DEFAULT();
 //   this->host_config_ = (sdmmc_host_t *) calloc(sizeof(sdmmc_host_t), 1);
@@ -131,7 +131,7 @@ uint32_t SdfsIdfDriver::get_last_err() { return this->last_err_; }
  */
 bool SdfsIdfDriver::sdmmc_allocate() {
 #if defined(SOC_SDMMC_HOST_SUPPORTED)
-  ESP_LOGD(TAG, "SdmmcHost init");
+  ESP_LOGD(TAG, "SdfsHost init");
   //   Allocate mem for SPI HOST_CONFIG
   sdmmc_host_t new_config = SDMMC_HOST_DEFAULT();
   this->host_config_ = (sdmmc_host_t *) calloc(sizeof(sdmmc_host_t), 1);
@@ -467,11 +467,11 @@ bool SdfsIdfDriver::mount(std::string mountpoint, bool format) {
  * @param pdrv
  * @param mountpoint
  * @param format
- * @return FATFS*
+ * @return fsys_t*
  */
-FATFS *SdfsIdfDriver::mount_sdspi(uint8_t pdrv, std::string mountpoint, bool format) {
+fsys_t *SdfsIdfDriver::mount_sdspi(uint8_t pdrv, std::string mountpoint, bool format) {
 #if defined(USE_SDAPI_MODE)
-  FATFS *fs = NULL;
+  fsys_t *fs = NULL;
   mountpoint_ = mountpoint;
   fs = sdcard_mount(pdrv, mountpoint.c_str(), 5, format);
   // _impl->mountpoint(mountpoint.c_str());
@@ -492,11 +492,11 @@ FATFS *SdfsIdfDriver::mount_sdspi(uint8_t pdrv, std::string mountpoint, bool for
  * @param pdrv
  * @param mountpoint
  * @param format
- * @return FATFS*
+ * @return fsys_t*
  */
-FATFS *SdfsIdfDriver::mount_sdmmc(uint8_t pdrv, std::string mountpoint, bool format) {
+fsys_t *SdfsIdfDriver::mount_sdmmc(uint8_t pdrv, std::string mountpoint, bool format) {
   mountpoint_ = mountpoint;
-  FATFS *fs = NULL;
+  fsys_t *fs = NULL;
   esp_err_t rc = ESP_OK;
   FRESULT mount_rc = FR_OK;
 

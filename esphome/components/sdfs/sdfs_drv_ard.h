@@ -25,7 +25,7 @@ class SdfsArduinoDriver : public DriverInterface {
  public:
   SdfsArduinoDriver();
   void end();
-  void set_parent(SdmmcHost *) override;
+  void set_parent(SdfsHost *) override;
 #if defined(USE_SDSPI_MODE)
   void set_connector(SpiConnector *);
 #endif
@@ -48,6 +48,7 @@ class SdfsArduinoDriver : public DriverInterface {
   uint64_t usedBytes();
   bool readRAW(uint8_t *buffer, uint32_t sector);
   bool writeRAW(uint8_t *buffer, uint32_t sector);
+  fsys_t *get_fs() { return fs_; };
 
  protected:
 #if defined(USE_SDSPI_MODE)

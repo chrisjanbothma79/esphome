@@ -30,7 +30,6 @@
 // #include "SdCard/SdCardInfo.h"
 #include "SdFat.h"
 #include "esp8266_cdio.h"
-
 #include "SdCard/SdCardInfo.h"
 
 namespace esphome {
@@ -57,7 +56,7 @@ class SdSpiImpl;
 class esp8266SpiDriver : public DriverInterface {
  public:
   void set_connector(SpiConnector *);
-  void set_parent(SdmmcHost *) override;
+  void set_parent(SdfsHost *) override;
   bool init_host(SdConnType) override;
   bool is_card() override;
   bool attach_card() override;
@@ -65,13 +64,14 @@ class esp8266SpiDriver : public DriverInterface {
   uint32_t get_last_err() override;
   void unmount() override;
   bool test() override;
+  fsys_t *get_fs() { return vol; };
 
  protected:
   SpiConnector *connector_ = NULL;
   SdSpiImpl *spi_impl_;
   SdConnType bus_type_;
   uint32_t last_err_ = 0;
-  SdmmcHost *parent_;
+  SdfsHost *parent_;
   SdfsSpiCard *sd_card = NULL;
   bool is_card_connected = false;
   FsVolume *vol;

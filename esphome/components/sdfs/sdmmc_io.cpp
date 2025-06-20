@@ -23,7 +23,7 @@ static const char *TAG = "sdspi_io";
 SdmmcIO::SdmmcIO() {
   this->last_err_ = 0;
 
-  ESP_LOGD(TAG, "SdmmcHost init");
+  ESP_LOGD(TAG, "SdfsHost init");
   //   Allocate mem for SPI HOST_CONFIG
   sdmmc_host_t new_config = SDMMC_HOST_DEFAULT();
   this->host_config_ = (sdmmc_host_t *) calloc(sizeof(sdmmc_host_t), 1);

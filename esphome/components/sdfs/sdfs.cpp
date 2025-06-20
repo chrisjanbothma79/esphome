@@ -12,23 +12,23 @@
  *  For MMC connection it ues ESP IDF internal libs, therefore  MMC communication
  *  available oonly on pure ESP32 or ESP32S3 board variats.
  *
- *  CDFS  ( SdmmcHost  class)  is a central class for controlling, checking  and mounting card.
+ *  CDFS  ( SdfsHost  class)  is a central class for controlling, checking  and mounting card.
  *  esp8266_drv (esp8266SpiDriver driver) reailzation of DriverInterface  for esp8266 based boards
  *  spi_connector -  SPi interface  for connect card io operation and esphome spi module
  *  fs_interface  -  FS and File  access, read and write interface
  *
  * esp8266 boards SPI inteface
  * ---------------------------
- * SdmmcHost (sdfs.cpp) -> esp8266SpiDriver (esp8266_drv.cpp) -> SdfsSpiCard (esp8266_cdio.cpp)
+ * SdfsHost (sdfs.cpp) -> esp8266SpiDriver (esp8266_drv.cpp) -> SdfsSpiCard (esp8266_cdio.cpp)
  *
  * Other boards with arduino framework
  * -----------------------------------
- * SdmmcHost (sdfs.cpp) -> SdfsArduinoDriver (sdspi_drv_ard.cpp) --> sdspi_io    - for SPI connections
+ * SdfsHost (sdfs.cpp) -> SdfsArduinoDriver (sdspi_drv_ard.cpp) --> sdspi_io    - for SPI connections
  *                                                               +-> SdmmcIO (sdmmc_io.cpp)  - for MMC connections
  *
  * Other boards with IDF framework
  * -----------------------------------
- * SdmmcHost (sdfs.cpp) -> SdfsIdfDriver (sdspi_drv_idf.cpp) --> - for MMC connections
+ * SdfsHost (sdfs.cpp) -> SdfsIdfDriver (sdspi_drv_idf.cpp) --> - for MMC connections
  *                                                 +-> sdspi_io  - for SPI connections
  *
  */
@@ -79,7 +79,7 @@ class SdfsArduinoDriver;
  * @brief  EspHome component for univeral interface for card attach and mount controll
  *
  */
-SdmmcHost::SdmmcHost() {
+SdfsHost::SdfsHost() {
   this->set_state(SD_SLOT_ST_NOTINIT);
 
 #if defined(USE_SDSPI_MODE)
@@ -88,7 +88,9 @@ SdmmcHost::SdmmcHost() {
   ESP_LOGD(TAG, "Host class init");
 }
 
-void SdmmcHost::dump_config() {
+FsInterface *SdfsHost::get_fs() { return new FsInterface(this); }
+
+void SdfsHost::dump_config() {
   ESP_LOGCONFIG(TAG, "   SD Connection type: %s", this->type_ == SD_MMC ? "sdmmc" : "sdspi");
   ESP_LOGCONFIG(TAG, "   FS Root path:     %s", this->path_.c_str());
 
@@ -133,37 +135,37 @@ void SdmmcHost::dump_config() {
     ESP_LOGCONFIG(TAG, "   SPI/SDIO pwr ctrl pin: %d", this->pw_ctrl_pin_);
 }
 
-SdDriverStatus SdmmcHost::get_state() { return this->state_; }
-void SdmmcHost::set_conn_type(SdConnType type) { this->type_ = type; }
-void SdmmcHost::set_bus_slot(uint8_t gpio_num) { this->bus_slot_ = gpio_num; }
-void SdmmcHost::set_clk_pin(uint8_t gpio_num) { this->clk_pin_ = gpio_num; }
-void SdmmcHost::set_cmd_pin(uint8_t gpio_num) { this->cmd_pin_ = gpio_num; }
-void SdmmcHost::set_data0_pin(uint8_t gpio_num) { this->data0_pin_ = gpio_num; }
-void SdmmcHost::set_data1_pin(uint8_t gpio_num) { this->data1_pin_ = gpio_num; }
-void SdmmcHost::set_data2_pin(uint8_t gpio_num) { this->data2_pin_ = gpio_num; }
-void SdmmcHost::set_data3_pin(uint8_t gpio_num) { this->data3_pin_ = gpio_num; }
-void SdmmcHost::set_data4_pin(uint8_t gpio_num) { this->data4_pin_ = gpio_num; }
-void SdmmcHost::set_data5_pin(uint8_t gpio_num) { this->data5_pin_ = gpio_num; }
-void SdmmcHost::set_data6_pin(uint8_t gpio_num) { this->data6_pin_ = gpio_num; }
-void SdmmcHost::set_data7_pin(uint8_t gpio_num) { this->data7_pin_ = gpio_num; }
-void SdmmcHost::set_pw_ctrl_pin(uint8_t gpio_num) { this->pw_ctrl_pin_ = gpio_num; }
-void SdmmcHost::set_cs_pin(uint8_t gpio_num) { this->cs_pin_ = gpio_num; }
-void SdmmcHost::set_cd_pin(uint8_t gpio_num) { this->cd_pin_ = gpio_num; }
-void SdmmcHost::set_wp_pin(uint8_t gpio_num) { this->wp_pin_ = gpio_num; }
-void SdmmcHost::set_int_pin(uint8_t gpio_num) { this->int_pin_ = gpio_num; }
-void SdmmcHost::set_miso_pin(uint8_t gpio_num) { this->miso_pin_ = gpio_num; }
-void SdmmcHost::set_mosi_pin(uint8_t gpio_num) { this->mosi_pin_ = gpio_num; }
-void SdmmcHost::set_path(std::string path) { this->path_ = path; }
-void SdmmcHost::set_bus_width(BusWidth bus_width) { this->spi_bus_width_ = bus_width; }
+SdDriverStatus SdfsHost::get_state() { return this->state_; }
+void SdfsHost::set_conn_type(SdConnType type) { this->type_ = type; }
+void SdfsHost::set_bus_slot(uint8_t gpio_num) { this->bus_slot_ = gpio_num; }
+void SdfsHost::set_clk_pin(uint8_t gpio_num) { this->clk_pin_ = gpio_num; }
+void SdfsHost::set_cmd_pin(uint8_t gpio_num) { this->cmd_pin_ = gpio_num; }
+void SdfsHost::set_data0_pin(uint8_t gpio_num) { this->data0_pin_ = gpio_num; }
+void SdfsHost::set_data1_pin(uint8_t gpio_num) { this->data1_pin_ = gpio_num; }
+void SdfsHost::set_data2_pin(uint8_t gpio_num) { this->data2_pin_ = gpio_num; }
+void SdfsHost::set_data3_pin(uint8_t gpio_num) { this->data3_pin_ = gpio_num; }
+void SdfsHost::set_data4_pin(uint8_t gpio_num) { this->data4_pin_ = gpio_num; }
+void SdfsHost::set_data5_pin(uint8_t gpio_num) { this->data5_pin_ = gpio_num; }
+void SdfsHost::set_data6_pin(uint8_t gpio_num) { this->data6_pin_ = gpio_num; }
+void SdfsHost::set_data7_pin(uint8_t gpio_num) { this->data7_pin_ = gpio_num; }
+void SdfsHost::set_pw_ctrl_pin(uint8_t gpio_num) { this->pw_ctrl_pin_ = gpio_num; }
+void SdfsHost::set_cs_pin(uint8_t gpio_num) { this->cs_pin_ = gpio_num; }
+void SdfsHost::set_cd_pin(uint8_t gpio_num) { this->cd_pin_ = gpio_num; }
+void SdfsHost::set_wp_pin(uint8_t gpio_num) { this->wp_pin_ = gpio_num; }
+void SdfsHost::set_int_pin(uint8_t gpio_num) { this->int_pin_ = gpio_num; }
+void SdfsHost::set_miso_pin(uint8_t gpio_num) { this->miso_pin_ = gpio_num; }
+void SdfsHost::set_mosi_pin(uint8_t gpio_num) { this->mosi_pin_ = gpio_num; }
+void SdfsHost::set_path(std::string path) { this->path_ = path; }
+void SdfsHost::set_bus_width(BusWidth bus_width) { this->spi_bus_width_ = bus_width; }
 
 #if defined(USE_SDSPI_MODE)
-void SdmmcHost::set_spi_parent(spi::SPIComponent *parent) { this->connector_->set_spi_parent(parent); }
-void SdmmcHost::set_cs_pin(GPIOPin *cs) { this->connector_->set_cs_pin(cs); }
-void SdmmcHost::set_data_rate(uint32_t data_rate) { this->connector_->set_data_rate(data_rate); }
-void SdmmcHost::set_mode(spi::SPIMode mode) { this->connector_->set_mode(mode); }
+void SdfsHost::set_spi_parent(spi::SPIComponent *parent) { this->connector_->set_spi_parent(parent); }
+void SdfsHost::set_cs_pin(GPIOPin *cs) { this->connector_->set_cs_pin(cs); }
+void SdfsHost::set_data_rate(uint32_t data_rate) { this->connector_->set_data_rate(data_rate); }
+void SdfsHost::set_mode(spi::SPIMode mode) { this->connector_->set_mode(mode); }
 #endif
 
-void SdmmcHost::set_state(SdDriverStatus state) {
+void SdfsHost::set_state(SdDriverStatus state) {
   ESP_LOGD(TAG, "Change state to: %s", host_st2str[state]);
   this->state_ = state;
 }
@@ -172,7 +174,7 @@ void SdmmcHost::set_state(SdDriverStatus state) {
  * @brief  init SPI connector and SD disk driver
  *
  */
-void SdmmcHost::setup() {
+void SdfsHost::setup() {
   ESP_LOGD(TAG, "Setup called");
 
 #if defined(USE_ARDUINO) && !defined(USE_ESP8266)
@@ -238,7 +240,7 @@ void SdmmcHost::setup() {
   ESP_LOGD(TAG, "Setup complete");
 }
 
-void SdmmcHost::loop() {
+void SdfsHost::loop() {
   time_t cur_time = ::time(nullptr);
 
   if ((cur_time - this->last_time_check_) > 10) {

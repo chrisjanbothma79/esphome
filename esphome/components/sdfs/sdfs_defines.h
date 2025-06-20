@@ -36,3 +36,14 @@ typedef enum {
   RC_NOT_FORMATED = 5,
   RC_UNKNOWN = 6
 } local_rc_t;
+
+#if defined(USE_ESP8266)
+#include "FsLib/FsVolume.h"
+typedef FsVolume fsys_t;
+#elif defined(USE_ARDUINO)
+#include "ff.h"
+typedef FATFS fsys_t;
+#else
+#include "ff.h"
+typedef FATFS fsys_t;
+#endif

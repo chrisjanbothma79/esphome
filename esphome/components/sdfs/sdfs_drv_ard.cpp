@@ -34,7 +34,7 @@ static const char *const TAG = "sdspi_drv_ard";
  *        in ESP32 platform.
  *        For SDMMC mode it use  SdmmcIO calss for commenication through HAL
  *        For SDSPI mode it use SPIConnector  classfor use esphome dafault SPI interface.
- *                  SPIConnector class defined in upper level in SdmmcHost class
+ *                  SPIConnector class defined in upper level in SdfsHost class
  * @param impl   FAT.   Esp fs implementation class
  */
 SdfsArduinoDriver::SdfsArduinoDriver() {
@@ -44,7 +44,7 @@ SdfsArduinoDriver::SdfsArduinoDriver() {
 #endif
 }
 
-void SdfsArduinoDriver::set_parent(SdmmcHost *p) { this->parent_ = p; }
+void SdfsArduinoDriver::set_parent(SdfsHost *p) { this->parent_ = p; }
 #if defined(USE_SDSPI_MODE)
 void SdfsArduinoDriver::set_connector(SpiConnector *cn) { this->connector_ = cn; }
 #endif

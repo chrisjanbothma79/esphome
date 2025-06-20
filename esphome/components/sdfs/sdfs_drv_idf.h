@@ -22,7 +22,7 @@
 namespace esphome {
 namespace sdfs {
 
-class SdmmcHost;
+class SdfsHost;
 
 /******************************************************************************
  *
@@ -32,7 +32,7 @@ class SdmmcHost;
  */
 class SdfsIdfDriver : public DriverInterface {
  public:
-  void set_parent(SdmmcHost *) override;
+  void set_parent(SdfsHost *) override;
 #if defined(USE_SDSPI_MODE)
   void set_connector(SpiConnector *);
 #endif
@@ -40,13 +40,14 @@ class SdfsIdfDriver : public DriverInterface {
   bool is_card() override;
   bool attach_card() override;
   bool mount(std::string, bool) override;
-  FATFS *mount_sdmmc(uint8_t, std::string, bool);
-  FATFS *mount_sdspi(uint8_t, std::string, bool);
+  fsys_t *mount_sdmmc(uint8_t, std::string, bool);
+  fsys_t *mount_sdspi(uint8_t, std::string, bool);
   void unmount() override;
   void unmount_sdmmc(uint8_t, std::string);
   void unmount_sdspi(uint8_t, std::string);
   uint32_t get_last_err() override;
   bool test() override;
+  fsys_t *get_fs() { return fs_; };
 
  protected:
 #if defined(USE_SDSPI_MODE)
@@ -54,7 +55,7 @@ class SdfsIdfDriver : public DriverInterface {
 #endif
   SdConnType bus_type_;
   BYTE pdrv_ = FF_DRV_NOT_USED;
-  FATFS *fs_ = NULL;
+  fsys_t *fs_ = NULL;
   std::string mountpoint_;
 
   bool sdmmc_allocate();

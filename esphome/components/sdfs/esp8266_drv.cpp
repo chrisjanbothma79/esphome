@@ -28,7 +28,7 @@ void esp8266SpiDriver::set_connector(SpiConnector *c) {
   this->connector_ = c;
   this->spi_impl_ = new SdSpiImpl();
 }
-void esp8266SpiDriver::set_parent(SdmmcHost *p) { this->parent_ = p; }
+void esp8266SpiDriver::set_parent(SdfsHost *p) { this->parent_ = p; }
 
 bool esp8266SpiDriver::init_host(SdConnType ctype) {
   // SdCsPin_t fake_pin = 0;

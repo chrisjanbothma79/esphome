@@ -52,7 +52,7 @@ SD_CONN_TYPE = {
 }
 
 # spi_ns = cg.esphome_ns.namespace("spi")
-SdmmcHost = sdfs_ns.class_("SdmmcHost", cg.Component)
+SdfsHost = sdfs_ns.class_("SdfsHost", cg.Component)
 SpiDrv = sdfs_ns.class_("EsphomeSpiDrv", spi.SPIDevice)
 
 
@@ -123,7 +123,7 @@ def _validate(config):
 
 BASE_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(): cv.declare_id(SdmmcHost),
+        cv.GenerateID(): cv.declare_id(SdfsHost),
         cv.Optional(CONF_PATH, default="/sdcard"): cv.string,
         cv.Optional(CONF_CD_PIN): pins.internal_gpio_output_pin_number,
         cv.Optional(CONF_WP_PIN): pins.internal_gpio_output_pin_number,

@@ -4,6 +4,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/automation.h"
 #include "sdfs_defines.h"
+#include "fs_interface.h"
 
 #ifdef USE_SDSPI_MODE
 #include "esphome/components/spi/spi.h"
@@ -54,9 +55,10 @@ extern const char *host_st2str[];
 class SpiConnector;
 #endif
 
+class FsInterface;
 class DriverInterface;
 
-class SdmmcHost : public Component {
+class SdfsHost : public Component {
   friend class SdmmcDriver;
   friend class SdfsIdfDriver;
   friend class SdfsArduinoDriver;
@@ -67,10 +69,13 @@ class SdmmcHost : public Component {
   // #endif
 
  public:
-  SdmmcHost();
+  SdfsHost();
   void setup() override;
   void loop() override;
   void dump_config() override;
+  DriverInterface *get_drv() { return drv_; };
+  FsInterface *get_fs();
+  SdDriverStatus get_state();
 
 #if defined(USE_SDSPI_MODE)
   void set_spi_parent(spi::SPIComponent *);
@@ -79,12 +84,9 @@ class SdmmcHost : public Component {
   void set_mode(spi::SPIMode);
 #endif
 
-  SdDriverStatus get_state();
   void set_state(SdDriverStatus);
-
   void set_conn_type(SdConnType);
   void set_bus_width(BusWidth);
-
   void set_bus_slot(uint8_t);  // spi_mode
   void set_cs_pin(uint8_t);
   void set_miso_pin(uint8_t);
@@ -139,7 +141,7 @@ class SdmmcHost : public Component {
 
 class DriverInterface {
  public:
-  virtual void set_parent(SdmmcHost *);
+  virtual void set_parent(SdfsHost *);
   virtual bool init_host(SdConnType);
   virtual bool is_card();
   virtual bool attach_card();
@@ -147,11 +149,12 @@ class DriverInterface {
   virtual uint32_t get_last_err();
   virtual void unmount();
   virtual bool test();
+  virtual fsys_t *get_fs();
 
  protected:
   SdConnType bus_type_;
   uint32_t last_err_;
-  SdmmcHost *parent_;
+  SdfsHost *parent_;
 };
 // #endif
 }  // namespace sdfs
