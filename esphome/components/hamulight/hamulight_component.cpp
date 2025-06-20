@@ -1,6 +1,7 @@
 #include "hamulight_component.h"
 #include "esphome/core/log.h"          // For logging output in the ESPHome log
-#include "esphome/core/helpers.h"      // For delay_microseconds and bitRead
+#include "esphome/core/helpers.h"      // For bitRead (implicitly through ESPHome's framework)
+#include "esphome/core/hal.h"          // For delay_microseconds
 
 namespace esphome {
 namespace hamulight {
@@ -26,10 +27,10 @@ void Hamulight::setup() {
 
   // Logs the successful initialization of the component and its configuration.
   ESP_LOGCONFIG(TAG, "Hamulight is being set up...");
-  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%d", this->rf_transmit_pin_->get_pin());
+  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%d", this->rf_transmit_pin_->get_gpio_number());
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%d", this->led_pin_->get_pin());
+    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%d", this->led_pin_->get_gpio_number());
   }
 }
 
@@ -40,10 +41,10 @@ void Hamulight::setup() {
  * has been correctly applied by the component.
  */
 void Hamulight::dump_config() {
-  LOG_LIGHT("", "Hamulight", this); // Standard ESPHome log output for lights
-  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%d", this->rf_transmit_pin_->get_pin());
+  ESP_LOGCONFIG(TAG, "  Hamulight (RF Light)");
+  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%d", this->rf_transmit_pin_->get_gpio_number());
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%d", this->led_pin_->get_pin());
+    ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%d", this->led_pin_->get_gpio_number());
   }
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
 }
@@ -69,21 +70,23 @@ light::LightTraits Hamulight::get_traits() {
  * @brief Called by Home Assistant to change the state of the light.
  *
  * This method is responsible for implementing brightness control via the Home Assistant slider.
- * @param state The desired brightness value (0.0 for off, 1.0 for full brightness).
+ * @param state The desired LightState object from Home Assistant.
  */
-void Hamulight::write_state(float state) {
+void Hamulight::write_state(light::LightState *state) {
+  float brightness = state->get_brightness();                   // Get the current brightness from the state object
+
   // If the brightness value is very low (near 0.0), the power toggle command is sent.
-  if (state < 0.05f) { // A small threshold to detect turning off
+  if (brightness < 0.05f) {                                     // A small threshold to detect turning off
     this->transmit_rf_command(RF_POWER_COMMAND);
-    this->set_power(false); // Updates the internal state of the light to "off"
+    state->set_power(false);                                    // Update the internal state of the light object to "off"
   } else {
     // 1. Convert Home Assistant float state (0.0 - 1.0) to a 0-127 range for dimming steps.
     // This provides 128 discrete steps (0 to 127).
-    uint8_t dim_value_0_127 = (uint8_t) round(state * (RF_SLIDE_STEPS - 1));
+    uint8_t dim_value_0_127 = (uint8_t) round(brightness * (RF_SLIDE_STEPS - 1));
 
     // 2. Calculate the brightness value to transmit.
     // This directly applies the offset and leverages uint8_t's natural overflow behavior
-    // as implemented in the RF protocol.
+    // as described in the RF protocol.
     // Example: For dim_value_0_127 = 0 (0% brightness), result is 0xA8.
     // Example: For dim_value_0_127 = 88, result is (0xA8 + 88) = 256, which becomes 0x00 as uint8_t.
     uint8_t brightness_to_transmit = RF_SLIDE_OFFSET + dim_value_0_127;
@@ -99,11 +102,11 @@ void Hamulight::write_state(float state) {
         brightness_to_transmit = RF_SLIDE_RANGE_MAX;
     }
 
-    this->transmit_rf_brightness(brightness_to_transmit);  // Sends the brightness command
-    this->set_power(true);                                 // Updates the internal state of the light to "on"
-    this->set_brightness(state);                           // Updates the brightness of the light internally
+    this->transmit_rf_brightness(brightness_to_transmit);     // Sends the brightness command
+    state->set_power(true);                                   // Update the internal state of the light object to "on"
+    state->set_brightness(brightness);                        // Update the brightness of the light object internally
     ESP_LOGD(TAG, "HA state %.2f -> dim_value_0_127 %d -> RF value 0x%02X",
-             state, dim_value_0_127, brightness_to_transmit);
+             brightness, dim_value_0_127, brightness_to_transmit);
   }
 }
 
@@ -141,7 +144,7 @@ void Hamulight::generate_code_sequence(uint8_t command) {
   // into the code_sequence_ array to mirror the transmission order.
   int n = (sizeof(combined) * 8) - 1; // n = 31 for a 32-bit word
   for (int i = 0; i < (sizeof(combined) * 8); i++) {
-    bool b = bitRead(combined, i); // Reads the i-th bit from 'combined'
+    bool b = (combined >> i) & 1; // Reads the i-th bit from 'combined'
     // Calculates the position in the code_sequence_ array.
     // (n - i) * 2 reverses the bit order and multiplies by 2, since each bit consists of 2 pulses.
     int current_sequence_pos = (n - i) * 2;
