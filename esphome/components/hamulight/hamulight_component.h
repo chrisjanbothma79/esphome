@@ -83,7 +83,7 @@ class Hamulight : public light::LightOutput, public Component {
    * @brief Called by Home Assistant to change the state of the light (e.g., brightness).
    * @param state The desired brightness value (0.0 to 1.0).
    */
-  void write_state(float state) override;
+  void write_state(light::LightState *state) override;
 
   // --- Custom methods for Home Assistant Buttons and Logic ---
   /**
