@@ -69,9 +69,12 @@ void Hamulight::loop() {
  * @return light::LightTraits object.
  */
 light::LightTraits Hamulight::get_traits() {
-  auto traits = light::LightTraits();
+  light::LightTraits traits;
   // Supports brightness control (NO on/off)!
-  traits.set_supports_brightness(true);
+  traits.set_supported_color_modes({light::ColorMode::BRIGHTNESS});
+  traits.set_min_brightness(0.0f);
+  traits.set_max_brightness(1.0f);
+  
   return traits;
 }
 
@@ -84,13 +87,11 @@ light::LightTraits Hamulight::get_traits() {
 void Hamulight::turn_on() {
   ESP_LOGD(TAG, "HA power toggle ON: sending RF_POWER_COMMAND");
   this->transmit_rf_command(RF_POWER_COMMAND);
-  this->publish_state(true);
 }
 
 void Hamulight::turn_off() {
   ESP_LOGD(TAG, "HA power toggle OFF: sending RF_POWER_COMMAND");
   this->transmit_rf_command(RF_POWER_COMMAND);
-  this->publish_state(false);
 }
 
 /**
