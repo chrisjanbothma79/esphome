@@ -102,7 +102,7 @@ void SSD1327::update() {
 }
 void SSD1327::set_brightness(float brightness) {
   // validation
-  this->brightness_ = clamp(brightness, 0.0F, 1.0F);
+  this->brightness_ = std::clamp(brightness, 0.0F, 1.0F);
   // now write the new brightness level to the display
   this->command(SSD1327_SETCONTRAST);
   this->command(int(SSD1327_MAX_CONTRAST * (this->brightness_)));

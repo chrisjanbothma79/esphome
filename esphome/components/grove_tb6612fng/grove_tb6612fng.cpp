@@ -64,7 +64,7 @@ void GroveMotorDriveTB6612FNG::set_i2c_addr(uint8_t addr) {
 }
 
 void GroveMotorDriveTB6612FNG::dc_motor_run(uint8_t channel, int16_t speed) {
-  speed = clamp<int16_t>(speed, -255, 255);
+  speed = std::clamp<int16_t>(speed, -255, 255);
 
   buffer_[0] = channel;
   if (speed >= 0) {
@@ -122,7 +122,7 @@ void GroveMotorDriveTB6612FNG::stepper_run(StepperModeTypeT mode, int16_t steps,
     steps = -steps;
   }
 
-  rpm = clamp<uint16_t>(rpm, 1, 300);
+  rpm = std::clamp<uint16_t>(rpm, 1, 300);
 
   ms_per_step = (uint16_t) (3000.0 / (float) rpm);
   buffer_[0] = mode;
@@ -153,7 +153,7 @@ void GroveMotorDriveTB6612FNG::stepper_keep_run(StepperModeTypeT mode, uint16_t 
   // 0.1ms_per_step
   uint16_t ms_per_step = 0;
 
-  rpm = clamp<uint16_t>(rpm, 1, 300);
+  rpm = std::clamp<uint16_t>(rpm, 1, 300);
   ms_per_step = (uint16_t) (3000.0 / (float) rpm);
 
   buffer_[0] = mode;

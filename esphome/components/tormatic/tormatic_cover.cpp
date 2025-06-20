@@ -184,7 +184,7 @@ void Tormatic::recompute_position_() {
 
   auto delta = direction * diff / duration;
 
-  this->position = clamp(this->position + delta, COVER_CLOSED, COVER_OPEN);
+  this->position = std::clamp(this->position + delta, COVER_CLOSED, COVER_OPEN);
 
   this->last_recompute_time_ = now;
 

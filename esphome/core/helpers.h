@@ -45,18 +45,6 @@ namespace esphome {
 // Backports for various STL features we like to use. Pull in the STL implementation wherever available, to avoid
 // ambiguity and to provide a uniform API.
 
-// std::clamp from C++17
-#if __cpp_lib_clamp >= 201603
-using std::clamp;
-#else
-template<typename T, typename Compare> constexpr const T &clamp(const T &v, const T &lo, const T &hi, Compare comp) {
-  return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
-}
-template<typename T> constexpr const T &clamp(const T &v, const T &lo, const T &hi) {
-  return clamp(v, lo, hi, std::less<T>{});
-}
-#endif
-
 // std::is_invocable from C++17
 #if __cpp_lib_is_invocable >= 201703
 using std::is_invocable;

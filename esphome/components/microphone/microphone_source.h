@@ -49,7 +49,9 @@ class MicrophoneSource {
 
   void add_data_callback(std::function<void(const std::vector<uint8_t> &)> &&data_callback);
 
-  void set_gain_factor(int32_t gain_factor) { this->gain_factor_ = clamp<int32_t>(gain_factor, 1, MAX_GAIN_FACTOR); }
+  void set_gain_factor(int32_t gain_factor) {
+    this->gain_factor_ = std::clamp<int32_t>(gain_factor, 1, MAX_GAIN_FACTOR);
+  }
   int32_t get_gain_factor() { return this->gain_factor_; }
 
   /// @brief Gets the AudioStreamInfo of the data after processing

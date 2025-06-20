@@ -82,7 +82,7 @@ template<typename... Ts> class DimRelativeAction : public Action<Ts...> {
     if ((limit_mode_ == LimitMode::DO_NOTHING) && ((cur < min_brightness_) || (cur > max_brightness_))) {
       return;
     }
-    float new_brightness = clamp(cur + rel, min_brightness_, max_brightness_);
+    float new_brightness = std::clamp(cur + rel, min_brightness_, max_brightness_);
     call.set_state(new_brightness != 0.0f);
     call.set_brightness(new_brightness);
 

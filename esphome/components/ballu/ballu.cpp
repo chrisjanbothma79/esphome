@@ -34,7 +34,7 @@ const uint8_t BALLU_POWER = 0x20;
 void BalluClimate::transmit_state() {
   uint8_t remote_state[BALLU_STATE_LENGTH] = {0};
 
-  auto temp = (uint8_t) roundf(clamp(this->target_temperature, YKR_K_002E_TEMP_MIN, YKR_K_002E_TEMP_MAX));
+  auto temp = (uint8_t) roundf(std::clamp(this->target_temperature, YKR_K_002E_TEMP_MIN, YKR_K_002E_TEMP_MAX));
   auto swing_ver =
       ((this->swing_mode == climate::CLIMATE_SWING_VERTICAL) || (this->swing_mode == climate::CLIMATE_SWING_BOTH));
   auto swing_hor =

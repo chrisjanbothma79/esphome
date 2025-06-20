@@ -38,9 +38,9 @@ class IrFollowMeData : public IrData {
     this->set_fahrenheit(fahrenheit);
     if (this->fahrenheit()) {
       // see https://github.com/esphome/feature-requests/issues/1627#issuecomment-1365639966
-      val = esphome::clamp<uint8_t>(val, MIN_TEMP_F, MAX_TEMP_F) - 31;
+      val = std::clamp<uint8_t>(val, MIN_TEMP_F, MAX_TEMP_F) - 31;
     } else {
-      val = esphome::clamp<uint8_t>(val, MIN_TEMP_C, MAX_TEMP_C) + 1;
+      val = std::clamp<uint8_t>(val, MIN_TEMP_C, MAX_TEMP_C) + 1;
     }
     this->set_value_(4, val);
   }

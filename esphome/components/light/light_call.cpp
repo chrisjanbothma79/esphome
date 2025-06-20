@@ -210,7 +210,7 @@ LightColorValues LightCall::validate_() {
     if (val < (min) || val > (max)) { \
       ESP_LOGW(TAG, "'%s' - %s value %.2f is out of range [%.1f - %.1f]!", name, LOG_STR_LITERAL(upper_name), val, \
                (min), (max)); \
-      name_##_ = clamp(val, (min), (max)); \
+      name_##_ = std::clamp(val, (min), (max)); \
     } \
   }
 #define VALIDATE_RANGE(name, upper_name) VALIDATE_RANGE_(name, upper_name, 0.0f, 1.0f)
@@ -351,7 +351,7 @@ void LightCall::transform_parameters_() {
     ESP_LOGD(TAG, "'%s' - Setting cold/warm white channels using white/color temperature values.",
              this->parent_->get_name().c_str());
     if (this->color_temperature_.has_value()) {
-      const float color_temp = clamp(*this->color_temperature_, traits.get_min_mireds(), traits.get_max_mireds());
+      const float color_temp = std::clamp(*this->color_temperature_, traits.get_min_mireds(), traits.get_max_mireds());
       const float ww_fraction =
           (color_temp - traits.get_min_mireds()) / (traits.get_max_mireds() - traits.get_min_mireds());
       const float cw_fraction = 1.0f - ww_fraction;

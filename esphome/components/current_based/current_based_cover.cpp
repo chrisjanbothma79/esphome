@@ -75,7 +75,7 @@ void CurrentBasedCover::loop() {
       if (this->obstacle_rollback_ != 0) {
         this->set_timeout("rollback", 300, [this]() {
           ESP_LOGD(TAG, "'%s' - Rollback.", this->name_.c_str());
-          this->target_position_ = clamp(this->position - this->obstacle_rollback_, 0.0F, 1.0F);
+          this->target_position_ = std::clamp(this->position - this->obstacle_rollback_, 0.0F, 1.0F);
           this->start_direction_(COVER_OPERATION_CLOSING);
         });
       }
@@ -96,7 +96,7 @@ void CurrentBasedCover::loop() {
       if (this->obstacle_rollback_ != 0) {
         this->set_timeout("rollback", 300, [this]() {
           ESP_LOGD(TAG, "'%s' - Rollback.", this->name_.c_str());
-          this->target_position_ = clamp(this->position + this->obstacle_rollback_, 0.0F, 1.0F);
+          this->target_position_ = std::clamp(this->position + this->obstacle_rollback_, 0.0F, 1.0F);
           this->start_direction_(COVER_OPERATION_OPENING);
         });
       }
@@ -264,7 +264,7 @@ void CurrentBasedCover::recompute_position_() {
 
   const auto now = millis();
   this->position += dir * (now - this->last_recompute_time_) / action_dur;
-  this->position = clamp(this->position, 0.0F, 1.0F);
+  this->position = std::clamp(this->position, 0.0F, 1.0F);
 
   this->last_recompute_time_ = now;
 }

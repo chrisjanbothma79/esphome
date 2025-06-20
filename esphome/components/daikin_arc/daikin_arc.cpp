@@ -217,7 +217,7 @@ uint8_t DaikinArcClimate::temperature_() {
     case climate::CLIMATE_MODE_DRY:
       return 0xc0;
     default:
-      float new_temp = clamp<float>(this->target_temperature, DAIKIN_TEMP_MIN, DAIKIN_TEMP_MAX);
+      float new_temp = std::clamp<float>(this->target_temperature, DAIKIN_TEMP_MIN, DAIKIN_TEMP_MAX);
       uint8_t temperature = (uint8_t) floor(new_temp);
       return temperature << 1 | (new_temp - temperature > 0 ? 0x01 : 0);
   }

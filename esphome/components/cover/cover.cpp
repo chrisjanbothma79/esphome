@@ -106,7 +106,7 @@ void CoverCall::validate_() {
       this->position_.reset();
     } else if (pos < 0.0f || pos > 1.0f) {
       ESP_LOGW(TAG, "'%s' - Position %.2f is out of range [0.0 - 1.0]", this->parent_->get_name().c_str(), pos);
-      this->position_ = clamp(pos, 0.0f, 1.0f);
+      this->position_ = std::clamp(pos, 0.0f, 1.0f);
     }
   }
   if (this->tilt_.has_value()) {
@@ -116,7 +116,7 @@ void CoverCall::validate_() {
       this->tilt_.reset();
     } else if (tilt < 0.0f || tilt > 1.0f) {
       ESP_LOGW(TAG, "'%s' - Tilt %.2f is out of range [0.0 - 1.0]", this->parent_->get_name().c_str(), tilt);
-      this->tilt_ = clamp(tilt, 0.0f, 1.0f);
+      this->tilt_ = std::clamp(tilt, 0.0f, 1.0f);
     }
   }
   if (this->toggle_.has_value()) {
@@ -164,8 +164,8 @@ void Cover::stop() {
 }
 void Cover::add_on_state_callback(std::function<void()> &&f) { this->state_callback_.add(std::move(f)); }
 void Cover::publish_state(bool save) {
-  this->position = clamp(this->position, 0.0f, 1.0f);
-  this->tilt = clamp(this->tilt, 0.0f, 1.0f);
+  this->position = std::clamp(this->position, 0.0f, 1.0f);
+  this->tilt = std::clamp(this->tilt, 0.0f, 1.0f);
 
   ESP_LOGD(TAG, "'%s' - Publishing:", this->name_.c_str());
   auto traits = this->get_traits();

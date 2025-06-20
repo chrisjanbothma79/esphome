@@ -46,7 +46,7 @@ class LightTransformer {
     if (now >= this->start_time_ + this->length_)
       return 1.0f;
 
-    return clamp((now - this->start_time_) / float(this->length_), 0.0f, 1.0f);
+    return std::clamp((now - this->start_time_) / float(this->length_), 0.0f, 1.0f);
   }
 
   uint32_t start_time_;

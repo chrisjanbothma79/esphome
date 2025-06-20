@@ -86,11 +86,12 @@ void Whynter::transmit_state() {
   if (fahrenheit_) {
     remote_state |= UNIT_MASK;
     uint8_t temp =
-        (uint8_t) clamp<float>(esphome::celsius_to_fahrenheit(this->target_temperature), TEMP_MIN_F, TEMP_MAX_F);
+        (uint8_t) std::clamp<float>(esphome::celsius_to_fahrenheit(this->target_temperature), TEMP_MIN_F, TEMP_MAX_F);
     temp = esphome::reverse_bits(temp);
     remote_state |= temp;
   } else {
-    uint8_t temp = (uint8_t) roundf(clamp<float>(this->target_temperature, TEMP_MIN_C, TEMP_MAX_C) - TEMP_OFFSET_C);
+    uint8_t temp =
+        (uint8_t) roundf(std::clamp<float>(this->target_temperature, TEMP_MIN_C, TEMP_MAX_C) - TEMP_OFFSET_C);
     temp = esphome::reverse_bits(temp);
     remote_state |= temp;
   }

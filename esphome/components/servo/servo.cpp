@@ -71,7 +71,7 @@ void Servo::loop() {
 }
 
 void Servo::write(float value) {
-  value = clamp(value, -1.0f, 1.0f);
+  value = std::clamp(value, -1.0f, 1.0f);
   if ((this->state_ == STATE_DETACHED) && (this->target_value_ == value)) {
     this->internal_write(value);
   } else {
@@ -85,7 +85,7 @@ void Servo::write(float value) {
 }
 
 void Servo::internal_write(float value) {
-  value = clamp(value, -1.0f, 1.0f);
+  value = std::clamp(value, -1.0f, 1.0f);
   float level;
   if (value < 0.0) {
     level = lerp(-value, this->idle_level_, this->min_level_);

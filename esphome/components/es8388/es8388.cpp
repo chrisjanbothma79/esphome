@@ -155,7 +155,7 @@ void ES8388::dump_config() {
 }
 
 bool ES8388::set_volume(float volume) {
-  volume = clamp(volume, 0.0f, 1.0f);
+  volume = std::clamp(volume, 0.0f, 1.0f);
   uint8_t value = remap<uint8_t, float>(volume, 0.0f, 1.0f, -96, 0);
   ESP_LOGD(TAG, "Setting ES8388_DACCONTROL4 / ES8388_DACCONTROL5 to 0x%02X (volume: %f)", value, volume);
   ES8388_ERROR_CHECK(this->write_byte(ES8388_DACCONTROL4, value));

@@ -193,7 +193,7 @@ void FeedbackCover::set_close_obstacle_sensor(binary_sensor::BinarySensor *close
       this->start_direction_(COVER_OPERATION_IDLE);
 
       if (this->obstacle_rollback_) {
-        this->target_position_ = clamp(this->position + this->obstacle_rollback_, COVER_CLOSED, COVER_OPEN);
+        this->target_position_ = std::clamp(this->position + this->obstacle_rollback_, COVER_CLOSED, COVER_OPEN);
         this->start_direction_(COVER_OPERATION_OPENING);
       }
     }
@@ -210,7 +210,7 @@ void FeedbackCover::set_open_obstacle_sensor(binary_sensor::BinarySensor *open_o
       this->start_direction_(COVER_OPERATION_IDLE);
 
       if (this->obstacle_rollback_) {
-        this->target_position_ = clamp(this->position - this->obstacle_rollback_, COVER_CLOSED, COVER_OPEN);
+        this->target_position_ = std::clamp(this->position - this->obstacle_rollback_, COVER_CLOSED, COVER_OPEN);
         this->start_direction_(COVER_OPERATION_CLOSING);
       }
     }
@@ -438,7 +438,7 @@ void FeedbackCover::recompute_position_() {
     this->position +=
         dir * (now - std::max(this->start_dir_time_ + this->acceleration_wait_time_, this->last_recompute_time_)) /
         (action_dur - this->acceleration_wait_time_);
-    this->position = clamp(this->position, min_pos, max_pos);
+    this->position = std::clamp(this->position, min_pos, max_pos);
   }
   this->last_recompute_time_ = now;
 }

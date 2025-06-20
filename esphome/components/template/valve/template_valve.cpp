@@ -42,7 +42,7 @@ void TemplateValve::loop() {
   if (this->state_f_.has_value()) {
     auto s = (*this->state_f_)();
     if (s.has_value()) {
-      auto pos = clamp(*s, 0.0f, 1.0f);
+      auto pos = std::clamp(*s, 0.0f, 1.0f);
       if (pos != this->position) {
         this->position = pos;
         changed = true;

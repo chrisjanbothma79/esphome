@@ -42,7 +42,7 @@ void NoblexClimate::transmit_state() {
   if (powered_on != this->powered_on_assumed)
     this->powered_on_assumed = powered_on;
 
-  auto temp = (uint8_t) roundf(clamp<float>(this->target_temperature, NOBLEX_TEMP_MIN, NOBLEX_TEMP_MAX));
+  auto temp = (uint8_t) roundf(std::clamp<float>(this->target_temperature, NOBLEX_TEMP_MIN, NOBLEX_TEMP_MAX));
   remote_state[1] = reverse_bits(uint8_t((temp - NOBLEX_TEMP_MIN) & 0x0F));
 
   switch (this->mode) {

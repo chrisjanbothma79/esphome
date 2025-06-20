@@ -50,7 +50,7 @@ void ES8156::dump_config() {
 }
 
 bool ES8156::set_volume(float volume) {
-  volume = clamp(volume, 0.0f, 1.0f);
+  volume = std::clamp(volume, 0.0f, 1.0f);
   uint8_t reg = remap<uint8_t, float>(volume, 0.0f, 1.0f, 0, 255);
   ESP_LOGV(TAG, "Setting ES8156_REG14_VOLUME_CONTROL to %u (volume: %f)", reg, volume);
   return this->write_byte(ES8156_REG14_VOLUME_CONTROL, reg);

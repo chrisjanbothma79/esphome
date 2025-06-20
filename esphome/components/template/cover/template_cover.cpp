@@ -41,7 +41,7 @@ void TemplateCover::loop() {
   if (this->state_f_.has_value()) {
     auto s = (*this->state_f_)();
     if (s.has_value()) {
-      auto pos = clamp(*s, 0.0f, 1.0f);
+      auto pos = std::clamp(*s, 0.0f, 1.0f);
       if (pos != this->position) {
         this->position = pos;
         changed = true;
@@ -51,7 +51,7 @@ void TemplateCover::loop() {
   if (this->tilt_f_.has_value()) {
     auto s = (*this->tilt_f_)();
     if (s.has_value()) {
-      auto tilt = clamp(*s, 0.0f, 1.0f);
+      auto tilt = std::clamp(*s, 0.0f, 1.0f);
       if (tilt != this->tilt) {
         this->tilt = tilt;
         changed = true;

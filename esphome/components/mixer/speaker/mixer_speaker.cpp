@@ -265,7 +265,7 @@ void SourceSpeaker::duck_samples(int16_t *input_buffer, uint32_t input_samples_t
 
       // Ensure we only point to valid index in the Q15 scaling factor table
       uint8_t safe_db_reduction_index =
-          clamp<uint8_t>(*current_ducking_db_reduction, 0, DECIBEL_REDUCTION_TABLE.size() - 1);
+          std::clamp<uint8_t>(*current_ducking_db_reduction, 0, DECIBEL_REDUCTION_TABLE.size() - 1);
       int16_t q15_scale_factor = DECIBEL_REDUCTION_TABLE[safe_db_reduction_index];
 
       audio::scale_audio_samples(input_buffer, input_buffer, q15_scale_factor, samples_to_duck);
@@ -285,7 +285,7 @@ void SourceSpeaker::duck_samples(int16_t *input_buffer, uint32_t input_samples_t
     // Audio is ducked, but its not in the middle of a transition step
 
     uint8_t safe_db_reduction_index =
-        clamp<uint8_t>(*current_ducking_db_reduction, 0, DECIBEL_REDUCTION_TABLE.size() - 1);
+        std::clamp<uint8_t>(*current_ducking_db_reduction, 0, DECIBEL_REDUCTION_TABLE.size() - 1);
     int16_t q15_scale_factor = DECIBEL_REDUCTION_TABLE[safe_db_reduction_index];
 
     audio::scale_audio_samples(input_buffer, input_buffer, q15_scale_factor, input_samples_to_duck);
@@ -465,7 +465,7 @@ void MixerSpeaker::mix_audio_samples(const int16_t *primary_buffer, audio::Audio
       const int32_t added_sample = secondary_sample + primary_sample;
 
       output_buffer[frames_index * output_channels + output_channel_index] =
-          static_cast<int16_t>(clamp<int32_t>(added_sample, MIN_AUDIO_SAMPLE_VALUE, MAX_AUDIO_SAMPLE_VALUE));
+          static_cast<int16_t>(std::clamp<int32_t>(added_sample, MIN_AUDIO_SAMPLE_VALUE, MAX_AUDIO_SAMPLE_VALUE));
     }
   }
 }

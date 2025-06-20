@@ -352,7 +352,7 @@ void MSA3xxComponent::setup_offset_(float offset_x, float offset_y, float offset
   uint8_t offset[3];
 
   auto offset_g_to_lsb = [](float accel) -> int8_t {
-    float acccel_clamped = clamp(accel, G_OFFSET_MIN, G_OFFSET_MAX);
+    float acccel_clamped = std::clamp(accel, G_OFFSET_MIN, G_OFFSET_MAX);
     return static_cast<int8_t>(acccel_clamped * LSB_COEFF);
   };
 

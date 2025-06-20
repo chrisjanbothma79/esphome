@@ -152,7 +152,7 @@ uint8_t DaikinBrcClimate::temperature_() {
       // Temperature in remote is in F
       if (this->fahrenheit_) {
         temperature = (uint8_t) roundf(
-            clamp<float>(((this->target_temperature * 1.8) + 32), DAIKIN_BRC_TEMP_MIN_F, DAIKIN_BRC_TEMP_MAX_F));
+            std::clamp<float>(((this->target_temperature * 1.8) + 32), DAIKIN_BRC_TEMP_MIN_F, DAIKIN_BRC_TEMP_MAX_F));
       } else {
         temperature = ((uint8_t) roundf(this->target_temperature) - 9) << 1;
       }
@@ -196,7 +196,7 @@ bool DaikinBrcClimate::parse_state_frame_(const uint8_t frame[]) {
   uint8_t temperature = frame[10];
   float temperature_c;
   if (this->fahrenheit_) {
-    temperature_c = clamp<float>(((temperature - 32) / 1.8), DAIKIN_BRC_TEMP_MIN_C, DAIKIN_BRC_TEMP_MAX_C);
+    temperature_c = std::clamp<float>(((temperature - 32) / 1.8), DAIKIN_BRC_TEMP_MIN_C, DAIKIN_BRC_TEMP_MAX_C);
   } else {
     temperature_c = (temperature >> 1) + 9;
   }

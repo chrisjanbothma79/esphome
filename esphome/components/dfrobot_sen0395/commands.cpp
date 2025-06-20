@@ -199,8 +199,8 @@ uint8_t DetRangeCfgCommand::on_message(std::string &message) {
 SetLatencyCommand::SetLatencyCommand(float delay_after_detection, float delay_after_disappear) {
   delay_after_detection = std::round(delay_after_detection / 0.025f) * 0.025f;
   delay_after_disappear = std::round(delay_after_disappear / 0.025f) * 0.025f;
-  this->delay_after_detection_ = clamp(delay_after_detection, 0.0f, 1638.375f);
-  this->delay_after_disappear_ = clamp(delay_after_disappear, 0.0f, 1638.375f);
+  this->delay_after_detection_ = std::clamp(delay_after_detection, 0.0f, 1638.375f);
+  this->delay_after_disappear_ = std::clamp(delay_after_disappear, 0.0f, 1638.375f);
   this->cmd_ = str_sprintf("setLatency %.03f %.03f", this->delay_after_detection_, this->delay_after_disappear_);
 };
 

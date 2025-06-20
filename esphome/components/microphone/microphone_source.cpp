@@ -80,7 +80,7 @@ void MicrophoneSource::process_audio_(const std::vector<uint8_t> &data, std::vec
         sample *= this->gain_factor_;  // Q25
 
         // Clamp ``sample`` in case gain multiplication overflows 25 bits
-        sample = clamp<int32_t>(sample, Q25_MIN_VALUE, Q25_MAX_VALUE);  // Q25
+        sample = std::clamp<int32_t>(sample, Q25_MIN_VALUE, Q25_MAX_VALUE);  // Q25
 
         sample *= (1 << 6);  // Q25 -> Q31
 

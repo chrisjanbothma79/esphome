@@ -13,10 +13,10 @@ void ControlData::set_temp(float temp) {
   uint8_t min;
   if (this->get_fahrenheit()) {
     min = MIDEA_TEMPF_MIN;
-    temp = esphome::clamp<float>(celsius_to_fahrenheit(temp), MIDEA_TEMPF_MIN, MIDEA_TEMPF_MAX);
+    temp = std::clamp<float>(celsius_to_fahrenheit(temp), MIDEA_TEMPF_MIN, MIDEA_TEMPF_MAX);
   } else {
     min = MIDEA_TEMPC_MIN;
-    temp = esphome::clamp<float>(temp, MIDEA_TEMPC_MIN, MIDEA_TEMPC_MAX);
+    temp = std::clamp<float>(temp, MIDEA_TEMPC_MIN, MIDEA_TEMPC_MAX);
   }
   this->set_value_(2, lroundf(temp) - min, 31);
 }

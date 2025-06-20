@@ -15,7 +15,7 @@ void Mcp4461Wiper::set_level(float state) {
     ESP_LOGW(TAG, "Finite state state value is required.");
     return;
   }
-  state = clamp(state, 0.0f, 1.0f);
+  state = std::clamp(state, 0.0f, 1.0f);
   if (this->is_inverted()) {
     state = 1.0f - state;
   }

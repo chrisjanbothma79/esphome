@@ -92,7 +92,7 @@ optional<LightColorValues> AddressableLightTransformer::apply() {
   this->accumulated_alpha_ -= alpha_add;
 
   alpha255 += alpha_add;
-  alpha255 = clamp(alpha255, 0.0f, 255.0f);
+  alpha255 = std::clamp(alpha255, 0.0f, 255.0f);
   auto alpha8 = static_cast<uint8_t>(alpha255);
 
   if (alpha8 != 0) {

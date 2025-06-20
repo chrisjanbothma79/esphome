@@ -227,39 +227,39 @@ class LightColorValues {
   /// Get the binary true/false state of these light color values.
   bool is_on() const { return this->get_state() != 0.0f; }
   /// Set the state of these light color values. In range from 0.0 (off) to 1.0 (on)
-  void set_state(float state) { this->state_ = clamp(state, 0.0f, 1.0f); }
+  void set_state(float state) { this->state_ = std::clamp(state, 0.0f, 1.0f); }
   /// Set the state of these light color values as a binary true/false.
   void set_state(bool state) { this->state_ = state ? 1.0f : 0.0f; }
 
   /// Get the brightness property of these light color values. In range 0.0 to 1.0
   float get_brightness() const { return this->brightness_; }
   /// Set the brightness property of these light color values. In range 0.0 to 1.0
-  void set_brightness(float brightness) { this->brightness_ = clamp(brightness, 0.0f, 1.0f); }
+  void set_brightness(float brightness) { this->brightness_ = std::clamp(brightness, 0.0f, 1.0f); }
 
   /// Get the color brightness property of these light color values. In range 0.0 to 1.0
   float get_color_brightness() const { return this->color_brightness_; }
   /// Set the color brightness property of these light color values. In range 0.0 to 1.0
-  void set_color_brightness(float brightness) { this->color_brightness_ = clamp(brightness, 0.0f, 1.0f); }
+  void set_color_brightness(float brightness) { this->color_brightness_ = std::clamp(brightness, 0.0f, 1.0f); }
 
   /// Get the red property of these light color values. In range 0.0 to 1.0
   float get_red() const { return this->red_; }
   /// Set the red property of these light color values. In range 0.0 to 1.0
-  void set_red(float red) { this->red_ = clamp(red, 0.0f, 1.0f); }
+  void set_red(float red) { this->red_ = std::clamp(red, 0.0f, 1.0f); }
 
   /// Get the green property of these light color values. In range 0.0 to 1.0
   float get_green() const { return this->green_; }
   /// Set the green property of these light color values. In range 0.0 to 1.0
-  void set_green(float green) { this->green_ = clamp(green, 0.0f, 1.0f); }
+  void set_green(float green) { this->green_ = std::clamp(green, 0.0f, 1.0f); }
 
   /// Get the blue property of these light color values. In range 0.0 to 1.0
   float get_blue() const { return this->blue_; }
   /// Set the blue property of these light color values. In range 0.0 to 1.0
-  void set_blue(float blue) { this->blue_ = clamp(blue, 0.0f, 1.0f); }
+  void set_blue(float blue) { this->blue_ = std::clamp(blue, 0.0f, 1.0f); }
 
   /// Get the white property of these light color values. In range 0.0 to 1.0
   float get_white() const { return white_; }
   /// Set the white property of these light color values. In range 0.0 to 1.0
-  void set_white(float white) { this->white_ = clamp(white, 0.0f, 1.0f); }
+  void set_white(float white) { this->white_ = std::clamp(white, 0.0f, 1.0f); }
 
   /// Get the color temperature property of these light color values in mired.
   float get_color_temperature() const { return this->color_temperature_; }
@@ -284,12 +284,12 @@ class LightColorValues {
   /// Get the cold white property of these light color values. In range 0.0 to 1.0.
   float get_cold_white() const { return this->cold_white_; }
   /// Set the cold white property of these light color values. In range 0.0 to 1.0.
-  void set_cold_white(float cold_white) { this->cold_white_ = clamp(cold_white, 0.0f, 1.0f); }
+  void set_cold_white(float cold_white) { this->cold_white_ = std::clamp(cold_white, 0.0f, 1.0f); }
 
   /// Get the warm white property of these light color values. In range 0.0 to 1.0.
   float get_warm_white() const { return this->warm_white_; }
   /// Set the warm white property of these light color values. In range 0.0 to 1.0.
-  void set_warm_white(float warm_white) { this->warm_white_ = clamp(warm_white, 0.0f, 1.0f); }
+  void set_warm_white(float warm_white) { this->warm_white_ = std::clamp(warm_white, 0.0f, 1.0f); }
 
  protected:
   ColorMode color_mode_;

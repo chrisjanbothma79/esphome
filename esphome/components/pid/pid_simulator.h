@@ -40,7 +40,7 @@ class PIDSimulator : public PollingComponent, public output::FloatOutput {
   }
 
   float update_temp() {
-    float value = clamp(output_value, 0.0f, 1.0f);
+    float value = std::clamp(output_value, 0.0f, 1.0f);
 
     // Heat
     float power = value * heat_power * efficiency;

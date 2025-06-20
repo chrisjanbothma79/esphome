@@ -199,7 +199,7 @@ void HeatpumpIRClimate::transmit_state() {
       break;
   }
 
-  temperature_cmd = (uint8_t) clamp(this->target_temperature, this->min_temperature_, this->max_temperature_);
+  temperature_cmd = (uint8_t) std::clamp(this->target_temperature, this->min_temperature_, this->max_temperature_);
 
   IRSenderESPHome esp_sender(this->transmitter_);
   heatpump_ir_->send(esp_sender, power_mode_cmd, operating_mode_cmd, fan_speed_cmd, temperature_cmd, swing_v_cmd,

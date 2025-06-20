@@ -90,7 +90,7 @@ void ES7243E::setup() {
 }
 
 bool ES7243E::set_mic_gain(float mic_gain) {
-  this->mic_gain_ = clamp<float>(mic_gain, 0, 37.5);
+  this->mic_gain_ = std::clamp<float>(mic_gain, 0, 37.5);
   if (this->setup_complete_) {
     return this->configure_mic_gain_();
   }

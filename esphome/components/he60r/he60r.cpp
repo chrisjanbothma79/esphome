@@ -251,7 +251,7 @@ void HE60rCover::recompute_position_() {
     }
 
     // make sure our guesstimate never reaches full open or close.
-    auto new_position = clamp(delta + this->position, COVER_CLOSED + 0.01f, COVER_OPEN - 0.01f);
+    auto new_position = std::clamp(delta + this->position, COVER_CLOSED + 0.01f, COVER_OPEN - 0.01f);
     ESP_LOGD(TAG, "Recompute %ums, dir=%u, delta=%f, pos=%f", diff, this->current_operation, delta, new_position);
     this->last_recompute_time_ = now;
     if (this->position != new_position) {

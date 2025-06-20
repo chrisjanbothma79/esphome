@@ -8,7 +8,8 @@ static const char *const TAG = "emmeti.climate";
 
 // setters
 uint8_t EmmetiClimate::set_temp_() {
-  return (uint8_t) roundf(clamp<float>(this->target_temperature, EMMETI_TEMP_MIN, EMMETI_TEMP_MAX) - EMMETI_TEMP_MIN);
+  return (uint8_t) roundf(std::clamp<float>(this->target_temperature, EMMETI_TEMP_MIN, EMMETI_TEMP_MAX) -
+                          EMMETI_TEMP_MIN);
 }
 
 uint8_t EmmetiClimate::set_mode_() {

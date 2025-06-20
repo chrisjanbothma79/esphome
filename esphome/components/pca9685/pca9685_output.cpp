@@ -63,7 +63,7 @@ void PCA9685Output::setup() {
     }
   } else {
     pre_scaler = static_cast<int>((25000000 / (4096 * this->frequency_)) - 1);
-    pre_scaler = clamp(pre_scaler, 3, 255);
+    pre_scaler = std::clamp(pre_scaler, 3, 255);
 
     ESP_LOGV(TAG, "  -> Prescaler: %d", pre_scaler);
   }
