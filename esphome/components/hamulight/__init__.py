@@ -10,7 +10,7 @@ CONFIG_SCHEMA = cv.Schema({
     cv.GenerateID(): cv.declare_id(HamulightComponent),                                      # unique instance ID
     cv.Required("rf_transmit_pin"): pins.gpio_output_pin_schema,                             # required PIN for RF transmission
     cv.Optional("led_pin"): pins.gpio_output_pin_schema,                                     # optional PIN for feedback LED
-    cv.Required(CONF_ADDRESS): cv.hex_uint16_t,                                              # required 2-Byte RF address (HEX)
+    cv.Required("rf_address"): cv.hex_uint16_t,                                              # required 2-Byte RF address (HEX)
 }).extend(cv.COMPONENT_SCHEMA)
 
 # Function to generate the C++ code from the YAML configuration file
