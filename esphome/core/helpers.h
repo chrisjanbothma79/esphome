@@ -45,13 +45,6 @@ namespace esphome {
 // Backports for various STL features we like to use. Pull in the STL implementation wherever available, to avoid
 // ambiguity and to provide a uniform API.
 
-// std::enable_if_t from C++14
-#if __cplusplus >= 201402L
-using std::enable_if_t;
-#else
-template<bool B, class T = void> using enable_if_t = typename std::enable_if<B, T>::type;
-#endif
-
 // std::clamp from C++17
 #if __cpp_lib_clamp >= 201603
 using std::clamp;
@@ -83,8 +76,8 @@ using std::bit_cast;
 /// Convert data between types, without aliasing issues or undefined behaviour.
 template<
     typename To, typename From,
-    enable_if_t<sizeof(To) == sizeof(From) && is_trivially_copyable<From>::value && is_trivially_copyable<To>::value,
-                int> = 0>
+    std::enable_if_t<
+        sizeof(To) == sizeof(From) && is_trivially_copyable<From>::value && is_trivially_copyable<To>::value, int> = 0>
 To bit_cast(const From &src) {
   To dst;
   memcpy(&dst, &src, sizeof(To));
@@ -160,7 +153,8 @@ constexpr uint32_t encode_uint32(uint8_t byte1, uint8_t byte2, uint8_t byte3, ui
 }
 
 /// Encode a value from its constituent bytes (from most to least significant) in an array with length sizeof(T).
-template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> constexpr T encode_value(const uint8_t *bytes) {
+template<typename T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0>
+constexpr T encode_value(const uint8_t *bytes) {
   T val = 0;
   for (size_t i = 0; i < sizeof(T); i++) {
     val <<= 8;
@@ -169,12 +163,12 @@ template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> constexpr
   return val;
 }
 /// Encode a value from its constituent bytes (from most to least significant) in an std::array with length sizeof(T).
-template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0>
+template<typename T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0>
 constexpr T encode_value(const std::array<uint8_t, sizeof(T)> bytes) {
   return encode_value<T>(bytes.data());
 }
 /// Decode a value into its constituent bytes (from most to least significant).
-template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0>
+template<typename T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0>
 constexpr std::array<uint8_t, sizeof(T)> decode_value(T val) {
   std::array<uint8_t, sizeof(T)> ret{};
   for (size_t i = sizeof(T); i > 0; i--) {
@@ -263,7 +257,7 @@ std::string __attribute__((format(printf, 1, 2))) str_sprintf(const char *fmt, .
 ///@{
 
 /// Parse an unsigned decimal number from a null-terminated string.
-template<typename T, enable_if_t<(std::is_integral<T>::value && std::is_unsigned<T>::value), int> = 0>
+template<typename T, std::enable_if_t<(std::is_integral<T>::value && std::is_unsigned<T>::value), int> = 0>
 optional<T> parse_number(const char *str) {
   char *end = nullptr;
   unsigned long value = ::strtoul(str, &end, 10);  // NOLINT(google-runtime-int)
@@ -272,12 +266,12 @@ optional<T> parse_number(const char *str) {
   return value;
 }
 /// Parse an unsigned decimal number.
-template<typename T, enable_if_t<(std::is_integral<T>::value && std::is_unsigned<T>::value), int> = 0>
+template<typename T, std::enable_if_t<(std::is_integral<T>::value && std::is_unsigned<T>::value), int> = 0>
 optional<T> parse_number(const std::string &str) {
   return parse_number<T>(str.c_str());
 }
 /// Parse a signed decimal number from a null-terminated string.
-template<typename T, enable_if_t<(std::is_integral<T>::value && std::is_signed<T>::value), int> = 0>
+template<typename T, std::enable_if_t<(std::is_integral<T>::value && std::is_signed<T>::value), int> = 0>
 optional<T> parse_number(const char *str) {
   char *end = nullptr;
   signed long value = ::strtol(str, &end, 10);  // NOLINT(google-runtime-int)
@@ -286,12 +280,13 @@ optional<T> parse_number(const char *str) {
   return value;
 }
 /// Parse a signed decimal number.
-template<typename T, enable_if_t<(std::is_integral<T>::value && std::is_signed<T>::value), int> = 0>
+template<typename T, std::enable_if_t<(std::is_integral<T>::value && std::is_signed<T>::value), int> = 0>
 optional<T> parse_number(const std::string &str) {
   return parse_number<T>(str.c_str());
 }
 /// Parse a decimal floating-point number from a null-terminated string.
-template<typename T, enable_if_t<(std::is_same<T, float>::value), int> = 0> optional<T> parse_number(const char *str) {
+template<typename T, std::enable_if_t<(std::is_same<T, float>::value), int> = 0>
+optional<T> parse_number(const char *str) {
   char *end = nullptr;
   float value = ::strtof(str, &end);
   if (end == str || *end != '\0' || value == HUGE_VALF)
@@ -299,7 +294,7 @@ template<typename T, enable_if_t<(std::is_same<T, float>::value), int> = 0> opti
   return value;
 }
 /// Parse a decimal floating-point number.
-template<typename T, enable_if_t<(std::is_same<T, float>::value), int> = 0>
+template<typename T, std::enable_if_t<(std::is_same<T, float>::value), int> = 0>
 optional<T> parse_number(const std::string &str) {
   return parse_number<T>(str.c_str());
 }
@@ -339,7 +334,7 @@ inline bool parse_hex(const std::string &str, std::vector<uint8_t> &data, size_t
  * @param str String to read from, starting with the most significant byte.
  * @param len Length of \p str (excluding optional null-terminator), is a limit on the number of characters parsed.
  */
-template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0>
+template<typename T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0>
 optional<T> parse_hex(const char *str, size_t len) {
   T val = 0;
   if (len > 2 * sizeof(T) || parse_hex(str, len, reinterpret_cast<uint8_t *>(&val), sizeof(T)) == 0)
@@ -347,11 +342,12 @@ optional<T> parse_hex(const char *str, size_t len) {
   return convert_big_endian(val);
 }
 /// Parse a hex-encoded null-terminated string (starting with the most significant byte) into an unsigned integer.
-template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> optional<T> parse_hex(const char *str) {
+template<typename T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0> optional<T> parse_hex(const char *str) {
   return parse_hex<T>(str, strlen(str));
 }
 /// Parse a hex-encoded null-terminated string (starting with the most significant byte) into an unsigned integer.
-template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> optional<T> parse_hex(const std::string &str) {
+template<typename T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0>
+optional<T> parse_hex(const std::string &str) {
   return parse_hex<T>(str.c_str(), str.length());
 }
 
@@ -360,7 +356,7 @@ std::string format_hex(const uint8_t *data, size_t length);
 /// Format the vector \p data in lowercased hex.
 std::string format_hex(const std::vector<uint8_t> &data);
 /// Format an unsigned integer in lowercased hex, starting with the most significant byte.
-template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> std::string format_hex(T val) {
+template<typename T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0> std::string format_hex(T val) {
   val = convert_big_endian(val);
   return format_hex(reinterpret_cast<uint8_t *>(&val), sizeof(T));
 }
@@ -377,7 +373,7 @@ std::string format_hex_pretty(const std::vector<uint8_t> &data);
 /// Format the vector \p data in pretty-printed, human-readable hex.
 std::string format_hex_pretty(const std::vector<uint16_t> &data);
 /// Format an unsigned integer in pretty-printed, human-readable hex, starting with the most significant byte.
-template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> std::string format_hex_pretty(T val) {
+template<typename T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0> std::string format_hex_pretty(T val) {
   val = convert_big_endian(val);
   return format_hex_pretty(reinterpret_cast<uint8_t *>(&val), sizeof(T));
 }
@@ -385,7 +381,7 @@ template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> std::stri
 /// Format the byte array \p data of length \p len in binary.
 std::string format_bin(const uint8_t *data, size_t length);
 /// Format an unsigned integer in binary, starting with the most significant byte.
-template<typename T, enable_if_t<std::is_unsigned<T>::value, int> = 0> std::string format_bin(T val) {
+template<typename T, std::enable_if_t<std::is_unsigned<T>::value, int> = 0> std::string format_bin(T val) {
   val = convert_big_endian(val);
   return format_bin(reinterpret_cast<uint8_t *>(&val), sizeof(T));
 }
@@ -749,12 +745,12 @@ template<class T> using ExternalRAMAllocator = RAMAllocator<T>;
  *
  * This function is not called from lambdas, the code generator replaces calls to it with the appropriate variable.
  */
-template<typename T, enable_if_t<!std::is_pointer<T>::value, int> = 0> T id(T value) { return value; }
+template<typename T, std::enable_if_t<!std::is_pointer<T>::value, int> = 0> T id(T value) { return value; }
 /** Helper function to make `id(var)` known from lambdas work in custom components.
  *
  * This function is not called from lambdas, the code generator replaces calls to it with the appropriate variable.
  */
-template<typename T, enable_if_t<std::is_pointer<T *>::value, int> = 0> T &id(T *value) { return *value; }
+template<typename T, std::enable_if_t<std::is_pointer<T *>::value, int> = 0> T &id(T *value) { return *value; }
 
 ///@}
 

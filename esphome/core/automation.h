@@ -27,10 +27,10 @@ template<typename T, typename... X> class TemplatableValue {
  public:
   TemplatableValue() : type_(NONE) {}
 
-  template<typename F, enable_if_t<!is_invocable<F, X...>::value, int> = 0>
+  template<typename F, std::enable_if_t<!is_invocable<F, X...>::value, int> = 0>
   TemplatableValue(F value) : type_(VALUE), value_(std::move(value)) {}
 
-  template<typename F, enable_if_t<is_invocable<F, X...>::value, int> = 0>
+  template<typename F, std::enable_if_t<is_invocable<F, X...>::value, int> = 0>
   TemplatableValue(F f) : type_(LAMBDA), f_(f) {}
 
   bool has_value() { return this->type_ != NONE; }
