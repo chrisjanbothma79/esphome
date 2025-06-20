@@ -25,14 +25,14 @@ void SmlTextSensor::publish_val(const ObisInfo &obis_info) {
       break;
     }
     case SML_INT: {
-      publish_state(to_string(bytes_to_int(obis_info.value)));
+      publish_state(std::to_string(bytes_to_int(obis_info.value)));
       break;
     }
     case SML_BOOL:
       publish_state(bytes_to_uint(obis_info.value) ? "True" : "False");
       break;
     case SML_UINT: {
-      publish_state(to_string(bytes_to_uint(obis_info.value)));
+      publish_state(std::to_string(bytes_to_uint(obis_info.value)));
       break;
     }
     case SML_OCTET: {

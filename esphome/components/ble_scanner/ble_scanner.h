@@ -21,7 +21,7 @@ class BLEScanner : public text_sensor::TextSensor, public esp32_ble_tracker::ESP
                         device.address_str() +
                         "\","
                         "\"rssi\":" +
-                        to_string(device.get_rssi()) +
+                        std::to_string(device.get_rssi()) +
                         ","
                         "\"name\":\"" +
                         device.get_name() + "\"}");

@@ -171,7 +171,7 @@ void UARTDebug::log_int(UARTDirection direction, std::vector<uint8_t> bytes, uin
     if (i > 0) {
       res += separator;
     }
-    res += to_string(bytes[i]);
+    res += std::to_string(bytes[i]);
   }
   ESP_LOGD(TAG, "%s", res.c_str());
   delay(10);

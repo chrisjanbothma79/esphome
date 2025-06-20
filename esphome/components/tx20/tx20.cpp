@@ -52,7 +52,7 @@ void Tx20Component::decode_and_publish_() {
   bool current_bit = true;
 
   for (int i = 1; i <= this->store_.buffer_index; i++) {
-    string_buffer_2 += to_string(this->store_.buffer[i]) + ", ";
+    string_buffer_2 += std::to_string(this->store_.buffer[i]) + ", ";
     uint8_t repeat = this->store_.buffer[i] / TX20_BIT_TIME;
     // ignore segments at the end that were too short
     string_buffer.append(repeat, current_bit ? '1' : '0');
@@ -62,7 +62,7 @@ void Tx20Component::decode_and_publish_() {
   current_bit = !current_bit;
   if (string_buffer.length() < MAX_BUFFER_SIZE) {
     uint8_t remain = MAX_BUFFER_SIZE - string_buffer.length();
-    string_buffer_2 += to_string(remain) + ", ";
+    string_buffer_2 += std::to_string(remain) + ", ";
     string_buffer.append(remain, current_bit ? '1' : '0');
     bit_buffer.insert(bit_buffer.end(), remain, current_bit);
   }

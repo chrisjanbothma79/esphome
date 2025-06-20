@@ -176,7 +176,7 @@ void AsyncWebServerRequest::init_response_(AsyncWebServerResponse *rsp, int code
   httpd_resp_set_status(*this, code == 200   ? HTTPD_200
                                : code == 404 ? HTTPD_404
                                : code == 409 ? HTTPD_409
-                                             : to_string(code).c_str());
+                                             : std::to_string(code).c_str());
 
   if (content_type && *content_type) {
     httpd_resp_set_type(*this, content_type);
@@ -256,7 +256,7 @@ void AsyncWebServerResponse::addHeader(const char *name, const char *value) {
   httpd_resp_set_hdr(*this->req_, name, value);
 }
 
-void AsyncResponseStream::print(float value) { this->print(to_string(value)); }
+void AsyncResponseStream::print(float value) { this->print(std::to_string(value)); }
 
 void AsyncResponseStream::printf(const char *fmt, ...) {
   va_list args;
@@ -441,13 +441,13 @@ bool AsyncEventSourceResponse::try_send_nodefer(const char *message, const char 
 
   if (reconnect) {
     event_buffer_.append("retry: ", sizeof("retry: ") - 1);
-    event_buffer_.append(to_string(reconnect));
+    event_buffer_.append(std::to_string(reconnect));
     event_buffer_.append(CRLF_STR, CRLF_LEN);
   }
 
   if (id) {
     event_buffer_.append("id: ", sizeof("id: ") - 1);
-    event_buffer_.append(to_string(id));
+    event_buffer_.append(std::to_string(id));
     event_buffer_.append(CRLF_STR, CRLF_LEN);
   }
 

@@ -1272,8 +1272,8 @@ void Nextion::check_pending_waveform_() {
   size_t buffer_to_send = component->get_wave_buffer_size() < 255 ? component->get_wave_buffer_size()
                                                                   : 255;  // ADDT command can only send 255
 
-  std::string command = "addt " + to_string(component->get_component_id()) + "," +
-                        to_string(component->get_wave_channel_id()) + "," + to_string(buffer_to_send);
+  std::string command = "addt " + std::to_string(component->get_component_id()) + "," +
+                        std::to_string(component->get_wave_channel_id()) + "," + std::to_string(buffer_to_send);
   if (!this->send_command_(command)) {
     delete nb;  // NOLINT(cppcoreguidelines-owning-memory)
     this->waveform_queue_.pop_front();

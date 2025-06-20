@@ -93,7 +93,7 @@ void HomeassistantNumber::control(float value) {
 
   api::HomeassistantServiceMap entity_value;
   entity_value.key = "value";
-  entity_value.value = to_string(value);
+  entity_value.value = std::to_string(value);
   resp.data.push_back(entity_value);
 
   api::global_api_server->send_homeassistant_service_call(resp);

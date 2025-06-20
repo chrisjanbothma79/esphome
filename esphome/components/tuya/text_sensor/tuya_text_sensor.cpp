@@ -20,7 +20,7 @@ void TuyaTextSensor::setup() {
         break;
       }
       case TuyaDatapointType::ENUM: {
-        std::string data = to_string(datapoint.value_enum);
+        std::string data = std::to_string(datapoint.value_enum);
         ESP_LOGD(TAG, "MCU reported text sensor %u is: %s", datapoint.id, data.c_str());
         this->publish_state(data);
         break;

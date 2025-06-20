@@ -69,7 +69,7 @@ void Wiegand::loop() {
   for (auto *trigger : this->raw_triggers_)
     trigger->trigger(count, value);
   if (count == 26) {
-    std::string tag = to_string((value >> 1) & 0xffffff);
+    std::string tag = std::to_string((value >> 1) & 0xffffff);
     ESP_LOGD(TAG, "received 26-bit tag: %s", tag.c_str());
     if (!check_eparity(value, 13, 13) || !check_oparity(value, 0, 13)) {
       ESP_LOGW(TAG, "invalid parity");
@@ -78,7 +78,7 @@ void Wiegand::loop() {
     for (auto *trigger : this->tag_triggers_)
       trigger->trigger(tag);
   } else if (count == 34) {
-    std::string tag = to_string((value >> 1) & 0xffffffff);
+    std::string tag = std::to_string((value >> 1) & 0xffffffff);
     ESP_LOGD(TAG, "received 34-bit tag: %s", tag.c_str());
     if (!check_eparity(value, 17, 17) || !check_oparity(value, 0, 17)) {
       ESP_LOGW(TAG, "invalid parity");
@@ -87,7 +87,7 @@ void Wiegand::loop() {
     for (auto *trigger : this->tag_triggers_)
       trigger->trigger(tag);
   } else if (count == 37) {
-    std::string tag = to_string((value >> 1) & 0x7ffffffff);
+    std::string tag = std::to_string((value >> 1) & 0x7ffffffff);
     ESP_LOGD(TAG, "received 37-bit tag: %s", tag.c_str());
     if (!check_eparity(value, 18, 19) || !check_oparity(value, 0, 19)) {
       ESP_LOGW(TAG, "invalid parity");

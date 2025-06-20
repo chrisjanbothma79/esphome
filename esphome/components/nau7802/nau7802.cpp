@@ -134,7 +134,7 @@ void NAU7802Sensor::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "  Offset Calibration: %s\n"
                 "  Gain Calibration: %f",
-                to_string(this->offset_calibration_).c_str(), this->gain_calibration_);
+                std::to_string(this->offset_calibration_).c_str(), this->gain_calibration_);
 
   std::string voltage = "unknown";
   switch (this->ldo_) {
@@ -290,7 +290,7 @@ void NAU7802Sensor::loop() {
       this->status_clear_error();
 
     int32_t ocal = this->read_value_(OCAL1_B2_REG, 3);
-    ESP_LOGI(TAG, "New Offset: %s", to_string(ocal).c_str());
+    ESP_LOGI(TAG, "New Offset: %s", std::to_string(ocal).c_str());
     uint32_t gcal = this->read_value_(GCAL1_B3_REG, 4);
     float gcal_f = ((float) gcal / (float) (1 << GCAL1_FRACTIONAL));
     ESP_LOGI(TAG, "New Gain: %f", gcal_f);
