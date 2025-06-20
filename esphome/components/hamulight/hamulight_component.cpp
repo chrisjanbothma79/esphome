@@ -59,12 +59,9 @@ void Hamulight::dump_config() {
  * @return light::LightTraits object.
  */
 light::LightTraits Hamulight::get_traits() {
-  light::LightTraits traits;
-  // Supports brightness control (NO on/off)!
+  auto traits = light::LightTraits();
+  // Unterstützt nur Dimmen (Helligkeit)
   traits.set_supported_color_modes({light::ColorMode::BRIGHTNESS});
-  traits.set_min_brightness(0.0f);
-  traits.set_max_brightness(1.0f);
-  
   return traits;
 }
 
