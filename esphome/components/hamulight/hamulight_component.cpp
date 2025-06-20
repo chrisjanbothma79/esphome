@@ -66,61 +66,59 @@ light::LightTraits Hamulight::get_traits() {
 }
 
 /**
- * @brief Called by Home Assistant to change the state of the light (ON/OFF).
+ * @brief Called by Home Assistant to change the state of the light (brightness and on/off).
  *
- * This method is responsible for implementing on/off control via the Home Assistant light power button.
- * @param state The desired LightState object from Home Assistant.
- */
-void Hamulight::turn_on() {
-  ESP_LOGD(TAG, "HA power toggle ON: sending RF_POWER_COMMAND");
-  this->transmit_rf_command(RF_POWER_COMMAND);
-}
-
-void Hamulight::turn_off() {
-  ESP_LOGD(TAG, "HA power toggle OFF: sending RF_POWER_COMMAND");
-  this->transmit_rf_command(RF_POWER_COMMAND);
-}
-
-/**
- * @brief Called by Home Assistant to change the state of the light (brightness).
- *
- * This method is responsible for implementing brightness control via the Home Assistant slider.
- * @param state The desired LightState object from Home Assistant.
+ * Diese Methode ist der zentrale Punkt für alle HA-Interaktionen (Power-Button und Slider).
+ * Sie prüft zuerst, ob das Licht ein- oder ausgeschaltet werden soll (is_on).
+ * Danach prüft sie auf den gewünschten Helligkeitswert (brightness).
+ * Power-Button AUS: RF_POWER_COMMAND
+ * Power-Button EIN + Helligkeit < 100%: Sendet Dimmwert
+ * Power-Button EIN + Helligkeit == 100%: RF_BRIGHT100_COMMAND (Pairing)
  */
 void Hamulight::write_state(light::LightState *state) {
-  float brightness = state->remote_values.get_brightness();                   // Get the desired brightness from the remote values of the state object.
-  ESP_LOGD(TAG, "HA requested brightness: %.4f", brightness);                 // Debug log: Value received from HomeAssistant
-  
-  if (brightness >= 0.999f) {                                                 // if brightness close to 100%
-    ESP_LOGD(TAG, "Sending RF_BRIGHT100_COMMAND (pairing, no offset)");
-    this->transmit_rf_command(RF_BRIGHT100_COMMAND);                          // Transmit the 100% / max brightness command - also needed for pairing!
-  } else {
-    // 1. Convert Home Assistant float state (0.0 - 1.0) to a 0-127 range for dimming steps.
-    // This provides 128 discrete steps (0 to 127).
-    uint8_t dim_value_0_127 = (uint8_t) round(brightness * (RF_SLIDE_STEPS - 1));
+  bool is_on = state->remote_values.is_on();
+  float brightness = state->remote_values.get_brightness();
 
-    // 2. Calculate the brightness value to transmit.
-    // This directly applies the offset and leverages uint8_t's natural overflow behavior
-    // as described in the RF protocol.
-    // Example: For dim_value_0_127 = 0 (0% brightness), result is 0xA8.
-    // Example: For dim_value_0_127 = 88, result is (0xA8 + 88) = 256, which becomes 0x00 as uint8_t.
-    uint8_t brightness_to_transmit = RF_SLIDE_OFFSET + dim_value_0_127;
+  ESP_LOGD(TAG, "write_state() called, HA is_on: %d, brightness: %.4f", is_on, brightness);
 
-    // A general safeguard: if for some reason the calculated brightness falls outside
-    // the expected range, cap it to the maximum allowed RF value.
-    // Given the 0-127 input and 0xA8 offset, the values will naturally wrap.
-    // The max calculated value is 0xA8 + 127 = 0x127 (295 dec), which wraps to 0x27 (39 dec) as uint8_t.
-    // So this check might not be triggered with the current constants, but remains for robustness.
-    if (brightness_to_transmit > RF_SLIDE_RANGE_MAX) {
-        ESP_LOGW(TAG, "Slider input value (0x%02X) exceeding allowed RF range (0x%02X), capping to max (0x%02X).",
-                 brightness_to_transmit, RF_SLIDE_RANGE_MAX, RF_SLIDE_RANGE_MAX);
-        brightness_to_transmit = RF_SLIDE_RANGE_MAX;
-    }
-
-    ESP_LOGD(TAG, "Sending dimming value: %.4f → %d → 0x%02X (with offset)",
-             brightness, dim_value_0_127, brightness_to_transmit);
-    this->transmit_rf_brightness(brightness_to_transmit);     // Sends the brightness command
+  if (!is_on) {
+    ESP_LOGD(TAG, "Sending RF_POWER_COMMAND (OFF)");
+    this->transmit_rf_command(RF_POWER_COMMAND);
+    return;
   }
+
+  // Jetzt ist das Licht EIN:
+  if (brightness >= 0.999f) {
+    ESP_LOGD(TAG, "Sending RF_BRIGHT100_COMMAND (pairing, no offset)");
+    this->transmit_rf_command(RF_BRIGHT100_COMMAND);
+    return;
+  }
+
+  // 1. Convert Home Assistant float state (0.0 - 1.0) to a 0-127 range for dimming steps.
+  // This provides 128 discrete steps (0 to 127).
+  uint8_t dim_value_0_127 = (uint8_t) round(brightness * (RF_SLIDE_STEPS - 1));
+
+  // 2. Calculate the brightness value to transmit.
+  // This directly applies the offset and leverages uint8_t's natural overflow behavior
+  // as described in the RF protocol.
+  // Example: For dim_value_0_127 = 0 (0% brightness), result is 0xA8.
+  // Example: For dim_value_0_127 = 88, result is (0xA8 + 88) = 256, which becomes 0x00 as uint8_t.
+  uint8_t brightness_to_transmit = RF_SLIDE_OFFSET + dim_value_0_127;
+
+  // A general safeguard: if for some reason the calculated brightness falls outside
+  // the expected range, cap it to the maximum allowed RF value.
+  // Given the 0-127 input and 0xA8 offset, the values will naturally wrap.
+  // The max calculated value is 0xA8 + 127 = 0x127 (295 dec), which wraps to 0x27 (39 dec) as uint8_t.
+  // So this check might not be triggered with the current constants, but remains for robustness.
+  if (brightness_to_transmit > RF_SLIDE_RANGE_MAX) {
+      ESP_LOGW(TAG, "Slider input value (0x%02X) exceeding allowed RF range (0x%02X), capping to max (0x%02X).",
+               brightness_to_transmit, RF_SLIDE_RANGE_MAX, RF_SLIDE_RANGE_MAX);
+      brightness_to_transmit = RF_SLIDE_RANGE_MAX;
+  }
+
+  ESP_LOGD(TAG, "Sending dimming value: %.4f → %d → 0x%02X (with offset)",
+           brightness, dim_value_0_127, brightness_to_transmit);
+  this->transmit_rf_brightness(brightness_to_transmit);
 }
 
 /**
@@ -190,7 +188,6 @@ void Hamulight::send_rf_signal() {
     portMUX_TYPE myMux = portMUX_INITIALIZER_UNLOCKED;
     taskENTER_CRITICAL(&myMux);
   #endif
-  
   
   // Repeats the entire signal transmission multiple times for robustness.
   for (int i = 0; i < SIGNAL_REPETITIONS; i++) {
