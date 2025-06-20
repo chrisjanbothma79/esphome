@@ -11,7 +11,7 @@ CONFIG_SCEME = cv.Sceme({
     cv.Required("rf_transmit_pin"): cv.All(cv.pin_output, output.build_output_pin_sceme()), # required PIN for RF transmission
     cv.Optional("led_pin"): cv.All(cv.pin_output, output.build_output_pin_sceme()),         # optional PIN for feedback LED
     cv.Required("rf_address"): cv.hex_uint16,                                               # required 2-Byte RF address (HEX)
-}).extend(cv.COMPONENT_SCHEMA)
+}).extend(cv.COMPONENT_SCEME)
 
 # Function to generate the C++ code from the YAML configuration file
 async def to_code(config):
