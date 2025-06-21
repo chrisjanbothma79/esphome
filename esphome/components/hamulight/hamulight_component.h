@@ -66,12 +66,12 @@ constexpr uint8_t CODE_SEQUENCE_SIZE    = 64;
 // --- End Hamulight RF Protocol Constants ---
 
 /**
- * @class Hamulight
+ * @class HamulightComponent
  * @brief Main Hamulight component class derived from LightOutput and Component.
  *
  * Exposes setup, dump_config, and write_state methods for ESPHome, handles RMT signal generation and sending.
  */
-class Hamulight : public light::LightOutput, public Component {
+class HamulightComponent : public light::LightOutput, public Component {
  public:
   /**
    * @brief Set the GPIOPin object for RF transmission (for digitalWrite and flag checks).
