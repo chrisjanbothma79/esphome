@@ -100,7 +100,7 @@ _CONNECTION_SCHEMA = cv.Schema(
         cv.Optional(CONF_EXT_PAN_ID): cv.hex_int,
         cv.Optional(CONF_NETWORK_NAME): cv.string_strict,
         cv.Optional(CONF_PSKC): cv.hex_int,
-        cv.Optional(CONF_MESH_LOCAL_PREFIX): cv.string,
+        cv.Optional(CONF_MESH_LOCAL_PREFIX): cv.string_strict,
     }
 )
 
