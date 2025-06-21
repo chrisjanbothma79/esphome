@@ -16,6 +16,15 @@ namespace hamulight {
 static const char *const TAG = "hamulight";
 
 /**
+ * @brief Constructor
+ *
+ * Use this to debug if the constructor is called.
+ */
+HamulightComponent::HamulightComponent() {
+  ESP_LOGCONFIG("hamulight", "HamulightComponent CONSTRUCTOR called!");
+}
+
+/**
  * @brief Called once at ESP startup.
  *
  * Initializes the GPIO pins and outputs basic configuration information.
