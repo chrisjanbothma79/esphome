@@ -11,12 +11,14 @@
  *  - Uses RMT hardware for non-blocking, accurate RF signal generation.
  *  - Allocates the RMT channel and encoder ONCE in setup() for efficient operation.
  *  - Optionally supports a feedback LED.
+ *  - Optionally supports a "Command Scanner" (exposed as Home Assistant entities) for RF command range testing.
  *
  * Configuration parameters:
  *  - rf_transmit_pin: GPIOPin* for digital pin control and flag checks.
  *  - rf_pin_num: uint8_t for the raw GPIO number used by RMT hardware.
  *  - led_pin: Optional GPIOPin* for visual feedback.
  *  - rf_address: 16-bit address for RF protocol.
+ *  - command_scanner: Enable command scanner entities (optional).
  * 
  * Author: madmat17
  */
@@ -24,6 +26,9 @@
 #include "esphome/core/component.h"
 #include "esphome/components/light/light_output.h"
 #include "esphome/core/hal.h"
+#include "esphome/components/number/number.h"
+#include "esphome/components/button/button.h"
+#include "esphome/components/sensor/sensor.h"
 
 // IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
@@ -98,6 +103,12 @@ class HamulightComponent : public light::LightOutput, public Component {
   void set_rf_address(uint16_t address) { this->rf_address_ = address; }
 
   /**
+   * @brief Enable the command scanner.
+   * @param boolean
+   */
+  void set_command_scanner_enabled(bool enabled) { this->command_scanner_enabled_ = enabled; }
+
+  /**
    * @brief ESPHome setup lifecycle method. Initializes pins and allocates RMT resources.
    */
   void setup() override;
@@ -129,6 +140,12 @@ class HamulightComponent : public light::LightOutput, public Component {
    */
   void transmit_rf_brightness(uint8_t brightness_value);
 
+  /**
+   * @brief Start/stop scan (initiated by button press).
+   */
+  void start_command_scan();
+  void stop_command_scan();
+
  protected:
   // --- Configuration fields (from YAML/codegen) ---
   GPIOPin *rf_transmit_pin_;  ///< GPIOPin for digital control and flag checks (not used directly in RMT)
@@ -156,6 +173,20 @@ class HamulightComponent : public light::LightOutput, public Component {
 
   // --- Internal RF signal buffer (holds the 32-bit RF payload as pulse durations) ---
   uint16_t code_sequence_[CODE_SEQUENCE_SIZE];
+
+  // --- Command Scanner support ---
+  bool command_scanner_enabled_{false};
+  esphome::number::Number *scanner_start_{nullptr};
+  esphome::number::Number *scanner_end_{nullptr};
+  esphome::number::Number *scanner_pause_{nullptr};
+  esphome::button::Button *scanner_start_button_{nullptr};
+  esphome::button::Button *scanner_stop_button_{nullptr};
+  esphome::sensor::Sensor *scanner_last_sent_{nullptr};
+
+  bool scanner_running_{false};
+  uint8_t scanner_current_;
+  uint32_t scanner_last_time_{0};
+
 };
 
 } // namespace hamulight
