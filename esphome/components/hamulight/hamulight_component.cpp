@@ -1,7 +1,7 @@
 #include "hamulight_component.h"
-#include "esphome/core/log.h"          // For logging output in the ESPHome log
-#include "esphome/core/helpers.h"      // For utility functions like round
-#include "esphome/core/hal.h"          // For GPIOPin methods and delayMicroseconds
+#include "esphome/core/log.h"
+#include "esphome/core/helpers.h"
+#include "esphome/core/hal.h"
 
 #ifdef USE_ESP32
 #include <driver/gpio.h>
@@ -31,7 +31,6 @@ void Hamulight::setup() {
     this->led_pin_->digital_write(false);
   }
 
-  // Logs the successful initialization of the component and its configuration.
   ESP_LOGCONFIG(TAG, "Hamulight is being set up...");
   ESP_LOGCONFIG(TAG, "  RF Transmit Pin: configured");
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
@@ -40,9 +39,10 @@ void Hamulight::setup() {
   }
 
 #ifdef USE_ESP32
-  // --- Allocate RMT TX channel and encoder ONCE, and reuse them for every transmission ---
-  bool open_drain = (this->rf_transmit_pin_->get_flags() & gpio::FLAG_OPEN_DRAIN) != 0;
+  ESP_LOGD(TAG, "rf_pin_num_ = %u", this->rf_pin_num_);
+  ESP_LOGD(TAG, "Setting up RMT...");
 
+  bool open_drain = (this->rf_transmit_pin_->get_flags() & gpio::FLAG_OPEN_DRAIN) != 0;
   rmt_tx_channel_config_t channel;
   memset(&channel, 0, sizeof(channel));
   channel.clk_src = RMT_CLK_SRC_DEFAULT;
@@ -59,6 +59,8 @@ void Hamulight::setup() {
   esp_err_t error = rmt_new_tx_channel(&channel, &this->tx_channel_);
   if (error != ESP_OK) {
     ESP_LOGE(TAG, "rmt_new_tx_channel failed: %s", esp_err_to_name(error));
+    this->tx_channel_ = nullptr;
+    this->encoder_ = nullptr;
     this->mark_failed();
     return;
   }
@@ -74,6 +76,8 @@ void Hamulight::setup() {
   error = rmt_new_copy_encoder(&encoder_cfg, &this->encoder_);
   if (error != ESP_OK) {
     ESP_LOGE(TAG, "rmt_new_copy_encoder failed: %s", esp_err_to_name(error));
+    this->tx_channel_ = nullptr;
+    this->encoder_ = nullptr;
     this->mark_failed();
     return;
   }
@@ -81,9 +85,13 @@ void Hamulight::setup() {
   error = rmt_enable(this->tx_channel_);
   if (error != ESP_OK) {
     ESP_LOGE(TAG, "rmt_enable failed: %s", esp_err_to_name(error));
+    this->tx_channel_ = nullptr;
+    this->encoder_ = nullptr;
     this->mark_failed();
     return;
   }
+
+  ESP_LOGD(TAG, "RMT channel and encoder successfully initialized.");
 #endif
 }
 
@@ -227,6 +235,7 @@ void Hamulight::generate_code_sequence(uint8_t command) {
  * @param command The 8-bit command (e.g., RF_POWER_COMMAND, RF_BRIGHT100_COMMAND).
  */
 void Hamulight::transmit_rf_command(uint8_t command) {
+  ESP_LOGD(TAG, "transmit_rf_command: 0x%02X", command);
   this->generate_code_sequence(command); // Generates the sequence for the command
   this->send_rf_signal_rmt();            // Use RMT-based sending on ESP32
 }
@@ -238,6 +247,7 @@ void Hamulight::transmit_rf_command(uint8_t command) {
  * @param brightness_value The 8-bit brightness value (in the range of RF_SLIDE_RANGE_MIN to RF_SLIDE_RANGE_MAX).
  */
 void Hamulight::transmit_rf_brightness(uint8_t brightness_value) {
+  ESP_LOGD(TAG, "transmit_rf_brightness: 0x%02X", brightness_value);
   this->generate_code_sequence(brightness_value); // Generates the sequence for the brightness value
   this->send_rf_signal_rmt();                     // Use RMT-based sending on ESP32
 }
@@ -250,7 +260,6 @@ void Hamulight::transmit_rf_brightness(uint8_t brightness_value) {
  */
 #ifdef USE_ESP32
 void Hamulight::send_rf_signal_rmt() {
-  // Turns on the optional LED, if configured, as visual feedback.
   if (this->led_pin_ != nullptr) {
     this->led_pin_->digital_write(true); // LED ON
   }
@@ -260,6 +269,8 @@ void Hamulight::send_rf_signal_rmt() {
     if (this->led_pin_ != nullptr) this->led_pin_->digital_write(false);
     return;
   }
+
+  ESP_LOGD(TAG, "Preparing RMT items buffer...");
 
   // --- Prepare RMT symbols for the transmission buffer ---
   std::vector<rmt_symbol_word_t> items;
@@ -286,6 +297,8 @@ void Hamulight::send_rf_signal_rmt() {
     }
   }
 
+  ESP_LOGD(TAG, "Starting RMT transmission: total items = %d", static_cast<int>(items.size()));
+
   // --- Transmit the buffer using RMT hardware ---
   rmt_transmit_config_t tx_config;
   memset(&tx_config, 0, sizeof(tx_config));
@@ -300,11 +313,11 @@ void Hamulight::send_rf_signal_rmt() {
   }
   rmt_tx_wait_all_done(this->tx_channel_, -1);
 
-  // Turns off the LED, if configured.
+  ESP_LOGD(TAG, "RF signal transmission via RMT completed.");
+
   if (this->led_pin_ != nullptr) {
     this->led_pin_->digital_write(false); // LED OFF
   }
-  ESP_LOGD(TAG, "RF signal transmission via RMT completed.");
 }
 #endif
 
