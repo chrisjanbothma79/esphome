@@ -1330,7 +1330,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   std::deque<NextionQueue *> waveform_queue_;
   uint16_t recv_ret_string_(std::string &response, uint32_t timeout, bool recv_flag);
   void all_components_send_state_(bool force_update = false);
-  uint64_t comok_sent_ = 0;
+  uint32_t comok_sent_ = 0;
   bool remove_from_q_(bool report_empty = true);
 
   /**
@@ -1340,12 +1340,10 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   bool ignore_is_setup_ = false;
 
   bool nextion_reports_is_setup_ = false;
-  uint8_t nextion_event_;
-
   void process_nextion_commands_();
   void process_serial_();
   bool is_updating_ = false;
-  uint32_t touch_sleep_timeout_ = 0;
+  uint16_t touch_sleep_timeout_ = 0;
   int16_t wake_up_page_ = -1;
   int16_t start_up_page_ = -1;
   bool auto_wake_on_touch_ = true;
