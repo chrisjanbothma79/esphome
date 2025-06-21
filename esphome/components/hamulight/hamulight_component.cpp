@@ -53,18 +53,18 @@ void Hamulight::setup() {
     this->led_pin_->digital_write(false);
   }
 
-  ESP_LOGCONFIG(TAG, "Hamulight is being set up...");
-  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: configured");
-  ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
+  ESP_LOGCONFIG(TAG, "  setup(): Hamulight is being set up...");
+  ESP_LOGCONFIG(TAG, "  setup(): RF Transmit Pin: configured");
+  ESP_LOGCONFIG(TAG, "  setup(): RF Address: 0x%04X", this->rf_address_);
   if (this->led_pin_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  LED Pin: configured");
+    ESP_LOGCONFIG(TAG, "  setup(): LED Pin: configured");
   }
 
 // TEMPORARY: REMOVED MACROS
 // re-add!! --> #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
-  ESP_LOGD(TAG, "=== Entered RMT setup block ===");
-  ESP_LOGD(TAG, "rf_pin_num_ = %u", this->rf_pin_num_);
-  ESP_LOGD(TAG, "Setting up RMT...");
+  ESP_LOGD(TAG, "setup(): === Entered RMT setup block ===");
+  ESP_LOGD(TAG, "setup(): rf_pin_num_ = %u", this->rf_pin_num_);
+  ESP_LOGD(TAG, "setup(): Setting up RMT...");
 
   bool open_drain = (this->rf_transmit_pin_->get_flags() & gpio::FLAG_OPEN_DRAIN) != 0;
   rmt_tx_channel_config_t channel;
@@ -81,9 +81,9 @@ void Hamulight::setup() {
   channel.intr_priority = 0;
 
   esp_err_t error = rmt_new_tx_channel(&channel, &this->tx_channel_);
-  ESP_LOGD(TAG, "rmt_new_tx_channel returned: %d", error);
+  ESP_LOGD(TAG, "setup(): rmt_new_tx_channel returned: %d", error);
   if (error != ESP_OK) {
-    ESP_LOGE(TAG, "rmt_new_tx_channel failed: %s", esp_err_to_name(error));
+    ESP_LOGE(TAG, "setup(): rmt_new_tx_channel failed: %s", esp_err_to_name(error));
     this->tx_channel_ = nullptr;
     this->encoder_ = nullptr;
     this->mark_failed();
@@ -99,9 +99,9 @@ void Hamulight::setup() {
 
   rmt_copy_encoder_config_t encoder_cfg = {};
   error = rmt_new_copy_encoder(&encoder_cfg, &this->encoder_);
-  ESP_LOGD(TAG, "rmt_new_copy_encoder returned: %d", error);
+  ESP_LOGD(TAG, "setup(): rmt_new_copy_encoder returned: %d", error);
   if (error != ESP_OK) {
-    ESP_LOGE(TAG, "rmt_new_copy_encoder failed: %s", esp_err_to_name(error));
+    ESP_LOGE(TAG, "setup(): rmt_new_copy_encoder failed: %s", esp_err_to_name(error));
     this->tx_channel_ = nullptr;
     this->encoder_ = nullptr;
     this->mark_failed();
@@ -109,16 +109,16 @@ void Hamulight::setup() {
   }
 
   error = rmt_enable(this->tx_channel_);
-  ESP_LOGD(TAG, "rmt_enable returned: %d", error);
+  ESP_LOGD(TAG, "setup(): rmt_enable returned: %d", error);
   if (error != ESP_OK) {
-    ESP_LOGE(TAG, "rmt_enable failed: %s", esp_err_to_name(error));
+    ESP_LOGE(TAG, "setup(): rmt_enable failed: %s", esp_err_to_name(error));
     this->tx_channel_ = nullptr;
     this->encoder_ = nullptr;
     this->mark_failed();
     return;
   }
 
-  ESP_LOGD(TAG, "RMT channel and encoder successfully initialized.");
+  ESP_LOGD(TAG, "setup(): RMT channel and encoder successfully initialized.");
 // re-add!! --> #endif
 }
 
