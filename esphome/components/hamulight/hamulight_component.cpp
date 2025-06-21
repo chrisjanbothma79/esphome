@@ -211,7 +211,7 @@ void Hamulight::send_rf_signal_rmt() {
   rmt_channel_handle_t channel = nullptr;
   rmt_tx_channel_config_t tx_chan_config = {
     .clk_src = RMT_CLK_SRC_DEFAULT,
-    .gpio_num = (gpio_num_t)this->rf_transmit_pin_->to_isr_gpio(),
+    .gpio_num = (gpio_num_t)this->rf_pin_num_,
     .mem_block_symbols = 64,  // enough for our signal
     .resolution_hz = 1000000, // 1 MHz for microsecond accuracy
     .trans_queue_depth = 1,
