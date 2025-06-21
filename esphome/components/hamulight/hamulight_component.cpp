@@ -211,13 +211,11 @@ void Hamulight::send_rf_signal_rmt() {
   rmt_channel_handle_t channel = nullptr;
   rmt_tx_channel_config_t tx_chan_config = {
     .clk_src = RMT_CLK_SRC_DEFAULT,
-    .gpio_num = (gpio_num_t)this->rf_transmit_pin_->get_pin(),
+    .gpio_num = (gpio_num_t)this->rf_transmit_pin_->pin_,
     .mem_block_symbols = 64,  // enough for our signal
     .resolution_hz = 1000000, // 1 MHz for microsecond accuracy
     .trans_queue_depth = 1,
-    .flags.io_loop_back = false,
-    .flags.io_od_mode = false,
-    .flags.invert_out = false,
+    .flags = { .io_loop_back = false, .io_od_mode = false, .invert_out = false },
     .intr_priority = 0,
   };
   rmt_new_tx_channel(&tx_chan_config, &channel);
