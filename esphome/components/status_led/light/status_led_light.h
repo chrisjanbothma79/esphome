@@ -37,7 +37,7 @@ class StatusLEDLightOutput : public light::LightOutput, public Component {
   output::BinaryOutput *output_{nullptr};
   light::LightState *lightstate_{};
   uint8_t cycles_left_{0};
-  uint32_t last_app_state_{0xFFFF};
+  uint8_t last_app_state_{0xFF};
   void output_state_(bool state);
 };
 
