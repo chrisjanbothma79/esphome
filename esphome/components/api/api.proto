@@ -250,7 +250,7 @@ message DeviceInfoResponse {
 
   repeated SubDeviceInfo sub_devices = 20;
   repeated AreaInfo areas = 21;
- 
+
   // Top-level area info to phase out suggested_area
   AreaInfo area = 22;
 }
