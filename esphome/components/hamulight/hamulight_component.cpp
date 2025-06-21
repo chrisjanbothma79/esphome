@@ -3,7 +3,8 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
 
-#ifdef USE_ESP32
+// IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT)
 #include <driver/gpio.h>
 #include "driver/rmt_tx.h"
 #endif
@@ -38,7 +39,8 @@ void Hamulight::setup() {
     ESP_LOGCONFIG(TAG, "  LED Pin: configured");
   }
 
-#ifdef USE_ESP32
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT)
+  ESP_LOGD(TAG, "=== Entered RMT setup block ===");
   ESP_LOGD(TAG, "rf_pin_num_ = %u", this->rf_pin_num_);
   ESP_LOGD(TAG, "Setting up RMT...");
 
@@ -261,7 +263,7 @@ void Hamulight::transmit_rf_brightness(uint8_t brightness_value) {
  * This implementation leverages the ESP32's RMT hardware for precise and non-blocking transmission.
  * The RMT TX channel and encoder are allocated ONCE in setup() and reused for every transmission.
  */
-#ifdef USE_ESP32
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT)
 void Hamulight::send_rf_signal_rmt() {
   if (this->led_pin_ != nullptr) {
     this->led_pin_->digital_write(true); // LED ON
