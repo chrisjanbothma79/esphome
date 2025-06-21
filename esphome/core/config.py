@@ -472,8 +472,7 @@ async def to_code(config):
                 area_conf,
             )
             # Create a synthetic area for backwards compatibility
-            area_id_obj = cv.ID(f"area_{area_slug}")
-            area_var = cg.new_Pvariable(area_id_obj, type_=Area)
+            area_var = cg.Pvariable(f"area_{area_slug}", Area)
             area_id = fnv1a_32bit_hash(area_conf)
             area_name = area_conf
 
