@@ -3,6 +3,13 @@ import esphome.config_validation as cv
 from esphome.const import CONF_ID
 from esphome import pins
 
+
+# --- Needed for the optional command scanner ---
+CONF_CMDSCAN_START = "cmdscan_start"
+CONF_CMDSCAN_END = "cmdscan_end"
+CONF_CMDSCAN_PAUSE = "cmdscan_pause"
+
+
 HAMULIGHT_NAMESPACE = cg.esphome_ns.namespace('hamulight')
 HamulightComponent = HAMULIGHT_NAMESPACE.class_('HamulightComponent', cg.Component)
 
