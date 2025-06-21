@@ -3,32 +3,12 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
 
-
-// TEMPORARY: ENTRY FOR DEBUG (see which macros are defined)
-#ifdef USE_ESP32
-#pragma message ("USE_ESP32 is defined")
-#endif
-#ifdef USE_ESP32S2
-#pragma message ("USE_ESP32S2 is defined")
-#endif
-#ifdef USE_ESP32S3
-#pragma message ("USE_ESP32S3 is defined")
-#endif
-#ifdef USE_ESP32C3
-#pragma message ("USE_ESP32C3 is defined")
-#endif
-#ifdef USE_ESP32_VARIANT
-#pragma message ("USE_ESP32_VARIANT is defined")
-#endif
-
-
-
 // IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
 // TEMPORARY: REMOVED MACROS
-// re-add!! --> #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
 #include <driver/gpio.h>
 #include "driver/rmt_tx.h"
-// re-add!! --> #endif
+#endif
 
 namespace esphome {
 namespace hamulight {
@@ -60,8 +40,7 @@ void Hamulight::setup() {
     ESP_LOGCONFIG(TAG, "  setup(): LED Pin: configured");
   }
 
-// TEMPORARY: REMOVED MACROS
-// re-add!! --> #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
   ESP_LOGD(TAG, "setup(): === Entered RMT setup block ===");
   ESP_LOGD(TAG, "setup(): rf_pin_num_ = %u", this->rf_pin_num_);
   ESP_LOGD(TAG, "setup(): Setting up RMT...");
@@ -119,7 +98,7 @@ void Hamulight::setup() {
   }
 
   ESP_LOGD(TAG, "setup(): RMT channel and encoder successfully initialized.");
-// re-add!! --> #endif
+#endif
 }
 
 /**
@@ -146,7 +125,7 @@ void Hamulight::dump_config() {
  */
 light::LightTraits Hamulight::get_traits() {
   auto traits = light::LightTraits();
-  // Unterstützt nur Dimmen (Helligkeit)
+  // Only supports dimming (brightness)
   traits.set_supported_color_modes({light::ColorMode::BRIGHTNESS});
   return traits;
 }
@@ -154,12 +133,12 @@ light::LightTraits Hamulight::get_traits() {
 /**
  * @brief Called by Home Assistant to change the state of the light (brightness and on/off).
  *
- * Diese Methode ist der zentrale Punkt für alle HA-Interaktionen (Power-Button und Slider).
- * Sie prüft zuerst, ob das Licht ein- oder ausgeschaltet werden soll (is_on).
- * Danach prüft sie auf den gewünschten Helligkeitswert (brightness).
- * Power-Button AUS: RF_POWER_COMMAND
- * Power-Button EIN + Helligkeit < 100%: Sendet Dimmwert
- * Power-Button EIN + Helligkeit == 100%: RF_BRIGHT100_COMMAND (Pairing)
+ * This method is the central point for all HA interactions (power button and slider).
+ * It first checks if the light should be turned on or off (is_on).
+ * Then checks for the desired brightness value (brightness).
+ * Power button OFF: RF_POWER_COMMAND
+ * Power button ON + brightness < 100%: sends dim value
+ * Power button ON + brightness == 100%: RF_BRIGHT100_COMMAND (pairing)
  */
 void Hamulight::write_state(light::LightState *state) {
   bool is_on = state->remote_values.is_on();
@@ -173,7 +152,7 @@ void Hamulight::write_state(light::LightState *state) {
     return;
   }
 
-  // Jetzt ist das Licht EIN:
+  // Now the light is ON:
   if (brightness >= 0.999f) {
     ESP_LOGD(TAG, "Sending RF_BRIGHT100_COMMAND (pairing, no offset)");
     this->transmit_rf_command(RF_BRIGHT100_COMMAND);
