@@ -69,9 +69,9 @@ FINAL_VALIDATE_SCHEMA = _final_validate
 async def to_code(config):
     var = await binary_sensor.new_binary_sensor(config)
     comp = await cg.get_variable(config[CONF_TRANSPORT_ID])
-    if config[CONF_TYPE] == CONF_DATA:
-        remote_id = str(config.get(CONF_REMOTE_ID) or config.get(CONF_ID))
-        cg.add(comp.add_remote_binary_sensor(config[CONF_PROVIDER], remote_id, var))
-    elif config[CONF_TYPE] == CONF_STATUS:
+    if config[CONF_TYPE] == CONF_STATUS:
         cg.add(comp.set_provider_status_sensor(config[CONF_PROVIDER], var))
         cg.add_define("USE_STATUS_SENSOR")
+    else:  # CONF_DATA is default
+        remote_id = str(config.get(CONF_REMOTE_ID) or config.get(CONF_ID))
+        cg.add(comp.add_remote_binary_sensor(config[CONF_PROVIDER], remote_id, var))

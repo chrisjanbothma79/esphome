@@ -314,7 +314,7 @@ void PacketTransport::send_data_(bool all) {
 }
 
 void PacketTransport::update() {
-  uint32_t now = millis() / 1000u;
+  auto now = millis() / 1000;
   if (this->last_key_time_ + this->ping_pong_recyle_time_ < now) {
     this->resend_ping_key_ = this->ping_pong_enable_;
     ESP_LOGV(TAG, "Ping request, age %u", now - this->last_key_time_);
@@ -334,8 +334,11 @@ void PacketTransport::update() {
         sensor.second->publish_state(NAN);
       }
 #endif
-      // Not possible to set a binary sensor unavailable, hence no equivalent loop
-      // as for the sensors above.
+#ifdef USE_BINARY_SENSOR
+      for (auto &sensor : this->remote_binary_sensors_[provider.first]) {
+        sensor.second->invalidate_state();
+      }
+#endif
     } else {
 #ifdef USE_STATUS_SENSOR
       if (provider.second.status_sensor != nullptr && !provider.second.status_sensor->state) {
