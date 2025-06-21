@@ -51,21 +51,15 @@ def _final_validate(config):
     full_config = fv.full_config.get()
     transport_path = full_config.get_path_for_id(config[CONF_TRANSPORT_ID])[:-1]
     transport_config = full_config.get_config_for_path(transport_path)
-    ping_pong_enabled = transport_config.get(CONF_PING_PONG_ENABLE, False)
-    provider_encryption_enabled = True
-    if provider := next(
-        p
-        for p in transport_config.get(CONF_PROVIDERS)
-        if p.get(CONF_NAME) == config[CONF_PROVIDER]
+    if transport_config[CONF_PING_PONG_ENABLE] and any(
+        CONF_ENCRYPTION in p
+        for p in transport_config[CONF_PROVIDERS]
+        if p[CONF_NAME] == config[CONF_PROVIDER]
     ):
-        if CONF_ENCRYPTION not in provider:
-            provider_encryption_enabled = False
-    else:
-        provider_encryption_enabled = False
-    if not (ping_pong_enabled and provider_encryption_enabled):
-        raise cv.Invalid(
-            f"Status sensor {config[CONF_ID]} requires provider {config[CONF_PROVIDER]} to have enctryption defined and ping-pong enabled for {config[CONF_TRANSPORT_ID]}"
-        )
+        return config
+    raise cv.Invalid(
+        "Status sensor requires ping-pong to be enabled and the nominated provider to use encryption."
+    )
     return config
 
 
