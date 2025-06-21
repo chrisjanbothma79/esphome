@@ -1,7 +1,5 @@
 #pragma once
 
-#include "esphome/core/string_ref.h"
-
 namespace esphome {
 
 class Device {
