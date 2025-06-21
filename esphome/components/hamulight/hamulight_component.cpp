@@ -361,23 +361,16 @@ void HamulightComponent::stop_command_scan() {
 }
 
 void HamulightComponent::loop() {
-  // Command scanner non-blocking scan logic using YAML global ids
+  // Command scanner non-blocking scan logic using number pointers
   if (!command_scanner_enabled_ || !scanner_running_)
     return;
 
-  // These must be defined in YAML with the same ids
-  // id(hamulight_cmdscan_start), id(hamulight_cmdscan_end), id(hamulight_cmdscan_pause)
-  extern esphome::template_::TemplateNumber *id_hamulight_cmdscan_start;
-  extern esphome::template_::TemplateNumber *id_hamulight_cmdscan_end;
-  extern esphome::template_::TemplateNumber *id_hamulight_cmdscan_pause;
-
-  // Only run if all pointers are available
-  if (!id_hamulight_cmdscan_start || !id_hamulight_cmdscan_end || !id_hamulight_cmdscan_pause)
+  if (!cmdscan_start_ || !cmdscan_end_ || !cmdscan_pause_)
     return;
 
-  uint8_t start = (uint8_t)id_hamulight_cmdscan_start->state;
-  uint8_t end = (uint8_t)id_hamulight_cmdscan_end->state;
-  uint32_t pause = (uint32_t)id_hamulight_cmdscan_pause->state;
+  uint8_t start = (uint8_t)cmdscan_start_->state;
+  uint8_t end = (uint8_t)cmdscan_end_->state;
+  uint32_t pause = (uint32_t)cmdscan_pause_->state;
 
   if (scanner_last_time_ == 0)
     scanner_current_ = start; // initialize on first loop
@@ -392,7 +385,6 @@ void HamulightComponent::loop() {
     } else {
       scanner_running_ = false;
       ESP_LOGI(TAG, "Command scan finished.");
-       
     }
   }
 }
