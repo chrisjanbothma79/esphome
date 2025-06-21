@@ -111,6 +111,11 @@ class HamulightComponent : public light::LightOutput, public Component {
   void setup() override;
 
   /**
+   * @brief ESPHome loop method. Runs code after setup() was completed.
+   */
+  void loop() override;
+
+  /**
    * @brief Dumps YAML configuration and component status to ESPHome log.
    */
   void dump_config() override;
