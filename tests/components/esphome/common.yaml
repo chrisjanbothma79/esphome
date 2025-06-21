@@ -2,7 +2,9 @@ esphome:
   debug_scheduler: true
   platformio_options:
     board_build.flash_mode: dio
-  area: testing
+  area:
+    id: testing_area
+    name: Testing Area
   on_boot:
     logger.log: on_boot
   on_shutdown:
@@ -24,6 +26,9 @@ esphome:
     - id: other_device
       name: Another device
       area_id: another_area
+    - id: test_device
+      name: Test device in main area
+      area_id: testing_area  # Reference the main area (not in sub_areas)
 
 binary_sensor:
   - platform: template
