@@ -4,7 +4,7 @@ import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
 
 AUTO_LOAD = ["json"]
-CODEOWNERS = ["@FredM67"]
+CODEOWNERS = ["@FredM67", "@TrystanLea", "@glynhudson"]
 MULTI_CONF = True
 
 emontx_ns = cg.esphome_ns.namespace("emontx")
