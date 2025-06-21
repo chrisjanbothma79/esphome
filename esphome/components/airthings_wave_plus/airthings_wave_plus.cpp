@@ -80,7 +80,7 @@ void AirthingsWavePlus::setup() {
 
   // Change UUIDs for Wave Radon Gen2
   switch (this->wave_device_type_) {
-    case WAVEDEVICETYPE::WAVE_GEN2:
+    case WaveDeviceType::WAVE_GEN2:
       service_uuid = SERVICE_UUID_WAVE_RADON_GEN2;
       characteristic_uuid = CHARACTERISTIC_UUID_WAVE_RADON_GEN2;
       access_control_point_characteristic_uuid = ACCESS_CONTROL_POINT_CHARACTERISTIC_UUID_WAVE_RADON_GEN2;

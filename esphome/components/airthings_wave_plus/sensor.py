@@ -26,7 +26,7 @@ AirthingsWavePlus = airthings_wave_plus_ns.class_(
 )
 
 CONF_DEVICE_TYPE = "device_type"
-WAVEDEVICETYPE = airthings_wave_plus_ns.enum("WAVEDEVICETYPE")
+WAVEDEVICETYPE = airthings_wave_plus_ns.enum("WaveDeviceType")
 DEVICE_TYPES = {
     "WAVE_PLUS": WAVEDEVICETYPE.WAVE_PLUS,
     "WAVE_GEN2": WAVEDEVICETYPE.WAVE_GEN2,
@@ -82,5 +82,4 @@ async def to_code(config):
     if config_illuminance := config.get(CONF_ILLUMINANCE):
         sens = await sensor.new_sensor(config_illuminance)
         cg.add(var.set_illuminance(sens))
-    if config_device_type := config.get(CONF_DEVICE_TYPE):
-        cg.add(var.set_device_type(config_device_type))
+    cg.add(var.set_device_type(config[CONF_DEVICE_TYPE]))
