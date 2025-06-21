@@ -2,7 +2,11 @@
 
 #include "esphome/core/component.h"
 #include "esphome/components/light/light_output.h"
-#include "esphome/core/hal.h"                         // Für GPIO PIN operations (digitalWrite, delayMicroseconds)
+#include "esphome/core/hal.h"                         // For GPIO PIN operations (digitalWrite, delayMicroseconds)
+
+#ifdef USE_ESP32
+#include "driver/rmt_tx.h"                            // Key element for changing from SW based timing to RMT hardware (limits the project to ESP32, though!)
+#endif 
 
 namespace esphome {
 namespace hamulight {
@@ -60,7 +64,7 @@ class Hamulight : public light::LightOutput, public Component {
   const int BIT0_PULSE[2] = {3, 1};                                               // Pulse for bit 0 (HIGH, LOW duration in BASE_PULSE units)
   const int BIT1_PULSE[2] = {1, 3};                                               // Pulse for bit 1 (HIGH, LOW duration in BASE_PULSE units)
 
-  const int SIGNAL_REPETITIONS = 6; // Number of signal repetitions for robustness
+  const int SIGNAL_REPETITIONS = 6;                                               // Number of signal repetitions for robustness
 
   // --- Required ESPHome Methods ---
   /**
@@ -121,7 +125,15 @@ class Hamulight : public light::LightOutput, public Component {
   /**
    * @brief Sends the generated RF signal via the RF transmit pin.
    */
-  void send_rf_signal();
+  void send_rf_signal();                // STILL NEEDED???
+
+#ifdef USE_ESP32
+  void send_rf_signal_rmt();
+#else
+  inline void send_rf_signal_rmt() {
+    static_assert(false, "Hamulight with RMT is only supported on ESP32 platforms.");
+  }
+#endif
 
   // Internal buffer for the generated code sequence.
   // Max 32 bits * 2 pulses/bit = 64 values (64 high/low changes for 32 bit signal).
