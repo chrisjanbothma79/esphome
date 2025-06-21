@@ -855,7 +855,7 @@ void AreaInfo::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
-bool SubDeviceInfo::decode_varint(uint32_t field_id, ProtoVarInt value) {
+bool DeviceInfo::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
       this->device_id = value.as_uint32();
@@ -869,7 +869,7 @@ bool SubDeviceInfo::decode_varint(uint32_t field_id, ProtoVarInt value) {
       return false;
   }
 }
-bool SubDeviceInfo::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+bool DeviceInfo::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 2: {
       this->name = value.as_string();
@@ -879,20 +879,20 @@ bool SubDeviceInfo::decode_length(uint32_t field_id, ProtoLengthDelimited value)
       return false;
   }
 }
-void SubDeviceInfo::encode(ProtoWriteBuffer buffer) const {
+void DeviceInfo::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(1, this->device_id);
   buffer.encode_string(2, this->name);
   buffer.encode_uint32(3, this->area_id);
 }
-void SubDeviceInfo::calculate_size(uint32_t &total_size) const {
+void DeviceInfo::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint32_field(total_size, 1, this->device_id, false);
   ProtoSize::add_string_field(total_size, 1, this->name, false);
   ProtoSize::add_uint32_field(total_size, 1, this->area_id, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
-void SubDeviceInfo::dump_to(std::string &out) const {
+void DeviceInfo::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
-  out.append("SubDeviceInfo {\n");
+  out.append("DeviceInfo {\n");
   out.append("  device_id: ");
   sprintf(buffer, "%" PRIu32, this->device_id);
   out.append(buffer);
@@ -994,7 +994,7 @@ bool DeviceInfoResponse::decode_length(uint32_t field_id, ProtoLengthDelimited v
       return true;
     }
     case 20: {
-      this->sub_devices.push_back(value.as_message<SubDeviceInfo>());
+      this->devices.push_back(value.as_message<DeviceInfo>());
       return true;
     }
     case 21: {
@@ -1029,8 +1029,8 @@ void DeviceInfoResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(16, this->suggested_area);
   buffer.encode_string(18, this->bluetooth_mac_address);
   buffer.encode_bool(19, this->api_encryption_supported);
-  for (auto &it : this->sub_devices) {
-    buffer.encode_message<SubDeviceInfo>(20, it, true);
+  for (auto &it : this->devices) {
+    buffer.encode_message<DeviceInfo>(20, it, true);
   }
   for (auto &it : this->areas) {
     buffer.encode_message<AreaInfo>(21, it, true);
@@ -1057,7 +1057,7 @@ void DeviceInfoResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 2, this->suggested_area, false);
   ProtoSize::add_string_field(total_size, 2, this->bluetooth_mac_address, false);
   ProtoSize::add_bool_field(total_size, 2, this->api_encryption_supported, false);
-  ProtoSize::add_repeated_message(total_size, 2, this->sub_devices);
+  ProtoSize::add_repeated_message(total_size, 2, this->devices);
   ProtoSize::add_repeated_message(total_size, 2, this->areas);
   ProtoSize::add_message_object(total_size, 2, this->area, false);
 }
@@ -1146,8 +1146,8 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->api_encryption_supported));
   out.append("\n");
 
-  for (const auto &it : this->sub_devices) {
-    out.append("  sub_devices: ");
+  for (const auto &it : this->devices) {
+    out.append("  devices: ");
     it.dump_to(out);
     out.append("\n");
   }

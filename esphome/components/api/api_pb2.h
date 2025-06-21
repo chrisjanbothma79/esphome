@@ -430,7 +430,7 @@ class AreaInfo : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class SubDeviceInfo : public ProtoMessage {
+class DeviceInfo : public ProtoMessage {
  public:
   uint32_t device_id{0};
   std::string name{};
@@ -471,7 +471,7 @@ class DeviceInfoResponse : public ProtoMessage {
   std::string suggested_area{};
   std::string bluetooth_mac_address{};
   bool api_encryption_supported{false};
-  std::vector<SubDeviceInfo> sub_devices{};
+  std::vector<DeviceInfo> devices{};
   std::vector<AreaInfo> areas{};
   AreaInfo area{};
   void encode(ProtoWriteBuffer buffer) const override;
