@@ -51,9 +51,11 @@ class EntityBase {
   std::string get_icon() const;
   void set_icon(const char *icon);
 
+#ifdef USE_SUB_DEVICE
   // Get/set this entity's device id
-  uint32_t get_device_uid() const { return this->device_uid_; }
-  void set_device_uid(const uint32_t device_uid) { this->device_uid_ = device_uid; }
+  uint32_t get_device_id() const { return this->device_id_; }
+  void set_device_id(const uint32_t device_id) { this->device_id_ = device_id; }
+#endif
 
   // Check if this entity has state
   bool has_state() const { return this->flags_.has_state; }
@@ -71,7 +73,9 @@ class EntityBase {
   const char *object_id_c_str_{nullptr};
   const char *icon_c_str_{nullptr};
   uint32_t object_id_hash_{};
-  uint32_t device_uid_{};
+#ifdef USE_SUB_DEVICE
+  uint32_t device_id_{};
+#endif
 
   // Bit-packed flags to save memory (1 byte instead of 5)
   struct EntityFlags {

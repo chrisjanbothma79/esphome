@@ -11,6 +11,7 @@
 
 #ifdef USE_SUB_DEVICE
 #include "esphome/core/sub_device.h"
+#include "esphome/core/sub_area.h"
 #endif
 
 #ifdef USE_SOCKET_SELECT_SUPPORT
@@ -113,6 +114,9 @@ class Application {
 
 #ifdef USE_SUB_DEVICE
   void register_sub_device(SubDevice *sub_device) { this->sub_devices_.push_back(sub_device); }
+#endif
+#ifdef USE_SUB_DEVICE
+  void register_area(SubArea *area) { this->areas_.push_back(area); }
 #endif
 
   void set_current_component(Component *component) { this->current_component_ = component; }
@@ -344,15 +348,7 @@ class Application {
 
 #ifdef USE_SUB_DEVICE
   const std::vector<SubDevice *> &get_sub_devices() { return this->sub_devices_; }
-  // /* Very likely no need for get_sub_device_by_key as it only seem to be used when requesting update from API
-  //    and the sub_devices shaould only be sent once at connection. */
-  // SubDevice *get_sub_device_by_key(uint32_t key, bool include_internal = false) {
-  //   for (auto *obj : this->sub_devices_) {
-  //     if (obj->get_object_id_hash() == key && (include_internal || !obj->is_internal()))
-  //       return obj;
-  //   }
-  //   return nullptr;
-  // }
+  const std::vector<SubArea *> &get_areas() { return this->areas_; }
 #endif
 #ifdef USE_BINARY_SENSOR
   const std::vector<binary_sensor::BinarySensor *> &get_binary_sensors() { return this->binary_sensors_; }
@@ -632,6 +628,7 @@ class Application {
 
 #ifdef USE_SUB_DEVICE
   std::vector<SubDevice *> sub_devices_{};
+  std::vector<SubArea *> areas_{};
 #endif
 #ifdef USE_BINARY_SENSOR
   std::vector<binary_sensor::BinarySensor *> binary_sensors_{};

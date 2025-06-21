@@ -7,6 +7,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_AREA,
+    CONF_AREA_ID,
     CONF_BUILD_PATH,
     CONF_COMMENT,
     CONF_COMPILE_PROCESS_LIMIT,
@@ -27,6 +28,7 @@ from esphome.const import (
     CONF_PLATFORMIO_OPTIONS,
     CONF_PRIORITY,
     CONF_PROJECT,
+    CONF_SUB_AREAS,
     CONF_SUB_DEVICES,
     CONF_TRIGGER_ID,
     CONF_VERSION,
@@ -56,6 +58,7 @@ ProjectUpdateTrigger = cg.esphome_ns.class_(
     "ProjectUpdateTrigger", cg.Component, automation.Trigger.template(cg.std_string)
 )
 SubDevice = cg.esphome_ns.class_("SubDevice")
+SubArea = cg.esphome_ns.class_("SubArea")
 
 VALID_INCLUDE_EXTS = {".h", ".hpp", ".tcc", ".ino", ".cpp", ".c"}
 
@@ -174,12 +177,20 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(
                 CONF_COMPILE_PROCESS_LIMIT, default=_compile_process_limit_default
             ): cv.int_range(min=1, max=get_usable_cpu_count()),
+            cv.Optional(CONF_SUB_AREAS, default=[]): cv.ensure_list(
+                cv.Schema(
+                    {
+                        cv.GenerateID(CONF_ID): cv.declare_id(SubArea),
+                        cv.Required(CONF_NAME): cv.string,
+                    }
+                ),
+            ),
             cv.Optional(CONF_SUB_DEVICES, default=[]): cv.ensure_list(
                 cv.Schema(
                     {
                         cv.GenerateID(CONF_ID): cv.declare_id(SubDevice),
                         cv.Required(CONF_NAME): cv.string,
-                        cv.Optional(CONF_AREA, default=""): cv.string,
+                        cv.Optional(CONF_AREA_ID): cv.use_id(SubArea),
                     }
                 ),
             ),
@@ -434,11 +445,26 @@ async def to_code(config):
     if config[CONF_PLATFORMIO_OPTIONS]:
         CORE.add_job(_add_platformio_options, config[CONF_PLATFORMIO_OPTIONS])
 
-    if config[CONF_SUB_DEVICES]:
-        for dev_conf in config[CONF_SUB_DEVICES]:
+    # Process sub-devices and areas
+    if sub_devices := config.get(CONF_SUB_DEVICES):
+        # Process areas first
+        if sub_areas := config.get(CONF_SUB_AREAS):
+            for area_conf in sub_areas:
+                area = cg.new_Pvariable(area_conf[CONF_ID])
+                area_id = fnv1a_32bit_hash(str(area_conf[CONF_ID]))
+                cg.add(area.set_area_id(area_id))
+                cg.add(area.set_name(area_conf[CONF_NAME]))
+                cg.add(cg.App.register_area(area))
+
+        # Process sub-devices
+        for dev_conf in sub_devices:
             dev = cg.new_Pvariable(dev_conf[CONF_ID])
-            cg.add(dev.set_uid(fnv1a_32bit_hash(str(dev_conf[CONF_ID]))))
+            cg.add(dev.set_device_id(fnv1a_32bit_hash(str(dev_conf[CONF_ID]))))
             cg.add(dev.set_name(dev_conf[CONF_NAME]))
-            cg.add(dev.set_area(dev_conf[CONF_AREA]))
+            if CONF_AREA_ID in dev_conf:
+                # The area_id in dev_conf is already the ID reference from cv.use_id
+                # We need to get the hash of that area's ID
+                area_id = fnv1a_32bit_hash(str(dev_conf[CONF_AREA_ID]))
+                cg.add(dev.set_area_id(area_id))
             cg.add(cg.App.register_sub_device(dev))
         cg.add_define("USE_SUB_DEVICE")
