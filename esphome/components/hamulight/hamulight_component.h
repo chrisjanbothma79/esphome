@@ -25,6 +25,7 @@ class Hamulight : public light::LightOutput, public Component {
    * @param pin A pointer to the GPIOPin object.
    */
   void set_rf_transmit_pin(GPIOPin *pin) { this->rf_transmit_pin_ = pin; }
+  void set_rf_pin_num(uint8_t pin) { this->rf_pin_num_ = pin; }
 
   /**
    * @brief Sets the optional GPIO pin for a feedback LED.
@@ -98,7 +99,8 @@ class Hamulight : public light::LightOutput, public Component {
   void turn_off();
 
  protected:
-  GPIOPin *rf_transmit_pin_;     // GPIO Pin for RF transmission
+  GPIOPin *rf_transmit_pin_;     // GPIO Pin for RF transmission - MAY BE DISMISSED???
+  uint8_t rf_pin_num_{255};      // Raw GPIO number for RMT
   GPIOPin *led_pin_{nullptr};    // Optional GPIO Pin for a feedback LED (initialized as nullptr)
   uint16_t rf_address_;          // The 2-byte RF address
 
