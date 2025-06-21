@@ -639,9 +639,11 @@ class DownloadListRequestHandler(BaseHandler):
 
         if platform.upper() in ESP32_VARIANTS:
             platform = "esp32"
-        elif platform in (const.PLATFORM_RTL87XX,
-                          const.PLATFORM_BK72XX,
-                          const.PLATFORM_LN882X):
+        elif platform in (
+            const.PLATFORM_RTL87XX,
+            const.PLATFORM_BK72XX,
+            const.PLATFORM_LN882X,
+        ):
             platform = "libretiny"
 
         try:

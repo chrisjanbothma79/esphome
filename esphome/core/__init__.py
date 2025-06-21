@@ -22,7 +22,7 @@ from esphome.const import (
     PLATFORM_HOST,
     PLATFORM_RP2040,
     PLATFORM_RTL87XX,
-    PLATFORM_LN882X
+    PLATFORM_LN882X,
 )
 
 # pylint: disable=unused-import

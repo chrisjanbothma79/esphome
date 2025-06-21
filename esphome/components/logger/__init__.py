@@ -16,7 +16,11 @@ from esphome.components.esp32.const import (
     VARIANT_ESP32S3,
 )
 from esphome.components.libretiny import get_libretiny_component, get_libretiny_family
-from esphome.components.libretiny.const import COMPONENT_BK72XX, COMPONENT_RTL87XX, COMPONENT_LN882X
+from esphome.components.libretiny.const import (
+    COMPONENT_BK72XX,
+    COMPONENT_RTL87XX,
+    COMPONENT_LN882X,
+)
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ARGS,

@@ -88,12 +88,18 @@ rtl87xx:
   board: {board}
 """
 
+LN882X_CONFIG = """
+ln882x:
+  board: {board}
+"""
+
 HARDWARE_BASE_CONFIGS = {
     "ESP8266": ESP8266_CONFIG,
     "ESP32": ESP32_CONFIG,
     "RP2040": RP2040_CONFIG,
     "BK72XX": BK72XX_CONFIG,
     "RTL87XX": RTL87XX_CONFIG,
+    "LN882X": LN882X_CONFIG,
 }
 
 
