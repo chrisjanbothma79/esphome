@@ -3,11 +3,32 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
 
+
+// TEMPORARY: ENTRY FOR DEBUG (see which macros are defined)
+#ifdef USE_ESP32
+#pragma message ("USE_ESP32 is defined")
+#endif
+#ifdef USE_ESP32S2
+#pragma message ("USE_ESP32S2 is defined")
+#endif
+#ifdef USE_ESP32S3
+#pragma message ("USE_ESP32S3 is defined")
+#endif
+#ifdef USE_ESP32C3
+#pragma message ("USE_ESP32C3 is defined")
+#endif
+#ifdef USE_ESP32_VARIANT
+#pragma message ("USE_ESP32_VARIANT is defined")
+#endif
+
+
+
 // IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
+// TEMPORARY: REMOVED MACROS
+// re-add!! --> #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
 #include <driver/gpio.h>
 #include "driver/rmt_tx.h"
-#endif
+// re-add!! --> #endif
 
 namespace esphome {
 namespace hamulight {
@@ -39,7 +60,8 @@ void Hamulight::setup() {
     ESP_LOGCONFIG(TAG, "  LED Pin: configured");
   }
 
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
+// TEMPORARY: REMOVED MACROS
+// re-add!! --> #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
   ESP_LOGD(TAG, "=== Entered RMT setup block ===");
   ESP_LOGD(TAG, "rf_pin_num_ = %u", this->rf_pin_num_);
   ESP_LOGD(TAG, "Setting up RMT...");
@@ -97,7 +119,7 @@ void Hamulight::setup() {
   }
 
   ESP_LOGD(TAG, "RMT channel and encoder successfully initialized.");
-#endif
+// re-add!! --> #endif
 }
 
 /**
