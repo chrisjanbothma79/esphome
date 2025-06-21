@@ -1190,11 +1190,11 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
    * After 30 seconds the display will go to sleep. Note: the display will only wakeup by a restart or by setting up
    * `thup`.
    */
-  void set_touch_sleep_timeout(uint32_t touch_sleep_timeout);
+  void set_touch_sleep_timeout(uint16_t touch_sleep_timeout);
 
   /**
    * Sets which page Nextion loads when exiting sleep mode. Note this can be set even when Nextion is in sleep mode.
-   * @param wake_up_page The page id, from 0 to the lage page in Nextion. Set 255 (not set to any existing page) to
+   * @param wake_up_page The page id, from 0 to the lage page in Nextion. Set -1 (not set to any existing page) to
    * wakes up to current page.
    *
    * Example:
@@ -1204,11 +1204,11 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
    *
    * The display will wake up to page 2.
    */
-  void set_wake_up_page(uint8_t wake_up_page = 255);
+  void set_wake_up_page(int16_t wake_up_page = -1);
 
   /**
    * Sets which page Nextion loads when connecting to ESPHome.
-   * @param start_up_page The page id, from 0 to the lage page in Nextion. Set 255 (not set to any existing page) to
+   * @param start_up_page The page id, from 0 to the lage page in Nextion. Set -1 (not set to any existing page) to
    * wakes up to current page.
    *
    * Example:
@@ -1218,7 +1218,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
    *
    * The display will go to page 2 when it establishes a connection to ESPHome.
    */
-  void set_start_up_page(uint8_t start_up_page = 255) { this->start_up_page_ = start_up_page; }
+  void set_start_up_page(int16_t start_up_page = -1) { this->start_up_page_ = start_up_page; }
 
   /**
    * Sets if Nextion should auto-wake from sleep when touch press occurs.
