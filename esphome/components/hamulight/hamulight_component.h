@@ -74,6 +74,13 @@ constexpr uint8_t CODE_SEQUENCE_SIZE    = 64;
 class HamulightComponent : public light::LightOutput, public Component {
  public:
   /**
+   * @brief Constructor
+   *
+   * Use this to debug if the constructor is called.
+   */
+  HamulightComponent();
+
+  /**
    * @brief Set the GPIOPin object for RF transmission (for digitalWrite and flag checks).
    * @param pin GPIOPin* object
    */
