@@ -278,6 +278,12 @@ class Application {
 #ifdef USE_UPDATE
   void reserve_update(size_t count) { this->updates_.reserve(count); }
 #endif
+#ifdef USE_AREAS
+  void reserve_area(size_t count) { this->areas_.reserve(count); }
+#endif
+#ifdef USE_DEVICES
+  void reserve_device(size_t count) { this->devices_.reserve(count); }
+#endif
 
   /// Register the component in this Application instance.
   template<class C> C *register_component(C *c) {
