@@ -21,7 +21,7 @@ static const char *const TAG = "hamulight";
  * Use this to debug if the constructor is called.
  */
 HamulightComponent::HamulightComponent() {
-  ESP_LOGCONFIG("hamulight", "HamulightComponent CONSTRUCTOR called!");
+  ESP_LOGCONFIG(TAG, "HamulightComponent CONSTRUCTOR called!");
 }
 
 /**
@@ -107,6 +107,50 @@ void HamulightComponent::setup() {
 
   ESP_LOGD(TAG, "setup(): RMT channel and encoder successfully initialized.");
 #endif
+
+  // --- Command scanner entity registration ---
+  if (command_scanner_enabled_) {
+    using namespace esphome;
+
+    scanner_start_ = new number::Number();
+    scanner_start_->set_min_value(0);
+    scanner_start_->set_max_value(255);
+    scanner_start_->set_step(1);
+    scanner_start_->set_name("Command Scan Start");
+    scanner_start_->publish_state(0);
+    App.register_component(scanner_start_);
+
+    scanner_end_ = new number::Number();
+    scanner_end_->set_min_value(0);
+    scanner_end_->set_max_value(255);
+    scanner_end_->set_step(1);
+    scanner_end_->set_name("Command Scan End");
+    scanner_end_->publish_state(0x4F);
+    App.register_component(scanner_end_);
+
+    scanner_pause_ = new number::Number();
+    scanner_pause_->set_min_value(0);
+    scanner_pause_->set_max_value(60000);
+    scanner_pause_->set_step(100);
+    scanner_pause_->set_name("Command Scan Pause (ms)");
+    scanner_pause_->publish_state(5000);
+    App.register_component(scanner_pause_);
+
+    scanner_start_button_ = new button::Button();
+    scanner_start_button_->set_name("Command Scan Start");
+    scanner_start_button_->add_on_press([this]() { this->start_command_scan(); });
+    App.register_component(scanner_start_button_);
+
+    scanner_stop_button_ = new button::Button();
+    scanner_stop_button_->set_name("Command Scan Stop");
+    scanner_stop_button_->add_on_press([this]() { this->stop_command_scan(); });
+    App.register_component(scanner_stop_button_);
+
+    scanner_last_sent_ = new sensor::Sensor();
+    scanner_last_sent_->set_name("Last Command Sent");
+    scanner_last_sent_->publish_state(-1);
+    App.register_component(scanner_last_sent_);
+  }
 }
 
 /**
@@ -122,6 +166,7 @@ void HamulightComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "  LED Pin: configured");
   }
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
+  ESP_LOGCONFIG(TAG, "  Command Scanner: %s", command_scanner_enabled_ ? "ENABLED" : "DISABLED");
 }
 
 /**
@@ -335,7 +380,47 @@ void HamulightComponent::send_rf_signal_rmt() {
 }
 #endif
 
-// --- The old software-based send_rf_signal() is still present for reference or fallback, if needed ---
+// --- Command Scanner logic ---
+
+void HamulightComponent::start_command_scan() {
+  if (!command_scanner_enabled_) return;
+  scanner_current_ = (uint8_t)(scanner_start_ ? scanner_start_->state : 0);
+  scanner_running_ = true;
+  scanner_last_time_ = 0; // force send immediately
+  ESP_LOGI(TAG, "Command scan started: from 0x%02X to 0x%02X, pause: %d ms",
+    scanner_start_ ? (int)scanner_start_->state : 0,
+    scanner_end_ ? (int)scanner_end_->state : 0,
+    scanner_pause_ ? (int)scanner_pause_->state : 0);
+}
+
+void HamulightComponent::stop_command_scan() {
+  if (!command_scanner_enabled_) return;
+  scanner_running_ = false;
+  ESP_LOGI(TAG, "Command scan stopped.");
+}
+
+void HamulightComponent::loop() {
+  // Command scanner non-blocking scan logic
+  if (command_scanner_enabled_ && scanner_running_ && scanner_start_ && scanner_end_ && scanner_pause_) {
+    uint8_t start = (uint8_t)scanner_start_->state;
+    uint8_t end = (uint8_t)scanner_end_->state;
+    uint32_t pause = (uint32_t)scanner_pause_->state;
+
+    uint32_t now = millis();
+    if (scanner_last_time_ == 0 || (now - scanner_last_time_ >= pause)) {
+      if (scanner_current_ <= end) {
+        this->transmit_rf_command(scanner_current_);
+        if (scanner_last_sent_) scanner_last_sent_->publish_state(scanner_current_);
+        scanner_last_time_ = now;
+        scanner_current_++;
+      } else {
+        scanner_running_ = false;
+        ESP_LOGI(TAG, "Command scan finished.");
+      }
+    }
+  }
+}
+
 
 } // namespace hamulight
 } // namespace esphome
