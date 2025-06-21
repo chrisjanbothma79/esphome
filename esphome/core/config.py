@@ -496,15 +496,15 @@ async def to_code(config: ConfigType) -> None:
         cg.add(cg.App.register_area(area_var))
 
     # Process devices and areas
-    devices: dict[str, str] | None
-    if devices := config.get(CONF_DEVICES):
+    devices: list[dict[str, str]]
+    if devices := config[CONF_DEVICES]:
         # Reserve space for devices
         cg.add(cg.RawStatement(f"App.reserve_device({len(devices)});"))
         cg.add_define("USE_DEVICES")
 
         # Process additional areas
-        areas: dict[str, str] | None
-        if areas := config.get(CONF_AREAS):
+        areas: list[dict[str, str]]
+        if areas := config[CONF_AREAS]:
             for area_conf in areas:
                 area = cg.new_Pvariable(area_conf[CONF_ID])
                 area_id = fnv1a_32bit_hash(str(area_conf[CONF_ID]))
