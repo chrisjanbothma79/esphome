@@ -462,9 +462,10 @@ async def to_code(config):
             cg.add(dev.set_device_id(fnv1a_32bit_hash(str(dev_conf[CONF_ID]))))
             cg.add(dev.set_name(dev_conf[CONF_NAME]))
             if CONF_AREA_ID in dev_conf:
-                # The area_id in dev_conf is already the ID reference from cv.use_id
-                # We need to get the hash of that area's ID
-                area_id = fnv1a_32bit_hash(str(dev_conf[CONF_AREA_ID]))
+                # The area_id in dev_conf is the ID reference from cv.use_id
+                # We need to get the same hash that was used when creating the area
+                area_id_str = str(dev_conf[CONF_AREA_ID].id)
+                area_id = fnv1a_32bit_hash(area_id_str)
                 cg.add(dev.set_area_id(area_id))
             cg.add(cg.App.register_sub_device(dev))
         cg.add_define("USE_SUB_DEVICE")
