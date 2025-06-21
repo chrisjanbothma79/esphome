@@ -1,147 +1,128 @@
 #pragma once
 
+/**
+ * @file hamulight_component.h
+ * @brief Hamulight Light Output Component for ESPHome
+ *
+ * This component is responsible for controlling Hamulight RF lights using the ESP32 RMT peripheral for
+ * precise RF timing. It supports on/off and brightness control via Home Assistant integration.
+ * 
+ * Main features:
+ *  - Uses RMT hardware for non-blocking, accurate RF signal generation.
+ *  - Allocates the RMT channel and encoder ONCE in setup() for efficient operation.
+ *  - Optionally supports a feedback LED.
+ *
+ * Configuration parameters:
+ *  - rf_transmit_pin: GPIOPin* for digital pin control and flag checks.
+ *  - rf_pin_num: uint8_t for the raw GPIO number used by RMT hardware.
+ *  - led_pin: Optional GPIOPin* for visual feedback.
+ *  - rf_address: 16-bit address for RF protocol.
+ * 
+ * Author: madmat17
+ */
+
 #include "esphome/core/component.h"
 #include "esphome/components/light/light_output.h"
-#include "esphome/core/hal.h"                         // For GPIO PIN operations (digitalWrite, delayMicroseconds)
+#include "esphome/core/hal.h"
 
 #ifdef USE_ESP32
-#include "driver/rmt_tx.h"                            // Key element for changing from SW based timing to RMT hardware (limits the project to ESP32, though!)
-#endif 
+#include "driver/rmt_tx.h"
+#endif
 
 namespace esphome {
 namespace hamulight {
 
 /**
- * @brief The Hamulight class implements an RF light control as an ESPHome component.
+ * @class Hamulight
+ * @brief Main Hamulight component class derived from LightOutput and Component.
  *
- * This class inherits from light::LightOutput to appear as a light in Home Assistant,
- * and from Component for basic ESPHome component functionality.
+ * Exposes setup, dump_config, and write_state methods for ESPHome, handles RMT signal generation and sending.
  */
-
 class Hamulight : public light::LightOutput, public Component {
  public:
-   /**
-   * @brief Sets the GPIO pin connected to the data input of the RF module.
-   * @param pin A pointer to the GPIOPin object.
+  /**
+   * @brief Set the GPIOPin object for RF transmission (for digitalWrite and flag checks).
+   * @param pin GPIOPin* object
    */
   void set_rf_transmit_pin(GPIOPin *pin) { this->rf_transmit_pin_ = pin; }
+
+  /**
+   * @brief Set the raw GPIO number (for RMT hardware, extracted from YAML).
+   * @param pin GPIO number as uint8_t
+   */
   void set_rf_pin_num(uint8_t pin) { this->rf_pin_num_ = pin; }
 
   /**
-   * @brief Sets the optional GPIO pin for a feedback LED.
-   * @param pin A pointer to the GPIOPin object.
+   * @brief Set the optional feedback LED GPIOPin object.
+   * @param pin GPIOPin* object
    */
   void set_led_pin(GPIOPin *pin) { this->led_pin_ = pin; }
 
   /**
-   * @brief Sets the 2-byte RF address (unique ID of the remote control).
-   * @param address The 16-bit RF address.
-   * Address: First 2 bytes of the protocol used by Hamulight remotes is the address. The assumption is that you
-   * can choose ANY address here, since the transformator/receiver can be trained for any(?) remote w/ that protocol (remove
-   * A/C power supply, reconnect to A/C power supply and send the "max brightness" command within the first 10 seconds). Another
-   * option is to analyze the remote's signal...
-   * Command: Pre-defined. 5 buttons are hard-coded, capacitive touch field for seamless dimming will be calculated (128
-   * different steps assumed).
-   * Checksum: Calculated automatically. ATTENTION: The checksum algorythm most likely needs to be adopted within the
-   * generateCode() function in case this program will be used for anything else than Hamulight receivers.
+   * @brief Set the RF address for the protocol.
+   * @param address 16-bit RF address
    */
   void set_rf_address(uint16_t address) { this->rf_address_ = address; }
 
-  // These constants define the specific RF commands and timing parameters.
-  const uint8_t RF_POWER_COMMAND = 0x5F;                                        // Power toggle command
-  const uint8_t RF_BRIGHT100_COMMAND = 0x59;                                    // 100% brightness - MIGHT BE DISMISSED
-  const uint8_t RF_BRIGHT75_COMMAND = 0x50;                                     //  75% brightness - MIGHT BE DISMISSED
-  const uint8_t RF_BRIGHT50_COMMAND = 0x56;                                     //  50% brightness - MIGHT BE DISMISSED
-  const uint8_t RF_BRIGHT25_COMMAND = 0x55;                                     //  25% brightness - MIGHT BE DISMISSED
-  const uint8_t RF_SLIDE_RANGE_MIN = 0x80;                                      // Lowest HEX value used by dimm slider
-  const uint8_t RF_SLIDE_RANGE_MAX = 0xFF;                                      // Highest HEX value used by dimm slider
-  const uint8_t RF_SLIDE_OFFSET = 0xA8;                                         // Offset needed for the slider value conversion
-  const uint8_t RF_SLIDE_STEPS = RF_SLIDE_RANGE_MAX - RF_SLIDE_RANGE_MIN + 1;   // steps from 0% to 100% dimm value
-  // const uint8_t RF_SLIDE_START = RF_SLIDE_RANGE_MIN + RF_SLIDE_OFFSET;        // is the 0% dimm value position - not used due to simplified input to output conversion
-
-  // Pulse timings and sequence definitions
-  const int BASE_PULSE = 200;                                                     // Base pulse length in microseconds
-  const int START_SEQUENCE[10] = {1, 1, 1, 1, 1, 1, 1, 1, 6, 6};                  // Start sequence for sync + RF start bit
-  const int BIT0_PULSE[2] = {3, 1};                                               // Pulse for bit 0 (HIGH, LOW duration in BASE_PULSE units)
-  const int BIT1_PULSE[2] = {1, 3};                                               // Pulse for bit 1 (HIGH, LOW duration in BASE_PULSE units)
-
-  const int SIGNAL_REPETITIONS = 6;                                               // Number of signal repetitions for robustness
-
-  // --- Required ESPHome Methods ---
   /**
-   * @brief Called once at ESP startup to initialize pins.
+   * @brief ESPHome setup lifecycle method. Initializes pins and allocates RMT resources.
    */
   void setup() override;
 
   /**
-   * @brief Displays the component's configuration in the log.
+   * @brief Dumps YAML configuration and component status to ESPHome log.
    */
   void dump_config() override;
 
   /**
-   * @brief Returns the supported features of the light (e.g., on/off, brightness).
-   * @return light::LightTraits object with the supported properties.
+   * @brief Returns supported light traits (on/off, brightness).
    */
   light::LightTraits get_traits() override;
 
   /**
-   * @brief Called by Home Assistant to change the state of the light (e.g., brightness).
-   * @param state The desired brightness value (0.0 to 1.0).
+   * @brief Handles incoming state changes from Home Assistant (on/off, brightness).
    */
   void write_state(light::LightState *state) override;
 
-  // --- Custom methods for Home Assistant Buttons and Logic ---
-
   /**
-   * @brief Needed for proper power on/off button handling
+   * @brief Transmit a specific RF command.
+   * @param command The 8-bit command (e.g. RF_POWER_COMMAND)
    */
-  void turn_on();
-  void turn_off();
-
- protected:
-  GPIOPin *rf_transmit_pin_;     // GPIO Pin for RF transmission - MAY BE DISMISSED???
-  uint8_t rf_pin_num_{255};      // Raw GPIO number for RMT
-  GPIOPin *led_pin_{nullptr};    // Optional GPIO Pin for a feedback LED (initialized as nullptr)
-  uint16_t rf_address_;          // The 2-byte RF address
-
-  // --- Internal helper methods ---
-  /**
-   * @brief Sends a specific RF command (e.g., on/off, predefined brightness).
-   * @param command The RF command as an 8-bit value.
-   */
- void transmit_rf_command(uint8_t command);
+  void transmit_rf_command(uint8_t command);
 
   /**
-   * @brief Sends a specific RF brightness value (for the slider).
-   * @param brightness_value The brightness value in the range of RF_SLIDE_RANGE_MIN to RF_SLIDE_RANGE_MAX.
+   * @brief Transmit a specific RF brightness value.
+   * @param brightness_value Brightness value (8-bit)
    */
   void transmit_rf_brightness(uint8_t brightness_value);
 
+ protected:
+  // --- Configuration fields (from YAML/codegen) ---
+  GPIOPin *rf_transmit_pin_;  ///< GPIOPin for digital control and flag checks (not used directly in RMT)
+  uint8_t rf_pin_num_{255};   ///< Raw GPIO number for RMT hardware peripheral
+  GPIOPin *led_pin_{nullptr}; ///< Optional feedback LED
+  uint16_t rf_address_;       ///< RF Address for protocol
+
+#ifdef USE_ESP32
+  // --- RMT hardware handles (allocated ONCE in setup and reused for all transmissions) ---
+  rmt_channel_handle_t tx_channel_{nullptr};   ///< RMT TX channel handle for hardware-timed transmission
+  rmt_encoder_handle_t encoder_{nullptr};      ///< RMT encoder handle for raw buffer
+#endif
 
   /**
-   * @brief Generates the bit sequence for RF transmission based on a command.
-   * @param command The 8-bit command to be integrated into the signal.
+   * @brief Generates the internal code_sequence_ RF buffer from command byte.
+   * @param command The 8-bit command or brightness value
    */
   void generate_code_sequence(uint8_t command);
 
   /**
-   * @brief Sends the generated RF signal via the RF transmit pin.
+   * @brief Sends the generated RF signal using the RMT peripheral (ESP32 only).
+   * Allocates no hardware resources; uses the handles from setup().
    */
-  void send_rf_signal();                // STILL NEEDED???
-
-#ifdef USE_ESP32
   void send_rf_signal_rmt();
-#else
-  inline void send_rf_signal_rmt() {
-    static_assert(false, "Hamulight with RMT is only supported on ESP32 platforms.");
-  }
-#endif
 
-  // Internal buffer for the generated code sequence.
-  // Max 32 bits * 2 pulses/bit = 64 values (64 high/low changes for 32 bit signal).
-  int code_sequence_[64];
-  const int CODE_SEQUENCE_SIZE = 64; // Size of the code sequence array
-  const int START_SEQUENCE_SIZE = sizeof(START_SEQUENCE) / sizeof(START_SEQUENCE[0]); // Size of the start sequence
+  // --- Internal RF signal buffer (holds the 32-bit RF payload as pulse durations) ---
+  uint16_t code_sequence_[64];
 };
 
 } // namespace hamulight
