@@ -57,6 +57,7 @@ void Hamulight::setup() {
   channel.intr_priority = 0;
 
   esp_err_t error = rmt_new_tx_channel(&channel, &this->tx_channel_);
+  ESP_LOGD(TAG, "rmt_new_tx_channel returned: %d", error);
   if (error != ESP_OK) {
     ESP_LOGE(TAG, "rmt_new_tx_channel failed: %s", esp_err_to_name(error));
     this->tx_channel_ = nullptr;
@@ -74,6 +75,7 @@ void Hamulight::setup() {
 
   rmt_copy_encoder_config_t encoder_cfg = {};
   error = rmt_new_copy_encoder(&encoder_cfg, &this->encoder_);
+  ESP_LOGD(TAG, "rmt_new_copy_encoder returned: %d", error);
   if (error != ESP_OK) {
     ESP_LOGE(TAG, "rmt_new_copy_encoder failed: %s", esp_err_to_name(error));
     this->tx_channel_ = nullptr;
@@ -83,6 +85,7 @@ void Hamulight::setup() {
   }
 
   error = rmt_enable(this->tx_channel_);
+  ESP_LOGD(TAG, "rmt_enable returned: %d", error);
   if (error != ESP_OK) {
     ESP_LOGE(TAG, "rmt_enable failed: %s", esp_err_to_name(error));
     this->tx_channel_ = nullptr;
