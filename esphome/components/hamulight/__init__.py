@@ -16,8 +16,7 @@ CONFIG_SCHEMA = cv.Schema({
 # Function to generate the C++ code from the YAML configuration file
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])                                                  # Creates a new C++ instance or Hamulight class
-    await cg.register_component(var, config)                                                 # Register component with ESPHome
-    await cg.register_light(var, config)  
+    await cg.register_component(var, config)                                                 # Register component with ESPHome 
     
     # Pass pin number for RMT
     rf_pin_num = config["rf_transmit_pin"]["number"]
