@@ -26,9 +26,6 @@
 #include "esphome/core/component.h"
 #include "esphome/components/light/light_output.h"
 #include "esphome/core/hal.h"
-#include "esphome/components/number/number.h"
-#include "esphome/components/button/button.h"
-#include "esphome/components/sensor/sensor.h"
 
 // IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
@@ -141,10 +138,15 @@ class HamulightComponent : public light::LightOutput, public Component {
   void transmit_rf_brightness(uint8_t brightness_value);
 
   /**
-   * @brief Start/stop scan (initiated by button press).
+   * @brief Start/stop scan (initiated by button press, called from YAML).
    */
   void start_command_scan();
   void stop_command_scan();
+
+  /**
+   * @brief Returns the last sent command in the scan, for use as a template sensor.
+   */
+  float get_last_scanned_command() const { return last_scanned_command_; }
 
  protected:
   // --- Configuration fields (from YAML/codegen) ---
@@ -176,17 +178,10 @@ class HamulightComponent : public light::LightOutput, public Component {
 
   // --- Command Scanner support ---
   bool command_scanner_enabled_{false};
-  esphome::number::Number *scanner_start_{nullptr};
-  esphome::number::Number *scanner_end_{nullptr};
-  esphome::number::Number *scanner_pause_{nullptr};
-  esphome::button::Button *scanner_start_button_{nullptr};
-  esphome::button::Button *scanner_stop_button_{nullptr};
-  esphome::sensor::Sensor *scanner_last_sent_{nullptr};
-
   bool scanner_running_{false};
   uint8_t scanner_current_;
   uint32_t scanner_last_time_{0};
-
+  float last_scanned_command_{-1};
 };
 
 } // namespace hamulight
