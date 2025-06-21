@@ -1106,6 +1106,7 @@ message ListEntitiesSirenResponse {
   bool supports_duration = 8;
   bool supports_volume = 9;
   EntityCategory entity_category = 10;
+  uint32 device_id = 11;
 }
 message SirenStateResponse {
   option (id) = 56;

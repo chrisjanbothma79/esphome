@@ -264,6 +264,7 @@ class InfoResponseProtoMessage : public ProtoMessage {
   bool disabled_by_default{false};
   std::string icon{};
   enums::EntityCategory entity_category{};
+  uint32_t device_id{0};
 
  protected:
 };
@@ -530,7 +531,6 @@ class ListEntitiesBinarySensorResponse : public InfoResponseProtoMessage {
 #endif
   std::string device_class{};
   bool is_status_binary_sensor{false};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -573,7 +573,6 @@ class ListEntitiesCoverResponse : public InfoResponseProtoMessage {
   bool supports_tilt{false};
   std::string device_class{};
   bool supports_stop{false};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -643,7 +642,6 @@ class ListEntitiesFanResponse : public InfoResponseProtoMessage {
   bool supports_direction{false};
   int32_t supported_speed_count{0};
   std::vector<std::string> supported_preset_modes{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -725,7 +723,6 @@ class ListEntitiesLightResponse : public InfoResponseProtoMessage {
   float min_mireds{0.0f};
   float max_mireds{0.0f};
   std::vector<std::string> effects{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -825,7 +822,6 @@ class ListEntitiesSensorResponse : public InfoResponseProtoMessage {
   std::string device_class{};
   enums::SensorStateClass state_class{};
   enums::SensorLastResetType legacy_last_reset_type{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -865,7 +861,6 @@ class ListEntitiesSwitchResponse : public InfoResponseProtoMessage {
 #endif
   bool assumed_state{false};
   std::string device_class{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -922,7 +917,6 @@ class ListEntitiesTextSensorResponse : public InfoResponseProtoMessage {
   static constexpr const char *message_name() { return "list_entities_text_sensor_response"; }
 #endif
   std::string device_class{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1238,7 +1232,6 @@ class ListEntitiesCameraResponse : public InfoResponseProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_camera_response"; }
 #endif
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1314,7 +1307,6 @@ class ListEntitiesClimateResponse : public InfoResponseProtoMessage {
   bool supports_target_humidity{false};
   float visual_min_humidity{0.0f};
   float visual_max_humidity{0.0f};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1412,7 +1404,6 @@ class ListEntitiesNumberResponse : public InfoResponseProtoMessage {
   std::string unit_of_measurement{};
   enums::NumberMode mode{};
   std::string device_class{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1469,7 +1460,6 @@ class ListEntitiesSelectResponse : public InfoResponseProtoMessage {
   static constexpr const char *message_name() { return "list_entities_select_response"; }
 #endif
   std::vector<std::string> options{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1523,7 +1513,7 @@ class SelectCommandRequest : public ProtoMessage {
 class ListEntitiesSirenResponse : public InfoResponseProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 55;
-  static constexpr uint16_t ESTIMATED_SIZE = 67;
+  static constexpr uint16_t ESTIMATED_SIZE = 71;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_siren_response"; }
 #endif
@@ -1597,7 +1587,6 @@ class ListEntitiesLockResponse : public InfoResponseProtoMessage {
   bool supports_open{false};
   bool requires_code{false};
   std::string code_format{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1657,7 +1646,6 @@ class ListEntitiesButtonResponse : public InfoResponseProtoMessage {
   static constexpr const char *message_name() { return "list_entities_button_response"; }
 #endif
   std::string device_class{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1712,7 +1700,6 @@ class ListEntitiesMediaPlayerResponse : public InfoResponseProtoMessage {
 #endif
   bool supports_pause{false};
   std::vector<MediaPlayerSupportedFormat> supported_formats{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2584,7 +2571,6 @@ class ListEntitiesAlarmControlPanelResponse : public InfoResponseProtoMessage {
   uint32_t supported_features{0};
   bool requires_code{false};
   bool requires_code_to_arm{false};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2646,7 +2632,6 @@ class ListEntitiesTextResponse : public InfoResponseProtoMessage {
   uint32_t max_length{0};
   std::string pattern{};
   enums::TextMode mode{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2704,7 +2689,6 @@ class ListEntitiesDateResponse : public InfoResponseProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_date_response"; }
 #endif
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2765,7 +2749,6 @@ class ListEntitiesTimeResponse : public InfoResponseProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_time_response"; }
 #endif
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2828,7 +2811,6 @@ class ListEntitiesEventResponse : public InfoResponseProtoMessage {
 #endif
   std::string device_class{};
   std::vector<std::string> event_types{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2869,7 +2851,6 @@ class ListEntitiesValveResponse : public InfoResponseProtoMessage {
   bool assumed_state{false};
   bool supports_position{false};
   bool supports_stop{false};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2928,7 +2909,6 @@ class ListEntitiesDateTimeResponse : public InfoResponseProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "list_entities_date_time_response"; }
 #endif
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2985,7 +2965,6 @@ class ListEntitiesUpdateResponse : public InfoResponseProtoMessage {
   static constexpr const char *message_name() { return "list_entities_update_response"; }
 #endif
   std::string device_class{};
-  uint32_t device_id{0};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP

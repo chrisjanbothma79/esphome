@@ -5624,6 +5624,10 @@ bool ListEntitiesSirenResponse::decode_varint(uint32_t field_id, ProtoVarInt val
       this->entity_category = value.as_enum<enums::EntityCategory>();
       return true;
     }
+    case 11: {
+      this->device_id = value.as_uint32();
+      return true;
+    }
     default:
       return false;
   }
@@ -5677,6 +5681,7 @@ void ListEntitiesSirenResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(8, this->supports_duration);
   buffer.encode_bool(9, this->supports_volume);
   buffer.encode_enum<enums::EntityCategory>(10, this->entity_category);
+  buffer.encode_uint32(11, this->device_id);
 }
 void ListEntitiesSirenResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id, false);
@@ -5693,6 +5698,7 @@ void ListEntitiesSirenResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->supports_duration, false);
   ProtoSize::add_bool_field(total_size, 1, this->supports_volume, false);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category), false);
+  ProtoSize::add_uint32_field(total_size, 1, this->device_id, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void ListEntitiesSirenResponse::dump_to(std::string &out) const {
@@ -5739,6 +5745,11 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
 
   out.append("  entity_category: ");
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
+  out.append("\n");
+
+  out.append("  device_id: ");
+  sprintf(buffer, "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
