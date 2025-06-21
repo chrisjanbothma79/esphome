@@ -454,14 +454,12 @@ async def to_code(config):
         CORE.add_job(_add_platformio_options, config[CONF_PLATFORMIO_OPTIONS])
 
     # Count total areas for reservation
-    total_areas = 0
+    total_areas = len(config[CONF_AREAS])
     if config.get(CONF_AREA):
         total_areas += 1
-    if areas_list := config.get(CONF_AREAS):
-        total_areas += len(areas_list)
 
     # Reserve space for areas if any are defined
-    if total_areas > 0:
+    if total_areas:
         cg.add(cg.RawStatement(f"App.reserve_area({total_areas});"))
         cg.add_define("USE_AREAS")
 
