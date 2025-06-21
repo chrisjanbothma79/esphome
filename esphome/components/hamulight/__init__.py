@@ -2,7 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
 from esphome import pins
-
+from esphome.components import number
 
 # --- Needed for the optional command scanner ---
 CONF_CMDSCAN_START = "cmdscan_start"
@@ -20,9 +20,9 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Required("rf_address"): cv.hex_uint16_t,                                                       # required 2-Byte RF address (HEX)
     cv.Optional("command_scanner"): cv.Schema({                                                       # optional command scanner block
         cv.Optional("enabled", default=True): cv.boolean,
-        cv.Required(CONF_CMDSCAN_START): cv.use_id(cg.NUMBER_ID),
-        cv.Required(CONF_CMDSCAN_END): cv.use_id(cg.NUMBER_ID),
-        cv.Required(CONF_CMDSCAN_PAUSE): cv.use_id(cg.NUMBER_ID),
+        cv.Required(CONF_CMDSCAN_START): cv.use_id(number.Number),
+        cv.Required(CONF_CMDSCAN_END): cv.use_id(number.Number),
+        cv.Required(CONF_CMDSCAN_PAUSE): cv.use_id(number.Number),
     }),
 }).extend(cv.COMPONENT_SCHEMA)
 
