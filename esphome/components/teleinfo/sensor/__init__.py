@@ -62,7 +62,7 @@ TIC_TAG_CONFIGS = {
 }
 
 
-CONFIG_SCHEMA = sensor.sensor_schema(TeleInfoSensor).extend(TELEINFO_LISTENER_SCHEMA)
+BASE_SCHEMA = sensor.sensor_schema(TeleInfoSensor).extend(TELEINFO_LISTENER_SCHEMA)
 
 
 def apply_tag_defaults(config):
@@ -88,7 +88,7 @@ def apply_tag_defaults(config):
 
 
 # Apply tag defaults during schema validation
-CONFIG_SCHEMA = cv.All(CONFIG_SCHEMA, apply_tag_defaults)
+CONFIG_SCHEMA = cv.All(BASE_SCHEMA, apply_tag_defaults)
 
 
 async def to_code(config):
