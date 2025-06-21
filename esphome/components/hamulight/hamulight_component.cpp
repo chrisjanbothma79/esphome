@@ -47,6 +47,7 @@ void HamulightComponent::setup() {
   if (this->led_pin_ != nullptr) {
     ESP_LOGCONFIG(TAG, "  setup(): LED Pin: configured");
   }
+  ESP_LOGCONFIG(TAG, "  Command Scanner: %s", command_scanner_enabled_ ? "ENABLED" : "DISABLED");
 
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
   ESP_LOGD(TAG, "setup(): === Entered RMT setup block ===");
@@ -107,50 +108,6 @@ void HamulightComponent::setup() {
 
   ESP_LOGD(TAG, "setup(): RMT channel and encoder successfully initialized.");
 #endif
-
-  // --- Command scanner entity registration ---
-  if (command_scanner_enabled_) {
-    using namespace esphome;
-
-    scanner_start_ = new number::Number();
-    scanner_start_->set_min_value(0);
-    scanner_start_->set_max_value(255);
-    scanner_start_->set_step(1);
-    scanner_start_->set_name("Command Scan Start");
-    scanner_start_->publish_state(0);
-    App.register_component(scanner_start_);
-
-    scanner_end_ = new number::Number();
-    scanner_end_->set_min_value(0);
-    scanner_end_->set_max_value(255);
-    scanner_end_->set_step(1);
-    scanner_end_->set_name("Command Scan End");
-    scanner_end_->publish_state(0x4F);
-    App.register_component(scanner_end_);
-
-    scanner_pause_ = new number::Number();
-    scanner_pause_->set_min_value(0);
-    scanner_pause_->set_max_value(60000);
-    scanner_pause_->set_step(100);
-    scanner_pause_->set_name("Command Scan Pause (ms)");
-    scanner_pause_->publish_state(5000);
-    App.register_component(scanner_pause_);
-
-    scanner_start_button_ = new button::Button();
-    scanner_start_button_->set_name("Command Scan Start");
-    scanner_start_button_->add_on_press([this]() { this->start_command_scan(); });
-    App.register_component(scanner_start_button_);
-
-    scanner_stop_button_ = new button::Button();
-    scanner_stop_button_->set_name("Command Scan Stop");
-    scanner_stop_button_->add_on_press([this]() { this->stop_command_scan(); });
-    App.register_component(scanner_stop_button_);
-
-    scanner_last_sent_ = new sensor::Sensor();
-    scanner_last_sent_->set_name("Last Command Sent");
-    scanner_last_sent_->publish_state(-1);
-    App.register_component(scanner_last_sent_);
-  }
 }
 
 /**
@@ -380,46 +337,66 @@ void HamulightComponent::send_rf_signal_rmt() {
 }
 #endif
 
-// --- Command Scanner logic ---
+// --- Command Scanner logic called from YAML via id() ---
 
 void HamulightComponent::start_command_scan() {
-  if (!command_scanner_enabled_) return;
-  scanner_current_ = (uint8_t)(scanner_start_ ? scanner_start_->state : 0);
+  if (!command_scanner_enabled_)
+    return;
+
+  // Get values from YAML number entities using global id()s (see YAML example)
+  // These are set in YAML and accessed in loop() below
   scanner_running_ = true;
   scanner_last_time_ = 0; // force send immediately
-  ESP_LOGI(TAG, "Command scan started: from 0x%02X to 0x%02X, pause: %d ms",
-    scanner_start_ ? (int)scanner_start_->state : 0,
-    scanner_end_ ? (int)scanner_end_->state : 0,
-    scanner_pause_ ? (int)scanner_pause_->state : 0);
+  // scanner_current_ will be set in loop by reading id(hamulight_cmdscan_start)
+  ESP_LOGI(TAG, "Command scan started (values will be read from YAML numbers in loop).");
+                                                
+                                                     
 }
 
 void HamulightComponent::stop_command_scan() {
-  if (!command_scanner_enabled_) return;
+  if (!command_scanner_enabled_)
+    return;
   scanner_running_ = false;
   ESP_LOGI(TAG, "Command scan stopped.");
 }
 
 void HamulightComponent::loop() {
-  // Command scanner non-blocking scan logic
-  if (command_scanner_enabled_ && scanner_running_ && scanner_start_ && scanner_end_ && scanner_pause_) {
-    uint8_t start = (uint8_t)scanner_start_->state;
-    uint8_t end = (uint8_t)scanner_end_->state;
-    uint32_t pause = (uint32_t)scanner_pause_->state;
+  // Command scanner non-blocking scan logic using YAML global ids
+  if (!command_scanner_enabled_ || !scanner_running_)
+    return;
 
-    uint32_t now = millis();
-    if (scanner_last_time_ == 0 || (now - scanner_last_time_ >= pause)) {
-      if (scanner_current_ <= end) {
-        this->transmit_rf_command(scanner_current_);
-        if (scanner_last_sent_) scanner_last_sent_->publish_state(scanner_current_);
-        scanner_last_time_ = now;
-        scanner_current_++;
-      } else {
-        scanner_running_ = false;
-        ESP_LOGI(TAG, "Command scan finished.");
-      }
+  // These must be defined in YAML with the same ids
+  // id(hamulight_cmdscan_start), id(hamulight_cmdscan_end), id(hamulight_cmdscan_pause)
+  extern esphome::template_::TemplateNumber *id_hamulight_cmdscan_start;
+  extern esphome::template_::TemplateNumber *id_hamulight_cmdscan_end;
+  extern esphome::template_::TemplateNumber *id_hamulight_cmdscan_pause;
+
+  // Only run if all pointers are available
+  if (!id_hamulight_cmdscan_start || !id_hamulight_cmdscan_end || !id_hamulight_cmdscan_pause)
+    return;
+
+  uint8_t start = (uint8_t)id_hamulight_cmdscan_start->state;
+  uint8_t end = (uint8_t)id_hamulight_cmdscan_end->state;
+  uint32_t pause = (uint32_t)id_hamulight_cmdscan_pause->state;
+
+  if (scanner_last_time_ == 0)
+    scanner_current_ = start; // initialize on first loop
+
+  uint32_t now = millis();
+  if (scanner_last_time_ == 0 || (now - scanner_last_time_ >= pause)) {
+    if (scanner_current_ <= end) {
+      this->transmit_rf_command(scanner_current_);
+      last_scanned_command_ = scanner_current_;
+      scanner_last_time_ = now;
+      scanner_current_++;
+    } else {
+      scanner_running_ = false;
+      ESP_LOGI(TAG, "Command scan finished.");
+       
     }
   }
 }
+
 
 
 } // namespace hamulight
