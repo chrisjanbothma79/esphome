@@ -495,6 +495,7 @@ async def to_code(config):
     if devices := config.get(CONF_DEVICES):
         # Reserve space for devices
         cg.add(cg.RawStatement(f"App.reserve_device({len(devices)});"))
+        cg.add_define("USE_DEVICES")
 
         # Process additional areas
         if areas := config.get(CONF_AREAS):
@@ -515,4 +516,3 @@ async def to_code(config):
                 area = await cg.get_variable(dev_conf[CONF_AREA_ID])
                 cg.add(dev.set_area_id(area.get_area_id()))
             cg.add(cg.App.register_device(dev))
-        cg.add_define("USE_DEVICES")
