@@ -15,7 +15,7 @@ CONFIG_SCHEMA = cv.Schema({
     cv.Required("rf_transmit_pin"): pins.gpio_output_pin_schema,                                      # required PIN for RF transmission
     cv.Optional("led_pin"): pins.gpio_output_pin_schema,                                              # optional PIN for feedback LED
     cv.Required("rf_address"): cv.hex_uint16_t,                                                       # required 2-Byte RF address (HEX)
-    cv.Optional("command_scanner"): COMMAND_SCANNER_SCHEMA,
+    cv.Optional("command_scanner"): COMMAND_SCANNER_SCHEMA,                                           # optional command scanner block
 }).extend(cv.COMPONENT_SCHEMA)
 
 # Function to generate the C++ code from the YAML configuration file
@@ -39,6 +39,7 @@ async def to_code(config):
     # Set the RF address
     cg.add(var.set_rf_address(config["rf_address"]))
 
+    # Command Scanner (optional)
     if "command_scanner" in config and config["command_scanner"].get("enabled", True):
         cg.add(var.set_command_scanner_enabled(True))
     else:
