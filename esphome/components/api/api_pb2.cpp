@@ -812,7 +812,7 @@ void PingResponse::dump_to(std::string &out) const { out.append("PingResponse {}
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DeviceInfoRequest::dump_to(std::string &out) const { out.append("DeviceInfoRequest {}"); }
 #endif
-bool SubAreaInfo::decode_varint(uint32_t field_id, ProtoVarInt value) {
+bool AreaInfo::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
       this->area_id = value.as_uint32();
@@ -822,7 +822,7 @@ bool SubAreaInfo::decode_varint(uint32_t field_id, ProtoVarInt value) {
       return false;
   }
 }
-bool SubAreaInfo::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+bool AreaInfo::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 2: {
       this->name = value.as_string();
@@ -832,18 +832,18 @@ bool SubAreaInfo::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
       return false;
   }
 }
-void SubAreaInfo::encode(ProtoWriteBuffer buffer) const {
+void AreaInfo::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(1, this->area_id);
   buffer.encode_string(2, this->name);
 }
-void SubAreaInfo::calculate_size(uint32_t &total_size) const {
+void AreaInfo::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint32_field(total_size, 1, this->area_id, false);
   ProtoSize::add_string_field(total_size, 1, this->name, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
-void SubAreaInfo::dump_to(std::string &out) const {
+void AreaInfo::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
-  out.append("SubAreaInfo {\n");
+  out.append("AreaInfo {\n");
   out.append("  area_id: ");
   sprintf(buffer, "%" PRIu32, this->area_id);
   out.append(buffer);
@@ -998,7 +998,11 @@ bool DeviceInfoResponse::decode_length(uint32_t field_id, ProtoLengthDelimited v
       return true;
     }
     case 21: {
-      this->sub_areas.push_back(value.as_message<SubAreaInfo>());
+      this->areas.push_back(value.as_message<AreaInfo>());
+      return true;
+    }
+    case 22: {
+      this->area = value.as_message<AreaInfo>();
       return true;
     }
     default:
@@ -1028,9 +1032,10 @@ void DeviceInfoResponse::encode(ProtoWriteBuffer buffer) const {
   for (auto &it : this->sub_devices) {
     buffer.encode_message<SubDeviceInfo>(20, it, true);
   }
-  for (auto &it : this->sub_areas) {
-    buffer.encode_message<SubAreaInfo>(21, it, true);
+  for (auto &it : this->areas) {
+    buffer.encode_message<AreaInfo>(21, it, true);
   }
+  buffer.encode_message<AreaInfo>(22, this->area);
 }
 void DeviceInfoResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->uses_password, false);
@@ -1053,7 +1058,8 @@ void DeviceInfoResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 2, this->bluetooth_mac_address, false);
   ProtoSize::add_bool_field(total_size, 2, this->api_encryption_supported, false);
   ProtoSize::add_repeated_message(total_size, 2, this->sub_devices);
-  ProtoSize::add_repeated_message(total_size, 2, this->sub_areas);
+  ProtoSize::add_repeated_message(total_size, 2, this->areas);
+  ProtoSize::add_message_object(total_size, 2, this->area, false);
 }
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void DeviceInfoResponse::dump_to(std::string &out) const {
@@ -1146,11 +1152,15 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
     out.append("\n");
   }
 
-  for (const auto &it : this->sub_areas) {
-    out.append("  sub_areas: ");
+  for (const auto &it : this->areas) {
+    out.append("  areas: ");
     it.dump_to(out);
     out.append("\n");
   }
+
+  out.append("  area: ");
+  this->area.dump_to(out);
+  out.append("\n");
   out.append("}");
 }
 #endif

@@ -38,6 +38,32 @@ def fnv1a_32bit_hash(string: str) -> int:
     return hash_value
 
 
+def strip_accents(value: str) -> str:
+    """Remove accents from a string."""
+    import unicodedata
+
+    return "".join(
+        c
+        for c in unicodedata.normalize("NFD", str(value))
+        if unicodedata.category(c) != "Mn"
+    )
+
+
+def slugify(value: str) -> str:
+    """Convert a string to a valid C++ identifier slug."""
+    from esphome.const import ALLOWED_NAME_CHARS
+
+    value = (
+        strip_accents(value)
+        .lower()
+        .replace(" ", "_")
+        .replace("-", "_")
+        .replace("__", "_")
+        .strip("_")
+    )
+    return "".join(c for c in value if c in ALLOWED_NAME_CHARS)
+
+
 def indent_all_but_first_and_last(text, padding="  "):
     lines = text.splitlines(True)
     if len(lines) <= 2:

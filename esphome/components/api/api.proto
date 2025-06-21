@@ -188,7 +188,7 @@ message DeviceInfoRequest {
   // Empty
 }
 
-message SubAreaInfo {
+message AreaInfo {
   uint32 area_id = 1;
   string name = 2;
 }
@@ -249,7 +249,10 @@ message DeviceInfoResponse {
   bool api_encryption_supported = 19;
 
   repeated SubDeviceInfo sub_devices = 20;
-  repeated SubAreaInfo sub_areas = 21;
+  repeated AreaInfo areas = 21;
+  
+  // Top-level area info to phase out suggested_area
+  AreaInfo area = 22;
 }
 
 message ListEntitiesRequest {

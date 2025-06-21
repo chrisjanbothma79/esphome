@@ -416,7 +416,7 @@ class DeviceInfoRequest : public ProtoMessage {
 
  protected:
 };
-class SubAreaInfo : public ProtoMessage {
+class AreaInfo : public ProtoMessage {
  public:
   uint32_t area_id{0};
   std::string name{};
@@ -448,7 +448,7 @@ class SubDeviceInfo : public ProtoMessage {
 class DeviceInfoResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 10;
-  static constexpr uint16_t ESTIMATED_SIZE = 201;
+  static constexpr uint16_t ESTIMATED_SIZE = 219;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   static constexpr const char *message_name() { return "device_info_response"; }
 #endif
@@ -472,7 +472,8 @@ class DeviceInfoResponse : public ProtoMessage {
   std::string bluetooth_mac_address{};
   bool api_encryption_supported{false};
   std::vector<SubDeviceInfo> sub_devices{};
-  std::vector<SubAreaInfo> sub_areas{};
+  std::vector<AreaInfo> areas{};
+  AreaInfo area{};
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP

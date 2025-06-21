@@ -1628,11 +1628,13 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
     sub_device_info.area_id = sub_device->get_area_id();
     resp.sub_devices.push_back(sub_device_info);
   }
+#endif
+#ifdef USE_AREAS
   for (auto const &area : App.get_areas()) {
-    SubAreaInfo area_info;
+    AreaInfo area_info;
     area_info.area_id = area->get_area_id();
     area_info.name = area->get_name();
-    resp.sub_areas.push_back(area_info);
+    resp.areas.push_back(area_info);
   }
 #endif
   return resp;

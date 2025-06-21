@@ -5,7 +5,7 @@
 
 namespace esphome {
 
-class SubArea {
+class Area {
  public:
   void set_area_id(uint32_t area_id) { area_id_ = area_id; }
   uint32_t get_area_id() { return area_id_; }

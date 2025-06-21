@@ -40,6 +40,7 @@ from esphome.helpers import (
     copy_file_if_changed,
     fnv1a_32bit_hash,
     get_str_env,
+    slugify,
     walk_files,
 )
 
@@ -58,7 +59,7 @@ ProjectUpdateTrigger = cg.esphome_ns.class_(
     "ProjectUpdateTrigger", cg.Component, automation.Trigger.template(cg.std_string)
 )
 SubDevice = cg.esphome_ns.class_("SubDevice")
-SubArea = cg.esphome_ns.class_("SubArea")
+Area = cg.esphome_ns.class_("Area")
 
 VALID_INCLUDE_EXTS = {".h", ".hpp", ".tcc", ".ino", ".cpp", ".c"}
 
@@ -127,7 +128,15 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.Required(CONF_NAME): cv.valid_name,
             cv.Optional(CONF_FRIENDLY_NAME, ""): cv.string,
-            cv.Optional(CONF_AREA, ""): cv.string,
+            cv.Optional(CONF_AREA): cv.Any(
+                cv.string,  # Old way: just a string
+                cv.Schema(  # New way: structured area
+                    {
+                        cv.GenerateID(CONF_ID): cv.declare_id(Area),
+                        cv.Required(CONF_NAME): cv.string,
+                    }
+                ),
+            ),
             cv.Optional(CONF_COMMENT): cv.string,
             cv.Required(CONF_BUILD_PATH): cv.string,
             cv.Optional(CONF_PLATFORMIO_OPTIONS, default={}): cv.Schema(
@@ -180,7 +189,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_SUB_AREAS, default=[]): cv.ensure_list(
                 cv.Schema(
                     {
-                        cv.GenerateID(CONF_ID): cv.declare_id(SubArea),
+                        cv.GenerateID(CONF_ID): cv.declare_id(Area),
                         cv.Required(CONF_NAME): cv.string,
                     }
                 ),
@@ -190,7 +199,7 @@ CONFIG_SCHEMA = cv.All(
                     {
                         cv.GenerateID(CONF_ID): cv.declare_id(SubDevice),
                         cv.Required(CONF_NAME): cv.string,
-                        cv.Optional(CONF_AREA_ID): cv.use_id(SubArea),
+                        cv.Optional(CONF_AREA_ID): cv.use_id(Area),
                     }
                 ),
             ),
@@ -374,7 +383,6 @@ async def to_code(config):
         cg.App.pre_setup(
             config[CONF_NAME],
             config[CONF_FRIENDLY_NAME],
-            config[CONF_AREA],
             config.get(CONF_COMMENT, ""),
             cg.RawExpression('__DATE__ ", " __TIME__'),
             config[CONF_NAME_ADD_MAC_SUFFIX],
@@ -445,6 +453,38 @@ async def to_code(config):
     if config[CONF_PLATFORMIO_OPTIONS]:
         CORE.add_job(_add_platformio_options, config[CONF_PLATFORMIO_OPTIONS])
 
+    # Handle area configuration
+    if area_conf := config.get(CONF_AREA):
+        if isinstance(area_conf, dict):
+            # New way: structured area configuration
+            area_var = cg.new_Pvariable(area_conf[CONF_ID])
+            area_id = fnv1a_32bit_hash(str(area_conf[CONF_ID]))
+            area_name = area_conf[CONF_NAME]
+        else:
+            # Old way: string-based area (deprecated)
+            area_slug = slugify(area_conf)
+            _LOGGER.warning(
+                "Using 'area' as a string is deprecated. Please use the new format:\n"
+                "area:\n"
+                "  id: %s\n"
+                '  name: "%s"',
+                area_slug,
+                area_conf,
+            )
+            # Create a synthetic area for backwards compatibility
+            area_var = cg.new_Pvariable(
+                cg.ID(f"area_{area_slug}", is_declaration=True, type=Area)
+            )
+            area_id = fnv1a_32bit_hash(area_conf)
+            area_name = area_conf
+
+        # Common setup for both ways
+        cg.add(area_var.set_area_id(area_id))
+        cg.add(area_var.set_name(area_name))
+        cg.add(cg.App.register_area(area_var))
+        # Define USE_AREAS to enable area processing
+        cg.add_define("USE_AREAS")
+
     # Process sub-devices and areas
     if sub_devices := config.get(CONF_SUB_DEVICES):
         # Process areas first
@@ -455,6 +495,8 @@ async def to_code(config):
                 cg.add(area.set_area_id(area_id))
                 cg.add(area.set_name(area_conf[CONF_NAME]))
                 cg.add(cg.App.register_area(area))
+            # Define USE_AREAS since we have areas
+            cg.add_define("USE_AREAS")
 
         # Process sub-devices
         for dev_conf in sub_devices:
