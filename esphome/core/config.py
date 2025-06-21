@@ -453,6 +453,18 @@ async def to_code(config):
     if config[CONF_PLATFORMIO_OPTIONS]:
         CORE.add_job(_add_platformio_options, config[CONF_PLATFORMIO_OPTIONS])
 
+    # Count total areas for reservation
+    total_areas = 0
+    if config.get(CONF_AREA):
+        total_areas += 1
+    if areas_list := config.get(CONF_AREAS):
+        total_areas += len(areas_list)
+
+    # Reserve space for areas if any are defined
+    if total_areas > 0:
+        cg.add(cg.RawStatement(f"App.reserve_area({total_areas});"))
+        cg.add_define("USE_AREAS")
+
     # Handle area configuration
     if area_conf := config.get(CONF_AREA):
         if isinstance(area_conf, dict):
@@ -480,12 +492,13 @@ async def to_code(config):
         cg.add(area_var.set_area_id(area_id))
         cg.add(area_var.set_name(area_name))
         cg.add(cg.App.register_area(area_var))
-        # Define USE_AREAS to enable area processing
-        cg.add_define("USE_AREAS")
 
     # Process devices and areas
     if devices := config.get(CONF_DEVICES):
-        # Process areas first
+        # Reserve space for devices
+        cg.add(cg.RawStatement(f"App.reserve_device({len(devices)});"))
+
+        # Process additional areas
         if areas := config.get(CONF_AREAS):
             for area_conf in areas:
                 area = cg.new_Pvariable(area_conf[CONF_ID])
@@ -493,8 +506,6 @@ async def to_code(config):
                 cg.add(area.set_area_id(area_id))
                 cg.add(area.set_name(area_conf[CONF_NAME]))
                 cg.add(cg.App.register_area(area))
-            # Define USE_AREAS since we have areas
-            cg.add_define("USE_AREAS")
 
         # Process devices
         for dev_conf in devices:
