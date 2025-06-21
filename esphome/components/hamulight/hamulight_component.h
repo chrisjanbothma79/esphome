@@ -75,6 +75,10 @@ class HamulightComponent : public light::LightOutput, public Component {
    */
   HamulightComponent();
 
+  void set_cmdscan_start_number(esphome::number::Number *n) { cmdscan_start_ = n; }
+  void set_cmdscan_end_number(esphome::number::Number *n) { cmdscan_end_ = n; }
+  void set_cmdscan_pause_number(esphome::number::Number *n) { cmdscan_pause_ = n; }
+
   /**
    * @brief Set the GPIOPin object for RF transmission (for digitalWrite and flag checks).
    * @param pin GPIOPin* object
@@ -159,6 +163,10 @@ class HamulightComponent : public light::LightOutput, public Component {
   uint8_t rf_pin_num_{255};   ///< Raw GPIO number for RMT hardware peripheral
   GPIOPin *led_pin_{nullptr}; ///< Optional feedback LED
   uint16_t rf_address_;       ///< RF Address for protocol
+
+  esphome::number::Number *cmdscan_start_{nullptr};
+  esphome::number::Number *cmdscan_end_{nullptr};
+  esphome::number::Number *cmdscan_pause_{nullptr};
 
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
   // --- RMT hardware handles (allocated ONCE in setup and reused for all transmissions) ---
