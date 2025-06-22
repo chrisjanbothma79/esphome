@@ -34,8 +34,6 @@
 #include "esphome/core/hal.h"
 #include "esphome/components/number/number.h"
 #include "esphome/components/sensor/sensor.h"
-#include "hamulight_button.h"
-#include "hamulight_number.h"
 
 // IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
