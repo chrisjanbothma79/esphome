@@ -480,9 +480,9 @@ async def to_code(config: ConfigType) -> None:
         cg.add_define("USE_AREAS")
 
     # Handle area configuration
-    area_hashes = dict[int, str] = {}
-    area_ids = set[str] = set()
-    device_hashes = dict[int, str] = {}
+    area_hashes: dict[int, str] = {}
+    area_ids: set[str] = set()
+    device_hashes: dict[int, str] = {}
     area_conf: dict[str, str] | str | None
     if area_conf := config.get(CONF_AREA):
         if isinstance(area_conf, dict):
@@ -524,7 +524,7 @@ async def to_code(config: ConfigType) -> None:
     cg.add(cg.RawStatement(f"App.reserve_device({len(devices)});"))
     cg.add_define("USE_DEVICES")
 
-    # Process additional areas
+    # Process additional areas from the areas list
     areas: list[dict[str, str]]
     if areas := config[CONF_AREAS]:
         for area_conf in areas:
