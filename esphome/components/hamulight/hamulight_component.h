@@ -11,7 +11,7 @@
  * Please note that the command scan feature is experimental and for advanced users, who would like to
  * use this component as basis for their own RF remote control implementation.
  * I used the command scanner for finding commands, that were not available on my physical RF remote control
- * (like seperate commands for on and off) - unfortunately no 'new' commands were discovered.
+ * (like separate commands for on and off) - unfortunately no 'new' commands were discovered.
  * 
  * Main features:
  *  - Uses RMT hardware for non-blocking, accurate RF signal generation.
@@ -35,7 +35,7 @@
 #include "esphome/components/number/number.h"
 #include "esphome/components/sensor/sensor.h"
 #include "hamulight_button.h"
-// #include "hamulight_number.h"
+#include "hamulight_number.h"
 
 // IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
@@ -134,8 +134,7 @@ class HamulightComponent : public Component {
    */
   HamulightButton *get_toggle_button() { return toggle_button_; }
   HamulightButton *get_pair_button() { return pair_button_; }
-  // HamulightBrightnessNumber *get_brightness_number() { return brightness_number_; }
-  esphome::number::Number *get_brightness_number() { return brightness_number_; }
+  HamulightBrightnessNumber *get_brightness_number() { return brightness_number_; }
 
   /**
    * @brief ESPHome setup lifecycle method. Initializes pins and allocates RMT resources.
@@ -197,8 +196,7 @@ class HamulightComponent : public Component {
   // --- Custom button and number entities ---
   HamulightButton *toggle_button_{nullptr};
   HamulightButton *pair_button_{nullptr};
-  // HamulightBrightnessNumber *brightness_number_{nullptr};
-  esphome::number::Number *brightness_number_{nullptr};
+  HamulightBrightnessNumber *brightness_number_{nullptr};
 
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
   // --- RMT hardware handles (allocated ONCE in setup and reused for all transmissions) ---
