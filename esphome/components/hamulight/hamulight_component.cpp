@@ -64,6 +64,16 @@ void HamulightComponent::setup() {
   pair_button_->set_callback([this]() { this->pair_with_driver(); });
   App.register_button(pair_button_);
 
+  cmdscan_start_button_ = new HamulightButton();
+  cmdscan_start_button_->set_name("Hamulight Command Scan Start");
+  cmdscan_start_button_->set_callback([this]() { this->start_command_scan(); });
+  App.register_button(cmdscan_start_button_);
+
+  cmdscan_stop_button_ = new HamulightButton();
+  cmdscan_stop_button_->set_name("Hamulight Command Scan Stop");
+  cmdscan_stop_button_->set_callback([this]() { this->stop_command_scan(); });
+  App.register_button(cmdscan_stop_button_);
+  
   // Use custom HamulightBrightnessNumber with forwarded setters
   brightness_number_ = new HamulightBrightnessNumber();
   brightness_number_->set_name("Hamulight Brightness");
