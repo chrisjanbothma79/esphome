@@ -4,7 +4,8 @@ import logging
 import os
 from pathlib import Path
 
-from esphome import git
+import yaml
+
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import (
@@ -20,10 +21,8 @@ from esphome.const import (
     CONF_PLATFORM_VERSION,
     CONF_PLATFORMIO_OPTIONS,
     CONF_REF,
-    CONF_REFRESH,
     CONF_SOURCE,
     CONF_TYPE,
-    CONF_URL,
     CONF_VARIANT,
     CONF_VERSION,
     KEY_CORE,
@@ -32,11 +31,9 @@ from esphome.const import (
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
     PLATFORM_ESP32,
-    TYPE_GIT,
-    TYPE_LOCAL,
     __version__,
 )
-from esphome.core import CORE, HexInt, TimePeriod
+from esphome.core import CORE, HexInt
 from esphome.cpp_generator import RawExpression
 import esphome.final_validate as fv
 from esphome.helpers import copy_file_if_changed, mkdir_p, write_file_if_changed
@@ -235,40 +232,20 @@ def add_idf_sdkconfig_option(name: str, value: SdkconfigValueType):
 def add_idf_component(
     *,
     name: str,
-    repo: str,
+    repo: str = None,
     ref: str = None,
     path: str = None,
-    refresh: TimePeriod = None,
-    components: list[str] | None = None,
-    submodules: list[str] | None = None,
 ):
     """Add an esp-idf component to the project."""
     if not CORE.using_esp_idf:
         raise ValueError("Not an esp-idf project")
-    if components is None:
-        components = []
-    if name not in CORE.data[KEY_ESP32][KEY_COMPONENTS]:
-        CORE.data[KEY_ESP32][KEY_COMPONENTS][name] = {
-            KEY_REPO: repo,
-            KEY_REF: ref,
-            KEY_PATH: path,
-            KEY_REFRESH: refresh,
-            KEY_COMPONENTS: components,
-            KEY_SUBMODULES: submodules,
-        }
-    else:
-        component_config = CORE.data[KEY_ESP32][KEY_COMPONENTS][name]
-        if components is not None:
-            component_config[KEY_COMPONENTS] = list(
-                set(component_config[KEY_COMPONENTS] + components)
-            )
-        if submodules is not None:
-            if component_config[KEY_SUBMODULES] is None:
-                component_config[KEY_SUBMODULES] = submodules
-            else:
-                component_config[KEY_SUBMODULES] = list(
-                    set(component_config[KEY_SUBMODULES] + submodules)
-                )
+    if not repo and not ref and not path:
+        raise ValueError("Requires at least one of repo, ref or path")
+    CORE.data[KEY_ESP32][KEY_COMPONENTS][name] = {
+        KEY_REPO: repo,
+        KEY_REF: ref,
+        KEY_PATH: path,
+    }
 
 
 def add_extra_script(stage: str, filename: str, path: str):
@@ -617,11 +594,9 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
                 cv.Schema(
                     {
                         cv.Required(CONF_NAME): cv.string_strict,
-                        cv.Required(CONF_SOURCE): cv.SOURCE_SCHEMA,
+                        cv.Optional(CONF_SOURCE): cv.git_ref,
+                        cv.Optional(CONF_REF): cv.string,
                         cv.Optional(CONF_PATH): cv.string,
-                        cv.Optional(CONF_REFRESH, default="1d"): cv.All(
-                            cv.string, cv.source_refresh
-                        ),
                     }
                 )
             ),
@@ -814,18 +789,12 @@ async def to_code(config):
             add_idf_sdkconfig_option(name, RawSdkconfigValue(value))
 
         for component in conf[CONF_COMPONENTS]:
-            source = component[CONF_SOURCE]
-            if source[CONF_TYPE] == TYPE_GIT:
-                add_idf_component(
-                    name=component[CONF_NAME],
-                    repo=source[CONF_URL],
-                    ref=source.get(CONF_REF),
-                    path=component.get(CONF_PATH),
-                    refresh=component[CONF_REFRESH],
-                )
-            elif source[CONF_TYPE] == TYPE_LOCAL:
-                _LOGGER.warning("Local components are not implemented yet.")
-
+            add_idf_component(
+                name=component[CONF_NAME],
+                repo=component.get(CONF_SOURCE),
+                ref=component.get(CONF_REF),
+                path=component.get(CONF_PATH),
+            )
     elif conf[CONF_TYPE] == FRAMEWORK_ARDUINO:
         cg.add_platformio_option("framework", "arduino")
         cg.add_build_flag("-DUSE_ARDUINO")
@@ -924,6 +893,26 @@ def _write_sdkconfig():
         write_file_if_changed(sdk_path, contents)
 
 
+def _write_idf_component_yml():
+    yml_path = Path(CORE.relative_build_path("src/idf_component.yml"))
+    if CORE.data[KEY_ESP32][KEY_COMPONENTS]:
+        components: dict = CORE.data[KEY_ESP32][KEY_COMPONENTS]
+        dependencies = {}
+        for name, component in components.items():
+            dependency = {}
+            if component[KEY_REF]:
+                dependency["version"] = component[KEY_REF]
+            if component[KEY_REPO]:
+                dependency["git"] = component[KEY_REPO]
+            if component[KEY_PATH]:
+                dependency["path"] = component[KEY_PATH]
+            dependencies[name] = dependency
+        contents = yaml.dump({"dependencies": dependencies})
+    else:
+        contents = ""
+    write_file_if_changed(yml_path, contents)
+
+
 # Called by writer.py
 def copy_files():
     if CORE.using_arduino:
@@ -936,6 +925,7 @@ def copy_files():
             )
     if CORE.using_esp_idf:
         _write_sdkconfig()
+        _write_idf_component_yml()
         if "partitions.csv" not in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES]:
             write_file_if_changed(
                 CORE.relative_build_path("partitions.csv"),
@@ -951,55 +941,6 @@ def copy_files():
             CORE.relative_build_path("version.txt"),
             __version__,
         )
-
-        import shutil
-
-        shutil.rmtree(CORE.relative_build_path("components"), ignore_errors=True)
-
-        if CORE.data[KEY_ESP32][KEY_COMPONENTS]:
-            components: dict = CORE.data[KEY_ESP32][KEY_COMPONENTS]
-
-            for name, component in components.items():
-                repo_dir, _ = git.clone_or_update(
-                    url=component[KEY_REPO],
-                    ref=component[KEY_REF],
-                    refresh=component[KEY_REFRESH],
-                    domain="idf_components",
-                    submodules=component[KEY_SUBMODULES],
-                )
-                mkdir_p(CORE.relative_build_path("components"))
-                component_dir = repo_dir
-                if component[KEY_PATH] is not None:
-                    component_dir = component_dir / component[KEY_PATH]
-
-                if component[KEY_COMPONENTS] == ["*"]:
-                    shutil.copytree(
-                        component_dir,
-                        CORE.relative_build_path("components"),
-                        dirs_exist_ok=True,
-                        ignore=shutil.ignore_patterns(".git*"),
-                        symlinks=True,
-                        ignore_dangling_symlinks=True,
-                    )
-                elif len(component[KEY_COMPONENTS]) > 0:
-                    for comp in component[KEY_COMPONENTS]:
-                        shutil.copytree(
-                            component_dir / comp,
-                            CORE.relative_build_path(f"components/{comp}"),
-                            dirs_exist_ok=True,
-                            ignore=shutil.ignore_patterns(".git*"),
-                            symlinks=True,
-                            ignore_dangling_symlinks=True,
-                        )
-                else:
-                    shutil.copytree(
-                        component_dir,
-                        CORE.relative_build_path(f"components/{name}"),
-                        dirs_exist_ok=True,
-                        ignore=shutil.ignore_patterns(".git*"),
-                        symlinks=True,
-                        ignore_dangling_symlinks=True,
-                    )
 
     for _, file in CORE.data[KEY_ESP32][KEY_EXTRA_BUILD_FILES].items():
         if file[KEY_PATH].startswith("http"):
