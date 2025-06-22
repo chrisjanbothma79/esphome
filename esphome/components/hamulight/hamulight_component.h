@@ -95,10 +95,11 @@ class HamulightComponent : public Component {
   void set_rf_pin_num(uint8_t pin) { this->rf_pin_num_ = pin; }
 
   /**
-   * @brief Set the optional feedback LED GPIOPin object.
+   * @brief Set the optional feedback LED GPIOPin object and store the pin as number.
    * @param pin GPIOPin* object
    */
   void set_led_pin(GPIOPin *pin) { this->led_pin_ = pin; }
+  void set_led_pin_num(uint8_t pin) { this->led_pin_num_ = pin; }
 
   /**
    * @brief Set the RF address for the protocol.
@@ -172,6 +173,7 @@ class HamulightComponent : public Component {
   GPIOPin *rf_transmit_pin_;  ///< GPIOPin for digital control and flag checks (not used directly in RMT)
   uint8_t rf_pin_num_{255};   ///< Raw GPIO number for RMT hardware peripheral
   GPIOPin *led_pin_{nullptr}; ///< Optional feedback LED
+  uint8_t led_pin_num_{255};  ///< Optional feedback LED's pin number
   uint16_t rf_address_;       ///< RF Address for protocol
 
   // --- Command scanner number pointers ---
