@@ -21,6 +21,7 @@ from esphome.const import (
     CONF_PLATFORM_VERSION,
     CONF_PLATFORMIO_OPTIONS,
     CONF_REF,
+    CONF_REFRESH,
     CONF_SOURCE,
     CONF_TYPE,
     CONF_VARIANT,
@@ -33,7 +34,7 @@ from esphome.const import (
     PLATFORM_ESP32,
     __version__,
 )
-from esphome.core import CORE, HexInt
+from esphome.core import CORE, HexInt, TimePeriod
 from esphome.cpp_generator import RawExpression
 import esphome.final_validate as fv
 from esphome.helpers import copy_file_if_changed, mkdir_p, write_file_if_changed
@@ -46,7 +47,6 @@ from .const import (  # noqa
     KEY_EXTRA_BUILD_FILES,
     KEY_PATH,
     KEY_REF,
-    KEY_REFRESH,
     KEY_REPO,
     KEY_SDKCONFIG_OPTIONS,
     KEY_SUBMODULES,
@@ -235,17 +235,33 @@ def add_idf_component(
     repo: str = None,
     ref: str = None,
     path: str = None,
+    refresh: TimePeriod = None,
+    components: list[str] | None = None,
+    submodules: list[str] | None = None,
 ):
     """Add an esp-idf component to the project."""
     if not CORE.using_esp_idf:
         raise ValueError("Not an esp-idf project")
     if not repo and not ref and not path:
         raise ValueError("Requires at least one of repo, ref or path")
-    CORE.data[KEY_ESP32][KEY_COMPONENTS][name] = {
-        KEY_REPO: repo,
-        KEY_REF: ref,
-        KEY_PATH: path,
-    }
+    if refresh or submodules or components:
+        _LOGGER.warning(
+            "The refresh, components and submodules parameters in add_idf_component() are "
+            "deprecated and will be removed in ESPHome 2026.0. Please update your component."
+        )
+    if components:
+        for comp in components:
+            CORE.data[KEY_ESP32][KEY_COMPONENTS][comp] = {
+                KEY_REPO: repo,
+                KEY_REF: ref,
+                KEY_PATH: f"{path}/{comp}" if path else comp,
+            }
+    else:
+        CORE.data[KEY_ESP32][KEY_COMPONENTS][name] = {
+            KEY_REPO: repo,
+            KEY_REF: ref,
+            KEY_PATH: path,
+        }
 
 
 def add_extra_script(stage: str, filename: str, path: str):
@@ -597,6 +613,9 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
                         cv.Optional(CONF_SOURCE): cv.git_ref,
                         cv.Optional(CONF_REF): cv.string,
                         cv.Optional(CONF_PATH): cv.string,
+                        cv.Optional(CONF_REFRESH): cv.invalid(
+                            f"The {CONF_REFRESH} option has been deprecated"
+                        ),
                     }
                 )
             ),
