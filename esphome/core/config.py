@@ -559,7 +559,8 @@ async def to_code(config: ConfigType) -> None:
             area_id_hash = fnv1a_32bit_hash(area_id.id)
             if area_id.id not in area_ids:
                 raise vol.Invalid(
-                    f"Device '{device_name}' has an area_id '{area_id.id}' that does not exist.",
+                    f"Device '{device_name}' has an area_id '{area_id.id}'"
+                    " that does not exist.",
                     path=[CONF_DEVICES, dev_conf[CONF_ID], CONF_AREA_ID],
                 )
             cg.add(dev.set_area_id(area_id_hash))
