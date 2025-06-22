@@ -1,0 +1,7 @@
+{
+  "name": "Hamulight",
+  "domain": "hamulight",
+  "documentation": "https://github.com/madmat17/esphome",
+  "requirements": [],
+  "codeowners": ["@madmat17"]
+}
