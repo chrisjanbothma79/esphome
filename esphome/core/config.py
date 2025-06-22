@@ -529,7 +529,7 @@ async def to_code(config: ConfigType) -> None:
     cg.add_define("USE_DEVICES")
 
     # Process additional areas from the areas list
-    areas: list[dict[str, str]]
+    areas: list[dict[str, str | core.ID]]
     if areas := config[CONF_AREAS]:
         for area_conf in areas:
             area_id: core.ID = area_conf[CONF_ID]
