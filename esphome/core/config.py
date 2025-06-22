@@ -517,44 +517,44 @@ async def to_code(config: ConfigType) -> None:
 
     # Process devices and areas
     devices: list[dict[str, str]]
-    if devices := config[CONF_DEVICES]:
-        # Reserve space for devices
-        cg.add(cg.RawStatement(f"App.reserve_device({len(devices)});"))
-        cg.add_define("USE_DEVICES")
+    if not (devices := config[CONF_DEVICES]):
+        return
 
-        # Process additional areas
-        areas: list[dict[str, str]]
-        if areas := config[CONF_AREAS]:
-            for area_conf in areas:
-                area_id = area_conf[CONF_ID]
-                area_ids.add(area_id)
-                area = cg.new_Pvariable(area_id)
-                area_id_hash = fnv1a_32bit_hash(area_id)
-                area_name = area_conf[CONF_NAME]
-                _verify_no_collisions(area_hashes, area_id, area_id_hash, CONF_AREAS)
-                cg.add(area.set_area_id(area_id_hash))
-                cg.add(area.set_name(area_name))
-                cg.add(cg.App.register_area(area))
+    # Reserve space for devices
+    cg.add(cg.RawStatement(f"App.reserve_device({len(devices)});"))
+    cg.add_define("USE_DEVICES")
 
-        # Process devices
-        for dev_conf in devices:
-            device_id = dev_conf[CONF_ID]
-            device_id_hash = fnv1a_32bit_hash(device_id)
-            device_name = dev_conf[CONF_NAME]
-            _verify_no_collisions(
-                device_hashes, device_id, device_id_hash, CONF_DEVICES
-            )
-            dev = cg.new_Pvariable(device_id)
-            cg.add(dev.set_device_id(device_id_hash))
-            cg.add(dev.set_name(device_name))
-            if CONF_AREA_ID in dev_conf:
-                # Get the area variable and use its area_id
-                area_id = dev_conf[CONF_AREA_ID]
-                area_id_hash = fnv1a_32bit_hash(area_id)
-                if area_id not in area_ids:
-                    raise vol.Invalid(
-                        f"Device '{device_name}' has an area_id '{area_id}' that does not exist.",
-                        path=[CONF_DEVICES, dev_conf[CONF_ID], CONF_AREA_ID],
-                    )
-                cg.add(dev.set_area_id(area_id_hash))
-            cg.add(cg.App.register_device(dev))
+    # Process additional areas
+    areas: list[dict[str, str]]
+    if areas := config[CONF_AREAS]:
+        for area_conf in areas:
+            area_id = area_conf[CONF_ID]
+            area_ids.add(area_id)
+            area = cg.new_Pvariable(area_id)
+            area_id_hash = fnv1a_32bit_hash(area_id)
+            area_name = area_conf[CONF_NAME]
+            _verify_no_collisions(area_hashes, area_id, area_id_hash, CONF_AREAS)
+            cg.add(area.set_area_id(area_id_hash))
+            cg.add(area.set_name(area_name))
+            cg.add(cg.App.register_area(area))
+
+    # Process devices
+    for dev_conf in devices:
+        device_id = dev_conf[CONF_ID]
+        device_id_hash = fnv1a_32bit_hash(device_id)
+        device_name = dev_conf[CONF_NAME]
+        _verify_no_collisions(device_hashes, device_id, device_id_hash, CONF_DEVICES)
+        dev = cg.new_Pvariable(device_id)
+        cg.add(dev.set_device_id(device_id_hash))
+        cg.add(dev.set_name(device_name))
+        if CONF_AREA_ID in dev_conf:
+            # Get the area variable and use its area_id
+            area_id = dev_conf[CONF_AREA_ID]
+            area_id_hash = fnv1a_32bit_hash(area_id)
+            if area_id not in area_ids:
+                raise vol.Invalid(
+                    f"Device '{device_name}' has an area_id '{area_id}' that does not exist.",
+                    path=[CONF_DEVICES, dev_conf[CONF_ID], CONF_AREA_ID],
+                )
+            cg.add(dev.set_area_id(area_id_hash))
+        cg.add(cg.App.register_device(dev))
