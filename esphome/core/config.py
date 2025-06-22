@@ -69,6 +69,27 @@ Area = cg.esphome_ns.class_("Area")
 VALID_INCLUDE_EXTS = {".h", ".hpp", ".tcc", ".ino", ".cpp", ".c"}
 
 
+def validate_area_config(value):
+    """Convert legacy string area to structured format."""
+    if isinstance(value, str):
+        # Legacy string format - convert to structured format
+        _LOGGER.warning(
+            "Using 'area' as a string is deprecated. Please use the new format:\n"
+            "area:\n"
+            "  id: %s\n"
+            '  name: "%s"',
+            slugify(value),
+            value,
+        )
+        # Return a structured area config with the ID generated here
+        return {
+            CONF_ID: cv.declare_id(Area)(slugify(value)),
+            CONF_NAME: value,
+        }
+    # Already structured format
+    return value
+
+
 def validate_hostname(config):
     max_length = 31
     if config[CONF_NAME_ADD_MAC_SUFFIX]:
@@ -133,9 +154,9 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.Required(CONF_NAME): cv.valid_name,
             cv.Optional(CONF_FRIENDLY_NAME, ""): cv.string,
-            cv.Optional(CONF_AREA): cv.Any(
-                cv.string,  # Old way: just a string
-                cv.Schema(  # New way: structured area
+            cv.Optional(CONF_AREA): cv.All(
+                validate_area_config,
+                cv.Schema(
                     {
                         cv.GenerateID(CONF_ID): cv.declare_id(Area),
                         cv.Required(CONF_NAME): cv.string,
@@ -483,36 +504,15 @@ async def to_code(config: ConfigType) -> None:
     area_hashes: dict[int, str] = {}
     area_ids: set[str] = set()
     device_hashes: dict[int, str] = {}
-    area_conf: dict[str, str | core.ID] | str | None
+    area_conf: dict[str, str | core.ID] | None
     if area_conf := config.get(CONF_AREA):
-        if isinstance(area_conf, dict):
-            # New way: structured area configuration
-            area_id: core.ID = area_conf[CONF_ID]
-            area_id_str: str = area_id.id
-            area_var = cg.new_Pvariable(area_id)
-            area_id_hash = fnv1a_32bit_hash(area_id_str)
-            area_name = area_conf[CONF_NAME]
-        else:
-            # Old way: string-based area (deprecated)
-            area_slug = slugify(area_conf)
-            area_id = core.ID(
-                cv.validate_id_name(area_slug), is_declaration=True, type=Area
-            )
-            area_id_str = area_slug
-            _LOGGER.warning(
-                "Using 'area' as a string is deprecated. Please use the new format:\n"
-                "area:\n"
-                "  id: %s\n"
-                '  name: "%s"',
-                area_slug,
-                area_conf,
-            )
-            # Create a synthetic area for backwards compatibility
-            area_var = cg.new_Pvariable(area_id)
-            area_id_hash = fnv1a_32bit_hash(area_conf)
-            area_name = area_conf
+        # At this point, validation has already converted string to structured format
+        area_id: core.ID = area_conf[CONF_ID]
+        area_id_str: str = area_id.id
+        area_var = cg.new_Pvariable(area_id)
+        area_id_hash = fnv1a_32bit_hash(area_id_str)
+        area_name = area_conf[CONF_NAME]
 
-        # Common setup for both ways
         area_hashes[area_id_hash] = area_name
         area_ids.add(area_id_str)
         cg.add(area_var.set_area_id(area_id_hash))
