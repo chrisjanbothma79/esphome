@@ -121,10 +121,7 @@ def validate_ids_and_references(config: ConfigType) -> ConfigType:
         hash_dict: dict[int, str],
         item_type: str,
         path: list[str | int],
-    ) -> bool:
-        if not id_obj.id:
-            return False
-
+    ) -> None:
         hash_val: int = fnv1a_32bit_hash(id_obj.id)
         if hash_val in hash_dict and hash_dict[hash_val] != id_obj.id:
             raise cv.Invalid(
@@ -133,7 +130,6 @@ def validate_ids_and_references(config: ConfigType) -> ConfigType:
                 path=path,
             )
         hash_dict[hash_val] = id_obj.id
-        return True
 
     # Collect all areas
     all_areas: list[dict[str, str | core.ID]] = []
@@ -146,8 +142,8 @@ def validate_ids_and_references(config: ConfigType) -> ConfigType:
     area_ids: set[str] = set()
     for area in all_areas:
         area_id: core.ID = area[CONF_ID]
-        if check_hash_collision(area_id, area_hashes, "Area", [CONF_AREAS, area_id.id]):
-            area_ids.add(area_id.id)
+        check_hash_collision(area_id, area_hashes, "Area", [CONF_AREAS, area_id.id])
+        area_ids.add(area_id.id)
 
     # Validate device hash collisions and area references
     device_hashes: dict[int, str] = {}
