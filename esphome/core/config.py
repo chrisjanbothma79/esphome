@@ -490,78 +490,85 @@ async def to_code(config: ConfigType) -> None:
     if config[CONF_PLATFORMIO_OPTIONS]:
         CORE.add_job(_add_platformio_options, config[CONF_PLATFORMIO_OPTIONS])
 
-    # Count total areas for reservation
-    total_areas = len(config[CONF_AREAS])
-    if config.get(CONF_AREA):
-        total_areas += 1
-
-    # Reserve space for areas if any are defined
-    if total_areas:
-        cg.add(cg.RawStatement(f"App.reserve_area({total_areas});"))
-        cg.add_define("USE_AREAS")
-
-    # Handle area configuration
-    area_hashes: dict[int, str] = {}
-    area_ids: set[str] = set()
-    device_hashes: dict[int, str] = {}
-    area_conf: dict[str, str | core.ID] | None
-    if area_conf := config.get(CONF_AREA):
-        # At this point, validation has already converted string to structured format
+    # Helper function to process an area configuration
+    def process_area(
+        area_conf: dict[str, str | core.ID],
+        area_hashes: dict[int, str],
+        area_ids: set[str],
+        conf_path: str | None = None,
+    ) -> None:
+        """Process and register an area configuration."""
         area_id: core.ID = area_conf[CONF_ID]
         area_id_str: str = area_id.id
-        area_var = cg.new_Pvariable(area_id)
         area_id_hash = fnv1a_32bit_hash(area_id_str)
-        area_name = area_conf[CONF_NAME]
+        area_name: str = area_conf[CONF_NAME]
+
+        if conf_path:  # Only verify collisions for areas from CONF_AREAS list
+            _verify_no_collisions(area_hashes, area_id, area_id_hash, conf_path)
 
         area_hashes[area_id_hash] = area_name
         area_ids.add(area_id_str)
+
+        area_var = cg.new_Pvariable(area_id)
         cg.add(area_var.set_area_id(area_id_hash))
         cg.add(area_var.set_name(area_name))
         cg.add(cg.App.register_area(area_var))
 
-    # Process devices and areas
-    devices: list[dict[str, str | core.ID]]
-    if not (devices := config[CONF_DEVICES]):
+    # Initialize tracking structures
+    area_hashes: dict[int, str] = {}
+    area_ids: set[str] = set()
+    device_hashes: dict[int, str] = {}
+
+    # Collect all areas to process
+    all_areas: list[tuple[dict[str, str | core.ID], str | None]] = []
+
+    # Add top-level area if present
+    if area_conf := config.get(CONF_AREA):
+        all_areas.append((area_conf, None))
+
+    # Add areas from CONF_AREAS list
+    all_areas.extend((area, CONF_AREAS) for area in config[CONF_AREAS])
+
+    # Reserve space for areas and process them
+    if all_areas:
+        cg.add(cg.RawStatement(f"App.reserve_area({len(all_areas)});"))
+        cg.add_define("USE_AREAS")
+
+        for area_conf, conf_path in all_areas:
+            process_area(area_conf, area_hashes, area_ids, conf_path)
+
+    # Process devices
+    devices: list[dict[str, str | core.ID]] = config[CONF_DEVICES]
+    if not devices:
         return
 
     # Reserve space for devices
     cg.add(cg.RawStatement(f"App.reserve_device({len(devices)});"))
     cg.add_define("USE_DEVICES")
 
-    # Process additional areas from the areas list
-    areas: list[dict[str, str | core.ID]]
-    if areas := config[CONF_AREAS]:
-        for area_conf in areas:
-            area_id: core.ID = area_conf[CONF_ID]
-            area_ids.add(area_id.id)
-            area = cg.new_Pvariable(area_id)
-            area_id_hash = fnv1a_32bit_hash(area_id.id)
-            area_name: str = area_conf[CONF_NAME]
-            _verify_no_collisions(area_hashes, area_id, area_id_hash, CONF_AREAS)
-            area_hashes[area_id_hash] = area_name
-            cg.add(area.set_area_id(area_id_hash))
-            cg.add(area.set_name(area_name))
-            cg.add(cg.App.register_area(area))
-
-    # Process devices
+    # Process each device
     for dev_conf in devices:
-        device_id = dev_conf[CONF_ID]
+        device_id: core.ID = dev_conf[CONF_ID]
         device_id_hash = fnv1a_32bit_hash(device_id.id)
-        device_name = dev_conf[CONF_NAME]
+        device_name: str = dev_conf[CONF_NAME]
+
         _verify_no_collisions(device_hashes, device_id, device_id_hash, CONF_DEVICES)
         device_hashes[device_id_hash] = device_name
+
         dev = cg.new_Pvariable(device_id)
         cg.add(dev.set_device_id(device_id_hash))
         cg.add(dev.set_name(device_name))
+
+        # Set area if specified
         if CONF_AREA_ID in dev_conf:
-            # Get the area variable and use its area_id
-            area_id = dev_conf[CONF_AREA_ID]
-            area_id_hash = fnv1a_32bit_hash(area_id.id)
+            area_id: core.ID = dev_conf[CONF_AREA_ID]
             if area_id.id not in area_ids:
                 raise vol.Invalid(
                     f"Device '{device_name}' has an area_id '{area_id.id}'"
                     " that does not exist.",
-                    path=[CONF_DEVICES, dev_conf[CONF_ID], CONF_AREA_ID],
+                    path=[CONF_DEVICES, device_id, CONF_AREA_ID],
                 )
+            area_id_hash = fnv1a_32bit_hash(area_id.id)
             cg.add(dev.set_area_id(area_id_hash))
+
         cg.add(cg.App.register_device(dev))
