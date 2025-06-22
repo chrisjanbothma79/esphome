@@ -72,13 +72,17 @@ void HamulightComponent::setup() {
   App.register_component(pair_button_);
   App.register_button(pair_button_);
 
-  brightness_number_ = new HamulightBrightnessNumber();
+  // brightness_number_ = new HamulightBrightnessNumber();
+  brightness_number_ = new esphome::number::Number();
   brightness_number_->set_name("Hamulight Brightness");
   brightness_number_->set_min_value(0);
   brightness_number_->set_max_value(100);
   brightness_number_->set_step(1);
-  brightness_number_->set_mode(number::Number::MODE_SLIDER);
-  brightness_number_->set_callback([this](float value) { this->set_brightness(value); });
+  // brightness_number_->set_mode(number::Number::MODE_SLIDER);
+  brightness_number_->set_mode(esphome::number::NumberMode::NUMBER_MODE_SLIDER);
+  // Attach callback for brightness control.
+  // We use a lambda to call HamulightComponent::set_brightness
+  brightness_number_->add_on_state_callback([this](float value) { this->set_brightness(value); });
   App.register_component(brightness_number_);
   App.register_number(brightness_number_);
 
