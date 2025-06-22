@@ -9,9 +9,8 @@ namespace esphome {
 namespace emerio_pac_125152 {
 
 // Temperature
-// TODO: Check the actual temperature range of the Emerio PAC 125152
-const uint8_t TEMP_MIN = 18;  // Celsius
-const uint8_t TEMP_MAX = 30;  // Celsius
+const uint8_t TEMP_MIN = 15;  // Celsius
+const uint8_t TEMP_MAX = 31;  // Celsius
 
 const uint16_t ADDRESS = 0xFF00;
 
