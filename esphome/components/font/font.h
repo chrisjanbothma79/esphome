@@ -50,9 +50,14 @@ class Font
  public:
   /** Construct the font with the given glyphs.
    *
-   * @param glyphs A vector of glyphs, must be sorted lexicographically.
+   * @param data A vector of glyphs, must be sorted lexicographically.
+   * @param data_nr The number of glyphs in data.
    * @param baseline The y-offset from the top of the text to the baseline.
-   * @param bottom The y-offset from the top of the text to the bottom (i.e. height).
+   * @param height The y-offset from the top of the text to the bottom.
+   * @param descender The y-offset from the baseline to the lowest stroke in the font (e.g. from letters like g or p).
+   * @param xheight The height of lowercase letters, usually measured at the "x" glyph.
+   * @param capheight The height of capital letters, usually measured at the "X" glyph.
+   * @param bpp The bits per pixel used for this font. Used to read data out of the glyph bitmaps.
    */
   Font(const GlyphData *data, int data_nr, int baseline, int height, int descender, int xheight, int capheight,
        uint8_t bpp = 1);
