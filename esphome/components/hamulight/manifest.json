@@ -3,5 +3,6 @@
   "domain": "hamulight",
   "documentation": "https://github.com/madmat17/esphome",
   "requirements": [],
-  "codeowners": ["@madmat17"]
+  "codeowners": ["@madmat17"],
+  "dependencies": ["sensor", "number"]
 }
