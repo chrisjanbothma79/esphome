@@ -19,7 +19,7 @@ template<typename... X> class TemplatableStringValue : public TemplatableValue<s
 
   template<typename F, std::enable_if_t<std::is_invocable<F, X...>::value, int> = 0>
   TemplatableStringValue(F f)
-      : TemplatableValue<std::string, X...>([f](X... x) -> std::string { return to_string(f(x...)); }) {}
+      : TemplatableValue<std::string, X...>([f](X... x) -> std::string { return std::to_string(f(x...)); }) {}
 };
 
 template<typename... Ts> class TemplatableKeyValuePair {
