@@ -69,7 +69,7 @@ Area = cg.esphome_ns.class_("Area")
 VALID_INCLUDE_EXTS = {".h", ".hpp", ".tcc", ".ino", ".cpp", ".c"}
 
 
-def validate_area_config(value):
+def validate_area_config(value: dict | str) -> dict[str, str | core.ID]:
     """Convert legacy string area to structured format."""
     if isinstance(value, str):
         # Legacy string format - convert to structured format
