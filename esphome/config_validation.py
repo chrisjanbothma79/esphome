@@ -350,7 +350,7 @@ def icon(value):
     )
 
 
-def sub_device_id(value) -> core.ID:
+def sub_device_id(value: str | None) -> core.ID:
     # Lazy import to avoid circular imports
     from esphome.core.config import Device
 
