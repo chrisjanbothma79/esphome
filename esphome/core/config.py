@@ -42,7 +42,6 @@ from esphome.helpers import (
     copy_file_if_changed,
     fnv1a_32bit_hash,
     get_str_env,
-    slugify,
     walk_files,
 )
 from esphome.types import ConfigType
@@ -65,27 +64,6 @@ Device = cg.esphome_ns.class_("Device")
 Area = cg.esphome_ns.class_("Area")
 
 VALID_INCLUDE_EXTS = {".h", ".hpp", ".tcc", ".ino", ".cpp", ".c"}
-
-
-def validate_area_config(value: dict | str) -> dict[str, str | core.ID]:
-    """Convert legacy string area to structured format."""
-    if isinstance(value, str):
-        # Legacy string format - convert to structured format
-        _LOGGER.warning(
-            "Using 'area' as a string is deprecated. Please use the new format:\n"
-            "area:\n"
-            "  id: %s\n"
-            '  name: "%s"',
-            slugify(value),
-            value,
-        )
-        # Return a structured area config with the ID generated here
-        return {
-            CONF_ID: cv.declare_id(Area)(slugify(value)),
-            CONF_NAME: value,
-        }
-    # Already structured format
-    return value
 
 
 def validate_hostname(config):
@@ -206,21 +184,28 @@ if "ESPHOME_DEFAULT_COMPILE_PROCESS_LIMIT" in os.environ:
 else:
     _compile_process_limit_default = cv.UNDEFINED
 
+AREA_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(CONF_ID): cv.declare_id(Area),
+        cv.Required(CONF_NAME): cv.string,
+    }
+)
+
+DEVICE_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(CONF_ID): cv.declare_id(Device),
+        cv.Required(CONF_NAME): cv.string,
+        cv.Optional(CONF_AREA_ID): cv.use_id(Area),
+    }
+)
+
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.Required(CONF_NAME): cv.valid_name,
             cv.Optional(CONF_FRIENDLY_NAME, ""): cv.string,
-            cv.Optional(CONF_AREA): cv.All(
-                validate_area_config,
-                cv.Schema(
-                    {
-                        cv.GenerateID(CONF_ID): cv.declare_id(Area),
-                        cv.Required(CONF_NAME): cv.string,
-                    }
-                ),
-            ),
+            cv.Optional(CONF_AREA): cv.maybe_simple_value(AREA_SCHEMA, key=CONF_NAME),
             cv.Optional(CONF_COMMENT): cv.string,
             cv.Required(CONF_BUILD_PATH): cv.string,
             cv.Optional(CONF_PLATFORMIO_OPTIONS, default={}): cv.Schema(
@@ -270,23 +255,8 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(
                 CONF_COMPILE_PROCESS_LIMIT, default=_compile_process_limit_default
             ): cv.int_range(min=1, max=get_usable_cpu_count()),
-            cv.Optional(CONF_AREAS, default=[]): cv.ensure_list(
-                cv.Schema(
-                    {
-                        cv.GenerateID(CONF_ID): cv.declare_id(Area),
-                        cv.Required(CONF_NAME): cv.string,
-                    }
-                ),
-            ),
-            cv.Optional(CONF_DEVICES, default=[]): cv.ensure_list(
-                cv.Schema(
-                    {
-                        cv.GenerateID(CONF_ID): cv.declare_id(Device),
-                        cv.Required(CONF_NAME): cv.string,
-                        cv.Optional(CONF_AREA_ID): cv.use_id(Area),
-                    }
-                ),
-            ),
+            cv.Optional(CONF_AREAS, default=[]): cv.ensure_list(AREA_SCHEMA),
+            cv.Optional(CONF_DEVICES, default=[]): cv.ensure_list(DEVICE_SCHEMA),
         }
     ),
     validate_hostname,
