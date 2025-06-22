@@ -396,8 +396,8 @@ bool FriedrichClimate::on_receive(remote_base::RemoteReceiveData src) {
       // Set fan
       uint8_t byte8 = data.data.at(8);
       //Check for Swing
-      uint8_t lastNibble = byte8 & 0x0F;
-      if (lastNibble == BYTE8_FAN_SWING) {
+      uint8_t last_nibble = byte8 & 0x0F;
+      if (last_nibble == BYTE8_FAN_SWING) {
         this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
         byte8 = byte8 - BYTE8_FAN_SWING;
       }
