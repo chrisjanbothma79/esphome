@@ -30,7 +30,19 @@ def ensure_unique_string(preferred_string, current_strings):
 
 
 def fnv1a_32bit_hash(string: str) -> int:
-    """FNV-1a 32-bit hash function."""
+    """FNV-1a 32-bit hash function.
+
+    Note: This uses 32-bit hash instead of 64-bit for several reasons:
+    1. ESPHome targets 32-bit microcontrollers with limited RAM (often <320KB)
+    2. Using 64-bit hashes would double the RAM usage for storing IDs
+    3. 64-bit operations are slower on 32-bit processors
+
+    While there's a ~50% collision probability at ~77,000 unique IDs,
+    ESPHome validates for collisions at compile time, preventing any
+    runtime issues. In practice, most ESPHome installations only have
+    a handful of area_ids and device_ids (typically <10 areas and <100
+    devices), making collisions virtually impossible.
+    """
     hash_value = 2166136261
     for char in string:
         hash_value ^= ord(char)

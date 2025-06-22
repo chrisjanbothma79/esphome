@@ -107,7 +107,13 @@ def validate_hostname(config):
 
 
 def validate_ids_and_references(config: ConfigType) -> ConfigType:
-    """Validate that there are no hash collisions between IDs and that area_id references are valid."""
+    """Validate that there are no hash collisions between IDs and that area_id references are valid.
+
+    This validation is critical because we use 32-bit hashes for performance on microcontrollers.
+    By detecting collisions at compile time, we prevent any runtime issues while maintaining
+    optimal performance on 32-bit platforms. In practice, with typical deployments having only
+    a handful of areas and devices, hash collisions are virtually impossible.
+    """
 
     # Helper to check hash collisions
     def check_hash_collision(
