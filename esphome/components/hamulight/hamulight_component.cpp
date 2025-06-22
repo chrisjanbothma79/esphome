@@ -237,26 +237,19 @@ void HamulightComponent::generate_code_sequence(uint8_t command) {
 }
 
 
-/**
- * @brief Handles stateless "toggle" button press.
- */
 void HamulightComponent::toggle() {
+  // Called from YAML button: Toggle the RF device
   this->transmit_rf_command(RF_POWER_COMMAND);
 }
 
-/**
- * @brief Handles stateless "pair with driver" button press (100% brightness).
- */
 void HamulightComponent::pair_with_driver() {
+  // Called from YAML button: Pair with Hamulight driver
   this->transmit_rf_command(RF_BRIGHT100_COMMAND);
 }
 
-/**
- * @brief Handles brightness slider (number entity).
- *  - Maps 0-100 (float) to RF dimming protocol value, including offset and clamping.
- * @param brightness (0.0..100.0)
- */
 void HamulightComponent::set_brightness(float brightness) {
+  // Called from YAML number: Set brightness (0-100%)
+  // Maps 0-100 (float) to RF dimming protocol value, including offset and clamping.
   uint8_t dim_raw = static_cast<uint8_t>(brightness * (RF_SLIDE_STEPS - 1) / 100.0f);
   uint8_t rf_value = RF_SLIDE_OFFSET + dim_raw;
   if (rf_value > RF_SLIDE_RANGE_MAX)
@@ -264,11 +257,8 @@ void HamulightComponent::set_brightness(float brightness) {
   this->transmit_rf_brightness(rf_value);
 }
 
-/**
- * @brief Starts the command scan (used by Start Command Scan button).
- *  - Sets up internal scan state, ready to advance via loop()
- */
 void HamulightComponent::start_command_scan() {
+  // Called from YAML button: Start command scan
   if (!scanner_running_) {
     scanner_running_ = true;
     scanner_last_time_ = 0;
@@ -277,10 +267,8 @@ void HamulightComponent::start_command_scan() {
   }
 }
 
-/**
- * @brief Stops the command scan (used by Stop Command Scan button).
- */
 void HamulightComponent::stop_command_scan() {
+  // Called from YAML button: Stop command scan
   if (scanner_running_) {
     scanner_running_ = false;
     ESP_LOGI(TAG, "Command scan stopped at command 0x%02X.", scanner_current_);
@@ -347,13 +335,13 @@ void HamulightComponent::transmit_rf_brightness(uint8_t brightness_value) {
   this->send_rf_signal_rmt();
 }
 
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
 /**
  * @brief Low-level: Send the code_sequence_[] via ESP32 RMT peripheral.
  *  - Allocates no hardware resources here (all done in setup)
  *  - Handles feedback LED on/off
  *  - Sends start sequence + code sequence, repeated SIGNAL_REPETITIONS times
  */
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
 void HamulightComponent::send_rf_signal_rmt() {
   if (this->led_pin_ != nullptr) {
     this->led_pin_->digital_write(true);
@@ -369,8 +357,10 @@ void HamulightComponent::send_rf_signal_rmt() {
 
   std::vector<rmt_symbol_word_t> items;
 
-  // Repeat the transmission for protocol robustness
-  for (int i = 0; i < SIGNAL_REPETITIONS; i++) {
+ 
+  // Compose the full RF transmission: START_SEQUENCE and code_sequence_
+  // Repeat the transmission for protocol robustness - probalby to be dismissed due to HA sending command repeatedly
+  for (int i = 0; i < SIGNAL_REPETITIONS; i++) {               
     // Start sequence
     for (int j = 0; j < START_SEQUENCE_SIZE; j += 2) {
       rmt_symbol_word_t word = {};
