@@ -17,7 +17,8 @@ class HamulightButton : public button::Button {
   void set_callback(std::function<void()> cb) { cb_ = std::move(cb); }
  protected:
   void press_action() override {
-    if (cb_) cb_();
+    if (cb_)
+      cb_();
   }
   std::function<void()> cb_;
 };
