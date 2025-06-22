@@ -19,6 +19,7 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/application.h"  // <-- Required for 'App'
+#include <driver/gpio.h>
 
 namespace esphome {
 namespace hamulight {
