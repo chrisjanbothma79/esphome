@@ -129,9 +129,9 @@ void IRAM_ATTR ISRInternalGPIOPin::digital_write(bool value) {
     }
   } else {
     if (value != arg->inverted) {
-      *arg->out_set_reg |= 1;
+      *arg->out_set_reg |= 1;  // NOLINT
     } else {
-      *arg->out_set_reg &= ~1;
+      *arg->out_set_reg &= ~1;  // NOLINT
     }
   }
 }
@@ -147,29 +147,29 @@ void IRAM_ATTR ISRInternalGPIOPin::pin_mode(gpio::Flags flags) {
     if (flags & gpio::FLAG_OUTPUT) {
       *arg->mode_set_reg = arg->mask;
       if (flags & gpio::FLAG_OPEN_DRAIN) {
-        *arg->control_reg |= 1 << GPCD;
+        *arg->control_reg |= 1 << GPCD;  // NOLINT
       } else {
-        *arg->control_reg &= ~(1 << GPCD);
+        *arg->control_reg &= ~(1 << GPCD);  // NOLINT
       }
     } else if (flags & gpio::FLAG_INPUT) {
       *arg->mode_clr_reg = arg->mask;
     }
     if (flags & gpio::FLAG_PULLUP) {
-      *arg->func_reg |= 1 << GPFPU;
-      *arg->control_reg |= 1 << GPCD;
+      *arg->func_reg |= 1 << GPFPU;    // NOLINT
+      *arg->control_reg |= 1 << GPCD;  // NOLINT
     } else {
-      *arg->func_reg &= ~(1 << GPFPU);
+      *arg->func_reg &= ~(1 << GPFPU);  // NOLINT
     }
   } else {
     if (flags & gpio::FLAG_OUTPUT) {
-      *arg->mode_set_reg |= 1;
+      *arg->mode_set_reg |= 1;  // NOLINT
     } else {
-      *arg->mode_set_reg &= ~1;
+      *arg->mode_set_reg &= ~1;  // NOLINT
     }
     if (flags & gpio::FLAG_PULLDOWN) {
-      *arg->func_reg |= 1 << GP16FPD;
+      *arg->func_reg |= 1 << GP16FPD;  // NOLINT
     } else {
-      *arg->func_reg &= ~(1 << GP16FPD);
+      *arg->func_reg &= ~(1 << GP16FPD);  // NOLINT
     }
   }
 }

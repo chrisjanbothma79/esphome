@@ -1,5 +1,6 @@
 #include "display.h"
 #include <utility>
+#include <numbers>
 #include "display_color_utils.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
