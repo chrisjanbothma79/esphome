@@ -4,8 +4,7 @@ import logging
 import os
 from pathlib import Path
 
-import yaml
-
+from esphome import yaml_util
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import (
@@ -38,6 +37,7 @@ from esphome.core import CORE, HexInt, TimePeriod
 from esphome.cpp_generator import RawExpression
 import esphome.final_validate as fv
 from esphome.helpers import copy_file_if_changed, mkdir_p, write_file_if_changed
+from esphome.types import ConfigType
 
 from .boards import BOARDS
 from .const import (  # noqa
@@ -567,6 +567,17 @@ CONF_ENABLE_LWIP_DHCP_SERVER = "enable_lwip_dhcp_server"
 CONF_ENABLE_LWIP_MDNS_QUERIES = "enable_lwip_mdns_queries"
 CONF_ENABLE_LWIP_BRIDGE_INTERFACE = "enable_lwip_bridge_interface"
 
+
+def _validate_idf_component(config: ConfigType) -> ConfigType:
+    """Validate IDF component config and warn about deprecated options."""
+    if CONF_REFRESH in config:
+        _LOGGER.warning(
+            "The 'refresh' option for IDF components is deprecated and has no effect. "
+            "It will be removed in ESPHome 2026.0. Please remove it from your configuration."
+        )
+    return config
+
+
 ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
     cv.Schema(
         {
@@ -606,16 +617,19 @@ ESP_IDF_FRAMEWORK_SCHEMA = cv.All(
                 }
             ),
             cv.Optional(CONF_COMPONENTS, default=[]): cv.ensure_list(
-                cv.Schema(
-                    {
-                        cv.Required(CONF_NAME): cv.string_strict,
-                        cv.Optional(CONF_SOURCE): cv.git_ref,
-                        cv.Optional(CONF_REF): cv.string,
-                        cv.Optional(CONF_PATH): cv.string,
-                        cv.Optional(CONF_REFRESH): cv.invalid(
-                            f"The {CONF_REFRESH} option has been deprecated"
-                        ),
-                    }
+                cv.All(
+                    cv.Schema(
+                        {
+                            cv.Required(CONF_NAME): cv.string_strict,
+                            cv.Optional(CONF_SOURCE): cv.git_ref,
+                            cv.Optional(CONF_REF): cv.string,
+                            cv.Optional(CONF_PATH): cv.string,
+                            cv.Optional(CONF_REFRESH): cv.All(
+                                cv.string, cv.source_refresh
+                            ),
+                        }
+                    ),
+                    _validate_idf_component,
                 )
             ),
         }
@@ -925,7 +939,7 @@ def _write_idf_component_yml():
             if component[KEY_PATH]:
                 dependency["path"] = component[KEY_PATH]
             dependencies[name] = dependency
-        contents = yaml.dump({"dependencies": dependencies})
+        contents = yaml_util.dump({"dependencies": dependencies})
     else:
         contents = ""
     write_file_if_changed(yml_path, contents)
