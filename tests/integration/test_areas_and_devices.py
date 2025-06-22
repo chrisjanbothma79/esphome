@@ -68,6 +68,11 @@ async def test_areas_and_devices(
             "Smart Switch should be in Kitchen"
         )
 
+        # Verify suggested_area is set to the top-level area name
+        assert device_info.suggested_area == "Living Room", (
+            f"Expected suggested_area to be 'Living Room', got '{device_info.suggested_area}'"
+        )
+
         # Get entity list to verify device_id mapping
         entities = await client.list_entities_services()
 
