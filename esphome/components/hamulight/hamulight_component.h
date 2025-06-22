@@ -134,6 +134,8 @@ class HamulightComponent : public Component {
    */
   HamulightButton *get_toggle_button() { return toggle_button_; }
   HamulightButton *get_pair_button() { return pair_button_; }
+  HamulightButton *get_cmdscan_start_button() { return cmdscan_start_button_; }
+  HamulightButton *get_cmdscan_stop_button() { return cmdscan_stop_button_; }
   HamulightBrightnessNumber *get_brightness_number() { return brightness_number_; }
 
   /**
@@ -196,6 +198,8 @@ class HamulightComponent : public Component {
   // --- Custom button and number entities ---
   HamulightButton *toggle_button_{nullptr};
   HamulightButton *pair_button_{nullptr};
+  HamulightButton *cmdscan_start_button_{nullptr};
+  HamulightButton *cmdscan_stop_button_{nullptr};
   HamulightBrightnessNumber *brightness_number_{nullptr};
 
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
