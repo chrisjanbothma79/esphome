@@ -120,7 +120,7 @@ def validate_id_hash_collisions(config: dict) -> dict:
             area_hashes[area_hash] = area_id.id
 
     # Check areas list
-    for area in config.get(CONF_AREAS, []):
+    for area in config[CONF_AREAS]:
         area_id: core.ID = area[CONF_ID]
         if not area_id.id:
             continue
@@ -142,7 +142,7 @@ def validate_id_hash_collisions(config: dict) -> dict:
 
     # Check device hash collisions
     device_hashes: dict[int, str] = {}
-    for device in config.get(CONF_DEVICES, []):
+    for device in config[CONF_DEVICES]:
         device_id: core.ID = device[CONF_ID]
         if not device_id.id:
             continue
