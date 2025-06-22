@@ -41,66 +41,58 @@ CONFIG_SCHEMA = cv.All(
 
 
 async def to_code(config):
-    framework_ver: cv.Version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
-
     if config[CONF_ACTIVE_HIGH]:
-        esp32.add_idf_sdkconfig_option("CONFIG_ESP_HOSTED_SDIO_RESET_ACTIVE_HIGH", True)
+        esp32.add_idf_sdkconfig_option(
+            "CONFIG_ESP_HOSTED_SDIO_RESET_ACTIVE_HIGH",
+            True,
+        )
     else:
-        esp32.add_idf_sdkconfig_option("CONFIG_ESP_HOSTED_SDIO_RESET_ACTIVE_LOW", True)
-
+        esp32.add_idf_sdkconfig_option(
+            "CONFIG_ESP_HOSTED_SDIO_RESET_ACTIVE_LOW",
+            True,
+        )
+    esp32.add_idf_sdkconfig_option(
+        "CONFIG_ESP_HOSTED_SDIO_GPIO_RESET_SLAVE",  # NOLINT
+        config[CONF_RESET_PIN],
+    )
     esp32.add_idf_sdkconfig_option(
         f"CONFIG_SLAVE_IDF_TARGET_{config[CONF_VARIANT]}",  # NOLINT
         True,
     )
-
     esp32.add_idf_sdkconfig_option(
-        f"CONFIG_ESP_HOSTED_SDIO_SLOT_{config[CONF_SLOT]}", True
+        f"CONFIG_ESP_HOSTED_SDIO_SLOT_{config[CONF_SLOT]}",
+        True,
     )
-
     esp32.add_idf_sdkconfig_option(
         f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_CLK_SLOT_{config[CONF_SLOT]}",
         config[CONF_CLK_PIN],
     )
-
     esp32.add_idf_sdkconfig_option(
         f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_CMD_SLOT_{config[CONF_SLOT]}",
         config[CONF_CMD_PIN],
     )
-
     esp32.add_idf_sdkconfig_option(
         f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D0_SLOT_{config[CONF_SLOT]}",
         config[CONF_D0_PIN],
     )
-
     esp32.add_idf_sdkconfig_option(
         f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D1_4BIT_BUS_SLOT_{config[CONF_SLOT]}",
         config[CONF_D1_PIN],
     )
-
     esp32.add_idf_sdkconfig_option(
         f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D2_4BIT_BUS_SLOT_{config[CONF_SLOT]}",
         config[CONF_D2_PIN],
     )
-
     esp32.add_idf_sdkconfig_option(
         f"CONFIG_ESP_HOSTED_PRIV_SDIO_PIN_D3_4BIT_BUS_SLOT_{config[CONF_SLOT]}",
         config[CONF_D3_PIN],
     )
 
-    esp32.add_idf_sdkconfig_option(
-        "CONFIG_ESP_HOSTED_SDIO_GPIO_RESET_SLAVE",  # NOLINT
-        config[CONF_RESET_PIN],
-    )
-
+    framework_ver: cv.Version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
     os.environ["ESP_IDF_VERSION"] = f"{framework_ver.major}.{framework_ver.minor}"
-
-    esp32.add_idf_component(
-        name="esp_wifi_remote",
-        repo="https://github.com/espressif/esp-wifi-remote.git",
-        path="components/esp_wifi_remote",
-        ref="wifi_remote-v0.10.2",
-    )
-
+    esp32.add_idf_component(name="espressif/esp_wifi_remote", ref="0.10.2")
+    esp32.add_idf_component(name="espressif/eppp_link", ref="0.2.0")
+    esp32.add_idf_component(name="espressif/esp_hosted", ref="2.0.11")
     esp32.add_extra_script(
         "post",
         "esp32_hosted.py",
