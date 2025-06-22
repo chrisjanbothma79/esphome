@@ -172,7 +172,11 @@ def test_area_id_collision(
 
     # Check for the specific error message in stdout
     captured = capsys.readouterr()
-    assert "ID duplicate_id redefined! Check esphome->area->id." in captured.out
+    # Since duplicate IDs have the same hash, our hash collision detection catches this
+    assert (
+        "Area ID 'duplicate_id' with hash 1805131238 collides with existing area ID 'duplicate_id'"
+        in captured.out
+    )
 
 
 def test_device_without_area(yaml_file: Callable[[str], str]) -> None:
@@ -193,3 +197,47 @@ def test_device_without_area(yaml_file: Callable[[str], str]) -> None:
 
     # Verify no area_id is present
     assert "area_id" not in device
+
+
+def test_device_with_invalid_area_id(
+    yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Test that device with non-existent area_id fails validation."""
+    result = load_config_from_fixture(yaml_file, "device_invalid_area.yaml")
+    assert result is None
+
+    # Check for the specific error message in stdout
+    captured = capsys.readouterr()
+    assert "Couldn't find ID 'nonexistent_area'" in captured.out
+
+
+def test_device_id_hash_collision(
+    yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Test that device IDs with hash collisions are detected."""
+    result = load_config_from_fixture(yaml_file, "device_id_collision.yaml")
+    assert result is None
+
+    # Check for the specific error message about hash collision
+    captured = capsys.readouterr()
+    # The error message shows the ID that collides and includes the hash value
+    assert (
+        "Device ID 'd6ka' with hash 3082558663 collides with existing device ID 'test_2258'"
+        in captured.out
+    )
+
+
+def test_area_id_hash_collision(
+    yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Test that area IDs with hash collisions are detected."""
+    result = load_config_from_fixture(yaml_file, "area_id_hash_collision.yaml")
+    assert result is None
+
+    # Check for the specific error message about hash collision
+    captured = capsys.readouterr()
+    # The error message shows the ID that collides and includes the hash value
+    assert (
+        "Area ID 'd6ka' with hash 3082558663 collides with existing area ID 'test_2258'"
+        in captured.out
+    )
