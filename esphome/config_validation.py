@@ -354,8 +354,7 @@ def sub_device_id(value: str | None) -> core.ID:
     # Lazy import to avoid circular imports
     from esphome.core.config import Device
 
-    validator = use_id(Device)
-    return validator(value)
+    return use_id(Device)(value)
 
 
 def boolean(value):
