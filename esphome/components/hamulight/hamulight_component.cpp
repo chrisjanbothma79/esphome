@@ -67,10 +67,7 @@ void HamulightComponent::setup() {
   // Use custom HamulightBrightnessNumber with forwarded setters
   brightness_number_ = new HamulightBrightnessNumber();
   brightness_number_->set_name("Hamulight Brightness");
-  brightness_number_->set_min_value(0);
-  brightness_number_->set_max_value(100);
-  brightness_number_->set_step(1);
-  brightness_number_->set_mode(esphome::number::NumberMode::NUMBER_MODE_SLIDER);
+  brightness_number_->setup_hamulight_traits();
   brightness_number_->set_callback([this](float value) { this->set_brightness(value); });
   App.register_number(brightness_number_);
 
