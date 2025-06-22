@@ -38,12 +38,14 @@ class UpdateEntity : public EntityBase, public EntityBase_DeviceClass {
   const UpdateState &state = state_;
 
   void add_on_state_callback(std::function<void()> &&callback) { this->state_callback_.add(std::move(callback)); }
+  Trigger<const UpdateInfo &> *get_update_available_trigger() const { return update_available_trigger_; }
 
  protected:
   UpdateState state_{UPDATE_STATE_UNKNOWN};
   UpdateInfo update_info_;
 
   CallbackManager<void()> state_callback_{};
+  Trigger<const UpdateInfo &> *update_available_trigger_ = new Trigger<const UpdateInfo &>();
 };
 
 }  // namespace update
