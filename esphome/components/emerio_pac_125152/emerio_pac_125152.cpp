@@ -120,23 +120,26 @@ void EmerioPac125152Climate::transmit_state() {
   ESP_LOGD(TAG, "Requested temperature: %.1f", requested_temp);
 
   // Handle power
-  if (requested_mode == climate::CLIMATE_MODE_OFF && this->prev_on_off_) {
-    // We need to also reset the mode to our default to MODE_AUTO otherwise we will get out of sync with the device
-    int steps = (to_internal_mode(climate::CLIMATE_MODE_AUTO) - to_internal_mode(prev_mode) + MODE_COUNT) % MODE_COUNT;
-    ESP_LOGD(TAG, "Cycling modes: %d steps from %d to %d", steps, to_internal_mode(prev_mode),
-             to_internal_mode(climate::CLIMATE_MODE_AUTO));
-    for (int i = 0; i < steps; i++) {
-      ESP_LOGD(TAG, "Sending mode toggle command");
-      send_nec_command_(CMD_MODE);
+  if (requested_mode == climate::CLIMATE_MODE_OFF) {
+    if (this->prev_on_off_) {  // We need to also reset the mode to our default to MODE_AUTO otherwise we will get out
+                               // of sync with the device
+      int steps =
+          (to_internal_mode(climate::CLIMATE_MODE_AUTO) - to_internal_mode(prev_mode) + MODE_COUNT) % MODE_COUNT;
+      ESP_LOGD(TAG, "Cycling modes: %d steps from %d to %d", steps, to_internal_mode(prev_mode),
+               to_internal_mode(climate::CLIMATE_MODE_AUTO));
+      for (int i = 0; i < steps; i++) {
+        ESP_LOGD(TAG, "Sending mode toggle command");
+        send_nec_command_(CMD_MODE);
+      }
+
+      ESP_LOGD(TAG, "Turning off climate");
+      send_nec_command_(CMD_POWER);
+
+      this->prev_on_off_ = false;  // Set previous state to OFF
+      this->publish_state();
+      this->save_emerio_pac_state_();
+      return;
     }
-
-    ESP_LOGD(TAG, "Turning off climate");
-    send_nec_command_(CMD_POWER);
-
-    this->prev_on_off_ = false;  // Set previous state to OFF
-    this->publish_state();
-    this->save_emerio_pac_state_();
-    return;
   } else {
     if (!this->prev_on_off_) {
       ESP_LOGD(TAG, "Turning on climate from OFF state");
