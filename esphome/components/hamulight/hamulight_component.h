@@ -2,31 +2,38 @@
 
 /**
  * @file hamulight_component.h
- * @brief Hamulight Light Output Component for ESPHome
+ * @brief Hamulight RF Remote Control Component for ESPHome
  *
  * This component is responsible for controlling Hamulight RF lights using the ESP32 RMT peripheral for
- * precise RF timing. It supports on/off and brightness control via Home Assistant integration.
+ * precise RF timing. It supports toggle, brightness, pairing, and command scan via Home Assistant integration,
+ * with stateless Home Assistant entities (buttons and sliders) for robust, real-world operation.
+ *
+ * Please note that the command scan feature is experimental and for advanced users, who would like to
+ * use this component as basis for their own RF remote control implementation.
+ * I used the command scanner for finding commands, that were not available on my physical RF remote control
+ * (like seperate commands for on and off) - unfortunately no 'new' commands were discovered.
  * 
  * Main features:
  *  - Uses RMT hardware for non-blocking, accurate RF signal generation.
  *  - Allocates the RMT channel and encoder ONCE in setup() for efficient operation.
- *  - Optionally supports a feedback LED.
- *  - Optionally supports a "Command Scanner" (exposed as Home Assistant entities) for RF command range testing.
+ *  - Optional: Feedback LED
+ *  - Exposes public methods for toggling, brightness, pairing, and command scanning, allowing all conversions to be handled in C++.
  *
  * Configuration parameters:
  *  - rf_transmit_pin: GPIOPin* for digital pin control and flag checks.
  *  - rf_pin_num: uint8_t for the raw GPIO number used by RMT hardware.
- *  - led_pin: Optional GPIOPin* for visual feedback.
  *  - rf_address: 16-bit address for RF protocol.
- *  - command_scanner: Enable command scanner entities (optional).
+ *  - OPTIONAL: led_pin: Optional GPIOPin* for visual feedback.
+ *  - OPTIONAL: cmdscan_start_/end_/pause_: pointers to number entities for command scan control.
+ *  - OPTIONAL: last_scanned_sensor_: pointer to a template sensor showing the last scanned command.
  * 
  * Author: madmat17
  */
 
 #include "esphome/core/component.h"
-#include "esphome/components/light/light_output.h"
 #include "esphome/core/hal.h"
 #include "esphome/components/number/number.h"
+#include "esphome/components/sensor/sensor.h"
 
 // IMPORTANT: Use the following for ESP32 and all ESP32 variants (includes ESP32-S2/S3/C3)
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
@@ -37,7 +44,7 @@ namespace esphome {
 namespace hamulight {
 
 // RF command bytes (adjust as per your protocol/spec)
-constexpr uint8_t RF_POWER_COMMAND       = 0x5F;   // Command to turn off
+constexpr uint8_t RF_POWER_COMMAND       = 0x5F;   // Command to toggle light ON/OFF
 constexpr uint8_t RF_BRIGHT100_COMMAND   = 0x59;   // Command for 100% brightness/pairing
 // constexpr uint8_t RF_BRIGHT75_COMMAND = 0x50;   // Command for  75% brightness - Kept for reference / future extensions
 // constexpr uint8_t RF_BRIGHT50_COMMAND = 0x56;   // Command for  50% brightness - Kept for reference / future extensions
@@ -51,34 +58,29 @@ constexpr uint8_t RF_SLIDE_RANGE_MAX    = 0xFF;   // Maximum RF value for dimmin
 
 // PHYSICAL SIGNAL
 // Bit encoding for RF protocol (Manchester or similar)
-constexpr uint16_t BASE_PULSE           = 200;                                              // Base pulse length in micro seconds
-constexpr uint8_t START_SEQUENCE_SIZE   = 10;                                               // number of pulses during start sequence
-constexpr uint16_t START_SEQUENCE[]     = { 1, 1, 1, 1, 1, 1, 1, 1, 6, 6 };                 // pulse sequence for sync + RF start bit (
-constexpr uint16_t BIT1_PULSE[]         = { 1, 3 };                                         // RF '1': 1T high, 3T low
-constexpr uint16_t BIT0_PULSE[]         = { 3, 1 };                                         // RF '0': 3T high, 1T low
-constexpr uint8_t SIGNAL_REPETITIONS    = 6;                                                // Number of times to repeat the signal
-constexpr uint8_t CODE_SEQUENCE_SIZE    = 64;                                               // Code sequence size (4 bytes * 8 bits => 32 bits * 2 pulses per bit)
+constexpr uint16_t BASE_PULSE           = 200;                                  // Base pulse length in micro seconds
+constexpr uint8_t START_SEQUENCE_SIZE   = 10;                                   // Number of pulses during start sequence
+constexpr uint16_t START_SEQUENCE[]     = { 1, 1, 1, 1, 1, 1, 1, 1, 6, 6 };     // Pulse sequence for sync + RF start bit (
+constexpr uint16_t BIT0_PULSE[]         = { 3, 1 };                             // RF '0': 3T high, 1T low
+constexpr uint16_t BIT1_PULSE[]         = { 1, 3 };                             // RF '1': 1T high, 3T low
+constexpr uint8_t SIGNAL_REPETITIONS    = 6;                                    // Number of times to repeat the signal
+constexpr uint8_t CODE_SEQUENCE_SIZE    = 64;                                   // Code sequence size (4 bytes * 8 bits => 32 bits * 2 pulses per bit)
 
 // --- End Hamulight RF Protocol Constants ---
+
 
 /**
  * @class HamulightComponent
  * @brief Main Hamulight component class derived from LightOutput and Component.
  *
- * Exposes setup, dump_config, and write_state methods for ESPHome, handles RMT signal generation and sending.
+ * Exposes setup, dump_config, and public toggle/brightness/pair/command scan methods for ESPHome, handles RMT signal generation and sending.
  */
-class HamulightComponent : public light::LightOutput, public Component {
+class HamulightComponent : public Component {
  public:
   /**
    * @brief Constructor
-   *
-   * Use this to debug if the constructor is called.
    */
   HamulightComponent();
-
-  void set_cmdscan_start_number(esphome::number::Number *n) { cmdscan_start_ = n; }
-  void set_cmdscan_end_number(esphome::number::Number *n) { cmdscan_end_ = n; }
-  void set_cmdscan_pause_number(esphome::number::Number *n) { cmdscan_pause_ = n; }
 
   /**
    * @brief Set the GPIOPin object for RF transmission (for digitalWrite and flag checks).
@@ -105,10 +107,24 @@ class HamulightComponent : public light::LightOutput, public Component {
   void set_rf_address(uint16_t address) { this->rf_address_ = address; }
 
   /**
-   * @brief Enable the command scanner.
-   * @param boolean
+   * @brief Set number entity for command scan start value.              
    */
-  void set_command_scanner_enabled(bool enabled) { this->command_scanner_enabled_ = enabled; }
+  void set_cmdscan_start_number(esphome::number::Number *n) { cmdscan_start_ = n; }
+
+  /**
+   * @brief Set number entity for command scan end value.
+   */
+  void set_cmdscan_end_number(esphome::number::Number *n) { cmdscan_end_ = n; }
+
+  /**
+   * @brief Set number entity for command scan pause value.
+   */
+  void set_cmdscan_pause_number(esphome::number::Number *n) { cmdscan_pause_ = n; }
+
+  /**
+   * @brief Set sensor to publish the last scanned command.
+   */
+  void set_last_scanned_sensor(esphome::sensor::Sensor *s) { last_scanned_sensor_ = s; }
 
   /**
    * @brief ESPHome setup lifecycle method. Initializes pins and allocates RMT resources.
@@ -116,7 +132,7 @@ class HamulightComponent : public light::LightOutput, public Component {
   void setup() override;
 
   /**
-   * @brief ESPHome loop method. Runs code after setup() was completed.
+   * @brief ESPHome loop method. Handles command scan.
    */
   void loop() override;
 
@@ -126,37 +142,30 @@ class HamulightComponent : public light::LightOutput, public Component {
   void dump_config() override;
 
   /**
-   * @brief Returns supported light traits (on/off, brightness).
+   * @brief Public method for sending the RF toggle command (stateless button).
    */
-  light::LightTraits get_traits() override;
+  void toggle();
 
   /**
-   * @brief Handles incoming state changes from Home Assistant (on/off, brightness).
+   * @brief Public method for sending the RF pair/maximum brightness command (stateless button).
    */
-  void write_state(light::LightState *state) override;
+  void pair_with_driver();
 
   /**
-   * @brief Transmit a specific RF command.
-   * @param command The 8-bit command (e.g. RF_POWER_COMMAND)
+   * @brief Public method for sending a specific RF brightness value (stateless slider).
+   * @param brightness 0.0-100.0 float (slider value from Home Assistant)
    */
-  void transmit_rf_command(uint8_t command);
+  void set_brightness(float brightness);
 
   /**
-   * @brief Transmit a specific RF brightness value.
-   * @param brightness_value Brightness value (8-bit)
-   */
-  void transmit_rf_brightness(uint8_t brightness_value);
-
-  /**
-   * @brief Start/stop scan (initiated by button press, called from YAML).
+   * @brief Starts the command scan (from button).
    */
   void start_command_scan();
-  void stop_command_scan();
 
   /**
-   * @brief Returns the last sent command in the scan, for use as a template sensor.
+   * @brief Stops the command scan (from button).
    */
-  float get_last_scanned_command() const { return last_scanned_command_; }
+  void stop_command_scan();
 
  protected:
   // --- Configuration fields (from YAML/codegen) ---
@@ -165,9 +174,13 @@ class HamulightComponent : public light::LightOutput, public Component {
   GPIOPin *led_pin_{nullptr}; ///< Optional feedback LED
   uint16_t rf_address_;       ///< RF Address for protocol
 
+  // --- Command scanner number pointers ---
   esphome::number::Number *cmdscan_start_{nullptr};
   esphome::number::Number *cmdscan_end_{nullptr};
   esphome::number::Number *cmdscan_pause_{nullptr};
+
+  // --- Sensor for last command scanned ---
+  esphome::sensor::Sensor *last_scanned_sensor_{nullptr};
 
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
   // --- RMT hardware handles (allocated ONCE in setup and reused for all transmissions) ---
@@ -187,15 +200,25 @@ class HamulightComponent : public light::LightOutput, public Component {
    */
   void send_rf_signal_rmt();
 
+  /**
+   * @brief Public method for sending a specific RF command.
+   * @param command The 8-bit command (e.g., RF_POWER_COMMAND).
+   */
+  void transmit_rf_command(uint8_t command);
+
+  /**
+   * @brief Public method for sending a specific RF brightness value.
+   * @param brightness_value The 8-bit brightness value (in the range of RF_SLIDE_RANGE_MIN to RF_SLIDE_RANGE_MAX).
+   */
+  void transmit_rf_brightness(uint8_t brightness_value);
+
   // --- Internal RF signal buffer (holds the 32-bit RF payload as pulse durations) ---
   uint16_t code_sequence_[CODE_SEQUENCE_SIZE];
 
-  // --- Command Scanner support ---
-  bool command_scanner_enabled_{false};
+  // --- Command scanner state ---
   bool scanner_running_{false};
-  uint8_t scanner_current_;
+  uint8_t scanner_current_{0};
   uint32_t scanner_last_time_{0};
-  float last_scanned_command_{-1};
 };
 
 } // namespace hamulight
