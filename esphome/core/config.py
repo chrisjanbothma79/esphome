@@ -534,6 +534,7 @@ async def to_code(config: ConfigType) -> None:
             area_id_hash = fnv1a_32bit_hash(area_id)
             area_name = area_conf[CONF_NAME]
             _verify_no_collisions(area_hashes, area_id, area_id_hash, CONF_AREAS)
+            area_hashes[area_id_hash] = area_name
             cg.add(area.set_area_id(area_id_hash))
             cg.add(area.set_name(area_name))
             cg.add(cg.App.register_area(area))
@@ -544,6 +545,7 @@ async def to_code(config: ConfigType) -> None:
         device_id_hash = fnv1a_32bit_hash(device_id)
         device_name = dev_conf[CONF_NAME]
         _verify_no_collisions(device_hashes, device_id, device_id_hash, CONF_DEVICES)
+        device_hashes[device_id_hash] = device_name
         dev = cg.new_Pvariable(device_id)
         cg.add(dev.set_device_id(device_id_hash))
         cg.add(dev.set_name(device_name))
