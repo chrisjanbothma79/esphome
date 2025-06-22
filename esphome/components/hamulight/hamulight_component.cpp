@@ -45,6 +45,7 @@ HamulightComponent::HamulightComponent() {
  * @brief ESPHome setup() lifecycle.
  *  - Initialize all configured pins (RF and optional LED)
  *  - Allocate and configure RMT channel and encoder (once, for all RF transmissions)
+ *  - Register custom button/number entities for Home Assistant
  */
 void HamulightComponent::setup() {
   // Initialize RF output pin, set LOW initially.
@@ -56,6 +57,29 @@ void HamulightComponent::setup() {
     this->led_pin_->setup();
     this->led_pin_->digital_write(false);
   }
+
+  // ----------- Register custom buttons and number -----------
+  toggle_button_ = new HamulightButton();
+  toggle_button_->set_name("Hamulight Toggle");
+  toggle_button_->set_callback([this]() { this->toggle(); });
+  App.register_component(toggle_button_);
+  App.register_button(toggle_button_);
+
+  pair_button_ = new HamulightButton();
+  pair_button_->set_name("Pair with driver");
+  pair_button_->set_callback([this]() { this->pair_with_driver(); });
+  App.register_component(pair_button_);
+  App.register_button(pair_button_);
+
+  brightness_number_ = new HamulightBrightnessNumber();
+  brightness_number_->set_name("Hamulight Brightness");
+  brightness_number_->set_min_value(0);
+  brightness_number_->set_max_value(100);
+  brightness_number_->set_step(1);
+  brightness_number_->set_mode(number::Number::MODE_SLIDER);
+  brightness_number_->set_callback([this](float value) { this->set_brightness(value); });
+  App.register_component(brightness_number_);
+  App.register_number(brightness_number_);
 
   ESP_LOGCONFIG(TAG, "setup(): HamulightComponent is being set up...");
   ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%u", this->rf_pin_num_);                                                                     
