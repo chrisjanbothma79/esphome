@@ -49,7 +49,6 @@ from .const import (  # noqa
     KEY_REF,
     KEY_REPO,
     KEY_SDKCONFIG_OPTIONS,
-    KEY_SUBMODULES,
     KEY_VARIANT,
     VARIANT_ESP32,
     VARIANT_ESP32C2,
