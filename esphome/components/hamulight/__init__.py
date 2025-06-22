@@ -23,7 +23,7 @@ CONF_LAST_SCANNED_SENSOR = "last_scanned_sensor"
 # Command scanner config schema (optional)
 COMMAND_SCANNER_SCHEMA = cv.Schema(
     {
-        cv.Required(CONF_ENABLED, default=True): cv.boolean,
+        cv.Optional(CONF_ENABLED, default=True): cv.boolean,
         cv.Optional(CONF_CMDSCAN_START): cv.use_id(number.Number),
         cv.Optional(CONF_CMDSCAN_END): cv.use_id(number.Number),
         cv.Optional(CONF_CMDSCAN_PAUSE): cv.use_id(number.Number),
