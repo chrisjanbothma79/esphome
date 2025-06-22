@@ -487,12 +487,14 @@ async def to_code(config: ConfigType) -> None:
     if area_conf := config.get(CONF_AREA):
         if isinstance(area_conf, dict):
             # New way: structured area configuration
-            area_var = cg.new_Pvariable(area_conf[CONF_ID])
-            area_id = fnv1a_32bit_hash(str(area_conf[CONF_ID]))
+            area_id_str = area_conf[CONF_ID]
+            area_var = cg.new_Pvariable(area_id_str)
+            area_id = fnv1a_32bit_hash(area_id_str)
             area_name = area_conf[CONF_NAME]
         else:
             # Old way: string-based area (deprecated)
             area_slug = slugify(area_conf)
+            area_id_str = area_slug
             _LOGGER.warning(
                 "Using 'area' as a string is deprecated. Please use the new format:\n"
                 "area:\n"
@@ -502,13 +504,13 @@ async def to_code(config: ConfigType) -> None:
                 area_conf,
             )
             # Create a synthetic area for backwards compatibility
-            area_var = cg.Pvariable(f"area_{area_slug}", Area)
+            area_var = cg.Pvariable(area_slug, Area)
             area_id = fnv1a_32bit_hash(area_conf)
             area_name = area_conf
 
         # Common setup for both ways
         area_hashes[area_id] = area_name
-        area_ids.add(area_id)
+        area_ids.add(area_id_str)
         cg.add(area_var.set_area_id(area_id))
         cg.add(area_var.set_name(area_name))
         cg.add(cg.App.register_area(area_var))
@@ -531,7 +533,7 @@ async def to_code(config: ConfigType) -> None:
                 area_name = area_conf[CONF_NAME]
                 _verify_no_collisions(area_hashes, area_id, area_id_hash, CONF_AREAS)
                 cg.add(area.set_area_id(area_id_hash))
-                cg.add(area.set_name(name))
+                cg.add(area.set_name(area_name))
                 cg.add(cg.App.register_area(area))
 
         # Process devices
