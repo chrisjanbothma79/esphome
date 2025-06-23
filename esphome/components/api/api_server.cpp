@@ -176,28 +176,28 @@ void APIServer::loop() {
   while (client_index < this->clients_.size()) {
     auto &client = this->clients_[client_index];
 
-    if (client->remove_) {
-      // Handle disconnection
-      this->client_disconnected_trigger_->trigger(client->client_info_, client->client_peername_);
-      ESP_LOGV(TAG, "Remove connection %s", client->client_info_.c_str());
-
-      // Swap with the last element and pop (avoids expensive vector shifts)
-      if (client_index < this->clients_.size() - 1) {
-        std::swap(this->clients_[client_index], this->clients_.back());
-      }
-      this->clients_.pop_back();
-
-      // Schedule reboot when last client disconnects
-      if (this->clients_.empty() && this->reboot_timeout_ != 0) {
-        this->schedule_reboot_timeout_();
-      }
-
-      // Don't increment client_index since we need to process the swapped element
-    } else {
-      // Network is connected, process the client
+    if (!client->remove_) {
+      // Common case: process active client
       client->loop();
-      client_index++;  // Move to next client
+      client_index++;
+      continue;
     }
+
+    // Rare case: handle disconnection
+    this->client_disconnected_trigger_->trigger(client->client_info_, client->client_peername_);
+    ESP_LOGV(TAG, "Remove connection %s", client->client_info_.c_str());
+
+    // Swap with the last element and pop (avoids expensive vector shifts)
+    if (client_index < this->clients_.size() - 1) {
+      std::swap(this->clients_[client_index], this->clients_.back());
+    }
+    this->clients_.pop_back();
+
+    // Schedule reboot when last client disconnects
+    if (this->clients_.empty() && this->reboot_timeout_ != 0) {
+      this->schedule_reboot_timeout_();
+    }
+    // Don't increment client_index since we need to process the swapped element
   }
 }
 
