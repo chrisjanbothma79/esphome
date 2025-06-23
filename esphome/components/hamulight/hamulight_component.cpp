@@ -21,6 +21,9 @@
 #include "esphome/core/application.h"  // <-- Required for 'App'
 #include <driver/gpio.h>
 
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || \
+    defined(USE_ESP32C3)
+
 namespace esphome {
 namespace hamulight {
 
@@ -59,8 +62,6 @@ void HamulightComponent::setup() {
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
   ESP_LOGCONFIG(TAG, "  Command Scanner: %s", scanner_running_ ? "ENABLED" : "DISABLED");
 
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || \
-    defined(USE_ESP32C3)
   // ----------- RMT Peripheral Allocation -----------
   ESP_LOGD(TAG, "setup(): === Entered RMT setup block ===");  // Log -> did this part compile?
   ESP_LOGD(TAG, "setup(): rf_pin_num_ = %u", this->rf_pin_num_);
@@ -120,7 +121,6 @@ void HamulightComponent::setup() {
   }
 
   ESP_LOGD(TAG, "setup(): RMT channel and encoder successfully initialized.");
-#endif
 }
 
 /**
@@ -291,8 +291,6 @@ void HamulightComponent::transmit_rf_brightness(uint8_t brightness_value) {
   this->send_rf_signal_rmt();
 }
 
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || \
-    defined(USE_ESP32C3)
 /**
  * @brief Low-level: Send the code_sequence_[] via ESP32 RMT peripheral.
  *  - Allocates no hardware resources here (all done in setup)
@@ -361,7 +359,8 @@ void HamulightComponent::send_rf_signal_rmt() {
     this->led_pin_->digital_write(false);
   }
 }
-#endif
 
 }  // namespace hamulight
 }  // namespace esphome
+
+#endif
