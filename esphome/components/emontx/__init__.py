@@ -117,11 +117,6 @@ def validate_mqtt_forward(config):
         # This checks if mqtt component exists in the configuration
         config = cv.requires_component("mqtt")(config)
 
-        from esphome.components import mqtt
-
-        original_mqtt_schema = mqtt.CONFIG_SCHEMA
-        original_mqtt_schema[CONF_DISCOVERY] = False
-
     return config
 
 
