@@ -1,10 +1,7 @@
-import logging
-
-from esphome import yaml_util
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_DISCOVERY, CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
+from esphome.const import CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67", "@TrystanLea", "@glynhudson"]
@@ -28,44 +25,6 @@ EMONTX_LISTENER_SCHEMA = cv.Schema(
         cv.Required(CONF_TAG_NAME): cv.string,
     }
 )
-
-
-# Store original load_config function to patch
-original_load_yaml = yaml_util.load_yaml
-
-
-# Intercept YAML loading to inject our MQTT settings very early in the process
-def patched_load_yaml(fname):
-    config = original_load_yaml(fname)
-
-    # Check if we have both MQTT and EmonTX with MQTT config
-    if (
-        "mqtt" in config
-        and "emontx" in config
-        and isinstance(config["emontx"], dict)
-        and CONF_MQTT in config["emontx"]
-    ):
-        emontx_mqtt = config["emontx"][CONF_MQTT]
-
-        # Transfer topic_prefix if present
-        if CONF_TOPIC_PREFIX in emontx_mqtt:
-            topic_prefix = emontx_mqtt[CONF_TOPIC_PREFIX]
-            logging.warning(
-                f"*** INJECTING MQTT topic_prefix '{topic_prefix}' from EmonTX ***"
-            )
-            config["mqtt"][CONF_TOPIC_PREFIX] = topic_prefix
-
-        # Transfer discovery setting if present
-        if CONF_DISCOVERY in emontx_mqtt:
-            discovery = emontx_mqtt[CONF_DISCOVERY]
-            logging.warning(f"*** INJECTING MQTT discovery {discovery} from EmonTX ***")
-            config["mqtt"][CONF_DISCOVERY] = discovery
-
-    return config
-
-
-# Apply the patch
-yaml_util.load_yaml = patched_load_yaml
 
 
 # Create a reusable function to validate non-empty strings
@@ -94,6 +53,22 @@ def validate_server_url(value):
         return cv.url(value)
     except Exception as exc:  # Capture the exception as a variable
         raise cv.Invalid("Please enter a valid server URL") from exc
+
+
+# Base schema without EmonCMS or MQTT
+CONFIG_SCHEMA = (
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.declare_id(EmonTx),
+            # Make MQTT forwarding optional
+            cv.Optional(CONF_MQTT): cv.Any(dict),
+            # Make EmonCMS optional
+            cv.Optional(CONF_EMONCMS): cv.Any(dict),
+        }
+    )
+    .extend(cv.polling_component_schema("10s"))
+    .extend(uart.UART_DEVICE_SCHEMA)
+)
 
 
 # Conditionally add EmonCMS schema
@@ -133,7 +108,6 @@ def validate_mqtt_forward(config):
         mqtt_schema = cv.Schema(
             {
                 cv.Required(CONF_TOPIC_PREFIX): not_empty("Topic prefix"),
-                cv.Optional(CONF_DISCOVERY, default=False): cv.boolean,
             }
         )
         config[CONF_MQTT] = mqtt_schema(config[CONF_MQTT])
@@ -145,27 +119,8 @@ def validate_mqtt_forward(config):
     return config
 
 
-CONFIG_SCHEMA = cv.All(
-    cv.Schema(
-        {
-            cv.GenerateID(): cv.declare_id(EmonTx),
-            # Make MQTT forwarding optional
-            cv.Optional(CONF_MQTT): cv.Schema(
-                {
-                    cv.Required(CONF_TOPIC_PREFIX): not_empty("Topic prefix"),
-                    cv.Optional(CONF_DISCOVERY, default=False): cv.boolean,
-                }
-            ),
-            # Make EmonCMS optional
-            cv.Optional(CONF_EMONCMS): cv.Any(dict),
-        }
-    )
-    .extend(cv.polling_component_schema("10s"))
-    .extend(uart.UART_DEVICE_SCHEMA),
-    validate_emoncms,
-    validate_mqtt_forward,
-)
-
+# Apply conditional schema
+CONFIG_SCHEMA = cv.All(CONFIG_SCHEMA, validate_emoncms, validate_mqtt_forward)
 
 FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
     "emontx",
@@ -186,14 +141,7 @@ async def to_code(config):
     # Set MQTT forwarding if configured
     if CONF_MQTT in config:
         mqtt_config = config[CONF_MQTT]
-        topic_prefix = mqtt_config[CONF_TOPIC_PREFIX]
-
-        # Log what's being used
-        logging.info(f"EmonTX using topic_prefix: {topic_prefix}")
-        if CONF_DISCOVERY in mqtt_config:
-            logging.info(f"EmonTX using discovery: {mqtt_config[CONF_DISCOVERY]}")
-
-        cg.add(var.set_mqtt_forward(topic_prefix))
+        cg.add(var.set_mqtt_forward(mqtt_config[CONF_TOPIC_PREFIX]))
 
     # Set EmonCMS configuration if provided
     if CONF_EMONCMS in config:
