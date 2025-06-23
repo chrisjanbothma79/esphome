@@ -142,11 +142,10 @@ void FriedrichClimate::transmit_state() {
       case 62:
         if (this->mode == climate::CLIMATE_MODE_HEAT) {
           remote_state[6] = BYTE6_TEMP_62;
-        }
-        else {
+        } else {
           remote_state[6] = BYTE6_TEMP_64;
           this->target_temperature = fahrenheit_to_celsius(64);
-      this->publish_state();
+          this->publish_state();
         }
         break;
       case 60:
@@ -155,17 +154,14 @@ void FriedrichClimate::transmit_state() {
           remote_state[6] = BYTE6_TEMP_60;
           this->target_temperature = fahrenheit_to_celsius(60);
           this->publish_state();
-        }
-        else {
+        } else {
           remote_state[6] = BYTE6_TEMP_64;
           this->target_temperature = fahrenheit_to_celsius(64);
           this->publish_state();
         }
         break;
     }
-  }
-  else
-  {
+  } else {
     ESP_LOGI(TAG, "use_fahrenheit: False is not a valid setting at present, code needs modification.");
   }
 
@@ -227,14 +223,13 @@ void FriedrichClimate::transmit_state() {
   remote_state[9] = BYTE9_FIXED;
   remote_state[10] = BYTE10_FIXED;
   remote_state[11] = BYTE11_FIXED;
-  remote_state[12] = BYTE12_ECO_OFF; // investigate
+  remote_state[12] = BYTE12_ECO_OFF;  // investigate
 
   remote_state[STATE_MESSAGE_LENGTH - 1] = this->checksum_state_(&remote_state);
 
   this->transmit_(&remote_state);
 
   this->power_ = true;
-
 }
 
 void FriedrichClimate::transmit_off_() {
@@ -270,12 +265,12 @@ void FriedrichClimate::transmit_(std::vector<uint8_t> *message) {
   transmit.perform();
 }
 /*
-* https://gist.github.com/GeorgeDewar/11171561
-* 1. Reverse (flip) bytes 6 - 13)
-* 2. Sum those bytes
-* 3. (208 - sum) % 256
-* 4. Reverse (flip) bytes of result
-*/
+ * https://gist.github.com/GeorgeDewar/11171561
+ * 1. Reverse (flip) bytes 6 - 13)
+ * 2. Sum those bytes
+ * 3. (208 - sum) % 256
+ * 4. Reverse (flip) bytes of result
+ */
 uint8_t FriedrichClimate::checksum_state_(std::vector<uint8_t> *message) {
   uint8_t chksm = 0;
   for (uint8_t i = 6; i < STATE_MESSAGE_LENGTH - 1; ++i) {
@@ -286,9 +281,7 @@ uint8_t FriedrichClimate::checksum_state_(std::vector<uint8_t> *message) {
   return chksm;
 }
 
-uint8_t FriedrichClimate::checksum_util_(std::vector<uint8_t> *message) {
-  return 255 - message->at(3);
-}
+uint8_t FriedrichClimate::checksum_util_(std::vector<uint8_t> *message) { return 255 - message->at(3); }
 
 bool FriedrichClimate::on_receive(remote_base::RemoteReceiveData src) {
   ESP_LOGV(TAG, "Received message");
@@ -296,24 +289,24 @@ bool FriedrichClimate::on_receive(remote_base::RemoteReceiveData src) {
   optional<remote_base::AEHAData> odata = protocol_.decode(src);
   if (odata.has_value()) {
     remote_base::AEHAData data = odata.value();
-    if (data.data.size() == STATE_MESSAGE_LENGTH_UTIL && data.data.at(STATE_MESSAGE_LENGTH_UTIL - 1) == checksum_util_(&data.data)) {
-      //Not looking for other types of messages
+    if (data.data.size() == STATE_MESSAGE_LENGTH_UTIL &&
+        data.data.at(STATE_MESSAGE_LENGTH_UTIL - 1) == checksum_util_(&data.data)) {
+      // Not looking for other types of messages
       if (data.data.at(3) == BYTE3_POWER_OFF) {
         ESP_LOGV(TAG, "Received off message");
         this->mode = climate::CLIMATE_MODE_OFF;
         this->power_ = false;
         rtrn = true;
       }
-    }
-    else if (data.data.size() == STATE_MESSAGE_LENGTH && data.data.at(STATE_MESSAGE_LENGTH - 1) == checksum_state_(&data.data)) {
+    } else if (data.data.size() == STATE_MESSAGE_LENGTH &&
+               data.data.at(STATE_MESSAGE_LENGTH - 1) == checksum_state_(&data.data)) {
       rtrn = true;
       // Set temperature (don't bother if off)
       uint8_t byte6 = 0;
       int8_t tbyte6 = data.data.at(6) - BYTE6_POWER_ON;
       if (tbyte6 < 0) {
         byte6 = data.data.at(6);
-      }
-      else {
+      } else {
         byte6 = data.data.at(6) - BYTE6_POWER_ON;
       }
       if (this->fahrenheit_) {
@@ -366,13 +359,11 @@ bool FriedrichClimate::on_receive(remote_base::RemoteReceiveData src) {
           default:
             break;
         }
-      }
-      else
-      {
+      } else {
         ESP_LOGI(TAG, "use_fahrenheit: False is not a valid setting at present, code needs modification.");
       }
 
-  // Set mode
+      // Set mode
       uint8_t byte7 = data.data.at(7);
       switch (byte7) {
         case BYTE7_MODE_COOL:
@@ -395,13 +386,12 @@ bool FriedrichClimate::on_receive(remote_base::RemoteReceiveData src) {
 
       // Set fan
       uint8_t byte8 = data.data.at(8);
-      //Check for Swing
+      // Check for Swing
       uint8_t last_nibble = byte8 & 0x0F;
       if (last_nibble == BYTE8_FAN_SWING) {
         this->swing_mode = climate::CLIMATE_SWING_VERTICAL;
         byte8 = byte8 - BYTE8_FAN_SWING;
-      }
-      else {
+      } else {
         this->swing_mode = climate::CLIMATE_SWING_OFF;
       }
       switch (byte8) {
