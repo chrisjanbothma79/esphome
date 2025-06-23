@@ -17,7 +17,6 @@
 
 // logger
 #define ESPHOME_LOG_LEVEL ESPHOME_LOG_LEVEL_VERY_VERBOSE
-#define USE_ESPHOME_TASK_LOG_BUFFER
 
 // Feature flags
 #define USE_ALARM_CONTROL_PANEL
@@ -131,6 +130,8 @@
 
 // ESP32-specific feature flags
 #ifdef USE_ESP32
+#define USE_ESPHOME_TASK_LOG_BUFFER
+
 #define USE_BLUETOOTH_PROXY
 #define USE_CAPTIVE_PORTAL
 #define USE_ESP32_BLE
