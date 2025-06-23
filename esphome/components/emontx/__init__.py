@@ -117,11 +117,10 @@ def validate_mqtt_forward(config):
         # This checks if mqtt component exists in the configuration
         config = cv.requires_component("mqtt")(config)
 
-        # Disable global discovery since we handle it at component level
-        from esphome.core import CORE
+        from esphome.components import mqtt
 
-        if CORE.config and "mqtt" in CORE.config:
-            CORE.config["mqtt"][CONF_DISCOVERY] = False
+        original_mqtt_schema = mqtt.CONFIG_SCHEMA
+        original_mqtt_schema[CONF_DISCOVERY] = False
 
     return config
 
