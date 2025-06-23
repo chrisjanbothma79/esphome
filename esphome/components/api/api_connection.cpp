@@ -158,7 +158,8 @@ void APIConnection::loop() {
   static constexpr uint16_t ping_retry_interval = 1000;
   if (this->sent_ping_) {
     // Disconnect if not responded within 2.5*keepalive
-    if (now - this->last_traffic_ > (KEEPALIVE_TIMEOUT_MS * 5) / 2) {
+    static constexpr uint32_t keepalive_disconnect_timeout = (KEEPALIVE_TIMEOUT_MS * 5) / 2;
+    if (now - this->last_traffic_ > keepalive_disconnect_timeout) {
       on_fatal_error();
       ESP_LOGW(TAG, "%s is unresponsive; disconnecting", this->get_client_combined_info().c_str());
     }
@@ -168,15 +169,13 @@ void APIConnection::loop() {
     if (!this->sent_ping_) {
       this->next_ping_retry_ = now + ping_retry_interval;
       this->ping_retries_++;
-      std::string warn_str = str_sprintf("%s: Sending keepalive failed %u time(s);",
-                                         this->get_client_combined_info().c_str(), this->ping_retries_);
       if (this->ping_retries_ >= max_ping_retries) {
         on_fatal_error();
-        ESP_LOGE(TAG, "%s disconnecting", warn_str.c_str());
+        ESP_LOGE(TAG, "%s: Ping failed %u times", this->get_client_combined_info().c_str(), this->ping_retries_);
       } else if (this->ping_retries_ >= 10) {
-        ESP_LOGW(TAG, "%s retrying in %u ms", warn_str.c_str(), ping_retry_interval);
+        ESP_LOGW(TAG, "%s: Ping retry %u", this->get_client_combined_info().c_str(), this->ping_retries_);
       } else {
-        ESP_LOGD(TAG, "%s retrying in %u ms", warn_str.c_str(), ping_retry_interval);
+        ESP_LOGD(TAG, "%s: Ping retry %u", this->get_client_combined_info().c_str(), this->ping_retries_);
       }
     }
   }
