@@ -22,7 +22,7 @@ class OPT3001Sensor : public sensor::Sensor, public PollingComponent, public i2c
   // begins a one-shot measurement
   void read_lx_(const std::function<void(float)> &f);
 
-  bool updating_;
+  bool updating_{false};
 };
 
 }  // namespace opt3001

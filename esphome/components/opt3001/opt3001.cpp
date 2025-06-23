@@ -30,7 +30,6 @@ opt3001 properties:
 
 */
 
-OPT3001Sensor::OPT3001Sensor() { this->updating_ = false; }
 
 void OPT3001Sensor::read_result_(const std::function<void(float)> &f) {
   // ensure the single shot flag is clear, indicating it's done
@@ -45,7 +44,7 @@ void OPT3001Sensor::read_result_(const std::function<void(float)> &f) {
   if ((raw_value & OPT3001_CONFIGURATION_CONVERSION_MODE_MASK) != OPT3001_CONFIGURATION_CONVERSION_MODE_SHUTDOWN) {
     // not ready; wait 10ms and try again
     ESP_LOGW(TAG, "Data not ready; waiting 10ms");
-    this->set_timeout("wait", 10, [this, f]() { read_result_(f); });
+    this->set_timeout("opt3001_wait", 10, [this, f]() { read_result_(f); });
     return;
   }
 
@@ -88,7 +87,7 @@ void OPT3001Sensor::dump_config() {
   LOG_SENSOR("", "OPT3001", this);
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with OPT3001 failed!");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
 
   LOG_UPDATE_INTERVAL(this);
@@ -112,7 +111,7 @@ void OPT3001Sensor::update() {
       this->publish_state(NAN);
       return;
     }
-    ESP_LOGD(TAG, "'%s': Got illuminance=%.1flx", this->get_name().c_str(), val);
+    ESP_LOGD(TAG, "'%s': Illuminance=%.1flx", this->get_name().c_str(), val);
     this->status_clear_warning();
     this->publish_state(val);
   });
