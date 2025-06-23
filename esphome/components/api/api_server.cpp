@@ -196,8 +196,6 @@ void APIServer::loop() {
       }
     }
   }
-
-  // Reboot timeout is now handled by connection/disconnection events
 }
 
 void APIServer::dump_config() {
