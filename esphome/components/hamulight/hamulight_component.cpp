@@ -59,8 +59,8 @@ void HamulightComponent::setup() {
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
   ESP_LOGCONFIG(TAG, "  Command Scanner: %s", scanner_running_ ? "ENABLED" : "DISABLED");
 
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || \
-    defined(USE_ESP32S3) || defined(USE_ESP32C3)
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || \
+    defined(USE_ESP32C3)
   // ----------- RMT Peripheral Allocation -----------
   ESP_LOGD(TAG, "setup(): === Entered RMT setup block ===");  // Log -> did this part compile?
   ESP_LOGD(TAG, "setup(): rf_pin_num_ = %u", this->rf_pin_num_);
@@ -138,16 +138,12 @@ void HamulightComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
   ESP_LOGCONFIG(TAG, "  Command Scanner: %s", scanner_running_ ? "ENABLED" : "DISABLED");
   if (cmdscan_start_ && cmdscan_end_ && cmdscan_pause_) {
-    ESP_LOGCONFIG(TAG, "  Command Scan Range: %u ... %u, Pause: %u ms",
-      static_cast<uint8_t>(cmdscan_start_->state),
-      static_cast<uint8_t>(cmdscan_end_->state),
-      static_cast<uint32_t>(cmdscan_pause_->state));
+    ESP_LOGCONFIG(TAG, "  Command Scan Range: %u ... %u, Pause: %u ms", static_cast<uint8_t>(cmdscan_start_->state),
+              static_cast<uint8_t>(cmdscan_end_->state), static_cast<uint32_t>(cmdscan_pause_->state));
   } else {
     ESP_LOGCONFIG(TAG, "  Command Scan Range: not fully configured");
   }
 }
-
-
 
 /**
  * @brief Generates the RF code sequence for a given command.
@@ -164,17 +160,15 @@ void HamulightComponent::generate_code_sequence(uint8_t command) {
   uint8_t checksum = 0;
 
   // Splits the 16-bit RF address into two 8-bit bytes.
-  uint8_t rf_address_byte0 = (uint8_t)(this->rf_address_ >> 8);   // MSB (Most Significant Byte)
-  uint8_t rf_address_byte1 = (uint8_t)(this->rf_address_ & 0xFF); // LSB (Least Significant Byte)
+  uint8_t rf_address_byte0 = (uint8_t) (this->rf_address_ >> 8);    // MSB (Most Significant Byte)
+  uint8_t rf_address_byte1 = (uint8_t) (this->rf_address_ & 0xFF);  // LSB (Least Significant Byte)
 
   // Calculates the checksum byte.
   checksum = (rf_address_byte0 + rf_address_byte1 + command - cks_offset);
 
   // Format: [address M] [address L] [command] [checksum]
-  combined = ((uint32_t)rf_address_byte0 << 24) |
-             ((uint32_t)rf_address_byte1 << 16) |
-             ((uint32_t)command << 8) |
-             (uint32_t)checksum;
+  combined = ((uint32_t) rf_address_byte0 << 24) | ((uint32_t) rf_address_byte1 << 16) | ((uint32_t) command << 8) |
+           (uint32_t) checksum;
 
   ESP_LOGD(TAG, "RF Command: 0x%02X, Combined Signal: 0x%08X", command, combined);
 
@@ -198,7 +192,6 @@ void HamulightComponent::generate_code_sequence(uint8_t command) {
     }
   }
 }
-
 
 void HamulightComponent::toggle() {
   // Called from YAML button: Toggle the RF device
@@ -298,8 +291,8 @@ void HamulightComponent::transmit_rf_brightness(uint8_t brightness_value) {
   this->send_rf_signal_rmt();
 }
 
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || \
-    defined(USE_ESP32S3) || defined(USE_ESP32C3)
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || \
+    defined(USE_ESP32C3)
 /**
  * @brief Low-level: Send the code_sequence_[] via ESP32 RMT peripheral.
  *  - Allocates no hardware resources here (all done in setup)
@@ -313,18 +306,18 @@ void HamulightComponent::send_rf_signal_rmt() {
 
   if (this->tx_channel_ == nullptr || this->encoder_ == nullptr) {
     ESP_LOGE(TAG, "RMT channel or encoder not initialized!");
-    if (this->led_pin_ != nullptr) this->led_pin_->digital_write(false);
+    if (this->led_pin_ != nullptr)
+      this->led_pin_->digital_write(false);
     return;
   }
 
   ESP_LOGD(TAG, "Preparing RMT items buffer...");
 
   std::vector<rmt_symbol_word_t> items;
-
  
   // Compose the full RF transmission: START_SEQUENCE and code_sequence_
   // Repeat the transmission for protocol robustness - probalby to be dismissed due to HA sending command repeatedly
-  for (int i = 0; i < SIGNAL_REPETITIONS; i++) {               
+  for (int i = 0; i < SIGNAL_REPETITIONS; i++) {
     // Start sequence
     for (int j = 0; j < START_SEQUENCE_SIZE; j += 2) {
       rmt_symbol_word_t word = {};
