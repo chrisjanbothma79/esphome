@@ -154,8 +154,8 @@ void APIConnection::loop() {
   else if (!this->initial_state_iterator_.completed())
     this->initial_state_iterator_.advance();
 
-  static uint8_t max_ping_retries = 60;
-  static uint16_t ping_retry_interval = 1000;
+  static constexpr uint8_t max_ping_retries = 60;
+  static constexpr uint16_t ping_retry_interval = 1000;
   if (this->sent_ping_) {
     // Disconnect if not responded within 2.5*keepalive
     if (now - this->last_traffic_ > (KEEPALIVE_TIMEOUT_MS * 5) / 2) {
