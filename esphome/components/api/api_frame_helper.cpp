@@ -831,7 +831,6 @@ APIError APIPlaintextFrameHelper::init() {
   state_ = State::DATA;
   return APIError::OK;
 }
-/// Not used for plaintext
 APIError APIPlaintextFrameHelper::loop() {
   if (state_ != State::DATA) {
     return APIError::BAD_STATE;
