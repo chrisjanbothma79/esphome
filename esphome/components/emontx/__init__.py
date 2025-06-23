@@ -108,7 +108,7 @@ def validate_mqtt_forward(config):
         mqtt_schema = cv.Schema(
             {
                 cv.Required(CONF_TOPIC_PREFIX): not_empty("Topic prefix"),
-                cv.Optional(CONF_DISCOVERY, default=True): cv.boolean,
+                cv.Optional(CONF_DISCOVERY, default=False): cv.boolean,
             }
         )
         config[CONF_MQTT] = mqtt_schema(config[CONF_MQTT])
