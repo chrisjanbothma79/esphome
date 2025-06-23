@@ -46,8 +46,8 @@ void HOT Logger::log_vprintf_(uint8_t level, const char *tag, int line, const ch
   bool message_sent = false;
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
   // For non-main tasks, queue the message for callbacks - but only if we have any callbacks registered
-  message_sent = this->log_buffer_->send_message_thread_safe(static_cast<uint8_t>(level), tag,
-                                                             static_cast<uint16_t>(line), current_task, format, args);
+  message_sent =
+      this->log_buffer_->send_message_thread_safe(level, tag, static_cast<uint16_t>(line), current_task, format, args);
   if (message_sent) {
     // Enable logger loop to process the buffered message
     // This is safe to call from any context including ISRs
@@ -151,7 +151,7 @@ void Logger::init_log_buffer(size_t total_buffer_size) {
 }
 #endif
 
-#if defined(USE_LOGGER_USB_CDC) || defined(USE_ESPHOME_TASK_LOG_BUFFER)
+#if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32)
 void Logger::loop() {
 #if defined(USE_LOGGER_USB_CDC) && defined(USE_ARDUINO)
   if (this->uart_ == UART_SELECTION_USB_CDC) {

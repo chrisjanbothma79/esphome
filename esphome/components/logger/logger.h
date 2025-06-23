@@ -107,7 +107,7 @@ class Logger : public Component {
 #ifdef USE_ESPHOME_TASK_LOG_BUFFER
   void init_log_buffer(size_t total_buffer_size);
 #endif
-#if defined(USE_LOGGER_USB_CDC) || defined(USE_ESPHOME_TASK_LOG_BUFFER)
+#if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32)
   void loop() override;
 #endif
   /// Manually set the baud rate for serial, set to 0 to disable.
@@ -359,7 +359,7 @@ class Logger : public Component {
     this->write_body_to_buffer_(ESPHOME_LOG_RESET_COLOR, RESET_COLOR_LEN, buffer, buffer_at, buffer_size);
   }
 
-#ifdef USE_ESPHOME_TASK_LOG_BUFFER
+#ifdef USE_ESP32
   // Disable loop when task buffer is empty (with USB CDC check)
   inline void disable_loop_when_buffer_empty_() {
     // Thread safety note: This is safe even if another task calls enable_loop_soon_any_context()
