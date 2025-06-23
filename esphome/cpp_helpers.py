@@ -1,6 +1,7 @@
 import logging
 
 from esphome.const import (
+    CONF_DEVICE_ID,
     CONF_DISABLED_BY_DEFAULT,
     CONF_ENTITY_CATEGORY,
     CONF_ICON,
@@ -16,7 +17,7 @@ from esphome.core import CORE, ID, coroutine
 from esphome.coroutine import FakeAwaitable
 from esphome.cpp_generator import add, get_variable
 from esphome.cpp_types import App
-from esphome.helpers import sanitize, snake_case
+from esphome.helpers import fnv1a_32bit_hash, sanitize, snake_case
 from esphome.types import ConfigFragmentType, ConfigType
 from esphome.util import Registry, RegistryEntry
 
@@ -110,6 +111,9 @@ async def setup_entity(var, config):
         add(var.set_icon(config[CONF_ICON]))
     if CONF_ENTITY_CATEGORY in config:
         add(var.set_entity_category(config[CONF_ENTITY_CATEGORY]))
+    if CONF_DEVICE_ID in config:
+        device_id: ID = config[CONF_DEVICE_ID]
+        add(var.set_device_id(fnv1a_32bit_hash(device_id.id)))
 
 
 def extract_registry_entry_config(
