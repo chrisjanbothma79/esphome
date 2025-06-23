@@ -149,10 +149,11 @@ void APIConnection::loop() {
     this->process_batch_();
   }
 
-  if (!this->list_entities_iterator_.completed())
+  if (!this->list_entities_iterator_.completed()) {
     this->list_entities_iterator_.advance();
-  else if (!this->initial_state_iterator_.completed())
+  } else if (!this->initial_state_iterator_.completed()) {
     this->initial_state_iterator_.advance();
+  }
 
   if (this->sent_ping_) {
     // Disconnect if not responded within 2.5*keepalive
