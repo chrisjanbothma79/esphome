@@ -167,7 +167,7 @@ void APIServer::loop() {
     // Network is down - disconnect all clients
     for (auto &client : this->clients_) {
       client->on_fatal_error();
-      ESP_LOGW(TAG, "%s: Network down; disconnecting", client->get_client_combined_info().c_str());
+      ESP_LOGW(TAG, "%s: Network down; disconnect", client->get_client_combined_info().c_str());
     }
     // Continue to process and clean up the clients below
   }
@@ -179,7 +179,7 @@ void APIServer::loop() {
     if (client->remove_) {
       // Handle disconnection
       this->client_disconnected_trigger_->trigger(client->client_info_, client->client_peername_);
-      ESP_LOGV(TAG, "Removing connection to %s", client->client_info_.c_str());
+      ESP_LOGV(TAG, "Remove connection %s", client->client_info_.c_str());
 
       // Swap with the last element and pop (avoids expensive vector shifts)
       if (client_index < this->clients_.size() - 1) {
