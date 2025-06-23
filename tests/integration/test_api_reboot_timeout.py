@@ -14,26 +14,22 @@ async def test_api_reboot_timeout(
     run_compiled: RunCompiledFunction,
 ) -> None:
     """Test that the device reboots when no API clients connect within the timeout."""
-    reboot_detected = False
+    loop = asyncio.get_running_loop()
+    reboot_future = loop.create_future()
     reboot_pattern = re.compile(r"No client connected; rebooting")
 
     def check_output(line: str) -> None:
         """Check output for reboot message."""
-        nonlocal reboot_detected
-        if reboot_pattern.search(line):
-            reboot_detected = True
+        if not reboot_future.done() and reboot_pattern.search(line):
+            reboot_future.set_result(True)
 
     # Run the device without connecting any API client
     async with run_compiled(yaml_config, line_callback=check_output):
-        # Wait for up to 3 seconds for the reboot to occur
-        # (1s timeout + some margin for processing)
-        loop = asyncio.get_running_loop()
-        start_time = loop.time()
-        while not reboot_detected:
-            await asyncio.sleep(0.1)
-            elapsed = loop.time() - start_time
-            if elapsed > 3.0:
-                pytest.fail("Device did not reboot within expected timeout")
+        # Wait for reboot with timeout
+        # (0.5s reboot timeout + some margin for processing)
+        try:
+            await asyncio.wait_for(reboot_future, timeout=2.0)
+        except asyncio.TimeoutError:
+            pytest.fail("Device did not reboot within expected timeout")
 
-    # Verify that reboot was detected
-    assert reboot_detected, "Reboot message was not detected in output"
+    # Test passes if we get here - reboot was detected
