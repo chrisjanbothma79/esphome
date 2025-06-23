@@ -22,7 +22,6 @@ from .const import (
     CONF_SRP_ID,
     CONF_TLV,
 )
-from .tlv import parse_tlv
 
 CODEOWNERS = ["@mrene"]
 
@@ -43,11 +42,17 @@ def set_sdkconfig_options(config):
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_CLI", False)
 
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_ENABLED", True)
-    add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_PANID", config[CONF_PAN_ID])
-    add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_CHANNEL", config[CONF_CHANNEL])
-    add_idf_sdkconfig_option(
-        "CONFIG_OPENTHREAD_NETWORK_MASTERKEY", f"{config[CONF_NETWORK_KEY]:X}"
-    )
+
+    if pan_id := config.get(CONF_PAN_ID):
+        add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_PANID", pan_id)
+
+    if channel := config.get(CONF_CHANNEL):
+        add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_CHANNEL", channel)
+
+    if network_key := config.get(CONF_NETWORK_KEY):
+        add_idf_sdkconfig_option(
+            "CONFIG_OPENTHREAD_NETWORK_MASTERKEY", f"{network_key:X}"
+        )
 
     if network_name := config.get(CONF_NETWORK_NAME):
         add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_NAME", network_name)
@@ -67,6 +72,9 @@ def set_sdkconfig_options(config):
         if config[CONF_FORCE_DATASET]:
             cg.add_define("CONFIG_OPENTHREAD_FORCE_DATASET")
 
+    if CONF_TLV in config:
+        cg.add_define("CONFIG_OPENTHREAD_TLVS", config[CONF_TLV])
+
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_DNS64_CLIENT", True)
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_SRP_CLIENT", True)
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_SRP_CLIENT_MAX_SERVICES", 5)
@@ -79,21 +87,10 @@ openthread_ns = cg.esphome_ns.namespace("openthread")
 OpenThreadComponent = openthread_ns.class_("OpenThreadComponent", cg.Component)
 OpenThreadSrpComponent = openthread_ns.class_("OpenThreadSrpComponent", cg.Component)
 
-
-def _convert_tlv(config):
-    if tlv := config.get(CONF_TLV):
-        config = config.copy()
-        parsed_tlv = parse_tlv(tlv)
-        validated = _CONNECTION_SCHEMA(parsed_tlv)
-        config.update(validated)
-        del config[CONF_TLV]
-    return config
-
-
 _CONNECTION_SCHEMA = cv.Schema(
     {
-        cv.Inclusive(CONF_PAN_ID, "manual"): cv.hex_int,
-        cv.Inclusive(CONF_CHANNEL, "manual"): cv.int_,
+        cv.Optional(CONF_PAN_ID): cv.hex_int,
+        cv.Optional(CONF_CHANNEL): cv.int_,
         cv.Inclusive(CONF_NETWORK_KEY, "manual"): cv.hex_int,
         cv.Optional(CONF_EXT_PAN_ID): cv.hex_int,
         cv.Optional(CONF_NETWORK_NAME): cv.string_strict,
@@ -112,8 +109,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_TLV): cv.string_strict,
         }
     ).extend(_CONNECTION_SCHEMA),
-    cv.has_exactly_one_key(CONF_PAN_ID, CONF_TLV),
-    _convert_tlv,
+    cv.has_exactly_one_key(CONF_NETWORK_KEY, CONF_TLV),
     cv.only_with_esp_idf,
     only_on_variant(supported=[VARIANT_ESP32C6, VARIANT_ESP32H2]),
 )
