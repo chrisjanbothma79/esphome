@@ -1,7 +1,8 @@
 import logging
 
+from esphome import core
 import esphome.codegen as cg
-from esphome.components import mqtt, uart
+from esphome.components import uart
 import esphome.config_validation as cv
 from esphome.const import CONF_DISCOVERY, CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
 
@@ -29,22 +30,6 @@ EMONTX_LISTENER_SCHEMA = cv.Schema(
 )
 
 
-# Define this at module level to access from other functions
-class EmonTxState:
-    mqtt_config = None
-
-
-emontx_state = EmonTxState()
-
-
-# First pass - capture EmonTX MQTT config for later use
-def capture_mqtt_config(config):
-    if CONF_MQTT in config:
-        emontx_state.mqtt_config = config[CONF_MQTT]
-        logging.info("EmonTX MQTT config captured for injection")
-    return config
-
-
 # Create a reusable function to validate non-empty strings
 def not_empty(name):
     def validator(value):
@@ -56,32 +41,45 @@ def not_empty(name):
     return validator
 
 
-# Store original schema
-if hasattr(mqtt, "CONFIG_SCHEMA"):
-    original_mqtt_schema = mqtt.CONFIG_SCHEMA
+# Create a dedicated hook that runs before component validation
+# This is the key function that will be registered with ESPHome's core
+def emontx_mqtt_config_hook(raw_config):
+    # Check if emontx with mqtt is in the configuration
+    if "emontx" not in raw_config:
+        return raw_config
 
-    # Create a patched schema that injects our settings
-    def patched_mqtt_schema(config):
-        # Inject EmonTX MQTT settings if available
-        if emontx_state.mqtt_config:
-            # Transfer topic_prefix
-            if CONF_TOPIC_PREFIX in emontx_state.mqtt_config:
-                topic_prefix = emontx_state.mqtt_config[CONF_TOPIC_PREFIX]
-                logging.info(f"Injecting topic_prefix from EmonTX: {topic_prefix}")
-                config[CONF_TOPIC_PREFIX] = topic_prefix
+    emontx_config = raw_config["emontx"]
+    if not isinstance(emontx_config, dict) or CONF_MQTT not in emontx_config:
+        return raw_config
 
-            # Transfer discovery setting
-            if CONF_DISCOVERY in emontx_state.mqtt_config:
-                discovery = emontx_state.mqtt_config[CONF_DISCOVERY]
-                logging.info(f"Injecting discovery from EmonTX: {discovery}")
-                config[CONF_DISCOVERY] = discovery
+    # We found emontx with mqtt config
+    emontx_mqtt = emontx_config[CONF_MQTT]
+    if not isinstance(emontx_mqtt, dict):
+        return raw_config
 
-        # Apply original schema
-        return original_mqtt_schema(config)
+    # Check if mqtt component exists
+    if "mqtt" not in raw_config:
+        logging.warning("EmonTX has MQTT config but no global MQTT component found")
+        return raw_config
 
-    # Replace MQTT's schema with our patched version
-    mqtt.CONFIG_SCHEMA = patched_mqtt_schema
-    logging.info("MQTT schema successfully patched")
+    # Now we can inject the parameters
+    if CONF_TOPIC_PREFIX in emontx_mqtt:
+        topic_prefix = emontx_mqtt[CONF_TOPIC_PREFIX]
+        logging.info(f"Injecting MQTT topic_prefix from EmonTX: '{topic_prefix}'")
+        raw_config["mqtt"][CONF_TOPIC_PREFIX] = topic_prefix
+
+    if CONF_DISCOVERY in emontx_mqtt:
+        discovery = emontx_mqtt[CONF_DISCOVERY]
+        logging.info(f"Injecting MQTT discovery from EmonTX: {discovery}")
+        raw_config["mqtt"][CONF_DISCOVERY] = discovery
+
+    return raw_config
+
+
+# Register our hook to run before any component validation happens
+core.CORE.add_job(
+    lambda: core.CORE.register_component_schema_pre_hook(emontx_mqtt_config_hook)
+)
 
 
 # Simple yet effective server URL validation
@@ -151,7 +149,6 @@ def validate_mqtt_forward(config):
 
 
 CONFIG_SCHEMA = cv.All(
-    capture_mqtt_config,  # Capture MQTT config first
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(EmonTx),
