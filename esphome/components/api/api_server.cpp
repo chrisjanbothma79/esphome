@@ -167,7 +167,7 @@ void APIServer::loop() {
     // Network is down - disconnect all clients
     for (auto &client : this->clients_) {
       client->on_fatal_error();
-      ESP_LOGW(TAG, "%s: Network unavailable; disconnecting", client->get_client_combined_info().c_str());
+      ESP_LOGW(TAG, "%s: Network down; disconnecting", client->get_client_combined_info().c_str());
     }
     // Continue to process and clean up the clients below
   }
