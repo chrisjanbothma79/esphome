@@ -246,7 +246,8 @@ def add_idf_component(
     if refresh or submodules or components:
         _LOGGER.warning(
             "The refresh, components and submodules parameters in add_idf_component() are "
-            "deprecated and will be removed in ESPHome 2026.0. Please update your component."
+            "deprecated and will be removed in ESPHome 2026.1. If you are seeing this, report "
+            "an issue to the external_component author and ask them to update it."
         )
     if components:
         for comp in components:
@@ -573,7 +574,7 @@ def _validate_idf_component(config: ConfigType) -> ConfigType:
     if CONF_REFRESH in config:
         _LOGGER.warning(
             "The 'refresh' option for IDF components is deprecated and has no effect. "
-            "It will be removed in ESPHome 2026.0. Please remove it from your configuration."
+            "It will be removed in ESPHome 2026.1. Please remove it from your configuration."
         )
     return config
 
