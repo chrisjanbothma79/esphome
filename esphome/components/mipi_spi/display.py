@@ -35,7 +35,7 @@ from esphome.core import TimePeriod
 
 from ...cpp_generator import TemplateArguments
 from ..const import CONF_DRAW_ROUNDING
-from ..display import CONF_SHOW_TEST_CARD
+from ..display import CONF_SHOW_TEST_CARD, DISPLAY_ROTATIONS
 from ..lvgl.defines import CONF_COLOR_DEPTH
 from . import (
     CONF_BUS_MODE,
@@ -466,7 +466,11 @@ async def to_code(config):
         bus_type = BusTypes[bus_type]
     buffer_type = cg.uint8 if color_depth == 8 else cg.uint16
     templateargs = TemplateArguments(
-        buffer_type, bufferpixels, display_pixel_mode, bus_type
+        buffer_type,
+        bufferpixels,
+        display_pixel_mode,
+        bus_type,
+        DISPLAY_ROTATIONS[config.get(CONF_ROTATION, 0)],
     )
     var = cg.new_Pvariable(
         config[CONF_ID], templateargs, width, height, offset_width, offset_height

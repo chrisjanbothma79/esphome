@@ -6,13 +6,15 @@ namespace mipi_spi {
 /**
  * Templated MipiSpiBuffer class for MIPI SPI displays.
  * This class is designed to copy data from the buffer to the display, so must be paraameterized by the pixel mode of
- * the buffer, the pixel mode of the display, and the bus type.
+ * the buffer, the pixel mode of the display, the bus type and the display rotation.
  *
  * @tparam BUFFERPIXEL Color depth of the buffer
  * @tparam DISPLAYPIXEL Color depth of the display
  * @tparam BUS_TYPE The type of the interface bus (single, quad, octal)
+ * @tparam ROTATION The rotation of the display
  */
-template<typename BUFFERTYPE, PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE>
+template<typename BUFFERTYPE, PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE,
+         display::DisplayRotation ROTATION>
 class MipiSpiBuffer : public MipiSpi {
  public:
   MipiSpiBuffer(size_t width, size_t height, int16_t offset_width, int16_t offset_height)
@@ -39,6 +41,18 @@ class MipiSpiBuffer : public MipiSpi {
       }
       this->clear();
     }
+  }
+
+  int get_width() override {
+    if constexpr (ROTATION == display::DISPLAY_ROTATION_90_DEGREES || ROTATION == display::DISPLAY_ROTATION_270_DEGREES)
+      return this->height_;
+    return this->width_;
+  }
+
+  int get_height() override {
+    if constexpr (ROTATION == display::DISPLAY_ROTATION_90_DEGREES || ROTATION == display::DISPLAY_ROTATION_270_DEGREES)
+      return this->width_;
+    return this->height_;
   }
 
  protected:
@@ -196,6 +210,16 @@ class MipiSpiBuffer : public MipiSpi {
   void draw_pixel_at(int x, int y, Color color) override {
     if (this->buffer_ == nullptr)
       return;
+    if constexpr (ROTATION == display::DISPLAY_ROTATION_180_DEGREES) {
+      x = this->width_ - x - 1;
+      y = this->height_ - y - 1;
+    } else if constexpr (ROTATION == display::DISPLAY_ROTATION_90_DEGREES) {
+      std::swap(x, y);
+      x = this->width_ - x - 1;
+    } else if constexpr (ROTATION == display::DISPLAY_ROTATION_270_DEGREES) {
+      std::swap(x, y);
+      y = this->height_ - y - 1;
+    }
     if (x < 0 || x >= this->width_ || y < 0 || y >= this->height_)
       return;
     if constexpr (BUFFERPIXEL == PIXEL_MODE_8) {
