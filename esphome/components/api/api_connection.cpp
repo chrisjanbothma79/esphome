@@ -196,7 +196,7 @@ void APIConnection::loop() {
     // bool done = 3;
     buffer.encode_bool(3, done);
 
-    bool success = this->send_buffer(buffer, 44);
+    bool success = this->send_buffer(buffer, CameraImageResponse::MESSAGE_TYPE);
 
     if (success) {
       this->image_reader_.consume_data(to_send);
