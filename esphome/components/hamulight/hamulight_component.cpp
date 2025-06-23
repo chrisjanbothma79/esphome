@@ -139,7 +139,7 @@ void HamulightComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Command Scanner: %s", scanner_running_ ? "ENABLED" : "DISABLED");
   if (cmdscan_start_ && cmdscan_end_ && cmdscan_pause_) {
     ESP_LOGCONFIG(TAG, "  Command Scan Range: %u ... %u, Pause: %u ms", static_cast<uint8_t>(cmdscan_start_->state),
-                    static_cast<uint8_t>(cmdscan_end_->state), static_cast<uint32_t>(cmdscan_pause_->state));
+                  static_cast<uint8_t>(cmdscan_end_->state), static_cast<uint32_t>(cmdscan_pause_->state));
   } else {
     ESP_LOGCONFIG(TAG, "  Command Scan Range: not fully configured");
   }
@@ -168,7 +168,7 @@ void HamulightComponent::generate_code_sequence(uint8_t command) {
 
   // Format: [address M] [address L] [command] [checksum]
   combined = ((uint32_t) rf_address_byte0 << 24) | ((uint32_t) rf_address_byte1 << 16) | ((uint32_t) command << 8) |
-              (uint32_t) checksum;
+             (uint32_t) checksum;
 
   ESP_LOGD(TAG, "RF Command: 0x%02X, Combined Signal: 0x%08X", command, combined);
 
