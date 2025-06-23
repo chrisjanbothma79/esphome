@@ -151,7 +151,7 @@ void Logger::init_log_buffer(size_t total_buffer_size) {
 }
 #endif
 
-#if defined(USE_LOGGER_USB_CDC) || defined(USE_ESPHOME_TASK_LOG_BUFFER)
+#if defined(USE_LOGGER_USB_CDC) || defined(USE_ESP32)
 void Logger::loop() {
 #if defined(USE_LOGGER_USB_CDC) && defined(USE_ARDUINO)
   if (this->uart_ == UART_SELECTION_USB_CDC) {
