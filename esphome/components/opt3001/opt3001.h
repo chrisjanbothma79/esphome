@@ -10,8 +10,6 @@ namespace opt3001 {
 /// This class implements support for the i2c-based OPT3001 ambient light sensor.
 class OPT3001Sensor : public sensor::Sensor, public PollingComponent, public i2c::I2CDevice {
  public:
-  OPT3001Sensor();
-
   void dump_config() override;
   void update() override;
   float get_setup_priority() const override;
