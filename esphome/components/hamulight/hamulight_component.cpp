@@ -59,16 +59,17 @@ void HamulightComponent::setup() {
   ESP_LOGCONFIG(TAG, "  RF Address: 0x%04X", this->rf_address_);
   ESP_LOGCONFIG(TAG, "  Command Scanner: %s", scanner_running_ ? "ENABLED" : "DISABLED");
 
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || \
+    defined(USE_ESP32S3) || defined(USE_ESP32C3)
   // ----------- RMT Peripheral Allocation -----------
-  ESP_LOGD(TAG, "setup(): === Entered RMT setup block ===");        // Log -> did this part compile?
+  ESP_LOGD(TAG, "setup(): === Entered RMT setup block ===");  // Log -> did this part compile?
   ESP_LOGD(TAG, "setup(): rf_pin_num_ = %u", this->rf_pin_num_);
 
   bool open_drain = (this->rf_transmit_pin_->get_flags() & gpio::FLAG_OPEN_DRAIN) != 0;
   rmt_tx_channel_config_t channel;
   memset(&channel, 0, sizeof(channel));
   channel.clk_src = RMT_CLK_SRC_DEFAULT;
-  channel.resolution_hz = 1000000; // 1 MHz = 1us resolution
+  channel.resolution_hz = 1000000;  // 1 MHz = 1us resolution
   channel.gpio_num = gpio_num_t(this->rf_pin_num_);
   channel.mem_block_symbols = 64;
   channel.trans_queue_depth = 1;
@@ -297,7 +298,8 @@ void HamulightComponent::transmit_rf_brightness(uint8_t brightness_value) {
   this->send_rf_signal_rmt();
 }
 
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || defined(USE_ESP32C3)
+#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || \
+    defined(USE_ESP32S3) || defined(USE_ESP32C3)
 /**
  * @brief Low-level: Send the code_sequence_[] via ESP32 RMT peripheral.
  *  - Allocates no hardware resources here (all done in setup)
@@ -350,10 +352,12 @@ void HamulightComponent::send_rf_signal_rmt() {
   tx_config.loop_count = 0;
   tx_config.flags.eot_level = 0;
 
-  esp_err_t error = rmt_transmit(this->tx_channel_, this->encoder_, items.data(), items.size() * sizeof(rmt_symbol_word_t), &tx_config);
+  esp_err_t error = rmt_transmit(this->tx_channel_, this->encoder_, items.data(),
+                                 items.size() * sizeof(rmt_symbol_word_t), &tx_config);
   if (error != ESP_OK) {
     ESP_LOGE(TAG, "RMT transmit failed: %s", esp_err_to_name(error));
-    if (this->led_pin_ != nullptr) this->led_pin_->digital_write(false);
+    if (this->led_pin_ != nullptr)
+      this->led_pin_->digital_write(false);
     return;
   }
   rmt_tx_wait_all_done(this->tx_channel_, -1);
@@ -366,5 +370,5 @@ void HamulightComponent::send_rf_signal_rmt() {
 }
 #endif
 
-} // namespace hamulight
-} // namespace esphome
+}  // namespace hamulight
+}  // namespace esphome
