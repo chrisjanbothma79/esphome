@@ -32,9 +32,7 @@ static const char *const TAG = "hamulight";
  *
  * Logs construction for debugging.
  */
-HamulightComponent::HamulightComponent() {
-  ESP_LOGCONFIG(TAG, "HamulightComponent CONSTRUCTOR called!");
-}
+HamulightComponent::HamulightComponent() { ESP_LOGCONFIG(TAG, "HamulightComponent CONSTRUCTOR called!"); }
 
 /**
  * @brief ESPHome setup() lifecycle.
@@ -53,9 +51,8 @@ void HamulightComponent::setup() {
     this->led_pin_->digital_write(false);
   }
 
-
   ESP_LOGCONFIG(TAG, "setup(): HamulightComponent is being set up...");
-  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%u", this->rf_pin_num_);                                                                     
+  ESP_LOGCONFIG(TAG, "  RF Transmit Pin: GPIO%u", this->rf_pin_num_);
   if (this->led_pin_ != nullptr) {
     ESP_LOGCONFIG(TAG, "  LED Pin: GPIO%u", this->led_pin_num_);
   }
