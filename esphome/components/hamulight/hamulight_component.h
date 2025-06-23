@@ -40,7 +40,6 @@
 #if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || \
     defined(USE_ESP32C3)
 #include "driver/rmt_tx.h"
-#endif
 
 namespace esphome {
 namespace hamulight {
@@ -108,11 +107,8 @@ class HamulightComponent : public Component {
   esphome::number::Number *cmdscan_pause_{nullptr};
   esphome::sensor::Sensor *last_scanned_sensor_{nullptr};
 
-#if defined(USE_ESP32) || defined(USE_ESP32_VARIANT) || defined(USE_ESP32S2) || defined(USE_ESP32S3) || \
-    defined(USE_ESP32C3)
   rmt_channel_handle_t tx_channel_{nullptr};
   rmt_encoder_handle_t encoder_{nullptr};
-#endif
 
   void generate_code_sequence(uint8_t command);
   void send_rf_signal_rmt();
@@ -127,3 +123,5 @@ class HamulightComponent : public Component {
 
 }  // namespace hamulight
 }  // namespace esphome
+
+#endif
