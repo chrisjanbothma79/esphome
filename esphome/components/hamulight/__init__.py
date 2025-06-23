@@ -4,6 +4,8 @@ from esphome.const import CONF_ID
 from esphome import pins
 from esphome.components import number, sensor
 
+CODEOWNERS = ["@madmat17"]
+
 # C++ namespace and component
 hamulight_ns = cg.esphome_ns.namespace("hamulight")
 HamulightComponent = hamulight_ns.class_("HamulightComponent", cg.Component)
