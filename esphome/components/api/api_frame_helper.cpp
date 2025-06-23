@@ -593,6 +593,7 @@ APIError APINoiseFrameHelper::read_packet(ReadPacketBuffer *buffer) {
     return APIError::BAD_DATA_PACKET;
   }
 
+  uint16_t type = (((uint16_t) msg_data[0]) << 8) | msg_data[1];
   uint16_t data_len = (((uint16_t) msg_data[2]) << 8) | msg_data[3];
   if (data_len > msg_size - 4) {
     state_ = State::FAILED;
@@ -603,7 +604,7 @@ APIError APINoiseFrameHelper::read_packet(ReadPacketBuffer *buffer) {
   buffer->container = std::move(frame.msg);
   buffer->data_offset = 4;
   buffer->data_len = data_len;
-  buffer->type = (((uint16_t) msg_data[0]) << 8) | msg_data[1];
+  buffer->type = type;
   return APIError::OK;
 }
 APIError APINoiseFrameHelper::write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) {
