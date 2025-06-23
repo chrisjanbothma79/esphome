@@ -90,9 +90,6 @@ APIConnection::~APIConnection() {
 }
 
 void APIConnection::loop() {
-  if (this->remove_)
-    return;
-
   if (this->next_close_) {
     // requested a disconnect
     this->helper_->close();
