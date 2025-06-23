@@ -30,7 +30,6 @@ opt3001 properties:
 
 */
 
-
 void OPT3001Sensor::read_result_(const std::function<void(float)> &f) {
   // ensure the single shot flag is clear, indicating it's done
   uint16_t raw_value;
