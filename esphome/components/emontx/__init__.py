@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
+from esphome.const import CONF_DISCOVERY, CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67", "@TrystanLea", "@glynhudson"]
@@ -108,6 +108,7 @@ def validate_mqtt_forward(config):
         mqtt_schema = cv.Schema(
             {
                 cv.Required(CONF_TOPIC_PREFIX): not_empty("Topic prefix"),
+                cv.Optional(CONF_DISCOVERY, default=True): cv.boolean,
             }
         )
         config[CONF_MQTT] = mqtt_schema(config[CONF_MQTT])
@@ -115,6 +116,12 @@ def validate_mqtt_forward(config):
         # Add MQTT component as a dependency
         # This checks if mqtt component exists in the configuration
         config = cv.requires_component("mqtt")(config)
+
+        # Disable global discovery since we handle it at component level
+        from esphome.core import CORE
+
+        if CORE.config and "mqtt" in CORE.config:
+            CORE.config["mqtt"][CONF_DISCOVERY] = False
 
     return config
 
