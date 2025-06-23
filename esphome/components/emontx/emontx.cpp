@@ -61,7 +61,7 @@ void EmonTx::setup() {
     ESP_LOGCONFIG(TAG, "MQTT forwarding enabled:");
     ESP_LOGCONFIG(TAG, "  Topic prefix: %s", this->mqtt_topic_prefix_.c_str());
 
-    mqtt::global_mqtt_client->set_discovery(false);
+    mqtt::global_mqtt_client->disable_discovery();
     mqtt->set_topic_prefix(this->mqtt_topic_prefix_);
 
     ESP_LOGCONFIG(TAG, "  Global MQTT discovery: %s",
