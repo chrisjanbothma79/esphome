@@ -154,7 +154,7 @@ void HamulightComponent::dump_config() {
  *
  * @param command 8-bit command (toggle, pair, brightness, or scanned)
  */
-void HamulightComponent::generate_code_sequence(uint8_t command) {
+void HamulightComponent::generate_code_sequence_(uint8_t command) {
   uint32_t combined = 0;
   int8_t cks_offset = 83;
   uint8_t checksum = 0;
@@ -195,12 +195,12 @@ void HamulightComponent::generate_code_sequence(uint8_t command) {
 
 void HamulightComponent::toggle() {
   // Called from YAML button: Toggle the RF device
-  this->transmit_rf_command(RF_POWER_COMMAND);
+  this->transmit_rf_command_(RF_POWER_COMMAND);
 }
 
 void HamulightComponent::pair_with_driver() {
   // Called from YAML button: Pair with Hamulight driver
-  this->transmit_rf_command(RF_BRIGHT100_COMMAND);
+  this->transmit_rf_command_(RF_BRIGHT100_COMMAND);
 }
 
 void HamulightComponent::set_brightness(float brightness) {
@@ -210,7 +210,7 @@ void HamulightComponent::set_brightness(float brightness) {
   uint8_t rf_value = RF_SLIDE_OFFSET + dim_raw;
   if (rf_value > RF_SLIDE_RANGE_MAX)
     rf_value = RF_SLIDE_RANGE_MAX;
-  this->transmit_rf_brightness(rf_value);
+  this->transmit_rf_brightness_(rf_value);
 }
 
 void HamulightComponent::start_command_scan() {
@@ -257,7 +257,7 @@ void HamulightComponent::loop() {
   if (scanner_last_time_ == 0 || (now - scanner_last_time_ >= pause)) {
     if (scanner_current_ <= end) {
       ESP_LOGD(TAG, "Command scan: sending 0x%02X", scanner_current_);
-      this->transmit_rf_command(scanner_current_);
+      this->transmit_rf_command_(scanner_current_);
       // Update last scanned command sensor (if assigned)
       if (last_scanned_sensor_ != nullptr)
         last_scanned_sensor_->publish_state(scanner_current_);
@@ -275,20 +275,20 @@ void HamulightComponent::loop() {
  * @brief Internal: Transmit an arbitrary 8-bit RF command (used by all actions).
  * @param command 8-bit protocol command
  */
-void HamulightComponent::transmit_rf_command(uint8_t command) {
+void HamulightComponent::transmit_rf_command_(uint8_t command) {
   ESP_LOGD(TAG, "transmit_rf_command: 0x%02X", command);
-  this->generate_code_sequence(command);
-  this->send_rf_signal_rmt();
+  this->generate_code_sequence_(command);
+  this->send_rf_signal_rmt_();
 }
 
 /**
  * @brief Internal: Transmit a protocol brightness value (as per set_brightness).
  * @param brightness_value 8-bit protocol value
  */
-void HamulightComponent::transmit_rf_brightness(uint8_t brightness_value) {
+void HamulightComponent::transmit_rf_brightness_(uint8_t brightness_value) {
   ESP_LOGD(TAG, "transmit_rf_brightness: 0x%02X", brightness_value);
-  this->generate_code_sequence(brightness_value);
-  this->send_rf_signal_rmt();
+  this->generate_code_sequence_(brightness_value);
+  this->send_rf_signal_rmt_();
 }
 
 /**
@@ -297,7 +297,7 @@ void HamulightComponent::transmit_rf_brightness(uint8_t brightness_value) {
  *  - Handles feedback LED on/off
  *  - Sends start sequence + code sequence, repeated SIGNAL_REPETITIONS times
  */
-void HamulightComponent::send_rf_signal_rmt() {
+void HamulightComponent::send_rf_signal_rmt_() {
   if (this->led_pin_ != nullptr) {
     this->led_pin_->digital_write(true);
   }
