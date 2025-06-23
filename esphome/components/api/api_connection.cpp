@@ -93,13 +93,6 @@ void APIConnection::loop() {
   if (this->remove_)
     return;
 
-  if (!network::is_connected()) {
-    // when network is disconnected force disconnect immediately
-    // don't wait for timeout
-    this->on_fatal_error();
-    ESP_LOGW(TAG, "%s: Network unavailable; disconnecting", this->get_client_combined_info().c_str());
-    return;
-  }
   if (this->next_close_) {
     // requested a disconnect
     this->helper_->close();

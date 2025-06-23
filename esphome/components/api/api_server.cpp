@@ -159,6 +159,9 @@ void APIServer::loop() {
 
   // Process clients and remove disconnected ones in a single pass
   if (!this->clients_.empty()) {
+    // Check network connectivity once for all clients
+    bool network_connected = network::is_connected();
+
     size_t client_index = 0;
     while (client_index < this->clients_.size()) {
       auto &client = this->clients_[client_index];
@@ -181,8 +184,14 @@ void APIServer::loop() {
 
         // Don't increment client_index since we need to process the swapped element
       } else {
-        // Process active client
-        client->loop();
+        // Process active client only if network is connected
+        if (network_connected) {
+          client->loop();
+        } else {
+          // Force disconnect when network is unavailable
+          client->on_fatal_error();
+          ESP_LOGW(TAG, "%s: Network unavailable; disconnecting", client->get_client_combined_info().c_str());
+        }
         client_index++;  // Move to next client
       }
     }
