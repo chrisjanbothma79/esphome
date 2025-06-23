@@ -27,10 +27,11 @@ async def test_api_reboot_timeout(
     async with run_compiled(yaml_config, line_callback=check_output):
         # Wait for up to 3 seconds for the reboot to occur
         # (1s timeout + some margin for processing)
-        start_time = asyncio.get_event_loop().time()
+        loop = asyncio.get_running_loop()
+        start_time = loop.time()
         while not reboot_detected:
             await asyncio.sleep(0.1)
-            elapsed = asyncio.get_event_loop().time() - start_time
+            elapsed = loop.time() - start_time
             if elapsed > 3.0:
                 pytest.fail("Device did not reboot within expected timeout")
 
