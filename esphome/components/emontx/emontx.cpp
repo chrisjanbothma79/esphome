@@ -307,6 +307,8 @@ void EmonTx::dump_config() {
   if (has_mqtt_config_) {
     ESP_LOGCONFIG(TAG, "  MQTT Forwarding: ENABLED");
     ESP_LOGCONFIG(TAG, "    Topic prefix: %s", this->mqtt_topic_prefix_.c_str());
+    ESP_LOGCONFIG(TAG, "  Global MQTT discovery: %s",
+                  mqtt::global_mqtt_client->is_discovery_enabled() ? "ENABLED" : "DISABLED");
   } else {
     ESP_LOGCONFIG(TAG, "  MQTT Forwarding: DISABLED");
   }
