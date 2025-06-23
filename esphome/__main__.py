@@ -747,6 +747,7 @@ PRE_CONFIG_ACTIONS = {
     "dashboard": command_dashboard,
     "vscode": command_vscode,
     "update-all": command_update_all,
+    "clean": command_clean,
 }
 
 POST_CONFIG_ACTIONS = {
@@ -757,7 +758,6 @@ POST_CONFIG_ACTIONS = {
     "run": command_run,
     "clean-mqtt": command_clean_mqtt,
     "mqtt-fingerprint": command_mqtt_fingerprint,
-    "clean": command_clean,
     "idedata": command_idedata,
     "rename": command_rename,
     "discover": command_discover,
