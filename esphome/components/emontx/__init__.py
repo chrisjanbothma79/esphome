@@ -1,7 +1,10 @@
+import logging
+
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
 from esphome.const import CONF_DISCOVERY, CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
+from esphome.core import CORE
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67", "@TrystanLea", "@glynhudson"]
@@ -55,22 +58,6 @@ def validate_server_url(value):
         raise cv.Invalid("Please enter a valid server URL") from exc
 
 
-# Base schema without EmonCMS or MQTT
-CONFIG_SCHEMA = (
-    cv.Schema(
-        {
-            cv.GenerateID(): cv.declare_id(EmonTx),
-            # Make MQTT forwarding optional
-            cv.Optional(CONF_MQTT): cv.Any(dict),
-            # Make EmonCMS optional
-            cv.Optional(CONF_EMONCMS): cv.Any(dict),
-        }
-    )
-    .extend(cv.polling_component_schema("10s"))
-    .extend(uart.UART_DEVICE_SCHEMA)
-)
-
-
 # Conditionally add EmonCMS schema
 def validate_emoncms(config):
     # Skip if no EmonCMS configuration
@@ -98,6 +85,38 @@ def validate_emoncms(config):
     return config
 
 
+# This will be called early during config validation
+def pre_validate_config(config):
+    # Check if EmonTX has MQTT configuration
+    if CONF_MQTT in config:
+        mqtt_config = config[CONF_MQTT]
+
+        # If we have topic_prefix and/or discovery in EmonTX's MQTT config
+        if CONF_TOPIC_PREFIX in mqtt_config or CONF_DISCOVERY in mqtt_config:
+            # Make sure the global MQTT component exists
+            if "mqtt" not in CORE.config:
+                logging.warning(
+                    "EmonTX has MQTT configuration but no global MQTT component found"
+                )
+                return config
+
+            # Forward topic_prefix if provided
+            if CONF_TOPIC_PREFIX in mqtt_config:
+                topic_prefix = mqtt_config[CONF_TOPIC_PREFIX]
+                logging.info(
+                    f"EmonTX: Setting global MQTT topic_prefix to '{topic_prefix}'"
+                )
+                CORE.config["mqtt"][CONF_TOPIC_PREFIX] = topic_prefix
+
+            # Forward discovery setting if provided
+            if CONF_DISCOVERY in mqtt_config:
+                discovery = mqtt_config[CONF_DISCOVERY]
+                logging.info(f"EmonTX: Setting global MQTT discovery to '{discovery}'")
+                CORE.config["mqtt"][CONF_DISCOVERY] = discovery
+
+    return config
+
+
 # Validate MQTT forward config
 def validate_mqtt_forward(config):
     # Skip if no MQTT forwarding configuration
@@ -120,8 +139,28 @@ def validate_mqtt_forward(config):
     return config
 
 
-# Apply conditional schema
-CONFIG_SCHEMA = cv.All(CONFIG_SCHEMA, validate_emoncms, validate_mqtt_forward)
+CONFIG_SCHEMA = cv.All(
+    pre_validate_config,
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.declare_id(EmonTx),
+            # Make MQTT forwarding optional
+            cv.Optional(CONF_MQTT): cv.Schema(
+                {
+                    cv.Required(CONF_TOPIC_PREFIX): not_empty("Topic prefix"),
+                    cv.Optional(CONF_DISCOVERY, default=False): cv.boolean,
+                }
+            ),
+            # Make EmonCMS optional
+            cv.Optional(CONF_EMONCMS): cv.Any(dict),
+        }
+    )
+    .extend(cv.polling_component_schema("10s"))
+    .extend(uart.UART_DEVICE_SCHEMA),
+    validate_emoncms,
+    validate_mqtt_forward,
+)
+
 
 FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
     "emontx",
