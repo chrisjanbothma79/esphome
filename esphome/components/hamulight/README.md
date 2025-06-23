@@ -131,11 +131,11 @@ First 2 bytes of the protocol is the remote's ID. The assumption (based on the t
 | RFpower         | `0x5F` | on/off toggle                                                             |
 | RFbright100     | `0x59` | 100% brightness command + command for training the transformator/receiver |
 | RFbright75      | `0x50` | 75% brightness command                                                    |
-| RFbright50      |	`0x56` | 50% brightness command                                                    |
-| RFbright25      |	`0x55` | 25% brightness command                                                    |
+| RFbright50      | `0x56` | 50% brightness command                                                    |
+| RFbright25      | `0x55` | 25% brightness command                                                    |
 | RFslideRangeMin | `0x80` | lowest HEX value used by dimm slider                                      |
-| RFslideRangeMax |	`0xFF` | highest HEX value used by dimm slider                                     |
-| RFslideOffset   |	`0xA8` | needed for the offset in the slideValConv() function                      |
+| RFslideRangeMax | `0xFF` | highest HEX value used by dimm slider                                     |
+| RFslideOffset   | `0xA8` | needed for the offset in the slideValConv() function                      |
 | RFslideSteps    | calc | steps from 0% to 100% dimm value (RFslideRangeMax - RFslideRangeMin + 1)  |
 | RFslideStart    | calc | is the 0% dimm value position    (RFslideRangeMin + RFslideOffset)        |
 
@@ -173,7 +173,7 @@ id: hamulight_transmitter
 rf_transmit_pin: GPIO2
 # led_pin: GPIO21     # <- optional: GPIO for feedback LED
 rf_address: 0xC535    # <- your remote's unique ID, which the LED driver is / should be paired with
-  
+
 # Command scanner configuration (optional)
 # To use, uncomment and define the matching number/sensor blocks below:
 # command_scanner:
@@ -185,7 +185,7 @@ rf_address: 0xC535    # <- your remote's unique ID, which the LED driver is / sh
 
 # IMPORTANT: The sensor component is required, even if the command scanner is not used
 #            You can use e.g. the uptime-sensor as in the example below (or none at all)
-sensor:				 
+sensor:
 - platform: uptime
   name: "Uptime"
 #- platform: template
@@ -231,7 +231,7 @@ number:
 #   optimistic: true
 #   initial_value: 500
 
-  
+
 
 button:
 - platform: template
@@ -292,14 +292,14 @@ on_press:
 
 ## Home Assistant Integration
 
-All defined buttons, numbers, and sensors will appear as entities in Home Assistant.  
+All defined buttons, numbers, and sensors will appear as entities in Home Assistant.
 You can control your Hamulight lights via the UI, automations, or scripts.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.  
+This project is licensed under the MIT License.
 See [LICENSE](LICENSE) for details.
 
 ---
@@ -311,7 +311,7 @@ See [LICENSE](LICENSE) for details.
 
 ---
 
-**Questions, issues, or contributions?**  
+**Questions, issues, or contributions?**
 Open an [issue](https://github.com/esphome/esphome/issues) or a [pull request](https://github.com/esphome/esphome/pulls)!
 
 ---
