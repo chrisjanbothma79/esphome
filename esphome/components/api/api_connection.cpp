@@ -153,8 +153,6 @@ void APIConnection::loop() {
   else if (!this->initial_state_iterator_.completed())
     this->initial_state_iterator_.advance();
 
-  static constexpr uint8_t max_ping_retries = 60;
-  static constexpr uint16_t ping_retry_interval = 1000;
   if (this->sent_ping_) {
     // Disconnect if not responded within 2.5*keepalive
     static constexpr uint32_t keepalive_disconnect_timeout = (KEEPALIVE_TIMEOUT_MS * 5) / 2;
@@ -166,9 +164,9 @@ void APIConnection::loop() {
     ESP_LOGVV(TAG, "Sending keepalive PING");
     this->sent_ping_ = this->send_message(PingRequest());
     if (!this->sent_ping_) {
-      this->next_ping_retry_ = now + ping_retry_interval;
+      this->next_ping_retry_ = now + PING_RETRY_INTERVAL;
       this->ping_retries_++;
-      if (this->ping_retries_ >= max_ping_retries) {
+      if (this->ping_retries_ >= MAX_PING_RETRIES) {
         on_fatal_error();
         ESP_LOGE(TAG, "%s: Ping failed %u times", this->get_client_combined_info().c_str(), this->ping_retries_);
       } else if (this->ping_retries_ >= 10) {
