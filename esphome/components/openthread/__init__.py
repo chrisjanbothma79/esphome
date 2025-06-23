@@ -68,12 +68,12 @@ def set_sdkconfig_options(config):
     if (pskc := config.get(CONF_PSKC)) is not None:
         add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_PSKC", f"{pskc:X}".lower())
 
-    if CONF_FORCE_DATASET in config:
-        if config[CONF_FORCE_DATASET]:
-            cg.add_define("CONFIG_OPENTHREAD_FORCE_DATASET")
+    if force_dataset := config.get(CONF_FORCE_DATASET):
+        if force_dataset:
+            cg.add_define("OPENTHREAD_FORCE_DATASET")
 
-    if CONF_TLV in config:
-        cg.add_define("CONFIG_OPENTHREAD_TLVS", config[CONF_TLV])
+    if tlv := config.get(CONF_TLV):
+        cg.add_define("OPENTHREAD_TLVS", tlv)
 
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_DNS64_CLIENT", True)
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_SRP_CLIENT", True)
@@ -91,7 +91,7 @@ _CONNECTION_SCHEMA = cv.Schema(
     {
         cv.Optional(CONF_PAN_ID): cv.hex_int,
         cv.Optional(CONF_CHANNEL): cv.int_,
-        cv.Inclusive(CONF_NETWORK_KEY, "manual"): cv.hex_int,
+        cv.Optional(CONF_NETWORK_KEY): cv.hex_int,
         cv.Optional(CONF_EXT_PAN_ID): cv.hex_int,
         cv.Optional(CONF_NETWORK_NAME): cv.string_strict,
         cv.Optional(CONF_PSKC): cv.hex_int,
