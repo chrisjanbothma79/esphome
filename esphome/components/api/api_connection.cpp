@@ -152,7 +152,7 @@ void APIConnection::loop() {
 
   // Process deferred batch if scheduled
   if (this->deferred_batch_.batch_scheduled &&
-      App.get_loop_component_start_time() - this->deferred_batch_.batch_start_time >= this->get_batch_delay_ms_()) {
+      now - this->deferred_batch_.batch_start_time >= this->get_batch_delay_ms_()) {
     this->process_batch_();
   }
 
