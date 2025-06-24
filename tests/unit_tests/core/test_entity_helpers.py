@@ -301,37 +301,6 @@ async def test_setup_entity_no_duplicates(setup_test_environment: list[str]) -> 
 
 
 @pytest.mark.asyncio
-async def test_setup_entity_with_duplicates(setup_test_environment: list[str]) -> None:
-    """Test setup_entity with duplicate names raises validation error."""
-    added_expressions = setup_test_environment
-
-    # Create mock entities
-    entities = [MockObj(f"sensor{i}") for i in range(4)]
-
-    # Set up entities with same name
-    config = {
-        CONF_NAME: "Temperature",
-        CONF_DISABLED_BY_DEFAULT: False,
-    }
-
-    # First entity should succeed
-    await setup_entity(entities[0], config, "sensor")
-    object_id = extract_object_id_from_expressions(added_expressions)
-    assert object_id == "temperature"
-
-    # Clear CORE unique_ids before second test to ensure clean state
-    CORE.unique_ids.clear()
-    # Add back the first one
-    CORE.unique_ids.add((0, "sensor", "temperature"))
-
-    # Second entity with same name should raise Invalid
-    with pytest.raises(
-        Invalid, match=r"Duplicate sensor entity with name 'Temperature' found"
-    ):
-        await setup_entity(entities[1], config, "sensor")
-
-
-@pytest.mark.asyncio
 async def test_setup_entity_different_platforms(
     setup_test_environment: list[str],
 ) -> None:
@@ -451,36 +420,6 @@ async def test_setup_entity_empty_name(setup_test_environment: list[str]) -> Non
 
 
 @pytest.mark.asyncio
-async def test_setup_entity_empty_name_duplicates(
-    setup_test_environment: list[str],
-) -> None:
-    """Test setup_entity with multiple empty names raises validation error."""
-    added_expressions = setup_test_environment
-
-    entities = [MockObj(f"sensor{i}") for i in range(3)]
-
-    config = {
-        CONF_NAME: "",
-        CONF_DISABLED_BY_DEFAULT: False,
-    }
-
-    # First entity should succeed
-    await setup_entity(entities[0], config, "sensor")
-    object_id = extract_object_id_from_expressions(added_expressions)
-    assert object_id == "test_device"
-
-    # Clear and restore unique_ids for clean test
-    CORE.unique_ids.clear()
-    CORE.unique_ids.add((0, "sensor", "test_device"))
-
-    # Second entity with empty name should raise Invalid
-    with pytest.raises(
-        Invalid, match=r"Duplicate sensor entity with name 'test_device' found"
-    ):
-        await setup_entity(entities[1], config, "sensor")
-
-
-@pytest.mark.asyncio
 async def test_setup_entity_special_characters(
     setup_test_environment: list[str],
 ) -> None:
@@ -547,60 +486,65 @@ async def test_setup_entity_disabled_by_default(
     )
 
 
-@pytest.mark.asyncio
-async def test_setup_entity_mixed_duplicates(setup_test_environment: list[str]) -> None:
-    """Test complex duplicate scenario with multiple platforms and devices."""
+def test_entity_duplicate_validator() -> None:
+    """Test the entity_duplicate_validator function."""
+    from esphome.core.entity_helpers import entity_duplicate_validator
 
-    added_expressions = setup_test_environment
-
-    # Track results
-    results: list[tuple[str, str]] = []
-
-    # First sensor named "Status" should succeed
-    added_expressions.clear()
-    var = MockObj("sensor_status_0")
-    await setup_entity(
-        var, {CONF_NAME: "Status", CONF_DISABLED_BY_DEFAULT: False}, "sensor"
-    )
-    object_id = extract_object_id_from_expressions(added_expressions)
-    results.append(("sensor", object_id))
-
-    # Clear and restore unique_ids for test
+    # Reset CORE unique_ids for clean test
     CORE.unique_ids.clear()
-    CORE.unique_ids.add((0, "sensor", "status"))
 
-    # Second sensor with same name should fail
+    # Create validator for sensor platform
+    validator = entity_duplicate_validator("sensor")
+
+    # First entity should pass
+    config1 = {CONF_NAME: "Temperature"}
+    validated1 = validator(config1)
+    assert validated1 == config1
+    assert ("", "sensor", "temperature") in CORE.unique_ids
+
+    # Second entity with different name should pass
+    config2 = {CONF_NAME: "Humidity"}
+    validated2 = validator(config2)
+    assert validated2 == config2
+    assert ("", "sensor", "humidity") in CORE.unique_ids
+
+    # Duplicate entity should fail
+    config3 = {CONF_NAME: "Temperature"}
     with pytest.raises(
-        Invalid, match=r"Duplicate sensor entity with name 'Status' found"
+        Invalid, match=r"Duplicate sensor entity with name 'Temperature' found"
     ):
-        await setup_entity(
-            MockObj("sensor_status_1"),
-            {CONF_NAME: "Status", CONF_DISABLED_BY_DEFAULT: False},
-            "sensor",
-        )
+        validator(config3)
 
-    # Binary sensor with same name should succeed (different platform)
-    added_expressions.clear()
-    var = MockObj("binary_sensor_status_0")
-    await setup_entity(
-        var, {CONF_NAME: "Status", CONF_DISABLED_BY_DEFAULT: False}, "binary_sensor"
-    )
-    object_id = extract_object_id_from_expressions(added_expressions)
-    results.append(("binary_sensor", object_id))
 
-    # Text sensor with same name should succeed (different platform)
-    added_expressions.clear()
-    var = MockObj("text_sensor_status")
-    await setup_entity(
-        var, {CONF_NAME: "Status", CONF_DISABLED_BY_DEFAULT: False}, "text_sensor"
-    )
-    object_id = extract_object_id_from_expressions(added_expressions)
-    results.append(("text_sensor", object_id))
+def test_entity_duplicate_validator_with_devices() -> None:
+    """Test entity_duplicate_validator with devices."""
+    from esphome.core.entity_helpers import entity_duplicate_validator
 
-    # Check results - each platform has its own namespace
-    assert results[0] == ("sensor", "status")  # sensor
-    assert results[1] == (
-        "binary_sensor",
-        "status",
-    )  # binary_sensor (different platform)
-    assert results[2] == ("text_sensor", "status")  # text_sensor (different platform)
+    # Reset CORE unique_ids for clean test
+    CORE.unique_ids.clear()
+
+    # Create validator for sensor platform
+    validator = entity_duplicate_validator("sensor")
+
+    # Create mock device IDs
+    device1 = ID("device1", type="Device")
+    device2 = ID("device2", type="Device")
+
+    # Same name on different devices should pass
+    config1 = {CONF_NAME: "Temperature", CONF_DEVICE_ID: device1}
+    validated1 = validator(config1)
+    assert validated1 == config1
+    assert ("device1", "sensor", "temperature") in CORE.unique_ids
+
+    config2 = {CONF_NAME: "Temperature", CONF_DEVICE_ID: device2}
+    validated2 = validator(config2)
+    assert validated2 == config2
+    assert ("device2", "sensor", "temperature") in CORE.unique_ids
+
+    # Duplicate on same device should fail
+    config3 = {CONF_NAME: "Temperature", CONF_DEVICE_ID: device1}
+    with pytest.raises(
+        Invalid,
+        match=r"Duplicate sensor entity with name 'Temperature' found on device 'device1'",
+    ):
+        validator(config3)

@@ -16,18 +16,6 @@ from esphome.core.config import Area, validate_area_config
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "core" / "config"
 
 
-@pytest.fixture
-def yaml_file(tmp_path: Path) -> Callable[[str], str]:
-    """Create a temporary YAML file for testing."""
-
-    def _yaml_file(content: str) -> str:
-        yaml_path = tmp_path / "test.yaml"
-        yaml_path.write_text(content)
-        return str(yaml_path)
-
-    return _yaml_file
-
-
 def load_config_from_yaml(
     yaml_file: Callable[[str], str], yaml_content: str
 ) -> Config | None:
