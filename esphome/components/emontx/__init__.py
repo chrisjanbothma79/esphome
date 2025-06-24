@@ -138,6 +138,8 @@ def validate_mqtt_forward(config):
         DEBUG_PRINT(f"CORE.raw_config[mqtt]: {CORE.raw_config[CONF_MQTT]}")
 
         if CORE.raw_config and "mqtt" in CORE.raw_config:
+            DEBUG_PRINT("Entering MQTT config modification block")
+
             mqtt_config = CORE.raw_config["mqtt"]
 
             # Set the topic prefix in the MQTT config
@@ -148,6 +150,8 @@ def validate_mqtt_forward(config):
 
             # Update the config in CORE
             CORE.raw_config["mqtt"] = mqtt_config
+
+        DEBUG_PRINT(f"CORE.raw_config[mqtt] after: {CORE.raw_config[CONF_MQTT]}")
 
     return config
 
