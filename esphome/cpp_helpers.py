@@ -17,7 +17,7 @@ from esphome.core import CORE, ID, coroutine
 from esphome.coroutine import FakeAwaitable
 from esphome.cpp_generator import MockObj, add, get_variable
 from esphome.cpp_types import App
-from esphome.helpers import sanitize, snake_case
+from esphome.entity import get_base_entity_object_id
 from esphome.types import ConfigFragmentType, ConfigType
 from esphome.util import Registry, RegistryEntry
 
@@ -122,19 +122,14 @@ async def setup_entity(var: MockObj, config: ConfigType, platform: str) -> None:
 
     add(var.set_name(config[CONF_NAME]))
 
-    # Calculate base object_id
-    base_object_id: str
+    # Calculate base object_id using the same logic as C++
+    # This must match the C++ behavior in esphome/core/entity_base.cpp
+    base_object_id = get_base_entity_object_id(config[CONF_NAME], CORE.friendly_name)
+
     if not config[CONF_NAME]:
-        # Use the friendly name if available, otherwise use the device name
-        if CORE.friendly_name:
-            base_object_id = sanitize(snake_case(CORE.friendly_name))
-        else:
-            base_object_id = sanitize(snake_case(CORE.name))
         _LOGGER.debug(
             "Entity has empty name, using '%s' as object_id base", base_object_id
         )
-    else:
-        base_object_id = sanitize(snake_case(config[CONF_NAME]))
 
     # Handle duplicates
     # Check for duplicates
@@ -156,6 +151,12 @@ async def setup_entity(var: MockObj, config: ConfigType, platform: str) -> None:
         object_id = base_object_id
 
     add(var.set_object_id(object_id))
+    _LOGGER.debug(
+        "Setting object_id '%s' for entity '%s' on platform '%s'",
+        object_id,
+        config[CONF_NAME],
+        platform,
+    )
     add(var.set_disabled_by_default(config[CONF_DISABLED_BY_DEFAULT]))
     if CONF_INTERNAL in config:
         add(var.set_internal(config[CONF_INTERNAL]))
