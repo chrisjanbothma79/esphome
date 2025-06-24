@@ -139,12 +139,9 @@ void EmonTx::parse_json_(const std::string &data) {
 #endif
 
     // Also update all listeners
-    ESP_LOGD(TAG, "Listener list contains '%d' items", (int) this->emontx_listeners_.size());
     for (auto *listener : this->emontx_listeners_) {
       if (root.containsKey(listener->tag)) {
         const auto value = root[listener->tag].as<std::string>();
-
-        ESP_LOGD(TAG, "  Publish to listener '%s' with value '%s'", listener->tag.c_str(), value.c_str());
 
         listener->publish_val(value);
       }
