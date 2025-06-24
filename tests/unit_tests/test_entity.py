@@ -259,8 +259,7 @@ def extract_object_id_from_expressions(expressions: list[str]) -> str | None:
     for expr in expressions:
         # Look for set_object_id calls with regex to handle various formats
         # Matches: var.set_object_id("temperature_2") or var.set_object_id('temperature_2')
-        match = OBJECT_ID_PATTERN.search(expr)
-        if match:
+        if match := OBJECT_ID_PATTERN.search(expr):
             return match.group(1)
     return None
 

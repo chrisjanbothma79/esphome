@@ -198,7 +198,6 @@ def test_device_with_invalid_area_id(
 
     # Check for the specific error message in stdout
     captured = capsys.readouterr()
-    print(captured.out)
     assert (
         "Couldn't find ID 'nonexistent_area'. Please check you have defined an ID with that name in your configuration."
         in captured.out
