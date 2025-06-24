@@ -190,9 +190,9 @@ void LD2450Component::dump_config() {
   LOG_NUMBER("  ", "PresenceTimeoutNumber", this->presence_timeout_number_);
 #endif
   ESP_LOGCONFIG(TAG,
-                "  Throttle : %ums\n"
-                "  MAC Address : %s\n"
-                "  Firmware version : %s",
+                "  Throttle: %ums\n"
+                "  MAC Address: %s\n"
+                "  Firmware version: %s",
                 this->throttle_, const_cast<char *>(this->mac_.c_str()), const_cast<char *>(this->version_.c_str()));
 }
 
