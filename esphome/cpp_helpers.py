@@ -11,9 +11,6 @@ from esphome.core import CORE, ID, coroutine
 from esphome.coroutine import FakeAwaitable
 from esphome.cpp_generator import add, get_variable
 from esphome.cpp_types import App
-from esphome.entity import (  # noqa: F401  # pylint: disable=unused-import
-    setup_entity,  # Import for backward compatibility
-)
 from esphome.types import ConfigFragmentType, ConfigType
 from esphome.util import Registry, RegistryEntry
 

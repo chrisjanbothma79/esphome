@@ -1,20 +1,25 @@
 """Test get_base_entity_object_id function matches C++ behavior."""
 
-from collections.abc import Generator
+from collections.abc import Callable, Generator
+from pathlib import Path
 import re
 from typing import Any
 
 import pytest
 
-from esphome import entity
+from esphome.config_validation import Invalid
 from esphome.const import CONF_DEVICE_ID, CONF_DISABLED_BY_DEFAULT, CONF_ICON, CONF_NAME
-from esphome.core import CORE, ID
+from esphome.core import CORE, ID, entity_helpers
+from esphome.core.entity_helpers import get_base_entity_object_id, setup_entity
 from esphome.cpp_generator import MockObj
-from esphome.entity import get_base_entity_object_id, setup_entity
 from esphome.helpers import sanitize, snake_case
+
+from .common import load_config_from_fixture
 
 # Pre-compiled regex pattern for extracting object IDs from expressions
 OBJECT_ID_PATTERN = re.compile(r'\.set_object_id\(["\'](.*?)["\']\)')
+
+FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "core" / "entity_helpers"
 
 
 @pytest.fixture(autouse=True)
@@ -239,7 +244,7 @@ def setup_test_environment() -> Generator[list[str], None, None]:
     CORE.friendly_name = "Test Device"
     # Store original add function
 
-    original_add = entity.add
+    original_add = entity_helpers.add
     # Track what gets added
     added_expressions: list[str] = []
 
@@ -247,11 +252,11 @@ def setup_test_environment() -> Generator[list[str], None, None]:
         added_expressions.append(str(expression))
         return original_add(expression)
 
-    # Patch add function in entity module
-    entity.add = mock_add
+    # Patch add function in entity_helpers module
+    entity_helpers.add = mock_add
     yield added_expressions
     # Clean up
-    entity.add = original_add
+    entity_helpers.add = original_add
 
 
 def extract_object_id_from_expressions(expressions: list[str]) -> str | None:
@@ -301,35 +306,6 @@ async def test_setup_entity_no_duplicates(setup_test_environment: list[str]) -> 
 
 
 @pytest.mark.asyncio
-async def test_setup_entity_with_duplicates(setup_test_environment: list[str]) -> None:
-    """Test setup_entity with duplicate names."""
-
-    added_expressions = setup_test_environment
-
-    # Create mock entities
-    entities = [MockObj(f"sensor{i}") for i in range(4)]
-
-    # Set up entities with same name
-    config = {
-        CONF_NAME: "Temperature",
-        CONF_DISABLED_BY_DEFAULT: False,
-    }
-
-    object_ids: list[str] = []
-    for var in entities:
-        added_expressions.clear()
-        await setup_entity(var, config, "sensor")
-        object_id = extract_object_id_from_expressions(added_expressions)
-        object_ids.append(object_id)
-
-    # Check that object IDs were set with proper suffixes
-    assert object_ids[0] == "temperature"
-    assert object_ids[1] == "temperature_2"
-    assert object_ids[2] == "temperature_3"
-    assert object_ids[3] == "temperature_4"
-
-
-@pytest.mark.asyncio
 async def test_setup_entity_different_platforms(
     setup_test_environment: list[str],
 ) -> None:
@@ -369,17 +345,17 @@ async def test_setup_entity_different_platforms(
 def mock_get_variable() -> Generator[dict[ID, MockObj], None, None]:
     """Mock get_variable to return test devices."""
     devices = {}
-    original_get_variable = entity.get_variable
+    original_get_variable = entity_helpers.get_variable
 
     async def _mock_get_variable(device_id: ID) -> MockObj:
         if device_id in devices:
             return devices[device_id]
         return await original_get_variable(device_id)
 
-    entity.get_variable = _mock_get_variable
+    entity_helpers.get_variable = _mock_get_variable
     yield devices
     # Clean up
-    entity.get_variable = original_get_variable
+    entity_helpers.get_variable = original_get_variable
 
 
 @pytest.mark.asyncio
@@ -449,34 +425,6 @@ async def test_setup_entity_empty_name(setup_test_environment: list[str]) -> Non
 
 
 @pytest.mark.asyncio
-async def test_setup_entity_empty_name_duplicates(
-    setup_test_environment: list[str],
-) -> None:
-    """Test setup_entity with multiple empty names."""
-
-    added_expressions = setup_test_environment
-
-    entities = [MockObj(f"sensor{i}") for i in range(3)]
-
-    config = {
-        CONF_NAME: "",
-        CONF_DISABLED_BY_DEFAULT: False,
-    }
-
-    object_ids: list[str] = []
-    for var in entities:
-        added_expressions.clear()
-        await setup_entity(var, config, "sensor")
-        object_id = extract_object_id_from_expressions(added_expressions)
-        object_ids.append(object_id)
-
-    # Should use device name with suffixes
-    assert object_ids[0] == "test_device"
-    assert object_ids[1] == "test_device_2"
-    assert object_ids[2] == "test_device_3"
-
-
-@pytest.mark.asyncio
 async def test_setup_entity_special_characters(
     setup_test_environment: list[str],
 ) -> None:
@@ -484,24 +432,18 @@ async def test_setup_entity_special_characters(
 
     added_expressions = setup_test_environment
 
-    entities = [MockObj(f"sensor{i}") for i in range(3)]
+    var = MockObj("sensor1")
 
     config = {
         CONF_NAME: "Temperature Sensor!",
         CONF_DISABLED_BY_DEFAULT: False,
     }
 
-    object_ids: list[str] = []
-    for var in entities:
-        added_expressions.clear()
-        await setup_entity(var, config, "sensor")
-        object_id = extract_object_id_from_expressions(added_expressions)
-        object_ids.append(object_id)
+    await setup_entity(var, config, "sensor")
+    object_id = extract_object_id_from_expressions(added_expressions)
 
     # Special characters should be sanitized
-    assert object_ids[0] == "temperature_sensor_"
-    assert object_ids[1] == "temperature_sensor__2"
-    assert object_ids[2] == "temperature_sensor__3"
+    assert object_id == "temperature_sensor_"
 
 
 @pytest.mark.asyncio
@@ -549,48 +491,105 @@ async def test_setup_entity_disabled_by_default(
     )
 
 
-@pytest.mark.asyncio
-async def test_setup_entity_mixed_duplicates(setup_test_environment: list[str]) -> None:
-    """Test complex duplicate scenario with multiple platforms and devices."""
+def test_entity_duplicate_validator() -> None:
+    """Test the entity_duplicate_validator function."""
+    from esphome.core.entity_helpers import entity_duplicate_validator
 
-    added_expressions = setup_test_environment
+    # Reset CORE unique_ids for clean test
+    CORE.unique_ids.clear()
 
-    # Track results
-    results: list[tuple[str, str]] = []
+    # Create validator for sensor platform
+    validator = entity_duplicate_validator("sensor")
 
-    # 3 sensors named "Status"
-    for i in range(3):
-        added_expressions.clear()
-        var = MockObj(f"sensor_status_{i}")
-        await setup_entity(
-            var, {CONF_NAME: "Status", CONF_DISABLED_BY_DEFAULT: False}, "sensor"
-        )
-        object_id = extract_object_id_from_expressions(added_expressions)
-        results.append(("sensor", object_id))
+    # First entity should pass
+    config1 = {CONF_NAME: "Temperature"}
+    validated1 = validator(config1)
+    assert validated1 == config1
+    assert ("", "sensor", "temperature") in CORE.unique_ids
 
-    # 2 binary_sensors named "Status"
-    for i in range(2):
-        added_expressions.clear()
-        var = MockObj(f"binary_sensor_status_{i}")
-        await setup_entity(
-            var, {CONF_NAME: "Status", CONF_DISABLED_BY_DEFAULT: False}, "binary_sensor"
-        )
-        object_id = extract_object_id_from_expressions(added_expressions)
-        results.append(("binary_sensor", object_id))
+    # Second entity with different name should pass
+    config2 = {CONF_NAME: "Humidity"}
+    validated2 = validator(config2)
+    assert validated2 == config2
+    assert ("", "sensor", "humidity") in CORE.unique_ids
 
-    # 1 text_sensor named "Status"
-    added_expressions.clear()
-    var = MockObj("text_sensor_status")
-    await setup_entity(
-        var, {CONF_NAME: "Status", CONF_DISABLED_BY_DEFAULT: False}, "text_sensor"
+    # Duplicate entity should fail
+    config3 = {CONF_NAME: "Temperature"}
+    with pytest.raises(
+        Invalid, match=r"Duplicate sensor entity with name 'Temperature' found"
+    ):
+        validator(config3)
+
+
+def test_entity_duplicate_validator_with_devices() -> None:
+    """Test entity_duplicate_validator with devices."""
+    from esphome.core.entity_helpers import entity_duplicate_validator
+
+    # Reset CORE unique_ids for clean test
+    CORE.unique_ids.clear()
+
+    # Create validator for sensor platform
+    validator = entity_duplicate_validator("sensor")
+
+    # Create mock device IDs
+    device1 = ID("device1", type="Device")
+    device2 = ID("device2", type="Device")
+
+    # Same name on different devices should pass
+    config1 = {CONF_NAME: "Temperature", CONF_DEVICE_ID: device1}
+    validated1 = validator(config1)
+    assert validated1 == config1
+    assert ("device1", "sensor", "temperature") in CORE.unique_ids
+
+    config2 = {CONF_NAME: "Temperature", CONF_DEVICE_ID: device2}
+    validated2 = validator(config2)
+    assert validated2 == config2
+    assert ("device2", "sensor", "temperature") in CORE.unique_ids
+
+    # Duplicate on same device should fail
+    config3 = {CONF_NAME: "Temperature", CONF_DEVICE_ID: device1}
+    with pytest.raises(
+        Invalid,
+        match=r"Duplicate sensor entity with name 'Temperature' found on device 'device1'",
+    ):
+        validator(config3)
+
+
+def test_duplicate_entity_yaml_validation(
+    yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Test that duplicate entity names are caught during YAML config validation."""
+    result = load_config_from_fixture(yaml_file, "duplicate_entity.yaml", FIXTURES_DIR)
+    assert result is None
+
+    # Check for the duplicate entity error message
+    captured = capsys.readouterr()
+    assert "Duplicate sensor entity with name 'Temperature' found" in captured.out
+
+
+def test_duplicate_entity_with_devices_yaml_validation(
+    yaml_file: Callable[[str], str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Test duplicate entity validation with devices."""
+    result = load_config_from_fixture(
+        yaml_file, "duplicate_entity_with_devices.yaml", FIXTURES_DIR
     )
-    object_id = extract_object_id_from_expressions(added_expressions)
-    results.append(("text_sensor", object_id))
+    assert result is None
 
-    # Check results - each platform has its own namespace
-    assert results[0] == ("sensor", "status")  # sensor
-    assert results[1] == ("sensor", "status_2")  # sensor
-    assert results[2] == ("sensor", "status_3")  # sensor
-    assert results[3] == ("binary_sensor", "status")  # binary_sensor (new namespace)
-    assert results[4] == ("binary_sensor", "status_2")  # binary_sensor
-    assert results[5] == ("text_sensor", "status")  # text_sensor (new namespace)
+    # Check for the duplicate entity error message with device
+    captured = capsys.readouterr()
+    assert (
+        "Duplicate sensor entity with name 'Temperature' found on device 'device1'"
+        in captured.out
+    )
+
+
+def test_entity_different_platforms_yaml_validation(
+    yaml_file: Callable[[str], str],
+) -> None:
+    """Test that same entity name on different platforms is allowed."""
+    result = load_config_from_fixture(
+        yaml_file, "entity_different_platforms.yaml", FIXTURES_DIR
+    )
+    # This should succeed
+    assert result is not None

@@ -20,8 +20,8 @@ from esphome.const import (
     DEVICE_CLASS_SWITCH,
 )
 from esphome.core import CORE, coroutine_with_priority
+from esphome.core.entity_helpers import entity_duplicate_validator, setup_entity
 from esphome.cpp_generator import MockObjClass
-from esphome.cpp_helpers import setup_entity
 
 CODEOWNERS = ["@esphome/core"]
 IS_PLATFORM_COMPONENT = True
@@ -89,6 +89,9 @@ _SWITCH_SCHEMA = (
         }
     )
 )
+
+
+_SWITCH_SCHEMA.add_extra(entity_duplicate_validator("switch"))
 
 
 def switch_schema(

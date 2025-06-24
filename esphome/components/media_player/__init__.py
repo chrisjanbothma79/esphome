@@ -11,9 +11,9 @@ from esphome.const import (
     CONF_VOLUME,
 )
 from esphome.core import CORE
+from esphome.core.entity_helpers import entity_duplicate_validator, setup_entity
 from esphome.coroutine import coroutine_with_priority
 from esphome.cpp_generator import MockObjClass
-from esphome.cpp_helpers import setup_entity
 
 CODEOWNERS = ["@jesserockz"]
 
@@ -143,6 +143,8 @@ _MEDIA_PLAYER_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     }
 )
 
+_MEDIA_PLAYER_SCHEMA.add_extra(entity_duplicate_validator("media_player"))
+
 
 def media_player_schema(
     class_: MockObjClass,
@@ -165,7 +167,6 @@ def media_player_schema(
 # Remove before 2025.11.0
 MEDIA_PLAYER_SCHEMA = media_player_schema(MediaPlayer)
 MEDIA_PLAYER_SCHEMA.add_extra(cv.deprecated_schema_constant("media_player"))
-
 
 MEDIA_PLAYER_ACTION_SCHEMA = automation.maybe_simple_id(
     cv.Schema(

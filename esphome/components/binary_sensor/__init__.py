@@ -60,8 +60,8 @@ from esphome.const import (
     DEVICE_CLASS_WINDOW,
 )
 from esphome.core import CORE, coroutine_with_priority
+from esphome.core.entity_helpers import entity_duplicate_validator, setup_entity
 from esphome.cpp_generator import MockObjClass
-from esphome.cpp_helpers import setup_entity
 from esphome.util import Registry
 
 CODEOWNERS = ["@esphome/core"]
@@ -489,6 +489,9 @@ _BINARY_SENSOR_SCHEMA = (
         }
     )
 )
+
+
+_BINARY_SENSOR_SCHEMA.add_extra(entity_duplicate_validator("binary_sensor"))
 
 
 def binary_sensor_schema(

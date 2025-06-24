@@ -19,7 +19,7 @@ from esphome.const import (
     CONF_VSYNC_PIN,
 )
 from esphome.core import CORE
-from esphome.cpp_helpers import setup_entity
+from esphome.core.entity_helpers import setup_entity
 
 DEPENDENCIES = ["esp32"]
 

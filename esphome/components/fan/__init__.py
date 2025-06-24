@@ -32,7 +32,7 @@ from esphome.const import (
     CONF_WEB_SERVER,
 )
 from esphome.core import CORE, coroutine_with_priority
-from esphome.cpp_helpers import setup_entity
+from esphome.core.entity_helpers import entity_duplicate_validator, setup_entity
 
 IS_PLATFORM_COMPONENT = True
 
@@ -159,6 +159,9 @@ _FAN_SCHEMA = (
         }
     )
 )
+
+
+_FAN_SCHEMA.add_extra(entity_duplicate_validator("fan"))
 
 
 def fan_schema(

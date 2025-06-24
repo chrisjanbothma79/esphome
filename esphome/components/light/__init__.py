@@ -38,8 +38,8 @@ from esphome.const import (
     CONF_WHITE,
 )
 from esphome.core import CORE, coroutine_with_priority
+from esphome.core.entity_helpers import entity_duplicate_validator, setup_entity
 from esphome.cpp_generator import MockObjClass
-from esphome.cpp_helpers import setup_entity
 
 from .automation import LIGHT_STATE_SCHEMA
 from .effects import (
@@ -109,6 +109,8 @@ LIGHT_SCHEMA = (
         }
     )
 )
+
+LIGHT_SCHEMA.add_extra(entity_duplicate_validator("light"))
 
 BINARY_LIGHT_SCHEMA = LIGHT_SCHEMA.extend(
     {

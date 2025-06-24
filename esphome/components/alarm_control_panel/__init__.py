@@ -14,8 +14,8 @@ from esphome.const import (
     CONF_WEB_SERVER,
 )
 from esphome.core import CORE, coroutine_with_priority
+from esphome.core.entity_helpers import entity_duplicate_validator, setup_entity
 from esphome.cpp_generator import MockObjClass
-from esphome.cpp_helpers import setup_entity
 
 CODEOWNERS = ["@grahambrown11", "@hwstar"]
 IS_PLATFORM_COMPONENT = True
@@ -147,6 +147,9 @@ _ALARM_CONTROL_PANEL_SCHEMA = (
         }
     )
 )
+
+
+_ALARM_CONTROL_PANEL_SCHEMA.add_extra(entity_duplicate_validator("alarm_control_panel"))
 
 
 def alarm_control_panel_schema(
