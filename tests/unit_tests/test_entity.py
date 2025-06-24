@@ -13,6 +13,9 @@ from esphome.cpp_generator import MockObj
 from esphome.entity import get_base_entity_object_id, setup_entity
 from esphome.helpers import sanitize, snake_case
 
+# Pre-compiled regex pattern for extracting object IDs from expressions
+OBJECT_ID_PATTERN = re.compile(r'\.set_object_id\(["\'](.*?)["\']\)')
+
 
 @pytest.fixture(autouse=True)
 def restore_core_state() -> Generator[None, None, None]:
@@ -256,7 +259,7 @@ def extract_object_id_from_expressions(expressions: list[str]) -> str | None:
     for expr in expressions:
         # Look for set_object_id calls with regex to handle various formats
         # Matches: var.set_object_id("temperature_2") or var.set_object_id('temperature_2')
-        match = re.search(r'\.set_object_id\(["\'](.*?)["\']\)', expr)
+        match = OBJECT_ID_PATTERN.search(expr)
         if match:
             return match.group(1)
     return None
