@@ -72,11 +72,16 @@ CONFIG_SCHEMA = (
                         }
                     ),
                     # MQTT config becomes optional within EmonCMS
-                    cv.Optional(CONF_MQTT): cv.Schema(
-                        {
-                            cv.Optional(CONF_BASE_PREFIX, default="emon"): cv.string,
-                            cv.Optional(CONF_NODE): cv.string,
-                        }
+                    cv.Optional(CONF_MQTT): cv.Any(
+                        cv.Schema(
+                            {
+                                cv.Optional(
+                                    CONF_BASE_PREFIX, default="emon"
+                                ): cv.string,
+                                cv.Optional(CONF_NODE): cv.string,
+                            }
+                        ),
+                        cv.Schema({}),  # Allow completely empty dict
                     ),
                 }
             ),
