@@ -56,6 +56,20 @@ def validate_server_url(value):
         raise cv.Invalid("Please enter a valid server URL") from exc
 
 
+# For the MQTT schema, we need to handle None values
+def empty_mqtt_schema(value):
+    if value is None:
+        # Return empty dict if mqtt: has no values
+        return {}
+    # Otherwise validate as normal
+    return cv.Schema(
+        {
+            cv.Optional(CONF_BASE_PREFIX, default="emon"): cv.string,
+            cv.Optional(CONF_NODE, default=""): cv.string,
+        }
+    )(value)
+
+
 CONFIG_SCHEMA = (
     cv.Schema(
         {
@@ -72,14 +86,7 @@ CONFIG_SCHEMA = (
                         }
                     ),
                     # MQTT config becomes optional within EmonCMS
-                    cv.Optional(CONF_MQTT): cv.Schema(
-                        {
-                            cv.Optional(CONF_BASE_PREFIX, default="emon"): cv.string,
-                            cv.Optional(CONF_NODE, default=""): cv.string,
-                        },
-                        # Allow empty dict
-                        extra=cv.ALLOW_EXTRA,
-                    ),
+                    cv.Optional(CONF_MQTT): empty_mqtt_schema,
                 }
             ),
         }
@@ -123,6 +130,10 @@ def validate_emoncms(config):
         cg.add_define("USE_MQTT_FORWARD")
 
         mqtt_config = emoncms_config[CONF_MQTT]
+
+        # Ensure we have the default base_prefix
+        if CONF_BASE_PREFIX not in mqtt_config:
+            mqtt_config[CONF_BASE_PREFIX] = "emon"
 
         # Set default topic_prefix to device name if not provided or empty
         if CONF_NODE not in mqtt_config or not mqtt_config[CONF_NODE]:
