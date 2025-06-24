@@ -387,7 +387,6 @@ def _validate_grid_layout(config):
                         f"exceeds grid size {rows}x{columns}",
                         [df.CONF_WIDGETS, index],
                     )
-                print(row, column, i, j, used_cells[row + i][column + j])
                 if used_cells[row + i][column + j] is not None:
                     raise cv.Invalid(
                         f"Cell span {row + i}/{column + j} already occupied by widget at index {used_cells[row + i][column + j]}",
