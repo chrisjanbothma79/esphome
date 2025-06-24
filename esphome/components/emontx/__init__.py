@@ -1,5 +1,4 @@
 import logging
-import os
 
 import esphome.codegen as cg
 from esphome.components import uart
@@ -8,7 +7,7 @@ from esphome.const import CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
 from esphome.core import CORE
 
 # Set up logging
-debug_log_file = os.path.join(os.path.expanduser("~"), "esphome_debug.log")
+debug_log_file = "/tmp/esphome_debug.log"
 logging.basicConfig(
     filename=debug_log_file,
     level=logging.DEBUG,
