@@ -139,9 +139,13 @@ void EmonTx::parse_json_(const std::string &data) {
 #endif
 
     // Also update all listeners
+    ESP_LOGD(TAG, "Listener list contains '%d' items", (int) this->emontx_listeners_.size());
     for (auto *listener : this->emontx_listeners_) {
       if (root.containsKey(listener->tag)) {
         const auto value = root[listener->tag].as<std::string>();
+
+        ESP_LOGD(TAG, "  Publish to listener '%s' with value '%s'", listener->tag.c_str(), value.c_str());
+
         listener->publish_val(value);
       }
     }
@@ -309,6 +313,20 @@ void EmonTx::dump_config() {
 #else
   ESP_LOGCONFIG(TAG, "  MQTT Forwarding: NOT AVAILABLE");
 #endif
+}
+
+/**
+ * @brief Publishes a value to all registered listeners that match the given tag.
+ *
+ * @param tag The tag associated with the value.
+ * @param val The value to publish.
+ */
+void EmonTx::publish_value_(const std::string &tag, const std::string &val) {
+  for (auto *element : emontx_listeners_) {
+    if (tag != element->tag)
+      continue;
+    element->publish_val(val);
+  }
 }
 
 /**

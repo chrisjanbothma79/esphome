@@ -92,6 +92,7 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 #endif
   std::string buffer_;
   void parse_json_(const std::string &data);
+  void publish_value_(const std::string &tag, const std::string &val);
 
 #ifdef USE_HTTP_REQUEST
   // EmonCMS configuration - only declared when http_request is enabled
