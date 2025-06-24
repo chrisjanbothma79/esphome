@@ -129,7 +129,7 @@ def validate_mqtt_forward(config):
         )
         config[CONF_MQTT] = mqtt_schema(config[CONF_MQTT])
 
-        import esphome.core as CORE
+        from esphome.core import CORE
 
         # Add MQTT component as a dependency
         config = cv.requires_component("mqtt")(config)
