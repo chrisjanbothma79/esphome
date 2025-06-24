@@ -4,6 +4,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_ACCURACY_DECIMALS,
     CONF_DEVICE_CLASS,
+    CONF_DISCOVERY,
     CONF_ID,
     CONF_STATE_CLASS,
     CONF_UNIT_OF_MEASUREMENT,
@@ -89,6 +90,8 @@ BASE_SCHEMA = sensor.sensor_schema(
     {
         cv.GenerateID(CONF_EMONTX_ID): cv.use_id(EmonTx),
         cv.Required(CONF_TAG_NAME): cv.string,
+        # Add the discovery setting conditionally - will only be validated if used
+        cv.Optional(CONF_DISCOVERY, default=False): cv.boolean,
     }
 )
 
@@ -142,3 +145,7 @@ async def to_code(config):
     emontx = await cg.get_variable(config[CONF_EMONTX_ID])
     cg.add(emontx.register_emontx_listener(var))
     cg.add(emontx.register_sensor(config[CONF_TAG_NAME], var))
+
+    # Pass the discovery setting if present
+    if CONF_DISCOVERY in config:
+        cg.add(var.set_discovery(config[CONF_DISCOVERY]))
