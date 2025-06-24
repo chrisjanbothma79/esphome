@@ -145,7 +145,3 @@ async def to_code(config):
     emontx = await cg.get_variable(config[CONF_EMONTX_ID])
     cg.add(emontx.register_emontx_listener(var))
     cg.add(emontx.register_sensor(config[CONF_TAG_NAME], var))
-
-    # Pass the discovery setting if present
-    if CONF_DISCOVERY in config:
-        cg.add(var.set_discovery(config[CONF_DISCOVERY]))
