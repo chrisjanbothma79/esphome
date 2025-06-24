@@ -76,7 +76,9 @@ CONFIG_SCHEMA = (
                         {
                             cv.Optional(CONF_BASE_PREFIX, default="emon"): cv.string,
                             cv.Optional(CONF_NODE, default=""): cv.string,
-                        }
+                        },
+                        # Allow empty dict
+                        extra=cv.ALLOW_EXTRA,
                     ),
                 }
             ),
@@ -120,14 +122,16 @@ def validate_emoncms(config):
     if CONF_MQTT in emoncms_config:
         cg.add_define("USE_MQTT_FORWARD")
 
-        # Set default topic_prefix to device name if not provided
-        if CONF_NODE not in emoncms_config[CONF_MQTT]:
+        mqtt_config = emoncms_config[CONF_MQTT]
+
+        # Set default topic_prefix to device name if not provided or empty
+        if CONF_NODE not in mqtt_config or not mqtt_config[CONF_NODE]:
             from esphome.core import CORE
 
-            emoncms_config[CONF_MQTT][CONF_NODE] = CORE.name
+            mqtt_config[CONF_NODE] = CORE.name
 
-        # Add MQTT component as a dependency
-        config = cv.requires_component("mqtt")(config)
+            # Add MQTT component as a dependency
+            config = cv.requires_component("mqtt")(config)
 
     return config
 
