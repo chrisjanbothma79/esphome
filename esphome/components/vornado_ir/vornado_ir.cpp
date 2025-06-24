@@ -8,10 +8,6 @@ namespace vornado_ir {
 
 static const char *const TAG = "vornado_ir";
 
-void VornadoIR::setup() { ESP_LOGCONFIG(TAG, "Setting up VornadoIR ..."); }
-
-void VornadoIR::loop() {}
-
 void VornadoIR::dump_config() { ESP_LOGCONFIG(TAG, "Vornado IR"); }
 
 void VornadoIR::send_power_toggle() {

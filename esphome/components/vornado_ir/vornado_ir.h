@@ -13,8 +13,6 @@ using remote_base::RawTimings;
 
 class VornadoIR : public Component, public remote_base::RemoteTransmittable {
  public:
-  void setup() override;
-  void loop() override;
   void dump_config() override;
   // general functions
   void transmit_(const RawTimings &ir_code);
