@@ -161,6 +161,85 @@ async def test_duplicate_entities(
             "Second power switch should be power_switch_2"
         )
 
+        # Scenario 6: Check empty names on main device (Issue #6953)
+        empty_binary = [b for b in binary_sensors if b.name == ""]
+        empty_binary_ids = sorted([b.object_id for b in empty_binary])
+
+        # Should use device name "duplicate-entities-test" (sanitized, not snake_case)
+        assert len(empty_binary_ids) >= 4, (
+            f"Expected at least 4 empty name binary sensors, got {len(empty_binary_ids)}"
+        )
+        assert "duplicate-entities-test" in empty_binary_ids, (
+            "First empty binary sensor should use device name"
+        )
+        assert "duplicate-entities-test_2" in empty_binary_ids, (
+            "Second empty binary sensor should be duplicate-entities-test_2"
+        )
+        assert "duplicate-entities-test_3" in empty_binary_ids, (
+            "Third empty binary sensor should be duplicate-entities-test_3"
+        )
+        assert "duplicate-entities-test_4" in empty_binary_ids, (
+            "Fourth empty binary sensor should be duplicate-entities-test_4"
+        )
+
+        # Scenario 7: Check empty names on sub-devices (Issue #6953)
+        empty_switches = [s for s in switches if s.name == ""]
+
+        # Group by device
+        c1_empty_switches = [
+            s
+            for s in empty_switches
+            if getattr(s, "device_id", None) == controller_1.device_id
+        ]
+        c2_empty_switches = [
+            s
+            for s in empty_switches
+            if getattr(s, "device_id", None) == controller_2.device_id
+        ]
+        main_empty_switches = [
+            s
+            for s in empty_switches
+            if getattr(s, "device_id", None)
+            not in [controller_1.device_id, controller_2.device_id]
+        ]
+
+        # Controller 1 empty switches should use "controller_1"
+        c1_empty_ids = sorted([s.object_id for s in c1_empty_switches])
+        assert len(c1_empty_ids) >= 3, (
+            f"Expected at least 3 empty switches on controller_1, got {len(c1_empty_ids)}"
+        )
+        assert "controller_1" in c1_empty_ids, "First should be controller_1"
+        assert "controller_1_2" in c1_empty_ids, "Second should be controller_1_2"
+        assert "controller_1_3" in c1_empty_ids, "Third should be controller_1_3"
+
+        # Controller 2 empty switches
+        c2_empty_ids = sorted([s.object_id for s in c2_empty_switches])
+        assert len(c2_empty_ids) >= 2, (
+            f"Expected at least 2 empty switches on controller_2, got {len(c2_empty_ids)}"
+        )
+        assert "controller_2" in c2_empty_ids, "First should be controller_2"
+        assert "controller_2_2" in c2_empty_ids, "Second should be controller_2_2"
+
+        # Main device empty switches
+        main_empty_ids = sorted([s.object_id for s in main_empty_switches])
+        assert len(main_empty_ids) >= 3, (
+            f"Expected at least 3 empty switches on main device, got {len(main_empty_ids)}"
+        )
+        assert "duplicate-entities-test" in main_empty_ids
+        assert "duplicate-entities-test_2" in main_empty_ids
+        assert "duplicate-entities-test_3" in main_empty_ids
+
+        # Scenario 8: Check "xyz" duplicates (Issue #6953)
+        xyz_switches = [s for s in switches if s.name == "xyz"]
+        xyz_ids = sorted([s.object_id for s in xyz_switches])
+
+        assert len(xyz_ids) >= 3, (
+            f"Expected at least 3 xyz switches, got {len(xyz_ids)}"
+        )
+        assert "xyz" in xyz_ids, "First xyz switch should be xyz"
+        assert "xyz_2" in xyz_ids, "Second xyz switch should be xyz_2"
+        assert "xyz_3" in xyz_ids, "Third xyz switch should be xyz_3"
+
         # Verify we can get states for all entities (ensures they're functional)
         loop = asyncio.get_running_loop()
         states_future: asyncio.Future[bool] = loop.create_future()

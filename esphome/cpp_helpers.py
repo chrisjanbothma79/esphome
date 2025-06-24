@@ -1,12 +1,6 @@
 import logging
 
 from esphome.const import (
-    CONF_DEVICE_ID,
-    CONF_DISABLED_BY_DEFAULT,
-    CONF_ENTITY_CATEGORY,
-    CONF_ICON,
-    CONF_INTERNAL,
-    CONF_NAME,
     CONF_SAFE_MODE,
     CONF_SETUP_PRIORITY,
     CONF_TYPE_ID,
@@ -15,9 +9,11 @@ from esphome.const import (
 )
 from esphome.core import CORE, ID, coroutine
 from esphome.coroutine import FakeAwaitable
-from esphome.cpp_generator import MockObj, add, get_variable
+from esphome.cpp_generator import add, get_variable
 from esphome.cpp_types import App
-from esphome.entity import get_base_entity_object_id
+from esphome.entity import (  # noqa: F401  # pylint: disable=unused-import
+    setup_entity,  # Import for backward compatibility
+)
 from esphome.types import ConfigFragmentType, ConfigType
 from esphome.util import Registry, RegistryEntry
 
@@ -95,75 +91,6 @@ async def register_parented(var, value):
     else:
         paren = value
     add(var.set_parent(paren))
-
-
-async def setup_entity(var: MockObj, config: ConfigType, platform: str) -> None:
-    """Set up generic properties of an Entity.
-
-    This function handles duplicate entity names by automatically appending
-    a suffix (_2, _3, etc.) when multiple entities have the same object_id
-    within the same platform and device combination.
-
-    Args:
-        var: The entity variable to set up
-        config: Configuration dictionary containing entity settings
-        platform: The platform name (e.g., "sensor", "binary_sensor")
-    """
-    # Get device info
-    device_id: int = 0
-    if CONF_DEVICE_ID in config:
-        device_id_obj: ID = config[CONF_DEVICE_ID]
-        device: MockObj = await get_variable(device_id_obj)
-        add(var.set_device(device))
-        # Use the device's ID hash as device_id
-        from esphome.helpers import fnv1a_32bit_hash
-
-        device_id = fnv1a_32bit_hash(device_id_obj.id)
-
-    add(var.set_name(config[CONF_NAME]))
-
-    # Calculate base object_id using the same logic as C++
-    # This must match the C++ behavior in esphome/core/entity_base.cpp
-    base_object_id = get_base_entity_object_id(config[CONF_NAME], CORE.friendly_name)
-
-    if not config[CONF_NAME]:
-        _LOGGER.debug(
-            "Entity has empty name, using '%s' as object_id base", base_object_id
-        )
-
-    # Handle duplicates
-    # Check for duplicates
-    unique_key: tuple[int, str, str] = (device_id, platform, base_object_id)
-    if unique_key in CORE.unique_ids:
-        # Found duplicate, add suffix
-        count = CORE.unique_ids[unique_key] + 1
-        CORE.unique_ids[unique_key] = count
-        object_id = f"{base_object_id}_{count}"
-        _LOGGER.info(
-            "Duplicate %s entity '%s' found. Renaming to '%s'",
-            platform,
-            config[CONF_NAME],
-            object_id,
-        )
-    else:
-        # First occurrence
-        CORE.unique_ids[unique_key] = 1
-        object_id = base_object_id
-
-    add(var.set_object_id(object_id))
-    _LOGGER.debug(
-        "Setting object_id '%s' for entity '%s' on platform '%s'",
-        object_id,
-        config[CONF_NAME],
-        platform,
-    )
-    add(var.set_disabled_by_default(config[CONF_DISABLED_BY_DEFAULT]))
-    if CONF_INTERNAL in config:
-        add(var.set_internal(config[CONF_INTERNAL]))
-    if CONF_ICON in config:
-        add(var.set_icon(config[CONF_ICON]))
-    if CONF_ENTITY_CATEGORY in config:
-        add(var.set_entity_category(config[CONF_ENTITY_CATEGORY]))
 
 
 def extract_registry_entry_config(
