@@ -355,8 +355,9 @@ def _validate_grid_layout(config):
     columns = len(layout[df.CONF_GRID_COLUMNS])
     used_cells = [[None] * columns for _ in range(rows)]
     for index, widget in enumerate(config[df.CONF_WIDGETS]):
-        w_type, w = next(iter(widget.items()))
+        _, w = next(iter(widget.items()))
         if (df.CONF_GRID_CELL_COLUMN_POS in w) != (df.CONF_GRID_CELL_ROW_POS in w):
+            # pylint: disable=raise-missing-from
             raise cv.Invalid(
                 "Both row and column positions must be specified, or both omitted",
                 [df.CONF_WIDGETS, index],
@@ -373,6 +374,7 @@ def _validate_grid_layout(config):
                     if value is None
                 )
             except StopIteration:
+                # pylint: disable=raise-missing-from
                 raise cv.Invalid(
                     "No free cells available in grid layout", [df.CONF_WIDGETS, index]
                 )
@@ -382,12 +384,14 @@ def _validate_grid_layout(config):
         for i in range(w[df.CONF_GRID_CELL_ROW_SPAN]):
             for j in range(w[df.CONF_GRID_CELL_COLUMN_SPAN]):
                 if row + i >= rows or column + j >= columns:
+                    # pylint: disable=raise-missing-from
                     raise cv.Invalid(
                         f"Cell at {row}/{column} span {w[df.CONF_GRID_CELL_ROW_SPAN]}x{w[df.CONF_GRID_CELL_COLUMN_SPAN]} "
                         f"exceeds grid size {rows}x{columns}",
                         [df.CONF_WIDGETS, index],
                     )
                 if used_cells[row + i][column + j] is not None:
+                    # pylint: disable=raise-missing-from
                     raise cv.Invalid(
                         f"Cell span {row + i}/{column + j} already occupied by widget at index {used_cells[row + i][column + j]}",
                         [df.CONF_WIDGETS, index],
