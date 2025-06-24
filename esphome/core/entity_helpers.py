@@ -1,6 +1,7 @@
 from collections.abc import Callable
 import logging
 
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_DEVICE_ID,
     CONF_DISABLED_BY_DEFAULT,
@@ -206,9 +207,6 @@ def entity_duplicate_validator(platform: str) -> Callable[[ConfigType], ConfigTy
         # Check for duplicates
         unique_key = (device_id, platform, base_object_id)
         if unique_key in CORE.unique_ids:
-            # Import here to avoid circular dependency
-            import esphome.config_validation as cv
-
             entity_name_display = entity_name or base_object_id
             device_prefix = f" on device '{device_name}'" if device_name else ""
             raise cv.Invalid(
