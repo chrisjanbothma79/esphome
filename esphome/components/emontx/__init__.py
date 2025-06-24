@@ -129,13 +129,14 @@ def validate_mqtt_forward(config):
         )
         config[CONF_MQTT] = mqtt_schema(config[CONF_MQTT])
 
+        import esphome.core as CORE
+
         # Add MQTT component as a dependency
         config = cv.requires_component("mqtt")(config)
 
-        DEBUG_PRINT("MQTT forward validation complete")
+        DEBUG_PRINT(f"CORE.raw_config: {CORE.raw_config}")
 
-        # DEBUG_PRINT(f"CORE.raw_config[mqtt]: {CORE.raw_config[CONF_MQTT]}")
-        # DEBUG_PRINT(f"CORE.raw_config: {CORE.raw_config}")
+        DEBUG_PRINT(f"CORE.raw_config[mqtt]: {CORE.raw_config[CONF_MQTT]}")
         # DEBUG_PRINT(
         #     f"CORE.raw_config keys: {CORE.raw_config.keys() if hasattr(CORE.raw_config, 'keys') else 'No keys method'}"
         # )
