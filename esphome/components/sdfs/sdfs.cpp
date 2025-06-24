@@ -24,12 +24,12 @@
  * Other boards with arduino framework
  * -----------------------------------
  * SdfsHost (sdfs.cpp) -> SdfsArduinoDriver (sdspi_drv_ard.cpp) --> sdspi_io    - for SPI connections
- *                                                               +-> SdmmcIO (sdmmc_io.cpp)  - for MMC connections
+ *                                                              +-> SdmmcIO (sdmmc_io.cpp)  - for MMC connections
  *
  * Other boards with IDF framework
  * -----------------------------------
- * SdfsHost (sdfs.cpp) -> SdfsIdfDriver (sdspi_drv_idf.cpp) --> - for MMC connections
- *                                                 +-> sdspi_io  - for SPI connections
+ * SdfsHost (sdfs.cpp) -> SdfsIdfDriver (sdspi_drv_idf.cpp) --> sdspi_io  - for SPI connections
+ *                                                          +-> SdmmcIO (sdmmc_io.cpp)  - for MMC connections
  *
  */
 
