@@ -1,5 +1,3 @@
-from typing import Optional
-
 import esphome.codegen as cg
 from esphome.components import mqtt, text, web_server
 import esphome.config_validation as cv
@@ -69,9 +67,9 @@ async def setup_text_core_(
     var,
     config,
     *,
-    min_length: Optional[int],
-    max_length: Optional[int],
-    pattern: Optional[str],
+    min_length: int | None,
+    max_length: int | None,
+    pattern: str | None,
 ):
     await setup_entity(var, config)
     cg.add(var.traits.set_min_length(min_length))
@@ -90,9 +88,9 @@ async def setup_text_core_(
 async def register_text(
     var,
     config,
-    min_length: Optional[int] = 0,
-    max_length: Optional[int] = 255,
-    pattern: Optional[str] = None,
+    min_length: int | None = 0,
+    max_length: int | None = 255,
+    pattern: str | None = None,
 ):
     if not CORE.has_id(config[CONF_ID]):
         var = cg.Pvariable(config[CONF_ID], var)
