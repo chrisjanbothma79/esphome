@@ -1,24 +1,21 @@
-import logging
-
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
 from esphome.core import CORE
 
-# Set up logging
-debug_log_file = "/tmp/esphome_debug.log"
-logging.basicConfig(
-    filename=debug_log_file,
-    level=logging.DEBUG,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
+
+# Debug helpers that WILL appear in console
+def DEBUG_PRINT(message):
+    """Print a message that's impossible to miss in console"""
+    border = "!" * 80
+    print(f"\n{border}")
+    print(f"!!! DEBUG: {message}")
+    print(f"{border}\n")
 
 
-def debug_log(message):
-    """Log message both to console and file"""
-    print(f"DEBUG: {message}")
-    logging.debug(message)
+# Track execution flow
+DEBUG_PRINT("EMONTX MODULE LOADED")
 
 
 AUTO_LOAD = ["json"]
@@ -119,10 +116,10 @@ def validate_emoncms(config):
 # Validate MQTT forward config and modify MQTT component config
 def validate_mqtt_forward(config):
     # Skip if no MQTT forwarding configuration
-    debug_log(f"Starting MQTT forward validation with config: {config}")
+    DEBUG_PRINT(f"Starting MQTT forward validation with config: {config}")
 
     if CONF_MQTT in config:
-        debug_log(f"MQTT config found: {config[CONF_MQTT]}")
+        DEBUG_PRINT(f"MQTT config found: {config[CONF_MQTT]}")
         cg.add_define("USE_MQTT_FORWARD")
 
         # Validate MQTT forwarding configuration
