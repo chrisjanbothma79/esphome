@@ -12,7 +12,7 @@ from esphome.const import (
 )
 from esphome.core import CORE, ID
 from esphome.cpp_generator import MockObj, add, get_variable
-from esphome.helpers import sanitize, snake_case
+from esphome.helpers import fnv1a_32bit_hash, sanitize, snake_case
 from esphome.types import ConfigType
 
 _LOGGER = logging.getLogger(__name__)
@@ -81,7 +81,6 @@ async def setup_entity(var: MockObj, config: ConfigType, platform: str) -> None:
         device: MockObj = await get_variable(device_id_obj)
         add(var.set_device(device))
         # Use the device's ID hash as device_id
-        from esphome.helpers import fnv1a_32bit_hash
 
         device_id = fnv1a_32bit_hash(device_id_obj.id)
         # Get device name for object ID calculation

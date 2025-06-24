@@ -1,6 +1,7 @@
 """Test get_base_entity_object_id function matches C++ behavior."""
 
 from collections.abc import Generator
+import re
 from typing import Any
 
 import pytest
@@ -107,9 +108,9 @@ def test_edge_cases() -> None:
     assert get_base_entity_object_id(long_name, None) == expected
 
 
-def test_matches_cpp_helpers() -> None:
-    """Test that the logic matches using snake_case and sanitize directly."""
-    test_cases = [
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
         ("Temperature Sensor", "temperature_sensor"),
         ("Living Room Light", "living_room_light"),
         ("Test-Device_123", "test-device_123"),
@@ -118,13 +119,17 @@ def test_matches_cpp_helpers() -> None:
         ("lowercase name", "lowercase_name"),
         ("Mixed Case Name", "mixed_case_name"),
         ("   Spaces   ", "___spaces___"),
-    ]
+    ],
+)
+def test_matches_cpp_helpers(name: str, expected: str) -> None:
+    """Test that the logic matches using snake_case and sanitize directly."""
+    # For non-empty names, verify our function produces same result as direct snake_case + sanitize
+    assert get_base_entity_object_id(name, None) == sanitize(snake_case(name))
+    assert get_base_entity_object_id(name, None) == expected
 
-    for name, expected in test_cases:
-        # For non-empty names, verify our function produces same result as direct snake_case + sanitize
-        assert get_base_entity_object_id(name, None) == sanitize(snake_case(name))
-        assert get_base_entity_object_id(name, None) == expected
 
+def test_empty_name_fallback() -> None:
+    """Test empty name handling which falls back to friendly_name or CORE.name."""
     # Empty name is handled specially - it doesn't just use sanitize(snake_case(""))
     # Instead it falls back to friendly_name or CORE.name
     assert sanitize(snake_case("")) == ""  # Direct conversion gives empty string
@@ -169,10 +174,9 @@ def test_priority_order() -> None:
     assert get_base_entity_object_id("", None, None) == "core-device"
 
 
-def test_real_world_examples() -> None:
-    """Test real-world entity naming scenarios."""
-    # Common ESPHome entity names
-    test_cases = [
+@pytest.mark.parametrize(
+    ("name", "friendly_name", "device_name", "expected"),
+    [
         # name, friendly_name, device_name, expected
         ("Living Room Light", None, None, "living_room_light"),
         ("", "Kitchen Controller", None, "kitchen_controller"),
@@ -186,13 +190,14 @@ def test_real_world_examples() -> None:
         ("WiFi Signal", "My Device", None, "wifi_signal"),
         ("", None, "esp32_node", "esp32_node"),
         ("Front Door Sensor", "Home Assistant", "door_controller", "front_door_sensor"),
-    ]
-
-    for name, friendly_name, device_name, expected in test_cases:
-        result = get_base_entity_object_id(name, friendly_name, device_name)
-        assert result == expected, (
-            f"Failed for {name=}, {friendly_name=}, {device_name=}: {result=}, {expected=}"
-        )
+    ],
+)
+def test_real_world_examples(
+    name: str, friendly_name: str | None, device_name: str | None, expected: str
+) -> None:
+    """Test real-world entity naming scenarios."""
+    result = get_base_entity_object_id(name, friendly_name, device_name)
+    assert result == expected
 
 
 def test_issue_6953_scenarios() -> None:
@@ -226,15 +231,14 @@ def test_issue_6953_scenarios() -> None:
 @pytest.fixture
 def setup_test_environment() -> Generator[list[str], None, None]:
     """Set up test environment for setup_entity tests."""
-    # Reset CORE state
-    CORE.reset()
+    # Set CORE state for tests
     CORE.name = "test-device"
     CORE.friendly_name = "Test Device"
     # Store original add function
 
     original_add = entity.add
     # Track what gets added
-    added_expressions = []
+    added_expressions: list[str] = []
 
     def mock_add(expression: Any) -> Any:
         added_expressions.append(str(expression))
@@ -245,19 +249,16 @@ def setup_test_environment() -> Generator[list[str], None, None]:
     yield added_expressions
     # Clean up
     entity.add = original_add
-    CORE.reset()
 
 
 def extract_object_id_from_expressions(expressions: list[str]) -> str | None:
     """Extract the object ID that was set from the generated expressions."""
     for expr in expressions:
-        # Look for set_object_id calls
-        if ".set_object_id(" in expr:
-            # Extract the ID from something like: var.set_object_id("temperature_2")
-            start = expr.find('"') + 1
-            end = expr.rfind('"')
-            if start > 0 and end > start:
-                return expr[start:end]
+        # Look for set_object_id calls with regex to handle various formats
+        # Matches: var.set_object_id("temperature_2") or var.set_object_id('temperature_2')
+        match = re.search(r'\.set_object_id\(["\'](.*?)["\']\)', expr)
+        if match:
+            return match.group(1)
     return None
 
 
@@ -312,7 +313,7 @@ async def test_setup_entity_with_duplicates(setup_test_environment: list[str]) -
         CONF_DISABLED_BY_DEFAULT: False,
     }
 
-    object_ids = []
+    object_ids: list[str] = []
     for var in entities:
         added_expressions.clear()
         await setup_entity(var, config, "sensor")
@@ -351,7 +352,7 @@ async def test_setup_entity_different_platforms(
         (text_sensor, "text_sensor"),
     ]
 
-    object_ids = []
+    object_ids: list[str] = []
     for var, platform in platforms:
         added_expressions.clear()
         await setup_entity(var, config, platform)
@@ -362,62 +363,67 @@ async def test_setup_entity_different_platforms(
     assert all(obj_id == "status" for obj_id in object_ids)
 
 
-@pytest.mark.asyncio
-async def test_setup_entity_with_devices(setup_test_environment: list[str]) -> None:
-    """Test that same name on different devices doesn't conflict."""
+@pytest.fixture
+def mock_get_variable() -> Generator[dict[ID, MockObj], None, None]:
+    """Mock get_variable to return test devices."""
+    devices = {}
+    original_get_variable = entity.get_variable
 
+    async def _mock_get_variable(device_id: ID) -> MockObj:
+        if device_id in devices:
+            return devices[device_id]
+        return await original_get_variable(device_id)
+
+    entity.get_variable = _mock_get_variable
+    yield devices
+    # Clean up
+    entity.get_variable = original_get_variable
+
+
+@pytest.mark.asyncio
+async def test_setup_entity_with_devices(
+    setup_test_environment: list[str], mock_get_variable: dict[ID, MockObj]
+) -> None:
+    """Test that same name on different devices doesn't conflict."""
     added_expressions = setup_test_environment
 
     # Create mock devices
     device1_id = ID("device1", type="Device")
     device2_id = ID("device2", type="Device")
-
     device1 = MockObj("device1_obj")
     device2 = MockObj("device2_obj")
 
-    # Mock get_variable to return our devices
-    original_get_variable = entity.get_variable
+    # Register devices with the mock
+    mock_get_variable[device1_id] = device1
+    mock_get_variable[device2_id] = device2
 
-    async def mock_get_variable(device_id: ID) -> MockObj:
-        if device_id == device1_id:
-            return device1
-        elif device_id == device2_id:
-            return device2
-        return await original_get_variable(device_id)
+    # Create sensors with same name on different devices
+    sensor1 = MockObj("sensor1")
+    sensor2 = MockObj("sensor2")
 
-    entity.get_variable = mock_get_variable
+    config1 = {
+        CONF_NAME: "Temperature",
+        CONF_DEVICE_ID: device1_id,
+        CONF_DISABLED_BY_DEFAULT: False,
+    }
 
-    try:
-        # Create sensors with same name on different devices
-        sensor1 = MockObj("sensor1")
-        sensor2 = MockObj("sensor2")
+    config2 = {
+        CONF_NAME: "Temperature",
+        CONF_DEVICE_ID: device2_id,
+        CONF_DISABLED_BY_DEFAULT: False,
+    }
 
-        config1 = {
-            CONF_NAME: "Temperature",
-            CONF_DEVICE_ID: device1_id,
-            CONF_DISABLED_BY_DEFAULT: False,
-        }
+    # Get object IDs
+    object_ids: list[str] = []
+    for var, config in [(sensor1, config1), (sensor2, config2)]:
+        added_expressions.clear()
+        await setup_entity(var, config, "sensor")
+        object_id = extract_object_id_from_expressions(added_expressions)
+        object_ids.append(object_id)
 
-        config2 = {
-            CONF_NAME: "Temperature",
-            CONF_DEVICE_ID: device2_id,
-            CONF_DISABLED_BY_DEFAULT: False,
-        }
-
-        # Get object IDs
-        object_ids = []
-        for var, config in [(sensor1, config1), (sensor2, config2)]:
-            added_expressions.clear()
-            await setup_entity(var, config, "sensor")
-            object_id = extract_object_id_from_expressions(added_expressions)
-            object_ids.append(object_id)
-
-        # Both should get base object ID without suffix (different devices)
-        assert object_ids[0] == "temperature"
-        assert object_ids[1] == "temperature"
-
-    finally:
-        entity.get_variable = original_get_variable
+    # Both should get base object ID without suffix (different devices)
+    assert object_ids[0] == "temperature"
+    assert object_ids[1] == "temperature"
 
 
 @pytest.mark.asyncio
@@ -455,7 +461,7 @@ async def test_setup_entity_empty_name_duplicates(
         CONF_DISABLED_BY_DEFAULT: False,
     }
 
-    object_ids = []
+    object_ids: list[str] = []
     for var in entities:
         added_expressions.clear()
         await setup_entity(var, config, "sensor")
@@ -483,7 +489,7 @@ async def test_setup_entity_special_characters(
         CONF_DISABLED_BY_DEFAULT: False,
     }
 
-    object_ids = []
+    object_ids: list[str] = []
     for var in entities:
         added_expressions.clear()
         await setup_entity(var, config, "sensor")
@@ -513,10 +519,9 @@ async def test_setup_entity_with_icon(setup_test_environment: list[str]) -> None
     await setup_entity(var, config, "sensor")
 
     # Check icon was set
-    icon_set = any(
-        ".set_icon(" in expr and "mdi:thermometer" in expr for expr in added_expressions
+    assert any(
+        'sensor1.set_icon("mdi:thermometer")' in expr for expr in added_expressions
     )
-    assert icon_set
 
 
 @pytest.mark.asyncio
@@ -537,10 +542,9 @@ async def test_setup_entity_disabled_by_default(
     await setup_entity(var, config, "sensor")
 
     # Check disabled_by_default was set
-    disabled_set = any(
-        ".set_disabled_by_default(true)" in expr.lower() for expr in added_expressions
+    assert any(
+        "sensor1.set_disabled_by_default(true)" in expr for expr in added_expressions
     )
-    assert disabled_set
 
 
 @pytest.mark.asyncio
@@ -550,7 +554,7 @@ async def test_setup_entity_mixed_duplicates(setup_test_environment: list[str]) 
     added_expressions = setup_test_environment
 
     # Track results
-    results = []
+    results: list[tuple[str, str]] = []
 
     # 3 sensors named "Status"
     for i in range(3):
