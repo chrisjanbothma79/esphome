@@ -30,7 +30,7 @@ class Filter {
 
 class TimeoutFilter : public Filter, public Component {
  public:
-  optional<bool> new_value(bool value) override { return value == true; }
+  optional<bool> new_value(bool value) override { return value; }
   void input(bool value) override;
   template<typename T> void set_timeout_value(T timeout) { this->timeout_delay_ = timeout; }
 
