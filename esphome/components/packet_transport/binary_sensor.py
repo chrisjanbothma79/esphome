@@ -60,7 +60,6 @@ def _final_validate(config):
     raise cv.Invalid(
         "Status sensor requires ping-pong to be enabled and the nominated provider to use encryption."
     )
-    return config
 
 
 FINAL_VALIDATE_SCHEMA = _final_validate
