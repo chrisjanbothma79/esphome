@@ -78,7 +78,7 @@ CONFIG_SCHEMA = (
                                 cv.Optional(
                                     CONF_BASE_PREFIX, default="emon"
                                 ): cv.string,
-                                cv.Optional(CONF_NODE): cv.string,
+                                cv.Optional(CONF_NODE, default=""): cv.string,
                             }
                         )
                     ),
