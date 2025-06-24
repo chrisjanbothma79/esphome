@@ -61,8 +61,8 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 
 #ifdef USE_HTTP_REQUEST
   // EmonCMS configuration - only available when http_request is enabled
-  void set_emoncms_config(const std::string &server, const std::string &node, const std::string &apikey,
-                          http_request::HttpRequestComponent *http_client) {
+  void set_http_forward(const std::string &server, const std::string &node, const std::string &apikey,
+                        http_request::HttpRequestComponent *http_client) {
     emoncms_server_ = server;
     emoncms_node_ = node;
     emoncms_apikey_ = apikey;
@@ -73,7 +73,8 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 
 #ifdef USE_MQTT_FORWARD
   // MQTT forwarding configuration
-  void set_mqtt_forward(const std::string &topic_prefix) {
+  void set_mqtt_forward(const std::string &base_prefix, const std::string &topic_prefix) {
+    mqtt_base_prefix_ = base_prefix;
     mqtt_topic_prefix_ = topic_prefix;
     has_mqtt_config_ = true;
   }
@@ -104,6 +105,7 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 #ifdef USE_MQTT_FORWARD
   // MQTT forwarding config
   bool has_mqtt_config_{false};
+  std::string mqtt_base_prefix_;  // Default base prefix
   std::string mqtt_topic_prefix_;
   void send_to_mqtt_(const std::string &json_data);
 #endif

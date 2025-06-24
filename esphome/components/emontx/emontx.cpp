@@ -224,8 +224,12 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
     return;
   }
 
-  // Use the topic prefix + /data for the raw JSON data
-  std::string topic = mqtt_topic_prefix_;
+  // Build topic using base_prefix/topic_prefix/data
+  std::string topic = mqtt_base_prefix_;
+  if (topic.back() != '/') {
+    topic += '/';
+  }
+  topic += mqtt_topic_prefix_;
   if (topic.back() != '/') {
     topic += '/';
   }

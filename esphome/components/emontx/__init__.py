@@ -1,7 +1,7 @@
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_DISCOVERY, CONF_ID, CONF_MQTT, CONF_TOPIC_PREFIX
+from esphome.const import CONF_ID, CONF_MQTT
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67", "@TrystanLea", "@glynhudson"]
@@ -15,9 +15,11 @@ CONF_TAG_NAME = "tag_name"
 
 # EmonCMS config
 CONF_EMONCMS = "emoncms"
+CONF_HTTP = "http"
 CONF_SERVER = "server"
 CONF_NODE = "node"
 CONF_APIKEY = "apikey"
+CONF_BASE_PREFIX = "base_prefix"
 
 EMONTX_LISTENER_SCHEMA = cv.Schema(
     {
@@ -55,15 +57,32 @@ def validate_server_url(value):
         raise cv.Invalid("Please enter a valid server URL") from exc
 
 
-# Base schema without EmonCMS or MQTT
 CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(EmonTx),
-            # Make MQTT forwarding optional
-            cv.Optional(CONF_MQTT): cv.Any(dict),
-            # Make EmonCMS optional
-            cv.Optional(CONF_EMONCMS): cv.Any(dict),
+            # Make EmonCMS optional with nested HTTP and MQTT
+            cv.Optional(CONF_EMONCMS): cv.Schema(
+                {
+                    # HTTP config becomes optional within EmonCMS
+                    cv.Optional(CONF_HTTP): cv.Schema(
+                        {
+                            cv.Required(CONF_SERVER): validate_server_url,
+                            cv.Required(CONF_NODE): not_empty("Node name"),
+                            cv.Required(CONF_APIKEY): not_empty("API key"),
+                        }
+                    ),
+                    # MQTT config becomes optional within EmonCMS
+                    cv.Optional(CONF_MQTT): cv.Schema(
+                        {
+                            cv.Optional(CONF_BASE_PREFIX, default="emon"): cv.string,
+                            cv.Optional(
+                                CONF_NODE
+                            ): cv.string,  # Defaults to device name if not specified
+                        }
+                    ),
+                }
+            ),
         }
     )
     .extend(cv.polling_component_schema("10s"))
@@ -71,10 +90,15 @@ CONFIG_SCHEMA = (
 )
 
 
-# Conditionally add EmonCMS schema
+# Validate the EmonCMS configuration with both HTTP and MQTT
 def validate_emoncms(config):
-    # Skip if no EmonCMS configuration
-    if CONF_EMONCMS in config:
+    if CONF_EMONCMS not in config:
+        return config
+
+    emoncms_config = config[CONF_EMONCMS]
+
+    # Validate HTTP part if present
+    if CONF_HTTP in emoncms_config:
         from esphome.components import http_request
         from esphome.components.http_request import CONF_HTTP_REQUEST_ID
 
@@ -83,8 +107,8 @@ def validate_emoncms(config):
         # Make sure http_request component is defined in YAML
         config = cv.requires_component("http_request")(config)
 
-        # Validate EmonCMS configuration
-        emoncms_schema = cv.Schema(
+        # Add HTTP request ID to the HTTP config
+        emoncms_config[CONF_HTTP] = cv.Schema(
             {
                 cv.Required(CONF_SERVER): validate_server_url,
                 cv.Required(CONF_NODE): not_empty("Node name"),
@@ -93,25 +117,17 @@ def validate_emoncms(config):
                     http_request.HttpRequestComponent
                 ),
             }
-        )
-        config[CONF_EMONCMS] = emoncms_schema(config[CONF_EMONCMS])
-    return config
+        )(emoncms_config[CONF_HTTP])
 
-
-# Validate MQTT forward config and modify MQTT component config
-def validate_mqtt_forward(config):
-    # Skip if no MQTT forwarding configuration
-    if CONF_MQTT in config:
+    # Validate MQTT part if present
+    if CONF_MQTT in emoncms_config:
         cg.add_define("USE_MQTT_FORWARD")
 
-        # Validate MQTT forwarding configuration
-        mqtt_schema = cv.Schema(
-            {
-                cv.Required(CONF_TOPIC_PREFIX): not_empty("Topic prefix"),
-                cv.Optional(CONF_DISCOVERY, default=False): cv.boolean,
-            }
-        )
-        config[CONF_MQTT] = mqtt_schema(config[CONF_MQTT])
+        # Set default topic_prefix to device name if not provided
+        if CONF_NODE not in emoncms_config[CONF_MQTT]:
+            from esphome.core import CORE
+
+            emoncms_config[CONF_MQTT][CONF_NODE] = CORE.name
 
         # Add MQTT component as a dependency
         config = cv.requires_component("mqtt")(config)
@@ -120,7 +136,7 @@ def validate_mqtt_forward(config):
 
 
 # Apply conditional schema
-CONFIG_SCHEMA = cv.All(CONFIG_SCHEMA, validate_emoncms, validate_mqtt_forward)
+CONFIG_SCHEMA = cv.All(CONFIG_SCHEMA, validate_emoncms)
 
 FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
     "emontx",
@@ -138,24 +154,33 @@ async def to_code(config):
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
 
-    # Set MQTT forwarding if configured
-    if CONF_MQTT in config:
-        mqtt_config = config[CONF_MQTT]
-        cg.add(var.set_mqtt_forward(mqtt_config[CONF_TOPIC_PREFIX]))
-
     # Set EmonCMS configuration if provided
     if CONF_EMONCMS in config:
-        from esphome.components.http_request import CONF_HTTP_REQUEST_ID
-
         emoncms_config = config[CONF_EMONCMS]
 
-        http_var = await cg.get_variable(emoncms_config[CONF_HTTP_REQUEST_ID])
+        # Handle HTTP configuration if present
+        if CONF_HTTP in emoncms_config:
+            from esphome.components.http_request import CONF_HTTP_REQUEST_ID
 
-        cg.add(
-            var.set_emoncms_config(
-                emoncms_config[CONF_SERVER],
-                emoncms_config[CONF_NODE],
-                emoncms_config[CONF_APIKEY],
-                http_var,
+            http_config = emoncms_config[CONF_HTTP]
+
+            http_var = await cg.get_variable(emoncms_config[CONF_HTTP_REQUEST_ID])
+
+            cg.add(
+                var.set_http_forward(
+                    http_config[CONF_SERVER],
+                    http_config[CONF_NODE],
+                    http_config[CONF_APIKEY],
+                    http_var,
+                )
             )
-        )
+
+        # Handle MQTT configuration if present
+        if CONF_MQTT in emoncms_config:
+            mqtt_config = emoncms_config[CONF_MQTT]
+
+            base_prefix = mqtt_config[CONF_BASE_PREFIX]
+            topic_prefix = mqtt_config[CONF_NODE]  # Use NODE as topic_prefix
+
+            # Call updated method with both prefixes
+            cg.add(var.set_mqtt_forward(base_prefix, topic_prefix))
