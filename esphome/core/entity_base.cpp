@@ -36,21 +36,15 @@ void EntityBase::set_icon(const char *icon) { this->icon_c_str_ = icon; }
 
 // Entity Object ID
 std::string EntityBase::get_object_id() const {
-  std::string suffix = "";
-#ifdef USE_DEVICES
-  if (this->device_ != nullptr) {
-    suffix = "@" + str_sanitize(str_snake_case(this->device_->get_name()));
-  }
-#endif
   // Check if `App.get_friendly_name()` is constant or dynamic.
   if (!this->flags_.has_own_name && App.is_name_add_mac_suffix_enabled()) {
     // `App.get_friendly_name()` is dynamic.
-    return str_sanitize(str_snake_case(App.get_friendly_name())) + suffix;
+    return str_sanitize(str_snake_case(App.get_friendly_name()));
   } else {  // `App.get_friendly_name()` is constant.
     if (this->object_id_c_str_ == nullptr) {
-      return suffix;
+      return "";
     }
-    return this->object_id_c_str_ + suffix;
+    return this->object_id_c_str_;
   }
 }
 void EntityBase::set_object_id(const char *object_id) {

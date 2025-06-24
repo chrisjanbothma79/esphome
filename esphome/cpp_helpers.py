@@ -15,7 +15,7 @@ from esphome.const import (
 )
 from esphome.core import CORE, ID, coroutine
 from esphome.coroutine import FakeAwaitable
-from esphome.cpp_generator import add, get_variable
+from esphome.cpp_generator import MockObj, add, get_variable
 from esphome.cpp_types import App
 from esphome.helpers import sanitize, snake_case
 from esphome.types import ConfigFragmentType, ConfigType
@@ -97,18 +97,65 @@ async def register_parented(var, value):
     add(var.set_parent(paren))
 
 
-async def setup_entity(var, config):
-    """Set up generic properties of an Entity"""
+async def setup_entity(var: MockObj, config: ConfigType, platform: str) -> None:
+    """Set up generic properties of an Entity.
+
+    This function handles duplicate entity names by automatically appending
+    a suffix (_2, _3, etc.) when multiple entities have the same object_id
+    within the same platform and device combination.
+
+    Args:
+        var: The entity variable to set up
+        config: Configuration dictionary containing entity settings
+        platform: The platform name (e.g., "sensor", "binary_sensor")
+    """
+    # Get device info
+    device_id: int = 0
     if CONF_DEVICE_ID in config:
-        device_id: ID = config[CONF_DEVICE_ID]
-        device = await get_variable(device_id)
+        device_id_obj: ID = config[CONF_DEVICE_ID]
+        device: MockObj = await get_variable(device_id_obj)
         add(var.set_device(device))
+        # Use the device's ID hash as device_id
+        from esphome.helpers import fnv1a_32bit_hash
+
+        device_id = fnv1a_32bit_hash(device_id_obj.id)
 
     add(var.set_name(config[CONF_NAME]))
+
+    # Calculate base object_id
+    base_object_id: str
     if not config[CONF_NAME]:
-        add(var.set_object_id(sanitize(snake_case(CORE.friendly_name))))
+        # Use the friendly name if available, otherwise use the device name
+        if CORE.friendly_name:
+            base_object_id = sanitize(snake_case(CORE.friendly_name))
+        else:
+            base_object_id = sanitize(snake_case(CORE.name))
+        _LOGGER.debug(
+            "Entity has empty name, using '%s' as object_id base", base_object_id
+        )
     else:
-        add(var.set_object_id(sanitize(snake_case(config[CONF_NAME]))))
+        base_object_id = sanitize(snake_case(config[CONF_NAME]))
+
+    # Handle duplicates
+    # Check for duplicates
+    unique_key: tuple[int, str, str] = (device_id, platform, base_object_id)
+    if unique_key in CORE.unique_ids:
+        # Found duplicate, add suffix
+        count = CORE.unique_ids[unique_key] + 1
+        CORE.unique_ids[unique_key] = count
+        object_id = f"{base_object_id}_{count}"
+        _LOGGER.info(
+            "Duplicate %s entity '%s' found. Renaming to '%s'",
+            platform,
+            config[CONF_NAME],
+            object_id,
+        )
+    else:
+        # First occurrence
+        CORE.unique_ids[unique_key] = 1
+        object_id = base_object_id
+
+    add(var.set_object_id(object_id))
     add(var.set_disabled_by_default(config[CONF_DISABLED_BY_DEFAULT]))
     if CONF_INTERNAL in config:
         add(var.set_internal(config[CONF_INTERNAL]))
