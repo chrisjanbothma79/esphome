@@ -5,7 +5,6 @@ from esphome.const import CONF_ID, CONF_MQTT
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67", "@TrystanLea", "@glynhudson"]
-MULTI_CONF = True
 
 emontx_ns = cg.esphome_ns.namespace("emontx")
 EmonTx = emontx_ns.class_("EmonTx", cg.PollingComponent, uart.UARTDevice)
@@ -76,9 +75,7 @@ CONFIG_SCHEMA = (
                     cv.Optional(CONF_MQTT): cv.Schema(
                         {
                             cv.Optional(CONF_BASE_PREFIX, default="emon"): cv.string,
-                            cv.Optional(
-                                CONF_NODE
-                            ): cv.string,  # Defaults to device name if not specified
+                            cv.Optional(CONF_NODE): cv.string,
                         }
                     ),
                 }
