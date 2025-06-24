@@ -91,7 +91,6 @@ _SWITCH_SCHEMA = (
 )
 
 
-# Add duplicate entity validation
 _SWITCH_SCHEMA.add_extra(entity_duplicate_validator("switch"))
 
 

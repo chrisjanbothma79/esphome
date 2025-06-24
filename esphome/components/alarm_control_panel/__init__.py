@@ -149,7 +149,6 @@ _ALARM_CONTROL_PANEL_SCHEMA = (
 )
 
 
-# Add duplicate entity validation
 _ALARM_CONTROL_PANEL_SCHEMA.add_extra(entity_duplicate_validator("alarm_control_panel"))
 
 

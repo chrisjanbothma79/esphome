@@ -58,7 +58,6 @@ _UPDATE_SCHEMA = (
 )
 
 
-# Add duplicate entity validation
 _UPDATE_SCHEMA.add_extra(entity_duplicate_validator("update"))
 
 

@@ -126,7 +126,6 @@ _COVER_SCHEMA = (
 )
 
 
-# Add duplicate entity validation
 _COVER_SCHEMA.add_extra(entity_duplicate_validator("cover"))
 
 

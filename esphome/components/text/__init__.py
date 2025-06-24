@@ -58,7 +58,6 @@ _TEXT_SCHEMA = (
 )
 
 
-# Add duplicate entity validation
 _TEXT_SCHEMA.add_extra(entity_duplicate_validator("text"))
 
 

@@ -143,7 +143,6 @@ _MEDIA_PLAYER_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     }
 )
 
-# Add duplicate entity validation
 _MEDIA_PLAYER_SCHEMA.add_extra(entity_duplicate_validator("media_player"))
 
 

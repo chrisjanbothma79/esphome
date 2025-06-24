@@ -61,7 +61,6 @@ _BUTTON_SCHEMA = (
 )
 
 
-# Add duplicate entity validation
 _BUTTON_SCHEMA.add_extra(entity_duplicate_validator("button"))
 
 

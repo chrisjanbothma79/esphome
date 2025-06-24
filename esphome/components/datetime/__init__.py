@@ -84,7 +84,6 @@ _DATETIME_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
     .extend(cv.MQTT_COMMAND_COMPONENT_SCHEMA)
 ).add_extra(_validate_time_present)
 
-# Add duplicate entity validation
 _DATETIME_SCHEMA.add_extra(entity_duplicate_validator("datetime"))
 
 

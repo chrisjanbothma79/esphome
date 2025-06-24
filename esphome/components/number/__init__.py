@@ -207,7 +207,6 @@ _NUMBER_SCHEMA = (
 )
 
 
-# Add duplicate entity validation
 _NUMBER_SCHEMA.add_extra(entity_duplicate_validator("number"))
 
 

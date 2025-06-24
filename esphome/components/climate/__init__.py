@@ -247,7 +247,6 @@ _CLIMATE_SCHEMA = (
 )
 
 
-# Add duplicate entity validation
 _CLIMATE_SCHEMA.add_extra(entity_duplicate_validator("climate"))
 
 

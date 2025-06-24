@@ -161,7 +161,6 @@ _FAN_SCHEMA = (
 )
 
 
-# Add duplicate entity validation
 _FAN_SCHEMA.add_extra(entity_duplicate_validator("fan"))
 
 

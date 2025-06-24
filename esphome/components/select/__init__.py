@@ -65,7 +65,6 @@ _SELECT_SCHEMA = (
 )
 
 
-# Add duplicate entity validation
 _SELECT_SCHEMA.add_extra(entity_duplicate_validator("select"))
 
 

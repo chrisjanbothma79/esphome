@@ -67,7 +67,6 @@ _LOCK_SCHEMA = (
 )
 
 
-# Add duplicate entity validation
 _LOCK_SCHEMA.add_extra(entity_duplicate_validator("lock"))
 
 

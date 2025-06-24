@@ -110,7 +110,6 @@ LIGHT_SCHEMA = (
     )
 )
 
-# Add duplicate entity validation
 LIGHT_SCHEMA.add_extra(entity_duplicate_validator("light"))
 
 BINARY_LIGHT_SCHEMA = LIGHT_SCHEMA.extend(
