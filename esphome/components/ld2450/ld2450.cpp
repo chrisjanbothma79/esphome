@@ -121,7 +121,7 @@ void LD2450Component::setup() {
 }
 
 void LD2450Component::dump_config() {
-  ESP_LOGCONFIG(TAG, "Human motion tracking radar:");
+  ESP_LOGCONFIG(TAG, "LD2450:");
 #ifdef USE_BINARY_SENSOR
   LOG_BINARY_SENSOR("  ", "TargetBinarySensor", this->target_binary_sensor_);
   LOG_BINARY_SENSOR("  ", "MovingTargetBinarySensor", this->moving_target_binary_sensor_);
