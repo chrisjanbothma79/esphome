@@ -7,6 +7,7 @@ from typing import Any
 import pytest
 
 from esphome import entity
+from esphome.config_validation import Invalid
 from esphome.const import CONF_DEVICE_ID, CONF_DISABLED_BY_DEFAULT, CONF_ICON, CONF_NAME
 from esphome.core import CORE, ID
 from esphome.cpp_generator import MockObj
@@ -302,8 +303,7 @@ async def test_setup_entity_no_duplicates(setup_test_environment: list[str]) -> 
 
 @pytest.mark.asyncio
 async def test_setup_entity_with_duplicates(setup_test_environment: list[str]) -> None:
-    """Test setup_entity with duplicate names."""
-
+    """Test setup_entity with duplicate names raises validation error."""
     added_expressions = setup_test_environment
 
     # Create mock entities
@@ -315,18 +315,21 @@ async def test_setup_entity_with_duplicates(setup_test_environment: list[str]) -
         CONF_DISABLED_BY_DEFAULT: False,
     }
 
-    object_ids: list[str] = []
-    for var in entities:
-        added_expressions.clear()
-        await setup_entity(var, config, "sensor")
-        object_id = extract_object_id_from_expressions(added_expressions)
-        object_ids.append(object_id)
+    # First entity should succeed
+    await setup_entity(entities[0], config, "sensor")
+    object_id = extract_object_id_from_expressions(added_expressions)
+    assert object_id == "temperature"
 
-    # Check that object IDs were set with proper suffixes
-    assert object_ids[0] == "temperature"
-    assert object_ids[1] == "temperature_2"
-    assert object_ids[2] == "temperature_3"
-    assert object_ids[3] == "temperature_4"
+    # Clear CORE unique_ids before second test to ensure clean state
+    CORE.unique_ids.clear()
+    # Add back the first one
+    CORE.unique_ids.add((0, "sensor", "temperature"))
+
+    # Second entity with same name should raise Invalid
+    with pytest.raises(
+        Invalid, match=r"Duplicate sensor entity with name 'Temperature' found"
+    ):
+        await setup_entity(entities[1], config, "sensor")
 
 
 @pytest.mark.asyncio
@@ -452,8 +455,7 @@ async def test_setup_entity_empty_name(setup_test_environment: list[str]) -> Non
 async def test_setup_entity_empty_name_duplicates(
     setup_test_environment: list[str],
 ) -> None:
-    """Test setup_entity with multiple empty names."""
-
+    """Test setup_entity with multiple empty names raises validation error."""
     added_expressions = setup_test_environment
 
     entities = [MockObj(f"sensor{i}") for i in range(3)]
@@ -463,17 +465,20 @@ async def test_setup_entity_empty_name_duplicates(
         CONF_DISABLED_BY_DEFAULT: False,
     }
 
-    object_ids: list[str] = []
-    for var in entities:
-        added_expressions.clear()
-        await setup_entity(var, config, "sensor")
-        object_id = extract_object_id_from_expressions(added_expressions)
-        object_ids.append(object_id)
+    # First entity should succeed
+    await setup_entity(entities[0], config, "sensor")
+    object_id = extract_object_id_from_expressions(added_expressions)
+    assert object_id == "test_device"
 
-    # Should use device name with suffixes
-    assert object_ids[0] == "test_device"
-    assert object_ids[1] == "test_device_2"
-    assert object_ids[2] == "test_device_3"
+    # Clear and restore unique_ids for clean test
+    CORE.unique_ids.clear()
+    CORE.unique_ids.add((0, "sensor", "test_device"))
+
+    # Second entity with empty name should raise Invalid
+    with pytest.raises(
+        Invalid, match=r"Duplicate sensor entity with name 'test_device' found"
+    ):
+        await setup_entity(entities[1], config, "sensor")
 
 
 @pytest.mark.asyncio
@@ -484,24 +489,18 @@ async def test_setup_entity_special_characters(
 
     added_expressions = setup_test_environment
 
-    entities = [MockObj(f"sensor{i}") for i in range(3)]
+    var = MockObj("sensor1")
 
     config = {
         CONF_NAME: "Temperature Sensor!",
         CONF_DISABLED_BY_DEFAULT: False,
     }
 
-    object_ids: list[str] = []
-    for var in entities:
-        added_expressions.clear()
-        await setup_entity(var, config, "sensor")
-        object_id = extract_object_id_from_expressions(added_expressions)
-        object_ids.append(object_id)
+    await setup_entity(var, config, "sensor")
+    object_id = extract_object_id_from_expressions(added_expressions)
 
     # Special characters should be sanitized
-    assert object_ids[0] == "temperature_sensor_"
-    assert object_ids[1] == "temperature_sensor__2"
-    assert object_ids[2] == "temperature_sensor__3"
+    assert object_id == "temperature_sensor_"
 
 
 @pytest.mark.asyncio
@@ -558,27 +557,39 @@ async def test_setup_entity_mixed_duplicates(setup_test_environment: list[str]) 
     # Track results
     results: list[tuple[str, str]] = []
 
-    # 3 sensors named "Status"
-    for i in range(3):
-        added_expressions.clear()
-        var = MockObj(f"sensor_status_{i}")
-        await setup_entity(
-            var, {CONF_NAME: "Status", CONF_DISABLED_BY_DEFAULT: False}, "sensor"
-        )
-        object_id = extract_object_id_from_expressions(added_expressions)
-        results.append(("sensor", object_id))
+    # First sensor named "Status" should succeed
+    added_expressions.clear()
+    var = MockObj("sensor_status_0")
+    await setup_entity(
+        var, {CONF_NAME: "Status", CONF_DISABLED_BY_DEFAULT: False}, "sensor"
+    )
+    object_id = extract_object_id_from_expressions(added_expressions)
+    results.append(("sensor", object_id))
 
-    # 2 binary_sensors named "Status"
-    for i in range(2):
-        added_expressions.clear()
-        var = MockObj(f"binary_sensor_status_{i}")
-        await setup_entity(
-            var, {CONF_NAME: "Status", CONF_DISABLED_BY_DEFAULT: False}, "binary_sensor"
-        )
-        object_id = extract_object_id_from_expressions(added_expressions)
-        results.append(("binary_sensor", object_id))
+    # Clear and restore unique_ids for test
+    CORE.unique_ids.clear()
+    CORE.unique_ids.add((0, "sensor", "status"))
 
-    # 1 text_sensor named "Status"
+    # Second sensor with same name should fail
+    with pytest.raises(
+        Invalid, match=r"Duplicate sensor entity with name 'Status' found"
+    ):
+        await setup_entity(
+            MockObj("sensor_status_1"),
+            {CONF_NAME: "Status", CONF_DISABLED_BY_DEFAULT: False},
+            "sensor",
+        )
+
+    # Binary sensor with same name should succeed (different platform)
+    added_expressions.clear()
+    var = MockObj("binary_sensor_status_0")
+    await setup_entity(
+        var, {CONF_NAME: "Status", CONF_DISABLED_BY_DEFAULT: False}, "binary_sensor"
+    )
+    object_id = extract_object_id_from_expressions(added_expressions)
+    results.append(("binary_sensor", object_id))
+
+    # Text sensor with same name should succeed (different platform)
     added_expressions.clear()
     var = MockObj("text_sensor_status")
     await setup_entity(
@@ -589,8 +600,8 @@ async def test_setup_entity_mixed_duplicates(setup_test_environment: list[str]) 
 
     # Check results - each platform has its own namespace
     assert results[0] == ("sensor", "status")  # sensor
-    assert results[1] == ("sensor", "status_2")  # sensor
-    assert results[2] == ("sensor", "status_3")  # sensor
-    assert results[3] == ("binary_sensor", "status")  # binary_sensor (new namespace)
-    assert results[4] == ("binary_sensor", "status_2")  # binary_sensor
-    assert results[5] == ("text_sensor", "status")  # text_sensor (new namespace)
+    assert results[1] == (
+        "binary_sensor",
+        "status",
+    )  # binary_sensor (different platform)
+    assert results[2] == ("text_sensor", "status")  # text_sensor (different platform)

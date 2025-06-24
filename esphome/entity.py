@@ -99,23 +99,21 @@ async def setup_entity(var: MockObj, config: ConfigType, platform: str) -> None:
             "Entity has empty name, using '%s' as object_id base", base_object_id
         )
 
-    # Handle duplicates
     # Check for duplicates
     unique_key: tuple[int, str, str] = (device_id, platform, base_object_id)
     if unique_key in CORE.unique_ids:
-        # Found duplicate, add suffix
-        count = CORE.unique_ids[unique_key] + 1
-        CORE.unique_ids[unique_key] = count
-        object_id = f"{base_object_id}_{count}"
-        _LOGGER.info(
-            "Duplicate %s entity '%s' found. Renaming to '%s'",
-            platform,
-            config[CONF_NAME],
-            object_id,
+        # Found duplicate - fail validation
+        from esphome.config_validation import Invalid
+
+        entity_name = config[CONF_NAME] or base_object_id
+        device_prefix = f" on device '{device_name}'" if device_name else ""
+        raise Invalid(
+            f"Duplicate {platform} entity with name '{entity_name}' found{device_prefix}. "
+            f"Each entity on a device must have a unique name within its platform."
         )
     else:
-        # First occurrence
-        CORE.unique_ids[unique_key] = 1
+        # First occurrence - register it
+        CORE.unique_ids.add(unique_key)
         object_id = base_object_id
 
     add(var.set_object_id(object_id))
