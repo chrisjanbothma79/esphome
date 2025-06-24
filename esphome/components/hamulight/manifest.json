@@ -1,8 +1,0 @@
-{
-  "name": "Hamulight",
-  "domain": "hamulight",
-  "documentation": "https://github.com/madmat17/esphome/components/hamulight",
-  "requirements": [],
-  "codeowners": ["@madmat17"],
-  "dependencies": ["sensor", "number"]
-}
