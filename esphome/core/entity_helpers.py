@@ -186,31 +186,22 @@ def entity_duplicate_validator(platform: str) -> Callable[[ConfigType], ConfigTy
 
         # Get the entity name and device info
         entity_name = config[CONF_NAME]
-        device_id = 0  # Main device by default
-        device_name = None
+        device_id = ""  # Empty string for main device
 
         if CONF_DEVICE_ID in config:
-            device_config = config[CONF_DEVICE_ID]
-            if hasattr(device_config, "id"):
-                device_id = hash(device_config.id)
-                # Try to get device name from CORE if available
-                for dev in getattr(CORE, "devices", []):
-                    if hasattr(dev, "id") and dev.id == device_config.id:
-                        device_name = getattr(dev, "name", None)
-                        break
+            device_id_obj = config[CONF_DEVICE_ID]
+            # Use the device ID string directly for uniqueness
+            device_id = device_id_obj.id
 
-        # Calculate the base object ID
-        base_object_id = get_base_entity_object_id(
-            entity_name, CORE.friendly_name, device_name
-        )
+        # For duplicate detection, just use the sanitized name
+        name_key = sanitize(snake_case(entity_name))
 
         # Check for duplicates
-        unique_key = (device_id, platform, base_object_id)
+        unique_key = (device_id, platform, name_key)
         if unique_key in CORE.unique_ids:
-            entity_name_display = entity_name or base_object_id
-            device_prefix = f" on device '{device_name}'" if device_name else ""
+            device_prefix = f" on device '{device_id}'" if device_id else ""
             raise cv.Invalid(
-                f"Duplicate {platform} entity with name '{entity_name_display}' found{device_prefix}. "
+                f"Duplicate {platform} entity with name '{entity_name}' found{device_prefix}. "
                 f"Each entity on a device must have a unique name within its platform."
             )
 
