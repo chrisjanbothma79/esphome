@@ -102,7 +102,10 @@ def validate_emoncms(config):
 # Validate MQTT forward config and modify MQTT component config
 def validate_mqtt_forward(config):
     # Skip if no MQTT forwarding configuration
+    print(f"DEBUG: Starting MQTT forward validation with config: {config}")
+
     if CONF_MQTT in config:
+        print(f"DEBUG: MQTT config found in component: {config[CONF_MQTT]}")
         cg.add_define("USE_MQTT_FORWARD")
 
         # Validate MQTT forwarding configuration
