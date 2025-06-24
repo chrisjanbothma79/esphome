@@ -6,12 +6,11 @@ from typing import Any
 
 import pytest
 
-from esphome import entity
 from esphome.config_validation import Invalid
 from esphome.const import CONF_DEVICE_ID, CONF_DISABLED_BY_DEFAULT, CONF_ICON, CONF_NAME
-from esphome.core import CORE, ID
+from esphome.core import CORE, ID, entity_helpers
+from esphome.core.entity_helpers import get_base_entity_object_id, setup_entity
 from esphome.cpp_generator import MockObj
-from esphome.entity import get_base_entity_object_id, setup_entity
 from esphome.helpers import sanitize, snake_case
 
 # Pre-compiled regex pattern for extracting object IDs from expressions
@@ -240,7 +239,7 @@ def setup_test_environment() -> Generator[list[str], None, None]:
     CORE.friendly_name = "Test Device"
     # Store original add function
 
-    original_add = entity.add
+    original_add = entity_helpers.add
     # Track what gets added
     added_expressions: list[str] = []
 
@@ -248,11 +247,11 @@ def setup_test_environment() -> Generator[list[str], None, None]:
         added_expressions.append(str(expression))
         return original_add(expression)
 
-    # Patch add function in entity module
-    entity.add = mock_add
+    # Patch add function in entity_helpers module
+    entity_helpers.add = mock_add
     yield added_expressions
     # Clean up
-    entity.add = original_add
+    entity_helpers.add = original_add
 
 
 def extract_object_id_from_expressions(expressions: list[str]) -> str | None:
@@ -372,17 +371,17 @@ async def test_setup_entity_different_platforms(
 def mock_get_variable() -> Generator[dict[ID, MockObj], None, None]:
     """Mock get_variable to return test devices."""
     devices = {}
-    original_get_variable = entity.get_variable
+    original_get_variable = entity_helpers.get_variable
 
     async def _mock_get_variable(device_id: ID) -> MockObj:
         if device_id in devices:
             return devices[device_id]
         return await original_get_variable(device_id)
 
-    entity.get_variable = _mock_get_variable
+    entity_helpers.get_variable = _mock_get_variable
     yield devices
     # Clean up
-    entity.get_variable = original_get_variable
+    entity_helpers.get_variable = original_get_variable
 
 
 @pytest.mark.asyncio

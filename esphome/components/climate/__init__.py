@@ -48,8 +48,8 @@ from esphome.const import (
     CONF_WEB_SERVER,
 )
 from esphome.core import CORE, coroutine_with_priority
+from esphome.core.entity_helpers import entity_duplicate_validator, setup_entity
 from esphome.cpp_generator import MockObjClass
-from esphome.cpp_helpers import setup_entity
 
 IS_PLATFORM_COMPONENT = True
 
@@ -245,6 +245,10 @@ _CLIMATE_SCHEMA = (
         }
     )
 )
+
+
+# Add duplicate entity validation
+_CLIMATE_SCHEMA.add_extra(entity_duplicate_validator("climate"))
 
 
 def climate_schema(

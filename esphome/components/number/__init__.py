@@ -76,8 +76,8 @@ from esphome.const import (
     DEVICE_CLASS_WIND_SPEED,
 )
 from esphome.core import CORE, coroutine_with_priority
+from esphome.core.entity_helpers import entity_duplicate_validator, setup_entity
 from esphome.cpp_generator import MockObjClass
-from esphome.cpp_helpers import setup_entity
 
 CODEOWNERS = ["@esphome/core"]
 DEVICE_CLASSES = [
@@ -205,6 +205,10 @@ _NUMBER_SCHEMA = (
         }
     )
 )
+
+
+# Add duplicate entity validation
+_NUMBER_SCHEMA.add_extra(entity_duplicate_validator("number"))
 
 
 def number_schema(
