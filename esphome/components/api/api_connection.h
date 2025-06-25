@@ -565,8 +565,8 @@ class APIConnection : public APIServerConnection {
 
     // Get the actual string pointer (clears the tag bit)
     std::string *get_string_ptr_() const {
-      return reinterpret_cast<std::string *>(data_.tagged & ~uintptr_t(1));
-    }  // NOLINT(performance-no-int-to-ptr)
+      return reinterpret_cast<std::string *>(data_.tagged & ~uintptr_t(1));  // NOLINT(performance-no-int-to-ptr)
+    }
 
     union {
       MessageCreatorPtr ptr;
