@@ -93,6 +93,8 @@ class ComponentIterator {
   virtual bool on_end();
 
  protected:
+  // Iterates over all ESPHome entities (sensors, switches, lights, etc.)
+  // Supports up to 256 entity types and up to 65,535 entities of each type
   enum class IteratorState : uint8_t {
     NONE = 0,
     BEGIN,
@@ -167,7 +169,7 @@ class ComponentIterator {
 #endif
     MAX,
   } state_{IteratorState::NONE};
-  uint16_t at_{0};
+  uint16_t at_{0};  // Supports up to 65,535 entities per type
   bool include_internal_{false};
 };
 
