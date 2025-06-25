@@ -93,7 +93,7 @@ class ComponentIterator {
   virtual bool on_end();
 
  protected:
-  enum class IteratorState {
+  enum class IteratorState : uint8_t {
     NONE = 0,
     BEGIN,
 #ifdef USE_BINARY_SENSOR
@@ -167,7 +167,7 @@ class ComponentIterator {
 #endif
     MAX,
   } state_{IteratorState::NONE};
-  size_t at_{0};
+  uint16_t at_{0};
   bool include_internal_{false};
 };
 
