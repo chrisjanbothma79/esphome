@@ -519,7 +519,7 @@ void LD2410Component::set_baud_rate(const std::string &state) {
 
 void LD2410Component::set_bluetooth_password(const std::string &password) {
   if (password.length() != 6) {
-    ESP_LOGE(TAG, "Password must be exactly 6 chars '%s'", password.c_str());
+    ESP_LOGE(TAG, "Password must be exactly 6 chars");
     return;
   }
   this->set_config_mode_(true);
