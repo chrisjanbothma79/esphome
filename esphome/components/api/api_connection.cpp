@@ -1440,7 +1440,7 @@ void APIConnection::alarm_control_panel_command(const AlarmControlPanelCommandRe
 
 #ifdef USE_EVENT
 void APIConnection::send_event(event::Event *event, const std::string &event_type) {
-  this->schedule_message_(event, MessageCreator(event_type, EventResponse::MESSAGE_TYPE), EventResponse::MESSAGE_TYPE);
+  this->schedule_message_(event, MessageCreator(event_type), EventResponse::MESSAGE_TYPE);
 }
 void APIConnection::send_event_info(event::Event *event) {
   this->schedule_message_(event, &APIConnection::try_send_event_info, ListEntitiesEventResponse::MESSAGE_TYPE);
@@ -1630,6 +1630,23 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
 #ifdef USE_API_NOISE
   resp.api_encryption_supported = true;
 #endif
+#ifdef USE_DEVICES
+  for (auto const &device : App.get_devices()) {
+    DeviceInfo device_info;
+    device_info.device_id = device->get_device_id();
+    device_info.name = device->get_name();
+    device_info.area_id = device->get_area_id();
+    resp.devices.push_back(device_info);
+  }
+#endif
+#ifdef USE_AREAS
+  for (auto const &area : App.get_areas()) {
+    AreaInfo area_info;
+    area_info.area_id = area->get_area_id();
+    area_info.name = area->get_name();
+    resp.areas.push_back(area_info);
+  }
+#endif
   return resp;
 }
 void APIConnection::on_home_assistant_state_response(const HomeAssistantStateResponse &msg) {
@@ -1778,7 +1795,8 @@ void APIConnection::process_batch_() {
     const auto &item = this->deferred_batch_.items[0];
 
     // Let the creator calculate size and encode if it fits
-    uint16_t payload_size = item.creator(item.entity, this, std::numeric_limits<uint16_t>::max(), true);
+    uint16_t payload_size =
+        item.creator(item.entity, this, std::numeric_limits<uint16_t>::max(), true, item.message_type);
 
     if (payload_size > 0 &&
         this->send_buffer(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, item.message_type)) {
@@ -1828,7 +1846,7 @@ void APIConnection::process_batch_() {
   for (const auto &item : this->deferred_batch_.items) {
     // Try to encode message
     // The creator will calculate overhead to determine if the message fits
-    uint16_t payload_size = item.creator(item.entity, this, remaining_size, false);
+    uint16_t payload_size = item.creator(item.entity, this, remaining_size, false, item.message_type);
 
     if (payload_size == 0) {
       // Message won't fit, stop processing
@@ -1891,21 +1909,23 @@ void APIConnection::process_batch_() {
 }
 
 uint16_t APIConnection::MessageCreator::operator()(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                                   bool is_single) const {
-  switch (message_type_) {
-    case 0:  // Function pointer
-      return data_.ptr(entity, conn, remaining_size, is_single);
-
+                                                   bool is_single, uint16_t message_type) const {
+  if (is_string()) {
+    // Handle string-based messages
+    switch (message_type) {
 #ifdef USE_EVENT
-    case EventResponse::MESSAGE_TYPE: {
-      auto *e = static_cast<event::Event *>(entity);
-      return APIConnection::try_send_event_response(e, *data_.string_ptr, conn, remaining_size, is_single);
-    }
+      case EventResponse::MESSAGE_TYPE: {
+        auto *e = static_cast<event::Event *>(entity);
+        return APIConnection::try_send_event_response(e, *get_string_ptr(), conn, remaining_size, is_single);
+      }
 #endif
-
-    default:
-      // Should not happen, return 0 to indicate no message
-      return 0;
+      default:
+        // Should not happen, return 0 to indicate no message
+        return 0;
+    }
+  } else {
+    // Function pointer case
+    return data_.ptr(entity, conn, remaining_size, is_single);
   }
 }
 
