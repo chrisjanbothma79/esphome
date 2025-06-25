@@ -485,6 +485,9 @@ class APIConnection : public APIServerConnection {
 
   // Optimized MessageCreator class using tagged pointer
   class MessageCreator {
+    // Ensure pointer alignment allows LSB tagging
+    static_assert(alignof(std::string *) > 1, "String pointer alignment must be > 1 for LSB tagging");
+
    public:
     // Constructor for function pointer
     MessageCreator(MessageCreatorPtr ptr) {
@@ -502,14 +505,14 @@ class APIConnection : public APIServerConnection {
 
     // Destructor
     ~MessageCreator() {
-      if (is_string()) {
+      if (has_tagged_string_ptr()) {
         delete get_string_ptr();
       }
     }
 
     // Copy constructor
     MessageCreator(const MessageCreator &other) {
-      if (other.is_string()) {
+      if (other.has_tagged_string_ptr()) {
         auto *str = new std::string(*other.get_string_ptr());
         data_.tagged = reinterpret_cast<uintptr_t>(str) | 1;
       } else {
@@ -524,11 +527,11 @@ class APIConnection : public APIServerConnection {
     MessageCreator &operator=(const MessageCreator &other) {
       if (this != &other) {
         // Clean up current string data if needed
-        if (is_string()) {
+        if (has_tagged_string_ptr()) {
           delete get_string_ptr();
         }
         // Copy new data
-        if (other.is_string()) {
+        if (other.has_tagged_string_ptr()) {
           auto *str = new std::string(*other.get_string_ptr());
           data_.tagged = reinterpret_cast<uintptr_t>(str) | 1;
         } else {
@@ -541,7 +544,7 @@ class APIConnection : public APIServerConnection {
     MessageCreator &operator=(MessageCreator &&other) noexcept {
       if (this != &other) {
         // Clean up current string data if needed
-        if (is_string()) {
+        if (has_tagged_string_ptr()) {
           delete get_string_ptr();
         }
         // Move data
@@ -558,7 +561,7 @@ class APIConnection : public APIServerConnection {
 
    private:
     // Check if this contains a string pointer
-    bool is_string() const { return (data_.tagged & 1) != 0; }
+    bool has_tagged_string_ptr() const { return (data_.tagged & 1) != 0; }
 
     // Get the actual string pointer (clears the tag bit)
     std::string *get_string_ptr() const { return reinterpret_cast<std::string *>(data_.tagged & ~uintptr_t(1)); }
