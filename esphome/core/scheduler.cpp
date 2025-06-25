@@ -22,20 +22,21 @@ static const uint32_t MAX_LOGICALLY_DELETED_ITEMS = 10;
 // iterating over them from the loop task is fine; but iterating from any other context requires the lock to be held to
 // avoid the main thread modifying the list while it is being accessed.
 
-void HOT Scheduler::set_timeout(Component *component, const char *name, uint32_t timeout, std::function<void()> func) {
-  return this->set_timeout_(component, name, timeout, func, false);
-}
-
-void HOT Scheduler::set_timeout(Component *component, const std::string &name, uint32_t timeout,
-                                std::function<void()> func) {
-  return this->set_timeout_(component, name, timeout, func, true);
-}
-
-void HOT Scheduler::set_timeout_(Component *component, const std::string &name, uint32_t timeout,
-                                 std::function<void()> func, bool make_copy) {
+// Template implementation for set_timeout
+template<typename NameType>
+void HOT Scheduler::set_timeout_impl_(Component *component, const NameType &name, uint32_t timeout,
+                                      std::function<void()> func, bool make_copy) {
   const auto now = this->millis_();
 
-  if (!name.empty())
+  // Handle empty name check based on type
+  bool is_empty = false;
+  if constexpr (std::is_same_v<NameType, std::string>) {
+    is_empty = name.empty();
+  } else {
+    is_empty = (name == nullptr || name[0] == '\0');
+  }
+
+  if (!is_empty)
     this->cancel_timeout(component, name);
 
   if (timeout == SCHEDULER_DONT_RUN)
@@ -43,32 +44,62 @@ void HOT Scheduler::set_timeout_(Component *component, const std::string &name, 
 
   auto item = make_unique<SchedulerItem>();
   item->component = component;
-  item->set_name(name.c_str(), make_copy);
+
+  // Set name based on type
+  if constexpr (std::is_same_v<NameType, std::string>) {
+    item->set_name(name.c_str(), make_copy);
+  } else {
+    item->set_name(name, make_copy);
+  }
+
   item->type = SchedulerItem::TIMEOUT;
   item->next_execution_ = now + timeout;
   item->callback = std::move(func);
   item->remove = false;
 #ifdef ESPHOME_DEBUG_SCHEDULER
-  ESP_LOGD(TAG, "set_timeout(name='%s/%s', timeout=%" PRIu32 ")", item->get_source(), name.c_str(), timeout);
+  const char *name_str = nullptr;
+  if constexpr (std::is_same_v<NameType, std::string>) {
+    name_str = name.c_str();
+  } else {
+    name_str = name;
+  }
+  ESP_LOGD(TAG, "set_timeout(name='%s/%s', timeout=%" PRIu32 ")", item->get_source(), name_str, timeout);
 #endif
   this->push_(std::move(item));
+}
+
+// Explicit instantiations
+template void Scheduler::set_timeout_impl_<std::string>(Component *, const std::string &, uint32_t,
+                                                        std::function<void()>, bool);
+template void Scheduler::set_timeout_impl_<const char *>(Component *, const char *const &, uint32_t,
+                                                         std::function<void()>, bool);
+
+void HOT Scheduler::set_timeout(Component *component, const char *name, uint32_t timeout, std::function<void()> func) {
+  return this->set_timeout_impl_(component, name, timeout, std::move(func), false);
+}
+
+void HOT Scheduler::set_timeout(Component *component, const std::string &name, uint32_t timeout,
+                                std::function<void()> func) {
+  return this->set_timeout_impl_(component, name, timeout, std::move(func), true);
 }
 bool HOT Scheduler::cancel_timeout(Component *component, const std::string &name) {
   return this->cancel_item_(component, name, SchedulerItem::TIMEOUT);
 }
-void HOT Scheduler::set_interval(Component *component, const std::string &name, uint32_t interval,
-                                 std::function<void()> func) {
-  this->set_interval_(component, name, interval, func, true);
-}
-void HOT Scheduler::set_interval(Component *component, const char *name, uint32_t interval,
-                                 std::function<void()> func) {
-  this->set_interval_(component, name, interval, func, false);
-}
-void HOT Scheduler::set_interval_(Component *component, const std::string &name, uint32_t interval,
-                                  std::function<void()> func, bool make_copy) {
+// Template implementation for set_interval
+template<typename NameType>
+void HOT Scheduler::set_interval_impl_(Component *component, const NameType &name, uint32_t interval,
+                                       std::function<void()> func, bool make_copy) {
   const auto now = this->millis_();
 
-  if (!name.empty())
+  // Handle empty name check based on type
+  bool is_empty = false;
+  if constexpr (std::is_same_v<NameType, std::string>) {
+    is_empty = name.empty();
+  } else {
+    is_empty = (name == nullptr || name[0] == '\0');
+  }
+
+  if (!is_empty)
     this->cancel_interval(component, name);
 
   if (interval == SCHEDULER_DONT_RUN)
@@ -81,17 +112,45 @@ void HOT Scheduler::set_interval_(Component *component, const std::string &name,
 
   auto item = make_unique<SchedulerItem>();
   item->component = component;
-  item->set_name(name.c_str(), make_copy);
+
+  // Set name based on type
+  if constexpr (std::is_same_v<NameType, std::string>) {
+    item->set_name(name.c_str(), make_copy);
+  } else {
+    item->set_name(name, make_copy);
+  }
+
   item->type = SchedulerItem::INTERVAL;
   item->interval = interval;
   item->next_execution_ = now + offset;
   item->callback = std::move(func);
   item->remove = false;
 #ifdef ESPHOME_DEBUG_SCHEDULER
-  ESP_LOGD(TAG, "set_interval(name='%s/%s', interval=%" PRIu32 ", offset=%" PRIu32 ")", item->get_source(),
-           name.c_str(), interval, offset);
+  const char *name_str = nullptr;
+  if constexpr (std::is_same_v<NameType, std::string>) {
+    name_str = name.c_str();
+  } else {
+    name_str = name;
+  }
+  ESP_LOGD(TAG, "set_interval(name='%s/%s', interval=%" PRIu32 ", offset=%" PRIu32 ")", item->get_source(), name_str,
+           interval, offset);
 #endif
   this->push_(std::move(item));
+}
+
+// Explicit instantiations
+template void Scheduler::set_interval_impl_<std::string>(Component *, const std::string &, uint32_t,
+                                                         std::function<void()>, bool);
+template void Scheduler::set_interval_impl_<const char *>(Component *, const char *const &, uint32_t,
+                                                          std::function<void()>, bool);
+
+void HOT Scheduler::set_interval(Component *component, const std::string &name, uint32_t interval,
+                                 std::function<void()> func) {
+  return this->set_interval_impl_(component, name, interval, std::move(func), true);
+}
+void HOT Scheduler::set_interval(Component *component, const char *name, uint32_t interval,
+                                 std::function<void()> func) {
+  return this->set_interval_impl_(component, name, interval, std::move(func), false);
 }
 bool HOT Scheduler::cancel_interval(Component *component, const std::string &name) {
   return this->cancel_item_(component, name, SchedulerItem::INTERVAL);
@@ -180,8 +239,8 @@ void HOT Scheduler::call() {
       this->lock_.unlock();
 
       ESP_LOGD(TAG, "  %s '%s/%s' interval=%" PRIu32 " next_execution in %" PRIu64 "ms at %" PRIu64,
-               item->get_type_str(), item->get_source(), item->name.c_str(), item->interval,
-               item->next_execution_ - now, item->next_execution_);
+               item->get_type_str(), item->get_source(), item->get_name(), item->interval, item->next_execution_ - now,
+               item->next_execution_);
 
       old_items.push_back(std::move(item));
     }
@@ -238,8 +297,7 @@ void HOT Scheduler::call() {
 
 #ifdef ESPHOME_DEBUG_SCHEDULER
       ESP_LOGV(TAG, "Running %s '%s/%s' with interval=%" PRIu32 " next_execution=%" PRIu64 " (now=%" PRIu64 ")",
-               item->get_type_str(), item->get_source(), item->name.c_str(), item->interval, item->next_execution_,
-               now);
+               item->get_type_str(), item->get_source(), item->get_name(), item->interval, item->next_execution_, now);
 #endif
 
       // Warning: During callback(), a lot of stuff can happen, including:

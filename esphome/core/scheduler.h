@@ -15,14 +15,10 @@ class Scheduler {
   // Public API - accepts std::string for backward compatibility
   void set_timeout(Component *component, const std::string &name, uint32_t timeout, std::function<void()> func);
   void set_timeout(Component *component, const char *name, uint32_t timeout, std::function<void()> func);
-  void set_timeout_(Component *component, const std::string &name, uint32_t timeout, std::function<void()> func,
-                    bool make_copy);
 
   bool cancel_timeout(Component *component, const std::string &name);
   void set_interval(Component *component, const std::string &name, uint32_t interval, std::function<void()> func);
   void set_interval(Component *component, const char *name, uint32_t interval, std::function<void()> func);
-  void set_interval_(Component *component, const std::string &name, uint32_t interval, std::function<void()> func,
-                     bool make_copy);
 
   bool cancel_interval(Component *component, const std::string &name);
   void set_retry(Component *component, const std::string &name, uint32_t initial_wait_time, uint8_t max_attempts,
@@ -36,6 +32,14 @@ class Scheduler {
   void process_to_add();
 
  protected:
+  // Template helper to handle both const char* and std::string efficiently
+  template<typename NameType>
+  void set_timeout_impl_(Component *component, const NameType &name, uint32_t timeout, std::function<void()> func,
+                         bool make_copy);
+  template<typename NameType>
+  void set_interval_impl_(Component *component, const NameType &name, uint32_t interval, std::function<void()> func,
+                          bool make_copy);
+
   struct SchedulerItem {
     // Ordered by size to minimize padding
     Component *component;
