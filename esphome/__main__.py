@@ -135,6 +135,7 @@ def get_port_type(port):
 
 
 def run_miniterm(config, port, args):
+    from aioesphomeapi import LogParser
     import serial
 
     from esphome import platformio_api
@@ -159,6 +160,7 @@ def run_miniterm(config, port, args):
         ser.dtr = False
         ser.rts = False
 
+    parser = LogParser()
     tries = 0
     while tries < 5:
         try:
@@ -175,8 +177,7 @@ def run_miniterm(config, port, args):
                         .decode("utf8", "backslashreplace")
                     )
                     time_str = datetime.now().time().strftime("[%H:%M:%S]")
-                    message = time_str + line
-                    safe_print(message)
+                    safe_print(parser.parse_line(line, time_str))
 
                     backtrace_state = platformio_api.process_stacktrace(
                         config, line, backtrace_state=backtrace_state
