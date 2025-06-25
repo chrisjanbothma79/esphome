@@ -1,4 +1,5 @@
 #include "ld2420.h"
+#include "esphome/core/application.h"
 #include "esphome/core/helpers.h"
 
 /*
@@ -88,8 +89,8 @@ void LD2420Component::dump_config() {
 #endif
   ESP_LOGCONFIG(TAG, "Select:");
   LOG_SELECT(TAG, "  Operating Mode", this->operating_selector_);
-  if (this->get_firmware_int_(ld2420_firmware_ver_) < CALIBRATE_VERSION_MIN) {
-    ESP_LOGW(TAG, "Firmware version %s and older supports Simple Mode only", ld2420_firmware_ver_);
+  if (LD2420Component::get_firmware_int(this->ld2420_firmware_ver_) < CALIBRATE_VERSION_MIN) {
+    ESP_LOGW(TAG, "Firmware version %s and older supports Simple Mode only", this->ld2420_firmware_ver_);
   }
 }
 
@@ -102,7 +103,7 @@ uint8_t LD2420Component::calc_checksum(void *data, size_t size) {
   return checksum;
 }
 
-int LD2420Component::get_firmware_int_(const char *version_string) {
+int LD2420Component::get_firmware_int(const char *version_string) {
   std::string version_str = version_string;
   if (version_str[0] == 'v') {
     version_str = version_str.substr(1);
@@ -127,7 +128,7 @@ void LD2420Component::setup() {
   const char *pfw = this->ld2420_firmware_ver_;
   std::string fw_str(pfw);
 
-  for (auto &listener : listeners_) {
+  for (auto &listener : this->listeners_) {
     listener->on_fw_version(fw_str);
   }
 
@@ -137,7 +138,7 @@ void LD2420Component::setup() {
   }
 
   memcpy(&this->new_config, &this->current_config, sizeof(this->current_config));
-  if (get_firmware_int_(this->ld2420_firmware_ver_) < CALIBRATE_VERSION_MIN) {
+  if (LD2420Component::get_firmware_int(this->ld2420_firmware_ver_) < CALIBRATE_VERSION_MIN) {
     this->set_operating_mode(OP_SIMPLE_MODE_STRING);
     this->operating_selector_->publish_state(OP_SIMPLE_MODE_STRING);
     this->set_mode_(CMD_SYSTEM_MODE_SIMPLE);
@@ -212,7 +213,7 @@ void LD2420Component::restart_module_action() {
   this->send_module_restart();
   this->set_timeout(250, [this]() {
     this->set_config_mode(true);
-    this->set_system_mode(system_mode_);
+    this->set_system_mode(this->system_mode_);
     this->set_config_mode(false);
   });
 }
@@ -227,13 +228,13 @@ void LD2420Component::revert_config_action() {
 
 void LD2420Component::loop() {
   // If there is a active send command do not process it here, the send command call will handle it.
-  if (!get_cmd_active_()) {
-    if (!available())
+  if (!this->get_cmd_active_()) {
+    if (!this->available())
       return;
     static uint8_t buffer[2048];
     static uint8_t rx_data;
-    while (available()) {
-      rx_data = read();
+    while (this->available()) {
+      rx_data = this->read();
       this->readline_(rx_data, buffer, sizeof(buffer));
     }
   }
@@ -288,7 +289,7 @@ void LD2420Component::report_gate_data() {
 
 void LD2420Component::set_operating_mode(const std::string &state) {
   // If unsupported firmware ignore mode select
-  if (get_firmware_int_(ld2420_firmware_ver_) >= CALIBRATE_VERSION_MIN) {
+  if (LD2420Component::get_firmware_int(ld2420_firmware_ver_) >= CALIBRATE_VERSION_MIN) {
     this->current_operating_mode = OP_MODE_TO_UINT.at(state);
     // Entering Auto Calibrate we need to clear the privoiuos data collection
     this->operating_selector_->publish_state(state);
@@ -361,13 +362,13 @@ void LD2420Component::handle_energy_mode_(uint8_t *buffer, int len) {
   }
 
   // Resonable refresh rate for home assistant database size health
-  const int32_t current_millis = millis();
+  const int32_t current_millis = App.get_loop_component_start_time();
   if (current_millis - this->last_periodic_millis < REFRESH_RATE_MS)
     return;
   this->last_periodic_millis = current_millis;
   for (auto &listener : this->listeners_) {
-    listener->on_distance(get_distance_());
-    listener->on_presence(get_presence_());
+    listener->on_distance(this->get_distance_());
+    listener->on_presence(this->get_presence_());
     listener->on_energy(this->gate_energy_, sizeof(this->gate_energy_) / sizeof(this->gate_energy_[0]));
   }
 
@@ -388,9 +389,9 @@ void LD2420Component::handle_simple_mode_(const uint8_t *inbuf, int len) {
   char outbuf[bufsize]{0};
   while (true) {
     if (inbuf[pos - 2] == 'O' && inbuf[pos - 1] == 'F' && inbuf[pos] == 'F') {
-      set_presence_(false);
+      this->set_presence_(false);
     } else if (inbuf[pos - 1] == 'O' && inbuf[pos] == 'N') {
-      set_presence_(true);
+      this->set_presence_(true);
     }
     if (inbuf[pos] >= '0' && inbuf[pos] <= '9') {
       if (index < bufsize - 1) {
@@ -407,18 +408,18 @@ void LD2420Component::handle_simple_mode_(const uint8_t *inbuf, int len) {
   }
   outbuf[index] = '\0';
   if (index > 1)
-    set_distance_(strtol(outbuf, &endptr, 10));
+    this->set_distance_(strtol(outbuf, &endptr, 10));
 
-  if (get_mode_() == CMD_SYSTEM_MODE_SIMPLE) {
+  if (this->get_mode_() == CMD_SYSTEM_MODE_SIMPLE) {
     // Resonable refresh rate for home assistant database size health
-    const int32_t current_millis = millis();
+    const int32_t current_millis = App.get_loop_component_start_time();
     if (current_millis - this->last_normal_periodic_millis < REFRESH_RATE_MS)
       return;
     this->last_normal_periodic_millis = current_millis;
     for (auto &listener : this->listeners_)
-      listener->on_distance(get_distance_());
+      listener->on_distance(this->get_distance_());
     for (auto &listener : this->listeners_)
-      listener->on_presence(get_presence_());
+      listener->on_presence(this->get_presence_());
   }
 }
 
@@ -529,7 +530,7 @@ int LD2420Component::send_cmd_from_array(CmdFrameT frame) {
     }
 
     while (!this->cmd_reply_.ack) {
-      while (available()) {
+      while (this->available()) {
         this->readline_(read(), ack_buffer, sizeof(ack_buffer));
       }
       delay_microseconds_safe(1450);
@@ -544,7 +545,7 @@ int LD2420Component::send_cmd_from_array(CmdFrameT frame) {
     if (this->cmd_reply_.ack)
       retry = 0;
     if (this->cmd_reply_.error > 0)
-      handle_cmd_error(error);
+      this->handle_cmd_error(error);
   }
   return error;
 }
@@ -665,7 +666,7 @@ void LD2420Component::set_system_mode(uint16_t mode) {
   cmd_frame.footer = CMD_FRAME_FOOTER;
   ESP_LOGV(TAG, "Sending write system mode command: %2X", cmd_frame.command);
   if (this->send_cmd_from_array(cmd_frame) == 0)
-    set_mode_(mode);
+    this->set_mode_(mode);
 }
 
 void LD2420Component::get_firmware_version_() {
