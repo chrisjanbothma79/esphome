@@ -637,6 +637,7 @@ class Application {
   //   and active_end_ is incremented
   // - This eliminates branch mispredictions from flag checking in the hot loop
   std::vector<Component *> looping_components_{};
+  std::vector<Component *> non_looping_components_{};
   uint16_t looping_components_active_end_{0};
 
   // For safe reentrant modifications during iteration

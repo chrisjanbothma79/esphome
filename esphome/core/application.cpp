@@ -129,9 +129,18 @@ void Application::loop() {
       last_op_end_time = guard.finish();
     }
     new_app_state |= component->get_component_state();
+#ifdef USE_ACTIVITY_LED
+    // Clear all activity fields since fetched, make ready to set again
+    component->activity_clear_all();
+#endif
     this->app_state_ |= new_app_state;
     this->feed_wdt(last_op_end_time);
   }
+#ifdef USE_ACTIVITY_LED
+  for (Component *component : this->non_looping_components_) {
+    component->activity_clear_all();
+  }
+#endif
 
   this->in_loop_ = false;
   this->app_state_ = new_app_state;
@@ -273,6 +282,8 @@ void Application::calculate_looping_components_() {
     if (obj->has_overridden_loop() &&
         (obj->get_component_state() & COMPONENT_STATE_MASK) != COMPONENT_STATE_LOOP_DONE) {
       this->looping_components_.push_back(obj);
+    } else {
+      this->non_looping_components_.push_back(obj);
     }
   }
 

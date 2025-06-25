@@ -42,6 +42,11 @@ const uint8_t STATUS_LED_MASK = 0x18;
 const uint8_t STATUS_LED_OK = 0x00;
 const uint8_t STATUS_LED_WARNING = 0x08;  // Bit 3
 const uint8_t STATUS_LED_ERROR = 0x10;    // Bit 4
+// Activity LED uses bits 5-6
+const uint8_t ACTIVITY_LED_MASK = 0x60;
+const uint8_t ACTIVITY_LED_IDLE = 0x00;
+const uint8_t ACTIVITY_LED_ACTIVE = 0x20;  // Bit 5
+const uint8_t ACTIVITY_LED_BUSSY = 0x40;   // Bit 6
 
 const uint16_t WARN_IF_BLOCKING_OVER_MS = 50U;       ///< Initial blocking time allowed without warning
 const uint16_t WARN_IF_BLOCKING_INCREMENT_MS = 10U;  ///< How long the blocking time must be larger to warn again
@@ -213,6 +218,7 @@ bool Component::is_ready() const {
          (this->component_state_ & COMPONENT_STATE_MASK) == COMPONENT_STATE_SETUP;
 }
 bool Component::can_proceed() { return true; }
+void Component::set_activity_reporting(bool active) { this->report_activity_ = active; }
 bool Component::status_has_warning() const { return this->component_state_ & STATUS_LED_WARNING; }
 bool Component::status_has_error() const { return this->component_state_ & STATUS_LED_ERROR; }
 void Component::status_set_warning(const char *message) {
@@ -251,6 +257,36 @@ void Component::status_momentary_warning(const std::string &name, uint32_t lengt
 void Component::status_momentary_error(const std::string &name, uint32_t length) {
   this->status_set_error();
   this->set_timeout(name, length, [this]() { this->status_clear_error(); });
+}
+void Component::activity_set_active(const char *message) {
+  if (!this->report_activity_ && (this->component_state_ & ACTIVITY_LED_ACTIVE) != 0)
+    return;
+  this->component_state_ |= ACTIVITY_LED_ACTIVE;
+  App.app_state_ |= ACTIVITY_LED_ACTIVE;
+  ESP_LOGVV(TAG, "Component %s set Active flag: %s", this->get_component_source(), message);
+}
+void Component::activity_set_bussy(const char *message) {
+  if (!this->report_activity_ && (this->component_state_ & ACTIVITY_LED_BUSSY) != 0)
+    return;
+  this->component_state_ |= ACTIVITY_LED_BUSSY;
+  App.app_state_ |= ACTIVITY_LED_BUSSY;
+  ESP_LOGVV(TAG, "Component %s set Bussy flag: %s", this->get_component_source(), message);
+}
+void Component::activity_clear_active() {
+  if ((this->component_state_ & ACTIVITY_LED_ACTIVE) == 0)
+    return;
+  this->component_state_ &= ~ACTIVITY_LED_ACTIVE;
+  ESP_LOGVV(TAG, "Component %s cleared Active flag", this->get_component_source());
+}
+void Component::activity_clear_bussy() {
+  if ((this->component_state_ & ACTIVITY_LED_BUSSY) == 0)
+    return;
+  this->component_state_ &= ~ACTIVITY_LED_BUSSY;
+  ESP_LOGVV(TAG, "Component %s cleared Bussy flag", this->get_component_source());
+}
+void Component::activity_clear_all() {
+  this->activity_clear_active();
+  this->activity_clear_bussy();
 }
 void Component::dump_config() {}
 float Component::get_actual_setup_priority() const {

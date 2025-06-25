@@ -63,6 +63,10 @@ extern const uint8_t STATUS_LED_MASK;
 extern const uint8_t STATUS_LED_OK;
 extern const uint8_t STATUS_LED_WARNING;
 extern const uint8_t STATUS_LED_ERROR;
+extern const uint8_t ACTIVITY_LED_MASK;
+extern const uint8_t ACTIVITY_LED_IDLE;
+extern const uint8_t ACTIVITY_LED_ACTIVE;
+extern const uint8_t ACTIVITY_LED_BUSSY;
 
 enum class RetryResult { DONE, RETRY };
 
@@ -198,6 +202,8 @@ class Component {
 
   virtual bool can_proceed();
 
+  void set_activity_reporting(bool active);
+
   bool status_has_warning() const;
 
   bool status_has_error() const;
@@ -213,6 +219,16 @@ class Component {
   void status_momentary_warning(const std::string &name, uint32_t length = 5000);
 
   void status_momentary_error(const std::string &name, uint32_t length = 5000);
+
+  void activity_set_active(const char *message = "unspecified");
+
+  void activity_set_bussy(const char *message = "unspecified");
+
+  void activity_clear_active();
+
+  void activity_clear_bussy();
+
+  void activity_clear_all();
 
   bool has_overridden_loop() const;
 
@@ -364,6 +380,7 @@ class Component {
   /// Bits 4-7: Unused - reserved for future expansion (50% of the bits are free)
   uint8_t component_state_{0x00};
   volatile bool pending_enable_loop_{false};  ///< ISR-safe flag for enable_loop_soon_any_context
+  bool report_activity_{false};               ///< Whether this component should report activity to the activity LED
 };
 
 /** This class simplifies creating components that periodically check a state.

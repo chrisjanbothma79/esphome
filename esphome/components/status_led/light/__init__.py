@@ -4,7 +4,7 @@ from esphome.components import light, output
 import esphome.config_validation as cv
 from esphome.const import CONF_OUTPUT, CONF_OUTPUT_ID, CONF_PIN
 
-from .. import status_led_ns
+from .. import CONF_ACTIVITY_LED, status_led_ns
 
 AUTO_LOAD = ["output"]
 
@@ -18,6 +18,7 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(CONF_OUTPUT_ID): cv.declare_id(StatusLEDLightOutput),
             cv.Optional(CONF_PIN): pins.gpio_output_pin_schema,
             cv.Optional(CONF_OUTPUT): cv.use_id(output.BinaryOutput),
+            cv.Optional(CONF_ACTIVITY_LED, default=False): bool,
         }
     ),
     cv.has_at_least_one_key(CONF_PIN, CONF_OUTPUT),
@@ -32,5 +33,7 @@ async def to_code(config):
     if CONF_OUTPUT in config:
         out = await cg.get_variable(config[CONF_OUTPUT])
         cg.add(var.set_output(out))
+    if config[CONF_ACTIVITY_LED]:
+        cg.add_define("USE_ACTIVITY_LED")
     await cg.register_component(var, config)
     await light.register_light(var, config)
