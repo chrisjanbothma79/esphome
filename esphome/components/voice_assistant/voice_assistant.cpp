@@ -607,7 +607,6 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
         }
       }
 #endif
-      break;
       this->defer([this]() { this->start_trigger_->trigger(); });
       break;
     case api::enums::VOICE_ASSISTANT_WAKE_WORD_START:
