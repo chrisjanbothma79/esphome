@@ -26,7 +26,7 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.Required(CONF_VARIANT): cv.one_of(*esp32.VARIANTS, upper=True),
-            cv.Optional(CONF_ACTIVE_HIGH, default=True): cv.boolean,
+            cv.Required(CONF_ACTIVE_HIGH): cv.boolean,
             cv.Required(CONF_CLK_PIN): pins.internal_gpio_output_pin_number,
             cv.Required(CONF_CMD_PIN): pins.internal_gpio_output_pin_number,
             cv.Required(CONF_D0_PIN): pins.internal_gpio_output_pin_number,
