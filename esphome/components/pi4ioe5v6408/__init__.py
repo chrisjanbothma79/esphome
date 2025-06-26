@@ -11,6 +11,7 @@ from esphome.const import (
     CONF_OUTPUT,
     CONF_PULLDOWN,
     CONF_PULLUP,
+    CONF_RESET,
 )
 
 AUTO_LOAD = ["gpio_expander"]
@@ -26,7 +27,6 @@ PI4IOE5V6408Component = pi4ioe5v6408_ns.class_(
 PI4IOE5V6408GPIOPin = pi4ioe5v6408_ns.class_("PI4IOE5V6408GPIOPin", cg.GPIOPin)
 
 CONF_PI4IOE5V6408 = "pi4ioe5v6408"
-CONF_RESET = "reset"
 
 CONFIG_SCHEMA = (
     cv.Schema(
