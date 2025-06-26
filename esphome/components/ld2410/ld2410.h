@@ -34,24 +34,24 @@ namespace ld2410 {
 #define CHECK_BIT(var, pos) (((var) >> (pos)) & 1)
 
 // Commands
-static const uint8_t CMD_ENABLE_CONF = 0x00FF;
-static const uint8_t CMD_DISABLE_CONF = 0x00FE;
-static const uint8_t CMD_ENABLE_ENG = 0x0062;
-static const uint8_t CMD_DISABLE_ENG = 0x0063;
-static const uint8_t CMD_MAXDIST_DURATION = 0x0060;
-static const uint8_t CMD_QUERY = 0x0061;
-static const uint8_t CMD_GATE_SENS = 0x0064;
-static const uint8_t CMD_VERSION = 0x00A0;
-static const uint8_t CMD_QUERY_DISTANCE_RESOLUTION = 0x00AB;
-static const uint8_t CMD_SET_DISTANCE_RESOLUTION = 0x00AA;
-static const uint8_t CMD_QUERY_LIGHT_CONTROL = 0x00AE;
-static const uint8_t CMD_SET_LIGHT_CONTROL = 0x00AD;
-static const uint8_t CMD_SET_BAUD_RATE = 0x00A1;
-static const uint8_t CMD_BT_PASSWORD = 0x00A9;
-static const uint8_t CMD_MAC = 0x00A5;
-static const uint8_t CMD_RESET = 0x00A2;
-static const uint8_t CMD_RESTART = 0x00A3;
-static const uint8_t CMD_BLUETOOTH = 0x00A4;
+static const uint8_t CMD_ENABLE_CONF = 0xFF;
+static const uint8_t CMD_DISABLE_CONF = 0xFE;
+static const uint8_t CMD_ENABLE_ENG = 0x62;
+static const uint8_t CMD_DISABLE_ENG = 0x63;
+static const uint8_t CMD_MAXDIST_DURATION = 0x60;
+static const uint8_t CMD_QUERY = 0x61;
+static const uint8_t CMD_GATE_SENS = 0x64;
+static const uint8_t CMD_VERSION = 0xA0;
+static const uint8_t CMD_QUERY_DISTANCE_RESOLUTION = 0xAB;
+static const uint8_t CMD_SET_DISTANCE_RESOLUTION = 0xAA;
+static const uint8_t CMD_QUERY_LIGHT_CONTROL = 0xAE;
+static const uint8_t CMD_SET_LIGHT_CONTROL = 0xAD;
+static const uint8_t CMD_SET_BAUD_RATE = 0xA1;
+static const uint8_t CMD_BT_PASSWORD = 0xA9;
+static const uint8_t CMD_MAC = 0xA5;
+static const uint8_t CMD_RESET = 0xA2;
+static const uint8_t CMD_RESTART = 0xA3;
+static const uint8_t CMD_BLUETOOTH = 0xA4;
 
 enum BaudRateStructure : uint8_t {
   BAUD_RATE_9600 = 1,
@@ -95,9 +95,9 @@ static const std::map<uint8_t, std::string> OUT_PIN_LEVEL_INT_TO_ENUM{{OUT_PIN_L
                                                                       {OUT_PIN_LEVEL_HIGH, "high"}};
 
 // Commands values
-static const uint8_t CMD_MAX_MOVE_VALUE = 0x0000;
-static const uint8_t CMD_MAX_STILL_VALUE = 0x0001;
-static const uint8_t CMD_DURATION_VALUE = 0x0002;
+static const uint8_t CMD_MAX_MOVE_VALUE = 0x00;
+static const uint8_t CMD_MAX_STILL_VALUE = 0x01;
+static const uint8_t CMD_DURATION_VALUE = 0x02;
 // Command Header & Footer
 static const uint8_t CMD_FRAME_HEADER[4] = {0xFD, 0xFC, 0xFB, 0xFA};
 static const uint8_t CMD_FRAME_END[4] = {0x04, 0x03, 0x02, 0x01};
@@ -176,7 +176,6 @@ class LD2410Component : public Component, public uart::UARTDevice {
 #endif
 
  public:
-  LD2410Component();
   void setup() override;
   void dump_config() override;
   void loop() override;
@@ -202,7 +201,7 @@ class LD2410Component : public Component, public uart::UARTDevice {
   void factory_reset();
 
  protected:
-  int two_byte_to_int_(char firstbyte, char secondbyte) { return (int16_t) (secondbyte << 8) + firstbyte; }
+  static int two_byte_to_int(char firstbyte, char secondbyte) { return (int16_t) (secondbyte << 8) + firstbyte; }
   void send_command_(uint8_t command_str, const uint8_t *command_value, int command_value_len);
   void set_config_mode_(bool enable);
   void handle_periodic_data_(uint8_t *buffer, int len);
@@ -215,14 +214,14 @@ class LD2410Component : public Component, public uart::UARTDevice {
   void get_light_control_();
   void restart_();
 
-  int32_t last_periodic_millis_ = millis();
-  int32_t last_engineering_mode_change_millis_ = millis();
+  int32_t last_periodic_millis_ = 0;
+  int32_t last_engineering_mode_change_millis_ = 0;
   uint16_t throttle_;
+  float light_threshold_ = -1;
   std::string version_;
   std::string mac_;
   std::string out_pin_level_;
   std::string light_function_;
-  float light_threshold_ = -1;
 #ifdef USE_NUMBER
   std::vector<number::Number *> gate_still_threshold_numbers_ = std::vector<number::Number *>(9);
   std::vector<number::Number *> gate_move_threshold_numbers_ = std::vector<number::Number *>(9);

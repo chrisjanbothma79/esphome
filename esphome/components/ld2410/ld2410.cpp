@@ -17,8 +17,9 @@ namespace esphome {
 namespace ld2410 {
 
 static const char *const TAG = "ld2410";
-
-LD2410Component::LD2410Component() {}
+static const char NO_MAC[] = "08:05:04:03:02:01";
+static const char UNKNOWN_MAC[] = "unknown";
+static const char VERSION_FMT[] = "%u.%02X.%02X%02X%02X%02X";
 
 void LD2410Component::dump_config() {
   ESP_LOGCONFIG(TAG, "LD2410:");
@@ -78,7 +79,7 @@ void LD2410Component::dump_config() {
                 "  Throttle: %ums\n"
                 "  MAC address: %s\n"
                 "  Firmware version: %s",
-                this->throttle_, const_cast<char *>(this->mac_.c_str()), const_cast<char *>(this->version_.c_str()));
+                this->throttle_, this->mac_ == NO_MAC ? UNKNOWN_MAC : this->mac_.c_str(), this->version_.c_str());
 }
 
 void LD2410Component::setup() {
@@ -200,7 +201,7 @@ void LD2410Component::handle_periodic_data_(uint8_t *buffer, int len) {
   */
 #ifdef USE_SENSOR
   if (this->moving_target_distance_sensor_ != nullptr) {
-    int new_moving_target_distance = this->two_byte_to_int_(buffer[MOVING_TARGET_LOW], buffer[MOVING_TARGET_HIGH]);
+    int new_moving_target_distance = this->two_byte_to_int(buffer[MOVING_TARGET_LOW], buffer[MOVING_TARGET_HIGH]);
     if (this->moving_target_distance_sensor_->get_state() != new_moving_target_distance)
       this->moving_target_distance_sensor_->publish_state(new_moving_target_distance);
   }
@@ -210,7 +211,7 @@ void LD2410Component::handle_periodic_data_(uint8_t *buffer, int len) {
       this->moving_target_energy_sensor_->publish_state(new_moving_target_energy);
   }
   if (this->still_target_distance_sensor_ != nullptr) {
-    int new_still_target_distance = this->two_byte_to_int_(buffer[STILL_TARGET_LOW], buffer[STILL_TARGET_HIGH]);
+    int new_still_target_distance = this->two_byte_to_int(buffer[STILL_TARGET_LOW], buffer[STILL_TARGET_HIGH]);
     if (this->still_target_distance_sensor_->get_state() != new_still_target_distance)
       this->still_target_distance_sensor_->publish_state(new_still_target_distance);
   }
@@ -220,7 +221,7 @@ void LD2410Component::handle_periodic_data_(uint8_t *buffer, int len) {
       this->still_target_energy_sensor_->publish_state(new_still_target_energy);
   }
   if (this->detection_distance_sensor_ != nullptr) {
-    int new_detect_distance = this->two_byte_to_int_(buffer[DETECT_DISTANCE_LOW], buffer[DETECT_DISTANCE_HIGH]);
+    int new_detect_distance = this->two_byte_to_int(buffer[DETECT_DISTANCE_LOW], buffer[DETECT_DISTANCE_HIGH]);
     if (this->detection_distance_sensor_->get_state() != new_detect_distance)
       this->detection_distance_sensor_->publish_state(new_detect_distance);
   }
@@ -282,25 +283,6 @@ void LD2410Component::handle_periodic_data_(uint8_t *buffer, int len) {
 #endif
 }
 
-const char VERSION_FMT[] = "%u.%02X.%02X%02X%02X%02X";
-
-std::string format_version(uint8_t *buffer) {
-  std::string::size_type version_size = 256;
-  std::string version;
-  do {
-    version.resize(version_size + 1);
-    version_size = std::snprintf(&version[0], version.size(), VERSION_FMT, buffer[13], buffer[12], buffer[17],
-                                 buffer[16], buffer[15], buffer[14]);
-  } while (version_size + 1 > version.size());
-  version.resize(version_size);
-  return version;
-}
-
-const char MAC_FMT[] = "%02X:%02X:%02X:%02X:%02X:%02X";
-
-const std::string UNKNOWN_MAC("unknown");
-const std::string NO_MAC("08:05:04:03:02:01");
-
 #ifdef USE_NUMBER
 std::function<void(void)> set_number_value(number::Number *n, float value) {
   float normalized_value = value * 1.0;
@@ -326,7 +308,7 @@ bool LD2410Component::handle_ack_data_(uint8_t *buffer, int len) {
     ESP_LOGE(TAG, "Invalid status");
     return true;
   }
-  if (this->two_byte_to_int_(buffer[8], buffer[9]) != 0x00) {
+  if (this->two_byte_to_int(buffer[8], buffer[9]) != 0x00) {
     ESP_LOGE(TAG, "Invalid command: %u, %u", buffer[8], buffer[9]);
     return true;
   }
@@ -347,8 +329,8 @@ bool LD2410Component::handle_ack_data_(uint8_t *buffer, int len) {
 #endif
       break;
     case lowbyte(CMD_VERSION):
-      this->version_ = format_version(buffer);
-      ESP_LOGV(TAG, "Firmware version: %s", const_cast<char *>(this->version_.c_str()));
+      this->version_ = str_sprintf(VERSION_FMT, buffer[13], buffer[12], buffer[17], buffer[16], buffer[15], buffer[14]);
+      ESP_LOGV(TAG, "Firmware version: %s", this->version_.c_str());
 #ifdef USE_TEXT_SENSOR
       if (this->version_text_sensor_ != nullptr) {
         this->version_text_sensor_->publish_state(this->version_);
@@ -357,8 +339,8 @@ bool LD2410Component::handle_ack_data_(uint8_t *buffer, int len) {
       break;
     case lowbyte(CMD_QUERY_DISTANCE_RESOLUTION): {
       std::string distance_resolution =
-          DISTANCE_RESOLUTION_INT_TO_ENUM.at(this->two_byte_to_int_(buffer[10], buffer[11]));
-      ESP_LOGV(TAG, "Distance resolution: %s", const_cast<char *>(distance_resolution.c_str()));
+          DISTANCE_RESOLUTION_INT_TO_ENUM.at(this->two_byte_to_int(buffer[10], buffer[11]));
+      ESP_LOGV(TAG, "Distance resolution: %s", distance_resolution.c_str());
 #ifdef USE_SELECT
       if (this->distance_resolution_select_ != nullptr &&
           this->distance_resolution_select_->state != distance_resolution) {
@@ -448,7 +430,7 @@ bool LD2410Component::handle_ack_data_(uint8_t *buffer, int len) {
       /*
         None Duration: 33~34th bytes
       */
-      updates.push_back(set_number_value(this->timeout_number_, this->two_byte_to_int_(buffer[32], buffer[33])));
+      updates.push_back(set_number_value(this->timeout_number_, this->two_byte_to_int(buffer[32], buffer[33])));
       for (auto &update : updates) {
         update();
       }
