@@ -17,8 +17,8 @@ namespace esphome {
 namespace ld2450 {
 
 static const char *const TAG = "ld2450";
-static const char *const NO_MAC("08:05:04:03:02:01");
-static const char *const UNKNOWN_MAC("unknown");
+static const char *const NO_MAC = "08:05:04:03:02:01";
+static const char *const UNKNOWN_MAC = "unknown";
 static const char *const VERSION_FMT = "%u.%02X.%02X%02X%02X%02X";
 
 // LD2450 UART Serial Commands
