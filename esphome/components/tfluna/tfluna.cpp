@@ -19,6 +19,8 @@ static const uint8_t TIMESTAMP_LOW_REGISTER = 0x06;
 static const uint8_t TIMESTAMP_HIGH_REGISTER = 0x07;
 static const uint8_t DISTANCE_LOW_REGISTER = 0x00;
 static const uint8_t DISTANCE_HIGH_REGISTER = 0x01;
+static const uint8_t RESTORE_FACTORY_DEFAULTS_REGISTER = 0x29;
+static const uint8_t SHUTDOWN_REBOOT_REGISTER = 0x21;
 static const uint8_t MODE_REGISTER = 0x23;
 static const uint8_t MODE_CONTINUOUS = 0x00;
 static const uint8_t MODE_TRIGGER = 0x01;
@@ -38,6 +40,10 @@ void TFLuna::dump_config() {
 #endif
 #ifdef USE_TEXT_SENSOR
   LOG_TEXT_SENSOR("  ", "Version", this->version_text_sensor_);
+#endif
+#ifdef USE_BUTTON
+  LOG_BUTTON("  ", "ResetButton", this->reset_button_);
+  LOG_BUTTON("  ", "RestartButton", this->restart_button_);
 #endif
 }
 
@@ -168,6 +174,21 @@ void TFLuna::update() {
   }
 #endif
   this->status_clear_warning();
+}
+
+void TFLuna::factory_reset() {
+  if (!this->write_byte(RESTORE_FACTORY_DEFAULTS_REGISTER, 1)) {
+    ESP_LOGE(TAG, "Failed to restore factory defaults");
+    return;
+  }
+  this->setup();
+}
+
+void TFLuna::restart() {
+  if (!this->write_byte(SHUTDOWN_REBOOT_REGISTER, 0x02)) {
+    ESP_LOGE(TAG, "Failed to restart");
+    return;
+  }
 }
 
 }  // namespace tfluna

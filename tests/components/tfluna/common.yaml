@@ -19,3 +19,10 @@ text_sensor:
   - platform: tfluna
     version:
       name: "TF-Luna firmware version"
+
+button:
+  - platform: tfluna
+    factory_reset:
+      name: "factory reset"
+    restart:
+      name: "restart"
