@@ -104,7 +104,7 @@ void APIServer::setup() {
         return;
       }
       for (auto &c : this->clients_) {
-        if (!c->remove_)
+        if (!c->flags_.remove)
           c->try_send_log_message(level, tag, message);
       }
     });
@@ -116,7 +116,7 @@ void APIServer::setup() {
     esp32_camera::global_esp32_camera->add_image_callback(
         [this](const std::shared_ptr<esp32_camera::CameraImage> &image) {
           for (auto &c : this->clients_) {
-            if (!c->remove_)
+            if (!c->flags_.remove)
               c->set_camera_state(image);
           }
         });
@@ -176,7 +176,7 @@ void APIServer::loop() {
   while (client_index < this->clients_.size()) {
     auto &client = this->clients_[client_index];
 
-    if (!client->remove_) {
+    if (!client->flags_.remove) {
       // Common case: process active client
       client->loop();
       client_index++;

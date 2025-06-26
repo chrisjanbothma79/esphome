@@ -125,7 +125,7 @@ class APIConnection : public APIServerConnection {
 #endif
   bool try_send_log_message(int level, const char *tag, const char *line);
   void send_homeassistant_service_call(const HomeassistantServiceResponse &call) {
-    if (!this->service_call_subscription_)
+    if (!this->flags_.service_call_subscription)
       return;
     this->send_message(call);
   }
@@ -185,7 +185,7 @@ class APIConnection : public APIServerConnection {
   void on_disconnect_response(const DisconnectResponse &value) override;
   void on_ping_response(const PingResponse &value) override {
     // we initiated ping
-    this->sent_ping_ = false;
+    this->flags_.sent_ping = false;
   }
   void on_home_assistant_state_response(const HomeAssistantStateResponse &msg) override;
 #ifdef USE_HOMEASSISTANT_TIME
@@ -198,16 +198,16 @@ class APIConnection : public APIServerConnection {
   DeviceInfoResponse device_info(const DeviceInfoRequest &msg) override;
   void list_entities(const ListEntitiesRequest &msg) override { this->list_entities_iterator_.begin(); }
   void subscribe_states(const SubscribeStatesRequest &msg) override {
-    this->state_subscription_ = true;
+    this->flags_.state_subscription = true;
     this->initial_state_iterator_.begin();
   }
   void subscribe_logs(const SubscribeLogsRequest &msg) override {
-    this->log_subscription_ = msg.level;
+    this->flags_.log_subscription = msg.level;
     if (msg.dump_config)
       App.schedule_dump_config();
   }
   void subscribe_homeassistant_services(const SubscribeHomeassistantServicesRequest &msg) override {
-    this->service_call_subscription_ = true;
+    this->flags_.service_call_subscription = true;
   }
   void subscribe_home_assistant_states(const SubscribeHomeAssistantStatesRequest &msg) override;
   GetTimeResponse get_time(const GetTimeRequest &msg) override {
@@ -219,9 +219,12 @@ class APIConnection : public APIServerConnection {
   NoiseEncryptionSetKeyResponse noise_encryption_set_key(const NoiseEncryptionSetKeyRequest &msg) override;
 #endif
 
-  bool is_authenticated() override { return this->connection_state_ == ConnectionState::AUTHENTICATED; }
+  bool is_authenticated() override {
+    return static_cast<ConnectionState>(this->flags_.connection_state) == ConnectionState::AUTHENTICATED;
+  }
   bool is_connection_setup() override {
-    return this->connection_state_ == ConnectionState ::CONNECTED || this->is_authenticated();
+    return static_cast<ConnectionState>(this->flags_.connection_state) == ConnectionState::CONNECTED ||
+           this->is_authenticated();
   }
   void on_fatal_error() override;
   void on_unauthenticated_access() override;
@@ -460,19 +463,37 @@ class APIConnection : public APIServerConnection {
   uint16_t client_api_version_major_{0};
   uint16_t client_api_version_minor_{0};
 
-  // Group all 1-byte types together to minimize padding
+  // Connection state enum
   enum class ConnectionState : uint8_t {
-    WAITING_FOR_HELLO,
-    CONNECTED,
-    AUTHENTICATED,
-  } connection_state_{ConnectionState::WAITING_FOR_HELLO};
-  uint8_t log_subscription_{ESPHOME_LOG_LEVEL_NONE};
-  bool remove_{false};
-  bool state_subscription_{false};
-  bool sent_ping_{false};
-  bool service_call_subscription_{false};
-  bool next_close_ = false;
-  // 7 bytes used, 1 byte padding
+    WAITING_FOR_HELLO = 0,
+    CONNECTED = 1,
+    AUTHENTICATED = 2,
+  };
+
+  // Group all 1-byte types together to minimize padding
+  struct APIFlags {
+    uint8_t connection_state : 2;  // ConnectionState only needs 2 bits (3 states)
+    uint8_t log_subscription : 3;  // Log levels 0-7 need 3 bits
+    uint8_t remove : 1;
+    uint8_t state_subscription : 1;
+    uint8_t sent_ping : 1;
+
+    uint8_t service_call_subscription : 1;
+    uint8_t next_close : 1;
+    uint8_t batch_scheduled : 1;  // Moved from DeferredBatch
+    uint8_t reserved : 5;         // Reserved for future use
+
+    APIFlags()
+        : connection_state(0),
+          log_subscription(ESPHOME_LOG_LEVEL_NONE),
+          remove(0),
+          state_subscription(0),
+          sent_ping(0),
+          service_call_subscription(0),
+          next_close(0),
+          batch_scheduled(0),
+          reserved(0) {}
+  } flags_;  // 2 bytes total instead of 7+ bytes
 
   // Larger objects at the end
   InitialStateIterator initial_state_iterator_;
@@ -590,7 +611,6 @@ class APIConnection : public APIServerConnection {
 
     std::vector<BatchItem> items;
     uint32_t batch_start_time{0};
-    bool batch_scheduled{false};
 
     DeferredBatch() {
       // Pre-allocate capacity for typical batch sizes to avoid reallocation
@@ -603,7 +623,6 @@ class APIConnection : public APIServerConnection {
     void add_item_front(EntityBase *entity, MessageCreator creator, uint16_t message_type);
     void clear() {
       items.clear();
-      batch_scheduled = false;
       batch_start_time = 0;
     }
     bool empty() const { return items.empty(); }
