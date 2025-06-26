@@ -20,6 +20,11 @@ CONF_NODE = "node"
 CONF_APIKEY = "apikey"
 CONF_BASE_PREFIX = "base_prefix"
 
+CONF_PUBLISH_MODE = "publish_mode"
+
+PUBLISH_MODE_JSON = "json"
+PUBLISH_MODE_INDIVIDUAL = "individual"
+
 EMONTX_LISTENER_SCHEMA = cv.Schema(
     {
         cv.GenerateID(CONF_EMONTX_ID): cv.use_id(EmonTx),
@@ -66,6 +71,9 @@ def empty_mqtt_schema(value):
         {
             cv.Optional(CONF_BASE_PREFIX, default="emon"): cv.string,
             cv.Optional(CONF_NODE, default=""): cv.string,
+            cv.Optional(CONF_PUBLISH_MODE, default=PUBLISH_MODE_JSON): cv.one_of(
+                PUBLISH_MODE_JSON, PUBLISH_MODE_INDIVIDUAL
+            ),
         }
     )(value)
 
@@ -194,5 +202,7 @@ async def to_code(config):
             base_prefix = mqtt_config[CONF_BASE_PREFIX]
             topic_prefix = mqtt_config[CONF_NODE]  # Use NODE as topic_prefix
 
+            publish_mode = mqtt_config[CONF_PUBLISH_MODE]
+
             # Call updated method with both prefixes
-            cg.add(var.set_mqtt_config(base_prefix, topic_prefix))
+            cg.add(var.set_mqtt_config(base_prefix, topic_prefix, publish_mode))

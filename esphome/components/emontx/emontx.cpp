@@ -56,15 +56,18 @@ void EmonTx::setup() {
 #endif
 
 #ifdef USE_MQTT_FORWARD
-  // Log MQTT forwarding configuration
+  // Show MQTT forwarding configuration
   if (has_mqtt_config_) {
-    ESP_LOGCONFIG(TAG, "MQTT forwarding enabled:");
-    ESP_LOGCONFIG(TAG, "  Topic prefix (own): %s", this->mqtt_topic_prefix_.c_str());
-
-    ESP_LOGCONFIG(TAG, "  Global MQTT discovery: %s",
+    ESP_LOGCONFIG(TAG, "  MQTT Forwarding: ENABLED");
+    ESP_LOGCONFIG(TAG, "    Topic prefix: %s", mqtt_topic_prefix_full_.c_str());
+    ESP_LOGCONFIG(TAG, "    Publish mode: %s", mqtt_publish_mode_.c_str());
+    ESP_LOGCONFIG(TAG, "    Global MQTT discovery: %s",
                   mqtt::global_mqtt_client->is_discovery_enabled() ? "ENABLED" : "DISABLED");
-    ESP_LOGCONFIG(TAG, "  Topic prefix: %s", mqtt::global_mqtt_client->get_topic_prefix().c_str());
+  } else {
+    ESP_LOGCONFIG(TAG, "  MQTT Forwarding: DISABLED");
   }
+#else
+  ESP_LOGCONFIG(TAG, "  MQTT Forwarding: NOT AVAILABLE");
 #endif
 }
 
@@ -229,51 +232,54 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
     return;
   }
 
-  // Use the pre-computed topic prefix + "data"
-  std::string topic = mqtt_topic_prefix_full_ + "data";
+  if (mqtt_publish_mode_ == "json") {  // Send the raw JSON data
+    ESP_LOGV(TAG, "Publishing JSON to MQTT topic %s: %s", mqtt_topic_prefix_full_.c_str(), json_data.c_str());
+    mqtt::global_mqtt_client->publish(mqtt_topic_prefix_full_, json_data, 0, false);
 
-  // Send the raw JSON data
-  ESP_LOGV(TAG, "Publishing to MQTT topic %s: %s", topic.c_str(), json_data.c_str());
-  mqtt::global_mqtt_client->publish(topic, json_data, 0, false);
+    ESP_LOGI(TAG, "JSON data published to MQTT topic %s", mqtt_topic_prefix_full_.c_str());
+  } else if (mqtt_publish_mode_ == "individual") {
+    // Send only individual values to separate topics
+    ESP_LOGI(TAG, "Publishing individual values to MQTT topics under %s", mqtt_topic_prefix_full_.c_str());
 
-  ESP_LOGI(TAG, "Data published to MQTT topic %s", topic.c_str());
+    bool success = json::parse_json(json_data, [this](JsonObject root) {
+      // For each key-value pair in the JSON
+      for (JsonPair kv : root) {
+        // Create topic for this value: prefix/key
+        std::string value_topic = mqtt_topic_prefix_full_ + "/" + kv.key().c_str();
 
-  // Optionally, also publish individual values to separate topics for easier consumption
-  bool success = json::parse_json(json_data, [this](JsonObject root) {
-    // For each key-value pair in the JSON
-    for (JsonPair kv : root) {
-      // Create topic for this value: prefix/key
-      std::string value_topic = mqtt_topic_prefix_full_ + kv.key().c_str();
+        // Convert value to string
+        std::string value;
+        if (kv.value().is<float>() || kv.value().is<int>()) {
+          value = to_string(kv.value().as<float>());
+        } else if (kv.value().is<const char *>()) {
+          value = kv.value().as<const char *>();
+        } else {
+          value = "unknown";
+        }
 
-      // Convert value to string
-      std::string value;
-      if (kv.value().is<float>() || kv.value().is<int>()) {
-        value = to_string(kv.value().as<float>());
-      } else if (kv.value().is<const char *>()) {
-        value = kv.value().as<const char *>();
-      } else {
-        value = "unknown";
+        // Publish this value
+        ESP_LOGV(TAG, "  Publishing %s = %s", kv.key().c_str(), value.c_str());
+        mqtt::global_mqtt_client->publish(value_topic, value, 0, false);
       }
+      return true;
+    });
 
-      // Publish this value
-      ESP_LOGV(TAG, "  Publishing %s = %s", kv.key().c_str(), value.c_str());
-      mqtt::global_mqtt_client->publish(value_topic, value, 0, false);
+    if (!success) {
+      ESP_LOGW(TAG, "Failed to parse JSON for MQTT individual topics");
     }
-    return true;
-  });
-
-  if (!success) {
-    ESP_LOGW(TAG, "Failed to parse JSON for MQTT individual topics");
+  } else {
+    // This should never happen with the validation, but just in case
+    ESP_LOGE(TAG, "Unknown MQTT publish mode: %s", mqtt_publish_mode_.c_str());
   }
-}
+]
 #endif
 
-/**
- * @brief Dumps the EmonTx configuration to the log.
- *
- * @note Logs the UART settings and other configuration details.
- */
-void EmonTx::dump_config() {
+  /**
+   * @brief Dumps the EmonTx configuration to the log.
+   *
+   * @note Logs the UART settings and other configuration details.
+   */
+  void EmonTx::dump_config() {
   ESP_LOGCONFIG(TAG, "EmonTx:");
 
 #ifdef USE_SENSOR
@@ -305,7 +311,8 @@ void EmonTx::dump_config() {
   // Show MQTT forwarding configuration
   if (has_mqtt_config_) {
     ESP_LOGCONFIG(TAG, "  MQTT Forwarding: ENABLED");
-    ESP_LOGCONFIG(TAG, "    Topic prefix: %s", mqtt::global_mqtt_client->get_topic_prefix().c_str());
+    ESP_LOGCONFIG(TAG, "    Topic prefix: %s", mqtt_topic_prefix_full_.c_str());
+    ESP_LOGCONFIG(TAG, "    Publish mode: %s", mqtt_publish_mode_.c_str());
     ESP_LOGCONFIG(TAG, "    Global MQTT discovery: %s",
                   mqtt::global_mqtt_client->is_discovery_enabled() ? "ENABLED" : "DISABLED");
   } else {
@@ -336,12 +343,12 @@ void EmonTx::publish_value_(const std::string &tag, const std::string &val) {
  * @param listener Pointer to the listener to register.
  */
 #ifdef USE_SENSOR
-void EmonTx::register_emontx_listener(EmonTxListener *listener) { emontx_listeners_.push_back(listener); }
+  void EmonTx::register_emontx_listener(EmonTxListener * listener) { emontx_listeners_.push_back(listener); }
 
-void EmonTx::register_sensor(const std::string &tag_name, sensor::Sensor *sensor) {
-  ESP_LOGCONFIG(TAG, "Registering sensor for tag: %s", tag_name.c_str());
-  this->sensors_[tag_name] = sensor;
-}
+  void EmonTx::register_sensor(const std::string &tag_name, sensor::Sensor *sensor) {
+    ESP_LOGCONFIG(TAG, "Registering sensor for tag: %s", tag_name.c_str());
+    this->sensors_[tag_name] = sensor;
+  }
 #endif
 }  // namespace emontx
 }  // namespace esphome
