@@ -29,65 +29,6 @@
 namespace esphome {
 namespace ld2410 {
 
-#define CHECK_BIT(var, pos) (((var) >> (pos)) & 1)
-
-enum BaudRateStructure : uint8_t {
-  BAUD_RATE_9600 = 1,
-  BAUD_RATE_19200 = 2,
-  BAUD_RATE_38400 = 3,
-  BAUD_RATE_57600 = 4,
-  BAUD_RATE_115200 = 5,
-  BAUD_RATE_230400 = 6,
-  BAUD_RATE_256000 = 7,
-  BAUD_RATE_460800 = 8,
-};
-
-enum DistanceResolutionStructure : uint8_t {
-  DISTANCE_RESOLUTION_0_2 = 0x01,
-  DISTANCE_RESOLUTION_0_75 = 0x00,
-};
-
-enum LightFunctionStructure : uint8_t {
-  LIGHT_FUNCTION_OFF = 0x00,
-  LIGHT_FUNCTION_BELOW = 0x01,
-  LIGHT_FUNCTION_ABOVE = 0x02,
-};
-
-enum OutPinLevelStructure : uint8_t {
-  OUT_PIN_LEVEL_LOW = 0x00,
-  OUT_PIN_LEVEL_HIGH = 0x01,
-};
-
-enum PeriodicDataStructure : uint8_t {
-  DATA_TYPES = 6,
-  TARGET_STATES = 8,
-  MOVING_TARGET_LOW = 9,
-  MOVING_TARGET_HIGH = 10,
-  MOVING_ENERGY = 11,
-  STILL_TARGET_LOW = 12,
-  STILL_TARGET_HIGH = 13,
-  STILL_ENERGY = 14,
-  DETECT_DISTANCE_LOW = 15,
-  DETECT_DISTANCE_HIGH = 16,
-  MOVING_SENSOR_START = 19,
-  STILL_SENSOR_START = 28,
-  LIGHT_SENSOR = 37,
-  OUT_PIN_SENSOR = 38,
-};
-
-enum PeriodicDataValue : uint8_t {
-  HEAD = 0xAA,
-  END = 0x55,
-  CHECK = 0x00,
-};
-
-enum AckDataStructure : uint8_t {
-  COMMAND = 6,
-  COMMAND_STATUS = 7,
-};
-
-static inline int two_byte_to_int(char firstbyte, char secondbyte) { return (int16_t) (secondbyte << 8) + firstbyte; }
-
 class LD2410Component : public Component, public uart::UARTDevice {
 #ifdef USE_SENSOR
   SUB_SENSOR(moving_target_distance)
