@@ -617,7 +617,7 @@ bool LD2450Component::handle_ack_data_(uint8_t *buffer, uint8_t len) {
 #endif
 #ifdef USE_SWITCH
       if (this->bluetooth_switch_ != nullptr) {
-        this->bluetooth_switch_->publish_state(this->mac_ != UNKNOWN_MAC);
+        this->bluetooth_switch_->publish_state(this->mac_ != NO_MAC);
       }
 #endif
       break;
