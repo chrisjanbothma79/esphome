@@ -647,12 +647,9 @@ void VoiceAssistant::on_event(const api::VoiceAssistantEventResponse &msg) {
       std::string tts_url_for_trigger = "";
 #ifdef USE_MEDIA_PLAYER
       if (this->media_player_ != nullptr) {
-        for (auto arg : msg.data) {
+        for (const auto &arg : msg.data) {
           if ((arg.name == "tts_start_streaming") && (arg.value == "1") && !this->tts_response_url_.empty()) {
-            this->media_player_->make_call()
-                .set_media_url(std::move(this->tts_response_url_))
-                .set_announcement(true)
-                .perform();
+            this->media_player_->make_call().set_media_url(this->tts_response_url_).set_announcement(true).perform();
 
             this->media_player_wait_for_announcement_start_ = true;
             this->media_player_wait_for_announcement_end_ = false;
