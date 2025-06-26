@@ -54,7 +54,7 @@ class RemoteReceiveData {
   int32_t peek(uint32_t offset = 0) const { return this->data_[this->index_ + offset]; }
   bool peek_mark(uint32_t length, uint32_t offset = 0) const;
   bool peek_mark_at_least(uint32_t length, uint32_t offset = 0) const;
-  bool peek_mark_at_most(uint32_t length, uint32_t offset = 0) const;  
+  bool peek_mark_at_most(uint32_t length, uint32_t offset = 0) const;
   bool peek_space(uint32_t length, uint32_t offset = 0) const;
   bool peek_space_at_least(uint32_t length, uint32_t offset = 0) const;
   bool peek_space_at_most(uint32_t length, uint32_t offset = 0) const;
