@@ -21,20 +21,44 @@ static const char *const NO_MAC = "08:05:04:03:02:01";
 static const char *const UNKNOWN_MAC = "unknown";
 static const char *const VERSION_FMT = "%u.%02X.%02X%02X%02X%02X";
 
+// Convert baud rate enum to int
+static const std::map<std::string, uint8_t> BAUD_RATE_ENUM_TO_INT{
+    {"9600", BAUD_RATE_9600},     {"19200", BAUD_RATE_19200},   {"38400", BAUD_RATE_38400},
+    {"57600", BAUD_RATE_57600},   {"115200", BAUD_RATE_115200}, {"230400", BAUD_RATE_230400},
+    {"256000", BAUD_RATE_256000}, {"460800", BAUD_RATE_460800},
+};
+
+// Convert zone type int to enum
+static const std::map<ZoneTypeStructure, std::string> ZONE_TYPE_INT_TO_ENUM{
+    {ZONE_DISABLED, "Disabled"},
+    {ZONE_DETECTION, "Detection"},
+    {ZONE_FILTER, "Filter"},
+};
+
+// Convert zone type enum to int
+static const std::map<std::string, uint8_t> ZONE_TYPE_ENUM_TO_INT{
+    {"Disabled", ZONE_DISABLED},
+    {"Detection", ZONE_DETECTION},
+    {"Filter", ZONE_FILTER},
+};
+
+// LD2450 serial command header & footer
+static const uint8_t CMD_FRAME_HEADER[4] = {0xFD, 0xFC, 0xFB, 0xFA};
+static const uint8_t CMD_FRAME_END[4] = {0x04, 0x03, 0x02, 0x01};
 // LD2450 UART Serial Commands
-static const uint8_t CMD_ENABLE_CONF = 0x00FF;
-static const uint8_t CMD_DISABLE_CONF = 0x00FE;
-static const uint8_t CMD_VERSION = 0x00A0;
-static const uint8_t CMD_MAC = 0x00A5;
-static const uint8_t CMD_RESET = 0x00A2;
-static const uint8_t CMD_RESTART = 0x00A3;
-static const uint8_t CMD_BLUETOOTH = 0x00A4;
-static const uint8_t CMD_SINGLE_TARGET_MODE = 0x0080;
-static const uint8_t CMD_MULTI_TARGET_MODE = 0x0090;
-static const uint8_t CMD_QUERY_TARGET_MODE = 0x0091;
-static const uint8_t CMD_SET_BAUD_RATE = 0x00A1;
-static const uint8_t CMD_QUERY_ZONE = 0x00C1;
-static const uint8_t CMD_SET_ZONE = 0x00C2;
+static const uint8_t CMD_ENABLE_CONF = 0xFF;
+static const uint8_t CMD_DISABLE_CONF = 0xFE;
+static const uint8_t CMD_VERSION = 0xA0;
+static const uint8_t CMD_MAC = 0xA5;
+static const uint8_t CMD_RESET = 0xA2;
+static const uint8_t CMD_RESTART = 0xA3;
+static const uint8_t CMD_BLUETOOTH = 0xA4;
+static const uint8_t CMD_SINGLE_TARGET_MODE = 0x80;
+static const uint8_t CMD_MULTI_TARGET_MODE = 0x90;
+static const uint8_t CMD_QUERY_TARGET_MODE = 0x91;
+static const uint8_t CMD_SET_BAUD_RATE = 0xA1;
+static const uint8_t CMD_QUERY_ZONE = 0xC1;
+static const uint8_t CMD_SET_ZONE = 0xC2;
 
 static inline uint16_t convert_seconds_to_ms(uint16_t value) { return value * 1000; };
 
