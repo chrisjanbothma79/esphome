@@ -17,7 +17,7 @@ from esphome.const import (
 AUTO_LOAD = ["socket"]
 DEPENDENCIES = ["api", "microphone"]
 
-CODEOWNERS = ["@jesserockz"]
+CODEOWNERS = ["@jesserockz", "@kahrendt"]
 
 CONF_ON_END = "on_end"
 CONF_ON_INTENT_END = "on_intent_end"
