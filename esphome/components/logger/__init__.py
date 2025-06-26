@@ -8,6 +8,7 @@ from esphome.components.esp32.const import (
     VARIANT_ESP32,
     VARIANT_ESP32C2,
     VARIANT_ESP32C3,
+    VARIANT_ESP32C5,
     VARIANT_ESP32C6,
     VARIANT_ESP32H2,
     VARIANT_ESP32P4,
@@ -89,6 +90,7 @@ UART_SELECTION_ESP32 = {
     VARIANT_ESP32S3: [UART0, UART1, USB_CDC, USB_SERIAL_JTAG],
     VARIANT_ESP32C3: [UART0, UART1, USB_CDC, USB_SERIAL_JTAG],
     VARIANT_ESP32C2: [UART0, UART1],
+    VARIANT_ESP32C5: [UART0, UART1, USB_CDC, USB_SERIAL_JTAG],
     VARIANT_ESP32C6: [UART0, UART1, USB_CDC, USB_SERIAL_JTAG],
     VARIANT_ESP32H2: [UART0, UART1, USB_CDC, USB_SERIAL_JTAG],
     VARIANT_ESP32P4: [UART0, UART1, USB_CDC, USB_SERIAL_JTAG],
@@ -182,7 +184,9 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): cv.declare_id(Logger),
             cv.Optional(CONF_BAUD_RATE, default=115200): cv.positive_int,
-            cv.Optional(CONF_TX_BUFFER_SIZE, default=512): cv.validate_bytes,
+            cv.Optional(CONF_TX_BUFFER_SIZE, default=512): cv.All(
+                cv.validate_bytes, cv.int_range(min=160, max=65535)
+            ),
             cv.Optional(CONF_DEASSERT_RTS_DTR, default=False): cv.boolean,
             cv.SplitDefault(
                 CONF_TASK_LOG_BUFFER_SIZE,
@@ -207,6 +211,7 @@ CONFIG_SCHEMA = cv.All(
                 esp32_s3_idf=USB_SERIAL_JTAG,
                 esp32_c3_arduino=USB_CDC,
                 esp32_c3_idf=USB_SERIAL_JTAG,
+                esp32_c5_idf=USB_SERIAL_JTAG,
                 esp32_c6_arduino=USB_CDC,
                 esp32_c6_idf=USB_SERIAL_JTAG,
                 esp32_p4_idf=USB_SERIAL_JTAG,
@@ -321,7 +326,10 @@ async def to_code(config):
     if CORE.using_arduino:
         if config[CONF_HARDWARE_UART] == USB_CDC:
             cg.add_build_flag("-DARDUINO_USB_CDC_ON_BOOT=1")
-            if CORE.is_esp32 and get_esp32_variant() == VARIANT_ESP32C3:
+            if CORE.is_esp32 and get_esp32_variant() in (
+                VARIANT_ESP32C3,
+                VARIANT_ESP32C6,
+            ):
                 cg.add_build_flag("-DARDUINO_USB_MODE=1")
 
     if CORE.using_esp_idf:
