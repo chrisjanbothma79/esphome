@@ -91,28 +91,24 @@ void TFLuna::setup() {
 
 void TFLuna::update() {
   if (!this->write_byte(TRIGGER_ONESHOT_REGISTER, 0x01)) {
-    ESP_LOGE(TAG, "Failed to trigger a oneshot");
-    this->status_set_warning();
+    this->status_set_warning("Failed to trigger a oneshot");
     return;
   }
 
   uint8_t timestamp_low;
   if (!this->read_byte(TIMESTAMP_LOW_REGISTER, &timestamp_low)) {
-    ESP_LOGE(TAG, "Failed to get timestamp low");
-    this->status_set_warning();
+    this->status_set_warning("Failed to get timestamp low");
     return;
   }
   uint8_t timestamp_high;
   if (!this->read_byte(TIMESTAMP_HIGH_REGISTER, &timestamp_high)) {
-    ESP_LOGE(TAG, "Failed to get timestamp high");
-    this->status_set_warning();
+    this->status_set_warning("Failed to get timestamp high");
     return;
   }
   uint16_t timestamp = timestamp_low + timestamp_high * 256;
   static uint16_t previous_timestamp = 0;
   if (timestamp == previous_timestamp) {
-    ESP_LOGE(TAG, "Timestamp has not changed; the device must have hung. Restarting...");
-    this->status_set_warning();
+    this->status_set_warning("Timestamp has not changed; the device must have hung. Restarting...");
     this->restart();
     return;
   }
@@ -126,14 +122,12 @@ void TFLuna::update() {
   if (this->distance_sensor_ != nullptr) {
     uint8_t distance_low;
     if (!this->read_byte(DISTANCE_LOW_REGISTER, &distance_low)) {
-      ESP_LOGE(TAG, "Failed to get distance low");
-      this->status_set_warning();
+      this->status_set_warning("Failed to get distance low");
       return;
     }
     uint8_t distance_high;
     if (!this->read_byte(DISTANCE_HIGH_REGISTER, &distance_high)) {
-      ESP_LOGE(TAG, "Failed to get distance high");
-      this->status_set_warning();
+      this->status_set_warning("Failed to get distance high");
       return;
     }
     uint16_t distance = distance_low + distance_high * 256;
@@ -145,14 +139,12 @@ void TFLuna::update() {
   if (this->temperature_sensor_ != nullptr) {
     uint8_t temperature_low;
     if (!this->read_byte(TEMPERATURE_LOW_REGISTER, &temperature_low)) {
-      ESP_LOGE(TAG, "Failed to get temperature low");
-      this->status_set_warning();
+      this->status_set_warning("Failed to get temperature low");
       return;
     }
     uint8_t temperature_high;
     if (!this->read_byte(TEMPERATURE_HIGH_REGISTER, &temperature_high)) {
-      ESP_LOGE(TAG, "Failed to get temperature high");
-      this->status_set_warning();
+      this->status_set_warning("Failed to get temperature high");
       return;
     }
     float temperature = (temperature_low + temperature_high * 256) / (float) 100;
@@ -164,14 +156,12 @@ void TFLuna::update() {
   if (this->signal_strength_sensor_ != nullptr) {
     uint8_t signal_strength_low;
     if (!this->read_byte(AMP_LOW_REGISTER, &signal_strength_low)) {
-      ESP_LOGE(TAG, "Failed to get signal strength low");
-      this->status_set_warning();
+      this->status_set_warning("Failed to get signal strength low");
       return;
     }
     uint8_t signal_strength_high;
     if (!this->read_byte(AMP_HIGH_REGISTER, &signal_strength_high)) {
-      ESP_LOGE(TAG, "Failed to get signal strength high");
-      this->status_set_warning();
+      this->status_set_warning("Failed to get signal strength high");
       return;
     }
     uint16_t signal_strength = signal_strength_low + signal_strength_high * 256;
