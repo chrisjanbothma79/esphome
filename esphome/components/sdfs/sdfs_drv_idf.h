@@ -55,7 +55,7 @@ class SdfsIdfDriver : public DriverInterface {
 #if defined(USE_SDSPI_MODE)
   SpiConnector *connector_;
 #else
-  SdmmcIO *mmc_connector = {NULL};
+  SdmmcIO *mmc_io = {NULL};
 #endif
   SdConnType bus_type_;
   BYTE pdrv_ = FF_DRV_NOT_USED;
@@ -65,8 +65,8 @@ class SdfsIdfDriver : public DriverInterface {
   // bool sdmmc_allocate();
   // bool sdspi_allocate();
 
-  uint8_t init_sdmmc();
-  uint8_t init_sdspi();
+  sdcard_status_t init_sdmmc();
+  sdcard_status_t init_sdspi();
   // sdmmc_host_t *host_config_{nullptr};
   // sdmmc_card_t *card_info_{nullptr};
 

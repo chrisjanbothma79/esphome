@@ -24,9 +24,17 @@
 #define DEBUG_TRACE(msg, ...)
 #endif
 
+// #define RET_STATUS_OK 0
+// #define RET_STATUS_FAIL 1
+// #define RET_STATUS_NOTCRITICAL 2
+
 #define ERR_TYPE_FRAMEWORK 1  // Errors from framework
 #define ERR_TYPE_FILESYS 2    // Errors from filesysytems
 #define ERR_TYPE_LOCAL 3      // Local errors
+
+typedef enum { C_NONE, C_MMC, C_SD, C_SDHC, C_UNKNOWN } card_type_t;
+
+typedef enum { RET_STATUS_OK = 0, RET_STATUS_FAIL = 1, RET_STATUS_NOCARD = 2 } sdcard_status_t;
 
 typedef enum {
   RC_OK = 1,

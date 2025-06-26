@@ -17,11 +17,9 @@
 namespace esphome {
 namespace sdfs {
 
-typedef enum { CARD_NONE, CARD_MMC, CARD_SD, CARD_SDHC, CARD_UNKNOWN } sdcard_type_t;
-
-#define RET_STATUS_OK 0
-#define RET_STATUS_FAIL 1
-#define RET_STATUS_NOTCRITICAL 2
+// #define RET_STATUS_OK 0
+// #define RET_STATUS_FAIL 1
+// #define RET_STATUS_NOTCRITICAL 2
 
 enum SdDriverStatus : int {
   SD_SLOT_ST_NOTINIT = 0,

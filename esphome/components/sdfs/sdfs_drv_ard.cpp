@@ -40,7 +40,7 @@ static const char *const TAG = "sdspi_drv_ard";
 SdfsArduinoDriver::SdfsArduinoDriver() {
   this->pdrv_ = 0xFF;
 #if defined(USE_SDMMC_MODE)
-  this->mmc_connector = new SdmmcIO();
+  this->mmc_io = new SdmmcIO();
 #endif
 }
 
@@ -78,25 +78,25 @@ bool SdfsArduinoDriver::init_host(SdConnType bus_type) {
 #if defined(USE_SDMMC_MODE)
   // TODO:  set pins
   if (this->bus_type_ == SD_MMC) {
-    this->mmc_connector->set_bus_width(this->parent_->spi_bus_width_);
-    this->mmc_connector->set_wp_pin(this->parent_->wp_pin_);
-    this->mmc_connector->set_cd_pin(this->parent_->cd_pin_);
-    this->mmc_connector->set_clk_pin(this->parent_->clk_pin_);
-    this->mmc_connector->set_cmd_pin(this->parent_->cmd_pin_);
-    this->mmc_connector->set_bus_slot(this->parent_->bus_slot_);
-    this->mmc_connector->set_data0_pin(this->parent_->data0_pin_);
-    this->mmc_connector->set_data1_pin(this->parent_->data1_pin_);
-    this->mmc_connector->set_data2_pin(this->parent_->data2_pin_);
-    this->mmc_connector->set_data3_pin(this->parent_->data3_pin_);
-    this->mmc_connector->set_data4_pin(this->parent_->data4_pin_);
-    this->mmc_connector->set_data5_pin(this->parent_->data5_pin_);
-    this->mmc_connector->set_data6_pin(this->parent_->data6_pin_);
-    this->mmc_connector->set_data7_pin(this->parent_->data7_pin_);
+    this->mmc_io->set_bus_width(this->parent_->spi_bus_width_);
+    this->mmc_io->set_wp_pin(this->parent_->wp_pin_);
+    this->mmc_io->set_cd_pin(this->parent_->cd_pin_);
+    this->mmc_io->set_clk_pin(this->parent_->clk_pin_);
+    this->mmc_io->set_cmd_pin(this->parent_->cmd_pin_);
+    this->mmc_io->set_bus_slot(this->parent_->bus_slot_);
+    this->mmc_io->set_data0_pin(this->parent_->data0_pin_);
+    this->mmc_io->set_data1_pin(this->parent_->data1_pin_);
+    this->mmc_io->set_data2_pin(this->parent_->data2_pin_);
+    this->mmc_io->set_data3_pin(this->parent_->data3_pin_);
+    this->mmc_io->set_data4_pin(this->parent_->data4_pin_);
+    this->mmc_io->set_data5_pin(this->parent_->data5_pin_);
+    this->mmc_io->set_data6_pin(this->parent_->data6_pin_);
+    this->mmc_io->set_data7_pin(this->parent_->data7_pin_);
 
-    ret = this->mmc_connector->init();
-    this->pdrv_ = this->mmc_connector->get_pdrv();
+    ret = this->mmc_io->init();
+    this->pdrv_ = this->mmc_io->get_pdrv();
     if (ret) {
-      if (this->mmc_connector->init_card() != SDMMC_RET_STATUS_OK) {
+      if (this->mmc_io->init_card() != RET_STATUS_OK) {
         ret = false;
       }
     }
@@ -131,46 +131,37 @@ bool SdfsArduinoDriver::is_mount() { return (this->fs_ != NULL) && (this->fs_->f
  * @return false
  */
 bool SdfsArduinoDriver::is_card() {
+  bool ret = false;
   if (is_mount()) {
+    //
+    //   Check state if disk mounted
+    //
+    ESP_LOGD(TAG, "Check card. pdrv=%d, FS type = %s", this->pdrv_,
+             this->fs_ == NULL ? "NO FS" : fat_type2str[this->fs_->fs_type]);
 #if defined(USE_SDSPI_MODE)
     if (this->bus_type_ == SD_SPI) {
       connector_->beginTransaction();
-      bool res = sdGetSectorsCount(this->pdrv_) != 0;
+      ret = sdGetSectorsCount(this->pdrv_) != 0;
       connector_->endTransaction();
-      if (!res) {
+      if (!ret) {
         unmount();
-        return false;
       }
     }
 #endif
-#if defined(USE_SDSMMC_MODE)
+#if defined(USE_SDMMC_MODE)
     if (this->bus_type_ == SD_MMC) {
-      init_status_t st = this->mmc_connector->get_disk_status();
-      if (st = SDMMC_RET_STATUS_OK)
-        return true;
-      else {
-        this->mmc_connector->unmount();
-        return false;
+      ret = this->mmc_io->get_disk_status() == RET_STATUS_OK;
+      if (!ret) {
+        this->mmc_io->unmount();
       }
     }
 #endif
   } else {
-    return attach_card();
+    ret = attach_card();
   }
-  return true;
+  ESP_LOGD(TAG, "Check card. Card found %s", TRUEFALSE(ret));
+  return ret;
 }
-
-// bool ArduinoSdFatDriver::init_card() {
-//   DSTATUS res = ff_sd_initialize(pdrv_);
-//   if ((res & STA_NOINIT) == STA_NOINIT) {
-
-//     ESP_LOGV(TAG, "No card in slot");
-//     return false;
-//   } else {
-//     ESP_LOGV(TAG, "Card in slot");
-//     return true;
-//   }
-// }
 
 /****************************************************************
  *
@@ -185,16 +176,16 @@ bool SdfsArduinoDriver::attach_card() {
 #if defined(USE_SDSPI_MODE)
   if (this->bus_type_ == SD_SPI) {
     is_card = !(ff_sd_initialize(pdrv_) & STA_NOINIT);
-    ESP_LOGD(TAG, "Attach card. ret=%s", is_card ? "TRUE" : "FALSE");
   }
 #endif
 #if defined(USE_SDMMC_MODE)
   if (this->bus_type_ == SD_MMC) {
-    // init_status_t status = this->mmc_connector->init_card();
+    // init_status_t status = this->mmc_io->init_card();
     // if ( status == SDMMC_RET_STATUS_OK )
-    is_card = this->mmc_connector->init_card() == SDMMC_RET_STATUS_OK;
+    is_card = this->mmc_io->init_card() == RET_STATUS_OK;
   }
 #endif
+  ESP_LOGD(TAG, "Attach card. ret=%s", TRUEFALSE(is_card));
   return is_card;
 }
 
@@ -220,12 +211,12 @@ bool SdfsArduinoDriver::mount(std::string mountpoint, bool format) {
 
 #if defined(USE_SDMMC_MODE)
   if (this->bus_type_ == SD_MMC) {
-    this->fs_ = this->mmc_connector->mount(mountpoint);
+    this->fs_ = this->mmc_io->mount(mountpoint);
     if ((this->fs_ != NULL) && (IS_LAST_ERR(ERR_TYPE_LOCAL, RC_NOT_FORMATED)) && format) {
       ESP_LOGD(TAG, "Disk mount fail.  Will formated pdrv=%d", this->pdrv_);
-      local_rc_t format_res = this->mmc_connector->format();
+      local_rc_t format_res = this->mmc_io->format();
       if (format_res == RC_OK) {
-        this->fs_ = this->mmc_connector->mount(mountpoint);
+        this->fs_ = this->mmc_io->mount(mountpoint);
       }
     }
   }
@@ -289,7 +280,7 @@ void SdfsArduinoDriver::unmount() {
 #endif
 #if defined(USE_SDMMC_MODE)
   if (this->bus_type_ == SD_MMC) {
-    this->mmc_connector->unmount();
+    this->mmc_io->unmount();
   }
 #endif
   this->fs_ = NULL;
@@ -297,8 +288,8 @@ void SdfsArduinoDriver::unmount() {
 
 uint32_t SdfsArduinoDriver::get_last_err() { return this->last_err_; }
 
-sdcard_type_t SdfsArduinoDriver::cardType() {
-  sdcard_type_t type = CARD_NONE;
+card_type_t SdfsArduinoDriver::cardType() {
+  card_type_t type = C_NONE;
   if (!is_mount())
     return type;
 
@@ -309,14 +300,14 @@ sdcard_type_t SdfsArduinoDriver::cardType() {
 #endif
 #if defined(USE_SDMMC_MODE)
   if (this->bus_type_ == SD_MMC) {
-    if (this->mmc_connector->is_card_mem())
-      type = CARD_UNKNOWN;
-    else if (this->mmc_connector->is_card_sdio())
-      type = CARD_SD;
-    else if (this->mmc_connector->is_card_mmc())
-      type = CARD_MMC;
+    if (this->mmc_io->is_card_mem())
+      type = C_UNKNOWN;
+    else if (this->mmc_io->is_card_sdio())
+      type = C_SD;
+    else if (this->mmc_io->is_card_mmc())
+      type = C_MMC;
     else
-      type = CARD_UNKNOWN;
+      type = C_UNKNOWN;
   }
 #endif
   return type;
@@ -340,7 +331,7 @@ size_t SdfsArduinoDriver::numSectors() {
 #endif
 #if defined(USE_SDMMC_MODE)
   if (this->bus_type_ == SD_MMC) {
-    sectors = this->mmc_connector->sectors();
+    sectors = this->mmc_io->sectors();
   }
 #endif
   return sectors;
@@ -358,7 +349,7 @@ size_t SdfsArduinoDriver::sectorSize() {
 #endif
 #if defined(USE_SDMMC_MODE)
   if (this->bus_type_ == SD_MMC) {
-    size = this->mmc_connector->sector_size();
+    size = this->mmc_io->sector_size();
   }
 #endif
   return size;

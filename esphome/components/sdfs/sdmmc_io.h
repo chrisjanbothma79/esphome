@@ -1,5 +1,6 @@
 #pragma once
 #include "esphome/core/defines.h"
+#include "sdfs.h"
 #include "sdfs_defines.h"
 #if defined(USE_SDMMC_MODE) && defined(SOC_SDMMC_HOST_SUPPORTED)
 // #include "ffconf.h"
@@ -11,13 +12,13 @@
 namespace esphome {
 namespace sdfs {
 
-typedef enum { SDMMC_RET_STATUS_OK = 0, SDMMC_RET_STATUS_FAIL = 1, SDMMC_RET_STATUS_NOCARD = 2 } init_status_t;
+// typedef enum { SDMMC_RET_STATUS_OK = 0, SDMMC_RET_STATUS_FAIL = 1, SDMMC_RET_STATUS_NOCARD = 2 } init_status_t;
 
 // typedef struct {
 //   // sdfs::SpiConnector *conn;
 //   int frequency;
 //   char *base_path;
-//   // sdcard_type_t type;
+//   // card_type_t type;
 //   unsigned long sectors;
 //   bool supports_crc;
 //   int status;
@@ -44,8 +45,8 @@ class SdmmcIO {
 
   bool init();
   bool init_slot();
-  init_status_t init_card();
-  init_status_t get_disk_status();
+  sdcard_status_t init_card();
+  sdcard_status_t get_disk_status();
   FATFS *mount(std::string);
   local_rc_t format();
   void unmount();

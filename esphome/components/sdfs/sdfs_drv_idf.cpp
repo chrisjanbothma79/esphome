@@ -49,7 +49,7 @@ static const char *TAG = "sdmmc_drv_idf";
 SdfsIdfDriver::SdfsIdfDriver() {
   this->pdrv_ = 0xFF;
 #if defined(_HAS_SDMMC_)
-  this->mmc_connector = new SdmmcIO();
+  this->mmc_io = new SdmmcIO();
 #endif
 }
 
@@ -91,33 +91,32 @@ bool SdfsIdfDriver::init_host(SdConnType bus_type) {
  *
  * @return sdmmc_host_t*
  */
-uint8_t SdfsIdfDriver::init_sdmmc() {
-  uint8_t ret_st = RET_STATUS_FAIL;
+sdcard_status_t SdfsIdfDriver::init_sdmmc() {
+  sdcard_status_t ret_st = RET_STATUS_FAIL;
 
 #if defined(_HAS_SDMMC_)
   if (this->bus_type_ == SD_MMC) {
-    this->mmc_connector->set_bus_width(this->parent_->spi_bus_width_);
-    this->mmc_connector->set_wp_pin(this->parent_->wp_pin_);
-    this->mmc_connector->set_cd_pin(this->parent_->cd_pin_);
-    this->mmc_connector->set_clk_pin(this->parent_->clk_pin_);
-    this->mmc_connector->set_cmd_pin(this->parent_->cmd_pin_);
-    this->mmc_connector->set_bus_slot(this->parent_->bus_slot_);
-    this->mmc_connector->set_data0_pin(this->parent_->data0_pin_);
-    this->mmc_connector->set_data1_pin(this->parent_->data1_pin_);
-    this->mmc_connector->set_data2_pin(this->parent_->data2_pin_);
-    this->mmc_connector->set_data3_pin(this->parent_->data3_pin_);
-    this->mmc_connector->set_data4_pin(this->parent_->data4_pin_);
-    this->mmc_connector->set_data5_pin(this->parent_->data5_pin_);
-    this->mmc_connector->set_data6_pin(this->parent_->data6_pin_);
-    this->mmc_connector->set_data7_pin(this->parent_->data7_pin_);
+    this->mmc_io->set_bus_width(this->parent_->spi_bus_width_);
+    this->mmc_io->set_wp_pin(this->parent_->wp_pin_);
+    this->mmc_io->set_cd_pin(this->parent_->cd_pin_);
+    this->mmc_io->set_clk_pin(this->parent_->clk_pin_);
+    this->mmc_io->set_cmd_pin(this->parent_->cmd_pin_);
+    this->mmc_io->set_bus_slot(this->parent_->bus_slot_);
+    this->mmc_io->set_data0_pin(this->parent_->data0_pin_);
+    this->mmc_io->set_data1_pin(this->parent_->data1_pin_);
+    this->mmc_io->set_data2_pin(this->parent_->data2_pin_);
+    this->mmc_io->set_data3_pin(this->parent_->data3_pin_);
+    this->mmc_io->set_data4_pin(this->parent_->data4_pin_);
+    this->mmc_io->set_data5_pin(this->parent_->data5_pin_);
+    this->mmc_io->set_data6_pin(this->parent_->data6_pin_);
+    this->mmc_io->set_data7_pin(this->parent_->data7_pin_);
 
-    bool ret = this->mmc_connector->init();
-    this->pdrv_ = this->mmc_connector->get_pdrv();
+    bool ret = this->mmc_io->init();
+    this->pdrv_ = this->mmc_io->get_pdrv();
+    ESP_LOGD(TAG, "Init mmc %s, pdrv %d", TRUEFALSE(ret), this->pdrv_);
     if (ret) {
-      ret_st = RET_STATUS_OK;
-      if (this->mmc_connector->init_card() != SDMMC_RET_STATUS_OK) {
-        ret_st = RET_STATUS_NOTCRITICAL;
-      }
+      ret_st = this->mmc_io->init_card();
+      ESP_LOGD(TAG, "Init card, status=%d", ret_st);
     }
   }
 #endif
@@ -130,7 +129,7 @@ uint8_t SdfsIdfDriver::init_sdmmc() {
  *
  * @return sdmmc_host_t*
  */
-uint8_t SdfsIdfDriver::init_sdspi() {
+sdcard_status_t SdfsIdfDriver::init_sdspi() {
 #if defined(USE_SDSPI_MODE)
   ESP_LOGD(TAG, "Init SDSPI");
   this->connector_->begin();
@@ -141,7 +140,7 @@ uint8_t SdfsIdfDriver::init_sdspi() {
 
   DSTATUS res = ff_sd_initialize(this->pdrv_);
   if (res & STA_NOINIT) {
-    return RET_STATUS_NOTCRITICAL;
+    return RET_STATUS_NOCARD;
   }
 #endif
   return RET_STATUS_OK;
@@ -163,11 +162,11 @@ bool SdfsIdfDriver::is_card() {
   //  For SDMMC
   if (this->bus_type_ == SD_MMC) {
 #if defined(_HAS_SDMMC_)
-    init_status_t st = this->mmc_connector->get_disk_status();
-    if (st = SDMMC_RET_STATUS_OK)
+    sdcard_status_t st = this->mmc_io->get_disk_status();
+    if (st == RET_STATUS_OK)
       return true;
     else {
-      this->mmc_connector->unmount();
+      this->mmc_io->unmount();
       return false;
     }
     //  For SDSPI
@@ -210,7 +209,8 @@ bool SdfsIdfDriver::attach_card() {
 
 #if defined(_HAS_SDMMC_)
   if (this->bus_type_ == SD_MMC) {
-    is_card = this->mmc_connector->init_card() == SDMMC_RET_STATUS_OK;
+    if (this->mmc_io->init_card() == RET_STATUS_OK)
+      is_card = true;
   }
 #endif
 
@@ -231,12 +231,12 @@ bool SdfsIdfDriver::mount(std::string mountpoint, bool format) {
 
   if (this->bus_type_ == SD_MMC) {
 #if defined(_HAS_SDMMC_)
-    this->fs_ = this->mmc_connector->mount(mountpoint);
+    this->fs_ = this->mmc_io->mount(mountpoint);
     if ((this->fs_ != NULL) && (IS_LAST_ERR(ERR_TYPE_LOCAL, RC_NOT_FORMATED)) && format) {
       ESP_LOGD(TAG, "Disk mount fail.  Will formated pdrv=%d", this->pdrv_);
-      local_rc_t format_res = this->mmc_connector->format();
+      local_rc_t format_res = this->mmc_io->format();
       if (format_res == RC_OK) {
-        this->fs_ = this->mmc_connector->mount(mountpoint);
+        this->fs_ = this->mmc_io->mount(mountpoint);
       }
     }
 #endif
@@ -269,7 +269,7 @@ void SdfsIdfDriver::unmount() {
 
   if (this->bus_type_ == SD_MMC) {
 #if defined(_HAS_SDMMC_)
-    this->mmc_connector->unmount();
+    this->mmc_io->unmount();
 #endif
   } else {
 #if defined(USE_SDSPI_MODE)

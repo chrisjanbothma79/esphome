@@ -4,13 +4,7 @@
    {
       "label": "Run Dashboard",
       "type": "shell",
-      "command": "${command:python.interpreterPath}",
-      "args": [
-         "-m",
-         "esphome",
-         "dashboard",
-         "config/"
-      ],
+      "command": "cd /Users/abel/Developing/ESPHomeDev/sdfs_test/ && esphome dashboard ./config",
       "problemMatcher": []
    },
    {

@@ -33,7 +33,7 @@ FATFS *fs_handler;
 
 // uint32_t millis() { return (uint32_t) (esp_timer_get_time() / 1000ULL); }
 
-sdcard_type_t ff_sd_type(uint8_t pdrv) { return s_cards[pdrv]->type; }
+card_type_t ff_sd_type(uint8_t pdrv) { return s_cards[pdrv]->type; }
 size_t ff_sd_sectors(uint8_t pdrv) { return s_cards[pdrv]->sectors; }
 
 /* ********************************************************************
@@ -205,7 +205,7 @@ bool sdReadSector(uint8_t pdrv, char *buffer, unsigned long long sector) {
     if (!sdSelectCard(pdrv)) {
       return false;
     }
-    if (!sdCommand(pdrv, READ_BLOCK_SINGLE, (s_cards[pdrv]->type == CARD_SDHC) ? sector : sector << 9, NULL)) {
+    if (!sdCommand(pdrv, READ_BLOCK_SINGLE, (s_cards[pdrv]->type == C_SDHC) ? sector : sector << 9, NULL)) {
       bool success = sdReadBytes(pdrv, buffer, 512);
       if (success) {
         return true;
@@ -226,7 +226,7 @@ bool sdReadSectors(uint8_t pdrv, char *buffer, unsigned long long sector, int co
       return false;
     }
 
-    if (!sdCommand(pdrv, READ_BLOCK_MULTIPLE, (s_cards[pdrv]->type == CARD_SDHC) ? sector : sector << 9, NULL)) {
+    if (!sdCommand(pdrv, READ_BLOCK_MULTIPLE, (s_cards[pdrv]->type == C_SDHC) ? sector : sector << 9, NULL)) {
       do {
         if (!sdReadBytes(pdrv, buffer, 512)) {
           f++;
@@ -261,7 +261,7 @@ bool sdWriteSector(uint8_t pdrv, const char *buffer, unsigned long long sector) 
     if (!sdSelectCard(pdrv)) {
       return false;
     }
-    if (!sdCommand(pdrv, WRITE_BLOCK_SINGLE, (s_cards[pdrv]->type == CARD_SDHC) ? sector : sector << 9, NULL)) {
+    if (!sdCommand(pdrv, WRITE_BLOCK_SINGLE, (s_cards[pdrv]->type == C_SDHC) ? sector : sector << 9, NULL)) {
       char token = sdWriteBytes(pdrv, buffer, 0xFE);
 
       if (token == 0x0A) {
@@ -293,7 +293,7 @@ bool sdWriteSectors(uint8_t pdrv, const char *buffer, unsigned long long sector,
   esp_ardu_sdcard_t *card = s_cards[pdrv];
 
   for (int f = 0; f < 3;) {
-    if (card->type != CARD_MMC) {
+    if (card->type != C_MMC) {
       if (sdTransaction(pdrv, SET_WR_BLK_ERASE_COUNT, currentCount, NULL)) {
         return false;
       }
@@ -303,7 +303,7 @@ bool sdWriteSectors(uint8_t pdrv, const char *buffer, unsigned long long sector,
       return false;
     }
 
-    if (!sdCommand(pdrv, WRITE_BLOCK_MULTIPLE, (card->type == CARD_SDHC) ? currentSector : currentSector << 9, NULL)) {
+    if (!sdCommand(pdrv, WRITE_BLOCK_MULTIPLE, (card->type == C_SDHC) ? currentSector : currentSector << 9, NULL)) {
       do {
         token = sdWriteBytes(pdrv, currentBuffer, 0xFC);
         if (token != 0x05) {
@@ -333,7 +333,7 @@ bool sdWriteSectors(uint8_t pdrv, const char *buffer, unsigned long long sector,
 
         if (token == 0x0A) {
           unsigned int writtenBlocks = 0;
-          if (card->type != CARD_MMC && sdSelectCard(pdrv)) {
+          if (card->type != C_MMC && sdSelectCard(pdrv)) {
             if (!sdCommand(pdrv, SEND_NUM_WR_BLOCKS, 0, NULL)) {
               char acmdData[4];
               if (sdReadBytes(pdrv, acmdData, 4)) {
@@ -488,9 +488,9 @@ DSTATUS ff_sd_initialize(uint8_t pdrv) {
 
     if (!sdTransaction(pdrv, READ_OCR, 0, &resp)) {
       if (resp & (1 << 30)) {
-        card->type = CARD_SDHC;
+        card->type = C_SDHC;
       } else {
-        card->type = CARD_SD;
+        card->type = C_SD;
       }
     } else {
       ESP_LOGW(TAG, "READ_OCR failed: %X", resp);
@@ -508,7 +508,7 @@ DSTATUS ff_sd_initialize(uint8_t pdrv) {
     } while (token == 0x01 && (millis() - start) < 1000);
 
     if (!token) {
-      card->type = CARD_SD;
+      card->type = C_SD;
     } else {
       start = millis();
       do {
@@ -516,7 +516,7 @@ DSTATUS ff_sd_initialize(uint8_t pdrv) {
       } while (token != 0x00 && (millis() - start) < 1000);
 
       if (token == 0x00) {
-        card->type = CARD_MMC;
+        card->type = C_MMC;
       } else {
         ESP_LOGW(TAG, "SEND_OP_COND failed: %u", token);
         goto unknown_card;
@@ -524,14 +524,14 @@ DSTATUS ff_sd_initialize(uint8_t pdrv) {
     }
   }
 
-  if (card->type != CARD_MMC) {
+  if (card->type != C_MMC) {
     if (sdTransaction(pdrv, APP_CLR_CARD_DETECT, 0, NULL)) {
       ESP_LOGW(TAG, "APP_CLR_CARD_DETECT failed");
       goto unknown_card;
     }
   }
 
-  if (card->type != CARD_SDHC) {
+  if (card->type != C_SDHC) {
     if (sdTransaction(pdrv, SET_BLOCKLEN, 512, NULL) != 0x00) {
       ESP_LOGW(TAG, "SET_BLOCKLEN failed");
       goto unknown_card;
@@ -555,7 +555,7 @@ unknown_card:
 #if defined(SPI_CALL_TRACE)
   ESP_LOGV(TAG, "ff_sd_initialize initialized. CARD UNKNOWN ");
 #endif
-  card->type = CARD_UNKNOWN;
+  card->type = C_UNKNOWN;
   UNLOCK_SPI;
   return card->status;
 }
@@ -724,7 +724,7 @@ void sdspi_unmount(uint8_t pdrv) {
     return;
   }
   card->status |= STA_NOINIT;
-  card->type = CARD_NONE;
+  card->type = C_NONE;
 
   char drv[3] = {(char) ('0' + pdrv), ':', 0};
   f_mount(NULL, drv, 0);
@@ -837,7 +837,7 @@ FATFS *sdspi_mount(uint8_t pdrv, const char *path, uint8_t max_files, bool forma
 //     return 512;
 // }
 
-// sdcard_type_t sdcard_type(uint8_t pdrv)
+// card_type_t sdcard_type(uint8_t pdrv)
 // {
 //     ardu_sdcard_t * card = s_cards[pdrv];
 //     if(pdrv >= FF_VOLUMES || card == NULL){
@@ -880,7 +880,7 @@ uint8_t sdspi_init(SpiConnector *connector_) {
   // card->frequency = this->frequency_;
   card->conn = connector_;
   card->supports_crc = true;
-  card->type = CARD_NONE;
+  card->type = C_NONE;
   card->status = STA_NOINIT;
   s_cards[pdrv] = card;
 

@@ -40,7 +40,7 @@ class SdfsArduinoDriver : public DriverInterface {
   void unmount() override;
   uint32_t get_last_err() override;
 
-  sdcard_type_t cardType();
+  card_type_t cardType();
   uint64_t cardSize();
   size_t numSectors();
   size_t sectorSize();
@@ -54,7 +54,7 @@ class SdfsArduinoDriver : public DriverInterface {
 #if defined(USE_SDSPI_MODE)
   SpiConnector *connector_ = {NULL};
 #else
-  SdmmcIO *mmc_connector = {NULL};
+  SdmmcIO *mmc_io = {NULL};
 #endif
   fsys_t *fs_ = NULL;
   uint8_t pdrv_;
@@ -63,7 +63,7 @@ class SdfsArduinoDriver : public DriverInterface {
   std::string mountpoint_;  // base_path
   unsigned long sectors_;
   bool supports_crc_;
-  sdcard_type_t type_;
+  card_type_t type_;
   uint32_t last_err_ = 0;
 };
 

@@ -1,7 +1,7 @@
-#include "sdspi_io.h"
+// #include "sdspi_io.h"
+#include "sdmmc_io.h"
 #if defined(USE_SDMMC_MODE) && (SOC_SDMMC_HOST_SUPPORTED)
 #include "esp_log.h"
-#include "sdmmc_io.h"
 #include "diskio.h"
 #include "diskio_impl.h"
 #include "diskio_sdmmc.h"
@@ -12,7 +12,7 @@ namespace esphome {
 namespace sdfs {
 
 // #define FF_DRV_NOT_USED 0xFF
-static const char *TAG = "sdspi_io";
+static const char *TAG = "sdmmc_io";
 
 /**********************************************************************
  *
@@ -136,7 +136,7 @@ bool SdmmcIO::init() {
 #ifdef SOC_SDMMC_USE_GPIO_MATRIX
   if ((this->clk_pin_ == 255) || (this->cmd_pin_ == 255) || (this->data0_pin_ == 255)) {
     SET_RC(ERR_TYPE_LOCAL, RC_INVALID_ARG, "clk_pin, cmd_pin, data0_pin must be defined.");
-    return SDMMC_RET_STATUS_FAIL;
+    return false;
   }
   this->slot_config_->clk = static_cast<gpio_num_t>(this->clk_pin_);
   this->slot_config_->cmd = static_cast<gpio_num_t>(this->cmd_pin_);
@@ -211,14 +211,14 @@ bool SdmmcIO::init_slot() {
  * @return true
  * @return false
  */
-init_status_t SdmmcIO::get_disk_status() {  //  is_card
+sdcard_status_t SdmmcIO::get_disk_status() {  //  is_card
   assert(this->card_info_);
   esp_err_t err = sdmmc_get_status(this->card_info_);
   if (unlikely(err != ESP_OK)) {
     ESP_LOGE(TAG, "Check status failed (0x%x)%s", err, esp_err_to_name(err));
-    return SDMMC_RET_STATUS_NOCARD;
+    return RET_STATUS_FAIL;
   }
-  return SDMMC_RET_STATUS_OK;
+  return RET_STATUS_OK;
 }
 
 /**********************************************************************
@@ -227,19 +227,19 @@ init_status_t SdmmcIO::get_disk_status() {  //  is_card
  *
  * @return init_status_t
  */
-init_status_t SdmmcIO::init_card() {  //  attach_card
+sdcard_status_t SdmmcIO::init_card() {  //  attach_card
   esp_err_t rc;
   rc = sdmmc_card_init(this->host_config_, this->card_info_);
   if (rc != ESP_OK) {
     if (rc = ESP_ERR_TIMEOUT) {
       this->last_err_ = (ERR_TYPE_FRAMEWORK << 16) | rc;
-      return SDMMC_RET_STATUS_NOCARD;
+      return RET_STATUS_NOCARD;
     } else {
       SET_RC(ERR_TYPE_FRAMEWORK, rc, "Failed to init card");
-      return SDMMC_RET_STATUS_FAIL;
+      return RET_STATUS_FAIL;
     }
   }
-  return SDMMC_RET_STATUS_OK;
+  return RET_STATUS_OK;
 }
 
 /**********************************************************************
@@ -251,7 +251,7 @@ init_status_t SdmmcIO::init_card() {  //  attach_card
  * @return FATFS*
  */
 FATFS *SdmmcIO::mount(std::string mountpoint) {
-  this->mountpoint_ = mountpoint;
+  mountpoint_ = mountpoint;
   FATFS *fs = NULL;
   esp_err_t rc = ESP_OK;
   FRESULT mount_rc = FR_OK;
@@ -283,7 +283,7 @@ FATFS *SdmmcIO::mount(std::string mountpoint) {
 unregister_fs:
   ESP_LOGD(TAG, "Reset registration");
   esp_vfs_fat_unregister_path(mountpoint_.c_str());
-  FREE(this->mount_config_);
+  // FREE(this->mount_config_);
   // this->fs_ = NULL;
   return NULL;
 }
@@ -306,12 +306,11 @@ void SdmmcIO::unmount() {
   }
 
   //  Clear registration
-  ff_diskio_register(this->pdrv_, NULL);
+  // ff_diskio_register(this->pdrv_, NULL);
   rc = esp_vfs_fat_unregister_path(mountpoint_.c_str());
-  if (rc != ESP_OK) {
+  if ((rc != ESP_OK) && (rc != ESP_ERR_INVALID_STATE)) {
     SET_RC(ERR_TYPE_FRAMEWORK, rc, "Cannot unregister root path");
   }
-  FREE(this->mount_config_);
 
   //
   //  Reinit slot
