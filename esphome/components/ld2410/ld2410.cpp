@@ -201,7 +201,8 @@ void LD2410Component::handle_periodic_data_(uint8_t *buffer, int len) {
   */
 #ifdef USE_SENSOR
   if (this->moving_target_distance_sensor_ != nullptr) {
-    int new_moving_target_distance = this->two_byte_to_int(buffer[MOVING_TARGET_LOW], buffer[MOVING_TARGET_HIGH]);
+    int new_moving_target_distance =
+        LD2410Component::two_byte_to_int(buffer[MOVING_TARGET_LOW], buffer[MOVING_TARGET_HIGH]);
     if (this->moving_target_distance_sensor_->get_state() != new_moving_target_distance)
       this->moving_target_distance_sensor_->publish_state(new_moving_target_distance);
   }
@@ -211,7 +212,8 @@ void LD2410Component::handle_periodic_data_(uint8_t *buffer, int len) {
       this->moving_target_energy_sensor_->publish_state(new_moving_target_energy);
   }
   if (this->still_target_distance_sensor_ != nullptr) {
-    int new_still_target_distance = this->two_byte_to_int(buffer[STILL_TARGET_LOW], buffer[STILL_TARGET_HIGH]);
+    int new_still_target_distance =
+        LD2410Component::two_byte_to_int(buffer[STILL_TARGET_LOW], buffer[STILL_TARGET_HIGH]);
     if (this->still_target_distance_sensor_->get_state() != new_still_target_distance)
       this->still_target_distance_sensor_->publish_state(new_still_target_distance);
   }
@@ -221,7 +223,8 @@ void LD2410Component::handle_periodic_data_(uint8_t *buffer, int len) {
       this->still_target_energy_sensor_->publish_state(new_still_target_energy);
   }
   if (this->detection_distance_sensor_ != nullptr) {
-    int new_detect_distance = this->two_byte_to_int(buffer[DETECT_DISTANCE_LOW], buffer[DETECT_DISTANCE_HIGH]);
+    int new_detect_distance =
+        LD2410Component::two_byte_to_int(buffer[DETECT_DISTANCE_LOW], buffer[DETECT_DISTANCE_HIGH]);
     if (this->detection_distance_sensor_->get_state() != new_detect_distance)
       this->detection_distance_sensor_->publish_state(new_detect_distance);
   }
@@ -308,7 +311,7 @@ bool LD2410Component::handle_ack_data_(uint8_t *buffer, int len) {
     ESP_LOGE(TAG, "Invalid status");
     return true;
   }
-  if (this->two_byte_to_int(buffer[8], buffer[9]) != 0x00) {
+  if (LD2410Component::two_byte_to_int(buffer[8], buffer[9]) != 0x00) {
     ESP_LOGE(TAG, "Invalid command: %u, %u", buffer[8], buffer[9]);
     return true;
   }
@@ -339,7 +342,7 @@ bool LD2410Component::handle_ack_data_(uint8_t *buffer, int len) {
       break;
     case lowbyte(CMD_QUERY_DISTANCE_RESOLUTION): {
       std::string distance_resolution =
-          DISTANCE_RESOLUTION_INT_TO_ENUM.at(this->two_byte_to_int(buffer[10], buffer[11]));
+          DISTANCE_RESOLUTION_INT_TO_ENUM.at(LD2410Component::two_byte_to_int(buffer[10], buffer[11]));
       ESP_LOGV(TAG, "Distance resolution: %s", distance_resolution.c_str());
 #ifdef USE_SELECT
       if (this->distance_resolution_select_ != nullptr &&
@@ -430,7 +433,8 @@ bool LD2410Component::handle_ack_data_(uint8_t *buffer, int len) {
       /*
         None Duration: 33~34th bytes
       */
-      updates.push_back(set_number_value(this->timeout_number_, this->two_byte_to_int(buffer[32], buffer[33])));
+      updates.push_back(
+          set_number_value(this->timeout_number_, LD2410Component::two_byte_to_int(buffer[32], buffer[33])));
       for (auto &update : updates) {
         update();
       }
