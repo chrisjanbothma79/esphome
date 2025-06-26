@@ -133,7 +133,8 @@ enum PeriodicDataValue : uint8_t { HEAD = 0xAA, END = 0x55, CHECK = 0x00 };
 
 enum AckDataStructure : uint8_t { COMMAND = 6, COMMAND_STATUS = 7 };
 
-//  char cmd[2] = {enable ? 0xFF : 0xFE, 0x00};
+static int two_byte_to_int(char firstbyte, char secondbyte) { return (int16_t) (secondbyte << 8) + firstbyte; }
+
 class LD2410Component : public Component, public uart::UARTDevice {
 #ifdef USE_SENSOR
   SUB_SENSOR(moving_target_distance)
@@ -201,7 +202,6 @@ class LD2410Component : public Component, public uart::UARTDevice {
   void factory_reset();
 
  protected:
-  static int two_byte_to_int(char firstbyte, char secondbyte) { return (int16_t) (secondbyte << 8) + firstbyte; }
   void send_command_(uint8_t command_str, const uint8_t *command_value, int command_value_len);
   void set_config_mode_(bool enable);
   void handle_periodic_data_(uint8_t *buffer, int len);
