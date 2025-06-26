@@ -18,6 +18,7 @@ class TFLuna : public i2c::I2CDevice, public PollingComponent {
   SUB_SENSOR(distance)
   SUB_SENSOR(temperature)
   SUB_SENSOR(signal_strength)
+  SUB_SENSOR(timestamp)
 #endif
 #ifdef USE_TEXT_SENSOR
   SUB_TEXT_SENSOR(version)

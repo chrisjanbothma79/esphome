@@ -12,6 +12,8 @@ sensor:
       name: TF-Luna Signal Strength
     temperature:
       name: TF-Luna Temperature
+    timestamp:
+      name: TF-Luna Timestamp
 
 text_sensor:
   - platform: tfluna

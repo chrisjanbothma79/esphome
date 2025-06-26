@@ -12,6 +12,7 @@ tfluna_ns = cg.esphome_ns.namespace("tfluna")
 TFLunaComponent = tfluna_ns.class_("TFLuna", cg.PollingComponent, i2c.I2CDevice)
 
 CONF_TFLUNA_ID = "tfluna_id"
+CONF_TIMESTAMP = "timestamp"
 
 CONFIG_SCHEMA = (
     cv.Schema(

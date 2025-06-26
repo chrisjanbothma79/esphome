@@ -15,6 +15,8 @@ static const uint8_t AMP_LOW_REGISTER = 0x02;
 static const uint8_t AMP_HIGH_REGISTER = 0x03;
 static const uint8_t TEMPERATURE_LOW_REGISTER = 0x04;
 static const uint8_t TEMPERATURE_HIGH_REGISTER = 0x05;
+static const uint8_t TIMESTAMP_LOW_REGISTER = 0x06;
+static const uint8_t TIMESTAMP_HIGH_REGISTER = 0x07;
 static const uint8_t DISTANCE_LOW_REGISTER = 0x00;
 static const uint8_t DISTANCE_HIGH_REGISTER = 0x01;
 static const uint8_t MODE_REGISTER = 0x23;
@@ -32,6 +34,7 @@ void TFLuna::dump_config() {
   LOG_SENSOR("  ", "Distance:", this->distance_sensor_);
   LOG_SENSOR("  ", "Temperature:", this->temperature_sensor_);
   LOG_SENSOR("  ", "Signal Strength:", this->signal_strength_sensor_);
+  LOG_SENSOR("  ", "Timestamp:", this->timestamp_sensor_);
 #endif
 #ifdef USE_TEXT_SENSOR
   LOG_TEXT_SENSOR("  ", "Version", this->version_text_sensor_);
@@ -143,6 +146,25 @@ void TFLuna::update() {
 
     ESP_LOGD(TAG, "Got signal strength=%d", signal_strength);
     this->signal_strength_sensor_->publish_state(signal_strength);
+  }
+
+  if (this->timestamp_sensor_ != nullptr) {
+    uint8_t timestamp_low;
+    if (!this->read_byte(TIMESTAMP_LOW_REGISTER, &timestamp_low)) {
+      ESP_LOGE(TAG, "Failed to get timestamp low");
+      this->status_set_warning();
+      return;
+    }
+    uint8_t timestamp_high;
+    if (!this->read_byte(TIMESTAMP_HIGH_REGISTER, &timestamp_high)) {
+      ESP_LOGE(TAG, "Failed to get timestamp high");
+      this->status_set_warning();
+      return;
+    }
+    uint16_t timestamp = timestamp_low + timestamp_high * 256;
+
+    ESP_LOGD(TAG, "Got timestamp=%d", timestamp);
+    this->timestamp_sensor_->publish_state(timestamp);
   }
 #endif
   this->status_clear_warning();

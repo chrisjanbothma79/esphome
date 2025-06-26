@@ -6,18 +6,22 @@ from esphome.const import (
     CONF_SIGNAL_STRENGTH,
     CONF_TEMPERATURE,
     DEVICE_CLASS_DISTANCE,
+    DEVICE_CLASS_DURATION,
     DEVICE_CLASS_SIGNAL_STRENGTH,
     DEVICE_CLASS_TEMPERATURE,
     ENTITY_CATEGORY_DIAGNOSTIC,
     ICON_ARROW_EXPAND_VERTICAL,
     ICON_SIGNAL,
     ICON_THERMOMETER,
+    ICON_TIMER,
     STATE_CLASS_MEASUREMENT,
+    STATE_CLASS_TOTAL_INCREASING,
     UNIT_CELSIUS,
     UNIT_CENTIMETER,
+    UNIT_MILLISECOND,
 )
 
-from . import CONF_TFLUNA_ID, TFLunaComponent
+from . import CONF_TFLUNA_ID, CONF_TIMESTAMP, TFLunaComponent
 
 DEPENDENCIES = ["tfluna"]
 
@@ -45,6 +49,14 @@ CONFIG_SCHEMA = {
         state_class=STATE_CLASS_MEASUREMENT,
         entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
     ),
+    cv.Optional(CONF_TIMESTAMP): sensor.sensor_schema(
+        icon=ICON_TIMER,
+        accuracy_decimals=0,
+        unit_of_measurement=UNIT_MILLISECOND,
+        device_class=DEVICE_CLASS_DURATION,
+        state_class=STATE_CLASS_TOTAL_INCREASING,
+        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+    ),
 }
 
 
@@ -59,3 +71,6 @@ async def to_code(config):
     if signal_strength_config := config.get(CONF_SIGNAL_STRENGTH):
         sens = await sensor.new_sensor(signal_strength_config)
         cg.add(tfluna_component.set_signal_strength_sensor(sens))
+    if timestamp_config := config.get(CONF_TIMESTAMP):
+        sens = await sensor.new_sensor(timestamp_config)
+        cg.add(tfluna_component.set_timestamp_sensor(sens))
