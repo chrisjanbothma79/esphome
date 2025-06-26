@@ -5,6 +5,7 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/log.h"
 
 #if CONFIG_MBEDTLS_CERTIFICATE_BUNDLE
 #include "esp_crt_bundle.h"
@@ -23,6 +24,8 @@ static const uint32_t ERROR_COUNT_NO_DATA_READ_TIMEOUT = 100;
 static const size_t HTTP_STREAM_BUFFER_SIZE = 2048;
 
 static const uint8_t MAX_REDIRECTIONS = 5;
+
+static const char *const TAG = "audio_reader";
 
 // Some common HTTP status codes - borrowed from http_request component accessed 20241224
 enum HttpStatus {
@@ -116,12 +119,14 @@ esp_err_t AudioReader::start(const std::string &uri, AudioFileType &file_type) {
   esp_err_t err = esp_http_client_open(this->client_, 0);
 
   if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to open URL");
     this->cleanup_connection_();
     return err;
   }
 
   int64_t header_length = esp_http_client_fetch_headers(this->client_);
   if (header_length < 0) {
+    ESP_LOGE(TAG, "Failed to fetch headers");
     this->cleanup_connection_();
     return ESP_FAIL;
   }
