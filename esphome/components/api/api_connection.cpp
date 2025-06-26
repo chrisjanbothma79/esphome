@@ -60,10 +60,6 @@ uint32_t APIConnection::get_batch_delay_ms_() const { return this->parent_->get_
 void APIConnection::start() {
   this->last_traffic_ = App.get_loop_component_start_time();
 
-  // Set next_ping_retry_ to prevent immediate ping
-  // This ensures the first ping happens after the keepalive period
-  this->next_ping_retry_ = this->last_traffic_ + KEEPALIVE_TIMEOUT_MS;
-
   APIError err = this->helper_->init();
   if (err != APIError::OK) {
     on_fatal_error();
@@ -161,30 +157,21 @@ void APIConnection::loop() {
   if (!this->initial_state_iterator_.completed() && this->list_entities_iterator_.completed())
     this->initial_state_iterator_.advance();
 
-  static uint8_t max_ping_retries = 60;
-  static uint16_t ping_retry_interval = 1000;
   if (this->sent_ping_) {
     // Disconnect if not responded within 2.5*keepalive
     if (now - this->last_traffic_ > (KEEPALIVE_TIMEOUT_MS * 5) / 2) {
       on_fatal_error();
       ESP_LOGW(TAG, "%s is unresponsive; disconnecting", this->get_client_combined_info().c_str());
     }
-  } else if (now - this->last_traffic_ > KEEPALIVE_TIMEOUT_MS && now > this->next_ping_retry_) {
+  } else if (now - this->last_traffic_ > KEEPALIVE_TIMEOUT_MS) {
     ESP_LOGVV(TAG, "Sending keepalive PING");
     this->sent_ping_ = this->send_message(PingRequest());
     if (!this->sent_ping_) {
-      this->next_ping_retry_ = now + ping_retry_interval;
-      this->ping_retries_++;
-      std::string warn_str = str_sprintf("%s: Sending keepalive failed %u time(s);",
-                                         this->get_client_combined_info().c_str(), this->ping_retries_);
-      if (this->ping_retries_ >= max_ping_retries) {
-        on_fatal_error();
-        ESP_LOGE(TAG, "%s disconnecting", warn_str.c_str());
-      } else if (this->ping_retries_ >= 10) {
-        ESP_LOGW(TAG, "%s retrying in %u ms", warn_str.c_str(), ping_retry_interval);
-      } else {
-        ESP_LOGD(TAG, "%s retrying in %u ms", warn_str.c_str(), ping_retry_interval);
-      }
+      // If we can't send the ping request directly (tx_buffer full),
+      // schedule it at the front of the batch so it will be sent with priority
+      ESP_LOGVV(TAG, "Failed to send ping directly, scheduling at front of batch");
+      this->schedule_message_front_(nullptr, &APIConnection::try_send_ping_request, PingRequest::MESSAGE_TYPE);
+      this->sent_ping_ = true;  // Mark as sent to avoid scheduling multiple pings
     }
   }
 
@@ -1760,6 +1747,11 @@ void APIConnection::DeferredBatch::add_item(EntityBase *entity, MessageCreator c
   items.emplace_back(entity, std::move(creator), message_type);
 }
 
+void APIConnection::DeferredBatch::add_item_front(EntityBase *entity, MessageCreator creator, uint16_t message_type) {
+  // Insert at front for high priority messages (no deduplication check)
+  items.insert(items.begin(), BatchItem(entity, std::move(creator), message_type));
+}
+
 bool APIConnection::schedule_batch_() {
   if (!this->deferred_batch_.batch_scheduled) {
     this->deferred_batch_.batch_scheduled = true;
@@ -1936,6 +1928,12 @@ uint16_t APIConnection::try_send_disconnect_request(EntityBase *entity, APIConne
                                                     bool is_single) {
   DisconnectRequest req;
   return encode_message_to_buffer(req, DisconnectRequest::MESSAGE_TYPE, conn, remaining_size, is_single);
+}
+
+uint16_t APIConnection::try_send_ping_request(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
+                                              bool is_single) {
+  PingRequest req;
+  return encode_message_to_buffer(req, PingRequest::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 
 uint16_t APIConnection::get_estimated_message_size(uint16_t message_type) {
