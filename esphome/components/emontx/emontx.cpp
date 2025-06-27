@@ -251,7 +251,7 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
 
       // Re-enable MQTT component
       mqtt::global_mqtt_client->set_keep_alive(60);  // Default keepalive
-      mqtt::global_mqtt_client->reconnect();
+      mqtt::global_mqtt_client->enable();            // Proper method to re-enable MQTT
     } else {
       ESP_LOGV(TAG, "MQTT circuit breaker active - skipping MQTT operations");
       return;
