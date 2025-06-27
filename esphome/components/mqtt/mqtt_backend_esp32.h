@@ -7,9 +7,10 @@
 #include <string>
 #include <queue>
 #include <mqtt_client.h>
+#include "lockfreequeue.h"
+#include "event_pool.h"
 #include "esphome/components/network/ip_address.h"
 #include "esphome/core/helpers.h"
-#include <freertos/queue.h>
 
 namespace esphome {
 namespace mqtt {
@@ -58,7 +59,6 @@ class MQTTBackendESP32 final : public MQTTBackend {
   static const size_t TASK_STACK_SIZE = 4096;
   static const ssize_t TASK_PRIORITY = 5;
   static const uint32_t MQTT_QUEUE_LENGTH = 20;
-  static const uint32_t MQTT_QUEUE_WAIT = 20;  // Max time (ms) to wait to enqueue message.
 
   void set_keep_alive(uint16_t keep_alive) final { this->keep_alive_ = keep_alive; }
   void set_client_id(const char *client_id) final { this->client_id_ = client_id; }
@@ -156,13 +156,11 @@ class MQTTBackendESP32 final : public MQTTBackend {
     if (this->task_handle_)
       vTaskDelete(this->task_handle_);
 
-    if (this->mqtt_queue_) {
-      struct QueueElement elem;
-      while (xQueueReceive(this->mqtt_queue_, &elem, 0)) {
-        free(elem.topic);    // NOLINT
-        free(elem.payload);  // NOLINT
-      }
-      vQueueDelete(this->mqtt_queue_);
+    struct QueueElement *elem;
+    while ((elem = this->mqtt_queue_.pop())) {
+      free(elem->topic);    // NOLINT
+      free(elem->payload);  // NOLINT
+      this->mqtt_event_pool_.release(elem);
     }
 #endif
   }
@@ -200,7 +198,8 @@ class MQTTBackendESP32 final : public MQTTBackend {
   bool skip_cert_cn_check_{false};
 #if defined(USE_MQTT_IDF_ENQUEUE)
   static void esphome_mqtt_task(void *params);
-  QueueHandle_t mqtt_queue_;
+  EventPool<struct QueueElement, MQTT_QUEUE_LENGTH> mqtt_event_pool_;
+  LockFreeQueue<struct QueueElement, MQTT_QUEUE_LENGTH> mqtt_queue_;
   TaskHandle_t task_handle_;
   bool enqueue_(esp_mqtt_event_id_t type, const char *topic, int qos = 0, bool retain = false,
                 const char *payload = NULL, size_t len = 0);
