@@ -220,15 +220,15 @@ void MQTTBackendESP32::esphome_mqtt_task(void *params) {
     while ((elem = this_mqtt->mqtt_queue_.pop()) != nullptr) {
       if (this_mqtt->is_connected_) {
         switch (elem->type) {
-          case MQTT_EVENT_SUBSCRIBED:
+          case MQTT_QUEUE_TYPE_SUBSCRIBE:
             esp_mqtt_client_subscribe(this_mqtt->handler_.get(), elem->topic, elem->qos);
             break;
 
-          case MQTT_EVENT_UNSUBSCRIBED:
+          case MQTT_QUEUE_TYPE_UNSUBSCRIBE:
             esp_mqtt_client_unsubscribe(this_mqtt->handler_.get(), elem->topic);
             break;
 
-          case MQTT_EVENT_PUBLISHED:
+          case MQTT_QUEUE_TYPE_PUBLISH:
             esp_mqtt_client_publish(this_mqtt->handler_.get(), elem->topic, elem->payload, elem->payload_len, elem->qos,
                                     elem->retain);
             break;
@@ -253,7 +253,7 @@ void MQTTBackendESP32::esphome_mqtt_task(void *params) {
   vTaskDelete(nullptr);
 }
 
-bool MQTTBackendESP32::enqueue_(esp_mqtt_event_id_t type, const char *topic, int qos, bool retain, const char *payload,
+bool MQTTBackendESP32::enqueue_(mqtt_queue_type_t type, const char *topic, int qos, bool retain, const char *payload,
                                 size_t len) {
   // Don't accept new items if shutting down
   if (this->shutdown_requested_.load(std::memory_order_acquire)) {

@@ -46,20 +46,27 @@ struct Event {
         error_handle(*event.error_handle) {}
 };
 
+enum mqtt_queue_type_t : uint8_t {
+  MQTT_QUEUE_TYPE_NONE = 0,
+  MQTT_QUEUE_TYPE_SUBSCRIBE,
+  MQTT_QUEUE_TYPE_UNSUBSCRIBE,
+  MQTT_QUEUE_TYPE_PUBLISH,
+};
+
 struct QueueElement {
-  esp_mqtt_event_id_t type;
   char *topic;
   char *payload;
-  uint16_t payload_len;  // MQTT max payload is 64KB
-  uint8_t qos : 2;       // QoS only needs values 0-2
+  uint16_t payload_len;  // MQTT max payload is 64KiB
+  uint8_t type : 2;
+  uint8_t qos : 2;  // QoS only needs values 0-2
   uint8_t retain : 1;
-  uint8_t reserved : 5;  // Reserved for future use
+  uint8_t reserved : 3;  // Reserved for future use
 
   QueueElement() : topic(nullptr), payload(nullptr), payload_len(0), qos(0), retain(0), reserved(0) {}
 
   // Helper to set topic/payload (handles malloc)
   bool set_data(const char *topic_str, const char *payload_data, size_t len) {
-    // Check payload size limit (MQTT max is 64KB)
+    // Check payload size limit (MQTT max is 64KiB)
     if (len > UINT16_MAX) {
       return false;
     }
@@ -103,7 +110,7 @@ class MQTTBackendESP32 final : public MQTTBackend {
   static const size_t MQTT_BUFFER_SIZE = 4096;
   static const size_t TASK_STACK_SIZE = 4096;
   static const ssize_t TASK_PRIORITY = 5;
-  static const uint8_t MQTT_QUEUE_LENGTH = 30;  // Was 20*24 bytes = 480, now 30*16 bytes = 480
+  static const uint8_t MQTT_QUEUE_LENGTH = 30;  // 30*12 bytes = 360
 
   void set_keep_alive(uint16_t keep_alive) final { this->keep_alive_ = keep_alive; }
   void set_client_id(const char *client_id) final { this->client_id_ = client_id; }
@@ -165,14 +172,14 @@ class MQTTBackendESP32 final : public MQTTBackend {
 
   bool subscribe(const char *topic, uint8_t qos) final {
 #if defined(USE_MQTT_IDF_ENQUEUE)
-    return enqueue_(MQTT_EVENT_SUBSCRIBED, topic, qos);
+    return enqueue_(MQTT_QUEUE_TYPE_SUBSCRIBE, topic, qos);
 #else
     return esp_mqtt_client_subscribe(handler_.get(), topic, qos) != -1;
 #endif
   }
   bool unsubscribe(const char *topic) final {
 #if defined(USE_MQTT_IDF_ENQUEUE)
-    return enqueue_(MQTT_EVENT_UNSUBSCRIBED, topic);
+    return enqueue_(MQTT_QUEUE_TYPE_UNSUBSCRIBE, topic);
 #else
     return esp_mqtt_client_unsubscribe(handler_.get(), topic) != -1;
 #endif
@@ -180,7 +187,7 @@ class MQTTBackendESP32 final : public MQTTBackend {
 
   bool publish(const char *topic, const char *payload, size_t length, uint8_t qos, bool retain) final {
 #if defined(USE_MQTT_IDF_ENQUEUE)
-    return enqueue_(MQTT_EVENT_PUBLISHED, topic, qos, retain, payload, length);
+    return enqueue_(MQTT_QUEUE_TYPE_PUBLISH, topic, qos, retain, payload, length);
 #else
     // might block for several seconds, either due to network timeout (10s)
     // or if publishing payloads longer than internal buffer (due to message fragmentation)
@@ -246,8 +253,8 @@ class MQTTBackendESP32 final : public MQTTBackend {
   LockFreeQueue<struct QueueElement, MQTT_QUEUE_LENGTH> mqtt_queue_;
   TaskHandle_t task_handle_{nullptr};
   std::atomic<bool> shutdown_requested_{false};
-  bool enqueue_(esp_mqtt_event_id_t type, const char *topic, int qos = 0, bool retain = false,
-                const char *payload = NULL, size_t len = 0);
+  bool enqueue_(mqtt_queue_type_t type, const char *topic, int qos = 0, bool retain = false, const char *payload = NULL,
+                size_t len = 0);
 #endif
 
   // callbacks
