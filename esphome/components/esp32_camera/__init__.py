@@ -1,7 +1,6 @@
 from esphome import pins
 import esphome.codegen as cg
-from esphome.components import camera
-from esphome.components import i2c
+from esphome.components import camera, i2c
 from esphome.components.esp32 import add_idf_component
 import esphome.config_validation as cv
 from esphome.const import (
@@ -206,6 +205,10 @@ CONFIG_SCHEMA = cv.All(
                 cv.framerate, cv.Range(min=0, max=1)
             ),
             cv.Optional(CONF_FRAME_BUFFER_COUNT, default=1): cv.int_range(min=1, max=2),
+        }
+    )
+    .extend(cv.COMPONENT_SCHEMA)
+    .extend(camera.CAMERA_AUTOMATION_SCHEMA),
     cv.has_exactly_one_key(CONF_I2C_PINS, CONF_I2C_ID),
 )
 

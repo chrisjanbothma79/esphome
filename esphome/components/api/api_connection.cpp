@@ -38,8 +38,8 @@ static constexpr uint16_t PING_RETRY_INTERVAL = 1000;
 static constexpr uint32_t KEEPALIVE_DISCONNECT_TIMEOUT = (KEEPALIVE_TIMEOUT_MS * 5) / 2;
 
 static const char *const TAG = "api.connection";
-#ifdef USE_ESP32_CAMERA
-static const int ESP32_CAMERA_STOP_STREAM = 5000;
+#ifdef USE_CAMERA
+static const int CAMERA_STOP_STREAM = 5000;
 #endif
 
 APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *parent)
@@ -1203,7 +1203,7 @@ void APIConnection::camera_image(const CameraImageRequest &msg) {
   if (msg.stream) {
     camera::Camera::instance()->start_stream(esphome::camera::API_REQUESTER);
 
-    App.scheduler.set_timeout(this->parent_, "api_esp32_camera_stop_stream", ESP32_CAMERA_STOP_STREAM,
+    App.scheduler.set_timeout(this->parent_, "api_camera_stop_stream", CAMERA_STOP_STREAM,
                               []() { camera::Camera::instance()->stop_stream(esphome::camera::API_REQUESTER); });
   }
 }

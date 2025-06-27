@@ -207,16 +207,20 @@ bool CameraImpl::camera_loop() {
 void CameraImpl::loop() { camera_loop(); }
 
 void CameraImpl::dump_config() {
-  ESP_LOGCONFIG(TAG, "Camera:");
-  ESP_LOGCONFIG(TAG, "  Name: %s", this->name_.c_str());
-  ESP_LOGCONFIG(TAG, "  Internal: %s", YESNO(this->internal_));
-  ESP_LOGCONFIG(TAG, "  Resolution: %dx%d", camera_image_spec_.width, camera_image_spec_.height);
-  ESP_LOGCONFIG(TAG, "  Format: %d", camera_image_spec_.format);
-  ESP_LOGCONFIG(TAG, "  Encoder enabled: %s", YESNO(this->encoder_));
-  ESP_LOGCONFIG(TAG, "  Encoder size: %d", encoder_buffer_size_);
-  ESP_LOGCONFIG(TAG, "  Encoder grow: %d", encoder_buffer_grow_);
-  ESP_LOGCONFIG(TAG, "  Idle update: %d ms", idle_update_interval_);
-  ESP_LOGCONFIG(TAG, "  Max update: %d ms", max_update_interval_);
+  ESP_LOGCONFIG(TAG,
+                "Camera:\n"
+                "  Name: %s\n"
+                "  Internal: %s\n"
+                "  Resolution: %dx%d\n"
+                "  Format: %d\n"
+                "  Encoder enabled: %s\n"
+                "  Encoder size: %d\n"
+                "  Encoder grow: %d\n"
+                "  Idle update: %d ms\n"
+                "  Max update: %d ms",
+                this->name_.c_str(), YESNO(this->is_internal()), camera_image_spec_.width, camera_image_spec_.height,
+                camera_image_spec_.format, YESNO(this->encoder_), encoder_buffer_size_, encoder_buffer_grow_,
+                idle_update_interval_, max_update_interval_);
 }
 
 }  // namespace camera

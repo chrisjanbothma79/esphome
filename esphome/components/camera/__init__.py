@@ -2,7 +2,7 @@ from esphome import automation
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_HEIGHT, CONF_ID, CONF_TRIGGER_ID, CONF_WIDTH
-from esphome.cpp_helpers import setup_entity
+from esphome.core.entity_helpers import setup_entity
 
 CODEOWNERS = ["@DT-art1"]
 
@@ -159,7 +159,7 @@ async def setup_camera(var, config):
         )
     )
 
-    await setup_entity(var, config)
+    await setup_entity(var, config, "camera")
     await setup_camera_automation(var, config)
     await cg.register_component(var, config)
     if CONF_ENCODER_ID in config:
