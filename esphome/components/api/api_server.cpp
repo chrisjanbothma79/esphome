@@ -104,7 +104,7 @@ void APIServer::setup() {
         return;
       }
       for (auto &c : this->clients_) {
-        if (!c->flags_.remove)
+        if (!c->remove_)
           c->try_send_log_message(level, tag, message);
       }
     });
@@ -116,7 +116,7 @@ void APIServer::setup() {
     esp32_camera::global_esp32_camera->add_image_callback(
         [this](const std::shared_ptr<esp32_camera::CameraImage> &image) {
           for (auto &c : this->clients_) {
-            if (!c->flags_.remove)
+            if (!c->remove_)
               c->set_camera_state(image);
           }
         });
@@ -176,7 +176,7 @@ void APIServer::loop() {
   while (client_index < this->clients_.size()) {
     auto &client = this->clients_[client_index];
 
-    if (!client->flags_.remove) {
+    if (!client->remove_) {
       // Common case: process active client
       client->loop();
       client_index++;
@@ -184,7 +184,7 @@ void APIServer::loop() {
     }
 
     // Rare case: handle disconnection
-    this->client_disconnected_trigger_->trigger(client->client_info_, client->helper_->getpeername());
+    this->client_disconnected_trigger_->trigger(client->client_info_, client->client_peername_);
     ESP_LOGV(TAG, "Remove connection %s", client->client_info_.c_str());
 
     // Swap with the last element and pop (avoids expensive vector shifts)
@@ -502,7 +502,7 @@ bool APIServer::save_noise_psk(psk_t psk, bool make_active) {
 #ifdef USE_HOMEASSISTANT_TIME
 void APIServer::request_time() {
   for (auto &client : this->clients_) {
-    if (!client->flags_.remove && client->is_authenticated())
+    if (!client->remove_ && client->is_authenticated())
       client->send_time_request();
   }
 }
@@ -526,8 +526,8 @@ void APIServer::on_shutdown() {
   for (auto &c : this->clients_) {
     if (!c->send_message(DisconnectRequest())) {
       // If we can't send the disconnect request directly (tx_buffer full),
-      // schedule it at the front of the batch so it will be sent with priority
-      c->schedule_message_front_(nullptr, &APIConnection::try_send_disconnect_request, DisconnectRequest::MESSAGE_TYPE);
+      // schedule it in the batch so it will be sent with the 5ms timer
+      c->schedule_message_(nullptr, &APIConnection::try_send_disconnect_request, DisconnectRequest::MESSAGE_TYPE);
     }
   }
 }

@@ -65,6 +65,10 @@ uint32_t APIConnection::get_batch_delay_ms_() const { return this->parent_->get_
 void APIConnection::start() {
   this->last_traffic_ = App.get_loop_component_start_time();
 
+  // Set next_ping_retry_ to prevent immediate ping
+  // This ensures the first ping happens after the keepalive period
+  this->next_ping_retry_ = this->last_traffic_ + KEEPALIVE_TIMEOUT_MS;
+
   APIError err = this->helper_->init();
   if (err != APIError::OK) {
     on_fatal_error();
@@ -73,6 +77,7 @@ void APIConnection::start() {
     return;
   }
   this->client_info_ = helper_->getpeername();
+  this->client_peername_ = this->client_info_;
   this->helper_->set_log_info(this->client_info_);
 }
 
@@ -90,10 +95,10 @@ APIConnection::~APIConnection() {
 }
 
 void APIConnection::loop() {
-  if (this->flags_.next_close) {
+  if (this->next_close_) {
     // requested a disconnect
     this->helper_->close();
-    this->flags_.remove = true;
+    this->remove_ = true;
     return;
   }
 
@@ -134,14 +139,15 @@ void APIConnection::loop() {
         } else {
           this->read_message(0, buffer.type, nullptr);
         }
-        if (this->flags_.remove)
+        if (this->remove_)
           return;
       }
     }
   }
 
   // Process deferred batch if scheduled
-  if (this->flags_.batch_scheduled && now - this->deferred_batch_.batch_start_time >= this->get_batch_delay_ms_()) {
+  if (this->deferred_batch_.batch_scheduled &&
+      now - this->deferred_batch_.batch_start_time >= this->get_batch_delay_ms_()) {
     this->process_batch_();
   }
 
@@ -151,21 +157,26 @@ void APIConnection::loop() {
     this->initial_state_iterator_.advance();
   }
 
-  if (this->flags_.sent_ping) {
+  if (this->sent_ping_) {
     // Disconnect if not responded within 2.5*keepalive
     if (now - this->last_traffic_ > KEEPALIVE_DISCONNECT_TIMEOUT) {
       on_fatal_error();
       ESP_LOGW(TAG, "%s is unresponsive; disconnecting", this->get_client_combined_info().c_str());
     }
-  } else if (now - this->last_traffic_ > KEEPALIVE_TIMEOUT_MS) {
+  } else if (now - this->last_traffic_ > KEEPALIVE_TIMEOUT_MS && now > this->next_ping_retry_) {
     ESP_LOGVV(TAG, "Sending keepalive PING");
-    this->flags_.sent_ping = this->send_message(PingRequest());
-    if (!this->flags_.sent_ping) {
-      // If we can't send the ping request directly (tx_buffer full),
-      // schedule it at the front of the batch so it will be sent with priority
-      ESP_LOGW(TAG, "Buffer full, ping queued");
-      this->schedule_message_front_(nullptr, &APIConnection::try_send_ping_request, PingRequest::MESSAGE_TYPE);
-      this->flags_.sent_ping = true;  // Mark as sent to avoid scheduling multiple pings
+    this->sent_ping_ = this->send_message(PingRequest());
+    if (!this->sent_ping_) {
+      this->next_ping_retry_ = now + PING_RETRY_INTERVAL;
+      this->ping_retries_++;
+      if (this->ping_retries_ >= MAX_PING_RETRIES) {
+        on_fatal_error();
+        ESP_LOGE(TAG, "%s: Ping failed %u times", this->get_client_combined_info().c_str(), this->ping_retries_);
+      } else if (this->ping_retries_ >= 10) {
+        ESP_LOGW(TAG, "%s: Ping retry %u", this->get_client_combined_info().c_str(), this->ping_retries_);
+      } else {
+        ESP_LOGD(TAG, "%s: Ping retry %u", this->get_client_combined_info().c_str(), this->ping_retries_);
+      }
     }
   }
 
@@ -225,13 +236,13 @@ DisconnectResponse APIConnection::disconnect(const DisconnectRequest &msg) {
   // don't close yet, we still need to send the disconnect response
   // close will happen on next loop
   ESP_LOGD(TAG, "%s disconnected", this->get_client_combined_info().c_str());
-  this->flags_.next_close = true;
+  this->next_close_ = true;
   DisconnectResponse resp;
   return resp;
 }
 void APIConnection::on_disconnect_response(const DisconnectResponse &value) {
   this->helper_->close();
-  this->flags_.remove = true;
+  this->remove_ = true;
 }
 
 // Encodes a message to the buffer and returns the total number of bytes used,
@@ -1157,7 +1168,7 @@ void APIConnection::media_player_command(const MediaPlayerCommandRequest &msg) {
 
 #ifdef USE_ESP32_CAMERA
 void APIConnection::set_camera_state(std::shared_ptr<esp32_camera::CameraImage> image) {
-  if (!this->flags_.state_subscription)
+  if (!this->state_subscription_)
     return;
   if (this->image_reader_.available())
     return;
@@ -1511,7 +1522,7 @@ void APIConnection::update_command(const UpdateCommandRequest &msg) {
 #endif
 
 bool APIConnection::try_send_log_message(int level, const char *tag, const char *line) {
-  if (this->flags_.log_subscription < level)
+  if (this->log_subscription_ < level)
     return false;
 
   // Pre-calculate message size to avoid reallocations
@@ -1539,11 +1550,12 @@ bool APIConnection::try_send_log_message(int level, const char *tag, const char 
 
 HelloResponse APIConnection::hello(const HelloRequest &msg) {
   this->client_info_ = msg.client_info;
+  this->client_peername_ = this->helper_->getpeername();
   this->helper_->set_log_info(this->get_client_combined_info());
   this->client_api_version_major_ = msg.api_version_major;
   this->client_api_version_minor_ = msg.api_version_minor;
   ESP_LOGV(TAG, "Hello from client: '%s' | %s | API Version %" PRIu32 ".%" PRIu32, this->client_info_.c_str(),
-           this->helper_->getpeername().c_str(), this->client_api_version_major_, this->client_api_version_minor_);
+           this->client_peername_.c_str(), this->client_api_version_major_, this->client_api_version_minor_);
 
   HelloResponse resp;
   resp.api_version_major = 1;
@@ -1551,7 +1563,7 @@ HelloResponse APIConnection::hello(const HelloRequest &msg) {
   resp.server_info = App.get_name() + " (esphome v" ESPHOME_VERSION ")";
   resp.name = App.get_name();
 
-  this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::CONNECTED);
+  this->connection_state_ = ConnectionState::CONNECTED;
   return resp;
 }
 ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
@@ -1562,8 +1574,8 @@ ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
   resp.invalid_password = !correct;
   if (correct) {
     ESP_LOGD(TAG, "%s connected", this->get_client_combined_info().c_str());
-    this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::AUTHENTICATED);
-    this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->helper_->getpeername());
+    this->connection_state_ = ConnectionState::AUTHENTICATED;
+    this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->client_peername_);
 #ifdef USE_HOMEASSISTANT_TIME
     if (homeassistant::global_homeassistant_time != nullptr) {
       this->send_time_request();
@@ -1676,7 +1688,7 @@ void APIConnection::subscribe_home_assistant_states(const SubscribeHomeAssistant
   state_subs_at_ = 0;
 }
 bool APIConnection::try_to_clear_buffer(bool log_out_of_space) {
-  if (this->flags_.remove)
+  if (this->remove_)
     return false;
   if (this->helper_->can_write_without_blocking())
     return true;
@@ -1726,7 +1738,7 @@ void APIConnection::on_no_setup_connection() {
 }
 void APIConnection::on_fatal_error() {
   this->helper_->close();
-  this->flags_.remove = true;
+  this->remove_ = true;
 }
 
 void APIConnection::DeferredBatch::add_item(EntityBase *entity, MessageCreator creator, uint16_t message_type) {
@@ -1745,14 +1757,9 @@ void APIConnection::DeferredBatch::add_item(EntityBase *entity, MessageCreator c
   items.emplace_back(entity, std::move(creator), message_type);
 }
 
-void APIConnection::DeferredBatch::add_item_front(EntityBase *entity, MessageCreator creator, uint16_t message_type) {
-  // Insert at front for high priority messages (no deduplication check)
-  items.insert(items.begin(), BatchItem(entity, std::move(creator), message_type));
-}
-
 bool APIConnection::schedule_batch_() {
-  if (!this->flags_.batch_scheduled) {
-    this->flags_.batch_scheduled = true;
+  if (!this->deferred_batch_.batch_scheduled) {
+    this->deferred_batch_.batch_scheduled = true;
     this->deferred_batch_.batch_start_time = App.get_loop_component_start_time();
   }
   return true;
@@ -1768,7 +1775,7 @@ ProtoWriteBuffer APIConnection::allocate_batch_message_buffer(uint16_t size) {
 
 void APIConnection::process_batch_() {
   if (this->deferred_batch_.empty()) {
-    this->flags_.batch_scheduled = false;
+    this->deferred_batch_.batch_scheduled = false;
     return;
   }
 
@@ -1929,12 +1936,6 @@ uint16_t APIConnection::try_send_disconnect_request(EntityBase *entity, APIConne
                                                     bool is_single) {
   DisconnectRequest req;
   return encode_message_to_buffer(req, DisconnectRequest::MESSAGE_TYPE, conn, remaining_size, is_single);
-}
-
-uint16_t APIConnection::try_send_ping_request(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
-                                              bool is_single) {
-  PingRequest req;
-  return encode_message_to_buffer(req, PingRequest::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 
 uint16_t APIConnection::get_estimated_message_size(uint16_t message_type) {
