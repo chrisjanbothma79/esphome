@@ -94,6 +94,9 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
     return next_tail == head_.load(std::memory_order_acquire);
   }
 
+  // Set the FreeRTOS task handle to notify when items are pushed to the queue
+  // This enables efficient wake-up of a consumer task that's waiting for data
+  // @param task The FreeRTOS task handle to notify, or nullptr to disable notifications
   void set_task_to_notify(TaskHandle_t task) { task_to_notify_ = task; }
 
  protected:

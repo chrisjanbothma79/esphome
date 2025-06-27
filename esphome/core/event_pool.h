@@ -18,8 +18,12 @@ template<class T, uint8_t SIZE> class EventPool {
   ~EventPool() {
     // Clean up any remaining events in the free list
     T *event;
+    RAMAllocator<T> allocator(RAMAllocator<T>::ALLOC_INTERNAL);
     while ((event = this->free_list_.pop()) != nullptr) {
-      delete event;
+      // Call destructor
+      event->~T();
+      // Deallocate using RAMAllocator
+      allocator.deallocate(event, 1);
     }
   }
 
