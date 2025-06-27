@@ -113,7 +113,7 @@ void OpenThreadComponent::ot_main() {
   ESP_LOGI(TAG, "Activating dataset...");
   otOperationalDatasetTlvs dataset = {};
 
-#ifndef OPENTHREAD_FORCE_DATASET
+#ifndef USE_OPENTHREAD_FORCE_DATASET
   // Check if openthread has a valid dataset from a previous execution
   otError error = otDatasetGetActiveTlvs(esp_openthread_get_instance(), &dataset);
   if (error != OT_ERROR_NONE) {
@@ -125,15 +125,15 @@ void OpenThreadComponent::ot_main() {
   }
 #endif
 
-#ifdef OPENTHREAD_TLVS
+#ifdef USE_OPENTHREAD_TLVS
   if (dataset.mLength == 0) {
     // If we didn't have an active dataset, and we have tlvs, parse it and pass it to esp_openthread_auto_start
-    size_t len = (sizeof(OPENTHREAD_TLVS) - 1) / 2;
+    size_t len = (sizeof(USE_OPENTHREAD_TLVS) - 1) / 2;
     if (len > sizeof(dataset.mTlvs)) {
       ESP_LOGW(TAG, "TLV buffer too small, truncating");
       len = sizeof(dataset.mTlvs);
     }
-    parse_hex(OPENTHREAD_TLVS, sizeof(OPENTHREAD_TLVS) - 1, dataset.mTlvs, len);
+    parse_hex(USE_OPENTHREAD_TLVS, sizeof(USE_OPENTHREAD_TLVS) - 1, dataset.mTlvs, len);
     dataset.mLength = len;
   }
 #endif
