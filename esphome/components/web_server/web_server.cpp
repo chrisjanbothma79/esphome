@@ -184,6 +184,7 @@ void DeferredUpdateEventSourceList::on_client_connect_(WebServer *ws, DeferredUp
   std::string message = ws->get_config_json();
   source->try_send_nodefer(message.c_str(), "ping", millis(), 30000);
 
+#ifdef USE_WEBSERVER_SORTING
   for (auto &group : ws->sorting_groups_) {
     message = json::build_json([group](JsonObject root) {
       root["name"] = group.second.name;
@@ -193,6 +194,7 @@ void DeferredUpdateEventSourceList::on_client_connect_(WebServer *ws, DeferredUp
     // up to 31 groups should be able to be queued initially without defer
     source->try_send_nodefer(message.c_str(), "sorting_group");
   }
+#endif
 
   source->entities_iterator_.begin(ws->include_internal_);
 
@@ -2060,6 +2062,18 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
 
 bool WebServer::isRequestHandlerTrivial() const { return false; }
 
+void WebServer::add_sorting_info_(JsonObject &root, EntityBase *entity) {
+#ifdef USE_WEBSERVER_SORTING
+  if (this->sorting_entitys_.find(entity) != this->sorting_entitys_.end()) {
+    root["sorting_weight"] = this->sorting_entitys_[entity].weight;
+    if (this->sorting_groups_.find(this->sorting_entitys_[entity].group_id) != this->sorting_groups_.end()) {
+      root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[entity].group_id].name;
+    }
+  }
+#endif
+}
+
+#ifdef USE_WEBSERVER_SORTING
 void WebServer::add_entity_config(EntityBase *entity, float weight, uint64_t group) {
   this->sorting_entitys_[entity] = SortingComponents{weight, group};
 }
@@ -2067,15 +2081,7 @@ void WebServer::add_entity_config(EntityBase *entity, float weight, uint64_t gro
 void WebServer::add_sorting_group(uint64_t group_id, const std::string &group_name, float weight) {
   this->sorting_groups_[group_id] = SortingGroup{group_name, weight};
 }
-
-void WebServer::add_sorting_info_(JsonObject &root, EntityBase *entity) {
-  if (this->sorting_entitys_.find(entity) != this->sorting_entitys_.end()) {
-    root["sorting_weight"] = this->sorting_entitys_[entity].weight;
-    if (this->sorting_groups_.find(this->sorting_entitys_[entity].group_id) != this->sorting_groups_.end()) {
-      root["sorting_group"] = this->sorting_groups_[this->sorting_entitys_[entity].group_id].name;
-    }
-  }
-}
+#endif
 
 void WebServer::schedule_(std::function<void()> &&f) {
 #ifdef USE_ESP32
