@@ -234,25 +234,31 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
   }
 
   // Check if MQTT client is available and connected
-  if (mqtt::global_mqtt_client == nullptr || !mqtt::global_mqtt_client->is_connected()) {
+  bool is_connected = mqtt::global_mqtt_client != nullptr && mqtt::global_mqtt_client->is_connected();
+
+  if (!is_connected) {
     // Increment failure counter
     mqtt_failure_counter_++;
-    ESP_LOGW(TAG, "MQTT not connected (failure %d/%d)", mqtt_failure_counter_, MAX_MQTT_FAILURES);
 
-    // Skip if maximum failures reached
-    if (mqtt_failure_counter_ >= MAX_MQTT_FAILURES) {
-      ESP_LOGW(TAG, "Too many consecutive MQTT connection failures, skipping publish");
-      return;
+    if (mqtt_failure_counter_ <= MAX_MQTT_FAILURES) {
+      ESP_LOGW(TAG, "MQTT not connected (failure %d/%d)", mqtt_failure_counter_, MAX_MQTT_FAILURES);
+    } else {
+      ESP_LOGW(TAG, "Too many consecutive MQTT connection failures (%d/%d), skipping publish until reconnected",
+               mqtt_failure_counter_, MAX_MQTT_FAILURES);
     }
 
-    return;
+    // Only return if we're below the limit or at/above the limit
+    if (mqtt_failure_counter_ <= MAX_MQTT_FAILURES) {
+      // Keep trying to publish even though MQTT is down (might reconnect)
+      return;
+    } else {
+      // We've exceeded the maximum failures, don't even try to publish
+      ESP_LOGD(TAG, "Skipping MQTT publish attempt due to too many failures");
+      return;
+    }
   }
 
-  if (!has_mqtt_config_ || mqtt::global_mqtt_client == nullptr || !mqtt::global_mqtt_client->is_connected()) {
-    return;
-  }
-
-  // Reset failure counter on successful connection
+  // If we got here, we're connected. Reset the failure counter if it was > 0
   if (mqtt_failure_counter_ > 0) {
     ESP_LOGI(TAG, "MQTT connection restored after %d failures", mqtt_failure_counter_);
     reset_mqtt_failure_counter_();
