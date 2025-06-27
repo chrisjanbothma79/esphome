@@ -145,30 +145,18 @@ void EthernetComponent::setup() {
   phy_config.phy_addr = this->phy_addr_;
   phy_config.reset_gpio_num = this->power_pin_;
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
   eth_esp32_emac_config_t esp32_emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 0)
   esp32_emac_config.smi_gpio.mdc_num = this->mdc_pin_;
   esp32_emac_config.smi_gpio.mdio_num = this->mdio_pin_;
-  esp32_emac_config.clock_config.rmii.clock_mode = this->clk_mode_;
-  esp32_emac_config.clock_config.rmii.clock_gpio = this->clk_pin_;
-
-  esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
-#elif ESP_IDF_VERSION_MAJOR >= 5
-  eth_esp32_emac_config_t esp32_emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
+#else
   esp32_emac_config.smi_mdc_gpio_num = this->mdc_pin_;
   esp32_emac_config.smi_mdio_gpio_num = this->mdio_pin_;
+#endif
   esp32_emac_config.clock_config.rmii.clock_mode = this->clk_mode_;
   esp32_emac_config.clock_config.rmii.clock_gpio = this->clk_pin_;
 
   esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&esp32_emac_config, &mac_config);
-#else
-  mac_config.smi_mdc_gpio_num = this->mdc_pin_;
-  mac_config.smi_mdio_gpio_num = this->mdio_pin_;
-  mac_config.clock_config.rmii.clock_mode = this->clk_mode_;
-  mac_config.clock_config.rmii.clock_gpio = this->clk_pin_;
-
-  esp_eth_mac_t *mac = esp_eth_mac_new_esp32(&mac_config);
-#endif
 #endif
 
   switch (this->type_) {
