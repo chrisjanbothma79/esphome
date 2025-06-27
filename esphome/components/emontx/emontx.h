@@ -127,6 +127,8 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   bool has_mqtt_config_{false};
   uint8_t mqtt_failure_counter_{0};   // Counter for consecutive MQTT connection failures
   uint32_t mqtt_next_retry_time_{0};  // Next time to attempt MQTT reconnection
+  bool mqtt_circuit_breaker_tripped_{false};
+  uint32_t mqtt_circuit_reset_time_{0};
 
   // Pre-computed MQTT topic prefix (base_prefix/topic_prefix/)
   std::string mqtt_topic_prefix_full_;
