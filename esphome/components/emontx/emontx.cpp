@@ -226,7 +226,17 @@ void EmonTx::send_to_emoncms_(const std::string &json_data) {
 
 #ifdef USE_MQTT_FORWARD
 void EmonTx::send_to_mqtt_(const std::string &json_data) {
+  static uint8_t failure_counter{0};
+
   if (!has_mqtt_config_ || mqtt::global_mqtt_client == nullptr || !mqtt::global_mqtt_client->is_connected()) {
+    ++failure_counter;
+    ESP_LOGW(TAG, "MQTT failed to connect (failure count: %d)", failure_counter);
+
+    if (failure_counter > 5) {
+      ESP_LOGE(TAG, "MQTT connection failed too many times, disabling MQTT");
+      mqtt::global_mqtt_client->disable();
+    }
+
     return;
   }
 
