@@ -64,7 +64,15 @@ class esp8266SpiDriver : public DriverInterface {
   uint32_t get_last_err() override;
   void unmount() override;
   bool test() override;
-  fsys_t *get_fs() { return vol; };
+  fsys_t *get_fs() override { return vol; };
+  bool is_mount() { return this->vol != NULL; };
+
+  card_type_t card_type() override;
+  uint64_t card_size() override;
+  size_t num_sectors() override;
+  size_t sector_size() override;
+  uint64_t total_bytes() override;
+  uint64_t used_bytes() override;
 
  protected:
   SpiConnector *connector_ = NULL;

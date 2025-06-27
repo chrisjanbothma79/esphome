@@ -17,10 +17,6 @@
 namespace esphome {
 namespace sdfs {
 
-// #define RET_STATUS_OK 0
-// #define RET_STATUS_FAIL 1
-// #define RET_STATUS_NOTCRITICAL 2
-
 enum SdDriverStatus : int {
   SD_SLOT_ST_NOTINIT = 0,
   SD_SLOT_ST_INIT = 1,
@@ -43,10 +39,6 @@ enum SdConnType {
 extern const char *fat_type2str[];
 extern const char *fs_err2str[];
 
-// #ifdef USE_SDSPI_MODE
-// extern const char *fs_err2str[];
-// #endif
-
 extern const char *host_st2str[];
 
 #ifdef USE_SDSPI_MODE
@@ -59,12 +51,7 @@ class DriverInterface;
 class SdfsHost : public Component {
   friend class SdmmcDriver;
   friend class SdfsIdfDriver;
-  friend class SdfsArduinoDriver;
-
-  // #ifdef USE_ESP_IDF
-  // #endif
-  // #ifdef USE_ARDUINO
-  // #endif
+  friend class SdfsDriver;
 
  public:
   SdfsHost();
@@ -137,6 +124,12 @@ class SdfsHost : public Component {
   uint8_t mosi_pin_{255};
 };
 
+/**
+ * @brief Interface for interconnect with SD card.
+ *  Has implementation:
+ *   esp8266SpiDriver - for erp8266 and other platforms
+ *   SdfsDriver  -  Other ESP Platforms
+ */
 class DriverInterface {
  public:
   virtual void set_parent(SdfsHost *);
@@ -148,6 +141,13 @@ class DriverInterface {
   virtual void unmount();
   virtual bool test();
   virtual fsys_t *get_fs();
+
+  virtual card_type_t card_type();
+  virtual uint64_t card_size();
+  virtual size_t num_sectors();
+  virtual size_t sector_size();
+  virtual uint64_t total_bytes();
+  virtual uint64_t used_bytes();
 
  protected:
   SdConnType bus_type_;

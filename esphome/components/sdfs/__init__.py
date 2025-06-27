@@ -205,6 +205,12 @@ CONFIG_SCHEMA = cv.All(
 
 
 async def to_code(config):
+    if CORE.using_esp_idf:
+        cg.add_build_flag("-DCONFIG_FATFS_API_ENCODING_UTF_8")
+        cg.add_build_flag("-DCONFIG_FATFS_MAX_LFN=254")
+        # cg.add_build_flag("-DCONFIG_FATFS_LFN_STACK")
+        cg.add_build_flag("-DCONFIG_FATFS_LFN_HEAP")
+
     if CORE.using_esp_idf and (config[CONF_TYPE] == "sdspi"):
         cg.add_define("USE_SDSPI_MODE")
         print("SDSPI ESP")

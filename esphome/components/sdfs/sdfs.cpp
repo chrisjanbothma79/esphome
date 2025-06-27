@@ -1,11 +1,6 @@
 #include "sdfs.h"
 #include "esphome/core/log.h"
 
-// #if defined(USE_SDSPI_MODE)
-// #include "esphome/components/spi/spi.h"
-// #include "spi_connector.h"
-// #endif
-
 /**
  * @brief  CDFS is module for connecting and mount FAT filesysyem on SD card.
  *  Drives support SPI os MMC conncetion. In case SPI connection it use esphome's SPI module.
@@ -15,30 +10,23 @@
  *  CDFS  ( SdfsHost  class)  is a central class for controlling, checking  and mounting card.
  *  esp8266_drv (esp8266SpiDriver driver) reailzation of DriverInterface  for esp8266 based boards
  *  spi_connector -  SPi interface  for connect card io operation and esphome spi module
- *  fs_interface  -  FS and File  access, read and write interface
+ *  fs_int  -  FS and File  access, read and write interface
  *
  * esp8266 boards SPI inteface
  * ---------------------------
  * SdfsHost (sdfs.cpp) -> esp8266SpiDriver (esp8266_drv.cpp) -> SdfsSpiCard (esp8266_cdio.cpp)
  *
- * Other boards with arduino framework
+ * Other boards
  * -----------------------------------
- * SdfsHost (sdfs.cpp) -> SdfsArduinoDriver (sdspi_drv_ard.cpp) --> sdspi_io    - for SPI connections
- *                                                              +-> SdmmcIO (sdmmc_io.cpp)  - for MMC connections
- *
- * Other boards with IDF framework
- * -----------------------------------
- * SdfsHost (sdfs.cpp) -> SdfsIdfDriver (sdspi_drv_idf.cpp) --> sdspi_io  - for SPI connections
- *                                                          +-> SdmmcIO (sdmmc_io.cpp)  - for MMC connections
+ * SdfsHost (sdfs.cpp) -> SdfsDriver (sdsfs_drv.cpp) --> sdspi_io (sdspi_io.cpp) --> for SPI connections
+ *                                                   +-> SdmmcIO (sdmmc_io.cpp) --> for MMC connections
  *
  */
 
-#if defined(USE_ARDUINO) && !defined(USE_ESP8266)
-#include "sdfs_drv_ard.h"
-#elif defined(USE_ARDUINO) && defined(USE_ESP8266)
+#ifndef USE_ESP8266
+#include "sdfs_drv.h"
+#else
 #include "esp8266_drv.h"
-#elif defined(USE_ESP_IDF)
-#include "sdfs_drv_idf.h"
 #endif
 
 namespace esphome {
@@ -73,7 +61,7 @@ const char *host_st2str[] = {
 };
 
 const char *fat_type2str[] = {"NO_FS", "FS_FAT12", "FS_FAT16", "FS_FAT32", "FS_EXFAT"};
-class SdfsArduinoDriver;
+class SdfsDriver;
 
 /**
  * @brief  EspHome component for univeral interface for card attach and mount controll
@@ -87,9 +75,17 @@ SdfsHost::SdfsHost() {
 #endif
   ESP_LOGD(TAG, "Host class init");
 }
-
+/**
+ * @brief Return filesystem object
+ *
+ * @return FsInterface*
+ */
 FsInterface *SdfsHost::get_fs() { return new FsInterface(this); }
 
+/**
+ * @brief Dump current params in debug console
+ *
+ */
 void SdfsHost::dump_config() {
   ESP_LOGCONFIG(TAG, "   SD Connection type: %s", this->type_ == SD_MMC ? "sdmmc" : "sdspi");
   ESP_LOGCONFIG(TAG, "   FS Root path:     %s", this->path_.c_str());
@@ -134,8 +130,13 @@ void SdfsHost::dump_config() {
   if (this->pw_ctrl_pin_ < 255)
     ESP_LOGCONFIG(TAG, "   SPI/SDIO pwr ctrl pin: %d", this->pw_ctrl_pin_);
 }
-
+/**
+ * @brief Return current SD_CARD connectiorn state
+ *
+ * @return SdDriverStatus
+ */
 SdDriverStatus SdfsHost::get_state() { return this->state_; }
+
 void SdfsHost::set_conn_type(SdConnType type) { this->type_ = type; }
 void SdfsHost::set_bus_slot(uint8_t gpio_num) { this->bus_slot_ = gpio_num; }
 void SdfsHost::set_clk_pin(uint8_t gpio_num) { this->clk_pin_ = gpio_num; }
@@ -171,38 +172,27 @@ void SdfsHost::set_state(SdDriverStatus state) {
 }
 
 /**
- * @brief  init SPI connector and SD disk driver
+ * @brief  Init SPI connector and SD disk driver
  *
  */
 void SdfsHost::setup() {
-  ESP_LOGD(TAG, "Setup called");
-
-#if defined(USE_ARDUINO) && !defined(USE_ESP8266)
-  SdfsArduinoDriver *drv = new SdfsArduinoDriver();
+#ifndef USE_ESP8266
+  SdfsDriver *drv = new SdfsDriver();
 #if defined(USE_SDSPI_MODE)
   drv->set_connector(this->connector_);
 #endif
   drv->set_parent(this);
   this->drv_ = drv;
-#elif defined(USE_ARDUINO) && defined(USE_ESP8266)  // USE_ARDUINO  with USE_ESP8266
+#else
   esp8266SpiDriver *drv = new esp8266SpiDriver();
   drv->set_connector(this->connector_);
-  drv->set_parent(this);
-  this->drv_ = drv;
-
-#elif defined(USE_ESP_IDF)  // USE_ESP_IDF
-  SdfsIdfDriver *drv = new SdfsIdfDriver();
-  drv = new SdfsIdfDriver();
-#if defined(USE_SDSPI_MODE)
-  drv->set_connector(this->connector_);
-#endif
   drv->set_parent(this);
   this->drv_ = drv;
 #endif
 
   ESP_LOGD(TAG, "Setup");
   this->last_time_check_ = ::time(nullptr);
-  this->dump_config();
+  // this->dump_config();
   if (this->drv_ == NULL) {
     ESP_LOGE(TAG, " Intialize SDMMC/SDSPI driver only for ESP-IDF or ARDUINO frameworks supported.");
     this->mark_failed();

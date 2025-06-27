@@ -140,6 +140,44 @@ bool esp8266SpiDriver::test() {
   return true;
 }
 
+card_type_t esp8266SpiDriver::card_type() {
+  // SdStatus_t status;
+  // this->sd_card->readStatus(reinterpret_cast<uint8_t *>(&status));
+  switch (this->sd_card->type()) {
+    case SD_CARD_TYPE_SDHC:
+      return C_SDHC;
+    case SD_CARD_TYPE_SD1:
+      return C_SD;
+    default:
+      return C_UNKNOWN;
+  }
+  return C_UNKNOWN;
+}
+
+uint64_t esp8266SpiDriver::card_size() {
+  csd_t csd;
+  this->sd_card->readCSD(&csd);
+  return sdCardCapacity(&csd);
+}
+
+size_t esp8266SpiDriver::num_sectors() { return this->sd_card->sectorCount(); }
+
+size_t esp8266SpiDriver::sector_size() {
+  // csd_t csd;
+  // this->sd_card->readCSD(&csd);
+  // return (csd.v1.sector_size_high << 1) | csd.v1.sector_size_low;
+  return 512;
+}
+
+uint64_t esp8266SpiDriver::total_bytes() { return card_size() * sector_size(); }
+
+uint64_t esp8266SpiDriver::used_bytes() {
+  if (is_mount()) {
+    return total_bytes() - (this->vol->freeClusterCount() * this->vol->sectorsPerCluster() * sector_size());
+  }
+  return 0;
+}
+
 }  // namespace sdfs
 }  // namespace esphome
 
