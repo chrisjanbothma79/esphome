@@ -107,7 +107,7 @@ void EmonTx::loop() {
 
 #ifdef USE_MQTT_FORWARD
         // Forward to MQTT if configured
-        if (has_mqtt_config_) {
+        if (has_mqtt_config_ && mqtt::global_mqtt_client != nullptr && mqtt::global_mqtt_client->is_connected()) {
           send_to_mqtt_(buffer_);
         }
 #endif
@@ -229,75 +229,8 @@ void EmonTx::send_to_emoncms_(const std::string &json_data) {
 
 #ifdef USE_MQTT_FORWARD
 void EmonTx::send_to_mqtt_(const std::string &json_data) {
-  if (!has_mqtt_config_) {
+  if (!has_mqtt_config_ || mqtt::global_mqtt_client == nullptr || !mqtt::global_mqtt_client->is_connected()) {
     return;
-  }
-
-  // Check if MQTT component is available
-  if (mqtt::global_mqtt_client == nullptr) {
-    ESP_LOGW(TAG, "MQTT client not available");
-    return;
-  }
-
-  // Current time for all timing operations
-  uint32_t now = millis();
-
-  // Check if we're in circuit breaker mode
-  if (mqtt_circuit_breaker_tripped_) {
-    // Check if it's time to re-enable MQTT
-    if (now > mqtt_circuit_reset_time_) {
-      ESP_LOGI(TAG, "Circuit breaker timeout - re-enabling MQTT");
-      mqtt_circuit_breaker_tripped_ = false;
-
-      // Re-enable MQTT component
-      mqtt::global_mqtt_client->enable();  // Proper method to re-enable MQTT
-    } else {
-      ESP_LOGV(TAG, "MQTT circuit breaker active - skipping MQTT operations");
-      return;
-    }
-  }
-
-  // Check if connected
-  bool is_connected = mqtt::global_mqtt_client->is_connected();
-
-  if (!is_connected) {
-    // Increment failure counter
-    ++mqtt_failure_counter_;
-
-    // Check if we need to trip the circuit breaker
-    if (mqtt_failure_counter_ >= 15) {
-      ESP_LOGW(TAG, "MQTT failures exceeded threshold (%d/15) - disabling MQTT for 1 hour", mqtt_failure_counter_);
-
-      // Trip circuit breaker
-      mqtt_circuit_breaker_tripped_ = true;
-      mqtt_circuit_reset_time_ = now + (60 * 60 * 1000);  // 1 hour
-
-      // CRITICAL: Disable reconnection attempts in the MQTT component
-      mqtt::global_mqtt_client->disconnect();
-
-      return;
-    }
-
-    // Standard exponential backoff for publishing only
-    if (mqtt_next_retry_time_ > 0 && now < mqtt_next_retry_time_) {
-      ESP_LOGV(TAG, "In MQTT backoff period, skipping publish attempt");
-      return;
-    }
-
-    // Calculate next retry time with exponential backoff for publishing
-    uint8_t capped_failures = mqtt_failure_counter_ > 10 ? 10 : mqtt_failure_counter_;
-    uint32_t backoff_seconds = 10 * (1 << capped_failures);
-    mqtt_next_retry_time_ = now + (backoff_seconds * 1000);
-
-    ESP_LOGW(TAG, "MQTT not connected (failure %d/15), next publish attempt in %u seconds", mqtt_failure_counter_,
-             backoff_seconds);
-    return;
-  }
-
-  // Connected - reset counter
-  if (mqtt_failure_counter_ > 0) {
-    ESP_LOGI(TAG, "MQTT connection restored after %d failures", mqtt_failure_counter_);
-    reset_mqtt_failure_counter_();
   }
 
   if (mqtt_publish_mode_ == MqttPublishMode::JSON) {
