@@ -110,7 +110,7 @@ float PulseCounterUlpSensor::get_setup_priority() const {
 }
 
 void PulseCounterUlpSensor::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up pulse counter '%s'...", this->name_.c_str());
+  ESP_LOGCONFIG(TAG, "Running setup for '%s'", this->get_name().c_str());
 
   this->config_.pin_->setup();
 
