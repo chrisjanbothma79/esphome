@@ -268,15 +268,15 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
       ESP_LOGW(TAG, "Failed to parse JSON for MQTT individual topics");
     }
   }
-]
+}
 #endif
 
-  /**
-   * @brief Dumps the EmonTx configuration to the log.
-   *
-   * @note Logs the UART settings and other configuration details.
-   */
-  void EmonTx::dump_config() {
+/**
+ * @brief Dumps the EmonTx configuration to the log.
+ *
+ * @note Logs the UART settings and other configuration details.
+ */
+void EmonTx::dump_config() {
   ESP_LOGCONFIG(TAG, "EmonTx:");
 
 #ifdef USE_SENSOR
@@ -340,12 +340,12 @@ void EmonTx::publish_value_(const std::string &tag, const std::string &val) {
  * @param listener Pointer to the listener to register.
  */
 #ifdef USE_SENSOR
-  void EmonTx::register_emontx_listener(EmonTxListener * listener) { emontx_listeners_.push_back(listener); }
+void EmonTx::register_emontx_listener(EmonTxListener *listener) { emontx_listeners_.push_back(listener); }
 
-  void EmonTx::register_sensor(const std::string &tag_name, sensor::Sensor *sensor) {
-    ESP_LOGCONFIG(TAG, "Registering sensor for tag: %s", tag_name.c_str());
-    this->sensors_[tag_name] = sensor;
-  }
+void EmonTx::register_sensor(const std::string &tag_name, sensor::Sensor *sensor) {
+  ESP_LOGCONFIG(TAG, "Registering sensor for tag: %s", tag_name.c_str());
+  this->sensors_[tag_name] = sensor;
+}
 #endif
 }  // namespace emontx
 }  // namespace esphome
