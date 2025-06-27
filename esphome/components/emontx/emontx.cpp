@@ -234,6 +234,7 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
 
     if (failure_counter > 5) {
       ESP_LOGE(TAG, "MQTT connection failed too many times, disabling MQTT");
+      mqtt::global_mqtt_client->disconnect();
       mqtt::global_mqtt_client->disable();
     }
 
