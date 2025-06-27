@@ -148,11 +148,14 @@ void PulseCounterUlpSensor::set_total_pulses(uint32_t pulses) {
 void PulseCounterUlpSensor::dump_config() {
   LOG_SENSOR("", "Pulse Counter", this);
   LOG_PIN("  Pin: ", this->config_.pin_);
-  ESP_LOGCONFIG(TAG, "  Rising Edge: %s", to_string(this->config_.rising_edge_mode_));
-  ESP_LOGCONFIG(TAG, "  Falling Edge: %s", to_string(this->config_.falling_edge_mode_));
-  ESP_LOGCONFIG(TAG, "  Sleep Duration: %" PRIu32 " µs", this->config_.sleep_duration_ / microseconds{1});
-  ESP_LOGCONFIG(TAG, "  Debounce: %" PRIu16, this->config_.debounce_);
-  ESP_LOGCONFIG(TAG, "  Edges Wakeup: %" PRIu16, this->config_.edges_wakeup_);
+  ESP_LOGCONFIG(TAG,
+                "  Rising Edge: %s\n"
+                "  Falling Edge: %s\n"
+                "  Sleep Duration: %" PRIu32 " µs\n"
+                "  Debounce: %" PRIu16 "\n"
+                "  Edges Wakeup: %" PRIu16,
+                to_string(this->config_.rising_edge_mode_), to_string(this->config_.falling_edge_mode_),
+                this->config_.sleep_duration_ / microseconds{1}, this->config_.debounce_, this->config_.edges_wakeup_);
   LOG_UPDATE_INTERVAL(this);
 }
 
