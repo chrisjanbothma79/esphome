@@ -91,8 +91,8 @@ struct QueueElement {
     return true;
   }
 
-  // Helper to clear (handles free)
-  void clear() {
+  // Helper to release (handles free)
+  void release() {
     if (topic) {
       free(topic);  // NOLINT
       topic = nullptr;
