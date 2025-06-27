@@ -24,6 +24,9 @@
  * Common use cases:
  * - BLE events: BLE task produces, main loop consumes
  * - MQTT messages: main task produces, MQTT thread consumes
+ *
+ * @tparam T The type of elements stored in the queue (must be a pointer type)
+ * @tparam SIZE The maximum number of elements (1-255, limited by uint8_t indices)
  */
 
 namespace esphome {
@@ -115,6 +118,8 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
   // Atomic: written by producer (push/increment), read+reset by consumer (get_and_reset)
   std::atomic<uint16_t> dropped_count_;  // 65535 max - more than enough for drop tracking
   // Atomic: written by consumer (pop), read by producer (push) to check if full
+  // Using uint8_t limits queue size to 255 elements but saves memory and ensures
+  // atomic operations are efficient on all platforms
   std::atomic<uint8_t> head_;
   // Atomic: written by producer (push), read by consumer (pop) to check if empty
   std::atomic<uint8_t> tail_;
