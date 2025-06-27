@@ -107,7 +107,7 @@ void EmonTx::loop() {
 
 #ifdef USE_MQTT_FORWARD
         // Forward to MQTT if configured
-        if (has_mqtt_config_ && mqtt::global_mqtt_client != nullptr && mqtt::global_mqtt_client->is_connected()) {
+        if (has_mqtt_config_) {
           send_to_mqtt_(buffer_);
         }
 #endif
