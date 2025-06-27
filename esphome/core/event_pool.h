@@ -11,7 +11,7 @@ namespace esphome {
 
 // Event Pool - On-demand pool of objects to avoid heap fragmentation
 // Events are allocated on first use and reused thereafter, growing to peak usage
-// @tparam T The type of objects managed by the pool (must have a clear() method)
+// @tparam T The type of objects managed by the pool (must have a release() method)
 // @tparam SIZE The maximum number of objects in the pool (1-255, limited by uint8_t)
 template<class T, uint8_t SIZE> class EventPool {
  public:
@@ -66,7 +66,7 @@ template<class T, uint8_t SIZE> class EventPool {
   void release(T *event) {
     if (event != nullptr) {
       // Clean up the event's allocated memory
-      event->clear();
+      event->release();
       this->free_list_.push(event);
     }
   }
