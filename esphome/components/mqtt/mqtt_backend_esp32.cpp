@@ -253,7 +253,7 @@ void MQTTBackendESP32::esphome_mqtt_task(void *params) {
   vTaskDelete(nullptr);
 }
 
-bool MQTTBackendESP32::enqueue_(mqtt_queue_type_t type, const char *topic, int qos, bool retain, const char *payload,
+bool MQTTBackendESP32::enqueue_(MqttQueueTypeT type, const char *topic, int qos, bool retain, const char *payload,
                                 size_t len) {
   // Don't accept new items if shutting down
   if (this->shutdown_requested_.load(std::memory_order_acquire)) {

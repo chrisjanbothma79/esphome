@@ -46,7 +46,7 @@ struct Event {
         error_handle(*event.error_handle) {}
 };
 
-enum mqtt_queue_type_t : uint8_t {
+enum MqttQueueTypeT : uint8_t {
   MQTT_QUEUE_TYPE_NONE = 0,
   MQTT_QUEUE_TYPE_SUBSCRIBE,
   MQTT_QUEUE_TYPE_UNSUBSCRIBE,
@@ -253,7 +253,7 @@ class MQTTBackendESP32 final : public MQTTBackend {
   LockFreeQueue<struct QueueElement, MQTT_QUEUE_LENGTH> mqtt_queue_;
   TaskHandle_t task_handle_{nullptr};
   std::atomic<bool> shutdown_requested_{false};
-  bool enqueue_(mqtt_queue_type_t type, const char *topic, int qos = 0, bool retain = false, const char *payload = NULL,
+  bool enqueue_(MqttQueueTypeT type, const char *topic, int qos = 0, bool retain = false, const char *payload = NULL,
                 size_t len = 0);
 #endif
 
