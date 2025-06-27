@@ -125,15 +125,18 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 #ifdef USE_MQTT_FORWARD
   // MQTT forwarding config
   bool has_mqtt_config_{false};
-  uint8_t mqtt_failure_counter_{0};               // Counter for consecutive MQTT connection failures
-  static constexpr uint8_t MAX_MQTT_FAILURES{5};  // Maximum number of failures before skipping
+  uint8_t mqtt_failure_counter_{0};   // Counter for consecutive MQTT connection failures
+  uint32_t mqtt_next_retry_time_{0};  // Next time to attempt MQTT reconnection
 
   // Pre-computed MQTT topic prefix (base_prefix/topic_prefix/)
   std::string mqtt_topic_prefix_full_;
   MqttPublishMode mqtt_publish_mode_{MqttPublishMode::JSON};  // Use enum now
 
   void send_to_mqtt_(const std::string &json_data);
-  void reset_mqtt_failure_counter_() { mqtt_failure_counter_ = 0; }
+  void reset_mqtt_failure_counter_() {
+    mqtt_failure_counter_ = 0;
+    mqtt_next_retry_time_ = 0;  // Reset retry timing
+  }
 #endif
 };
 

@@ -237,28 +237,29 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
   bool is_connected = mqtt::global_mqtt_client != nullptr && mqtt::global_mqtt_client->is_connected();
 
   if (!is_connected) {
+    // Current time
+    uint32_t now = millis();
+
+    // Check if we're in backoff period
+    if (mqtt_next_retry_time_ > 0 && now < mqtt_next_retry_time_) {
+      ESP_LOGV(TAG, "In MQTT backoff period, skipping publish attempt");
+      return;
+    }
+
     // Increment failure counter
     mqtt_failure_counter_++;
 
-    if (mqtt_failure_counter_ <= MAX_MQTT_FAILURES) {
-      ESP_LOGW(TAG, "MQTT not connected (failure %d/%d)", mqtt_failure_counter_, MAX_MQTT_FAILURES);
-    } else {
-      ESP_LOGW(TAG, "Too many consecutive MQTT connection failures (%d/%d), skipping publish until reconnected",
-               mqtt_failure_counter_, MAX_MQTT_FAILURES);
-    }
+    // Calculate next retry time with exponential backoff
+    // Start with 10 seconds for first failure, then double each time
+    // Use min function to cap at 10 bits (about 17 minutes max)
+    uint32_t backoff_seconds = 10 * (1 << std::min(mqtt_failure_counter_, 10u));
+    mqtt_next_retry_time_ = now + (backoff_seconds * 1000);
 
-    // Only return if we're below the limit or at/above the limit
-    if (mqtt_failure_counter_ <= MAX_MQTT_FAILURES) {
-      // Keep trying to publish even though MQTT is down (might reconnect)
-      return;
-    } else {
-      // We've exceeded the maximum failures, don't even try to publish
-      ESP_LOGD(TAG, "Skipping MQTT publish attempt due to too many failures");
-      return;
-    }
+    ESP_LOGW(TAG, "MQTT not connected (failure %d), next retry in %u seconds", mqtt_failure_counter_, backoff_seconds);
+    return;
   }
 
-  // If we got here, we're connected. Reset the failure counter if it was > 0
+  // Connected - reset counter and continue with publishing
   if (mqtt_failure_counter_ > 0) {
     ESP_LOGI(TAG, "MQTT connection restored after %d failures", mqtt_failure_counter_);
     reset_mqtt_failure_counter_();
