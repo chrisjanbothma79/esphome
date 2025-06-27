@@ -52,7 +52,7 @@ void EmerioPac125152Climate::save_emerio_pac_state_() {
 }
 
 void EmerioPac125152Climate::sync_all_state_variables_() {
-  // Sync your tracking variables with the current ESPHome state
+  // Sync our tracking variables with the current ESPHome state
   // CRITICAL: Don't overwrite mode_before_ when OFF or in DRY mode
   // mode_before_ should always track the underlying operational mode (COOL/AUTO/FAN)
   if (this->mode != climate::CLIMATE_MODE_OFF && this->mode != climate::CLIMATE_MODE_DRY) {
