@@ -96,7 +96,6 @@ bool MQTTBackendESP32::initialize_() {
   }
 #endif
 #if defined(USE_MQTT_IDF_ENQUEUE)
-  this->mqtt_queue_ = xQueueCreate(MQTT_QUEUE_LENGTH, sizeof(struct QueueElement));
   xTaskCreate(esphome_mqtt_task, "esphome_mqtt", TASK_STACK_SIZE, (void *) this, TASK_PRIORITY, &this->task_handle_);
   if (this->task_handle_ == nullptr) {
     ESP_LOGE(TAG, "Failed to start MQTT thread");
@@ -123,6 +122,13 @@ void MQTTBackendESP32::loop() {
     mqtt_event_handler_(event);
     mqtt_events_.pop();
   }
+#if defined(USE_MQTT_IDF_ENQUEUE)
+  // Log dropped messages periodically
+  uint16_t dropped = mqtt_queue_.get_and_reset_dropped_count();
+  if (dropped > 0) {
+    ESP_LOGW(TAG, "Dropped %u outbound MQTT messages due to buffer overflow", dropped);
+  }
+#endif
 }
 
 void MQTTBackendESP32::mqtt_event_handler_(const Event &event) {
@@ -201,59 +207,61 @@ void MQTTBackendESP32::esphome_mqtt_task(void *params) {
   MQTTBackendESP32 *this_mqtt = (MQTTBackendESP32 *) params;
 
   while (true) {
-    struct QueueElement elem;
+    struct QueueElement *elem = this_mqtt->mqtt_queue_.pop();
 
-    if (!xQueueReceive(this_mqtt->mqtt_queue_, &elem, portMAX_DELAY))
+    if (!elem)
       continue;
 
-    switch (elem.type) {
+    switch (elem->type) {
       case MQTT_EVENT_SUBSCRIBED:
-        esp_mqtt_client_subscribe(this_mqtt->handler_.get(), elem.topic, elem.qos);
+        esp_mqtt_client_subscribe(this_mqtt->handler_.get(), elem->topic, elem->qos);
         break;
 
       case MQTT_EVENT_UNSUBSCRIBED:
-        esp_mqtt_client_unsubscribe(this_mqtt->handler_.get(), elem.topic);
+        esp_mqtt_client_unsubscribe(this_mqtt->handler_.get(), elem->topic);
         break;
 
       case MQTT_EVENT_PUBLISHED:
-        esp_mqtt_client_publish(this_mqtt->handler_.get(), elem.topic, elem.payload, elem.payload_len, elem.qos,
-                                elem.retain);
+        esp_mqtt_client_publish(this_mqtt->handler_.get(), elem->topic, elem->payload, elem->payload_len, elem->qos,
+                                elem->retain);
         break;
 
       default:
         ESP_LOGE(TAG, "Invalid operation type from MQTT queue");
         break;
     }
-    free(elem.topic);    // NOLINT
-    free(elem.payload);  // NOLINT
+    free(elem->topic);    // NOLINT
+    free(elem->payload);  // NOLINT
+    this_mqtt->mqtt_event_pool_.release(elem);
   }
 }
 
 bool MQTTBackendESP32::enqueue_(esp_mqtt_event_id_t type, const char *topic, int qos, bool retain, const char *payload,
                                 size_t len) {
-  struct QueueElement elem;
+  auto *elem = this->mqtt_event_pool_.allocate();
 
-  elem.type = type;
-  elem.qos = qos;
-  elem.retain = retain;
-  elem.payload_len = len;
-  elem.topic = strdup(topic);
-  if (payload && len) {
-    elem.payload = (char *) malloc(len);  // NOLINT
-    elem.payload_len = len;
-    memcpy(elem.payload, payload, len);
-  } else {
-    elem.payload = NULL;
-    elem.payload_len = 0;
-  }
-
-  if (xQueueSend(this->mqtt_queue_, &elem, pdMS_TO_TICKS(MQTT_QUEUE_WAIT)) == pdPASS) {
-    return true;
-  } else {
-    free(elem.topic);    // NOLINT
-    free(elem.payload);  // NOLINT
+  if (!elem) {
+    this->mqtt_queue_.increment_dropped_count();
     return false;
   }
+
+  elem->type = type;
+  elem->qos = qos;
+  elem->retain = retain;
+  elem->payload_len = len;
+  elem->topic = strdup(topic);
+  if (payload && len) {
+    elem->payload = (char *) malloc(len);  // NOLINT
+    elem->payload_len = len;
+    memcpy(elem->payload, payload, len);
+  } else {
+    elem->payload = NULL;
+    elem->payload_len = 0;
+  }
+
+  // Push always succeeds because we're the only producer and the pool ensures we never exceed queue size
+  this->mqtt_queue_.push(elem);
+  return true;
 }
 #endif  // USE_MQTT_IDF_ENQUEUE
 
