@@ -250,8 +250,7 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
       mqtt_circuit_breaker_tripped_ = false;
 
       // Re-enable MQTT component
-      mqtt::global_mqtt_client->set_keep_alive(60);  // Default keepalive
-      mqtt::global_mqtt_client->enable();            // Proper method to re-enable MQTT
+      mqtt::global_mqtt_client->enable();  // Proper method to re-enable MQTT
     } else {
       ESP_LOGV(TAG, "MQTT circuit breaker active - skipping MQTT operations");
       return;
@@ -274,8 +273,7 @@ void EmonTx::send_to_mqtt_(const std::string &json_data) {
       mqtt_circuit_reset_time_ = now + (60 * 60 * 1000);  // 1 hour
 
       // CRITICAL: Disable reconnection attempts in the MQTT component
-      mqtt::global_mqtt_client->set_keep_alive(0);
-      mqtt::global_mqtt_client->disable();
+      mqtt::global_mqtt_client->disconnect();
 
       return;
     }
