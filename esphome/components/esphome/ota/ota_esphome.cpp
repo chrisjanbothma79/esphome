@@ -15,7 +15,6 @@
 
 #include <cerrno>
 #include <cstdio>
-#include <cstring>
 
 namespace esphome {
 
@@ -77,7 +76,7 @@ void ESPHomeOTAComponent::dump_config() {
                 "  Version: %d",
                 network::get_use_address().c_str(), this->port_, USE_OTA_VERSION);
 #ifdef USE_OTA_PASSWORD
-  if (this->password_ != nullptr) {
+  if (!this->password_.empty()) {
     ESP_LOGCONFIG(TAG, "  Password configured");
   }
 #endif
@@ -169,7 +168,7 @@ void ESPHomeOTAComponent::handle_() {
   this->writeall_(buf, 1);
 
 #ifdef USE_OTA_PASSWORD
-  if (this->password_ != nullptr) {
+  if (!this->password_.empty()) {
     buf[0] = ota::OTA_RESPONSE_REQUEST_AUTH;
     this->writeall_(buf, 1);
     md5::MD5Digest md5{};
@@ -188,7 +187,7 @@ void ESPHomeOTAComponent::handle_() {
 
     // prepare challenge
     md5.init();
-    md5.add(this->password_, strlen(this->password_));
+    md5.add(this->password_.c_str(), this->password_.length());
     // add nonce
     md5.add(sbuf, 32);
 
