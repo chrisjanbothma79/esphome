@@ -95,6 +95,7 @@ void EmonTx::loop() {
 
     if (c == '\n' || c == '\r') {
       if (!buffer_.empty()) {
+        ESP_LOGI(TAG, "Received data: %s", buffer_.c_str());
         parse_json_(buffer_);
 
 #ifdef USE_HTTP_REQUEST
