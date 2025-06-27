@@ -140,7 +140,7 @@ def validate_emoncms(config):
         mqtt_config = emoncms_config[CONF_MQTT]
 
         # Ensure we have the default base_prefix
-        if CONF_BASE_PREFIX not in mqtt_config:
+        if CONF_BASE_PREFIX not in mqtt_config or not mqtt_config[CONF_BASE_PREFIX]:
             mqtt_config[CONF_BASE_PREFIX] = "emon"
 
         # Set default topic_prefix to device name if not provided or empty
@@ -151,6 +151,9 @@ def validate_emoncms(config):
 
             # Add MQTT component as a dependency
             config = cv.requires_component("mqtt")(config)
+
+        if CONF_PUBLISH_MODE not in mqtt_config or not mqtt_config[CONF_PUBLISH_MODE]:
+            mqtt_config[CONF_PUBLISH_MODE] = PUBLISH_MODE_JSON
 
     return config
 
