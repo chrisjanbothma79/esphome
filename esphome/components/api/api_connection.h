@@ -627,6 +627,13 @@ class APIConnection : public APIServerConnection {
   // State for batch buffer allocation
   bool batch_first_message_{false};
 
+#ifdef HAS_PROTO_MESSAGE_DUMP
+  // When true, encode_message_to_buffer will only log, not encode
+  bool log_only_mode_{false};
+
+  void log_batch_item_(const DeferredBatch::BatchItem &item);
+#endif
+
   // Helper function to schedule a deferred message with known message type
   bool schedule_message_(EntityBase *entity, MessageCreator creator, uint16_t message_type) {
     this->deferred_batch_.add_item(entity, std::move(creator), message_type);
