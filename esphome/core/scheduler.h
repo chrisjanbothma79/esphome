@@ -75,18 +75,18 @@ class Scheduler {
     // Bit-packed fields to minimize padding
     enum Type : uint8_t { TIMEOUT, INTERVAL } type : 1;
     bool remove : 1;
-    bool owns_name : 1;  // True if name_.dynamic_name needs to be freed
+    bool name_is_dynamic : 1;  // True if name was dynamically allocated (needs delete[])
     // 5 bits padding
 
     // Constructor
     SchedulerItem()
-        : component(nullptr), interval(0), next_execution_(0), type(TIMEOUT), remove(false), owns_name(false) {
+        : component(nullptr), interval(0), next_execution_(0), type(TIMEOUT), remove(false), name_is_dynamic(false) {
       name_.static_name = nullptr;
     }
 
     // Destructor to clean up dynamic names
     ~SchedulerItem() {
-      if (owns_name) {
+      if (name_is_dynamic) {
         delete[] name_.dynamic_name;
       }
     }
@@ -100,14 +100,14 @@ class Scheduler {
     SchedulerItem &operator=(SchedulerItem &&) = default;
 
     // Helper to get the name regardless of storage type
-    const char *get_name() const { return owns_name ? name_.dynamic_name : name_.static_name; }
+    const char *get_name() const { return name_is_dynamic ? name_.dynamic_name : name_.static_name; }
 
     // Helper to set name with proper ownership
     void set_name(const char *name, bool make_copy = false) {
       // Clean up old dynamic name if any
-      if (owns_name && name_.dynamic_name) {
+      if (name_is_dynamic && name_.dynamic_name) {
         delete[] name_.dynamic_name;
-        owns_name = false;
+        name_is_dynamic = false;
       }
 
       if (!name || !name[0]) {
@@ -117,7 +117,7 @@ class Scheduler {
         size_t len = strlen(name);
         name_.dynamic_name = new char[len + 1];
         strcpy(name_.dynamic_name, name);
-        owns_name = true;
+        name_is_dynamic = true;
       } else {
         // Use static string directly
         name_.static_name = name;
