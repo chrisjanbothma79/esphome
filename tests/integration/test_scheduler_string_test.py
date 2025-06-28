@@ -25,6 +25,7 @@ async def test_scheduler_string_test(
     static_interval_fired = asyncio.Event()
     static_interval_cancelled = asyncio.Event()
     empty_string_timeout_fired = asyncio.Event()
+    static_timeout_cancelled = asyncio.Event()
     dynamic_timeout_fired = asyncio.Event()
     dynamic_interval_fired = asyncio.Event()
     cancel_test_done = asyncio.Event()
@@ -66,6 +67,10 @@ async def test_scheduler_string_test(
         # Check for empty string timeout
         elif "Empty string timeout fired" in clean_line:
             empty_string_timeout_fired.set()
+
+        # Check for static timeout cancellation
+        elif "Cancelled static timeout using const char*" in clean_line:
+            static_timeout_cancelled.set()
 
         # Check for dynamic string tests
         elif "Dynamic timeout fired" in clean_line:
@@ -121,6 +126,11 @@ async def test_scheduler_string_test(
         # Verify static interval ran at least 3 times
         assert static_interval_count >= 2, (
             f"Expected static interval to run at least 3 times, got {static_interval_count + 1}"
+        )
+
+        # Verify static timeout was cancelled
+        assert static_timeout_cancelled.is_set(), (
+            "Static timeout should have been cancelled"
         )
 
         # Wait for dynamic string tests
