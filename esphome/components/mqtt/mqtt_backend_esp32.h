@@ -203,18 +203,11 @@ class MQTTBackendESP32 final : public MQTTBackend {
   void set_cl_key(const std::string &key) { cl_key_ = key; }
   void set_skip_cert_cn_check(bool skip_check) { skip_cert_cn_check_ = skip_check; }
 
-  ~MQTTBackendESP32() {
-#if defined(USE_MQTT_IDF_ENQUEUE)
-    if (this->task_handle_ != nullptr) {
-      // Signal shutdown
-      this->shutdown_requested_.store(true, std::memory_order_release);
-      // Wake the task so it can see the shutdown flag and clean up
-      xTaskNotifyGive(this->task_handle_);
-      // The task will clean up the queue and delete itself
-    }
-    // EventPool destructor will handle cleanup of any allocated events
-#endif
-  }
+  // No destructor needed: ESPHome components live for the entire device runtime.
+  // The MQTT task and queue will run until the device reboots or loses power,
+  // at which point the entire process terminates and FreeRTOS cleans up all tasks.
+  // Implementing a destructor would add complexity and potential race conditions
+  // for a scenario that never occurs in practice.
 
  protected:
   bool initialize_();
@@ -252,7 +245,6 @@ class MQTTBackendESP32 final : public MQTTBackend {
   EventPool<struct QueueElement, MQTT_QUEUE_LENGTH> mqtt_event_pool_;
   LockFreeQueue<struct QueueElement, MQTT_QUEUE_LENGTH> mqtt_queue_;
   TaskHandle_t task_handle_{nullptr};
-  std::atomic<bool> shutdown_requested_{false};
   bool enqueue_(MqttQueueTypeT type, const char *topic, int qos = 0, bool retain = false, const char *payload = NULL,
                 size_t len = 0);
 #endif

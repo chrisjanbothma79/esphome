@@ -205,16 +205,6 @@ void MQTTBackendESP32::esphome_mqtt_task(void *params) {
     // Wait for notification indefinitely
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-    // Log dropped messages periodically
-    uint16_t dropped = this_mqtt->mqtt_queue_.get_and_reset_dropped_count();
-    if (dropped > 0) {
-      ESP_LOGW(TAG, "Dropped %u outbound MQTT messages due to buffer overflow", dropped);
-    }
-
-    // Check shutdown flag after waking
-    if (this_mqtt->shutdown_requested_.load(std::memory_order_acquire))
-      break;
-
     // Process all queued items
     struct QueueElement *elem;
     while ((elem = this_mqtt->mqtt_queue_.pop()) != nullptr) {
@@ -255,15 +245,10 @@ void MQTTBackendESP32::esphome_mqtt_task(void *params) {
 
 bool MQTTBackendESP32::enqueue_(MqttQueueTypeT type, const char *topic, int qos, bool retain, const char *payload,
                                 size_t len) {
-  // Don't accept new items if shutting down
-  if (this->shutdown_requested_.load(std::memory_order_acquire)) {
-    return false;
-  }
-
   auto *elem = this->mqtt_event_pool_.allocate();
 
   if (!elem) {
-    this->mqtt_queue_.increment_dropped_count();
+    ESP_LOGW(TAG, "Dropped MQTT message: queue full (topic: %s)", topic);
     return false;
   }
 
@@ -275,11 +260,11 @@ bool MQTTBackendESP32::enqueue_(MqttQueueTypeT type, const char *topic, int qos,
   if (!elem->set_data(topic, payload, len)) {
     // Allocation failed, return elem to pool
     this->mqtt_event_pool_.release(elem);
-    this->mqtt_queue_.increment_dropped_count();
+    ESP_LOGW(TAG, "Dropped MQTT message: memory allocation failed (topic: %s, size: %zu)", topic, len);
     return false;
   }
 
-  // Push always succeeds because we're the only producer and the pool ensures we never exceed queue size
+  // Push to queue - always succeeds since we allocated from the pool
   this->mqtt_queue_.push(elem);
   return true;
 }
