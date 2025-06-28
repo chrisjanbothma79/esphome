@@ -67,7 +67,7 @@ struct QueueElement {
   // Helper to set topic/payload (handles malloc)
   bool set_data(const char *topic_str, const char *payload_data, size_t len) {
     // Check payload size limit (MQTT max is 64KiB)
-    if (len > UINT16_MAX) {
+    if (len > std::numeric_limits<uint16_t>::max()) {
       return false;
     }
 
