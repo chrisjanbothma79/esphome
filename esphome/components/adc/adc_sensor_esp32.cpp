@@ -55,12 +55,12 @@ void ADCSensor::setup() {
 }
 
 void ADCSensor::dump_config() {
-  static const char *const atten_auto_str = "auto";
-  static const char *const atten_0db_str = "0 db";
-  static const char *const atten_2_5db_str = "2.5 db";
-  static const char *const atten_6db_str = "6 db";
-  static const char *const atten_12db_str = "12 db";
-  const char *atten_str = atten_auto_str;
+  static const char *const ATTEN_AUTO_STR = "auto";
+  static const char *const ATTEN_0DB_STR = "0 db";
+  static const char *const ATTEN_2_5DB_STR = "2.5 db";
+  static const char *const ATTEN_6DB_STR = "6 db";
+  static const char *const ATTEN_12DB_STR = "12 db";
+  const char *atten_str = ATTEN_AUTO_STR;
 
   LOG_SENSOR("", "ADC Sensor", this);
   LOG_PIN("  Pin: ", this->pin_);
@@ -68,16 +68,16 @@ void ADCSensor::dump_config() {
   if (!this->autorange_) {
     switch (this->attenuation_) {
       case ADC_ATTEN_DB_0:
-        atten_str = atten_0db_str;
+        atten_str = ATTEN_0DB_STR;
         break;
       case ADC_ATTEN_DB_2_5:
-        atten_str = atten_2_5db_str;
+        atten_str = ATTEN_2_5DB_STR;
         break;
       case ADC_ATTEN_DB_6:
-        atten_str = atten_6db_str;
+        atten_str = ATTEN_6DB_STR;
         break;
       case ADC_ATTEN_DB_12_COMPAT:
-        atten_str = atten_12db_str;
+        atten_str = ATTEN_12DB_STR;
         break;
       default:  // This is to satisfy the unused ADC_ATTEN_MAX
         break;
