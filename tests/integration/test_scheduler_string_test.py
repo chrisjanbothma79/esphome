@@ -111,7 +111,7 @@ async def test_scheduler_string_test(
         try:
             await asyncio.wait_for(static_interval_fired.wait(), timeout=1.0)
         except asyncio.TimeoutError:
-            pytest.fail("Static interval did not fire within 1 seconds")
+            pytest.fail("Static interval did not fire within 1 second")
 
         try:
             await asyncio.wait_for(static_interval_cancelled.wait(), timeout=2.0)
