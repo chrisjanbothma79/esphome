@@ -68,6 +68,10 @@ bool Component::cancel_interval(const std::string &name) {  // NOLINT
   return App.scheduler.cancel_interval(this, name);
 }
 
+bool Component::cancel_interval(const char *name) {  // NOLINT
+  return App.scheduler.cancel_interval(this, name);
+}
+
 void Component::set_retry(const std::string &name, uint32_t initial_wait_time, uint8_t max_attempts,
                           std::function<RetryResult(uint8_t)> &&f, float backoff_increase_factor) {  // NOLINT
   App.scheduler.set_retry(this, name, initial_wait_time, max_attempts, std::move(f), backoff_increase_factor);
@@ -86,6 +90,10 @@ void Component::set_timeout(const char *name, uint32_t timeout, std::function<vo
 }
 
 bool Component::cancel_timeout(const std::string &name) {  // NOLINT
+  return App.scheduler.cancel_timeout(this, name);
+}
+
+bool Component::cancel_timeout(const char *name) {  // NOLINT
   return App.scheduler.cancel_timeout(this, name);
 }
 

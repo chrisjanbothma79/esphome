@@ -28,6 +28,7 @@ class Scheduler {
   void set_timeout(Component *component, const char *name, uint32_t timeout, std::function<void()> func);
 
   bool cancel_timeout(Component *component, const std::string &name);
+  bool cancel_timeout(Component *component, const char *name);
 
   void set_interval(Component *component, const std::string &name, uint32_t interval, std::function<void()> func);
 
@@ -44,6 +45,7 @@ class Scheduler {
   void set_interval(Component *component, const char *name, uint32_t interval, std::function<void()> func);
 
   bool cancel_interval(Component *component, const std::string &name);
+  bool cancel_interval(Component *component, const char *name);
   void set_retry(Component *component, const std::string &name, uint32_t initial_wait_time, uint8_t max_attempts,
                  std::function<RetryResult(uint8_t)> func, float backoff_increase_factor = 1.0f);
   bool cancel_retry(Component *component, const std::string &name);
@@ -137,7 +139,12 @@ class Scheduler {
   void cleanup_();
   void pop_raw_();
   void push_(std::unique_ptr<SchedulerItem> item);
+  // Common implementation for cancel operations
+  bool cancel_item_common_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
+
   bool cancel_item_(Component *component, const std::string &name, SchedulerItem::Type type);
+  bool cancel_item_(Component *component, const char *name, SchedulerItem::Type type);
+
   bool empty_() {
     this->cleanup_();
     return this->items_.empty();
