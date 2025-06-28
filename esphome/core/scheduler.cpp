@@ -17,6 +17,41 @@ static const uint32_t MAX_LOGICALLY_DELETED_ITEMS = 10;
 // Uncomment to debug scheduler
 // #define ESPHOME_DEBUG_SCHEDULER
 
+#ifdef ESPHOME_DEBUG_SCHEDULER
+// Helper to validate that a pointer looks like it's in static memory
+static void validate_static_string(const char *name) {
+  if (name == nullptr)
+    return;
+
+  // This is a heuristic check - stack and heap pointers are typically
+  // much higher in memory than static data
+  uintptr_t addr = reinterpret_cast<uintptr_t>(name);
+
+  // Create a stack variable to compare against
+  int stack_var;
+  uintptr_t stack_addr = reinterpret_cast<uintptr_t>(&stack_var);
+
+  // If the string pointer is near our stack variable, it's likely on the stack
+  // Using 8KB range as ESP32 main task stack is typically 8192 bytes
+  if (addr > (stack_addr - 0x2000) && addr < (stack_addr + 0x2000)) {
+    ESP_LOGW(TAG,
+             "WARNING: Scheduler name '%s' at %p appears to be on the stack - this is unsafe!\n"
+             "         Stack reference at %p",
+             name, name, &stack_var);
+  }
+
+  // Also check if it might be on the heap by seeing if it's in a very different range
+  // This is platform-specific but generally heap is allocated far from static memory
+  static const char *static_str = "test";
+  uintptr_t static_addr = reinterpret_cast<uintptr_t>(static_str);
+
+  // If the address is very far from known static memory, it might be heap
+  if (addr > static_addr + 0x100000 || (static_addr > 0x100000 && addr < static_addr - 0x100000)) {
+    ESP_LOGW(TAG, "WARNING: Scheduler name '%s' at %p might be on heap (static ref at %p)", name, name, static_str);
+  }
+}
+#endif
+
 // A note on locking: the `lock_` lock protects the `items_` and `to_add_` containers. It must be taken when writing to
 // them (i.e. when adding/removing items, but not when changing items). As items are only deleted from the loop task,
 // iterating over them from the loop task is fine; but iterating from any other context requires the lock to be held to
@@ -50,6 +85,12 @@ void HOT Scheduler::set_timeout_impl_(Component *component, const NameType &name
     item->set_name(name.c_str(), make_copy);
   } else {
     item->set_name(name, make_copy);
+#ifdef ESPHOME_DEBUG_SCHEDULER
+    // Validate static strings in debug mode
+    if (!make_copy && name != nullptr) {
+      validate_static_string(name);
+    }
+#endif
   }
 
   item->type = SchedulerItem::TIMEOUT;
@@ -118,6 +159,12 @@ void HOT Scheduler::set_interval_impl_(Component *component, const NameType &nam
     item->set_name(name.c_str(), make_copy);
   } else {
     item->set_name(name, make_copy);
+#ifdef ESPHOME_DEBUG_SCHEDULER
+    // Validate static strings in debug mode
+    if (!make_copy && name != nullptr) {
+      validate_static_string(name);
+    }
+#endif
   }
 
   item->type = SchedulerItem::INTERVAL;
@@ -238,9 +285,10 @@ void HOT Scheduler::call() {
       this->pop_raw_();
       this->lock_.unlock();
 
+      const char *name = item->get_name();
       ESP_LOGD(TAG, "  %s '%s/%s' interval=%" PRIu32 " next_execution in %" PRIu64 "ms at %" PRIu64,
-               item->get_type_str(), item->get_source(), item->get_name(), item->interval, item->next_execution_ - now,
-               item->next_execution_);
+               item->get_type_str(), item->get_source(), name ? name : "(null)", item->interval,
+               item->next_execution_ - now, item->next_execution_);
 
       old_items.push_back(std::move(item));
     }

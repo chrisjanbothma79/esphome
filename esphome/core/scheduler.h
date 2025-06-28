@@ -14,10 +14,33 @@ class Scheduler {
  public:
   // Public API - accepts std::string for backward compatibility
   void set_timeout(Component *component, const std::string &name, uint32_t timeout, std::function<void()> func);
+
+  /** Set a timeout with a const char* name.
+   *
+   * IMPORTANT: The provided name pointer must remain valid for the lifetime of the scheduler item.
+   * This means the name should be:
+   *   - A string literal (e.g., "update")
+   *   - A static const char* variable
+   *   - A pointer with lifetime >= the scheduled task
+   *
+   * For dynamic strings, use the std::string overload instead.
+   */
   void set_timeout(Component *component, const char *name, uint32_t timeout, std::function<void()> func);
 
   bool cancel_timeout(Component *component, const std::string &name);
+
   void set_interval(Component *component, const std::string &name, uint32_t interval, std::function<void()> func);
+
+  /** Set an interval with a const char* name.
+   *
+   * IMPORTANT: The provided name pointer must remain valid for the lifetime of the scheduler item.
+   * This means the name should be:
+   *   - A string literal (e.g., "update")
+   *   - A static const char* variable
+   *   - A pointer with lifetime >= the scheduled task
+   *
+   * For dynamic strings, use the std::string overload instead.
+   */
   void set_interval(Component *component, const char *name, uint32_t interval, std::function<void()> func);
 
   bool cancel_interval(Component *component, const std::string &name);

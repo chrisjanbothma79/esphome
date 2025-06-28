@@ -60,6 +60,10 @@ void Component::set_interval(const std::string &name, uint32_t interval, std::fu
   App.scheduler.set_interval(this, name, interval, std::move(f));
 }
 
+void Component::set_interval(const char *name, uint32_t interval, std::function<void()> &&f) {  // NOLINT
+  App.scheduler.set_interval(this, name, interval, std::move(f));
+}
+
 bool Component::cancel_interval(const std::string &name) {  // NOLINT
   return App.scheduler.cancel_interval(this, name);
 }
@@ -74,6 +78,10 @@ bool Component::cancel_retry(const std::string &name) {  // NOLINT
 }
 
 void Component::set_timeout(const std::string &name, uint32_t timeout, std::function<void()> &&f) {  // NOLINT
+  App.scheduler.set_timeout(this, name, timeout, std::move(f));
+}
+
+void Component::set_timeout(const char *name, uint32_t timeout, std::function<void()> &&f) {  // NOLINT
   App.scheduler.set_timeout(this, name, timeout, std::move(f));
 }
 
