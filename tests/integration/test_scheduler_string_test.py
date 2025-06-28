@@ -111,7 +111,7 @@ async def test_scheduler_string_test(
         try:
             await asyncio.wait_for(static_interval_fired.wait(), timeout=1.0)
         except asyncio.TimeoutError:
-            pytest.fail("Static interval did not fire within 1 seconds")
+            pytest.fail("Static interval did not fire within 1 second")
 
         try:
             await asyncio.wait_for(static_interval_cancelled.wait(), timeout=2.0)
@@ -127,7 +127,7 @@ async def test_scheduler_string_test(
         try:
             await asyncio.wait_for(dynamic_timeout_fired.wait(), timeout=1.0)
         except asyncio.TimeoutError:
-            pytest.fail("Dynamic timeout did not fire within 1 seconds")
+            pytest.fail("Dynamic timeout did not fire within 1 second")
 
         try:
             await asyncio.wait_for(dynamic_interval_fired.wait(), timeout=1.5)
@@ -138,7 +138,7 @@ async def test_scheduler_string_test(
         try:
             await asyncio.wait_for(cancel_test_done.wait(), timeout=1.0)
         except asyncio.TimeoutError:
-            pytest.fail("Cancel test did not complete within 1 seconds")
+            pytest.fail("Cancel test did not complete within 1 second")
 
         # Wait for final results
         try:

@@ -285,6 +285,7 @@ class Component {
    * @return Whether an interval functions was deleted.
    */
   bool cancel_interval(const std::string &name);  // NOLINT
+  bool cancel_interval(const char *name);         // NOLINT
 
   /** Set an retry function with a unique name. Empty name means no cancelling possible.
    *
@@ -369,6 +370,7 @@ class Component {
    * @return Whether a timeout functions was deleted.
    */
   bool cancel_timeout(const std::string &name);  // NOLINT
+  bool cancel_timeout(const char *name);         // NOLINT
 
   /** Defer a callback to the next loop() call.
    *

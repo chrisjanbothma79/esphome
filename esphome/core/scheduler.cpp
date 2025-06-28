@@ -7,6 +7,7 @@
 #include "esphome/core/log.h"
 #include <algorithm>
 #include <cinttypes>
+#include <cstring>
 
 namespace esphome {
 
@@ -124,6 +125,9 @@ void HOT Scheduler::set_timeout(Component *component, const std::string &name, u
 bool HOT Scheduler::cancel_timeout(Component *component, const std::string &name) {
   return this->cancel_item_(component, name, SchedulerItem::TIMEOUT);
 }
+bool HOT Scheduler::cancel_timeout(Component *component, const char *name) {
+  return this->cancel_item_(component, name, SchedulerItem::TIMEOUT);
+}
 void HOT Scheduler::set_interval(Component *component, const std::string &name, uint32_t interval,
                                  std::function<void()> func) {
   this->set_timer_common_(component, SchedulerItem::INTERVAL, false, &name, interval, std::move(func));
@@ -134,6 +138,9 @@ void HOT Scheduler::set_interval(Component *component, const char *name, uint32_
   this->set_timer_common_(component, SchedulerItem::INTERVAL, true, name, interval, std::move(func));
 }
 bool HOT Scheduler::cancel_interval(Component *component, const std::string &name) {
+  return this->cancel_item_(component, name, SchedulerItem::INTERVAL);
+}
+bool HOT Scheduler::cancel_interval(Component *component, const char *name) {
   return this->cancel_item_(component, name, SchedulerItem::INTERVAL);
 }
 
@@ -357,13 +364,25 @@ void HOT Scheduler::push_(std::unique_ptr<Scheduler::SchedulerItem> item) {
   LockGuard guard{this->lock_};
   this->to_add_.push_back(std::move(item));
 }
-bool HOT Scheduler::cancel_item_(Component *component, const std::string &name, Scheduler::SchedulerItem::Type type) {
+// Common implementation for cancel operations
+bool HOT Scheduler::cancel_item_common_(Component *component, bool is_static_string, const void *name_ptr,
+                                        SchedulerItem::Type type) {
+  // Get the name as const char*
+  const char *name_cstr =
+      is_static_string ? static_cast<const char *>(name_ptr) : static_cast<const std::string *>(name_ptr)->c_str();
+
+  // Handle null or empty names
+  if (name_cstr == nullptr)
+    return false;
+
   // obtain lock because this function iterates and can be called from non-loop task context
   LockGuard guard{this->lock_};
   bool ret = false;
+
   for (auto &it : this->items_) {
     const char *item_name = it->get_name();
-    if (it->component == component && item_name != nullptr && name == item_name && it->type == type && !it->remove) {
+    if (it->component == component && item_name != nullptr && strcmp(name_cstr, item_name) == 0 && it->type == type &&
+        !it->remove) {
       to_remove_++;
       it->remove = true;
       ret = true;
@@ -371,7 +390,7 @@ bool HOT Scheduler::cancel_item_(Component *component, const std::string &name, 
   }
   for (auto &it : this->to_add_) {
     const char *item_name = it->get_name();
-    if (it->component == component && item_name != nullptr && name == item_name && it->type == type) {
+    if (it->component == component && item_name != nullptr && strcmp(name_cstr, item_name) == 0 && it->type == type) {
       it->remove = true;
       ret = true;
     }
@@ -379,6 +398,15 @@ bool HOT Scheduler::cancel_item_(Component *component, const std::string &name, 
 
   return ret;
 }
+
+bool HOT Scheduler::cancel_item_(Component *component, const std::string &name, Scheduler::SchedulerItem::Type type) {
+  return this->cancel_item_common_(component, false, &name, type);
+}
+
+bool HOT Scheduler::cancel_item_(Component *component, const char *name, SchedulerItem::Type type) {
+  return this->cancel_item_common_(component, true, name, type);
+}
+
 uint64_t Scheduler::millis_() {
   // Get the current 32-bit millis value
   const uint32_t now = millis();
