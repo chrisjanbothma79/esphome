@@ -43,90 +43,14 @@ namespace esphome {
 /// @name STL backports
 ///@{
 
-// Backports for various STL features we like to use. Pull in the STL implementation wherever available, to avoid
-// ambiguity and to provide a uniform API.
-
-// std::to_string() from C++11, available from libstdc++/g++ 8
-// See https://github.com/espressif/esp-idf/issues/1445
-#if _GLIBCXX_RELEASE >= 8
+// Keep "using" even after the removal of our backports, to avoid breaking existing code.
 using std::to_string;
-#else
-std::string to_string(int value);                 // NOLINT
-std::string to_string(long value);                // NOLINT
-std::string to_string(long long value);           // NOLINT
-std::string to_string(unsigned value);            // NOLINT
-std::string to_string(unsigned long value);       // NOLINT
-std::string to_string(unsigned long long value);  // NOLINT
-std::string to_string(float value);
-std::string to_string(double value);
-std::string to_string(long double value);
-#endif
-
-// std::is_trivially_copyable from C++11, implemented in libstdc++/g++ 5.1 (but minor releases can't be detected)
-#if _GLIBCXX_RELEASE >= 6
 using std::is_trivially_copyable;
-#else
-// Implementing this is impossible without compiler intrinsics, so don't bother. Invalid usage will be detected on
-// other variants that use a newer compiler anyway.
-// NOLINTNEXTLINE(readability-identifier-naming)
-template<typename T> struct is_trivially_copyable : public std::integral_constant<bool, true> {};
-#endif
-
-// std::make_unique() from C++14
-#if __cpp_lib_make_unique >= 201304
 using std::make_unique;
-#else
-template<typename T, typename... Args> std::unique_ptr<T> make_unique(Args &&...args) {
-  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-#endif
-
-// std::enable_if_t from C++14
-#if __cplusplus >= 201402L
 using std::enable_if_t;
-#else
-template<bool B, class T = void> using enable_if_t = typename std::enable_if<B, T>::type;
-#endif
-
-// std::clamp from C++17
-#if __cpp_lib_clamp >= 201603
 using std::clamp;
-#else
-template<typename T, typename Compare> constexpr const T &clamp(const T &v, const T &lo, const T &hi, Compare comp) {
-  return comp(v, lo) ? lo : comp(hi, v) ? hi : v;
-}
-template<typename T> constexpr const T &clamp(const T &v, const T &lo, const T &hi) {
-  return clamp(v, lo, hi, std::less<T>{});
-}
-#endif
-
-// std::is_invocable from C++17
-#if __cpp_lib_is_invocable >= 201703
 using std::is_invocable;
-#else
-// https://stackoverflow.com/a/37161919/8924614
-template<class T, class... Args> struct is_invocable {  // NOLINT(readability-identifier-naming)
-  template<class U> static auto test(U *p) -> decltype((*p)(std::declval<Args>()...), void(), std::true_type());
-  template<class U> static auto test(...) -> decltype(std::false_type());
-  static constexpr auto value = decltype(test<T>(nullptr))::value;  // NOLINT
-};
-#endif
-
-// std::bit_cast from C++20
-#if __cpp_lib_bit_cast >= 201806
 using std::bit_cast;
-#else
-/// Convert data between types, without aliasing issues or undefined behaviour.
-template<
-    typename To, typename From,
-    enable_if_t<sizeof(To) == sizeof(From) && is_trivially_copyable<From>::value && is_trivially_copyable<To>::value,
-                int> = 0>
-To bit_cast(const From &src) {
-  To dst;
-  memcpy(&dst, &src, sizeof(To));
-  return dst;
-}
-#endif
 using std::lerp;
 
 // std::byteswap from C++23
@@ -265,9 +189,6 @@ bool str_equals_case_insensitive(const std::string &a, const std::string &b);
 bool str_startswith(const std::string &str, const std::string &start);
 /// Check whether a string ends with a value.
 bool str_endswith(const std::string &str, const std::string &end);
-
-/// Convert the value to a string (added as extra overload so that to_string() can be used on all stringifiable types).
-inline std::string to_string(const std::string &val) { return val; }
 
 /// Truncate a string to a specific length.
 std::string str_truncate(const std::string &str, size_t length);
