@@ -57,147 +57,92 @@ static void validate_static_string(const char *name) {
 // iterating over them from the loop task is fine; but iterating from any other context requires the lock to be held to
 // avoid the main thread modifying the list while it is being accessed.
 
-// Template implementation for set_timeout
-template<typename NameType>
-void HOT Scheduler::set_timeout_impl_(Component *component, const NameType &name, uint32_t timeout,
-                                      std::function<void()> func, bool make_copy) {
+// Common implementation for both timeout and interval
+void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string,
+                                      const void *name_ptr, uint32_t delay, std::function<void()> func) {
   const auto now = this->millis_();
 
-  // Handle empty name check based on type
-  bool is_empty = false;
-  if constexpr (std::is_same_v<NameType, std::string>) {
-    is_empty = name.empty();
+  // Get the name as const char*
+  const char *name_cstr = nullptr;
+  const std::string *name_str = nullptr;
+
+  if (is_static_string) {
+    name_cstr = static_cast<const char *>(name_ptr);
   } else {
-    is_empty = (name == nullptr || name[0] == '\0');
+    name_str = static_cast<const std::string *>(name_ptr);
+    name_cstr = name_str->c_str();
   }
 
-  if (!is_empty)
-    this->cancel_timeout(component, name);
+  // Check if name is empty
+  bool is_empty = (name_cstr == nullptr || name_cstr[0] == '\0');
 
-  if (timeout == SCHEDULER_DONT_RUN)
+  if (!is_empty) {
+    if (type == SchedulerItem::TIMEOUT) {
+      this->cancel_timeout(component, name_cstr);
+    } else {
+      this->cancel_interval(component, name_cstr);
+    }
+  }
+
+  if (delay == SCHEDULER_DONT_RUN)
     return;
+
+  // For intervals, calculate offset
+  uint32_t offset = 0;
+  if (type == SchedulerItem::INTERVAL && delay != 0) {
+    offset = (random_uint32() % delay) / 2;
+  }
 
   auto item = make_unique<SchedulerItem>();
   item->component = component;
 
-  // Set name based on type
-  if constexpr (std::is_same_v<NameType, std::string>) {
-    item->set_name(name.c_str(), make_copy);
-  } else {
-    item->set_name(name, make_copy);
-#ifdef ESPHOME_DEBUG_SCHEDULER
-    // Validate static strings in debug mode
-    if (!make_copy && name != nullptr) {
-      validate_static_string(name);
-    }
-#endif
-  }
+  // Set name with appropriate copy flag
+  item->set_name(name_cstr, !is_static_string);
 
-  item->type = SchedulerItem::TIMEOUT;
-  item->next_execution_ = now + timeout;
+#ifdef ESPHOME_DEBUG_SCHEDULER
+  // Validate static strings in debug mode
+  if (is_static_string && name_cstr != nullptr) {
+    validate_static_string(name_cstr);
+  }
+#endif
+
+  item->type = type;
+  item->interval = (type == SchedulerItem::INTERVAL) ? delay : 0;
+  item->next_execution_ = now + ((type == SchedulerItem::TIMEOUT) ? delay : offset);
   item->callback = std::move(func);
   item->remove = false;
+
 #ifdef ESPHOME_DEBUG_SCHEDULER
-  const char *name_str = nullptr;
-  if constexpr (std::is_same_v<NameType, std::string>) {
-    name_str = name.c_str();
+  const char *type_str = (type == SchedulerItem::TIMEOUT) ? "timeout" : "interval";
+  if (type == SchedulerItem::TIMEOUT) {
+    ESP_LOGD(TAG, "set_%s(name='%s/%s', %s=%" PRIu32 ")", type_str, item->get_source(), name_cstr, type_str, delay);
   } else {
-    name_str = name;
+    ESP_LOGD(TAG, "set_%s(name='%s/%s', %s=%" PRIu32 ", offset=%" PRIu32 ")", type_str, item->get_source(), name_cstr,
+             type_str, delay, offset);
   }
-  ESP_LOGD(TAG, "set_timeout(name='%s/%s', timeout=%" PRIu32 ")", item->get_source(), name_str, timeout);
 #endif
   this->push_(std::move(item));
 }
 
-// Explicit instantiations
-template void Scheduler::set_timeout_impl_<std::string>(Component *, const std::string &, uint32_t,
-                                                        std::function<void()>, bool);
-template void Scheduler::set_timeout_impl_<const char *>(Component *, const char *const &, uint32_t,
-                                                         std::function<void()>, bool);
-
 void HOT Scheduler::set_timeout(Component *component, const char *name, uint32_t timeout, std::function<void()> func) {
-  return this->set_timeout_impl_(component, name, timeout, std::move(func), false);
+  this->set_timer_common_(component, SchedulerItem::TIMEOUT, true, name, timeout, std::move(func));
 }
 
 void HOT Scheduler::set_timeout(Component *component, const std::string &name, uint32_t timeout,
                                 std::function<void()> func) {
-  return this->set_timeout_impl_(component, name, timeout, std::move(func), true);
+  this->set_timer_common_(component, SchedulerItem::TIMEOUT, false, &name, timeout, std::move(func));
 }
 bool HOT Scheduler::cancel_timeout(Component *component, const std::string &name) {
   return this->cancel_item_(component, name, SchedulerItem::TIMEOUT);
 }
-// Template implementation for set_interval
-template<typename NameType>
-void HOT Scheduler::set_interval_impl_(Component *component, const NameType &name, uint32_t interval,
-                                       std::function<void()> func, bool make_copy) {
-  const auto now = this->millis_();
-
-  // Handle empty name check based on type
-  bool is_empty = false;
-  if constexpr (std::is_same_v<NameType, std::string>) {
-    is_empty = name.empty();
-  } else {
-    is_empty = (name == nullptr || name[0] == '\0');
-  }
-
-  if (!is_empty)
-    this->cancel_interval(component, name);
-
-  if (interval == SCHEDULER_DONT_RUN)
-    return;
-
-  // only put offset in lower half
-  uint32_t offset = 0;
-  if (interval != 0)
-    offset = (random_uint32() % interval) / 2;
-
-  auto item = make_unique<SchedulerItem>();
-  item->component = component;
-
-  // Set name based on type
-  if constexpr (std::is_same_v<NameType, std::string>) {
-    item->set_name(name.c_str(), make_copy);
-  } else {
-    item->set_name(name, make_copy);
-#ifdef ESPHOME_DEBUG_SCHEDULER
-    // Validate static strings in debug mode
-    if (!make_copy && name != nullptr) {
-      validate_static_string(name);
-    }
-#endif
-  }
-
-  item->type = SchedulerItem::INTERVAL;
-  item->interval = interval;
-  item->next_execution_ = now + offset;
-  item->callback = std::move(func);
-  item->remove = false;
-#ifdef ESPHOME_DEBUG_SCHEDULER
-  const char *name_str = nullptr;
-  if constexpr (std::is_same_v<NameType, std::string>) {
-    name_str = name.c_str();
-  } else {
-    name_str = name;
-  }
-  ESP_LOGD(TAG, "set_interval(name='%s/%s', interval=%" PRIu32 ", offset=%" PRIu32 ")", item->get_source(), name_str,
-           interval, offset);
-#endif
-  this->push_(std::move(item));
-}
-
-// Explicit instantiations
-template void Scheduler::set_interval_impl_<std::string>(Component *, const std::string &, uint32_t,
-                                                         std::function<void()>, bool);
-template void Scheduler::set_interval_impl_<const char *>(Component *, const char *const &, uint32_t,
-                                                          std::function<void()>, bool);
-
 void HOT Scheduler::set_interval(Component *component, const std::string &name, uint32_t interval,
                                  std::function<void()> func) {
-  return this->set_interval_impl_(component, name, interval, std::move(func), true);
+  this->set_timer_common_(component, SchedulerItem::INTERVAL, false, &name, interval, std::move(func));
 }
+
 void HOT Scheduler::set_interval(Component *component, const char *name, uint32_t interval,
                                  std::function<void()> func) {
-  return this->set_interval_impl_(component, name, interval, std::move(func), false);
+  this->set_timer_common_(component, SchedulerItem::INTERVAL, true, name, interval, std::move(func));
 }
 bool HOT Scheduler::cancel_interval(Component *component, const std::string &name) {
   return this->cancel_item_(component, name, SchedulerItem::INTERVAL);

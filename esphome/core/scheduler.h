@@ -55,13 +55,9 @@ class Scheduler {
   void process_to_add();
 
  protected:
-  // Template helper to handle both const char* and std::string efficiently
-  template<typename NameType>
-  void set_timeout_impl_(Component *component, const NameType &name, uint32_t timeout, std::function<void()> func,
-                         bool make_copy);
-  template<typename NameType>
-  void set_interval_impl_(Component *component, const NameType &name, uint32_t interval, std::function<void()> func,
-                          bool make_copy);
+  // Common implementation for both timeout and interval
+  void set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string, const void *name_ptr,
+                         uint32_t delay, std::function<void()> func);
 
   struct SchedulerItem {
     // Ordered by size to minimize padding
