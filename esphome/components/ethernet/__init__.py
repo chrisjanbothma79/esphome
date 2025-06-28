@@ -152,7 +152,7 @@ def _validate(config):
         if CONF_CLK_MODE in config:
             LOGGER.warning(
                 "The 'clk_mode' option is deprecated and will be removed in ESPHome 2026.1. "
-                "Please update your configuration to use `clk` instead."
+                "Please update your configuration to use 'clk' instead."
             )
         elif CONF_CLK not in config:
             raise cv.Invalid("'clk' is a required option for [ethernet].")
