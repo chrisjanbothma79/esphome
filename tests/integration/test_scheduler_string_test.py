@@ -138,7 +138,7 @@ async def test_scheduler_string_test(
         try:
             await asyncio.wait_for(cancel_test_done.wait(), timeout=1.0)
         except asyncio.TimeoutError:
-            pytest.fail("Cancel test did not complete within 1 seconds")
+            pytest.fail("Cancel test did not complete within 1 second")
 
         # Wait for final results
         try:
