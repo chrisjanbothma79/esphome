@@ -95,23 +95,27 @@ bool MQTTBackendESP32::initialize_() {
     mqtt_cfg_.broker.address.transport = MQTT_TRANSPORT_OVER_TCP;
   }
 #endif
-#if defined(USE_MQTT_IDF_ENQUEUE)
-  xTaskCreate(esphome_mqtt_task, "esphome_mqtt", TASK_STACK_SIZE, (void *) this, TASK_PRIORITY, &this->task_handle_);
-  if (this->task_handle_ == nullptr) {
-    ESP_LOGE(TAG, "Failed to start MQTT thread");
-    return false;
-  }
-  // Set the task handle so the queue can notify it
-  this->mqtt_queue_.set_task_to_notify(this->task_handle_);
-#endif
   auto *mqtt_client = esp_mqtt_client_init(&mqtt_cfg_);
   if (mqtt_client) {
     handler_.reset(mqtt_client);
     is_initalized_ = true;
     esp_mqtt_client_register_event(mqtt_client, MQTT_EVENT_ANY, mqtt_event_handler, this);
+#if defined(USE_MQTT_IDF_ENQUEUE)
+    // Create the task only after MQTT client is initialized successfully
+    xTaskCreate(esphome_mqtt_task, "esphome_mqtt", TASK_STACK_SIZE, (void *) this, TASK_PRIORITY, &this->task_handle_);
+    if (this->task_handle_ == nullptr) {
+      ESP_LOGE(TAG, "Failed to create MQTT task");
+      // Clean up MQTT client since we can't start the async task
+      handler_.reset();
+      is_initalized_ = false;
+      return false;
+    }
+    // Set the task handle so the queue can notify it
+    this->mqtt_queue_.set_task_to_notify(this->task_handle_);
+#endif
     return true;
   } else {
-    ESP_LOGE(TAG, "Failed to initialize IDF-MQTT");
+    ESP_LOGE(TAG, "Failed to init client");
     return false;
   }
 }
@@ -248,7 +252,7 @@ bool MQTTBackendESP32::enqueue_(MqttQueueTypeT type, const char *topic, int qos,
   auto *elem = this->mqtt_event_pool_.allocate();
 
   if (!elem) {
-    ESP_LOGW(TAG, "Dropped MQTT message: queue full (topic: %s)", topic);
+    ESP_LOGW(TAG, "Queue full, dropped %s", topic);
     return false;
   }
 
@@ -260,7 +264,7 @@ bool MQTTBackendESP32::enqueue_(MqttQueueTypeT type, const char *topic, int qos,
   if (!elem->set_data(topic, payload, len)) {
     // Allocation failed, return elem to pool
     this->mqtt_event_pool_.release(elem);
-    ESP_LOGW(TAG, "Dropped MQTT message: memory allocation failed (topic: %s, size: %zu)", topic, len);
+    ESP_LOGW(TAG, "Memory allocation failed for %s (%zu bytes)", topic, len);
     return false;
   }
 
