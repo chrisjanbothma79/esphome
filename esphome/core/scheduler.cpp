@@ -60,67 +60,55 @@ static void validate_static_string(const char *name) {
 // Common implementation for both timeout and interval
 void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string,
                                       const void *name_ptr, uint32_t delay, std::function<void()> func) {
-  const auto now = this->millis_();
-
   // Get the name as const char*
-  const char *name_cstr = nullptr;
-  const std::string *name_str = nullptr;
+  const char *name_cstr =
+      is_static_string ? static_cast<const char *>(name_ptr) : static_cast<const std::string *>(name_ptr)->c_str();
 
-  if (is_static_string) {
-    name_cstr = static_cast<const char *>(name_ptr);
-  } else {
-    name_str = static_cast<const std::string *>(name_ptr);
-    name_cstr = name_str->c_str();
-  }
-
-  // Check if name is empty
-  bool is_empty = (name_cstr == nullptr || name_cstr[0] == '\0');
-
-  if (!is_empty) {
-    if (type == SchedulerItem::TIMEOUT) {
-      this->cancel_timeout(component, name_cstr);
-    } else {
-      this->cancel_interval(component, name_cstr);
-    }
+  // Cancel existing timer if name is not empty
+  if (name_cstr != nullptr && name_cstr[0] != '\0') {
+    this->cancel_item_(component, name_cstr, type);
   }
 
   if (delay == SCHEDULER_DONT_RUN)
     return;
 
-  // For intervals, calculate offset
-  uint32_t offset = 0;
-  if (type == SchedulerItem::INTERVAL && delay != 0) {
-    offset = (random_uint32() % delay) / 2;
-  }
+  const auto now = this->millis_();
 
+  // Create and populate the scheduler item
   auto item = make_unique<SchedulerItem>();
   item->component = component;
-
-  // Set name with appropriate copy flag
   item->set_name(name_cstr, !is_static_string);
+  item->type = type;
+  item->callback = std::move(func);
+  item->remove = false;
+
+  // Type-specific setup
+  if (type == SchedulerItem::INTERVAL) {
+    item->interval = delay;
+    // Calculate random offset (0 to interval/2)
+    uint32_t offset = (delay != 0) ? (random_uint32() % delay) / 2 : 0;
+    item->next_execution_ = now + offset;
+  } else {
+    item->interval = 0;
+    item->next_execution_ = now + delay;
+  }
 
 #ifdef ESPHOME_DEBUG_SCHEDULER
   // Validate static strings in debug mode
   if (is_static_string && name_cstr != nullptr) {
     validate_static_string(name_cstr);
   }
-#endif
 
-  item->type = type;
-  item->interval = (type == SchedulerItem::INTERVAL) ? delay : 0;
-  item->next_execution_ = now + ((type == SchedulerItem::TIMEOUT) ? delay : offset);
-  item->callback = std::move(func);
-  item->remove = false;
-
-#ifdef ESPHOME_DEBUG_SCHEDULER
+  // Debug logging
   const char *type_str = (type == SchedulerItem::TIMEOUT) ? "timeout" : "interval";
   if (type == SchedulerItem::TIMEOUT) {
     ESP_LOGD(TAG, "set_%s(name='%s/%s', %s=%" PRIu32 ")", type_str, item->get_source(), name_cstr, type_str, delay);
   } else {
     ESP_LOGD(TAG, "set_%s(name='%s/%s', %s=%" PRIu32 ", offset=%" PRIu32 ")", type_str, item->get_source(), name_cstr,
-             type_str, delay, offset);
+             type_str, delay, static_cast<uint32_t>(item->next_execution_ - now));
   }
 #endif
+
   this->push_(std::move(item));
 }
 

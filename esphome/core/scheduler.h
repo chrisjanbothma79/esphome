@@ -55,10 +55,6 @@ class Scheduler {
   void process_to_add();
 
  protected:
-  // Common implementation for both timeout and interval
-  void set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string, const void *name_ptr,
-                         uint32_t delay, std::function<void()> func);
-
   struct SchedulerItem {
     // Ordered by size to minimize padding
     Component *component;
@@ -142,6 +138,10 @@ class Scheduler {
       return this->component != nullptr ? this->component->get_component_source() : "unknown";
     }
   };
+
+  // Common implementation for both timeout and interval
+  void set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string, const void *name_ptr,
+                         uint32_t delay, std::function<void()> func);
 
   uint64_t millis_();
   void cleanup_();
