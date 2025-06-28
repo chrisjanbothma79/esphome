@@ -9,6 +9,7 @@
 #include <string>
 #include <type_traits>
 #include <vector>
+#include <cmath>
 
 #include "esphome/core/optional.h"
 
@@ -126,6 +127,7 @@ To bit_cast(const From &src) {
   return dst;
 }
 #endif
+using std::lerp;
 
 // std::byteswap from C++23
 template<typename T> constexpr T byteswap(T n) {
@@ -147,9 +149,6 @@ template<> constexpr int64_t byteswap(int64_t n) { return __builtin_bswap64(n); 
 
 /// @name Mathematics
 ///@{
-
-/// Linearly interpolate between \p start and \p end by \p completion (between 0 and 1).
-float lerp(float completion, float start, float end);
 
 /// Remap \p value from the range (\p min, \p max) to (\p min_out, \p max_out).
 template<typename T, typename U> T remap(U value, U min, U max, T min_out, T max_out) {
