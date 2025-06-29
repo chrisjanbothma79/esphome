@@ -1,0 +1,12 @@
+packages:
+  device_base: !include common.yaml
+
+# Enable OTA for this test
+ota:
+  - platform: esphome
+    safe_mode: true
+
+web_server:
+  port: 8080
+  version: 2
+  ota: true
