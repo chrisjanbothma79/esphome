@@ -10,6 +10,7 @@
 #include "utils.h"
 #ifdef USE_WEBSERVER_OTA
 #include "multipart_reader.h"
+#include "multipart_parser_utils.h"
 #endif
 
 #include "web_server_idf.h"
@@ -83,24 +84,13 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
 
   if (content_type.has_value()) {
     const std::string &ct = content_type.value();
-    size_t boundary_pos = ct.find("boundary=");
-    if (boundary_pos != std::string::npos) {
-      boundary_pos += 9;  // Skip "boundary="
-      size_t boundary_end = ct.find_first_of(" ;\r\n", boundary_pos);
-      if (boundary_end == std::string::npos) {
-        boundary_end = ct.length();
-      }
-      if (ct[boundary_pos] == '"' && boundary_end > boundary_pos + 1 && ct[boundary_end - 1] == '"') {
-        // Quoted boundary
-        boundary = ct.substr(boundary_pos + 1, boundary_end - boundary_pos - 2);
-      } else {
-        // Unquoted boundary
-        boundary = ct.substr(boundary_pos, boundary_end - boundary_pos);
-      }
-      is_multipart = ct.find("multipart/form-data") != std::string::npos && !boundary.empty();
-    }
+    const char *boundary_start = nullptr;
+    size_t boundary_len = 0;
 
-    if (!is_multipart && ct.find("application/x-www-form-urlencoded") == std::string::npos) {
+    if (parse_multipart_boundary(ct.c_str(), &boundary_start, &boundary_len)) {
+      boundary.assign(boundary_start, boundary_len);
+      is_multipart = true;
+    } else if (!is_form_urlencoded(ct.c_str())) {
       ESP_LOGW(TAG, "Unsupported content type for POST: %s", ct.c_str());
       // fallback to get handler to support backward compatibility
       return AsyncWebServer::request_handler(r);

@@ -174,12 +174,8 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   request->send(response);
 #endif
 #if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
-  AsyncWebServerResponse *response;
-  if (this->ota_started_ && this->ota_backend_) {
-    response = request->beginResponse(200, "text/plain", "Update Successful!");
-  } else {
-    response = request->beginResponse(200, "text/plain", "Update Failed!");
-  }
+  AsyncWebServerResponse *response = request->beginResponse(
+      200, "text/plain", (this->ota_started_ && this->ota_backend_) ? "Update Successful!" : "Update Failed!");
   response->addHeader("Connection", "close");
   request->send(response);
 #endif
