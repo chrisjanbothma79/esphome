@@ -110,10 +110,6 @@ NeewerBLEOutput::NeewerBLEOutput() {
   this->orig_msg_clear();
 };
 
-void NeewerStateOutput::write_state(float state){
-    // Do nothing with the written state
-};
-
 }  // namespace neewerlight
 }  // namespace esphome
 

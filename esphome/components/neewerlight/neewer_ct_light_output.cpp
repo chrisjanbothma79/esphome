@@ -1,4 +1,5 @@
 #include "neewer_ct_light_output.h"
+#include "neewer_state_output.h"
 
 #ifdef USE_ESP32
 

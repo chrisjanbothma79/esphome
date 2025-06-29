@@ -62,11 +62,6 @@ class NeewerBLEOutput : public Component, public output::FloatOutput, public ble
   const uint8_t effect_prefix_ = 0x88;
 };
 
-class NeewerStateOutput : public output::FloatOutput {
- protected:
-  void write_state(float state) override;
-};
-
 }  // namespace neewerlight
 }  // namespace esphome
 
