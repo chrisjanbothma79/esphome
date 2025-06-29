@@ -142,7 +142,7 @@ class OTARequestHandler : public AsyncWebHandler {
   uint32_t last_ota_progress_{0};
   uint32_t ota_read_length_{0};
   WebServerBase *parent_;
-#ifdef USE_ESP_IDF
+#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
   std::unique_ptr<ota::OTABackend> ota_backend_;
   bool ota_started_{false};
 #endif

@@ -1,4 +1,5 @@
 #ifdef USE_ESP_IDF
+#ifdef USE_WEBSERVER_OTA
 #include "multipart_parser.h"
 #include "esphome/core/log.h"
 
@@ -223,4 +224,5 @@ size_t MultipartParser::find_pattern(const uint8_t *pattern, size_t pattern_len,
 
 }  // namespace web_server_idf
 }  // namespace esphome
-#endif
+#endif  // USE_WEBSERVER_OTA
+#endif  // USE_ESP_IDF

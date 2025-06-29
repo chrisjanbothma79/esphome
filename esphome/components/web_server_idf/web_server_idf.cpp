@@ -8,7 +8,9 @@
 #include "esp_tls_crypto.h"
 
 #include "utils.h"
+#ifdef USE_WEBSERVER_OTA
 #include "multipart_parser.h"
+#endif
 
 #include "web_server_idf.h"
 
@@ -74,6 +76,7 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
   ESP_LOGVV(TAG, "Enter AsyncWebServer::request_post_handler. uri=%s", r->uri);
   auto content_type = request_get_header(r, "Content-Type");
 
+#ifdef USE_WEBSERVER_OTA
   // Check if this is a multipart form data request (for OTA updates)
   bool is_multipart = false;
   std::string boundary;
@@ -92,6 +95,13 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
       return AsyncWebServer::request_handler(r);
     }
   }
+#else
+  if (content_type.has_value() && content_type.value() != "application/x-www-form-urlencoded") {
+    ESP_LOGW(TAG, "Only application/x-www-form-urlencoded supported for POST request");
+    // fallback to get handler to support backward compatibility
+    return AsyncWebServer::request_handler(r);
+  }
+#endif
 
   if (!request_has_header(r, "Content-Length")) {
     ESP_LOGW(TAG, "Content length is requred for post: %s", r->uri);
@@ -99,6 +109,7 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
     return ESP_OK;
   }
 
+#ifdef USE_WEBSERVER_OTA
   // Handle multipart form data
   if (is_multipart && !boundary.empty()) {
     // Create request object
@@ -167,6 +178,7 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
     found_handler->handleRequest(&req);
     return ESP_OK;
   }
+#endif  // USE_WEBSERVER_OTA
 
   // Handle regular form data
   if (r->content_len > HTTPD_MAX_REQ_HDR_LEN) {

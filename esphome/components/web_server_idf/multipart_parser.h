@@ -1,5 +1,6 @@
 #pragma once
 #ifdef USE_ESP_IDF
+#ifdef USE_WEBSERVER_OTA
 
 #include <string>
 #include <vector>
@@ -64,4 +65,5 @@ class MultipartParser {
 
 }  // namespace web_server_idf
 }  // namespace esphome
-#endif
+#endif  // USE_WEBSERVER_OTA
+#endif  // USE_ESP_IDF

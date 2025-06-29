@@ -14,7 +14,7 @@
 #endif
 #endif
 
-#ifdef USE_ESP_IDF
+#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
 #include "esphome/components/ota/ota_backend.h"
 #endif
 
@@ -98,7 +98,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
   }
 #endif
 
-#ifdef USE_ESP_IDF
+#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
   // ESP-IDF implementation
   if (index == 0) {
     ESP_LOGI(TAG, "OTA Update Start: %s", filename.c_str());
@@ -173,7 +173,7 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   response->addHeader("Connection", "close");
   request->send(response);
 #endif
-#ifdef USE_ESP_IDF
+#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
   AsyncWebServerResponse *response;
   if (this->ota_started_ && this->ota_backend_) {
     response = request->beginResponse(200, "text/plain", "Update Successful!");
@@ -186,7 +186,7 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
 }
 
 void WebServerBase::add_ota_handler() {
-#if defined(USE_ARDUINO) || defined(USE_ESP_IDF)
+#if defined(USE_ARDUINO) || (defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA))
   this->add_handler(new OTARequestHandler(this));  // NOLINT
 #endif
 }
