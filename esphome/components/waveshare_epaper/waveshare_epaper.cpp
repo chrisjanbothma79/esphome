@@ -2187,7 +2187,7 @@ void GDEW029T5::dump_config() {
 // ========================================================
 //     Good Display 2.13in black/white
 // Datasheet:
-//  - https://github.com/ZinggJM/GxEPD2/blob/master/src/epd/xEPD2_290_T5.cpp
+//  - https://github.com/ZinggJM/GxEPD2/blob/master/src/epd/GxEPD2_213_T5D.cpp
 //  - https://www.good-display.com/public/html/pdfjs/viewer/viewernew.html?file=https://v4.cecdn.yun300.cn/100001_1909185148/GDEW0213T5D.pdf
 //  - https://www.good-display.com/product/229.html
 // ========================================================
@@ -2279,7 +2279,7 @@ void GDEW0213T5D::deep_sleep() {
 }
 
 void GDEW0213T5D::init_display_() {
-  // from https://github.com/ZinggJM/GxEPD2/blob/master/src/epd/GxEPD2_290_T5.cpp
+  // from https://github.com/ZinggJM/GxEPD2/blob/master/src/epd/GxEPD2_213_T5D.cpp
 
   // Hardware Initialization
   if (this->deep_sleep_between_updates_ && this->is_deep_sleep_) {
