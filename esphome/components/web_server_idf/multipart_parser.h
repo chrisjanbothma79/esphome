@@ -12,7 +12,7 @@ namespace web_server_idf {
 // Multipart form data parser for ESP-IDF
 class MultipartParser {
  public:
-  enum State { BOUNDARY_SEARCH, HEADERS, CONTENT, DONE, ERROR };
+  enum State : uint8_t { BOUNDARY_SEARCH, HEADERS, CONTENT, DONE, ERROR };
 
   struct Part {
     std::string name;

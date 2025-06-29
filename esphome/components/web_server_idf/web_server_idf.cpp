@@ -10,6 +10,7 @@
 #include "utils.h"
 #ifdef USE_WEBSERVER_OTA
 #include "multipart_parser.h"
+#include "multipart_parser_utils.h"
 #endif
 
 #include "web_server_idf.h"
@@ -78,19 +79,16 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
 
 #ifdef USE_WEBSERVER_OTA
   // Check if this is a multipart form data request (for OTA updates)
+  const char *boundary_start = nullptr;
+  size_t boundary_len = 0;
   bool is_multipart = false;
-  std::string boundary;
+
   if (content_type.has_value()) {
-    std::string ct = content_type.value();
-    if (ct.find("multipart/form-data") != std::string::npos) {
-      is_multipart = true;
-      // Extract boundary
-      size_t boundary_pos = ct.find("boundary=");
-      if (boundary_pos != std::string::npos) {
-        boundary = ct.substr(boundary_pos + 9);
-      }
-    } else if (ct != "application/x-www-form-urlencoded") {
-      ESP_LOGW(TAG, "Unsupported content type for POST: %s", ct.c_str());
+    const char *ct = content_type.value().c_str();
+    is_multipart = parse_multipart_boundary(ct, &boundary_start, &boundary_len);
+
+    if (!is_multipart && !is_form_urlencoded(ct)) {
+      ESP_LOGW(TAG, "Unsupported content type for POST: %s", ct);
       // fallback to get handler to support backward compatibility
       return AsyncWebServer::request_handler(r);
     }
@@ -111,7 +109,7 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
 
 #ifdef USE_WEBSERVER_OTA
   // Handle multipart form data
-  if (is_multipart && !boundary.empty()) {
+  if (is_multipart && boundary_start && boundary_len > 0) {
     // Create request object
     AsyncWebServerRequest req(r);
     auto *server = static_cast<AsyncWebServer *>(r->user_ctx);
@@ -130,7 +128,8 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
       return ESP_OK;
     }
 
-    // Handle multipart upload
+    // Handle multipart upload - create boundary string only when needed
+    std::string boundary(boundary_start, boundary_len);
     MultipartParser parser(boundary);
     static constexpr size_t CHUNK_SIZE = 1024;
     uint8_t *chunk_buf = new uint8_t[CHUNK_SIZE];

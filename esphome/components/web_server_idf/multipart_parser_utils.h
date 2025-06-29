@@ -4,21 +4,30 @@
 
 #include <string>
 #include <cctype>
+#include <cstring>
 
 namespace esphome {
 namespace web_server_idf {
+
+// Helper function for case-insensitive character comparison
+inline bool char_equals_ci(char a, char b) { return ::tolower(a) == ::tolower(b); }
+
+// Helper function for case-insensitive string region comparison
+inline bool str_ncmp_ci(const char *s1, const char *s2, size_t n) {
+  for (size_t i = 0; i < n; i++) {
+    if (!char_equals_ci(s1[i], s2[i])) {
+      return false;
+    }
+  }
+  return true;
+}
 
 // Case-insensitive string comparison
 inline bool str_equals_case_insensitive(const std::string &a, const std::string &b) {
   if (a.length() != b.length()) {
     return false;
   }
-  for (size_t i = 0; i < a.length(); i++) {
-    if (tolower(a[i]) != tolower(b[i])) {
-      return false;
-    }
-  }
-  return true;
+  return str_ncmp_ci(a.c_str(), b.c_str(), a.length());
 }
 
 // Case-insensitive string prefix check
@@ -26,12 +35,7 @@ inline bool str_startswith_case_insensitive(const std::string &str, const std::s
   if (str.length() < prefix.length()) {
     return false;
   }
-  for (size_t i = 0; i < prefix.length(); i++) {
-    if (tolower(str[i]) != tolower(prefix[i])) {
-      return false;
-    }
-  }
-  return true;
+  return str_ncmp_ci(str.c_str(), prefix.c_str(), prefix.length());
 }
 
 // Find a substring case-insensitively
@@ -40,15 +44,11 @@ inline size_t str_find_case_insensitive(const std::string &haystack, const std::
     return std::string::npos;
   }
 
-  for (size_t i = pos; i <= haystack.length() - needle.length(); i++) {
-    bool match = true;
-    for (size_t j = 0; j < needle.length(); j++) {
-      if (tolower(haystack[i + j]) != tolower(needle[j])) {
-        match = false;
-        break;
-      }
-    }
-    if (match) {
+  const size_t needle_len = needle.length();
+  const size_t max_pos = haystack.length() - needle_len;
+
+  for (size_t i = pos; i <= max_pos; i++) {
+    if (str_ncmp_ci(haystack.c_str() + i, needle.c_str(), needle_len)) {
       return i;
     }
   }
@@ -120,6 +120,91 @@ inline std::string extract_header_param(const std::string &header, const std::st
   }
 
   return "";
+}
+
+// Case-insensitive string search (like strstr but case-insensitive)
+inline const char *stristr(const char *haystack, const char *needle) {
+  if (!haystack || !needle) {
+    return nullptr;
+  }
+
+  size_t needle_len = strlen(needle);
+  if (needle_len == 0) {
+    return haystack;
+  }
+
+  for (const char *p = haystack; *p; p++) {
+    if (str_ncmp_ci(p, needle, needle_len)) {
+      return p;
+    }
+  }
+
+  return nullptr;
+}
+
+// Parse boundary from Content-Type header
+// Returns true if boundary found, false otherwise
+// boundary_start and boundary_len will point to the boundary value
+inline bool parse_multipart_boundary(const char *content_type, const char **boundary_start, size_t *boundary_len) {
+  if (!content_type) {
+    return false;
+  }
+
+  // Check for multipart/form-data (case-insensitive)
+  if (!stristr(content_type, "multipart/form-data")) {
+    return false;
+  }
+
+  // Look for boundary parameter
+  const char *b = stristr(content_type, "boundary=");
+  if (!b) {
+    return false;
+  }
+
+  const char *start = b + 9;  // Skip "boundary="
+
+  // Skip whitespace
+  while (*start == ' ' || *start == '\t') {
+    start++;
+  }
+
+  if (!*start) {
+    return false;
+  }
+
+  // Find end of boundary
+  const char *end = start;
+  if (*end == '"') {
+    // Quoted boundary
+    start++;
+    end++;
+    while (*end && *end != '"') {
+      end++;
+    }
+    *boundary_len = end - start;
+  } else {
+    // Unquoted boundary
+    while (*end && *end != ' ' && *end != ';' && *end != '\r' && *end != '\n' && *end != '\t') {
+      end++;
+    }
+    *boundary_len = end - start;
+  }
+
+  if (*boundary_len == 0) {
+    return false;
+  }
+
+  *boundary_start = start;
+  return true;
+}
+
+// Check if content type is form-urlencoded (case-insensitive)
+inline bool is_form_urlencoded(const char *content_type) {
+  if (!content_type) {
+    return false;
+  }
+
+  return stristr(content_type, "application/x-www-form-urlencoded") != nullptr;
 }
 
 }  // namespace web_server_idf
