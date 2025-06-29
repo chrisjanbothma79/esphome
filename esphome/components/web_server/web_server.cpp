@@ -1929,15 +1929,6 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
   }
 #endif
 
-#ifdef USE_ESP_IDF
-  if (request->url() == "/events") {
-    // Events are not supported on ESP-IDF yet
-    // Return a proper response to avoid "uri handler execution failed" warnings
-    request->send(501, "text/plain", "Server-Sent Events not supported on ESP-IDF");
-    return;
-  }
-#endif
-
 #ifdef USE_WEBSERVER_CSS_INCLUDE
   if (request->url() == "/0.css") {
     this->handle_css_request(request);
