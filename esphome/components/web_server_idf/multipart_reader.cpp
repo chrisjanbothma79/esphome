@@ -1,3 +1,4 @@
+#include "esphome/core/defines.h"
 #ifdef USE_ESP_IDF
 #ifdef USE_WEBSERVER_OTA
 #include "multipart_reader.h"

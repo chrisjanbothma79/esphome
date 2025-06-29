@@ -17,6 +17,6 @@ async def to_code(config):
 
     # Check if web_server component has OTA enabled
     web_server_config = CORE.config.get("web_server", {})
-    if web_server_config and web_server_config[CONF_OTA]:
+    if web_server_config and web_server_config[CONF_OTA] and "ota" in CORE.config:
         # Add multipart parser component for ESP-IDF OTA support
         add_idf_component(name="zorxx/multipart-parser", ref="1.0.1")
