@@ -139,8 +139,12 @@ class OTARequestHandler : public AsyncWebHandler {
   bool isRequestHandlerTrivial() const override { return false; }
 
  protected:
+#ifdef USE_WEBSERVER_OTA
+  void report_ota_progress_(AsyncWebServerRequest *request);
+
   uint32_t last_ota_progress_{0};
   uint32_t ota_read_length_{0};
+#endif
   WebServerBase *parent_;
 #if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
   std::unique_ptr<ota::OTABackend> ota_backend_;

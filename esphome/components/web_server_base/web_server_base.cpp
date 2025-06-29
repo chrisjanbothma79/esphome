@@ -14,7 +14,7 @@
 #endif
 #endif
 
-#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
+#ifdef USE_WEBSERVER_OTA
 #include "esphome/components/ota/ota_backend.h"
 #endif
 
@@ -22,6 +22,21 @@ namespace esphome {
 namespace web_server_base {
 
 static const char *const TAG = "web_server_base";
+
+#ifdef USE_WEBSERVER_OTA
+void OTARequestHandler::report_ota_progress_(AsyncWebServerRequest *request) {
+  const uint32_t now = millis();
+  if (now - this->last_ota_progress_ > 1000) {
+    if (request->contentLength() != 0) {
+      float percentage = (this->ota_read_length_ * 100.0f) / request->contentLength();
+      ESP_LOGD(TAG, "OTA in progress: %0.1f%%", percentage);
+    } else {
+      ESP_LOGD(TAG, "OTA in progress: %u bytes read", this->ota_read_length_);
+    }
+    this->last_ota_progress_ = now;
+  }
+}
+#endif
 
 void WebServerBase::add_handler(AsyncWebHandler *handler) {
   // remove all handlers
@@ -45,6 +60,7 @@ void report_ota_error() {
 
 void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const String &filename, size_t index,
                                      uint8_t *data, size_t len, bool final) {
+#ifdef USE_WEBSERVER_OTA
 #ifdef USE_ARDUINO
   bool success;
   if (index == 0) {
@@ -76,17 +92,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     return;
   }
   this->ota_read_length_ += len;
-
-  const uint32_t now = millis();
-  if (now - this->last_ota_progress_ > 1000) {
-    if (request->contentLength() != 0) {
-      float percentage = (this->ota_read_length_ * 100.0f) / request->contentLength();
-      ESP_LOGD(TAG, "OTA in progress: %0.1f%%", percentage);
-    } else {
-      ESP_LOGD(TAG, "OTA in progress: %u bytes read", this->ota_read_length_);
-    }
-    this->last_ota_progress_ = now;
-  }
+  this->report_ota_progress_(request);
 
   if (final) {
     if (Update.end(true)) {
@@ -96,9 +102,9 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
       report_ota_error();
     }
   }
-#endif
+#endif  // USE_ARDUINO
 
-#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
+#ifdef USE_ESP_IDF
   // ESP-IDF implementation
   if (index == 0) {
     ESP_LOGI(TAG, "OTA Update Start: %s", filename.c_str());
@@ -133,17 +139,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     }
 
     this->ota_read_length_ += len;
-
-    const uint32_t now = millis();
-    if (now - this->last_ota_progress_ > 1000) {
-      if (request->contentLength() != 0) {
-        float percentage = (this->ota_read_length_ * 100.0f) / request->contentLength();
-        ESP_LOGD(TAG, "OTA in progress: %0.1f%%", percentage);
-      } else {
-        ESP_LOGD(TAG, "OTA in progress: %u bytes read", this->ota_read_length_);
-      }
-      this->last_ota_progress_ = now;
-    }
+    this->report_ota_progress_(request);
   }
 
   if (final) {
@@ -157,11 +153,13 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     this->ota_backend_.reset();
     this->ota_started_ = false;
   }
-#endif
+#endif  // USE_ESP_IDF
+#endif  // USE_WEBSERVER_OTA
 }
 void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
-#ifdef USE_ARDUINO
+#ifdef USE_WEBSERVER_OTA
   AsyncWebServerResponse *response;
+#ifdef USE_ARDUINO
   if (!Update.hasError()) {
     response = request->beginResponse(200, "text/plain", "Update Successful!");
   } else {
@@ -170,19 +168,18 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
     Update.printError(ss);
     response = request->beginResponse(200, "text/plain", ss);
   }
-  response->addHeader("Connection", "close");
-  request->send(response);
-#endif
-#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
-  AsyncWebServerResponse *response = request->beginResponse(
+#endif  // USE_ARDUINO
+#ifdef USE_ESP_IDF
+  response = request->beginResponse(
       200, "text/plain", (this->ota_started_ && this->ota_backend_) ? "Update Successful!" : "Update Failed!");
+#endif  // USE_ESP_IDF
   response->addHeader("Connection", "close");
   request->send(response);
-#endif
+#endif  // USE_WEBSERVER_OTA
 }
 
 void WebServerBase::add_ota_handler() {
-#if defined(USE_ARDUINO) || (defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA))
+#ifdef USE_WEBSERVER_OTA
   this->add_handler(new OTARequestHandler(this));  // NOLINT
 #endif
 }
