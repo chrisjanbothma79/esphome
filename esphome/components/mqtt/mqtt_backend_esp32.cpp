@@ -6,6 +6,7 @@
 #include <string>
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
+#include "esphome/core/application.h"
 
 namespace esphome {
 namespace mqtt {
@@ -130,6 +131,27 @@ void MQTTBackendESP32::loop() {
     mqtt_event_handler_(event);
     mqtt_events_.pop();
   }
+
+#if defined(USE_MQTT_IDF_ENQUEUE)
+  // Periodically log dropped messages to avoid blocking during spikes.
+  // During high load, many messages can be dropped in quick succession.
+  // Logging each drop immediately would flood the logs and potentially
+  // cause more drops if MQTT logging is enabled (cascade effect).
+  // Instead, we accumulate the count and log a summary periodically.
+  // IMPORTANT: Don't move this to the scheduler - if drops are due to memory
+  // pressure, the scheduler's heap allocations would make things worse.
+  uint32_t now = App.get_loop_component_start_time();
+  // Handle rollover: (now - last_time) works correctly with unsigned arithmetic
+  // even when now < last_time due to rollover
+  if ((now - this->last_dropped_log_time_) >= DROP_LOG_INTERVAL_MS) {
+    uint16_t dropped = this->mqtt_queue_.get_and_reset_dropped_count();
+    if (dropped > 0) {
+      ESP_LOGW(TAG, "Dropped %u MQTT messages in the last %u seconds (queue full or allocation failed)", dropped,
+               DROP_LOG_INTERVAL_MS / 1000);
+    }
+    this->last_dropped_log_time_ = now;
+  }
+#endif
 }
 
 void MQTTBackendESP32::mqtt_event_handler_(const Event &event) {
@@ -254,7 +276,13 @@ bool MQTTBackendESP32::enqueue_(MqttQueueTypeT type, const char *topic, int qos,
   auto *elem = this->mqtt_event_pool_.allocate();
 
   if (!elem) {
-    ESP_LOGW(TAG, "Queue full, dropped %s", topic);
+    // Queue is full - increment counter but don't log immediately.
+    // Logging here can cause a cascade effect: if MQTT logging is enabled,
+    // each dropped message would generate a log message, which could itself
+    // be sent via MQTT, causing more drops and more logs in a feedback loop
+    // that eventually triggers a watchdog reset. Instead, we log periodically
+    // in loop() to prevent blocking the event loop during spikes.
+    this->mqtt_queue_.increment_dropped_count();
     return false;
   }
 
@@ -266,7 +294,8 @@ bool MQTTBackendESP32::enqueue_(MqttQueueTypeT type, const char *topic, int qos,
   if (!elem->set_data(topic, payload, len)) {
     // Allocation failed, return elem to pool
     this->mqtt_event_pool_.release(elem);
-    ESP_LOGW(TAG, "Memory allocation failed for %s (%zu bytes)", topic, len);
+    // Increment counter without logging to avoid cascade effect during memory pressure
+    this->mqtt_queue_.increment_dropped_count();
     return false;
   }
 
