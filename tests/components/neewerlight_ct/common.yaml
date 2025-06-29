@@ -1,0 +1,14 @@
+esp32:
+
+esp32_ble_tracker:
+
+ble_client:
+  - mac_address: 00:00:00:00:00:00
+    id: neewer_test_ble_client_id
+
+light:
+  - platform: neewerlight_ct
+    name: "Neewer Test Light"
+    ble_client_id: neewer_test_ble_client_id
+    cold_white_color_temperature: 6500 K
+    warm_white_color_temperature: 2700 K
