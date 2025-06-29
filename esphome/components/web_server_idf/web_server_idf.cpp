@@ -49,6 +49,9 @@ void AsyncWebServer::begin() {
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.server_port = this->port_;
   config.uri_match_fn = [](const char * /*unused*/, const char * /*unused*/, size_t /*unused*/) { return true; };
+  // Increase stack size for OTA operations - esp_ota_end() needs more stack
+  // during image validation than the default 4096 bytes
+  config.stack_size = 6144;
   if (httpd_start(&this->server_, &config) == ESP_OK) {
     const httpd_uri_t handler_get = {
         .uri = "",
@@ -337,7 +340,11 @@ esp_err_t AsyncWebServer::request_handler_(AsyncWebServerRequest *request) const
     this->on_not_found_(request);
     return ESP_OK;
   }
-  return ESP_ERR_NOT_FOUND;
+  // No handler found - send 404 response
+  // This prevents "uri handler execution failed" warnings
+  ESP_LOGD(TAG, "No handler found for URL: %s (method: %d)", request->url().c_str(), request->method());
+  request->send(404, "text/plain", "Not Found");
+  return ESP_OK;
 }
 
 AsyncWebServerRequest::~AsyncWebServerRequest() {

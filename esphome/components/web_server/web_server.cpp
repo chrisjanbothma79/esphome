@@ -1929,6 +1929,15 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
   }
 #endif
 
+#ifdef USE_ESP_IDF
+  if (request->url() == "/events") {
+    // Events are not supported on ESP-IDF yet
+    // Return a proper response to avoid "uri handler execution failed" warnings
+    request->send(501, "text/plain", "Server-Sent Events not supported on ESP-IDF");
+    return;
+  }
+#endif
+
 #ifdef USE_WEBSERVER_CSS_INCLUDE
   if (request->url() == "/0.css") {
     this->handle_css_request(request);
@@ -2085,6 +2094,10 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
     return;
   }
 #endif
+
+  // No matching handler found - send 404
+  ESP_LOGD(TAG, "Request for unknown URL: %s", request->url().c_str());
+  request->send(404, "text/plain", "Not Found");
 }
 
 bool WebServer::isRequestHandlerTrivial() const { return false; }

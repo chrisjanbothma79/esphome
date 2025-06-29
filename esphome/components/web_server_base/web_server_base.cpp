@@ -44,7 +44,17 @@ void OTARequestHandler::report_ota_progress_(AsyncWebServerRequest *request) {
 
 void OTARequestHandler::schedule_ota_reboot_() {
   ESP_LOGI(TAG, "OTA update successful!");
-  this->parent_->set_timeout(100, []() { App.safe_reboot(); });
+  this->parent_->set_timeout(100, [this]() {
+    ESP_LOGI(TAG, "Performing OTA reboot now");
+#ifdef USE_ESP_IDF
+    // Stop the web server before rebooting to avoid "uri handler execution failed" warnings
+    if (this->parent_->get_server()) {
+      ESP_LOGD(TAG, "Stopping web server before reboot");
+      this->parent_->get_server()->end();
+    }
+#endif
+    App.safe_reboot();
+  });
 }
 
 void OTARequestHandler::ota_init_(const char *filename) {
@@ -217,7 +227,17 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   }
 #endif  // USE_ARDUINO
 #ifdef USE_ESP_IDF
+  // For ESP-IDF, we use direct send() instead of beginResponse()
+  // to ensure the response is sent immediately before the reboot.
+  //
+  // Note about "uri handler execution failed" warnings:
+  // During OTA completion, the ESP-IDF HTTP server may log these warnings
+  // as the system prepares for reboot. They occur because:
+  // 1. The browser may try to fetch resources (e.g., /events) after OTA completes
+  // 2. The server is shutting down and can't process new requests
+  // These warnings are harmless and expected during OTA reboot.
   if (this->ota_success_) {
+    ESP_LOGD(TAG, "Sending OTA success response before reboot");
     request->send(200, "text/plain", "Update Successful!");
   } else {
     request->send(200, "text/plain", "Update Failed!");
