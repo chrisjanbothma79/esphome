@@ -9,8 +9,7 @@
 
 #include "utils.h"
 #ifdef USE_WEBSERVER_OTA
-#include "multipart_parser.h"
-#include "multipart_parser_utils.h"
+#include "multipart_reader.h"
 #endif
 
 #include "web_server_idf.h"
@@ -79,16 +78,30 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
 
 #ifdef USE_WEBSERVER_OTA
   // Check if this is a multipart form data request (for OTA updates)
-  const char *boundary_start = nullptr;
-  size_t boundary_len = 0;
   bool is_multipart = false;
+  std::string boundary;
 
   if (content_type.has_value()) {
-    const char *ct = content_type.value().c_str();
-    is_multipart = parse_multipart_boundary(ct, &boundary_start, &boundary_len);
+    const std::string &ct = content_type.value();
+    size_t boundary_pos = ct.find("boundary=");
+    if (boundary_pos != std::string::npos) {
+      boundary_pos += 9;  // Skip "boundary="
+      size_t boundary_end = ct.find_first_of(" ;\r\n", boundary_pos);
+      if (boundary_end == std::string::npos) {
+        boundary_end = ct.length();
+      }
+      if (ct[boundary_pos] == '"' && boundary_end > boundary_pos + 1 && ct[boundary_end - 1] == '"') {
+        // Quoted boundary
+        boundary = ct.substr(boundary_pos + 1, boundary_end - boundary_pos - 2);
+      } else {
+        // Unquoted boundary
+        boundary = ct.substr(boundary_pos, boundary_end - boundary_pos);
+      }
+      is_multipart = ct.find("multipart/form-data") != std::string::npos && !boundary.empty();
+    }
 
-    if (!is_multipart && !is_form_urlencoded(ct)) {
-      ESP_LOGW(TAG, "Unsupported content type for POST: %s", ct);
+    if (!is_multipart && ct.find("application/x-www-form-urlencoded") == std::string::npos) {
+      ESP_LOGW(TAG, "Unsupported content type for POST: %s", ct.c_str());
       // fallback to get handler to support backward compatibility
       return AsyncWebServer::request_handler(r);
     }
@@ -109,7 +122,7 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
 
 #ifdef USE_WEBSERVER_OTA
   // Handle multipart form data
-  if (is_multipart && boundary_start && boundary_len > 0) {
+  if (is_multipart && !boundary.empty()) {
     // Create request object
     AsyncWebServerRequest req(r);
     auto *server = static_cast<AsyncWebServer *>(r->user_ctx);
@@ -128,18 +141,36 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
       return ESP_OK;
     }
 
-    // Handle multipart upload - create boundary string only when needed
-    std::string boundary(boundary_start, boundary_len);
-    MultipartParser parser(boundary);
+    // Handle multipart upload using the multipart-parser library
+    MultipartReader reader(boundary);
     static constexpr size_t CHUNK_SIZE = 1024;
-    uint8_t *chunk_buf = new uint8_t[CHUNK_SIZE];
+    char *chunk_buf = new char[CHUNK_SIZE];
     size_t total_len = r->content_len;
     size_t remaining = total_len;
-    bool first_part = true;
+    std::string current_filename;
+    bool upload_started = false;
+
+    // Set up callbacks for the multipart reader
+    reader.set_data_callback([&](const uint8_t *data, size_t len) {
+      if (!current_filename.empty()) {
+        found_handler->handleUpload(&req, current_filename, upload_started ? 1 : 0, const_cast<uint8_t *>(data), len,
+                                    false);
+        upload_started = true;
+      }
+    });
+
+    reader.set_part_complete_callback([&]() {
+      if (!current_filename.empty() && upload_started) {
+        // Signal end of this part
+        found_handler->handleUpload(&req, current_filename, 2, nullptr, 0, false);
+        current_filename.clear();
+        upload_started = false;
+      }
+    });
 
     while (remaining > 0) {
       size_t to_read = std::min(remaining, CHUNK_SIZE);
-      int recv_len = httpd_req_recv(r, reinterpret_cast<char *>(chunk_buf), to_read);
+      int recv_len = httpd_req_recv(r, chunk_buf, to_read);
 
       if (recv_len <= 0) {
         delete[] chunk_buf;
@@ -152,23 +183,25 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
       }
 
       // Parse multipart data
-      if (parser.parse(chunk_buf, recv_len)) {
-        MultipartParser::Part part;
-        if (parser.get_current_part(part) && !part.filename.empty()) {
-          // This is a file upload
-          found_handler->handleUpload(&req, part.filename, first_part ? 0 : 1, const_cast<uint8_t *>(part.data),
-                                      part.length, false);
-          first_part = false;
-          parser.consume_part();
-        }
+      size_t parsed = reader.parse(chunk_buf, recv_len);
+      if (parsed != recv_len) {
+        ESP_LOGW(TAG, "Multipart parser error at byte %zu", total_len - remaining + parsed);
+        delete[] chunk_buf;
+        httpd_resp_send_err(r, HTTPD_400_BAD_REQUEST, nullptr);
+        return ESP_FAIL;
+      }
+
+      // Check if we found a new file part
+      if (reader.has_file() && current_filename.empty()) {
+        current_filename = reader.get_current_part().filename;
       }
 
       remaining -= recv_len;
     }
 
-    // Final call to handler
-    if (!first_part) {
-      found_handler->handleUpload(&req, "", 2, nullptr, 0, true);
+    // Final cleanup - send final signal if upload was in progress
+    if (!current_filename.empty() && upload_started) {
+      found_handler->handleUpload(&req, current_filename, 2, nullptr, 0, true);
     }
 
     delete[] chunk_buf;
