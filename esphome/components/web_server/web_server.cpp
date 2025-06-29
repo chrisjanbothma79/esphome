@@ -1753,7 +1753,7 @@ bool WebServer::canHandle(AsyncWebServerRequest *request) const {
   }
 #endif
 
-  UrlMatch match = match_url(request->url(), true);  // NOLINT
+  UrlMatch match = match_url(request->url().c_str(), true);  // NOLINT
   if (!match.valid)
     return false;
 #ifdef USE_SENSOR
@@ -1892,7 +1892,7 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
   }
 #endif
 
-  UrlMatch match = match_url(request->url());  // NOLINT
+  UrlMatch match = match_url(request->url().c_str());  // NOLINT
 #ifdef USE_SENSOR
   if (match.domain_equals("sensor")) {
     this->handle_sensor_request(request, match);
