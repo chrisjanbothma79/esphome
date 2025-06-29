@@ -9,6 +9,12 @@ namespace web_server_idf {
 
 static const char *const TAG = "multipart_parser";
 
+// Constants for multipart parsing
+static constexpr size_t CRLF_LENGTH = 2;
+static constexpr size_t MIN_BOUNDARY_BUFFER = 4;  // Extra bytes to keep for split boundary detection
+static constexpr const char *CRLF_STR = "\r\n";
+static constexpr const char *DOUBLE_DASH = "--";
+
 bool MultipartParser::parse(const uint8_t *data, size_t len) {
   // Append new data to buffer
   if (data && len > 0) {
@@ -105,8 +111,8 @@ bool MultipartParser::find_boundary() {
 
   if (boundary_pos == std::string::npos) {
     // Keep some data for next iteration to handle split boundaries
-    if (buffer_.size() > boundary_.length() + 4) {
-      buffer_.erase(buffer_.begin(), buffer_.end() - boundary_.length() - 4);
+    if (buffer_.size() > boundary_.length() + MIN_BOUNDARY_BUFFER) {
+      buffer_.erase(buffer_.begin(), buffer_.end() - boundary_.length() - MIN_BOUNDARY_BUFFER);
     }
     return false;
   }
@@ -115,12 +121,12 @@ bool MultipartParser::find_boundary() {
   buffer_.erase(buffer_.begin(), buffer_.begin() + boundary_pos + boundary_.length());
 
   // Skip CRLF after boundary
-  if (buffer_.size() >= 2 && buffer_[0] == '\r' && buffer_[1] == '\n') {
-    buffer_.erase(buffer_.begin(), buffer_.begin() + 2);
+  if (buffer_.size() >= CRLF_LENGTH && buffer_[0] == '\r' && buffer_[1] == '\n') {
+    buffer_.erase(buffer_.begin(), buffer_.begin() + CRLF_LENGTH);
   }
 
   // Check if this is the end boundary
-  if (buffer_.size() >= 2 && buffer_[0] == '-' && buffer_[1] == '-') {
+  if (buffer_.size() >= CRLF_LENGTH && buffer_[0] == '-' && buffer_[1] == '-') {
     state_ = DONE;
     return false;
   }
@@ -133,12 +139,12 @@ bool MultipartParser::parse_headers() {
     std::string line = read_line();
     if (line.empty()) {
       // Check if we have enough data for a line
-      auto crlf_pos = find_pattern(reinterpret_cast<const uint8_t *>("\r\n"), 2);
+      auto crlf_pos = find_pattern(reinterpret_cast<const uint8_t *>(CRLF_STR), CRLF_LENGTH);
       if (crlf_pos == std::string::npos) {
         return false;  // Need more data
       }
       // Empty line means headers are done
-      buffer_.erase(buffer_.begin(), buffer_.begin() + 2);
+      buffer_.erase(buffer_.begin(), buffer_.begin() + CRLF_LENGTH);
       return true;
     }
 
@@ -181,7 +187,7 @@ bool MultipartParser::parse_headers() {
 
 bool MultipartParser::extract_content() {
   // Look for next boundary
-  std::string search_boundary = "\r\n" + boundary_;
+  std::string search_boundary = CRLF_STR + boundary_;
   size_t boundary_pos =
       find_pattern(reinterpret_cast<const uint8_t *>(search_boundary.c_str()), search_boundary.length());
 
@@ -195,8 +201,8 @@ bool MultipartParser::extract_content() {
   // No boundary found yet, but we might have partial content
   // Keep enough bytes to ensure we don't split a boundary
   size_t safe_length = buffer_.size();
-  if (safe_length > search_boundary.length() + 4) {
-    safe_length -= search_boundary.length() + 4;
+  if (safe_length > search_boundary.length() + MIN_BOUNDARY_BUFFER) {
+    safe_length -= search_boundary.length() + MIN_BOUNDARY_BUFFER;
     if (safe_length > 0) {
       content_length_ = safe_length;
       // We have partial content but not complete yet
@@ -208,13 +214,13 @@ bool MultipartParser::extract_content() {
 }
 
 std::string MultipartParser::read_line() {
-  auto crlf_pos = find_pattern(reinterpret_cast<const uint8_t *>("\r\n"), 2);
+  auto crlf_pos = find_pattern(reinterpret_cast<const uint8_t *>(CRLF_STR), CRLF_LENGTH);
   if (crlf_pos == std::string::npos) {
     return "";
   }
 
   std::string line(buffer_.begin(), buffer_.begin() + crlf_pos);
-  buffer_.erase(buffer_.begin(), buffer_.begin() + crlf_pos + 2);
+  buffer_.erase(buffer_.begin(), buffer_.begin() + crlf_pos + CRLF_LENGTH);
   return line;
 }
 
