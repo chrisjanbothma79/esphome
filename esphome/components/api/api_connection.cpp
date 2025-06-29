@@ -1582,7 +1582,9 @@ ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
   if (correct) {
     ESP_LOGD(TAG, "%s connected", this->get_client_combined_info().c_str());
     this->connection_state_ = ConnectionState::AUTHENTICATED;
+#ifdef USE_API_CLIENT_CONNECTED_TRIGGER
     this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->client_peername_);
+#endif
 #ifdef USE_HOMEASSISTANT_TIME
     if (homeassistant::global_homeassistant_time != nullptr) {
       this->send_time_request();
