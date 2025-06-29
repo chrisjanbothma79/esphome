@@ -3,6 +3,9 @@
 #include "esphome/core/defines.h"
 #ifdef USE_API
 
+namespace esphome {
+namespace api {
+
 // Macro-based approach to eliminate duplication without runtime overhead
 // This generates the entity handler methods at compile time
 
@@ -23,5 +26,8 @@
 #define ENTITY_HANDLERS(entity_type, EntityClass, ResponseType) \
   LIST_ENTITIES_HANDLER(entity_type, EntityClass, ResponseType) \
   INITIAL_STATE_HANDLER(entity_type, EntityClass)
+
+}  // namespace api
+}  // namespace esphome
 
 #endif  // USE_API
