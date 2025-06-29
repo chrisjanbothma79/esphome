@@ -207,6 +207,25 @@ inline bool is_form_urlencoded(const char *content_type) {
   return stristr(content_type, "application/x-www-form-urlencoded") != nullptr;
 }
 
+// Trim whitespace from both ends of a string
+inline std::string str_trim(const std::string &str) {
+  size_t start = str.find_first_not_of(" \t\r\n");
+  if (start == std::string::npos) {
+    return "";
+  }
+  size_t end = str.find_last_not_of(" \t\r\n");
+  return str.substr(start, end - start + 1);
+}
+
+// Extract header value (everything after the colon)
+inline std::string extract_header_value(const std::string &header) {
+  size_t colon_pos = header.find(':');
+  if (colon_pos == std::string::npos) {
+    return "";
+  }
+  return str_trim(header.substr(colon_pos + 1));
+}
+
 }  // namespace web_server_idf
 }  // namespace esphome
 #endif  // USE_WEBSERVER_OTA

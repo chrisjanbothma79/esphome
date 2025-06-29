@@ -147,41 +147,19 @@ bool MultipartParser::parse_headers() {
       return true;
     }
 
-    // Parse Content-Disposition header (case-insensitive)
-    if (str_startswith_case_insensitive(line, "content-disposition:")) {
-      // Extract name parameter
-      std::string name = extract_header_param(line, "name");
-      if (!name.empty()) {
-        current_name_ = name;
-      }
-
-      // Extract filename parameter if present
-      std::string filename = extract_header_param(line, "filename");
-      if (!filename.empty()) {
-        current_filename_ = filename;
-      }
-    }
-    // Parse Content-Type header (case-insensitive)
-    else if (str_startswith_case_insensitive(line, "content-type:")) {
-      // Find the colon and skip it
-      size_t colon_pos = line.find(':');
-      if (colon_pos != std::string::npos) {
-        current_content_type_ = line.substr(colon_pos + 1);
-        // Trim leading whitespace
-        size_t start = current_content_type_.find_first_not_of(" \t");
-        if (start != std::string::npos) {
-          current_content_type_ = current_content_type_.substr(start);
-        } else {
-          current_content_type_.clear();
-        }
-        // Trim trailing whitespace
-        size_t end = current_content_type_.find_last_not_of(" \t\r\n");
-        if (end != std::string::npos) {
-          current_content_type_ = current_content_type_.substr(0, end + 1);
-        }
-      }
-    }
+    process_header_line(line);
   }
+}
+
+void MultipartParser::process_header_line(const std::string &line) {
+  if (str_startswith_case_insensitive(line, "content-disposition:")) {
+    // Extract name and filename parameters
+    current_name_ = extract_header_param(line, "name");
+    current_filename_ = extract_header_param(line, "filename");
+  } else if (str_startswith_case_insensitive(line, "content-type:")) {
+    current_content_type_ = extract_header_value(line);
+  }
+  // RFC 7578: Ignore any other Content-* headers
 }
 
 bool MultipartParser::extract_content() {

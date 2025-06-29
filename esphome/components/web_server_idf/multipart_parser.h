@@ -52,6 +52,7 @@ class MultipartParser {
  private:
   bool find_boundary();
   bool parse_headers();
+  void process_header_line(const std::string &line);
   bool extract_content();
 
   std::string read_line();
