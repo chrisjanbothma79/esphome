@@ -10,6 +10,7 @@ namespace esphome {
 namespace web_server_idf {
 
 // Multipart form data parser for ESP-IDF
+// Implements RFC 7578 compliant multipart/form-data parsing
 class MultipartParser {
  public:
   static constexpr const char *MULTIPART_BOUNDARY_PREFIX = "--";
