@@ -6,6 +6,7 @@
 
 #include <string>
 #include <queue>
+#include <cstring>
 #include <mqtt_client.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
@@ -64,21 +65,27 @@ struct QueueElement {
 
   QueueElement() : topic(nullptr), payload(nullptr), payload_len(0), qos(0), retain(0), reserved(0) {}
 
-  // Helper to set topic/payload (handles malloc)
+  // Helper to set topic/payload (uses RAMAllocator)
   bool set_data(const char *topic_str, const char *payload_data, size_t len) {
     // Check payload size limit (MQTT max is 64KiB)
     if (len > std::numeric_limits<uint16_t>::max()) {
       return false;
     }
 
-    topic = strdup(topic_str);
+    // Use RAMAllocator with default flags (tries external RAM first, falls back to internal)
+    RAMAllocator<char> allocator;
+
+    // Allocate and copy topic
+    size_t topic_len = strlen(topic_str) + 1;
+    topic = allocator.allocate(topic_len);
     if (!topic)
       return false;
+    memcpy(topic, topic_str, topic_len);
 
     if (payload_data && len) {
-      payload = (char *) malloc(len);  // NOLINT
+      payload = allocator.allocate(len);
       if (!payload) {
-        free(topic);  // NOLINT
+        allocator.deallocate(topic, topic_len);
         topic = nullptr;
         return false;
       }
@@ -91,14 +98,15 @@ struct QueueElement {
     return true;
   }
 
-  // Helper to release (handles free)
+  // Helper to release (uses RAMAllocator)
   void release() {
+    RAMAllocator<char> allocator;
     if (topic) {
-      free(topic);  // NOLINT
+      allocator.deallocate(topic, strlen(topic) + 1);
       topic = nullptr;
     }
     if (payload) {
-      free(payload);  // NOLINT
+      allocator.deallocate(payload, payload_len);
       payload = nullptr;
     }
     payload_len = 0;
