@@ -341,6 +341,7 @@ SUPPORTED_PLATFORMIO_ESP_IDF_5X = [
 # List based on https://github.com/pioarduino/esp-idf/releases
 SUPPORTED_PIOARDUINO_ESP_IDF_5X = [
     cv.Version(5, 5, 0),
+    cv.Version(5, 4, 2),
     cv.Version(5, 4, 1),
     cv.Version(5, 4, 0),
     cv.Version(5, 3, 3),
@@ -704,7 +705,7 @@ FINAL_VALIDATE_SCHEMA = cv.Schema(final_validate)
 async def to_code(config):
     cg.add_platformio_option("board", config[CONF_BOARD])
     cg.add_platformio_option("board_upload.flash_size", config[CONF_FLASH_SIZE])
-    cg.set_cpp_standard("gnu++17")
+    cg.set_cpp_standard("gnu++20")
     cg.add_build_flag("-DUSE_ESP32")
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
     cg.add_build_flag(f"-DUSE_ESP32_VARIANT_{config[CONF_VARIANT]}")
@@ -757,6 +758,9 @@ async def to_code(config):
         add_idf_sdkconfig_option("CONFIG_ESP_TASK_WDT_PANIC", True)
         add_idf_sdkconfig_option("CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0", False)
         add_idf_sdkconfig_option("CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1", False)
+
+        # Disable dynamic log level control to save memory
+        add_idf_sdkconfig_option("CONFIG_LOG_DYNAMIC_LEVEL_CONTROL", False)
 
         # Set default CPU frequency
         add_idf_sdkconfig_option(f"CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_{freq}", True)
