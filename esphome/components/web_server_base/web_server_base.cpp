@@ -195,18 +195,7 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
 #ifdef USE_ESP_IDF
   // For ESP-IDF, we use direct send() instead of beginResponse()
   // to ensure the response is sent immediately before the reboot.
-  //
-  // Note about "uri handler execution failed" warnings:
-  // During OTA completion, the ESP-IDF HTTP server may log these warnings
-  // as the system prepares for reboot. They occur because:
-  // 1. The browser may try to fetch resources (e.g., /events) after OTA completes
-  // 2. The server is shutting down and can't process new requests
-  // These warnings are harmless and expected during OTA reboot.
-  if (this->ota_success_) {
-    request->send(200, "text/plain", "Update Successful!");
-  } else {
-    request->send(200, "text/plain", "Update Failed!");
-  }
+  request->send(200, "text/plain", this->ota_success_ ? "Update Successful!" : "Update Failed!");
   return;
 #endif  // USE_ESP_IDF
   response->addHeader("Connection", "close");
