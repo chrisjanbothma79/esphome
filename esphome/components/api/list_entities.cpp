@@ -1,7 +1,7 @@
 #include "list_entities.h"
 #ifdef USE_API
 #include "api_connection.h"
-#include "api_protocol.h"
+#include "api_pb2.h"
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
 #include "esphome/core/util.h"
