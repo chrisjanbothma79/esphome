@@ -1,7 +1,6 @@
 #pragma once
 #include "esphome/core/defines.h"
-#ifdef USE_ESP_IDF
-#ifdef USE_WEBSERVER_OTA
+#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
 
 #include <string>
 #include <cctype>
@@ -42,5 +41,4 @@ std::string str_trim(const std::string &str);
 
 }  // namespace web_server_idf
 }  // namespace esphome
-#endif  // USE_WEBSERVER_OTA
-#endif  // USE_ESP_IDF
+#endif  // defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
