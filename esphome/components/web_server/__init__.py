@@ -71,12 +71,6 @@ def validate_local(config):
     return config
 
 
-def validate_ota(config):
-    if CORE.using_esp_idf and config[CONF_OTA]:
-        raise cv.Invalid("Enabling 'ota' is not supported for IDF framework yet")
-    return config
-
-
 def validate_sorting_groups(config):
     if CONF_SORTING_GROUPS in config and config[CONF_VERSION] != 3:
         raise cv.Invalid(
@@ -178,7 +172,7 @@ CONFIG_SCHEMA = cv.All(
                 CONF_OTA,
                 esp8266=True,
                 esp32_arduino=True,
-                esp32_idf=False,
+                esp32_idf=True,
                 bk72xx=True,
                 rtl87xx=True,
             ): cv.boolean,
@@ -190,7 +184,6 @@ CONFIG_SCHEMA = cv.All(
     cv.only_on([PLATFORM_ESP32, PLATFORM_ESP8266, PLATFORM_BK72XX, PLATFORM_RTL87XX]),
     default_url,
     validate_local,
-    validate_ota,
     validate_sorting_groups,
 )
 

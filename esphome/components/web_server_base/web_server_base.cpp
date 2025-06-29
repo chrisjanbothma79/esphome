@@ -14,6 +14,10 @@
 #endif
 #endif
 
+#ifdef USE_ESP_IDF
+#include "esphome/components/ota/ota_backend.h"
+#endif
+
 namespace esphome {
 namespace web_server_base {
 
@@ -93,6 +97,67 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     }
   }
 #endif
+
+#ifdef USE_ESP_IDF
+  // ESP-IDF implementation
+  if (index == 0) {
+    ESP_LOGI(TAG, "OTA Update Start: %s", filename.c_str());
+    this->ota_read_length_ = 0;
+    this->ota_started_ = false;
+
+    // Create OTA backend
+    this->ota_backend_ = ota::make_ota_backend();
+
+    // Begin OTA with unknown size
+    auto result = this->ota_backend_->begin(0);
+    if (result != ota::OTA_RESPONSE_OK) {
+      ESP_LOGE(TAG, "OTA begin failed: %d", result);
+      this->ota_backend_.reset();
+      return;
+    }
+    this->ota_started_ = true;
+  } else if (!this->ota_started_ || !this->ota_backend_) {
+    // Begin failed or was aborted
+    return;
+  }
+
+  // Write data
+  if (len > 0) {
+    auto result = this->ota_backend_->write(data, len);
+    if (result != ota::OTA_RESPONSE_OK) {
+      ESP_LOGE(TAG, "OTA write failed: %d", result);
+      this->ota_backend_->abort();
+      this->ota_backend_.reset();
+      this->ota_started_ = false;
+      return;
+    }
+
+    this->ota_read_length_ += len;
+
+    const uint32_t now = millis();
+    if (now - this->last_ota_progress_ > 1000) {
+      if (request->contentLength() != 0) {
+        float percentage = (this->ota_read_length_ * 100.0f) / request->contentLength();
+        ESP_LOGD(TAG, "OTA in progress: %0.1f%%", percentage);
+      } else {
+        ESP_LOGD(TAG, "OTA in progress: %u bytes read", this->ota_read_length_);
+      }
+      this->last_ota_progress_ = now;
+    }
+  }
+
+  if (final) {
+    auto result = this->ota_backend_->end();
+    if (result == ota::OTA_RESPONSE_OK) {
+      ESP_LOGI(TAG, "OTA update successful!");
+      this->parent_->set_timeout(100, []() { App.safe_reboot(); });
+    } else {
+      ESP_LOGE(TAG, "OTA end failed: %d", result);
+    }
+    this->ota_backend_.reset();
+    this->ota_started_ = false;
+  }
+#endif
 }
 void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
 #ifdef USE_ARDUINO
@@ -108,10 +173,20 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   response->addHeader("Connection", "close");
   request->send(response);
 #endif
+#ifdef USE_ESP_IDF
+  AsyncWebServerResponse *response;
+  if (this->ota_started_ && this->ota_backend_) {
+    response = request->beginResponse(200, "text/plain", "Update Successful!");
+  } else {
+    response = request->beginResponse(200, "text/plain", "Update Failed!");
+  }
+  response->addHeader("Connection", "close");
+  request->send(response);
+#endif
 }
 
 void WebServerBase::add_ota_handler() {
-#ifdef USE_ARDUINO
+#if defined(USE_ARDUINO) || defined(USE_ESP_IDF)
   this->add_handler(new OTARequestHandler(this));  // NOLINT
 #endif
 }

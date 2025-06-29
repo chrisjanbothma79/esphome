@@ -8,6 +8,7 @@
 #include "esp_tls_crypto.h"
 
 #include "utils.h"
+#include "multipart_parser.h"
 
 #include "web_server_idf.h"
 
@@ -72,10 +73,24 @@ void AsyncWebServer::begin() {
 esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
   ESP_LOGVV(TAG, "Enter AsyncWebServer::request_post_handler. uri=%s", r->uri);
   auto content_type = request_get_header(r, "Content-Type");
-  if (content_type.has_value() && *content_type != "application/x-www-form-urlencoded") {
-    ESP_LOGW(TAG, "Only application/x-www-form-urlencoded supported for POST request");
-    // fallback to get handler to support backward compatibility
-    return AsyncWebServer::request_handler(r);
+
+  // Check if this is a multipart form data request (for OTA updates)
+  bool is_multipart = false;
+  std::string boundary;
+  if (content_type.has_value()) {
+    std::string ct = content_type.value();
+    if (ct.find("multipart/form-data") != std::string::npos) {
+      is_multipart = true;
+      // Extract boundary
+      size_t boundary_pos = ct.find("boundary=");
+      if (boundary_pos != std::string::npos) {
+        boundary = ct.substr(boundary_pos + 9);
+      }
+    } else if (ct != "application/x-www-form-urlencoded") {
+      ESP_LOGW(TAG, "Unsupported content type for POST: %s", ct.c_str());
+      // fallback to get handler to support backward compatibility
+      return AsyncWebServer::request_handler(r);
+    }
   }
 
   if (!request_has_header(r, "Content-Length")) {
@@ -84,6 +99,76 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
     return ESP_OK;
   }
 
+  // Handle multipart form data
+  if (is_multipart && !boundary.empty()) {
+    // Create request object
+    AsyncWebServerRequest req(r);
+    auto *server = static_cast<AsyncWebServer *>(r->user_ctx);
+
+    // Find handler that can handle this request
+    AsyncWebHandler *found_handler = nullptr;
+    for (auto *handler : server->handlers_) {
+      if (handler->canHandle(&req)) {
+        found_handler = handler;
+        break;
+      }
+    }
+
+    if (!found_handler) {
+      httpd_resp_send_err(r, HTTPD_404_NOT_FOUND, nullptr);
+      return ESP_OK;
+    }
+
+    // Handle multipart upload
+    MultipartParser parser(boundary);
+    static constexpr size_t CHUNK_SIZE = 1024;
+    uint8_t *chunk_buf = new uint8_t[CHUNK_SIZE];
+    size_t total_len = r->content_len;
+    size_t remaining = total_len;
+    bool first_part = true;
+
+    while (remaining > 0) {
+      size_t to_read = std::min(remaining, CHUNK_SIZE);
+      int recv_len = httpd_req_recv(r, reinterpret_cast<char *>(chunk_buf), to_read);
+
+      if (recv_len <= 0) {
+        delete[] chunk_buf;
+        if (recv_len == HTTPD_SOCK_ERR_TIMEOUT) {
+          httpd_resp_send_err(r, HTTPD_408_REQ_TIMEOUT, nullptr);
+          return ESP_ERR_TIMEOUT;
+        }
+        httpd_resp_send_err(r, HTTPD_400_BAD_REQUEST, nullptr);
+        return ESP_FAIL;
+      }
+
+      // Parse multipart data
+      if (parser.parse(chunk_buf, recv_len)) {
+        MultipartParser::Part part;
+        if (parser.get_current_part(part) && !part.filename.empty()) {
+          // This is a file upload
+          found_handler->handleUpload(&req, part.filename, first_part ? 0 : 1, const_cast<uint8_t *>(part.data),
+                                      part.length, false);
+          first_part = false;
+          parser.consume_part();
+        }
+      }
+
+      remaining -= recv_len;
+    }
+
+    // Final call to handler
+    if (!first_part) {
+      found_handler->handleUpload(&req, "", 2, nullptr, 0, true);
+    }
+
+    delete[] chunk_buf;
+
+    // Let handler send response
+    found_handler->handleRequest(&req);
+    return ESP_OK;
+  }
+
+  // Handle regular form data
   if (r->content_len > HTTPD_MAX_REQ_HDR_LEN) {
     ESP_LOGW(TAG, "Request size is to big: %zu", r->content_len);
     httpd_resp_send_err(r, HTTPD_400_BAD_REQUEST, nullptr);
