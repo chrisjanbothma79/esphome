@@ -20,9 +20,14 @@ bool MultipartParser::parse(const uint8_t *data, size_t len) {
     buffer_.insert(buffer_.end(), data, data + len);
   }
 
+  // Limit iterations to prevent infinite loops
+  static constexpr size_t MAX_ITERATIONS = 10;
+  size_t iterations = 0;
+
   bool made_progress = true;
-  while (made_progress && state_ != DONE && state_ != ERROR && !buffer_.empty()) {
+  while (made_progress && state_ != DONE && state_ != ERROR && !buffer_.empty() && iterations < MAX_ITERATIONS) {
     made_progress = false;
+    iterations++;
 
     switch (state_) {
       case BOUNDARY_SEARCH:
@@ -45,11 +50,18 @@ bool MultipartParser::parse(const uint8_t *data, size_t len) {
           // Content is ready, return to caller
           return true;
         }
-        break;
+        // If we're waiting for more data in CONTENT state, exit the loop
+        return false;
 
       default:
+        ESP_LOGE(TAG, "Invalid parser state: %d", state_);
+        state_ = ERROR;
         break;
     }
+  }
+
+  if (iterations >= MAX_ITERATIONS) {
+    ESP_LOGW(TAG, "Parser reached maximum iterations, possible malformed data");
   }
 
   return part_ready_;
