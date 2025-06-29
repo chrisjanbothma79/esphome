@@ -46,13 +46,6 @@ void OTARequestHandler::schedule_ota_reboot_() {
   ESP_LOGI(TAG, "OTA update successful!");
   this->parent_->set_timeout(100, [this]() {
     ESP_LOGI(TAG, "Performing OTA reboot now");
-#ifdef USE_ESP_IDF
-    // Stop the web server before rebooting to avoid "uri handler execution failed" warnings
-    if (this->parent_->get_server()) {
-      ESP_LOGD(TAG, "Stopping web server before reboot");
-      this->parent_->get_server()->end();
-    }
-#endif
     App.safe_reboot();
   });
 }
