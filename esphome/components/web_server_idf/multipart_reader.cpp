@@ -4,6 +4,7 @@
 #include "multipart_parser_utils.h"
 #include "esphome/core/log.h"
 #include <cstring>
+#include "multipart_parser.h"
 
 namespace esphome {
 namespace web_server_idf {
