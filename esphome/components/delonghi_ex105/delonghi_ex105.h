@@ -65,7 +65,7 @@ class DelonghiClimate : public climate_ir::ClimateIR {
       climate::CLIMATE_MODE_COOL,
       climate::CLIMATE_MODE_FAN_ONLY  
     });
-
+    t.set_visual_temperature_step(1.0f);
     // (If you support fan, swing, presets, you can set those here too,
     // or leave them empty/false to hide those controls.)
     return t;

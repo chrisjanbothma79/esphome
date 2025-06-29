@@ -25,7 +25,6 @@ int mode_to_index(climate::ClimateMode m) {
 
 
 void DelonghiClimate::control(const climate::ClimateCall &call) {
-  // 1) Mode → IR
   if (call.get_mode().has_value()) {
   auto new_mode = *call.get_mode();
   if (new_mode == climate::CLIMATE_MODE_OFF) {
@@ -53,7 +52,6 @@ void DelonghiClimate::control(const climate::ClimateCall &call) {
     this->transmit_state();
     delay(200);
   }
-  // 4) Update state
   this->current_mode_index_ = target_i;
   this->mode   = new_mode;
   this->action = (new_mode == climate::CLIMATE_MODE_COOL
@@ -62,6 +60,32 @@ void DelonghiClimate::control(const climate::ClimateCall &call) {
   this->publish_state();
   return;
 }
+else if (call.get_target_temperature().has_value()) {
+  int new_temp  = *call.get_target_temperature();
+  int curr_temp = int(this->target_temperature);
+  int delta     = new_temp - curr_temp;         
+
+  if (delta > 0) {
+    for (int i = 0; i < delta; ++i) {
+      this->pending_command_ = DELONGHI_TEMP_UP;
+      this->transmit_state();
+      delay(200);
+    }
+  } else if (delta < 0) {
+    for (int i = 0; i < -delta; ++i) {
+      this->pending_command_ = DELONGHI_TEMP_DOWN;
+      this->transmit_state();
+      delay(200);
+    }
+  }
+
+  this->current_temperature = new_temp;
+  this->target_temperature  = new_temp;
+
+  this->publish_state();
+  return;
+}
+
 }
 
 
