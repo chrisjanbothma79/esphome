@@ -22,6 +22,7 @@ static constexpr uint32_t KEEPALIVE_TIMEOUT_MS = 60000;
 class APIConnection : public APIServerConnection {
  public:
   friend class APIServer;
+  friend class ListEntitiesIterator;
   APIConnection(std::unique_ptr<socket::Socket> socket, APIServer *parent);
   virtual ~APIConnection();
 
