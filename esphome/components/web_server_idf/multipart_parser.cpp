@@ -146,7 +146,11 @@ bool MultipartParser::find_boundary() {
 }
 
 bool MultipartParser::parse_headers() {
-  while (true) {
+  // Limit header lines to prevent DOS attacks
+  static constexpr size_t MAX_HEADER_LINES = 50;
+  size_t header_count = 0;
+
+  while (header_count < MAX_HEADER_LINES) {
     std::string line = read_line();
     if (line.empty()) {
       // Check if we have enough data for a line
@@ -160,7 +164,12 @@ bool MultipartParser::parse_headers() {
     }
 
     process_header_line(line);
+    header_count++;
   }
+
+  ESP_LOGW(TAG, "Too many headers in multipart data");
+  state_ = ERROR;
+  return false;
 }
 
 void MultipartParser::process_header_line(const std::string &line) {
@@ -203,8 +212,22 @@ bool MultipartParser::extract_content() {
 }
 
 std::string MultipartParser::read_line() {
+  // Limit line length to prevent excessive memory usage
+  static constexpr size_t MAX_LINE_LENGTH = 4096;
+
   auto crlf_pos = find_pattern(reinterpret_cast<const uint8_t *>(CRLF_STR), CRLF_LENGTH);
   if (crlf_pos == std::string::npos) {
+    // If we have too much data without CRLF, it's likely malformed
+    if (buffer_.size() > MAX_LINE_LENGTH) {
+      ESP_LOGW(TAG, "Header line too long, truncating");
+      state_ = ERROR;
+    }
+    return "";
+  }
+
+  if (crlf_pos > MAX_LINE_LENGTH) {
+    ESP_LOGW(TAG, "Header line exceeds maximum length");
+    state_ = ERROR;
     return "";
   }
 
