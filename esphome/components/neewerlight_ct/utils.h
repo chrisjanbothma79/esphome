@@ -6,6 +6,8 @@ namespace esphome {
 namespace neewerlight_ct {
 namespace utils {
 
+static const char *const TAG = "neewerlight_ct.component";
+
 // if input is 0, output is 0
 static float mireds_to_kelvin(float mireds) {
   if (mireds == 0.0f) {

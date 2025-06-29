@@ -43,8 +43,6 @@ class NeewerBLEOutput : public Component, public output::FloatOutput, public ble
   espbt::ESPBTUUID char_uuid_;
   espbt::ClientState client_state_;
 
-  const char *const TAG = "neewer_ble_output";
-
   uint8_t *msg_;
   uint8_t msg_len_;
   uint8_t *orig_msg_;

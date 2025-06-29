@@ -7,6 +7,8 @@
 namespace esphome {
 namespace neewerlight_ct {
 
+using utils::TAG;
+
 void NeewerCTLightOutput::dump_config() {
   ESP_LOGCONFIG(TAG, "Neewer CT Light Output:");
   ESP_LOGCONFIG(TAG, "  MAC address        : %s", this->parent_->address_str().c_str());

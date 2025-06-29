@@ -19,8 +19,6 @@ class NeewerCTLightOutput : public color_temperature::CTLightOutput, public Neew
   void prepare_ct_brightness_msg(float color_temperature, float brightness);
   void prepare_brightness_msg(float brightness);
 
-  const char *const TAG = "neewer_ct_light_output";
-
   float old_brightness_ = 0.0;
   float old_color_temperature_ = 0.0;
 };
