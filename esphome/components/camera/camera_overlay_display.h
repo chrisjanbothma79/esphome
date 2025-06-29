@@ -18,6 +18,7 @@ class CameraOverlayDisplay : public display::Display {
  public:
   void setup() override {
     this->set_auto_clear(false);
+    this->disable_loop();
     Camera::instance()->add_overlay_callback([this](const std::shared_ptr<camera::CameraImage> &image,
                                                     camera::CameraImageSpec spec,
                                                     camera::CameraIncrementalContext &context) {
@@ -37,6 +38,9 @@ class CameraOverlayDisplay : public display::Display {
 
   // ---- Display interface ----
   void draw_pixel_at(int x, int y, Color color) override {
+    if (x >= this->spec_.width || y >= this->spec_.height)
+      return;
+
     switch (spec_.format) {
       case camera::IMAGE_FORMAT_GRAYSCALE: {
         data_buffer_[y * this->bpr_ + x] = color.w;
