@@ -4,11 +4,6 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
-#ifdef USE_ESP_IDF
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#endif
-
 #ifdef USE_ARDUINO
 #include <StreamString.h>
 #if defined(USE_ESP32) || defined(USE_LIBRETINY)

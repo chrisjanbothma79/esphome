@@ -2087,7 +2087,7 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
 #endif
 
   // No matching handler found - send 404
-  ESP_LOGD(TAG, "Request for unknown URL: %s", request->url().c_str());
+  ESP_LOGV(TAG, "Request for unknown URL: %s", request->url().c_str());
   request->send(404, "text/plain", "Not Found");
 }
 

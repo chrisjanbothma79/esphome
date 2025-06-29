@@ -7,8 +7,6 @@
 #include "esphome/core/log.h"
 
 #include "esp_tls_crypto.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 
 #include "utils.h"
 #include "web_server_idf.h"
