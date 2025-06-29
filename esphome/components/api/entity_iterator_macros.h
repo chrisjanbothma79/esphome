@@ -22,11 +22,6 @@ namespace api {
     return this->client_->send_##entity_type##_state(entity); \
   }
 
-// Combined macro that generates both handlers
-#define ENTITY_HANDLERS(entity_type, EntityClass, ResponseType) \
-  LIST_ENTITIES_HANDLER(entity_type, EntityClass, ResponseType) \
-  INITIAL_STATE_HANDLER(entity_type, EntityClass)
-
 }  // namespace api
 }  // namespace esphome
 
