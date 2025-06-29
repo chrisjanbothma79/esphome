@@ -136,7 +136,6 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     // Store the backend pointer
     this->ota_backend_ = backend.release();
     this->ota_started_ = true;
-    this->ota_success_ = false;  // Will be set to true only on successful completion
   } else if (!this->ota_started_ || !this->ota_backend_) {
     // Begin failed or was aborted
     return;
