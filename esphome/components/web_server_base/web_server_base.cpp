@@ -36,6 +36,16 @@ void OTARequestHandler::report_ota_progress_(AsyncWebServerRequest *request) {
     this->last_ota_progress_ = now;
   }
 }
+
+void OTARequestHandler::schedule_ota_reboot_() {
+  ESP_LOGI(TAG, "OTA update successful!");
+  this->parent_->set_timeout(100, []() { App.safe_reboot(); });
+}
+
+void OTARequestHandler::ota_init_(const char *filename) {
+  ESP_LOGI(TAG, "OTA Update Start: %s", filename);
+  this->ota_read_length_ = 0;
+}
 #endif
 
 void WebServerBase::add_handler(AsyncWebHandler *handler) {
@@ -64,8 +74,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 #ifdef USE_ARDUINO
   bool success;
   if (index == 0) {
-    ESP_LOGI(TAG, "OTA Update Start: %s", filename.c_str());
-    this->ota_read_length_ = 0;
+    this->ota_init_(filename.c_str());
 #ifdef USE_ESP8266
     Update.runAsync(true);
     // NOLINTNEXTLINE(readability-static-accessed-through-instance)
@@ -96,8 +105,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 
   if (final) {
     if (Update.end(true)) {
-      ESP_LOGI(TAG, "OTA update successful!");
-      this->parent_->set_timeout(100, []() { App.safe_reboot(); });
+      this->schedule_ota_reboot_();
     } else {
       report_ota_error();
     }
@@ -107,8 +115,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 #ifdef USE_ESP_IDF
   // ESP-IDF implementation
   if (index == 0) {
-    ESP_LOGI(TAG, "OTA Update Start: %s", filename.c_str());
-    this->ota_read_length_ = 0;
+    this->ota_init_(filename.c_str());
     this->ota_started_ = false;
 
     // Create OTA backend
@@ -145,8 +152,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
   if (final) {
     auto result = this->ota_backend_->end();
     if (result == ota::OTA_RESPONSE_OK) {
-      ESP_LOGI(TAG, "OTA update successful!");
-      this->parent_->set_timeout(100, []() { App.safe_reboot(); });
+      this->schedule_ota_reboot_();
     } else {
       ESP_LOGE(TAG, "OTA end failed: %d", result);
     }

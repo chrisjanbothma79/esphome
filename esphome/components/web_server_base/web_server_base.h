@@ -141,6 +141,8 @@ class OTARequestHandler : public AsyncWebHandler {
  protected:
 #ifdef USE_WEBSERVER_OTA
   void report_ota_progress_(AsyncWebServerRequest *request);
+  void schedule_ota_reboot_();
+  void ota_init_(const char *filename);
 
   uint32_t last_ota_progress_{0};
   uint32_t ota_read_length_{0};
