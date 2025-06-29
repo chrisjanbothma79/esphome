@@ -160,9 +160,9 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 
     // Log first chunk of data received by OTA handler
     if (this->ota_read_length_ == 0 && len >= 8) {
-      ESP_LOGD(TAG, "First data received by OTA handler: %02x %02x %02x %02x %02x %02x %02x %02x", data[0], data[1],
+      ESP_LOGV(TAG, "First data received by OTA handler: %02x %02x %02x %02x %02x %02x %02x %02x", data[0], data[1],
                data[2], data[3], data[4], data[5], data[6], data[7]);
-      ESP_LOGD(TAG, "Data pointer in OTA handler: %p, len: %zu, index: %zu", data, len, index);
+      ESP_LOGV(TAG, "Data pointer in OTA handler: %p, len: %zu, index: %zu", data, len, index);
     }
 
     // Feed watchdog and yield periodically to prevent timeout during OTA
@@ -214,7 +214,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 }
 void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
 #ifdef USE_WEBSERVER_OTA
-  ESP_LOGD(TAG, "OTA handleRequest called");
+  ESP_LOGV(TAG, "OTA handleRequest called");
   AsyncWebServerResponse *response;
 #ifdef USE_ARDUINO
   if (!Update.hasError()) {
@@ -237,7 +237,7 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   // 2. The server is shutting down and can't process new requests
   // These warnings are harmless and expected during OTA reboot.
   if (this->ota_success_) {
-    ESP_LOGD(TAG, "Sending OTA success response before reboot");
+    ESP_LOGV(TAG, "Sending OTA success response before reboot");
     request->send(200, "text/plain", "Update Successful!");
   } else {
     request->send(200, "text/plain", "Update Failed!");

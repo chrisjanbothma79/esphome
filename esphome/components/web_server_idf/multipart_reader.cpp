@@ -48,15 +48,15 @@ size_t MultipartReader::parse(const char *data, size_t len) {
   size_t parsed = multipart_parser_execute(parser_, data, len);
 
   if (parsed != len) {
-    ESP_LOGD(TAG, "Parser consumed %zu of %zu bytes", parsed, len);
+    ESP_LOGW(TAG, "Parser consumed %zu of %zu bytes - possible error", parsed, len);
     // Log the data around the error point
     if (parsed < len && parsed < 32) {
-      ESP_LOGD(TAG, "Data at error point (offset %zu): %02x %02x %02x %02x", parsed,
+      ESP_LOGV(TAG, "Data at error point (offset %zu): %02x %02x %02x %02x", parsed,
                parsed > 0 ? (uint8_t) data[parsed - 1] : 0, (uint8_t) data[parsed],
                parsed + 1 < len ? (uint8_t) data[parsed + 1] : 0, parsed + 2 < len ? (uint8_t) data[parsed + 2] : 0);
 
       // Log what we have vs what parser expects
-      ESP_LOGD(TAG, "Parser error at position %zu: got '%c' (0x%02x)", parsed, data[parsed], (uint8_t) data[parsed]);
+      ESP_LOGV(TAG, "Parser error at position %zu: got '%c' (0x%02x)", parsed, data[parsed], (uint8_t) data[parsed]);
     }
   }
 
@@ -107,7 +107,7 @@ int MultipartReader::on_headers_complete(multipart_parser *parser) {
   reader->current_header_field_.clear();
   reader->current_header_value_.clear();
 
-  ESP_LOGD(TAG, "Part headers complete: name='%s', filename='%s', content_type='%s'",
+  ESP_LOGV(TAG, "Part headers complete: name='%s', filename='%s', content_type='%s'",
            reader->current_part_.name.c_str(), reader->current_part_.filename.c_str(),
            reader->current_part_.content_type.c_str());
 
@@ -131,7 +131,7 @@ int MultipartReader::on_part_data(multipart_parser *parser, const char *at, size
     // later use as the buffer will be overwritten.
     // Log first data bytes from multipart parser
     if (!reader->first_data_logged_ && length >= 8) {
-      ESP_LOGD(TAG, "First part data from parser: %02x %02x %02x %02x %02x %02x %02x %02x", (uint8_t) at[0],
+      ESP_LOGV(TAG, "First part data from parser: %02x %02x %02x %02x %02x %02x %02x %02x", (uint8_t) at[0],
                (uint8_t) at[1], (uint8_t) at[2], (uint8_t) at[3], (uint8_t) at[4], (uint8_t) at[5], (uint8_t) at[6],
                (uint8_t) at[7]);
       reader->first_data_logged_ = true;

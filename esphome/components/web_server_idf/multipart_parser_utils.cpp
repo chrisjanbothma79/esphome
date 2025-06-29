@@ -184,7 +184,7 @@ bool parse_multipart_boundary(const char *content_type, const char **boundary_st
   *boundary_start = start;
 
   // Debug log the extracted boundary
-  ESP_LOGD("multipart_utils", "Extracted boundary: '%.*s' (len: %zu)", (int) *boundary_len, start, *boundary_len);
+  ESP_LOGV("multipart_utils", "Extracted boundary: '%.*s' (len: %zu)", (int) *boundary_len, start, *boundary_len);
 
   return true;
 }
