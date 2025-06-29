@@ -151,13 +151,6 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
   if (len > 0) {
     auto *backend = static_cast<ota::OTABackend *>(this->ota_backend_);
 
-    // Log first chunk of data received by OTA handler
-    if (this->ota_read_length_ == 0 && len >= 8) {
-      ESP_LOGV(TAG, "First data received by OTA handler: %02x %02x %02x %02x %02x %02x %02x %02x", data[0], data[1],
-               data[2], data[3], data[4], data[5], data[6], data[7]);
-      ESP_LOGV(TAG, "Data pointer in OTA handler: %p, len: %zu, index: %zu", data, len, index);
-    }
-
     // Feed watchdog and yield periodically to prevent timeout during OTA
     // Flash writes can be slow, especially for large chunks
     static uint32_t last_ota_yield = 0;
