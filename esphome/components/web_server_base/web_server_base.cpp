@@ -203,7 +203,6 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   // 2. The server is shutting down and can't process new requests
   // These warnings are harmless and expected during OTA reboot.
   if (this->ota_success_) {
-    ESP_LOGV(TAG, "Sending OTA success response before reboot");
     request->send(200, "text/plain", "Update Successful!");
   } else {
     request->send(200, "text/plain", "Update Failed!");
