@@ -1,40 +1,33 @@
 import esphome.codegen as cg
 from esphome.components import ble_client, light
+from esphome.components.color_temperature import light as ct_light
 from esphome.components.neewerlight import output as nw_output
-from esphome.components.rgbct import light as rgbct_light
 import esphome.config_validation as cv
-from esphome.const import (
-    CONF_COLOR_INTERLOCK,
-    CONF_GAMMA_CORRECT,
-    CONF_NAME,
-    CONF_OUTPUT_ID,
-)
+from esphome.const import CONF_NAME, CONF_OUTPUT_ID
 
 DEPENDENCIES = ["ble_client"]
-AUTO_LOAD = ["output", "rgbct"]
+AUTO_LOAD = ["output", "color_temperature"]
 IS_PLATFORM_COMPONENT = True
 
 neewerlight_ns = cg.esphome_ns.namespace("neewerlight")
-rgbct_ns = cg.esphome_ns.namespace("rgbct")
+ct_ns = cg.esphome_ns.namespace("color_temperature")
 
-NeewerRGBCTLightOutput = neewerlight_ns.class_(
-    "NeewerRGBCTLightOutput",
-    rgbct_light.RGBCTLightOutput,
+NeewerCTLightOutput = neewerlight_ns.class_(
+    "NeewerCTLightOutput",
+    ct_light.CTLightOutput,
     nw_output.NeewerBLEOutput,
 )
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
-            cv.GenerateID(CONF_OUTPUT_ID): cv.declare_id(NeewerRGBCTLightOutput),
+            cv.GenerateID(CONF_OUTPUT_ID): cv.declare_id(NeewerCTLightOutput),
             cv.Required(CONF_NAME): cv.string,
             cv.Required(ble_client.CONF_BLE_CLIENT_ID): cv.use_id(ble_client.BLEClient),
-            cv.Optional(CONF_GAMMA_CORRECT, default=1.0): cv.positive_float,
-            cv.Optional(CONF_COLOR_INTERLOCK, default=True): cv.boolean,
         }
     )
     .extend(cv.ENTITY_BASE_SCHEMA)
-    .extend(light.RGB_LIGHT_SCHEMA)
+    .extend(light.LIGHT_SCHEMA)
     .extend(cv.COMPONENT_SCHEMA)
 )
 
@@ -44,5 +37,3 @@ async def to_code(config):
     await light.register_light(var, config)
 
     await ble_client.register_ble_node(var, config)
-
-    cg.add(var.set_color_interlock(config[CONF_COLOR_INTERLOCK]))
