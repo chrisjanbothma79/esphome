@@ -1,9 +1,9 @@
-#include "neewer_light_output.h"
+#include "neewer_ble_output.h"
 
 #ifdef USE_ESP32
 
 namespace esphome {
-namespace neewerlight {
+namespace neewerlight_ct {
 
 void NeewerBLEOutput::dump_config() {
   ESP_LOGCONFIG(TAG, "Neewer BLE Output:");
@@ -110,7 +110,7 @@ NeewerBLEOutput::NeewerBLEOutput() {
   this->orig_msg_clear();
 };
 
-}  // namespace neewerlight
+}  // namespace neewerlight_ct
 }  // namespace esphome
 
 #endif  // USE_ESP32
