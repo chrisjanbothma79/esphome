@@ -8,8 +8,6 @@ static const char *const TAG = "delonghi.climate";
 
 void DelonghiClimate::setup() {
   this->mode = climate::CLIMATE_MODE_OFF;
-  this->target_temperature = 20;
-  this->current_temperature = 20;
   this->action = climate::CLIMATE_ACTION_OFF;
   this->publish_state();
 }
@@ -19,6 +17,24 @@ int mode_to_index(climate::ClimateMode m) {
     case climate::CLIMATE_MODE_COOL:     return 0;
     case climate::CLIMATE_MODE_DRY:      return 1;
     case climate::CLIMATE_MODE_FAN_ONLY: return 2;
+    default:                              return 0;
+  }
+}
+
+static int fan_mode_to_index(climate::ClimateFanMode m) {
+  switch (m) {
+    case climate::CLIMATE_FAN_AUTO:   return 0;
+    case climate::CLIMATE_FAN_LOW:    return 1;
+    case climate::CLIMATE_FAN_MEDIUM: return 2;
+    case climate::CLIMATE_FAN_HIGH:   return 3;
+    default:                          return 0;
+  }
+}
+
+static int swing_mode_to_index(climate::ClimateSwingMode s) {
+  switch (s) {
+    case climate::CLIMATE_SWING_VERTICAL: return 1;
+    case climate::CLIMATE_SWING_OFF:
     default:                              return 0;
   }
 }
@@ -39,6 +55,8 @@ void DelonghiClimate::control(const climate::ClimateCall &call) {
   if (this->mode == climate::CLIMATE_MODE_OFF) {
     this->pending_command_ = DELONGHI_POWER_TOGGLE;
     this->transmit_state();
+    this->target_temperature  = this->last_target_temperature_;
+    this->current_temperature = this->last_target_temperature_;
     this->mode   = new_mode;
     this->action = (new_mode == climate::CLIMATE_MODE_COOL
                       ? climate::CLIMATE_ACTION_COOLING
@@ -62,6 +80,7 @@ void DelonghiClimate::control(const climate::ClimateCall &call) {
 }
 else if (call.get_target_temperature().has_value()) {
   int new_temp  = *call.get_target_temperature();
+  this->last_target_temperature_ = new_temp;
   int curr_temp = int(this->target_temperature);
   int delta     = new_temp - curr_temp;         
 
@@ -81,10 +100,91 @@ else if (call.get_target_temperature().has_value()) {
 
   this->current_temperature = new_temp;
   this->target_temperature  = new_temp;
-
   this->publish_state();
   return;
-}
+  }
+  else if (call.get_fan_mode().has_value()) {
+    auto new_fan = *call.get_fan_mode();
+    int target_i = fan_mode_to_index(new_fan);
+    int delta = (target_i - this->current_fan_index_ + 4) % 4;
+    for (int i = 0; i < delta; ++i) {
+      this->pending_command_ = DELONGHI_FAN_COMMAND;
+      this->transmit_state();
+      delay(200);
+    }
+    this->current_fan_index_ = target_i;
+    this->fan_mode           = new_fan;
+    this->publish_state();
+    return;
+  }
+  else if (call.get_swing_mode().has_value()) {
+    auto new_swing = *call.get_swing_mode();
+    int target_i   = swing_mode_to_index(new_swing);
+    int delta = (target_i - this->current_swing_index_ + 2) % 2;
+    for (int i = 0; i < delta; ++i) {
+      this->pending_command_ = DELONGHI_SWING_COMMAND;
+      this->transmit_state();
+      delay(200);
+    }
+    this->current_swing_index_ = target_i;
+    this->swing_mode           = new_swing;
+    this->publish_state();
+    return;
+  }
+  if (call.get_preset().has_value() &&
+      *call.get_preset() == climate::CLIMATE_PRESET_NONE) {
+    if (this->custom_preset.has_value()) {
+      const auto &active = *this->custom_preset;
+      uint16_t code = (active == "Silent")
+                        ? SILENT_COMMAND
+                        : ECO_REAL_FEEL_COMMAND;
+      this->pending_command_ = code;
+      this->transmit_state();
+      this->custom_preset.reset();
+    }
+    // reflect the built-in preset
+    this->preset = *call.get_preset();
+    this->publish_state();
+    return;
+  }
+
+  if (call.get_custom_preset().has_value()) {
+    const auto &cp = *call.get_custom_preset();
+
+    if (cp == "Silent") {
+      if (this->custom_preset.has_value() && this->custom_preset == "Eco Real Feel") {
+        this->pending_command_ = ECO_REAL_FEEL_COMMAND;
+        this->transmit_state();
+        this->custom_preset.reset();
+        delay(200);
+      }
+  
+      this->pending_command_ = SILENT_COMMAND;
+      this->transmit_state();
+      if (this->custom_preset == "Silent")
+        this->custom_preset.reset();
+      else
+        this->custom_preset = std::string("Silent");
+    }
+    else if (cp == "Eco Real Feel") {
+      if (this->custom_preset.has_value() && this->custom_preset == "Silent") {
+        this->pending_command_ = SILENT_COMMAND;
+        this->transmit_state();
+        this->custom_preset.reset();
+        delay(200);
+      }
+      this->pending_command_ = ECO_REAL_FEEL_COMMAND;
+      this->transmit_state();
+      if (this->custom_preset == "Eco Real Feel")
+        this->custom_preset.reset();
+      else
+        this->custom_preset = std::string("Eco Real Feel");
+    }
+    this->preset.reset();
+    this->publish_state();
+    return;
+  }
+  this->publish_state();
 
 }
 
@@ -122,25 +222,6 @@ void DelonghiClimate::transmit_state() {
   data->space(0);
 
   xmt.perform();
-}
-
-uint16_t DelonghiClimate::fan_speed_() {
-  uint16_t fan_speed;
-  switch (this->fan_mode.value()) {
-    case climate::CLIMATE_FAN_LOW:
-      fan_speed = DELONGHI_FAN_LOW;
-      break;
-    case climate::CLIMATE_FAN_MEDIUM:
-      fan_speed = DELONGHI_FAN_MEDIUM;
-      break;
-    case climate::CLIMATE_FAN_HIGH:
-      fan_speed = DELONGHI_FAN_HIGH;
-      break;
-    case climate::CLIMATE_FAN_AUTO:
-    default:
-      fan_speed = DELONGHI_FAN_AUTO;
-  }
-  return fan_speed;
 }
 
 
