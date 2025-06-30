@@ -1,5 +1,13 @@
 esphome:
   name: test
+  on_boot:
+    then:
+      - sdfs.write_file:
+          path: "/test.txt"
+          mode: "write"
+          data: !lambda |-
+            std::string tstring("Hello world.");
+            return std::vector<uint8_t>(tstring.begin(), tstring.end())
 
 spi:
   id: spi_1
@@ -12,3 +20,9 @@ sdfs:
   spi_id: spi_1
   type: sdspi
   cs_pin: ${cs_pin_name}
+  on_state_changed:
+    then:
+      - logger.log:
+          format: "State changed %d"
+          args: [x]
+

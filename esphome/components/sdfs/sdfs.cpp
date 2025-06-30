@@ -34,6 +34,9 @@ namespace sdfs {
 
 static const char *TAG = "sdfs";
 
+const char *sd_state2str[] = {"sdcard not initilized", "sdcard initilized", "sdcard slot empty", "sdcard slot has card",
+                              "sdcard mount"};
+
 const char *fs_err2str[] = {"(0) Succeeded",
                             "(1) A hard error occurred in the low level disk I/O layer",
                             "(2) Assertion failed",
@@ -80,7 +83,12 @@ SdfsHost::SdfsHost() {
  *
  * @return FsInterface*
  */
-FsInterface *SdfsHost::get_fs() { return new FsInterface(this); }
+FsInterface *SdfsHost::get_fs() {
+  if ((fs_ == NULL) && (drv_ != NULL)) {
+    fs_ = new FsInterface(this);
+  }
+  return fs_;
+}
 
 /**
  * @brief Dump current params in debug console
@@ -116,9 +124,9 @@ void SdfsHost::dump_config() {
     }
   } else {
     ESP_LOGCONFIG(TAG, "   SPI bus slot:      %d", this->bus_slot_);
-    ESP_LOGCONFIG(TAG, "   SPI miso pin:     %d", this->miso_pin_);
-    ESP_LOGCONFIG(TAG, "   SPI mosi pin:     %d", this->mosi_pin_);
-    ESP_LOGCONFIG(TAG, "   SPI sc pin:       %d", this->cs_pin_);
+    // ESP_LOGCONFIG(TAG, "   SPI miso pin:     %d", this->miso_pin_);
+    // ESP_LOGCONFIG(TAG, "   SPI mosi pin:     %d", this->mosi_pin_);
+    // ESP_LOGCONFIG(TAG, "   SPI sc pin:       %d", this->cs_pin_);
     if (this->int_pin_ < 255)
       ESP_LOGCONFIG(TAG, "   SPI int pin:      %d", this->int_pin_);
   }
@@ -150,12 +158,12 @@ void SdfsHost::set_data5_pin(uint8_t gpio_num) { this->data5_pin_ = gpio_num; }
 void SdfsHost::set_data6_pin(uint8_t gpio_num) { this->data6_pin_ = gpio_num; }
 void SdfsHost::set_data7_pin(uint8_t gpio_num) { this->data7_pin_ = gpio_num; }
 void SdfsHost::set_pw_ctrl_pin(uint8_t gpio_num) { this->pw_ctrl_pin_ = gpio_num; }
-void SdfsHost::set_cs_pin(uint8_t gpio_num) { this->cs_pin_ = gpio_num; }
+// void SdfsHost::set_cs_pin(uint8_t gpio_num) { this->cs_pin_ = gpio_num; }
 void SdfsHost::set_cd_pin(uint8_t gpio_num) { this->cd_pin_ = gpio_num; }
 void SdfsHost::set_wp_pin(uint8_t gpio_num) { this->wp_pin_ = gpio_num; }
 void SdfsHost::set_int_pin(uint8_t gpio_num) { this->int_pin_ = gpio_num; }
-void SdfsHost::set_miso_pin(uint8_t gpio_num) { this->miso_pin_ = gpio_num; }
-void SdfsHost::set_mosi_pin(uint8_t gpio_num) { this->mosi_pin_ = gpio_num; }
+// void SdfsHost::set_miso_pin(uint8_t gpio_num) { this->miso_pin_ = gpio_num; }
+// void SdfsHost::set_mosi_pin(uint8_t gpio_num) { this->mosi_pin_ = gpio_num; }
 void SdfsHost::set_path(std::string path) { this->path_ = path; }
 void SdfsHost::set_bus_width(BusWidth bus_width) { this->spi_bus_width_ = bus_width; }
 
@@ -168,6 +176,7 @@ void SdfsHost::set_mode(spi::SPIMode mode) { this->connector_->set_mode(mode); }
 
 void SdfsHost::set_state(SdDriverStatus state) {
   ESP_LOGD(TAG, "Change state to: %s", host_st2str[state]);
+  this->on_state_callback_.call(static_cast<SdDriverStatus>(state));
   this->state_ = state;
 }
 
@@ -176,6 +185,8 @@ void SdfsHost::set_state(SdDriverStatus state) {
  *
  */
 void SdfsHost::setup() {
+  // TODO: Setup set_pw_ctrl_pin
+
 #ifndef USE_ESP8266
   SdfsDriver *drv = new SdfsDriver();
 #if defined(USE_SDSPI_MODE)
@@ -240,7 +251,7 @@ void SdfsHost::loop() {
     bool card_present = this->drv_->is_card();
     if ((!card_present) || (this->get_state() != SD_SLOT_ST_MOUNT)) {
       this->set_state(SD_SLOT_ST_EMPTY);
-
+      fs_ = NULL;
       if (this->drv_->attach_card()) {
         this->set_state(SD_SLOT_ST_CARD);
 
@@ -252,6 +263,67 @@ void SdfsHost::loop() {
       }
     }
   }
+}
+
+// this->on_err_callback_.call(static_cast<uint8_t>(this->last_error_code_));
+
+void SdfsHost::add_on_state_callback(std::function<void(SdDriverStatus)> &&callback) {
+  this->on_state_callback_.add(std::move(callback));
+}
+
+//
+//   Conditions, Acctions and Triggers
+//
+
+void SdfsHost::write_to_file(std::string path, std::string mode, uint8_t *buf, size_t size) {
+  FsInterface *fs = get_fs();
+
+  if ((fs == NULL) || (!fs->is_ready())) {
+    ESP_LOGE(TAG, "Write_to_file action. FileSystem not mounted yet", path.c_str(), size);
+    return;
+  }
+
+  FileInterface *file = NULL;
+  ESP_LOGD(TAG, "Write file %s, buff size=%d", path.c_str(), size);
+
+  if (mode == "read") {
+    ESP_LOGE(TAG, "Can be opened only for for write or append");
+    return;
+  }
+
+  file = fs->open_file(path, mode);
+
+  ESP_LOGD(TAG, "Open file OK, mode=%s, rc=%d", mode.c_str(), file->get_error());
+  if (file->get_error() == FR_OK) {
+    if (file->write(buf, size) <= 0) {
+      ESP_LOGE(TAG, "Write file error %d", file->get_error());
+    }
+    ESP_LOGD(TAG, "Write file OK, rc=%d", file->get_error());
+    file->close();
+  }
+}
+
+int SdfsHost::read_from_file(std::string path, uint8_t *buf, size_t size, int position = 0) {
+  FsInterface *fs = get_fs();
+  FileInterface *file = NULL;
+  int rd = -1;
+  std::string mode("read");
+
+  ESP_LOGD(TAG, "Read file %s, buff size=%d, pos=%d", path.c_str(), size, position);
+  file = fs->open_file(path, mode);
+  if (position > 0) {
+    file->seek(position);
+  }
+  ESP_LOGD(TAG, "Open file OK, rc=%d", file->get_error());
+  if (file->get_error() == FR_OK) {
+    rd = file->read(buf, size);
+    if (rd <= 0) {
+      ESP_LOGE(TAG, "Read file error %d", file->get_error());
+    }
+    ESP_LOGD(TAG, "Read file OK, rc=%d", file->get_error());
+    file->close();
+  }
+  return rd;
 }
 
 }  // namespace sdfs

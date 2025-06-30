@@ -1,4 +1,4 @@
-from esphome import pins
+from esphome import automation, pins
 import esphome.codegen as cg
 from esphome.components import spi
 from esphome.components.esp32.const import KEY_ESP32, VARIANT_ESP32, VARIANT_ESP32S3
@@ -8,13 +8,14 @@ from esphome.const import (
     # CONF_CS_PIN,
     CONF_ID,
     CONF_PATH,
+    # PLATFORM_ESP8266,
+    CONF_TRIGGER_ID,
     CONF_TYPE,
     # KEY_CORE,
     # KEY_TARGET_FRAMEWORK,
     KEY_VARIANT,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
-    # PLATFORM_ESP8266,
 )
 from esphome.core import CORE
 
@@ -36,6 +37,10 @@ CONF_WP_PIN = "wp_pin"
 CONF_INT_PIN = "int_pin"
 CONF_MISO_PIN = "miso_pin"
 CONF_MOSI_PIN = "mosi_pin"
+CONF_MODE = "mode"
+CONF_DATA = "data"
+CONF_ON_STATE = "on_state_changed"
+
 
 sdfs_ns = cg.esphome_ns.namespace("sdfs")
 BusWidth = sdfs_ns.enum("BusWidth")
@@ -47,13 +52,51 @@ BUS_WIDTH_OPTION = {
 
 SdConnType = sdfs_ns.enum("SdConnType")
 SD_CONN_TYPE = {
-    "sdspi": BusWidth.SD_SPI,
-    "sdmmc": BusWidth.SD_MMC,
+    "sdspi": SdConnType.SD_SPI,
+    "sdmmc": SdConnType.SD_MMC,
 }
+
+SdDriverStatus = sdfs_ns.enum("SdDriverStatus")
+SD_DRIVER_STATUS = {
+    "no_init": SdDriverStatus.SD_SLOT_ST_NOTINIT,
+    "init": SdDriverStatus.SD_SLOT_ST_INIT,
+    "empty": SdDriverStatus.SD_SLOT_ST_EMPTY,
+    "card": SdDriverStatus.SD_SLOT_ST_CARD,
+    "mount": SdDriverStatus.SD_SLOT_ST_MOUNT,
+}
+
+# WriteMode = sdfs_ns.enum("WriteMode")
+# MODE = {
+#     "write": WriteMode.WRITE,
+#     "append": WriteMode.APPEND,
+#     "read": WriteMode.READ
+# }
+
 
 # spi_ns = cg.esphome_ns.namespace("spi")
 SdfsHost = sdfs_ns.class_("SdfsHost", cg.Component)
 SpiDrv = sdfs_ns.class_("EsphomeSpiDrv", spi.SPIDevice)
+
+SdfsWriteFile = sdfs_ns.class_("SdfsWriteFile", automation.Action)
+# SdfsStatus = sdfs_ns.class_("SdfsStatus", automation.Condition)
+SdIsMountCondition = sdfs_ns.class_(
+    "SdIsMountCondition", automation.Condition.template()
+)
+SdIsEmptyCondition = sdfs_ns.class_(
+    "SdIsEmptyCondition", automation.Condition.template()
+)
+SdIsInitCondition = sdfs_ns.class_("SdIsInitCondition", automation.Condition.template())
+SdIsCardCondition = sdfs_ns.class_("SdIsCardCondition", automation.Condition.template())
+
+ChangeSateteTrigger = sdfs_ns.class_(
+    "ChangeSateteTrigger", automation.Trigger.template()
+)
+
+
+def validate_inlist(value, array):
+    if value not in array:
+        options = ",".joun(array)
+        raise cv.Invalid(f"Must me one of the  {options}  options")
 
 
 def validate_raw_data(value):
@@ -121,6 +164,10 @@ def _validate(config):
     return config
 
 
+#
+#  Schemas
+#
+
 BASE_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(SdfsHost),
@@ -129,6 +176,11 @@ BASE_SCHEMA = cv.Schema(
         cv.Optional(CONF_WP_PIN): pins.internal_gpio_output_pin_number,
         cv.Optional(CONF_BUS_WIDTH, default="1bit"): cv.enum(
             BUS_WIDTH_OPTION, lower=True
+        ),
+        cv.Optional(CONF_ON_STATE): automation.validate_automation(
+            {
+                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ChangeSateteTrigger),
+            },
         ),
     }
 ).extend(cv.COMPONENT_SCHEMA)
@@ -162,36 +214,6 @@ SDSPI_SCHEMA = (
     .extend(spi.spi_device_schema(cs_pin_required=True, default_mode="MODE0"))
 )
 
-# cv.only_with_arduino,
-
-
-# IDF_SPI_SCHEMA = BASE_SCHEMA.extend(
-#     cv.Schema(
-#         {
-#             cv.Optional(CONF_BUS_SLOT, default=2): cv.int_range(
-#                 min=0, max=3
-#             ),  # TODO:  rename to CONF_SPI_MODE
-#             cv.Required(CONF_SCLK_PIN): pins.internal_gpio_output_pin_number,
-#             cv.Required(
-#                 CONF_CS_PIN
-#             ): pins.internal_gpio_output_pin_number,  # pins.gpio_output_pin_schema
-#             cv.Required(CONF_MISO_PIN): pins.internal_gpio_output_pin_number,
-#             cv.Required(CONF_MOSI_PIN): pins.internal_gpio_output_pin_number,
-#             cv.Optional(CONF_INT_PIN): pins.internal_gpio_output_pin_number,
-#         }
-#     )
-# )
-
-
-# def select_spi():
-#     if CORE.using_arduino:
-#         return ARDUINO_SPI_SCHEMA
-#     else:
-#         # return IDF_SPI_SCHEMA
-#         return ARDUINO_SPI_SCHEMA
-
-
-# SDSPI_SCHEMA = cv.Schema(select_spi())
 
 CONFIG_SCHEMA = cv.All(
     cv.typed_schema(
@@ -201,6 +223,19 @@ CONFIG_SCHEMA = cv.All(
         },
     ),
     _validate,
+)
+
+
+WRITE_ACTION_SCHEMA = cv.Schema(
+    {
+        cv.GenerateID(): cv.use_id(SdfsHost),
+        cv.Required(CONF_PATH): cv.templatable(cv.string_strict),
+        # cv.Required(CONF_MODE): cv.templatable(validate_raw_data),
+        cv.Optional(CONF_MODE, default="append"): cv.templatable(
+            cv.one_of("append", "write", "wtruncate")
+        ),
+        cv.Required(CONF_DATA): cv.templatable(validate_raw_data),
+    }
 )
 
 
@@ -286,3 +321,95 @@ async def to_code(config):
             cg.add(var.set_data5_pin(config[CONF_DATA5_PIN]))
             cg.add(var.set_data6_pin(config[CONF_DATA6_PIN]))
             cg.add(var.set_data7_pin(config[CONF_DATA7_PIN]))
+
+    # Register triggers
+    for conf in config.get(CONF_ON_STATE, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [(SdDriverStatus, "x")], conf)
+
+
+#
+#   Write to file  action
+#
+@automation.register_action("sdfs.write_file", SdfsWriteFile, WRITE_ACTION_SCHEMA)
+async def sdfs_write_file_to_code(config, action_id, template_arg, args):
+    parent = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, parent)
+    path_ = await cg.templatable(config[CONF_PATH], args, cg.std_string)
+    # mode_  = await cg.get_variable(config[CONF_MODE])
+    mode_ = await cg.templatable(config[CONF_MODE], args, cg.std_string)
+    data_ = await cg.templatable(
+        config[CONF_DATA], args, cg.std_vector.template(cg.uint8)
+    )
+    cg.add(var.set_path(path_))
+    cg.add(var.set_mode(mode_))
+    cg.add(var.set_data(data_))
+    return var
+
+
+#
+#   is_mount
+#
+@automation.register_condition(
+    "sdfs.is_mount",
+    SdIsMountCondition,
+    automation.maybe_simple_id(
+        {
+            cv.Required(CONF_ID): cv.use_id(SdfsHost),
+        }
+    ),
+)
+async def sd_is_mount_to_code(config, condition_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(condition_id, template_arg, paren)
+
+
+#
+#   is_empty
+#
+@automation.register_condition(
+    "sdfs.is_empty",
+    SdIsEmptyCondition,
+    automation.maybe_simple_id(
+        {
+            cv.Required(CONF_ID): cv.use_id(SdfsHost),
+        }
+    ),
+)
+async def sd_is_empty_to_code(config, condition_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(condition_id, template_arg, paren)
+
+
+#
+#   is_empty
+#
+@automation.register_condition(
+    "sdfs.is_card",
+    SdIsCardCondition,
+    automation.maybe_simple_id(
+        {
+            cv.Required(CONF_ID): cv.use_id(SdfsHost),
+        }
+    ),
+)
+async def sd_is_card_to_code(config, condition_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(condition_id, template_arg, paren)
+
+
+#
+#   is_init
+#
+@automation.register_condition(
+    "sdfs.is_init",
+    SdIsInitCondition,
+    automation.maybe_simple_id(
+        {
+            cv.Required(CONF_ID): cv.use_id(SdfsHost),
+        }
+    ),
+)
+async def sd_is_init_to_code(config, condition_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(condition_id, template_arg, paren)

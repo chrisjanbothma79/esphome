@@ -17,7 +17,7 @@
 namespace esphome {
 namespace sdfs {
 
-enum SdDriverStatus : int {
+enum SdDriverStatus : uint8_t {
   SD_SLOT_ST_NOTINIT = 0,
   SD_SLOT_ST_INIT = 1,
   SD_SLOT_ST_EMPTY = 2,
@@ -38,7 +38,6 @@ enum SdConnType {
 
 extern const char *fat_type2str[];
 extern const char *fs_err2str[];
-
 extern const char *host_st2str[];
 
 #ifdef USE_SDSPI_MODE
@@ -49,8 +48,8 @@ class FsInterface;
 class DriverInterface;
 
 class SdfsHost : public Component {
-  friend class SdmmcDriver;
-  friend class SdfsIdfDriver;
+  // friend class SdmmcDriver;
+  // friend class SdfsIdfDriver;
   friend class SdfsDriver;
 
  public:
@@ -69,13 +68,16 @@ class SdfsHost : public Component {
   void set_mode(spi::SPIMode);
 #endif
 
+  void write_to_file(std::string path, std::string mode, uint8_t *buf, size_t size);
+  int read_from_file(std::string path, uint8_t *buf, size_t size, int position);
+
   void set_state(SdDriverStatus);
   void set_conn_type(SdConnType);
   void set_bus_width(BusWidth);
   void set_bus_slot(uint8_t);  // spi_mode
-  void set_cs_pin(uint8_t);
-  void set_miso_pin(uint8_t);
-  void set_mosi_pin(uint8_t);
+  // void set_cs_pin(uint8_t);
+  // void set_miso_pin(uint8_t);
+  // void set_mosi_pin(uint8_t);
   void set_clk_pin(uint8_t);
 
   void set_cmd_pin(uint8_t);  //--- ????
@@ -93,13 +95,16 @@ class SdfsHost : public Component {
   void set_int_pin(uint8_t);
   void set_path(std::string);
 
+  void add_on_state_callback(std::function<void(SdDriverStatus)> &&callback);
+
  protected:
 #if defined(USE_SDSPI_MODE)
   SpiConnector *connector_;
 #endif
   bool last_card_staus = false;
   time_t last_time_check_;
-  DriverInterface *drv_;
+  FsInterface *fs_ = NULL;
+  DriverInterface *drv_ = NULL;
   SdConnType type_;
   SdDriverStatus state_;
   std::string path_;
@@ -115,13 +120,14 @@ class SdfsHost : public Component {
   uint8_t data5_pin_{255};
   uint8_t data6_pin_{255};
   uint8_t data7_pin_{255};
-  uint8_t cs_pin_{255};
+  // uint8_t cs_pin_{255};
   uint8_t cd_pin_{255};
   uint8_t wp_pin_{255};
   uint8_t int_pin_{255};
   uint8_t pw_ctrl_pin_{255};
-  uint8_t miso_pin_{255};
-  uint8_t mosi_pin_{255};
+  // uint8_t miso_pin_{255};
+  // uint8_t mosi_pin_{255};
+  CallbackManager<void(SdDriverStatus)> on_state_callback_{};
 };
 
 /**
@@ -154,6 +160,7 @@ class DriverInterface {
   uint32_t last_err_;
   SdfsHost *parent_;
 };
+
 // #endif
 }  // namespace sdfs
 }  // namespace esphome

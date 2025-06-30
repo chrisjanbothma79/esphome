@@ -41,16 +41,16 @@ class FileInterface {
  public:
 // fs_err_t get_error();
 #if defined(USE_ESP8266)
-  FileInterface(SdfsHost *, std::string, const char);
+  FileInterface(SdfsHost *host, std::string path, std::string mode);
 #else
-  FileInterface(std::string, const char);
+  FileInterface(std::string, std::string mode);
 #endif
   ~FileInterface();
 
   bool close();
   bool seek(size_t pos);
   bool flush();
-  size_t read(void *buf, size_t);
+  int read(void *buf, size_t);
   size_t write(void *buf, size_t);
   char get();
   bool put(char);
@@ -59,8 +59,10 @@ class FileInterface {
   std::string get_path();
   std::string get_name();
   size_t get_size();
+  FRESULT get_error() { return last_err; };
 
  private:
+  bool truncate = false;
   uint8_t open_flag = 0;
   std::string path;
   fsys_t *fs;
@@ -79,6 +81,7 @@ class FsIterator {
   FileInfo *get_next();
   bool is_eof();
   fsys_t *get_fs() { return fs; };
+  FRESULT get_error() { return last_err; };
 
  private:
   dptr dp;
@@ -169,12 +172,19 @@ class FsInterface {
    *  a - for append to the end of file
    * @return FileInterface*
    */
-  FileInterface *open_file(std::string path, const char mode);
+  FileInterface *open_file(std::string path, std::string mode);
+
+  /**
+   * @brief   Check is file system initialized and ready to serv
+   *
+   * @return true
+   * @return false
+   */
+  bool is_ready();
 
  protected:
   FileInfo info;
   // std::string build_path(std::string);
-  bool is_ready();
   std::string path = "/";
   std::string mount_point = "";
   // FF_DIR root_object;

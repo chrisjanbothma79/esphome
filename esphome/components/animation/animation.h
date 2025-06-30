@@ -54,7 +54,7 @@ template<typename... Ts> class AnimationPrevFrameAction : public Action<Ts...> {
   Animation *parent_;
 };
 
-template<typename... Ts> class AnimationSetFrameAction : public Action<Ts...> {
+template<> class AnimationSetFrameAction : public Action<Ts...> {
  public:
   AnimationSetFrameAction(Animation *parent) : parent_(parent) {}
   TEMPLATABLE_VALUE(uint16_t, frame)

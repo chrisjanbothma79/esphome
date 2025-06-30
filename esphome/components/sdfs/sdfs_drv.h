@@ -49,30 +49,138 @@ extern "C" {
 namespace esphome {
 namespace sdfs {
 
+/****************************************************************
+ *
+ *             SdfsDriver
+ *
+ * @brief  Drived forprocession cd card interaction. if can process card oves SPI or MMC interface.
+ *         Used on all ESP32  platform variants.
+ *         For SPI it use esphome SPI implementation. For MMC  if work throught native (HAL) calls.
+ */
 class SdfsDriver : public DriverInterface {
  public:
   SdfsDriver();
   void end();
-  void set_parent(SdfsHost *) override;
+  /**
+   * @brief Save pointer to parent (caller) class
+   *
+   * @param parent
+   */
+  void set_parent(SdfsHost *parent) override;
+
 #if defined(USE_SDSPI_MODE)
-  void set_connector(SpiConnector *);
+  /**
+   * @brief For use with SPI save the link to spi implmentation
+   *
+   * @param connector
+   */
+  void set_connector(SpiConnector *connector);
 #endif
-  bool init_host(SdConnType) override;
+  /**
+   * @brief Initialize sd card connection and all required structures
+   *
+   * @param type  SDMMC or SDSPI
+   * @return true Success
+   * @return false  Has error. See get_last_error
+   */
+  bool init_host(SdConnType type) override;
+
+  /**
+   * @brief Check current card status or status changes
+   *
+   * @return true  card present and mount
+   * @return false  anuy other state
+   */
   bool is_card() override;
+
+  /**
+   * @brief Prform card  reset and initialization
+   *
+   * @return true
+   * @return false
+   */
   bool attach_card() override;
-  bool mount(std::string, bool) override;
+
+  /**
+   * @brief  Mount card if present
+   *
+   * @param path  the mount point
+   * @param format  format in no fat fs on the card
+   * @return true  mmounted
+   * @return false  Has error. See get_last_error
+   */
+  bool mount(std::string path, bool format) override;
+
+  /**
+   * @brief Check is card mount
+   *
+   * @return true
+   * @return false
+   */
   bool is_mount();
+
+  /**
+   * @brief  Lost cards root directory to debug output& for testing purposes.
+   *
+   * @return true
+   * @return false
+   */
   bool test() override;
+
+  /**
+   * @brief Unmount FS and clear FAT cache
+   *
+   */
   void unmount() override;
 
+  /**
+   * @brief  Retrun card type
+   *
+   * @return card_type_t
+   */
   card_type_t card_type() override;
+
   uint64_t card_size() override;
+  /**
+   * @brief return card capacity in sectors
+   *
+   * @return size_t
+   */
   size_t num_sectors() override;
+
+  /**
+   * @brief return one sector size. Usualy 512
+   *
+   * @return size_t
+   */
   size_t sector_size() override;
+
+  /**
+   * @brief Return card capacity in bytes
+   *
+   * @return uint64_t
+   */
   uint64_t total_bytes() override;
+
+  /**
+   * @brief  Return used space on card in bytes
+   *
+   * @return uint64_t
+   */
   uint64_t used_bytes() override;
 
+  /**
+   * @brief Get pointer folesystem driver  for working with files
+   *
+   * @return fsys_t*
+   */
   fsys_t *get_fs() override { return fs_; };
+
+  /**
+   * @brief Retrun error ocurred during last operation.
+   *
+   * @return uint32_t
+   */
   uint32_t get_last_err() override { return this->last_err_; };
 
  protected:

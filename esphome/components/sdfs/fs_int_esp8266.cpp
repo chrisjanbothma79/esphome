@@ -6,41 +6,57 @@
 namespace esphome {
 namespace sdfs {
 
+extern const char *fs_err2str[];
 static const char *TAG = "fs_int_esp8266";
 
 //------------------------------------------------------------------
 //   FileInterface methods
 //------------------------------------------------------------------
-FileInterface::FileInterface(SdfsHost *host, std::string path, const char mode) : path(path) {
-  switch (mode) {
-    case 'r':
-      open_flag = O_READ;
-      break;
-    case 'w':
-      open_flag = O_WRITE | O_CREAT;
-      break;
-    case 'a':
-      open_flag = O_AT_END | O_APPEND | O_WRITE;
-      break;
-    default:
-      open_flag = O_READ;
+FileInterface::FileInterface(SdfsHost *host, std::string path, std::string mode) : path(path) {
+  if (mode == "wtruncate") {
+    open_flag = O_WRITE | O_CREAT | O_TRUNC;
+  } else if (mode == "write") {
+    open_flag = O_WRITE | O_CREAT;
+  } else if (mode == "append") {
+    open_flag = O_AT_END | O_APPEND | O_WRITE;
+  } else if (mode == "read") {
+    open_flag = O_READ;
   }
 
   fs = host->get_drv()->get_fs();
+  if (fs == NULL) {
+    last_err = FR_NO_FILESYSTEM;
+    return;
+  }
   fp = fs->open(path.c_str(), open_flag);
   last_err = fp.getError();
 }
 
-FileInterface::~FileInterface() { fp.close(); }
+FileInterface::~FileInterface() {
+  if (last_err == FR_OK)
+    fp.close();
+}
 
-bool FileInterface::close() { return fp.close(); }
-bool FileInterface::seek(size_t pos) { return fp.seek(pos); }
+bool FileInterface::close() {
+  if (last_err != FR_OK)
+    return false;
+  return fp.close();
+}
+bool FileInterface::seek(size_t pos) {
+  if (last_err != FR_OK)
+    return false;
+  return fp.seek(pos);
+}
 bool FileInterface::flush() {
+  if (last_err != FR_OK)
+    return false;
   fp.flush();
   return true;
 }
-size_t FileInterface::read(void *buf, size_t sz) {
-  size_t rd = fp.read(buf, sz);
+int FileInterface::read(void *buf, size_t sz) {
+  if (last_err != FR_OK)
+    return -1;
+  int rd = fp.read(buf, sz);
   if (rd < 0) {
     last_err = fp.getError();
   }
@@ -48,14 +64,19 @@ size_t FileInterface::read(void *buf, size_t sz) {
 }
 
 size_t FileInterface::write(void *buf, size_t sz) {
+  if (last_err != FR_OK)
+    return 0;
   size_t wr = fp.write(buf, sz);
-  if (wr < 0) {
-    last_err = fp.getWriteError();
+  if (wr <= 0) {
+    // last_err = fp.getError();
+    last_err = FR_DISK_ERR;
   }
   return wr;
 }
 
 char FileInterface::get() {
+  if (last_err != FR_OK)
+    return 0;
   uint8_t rd = fp.read();
   if (rd < 0) {
     last_err = fp.getError();
@@ -64,17 +85,27 @@ char FileInterface::get() {
 }
 
 bool FileInterface::put(char ch) {
+  if (last_err != FR_OK)
+    return false;
   uint8_t wr = fp.write(ch);
   if (wr < 1) {
-    last_err = fp.getWriteError();
+    last_err = fp.getError();
   }
   return wr > 0;
 }
 // void putback();
-fptr *FileInterface::get_fptr() { return &fp; }
+fptr *FileInterface::get_fptr() {
+  if (last_err != FR_OK)
+    return NULL;
+  return &fp;
+}
 
 std::string FileInterface::get_path() { return path; }
+
 std::string FileInterface::get_name() {
+  if (last_err != FR_OK)
+    return std::string("");
+
 #if defined(USE_UTF8_LONG_NAMES) || defined(USE_LONG_FILE_NAMES)
   char fname[255];
   uint8_t len = 255;
@@ -86,7 +117,11 @@ std::string FileInterface::get_name() {
   return std::string(fname, nlen);
 }
 
-size_t FileInterface::get_size() { return fp.size(); }
+size_t FileInterface::get_size() {
+  if (last_err != FR_OK)
+    return -1;
+  return fp.size();
+}
 
 //------------------------------------------------------------------
 //   FsIterator methods
@@ -186,7 +221,7 @@ FsIterator *FsInterface::list(std::string path) {
   return iter;
 }
 
-FileInterface *FsInterface::open_file(std::string path, const char mode) {
+FileInterface *FsInterface::open_file(std::string path, std::string mode) {
   last_err = 0;
   FileInterface *file = NULL;
 

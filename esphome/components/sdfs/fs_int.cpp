@@ -3,11 +3,19 @@
 namespace esphome {
 namespace sdfs {
 
+extern const char *fs_err2str[];
+static const char *TAG = "fs_int";
 //------------------------------------------------------------------
 //   FsInterface methods
 //------------------------------------------------------------------
 
-FsInterface::FsInterface(SdfsHost *host) : host(host) { fs = host->get_drv()->get_fs(); }
+FsInterface::FsInterface(SdfsHost *host) : host(host) {
+  if (host->get_drv() == NULL) {
+    ESP_LOGE(TAG, "SdfsDriver not initialized.");
+    last_err = FR_INT_ERR;
+  }
+  fs = host->get_drv()->get_fs();
+}
 
 /***********************************************************************
  *
@@ -28,7 +36,7 @@ bool FsInterface::is_ready() {
 #if defined(USE_ESP8266)
   is_fs = vol != NULL;
 #endif
-  is_fs = is_fs && host != NULL;
+  is_fs = fs != NULL;
   if (!is_fs) {
     last_err = FR_INT_ERR;
   }
@@ -131,8 +139,11 @@ bool rename(std::string from, std::string to) {
  */
 FsIterator *FsInterface::list(std::string path) { return new FsIterator(host, path); }
 
-FileInterface *FsInterface::open_file(std::string path, const char mode) {
-  FileInterface *file = new FileInterface(path.c_str(), mode);
+FileInterface *FsInterface::open_file(std::string path, std::string mode) {
+  FileInterface *file = NULL;
+  if (is_ready()) {
+    file = new FileInterface(path.c_str(), mode);
+  }
   return file;
 }
 
@@ -145,24 +156,26 @@ FileInterface *FsInterface::open_file(std::string path, const char mode) {
  * @param p absolute path, including mount point
  * @param mode 'r' open read only, 'a' open for append, 'w' open for write
  */
-FileInterface::FileInterface(std::string p, const char mode) : path(p) {
+FileInterface::FileInterface(std::string p, std::string mode) : path(p) {
   //	mode &= FF_FS_READONLY ? FA_READ : FA_READ | FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS |
   // FA_OPEN_APPEND;
-
-  switch (mode) {
-    case 'r':
-      open_flag |= FA_READ;
-      break;
-    case 'a':
-      open_flag |= FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS | FA_OPEN_APPEND;
-      break;
-    case 'w':
-      open_flag |= FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
-      break;
+  if (mode == "wtruncate") {
+    open_flag |= FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
+    truncate = true;
+  } else if (mode == "write") {
+    open_flag |= FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
+  } else if (mode == "append") {
+    open_flag |= FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS | FA_OPEN_APPEND;
+  } else if (mode == "read") {
+    open_flag = FA_READ;
   }
 
   last_err = f_stat(path.c_str(), &info);
   last_err = f_open(&fp, path.c_str(), open_flag);
+  if (last_err != FR_OK) {
+    ESP_LOGD(TAG, "File open error, %s", fs_err2str[last_err]);
+    f_close(&fp);
+  }
 }
 
 /**********************************************************************
@@ -187,13 +200,20 @@ bool FileInterface::close() {
  *
  * @param buf
  * @param sz
- * @return size_t return read bytes. 0 if end of file.
+ * @return size_t return read bytes. 0 if end of file. -1 if error
  */
-size_t FileInterface::read(void *buf, size_t sz) {
-  size_t read = 0;
+int FileInterface::read(void *buf, size_t sz) {
+  size_t read = -1;
   if (open_flag & FA_READ) {
     if (!f_eof(&fp)) {
       last_err = f_read(&fp, buf, sz, &read);
+    }
+
+    if (last_err != FR_OK) {
+      read = -1;
+      ESP_LOGV(TAG, "File write error, %s", fs_err2str[last_err]);
+    } else if (f_eof(&fp)) {
+      read = 0;
     }
   }
   return read;
@@ -213,10 +233,15 @@ size_t FileInterface::write(void *buf, size_t sz) {
   size_t write = 0;
   if (open_flag & FA_OPEN_APPEND) {
     last_err = f_lseek(&fp, f_size(&fp));
-    if (last_err == FR_OK)
-      last_err = f_read(&fp, buf, sz, &write);
-  } else if (open_flag & FA_WRITE) {
-    last_err = f_read(&fp, buf, sz, &write);
+  }
+  if (last_err == FR_OK) {
+    last_err = f_write(&fp, buf, sz, &write);
+    if ((truncate) && (last_err == FR_OK)) {
+      last_err = f_truncate(&fp);
+    }
+  }
+  if (last_err != FR_OK) {
+    ESP_LOGV(TAG, "File write error, %s", fs_err2str[last_err]);
   }
   return write;
 }

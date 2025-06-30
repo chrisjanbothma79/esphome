@@ -155,7 +155,7 @@ class APIServer : public Component, public Controller {
 
 extern APIServer *global_api_server;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
-template<typename... Ts> class APIConnectedCondition : public Condition<Ts...> {
+template<> class APIConnectedCondition : public Condition<Ts...> {
  public:
   bool check(Ts... x) override { return global_api_server->is_connected(); }
 };
