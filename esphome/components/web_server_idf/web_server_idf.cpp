@@ -51,11 +51,6 @@ void AsyncWebServer::begin() {
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.server_port = this->port_;
   config.uri_match_fn = [](const char * /*unused*/, const char * /*unused*/, size_t /*unused*/) { return true; };
-#ifdef USE_WEBSERVER_OTA
-  // Increase stack size for OTA operations - esp_ota_end() needs more stack
-  // during image validation than the default 4096 bytes
-  config.stack_size = 4608;
-#endif
   if (httpd_start(&this->server_, &config) == ESP_OK) {
     const httpd_uri_t handler_get = {
         .uri = "",
