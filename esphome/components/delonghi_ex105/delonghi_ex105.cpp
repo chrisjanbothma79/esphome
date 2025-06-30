@@ -101,23 +101,26 @@ else if (call.get_target_temperature().has_value()) {
   int delta     = new_temp - curr_temp;         
 
   if (delta > 0) {
-    for (int i = 0; i < delta; ++i) {
-      this->pending_command_ = DELONGHI_TEMP_UP;
-      this->transmit_state();
-      delay(200);
-    }
+    this->steps_left_          = delta;
+    this->step_command_        = DELONGHI_TEMP_UP;
+    this->step_complete_callback_ = [this, new_temp]() {
+      this->current_temperature = new_temp;
+      this->target_temperature  = new_temp;
+      this->publish_state();
+    };
+    this->do_step_();
+    return;
   } else if (delta < 0) {
-    for (int i = 0; i < -delta; ++i) {
-      this->pending_command_ = DELONGHI_TEMP_DOWN;
-      this->transmit_state();
-      delay(200);
-    }
+    this->steps_left_          = -delta;
+    this->step_command_        = DELONGHI_TEMP_DOWN;
+    this->step_complete_callback_ = [this, new_temp]() {
+      this->current_temperature = new_temp;
+      this->target_temperature  = new_temp;
+      this->publish_state();
+    };
+    this->do_step_();
+    return;
   }
-
-  this->current_temperature = new_temp;
-  this->target_temperature  = new_temp;
-  this->publish_state();
-  return;
   }
   else if (call.get_fan_mode().has_value()) {
     auto new_fan = *call.get_fan_mode();
