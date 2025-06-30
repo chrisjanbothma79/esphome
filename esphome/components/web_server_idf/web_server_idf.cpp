@@ -7,6 +7,8 @@
 #include "esphome/core/log.h"
 
 #include "esp_tls_crypto.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 
 #include "utils.h"
 #include "web_server_idf.h"
@@ -226,6 +228,18 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
       }
 
       remaining -= recv_len;
+
+      // Yield periodically to allow the main loop task to run and reset its watchdog
+      // The httpd thread doesn't need to reset the watchdog, but it needs to yield
+      // so the loopTask can run and reset its own watchdog
+      static int bytes_since_yield = 0;
+      bytes_since_yield += recv_len;
+      if (bytes_since_yield > 16 * 1024) {  // Yield every 16KB
+        // Use vTaskDelay(1) to yield to other tasks
+        // This allows the main loop task to run and reset its watchdog
+        vTaskDelay(1);
+        bytes_since_yield = 0;
+      }
     }
 
     // Final cleanup - send final signal if upload was in progress
