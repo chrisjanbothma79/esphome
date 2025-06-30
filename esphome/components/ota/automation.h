@@ -1,6 +1,6 @@
 #pragma once
 #ifdef USE_OTA_STATE_CALLBACK
-#include "ota_backend.h"
+#include "ota.h"
 
 #include "esphome/core/automation.h"
 

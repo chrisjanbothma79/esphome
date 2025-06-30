@@ -18,7 +18,7 @@
 #include <cinttypes>
 
 #ifdef USE_OTA
-#include "esphome/components/ota/ota_backend.h"
+#include "esphome/components/ota/ota.h"
 #endif
 
 #ifdef USE_ESP32_BLE_SOFTWARE_COEXISTENCE

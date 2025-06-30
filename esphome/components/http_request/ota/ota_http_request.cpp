@@ -6,11 +6,12 @@
 
 #include "esphome/components/md5/md5.h"
 #include "esphome/components/watchdog/watchdog.h"
-#include "esphome/components/ota/ota_backend.h"
-#include "esphome/components/ota/ota_backend_arduino_esp32.h"
-#include "esphome/components/ota/ota_backend_arduino_esp8266.h"
-#include "esphome/components/ota/ota_backend_arduino_rp2040.h"
-#include "esphome/components/ota/ota_backend_esp_idf.h"
+#include "esphome/components/ota/ota.h"               // For OTAComponent and callbacks
+#include "esphome/components/ota_base/ota_backend.h"  // For OTABackend class
+#include "esphome/components/ota_base/ota_backend_arduino_esp32.h"
+#include "esphome/components/ota_base/ota_backend_arduino_esp8266.h"
+#include "esphome/components/ota_base/ota_backend_arduino_rp2040.h"
+#include "esphome/components/ota_base/ota_backend_esp_idf.h"
 
 namespace esphome {
 namespace http_request {
@@ -115,7 +116,7 @@ uint8_t OtaHttpRequestComponent::do_ota_() {
   ESP_LOGV(TAG, "MD5Digest initialized");
 
   ESP_LOGV(TAG, "OTA backend begin");
-  auto backend = ota::make_ota_backend();
+  auto backend = ota_base::make_ota_backend();
   auto error_code = backend->begin(container->content_length);
   if (error_code != ota::OTA_RESPONSE_OK) {
     ESP_LOGW(TAG, "backend->begin error: %d", error_code);

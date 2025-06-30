@@ -9,7 +9,7 @@
 #include "esphome/components/audio/audio_transfer_buffer.h"
 
 #ifdef USE_OTA
-#include "esphome/components/ota/ota_backend.h"
+#include "esphome/components/ota/ota.h"
 #endif
 
 namespace esphome {

@@ -10,11 +10,11 @@
 #include <Updater.h>
 
 namespace esphome {
-namespace ota {
+namespace ota_base {
 
 static const char *const TAG = "ota.arduino_esp8266";
 
-std::unique_ptr<ota::OTABackend> make_ota_backend() { return make_unique<ota::ArduinoESP8266OTABackend>(); }
+std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoESP8266OTABackend>(); }
 
 OTAResponseTypes ArduinoESP8266OTABackend::begin(size_t image_size) {
   bool ret = Update.begin(image_size, U_FLASH);
@@ -68,7 +68,7 @@ void ArduinoESP8266OTABackend::abort() {
   esp8266::preferences_prevent_write(false);
 }
 
-}  // namespace ota
+}  // namespace ota_base
 }  // namespace esphome
 
 #endif

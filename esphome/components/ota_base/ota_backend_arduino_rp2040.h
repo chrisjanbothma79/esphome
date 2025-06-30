@@ -1,16 +1,15 @@
 #pragma once
-#ifdef USE_ESP_IDF
+#ifdef USE_ARDUINO
+#ifdef USE_RP2040
 #include "ota_backend.h"
 
-#include "esphome/components/md5/md5.h"
 #include "esphome/core/defines.h"
-
-#include <esp_ota_ops.h>
+#include "esphome/core/macros.h"
 
 namespace esphome {
-namespace ota {
+namespace ota_base {
 
-class IDFOTABackend : public OTABackend {
+class ArduinoRP2040OTABackend : public OTABackend {
  public:
   OTAResponseTypes begin(size_t image_size) override;
   void set_update_md5(const char *md5) override;
@@ -18,14 +17,10 @@ class IDFOTABackend : public OTABackend {
   OTAResponseTypes end() override;
   void abort() override;
   bool supports_compression() override { return false; }
-
- private:
-  esp_ota_handle_t update_handle_{0};
-  const esp_partition_t *partition_;
-  md5::MD5Digest md5_{};
-  char expected_bin_md5_[32];
 };
 
-}  // namespace ota
+}  // namespace ota_base
 }  // namespace esphome
-#endif
+
+#endif  // USE_RP2040
+#endif  // USE_ARDUINO

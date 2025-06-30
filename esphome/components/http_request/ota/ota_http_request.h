@@ -1,6 +1,6 @@
 #pragma once
 
-#include "esphome/components/ota/ota_backend.h"
+#include "esphome/components/ota/ota.h"
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"

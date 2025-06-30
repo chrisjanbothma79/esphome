@@ -2,12 +2,13 @@
 #ifdef USE_OTA
 #include "esphome/components/md5/md5.h"
 #include "esphome/components/network/util.h"
-#include "esphome/components/ota/ota_backend.h"
-#include "esphome/components/ota/ota_backend_arduino_esp32.h"
-#include "esphome/components/ota/ota_backend_arduino_esp8266.h"
-#include "esphome/components/ota/ota_backend_arduino_libretiny.h"
-#include "esphome/components/ota/ota_backend_arduino_rp2040.h"
-#include "esphome/components/ota/ota_backend_esp_idf.h"
+#include "esphome/components/ota/ota.h"               // For OTAComponent and callbacks
+#include "esphome/components/ota_base/ota_backend.h"  // For OTABackend class
+#include "esphome/components/ota_base/ota_backend_arduino_esp32.h"
+#include "esphome/components/ota_base/ota_backend_arduino_esp8266.h"
+#include "esphome/components/ota_base/ota_backend_arduino_libretiny.h"
+#include "esphome/components/ota_base/ota_backend_arduino_rp2040.h"
+#include "esphome/components/ota_base/ota_backend_esp_idf.h"
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
@@ -149,7 +150,7 @@ void ESPHomeOTAComponent::handle_() {
   buf[1] = USE_OTA_VERSION;
   this->writeall_(buf, 2);
 
-  backend = ota::make_ota_backend();
+  backend = ota_base::make_ota_backend();
 
   // Read features - 1 byte
   if (!this->readall_(buf, 1)) {

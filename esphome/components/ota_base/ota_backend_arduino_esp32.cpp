@@ -1,20 +1,20 @@
-#ifdef USE_LIBRETINY
-#include "ota_backend_arduino_libretiny.h"
-#include "ota_backend.h"
-
+#ifdef USE_ESP32_FRAMEWORK_ARDUINO
 #include "esphome/core/defines.h"
 #include "esphome/core/log.h"
+
+#include "ota_backend.h"
+#include "ota_backend_arduino_esp32.h"
 
 #include <Update.h>
 
 namespace esphome {
-namespace ota {
+namespace ota_base {
 
-static const char *const TAG = "ota.arduino_libretiny";
+static const char *const TAG = "ota.arduino_esp32";
 
-std::unique_ptr<ota::OTABackend> make_ota_backend() { return make_unique<ota::ArduinoLibreTinyOTABackend>(); }
+std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoESP32OTABackend>(); }
 
-OTAResponseTypes ArduinoLibreTinyOTABackend::begin(size_t image_size) {
+OTAResponseTypes ArduinoESP32OTABackend::begin(size_t image_size) {
   bool ret = Update.begin(image_size, U_FLASH);
   if (ret) {
     return OTA_RESPONSE_OK;
@@ -29,9 +29,9 @@ OTAResponseTypes ArduinoLibreTinyOTABackend::begin(size_t image_size) {
   return OTA_RESPONSE_ERROR_UNKNOWN;
 }
 
-void ArduinoLibreTinyOTABackend::set_update_md5(const char *md5) { Update.setMD5(md5); }
+void ArduinoESP32OTABackend::set_update_md5(const char *md5) { Update.setMD5(md5); }
 
-OTAResponseTypes ArduinoLibreTinyOTABackend::write(uint8_t *data, size_t len) {
+OTAResponseTypes ArduinoESP32OTABackend::write(uint8_t *data, size_t len) {
   size_t written = Update.write(data, len);
   if (written == len) {
     return OTA_RESPONSE_OK;
@@ -43,7 +43,7 @@ OTAResponseTypes ArduinoLibreTinyOTABackend::write(uint8_t *data, size_t len) {
   return OTA_RESPONSE_ERROR_WRITING_FLASH;
 }
 
-OTAResponseTypes ArduinoLibreTinyOTABackend::end() {
+OTAResponseTypes ArduinoESP32OTABackend::end() {
   if (Update.end()) {
     return OTA_RESPONSE_OK;
   }
@@ -54,9 +54,9 @@ OTAResponseTypes ArduinoLibreTinyOTABackend::end() {
   return OTA_RESPONSE_ERROR_UPDATE_END;
 }
 
-void ArduinoLibreTinyOTABackend::abort() { Update.abort(); }
+void ArduinoESP32OTABackend::abort() { Update.abort(); }
 
-}  // namespace ota
+}  // namespace ota_base
 }  // namespace esphome
 
-#endif  // USE_LIBRETINY
+#endif  // USE_ESP32_FRAMEWORK_ARDUINO

@@ -1,15 +1,10 @@
 #pragma once
 
-#include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 
-#ifdef USE_OTA_STATE_CALLBACK
-#include "esphome/core/automation.h"
-#endif
-
 namespace esphome {
-namespace ota {
+namespace ota_base {
 
 enum OTAResponseTypes {
   OTA_RESPONSE_OK = 0x00,
@@ -59,38 +54,7 @@ class OTABackend {
   virtual bool supports_compression() = 0;
 };
 
-class OTAComponent : public Component {
-#ifdef USE_OTA_STATE_CALLBACK
- public:
-  void add_on_state_callback(std::function<void(ota::OTAState, float, uint8_t)> &&callback) {
-    this->state_callback_.add(std::move(callback));
-  }
+std::unique_ptr<OTABackend> make_ota_backend();
 
- protected:
-  CallbackManager<void(ota::OTAState, float, uint8_t)> state_callback_{};
-#endif
-};
-
-#ifdef USE_OTA_STATE_CALLBACK
-class OTAGlobalCallback {
- public:
-  void register_ota(OTAComponent *ota_caller) {
-    ota_caller->add_on_state_callback([this, ota_caller](OTAState state, float progress, uint8_t error) {
-      this->state_callback_.call(state, progress, error, ota_caller);
-    });
-  }
-  void add_on_state_callback(std::function<void(OTAState, float, uint8_t, OTAComponent *)> &&callback) {
-    this->state_callback_.add(std::move(callback));
-  }
-
- protected:
-  CallbackManager<void(OTAState, float, uint8_t, OTAComponent *)> state_callback_{};
-};
-
-OTAGlobalCallback *get_global_ota_callback();
-void register_ota_platform(OTAComponent *ota_caller);
-#endif
-std::unique_ptr<ota::OTABackend> make_ota_backend();
-
-}  // namespace ota
+}  // namespace ota_base
 }  // namespace esphome
