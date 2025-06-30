@@ -100,7 +100,8 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
       // Normal form data - proceed with regular handling
 #ifdef USE_WEBSERVER_OTA
     } else if (stristr(content_type_char, "multipart/form-data") != nullptr) {
-      return this->handle_multipart_upload_(r, content_type_char);
+      auto *server = static_cast<AsyncWebServer *>(r->user_ctx);
+      return server->handle_multipart_upload_(r, content_type_char);
 #endif
     } else {
       ESP_LOGW(TAG, "Unsupported content type for POST: %s", content_type_char);
