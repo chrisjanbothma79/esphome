@@ -17,8 +17,7 @@
 #include "parser_utils.h"
 
 #ifdef USE_WEBSERVER_OTA
-#include "multipart_reader.h"
-#include "multipart_parser_utils.h"
+#include "multipart.h"
 #endif
 
 #ifdef USE_WEBSERVER
