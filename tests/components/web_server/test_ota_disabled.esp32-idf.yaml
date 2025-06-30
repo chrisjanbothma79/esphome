@@ -4,7 +4,6 @@ packages:
 # OTA is configured but web_server OTA is disabled
 ota:
   - platform: esphome
-    safe_mode: true
 
 web_server:
   port: 8080

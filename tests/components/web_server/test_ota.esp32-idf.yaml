@@ -14,7 +14,6 @@ packages:
 # Enable OTA for multipart upload testing
 ota:
   - platform: esphome
-    safe_mode: true
     password: "test_ota_password"
 
 # Web server with OTA enabled
