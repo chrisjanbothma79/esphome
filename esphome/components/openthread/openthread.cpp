@@ -204,16 +204,16 @@ bool OpenThreadComponent::teardown() {
     otSrpClientClearHostAndServices(instance);
     otSrpClientBuffersFreeAllServices(instance);
     global_openthread_component = nullptr;
-    #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
     ESP_LOGD(TAG, "Exit main loop ");
     int error = esp_openthread_mainloop_exit();
-    if (error != ESP_OK ) {
+    if (error != ESP_OK) {
       ESP_LOGW(TAG, "Failed attempt to stop main loop %d", error);
       this->teardown_complete_ = true;
     }
-    #else
+#else
     this->teardown_complete_ = true;
-    #endif
+#endif
   }
   return this->teardown_complete_;
 }
