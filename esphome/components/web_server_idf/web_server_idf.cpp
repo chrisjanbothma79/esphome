@@ -7,7 +7,6 @@
 #include "esphome/core/log.h"
 
 #include "esp_tls_crypto.h"
-#include <esp_task_wdt.h>
 
 #include "utils.h"
 #include "web_server_idf.h"
@@ -205,9 +204,6 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
       }
     });
 
-    // Track chunks for watchdog feeding
-    int chunks_processed = 0;
-
     while (remaining > 0) {
       size_t to_read = std::min(remaining, CHUNK_SIZE);
       int recv_len = httpd_req_recv(r, chunk_buf.get(), to_read);
@@ -230,12 +226,6 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
       }
 
       remaining -= recv_len;
-
-      // Feed watchdog every 10 chunks (~14KB with 1460 byte chunks)
-      chunks_processed++;
-      if (chunks_processed % 10 == 0) {
-        esp_task_wdt_reset();
-      }
     }
 
     // Final cleanup - send final signal if upload was in progress
