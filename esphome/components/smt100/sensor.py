@@ -3,6 +3,7 @@ from esphome.components import sensor, uart
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_COUNTS,
+    CONF_DIELECTRIC_CONSTANT,
     CONF_ID,
     CONF_MOISTURE,
     CONF_PERMITTIVITY,
@@ -32,6 +33,9 @@ CONFIG_SCHEMA = (
                 unit_of_measurement=UNIT_EMPTY,
                 accuracy_decimals=0,
                 state_class=STATE_CLASS_MEASUREMENT,
+            ),
+            cv.Optional(CONF_DIELECTRIC_CONSTANT): cv.invalid(
+                "Use 'permittivity' instead"
             ),
             cv.Optional(CONF_PERMITTIVITY): sensor.sensor_schema(
                 unit_of_measurement=UNIT_EMPTY,
