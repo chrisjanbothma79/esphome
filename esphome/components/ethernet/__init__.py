@@ -83,10 +83,10 @@ CLK_MODES = {
 }
 
 CLK_MODES_DEPRECATED = {
-    "GPIO0_IN": (emac_rmii_clock_mode_t.EMAC_CLK_EXT_IN, 0),
-    "GPIO0_OUT": (emac_rmii_clock_mode_t.EMAC_CLK_OUT, 0),
-    "GPIO16_OUT": (emac_rmii_clock_mode_t.EMAC_CLK_OUT, 16),
-    "GPIO17_OUT": (emac_rmii_clock_mode_t.EMAC_CLK_OUT, 17),
+    "GPIO0_IN": ("CLK_EXT_IN", 0),
+    "GPIO0_OUT": ("CLK_OUT", 0),
+    "GPIO16_OUT": ("CLK_OUT", 16),
+    "GPIO17_OUT": ("CLK_OUT", 17),
 }
 
 MANUAL_IP_SCHEMA = cv.Schema(
@@ -152,9 +152,12 @@ def _validate(config):
     elif config[CONF_TYPE] != "OPENETH":
         if CONF_CLK_MODE in config:
             LOGGER.warning(
-                "The 'clk_mode' option is deprecated and will be removed in ESPHome 2026.1. "
+                "[ethernet] The 'clk_mode' option is deprecated and will be removed in ESPHome 2026.1. "
                 "Please update your configuration to use 'clk' instead."
             )
+            mode = CLK_MODES_DEPRECATED[config[CONF_CLK_MODE]]
+            config[CONF_CLK] = CLK_SCHEMA({CONF_MODE: mode[0], CONF_PIN: mode[1]})
+            del config[CONF_CLK_MODE]
         elif CONF_CLK not in config:
             raise cv.Invalid("'clk' is a required option for [ethernet].")
 
@@ -181,6 +184,12 @@ PHY_REGISTER_SCHEMA = cv.Schema(
         cv.Optional(CONF_PAGE_ID): cv.hex_int,
     }
 )
+CLK_SCHEMA = cv.Schema(
+    {
+        cv.Required(CONF_MODE): cv.enum(CLK_MODES, upper=True, space="_"),
+        cv.Required(CONF_PIN): pins.internal_gpio_pin_number,
+    }
+)
 RMII_SCHEMA = BASE_SCHEMA.extend(
     cv.Schema(
         {
@@ -189,15 +198,7 @@ RMII_SCHEMA = BASE_SCHEMA.extend(
             cv.Optional(CONF_CLK_MODE): cv.enum(
                 CLK_MODES_DEPRECATED, upper=True, space="_"
             ),
-            cv.Optional(CONF_CLK): cv.Schema(
-                {
-                    cv.Required(CONF_MODE): cv.enum(CLK_MODES, upper=True, space="_"),
-                    cv.Required(CONF_PIN): cv.Any(
-                        pins.internal_gpio_output_pin_number,
-                        pins.internal_gpio_input_pin_number,
-                    ),
-                }
-            ),
+            cv.Optional(CONF_CLK): CLK_SCHEMA,
             cv.Optional(CONF_PHY_ADDR, default=0): cv.int_range(min=0, max=31),
             cv.Optional(CONF_POWER_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_PHY_REGISTERS): cv.ensure_list(PHY_REGISTER_SCHEMA),
@@ -321,13 +322,8 @@ async def to_code(config):
         cg.add(var.set_phy_addr(config[CONF_PHY_ADDR]))
         cg.add(var.set_mdc_pin(config[CONF_MDC_PIN]))
         cg.add(var.set_mdio_pin(config[CONF_MDIO_PIN]))
-        if CONF_CLK_MODE in config:
-            clk_mode = CLK_MODES_DEPRECATED[config[CONF_CLK_MODE]]
-            cg.add(var.set_clk_mode(clk_mode[0]))
-            cg.add(var.set_clk_pin(clk_mode[1]))
-        else:
-            cg.add(var.set_clk_mode(config[CONF_CLK][CONF_MODE]))
-            cg.add(var.set_clk_pin(config[CONF_CLK][CONF_PIN]))
+        cg.add(var.set_clk_mode(config[CONF_CLK][CONF_MODE]))
+        cg.add(var.set_clk_pin(config[CONF_CLK][CONF_PIN]))
         if CONF_POWER_PIN in config:
             cg.add(var.set_power_pin(config[CONF_POWER_PIN]))
         for register_value in config.get(CONF_PHY_REGISTERS, []):
