@@ -23,7 +23,9 @@ namespace esp32_touch {
 // INTERRUPT BEHAVIOR:
 // - ESP32 v1: Interrupts fire when ANY pad is touched and continue while touched.
 //   Releases are detected by timeout since hardware doesn't generate release interrupts.
-// - ESP32-S2/S3 v2: Interrupts can be configured per-pad with both touch and release events.
+// - ESP32-S2/S3 v2: Hardware supports both touch and release interrupts, but release
+//   interrupts are unreliable and sometimes don't fire. We now only use touch interrupts
+//   and detect releases via timeout, similar to v1.
 
 static const uint32_t SETUP_MODE_LOG_INTERVAL_MS = 250;
 
@@ -77,10 +79,21 @@ class ESP32TouchComponent : public Component {
   void cleanup_touch_queue_();
   void configure_wakeup_pads_();
 
+  // Helper methods for loop() logic
+  void process_setup_mode_logging_(uint32_t now);
+  bool should_check_for_releases_(uint32_t now);
+  void publish_initial_state_if_needed_(ESP32TouchBinarySensor *child, uint32_t now);
+  void check_and_disable_loop_if_all_released_(size_t pads_off);
+  void calculate_release_timeout_();
+
   // Common members
   std::vector<ESP32TouchBinarySensor *> children_;
   bool setup_mode_{false};
   uint32_t setup_mode_last_log_print_{0};
+  uint32_t last_release_check_{0};
+  uint32_t release_timeout_ms_{1500};
+  uint32_t release_check_interval_ms_{50};
+  bool initial_state_published_[TOUCH_PAD_MAX] = {false};
 
   // Common configuration parameters
   uint16_t sleep_cycle_{4095};
@@ -89,11 +102,13 @@ class ESP32TouchComponent : public Component {
   touch_high_volt_t high_voltage_reference_{TOUCH_HVOLT_2V7};
   touch_volt_atten_t voltage_attenuation_{TOUCH_HVOLT_ATTEN_0V};
 
+  // Common constants
+  static constexpr uint32_t MINIMUM_RELEASE_TIME_MS = 100;
+
   // ==================== PLATFORM SPECIFIC ====================
 
 #ifdef USE_ESP32_VARIANT_ESP32
   // ESP32 v1 specific
-  static constexpr uint32_t MINIMUM_RELEASE_TIME_MS = 100;
 
   static void touch_isr_handler(void *arg);
   QueueHandle_t touch_queue_{nullptr};
@@ -115,9 +130,6 @@ class ESP32TouchComponent : public Component {
   // 4. Queue operations provide implicit memory barriers
   // Using atomic/critical sections would add overhead without meaningful benefit
   uint32_t last_touch_time_[TOUCH_PAD_MAX] = {0};
-  bool initial_state_published_[TOUCH_PAD_MAX] = {false};
-  uint32_t release_timeout_ms_{1500};
-  uint32_t release_check_interval_ms_{50};
   uint32_t iir_filter_{0};
 
   bool iir_filter_enabled_() const { return this->iir_filter_ > 0; }
@@ -134,6 +146,9 @@ class ESP32TouchComponent : public Component {
     touch_pad_t pad;
     uint32_t intr_mask;
   };
+
+  // Track last touch time for timeout-based release detection
+  uint32_t last_touch_time_[TOUCH_PAD_MAX] = {0};
 
  protected:
   // Filter configuration
@@ -171,7 +186,7 @@ class ESP32TouchComponent : public Component {
   void update_touch_state_(ESP32TouchBinarySensor *child, bool is_touched);
 
   // Helper to read touch value and update state for a given child
-  void check_and_update_touch_state_(ESP32TouchBinarySensor *child);
+  bool check_and_update_touch_state_(ESP32TouchBinarySensor *child);
 #endif
 
   // Helper functions for dump_config - common to both implementations
