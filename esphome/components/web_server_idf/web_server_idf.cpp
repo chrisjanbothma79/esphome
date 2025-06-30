@@ -2,6 +2,8 @@
 
 #include <cstdarg>
 #include <memory>
+#include <cstring>
+#include <cctype>
 
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
@@ -12,6 +14,7 @@
 
 #include "utils.h"
 #include "web_server_idf.h"
+#include "parser_utils.h"
 
 #ifdef USE_WEBSERVER_OTA
 #include "multipart_reader.h"
@@ -88,40 +91,46 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
 #ifdef USE_WEBSERVER_OTA
   // Check if this is a multipart form data request (for OTA updates)
   bool is_multipart = false;
-  std::string boundary;
+#endif
 
   if (content_type.has_value()) {
-    const std::string &ct = content_type.value();
-    const char *boundary_start = nullptr;
-    size_t boundary_len = 0;
+    const char *content_type_char = content_type.value().c_str();
 
-    if (parse_multipart_boundary(ct.c_str(), &boundary_start, &boundary_len)) {
-      boundary.assign(boundary_start, boundary_len);
+    // Check most common case first
+    if (is_form_urlencoded(content_type_char)) {
+      // Normal form data - proceed with regular handling
+#ifdef USE_WEBSERVER_OTA
+    } else if (stristr(content_type_char, "multipart/form-data") != nullptr) {
       is_multipart = true;
-      ESP_LOGV(TAG, "Multipart upload detected, boundary: '%s' (len: %zu)", boundary.c_str(), boundary_len);
-    } else if (!is_form_urlencoded(ct.c_str())) {
-      ESP_LOGW(TAG, "Unsupported content type for POST: %s", ct.c_str());
+#endif
+    } else {
+      ESP_LOGW(TAG, "Unsupported content type for POST: %s", content_type_char);
       // fallback to get handler to support backward compatibility
       return AsyncWebServer::request_handler(r);
     }
   }
-#else
-  if (content_type.has_value() && content_type.value() != "application/x-www-form-urlencoded") {
-    ESP_LOGW(TAG, "Only application/x-www-form-urlencoded supported for POST request");
-    // fallback to get handler to support backward compatibility
-    return AsyncWebServer::request_handler(r);
-  }
-#endif
 
   if (!request_has_header(r, "Content-Length")) {
-    ESP_LOGW(TAG, "Content length is requred for post: %s", r->uri);
+    ESP_LOGW(TAG, "Content length is required for post: %s", r->uri);
     httpd_resp_send_err(r, HTTPD_411_LENGTH_REQUIRED, nullptr);
     return ESP_OK;
   }
 
 #ifdef USE_WEBSERVER_OTA
   // Handle multipart form data
-  if (is_multipart && !boundary.empty()) {
+  if (is_multipart) {
+    // Parse the boundary from the content type
+    const char *boundary_start = nullptr;
+    size_t boundary_len = 0;
+
+    if (!parse_multipart_boundary(content_type.value().c_str(), &boundary_start, &boundary_len)) {
+      ESP_LOGE(TAG, "Failed to parse multipart boundary");
+      httpd_resp_send_err(r, HTTPD_400_BAD_REQUEST, nullptr);
+      return ESP_FAIL;
+    }
+
+    std::string boundary(boundary_start, boundary_len);
+    ESP_LOGV(TAG, "Multipart upload boundary: '%s'", boundary.c_str());
     // Create request object
     AsyncWebServerRequest req(r);
     auto *server = static_cast<AsyncWebServer *>(r->user_ctx);

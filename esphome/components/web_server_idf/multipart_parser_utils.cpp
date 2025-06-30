@@ -1,20 +1,11 @@
 #include "esphome/core/defines.h"
 #if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
 #include "multipart_parser_utils.h"
+#include "parser_utils.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
 namespace web_server_idf {
-
-// Helper function for case-insensitive string region comparison
-bool str_ncmp_ci(const char *s1, const char *s2, size_t n) {
-  for (size_t i = 0; i < n; i++) {
-    if (!char_equals_ci(s1[i], s2[i])) {
-      return false;
-    }
-  }
-  return true;
-}
 
 // Case-insensitive string prefix check
 bool str_startswith_case_insensitive(const std::string &str, const std::string &prefix) {
@@ -108,26 +99,6 @@ std::string extract_header_param(const std::string &header, const std::string &p
   return "";
 }
 
-// Case-insensitive string search (like strstr but case-insensitive)
-const char *stristr(const char *haystack, const char *needle) {
-  if (!haystack || !needle) {
-    return nullptr;
-  }
-
-  size_t needle_len = strlen(needle);
-  if (needle_len == 0) {
-    return haystack;
-  }
-
-  for (const char *p = haystack; *p; p++) {
-    if (str_ncmp_ci(p, needle, needle_len)) {
-      return p;
-    }
-  }
-
-  return nullptr;
-}
-
 // Parse boundary from Content-Type header
 // Returns true if boundary found, false otherwise
 // boundary_start and boundary_len will point to the boundary value
@@ -186,15 +157,6 @@ bool parse_multipart_boundary(const char *content_type, const char **boundary_st
   ESP_LOGV("multipart_utils", "Extracted boundary: '%.*s' (len: %zu)", (int) *boundary_len, start, *boundary_len);
 
   return true;
-}
-
-// Check if content type is form-urlencoded (case-insensitive)
-bool is_form_urlencoded(const char *content_type) {
-  if (!content_type) {
-    return false;
-  }
-
-  return stristr(content_type, "application/x-www-form-urlencoded") != nullptr;
 }
 
 // Trim whitespace from both ends of a string
