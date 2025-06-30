@@ -1,6 +1,5 @@
 from esphome import automation
 import esphome.codegen as cg
-from esphome.components.ota_base import OTAState
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ESPHOME,
@@ -10,6 +9,8 @@ from esphome.const import (
     CONF_TRIGGER_ID,
 )
 from esphome.core import coroutine_with_priority
+
+from ..ota_base import OTAState
 
 CODEOWNERS = ["@esphome/core"]
 AUTO_LOAD = ["safe_mode", "ota_base"]
@@ -24,7 +25,6 @@ CONF_ON_STATE_CHANGE = "on_state_change"
 
 
 ota_ns = cg.esphome_ns.namespace("ota")
-# OTAComponent and OTAState are imported from ota_base
 OTAAbortTrigger = ota_ns.class_("OTAAbortTrigger", automation.Trigger.template())
 OTAEndTrigger = ota_ns.class_("OTAEndTrigger", automation.Trigger.template())
 OTAErrorTrigger = ota_ns.class_("OTAErrorTrigger", automation.Trigger.template())

@@ -1,7 +1,6 @@
 from esphome import automation
 import esphome.codegen as cg
 from esphome.components.ota import BASE_OTA_SCHEMA, ota_to_code
-from esphome.components.ota_base import OTAComponent
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_PASSWORD, CONF_URL, CONF_USERNAME
 from esphome.core import coroutine_with_priority
@@ -15,6 +14,9 @@ DEPENDENCIES = ["network", "http_request"]
 
 CONF_MD5 = "md5"
 CONF_MD5_URL = "md5_url"
+
+ota_base_ns = cg.esphome_ns.namespace("ota_base")
+OTAComponent = ota_base_ns.class_("OTAComponent", cg.Component)
 
 OtaHttpRequestComponent = http_request_ns.class_(
     "OtaHttpRequestComponent", OTAComponent
