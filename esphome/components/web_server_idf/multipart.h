@@ -68,9 +68,6 @@ class MultipartReader {
 // Case-insensitive string prefix check
 bool str_startswith_case_insensitive(const std::string &str, const std::string &prefix);
 
-// Find a substring case-insensitively
-size_t str_find_case_insensitive(const std::string &haystack, const std::string &needle, size_t pos = 0);
-
 // Extract a parameter value from a header line
 // Handles both quoted and unquoted values
 std::string extract_header_param(const std::string &header, const std::string &param);

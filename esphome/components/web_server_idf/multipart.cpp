@@ -115,24 +115,6 @@ bool str_startswith_case_insensitive(const std::string &str, const std::string &
   return str_ncmp_ci(str.c_str(), prefix.c_str(), prefix.length());
 }
 
-// Find a substring case-insensitively
-size_t str_find_case_insensitive(const std::string &haystack, const std::string &needle, size_t pos) {
-  if (needle.empty() || pos >= haystack.length()) {
-    return std::string::npos;
-  }
-
-  const size_t needle_len = needle.length();
-  const size_t max_pos = haystack.length() - needle_len;
-
-  for (size_t i = pos; i <= max_pos; i++) {
-    if (str_ncmp_ci(haystack.c_str() + i, needle.c_str(), needle_len)) {
-      return i;
-    }
-  }
-
-  return std::string::npos;
-}
-
 // Extract a parameter value from a header line
 // Handles both quoted and unquoted values
 std::string extract_header_param(const std::string &header, const std::string &param) {
@@ -140,10 +122,11 @@ std::string extract_header_param(const std::string &header, const std::string &p
 
   while (search_pos < header.length()) {
     // Look for param name
-    size_t pos = str_find_case_insensitive(header, param, search_pos);
-    if (pos == std::string::npos) {
+    const char *found = stristr(header.c_str() + search_pos, param.c_str());
+    if (!found) {
       return "";
     }
+    size_t pos = found - header.c_str();
 
     // Check if this is a word boundary (not part of another parameter)
     if (pos > 0 && header[pos - 1] != ' ' && header[pos - 1] != ';' && header[pos - 1] != '\t') {
