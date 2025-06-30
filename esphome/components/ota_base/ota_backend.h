@@ -91,6 +91,14 @@ class OTAGlobalCallback {
 
 OTAGlobalCallback *get_global_ota_callback();
 void register_ota_platform(OTAComponent *ota_caller);
+
+// TODO: When web_server is updated to use ota_base, we need to add thread-safe
+// callback execution. The web_server OTA runs in a separate task, so callbacks
+// need to be deferred to the main loop task to avoid race conditions.
+// This could be implemented using:
+// - A queue of callback events that the main loop processes
+// - Or using App.schedule() to defer callback execution to the main loop
+// Example: App.schedule([=]() { state_callback_.call(state, progress, error); });
 #endif
 
 }  // namespace ota_base
