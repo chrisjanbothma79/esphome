@@ -117,52 +117,44 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 
 #ifdef USE_ESP_IDF
   // ESP-IDF implementation
-  auto *backend = static_cast<ota::OTABackend *>(this->ota_backend_);
-
-  if (index == 0 && !backend) {
-    // Only initialize once when backend doesn't exist
+  if (index == 0 && !this->ota_backend_) {
+    // Initialize OTA on first call
     this->ota_init_(filename.c_str());
-    this->ota_success_ = false;  // Reset success flag
+    this->ota_success_ = false;
 
-    // Create and begin OTA
-    auto new_backend = ota::make_ota_backend();
-    auto result = new_backend->begin(0);
-    if (result != ota::OTA_RESPONSE_OK) {
-      ESP_LOGE(TAG, "OTA begin failed: %d", result);
+    auto backend = ota::make_ota_backend();
+    if (backend->begin(0) != ota::OTA_RESPONSE_OK) {
+      ESP_LOGE(TAG, "OTA begin failed");
       return;
     }
-
-    this->ota_backend_ = new_backend.release();
-    backend = static_cast<ota::OTABackend *>(this->ota_backend_);
+    this->ota_backend_ = backend.release();
   }
 
+  auto *backend = static_cast<ota::OTABackend *>(this->ota_backend_);
   if (!backend) {
-    return;  // Begin failed or was aborted
+    return;
   }
 
-  // Write data if provided
+  // Process data
   if (len > 0) {
-    auto result = backend->write(data, len);
-    if (result != ota::OTA_RESPONSE_OK) {
-      ESP_LOGE(TAG, "OTA write failed: %d", result);
+    if (backend->write(data, len) != ota::OTA_RESPONSE_OK) {
+      ESP_LOGE(TAG, "OTA write failed");
       backend->abort();
       delete backend;
       this->ota_backend_ = nullptr;
       return;
     }
-
     this->ota_read_length_ += len;
     this->report_ota_progress_(request);
   }
 
-  // Finalize if requested
+  // Finalize
   if (final) {
-    auto result = backend->end();
-    this->ota_success_ = (result == ota::OTA_RESPONSE_OK);
+    this->ota_success_ = (backend->end() == ota::OTA_RESPONSE_OK);
     if (this->ota_success_) {
       this->schedule_ota_reboot_();
     } else {
-      ESP_LOGE(TAG, "OTA end failed: %d", result);
+      ESP_LOGE(TAG, "OTA end failed");
     }
     delete backend;
     this->ota_backend_ = nullptr;
