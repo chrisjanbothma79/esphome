@@ -579,11 +579,11 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
   // Create reader on heap to reduce stack usage
   auto reader = std::make_unique<MultipartReader>("--" + std::string(boundary_start, boundary_len));
 
-  // Find handler - create request on heap to reduce stack usage
-  auto req = std::make_unique<AsyncWebServerRequest>(r);
+  // Find handler - keep request on stack since constructor is protected
+  AsyncWebServerRequest req(r);
   AsyncWebHandler *handler = nullptr;
   for (auto *h : this->handlers_) {
-    if (h->canHandle(req.get())) {
+    if (h->canHandle(&req)) {
       handler = h;
       break;
     }
@@ -607,16 +607,16 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
     if (filename.empty()) {
       filename = reader->get_current_part().filename;
       ESP_LOGV(TAG, "Processing file: '%s'", filename.c_str());
-      handler->handleUpload(req.get(), filename, 0, nullptr, 0, false);  // Start
+      handler->handleUpload(&req, filename, 0, nullptr, 0, false);  // Start
     }
 
-    handler->handleUpload(req.get(), filename, index, const_cast<uint8_t *>(data), len, false);
+    handler->handleUpload(&req, filename, index, const_cast<uint8_t *>(data), len, false);
     index += len;
   });
 
   reader->set_part_complete_callback([&]() {
     if (index > 0) {
-      handler->handleUpload(req.get(), filename, index, nullptr, 0, true);  // End
+      handler->handleUpload(&req, filename, index, nullptr, 0, true);  // End
       filename.clear();
       index = 0;
     }
@@ -650,7 +650,7 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
     }
   }
 
-  handler->handleRequest(req.get());
+  handler->handleRequest(&req);
   return ESP_OK;
 }
 #endif  // USE_WEBSERVER_OTA
