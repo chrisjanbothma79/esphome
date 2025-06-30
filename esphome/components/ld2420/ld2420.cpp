@@ -189,23 +189,23 @@ void LD2420Component::dump_config() {
                 this->firmware_ver_);
 #ifdef USE_NUMBER
   ESP_LOGCONFIG(TAG, "Number:");
-  LOG_NUMBER(TAG, "  Gate Timeout:", this->gate_timeout_number_);
-  LOG_NUMBER(TAG, "  Gate Max Distance:", this->max_gate_distance_number_);
-  LOG_NUMBER(TAG, "  Gate Min Distance:", this->min_gate_distance_number_);
-  LOG_NUMBER(TAG, "  Gate Select:", this->gate_select_number_);
+  LOG_NUMBER("  ", "Gate Timeout:", this->gate_timeout_number_);
+  LOG_NUMBER("  ", "Gate Max Distance:", this->max_gate_distance_number_);
+  LOG_NUMBER("  ", "Gate Min Distance:", this->min_gate_distance_number_);
+  LOG_NUMBER("  ", "Gate Select:", this->gate_select_number_);
   for (uint8_t gate = 0; gate < TOTAL_GATES; gate++) {
-    LOG_NUMBER(TAG, "  Gate Move Threshold:", this->gate_move_threshold_numbers_[gate]);
-    LOG_NUMBER(TAG, "  Gate Still Threshold::", this->gate_still_threshold_numbers_[gate]);
+    LOG_NUMBER("  ", "Gate Move Threshold:", this->gate_move_threshold_numbers_[gate]);
+    LOG_NUMBER("  ", "Gate Still Threshold::", this->gate_still_threshold_numbers_[gate]);
   }
 #endif
 #ifdef USE_BUTTON
-  LOG_BUTTON(TAG, "  Apply Config:", this->apply_config_button_);
-  LOG_BUTTON(TAG, "  Revert Edits:", this->revert_config_button_);
-  LOG_BUTTON(TAG, "  Factory Reset:", this->factory_reset_button_);
-  LOG_BUTTON(TAG, "  Restart Module:", this->restart_module_button_);
+  LOG_BUTTON("  ", "Apply Config:", this->apply_config_button_);
+  LOG_BUTTON("  ", "Revert Edits:", this->revert_config_button_);
+  LOG_BUTTON("  ", "Factory Reset:", this->factory_reset_button_);
+  LOG_BUTTON("  ", "Restart Module:", this->restart_module_button_);
 #endif
   ESP_LOGCONFIG(TAG, "Select:");
-  LOG_SELECT(TAG, "  Operating Mode", this->operating_selector_);
+  LOG_SELECT("  ", "Operating Mode", this->operating_selector_);
   if (ld2420::get_firmware_int(this->firmware_ver_) < CALIBRATE_VERSION_MIN) {
     ESP_LOGW(TAG, "Firmware version %s and older supports Simple Mode only", this->firmware_ver_);
   }
