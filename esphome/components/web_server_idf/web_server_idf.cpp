@@ -97,7 +97,7 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
     const char *content_type_char = content_type.value().c_str();
 
     // Check most common case first
-    if (is_form_urlencoded(content_type_char)) {
+    if (stristr(content_type_char, "application/x-www-form-urlencoded") != nullptr) {
       // Normal form data - proceed with regular handling
 #ifdef USE_WEBSERVER_OTA
     } else if (stristr(content_type_char, "multipart/form-data") != nullptr) {

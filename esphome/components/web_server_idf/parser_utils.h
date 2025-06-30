@@ -16,9 +16,6 @@ bool str_ncmp_ci(const char *s1, const char *s2, size_t n);
 // Case-insensitive string search (like strstr but case-insensitive)
 const char *stristr(const char *haystack, const char *needle);
 
-// Check if content type is form-urlencoded (case-insensitive)
-bool is_form_urlencoded(const char *content_type);
-
 }  // namespace web_server_idf
 }  // namespace esphome
 #endif  // USE_ESP_IDF

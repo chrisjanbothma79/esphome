@@ -37,15 +37,6 @@ const char *stristr(const char *haystack, const char *needle) {
   return nullptr;
 }
 
-// Check if content type is form-urlencoded (case-insensitive)
-bool is_form_urlencoded(const char *content_type) {
-  if (!content_type) {
-    return false;
-  }
-
-  return stristr(content_type, "application/x-www-form-urlencoded") != nullptr;
-}
-
 }  // namespace web_server_idf
 }  // namespace esphome
 #endif  // USE_ESP_IDF
