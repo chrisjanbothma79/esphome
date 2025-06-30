@@ -49,37 +49,39 @@ def set_sdkconfig_options(config):
 
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_ENABLED", True)
 
-    if pan_id := config.get(CONF_PAN_ID):
-        add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_PANID", pan_id)
+    if tlv := config.get(CONF_TLV):
+        cg.add_define("USE_OPENTHREAD_TLVS", tlv)
+    else:
+        if pan_id := config.get(CONF_PAN_ID):
+            add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_PANID", pan_id)
 
-    if channel := config.get(CONF_CHANNEL):
-        add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_CHANNEL", channel)
+        if channel := config.get(CONF_CHANNEL):
+            add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_CHANNEL", channel)
 
-    if network_key := config.get(CONF_NETWORK_KEY):
-        add_idf_sdkconfig_option(
-            "CONFIG_OPENTHREAD_NETWORK_MASTERKEY", f"{network_key:X}".lower()
-        )
+        if network_key := config.get(CONF_NETWORK_KEY):
+            add_idf_sdkconfig_option(
+                "CONFIG_OPENTHREAD_NETWORK_MASTERKEY", f"{network_key:X}".lower()
+            )
 
-    if network_name := config.get(CONF_NETWORK_NAME):
-        add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_NAME", network_name)
+        if network_name := config.get(CONF_NETWORK_NAME):
+            add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_NAME", network_name)
 
-    if (ext_pan_id := config.get(CONF_EXT_PAN_ID)) is not None:
-        add_idf_sdkconfig_option(
-            "CONFIG_OPENTHREAD_NETWORK_EXTPANID", f"{ext_pan_id:X}".lower()
-        )
-    if (mesh_local_prefix := config.get(CONF_MESH_LOCAL_PREFIX)) is not None:
-        add_idf_sdkconfig_option(
-            "CONFIG_OPENTHREAD_MESH_LOCAL_PREFIX", f"{mesh_local_prefix}".lower()
-        )
-    if (pskc := config.get(CONF_PSKC)) is not None:
-        add_idf_sdkconfig_option("CONFIG_OPENTHREAD_NETWORK_PSKC", f"{pskc:X}".lower())
+        if (ext_pan_id := config.get(CONF_EXT_PAN_ID)) is not None:
+            add_idf_sdkconfig_option(
+                "CONFIG_OPENTHREAD_NETWORK_EXTPANID", f"{ext_pan_id:X}".lower()
+            )
+        if (mesh_local_prefix := config.get(CONF_MESH_LOCAL_PREFIX)) is not None:
+            add_idf_sdkconfig_option(
+                "CONFIG_OPENTHREAD_MESH_LOCAL_PREFIX", f"{mesh_local_prefix}".lower()
+            )
+        if (pskc := config.get(CONF_PSKC)) is not None:
+            add_idf_sdkconfig_option(
+                "CONFIG_OPENTHREAD_NETWORK_PSKC", f"{pskc:X}".lower()
+            )
 
     if force_dataset := config.get(CONF_FORCE_DATASET):
         if force_dataset:
-            cg.add_define("OPENTHREAD_FORCE_DATASET")
-
-    if tlv := config.get(CONF_TLV):
-        cg.add_define("OPENTHREAD_TLVS", tlv)
+            cg.add_define("USE_OPENTHREAD_FORCE_DATASET")
 
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_DNS64_CLIENT", True)
     add_idf_sdkconfig_option("CONFIG_OPENTHREAD_SRP_CLIENT", True)
