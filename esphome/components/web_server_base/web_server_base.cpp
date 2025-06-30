@@ -63,6 +63,7 @@ void WebServerBase::add_handler(AsyncWebHandler *handler) {
   }
 }
 
+#ifdef USE_WEBSERVER_OTA
 void report_ota_error() {
 #ifdef USE_ARDUINO
   StreamString ss;
@@ -70,10 +71,8 @@ void report_ota_error() {
   ESP_LOGW(TAG, "OTA Update failed! Error: %s", ss.c_str());
 #endif
 }
-
 void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const String &filename, size_t index,
                                      uint8_t *data, size_t len, bool final) {
-#ifdef USE_WEBSERVER_OTA
 #ifdef USE_ARDUINO
   bool success;
   if (index == 0) {
@@ -160,10 +159,9 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     this->ota_backend_ = nullptr;
   }
 #endif  // USE_ESP_IDF
-#endif  // USE_WEBSERVER_OTA
 }
+
 void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
-#ifdef USE_WEBSERVER_OTA
   ESP_LOGV(TAG, "OTA handleRequest called");
   AsyncWebServerResponse *response;
 #ifdef USE_ARDUINO
@@ -183,8 +181,8 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
 #endif  // USE_ESP_IDF
   response->addHeader("Connection", "close");
   request->send(response);
-#endif  // USE_WEBSERVER_OTA
 }
+#endif  // USE_WEBSERVER_OTA
 
 #ifdef USE_WEBSERVER_OTA
 void WebServerBase::add_ota_handler() {

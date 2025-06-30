@@ -118,7 +118,9 @@ class WebServerBase : public Component {
   uint16_t get_port() const { return port_; }
 
  protected:
+#ifdef USE_WEBSERVER_OTA
   friend class OTARequestHandler;
+#endif
 
   int initialized_{0};
   uint16_t port_{80};
@@ -127,6 +129,7 @@ class WebServerBase : public Component {
   internal::Credentials credentials_;
 };
 
+#ifdef USE_WEBSERVER_OTA
 class OTARequestHandler : public AsyncWebHandler {
  public:
   OTARequestHandler(WebServerBase *parent) : parent_(parent) {}
@@ -141,22 +144,21 @@ class OTARequestHandler : public AsyncWebHandler {
   bool isRequestHandlerTrivial() const override { return false; }
 
  protected:
-#ifdef USE_WEBSERVER_OTA
   void report_ota_progress_(AsyncWebServerRequest *request);
   void schedule_ota_reboot_();
   void ota_init_(const char *filename);
 
   uint32_t last_ota_progress_{0};
   uint32_t ota_read_length_{0};
-#endif
   WebServerBase *parent_;
 
  private:
-#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
+#ifdef USE_ESP_IDF
   void *ota_backend_{nullptr};
   bool ota_success_{false};
 #endif
 };
+#endif  // USE_WEBSERVER_OTA
 
 }  // namespace web_server_base
 }  // namespace esphome
