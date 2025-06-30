@@ -20,6 +20,18 @@ void NeewerCTLightOutput::dump_config() {
   LOG_BINARY_OUTPUT(this);
 };
 
+void NeewerCTLightOutput::prepare_turn_on_msg(bool on) {
+  this->orig_msg_clear();
+
+  this->orig_msg_[0] = NeewerBLEOutput::COMMAND_PREFIX;
+  this->orig_msg_[1] = NeewerBLEOutput::TURN_ON_OFF_PREFIX;
+  this->orig_msg_[2] = 1;           // Byte Count = 1
+  this->orig_msg_[3] = on ? 1 : 2;  // 1 - ON, 2 - OFF
+  this->orig_msg_len_ = 4;
+
+  NeewerBLEOutput::build_msg_with_checksum();
+}
+
 // ct_normalized is between 0.0 (coldest) and 1.0 (warmest)
 void NeewerCTLightOutput::prepare_ct_brightness_msg(float ct_normalized, float brightness) {
   // normalized color temperature must apply to mireds, it's not linear in Kelvin!
@@ -29,11 +41,11 @@ void NeewerCTLightOutput::prepare_ct_brightness_msg(float ct_normalized, float b
 
   // neewer light expects value 0x1B (27) for 2700K or 0x41 (65) for 6500K
   uint8_t ct = static_cast<uint8_t>(std::round(ct_kelvin / 100.f));
-  ESP_LOGD(TAG, "Color temperature will be set to 0x%1x (%d)", ct, ct);
+  ESP_LOGD(TAG, "Color temperature will be set to 0x%1x (%d == %d K)", ct, ct, ct * 100);
 
   // expected value for brightness is 0 - 100 (0x00 - 0x64)
   uint8_t b = static_cast<uint8_t>(std::round(brightness * 100.f));
-  ESP_LOGD(TAG, "Brightness will be set to 0x%1x (%d)", b, b);
+  ESP_LOGD(TAG, "Brightness will be set to 0x%1x (%d %%)", b, b);
 
   this->orig_msg_clear();
 
@@ -50,7 +62,7 @@ void NeewerCTLightOutput::prepare_ct_brightness_msg(float ct_normalized, float b
 // For whatever reason, the Neewer will only allow brightness alone if CT hasn't changed
 void NeewerCTLightOutput::prepare_brightness_msg(float brightness) {
   uint8_t b = static_cast<uint8_t>(std::round(brightness * 100.f));
-  ESP_LOGD(TAG, "Brightness will be set to 0x%1x (%d)", b, b);
+  ESP_LOGD(TAG, "Brightness will be set to 0x%1x (%d %%)", b, b);
 
   this->orig_msg_clear();
 
@@ -68,11 +80,21 @@ void NeewerCTLightOutput::write_state(light::LightState *state) {
   float color_temperature, brightness;
   state->current_values_as_ct(&color_temperature, &brightness);
 
+  // when the light is in "sleep", it seems to only get brightness change, but not the color temp
+  // trying to wake it up first
+  float eps = 0.001f;
+  if (abs(this->old_brightness_) < eps) {
+    ESP_LOGD(TAG, "Brightness was at 0, turning on first.");
+    this->prepare_turn_on_msg(true);
+    NeewerBLEOutput::write_state(1.0);
+  }
+
+  if (brightness != this->old_brightness_) {
+    ESP_LOGD(TAG, "Brightness changed from %.2f to %.2f", this->old_brightness_, brightness);
+  }
+
   if (color_temperature != this->old_color_temperature_) {
-    ESP_LOGD(TAG, "Color temperature changed.");
-    if (brightness != this->old_brightness_) {
-      ESP_LOGD(TAG, "Brightness changed.");
-    }
+    ESP_LOGD(TAG, "Color temperature changed from %.2f to %.2f", this->old_color_temperature_, color_temperature);
     this->prepare_ct_brightness_msg(color_temperature, brightness);
   } else if (brightness != this->old_brightness_) {
     ESP_LOGD(TAG, "Only brightness changed.");

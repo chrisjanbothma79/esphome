@@ -69,7 +69,7 @@ void NeewerBLEOutput::write_state(float state) {
   } else if (chr != nullptr) {
     ESP_LOGI(TAG, "Attempting to write colour command %i bytes, state value: %f", this->msg_len_, state);
     for (int i = 0; i < this->msg_len_; i++) {
-      ESP_LOGV(TAG, "Reading byte %i/%i, value %i", i, this->msg_len_ - 1, this->msg_[i]);
+      ESP_LOGV(TAG, "Reading byte %i/%i, value %i (0x%1x)", i, this->msg_len_ - 1, this->msg_[i], this->msg_[i]);
     }
     chr->write_value(this->msg_, this->msg_len_, ESP_GATT_WRITE_TYPE_RSP);
   } else {

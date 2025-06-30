@@ -52,6 +52,7 @@ class NeewerBLEOutput : public Component, public output::FloatOutput, public ble
   static const int MSG_MAX_SIZE = 10;  // size of msg_ string to reserve in bytes (uint8_t*).
   static const uint8_t COMMAND_PREFIX = 0x78;
   static const uint8_t CT_BRIGHTNESS_PREFIX = 0x87;
+  static const uint8_t TURN_ON_OFF_PREFIX = 0x81;
 };
 
 }  // namespace neewerlight_ct
