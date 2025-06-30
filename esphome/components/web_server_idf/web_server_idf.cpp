@@ -569,19 +569,21 @@ void AsyncEventSourceResponse::deferrable_send_state(void *source, const char *e
 
 #ifdef USE_WEBSERVER_OTA
 esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *content_type) {
-  // Constants for upload handling
   static constexpr size_t MULTIPART_CHUNK_SIZE = 1460;       // Match Arduino AsyncWebServer buffer size
   static constexpr size_t YIELD_INTERVAL_BYTES = 16 * 1024;  // Yield every 16KB to prevent watchdog
-  // Parse boundary from content type
-  const char *boundary_start = nullptr;
-  size_t boundary_len = 0;
+
+  // Parse boundary and create reader
+  const char *boundary_start;
+  size_t boundary_len;
   if (!parse_multipart_boundary(content_type, &boundary_start, &boundary_len)) {
     ESP_LOGE(TAG, "Failed to parse multipart boundary");
     httpd_resp_send_err(r, HTTPD_400_BAD_REQUEST, nullptr);
     return ESP_FAIL;
   }
 
-  // Create request and find handler
+  MultipartReader reader("--" + std::string(boundary_start, boundary_len));
+
+  // Find handler
   AsyncWebServerRequest req(r);
   AsyncWebHandler *handler = nullptr;
   for (auto *h : this->handlers_) {
@@ -597,55 +599,39 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
     return ESP_OK;
   }
 
-  // Initialize multipart reader
-  std::string boundary(boundary_start, boundary_len);
-  MultipartReader reader("--" + boundary);
-
-  // Upload handling state
-  struct UploadContext {
-    AsyncWebHandler *handler;
-    AsyncWebServerRequest *req;
-    std::string filename;
-    size_t index = 0;  // Byte position in the current upload
-  } ctx{handler, &req};
+  // Upload state
+  std::string filename;
+  size_t index = 0;
 
   // Configure callbacks
-  reader.set_data_callback([&ctx, &reader](const uint8_t *data, size_t len) {
-    if (!reader.has_file() || len == 0)
+  reader.set_data_callback([&](const uint8_t *data, size_t len) {
+    if (!reader.has_file() || !len)
       return;
 
-    if (ctx.filename.empty()) {
-      ctx.filename = reader.get_current_part().filename;
-      ESP_LOGV(TAG, "Processing file: '%s'", ctx.filename.c_str());
+    if (filename.empty()) {
+      filename = reader.get_current_part().filename;
+      ESP_LOGV(TAG, "Processing file: '%s'", filename.c_str());
+      handler->handleUpload(&req, filename, 0, nullptr, 0, false);  // Start
     }
 
-    if (ctx.index == 0) {
-      // First call with index 0 to indicate start of upload
-      ctx.handler->handleUpload(ctx.req, ctx.filename, 0, nullptr, 0, false);
-    }
-
-    // Write data with current index
-    ctx.handler->handleUpload(ctx.req, ctx.filename, ctx.index, const_cast<uint8_t *>(data), len, false);
-    ctx.index += len;
+    handler->handleUpload(&req, filename, index, const_cast<uint8_t *>(data), len, false);
+    index += len;
   });
 
-  reader.set_part_complete_callback([&ctx]() {
-    if (ctx.index > 0) {
-      // Final call with final=true to indicate end of upload
-      ctx.handler->handleUpload(ctx.req, ctx.filename, ctx.index, nullptr, 0, true);
-      ctx.filename.clear();
-      ctx.index = 0;
+  reader.set_part_complete_callback([&]() {
+    if (index > 0) {
+      handler->handleUpload(&req, filename, index, nullptr, 0, true);  // End
+      filename.clear();
+      index = 0;
     }
   });
 
-  // Process chunks
+  // Process data
   std::unique_ptr<char[]> buffer(new char[MULTIPART_CHUNK_SIZE]);
-  size_t remaining = r->content_len;
   size_t bytes_since_yield = 0;
 
-  while (remaining > 0) {
-    size_t to_read = std::min(remaining, MULTIPART_CHUNK_SIZE);
-    int recv_len = httpd_req_recv(r, buffer.get(), to_read);
+  for (size_t remaining = r->content_len; remaining > 0;) {
+    int recv_len = httpd_req_recv(r, buffer.get(), std::min(remaining, MULTIPART_CHUNK_SIZE));
 
     if (recv_len <= 0) {
       httpd_resp_send_err(r, recv_len == HTTPD_SOCK_ERR_TIMEOUT ? HTTPD_408_REQ_TIMEOUT : HTTPD_400_BAD_REQUEST,
@@ -653,8 +639,7 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
       return recv_len == HTTPD_SOCK_ERR_TIMEOUT ? ESP_ERR_TIMEOUT : ESP_FAIL;
     }
 
-    size_t parsed = reader.parse(buffer.get(), recv_len);
-    if (parsed != recv_len) {
+    if (reader.parse(buffer.get(), recv_len) != static_cast<size_t>(recv_len)) {
       ESP_LOGW(TAG, "Multipart parser error");
       httpd_resp_send_err(r, HTTPD_400_BAD_REQUEST, nullptr);
       return ESP_FAIL;
@@ -663,14 +648,12 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
     remaining -= recv_len;
     bytes_since_yield += recv_len;
 
-    // Yield periodically to let main loop run
     if (bytes_since_yield > YIELD_INTERVAL_BYTES) {
       vTaskDelay(1);
       bytes_since_yield = 0;
     }
   }
 
-  // Let handler send response
   handler->handleRequest(&req);
   return ESP_OK;
 }
