@@ -8,9 +8,7 @@ CODEOWNERS = ["@rwrozelle"]
 AUTO_LOAD = ["climate_ir"]
 
 friedrich_ns = cg.esphome_ns.namespace("friedrich")
-FriedrichClimate = friedrich_ns.class_(
-    "FriedrichClimate", climate_ir.ClimateIR
-)
+FriedrichClimate = friedrich_ns.class_("FriedrichClimate", climate_ir.ClimateIR)
 
 Model = friedrich_ns.enum("Model")
 MODELS = {
