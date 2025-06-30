@@ -256,8 +256,10 @@ void WebServer::setup() {
 #endif
   this->base_->add_handler(this);
 
+#ifdef USE_WEBSERVER_OTA
   if (this->allow_ota_)
     this->base_->add_ota_handler();
+#endif
 
   // doesn't need defer functionality - if the queue is full, the client JS knows it's alive because it's clearly
   // getting a lot of events

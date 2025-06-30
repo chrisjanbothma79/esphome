@@ -186,11 +186,12 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
 #endif  // USE_WEBSERVER_OTA
 }
 
-void WebServerBase::add_ota_handler() {
 #ifdef USE_WEBSERVER_OTA
+void WebServerBase::add_ota_handler() {
   this->add_handler(new OTARequestHandler(this));  // NOLINT
-#endif
 }
+#endif
+
 float WebServerBase::get_setup_priority() const {
   // Before WiFi (captive portal)
   return setup_priority::WIFI + 2.0f;

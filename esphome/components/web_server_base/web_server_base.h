@@ -110,7 +110,9 @@ class WebServerBase : public Component {
 
   void add_handler(AsyncWebHandler *handler);
 
+#ifdef USE_WEBSERVER_OTA
   void add_ota_handler();
+#endif
 
   void set_port(uint16_t port) { port_ = port; }
   uint16_t get_port() const { return port_; }
