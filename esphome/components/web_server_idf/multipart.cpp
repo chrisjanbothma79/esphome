@@ -53,14 +53,16 @@ size_t MultipartReader::parse(const char *data, size_t len) {
   return parsed;
 }
 
-void MultipartReader::process_header_(const std::string &value) {
+void MultipartReader::process_header_(const char *value, size_t length) {
   // Process the completed header (field + value pair)
+  std::string value_str(value, length);
+
   if (str_startswith_case_insensitive(current_header_field_, "content-disposition")) {
     // Parse name and filename from Content-Disposition
-    current_part_.name = extract_header_param(value, "name");
-    current_part_.filename = extract_header_param(value, "filename");
+    current_part_.name = extract_header_param(value_str, "name");
+    current_part_.filename = extract_header_param(value_str, "filename");
   } else if (str_startswith_case_insensitive(current_header_field_, "content-type")) {
-    current_part_.content_type = str_trim(value);
+    current_part_.content_type = str_trim(value_str);
   }
 
   // Clear field for next header
@@ -79,8 +81,7 @@ int MultipartReader::on_header_value(multipart_parser *parser, const char *at, s
   MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
 
   // Process the header immediately with the value
-  std::string value(at, length);
-  reader->process_header_(value);
+  reader->process_header_(at, length);
 
   return 0;
 }

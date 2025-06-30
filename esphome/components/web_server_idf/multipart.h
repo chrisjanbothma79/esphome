@@ -60,7 +60,7 @@ class MultipartReader {
   DataCallback data_callback_;
   PartCompleteCallback part_complete_callback_;
 
-  void process_header_(const std::string &value);
+  void process_header_(const char *value, size_t length);
 };
 
 // ========== Utility Functions ==========
