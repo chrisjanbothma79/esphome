@@ -64,6 +64,7 @@ struct UrlMatch {
   bool method_empty() const { return method_len == 0; }
 };
 
+#ifdef USE_WEBSERVER_SORTING
 struct SortingComponents {
   float weight;
   uint64_t group_id;
@@ -73,6 +74,7 @@ struct SortingGroup {
   std::string name;
   float weight;
 };
+#endif
 
 enum JsonDetail { DETAIL_ALL, DETAIL_STATE };
 
@@ -492,14 +494,18 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
   /// This web handle is not trivial.
   bool isRequestHandlerTrivial() const override;  // NOLINT(readability-identifier-naming)
 
+#ifdef USE_WEBSERVER_SORTING
   void add_entity_config(EntityBase *entity, float weight, uint64_t group);
   void add_sorting_group(uint64_t group_id, const std::string &group_name, float weight);
 
   std::map<EntityBase *, SortingComponents> sorting_entitys_;
   std::map<uint64_t, SortingGroup> sorting_groups_;
+#endif
+
   bool include_internal_{false};
 
  protected:
+  void add_sorting_info_(JsonObject &root, EntityBase *entity);
   void schedule_(std::function<void()> &&f);
   web_server_base::WebServerBase *base_;
 #ifdef USE_ARDUINO
