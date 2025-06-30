@@ -127,12 +127,7 @@ class WebServerBase : public Component {
 
 class OTARequestHandler : public AsyncWebHandler {
  public:
-  OTARequestHandler(WebServerBase *parent) : parent_(parent) {
-#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
-    this->ota_backend_ = nullptr;
-    this->ota_state_ = OTAState::IDLE;
-#endif
-  }
+  OTARequestHandler(WebServerBase *parent) : parent_(parent) {}
   void handleRequest(AsyncWebServerRequest *request) override;
   void handleUpload(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len,
                     bool final) override;
@@ -156,17 +151,8 @@ class OTARequestHandler : public AsyncWebHandler {
 
  private:
 #if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
-  // OTA state machine
-  enum class OTAState : uint8_t{
-      IDLE = 0,     // No OTA in progress
-      STARTED,      // OTA begin() succeeded
-      IN_PROGRESS,  // Writing data
-      SUCCESS,      // OTA end() succeeded
-      FAILED        // OTA failed at any stage
-  };
-
   void *ota_backend_{nullptr};
-  OTAState ota_state_{OTAState::IDLE};
+  bool ota_success_{false};
 #endif
 };
 

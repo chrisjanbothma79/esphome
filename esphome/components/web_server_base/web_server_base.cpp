@@ -117,43 +117,37 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 
 #ifdef USE_ESP_IDF
   // ESP-IDF implementation
-  if (index == 0) {
+  auto *backend = static_cast<ota::OTABackend *>(this->ota_backend_);
+
+  if (index == 0 && !backend) {
+    // Only initialize once when backend doesn't exist
     this->ota_init_(filename.c_str());
-    this->ota_state_ = OTAState::IDLE;
+    this->ota_success_ = false;  // Reset success flag
 
-    // Create OTA backend
-    auto backend = ota::make_ota_backend();
-
-    // Begin OTA with unknown size
-    auto result = backend->begin(0);
+    // Create and begin OTA
+    auto new_backend = ota::make_ota_backend();
+    auto result = new_backend->begin(0);
     if (result != ota::OTA_RESPONSE_OK) {
       ESP_LOGE(TAG, "OTA begin failed: %d", result);
-      this->ota_state_ = OTAState::FAILED;
       return;
     }
 
-    // Store the backend pointer
-    this->ota_backend_ = backend.release();
-    this->ota_state_ = OTAState::STARTED;
+    this->ota_backend_ = new_backend.release();
+    backend = static_cast<ota::OTABackend *>(this->ota_backend_);
   }
 
-  if (this->ota_state_ != OTAState::STARTED && this->ota_state_ != OTAState::IN_PROGRESS) {
-    // Begin failed or was aborted
-    return;
+  if (!backend) {
+    return;  // Begin failed or was aborted
   }
 
-  // Write data
+  // Write data if provided
   if (len > 0) {
-    auto *backend = static_cast<ota::OTABackend *>(this->ota_backend_);
-    this->ota_state_ = OTAState::IN_PROGRESS;
-
     auto result = backend->write(data, len);
     if (result != ota::OTA_RESPONSE_OK) {
       ESP_LOGE(TAG, "OTA write failed: %d", result);
       backend->abort();
       delete backend;
       this->ota_backend_ = nullptr;
-      this->ota_state_ = OTAState::FAILED;
       return;
     }
 
@@ -161,15 +155,14 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     this->report_ota_progress_(request);
   }
 
+  // Finalize if requested
   if (final) {
-    auto *backend = static_cast<ota::OTABackend *>(this->ota_backend_);
     auto result = backend->end();
-    if (result == ota::OTA_RESPONSE_OK) {
-      this->ota_state_ = OTAState::SUCCESS;
+    this->ota_success_ = (result == ota::OTA_RESPONSE_OK);
+    if (this->ota_success_) {
       this->schedule_ota_reboot_();
     } else {
       ESP_LOGE(TAG, "OTA end failed: %d", result);
-      this->ota_state_ = OTAState::FAILED;
     }
     delete backend;
     this->ota_backend_ = nullptr;
@@ -194,7 +187,9 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
 #ifdef USE_ESP_IDF
   // For ESP-IDF, we use direct send() instead of beginResponse()
   // to ensure the response is sent immediately before the reboot.
-  request->send(200, "text/plain", this->ota_state_ == OTAState::SUCCESS ? "Update Successful!" : "Update Failed!");
+  // If ota_backend_ is nullptr and we got here, the update completed (either success or failure)
+  // We'll use ota_success_ flag set by handleUpload to determine the result
+  request->send(200, "text/plain", this->ota_success_ ? "Update Successful!" : "Update Failed!");
   return;
 #endif  // USE_ESP_IDF
   response->addHeader("Connection", "close");
