@@ -576,9 +576,6 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
     return ESP_FAIL;
   }
 
-  // Create reader on heap to reduce stack usage
-  auto reader = std::make_unique<MultipartReader>("--" + std::string(boundary_start, boundary_len));
-
   AsyncWebServerRequest req(r);
   AsyncWebHandler *handler = nullptr;
   for (auto *h : this->handlers_) {
@@ -597,6 +594,8 @@ esp_err_t AsyncWebServer::handle_multipart_upload_(httpd_req_t *r, const char *c
   // Upload state
   std::string filename;
   size_t index = 0;
+  // Create reader on heap to reduce stack usage
+  auto reader = std::make_unique<MultipartReader>("--" + std::string(boundary_start, boundary_len));
 
   // Configure callbacks
   reader->set_data_callback([&](const uint8_t *data, size_t len) {

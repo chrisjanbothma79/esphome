@@ -177,10 +177,7 @@ void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   }
 #endif  // USE_ARDUINO
 #ifdef USE_ESP_IDF
-  // For ESP-IDF, we use direct send() instead of beginResponse()
-  // to ensure the response is sent immediately before the reboot.
-  // If ota_backend_ is nullptr and we got here, the update completed (either success or failure)
-  // We'll use ota_success_ flag set by handleUpload to determine the result
+  // Send response based on the OTA result
   request->send(200, "text/plain", this->ota_success_ ? "Update Successful!" : "Update Failed!");
   return;
 #endif  // USE_ESP_IDF
