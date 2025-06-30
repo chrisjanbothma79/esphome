@@ -49,26 +49,69 @@ static const char *const HEADER_CORS_ALLOW_PNA = "Access-Control-Allow-Private-N
 UrlMatch match_url(const std::string &url, bool only_domain = false) {
   UrlMatch match;
   match.valid = false;
-  size_t domain_end = url.find('/', 1);
-  if (domain_end == std::string::npos)
+  match.domain = nullptr;
+  match.id = nullptr;
+  match.method = nullptr;
+  match.domain_len = 0;
+  match.id_len = 0;
+  match.method_len = 0;
+
+  const char *url_ptr = url.c_str();
+  size_t url_len = url.length();
+
+  // URL must start with '/'
+  if (url_len < 2 || url_ptr[0] != '/')
     return match;
-  match.domain = url.substr(1, domain_end - 1);
+
+  // Find domain
+  size_t domain_start = 1;
+  size_t domain_end = url.find('/', domain_start);
+
+  if (domain_end == std::string::npos) {
+    // URL is just "/domain"
+    match.domain = url_ptr + domain_start;
+    match.domain_len = url_len - domain_start;
+    match.valid = true;
+    return match;
+  }
+
+  // Set domain
+  match.domain = url_ptr + domain_start;
+  match.domain_len = domain_end - domain_start;
+
   if (only_domain) {
     match.valid = true;
     return match;
   }
-  if (url.length() == domain_end - 1)
+
+  // Check if there's anything after domain
+  if (url_len == domain_end + 1)
     return match;
+
+  // Find ID
   size_t id_begin = domain_end + 1;
   size_t id_end = url.find('/', id_begin);
+
   match.valid = true;
+
   if (id_end == std::string::npos) {
-    match.id = url.substr(id_begin, url.length() - id_begin);
+    // URL is "/domain/id" with no method
+    match.id = url_ptr + id_begin;
+    match.id_len = url_len - id_begin;
     return match;
   }
-  match.id = url.substr(id_begin, id_end - id_begin);
+
+  // Set ID
+  match.id = url_ptr + id_begin;
+  match.id_len = id_end - id_begin;
+
+  // Set method if present
   size_t method_begin = id_end + 1;
-  match.method = url.substr(method_begin, url.length() - method_begin);
+  if (method_begin < url_len) {
+    match.method = url_ptr + method_begin;
+    match.method_len = url_len - method_begin;
+  }
+
   return match;
 }
 
@@ -388,9 +431,9 @@ void WebServer::on_sensor_update(sensor::Sensor *obj, float state) {
 }
 void WebServer::handle_sensor_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (sensor::Sensor *obj : App.get_sensors()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->sensor_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
@@ -433,9 +476,9 @@ void WebServer::on_text_sensor_update(text_sensor::TextSensor *obj, const std::s
 }
 void WebServer::handle_text_sensor_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (text_sensor::TextSensor *obj : App.get_text_sensors()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->text_sensor_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
@@ -471,20 +514,20 @@ void WebServer::on_switch_update(switch_::Switch *obj, bool state) {
 }
 void WebServer::handle_switch_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (switch_::Switch *obj : App.get_switches()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->switch_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
-    } else if (match.method == "toggle") {
+    } else if (match.method_equals("toggle")) {
       this->schedule_([obj]() { obj->toggle(); });
       request->send(200);
-    } else if (match.method == "turn_on") {
+    } else if (match.method_equals("turn_on")) {
       this->schedule_([obj]() { obj->turn_on(); });
       request->send(200);
-    } else if (match.method == "turn_off") {
+    } else if (match.method_equals("turn_off")) {
       this->schedule_([obj]() { obj->turn_off(); });
       request->send(200);
     } else {
@@ -514,13 +557,13 @@ std::string WebServer::switch_json(switch_::Switch *obj, bool value, JsonDetail 
 #ifdef USE_BUTTON
 void WebServer::handle_button_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (button::Button *obj : App.get_buttons()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->button_json(obj, detail);
       request->send(200, "application/json", data.c_str());
-    } else if (match.method == "press") {
+    } else if (match.method_equals("press")) {
       this->schedule_([obj]() { obj->press(); });
       request->send(200);
       return;
@@ -555,9 +598,9 @@ void WebServer::on_binary_sensor_update(binary_sensor::BinarySensor *obj) {
 }
 void WebServer::handle_binary_sensor_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (binary_sensor::BinarySensor *obj : App.get_binary_sensors()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->binary_sensor_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
@@ -593,18 +636,18 @@ void WebServer::on_fan_update(fan::Fan *obj) {
 }
 void WebServer::handle_fan_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (fan::Fan *obj : App.get_fans()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->fan_json(obj, detail);
       request->send(200, "application/json", data.c_str());
-    } else if (match.method == "toggle") {
+    } else if (match.method_equals("toggle")) {
       this->schedule_([obj]() { obj->toggle().perform(); });
       request->send(200);
-    } else if (match.method == "turn_on" || match.method == "turn_off") {
-      auto call = match.method == "turn_on" ? obj->turn_on() : obj->turn_off();
+    } else if (match.method_equals("turn_on") || match.method_equals("turn_off")) {
+      auto call = match.method_equals("turn_on") ? obj->turn_on() : obj->turn_off();
 
       if (request->hasParam("speed_level")) {
         auto speed_level = request->getParam("speed_level")->value();
@@ -674,17 +717,17 @@ void WebServer::on_light_update(light::LightState *obj) {
 }
 void WebServer::handle_light_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (light::LightState *obj : App.get_lights()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->light_json(obj, detail);
       request->send(200, "application/json", data.c_str());
-    } else if (match.method == "toggle") {
+    } else if (match.method_equals("toggle")) {
       this->schedule_([obj]() { obj->toggle().perform(); });
       request->send(200);
-    } else if (match.method == "turn_on") {
+    } else if (match.method_equals("turn_on")) {
       auto call = obj->turn_on();
       if (request->hasParam("brightness")) {
         auto brightness = parse_number<float>(request->getParam("brightness")->value().c_str());
@@ -741,7 +784,7 @@ void WebServer::handle_light_request(AsyncWebServerRequest *request, const UrlMa
 
       this->schedule_([call]() mutable { call.perform(); });
       request->send(200);
-    } else if (match.method == "turn_off") {
+    } else if (match.method_equals("turn_off")) {
       auto call = obj->turn_off();
       if (request->hasParam("transition")) {
         auto transition = parse_number<uint32_t>(request->getParam("transition")->value().c_str());
@@ -790,10 +833,10 @@ void WebServer::on_cover_update(cover::Cover *obj) {
 }
 void WebServer::handle_cover_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (cover::Cover *obj : App.get_covers()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->cover_json(obj, detail);
       request->send(200, "application/json", data.c_str());
@@ -801,15 +844,15 @@ void WebServer::handle_cover_request(AsyncWebServerRequest *request, const UrlMa
     }
 
     auto call = obj->make_call();
-    if (match.method == "open") {
+    if (match.method_equals("open")) {
       call.set_command_open();
-    } else if (match.method == "close") {
+    } else if (match.method_equals("close")) {
       call.set_command_close();
-    } else if (match.method == "stop") {
+    } else if (match.method_equals("stop")) {
       call.set_command_stop();
-    } else if (match.method == "toggle") {
+    } else if (match.method_equals("toggle")) {
       call.set_command_toggle();
-    } else if (match.method != "set") {
+    } else if (!match.method_equals("set")) {
       request->send(404);
       return;
     }
@@ -871,16 +914,16 @@ void WebServer::on_number_update(number::Number *obj, float state) {
 }
 void WebServer::handle_number_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (auto *obj : App.get_numbers()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->number_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
       return;
     }
-    if (match.method != "set") {
+    if (!match.method_equals("set")) {
       request->send(404);
       return;
     }
@@ -942,15 +985,15 @@ void WebServer::on_date_update(datetime::DateEntity *obj) {
 }
 void WebServer::handle_date_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (auto *obj : App.get_dates()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->date_json(obj, detail);
       request->send(200, "application/json", data.c_str());
       return;
     }
-    if (match.method != "set") {
+    if (!match.method_equals("set")) {
       request->send(404);
       return;
     }
@@ -1001,15 +1044,15 @@ void WebServer::on_time_update(datetime::TimeEntity *obj) {
 }
 void WebServer::handle_time_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (auto *obj : App.get_times()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->time_json(obj, detail);
       request->send(200, "application/json", data.c_str());
       return;
     }
-    if (match.method != "set") {
+    if (!match.method_equals("set")) {
       request->send(404);
       return;
     }
@@ -1059,15 +1102,15 @@ void WebServer::on_datetime_update(datetime::DateTimeEntity *obj) {
 }
 void WebServer::handle_datetime_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (auto *obj : App.get_datetimes()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->datetime_json(obj, detail);
       request->send(200, "application/json", data.c_str());
       return;
     }
-    if (match.method != "set") {
+    if (!match.method_equals("set")) {
       request->send(404);
       return;
     }
@@ -1118,16 +1161,16 @@ void WebServer::on_text_update(text::Text *obj, const std::string &state) {
 }
 void WebServer::handle_text_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (auto *obj : App.get_texts()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->text_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
       return;
     }
-    if (match.method != "set") {
+    if (!match.method_equals("set")) {
       request->send(404);
       return;
     }
@@ -1179,17 +1222,17 @@ void WebServer::on_select_update(select::Select *obj, const std::string &state, 
 }
 void WebServer::handle_select_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (auto *obj : App.get_selects()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->select_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
       return;
     }
 
-    if (match.method != "set") {
+    if (!match.method_equals("set")) {
       request->send(404);
       return;
     }
@@ -1238,17 +1281,17 @@ void WebServer::on_climate_update(climate::Climate *obj) {
 }
 void WebServer::handle_climate_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (auto *obj : App.get_climates()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->climate_json(obj, detail);
       request->send(200, "application/json", data.c_str());
       return;
     }
 
-    if (match.method != "set") {
+    if (!match.method_equals("set")) {
       request->send(404);
       return;
     }
@@ -1397,20 +1440,20 @@ void WebServer::on_lock_update(lock::Lock *obj) {
 }
 void WebServer::handle_lock_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (lock::Lock *obj : App.get_locks()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->lock_json(obj, obj->state, detail);
       request->send(200, "application/json", data.c_str());
-    } else if (match.method == "lock") {
+    } else if (match.method_equals("lock")) {
       this->schedule_([obj]() { obj->lock(); });
       request->send(200);
-    } else if (match.method == "unlock") {
+    } else if (match.method_equals("unlock")) {
       this->schedule_([obj]() { obj->unlock(); });
       request->send(200);
-    } else if (match.method == "open") {
+    } else if (match.method_equals("open")) {
       this->schedule_([obj]() { obj->open(); });
       request->send(200);
     } else {
@@ -1445,10 +1488,10 @@ void WebServer::on_valve_update(valve::Valve *obj) {
 }
 void WebServer::handle_valve_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (valve::Valve *obj : App.get_valves()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->valve_json(obj, detail);
       request->send(200, "application/json", data.c_str());
@@ -1456,15 +1499,15 @@ void WebServer::handle_valve_request(AsyncWebServerRequest *request, const UrlMa
     }
 
     auto call = obj->make_call();
-    if (match.method == "open") {
+    if (match.method_equals("open")) {
       call.set_command_open();
-    } else if (match.method == "close") {
+    } else if (match.method_equals("close")) {
       call.set_command_close();
-    } else if (match.method == "stop") {
+    } else if (match.method_equals("stop")) {
       call.set_command_stop();
-    } else if (match.method == "toggle") {
+    } else if (match.method_equals("toggle")) {
       call.set_command_toggle();
-    } else if (match.method != "set") {
+    } else if (!match.method_equals("set")) {
       request->send(404);
       return;
     }
@@ -1517,10 +1560,10 @@ void WebServer::on_alarm_control_panel_update(alarm_control_panel::AlarmControlP
 }
 void WebServer::handle_alarm_control_panel_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (alarm_control_panel::AlarmControlPanel *obj : App.get_alarm_control_panels()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->alarm_control_panel_json(obj, obj->get_state(), detail);
       request->send(200, "application/json", data.c_str());
@@ -1532,15 +1575,15 @@ void WebServer::handle_alarm_control_panel_request(AsyncWebServerRequest *reques
       call.set_code(request->getParam("code")->value().c_str());  // NOLINT
     }
 
-    if (match.method == "disarm") {
+    if (match.method_equals("disarm")) {
       call.disarm();
-    } else if (match.method == "arm_away") {
+    } else if (match.method_equals("arm_away")) {
       call.arm_away();
-    } else if (match.method == "arm_home") {
+    } else if (match.method_equals("arm_home")) {
       call.arm_home();
-    } else if (match.method == "arm_night") {
+    } else if (match.method_equals("arm_night")) {
       call.arm_night();
-    } else if (match.method == "arm_vacation") {
+    } else if (match.method_equals("arm_vacation")) {
       call.arm_vacation();
     } else {
       request->send(404);
@@ -1584,10 +1627,10 @@ void WebServer::on_event(event::Event *obj, const std::string &event_type) {
 
 void WebServer::handle_event_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (event::Event *obj : App.get_events()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->event_json(obj, "", detail);
       request->send(200, "application/json", data.c_str());
@@ -1633,17 +1676,17 @@ void WebServer::on_update(update::UpdateEntity *obj) {
 }
 void WebServer::handle_update_request(AsyncWebServerRequest *request, const UrlMatch &match) {
   for (update::UpdateEntity *obj : App.get_updates()) {
-    if (obj->get_object_id() != match.id)
+    if (!match.id_equals(obj->get_object_id()))
       continue;
 
-    if (request->method() == HTTP_GET && match.method.empty()) {
+    if (request->method() == HTTP_GET && match.method_empty()) {
       auto detail = get_request_detail(request);
       std::string data = this->update_json(obj, detail);
       request->send(200, "application/json", data.c_str());
       return;
     }
 
-    if (match.method != "install") {
+    if (!match.method_equals("install")) {
       request->send(404);
       return;
     }
@@ -1719,102 +1762,102 @@ bool WebServer::canHandle(AsyncWebServerRequest *request) const {
   if (!match.valid)
     return false;
 #ifdef USE_SENSOR
-  if (request->method() == HTTP_GET && match.domain == "sensor")
+  if (request->method() == HTTP_GET && match.domain_equals("sensor"))
     return true;
 #endif
 
 #ifdef USE_SWITCH
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "switch")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("switch"))
     return true;
 #endif
 
 #ifdef USE_BUTTON
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "button")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("button"))
     return true;
 #endif
 
 #ifdef USE_BINARY_SENSOR
-  if (request->method() == HTTP_GET && match.domain == "binary_sensor")
+  if (request->method() == HTTP_GET && match.domain_equals("binary_sensor"))
     return true;
 #endif
 
 #ifdef USE_FAN
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "fan")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("fan"))
     return true;
 #endif
 
 #ifdef USE_LIGHT
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "light")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("light"))
     return true;
 #endif
 
 #ifdef USE_TEXT_SENSOR
-  if (request->method() == HTTP_GET && match.domain == "text_sensor")
+  if (request->method() == HTTP_GET && match.domain_equals("text_sensor"))
     return true;
 #endif
 
 #ifdef USE_COVER
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "cover")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("cover"))
     return true;
 #endif
 
 #ifdef USE_NUMBER
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "number")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("number"))
     return true;
 #endif
 
 #ifdef USE_DATETIME_DATE
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "date")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("date"))
     return true;
 #endif
 
 #ifdef USE_DATETIME_TIME
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "time")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("time"))
     return true;
 #endif
 
 #ifdef USE_DATETIME_DATETIME
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "datetime")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("datetime"))
     return true;
 #endif
 
 #ifdef USE_TEXT
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "text")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("text"))
     return true;
 #endif
 
 #ifdef USE_SELECT
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "select")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("select"))
     return true;
 #endif
 
 #ifdef USE_CLIMATE
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "climate")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("climate"))
     return true;
 #endif
 
 #ifdef USE_LOCK
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "lock")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("lock"))
     return true;
 #endif
 
 #ifdef USE_VALVE
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "valve")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("valve"))
     return true;
 #endif
 
 #ifdef USE_ALARM_CONTROL_PANEL
-  if ((request->method() == HTTP_GET || request->method() == HTTP_POST) && match.domain == "alarm_control_panel")
+  if ((request->method() == HTTP_GET || request->method() == HTTP_POST) && match.domain_equals("alarm_control_panel"))
     return true;
 #endif
 
 #ifdef USE_EVENT
-  if (request->method() == HTTP_GET && match.domain == "event")
+  if (request->method() == HTTP_GET && match.domain_equals("event"))
     return true;
 #endif
 
 #ifdef USE_UPDATE
-  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain == "update")
+  if ((request->method() == HTTP_POST || request->method() == HTTP_GET) && match.domain_equals("update"))
     return true;
 #endif
 
@@ -1856,112 +1899,112 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
 
   UrlMatch match = match_url(request->url().c_str());  // NOLINT
 #ifdef USE_SENSOR
-  if (match.domain == "sensor") {
+  if (match.domain_equals("sensor")) {
     this->handle_sensor_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_SWITCH
-  if (match.domain == "switch") {
+  if (match.domain_equals("switch")) {
     this->handle_switch_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_BUTTON
-  if (match.domain == "button") {
+  if (match.domain_equals("button")) {
     this->handle_button_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_BINARY_SENSOR
-  if (match.domain == "binary_sensor") {
+  if (match.domain_equals("binary_sensor")) {
     this->handle_binary_sensor_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_FAN
-  if (match.domain == "fan") {
+  if (match.domain_equals("fan")) {
     this->handle_fan_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_LIGHT
-  if (match.domain == "light") {
+  if (match.domain_equals("light")) {
     this->handle_light_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_TEXT_SENSOR
-  if (match.domain == "text_sensor") {
+  if (match.domain_equals("text_sensor")) {
     this->handle_text_sensor_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_COVER
-  if (match.domain == "cover") {
+  if (match.domain_equals("cover")) {
     this->handle_cover_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_NUMBER
-  if (match.domain == "number") {
+  if (match.domain_equals("number")) {
     this->handle_number_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_DATETIME_DATE
-  if (match.domain == "date") {
+  if (match.domain_equals("date")) {
     this->handle_date_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_DATETIME_TIME
-  if (match.domain == "time") {
+  if (match.domain_equals("time")) {
     this->handle_time_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_DATETIME_DATETIME
-  if (match.domain == "datetime") {
+  if (match.domain_equals("datetime")) {
     this->handle_datetime_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_TEXT
-  if (match.domain == "text") {
+  if (match.domain_equals("text")) {
     this->handle_text_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_SELECT
-  if (match.domain == "select") {
+  if (match.domain_equals("select")) {
     this->handle_select_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_CLIMATE
-  if (match.domain == "climate") {
+  if (match.domain_equals("climate")) {
     this->handle_climate_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_LOCK
-  if (match.domain == "lock") {
+  if (match.domain_equals("lock")) {
     this->handle_lock_request(request, match);
 
     return;
@@ -1969,14 +2012,14 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
 #endif
 
 #ifdef USE_VALVE
-  if (match.domain == "valve") {
+  if (match.domain_equals("valve")) {
     this->handle_valve_request(request, match);
     return;
   }
 #endif
 
 #ifdef USE_ALARM_CONTROL_PANEL
-  if (match.domain == "alarm_control_panel") {
+  if (match.domain_equals("alarm_control_panel")) {
     this->handle_alarm_control_panel_request(request, match);
 
     return;
@@ -1984,7 +2027,7 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
 #endif
 
 #ifdef USE_UPDATE
-  if (match.domain == "update") {
+  if (match.domain_equals("update")) {
     this->handle_update_request(request, match);
     return;
   }
