@@ -213,20 +213,6 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
         return ESP_FAIL;
       }
 
-      // Log received vs requested - only log every 100KB to reduce overhead
-      static size_t bytes_logged = 0;
-      bytes_logged += recv_len;
-      if (bytes_logged > 100000) {
-        ESP_LOGV(TAG, "OTA progress: %zu bytes remaining", remaining);
-        bytes_logged = 0;
-      }
-      // Log first few bytes for debugging
-      if (total_len == remaining) {
-        ESP_LOGVV(TAG, "First chunk data (hex): %02x %02x %02x %02x %02x %02x %02x %02x", (uint8_t) chunk_buf[0],
-                  (uint8_t) chunk_buf[1], (uint8_t) chunk_buf[2], (uint8_t) chunk_buf[3], (uint8_t) chunk_buf[4],
-                  (uint8_t) chunk_buf[5], (uint8_t) chunk_buf[6], (uint8_t) chunk_buf[7]);
-      }
-
       size_t parsed = reader.parse(chunk_buf.get(), recv_len);
       if (parsed != recv_len) {
         ESP_LOGW(TAG, "Multipart parser error at byte %zu (parsed %zu of %d bytes)", total_len - remaining + parsed,
