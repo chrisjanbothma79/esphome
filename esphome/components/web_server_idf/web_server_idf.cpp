@@ -14,7 +14,6 @@
 
 #include "utils.h"
 #include "web_server_idf.h"
-#include "parser_utils.h"
 
 #ifdef USE_WEBSERVER_OTA
 #include "multipart.h"

@@ -1,7 +1,7 @@
 #include "esphome/core/defines.h"
 #if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
 #include "multipart.h"
-#include "parser_utils.h"
+#include "utils.h"
 #include "esphome/core/log.h"
 #include <cstring>
 #include "multipart_parser.h"
