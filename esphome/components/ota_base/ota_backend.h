@@ -69,7 +69,29 @@ class OTAComponent : public Component {
   }
 
  protected:
-  CallbackManager<void(OTAState, float, uint8_t)> state_callback_{};
+  /** Thread-safe callback manager that automatically defers to main loop.
+   *
+   * This ensures all OTA callbacks are executed in the main loop task,
+   * making them safe to call from any context (including web_server's OTA task).
+   * Existing code doesn't need changes - callbacks are automatically deferred.
+   */
+  class DeferredCallbackManager : public CallbackManager<void(OTAState, float, uint8_t)> {
+   public:
+    DeferredCallbackManager(OTAComponent *component) : component_(component) {}
+
+    /// Override call to automatically defer to main loop
+    void call(OTAState state, float progress, uint8_t error) {
+      // Always defer to main loop for thread safety
+      component_->defer([this, state, progress, error]() {
+        CallbackManager<void(OTAState, float, uint8_t)>::call(state, progress, error);
+      });
+    }
+
+   private:
+    OTAComponent *component_;
+  };
+
+  DeferredCallbackManager state_callback_{this};
 #endif
 };
 
@@ -92,13 +114,10 @@ class OTAGlobalCallback {
 OTAGlobalCallback *get_global_ota_callback();
 void register_ota_platform(OTAComponent *ota_caller);
 
-// TODO: When web_server is updated to use ota_base, we need to add thread-safe
-// callback execution. The web_server OTA runs in a separate task, so callbacks
-// need to be deferred to the main loop task to avoid race conditions.
-// This could be implemented using:
-// - A queue of callback events that the main loop processes
-// - Or using App.schedule() to defer callback execution to the main loop
-// Example: App.schedule([=]() { state_callback_.call(state, progress, error); });
+// Thread-safe callback execution is automatically provided by DeferredCallbackManager
+// which overrides call() to use Component::defer(). This ensures all OTA callbacks
+// run in the main loop task, making them safe to call from any context including
+// web_server's separate OTA task. No code changes needed.
 #endif
 
 }  // namespace ota_base

@@ -5,6 +5,8 @@ CODEOWNERS = ["@esphome/core"]
 AUTO_LOAD = ["md5"]
 
 ota_base_ns = cg.esphome_ns.namespace("ota_base")
+OTAComponent = ota_base_ns.class_("OTAComponent", cg.Component)
+OTAState = ota_base_ns.enum("OTAState")
 
 
 @coroutine_with_priority(52.0)

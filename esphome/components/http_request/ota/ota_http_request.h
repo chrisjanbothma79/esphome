@@ -1,6 +1,6 @@
 #pragma once
 
-#include "esphome/components/ota/ota.h"
+#include "esphome/components/ota_base/ota_backend.h"
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
@@ -22,7 +22,7 @@ enum OtaHttpRequestError : uint8_t {
   OTA_CONNECTION_ERROR = 0x12,
 };
 
-class OtaHttpRequestComponent : public ota::OTAComponent, public Parented<HttpRequestComponent> {
+class OtaHttpRequestComponent : public ota_base::OTAComponent, public Parented<HttpRequestComponent> {
  public:
   void setup() override;
   void dump_config() override;
@@ -40,7 +40,7 @@ class OtaHttpRequestComponent : public ota::OTAComponent, public Parented<HttpRe
   void flash();
 
  protected:
-  void cleanup_(std::unique_ptr<ota::OTABackend> backend, const std::shared_ptr<HttpContainer> &container);
+  void cleanup_(std::unique_ptr<ota_base::OTABackend> backend, const std::shared_ptr<HttpContainer> &container);
   uint8_t do_ota_();
   std::string get_url_with_auth_(const std::string &url);
   bool http_get_md5_();

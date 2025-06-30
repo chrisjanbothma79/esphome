@@ -111,7 +111,7 @@ class WebServerBase : public Component {
   void add_handler(AsyncWebHandler *handler);
 
   // TODO: In future PR, update this to use ota_base instead of duplicating OTA code
-  // Important: OTA callbacks must be thread-safe as web server OTA runs in a separate task
+  // Note: OTA callbacks in ota_base are automatically thread-safe via defer()
   void add_ota_handler();
 
   void set_port(uint16_t port) { port_ = port; }

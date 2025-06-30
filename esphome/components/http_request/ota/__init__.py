@@ -1,6 +1,7 @@
 from esphome import automation
 import esphome.codegen as cg
-from esphome.components.ota import BASE_OTA_SCHEMA, OTAComponent, ota_to_code
+from esphome.components.ota import BASE_OTA_SCHEMA, ota_to_code
+from esphome.components.ota_base import OTAComponent
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, CONF_PASSWORD, CONF_URL, CONF_USERNAME
 from esphome.core import coroutine_with_priority
