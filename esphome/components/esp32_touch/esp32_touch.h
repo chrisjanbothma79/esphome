@@ -23,7 +23,9 @@ namespace esp32_touch {
 // INTERRUPT BEHAVIOR:
 // - ESP32 v1: Interrupts fire when ANY pad is touched and continue while touched.
 //   Releases are detected by timeout since hardware doesn't generate release interrupts.
-// - ESP32-S2/S3 v2: Interrupts can be configured per-pad with both touch and release events.
+// - ESP32-S2/S3 v2: Hardware supports both touch and release interrupts, but release
+//   interrupts are unreliable and sometimes don't fire. We now only use touch interrupts
+//   and detect releases via timeout, similar to v1.
 
 static const uint32_t SETUP_MODE_LOG_INTERVAL_MS = 250;
 
@@ -127,6 +129,10 @@ class ESP32TouchComponent : public Component {
   static void touch_isr_handler(void *arg);
   QueueHandle_t touch_queue_{nullptr};
 
+  // Timeout-based release detection (like v1)
+  uint32_t release_timeout_ms_{1500};
+  uint32_t release_check_interval_ms_{50};
+
  private:
   // Touch event structure for ESP32 v2 (S2/S3)
   // Contains touch pad and interrupt mask for queue communication
@@ -134,6 +140,10 @@ class ESP32TouchComponent : public Component {
     touch_pad_t pad;
     uint32_t intr_mask;
   };
+
+  // Track last touch time and initial state for timeout-based release detection
+  uint32_t last_touch_time_[TOUCH_PAD_MAX] = {0};
+  bool initial_state_published_[TOUCH_PAD_MAX] = {false};
 
  protected:
   // Filter configuration
@@ -171,7 +181,7 @@ class ESP32TouchComponent : public Component {
   void update_touch_state_(ESP32TouchBinarySensor *child, bool is_touched);
 
   // Helper to read touch value and update state for a given child
-  void check_and_update_touch_state_(ESP32TouchBinarySensor *child);
+  bool check_and_update_touch_state_(ESP32TouchBinarySensor *child);
 #endif
 
   // Helper functions for dump_config - common to both implementations
