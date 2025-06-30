@@ -151,10 +151,15 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
     size_t total_len = r->content_len;
     size_t remaining = total_len;
     std::string current_filename;
-    bool upload_started = false;
 
-    // Track if we've started the upload
-    bool file_started = false;
+    // Upload state machine
+    enum class UploadState : uint8_t {
+      IDLE = 0,
+      FILE_FOUND,      // Found file in multipart data
+      UPLOAD_STARTED,  // Called handleUpload with index=0
+      UPLOAD_COMPLETE  // Called handleUpload with final=true
+    };
+    UploadState upload_state = UploadState::IDLE;
 
     // Set up callbacks for the multipart reader
     reader.set_data_callback([&](const uint8_t *data, size_t len) {
@@ -171,14 +176,14 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
           // First time we see data for this file
           current_filename = reader.get_current_part().filename;
           ESP_LOGV(TAG, "Processing file part: '%s'", current_filename.c_str());
+          upload_state = UploadState::FILE_FOUND;
         }
 
-        if (!file_started) {
+        if (upload_state == UploadState::FILE_FOUND) {
           // Initialize the upload with index=0
           ESP_LOGV(TAG, "Starting upload for: '%s'", current_filename.c_str());
           found_handler->handleUpload(&req, current_filename, 0, nullptr, 0, false);
-          file_started = true;
-          upload_started = true;
+          upload_state = UploadState::UPLOAD_STARTED;
         }
 
         // Process the data chunk immediately - the pointer won't be valid after this callback returns!
@@ -190,13 +195,12 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
     });
 
     reader.set_part_complete_callback([&]() {
-      if (!current_filename.empty() && upload_started) {
+      if (upload_state == UploadState::UPLOAD_STARTED) {
         ESP_LOGV(TAG, "Part complete callback called for: '%s'", current_filename.c_str());
         // Signal end of this part - final=true signals completion
         found_handler->handleUpload(&req, current_filename, 2, nullptr, 0, true);
+        upload_state = UploadState::UPLOAD_COMPLETE;
         current_filename.clear();
-        upload_started = false;
-        file_started = false;
       }
     });
 
@@ -226,10 +230,10 @@ esp_err_t AsyncWebServer::request_post_handler(httpd_req_t *r) {
 
     // Final cleanup - send final signal if upload was in progress
     // This should not be needed as part_complete_callback should handle it
-    if (!current_filename.empty() && upload_started) {
+    if (upload_state == UploadState::UPLOAD_STARTED) {
       ESP_LOGW(TAG, "Upload was not properly closed by part_complete_callback");
       found_handler->handleUpload(&req, current_filename, 2, nullptr, 0, true);
-      file_started = false;
+      upload_state = UploadState::UPLOAD_COMPLETE;
     }
 
     // Let handler send response
