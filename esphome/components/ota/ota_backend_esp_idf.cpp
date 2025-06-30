@@ -6,6 +6,7 @@
 
 #include <esp_ota_ops.h>
 #include <esp_task_wdt.h>
+#include <cstring>
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include <spi_flash_mmap.h>
