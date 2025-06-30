@@ -126,87 +126,85 @@ else if (call.get_target_temperature().has_value()) {
     auto new_fan = *call.get_fan_mode();
     int target_i = fan_mode_to_index(new_fan);
     int delta = (target_i - this->current_fan_index_ + 4) % 4;
-    for (int i = 0; i < delta; ++i) {
-      this->pending_command_ = DELONGHI_FAN_COMMAND;
-      this->transmit_state();
-      delay(200);
-    }
-    this->current_fan_index_ = target_i;
-    this->fan_mode           = new_fan;
-    this->publish_state();
+    this->steps_left_          = delta;
+    this->step_command_        = DELONGHI_FAN_COMMAND;
+    this->step_complete_callback_ = [this, target_i, new_fan]() {
+      this->current_fan_index_ = target_i;
+      this->fan_mode  = new_fan;
+      this->publish_state();
+    };
+    this->do_step_();
     return;
   }
   else if (call.get_swing_mode().has_value()) {
     auto new_swing = *call.get_swing_mode();
     int target_i   = swing_mode_to_index(new_swing);
     int delta = (target_i - this->current_swing_index_ + 2) % 2;
-    for (int i = 0; i < delta; ++i) {
-      this->pending_command_ = DELONGHI_SWING_COMMAND;
-      this->transmit_state();
-      delay(200);
-    }
-    this->current_swing_index_ = target_i;
-    this->swing_mode           = new_swing;
-    this->publish_state();
+    this->steps_left_          = delta;
+    this->step_command_        = DELONGHI_SWING_COMMAND;
+    this->step_complete_callback_ = [this, target_i, new_swing]() {
+      this->current_swing_index_ = target_i;
+      this->swing_mode  = new_swing;
+      this->publish_state();
+    };
+    this->do_step_();
     return;
   }
-  if (call.get_preset().has_value() &&
-      *call.get_preset() == climate::CLIMATE_PRESET_NONE) {
-    if (this->custom_preset.has_value()) {
-      const auto &active = *this->custom_preset;
-      uint16_t code = (active == "Silent")
-                        ? SILENT_COMMAND
-                        : ECO_REAL_FEEL_COMMAND;
-      this->pending_command_ = code;
-      this->transmit_state();
-      this->custom_preset.reset();
-    }
-    // reflect the built-in preset
-    this->preset = *call.get_preset();
-    this->publish_state();
-    return;
-  }
-
-  if (call.get_custom_preset().has_value()) {
-    const auto &cp = *call.get_custom_preset();
-
-    if (cp == "Silent") {
-      if (this->custom_preset.has_value() && this->custom_preset == "Eco Real Feel") {
-        this->pending_command_ = ECO_REAL_FEEL_COMMAND;
-        this->transmit_state();
-        this->custom_preset.reset();
-        delay(200);
-      }
-  
-      this->pending_command_ = SILENT_COMMAND;
-      this->transmit_state();
-      if (this->custom_preset == "Silent")
-        this->custom_preset.reset();
-      else
-        this->custom_preset = std::string("Silent");
-    }
-    else if (cp == "Eco Real Feel") {
-      if (this->custom_preset.has_value() && this->custom_preset == "Silent") {
-        this->pending_command_ = SILENT_COMMAND;
-        this->transmit_state();
-        this->custom_preset.reset();
-        delay(200);
-      }
-      this->pending_command_ = ECO_REAL_FEEL_COMMAND;
-      this->transmit_state();
-      if (this->custom_preset == "Eco Real Feel")
-        this->custom_preset.reset();
-      else
-        this->custom_preset = std::string("Eco Real Feel");
-    }
-    this->preset.reset();
-    this->publish_state();
-    return;
-  }
+else if (call.get_preset().has_value() &&
+         *call.get_preset() == climate::CLIMATE_PRESET_NONE) {
+  const auto prev = this->custom_preset.value_or("");
+  this->custom_preset.reset();
+  this->preset = climate::CLIMATE_PRESET_NONE;
   this->publish_state();
 
+  uint16_t cmd = 0;
+  if (prev == "Silent")           cmd = SILENT_COMMAND;
+  else if (prev == "Eco Real Feel") cmd = ECO_REAL_FEEL_COMMAND;
+
+  if (cmd) {
+    this->steps_left_            = 1;
+    this->step_command_          = cmd;
+    this->step_complete_callback_ = []() {};
+    this->do_step_();
+  }
+  return;
 }
 
+else if (call.get_custom_preset().has_value()) {
+  const auto &cp   = *call.get_custom_preset();
+  const auto  prev = this->custom_preset.value_or("");
+
+  this->custom_preset = cp;
+  this->preset.reset();
+  this->publish_state();
+
+  uint16_t cmd_off = 0;
+  if (cp == "Silent" && prev == "Eco Real Feel") {
+    cmd_off = ECO_REAL_FEEL_COMMAND;
+  } else if (cp == "Eco Real Feel" && prev == "Silent") {
+    cmd_off = SILENT_COMMAND;
+  }
+  uint16_t cmd_on = (cp == "Silent") ? SILENT_COMMAND : ECO_REAL_FEEL_COMMAND;
+
+  if (cmd_off) {
+    this->steps_left_   = 1;
+    this->step_command_ = cmd_off;
+    this->step_complete_callback_ = [this, cmd_on]() {
+      this->set_timeout("preset_on", 200, [this, cmd_on]() {
+        this->pending_command_ = cmd_on;
+        this->transmit_state();
+      });
+    };
+    this->do_step_();
+  } else {
+    this->pending_command_ = cmd_on;
+    this->transmit_state();
+  }
+  return;
+}
+
+this->publish_state();
+}
 
 
 static const char *const TAG = "delonghi_ex105.climate";
@@ -259,7 +257,6 @@ void DelonghiClimate::transmit_state() {
     }
   }
 
-  // stop bit
   data->mark(DELONGHI_BIT_MARK);
   data->space(0);
 
