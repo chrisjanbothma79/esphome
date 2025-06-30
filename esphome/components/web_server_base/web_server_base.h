@@ -112,6 +112,7 @@ class WebServerBase : public Component {
 
   // TODO: In future PR, update this to use ota_base instead of duplicating OTA code
   // Note: web_server OTA runs in a separate task, so use state_callback_.call_deferred()
+  // Note: web_server OTA does not support MD5, backends should only check MD5 if set
   void add_ota_handler();
 
   void set_port(uint16_t port) { port_ = port; }
