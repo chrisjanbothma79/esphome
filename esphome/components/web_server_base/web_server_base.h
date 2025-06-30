@@ -111,7 +111,7 @@ class WebServerBase : public Component {
   void add_handler(AsyncWebHandler *handler);
 
   // TODO: In future PR, update this to use ota_base instead of duplicating OTA code
-  // Note: OTA callbacks in ota_base are automatically thread-safe via defer()
+  // Note: web_server OTA runs in a separate task, so use state_callback_.call_deferred()
   void add_ota_handler();
 
   void set_port(uint16_t port) { port_ = port; }
