@@ -332,8 +332,8 @@ void SEN5XComponent::internal_setup_(uint8_t state) {
           this->mark_failed();
           return;
         }
-        if (!this->write_command(SEN6X_CMD_CO2_SENSOR_AUTO_SELF_CAL, this->co2_auto_calibrate_.value() ? 0x01 : 0x00)) {
-          ESP_LOGE(TAG, "Failed to set CO₂ Sensor Automatic Self Calibration");
+        if (!this->write_command(SEN6X_CMD_SENSOR_ALTITUDE, this->co2_altitude_compensation_.value())) {
+          ESP_LOGE(TAG, "Failed to set CO₂ Sensor Altitude Compensation");
           this->error_code_ = COMMUNICATION_FAILED;
           this->mark_failed();
           return;
