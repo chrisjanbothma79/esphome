@@ -27,6 +27,10 @@ static const char *const TAG = "web_server_base";
 #if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
 // Minimal OTA backend implementation for web server
 // This allows OTA updates via web server without requiring the OTA component
+// TODO: In the future, this should be refactored into a common ota_base component
+// that both web_server and ota components can depend on, avoiding code duplication
+// while keeping the components independent. This would allow both ESP-IDF and Arduino
+// implementations to share the base OTA functionality without requiring the full OTA component.
 class IDFWebServerOTABackend {
  public:
   bool begin() {
