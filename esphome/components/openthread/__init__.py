@@ -38,6 +38,7 @@ CONF_DEVICE_TYPES = {
     "MTD": "MTD",
 }
 
+
 def set_sdkconfig_options(config):
     # and expose options for using SPI/UART RCPs
     add_idf_sdkconfig_option("CONFIG_IEEE802154_ENABLED", True)
