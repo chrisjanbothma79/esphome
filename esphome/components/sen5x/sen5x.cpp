@@ -477,7 +477,7 @@ void SEN5XComponent::dump_config() {
   LOG_SENSOR("  ", "NOx", this->nox_sensor_);
   LOG_SENSOR("  ", "CO₂", this->co2_sensor_);
   if (this->co2_sensor_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "    Automatic self calibration: %s", co2_auto_calibrate_ ? "On" : "Off");
+    ESP_LOGCONFIG(TAG, "    Automatic self calibration: %s", this->co2_auto_calibrate_.value() ? "On" : "Off");
     if (this->co2_ambient_pressure_source_ != nullptr) {
       ESP_LOGCONFIG(TAG, "    Dynamic ambient pressure compensation using sensor '%s'",
                     this->co2_ambient_pressure_source_->get_name().c_str());
