@@ -56,14 +56,11 @@ class MultipartReader {
 
   Part current_part_;
   std::string current_header_field_;
-  std::string current_header_value_;
 
   DataCallback data_callback_;
   PartCompleteCallback part_complete_callback_;
 
-  bool in_headers_{false};
-
-  void process_header_();
+  void process_header_(const std::string &value);
 };
 
 }  // namespace web_server_idf

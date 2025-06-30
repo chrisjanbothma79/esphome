@@ -53,49 +53,40 @@ size_t MultipartReader::parse(const char *data, size_t len) {
   return parsed;
 }
 
-void MultipartReader::process_header_() {
+void MultipartReader::process_header_(const std::string &value) {
+  // Process the completed header (field + value pair)
   if (str_startswith_case_insensitive(current_header_field_, "content-disposition")) {
     // Parse name and filename from Content-Disposition
-    current_part_.name = extract_header_param(current_header_value_, "name");
-    current_part_.filename = extract_header_param(current_header_value_, "filename");
+    current_part_.name = extract_header_param(value, "name");
+    current_part_.filename = extract_header_param(value, "filename");
   } else if (str_startswith_case_insensitive(current_header_field_, "content-type")) {
-    current_part_.content_type = str_trim(current_header_value_);
+    current_part_.content_type = str_trim(value);
   }
+
+  // Clear field for next header
+  current_header_field_.clear();
 }
 
 int MultipartReader::on_header_field(multipart_parser *parser, const char *at, size_t length) {
   MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
 
-  // If we were processing a value, save it
-  if (!reader->current_header_value_.empty()) {
-    reader->process_header_();
-    reader->current_header_value_.clear();
-  }
-
-  // Start new header field
+  // Store the header field name
   reader->current_header_field_.assign(at, length);
-  reader->in_headers_ = true;
-
   return 0;
 }
 
 int MultipartReader::on_header_value(multipart_parser *parser, const char *at, size_t length) {
   MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
-  reader->current_header_value_.append(at, length);
+
+  // Process the header immediately with the value
+  std::string value(at, length);
+  reader->process_header_(value);
+
   return 0;
 }
 
 int MultipartReader::on_headers_complete(multipart_parser *parser) {
   MultipartReader *reader = static_cast<MultipartReader *>(multipart_parser_get_data(parser));
-
-  // Process last header if any
-  if (!reader->current_header_value_.empty()) {
-    reader->process_header_();
-  }
-
-  reader->in_headers_ = false;
-  reader->current_header_field_.clear();
-  reader->current_header_value_.clear();
 
   ESP_LOGV(TAG, "Part headers complete: name='%s', filename='%s', content_type='%s'",
            reader->current_part_.name.c_str(), reader->current_part_.filename.c_str(),
