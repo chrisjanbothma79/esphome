@@ -110,7 +110,7 @@ HostUartComponent::~HostUartComponent() {
 
 void HostUartComponent::setup() {
   ESP_LOGCONFIG(TAG, "Opening UART port");
-  
+
   if (this->rx_pin_) {
     this->rx_pin_->setup();
   }

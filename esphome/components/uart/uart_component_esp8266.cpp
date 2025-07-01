@@ -57,7 +57,7 @@ uint32_t ESP8266UartComponent::get_config() {
 
 void ESP8266UartComponent::setup() {
   ESP_LOGCONFIG(TAG, "Running setup");
-  
+
   if (this->rx_pin_) {
     this->rx_pin_->setup();
   }
