@@ -4,18 +4,16 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
-#ifdef USE_ARDUINO
-#include <StreamString.h>
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
-#include <Update.h>
-#endif
-#ifdef USE_ESP8266
-#include <Updater.h>
-#endif
-#endif
-
 #ifdef USE_WEBSERVER_OTA
 #include "esphome/components/ota_base/ota_backend.h"
+#endif
+
+#ifdef USE_ARDUINO
+#ifdef USE_ESP8266
+#include <Updater.h>
+#elif defined(USE_ESP32) || defined(USE_LIBRETINY)
+#include <Update.h>
+#endif
 #endif
 
 namespace esphome {
@@ -62,64 +60,25 @@ void OTARequestHandler::ota_init_(const char *filename) {
   this->ota_read_length_ = 0;
 }
 
-void report_ota_error() {
-#ifdef USE_ARDUINO
-  StreamString ss;
-  Update.printError(ss);
-  ESP_LOGW(TAG, "OTA Update failed! Error: %s", ss.c_str());
-#endif
-}
-
 void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const String &filename, size_t index,
                                      uint8_t *data, size_t len, bool final) {
-#ifdef USE_ARDUINO
-  bool success;
-  if (index == 0) {
-    this->ota_init_(filename.c_str());
-#ifdef USE_ESP8266
-    Update.runAsync(true);
-    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
-    success = Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000);
-#endif
-#if defined(USE_ESP32_FRAMEWORK_ARDUINO) || defined(USE_LIBRETINY)
-    if (Update.isRunning()) {
-      Update.abort();
-    }
-    success = Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH);
-#endif
-    if (!success) {
-      report_ota_error();
-      return;
-    }
-  } else if (Update.hasError()) {
-    // don't spam logs with errors if something failed at start
-    return;
-  }
-
-  success = Update.write(data, len) == len;
-  if (!success) {
-    report_ota_error();
-    return;
-  }
-  this->ota_read_length_ += len;
-  this->report_ota_progress_(request);
-
-  if (final) {
-    if (Update.end(true)) {
-      this->schedule_ota_reboot_();
-    } else {
-      report_ota_error();
-    }
-  }
-#endif  // USE_ARDUINO
-
-#ifdef USE_ESP_IDF
-  // ESP-IDF implementation using ota_base backend
   ota_base::OTAResponseTypes error_code = ota_base::OTA_RESPONSE_OK;
 
   if (index == 0 && !this->ota_backend_) {
     // Initialize OTA on first call
     this->ota_init_(filename.c_str());
+
+    // Platform-specific pre-initialization
+#ifdef USE_ARDUINO
+#ifdef USE_ESP8266
+    Update.runAsync(true);
+#endif
+#if defined(USE_ESP32_FRAMEWORK_ARDUINO) || defined(USE_LIBRETINY)
+    if (Update.isRunning()) {
+      Update.abort();
+    }
+#endif
+#endif  // USE_ARDUINO
 
     this->ota_backend_ = ota_base::make_ota_backend();
     if (!this->ota_backend_) {
@@ -127,7 +86,13 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
       return;
     }
 
-    error_code = this->ota_backend_->begin(request->contentLength());
+    size_t ota_size = request->contentLength();
+    if (ota_size == 0) {
+      // For chunked encoding, we don't know the size
+      ota_size = UPDATE_SIZE_UNKNOWN;
+    }
+
+    error_code = this->ota_backend_->begin(ota_size);
     if (error_code != ota_base::OTA_RESPONSE_OK) {
       ESP_LOGE(TAG, "OTA begin failed: %d", error_code);
       this->ota_backend_.reset();
@@ -162,25 +127,12 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
     }
     this->ota_backend_.reset();
   }
-#endif  // USE_ESP_IDF
 }
 
 void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   AsyncWebServerResponse *response;
-#ifdef USE_ARDUINO
-  if (!Update.hasError()) {
-    response = request->beginResponse(200, "text/plain", "Update Successful!");
-  } else {
-    StreamString ss;
-    ss.print("Update Failed: ");
-    Update.printError(ss);
-    response = request->beginResponse(200, "text/plain", ss);
-  }
-#endif  // USE_ARDUINO
-#ifdef USE_ESP_IDF
   // Send response based on whether backend still exists (error) or was reset (success)
   response = request->beginResponse(200, "text/plain", !this->ota_backend_ ? "Update Successful!" : "Update Failed!");
-#endif  // USE_ESP_IDF
   response->addHeader("Connection", "close");
   request->send(response);
 }

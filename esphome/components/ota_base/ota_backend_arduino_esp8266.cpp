@@ -17,6 +17,11 @@ static const char *const TAG = "ota.arduino_esp8266";
 std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoESP8266OTABackend>(); }
 
 OTAResponseTypes ArduinoESP8266OTABackend::begin(size_t image_size) {
+  // Handle UPDATE_SIZE_UNKNOWN (0) by calculating available space
+  if (image_size == 0) {
+    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
+    image_size = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+  }
   bool ret = Update.begin(image_size, U_FLASH);
   if (ret) {
     esp8266::preferences_prevent_write(true);
