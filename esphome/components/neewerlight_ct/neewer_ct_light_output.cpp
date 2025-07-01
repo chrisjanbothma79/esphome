@@ -80,11 +80,12 @@ void NeewerCTLightOutput::write_state(light::LightState *state) {
   float color_temperature, brightness;
   state->current_values_as_ct(&color_temperature, &brightness);
 
-  // when the light is in "sleep", it seems to only get brightness change, but not the color temp
-  // trying to wake it up first
-  float eps = 0.001f;
-  if (abs(this->old_brightness_) < eps) {
-    ESP_LOGD(TAG, "Brightness was at 0, turning on first.");
+  // For On/Off state we have to use state->remote_values, since there is no current_values_as_on_off() method.
+  OnOffState on_off_state = state->remote_values.is_on() ? OnOffState::ON : OnOffState::OFF;
+
+  // Turn On *before* potentially setting color temperature and brightness
+  if (this->old_on_off_state_ != OnOffState::ON && on_off_state == OnOffState::ON) {
+    ESP_LOGD(TAG, "Light was turned off, turning it on.");
     this->prepare_turn_on_msg(true);
     NeewerBLEOutput::write_state(1.0);
   }
@@ -111,6 +112,15 @@ void NeewerCTLightOutput::write_state(light::LightState *state) {
   // Do whatever else setting the current levels individually accomplishes
   this->color_temperature_->set_level(color_temperature);
   this->brightness_->set_level(brightness);
+
+  // Turn Off *after* potentially setting color temperature and brightness
+  if (this->old_on_off_state_ != OnOffState::OFF && on_off_state == OnOffState::OFF) {
+    ESP_LOGD(TAG, "Light was turned on, turning it off.");
+    this->prepare_turn_on_msg(false);
+    NeewerBLEOutput::write_state(1.0);
+  }
+
+  this->old_on_off_state_ = on_off_state;
 };
 
 NeewerCTLightOutput::NeewerCTLightOutput() {

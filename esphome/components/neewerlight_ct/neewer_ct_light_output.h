@@ -20,6 +20,11 @@ class NeewerCTLightOutput : public color_temperature::CTLightOutput, public Neew
   void prepare_brightness_msg(float brightness);
   void prepare_turn_on_msg(bool on);
 
+  enum class OnOffState {
+    OFF = 0,
+    ON = 1,
+    UNKNOWN = 2,
+  } old_on_off_state_ = OnOffState::UNKNOWN;
   float old_brightness_ = 0.0;
   float old_color_temperature_ = 0.0;
 };
