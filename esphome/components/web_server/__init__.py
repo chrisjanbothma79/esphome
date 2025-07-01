@@ -122,7 +122,7 @@ def _validate_no_sorting_component(
                     )
 
 
-def _final_validate_sorting(config):
+def _final_validate_sorting(config: ConfigType) -> ConfigType:
     if (webserver_version := config.get(CONF_VERSION)) != 3:
         _validate_no_sorting_component(
             CONF_SORTING_WEIGHT, webserver_version, fv.full_config.get()
