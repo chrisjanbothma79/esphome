@@ -100,12 +100,8 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
       return;
     }
 
+    // 0 means unknown size for ota_base backends (chunked encoding)
     size_t ota_size = request->contentLength();
-    if (ota_size == 0) {
-      // For chunked encoding, we don't know the size
-      ota_size = UPDATE_SIZE_UNKNOWN;
-    }
-
     error_code = this->ota_backend_->begin(ota_size);
     if (error_code != ota_base::OTA_RESPONSE_OK) {
       ESP_LOGE(TAG, "OTA begin failed: %d", error_code);
