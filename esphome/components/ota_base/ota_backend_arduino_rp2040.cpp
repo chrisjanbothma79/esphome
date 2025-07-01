@@ -17,6 +17,11 @@ static const char *const TAG = "ota.arduino_rp2040";
 std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoRP2040OTABackend>(); }
 
 OTAResponseTypes ArduinoRP2040OTABackend::begin(size_t image_size) {
+  // Handle UPDATE_SIZE_UNKNOWN (0) which is used by web server OTA
+  // where the exact firmware size is unknown due to multipart encoding
+  if (image_size == 0) {
+    image_size = UPDATE_SIZE_UNKNOWN;
+  }
   bool ret = Update.begin(image_size, U_FLASH);
   if (ret) {
     rp2040::preferences_prevent_write(true);

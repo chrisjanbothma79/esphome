@@ -15,6 +15,11 @@ static const char *const TAG = "ota.arduino_libretiny";
 std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoLibreTinyOTABackend>(); }
 
 OTAResponseTypes ArduinoLibreTinyOTABackend::begin(size_t image_size) {
+  // Handle UPDATE_SIZE_UNKNOWN (0) which is used by web server OTA
+  // where the exact firmware size is unknown due to multipart encoding
+  if (image_size == 0) {
+    image_size = UPDATE_SIZE_UNKNOWN;
+  }
   bool ret = Update.begin(image_size, U_FLASH);
   if (ret) {
     return OTA_RESPONSE_OK;
