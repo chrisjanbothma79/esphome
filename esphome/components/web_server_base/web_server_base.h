@@ -14,6 +14,10 @@
 #include "esphome/components/web_server_idf/web_server_idf.h"
 #endif
 
+#ifdef USE_WEBSERVER_OTA
+#include "esphome/components/ota_base/ota_backend.h"
+#endif
+
 namespace esphome {
 namespace web_server_base {
 
@@ -153,10 +157,7 @@ class OTARequestHandler : public AsyncWebHandler {
   WebServerBase *parent_;
 
  private:
-#ifdef USE_ESP_IDF
-  void *ota_backend_{nullptr};
-  bool ota_success_{false};
-#endif
+  std::unique_ptr<ota_base::OTABackend> ota_backend_{nullptr};
 };
 #endif  // USE_WEBSERVER_OTA
 
