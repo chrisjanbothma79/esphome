@@ -189,7 +189,7 @@ void WebServerOTAComponent::setup() {
   // Get the global web server base instance and register our handler
   auto *base = web_server_base::global_web_server_base;
   if (base == nullptr) {
-    ESP_LOGE(TAG, "WebServerBase not found. WebServer OTA requires web_server_base component");
+    ESP_LOGE(TAG, "WebServerBase not found");
     this->mark_failed();
     return;
   }
