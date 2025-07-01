@@ -1,36 +1,30 @@
 #ifdef USE_ARDUINO
-#ifdef USE_RP2040
-#include "ota_backend_arduino_rp2040.h"
+#ifdef USE_ESP8266
+#include "ota_backend_arduino_esp8266.h"
 #include "ota_backend.h"
 
-#include "esphome/components/rp2040/preferences.h"
+#include "esphome/components/esp8266/preferences.h"
 #include "esphome/core/defines.h"
 #include "esphome/core/log.h"
 
 #include <Updater.h>
 
 namespace esphome {
-namespace ota_base {
+namespace ota {
 
-static const char *const TAG = "ota.arduino_rp2040";
+static const char *const TAG = "ota.arduino_esp8266";
 
-std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoRP2040OTABackend>(); }
+std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoESP8266OTABackend>(); }
 
-OTAResponseTypes ArduinoRP2040OTABackend::begin(size_t image_size) {
+OTAResponseTypes ArduinoESP8266OTABackend::begin(size_t image_size) {
   // Handle UPDATE_SIZE_UNKNOWN (0) by calculating available space
   if (image_size == 0) {
-    // Similar to ESP8266, calculate available space from flash layout
-    extern uint8_t _FS_start;
-    extern uint8_t _FS_end;
-    // Calculate the size of the filesystem area which will be used for OTA
-    size_t fs_size = &_FS_end - &_FS_start;
-    // Reserve some space for filesystem overhead
-    image_size = (fs_size - 0x1000) & 0xFFFFF000;
-    ESP_LOGD(TAG, "OTA size unknown, using filesystem size: %u bytes", image_size);
+    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
+    image_size = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
   }
   bool ret = Update.begin(image_size, U_FLASH);
   if (ret) {
-    rp2040::preferences_prevent_write(true);
+    esp8266::preferences_prevent_write(true);
     return OTA_RESPONSE_OK;
   }
 
@@ -42,19 +36,19 @@ OTAResponseTypes ArduinoRP2040OTABackend::begin(size_t image_size) {
   if (error == UPDATE_ERROR_FLASH_CONFIG)
     return OTA_RESPONSE_ERROR_WRONG_CURRENT_FLASH_CONFIG;
   if (error == UPDATE_ERROR_SPACE)
-    return OTA_RESPONSE_ERROR_RP2040_NOT_ENOUGH_SPACE;
+    return OTA_RESPONSE_ERROR_ESP8266_NOT_ENOUGH_SPACE;
 
   ESP_LOGE(TAG, "Begin error: %d", error);
 
   return OTA_RESPONSE_ERROR_UNKNOWN;
 }
 
-void ArduinoRP2040OTABackend::set_update_md5(const char *md5) {
+void ArduinoESP8266OTABackend::set_update_md5(const char *md5) {
   Update.setMD5(md5);
   this->md5_set_ = true;
 }
 
-OTAResponseTypes ArduinoRP2040OTABackend::write(uint8_t *data, size_t len) {
+OTAResponseTypes ArduinoESP8266OTABackend::write(uint8_t *data, size_t len) {
   size_t written = Update.write(data, len);
   if (written == len) {
     return OTA_RESPONSE_OK;
@@ -66,26 +60,30 @@ OTAResponseTypes ArduinoRP2040OTABackend::write(uint8_t *data, size_t len) {
   return OTA_RESPONSE_ERROR_WRITING_FLASH;
 }
 
-OTAResponseTypes ArduinoRP2040OTABackend::end() {
+OTAResponseTypes ArduinoESP8266OTABackend::end() {
   // Use strict validation (false) when MD5 is set, lenient validation (true) when no MD5
   // This matches the behavior of the old web_server OTA implementation
-  if (Update.end(!this->md5_set_)) {
+  bool success = Update.end(!this->md5_set_);
+
+  // On ESP8266, Update.end() might return false even with error code 0
+  // Check the actual error code to determine success
+  uint8_t error = Update.getError();
+
+  if (success || error == UPDATE_ERROR_OK) {
     return OTA_RESPONSE_OK;
   }
 
-  uint8_t error = Update.getError();
   ESP_LOGE(TAG, "End error: %d", error);
-
   return OTA_RESPONSE_ERROR_UPDATE_END;
 }
 
-void ArduinoRP2040OTABackend::abort() {
+void ArduinoESP8266OTABackend::abort() {
   Update.end();
-  rp2040::preferences_prevent_write(false);
+  esp8266::preferences_prevent_write(false);
 }
 
-}  // namespace ota_base
+}  // namespace ota
 }  // namespace esphome
 
-#endif  // USE_RP2040
-#endif  // USE_ARDUINO
+#endif
+#endif

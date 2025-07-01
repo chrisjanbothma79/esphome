@@ -34,7 +34,7 @@ from esphome.const import (
 from esphome.core import CORE, coroutine_with_priority
 import esphome.final_validate as fv
 
-AUTO_LOAD = ["json", "web_server_base", "ota_base"]
+AUTO_LOAD = ["json", "web_server_base"]
 
 CONF_SORTING_GROUP_ID = "sorting_group_id"
 CONF_SORTING_GROUPS = "sorting_groups"
@@ -70,6 +70,20 @@ def default_url(config):
 def validate_local(config):
     if CONF_LOCAL in config and config[CONF_VERSION] == 1:
         raise cv.Invalid("'local' is not supported in version 1")
+    return config
+
+
+def validate_ota_removed(config):
+    # Only raise error if OTA is explicitly enabled (True)
+    # If it's False or not specified, we can safely ignore it
+    if config.get(CONF_OTA):
+        raise cv.Invalid(
+            f"The '{CONF_OTA}' option has been removed from 'web_server'. "
+            f"Please use the new OTA platform structure instead:\n\n"
+            f"ota:\n"
+            f"  - platform: web_server\n\n"
+            f"See https://esphome.io/components/ota for more information."
+        )
     return config
 
 
@@ -170,7 +184,7 @@ CONFIG_SCHEMA = cv.All(
                 web_server_base.WebServerBase
             ),
             cv.Optional(CONF_INCLUDE_INTERNAL, default=False): cv.boolean,
-            cv.Optional(CONF_OTA, default=True): cv.boolean,
+            cv.Optional(CONF_OTA, default=False): cv.boolean,
             cv.Optional(CONF_LOG, default=True): cv.boolean,
             cv.Optional(CONF_LOCAL): cv.boolean,
             cv.Optional(CONF_SORTING_GROUPS): cv.ensure_list(sorting_group),
@@ -188,6 +202,7 @@ CONFIG_SCHEMA = cv.All(
     default_url,
     validate_local,
     validate_sorting_groups,
+    validate_ota_removed,
 )
 
 
@@ -271,11 +286,8 @@ async def to_code(config):
     else:
         cg.add(var.set_css_url(config[CONF_CSS_URL]))
         cg.add(var.set_js_url(config[CONF_JS_URL]))
-    cg.add(var.set_allow_ota(config[CONF_OTA]))
-    if config[CONF_OTA]:
-        # Define USE_WEBSERVER_OTA based only on web_server OTA config
-        # Web server OTA now uses ota_base backend for consistency
-        cg.add_define("USE_WEBSERVER_OTA")
+    # OTA is now handled by the web_server OTA platform
+    # The CONF_OTA option is kept only for backwards compatibility validation
     cg.add(var.set_expose_log(config[CONF_LOG]))
     if config[CONF_ENABLE_PRIVATE_NETWORK_ACCESS]:
         cg.add_define("USE_WEBSERVER_PRIVATE_NETWORK_ACCESS")

@@ -7,7 +7,7 @@
 #include "esphome/core/macros.h"
 
 namespace esphome {
-namespace ota_base {
+namespace ota {
 
 class ArduinoESP8266OTABackend : public OTABackend {
  public:
@@ -26,7 +26,7 @@ class ArduinoESP8266OTABackend : public OTABackend {
   bool md5_set_{false};
 };
 
-}  // namespace ota_base
+}  // namespace ota
 }  // namespace esphome
 
 #endif

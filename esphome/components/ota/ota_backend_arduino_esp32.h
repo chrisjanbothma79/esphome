@@ -1,13 +1,14 @@
 #pragma once
-#ifdef USE_LIBRETINY
+#ifdef USE_ESP32_FRAMEWORK_ARDUINO
 #include "ota_backend.h"
 
 #include "esphome/core/defines.h"
+#include "esphome/core/helpers.h"
 
 namespace esphome {
-namespace ota_base {
+namespace ota {
 
-class ArduinoLibreTinyOTABackend : public OTABackend {
+class ArduinoESP32OTABackend : public OTABackend {
  public:
   OTAResponseTypes begin(size_t image_size) override;
   void set_update_md5(const char *md5) override;
@@ -20,7 +21,7 @@ class ArduinoLibreTinyOTABackend : public OTABackend {
   bool md5_set_{false};
 };
 
-}  // namespace ota_base
+}  // namespace ota
 }  // namespace esphome
 
-#endif  // USE_LIBRETINY
+#endif  // USE_ESP32_FRAMEWORK_ARDUINO

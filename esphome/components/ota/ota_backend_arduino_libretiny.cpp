@@ -1,20 +1,20 @@
-#ifdef USE_ESP32_FRAMEWORK_ARDUINO
+#ifdef USE_LIBRETINY
+#include "ota_backend_arduino_libretiny.h"
+#include "ota_backend.h"
+
 #include "esphome/core/defines.h"
 #include "esphome/core/log.h"
-
-#include "ota_backend.h"
-#include "ota_backend_arduino_esp32.h"
 
 #include <Update.h>
 
 namespace esphome {
-namespace ota_base {
+namespace ota {
 
-static const char *const TAG = "ota.arduino_esp32";
+static const char *const TAG = "ota.arduino_libretiny";
 
-std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoESP32OTABackend>(); }
+std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoLibreTinyOTABackend>(); }
 
-OTAResponseTypes ArduinoESP32OTABackend::begin(size_t image_size) {
+OTAResponseTypes ArduinoLibreTinyOTABackend::begin(size_t image_size) {
   // Handle UPDATE_SIZE_UNKNOWN (0) which is used by web server OTA
   // where the exact firmware size is unknown due to multipart encoding
   if (image_size == 0) {
@@ -34,12 +34,12 @@ OTAResponseTypes ArduinoESP32OTABackend::begin(size_t image_size) {
   return OTA_RESPONSE_ERROR_UNKNOWN;
 }
 
-void ArduinoESP32OTABackend::set_update_md5(const char *md5) {
+void ArduinoLibreTinyOTABackend::set_update_md5(const char *md5) {
   Update.setMD5(md5);
   this->md5_set_ = true;
 }
 
-OTAResponseTypes ArduinoESP32OTABackend::write(uint8_t *data, size_t len) {
+OTAResponseTypes ArduinoLibreTinyOTABackend::write(uint8_t *data, size_t len) {
   size_t written = Update.write(data, len);
   if (written == len) {
     return OTA_RESPONSE_OK;
@@ -51,7 +51,7 @@ OTAResponseTypes ArduinoESP32OTABackend::write(uint8_t *data, size_t len) {
   return OTA_RESPONSE_ERROR_WRITING_FLASH;
 }
 
-OTAResponseTypes ArduinoESP32OTABackend::end() {
+OTAResponseTypes ArduinoLibreTinyOTABackend::end() {
   // Use strict validation (false) when MD5 is set, lenient validation (true) when no MD5
   // This matches the behavior of the old web_server OTA implementation
   if (Update.end(!this->md5_set_)) {
@@ -64,9 +64,9 @@ OTAResponseTypes ArduinoESP32OTABackend::end() {
   return OTA_RESPONSE_ERROR_UPDATE_END;
 }
 
-void ArduinoESP32OTABackend::abort() { Update.abort(); }
+void ArduinoLibreTinyOTABackend::abort() { Update.abort(); }
 
-}  // namespace ota_base
+}  // namespace ota
 }  // namespace esphome
 
-#endif  // USE_ESP32_FRAMEWORK_ARDUINO
+#endif  // USE_LIBRETINY

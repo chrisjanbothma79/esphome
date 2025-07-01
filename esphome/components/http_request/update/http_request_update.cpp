@@ -5,7 +5,7 @@
 
 #include "esphome/components/json/json_util.h"
 #include "esphome/components/network/util.h"
-#include "esphome/components/ota_base/ota_backend.h"
+#include "esphome/components/ota/ota_backend.h"
 
 namespace esphome {
 namespace http_request {
@@ -22,13 +22,13 @@ static const char *const TAG = "http_request.update";
 static const size_t MAX_READ_SIZE = 256;
 
 void HttpRequestUpdate::setup() {
-  this->ota_parent_->add_on_state_callback([this](ota_base::OTAState state, float progress, uint8_t err) {
-    if (state == ota_base::OTAState::OTA_IN_PROGRESS) {
+  this->ota_parent_->add_on_state_callback([this](ota::OTAState state, float progress, uint8_t err) {
+    if (state == ota::OTAState::OTA_IN_PROGRESS) {
       this->state_ = update::UPDATE_STATE_INSTALLING;
       this->update_info_.has_progress = true;
       this->update_info_.progress = progress;
       this->publish_state();
-    } else if (state == ota_base::OTAState::OTA_ABORT || state == ota_base::OTAState::OTA_ERROR) {
+    } else if (state == ota::OTAState::OTA_ABORT || state == ota::OTAState::OTA_ERROR) {
       this->state_ = update::UPDATE_STATE_AVAILABLE;
       this->status_set_error("Failed to install firmware");
       this->publish_state();

@@ -9,7 +9,7 @@
 #endif
 
 namespace esphome {
-namespace ota_base {
+namespace ota {
 
 enum OTAResponseTypes {
   OTA_RESPONSE_OK = 0x00,
@@ -119,5 +119,5 @@ void register_ota_platform(OTAComponent *ota_caller);
 // This ensures proper callback execution in all contexts.
 #endif
 
-}  // namespace ota_base
+}  // namespace ota
 }  // namespace esphome

@@ -9,7 +9,7 @@
 #include <spi_flash_mmap.h>
 
 namespace esphome {
-namespace ota_base {
+namespace ota {
 
 std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<IDFOTABackend>(); }
 
@@ -105,6 +105,6 @@ void IDFOTABackend::abort() {
   this->update_handle_ = 0;
 }
 
-}  // namespace ota_base
+}  // namespace ota
 }  // namespace esphome
 #endif
