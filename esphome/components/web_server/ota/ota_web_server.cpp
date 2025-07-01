@@ -5,6 +5,14 @@
 #include "esphome/core/application.h"
 #include "esphome/core/log.h"
 
+#ifdef USE_ARDUINO
+#ifdef USE_ESP8266
+#include <Updater.h>
+#elif defined(USE_ESP32) || defined(USE_LIBRETINY)
+#include <Update.h>
+#endif
+#endif  // USE_ARDUINO
+
 namespace esphome {
 namespace web_server {
 
