@@ -20,8 +20,8 @@ static const char *const TAG = "component";
 // - These are rarely accessed (setup only or error cases only)
 
 // Component error messages - only stores messages for failed components
-// Typically 0-2 entries, usually 0
-static std::vector<std::pair<const Component *, const char *>> g_component_error_messages;
+// Lazy allocated since most configs have zero failures
+static std::unique_ptr<std::vector<std::pair<const Component *, const char *>>> g_component_error_messages;
 
 // Setup priority overrides - freed after setup completes
 // Typically < 5 entries, lazy allocated
@@ -119,10 +119,12 @@ void Component::call_dump_config() {
   if (this->is_failed()) {
     // Look up error message from global vector
     const char *error_msg = "unspecified";
-    for (const auto &pair : g_component_error_messages) {
-      if (pair.first == this) {
-        error_msg = pair.second;
-        break;
+    if (g_component_error_messages) {
+      for (const auto &pair : *g_component_error_messages) {
+        if (pair.first == this) {
+          error_msg = pair.second;
+          break;
+        }
       }
     }
     ESP_LOGE(TAG, "  Component %s is marked FAILED: %s", this->get_component_source(), error_msg);
@@ -268,15 +270,19 @@ void Component::status_set_error(const char *message) {
   App.app_state_ |= STATUS_LED_ERROR;
   ESP_LOGE(TAG, "Component %s set Error flag: %s", this->get_component_source(), message);
   if (strcmp(message, "unspecified") != 0) {
+    // Lazy allocate the error messages vector if needed
+    if (!g_component_error_messages) {
+      g_component_error_messages = std::make_unique<std::vector<std::pair<const Component *, const char *>>>();
+    }
     // Check if this component already has an error message
-    for (auto &pair : g_component_error_messages) {
+    for (auto &pair : *g_component_error_messages) {
       if (pair.first == this) {
         pair.second = message;
         return;
       }
     }
     // Add new error message
-    g_component_error_messages.emplace_back(this, message);
+    g_component_error_messages->emplace_back(this, message);
   }
 }
 void Component::status_clear_warning() {
