@@ -63,13 +63,17 @@ OTAResponseTypes ArduinoESP8266OTABackend::write(uint8_t *data, size_t len) {
 OTAResponseTypes ArduinoESP8266OTABackend::end() {
   // Use strict validation (false) when MD5 is set, lenient validation (true) when no MD5
   // This matches the behavior of the old web_server OTA implementation
-  if (Update.end(!this->md5_set_)) {
+  bool success = Update.end(!this->md5_set_);
+
+  // On ESP8266, Update.end() might return false even with error code 0
+  // Check the actual error code to determine success
+  uint8_t error = Update.getError();
+
+  if (success || error == UPDATE_ERROR_OK) {
     return OTA_RESPONSE_OK;
   }
 
-  uint8_t error = Update.getError();
   ESP_LOGE(TAG, "End error: %d", error);
-
   return OTA_RESPONSE_ERROR_UPDATE_END;
 }
 
