@@ -30,7 +30,6 @@
 #elif defined(USE_ESP_IDF)
 #include <freertos/FreeRTOS.h>
 #include <freertos/portmacro.h>
-#include "esp_mac.h"
 #include "esp_random.h"
 #include "esp_system.h"
 #elif defined(USE_RP2040)
@@ -44,10 +43,8 @@
 #include <random>
 #endif
 #ifdef USE_ESP32
-#include "esp32/rom/crc.h"
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 3, 2)
+#include "rom/crc.h"
 #include "esp_mac.h"
-#endif
 #include "esp_efuse.h"
 #include "esp_efuse_table.h"
 #endif
@@ -70,30 +67,17 @@ static const uint16_t CRC16_8408_LE_LUT_L[] = {0x0000, 0x1189, 0x2312, 0x329b, 0
                                                0x8c48, 0x9dc1, 0xaf5a, 0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7};
 static const uint16_t CRC16_8408_LE_LUT_H[] = {0x0000, 0x1081, 0x2102, 0x3183, 0x4204, 0x5285, 0x6306, 0x7387,
                                                0x8408, 0x9489, 0xa50a, 0xb58b, 0xc60c, 0xd68d, 0xe70e, 0xf78f};
+#endif
 
+#if !defined(USE_ESP32) || defined(USE_ESP32_VARIANT_ESP32S2)
 static const uint16_t CRC16_1021_BE_LUT_L[] = {0x0000, 0x1021, 0x2042, 0x3063, 0x4084, 0x50a5, 0x60c6, 0x70e7,
                                                0x8108, 0x9129, 0xa14a, 0xb16b, 0xc18c, 0xd1ad, 0xe1ce, 0xf1ef};
 static const uint16_t CRC16_1021_BE_LUT_H[] = {0x0000, 0x1231, 0x2462, 0x3653, 0x48c4, 0x5af5, 0x6ca6, 0x7e97,
                                                0x9188, 0x83b9, 0xb5ea, 0xa7db, 0xd94c, 0xcb7d, 0xfd2e, 0xef1f};
 #endif
 
-// STL backports
-
-#if _GLIBCXX_RELEASE < 8
-std::string to_string(int value) { return str_snprintf("%d", 32, value); }                   // NOLINT
-std::string to_string(long value) { return str_snprintf("%ld", 32, value); }                 // NOLINT
-std::string to_string(long long value) { return str_snprintf("%lld", 32, value); }           // NOLINT
-std::string to_string(unsigned value) { return str_snprintf("%u", 32, value); }              // NOLINT
-std::string to_string(unsigned long value) { return str_snprintf("%lu", 32, value); }        // NOLINT
-std::string to_string(unsigned long long value) { return str_snprintf("%llu", 32, value); }  // NOLINT
-std::string to_string(float value) { return str_snprintf("%f", 32, value); }
-std::string to_string(double value) { return str_snprintf("%f", 32, value); }
-std::string to_string(long double value) { return str_snprintf("%Lf", 32, value); }
-#endif
-
 // Mathematics
 
-float lerp(float completion, float start, float end) { return start + (end - start) * completion; }
 uint8_t crc8(const uint8_t *data, uint8_t len) {
   uint8_t crc = 0;
 
@@ -151,7 +135,7 @@ uint16_t crc16(const uint8_t *data, uint16_t len, uint16_t crc, uint16_t reverse
 }
 
 uint16_t crc16be(const uint8_t *data, uint16_t len, uint16_t crc, uint16_t poly, bool refin, bool refout) {
-#ifdef USE_ESP32
+#if defined(USE_ESP32) && !defined(USE_ESP32_VARIANT_ESP32S2)
   if (poly == 0x1021) {
     crc = crc16_be(refin ? crc : (crc ^ 0xffff), data, len);
     return refout ? crc : (crc ^ 0xffff);
@@ -160,7 +144,7 @@ uint16_t crc16be(const uint8_t *data, uint16_t len, uint16_t crc, uint16_t poly,
   if (refin) {
     crc ^= 0xffff;
   }
-#ifndef USE_ESP32
+#if !defined(USE_ESP32) || defined(USE_ESP32_VARIANT_ESP32S2)
   if (poly == 0x1021) {
     while (len--) {
       uint8_t combo = (crc >> 8) ^ *data++;
@@ -178,7 +162,7 @@ uint16_t crc16be(const uint8_t *data, uint16_t len, uint16_t crc, uint16_t poly,
         }
       }
     }
-#ifndef USE_ESP32
+#if !defined(USE_ESP32) || defined(USE_ESP32_VARIANT_ESP32S2)
   }
 #endif
   return refout ? (crc ^ 0xffff) : crc;
@@ -355,6 +339,10 @@ size_t parse_hex(const char *str, size_t length, uint8_t *data, size_t count) {
     data[i >> 1] = !(i & 1) ? val << 4 : data[i >> 1] | val;
   }
   return chars;
+}
+
+std::string format_mac_address_pretty(const uint8_t *mac) {
+  return str_snprintf("%02X:%02X:%02X:%02X:%02X:%02X", 17, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 }
 
 static char format_hex_char(uint8_t v) { return v >= 10 ? 'a' + (v - 10) : '0' + v; }
@@ -733,7 +721,7 @@ std::string get_mac_address() {
 std::string get_mac_address_pretty() {
   uint8_t mac[6];
   get_mac_address_raw(mac);
-  return str_snprintf("%02X:%02X:%02X:%02X:%02X:%02X", 17, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  return format_mac_address_pretty(mac);
 }
 
 #ifdef USE_ESP32
