@@ -74,7 +74,7 @@ def validate_local(config: ConfigType) -> ConfigType:
     return config
 
 
-def validate_ota_removed(config: dict) -> dict:
+def validate_ota_removed(config: ConfigType) -> ConfigType:
     # Only raise error if OTA is explicitly enabled (True)
     # If it's False or not specified, we can safely ignore it
     if config.get(CONF_OTA):
@@ -88,7 +88,7 @@ def validate_ota_removed(config: dict) -> dict:
     return config
 
 
-def validate_sorting_groups(config: dict) -> dict:
+def validate_sorting_groups(config: ConfigType) -> ConfigType:
     if CONF_SORTING_GROUPS in config and config[CONF_VERSION] != 3:
         raise cv.Invalid(
             f"'{CONF_SORTING_GROUPS}' is only supported in 'web_server' version 3"
