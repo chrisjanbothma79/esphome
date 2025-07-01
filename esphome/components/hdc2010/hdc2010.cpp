@@ -19,7 +19,7 @@ static const uint8_t CONFIG = 0x0E;
 static const uint8_t MEASUREMENT_CONFIG = 0x0F;
 
 void HDC2010Component::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up HDC2010...");
+  ESP_LOGCONFIG(TAG, "Running setup");
 
   const uint8_t data[2] = {
       0b00000000,  // resolution 14bit for both humidity and temperature
@@ -27,7 +27,7 @@ void HDC2010Component::setup() {
   };
 
   if (!this->write_bytes(HDC2010_CMD_CONFIGURATION_MEASUREMENT, data, 2)) {
-    ESP_LOGW(TAG, "HDC2010 initial config instruction error");
+    ESP_LOGW(TAG, "Initial config instruction error");
     this->status_set_warning();
     return;
   }
@@ -60,7 +60,7 @@ void HDC2010Component::dump_config() {
   ESP_LOGCONFIG(TAG, "HDC2010:");
   LOG_I2C_DEVICE(this);
   if (this->is_failed()) {
-    ESP_LOGE(TAG, "Communication with HDC2010 failed!");
+    ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
   LOG_UPDATE_INTERVAL(this);
   LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
@@ -111,6 +111,5 @@ float HDC2010Component::read_humidity() {
   return (float) humidity * 0.001525879f;
 }
 
-float HDC2010Component::get_setup_priority() const { return setup_priority::DATA; }
 }  // namespace hdc2010
 }  // namespace esphome

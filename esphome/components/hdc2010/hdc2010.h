@@ -23,8 +23,6 @@ class HDC2010Component : public PollingComponent, public i2c::I2CDevice {
 
   float read_humidity();
 
-  float get_setup_priority() const override;
-
  protected:
   sensor::Sensor *temperature_sensor_{nullptr};
   sensor::Sensor *humidity_sensor_{nullptr};
