@@ -32,6 +32,7 @@ from esphome.const import (
     PLATFORM_RTL87XX,
 )
 from esphome.core import CORE, coroutine_with_priority
+from esphome.cpp_types import ConfigType
 import esphome.final_validate as fv
 
 AUTO_LOAD = ["json", "web_server_base"]
@@ -47,7 +48,7 @@ WebServer = web_server_ns.class_("WebServer", cg.Component, cg.Controller)
 sorting_groups = {}
 
 
-def default_url(config):
+def default_url(config: ConfigType) -> ConfigType:
     config = config.copy()
     if config[CONF_VERSION] == 1:
         if CONF_CSS_URL not in config:
@@ -67,13 +68,13 @@ def default_url(config):
     return config
 
 
-def validate_local(config):
+def validate_local(config: ConfigType) -> ConfigType:
     if CONF_LOCAL in config and config[CONF_VERSION] == 1:
         raise cv.Invalid("'local' is not supported in version 1")
     return config
 
 
-def validate_ota_removed(config):
+def validate_ota_removed(config: dict) -> dict:
     # Only raise error if OTA is explicitly enabled (True)
     # If it's False or not specified, we can safely ignore it
     if config.get(CONF_OTA):
@@ -87,7 +88,7 @@ def validate_ota_removed(config):
     return config
 
 
-def validate_sorting_groups(config):
+def validate_sorting_groups(config: dict) -> dict:
     if CONF_SORTING_GROUPS in config and config[CONF_VERSION] != 3:
         raise cv.Invalid(
             f"'{CONF_SORTING_GROUPS}' is only supported in 'web_server' version 3"
