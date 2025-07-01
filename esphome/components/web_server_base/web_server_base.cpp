@@ -4,123 +4,22 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
-#ifdef USE_ARDUINO
-#include <StreamString.h>
-#if defined(USE_ESP32) || defined(USE_LIBRETINY)
-#include <Update.h>
-#endif
-#ifdef USE_ESP8266
-#include <Updater.h>
-#endif
+#ifdef USE_WEBSERVER_OTA
+#include "esphome/components/ota_base/ota_backend.h"
 #endif
 
-#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
-#include <esp_ota_ops.h>
-#include <esp_task_wdt.h>
+#ifdef USE_ARDUINO
+#ifdef USE_ESP8266
+#include <Updater.h>
+#elif defined(USE_ESP32) || defined(USE_LIBRETINY)
+#include <Update.h>
+#endif
 #endif
 
 namespace esphome {
 namespace web_server_base {
 
 static const char *const TAG = "web_server_base";
-
-#if defined(USE_ESP_IDF) && defined(USE_WEBSERVER_OTA)
-// Minimal OTA backend implementation for web server
-// This allows OTA updates via web server without requiring the OTA component
-// TODO: In the future, this should be refactored into a common ota_base component
-// that both web_server and ota components can depend on, avoiding code duplication
-// while keeping the components independent. This would allow both ESP-IDF and Arduino
-// implementations to share the base OTA functionality without requiring the full OTA component.
-// The IDFWebServerOTABackend class is intentionally designed with the same interface
-// as OTABackend to make it easy to swap to using OTABackend when the ota component
-// is split into ota and ota_base in the future.
-class IDFWebServerOTABackend {
- public:
-  bool begin() {
-    this->partition_ = esp_ota_get_next_update_partition(nullptr);
-    if (this->partition_ == nullptr) {
-      ESP_LOGE(TAG, "No OTA partition available");
-      return false;
-    }
-
-#if CONFIG_ESP_TASK_WDT_TIMEOUT_S < 15
-    // The following function takes longer than the default timeout of WDT due to flash erase
-#if ESP_IDF_VERSION_MAJOR >= 5
-    esp_task_wdt_config_t wdtc;
-    wdtc.idle_core_mask = 0;
-#if CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0
-    wdtc.idle_core_mask |= (1 << 0);
-#endif
-#if CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1
-    wdtc.idle_core_mask |= (1 << 1);
-#endif
-    wdtc.timeout_ms = 15000;
-    wdtc.trigger_panic = false;
-    esp_task_wdt_reconfigure(&wdtc);
-#else
-    esp_task_wdt_init(15, false);
-#endif
-#endif
-
-    esp_err_t err = esp_ota_begin(this->partition_, 0, &this->update_handle_);
-
-#if CONFIG_ESP_TASK_WDT_TIMEOUT_S < 15
-    // Set the WDT back to the configured timeout
-#if ESP_IDF_VERSION_MAJOR >= 5
-    wdtc.timeout_ms = CONFIG_ESP_TASK_WDT_TIMEOUT_S * 1000;
-    esp_task_wdt_reconfigure(&wdtc);
-#else
-    esp_task_wdt_init(CONFIG_ESP_TASK_WDT_TIMEOUT_S, false);
-#endif
-#endif
-
-    if (err != ESP_OK) {
-      esp_ota_abort(this->update_handle_);
-      this->update_handle_ = 0;
-      ESP_LOGE(TAG, "esp_ota_begin failed: %s", esp_err_to_name(err));
-      return false;
-    }
-    return true;
-  }
-
-  bool write(uint8_t *data, size_t len) {
-    esp_err_t err = esp_ota_write(this->update_handle_, data, len);
-    if (err != ESP_OK) {
-      ESP_LOGE(TAG, "esp_ota_write failed: %s", esp_err_to_name(err));
-      return false;
-    }
-    return true;
-  }
-
-  bool end() {
-    esp_err_t err = esp_ota_end(this->update_handle_);
-    this->update_handle_ = 0;
-    if (err != ESP_OK) {
-      ESP_LOGE(TAG, "esp_ota_end failed: %s", esp_err_to_name(err));
-      return false;
-    }
-
-    err = esp_ota_set_boot_partition(this->partition_);
-    if (err != ESP_OK) {
-      ESP_LOGE(TAG, "esp_ota_set_boot_partition failed: %s", esp_err_to_name(err));
-      return false;
-    }
-
-    return true;
-  }
-
-  void abort() {
-    if (this->update_handle_ != 0) {
-      esp_ota_abort(this->update_handle_);
-      this->update_handle_ = 0;
-    }
-  }
-
- private:
-  esp_ota_handle_t update_handle_{0};
-  const esp_partition_t *partition_{nullptr};
-};
-#endif
 
 void WebServerBase::add_handler(AsyncWebHandler *handler) {
   // remove all handlers
@@ -138,12 +37,21 @@ void WebServerBase::add_handler(AsyncWebHandler *handler) {
 void OTARequestHandler::report_ota_progress_(AsyncWebServerRequest *request) {
   const uint32_t now = millis();
   if (now - this->last_ota_progress_ > 1000) {
+    float percentage = 0.0f;
     if (request->contentLength() != 0) {
-      float percentage = (this->ota_read_length_ * 100.0f) / request->contentLength();
+      // Note: Using contentLength() for progress calculation is technically wrong as it includes
+      // multipart headers/boundaries, but it's only off by a small amount and we don't have
+      // access to the actual firmware size until the upload is complete. This is intentional
+      // as it still gives the user a reasonable progress indication.
+      percentage = (this->ota_read_length_ * 100.0f) / request->contentLength();
       ESP_LOGD(TAG, "OTA in progress: %0.1f%%", percentage);
     } else {
       ESP_LOGD(TAG, "OTA in progress: %u bytes read", this->ota_read_length_);
     }
+#ifdef USE_OTA_STATE_CALLBACK
+    // Report progress - use call_deferred since we're in web server task
+    this->parent_->state_callback_.call_deferred(ota_base::OTA_IN_PROGRESS, percentage, 0);
+#endif
     this->last_ota_progress_ = now;
   }
 }
@@ -159,87 +67,72 @@ void OTARequestHandler::schedule_ota_reboot_() {
 void OTARequestHandler::ota_init_(const char *filename) {
   ESP_LOGI(TAG, "OTA Update Start: %s", filename);
   this->ota_read_length_ = 0;
-}
-
-void report_ota_error() {
-#ifdef USE_ARDUINO
-  StreamString ss;
-  Update.printError(ss);
-  ESP_LOGW(TAG, "OTA Update failed! Error: %s", ss.c_str());
-#endif
+  this->ota_success_ = false;
 }
 
 void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const String &filename, size_t index,
                                      uint8_t *data, size_t len, bool final) {
-#ifdef USE_ARDUINO
-  bool success;
-  if (index == 0) {
+  ota_base::OTAResponseTypes error_code = ota_base::OTA_RESPONSE_OK;
+
+  if (index == 0 && !this->ota_backend_) {
+    // Initialize OTA on first call
     this->ota_init_(filename.c_str());
+
+#ifdef USE_OTA_STATE_CALLBACK
+    // Notify OTA started - use call_deferred since we're in web server task
+    this->parent_->state_callback_.call_deferred(ota_base::OTA_STARTED, 0.0f, 0);
+#endif
+
+    // Platform-specific pre-initialization
+#ifdef USE_ARDUINO
 #ifdef USE_ESP8266
     Update.runAsync(true);
-    // NOLINTNEXTLINE(readability-static-accessed-through-instance)
-    success = Update.begin((ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000);
 #endif
 #if defined(USE_ESP32_FRAMEWORK_ARDUINO) || defined(USE_LIBRETINY)
     if (Update.isRunning()) {
       Update.abort();
     }
-    success = Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH);
 #endif
-    if (!success) {
-      report_ota_error();
-      return;
-    }
-  } else if (Update.hasError()) {
-    // don't spam logs with errors if something failed at start
-    return;
-  }
-
-  success = Update.write(data, len) == len;
-  if (!success) {
-    report_ota_error();
-    return;
-  }
-  this->ota_read_length_ += len;
-  this->report_ota_progress_(request);
-
-  if (final) {
-    if (Update.end(true)) {
-      this->schedule_ota_reboot_();
-    } else {
-      report_ota_error();
-    }
-  }
 #endif  // USE_ARDUINO
 
-#ifdef USE_ESP_IDF
-  // ESP-IDF implementation
-  if (index == 0 && !this->ota_backend_) {
-    // Initialize OTA on first call
-    this->ota_init_(filename.c_str());
-    this->ota_success_ = false;
-
-    auto *backend = new IDFWebServerOTABackend();
-    if (!backend->begin()) {
-      ESP_LOGE(TAG, "OTA begin failed");
-      delete backend;
+    this->ota_backend_ = ota_base::make_ota_backend();
+    if (!this->ota_backend_) {
+      ESP_LOGE(TAG, "Failed to create OTA backend");
+#ifdef USE_OTA_STATE_CALLBACK
+      this->parent_->state_callback_.call_deferred(ota_base::OTA_ERROR, 0.0f,
+                                                   static_cast<uint8_t>(ota_base::OTA_RESPONSE_ERROR_UNKNOWN));
+#endif
       return;
     }
-    this->ota_backend_ = backend;
+
+    // Web server OTA uses multipart uploads where the actual firmware size
+    // is unknown (contentLength includes multipart overhead)
+    // Pass 0 to indicate unknown size
+    error_code = this->ota_backend_->begin(0);
+    if (error_code != ota_base::OTA_RESPONSE_OK) {
+      ESP_LOGE(TAG, "OTA begin failed: %d", error_code);
+      this->ota_backend_.reset();
+#ifdef USE_OTA_STATE_CALLBACK
+      this->parent_->state_callback_.call_deferred(ota_base::OTA_ERROR, 0.0f, static_cast<uint8_t>(error_code));
+#endif
+      return;
+    }
   }
 
-  auto *backend = static_cast<IDFWebServerOTABackend *>(this->ota_backend_);
-  if (!backend) {
+  if (!this->ota_backend_) {
     return;
   }
 
   // Process data
   if (len > 0) {
-    if (!backend->write(data, len)) {
-      ESP_LOGE(TAG, "OTA write failed");
-      backend->abort();
-      delete backend;
-      this->ota_backend_ = nullptr;
+    error_code = this->ota_backend_->write(data, len);
+    if (error_code != ota_base::OTA_RESPONSE_OK) {
+      ESP_LOGE(TAG, "OTA write failed: %d", error_code);
+      this->ota_backend_->abort();
+      this->ota_backend_.reset();
+#ifdef USE_OTA_STATE_CALLBACK
+      this->parent_->state_callback_.call_deferred(ota_base::OTA_ERROR, 0.0f, static_cast<uint8_t>(error_code));
+#endif
       return;
     }
     this->ota_read_length_ += len;
@@ -248,40 +141,45 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 
   // Finalize
   if (final) {
-    this->ota_success_ = backend->end();
-    if (this->ota_success_) {
+    ESP_LOGD(TAG, "OTA final chunk: index=%u, len=%u, total_read=%u, contentLength=%u", index, len,
+             this->ota_read_length_, request->contentLength());
+
+    // For Arduino framework, the Update library tracks expected size from firmware header
+    // If we haven't received enough data, calling end() will fail
+    // This can happen if the upload is interrupted or the client disconnects
+    error_code = this->ota_backend_->end();
+    if (error_code == ota_base::OTA_RESPONSE_OK) {
+      this->ota_success_ = true;
+#ifdef USE_OTA_STATE_CALLBACK
+      // Report completion before reboot - use call_deferred since we're in web server task
+      this->parent_->state_callback_.call_deferred(ota_base::OTA_COMPLETED, 100.0f, 0);
+#endif
       this->schedule_ota_reboot_();
     } else {
-      ESP_LOGE(TAG, "OTA end failed");
+      ESP_LOGE(TAG, "OTA end failed: %d", error_code);
+#ifdef USE_OTA_STATE_CALLBACK
+      this->parent_->state_callback_.call_deferred(ota_base::OTA_ERROR, 0.0f, static_cast<uint8_t>(error_code));
+#endif
     }
-    delete backend;
-    this->ota_backend_ = nullptr;
+    this->ota_backend_.reset();
   }
-#endif  // USE_ESP_IDF
 }
 
 void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   AsyncWebServerResponse *response;
-#ifdef USE_ARDUINO
-  if (!Update.hasError()) {
-    response = request->beginResponse(200, "text/plain", "Update Successful!");
-  } else {
-    StreamString ss;
-    ss.print("Update Failed: ");
-    Update.printError(ss);
-    response = request->beginResponse(200, "text/plain", ss);
-  }
-#endif  // USE_ARDUINO
-#ifdef USE_ESP_IDF
-  // Send response based on the OTA result
-  response = request->beginResponse(200, "text/plain", this->ota_success_ ? "Update Successful!" : "Update Failed!");
-#endif  // USE_ESP_IDF
+  // Use the ota_success_ flag to determine the actual result
+  const char *msg = this->ota_success_ ? "Update Successful!" : "Update Failed!";
+  response = request->beginResponse(200, "text/plain", msg);
   response->addHeader("Connection", "close");
   request->send(response);
 }
 
 void WebServerBase::add_ota_handler() {
   this->add_handler(new OTARequestHandler(this));  // NOLINT
+#ifdef USE_OTA_STATE_CALLBACK
+  // Register with global OTA callback system
+  ota_base::register_ota_platform(this);
+#endif
 }
 #endif
 

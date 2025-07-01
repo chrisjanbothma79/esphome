@@ -8,10 +8,12 @@ from esphome.const import (
     CONF_PLATFORM,
     CONF_TRIGGER_ID,
 )
-from esphome.core import CORE, coroutine_with_priority
+from esphome.core import coroutine_with_priority
+
+from ..ota_base import OTAState
 
 CODEOWNERS = ["@esphome/core"]
-AUTO_LOAD = ["md5", "safe_mode"]
+AUTO_LOAD = ["safe_mode", "ota_base"]
 
 IS_PLATFORM_COMPONENT = True
 
@@ -23,8 +25,6 @@ CONF_ON_STATE_CHANGE = "on_state_change"
 
 
 ota_ns = cg.esphome_ns.namespace("ota")
-OTAComponent = ota_ns.class_("OTAComponent", cg.Component)
-OTAState = ota_ns.enum("OTAState")
 OTAAbortTrigger = ota_ns.class_("OTAAbortTrigger", automation.Trigger.template())
 OTAEndTrigger = ota_ns.class_("OTAEndTrigger", automation.Trigger.template())
 OTAErrorTrigger = ota_ns.class_("OTAErrorTrigger", automation.Trigger.template())
@@ -83,12 +83,6 @@ BASE_OTA_SCHEMA = cv.Schema(
 @coroutine_with_priority(54.0)
 async def to_code(config):
     cg.add_define("USE_OTA")
-
-    if CORE.is_esp32 and CORE.using_arduino:
-        cg.add_library("Update", None)
-
-    if CORE.is_rp2040 and CORE.using_arduino:
-        cg.add_library("Updater", None)
 
 
 async def ota_to_code(var, config):

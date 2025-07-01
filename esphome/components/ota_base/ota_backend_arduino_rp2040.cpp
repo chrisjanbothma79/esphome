@@ -10,13 +10,24 @@
 #include <Updater.h>
 
 namespace esphome {
-namespace ota {
+namespace ota_base {
 
 static const char *const TAG = "ota.arduino_rp2040";
 
-std::unique_ptr<ota::OTABackend> make_ota_backend() { return make_unique<ota::ArduinoRP2040OTABackend>(); }
+std::unique_ptr<OTABackend> make_ota_backend() { return make_unique<ArduinoRP2040OTABackend>(); }
 
 OTAResponseTypes ArduinoRP2040OTABackend::begin(size_t image_size) {
+  // Handle UPDATE_SIZE_UNKNOWN (0) by calculating available space
+  if (image_size == 0) {
+    // Similar to ESP8266, calculate available space from flash layout
+    extern uint8_t _FS_start;
+    extern uint8_t _FS_end;
+    // Calculate the size of the filesystem area which will be used for OTA
+    size_t fs_size = &_FS_end - &_FS_start;
+    // Reserve some space for filesystem overhead
+    image_size = (fs_size - 0x1000) & 0xFFFFF000;
+    ESP_LOGD(TAG, "OTA size unknown, using filesystem size: %u bytes", image_size);
+  }
   bool ret = Update.begin(image_size, U_FLASH);
   if (ret) {
     rp2040::preferences_prevent_write(true);
@@ -38,7 +49,10 @@ OTAResponseTypes ArduinoRP2040OTABackend::begin(size_t image_size) {
   return OTA_RESPONSE_ERROR_UNKNOWN;
 }
 
-void ArduinoRP2040OTABackend::set_update_md5(const char *md5) { Update.setMD5(md5); }
+void ArduinoRP2040OTABackend::set_update_md5(const char *md5) {
+  Update.setMD5(md5);
+  this->md5_set_ = true;
+}
 
 OTAResponseTypes ArduinoRP2040OTABackend::write(uint8_t *data, size_t len) {
   size_t written = Update.write(data, len);
@@ -53,7 +67,9 @@ OTAResponseTypes ArduinoRP2040OTABackend::write(uint8_t *data, size_t len) {
 }
 
 OTAResponseTypes ArduinoRP2040OTABackend::end() {
-  if (Update.end()) {
+  // Use strict validation (false) when MD5 is set, lenient validation (true) when no MD5
+  // This matches the behavior of the old web_server OTA implementation
+  if (Update.end(!this->md5_set_)) {
     return OTA_RESPONSE_OK;
   }
 
@@ -68,7 +84,7 @@ void ArduinoRP2040OTABackend::abort() {
   rp2040::preferences_prevent_write(false);
 }
 
-}  // namespace ota
+}  // namespace ota_base
 }  // namespace esphome
 
 #endif  // USE_RP2040

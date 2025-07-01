@@ -34,7 +34,7 @@ from esphome.const import (
 from esphome.core import CORE, coroutine_with_priority
 import esphome.final_validate as fv
 
-AUTO_LOAD = ["json", "web_server_base"]
+AUTO_LOAD = ["json", "web_server_base", "ota_base"]
 
 CONF_SORTING_GROUP_ID = "sorting_group_id"
 CONF_SORTING_GROUPS = "sorting_groups"
@@ -274,7 +274,7 @@ async def to_code(config):
     cg.add(var.set_allow_ota(config[CONF_OTA]))
     if config[CONF_OTA]:
         # Define USE_WEBSERVER_OTA based only on web_server OTA config
-        # This allows web server OTA to work without loading the OTA component
+        # Web server OTA now uses ota_base backend for consistency
         cg.add_define("USE_WEBSERVER_OTA")
     cg.add(var.set_expose_log(config[CONF_LOG]))
     if config[CONF_ENABLE_PRIVATE_NETWORK_ACCESS]:

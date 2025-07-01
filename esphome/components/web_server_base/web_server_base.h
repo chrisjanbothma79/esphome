@@ -14,6 +14,10 @@
 #include "esphome/components/web_server_idf/web_server_idf.h"
 #endif
 
+#ifdef USE_WEBSERVER_OTA
+#include "esphome/components/ota_base/ota_backend.h"
+#endif
+
 namespace esphome {
 namespace web_server_base {
 
@@ -79,7 +83,11 @@ class AuthMiddlewareHandler : public MiddlewareHandler {
 
 }  // namespace internal
 
+#ifdef USE_WEBSERVER_OTA
+class WebServerBase : public ota_base::OTAComponent {
+#else
 class WebServerBase : public Component {
+#endif
  public:
   void init() {
     if (this->initialized_) {
@@ -151,12 +159,10 @@ class OTARequestHandler : public AsyncWebHandler {
   uint32_t last_ota_progress_{0};
   uint32_t ota_read_length_{0};
   WebServerBase *parent_;
+  bool ota_success_{false};
 
  private:
-#ifdef USE_ESP_IDF
-  void *ota_backend_{nullptr};
-  bool ota_success_{false};
-#endif
+  std::unique_ptr<ota_base::OTABackend> ota_backend_{nullptr};
 };
 #endif  // USE_WEBSERVER_OTA
 

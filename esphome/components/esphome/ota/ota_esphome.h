@@ -4,13 +4,13 @@
 #ifdef USE_OTA
 #include "esphome/core/helpers.h"
 #include "esphome/core/preferences.h"
-#include "esphome/components/ota/ota_backend.h"
+#include "esphome/components/ota_base/ota_backend.h"
 #include "esphome/components/socket/socket.h"
 
 namespace esphome {
 
 /// ESPHomeOTAComponent provides a simple way to integrate Over-the-Air updates into your app using ArduinoOTA.
-class ESPHomeOTAComponent : public ota::OTAComponent {
+class ESPHomeOTAComponent : public ota_base::OTAComponent {
  public:
 #ifdef USE_OTA_PASSWORD
   void set_auth_password(const std::string &password) { password_ = password; }

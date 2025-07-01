@@ -1,31 +1,33 @@
 #pragma once
-#ifdef USE_ESP_IDF
+#ifdef USE_ARDUINO
+#ifdef USE_ESP8266
 #include "ota_backend.h"
 
-#include "esphome/components/md5/md5.h"
 #include "esphome/core/defines.h"
-
-#include <esp_ota_ops.h>
+#include "esphome/core/macros.h"
 
 namespace esphome {
-namespace ota {
+namespace ota_base {
 
-class IDFOTABackend : public OTABackend {
+class ArduinoESP8266OTABackend : public OTABackend {
  public:
   OTAResponseTypes begin(size_t image_size) override;
   void set_update_md5(const char *md5) override;
   OTAResponseTypes write(uint8_t *data, size_t len) override;
   OTAResponseTypes end() override;
   void abort() override;
+#if USE_ARDUINO_VERSION_CODE >= VERSION_CODE(2, 7, 0)
+  bool supports_compression() override { return true; }
+#else
   bool supports_compression() override { return false; }
+#endif
 
  private:
-  esp_ota_handle_t update_handle_{0};
-  const esp_partition_t *partition_;
-  md5::MD5Digest md5_{};
-  char expected_bin_md5_[32];
+  bool md5_set_{false};
 };
 
-}  // namespace ota
+}  // namespace ota_base
 }  // namespace esphome
+
+#endif
 #endif

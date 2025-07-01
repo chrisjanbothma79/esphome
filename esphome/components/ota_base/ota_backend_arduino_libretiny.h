@@ -5,7 +5,7 @@
 #include "esphome/core/defines.h"
 
 namespace esphome {
-namespace ota {
+namespace ota_base {
 
 class ArduinoLibreTinyOTABackend : public OTABackend {
  public:
@@ -15,9 +15,12 @@ class ArduinoLibreTinyOTABackend : public OTABackend {
   OTAResponseTypes end() override;
   void abort() override;
   bool supports_compression() override { return false; }
+
+ private:
+  bool md5_set_{false};
 };
 
-}  // namespace ota
+}  // namespace ota_base
 }  // namespace esphome
 
 #endif  // USE_LIBRETINY
