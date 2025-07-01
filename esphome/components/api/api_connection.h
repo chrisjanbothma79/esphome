@@ -517,7 +517,7 @@ class APIConnection : public APIServerConnection {
 
    private:
     // Helper to cleanup items from the beginning
-    void cleanup_items(size_t count) {
+    void cleanup_items_(size_t count) {
       for (size_t i = 0; i < count; i++) {
         items[i].creator.cleanup(items[i].message_type);
       }
@@ -541,14 +541,14 @@ class APIConnection : public APIServerConnection {
 
     // Clear all items with proper cleanup
     void clear() {
-      cleanup_items(items.size());
+      cleanup_items_(items.size());
       items.clear();
       batch_start_time = 0;
     }
 
     // Remove processed items from the front with proper cleanup
     void remove_front(size_t count) {
-      cleanup_items(count);
+      cleanup_items_(count);
       items.erase(items.begin(), items.begin() + count);
     }
 
