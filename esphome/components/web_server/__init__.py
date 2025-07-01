@@ -99,7 +99,7 @@ def validate_sorting_groups(config: ConfigType) -> ConfigType:
 def _validate_no_sorting_component(
     sorting_component: str,
     webserver_version: int,
-    config: dict,
+    config: ConfigType,
     path: list[str] | None = None,
 ) -> None:
     if path is None:
