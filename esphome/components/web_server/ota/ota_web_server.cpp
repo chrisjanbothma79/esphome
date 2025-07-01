@@ -99,7 +99,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 #ifdef USE_ESP8266
     Update.runAsync(true);
 #endif
-#if defined(USE_ESP32_FRAMEWORK_ARDUINO) || defined(USE_LIBRETINY)
+#if defined(USE_ESP32) || defined(USE_LIBRETINY)
     if (Update.isRunning()) {
       Update.abort();
     }
@@ -194,6 +194,7 @@ void WebServerOTAComponent::setup() {
     return;
   }
 
+  // AsyncWebServer takes ownership of the handler and will delete it when the server is destroyed
   base->add_handler(new OTARequestHandler(this));  // NOLINT
 #ifdef USE_OTA_STATE_CALLBACK
   // Register with global OTA callback system
