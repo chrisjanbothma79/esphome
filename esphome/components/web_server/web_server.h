@@ -40,12 +40,31 @@ namespace web_server {
 
 /// Internal helper struct that is used to parse incoming URLs
 struct UrlMatch {
-  std::string domain;  ///< The domain of the component, for example "sensor"
-  std::string id;      ///< The id of the device that's being accessed, for example "living_room_fan"
-  std::string method;  ///< The method that's being called, for example "turn_on"
+  const char *domain;  ///< Pointer to domain within URL, for example "sensor"
+  const char *id;      ///< Pointer to id within URL, for example "living_room_fan"
+  const char *method;  ///< Pointer to method within URL, for example "turn_on"
+  uint8_t domain_len;  ///< Length of domain string
+  uint8_t id_len;      ///< Length of id string
+  uint8_t method_len;  ///< Length of method string
   bool valid;          ///< Whether this match is valid
+
+  // Helper methods for string comparisons
+  bool domain_equals(const char *str) const {
+    return domain && domain_len == strlen(str) && memcmp(domain, str, domain_len) == 0;
+  }
+
+  bool id_equals(const std::string &str) const {
+    return id && id_len == str.length() && memcmp(id, str.c_str(), id_len) == 0;
+  }
+
+  bool method_equals(const char *str) const {
+    return method && method_len == strlen(str) && memcmp(method, str, method_len) == 0;
+  }
+
+  bool method_empty() const { return method_len == 0; }
 };
 
+#ifdef USE_WEBSERVER_SORTING
 struct SortingComponents {
   float weight;
   uint64_t group_id;
@@ -55,6 +74,7 @@ struct SortingGroup {
   std::string name;
   float weight;
 };
+#endif
 
 enum JsonDetail { DETAIL_ALL, DETAIL_STATE };
 
@@ -99,7 +119,7 @@ class DeferredUpdateEventSource : public AsyncEventSource {
  protected:
   // surface a couple methods from the base class
   using AsyncEventSource::handleRequest;
-  using AsyncEventSource::try_send;
+  using AsyncEventSource::send;
 
   ListEntitiesIterator entities_iterator_;
   // vector is used very specifically for its zero memory overhead even though items are popped from the front (memory
@@ -269,7 +289,7 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
 #endif
 
 #ifdef USE_BINARY_SENSOR
-  void on_binary_sensor_update(binary_sensor::BinarySensor *obj, bool state) override;
+  void on_binary_sensor_update(binary_sensor::BinarySensor *obj) override;
 
   /// Handle a binary sensor request under '/binary_sensor/<id>'.
   void handle_binary_sensor_request(AsyncWebServerRequest *request, const UrlMatch &match);
@@ -468,20 +488,24 @@ class WebServer : public Controller, public Component, public AsyncWebHandler {
 #endif
 
   /// Override the web handler's canHandle method.
-  bool canHandle(AsyncWebServerRequest *request) override;
+  bool canHandle(AsyncWebServerRequest *request) const override;
   /// Override the web handler's handleRequest method.
   void handleRequest(AsyncWebServerRequest *request) override;
   /// This web handle is not trivial.
-  bool isRequestHandlerTrivial() override;  // NOLINT(readability-identifier-naming)
+  bool isRequestHandlerTrivial() const override;  // NOLINT(readability-identifier-naming)
 
+#ifdef USE_WEBSERVER_SORTING
   void add_entity_config(EntityBase *entity, float weight, uint64_t group);
   void add_sorting_group(uint64_t group_id, const std::string &group_name, float weight);
 
   std::map<EntityBase *, SortingComponents> sorting_entitys_;
   std::map<uint64_t, SortingGroup> sorting_groups_;
+#endif
+
   bool include_internal_{false};
 
  protected:
+  void add_sorting_info_(JsonObject &root, EntityBase *entity);
   void schedule_(std::function<void()> &&f);
   web_server_base::WebServerBase *base_;
 #ifdef USE_ARDUINO
