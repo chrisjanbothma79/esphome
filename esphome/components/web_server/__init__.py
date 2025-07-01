@@ -6,6 +6,7 @@ import esphome.codegen as cg
 from esphome.components import web_server_base
 from esphome.components.web_server_base import CONF_WEB_SERVER_BASE_ID
 import esphome.config_validation as cv
+from esphome.config_validation import ConfigType
 from esphome.const import (
     CONF_AUTH,
     CONF_CSS_INCLUDE,
@@ -32,7 +33,6 @@ from esphome.const import (
     PLATFORM_RTL87XX,
 )
 from esphome.core import CORE, coroutine_with_priority
-from esphome.cpp_types import ConfigType
 import esphome.final_validate as fv
 
 AUTO_LOAD = ["json", "web_server_base"]
