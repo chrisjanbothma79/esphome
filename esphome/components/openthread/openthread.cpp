@@ -191,18 +191,50 @@ void *OpenThreadSrpComponent::pool_alloc_(size_t size) {
 
 void OpenThreadSrpComponent::set_mdns(esphome::mdns::MDNSComponent *mdns) { this->mdns_ = mdns; }
 
+void srp_callback_on_factory_reset(otError err, const otSrpClientHostInfo *host_info,
+                                   const otSrpClientService *services, const otSrpClientService *removed_services,
+                                   void *context) {
+  OpenThreadComponent *obj = (OpenThreadComponent *) context;
+  if (err == OT_ERROR_NONE && removed_services != NULL && host_info != NULL &&
+      host_info->mState == OT_SRP_CLIENT_ITEM_STATE_REMOVED) {
+    ESP_LOGD(TAG, "Successful Removal SRP Host and Services");
+  } else if (err != OT_ERROR_NONE) {
+    // Handle other SRP client events or errors
+    ESP_LOGW(TAG, "SRP client event/error: %s", otThreadErrorToString(err));
+  }
+  obj->factory_reset_ready = true;
+}
+
+// this is called again and again till it returns true.
+void OpenThreadComponent::on_factory_reset() {
+  ESP_LOGD(TAG, "Start Removal SRP Host and Services");
+  otError error;
+  InstanceLock lock = InstanceLock::acquire();
+  otInstance *instance = lock.get_instance();
+  otSrpClientSetCallback(instance, srp_callback_on_factory_reset, this);
+  error = otSrpClientRemoveHostAndServices(instance, true, true);
+  if (error != OT_ERROR_NONE) {
+    ESP_LOGW(TAG, "Failed to Remove SRP Host and Services");
+    return;
+  }
+  otSrpClientBuffersFreeAllServices(instance);
+  ESP_LOGD(TAG, "Waiting on Confirmation Removal SRP Host and Services");
+}
+
 bool OpenThreadComponent::teardown() {
   if (!this->teardown_started_) {
     this->teardown_started_ = true;
-    ESP_LOGD(TAG, "Clear Srp");
-    auto lock = InstanceLock::try_acquire(100);
-    if (!lock) {
-      ESP_LOGW(TAG, "Failed to acquire OpenThread lock during teardown, leaking memory");
-      return true;
+    if (!this->factory_reset_ready) {
+      ESP_LOGD(TAG, "Clear Srp");
+      auto lock = InstanceLock::try_acquire(100);
+      if (!lock) {
+        ESP_LOGW(TAG, "Failed to acquire OpenThread lock during teardown, leaking memory");
+        return true;
+      }
+      otInstance *instance = lock->get_instance();
+      otSrpClientClearHostAndServices(instance);
+      otSrpClientBuffersFreeAllServices(instance);
     }
-    otInstance *instance = lock->get_instance();
-    otSrpClientClearHostAndServices(instance);
-    otSrpClientBuffersFreeAllServices(instance);
     global_openthread_component = nullptr;
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
     ESP_LOGD(TAG, "Exit main loop ");

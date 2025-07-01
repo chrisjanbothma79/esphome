@@ -28,6 +28,8 @@ class OpenThreadComponent : public Component {
   network::IPAddresses get_ip_addresses();
   std::optional<otIp6Address> get_omr_address();
   void ot_main();
+  void on_factory_reset();
+  bool factory_reset_ready{false};
 
  protected:
   std::optional<otIp6Address> get_omr_address_(InstanceLock &lock);
