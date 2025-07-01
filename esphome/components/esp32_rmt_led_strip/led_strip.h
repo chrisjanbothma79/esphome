@@ -26,15 +26,9 @@ enum RGBOrder : uint8_t {
 };
 
 struct LedParams {
-#if ESP_IDF_VERSION_MAJOR >= 5
   rmt_symbol_word_t bit0;
   rmt_symbol_word_t bit1;
   rmt_symbol_word_t reset;
-#else
-  rmt_item32_t bit0;
-  rmt_item32_t bit1;
-  rmt_item32_t reset;
-#endif
 };
 
 class ESP32RMTLEDStripLightOutput : public light::AddressableLight {
