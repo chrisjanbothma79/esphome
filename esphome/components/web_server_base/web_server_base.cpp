@@ -67,6 +67,7 @@ void OTARequestHandler::schedule_ota_reboot_() {
 void OTARequestHandler::ota_init_(const char *filename) {
   ESP_LOGI(TAG, "OTA Update Start: %s", filename);
   this->ota_read_length_ = 0;
+  this->ota_success_ = false;
 }
 
 void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const String &filename, size_t index,
@@ -140,8 +141,15 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 
   // Finalize
   if (final) {
+    ESP_LOGD(TAG, "OTA final chunk: index=%u, len=%u, total_read=%u, contentLength=%u", index, len,
+             this->ota_read_length_, request->contentLength());
+
+    // For Arduino framework, the Update library tracks expected size from firmware header
+    // If we haven't received enough data, calling end() will fail
+    // This can happen if the upload is interrupted or the client disconnects
     error_code = this->ota_backend_->end();
     if (error_code == ota_base::OTA_RESPONSE_OK) {
+      this->ota_success_ = true;
 #ifdef USE_OTA_STATE_CALLBACK
       // Report completion before reboot - use call_deferred since we're in web server task
       this->parent_->state_callback_.call_deferred(ota_base::OTA_COMPLETED, 100.0f, 0);
@@ -159,8 +167,9 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 
 void OTARequestHandler::handleRequest(AsyncWebServerRequest *request) {
   AsyncWebServerResponse *response;
-  // Send response based on whether backend still exists (error) or was reset (success)
-  response = request->beginResponse(200, "text/plain", !this->ota_backend_ ? "Update Successful!" : "Update Failed!");
+  // Use the ota_success_ flag to determine the actual result
+  const char *msg = this->ota_success_ ? "Update Successful!" : "Update Failed!";
+  response = request->beginResponse(200, "text/plain", msg);
   response->addHeader("Connection", "close");
   request->send(response);
 }

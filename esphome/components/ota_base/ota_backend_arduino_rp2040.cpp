@@ -43,7 +43,10 @@ OTAResponseTypes ArduinoRP2040OTABackend::begin(size_t image_size) {
   return OTA_RESPONSE_ERROR_UNKNOWN;
 }
 
-void ArduinoRP2040OTABackend::set_update_md5(const char *md5) { Update.setMD5(md5); }
+void ArduinoRP2040OTABackend::set_update_md5(const char *md5) {
+  Update.setMD5(md5);
+  this->md5_set_ = true;
+}
 
 OTAResponseTypes ArduinoRP2040OTABackend::write(uint8_t *data, size_t len) {
   size_t written = Update.write(data, len);
@@ -58,7 +61,9 @@ OTAResponseTypes ArduinoRP2040OTABackend::write(uint8_t *data, size_t len) {
 }
 
 OTAResponseTypes ArduinoRP2040OTABackend::end() {
-  if (Update.end()) {
+  // Use strict validation (false) when MD5 is set, lenient validation (true) when no MD5
+  // This matches the behavior of the old web_server OTA implementation
+  if (Update.end(!this->md5_set_)) {
     return OTA_RESPONSE_OK;
   }
 

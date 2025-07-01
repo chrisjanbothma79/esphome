@@ -159,6 +159,7 @@ class OTARequestHandler : public AsyncWebHandler {
   uint32_t last_ota_progress_{0};
   uint32_t ota_read_length_{0};
   WebServerBase *parent_;
+  bool ota_success_{false};
 
  private:
   std::unique_ptr<ota_base::OTABackend> ota_backend_{nullptr};
