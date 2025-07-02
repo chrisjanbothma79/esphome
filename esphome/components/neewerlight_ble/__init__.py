@@ -3,7 +3,7 @@ from esphome.components import esp32_ble_tracker
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
-DEPENDENCIES = ["esp32_ble_tracker"]
+AUTO_LOAD = ["esp32_ble_tracker"]
 CODEOWNERS = ["@litui", "@khvMX"]
 
 neewerlight_ble_ns = cg.esphome_ns.namespace("neewerlight_ble")
