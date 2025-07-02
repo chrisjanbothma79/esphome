@@ -2,6 +2,8 @@
 // See script/api_protobuf/api_protobuf.py
 #pragma once
 
+#include "esphome/core/defines.h"
+
 #include "proto.h"
 #include "api_pb2_size.h"
 #ifdef HAS_PROTO_MESSAGE_DUMP

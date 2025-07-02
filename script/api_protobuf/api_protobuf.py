@@ -1340,6 +1340,8 @@ def main() -> None:
     content += """\
 #pragma once
 
+#include "esphome/core/defines.h"
+
 #include "proto.h"
 #include "api_pb2_size.h"
 #ifdef HAS_PROTO_MESSAGE_DUMP
