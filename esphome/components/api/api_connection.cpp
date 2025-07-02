@@ -159,20 +159,19 @@ void APIConnection::loop() {
     this->process_batch_();
   }
 
-  if (this->flags_.sending_initial_states) {
-    if (!this->list_entities_iterator_.completed()) {
-      this->process_iterator_batch(this->list_entities_iterator_);
-    } else if (!this->initial_state_iterator_.completed()) {
-      this->process_iterator_batch(this->initial_state_iterator_);
+  if (!this->list_entities_iterator_.completed()) {
+    this->process_iterator_batch(this->list_entities_iterator_);
+  } else if (this->flags_.sending_initial_states && !this->initial_state_iterator_.completed()) {
+    this->process_iterator_batch(this->initial_state_iterator_);
 
-      // If we've completed initial states, clear the flag to enable immediate sending
-      if (this->initial_state_iterator_.completed()) {
-        // Process any remaining batched messages immediately
-        if (!this->deferred_batch_.empty()) {
-          this->process_batch_();
-        }
-        this->flags_.sending_initial_states = false;
+    // If we've completed initial states, process any remaining and clear the flag
+    if (this->initial_state_iterator_.completed()) {
+      // Process any remaining batched messages immediately
+      if (!this->deferred_batch_.empty()) {
+        this->process_batch_();
       }
+      // Now that everything is sent, enable immediate sending for future state changes
+      this->flags_.sending_initial_states = false;
     }
   }
 
