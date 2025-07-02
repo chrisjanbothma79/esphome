@@ -277,6 +277,7 @@ TIME_SCHEMA = cv.Schema(
             bk72xx=detect_tz,
             rtl87xx=detect_tz,
             ln882x=detect_tz,
+            host=detect_tz,
         ): cv.All(
             cv.only_with_framework(["arduino", "esp-idf", "host"]),
             validate_tz,
