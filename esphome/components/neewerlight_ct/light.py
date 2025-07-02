@@ -9,7 +9,8 @@ from esphome.const import (
     CONF_WARM_WHITE_COLOR_TEMPERATURE,
 )
 
-AUTO_LOAD = ["color_temperature", "output"]
+AUTO_LOAD = ["color_temperature", "esp32_ble_tracker", "output"]
+CODEOWNERS = ["@khvMX"]
 DEPENDENCIES = ["ble_client"]
 IS_PLATFORM_COMPONENT = True
 
