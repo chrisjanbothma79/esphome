@@ -1134,6 +1134,32 @@ class MemoryAnalyzer:
 
         # Check for esphome core namespace (no component namespace)
         if "esphome::" in demangled:
+            # Check for special component classes that include component name in the class
+            # For example: esphome::ESPHomeOTAComponent -> ota component
+            for component_name in ESPHOME_COMPONENTS:
+                # Check various naming patterns
+                component_upper = component_name.upper()
+                component_camel = component_name.replace("_", "").title()
+                patterns = [
+                    f"esphome::{component_upper}",  # e.g., esphome::OTA
+                    f"esphome::ESPHome{component_upper}",  # e.g., esphome::ESPHomeOTA
+                    f"esphome::{component_camel}",  # e.g., esphome::Ota
+                    f"esphome::ESPHome{component_camel}",  # e.g., esphome::ESPHomeOta
+                ]
+
+                # Special handling for specific components
+                if component_name == "ota":
+                    patterns.extend(
+                        [
+                            "esphome::ESPHomeOTAComponent",
+                            "esphome::OTAComponent",
+                        ]
+                    )
+
+                if any(pattern in demangled for pattern in patterns):
+                    return f"[esphome]{component_name}"
+
+            # If no component match found, it's core
             return "[esphome]core"
 
         # Check against symbol patterns
