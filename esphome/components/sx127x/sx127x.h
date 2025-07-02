@@ -114,11 +114,11 @@ class SX127x : public Component,
   uint8_t shaping_;
   uint8_t spreading_factor_;
   float rx_floor_;
-  bool auto_cal_;
-  bool bitsync_;
-  bool crc_enable_;
-  bool packet_mode_;
-  bool rx_start_;
+  bool auto_cal_{false};
+  bool bitsync_{false};
+  bool crc_enable_{false};
+  bool packet_mode_{false};
+  bool rx_start_{false};
 };
 
 }  // namespace sx127x
