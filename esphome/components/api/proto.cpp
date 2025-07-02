@@ -70,20 +70,6 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         i += 4;
         break;
       }
-      case 1: {  // 64-bit
-        if (length - i < 8) {
-          ESP_LOGV(TAG, "Out-of-bounds Fixed64-bit at %" PRIu32, i);
-          error = true;
-          break;
-        }
-        uint64_t val = encode_uint64(buffer[i + 7], buffer[i + 6], buffer[i + 5], buffer[i + 4], buffer[i + 3],
-                                     buffer[i + 2], buffer[i + 1], buffer[i]);
-        if (!this->decode_64bit(field_id, Proto64Bit(val))) {
-          ESP_LOGV(TAG, "Cannot decode 64-bit field %" PRIu32 " with value %" PRIu64 "!", field_id, val);
-        }
-        i += 8;
-        break;
-      }
       default:
         ESP_LOGV(TAG, "Invalid field type at %" PRIu32, i);
         error = true;
