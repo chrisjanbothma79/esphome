@@ -109,6 +109,7 @@ def add_extra_script(stage: str, filename: str, path: str):
 def zephyr_to_code(config):
     cg.add(zephyr_ns.setup_preferences())
     cg.add_build_flag("-DUSE_ZEPHYR")
+    cg.set_cpp_standard("gnu++20")
     # build is done by west so bypass board checking in platformio
     cg.add_platformio_option("boards_dir", CORE.relative_build_path("boards"))
 
@@ -117,6 +118,7 @@ def zephyr_to_code(config):
     zephyr_add_prj_conf("CONFIG_FPU", True)
     zephyr_add_prj_conf("NEWLIB_LIBC_FLOAT_PRINTF", True)
     zephyr_add_prj_conf("CPLUSPLUS", True)
+    zephyr_add_prj_conf("CONFIG_STD_CPP20", True)
     zephyr_add_prj_conf("LIB_CPLUSPLUS", True)
     # preferences
     zephyr_add_prj_conf("SETTINGS", True)
