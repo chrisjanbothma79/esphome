@@ -1,5 +1,5 @@
 import os
-from typing import Final, TypedDict, Union
+from typing import Final, TypedDict
 
 import esphome.codegen as cg
 from esphome.const import CONF_BOARD
@@ -21,7 +21,7 @@ CODEOWNERS = ["@tomaszduda23"]
 AUTO_LOAD = ["preferences"]
 KEY_BOARD: Final = "board"
 
-PrjConfValueType = Union[bool, str, int]
+PrjConfValueType = bool | str | int
 
 
 class Section:
