@@ -52,9 +52,6 @@ COMPONENT_PATTERNS = {
     "esp32_ble": re.compile(r"esphome::esp32_ble::"),
     "esp32_ble_tracker": re.compile(r"esphome::esp32_ble_tracker::"),
     "ethernet": re.compile(r"esphome::ethernet::"),
-    "core": re.compile(
-        r"esphome::(?!api::|wifi::|mqtt::|web_server::|sensor::|binary_sensor::|switch_::|light::|cover::|climate::|fan::|display::|logger::|ota::|time::|sun::|text_sensor::|script::|interval::|json::|network::|mdns::|i2c::|spi::|uart::|dallas::|dht::|adc::|pwm::|ledc::|gpio::|esp32::|esp8266::|remote_|rf_bridge::|captive_portal::|deep_sleep::|bluetooth_proxy::|esp32_ble::|esp32_ble_tracker::|ethernet::)"
-    ),
 }
 
 
@@ -260,10 +257,16 @@ class MemoryAnalyzer:
         # Demangle C++ names if needed
         demangled = self._demangle_symbol(symbol_name)
 
-        # Check against component patterns
+        # Check against specific component patterns first (skip 'core')
         for component, pattern in COMPONENT_PATTERNS.items():
+            if component == "core":
+                continue
             if pattern.search(demangled):
                 return f"[esphome]{component}"
+
+        # Check for esphome core namespace last
+        if "esphome::" in demangled:
+            return "[esphome]core"
 
         # Check for web server related code
         if (
@@ -540,10 +543,20 @@ class MemoryAnalyzer:
         if not symbols:
             return
 
+        # Try to find the appropriate c++filt for the platform
+        cppfilt_cmd = "c++filt"
+
+        # Check if we have a toolchain-specific c++filt
+        if self.objdump_path and self.objdump_path != "objdump":
+            # Replace objdump with c++filt in the path
+            potential_cppfilt = self.objdump_path.replace("objdump", "c++filt")
+            if Path(potential_cppfilt).exists():
+                cppfilt_cmd = potential_cppfilt
+
         try:
             # Send all symbols to c++filt at once
             result = subprocess.run(
-                ["c++filt"],
+                [cppfilt_cmd],
                 input="\n".join(symbols),
                 capture_output=True,
                 text=True,
