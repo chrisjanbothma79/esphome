@@ -47,6 +47,7 @@ void RealTimeClock::synchronize_epoch_(uint32_t epoch) {
     // while ESP32 expects it not to be NULL
     ret = settimeofday(&timev, nullptr);
   }
+
 #ifdef USE_TIME_TIMEZONE
   // Move timezone back to local timezone.
   this->apply_timezone_();
