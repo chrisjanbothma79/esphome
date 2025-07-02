@@ -1968,7 +1968,6 @@ class BluetoothGATTGetServicesRequest : public ProtoMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-#endif
 class BluetoothGATTDescriptor : public ProtoMessage {
  public:
   std::vector<uint64_t> uuid{};
@@ -1998,7 +1997,6 @@ class BluetoothGATTCharacteristic : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-#ifdef USE_BLUETOOTH_PROXY
 class BluetoothGATTService : public ProtoMessage {
  public:
   std::vector<uint64_t> uuid{};

@@ -4087,7 +4087,6 @@ void BluetoothGATTGetServicesRequest::encode(ProtoWriteBuffer buffer) const { bu
 void BluetoothGATTGetServicesRequest::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint64_field(total_size, 1, this->address, false);
 }
-#endif
 bool BluetoothGATTDescriptor::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {
@@ -4164,7 +4163,6 @@ void BluetoothGATTCharacteristic::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint32_field(total_size, 1, this->properties, false);
   ProtoSize::add_repeated_message(total_size, 1, this->descriptors);
 }
-#ifdef USE_BLUETOOTH_PROXY
 bool BluetoothGATTService::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {

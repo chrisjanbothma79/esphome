@@ -2952,7 +2952,6 @@ void BluetoothGATTGetServicesRequest::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-#endif
 void BluetoothGATTDescriptor::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTDescriptor {\n");
@@ -2996,7 +2995,6 @@ void BluetoothGATTCharacteristic::dump_to(std::string &out) const {
   }
   out.append("}");
 }
-#ifdef USE_BLUETOOTH_PROXY
 void BluetoothGATTService::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTService {\n");

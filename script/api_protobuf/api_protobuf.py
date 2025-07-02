@@ -881,6 +881,34 @@ def build_type_usage_map(
         else:
             message_ifdef_map[message.name] = None
 
+    # Second pass: propagate ifdefs recursively
+    # Keep iterating until no more changes are made
+    changed = True
+    iterations = 0
+    while changed and iterations < 10:  # Add safety limit
+        changed = False
+        iterations += 1
+        for message in file_desc.message_type:
+            # Skip if already has an ifdef
+            if message_ifdef_map.get(message.name):
+                continue
+
+            # Check if this message is used by other messages
+            if message.name not in message_usage:
+                continue
+
+            # Get ifdefs from all messages that use this one
+            parent_ifdefs: set[str] = {
+                message_ifdef_map.get(parent)
+                for parent in message_usage[message.name]
+                if message_ifdef_map.get(parent)
+            }
+
+            # If all parents have the same ifdef, inherit it
+            if len(parent_ifdefs) == 1 and None not in parent_ifdefs:
+                message_ifdef_map[message.name] = parent_ifdefs.pop()
+                changed = True
+
     return enum_ifdef_map, message_ifdef_map
 
 
