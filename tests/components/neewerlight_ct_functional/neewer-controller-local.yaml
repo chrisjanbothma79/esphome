@@ -1,0 +1,10 @@
+<<: !include common.yaml
+
+external_components:
+  - source:
+      type: local
+      path: ../../../esphome/components
+    components: [
+      # neewerlight_ble,
+      neewerlight_ct,
+    ]

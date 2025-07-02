@@ -1,0 +1,49 @@
+esphome:
+  name: neewer-lights-controller
+  friendly_name: neewer-lights-controller
+
+esp32:
+  board: mhetesp32devkit
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  level: VERBOSE
+  logs:
+    esp32_ble: DEBUG
+    esp32_ble_tracker: DEBUG
+    neewerlight_ct.component: VERBOSE
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "+saah5KWSak2N4nOJbbmxXs6dHQ5acof2mahMDEGs0A="
+
+ota:
+  - platform: esphome
+    password: "96f3250e52b532a4b44c9c4c97572457"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Neewer-Lights-Controller"
+    password: "80wiHOwz0Pk7"
+
+captive_portal:
+
+# neewerlight_ble:
+
+ble_client:
+  - mac_address: E3:93:C7:A3:D9:51
+    id: nw_cb60_ble1
+
+light:
+  - platform: neewerlight_ct
+    name: "Neewer CB60B Light"
+    ble_client_id: nw_cb60_ble1
+    cold_white_color_temperature: 6500 K
+    warm_white_color_temperature: 2700 K
