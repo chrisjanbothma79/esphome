@@ -22,7 +22,7 @@ static const int CHECK_ATTEMPTS = 6u;
 static const int MARK_FAIL_AFTER = 5;
 
 void XDB401Component::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up XDB401...");
+  ESP_LOGCONFIG(TAG, "Running setup");
 
   float temperature;
   float pressure;
