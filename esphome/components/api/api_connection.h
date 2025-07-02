@@ -630,6 +630,20 @@ class APIConnection : public APIServerConnection {
   void process_batch_();
 
 #ifdef HAS_PROTO_MESSAGE_DUMP
+  // Helper to log a proto message by calling its creator in log-only mode
+  void log_proto_message_(EntityBase *entity, MessageCreatorPtr creator, uint16_t message_type) {
+    this->flags_.log_only_mode = true;
+    creator(entity, this, MAX_PACKET_SIZE, true);
+    this->flags_.log_only_mode = false;
+  }
+
+  // Helper to log a proto message from a MessageCreator object
+  void log_proto_message_(EntityBase *entity, const MessageCreator &creator, uint16_t message_type) {
+    this->flags_.log_only_mode = true;
+    creator(entity, this, MAX_PACKET_SIZE, true, message_type);
+    this->flags_.log_only_mode = false;
+  }
+
   void log_batch_item_(const DeferredBatch::BatchItem &item);
 #endif
 
@@ -638,13 +652,17 @@ class APIConnection : public APIServerConnection {
     // Try to send immediately if:
     // 1. We're not sending initial states (sending_initial_states = false)
     // 2. Buffer has space available
-    if (!this->flags_.sending_initial_states && this->helper_->can_write_without_blocking() &&
-        creator(entity, this, MAX_PACKET_SIZE, true) &&
-        this->send_buffer(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, message_type)) {
-      // Call the creator function with is_single=true to encode the message
-      // This will call allocate_single_message_buffer which clears the buffer
-      // Sent the buffer
-      return true;
+    if (!this->flags_.sending_initial_states && this->helper_->can_write_without_blocking()) {
+#ifdef HAS_PROTO_MESSAGE_DUMP
+      // Log the message in verbose mode
+      this->log_proto_message_(entity, creator, message_type);
+#endif
+
+      // Now actually encode and send
+      if (creator(entity, this, MAX_PACKET_SIZE, true) &&
+          this->send_buffer(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, message_type)) {
+        return true;
+      }
       // If immediate send failed, fall through to batching
     }
 

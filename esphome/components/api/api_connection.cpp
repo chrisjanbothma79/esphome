@@ -92,14 +92,8 @@ APIConnection::~APIConnection() {
 
 #ifdef HAS_PROTO_MESSAGE_DUMP
 void APIConnection::log_batch_item_(const DeferredBatch::BatchItem &item) {
-  // Set log-only mode
-  this->flags_.log_only_mode = true;
-
-  // Call the creator - it will create the message and log it via encode_message_to_buffer
-  item.creator(item.entity, this, std::numeric_limits<uint16_t>::max(), true, item.message_type);
-
-  // Clear log-only mode
-  this->flags_.log_only_mode = false;
+  // Use the helper to log the message
+  this->log_proto_message_(item.entity, item.creator, item.message_type);
 }
 #endif
 
@@ -1754,6 +1748,11 @@ void APIConnection::process_batch_() {
 
     if (payload_size > 0 &&
         this->send_buffer(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, item.message_type)) {
+#ifdef HAS_PROTO_MESSAGE_DUMP
+      // Log messages after send attempt for VV debugging
+      // It's safe to use the buffer for logging at this point regardless of send result
+      this->log_batch_item_(item);
+#endif
       this->deferred_batch_.clear();
     } else if (payload_size == 0) {
       // Message too large
