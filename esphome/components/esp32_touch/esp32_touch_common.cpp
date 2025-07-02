@@ -116,12 +116,11 @@ bool ESP32TouchComponent::should_check_for_releases_(uint32_t now) {
 }
 
 void ESP32TouchComponent::publish_initial_state_if_needed_(ESP32TouchBinarySensor *child, uint32_t now) {
-  touch_pad_t pad = child->get_touch_pad();
-  if (!this->initial_state_published_[pad]) {
+  if (!child->initial_state_published_) {
     // Check if enough time has passed since startup
     if (now > this->release_timeout_ms_) {
       child->publish_initial_state(false);
-      this->initial_state_published_[pad] = true;
+      child->initial_state_published_ = true;
       ESP_LOGV(TAG, "Touch Pad '%s' state: OFF (initial)", child->get_name().c_str());
     }
   }

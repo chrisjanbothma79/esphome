@@ -93,7 +93,6 @@ class ESP32TouchComponent : public Component {
   uint32_t last_release_check_{0};
   uint32_t release_timeout_ms_{1500};
   uint32_t release_check_interval_ms_{50};
-  bool initial_state_published_[TOUCH_PAD_MAX] = {false};
 
   // Common configuration parameters
   uint16_t sleep_cycle_{4095};
@@ -260,6 +259,7 @@ class ESP32TouchBinarySensor : public binary_sensor::BinarySensor {
   // 4. Queue operations provide implicit memory barriers
   // Using atomic/critical sections would add overhead without meaningful benefit
   uint32_t last_touch_time_{};
+  bool initial_state_published_{};
 };
 
 }  // namespace esp32_touch
