@@ -132,12 +132,12 @@ class SEN5XComponent : public PollingComponent, public sensirion_common::Sensiri
   void internal_setup_(SetupStates state);
   bool start_measurements_();
   bool stop_measurements_();
-  std::string convert_to_string_(const uint16_t array[], uint8_t length);
+  // std::string convert_to_string_(const uint16_t array[], uint8_t length);
   bool write_tuning_parameters_(uint16_t i2c_command, const GasTuning &tuning);
   bool write_temperature_compensation_(const TemperatureCompensation &compensation);
   bool update_co2_ambient_pressure_compensation_(uint16_t pressure_in_hpa);
-  const char *model_to_str_(Sen5xType model);
-  Sen5xType str_to_model_(const char *product_name);
+  // const char *model_to_str_(Sen5xType model);
+  // Sen5xType str_to_model_(const char *product_name);
   ERRORCODE error_code_;
   bool initialized_{false};
   bool running_{false};

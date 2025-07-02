@@ -57,6 +57,59 @@ static const int8_t SEN5X_INDEX_SCALE_FACTOR = 10;                            //
 static const int8_t SEN5X_MIN_INDEX_VALUE = 1 * SEN5X_INDEX_SCALE_FACTOR;     // must be adjusted by the scale factor
 static const int16_t SEN5X_MAX_INDEX_VALUE = 500 * SEN5X_INDEX_SCALE_FACTOR;  // must be adjusted by the scale factor
 
+static inline const char *model_to_str_(Sen5xType model) {
+  switch (model) {
+    case SEN50:
+      return "SEN50";
+    case SEN54:
+      return "SEN54";
+    case SEN55:
+      return "SEN55";
+    case SEN60:
+      return "SEN60";
+    case SEN63C:
+      return "SEN63C";
+    case SEN65:
+      return "SEN65";
+    case SEN66:
+      return "SEN66";
+    case SEN68:
+      return "SEN68";
+    default:
+      return "UNKNOWN MODEL";
+  }
+}
+
+static inline Sen5xType str_to_model_(std::string product_name) {
+  if (product_name == "SEN50") {
+    return SEN50;
+  } else if (product_name == "SEN54") {
+    return SEN54;
+  } else if (product_name == "SEN55") {
+    return SEN55;
+  } else if (product_name == "SEN60") {
+    return SEN60;
+  } else if (product_name == "SEN63C") {
+    return SEN63C;
+  } else if (product_name == "SEN65") {
+    return SEN65;
+  } else if (product_name == "SEN66") {
+    return SEN66;
+  } else if (product_name == "SEN68") {
+    return SEN68;
+  } else {
+    return UNKNOWN_MODEL;
+  }
+}
+
+static inline std::string convert_to_string_(uint16_t array[], uint8_t length) {
+  for (int i = 0; i < length; i++) {
+    array[i] = byteswap(array[i]);
+  }
+  std::string new_string = reinterpret_cast<const char *>(array);
+  return new_string;
+}
+
 void SEN5XComponent::setup() { this->internal_setup_(SM_START_1); }
 
 void SEN5XComponent::internal_setup_(SetupStates state) {
@@ -139,7 +192,7 @@ void SEN5XComponent::internal_setup_(SetupStates state) {
         }
       } else if (!this->model_.has_value()) {
         // model is not defined, get it from product name
-        this->model_.value() = str_to_model_(this->product_name_.c_str());
+        this->model_.value() = str_to_model_(this->product_name_);
         if (this->model_.value() == UNKNOWN_MODEL) {
           ESP_LOGE(TAG, "Product Name from sensor is not a known sensor");
           this->error_code_ = PRODUCT_NAME_FAILED;
@@ -715,26 +768,6 @@ bool SEN5XComponent::stop_measurements_() {
   return result;
 }
 
-std::string SEN5XComponent::convert_to_string_(const uint16_t array[], uint8_t length) {
-  std::string new_string;
-  const uint16_t *current_int = array;
-  char current_char;
-  // 2 ASCII bytes are encoded in an int
-  do {
-    // first char
-    current_char = *current_int >> 8;
-    if (current_char) {
-      new_string.push_back(current_char);
-      // second char
-      current_char = *current_int & 0xFF;
-      if (current_char) {
-        new_string.push_back(current_char);
-      }
-    }
-    current_int++;
-  } while (current_char && --length);
-  return new_string;
-}
 bool SEN5XComponent::write_tuning_parameters_(uint16_t i2c_command, const GasTuning &tuning) {
   uint16_t params[6];
   params[0] = tuning.index_offset;
@@ -803,50 +836,6 @@ bool SEN5XComponent::is_sen6x_() {
       return true;
     default:
       return false;
-  }
-}
-const char *SEN5XComponent::model_to_str_(Sen5xType model) {
-  switch (model) {
-    case SEN50:
-      return "SEN50";
-    case SEN54:
-      return "SEN54";
-    case SEN55:
-      return "SEN55";
-    case SEN60:
-      return "SEN60";
-    case SEN63C:
-      return "SEN63C";
-    case SEN65:
-      return "SEN65";
-    case SEN66:
-      return "SEN66";
-    case SEN68:
-      return "SEN68";
-    default:
-      return "UNKNOWN MODEL";
-  }
-}
-
-Sen5xType SEN5XComponent::str_to_model_(const char *product_name) {
-  if (strcmp(product_name, "SEN50") == 0) {
-    return SEN50;
-  } else if (strcmp(product_name, "SEN54") == 0) {
-    return SEN54;
-  } else if (strcmp(product_name, "SEN55") == 0) {
-    return SEN55;
-  } else if (strcmp(product_name, "SEN60") == 0) {
-    return SEN60;
-  } else if (strcmp(product_name, "SEN63C") == 0) {
-    return SEN63C;
-  } else if (strcmp(product_name, "SEN65") == 0) {
-    return SEN65;
-  } else if (strcmp(product_name, "SEN66") == 0) {
-    return SEN66;
-  } else if (strcmp(product_name, "SEN68") == 0) {
-    return SEN68;
-  } else {
-    return UNKNOWN_MODEL;
   }
 }
 
