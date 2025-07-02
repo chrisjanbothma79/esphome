@@ -299,7 +299,7 @@ class APIConnection : public APIServerConnection {
                                            uint32_t remaining_size, bool is_single);
 
   // Helper method to process multiple entities from an iterator in a batch
-  template<typename Iterator> void process_iterator_batch(Iterator &iterator) {
+  template<typename Iterator> void process_iterator_batch_(Iterator &iterator) {
     size_t initial_size = this->deferred_batch_.size();
     while (!iterator.completed() && (this->deferred_batch_.size() - initial_size) < MAX_INITIAL_PER_BATCH) {
       iterator.advance();

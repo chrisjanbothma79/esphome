@@ -147,9 +147,9 @@ void APIConnection::loop() {
   }
 
   if (!this->list_entities_iterator_.completed()) {
-    this->process_iterator_batch(this->list_entities_iterator_);
+    this->process_iterator_batch_(this->list_entities_iterator_);
   } else if (!this->initial_state_iterator_.completed()) {
-    this->process_iterator_batch(this->initial_state_iterator_);
+    this->process_iterator_batch_(this->initial_state_iterator_);
 
     // If we've completed initial states, process any remaining and clear the flag
     if (this->initial_state_iterator_.completed()) {
