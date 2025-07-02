@@ -167,11 +167,11 @@ void APIConnection::loop() {
 
       // If we've completed initial states, clear the flag to enable immediate sending
       if (this->initial_state_iterator_.completed()) {
-        this->flags_.sending_initial_states = false;
         // Process any remaining batched messages immediately
         if (!this->deferred_batch_.empty()) {
           this->process_batch_();
         }
+        this->flags_.sending_initial_states = false;
       }
     }
   }

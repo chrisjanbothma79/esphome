@@ -19,9 +19,7 @@ namespace api {
 // Keepalive timeout in milliseconds
 static constexpr uint32_t KEEPALIVE_TIMEOUT_MS = 60000;
 // Maximum number of entities to process in a single batch during initial state/info sending
-static constexpr size_t MAX_INITIAL_ENTITIES_PER_BATCH = 20;
-// Maximum time to spend processing entities in a single loop iteration during initial sending (in milliseconds)
-static constexpr uint32_t MAX_INITIAL_ENTITY_PROCESSING_TIME_MS = 10;
+static constexpr size_t MAX_INITIAL_PER_BATCH = 20;
 
 class APIConnection : public APIServerConnection {
  public:
@@ -303,16 +301,15 @@ class APIConnection : public APIServerConnection {
 
   // Helper method to process multiple entities from an iterator in a batch
   template<typename Iterator> void process_iterator_batch(Iterator &iterator) {
-    const uint32_t start_time = millis();
-    size_t batch_size = this->deferred_batch_.size();
+    size_t initial_size = this->deferred_batch_.size();
 
-    while (!iterator.completed() && (millis() - start_time) < MAX_INITIAL_ENTITY_PROCESSING_TIME_MS &&
-           (this->deferred_batch_.size() - batch_size) < MAX_INITIAL_ENTITIES_PER_BATCH) {
+    while (!iterator.completed() && (this->deferred_batch_.size() - initial_size) < MAX_INITIAL_PER_BATCH) {
       iterator.advance();
     }
 
-    // If we've filled the batch, process it immediately
-    if ((this->deferred_batch_.size() - batch_size) >= MAX_INITIAL_ENTITIES_PER_BATCH) {
+    // If the batch is full, process it immediately
+    // Note: iterator.advance() already calls schedule_batch_() via schedule_message_()
+    if (this->deferred_batch_.size() >= MAX_INITIAL_PER_BATCH) {
       this->process_batch_();
     }
   }
