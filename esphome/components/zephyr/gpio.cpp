@@ -1,7 +1,7 @@
 #ifdef USE_ZEPHYR
 #include "gpio.h"
-#include "esphome/core/log.h"
 #include <zephyr/drivers/gpio.h>
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace zephyr {
@@ -51,7 +51,7 @@ void ZephyrGPIOPin::attach_interrupt(void (*func)(void *), void *arg, gpio::Inte
 
 void ZephyrGPIOPin::setup() {
   const struct device *gpio = nullptr;
-  if (pin_ < 32) {
+  if (this->pin_ < 32) {
 #define GPIO0 DT_NODELABEL(gpio0)
 #if DT_NODE_HAS_STATUS(GPIO0, okay)
     gpio = DEVICE_DT_GET(GPIO0);
@@ -67,12 +67,12 @@ void ZephyrGPIOPin::setup() {
 #endif
   }
   if (device_is_ready(gpio)) {
-    gpio_ = gpio;
+    this->gpio_ = gpio;
   } else {
-    ESP_LOGE(TAG, "gpio %u is not ready.", pin_);
+    ESP_LOGE(TAG, "gpio %u is not ready.", this->pin_);
     return;
   }
-  pin_mode(flags_);
+  this->pin_mode(this->flags_);
 }
 
 void ZephyrGPIOPin::pin_mode(gpio::Flags flags) {
