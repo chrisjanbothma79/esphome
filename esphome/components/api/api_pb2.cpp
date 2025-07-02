@@ -3493,7 +3493,7 @@ bool SubscribeLogsResponse::decode_length(uint32_t field_id, ProtoLengthDelimite
 }
 void SubscribeLogsResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum<enums::LogLevel>(1, this->level);
-  buffer.encode_string(3, this->message);
+  buffer.encode_bytes(3, reinterpret_cast<const uint8_t *>(this->message.data()), this->message.size());
   buffer.encode_bool(4, this->send_failed);
 }
 void SubscribeLogsResponse::calculate_size(uint32_t &total_size) const {
@@ -3529,7 +3529,9 @@ bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthD
       return false;
   }
 }
-void NoiseEncryptionSetKeyRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_string(1, this->key); }
+void NoiseEncryptionSetKeyRequest::encode(ProtoWriteBuffer buffer) const {
+  buffer.encode_bytes(1, reinterpret_cast<const uint8_t *>(this->key.data()), this->key.size());
+}
 void NoiseEncryptionSetKeyRequest::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->key, false);
 }
@@ -4266,7 +4268,7 @@ bool CameraImageResponse::decode_32bit(uint32_t field_id, Proto32Bit value) {
 }
 void CameraImageResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
-  buffer.encode_string(2, this->data);
+  buffer.encode_bytes(2, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
   buffer.encode_bool(3, this->done);
 }
 void CameraImageResponse::calculate_size(uint32_t &total_size) const {
@@ -6784,7 +6786,7 @@ void BluetoothServiceData::encode(ProtoWriteBuffer buffer) const {
   for (auto &it : this->legacy_data) {
     buffer.encode_uint32(2, it, true);
   }
-  buffer.encode_string(3, this->data);
+  buffer.encode_bytes(3, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
 }
 void BluetoothServiceData::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->uuid, false);
@@ -6858,7 +6860,7 @@ bool BluetoothLEAdvertisementResponse::decode_length(uint32_t field_id, ProtoLen
 }
 void BluetoothLEAdvertisementResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
-  buffer.encode_string(2, this->name);
+  buffer.encode_bytes(2, reinterpret_cast<const uint8_t *>(this->name.data()), this->name.size());
   buffer.encode_sint32(3, this->rssi);
   for (auto &it : this->service_uuids) {
     buffer.encode_string(4, it, true);
@@ -6959,7 +6961,7 @@ void BluetoothLERawAdvertisement::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
   buffer.encode_sint32(2, this->rssi);
   buffer.encode_uint32(3, this->address_type);
-  buffer.encode_string(4, this->data);
+  buffer.encode_bytes(4, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
 }
 void BluetoothLERawAdvertisement::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint64_field(total_size, 1, this->address, false);
@@ -7492,7 +7494,7 @@ bool BluetoothGATTReadResponse::decode_length(uint32_t field_id, ProtoLengthDeli
 void BluetoothGATTReadResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
   buffer.encode_uint32(2, this->handle);
-  buffer.encode_string(3, this->data);
+  buffer.encode_bytes(3, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
 }
 void BluetoothGATTReadResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint64_field(total_size, 1, this->address, false);
@@ -7551,7 +7553,7 @@ void BluetoothGATTWriteRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
   buffer.encode_uint32(2, this->handle);
   buffer.encode_bool(3, this->response);
-  buffer.encode_string(4, this->data);
+  buffer.encode_bytes(4, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
 }
 void BluetoothGATTWriteRequest::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint64_field(total_size, 1, this->address, false);
@@ -7648,7 +7650,7 @@ bool BluetoothGATTWriteDescriptorRequest::decode_length(uint32_t field_id, Proto
 void BluetoothGATTWriteDescriptorRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
   buffer.encode_uint32(2, this->handle);
-  buffer.encode_string(3, this->data);
+  buffer.encode_bytes(3, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
 }
 void BluetoothGATTWriteDescriptorRequest::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint64_field(total_size, 1, this->address, false);
@@ -7750,7 +7752,7 @@ bool BluetoothGATTNotifyDataResponse::decode_length(uint32_t field_id, ProtoLeng
 void BluetoothGATTNotifyDataResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
   buffer.encode_uint32(2, this->handle);
-  buffer.encode_string(3, this->data);
+  buffer.encode_bytes(3, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
 }
 void BluetoothGATTNotifyDataResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint64_field(total_size, 1, this->address, false);
@@ -8480,7 +8482,7 @@ bool VoiceAssistantAudio::decode_length(uint32_t field_id, ProtoLengthDelimited 
   }
 }
 void VoiceAssistantAudio::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_string(1, this->data);
+  buffer.encode_bytes(1, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
   buffer.encode_bool(2, this->end);
 }
 void VoiceAssistantAudio::calculate_size(uint32_t &total_size) const {
