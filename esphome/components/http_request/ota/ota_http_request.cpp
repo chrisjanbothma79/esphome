@@ -6,11 +6,11 @@
 
 #include "esphome/components/md5/md5.h"
 #include "esphome/components/watchdog/watchdog.h"
-#include "esphome/components/ota_base/ota_backend.h"
-#include "esphome/components/ota_base/ota_backend_arduino_esp32.h"
-#include "esphome/components/ota_base/ota_backend_arduino_esp8266.h"
-#include "esphome/components/ota_base/ota_backend_arduino_rp2040.h"
-#include "esphome/components/ota_base/ota_backend_esp_idf.h"
+#include "esphome/components/ota/ota_backend.h"
+#include "esphome/components/ota/ota_backend_arduino_esp32.h"
+#include "esphome/components/ota/ota_backend_arduino_esp8266.h"
+#include "esphome/components/ota/ota_backend_arduino_rp2040.h"
+#include "esphome/components/ota/ota_backend_esp_idf.h"
 
 namespace esphome {
 namespace http_request {
@@ -19,7 +19,7 @@ static const char *const TAG = "http_request.ota";
 
 void OtaHttpRequestComponent::setup() {
 #ifdef USE_OTA_STATE_CALLBACK
-  ota_base::register_ota_platform(this);
+  ota::register_ota_platform(this);
 #endif
 }
 
@@ -50,15 +50,15 @@ void OtaHttpRequestComponent::flash() {
 
   ESP_LOGI(TAG, "Starting update");
 #ifdef USE_OTA_STATE_CALLBACK
-  this->state_callback_.call(ota_base::OTA_STARTED, 0.0f, 0);
+  this->state_callback_.call(ota::OTA_STARTED, 0.0f, 0);
 #endif
 
   auto ota_status = this->do_ota_();
 
   switch (ota_status) {
-    case ota_base::OTA_RESPONSE_OK:
+    case ota::OTA_RESPONSE_OK:
 #ifdef USE_OTA_STATE_CALLBACK
-      this->state_callback_.call(ota_base::OTA_COMPLETED, 100.0f, ota_status);
+      this->state_callback_.call(ota::OTA_COMPLETED, 100.0f, ota_status);
 #endif
       delay(10);
       App.safe_reboot();
@@ -66,7 +66,7 @@ void OtaHttpRequestComponent::flash() {
 
     default:
 #ifdef USE_OTA_STATE_CALLBACK
-      this->state_callback_.call(ota_base::OTA_ERROR, 0.0f, ota_status);
+      this->state_callback_.call(ota::OTA_ERROR, 0.0f, ota_status);
 #endif
       this->md5_computed_.clear();  // will be reset at next attempt
       this->md5_expected_.clear();  // will be reset at next attempt
@@ -74,7 +74,7 @@ void OtaHttpRequestComponent::flash() {
   }
 }
 
-void OtaHttpRequestComponent::cleanup_(std::unique_ptr<ota_base::OTABackend> backend,
+void OtaHttpRequestComponent::cleanup_(std::unique_ptr<ota::OTABackend> backend,
                                        const std::shared_ptr<HttpContainer> &container) {
   if (this->update_started_) {
     ESP_LOGV(TAG, "Aborting OTA backend");
@@ -115,9 +115,9 @@ uint8_t OtaHttpRequestComponent::do_ota_() {
   ESP_LOGV(TAG, "MD5Digest initialized");
 
   ESP_LOGV(TAG, "OTA backend begin");
-  auto backend = ota_base::make_ota_backend();
+  auto backend = ota::make_ota_backend();
   auto error_code = backend->begin(container->content_length);
-  if (error_code != ota_base::OTA_RESPONSE_OK) {
+  if (error_code != ota::OTA_RESPONSE_OK) {
     ESP_LOGW(TAG, "backend->begin error: %d", error_code);
     this->cleanup_(std::move(backend), container);
     return error_code;
@@ -144,7 +144,7 @@ uint8_t OtaHttpRequestComponent::do_ota_() {
       // write bytes to OTA backend
       this->update_started_ = true;
       error_code = backend->write(buf, bufsize);
-      if (error_code != ota_base::OTA_RESPONSE_OK) {
+      if (error_code != ota::OTA_RESPONSE_OK) {
         // error code explanation available at
         // https://github.com/esphome/esphome/blob/dev/esphome/components/ota/ota_backend.h
         ESP_LOGE(TAG, "Error code (%02X) writing binary data to flash at offset %d and size %d", error_code,
@@ -160,7 +160,7 @@ uint8_t OtaHttpRequestComponent::do_ota_() {
       float percentage = container->get_bytes_read() * 100.0f / container->content_length;
       ESP_LOGD(TAG, "Progress: %0.1f%%", percentage);
 #ifdef USE_OTA_STATE_CALLBACK
-      this->state_callback_.call(ota_base::OTA_IN_PROGRESS, percentage, 0);
+      this->state_callback_.call(ota::OTA_IN_PROGRESS, percentage, 0);
 #endif
     }
   }  // while
@@ -174,7 +174,7 @@ uint8_t OtaHttpRequestComponent::do_ota_() {
   if (strncmp(this->md5_computed_.c_str(), this->md5_expected_.c_str(), MD5_SIZE) != 0) {
     ESP_LOGE(TAG, "MD5 computed: %s - Aborting due to MD5 mismatch", this->md5_computed_.c_str());
     this->cleanup_(std::move(backend), container);
-    return ota_base::OTA_RESPONSE_ERROR_MD5_MISMATCH;
+    return ota::OTA_RESPONSE_ERROR_MD5_MISMATCH;
   } else {
     backend->set_update_md5(md5_receive_str.get());
   }
@@ -187,14 +187,14 @@ uint8_t OtaHttpRequestComponent::do_ota_() {
   delay(100);  // NOLINT
 
   error_code = backend->end();
-  if (error_code != ota_base::OTA_RESPONSE_OK) {
+  if (error_code != ota::OTA_RESPONSE_OK) {
     ESP_LOGW(TAG, "Error ending update! error_code: %d", error_code);
     this->cleanup_(std::move(backend), container);
     return error_code;
   }
 
   ESP_LOGI(TAG, "Update complete");
-  return ota_base::OTA_RESPONSE_OK;
+  return ota::OTA_RESPONSE_OK;
 }
 
 std::string OtaHttpRequestComponent::get_url_with_auth_(const std::string &url) {

@@ -2,12 +2,12 @@
 #ifdef USE_OTA
 #include "esphome/components/md5/md5.h"
 #include "esphome/components/network/util.h"
-#include "esphome/components/ota_base/ota_backend.h"  // For OTAComponent and callbacks
-#include "esphome/components/ota_base/ota_backend_arduino_esp32.h"
-#include "esphome/components/ota_base/ota_backend_arduino_esp8266.h"
-#include "esphome/components/ota_base/ota_backend_arduino_libretiny.h"
-#include "esphome/components/ota_base/ota_backend_arduino_rp2040.h"
-#include "esphome/components/ota_base/ota_backend_esp_idf.h"
+#include "esphome/components/ota/ota_backend.h"
+#include "esphome/components/ota/ota_backend_arduino_esp32.h"
+#include "esphome/components/ota/ota_backend_arduino_esp8266.h"
+#include "esphome/components/ota/ota_backend_arduino_libretiny.h"
+#include "esphome/components/ota/ota_backend_arduino_rp2040.h"
+#include "esphome/components/ota/ota_backend_esp_idf.h"
 #include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
@@ -23,7 +23,7 @@ static constexpr u_int16_t OTA_BLOCK_SIZE = 8192;
 
 void ESPHomeOTAComponent::setup() {
 #ifdef USE_OTA_STATE_CALLBACK
-  ota_base::register_ota_platform(this);
+  ota::register_ota_platform(this);
 #endif
 
   this->server_ = socket::socket_ip_loop_monitored(SOCK_STREAM, 0);  // monitored for incoming connections
@@ -94,7 +94,7 @@ void ESPHomeOTAComponent::loop() {
 static const uint8_t FEATURE_SUPPORTS_COMPRESSION = 0x01;
 
 void ESPHomeOTAComponent::handle_() {
-  ota_base::OTAResponseTypes error_code = ota_base::OTA_RESPONSE_ERROR_UNKNOWN;
+  ota::OTAResponseTypes error_code = ota::OTA_RESPONSE_ERROR_UNKNOWN;
   bool update_started = false;
   size_t total = 0;
   uint32_t last_progress = 0;
@@ -102,7 +102,7 @@ void ESPHomeOTAComponent::handle_() {
   char *sbuf = reinterpret_cast<char *>(buf);
   size_t ota_size;
   uint8_t ota_features;
-  std::unique_ptr<ota_base::OTABackend> backend;
+  std::unique_ptr<ota::OTABackend> backend;
   (void) ota_features;
 #if USE_OTA_VERSION == 2
   size_t size_acknowledged = 0;
@@ -129,7 +129,7 @@ void ESPHomeOTAComponent::handle_() {
   ESP_LOGD(TAG, "Starting update from %s", this->client_->getpeername().c_str());
   this->status_set_warning();
 #ifdef USE_OTA_STATE_CALLBACK
-  this->state_callback_.call(ota_base::OTA_STARTED, 0.0f, 0);
+  this->state_callback_.call(ota::OTA_STARTED, 0.0f, 0);
 #endif
 
   if (!this->readall_(buf, 5)) {
@@ -140,16 +140,16 @@ void ESPHomeOTAComponent::handle_() {
   if (buf[0] != 0x6C || buf[1] != 0x26 || buf[2] != 0xF7 || buf[3] != 0x5C || buf[4] != 0x45) {
     ESP_LOGW(TAG, "Magic bytes do not match! 0x%02X-0x%02X-0x%02X-0x%02X-0x%02X", buf[0], buf[1], buf[2], buf[3],
              buf[4]);
-    error_code = ota_base::OTA_RESPONSE_ERROR_MAGIC;
+    error_code = ota::OTA_RESPONSE_ERROR_MAGIC;
     goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
   }
 
   // Send OK and version - 2 bytes
-  buf[0] = ota_base::OTA_RESPONSE_OK;
+  buf[0] = ota::OTA_RESPONSE_OK;
   buf[1] = USE_OTA_VERSION;
   this->writeall_(buf, 2);
 
-  backend = ota_base::make_ota_backend();
+  backend = ota::make_ota_backend();
 
   // Read features - 1 byte
   if (!this->readall_(buf, 1)) {
@@ -160,16 +160,16 @@ void ESPHomeOTAComponent::handle_() {
   ESP_LOGV(TAG, "Features: 0x%02X", ota_features);
 
   // Acknowledge header - 1 byte
-  buf[0] = ota_base::OTA_RESPONSE_HEADER_OK;
+  buf[0] = ota::OTA_RESPONSE_HEADER_OK;
   if ((ota_features & FEATURE_SUPPORTS_COMPRESSION) != 0 && backend->supports_compression()) {
-    buf[0] = ota_base::OTA_RESPONSE_SUPPORTS_COMPRESSION;
+    buf[0] = ota::OTA_RESPONSE_SUPPORTS_COMPRESSION;
   }
 
   this->writeall_(buf, 1);
 
 #ifdef USE_OTA_PASSWORD
   if (!this->password_.empty()) {
-    buf[0] = ota_base::OTA_RESPONSE_REQUEST_AUTH;
+    buf[0] = ota::OTA_RESPONSE_REQUEST_AUTH;
     this->writeall_(buf, 1);
     md5::MD5Digest md5{};
     md5.init();
@@ -220,14 +220,14 @@ void ESPHomeOTAComponent::handle_() {
 
     if (!matches) {
       ESP_LOGW(TAG, "Auth failed! Passwords do not match");
-      error_code = ota_base::OTA_RESPONSE_ERROR_AUTH_INVALID;
+      error_code = ota::OTA_RESPONSE_ERROR_AUTH_INVALID;
       goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
     }
   }
 #endif  // USE_OTA_PASSWORD
 
   // Acknowledge auth OK - 1 byte
-  buf[0] = ota_base::OTA_RESPONSE_AUTH_OK;
+  buf[0] = ota::OTA_RESPONSE_AUTH_OK;
   this->writeall_(buf, 1);
 
   // Read size, 4 bytes MSB first
@@ -243,12 +243,12 @@ void ESPHomeOTAComponent::handle_() {
   ESP_LOGV(TAG, "Size is %u bytes", ota_size);
 
   error_code = backend->begin(ota_size);
-  if (error_code != ota_base::OTA_RESPONSE_OK)
+  if (error_code != ota::OTA_RESPONSE_OK)
     goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
   update_started = true;
 
   // Acknowledge prepare OK - 1 byte
-  buf[0] = ota_base::OTA_RESPONSE_UPDATE_PREPARE_OK;
+  buf[0] = ota::OTA_RESPONSE_UPDATE_PREPARE_OK;
   this->writeall_(buf, 1);
 
   // Read binary MD5, 32 bytes
@@ -261,7 +261,7 @@ void ESPHomeOTAComponent::handle_() {
   backend->set_update_md5(sbuf);
 
   // Acknowledge MD5 OK - 1 byte
-  buf[0] = ota_base::OTA_RESPONSE_BIN_MD5_OK;
+  buf[0] = ota::OTA_RESPONSE_BIN_MD5_OK;
   this->writeall_(buf, 1);
 
   while (total < ota_size) {
@@ -285,14 +285,14 @@ void ESPHomeOTAComponent::handle_() {
     }
 
     error_code = backend->write(buf, read);
-    if (error_code != ota_base::OTA_RESPONSE_OK) {
+    if (error_code != ota::OTA_RESPONSE_OK) {
       ESP_LOGW(TAG, "Error writing binary data to flash!, error_code: %d", error_code);
       goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
     }
     total += read;
 #if USE_OTA_VERSION == 2
     while (size_acknowledged + OTA_BLOCK_SIZE <= total || (total == ota_size && size_acknowledged < ota_size)) {
-      buf[0] = ota_base::OTA_RESPONSE_CHUNK_OK;
+      buf[0] = ota::OTA_RESPONSE_CHUNK_OK;
       this->writeall_(buf, 1);
       size_acknowledged += OTA_BLOCK_SIZE;
     }
@@ -304,7 +304,7 @@ void ESPHomeOTAComponent::handle_() {
       float percentage = (total * 100.0f) / ota_size;
       ESP_LOGD(TAG, "Progress: %0.1f%%", percentage);
 #ifdef USE_OTA_STATE_CALLBACK
-      this->state_callback_.call(ota_base::OTA_IN_PROGRESS, percentage, 0);
+      this->state_callback_.call(ota::OTA_IN_PROGRESS, percentage, 0);
 #endif
       // feed watchdog and give other tasks a chance to run
       App.feed_wdt();
@@ -313,21 +313,21 @@ void ESPHomeOTAComponent::handle_() {
   }
 
   // Acknowledge receive OK - 1 byte
-  buf[0] = ota_base::OTA_RESPONSE_RECEIVE_OK;
+  buf[0] = ota::OTA_RESPONSE_RECEIVE_OK;
   this->writeall_(buf, 1);
 
   error_code = backend->end();
-  if (error_code != ota_base::OTA_RESPONSE_OK) {
+  if (error_code != ota::OTA_RESPONSE_OK) {
     ESP_LOGW(TAG, "Error ending update! error_code: %d", error_code);
     goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
   }
 
   // Acknowledge Update end OK - 1 byte
-  buf[0] = ota_base::OTA_RESPONSE_UPDATE_END_OK;
+  buf[0] = ota::OTA_RESPONSE_UPDATE_END_OK;
   this->writeall_(buf, 1);
 
   // Read ACK
-  if (!this->readall_(buf, 1) || buf[0] != ota_base::OTA_RESPONSE_OK) {
+  if (!this->readall_(buf, 1) || buf[0] != ota::OTA_RESPONSE_OK) {
     ESP_LOGW(TAG, "Reading back acknowledgement failed");
     // do not go to error, this is not fatal
   }
@@ -338,7 +338,7 @@ void ESPHomeOTAComponent::handle_() {
   ESP_LOGI(TAG, "Update complete");
   this->status_clear_warning();
 #ifdef USE_OTA_STATE_CALLBACK
-  this->state_callback_.call(ota_base::OTA_COMPLETED, 100.0f, 0);
+  this->state_callback_.call(ota::OTA_COMPLETED, 100.0f, 0);
 #endif
   delay(100);  // NOLINT
   App.safe_reboot();
@@ -355,7 +355,7 @@ error:
 
   this->status_momentary_error("onerror", 5000);
 #ifdef USE_OTA_STATE_CALLBACK
-  this->state_callback_.call(ota_base::OTA_ERROR, 0.0f, static_cast<uint8_t>(error_code));
+  this->state_callback_.call(ota::OTA_ERROR, 0.0f, static_cast<uint8_t>(error_code));
 #endif
 }
 
