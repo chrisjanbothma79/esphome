@@ -9,70 +9,33 @@ import subprocess
 
 _LOGGER = logging.getLogger(__name__)
 
-# Component namespace patterns
-COMPONENT_PATTERNS = {
-    "api": re.compile(r"esphome::api::"),
-    "wifi": re.compile(r"esphome::wifi::"),
-    "mqtt": re.compile(r"esphome::mqtt::"),
-    "web_server": re.compile(r"esphome::web_server::"),
-    "sensor": re.compile(r"esphome::sensor::"),
-    "binary_sensor": re.compile(r"esphome::binary_sensor::"),
-    "switch": re.compile(r"esphome::switch_::"),
-    "light": re.compile(r"esphome::light::"),
-    "cover": re.compile(r"esphome::cover::"),
-    "climate": re.compile(r"esphome::climate::"),
-    "fan": re.compile(r"esphome::fan::"),
-    "display": re.compile(r"esphome::display::"),
-    "logger": re.compile(r"esphome::logger::"),
-    "ota": re.compile(r"esphome::ota::"),
-    "time": re.compile(r"esphome::time::"),
-    "sun": re.compile(r"esphome::sun::"),
-    "text_sensor": re.compile(r"esphome::text_sensor::"),
-    "script": re.compile(r"esphome::script::"),
-    "interval": re.compile(r"esphome::interval::"),
-    "json": re.compile(r"esphome::json::"),
-    "network": re.compile(r"esphome::network::"),
-    "mdns": re.compile(r"esphome::mdns::"),
-    "i2c": re.compile(r"esphome::i2c::"),
-    "spi": re.compile(r"esphome::spi::"),
-    "uart": re.compile(r"esphome::uart::"),
-    "dallas": re.compile(r"esphome::dallas::"),
-    "dht": re.compile(r"esphome::dht::"),
-    "adc": re.compile(r"esphome::adc::"),
-    "pwm": re.compile(r"esphome::pwm::"),
-    "ledc": re.compile(r"esphome::ledc::"),
-    "gpio": re.compile(r"esphome::gpio::"),
-    "esp32": re.compile(r"esphome::esp32::"),
-    "esp8266": re.compile(r"esphome::esp8266::"),
-    "remote": re.compile(r"esphome::remote_"),
-    "rf_bridge": re.compile(r"esphome::rf_bridge::"),
-    "captive_portal": re.compile(r"esphome::captive_portal::"),
-    "deep_sleep": re.compile(r"esphome::deep_sleep::"),
-    "bluetooth_proxy": re.compile(r"esphome::bluetooth_proxy::"),
-    "esp32_ble": re.compile(r"esphome::esp32_ble::"),
-    "esp32_ble_tracker": re.compile(r"esphome::esp32_ble_tracker::"),
-    "ethernet": re.compile(r"esphome::ethernet::"),
-    "valve": re.compile(r"esphome::valve::"),
-    "lock": re.compile(r"esphome::lock::"),
-    "alarm_control_panel": re.compile(r"esphome::alarm_control_panel::"),
-    "number": re.compile(r"esphome::number::"),
-    "select": re.compile(r"esphome::select::"),
-    "button": re.compile(r"esphome::button::"),
-    "datetime": re.compile(r"esphome::datetime::"),
-    "text": re.compile(r"esphome::text::"),
-    "media_player": re.compile(r"esphome::media_player::"),
-    "microphone": re.compile(r"esphome::microphone::"),
-    "speaker": re.compile(r"esphome::speaker::"),
-    "voice_assistant": re.compile(r"esphome::voice_assistant::"),
-    "update": re.compile(r"esphome::update::"),
-    "image": re.compile(r"esphome::image::"),
-    "font": re.compile(r"esphome::font::"),
-    "color": re.compile(r"esphome::color::"),
-    "graph": re.compile(r"esphome::graph::"),
-    "qr_code": re.compile(r"esphome::qr_code::"),
-    "touchscreen": re.compile(r"esphome::touchscreen::"),
-    "lvgl": re.compile(r"esphome::lvgl::"),
-}
+# Pattern to extract ESPHome component namespaces dynamically
+ESPHOME_COMPONENT_PATTERN = re.compile(r"esphome::([a-zA-Z0-9_]+)::")
+
+
+# Get the list of actual ESPHome components by scanning the components directory
+def get_esphome_components():
+    """Get set of actual ESPHome components from the components directory."""
+    components = set()
+
+    # Find the components directory relative to this file
+    current_dir = Path(__file__).parent
+    components_dir = current_dir / "components"
+
+    if components_dir.exists() and components_dir.is_dir():
+        for item in components_dir.iterdir():
+            if (
+                item.is_dir()
+                and not item.name.startswith(".")
+                and not item.name.startswith("__")
+            ):
+                components.add(item.name)
+
+    return components
+
+
+# Cache the component list
+ESPHOME_COMPONENTS = get_esphome_components()
 
 
 class MemorySection:
@@ -277,14 +240,22 @@ class MemoryAnalyzer:
         # Demangle C++ names if needed
         demangled = self._demangle_symbol(symbol_name)
 
-        # Check against specific component patterns first (skip 'core')
-        for component, pattern in COMPONENT_PATTERNS.items():
-            if component == "core":
-                continue
-            if pattern.search(demangled):
-                return f"[esphome]{component}"
+        # Check for ESPHome component namespaces dynamically
+        # Pattern: esphome::component_name:: (with trailing ::)
+        match = ESPHOME_COMPONENT_PATTERN.search(demangled)
+        if match:
+            component_name = match.group(1)
+            # Strip trailing underscore if present (e.g., switch_ -> switch)
+            component_name = component_name.rstrip("_")
 
-        # Check for esphome core namespace last
+            # Check if this is an actual component or core
+            if component_name in ESPHOME_COMPONENTS:
+                return f"[esphome]{component_name}"
+            else:
+                return "[esphome]core"
+
+        # Check for esphome core namespace (no component namespace)
+        # This catches esphome::ClassName or esphome::function_name
         if "esphome::" in demangled:
             return "[esphome]core"
 
@@ -480,6 +451,11 @@ class MemoryAnalyzer:
             return "bluetooth"
         elif "coex" in symbol_name:
             return "wifi_bt_coex"
+        elif "r_" in symbol_name and any(
+            bt in symbol_name for bt in ["ble", "lld", "llc", "llm"]
+        ):
+            # ROM bluetooth functions
+            return "bluetooth_rom"
 
         # Power management
         if any(
@@ -555,6 +531,171 @@ class MemoryAnalyzer:
         # DHCP
         if "dhcp" in symbol_name or "handle_dhcp" in symbol_name:
             return "dhcp"
+
+        # JSON parsing
+        if any(
+            json in demangled
+            for json in [
+                "ArduinoJson",
+                "JsonDocument",
+                "JsonArray",
+                "JsonObject",
+                "deserialize",
+                "serialize",
+            ]
+        ):
+            return "json_lib"
+
+        # HTTP/Web related
+        if any(
+            http in demangled
+            for http in ["HTTP", "http_", "Request", "Response", "Uri", "WebSocket"]
+        ):
+            return "http_lib"
+
+        # Ethernet PHY drivers
+        if any(
+            eth in symbol_name
+            for eth in [
+                "emac_",
+                "eth_phy_",
+                "phy_tlk110",
+                "phy_lan87",
+                "phy_ip101",
+                "phy_rtl",
+                "phy_dp83",
+                "phy_ksz",
+            ]
+        ):
+            return "ethernet_phy"
+
+        # Task/Thread management
+        if any(task in symbol_name for task in ["pthread_", "thread_", "_task_"]):
+            return "threading"
+
+        # Mutex/Semaphore
+        if any(
+            sync in symbol_name
+            for sync in ["mutex", "semaphore", "spinlock", "portMUX"]
+        ):
+            return "synchronization"
+
+        # String formatting
+        if any(
+            fmt in symbol_name
+            for fmt in [
+                "snprintf",
+                "vsnprintf",
+                "sprintf",
+                "vsprintf",
+                "sscanf",
+                "vsscanf",
+            ]
+        ):
+            return "string_formatting"
+
+        # Math functions
+        if (
+            any(
+                math in symbol_name
+                for math in [
+                    "sin",
+                    "cos",
+                    "tan",
+                    "sqrt",
+                    "pow",
+                    "exp",
+                    "log",
+                    "atan",
+                    "asin",
+                    "acos",
+                    "floor",
+                    "ceil",
+                    "fabs",
+                    "round",
+                ]
+            )
+            and len(symbol_name) < 20
+        ):
+            return "math_lib"
+
+        # Random number generation
+        if any(rng in symbol_name for rng in ["rand", "random", "rng_", "prng"]):
+            return "random"
+
+        # Time functions
+        if any(
+            time in symbol_name
+            for time in [
+                "time",
+                "clock",
+                "gettimeofday",
+                "settimeofday",
+                "localtime",
+                "gmtime",
+                "mktime",
+                "strftime",
+            ]
+        ):
+            return "time_lib"
+
+        # Console/UART output
+        if any(
+            console in symbol_name
+            for console in [
+                "console_",
+                "uart_tx",
+                "uart_rx",
+                "puts",
+                "putchar",
+                "getchar",
+            ]
+        ):
+            return "console_io"
+
+        # ROM functions
+        if symbol_name.startswith("r_") or symbol_name.startswith("rom_"):
+            return "rom_functions"
+
+        # Compiler generated code
+        if any(
+            gen in symbol_name
+            for gen in [
+                "__divdi3",
+                "__udivdi3",
+                "__moddi3",
+                "__muldi3",
+                "__ashldi3",
+                "__ashrdi3",
+                "__lshrdi3",
+                "__cmpdi2",
+                "__fixdfdi",
+                "__floatdidf",
+            ]
+        ):
+            return "compiler_runtime"
+
+        # Exception handling
+        if any(
+            exc in symbol_name for exc in ["__cxa_", "_Unwind_", "__gcc_personality"]
+        ):
+            return "exception_handling"
+
+        # RTTI (Run-Time Type Information)
+        if "__type_info" in demangled or "__class_type_info" in demangled:
+            return "rtti"
+
+        # Static initializers
+        if "_GLOBAL__sub_I_" in symbol_name or "__static_initialization" in demangled:
+            return "static_init"
+
+        # Weak symbols
+        if "__weak_" in symbol_name:
+            return "weak_symbols"
+
+        # Compiler builtins
+        if "__builtin_" in symbol_name:
+            return "compiler_builtins"
 
         return "other"
 
