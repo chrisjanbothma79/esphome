@@ -342,5 +342,16 @@ async def to_code(config):
 
     cg.add_define("USE_ETHERNET")
 
+    # Disable WiFi when using Ethernet with ESP-IDF
+    # Since ethernet and wifi components are mutually exclusive,
+    # we can save flash space by not compiling WiFi support
+    if CORE.using_esp_idf:
+        add_idf_sdkconfig_option("CONFIG_ESP_WIFI_ENABLED", False)
+        # Also disable WiFi NVS flash to save more space
+        add_idf_sdkconfig_option("CONFIG_ESP_WIFI_NVS_ENABLED", False)
+        # Disable WiFi/BT coexistence since we're not using WiFi
+        # This prevents the coexistence feature from re-enabling WiFi
+        add_idf_sdkconfig_option("CONFIG_ESP_COEX_SW_COEXIST_ENABLE", False)
+
     if CORE.using_arduino:
         cg.add_library("WiFi", None)
