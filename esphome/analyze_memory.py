@@ -1115,7 +1115,26 @@ class MemoryAnalyzer:
         # Demangle C++ names if needed
         demangled = self._demangle_symbol(symbol_name)
 
-        # Check for ESPHome component namespaces first
+        # Check for special component classes first (before namespace pattern)
+        # This handles cases like esphome::ESPHomeOTAComponent which should map to ota
+        if "esphome::" in demangled:
+            # Check for special component classes that include component name in the class
+            # For example: esphome::ESPHomeOTAComponent -> ota component
+            for component_name in ESPHOME_COMPONENTS:
+                # Check various naming patterns
+                component_upper = component_name.upper()
+                component_camel = component_name.replace("_", "").title()
+                patterns = [
+                    f"esphome::{component_upper}Component",  # e.g., esphome::OTAComponent
+                    f"esphome::ESPHome{component_upper}Component",  # e.g., esphome::ESPHomeOTAComponent
+                    f"esphome::{component_camel}Component",  # e.g., esphome::OtaComponent
+                    f"esphome::ESPHome{component_camel}Component",  # e.g., esphome::ESPHomeOtaComponent
+                ]
+
+                if any(pattern in demangled for pattern in patterns):
+                    return f"[esphome]{component_name}"
+
+        # Check for ESPHome component namespaces
         match = ESPHOME_COMPONENT_PATTERN.search(demangled)
         if match:
             component_name = match.group(1)
@@ -1134,31 +1153,6 @@ class MemoryAnalyzer:
 
         # Check for esphome core namespace (no component namespace)
         if "esphome::" in demangled:
-            # Check for special component classes that include component name in the class
-            # For example: esphome::ESPHomeOTAComponent -> ota component
-            for component_name in ESPHOME_COMPONENTS:
-                # Check various naming patterns
-                component_upper = component_name.upper()
-                component_camel = component_name.replace("_", "").title()
-                patterns = [
-                    f"esphome::{component_upper}",  # e.g., esphome::OTA
-                    f"esphome::ESPHome{component_upper}",  # e.g., esphome::ESPHomeOTA
-                    f"esphome::{component_camel}",  # e.g., esphome::Ota
-                    f"esphome::ESPHome{component_camel}",  # e.g., esphome::ESPHomeOta
-                ]
-
-                # Special handling for specific components
-                if component_name == "ota":
-                    patterns.extend(
-                        [
-                            "esphome::ESPHomeOTAComponent",
-                            "esphome::OTAComponent",
-                        ]
-                    )
-
-                if any(pattern in demangled for pattern in patterns):
-                    return f"[esphome]{component_name}"
-
             # If no component match found, it's core
             return "[esphome]core"
 
