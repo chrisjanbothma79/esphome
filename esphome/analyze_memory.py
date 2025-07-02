@@ -39,6 +39,15 @@ SYMBOL_PATTERNS = {
         "prvReceive",
         "prvCopy",
         "xPort",
+        "ulTaskGenericNotifyTake",
+        "prvIdleTask",
+        "prvInitialiseNewTask",
+        "prvIsYieldRequiredSMP",
+        "prvGetItemByteBuf",
+        "prvInitializeNewRingbuffer",
+        "prvAcquireItemNoSplit",
+        "prvNotifyQueueSetContainer",
+        "ucStaticTimerQueueStorage",
     ],
     "xtensa": ["xt_", "_xt_", "xPortEnterCriticalTimeout"],
     "heap": ["heap_", "multi_heap"],
@@ -414,10 +423,10 @@ SYMBOL_PATTERNS = {
     ],
     "ieee802_11": ["ieee802_11_", "ieee802_11_parse_elems"],
     "rate_control": ["rssi_margin", "rcGetSched", "get_rate_fcc_index"],
-    "nan": ["nan_dp_"],
+    "nan": ["nan_dp_", "nan_dp_post_tx", "nan_dp_delete_peer"],
     "channel_mgmt": ["chm_init", "chm_set_current_channel"],
-    "trace": ["trc_init"],
-    "country_code": ["country_info"],
+    "trace": ["trc_init", "trc_onAmpduOp"],
+    "country_code": ["country_info", "country_info_24ghz"],
     "multicore": ["do_multicore_settings"],
     "Update_lib": ["Update"],
     "stdio": [
@@ -431,15 +440,18 @@ SYMBOL_PATTERNS = {
     "strncpy_ops": ["strncpy"],
     "math_internal": ["__mdiff", "__lshift", "__mprec_tens", "quorem"],
     "character_class": ["__chclass"],
-    "camellia": ["camellia_"],
+    "camellia": ["camellia_", "camellia_feistel"],
     "crypto_tables": ["FSb", "FSb2", "FSb3", "FSb4"],
     "event_buffer": ["g_eb_list_desc", "eb_space"],
-    "base_node": ["base_node_"],
+    "base_node": ["base_node_", "base_node_add_handler"],
     "file_descriptor": ["s_fd_table"],
     "tx_delay": ["tx_delay_cfg"],
     "deinit": ["deinit_functions"],
     "lcp_echo": ["LcpEchoCheck"],
     "raw_api": ["raw_bind", "raw_connect"],
+    "checksum": ["process_checksum"],
+    "entry_management": ["add_entry"],
+    "esp_ota": ["esp_ota", "ota_"],
 }
 
 # Demangled patterns: patterns found in demangled C++ names
@@ -759,41 +771,12 @@ class MemoryAnalyzer:
 
         # Special cases that need more complex logic
 
-        # ROM functions starting with r_ or rom_
-        if symbol_name.startswith("r_") or symbol_name.startswith("rom_"):
-            return "rom_functions"
-
-        # Math functions with short names
-        if len(symbol_name) < 20 and symbol_name in [
-            "sin",
-            "cos",
-            "tan",
-            "sqrt",
-            "pow",
-            "exp",
-            "log",
-            "atan",
-            "asin",
-            "acos",
-            "floor",
-            "ceil",
-            "fabs",
-            "round",
-        ]:
-            return "math_lib"
-
         # Check if spi_flash vs spi_driver
         if "spi_" in symbol_name or "SPI" in symbol_name:
             if "spi_flash" in symbol_name:
                 return "spi_flash"
             else:
                 return "spi_driver"
-
-        # ESP OTA framework (exclude esphome OTA)
-        if (
-            "esp_ota" in symbol_name or "ota_" in symbol_name
-        ) and "esphome" not in demangled:
-            return "esp_ota"
 
         # libc special printf variants
         if symbol_name.startswith("_") and symbol_name[1:].replace("_r", "").replace(
