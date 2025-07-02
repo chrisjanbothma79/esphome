@@ -1,6 +1,6 @@
 // This file was automatically generated with a tool.
 // See script/api_protobuf/api_protobuf.py
-#include "api_pb2_dump.h"
+#include "api_pb2.h"
 #include "esphome/core/helpers.h"
 
 #include <cinttypes>

@@ -6,9 +6,6 @@
 
 #include "proto.h"
 #include "api_pb2_size.h"
-#ifdef HAS_PROTO_MESSAGE_DUMP
-#include "api_pb2_dump.h"
-#endif
 
 namespace esphome {
 namespace api {

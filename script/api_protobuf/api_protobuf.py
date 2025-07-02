@@ -1339,9 +1339,6 @@ def main() -> None:
 
 #include "proto.h"
 #include "api_pb2_size.h"
-#ifdef HAS_PROTO_MESSAGE_DUMP
-#include "api_pb2_dump.h"
-#endif
 
 namespace esphome {
 namespace api {
@@ -1360,24 +1357,10 @@ namespace api {
 
 """
 
-    # Initialize dump header and cpp content
-    dump_h = FILE_HEADER
-    dump_h += """\
-#pragma once
-
-#include "api_pb2.h"
-#include "esphome/core/log.h"
-
-#ifdef HAS_PROTO_MESSAGE_DUMP
-
-namespace esphome {
-namespace api {
-
-"""
-
+    # Initialize dump cpp content
     dump_cpp = FILE_HEADER
     dump_cpp += """\
-#include "api_pb2_dump.h"
+#include "api_pb2.h"
 #include "esphome/core/helpers.h"
 
 #include <cinttypes>
@@ -1484,15 +1467,6 @@ namespace api {
 }  // namespace esphome
 """
 
-    # Close dump files
-    dump_h += """\
-
-}  // namespace api
-}  // namespace esphome
-
-#endif  // HAS_PROTO_MESSAGE_DUMP
-"""
-
     dump_cpp += """\
 
 }  // namespace api
@@ -1506,9 +1480,6 @@ namespace api {
 
     with open(root / "api_pb2.cpp", "w", encoding="utf-8") as f:
         f.write(cpp)
-
-    with open(root / "api_pb2_dump.h", "w", encoding="utf-8") as f:
-        f.write(dump_h)
 
     with open(root / "api_pb2_dump.cpp", "w", encoding="utf-8") as f:
         f.write(dump_cpp)
