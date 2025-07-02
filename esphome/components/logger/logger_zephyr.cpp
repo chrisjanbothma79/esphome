@@ -1,8 +1,8 @@
 #ifdef USE_ZEPHYR
 
-#include "logger.h"
-#include "esphome/core/log.h"
 #include "esphome/core/application.h"
+#include "esphome/core/log.h"
+#include "logger.h"
 
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
@@ -32,7 +32,7 @@ void Logger::loop() {
   }
   opened = !opened;
 #endif
-  process_messages_();
+  this->process_messages_();
 }
 
 void Logger::pre_setup() {

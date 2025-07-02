@@ -4,9 +4,9 @@
 #include <memory>  // For unique_ptr
 #endif
 
+#include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
-#include "esphome/core/application.h"
 
 namespace esphome {
 namespace logger {
@@ -168,7 +168,7 @@ void Logger::loop() {
     opened = !opened;
   }
 #endif
-  process_messages_();
+  this->process_messages_();
 }
 #endif
 #endif
