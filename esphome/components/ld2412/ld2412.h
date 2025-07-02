@@ -29,6 +29,8 @@
 namespace esphome {
 namespace ld2412 {
 
+static const uint8_t MAX_LINE_LENGTH = 54;  // Max characters for serial buffer
+
 class LD2412Component : public Component, public uart::UARTDevice {
 #ifdef USE_SENSOR
   SUB_SENSOR(moving_target_distance)
@@ -77,8 +79,8 @@ class LD2412Component : public Component, public uart::UARTDevice {
   void loop() override;
   void set_light_out_control();
 #ifdef USE_NUMBER
-  void set_gate_still_threshold_number(int gate, number::Number *n);
-  void set_gate_move_threshold_number(int gate, number::Number *n);
+  void set_gate_still_threshold_number(uint8_t gate, number::Number *n);
+  void set_gate_move_threshold_number(uint8_t gate, number::Number *n);
   void set_basic_config();
   void set_gate_threshold();
   void get_gate_threshold();
@@ -87,11 +89,10 @@ class LD2412Component : public Component, public uart::UARTDevice {
   void set_basic_config();
 #endif
 #ifdef USE_SENSOR
-  void set_gate_move_sensor(int gate, sensor::Sensor *s);
-  void set_gate_still_sensor(int gate, sensor::Sensor *s);
+  void set_gate_move_sensor(uint8_t gate, sensor::Sensor *s);
+  void set_gate_still_sensor(uint8_t gate, sensor::Sensor *s);
 #endif
   void set_throttle(uint16_t value) { this->throttle_ = value; };
-  void set_bluetooth_password(const std::string &password);
   void set_engineering_mode(bool enable);
   void set_mode(const std::string &state);
   void read_all_info();
@@ -102,11 +103,11 @@ class LD2412Component : public Component, public uart::UARTDevice {
   void factory_reset();
 
  protected:
-  void send_command_(uint8_t command_str, const uint8_t *command_value, int command_value_len);
+  void send_command_(uint8_t command_str, const uint8_t *command_value, uint8_t command_value_len);
   void set_config_mode_(bool enable);
-  void handle_periodic_data_(uint8_t *buffer, int len);
-  bool handle_ack_data_(uint8_t *buffer, int len);
-  void readline_(int readch, uint8_t *buffer, int len);
+  void handle_periodic_data_();
+  bool handle_ack_data_();
+  void readline_(int readch);
   void query_parameters_();
   void get_version_();
   void get_mac_();
@@ -119,6 +120,8 @@ class LD2412Component : public Component, public uart::UARTDevice {
   int32_t last_periodic_millis_ = 0;
   int32_t last_engineering_mode_change_millis_ = 0;
   uint16_t throttle_;
+  uint8_t buffer_pos_ = 0;  // where to resume processing/populating buffer
+  uint8_t buffer_data_[MAX_LINE_LENGTH];
   bool dynamic_background_correction_active_;
   std::string version_;
   std::string mac_;
