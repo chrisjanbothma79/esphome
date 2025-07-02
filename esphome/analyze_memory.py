@@ -711,6 +711,82 @@ SYMBOL_PATTERNS = {
         "uuidType",
         "allocate_svc_db_buf",
         "_hostname_is_ours",
+        "s_hli_handlers",
+        "tick_cb",
+        "idle_cb",
+        "input",
+        "entry_find",
+        "section_find",
+        "find_bucket_entry_",
+        "config_has_section",
+        "hli_queue_create",
+        "hli_queue_get",
+        "hli_c_handler",
+        "future_ready",
+        "future_await",
+        "future_new",
+        "pkt_queue_enqueue",
+        "pkt_queue_dequeue",
+        "pkt_queue_cleanup",
+        "pkt_queue_create",
+        "pkt_queue_destroy",
+        "fixed_pkt_queue_dequeue",
+        "osi_alarm_cancel",
+        "osi_alarm_is_active",
+        "osi_sem_take",
+        "osi_event_create",
+        "osi_event_bind",
+        "alarm_cb_handler",
+        "list_foreach",
+        "list_back",
+        "list_front",
+        "list_clear",
+        "fixed_queue_try_peek_first",
+        "translate_path",
+        "get_idx",
+        "find_key",
+        "init",
+        "end",
+        "start",
+        "set_read_value",
+        "copy_address_list",
+        "copy_and_key",
+        "sdk_cfg_opts",
+        "leftshift_onebit",
+        "config_section_end",
+        "config_section_begin",
+        "find_entry_and_check_all_reset",
+        "image_validate",
+        "xPendingReadyList",
+        "vListInitialise",
+        "lock_init_generic",
+        "ant_bttx_cfg",
+        "ant_dft_cfg",
+        "cs_send_to_ctrl_sock",
+        "config_llc_util_funcs_reset",
+        "make_set_adv_report_flow_control",
+        "make_set_event_mask",
+        "raw_new",
+        "raw_remove",
+        "BTE_InitStack",
+        "parse_read_local_supported_features_response",
+        "__math_invalidf",
+        "tinytens",
+        "__mprec_tinytens",
+        "__mprec_bigtens",
+        "vRingbufferDelete",
+        "vRingbufferDeleteWithCaps",
+        "vRingbufferReturnItem",
+        "vRingbufferReturnItemFromISR",
+        "get_acl_data_size_ble",
+        "get_features_ble",
+        "get_features_classic",
+        "get_acl_packet_size_ble",
+        "get_acl_packet_size_classic",
+        "supports_extended_inquiry_response",
+        "supports_rssi_with_inquiry_results",
+        "supports_interlaced_inquiry_scan",
+        "supports_reading_remote_extended_features",
     ],
     "bluetooth_ll": [
         "lld_pdu_",
@@ -864,6 +940,9 @@ class MemoryAnalyzer:
         )
         self._demangle_cache: dict[str, str] = {}
         self._uncategorized_symbols: list[tuple[str, str, int]] = []
+        self._esphome_core_symbols: list[
+            tuple[str, str, int]
+        ] = []  # Track core symbols
 
     def analyze(self) -> dict[str, ComponentMemory]:
         """Analyze the ELF file and return component memory usage."""
@@ -1024,6 +1103,11 @@ class MemoryAnalyzer:
                     demangled = self._demangle_symbol(symbol_name)
                     self._uncategorized_symbols.append((symbol_name, demangled, size))
 
+                # Track ESPHome core symbols for detailed analysis
+                if component == "[esphome]core" and size > 0:
+                    demangled = self._demangle_symbol(symbol_name)
+                    self._esphome_core_symbols.append((symbol_name, demangled, size))
+
     def _identify_component(self, symbol_name: str) -> str:
         """Identify which component a symbol belongs to."""
         # Demangle C++ names if needed
@@ -1116,6 +1200,51 @@ class MemoryAnalyzer:
         """Get demangled C++ symbol name from cache."""
         return self._demangle_cache.get(symbol, symbol)
 
+    def _categorize_esphome_core_symbol(self, demangled: str) -> str:
+        """Categorize ESPHome core symbols into subcategories."""
+        # Dictionary of patterns for core subcategories
+        CORE_SUBCATEGORY_PATTERNS = {
+            "Component Framework": ["Component"],
+            "Application Core": ["Application"],
+            "Scheduler": ["Scheduler"],
+            "Logging": ["Logger", "log_"],
+            "Preferences": ["preferences", "Preferences"],
+            "Synchronization": ["Mutex", "Lock"],
+            "Helpers": ["Helper"],
+            "Network Utilities": ["network", "Network"],
+            "Time Management": ["time", "Time"],
+            "String Utilities": ["str_", "string"],
+            "Parsing/Formatting": ["parse_", "format_"],
+            "Optional Types": ["optional", "Optional"],
+            "Callbacks": ["Callback", "callback"],
+            "Color Utilities": ["Color"],
+            "C++ Operators": ["operator"],
+            "Global Variables": ["global_", "_GLOBAL"],
+            "Setup/Loop": ["setup", "loop"],
+            "System Control": ["reboot", "restart"],
+            "GPIO Management": ["GPIO", "gpio"],
+            "Interrupt Handling": ["ISR", "interrupt"],
+            "Hooks": ["Hook", "hook"],
+            "Entity Base Classes": ["Entity"],
+            "Automation Framework": ["automation", "Automation"],
+            "Automation Components": ["Condition", "Action", "Trigger"],
+            "Lambda Support": ["lambda"],
+        }
+
+        # Special patterns that need to be checked separately
+        if any(pattern in demangled for pattern in ["vtable", "typeinfo", "thunk"]):
+            return "C++ Runtime (vtables/RTTI)"
+
+        if demangled.startswith("std::"):
+            return "C++ STL"
+
+        # Check against patterns
+        for category, patterns in CORE_SUBCATEGORY_PATTERNS.items():
+            if any(pattern in demangled for pattern in patterns):
+                return category
+
+        return "Other Core"
+
     def generate_report(self, detailed: bool = False) -> str:
         """Generate a formatted memory report."""
         components = sorted(
@@ -1138,6 +1267,12 @@ class MemoryAnalyzer:
         COL_TOTAL_FLASH = 15
         COL_TOTAL_RAM = 12
         COL_SEPARATOR = 3  # " | "
+
+        # Core analysis column widths
+        COL_CORE_SUBCATEGORY = 30
+        COL_CORE_SIZE = 12
+        COL_CORE_COUNT = 6
+        COL_CORE_PERCENT = 10
 
         # Calculate the exact table width
         table_width = (
@@ -1238,6 +1373,70 @@ class MemoryAnalyzer:
             "Note: This analysis covers symbols in the ELF file. Some runtime allocations may not be included."
         )
         lines.append("=" * table_width)
+
+        # Add ESPHome core detailed analysis if there are core symbols
+        if self._esphome_core_symbols:
+            lines.append("")
+            lines.append("=" * table_width)
+            lines.append("[esphome]core Detailed Analysis".center(table_width))
+            lines.append("=" * table_width)
+            lines.append("")
+
+            # Group core symbols by subcategory
+            core_subcategories: dict[str, list[tuple[str, str, int]]] = defaultdict(
+                list
+            )
+
+            for symbol, demangled, size in self._esphome_core_symbols:
+                # Categorize based on demangled name patterns
+                subcategory = self._categorize_esphome_core_symbol(demangled)
+                core_subcategories[subcategory].append((symbol, demangled, size))
+
+            # Sort subcategories by total size
+            sorted_subcategories = sorted(
+                [
+                    (name, symbols, sum(s[2] for s in symbols))
+                    for name, symbols in core_subcategories.items()
+                ],
+                key=lambda x: x[2],
+                reverse=True,
+            )
+
+            lines.append(
+                f"{'Subcategory':<{COL_CORE_SUBCATEGORY}} | {'Size':>{COL_CORE_SIZE}} | "
+                f"{'Count':>{COL_CORE_COUNT}} | {'% of Core':>{COL_CORE_PERCENT}}"
+            )
+            lines.append(
+                "-" * COL_CORE_SUBCATEGORY
+                + "-+-"
+                + "-" * COL_CORE_SIZE
+                + "-+-"
+                + "-" * COL_CORE_COUNT
+                + "-+-"
+                + "-" * COL_CORE_PERCENT
+            )
+
+            core_total = sum(size for _, _, size in self._esphome_core_symbols)
+
+            for subcategory, symbols, total_size in sorted_subcategories:
+                percentage = (total_size / core_total * 100) if core_total > 0 else 0
+                lines.append(
+                    f"{subcategory:<{COL_CORE_SUBCATEGORY}} | {total_size:>{COL_CORE_SIZE - 2},} B | "
+                    f"{len(symbols):>{COL_CORE_COUNT}} | {percentage:>{COL_CORE_PERCENT - 1}.1f}%"
+                )
+
+            # Top 10 largest core symbols
+            lines.append("")
+            lines.append("Top 10 Largest [esphome]core Symbols:")
+            sorted_core_symbols = sorted(
+                self._esphome_core_symbols, key=lambda x: x[2], reverse=True
+            )
+
+            MAX_SYMBOL_LENGTH = 80
+            for i, (symbol, demangled, size) in enumerate(sorted_core_symbols[:10]):
+                lines.append(f"{i + 1}. {demangled[:MAX_SYMBOL_LENGTH]} ({size:,} B)")
+
+            lines.append("=" * table_width)
 
         return "\n".join(lines)
 
