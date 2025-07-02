@@ -35,8 +35,10 @@ void RealTimeClock::synchronize_epoch_(uint32_t epoch) {
     ret = settimeofday(&timev, nullptr);
   }
 
+#ifdef USE_TIME_TIMEZONE
   // Move timezone back to local timezone.
   this->apply_timezone_();
+#endif
 
   if (ret != 0) {
     ESP_LOGW(TAG, "setimeofday() failed with code %d", ret);
