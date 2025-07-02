@@ -36,10 +36,6 @@ static constexpr uint8_t MAX_MESSAGES_PER_LOOP = 5;
 static constexpr uint8_t MAX_PING_RETRIES = 60;
 static constexpr uint16_t PING_RETRY_INTERVAL = 1000;
 static constexpr uint32_t KEEPALIVE_DISCONNECT_TIMEOUT = (KEEPALIVE_TIMEOUT_MS * 5) / 2;
-// Maximum number of entities to process in a single batch during initial state/info sending
-static constexpr size_t MAX_INITIAL_ENTITIES_PER_BATCH = 20;
-// Maximum time to spend processing entities in a single loop iteration during initial sending (in milliseconds)
-static constexpr uint32_t MAX_INITIAL_ENTITY_PROCESSING_TIME_MS = 10;
 
 static const char *const TAG = "api.connection";
 #ifdef USE_ESP32_CAMERA
