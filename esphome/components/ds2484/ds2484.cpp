@@ -11,12 +11,12 @@ void DS2484OneWireBus::setup() {
 }
 
 void DS2484OneWireBus::dump_config() {
-  ESP_LOGCONFIG(TAG, "DS2484 1-wire bus:");
+  ESP_LOGCONFIG(TAG, "1-wire bus:");
   this->dump_devices_(TAG);
 }
 
 bool DS2484OneWireBus::read_status_(uint8_t *status) {
-  for (int retry_nr = 0; retry_nr < 10; retry_nr++) {
+  for (uint8_t retry_nr = 0; retry_nr < 10; retry_nr++) {
     if (this->read(status, 1) != i2c::ERROR_OK) {
       ESP_LOGE(TAG, "read status error");
       return false;
@@ -32,7 +32,7 @@ bool DS2484OneWireBus::read_status_(uint8_t *status) {
 
 bool DS2484OneWireBus::wait_for_completion_() {
   uint8_t status;
-  return read_status_(&status);
+  return this->read_status_(&status);
 }
 
 bool DS2484OneWireBus::reset_device() {
@@ -42,11 +42,11 @@ bool DS2484OneWireBus::reset_device() {
   if (this->write(&device_reset_cmd, 1) != i2c::ERROR_OK) {
     return false;
   }
-  if (!wait_for_completion_()) {
+  if (!this->wait_for_completion_()) {
     ESP_LOGE(TAG, "reset_device: can't complete");
     return false;
   }
-  uint8_t config = (active_pullup_ ? 1 : 0) | (strong_pullup_ ? 4 : 0);
+  uint8_t config = (this->active_pullup_ ? 1 : 0) | (this->strong_pullup_ ? 4 : 0);
   uint8_t write_config[2] = {0xd2, (uint8_t) (config | (~config << 4))};
   if (this->write(write_config, 2) != i2c::ERROR_OK) {
     ESP_LOGE(TAG, "reset_device: can't write config");
@@ -69,24 +69,24 @@ int DS2484OneWireBus::reset_int() {
   if (this->write(&reset_cmd, 1) != i2c::ERROR_OK) {
     return -1;
   }
-  return wait_for_completion_() ? 1 : 0;
+  return this->wait_for_completion_() ? 1 : 0;
 };
 
 void DS2484OneWireBus::write8_(uint8_t value) {
   uint8_t buffer[2] = {0xa5, value};
   this->write(buffer, 2);
-  wait_for_completion_();
+  this->wait_for_completion_();
 };
 
 void DS2484OneWireBus::write8(uint8_t value) {
   ESP_LOGVV(TAG, "write8: %02x", value);
-  write8_(value);
+  this->write8_(value);
 };
 
 void DS2484OneWireBus::write64(uint64_t value) {
   ESP_LOGVV(TAG, "write64: %llx", value);
-  for (int i = 0; i < 8; i++) {
-    write8_((value >> (i * 8)) & 0xff);
+  for (uint8_t i = 0; i < 8; i++) {
+    this->write8_((value >> (i * 8)) & 0xff);
   }
 }
 
@@ -98,7 +98,7 @@ uint8_t DS2484OneWireBus::read8() {
     ESP_LOGE(TAG, "can't write read8 cmd");
     return 0;
   }
-  wait_for_completion_();
+  this->wait_for_completion_();
   if (this->write(set_read_reg_cmd, 2) != i2c::ERROR_OK) {
     ESP_LOGE(TAG, "can't set read data reg");
     return 0;
@@ -112,8 +112,8 @@ uint8_t DS2484OneWireBus::read8() {
 
 uint64_t DS2484OneWireBus::read64() {
   uint8_t response = 0;
-  for (int i = 0; i < 8; i++) {
-    response |= (read8() << (i * 8));
+  for (uint8_t i = 0; i < 8; i++) {
+    response |= (this->read8() << (i * 8));
   }
   return response;
 }
@@ -131,7 +131,7 @@ bool DS2484OneWireBus::one_wire_triple_(bool *branch, bool *id_bit, bool *cmp_id
     ESP_LOGE(TAG, "one_wire_triple start: read status error");
     return false;
   }
-  if (write(buffer, 2) != i2c::ERROR_OK) {
+  if (this->write(buffer, 2) != i2c::ERROR_OK) {
     ESP_LOGV(TAG, "one_wire_triple: can't write cmd");
     return false;
   }
@@ -157,7 +157,7 @@ uint64_t IRAM_ATTR DS2484OneWireBus::search_int() {
   uint64_t address = this->address_;
 
   // Initiate search
-  for (int bit_number = 1; bit_number <= 64; bit_number++, bit_mask <<= 1) {
+  for (uint8_t bit_number = 1; bit_number <= 64; bit_number++, bit_mask <<= 1) {
     bool branch;
 
     // compute branch value for the case when there is a discrepancy
@@ -170,7 +170,7 @@ uint64_t IRAM_ATTR DS2484OneWireBus::search_int() {
 
     bool id_bit, cmp_id_bit;
     bool branch_before = branch;
-    if (!one_wire_triple_(&branch, &id_bit, &cmp_id_bit)) {
+    if (!this->one_wire_triple_(&branch, &id_bit, &cmp_id_bit)) {
       ESP_LOGW(TAG, "one wire triple error, quitting");
       return 0;
     }

@@ -22,8 +22,8 @@ class DS2484OneWireBus : public one_wire::OneWireBus, public i2c::I2CDevice, pub
   uint8_t read8() override;
   uint64_t read64() override;
 
-  void set_active_pullup(bool value) { active_pullup_ = value; }
-  void set_strong_pullup(bool value) { strong_pullup_ = value; }
+  void set_active_pullup(bool value) { this->active_pullup_ = value; }
+  void set_strong_pullup(bool value) { this->strong_pullup_ = value; }
 
  protected:
   void reset_search() override;
@@ -33,9 +33,9 @@ class DS2484OneWireBus : public one_wire::OneWireBus, public i2c::I2CDevice, pub
   void write8_(uint8_t);
   bool one_wire_triple_(bool *branch, bool *id_bit, bool *cmp_id_bit);
 
+  uint64_t address_;
   uint8_t last_discrepancy_{0};
   bool last_device_flag_{false};
-  uint64_t address_;
   bool active_pullup_{false};
   bool strong_pullup_{false};
 };
