@@ -90,13 +90,6 @@ APIConnection::~APIConnection() {
 #endif
 }
 
-#ifdef HAS_PROTO_MESSAGE_DUMP
-void APIConnection::log_batch_item_(const DeferredBatch::BatchItem &item) {
-  // Use the helper to log the message
-  this->log_proto_message_(item.entity, item.creator, item.message_type);
-}
-#endif
-
 void APIConnection::loop() {
   if (this->flags_.next_close) {
     // requested a disconnect

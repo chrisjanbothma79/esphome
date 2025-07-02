@@ -641,7 +641,10 @@ class APIConnection : public APIServerConnection {
     this->flags_.log_only_mode = false;
   }
 
-  void log_batch_item_(const DeferredBatch::BatchItem &item);
+  void log_batch_item_(const DeferredBatch::BatchItem &item) {
+    // Use the helper to log the message
+    this->log_proto_message_(item.entity, item.creator, item.message_type);
+  }
 #endif
 
   // Helper method to send a message either immediately or via batching
