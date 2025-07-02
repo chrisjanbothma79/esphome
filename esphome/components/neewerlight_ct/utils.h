@@ -18,6 +18,13 @@ static float mireds_to_kelvin(float mireds) {
 
 static int mireds_to_kelvin_int(float mireds) { return std::round(mireds_to_kelvin(mireds)); }
 
+// normalized_mireds is between 0.0 (coldest) and 1.0 (warmest)
+static float normalized_mireds_to_kelvin(float normalized_mireds, float coldest_mireds, float warmest_mireds) {
+  // normalized color temperature must apply to mireds, it's not linear in Kelvin!
+  float ct_mireds = coldest_mireds - normalized_mireds * (coldest_mireds - warmest_mireds);
+  return utils::mireds_to_kelvin(ct_mireds);
+}
+
 }  // namespace utils
 }  // namespace neewerlight_ct
 }  // namespace esphome

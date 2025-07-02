@@ -34,11 +34,8 @@ void NeewerCTLightOutput::prepare_turn_on_msg(bool on) {
 
 // ct_normalized is between 0.0 (coldest) and 1.0 (warmest)
 void NeewerCTLightOutput::prepare_ct_brightness_msg(float ct_normalized, float brightness) {
-  // normalized color temperature must apply to mireds, it's not linear in Kelvin!
-  float ct_mireds =
-      this->cold_white_temperature_ - ct_normalized * (this->cold_white_temperature_ - this->warm_white_temperature_);
-  float ct_kelvin = utils::mireds_to_kelvin(ct_mireds);
-
+  float ct_kelvin =
+      utils::normalized_mireds_to_kelvin(ct_normalized, this->cold_white_temperature_, this->warm_white_temperature_);
   // neewer light expects value 0x1B (27) for 2700K or 0x41 (65) for 6500K
   uint8_t ct = static_cast<uint8_t>(std::round(ct_kelvin / 100.f));
   ESP_LOGD(TAG, "Color temperature will be set to 0x%1x (%d == %d K)", ct, ct, ct * 100);
@@ -84,30 +81,38 @@ void NeewerCTLightOutput::write_state(light::LightState *state) {
   OnOffState on_off_state = state->remote_values.is_on() ? OnOffState::ON : OnOffState::OFF;
 
   // Turn On *before* potentially setting color temperature and brightness
-  if (this->old_on_off_state_ != OnOffState::ON && on_off_state == OnOffState::ON) {
+  bool turned_on = this->old_on_off_state_ != OnOffState::ON && on_off_state == OnOffState::ON;
+  if (turned_on) {
     ESP_LOGD(TAG, "Light was turned off, turning it on.");
     this->prepare_turn_on_msg(true);
     NeewerBLEOutput::write_state(1.0);
   }
 
   if (brightness != this->old_brightness_) {
-    ESP_LOGD(TAG, "Brightness changed from %.2f to %.2f", this->old_brightness_, brightness);
+    ESP_LOGD(TAG, "Brightness changed from %.2f%% to %.2f%%", this->old_brightness_ * 100.0f, brightness * 100.0f);
   }
 
-  if (color_temperature != this->old_color_temperature_) {
-    ESP_LOGD(TAG, "Color temperature changed from %.2f to %.2f", this->old_color_temperature_, color_temperature);
+  // There is a reasonable suspicion that when the light is turned on, the color temperature is set to warmest possible.
+  // Therefore, we will send the message after turning the light on, even if the color temperature has not changed.
+  if (color_temperature != this->old_color_temperature_ || turned_on) {
+    ESP_LOGD(TAG, "Color temperature changed from %.2f K to %.2f K",
+             utils::normalized_mireds_to_kelvin(this->old_color_temperature_, this->cold_white_temperature_,
+                                                this->warm_white_temperature_),
+             utils::normalized_mireds_to_kelvin(color_temperature, this->cold_white_temperature_,
+                                                this->warm_white_temperature_));
     this->prepare_ct_brightness_msg(color_temperature, brightness);
+    NeewerBLEOutput::write_state(1.0);
   } else if (brightness != this->old_brightness_) {
     ESP_LOGD(TAG, "Only brightness changed.");
     this->prepare_brightness_msg(brightness);
+    NeewerBLEOutput::write_state(1.0);
+  } else {
+    ESP_LOGD(TAG, "No changes in brightness or color temperature detected.");
   }
 
   // We're probably done with the old values now, so let's change them up.
   this->old_color_temperature_ = color_temperature;
   this->old_brightness_ = brightness;
-
-  // Message having been prepared, we can send it off into the sunset.
-  NeewerBLEOutput::write_state(1.0);
 
   // Do whatever else setting the current levels individually accomplishes
   this->color_temperature_->set_level(color_temperature);
