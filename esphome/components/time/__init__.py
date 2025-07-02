@@ -7,7 +7,6 @@ from esphome import automation
 from esphome.automation import Condition
 import esphome.codegen as cg
 from esphome.components.zephyr import zephyr_add_prj_conf
-from esphome.components.zephyr.const import KEY_ZEPHYR
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_AT,
@@ -79,14 +78,6 @@ def detect_tz() -> str:
     ret = _extract_tz_string(tzfile)
     _LOGGER.debug(" -> TZ string %s", ret)
     return ret
-
-
-class OptionalForZephyr(cv.Optional):
-    def __init__(self, val, default):
-        if CORE.target_framework == KEY_ZEPHYR:
-            super().__init__(val)
-        else:
-            super().__init__(val, default)
 
 
 def _parse_cron_int(value, special_mapping, message):
@@ -278,7 +269,15 @@ def validate_tz(value: str) -> str:
 
 TIME_SCHEMA = cv.Schema(
     {
-        OptionalForZephyr(CONF_TIMEZONE, default=detect_tz): cv.All(
+        cv.SplitDefault(
+            CONF_TIMEZONE,
+            esp8266=detect_tz,
+            esp32=detect_tz,
+            rp2040=detect_tz,
+            bk72xx=detect_tz,
+            rtl87xx=detect_tz,
+            ln882x=detect_tz,
+        ): cv.All(
             cv.only_with_framework(["arduino", "esp-idf", "host"]),
             validate_tz,
         ),
@@ -306,8 +305,8 @@ TIME_SCHEMA = cv.Schema(
 
 
 async def setup_time_core_(time_var, config):
-    if not CORE.target_framework == KEY_ZEPHYR:
-        cg.add(time_var.set_timezone(config[CONF_TIMEZONE]))
+    if timezone := config.get(CONF_TIMEZONE):
+        cg.add(time_var.set_timezone(timezone))
 
     for conf in config.get(CONF_ON_TIME, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], time_var)
@@ -341,7 +340,7 @@ async def register_time(time_var, config):
 
 @coroutine_with_priority(100.0)
 async def to_code(config):
-    if CORE.target_framework == KEY_ZEPHYR:
+    if CORE.using_zephyr:
         zephyr_add_prj_conf("POSIX_CLOCK", True)
     cg.add_define("USE_TIME")
     cg.add_global(time_ns.using)
