@@ -28,9 +28,7 @@ void XDB401Component::setup() {
   float pressure;
   i2c::ErrorCode err_code = this->read_(temperature, pressure);
   if (err_code != i2c::ERROR_OK) {
-    // this->mark_failed("I2C Communication Failed...");  // Need latest dev
-    this->mark_failed();
-    ESP_LOGE(TAG, "I2C Communication Failed...");
+    this->mark_failed(ESP_LOG_MSG_COMM_FAIL);
     return;
   }
   this->comm_err_counter_ = 0;
