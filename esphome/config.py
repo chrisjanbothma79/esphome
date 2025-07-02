@@ -443,12 +443,7 @@ class AutoLoadValidationStep(ConfigValidationStep):
             return
 
         # Platform-specific auto-load (e.g., "ota.web_server")
-        parts = self.domain.split(".", 1)
-        if len(parts) != 2:
-            # Invalid format
-            return
-
-        component_name, platform_name = parts
+        component_name, _, platform_name = self.domain.partition(".")
 
         # Check if component exists
         if component_name not in result:
@@ -462,7 +457,8 @@ class AutoLoadValidationStep(ConfigValidationStep):
         component = get_component(component_name)
         if component is None or not component.is_platform_component:
             result.add_str_error(
-                f"Component {component_name} is not a platform component, cannot auto-load platform {platform_name}",
+                f"Component {component_name} is not a platform component, "
+                f"cannot auto-load platform {platform_name}",
                 [component_name],
             )
             return
