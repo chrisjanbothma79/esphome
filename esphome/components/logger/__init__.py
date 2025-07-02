@@ -26,7 +26,6 @@ from esphome.components.zephyr import (
     zephyr_add_overlay,
     zephyr_add_prj_conf,
 )
-from esphome.components.zephyr.const import KEY_ZEPHYR
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ARGS,
@@ -46,6 +45,7 @@ from esphome.const import (
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
     PLATFORM_LN882X,
+    PLATFORM_NRF52,
     PLATFORM_RP2040,
     PLATFORM_RTL87XX,
 )
@@ -173,7 +173,7 @@ def uart_selection(value):
             return cv.one_of(*UART_SELECTION_LIBRETINY[component], upper=True)(value)
     if CORE.is_host:
         raise cv.Invalid("Uart selection not valid for host platform")
-    if CORE.target_platform == PLATFORM_NRF52:
+    if CORE.is_nrf52:
         return cv.one_of(*UART_SELECTION_NRF52, upper=True)(value)
     raise NotImplementedError
 
@@ -195,7 +195,6 @@ LoggerMessageTrigger = logger_ns.class_(
 )
 
 
-PLATFORM_NRF52 = "nrf52"
 CONF_ESP8266_STORE_LOG_STRINGS_IN_FLASH = "esp8266_store_log_strings_in_flash"
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
@@ -370,7 +369,7 @@ async def to_code(config):
     except cv.Invalid:
         pass
 
-    if CORE.target_framework == KEY_ZEPHYR:
+    if CORE.using_zephyr:
         if config[CONF_HARDWARE_UART] == UART0:
             zephyr_add_overlay("""&uart0 { status = "okay";};""")
         if config[CONF_HARDWARE_UART] == UART1:
