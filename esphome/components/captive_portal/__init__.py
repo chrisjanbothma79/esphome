@@ -13,7 +13,7 @@ from esphome.const import (
 from esphome.core import CORE, coroutine_with_priority
 
 AUTO_LOAD = ["web_server_base"]
-DEPENDENCIES = ["wifi", "ota.web_server"]
+DEPENDENCIES = ["wifi"]
 CODEOWNERS = ["@OttoWinter"]
 
 captive_portal_ns = cg.esphome_ns.namespace("captive_portal")
