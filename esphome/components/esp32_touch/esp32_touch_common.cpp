@@ -23,7 +23,7 @@ void ESP32TouchComponent::dump_config_base_() {
                 "  Low Voltage Reference: %s\n"
                 "  High Voltage Reference: %s\n"
                 "  Voltage Attenuation: %s\n"
-                "  Release Timeout : %" PRIu32 "ms\n",
+                "  Release Timeout: %" PRIu32 "ms\n",
                 this->meas_cycle_ / (8000000.0f / 1000.0f), this->sleep_cycle_ / (150000.0f / 1000.0f), lv_s, hv_s,
                 atten_s, this->release_timeout_ms_);
 }
