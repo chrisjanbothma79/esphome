@@ -2,7 +2,7 @@ from esphome import pins
 import esphome.codegen as cg
 from esphome.components.zephyr.const import zephyr_ns
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_INVERTED, CONF_MODE, CONF_NUMBER
+from esphome.const import CONF_ID, CONF_INVERTED, CONF_MODE, CONF_NUMBER, PLATFORM_NRF52
 
 ZephyrGPIOPin = zephyr_ns.class_("ZephyrGPIOPin", cg.InternalGPIOPin)
 
@@ -43,7 +43,7 @@ NRF52_PIN_SCHEMA = cv.All(
 )
 
 
-@pins.PIN_SCHEMA_REGISTRY.register("nrf52", NRF52_PIN_SCHEMA)
+@pins.PIN_SCHEMA_REGISTRY.register(PLATFORM_NRF52, NRF52_PIN_SCHEMA)
 async def nrf52_pin_to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     num = config[CONF_NUMBER]
