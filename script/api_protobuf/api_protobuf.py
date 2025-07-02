@@ -882,7 +882,7 @@ def build_type_usage_map(
 
     # Helper to get unique ifdef from a set of messages
     def get_unique_ifdef(message_names: set[str]) -> str | None:
-        ifdefs = {
+        ifdefs: set[str] = {
             message_to_ifdef[name]
             for name in message_names
             if message_to_ifdef.get(name)
