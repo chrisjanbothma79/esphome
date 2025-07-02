@@ -1718,11 +1718,6 @@ bool APIConnection::schedule_batch_() {
   return true;
 }
 
-void APIConnection::clear_batch_() {
-  this->deferred_batch_.clear();
-  this->flags_.batch_scheduled = false;
-}
-
 ProtoWriteBuffer APIConnection::allocate_single_message_buffer(uint16_t size) { return this->create_buffer(size); }
 
 ProtoWriteBuffer APIConnection::allocate_batch_message_buffer(uint16_t size) {

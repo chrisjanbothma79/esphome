@@ -628,7 +628,10 @@ class APIConnection : public APIServerConnection {
 
   bool schedule_batch_();
   void process_batch_();
-  void clear_batch_();
+  void clear_batch_() {
+    this->deferred_batch_.clear();
+    this->flags_.batch_scheduled = false;
+  }
 
 #ifdef HAS_PROTO_MESSAGE_DUMP
   // Helper to log a proto message from a MessageCreator object
