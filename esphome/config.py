@@ -67,6 +67,42 @@ ConfigPath = list[str | int]
 path_context = contextvars.ContextVar("Config path")
 
 
+def _process_platform_config(
+    result: Config,
+    component_name: str,
+    platform_name: str,
+    platform_config: ConfigType,
+    path: ConfigPath,
+) -> None:
+    """Process a platform configuration and add necessary validation steps.
+
+    This is shared between LoadValidationStep and AutoLoadValidationStep to avoid duplication.
+    """
+    # Get the platform manifest
+    platform = get_platform(component_name, platform_name)
+    if platform is None:
+        result.add_str_error(
+            f"Platform not found: '{component_name}.{platform_name}'", path
+        )
+        return
+
+    # Add platform to loaded integrations
+    CORE.loaded_integrations.add(platform_name)
+    CORE.loaded_platforms.add(f"{component_name}/{platform_name}")
+
+    # Process platform's AUTO_LOAD
+    for load in platform.auto_load:
+        if load not in result:
+            result.add_validation_step(AutoLoadValidationStep(load))
+
+    # Add validation steps for the platform
+    p_domain = f"{component_name}.{platform_name}"
+    result.add_output_path(path, p_domain)
+    result.add_validation_step(
+        MetadataValidationStep(path, p_domain, platform_config, platform)
+    )
+
+
 def _path_begins_with(path: ConfigPath, other: ConfigPath) -> bool:
     if len(path) < len(other):
         return False
@@ -379,26 +415,11 @@ class LoadValidationStep(ConfigValidationStep):
                     path,
                 )
                 continue
-            # Remove temp output path and construct new one
+            # Remove temp output path
             result.remove_output_path(path, p_domain)
-            p_domain = f"{self.domain}.{p_name}"
-            result.add_output_path(path, p_domain)
-            # Try Load platform
-            platform = get_platform(self.domain, p_name)
-            if platform is None:
-                result.add_str_error(f"Platform not found: '{p_domain}'", path)
-                continue
-            CORE.loaded_integrations.add(p_name)
-            CORE.loaded_platforms.add(f"{self.domain}/{p_name}")
 
-            # Process AUTO_LOAD
-            for load in platform.auto_load:
-                if load not in result:
-                    result.add_validation_step(AutoLoadValidationStep(load))
-
-            result.add_validation_step(
-                MetadataValidationStep(path, p_domain, p_config, platform)
-            )
+            # Process the platform configuration
+            _process_platform_config(result, self.domain, p_name, p_config, path)
 
 
 class AutoLoadValidationStep(ConfigValidationStep):
@@ -454,34 +475,10 @@ class AutoLoadValidationStep(ConfigValidationStep):
                 platform_conf[CONF_PLATFORM] = platform_name
                 result[component_name].append(platform_conf)
 
-                # Get the platform manifest
-                platform = get_platform(component_name, platform_name)
-                if platform is None:
-                    result.add_str_error(
-                        f"Platform not found: '{component_name}.{platform_name}'",
-                        [component_name, len(result[component_name]) - 1],
-                    )
-                    return
-
-                # Add platform to loaded integrations
-                CORE.loaded_integrations.add(platform_name)
-                CORE.loaded_platforms.add(f"{component_name}/{platform_name}")
-
-                # Process platform's AUTO_LOAD
-                for load in platform.auto_load:
-                    if load not in result:
-                        result.add_validation_step(AutoLoadValidationStep(load))
-
-                # Add validation steps for the platform
+                # Process the platform configuration
                 path = [component_name, len(result[component_name]) - 1]
-                result.add_output_path(path, f"{component_name}.{platform_name}")
-                result.add_validation_step(
-                    MetadataValidationStep(
-                        path,
-                        f"{component_name}.{platform_name}",
-                        platform_conf,
-                        platform,
-                    )
+                _process_platform_config(
+                    result, component_name, platform_name, platform_conf, path
                 )
                 return
 
