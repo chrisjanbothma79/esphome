@@ -592,7 +592,6 @@ template<> const char *proto_enum_to_string<enums::UpdateCommand>(enums::UpdateC
 }
 #endif
 
-const char *HelloRequest::message_name() const { return "hello_request"; }
 void HelloRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("HelloRequest {\n");
@@ -611,7 +610,6 @@ void HelloRequest::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *HelloResponse::message_name() const { return "hello_response"; }
 void HelloResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("HelloResponse {\n");
@@ -634,7 +632,6 @@ void HelloResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *ConnectRequest::message_name() const { return "connect_request"; }
 void ConnectRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ConnectRequest {\n");
@@ -643,7 +640,6 @@ void ConnectRequest::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *ConnectResponse::message_name() const { return "connect_response"; }
 void ConnectResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ConnectResponse {\n");
@@ -652,15 +648,10 @@ void ConnectResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *DisconnectRequest::message_name() const { return "disconnect_request"; }
 void DisconnectRequest::dump_to(std::string &out) const { out.append("DisconnectRequest {}"); }
-const char *DisconnectResponse::message_name() const { return "disconnect_response"; }
 void DisconnectResponse::dump_to(std::string &out) const { out.append("DisconnectResponse {}"); }
-const char *PingRequest::message_name() const { return "ping_request"; }
 void PingRequest::dump_to(std::string &out) const { out.append("PingRequest {}"); }
-const char *PingResponse::message_name() const { return "ping_response"; }
 void PingResponse::dump_to(std::string &out) const { out.append("PingResponse {}"); }
-const char *DeviceInfoRequest::message_name() const { return "device_info_request"; }
 void DeviceInfoRequest::dump_to(std::string &out) const { out.append("DeviceInfoRequest {}"); }
 void AreaInfo::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
@@ -693,7 +684,6 @@ void DeviceInfo::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *DeviceInfoResponse::message_name() const { return "device_info_response"; }
 void DeviceInfoResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("DeviceInfoResponse {\n");
@@ -795,14 +785,10 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *ListEntitiesRequest::message_name() const { return "list_entities_request"; }
 void ListEntitiesRequest::dump_to(std::string &out) const { out.append("ListEntitiesRequest {}"); }
-const char *ListEntitiesDoneResponse::message_name() const { return "list_entities_done_response"; }
 void ListEntitiesDoneResponse::dump_to(std::string &out) const { out.append("ListEntitiesDoneResponse {}"); }
-const char *SubscribeStatesRequest::message_name() const { return "subscribe_states_request"; }
 void SubscribeStatesRequest::dump_to(std::string &out) const { out.append("SubscribeStatesRequest {}"); }
 #ifdef USE_BINARY_SENSOR
-const char *ListEntitiesBinarySensorResponse::message_name() const { return "list_entities_binary_sensor_response"; }
 void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesBinarySensorResponse {\n");
@@ -849,7 +835,6 @@ void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BinarySensorStateResponse::message_name() const { return "binary_sensor_state_response"; }
 void BinarySensorStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BinarySensorStateResponse {\n");
@@ -869,7 +854,6 @@ void BinarySensorStateResponse::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_COVER
-const char *ListEntitiesCoverResponse::message_name() const { return "list_entities_cover_response"; }
 void ListEntitiesCoverResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesCoverResponse {\n");
@@ -928,7 +912,6 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *CoverStateResponse::message_name() const { return "cover_state_response"; }
 void CoverStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("CoverStateResponse {\n");
@@ -956,7 +939,6 @@ void CoverStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *CoverCommandRequest::message_name() const { return "cover_command_request"; }
 void CoverCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("CoverCommandRequest {\n");
@@ -998,7 +980,6 @@ void CoverCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_FAN
-const char *ListEntitiesFanResponse::message_name() const { return "list_entities_fan_response"; }
 void ListEntitiesFanResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesFanResponse {\n");
@@ -1060,7 +1041,6 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *FanStateResponse::message_name() const { return "fan_state_response"; }
 void FanStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("FanStateResponse {\n");
@@ -1095,7 +1075,6 @@ void FanStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *FanCommandRequest::message_name() const { return "fan_command_request"; }
 void FanCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("FanCommandRequest {\n");
@@ -1156,7 +1135,6 @@ void FanCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_LIGHT
-const char *ListEntitiesLightResponse::message_name() const { return "list_entities_light_response"; }
 void ListEntitiesLightResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesLightResponse {\n");
@@ -1233,7 +1211,6 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *LightStateResponse::message_name() const { return "light_state_response"; }
 void LightStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("LightStateResponse {\n");
@@ -1300,7 +1277,6 @@ void LightStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *LightCommandRequest::message_name() const { return "light_command_request"; }
 void LightCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("LightCommandRequest {\n");
@@ -1427,7 +1403,6 @@ void LightCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_SENSOR
-const char *ListEntitiesSensorResponse::message_name() const { return "list_entities_sensor_response"; }
 void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesSensorResponse {\n");
@@ -1491,7 +1466,6 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *SensorStateResponse::message_name() const { return "sensor_state_response"; }
 void SensorStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SensorStateResponse {\n");
@@ -1512,7 +1486,6 @@ void SensorStateResponse::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_SWITCH
-const char *ListEntitiesSwitchResponse::message_name() const { return "list_entities_switch_response"; }
 void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesSwitchResponse {\n");
@@ -1559,7 +1532,6 @@ void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *SwitchStateResponse::message_name() const { return "switch_state_response"; }
 void SwitchStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SwitchStateResponse {\n");
@@ -1573,7 +1545,6 @@ void SwitchStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *SwitchCommandRequest::message_name() const { return "switch_command_request"; }
 void SwitchCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SwitchCommandRequest {\n");
@@ -1589,7 +1560,6 @@ void SwitchCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_TEXT_SENSOR
-const char *ListEntitiesTextSensorResponse::message_name() const { return "list_entities_text_sensor_response"; }
 void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesTextSensorResponse {\n");
@@ -1632,7 +1602,6 @@ void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *TextSensorStateResponse::message_name() const { return "text_sensor_state_response"; }
 void TextSensorStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("TextSensorStateResponse {\n");
@@ -1651,7 +1620,6 @@ void TextSensorStateResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
-const char *SubscribeLogsRequest::message_name() const { return "subscribe_logs_request"; }
 void SubscribeLogsRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SubscribeLogsRequest {\n");
@@ -1664,7 +1632,6 @@ void SubscribeLogsRequest::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *SubscribeLogsResponse::message_name() const { return "subscribe_logs_response"; }
 void SubscribeLogsResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SubscribeLogsResponse {\n");
@@ -1682,7 +1649,6 @@ void SubscribeLogsResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #ifdef USE_API_NOISE
-const char *NoiseEncryptionSetKeyRequest::message_name() const { return "noise_encryption_set_key_request"; }
 void NoiseEncryptionSetKeyRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("NoiseEncryptionSetKeyRequest {\n");
@@ -1691,7 +1657,6 @@ void NoiseEncryptionSetKeyRequest::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *NoiseEncryptionSetKeyResponse::message_name() const { return "noise_encryption_set_key_response"; }
 void NoiseEncryptionSetKeyResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("NoiseEncryptionSetKeyResponse {\n");
@@ -1701,9 +1666,6 @@ void NoiseEncryptionSetKeyResponse::dump_to(std::string &out) const {
   out.append("}");
 }
 #endif
-const char *SubscribeHomeassistantServicesRequest::message_name() const {
-  return "subscribe_homeassistant_services_request";
-}
 void SubscribeHomeassistantServicesRequest::dump_to(std::string &out) const {
   out.append("SubscribeHomeassistantServicesRequest {}");
 }
@@ -1719,7 +1681,6 @@ void HomeassistantServiceMap::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *HomeassistantServiceResponse::message_name() const { return "homeassistant_service_response"; }
 void HomeassistantServiceResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("HomeassistantServiceResponse {\n");
@@ -1750,14 +1711,8 @@ void HomeassistantServiceResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *SubscribeHomeAssistantStatesRequest::message_name() const {
-  return "subscribe_home_assistant_states_request";
-}
 void SubscribeHomeAssistantStatesRequest::dump_to(std::string &out) const {
   out.append("SubscribeHomeAssistantStatesRequest {}");
-}
-const char *SubscribeHomeAssistantStateResponse::message_name() const {
-  return "subscribe_home_assistant_state_response";
 }
 void SubscribeHomeAssistantStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
@@ -1775,7 +1730,6 @@ void SubscribeHomeAssistantStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *HomeAssistantStateResponse::message_name() const { return "home_assistant_state_response"; }
 void HomeAssistantStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("HomeAssistantStateResponse {\n");
@@ -1792,9 +1746,7 @@ void HomeAssistantStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *GetTimeRequest::message_name() const { return "get_time_request"; }
 void GetTimeRequest::dump_to(std::string &out) const { out.append("GetTimeRequest {}"); }
-const char *GetTimeResponse::message_name() const { return "get_time_response"; }
 void GetTimeResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("GetTimeResponse {\n");
@@ -1816,7 +1768,6 @@ void ListEntitiesServicesArgument::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *ListEntitiesServicesResponse::message_name() const { return "list_entities_services_response"; }
 void ListEntitiesServicesResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesServicesResponse {\n");
@@ -1889,7 +1840,6 @@ void ExecuteServiceArgument::dump_to(std::string &out) const {
   }
   out.append("}");
 }
-const char *ExecuteServiceRequest::message_name() const { return "execute_service_request"; }
 void ExecuteServiceRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ExecuteServiceRequest {\n");
@@ -1906,7 +1856,6 @@ void ExecuteServiceRequest::dump_to(std::string &out) const {
   out.append("}");
 }
 #ifdef USE_ESP32_CAMERA
-const char *ListEntitiesCameraResponse::message_name() const { return "list_entities_camera_response"; }
 void ListEntitiesCameraResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesCameraResponse {\n");
@@ -1945,7 +1894,6 @@ void ListEntitiesCameraResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *CameraImageResponse::message_name() const { return "camera_image_response"; }
 void CameraImageResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("CameraImageResponse {\n");
@@ -1963,7 +1911,6 @@ void CameraImageResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *CameraImageRequest::message_name() const { return "camera_image_request"; }
 void CameraImageRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("CameraImageRequest {\n");
@@ -1978,7 +1925,6 @@ void CameraImageRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_CLIMATE
-const char *ListEntitiesClimateResponse::message_name() const { return "list_entities_climate_response"; }
 void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesClimateResponse {\n");
@@ -2107,7 +2053,6 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *ClimateStateResponse::message_name() const { return "climate_state_response"; }
 void ClimateStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ClimateStateResponse {\n");
@@ -2179,7 +2124,6 @@ void ClimateStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *ClimateCommandRequest::message_name() const { return "climate_command_request"; }
 void ClimateCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ClimateCommandRequest {\n");
@@ -2283,7 +2227,6 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_NUMBER
-const char *ListEntitiesNumberResponse::message_name() const { return "list_entities_number_response"; }
 void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesNumberResponse {\n");
@@ -2349,7 +2292,6 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *NumberStateResponse::message_name() const { return "number_state_response"; }
 void NumberStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("NumberStateResponse {\n");
@@ -2368,7 +2310,6 @@ void NumberStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *NumberCommandRequest::message_name() const { return "number_command_request"; }
 void NumberCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("NumberCommandRequest {\n");
@@ -2385,7 +2326,6 @@ void NumberCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_SELECT
-const char *ListEntitiesSelectResponse::message_name() const { return "list_entities_select_response"; }
 void ListEntitiesSelectResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesSelectResponse {\n");
@@ -2430,7 +2370,6 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *SelectStateResponse::message_name() const { return "select_state_response"; }
 void SelectStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SelectStateResponse {\n");
@@ -2448,7 +2387,6 @@ void SelectStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *SelectCommandRequest::message_name() const { return "select_command_request"; }
 void SelectCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SelectCommandRequest {\n");
@@ -2464,7 +2402,6 @@ void SelectCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_SIREN
-const char *ListEntitiesSirenResponse::message_name() const { return "list_entities_siren_response"; }
 void ListEntitiesSirenResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesSirenResponse {\n");
@@ -2517,7 +2454,6 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *SirenStateResponse::message_name() const { return "siren_state_response"; }
 void SirenStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SirenStateResponse {\n");
@@ -2531,7 +2467,6 @@ void SirenStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *SirenCommandRequest::message_name() const { return "siren_command_request"; }
 void SirenCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SirenCommandRequest {\n");
@@ -2577,7 +2512,6 @@ void SirenCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_LOCK
-const char *ListEntitiesLockResponse::message_name() const { return "list_entities_lock_response"; }
 void ListEntitiesLockResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesLockResponse {\n");
@@ -2632,7 +2566,6 @@ void ListEntitiesLockResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *LockStateResponse::message_name() const { return "lock_state_response"; }
 void LockStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("LockStateResponse {\n");
@@ -2646,7 +2579,6 @@ void LockStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *LockCommandRequest::message_name() const { return "lock_command_request"; }
 void LockCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("LockCommandRequest {\n");
@@ -2670,7 +2602,6 @@ void LockCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_BUTTON
-const char *ListEntitiesButtonResponse::message_name() const { return "list_entities_button_response"; }
 void ListEntitiesButtonResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesButtonResponse {\n");
@@ -2713,7 +2644,6 @@ void ListEntitiesButtonResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *ButtonCommandRequest::message_name() const { return "button_command_request"; }
 void ButtonCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ButtonCommandRequest {\n");
@@ -2752,7 +2682,6 @@ void MediaPlayerSupportedFormat::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *ListEntitiesMediaPlayerResponse::message_name() const { return "list_entities_media_player_response"; }
 void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesMediaPlayerResponse {\n");
@@ -2801,7 +2730,6 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *MediaPlayerStateResponse::message_name() const { return "media_player_state_response"; }
 void MediaPlayerStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("MediaPlayerStateResponse {\n");
@@ -2824,7 +2752,6 @@ void MediaPlayerStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *MediaPlayerCommandRequest::message_name() const { return "media_player_command_request"; }
 void MediaPlayerCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("MediaPlayerCommandRequest {\n");
@@ -2869,9 +2796,6 @@ void MediaPlayerCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
-const char *SubscribeBluetoothLEAdvertisementsRequest::message_name() const {
-  return "subscribe_bluetooth_le_advertisements_request";
-}
 void SubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SubscribeBluetoothLEAdvertisementsRequest {\n");
@@ -2900,7 +2824,6 @@ void BluetoothServiceData::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothLEAdvertisementResponse::message_name() const { return "bluetooth_le_advertisement_response"; }
 void BluetoothLEAdvertisementResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothLEAdvertisementResponse {\n");
@@ -2965,9 +2888,6 @@ void BluetoothLERawAdvertisement::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothLERawAdvertisementsResponse::message_name() const {
-  return "bluetooth_le_raw_advertisements_response";
-}
 void BluetoothLERawAdvertisementsResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothLERawAdvertisementsResponse {\n");
@@ -2978,7 +2898,6 @@ void BluetoothLERawAdvertisementsResponse::dump_to(std::string &out) const {
   }
   out.append("}");
 }
-const char *BluetoothDeviceRequest::message_name() const { return "bluetooth_device_request"; }
 void BluetoothDeviceRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothDeviceRequest {\n");
@@ -3001,7 +2920,6 @@ void BluetoothDeviceRequest::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothDeviceConnectionResponse::message_name() const { return "bluetooth_device_connection_response"; }
 void BluetoothDeviceConnectionResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothDeviceConnectionResponse {\n");
@@ -3025,7 +2943,6 @@ void BluetoothDeviceConnectionResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothGATTGetServicesRequest::message_name() const { return "bluetooth_gatt_get_services_request"; }
 void BluetoothGATTGetServicesRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTGetServicesRequest {\n");
@@ -3102,7 +3019,6 @@ void BluetoothGATTService::dump_to(std::string &out) const {
   }
   out.append("}");
 }
-const char *BluetoothGATTGetServicesResponse::message_name() const { return "bluetooth_gatt_get_services_response"; }
 void BluetoothGATTGetServicesResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTGetServicesResponse {\n");
@@ -3118,9 +3034,6 @@ void BluetoothGATTGetServicesResponse::dump_to(std::string &out) const {
   }
   out.append("}");
 }
-const char *BluetoothGATTGetServicesDoneResponse::message_name() const {
-  return "bluetooth_gatt_get_services_done_response";
-}
 void BluetoothGATTGetServicesDoneResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTGetServicesDoneResponse {\n");
@@ -3130,7 +3043,6 @@ void BluetoothGATTGetServicesDoneResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothGATTReadRequest::message_name() const { return "bluetooth_gatt_read_request"; }
 void BluetoothGATTReadRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTReadRequest {\n");
@@ -3145,7 +3057,6 @@ void BluetoothGATTReadRequest::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothGATTReadResponse::message_name() const { return "bluetooth_gatt_read_response"; }
 void BluetoothGATTReadResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTReadResponse {\n");
@@ -3164,7 +3075,6 @@ void BluetoothGATTReadResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothGATTWriteRequest::message_name() const { return "bluetooth_gatt_write_request"; }
 void BluetoothGATTWriteRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTWriteRequest {\n");
@@ -3187,9 +3097,6 @@ void BluetoothGATTWriteRequest::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothGATTReadDescriptorRequest::message_name() const {
-  return "bluetooth_gatt_read_descriptor_request";
-}
 void BluetoothGATTReadDescriptorRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTReadDescriptorRequest {\n");
@@ -3203,9 +3110,6 @@ void BluetoothGATTReadDescriptorRequest::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
   out.append("}");
-}
-const char *BluetoothGATTWriteDescriptorRequest::message_name() const {
-  return "bluetooth_gatt_write_descriptor_request";
 }
 void BluetoothGATTWriteDescriptorRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
@@ -3225,7 +3129,6 @@ void BluetoothGATTWriteDescriptorRequest::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothGATTNotifyRequest::message_name() const { return "bluetooth_gatt_notify_request"; }
 void BluetoothGATTNotifyRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTNotifyRequest {\n");
@@ -3244,7 +3147,6 @@ void BluetoothGATTNotifyRequest::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothGATTNotifyDataResponse::message_name() const { return "bluetooth_gatt_notify_data_response"; }
 void BluetoothGATTNotifyDataResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTNotifyDataResponse {\n");
@@ -3263,13 +3165,9 @@ void BluetoothGATTNotifyDataResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *SubscribeBluetoothConnectionsFreeRequest::message_name() const {
-  return "subscribe_bluetooth_connections_free_request";
-}
 void SubscribeBluetoothConnectionsFreeRequest::dump_to(std::string &out) const {
   out.append("SubscribeBluetoothConnectionsFreeRequest {}");
 }
-const char *BluetoothConnectionsFreeResponse::message_name() const { return "bluetooth_connections_free_response"; }
 void BluetoothConnectionsFreeResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothConnectionsFreeResponse {\n");
@@ -3291,7 +3189,6 @@ void BluetoothConnectionsFreeResponse::dump_to(std::string &out) const {
   }
   out.append("}");
 }
-const char *BluetoothGATTErrorResponse::message_name() const { return "bluetooth_gatt_error_response"; }
 void BluetoothGATTErrorResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTErrorResponse {\n");
@@ -3311,7 +3208,6 @@ void BluetoothGATTErrorResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothGATTWriteResponse::message_name() const { return "bluetooth_gatt_write_response"; }
 void BluetoothGATTWriteResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTWriteResponse {\n");
@@ -3326,7 +3222,6 @@ void BluetoothGATTWriteResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothGATTNotifyResponse::message_name() const { return "bluetooth_gatt_notify_response"; }
 void BluetoothGATTNotifyResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTNotifyResponse {\n");
@@ -3341,7 +3236,6 @@ void BluetoothGATTNotifyResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothDevicePairingResponse::message_name() const { return "bluetooth_device_pairing_response"; }
 void BluetoothDevicePairingResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothDevicePairingResponse {\n");
@@ -3360,7 +3254,6 @@ void BluetoothDevicePairingResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothDeviceUnpairingResponse::message_name() const { return "bluetooth_device_unpairing_response"; }
 void BluetoothDeviceUnpairingResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothDeviceUnpairingResponse {\n");
@@ -3379,13 +3272,9 @@ void BluetoothDeviceUnpairingResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *UnsubscribeBluetoothLEAdvertisementsRequest::message_name() const {
-  return "unsubscribe_bluetooth_le_advertisements_request";
-}
 void UnsubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) const {
   out.append("UnsubscribeBluetoothLEAdvertisementsRequest {}");
 }
-const char *BluetoothDeviceClearCacheResponse::message_name() const { return "bluetooth_device_clear_cache_response"; }
 void BluetoothDeviceClearCacheResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothDeviceClearCacheResponse {\n");
@@ -3404,7 +3293,6 @@ void BluetoothDeviceClearCacheResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothScannerStateResponse::message_name() const { return "bluetooth_scanner_state_response"; }
 void BluetoothScannerStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothScannerStateResponse {\n");
@@ -3417,7 +3305,6 @@ void BluetoothScannerStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *BluetoothScannerSetModeRequest::message_name() const { return "bluetooth_scanner_set_mode_request"; }
 void BluetoothScannerSetModeRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothScannerSetModeRequest {\n");
@@ -3428,7 +3315,6 @@ void BluetoothScannerSetModeRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_VOICE_ASSISTANT
-const char *SubscribeVoiceAssistantRequest::message_name() const { return "subscribe_voice_assistant_request"; }
 void SubscribeVoiceAssistantRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SubscribeVoiceAssistantRequest {\n");
@@ -3461,7 +3347,6 @@ void VoiceAssistantAudioSettings::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *VoiceAssistantRequest::message_name() const { return "voice_assistant_request"; }
 void VoiceAssistantRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantRequest {\n");
@@ -3487,7 +3372,6 @@ void VoiceAssistantRequest::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *VoiceAssistantResponse::message_name() const { return "voice_assistant_response"; }
 void VoiceAssistantResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantResponse {\n");
@@ -3513,7 +3397,6 @@ void VoiceAssistantEventData::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *VoiceAssistantEventResponse::message_name() const { return "voice_assistant_event_response"; }
 void VoiceAssistantEventResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantEventResponse {\n");
@@ -3528,7 +3411,6 @@ void VoiceAssistantEventResponse::dump_to(std::string &out) const {
   }
   out.append("}");
 }
-const char *VoiceAssistantAudio::message_name() const { return "voice_assistant_audio"; }
 void VoiceAssistantAudio::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantAudio {\n");
@@ -3541,7 +3423,6 @@ void VoiceAssistantAudio::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *VoiceAssistantTimerEventResponse::message_name() const { return "voice_assistant_timer_event_response"; }
 void VoiceAssistantTimerEventResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantTimerEventResponse {\n");
@@ -3572,7 +3453,6 @@ void VoiceAssistantTimerEventResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *VoiceAssistantAnnounceRequest::message_name() const { return "voice_assistant_announce_request"; }
 void VoiceAssistantAnnounceRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantAnnounceRequest {\n");
@@ -3593,7 +3473,6 @@ void VoiceAssistantAnnounceRequest::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *VoiceAssistantAnnounceFinished::message_name() const { return "voice_assistant_announce_finished"; }
 void VoiceAssistantAnnounceFinished::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantAnnounceFinished {\n");
@@ -3620,12 +3499,8 @@ void VoiceAssistantWakeWord::dump_to(std::string &out) const {
   }
   out.append("}");
 }
-const char *VoiceAssistantConfigurationRequest::message_name() const { return "voice_assistant_configuration_request"; }
 void VoiceAssistantConfigurationRequest::dump_to(std::string &out) const {
   out.append("VoiceAssistantConfigurationRequest {}");
-}
-const char *VoiceAssistantConfigurationResponse::message_name() const {
-  return "voice_assistant_configuration_response";
 }
 void VoiceAssistantConfigurationResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
@@ -3648,7 +3523,6 @@ void VoiceAssistantConfigurationResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *VoiceAssistantSetConfiguration::message_name() const { return "voice_assistant_set_configuration"; }
 void VoiceAssistantSetConfiguration::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantSetConfiguration {\n");
@@ -3661,9 +3535,6 @@ void VoiceAssistantSetConfiguration::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
-const char *ListEntitiesAlarmControlPanelResponse::message_name() const {
-  return "list_entities_alarm_control_panel_response";
-}
 void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesAlarmControlPanelResponse {\n");
@@ -3715,7 +3586,6 @@ void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *AlarmControlPanelStateResponse::message_name() const { return "alarm_control_panel_state_response"; }
 void AlarmControlPanelStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("AlarmControlPanelStateResponse {\n");
@@ -3729,7 +3599,6 @@ void AlarmControlPanelStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *AlarmControlPanelCommandRequest::message_name() const { return "alarm_control_panel_command_request"; }
 void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("AlarmControlPanelCommandRequest {\n");
@@ -3749,7 +3618,6 @@ void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_TEXT
-const char *ListEntitiesTextResponse::message_name() const { return "list_entities_text_response"; }
 void ListEntitiesTextResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesTextResponse {\n");
@@ -3806,7 +3674,6 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *TextStateResponse::message_name() const { return "text_state_response"; }
 void TextStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("TextStateResponse {\n");
@@ -3824,7 +3691,6 @@ void TextStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *TextCommandRequest::message_name() const { return "text_command_request"; }
 void TextCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("TextCommandRequest {\n");
@@ -3840,7 +3706,6 @@ void TextCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_DATETIME_DATE
-const char *ListEntitiesDateResponse::message_name() const { return "list_entities_date_response"; }
 void ListEntitiesDateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesDateResponse {\n");
@@ -3879,7 +3744,6 @@ void ListEntitiesDateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *DateStateResponse::message_name() const { return "date_state_response"; }
 void DateStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("DateStateResponse {\n");
@@ -3908,7 +3772,6 @@ void DateStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *DateCommandRequest::message_name() const { return "date_command_request"; }
 void DateCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("DateCommandRequest {\n");
@@ -3935,7 +3798,6 @@ void DateCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_DATETIME_TIME
-const char *ListEntitiesTimeResponse::message_name() const { return "list_entities_time_response"; }
 void ListEntitiesTimeResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesTimeResponse {\n");
@@ -3974,7 +3836,6 @@ void ListEntitiesTimeResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *TimeStateResponse::message_name() const { return "time_state_response"; }
 void TimeStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("TimeStateResponse {\n");
@@ -4003,7 +3864,6 @@ void TimeStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *TimeCommandRequest::message_name() const { return "time_command_request"; }
 void TimeCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("TimeCommandRequest {\n");
@@ -4030,7 +3890,6 @@ void TimeCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_EVENT
-const char *ListEntitiesEventResponse::message_name() const { return "list_entities_event_response"; }
 void ListEntitiesEventResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesEventResponse {\n");
@@ -4079,7 +3938,6 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *EventResponse::message_name() const { return "event_response"; }
 void EventResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("EventResponse {\n");
@@ -4095,7 +3953,6 @@ void EventResponse::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_VALVE
-const char *ListEntitiesValveResponse::message_name() const { return "list_entities_valve_response"; }
 void ListEntitiesValveResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesValveResponse {\n");
@@ -4150,7 +4007,6 @@ void ListEntitiesValveResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *ValveStateResponse::message_name() const { return "valve_state_response"; }
 void ValveStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ValveStateResponse {\n");
@@ -4169,7 +4025,6 @@ void ValveStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *ValveCommandRequest::message_name() const { return "valve_command_request"; }
 void ValveCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ValveCommandRequest {\n");
@@ -4194,7 +4049,6 @@ void ValveCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_DATETIME_DATETIME
-const char *ListEntitiesDateTimeResponse::message_name() const { return "list_entities_date_time_response"; }
 void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesDateTimeResponse {\n");
@@ -4233,7 +4087,6 @@ void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *DateTimeStateResponse::message_name() const { return "date_time_state_response"; }
 void DateTimeStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("DateTimeStateResponse {\n");
@@ -4252,7 +4105,6 @@ void DateTimeStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *DateTimeCommandRequest::message_name() const { return "date_time_command_request"; }
 void DateTimeCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("DateTimeCommandRequest {\n");
@@ -4269,7 +4121,6 @@ void DateTimeCommandRequest::dump_to(std::string &out) const {
 }
 #endif
 #ifdef USE_UPDATE
-const char *ListEntitiesUpdateResponse::message_name() const { return "list_entities_update_response"; }
 void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesUpdateResponse {\n");
@@ -4312,7 +4163,6 @@ void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *UpdateStateResponse::message_name() const { return "update_state_response"; }
 void UpdateStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("UpdateStateResponse {\n");
@@ -4359,7 +4209,6 @@ void UpdateStateResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-const char *UpdateCommandRequest::message_name() const { return "update_command_request"; }
 void UpdateCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("UpdateCommandRequest {\n");

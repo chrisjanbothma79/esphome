@@ -968,9 +968,12 @@ def build_message_type(
             f"static constexpr uint16_t ESTIMATED_SIZE = {estimated_size};"
         )
 
-        # Add message_name method declaration in header
+        # Add message_name method inline in header
         public_content.append("#ifdef HAS_PROTO_MESSAGE_DUMP")
-        public_content.append("const char *message_name() const override;")
+        snake_name = camel_to_snake(desc.name)
+        public_content.append(
+            f'const char *message_name() const override {{ return "{snake_name}"; }}'
+        )
         public_content.append("#endif")
 
     for field in desc.field:
@@ -1111,14 +1114,8 @@ def build_message_type(
         out += "\n"
     out += "};\n"
 
-    # Build dump_cpp content with message_name implementation if needed
-    dump_cpp = ""
-    if message_id is not None:
-        snake_name = camel_to_snake(desc.name)
-        dump_cpp = f'const char *{desc.name}::message_name() const {{ return "{snake_name}"; }}\n'
-
-    # Add dump_to implementation
-    dump_cpp += dump_impl
+    # Build dump_cpp content with dump_to implementation
+    dump_cpp = dump_impl
 
     return out, cpp, dump_cpp
 
@@ -1396,13 +1393,6 @@ namespace api {
 
     # Build dynamic ifdef mappings for both enums and messages
     enum_ifdef_map, message_ifdef_map = build_type_usage_map(file)
-
-    # Debug: Print message_ifdef_map contents
-    print("DEBUG: message_ifdef_map contents:")
-    for message_name, ifdef in sorted(message_ifdef_map.items()):
-        print(f"  {message_name}: {ifdef}")
-    print(f"  Total messages with ifdefs: {len(message_ifdef_map)}")
-    print()
 
     # Simple grouping of enums by ifdef
     current_ifdef = None
