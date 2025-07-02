@@ -178,6 +178,7 @@ class APIConnection : public APIServerConnection {
   void list_entities(const ListEntitiesRequest &msg) override { this->list_entities_iterator_.begin(); }
   void subscribe_states(const SubscribeStatesRequest &msg) override {
     this->flags_.state_subscription = true;
+    this->flags_.sending_initial_states = true;
     this->initial_state_iterator_.begin();
   }
   void subscribe_logs(const SubscribeLogsRequest &msg) override {
@@ -295,6 +296,19 @@ class APIConnection : public APIServerConnection {
   // Non-template helper to encode any ProtoMessage
   static uint16_t encode_message_to_buffer(ProtoMessage &msg, uint16_t message_type, APIConnection *conn,
                                            uint32_t remaining_size, bool is_single);
+
+  // Helper method to process multiple entities from an iterator in a batch
+  template<typename Iterator> void process_iterator_batch(Iterator &iterator) {
+    const uint32_t start_time = millis();
+    const uint32_t max_time_ms = 5;  // Max 5ms per loop iteration
+    size_t batch_size = this->deferred_batch_.size();
+    const size_t max_batch_size = 20;  // Reasonable batch size
+
+    while (!iterator.completed() && (millis() - start_time) < max_time_ms &&
+           (this->deferred_batch_.size() - batch_size) < max_batch_size) {
+      iterator.advance();
+    }
+  }
 
 #ifdef USE_BINARY_SENSOR
   static uint16_t try_send_binary_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -582,7 +596,8 @@ class APIConnection : public APIServerConnection {
     uint8_t service_call_subscription : 1;
     uint8_t next_close : 1;
     uint8_t batch_scheduled : 1;
-    uint8_t batch_first_message : 1;  // For batch buffer allocation
+    uint8_t batch_first_message : 1;     // For batch buffer allocation
+    uint8_t sending_initial_states : 1;  // True while sending initial states
 #ifdef HAS_PROTO_MESSAGE_DUMP
     uint8_t log_only_mode : 1;
 #endif
@@ -613,6 +628,25 @@ class APIConnection : public APIServerConnection {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void log_batch_item_(const DeferredBatch::BatchItem &item);
 #endif
+
+  // Helper method to send a message either immediately or via batching
+  bool send_message_smart_(EntityBase *entity, MessageCreatorPtr creator, uint16_t message_type) {
+    // Try to send immediately if:
+    // 1. We're not sending initial states (sending_initial_states = false)
+    // 2. Buffer has space available
+    if (!this->flags_.sending_initial_states && this->helper_->can_write_without_blocking() &&
+        creator(entity, this, MAX_PACKET_SIZE, true) &&
+        this->send_buffer(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, message_type)) {
+      // Call the creator function with is_single=true to encode the message
+      // This will call allocate_single_message_buffer which clears the buffer
+      // Sent the buffer
+      return true;
+      // If immediate send failed, fall through to batching
+    }
+
+    // Fall back to scheduled batching
+    return this->schedule_message_(entity, creator, message_type);
+  }
 
   // Helper function to schedule a deferred message with known message type
   bool schedule_message_(EntityBase *entity, MessageCreator creator, uint16_t message_type) {
