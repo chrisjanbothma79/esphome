@@ -22,6 +22,7 @@ from esphome.const import (
     KEY_FRAMEWORK_VERSION,
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
+    PLATFORM_NRF52,
 )
 from esphome.core import CORE, EsphomeError, coroutine_with_priority
 from esphome.storage_json import StorageJSON
@@ -41,7 +42,6 @@ from .gpio import nrf52_pin_to_code  # noqa
 CODEOWNERS = ["@tomaszduda23"]
 AUTO_LOAD = ["zephyr"]
 IS_TARGET_PLATFORM = True
-PLATFORM_NRF52 = "nrf52"
 
 
 def set_core_data(config: ConfigType) -> ConfigType:
