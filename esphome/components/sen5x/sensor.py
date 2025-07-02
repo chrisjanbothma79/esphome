@@ -78,15 +78,24 @@ PerformForcedCo2CalibrationAction = sen5x_ns.class_(
 )
 SetAmbientPressurehPa = sen5x_ns.class_("SetAmbientPressurehPa", automation.Action)
 
+MODEL_SEN50 = "SEN50"
+MODEL_SEN54 = "SEN54"
+MODEL_SEN55 = "SEN55"
+MODEL_SEN60 = "SEN60"
+MODEL_SEN63C = "SEN63C"
+MODEL_SEN65 = "SEN65"
+MODEL_SEN66 = "SEN66"
+MODEL_SEN68 = "SEN68"
+
 SEN5X_MODELS = {
-    "SEN50": Sen5xModel.SEN50,
-    "SEN54": Sen5xModel.SEN54,
-    "SEN55": Sen5xModel.SEN55,
-    "SEN60": Sen5xModel.SEN60,
-    "SEN63C": Sen5xModel.SEN63C,
-    "SEN65": Sen5xModel.SEN65,
-    "SEN66": Sen5xModel.SEN66,
-    "SEN68": Sen5xModel.SEN68,
+    MODEL_SEN50: Sen5xModel.SEN50,
+    MODEL_SEN54: Sen5xModel.SEN54,
+    MODEL_SEN55: Sen5xModel.SEN55,
+    MODEL_SEN60: Sen5xModel.SEN60,
+    MODEL_SEN63C: Sen5xModel.SEN63C,
+    MODEL_SEN65: Sen5xModel.SEN65,
+    MODEL_SEN66: Sen5xModel.SEN66,
+    MODEL_SEN68: Sen5xModel.SEN68,
 }
 
 ACCELERATION_MODES = {
@@ -142,7 +151,19 @@ CONFIG_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(SEN5XComponent),
-            cv.Optional(CONF_MODEL): cv.enum(SEN5X_MODELS, upper=True),
+            cv.Required(CONF_MODEL): cv.enum(SEN5X_MODELS, upper=True),
+            cv.Optional(CONF_ACCELERATION_MODE): cv.enum(ACCELERATION_MODES),
+            cv.Optional(CONF_AUTO_CLEANING_INTERVAL): cv.update_interval,
+            cv.Optional(CONF_STORE_BASELINE, default=True): cv.boolean,
+            cv.Optional(CONF_TEMPERATURE_COMPENSATION): cv.Schema(
+                {
+                    cv.Optional(CONF_OFFSET, default=0): cv.float_,
+                    cv.Optional(CONF_NORMALIZED_OFFSET_SLOPE, default=0): cv.All(
+                        float_previously_pct, cv.float_
+                    ),
+                    cv.Optional(CONF_TIME_CONSTANT, default=0): cv.int_,
+                }
+            ),
             cv.Optional(CONF_PM_1_0): sensor.sensor_schema(
                 unit_of_measurement=UNIT_MICROGRAMS_PER_CUBIC_METER,
                 icon=ICON_CHEMICAL_WEAPON,
@@ -170,7 +191,6 @@ CONFIG_SCHEMA = (
                 device_class=DEVICE_CLASS_PM10,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
-            cv.Optional(CONF_AUTO_CLEANING_INTERVAL): cv.update_interval,
             cv.Optional(CONF_VOC): sensor.sensor_schema(
                 icon=ICON_RADIATOR,
                 accuracy_decimals=0,
@@ -196,7 +216,6 @@ CONFIG_SCHEMA = (
                 accuracy_decimals=1,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
-            cv.Optional(CONF_STORE_BASELINE, default=True): cv.boolean,
             cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
                 unit_of_measurement=UNIT_CELSIUS,
                 icon=ICON_THERMOMETER,
@@ -211,16 +230,6 @@ CONFIG_SCHEMA = (
                 device_class=DEVICE_CLASS_HUMIDITY,
                 state_class=STATE_CLASS_MEASUREMENT,
             ),
-            cv.Optional(CONF_TEMPERATURE_COMPENSATION): cv.Schema(
-                {
-                    cv.Optional(CONF_OFFSET, default=0): cv.float_,
-                    cv.Optional(CONF_NORMALIZED_OFFSET_SLOPE, default=0): cv.All(
-                        float_previously_pct, cv.float_
-                    ),
-                    cv.Optional(CONF_TIME_CONSTANT, default=0): cv.int_,
-                }
-            ),
-            cv.Optional(CONF_ACCELERATION_MODE): cv.enum(ACCELERATION_MODES),
         }
     )
     .extend(cv.polling_component_schema("60s"))
@@ -251,6 +260,89 @@ CO2_SETTING_MAP = {
     CONF_ALTITUDE_COMPENSATION: "set_co2_altitude_compensation",
     CONF_AMBIENT_PRESSURE_COMPENSATION: "set_co2_ambient_pressure_compensation",
 }
+
+
+def final_validate(config):
+    model = config[CONF_MODEL]
+    if CONF_ACCELERATION_MODE in config:
+        if (
+            model == MODEL_SEN50
+            or model == MODEL_SEN60
+            or model == MODEL_SEN63C
+            or model == MODEL_SEN65
+            or model == MODEL_SEN66
+            or model == MODEL_SEN68
+        ):
+            raise cv.Invalid(
+                f"Model {model} does not support '{CONF_ACCELERATION_MODE}'."
+            )
+    if CONF_AUTO_CLEANING_INTERVAL in config:
+        if (
+            model == MODEL_SEN60
+            or model == MODEL_SEN63C
+            or model == MODEL_SEN65
+            or model == MODEL_SEN66
+            or model == MODEL_SEN68
+        ):
+            raise cv.Invalid(
+                f"'Model' {model} does not support '{CONF_AUTO_CLEANING_INTERVAL}'."
+            )
+    if CONF_STORE_BASELINE in config:
+        if model == MODEL_SEN50 or model == MODEL_SEN60 or model == MODEL_SEN63C:
+            raise cv.Invalid(f"Model {model} does not support '{CONF_STORE_BASELINE}'.")
+    if CONF_TEMPERATURE_COMPENSATION in config:
+        if (
+            model == MODEL_SEN50
+            or model == MODEL_SEN60
+            or model == MODEL_SEN63C
+            or model == MODEL_SEN65
+            or model == MODEL_SEN66
+            or model == MODEL_SEN68
+        ):
+            raise cv.Invalid(
+                f"Model {model} does not support '{CONF_TEMPERATURE_COMPENSATION}'."
+            )
+    if CONF_VOC in config:
+        if model == MODEL_SEN50 or model == MODEL_SEN60 or model == MODEL_SEN63C:
+            raise cv.Invalid(f"Model {model} does not support '{CONF_VOC}'.")
+    if CONF_NOX in config:
+        if (
+            model == MODEL_SEN50
+            or model == MODEL_SEN54
+            or model == MODEL_SEN60
+            or model == MODEL_SEN63C
+        ):
+            raise cv.Invalid(f"Model {model} does not support '{CONF_NOX}'.")
+    if CONF_CO2 in config:
+        if (
+            model == MODEL_SEN50
+            or model == MODEL_SEN54
+            or model == MODEL_SEN55
+            or model == MODEL_SEN60
+            or model == MODEL_SEN65
+            or model == MODEL_SEN68
+        ):
+            raise cv.Invalid(f"Model {model} does not support '{CONF_CO2}'.")
+    if CONF_HCHO in config:
+        if (
+            model == MODEL_SEN50
+            or model == MODEL_SEN54
+            or model == MODEL_SEN55
+            or model == MODEL_SEN60
+            or model == MODEL_SEN63C
+            or model == MODEL_SEN65
+            or model == MODEL_SEN66
+        ):
+            raise cv.Invalid(f"Model {model} does not support '{CONF_HCHO}'.")
+    if CONF_TEMPERATURE in config:
+        if model == MODEL_SEN50 or model == MODEL_SEN60:
+            raise cv.Invalid(f"Model {model} does not support '{CONF_TEMPERATURE}'.")
+    if CONF_HUMIDITY in config:
+        if model == MODEL_SEN50 or model == MODEL_SEN60:
+            raise cv.Invalid(f"Model {model} does not support '{CONF_HUMIDITY}'.")
+
+
+FINAL_VALIDATE_SCHEMA = final_validate
 
 
 async def to_code(config):
