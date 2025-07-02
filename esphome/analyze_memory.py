@@ -48,6 +48,9 @@ SYMBOL_PATTERNS = {
         "prvAcquireItemNoSplit",
         "prvNotifyQueueSetContainer",
         "ucStaticTimerQueueStorage",
+        "eTaskGetState",
+        "main_task",
+        "do_system_init_fn",
     ],
     "xtensa": ["xt_", "_xt_", "xPortEnterCriticalTimeout"],
     "heap": ["heap_", "multi_heap"],
@@ -78,6 +81,11 @@ SYMBOL_PATTERNS = {
         "raw_bind",
         "icmp_send_response",
         "sockets",
+        "icmp_dest_unreach",
+        "inet_chksum_pseudo",
+        "alloc_socket",
+        "done_socket",
+        "set_global_fd_sets",
     ],
     "ipv6_stack": ["nd6_", "ip6_", "mld6_", "icmp6_", "icmp6_input"],
     "wifi_stack": [
@@ -113,7 +121,41 @@ SYMBOL_PATTERNS = {
     "bluetooth": ["bt_", "ble_", "l2c_", "gatt_", "gap_", "hci_", "BT_init"],
     "wifi_bt_coex": ["coex"],
     "bluetooth_rom": ["r_ble", "r_lld", "r_llc", "r_llm"],
-    "bluedroid_bt": ["bluedroid", "btc_", "bta_", "btm_", "btu_"],
+    "bluedroid_bt": [
+        "bluedroid",
+        "btc_",
+        "bta_",
+        "btm_",
+        "btu_",
+        "BTM_",
+        "GATT",
+        "L2CA_",
+        "smp_",
+        "gatts_",
+        "attp_",
+        "l2cu_",
+        "l2cb",
+        "smp_cb",
+        "BTA_GATTC_",
+        "SMP_",
+        "BTU_",
+        "BTA_Dm",
+        "GAP_Ble",
+        "BT_tx_if",
+        "host_recv_pkt_cb",
+        "saved_local_oob_data",
+        "string_to_bdaddr",
+        "string_is_bdaddr",
+        "CalConnectParamTimeout",
+        "transmit_fragment",
+        "transmit_data",
+        "event_command_ready",
+        "read_command_complete_header",
+        "parse_read_local_extended_features_response",
+        "parse_read_local_version_info_response",
+        "should_request_high",
+        "btdm_wakeup_request",
+    ],
     "crypto_math": [
         "ecp_",
         "bignum_",
@@ -127,6 +169,17 @@ SYMBOL_PATTERNS = {
         "__mdiff",
         "__lshift",
         "__mprec_tens",
+        "ECC_",
+        "multiprecision_",
+        "mix_sub_columns",
+        "sbox",
+        "gfm2_sbox",
+        "gfm3_sbox",
+        "curve_p256",
+        "curve",
+        "p_256_init_curve",
+        "shift_sub_rows",
+        "rshift",
     ],
     "hw_crypto": ["esp_aes", "esp_sha", "esp_rsa", "esp_bignum", "esp_mpi"],
     "libc": [
@@ -149,6 +202,30 @@ SYMBOL_PATTERNS = {
         "_reclaim_reent",
         "_open_r",
         "strncpy",
+        "_strtod_l",
+        "__gethex",
+        "__hexnan",
+        "_setenv_r",
+        "_tzset_unlocked_r",
+        "__tzcalc_limits",
+        "select",
+        "scalbnf",
+        "strtof",
+        "strtof_l",
+        "__d2b",
+        "__b2d",
+        "__s2b",
+        "_Balloc",
+        "__multadd",
+        "__lo0bits",
+        "__atexit0",
+        "__smakebuf_r",
+        "__swhatbuf_r",
+        "_sungetc_r",
+        "_close_r",
+        "_link_r",
+        "_unsetenv_r",
+        "_rename_r",
     ],
     "string_ops": ["strcmp", "strncmp", "strchr", "strstr", "strtok", "strdup"],
     "memory_alloc": ["malloc", "calloc", "realloc", "free", "_sbrk"],
@@ -205,6 +282,22 @@ SYMBOL_PATTERNS = {
         "txiq_cal_init",
         "pwdet_sar",
         "pwdet_sar2_init",
+        "ram_iq_est_enable",
+        "ram_rfpll_set_freq",
+        "ant_wifirx_cfg",
+        "ant_btrx_cfg",
+        "force_txrxoff",
+        "force_txrx_off",
+        "tx_paon_set",
+        "opt_11b_resart",
+        "rfpll_1p2_opt",
+        "ram_dc_iq_est",
+        "ram_start_tx_tone",
+        "ram_en_pwdet",
+        "ram_cbw2040_cfg",
+        "rxdc_est_min",
+        "i2cmst_reg_init",
+        "temprature_sens_read",
     ],
     "wifi_phy_pp": ["pp_", "ppT", "ppR", "ppP", "ppInstall", "ppCalTxAMPDULength"],
     "wifi_lmac": ["lmac"],
@@ -260,6 +353,13 @@ SYMBOL_PATTERNS = {
         "phy_rtl",
         "phy_dp83",
         "phy_ksz",
+        "lan87xx_",
+        "rtl8201_",
+        "ip101_",
+        "ksz80xx_",
+        "jl1101_",
+        "dp83848_",
+        "eth_on_state_changed",
     ],
     "threading": ["pthread_", "thread_", "_task_"],
     "pthread": ["pthread"],
@@ -451,7 +551,59 @@ SYMBOL_PATTERNS = {
     "raw_api": ["raw_bind", "raw_connect"],
     "checksum": ["process_checksum"],
     "entry_management": ["add_entry"],
-    "esp_ota": ["esp_ota", "ota_"],
+    "esp_ota": ["esp_ota", "ota_", "read_otadata"],
+    "http_server": [
+        "httpd_",
+        "parse_url_char",
+        "cb_headers_complete",
+        "delete_entry",
+        "validate_structure",
+        "config_save",
+        "config_new",
+        "verify_url",
+        "cb_url",
+    ],
+    "misc_system": [
+        "alarm_cbs",
+        "start_up",
+        "tokens",
+        "unhex",
+        "osi_funcs_ro",
+        "enum_function",
+        "fragment_and_dispatch",
+        "alarm_set",
+        "osi_alarm_new",
+        "config_set_string",
+        "config_update_newest_section",
+        "config_remove_key",
+        "method_strings",
+        "interop_match",
+        "interop_database",
+        "__state_table",
+        "__action_table",
+        "s_stub_table",
+        "s_context",
+        "s_mmu_ctx",
+        "s_get_bus_mask",
+        "hli_queue_put",
+        "list_remove",
+        "list_delete",
+        "lock_acquire_generic",
+        "is_vect_desc_usable",
+        "io_mode_str",
+        "__c$20233",
+    ],
+    "bluetooth_ll": [
+        "lld_pdu_",
+        "ld_acl_",
+        "lld_stop_ind_handler",
+        "lld_evt_winsize_change",
+        "config_lld_evt_funcs_reset",
+        "config_lld_funcs_reset",
+        "config_llm_funcs_reset",
+        "llm_set_long_adv_data",
+        "lld_retry_tx_prog",
+    ],
 }
 
 # Demangled patterns: patterns found in demangled C++ names
@@ -849,59 +1001,63 @@ class MemoryAnalyzer:
 
         # Build report
         lines = []
-        lines.append("=" * 108)
-        lines.append("                                  Component Memory Analysis")
-        lines.append("=" * 108)
+
+        # Calculate the exact table width
+        table_width = 29 + 3 + 13 + 3 + 13 + 3 + 11 + 3 + 11 + 3 + 14 + 3 + 11
+
+        lines.append("=" * table_width)
+        lines.append("Component Memory Analysis".center(table_width))
+        lines.append("=" * table_width)
         lines.append("")
 
-        # Main table
+        # Main table - fixed column widths
         lines.append(
-            f"{'Component':<28} | {'Flash (text)':>12} | {'Flash (data)':>12} | {'RAM (data)':>10} | {'RAM (bss)':>10} | {'Total Flash':>12} | {'Total RAM':>10}"
+            f"{'Component':<29} | {'Flash (text)':>13} | {'Flash (data)':>13} | {'RAM (data)':>11} | {'RAM (bss)':>11} | {'Total Flash':>14} | {'Total RAM':>11}"
         )
         lines.append(
-            "-" * 28
+            "-" * 29
             + "-+-"
-            + "-" * 12
+            + "-" * 13
             + "-+-"
-            + "-" * 12
+            + "-" * 13
             + "-+-"
-            + "-" * 10
+            + "-" * 11
             + "-+-"
-            + "-" * 10
+            + "-" * 11
             + "-+-"
-            + "-" * 12
+            + "-" * 14
             + "-+-"
-            + "-" * 10
+            + "-" * 11
         )
 
         for name, mem in components:
             if mem.flash_total > 0 or mem.ram_total > 0:
                 flash_rodata = mem.rodata_size + mem.data_size
                 lines.append(
-                    f"{name:<28} | {mem.text_size:>11,} B | {flash_rodata:>11,} B | "
-                    f"{mem.data_size:>9,} B | {mem.bss_size:>9,} B | "
-                    f"{mem.flash_total:>11,} B | {mem.ram_total:>9,} B"
+                    f"{name:<29} | {mem.text_size:>12,} B | {flash_rodata:>12,} B | "
+                    f"{mem.data_size:>10,} B | {mem.bss_size:>10,} B | "
+                    f"{mem.flash_total:>13,} B | {mem.ram_total:>10,} B"
                 )
 
         lines.append(
-            "-" * 28
+            "-" * 29
             + "-+-"
-            + "-" * 12
+            + "-" * 13
             + "-+-"
-            + "-" * 12
+            + "-" * 13
             + "-+-"
-            + "-" * 10
+            + "-" * 11
             + "-+-"
-            + "-" * 10
+            + "-" * 11
             + "-+-"
-            + "-" * 12
+            + "-" * 14
             + "-+-"
-            + "-" * 10
+            + "-" * 11
         )
         lines.append(
-            f"{'TOTAL':<28} | {' ':>11} | {' ':>11} | "
-            f"{' ':>9} | {' ':>9} | "
-            f"{total_flash:>11,} B | {total_ram:>9,} B"
+            f"{'TOTAL':<29} | {' ':>12} | {' ':>12} | "
+            f"{' ':>10} | {' ':>10} | "
+            f"{total_flash:>13,} B | {total_ram:>10,} B"
         )
 
         # Top consumers
@@ -930,7 +1086,7 @@ class MemoryAnalyzer:
         lines.append(
             "Note: This analysis covers symbols in the ELF file. Some runtime allocations may not be included."
         )
-        lines.append("=" * 108)
+        lines.append("=" * table_width)
 
         return "\n".join(lines)
 
