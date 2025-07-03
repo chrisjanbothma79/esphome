@@ -2,6 +2,8 @@
 
 #include "esphome/core/log.h"
 
+// #define SPI_CALL_TRACE
+
 #define FREE(ptr) \
   do { \
     free(ptr); \

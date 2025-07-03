@@ -198,6 +198,8 @@ class SdfsDriver : public DriverInterface {
   bool supports_crc_;
   card_type_t type_;
   uint32_t last_err_ = 0;
+  InternalGPIOPin *pw_ctrl_pin_{NULL};
+  InternalGPIOPin *cd_pin_{NULL};
 };
 
 // using fs::FS;

@@ -1,7 +1,9 @@
 #pragma once
 #include "esphome/core/defines.h"
 #include "sdfs.h"
+
 #ifdef USE_SDSPI_MODE
+
 #include "esphome/components/spi/spi.h"
 
 namespace esphome {
@@ -11,6 +13,7 @@ class SpiConnector : public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_
                                            spi::DATA_RATE_20MHZ> {
  public:
   SpiConnector();
+  virtual void dump_config();
   virtual void begin();
   virtual void end();
   virtual bool is_transaction();

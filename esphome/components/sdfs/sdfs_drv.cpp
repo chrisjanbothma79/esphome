@@ -8,29 +8,6 @@
 //#define 	CONFIG_FATFS_CODEPAGE
 /* This option specifies the OEM code page to be used on the target system.
 /  Incorrect code page setting can cause a file open failure.
-/
-/   437 - U.S.
-/   720 - Arabic
-/   737 - Greek
-/   771 - KBL
-/   775 - Baltic
-/   850 - Latin 1
-/   852 - Latin 2
-/   855 - Cyrillic
-/   857 - Turkish
-/   860 - Portuguese
-/   861 - Icelandic
-/   862 - Hebrew
-/   863 - Canadian French
-/   864 - Arabic
-/   865 - Nordic
-/   866 - Russian
-/   869 - Greek 2
-/   932 - Japanese (DBCS)
-/   936 - Simplified Chinese (DBCS)
-/   949 - Korean (DBCS)
-/   950 - Traditional Chinese (DBCS)
-/     0 - Include all code pages above and configured by f_setcp()
 */
 
 //
@@ -74,17 +51,6 @@ namespace sdfs {
 
 static const char *const TAG = "sdspi_drv_ard";
 
-/****************************************************************
- *
- *             SdfsDriver
- *
- * @brief Arduino frameework processing interaction with SDMMC and SDSPI card drivers/controllers
- *        in ESP32 platform.
- *        For SDMMC mode it use  SdmmcIO calss for commenication through HAL
- *        For SDSPI mode it use SPIConnector  classfor use esphome dafault SPI interface.
- *                  SPIConnector class defined in upper level in SdfsHost class
- * @param impl   FAT.   Esp fs implementation class
- */
 SdfsDriver::SdfsDriver() {
   this->pdrv_ = 0xFF;
 #if defined(_HAS_SDMMC_)
@@ -107,6 +73,8 @@ void SdfsDriver::set_connector(SpiConnector *cn) { this->connector_ = cn; }
 bool SdfsDriver::init_host(SdConnType bus_type) {
   this->bus_type_ = bus_type;
   bool ret = false;
+  // if (this->parent_->pw_ctrl_pin_ != NULL) pw_ctrl_pin_ = this->parent_->pw_ctrl_pin_;
+  // if (this->parent_->cd_pin_ != NULL) cd_pin_ = this->parent_->cd_pin_;
 
 #if defined(USE_SDSPI_MODE)
   if (this->bus_type_ == SD_SPI) {
@@ -126,20 +94,22 @@ bool SdfsDriver::init_host(SdConnType bus_type) {
 #if defined(_HAS_SDMMC_)
   // TODO:  set pins
   if (this->bus_type_ == SD_MMC) {
-    this->mmc_io->set_bus_width(this->parent_->spi_bus_width_);
-    this->mmc_io->set_wp_pin(this->parent_->wp_pin_);
-    this->mmc_io->set_cd_pin(this->parent_->cd_pin_);
-    this->mmc_io->set_clk_pin(this->parent_->clk_pin_);
-    this->mmc_io->set_cmd_pin(this->parent_->cmd_pin_);
     this->mmc_io->set_bus_slot(this->parent_->bus_slot_);
-    this->mmc_io->set_data0_pin(this->parent_->data0_pin_);
-    this->mmc_io->set_data1_pin(this->parent_->data1_pin_);
-    this->mmc_io->set_data2_pin(this->parent_->data2_pin_);
-    this->mmc_io->set_data3_pin(this->parent_->data3_pin_);
-    this->mmc_io->set_data4_pin(this->parent_->data4_pin_);
-    this->mmc_io->set_data5_pin(this->parent_->data5_pin_);
-    this->mmc_io->set_data6_pin(this->parent_->data6_pin_);
-    this->mmc_io->set_data7_pin(this->parent_->data7_pin_);
+    this->mmc_io->set_bus_width(this->parent_->spi_bus_width_);
+    // this->mmc_io->set_cd_pin(static_cast<gpio_num_t>(this->parent_->cd_pin_->get_pin()));
+    this->mmc_io->set_wp_pin(static_cast<gpio_num_t>(this->parent_->cd_pin_));
+
+    this->mmc_io->set_wp_pin(static_cast<gpio_num_t>(this->parent_->wp_pin_));
+    this->mmc_io->set_clk_pin(static_cast<gpio_num_t>(this->parent_->clk_pin_));
+    this->mmc_io->set_cmd_pin(static_cast<gpio_num_t>(this->parent_->cmd_pin_));
+    this->mmc_io->set_data0_pin(static_cast<gpio_num_t>(this->parent_->data0_pin_));
+    this->mmc_io->set_data1_pin(static_cast<gpio_num_t>(this->parent_->data1_pin_));
+    this->mmc_io->set_data2_pin(static_cast<gpio_num_t>(this->parent_->data2_pin_));
+    this->mmc_io->set_data3_pin(static_cast<gpio_num_t>(this->parent_->data3_pin_));
+    this->mmc_io->set_data4_pin(static_cast<gpio_num_t>(this->parent_->data4_pin_));
+    this->mmc_io->set_data5_pin(static_cast<gpio_num_t>(this->parent_->data5_pin_));
+    this->mmc_io->set_data6_pin(static_cast<gpio_num_t>(this->parent_->data6_pin_));
+    this->mmc_io->set_data7_pin(static_cast<gpio_num_t>(this->parent_->data7_pin_));
 
     ret = this->mmc_io->init();
     this->pdrv_ = this->mmc_io->get_pdrv();

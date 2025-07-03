@@ -68,21 +68,21 @@ SdmmcIO::SdmmcIO() {
   //     SET_RC(ERR_TYPE_LOCAL, RC_NO_MEM, "Init sdmmc. Not supported chip");
   // #endif
 }
-
-void SdmmcIO::set_bus_width(uint8_t bw) { this->spi_bus_width_ = bw; }
-void SdmmcIO::set_wp_pin(uint8_t pin) { this->wp_pin_ = pin; }
-void SdmmcIO::set_cd_pin(uint8_t pin) { this->cd_pin_ = pin; }
-void SdmmcIO::set_clk_pin(uint8_t pin) { this->clk_pin_ = pin; }
-void SdmmcIO::set_cmd_pin(uint8_t pin) { this->cmd_pin_ = pin; }
 void SdmmcIO::set_bus_slot(uint8_t slot) { this->bus_slot_ = slot; }
-void SdmmcIO::set_data0_pin(uint8_t pin) { this->data0_pin_ = pin; }
-void SdmmcIO::set_data1_pin(uint8_t pin) { this->data1_pin_ = pin; }
-void SdmmcIO::set_data2_pin(uint8_t pin) { this->data2_pin_ = pin; }
-void SdmmcIO::set_data3_pin(uint8_t pin) { this->data3_pin_ = pin; }
-void SdmmcIO::set_data4_pin(uint8_t pin) { this->data4_pin_ = pin; }
-void SdmmcIO::set_data5_pin(uint8_t pin) { this->data5_pin_ = pin; }
-void SdmmcIO::set_data6_pin(uint8_t pin) { this->data6_pin_ = pin; }
-void SdmmcIO::set_data7_pin(uint8_t pin) { this->data7_pin_ = pin; }
+void SdmmcIO::set_bus_width(uint8_t bw) { this->spi_bus_width_ = bw; }
+
+void SdmmcIO::set_wp_pin(gpio_num_t pin) { this->wp_pin_ = pin; }
+void SdmmcIO::set_cd_pin(gpio_num_t pin) { this->cd_pin_ = pin; }
+void SdmmcIO::set_clk_pin(gpio_num_t pin) { this->clk_pin_ = pin; }
+void SdmmcIO::set_cmd_pin(gpio_num_t pin) { this->cmd_pin_ = pin; }
+void SdmmcIO::set_data0_pin(gpio_num_t pin) { this->data0_pin_ = pin; }
+void SdmmcIO::set_data1_pin(gpio_num_t pin) { this->data1_pin_ = pin; }
+void SdmmcIO::set_data2_pin(gpio_num_t pin) { this->data2_pin_ = pin; }
+void SdmmcIO::set_data3_pin(gpio_num_t pin) { this->data3_pin_ = pin; }
+void SdmmcIO::set_data4_pin(gpio_num_t pin) { this->data4_pin_ = pin; }
+void SdmmcIO::set_data5_pin(gpio_num_t pin) { this->data5_pin_ = pin; }
+void SdmmcIO::set_data6_pin(gpio_num_t pin) { this->data6_pin_ = pin; }
+void SdmmcIO::set_data7_pin(gpio_num_t pin) { this->data7_pin_ = pin; }
 
 /**********************************************************************
  *
@@ -122,19 +122,19 @@ bool SdmmcIO::init() {
   // this->slot_config_->flags = 0;
   this->slot_config_->flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
   this->slot_config_->width = this->spi_bus_width_;
-  if (this->wp_pin_ < 255) {
+  if (this->wp_pin_ != GPIO_NUM_NC) {
     this->slot_config_->wp = static_cast<gpio_num_t>(this->wp_pin_);
     // gpio_set_pull_mode(this->slot_config->wp , GPIO_PULLUP_ONLY);
   } else
     this->slot_config_->wp = SDMMC_SLOT_NO_WP;
-  if (this->cd_pin_ < 255) {
+  if (this->cd_pin_ != GPIO_NUM_NC) {
     this->slot_config_->cd = static_cast<gpio_num_t>(this->cd_pin_);
     // gpio_set_pull_mode(slot_config->cd , GPIO_PULLUP_ONLY);
   } else
     this->slot_config_->cd = SDMMC_SLOT_NO_CD;
 
 #ifdef SOC_SDMMC_USE_GPIO_MATRIX
-  if ((this->clk_pin_ == 255) || (this->cmd_pin_ == 255) || (this->data0_pin_ == 255)) {
+  if ((this->clk_pin_ == GPIO_NUM_NC) || (this->cmd_pin_ == GPIO_NUM_NC) || (this->data0_pin_ == GPIO_NUM_NC)) {
     SET_RC(ERR_TYPE_LOCAL, RC_INVALID_ARG, "clk_pin, cmd_pin, data0_pin must be defined.");
     return false;
   }
@@ -143,7 +143,7 @@ bool SdmmcIO::init() {
   this->slot_config_->d0 = static_cast<gpio_num_t>(this->data0_pin_);
 
   if (this->spi_bus_width_ != 1) {
-    if ((this->data1_pin_ == 255) || (this->data2_pin_ == 255) || (this->data2_pin_ == 255)) {
+    if ((this->data1_pin_ == GPIO_NUM_NC) || (this->data2_pin_ == GPIO_NUM_NC) || (this->data2_pin_ == GPIO_NUM_NC)) {
       ESP_LOGW(TAG, " For 4bit bus width data1_pin_, data2_pin_, data3_pin_ must be defined. Redefine to 1bit");
       this->spi_bus_width_ = 1;
     } else {

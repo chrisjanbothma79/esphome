@@ -34,9 +34,6 @@ namespace sdfs {
 
 static const char *TAG = "sdfs";
 
-const char *sd_state2str[] = {"sdcard not initilized", "sdcard initilized", "sdcard slot empty", "sdcard slot has card",
-                              "sdcard mount"};
-
 const char *fs_err2str[] = {"(0) Succeeded",
                             "(1) A hard error occurred in the low level disk I/O layer",
                             "(2) Assertion failed",
@@ -66,7 +63,8 @@ const char *host_st2str[] = {
 const char *fat_type2str[] = {"NO_FS", "FS_FAT12", "FS_FAT16", "FS_FAT32", "FS_EXFAT"};
 class SdfsDriver;
 
-/**
+/*******************************************************************************
+ *
  * @brief  EspHome component for univeral interface for card attach and mount controll
  *
  */
@@ -90,15 +88,26 @@ FsInterface *SdfsHost::get_fs() {
   return fs_;
 }
 
-/**
+/*******************************************************
+ *
  * @brief Dump current params in debug console
  *
  */
 void SdfsHost::dump_config() {
+  LOG_UPDATE_INTERVAL(this);
   ESP_LOGCONFIG(TAG, "   SD Connection type: %s", this->type_ == SD_MMC ? "sdmmc" : "sdspi");
-  ESP_LOGCONFIG(TAG, "   FS Root path:     %s", this->path_.c_str());
+  ESP_LOGCONFIG(TAG, "   FS mountpoint:     %s", this->path_.c_str());
 
   if (this->type_ == SD_MMC) {
+    if (this->int_pin_ != -1)
+      ESP_LOGCONFIG(TAG, "   SDIO int pin:      %d", this->int_pin_);
+    if (this->cd_pin_ != -1)
+      ESP_LOGCONFIG(TAG, "   SDIO cd pin:       %d", this->cd_pin_);
+    if (this->wp_pin_ != -1)
+      ESP_LOGCONFIG(TAG, "   SDIO wp pin:       %d", this->wp_pin_);
+    if (this->pw_ctrl_pin_ != -1)
+      ESP_LOGCONFIG(TAG, "   SDIO pwr ctrl pin: %d", this->pw_ctrl_pin_);
+
     ESP_LOGCONFIG(TAG, "   SDIO bus slot:      %d", this->bus_slot_);
     if (this->spi_bus_width_ == BUS_WIDTH_1BIT)
       ESP_LOGCONFIG(TAG, "   SDIO bus_width: 1bit");
@@ -111,7 +120,7 @@ void SdfsHost::dump_config() {
     ESP_LOGCONFIG(TAG, "   SDIO cmd_pin:      %d", this->cmd_pin_);
     ESP_LOGCONFIG(TAG, "   SDIO data0 pin:    %d", this->data0_pin_);
 
-    if (this->spi_bus_width_ != 1) {
+    if (this->spi_bus_width_ == 4) {
       ESP_LOGCONFIG(TAG, "   SDIO data1 pin:    %d", this->data1_pin_);
       ESP_LOGCONFIG(TAG, "   SDIO data2_pin:    %d", this->data2_pin_);
       ESP_LOGCONFIG(TAG, "   SDIO data3 pin:    %d", this->data3_pin_);
@@ -123,70 +132,33 @@ void SdfsHost::dump_config() {
       ESP_LOGCONFIG(TAG, "   SDIO data7 pin:    %d", this->data7_pin_);
     }
   } else {
-    ESP_LOGCONFIG(TAG, "   SPI bus slot:      %d", this->bus_slot_);
-    // ESP_LOGCONFIG(TAG, "   SPI miso pin:     %d", this->miso_pin_);
-    // ESP_LOGCONFIG(TAG, "   SPI mosi pin:     %d", this->mosi_pin_);
-    // ESP_LOGCONFIG(TAG, "   SPI sc pin:       %d", this->cs_pin_);
-    if (this->int_pin_ < 255)
-      ESP_LOGCONFIG(TAG, "   SPI int pin:      %d", this->int_pin_);
-  }
-
-  if (this->cd_pin_ < 255)
-    ESP_LOGCONFIG(TAG, "   SPI/SDIO cd pin:       %d", this->cd_pin_);
-  if (this->wp_pin_ < 255)
-    ESP_LOGCONFIG(TAG, "   SPI/SDIO wp pin:       %d", this->wp_pin_);
-  if (this->pw_ctrl_pin_ < 255)
-    ESP_LOGCONFIG(TAG, "   SPI/SDIO pwr ctrl pin: %d", this->pw_ctrl_pin_);
-}
-/**
- * @brief Return current SD_CARD connectiorn state
- *
- * @return SdDriverStatus
- */
-SdDriverStatus SdfsHost::get_state() { return this->state_; }
-
-void SdfsHost::set_conn_type(SdConnType type) { this->type_ = type; }
-void SdfsHost::set_bus_slot(uint8_t gpio_num) { this->bus_slot_ = gpio_num; }
-void SdfsHost::set_clk_pin(uint8_t gpio_num) { this->clk_pin_ = gpio_num; }
-void SdfsHost::set_cmd_pin(uint8_t gpio_num) { this->cmd_pin_ = gpio_num; }
-void SdfsHost::set_data0_pin(uint8_t gpio_num) { this->data0_pin_ = gpio_num; }
-void SdfsHost::set_data1_pin(uint8_t gpio_num) { this->data1_pin_ = gpio_num; }
-void SdfsHost::set_data2_pin(uint8_t gpio_num) { this->data2_pin_ = gpio_num; }
-void SdfsHost::set_data3_pin(uint8_t gpio_num) { this->data3_pin_ = gpio_num; }
-void SdfsHost::set_data4_pin(uint8_t gpio_num) { this->data4_pin_ = gpio_num; }
-void SdfsHost::set_data5_pin(uint8_t gpio_num) { this->data5_pin_ = gpio_num; }
-void SdfsHost::set_data6_pin(uint8_t gpio_num) { this->data6_pin_ = gpio_num; }
-void SdfsHost::set_data7_pin(uint8_t gpio_num) { this->data7_pin_ = gpio_num; }
-void SdfsHost::set_pw_ctrl_pin(uint8_t gpio_num) { this->pw_ctrl_pin_ = gpio_num; }
-// void SdfsHost::set_cs_pin(uint8_t gpio_num) { this->cs_pin_ = gpio_num; }
-void SdfsHost::set_cd_pin(uint8_t gpio_num) { this->cd_pin_ = gpio_num; }
-void SdfsHost::set_wp_pin(uint8_t gpio_num) { this->wp_pin_ = gpio_num; }
-void SdfsHost::set_int_pin(uint8_t gpio_num) { this->int_pin_ = gpio_num; }
-// void SdfsHost::set_miso_pin(uint8_t gpio_num) { this->miso_pin_ = gpio_num; }
-// void SdfsHost::set_mosi_pin(uint8_t gpio_num) { this->mosi_pin_ = gpio_num; }
-void SdfsHost::set_path(std::string path) { this->path_ = path; }
-void SdfsHost::set_bus_width(BusWidth bus_width) { this->spi_bus_width_ = bus_width; }
-
 #if defined(USE_SDSPI_MODE)
-void SdfsHost::set_spi_parent(spi::SPIComponent *parent) { this->connector_->set_spi_parent(parent); }
-void SdfsHost::set_cs_pin(GPIOPin *cs) { this->connector_->set_cs_pin(cs); }
-void SdfsHost::set_data_rate(uint32_t data_rate) { this->connector_->set_data_rate(data_rate); }
-void SdfsHost::set_mode(spi::SPIMode mode) { this->connector_->set_mode(mode); }
+    if (this->connector_ != NULL) {
+      this->connector_->dump_config();
+    }
 #endif
+    ESP_LOGCONFIG(TAG, "   SPI bus slot:      %d", this->bus_slot_);
+  }
+}
 
+/*******************************************************
+ *
+ * @brief  Save new card state on change
+ *
+ * @param state
+ */
 void SdfsHost::set_state(SdDriverStatus state) {
   ESP_LOGD(TAG, "Change state to: %s", host_st2str[state]);
   this->on_state_callback_.call(static_cast<SdDriverStatus>(state));
   this->state_ = state;
 }
 
-/**
+/*******************************************************
+ *
  * @brief  Init SPI connector and SD disk driver
  *
  */
 void SdfsHost::setup() {
-  // TODO: Setup set_pw_ctrl_pin
-
 #ifndef USE_ESP8266
   SdfsDriver *drv = new SdfsDriver();
 #if defined(USE_SDSPI_MODE)
@@ -201,9 +173,6 @@ void SdfsHost::setup() {
   this->drv_ = drv;
 #endif
 
-  ESP_LOGD(TAG, "Setup");
-  this->last_time_check_ = ::time(nullptr);
-  // this->dump_config();
   if (this->drv_ == NULL) {
     ESP_LOGE(TAG, " Intialize SDMMC/SDSPI driver only for ESP-IDF or ARDUINO frameworks supported.");
     this->mark_failed();
@@ -217,7 +186,6 @@ void SdfsHost::setup() {
     return;
   }
   this->set_state(SD_SLOT_ST_INIT);
-  this->last_card_staus = true;
 
   ESP_LOGD(TAG, "Chack card.");
   if (this->drv_->is_card()) {
@@ -241,40 +209,60 @@ void SdfsHost::setup() {
   ESP_LOGD(TAG, "Setup complete");
 }
 
-void SdfsHost::loop() {
-  time_t cur_time = ::time(nullptr);
+/*******************************************************
+ *
+ * @brief  Initialize SPI connector
+ *
+ */
+#if defined(USE_SDSPI_MODE)
+void SdfsHost::set_spi_parent(spi::SPIComponent *parent) { connector_->set_spi_parent(parent); }
+void SdfsHost::set_cs_pin(GPIOPin *cs) { connector_->set_cs_pin(cs); }
+void SdfsHost::set_data_rate(uint32_t data_rate) { connector_->set_data_rate(data_rate); }
+void SdfsHost::set_mode(spi::SPIMode mode) { connector_->set_mode(mode); }
+#endif
 
-  if ((cur_time - this->last_time_check_) > 10) {
-    ESP_LOGD(TAG, "Check card status. %d", cur_time - this->last_time_check_);
-    this->last_time_check_ = cur_time;
+/*******************************************************
+ *
+ * @brief Check and update card status
+ *
+ */
+void SdfsHost::update() {
+  ESP_LOGD(TAG, "Check SD card status.");
 
-    bool card_present = this->drv_->is_card();
-    if ((!card_present) || (this->get_state() != SD_SLOT_ST_MOUNT)) {
-      this->set_state(SD_SLOT_ST_EMPTY);
-      fs_ = NULL;
-      if (this->drv_->attach_card()) {
-        this->set_state(SD_SLOT_ST_CARD);
+  bool card_present = this->drv_->is_card();
+  if ((!card_present) || (this->get_state() != SD_SLOT_ST_MOUNT)) {
+    this->set_state(SD_SLOT_ST_EMPTY);
+    fs_ = NULL;
+    if (this->drv_->attach_card()) {
+      this->set_state(SD_SLOT_ST_CARD);
 
-        if (this->drv_->mount(path_, false)) {
-          this->set_state(SD_SLOT_ST_MOUNT);
-        } else {
-          ESP_LOGW(TAG, "Seems card present but cannot mount. %d", this->drv_->get_last_err());
-        }
+      if (this->drv_->mount(path_, false)) {
+        this->set_state(SD_SLOT_ST_MOUNT);
+      } else {
+        ESP_LOGW(TAG, "Seems card present but cannot mount. %d", this->drv_->get_last_err());
       }
     }
   }
 }
 
-// this->on_err_callback_.call(static_cast<uint8_t>(this->last_error_code_));
-
+/*******************************************************
+ *
+ * @brief  Arm callback on state changed
+ *
+ * @param callback
+ */
 void SdfsHost::add_on_state_callback(std::function<void(SdDriverStatus)> &&callback) {
   this->on_state_callback_.add(std::move(callback));
 }
 
-//
-//   Conditions, Acctions and Triggers
-//
-
+/*******************************************************
+ * @brief  Write to file action
+ *
+ * @param path
+ * @param mode
+ * @param buf
+ * @param size
+ */
 void SdfsHost::write_to_file(std::string path, std::string mode, uint8_t *buf, size_t size) {
   FsInterface *fs = get_fs();
 
@@ -303,6 +291,15 @@ void SdfsHost::write_to_file(std::string path, std::string mode, uint8_t *buf, s
   }
 }
 
+/*******************************************************
+ * @brief   Read from file as specifiyed position
+ *
+ * @param path
+ * @param buf
+ * @param size
+ * @param position
+ * @return int
+ */
 int SdfsHost::read_from_file(std::string path, uint8_t *buf, size_t size, int position = 0) {
   FsInterface *fs = get_fs();
   FileInterface *file = NULL;
@@ -325,6 +322,9 @@ int SdfsHost::read_from_file(std::string path, uint8_t *buf, size_t size, int po
   }
   return rd;
 }
+
+// TODO:  add is_exist condition
+// TODO:  add is_dir condition
 
 }  // namespace sdfs
 }  // namespace esphome

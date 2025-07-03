@@ -47,19 +47,18 @@ class SpiConnector;
 class FsInterface;
 class DriverInterface;
 
-class SdfsHost : public Component {
-  // friend class SdmmcDriver;
-  // friend class SdfsIdfDriver;
+class SdfsHost : public PollingComponent {
   friend class SdfsDriver;
 
  public:
   SdfsHost();
   void setup() override;
-  void loop() override;
+  void update() override;
   void dump_config() override;
   DriverInterface *get_drv() { return drv_; };
   FsInterface *get_fs();
-  SdDriverStatus get_state();
+  SdDriverStatus get_state() { return state_; };
+  void set_state(SdDriverStatus state);
 
 #if defined(USE_SDSPI_MODE)
   void set_spi_parent(spi::SPIComponent *);
@@ -68,66 +67,59 @@ class SdfsHost : public Component {
   void set_mode(spi::SPIMode);
 #endif
 
+  void add_on_state_callback(std::function<void(SdDriverStatus)> &&callback);
+
   void write_to_file(std::string path, std::string mode, uint8_t *buf, size_t size);
   int read_from_file(std::string path, uint8_t *buf, size_t size, int position);
 
-  void set_state(SdDriverStatus);
-  void set_conn_type(SdConnType);
-  void set_bus_width(BusWidth);
-  void set_bus_slot(uint8_t);  // spi_mode
-  // void set_cs_pin(uint8_t);
-  // void set_miso_pin(uint8_t);
-  // void set_mosi_pin(uint8_t);
-  void set_clk_pin(uint8_t);
+  void set_conn_type(SdConnType type) { type_ = type; };
+  void set_bus_width(BusWidth busw) { spi_bus_width_ = busw; };
+  void set_bus_slot(uint8_t buss) { bus_slot_ = buss; };
+  void set_path(std::string path) { path_ = path; };
 
-  void set_cmd_pin(uint8_t);  //--- ????
-  void set_data0_pin(uint8_t);
-  void set_data1_pin(uint8_t);
-  void set_data2_pin(uint8_t);
-  void set_data3_pin(uint8_t);
-  void set_data4_pin(uint8_t);
-  void set_data5_pin(uint8_t);
-  void set_data6_pin(uint8_t);
-  void set_data7_pin(uint8_t);
-  void set_pw_ctrl_pin(uint8_t);
-  void set_cd_pin(uint8_t);
-  void set_wp_pin(uint8_t);
-  void set_int_pin(uint8_t);
-  void set_path(std::string);
-
-  void add_on_state_callback(std::function<void(SdDriverStatus)> &&callback);
+  void set_cd_pin(int pin) { cd_pin_ = pin; };
+  void set_pw_ctrl_pin(int pin) { pw_ctrl_pin_ = pin; };
+  void set_clk_pin(int pin) { clk_pin_ = pin; };
+  void set_cmd_pin(int pin) { cmd_pin_ = pin; };
+  void set_data0_pin(int pin) { data0_pin_ = pin; };
+  void set_data1_pin(int pin) { data1_pin_ = pin; };
+  void set_data2_pin(int pin) { data2_pin_ = pin; };
+  void set_data3_pin(int pin) { data3_pin_ = pin; };
+  void set_data4_pin(int pin) { data4_pin_ = pin; };
+  void set_data5_pin(int pin) { data5_pin_ = pin; };
+  void set_data6_pin(int pin) { data6_pin_ = pin; };
+  void set_data7_pin(int pin) { data7_pin_ = pin; };
+  void set_wp_pin(int pin) { wp_pin_ = pin; };
+  void set_int_pin(int pin) { int_pin_ = pin; };
 
  protected:
 #if defined(USE_SDSPI_MODE)
   SpiConnector *connector_;
 #endif
-  bool last_card_staus = false;
-  time_t last_time_check_;
   FsInterface *fs_ = NULL;
   DriverInterface *drv_ = NULL;
   SdConnType type_;
   SdDriverStatus state_;
   std::string path_;
   BusWidth spi_bus_width_;
-  uint8_t bus_slot_{255};
-  uint8_t clk_pin_{255};
-  uint8_t cmd_pin_{255};
-  uint8_t data0_pin_{255};
-  uint8_t data1_pin_{255};
-  uint8_t data2_pin_{255};
-  uint8_t data3_pin_{255};
-  uint8_t data4_pin_{255};
-  uint8_t data5_pin_{255};
-  uint8_t data6_pin_{255};
-  uint8_t data7_pin_{255};
-  // uint8_t cs_pin_{255};
-  uint8_t cd_pin_{255};
-  uint8_t wp_pin_{255};
-  uint8_t int_pin_{255};
-  uint8_t pw_ctrl_pin_{255};
-  // uint8_t miso_pin_{255};
-  // uint8_t mosi_pin_{255};
+  uint8_t bus_slot_{0};
   CallbackManager<void(SdDriverStatus)> on_state_callback_{};
+
+  int cd_pin_{-1};
+  int pw_ctrl_pin_{-1};
+  int wp_pin_{-1};
+  int int_pin_{-1};
+
+  int clk_pin_{-1};
+  int cmd_pin_{-1};
+  int data0_pin_{-1};
+  int data1_pin_{-1};
+  int data2_pin_{-1};
+  int data3_pin_{-1};
+  int data4_pin_{-1};
+  int data5_pin_{-1};
+  int data6_pin_{-1};
+  int data7_pin_{-1};
 };
 
 /**

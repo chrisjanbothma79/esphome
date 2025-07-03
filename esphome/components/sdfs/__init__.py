@@ -65,16 +65,8 @@ SD_DRIVER_STATUS = {
     "mount": SdDriverStatus.SD_SLOT_ST_MOUNT,
 }
 
-# WriteMode = sdfs_ns.enum("WriteMode")
-# MODE = {
-#     "write": WriteMode.WRITE,
-#     "append": WriteMode.APPEND,
-#     "read": WriteMode.READ
-# }
-
-
 # spi_ns = cg.esphome_ns.namespace("spi")
-SdfsHost = sdfs_ns.class_("SdfsHost", cg.Component)
+SdfsHost = sdfs_ns.class_("SdfsHost", cg.PollingComponent)
 SpiDrv = sdfs_ns.class_("EsphomeSpiDrv", spi.SPIDevice)
 
 SdfsWriteFile = sdfs_ns.class_("SdfsWriteFile", automation.Action)
@@ -93,6 +85,10 @@ ChangeSateteTrigger = sdfs_ns.class_(
 )
 
 
+# -------------------------------------------------------------------------------------------
+#
+#  VALUDATION
+#
 def validate_inlist(value, array):
     if value not in array:
         options = ",".joun(array)
@@ -164,30 +160,32 @@ def _validate(config):
     return config
 
 
+# -------------------------------------------------------------------------------------------
 #
-#  Schemas
+#  SCHEMAS
 #
-
-BASE_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(): cv.declare_id(SdfsHost),
-        cv.Optional(CONF_PATH, default="/sdcard"): cv.string,
-        cv.Optional(CONF_CD_PIN): pins.internal_gpio_output_pin_number,
-        cv.Optional(CONF_WP_PIN): pins.internal_gpio_output_pin_number,
-        cv.Optional(CONF_BUS_WIDTH, default="1bit"): cv.enum(
-            BUS_WIDTH_OPTION, lower=True
-        ),
-        cv.Optional(CONF_ON_STATE): automation.validate_automation(
-            {
-                cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ChangeSateteTrigger),
-            },
-        ),
-    }
-).extend(cv.COMPONENT_SCHEMA)
+BASE_SCHEMA = (
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.declare_id(SdfsHost),
+            cv.Optional(CONF_PATH, default="/sdcard"): cv.string,
+            cv.Optional(CONF_POWER_CTRL_PIN): pins.internal_gpio_output_pin_number,
+            cv.Optional(CONF_ON_STATE): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ChangeSateteTrigger),
+                },
+            ),
+        }
+    )
+    .extend(cv.COMPONENT_SCHEMA)
+    .extend(cv.polling_component_schema("10s"))
+)
 
 SDMMC_SCHEMA = BASE_SCHEMA.extend(
     cv.Schema(
         {
+            cv.Optional(CONF_CD_PIN): pins.internal_gpio_output_pin_number,
+            cv.Optional(CONF_WP_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_BUS_SLOT, default=1): cv.int_range(min=0, max=1),
             cv.Required(CONF_CMD_PIN): pins.internal_gpio_output_pin_number,
             cv.Required(CONF_SCLK_PIN): pins.internal_gpio_output_pin_number,
@@ -199,7 +197,9 @@ SDMMC_SCHEMA = BASE_SCHEMA.extend(
             cv.Optional(CONF_DATA5_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_DATA6_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_DATA7_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_POWER_CTRL_PIN): pins.internal_gpio_output_pin_number,
+            cv.Optional(CONF_BUS_WIDTH, default="1bit"): cv.enum(
+                BUS_WIDTH_OPTION, lower=True
+            ),
         }
     ),
 )
@@ -239,7 +239,14 @@ WRITE_ACTION_SCHEMA = cv.Schema(
 )
 
 
+# -------------------------------------------------------------------------------------------
+#
+#  CODE GENERATION
+#
 async def to_code(config):
+    #
+    #   Create required defines and add library
+    #
     if CORE.using_esp_idf:
         cg.add_build_flag("-DCONFIG_FATFS_API_ENCODING_UTF_8")
         cg.add_build_flag("-DCONFIG_FATFS_MAX_LFN=254")
@@ -274,26 +281,12 @@ async def to_code(config):
     else:
         raise cv.Invalid("Unsupported platform")
 
-    # if CORE.using_arduino and (config[CONF_TYPE] == "sdspi"):
-    #     cg.add_define("USE_ARDUINO_SPI_FS")
-    # cg.add_platformio_option("extra_scripts", ["pre:build_pio.py"])
-    # cg.add_platformio_option("lib_ldf_mode", "chain+")  #deep+  chain+
-    # cg.add_platformio_option("lib_extra_dirs", "src/esphome/components/sdfs")
-    # cg.add_library("FS", None)s
-    # cg.add_library("SD", None)
-    # cg.add_library("SPI", None)
-    # cg.add_library("SdFat", None)
-    #       lib_extra_di  rs = lib/MyLibFolder/ExternalLibFolder
-    #       lib_ldf_mode = chain+
-
+    #
+    #   Create class and add values
+    #
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     cg.add(var.set_conn_type(cv.enum(SD_CONN_TYPE)(config[CONF_TYPE])))
-
-    if CONF_CD_PIN in config:
-        cg.add(var.set_cd_pin(config[CONF_CD_PIN]))
-    if CONF_WP_PIN in config:
-        cg.add(var.set_wp_pin(config[CONF_WP_PIN]))
     if CONF_PATH in config:
         cg.add(var.set_path(config[CONF_PATH]))
     if CONF_POWER_CTRL_PIN in config:
@@ -301,11 +294,16 @@ async def to_code(config):
 
     if config[CONF_TYPE] == "sdspi":
         await spi.register_spi_device(var, config)
+
     elif config[CONF_TYPE] == "sdmmc":
-        cg.add(var.set_bus_slot(config[CONF_BUS_SLOT]))
+        if CONF_CD_PIN in config:
+            cg.add(var.set_pw_ctrl_pin(config[CONF_CD_PIN]))
+        if CONF_WP_PIN in config:
+            cg.add(var.set_wp_pin(config[CONF_WP_PIN]))
+        if CONF_WP_PIN in config:
+            cg.add(var.set_bus_slot(config[CONF_BUS_SLOT]))
         if CONF_SCLK_PIN in config:
             cg.add(var.set_clk_pin(config[CONF_SCLK_PIN]))
-        cg.add(var.set_path(config[CONF_PATH]))
 
         cg.add(var.set_cmd_pin(config[CONF_CMD_PIN]))
         cg.add(var.set_data0_pin(config[CONF_DATA0_PIN]))
@@ -322,14 +320,17 @@ async def to_code(config):
             cg.add(var.set_data6_pin(config[CONF_DATA6_PIN]))
             cg.add(var.set_data7_pin(config[CONF_DATA7_PIN]))
 
-    # Register triggers
+    #
+    #   Register Triggers
+    #
     for conf in config.get(CONF_ON_STATE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(SdDriverStatus, "x")], conf)
 
 
+# -------------------------------------------------------------------------------------------
 #
-#   Write to file  action
+#    AUTOMATION
 #
 @automation.register_action("sdfs.write_file", SdfsWriteFile, WRITE_ACTION_SCHEMA)
 async def sdfs_write_file_to_code(config, action_id, template_arg, args):
@@ -382,7 +383,7 @@ async def sd_is_empty_to_code(config, condition_id, template_arg, args):
 
 
 #
-#   is_empty
+#   is_card
 #
 @automation.register_condition(
     "sdfs.is_card",

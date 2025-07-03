@@ -29,19 +29,20 @@ class SdmmcIO {
   SdmmcIO();
 
   void set_bus_width(uint8_t);
-  void set_wp_pin(uint8_t);
-  void set_cd_pin(uint8_t);
-  void set_clk_pin(uint8_t);
-  void set_cmd_pin(uint8_t);
   void set_bus_slot(uint8_t);
-  void set_data0_pin(uint8_t);
-  void set_data1_pin(uint8_t);
-  void set_data2_pin(uint8_t);
-  void set_data3_pin(uint8_t);
-  void set_data4_pin(uint8_t);
-  void set_data5_pin(uint8_t);
-  void set_data6_pin(uint8_t);
-  void set_data7_pin(uint8_t);
+
+  void set_wp_pin(gpio_num_t);
+  void set_cd_pin(gpio_num_t);
+  void set_clk_pin(gpio_num_t);
+  void set_cmd_pin(gpio_num_t);
+  void set_data0_pin(gpio_num_t);
+  void set_data1_pin(gpio_num_t);
+  void set_data2_pin(gpio_num_t);
+  void set_data3_pin(gpio_num_t);
+  void set_data4_pin(gpio_num_t);
+  void set_data5_pin(gpio_num_t);
+  void set_data6_pin(gpio_num_t);
+  void set_data7_pin(gpio_num_t);
 
   bool init();
   bool init_slot();

@@ -1,6 +1,7 @@
 
 #include "spi_connector.h"
 #ifdef USE_SDSPI_MODE
+#include "esphome/core/log.h"
 // #include "SdFat.h"
 
 namespace esphome {
@@ -11,6 +12,12 @@ namespace sdfs {
 static const char *const TAG = "spi_connector";
 
 SpiConnector::SpiConnector() {}
+
+void SpiConnector::dump_config() {
+  ESP_LOGCONFIG(TAG, "  SPI mode:  %d", mode_);
+  LOG_PIN("  CS Pin: ", cs_);
+}
+
 bool SpiConnector::is_transaction() { return this->in_transaction; }
 void SpiConnector::begin() { this->spi_setup(); }
 void SpiConnector::end() { this->spi_teardown(); }
@@ -24,7 +31,7 @@ void SpiConnector::beginTransaction() {
   }
   trans_level_++;
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGV(TAG, "Transaction + Level=%d", trans_level_);
+  ESP_LOGV(TAG, "Transaction +, Level=%d", trans_level_);
 #endif
   // ESP_LOGV(TAG,"start transaction +");
   // if (! in_transaction )  {
@@ -42,7 +49,7 @@ void SpiConnector::endTransaction() {
   }
   trans_level_--;
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGV(TAG, "Transaction - Level=%d", trans_level_);
+  ESP_LOGV(TAG, "Transaction -, Level=%d", trans_level_);
 #endif
   if (trans_level_ <= 0) {
     this->disable();
@@ -54,10 +61,14 @@ void SpiConnector::endTransaction() {
 }
 
 uint8_t SpiConnector::transfer(uint8_t data) {
+  // #if defined(SPI_CALL_TRACE)
+  //   ESP_LOGV(TAG, "transfer  0x%.02X",data);
+  // #endif
+  uint8_t bt = this->transfer_byte(data);
 #if defined(SPI_CALL_TRACE)
-// ESP_LOGV(TAG, "transfer  0x%.02X",data);
+  ESP_LOGVV(TAG, "transfer s:0x%.02X  r:0x%.02X", data, bt);
 #endif
-  return this->transfer_byte(data);
+  return bt;
 }
 
 void SpiConnector::write16(uint16_t data) {
@@ -132,7 +143,24 @@ uint32_t SpiConnector::transfer32(uint32_t data) {
 
 void SpiConnector::writeBytes(const uint8_t *data, uint32_t size) {
 #if defined(SPI_CALL_TRACE)
-  ESP_LOGV(TAG, "writeBytes data, len %d", size);
+
+  if (size == 1) {
+    ESP_LOGV(TAG, "writeBytes data, len %d, data 0x%02X", size, data[0]);
+  } else if (size == 2) {
+    ESP_LOGV(TAG, "writeBytes data, len %d , data 0x%02X%02X", size, data[0], data[1]);
+  } else if (size == 3) {
+    ESP_LOGV(TAG, "writeBytes data, len %d , data 0x%02X%02X%02X", size, data[0], data[1], data[2]);
+  } else if (size == 4) {
+    ESP_LOGV(TAG, "writeBytes data, len %d , data 0x%02X%02X%02X%02X", size, data[0], data[1], data[2], data[3]);
+  } else if (size == 5) {
+    ESP_LOGV(TAG, "writeBytes data, len %d , data 0x%02X%02X%02X%02X%02X", size, data[0], data[1], data[2], data[3],
+             data[4]);
+  } else if (size == 6) {
+    ESP_LOGV(TAG, "writeBytes data, len %d , data 0x%02X%02X%02X%02X%02X%02X", size, data[0], data[1], data[2], data[3],
+             data[4], data[5]);
+  } else {
+    ESP_LOGV(TAG, "writeBytes data, len %d", size);
+  }
 #endif
   this->write_array(data, size);
 }
