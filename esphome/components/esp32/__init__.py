@@ -309,10 +309,10 @@ def _format_framework_espidf_version(
 
 # The default/recommended arduino framework version
 #  - https://github.com/espressif/arduino-esp32/releases
-RECOMMENDED_ARDUINO_FRAMEWORK_VERSION = cv.Version(3, 1, 3)
+RECOMMENDED_ARDUINO_FRAMEWORK_VERSION = cv.Version(3, 2, 1)
 # The platform-espressif32 version to use for arduino frameworks
 #  - https://github.com/pioarduino/platform-espressif32/releases
-ARDUINO_PLATFORM_VERSION = cv.Version(53, 3, 13)
+ARDUINO_PLATFORM_VERSION = cv.Version(54, 3, 21)
 
 # The default/recommended esp-idf framework version
 #  - https://github.com/espressif/esp-idf/releases
@@ -356,8 +356,8 @@ SUPPORTED_PIOARDUINO_ESP_IDF_5X = [
 def _arduino_check_versions(value):
     value = value.copy()
     lookups = {
-        "dev": (cv.Version(3, 1, 3), "https://github.com/espressif/arduino-esp32.git"),
-        "latest": (cv.Version(3, 1, 3), None),
+        "dev": (cv.Version(3, 2, 1), "https://github.com/espressif/arduino-esp32.git"),
+        "latest": (cv.Version(3, 2, 1), None),
         "recommended": (RECOMMENDED_ARDUINO_FRAMEWORK_VERSION, None),
     }
 
