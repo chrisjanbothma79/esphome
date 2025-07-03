@@ -118,7 +118,7 @@ def _process_base_package(config: dict) -> dict:
     files = []
 
     if base_path := config.get(CONF_PATH):
-        repo_dir = repo_dir.joinpath(base_path)
+        repo_dir = repo_dir / base_path
 
     for file in config[CONF_FILES]:
         if isinstance(file, str):
