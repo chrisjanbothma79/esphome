@@ -1,5 +1,4 @@
 #include "esphome/core/hal.h"
-#include "esphome/core/log.h"
 #include "hdc2010.h"
 // https://github.com/vigsterkr/homebridge-hdc2010/blob/main/src/hdc2010.js
 // https://github.com/lime-labs/HDC2080-Arduino/blob/master/src/HDC2080.cpp
@@ -52,8 +51,6 @@ void HDC2010Component::setup() {
   this->read_register(CONFIG, &config_contents, 1);
   config_contents &= 0xCF;
   this->write_bytes(CONFIG, &config_contents, 1);
-
-  delayMicroseconds(5000);  // wait for 5ms
 }
 
 void HDC2010Component::dump_config() {
@@ -91,23 +88,20 @@ void HDC2010Component::update() {
 
 float HDC2010Component::read_temp() {
   uint8_t byte[2];
-  uint16_t temp;
 
   this->read_register(HDC2010_CMD_TEMPERATURE_LOW, &byte[0], 1);
   this->read_register(HDC2010_CMD_TEMPERATURE_HIGH, &byte[1], 1);
 
-  temp = (unsigned int) byte[1] << 8 | byte[0];
+  uint16_t temp = encode_uint16(byte[1], byte[0]);
   return (float) temp * 0.0025177f - 40.0f;
 }
 
 float HDC2010Component::read_humidity() {
   uint8_t byte[2];
-  uint16_t humidity;
 
-  this->read_register(HDC2010_CMD_HUMIDITY_LOW, &byte[0], 1);
-  this->read_register(HDC2010_CMD_HUMIDITY_HIGH, &byte[1], 1);
+  this->read_register(HDC2010_CMD_HUMIDITY_LOW, byte, 2);
 
-  humidity = (unsigned int) byte[1] << 8 | byte[0];
+  uint16_t humidity = encode_uint16(byte[1], byte[0]);
   return (float) humidity * 0.001525879f;
 }
 
