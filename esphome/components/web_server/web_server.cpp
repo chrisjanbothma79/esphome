@@ -46,7 +46,8 @@ static const char *const HEADER_CORS_REQ_PNA = "Access-Control-Request-Private-N
 static const char *const HEADER_CORS_ALLOW_PNA = "Access-Control-Allow-Private-Network";
 #endif
 
-UrlMatch match_url(const std::string &url, bool only_domain = false) {
+// Helper function to handle the actual URL parsing logic
+static UrlMatch parse_url(const char *url_ptr, size_t url_len, bool only_domain) {
   UrlMatch match;
   match.valid = false;
   match.domain = nullptr;
@@ -56,18 +57,21 @@ UrlMatch match_url(const std::string &url, bool only_domain = false) {
   match.id_len = 0;
   match.method_len = 0;
 
-  const char *url_ptr = url.c_str();
-  size_t url_len = url.length();
-
   // URL must start with '/'
-  if (url_len < 2 || url_ptr[0] != '/')
+  if (url_len < 2 || url_ptr[0] != '/') {
     return match;
+  }
 
   // Find domain
   size_t domain_start = 1;
-  size_t domain_end = url.find('/', domain_start);
+  size_t domain_end = domain_start;
 
-  if (domain_end == std::string::npos) {
+  // Find the next '/' after domain
+  while (domain_end < url_len && url_ptr[domain_end] != '/') {
+    domain_end++;
+  }
+
+  if (domain_end == url_len) {
     // URL is just "/domain"
     match.domain = url_ptr + domain_start;
     match.domain_len = url_len - domain_start;
@@ -90,11 +94,16 @@ UrlMatch match_url(const std::string &url, bool only_domain = false) {
 
   // Find ID
   size_t id_begin = domain_end + 1;
-  size_t id_end = url.find('/', id_begin);
+  size_t id_end = id_begin;
+
+  // Find the next '/' after id
+  while (id_end < url_len && url_ptr[id_end] != '/') {
+    id_end++;
+  }
 
   match.valid = true;
 
-  if (id_end == std::string::npos) {
+  if (id_end == url_len) {
     // URL is "/domain/id" with no method
     match.id = url_ptr + id_begin;
     match.id_len = url_len - id_begin;
@@ -114,6 +123,18 @@ UrlMatch match_url(const std::string &url, bool only_domain = false) {
 
   return match;
 }
+
+// Overload for std::string - stores the string to ensure pointers remain valid
+UrlMatch match_url(const std::string &url, bool only_domain = false) {
+  return parse_url(url.c_str(), url.length(), only_domain);
+}
+
+#ifdef USE_ARDUINO
+// Overload for Arduino String - stores the string to ensure pointers remain valid
+UrlMatch match_url(const String &url, bool only_domain = false) {
+  return parse_url(url.c_str(), url.length(), only_domain);
+}
+#endif
 
 #ifdef USE_ARDUINO
 // helper for allowing only unique entries in the queue
@@ -1759,7 +1780,12 @@ bool WebServer::canHandle(AsyncWebServerRequest *request) const {
   }
 #endif
 
-  UrlMatch match = match_url(request->url().c_str(), true);  // NOLINT
+  // Store the URL to prevent temporary string destruction
+  // request->url() returns a reference to a String (on Arduino) or std::string (on ESP-IDF)
+  // If we pass it directly to match_url(), it could create a temporary std::string from Arduino String
+  // UrlMatch stores pointers to the string's data, so we must ensure the string outlives match_url()
+  const auto &url = request->url();
+  UrlMatch match = match_url(url, true);  // NOLINT
   if (!match.valid)
     return false;
 #ifdef USE_SENSOR
@@ -1898,7 +1924,10 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
   }
 #endif
 
-  UrlMatch match = match_url(request->url().c_str());  // NOLINT
+  // See comment in canHandle() for why we store the URL reference
+  const auto &url = request->url();
+  UrlMatch match = match_url(url);  // NOLINT
+
 #ifdef USE_SENSOR
   if (match.domain_equals("sensor")) {
     this->handle_sensor_request(request, match);
