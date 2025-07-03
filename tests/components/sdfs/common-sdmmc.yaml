@@ -17,7 +17,7 @@ sdfs:
   clk_pin: ${clk_pin_name}
   cmd_pin: ${cmd_pin_name}
   data0_pin: ${data0_pin_name}
-  on_state_changed:
+  on_state:
     then:
       - logger.log:
           format: "State changed %d"

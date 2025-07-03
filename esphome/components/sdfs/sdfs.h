@@ -40,10 +40,20 @@ extern const char *fat_type2str[];
 extern const char *fs_err2str[];
 extern const char *host_st2str[];
 
+/**
+ * @brief   Card eject/insert interrupt data
+ *
+ */
+struct CardDetectInterrupt {
+  volatile bool present{true};
+  bool init{false};
+  static void card_insert(CardDetectInterrupt *card_status);
+  static void card_eject(CardDetectInterrupt *card_status);
+};
+
 #ifdef USE_SDSPI_MODE
 class SpiConnector;
 #endif
-
 class FsInterface;
 class DriverInterface;
 
@@ -54,6 +64,7 @@ class SdfsHost : public PollingComponent {
   SdfsHost();
   void setup() override;
   void update() override;
+  void loop() override;
   void dump_config() override;
   DriverInterface *get_drv() { return drv_; };
   FsInterface *get_fs();
@@ -77,8 +88,14 @@ class SdfsHost : public PollingComponent {
   void set_bus_slot(uint8_t buss) { bus_slot_ = buss; };
   void set_path(std::string path) { path_ = path; };
 
-  void set_cd_pin(int pin) { cd_pin_ = pin; };
-  void set_pw_ctrl_pin(int pin) { pw_ctrl_pin_ = pin; };
+  // void set_pw_ctrl_pin(int pin) { pw_ctrl_pin_ = pin; };
+  // void set_cd_pin(int pin) { cd_pin_ = pin; };
+  // void set_wp_pin(int pin) { wp_pin_ = pin; };
+
+  void load_pw_ctrl_pin(InternalGPIOPin *pin) { pw_ctrl_pin_ = pin; };
+  void load_cd_pin(InternalGPIOPin *pin) { cd_pin_ = pin; };
+  void load_wp_pin(InternalGPIOPin *pin) { wp_pin_ = pin; };
+
   void set_clk_pin(int pin) { clk_pin_ = pin; };
   void set_cmd_pin(int pin) { cmd_pin_ = pin; };
   void set_data0_pin(int pin) { data0_pin_ = pin; };
@@ -89,10 +106,12 @@ class SdfsHost : public PollingComponent {
   void set_data5_pin(int pin) { data5_pin_ = pin; };
   void set_data6_pin(int pin) { data6_pin_ = pin; };
   void set_data7_pin(int pin) { data7_pin_ = pin; };
-  void set_wp_pin(int pin) { wp_pin_ = pin; };
-  void set_int_pin(int pin) { int_pin_ = pin; };
+
+  // void set_int_pin(int pin) { int_pin_ = pin; };
 
  protected:
+  bool card_present = false;
+  CardDetectInterrupt card_present_st;
 #if defined(USE_SDSPI_MODE)
   SpiConnector *connector_;
 #endif
@@ -105,11 +124,15 @@ class SdfsHost : public PollingComponent {
   uint8_t bus_slot_{0};
   CallbackManager<void(SdDriverStatus)> on_state_callback_{};
 
-  int cd_pin_{-1};
-  int pw_ctrl_pin_{-1};
-  int wp_pin_{-1};
-  int int_pin_{-1};
+  // int pw_ctrl_pin_{-1};
+  // int cd_pin_{-1};
+  // int wp_pin_{-1};
 
+  InternalGPIOPin *pw_ctrl_pin_{NULL};
+  InternalGPIOPin *cd_pin_{NULL};  // DOWN -> No Card ;  UP -> Card present
+  InternalGPIOPin *wp_pin_{NULL};
+
+  // int int_pin_{-1};
   int clk_pin_{-1};
   int cmd_pin_{-1};
   int data0_pin_{-1};

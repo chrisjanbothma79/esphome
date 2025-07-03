@@ -124,9 +124,10 @@ bool SdmmcIO::init() {
   this->slot_config_->width = this->spi_bus_width_;
   if (this->wp_pin_ != GPIO_NUM_NC) {
     this->slot_config_->wp = static_cast<gpio_num_t>(this->wp_pin_);
-    // gpio_set_pull_mode(this->slot_config->wp , GPIO_PULLUP_ONLY);
+    // gpio_set_pull_mode(this->slot_config_->wp , GPIO_PULLUP_ONLY);
   } else
     this->slot_config_->wp = SDMMC_SLOT_NO_WP;
+
   if (this->cd_pin_ != GPIO_NUM_NC) {
     this->slot_config_->cd = static_cast<gpio_num_t>(this->cd_pin_);
     // gpio_set_pull_mode(slot_config->cd , GPIO_PULLUP_ONLY);
@@ -306,15 +307,12 @@ void SdmmcIO::unmount() {
   }
 
   //  Clear registration
-  // ff_diskio_register(this->pdrv_, NULL);
   rc = esp_vfs_fat_unregister_path(mountpoint_.c_str());
   if ((rc != ESP_OK) && (rc != ESP_ERR_INVALID_STATE)) {
     SET_RC(ERR_TYPE_FRAMEWORK, rc, "Cannot unregister root path");
   }
 
-  //
   //  Reinit slot
-  //
   uint8_t slot_num = this->bus_slot_ == 0 ? SDMMC_HOST_SLOT_0 : SDMMC_HOST_SLOT_1;
   rc = sdmmc_host_init_slot(slot_num, this->slot_config_);
   if (rc != ESP_OK) {
@@ -339,8 +337,6 @@ local_rc_t SdmmcIO::format() {
   const size_t workbuf_size = 4096;
   void *workbuf = NULL;
   ESP_LOGW(TAG, "partitioning card");
-
-  //  TODO: is card present
 
   workbuf = ff_memalloc(workbuf_size);
   if (workbuf == NULL) {
@@ -388,9 +384,7 @@ local_rc_t SdmmcIO::format() {
 bool SdmmcIO::is_card_mem() { return this->card_info_->is_mem == 1; }
 bool SdmmcIO::is_card_sdio() { return this->card_info_->is_sdio == 1; }
 bool SdmmcIO::is_card_mmc() { return this->card_info_->is_mmc == 1; }
-// card_info_->csd->capacity
 size_t SdmmcIO::sectors() { return this->card_info_->csd.capacity; }
-// card_info_->csd->sector_size
 size_t SdmmcIO::sector_size() { return this->card_info_->csd.sector_size; }
 
 }  // namespace sdfs

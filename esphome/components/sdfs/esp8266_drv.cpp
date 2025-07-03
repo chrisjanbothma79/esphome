@@ -31,24 +31,12 @@ void esp8266SpiDriver::set_connector(SpiConnector *c) {
 void esp8266SpiDriver::set_parent(SdfsHost *p) { this->parent_ = p; }
 
 bool esp8266SpiDriver::init_host(SdConnType ctype) {
-  // SdCsPin_t fake_pin = 0;
-  // SdSpiConfig *SpiConf;
-  // FsVolume *fs = new FsVolume();
-  // bool is_begin = false;
   this->spi_impl_->set_spi(this->connector_);
   this->spi_impl_->begin();
-  // SpiConf = new SdSpiConfig((SdCsPin_t) 0, (uint8_t) SHARED_SPI, (uint32_t) SD_SCK_MHZ(50), this->spi_impl_);
+
   sd_card = new SdfsSpiCard();
   is_card_connected = sd_card->begin(this->spi_impl_);
-  // sd_card->begin(*SpiConf);
-  // is_begin = fs->begin(sd_card);
 
-  // if (!is_begin) {
-  //   ESP_LOGE(TAG, "init cd_card error = %d, %s", sd_card->errorCode(), sdcard_err2str(sd_card->errorCode()).c_str());
-  //   return false;
-  // }
-  // this->vol = fs;
-  // this->sd_card = sd_card;
   ESP_LOGD(TAG, "init_host %s ", TRUEFALSE(is_card_connected));
   return is_card_connected;
 }

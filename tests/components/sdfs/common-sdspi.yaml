@@ -20,9 +20,7 @@ sdfs:
   spi_id: spi_1
   type: sdspi
   cs_pin: ${cs_pin_name}
-  on_state_changed:
+  on_state:
     then:
-      - logger.log:
-          format: "State changed %d"
-          args: [x]
-
+      - lambda: |-
+          ESP_LOGD("lambda", "State changed %d",x);

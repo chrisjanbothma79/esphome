@@ -69,19 +69,20 @@ class SdmmcIO {
   uint32_t last_err_;
   FATFS *fs_ = NULL;
   uint8_t spi_bus_width_ = 1;
-  uint8_t wp_pin_ = 255;
-  uint8_t cd_pin_ = 255;
-  uint8_t clk_pin_ = 255;
-  uint8_t cmd_pin_ = 255;
   uint8_t bus_slot_ = 1;
-  uint8_t data0_pin_ = 255;
-  uint8_t data1_pin_ = 255;
-  uint8_t data2_pin_ = 255;
-  uint8_t data3_pin_ = 255;
-  uint8_t data4_pin_ = 255;
-  uint8_t data5_pin_ = 255;
-  uint8_t data6_pin_ = 255;
-  uint8_t data7_pin_ = 255;
+
+  uint8_t wp_pin_ = GPIO_NUM_NC;
+  uint8_t cd_pin_ = GPIO_NUM_NC;
+  uint8_t clk_pin_ = GPIO_NUM_NC;
+  uint8_t cmd_pin_ = GPIO_NUM_NC;
+  uint8_t data0_pin_ = GPIO_NUM_NC;
+  uint8_t data1_pin_ = GPIO_NUM_NC;
+  uint8_t data2_pin_ = GPIO_NUM_NC;
+  uint8_t data3_pin_ = GPIO_NUM_NC;
+  uint8_t data4_pin_ = GPIO_NUM_NC;
+  uint8_t data5_pin_ = GPIO_NUM_NC;
+  uint8_t data6_pin_ = GPIO_NUM_NC;
+  uint8_t data7_pin_ = GPIO_NUM_NC;
 };
 
 }  // namespace sdfs

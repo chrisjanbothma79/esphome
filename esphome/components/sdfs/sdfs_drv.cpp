@@ -96,10 +96,14 @@ bool SdfsDriver::init_host(SdConnType bus_type) {
   if (this->bus_type_ == SD_MMC) {
     this->mmc_io->set_bus_slot(this->parent_->bus_slot_);
     this->mmc_io->set_bus_width(this->parent_->spi_bus_width_);
-    // this->mmc_io->set_cd_pin(static_cast<gpio_num_t>(this->parent_->cd_pin_->get_pin()));
-    this->mmc_io->set_wp_pin(static_cast<gpio_num_t>(this->parent_->cd_pin_));
 
-    this->mmc_io->set_wp_pin(static_cast<gpio_num_t>(this->parent_->wp_pin_));
+    if (this->parent_->cd_pin_ != NULL) {
+      this->mmc_io->set_cd_pin(static_cast<gpio_num_t>(this->parent_->cd_pin_->get_pin()));
+    }
+    if (this->parent_->wp_pin_ != NULL) {
+      this->mmc_io->set_wp_pin(static_cast<gpio_num_t>(this->parent_->wp_pin_->get_pin()));
+    }
+
     this->mmc_io->set_clk_pin(static_cast<gpio_num_t>(this->parent_->clk_pin_));
     this->mmc_io->set_cmd_pin(static_cast<gpio_num_t>(this->parent_->cmd_pin_));
     this->mmc_io->set_data0_pin(static_cast<gpio_num_t>(this->parent_->data0_pin_));

@@ -34,12 +34,12 @@ CONF_DATA7_PIN = "data7_pin"
 CONF_POWER_CTRL_PIN = "power_ctrl_pin"
 CONF_CD_PIN = "cd_pin"
 CONF_WP_PIN = "wp_pin"
-CONF_INT_PIN = "int_pin"
+# CONF_INT_PIN = "int_pin"
 CONF_MISO_PIN = "miso_pin"
 CONF_MOSI_PIN = "mosi_pin"
 CONF_MODE = "mode"
 CONF_DATA = "data"
-CONF_ON_STATE = "on_state_changed"
+CONF_ON_STATE = "on_state"
 
 
 sdfs_ns = cg.esphome_ns.namespace("sdfs")
@@ -170,6 +170,8 @@ BASE_SCHEMA = (
             cv.GenerateID(): cv.declare_id(SdfsHost),
             cv.Optional(CONF_PATH, default="/sdcard"): cv.string,
             cv.Optional(CONF_POWER_CTRL_PIN): pins.internal_gpio_output_pin_number,
+            cv.Optional(CONF_CD_PIN): pins.internal_gpio_output_pin_number,
+            cv.Optional(CONF_WP_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_ON_STATE): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ChangeSateteTrigger),
@@ -184,8 +186,6 @@ BASE_SCHEMA = (
 SDMMC_SCHEMA = BASE_SCHEMA.extend(
     cv.Schema(
         {
-            cv.Optional(CONF_CD_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_WP_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_BUS_SLOT, default=1): cv.int_range(min=0, max=1),
             cv.Required(CONF_CMD_PIN): pins.internal_gpio_output_pin_number,
             cv.Required(CONF_SCLK_PIN): pins.internal_gpio_output_pin_number,
@@ -289,17 +289,24 @@ async def to_code(config):
     cg.add(var.set_conn_type(cv.enum(SD_CONN_TYPE)(config[CONF_TYPE])))
     if CONF_PATH in config:
         cg.add(var.set_path(config[CONF_PATH]))
+
     if CONF_POWER_CTRL_PIN in config:
-        cg.add(var.set_pw_ctrl_pin(config[CONF_POWER_CTRL_PIN]))
+        # cg.add(var.set_pw_ctrl_pin(config[CONF_POWER_CTRL_PIN]))
+        pin = await cg.gpio_pin_expression(config[CONF_POWER_CTRL_PIN])
+        cg.add(var.load_pw_ctrl_pin(pin))
+    if CONF_CD_PIN in config:
+        # cg.add(var.set_cd_pin(config[CONF_CD_PIN]))
+        pin = await cg.gpio_pin_expression(config[CONF_CD_PIN])
+        cg.add(var.load_cd_pin(pin))
+    if CONF_WP_PIN in config:
+        # cg.add(var.set_wp_pin(config[CONF_WP_PIN]))
+        pin = await cg.gpio_pin_expression(config[CONF_WP_PIN])
+        cg.add(var.load_wp_pin(pin))
 
     if config[CONF_TYPE] == "sdspi":
         await spi.register_spi_device(var, config)
 
     elif config[CONF_TYPE] == "sdmmc":
-        if CONF_CD_PIN in config:
-            cg.add(var.set_pw_ctrl_pin(config[CONF_CD_PIN]))
-        if CONF_WP_PIN in config:
-            cg.add(var.set_wp_pin(config[CONF_WP_PIN]))
         if CONF_WP_PIN in config:
             cg.add(var.set_bus_slot(config[CONF_BUS_SLOT]))
         if CONF_SCLK_PIN in config:

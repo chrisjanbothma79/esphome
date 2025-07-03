@@ -61,6 +61,10 @@ const char *host_st2str[] = {
 };
 
 const char *fat_type2str[] = {"NO_FS", "FS_FAT12", "FS_FAT16", "FS_FAT32", "FS_EXFAT"};
+
+void CardDetectInterrupt::card_insert(CardDetectInterrupt *data) { data->present = true; }
+void CardDetectInterrupt::card_eject(CardDetectInterrupt *data) { data->present = false; }
+
 class SdfsDriver;
 
 /*******************************************************************************
@@ -76,7 +80,8 @@ SdfsHost::SdfsHost() {
 #endif
   ESP_LOGD(TAG, "Host class init");
 }
-/**
+/*******************************************************************************
+ *
  * @brief Return filesystem object
  *
  * @return FsInterface*
@@ -88,7 +93,7 @@ FsInterface *SdfsHost::get_fs() {
   return fs_;
 }
 
-/*******************************************************
+/*******************************************************************************
  *
  * @brief Dump current params in debug console
  *
@@ -99,13 +104,14 @@ void SdfsHost::dump_config() {
   ESP_LOGCONFIG(TAG, "   FS mountpoint:     %s", this->path_.c_str());
 
   if (this->type_ == SD_MMC) {
-    if (this->int_pin_ != -1)
-      ESP_LOGCONFIG(TAG, "   SDIO int pin:      %d", this->int_pin_);
-    if (this->cd_pin_ != -1)
+    // if (this->int_pin_ != -1)
+    //   ESP_LOGCONFIG(TAG, "   SDIO int pin:      %d", this->int_pin_);
+
+    if (this->cd_pin_ != NULL)
       ESP_LOGCONFIG(TAG, "   SDIO cd pin:       %d", this->cd_pin_);
-    if (this->wp_pin_ != -1)
+    if (this->wp_pin_ != NULL)
       ESP_LOGCONFIG(TAG, "   SDIO wp pin:       %d", this->wp_pin_);
-    if (this->pw_ctrl_pin_ != -1)
+    if (this->pw_ctrl_pin_ != NULL)
       ESP_LOGCONFIG(TAG, "   SDIO pwr ctrl pin: %d", this->pw_ctrl_pin_);
 
     ESP_LOGCONFIG(TAG, "   SDIO bus slot:      %d", this->bus_slot_);
@@ -159,6 +165,24 @@ void SdfsHost::set_state(SdDriverStatus state) {
  *
  */
 void SdfsHost::setup() {
+  // TODO: Init common pins   CD WP PWR_CTRL
+  if (this->cd_pin_ != NULL) {
+    this->cd_pin_->setup();
+    this->cd_pin_->pin_mode(gpio::FLAG_PULLUP);
+    this->cd_pin_->attach_interrupt(CardDetectInterrupt::card_insert, &this->card_present_st,
+                                    gpio::INTERRUPT_LOW_LEVEL);
+    this->cd_pin_->attach_interrupt(CardDetectInterrupt::card_eject, &this->card_present_st,
+                                    gpio::INTERRUPT_HIGH_LEVEL);
+    ESP_LOGD(TAG, "Arm CardDetect interrupt");
+  }
+  if (this->wp_pin_ != NULL) {
+    this->wp_pin_->setup();
+    this->wp_pin_->pin_mode(gpio::FLAG_PULLUP);
+  }
+  if (this->pw_ctrl_pin_ != NULL) {
+    this->pw_ctrl_pin_->setup();
+  }
+
 #ifndef USE_ESP8266
   SdfsDriver *drv = new SdfsDriver();
 #if defined(USE_SDSPI_MODE)
@@ -192,6 +216,7 @@ void SdfsHost::setup() {
     this->set_state(SD_SLOT_ST_EMPTY);
     if (this->drv_->attach_card()) {
       this->set_state(SD_SLOT_ST_CARD);
+      card_present = true;
       if (this->drv_->mount(path_, false)) {
         this->set_state(SD_SLOT_ST_MOUNT);
 
@@ -221,6 +246,19 @@ void SdfsHost::set_data_rate(uint32_t data_rate) { connector_->set_data_rate(dat
 void SdfsHost::set_mode(spi::SPIMode mode) { connector_->set_mode(mode); }
 #endif
 
+/********************************************************
+
+ * @brief   Check card detect interrupt.
+ *
+ */
+void SdfsHost::loop() {
+  if (this->card_present_st.init) {
+    if ((this->card_present_st.card_insert && (!card_present)) ||
+        ((!this->card_present_st.card_insert) && card_present)) {
+      this->update();
+    }
+  }
+}
 /*******************************************************
  *
  * @brief Check and update card status
@@ -229,18 +267,19 @@ void SdfsHost::set_mode(spi::SPIMode mode) { connector_->set_mode(mode); }
 void SdfsHost::update() {
   ESP_LOGD(TAG, "Check SD card status.");
 
-  bool card_present = this->drv_->is_card();
-  if ((!card_present) || (this->get_state() != SD_SLOT_ST_MOUNT)) {
+  if ((!this->drv_->is_card()) || (this->get_state() != SD_SLOT_ST_MOUNT)) {
     this->set_state(SD_SLOT_ST_EMPTY);
     fs_ = NULL;
     if (this->drv_->attach_card()) {
       this->set_state(SD_SLOT_ST_CARD);
-
+      card_present = true;
       if (this->drv_->mount(path_, false)) {
         this->set_state(SD_SLOT_ST_MOUNT);
       } else {
         ESP_LOGW(TAG, "Seems card present but cannot mount. %d", this->drv_->get_last_err());
       }
+    } else {  // attach_card
+      card_present = false;
     }
   }
 }
