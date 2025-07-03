@@ -46,8 +46,8 @@ static const char *const HEADER_CORS_REQ_PNA = "Access-Control-Request-Private-N
 static const char *const HEADER_CORS_ALLOW_PNA = "Access-Control-Allow-Private-Network";
 #endif
 
-// Helper function to handle the actual URL parsing logic
-static UrlMatch parse_url(const char *url_ptr, size_t url_len, bool only_domain) {
+// Parse URL and return match info
+static UrlMatch match_url(const char *url_ptr, size_t url_len, bool only_domain) {
   UrlMatch match{};
 
   // URL must start with '/'
@@ -1753,9 +1753,9 @@ bool WebServer::canHandle(AsyncWebServerRequest *request) const {
 
   // Store the URL to prevent temporary string destruction
   // request->url() returns a reference to a String (on Arduino) or std::string (on ESP-IDF)
-  // UrlMatch stores pointers to the string's data, so we must ensure the string outlives parse_url()
+  // UrlMatch stores pointers to the string's data, so we must ensure the string outlives match_url()
   const auto &url = request->url();
-  UrlMatch match = parse_url(url.c_str(), url.length(), true);
+  UrlMatch match = match_url(url.c_str(), url.length(), true);
   if (!match.valid)
     return false;
 #ifdef USE_SENSOR
@@ -1896,7 +1896,7 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
 
   // See comment in canHandle() for why we store the URL reference
   const auto &url = request->url();
-  UrlMatch match = parse_url(url.c_str(), url.length(), false);
+  UrlMatch match = match_url(url.c_str(), url.length(), false);
 
 #ifdef USE_SENSOR
   if (match.domain_equals("sensor")) {
