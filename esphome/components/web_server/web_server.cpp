@@ -106,11 +106,6 @@ static UrlMatch parse_url(const char *url_ptr, size_t url_len, bool only_domain)
   return match;
 }
 
-// Single match_url function that works with any string type
-inline UrlMatch match_url(const char *url, size_t len, bool only_domain = false) {
-  return parse_url(url, len, only_domain);
-}
-
 #ifdef USE_ARDUINO
 // helper for allowing only unique entries in the queue
 void DeferredUpdateEventSource::deq_push_back_with_dedup_(void *source, message_generator_t *message_generator) {
@@ -1757,10 +1752,9 @@ bool WebServer::canHandle(AsyncWebServerRequest *request) const {
 
   // Store the URL to prevent temporary string destruction
   // request->url() returns a reference to a String (on Arduino) or std::string (on ESP-IDF)
-  // If we pass it directly to match_url(), it could create a temporary std::string from Arduino String
-  // UrlMatch stores pointers to the string's data, so we must ensure the string outlives match_url()
+  // UrlMatch stores pointers to the string's data, so we must ensure the string outlives parse_url()
   const auto &url = request->url();
-  UrlMatch match = match_url(url.c_str(), url.length(), true);
+  UrlMatch match = parse_url(url.c_str(), url.length(), true);
   if (!match.valid)
     return false;
 #ifdef USE_SENSOR
@@ -1901,7 +1895,7 @@ void WebServer::handleRequest(AsyncWebServerRequest *request) {
 
   // See comment in canHandle() for why we store the URL reference
   const auto &url = request->url();
-  UrlMatch match = match_url(url.c_str(), url.length());
+  UrlMatch match = parse_url(url.c_str(), url.length(), false);
 
 #ifdef USE_SENSOR
   if (match.domain_equals("sensor")) {
