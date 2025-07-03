@@ -148,20 +148,18 @@ def validate_raw_data(value):
 
 def validate_config(config):
     if config[CONF_MODULATION] == "LORA":
-        bws = frozenset(
-            [
-                "7_8kHz",
-                "10_4kHz",
-                "15_6kHz",
-                "20_8kHz",
-                "31_3kHz",
-                "41_7kHz",
-                "62_5kHz",
-                "125_0kHz",
-                "250_0kHz",
-                "500_0kHz",
-            ]
-        )
+        bws = [
+            "7_8kHz",
+            "10_4kHz",
+            "15_6kHz",
+            "20_8kHz",
+            "31_3kHz",
+            "41_7kHz",
+            "62_5kHz",
+            "125_0kHz",
+            "250_0kHz",
+            "500_0kHz",
+        ]
         if config[CONF_BANDWIDTH] not in bws:
             raise cv.Invalid(f"{config[CONF_BANDWIDTH]} is not available with LORA")
         if CONF_DIO0_PIN not in config:
