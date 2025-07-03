@@ -62,10 +62,7 @@ static UrlMatch parse_url(const char *url_ptr, size_t url_len, bool only_domain)
   // Find domain (everything up to next '/' or end)
   const char *domain_end = (const char *) memchr(start, '/', end - start);
   if (!domain_end) {
-    // No more slashes, entire remaining string is domain
-    match.domain = start;
-    match.domain_len = end - start;
-    match.valid = true;
+    // No second slash found - original behavior returns invalid
     return match;
   }
 
