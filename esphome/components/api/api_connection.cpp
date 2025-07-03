@@ -1508,7 +1508,10 @@ HelloResponse APIConnection::hello(const HelloRequest &msg) {
   return resp;
 }
 ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
-  bool correct = this->parent_->check_password(msg.password);
+  bool correct = true;
+#ifdef USE_API_PASSWORD
+  correct = this->parent_->check_password(msg.password);
+#endif
 
   ConnectResponse resp;
   // bool invalid_password = 1;
@@ -1529,7 +1532,11 @@ ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
 }
 DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
   DeviceInfoResponse resp{};
+#ifdef USE_API_PASSWORD
   resp.uses_password = this->parent_->uses_password();
+#else
+  resp.uses_password = false;
+#endif
   resp.name = App.get_name();
   resp.friendly_name = App.get_friendly_name();
   resp.suggested_area = App.get_area();
@@ -1692,7 +1699,9 @@ void APIConnection::DeferredBatch::add_item(EntityBase *entity, MessageCreator c
   // O(n) but optimized for RAM and not performance.
   for (auto &item : items) {
     if (item.entity == entity && item.message_type == message_type) {
-      // Update the existing item with the new creator
+      // Clean up old creator before replacing
+      item.creator.cleanup(message_type);
+      // Move assign the new creator
       item.creator = std::move(creator);
       return;
     }
@@ -1735,11 +1744,11 @@ void APIConnection::process_batch_() {
     return;
   }
 
-  size_t num_items = this->deferred_batch_.items.size();
+  size_t num_items = this->deferred_batch_.size();
 
   // Fast path for single message - allocate exact size needed
   if (num_items == 1) {
-    const auto &item = this->deferred_batch_.items[0];
+    const auto &item = this->deferred_batch_[0];
 
     // Let the creator calculate size and encode if it fits
     uint16_t payload_size =
@@ -1769,7 +1778,8 @@ void APIConnection::process_batch_() {
 
   // Pre-calculate exact buffer size needed based on message types
   uint32_t total_estimated_size = 0;
-  for (const auto &item : this->deferred_batch_.items) {
+  for (size_t i = 0; i < this->deferred_batch_.size(); i++) {
+    const auto &item = this->deferred_batch_[i];
     total_estimated_size += get_estimated_message_size(item.message_type);
   }
 
@@ -1790,7 +1800,8 @@ void APIConnection::process_batch_() {
   uint32_t current_offset = 0;
 
   // Process items and encode directly to buffer
-  for (const auto &item : this->deferred_batch_.items) {
+  for (size_t i = 0; i < this->deferred_batch_.size(); i++) {
+    const auto &item = this->deferred_batch_[i];
     // Try to encode message
     // The creator will calculate overhead to determine if the message fits
     uint16_t payload_size = item.creator(item.entity, this, remaining_size, false, item.message_type);
@@ -1845,17 +1856,15 @@ void APIConnection::process_batch_() {
   // Log messages after send attempt for VV debugging
   // It's safe to use the buffer for logging at this point regardless of send result
   for (size_t i = 0; i < items_processed; i++) {
-    const auto &item = this->deferred_batch_.items[i];
+    const auto &item = this->deferred_batch_[i];
     this->log_batch_item_(item);
   }
 #endif
 
   // Handle remaining items more efficiently
-  if (items_processed < this->deferred_batch_.items.size()) {
-    // Remove processed items from the beginning
-    this->deferred_batch_.items.erase(this->deferred_batch_.items.begin(),
-                                      this->deferred_batch_.items.begin() + items_processed);
-
+  if (items_processed < this->deferred_batch_.size()) {
+    // Remove processed items from the beginning with proper cleanup
+    this->deferred_batch_.remove_front(items_processed);
     // Reschedule for remaining items
     this->schedule_batch_();
   } else {
@@ -1866,23 +1875,16 @@ void APIConnection::process_batch_() {
 
 uint16_t APIConnection::MessageCreator::operator()(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                                    bool is_single, uint16_t message_type) const {
-  if (has_tagged_string_ptr_()) {
-    // Handle string-based messages
-    switch (message_type) {
 #ifdef USE_EVENT
-      case EventResponse::MESSAGE_TYPE: {
-        auto *e = static_cast<event::Event *>(entity);
-        return APIConnection::try_send_event_response(e, *get_string_ptr_(), conn, remaining_size, is_single);
-      }
-#endif
-      default:
-        // Should not happen, return 0 to indicate no message
-        return 0;
-    }
-  } else {
-    // Function pointer case
-    return data_.ptr(entity, conn, remaining_size, is_single);
+  // Special case: EventResponse uses string pointer
+  if (message_type == EventResponse::MESSAGE_TYPE) {
+    auto *e = static_cast<event::Event *>(entity);
+    return APIConnection::try_send_event_response(e, *data_.string_ptr, conn, remaining_size, is_single);
   }
+#endif
+
+  // All other message types use function pointers
+  return data_.function_ptr(entity, conn, remaining_size, is_single);
 }
 
 uint16_t APIConnection::try_send_list_info_done(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
