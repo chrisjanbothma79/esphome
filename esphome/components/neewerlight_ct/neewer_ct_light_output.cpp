@@ -1,6 +1,12 @@
+#include "neewer_ble_message.h"
 #include "neewer_ct_light_output.h"
 #include "neewer_state_output.h"
 #include "utils.h"
+
+#include "esphome/core/log.h"
+
+#include <cstdint>
+#include <vector>
 
 #ifdef USE_ESP32
 
@@ -9,136 +15,148 @@ namespace neewerlight_ct {
 
 using utils::TAG;
 
+NeewerCTLightOutput::NeewerCTLightOutput() {
+  ble_.set_service_uuid_str(SERVICE_UUID.c_str());
+  ble_.set_characteristic_uuid_str(CHARACTERISTIC_UUID.c_str());
+  ble_.set_require_response(true);
+
+  set_color_temperature(new NeewerStateOutput());
+  set_brightness(new NeewerStateOutput());
+};
+
 void NeewerCTLightOutput::dump_config() {
   ESP_LOGCONFIG(TAG, "Neewer CT Light Output:");
-  ESP_LOGCONFIG(TAG, "  MAC address        : %s", this->parent_->address_str().c_str());
-  ESP_LOGCONFIG(TAG, "  Service UUID       : %s", this->service_uuid_.to_string().c_str());
-  ESP_LOGCONFIG(TAG, "  Characteristic UUID: %s", this->char_uuid_.to_string().c_str());
-  ESP_LOGCONFIG(TAG, "  Require Response   : %s", this->require_response_ ? "True" : "False");
-  ESP_LOGCONFIG(TAG, "  Colour Temperatures: %d K - %d K", utils::mireds_to_kelvin_int(this->warm_white_temperature_),
-                utils::mireds_to_kelvin_int(this->cold_white_temperature_));
-  LOG_BINARY_OUTPUT(this);
+  ESP_LOGCONFIG(TAG, "  MAC address        : %s", parent_->address_str().c_str());
+  ESP_LOGCONFIG(TAG, "  Service UUID       : %s", ble_.service_uuid_.to_string().c_str());
+  ESP_LOGCONFIG(TAG, "  Characteristic UUID: %s", ble_.characteristic_uuid_.to_string().c_str());
+  ESP_LOGCONFIG(TAG, "  Require Response   : %s", ble_.require_response_ ? "True" : "False");
+  ESP_LOGCONFIG(TAG, "  Colour Temperature Range: %d K - %d K", utils::mireds_to_kelvin_int(warm_white_temperature_),
+                utils::mireds_to_kelvin_int(cold_white_temperature_));
+  // LOG_BINARY_OUTPUT(this); // TODO why? can we log FloatOutputs like color_temperature_ and brightness_ instead?
 };
 
-void NeewerCTLightOutput::prepare_turn_on_msg(bool on) {
-  this->orig_msg_clear();
-
-  this->orig_msg_[0] = NeewerBLEOutput::COMMAND_PREFIX;
-  this->orig_msg_[1] = NeewerBLEOutput::TURN_ON_OFF_PREFIX;
-  this->orig_msg_[2] = 1;           // Byte Count = 1
-  this->orig_msg_[3] = on ? 1 : 2;  // 1 - ON, 2 - OFF
-  this->orig_msg_len_ = 4;
-
-  NeewerBLEOutput::build_msg_with_checksum();
+void NeewerCTLightOutput::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
+                                              esp_ble_gattc_cb_param_t *param) {
+  ble_.gattc_event_handler(event, gattc_if, param);
 }
 
-// ct_normalized is between 0.0 (coldest) and 1.0 (warmest)
-void NeewerCTLightOutput::prepare_ct_brightness_msg(float ct_normalized, float brightness) {
-  float ct_kelvin =
-      utils::normalized_mireds_to_kelvin(ct_normalized, this->cold_white_temperature_, this->warm_white_temperature_);
-  // neewer light expects value 0x1B (27) for 2700K or 0x41 (65) for 6500K
-  uint8_t ct = static_cast<uint8_t>(std::round(ct_kelvin / 100.f));
-  ESP_LOGD(TAG, "Color temperature will be set to 0x%1x (%d == %d K)", ct, ct, ct * 100);
-
-  // expected value for brightness is 0 - 100 (0x00 - 0x64)
-  uint8_t b = static_cast<uint8_t>(std::round(brightness * 100.f));
-  ESP_LOGD(TAG, "Brightness will be set to 0x%1x (%d %%)", b, b);
-
-  this->orig_msg_clear();
-
-  this->orig_msg_[0] = NeewerBLEOutput::COMMAND_PREFIX;
-  this->orig_msg_[1] = NeewerBLEOutput::CT_BRIGHTNESS_PREFIX;
-  this->orig_msg_[2] = 2;  // Byte Count = 2 for ct & brightness
-  this->orig_msg_[3] = b;
-  this->orig_msg_[4] = ct;
-  this->orig_msg_len_ = 5;
-
-  NeewerBLEOutput::build_msg_with_checksum();
-};
-
-// For whatever reason, the Neewer will only allow brightness alone if CT hasn't changed
-void NeewerCTLightOutput::prepare_brightness_msg(float brightness) {
-  uint8_t b = static_cast<uint8_t>(std::round(brightness * 100.f));
-  ESP_LOGD(TAG, "Brightness will be set to 0x%1x (%d %%)", b, b);
-
-  this->orig_msg_clear();
-
-  this->orig_msg_[0] = NeewerBLEOutput::COMMAND_PREFIX;
-  this->orig_msg_[1] = NeewerBLEOutput::CT_BRIGHTNESS_PREFIX;
-  this->orig_msg_[2] = 1;  // Byte Count = 1 for just brightness
-  this->orig_msg_[3] = b;
-  this->orig_msg_len_ = 4;
-
-  NeewerBLEOutput::build_msg_with_checksum();
-};
-
 void NeewerCTLightOutput::write_state(light::LightState *state) {
-  // Call original write state to set new values for each state.
+  // Copied from color_temperature::CTLightOutput::write_state().
   float color_temperature, brightness;
   state->current_values_as_ct(&color_temperature, &brightness);
+  ESP_LOGD(TAG, "write_state called with color_temperature = %.2f, brightness = %.2f", color_temperature, brightness);
 
-  // For On/Off state we have to use state->remote_values, since there is no current_values_as_on_off() method.
+  // Calculate values in Kelvin and percent to be used both in logging and sending to the light.
+  int color_temperature_k =
+      utils::normalized_mireds_to_kelvin_int(color_temperature, cold_white_temperature_, warm_white_temperature_);
+  int old_color_temperature_k = utils::normalized_mireds_to_kelvin_int(
+      old_state_.color_temperature, cold_white_temperature_, warm_white_temperature_);
+  int brightness_percent = utils::brightness_to_percent(brightness);
+  int old_brightness_percent = utils::brightness_to_percent(old_state_.brightness);
+
+  // For on/off state we have to use state->remote_values, since there is no current_values_as_on_off() method.
   OnOffState on_off_state = state->remote_values.is_on() ? OnOffState::ON : OnOffState::OFF;
 
-  // Turn On *before* potentially setting color temperature and brightness
-  bool turned_on = this->old_on_off_state_ != OnOffState::ON && on_off_state == OnOffState::ON;
+  // Turn on *before* potentially setting color temperature and brightness.
+  bool turned_on = old_state_.on_off != OnOffState::ON && on_off_state == OnOffState::ON;
   if (turned_on) {
     ESP_LOGD(TAG, "Light was turned off, turning it on.");
-    this->prepare_turn_on_msg(true);
-    NeewerBLEOutput::write_state(1.0);
+    turn_on_off(OnOffState::ON);
   }
 
-  if (brightness != this->old_brightness_) {
-    ESP_LOGD(TAG, "Brightness changed from %.2f%% to %.2f%%", this->old_brightness_ * 100.0f, brightness * 100.0f);
+  if (brightness_percent != old_brightness_percent) {
+    ESP_LOGD(TAG, "Brightness changed from %d%% to %d%%", old_brightness_percent, brightness_percent);
   }
 
   // There is a reasonable suspicion that when the light is turned on, the color temperature is set to warmest possible.
   // Therefore, we will send the message after turning the light on, even if the color temperature has not changed.
-  if (color_temperature != this->old_color_temperature_ || turned_on) {
-    ESP_LOGD(TAG, "Color temperature changed from %.2f K to %.2f K",
-             utils::normalized_mireds_to_kelvin(this->old_color_temperature_, this->cold_white_temperature_,
-                                                this->warm_white_temperature_),
-             utils::normalized_mireds_to_kelvin(color_temperature, this->cold_white_temperature_,
-                                                this->warm_white_temperature_));
-    this->prepare_ct_brightness_msg(color_temperature, brightness);
-    NeewerBLEOutput::write_state(1.0);
-  } else if (brightness != this->old_brightness_) {
-    ESP_LOGD(TAG, "Only brightness changed.");
-    this->prepare_brightness_msg(brightness);
-    NeewerBLEOutput::write_state(1.0);
+  if (color_temperature_k != old_color_temperature_k || turned_on) {
+    if (color_temperature_k != old_color_temperature_k) {
+      ESP_LOGD(TAG, "Color temperature changed from %d K to %d K", old_color_temperature_k, color_temperature_k);
+    }
+    change_color_temperature_and_brightness(color_temperature_k, brightness_percent);
+  } else if (brightness_percent != old_brightness_percent) {
+    change_brightness(brightness_percent);
   } else {
     ESP_LOGD(TAG, "No changes in brightness or color temperature detected.");
   }
 
-  // We're probably done with the old values now, so let's change them up.
-  this->old_color_temperature_ = color_temperature;
-  this->old_brightness_ = brightness;
-
-  // Do whatever else setting the current levels individually accomplishes
-  this->color_temperature_->set_level(color_temperature);
-  this->brightness_->set_level(brightness);
-
   // Turn Off *after* potentially setting color temperature and brightness
-  if (this->old_on_off_state_ != OnOffState::OFF && on_off_state == OnOffState::OFF) {
+  if (old_state_.on_off != OnOffState::OFF && on_off_state == OnOffState::OFF) {
     ESP_LOGD(TAG, "Light was turned on, turning it off.");
-    this->prepare_turn_on_msg(false);
-    NeewerBLEOutput::write_state(1.0);
+    turn_on_off(OnOffState::OFF);
   }
 
-  this->old_on_off_state_ = on_off_state;
+  old_state_.color_temperature = color_temperature;
+  old_state_.brightness = brightness;
+  old_state_.on_off = on_off_state;
+
+  // Copied from color_temperature::CTLightOutput::write_state().
+  color_temperature_->set_level(color_temperature);
+  brightness_->set_level(brightness);
 };
 
-NeewerCTLightOutput::NeewerCTLightOutput() {
-  this->set_service_uuid_str(SERVICE_UUID);
-  this->set_char_uuid_str(CHARACTERISTIC_UUID);
-  this->set_color_temperature(new NeewerStateOutput());
-  this->set_brightness(new NeewerStateOutput());
+void NeewerCTLightOutput::turn_on_off(OnOffState on_off) {
+  if (on_off == OnOffState::UNKNOWN) {
+    ESP_LOGW(TAG, "Unknown On/Off state, not sending command.");
+    return;
+  }
+  NeewerBleMessage msg;
+  msg.cmd = COMMAND;
+  msg.type = TURN_ON_OFF;
+  msg.payload = {static_cast<uint8_t>((on_off == OnOffState::ON) ? 1 : 0)};
+  send_via_ble(msg);
+}
 
-  NeewerBLEOutput();
+void NeewerCTLightOutput::change_color_temperature_and_brightness(int color_temperature_k, int brightness_percent) {
+  NeewerBleMessage msg;
+  msg.cmd = COMMAND;
+  msg.type = CT_BRIGHTNESS;
+  msg.payload = {
+      // expected value for brightness is 0 - 100 (0x00 - 0x64)
+      static_cast<uint8_t>(brightness_percent),
 
-  // BLE-specific settings
-  this->set_require_response(true);
-};
+      // neewer light expects value 0x1B (27) for 2700K or 0x41 (65) for 6500K
+      // rounding is meant to avoid setting 27 for 2799K
+      static_cast<uint8_t>(round(static_cast<float>(color_temperature_k) / 100.0f)),
+  };
+  send_via_ble(msg);
+}
+
+void NeewerCTLightOutput::change_brightness(int brightness_percent) {
+  NeewerBleMessage msg;
+  msg.cmd = COMMAND;
+  msg.type = CT_BRIGHTNESS;
+  msg.payload = {
+      // expected value for brightness is 0 - 100 (0x00 - 0x64)
+      static_cast<uint8_t>(brightness_percent),
+  };
+  send_via_ble(msg);
+}
+
+void NeewerCTLightOutput::send_via_ble(const NeewerBleMessage &msg) {
+  // This is the neewer protocol:
+  // 1. Command byte (0x01)
+  // 2. Type byte (e.g., TURN_ON_OFF, CT_BRIGHTNESS, etc.)
+  // 3. Payload length byte (number of bytes in the payload)
+  // 4. Payload bytes (e.g., color temperature, brightness, etc.)
+  // 5. Checksum byte (sum of all previous bytes modulo 256)
+  std::vector<uint8_t> final_msg = {msg.cmd, msg.type, static_cast<uint8_t>(msg.payload.size())};
+  final_msg.insert(final_msg.end(), msg.payload.begin(), msg.payload.end());
+
+  // Calculate checksum
+  uint64_t checksum = 0;
+  for (uint8_t byte : final_msg) {
+    checksum += byte;
+  }
+  uint8_t checksum_byte = checksum & 0xFF;
+
+  // Append checksum to message
+  final_msg.push_back(checksum_byte);
+
+  // Send message via BLE
+  ble_.send_message(parent(), std::move(final_msg));
+}
 
 }  // namespace neewerlight_ct
 }  // namespace esphome

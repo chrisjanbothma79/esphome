@@ -1,5 +1,5 @@
 import esphome.codegen as cg
-from esphome.components import ble_client, light, output
+from esphome.components import ble_client, light
 from esphome.components.color_temperature import light as ct_light
 import esphome.config_validation as cv
 from esphome.const import (
@@ -15,13 +15,11 @@ DEPENDENCIES = ["ble_client"]
 IS_PLATFORM_COMPONENT = True
 
 neewerlight_ct_ns = cg.esphome_ns.namespace("neewerlight_ct")
-NeewerBLEOutput = neewerlight_ct_ns.class_(
-    "NeewerBLEOutput", cg.Component, output.FloatOutput, ble_client.BLEClientNode
-)
 NeewerCTLightOutput = neewerlight_ct_ns.class_(
     "NeewerCTLightOutput",
+    cg.Component,
+    ble_client.BLEClientNode,
     ct_light.CTLightOutput,
-    NeewerBLEOutput,
 )
 
 CONFIG_SCHEMA = cv.All(
