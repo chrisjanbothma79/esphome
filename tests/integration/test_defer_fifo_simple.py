@@ -41,14 +41,19 @@ async def test_defer_fifo_simple(
         assert test_complete_entity is not None, "test_complete event not found"
         assert test_result_entity is not None, "test_result event not found"
 
-        # Find our test service
-        run_defer_test_service: UserService | None = None
+        # Find our test services
+        test_set_timeout_service: UserService | None = None
+        test_defer_service: UserService | None = None
         for service in services:
-            if service.name == "run_defer_test":
-                run_defer_test_service = service
-                break
+            if service.name == "test_set_timeout":
+                test_set_timeout_service = service
+            elif service.name == "test_defer":
+                test_defer_service = service
 
-        assert run_defer_test_service is not None, "run_defer_test service not found"
+        assert test_set_timeout_service is not None, (
+            "test_set_timeout service not found"
+        )
+        assert test_defer_service is not None, "test_defer service not found"
 
         # Get the event loop
         loop = asyncio.get_running_loop()
@@ -74,15 +79,35 @@ async def test_defer_fifo_simple(
 
         client.subscribe_states(on_state)
 
-        # Call the run_defer_test service to start the test
-        client.execute_service(run_defer_test_service, {})
+        # Test 1: Test set_timeout(0)
+        client.execute_service(test_set_timeout_service, {})
 
-        # Wait for test completion with timeout
+        # Wait for first test completion
         try:
-            await asyncio.wait_for(test_complete_future, timeout=10.0)
-            test_passed = await asyncio.wait_for(test_result_future, timeout=1.0)
+            await asyncio.wait_for(test_complete_future, timeout=5.0)
+            test1_passed = await asyncio.wait_for(test_result_future, timeout=1.0)
         except asyncio.TimeoutError:
-            pytest.fail("Test did not complete within 10 seconds")
+            pytest.fail("Test set_timeout(0) did not complete within 5 seconds")
+
+        assert test1_passed is True, (
+            "set_timeout(0) FIFO test failed - items executed out of order"
+        )
+
+        # Reset futures for second test
+        test_complete_future = loop.create_future()
+        test_result_future = loop.create_future()
+
+        # Test 2: Test defer()
+        client.execute_service(test_defer_service, {})
+
+        # Wait for second test completion
+        try:
+            await asyncio.wait_for(test_complete_future, timeout=5.0)
+            test2_passed = await asyncio.wait_for(test_result_future, timeout=1.0)
+        except asyncio.TimeoutError:
+            pytest.fail("Test defer() did not complete within 5 seconds")
 
         # Verify the test passed
-        assert test_passed is True, "FIFO test failed - items executed out of order"
+        assert test2_passed is True, (
+            "defer() FIFO test failed - items executed out of order"
+        )
