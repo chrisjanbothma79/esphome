@@ -8,6 +8,7 @@ from esphome.const import (
     DEVICE_CLASS_MOTION,
     DEVICE_CLASS_OCCUPANCY,
     DEVICE_CLASS_PRESENCE,
+    DEVICE_CLASS_RUNNING,
     ENTITY_CATEGORY_DIAGNOSTIC,
     ICON_ACCOUNT,
     ICON_MOTION_SENSOR,
@@ -17,10 +18,18 @@ from . import CONF_LD2412_ID, LD2412Component
 
 DEPENDENCIES = ["ld2412"]
 
+CONF_DYNAMIC_BACKGROUND_CORRECTION_STATUS = "dynamic_background_correction_status"
 CONF_OUT_PIN_PRESENCE_STATUS = "out_pin_presence_status"
 
 CONFIG_SCHEMA = {
     cv.GenerateID(CONF_LD2412_ID): cv.use_id(LD2412Component),
+    cv.Optional(
+        CONF_DYNAMIC_BACKGROUND_CORRECTION_STATUS
+    ): binary_sensor.binary_sensor_schema(
+        device_class=DEVICE_CLASS_RUNNING,
+        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+        icon=ICON_ACCOUNT,
+    ),
     cv.Optional(CONF_HAS_TARGET): binary_sensor.binary_sensor_schema(
         device_class=DEVICE_CLASS_OCCUPANCY,
         icon=ICON_ACCOUNT,
@@ -43,6 +52,17 @@ CONFIG_SCHEMA = {
 
 async def to_code(config):
     LD2412_component = await cg.get_variable(config[CONF_LD2412_ID])
+    if dynamic_background_correction_status_config := config.get(
+        CONF_DYNAMIC_BACKGROUND_CORRECTION_STATUS
+    ):
+        sens = await binary_sensor.new_binary_sensor(
+            dynamic_background_correction_status_config
+        )
+        cg.add(
+            LD2412_component.set_dynamic_background_correction_status_binary_sensor(
+                sens
+            )
+        )
     if has_target_config := config.get(CONF_HAS_TARGET):
         sens = await binary_sensor.new_binary_sensor(has_target_config)
         cg.add(LD2412_component.set_target_binary_sensor(sens))
