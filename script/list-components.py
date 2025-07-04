@@ -62,6 +62,8 @@ def create_components_graph(changed_configs: list[str]):
     CORE.data[KEY_CORE] = TARGET_CONFIGURATIONS[0]
 
     components_graph = {}
+    platforms = []
+    components = []
 
     if changed_configs:
         load_external_components(changed_configs)
@@ -79,6 +81,13 @@ def create_components_graph(changed_configs: list[str]):
             )
             sys.exit(1)
 
+        components.append((comp, name, path))
+        if comp.is_platform_component:
+            platforms.append(name)
+
+    platforms = set(platforms)
+
+    for comp, name, path in components:
         for dependency in comp.dependencies:
             add_item_to_components_graph(
                 components_graph, dependency.split(".")[0], name
@@ -93,6 +102,8 @@ def create_components_graph(changed_configs: list[str]):
 
         for platform_path in path.iterdir():
             platform_name = platform_path.stem
+            if platform_name == name or platform_name not in platforms:
+                continue
             platform = get_platform(platform_name, name)
             if platform is None:
                 continue
