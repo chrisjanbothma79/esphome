@@ -32,6 +32,7 @@ void DeferStressComponent::run_multi_thread_test() {
 
   ESP_LOGI(TAG, "Creating %d threads, each will defer %d callbacks", NUM_THREADS, DEFERS_PER_THREAD);
 
+  threads.reserve(NUM_THREADS);
   for (int i = 0; i < NUM_THREADS; i++) {
     threads.emplace_back([this, i]() {
       ESP_LOGV(TAG, "Thread %d starting", i);
