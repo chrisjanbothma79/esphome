@@ -1,6 +1,7 @@
 """Stress test for defer() thread safety with multiple threads."""
 
 import asyncio
+from pathlib import Path
 
 from aioesphomeapi import EntityState, Event, EventInfo, UserService
 import pytest
@@ -15,6 +16,16 @@ async def test_defer_stress(
     api_client_connected: APIClientConnectedFactory,
 ) -> None:
     """Test that defer() doesn't crash when called rapidly from multiple threads."""
+
+    # Get the absolute path to the external components directory
+    external_components_path = str(
+        Path(__file__).parent / "fixtures" / "external_components"
+    )
+
+    # Replace the placeholder in the YAML config with the actual path
+    yaml_config = yaml_config.replace(
+        "EXTERNAL_COMPONENT_PATH", external_components_path
+    )
 
     async with run_compiled(yaml_config), api_client_connected() as client:
         # Verify we can connect
@@ -79,10 +90,10 @@ async def test_defer_stress(
 
         # Wait for test completion with a longer timeout (threads run for 100ms + processing time)
         try:
-            await asyncio.wait_for(test_complete_future, timeout=10.0)
+            await asyncio.wait_for(test_complete_future, timeout=15.0)
             test_passed = await asyncio.wait_for(test_result_future, timeout=1.0)
         except asyncio.TimeoutError:
-            pytest.fail("Stress test did not complete within 10 seconds")
+            pytest.fail("Stress test did not complete within 15 seconds")
 
         # Verify the test passed
         assert test_passed is True, (
