@@ -93,7 +93,6 @@ class LD2412Component : public Component, public uart::UARTDevice {
 #endif
   void set_throttle(uint16_t value) { this->throttle_ = value; };
   void set_engineering_mode(bool enable);
-  void set_mode(const std::string &state);
   void read_all_info();
   void restart_and_read_all_info();
   void set_bluetooth(bool enable);

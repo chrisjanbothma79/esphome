@@ -781,29 +781,6 @@ void LD2412Component::set_baud_rate(const std::string &state) {
   this->set_timeout(200, [this]() { this->restart_(); });
 }
 
-void LD2412Component::set_mode(const std::string &state) {
-  this->set_config_mode_(true);
-  uint8_t cmd = CMD_NONE;
-  switch (find_uint8(MODE_BY_STR, state)) {
-    case NORMAL_MODE:
-      cmd = CMD_DISABLE_ENG;
-      break;
-    case ENGINEERING_MODE:
-      cmd = CMD_ENABLE_ENG;
-      break;
-    case BACKGROUND_INIT_MODE:
-      cmd = CMD_DYNAMIC_BACKGROUND_CORRECTION;
-      break;
-  }
-  if (cmd != CMD_NONE) {
-    this->send_command_(cmd, nullptr, 0);
-    this->set_config_mode_(false);
-    if (cmd == CMD_DYNAMIC_BACKGROUND_CORRECTION) {
-      this->dynamic_background_correction_active_ = true;
-    }
-  }
-}
-
 void LD2412Component::query_dynamic_background_correction_() {
   this->send_command_(CMD_QUERY_DYNAMIC_BACKGROUND_CORRECTION, nullptr, 0);
 }
