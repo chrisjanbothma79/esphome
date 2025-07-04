@@ -166,7 +166,7 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// Helper function to reduce flash usage.
   ///
   /// @param[in] value Channel B sensor value.
-  void log_and_publish_channel_b_value_(int32_t value);
+  void log_and_publish_channel_b_value_(float value);
 #endif
 
   /// @brief Settling time in milliseconds.
@@ -241,11 +241,11 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   GPIOPin *dout_pin_;
   GPIOPin *sck_pin_;
   /// Gain to set after new measurement.
-  HX711Gain gain_{HX711_GAIN_128};
+  HX711Gain gain_{HX711Gain::HX711_GAIN_128};
   /// @brief The last gain that was set.
   ///
   /// After a reset or power-down event, input selection defaults to Channel A with a gain of 128.
-  HX711Gain last_gain_{HX711_GAIN_128};
+  HX711Gain last_gain_{HX711Gain::HX711_GAIN_128};
 };
 
 template<typename... Ts> class HX711SensorActionBase : public Action<Ts...> {
