@@ -1,7 +1,5 @@
 #pragma once
 
-#include <iomanip>
-#include <map>
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
@@ -57,48 +55,14 @@ struct Zone {
   int16_t y2 = 0;
 };
 
-enum BaudRateStructure : uint8_t {
-  BAUD_RATE_9600 = 1,
-  BAUD_RATE_19200 = 2,
-  BAUD_RATE_38400 = 3,
-  BAUD_RATE_57600 = 4,
-  BAUD_RATE_115200 = 5,
-  BAUD_RATE_230400 = 6,
-  BAUD_RATE_256000 = 7,
-  BAUD_RATE_460800 = 8
+#ifdef USE_NUMBER
+struct ZoneOfNumbers {
+  number::Number *x1 = nullptr;
+  number::Number *y1 = nullptr;
+  number::Number *x2 = nullptr;
+  number::Number *y2 = nullptr;
 };
-
-// Convert baud rate enum to int
-static const std::map<std::string, uint8_t> BAUD_RATE_ENUM_TO_INT{
-    {"9600", BAUD_RATE_9600},     {"19200", BAUD_RATE_19200},   {"38400", BAUD_RATE_38400},
-    {"57600", BAUD_RATE_57600},   {"115200", BAUD_RATE_115200}, {"230400", BAUD_RATE_230400},
-    {"256000", BAUD_RATE_256000}, {"460800", BAUD_RATE_460800}};
-
-// Zone type struct
-enum ZoneTypeStructure : uint8_t { ZONE_DISABLED = 0, ZONE_DETECTION = 1, ZONE_FILTER = 2 };
-
-// Convert zone type int to enum
-static const std::map<ZoneTypeStructure, std::string> ZONE_TYPE_INT_TO_ENUM{
-    {ZONE_DISABLED, "Disabled"}, {ZONE_DETECTION, "Detection"}, {ZONE_FILTER, "Filter"}};
-
-// Convert zone type enum to int
-static const std::map<std::string, uint8_t> ZONE_TYPE_ENUM_TO_INT{
-    {"Disabled", ZONE_DISABLED}, {"Detection", ZONE_DETECTION}, {"Filter", ZONE_FILTER}};
-
-// LD2450 serial command header & footer
-static const uint8_t CMD_FRAME_HEADER[4] = {0xFD, 0xFC, 0xFB, 0xFA};
-static const uint8_t CMD_FRAME_END[4] = {0x04, 0x03, 0x02, 0x01};
-
-enum PeriodicDataStructure : uint8_t {
-  TARGET_X = 4,
-  TARGET_Y = 6,
-  TARGET_SPEED = 8,
-  TARGET_RESOLUTION = 10,
-};
-
-enum PeriodicDataValue : uint8_t { HEAD = 0XAA, END = 0x55, CHECK = 0x00 };
-
-enum AckDataStructure : uint8_t { COMMAND = 6, COMMAND_STATUS = 7 };
+#endif
 
 class LD2450Component : public Component, public uart::UARTDevice {
 #ifdef USE_SENSOR
@@ -132,7 +96,6 @@ class LD2450Component : public Component, public uart::UARTDevice {
 #endif
 
  public:
-  LD2450Component();
   void setup() override;
   void dump_config() override;
   void loop() override;
@@ -152,10 +115,7 @@ class LD2450Component : public Component, public uart::UARTDevice {
 #endif
 #ifdef USE_NUMBER
   void set_zone_coordinate(uint8_t zone);
-  void set_zone_x1_number(uint8_t zone, number::Number *n);
-  void set_zone_y1_number(uint8_t zone, number::Number *n);
-  void set_zone_x2_number(uint8_t zone, number::Number *n);
-  void set_zone_y2_number(uint8_t zone, number::Number *n);
+  void set_zone_numbers(uint8_t zone, number::Number *x1, number::Number *y1, number::Number *x2, number::Number *y2);
 #endif
 #ifdef USE_SENSOR
   void set_move_x_sensor(uint8_t target, sensor::Sensor *s);
@@ -191,25 +151,22 @@ class LD2450Component : public Component, public uart::UARTDevice {
   bool get_timeout_status_(uint32_t check_millis);
   uint8_t count_targets_in_zone_(const Zone &zone, bool is_moving);
 
-  Target target_info_[MAX_TARGETS];
-  Zone zone_config_[MAX_ZONES];
-  uint8_t buffer_pos_ = 0;  // where to resume processing/populating buffer
-  uint8_t buffer_data_[MAX_LINE_LENGTH];
   uint32_t last_periodic_millis_ = 0;
   uint32_t presence_millis_ = 0;
   uint32_t still_presence_millis_ = 0;
   uint32_t moving_presence_millis_ = 0;
   uint16_t throttle_ = 0;
   uint16_t timeout_ = 5;
+  uint8_t buffer_pos_ = 0;  // where to resume processing/populating buffer
+  uint8_t buffer_data_[MAX_LINE_LENGTH];
   uint8_t zone_type_ = 0;
+  Target target_info_[MAX_TARGETS];
+  Zone zone_config_[MAX_ZONES];
   std::string version_{};
   std::string mac_{};
 #ifdef USE_NUMBER
   ESPPreferenceObject pref_;  // only used when numbers are in use
-  std::vector<number::Number *> zone_x1_numbers_ = std::vector<number::Number *>(MAX_ZONES);
-  std::vector<number::Number *> zone_y1_numbers_ = std::vector<number::Number *>(MAX_ZONES);
-  std::vector<number::Number *> zone_x2_numbers_ = std::vector<number::Number *>(MAX_ZONES);
-  std::vector<number::Number *> zone_y2_numbers_ = std::vector<number::Number *>(MAX_ZONES);
+  ZoneOfNumbers zone_numbers_[MAX_ZONES];
 #endif
 #ifdef USE_SENSOR
   std::vector<sensor::Sensor *> move_x_sensors_ = std::vector<sensor::Sensor *>(MAX_TARGETS);
