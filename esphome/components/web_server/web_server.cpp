@@ -244,11 +244,7 @@ void DeferredUpdateEventSourceList::on_client_disconnect_(DeferredUpdateEventSou
 }
 #endif
 
-WebServer::WebServer(web_server_base::WebServerBase *base) : base_(base) {
-#ifdef USE_ESP32
-  to_schedule_lock_ = xSemaphoreCreateMutex();
-#endif
-}
+WebServer::WebServer(web_server_base::WebServerBase *base) : base_(base) {}
 
 #ifdef USE_WEBSERVER_CSS_INCLUDE
 void WebServer::set_css_include(const char *css_include) { this->css_include_ = css_include; }
@@ -297,30 +293,7 @@ void WebServer::setup() {
   // getting a lot of events
   this->set_interval(10000, [this]() { this->events_.try_send_nodefer("", "ping", millis(), 30000); });
 }
-void WebServer::loop() {
-#ifdef USE_ESP32
-  // Check atomic flag first to avoid taking semaphore when queue is empty
-  if (this->to_schedule_has_items_.load(std::memory_order_relaxed) && xSemaphoreTake(this->to_schedule_lock_, 0L)) {
-    std::function<void()> fn;
-    if (!to_schedule_.empty()) {
-      // scheduler execute things out of order which may lead to incorrect state
-      // this->defer(std::move(to_schedule_.front()));
-      // let's execute it directly from the loop
-      fn = std::move(to_schedule_.front());
-      to_schedule_.pop_front();
-      if (to_schedule_.empty()) {
-        this->to_schedule_has_items_.store(false, std::memory_order_relaxed);
-      }
-    }
-    xSemaphoreGive(this->to_schedule_lock_);
-    if (fn) {
-      fn();
-    }
-  }
-#endif
-
-  this->events_.loop();
-}
+void WebServer::loop() { this->events_.loop(); }
 void WebServer::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "Web Server:\n"
@@ -2061,16 +2034,7 @@ void WebServer::add_sorting_group(uint64_t group_id, const std::string &group_na
 }
 #endif
 
-void WebServer::schedule_(std::function<void()> &&f) {
-#ifdef USE_ESP32
-  xSemaphoreTake(this->to_schedule_lock_, portMAX_DELAY);
-  to_schedule_.push_back(std::move(f));
-  this->to_schedule_has_items_.store(true, std::memory_order_relaxed);
-  xSemaphoreGive(this->to_schedule_lock_);
-#else
-  this->defer(std::move(f));
-#endif
-}
+void WebServer::schedule_(std::function<void()> &&f) { this->defer(std::move(f)); }
 
 }  // namespace web_server
 }  // namespace esphome
