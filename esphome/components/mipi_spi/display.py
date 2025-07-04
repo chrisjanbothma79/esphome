@@ -180,6 +180,7 @@ def denominator(config):
     try:
         return next(x for x in range(2, 17) if frac >= 1 / x and height % x == 0)
     except StopIteration:
+        # pylint: disable=raise-missing-from
         raise cv.Invalid(
             f"Buffer size fraction {frac} is not compatible with display height {height}"
         )
