@@ -87,7 +87,8 @@ api:
               }
             };
 
-            TestComponent test_component;
+            // Use a static instance so it doesn't go out of scope
+            static TestComponent test_component;
             test_component.test_defer();
 
             ESP_LOGD("defer_test", "Deferred 10 items using defer(), waiting for execution...");
