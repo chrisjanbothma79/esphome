@@ -72,17 +72,7 @@ DEPENDENCIES = ["spi"]
 
 LOGGER = logging.getLogger(DOMAIN)
 mipi_spi_ns = cg.esphome_ns.namespace("mipi_spi")
-MipiSpi = mipi_spi_ns.class_(
-    "MipiSpi", display.Display, display.DisplayBuffer, cg.Component, spi.SPIDevice
-)
-MipiSpiBuffer = mipi_spi_ns.class_(
-    "MipiSpiBuffer",
-    MipiSpi,
-    display.Display,
-    display.DisplayBuffer,
-    cg.Component,
-    spi.SPIDevice,
-)
+MipiSpi = mipi_spi_ns.class_("MipiSpi", display.Display, cg.Component, spi.SPIDevice)
 ColorOrder = display.display_ns.enum("ColorMode")
 ColorBitness = display.display_ns.enum("ColorBitness")
 Model = mipi_spi_ns.enum("Model")
@@ -295,7 +285,7 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
         )
         .extend(
             {
-                cv.GenerateID(): cv.declare_id(MipiSpiBuffer),
+                cv.GenerateID(): cv.declare_id(MipiSpi),
                 cv_dimensions(CONF_DIMENSIONS): dimension_schema(
                     model.get_default(CONF_DRAW_ROUNDING, 1)
                 ),
