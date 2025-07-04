@@ -225,14 +225,13 @@ void HOT Scheduler::call() {
   // - Items execute in exact order they were deferred (FIFO guarantee)
   // - No deferred items exist in to_add_, so processing order doesn't affect correctness
   while (!this->defer_queue_.empty()) {
-    std::unique_ptr<SchedulerItem> item;
-    {
-      LockGuard guard{this->lock_};
-      if (this->defer_queue_.empty())  // Double-check with lock held
-        break;
-      item = std::move(this->defer_queue_.front());
-      this->defer_queue_.pop_front();
-    }
+    this->lock_.lock();
+    if (this->defer_queue_.empty())  // Double-check with lock held
+      this->lock_.unlock();
+    break;
+    auto item = std::move(this->defer_queue_.front());
+    this->defer_queue_.pop_front();
+    this->lock_.unlock();
     // Skip if item was marked for removal or component failed
     if (!this->should_skip_item_(item.get())) {
       this->execute_item_(item.get());

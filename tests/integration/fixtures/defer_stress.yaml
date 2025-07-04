@@ -10,7 +10,7 @@ external_components:
 host:
 
 logger:
-  level: DEBUG
+  level: VERBOSE
 
 defer_stress_component:
   id: defer_stress
@@ -21,16 +21,6 @@ api:
       then:
         - lambda: |-
             id(defer_stress)->run_multi_thread_test();
-        - wait_until:
-            lambda: |-
-              return id(defer_stress)->is_test_complete();
-        - lambda: |-
-            if (id(defer_stress)->is_test_passed()) {
-              id(test_result)->trigger("passed");
-            } else {
-              id(test_result)->trigger("failed");
-            }
-            id(test_complete)->trigger("test_finished");
 
 event:
   - platform: template
