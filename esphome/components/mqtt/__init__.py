@@ -375,7 +375,7 @@ async def to_code(config):
             )
         )
 
-    cg.add(var.set_topic_prefix(config[CONF_TOPIC_PREFIX], CORE.name))
+    cg.add(var.set_topic_prefix(config[CONF_TOPIC_PREFIX]))
 
     if config[CONF_USE_ABBREVIATIONS]:
         cg.add_define("USE_MQTT_ABBREVIATIONS")
@@ -384,23 +384,23 @@ async def to_code(config):
     if not birth_message:
         cg.add(var.disable_birth_message())
     else:
-        cg.add(var.set_birth_message(exp_mqtt_message(birth_message), CORE.name))
+        cg.add(var.set_birth_message(exp_mqtt_message(birth_message)))
     will_message = config[CONF_WILL_MESSAGE]
     if not will_message:
         cg.add(var.disable_last_will())
     else:
-        cg.add(var.set_last_will(exp_mqtt_message(will_message), CORE.name))
+        cg.add(var.set_last_will(exp_mqtt_message(will_message)))
     shutdown_message = config[CONF_SHUTDOWN_MESSAGE]
     if not shutdown_message:
         cg.add(var.disable_shutdown_message())
     else:
-        cg.add(var.set_shutdown_message(exp_mqtt_message(shutdown_message), CORE.name))
+        cg.add(var.set_shutdown_message(exp_mqtt_message(shutdown_message)))
 
     log_topic = config[CONF_LOG_TOPIC]
     if not log_topic:
         cg.add(var.disable_log_message())
     else:
-        cg.add(var.set_log_message_template(exp_mqtt_message(log_topic), CORE.name))
+        cg.add(var.set_log_message_template(exp_mqtt_message(log_topic)))
 
         if CONF_LEVEL in log_topic:
             cg.add(var.set_log_level(logger.LOG_LEVELS[log_topic[CONF_LEVEL]]))
