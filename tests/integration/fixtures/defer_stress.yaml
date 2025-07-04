@@ -1,0 +1,77 @@
+esphome:
+  name: defer-stress-test
+
+host:
+
+logger:
+  level: DEBUG
+
+api:
+  services:
+    - service: run_stress_test
+      then:
+        - lambda: |-
+            static int total_defers = 0;
+            static int executed_defers = 0;
+
+            ESP_LOGI("stress", "Starting defer stress test - rapid sequential defers");
+
+            // Reset counters
+            total_defers = 0;
+            executed_defers = 0;
+
+            // Create a temporary component to access defer()
+            class TestComponent : public Component {
+             public:
+              void run_test() {
+                // Rapidly defer many callbacks to stress the defer mechanism
+                for (int batch = 0; batch < 10; batch++) {
+                  for (int i = 0; i < 100; i++) {
+                    int expected_id = total_defers;
+                    this->defer([expected_id]() {
+                      executed_defers++;
+                      ESP_LOGV("stress", "Defer %d executed", expected_id);
+                    });
+                    total_defers++;
+                  }
+                  // Brief yield to let other work happen
+                  delay(1);
+                }
+              }
+            };
+
+            TestComponent test_comp;
+            test_comp.run_test();
+
+            ESP_LOGI("stress", "Scheduled %d defers", total_defers);
+
+            // Give the main loop time to process all defers
+            App.scheduler.set_timeout((Component*)nullptr, nullptr, 500, []() {
+              ESP_LOGI("stress", "Test complete. Defers scheduled: %d, executed: %d", total_defers, executed_defers);
+
+              // We should have executed all defers without crashing
+              if (executed_defers == total_defers && total_defers == 1000) {
+                ESP_LOGI("stress", "✓ Stress test PASSED - All %d defers executed", total_defers);
+                id(test_result)->trigger("passed");
+              } else {
+                ESP_LOGE("stress", "✗ Stress test FAILED - Expected 1000 executed, got %d", executed_defers);
+                id(test_result)->trigger("failed");
+              }
+
+              id(test_complete)->trigger("test_finished");
+            });
+
+event:
+  - platform: template
+    name: "Test Complete"
+    id: test_complete
+    device_class: button
+    event_types:
+      - "test_finished"
+  - platform: template
+    name: "Test Result"
+    id: test_result
+    device_class: button
+    event_types:
+      - "passed"
+      - "failed"
