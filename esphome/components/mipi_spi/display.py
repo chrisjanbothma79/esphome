@@ -180,10 +180,9 @@ def denominator(config):
     try:
         return next(x for x in range(2, 17) if frac >= 1 / x and height % x == 0)
     except StopIteration:
-        # pylint: disable=raise-missing-from
         raise cv.Invalid(
             f"Buffer size fraction {frac} is not compatible with display height {height}"
-        )
+        ) from StopIteration
 
 
 def validate_dimension(rounding):
@@ -398,12 +397,21 @@ def _final_validate(config):
     if "psram" not in global_config and CONF_BUFFER_SIZE not in config:
         # If PSRAM is not enabled, choose a small buffer size by default
         buffer_size = get_buffer_size(config)
+        if buffer_size == 0:
+            # not our problem.
+            return config
         # Target a buffer size of 20kB
         fraction = 20000.0 / buffer_size
         height, _width, _offset_width, _offset_height = get_dimensions(config)
-        config[CONF_BUFFER_SIZE] = 1.0 / next(
-            x for x in range(2, 17) if fraction >= 1 / x and height % x == 0
-        )
+        try:
+            config[CONF_BUFFER_SIZE] = 1.0 / next(
+                x for x in range(2, 17) if fraction >= 1 / x and height % x == 0
+            )
+        except StopIteration:
+            # pylint: disable=raise-missing-from
+            raise cv.Invalid(
+                f"Unable to determine a suitable buffer size fraction for height {height} - specify one in the config using '{CONF_BUFFER_SIZE}'"
+            ) from StopIteration
 
     return config
 
