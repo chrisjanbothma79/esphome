@@ -225,6 +225,14 @@ void HOT Scheduler::call() {
   // - Items execute in exact order they were deferred (FIFO guarantee)
   // - No deferred items exist in to_add_, so processing order doesn't affect correctness
   while (!this->defer_queue_.empty()) {
+    // IMPORTANT: The double-check pattern is REQUIRED for thread safety:
+    // 1. First check: !defer_queue_.empty() without lock (may become stale)
+    // 2. Acquire lock
+    // 3. Second check: defer_queue_.empty() with lock (authoritative)
+    // Between steps 1 and 2, another thread could have emptied the queue,
+    // so we must check again after acquiring the lock to avoid accessing an empty queue.
+    // Note: We use manual lock/unlock instead of RAII LockGuard to avoid creating
+    // unnecessary stack variables when the queue is empty after acquiring the lock.
     this->lock_.lock();
     if (this->defer_queue_.empty()) {
       this->lock_.unlock();
@@ -234,7 +242,8 @@ void HOT Scheduler::call() {
     this->defer_queue_.pop_front();
     this->lock_.unlock();
 
-    // Skip if item was marked for removal or component failed
+    // Execute callback without holding lock to prevent deadlocks
+    // if the callback tries to call defer() again
     if (!this->should_skip_item_(item.get())) {
       this->execute_item_(item.get());
     }
