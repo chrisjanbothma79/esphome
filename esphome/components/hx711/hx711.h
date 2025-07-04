@@ -10,7 +10,7 @@ namespace esphome {
 namespace hx711 {
 
 /// @brief Available HX711 gain settings.
-enum HX711Gain : uint8_t {
+enum class HX711Gain : uint8_t {
   HX711_GAIN_128 = 1,  ///< 128x gain, channel A (Default after power on)
   HX711_GAIN_32 = 2,   ///< 32x gain, channel B
   HX711_GAIN_64 = 3,   ///< 64x gain, channel A
@@ -45,8 +45,7 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   void update() override;
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
-  void on_safe_shutdown() override { this->power_down(); }
-  void on_shutdown() override { this->power_down_internal_(); }
+  void on_powerdown() override { this->power_down_internal_(); }
 
   /// @brief Logs the new gain setting and sets internal gain variable
   ///
@@ -92,11 +91,11 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   ///       after the start (400ms at 10 Hz) are usually containing errors and must be discarded.
   ///
   /// @return True if the HX711 ADC has reached a stable state, false otherwise.
-  bool is_settled() const { return this->settled_; }
+  bool is_settled() const { return this->hx711_state_flags_.settled; }
 
   /// @brief Returns whether the poller is stopped.
   /// @return True if the polling interval is stopped, false otherwise.
-  bool is_poller_stopped() const { return this->poller_stopped_; }
+  bool is_poller_stopped() const { return this->hx711_state_flags_.poller_stopped; }
 
   /// @brief Returns whether the HX711 ADC is powered down (PD_SCK pin is high).
   /// @return True if the HX711 ADC is powered down, false otherwise.
@@ -179,41 +178,62 @@ class HX711Sensor : public sensor::Sensor, public PollingComponent {
   /// @brief Flag to indicate whether to power down the sensor after reading.
   bool power_down_after_reading_;
 
-  /// @brief Flag to indicate wether to start the poller after settling.
-  bool should_start_poller_{false};
-
-  /// @brief Flag to indicate wheter the poller is stopped. Used to prevent polling interval restart.
-  bool poller_stopped_{true};
-
-  /// @brief Flag to indicate whether the ADC has reached a stable state.
-  bool settled_{false};
-
-  /// @brief Flag to indicate whether the update process is not complete yet.
+  /// @brief Represents internal state flags for the HX711 sensor component.
   ///
-  /// Gets set in update(), reset in loop()
-  bool update_in_progress_{false};
-
-  /// @brief Flag to indicate whether the power up process is not complete yet.
+  /// This struct holds multiple state-related flags that are packed into a bitfield
+  /// to minimize RAM usage. Each bit represents a specific condition or control flag
+  /// relevant to the operation and timing of the HX711 ADC and polling system.
   ///
-  /// Gets set in power_up(), reset in loop().
-  bool power_up_sequence_running_{false};
+  /// The use of bitfields allows up to 8 flags to be stored in a single byte,
+  /// reducing memory overhead compared to using individual `bool` variables.
+  struct HX711StateFlags {
+    /// @brief Flag to indicate whether to start the poller after settling.
+    uint8_t should_start_poller : 1;
 
-  /// @brief Indicates whether the measurement-ready timeout is currently active.
-  ///
-  /// This flag is set to `true` when `start_measurement_ready_timeout_()` initiates the timeout
-  /// waiting for the HX711's DOUT pin to signal readiness. It is reset to `false` when the timeout
-  /// expires or is explicitly cleared in the processing loop. Used to prevent timeout
-  /// from restarting.
-  bool measurement_ready_timeout_running_{false};
+    /// @brief Flag to indicate whether the poller is currently stopped.
+    uint8_t poller_stopped : 1;
 
-#ifdef USE_HX711_CHANNEL_B_SENSOR
-  /// @brief Flag to indicate whether the channel B reading is pending.
-  ///
-  /// If this is true, that means that in next loop() we need to read channel B.
-  ///
-  /// @note This flag must be reset after reading channel b in loop().
-  bool channel_b_sensor_read_pending_{false};
+    /// @brief Flag to indicate whether the HX711 ADC has reached a stable state.
+    uint8_t settled : 1;
 
+    /// @brief Flag to indicate whether an update cycle is currently in progress.
+    ///
+    /// Gets set in update(), reset in loop()
+    uint8_t update_in_progress : 1;
+
+    /// @brief Flag to indicate that the power-up sequence is currently running.
+    ///
+    /// Gets set in power_up(), reset in loop().
+    uint8_t power_up_sequence_running : 1;
+
+    /// @brief Flag indicating whether the measurement-ready timeout is currently active.
+    ///
+    /// This flag is set to `true` when `start_measurement_ready_timeout_()` initiates the timeout
+    /// waiting for the HX711's DOUT pin to signal readiness. It is reset to `false` when the timeout
+    /// expires or is explicitly cleared in the processing loop. Used to prevent timeout
+    /// from restarting.
+    uint8_t measurement_ready_timeout_active : 1;
+
+#if defined(USE_HX711_CHANNEL_B_SENSOR)
+    /// @brief Flag to indicate that a reading from channel B is pending.
+    ///
+    /// If this is true, that means that in next loop() we need to read channel B.
+    ///
+    /// @note This flag must be reset after reading channel b in loop().
+    uint8_t channel_b_sensor_read_pending : 1;
+#endif
+  };
+
+  /// @brief Internal state flags for the HX711 sensor component.
+  HX711StateFlags hx711_state_flags_ {
+    .should_start_poller = false, .poller_stopped = true, .settled = false, .update_in_progress = false,
+    .power_up_sequence_running = false, .measurement_ready_timeout_active = false,
+#if defined(USE_HX711_CHANNEL_B_SENSOR)
+    .channel_b_sensor_read_pending = false,
+#endif
+  };
+
+#if defined(USE_HX711_CHANNEL_B_SENSOR)
   /// @brief Sensor for additional simultaneous channel B readings
   sensor::Sensor *channel_b_sensor_{nullptr};
 #endif

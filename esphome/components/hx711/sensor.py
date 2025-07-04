@@ -23,7 +23,7 @@ CONF_POWER_DOWN_AFTER_READING = "power_down_after_reading"
 CONF_CHANNEL_B = "channel_b"
 CONF_MEASUREMENT_READY_TIMEOUT = "measurement_ready_timeout"
 
-HX711Gain = hx711_ns.enum("HX711Gain")
+HX711Gain = hx711_ns.enum("HX711Gain", is_class=True)
 GAINS = {
     128: HX711Gain.HX711_GAIN_128,
     32: HX711Gain.HX711_GAIN_32,
