@@ -10,6 +10,8 @@ ld2412:
 
 binary_sensor:
   - platform: ld2412
+    dynamic_background_correction_status:
+      name: Dynamic Background Correction Status
     has_target:
       name: Presence
     has_moving_target:
@@ -25,9 +27,13 @@ button:
       name: Restart
     query_params:
       name: Query params
+    start_dynamic_background_correction:
+      name: Start Dynamic Background Correction
 
 number:
   - platform: ld2412
+    light_threshold:
+      name: Light Threshold
     timeout:
       name: Presence timeout
     min_distance_gate:
@@ -107,12 +113,12 @@ number:
 
 select:
   - platform: ld2412
+    light_function:
+      name: Light Function
     out_pin_level:
       name: Hardware output pin level
     distance_resolution:
       name: Distance resolution
-    mode:
-      name: Mode
     baud_rate:
       name: Baud rate
       on_value:
@@ -130,6 +136,8 @@ select:
 
 sensor:
   - platform: ld2412
+    light:
+      name: Light
     moving_distance:
       name: Moving Distance
     still_distance:
@@ -140,8 +148,6 @@ sensor:
       name: Still Energy
     detection_distance:
       name: Detection Distance
-    light:
-      name: light
     gate_0:
       move_energy:
         name: Gate 0 Move Energy
@@ -217,6 +223,8 @@ switch:
   - platform: ld2412
     bluetooth:
       name: Bluetooth
+    engineering_mode:
+      name: Engineering Mode
 
 text_sensor:
   - platform: ld2412
