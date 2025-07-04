@@ -5,6 +5,8 @@
 #include <zephyr/drivers/hwinfo.h>
 #include <hal/nrf_power.h>
 
+#define BOOTLOADER_VERSION_REGISTER NRF_TIMER2->CC[0]
+
 namespace esphome {
 namespace debug {
 
@@ -252,6 +254,18 @@ void DebugComponent::get_device_info_(std::string &device_info) {
              (UICR_PSELRESET_CONNECT_Connected << UICR_PSELRESET_CONNECT_Pos)) ||
             ((NRF_UICR->PSELRESET[1] & UICR_PSELRESET_CONNECT_Msk) !=
              (UICR_PSELRESET_CONNECT_Connected << UICR_PSELRESET_CONNECT_Pos))));
+
+// #ifdef USE_ADAFRUIT_BOOTLOADER
+#if 1
+  ESP_LOGD(TAG, "bootloader: Adafruit, version %lu.%lu.%lu", (BOOTLOADER_VERSION_REGISTER >> 16) & 0xFF,
+           (BOOTLOADER_VERSION_REGISTER >> 8) & 0xFF, bootloaderVersion & 0xFF);
+  ESP_LOGD(TAG, "MBR bootloader addr 0x%08lx, UICR bootloader addr 0x%08lx", (*((uint32_t *) MBR_BOOTLOADER_ADDR)),
+           NRF_UICR->NRFFW[0]);
+  ESP_LOGD(TAG, "MBR param page addr 0x%08lx, UICR param page addr 0x%08lx", (*((uint32_t *) MBR_PARAM_PAGE_ADDR)),
+           NRF_UICR->NRFFW[1]);
+#else
+  ESP_LOGD(TAG, "bootloader: mcuboot");
+#endif
 }
 
 void DebugComponent::update_platform_() {}
@@ -259,10 +273,3 @@ void DebugComponent::update_platform_() {}
 }  // namespace debug
 }  // namespace esphome
 #endif
-
-//   ESP_LOGD(TAG, "bootloader version %lu.%lu.%lu", (bootloaderVersion >> 16) & 0xFF, (bootloaderVersion >> 8) & 0xFF,
-//            bootloaderVersion & 0xFF);
-//   ESP_LOGD(TAG, "MBR bootloader addr 0x%08lx, UICR bootloader addr 0x%08lx", (*((uint32_t *) MBR_BOOTLOADER_ADDR)),
-//            NRF_UICR->NRFFW[0]);
-//   ESP_LOGD(TAG, "MBR param page addr 0x%08lx, UICR param page addr 0x%08lx", (*((uint32_t *) MBR_PARAM_PAGE_ADDR)),
-//            NRF_UICR->NRFFW[1]);
