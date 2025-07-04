@@ -39,26 +39,98 @@ class SdfsHost;
 
 class FileInterface {
  public:
-// fs_err_t get_error();
 #if defined(USE_ESP8266)
-  FileInterface(SdfsHost *host, std::string path, std::string mode);
+  FileInterface(SdfsHost *host, std::string path, char mode);
 #else
-  FileInterface(std::string, std::string mode);
+  FileInterface(std::string, char mode);
 #endif
   ~FileInterface();
 
+  /**
+   * @brief   Close file
+   *
+   * @return true
+   * @return false
+   */
   bool close();
+  /**
+   * @brief Set file position for read or write
+   *
+   * @param pos
+   * @return true
+   * @return false
+   */
   bool seek(size_t pos);
+
+  /**
+   * @brief Save cashed data to card
+   *
+   * @return true
+   * @return false
+   */
   bool flush();
-  int read(void *buf, size_t);
-  size_t write(void *buf, size_t);
+
+  /**
+   * @brief  Read from file
+   *
+   * @param buf pointer to memory buffer where read to
+   * @param size  Buffer size.
+   * @return int  size or rallyr ead bytes. 0 if eof; -1 if error
+   */
+  int read(void *buf, size_t size);
+
+  /**
+   * @brief Write data to file.  At the open  start write to end of file or to begining Depends of open mode
+   *  other write  will be after last write position.
+   *
+   * @param buf Pointer to memory buffer
+   * @param size  Buffer size.
+   * @return size_t  size or writer bytes. 0 if error
+   */
+  size_t write(void *buf, size_t size);
+
+  /**
+   * @brief Read one byte from file. Read form last read position or from begining if no last position
+   *
+   * @return char
+   */
   char get();
+  /**
+   * @brief write char to file.
+   *
+   * @return true
+   * @return false
+   */
   bool put(char);
-  // void putback();
+  /**
+   * @brief  return opened file pointer with type of used framework.
+   *
+   * @return fptr*
+   */
   fptr *get_fptr();
+  /**
+   * @brief Retrun file path ( w/o file name)
+   *
+   * @return std::string
+   */
   std::string get_path();
+  /**
+   * @brief Return file name
+   *
+   * @return std::string
+   */
   std::string get_name();
+  /**
+   * @brief Reterun file size
+   *
+   * @return size_t
+   */
   size_t get_size();
+  /**
+   * @brief Return erro of last file i/o operation. If Any
+   *
+   * @return FRESULT
+   */
   FRESULT get_error() { return last_err; };
 
  private:
@@ -78,9 +150,34 @@ class FsIterator {
  public:
   FsIterator(SdfsHost *, std::string);
   ~FsIterator();
+
+  /**
+   * @brief Return file information  for next file in directory, for witch we open instance of this class.
+   *
+   * @return FileInfo*
+   */
   FileInfo *get_next();
+
+  /**
+   * @brief  Whrn there is no vor files in chain.
+   *
+   * @return true
+   * @return false
+   */
   bool is_eof();
+
+  /**
+   * @brief Return fs object for this directory.
+   *
+   * @return fsys_t*
+   */
   fsys_t *get_fs() { return fs; };
+
+  /**
+   * @brief Return error num for lase fs operation.
+   *
+   * @return FRESULT
+   */
   FRESULT get_error() { return last_err; };
 
  private:
@@ -97,19 +194,13 @@ class FsInterface {
  public:
   /**
    * @brief Construct a new Filesystem representation object.
-   *  Save lnk to Host object.
-   *  Extract FileSystem object.
    *
    * @param host
    */
   FsInterface(SdfsHost *host);
 
-  // FsInterface(std::string mp) : mount_point(mp) {};
-  // //void set_mountpoint(std::string p) { mount_point = p; }
-  // #endif
-
   /**
-   * @brief Check is path is correct. Is file or directory exist.
+   * @brief Check if path exist.
    *
    * @param path
    * @return true
@@ -167,15 +258,16 @@ class FsInterface {
    *
    * @param path File path
    * @param mode  file open mode:
-   *  r - for read,
-   *  w - create and write from beining,
-   *  a - for append to the end of file
+   *  'r' - for read,
+   *  'w' - create and write from beining,
+   *  'a' - for append to the end of file
+   *  't' - write and truncae
    * @return FileInterface*
    */
-  FileInterface *open_file(std::string path, std::string mode);
+  FileInterface *open_file(std::string path, char mode);
 
   /**
-   * @brief   Check is file system initialized and ready to serv
+   * @brief   Check is file system initialized and ready to i/o
    *
    * @return true
    * @return false

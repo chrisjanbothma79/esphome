@@ -60,7 +60,12 @@ const char *host_st2str[] = {
     "(3) ST: Card present",  "(4) ST: Card mount",
 };
 
+const char *host_st2name[] = {"SD_SLOT_ST_NOTINIT", "SD_SLOT_ST_INIT", "SD_SLOT_ST_EMPTY", "SD_SLOT_ST_CARD",
+                              "SD_SLOT_ST_MOUNT"};
+
 const char *fat_type2str[] = {"NO_FS", "FS_FAT12", "FS_FAT16", "FS_FAT32", "FS_EXFAT"};
+
+const char *sd_state_to_string(SdDriverState state) { return host_st2name[state]; }
 
 void CardDetectInterrupt::card_insert(CardDetectInterrupt *data) { data->present = true; }
 void CardDetectInterrupt::card_eject(CardDetectInterrupt *data) { data->present = false; }
@@ -153,9 +158,9 @@ void SdfsHost::dump_config() {
  *
  * @param state
  */
-void SdfsHost::set_state(SdDriverStatus state) {
+void SdfsHost::set_state(SdDriverState state) {
   ESP_LOGD(TAG, "Change state to: %s", host_st2str[state]);
-  this->on_state_callback_.call(static_cast<SdDriverStatus>(state));
+  this->on_state_callback_.call(static_cast<SdDriverState>(state));
   this->state_ = state;
 }
 
@@ -290,7 +295,7 @@ void SdfsHost::update() {
  *
  * @param callback
  */
-void SdfsHost::add_on_state_callback(std::function<void(SdDriverStatus)> &&callback) {
+void SdfsHost::add_on_state_callback(std::function<void(SdDriverState)> &&callback) {
   this->on_state_callback_.add(std::move(callback));
 }
 
@@ -302,7 +307,7 @@ void SdfsHost::add_on_state_callback(std::function<void(SdDriverStatus)> &&callb
  * @param buf
  * @param size
  */
-void SdfsHost::write_to_file(std::string path, std::string mode, uint8_t *buf, size_t size) {
+void SdfsHost::write_to_file(std::string path, char mode, uint8_t *buf, size_t size) {
   FsInterface *fs = get_fs();
 
   if ((fs == NULL) || (!fs->is_ready())) {
@@ -313,14 +318,14 @@ void SdfsHost::write_to_file(std::string path, std::string mode, uint8_t *buf, s
   FileInterface *file = NULL;
   ESP_LOGD(TAG, "Write file %s, buff size=%d", path.c_str(), size);
 
-  if (mode == "read") {
+  if (mode == 'r') {
     ESP_LOGE(TAG, "Can be opened only for for write or append");
     return;
   }
 
   file = fs->open_file(path, mode);
 
-  ESP_LOGD(TAG, "Open file OK, mode=%s, rc=%d", mode.c_str(), file->get_error());
+  ESP_LOGD(TAG, "Open file OK, mode=%c, rc=%d", mode, file->get_error());
   if (file->get_error() == FR_OK) {
     if (file->write(buf, size) <= 0) {
       ESP_LOGE(TAG, "Write file error %d", file->get_error());
@@ -343,10 +348,9 @@ int SdfsHost::read_from_file(std::string path, uint8_t *buf, size_t size, int po
   FsInterface *fs = get_fs();
   FileInterface *file = NULL;
   int rd = -1;
-  std::string mode("read");
 
   ESP_LOGD(TAG, "Read file %s, buff size=%d, pos=%d", path.c_str(), size, position);
-  file = fs->open_file(path, mode);
+  file = fs->open_file(path, 'r');
   if (position > 0) {
     file->seek(position);
   }

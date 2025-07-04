@@ -17,7 +17,7 @@
 namespace esphome {
 namespace sdfs {
 
-enum SdDriverStatus : uint8_t {
+enum SdDriverState : uint8_t {
   SD_SLOT_ST_NOTINIT = 0,
   SD_SLOT_ST_INIT = 1,
   SD_SLOT_ST_EMPTY = 2,
@@ -39,6 +39,7 @@ enum SdConnType {
 extern const char *fat_type2str[];
 extern const char *fs_err2str[];
 extern const char *host_st2str[];
+const char *sd_state_to_string(SdDriverState state);
 
 /**
  * @brief   Card eject/insert interrupt data
@@ -68,8 +69,8 @@ class SdfsHost : public PollingComponent {
   void dump_config() override;
   DriverInterface *get_drv() { return drv_; };
   FsInterface *get_fs();
-  SdDriverStatus get_state() { return state_; };
-  void set_state(SdDriverStatus state);
+  SdDriverState get_state() { return state_; };
+  void set_state(SdDriverState state);
 
 #if defined(USE_SDSPI_MODE)
   void set_spi_parent(spi::SPIComponent *);
@@ -78,9 +79,9 @@ class SdfsHost : public PollingComponent {
   void set_mode(spi::SPIMode);
 #endif
 
-  void add_on_state_callback(std::function<void(SdDriverStatus)> &&callback);
+  void add_on_state_callback(std::function<void(SdDriverState)> &&callback);
 
-  void write_to_file(std::string path, std::string mode, uint8_t *buf, size_t size);
+  void write_to_file(std::string path, char mode, uint8_t *buf, size_t size);
   int read_from_file(std::string path, uint8_t *buf, size_t size, int position);
 
   void set_conn_type(SdConnType type) { type_ = type; };
@@ -118,11 +119,11 @@ class SdfsHost : public PollingComponent {
   FsInterface *fs_ = NULL;
   DriverInterface *drv_ = NULL;
   SdConnType type_;
-  SdDriverStatus state_;
+  SdDriverState state_;
   std::string path_;
   BusWidth spi_bus_width_;
   uint8_t bus_slot_{0};
-  CallbackManager<void(SdDriverStatus)> on_state_callback_{};
+  CallbackManager<void(SdDriverState)> on_state_callback_{};
 
   // int pw_ctrl_pin_{-1};
   // int cd_pin_{-1};

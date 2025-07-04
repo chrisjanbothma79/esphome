@@ -33,60 +33,28 @@ template<typename... Ts> class SdfsWriteFile : public Action<Ts...> {
 };
 
 //
-//   Is Mount
+//   Is State
 //
-template<typename... Ts> class SdIsMountCondition : public Condition<Ts...> {
+template<typename... Ts> class SdIsStateCondition : public Condition<Ts...> {
  public:
-  SdIsMountCondition(SdfsHost *parent) : parent_(parent) {}
-  bool check(Ts... x) override { return this->parent_->get_state() == SD_SLOT_ST_MOUNT; }
+  SdIsStateCondition(SdfsHost *parent) : parent_(parent) {
+    state_id = reinterpret_cast<SdDriverState>(SD_SLOT_ST_MOUNT);
+  }
+  TEMPLATABLE_VALUE(int, state_id)
+  bool check(Ts... x) override { return this->parent_->get_state() == state_id; }
 
  protected:
   SdfsHost *parent_;
-};
-
-//
-//   Is Empty
-//
-template<typename... Ts> class SdIsEmptyCondition : public Condition<Ts...> {
- public:
-  SdIsEmptyCondition(SdfsHost *parent) : parent_(parent) {}
-  bool check(Ts... x) override { return this->parent_->get_state() == SD_SLOT_ST_EMPTY; }
-
- protected:
-  SdfsHost *parent_;
-};
-
-//
-//   Is Card
-//
-template<typename... Ts> class SdIsCardCondition : public Condition<Ts...> {
- public:
-  SdIsCardCondition(SdfsHost *parent) : parent_(parent) {}
-  bool check(Ts... x) override { return this->parent_->get_state() == SD_SLOT_ST_CARD; }
-
- protected:
-  SdfsHost *parent_;
-};
-
-//
-//   Is Init
-//
-template<typename... Ts> class SdIsInitCondition : public Condition<Ts...> {
- public:
-  SdIsInitCondition(SdfsHost *parent) : parent_(parent) {}
-  bool check(Ts... x) override { return this->parent_->get_state() == SD_SLOT_ST_INIT; }
-
- protected:
-  SdfsHost *parent_;
+  SdDriverState state_id;
 };
 
 //
 //    State changed
 //
-class ChangeSateteTrigger : public Trigger<SdDriverStatus> {
+class ChangeSateteTrigger : public Trigger<SdDriverState> {
  public:
   explicit ChangeSateteTrigger(SdfsHost *parent) {
-    parent->add_on_state_callback([this](SdDriverStatus state) { this->trigger(state); });
+    parent->add_on_state_callback([this](SdDriverState state) { this->trigger(state); });
   }
 };
 

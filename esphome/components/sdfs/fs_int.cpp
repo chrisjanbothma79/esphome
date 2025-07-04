@@ -139,10 +139,10 @@ bool rename(std::string from, std::string to) {
  */
 FsIterator *FsInterface::list(std::string path) { return new FsIterator(host, path); }
 
-FileInterface *FsInterface::open_file(std::string path, std::string mode) {
+FileInterface *FsInterface::open_file(std::string path, char mode) {
   FileInterface *file = NULL;
   if (is_ready()) {
-    file = new FileInterface(path.c_str(), mode);
+    file = new FileInterface(path, mode);
   }
   return file;
 }
@@ -156,18 +156,23 @@ FileInterface *FsInterface::open_file(std::string path, std::string mode) {
  * @param p absolute path, including mount point
  * @param mode 'r' open read only, 'a' open for append, 'w' open for write
  */
-FileInterface::FileInterface(std::string p, std::string mode) : path(p) {
-  //	mode &= FF_FS_READONLY ? FA_READ : FA_READ | FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS |
-  // FA_OPEN_APPEND;
-  if (mode == "wtruncate") {
-    open_flag |= FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
-    truncate = true;
-  } else if (mode == "write") {
-    open_flag |= FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
-  } else if (mode == "append") {
-    open_flag |= FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS | FA_OPEN_APPEND;
-  } else if (mode == "read") {
-    open_flag = FA_READ;
+FileInterface::FileInterface(std::string p, char mode) : path(p) {
+  switch (mode) {
+    case 't':
+      open_flag = FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
+      truncate = true;
+    case 'w':
+      open_flag = FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS;
+      break;
+    case 'a':
+      open_flag = FA_WRITE | FA_CREATE_ALWAYS | FA_CREATE_NEW | FA_OPEN_ALWAYS | FA_OPEN_APPEND;
+      break;
+    case 'r':
+      open_flag = FA_READ;
+      break;
+    default:
+      last_err = FR_INVALID_PARAMETER;
+      return;
   }
 
   last_err = f_stat(path.c_str(), &info);

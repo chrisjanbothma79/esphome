@@ -12,15 +12,23 @@ static const char *TAG = "fs_int_esp8266";
 //------------------------------------------------------------------
 //   FileInterface methods
 //------------------------------------------------------------------
-FileInterface::FileInterface(SdfsHost *host, std::string path, std::string mode) : path(path) {
-  if (mode == "wtruncate") {
-    open_flag = O_WRITE | O_CREAT | O_TRUNC;
-  } else if (mode == "write") {
-    open_flag = O_WRITE | O_CREAT;
-  } else if (mode == "append") {
-    open_flag = O_AT_END | O_APPEND | O_WRITE;
-  } else if (mode == "read") {
-    open_flag = O_READ;
+FileInterface::FileInterface(SdfsHost *host, std::string path, char mode) : path(path) {
+  switch (mode) {
+    case 't':
+      open_flag = O_WRITE | O_CREAT | O_TRUNC;
+      truncate = true;
+    case 'w':
+      open_flag = O_WRITE | O_CREAT;
+      break;
+    case 'a':
+      open_flag = O_AT_END | O_APPEND | O_WRITE;
+      break;
+    case 'r':
+      open_flag = O_READ;
+      break;
+    default:
+      last_err = FR_INVALID_PARAMETER;
+      return;
   }
 
   fs = host->get_drv()->get_fs();
@@ -221,7 +229,7 @@ FsIterator *FsInterface::list(std::string path) {
   return iter;
 }
 
-FileInterface *FsInterface::open_file(std::string path, std::string mode) {
+FileInterface *FsInterface::open_file(std::string path, char mode) {
   last_err = 0;
   FileInterface *file = NULL;
 

@@ -40,6 +40,7 @@ CONF_MOSI_PIN = "mosi_pin"
 CONF_MODE = "mode"
 CONF_DATA = "data"
 CONF_ON_STATE = "on_state"
+CONF_STATE_NUM = "state"
 
 
 sdfs_ns = cg.esphome_ns.namespace("sdfs")
@@ -56,13 +57,13 @@ SD_CONN_TYPE = {
     "sdmmc": SdConnType.SD_MMC,
 }
 
-SdDriverStatus = sdfs_ns.enum("SdDriverStatus")
+SdDriverState = sdfs_ns.enum("SdDriverState")
 SD_DRIVER_STATUS = {
-    "no_init": SdDriverStatus.SD_SLOT_ST_NOTINIT,
-    "init": SdDriverStatus.SD_SLOT_ST_INIT,
-    "empty": SdDriverStatus.SD_SLOT_ST_EMPTY,
-    "card": SdDriverStatus.SD_SLOT_ST_CARD,
-    "mount": SdDriverStatus.SD_SLOT_ST_MOUNT,
+    "no_init": SdDriverState.SD_SLOT_ST_NOTINIT,
+    "init": SdDriverState.SD_SLOT_ST_INIT,
+    "empty": SdDriverState.SD_SLOT_ST_EMPTY,
+    "card": SdDriverState.SD_SLOT_ST_CARD,
+    "mount": SdDriverState.SD_SLOT_ST_MOUNT,
 }
 
 # spi_ns = cg.esphome_ns.namespace("spi")
@@ -71,14 +72,10 @@ SpiDrv = sdfs_ns.class_("EsphomeSpiDrv", spi.SPIDevice)
 
 SdfsWriteFile = sdfs_ns.class_("SdfsWriteFile", automation.Action)
 # SdfsStatus = sdfs_ns.class_("SdfsStatus", automation.Condition)
-SdIsMountCondition = sdfs_ns.class_(
-    "SdIsMountCondition", automation.Condition.template()
+
+SdIsStateCondition = sdfs_ns.class_(
+    "SdIsStateCondition", automation.Condition.template()
 )
-SdIsEmptyCondition = sdfs_ns.class_(
-    "SdIsEmptyCondition", automation.Condition.template()
-)
-SdIsInitCondition = sdfs_ns.class_("SdIsInitCondition", automation.Condition.template())
-SdIsCardCondition = sdfs_ns.class_("SdIsCardCondition", automation.Condition.template())
 
 ChangeSateteTrigger = sdfs_ns.class_(
     "ChangeSateteTrigger", automation.Trigger.template()
@@ -214,7 +211,6 @@ SDSPI_SCHEMA = (
     .extend(spi.spi_device_schema(cs_pin_required=True, default_mode="MODE0"))
 )
 
-
 CONFIG_SCHEMA = cv.All(
     cv.typed_schema(
         {
@@ -225,15 +221,12 @@ CONFIG_SCHEMA = cv.All(
     _validate,
 )
 
-
 WRITE_ACTION_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.use_id(SdfsHost),
         cv.Required(CONF_PATH): cv.templatable(cv.string_strict),
         # cv.Required(CONF_MODE): cv.templatable(validate_raw_data),
-        cv.Optional(CONF_MODE, default="append"): cv.templatable(
-            cv.one_of("append", "write", "wtruncate")
-        ),
+        cv.Optional(CONF_MODE, default="a"): cv.templatable(cv.one_of("a", "w", "t")),
         cv.Required(CONF_DATA): cv.templatable(validate_raw_data),
     }
 )
@@ -332,7 +325,7 @@ async def to_code(config):
     #
     for conf in config.get(CONF_ON_STATE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
-        await automation.build_automation(trigger, [(SdDriverStatus, "x")], conf)
+        await automation.build_automation(trigger, [(SdDriverState, "x")], conf)
 
 
 # -------------------------------------------------------------------------------------------
@@ -345,7 +338,7 @@ async def sdfs_write_file_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg, parent)
     path_ = await cg.templatable(config[CONF_PATH], args, cg.std_string)
     # mode_  = await cg.get_variable(config[CONF_MODE])
-    mode_ = await cg.templatable(config[CONF_MODE], args, cg.std_string)
+    mode_ = await cg.templatable(config[CONF_MODE], args, cg.uint8)
     data_ = await cg.templatable(
         config[CONF_DATA], args, cg.std_vector.template(cg.uint8)
     )
@@ -355,69 +348,25 @@ async def sdfs_write_file_to_code(config, action_id, template_arg, args):
     return var
 
 
+# -------------------------------------------------------------------------------------------
 #
-#   is_mount
+#   CONDITION
 #
 @automation.register_condition(
-    "sdfs.is_mount",
-    SdIsMountCondition,
+    "sdfs.is_state",
+    SdIsStateCondition,
     automation.maybe_simple_id(
         {
             cv.Required(CONF_ID): cv.use_id(SdfsHost),
+            cv.Optional(CONF_STATE_NUM, default=4): cv.templatable(
+                cv.int_range(min=0, max=4)
+            ),
         }
     ),
 )
-async def sd_is_mount_to_code(config, condition_id, template_arg, args):
+async def sd_is_state_to_code(config, condition_id, template_arg, args):
     paren = await cg.get_variable(config[CONF_ID])
-    return cg.new_Pvariable(condition_id, template_arg, paren)
-
-
-#
-#   is_empty
-#
-@automation.register_condition(
-    "sdfs.is_empty",
-    SdIsEmptyCondition,
-    automation.maybe_simple_id(
-        {
-            cv.Required(CONF_ID): cv.use_id(SdfsHost),
-        }
-    ),
-)
-async def sd_is_empty_to_code(config, condition_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    return cg.new_Pvariable(condition_id, template_arg, paren)
-
-
-#
-#   is_card
-#
-@automation.register_condition(
-    "sdfs.is_card",
-    SdIsCardCondition,
-    automation.maybe_simple_id(
-        {
-            cv.Required(CONF_ID): cv.use_id(SdfsHost),
-        }
-    ),
-)
-async def sd_is_card_to_code(config, condition_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    return cg.new_Pvariable(condition_id, template_arg, paren)
-
-
-#
-#   is_init
-#
-@automation.register_condition(
-    "sdfs.is_init",
-    SdIsInitCondition,
-    automation.maybe_simple_id(
-        {
-            cv.Required(CONF_ID): cv.use_id(SdfsHost),
-        }
-    ),
-)
-async def sd_is_init_to_code(config, condition_id, template_arg, args):
-    paren = await cg.get_variable(config[CONF_ID])
-    return cg.new_Pvariable(condition_id, template_arg, paren)
+    var = cg.new_Pvariable(condition_id, template_arg, paren)
+    templ = await cg.templatable(config[CONF_STATE_NUM], args, cg.int_)
+    cg.add(var.set_state(templ))
+    return var
