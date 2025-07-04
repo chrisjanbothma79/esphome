@@ -7,6 +7,7 @@ sx127x:
   cs_pin: ${cs_pin}
   rst_pin: ${rst_pin}
   dio0_pin: ${dio0_pin}
+  id: sx127x_radio
   frequency: 868100000
   modulation: LORA
   bandwidth: 250_0kHz  # Was 125.0
@@ -17,8 +18,8 @@ sx127x:
 
 lora:
   - platform: sx127x
-    id: test_lora
-    name: Test LoRa
+    id: lora_comp
+    sx127x_id: sx127x_radio
     on_message:
       then:
         - lambda: |-
@@ -29,4 +30,4 @@ lora:
 packet_transport:
   - platform: lora
     id: packet_transport_lora
-    lora_id: lora_conf
+    lora_id: lora_comp
