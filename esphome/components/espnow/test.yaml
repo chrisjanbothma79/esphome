@@ -18,32 +18,31 @@ logger:
   level: verbose
 
 espnow:
-  auto_add_peer: false
-  peers:
-    - FF:FF:FF:FF:FF:FF
+  auto_add_peer: true
+  id: esp_now
   on_new_peer:
     - logger.log:
-        format: "New peer detected '%u',  error: %d"
-        args: [peer_address, errorcode]
+        format: "New peer detected: %s,  error: %d"
+        args: [esp_now->peer_string(peer_address).c_str(), (errorcode)]
 
   on_received:
     - logger.log:
-        format: "Received from '%u'"
-        args: [peer_address]
+        format: "Received from: %s"
+        args: [esp_now->peer_string(peer_address).c_str()]
 
   on_broadcasted:
     - logger.log:
-        format: "Broadcasted from '%u'"
-        args: [peer_address]
+        format: "Broadcasted from: %s"
+        args: [esp_now->peer_string(peer_address).c_str()]
 
   on_sent_succeed:
     - logger.log:
-        format: "sent succeed '%u'"
-        args: [peer_address]
+        format: "sent succeed %s"
+        args: [esp_now->peer_string(peer_address).c_str()]
   on_sent_failed:
     - logger.log:
-        format: "sent failed: '%u' error: %d"
-        args: [peer_address, errorcode]
+        format: "sent failed: %s error: %d"
+        args: [esp_now->peer_string(peer_address).c_str(), (errorcode)]
 
 interval:
   - interval: 30sec

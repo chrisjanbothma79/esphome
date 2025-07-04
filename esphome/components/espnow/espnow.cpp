@@ -36,23 +36,10 @@ static const esp_err_t ESP_ERR_ESPNOW_PEER_NOT_SET = (ESP_ERR_ESPNOW_CMP_BASE + 
 
 static const esp_err_t ESP_MSG_ESPNOW_BROADCAST = (ESP_ERR_ESPNOW_BASE + 10);
 
-ESPNowComponent *ESPNowComponent::static_{nullptr};  // NOLINT
+static const esp_err_t CONFIG_ESPNOW_WAKE_WINDOW = 50;
+static const esp_err_t CONFIG_ESPNOW_WAKE_INTERVAL = 100;
 
-std::string peer_string(const uint64_t peer) {
-  char mac[24];
-  if (peer == 0) {
-    snprintf(mac, sizeof(mac), "%s", "[Not Set]");
-  } else if (peer == ESPNOW_BROADCAST_ADDR) {
-    snprintf(mac, sizeof(mac), "%s", "[Broadcast]");
-  } else if (peer == ESPNOW_MULTICAST_ADDR) {
-    snprintf(mac, sizeof(mac), "%s", "[Multicast]");
-  } else {
-    uint8_t *ppeer = (uint8_t *) &peer;
-    snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X", ppeer[0], ppeer[1], ppeer[2], ppeer[3], ppeer[4],
-             ppeer[5]);
-  }
-  return mac;
-}
+ESPNowComponent *ESPNowComponent::static_{nullptr};  // NOLINT
 
 void show_espnow_error(esp_err_t error) {
   if (error == ESP_ERR_ESPNOW_FAILED) {
@@ -76,6 +63,51 @@ void show_espnow_error(esp_err_t error) {
   } else if (error == ESP_ERR_ESPNOW_IF) {
     ESP_LOGE(TAG, "Interface does not match.");
   }
+}
+
+/* ESPNowPacket ********************************************************************** */
+
+ESPNowPacket::ESPNowPacket(uint64_t peer, const uint8_t *payload, size_t size) {
+  if (size > ESP_NOW_MAX_DATA_LEN) {
+    ESP_LOGE(TAG, "Payload size is to large. It should be less then %d instead it is %d", ESP_NOW_MAX_DATA_LEN, size);
+    return;
+  }
+  this->peer_ = peer;
+  if (size > 0) {
+    this->insert(this->content_.begin(), payload, payload + size);
+  }
+}
+
+ESPNowPacket::ESPNowPacket(const uint8_t *peer, const uint8_t *payload, int size) {
+  this->peer_address(peer);
+
+  if (size > 0) {
+    this->insert(this->content_.begin(), payload, payload + size);
+  }
+}
+
+void ESPNowPacket::write(size_t index, size_t length, uint64_t value, bool header) {
+  auto index += length + header ? 0 : this->header_size();
+  while (length-- != 0) {
+    this->content_[--index] = static_cast<uint8_t>(value);
+    value >>= 8;
+  }
+}
+
+uint64_t ESPNowPacket::read(size_t offset, size_t length, bool header) const {
+  offset += header ? 0 : this->header_size();
+  if (offset + length > this->content_.size()) {
+    esph_log_e(ESPNowTAG::TAG, "Trying to read outside content size (%d of %d).", offset + length,
+               this->content_.size());
+    return 0;
+  }
+  uint64_t value = 0;
+  offset += length;
+  while (length-- != 0) {
+    value <<= 8;
+    value |= this->content_[--offset];
+  }
+  return value;
 }
 
 /* ESPNowComponent ********************************************************************** */
@@ -164,6 +196,11 @@ void ESPNowComponent::enable_() {
     esp_wifi_set_promiscuous(true);
     esp_wifi_set_channel(this->wifi_channel_, WIFI_SECOND_CHAN_NONE);
     esp_wifi_set_promiscuous(false);
+    if (this->long_range_) {
+      esp_wifi_set_protocol(ESPNOW_WIFI_IF,
+                            WIFI_PROTOCOL_11B | WIFI_PROTOCOL_11G | WIFI_PROTOCOL_11N | WIFI_PROTOCOL_LR);
+    }
+
 #ifdef USE_WIFI
   } else {
     this->wifi_channel_ = wifi::global_wifi_component->get_wifi_channel();
@@ -192,6 +229,11 @@ void ESPNowComponent::enable_() {
   }
 
   esp_wifi_get_mac(WIFI_IF_STA, (uint8_t *) &this->own_peer_address_);
+
+#if USE_DEEP_SLEEP
+  esp_now_set_wake_window(CONFIG_ESPNOW_WAKE_WINDOW);
+  esp_wifi_connectionless_module_set_wake_interval(CONFIG_ESPNOW_WAKE_INTERVAL);
+#endif
 
   for (auto peer : this->peers_) {
     this->add_peer(peer);
@@ -264,57 +306,63 @@ void ESPNowComponent::on_send_report(const uint8_t *mac_addr, esp_now_send_statu
 #endif
 {
   ESPNowComponent *that = ESPNowComponent::static_;
-  ESP_LOGI(TAG, "> Sent status.");
-  uint64_t peer_address = 0ULL;
+  ESPNowTriggers event = ESPNowTriggers::TRIGGER_NONE;
+
+  ESP_LOGVV(TAG, "> Sent status.");
   if (that != nullptr) {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 5, 0)
-    memcpy((void *) peer_address, (void *) info->src_addr, 6);
-    std::vector<uint8_t> payload(info->data, info->data + info->data_len);
+    auto packet = std::make_shared<ESPNowPacket>(info->src_addr, info->data, info->data_len);  // NOLINT
 #else
-    // memcpy((void *) peer_address, (void *) mac_addr, 6);
-    std::vector<uint8_t> payload;
+    auto packet = std::make_shared<ESPNowPacket>(mac_addr, null, 0);  // NOLINT
 #endif
-    that->on_send_report_(peer_address, payload, status);
-  }
-}
-
-void ESPNowComponent::on_send_report_(const uint64_t peer, std::vector<uint8_t> payload, esp_now_send_status_t status) {
-  if (status == ESP_NOW_SEND_SUCCESS) {
-    ESP_LOGI(TAG, "Sent status: SUCCEED");
-    this->call_trigger(ESPNowTriggers::ON_SUCCEED, peer, payload, 0);
-  } else {
-    ESP_LOGI(TAG, "Sent status: FAILED");
-    this->call_trigger(ESPNowTriggers::ON_FAILED, peer, payload, 0);
+    if (status == ESP_NOW_SEND_SUCCESS) {
+      ESP_LOGV(TAG, "Sent status: SUCCEED");
+      event = ESPNowTriggers::ON_SUCCEED;
+    } else {
+      ESP_LOGV(TAG, "Sent status: FAILED");
+      event = ESPNowTriggers::ON_FAILED;
+    }
+    that->set_timeout(10, [that, event, packet]() { that->call_trigger(event, packet); });
   }
 }
 
 void ESPNowComponent::on_data_received(const esp_now_recv_info_t *info, const uint8_t *data, int size) {
   ESPNowComponent *that = ESPNowComponent::static_;
   ESP_LOGI(TAG, "< Received package.");
-
+  ESPNowTriggers event = ESPNowTriggers::TRIGGER_NONE;
   if (that != nullptr) {
-    that->on_data_received_(info, data, size);
+    auto packet = std::make_shared<ESPNowPacket>(recv_info->src_addr, data, size);  // NOLINT
+    packet->rssi(recv_info->rx_ctrl->rssi);
+    packet->timestamp(recv_info->rx_ctrl->timestamp);
+    packet->is_broadcasted(memcmp(info->des_addr, (void *) &ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0);
+    if (!esp_now_is_peer_exist(info->src_addr)) {
+      ESP_LOGV(TAG, "Received packet from unknown device.");
+      event = ESPNowTriggers::ON_NEW_PEER;
+      if (that->auto_add_peer_) {
+        that->add_peer(packet->peer_address64());
+      }
+    } else if (broadcast) {
+      ESP_LOGV(TAG, "Received broadcast package.");
+      event = ESPNowTriggers::ON_BROADCASTED;
+    } else {
+      ESP_LOGV(TAG, "Received unicast package.");
+      event = ESPNowTriggers::ON_RECEIVED;
+    }
+    that->set_timeout(10, [that, event, packet]() { that->call_trigger(event, packet); });
   }
 }
 
-void ESPNowComponent::on_data_received_(const esp_now_recv_info_t *info, const uint8_t *data, int size) {
-  bool broadcast = memcmp(info->des_addr, (void *) ESPNOW_BROADCAST_ADDR, ESP_NOW_ETH_ALEN) == 0;
-  // packet->rssi(recv_info->rx_ctrl->rssi);
-  // packet->timestamp(recv_info->rx_ctrl->timestamp);
-
-  std::vector<uint8_t> payload(data, data + size);
-  uint64_t peer = 0ULL;
-  memcpy((void *) peer, (const void *) info->src_addr, 6);
-
-  if (!esp_now_is_peer_exist(info->src_addr)) {
-    ESP_LOGI(TAG, "Received packet from unknown device.");
-    this->call_trigger(ESPNowTriggers::ON_NEW_PEER, peer, payload, broadcast ? ESP_MSG_ESPNOW_BROADCAST : 0);
-  } else if (broadcast) {
-    ESP_LOGI(TAG, "Received broadcast package.");
-    this->call_trigger(ESPNowTriggers::ON_BROADCASTED, peer, payload, ESP_MSG_ESPNOW_BROADCAST);
-  } else {
-    ESP_LOGI(TAG, "Received unidirect package.");
-    this->call_trigger(ESPNowTriggers::ON_RECEIVED, peer, payload, 0);
+void ESPNowComponent::call_trigger(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet) {
+  ESP_LOGI(TAG, "call triggger {%d}", (int) event);
+  bool result = false;
+  for (const auto &kv : this->interfaces_) {
+    result = kv->call_trigger(event, weak_packet);
+    if (result) {
+      break;
+    }
+  }
+  if (!result && this->triggers_[event]) {
+    this->triggers_[event]->trigger(weak_packet);
   }
 }
 
@@ -405,22 +453,20 @@ esp_err_t ESPNowComponent::del_peer(uint64_t peer) {
   return result;
 }
 
-void ESPNowComponent::call_trigger(ESPNowTriggers event, const uint64_t peer_address, std::vector<uint8_t> payload,
-                                   esp_err_t errorcode) {
-  ESP_LOGI(TAG, "call triggger {%d}", (int) event);
-
-  this->set_timeout(10, [this, event, peer_address, payload, errorcode]() {
-    bool result = false;
-    for (const auto &kv : this->interfaces_) {
-      result = kv->call_trigger(event, peer_address, payload, errorcode);
-      if (result) {
-        break;
-      }
-    }
-    if (!result && this->triggers_[event]) {
-      this->triggers_[event]->trigger(peer_address, payload, errorcode);
-    }
-  });
+std::string ESPNowComponent::peer_string(const uint64_t peer) {
+  char mac[24];
+  if (peer == 0) {
+    snprintf(mac, sizeof(mac), "%s", "[Not Set]");
+  } else if (peer == ESPNOW_BROADCAST_ADDR) {
+    snprintf(mac, sizeof(mac), "%s", "[Broadcast]");
+  } else if (peer == ESPNOW_MULTICAST_ADDR) {
+    snprintf(mac, sizeof(mac), "%s", "[Multicast]");
+  } else {
+    uint8_t *ppeer = (uint8_t *) &peer;
+    snprintf(mac, sizeof(mac), "%02X:%02X:%02X:%02X:%02X:%02X", ppeer[0], ppeer[1], ppeer[2], ppeer[3], ppeer[4],
+             ppeer[5]);
+  }
+  return mac;
 }
 
 /* ESPNowInterface ********************************************************************** */
@@ -429,19 +475,18 @@ esp_err_t ESPNowInterface::send(uint64_t peer, std::vector<uint8_t> payload) {
   return this->parent_->send(peer, payload);
 }
 
-bool ESPNowInterface::call_trigger(ESPNowTriggers event, const uint64_t peer_address, std::vector<uint8_t> payload,
-                                   esp_err_t errorcode) {
+bool ESPNowInterface::call_trigger(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet) {
   switch (event) {
   ON_NEW_PEER:
-    return this->on_new_peer(peer_address, std::move(payload), errorcode);
+    return this->on_new_peer(weak_packet);
   ON_RECEIVED:
-    return this->on_received(peer_address, std::move(payload), errorcode);
+    return this->on_received(weak_packet);
   ON_BROADCASTED:
-    return this->on_broadcasted(peer_address, std::move(payload), errorcode);
+    return this->on_broadcasted(weak_packet);
   ON_SUCCEED:
-    return this->on_sent_succeed(peer_address, std::move(payload), errorcode);
+    return this->on_sent_succeed(weak_packet);
   ON_FAILED:
-    return this->on_sent_failed(peer_address, std::move(payload), errorcode);
+    return this->on_sent_failed(weak_packet);
     default:
       return false;
   }
