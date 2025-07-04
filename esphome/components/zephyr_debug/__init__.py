@@ -1,6 +1,8 @@
 from esphome.components.zephyr import zephyr_add_prj_conf
 import esphome.config_validation as cv
 
+CODEOWNERS = ["@tomaszduda23"]
+
 CONFIG_SCHEMA = cv.Schema({})
 
 
