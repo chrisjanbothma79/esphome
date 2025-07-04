@@ -6,6 +6,8 @@
 #include <hal/nrf_power.h>
 
 #define BOOTLOADER_VERSION_REGISTER NRF_TIMER2->CC[0]
+#define MBR_BOOTLOADER_ADDR (0xFF8)
+#define MBR_PARAM_PAGE_ADDR (0xFFC)
 
 namespace esphome {
 namespace debug {
