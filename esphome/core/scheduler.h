@@ -166,12 +166,11 @@ class Scheduler {
   Mutex lock_;
   std::vector<std::unique_ptr<SchedulerItem>> items_;
   std::vector<std::unique_ptr<SchedulerItem>> to_add_;
-#ifndef USE_ESP8266
-  // ESP8266 doesn't need the defer queue because:
-  // 1. It's single-core with no preemptive multitasking
-  // 2. All code runs in a single thread context
-  // 3. defer() calls can't have race conditions without true concurrency
-  // 4. Saves 40 bytes of RAM on memory-constrained ESP8266 devices
+#if !defined(USE_ESP8266) && !defined(USE_RP2040)
+  // ESP8266 and RP2040 don't need the defer queue because:
+  // ESP8266: Single-core with no preemptive multitasking
+  // RP2040: Currently has empty mutex implementation in ESPHome
+  // Both platforms save 40 bytes of RAM by excluding this
   std::deque<std::unique_ptr<SchedulerItem>> defer_queue_;  // FIFO queue for defer() calls
 #endif
   uint32_t last_millis_{0};

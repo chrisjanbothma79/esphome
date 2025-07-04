@@ -81,9 +81,9 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   item->callback = std::move(func);
   item->remove = false;
 
-#ifndef USE_ESP8266
+#if !defined(USE_ESP8266) && !defined(USE_RP2040)
   // Special handling for defer() (delay = 0, type = TIMEOUT)
-  // ESP8266 is excluded because it doesn't need thread-safe defer handling
+  // ESP8266 and RP2040 are excluded because they don't need thread-safe defer handling
   if (delay == 0 && type == SchedulerItem::TIMEOUT) {
     // Put in defer queue for guaranteed FIFO execution
     LockGuard guard{this->lock_};
@@ -220,30 +220,21 @@ optional<uint32_t> HOT Scheduler::next_schedule_in() {
   return item->next_execution_ - now;
 }
 void HOT Scheduler::call() {
-#ifndef USE_ESP8266
+#if !defined(USE_ESP8266) && !defined(USE_RP2040)
   // Process defer queue first to guarantee FIFO execution order for deferred items.
   // Previously, defer() used the heap which gave undefined order for equal timestamps,
-  // causing race conditions on multi-core systems (ESP32, RP2040, BK7200).
+  // causing race conditions on multi-core systems (ESP32, BK7200).
   // With the defer queue:
   // - Deferred items (delay=0) go directly to defer_queue_ in set_timer_common_
   // - Items execute in exact order they were deferred (FIFO guarantee)
   // - No deferred items exist in to_add_, so processing order doesn't affect correctness
-  // ESP8266 doesn't use this queue - it falls back to the heap-based approach since
-  // it's single-core and doesn't have thread safety concerns.
+  // ESP8266 and RP2040 don't use this queue - they fall back to the heap-based approach
+  // (ESP8266: single-core, RP2040: empty mutex implementation).
   while (!this->defer_queue_.empty()) {
-    // IMPORTANT: The double-check pattern is REQUIRED for thread safety:
-    // 1. First check: !defer_queue_.empty() without lock (may become stale)
-    // 2. Acquire lock
-    // 3. Second check: defer_queue_.empty() with lock (authoritative)
-    // Between steps 1 and 2, another thread could have emptied the queue,
-    // so we must check again after acquiring the lock to avoid accessing an empty queue.
-    // Note: We use manual lock/unlock instead of RAII LockGuard to avoid creating
-    // unnecessary stack variables when the queue is empty after acquiring the lock.
+    // The outer check is done without a lock for performance. If the queue
+    // appears non-empty, we lock and process an item. We don't need to check
+    // empty() again inside the lock because only this thread can remove items.
     this->lock_.lock();
-    if (this->defer_queue_.empty()) {
-      this->lock_.unlock();
-      break;
-    }
     auto item = std::move(this->defer_queue_.front());
     this->defer_queue_.pop_front();
     this->lock_.unlock();
@@ -439,7 +430,7 @@ bool HOT Scheduler::cancel_item_common_(Component *component, bool is_static_str
   bool ret = false;
 
   // Check all containers for matching items
-#ifndef USE_ESP8266
+#if !defined(USE_ESP8266) && !defined(USE_RP2040)
   // Only check defer_queue_ on platforms that have it
   for (auto &item : this->defer_queue_) {
     if (this->matches_item_(item, component, name_cstr, type)) {
