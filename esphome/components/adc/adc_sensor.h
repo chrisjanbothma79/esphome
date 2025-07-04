@@ -13,6 +13,10 @@
 #include "hal/adc_types.h"  // This defines ADC_CHANNEL_MAX
 #endif                      // USE_ESP32
 
+#ifdef USE_ZEPHYR
+#include <zephyr/drivers/adc.h>
+#endif
+
 namespace esphome {
 namespace adc {
 
@@ -72,6 +76,12 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   /// Set the GPIO pin to be used by the ADC sensor.
   /// @param pin Pointer to an InternalGPIOPin representing the ADC input pin.
   void set_pin(InternalGPIOPin *pin) { this->pin_ = pin; }
+
+#ifdef USE_ZEPHYR
+  /// Set the ADC channel to be used by the ADC sensor.
+  /// @param channel Pointer to an adc_dt_spec structure representing the ADC channel.
+  void set_adc_channel(const adc_dt_spec *channel) { this->channel_ = channel; }
+#endif
 
   /// Enable or disable the output of raw ADC values (unprocessed data).
   /// @param output_raw Boolean indicating whether to output raw ADC values (true) or processed values (false).
@@ -151,6 +161,10 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
 #ifdef USE_RP2040
   bool is_temperature_{false};
 #endif  // USE_RP2040
+
+#ifdef USE_ZEPHYR
+  const struct adc_dt_spec *channel_ = nullptr;
+#endif
 };
 
 }  // namespace adc
