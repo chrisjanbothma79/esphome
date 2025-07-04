@@ -62,6 +62,7 @@ enum BusType {
 /**
  * Base class for MIPI SPI displays.
  * This defines methods and properties that don't depend on the pixel mode
+ * All the methods are defined here in the header file, as it is not possible to define templated methods in a cpp file.
  */
 
 template<int WIDTH, int HEIGHT, int OFFSET_WIDTH, int OFFSET_HEIGHT, BusType BUS_TYPE, int FRACTION>
@@ -112,7 +113,8 @@ class MipiSpi : public display::Display,
   virtual bool buffer_setup_() = 0;
 
   void setup() override {
-    ESP_LOGCONFIG(TAG, "Running setup");
+    // note that the usual logging macros are banned in header files, so use their replacement
+    esph_log_config(TAG, "Running setup");
     this->spi_setup();
     if (this->dc_pin_ != nullptr) {
       this->dc_pin_->setup();
@@ -138,19 +140,19 @@ class MipiSpi : public display::Display,
     auto &vec = this->init_sequence_;
     while (index != vec.size()) {
       if (vec.size() - index < 2) {
-        ESP_LOGE(TAG, "Malformed init sequence");
+        esph_log_e(TAG, "Malformed init sequence");
         this->mark_failed();
         return;
       }
       uint8_t cmd = vec[index++];
       uint8_t x = vec[index++];
       if (x == DELAY_FLAG) {
-        ESP_LOGD(TAG, "Delay %dms", cmd);
+        esph_log_d(TAG, "Delay %dms", cmd);
         delay(cmd);
       } else {
         uint8_t num_args = x & 0x7F;
         if (vec.size() - index < num_args) {
-          ESP_LOGE(TAG, "Malformed init sequence");
+          esph_log_e(TAG, "Malformed init sequence");
           this->mark_failed();
           return;
         }
@@ -160,7 +162,7 @@ class MipiSpi : public display::Display,
             // are we ready, boots?
             int duration = when - millis();
             if (duration > 0) {
-              ESP_LOGD(TAG, "Sleep %dms", duration);
+              esph_log_d(TAG, "Sleep %dms", duration);
               delay(duration);
             }
           } break;
@@ -179,7 +181,7 @@ class MipiSpi : public display::Display,
             break;
         }
         const auto *ptr = vec.data() + index;
-        ESP_LOGD(TAG, "Command %02X, length %d, byte %02X", cmd, num_args, arg_byte);
+        esph_log_d(TAG, "Command %02X, length %d, byte %02X", cmd, num_args, arg_byte);
         this->write_command_(cmd, ptr, num_args);
         index += num_args;
         if (cmd == SLEEP_OUT)
@@ -189,14 +191,14 @@ class MipiSpi : public display::Display,
     this->init_sequence_.clear();
     if (this->buffer_setup_())
       this->setup_complete_ = true;
-    ESP_LOGCONFIG(TAG, "MIPI SPI setup complete");
+    esph_log_config(TAG, "MIPI SPI setup complete");
   }
 
   void update() {
 #if ESPHOME_LOG_LEVEL == ESPHOME_LOG_LEVEL_VERBOSE
     auto now = millis();
 #endif
-    ESP_LOGV(TAG, "Update called");
+    esph_log_v(TAG, "Update called");
     if (!this->setup_complete_ || this->is_failed()) {
       return;
     }
@@ -218,13 +220,13 @@ class MipiSpi : public display::Display,
         return;
       }
 #if ESPHOME_LOG_LEVEL == ESPHOME_LOG_LEVEL_VERBOSE
-      ESP_LOGV(TAG, "Drawing from line %d took %dms", this->start_line_, millis() - lap);
+      esph_log_v(TAG, "Drawing from line %d took %dms", this->start_line_, millis() - lap);
       lap = millis();
 #endif
       if (this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
         return;
-      ESP_LOGV(TAG, "x_low %d, y_low %d, x_high %d, y_high %d", this->x_low_, this->y_low_, this->x_high_,
-               this->y_high_);
+      esph_log_v(TAG, "x_low %d, y_low %d, x_high %d, y_high %d", this->x_low_, this->y_low_, this->x_high_,
+                 this->y_high_);
       // Some chips require that the drawing window be aligned on certain boundaries
       auto dr = this->draw_rounding_;
       this->x_low_ = this->x_low_ / dr * dr;
@@ -241,16 +243,16 @@ class MipiSpi : public display::Display,
       this->x_high_ = 0;
       this->y_high_ = 0;
 #if ESPHOME_LOG_LEVEL == ESPHOME_LOG_LEVEL_VERBOSE
-      ESP_LOGV(TAG, "Write to display took %dms", millis() - lap);
+      esph_log_v(TAG, "Write to display took %dms", millis() - lap);
       lap = millis();
 #endif
     }
-    ESP_LOGV(TAG, "Total update took %dms", millis() - now);
+    esph_log_v(TAG, "Total update took %dms", millis() - now);
   }
 
   // Writes a command to the display, with the given bytes.
   void write_command_(uint8_t cmd, const uint8_t *bytes, size_t len) {
-    ESP_LOGV(TAG, "Command %02X, length %d, bytes %s", cmd, len, format_hex_pretty(bytes, len).c_str());
+    esph_log_v(TAG, "Command %02X, length %d, bytes %s", cmd, len, format_hex_pretty(bytes, len).c_str());
     if constexpr (BUS_TYPE == BUS_TYPE_QUAD) {
       this->enable();
       this->write_cmd_addr_data(8, 0x02, 24, cmd << 8, bytes, len);
@@ -304,19 +306,19 @@ class MipiSpi : public display::Display,
     auto &vec = this->init_sequence_;
     while (index != vec.size()) {
       if (vec.size() - index < 2) {
-        ESP_LOGE(TAG, "Malformed init sequence");
+        esph_log_e(TAG, "Malformed init sequence");
         this->mark_failed();
         return;
       }
       uint8_t cmd = vec[index++];
       uint8_t x = vec[index++];
       if (x == DELAY_FLAG) {
-        ESP_LOGV(TAG, "Delay %dms", cmd);
+        esph_log_v(TAG, "Delay %dms", cmd);
         delay(cmd);
       } else {
         uint8_t num_args = x & 0x7F;
         if (vec.size() - index < num_args) {
-          ESP_LOGE(TAG, "Malformed init sequence");
+          esph_log_e(TAG, "Malformed init sequence");
           this->mark_failed();
           return;
         }
@@ -325,11 +327,11 @@ class MipiSpi : public display::Display,
         index += num_args;
       }
     }
-    ESP_LOGCONFIG(TAG, "MIPI SPI setup complete");
+    esph_log_config(TAG, "MIPI SPI setup complete");
   }
 
   void set_addr_window_(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2) {
-    ESP_LOGV(TAG, "Set addr %d/%d, %d/%d", x1, y1, x2, y2);
+    esph_log_v(TAG, "Set addr %d/%d, %d/%d", x1, y1, x2, y2);
     uint8_t buf[4];
     x1 += OFFSET_WIDTH;
     x2 += OFFSET_WIDTH;
@@ -350,49 +352,52 @@ class MipiSpi : public display::Display,
     if (w <= 0 || h <= 0)
       return;
     if (bitness != this->color_depth_ || big_endian != (this->bit_order_ == spi::BIT_ORDER_MSB_FIRST)) {
-      ESP_LOGE(TAG, "Unsupported color depth or bit order");
+      esph_log_e(TAG, "Unsupported color depth or bit order");
       return;
     }
     this->write_to_display_(x_start, y_start, w, h, ptr, x_offset, y_offset, x_pad);
   }
 
   void dump_config() {
-    ESP_LOGCONFIG(TAG,
-                  "MIPI_SPI Display\n"
-                  "  Model: %s\n"
-                  "  Width: %u\n"
-                  "  Height: %u",
-                  this->model_, WIDTH, HEIGHT);
+    esph_log_config(TAG,
+                    "MIPI_SPI Display\n"
+                    "  Model: %s\n"
+                    "  Width: %u\n"
+                    "  Height: %u",
+                    this->model_, WIDTH, HEIGHT);
     if constexpr (OFFSET_WIDTH != 0)
-      ESP_LOGCONFIG(TAG, "  Offset width: %u", OFFSET_WIDTH);
+      esph_log_config(TAG, "  Offset width: %u", OFFSET_WIDTH);
     if constexpr (OFFSET_HEIGHT != 0)
-      ESP_LOGCONFIG(TAG, "  Offset height: %u", OFFSET_HEIGHT);
-    ESP_LOGCONFIG(TAG,
-                  "  Swap X/Y: %s\n"
-                  "  Mirror X: %s\n"
-                  "  Mirror Y: %s\n"
-                  "  Rotation: %d°\n"
-                  "  Invert colors: %s\n"
-                  "  Color order: %s\n"
-                  "  Buffer pixels: %d bits\n"
-                  "  Display pixels: %d bits\n"
-                  "  Buffer fraction: 1/%d\n"
-                  "  Buffer bytes: %zu",
-                  YESNO(this->madctl_ & MADCTL_MV), YESNO(this->madctl_ & (MADCTL_MX | MADCTL_XFLIP)),
-                  YESNO(this->madctl_ & (MADCTL_MY | MADCTL_YFLIP)), this->rotation_, YESNO(this->invert_colors_),
-                  this->madctl_ & MADCTL_BGR ? "BGR" : "RGB", this->get_buffer_bits_(), this->get_display_bits_(),
-                  FRACTION, this->buffer_size_);
+      esph_log_config(TAG, "  Offset height: %u", OFFSET_HEIGHT);
+    esph_log_config(TAG,
+                    "  Swap X/Y: %s\n"
+                    "  Mirror X: %s\n"
+                    "  Mirror Y: %s\n"
+                    "  Rotation: %d°\n"
+                    "  Invert colors: %s\n"
+                    "  Color order: %s\n"
+                    "  Buffer pixels: %d bits\n"
+                    "  Display pixels: %d bits\n"
+                    "  Buffer fraction: 1/%d\n"
+                    "  Buffer bytes: %zu",
+                    YESNO(this->madctl_ & MADCTL_MV), YESNO(this->madctl_ & (MADCTL_MX | MADCTL_XFLIP)),
+                    YESNO(this->madctl_ & (MADCTL_MY | MADCTL_YFLIP)), this->rotation_, YESNO(this->invert_colors_),
+                    this->madctl_ & MADCTL_BGR ? "BGR" : "RGB", this->get_buffer_bits_(), this->get_display_bits_(),
+                    FRACTION, this->buffer_size_);
     if (this->brightness_.has_value())
-      ESP_LOGCONFIG(TAG, "  Brightness: %u", this->brightness_.value());
-    ESP_LOGCONFIG(TAG, "  Draw rounding: %u", this->draw_rounding_);
-    LOG_PIN("  CS Pin: ", this->cs_);
-    LOG_PIN("  Reset Pin: ", this->reset_pin_);
-    LOG_PIN("  DC Pin: ", this->dc_pin_);
-    ESP_LOGCONFIG(TAG,
-                  "  SPI Mode: %d\n"
-                  "  SPI Data rate: %dMHz\n"
-                  "  SPI Bus width: %d",
-                  this->mode_, static_cast<unsigned>(this->data_rate_ / 1000000), this->get_bus_width_());
+      esph_log_config(TAG, "  Brightness: %u", this->brightness_.value());
+    esph_log_config(TAG, "  Draw rounding: %u", this->draw_rounding_);
+    if (this->cs_ != nullptr)
+      esph_log_config(TAG, "CS Pin: %s", this->cs_->dump_summary().c_str());
+    if (this->reset_pin_ != nullptr)
+      esph_log_config(TAG, "Reset Pin: %s", this->reset_pin_->dump_summary().c_str());
+    if (this->dc_pin_ != nullptr)
+      esph_log_config(TAG, "DC Pin: %s", this->dc_pin_->dump_summary().c_str());
+    esph_log_config(TAG,
+                    "  SPI Mode: %d\n"
+                    "  SPI Data rate: %dMHz\n"
+                    "  SPI Bus width: %d",
+                    this->mode_, static_cast<unsigned>(this->data_rate_ / 1000000), this->get_bus_width_());
   }
 
   /* PROPERTIES */

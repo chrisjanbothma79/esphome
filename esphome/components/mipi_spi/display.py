@@ -176,7 +176,7 @@ def denominator(config):
     frac = config.get(CONF_BUFFER_SIZE)
     if frac is None or frac > 0.75:
         return 1
-    height, width, _offset_width, _offset_height = get_dimensions(config)
+    height, _width, _offset_width, _offset_height = get_dimensions(config)
     try:
         return next(x for x in range(2, 17) if frac >= 1 / x and height % x == 0)
     except StopIteration:
@@ -399,7 +399,7 @@ def _final_validate(config):
         buffer_size = get_buffer_size(config)
         # Target a buffer size of 20kB
         fraction = 20000.0 / buffer_size
-        height, width, _offset_width, _offset_height = get_dimensions(config)
+        height, _width, _offset_width, _offset_height = get_dimensions(config)
         config[CONF_BUFFER_SIZE] = 1.0 / next(
             x for x in range(2, 17) if fraction >= 1 / x and height % x == 0
         )

@@ -148,7 +148,7 @@ class MipiSpiBuffer : public MipiSpi<WIDTH, HEIGHT, OFFSET_WIDTH, OFFSET_HEIGHT,
                                                                                               size_t w, size_t h,
                                                                                               size_t pad) {
     this->write_command_(WDATA);
-    ESP_LOGV(TAG, "Write display data: w=%zu, h=%zu, pad=%zu, bytes=%zu", w, h, pad, w * h * sizeof(BUFFERTYPE));
+    esph_log_v(TAG, "Write display data: w=%zu, h=%zu, pad=%zu, bytes=%zu", w, h, pad, w * h * sizeof(BUFFERTYPE));
     this->enable();
     if (pad == 0) {
       this->write_array(ptr, w * h);
