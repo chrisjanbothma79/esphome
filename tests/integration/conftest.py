@@ -474,14 +474,6 @@ async def run_binary_and_wait_for_port(
 
         if process.returncode is not None:
             error_msg += f"\nProcess exited with code: {process.returncode}"
-            # Check for common signals
-            if process.returncode < 0:
-                sig = -process.returncode
-                try:
-                    sig_name = signal.Signals(sig).name
-                    error_msg += f" (killed by signal {sig_name})"
-                except ValueError:
-                    error_msg += f" (killed by signal {sig})"
 
         # Include any output collected so far
         if stdout_lines:
@@ -508,20 +500,6 @@ async def run_binary_and_wait_for_port(
         # Close the PTY transport (Unix only)
         if controller_transport is not None:
             controller_transport.close()
-
-        # Log the exit code if process already exited
-        if process.returncode is not None:
-            print(f"\nProcess exited with code: {process.returncode}", file=sys.stderr)
-            if process.returncode < 0:
-                sig = -process.returncode
-                try:
-                    sig_name = signal.Signals(sig).name
-                    print(
-                        f"Process was killed by signal {sig_name} ({sig})",
-                        file=sys.stderr,
-                    )
-                except ValueError:
-                    print(f"Process was killed by signal {sig}", file=sys.stderr)
 
         # Cleanup: terminate the process gracefully
         if process.returncode is None:
