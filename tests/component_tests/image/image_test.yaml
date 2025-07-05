@@ -1,0 +1,16 @@
+esphome:
+  name: test
+
+host:
+
+image:
+  - file: image.png
+    byte_order: little_endian
+    id: cat_img
+    type: rgb565
+
+display:
+  platform: sdl
+  dimensions:
+    width: 480
+    height: 480
