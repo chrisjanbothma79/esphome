@@ -167,26 +167,28 @@ class LD2450Component : public Component, public uart::UARTDevice {
   std::string mac_{};
 
   // Change detection - cache previous values to avoid redundant publishes
+  // All values are initialized to sentinel values that are outside the valid sensor ranges
+  // to ensure the first real measurement is always published
   struct CachedTargetData {
-    int16_t x = std::numeric_limits<int16_t>::min();
-    int16_t y = std::numeric_limits<int16_t>::min();
-    int16_t speed = std::numeric_limits<int16_t>::min();
-    uint16_t resolution = std::numeric_limits<uint16_t>::max();
-    uint16_t distance = std::numeric_limits<uint16_t>::max();
-    float angle = NAN;
-    std::string direction = "";
+    int16_t x = std::numeric_limits<int16_t>::min();             // -32768, outside range of -4860 to 4860
+    int16_t y = std::numeric_limits<int16_t>::min();             // -32768, outside range of 0 to 7560
+    int16_t speed = std::numeric_limits<int16_t>::min();         // -32768, outside practical sensor range
+    uint16_t resolution = std::numeric_limits<uint16_t>::max();  // 65535, unlikely resolution value
+    uint16_t distance = std::numeric_limits<uint16_t>::max();    // 65535, outside range of 0 to ~8990
+    float angle = NAN;                                           // NAN, safe sentinel for floats
+    std::string direction = "";                                  // Empty string, will differ from any real direction
   } cached_target_data_[MAX_TARGETS];
 
   struct CachedZoneData {
-    uint8_t still_count = std::numeric_limits<uint8_t>::max();
-    uint8_t moving_count = std::numeric_limits<uint8_t>::max();
-    uint8_t total_count = std::numeric_limits<uint8_t>::max();
+    uint8_t still_count = std::numeric_limits<uint8_t>::max();   // 255, unlikely zone count
+    uint8_t moving_count = std::numeric_limits<uint8_t>::max();  // 255, unlikely zone count
+    uint8_t total_count = std::numeric_limits<uint8_t>::max();   // 255, unlikely zone count
   } cached_zone_data_[MAX_ZONES];
 
   struct CachedGlobalData {
-    uint8_t target_count = std::numeric_limits<uint8_t>::max();
-    uint8_t still_count = std::numeric_limits<uint8_t>::max();
-    uint8_t moving_count = std::numeric_limits<uint8_t>::max();
+    uint8_t target_count = std::numeric_limits<uint8_t>::max();  // 255, max 3 targets possible
+    uint8_t still_count = std::numeric_limits<uint8_t>::max();   // 255, max 3 targets possible
+    uint8_t moving_count = std::numeric_limits<uint8_t>::max();  // 255, max 3 targets possible
   } cached_global_data_;
 
 #ifdef USE_NUMBER
