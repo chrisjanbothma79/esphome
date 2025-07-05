@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
+#include <map>
 
 #define ESPHL_ERROR_CHECK(err, message) \
   if ((err) != ESP_OK) { \
