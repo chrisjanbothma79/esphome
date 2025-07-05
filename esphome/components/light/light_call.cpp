@@ -515,7 +515,7 @@ LightCall &LightCall::from_light_color_values(const LightColorValues &values) {
   return *this;
 }
 ColorMode LightCall::get_active_color_mode_() {
-  return this->color_mode_.value_or(this->parent_->remote_values.get_color_mode());
+  return this->has_color_mode() ? this->color_mode_ : this->parent_->remote_values.get_color_mode();
 }
 LightCall &LightCall::set_transition_length_if_supported(uint32_t transition_length) {
   if (this->get_active_color_mode_() & ColorCapability::BRIGHTNESS)
@@ -529,7 +529,7 @@ LightCall &LightCall::set_brightness_if_supported(float brightness) {
 }
 LightCall &LightCall::set_color_mode_if_supported(ColorMode color_mode) {
   if (this->parent_->get_traits().supports_color_mode(color_mode))
-    this->color_mode_ = color_mode;
+    this->set_color_mode(color_mode);
   return *this;
 }
 LightCall &LightCall::set_color_brightness_if_supported(float brightness) {
