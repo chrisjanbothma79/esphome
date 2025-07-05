@@ -48,7 +48,7 @@ void DeepSleepComponent::begin_sleep(bool manual) {
 
   if (this->prevent_ && !manual) {
     // Sleep was prevented
-    this->sleep_state_ = SLEEP_STATE_BLOCKED;
+    this->sleep_state_ = SLEEP_STATE_BLOCKED_BY_PREVENT;
     ESP_LOGD(TAG, "Deep sleep blocked by prevent flag");
     return;
   }
@@ -79,8 +79,8 @@ void DeepSleepComponent::prevent_deep_sleep() { this->prevent_ = true; }
 
 void DeepSleepComponent::allow_deep_sleep() {
   this->prevent_ = false;
-  // If sleep was blocked, try to sleep now
-  if (this->sleep_state_ == SLEEP_STATE_BLOCKED) {
+  // If sleep was blocked by prevent flag, try to sleep now
+  if (this->sleep_state_ == SLEEP_STATE_BLOCKED_BY_PREVENT) {
     ESP_LOGD(TAG, "Deep sleep allowed, executing deferred sleep");
     this->sleep_state_ = SLEEP_STATE_IDLE;
     // Schedule sleep for next loop iteration to avoid potential issues

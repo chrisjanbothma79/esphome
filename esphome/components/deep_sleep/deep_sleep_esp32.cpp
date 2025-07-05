@@ -59,8 +59,8 @@ bool DeepSleepComponent::prepare_to_sleep_() {
   if (this->wakeup_pin_mode_ == WAKEUP_PIN_MODE_KEEP_AWAKE && this->wakeup_pin_ != nullptr &&
       this->wakeup_pin_->digital_read()) {
     // Defer deep sleep until inactive
-    if (this->sleep_state_ != SLEEP_STATE_BLOCKED) {
-      this->sleep_state_ = SLEEP_STATE_BLOCKED;
+    if (this->sleep_state_ != SLEEP_STATE_BLOCKED_BY_WAKEUP_PIN) {
+      this->sleep_state_ = SLEEP_STATE_BLOCKED_BY_WAKEUP_PIN;
       this->status_set_warning();
       ESP_LOGW(TAG, "Waiting for wakeup pin state change");
       // Set up monitoring - check pin state every 100ms
