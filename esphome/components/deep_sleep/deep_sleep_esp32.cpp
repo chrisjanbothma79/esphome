@@ -75,11 +75,6 @@ bool DeepSleepComponent::prepare_to_sleep_() {
     }
     return false;
   }
-  // If we were monitoring and now can sleep, clean up
-  if (this->sleep_state_ == SLEEP_STATE_BLOCKED_BY_WAKEUP_PIN) {
-    this->cancel_interval("wakeup_pin_check");
-    this->sleep_state_ = SLEEP_STATE_ENTERING_SLEEP;
-  }
   return true;
 }
 
