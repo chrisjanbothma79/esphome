@@ -8,8 +8,8 @@ import esphome.final_validate as fv
 from .. import (
     CONF_MODULATION,
     CONF_SX127X_ID,
-    # CONFIG_SCHEMA as SX127X_CONFIG_SCHEMA,
-    # MOD,
+    FULL_CONFIG_SCHEMA as SX127X_CONFIG_SCHEMA,
+    MOD,
     SX127x,
     SX127xListener,
     sx127x_ns,
@@ -19,24 +19,22 @@ from .. import (
 SX127xLoRa = sx127x_ns.class_("SX127xLoRa", LoRa, Component, SX127xListener)
 
 
+AUTO_LOAD = ["sx127x"]
+
 REFERENCE_CONFIG_SCHEMA = lora_schema(SX127xLoRa).extend(
     {
         cv.GenerateID(CONF_SX127X_ID): cv.use_id(SX127x),
     }
 )
 
-# Using combined LoRa and SX127x config schema does not work as the SX127x component
-# files one level up are not automatically copied to the build directory.
+INCLUDE_CONFIG_SCHEMA = SX127X_CONFIG_SCHEMA.extend(lora_schema(SX127xLoRa)).extend(
+    {
+        cv.GenerateID(CONF_SX127X_ID): cv.declare_id(SX127x),
+        cv.Optional(CONF_MODULATION, default="LORA"): cv.enum({"LORA": MOD["LORA"]}),
+    }
+)
 
-# INCLUDE_CONFIG_SCHEMA = SX127X_CONFIG_SCHEMA.extend(lora_schema(SX127xLoRa)).extend(
-#     {
-#         cv.GenerateID(CONF_SX127X_ID): cv.declare_id(SX127x),
-#         cv.Optional(CONF_MODULATION, default="LORA"): cv.enum({"LORA": MOD["LORA"]}),
-#     }
-# )
-
-# CONFIG_SCHEMA = cv.Any(REFERENCE_CONFIG_SCHEMA, INCLUDE_CONFIG_SCHEMA)
-CONFIG_SCHEMA = REFERENCE_CONFIG_SCHEMA
+CONFIG_SCHEMA = cv.Any(REFERENCE_CONFIG_SCHEMA, INCLUDE_CONFIG_SCHEMA)
 
 
 def _final_validate(config):
