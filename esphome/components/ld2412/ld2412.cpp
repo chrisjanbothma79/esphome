@@ -349,7 +349,7 @@ void LD2412Component::handle_periodic_data_() {
   }
 
   /*
-    Reduce data update rate to prevent home assistant database size grow fast
+    Reduce data update rate to reduce home assistant database growth
   */
   if (App.get_loop_component_start_time() - this->last_periodic_millis_ < this->throttle_) {
     return;
@@ -563,8 +563,7 @@ bool LD2412Component::handle_ack_data_() {
       break;
     }
     case CMD_QUERY_DISTANCE_RESOLUTION: {
-      const auto *distance_resolution = find_str(
-          DISTANCE_RESOLUTIONS_BY_UINT, ld2412::two_byte_to_int(this->buffer_data_[10], this->buffer_data_[11]));
+      const auto *distance_resolution = find_str(DISTANCE_RESOLUTIONS_BY_UINT, this->buffer_data_[10]);
       ESP_LOGV(TAG, "Distance resolution: %s", distance_resolution);
 #ifdef USE_SELECT
       if (this->distance_resolution_select_ != nullptr) {
