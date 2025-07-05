@@ -18,7 +18,7 @@ void HDC2080Component::setup() {
   const uint8_t data[2] = {
       0b00000000,  // automatic reading mode, 1 sample for minute
       0b00000001   // resolution 14bit for both humidity and temperature and start measurement
-    };
+  };
 
   if (!this->write_bytes(HDC2080_CMD_CONFIGURATION, data, 2)) {
     // as instruction is same as powerup defaults (for now), interpret as warning if this fails
