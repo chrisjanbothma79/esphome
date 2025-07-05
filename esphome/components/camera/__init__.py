@@ -206,10 +206,7 @@ async def setup_camera_automation(var, config):
 
 async def setup_encoder(var, config):
     cg.add_build_flag("-DUSE_CAMERA_SW_JPEG_ENCODER")
-    # Add jpeg encoder from bitbank2/JPEGENC
-    cg.add_library(
-        "esphome-consolidate", None, "https://github.com/DT-art1/JPEGENC#eb8e6e7"
-    )
+    cg.add_library("dt-art1/jpegenc-pio", "1.0.0")
 
     encoder = cg.new_Pvariable(config[CONF_ENCODER_ID])
     cg.add(encoder.set_quality(config[CONF_ENCODER_QUALITY]))

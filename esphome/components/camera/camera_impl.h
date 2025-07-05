@@ -11,7 +11,7 @@ namespace camera {
  */
 class CameraImpl : public Camera {
  public:
-  enum CameraState {
+  enum CameraState : uint8_t {
     CAMERA_STATE_INIT = 0,
     CAMERA_STATE_WAIT_FOR_REQUEST,
     CAMERA_STATE_CAPTURE_BEGIN,
@@ -55,20 +55,20 @@ class CameraImpl : public Camera {
   void dump_config() override;
   // --------------------------
  protected:
-  CameraImageSpec camera_image_spec_{0};
-  CameraIncrementalContext camera_incremental_context_;
   std::shared_ptr<CameraImageImpl> pixels_;
   std::shared_ptr<CameraImageImpl> jpeg_;
+  CameraImageSpec camera_image_spec_{0};
+  CameraIncrementalContext camera_incremental_context_;
+  CameraState state_{CAMERA_STATE_INIT};
   Encoder *encoder_{nullptr};
-  size_t encoder_buffer_size_{0};
-  size_t encoder_buffer_grow_{0};
   uint8_t image_requesters_{0};
   uint8_t stream_requesters_{0};
+  size_t encoder_buffer_size_{0};
+  size_t encoder_buffer_grow_{0};
   uint32_t last_idle_request_{0};
   uint32_t idle_update_interval_{0};
   uint32_t last_update_{0};
   uint32_t max_update_interval_{0};
-  CameraState state_{CAMERA_STATE_INIT};
 };
 
 }  // namespace camera

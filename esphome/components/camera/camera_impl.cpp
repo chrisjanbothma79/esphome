@@ -1,6 +1,7 @@
 #include "camera_impl.h"
 #include "camera_image_reader_impl.h"
 
+#include "esphome/core/application.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 
@@ -70,7 +71,7 @@ void CameraImpl::setup() {
 }
 
 bool CameraImpl::camera_loop() {
-  const uint32_t now = millis();
+  const uint32_t now = App.get_loop_component_start_time();
 
   if (state_ == CAMERA_STATE_INIT) {
     if (!this->pixels_ || !this->jpeg_) {

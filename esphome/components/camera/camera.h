@@ -15,14 +15,14 @@ namespace camera {
  *  API_REQUESTER: API requests a new image.
  *  WEB_REQUESTER: ESP32 web server request an image. Ignored by API.
  */
-enum CameraRequester { IDLE, API_REQUESTER, WEB_REQUESTER };
+enum CameraRequester : uint8_t { IDLE, API_REQUESTER, WEB_REQUESTER };
 
 /** Enumeration of different image formats.
  *  IMAGE_FORMAT_GRAYSCALE: 1 byte.
  *  IMAGE_FORMAT_RGB565: 2 bytes of color information.
  *  IMAGE_FORMAT_RGB888: 3 bytes of colors in RGB order.
  */
-enum ImageFormat {
+enum ImageFormat : uint8_t {
   IMAGE_FORMAT_GRAYSCALE = 0,
   IMAGE_FORMAT_RGB565,
   IMAGE_FORMAT_RGB888,
@@ -64,8 +64,8 @@ struct CameraImageData {
 
 /** Struct that encapsulates the image spec for the CameraCaptureImageTrigger */
 struct CameraImageSpec {
-  int width;
-  int height;
+  uint16_t width;
+  uint16_t height;
   ImageFormat format;
   size_t bytes_per_pixel() {
     switch (format) {

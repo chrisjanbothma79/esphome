@@ -8,11 +8,16 @@ namespace camera {
 /** Enumeration of different qualities of the encoded image.
  *  Better quality results in more memory consumption and higher CPU usage.
  */
-enum EncoderQuality { ENCODER_QUALITY_BEST = 0, ENCODER_QUALITY_HIGH, ENCODER_QUALITY_MED, ENCODER_QUALITY_LOW };
+enum EncoderQuality : uint8_t {
+  ENCODER_QUALITY_BEST = 0,
+  ENCODER_QUALITY_HIGH,
+  ENCODER_QUALITY_MED,
+  ENCODER_QUALITY_LOW
+};
 
 /** Enumeration of various errors during encoding.
  */
-enum EncoderError {
+enum EncoderError : uint8_t {
   ENCODER_ERROR_SUCCESS = 0,
   ENCODER_ERROR_INVALID_PARAMETER,
   ENCODER_ERROR_ENCODE_ERROR,
@@ -27,7 +32,7 @@ enum EncoderError {
  * ENCODER_SUBSAMPLING_420 is with reduced color information and lower memory consumption at the cost of reduced image
  * quality.
  */
-enum EncoderSubsampling { ENCODER_SUBSAMPLING_444 = 0, ENCODER_SUBSAMPLING_420 };
+enum EncoderSubsampling : uint8_t { ENCODER_SUBSAMPLING_444 = 0, ENCODER_SUBSAMPLING_420 };
 
 /** Abstract base class for image encoder interfaces.
  */

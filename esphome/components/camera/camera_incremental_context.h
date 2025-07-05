@@ -13,7 +13,13 @@ namespace camera {
  *  in the next cycle, they must explicitly set 'done = false' inside the automation.
  */
 struct CameraIncrementalContext {
-  enum ValueType { VALUE_TYPE_NONE = 0, VALUE_TYPE_INT, VALUE_TYPE_FLOAT, VALUE_TYPE_BOOL, VALUE_TYPE_STRING };
+  enum ValueType : uint8_t {
+    VALUE_TYPE_NONE = 0,
+    VALUE_TYPE_INT,
+    VALUE_TYPE_FLOAT,
+    VALUE_TYPE_BOOL,
+    VALUE_TYPE_STRING
+  };
   struct Value {
     ValueType value_type_ = VALUE_TYPE_NONE;
     union {
