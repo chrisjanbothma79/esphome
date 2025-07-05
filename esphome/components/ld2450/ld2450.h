@@ -5,6 +5,7 @@
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/preferences.h"
+#include <limits>
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #endif
@@ -164,6 +165,30 @@ class LD2450Component : public Component, public uart::UARTDevice {
   Zone zone_config_[MAX_ZONES];
   std::string version_{};
   std::string mac_{};
+
+  // Change detection - cache previous values to avoid redundant publishes
+  struct CachedTargetData {
+    int16_t x = std::numeric_limits<int16_t>::min();
+    int16_t y = std::numeric_limits<int16_t>::min();
+    int16_t speed = std::numeric_limits<int16_t>::min();
+    uint16_t resolution = std::numeric_limits<uint16_t>::max();
+    uint16_t distance = std::numeric_limits<uint16_t>::max();
+    float angle = NAN;
+    std::string direction = "";
+  } cached_target_data_[MAX_TARGETS];
+
+  struct CachedZoneData {
+    uint8_t still_count = std::numeric_limits<uint8_t>::max();
+    uint8_t moving_count = std::numeric_limits<uint8_t>::max();
+    uint8_t total_count = std::numeric_limits<uint8_t>::max();
+  } cached_zone_data_[MAX_ZONES];
+
+  struct CachedGlobalData {
+    uint8_t target_count = std::numeric_limits<uint8_t>::max();
+    uint8_t still_count = std::numeric_limits<uint8_t>::max();
+    uint8_t moving_count = std::numeric_limits<uint8_t>::max();
+  } cached_global_data_;
+
 #ifdef USE_NUMBER
   ESPPreferenceObject pref_;  // only used when numbers are in use
   ZoneOfNumbers zone_numbers_[MAX_ZONES];
