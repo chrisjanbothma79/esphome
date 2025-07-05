@@ -63,12 +63,6 @@ enum BusType {
  * Base class for MIPI SPI displays.
  * This defines methods and properties that don't depend on the pixel mode
  * All the methods are defined here in the header file, as it is not possible to define templated methods in a cpp file.
- */
-
-/**
- * Templated MipiSpi class for MIPI SPI displays.
- * This class is designed to copy data from the buffer to the display, so must be paraameterized by the pixel mode of
- * the buffer, the pixel mode of the display, the bus type and the display rotation.
  *
  * @tparam BUFFERTYPE The type of the buffer pixels, e.g. uint8_t or uint16_t
  * @tparam BUFFERPIXEL Color depth of the buffer
@@ -81,8 +75,8 @@ enum BusType {
  * @tparam OFFSET_HEIGHT The y-offset of the display in pixels
  * @tparam FRACTION The fraction of the display size to use for the buffer (e.g. 4 means a 1/4 buffer)
  */
-template<typename BUFFERTYPE, PixelMode BUFFERPIXEL, PixelMode DISPLAYPIXEL, BusType BUS_TYPE, int WIDTH, int HEIGHT,
-         int OFFSET_WIDTH, int OFFSET_HEIGHT, display::DisplayRotation ROTATION, int FRACTION>
+template<typename BUFFERTYPE, PixelMode BUFFERPIXEL, bool IS_BIG_ENDIAN, PixelMode DISPLAYPIXEL, BusType BUS_TYPE,
+         int WIDTH, int HEIGHT, int OFFSET_WIDTH, int OFFSET_HEIGHT, display::DisplayRotation ROTATION, int FRACTION>
 class MipiSpi : public display::Display,
                 public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                       spi::DATA_RATE_1MHZ> {
@@ -347,7 +341,7 @@ class MipiSpi : public display::Display,
       return;
     if (w <= 0 || h <= 0)
       return;
-    if (get_pixel_mode_(bitness) != BUFFERPIXEL || big_endian != (this->bit_order_ == spi::BIT_ORDER_MSB_FIRST)) {
+    if (get_pixel_mode_(bitness) != BUFFERPIXEL || big_endian != IS_BIG_ENDIAN) {
       esph_log_e(TAG, "Unsupported color depth or bit order");
       return;
     }
@@ -372,10 +366,11 @@ class MipiSpi : public display::Display,
                     "  Mirror Y: %s\n"
                     "  Invert colors: %s\n"
                     "  Color order: %s\n"
-                    "  Display pixels: %d bits",
+                    "  Display pixels: %d bits\n"
+                    "  Endianness: %s\n",
                     YESNO(this->madctl_ & MADCTL_MV), YESNO(this->madctl_ & (MADCTL_MX | MADCTL_XFLIP)),
                     YESNO(this->madctl_ & (MADCTL_MY | MADCTL_YFLIP)), YESNO(this->invert_colors_),
-                    this->madctl_ & MADCTL_BGR ? "BGR" : "RGB", DISPLAYPIXEL * 8);
+                    this->madctl_ & MADCTL_BGR ? "BGR" : "RGB", DISPLAYPIXEL * 8, IS_BIG_ENDIAN ? "Big" : "Little");
     if (this->buffer_size_ != 0)
       esph_log_config(TAG,
                       "  Rotation: %d°\n"
@@ -503,18 +498,28 @@ class MipiSpi : public display::Display,
           auto color_val = ptr[y * stride + x];
           if constexpr (DISPLAYPIXEL == PIXEL_MODE_18 && BUFFERPIXEL == PIXEL_MODE_16) {
             // 16 bit to 18 bit conversion
-            // deal with byte swapping
-            *dptr++ = color_val << 3;                                           // blue
-            *dptr++ = ((color_val & 0x7) << 5) | ((color_val & 0xE000) >> 11);  // Green
-            *dptr++ = color_val >> 11 << 3;
+            if constexpr (IS_BIG_ENDIAN) {
+              *dptr++ = color_val & 0xF8;
+              *dptr++ = ((color_val & 0x7) << 5) | (color_val & 0xE000) >> 11;
+              *dptr++ = (color_val >> 5) & 0xF8;
+            } else {
+              *dptr++ = (color_val >> 8) & 0xF8;  // Blue
+              *dptr++ = (color_val & 0x7E0) >> 3;
+              *dptr++ = color_val << 3;
+            }
           } else if constexpr (DISPLAYPIXEL == PIXEL_MODE_18 && BUFFERPIXEL == PIXEL_MODE_8) {
             // 8 bit to 18 bit conversion
             *dptr++ = (color_val & 0xE0);       // Blue
             *dptr++ = (color_val & 0x1C) << 3;  // Green
             *dptr++ = color_val << 5;           // Red
           } else if constexpr (DISPLAYPIXEL == PIXEL_MODE_16 && BUFFERPIXEL == PIXEL_MODE_8) {
-            *dptr++ = (color_val & 0xE0) | ((color_val & 0x1C) >> 2);
-            *dptr++ = (color_val & 0x3) << 3;
+            if constexpr (IS_BIG_ENDIAN) {
+              *dptr++ = (color_val & 0xE0) | ((color_val & 0x1C) >> 2);
+              *dptr++ = (color_val & 3) << 3;
+            } else {
+              *dptr++ = (color_val & 3) << 3;
+              *dptr++ = (color_val & 0xE0) | ((color_val & 0x1C) >> 2);
+            }
           }
           if (dptr == dbuffer + sizeof(dbuffer)) {
             this->write_display_data_(dbuffer, sizeof(dbuffer), 1, 0);
@@ -548,8 +553,11 @@ class MipiSpi : public display::Display,
     if constexpr (BUFFERPIXEL == PIXEL_MODE_8) {
       return (color.red & 0xE0) | (color.g & 0xE0) >> 3 | color.b >> 6;
     } else if constexpr (BUFFERPIXEL == PIXEL_MODE_16) {
-      uint16_t new_color = color.r >> 3 << 11 | color.g >> 2 << 5 | color.b >> 3;
-      return (new_color << 8) | (new_color >> 8);  // Swap bytes for big-endian
+      if constexpr (IS_BIG_ENDIAN) {
+        return (color.r & 0xF8) | color.g >> 5 | (color.g & 0x1C) << 11 | (color.b & 0xF8) << 5;
+      } else {
+        return (color.r & 0xF8) << 8 | (color.g & 0xFC) << 3 | color.b >> 3;
+      }
     }
     return static_cast<BUFFERTYPE>(0);
   }

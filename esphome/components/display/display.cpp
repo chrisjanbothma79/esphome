@@ -765,7 +765,6 @@ const uint8_t TESTCARD_FONT[3][8] PROGMEM = {{0x41, 0x7F, 0x7F, 0x09, 0x19, 0x7F
 void Display::test_card() {
   int w = get_width(), h = get_height(), image_w, image_h;
   this->clear();
-  this->show_test_card_ = false;
   if (this->get_display_type() == DISPLAY_TYPE_COLOR) {
     Color r(255, 0, 0), g(0, 255, 0), b(0, 0, 255);
     image_w = std::min(w - 20, 310);

@@ -3,7 +3,11 @@ import logging
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display, spi
-from esphome.components.const import CONF_COLOR_DEPTH, CONF_DRAW_ROUNDING
+from esphome.components.const import (
+    CONF_BYTE_ORDER,
+    CONF_COLOR_DEPTH,
+    CONF_DRAW_ROUNDING,
+)
 from esphome.components.display import CONF_SHOW_TEST_CARD, DISPLAY_ROTATIONS
 from esphome.components.spi import TYPE_OCTAL, TYPE_QUAD, TYPE_SINGLE
 import esphome.config_validation as cv
@@ -295,6 +299,9 @@ def model_schema(bus_mode, model: DriverChip, swapsies: bool):
                 model.option(CONF_COLOR_ORDER, MODE_BGR): cv.enum(
                     COLOR_ORDERS, upper=True
                 ),
+                model.option(CONF_BYTE_ORDER, "big_endian"): cv.one_of(
+                    "big_endian", "little_endian", lower=True
+                ),
                 model.option(CONF_COLOR_DEPTH, 16): cv.one_of(*color_depth, lower=True),
                 model.option(CONF_DRAW_ROUNDING, 2): power_of_two,
                 model.option(CONF_PIXEL_MODE, DISPLAY_16BIT): cv.one_of(
@@ -521,6 +528,7 @@ async def to_code(config):
     templateargs = TemplateArguments(
         buffer_type,
         bufferpixels,
+        config[CONF_BYTE_ORDER] == "big_endian",
         display_pixel_mode,
         bus_type,
         width,
