@@ -124,8 +124,7 @@ class DeepSleepComponent : public Component {
 #endif
   enum SleepState : uint8_t {
     SLEEP_STATE_IDLE,
-    SLEEP_STATE_BLOCKED_BY_PREVENT,
-    SLEEP_STATE_BLOCKED_BY_WAKEUP_PIN,
+    SLEEP_STATE_BLOCKED,
     SLEEP_STATE_ENTERING_SLEEP,
   };
 
