@@ -15,7 +15,7 @@ DEPENDENCIES = ["uart"]
 CODEOWNERS = ["@mikelawrence"]
 MULTI_CONF = True
 
-CONF_DFROBOT_C4001_HUB_ID = "dfrobot_c4001_id"
+CONF_DFROBOT_C4001_HUB_ID = "dfrobot_c4001_hub_id"
 MODE = ""
 
 dfrobot_c4001_ns = cg.esphome_ns.namespace("dfrobot_c4001")

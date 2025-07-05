@@ -43,16 +43,6 @@ number:
     inhibit_time:
       name: Inhibit Time
 
-sensor:
-  - platform: dfrobot_c4001
-    dfrobot_c4001_id: mmwave_sensor
-    target_distance:
-      name: Target Distance
-    target_speed:
-      name: Target Speed
-    target_energy:
-      name: Target Energy
-
 switch:
   - platform: dfrobot_c4001
     dfrobot_c4001_id: mmwave_sensor
