@@ -19,7 +19,7 @@ void Hpma115C0PollingComponent::dump_config() {
 
 // Initialize sensor, read initial state
 void Hpma115C0PollingComponent::setup() {
-  ESP_LOGCONFIG(TAG, "Running setup");
+  ESP_LOGCONFIG(TAG, "Setup");
 
   // Max allowed blocking delay : serial max timeout + 10ms margin
   this->should_warn_of_blocking(MAX_ALLOWED_REPLY_DELAY + 10U);
@@ -42,14 +42,14 @@ void Hpma115C0PollingComponent::update() {
     // If too many attempts, mark sensor failed
     if (this->activation_attempts_ > MAX_ACTIVATION_ATTEMPTS) {
       ESP_LOGE(TAG, "Could not (re)activate sensor after %d runs", this->activation_attempts_);
-      this->mark_failed("Unable to communicate with sensor.");
+      this->mark_failed("Unable to communicate with sensor");
       return;
     }
 
     // Try to reset sensor mode
     this->reset_sensor_mode_();
 
-    ESP_LOGI(TAG, "Run %d, sensor still not active", this->activation_attempts_);
+    ESP_LOGV(TAG, "Run %d, sensor still not active", this->activation_attempts_);
     return;
   }
 
@@ -57,15 +57,17 @@ void Hpma115C0PollingComponent::update() {
   if (!this->sensor_active_) {
     this->sensor_active_ = true;
     this->activation_attempts_ = 0;  // Reset activation attempt counter
-    ESP_LOGI(TAG, "Sensor is now active after %d runs", this->activation_attempts_);
+    ESP_LOGV(TAG, "active after %d runs", this->activation_attempts_);
   }
 
   // Compute air quality indexes
   aqi_2_5 = compute_aqi_pm_2_5_(pm_2_5);
   aqi_10_0 = compute_aqi_pm_10_0_(pm_10_0);
 
-  ESP_LOGI(TAG, "pm(µg/m3):  1µm(%.0f), 2.5µm(%.0f), 4µm(%.0f), 10µm(%.0f)", pm_1_0, pm_2_5, pm_4_0, pm_10_0);
-  ESP_LOGI(TAG, "aqi(index): 2.5(%.0f), 10(%.0f)", aqi_2_5, aqi_10_0);
+  ESP_LOGV(TAG,
+           "pm(µg/m3):  1µm(%.0f), 2.5µm(%.0f), 4µm(%.0f), 10µm(%.0f)\n"
+           "aqi(index): 2.5(%.0f), 10(%.0f)",
+           pm_1_0, pm_2_5, pm_4_0, pm_10_0, aqi_2_5, aqi_10_0);
 
 #ifdef USE_NUMBER
   // In case adjustment coefficient has been changed, request refresh in HA
@@ -160,7 +162,7 @@ void Hpma115C0PollingComponent::reset_sensor_mode_() {
   // Send command to stop autosend (default mode at power on)
   ESP_LOGI(TAG, "Attempting to Stop Autosend");
   if (!this->stop_autosend_()) {
-    ESP_LOGW(TAG, "Failed to stop autosend.");
+    ESP_LOGW(TAG, "Failed to stop autosend");
   }
 
   // Empty buffer again as a precaution for next commands
@@ -175,7 +177,9 @@ void Hpma115C0PollingComponent::reset_sensor_mode_() {
 // Print full frame to log (debug level)
 // REQUEST : (HEAD-LEN-CMD)[DATA]#CRC
 // REPLY :   (HEAD-LEN-CMD)[DATA]#CRC  or Ack code
+
 static const uint16_t MAX_PRINT_BUFFER_LENGTH = 1024;
+
 void Hpma115C0PollingComponent::print_frame_(StandardFrameT frame) {
   char buffer[MAX_PRINT_BUFFER_LENGTH];
 
@@ -225,7 +229,7 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, S
 
     case CMD_SET_CUSTOMER_ADJUSTMENT_COEFFICIENT:
       if (data == nullptr) {
-        ESP_LOGE(TAG, "Data should not be null for command 0x%02X.", command);
+        ESP_LOGE(TAG, "Data should not be null for CMD=%02X", command);
         this->hpma_last_error_ = HPMA_ERROR_NULL_PARAMETER;
         return false;
       }
@@ -245,7 +249,7 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, S
       break;
 
     default:
-      ESP_LOGE(TAG, "Unknown command 0x%02X.", request.command);
+      ESP_LOGE(TAG, "Unknown CMD=%02X", request.command);
       this->hpma_last_error_ = HPMA_ERROR_UNKNOWN_COMMAND;
       return false;
   }
@@ -263,7 +267,7 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, S
   while (true) {
     wait_time = millis() - wait_start;
     if (this->available() > 0) {
-      ESP_LOGD(TAG, "response time is %llu ms", wait_time);
+      ESP_LOGD(TAG, "Response time is %llu ms", wait_time);
       break;
     };
 
@@ -276,14 +280,14 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, S
 
   // Read first two bytes of response
   if (!this->read_array(reply.bytes, 2)) {
-    ESP_LOGE(TAG, "Read timeout on first two response bytes.");
+    ESP_LOGE(TAG, "Read timeout on first two response bytes");
     this->hpma_last_error_ = HPMA_ERROR_TIMEOUT;
     return false;
   }
 
   // Negative ack from sensor
   if (reply.code == RESPONSE_NEG_ACK) {
-    ESP_LOGD(TAG, "REPLY  <--  0x%04X (Neg ACK)", reply.code);
+    ESP_LOGD(TAG, "REPLY  <--  %04X (Neg ACK)", reply.code);
     ESP_LOGE(TAG, "Got negative ack from sensor");
     this->hpma_last_error_ = HPMA_ERROR_NEGATIVE_ACK;
     return false;
@@ -291,42 +295,42 @@ bool Hpma115C0PollingComponent::send_request_(HpmaCmdT command, uint8_t *data, S
 
   // Positive ack from sensor
   if (reply.code == RESPONSE_POS_ACK) {
-    ESP_LOGD(TAG, "REPLY  <--  0x%04X (Pos ACK)", reply.code);
+    ESP_LOGD(TAG, "REPLY  <--  %04X (Pos ACK)", reply.code);
     this->hpma_last_error_ = HPMA_ERROR_SUCCESS;
     return true;
   }
 
   // Unexpected value for first reply byte
   if (reply.type != FRAME_TYPE_REPLY_WITH_DATA) {
-    ESP_LOGE(TAG, "Got unexpected reply from sensor: 0x%02X.", reply.type);
+    ESP_LOGE(TAG, "Got unexpected reply %02X", reply.type);
     this->hpma_last_error_ = HPMA_ERROR_UNEXPECTED_REPLY;
     return false;
   }
 
   // Sanity check on length
   if (reply.length > MAX_FRAME_DATA_LENGTH) {
-    ESP_LOGE(TAG, "Got too long reply from sensor: %d bytes.", reply.length);
+    ESP_LOGE(TAG, "Got too long reply  %d bytes", reply.length);
     this->hpma_last_error_ = HPMA_ERROR_DATA_LENGTH_TOO_LONG;
     return false;
   }
 
   // Read rest of reply
   if (!this->read_array(reply.bytes + 2, reply.length + 1)) {
-    ESP_LOGE(TAG, "Read timeout while reading remaining %d bytes from reply.", reply.length + 2);
+    ESP_LOGE(TAG, "Read timeout while reading remaining %d bytes from reply", reply.length + 2);
     this->hpma_last_error_ = HPMA_ERROR_TIMEOUT;
     return false;
   }
 
   // Check matching command in reply
   if (reply.command != request.command) {
-    ESP_LOGE(TAG, "Command 0x%02X in reply does not match command 0x%02X in request .", reply.command, request.command);
+    ESP_LOGE(TAG, "CMD=%02X in reply mismatch with CMD=%02X in request", reply.command, request.command);
     this->hpma_last_error_ = HPMA_ERROR_COMMAND_MISMATCH;
     return false;
   }
 
   // Check length consistency
   if (reply.length != expected_reply_data_length) {
-    ESP_LOGE(TAG, "Invalid reply data length %d in command 0x%02X, should have been %d.", reply.length, command,
+    ESP_LOGE(TAG, "Invalid reply data length %d in CMD=%02X, expected %d", reply.length, command,
              expected_reply_data_length);
     this->hpma_last_error_ = HPMA_ERROR_INVALID_REPLY_LENGTH;
     return false;
@@ -400,7 +404,7 @@ bool Hpma115C0PollingComponent::read_customer_adjustment_coefficient_(float *val
     return false;
 
   if ((reply.data[DATA_DF1] < ADJUSTMENT_COEFFICIENT_MIN) || (reply.data[DATA_DF1] > ADJUSTMENT_COEFFICIENT_MAX)) {
-    ESP_LOGW(TAG, "Adjustment coefficient %d not in range [%d; %d].", reply.data[DATA_DF1], ADJUSTMENT_COEFFICIENT_MIN,
+    ESP_LOGW(TAG, "Adjustment coefficient %d not in range [%d; %d]", reply.data[DATA_DF1], ADJUSTMENT_COEFFICIENT_MIN,
              ADJUSTMENT_COEFFICIENT_MAX);
     this->hpma_last_error_ = HPMA_ERROR_COEFFICIENT_OUT_OF_RANGE;
     return false;
