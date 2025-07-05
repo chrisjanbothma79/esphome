@@ -5,10 +5,8 @@ from esphome.automation import maybe_simple_id
 from esphome.components import uart
 
 from esphome.const import (
-    CONF_FACTORY_RESET,
     CONF_ID,
     CONF_MODE,
-    CONF_SENSITIVITY,
 )
 
 

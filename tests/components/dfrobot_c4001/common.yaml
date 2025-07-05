@@ -16,7 +16,7 @@ binary_sensor:
     occupancy:
       id: occupancy_uart
       name: Occupancy via UART
-      
+
 button:
   - platform: dfrobot_c4001
     config_save:
