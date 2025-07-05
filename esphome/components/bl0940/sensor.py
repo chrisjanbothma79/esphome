@@ -24,7 +24,9 @@ from esphome.const import (
     UNIT_WATT,
 )
 
-from . import BL0940
+from . import bl0940_ns
+
+BL0940 = bl0940_ns.class_("BL0940", cg.PollingComponent, uart.UARTDevice)
 
 CONF_TUYA_MODE = "tuya_mode"
 
