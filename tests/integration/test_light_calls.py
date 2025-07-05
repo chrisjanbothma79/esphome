@@ -24,7 +24,7 @@ async def test_light_calls(
         state_futures: dict[int, asyncio.Future[Any]] = {}
         states: dict[int, Any] = {}
 
-        def on_state(state):
+        def on_state(state: Any) -> None:
             states[state.key] = state
             if state.key in state_futures and not state_futures[state.key].done():
                 state_futures[state.key].set_result(state)
@@ -39,7 +39,7 @@ async def test_light_calls(
         rgbcw_light = next(light for light in lights if "RGBCW" in light.name)
         rgb_light = next(light for light in lights if "RGB Light" in light.name)
 
-        async def wait_for_state_change(key, timeout=1.0):
+        async def wait_for_state_change(key: int, timeout: float = 1.0) -> Any:
             """Wait for a state change for the given entity key."""
             loop = asyncio.get_event_loop()
             state_futures[key] = loop.create_future()
