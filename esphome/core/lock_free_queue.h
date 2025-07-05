@@ -122,19 +122,17 @@ template<class T, uint8_t SIZE> class NotifyingLockFreeQueue : public LockFreeQu
     bool result = this->push_internal_(element, was_empty, old_tail);
 
     // Notify optimization: only notify if we need to
-    if (result && task_to_notify_ != nullptr) {
-      if (was_empty) {
-        // Queue was empty - consumer might be going to sleep, must notify
-        xTaskNotifyGive(task_to_notify_);
-      } else if (this->head_.load(std::memory_order_acquire) == old_tail) {
-        // Consumer just caught up to where tail was - might go to sleep, must notify
-        // Note: There's a benign race here - between reading head and calling
-        // xTaskNotifyGive(), the consumer could advance further. This would result
-        // in an unnecessary wake-up, but is harmless and extremely rare in practice.
-        xTaskNotifyGive(task_to_notify_);
-      }
-      // Otherwise: consumer is still behind, no need to notify
+    if (result && task_to_notify_ != nullptr &&
+        (was_empty || this->head_.load(std::memory_order_acquire) == old_tail)) {
+      // Notify in two cases:
+      // 1. Queue was empty - consumer might be going to sleep
+      // 2. Consumer just caught up to where tail was - might go to sleep
+      // Note: There's a benign race in case 2 - between reading head and calling
+      // xTaskNotifyGive(), the consumer could advance further. This would result
+      // in an unnecessary wake-up, but is harmless and extremely rare in practice.
+      xTaskNotifyGive(task_to_notify_);
     }
+    // Otherwise: consumer is still behind, no need to notify
 
     return result;
   }
