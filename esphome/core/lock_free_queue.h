@@ -31,11 +31,19 @@
 
 namespace esphome {
 
+// Base lock-free queue without task notification
 template<class T, uint8_t SIZE> class LockFreeQueue {
  public:
-  LockFreeQueue() : head_(0), tail_(0), dropped_count_(0), task_to_notify_(nullptr) {}
+  LockFreeQueue() : head_(0), tail_(0), dropped_count_(0) {}
 
   bool push(T *element) {
+    bool was_empty;
+    return push_internal_(element, was_empty);
+  }
+
+ protected:
+  // Internal push that reports if queue was empty - for use by derived classes
+  bool push_internal_(T *element, bool &was_empty) {
     if (element == nullptr)
       return false;
 
@@ -51,34 +59,15 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
       return false;
     }
 
-    // Check if queue was empty before push
-    bool was_empty = (current_tail == head_before);
+    was_empty = (current_tail == head_before);
 
     buffer_[current_tail] = element;
     tail_.store(next_tail, std::memory_order_release);
 
-    // Notify optimization: only notify if we need to
-    if (task_to_notify_ != nullptr) {
-      if (was_empty) {
-        // Queue was empty - consumer might be going to sleep, must notify
-        xTaskNotifyGive(task_to_notify_);
-      } else {
-        // Queue wasn't empty - check if consumer has caught up to previous tail
-        uint8_t head_after = head_.load(std::memory_order_acquire);
-        if (head_after == current_tail) {
-          // Consumer just caught up to where tail was - might go to sleep, must notify
-          // Note: There's a benign race here - between reading head_after and calling
-          // xTaskNotifyGive(), the consumer could advance further. This would result
-          // in an unnecessary wake-up, but is harmless and extremely rare in practice.
-          xTaskNotifyGive(task_to_notify_);
-        }
-        // Otherwise: consumer is still behind, no need to notify
-      }
-    }
-
     return true;
   }
 
+ public:
   T *pop() {
     uint8_t current_head = head_.load(std::memory_order_relaxed);
 
@@ -108,11 +97,6 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
     return next_tail == head_.load(std::memory_order_acquire);
   }
 
-  // Set the FreeRTOS task handle to notify when items are pushed to the queue
-  // This enables efficient wake-up of a consumer task that's waiting for data
-  // @param task The FreeRTOS task handle to notify, or nullptr to disable notifications
-  void set_task_to_notify(TaskHandle_t task) { task_to_notify_ = task; }
-
  protected:
   T *buffer_[SIZE];
   // Atomic: written by producer (push/increment), read+reset by consumer (get_and_reset)
@@ -123,7 +107,31 @@ template<class T, uint8_t SIZE> class LockFreeQueue {
   std::atomic<uint8_t> head_;
   // Atomic: written by producer (push), read by consumer (pop) to check if empty
   std::atomic<uint8_t> tail_;
-  // Task handle for notification (optional)
+};
+
+// Extended queue with task notification support
+template<class T, uint8_t SIZE> class NotifyingLockFreeQueue : public LockFreeQueue<T, SIZE> {
+ public:
+  NotifyingLockFreeQueue() : LockFreeQueue<T, SIZE>(), task_to_notify_(nullptr) {}
+
+  bool push(T *element) {
+    bool was_empty;
+    bool result = this->push_internal_(element, was_empty);
+
+    // Notify if push succeeded and queue was empty
+    if (result && task_to_notify_ != nullptr && was_empty) {
+      xTaskNotifyGive(task_to_notify_);
+    }
+
+    return result;
+  }
+
+  // Set the FreeRTOS task handle to notify when items are pushed to the queue
+  // This enables efficient wake-up of a consumer task that's waiting for data
+  // @param task The FreeRTOS task handle to notify, or nullptr to disable notifications
+  void set_task_to_notify(TaskHandle_t task) { task_to_notify_ = task; }
+
+ private:
   TaskHandle_t task_to_notify_;
 };
 
