@@ -450,12 +450,12 @@ def validate_settings(value):
     """
     Validate the settings for a single image configuration.
     """
-    type = value[CONF_TYPE]
-    type_class = IMAGE_TYPE[type]
+    conf_type = value[CONF_TYPE]
+    type_class = IMAGE_TYPE[conf_type]
     transparency = value[CONF_TRANSPARENCY].lower()
     if transparency not in type_class.allow_config:
         raise cv.Invalid(
-            f"Image format '{type}' cannot have transparency: {transparency}"
+            f"Image format '{conf_type}' cannot have transparency: {transparency}"
         )
     invert_alpha = value.get(CONF_INVERT_ALPHA, False)
     if (
@@ -468,7 +468,7 @@ def validate_settings(value):
         getattr(type_class, "set_big_endian", None)
     ):
         raise cv.Invalid(
-            f"Image format '{type}' does not support byte order configuration"
+            f"Image format '{conf_type}' does not support byte order configuration"
         )
     if file := value.get(CONF_FILE):
         file = Path(file)
@@ -502,7 +502,7 @@ OPTIONS_SCHEMA = {
     cv.Optional(CONF_TYPE): validate_type(IMAGE_TYPE),
 }
 
-OPTIONS = [key.schema for key in OPTIONS_SCHEMA.keys()]
+OPTIONS = [key.schema for key in OPTIONS_SCHEMA]
 
 # image schema with no defaults
 OPTIONS_SCHEMA_NO_DEFAULT = {

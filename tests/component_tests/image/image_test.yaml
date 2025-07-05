@@ -1,7 +1,8 @@
 esphome:
   name: test
 
-host:
+esp32:
+  board: esp32s3box
 
 image:
   - file: image.png
@@ -9,8 +10,11 @@ image:
     id: cat_img
     type: rgb565
 
+spi:
+  mosi_pin: 6
+  clk_pin: 7
+
 display:
-  platform: sdl
-  dimensions:
-    width: 480
-    height: 480
+  - platform: mipi_spi
+    id: lcd_display
+    model: s3box
