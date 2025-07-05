@@ -504,8 +504,8 @@ OPTIONS_SCHEMA = {
 
 OPTIONS = [key.schema for key in OPTIONS_SCHEMA]
 
-# image schema with no defaults
-OPTIONS_SCHEMA_NO_DEFAULT = {
+# image schema with no defaults, used with `CONF_IMAGES` in the config
+IMAGE_SCHEMA_NO_DEFAULTS = {
     **IMAGE_ID_SCHEMA,
     **{cv.Optional(key): OPTIONS_SCHEMA[key] for key in OPTIONS},
 }
@@ -611,7 +611,7 @@ def _config_schema(config):
             cv.Schema(
                 {
                     cv.Required(CONF_DEFAULTS): OPTIONS_SCHEMA,
-                    cv.Required(CONF_IMAGES): cv.ensure_list(OPTIONS_SCHEMA_NO_DEFAULT),
+                    cv.Required(CONF_IMAGES): cv.ensure_list(IMAGE_SCHEMA_NO_DEFAULTS),
                 }
             )(config)
         )

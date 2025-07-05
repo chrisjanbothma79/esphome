@@ -10,9 +10,6 @@ from esphome import config_validation as cv
 def _test_failure(config, error_msg: str) -> None:
     """Helper function to test failure of configuration validation."""
     from esphome.components.image import CONFIG_SCHEMA
-    from esphome.core import CORE
-
-    CORE.config_path = __file__
 
     with pytest.raises(cv.Invalid) as exc_info:
         CONFIG_SCHEMA(config)
@@ -23,7 +20,7 @@ def test_image_configuration_errors() -> None:
     """Test detection of invalid configuration"""
     from esphome.core import CORE
 
-    CORE.config_path = "tests/component_tests/image/test_image_config.py"
+    CORE.config_path = __file__
 
     _test_failure(
         "a string", "Badly formed image configuration, expected a list or a dictionary"
@@ -83,7 +80,7 @@ def test_image_configuration_success() -> None:
     from esphome.components.image import CONFIG_SCHEMA
     from esphome.core import CORE
 
-    CORE.config_path = "tests/component_tests/image/test_image_config.py"
+    CORE.config_path = __file__
 
     # Valid image configuration
     CONFIG_SCHEMA(
