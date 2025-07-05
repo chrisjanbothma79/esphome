@@ -565,8 +565,8 @@ bool LD2412Component::handle_ack_data_() {
       break;
     }
     case CMD_QUERY_DISTANCE_RESOLUTION: {
-      auto distance_resolution = find_str(DISTANCE_RESOLUTIONS_BY_UINT,
-                                          ld2412::two_byte_to_int(this->buffer_data_[10], this->buffer_data_[11]));
+      const auto *distance_resolution = find_str(
+          DISTANCE_RESOLUTIONS_BY_UINT, ld2412::two_byte_to_int(this->buffer_data_[10], this->buffer_data_[11]));
       ESP_LOGV(TAG, "Distance resolution: %s", distance_resolution);
 #ifdef USE_SELECT
       if (this->distance_resolution_select_ != nullptr) {
@@ -579,7 +579,7 @@ bool LD2412Component::handle_ack_data_() {
     case CMD_QUERY_LIGHT_CONTROL: {
       this->light_function_ = this->buffer_data_[10];
       this->light_threshold_ = this->buffer_data_[11];
-      auto light_function_str = find_str(LIGHT_FUNCTION_BY_UINT, this->light_function_);
+      const auto *light_function_str = find_str(LIGHT_FUNCTION_BY_UINT, this->light_function_);
       ESP_LOGV(TAG,
                "Light function is: %s\n"
                "Light threshold is: %u",
@@ -697,7 +697,7 @@ bool LD2412Component::handle_ack_data_() {
       */
       this->out_pin_level_ = this->buffer_data_[14];
 #ifdef USE_SELECT
-      auto out_pin_level_str = find_str(OUT_PIN_LEVELS_BY_UINT, this->out_pin_level_);
+      const auto *out_pin_level_str = find_str(OUT_PIN_LEVELS_BY_UINT, this->out_pin_level_);
       if (this->out_pin_level_select_ != nullptr) {
         this->out_pin_level_select_->publish_state(out_pin_level_str);
       }
