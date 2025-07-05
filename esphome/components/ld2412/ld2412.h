@@ -115,23 +115,24 @@ class LD2412Component : public Component, public uart::UARTDevice {
   void restart_();
   void query_dynamic_background_correction_();
 
-  int32_t last_periodic_millis_ = 0;
-  uint16_t throttle_;
+  uint32_t last_periodic_millis_ = 0;
+  uint16_t throttle_ = 0;
+  uint8_t light_function_ = 0;
+  uint8_t light_threshold_ = 0;
+  uint8_t out_pin_level_ = 0;
   uint8_t buffer_pos_ = 0;  // where to resume processing/populating buffer
   uint8_t buffer_data_[MAX_LINE_LENGTH];
-  uint8_t light_threshold_ = 0;
-  bool dynamic_background_correction_active_;
-  std::string version_;
-  std::string mac_;
-  std::string out_pin_level_;
-  std::string light_function_;
+  uint8_t mac_address_[6] = {0, 0, 0, 0, 0, 0};
+  uint8_t version_[6] = {0, 0, 0, 0, 0, 0};
+  bool bluetooth_on_{false};
+  bool dynamic_background_correction_active_{false};
 #ifdef USE_NUMBER
-  std::vector<number::Number *> gate_still_threshold_numbers_ = std::vector<number::Number *>(TOTAL_GATES);
   std::vector<number::Number *> gate_move_threshold_numbers_ = std::vector<number::Number *>(TOTAL_GATES);
+  std::vector<number::Number *> gate_still_threshold_numbers_ = std::vector<number::Number *>(TOTAL_GATES);
 #endif
 #ifdef USE_SENSOR
-  std::vector<sensor::Sensor *> gate_still_sensors_ = std::vector<sensor::Sensor *>(TOTAL_GATES);
   std::vector<sensor::Sensor *> gate_move_sensors_ = std::vector<sensor::Sensor *>(TOTAL_GATES);
+  std::vector<sensor::Sensor *> gate_still_sensors_ = std::vector<sensor::Sensor *>(TOTAL_GATES);
 #endif
 };
 

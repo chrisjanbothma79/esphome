@@ -18,11 +18,10 @@ namespace esphome {
 namespace ld2412 {
 
 static const char *const TAG = "ld2412";
-static const char *const NO_MAC = "08:05:04:03:02:01";
 static const char *const UNKNOWN_MAC = "unknown";
 static const char *const VERSION_FMT = "%u.%02X.%02X%02X%02X%02X";
 
-enum BaudRateStructure : uint8_t {
+enum BaudRate : uint8_t {
   BAUD_RATE_9600 = 1,
   BAUD_RATE_19200 = 2,
   BAUD_RATE_38400 = 3,
@@ -33,25 +32,19 @@ enum BaudRateStructure : uint8_t {
   BAUD_RATE_460800 = 8,
 };
 
-enum DistanceResolutionStructure : uint8_t {
+enum DistanceResolution : uint8_t {
   DISTANCE_RESOLUTION_0_2 = 0x03,
   DISTANCE_RESOLUTION_0_5 = 0x01,
   DISTANCE_RESOLUTION_0_75 = 0x00,
 };
 
-enum LightFunctionStructure : uint8_t {
+enum LightFunction : uint8_t {
   LIGHT_FUNCTION_OFF = 0x00,
   LIGHT_FUNCTION_BELOW = 0x01,
   LIGHT_FUNCTION_ABOVE = 0x02,
 };
 
-enum ModeStructure : uint8_t {
-  NORMAL_MODE = 1,
-  ENGINEERING_MODE = 2,
-  BACKGROUND_INIT_MODE = 3,
-};
-
-enum OutPinLevelStructure : uint8_t {
+enum OutPinLevel : uint8_t {
   OUT_PIN_LEVEL_LOW = 0x01,
   OUT_PIN_LEVEL_HIGH = 0x00,
 };
@@ -65,7 +58,7 @@ Target states: 9th byte
     Still target energy: 15th byte
     Detect distance: 16~17th bytes
 */
-enum PeriodicDataStructure : uint8_t {
+enum PeriodicData : uint8_t {
   DATA_TYPES = 6,
   TARGET_STATES = 8,
   MOVING_TARGET_LOW = 9,
@@ -86,7 +79,7 @@ enum PeriodicDataValue : uint8_t {
   CHECK = 0x00,
 };
 
-enum AckDataStructure : uint8_t {
+enum AckData : uint8_t {
   COMMAND = 6,
   COMMAND_STATUS = 7,
 };
@@ -94,11 +87,11 @@ enum AckDataStructure : uint8_t {
 // Memory-efficient lookup tables
 struct StringToUint8 {
   const char *str;
-  uint8_t value;
+  const uint8_t value;
 };
 
 struct Uint8ToString {
-  uint8_t value;
+  const uint8_t value;
   const char *str;
 };
 
@@ -106,12 +99,6 @@ constexpr StringToUint8 BAUD_RATES_BY_STR[] = {
     {"9600", BAUD_RATE_9600},     {"19200", BAUD_RATE_19200},   {"38400", BAUD_RATE_38400},
     {"57600", BAUD_RATE_57600},   {"115200", BAUD_RATE_115200}, {"230400", BAUD_RATE_230400},
     {"256000", BAUD_RATE_256000}, {"460800", BAUD_RATE_460800},
-};
-
-constexpr StringToUint8 MODE_BY_STR[] = {
-    {"Normal", NORMAL_MODE},
-    {"Engineering", ENGINEERING_MODE},
-    {"Dynamic background correction", BACKGROUND_INIT_MODE},
 };
 
 constexpr StringToUint8 DISTANCE_RESOLUTIONS_BY_STR[] = {
@@ -151,16 +138,18 @@ constexpr Uint8ToString OUT_PIN_LEVELS_BY_UINT[] = {
 // Helper functions for lookups
 template<size_t N> uint8_t find_uint8(const StringToUint8 (&arr)[N], const std::string &str) {
   for (const auto &entry : arr) {
-    if (str == entry.str)
+    if (str == entry.str) {
       return entry.value;
+    }
   }
   return 0xFF;  // Not found
 }
 
 template<size_t N> const char *find_str(const Uint8ToString (&arr)[N], uint8_t value) {
   for (const auto &entry : arr) {
-    if (value == entry.value)
+    if (value == entry.value) {
       return entry.str;
+    }
   }
   return "";  // Not found
 }
@@ -202,6 +191,8 @@ static const uint8_t CMD_FRAME_FOOTER[HEADER_FOOTER_SIZE] = {0x04, 0x03, 0x02, 0
 // Data Header & Footer
 static const uint8_t DATA_FRAME_HEADER[HEADER_FOOTER_SIZE] = {0xF4, 0xF3, 0xF2, 0xF1};
 static const uint8_t DATA_FRAME_FOOTER[HEADER_FOOTER_SIZE] = {0xF8, 0xF7, 0xF6, 0xF5};
+// MAC address the module uses when Bluetooth is disabled
+static const uint8_t NO_MAC[] = {0x08, 0x05, 0x04, 0x03, 0x02, 0x01};
 
 static int two_byte_to_int(char firstbyte, char secondbyte) { return (int16_t) (secondbyte << 8) + firstbyte; }
 
@@ -215,12 +206,16 @@ static bool validate_header_footer(const uint8_t *header_footer, const uint8_t *
 }
 
 void LD2412Component::dump_config() {
+  std::string mac_str =
+      mac_address_is_valid(this->mac_address_) ? format_mac_address_pretty(this->mac_address_) : UNKNOWN_MAC;
+  std::string version = str_sprintf(VERSION_FMT, this->version_[1], this->version_[0], this->version_[5],
+                                    this->version_[4], this->version_[3], this->version_[2]);
   ESP_LOGCONFIG(TAG,
                 "LD2412:\n"
                 "  Firmware version: %s\n"
                 "  MAC address: %s\n"
                 "  Throttle: %u ms",
-                this->version_.c_str(), this->mac_ == NO_MAC ? UNKNOWN_MAC : this->mac_.c_str(), this->throttle_);
+                version.c_str(), mac_str.c_str(), this->throttle_);
 #ifdef USE_BINARY_SENSOR
   LOG_BINARY_SENSOR("  ", "DynamicBackgroundCorrectionStatus",
                     this->dynamic_background_correction_status_binary_sensor_);
@@ -303,7 +298,7 @@ void LD2412Component::read_all_info() {
   this->set_config_mode_(false);
 #ifdef USE_SELECT
   const auto baud_rate = std::to_string(this->parent_->get_baud_rate());
-  if (this->baud_rate_select_ != nullptr && this->baud_rate_select_->state != baud_rate) {
+  if (this->baud_rate_select_ != nullptr) {
     this->baud_rate_select_->publish_state(baud_rate);
   }
 #endif
@@ -349,16 +344,17 @@ void LD2412Component::handle_periodic_data_() {
   // 4 frame header bytes + 2 length bytes + 1 data end byte + 1 crc byte + 4 frame footer bytes
   // data header=0xAA, data footer=0x55, crc=0x00
   if (this->buffer_pos_ < 12 || !ld2412::validate_header_footer(DATA_FRAME_HEADER, this->buffer_data_) ||
-      this->buffer_data_[7] != HEADER || this->buffer_data_[this->buffer_pos_ - 6] != FOOTER)
+      this->buffer_data_[7] != HEADER || this->buffer_data_[this->buffer_pos_ - 6] != FOOTER) {
     return;
+  }
 
   /*
     Reduce data update rate to prevent home assistant database size grow fast
   */
-  int32_t current_millis = App.get_loop_component_start_time();
-  if (current_millis - last_periodic_millis_ < this->throttle_)
+  if (App.get_loop_component_start_time() - this->last_periodic_millis_ < this->throttle_) {
     return;
-  last_periodic_millis_ = current_millis;
+  }
+  this->last_periodic_millis_ = App.get_loop_component_start_time();
 
   /*
     Data Type: 7th
@@ -404,26 +400,30 @@ void LD2412Component::handle_periodic_data_() {
         target_state != 0x00
             ? ld2412::two_byte_to_int(this->buffer_data_[MOVING_TARGET_LOW], this->buffer_data_[MOVING_TARGET_HIGH])
             : 0;
-    if (this->moving_target_distance_sensor_->get_state() != new_moving_target_distance)
+    if (this->moving_target_distance_sensor_->get_state() != new_moving_target_distance) {
       this->moving_target_distance_sensor_->publish_state(new_moving_target_distance);
+    }
   }
   if (this->moving_target_energy_sensor_ != nullptr) {
     int new_moving_target_energy = target_state != 0x00 ? this->buffer_data_[MOVING_ENERGY] : 0;
-    if (this->moving_target_energy_sensor_->get_state() != new_moving_target_energy)
+    if (this->moving_target_energy_sensor_->get_state() != new_moving_target_energy) {
       this->moving_target_energy_sensor_->publish_state(new_moving_target_energy);
+    }
   }
   if (this->still_target_distance_sensor_ != nullptr) {
     int new_still_target_distance =
         target_state != 0x00
             ? ld2412::two_byte_to_int(this->buffer_data_[STILL_TARGET_LOW], this->buffer_data_[STILL_TARGET_HIGH])
             : 0;
-    if (this->still_target_distance_sensor_->get_state() != new_still_target_distance)
+    if (this->still_target_distance_sensor_->get_state() != new_still_target_distance) {
       this->still_target_distance_sensor_->publish_state(new_still_target_distance);
+    }
   }
   if (this->still_target_energy_sensor_ != nullptr) {
     int new_still_target_energy = target_state != 0x00 ? this->buffer_data_[STILL_ENERGY] : 0;
-    if (this->still_target_energy_sensor_->get_state() != new_still_target_energy)
+    if (this->still_target_energy_sensor_->get_state() != new_still_target_energy) {
       this->still_target_energy_sensor_->publish_state(new_still_target_energy);
+    }
   }
   if (this->detection_distance_sensor_ != nullptr) {
     int new_detect_distance = 0;
@@ -434,8 +434,9 @@ void LD2412Component::handle_periodic_data_() {
       new_detect_distance =
           ld2412::two_byte_to_int(this->buffer_data_[STILL_TARGET_LOW], this->buffer_data_[STILL_TARGET_HIGH]);
     }
-    if (this->detection_distance_sensor_->get_state() != new_detect_distance)
+    if (this->detection_distance_sensor_->get_state() != new_detect_distance) {
       this->detection_distance_sensor_->publish_state(new_detect_distance);
+    }
   }
   if (engineering_mode) {
     /*
@@ -463,8 +464,9 @@ void LD2412Component::handle_periodic_data_() {
     */
     if (this->light_sensor_ != nullptr) {
       int new_light_sensor = (this->buffer_data_[LIGHT_SENSOR] * 100) / 255;
-      if (this->light_sensor_->get_state() != new_light_sensor)
+      if (this->light_sensor_->get_state() != new_light_sensor) {
         this->light_sensor_->publish_state(new_light_sensor);
+      }
     }
   }
   if (!engineering_mode) {
@@ -505,10 +507,9 @@ void LD2412Component::handle_periodic_data_() {
 
 #ifdef USE_NUMBER
 std::function<void(void)> set_number_value(number::Number *n, float value) {
-  float normalized_value = value * 1.0;
-  if (n != nullptr && (!n->has_state() || n->state != normalized_value)) {
-    n->state = normalized_value;
-    return [n, normalized_value]() { n->publish_state(normalized_value); };
+  if (n != nullptr && (!n->has_state() || n->state != value)) {
+    n->state = value;
+    return [n, value]() { n->publish_state(value); };
   }
   return []() {};
 }
@@ -551,68 +552,76 @@ bool LD2412Component::handle_ack_data_() {
 #endif
       break;
 
-    case CMD_QUERY_VERSION:
-      this->version_ = str_sprintf(VERSION_FMT, this->buffer_data_[13], this->buffer_data_[12], this->buffer_data_[17],
-                                   this->buffer_data_[16], this->buffer_data_[15], this->buffer_data_[14]);
-      ESP_LOGV(TAG, "Firmware version: %s", this->version_.c_str());
+    case CMD_QUERY_VERSION: {
+      std::memcpy(this->version_, &this->buffer_data_[12], sizeof(this->version_));
+      std::string version = str_sprintf(VERSION_FMT, this->version_[1], this->version_[0], this->version_[5],
+                                        this->version_[4], this->version_[3], this->version_[2]);
+      ESP_LOGV(TAG, "Firmware version: %s", version.c_str());
 #ifdef USE_TEXT_SENSOR
       if (this->version_text_sensor_ != nullptr) {
-        this->version_text_sensor_->publish_state(this->version_);
+        this->version_text_sensor_->publish_state(version);
       }
 #endif
       break;
-
+    }
     case CMD_QUERY_DISTANCE_RESOLUTION: {
-      std::string distance_resolution = find_str(
-          DISTANCE_RESOLUTIONS_BY_UINT, ld2412::two_byte_to_int(this->buffer_data_[10], this->buffer_data_[11]));
-      ESP_LOGV(TAG, "Distance resolution: %s", distance_resolution.c_str());
+      auto distance_resolution = find_str(DISTANCE_RESOLUTIONS_BY_UINT,
+                                          ld2412::two_byte_to_int(this->buffer_data_[10], this->buffer_data_[11]));
+      ESP_LOGV(TAG, "Distance resolution: %s", distance_resolution);
 #ifdef USE_SELECT
-      if (this->distance_resolution_select_ != nullptr &&
-          this->distance_resolution_select_->state != distance_resolution) {
+      if (this->distance_resolution_select_ != nullptr) {
         this->distance_resolution_select_->publish_state(distance_resolution);
       }
 #endif
-    } break;
+      break;
+    }
 
-    case CMD_QUERY_LIGHT_CONTROL:
-      this->light_function_ = find_str(LIGHT_FUNCTION_BY_UINT, this->buffer_data_[10]);
+    case CMD_QUERY_LIGHT_CONTROL: {
+      this->light_function_ = this->buffer_data_[10];
       this->light_threshold_ = this->buffer_data_[11];
+      auto light_function_str = find_str(LIGHT_FUNCTION_BY_UINT, this->light_function_);
       ESP_LOGV(TAG,
                "Light function is: %s\n"
                "Light threshold is: %u",
-               this->light_function_.c_str(), this->light_threshold_);
+               light_function_str, this->light_threshold_);
 #ifdef USE_SELECT
-      if (this->light_function_select_ != nullptr && this->light_function_select_->state != this->light_function_) {
-        this->light_function_select_->publish_state(this->light_function_);
+      if (this->light_function_select_ != nullptr) {
+        this->light_function_select_->publish_state(light_function_str);
       }
 #endif
 #ifdef USE_NUMBER
-      if (this->light_threshold_number_ != nullptr &&
-          (!this->light_threshold_number_->has_state() ||
-           this->light_threshold_number_->state != static_cast<uint8_t>(this->light_threshold_))) {
+      if (this->light_threshold_number_ != nullptr) {
         this->light_threshold_number_->publish_state(static_cast<uint8_t>(this->light_threshold_));
       }
 #endif
       break;
+    }
 
-    case CMD_QUERY_MAC_ADDRESS:
+    case CMD_QUERY_MAC_ADDRESS: {
       if (this->buffer_pos_ < 20) {
         return false;
       }
-      this->mac_ = format_mac_address_pretty(&this->buffer_data_[10]);
-      ESP_LOGV(TAG, "MAC address: %s", this->mac_.c_str());
+
+      this->bluetooth_on_ = std::memcmp(&this->buffer_data_[10], NO_MAC, sizeof(NO_MAC)) != 0;
+      if (this->bluetooth_on_) {
+        std::memcpy(this->mac_address_, &this->buffer_data_[10], sizeof(this->mac_address_));
+      }
+
+      std::string mac_str =
+          mac_address_is_valid(this->mac_address_) ? format_mac_address_pretty(this->mac_address_) : UNKNOWN_MAC;
+      ESP_LOGV(TAG, "MAC address: %s", mac_str.c_str());
 #ifdef USE_TEXT_SENSOR
       if (this->mac_text_sensor_ != nullptr) {
-        this->mac_text_sensor_->publish_state(this->mac_ == NO_MAC ? UNKNOWN_MAC : this->mac_);
+        this->mac_text_sensor_->publish_state(mac_str);
       }
 #endif
 #ifdef USE_SWITCH
       if (this->bluetooth_switch_ != nullptr) {
-        this->bluetooth_switch_->publish_state(this->mac_ != NO_MAC);
+        this->bluetooth_switch_->publish_state(this->bluetooth_on_);
       }
 #endif
       break;
-
+    }
     case CMD_SET_DISTANCE_RESOLUTION:
       ESP_LOGV(TAG, "Handled set distance resolution command");
       break;
@@ -686,10 +695,11 @@ bool LD2412Component::handle_ack_data_() {
       /*
         Output pin configuration: 13th bytes
       */
-      this->out_pin_level_ = find_str(OUT_PIN_LEVELS_BY_UINT, this->buffer_data_[14]);
+      this->out_pin_level_ = this->buffer_data_[14];
 #ifdef USE_SELECT
-      if (this->out_pin_level_select_ != nullptr && this->out_pin_level_select_->state != this->out_pin_level_) {
-        this->out_pin_level_select_->publish_state(this->out_pin_level_);
+      auto out_pin_level_str = find_str(OUT_PIN_LEVELS_BY_UINT, this->out_pin_level_);
+      if (this->out_pin_level_select_ != nullptr) {
+        this->out_pin_level_select_->publish_state(out_pin_level_str);
       }
 #endif
       for (auto &update : updates) {
@@ -810,11 +820,6 @@ void LD2412Component::set_engineering_mode(bool enable) {
 void LD2412Component::factory_reset() {
   this->set_config_mode_(true);
   this->send_command_(CMD_FACTORY_RESET, nullptr, 0);
-#ifdef USE_SELECT
-  if (this->baud_rate_select_ != nullptr) {
-    this->baud_rate_select_->publish_state("115200");
-  }
-#endif
   this->set_timeout(2000, [this]() { this->restart_and_read_all_info(); });
 }
 
@@ -836,14 +841,16 @@ void LD2412Component::query_light_control_() { this->send_command_(CMD_QUERY_LIG
 void LD2412Component::set_basic_config() {
 #ifdef USE_NUMBER
   if (!this->min_distance_gate_number_->has_state() || !this->max_distance_gate_number_->has_state() ||
-      !this->timeout_number_->has_state()
-#ifdef USE_SELECT
-      || !this->out_pin_level_select_->has_state())
-#endif
-  {
+      !this->timeout_number_->has_state()) {
     return;
   }
 #endif
+#ifdef USE_SELECT
+  if (!this->out_pin_level_select_->has_state()) {
+    return;
+  }
+#endif
+
   uint8_t value[5] = {
 #ifdef USE_NUMBER
       lowbyte(static_cast<int>(this->min_distance_gate_number_->state)),
@@ -914,15 +921,11 @@ void LD2412Component::set_light_out_control() {
 #endif
 #ifdef USE_SELECT
   if (this->light_function_select_ != nullptr && this->light_function_select_->has_state()) {
-    this->light_function_ = this->light_function_select_->state;
+    this->light_function_ = find_uint8(LIGHT_FUNCTION_BY_STR, this->light_function_select_->state);
   }
 #endif
-  if (this->light_function_.empty()) {
-    return;
-  }
+  uint8_t value[2] = {this->light_function_, this->light_threshold_};
   this->set_config_mode_(true);
-  uint8_t light_function = find_uint8(LIGHT_FUNCTION_BY_STR, this->light_function_);
-  uint8_t value[2] = {light_function, this->light_threshold_};
   this->send_command_(CMD_SET_LIGHT_CONTROL, value, sizeof(value));
   delay(50);  // NOLINT
   this->query_light_control_();
