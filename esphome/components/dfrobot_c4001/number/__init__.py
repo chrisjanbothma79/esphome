@@ -33,7 +33,9 @@ MaxRangeNumber = dfrobot_c4001_ns.class_("MaxRangeNumber", number.Number)
 MinRangeNumber = dfrobot_c4001_ns.class_("MinRangeNumber", number.Number)
 TriggerRangeNumber = dfrobot_c4001_ns.class_("TriggerRangeNumber", number.Number)
 HoldSensitivityNumber = dfrobot_c4001_ns.class_("HoldSensitivityNumber", number.Number)
-TriggerSensitivityNumber = dfrobot_c4001_ns.class_("TriggerSensitivityNumber", number.Number)
+TriggerSensitivityNumber = dfrobot_c4001_ns.class_(
+    "TriggerSensitivityNumber", number.Number
+)
 OnLatencyNumber = dfrobot_c4001_ns.class_("OnLatencyNumber", number.Number)
 OffLatencyNumber = dfrobot_c4001_ns.class_("OffLatencyNumber", number.Number)
 OffLatencyNumber = dfrobot_c4001_ns.class_("OffLatencyNumber", number.Number)

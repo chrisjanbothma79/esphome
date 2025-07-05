@@ -21,7 +21,9 @@ CONF_DFROBOT_C4001_HUB_ID = "dfrobot_c4001_id"
 MODE = ""
 
 dfrobot_c4001_ns = cg.esphome_ns.namespace("dfrobot_c4001")
-DFRobotC4001Hub = dfrobot_c4001_ns.class_("DFRobotC4001Hub", cg.Component, uart.UARTDevice)
+DFRobotC4001Hub = dfrobot_c4001_ns.class_(
+    "DFRobotC4001Hub", cg.Component, uart.UARTDevice
+)
 ModeConfig = dfrobot_c4001_ns.enum("ModeConfig")
 
 CONF_MODE_SELECTS = {
