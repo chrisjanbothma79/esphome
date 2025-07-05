@@ -224,12 +224,11 @@ void ModbusController::on_modbus_write_registers(uint8_t function_code, const st
     return;
   }
 
-  std::vector<uint8_t> response;
-  response.reserve(6);
-  response.push_back(this->address_);
-  response.push_back(function_code);
-  response.insert(response.end(), data.begin(), data.begin() + 4);
-  this->send_raw(response);
+  uint8_t response[6];
+  response[0] = this->address_;
+  response[1] = function_code;
+  std::copy(data.begin(), data.begin() + 4, response + 2);
+  this->send_raw(std::span<const uint8_t>(response, 6));
 }
 
 SensorSet ModbusController::find_sensors_(ModbusRegisterType register_type, uint16_t start_address) const {

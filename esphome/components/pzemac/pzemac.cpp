@@ -77,10 +77,8 @@ void PZEMAC::dump_config() {
 }
 
 void PZEMAC::reset_energy_() {
-  std::vector<uint8_t> cmd;
-  cmd.push_back(this->address_);
-  cmd.push_back(PZEM_CMD_RESET_ENERGY);
-  this->send_raw(cmd);
+  uint8_t cmd[2] = {this->address_, PZEM_CMD_RESET_ENERGY};
+  this->send_raw(std::span<const uint8_t>(cmd, 2));
 }
 
 }  // namespace pzemac

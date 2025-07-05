@@ -204,49 +204,82 @@ void Modbus::send(uint8_t address, uint8_t function_code, uint16_t start_address
     return;
   }
 
-  std::vector<uint8_t> data;
-  data.push_back(address);
-  data.push_back(function_code);
+  // Calculate the expected message size
+  size_t msg_size = 4;  // address + function + CRC(2)
   if (this->role == ModbusRole::CLIENT) {
-    data.push_back(start_address >> 8);
-    data.push_back(start_address >> 0);
+    msg_size += 2;  // start_address
     if (function_code != 0x5 && function_code != 0x6) {
-      data.push_back(number_of_entities >> 8);
-      data.push_back(number_of_entities >> 0);
+      msg_size += 2;  // number_of_entities
+    }
+  }
+  if (payload != nullptr) {
+    if (this->role == ModbusRole::SERVER || function_code == 0xF || function_code == 0x10) {
+      msg_size += 1 + payload_len;  // byte count + payload
+    } else {
+      msg_size += 2;  // single register value
+    }
+  }
+
+  // Use stack buffer for small messages (most common case)
+  static constexpr size_t STACK_BUFFER_SIZE = 64;
+  uint8_t stack_buffer[STACK_BUFFER_SIZE];
+  std::vector<uint8_t> heap_buffer;
+
+  uint8_t *data;
+  if (msg_size <= STACK_BUFFER_SIZE) {
+    data = stack_buffer;
+  } else {
+    heap_buffer.resize(msg_size);
+    data = heap_buffer.data();
+  }
+
+  // Build the message
+  size_t pos = 0;
+  data[pos++] = address;
+  data[pos++] = function_code;
+
+  if (this->role == ModbusRole::CLIENT) {
+    data[pos++] = start_address >> 8;
+    data[pos++] = start_address >> 0;
+    if (function_code != 0x5 && function_code != 0x6) {
+      data[pos++] = number_of_entities >> 8;
+      data[pos++] = number_of_entities >> 0;
     }
   }
 
   if (payload != nullptr) {
     if (this->role == ModbusRole::SERVER || function_code == 0xF || function_code == 0x10) {  // Write multiple
-      data.push_back(payload_len);  // Byte count is required for write
+      data[pos++] = payload_len;  // Byte count is required for write
     } else {
       payload_len = 2;  // Write single register or coil
     }
     for (int i = 0; i < payload_len; i++) {
-      data.push_back(payload[i]);
+      data[pos++] = payload[i];
     }
   }
 
-  auto crc = crc16(data.data(), data.size());
-  data.push_back(crc >> 0);
-  data.push_back(crc >> 8);
+  auto crc = crc16(data, pos);
+  data[pos++] = crc >> 0;
+  data[pos++] = crc >> 8;
 
   if (this->flow_control_pin_ != nullptr)
     this->flow_control_pin_->digital_write(true);
 
-  this->write_array(data);
+  this->write_array(data, pos);
   this->flush();
 
   if (this->flow_control_pin_ != nullptr)
     this->flow_control_pin_->digital_write(false);
   waiting_for_response = address;
   last_send_ = millis();
-  ESP_LOGV(TAG, "Modbus write: %s", format_hex_pretty(data).c_str());
+  ESP_LOGV(TAG, "Modbus write: %s", format_hex_pretty(data, pos).c_str());
 }
 
 // Helper function for lambdas
 // Send raw command. Except CRC everything must be contained in payload
-void Modbus::send_raw(const std::vector<uint8_t> &payload) {
+void Modbus::send_raw(const std::vector<uint8_t> &payload) { send_raw(std::span<const uint8_t>(payload)); }
+
+void Modbus::send_raw(std::span<const uint8_t> payload) {
   if (payload.empty()) {
     return;
   }
@@ -255,14 +288,14 @@ void Modbus::send_raw(const std::vector<uint8_t> &payload) {
     this->flow_control_pin_->digital_write(true);
 
   auto crc = crc16(payload.data(), payload.size());
-  this->write_array(payload);
+  this->write_array(payload.data(), payload.size());
   this->write_byte(crc & 0xFF);
   this->write_byte((crc >> 8) & 0xFF);
   this->flush();
   if (this->flow_control_pin_ != nullptr)
     this->flow_control_pin_->digital_write(false);
   waiting_for_response = payload[0];
-  ESP_LOGV(TAG, "Modbus write raw: %s", format_hex_pretty(payload).c_str());
+  ESP_LOGV(TAG, "Modbus write raw: %s", format_hex_pretty(payload.data(), payload.size()).c_str());
   last_send_ = millis();
 }
 

@@ -3,6 +3,7 @@
 #include "esphome/core/component.h"
 #include "esphome/components/uart/uart.h"
 
+#include <span>
 #include <vector>
 
 namespace esphome {
@@ -32,6 +33,7 @@ class Modbus : public uart::UARTDevice, public Component {
   void send(uint8_t address, uint8_t function_code, uint16_t start_address, uint16_t number_of_entities,
             uint8_t payload_len = 0, const uint8_t *payload = nullptr);
   void send_raw(const std::vector<uint8_t> &payload);
+  void send_raw(std::span<const uint8_t> payload);
   void set_role(ModbusRole role) { this->role = role; }
   void set_flow_control_pin(GPIOPin *flow_control_pin) { this->flow_control_pin_ = flow_control_pin; }
   uint8_t waiting_for_response{0};
@@ -65,13 +67,10 @@ class ModbusDevice {
     this->parent_->send(this->address_, function, start_address, number_of_entities, payload_len, payload);
   }
   void send_raw(const std::vector<uint8_t> &payload) { this->parent_->send_raw(payload); }
+  void send_raw(std::span<const uint8_t> payload) { this->parent_->send_raw(payload); }
   void send_error(uint8_t function_code, uint8_t exception_code) {
-    std::vector<uint8_t> error_response;
-    error_response.reserve(3);
-    error_response.push_back(this->address_);
-    error_response.push_back(function_code | 0x80);
-    error_response.push_back(exception_code);
-    this->send_raw(error_response);
+    uint8_t error_response[3] = {this->address_, static_cast<uint8_t>(function_code | 0x80), exception_code};
+    this->send_raw(std::span<const uint8_t>(error_response, 3));
   }
   // If more than one device is connected block sending a new command before a response is received
   bool waiting_for_response() { return parent_->waiting_for_response != 0; }
