@@ -546,7 +546,7 @@ class InterruptLock {
   ~InterruptLock();
 
  protected:
-#if defined(USE_ESP8266) || defined(USE_RP2040)
+#if defined(USE_ESP8266) || defined(USE_RP2040) || defined(USE_ZEPHYR)
   uint32_t state_;
 #endif
 };

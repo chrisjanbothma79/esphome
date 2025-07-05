@@ -51,6 +51,9 @@ void Mutex::lock() { k_mutex_lock(static_cast<k_mutex *>(this->handle_), K_FOREV
 bool Mutex::try_lock() { return k_mutex_lock(static_cast<k_mutex *>(this->handle_), K_NO_WAIT) == 0; }
 void Mutex::unlock() { k_mutex_unlock(static_cast<k_mutex *>(this->handle_)); }
 
+IRAM_ATTR InterruptLock::InterruptLock() { state_ = irq_lock(); }
+IRAM_ATTR InterruptLock::~InterruptLock() { irq_unlock(state_); }
+
 uint32_t random_uint32() { return rand(); }  // NOLINT(cert-msc30-c, cert-msc50-cpp)
 bool random_bytes(uint8_t *data, size_t len) {
   sys_rand_get(data, len);
