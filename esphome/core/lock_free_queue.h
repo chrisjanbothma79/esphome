@@ -126,18 +126,14 @@ template<class T, uint8_t SIZE> class NotifyingLockFreeQueue : public LockFreeQu
       if (was_empty) {
         // Queue was empty - consumer might be going to sleep, must notify
         xTaskNotifyGive(task_to_notify_);
-      } else {
-        // Queue wasn't empty - check if consumer has caught up to previous tail
-        uint8_t head_after = this->head_.load(std::memory_order_acquire);
-        if (head_after == old_tail) {
-          // Consumer just caught up to where tail was - might go to sleep, must notify
-          // Note: There's a benign race here - between reading head_after and calling
-          // xTaskNotifyGive(), the consumer could advance further. This would result
-          // in an unnecessary wake-up, but is harmless and extremely rare in practice.
-          xTaskNotifyGive(task_to_notify_);
-        }
-        // Otherwise: consumer is still behind, no need to notify
+      } else if (this->head_.load(std::memory_order_acquire) == old_tail) {
+        // Consumer just caught up to where tail was - might go to sleep, must notify
+        // Note: There's a benign race here - between reading head and calling
+        // xTaskNotifyGive(), the consumer could advance further. This would result
+        // in an unnecessary wake-up, but is harmless and extremely rare in practice.
+        xTaskNotifyGive(task_to_notify_);
       }
+      // Otherwise: consumer is still behind, no need to notify
     }
 
     return result;
