@@ -69,7 +69,7 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     // Still need to cancel existing timer if name is not empty
     if (name_cstr != nullptr && name_cstr[0] != '\0') {
       LockGuard guard{this->lock_};
-      this->cancel_item_locked_(component, name_cstr, type);
+      this->cancel_item_locked_(component, name_cstr, type, delay == 0 && type == SchedulerItem::TIMEOUT);
     }
     return;
   }
@@ -88,7 +88,7 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   if (delay == 0 && type == SchedulerItem::TIMEOUT) {
     // Put in defer queue for guaranteed FIFO execution
     LockGuard guard{this->lock_};
-    this->cancel_item_locked_(component, name_cstr, type);
+    this->cancel_item_locked_(component, name_cstr, type, true);
     this->defer_queue_.push_back(std::move(item));
     return;
   }
@@ -129,7 +129,7 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     // If name is provided, do atomic cancel-and-add
     if (name_cstr != nullptr && name_cstr[0] != '\0') {
       // Cancel existing items
-      this->cancel_item_locked_(component, name_cstr, type);
+      this->cancel_item_locked_(component, name_cstr, type, delay == 0 && type == SchedulerItem::TIMEOUT);
     }
     // Add new item directly to to_add_
     // since we have the lock held
@@ -427,11 +427,12 @@ bool HOT Scheduler::cancel_item_(Component *component, bool is_static_string, co
 
   // obtain lock because this function iterates and can be called from non-loop task context
   LockGuard guard{this->lock_};
-  return this->cancel_item_locked_(component, name_cstr, type);
+  return this->cancel_item_locked_(component, name_cstr, type, false);
 }
 
 // Helper to cancel items by name - must be called with lock held
-bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type) {
+bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type,
+                                        bool defer_only) {
   size_t total_cancelled = 0;
 
   // Check all containers for matching items
@@ -447,6 +448,9 @@ bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_c
         item->remove = true;
         total_cancelled++;
       }
+    }
+    if (defer_only) {
+      return total_cancelled > 0;
     }
   }
 #endif
