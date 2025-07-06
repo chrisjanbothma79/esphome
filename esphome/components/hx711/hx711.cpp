@@ -84,8 +84,8 @@ void HX711Sensor::loop() {
       // Start settle timeout for next measurement
       this->start_settle_timeout_();
     }
-    const int32_t result_int = static_cast<int32_t>(result);
-    this->log_and_publish_channel_b_value_(read_operation_result ? static_cast<float>(result_int) : NAN);
+    this->log_and_publish_channel_b_value_(read_operation_result ? static_cast<float>(static_cast<int32_t>(result))
+                                                                 : NAN);
 
     this->hx711_state_flags_.update_in_progress = false;
     return;
