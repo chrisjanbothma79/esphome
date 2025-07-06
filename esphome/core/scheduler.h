@@ -149,12 +149,6 @@ class Scheduler {
   // Cancel heap items (items_ and to_add_)
   bool cancel_heap_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
 
-#if !defined(USE_ESP8266) && !defined(USE_RP2040)
-  // Cancel deferred items (defer_queue_)
-  bool cancel_deferred_item_(Component *component, bool is_static_string, const void *name_ptr,
-                             SchedulerItem::Type type);
-#endif
-
  private:
   // Helper to execute a scheduler item
   void execute_item_(SchedulerItem *item);
