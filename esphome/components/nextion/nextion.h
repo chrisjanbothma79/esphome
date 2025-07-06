@@ -1237,20 +1237,6 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   void set_auto_wake_on_touch(bool auto_wake_on_touch);
 
   /**
-   * Sets if Nextion should exit the active reparse mode before the "connect" command is sent
-   * @param exit_reparse_on_start True or false. When exit_reparse_on_start is true, the exit reparse command
-   * will be sent before requesting the connection from Nextion.
-   *
-   * Example:
-   * ```cpp
-   * it.set_exit_reparse_on_start(true);
-   * ```
-   *
-   * The display will be requested to leave active reparse mode before setup.
-   */
-  void set_exit_reparse_on_start(bool exit_reparse_on_start) { this->exit_reparse_on_start_ = exit_reparse_on_start; }
-
-  /**
    * @brief Retrieves the number of commands pending in the Nextion command queue.
    *
    * This function returns the current count of commands that have been queued but not yet processed
@@ -1351,7 +1337,6 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   uint8_t start_up_page_ = 255;
 #endif  // USE_NEXTION_CONF_START_UP_PAGE
   bool auto_wake_on_touch_ = true;
-  bool exit_reparse_on_start_ = false;
   bool skip_connection_handshake_ = false;
 
   /**

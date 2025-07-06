@@ -172,7 +172,8 @@ async def to_code(config):
 
     cg.add(var.set_auto_wake_on_touch(config[CONF_AUTO_WAKE_ON_TOUCH]))
 
-    cg.add(var.set_exit_reparse_on_start(config[CONF_EXIT_REPARSE_ON_START]))
+    if CONF_EXIT_REPARSE_ON_START in config and config[CONF_EXIT_REPARSE_ON_START]:
+        cg.add_define("USE_NEXTION_CONFIG_EXIT_REPARSE_ON_START")
 
     cg.add(var.set_skip_connection_handshake(config[CONF_SKIP_CONNECTION_HANDSHAKE]))
 

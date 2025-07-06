@@ -66,9 +66,9 @@ bool Nextion::check_connect_() {
 
     this->ignore_is_setup_ = true;
     this->send_command_("boguscommand=0");  // bogus command. needed sometimes after updating
-    if (this->exit_reparse_on_start_) {
-      this->send_command_("DRAKJHSUYDGBNCJHGJKSHBDN");
-    }
+#ifdef USE_NEXTION_CONFIG_EXIT_REPARSE_ON_START
+    this->send_command_("DRAKJHSUYDGBNCJHGJKSHBDN");
+#endif  // USE_NEXTION_CONFIG_EXIT_REPARSE_ON_START
     this->send_command_("connect");
 
     this->comok_sent_ = App.get_loop_component_start_time();
@@ -151,14 +151,14 @@ void Nextion::dump_config() {
                   "  Device Model:   %s\n"
                   "  FW Version:     %s\n"
                   "  Serial Number:  %s\n"
-                  "  Flash Size:     %s",
+                  "  Flash Size:     %s\n"
+#ifdef USE_NEXTION_CONFIG_EXIT_REPARSE_ON_START
+                  "  Exit reparse:   YES\n"
+#endif  // USE_NEXTION_CONFIG_EXIT_REPARSE_ON_START
+                  "  Wake On Touch:  %s",
                   this->device_model_.c_str(), this->firmware_version_.c_str(), this->serial_number_.c_str(),
-                  this->flash_size_.c_str());
+                  this->flash_size_.c_str(), YESNO(this->auto_wake_on_touch_));
   }
-  ESP_LOGCONFIG(TAG,
-                "  Wake On Touch:  %s\n"
-                "  Exit reparse:   %s",
-                YESNO(this->auto_wake_on_touch_), YESNO(this->exit_reparse_on_start_));
 #ifdef USE_NEXTION_MAX_COMMANDS_PER_LOOP
   ESP_LOGCONFIG(TAG, "  Max commands per loop: %u", this->max_commands_per_loop_);
 #endif  // USE_NEXTION_MAX_COMMANDS_PER_LOOP
