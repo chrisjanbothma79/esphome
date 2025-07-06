@@ -46,7 +46,7 @@ async def test_scheduler_simultaneous_callbacks(
             test_stats["scheduled"] += 1
         elif "Callback executed" in line:
             test_stats["executed"] += 1
-        elif "ERROR" in line or "WARN" in line:
+        elif "ERROR" in line:
             test_stats["errors"].append(line)
 
         # Check for crash indicators

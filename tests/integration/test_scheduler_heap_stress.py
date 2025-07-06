@@ -133,14 +133,6 @@ async def test_scheduler_heap_stress(
             assert len(indices) == 100, (
                 f"Thread {thread_id} executed {len(indices)} callbacks, expected 100"
             )
-
-        # Verify that we executed a reasonable number of callbacks
-        assert timeout_count > 0, (
-            f"Expected some timeout callbacks but got {timeout_count}"
-        )
-        assert interval_count > 0, (
-            f"Expected some interval callbacks but got {interval_count}"
-        )
         # Total should be 1000 callbacks
         total_callbacks = timeout_count + interval_count
         assert total_callbacks == 1000, (

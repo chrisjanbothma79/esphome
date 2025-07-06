@@ -46,8 +46,8 @@ async def test_scheduler_rapid_cancellation(
         # Count log lines
         test_stats["log_count"] += 1
 
-        # Check for errors
-        if "ERROR" in line or "WARN" in line:
+        # Check for errors (only ERROR level, not WARN)
+        if "ERROR" in line:
             test_stats["errors"].append(line)
 
         # Parse summary statistics

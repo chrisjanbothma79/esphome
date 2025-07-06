@@ -121,10 +121,7 @@ async def test_scheduler_string_lifetime(
         # Check for any errors
         assert test_stats["tests_failed"] == 0, f"Tests failed: {test_stats['errors']}"
 
-        # Verify we had the expected number of passing tests and no failures
+        # Verify we had the expected number of passing tests
         assert test_stats["tests_passed"] == 30, (
             f"Expected exactly 30 tests to pass, but got {test_stats['tests_passed']}"
-        )
-        assert test_stats["tests_failed"] == 0, (
-            f"Expected no test failures, but got {test_stats['tests_failed']} failures"
         )
