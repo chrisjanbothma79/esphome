@@ -68,7 +68,8 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   if (delay == SCHEDULER_DONT_RUN) {
     // Still need to cancel existing timer if name is not empty
     if (name_cstr != nullptr && name_cstr[0] != '\0') {
-      this->cancel_item_(component, is_static_string, name_ptr, type);
+      LockGuard guard{this->lock_};
+      this->cancel_item_locked_(component, name_cstr, type);
     }
     return;
   }
@@ -89,7 +90,7 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   if (delay == 0 && type == SchedulerItem::TIMEOUT) {
     // Put in defer queue for guaranteed FIFO execution
     LockGuard guard{this->lock_};
-    this->cancel_deferred_item_locked_(component, is_static_string, name_ptr, type);
+    this->cancel_item_locked_(component, is_static_string, name_ptr, type);
     this->defer_queue_.push_back(std::move(item));
     return;
   }
@@ -429,25 +430,6 @@ bool HOT Scheduler::cancel_item_(Component *component, bool is_static_string, co
   return this->cancel_item_locked_(component, name_cstr, type);
 }
 
-#if !defined(USE_ESP8266) && !defined(USE_RP2040)
-// Helper to mark deferred items for cancellation (no to_remove_ tracking needed)
-size_t HOT Scheduler::cancel_deferred_item_locked_(Component *component, const char *name_cstr,
-                                                   SchedulerItem::Type type) {
-  size_t cancelled_count = 0;
-  for (auto &item : this->defer_queue_) {
-    if (item->component != component || item->remove) {
-      continue;
-    }
-    const char *item_name = item->get_name();
-    if (item_name != nullptr && strcmp(name_cstr, item_name) == 0) {
-      item->remove = true;
-      cancelled_count++;
-    }
-  }
-  return cancelled_count;
-}
-#endif
-
 // Helper to mark heap items for cancellation and update to_remove_ count
 size_t HOT Scheduler::cancel_heap_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type) {
   size_t cancelled_count = 0;
@@ -487,7 +469,17 @@ bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_c
 
   // Check all containers for matching items
 #if !defined(USE_ESP8266) && !defined(USE_RP2040)
-  total_cancelled += this->cancel_deferred_item_locked_(component, name_cstr, type);
+  // Cancel items in defer queue
+  for (auto &item : this->defer_queue_) {
+    if (item->component != component || item->type != type || item->remove) {
+      continue;
+    }
+    const char *item_name = item->get_name();
+    if (item_name != nullptr && strcmp(name_cstr, item_name) == 0) {
+      item->remove = true;
+      total_cancelled++;
+    }
+  }
 #endif
   total_cancelled += this->cancel_heap_item_locked_(component, name_cstr, type);
 
