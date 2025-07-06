@@ -68,8 +68,7 @@ constexpr adc_channel_t ADC2_CHANNEL_MAX = static_cast<adc_channel_t>(10);
 #endif  // ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
 
 // clang-format off
-#if (ESP_IDF_VERSION_MAJOR == 4 && ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(4, 4, 7)) || \
-    (ESP_IDF_VERSION_MAJOR == 5 && \
+#if (ESP_IDF_VERSION_MAJOR == 5 && \
      ((ESP_IDF_VERSION_MINOR == 0 && ESP_IDF_VERSION_PATCH >= 5) || \
       (ESP_IDF_VERSION_MINOR == 1 && ESP_IDF_VERSION_PATCH >= 3) || \
       (ESP_IDF_VERSION_MINOR >= 2)) \
@@ -81,19 +80,24 @@ static const adc_atten_t ADC_ATTEN_DB_12_COMPAT = ADC_ATTEN_DB_11;
 #endif  // ESP_IDF_VERSION check for ADC_ATTEN_DB_12_COMPAT
 #endif  // USE_ESP32
 
-enum class SamplingMode : uint8_t { AVG = 0, MIN = 1, MAX = 2 };
+enum class SamplingMode : uint8_t {
+  AVG = 0,
+  MIN = 1,
+  MAX = 2,
+};
+
 const LogString *sampling_mode_to_str(SamplingMode mode);
 
 class Aggregator {
  public:
+  Aggregator(SamplingMode mode);
   void add_sample(uint32_t value);
   uint32_t aggregate();
-  Aggregator(SamplingMode mode);
 
  protected:
-  SamplingMode mode_{SamplingMode::AVG};
   uint32_t aggr_{0};
   uint32_t samples_{0};
+  SamplingMode mode_{SamplingMode::AVG};
 };
 
 class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage_sampler::VoltageSampler {
@@ -211,9 +215,9 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
 #endif  // USE_RP2040
 
  protected:
-  InternalGPIOPin *pin_;
-  bool output_raw_{false};
   uint8_t sample_count_{1};
+  bool output_raw_{false};
+  InternalGPIOPin *pin_;
   SamplingMode sampling_mode_{SamplingMode::AVG};
 
 #ifdef USE_ESP32

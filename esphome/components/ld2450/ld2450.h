@@ -1,12 +1,12 @@
 #pragma once
 
-#include <iomanip>
-#include <map>
 #include "esphome/components/uart/uart.h"
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/preferences.h"
+#include <limits>
+#include <cmath>
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #endif
@@ -66,49 +66,6 @@ struct ZoneOfNumbers {
 };
 #endif
 
-enum BaudRateStructure : uint8_t {
-  BAUD_RATE_9600 = 1,
-  BAUD_RATE_19200 = 2,
-  BAUD_RATE_38400 = 3,
-  BAUD_RATE_57600 = 4,
-  BAUD_RATE_115200 = 5,
-  BAUD_RATE_230400 = 6,
-  BAUD_RATE_256000 = 7,
-  BAUD_RATE_460800 = 8
-};
-
-// Convert baud rate enum to int
-static const std::map<std::string, uint8_t> BAUD_RATE_ENUM_TO_INT{
-    {"9600", BAUD_RATE_9600},     {"19200", BAUD_RATE_19200},   {"38400", BAUD_RATE_38400},
-    {"57600", BAUD_RATE_57600},   {"115200", BAUD_RATE_115200}, {"230400", BAUD_RATE_230400},
-    {"256000", BAUD_RATE_256000}, {"460800", BAUD_RATE_460800}};
-
-// Zone type struct
-enum ZoneTypeStructure : uint8_t { ZONE_DISABLED = 0, ZONE_DETECTION = 1, ZONE_FILTER = 2 };
-
-// Convert zone type int to enum
-static const std::map<ZoneTypeStructure, std::string> ZONE_TYPE_INT_TO_ENUM{
-    {ZONE_DISABLED, "Disabled"}, {ZONE_DETECTION, "Detection"}, {ZONE_FILTER, "Filter"}};
-
-// Convert zone type enum to int
-static const std::map<std::string, uint8_t> ZONE_TYPE_ENUM_TO_INT{
-    {"Disabled", ZONE_DISABLED}, {"Detection", ZONE_DETECTION}, {"Filter", ZONE_FILTER}};
-
-// LD2450 serial command header & footer
-static const uint8_t CMD_FRAME_HEADER[4] = {0xFD, 0xFC, 0xFB, 0xFA};
-static const uint8_t CMD_FRAME_END[4] = {0x04, 0x03, 0x02, 0x01};
-
-enum PeriodicDataStructure : uint8_t {
-  TARGET_X = 4,
-  TARGET_Y = 6,
-  TARGET_SPEED = 8,
-  TARGET_RESOLUTION = 10,
-};
-
-enum PeriodicDataValue : uint8_t { HEAD = 0xAA, END = 0x55, CHECK = 0x00 };
-
-enum AckDataStructure : uint8_t { COMMAND = 6, COMMAND_STATUS = 7 };
-
 class LD2450Component : public Component, public uart::UARTDevice {
 #ifdef USE_SENSOR
   SUB_SENSOR(target_count)
@@ -141,12 +98,11 @@ class LD2450Component : public Component, public uart::UARTDevice {
 #endif
 
  public:
-  LD2450Component();
   void setup() override;
   void dump_config() override;
   void loop() override;
   void set_presence_timeout();
-  void set_throttle(uint16_t value) { this->throttle_ = value; };
+  void set_throttle(uint16_t value) { this->throttle_ = value; }
   void read_all_info();
   void query_zone_info();
   void restart_and_read_all_info();
@@ -197,19 +153,45 @@ class LD2450Component : public Component, public uart::UARTDevice {
   bool get_timeout_status_(uint32_t check_millis);
   uint8_t count_targets_in_zone_(const Zone &zone, bool is_moving);
 
-  Target target_info_[MAX_TARGETS];
-  Zone zone_config_[MAX_ZONES];
-  uint8_t buffer_pos_ = 0;  // where to resume processing/populating buffer
-  uint8_t buffer_data_[MAX_LINE_LENGTH];
   uint32_t last_periodic_millis_ = 0;
   uint32_t presence_millis_ = 0;
   uint32_t still_presence_millis_ = 0;
   uint32_t moving_presence_millis_ = 0;
   uint16_t throttle_ = 0;
   uint16_t timeout_ = 5;
+  uint8_t buffer_pos_ = 0;  // where to resume processing/populating buffer
+  uint8_t buffer_data_[MAX_LINE_LENGTH];
   uint8_t zone_type_ = 0;
+  Target target_info_[MAX_TARGETS];
+  Zone zone_config_[MAX_ZONES];
   std::string version_{};
   std::string mac_{};
+
+  // Change detection - cache previous values to avoid redundant publishes
+  // All values are initialized to sentinel values that are outside the valid sensor ranges
+  // to ensure the first real measurement is always published
+  struct CachedTargetData {
+    int16_t x = std::numeric_limits<int16_t>::min();             // -32768, outside range of -4860 to 4860
+    int16_t y = std::numeric_limits<int16_t>::min();             // -32768, outside range of 0 to 7560
+    int16_t speed = std::numeric_limits<int16_t>::min();         // -32768, outside practical sensor range
+    uint16_t resolution = std::numeric_limits<uint16_t>::max();  // 65535, unlikely resolution value
+    uint16_t distance = std::numeric_limits<uint16_t>::max();    // 65535, outside range of 0 to ~8990
+    float angle = NAN;                                           // NAN, safe sentinel for floats
+    std::string direction = "";                                  // Empty string, will differ from any real direction
+  } cached_target_data_[MAX_TARGETS];
+
+  struct CachedZoneData {
+    uint8_t still_count = std::numeric_limits<uint8_t>::max();   // 255, unlikely zone count
+    uint8_t moving_count = std::numeric_limits<uint8_t>::max();  // 255, unlikely zone count
+    uint8_t total_count = std::numeric_limits<uint8_t>::max();   // 255, unlikely zone count
+  } cached_zone_data_[MAX_ZONES];
+
+  struct CachedGlobalData {
+    uint8_t target_count = std::numeric_limits<uint8_t>::max();  // 255, max 3 targets possible
+    uint8_t still_count = std::numeric_limits<uint8_t>::max();   // 255, max 3 targets possible
+    uint8_t moving_count = std::numeric_limits<uint8_t>::max();  // 255, max 3 targets possible
+  } cached_global_data_;
+
 #ifdef USE_NUMBER
   ESPPreferenceObject pref_;  // only used when numbers are in use
   ZoneOfNumbers zone_numbers_[MAX_ZONES];
