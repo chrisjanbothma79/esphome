@@ -318,7 +318,8 @@ async def api_connected_to_code(config, condition_id, template_arg, args):
 def FILTER_SOURCE_FILES() -> list[str]:
     """Filter out api_pb2_dump.cpp when proto message dumping is not enabled."""
     # api_pb2_dump.cpp is only needed when HAS_PROTO_MESSAGE_DUMP is defined
-    # Check if HAS_PROTO_MESSAGE_DUMP is defined
+    # This is a particularly large file that still needs to be opened and read
+    # all the way to the end even when ifdef'd out
     if "HAS_PROTO_MESSAGE_DUMP" not in CORE.defines:
         return ["api_pb2_dump.cpp"]
 
