@@ -155,7 +155,15 @@ class Scheduler {
       return false;
     }
     const char *item_name = item->get_name();
-    return item_name != nullptr && strcmp(name_cstr, item_name) == 0;
+    if (item_name == nullptr) {
+      return false;
+    }
+    // Fast path: if pointers are equal (common with string deduplication)
+    if (item_name == name_cstr) {
+      return true;
+    }
+    // Slow path: compare string contents
+    return strcmp(name_cstr, item_name) == 0;
   }
 
   // Helper to execute a scheduler item
