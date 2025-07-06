@@ -458,6 +458,8 @@ void SX126x::set_mode_standby(SX126xStandbyMode mode) {
 }
 
 void SX126x::wait_busy_() {
+  // wait if the device is busy, the maximum delay is only be a few ms
+  // with most commands taking only a few us
   uint32_t start = millis();
   while (this->busy_pin_->digital_read()) {
     if (millis() - start > BUSY_TIMEOUT_MS) {
