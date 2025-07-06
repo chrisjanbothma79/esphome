@@ -140,16 +140,26 @@ class Scheduler {
   // Helper to cancel items by name - must be called with lock held
   bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type);
 
-  // Helper to mark items for cancellation and return count
+  // Helper to mark deferred/to_add items for cancellation (no to_remove_ tracking needed)
   template<typename Container>
-  size_t mark_items_for_removal_(Container &items, Component *component, const char *name_cstr,
-                                 SchedulerItem::Type type);
+  size_t cancel_deferred_items_locked_(Container &items, Component *component, const char *name_cstr,
+                                       SchedulerItem::Type type);
+
+  // Helper to mark heap items for cancellation and update to_remove_ count
+  size_t cancel_heap_items_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type);
 
   uint64_t millis_();
   void cleanup_();
   void pop_raw_();
   // Common implementation for cancel operations
   bool cancel_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
+
+  // Cancel heap items (items_ and to_add_)
+  bool cancel_heap_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
+
+  // Cancel deferred items (defer_queue_)
+  bool cancel_deferred_item_(Component *component, bool is_static_string, const void *name_ptr,
+                             SchedulerItem::Type type);
 
  private:
   // Helper to execute a scheduler item
