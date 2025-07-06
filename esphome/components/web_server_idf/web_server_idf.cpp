@@ -37,6 +37,12 @@ namespace web_server_idf {
 
 static const char *const TAG = "web_server_idf";
 
+// Global instance to avoid guard variable (saves 8 bytes)
+// This is initialized at program startup before any threads
+static DefaultHeaders default_headers_instance;
+
+DefaultHeaders &DefaultHeaders::Instance() { return default_headers_instance; }
+
 void AsyncWebServer::end() {
   if (this->server_) {
     httpd_stop(this->server_);
