@@ -61,6 +61,7 @@ static constexpr size_t FLUSH_BATCH_SIZE = 16;
 
 // Global batch buffer to avoid guard variable (saves 8 bytes)
 // This is initialized at program startup before any threads
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
 
 static std::vector<api::BluetoothLERawAdvertisement> &get_batch_buffer() { return batch_buffer; }
