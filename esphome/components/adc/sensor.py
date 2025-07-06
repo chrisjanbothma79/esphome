@@ -72,7 +72,9 @@ def final_validate_config(config):
                     and hasattr(framework_version, "major")
                     and framework_version.major < 5
                 ):
-                    raise cv.Invalid(f"ADC requires ESP-IDF v5.0+, got v{framework_version}")
+                    raise cv.Invalid(
+                        f"ADC requires ESP-IDF v5.0+, got v{framework_version}"
+                    )
             elif framework_type == "arduino":
                 # Arduino framework - check the underlying ESP-IDF version it's based on
                 idf_version = core_data.get("idf_version")
