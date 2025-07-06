@@ -59,19 +59,31 @@ def validate_config(config):
 
 def final_validate_config(config):
     if CORE.is_esp32:
-        # Check ESP-IDF version - only validate if framework data is available
+        # ADC component requires ESP-IDF v5.0+ (whether using ESP-IDF directly or Arduino based on IDF v5+)
         if hasattr(CORE, "data") and CORE.data:
-            # Look for framework version in the data structure
             core_data = CORE.data.get("core", {})
-            framework_version = core_data.get("framework_version")
-            if (
-                framework_version
-                and hasattr(framework_version, "major")
-                and framework_version.major < 5
-            ):
-                raise cv.Invalid(
-                    f"ADC requires ESP-IDF v5.0+, got v{framework_version}"
-                )
+            framework_type = core_data.get("framework_type")
+
+            if framework_type == "esp-idf":
+                # Direct ESP-IDF usage - check the IDF version
+                framework_version = core_data.get("framework_version")
+                if (
+                    framework_version
+                    and hasattr(framework_version, "major")
+                    and framework_version.major < 5
+                ):
+                    raise cv.Invalid(f"ADC requires ESP-IDF v5.0+, got v{framework_version}")
+            elif framework_type == "arduino":
+                # Arduino framework - check the underlying ESP-IDF version it's based on
+                idf_version = core_data.get("idf_version")
+                if (
+                    idf_version
+                    and hasattr(idf_version, "major")
+                    and idf_version.major < 5
+                ):
+                    raise cv.Invalid(
+                        f"ADC requires Arduino framework based on ESP-IDF v5.0+, got IDF v{idf_version}"
+                    )
 
         variant = get_esp32_variant()
         if (
