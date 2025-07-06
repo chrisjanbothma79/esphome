@@ -734,12 +734,8 @@ void LD2410S::process_data_frame_(uint8_t *data, size_t data_size) {
   switch (data[0]) {
     case 0x01:  // standard data
     {
-      if (data_size < 70) {
-        ESP_LOGE(TAG, "std data frame too short, data: %d, expected 70", data_size);
-        return;
-      }
-
       const bool presence_state = data[1] > 1;
+
       uint16_t distance = encode_uint16(data[3], data[2]);
       if (!presence_state)
         distance = 0;
@@ -949,7 +945,7 @@ void LD2410S::process_data_energy_values_read_(uint8_t *data) {
     uint32_t val = encode_uint32(data[i * 4 + 3], data[i * 4 + 2], data[i * 4 + 1], data[i * 4 + 0]);
     this->energy_values_[i] = val;
   }
-  this->update_ts_energy_values_();
+  // this->update_ts_energy_values_();
 }
 
 void LD2410S::update_ts_thresholds_() {
