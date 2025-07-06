@@ -140,8 +140,10 @@ class Scheduler {
   // Helper to cancel items by name - must be called with lock held
   bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type);
 
+#if !defined(USE_ESP8266) && !defined(USE_RP2040)
   // Helper to mark deferred items for cancellation (no to_remove_ tracking needed)
   size_t cancel_deferred_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type);
+#endif
 
   // Helper to mark heap items for cancellation and update to_remove_ count
   size_t cancel_heap_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type);
