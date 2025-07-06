@@ -27,6 +27,7 @@ from esphome.const import (
     CONF_TX_PIN,
     CONF_UART_ID,
     PLATFORM_HOST,
+    PlatformFramework,
 )
 from esphome.core import CORE
 import esphome.final_validate as fv
@@ -438,3 +439,17 @@ async def uart_write_to_code(config, action_id, template_arg, args):
     else:
         cg.add(var.set_data_static(data))
     return var
+
+
+PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
+    "uart_component_esp32_arduino.cpp": {PlatformFramework.ESP32_ARDUINO},
+    "uart_component_esp_idf.cpp": {PlatformFramework.ESP32_IDF},
+    "uart_component_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
+    "uart_component_host.cpp": {PlatformFramework.HOST_NATIVE},
+    "uart_component_rp2040.cpp": {PlatformFramework.RP2040_ARDUINO},
+    "uart_component_libretiny.cpp": {
+        PlatformFramework.BK72XX_ARDUINO,
+        PlatformFramework.RTL87XX_ARDUINO,
+        PlatformFramework.LN882X_ARDUINO,
+    },
+}

@@ -27,6 +27,7 @@ from esphome.const import (
     CONF_WAKEUP_PIN,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
+    PlatformFramework,
 )
 
 WAKEUP_PINS = {
@@ -313,3 +314,12 @@ async def deep_sleep_action_to_code(config, action_id, template_arg, args):
     var = cg.new_Pvariable(action_id, template_arg)
     await cg.register_parented(var, config[CONF_ID])
     return var
+
+
+PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
+    "deep_sleep_esp32.cpp": {
+        PlatformFramework.ESP32_ARDUINO,
+        PlatformFramework.ESP32_IDF,
+    },
+    "deep_sleep_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
+}

@@ -35,6 +35,7 @@ from esphome.const import (
     CONF_TRIGGER_ID,
     CONF_VERSION,
     KEY_CORE,
+    PlatformFramework,
     __version__ as ESPHOME_VERSION,
 )
 from esphome.core import CORE, coroutine_with_priority
@@ -551,3 +552,11 @@ async def to_code(config: ConfigType) -> None:
             cg.add(dev.set_area_id(area_id_hash))
 
         cg.add(cg.App.register_device(dev))
+
+
+# Platform-specific source files for core
+PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
+    "ring_buffer.cpp": {PlatformFramework.ESP32_ARDUINO, PlatformFramework.ESP32_IDF},
+    # Note: lock_free_queue.h and event_pool.h are header files and don't need to be filtered
+    # as they are only included when needed by the preprocessor
+}

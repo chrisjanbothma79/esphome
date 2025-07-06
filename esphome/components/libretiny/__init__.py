@@ -20,6 +20,7 @@ from esphome.const import (
     KEY_FRAMEWORK_VERSION,
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
+    PlatformFramework,
     __version__,
 )
 from esphome.core import CORE
@@ -340,3 +341,12 @@ async def component_to_code(config):
         cg.add_platformio_option("custom_fw_version", __version__)
 
     await cg.register_component(var, config)
+
+
+PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
+    "gpio_arduino.cpp": {
+        PlatformFramework.BK72XX_ARDUINO,
+        PlatformFramework.RTL87XX_ARDUINO,
+        PlatformFramework.LN882X_ARDUINO,
+    },
+}

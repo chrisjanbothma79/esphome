@@ -11,12 +11,25 @@ import sys
 from types import ModuleType
 from typing import Any
 
-from esphome.const import SOURCE_FILE_EXTENSIONS
+from esphome.const import (
+    KEY_CORE,
+    KEY_TARGET_FRAMEWORK,
+    KEY_TARGET_PLATFORM,
+    SOURCE_FILE_EXTENSIONS,
+    Framework,
+    Platform,
+    PlatformFramework,
+)
 from esphome.core import CORE
 import esphome.core.config
 from esphome.types import ConfigType
 
 _LOGGER = logging.getLogger(__name__)
+
+# Build unified lookup table from PlatformFramework enum
+_PLATFORM_FRAMEWORK_LOOKUP: dict[
+    tuple[Platform, Framework | None], PlatformFramework
+] = {pf.value: pf for pf in PlatformFramework}
 
 
 @dataclass(frozen=True, order=True)
@@ -107,13 +120,33 @@ class ComponentManifest:
 
     @property
     def resources(self) -> list[FileResource]:
-        """Return a list of all file resources defined in the package of this component.
+        """Return a list of all file resources defined in the package of this component."""
+        ret: list[FileResource] = []
 
-        This will return all cpp source files that are located in the same folder as the
-        loaded .py file (does not look through subdirectories)
-        """
-        ret = []
+        # Get current platform-framework combination
+        core_data: dict[str, Any] = CORE.data.get(KEY_CORE, {})
+        target_platform: Platform | None = core_data.get(KEY_TARGET_PLATFORM)
+        target_framework: Framework | None = core_data.get(KEY_TARGET_FRAMEWORK)
 
+        # Get platform-specific files mapping
+        platform_source_files: dict[str, set[PlatformFramework]] = getattr(
+            self.module, "PLATFORM_SOURCE_FILES", {}
+        )
+
+        # Get current PlatformFramework
+        lookup_key = (target_platform, target_framework)
+        current_platform_framework: PlatformFramework | None = (
+            _PLATFORM_FRAMEWORK_LOOKUP.get(lookup_key)
+        )
+
+        # Build set of allowed filenames for current platform
+        allowed_filenames: set[str] = set()
+        if current_platform_framework and platform_source_files:
+            for filename, platforms in platform_source_files.items():
+                if current_platform_framework in platforms:
+                    allowed_filenames.add(filename)
+
+        # Process all resources
         for resource in (
             r.name
             for r in importlib.resources.files(self.package).iterdir()
@@ -122,8 +155,13 @@ class ComponentManifest:
             if Path(resource).suffix not in SOURCE_FILE_EXTENSIONS:
                 continue
             if not importlib.resources.files(self.package).joinpath(resource).is_file():
-                # Not a resource = this is a directory (yeah this is confusing)
                 continue
+
+            # Check platform restrictions only if file is platform-specific
+            # Common files (not in platform_source_files) are always included
+            if resource in platform_source_files and resource not in allowed_filenames:
+                continue
+
             ret.append(FileResource(self.package, resource))
         return ret
 

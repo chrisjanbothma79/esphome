@@ -8,6 +8,7 @@ from esphome.const import (
     CONF_PROTOCOL,
     CONF_SERVICE,
     CONF_SERVICES,
+    PlatformFramework,
 )
 from esphome.core import CORE, coroutine_with_priority
 
@@ -108,3 +109,16 @@ async def to_code(config):
         )
 
         cg.add(var.add_extra_service(exp))
+
+
+PLATFORM_SOURCE_FILES: dict[str, set[PlatformFramework]] = {
+    "mdns_esp32.cpp": {PlatformFramework.ESP32_ARDUINO, PlatformFramework.ESP32_IDF},
+    "mdns_esp8266.cpp": {PlatformFramework.ESP8266_ARDUINO},
+    "mdns_host.cpp": {PlatformFramework.HOST_NATIVE},
+    "mdns_rp2040.cpp": {PlatformFramework.RP2040_ARDUINO},
+    "mdns_libretiny.cpp": {
+        PlatformFramework.BK72XX_ARDUINO,
+        PlatformFramework.RTL87XX_ARDUINO,
+        PlatformFramework.LN882X_ARDUINO,
+    },
+}
