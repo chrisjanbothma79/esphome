@@ -129,7 +129,7 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     // If name is provided, do atomic cancel-and-add
     if (name_cstr != nullptr && name_cstr[0] != '\0') {
       // Cancel existing items
-      this->cancel_item_locked_(component, name_cstr, type, delay == 0 && type == SchedulerItem::TIMEOUT);
+      this->cancel_item_locked_(component, name_cstr, type, false);
     }
     // Add new item directly to to_add_
     // since we have the lock held
