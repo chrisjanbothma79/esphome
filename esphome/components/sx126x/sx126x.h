@@ -46,6 +46,8 @@ enum SX126xBw : uint8_t {
   SX126X_BW_500000,
 };
 
+enum class SX126xError { NONE = 0, TIMEOUT, INVALID_PARAMS };
+
 class SX126xListener {
  public:
   virtual void on_packet(const std::vector<uint8_t> &packet, float rssi, float snr) = 0;
@@ -89,7 +91,7 @@ class SX126x : public Component,
   void set_tcxo_delay(uint32_t tcxo_delay) { this->tcxo_delay_ = tcxo_delay; }
   void run_image_cal();
   void configure();
-  void transmit_packet(const std::vector<uint8_t> &packet);
+  SX126xError transmit_packet(const std::vector<uint8_t> &packet);
   void register_listener(SX126xListener *listener) { this->listeners_.push_back(listener); }
   Trigger<std::vector<uint8_t>, float, float> *get_packet_trigger() const { return this->packet_trigger_; };
 
