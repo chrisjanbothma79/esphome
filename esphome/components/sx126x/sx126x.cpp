@@ -17,6 +17,18 @@ static const uint8_t BW_FSK[21] = {
     FSK_BW_23400,  FSK_BW_29300,  FSK_BW_39000,  FSK_BW_46900,  FSK_BW_58600,  FSK_BW_78200,  FSK_BW_93800,
     FSK_BW_117300, FSK_BW_156200, FSK_BW_187200, FSK_BW_234300, FSK_BW_312000, FSK_BW_373600, FSK_BW_467000};
 
+static constexpr uint32_t RESET_DELAY_HIGH_US = 5000;
+static constexpr uint32_t RESET_DELAY_LOW_US = 2000;
+static constexpr uint32_t TRANSMIT_TIMEOUT_MS = 4000;
+static constexpr uint32_t BUSY_TIMEOUT_MS = 100;
+
+// OCP (Over Current Protection) values
+static constexpr uint8_t OCP_80MA = 0x18;   // 80 mA max current
+static constexpr uint8_t OCP_140MA = 0x38;  // 140 mA max current
+
+// LoRa low data rate optimization threshold
+static constexpr float LOW_DATA_RATE_OPTIMIZE_THRESHOLD = 16.38f;  // 16.38 ms
+
 uint8_t SX126x::wakeup_() {
   this->wait_busy_();
   this->enable();
@@ -124,11 +136,11 @@ void SX126x::configure() {
 
   // toggle chip reset
   this->rst_pin_->digital_write(true);
-  delayMicroseconds(5000);
+  delayMicroseconds(RESET_DELAY_HIGH_US);
   this->rst_pin_->digital_write(false);
-  delayMicroseconds(2000);
+  delayMicroseconds(RESET_DELAY_LOW_US);
   this->rst_pin_->digital_write(true);
-  delayMicroseconds(5000);
+  delayMicroseconds(RESET_DELAY_HIGH_US);
 
   // wakeup
   this->wakeup_();
@@ -181,6 +193,8 @@ void SX126x::configure() {
   // configure pa
   int8_t pa_power = this->pa_power_;
   if (this->hw_version_ == "sx1261") {
+    // the following values were taken from section 13.1.14.1 table 13-21
+    // in rev 2.1 of the datasheet
     if (pa_power == 15) {
       uint8_t cfg[4] = {0x06, 0x00, 0x01, 0x01};
       this->write_opcode_(RADIO_SET_PACONFIG, cfg, 4);
@@ -190,14 +204,16 @@ void SX126x::configure() {
     }
     pa_power = std::max(pa_power, (int8_t) -3);
     pa_power = std::min(pa_power, (int8_t) 14);
-    buf[0] = 0x18;  // max 80 mA
+    buf[0] = OCP_80MA;
     this->write_register_(REG_OCP, buf, 1);
   } else {
+    // the following values were taken from section 13.1.14.1 table 13-21
+    // in rev 2.1 of the datasheet
     uint8_t cfg[4] = {0x04, 0x07, 0x00, 0x01};
     this->write_opcode_(RADIO_SET_PACONFIG, cfg, 4);
     pa_power = std::max(pa_power, (int8_t) -3);
     pa_power = std::min(pa_power, (int8_t) 22);
-    buf[0] = 0x38;  // max 140 mA
+    buf[0] = OCP_140MA;
     this->write_register_(REG_OCP, buf, 1);
   }
   buf[0] = pa_power;
@@ -211,16 +227,13 @@ void SX126x::configure() {
     buf[0] = this->spreading_factor_;
     buf[1] = BW_LORA[this->bandwidth_ - SX126X_BW_7810];
     buf[2] = this->coding_rate_;
-    buf[3] = (duration > 16.38f) ? 0x01 : 0x00;
+    buf[3] = (duration > LOW_DATA_RATE_OPTIMIZE_THRESHOLD) ? 0x01 : 0x00;
     this->write_opcode_(RADIO_SET_MODULATIONPARAMS, buf, 4);
 
     // set packet params and sync word
     this->set_packet_params_(this->payload_length_);
     if (this->sync_value_.size() == 2) {
-      for (uint32_t i = 0; i < this->sync_value_.size(); i++) {
-        uint8_t data = this->sync_value_[i];
-        this->write_register_(REG_LORA_SYNCWORD + i, &data, 1);
-      }
+      this->write_register_(REG_LORA_SYNCWORD, this->sync_value_.data(), this->sync_value_.size());
     }
   } else {
     // set modulation params
@@ -239,10 +252,7 @@ void SX126x::configure() {
     // set packet params and sync word
     this->set_packet_params_(this->payload_length_);
     if (!this->sync_value_.empty()) {
-      for (uint32_t i = 0; i < this->sync_value_.size(); i++) {
-        uint8_t data = this->sync_value_[i];
-        this->write_register_(REG_GFSK_SYNCWORD + i, &data, 1);
-      }
+      this->write_register_(REG_GFSK_SYNCWORD, this->sync_value_.data(), this->sync_value_.size());
     }
   }
 
@@ -304,7 +314,7 @@ void SX126x::transmit_packet(const std::vector<uint8_t> &packet) {
   // wait until transmit completes, typically the delay will be less than 100 ms
   uint32_t start = millis();
   while (!this->dio1_pin_->digital_read()) {
-    if (millis() - start > 4000) {
+    if (millis() - start > TRANSMIT_TIMEOUT_MS) {
       ESP_LOGE(TAG, "Transmit packet failure");
       break;
     }
@@ -358,6 +368,8 @@ void SX126x::loop() {
 }
 
 void SX126x::run_image_cal() {
+  // the following values were taken from section 9.2.1 table 9-2
+  // in rev 2.1 of the datasheet
   uint8_t buf[2] = {0, 0};
   if (this->frequency_ > 900000000) {
     buf[0] = 0xE1;
@@ -443,8 +455,8 @@ void SX126x::set_mode_standby(SX126xStandbyMode mode) {
 void SX126x::wait_busy_() {
   uint32_t start = millis();
   while (this->busy_pin_->digital_read()) {
-    if (millis() - start > 1000) {
-      ESP_LOGE(TAG, "Wait busy timout");
+    if (millis() - start > BUSY_TIMEOUT_MS) {
+      ESP_LOGE(TAG, "Wait busy timeout");
       break;
     }
   }
