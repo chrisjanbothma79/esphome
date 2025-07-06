@@ -68,7 +68,7 @@ void DisplayMenuComponent::left() {
           case MENU_MODE_JOYSTICK:
             if (this->editing_ || this->get_selected_item_()->get_immediate_edit())
               changed = this->get_selected_item_()->select_prev();
-            if (this->displayed_item_->get_parent() == nullptr) 
+            if (this->displayed_item_->get_parent() == nullptr)
               this->hide();
             break;
           default:
