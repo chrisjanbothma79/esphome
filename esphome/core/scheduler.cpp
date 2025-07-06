@@ -98,8 +98,6 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     return;
   }
 
-  const auto now = this->millis_();
-
   // Create and populate the scheduler item
   auto item = make_unique<SchedulerItem>();
   item->component = component;
@@ -107,6 +105,19 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   item->type = type;
   item->callback = std::move(func);
   item->remove = false;
+
+#if !defined(USE_ESP8266) && !defined(USE_RP2040)
+  // Special handling for defer() (delay = 0, type = TIMEOUT)
+  // ESP8266 and RP2040 are excluded because they don't need thread-safe defer handling
+  if (delay == 0 && type == SchedulerItem::TIMEOUT) {
+    // Put in defer queue for guaranteed FIFO execution
+    LockGuard guard{this->lock_};
+    this->defer_queue_.push_back(std::move(item));
+    return;
+  }
+#endif
+
+  const auto now = this->millis_();
 
   // Type-specific setup
   if (type == SchedulerItem::INTERVAL) {
@@ -244,6 +255,35 @@ optional<uint32_t> HOT Scheduler::next_schedule_in() {
   return item->next_execution_ - now;
 }
 void HOT Scheduler::call() {
+#if !defined(USE_ESP8266) && !defined(USE_RP2040)
+  // Process defer queue first to guarantee FIFO execution order for deferred items.
+  // Previously, defer() used the heap which gave undefined order for equal timestamps,
+  // causing race conditions on multi-core systems (ESP32, BK7200).
+  // With the defer queue:
+  // - Deferred items (delay=0) go directly to defer_queue_ in set_timer_common_
+  // - Items execute in exact order they were deferred (FIFO guarantee)
+  // - No deferred items exist in to_add_, so processing order doesn't affect correctness
+  // ESP8266 and RP2040 don't use this queue - they fall back to the heap-based approach
+  // (ESP8266: single-core, RP2040: empty mutex implementation).
+  while (!this->defer_queue_.empty()) {
+    // The outer check is done without a lock for performance. If the queue
+    // appears non-empty, we lock and process an item. We don't need to check
+    // empty() again inside the lock because only this thread can remove items.
+    std::unique_ptr<SchedulerItem> item;
+    {
+      LockGuard lock(this->lock_);
+      item = std::move(this->defer_queue_.front());
+      this->defer_queue_.pop_front();
+    }
+
+    // Execute callback without holding lock to prevent deadlocks
+    // if the callback tries to call defer() again
+    if (!this->should_skip_item_(item.get())) {
+      this->execute_item_(item.get());
+    }
+  }
+#endif
+
   const auto now = this->millis_();
   this->process_to_add();
 
@@ -317,8 +357,6 @@ void HOT Scheduler::call() {
         this->pop_raw_();
         continue;
       }
-      App.set_current_component(item->component);
-
 #ifdef ESPHOME_DEBUG_SCHEDULER
       const char *item_name = item->get_name();
       ESP_LOGV(TAG, "Running %s '%s/%s' with interval=%" PRIu32 " next_execution=%" PRIu64 " (now=%" PRIu64 ")",
@@ -329,13 +367,7 @@ void HOT Scheduler::call() {
       // Warning: During callback(), a lot of stuff can happen, including:
       //  - timeouts/intervals get added, potentially invalidating vector pointers
       //  - timeouts/intervals get cancelled
-      {
-        uint32_t now_ms = millis();
-        WarnIfComponentBlockingGuard guard{item->component, now_ms};
-        item->callback();
-        // Call finish to ensure blocking time is properly calculated and reported
-        guard.finish();
-      }
+      this->execute_item_(item.get());
     }
 
     {
@@ -394,6 +426,26 @@ void HOT Scheduler::pop_raw_() {
   std::pop_heap(this->items_.begin(), this->items_.end(), SchedulerItem::cmp);
   this->items_.pop_back();
 }
+// Helper function to check if item matches criteria for cancellation
+bool HOT Scheduler::matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component,
+                                  const char *name_cstr, SchedulerItem::Type type) {
+  if (item->component != component || item->type != type || item->remove) {
+    return false;
+  }
+  const char *item_name = item->get_name();
+  return item_name != nullptr && strcmp(name_cstr, item_name) == 0;
+}
+
+// Helper to execute a scheduler item
+void HOT Scheduler::execute_item_(SchedulerItem *item) {
+  App.set_current_component(item->component);
+
+  uint32_t now_ms = millis();
+  WarnIfComponentBlockingGuard guard{item->component, now_ms};
+  item->callback();
+  guard.finish();
+}
+
 // Common implementation for cancel operations
 bool HOT Scheduler::cancel_item_(Component *component, bool is_static_string, const void *name_ptr,
                                  SchedulerItem::Type type) {
@@ -408,6 +460,39 @@ bool HOT Scheduler::cancel_item_(Component *component, bool is_static_string, co
   // obtain lock because this function iterates and can be called from non-loop task context
   LockGuard guard{this->lock_};
   return this->cancel_item_locked_(component, name_cstr, type);
+}
+
+// Helper to cancel items by name - must be called with lock held
+bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type) {
+  bool ret = false;
+
+  // Check all containers for matching items
+#if !defined(USE_ESP8266) && !defined(USE_RP2040)
+  // Only check defer_queue_ on platforms that have it
+  for (auto &item : this->defer_queue_) {
+    if (this->matches_item_(item, component, name_cstr, type)) {
+      item->remove = true;
+      ret = true;
+    }
+  }
+#endif
+
+  for (auto &item : this->items_) {
+    if (this->matches_item_(item, component, name_cstr, type)) {
+      item->remove = true;
+      ret = true;
+      this->to_remove_++;  // Only track removals for heap items
+    }
+  }
+
+  for (auto &item : this->to_add_) {
+    if (this->matches_item_(item, component, name_cstr, type)) {
+      item->remove = true;
+      ret = true;
+    }
+  }
+
+  return ret;
 }
 
 uint64_t Scheduler::millis_() {
