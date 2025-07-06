@@ -679,12 +679,12 @@ bool ModemComponent::modem_init_() {
   this->pref_.save(&this->modem_restore_state_);
   global_preferences->sync();
 
+  this->send_init_at_();
+
   ESP_LOGI(TAG, "Modem infos:");
   std::string result;
   ESPMODEM_ERROR_CHECK(this->dce->get_module_name(result), "get_module_name");
   ESP_LOGI(TAG, "  Module name: %s", result.c_str());
-
-  this->send_init_at_();
 
   if (!this->prepare_sim_()) {
     this->abort_("Fatal: Sim error");
@@ -703,8 +703,6 @@ bool ModemComponent::modem_init_() {
 bool ModemComponent::prepare_sim_() {
   std::string output;
   this->flush_uart_();
-  // wait for the sim to be ready
-  delay(2000);  // NOLINT
 
   // this->dce->read_pin(pin_ok)   // not used, because we can't know the cause of the error.
   this->dce->command(
@@ -728,6 +726,8 @@ bool ModemComponent::prepare_sim_() {
 
   ESPMODEM_ERROR_CHECK(this->dce->set_pin(this->pin_code_), "Set pin error");
 
+  // wait for the sim to be ready
+  delay(2000);  // NOLINT
   bool pin_ok = false;
   ESPMODEM_ERROR_CHECK(this->dce->read_pin(pin_ok), "Error checking pin");
 
