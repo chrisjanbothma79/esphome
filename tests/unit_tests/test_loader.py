@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from esphome.loader import ComponentManifest
 
 
-def test_component_manifest_resources_with_filter_source_files():
+def test_component_manifest_resources_with_filter_source_files() -> None:
     """Test that ComponentManifest.resources correctly filters out excluded files."""
     # Create a mock module with FILTER_SOURCE_FILES function
     mock_module = MagicMock()
@@ -19,7 +19,7 @@ def test_component_manifest_resources_with_filter_source_files():
     manifest = ComponentManifest(mock_module)
 
     # Mock the files in the package
-    def create_mock_file(filename):
+    def create_mock_file(filename: str) -> MagicMock:
         mock_file = MagicMock()
         mock_file.name = filename
         mock_file.is_file.return_value = True
