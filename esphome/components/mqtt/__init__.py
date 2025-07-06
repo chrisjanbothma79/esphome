@@ -54,6 +54,7 @@ from esphome.const import (
     PLATFORM_BK72XX,
     PLATFORM_ESP32,
     PLATFORM_ESP8266,
+    PLATFORM_RP2040,
 )
 from esphome.core import CORE, coroutine_with_priority
 
@@ -303,7 +304,7 @@ CONFIG_SCHEMA = cv.All(
         }
     ),
     validate_config,
-    cv.only_on([PLATFORM_ESP32, PLATFORM_ESP8266, PLATFORM_BK72XX]),
+    cv.only_on([PLATFORM_ESP32, PLATFORM_ESP8266, PLATFORM_BK72XX, PLATFORM_RP2040]),
 )
 
 
@@ -325,9 +326,12 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     # Add required libraries for ESP8266 and LibreTiny
-    if CORE.is_esp8266 or CORE.is_libretiny:
+    if CORE.is_esp8266 or CORE.is_libretiny or CORE.is_rp2040:
         # https://github.com/heman/async-mqtt-client/blob/master/library.json
         cg.add_library("heman/AsyncMqttClient-esphome", "2.0.0")
+    if CORE.is_rp2040:
+        # https://github.com/khoih-prog/AsyncTCP_RP2040W
+        cg.add_library("khoih-prog/AsyncTCP_RP2040W", "1.2.0")
 
     cg.add_define("USE_MQTT")
     cg.add_global(mqtt_ns.using)
