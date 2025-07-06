@@ -21,7 +21,7 @@ static constexpr uint32_t RESET_DELAY_HIGH_US = 5000;
 static constexpr uint32_t RESET_DELAY_LOW_US = 2000;
 static constexpr uint32_t SWITCHING_DELAY_US = 1;
 static constexpr uint32_t TRANSMIT_TIMEOUT_MS = 4000;
-static constexpr uint32_t BUSY_TIMEOUT_MS = 100;
+static constexpr uint32_t BUSY_TIMEOUT_MS = 20;
 
 // OCP (Over Current Protection) values
 static constexpr uint8_t OCP_80MA = 0x18;   // 80 mA max current
