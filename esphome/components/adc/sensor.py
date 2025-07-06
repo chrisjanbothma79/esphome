@@ -15,7 +15,7 @@ from esphome.const import (
     STATE_CLASS_MEASUREMENT,
     UNIT_VOLT,
 )
-from esphome.core import CORE
+from esphome.core import CORE, KEY_CORE, KEY_FRAMEWORK_VERSION
 import esphome.final_validate as fv
 
 from . import (
@@ -60,12 +60,14 @@ def validate_config(config):
 def final_validate_config(config):
     if CORE.is_esp32:
         # Check ESP-IDF version
-        from esphome.core import KEY_CORE, KEY_FRAMEWORK_VERSION
-        if (hasattr(CORE, 'data') and CORE.data and
-            KEY_CORE in CORE.data and
-            KEY_FRAMEWORK_VERSION in CORE.data[KEY_CORE]):
+        if (
+            hasattr(CORE, "data")
+            and CORE.data
+            and KEY_CORE in CORE.data
+            and KEY_FRAMEWORK_VERSION in CORE.data[KEY_CORE]
+        ):
             version = CORE.data[KEY_CORE][KEY_FRAMEWORK_VERSION]
-            if hasattr(version, 'major') and version.major < 5:
+            if hasattr(version, "major") and version.major < 5:
                 raise cv.Invalid(f"ADC requires ESP-IDF v5.0+, got v{version}")
 
         variant = get_esp32_variant()
