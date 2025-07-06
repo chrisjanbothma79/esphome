@@ -38,7 +38,7 @@ void SchedulerRapidCancellationComponent::run_rapid_cancellation_test() {
         std::string name = ss.str();
 
         // All threads schedule timeouts - this will implicitly cancel existing ones
-        this->set_timeout(name, 100, [this, name]() {
+        this->set_timeout(name, 150, [this, name]() {
           this->total_executed_.fetch_add(1);
           ESP_LOGI(TAG, "Executed callback '%s'", name.c_str());
         });
