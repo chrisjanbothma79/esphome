@@ -436,15 +436,17 @@ bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_c
 
   // Check all containers for matching items
 #if !defined(USE_ESP8266) && !defined(USE_RP2040)
-  // Cancel items in defer queue
-  for (auto &item : this->defer_queue_) {
-    if (item->component != component || item->type != type || item->remove) {
-      continue;
-    }
-    const char *item_name = item->get_name();
-    if (item_name != nullptr && strcmp(name_cstr, item_name) == 0) {
-      item->remove = true;
-      total_cancelled++;
+  // Only check defer queue for timeouts (intervals never go there)
+  if (type == SchedulerItem::TIMEOUT) {
+    for (auto &item : this->defer_queue_) {
+      if (item->component != component || item->remove) {
+        continue;
+      }
+      const char *item_name = item->get_name();
+      if (item_name != nullptr && strcmp(name_cstr, item_name) == 0) {
+        item->remove = true;
+        total_cancelled++;
+      }
     }
   }
 #endif
