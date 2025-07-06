@@ -39,6 +39,7 @@ static const char *const TAG = "web_server_idf";
 
 // Global instance to avoid guard variable (saves 8 bytes)
 // This is initialized at program startup before any threads
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static DefaultHeaders default_headers_instance;
 
 DefaultHeaders &DefaultHeaders::Instance() { return default_headers_instance; }
