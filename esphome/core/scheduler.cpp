@@ -68,7 +68,12 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   if (delay == SCHEDULER_DONT_RUN) {
     // Still need to cancel existing timer if name is not empty
     if (name_cstr != nullptr && name_cstr[0] != '\0') {
-      this->cancel_item_(component, is_static_string, name_ptr, type);
+      LockGuard guard{this->lock_};
+      if (delay == 0 && type == SchedulerItem::TIMEOUT) {
+        this->cancel_deferred_item_locked_(component, is_static_string, name_ptr, type);
+      } else {
+        this->cancel_heap_item_locked_(component, is_static_string, name_ptr, type);
+      }
     }
     return;
   }
@@ -127,7 +132,16 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     // If name is provided, do atomic cancel-and-add
     if (name_cstr != nullptr && name_cstr[0] != '\0') {
       // Cancel existing items
-      this->cancel_item_locked_(component, name_cstr, type);
+      if (delay == 0 && type == SchedulerItem::TIMEOUT) {
+        // For defer (delay=0), only cancel from defer queue
+        this->cancel_deferred_item_locked_(component, name_cstr, type);
+      } else if (type == SchedulerItem::TIMEOUT) {
+        // For regular timeouts, check all containers since we don't know where it might be
+        this->cancel_item_locked_(component, name_cstr, type);
+      } else {
+        // For intervals, only check heap items
+        this->cancel_heap_item_locked_(component, name_cstr, type);
+      }
     }
     // Add new item directly to to_add_
     // since we have the lock held
@@ -441,7 +455,7 @@ bool HOT Scheduler::cancel_heap_item_(Component *component, bool is_static_strin
 
   // obtain lock because this function iterates and can be called from non-loop task context
   LockGuard guard{this->lock_};
-  return this->cancel_heap_items_locked_(component, name_cstr, type) > 0;
+  return this->cancel_heap_item_locked_(component, name_cstr, type) > 0;
 }
 
 // Cancel deferred items (defer_queue_)
@@ -457,15 +471,15 @@ bool HOT Scheduler::cancel_deferred_item_(Component *component, bool is_static_s
 
   // obtain lock because this function iterates and can be called from non-loop task context
   LockGuard guard{this->lock_};
-  return this->cancel_deferred_items_locked_(this->defer_queue_, component, name_cstr, type) > 0;
+  return this->cancel_deferred_item_locked_(component, name_cstr, type) > 0;
 }
 
-// Helper to mark deferred/to_add items for cancellation (no to_remove_ tracking needed)
-template<typename Container>
-size_t HOT Scheduler::cancel_deferred_items_locked_(Container &items, Component *component, const char *name_cstr,
-                                                    SchedulerItem::Type type) {
+// Helper to mark deferred items for cancellation (no to_remove_ tracking needed)
+size_t HOT Scheduler::cancel_deferred_item_locked_(Component *component, const char *name_cstr,
+                                                   SchedulerItem::Type type) {
   size_t cancelled_count = 0;
-  for (auto &item : items) {
+#if !defined(USE_ESP8266) && !defined(USE_RP2040)
+  for (auto &item : this->defer_queue_) {
     if (item->component != component || item->type != type || item->remove) {
       continue;
     }
@@ -475,11 +489,15 @@ size_t HOT Scheduler::cancel_deferred_items_locked_(Container &items, Component 
       cancelled_count++;
     }
   }
+#else
+  // On platforms without defer queue, defer items go to the heap
+  cancelled_count = this->cancel_heap_item_locked_(component, name_cstr, type);
+#endif
   return cancelled_count;
 }
 
 // Helper to mark heap items for cancellation and update to_remove_ count
-size_t HOT Scheduler::cancel_heap_items_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type) {
+size_t HOT Scheduler::cancel_heap_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type) {
   size_t cancelled_count = 0;
 
   // Cancel items in the main heap
@@ -512,16 +530,18 @@ size_t HOT Scheduler::cancel_heap_items_locked_(Component *component, const char
 }
 
 // Helper to cancel items by name - must be called with lock held
-bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type) {
+bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type,
+                                        uint32_t delay) {
   size_t total_cancelled = 0;
 
   // Check all containers for matching items
-#if !defined(USE_ESP8266) && !defined(USE_RP2040)
-  // Only check defer_queue_ on platforms that have it
-  total_cancelled += this->cancel_deferred_items_locked_(this->defer_queue_, component, name_cstr, type);
-#endif
-
-  total_cancelled += this->cancel_heap_items_locked_(component, name_cstr, type);
+  if (delay == 0 && type == SchedulerItem::TIMEOUT) {
+    // Cancel deferred items only
+    total_cancelled += this->cancel_deferred_item_locked_(component, name_cstr, type);
+  } else {
+    // Cancel heap items (items_ and to_add_)
+    total_cancelled += this->cancel_heap_item_locked_(component, name_cstr, type);
+  }
 
   return total_cancelled > 0;
 }
