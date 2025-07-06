@@ -321,8 +321,6 @@ void LD2410Component::handle_periodic_data_() {
   if (App.get_loop_component_start_time() - this->last_periodic_millis_ < this->throttle_) {
     return;
   }
-  this->last_periodic_millis_ = App.get_loop_component_start_time();
-
   // 4 frame header bytes + 2 length bytes + 1 data end byte + 1 crc byte + 4 frame footer bytes
   // data header=0xAA, data footer=0x55, crc=0x00
   if (this->buffer_pos_ < 12 || !ld2410::validate_header_footer(DATA_FRAME_HEADER, this->buffer_data_) ||
@@ -330,6 +328,8 @@ void LD2410Component::handle_periodic_data_() {
       this->buffer_data_[this->buffer_pos_ - 5] != CHECK) {
     return;
   }
+  // Save the timestamp after validating the frame so, if invalid, we'll take the next frame immediately
+  this->last_periodic_millis_ = App.get_loop_component_start_time();
 
   /*
     Data Type: 7th
