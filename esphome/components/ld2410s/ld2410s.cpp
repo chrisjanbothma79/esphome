@@ -603,7 +603,7 @@ void LD2410S::receive_() {
               this->process_short_data_frame_(&this->rcv_buffer_[start_pos + 1]);
               break;
             case PackageType::STD_DATA_FRAME:
-              this->process_data_frame_(&this->rcv_buffer_[start_pos + 6]);
+              this->process_data_frame_(&this->rcv_buffer_[start_pos + 6], data_size);
               break;
             case PackageType::CMD_FRAME:
               this->process_cmd_frame_(this->rcv_buffer_, this->rcv_end_pos_ + 1);
@@ -730,10 +730,15 @@ void LD2410S::process_short_data_frame_(uint8_t *data) {
     listener->on_distance(distance);
   }
 }
-void LD2410S::process_data_frame_(uint8_t *data) {
+void LD2410S::process_data_frame_(uint8_t *data, size_t data_size) {
   switch (data[0]) {
     case 0x01:  // standard data
     {
+      if (data_size < 70) {
+        ESP_LOGE(TAG, "std data frame too short, data: %d, expected 70", data_size);
+        return;
+      }
+
       const bool presence_state = data[1] > 1;
       uint16_t distance = encode_uint16(data[3], data[2]);
       if (!presence_state)
