@@ -430,39 +430,6 @@ bool HOT Scheduler::cancel_item_(Component *component, bool is_static_string, co
   return this->cancel_item_locked_(component, name_cstr, type);
 }
 
-// Helper to mark heap items for cancellation and update to_remove_ count
-size_t HOT Scheduler::cancel_heap_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type) {
-  size_t cancelled_count = 0;
-
-  // Cancel items in the main heap
-  for (auto &item : this->items_) {
-    if (item->component != component || item->type != type || item->remove) {
-      continue;
-    }
-    const char *item_name = item->get_name();
-    if (item_name != nullptr && strcmp(name_cstr, item_name) == 0) {
-      item->remove = true;
-      cancelled_count++;
-      this->to_remove_++;  // Track removals for heap items
-    }
-  }
-
-  // Cancel items in to_add_
-  for (auto &item : this->to_add_) {
-    if (item->component != component || item->type != type || item->remove) {
-      continue;
-    }
-    const char *item_name = item->get_name();
-    if (item_name != nullptr && strcmp(name_cstr, item_name) == 0) {
-      item->remove = true;
-      cancelled_count++;
-      // Don't track removals for to_add_ items
-    }
-  }
-
-  return cancelled_count;
-}
-
 // Helper to cancel items by name - must be called with lock held
 bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type) {
   size_t total_cancelled = 0;
@@ -481,7 +448,32 @@ bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_c
     }
   }
 #endif
-  total_cancelled += this->cancel_heap_item_locked_(component, name_cstr, type);
+
+  // Cancel items in the main heap
+  for (auto &item : this->items_) {
+    if (item->component != component || item->type != type || item->remove) {
+      continue;
+    }
+    const char *item_name = item->get_name();
+    if (item_name != nullptr && strcmp(name_cstr, item_name) == 0) {
+      item->remove = true;
+      total_cancelled++;
+      this->to_remove_++;  // Track removals for heap items
+    }
+  }
+
+  // Cancel items in to_add_
+  for (auto &item : this->to_add_) {
+    if (item->component != component || item->type != type || item->remove) {
+      continue;
+    }
+    const char *item_name = item->get_name();
+    if (item_name != nullptr && strcmp(name_cstr, item_name) == 0) {
+      item->remove = true;
+      total_cancelled++;
+      // Don't track removals for to_add_ items
+    }
+  }
 
   return total_cancelled > 0;
 }
