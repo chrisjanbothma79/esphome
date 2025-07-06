@@ -440,11 +440,7 @@ bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_c
   // Only check defer queue for timeouts (intervals never go there)
   if (type == SchedulerItem::TIMEOUT) {
     for (auto &item : this->defer_queue_) {
-      if (item->component != component || item->remove) {
-        continue;
-      }
-      const char *item_name = item->get_name();
-      if (item_name != nullptr && strcmp(name_cstr, item_name) == 0) {
+      if (this->matches_item_(item, component, name_cstr, type)) {
         item->remove = true;
         total_cancelled++;
       }
@@ -457,11 +453,7 @@ bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_c
 
   // Cancel items in the main heap
   for (auto &item : this->items_) {
-    if (item->component != component || item->type != type || item->remove) {
-      continue;
-    }
-    const char *item_name = item->get_name();
-    if (item_name != nullptr && strcmp(name_cstr, item_name) == 0) {
+    if (this->matches_item_(item, component, name_cstr, type)) {
       item->remove = true;
       total_cancelled++;
       this->to_remove_++;  // Track removals for heap items
@@ -470,11 +462,7 @@ bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_c
 
   // Cancel items in to_add_
   for (auto &item : this->to_add_) {
-    if (item->component != component || item->type != type || item->remove) {
-      continue;
-    }
-    const char *item_name = item->get_name();
-    if (item_name != nullptr && strcmp(name_cstr, item_name) == 0) {
+    if (this->matches_item_(item, component, name_cstr, type)) {
       item->remove = true;
       total_cancelled++;
       // Don't track removals for to_add_ items

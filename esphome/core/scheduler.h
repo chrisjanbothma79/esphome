@@ -147,6 +147,17 @@ class Scheduler {
 
   // Common implementation for cancel operations
   bool cancel_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
+
+  // Helper function to check if item matches criteria for cancellation
+  bool HOT matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component, const char *name_cstr,
+                         SchedulerItem::Type type) {
+    if (item->component != component || item->type != type || item->remove) {
+      return false;
+    }
+    const char *item_name = item->get_name();
+    return item_name != nullptr && strcmp(name_cstr, item_name) == 0;
+  }
+
   // Helper to execute a scheduler item
   void execute_item_(SchedulerItem *item);
 
