@@ -140,6 +140,11 @@ class Scheduler {
   // Helper to cancel items by name - must be called with lock held
   bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type);
 
+  // Helper to mark items for cancellation and return count
+  template<typename Container>
+  size_t mark_items_for_removal_(Container &items, Component *component, const char *name_cstr,
+                                 SchedulerItem::Type type);
+
   uint64_t millis_();
   void cleanup_();
   void pop_raw_();
@@ -147,10 +152,6 @@ class Scheduler {
   bool cancel_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
 
  private:
-  // Helper functions for cancel operations
-  bool matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component, const char *name_cstr,
-                     SchedulerItem::Type type);
-
   // Helper to execute a scheduler item
   void execute_item_(SchedulerItem *item);
 

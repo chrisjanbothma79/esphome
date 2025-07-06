@@ -401,15 +401,6 @@ void HOT Scheduler::pop_raw_() {
   std::pop_heap(this->items_.begin(), this->items_.end(), SchedulerItem::cmp);
   this->items_.pop_back();
 }
-// Helper function to check if item matches criteria for cancellation
-bool HOT Scheduler::matches_item_(const std::unique_ptr<SchedulerItem> &item, Component *component,
-                                  const char *name_cstr, SchedulerItem::Type type) {
-  if (item->component != component || item->type != type || item->remove) {
-    return false;
-  }
-  const char *item_name = item->get_name();
-  return item_name != nullptr && strcmp(name_cstr, item_name) == 0;
-}
 
 // Helper to execute a scheduler item
 void HOT Scheduler::execute_item_(SchedulerItem *item) {
@@ -437,37 +428,41 @@ bool HOT Scheduler::cancel_item_(Component *component, bool is_static_string, co
   return this->cancel_item_locked_(component, name_cstr, type);
 }
 
+// Helper to mark items for cancellation and return count
+template<typename Container>
+size_t HOT Scheduler::mark_items_for_removal_(Container &items, Component *component, const char *name_cstr,
+                                              SchedulerItem::Type type) {
+  size_t cancelled_count = 0;
+  for (auto &item : items) {
+    if (item->component != component || item->type != type || item->remove) {
+      continue;
+    }
+    const char *item_name = item->get_name();
+    if (item_name != nullptr && strcmp(name_cstr, item_name) == 0) {
+      item->remove = true;
+      cancelled_count++;
+    }
+  }
+  return cancelled_count;
+}
+
 // Helper to cancel items by name - must be called with lock held
 bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type) {
-  bool ret = false;
+  size_t total_cancelled = 0;
 
   // Check all containers for matching items
 #if !defined(USE_ESP8266) && !defined(USE_RP2040)
   // Only check defer_queue_ on platforms that have it
-  for (auto &item : this->defer_queue_) {
-    if (this->matches_item_(item, component, name_cstr, type)) {
-      item->remove = true;
-      ret = true;
-    }
-  }
+  total_cancelled += this->mark_items_for_removal_(this->defer_queue_, component, name_cstr, type);
 #endif
 
-  for (auto &item : this->items_) {
-    if (this->matches_item_(item, component, name_cstr, type)) {
-      item->remove = true;
-      ret = true;
-      this->to_remove_++;  // Only track removals for heap items
-    }
-  }
+  size_t items_cancelled = this->mark_items_for_removal_(this->items_, component, name_cstr, type);
+  this->to_remove_ += items_cancelled;  // Only track removals for heap items
+  total_cancelled += items_cancelled;
 
-  for (auto &item : this->to_add_) {
-    if (this->matches_item_(item, component, name_cstr, type)) {
-      item->remove = true;
-      ret = true;
-    }
-  }
+  total_cancelled += this->mark_items_for_removal_(this->to_add_, component, name_cstr, type);
 
-  return ret;
+  return total_cancelled > 0;
 }
 
 uint64_t Scheduler::millis_() {
