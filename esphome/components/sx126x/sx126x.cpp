@@ -463,6 +463,7 @@ void SX126x::wait_busy_() {
   while (this->busy_pin_->digital_read()) {
     if (millis() - start > BUSY_TIMEOUT_MS) {
       ESP_LOGE(TAG, "Wait busy timeout");
+      this->mark_failed();
       break;
     }
   }
