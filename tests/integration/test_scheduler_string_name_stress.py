@@ -34,12 +34,9 @@ async def test_scheduler_string_name_stress(
 
     # Track executed callbacks and any crashes
     executed_callbacks: set[int] = set()
-    crash_detected = False
     error_messages: list[str] = []
 
     def on_log_line(line: str) -> None:
-        nonlocal crash_detected
-
         # Check for crash indicators
         if any(
             indicator in line.lower()
@@ -51,7 +48,6 @@ async def test_scheduler_string_name_stress(
                 "use after free",
             ]
         ):
-            crash_detected = True
             error_messages.append(line)
             if not test_complete_future.done():
                 test_complete_future.set_exception(Exception(f"Crash detected: {line}"))
@@ -112,10 +108,8 @@ async def test_scheduler_string_name_stress(
                 f"Test failed due to crash: {e}\nError messages: {error_messages}"
             )
 
-        # Verify no crashes occurred
-        assert not crash_detected, (
-            f"Crash detected during test. Errors: {error_messages}"
-        )
+        # Verify no errors occurred (crashes already handled by exception)
+        assert not error_messages, f"Errors detected during test: {error_messages}"
 
         # Verify we executed all 1000 callbacks (10 threads × 100 callbacks each)
         assert len(executed_callbacks) == 1000, (
