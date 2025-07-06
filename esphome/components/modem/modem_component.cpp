@@ -98,7 +98,7 @@ AtCommandResult ModemComponent::get_imei() {
 }
 
 int ModemComponent::get_baud_rate_() {
-  AtCommandResult at_command_result = this->send_at("AT+IPR?", 1000);
+  AtCommandResult at_command_result = this->send_at("AT+IPR?", 2000);
   const std::string sep = ": ";
   size_t pos = at_command_result.output.find(sep);
   if (pos == std::string::npos) {
@@ -110,16 +110,17 @@ int ModemComponent::get_baud_rate_() {
 }
 
 bool ModemComponent::get_power_status() {
-#ifdef USE_MODEM_STATUS
-  // This code is not fully checked. The status pin seems to be flickering on Lilygo T-SIM7600
-  return this->status_pin_->digital_read();
-#else
+  if (this->status_pin_) {
+    return this->status_pin_->digital_read();
+  }
+
   if (!this->cmux_ && this->internal_state_.connected) {
-    // Data mode, connected:  assume power is OK
+    ESP_LOGD(TAG, "No status pin; assuming modem is ON because we are in cmux mode and connected.");
     return true;
   }
+
+  // fallback to the modem state
   return this->modem_ready();
-#endif
 }
 
 bool ModemComponent::sync() {
@@ -177,6 +178,7 @@ void ModemComponent::disable() {
   if (this->component_state_ != ModemComponentState::CONNECTED) {
     this->component_state_ = ModemComponentState::DISCONNECTED;
   }
+  this->poweroff_();
 }
 
 void ModemComponent::reconnect() {
@@ -233,17 +235,16 @@ void ModemComponent::setup() {
     this->power_pin_->setup();
     // as we have a power pin, we assume that the power is off
     this->internal_state_.powered_on = false;
-
-    if (this->internal_state_.enabled) {
-      this->poweron_();
-    }
   } else {
-    // no status pin, we assume that the power is on
+    // no power pin, we assume that the power is on
     this->internal_state_.powered_on = true;
   }
 
   if (this->status_pin_) {
     this->status_pin_->setup();
+    this->status_pin_->pin_mode(gpio::Flags::FLAG_INPUT | gpio::Flags::FLAG_PULLUP);
+    // check the status pin to guess the power state
+    this->internal_state_.powered_on = this->get_power_status();
   }
 
   ESP_LOGCONFIG(TAG, "Config Modem:");
@@ -262,6 +263,10 @@ void ModemComponent::setup() {
   }
   ESP_LOGCONFIG(TAG, "  Enabled   : %s", this->internal_state_.enabled ? "Yes" : "No");
   ESP_LOGCONFIG(TAG, "  Use CMUX  : %s", this->cmux_ ? "Yes" : "No");
+
+  if (this->internal_state_.enabled) {
+    this->poweron_();
+  }
 
   ESP_LOGV(TAG, "PPP netif setup");
   esp_err_t err;
@@ -565,6 +570,7 @@ bool ModemComponent::modem_preinit_() {
   // std::string result;
   uint32_t start_ms = millis();
   uint32_t elapsed_ms;
+  int current_baud_rate = 0;
 
   ESP_LOGV(TAG, "Checking if the modem is reachable...");
 
@@ -581,6 +587,7 @@ bool ModemComponent::modem_preinit_() {
     if (this->sync()) {
       ESP_LOGD(TAG, "Modem responded after restoring baud rate %d", this->modem_restore_state_.baud_rate);
       success = true;
+      current_baud_rate = this->modem_restore_state_.baud_rate;
     }
   }
 
@@ -611,10 +618,10 @@ bool ModemComponent::modem_preinit_() {
 
   this->modem_restore_state_.cmux = this->cmux_;
 
-  int current_baud_rate = this->get_baud_rate_();
-  ESP_LOGD(TAG, "current baud rate: %d", current_baud_rate);
-  this->modem_restore_state_.baud_rate = current_baud_rate;
-  this->pref_.save(&this->modem_restore_state_);
+  // int current_baud_rate = this->get_baud_rate_();
+  // ESP_LOGD(TAG, "current baud rate: %d", current_baud_rate);
+  // this->modem_restore_state_.baud_rate = current_baud_rate;
+  // this->pref_.save(&this->modem_restore_state_);
 
   // modem synced
   if ((this->baud_rate_ != 0) && (this->baud_rate_ != current_baud_rate)) {
@@ -660,6 +667,8 @@ bool ModemComponent::modem_init_() {
   // force command mode, check sim, and send init_at commands
   // close cmux/data if needed, and may reboot the modem.
 
+  watchdog::WatchdogManager wdt(15000);
+
   bool success = this->modem_preinit_();
 
   if (!success) {
@@ -694,6 +703,9 @@ bool ModemComponent::modem_init_() {
 bool ModemComponent::prepare_sim_() {
   std::string output;
   this->flush_uart_();
+  // wait for the sim to be ready
+  delay(2000);  // NOLINT
+
   // this->dce->read_pin(pin_ok)   // not used, because we can't know the cause of the error.
   this->dce->command(
       "AT+CPIN?\r",
@@ -834,7 +846,7 @@ void ModemComponent::poweron_() {
     if (this->modem_ready()) {
       ESP_LOGV(TAG, "Modem is already ON");
     } else {
-      ESP_LOGE(TAG, "No 'power_pin' defined: Not able to poweron the modem");
+      ESP_LOGW(TAG, "No 'power_pin' defined: Not able to poweron the modem");
     }
   }
 }
