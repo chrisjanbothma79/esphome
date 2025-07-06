@@ -146,9 +146,6 @@ class Scheduler {
   // Common implementation for cancel operations
   bool cancel_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
 
-  // Cancel heap items (items_ and to_add_)
-  bool cancel_heap_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
-
  private:
   // Helper to execute a scheduler item
   void execute_item_(SchedulerItem *item);
