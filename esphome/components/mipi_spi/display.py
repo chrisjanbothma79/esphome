@@ -106,7 +106,7 @@ BusTypes = {
     TYPE_OCTAL: BusType.BUS_TYPE_OCTAL,
 }
 
-DriverChip("CUSTOM", initsequence={})
+DriverChip("CUSTOM")
 
 MODELS = DriverChip.models
 # These statements are noops, but serve to suppress linting of side-effect-only imports
@@ -234,27 +234,27 @@ def dimension_schema(rounding):
     )
 
 
+def swap_xy_schema(model):
+    uses_swap = model.get_default(CONF_SWAP_XY, cv.UNDEFINED) != cv.UNDEFINED
+
+    def validator(value):
+        if value:
+            raise cv.Invalid("Axis swapping not supported by this model")
+        return cv.boolean(value)
+
+    if uses_swap:
+        return {cv.Required(CONF_SWAP_XY): cv.boolean}
+    return {cv.Optional(CONF_SWAP_XY, default=False): validator}
+
+
 def model_schema(bus_mode, model: DriverChip, swapsies: bool):
     transform = cv.Schema(
         {
             cv.Required(CONF_MIRROR_X): cv.boolean,
             cv.Required(CONF_MIRROR_Y): cv.boolean,
+            **swap_xy_schema(model),
         }
     )
-    if model.get_default(CONF_SWAP_XY, False) == cv.UNDEFINED:
-        transform = transform.extend(
-            {
-                cv.Optional(CONF_SWAP_XY): cv.invalid(
-                    "Axis swapping not supported by this model"
-                )
-            }
-        )
-    else:
-        transform = transform.extend(
-            {
-                cv.Required(CONF_SWAP_XY): cv.boolean,
-            }
-        )
     # CUSTOM model will need to provide a custom init sequence
     iseqconf = (
         cv.Required(CONF_INIT_SEQUENCE)
@@ -381,8 +381,6 @@ def config_schema(config):
 
     if bus_mode == TYPE_QUAD and CONF_DC_PIN in config:
         raise cv.Invalid("DC pin is not supported in quad mode")
-    if config[CONF_PIXEL_MODE] == DISPLAY_18BIT and bus_mode != TYPE_SINGLE:
-        raise cv.Invalid("18-bit pixel mode is not supported on a quad or octal bus")
     if bus_mode != TYPE_QUAD and CONF_DC_PIN not in config:
         raise cv.Invalid(f"DC pin is required in {bus_mode} mode")
     denominator(config)
