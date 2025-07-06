@@ -540,5 +540,6 @@ FILTER_SOURCE_FILES = filter_source_files_from_platform(
             PlatformFramework.RTL87XX_ARDUINO,
             PlatformFramework.LN882X_ARDUINO,
         },
+        "wifi_component_pico_w.cpp": {PlatformFramework.RP2040_ARDUINO},
     }
 )
