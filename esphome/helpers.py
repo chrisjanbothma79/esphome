@@ -553,11 +553,10 @@ def filter_source_files_from_platform(
             return []
 
         # Return files that should be excluded for current platform
-        excluded = []
-        for filename, platforms in files_map.items():
-            if current_platform_framework not in platforms:
-                excluded.append(filename)
-
-        return excluded
+        return [
+            filename
+            for filename, platforms in files_map.items()
+            if current_platform_framework not in platforms
+        ]
 
     return filter_source_files

@@ -45,9 +45,6 @@ async def to_code(config):
 
 def FILTER_SOURCE_FILES() -> list[str]:
     """Return list of socket implementation files that aren't selected by the user."""
-    if not hasattr(CORE, "config") or "socket" not in CORE.config:
-        return []
-
     impl = CORE.config["socket"][CONF_IMPLEMENTATION]
 
     # Build list of files to exclude based on selected implementation
