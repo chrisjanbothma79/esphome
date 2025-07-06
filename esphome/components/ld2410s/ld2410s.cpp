@@ -602,9 +602,9 @@ void LD2410S::receive_() {
             case PackageType::SHORT_DATA_FRAME:
               this->process_short_data_frame_(&this->rcv_buffer_[start_pos + 1]);
               break;
-            case PackageType::STD_DATA_FRAME:
-              this->process_data_frame_(&this->rcv_buffer_[start_pos + 6], data_size);
-              break;
+            // case PackageType::STD_DATA_FRAME:
+            //   this->process_data_frame_(&this->rcv_buffer_[start_pos + 6], data_size);
+            //   break;
             case PackageType::CMD_FRAME:
               this->process_cmd_frame_(this->rcv_buffer_, this->rcv_end_pos_ + 1);
               this->cmd_buffer_finished_();
@@ -745,7 +745,7 @@ void LD2410S::process_data_frame_(uint8_t *data, size_t data_size) {
         listener->on_distance(distance);
       }
 
-      // this->process_data_energy_values_read_(&data[6]);
+      this->process_data_energy_values_read_(&data[6]);
       break;
     }
 
@@ -926,26 +926,24 @@ void LD2410S::process_ack_trigger_snr_read_(uint8_t *data) {
   this->update_ts_snrs_();
 }
 void LD2410S::process_data_energy_values_read_(uint8_t *data) {
-  // if (this->energy_values_count_ >= ENERGY_VALUES_RESET) {
-  //   this->update_ts_energy_values_();
-  //   for (auto &energy_value : this->energy_values_) {
-  //     energy_value = 0;
-  //   }
-  //   this->energy_values_count_ = 0;
-  // } else {
-  //   for (uint8_t i = 0; i < 16; i++) {
-  //     uint32_t val = encode_uint32(data[i * 4 + 3], data[i * 4 + 2], data[i * 4 + 1], data[i * 4 + 0]);
-  //     this->energy_values_[i] =
-  //         (this->energy_values_[i] * this->energy_values_count_ + val) / (this->energy_values_count_ + 1);
-  //   }
-  //   this->energy_values_count_++;
-  // }
+  if (this->energy_values_count_ >= ENERGY_VALUES_RESET) {
+    this->update_ts_energy_values_();
 
-  for (uint8_t i = 0; i < 16; i++) {
-    uint32_t val = encode_uint32(data[i * 4 + 3], data[i * 4 + 2], data[i * 4 + 1], data[i * 4 + 0]);
-    this->energy_values_[i] = val;
+    for (auto &energy_value : this->energy_values_) {
+      energy_value = 0;
+    }
+    this->energy_values_count_ = 0;
+
+  } else {
+    for (uint8_t i = 0; i < 16; i++) {
+      uint32_t val = encode_uint32(data[i * 4 + 3], data[i * 4 + 2], data[i * 4 + 1], data[i * 4 + 0]);
+      this->energy_values_[i] =
+          (this->energy_values_[i] * this->energy_values_count_ + val) / (this->energy_values_count_ + 1);
+    }
+    this->energy_values_count_++;
   }
-  // this->update_ts_energy_values_();
+
+  this->update_ts_energy_values_();
 }
 
 void LD2410S::update_ts_thresholds_() {
@@ -976,13 +974,13 @@ void LD2410S::update_ts_snrs_() {
 void LD2410S::update_ts_energy_values_() {
   std::string vals = this->format_int_(this->energy_values_, 16, 3);
 
-  // if (energy_values_str_ != vals) {
-  for (auto &listener : this->listeners_) {
-    listener->on_energy_values_ts(vals);
-  }
+  if (energy_values_str_ != vals) {
+    for (auto &listener : this->listeners_) {
+      listener->on_energy_values_ts(vals);
+    }
 
-  energy_values_str_ = vals;
-  // }
+    energy_values_str_ = vals;
+  }
 
   ESP_LOGD(TAG, "Energy Values: %s", vals.c_str());
 }
