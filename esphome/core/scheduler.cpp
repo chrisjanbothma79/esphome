@@ -89,6 +89,7 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   if (delay == 0 && type == SchedulerItem::TIMEOUT) {
     // Put in defer queue for guaranteed FIFO execution
     LockGuard guard{this->lock_};
+    this->cancel_deferred_item_locked_(component, is_static_string, name_ptr, type);
     this->defer_queue_.push_back(std::move(item));
     return;
   }
@@ -434,7 +435,7 @@ size_t HOT Scheduler::cancel_deferred_item_locked_(Component *component, const c
                                                    SchedulerItem::Type type) {
   size_t cancelled_count = 0;
   for (auto &item : this->defer_queue_) {
-    if (item->component != component || item->type != type || item->remove) {
+    if (item->component != component || item->remove) {
       continue;
     }
     const char *item_name = item->get_name();
