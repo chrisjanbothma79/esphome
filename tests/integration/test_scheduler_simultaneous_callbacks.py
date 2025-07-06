@@ -105,8 +105,6 @@ async def test_scheduler_simultaneous_callbacks(
             await asyncio.wait_for(test_complete_future, timeout=30.0)
         except asyncio.TimeoutError:
             pytest.fail(f"Simultaneous callbacks test timed out. Stats: {test_stats}")
-        except Exception as e:
-            pytest.fail(f"Test failed: {e}\nStats: {test_stats}")
 
         # Check for any errors
         assert len(test_stats["errors"]) == 0, (

@@ -102,11 +102,6 @@ async def test_scheduler_string_name_stress(
                 f"String name stress test timed out. Executed {len(executed_callbacks)} callbacks. "
                 f"This might indicate a deadlock."
             )
-        except Exception as e:
-            # A crash was detected
-            pytest.fail(
-                f"Test failed due to crash: {e}\nError messages: {error_messages}"
-            )
 
         # Verify no errors occurred (crashes already handled by exception)
         assert not error_messages, f"Errors detected during test: {error_messages}"
