@@ -62,8 +62,7 @@ static void validate_static_string(const char *name) {
 void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string,
                                       const void *name_ptr, uint32_t delay, std::function<void()> func) {
   // Get the name as const char*
-  const char *name_cstr =
-      is_static_string ? static_cast<const char *>(name_ptr) : static_cast<const std::string *>(name_ptr)->c_str();
+  const char *name_cstr = this->get_name_cstr_(is_static_string, name_ptr);
 
   if (delay == SCHEDULER_DONT_RUN) {
     // Still need to cancel existing timer if name is not empty
@@ -418,8 +417,7 @@ void HOT Scheduler::execute_item_(SchedulerItem *item) {
 bool HOT Scheduler::cancel_item_(Component *component, bool is_static_string, const void *name_ptr,
                                  SchedulerItem::Type type) {
   // Get the name as const char*
-  const char *name_cstr =
-      is_static_string ? static_cast<const char *>(name_ptr) : static_cast<const std::string *>(name_ptr)->c_str();
+  const char *name_cstr = this->get_name_cstr_(is_static_string, name_ptr);
 
   // Handle null or empty names
   if (name_cstr == nullptr)
