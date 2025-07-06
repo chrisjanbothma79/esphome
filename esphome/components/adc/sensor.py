@@ -15,7 +15,7 @@ from esphome.const import (
     STATE_CLASS_MEASUREMENT,
     UNIT_VOLT,
 )
-from esphome.core import CORE, KEY_CORE
+from esphome.core import CORE
 import esphome.final_validate as fv
 
 from . import (
