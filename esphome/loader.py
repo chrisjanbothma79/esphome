@@ -118,9 +118,9 @@ class ComponentManifest:
         filter_source_files_func = getattr(self.module, "FILTER_SOURCE_FILES", None)
 
         # Get list of files to exclude
-        excluded_files: set[str] = set()
-        if filter_source_files_func is not None:
-            excluded_files = set(filter_source_files_func())
+        excluded_files = (
+            set(filter_source_files_func()) if filter_source_files_func else set()
+        )
 
         # Process all resources
         for resource in (
