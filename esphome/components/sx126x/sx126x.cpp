@@ -19,6 +19,7 @@ static const uint8_t BW_FSK[21] = {
 
 static constexpr uint32_t RESET_DELAY_HIGH_US = 5000;
 static constexpr uint32_t RESET_DELAY_LOW_US = 2000;
+static constexpr uint32_t SWITCHING_DELAY_US = 1;
 static constexpr uint32_t TRANSMIT_TIMEOUT_MS = 4000;
 static constexpr uint32_t BUSY_TIMEOUT_MS = 100;
 
@@ -35,6 +36,7 @@ uint8_t SX126x::wakeup_() {
   this->transfer_byte(RADIO_GET_STATUS);
   uint8_t status = this->transfer_byte(0x00);
   this->disable();
+  delayMicroseconds(SWITCHING_DELAY_US);
   this->wait_busy_();
   return status;
 }
@@ -49,7 +51,6 @@ uint8_t SX126x::read_fifo_(uint8_t offset, std::vector<uint8_t> &packet) {
     byte = this->transfer_byte(0x00);
   }
   this->disable();
-  this->wait_busy_();
   return status;
 }
 
@@ -62,7 +63,7 @@ void SX126x::write_fifo_(uint8_t offset, const std::vector<uint8_t> &packet) {
     this->transfer_byte(byte);
   }
   this->disable();
-  this->wait_busy_();
+  delayMicroseconds(SWITCHING_DELAY_US);
 }
 
 uint8_t SX126x::read_opcode_(uint8_t opcode, uint8_t *data, uint8_t size) {
@@ -74,7 +75,6 @@ uint8_t SX126x::read_opcode_(uint8_t opcode, uint8_t *data, uint8_t size) {
     data[i] = this->transfer_byte(0x00);
   }
   this->disable();
-  this->wait_busy_();
   return status;
 }
 
@@ -86,7 +86,7 @@ void SX126x::write_opcode_(uint8_t opcode, uint8_t *data, uint8_t size) {
     this->transfer_byte(data[i]);
   }
   this->disable();
-  this->wait_busy_();
+  delayMicroseconds(SWITCHING_DELAY_US);
 }
 
 void SX126x::read_register_(uint16_t reg, uint8_t *data, uint8_t size) {
@@ -100,7 +100,6 @@ void SX126x::read_register_(uint16_t reg, uint8_t *data, uint8_t size) {
     data[i] = this->transfer_byte(0x00);
   }
   this->disable();
-  this->wait_busy_();
 }
 
 void SX126x::write_register_(uint16_t reg, uint8_t *data, uint8_t size) {
@@ -113,7 +112,7 @@ void SX126x::write_register_(uint16_t reg, uint8_t *data, uint8_t size) {
     this->transfer_byte(data[i]);
   }
   this->disable();
-  this->wait_busy_();
+  delayMicroseconds(SWITCHING_DELAY_US);
 }
 
 void SX126x::setup() {
