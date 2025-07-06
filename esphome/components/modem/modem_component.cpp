@@ -839,6 +839,14 @@ void ModemComponent::ip_event_handler(void *arg, esp_event_base_t event_base, in
 }
 
 void ModemComponent::poweron_() {
+  if (this->status_pin_) {
+    // check the status pin to guess the power state
+    if (this->get_power_status()) {
+      ESP_LOGV(TAG, "Modem is already ON (status pin is HIGH)");
+      this->internal_state_.powered_on = true;
+      return;
+    }
+  }
   if (this->power_pin_) {
     this->internal_state_.power_state = ModemPowerState::TON;
     this->internal_state_.power_transition = true;
