@@ -933,21 +933,6 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   void set_backlight_brightness(float brightness);
 
   /**
-   * Sets whether the Nextion display should skip the connection handshake process.
-   * @param skip_handshake True or false. When skip_connection_handshake is true,
-   * the connection will be established without performing the handshake.
-   * This can be useful when using Nextion Simulator.
-   *
-   * Example:
-   * ```cpp
-   * it.set_skip_connection_handshake(true);
-   * ```
-   *
-   * When set to true, the display will be marked as connected without performing a handshake.
-   */
-  void set_skip_connection_handshake(bool skip_handshake) { this->skip_connection_handshake_ = skip_handshake; }
-
-  /**
    * Sets Nextion mode between sleep and awake
    * @param True or false. Sleep=true to enter sleep mode or sleep=false to exit sleep mode.
    */
@@ -1278,7 +1263,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
    * the Nextion display. A connection is considered established when:
    *
    * - The initial handshake with the display is completed successfully, or
-   * - The handshake is skipped via skip_connection_handshake_ flag
+   * - The handshake is skipped via USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE flag
    *
    * The connection status is particularly useful when:
    * - Troubleshooting communication issues
@@ -1337,7 +1322,6 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
   uint8_t start_up_page_ = 255;
 #endif  // USE_NEXTION_CONF_START_UP_PAGE
   bool auto_wake_on_touch_ = true;
-  bool skip_connection_handshake_ = false;
 
   /**
    * Manually send a raw command to the display and don't wait for an acknowledgement packet.
