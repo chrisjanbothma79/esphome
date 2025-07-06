@@ -53,10 +53,12 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
 }
 
 static constexpr size_t FLUSH_BATCH_SIZE = 8;
-static std::vector<api::BluetoothLERawAdvertisement> &get_batch_buffer() {
-  static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
-  return batch_buffer;
-}
+
+// Global batch buffer to avoid guard variable (saves 8 bytes)
+// This is initialized at program startup before any threads
+static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
+
+static std::vector<api::BluetoothLERawAdvertisement> &get_batch_buffer() { return batch_buffer; }
 
 bool BluetoothProxy::parse_devices(const esp32_ble::BLEScanResult *scan_results, size_t count) {
   if (!api::global_api_server->is_connected() || this->api_connection_ == nullptr || !this->raw_advertisements_)
