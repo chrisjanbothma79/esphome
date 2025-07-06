@@ -77,6 +77,9 @@ DEPENDENCIES = ["spi"]
 LOGGER = logging.getLogger(DOMAIN)
 mipi_spi_ns = cg.esphome_ns.namespace("mipi_spi")
 MipiSpi = mipi_spi_ns.class_("MipiSpi", display.Display, cg.Component, spi.SPIDevice)
+MipiSpiBuffer = mipi_spi_ns.class_(
+    "MipiSpiBuffer", MipiSpi, display.Display, cg.Component, spi.SPIDevice
+)
 ColorOrder = display.display_ns.enum("ColorMode")
 ColorBitness = display.display_ns.enum("ColorBitness")
 Model = mipi_spi_ns.enum("Model")
@@ -527,8 +530,11 @@ async def to_code(config):
         bus_type = BusTypes[bus_type]
     buffer_type = cg.uint8 if color_depth == 8 else cg.uint16
     buffer_size = get_buffer_size(config)
-    frac = denominator(config) if buffer_size != 0 else 0
-    templateargs = TemplateArguments(
+    frac = denominator(config)
+    rotation = DISPLAY_ROTATIONS[
+        0 if rotation_as_transform(model, config) else config.get(CONF_ROTATION, 0)
+    ]
+    templateargs = [
         buffer_type,
         bufferpixels,
         config[CONF_BYTE_ORDER] == "big_endian",
@@ -538,10 +544,14 @@ async def to_code(config):
         height,
         offset_width,
         offset_height,
-        DISPLAY_ROTATIONS[config.get(CONF_ROTATION, 0)],
-        frac,
-    )
-    var = cg.new_Pvariable(config[CONF_ID], templateargs)
+    ]
+    var_id = config[CONF_ID]
+    # If a buffer is required, use MipiSpiBuffer, otherwise use MipiSpi
+    if buffer_size != 0:
+        templateargs.append(rotation)
+        templateargs.append(frac)
+        var_id.type = MipiSpiBuffer
+    var = cg.new_Pvariable(var_id, TemplateArguments(*templateargs))
     cg.add(var.set_init_sequence(get_sequence(model, config)))
     if rotation_as_transform(model, config):
         if CONF_TRANSFORM in config:
