@@ -10,7 +10,9 @@ from esphome.const import (
 from esphome.core import CORE
 
 # Pre-build lookup map from (platform, framework) tuples to PlatformFramework enum
-_PLATFORM_FRAMEWORK_LOOKUP = {pf.value: pf for pf in PlatformFramework}
+_PLATFORM_FRAMEWORK_LOOKUP = {
+    (pf.value[0].value, pf.value[1].value): pf for pf in PlatformFramework
+}
 
 
 class Extend:
