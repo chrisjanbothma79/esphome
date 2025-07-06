@@ -3,7 +3,7 @@ import base64
 from esphome import automation
 from esphome.automation import Condition
 import esphome.codegen as cg
-from esphome.config_helpers import is_logger_very_verbose
+from esphome.config_helpers import get_logger_level
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ACTION,
@@ -324,7 +324,7 @@ def FILTER_SOURCE_FILES() -> list[str]:
     #
     # HAS_PROTO_MESSAGE_DUMP is defined when ESPHOME_LOG_HAS_VERY_VERBOSE is set,
     # which happens when the logger level is VERY_VERBOSE
-    if not is_logger_very_verbose():
+    if get_logger_level() != "VERY_VERBOSE":
         return ["api_pb2_dump.cpp"]
 
     return []

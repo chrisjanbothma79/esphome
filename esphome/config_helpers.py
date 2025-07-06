@@ -161,22 +161,18 @@ def filter_source_files_from_platform(
     return filter_source_files
 
 
-def is_logger_very_verbose() -> bool:
-    """Check if logger is configured with VERY_VERBOSE level.
+def get_logger_level() -> str:
+    """Get the configured logger level.
 
-    This is used by components like API to determine if they should include
-    debug/dump functionality that's only needed for VERY_VERBOSE logging.
+    This is used by components to determine what logging features to include
+    based on the configured log level.
 
     Returns:
-        True if logger level is VERY_VERBOSE or higher, False otherwise
+        The configured logger level string, defaults to "DEBUG" if not configured
     """
     # Check if logger config exists
     if CONF_LOGGER not in CORE.config:
-        return False
+        return "DEBUG"
 
     logger_config = CORE.config[CONF_LOGGER]
-    log_level = logger_config.get(CONF_LEVEL, "DEBUG")
-
-    # Log levels in order: NONE, ERROR, WARN, INFO, CONFIG, DEBUG, VERBOSE, VERY_VERBOSE
-    # We only care if it's VERY_VERBOSE
-    return log_level == "VERY_VERBOSE"
+    return logger_config.get(CONF_LEVEL, "DEBUG")

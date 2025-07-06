@@ -3,10 +3,7 @@
 from collections.abc import Callable
 from unittest.mock import patch
 
-from esphome.config_helpers import (
-    filter_source_files_from_platform,
-    is_logger_very_verbose,
-)
+from esphome.config_helpers import filter_source_files_from_platform, get_logger_level
 from esphome.const import (
     CONF_LEVEL,
     CONF_LOGGER,
@@ -115,24 +112,24 @@ def test_filter_source_files_from_platform_handles_missing_data() -> None:
         assert excluded == []
 
 
-def test_is_logger_very_verbose() -> None:
-    """Test is_logger_very_verbose helper function."""
-    # Test no logger config
+def test_get_logger_level() -> None:
+    """Test get_logger_level helper function."""
+    # Test no logger config - should return default DEBUG
     mock_config = {}
     with patch("esphome.config_helpers.CORE.config", mock_config):
-        assert is_logger_very_verbose() is False
+        assert get_logger_level() == "DEBUG"
 
-    # Test with logger but not VERY_VERBOSE
-    mock_config = {CONF_LOGGER: {CONF_LEVEL: "DEBUG"}}
+    # Test with logger set to INFO
+    mock_config = {CONF_LOGGER: {CONF_LEVEL: "INFO"}}
     with patch("esphome.config_helpers.CORE.config", mock_config):
-        assert is_logger_very_verbose() is False
+        assert get_logger_level() == "INFO"
 
     # Test with VERY_VERBOSE
     mock_config = {CONF_LOGGER: {CONF_LEVEL: "VERY_VERBOSE"}}
     with patch("esphome.config_helpers.CORE.config", mock_config):
-        assert is_logger_very_verbose() is True
+        assert get_logger_level() == "VERY_VERBOSE"
 
     # Test with logger missing level (uses default DEBUG)
     mock_config = {CONF_LOGGER: {}}
     with patch("esphome.config_helpers.CORE.config", mock_config):
-        assert is_logger_very_verbose() is False
+        assert get_logger_level() == "DEBUG"
