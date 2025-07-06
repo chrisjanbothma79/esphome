@@ -107,7 +107,11 @@ class ComponentManifest:
 
     @property
     def resources(self) -> list[FileResource]:
-        """Return a list of all file resources defined in the package of this component."""
+        """Return a list of all file resources defined in the package of this component.
+
+        This will return all cpp source files that are located in the same folder as the
+        loaded .py file (does not look through subdirectories)
+        """
         ret: list[FileResource] = []
 
         # Get filter function for source files
@@ -127,6 +131,7 @@ class ComponentManifest:
             if Path(resource).suffix not in SOURCE_FILE_EXTENSIONS:
                 continue
             if not importlib.resources.files(self.package).joinpath(resource).is_file():
+                # Not a resource = this is a directory (yeah this is confusing)
                 continue
 
             # Skip excluded files

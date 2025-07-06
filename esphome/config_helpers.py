@@ -9,6 +9,9 @@ from esphome.const import (
 )
 from esphome.core import CORE
 
+# Pre-build lookup map from (platform, framework) tuples to PlatformFramework enum
+_PLATFORM_FRAMEWORK_LOOKUP = {pf.value: pf for pf in PlatformFramework}
+
 
 class Extend:
     def __init__(self, value):
@@ -126,8 +129,6 @@ def filter_source_files_from_platform(
     Returns:
         Function that returns list of files to exclude for current platform
     """
-    # Pre-build lookup map from (platform, framework) tuples to PlatformFramework enum
-    _PLATFORM_FRAMEWORK_LOOKUP = {pf.value: pf for pf in PlatformFramework}
 
     def filter_source_files() -> list[str]:
         # Get current platform/framework
