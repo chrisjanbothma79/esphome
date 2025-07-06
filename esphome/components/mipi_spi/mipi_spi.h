@@ -73,7 +73,8 @@ enum BusType {
  * @tparam HEIGHT Height of the display in pixels
  * @tparam OFFSET_WIDTH The x-offset of the display in pixels
  * @tparam OFFSET_HEIGHT The y-offset of the display in pixels
- * @tparam FRACTION The fraction of the display size to use for the buffer (e.g. 4 means a 1/4 buffer)
+ * @tparam FRACTION The fraction of the display size to use for the buffer (e.g. 4 means a 1/4 buffer). Zero for no
+ * buffer
  */
 template<typename BUFFERTYPE, PixelMode BUFFERPIXEL, bool IS_BIG_ENDIAN, PixelMode DISPLAYPIXEL, BusType BUS_TYPE,
          int WIDTH, int HEIGHT, int OFFSET_WIDTH, int OFFSET_HEIGHT, display::DisplayRotation ROTATION, int FRACTION>
@@ -81,7 +82,7 @@ class MipiSpi : public display::Display,
                 public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW, spi::CLOCK_PHASE_LEADING,
                                       spi::DATA_RATE_1MHZ> {
  public:
-  MipiSpi() {}
+  MipiSpi() { this->rotation_ = ROTATION; }
   void set_model(const char *model) { this->model_ = model; }
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
   void set_enable_pins(std::vector<GPIOPin *> enable_pins) { this->enable_pins_ = std::move(enable_pins); }
@@ -94,8 +95,6 @@ class MipiSpi : public display::Display,
     this->brightness_ = brightness;
     this->reset_params_();
   }
-  void set_buffer_size(size_t buffer_size) { this->buffer_size_ = buffer_size; }
-
   display::DisplayType get_display_type() override { return display::DisplayType::DISPLAY_TYPE_COLOR; }
 
   int get_width_internal() override { return WIDTH; }
@@ -188,18 +187,25 @@ class MipiSpi : public display::Display,
           delay(10);
       }
     }
+    // init sequence no longer needed
     this->init_sequence_.clear();
-    if (this->buffer_setup_())
-      this->setup_complete_ = true;
-    esph_log_config(TAG, "MIPI SPI setup complete");
+    // Allocate a buffer if required.
+    if constexpr (FRACTION != 0) {
+      RAMAllocator<BUFFERTYPE> allocator{};
+      this->buffer_ = allocator.allocate(WIDTH * HEIGHT / FRACTION);
+      if (this->buffer_ == nullptr) {
+        this->mark_failed("Buffer allocation failed");
+      }
+    }
   }
 
-  void update() {
+  void update() override {
+    if constexpr (FRACTION == 0)
+      return;
 #if ESPHOME_LOG_LEVEL == ESPHOME_LOG_LEVEL_VERBOSE
     auto now = millis();
 #endif
-    esph_log_v(TAG, "Update called");
-    if (!this->setup_complete_ || this->is_failed()) {
+    if (this->is_failed()) {
       return;
     }
     for (this->start_line_ = 0; this->start_line_ < HEIGHT; this->start_line_ += HEIGHT / FRACTION) {
@@ -212,6 +218,8 @@ class MipiSpi : public display::Display,
       }
       if (this->show_test_card_) {
         this->test_card();
+        // the display component resets this, we need it on for subsequent updates
+        this->show_test_card_ = true;
       } else if (this->page_ != nullptr) {
         this->page_->get_writer()(*this);
       } else if (this->writer_.has_value()) {
@@ -337,7 +345,7 @@ class MipiSpi : public display::Display,
  public:
   void draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override {
-    if (!this->setup_complete_ || this->is_failed())
+    if (this->is_failed())
       return;
     if (w <= 0 || h <= 0)
       return;
@@ -349,7 +357,7 @@ class MipiSpi : public display::Display,
                             x_pad);
   }
 
-  void dump_config() {
+  void dump_config() override {
     esph_log_config(TAG,
                     "MIPI_SPI Display\n"
                     "  Model: %s\n"
@@ -371,14 +379,16 @@ class MipiSpi : public display::Display,
                     YESNO(this->madctl_ & MADCTL_MV), YESNO(this->madctl_ & (MADCTL_MX | MADCTL_XFLIP)),
                     YESNO(this->madctl_ & (MADCTL_MY | MADCTL_YFLIP)), YESNO(this->invert_colors_),
                     this->madctl_ & MADCTL_BGR ? "BGR" : "RGB", DISPLAYPIXEL * 8, IS_BIG_ENDIAN ? "Big" : "Little");
-    if (this->buffer_size_ != 0)
+    if constexpr (FRACTION != 0) {
       esph_log_config(TAG,
                       "  Rotation: %d°\n"
                       "  Buffer pixels: %d bits\n"
                       "  Buffer fraction: 1/%d\n"
                       "  Buffer bytes: %zu\n"
                       "  Draw rounding: %u",
-                      this->rotation_, BUFFERPIXEL * 8, FRACTION, this->buffer_size_, this->draw_rounding_);
+                      this->rotation_, BUFFERPIXEL * 8, FRACTION, sizeof(BUFFERTYPE) * WIDTH * HEIGHT / FRACTION,
+                      this->draw_rounding_);
+    }
     if (this->brightness_.has_value())
       esph_log_config(TAG, "  Brightness: %u", this->brightness_.value());
     if (this->cs_ != nullptr)
@@ -414,24 +424,9 @@ class MipiSpi : public display::Display,
   uint16_t y_low_{1};
   uint16_t x_high_{0};
   uint16_t y_high_{0};
-  bool setup_complete_{};
-  size_t buffer_size_{0};  // buffer size in bytes, 0 means no buffer
   uint8_t madctl_{};
   uint16_t start_line_{0};
-  uint16_t end_line_{HEIGHT / FRACTION};
-
-  // Allocate a buffer if required.
-  bool buffer_setup_() {
-    if (this->buffer_size_ != 0) {
-      RAMAllocator<BUFFERTYPE> allocator{};
-      this->buffer_ = allocator.allocate(this->buffer_size_ / sizeof(BUFFERTYPE));
-      if (this->buffer_ == nullptr) {
-        this->mark_failed("Buffer allocation failed");
-        return false;
-      }
-    }
-    return true;
-  }
+  uint16_t end_line_{1};
 
   int get_width() override {
     if constexpr (ROTATION == display::DISPLAY_ROTATION_90_DEGREES || ROTATION == display::DISPLAY_ROTATION_270_DEGREES)
@@ -478,8 +473,8 @@ class MipiSpi : public display::Display,
   /**
    * Writes a buffer to the display.
    *
-   * The ptr is a pointer to the pixel data (null to use the internal buffer).
-   * The other parameters are all in pixels units.
+   * The ptr is a pointer to the pixel data
+   * The other parameters are all in pixel units.
    */
   void write_to_display_(int x_start, int y_start, int w, int h, const BUFFERTYPE *ptr, int x_offset, int y_offset,
                          int x_pad) {
@@ -490,14 +485,15 @@ class MipiSpi : public display::Display,
       this->write_display_data_(reinterpret_cast<const uint8_t *>(ptr), w * sizeof(BUFFERTYPE), h,
                                 x_pad * sizeof(BUFFERTYPE));
     } else {
-      uint8_t dbuffer[126];
+      // type conversion required, do it in chunks
+      uint8_t dbuffer[sizeof(BUFFERTYPE) * 50];
       uint8_t *dptr = dbuffer;
       auto stride = x_offset + w + x_pad;  // stride in pixels
       for (size_t y = 0; y != h; y++) {
         for (size_t x = 0; x != w; x++) {
           auto color_val = ptr[y * stride + x];
           if constexpr (DISPLAYPIXEL == PIXEL_MODE_18 && BUFFERPIXEL == PIXEL_MODE_16) {
-            // 16 bit to 18 bit conversion
+            // 16 to 18 bit conversion
             if constexpr (IS_BIG_ENDIAN) {
               *dptr++ = color_val & 0xF8;
               *dptr++ = ((color_val & 0x7) << 5) | (color_val & 0xE000) >> 11;
@@ -521,12 +517,14 @@ class MipiSpi : public display::Display,
               *dptr++ = (color_val & 0xE0) | ((color_val & 0x1C) >> 2);
             }
           }
+          // buffer full? Flush.
           if (dptr == dbuffer + sizeof(dbuffer)) {
             this->write_display_data_(dbuffer, sizeof(dbuffer), 1, 0);
             dptr = dbuffer;
           }
         }
       }
+      // flush any remaining data
       if (dptr != dbuffer) {
         this->write_display_data_(dbuffer, dptr - dbuffer, 1, 0);
       }
@@ -541,11 +539,13 @@ class MipiSpi : public display::Display,
       x = WIDTH - x - 1;
       y = HEIGHT - y - 1;
     } else if constexpr (ROTATION == display::DISPLAY_ROTATION_90_DEGREES) {
-      std::swap(x, y);
-      x = WIDTH - x - 1;
+      auto tmp = x;
+      x = WIDTH - y - 1;
+      y = tmp;
     } else if constexpr (ROTATION == display::DISPLAY_ROTATION_270_DEGREES) {
-      std::swap(x, y);
-      y = HEIGHT - y - 1;
+      auto tmp = y;
+      y = HEIGHT - x - 1;
+      x = tmp;
     }
   }
 
@@ -568,6 +568,8 @@ class MipiSpi : public display::Display,
   // Drawing operations
 
   void draw_pixel_at(int x, int y, Color color) override {
+    if constexpr (FRACTION == 0)
+      return;
     if (this->buffer_ == nullptr)
       return;
     rotate_coordinates_(x, y);
@@ -589,6 +591,8 @@ class MipiSpi : public display::Display,
   }
 
   void fill(Color color) override {
+    if constexpr (FRACTION == 0)
+      return;
     this->x_low_ = 0;
     this->y_low_ = this->start_line_;
     this->x_high_ = WIDTH - 1;

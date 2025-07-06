@@ -417,7 +417,9 @@ FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 def get_buffer_size(config):
-    if not any(key in config for key in (CONF_LAMBDA, CONF_PAGES, CONF_SHOW_TEST_CARD)):
+    if not any(
+        config.get(key) for key in (CONF_LAMBDA, CONF_PAGES, CONF_SHOW_TEST_CARD)
+    ):
         return 0
     color_depth = int(config[CONF_COLOR_DEPTH].removesuffix("bit"))
     frac = denominator(config)
@@ -524,7 +526,8 @@ async def to_code(config):
     else:
         bus_type = BusTypes[bus_type]
     buffer_type = cg.uint8 if color_depth == 8 else cg.uint16
-    frac = denominator(config)
+    buffer_size = get_buffer_size(config)
+    frac = denominator(config) if buffer_size != 0 else 0
     templateargs = TemplateArguments(
         buffer_type,
         bufferpixels,
@@ -539,9 +542,6 @@ async def to_code(config):
         frac,
     )
     var = cg.new_Pvariable(config[CONF_ID], templateargs)
-    buffer_size = get_buffer_size(config)
-    if buffer_size != 0:
-        cg.add(var.set_buffer_size(buffer_size))
     cg.add(var.set_init_sequence(get_sequence(model, config)))
     if rotation_as_transform(model, config):
         if CONF_TRANSFORM in config:
