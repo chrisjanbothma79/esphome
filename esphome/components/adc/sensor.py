@@ -10,13 +10,11 @@ from esphome.const import (
     CONF_NUMBER,
     CONF_PIN,
     CONF_RAW,
-    CONF_WIFI,
     DEVICE_CLASS_VOLTAGE,
     STATE_CLASS_MEASUREMENT,
     UNIT_VOLT,
 )
 from esphome.core import CORE
-import esphome.final_validate as fv
 
 from . import (
     ATTENUATION_MODES,
@@ -58,49 +56,6 @@ def validate_config(config):
     return config
 
 
-def final_validate_config(config):
-    if CORE.is_esp32:
-        # ADC component requires ESP-IDF v5.0+ (whether using ESP-IDF directly or Arduino based on IDF v5+)
-        if hasattr(CORE, "data") and CORE.data:
-            core_data = CORE.data.get("core", {})
-            framework_type = core_data.get("framework_type")
-
-            if framework_type == "esp-idf":
-                # Direct ESP-IDF usage - check the IDF version
-                framework_version = core_data.get("framework_version")
-                if (
-                    framework_version
-                    and hasattr(framework_version, "major")
-                    and framework_version.major < 5
-                ):
-                    raise cv.Invalid(
-                        f"ADC requires ESP-IDF v5.0+, got v{framework_version}"
-                    )
-            elif framework_type == "arduino":
-                # Arduino framework - check the underlying ESP-IDF version it's based on
-                idf_version = core_data.get("idf_version")
-                if (
-                    idf_version
-                    and hasattr(idf_version, "major")
-                    and idf_version.major < 5
-                ):
-                    raise cv.Invalid(
-                        f"ADC requires Arduino framework based on ESP-IDF v5.0+, got IDF v{idf_version}"
-                    )
-
-        variant = get_esp32_variant()
-        if (
-            CONF_WIFI in fv.full_config.get()
-            and config[CONF_PIN][CONF_NUMBER]
-            in ESP32_VARIANT_ADC2_PIN_TO_CHANNEL[variant]
-        ):
-            raise cv.Invalid(
-                f"{variant} doesn't support ADC on this pin when Wi-Fi is configured"
-            )
-
-    return config
-
-
 ADCSensor = adc_ns.class_(
     "ADCSensor", sensor.Sensor, cg.PollingComponent, voltage_sampler.VoltageSampler
 )
@@ -127,8 +82,6 @@ CONFIG_SCHEMA = cv.All(
     .extend(cv.polling_component_schema("60s")),
     validate_config,
 )
-
-FINAL_VALIDATE_SCHEMA = final_validate_config
 
 
 async def to_code(config):
