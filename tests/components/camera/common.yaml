@@ -1,6 +1,3 @@
-esphome:
-  includes:
-    - ../../../esphome/components/camera/
 script:
   - id: interface_compile_check
     then:
