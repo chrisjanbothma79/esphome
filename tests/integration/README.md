@@ -258,6 +258,38 @@ async with run_compiled(yaml_config, line_callback=on_log_line):
     # Test implementation
 ```
 
+Example using futures for specific log patterns:
+```python
+import re
+
+loop = asyncio.get_running_loop()
+connected_future = loop.create_future()
+service_future = loop.create_future()
+
+# Patterns to match
+connected_pattern = re.compile(r"Client .* connected from")
+service_pattern = re.compile(r"Service called")
+
+def check_output(line: str) -> None:
+    """Check log output for expected messages."""
+    if not connected_future.done() and connected_pattern.search(line):
+        connected_future.set_result(True)
+    elif not service_future.done() and service_pattern.search(line):
+        service_future.set_result(True)
+
+async with run_compiled(yaml_config, line_callback=check_output):
+    async with api_client_connected() as client:
+        # Wait for specific log message
+        await asyncio.wait_for(connected_future, timeout=5.0)
+        
+        # Do test actions...
+        
+        # Wait for service log
+        await asyncio.wait_for(service_future, timeout=5.0)
+```
+
+**Note**: Tests that monitor log messages typically have fewer race conditions compared to state-based testing, making them more reliable. However, be aware that the host platform currently does not have a thread-safe logger, so logging from threads will not work correctly.
+
 ##### Timeout Handling
 ```python
 # Always use timeouts for async operations
