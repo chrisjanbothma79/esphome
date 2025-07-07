@@ -36,7 +36,7 @@ void Syslog::log_(const int level, const char *tag, const char *message, size_t 
   }
   int pri = this->facility_ * 8 + severity;
   auto timestamp = this->time_->now().strftime("%b %d %H:%M:%S");
-  unsigned len = message_len;
+  size_t len = message_len;
   // remove color formatting
   if (this->strip_ && message[0] == 0x1B && len > 11) {
     message += 7;
