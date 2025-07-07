@@ -138,8 +138,6 @@ class Sensor : public EntityBase, public EntityBase_DeviceClass, public EntityBa
    */
   float raw_state;
 
-  /// Return whether this sensor has gotten a full state (that passed through all filters) yet.
-  bool has_state() const;
 
   void internal_send_state_to_frontend(float state);
 
