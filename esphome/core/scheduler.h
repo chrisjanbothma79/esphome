@@ -99,9 +99,15 @@ class Scheduler {
     SchedulerItem(const SchedulerItem &) = delete;
     SchedulerItem &operator=(const SchedulerItem &) = delete;
 
-    // Default move operations
-    SchedulerItem(SchedulerItem &&) = default;
-    SchedulerItem &operator=(SchedulerItem &&) = default;
+    // Delete move operations to prevent accidental moves of SchedulerItem objects.
+    // This is intentional because:
+    // 1. SchedulerItem contains a dynamically allocated name that requires careful ownership management
+    // 2. The scheduler only moves unique_ptr<SchedulerItem>, never SchedulerItem objects directly
+    // 3. Moving unique_ptr only transfers pointer ownership without moving the pointed-to object
+    // 4. Deleting these operations makes it explicit that SchedulerItem objects should not be moved
+    // 5. This prevents potential double-free bugs if the code is refactored to move SchedulerItem objects
+    SchedulerItem(SchedulerItem &&) = delete;
+    SchedulerItem &operator=(SchedulerItem &&) = delete;
 
     // Helper to get the name regardless of storage type
     const char *get_name() const { return name_is_dynamic ? name_.dynamic_name : name_.static_name; }
@@ -179,6 +185,12 @@ class Scheduler {
     return item->remove || (item->component != nullptr && item->component->is_failed());
   }
 
+  // Check if the scheduler has no items.
+  // IMPORTANT: This method should only be called from the main thread (loop task).
+  // It performs cleanup of removed items and checks if the queue is empty.
+  // The items_.empty() check at the end is done without a lock for performance,
+  // which is safe because this is only called from the main thread while other
+  // threads only add items (never remove them).
   bool empty_() {
     this->cleanup_();
     return this->items_.empty();

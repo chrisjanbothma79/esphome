@@ -220,6 +220,9 @@ bool HOT Scheduler::cancel_retry(Component *component, const std::string &name) 
 }
 
 optional<uint32_t> HOT Scheduler::next_schedule_in() {
+  // IMPORTANT: This method should only be called from the main thread (loop task).
+  // It calls empty_() and accesses items_[0] without holding a lock, which is only
+  // safe when called from the main thread. Other threads must not call this method.
   if (this->empty_())
     return {};
   auto &item = this->items_[0];
@@ -291,29 +294,27 @@ void HOT Scheduler::call() {
   }
 #endif  // ESPHOME_DEBUG_SCHEDULER
 
-  auto to_remove_was = this->to_remove_;
-  auto items_was = this->items_.size();
   // If we have too many items to remove
   if (this->to_remove_ > MAX_LOGICALLY_DELETED_ITEMS) {
+    // We hold the lock for the entire cleanup operation because:
+    // 1. We're rebuilding the entire items_ list, so we need exclusive access throughout
+    // 2. Other threads must see either the old state or the new state, not intermediate states
+    // 3. The operation is already expensive (O(n)), so lock overhead is negligible
+    // 4. No operations inside can block or take other locks, so no deadlock risk
+    LockGuard guard{this->lock_};
+
     std::vector<std::unique_ptr<SchedulerItem>> valid_items;
-    while (!this->empty_()) {
-      LockGuard guard{this->lock_};
-      auto item = std::move(this->items_[0]);
-      this->pop_raw_();
-      valid_items.push_back(std::move(item));
+
+    // Move all non-removed items to valid_items
+    for (auto &item : this->items_) {
+      if (!item->remove) {
+        valid_items.push_back(std::move(item));
+      }
     }
 
-    {
-      LockGuard guard{this->lock_};
-      this->items_ = std::move(valid_items);
-    }
-
-    // The following should not happen unless I'm missing something
-    if (this->to_remove_ != 0) {
-      ESP_LOGW(TAG, "to_remove_ was %" PRIu32 " now: %" PRIu32 " items where %zu now %zu. Please report this",
-               to_remove_was, to_remove_, items_was, items_.size());
-      this->to_remove_ = 0;
-    }
+    // Replace items_ with the filtered list
+    this->items_ = std::move(valid_items);
+    this->to_remove_ = 0;
   }
 
   while (!this->empty_()) {
@@ -383,17 +384,29 @@ void HOT Scheduler::process_to_add() {
   this->to_add_.clear();
 }
 void HOT Scheduler::cleanup_() {
+  // Fast path: if nothing to remove, just return
+  // Reading to_remove_ without lock is safe because:
+  // 1. We only call this from the main thread during call()
+  // 2. If it's 0, there's definitely nothing to cleanup
+  // 3. If it becomes non-zero after we check, cleanup will happen next time
+  if (this->to_remove_ == 0)
+    return;
+
+  // We must hold the lock for the entire cleanup operation because:
+  // 1. We're modifying items_ (via pop_raw_) which requires exclusive access
+  // 2. We're decrementing to_remove_ which is also modified by other threads
+  //    (though all modifications are already under lock)
+  // 3. Other threads read items_ when searching for items to cancel in cancel_item_locked_()
+  // 4. We need a consistent view of items_ and to_remove_ throughout the operation
+  // Without the lock, we could access items_ while another thread is reading it,
+  // leading to race conditions
+  LockGuard guard{this->lock_};
   while (!this->items_.empty()) {
     auto &item = this->items_[0];
     if (!item->remove)
       return;
-
     this->to_remove_--;
-
-    {
-      LockGuard guard{this->lock_};
-      this->pop_raw_();
-    }
+    this->pop_raw_();
   }
 }
 void HOT Scheduler::pop_raw_() {
