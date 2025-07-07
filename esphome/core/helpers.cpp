@@ -259,7 +259,7 @@ std::string format_hex(const std::vector<uint8_t> &data) { return format_hex(dat
 
 static char format_hex_pretty_char(uint8_t v) { return v >= 10 ? 'A' + (v - 10) : '0' + v; }
 std::string format_hex_pretty(const uint8_t *data, size_t length, char separator, bool show_length) {
-  if (length == 0)
+  if (data == nullptr || length == 0)
     return "";
   std::string ret;
   uint8_t multiple = separator ? 3 : 2;  // 3 if separator is not \0, 2 otherwise
@@ -279,7 +279,7 @@ std::string format_hex_pretty(const std::vector<uint8_t> &data, char separator, 
 }
 
 std::string format_hex_pretty(const uint16_t *data, size_t length, char separator, bool show_length) {
-  if (length == 0)
+  if (data == nullptr || length == 0)
     return "";
   std::string ret;
   uint8_t multiple = separator ? 5 : 4;  // 5 if separator is not \0, 4 otherwise
