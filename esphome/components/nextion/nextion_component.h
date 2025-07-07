@@ -31,11 +31,11 @@ class NextionComponent : public NextionComponentBase {
 
   NextionBase *nextion_;
 
-// Color and styling properties
-  Color bco_;      // Background color
-  Color bco2_;     // Pressed background color  
-  Color pco_;      // Foreground color
-  Color pco2_;     // Pressed foreground color
+  // Color and styling properties
+  Color bco_;   // Background color
+  Color bco2_;  // Pressed background color
+  Color pco_;   // Foreground color
+  Color pco2_;  // Pressed foreground color
   uint8_t font_id_ = 0;
 
   /**
@@ -55,7 +55,7 @@ class NextionComponent : public NextionComponentBase {
     uint16_t bco_needs_update : 1;
     uint16_t bco_is_set : 1;
 
-    // Pressed background color flags  
+    // Pressed background color flags
     uint16_t bco2_needs_update : 1;
     uint16_t bco2_is_set : 1;
 
