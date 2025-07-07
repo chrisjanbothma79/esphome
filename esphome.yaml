@@ -1,0 +1,15 @@
+# 示例 ESPHome 配置
+external_components:
+  - source: github://vvlang/esphome-ssd1339
+    components: [ssd1339_display]
+
+display:
+  - platform: ssd1339_display
+    id: oled
+    cs_pin: GPIO5
+    dc_pin: GPIO16
+    reset_pin: GPIO17
+    width: 96
+    height: 64
+    lambda: |-
+      it.print(0, 0, id(font), "Hello SSD1339!"); 
