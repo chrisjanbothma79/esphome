@@ -273,10 +273,12 @@ void HOT Scheduler::call() {
     ESP_LOGD(TAG, "Items: count=%zu, now=%" PRIu64 " (%u, %" PRIu32 ")", this->items_.size(), now, this->millis_major_,
              this->last_millis_);
     while (!this->empty_()) {
-      this->lock_.lock();
-      auto item = std::move(this->items_[0]);
-      this->pop_raw_();
-      this->lock_.unlock();
+      {
+        LockGuard guard{this->lock_};
+        auto item = std::move(this->items_[0]);
+        this->pop_raw_();
+        old_items.push_back(std::move(item));
+      }
 
       const char *name = item->get_name();
       ESP_LOGD(TAG, "  %s '%s/%s' interval=%" PRIu32 " next_execution in %" PRIu64 "ms at %" PRIu64,
