@@ -1176,7 +1176,7 @@ void APIConnection::bluetooth_scanner_set_mode(const BluetoothScannerSetModeRequ
 #endif
 
 #ifdef USE_VOICE_ASSISTANT
-bool APIConnection::check_voice_assistant_api_connection() const {
+bool APIConnection::check_voice_assistant_api_connection_() const {
   return voice_assistant::global_voice_assistant != nullptr &&
          voice_assistant::global_voice_assistant->get_api_connection() == this;
 }
@@ -1187,7 +1187,7 @@ void APIConnection::subscribe_voice_assistant(const SubscribeVoiceAssistantReque
   }
 }
 void APIConnection::on_voice_assistant_response(const VoiceAssistantResponse &msg) {
-  if (!this->check_voice_assistant_api_connection()) {
+  if (!this->check_voice_assistant_api_connection_()) {
     return;
   }
 
@@ -1206,23 +1206,23 @@ void APIConnection::on_voice_assistant_response(const VoiceAssistantResponse &ms
   }
 };
 void APIConnection::on_voice_assistant_event_response(const VoiceAssistantEventResponse &msg) {
-  if (this->check_voice_assistant_api_connection()) {
+  if (this->check_voice_assistant_api_connection_()) {
     voice_assistant::global_voice_assistant->on_event(msg);
   }
 }
 void APIConnection::on_voice_assistant_audio(const VoiceAssistantAudio &msg) {
-  if (this->check_voice_assistant_api_connection()) {
+  if (this->check_voice_assistant_api_connection_()) {
     voice_assistant::global_voice_assistant->on_audio(msg);
   }
 };
 void APIConnection::on_voice_assistant_timer_event_response(const VoiceAssistantTimerEventResponse &msg) {
-  if (this->check_voice_assistant_api_connection()) {
+  if (this->check_voice_assistant_api_connection_()) {
     voice_assistant::global_voice_assistant->on_timer_event(msg);
   }
 };
 
 void APIConnection::on_voice_assistant_announce_request(const VoiceAssistantAnnounceRequest &msg) {
-  if (this->check_voice_assistant_api_connection()) {
+  if (this->check_voice_assistant_api_connection_()) {
     voice_assistant::global_voice_assistant->on_announce(msg);
   }
 }
@@ -1230,7 +1230,7 @@ void APIConnection::on_voice_assistant_announce_request(const VoiceAssistantAnno
 VoiceAssistantConfigurationResponse APIConnection::voice_assistant_get_configuration(
     const VoiceAssistantConfigurationRequest &msg) {
   VoiceAssistantConfigurationResponse resp;
-  if (!this->check_voice_assistant_api_connection()) {
+  if (!this->check_voice_assistant_api_connection_()) {
     return resp;
   }
 
@@ -1252,7 +1252,7 @@ VoiceAssistantConfigurationResponse APIConnection::voice_assistant_get_configura
 }
 
 void APIConnection::voice_assistant_set_configuration(const VoiceAssistantSetConfiguration &msg) {
-  if (this->check_voice_assistant_api_connection()) {
+  if (this->check_voice_assistant_api_connection_()) {
     voice_assistant::global_voice_assistant->on_set_configuration(msg.active_wake_words);
   }
 }
