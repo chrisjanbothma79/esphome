@@ -54,32 +54,31 @@ class NextionComponent : public NextionComponentBase {
     // Background color flags
     uint16_t bco_needs_update : 1;
     uint16_t bco_is_set : 1;
-    
+
     // Pressed background color flags  
     uint16_t bco2_needs_update : 1;
     uint16_t bco2_is_set : 1;
-    
+
     // Foreground color flags
     uint16_t pco_needs_update : 1;
     uint16_t pco_is_set : 1;
-    
+
     // Pressed foreground color flags
     uint16_t pco2_needs_update : 1;
     uint16_t pco2_is_set : 1;
-    
+
     // Font ID flags
     uint16_t font_id_needs_update : 1;
     uint16_t font_id_is_set : 1;
-    
+
     // Visibility flags
     uint16_t visible_needs_update : 1;
     uint16_t visible_is_set : 1;
     uint16_t visible : 1;  // Actual visibility state
-    
+
     // Reserved bits for future expansion
     uint16_t reserved : 3;
   } component_state_;
-
 };
 }  // namespace nextion
 }  // namespace esphome
