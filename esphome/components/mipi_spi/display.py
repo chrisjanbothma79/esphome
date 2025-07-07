@@ -445,7 +445,9 @@ def _final_validate(config):
             # Either the screen is too big, or the height is not divisible by any of the fractions, so use 1.0
             # PSRAM will be needed.
             if CORE.is_esp32:
-                raise cv.Invalid("PSRAM is required for this display")
+                raise cv.Invalid(
+                    "PSRAM is required for this display"
+                ) from StopIteration
 
     return config
 
