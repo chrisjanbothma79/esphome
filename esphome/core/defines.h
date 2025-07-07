@@ -23,6 +23,7 @@
 #define USE_AREAS
 #define USE_BINARY_SENSOR
 #define USE_BUTTON
+#define USE_CAMERA
 #define USE_CLIMATE
 #define USE_COVER
 #define USE_DATETIME
@@ -86,6 +87,7 @@
 #define USE_SELECT
 #define USE_SENSOR
 #define USE_STATUS_LED
+#define USE_STATUS_SENSOR
 #define USE_SWITCH
 #define USE_TEXT
 #define USE_TEXT_SENSOR
@@ -116,6 +118,7 @@
 #define USE_OTA_PASSWORD
 #define USE_OTA_STATE_CALLBACK
 #define USE_OTA_VERSION 2
+#define USE_TIME_TIMEZONE
 #define USE_WIFI
 #define USE_WIFI_AP
 #define USE_WIREGUARD
@@ -142,7 +145,6 @@
 #define USE_ESP32_BLE
 #define USE_ESP32_BLE_CLIENT
 #define USE_ESP32_BLE_SERVER
-#define USE_ESP32_CAMERA
 #define USE_I2C
 #define USE_IMPROV
 #define USE_MICROPHONE

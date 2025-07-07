@@ -4,13 +4,13 @@
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 
+#include <strings.h>
 #include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
-#include <strings.h>
 
 #ifdef USE_HOST
 #ifndef _WIN32
@@ -43,10 +43,10 @@
 #include <random>
 #endif
 #ifdef USE_ESP32
-#include "rom/crc.h"
-#include "esp_mac.h"
 #include "esp_efuse.h"
 #include "esp_efuse_table.h"
+#include "esp_mac.h"
+#include "rom/crc.h"
 #endif
 
 #ifdef USE_LIBRETINY
@@ -393,6 +393,21 @@ std::string format_hex_pretty(const uint16_t *data, size_t length) {
   return ret;
 }
 std::string format_hex_pretty(const std::vector<uint16_t> &data) { return format_hex_pretty(data.data(), data.size()); }
+std::string format_hex_pretty(const std::string &data) {
+  if (data.empty())
+    return "";
+  std::string ret;
+  ret.resize(3 * data.length() - 1);
+  for (size_t i = 0; i < data.length(); i++) {
+    ret[3 * i] = format_hex_pretty_char((data[i] & 0xF0) >> 4);
+    ret[3 * i + 1] = format_hex_pretty_char(data[i] & 0x0F);
+    if (i != data.length() - 1)
+      ret[3 * i + 2] = '.';
+  }
+  if (data.length() > 4)
+    return ret + " (" + std::to_string(data.length()) + ")";
+  return ret;
+}
 
 std::string format_bin(const uint8_t *data, size_t length) {
   std::string result;
@@ -630,7 +645,7 @@ void hsv_to_rgb(int hue, float saturation, float value, float &red, float &green
 }
 
 // System APIs
-#if defined(USE_ESP8266) || defined(USE_RP2040) || defined(USE_HOST)
+#if defined(USE_ESP8266) || defined(USE_RP2040)
 // ESP8266 doesn't have mutexes, but that shouldn't be an issue as it's single-core and non-preemptive OS.
 Mutex::Mutex() {}
 Mutex::~Mutex() {}
@@ -643,6 +658,13 @@ Mutex::~Mutex() {}
 void Mutex::lock() { xSemaphoreTake(this->handle_, portMAX_DELAY); }
 bool Mutex::try_lock() { return xSemaphoreTake(this->handle_, 0) == pdTRUE; }
 void Mutex::unlock() { xSemaphoreGive(this->handle_); }
+#elif defined(USE_HOST)
+// Host platform uses std::mutex for proper thread synchronization
+Mutex::Mutex() { handle_ = new std::mutex(); }
+Mutex::~Mutex() { delete static_cast<std::mutex *>(handle_); }
+void Mutex::lock() { static_cast<std::mutex *>(handle_)->lock(); }
+bool Mutex::try_lock() { return static_cast<std::mutex *>(handle_)->try_lock(); }
+void Mutex::unlock() { static_cast<std::mutex *>(handle_)->unlock(); }
 #endif
 
 #if defined(USE_ESP8266)
