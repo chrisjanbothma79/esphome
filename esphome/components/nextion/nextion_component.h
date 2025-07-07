@@ -25,8 +25,8 @@ class NextionComponent : public NextionComponentBase {
    * @brief Constructor initializes component state with visible=true (default state)
    */
   NextionComponent() {
-    component_state_ = {};         // Zero-initialize all state
-    component_state_.visible = 1;  // Set default visibility to true
+    component_flags_ = {};         // Zero-initialize all state
+    component_flags_.visible = 1;  // Set default visibility to true
   }
 
   NextionBase *nextion_;
@@ -78,7 +78,7 @@ class NextionComponent : public NextionComponentBase {
 
     // Reserved bits for future expansion
     uint16_t reserved : 3;
-  } component_state_;
+  } component_flags_;
 };
 }  // namespace nextion
 }  // namespace esphome
