@@ -392,11 +392,13 @@ void HOT Scheduler::cleanup_() {
     return;
 
   // We must hold the lock for the entire cleanup operation because:
-  // 1. We're modifying items_ (via pop_raw_) which other threads may be reading/writing
-  // 2. We're decrementing to_remove_ which must be synchronized with increments
-  // 3. We need a consistent view of items_ throughout the iteration
-  // 4. Other threads might be adding items or modifying the heap structure
-  // Without the lock, we could have race conditions leading to crashes or corruption
+  // 1. We're modifying items_ (via pop_raw_) which requires exclusive access
+  // 2. We're decrementing to_remove_ which is also modified by other threads
+  //    (though all modifications are already under lock)
+  // 3. Other threads read items_ when searching for items to cancel in cancel_item_locked_()
+  // 4. We need a consistent view of items_ and to_remove_ throughout the operation
+  // Without the lock, we could access items_ while another thread is reading it,
+  // leading to race conditions
   LockGuard guard{this->lock_};
   while (!this->items_.empty()) {
     auto &item = this->items_[0];
