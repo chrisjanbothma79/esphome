@@ -62,6 +62,7 @@ from .models import (
     MADCTL_XFLIP,
     MADCTL_YFLIP,
     DriverChip,
+    adafruit,
     amoled,
     cyd,
     ili,
@@ -110,7 +111,7 @@ DriverChip("CUSTOM")
 
 MODELS = DriverChip.models
 # This loop is a noop, but suppresses linting of side-effect-only imports
-for _ in (ili, jc, amoled, lilygo, lanbon, cyd, waveshare):
+for _ in (ili, jc, amoled, lilygo, lanbon, cyd, waveshare, adafruit):
     pass
 
 
