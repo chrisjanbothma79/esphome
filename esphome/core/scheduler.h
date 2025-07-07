@@ -99,9 +99,15 @@ class Scheduler {
     SchedulerItem(const SchedulerItem &) = delete;
     SchedulerItem &operator=(const SchedulerItem &) = delete;
 
-    // Default move operations
-    SchedulerItem(SchedulerItem &&) = default;
-    SchedulerItem &operator=(SchedulerItem &&) = default;
+    // Delete move operations to prevent accidental moves of SchedulerItem objects.
+    // This is intentional because:
+    // 1. SchedulerItem contains a dynamically allocated name that requires careful ownership management
+    // 2. The scheduler only moves unique_ptr<SchedulerItem>, never SchedulerItem objects directly
+    // 3. Moving unique_ptr only transfers pointer ownership without moving the pointed-to object
+    // 4. Deleting these operations makes it explicit that SchedulerItem objects should not be moved
+    // 5. This prevents potential double-free bugs if the code is refactored to move SchedulerItem objects
+    SchedulerItem(SchedulerItem &&) = delete;
+    SchedulerItem &operator=(SchedulerItem &&) = delete;
 
     // Helper to get the name regardless of storage type
     const char *get_name() const { return name_is_dynamic ? name_.dynamic_name : name_.static_name; }
