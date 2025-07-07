@@ -68,7 +68,7 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     // Still need to cancel existing timer if name is not empty
     if (name_cstr != nullptr && name_cstr[0] != '\0') {
       LockGuard guard{this->lock_};
-      this->cancel_item_locked_(component, name_cstr, type, delay == 0 && type == SchedulerItem::TIMEOUT);
+      this->cancel_item_locked_(component, name_cstr, type, false);
     }
     return;
   }
@@ -451,7 +451,7 @@ bool HOT Scheduler::cancel_item_(Component *component, bool is_static_string, co
 
 // Helper to cancel items by name - must be called with lock held
 bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type,
-                                        bool defer_only) {
+                                        bool check_defer_only) {
   size_t total_cancelled = 0;
 
   // Check all containers for matching items
@@ -464,7 +464,7 @@ bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_c
         total_cancelled++;
       }
     }
-    if (defer_only) {
+    if (check_defer_only) {
       return total_cancelled > 0;
     }
   }
