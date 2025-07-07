@@ -220,6 +220,9 @@ bool HOT Scheduler::cancel_retry(Component *component, const std::string &name) 
 }
 
 optional<uint32_t> HOT Scheduler::next_schedule_in() {
+  // IMPORTANT: This method should only be called from the main thread (loop task).
+  // It calls empty_() and accesses items_[0] without holding a lock, which is only
+  // safe when called from the main thread. Other threads must not call this method.
   if (this->empty_())
     return {};
   auto &item = this->items_[0];
