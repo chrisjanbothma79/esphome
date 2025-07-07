@@ -1349,7 +1349,7 @@ class Nextion : public NextionBase, public PollingComponent, public uart::UARTDe
     uint8_t is_updating_ : 1;               ///< TFT firmware update is currently in progress
     uint8_t auto_wake_on_touch_ : 1;        ///< Display should wake automatically on touch (default: true)
     uint8_t reserved_ : 2;                  ///< Reserved bits for future flag additions
-  } connection_state_{};  ///< Zero-initialized status flags (all start as false)
+  } connection_state_{};                    ///< Zero-initialized status flags (all start as false)
 
   void process_nextion_commands_();
   void process_serial_();
