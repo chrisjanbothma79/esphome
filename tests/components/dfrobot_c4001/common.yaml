@@ -22,6 +22,10 @@ button:
     config_save:
       name: Config Save
       entity_category: CONFIG
+    factory_reset:
+      name: Factory Reset
+    restart:
+      name: Restart
 
 number:
   - platform: dfrobot_c4001
@@ -48,3 +52,10 @@ switch:
     dfrobot_c4001_id: mmwave_sensor
     led_enable:
       name: Enable LED
+
+text_sensor:
+  - platform: dfrobot_c4001
+    software_version:
+      name: Software Version
+    hardware_version:
+      name: Hardware Version
