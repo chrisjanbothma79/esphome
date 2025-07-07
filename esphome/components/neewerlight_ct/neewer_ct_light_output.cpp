@@ -16,23 +16,18 @@ namespace neewerlight_ct {
 using utils::TAG;
 
 NeewerCTLightOutput::NeewerCTLightOutput() {
-  ble_.set_service_uuid_str(SERVICE_UUID.c_str());
-  ble_.set_characteristic_uuid_str(CHARACTERISTIC_UUID.c_str());
-  ble_.set_require_response(true);
-
   set_color_temperature(new NeewerStateOutput());
   set_brightness(new NeewerStateOutput());
 };
 
 void NeewerCTLightOutput::dump_config() {
   ESP_LOGCONFIG(TAG, "Neewer CT Light Output:");
-  ESP_LOGCONFIG(TAG, "  MAC address        : %s", parent_->address_str().c_str());
-  ESP_LOGCONFIG(TAG, "  Service UUID       : %s", ble_.service_uuid_.to_string().c_str());
-  ESP_LOGCONFIG(TAG, "  Characteristic UUID: %s", ble_.characteristic_uuid_.to_string().c_str());
-  ESP_LOGCONFIG(TAG, "  Require Response   : %s", ble_.require_response_ ? "True" : "False");
+  ESP_LOGCONFIG(TAG, "  MAC address        : %s", parent()->address_str().c_str());
+  ESP_LOGCONFIG(TAG, "  Service UUID       : %s", ble_.service_uuid());
+  ESP_LOGCONFIG(TAG, "  Characteristic UUID: %s", ble_.characteristic_uuid());
+  ESP_LOGCONFIG(TAG, "  Require Response   : %s", ble_.require_response() ? "True" : "False");
   ESP_LOGCONFIG(TAG, "  Colour Temperature Range: %d K - %d K", utils::mireds_to_kelvin_int(warm_white_temperature_),
                 utils::mireds_to_kelvin_int(cold_white_temperature_));
-  // LOG_BINARY_OUTPUT(this); // TODO why? can we log FloatOutputs like color_temperature_ and brightness_ instead?
 };
 
 void NeewerCTLightOutput::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
@@ -101,17 +96,17 @@ void NeewerCTLightOutput::turn_on_off(OnOffState on_off) {
     ESP_LOGW(TAG, "Unknown On/Off state, not sending command.");
     return;
   }
-  NeewerBleMessage msg;
-  msg.cmd = COMMAND;
-  msg.type = TURN_ON_OFF;
+  Message msg;
+  msg.msg_type = MessageType::COMMAND;
+  msg.cmd_type = CommandType::TURN_ON_OFF;
   msg.payload = {static_cast<uint8_t>((on_off == OnOffState::ON) ? 1 : 0)};
-  send_via_ble(msg);
+  ble_.send_message(parent(), neewer_msg(msg));
 }
 
 void NeewerCTLightOutput::change_color_temperature_and_brightness(int color_temperature_k, int brightness_percent) {
-  NeewerBleMessage msg;
-  msg.cmd = COMMAND;
-  msg.type = CT_BRIGHTNESS;
+  Message msg;
+  msg.msg_type = MessageType::COMMAND;
+  msg.cmd_type = CommandType::CT_BRIGHTNESS;
   msg.payload = {
       // expected value for brightness is 0 - 100 (0x00 - 0x64)
       static_cast<uint8_t>(brightness_percent),
@@ -120,42 +115,29 @@ void NeewerCTLightOutput::change_color_temperature_and_brightness(int color_temp
       // rounding is meant to avoid setting 27 for 2799K
       static_cast<uint8_t>(round(static_cast<float>(color_temperature_k) / 100.0f)),
   };
-  send_via_ble(msg);
+  ble_.send_message(parent(), neewer_msg(msg));
 }
 
 void NeewerCTLightOutput::change_brightness(int brightness_percent) {
-  NeewerBleMessage msg;
-  msg.cmd = COMMAND;
-  msg.type = CT_BRIGHTNESS;
+  Message msg;
+  msg.msg_type = MessageType::COMMAND;
+  msg.cmd_type = CommandType::CT_BRIGHTNESS;
   msg.payload = {
       // expected value for brightness is 0 - 100 (0x00 - 0x64)
       static_cast<uint8_t>(brightness_percent),
   };
-  send_via_ble(msg);
+  ble_.send_message(parent(), neewer_msg(msg));
 }
 
-void NeewerCTLightOutput::send_via_ble(const NeewerBleMessage &msg) {
-  // This is the neewer protocol:
-  // 1. Command byte (0x01)
-  // 2. Type byte (e.g., TURN_ON_OFF, CT_BRIGHTNESS, etc.)
-  // 3. Payload length byte (number of bytes in the payload)
-  // 4. Payload bytes (e.g., color temperature, brightness, etc.)
-  // 5. Checksum byte (sum of all previous bytes modulo 256)
-  std::vector<uint8_t> final_msg = {msg.cmd, msg.type, static_cast<uint8_t>(msg.payload.size())};
-  final_msg.insert(final_msg.end(), msg.payload.begin(), msg.payload.end());
-
-  // Calculate checksum
-  uint64_t checksum = 0;
-  for (uint8_t byte : final_msg) {
-    checksum += byte;
-  }
-  uint8_t checksum_byte = checksum & 0xFF;
-
-  // Append checksum to message
-  final_msg.push_back(checksum_byte);
-
-  // Send message via BLE
-  ble_.send_message(parent(), std::move(final_msg));
+std::vector<uint8_t> NeewerCTLightOutput::neewer_msg(const Message &msg) {
+  std::vector<uint8_t> neewer_msg = {
+      static_cast<uint8_t>(msg.msg_type),
+      static_cast<uint8_t>(msg.cmd_type),
+      static_cast<uint8_t>(msg.payload.size()),
+  };
+  neewer_msg.insert(neewer_msg.end(), msg.payload.begin(), msg.payload.end());
+  neewer_msg.push_back(utils::checksum(neewer_msg));
+  return neewer_msg;
 }
 
 }  // namespace neewerlight_ct

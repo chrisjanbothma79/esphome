@@ -23,20 +23,19 @@ class NeewerCTLightOutput : public Component,
                            esp_ble_gattc_cb_param_t *param) override;
 
  protected:
+  // CTLightOutput override
   void write_state(light::LightState *state) override;
 
   // Methods to prepare messages and send them via BLE
   void turn_on_off(OnOffState on_off);
   void change_color_temperature_and_brightness(int color_temperature, int brightness);
   void change_brightness(int brightness_percent);
-  void send_via_ble(const NeewerBleMessage &msg);
+
+  // Translate Message to Neewer protocol
+  static std::vector<uint8_t> neewer_msg(const Message &msg);
 
   NeewerLightState old_state_;
   NeewerBleClient ble_;
-  NeewerBleMessage msg_;
-
-  const std::string SERVICE_UUID = "69400001-B5A3-F393-E0A9-E50E24DCCA99";
-  const std::string CHARACTERISTIC_UUID = "69400002-B5A3-F393-E0A9-E50E24DCCA99";
 };
 
 }  // namespace neewerlight_ct

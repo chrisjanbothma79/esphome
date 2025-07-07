@@ -10,6 +10,12 @@ namespace neewerlight_ct {
 
 using utils::TAG;
 
+NeewerBleClient::NeewerBleClient()
+    : service_uuid_(esp32_ble_tracker::ESPBTUUID::from_raw(SERVICE_UUID.c_str())),
+      characteristic_uuid_(esp32_ble_tracker::ESPBTUUID::from_raw(CHARACTERISTIC_UUID.c_str())),
+      require_response_(true),
+      client_state_(esp32_ble_tracker::ClientState::INIT) {}
+
 void NeewerBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                           esp_ble_gattc_cb_param_t *param) {
   switch (event) {
@@ -27,6 +33,11 @@ void NeewerBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
 }
 
 void NeewerBleClient::send_message(esphome::ble_client::BLEClient *client, std::vector<uint8_t> &&msg) {
+  if (client == nullptr) {
+    ESP_LOGW(TAG, "BLE parent is null. Can not get characteristic to write to.");
+    return;
+  }
+
   if (client_state_ != esp32_ble_tracker::ClientState::ESTABLISHED) {
     ESP_LOGW(TAG, "[%s] Not connected to BLE client. State update can not be written.",
              characteristic_uuid_.to_string().c_str());

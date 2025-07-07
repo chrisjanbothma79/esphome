@@ -8,21 +8,22 @@
 namespace esphome {
 namespace neewerlight_ct {
 
-struct NeewerBleMessage {
-  explicit NeewerBleMessage() {
-    cmd = 0;
-    type = 0;
-    payload.clear();
-  }
-
-  uint8_t cmd;
-  uint8_t type;
-  std::vector<uint8_t> payload;
+enum class MessageType : uint8_t {
+  UNDEFINED = 0x00,
+  COMMAND = 0x78,
 };
 
-static const uint8_t COMMAND = 0x78;
-static const uint8_t CT_BRIGHTNESS = 0x87;
-static const uint8_t TURN_ON_OFF = 0x81;
+enum class CommandType : uint8_t {
+  UNDEFINED = 0x00,
+  TURN_ON_OFF = 0x81,
+  CT_BRIGHTNESS = 0x87,
+};
+
+struct Message {
+  MessageType msg_type = MessageType::UNDEFINED;
+  CommandType cmd_type = CommandType::UNDEFINED;
+  std::vector<uint8_t> payload = {};
+};
 
 }  // namespace neewerlight_ct
 }  // namespace esphome

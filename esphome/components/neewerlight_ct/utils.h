@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cmath>
+#include <vector>
+
 namespace esphome {
 namespace neewerlight_ct {
 namespace utils {
@@ -36,6 +38,15 @@ static int brightness_to_percent(float brightness) {
   } else {
     return std::round(brightness * 100.0f);
   }
+}
+
+static uint8_t checksum(const std::vector<uint8_t> &data) {
+  uint64_t checksum = 0;
+  for (uint8_t byte : data) {
+    checksum += byte;
+  }
+  uint8_t checksum_byte = checksum & 0xFF;
+  return checksum_byte;
 }
 
 }  // namespace utils
