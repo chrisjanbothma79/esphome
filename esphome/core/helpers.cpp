@@ -254,7 +254,6 @@ std::string format_hex(const uint8_t *data, size_t length) {
     ret[2 * i + 1] = format_hex_char(data[i] & 0x0F);
   }
   return ret;
-  return format_hex_pretty(data, length, '\0', false);  // Use pretty format without separator and length
 }
 std::string format_hex(const std::vector<uint8_t> &data) { return format_hex(data.data(), data.size()); }
 
