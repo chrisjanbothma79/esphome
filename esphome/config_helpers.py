@@ -2,6 +2,8 @@ from collections.abc import Callable
 
 from esphome.const import (
     CONF_ID,
+    CONF_LEVEL,
+    CONF_LOGGER,
     KEY_CORE,
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
@@ -157,3 +159,20 @@ def filter_source_files_from_platform(
         ]
 
     return filter_source_files
+
+
+def get_logger_level() -> str:
+    """Get the configured logger level.
+
+    This is used by components to determine what logging features to include
+    based on the configured log level.
+
+    Returns:
+        The configured logger level string, defaults to "DEBUG" if not configured
+    """
+    # Check if logger config exists
+    if CONF_LOGGER not in CORE.config:
+        return "DEBUG"
+
+    logger_config = CORE.config[CONF_LOGGER]
+    return logger_config.get(CONF_LEVEL, "DEBUG")

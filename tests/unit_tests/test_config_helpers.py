@@ -3,8 +3,10 @@
 from collections.abc import Callable
 from unittest.mock import patch
 
-from esphome.config_helpers import filter_source_files_from_platform
+from esphome.config_helpers import filter_source_files_from_platform, get_logger_level
 from esphome.const import (
+    CONF_LEVEL,
+    CONF_LOGGER,
     KEY_CORE,
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
@@ -108,3 +110,26 @@ def test_filter_source_files_from_platform_handles_missing_data() -> None:
         excluded: list[str] = filter_func()
         # Should return empty list when platform/framework not set
         assert excluded == []
+
+
+def test_get_logger_level() -> None:
+    """Test get_logger_level helper function."""
+    # Test no logger config - should return default DEBUG
+    mock_config = {}
+    with patch("esphome.config_helpers.CORE.config", mock_config):
+        assert get_logger_level() == "DEBUG"
+
+    # Test with logger set to INFO
+    mock_config = {CONF_LOGGER: {CONF_LEVEL: "INFO"}}
+    with patch("esphome.config_helpers.CORE.config", mock_config):
+        assert get_logger_level() == "INFO"
+
+    # Test with VERY_VERBOSE
+    mock_config = {CONF_LOGGER: {CONF_LEVEL: "VERY_VERBOSE"}}
+    with patch("esphome.config_helpers.CORE.config", mock_config):
+        assert get_logger_level() == "VERY_VERBOSE"
+
+    # Test with logger missing level (uses default DEBUG)
+    mock_config = {CONF_LOGGER: {}}
+    with patch("esphome.config_helpers.CORE.config", mock_config):
+        assert get_logger_level() == "DEBUG"
