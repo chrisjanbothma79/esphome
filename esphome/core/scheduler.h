@@ -208,7 +208,7 @@ class Scheduler {
 #endif
   uint32_t last_millis_{0};
   uint16_t millis_major_{0};
-  volatile uint32_t to_remove_{0};
+  uint32_t to_remove_{0};
 };
 
 }  // namespace esphome
