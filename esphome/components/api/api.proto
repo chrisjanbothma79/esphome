@@ -1817,6 +1817,7 @@ message ListEntitiesAlarmControlPanelResponse {
   string object_id = 1;
   fixed32 key = 2;
   string name = 3;
+  reserved 4; // Deprecated: was string unique_id
   string icon = 5;
   bool disabled_by_default = 6;
   EntityCategory entity_category = 7;
@@ -1861,6 +1862,7 @@ message ListEntitiesTextResponse {
   string object_id = 1;
   fixed32 key = 2;
   string name = 3;
+  reserved 4; // Deprecated: was string unique_id
   string icon = 5;
   bool disabled_by_default = 6;
   EntityCategory entity_category = 7;
@@ -1906,6 +1908,7 @@ message ListEntitiesDateResponse {
   string object_id = 1;
   fixed32 key = 2;
   string name = 3;
+  reserved 4; // Deprecated: was string unique_id
 
   string icon = 5;
   bool disabled_by_default = 6;
@@ -1950,6 +1953,7 @@ message ListEntitiesTimeResponse {
   string object_id = 1;
   fixed32 key = 2;
   string name = 3;
+  reserved 4; // Deprecated: was string unique_id
 
   string icon = 5;
   bool disabled_by_default = 6;
@@ -1994,6 +1998,7 @@ message ListEntitiesEventResponse {
   string object_id = 1;
   fixed32 key = 2;
   string name = 3;
+  reserved 4; // Deprecated: was string unique_id
 
   string icon = 5;
   bool disabled_by_default = 6;
@@ -2024,6 +2029,7 @@ message ListEntitiesValveResponse {
   string object_id = 1;
   fixed32 key = 2;
   string name = 3;
+  reserved 4; // Deprecated: was string unique_id
 
   string icon = 5;
   bool disabled_by_default = 6;
@@ -2076,6 +2082,7 @@ message ListEntitiesDateTimeResponse {
   string object_id = 1;
   fixed32 key = 2;
   string name = 3;
+  reserved 4; // Deprecated: was string unique_id
 
   string icon = 5;
   bool disabled_by_default = 6;
@@ -2116,6 +2123,7 @@ message ListEntitiesUpdateResponse {
   string object_id = 1;
   fixed32 key = 2;
   string name = 3;
+  reserved 4; // Deprecated: was string unique_id
 
   string icon = 5;
   bool disabled_by_default = 6;
