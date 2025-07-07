@@ -62,7 +62,7 @@ from .models import (
     waveshare,
 )
 
-DEPENDENCIES = ["spi", "esp32"]
+DEPENDENCIES = ["esp32"]
 DOMAIN = "mipi_dsi"
 
 LOGGER = logging.getLogger(DOMAIN)
@@ -209,6 +209,13 @@ def model_schema(config):
 
 
 def _config_schema(config):
+    # First get the model and bus mode
+    config = cv.Schema(
+        {
+            cv.Required(CONF_MODEL): cv.one_of(*MODELS, upper=True),
+        },
+        extra=cv.ALLOW_EXTRA,
+    )(config)
     config = model_schema(config)(config)
     if init_sequence := config.get(CONF_INIT_SEQUENCE):
         if MADCTL in [x[0] for x in init_sequence] and CONF_TRANSFORM in config:
