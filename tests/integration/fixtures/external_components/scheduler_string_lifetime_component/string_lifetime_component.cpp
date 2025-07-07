@@ -41,31 +41,31 @@ void SchedulerStringLifetimeComponent::run_string_lifetime_test() {
 void SchedulerStringLifetimeComponent::run_test1() {
   test_temporary_string_lifetime();
   // Wait for all callbacks to execute
-  this->set_timeout("test1_complete", 10, [this]() { ESP_LOGI(TAG, "Test 1 complete"); });
+  this->set_timeout("test1_complete", 10, []() { ESP_LOGI(TAG, "Test 1 complete"); });
 }
 
 void SchedulerStringLifetimeComponent::run_test2() {
   test_scope_exit_string();
   // Wait for all callbacks to execute
-  this->set_timeout("test2_complete", 20, [this]() { ESP_LOGI(TAG, "Test 2 complete"); });
+  this->set_timeout("test2_complete", 20, []() { ESP_LOGI(TAG, "Test 2 complete"); });
 }
 
 void SchedulerStringLifetimeComponent::run_test3() {
   test_vector_reallocation();
   // Wait for all callbacks to execute
-  this->set_timeout("test3_complete", 60, [this]() { ESP_LOGI(TAG, "Test 3 complete"); });
+  this->set_timeout("test3_complete", 60, []() { ESP_LOGI(TAG, "Test 3 complete"); });
 }
 
 void SchedulerStringLifetimeComponent::run_test4() {
   test_string_move_semantics();
   // Wait for all callbacks to execute
-  this->set_timeout("test4_complete", 35, [this]() { ESP_LOGI(TAG, "Test 4 complete"); });
+  this->set_timeout("test4_complete", 35, []() { ESP_LOGI(TAG, "Test 4 complete"); });
 }
 
 void SchedulerStringLifetimeComponent::run_test5() {
   test_lambda_capture_lifetime();
   // Wait for all callbacks to execute
-  this->set_timeout("test5_complete", 50, [this]() { ESP_LOGI(TAG, "Test 5 complete"); });
+  this->set_timeout("test5_complete", 50, []() { ESP_LOGI(TAG, "Test 5 complete"); });
 }
 
 void SchedulerStringLifetimeComponent::run_final_check() {
