@@ -99,13 +99,7 @@ class Scheduler {
     SchedulerItem(const SchedulerItem &) = delete;
     SchedulerItem &operator=(const SchedulerItem &) = delete;
 
-    // Delete move operations to prevent accidental moves of SchedulerItem objects.
-    // This is intentional because:
-    // 1. SchedulerItem contains a dynamically allocated name that requires careful ownership management
-    // 2. The scheduler only moves unique_ptr<SchedulerItem>, never SchedulerItem objects directly
-    // 3. Moving unique_ptr only transfers pointer ownership without moving the pointed-to object
-    // 4. Deleting these operations makes it explicit that SchedulerItem objects should not be moved
-    // 5. This prevents potential double-free bugs if the code is refactored to move SchedulerItem objects
+    // Delete move operations: SchedulerItem objects are only managed via unique_ptr, never moved directly
     SchedulerItem(SchedulerItem &&) = delete;
     SchedulerItem &operator=(SchedulerItem &&) = delete;
 
@@ -149,7 +143,7 @@ class Scheduler {
 
  private:
   // Helper to cancel items by name - must be called with lock held
-  bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type, bool defer_only);
+  bool cancel_item_locked_(Component *component, const char *name, SchedulerItem::Type type, bool check_defer_only);
 
   // Helper to extract name as const char* from either static string or std::string
   inline const char *get_name_cstr_(bool is_static_string, const void *name_ptr) {

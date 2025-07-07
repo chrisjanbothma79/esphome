@@ -68,7 +68,7 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
     // Still need to cancel existing timer if name is not empty
     if (name_cstr != nullptr && name_cstr[0] != '\0') {
       LockGuard guard{this->lock_};
-      this->cancel_item_locked_(component, name_cstr, type, delay == 0 && type == SchedulerItem::TIMEOUT);
+      this->cancel_item_locked_(component, name_cstr, type, false);
     }
     return;
   }
@@ -242,6 +242,10 @@ void HOT Scheduler::call() {
   // - No deferred items exist in to_add_, so processing order doesn't affect correctness
   // ESP8266 and RP2040 don't use this queue - they fall back to the heap-based approach
   // (ESP8266: single-core, RP2040: empty mutex implementation).
+  //
+  // Note: Items cancelled via cancel_item_locked_() are marked with remove=true but still
+  // processed here. They are removed from the queue normally via pop_front() but skipped
+  // during execution by should_skip_item_(). This is intentional - no memory leak occurs.
   while (!this->defer_queue_.empty()) {
     // The outer check is done without a lock for performance. If the queue
     // appears non-empty, we lock and process an item. We don't need to check
@@ -273,10 +277,12 @@ void HOT Scheduler::call() {
     ESP_LOGD(TAG, "Items: count=%zu, now=%" PRIu64 " (%u, %" PRIu32 ")", this->items_.size(), now, this->millis_major_,
              this->last_millis_);
     while (!this->empty_()) {
-      this->lock_.lock();
-      auto item = std::move(this->items_[0]);
-      this->pop_raw_();
-      this->lock_.unlock();
+      std::unique_ptr<SchedulerItem> item;
+      {
+        LockGuard guard{this->lock_};
+        item = std::move(this->items_[0]);
+        this->pop_raw_();
+      }
 
       const char *name = item->get_name();
       ESP_LOGD(TAG, "  %s '%s/%s' interval=%" PRIu32 " next_execution in %" PRIu64 "ms at %" PRIu64,
@@ -290,6 +296,8 @@ void HOT Scheduler::call() {
     {
       LockGuard guard{this->lock_};
       this->items_ = std::move(old_items);
+      // Rebuild heap after moving items back
+      std::make_heap(this->items_.begin(), this->items_.end(), SchedulerItem::cmp);
     }
   }
 #endif  // ESPHOME_DEBUG_SCHEDULER
@@ -314,6 +322,8 @@ void HOT Scheduler::call() {
 
     // Replace items_ with the filtered list
     this->items_ = std::move(valid_items);
+    // Rebuild the heap structure since items are no longer in heap order
+    std::make_heap(this->items_.begin(), this->items_.end(), SchedulerItem::cmp);
     this->to_remove_ = 0;
   }
 
@@ -441,7 +451,7 @@ bool HOT Scheduler::cancel_item_(Component *component, bool is_static_string, co
 
 // Helper to cancel items by name - must be called with lock held
 bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type,
-                                        bool defer_only) {
+                                        bool check_defer_only) {
   size_t total_cancelled = 0;
 
   // Check all containers for matching items
@@ -454,7 +464,7 @@ bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_c
         total_cancelled++;
       }
     }
-    if (defer_only) {
+    if (check_defer_only) {
       return total_cancelled > 0;
     }
   }
