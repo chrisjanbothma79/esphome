@@ -22,17 +22,17 @@ NeewerCTLightOutput::NeewerCTLightOutput() {
 
 void NeewerCTLightOutput::dump_config() {
   ESP_LOGCONFIG(TAG, "Neewer CT Light Output:");
-  ESP_LOGCONFIG(TAG, "  MAC address        : %s", parent()->address_str().c_str());
-  ESP_LOGCONFIG(TAG, "  Service UUID       : %s", ble_.service_uuid());
-  ESP_LOGCONFIG(TAG, "  Characteristic UUID: %s", ble_.characteristic_uuid());
-  ESP_LOGCONFIG(TAG, "  Require Response   : %s", ble_.require_response() ? "True" : "False");
+  ESP_LOGCONFIG(TAG, "  MAC address        : %s", this->parent_ ? this->parent_->address_str().c_str() : "N/A");
+  ESP_LOGCONFIG(TAG, "  Service UUID       : %s", this->ble_.service_uuid());
+  ESP_LOGCONFIG(TAG, "  Characteristic UUID: %s", this->ble_.characteristic_uuid());
+  ESP_LOGCONFIG(TAG, "  Require Response   : %s", this->ble_.require_response() ? "True" : "False");
   ESP_LOGCONFIG(TAG, "  Colour Temperature Range: %d K - %d K", utils::mireds_to_kelvin_int(warm_white_temperature_),
                 utils::mireds_to_kelvin_int(cold_white_temperature_));
 };
 
 void NeewerCTLightOutput::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                               esp_ble_gattc_cb_param_t *param) {
-  ble_.gattc_event_handler(event, gattc_if, param);
+  this->ble_.gattc_event_handler(event, gattc_if, param);
 }
 
 void NeewerCTLightOutput::write_state(light::LightState *state) {
@@ -45,18 +45,18 @@ void NeewerCTLightOutput::write_state(light::LightState *state) {
   int color_temperature_k =
       utils::normalized_mireds_to_kelvin_int(color_temperature, cold_white_temperature_, warm_white_temperature_);
   int old_color_temperature_k = utils::normalized_mireds_to_kelvin_int(
-      old_state_.color_temperature, cold_white_temperature_, warm_white_temperature_);
+      this->old_state_.color_temperature, cold_white_temperature_, warm_white_temperature_);
   int brightness_percent = utils::brightness_to_percent(brightness);
-  int old_brightness_percent = utils::brightness_to_percent(old_state_.brightness);
+  int old_brightness_percent = utils::brightness_to_percent(this->old_state_.brightness);
 
   // For on/off state we have to use state->remote_values, since there is no current_values_as_on_off() method.
   OnOffState on_off_state = state->remote_values.is_on() ? OnOffState::ON : OnOffState::OFF;
 
   // Turn on *before* potentially setting color temperature and brightness.
-  bool turned_on = old_state_.on_off != OnOffState::ON && on_off_state == OnOffState::ON;
+  bool turned_on = this->old_state_.on_off != OnOffState::ON && on_off_state == OnOffState::ON;
   if (turned_on) {
     ESP_LOGD(TAG, "Light was turned off, turning it on.");
-    turn_on_off(OnOffState::ON);
+    this->turn_on_off(OnOffState::ON);
   }
 
   if (brightness_percent != old_brightness_percent) {
@@ -69,26 +69,26 @@ void NeewerCTLightOutput::write_state(light::LightState *state) {
     if (color_temperature_k != old_color_temperature_k) {
       ESP_LOGD(TAG, "Color temperature changed from %d K to %d K", old_color_temperature_k, color_temperature_k);
     }
-    change_color_temperature_and_brightness(color_temperature_k, brightness_percent);
+    this->change_color_temperature_and_brightness(color_temperature_k, brightness_percent);
   } else if (brightness_percent != old_brightness_percent) {
-    change_brightness(brightness_percent);
+    this->change_brightness(brightness_percent);
   } else {
     ESP_LOGD(TAG, "No changes in brightness or color temperature detected.");
   }
 
   // Turn Off *after* potentially setting color temperature and brightness
-  if (old_state_.on_off != OnOffState::OFF && on_off_state == OnOffState::OFF) {
+  if (this->old_state_.on_off != OnOffState::OFF && on_off_state == OnOffState::OFF) {
     ESP_LOGD(TAG, "Light was turned on, turning it off.");
-    turn_on_off(OnOffState::OFF);
+    this->turn_on_off(OnOffState::OFF);
   }
 
-  old_state_.color_temperature = color_temperature;
-  old_state_.brightness = brightness;
-  old_state_.on_off = on_off_state;
+  this->old_state_.color_temperature = color_temperature;
+  this->old_state_.brightness = brightness;
+  this->old_state_.on_off = on_off_state;
 
   // Copied from color_temperature::CTLightOutput::write_state().
-  color_temperature_->set_level(color_temperature);
-  brightness_->set_level(brightness);
+  this->color_temperature_->set_level(color_temperature);
+  this->brightness_->set_level(brightness);
 };
 
 void NeewerCTLightOutput::turn_on_off(OnOffState on_off) {
@@ -100,7 +100,7 @@ void NeewerCTLightOutput::turn_on_off(OnOffState on_off) {
   msg.msg_type = MessageType::COMMAND;
   msg.cmd_type = CommandType::TURN_ON_OFF;
   msg.payload = {static_cast<uint8_t>((on_off == OnOffState::ON) ? 1 : 0)};
-  ble_.send_message(parent(), neewer_msg(msg));
+  this->ble_.send_message(this->parent_, neewer_msg(msg));
 }
 
 void NeewerCTLightOutput::change_color_temperature_and_brightness(int color_temperature_k, int brightness_percent) {
@@ -115,7 +115,7 @@ void NeewerCTLightOutput::change_color_temperature_and_brightness(int color_temp
       // rounding is meant to avoid setting 27 for 2799K
       static_cast<uint8_t>(round(static_cast<float>(color_temperature_k) / 100.0f)),
   };
-  ble_.send_message(parent(), neewer_msg(msg));
+  this->ble_.send_message(this->parent_, neewer_msg(msg));
 }
 
 void NeewerCTLightOutput::change_brightness(int brightness_percent) {
@@ -126,7 +126,7 @@ void NeewerCTLightOutput::change_brightness(int brightness_percent) {
       // expected value for brightness is 0 - 100 (0x00 - 0x64)
       static_cast<uint8_t>(brightness_percent),
   };
-  ble_.send_message(parent(), neewer_msg(msg));
+  this->ble_.send_message(this->parent_, neewer_msg(msg));
 }
 
 std::vector<uint8_t> NeewerCTLightOutput::neewer_msg(const Message &msg) {
