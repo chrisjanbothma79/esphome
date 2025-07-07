@@ -3,6 +3,8 @@
 
 #ifdef USE_RP2040
 
+#include "esphome/core/hal.h"
+
 #if defined(USE_WIFI)
 #include <WiFi.h>
 #endif

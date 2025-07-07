@@ -2,6 +2,8 @@
 
 #ifdef USE_LIBRETINY
 
+#include "esphome/core/hal.h"
+
 #include <WiFi.h>  // for macAddress()
 
 namespace esphome {
