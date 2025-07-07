@@ -14,6 +14,14 @@ class SchedulerStringLifetimeComponent : public Component {
 
   void run_string_lifetime_test();
 
+  // Individual test methods exposed as services
+  void run_test1();
+  void run_test2();
+  void run_test3();
+  void run_test4();
+  void run_test5();
+  void run_final_check();
+
  private:
   void test_temporary_string_lifetime();
   void test_scope_exit_string();
