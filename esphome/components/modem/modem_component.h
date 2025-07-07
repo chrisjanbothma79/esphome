@@ -54,7 +54,7 @@ struct AtCommandResult {
 };
 
 struct ModemRestoreState {
-  int baud_rate{0};
+  int baud_rate{15200};
   uint8_t abort_count{0};
   bool cmux{true};
   bool synced{false};
@@ -116,11 +116,11 @@ class ModemComponent : public Component {
 
  protected:
   void modem_create_dce_dte_(int baud_rate);
-  void modem_create_dce_dte_() { this->modem_create_dce_dte_(0); }
+  void modem_create_dce_dte_() { this->modem_create_dce_dte_(this->modem_restore_state_.baud_rate); }
   bool modem_command_mode_(bool cmux);
   bool modem_command_mode_() { return modem_command_mode_(this->cmux_); };
   bool modem_recover_sync_(int baud_rate);
-  bool modem_recover_sync_() { return this->modem_recover_sync_(0); }
+  bool modem_recover_sync_() { return this->modem_recover_sync_(115200); }
   bool modem_preinit_();
   bool modem_init_();
   int get_baud_rate_();
@@ -152,6 +152,8 @@ class ModemComponent : public Component {
   std::string apn_;
   std::vector<std::string> init_at_commands_;
   std::string use_address_;
+  int baud_rate_ = 115200;
+
   bool cmux_{false};
   // separate handler for `on_not_responding` (we want to know when it's ended)
   Trigger<> *not_responding_cb_{nullptr};
@@ -165,7 +167,6 @@ class ModemComponent : public Component {
   uint8_t uart_event_task_priority_ = 5;      // 3-22
   uint32_t command_delay_ = 1000;             // timeout for AT commands
   uint32_t reconnect_grace_period_ = 30000;   // let some time to mqtt or api to reconnect before retry
-  int baud_rate_ = 0;
 
   // Changes will trigger user callback
   ModemComponentState component_state_{ModemComponentState::DISABLED};
@@ -194,7 +195,7 @@ class ModemComponent : public Component {
     ModemPowerState power_state{ModemPowerState::TOFFUART};
     // ask the modem to reconnect
     bool reconnect{false};
-    bool baud_rate_changed{false};
+    int current_baud_rate{115200};
   };
   InternalState internal_state_;
 

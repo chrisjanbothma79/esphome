@@ -80,7 +80,7 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(CONF_ID): cv.declare_id(ModemComponent),
             cv.Required(CONF_TX_PIN): pins.internal_gpio_output_pin_schema,
             cv.Required(CONF_RX_PIN): pins.internal_gpio_output_pin_schema,
-            cv.Optional(CONF_BAUD_RATE): cv.positive_int,
+            cv.Optional(CONF_BAUD_RATE, default=115200): cv.positive_int,
             cv.Required(CONF_MODEL): cv.one_of(*MODEM_MODELS, upper=True),
             cv.Required(CONF_APN): cv.string,
             cv.Optional(CONF_STATUS_PIN): pins.gpio_input_pin_schema,

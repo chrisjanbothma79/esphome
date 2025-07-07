@@ -263,6 +263,7 @@ void ModemComponent::setup() {
   }
   ESP_LOGCONFIG(TAG, "  Enabled   : %s", this->internal_state_.enabled ? "Yes" : "No");
   ESP_LOGCONFIG(TAG, "  Use CMUX  : %s", this->cmux_ ? "Yes" : "No");
+  ESP_LOGCONFIG(TAG, "  Baud rate : %d", this->baud_rate_);
 
   if (this->internal_state_.enabled) {
     this->poweron_();
@@ -405,6 +406,7 @@ void ModemComponent::loop() {
               // connecting timeout
               if (millis() - this->internal_state_.connect_begin > 25000) {
                 ESP_LOGW(TAG, "Connecting via Modem failed! Re-connecting...");
+                this->stop_ppp_();
                 connecting = false;
               }
             } else {
@@ -472,6 +474,7 @@ void ModemComponent::modem_create_dce_dte_(int baud_rate) {
   // no communication is done with the modem.
 
   this->internal_state_.modem_synced = false;
+  this->internal_state_.current_baud_rate = baud_rate;
 
   esp_modem_dte_config_t dte_config = ESP_MODEM_DTE_DEFAULT_CONFIG();
 
@@ -492,9 +495,9 @@ void ModemComponent::modem_create_dce_dte_(int baud_rate) {
   this->dte_.reset();
   this->dte_ = create_uart_dte(&dte_config);
 
-  if (!this->dte_->set_mode(modem_mode::COMMAND_MODE)) {
-    ESP_LOGW(TAG, "Unable to set DTE in command mode.");
-  }
+  // if (!this->dte_->set_mode(modem_mode::COMMAND_MODE)) {
+  //   ESP_LOGW(TAG, "Unable to set DTE in command mode.");
+  // }
   esp_modem_dce_config_t dce_config = ESP_MODEM_DCE_DEFAULT_CONFIG(this->apn_.c_str());
 
   if (this->model_ == "GENERIC") {
@@ -534,6 +537,12 @@ bool ModemComponent::modem_command_mode_(bool cmux) {
     success = this->dce->set_mode(modem_mode::COMMAND_MODE) && this->sync();
   }
   ESP_LOGV(TAG, "command mode using %s: %s", cmux ? "CMUX" : "Single channel", success ? "Success" : "Error");
+  if (success) {
+    this->modem_restore_state_.cmux = cmux;
+    this->pref_.save(&this->modem_restore_state_);  // save the current cmux state
+    global_preferences->sync();
+  }
+
   return success;
 }
 
@@ -552,11 +561,18 @@ bool ModemComponent::modem_recover_sync_(int baud_rate) {
   // Try to exit CMUX_MANUAL_DATA or DATA_MODE, if any
   // huge watchdog, because some commands are blocking for a very long time.
   watchdog::WatchdogManager wdt(60000);
+  this->dce->set_mode(modem_mode::UNDEF);
 
-  // The cmux state is supposed to be the same before the reboot. But if it has changed (new firwmare), we will try
-  // to fallback to inverted cmux state.
-  success = this->modem_command_mode_(this->cmux_) ||
-            (this->modem_command_mode_(!this->cmux_) && this->modem_command_mode_(this->cmux_));
+  success = this->modem_command_mode_(this->cmux_);
+  if (success) {
+    this->modem_restore_state_.cmux = this->cmux_;
+  } else if (this->modem_command_mode_(!this->cmux_) && this->modem_command_mode_(this->cmux_)) {
+    this->modem_restore_state_.cmux = this->cmux_;
+    success = true;
+  }
+
+  if (success)
+    this->modem_restore_state_.baud_rate = baud_rate;
 
   ESP_LOGD(TAG, "Brute force recover state: %s", success ? "OK" : "NOK");
 
@@ -570,7 +586,6 @@ bool ModemComponent::modem_preinit_() {
   // std::string result;
   uint32_t start_ms = millis();
   uint32_t elapsed_ms;
-  int current_baud_rate = 0;
 
   ESP_LOGV(TAG, "Checking if the modem is reachable...");
 
@@ -578,17 +593,10 @@ bool ModemComponent::modem_preinit_() {
   if (this->sync()) {
     // should be reached if modem cold start (default baud rate)
     ESP_LOGD(TAG, "Modem responded at 1st attempt");
+    this->internal_state_.current_baud_rate = this->baud_rate_;
     success = true;
-  }
-
-  if (!success) {
-    // we assume a warm modem restart, so we restore baud rate
-    this->modem_create_dce_dte_(this->modem_restore_state_.baud_rate);
-    if (this->sync()) {
-      ESP_LOGD(TAG, "Modem responded after restoring baud rate %d", this->modem_restore_state_.baud_rate);
-      success = true;
-      current_baud_rate = this->modem_restore_state_.baud_rate;
-    }
+  } else {
+    this->dce->set_mode(modem_mode::UNDEF);
   }
 
   if (!success) {
@@ -596,9 +604,9 @@ bool ModemComponent::modem_preinit_() {
     // this->dce->set_mode(modem_mode::CMUX_MANUAL_MODE);
     // this->dce->set_mode(modem_mode::CMUX_MANUAL_DATA);
     // this->dce->recover();
-    this->dce->set_mode(modem_mode::UNDEF);
     if (this->modem_command_mode_(this->modem_restore_state_.cmux)) {
       ESP_LOGD(TAG, "Modem responded after recovering command mode");
+      this->internal_state_.current_baud_rate = this->modem_restore_state_.baud_rate;
       success = true;
     }
   }
@@ -618,37 +626,29 @@ bool ModemComponent::modem_preinit_() {
 
   this->modem_restore_state_.cmux = this->cmux_;
 
-  // int current_baud_rate = this->get_baud_rate_();
-  // ESP_LOGD(TAG, "current baud rate: %d", current_baud_rate);
-  // this->modem_restore_state_.baud_rate = current_baud_rate;
-  // this->pref_.save(&this->modem_restore_state_);
+  this->pref_.save(&this->modem_restore_state_);
+  global_preferences->sync();
 
   // modem synced
-  if ((this->baud_rate_ != 0) && (this->baud_rate_ != current_baud_rate)) {
-    ESP_LOGD(TAG, "Setting baud rate: %d", this->baud_rate_);
+  if (this->baud_rate_ != this->internal_state_.current_baud_rate) {
+    ESP_LOGD(TAG, "Setting baud rate: %d -> %d", this->internal_state_.current_baud_rate, this->baud_rate_);
     this->flush_uart_();
     // if (this->dce->set_baud(this->baud_rate_) == command_result::OK) {
     // no error check, because the modem answer with a different baud rate
     this->dce->set_baud(this->baud_rate_);
+    delay(200);  // NOLINT
     // need to recreate dte/dce with new baud rate
     this->modem_create_dce_dte_(this->baud_rate_);
-    delay(1000);  // NOLINT
+    delay(2000);  // NOLINT
+    this->flush_uart_();
+    App.feed_wdt();
     if (this->sync()) {
       ESP_LOGI(TAG, "Modem baud rate set to %d", this->baud_rate_);
       success = true;
       this->modem_restore_state_.baud_rate = this->baud_rate_;
       this->pref_.save(&this->modem_restore_state_);
     } else {
-      // revert baud rate: FIXME: or wait safe mode ?
-      this->modem_create_dce_dte_();
-      delay(200);  // NOLINT
-      this->flush_uart_();
-      if (this->sync()) {
-        ESP_LOGW(TAG, "Unable to change baud rate, keeping default");
-      } else {
-        this->abort_("DCE has successfuly changed baud rate, but DTE can't reach it. Try to decrease baud rate?");
-        return false;
-      }
+      this->abort_("DCE has successfuly changed baud rate, but DTE can't reach it. Try to decrease baud rate?");
     }
   }
 
@@ -785,13 +785,14 @@ bool ModemComponent::start_ppp_() {
   // will be set to true on event IP_EVENT_PPP_GOT_IP
   this->internal_state_.got_ipv4_address = false;
 
-  ESP_LOGD(TAG, "Asking the modem to enter PPP");
+  ESP_LOGD(TAG, "Asking the modem to enter PPP (Using cmux: %s)", this->cmux_ ? "Yes" : "No");
 
   bool status = false;
-
+  this->dce->set_mode(modem_mode::UNDEF);
   if (cmux_) {
-    this->dce->set_mode(modem_mode::CMUX_MANUAL_MODE);
-    status = this->dce->set_mode(modem_mode::CMUX_MANUAL_DATA) && this->modem_ready();
+    // this->dce->set_mode(modem_mode::CMUX_MANUAL_MODE);
+    // status = this->dce->set_mode(modem_mode::CMUX_MANUAL_DATA) && this->modem_ready();
+    status = this->dce->set_mode(modem_mode::CMUX_MODE);
   } else {
     status = this->dce->set_mode(modem_mode::DATA_MODE);
   }
