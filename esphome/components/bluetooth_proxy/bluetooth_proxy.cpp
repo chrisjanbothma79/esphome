@@ -59,10 +59,12 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
 // This achieves ~97% WiFi MTU utilization while staying under the limit
 static constexpr size_t FLUSH_BATCH_SIZE = 16;
 
-// Global batch buffer to avoid guard variable (saves 8 bytes)
+namespace {
+// Batch buffer in anonymous namespace to avoid guard variable (saves 8 bytes)
 // This is initialized at program startup before any threads
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-static std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
+std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
+}  // namespace
 
 static std::vector<api::BluetoothLERawAdvertisement> &get_batch_buffer() { return batch_buffer; }
 
