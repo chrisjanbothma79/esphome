@@ -70,7 +70,6 @@ void TextSensor::internal_send_state_to_frontend(const std::string &state) {
   this->callback_.call(state);
 }
 
-bool TextSensor::has_state() { return this->has_state_; }
 
 }  // namespace text_sensor
 }  // namespace esphome
