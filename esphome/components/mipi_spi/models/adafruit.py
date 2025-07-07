@@ -1,4 +1,4 @@
-from esphome.components.mipi_spi.models.ili import ST7789V
+from .ili import ST7789V
 
 ST7789V.extend(
     "ADAFRUIT-FUNHOUSE",
