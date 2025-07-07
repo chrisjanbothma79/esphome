@@ -155,7 +155,7 @@ void Nextion::dump_config() {
                 this->device_model_.c_str(), this->firmware_version_.c_str(), this->serial_number_.c_str(),
                 this->flash_size_.c_str(), YESNO(this->auto_wake_on_touch_));
 #endif  // USE_NEXTION_CONFIG_SKIP_CONNECTION_HANDSHAKE
-            
+
 #ifdef USE_NEXTION_MAX_COMMANDS_PER_LOOP
   ESP_LOGCONFIG(TAG, "  Max commands per loop: %u", this->max_commands_per_loop_);
 #endif  // USE_NEXTION_MAX_COMMANDS_PER_LOOP
