@@ -156,7 +156,7 @@ void Nextion::dump_config() {
                 "  Wake On Touch:  %s\n"
                 "  Touch Timeout:  %" PRIu16 "\n"
                 "  Exit reparse:   %s",
-                YESNO(this->connection_state_.auto_wake_on_touch_), this->connection_state_.touch_sleep_timeout_,
+                YESNO(this->connection_state_.auto_wake_on_touch_), this->touch_sleep_timeout_,
                 YESNO(this->exit_reparse_on_start_));
 
 #ifdef USE_NEXTION_MAX_COMMANDS_PER_LOOP
