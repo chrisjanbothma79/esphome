@@ -1,5 +1,9 @@
 """Tests for mpip_spi configuration validation."""
 
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
 import pytest
 
 from esphome import config_validation as cv
@@ -19,14 +23,16 @@ from esphome.const import (
 )
 
 
-def test_configuration_errors(set_core_config, choose_variant_with_pins) -> None:
+def test_configuration_errors(
+    set_core_config: Callable[..., None], choose_variant_with_pins: Callable[..., None]
+) -> None:
     """Test detection of invalid configuration"""
 
     set_core_config(PLATFORM_ESP32, FRAMEWORK_ESP_IDF, "esp32dev", VARIANT_ESP32)
 
     from esphome.components.mipi_spi.display import dimension_schema
 
-    def test_config(config):
+    def test_config(config: Any) -> None:
         from esphome.components.mipi_spi.display import (
             CONFIG_SCHEMA,
             FINAL_VALIDATE_SCHEMA,
@@ -153,7 +159,9 @@ def test_configuration_errors(set_core_config, choose_variant_with_pins) -> None
 
 
 def test_configuration_success(
-    set_core_config, set_component_config, choose_variant_with_pins
+    set_core_config: Callable[..., None],
+    set_component_config: Callable[..., None],
+    choose_variant_with_pins: Callable[..., None],
 ) -> None:
     """Test successful configuration validation."""
     set_core_config(PLATFORM_ESP32, FRAMEWORK_ESP_IDF, "esp32dev", VARIANT_ESP32S3)
@@ -164,7 +172,7 @@ def test_configuration_success(
         MODELS,
     )
 
-    def success(config):
+    def success(config: Any) -> None:
         from esphome.components.mipi_spi.display import (
             CONFIG_SCHEMA,
             FINAL_VALIDATE_SCHEMA,
@@ -232,7 +240,9 @@ def test_configuration_success(
         success(config)
 
 
-def test_native_generation(generate_main, get_path) -> None:
+def test_native_generation(
+    generate_main: Callable[[str | Path], str], get_path: Callable[[str], Path]
+) -> None:
     """Test code generation for display."""
 
     main_cpp = generate_main(get_path("native.yaml"))
@@ -245,7 +255,9 @@ def test_native_generation(generate_main, get_path) -> None:
     assert "set_write_only(true);" in main_cpp
 
 
-def test_lvgl_generation(generate_main, get_path) -> None:
+def test_lvgl_generation(
+    generate_main: Callable[[str | Path], str], get_path: Callable[[str], Path]
+) -> None:
     main_cpp = generate_main(get_path("lvgl.yaml"))
     assert (
         "mipi_spi::MipiSpi<uint16_t, mipi_spi::PIXEL_MODE_16, true, mipi_spi::PIXEL_MODE_16, mipi_spi::BUS_TYPE_SINGLE, 128, 160, 0, 0>();"
