@@ -28,10 +28,10 @@ AirthingsWavePlus = airthings_wave_plus_ns.class_(
 )
 
 CONF_DEVICE_TYPE = "device_type"
-WAVEDEVICETYPE = airthings_wave_plus_ns.enum("WaveDeviceType")
+WaveDeviceType = airthings_wave_plus_ns.enum("WaveDeviceType")
 DEVICE_TYPES = {
-    "WAVE_PLUS": WAVEDEVICETYPE.WAVE_PLUS,
-    "WAVE_GEN2": WAVEDEVICETYPE.WAVE_GEN2,
+    "WAVE_PLUS": WaveDeviceType.WAVE_PLUS,
+    "WAVE_GEN2": WaveDeviceType.WAVE_GEN2,
 }
 
 
