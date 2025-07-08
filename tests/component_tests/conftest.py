@@ -56,18 +56,6 @@ def core_reset():
 
 
 @pytest.fixture
-def assert_failure():
-    def tester(validator: Callable[..., None], error_msg: str, *args) -> None:
-        """Fixture to test failure of configuration validation."""
-
-        with pytest.raises(cv.Invalid) as exc_info:
-            validator(*args)
-        assert error_msg in str(exc_info.value)
-
-    return tester
-
-
-@pytest.fixture
 def get_path():
     """Fixture to get the absolute path of a file relative to the test script."""
 
