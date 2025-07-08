@@ -69,7 +69,7 @@ def get_path():
 
 
 @pytest.fixture
-def set_core_config(core_reset):
+def set_core_config():
     """Fixture to set up the core configuration for tests."""
 
     def setter(
@@ -90,8 +90,6 @@ def set_core_config(core_reset):
         final_validate.full_config.set(Config())
 
     yield setter
-
-    core_reset()
 
 
 @pytest.fixture
@@ -152,7 +150,7 @@ def component_config_path(request: pytest.FixtureRequest) -> Callable[[str], Pat
 
 
 @pytest.fixture
-def generate_main(core_reset) -> Generator[Callable[[str | Path], str]]:
+def generate_main() -> Generator[Callable[[str | Path], str]]:
     """Generates the C++ main.cpp from a given yaml file and returns it in string form."""
 
     def generator(path: str | Path) -> str:
@@ -162,4 +160,3 @@ def generate_main(core_reset) -> Generator[Callable[[str | Path], str]]:
         return CORE.cpp_main_section
 
     yield generator
-    core_reset()
