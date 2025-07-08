@@ -8,7 +8,6 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include <algorithm>
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
