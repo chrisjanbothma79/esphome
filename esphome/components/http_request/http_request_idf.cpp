@@ -216,10 +216,19 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
   watchdog::WatchdogManager wdm(this->parent_->get_watchdog_timeout());
 
   int bufsize;
+  int read_len;
   size_t chunk_length = this->content_length;
   if (esp_http_client_is_chunked_response(this->client_)) {
     int signed_chunk_length;
-    esp_http_client_get_chunk_length(this->client_, &signed_chunk_length);
+    auto err = esp_http_client_get_chunk_length(this->client_, &signed_chunk_length);
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "Failed to get chunk length: %s", esp_err_to_name(err));
+      goto error;
+    }
+    if (signed_chunk_length < 0) {
+      ESP_LOGE(TAG, "Invalid chunk length (%d)", signed_chunk_length);
+      goto error;
+    }
     chunk_length = (size_t) signed_chunk_length;
 
     bufsize = std::min(max_len, chunk_length - this->chunk_bytes_read_);
@@ -227,23 +236,35 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
     bufsize = std::min(max_len, this->content_length - this->bytes_read_);
   }
 
-  if (bufsize == 0) {
+  if (bufsize <= 0) {
     this->duration_ms += (millis() - start);
     return 0;
   }
 
   this->feed_wdt();
-  int read_len = esp_http_client_read(this->client_, (char *) buf, bufsize);
+  read_len = esp_http_client_read(this->client_, (char *) buf, bufsize);
   this->feed_wdt();
+
+  if (read_len < 0) {
+    ESP_LOGE(TAG, "Failed to read from HTTP client: %d", read_len);
+    goto error;
+  }
   this->bytes_read_ += read_len;
-  this->chunk_bytes_read_ += read_len;
-  if (this->chunk_bytes_read_ >= chunk_length) {
-    this->chunk_bytes_read_ = 0;
+
+  if (esp_http_client_is_chunked_response(this->client_)) {
+    this->chunk_bytes_read_ += read_len;
+    if (this->chunk_bytes_read_ >= chunk_length) {
+      this->chunk_bytes_read_ = 0;
+    }
   }
 
   this->duration_ms += (millis() - start);
 
   return read_len;
+
+error:
+  this->duration_ms += (millis() - start);
+  return -1;
 }
 
 void HttpContainerIDF::end() {
