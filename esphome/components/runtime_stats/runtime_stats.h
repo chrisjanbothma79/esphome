@@ -5,9 +5,9 @@
 #ifdef USE_RUNTIME_STATS
 
 #include <map>
-#include <string>
 #include <vector>
 #include <cstdint>
+#include <cstring>
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 
@@ -79,7 +79,7 @@ class ComponentRuntimeStats {
 
 // For sorting components by run time
 struct ComponentStatPair {
-  std::string name;
+  const char *name;
   const ComponentRuntimeStats *stats;
 
   bool operator>(const ComponentStatPair &other) const {
@@ -109,9 +109,13 @@ class RuntimeStatsCollector {
     }
   }
 
-  // Back to string keys, but we'll cache the source name per component
-  std::map<std::string, ComponentRuntimeStats> component_stats_;
-  std::map<Component *, std::string> component_names_cache_;
+  // Use const char* keys for efficiency
+  // Custom comparator for const char* keys in map
+  struct CStrCompare {
+    bool operator()(const char *a, const char *b) const { return std::strcmp(a, b) < 0; }
+  };
+  std::map<const char *, ComponentRuntimeStats, CStrCompare> component_stats_;
+  std::map<Component *, const char *> component_names_cache_;
   uint32_t log_interval_;
   uint32_t next_log_time_;
 };
