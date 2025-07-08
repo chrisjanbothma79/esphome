@@ -19,7 +19,6 @@ from . import CONF_LD2412_ID, LD2412Component
 DEPENDENCIES = ["ld2412"]
 
 CONF_DYNAMIC_BACKGROUND_CORRECTION_STATUS = "dynamic_background_correction_status"
-CONF_OUT_PIN_PRESENCE_STATUS = "out_pin_presence_status"
 
 CONFIG_SCHEMA = {
     cv.GenerateID(CONF_LD2412_ID): cv.use_id(LD2412Component),
@@ -41,11 +40,6 @@ CONFIG_SCHEMA = {
     cv.Optional(CONF_HAS_STILL_TARGET): binary_sensor.binary_sensor_schema(
         device_class=DEVICE_CLASS_OCCUPANCY,
         icon=ICON_MOTION_SENSOR,
-    ),
-    cv.Optional(CONF_OUT_PIN_PRESENCE_STATUS): binary_sensor.binary_sensor_schema(
-        device_class=DEVICE_CLASS_PRESENCE,
-        entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-        icon=ICON_ACCOUNT,
     ),
 }
 
@@ -72,6 +66,3 @@ async def to_code(config):
     if has_still_target_config := config.get(CONF_HAS_STILL_TARGET):
         sens = await binary_sensor.new_binary_sensor(has_still_target_config)
         cg.add(LD2412_component.set_still_target_binary_sensor(sens))
-    if out_pin_presence_status_config := config.get(CONF_OUT_PIN_PRESENCE_STATUS):
-        sens = await binary_sensor.new_binary_sensor(out_pin_presence_status_config)
-        cg.add(LD2412_component.set_out_pin_presence_status_binary_sensor(sens))

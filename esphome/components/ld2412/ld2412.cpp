@@ -219,7 +219,6 @@ void LD2412Component::dump_config() {
 #ifdef USE_BINARY_SENSOR
   LOG_BINARY_SENSOR("  ", "DynamicBackgroundCorrectionStatus",
                     this->dynamic_background_correction_status_binary_sensor_);
-  LOG_BINARY_SENSOR("  ", "OutPinPresenceStatusBinarySensor", this->out_pin_presence_status_binary_sensor_);
   LOG_BINARY_SENSOR("  ", "MovingTargetBinarySensor", this->moving_target_binary_sensor_);
   LOG_BINARY_SENSOR("  ", "StillTargetBinarySensor", this->still_target_binary_sensor_);
   LOG_BINARY_SENSOR("  ", "TargetBinarySensor", this->target_binary_sensor_);
@@ -325,14 +324,13 @@ void LD2412Component::send_command_(uint8_t command, const uint8_t *command_valu
   if (command_value != nullptr) {
     len += command_value_len;
   }
-  uint8_t len_cmd[] = {lowbyte(len), highbyte(len), command, 0x00};
+  // 2 length bytes (low, high) + 2 command bytes (low, high)
+  uint8_t len_cmd[] = {len, 0x00, command, 0x00};
   this->write_array(len_cmd, sizeof(len_cmd));
 
   // command value bytes
   if (command_value != nullptr) {
-    for (uint8_t i = 0; i < command_value_len; i++) {
-      this->write_byte(command_value[i]);
-    }
+    this->write_array(command_value, command_value_len);
   }
   // frame footer bytes
   this->write_array(CMD_FRAME_FOOTER, HEADER_FOOTER_SIZE);
@@ -341,19 +339,18 @@ void LD2412Component::send_command_(uint8_t command, const uint8_t *command_valu
 }
 
 void LD2412Component::handle_periodic_data_() {
+  // Reduce data update rate to reduce home assistant database growth
+  // Check this first to prevent unnecessary processing done in later checks/parsing
+  if (App.get_loop_component_start_time() - this->last_periodic_millis_ < this->throttle_) {
+    return;
+  }
   // 4 frame header bytes + 2 length bytes + 1 data end byte + 1 crc byte + 4 frame footer bytes
   // data header=0xAA, data footer=0x55, crc=0x00
   if (this->buffer_pos_ < 12 || !ld2412::validate_header_footer(DATA_FRAME_HEADER, this->buffer_data_) ||
       this->buffer_data_[7] != HEADER || this->buffer_data_[this->buffer_pos_ - 6] != FOOTER) {
     return;
   }
-
-  /*
-    Reduce data update rate to reduce home assistant database growth
-  */
-  if (App.get_loop_component_start_time() - this->last_periodic_millis_ < this->throttle_) {
-    return;
-  }
+  // Save the timestamp after validating the frame so, if invalid, we'll take the next frame immediately
   this->last_periodic_millis_ = App.get_loop_component_start_time();
 
   /*
@@ -481,17 +478,6 @@ void LD2412Component::handle_periodic_data_() {
     }
     if (this->light_sensor_ != nullptr && !std::isnan(this->light_sensor_->get_state())) {
       this->light_sensor_->publish_state(NAN);
-    }
-  }
-#endif
-#ifdef USE_BINARY_SENSOR
-  if (engineering_mode) {
-    if (this->out_pin_presence_status_binary_sensor_ != nullptr) {
-      this->out_pin_presence_status_binary_sensor_->publish_state(this->buffer_data_[OUT_PIN_SENSOR] == 0x01);
-    }
-  } else {
-    if (this->out_pin_presence_status_binary_sensor_ != nullptr) {
-      this->out_pin_presence_status_binary_sensor_->publish_state(false);
     }
   }
 #endif
@@ -716,18 +702,8 @@ void LD2412Component::readline_(int readch) {
   if (readch < 0) {
     return;  // No data available
   }
-  if (this->buffer_pos_ == 0 && readch != DATA_FRAME_HEADER[0] && readch != CMD_FRAME_HEADER[0]) {
-    return;
-  }
-  if (this->buffer_pos_ == 1 && readch != DATA_FRAME_HEADER[1] && readch != CMD_FRAME_HEADER[1]) {
-    this->buffer_pos_ = 0;
-    return;
-  }
-  if (this->buffer_pos_ == 2 && readch != DATA_FRAME_HEADER[2] && readch != CMD_FRAME_HEADER[2]) {
-    this->buffer_pos_ = 0;
-    return;
-  }
-  if (this->buffer_pos_ == 3 && readch != DATA_FRAME_HEADER[3] && readch != CMD_FRAME_HEADER[3]) {
+  if (this->buffer_pos_ < HEADER_FOOTER_SIZE && readch != DATA_FRAME_HEADER[this->buffer_pos_] &&
+      readch != CMD_FRAME_HEADER[this->buffer_pos_]) {
     this->buffer_pos_ = 0;
     return;
   }

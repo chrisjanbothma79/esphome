@@ -35,7 +35,6 @@ static const uint8_t TOTAL_GATES = 14;      // Total number of gates supported b
 class LD2412Component : public Component, public uart::UARTDevice {
 #ifdef USE_BINARY_SENSOR
   SUB_BINARY_SENSOR(dynamic_background_correction_status)
-  SUB_BINARY_SENSOR(out_pin_presence_status)
   SUB_BINARY_SENSOR(moving_target)
   SUB_BINARY_SENSOR(still_target)
   SUB_BINARY_SENSOR(target)
