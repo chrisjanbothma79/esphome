@@ -99,7 +99,7 @@ void NeewerCTLightOutput::turn_on_off(OnOffState on_off) {
   Message msg;
   msg.msg_type = MessageType::COMMAND;
   msg.cmd_type = CommandType::TURN_ON_OFF;
-  msg.payload = {static_cast<uint8_t>((on_off == OnOffState::ON) ? 1 : 0)};
+  msg.payload = {static_cast<uint8_t>((on_off == OnOffState::ON) ? 1 : 2)};  // Neewer expects 1 for ON and 2 for OFF
   this->ble_.send_message(this->parent_, neewer_msg(msg));
 }
 
