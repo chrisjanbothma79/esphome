@@ -15,25 +15,28 @@ from esphome.components.image import CONFIG_SCHEMA
 def test_image_configuration_errors() -> None:
     """Test detection of invalid configuration."""
 
-    with pytest.raises(cv.Invalid) as exc_info:
+    with pytest.raises(
+        cv.Invalid,
+        match="Badly formed image configuration, expected a list or a dictionary",
+    ):
         CONFIG_SCHEMA("a string")
-    assert "Badly formed image configuration, expected a list or a dictionary" in str(
-        exc_info.value
-    )
 
-    with pytest.raises(cv.Invalid) as exc_info:
+    with pytest.raises(
+        cv.Invalid, match=r"required key not provided @ data\[0\]\['file'\]"
+    ):
         CONFIG_SCHEMA({"id": "image_id", "type": "rgb565"})
-    assert "required key not provided @ data[0]['file']" in str(exc_info.value)
 
-    with pytest.raises(cv.Invalid) as exc_info:
+    with pytest.raises(
+        cv.Invalid, match=r"required key not provided @ data\[0\]\['id'\]"
+    ):
         CONFIG_SCHEMA({"file": "image.png", "type": "rgb565"})
-    assert "required key not provided @ data[0]['id']" in str(exc_info.value)
 
-    with pytest.raises(cv.Invalid) as exc_info:
+    with pytest.raises(cv.Invalid, match="Could not parse mdi icon name"):
         CONFIG_SCHEMA({"id": "mdi_id", "file": "mdi:weather-##", "type": "rgb565"})
-    assert "Could not parse mdi icon name" in str(exc_info.value)
 
-    with pytest.raises(cv.Invalid) as exc_info:
+    with pytest.raises(
+        cv.Invalid, match="Image format 'BINARY' cannot have transparency"
+    ):
         CONFIG_SCHEMA(
             {
                 "id": "image_id",
@@ -42,9 +45,8 @@ def test_image_configuration_errors() -> None:
                 "transparency": "alpha_channel",
             }
         )
-    assert "Image format 'BINARY' cannot have transparency" in str(exc_info.value)
 
-    with pytest.raises(cv.Invalid) as exc_info:
+    with pytest.raises(cv.Invalid, match="No alpha channel to invert"):
         CONFIG_SCHEMA(
             {
                 "id": "image_id",
@@ -54,9 +56,11 @@ def test_image_configuration_errors() -> None:
                 "invert_alpha": True,
             }
         )
-    assert "No alpha channel to invert" in str(exc_info.value)
 
-    with pytest.raises(cv.Invalid) as exc_info:
+    with pytest.raises(
+        cv.Invalid,
+        match="Image format 'BINARY' does not support byte order configuration",
+    ):
         CONFIG_SCHEMA(
             {
                 "id": "image_id",
@@ -65,21 +69,17 @@ def test_image_configuration_errors() -> None:
                 "byte_order": "big_endian",
             }
         )
-    assert "Image format 'BINARY' does not support byte order configuration" in str(
-        exc_info.value
-    )
 
-    with pytest.raises(cv.Invalid) as exc_info:
+    with pytest.raises(cv.Invalid, match="File can't be opened as image"):
         CONFIG_SCHEMA({"id": "image_id", "file": "bad.png", "type": "binary"})
-    assert "File can't be opened as image" in str(exc_info.value)
 
-    with pytest.raises(cv.Invalid) as exc_info:
+    with pytest.raises(
+        cv.Invalid,
+        match="Type is required either in the image config or in the defaults",
+    ):
         CONFIG_SCHEMA(
             {"defaults": {}, "images": [{"id": "image_id", "file": "image.png"}]}
         )
-    assert "Type is required either in the image config or in the defaults" in str(
-        exc_info.value
-    )
 
 
 @pytest.mark.parametrize(
