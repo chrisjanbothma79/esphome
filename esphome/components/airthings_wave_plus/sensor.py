@@ -1,5 +1,6 @@
 import esphome.codegen as cg
 from esphome.components import airthings_wave_base, sensor
+from esphome.config_types import ConfigType
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_CO2,
@@ -7,6 +8,7 @@ from esphome.const import (
     CONF_ILLUMINANCE,
     CONF_RADON,
     CONF_RADON_LONG_TERM,
+    CONF_TVOC,
     DEVICE_CLASS_CARBON_DIOXIDE,
     DEVICE_CLASS_ILLUMINANCE,
     ICON_RADIOACTIVE,
@@ -32,37 +34,52 @@ DEVICE_TYPES = {
     "WAVE_GEN2": WAVEDEVICETYPE.WAVE_GEN2,
 }
 
-CONFIG_SCHEMA = airthings_wave_base.BASE_SCHEMA.extend(
-    {
-        cv.GenerateID(): cv.declare_id(AirthingsWavePlus),
-        cv.Optional(CONF_RADON): sensor.sensor_schema(
-            unit_of_measurement=UNIT_BECQUEREL_PER_CUBIC_METER,
-            icon=ICON_RADIOACTIVE,
-            accuracy_decimals=0,
-            state_class=STATE_CLASS_MEASUREMENT,
-        ),
-        cv.Optional(CONF_RADON_LONG_TERM): sensor.sensor_schema(
-            unit_of_measurement=UNIT_BECQUEREL_PER_CUBIC_METER,
-            icon=ICON_RADIOACTIVE,
-            accuracy_decimals=0,
-            state_class=STATE_CLASS_MEASUREMENT,
-        ),
-        cv.Optional(CONF_CO2): sensor.sensor_schema(
-            unit_of_measurement=UNIT_PARTS_PER_MILLION,
-            accuracy_decimals=0,
-            device_class=DEVICE_CLASS_CARBON_DIOXIDE,
-            state_class=STATE_CLASS_MEASUREMENT,
-        ),
-        cv.Optional(CONF_ILLUMINANCE): sensor.sensor_schema(
-            unit_of_measurement=UNIT_LUX,
-            accuracy_decimals=0,
-            device_class=DEVICE_CLASS_ILLUMINANCE,
-            state_class=STATE_CLASS_MEASUREMENT,
-        ),
-        cv.Optional(CONF_DEVICE_TYPE, default="WAVE_PLUS"): cv.enum(
-            DEVICE_TYPES, upper=True
-        ),
-    }
+
+def validate_wave_gen2_config(config: ConfigType) -> ConfigType:
+    """Validate that Wave Gen2 devices don't have CO2 or TVOC sensors."""
+    if config[CONF_DEVICE_TYPE] == "WAVE_GEN2":
+        if CONF_CO2 in config:
+            raise cv.Invalid("Wave Gen2 devices do not support CO2 sensor")
+        # Check for TVOC in the base schema config
+        if CONF_TVOC in config:
+            raise cv.Invalid("Wave Gen2 devices do not support TVOC sensor")
+    return config
+
+
+CONFIG_SCHEMA = cv.All(
+    airthings_wave_base.BASE_SCHEMA.extend(
+        {
+            cv.GenerateID(): cv.declare_id(AirthingsWavePlus),
+            cv.Optional(CONF_RADON): sensor.sensor_schema(
+                unit_of_measurement=UNIT_BECQUEREL_PER_CUBIC_METER,
+                icon=ICON_RADIOACTIVE,
+                accuracy_decimals=0,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
+            cv.Optional(CONF_RADON_LONG_TERM): sensor.sensor_schema(
+                unit_of_measurement=UNIT_BECQUEREL_PER_CUBIC_METER,
+                icon=ICON_RADIOACTIVE,
+                accuracy_decimals=0,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
+            cv.Optional(CONF_CO2): sensor.sensor_schema(
+                unit_of_measurement=UNIT_PARTS_PER_MILLION,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_CARBON_DIOXIDE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
+            cv.Optional(CONF_ILLUMINANCE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_LUX,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_ILLUMINANCE,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
+            cv.Optional(CONF_DEVICE_TYPE, default="WAVE_PLUS"): cv.enum(
+                DEVICE_TYPES, upper=True
+            ),
+        }
+    ),
+    validate_wave_gen2_config,
 )
 
 
