@@ -45,7 +45,8 @@ void NeewerBleClient::send_message(esphome::ble_client::BLEClient *client, std::
     return;
   }
 
-  auto characteristic = client->get_characteristic(this->service_uuid_, this->characteristic_uuid_);
+  esp32_ble_client::BLECharacteristic *characteristic =
+      client->get_characteristic(this->service_uuid_, this->characteristic_uuid_);
   if (characteristic == nullptr) {
     ESP_LOGW(TAG, "[%s] Characteristic not found. State update can not be written.",
              this->characteristic_uuid_.to_string().c_str());

@@ -27,9 +27,9 @@ class NeewerCTLightOutput : public Component,
   void write_state(light::LightState *state) override;
 
   // Methods to prepare messages and send them via BLE
-  void turn_on_off(OnOffState on_off);
-  void change_color_temperature_and_brightness(int color_temperature, int brightness);
-  void change_brightness(int brightness_percent);
+  void turn_on_off_(OnOffState on_off);
+  void change_color_temperature_and_brightness_(int color_temperature, int brightness);
+  void change_brightness_(int brightness_percent);
 
   // Translate Message to Neewer protocol
   static std::vector<uint8_t> neewer_msg(const Message &msg);

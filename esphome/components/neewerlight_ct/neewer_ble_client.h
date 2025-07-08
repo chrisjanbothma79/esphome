@@ -18,15 +18,11 @@ class NeewerBleClient {
   // NOTE: msg is non-const because BLECharacteristic::write_value failed to declare it as const, just std::move it in
   void send_message(esphome::ble_client::BLEClient *client, std::vector<uint8_t> &&msg);
 
-  const char *service_uuid() const { return this->service_uuid_.to_string().c_str(); }
-  const char *characteristic_uuid() const { return this->characteristic_uuid_.to_string().c_str(); }
-  bool require_response() const { return this->require_response_; }
+  esp32_ble_tracker::ESPBTUUID service_uuid_ = esp32_ble_tracker::ESPBTUUID::from_raw(SERVICE_UUID);
+  esp32_ble_tracker::ESPBTUUID characteristic_uuid_ = esp32_ble_tracker::ESPBTUUID::from_raw(CHARACTERISTIC_UUID);
+  bool require_response_ = true;
 
  protected:
-  esp32_ble_tracker::ESPBTUUID service_uuid_ = esp32_ble_tracker::ESPBTUUID::from_raw(SERVICE_UUID.c_str());
-  esp32_ble_tracker::ESPBTUUID characteristic_uuid_ =
-      esp32_ble_tracker::ESPBTUUID::from_raw(CHARACTERISTIC_UUID.c_str());
-  bool require_response_ = true;
   esp32_ble_tracker::ClientState client_state_ = esp32_ble_tracker::ClientState::INIT;
 
   static const std::string SERVICE_UUID;
