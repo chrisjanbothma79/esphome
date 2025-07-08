@@ -9,9 +9,6 @@ namespace esphome {
 
 namespace runtime_stats {
 
-// Forward declaration to help compiler
-class RuntimeStatsCollector;
-
 RuntimeStatsCollector::RuntimeStatsCollector() : log_interval_(60000), next_log_time_(0) {
   global_runtime_stats = this;
 }
