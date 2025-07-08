@@ -13,12 +13,6 @@ using utils::TAG;
 const std::string NeewerBleClient::SERVICE_UUID = "69400001-B5A3-F393-E0A9-E50E24DCCA99";
 const std::string NeewerBleClient::CHARACTERISTIC_UUID = "69400002-B5A3-F393-E0A9-E50E24DCCA99";
 
-NeewerBleClient::NeewerBleClient()
-    : service_uuid_(esp32_ble_tracker::ESPBTUUID::from_raw(SERVICE_UUID.c_str())),
-      characteristic_uuid_(esp32_ble_tracker::ESPBTUUID::from_raw(CHARACTERISTIC_UUID.c_str())),
-      require_response_(true),
-      client_state_(esp32_ble_tracker::ClientState::INIT) {}
-
 void NeewerBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                                           esp_ble_gattc_cb_param_t *param) {
   switch (event) {
@@ -29,6 +23,10 @@ void NeewerBleClient::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_i
     case ESP_GATTC_DISCONNECT_EVT:
       ESP_LOGW(TAG, "[%s] Disconnected", this->characteristic_uuid_.to_string().c_str());
       this->client_state_ = esp32_ble_tracker::ClientState::IDLE;
+      break;
+    case ESP_GATTC_WRITE_CHAR_EVT:
+      ESP_LOGD(TAG, "[%s] Got ESP_GATTC_WRITE_CHAR_EVT status = %d", this->characteristic_uuid_.to_string().c_str(),
+               param->write.status);
       break;
     default:
       break;
@@ -58,7 +56,6 @@ void NeewerBleClient::send_message(esphome::ble_client::BLEClient *client, std::
     ESP_LOGW(TAG, "Empty message. No data will be written.");
     return;
   }
-
   ESP_LOGD(TAG, "[%s] Writing %i bytes", this->characteristic_uuid_.to_string().c_str(), msg.size());
   for (int i = 0; i < msg.size(); i++) {
     ESP_LOGV(TAG, "Reading byte %i/%i, value %i (0x%1x)", i, msg.size() - 1, msg[i], msg[i]);

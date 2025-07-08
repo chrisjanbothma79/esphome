@@ -13,7 +13,6 @@ namespace neewerlight_ct {
 
 class NeewerBleClient {
  public:
-  explicit NeewerBleClient();
   void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if, esp_ble_gattc_cb_param_t *param);
 
   // NOTE: msg is non-const because BLECharacteristic::write_value failed to declare it as const, just std::move it in
@@ -24,10 +23,11 @@ class NeewerBleClient {
   bool require_response() const { return this->require_response_; }
 
  protected:
-  esp32_ble_tracker::ESPBTUUID service_uuid_;
-  esp32_ble_tracker::ESPBTUUID characteristic_uuid_;
-  bool require_response_;
-  esp32_ble_tracker::ClientState client_state_;
+  esp32_ble_tracker::ESPBTUUID service_uuid_ = esp32_ble_tracker::ESPBTUUID::from_raw(SERVICE_UUID.c_str());
+  esp32_ble_tracker::ESPBTUUID characteristic_uuid_ =
+      esp32_ble_tracker::ESPBTUUID::from_raw(CHARACTERISTIC_UUID.c_str());
+  bool require_response_ = true;
+  esp32_ble_tracker::ClientState client_state_ = esp32_ble_tracker::ClientState::INIT;
 
   static const std::string SERVICE_UUID;
   static const std::string CHARACTERISTIC_UUID;
