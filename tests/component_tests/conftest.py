@@ -26,7 +26,8 @@ sys.path.insert(0, package_root.as_posix())
 from esphome.__main__ import generate_cpp_contents  # noqa: E402
 from esphome.config import Config, read_config  # noqa: E402
 from esphome.core import CORE  # noqa: E402
-from tests.component_tests.types import SetCoreConfigCallable  # noqa: E402
+
+from .types import SetCoreConfigCallable  # noqa: E402
 
 
 @pytest.fixture(autouse=True)

@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -312,8 +313,8 @@ def test_custom_model_with_all_options(
 
 
 def test_all_predefined_models(
-    set_core_config: Callable[..., None],
-    set_component_config: Callable[..., None],
+    set_core_config: SetCoreConfigCallable,
+    set_component_config: Callable[[str, Any], None],
     choose_variant_with_pins: Callable[..., None],
 ) -> None:
     """Test all predefined display models validate successfully with appropriate defaults."""
