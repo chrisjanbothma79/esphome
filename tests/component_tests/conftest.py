@@ -10,17 +10,13 @@ from typing import Any
 import pytest
 
 from esphome import config, final_validate
-from esphome.components.esp32 import KEY_ESP32, VARIANTS
-from esphome.components.esp32.gpio import validate_gpio_pin
-import esphome.config_validation as cv
 from esphome.const import (
     KEY_CORE,
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
-    KEY_VARIANT,
     PlatformFramework,
 )
-from esphome.pins import internal_gpio_pin_number
+from esphome.types import ConfigType
 
 # Add package root to python path
 here = Path(__file__).parent
@@ -30,6 +26,7 @@ sys.path.insert(0, package_root.as_posix())
 from esphome.__main__ import generate_cpp_contents  # noqa: E402
 from esphome.config import Config, read_config  # noqa: E402
 from esphome.core import CORE  # noqa: E402
+from tests.component_tests.types import SetCoreConfigCallable  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -58,15 +55,15 @@ def reset_core() -> Generator[None]:
 
 
 @pytest.fixture
-def set_core_config(request: pytest.FixtureRequest) -> Generator[Callable[..., None]]:
+def set_core_config() -> Generator[SetCoreConfigCallable]:
     """Fixture to set up the core configuration for tests."""
 
     def setter(
         platform_framework: PlatformFramework,
         /,
         *,
-        core_data: dict[str, Any] | None = None,
-        platform_data: dict[str, Any] | None = None,
+        core_data: ConfigType | None = None,
+        platform_data: ConfigType | None = None,
     ) -> None:
         platform, framework = platform_framework.value
 
@@ -101,28 +98,6 @@ def set_component_config() -> Callable[[str, Any], None]:
         final_validate.full_config.get()[name] = value
 
     return setter
-
-
-@pytest.fixture
-def choose_variant_with_pins() -> Callable[..., None]:
-    """
-    Set the ESP32 variant for the given model based on pins. For ESP32 only since the other platforms
-    do not have variants.
-    """
-
-    def chooser(*pins: int | str | None) -> None:
-        for v in VARIANTS:
-            try:
-                CORE.data[KEY_ESP32][KEY_VARIANT] = v
-                for pin in pins:
-                    if pin is not None:
-                        pin = internal_gpio_pin_number(pin)
-                        validate_gpio_pin(pin)
-                return
-            except cv.Invalid:
-                continue
-
-    return chooser
 
 
 @pytest.fixture
