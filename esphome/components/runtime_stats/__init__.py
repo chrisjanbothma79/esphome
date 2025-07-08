@@ -6,8 +6,6 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
-DEPENDENCIES = []
-
 CONF_LOG_INTERVAL = "log_interval"
 
 runtime_stats_ns = cg.esphome_ns.namespace("runtime_stats")
@@ -21,15 +19,6 @@ CONFIG_SCHEMA = cv.Schema(
         ): cv.positive_time_period_milliseconds,
     }
 )
-
-
-def FILTER_SOURCE_FILES() -> list[str]:
-    """Filter out runtime_stats.cpp when not enabled."""
-    # When runtime_stats component is not included in the configuration,
-    # we don't want to compile runtime_stats.cpp
-    # This function is called when the component IS included, so we return
-    # an empty list to include all source files
-    return []
 
 
 async def to_code(config):
