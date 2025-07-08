@@ -50,9 +50,11 @@ def config_path(request: pytest.FixtureRequest) -> Generator[None]:
     CORE.config_path = original_path
 
 
-@pytest.fixture
-def core_reset():
-    return CORE.reset
+@pytest.fixture(autouse=True)
+def reset_core():
+    """Reset CORE after each test."""
+    yield
+    CORE.reset()
 
 
 @pytest.fixture

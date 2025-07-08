@@ -236,10 +236,10 @@ def test_configuration_success(
         success(config)
 
 
-def test_native_generation(generate_main, component_config_path) -> None:
+def test_native_generation(generate_main, get_path) -> None:
     """Test code generation for display."""
 
-    main_cpp = generate_main(component_config_path("native.yaml"))
+    main_cpp = generate_main(get_path("native.yaml"))
     assert (
         "mipi_spi::MipiSpiBuffer<uint16_t, mipi_spi::PIXEL_MODE_16, true, mipi_spi::PIXEL_MODE_16, mipi_spi::BUS_TYPE_QUAD, 360, 360, 0, 1, display::DISPLAY_ROTATION_0_DEGREES, 1>()"
         in main_cpp
@@ -249,8 +249,8 @@ def test_native_generation(generate_main, component_config_path) -> None:
     assert "set_write_only(true);" in main_cpp
 
 
-def test_lvgl_generation(generate_main, component_config_path) -> None:
-    main_cpp = generate_main(component_config_path("lvgl.yaml"))
+def test_lvgl_generation(generate_main, get_path) -> None:
+    main_cpp = generate_main(get_path("lvgl.yaml"))
     assert (
         "mipi_spi::MipiSpi<uint16_t, mipi_spi::PIXEL_MODE_16, true, mipi_spi::PIXEL_MODE_16, mipi_spi::BUS_TYPE_SINGLE, 128, 160, 0, 0>();"
         in main_cpp
