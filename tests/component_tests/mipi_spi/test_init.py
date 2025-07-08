@@ -2,7 +2,6 @@
 
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
 
 import pytest
 
@@ -29,6 +28,12 @@ from esphome.const import (
     CONF_WIDTH,
     PlatformFramework,
 )
+from esphome.types import ConfigType
+
+
+def run_schema_validation(config: ConfigType) -> None:
+    """Run schema validation on a configuration."""
+    FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
 
 
 @pytest.mark.parametrize(
@@ -72,7 +77,7 @@ from esphome.const import (
     ],
 )
 def test_basic_configuration_errors(
-    config: Any,
+    config: str | ConfigType,
     error_match: str,
     set_core_config: Callable[..., None],
 ) -> None:
@@ -84,7 +89,7 @@ def test_basic_configuration_errors(
     )
 
     with pytest.raises(cv.Invalid, match=error_match):
-        FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
+        run_schema_validation(config)
 
 
 @pytest.mark.parametrize(
@@ -106,7 +111,7 @@ def test_basic_configuration_errors(
 )
 def test_dimension_validation(
     rounding: int,
-    config: dict[str, Any],
+    config: ConfigType,
     error_match: str,
     set_core_config: Callable[..., None],
 ) -> None:
@@ -154,7 +159,7 @@ def test_dimension_validation(
     ],
 )
 def test_transform_and_init_sequence_errors(
-    config: Any,
+    config: ConfigType,
     error_match: str,
     set_core_config: Callable[..., None],
 ) -> None:
@@ -166,7 +171,7 @@ def test_transform_and_init_sequence_errors(
     )
 
     with pytest.raises(cv.Invalid, match=error_match):
-        FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
+        run_schema_validation(config)
 
 
 @pytest.mark.parametrize(
@@ -205,7 +210,7 @@ def test_transform_and_init_sequence_errors(
     ],
 )
 def test_esp32s3_specific_errors(
-    config: Any,
+    config: ConfigType,
     error_match: str,
     set_core_config: Callable[..., None],
 ) -> None:
@@ -217,7 +222,7 @@ def test_esp32s3_specific_errors(
     )
 
     with pytest.raises(cv.Invalid, match=error_match):
-        FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
+        run_schema_validation(config)
 
 
 def test_framework_specific_errors(
@@ -230,14 +235,11 @@ def test_framework_specific_errors(
         platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32},
     )
 
-    def test_config(config: Any) -> None:
-        FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
-
     with pytest.raises(
         cv.Invalid,
         match=r"This feature is only available with frameworks \['esp-idf'\]",
     ):
-        test_config({"model": "wt32-sc01-plus"})
+        run_schema_validation({"model": "wt32-sc01-plus"})
 
 
 def test_configuration_success(
@@ -251,11 +253,8 @@ def test_configuration_success(
         platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32S3},
     )
 
-    def success(config: Any) -> None:
-        FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
-
     # Custom model with all options
-    success(
+    run_schema_validation(
         {
             "model": "custom",
             "pixel_mode": "18bit",
@@ -311,7 +310,7 @@ def test_configuration_success(
             config[CONF_DIMENSIONS] = {CONF_HEIGHT: 240, CONF_WIDTH: 320}
         if model.initsequence is None:
             config[CONF_INIT_SEQUENCE] = [[0xA0, 0x01]]
-        success(config)
+        run_schema_validation(config)
 
 
 def test_native_generation(
