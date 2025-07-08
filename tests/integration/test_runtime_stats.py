@@ -54,35 +54,35 @@ async def test_runtime_stats(
             component_name = match.group(1)
             component_stats_found.add(component_name)
 
-    async with run_compiled(yaml_config, line_callback=check_output):
-        async with api_client_connected() as client:
-            # Verify device is connected
-            device_info = await client.device_info()
-            assert device_info is not None
+    async with (
+        run_compiled(yaml_config, line_callback=check_output),
+        api_client_connected() as client,
+    ):
+        # Verify device is connected
+        device_info = await client.device_info()
+        assert device_info is not None
 
-            # Wait for first "Total stats" log (should happen at 1s)
-            try:
-                await asyncio.wait_for(first_stats_future, timeout=5.0)
-            except asyncio.TimeoutError:
-                pytest.fail("First 'Total stats' log not seen within 5 seconds")
+        # Wait for first "Total stats" log (should happen at 1s)
+        try:
+            await asyncio.wait_for(first_stats_future, timeout=5.0)
+        except asyncio.TimeoutError:
+            pytest.fail("First 'Total stats' log not seen within 5 seconds")
 
-            # Wait for second "Total stats" log (should happen at 2s)
-            try:
-                await asyncio.wait_for(second_stats_future, timeout=5.0)
-            except asyncio.TimeoutError:
-                pytest.fail(
-                    f"Second 'Total stats' log not seen. Total seen: {stats_count}"
-                )
+        # Wait for second "Total stats" log (should happen at 2s)
+        try:
+            await asyncio.wait_for(second_stats_future, timeout=5.0)
+        except asyncio.TimeoutError:
+            pytest.fail(f"Second 'Total stats' log not seen. Total seen: {stats_count}")
 
-            # Verify we got at least 2 stats logs
-            assert stats_count >= 2, (
-                f"Expected at least 2 'Total stats' logs, got {stats_count}"
-            )
+        # Verify we got at least 2 stats logs
+        assert stats_count >= 2, (
+            f"Expected at least 2 'Total stats' logs, got {stats_count}"
+        )
 
-            # Verify we found stats for our components
-            assert "template.sensor" in component_stats_found, (
-                f"Expected template.sensor stats, found: {component_stats_found}"
-            )
-            assert "template.switch" in component_stats_found, (
-                f"Expected template.switch stats, found: {component_stats_found}"
-            )
+        # Verify we found stats for our components
+        assert "template.sensor" in component_stats_found, (
+            f"Expected template.sensor stats, found: {component_stats_found}"
+        )
+        assert "template.switch" in component_stats_found, (
+            f"Expected template.switch stats, found: {component_stats_found}"
+        )
