@@ -121,6 +121,24 @@ def validate_config(config):
         raise cv.Invalid("ESP32-C3 does not support wakeup from touch.")
     if get_esp32_variant() == VARIANT_ESP32C3 and CONF_TOUCH_WAKEUP in config:
         raise cv.Invalid("ESP32-C3 does not support wakeup from ext1")
+    if (
+        CONF_ESP32_EXT1_WAKEUP in config
+        and config[CONF_ESP32_EXT1_WAKEUP] == "ALL_LOW"
+        and get_esp32_variant()
+        in [VARIANT_ESP32S2, VARIANT_ESP32S3, VARIANT_ESP32C6, VARIANT_ESP32H2]
+    ):
+        raise cv.Invalid(
+            "ESP32-S2, ESP32-S3, ESP32-C6, and ESP32-H2 do not support ALL_LOW"
+        )
+    if (
+        CONF_ESP32_EXT1_WAKEUP in config
+        and config[CONF_ESP32_EXT1_WAKEUP] == "ANY_LOW"
+        and get_esp32_variant()
+        not in [VARIANT_ESP32S2, VARIANT_ESP32S3, VARIANT_ESP32C6, VARIANT_ESP32H2]
+    ):
+        raise cv.Invalid(
+            "Only ESP32-S2, ESP32-S3, ESP32-C6, and ESP32-H2 support ANY_LOW"
+        )
     return config
 
 
@@ -148,6 +166,7 @@ WAKEUP_PIN_MODES = {
 esp_sleep_ext1_wakeup_mode_t = cg.global_ns.enum("esp_sleep_ext1_wakeup_mode_t")
 Ext1Wakeup = deep_sleep_ns.struct("Ext1Wakeup")
 EXT1_WAKEUP_MODES = {
+    "ANY_LOW": esp_sleep_ext1_wakeup_mode_t.ESP_EXT1_WAKEUP_ANY_LOW,
     "ALL_LOW": esp_sleep_ext1_wakeup_mode_t.ESP_EXT1_WAKEUP_ALL_LOW,
     "ANY_HIGH": esp_sleep_ext1_wakeup_mode_t.ESP_EXT1_WAKEUP_ANY_HIGH,
 }
