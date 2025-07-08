@@ -17,7 +17,7 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(RuntimeStatsCollector),
         cv.Optional(
-            CONF_LOG_INTERVAL, default=60000
+            CONF_LOG_INTERVAL, default="60s"
         ): cv.positive_time_period_milliseconds,
     }
 )
