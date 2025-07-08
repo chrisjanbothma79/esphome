@@ -1,8 +1,0 @@
-<<: !include common.yaml
-
-external_components:
-  source: github://khvMX/esphome@neewer_lights
-  components: [
-    # neewerlight_ble,
-    neewerlight_ct,
-  ]
