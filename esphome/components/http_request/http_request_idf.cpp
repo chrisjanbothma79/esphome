@@ -223,11 +223,13 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
     auto err = esp_http_client_get_chunk_length(this->client_, &signed_chunk_length);
     if (err != ESP_OK) {
       ESP_LOGE(TAG, "Failed to get chunk length: %s", esp_err_to_name(err));
-      goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
+      this->duration_ms += (millis() - start);
+      return -1;
     }
     if (signed_chunk_length < 0) {
       ESP_LOGE(TAG, "Invalid chunk length (%d)", signed_chunk_length);
-      goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
+      this->duration_ms += (millis() - start);
+      return -1;
     }
     chunk_length = (size_t) signed_chunk_length;
 
@@ -247,7 +249,8 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
 
   if (read_len < 0) {
     ESP_LOGE(TAG, "Failed to read from HTTP client: %d", read_len);
-    goto error;  // NOLINT(cppcoreguidelines-avoid-goto)
+    this->duration_ms += (millis() - start);
+    return -1;
   }
   this->bytes_read_ += read_len;
 
@@ -263,10 +266,6 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
   this->duration_ms += (millis() - start);
 
   return read_len;
-
-error:
-  this->duration_ms += (millis() - start);
-  return -1;
 }
 
 void HttpContainerIDF::end() {
