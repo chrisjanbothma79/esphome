@@ -23,10 +23,10 @@ class ComponentRuntimeStats {
  public:
   ComponentRuntimeStats()
       : period_count_(0),
-        total_count_(0),
         period_time_ms_(0),
-        total_time_ms_(0),
         period_max_time_ms_(0),
+        total_count_(0),
+        total_time_ms_(0),
         total_max_time_ms_(0) {}
 
   void record_time(uint32_t duration_ms) {
