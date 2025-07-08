@@ -1,13 +1,12 @@
 #include "hdc2080.h"
-#include "esphome/core/log.h"
 #include "esphome/core/hal.h"
+#include "esphome/core/log.h"
 
 namespace esphome {
 namespace hdc2080 {
 
 static const char *const TAG = "hdc2080";
 
-static const uint8_t HDC2080_ADDRESS = 0x40;  // 0b1000000 from datasheet
 static const uint8_t HDC2080_CMD_CONFIGURATION = 0x0E;
 static const uint8_t HDC2080_CMD_TEMPERATURE = 0x00;
 static const uint8_t HDC2080_CMD_HUMIDITY = 0x02;
@@ -27,6 +26,7 @@ void HDC2080Component::setup() {
     return;
   }
 }
+
 void HDC2080Component::dump_config() {
   ESP_LOGCONFIG(TAG, "HDC2080:");
   LOG_I2C_DEVICE(this);
@@ -34,9 +34,10 @@ void HDC2080Component::dump_config() {
     ESP_LOGE(TAG, ESP_LOG_MSG_COMM_FAIL);
   }
   LOG_UPDATE_INTERVAL(this);
-  LOG_SENSOR("  ", "Temperature", this->temperature_);
-  LOG_SENSOR("  ", "Humidity", this->humidity_);
+  LOG_SENSOR("  ", "Temperature", this->temperature_sensor_);
+  LOG_SENSOR("  ", "Humidity", this->humidity_sensor_);
 }
+
 void HDC2080Component::update() {
   uint16_t raw_temp;
   if (this->write(&HDC2080_CMD_TEMPERATURE, 1) != i2c::ERROR_OK) {
@@ -50,7 +51,7 @@ void HDC2080Component::update() {
   }
   ESP_LOGD(TAG, "raw temperature=%hu", raw_temp);
   float temp = raw_temp * 0.0025177 - 40.5;  // raw * 2^-16 * 165 - 40.5
-  this->temperature_->publish_state(temp);
+  this->temperature_sensor_->publish_state(temp);
 
   uint16_t raw_humidity;
   if (this->write(&HDC2080_CMD_HUMIDITY, 1) != i2c::ERROR_OK) {
@@ -64,12 +65,11 @@ void HDC2080Component::update() {
   }
   raw_humidity = i2c::i2ctohs(raw_humidity);
   float humidity = raw_humidity * 0.001525879f;  // raw * 2^-16 * 100
-  this->humidity_->publish_state(humidity);
+  this->humidity_sensor_->publish_state(humidity);
 
   ESP_LOGD(TAG, "Got temperature=%.1f°C humidity=%.1f%%", temp, humidity);
   this->status_clear_warning();
 }
-float HDC2080Component::get_setup_priority() const { return setup_priority::DATA; }
 
 }  // namespace hdc2080
 }  // namespace esphome
