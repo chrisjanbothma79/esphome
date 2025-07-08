@@ -1,6 +1,6 @@
 """Fixtures for component tests."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 import inspect
 import os
 from pathlib import Path
@@ -28,6 +28,24 @@ import pytest  # noqa: E402
 from esphome.__main__ import generate_cpp_contents  # noqa: E402
 from esphome.config import Config, read_config  # noqa: E402
 from esphome.core import CORE  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def config_path(request: pytest.FixtureRequest) -> Generator[None]:
+    """Set CORE.config_path to the component's config directory and reset it after the test."""
+    original_path = CORE.config_path
+    config_dir = Path(request.fspath).parent / "config"
+
+    # Check if config directory exists, if not use parent directory
+    if config_dir.exists():
+        # Set config_path to a dummy yaml file in the config directory
+        # This ensures CORE.config_dir points to the config directory
+        CORE.config_path = str(config_dir / "dummy.yaml")
+    else:
+        CORE.config_path = str(Path(request.fspath).parent / "dummy.yaml")
+
+    yield
+    CORE.config_path = original_path
 
 
 @pytest.fixture
@@ -120,14 +138,13 @@ def choose_variant_with_pins():
 
 
 @pytest.fixture
-def generate_main(core_reset, get_path):
+def generate_main(core_reset) -> Generator[Callable[[str | Path], str]]:
     """Generates the C++ main.cpp from a given yaml file and returns it in string form."""
 
-    def generator(path: str) -> str:
-        CORE.config_path = path
+    def generator(path: str | Path) -> str:
+        CORE.config_path = str(path)
         CORE.config = read_config({})
         generate_cpp_contents(CORE.config)
-        # print(CORE.cpp_main_section)
         return CORE.cpp_main_section
 
     yield generator
