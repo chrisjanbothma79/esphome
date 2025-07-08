@@ -108,6 +108,12 @@ void DeepSleepComponent::deep_sleep_() {
       ESP_LOGE(TAG, "esp_sleep_pd_config failed: %s", esp_err_to_name(err));
       return;
     }
+  } else {
+    err = esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_AUTO);
+    if (err != ESP_OK) {
+      ESP_LOGE(TAG, "esp_sleep_pd_config failed: %s", esp_err_to_name(err));
+      return;
+    }
   }
 #endif
 
