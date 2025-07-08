@@ -7,6 +7,7 @@ import inspect
 import os
 from pathlib import Path
 import sys
+from typing import Any
 
 import pytest
 
@@ -52,14 +53,14 @@ def config_path(request: pytest.FixtureRequest) -> Generator[None]:
 
 
 @pytest.fixture(autouse=True)
-def reset_core():
+def reset_core() -> Generator[None]:
     """Reset CORE after each test."""
     yield
     CORE.reset()
 
 
 @pytest.fixture
-def get_path():
+def get_path() -> Callable[[str], Path]:
     """Fixture to get the absolute path of a file relative to the test script."""
 
     def getter(filename: str) -> Path:
@@ -100,26 +101,26 @@ def set_core_config() -> Generator[Callable[..., None]]:
 
 
 @pytest.fixture
-def set_component_config():
+def set_component_config() -> Callable[[str, Any], None]:
     """
     Fixture to set a component configuration in the mock config.
     This must be used after the core configuration has been set up.
     """
 
-    def setter(name: str, value):
+    def setter(name: str, value: Any) -> None:
         final_validate.full_config.get()[name] = value
 
     return setter
 
 
 @pytest.fixture
-def choose_variant_with_pins():
+def choose_variant_with_pins() -> Callable[..., None]:
     """
     Set the ESP32 variant for the given model based on pins. For ESP32 only since the other platforms
     do not have variants.
     """
 
-    def chooser(*pins):
+    def chooser(*pins: int | str | None) -> None:
         for v in VARIANTS:
             try:
                 CORE.data[KEY_ESP32][KEY_VARIANT] = v
