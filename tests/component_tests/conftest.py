@@ -58,16 +58,6 @@ def reset_core() -> Generator[None]:
 
 
 @pytest.fixture
-def get_path(request: pytest.FixtureRequest) -> Callable[[str], Path]:
-    """Fixture to get the absolute path of a file relative to the test script."""
-
-    def getter(filename: str) -> Path:
-        return (Path(request.fspath).parent / filename).absolute()
-
-    return getter
-
-
-@pytest.fixture
 def set_core_config(request: pytest.FixtureRequest) -> Generator[Callable[..., None]]:
     """Fixture to set up the core configuration for tests."""
 
