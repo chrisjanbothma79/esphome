@@ -39,36 +39,68 @@ void HDC2080Component::dump_config() {
 }
 
 void HDC2080Component::update() {
-  uint16_t raw_temp;
+  if (this->temperature_sensor_ != nullptr)
+    this->state_ = READ_TEMPERATURE;
+  else if (this->humidity_sensor_ != nullptr)
+    this->state_ = READ_HUMIDITY;
+  else
+    return;
+  this->enable_loop();
+}
+
+void HDC2080Component::loop() {
+  if (this->state_ == READ_TEMPERATURE) {
+    this->read_temperature_();
+  } else if (this->state_ == READ_HUMIDITY) {
+    this->read_humidity_();
+  }
+  this->disable_loop();
+}
+
+void HDC2080Component::read_temperature_() {
   if (this->write(&HDC2080_CMD_TEMPERATURE, 1) != i2c::ERROR_OK) {
     this->status_set_warning();
     return;
   }
-  delay(20);
-  if (this->read(reinterpret_cast<uint8_t *>(&raw_temp), 2) != i2c::ERROR_OK) {
-    this->status_set_warning();
-    return;
-  }
-  ESP_LOGD(TAG, "raw temperature=%hu", raw_temp);
-  float temp = raw_temp * 0.0025177 - 40.5;  // raw * 2^-16 * 165 - 40.5
-  this->temperature_sensor_->publish_state(temp);
+  this->set_timeout(20, [this]() {
+    uint16_t raw_temp;
+    if (this->read(reinterpret_cast<uint8_t *>(&raw_temp), 2) != i2c::ERROR_OK) {
+      this->status_set_warning();
+      return;
+    }
+    float temp = raw_temp * 0.0025177f - 40.5f;  // raw * 2^-16 * 165 - 40.5
+    this->temperature_sensor_->publish_state(temp);
 
-  uint16_t raw_humidity;
+    this->status_clear_warning();
+
+    if (this->humidity_sensor_ != nullptr) {
+      this->state_ = READ_HUMIDITY;
+      this->enable_loop();
+    } else {
+      this->state_ = IDLE;
+    }
+  });
+}
+
+void HDC2080Component::read_humidity_() {
   if (this->write(&HDC2080_CMD_HUMIDITY, 1) != i2c::ERROR_OK) {
     this->status_set_warning();
     return;
   }
-  delay(20);
-  if (this->read(reinterpret_cast<uint8_t *>(&raw_humidity), 2) != i2c::ERROR_OK) {
-    this->status_set_warning();
-    return;
-  }
-  raw_humidity = i2c::i2ctohs(raw_humidity);
-  float humidity = raw_humidity * 0.001525879f;  // raw * 2^-16 * 100
-  this->humidity_sensor_->publish_state(humidity);
+  this->set_timeout(20, [this]() {
+    uint16_t raw_humidity;
+    if (this->read(reinterpret_cast<uint8_t *>(&raw_humidity), 2) != i2c::ERROR_OK) {
+      this->status_set_warning();
+      return;
+    }
+    raw_humidity = i2c::i2ctohs(raw_humidity);
+    float humidity = raw_humidity * 0.001525879f;  // raw * 2^-16 * 100
+    this->humidity_sensor_->publish_state(humidity);
 
-  ESP_LOGD(TAG, "Got temperature=%.1f°C humidity=%.1f%%", temp, humidity);
-  this->status_clear_warning();
+    this->status_clear_warning();
+
+    this->state_ = IDLE;
+  });
 }
 
 }  // namespace hdc2080

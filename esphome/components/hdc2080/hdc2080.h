@@ -15,12 +15,21 @@ class HDC2080Component : public PollingComponent, public i2c::I2CDevice {
   /// Setup the sensor and check for connection.
   void setup() override;
   void dump_config() override;
-  /// Retrieve the latest sensor values. This operation takes approximately 16ms.
   void update() override;
+  void loop() override;
 
  protected:
+  void read_temperature_();
+  void read_humidity_();
+
   sensor::Sensor *temperature_sensor_{nullptr};
   sensor::Sensor *humidity_sensor_{nullptr};
+
+  enum State : uint8_t {
+    IDLE,
+    READ_TEMPERATURE,
+    READ_HUMIDITY,
+  } state_{IDLE};
 };
 
 }  // namespace hdc2080
