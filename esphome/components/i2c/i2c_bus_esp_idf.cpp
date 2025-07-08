@@ -35,7 +35,7 @@ void IDFI2CBus::setup() {
 
   this->recover_();
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 2)
   next_port = (i2c_port_t) (next_port + 1);
 
   i2c_master_bus_config_t bus_conf{};
@@ -50,9 +50,6 @@ void IDFI2CBus::setup() {
   } else {
     bus_conf.lp_source_clk = LP_I2C_SCLK_DEFAULT;
   }
-#elif defined(USE_ESP32_VARIANT_ESP32S2)
-  // workaround for https://github.com/esphome/issues/issues/6718
-  bus_conf.clk_source = I2C_CLK_SRC_REF_TICK;
 #else
   bus_conf.clk_source = I2C_CLK_SRC_DEFAULT;
 #endif
@@ -178,7 +175,7 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
     return ERROR_NOT_INITIALIZED;
   }
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 2)
   i2c_operation_job_t jobs[cnt + 4];
   uint8_t read = (address << 1) | I2C_MASTER_READ;
   size_t num = 0;
@@ -321,7 +318,7 @@ ErrorCode IDFI2CBus::writev(uint8_t address, WriteBuffer *buffers, size_t cnt, b
   ESP_LOGVV(TAG, "0x%02X TX %s", address, debug_hex.c_str());
 #endif
 
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 2)
   i2c_operation_job_t jobs[cnt + 3];
   uint8_t write = (address << 1) | I2C_MASTER_WRITE;
   size_t num = 0;

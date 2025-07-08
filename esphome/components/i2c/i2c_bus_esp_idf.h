@@ -5,7 +5,7 @@
 #include "i2c_bus.h"
 #include "esphome/core/component.h"
 #include "esphome/core/application.h"
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 2)
 #include <driver/i2c_master.h>
 #else
 #include <driver/i2c.h>
@@ -43,7 +43,7 @@ class IDFI2CBus : public InternalI2CBus, public Component {
   RecoveryCode recovery_result_;
 
  protected:
-#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 1)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 2)
   i2c_master_dev_handle_t dev_;
   i2c_master_bus_handle_t bus_;
 #endif
