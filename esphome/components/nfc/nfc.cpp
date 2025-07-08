@@ -8,9 +8,9 @@ namespace nfc {
 
 static const char *const TAG = "nfc";
 
-std::string format_uid(std::vector<uint8_t> &uid) { return format_hex_pretty(uid, '-', false); }
+std::string format_uid(const std::vector<uint8_t> &uid) { return format_hex_pretty(uid, '-', false); }
 
-std::string format_bytes(std::vector<uint8_t> &bytes) { return format_hex_pretty(bytes, ' ', false); }
+std::string format_bytes(const std::vector<uint8_t> &bytes) { return format_hex_pretty(bytes, ' ', false); }
 
 uint8_t guess_tag_type(uint8_t uid_length) {
   if (uid_length == 4) {
