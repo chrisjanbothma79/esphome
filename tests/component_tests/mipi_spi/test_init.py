@@ -87,7 +87,27 @@ def test_basic_configuration_errors(
         FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
 
 
+@pytest.mark.parametrize(
+    ("rounding", "config", "error_match"),
+    [
+        pytest.param(
+            4,
+            {"width": 320},
+            r"required key not provided @ data\['height'\]",
+            id="missing_height",
+        ),
+        pytest.param(
+            32,
+            {"width": 320, "height": 111},
+            "Dimensions and offsets must be divisible by 32",
+            id="dimensions_not_divisible",
+        ),
+    ],
+)
 def test_dimension_validation(
+    rounding: int,
+    config: dict[str, Any],
+    error_match: str,
     set_core_config: Callable[..., None],
 ) -> None:
     """Test dimension-related validation errors"""
@@ -97,15 +117,8 @@ def test_dimension_validation(
         platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32},
     )
 
-    with pytest.raises(
-        cv.Invalid, match=r"required key not provided @ data\['height'\]"
-    ):
-        dimension_schema(4)({"width": 320})
-
-    with pytest.raises(
-        cv.Invalid, match="Dimensions and offsets must be divisible by 32"
-    ):
-        dimension_schema(32)({"width": 320, "height": 111})
+    with pytest.raises(cv.Invalid, match=error_match):
+        dimension_schema(rounding)(config)
 
 
 @pytest.mark.parametrize(
