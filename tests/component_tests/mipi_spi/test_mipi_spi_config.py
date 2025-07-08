@@ -19,9 +19,7 @@ from esphome.const import (
 )
 
 
-def test_configuration_errors(
-    core_reset, set_core_config, choose_variant_with_pins
-) -> None:
+def test_configuration_errors(set_core_config, choose_variant_with_pins) -> None:
     """Test detection of invalid configuration"""
 
     set_core_config(PLATFORM_ESP32, FRAMEWORK_ESP_IDF, "esp32dev", VARIANT_ESP32)
@@ -152,8 +150,6 @@ def test_configuration_errors(
         match=r"This feature is only available with frameworks \['esp-idf'\]",
     ):
         test_config({"model": "wt32-sc01-plus"})
-
-    core_reset()
 
 
 def test_configuration_success(
