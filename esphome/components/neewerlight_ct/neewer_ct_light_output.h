@@ -2,8 +2,8 @@
 
 #include "esphome/components/color_temperature/ct_light_output.h"
 #include "esphome/components/ble_client/ble_client.h"
+#include "message.h"
 #include "neewer_ble_client.h"
-#include "neewer_ble_message.h"
 #include "neewer_light_state.h"
 
 #ifdef USE_ESP32

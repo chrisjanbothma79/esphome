@@ -1,4 +1,4 @@
-#include "neewer_ble_message.h"
+#include "message.h"
 #include "neewer_ct_light_output.h"
 #include "neewer_state_output.h"
 #include "utils.h"
