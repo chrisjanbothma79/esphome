@@ -13,6 +13,14 @@ from esphome.components.esp32 import (
     VARIANT_ESP32,
     VARIANT_ESP32S3,
 )
+from esphome.components.mipi_spi.display import (
+    CONF_BUS_MODE,
+    CONF_NATIVE_HEIGHT,
+    CONFIG_SCHEMA,
+    FINAL_VALIDATE_SCHEMA,
+    MODELS,
+    dimension_schema,
+)
 from esphome.const import (
     CONF_DC_PIN,
     CONF_DIMENSIONS,
@@ -34,11 +42,6 @@ def test_basic_configuration_errors(
     )
 
     def test_config(config: Any) -> None:
-        from esphome.components.mipi_spi.display import (
-            CONFIG_SCHEMA,
-            FINAL_VALIDATE_SCHEMA,
-        )
-
         FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
 
     with pytest.raises(cv.Invalid, match="expected a dictionary"):
@@ -91,8 +94,6 @@ def test_dimension_validation(
         platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32},
     )
 
-    from esphome.components.mipi_spi.display import dimension_schema
-
     with pytest.raises(
         cv.Invalid, match=r"required key not provided @ data\['height'\]"
     ):
@@ -115,11 +116,6 @@ def test_transform_and_init_sequence_errors(
     )
 
     def test_config(config: Any) -> None:
-        from esphome.components.mipi_spi.display import (
-            CONFIG_SCHEMA,
-            FINAL_VALIDATE_SCHEMA,
-        )
-
         FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
 
     with pytest.raises(cv.Invalid, match="Axis swapping not supported by this model"):
@@ -167,11 +163,6 @@ def test_esp32s3_specific_errors(
     )
 
     def test_config(config: Any) -> None:
-        from esphome.components.mipi_spi.display import (
-            CONFIG_SCHEMA,
-            FINAL_VALIDATE_SCHEMA,
-        )
-
         FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
 
     with pytest.raises(cv.Invalid, match="DC pin is not supported in quad mode"):
@@ -211,11 +202,6 @@ def test_framework_specific_errors(
     )
 
     def test_config(config: Any) -> None:
-        from esphome.components.mipi_spi.display import (
-            CONFIG_SCHEMA,
-            FINAL_VALIDATE_SCHEMA,
-        )
-
         FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
 
     with pytest.raises(
@@ -236,18 +222,7 @@ def test_configuration_success(
         platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32S3},
     )
 
-    from esphome.components.mipi_spi.display import (
-        CONF_BUS_MODE,
-        CONF_NATIVE_HEIGHT,
-        MODELS,
-    )
-
     def success(config: Any) -> None:
-        from esphome.components.mipi_spi.display import (
-            CONFIG_SCHEMA,
-            FINAL_VALIDATE_SCHEMA,
-        )
-
         FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
 
     # Custom model with all options
