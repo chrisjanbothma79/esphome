@@ -23,17 +23,15 @@ from esphome.const import (
 )
 
 
-def test_configuration_errors(
-    set_core_config: Callable[..., None], choose_variant_with_pins: Callable[..., None]
+def test_basic_configuration_errors(
+    set_core_config: Callable[..., None],
 ) -> None:
-    """Test detection of invalid configuration"""
+    """Test basic configuration validation errors"""
 
     set_core_config(
         PlatformFramework.ESP32_IDF,
         platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32},
     )
-
-    from esphome.components.mipi_spi.display import dimension_schema
 
     def test_config(config: Any) -> None:
         from esphome.components.mipi_spi.display import (
@@ -82,6 +80,19 @@ def test_configuration_errors(
             }
         )
 
+
+def test_dimension_validation(
+    set_core_config: Callable[..., None],
+) -> None:
+    """Test dimension-related validation errors"""
+
+    set_core_config(
+        PlatformFramework.ESP32_IDF,
+        platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32},
+    )
+
+    from esphome.components.mipi_spi.display import dimension_schema
+
     with pytest.raises(
         cv.Invalid, match=r"required key not provided @ data\['height'\]"
     ):
@@ -91,6 +102,25 @@ def test_configuration_errors(
         cv.Invalid, match="Dimensions and offsets must be divisible by 32"
     ):
         dimension_schema(32)({"width": 320, "height": 111})
+
+
+def test_transform_and_init_sequence_errors(
+    set_core_config: Callable[..., None],
+) -> None:
+    """Test transform and init sequence validation errors"""
+
+    set_core_config(
+        PlatformFramework.ESP32_IDF,
+        platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32},
+    )
+
+    def test_config(config: Any) -> None:
+        from esphome.components.mipi_spi.display import (
+            CONFIG_SCHEMA,
+            FINAL_VALIDATE_SCHEMA,
+        )
+
+        FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
 
     with pytest.raises(cv.Invalid, match="Axis swapping not supported by this model"):
         test_config(
@@ -125,10 +155,24 @@ def test_configuration_errors(
             }
         )
 
+
+def test_esp32s3_specific_errors(
+    set_core_config: Callable[..., None],
+) -> None:
+    """Test ESP32-S3 specific configuration errors"""
+
     set_core_config(
         PlatformFramework.ESP32_IDF,
         platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32S3},
     )
+
+    def test_config(config: Any) -> None:
+        from esphome.components.mipi_spi.display import (
+            CONFIG_SCHEMA,
+            FINAL_VALIDATE_SCHEMA,
+        )
+
+        FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
 
     with pytest.raises(cv.Invalid, match="DC pin is not supported in quad mode"):
         test_config({"model": "t4-s3", "dc_pin": 18})
@@ -155,10 +199,24 @@ def test_configuration_errors(
     with pytest.raises(cv.Invalid, match="PSRAM is required for this display"):
         test_config({"model": "T-DISPLAY-S3-PRO"})
 
+
+def test_framework_specific_errors(
+    set_core_config: Callable[..., None],
+) -> None:
+    """Test framework-specific configuration errors"""
+
     set_core_config(
         PlatformFramework.ESP32_ARDUINO,
         platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32},
     )
+
+    def test_config(config: Any) -> None:
+        from esphome.components.mipi_spi.display import (
+            CONFIG_SCHEMA,
+            FINAL_VALIDATE_SCHEMA,
+        )
+
+        FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
 
     with pytest.raises(
         cv.Invalid,
