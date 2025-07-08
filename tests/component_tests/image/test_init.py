@@ -9,11 +9,12 @@ from typing import Any
 import pytest
 
 from esphome import config_validation as cv
-from esphome.components.image import CONFIG_SCHEMA
 
 
 def test_image_configuration_errors() -> None:
     """Test detection of invalid configuration."""
+    from esphome.components.image import CONFIG_SCHEMA
+
     with pytest.raises(cv.Invalid) as exc_info:
         CONFIG_SCHEMA("a string")
     assert "Badly formed image configuration, expected a list or a dictionary" in str(
@@ -83,6 +84,7 @@ def test_image_configuration_errors() -> None:
 
 def test_image_configuration_success() -> None:
     """Test successful configuration validation."""
+    from esphome.components.image import CONFIG_SCHEMA
 
     # Valid image configuration
     config1: dict[str, Any] = {
@@ -152,15 +154,13 @@ def test_image_configuration_success() -> None:
     CONFIG_SCHEMA(config4)
 
 
-def _get_path(file_name: str) -> Path:
-    """Helper function to get the absolute path of a file relative to the test script."""
-    return (Path(__file__).parent / file_name).absolute()
-
-
-def test_image_generation(generate_main: Callable[[str | Path], str]) -> None:
+def test_image_generation(
+    generate_main: Callable[[str | Path], str],
+    component_config_path: Callable[[str], Path],
+) -> None:
     """Test image generation configuration."""
 
-    main_cpp: str = generate_main(_get_path("image_test.yaml"))
+    main_cpp: str = generate_main(component_config_path("image_test.yaml"))
     assert "uint8_t_id[] PROGMEM = {0x24, 0x21, 0x24, 0x21" in main_cpp
     assert (
         "cat_img = new image::Image(uint8_t_id, 32, 24, image::IMAGE_TYPE_RGB565, image::TRANSPARENCY_OPAQUE);"

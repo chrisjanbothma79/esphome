@@ -20,11 +20,40 @@ from esphome.core import CORE  # noqa: E402
 
 @pytest.fixture(autouse=True)
 def config_path(request: pytest.FixtureRequest) -> Generator[None]:
-    """Set CORE.config_path to the test file's path and reset it after the test."""
+    """Set CORE.config_path to the component's config directory and reset it after the test."""
     original_path = CORE.config_path
-    CORE.config_path = str(request.fspath)
+    config_dir = Path(request.fspath).parent / "config"
+
+    # Check if config directory exists, if not use parent directory
+    if config_dir.exists():
+        CORE.config_path = str(config_dir)
+    else:
+        CORE.config_path = str(Path(request.fspath).parent)
+
     yield
     CORE.config_path = original_path
+
+
+@pytest.fixture
+def component_fixture_path(request: pytest.FixtureRequest) -> Callable[[str], Path]:
+    """Return a function to get absolute paths relative to the component's fixtures directory."""
+
+    def _get_path(file_name: str) -> Path:
+        """Get the absolute path of a file relative to the component's fixtures directory."""
+        return (Path(request.fspath).parent / "fixtures" / file_name).absolute()
+
+    return _get_path
+
+
+@pytest.fixture
+def component_config_path(request: pytest.FixtureRequest) -> Callable[[str], Path]:
+    """Return a function to get absolute paths relative to the component's config directory."""
+
+    def _get_path(file_name: str) -> Path:
+        """Get the absolute path of a file relative to the component's config directory."""
+        return (Path(request.fspath).parent / "config" / file_name).absolute()
+
+    return _get_path
 
 
 @pytest.fixture
@@ -35,7 +64,6 @@ def generate_main() -> Generator[Callable[[str | Path], str]]:
         CORE.config_path = str(path)
         CORE.config = read_config({})
         generate_cpp_contents(CORE.config)
-        print(CORE.cpp_main_section)
         return CORE.cpp_main_section
 
     yield generator
