@@ -11,6 +11,7 @@ dfrobot_c4001:
 
 binary_sensor:
   - platform: dfrobot_c4001
+    dfrobot_c4001_id: mmwave_sensor
     config_changed:
       name: Config Changed
     occupancy:
@@ -19,6 +20,7 @@ binary_sensor:
 
 button:
   - platform: dfrobot_c4001
+    dfrobot_c4001_id: mmwave_sensor
     config_save:
       name: Config Save
       entity_category: CONFIG
@@ -55,6 +57,7 @@ switch:
 
 text_sensor:
   - platform: dfrobot_c4001
+    dfrobot_c4001_id: mmwave_sensor
     software_version:
       name: Software Version
     hardware_version:
