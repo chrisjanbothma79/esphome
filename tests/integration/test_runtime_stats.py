@@ -27,17 +27,17 @@ async def test_runtime_stats(
     # Track component stats
     component_stats_found = set()
 
-    # Patterns to match
+    # Patterns to match - need to handle ANSI color codes and timestamps
+    # The log format is: [HH:MM:SS][color codes][I][tag]: message
     total_stats_pattern = re.compile(r"Total stats \(since boot\):")
-    component_pattern = re.compile(r"^\s+(\w+):\s+count=(\d+),\s+avg=([\d.]+)ms")
+    # Match component names that may include dots (e.g., template.sensor)
+    component_pattern = re.compile(
+        r"^\[[^\]]+\].*?\s+([\w.]+):\s+count=(\d+),\s+avg=([\d.]+)ms"
+    )
 
     def check_output(line: str) -> None:
         """Check log output for runtime stats messages."""
         nonlocal stats_count
-
-        # Debug: print ALL lines to see what we're getting
-        if "[I]" in line or "[D]" in line or "[W]" in line or "[E]" in line:
-            print(f"LOG: {line}")
 
         # Check for total stats line
         if total_stats_pattern.search(line):
@@ -80,9 +80,9 @@ async def test_runtime_stats(
             )
 
             # Verify we found stats for our components
-            assert "sensor" in component_stats_found, (
-                f"Expected sensor stats, found: {component_stats_found}"
+            assert "template.sensor" in component_stats_found, (
+                f"Expected template.sensor stats, found: {component_stats_found}"
             )
-            assert "switch" in component_stats_found, (
-                f"Expected switch stats, found: {component_stats_found}"
+            assert "template.switch" in component_stats_found, (
+                f"Expected template.switch stats, found: {component_stats_found}"
             )

@@ -6,7 +6,9 @@ host:
 api:
 
 logger:
-  level: INFO
+  level: DEBUG
+  logs:
+    runtime_stats: INFO
 
 runtime_stats:
   log_interval: 1s
