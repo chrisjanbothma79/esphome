@@ -1,7 +1,5 @@
 esp32:
 
-esp32_ble_tracker:
-
 ble_client:
   - mac_address: 00:00:00:00:00:00
     id: neewer_test_ble_client_id
