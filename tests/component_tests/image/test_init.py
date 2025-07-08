@@ -9,11 +9,11 @@ from typing import Any
 import pytest
 
 from esphome import config_validation as cv
+from esphome.components.image import CONFIG_SCHEMA
 
 
 def test_image_configuration_errors() -> None:
     """Test detection of invalid configuration."""
-    from esphome.components.image import CONFIG_SCHEMA
 
     with pytest.raises(cv.Invalid) as exc_info:
         CONFIG_SCHEMA("a string")
@@ -84,7 +84,6 @@ def test_image_configuration_errors() -> None:
 
 def test_image_configuration_success() -> None:
     """Test successful configuration validation."""
-    from esphome.components.image import CONFIG_SCHEMA
 
     # Valid image configuration
     config1: dict[str, Any] = {
