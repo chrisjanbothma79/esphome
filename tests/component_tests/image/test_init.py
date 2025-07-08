@@ -11,12 +11,10 @@ from pytest import ExceptionInfo
 
 from esphome import config_validation as cv
 from esphome.components.image import CONFIG_SCHEMA
-from esphome.core import CORE
 
 
 def test_image_configuration_errors() -> None:
-    """Test detection of invalid configuration"""
-    CORE.config_path = __file__
+    """Test detection of invalid configuration."""
 
     exc_info: ExceptionInfo[cv.Invalid]
     with pytest.raises(cv.Invalid) as exc_info:
@@ -88,7 +86,6 @@ def test_image_configuration_errors() -> None:
 
 def test_image_configuration_success() -> None:
     """Test successful configuration validation."""
-    CORE.config_path = __file__
 
     # Valid image configuration
     config1: dict[str, Any] = {
@@ -165,7 +162,6 @@ def _get_path(file_name: str) -> Path:
 
 def test_image_generation(generate_main: Callable[[str | Path], str]) -> None:
     """Test image generation configuration."""
-    CORE.config_path = __file__
 
     main_cpp: str = generate_main(_get_path("image_test.yaml"))
     assert "uint8_t_id[] PROGMEM = {0x24, 0x21, 0x24, 0x21" in main_cpp
