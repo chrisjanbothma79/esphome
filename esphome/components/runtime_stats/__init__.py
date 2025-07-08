@@ -11,7 +11,7 @@ DEPENDENCIES = []
 CONF_LOG_INTERVAL = "log_interval"
 
 runtime_stats_ns = cg.esphome_ns.namespace("runtime_stats")
-RuntimeStatsCollector = runtime_stats_ns.class_("RuntimeStatsCollector")
+RuntimeStatsCollector = runtime_stats_ns.class_("RuntimeStatsCollector", cg.Component)
 
 CONFIG_SCHEMA = cv.Schema(
     {
