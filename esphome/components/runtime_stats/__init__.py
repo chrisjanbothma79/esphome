@@ -6,6 +6,8 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_ID
 
+CODEOWNERS = ["@bdraco"]
+
 CONF_LOG_INTERVAL = "log_interval"
 
 runtime_stats_ns = cg.esphome_ns.namespace("runtime_stats")
