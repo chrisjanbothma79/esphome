@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef USE_RUNTIME_STATS
+
 #include <map>
 #include <string>
 #include <vector>
@@ -85,13 +87,10 @@ struct ComponentStatPair {
 
 class RuntimeStatsCollector {
  public:
-  RuntimeStatsCollector() : log_interval_(60000), next_log_time_(0), enabled_(true) {}
+  RuntimeStatsCollector() : log_interval_(60000), next_log_time_(0) {}
 
   void set_log_interval(uint32_t log_interval) { this->log_interval_ = log_interval; }
   uint32_t get_log_interval() const { return this->log_interval_; }
-
-  void set_enabled(bool enabled) { this->enabled_ = enabled; }
-  bool is_enabled() const { return this->enabled_; }
 
   void record_component_time(Component *component, uint32_t duration_ms, uint32_t current_time);
 
@@ -112,10 +111,11 @@ class RuntimeStatsCollector {
   std::map<Component *, std::string> component_names_cache_;
   uint32_t log_interval_;
   uint32_t next_log_time_;
-  bool enabled_;
 };
 
 // Global instance for runtime stats collection
 extern RuntimeStatsCollector runtime_stats;
 
 }  // namespace esphome
+
+#endif  // USE_RUNTIME_STATS

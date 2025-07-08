@@ -1,4 +1,7 @@
-#include "esphome/core/runtime_stats.h"
+#include "runtime_stats.h"
+
+#ifdef USE_RUNTIME_STATS
+
 #include "esphome/core/component.h"
 #include <algorithm>
 
@@ -7,7 +10,7 @@ namespace esphome {
 RuntimeStatsCollector runtime_stats;
 
 void RuntimeStatsCollector::record_component_time(Component *component, uint32_t duration_ms, uint32_t current_time) {
-  if (!this->enabled_ || component == nullptr)
+  if (component == nullptr)
     return;
 
   // Check if we have cached the name for this component
@@ -79,7 +82,7 @@ void RuntimeStatsCollector::log_stats_() {
 }
 
 void RuntimeStatsCollector::process_pending_stats(uint32_t current_time) {
-  if (!this->enabled_ || this->next_log_time_ == 0)
+  if (this->next_log_time_ == 0)
     return;
 
   if (current_time >= this->next_log_time_) {
@@ -90,3 +93,5 @@ void RuntimeStatsCollector::process_pending_stats(uint32_t current_time) {
 }
 
 }  // namespace esphome
+
+#endif  // USE_RUNTIME_STATS

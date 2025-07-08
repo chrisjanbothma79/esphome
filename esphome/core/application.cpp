@@ -141,9 +141,11 @@ void Application::loop() {
   this->in_loop_ = false;
   this->app_state_ = new_app_state;
 
+#ifdef USE_RUNTIME_STATS
   // Process any pending runtime stats printing after all components have run
   // This ensures stats printing doesn't affect component timing measurements
   runtime_stats.process_pending_stats(last_op_end_time);
+#endif
 
   // Use the last component's end time instead of calling millis() again
   auto elapsed = last_op_end_time - this->last_loop_;
