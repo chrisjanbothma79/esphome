@@ -117,7 +117,6 @@ def validate_pin_number(value):
 
 
 def _validate_ex1_wakeup_mode(value):
-    print(value)
     if value == "ALL_LOW":
         esp32.only_on_variant(supported=[VARIANT_ESP32], msg_prefix="ALL_LOW")(value)
     if value == "ANY_LOW":
