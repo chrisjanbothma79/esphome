@@ -339,4 +339,6 @@ esp_eth_phy_t *esp_eth_phy_new_jl1101(const eth_phy_config_t *config) {
 err:
   return NULL;
 }
+
+#endif /* USE_ARDUINO */
 #endif /* USE_ESP32 */
