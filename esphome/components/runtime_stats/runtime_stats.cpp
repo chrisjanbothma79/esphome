@@ -25,17 +25,13 @@ void RuntimeStatsCollector::record_component_time(Component *component, uint32_t
     this->component_names_cache_[component] = source;
     this->component_stats_[source].record_time(duration_ms);
   } else {
-    // Use cached name - no string operations, just map lookup
     this->component_stats_[name_it->second].record_time(duration_ms);
   }
 
-  // If next_log_time_ is 0, initialize it
   if (this->next_log_time_ == 0) {
     this->next_log_time_ = current_time + this->log_interval_;
     return;
   }
-
-  // Don't print stats here anymore - let process_pending_stats handle it
 }
 
 void RuntimeStatsCollector::log_stats_() {

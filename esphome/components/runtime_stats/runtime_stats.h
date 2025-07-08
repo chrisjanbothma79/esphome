@@ -111,6 +111,8 @@ class RuntimeStatsCollector {
 
   // Use const char* keys for efficiency
   // Custom comparator for const char* keys in map
+  // Without this, std::map would compare pointer addresses instead of string contents,
+  // causing identical component names at different addresses to be treated as different keys
   struct CStrCompare {
     bool operator()(const char *a, const char *b) const { return std::strcmp(a, b) < 0; }
   };
