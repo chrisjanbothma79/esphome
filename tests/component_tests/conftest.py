@@ -80,9 +80,6 @@ def set_core_config(request: pytest.FixtureRequest) -> Generator[Callable[..., N
         path: str | None = None,
     ) -> None:
         platform, framework = platform_framework.value
-        if path is None:
-            path = str(Path(request.fspath).parent / "dummy.yaml")
-        CORE.config_path = path
         CORE.data[KEY_CORE] = {
             KEY_TARGET_PLATFORM: platform.value,
             KEY_TARGET_FRAMEWORK: framework.value,
