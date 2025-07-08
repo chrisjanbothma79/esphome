@@ -9,10 +9,7 @@ namespace airthings_wave_plus {
 
 namespace espbt = esphome::esp32_ble_tracker;
 
-enum WaveDeviceType : uint8_t {
-  WAVE_PLUS = 0,
-  WAVE_GEN2 = 1,
-};
+enum WaveDeviceType : uint8_t { WAVE_PLUS = 0, WAVE_GEN2 = 1 };
 
 struct WaveDeviceUUIDs {
   const char *service_uuid;
@@ -21,18 +18,18 @@ struct WaveDeviceUUIDs {
 };
 
 static constexpr WaveDeviceUUIDs WAVE_DEVICE_UUIDS[] = {
-    // WAVE_PLUS
-    {
-        "b42e1c08-ade7-11e4-89d3-123b93f75cba",  // service_uuid
-        "b42e2a68-ade7-11e4-89d3-123b93f75cba",  // characteristic_uuid
-        "b42e2d06-ade7-11e4-89d3-123b93f75cba",  // access_control_point_uuid
-    },
-    // WAVE_GEN2
-    {
-        "b42e4a8e-ade7-11e4-89d3-123b93f75cba",  // service_uuid
-        "b42e4dcc-ade7-11e4-89d3-123b93f75cba",  // characteristic_uuid
-        "b42e50d8-ade7-11e4-89d3-123b93f75cba",  // access_control_point_uuid
-    },
+    [WAVE_PLUS] =
+        {
+            .service_uuid = "b42e1c08-ade7-11e4-89d3-123b93f75cba",
+            .characteristic_uuid = "b42e2a68-ade7-11e4-89d3-123b93f75cba",
+            .access_control_point_uuid = "b42e2d06-ade7-11e4-89d3-123b93f75cba",
+        },
+    [WAVE_GEN2] =
+        {
+            .service_uuid = "b42e4a8e-ade7-11e4-89d3-123b93f75cba",
+            .characteristic_uuid = "b42e4dcc-ade7-11e4-89d3-123b93f75cba",
+            .access_control_point_uuid = "b42e50d8-ade7-11e4-89d3-123b93f75cba",
+        },
 };
 
 class AirthingsWavePlus : public airthings_wave_base::AirthingsWaveBase {
