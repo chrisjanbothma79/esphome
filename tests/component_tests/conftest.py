@@ -1,10 +1,14 @@
 """Fixtures for component tests."""
 
+from __future__ import annotations
+
 from collections.abc import Callable, Generator
 import inspect
 import os
 from pathlib import Path
 import sys
+
+import pytest
 
 from esphome import config, final_validate
 from esphome.components.esp32 import KEY_BOARD, KEY_ESP32, VARIANTS
@@ -22,8 +26,6 @@ from esphome.pins import internal_gpio_pin_number
 here = Path(__file__).parent
 package_root = here.parent.parent
 sys.path.insert(0, package_root.as_posix())
-
-import pytest  # noqa: E402
 
 from esphome.__main__ import generate_cpp_contents  # noqa: E402
 from esphome.config import Config, read_config  # noqa: E402
@@ -135,6 +137,28 @@ def choose_variant_with_pins():
                 continue
 
     return chooser
+
+
+@pytest.fixture
+def component_fixture_path(request: pytest.FixtureRequest) -> Callable[[str], Path]:
+    """Return a function to get absolute paths relative to the component's fixtures directory."""
+
+    def _get_path(file_name: str) -> Path:
+        """Get the absolute path of a file relative to the component's fixtures directory."""
+        return (Path(request.fspath).parent / "fixtures" / file_name).absolute()
+
+    return _get_path
+
+
+@pytest.fixture
+def component_config_path(request: pytest.FixtureRequest) -> Callable[[str], Path]:
+    """Return a function to get absolute paths relative to the component's config directory."""
+
+    def _get_path(file_name: str) -> Path:
+        """Get the absolute path of a file relative to the component's config directory."""
+        return (Path(request.fspath).parent / "config" / file_name).absolute()
+
+    return _get_path
 
 
 @pytest.fixture
