@@ -35,9 +35,6 @@ void GLR01I2CComponent::dump_config() {
 }
 
 void GLR01I2CComponent::update() {
-  if (this->is_failed())
-    return;
-
   // Trigger a new measurement
   if (!this->write_byte(REG_TRIGGER, CMD_TRIGGER)) {
     ESP_LOGE(TAG, "Failed to trigger measurement!");
@@ -50,9 +47,6 @@ void GLR01I2CComponent::update() {
 }
 
 void GLR01I2CComponent::read_distance_() {
-  if (this->is_failed())
-    return;
-
   uint16_t distance = 0;
   if (!this->read_byte_16(REG_DISTANCE, &distance)) {
     ESP_LOGE(TAG, "Failed to read distance value!");
