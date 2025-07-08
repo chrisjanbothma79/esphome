@@ -7,7 +7,12 @@ from typing import Any
 import pytest
 
 from esphome import config_validation as cv
-from esphome.components.esp32 import VARIANT_ESP32, VARIANT_ESP32S3
+from esphome.components.esp32 import (
+    KEY_BOARD,
+    KEY_VARIANT,
+    VARIANT_ESP32,
+    VARIANT_ESP32S3,
+)
 from esphome.const import (
     CONF_DC_PIN,
     CONF_DIMENSIONS,
@@ -24,7 +29,8 @@ def test_configuration_errors(
     """Test detection of invalid configuration"""
 
     set_core_config(
-        PlatformFramework.ESP32_IDF, board="esp32dev", variant=VARIANT_ESP32
+        PlatformFramework.ESP32_IDF,
+        platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32},
     )
 
     from esphome.components.mipi_spi.display import dimension_schema
@@ -120,7 +126,8 @@ def test_configuration_errors(
         )
 
     set_core_config(
-        PlatformFramework.ESP32_IDF, board="esp32dev", variant=VARIANT_ESP32S3
+        PlatformFramework.ESP32_IDF,
+        platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32S3},
     )
 
     with pytest.raises(cv.Invalid, match="DC pin is not supported in quad mode"):
@@ -149,7 +156,8 @@ def test_configuration_errors(
         test_config({"model": "T-DISPLAY-S3-PRO"})
 
     set_core_config(
-        PlatformFramework.ESP32_ARDUINO, board="esp32dev", variant=VARIANT_ESP32
+        PlatformFramework.ESP32_ARDUINO,
+        platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32},
     )
 
     with pytest.raises(
@@ -166,7 +174,8 @@ def test_configuration_success(
 ) -> None:
     """Test successful configuration validation."""
     set_core_config(
-        PlatformFramework.ESP32_IDF, board="esp32dev", variant=VARIANT_ESP32S3
+        PlatformFramework.ESP32_IDF,
+        platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32S3},
     )
 
     from esphome.components.mipi_spi.display import (

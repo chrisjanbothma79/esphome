@@ -10,7 +10,7 @@ from typing import Any
 import pytest
 
 from esphome import config, final_validate
-from esphome.components.esp32 import KEY_BOARD, KEY_ESP32, VARIANTS
+from esphome.components.esp32 import KEY_ESP32, VARIANTS
 from esphome.components.esp32.gpio import validate_gpio_pin
 import esphome.config_validation as cv
 from esphome.const import (
@@ -75,19 +75,25 @@ def set_core_config(request: pytest.FixtureRequest) -> Generator[Callable[..., N
         platform_framework: PlatformFramework,
         /,
         *,
-        board: str,
-        variant: str | None = None,
-        path: str | None = None,
+        core_data: dict[str, Any] | None = None,
+        platform_data: dict[str, Any] | None = None,
     ) -> None:
         platform, framework = platform_framework.value
+
+        # Set base core configuration
         CORE.data[KEY_CORE] = {
             KEY_TARGET_PLATFORM: platform.value,
             KEY_TARGET_FRAMEWORK: framework.value,
         }
-        CORE.data[platform.value] = {
-            KEY_VARIANT: variant,
-            KEY_BOARD: board,
-        }
+
+        # Update with any additional core data
+        if core_data:
+            CORE.data[KEY_CORE].update(core_data)
+
+        # Set platform-specific data
+        if platform_data:
+            CORE.data[platform.value] = platform_data
+
         config.path_context.set([])
         final_validate.full_config.set(Config())
 
