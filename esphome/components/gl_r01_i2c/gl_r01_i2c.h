@@ -12,7 +12,6 @@ class GLR01I2CComponent : public sensor::Sensor, public i2c::I2CDevice, public P
   void setup() override;
   void dump_config() override;
   void update() override;
-  float get_setup_priority() const override { return setup_priority::DATA; }
 
  protected:
   void read_distance_();
