@@ -11,9 +11,10 @@
 #include <algorithm>
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
-#include "esphome/core/component.h"
 
 namespace esphome {
+
+class Component;  // Forward declaration
 
 namespace runtime_stats {
 
