@@ -31,7 +31,49 @@ from esphome.const import (
 )
 
 
+@pytest.mark.parametrize(
+    ("config", "error_match"),
+    [
+        pytest.param(
+            "a string",
+            "expected a dictionary",
+            id="invalid_string_config",
+        ),
+        pytest.param(
+            {"id": "display_id"},
+            r"required key not provided @ data\['model'\]",
+            id="missing_model",
+        ),
+        pytest.param(
+            {"id": "display_id", "model": "custom", "init_sequence": [[0x36, 0x01]]},
+            r"required key not provided @ data\['dimensions'\]",
+            id="missing_dimensions",
+        ),
+        pytest.param(
+            {
+                "model": "custom",
+                "dc_pin": 18,
+                "dimensions": {"width": 320, "height": 240},
+            },
+            r"required key not provided @ data\['init_sequence'\]",
+            id="missing_init_sequence",
+        ),
+        pytest.param(
+            {
+                "id": "display_id",
+                "model": "custom",
+                "dimensions": {"width": 320, "height": 240},
+                "draw_rounding": 13,
+                "init_sequence": [[0xA0, 0x01]],
+            },
+            r"value must be a power of two for dictionary value @ data\['draw_rounding'\]",
+            id="invalid_draw_rounding",
+        ),
+    ],
+)
 def test_basic_configuration_errors(
+    config: Any,
+    error_match: str,
     set_core_config: Callable[..., None],
 ) -> None:
     """Test basic configuration validation errors"""
@@ -41,47 +83,8 @@ def test_basic_configuration_errors(
         platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32},
     )
 
-    def test_config(config: Any) -> None:
+    with pytest.raises(cv.Invalid, match=error_match):
         FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
-
-    with pytest.raises(cv.Invalid, match="expected a dictionary"):
-        test_config("a string")
-
-    with pytest.raises(
-        cv.Invalid, match=r"required key not provided @ data\['model'\]"
-    ):
-        test_config({"id": "display_id"})
-
-    with pytest.raises(
-        cv.Invalid, match=r"required key not provided @ data\['dimensions'\]"
-    ):
-        test_config(
-            {"id": "display_id", "model": "custom", "init_sequence": [[0x36, 0x01]]}
-        )
-
-    with pytest.raises(
-        cv.Invalid, match=r"required key not provided @ data\['init_sequence'\]"
-    ):
-        test_config(
-            {
-                "model": "custom",
-                "dc_pin": 18,
-                "dimensions": {"width": 320, "height": 240},
-            }
-        )
-
-    with pytest.raises(
-        cv.Invalid,
-        match=r"value must be a power of two for dictionary value @ data\['draw_rounding'\]",
-    ):
-        test_config(
-            {
-                "id": "display_id",
-                "model": "custom",
-                "dimensions": {"width": 320, "height": 240},
-                "draw_rounding": 13,
-            }
-        )
 
 
 def test_dimension_validation(
