@@ -193,7 +193,7 @@ class ImageRGB565(ImageEncoder):
         )
         self.big_endian = True
 
-    def set_big_endian(self, big_endian):
+    def set_big_endian(self, big_endian: bool) -> None:
         self.big_endian = big_endian
 
     def convert(self, image, path):
