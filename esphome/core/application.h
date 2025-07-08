@@ -351,14 +351,6 @@ class Application {
 
   uint32_t get_loop_interval() const { return static_cast<uint32_t>(this->loop_interval_); }
 
-#ifdef USE_RUNTIME_STATS
-  /** Set the interval at which runtime statistics are logged.
-   *
-   * @param interval The interval in milliseconds between logging of runtime statistics.
-   */
-  void set_runtime_stats_log_interval(uint32_t interval) { runtime_stats.set_log_interval(interval); }
-#endif
-
   void schedule_dump_config() { this->dump_config_at_ = 0; }
 
   void feed_wdt(uint32_t time = 0);

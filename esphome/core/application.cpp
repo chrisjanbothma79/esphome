@@ -144,7 +144,9 @@ void Application::loop() {
 #ifdef USE_RUNTIME_STATS
   // Process any pending runtime stats printing after all components have run
   // This ensures stats printing doesn't affect component timing measurements
-  runtime_stats.process_pending_stats(last_op_end_time);
+  if (global_runtime_stats != nullptr) {
+    global_runtime_stats->process_pending_stats(last_op_end_time);
+  }
 #endif
 
   // Use the last component's end time instead of calling millis() again

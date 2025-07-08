@@ -7,7 +7,11 @@
 
 namespace esphome {
 
-RuntimeStatsCollector runtime_stats;
+namespace runtime_stats {
+
+RuntimeStatsCollector::RuntimeStatsCollector() : log_interval_(60000), next_log_time_(0) {
+  global_runtime_stats = this;
+}
 
 void RuntimeStatsCollector::record_component_time(Component *component, uint32_t duration_ms, uint32_t current_time) {
   if (component == nullptr)
@@ -35,8 +39,8 @@ void RuntimeStatsCollector::record_component_time(Component *component, uint32_t
 }
 
 void RuntimeStatsCollector::log_stats_() {
-  ESP_LOGI(RUNTIME_TAG, "Component Runtime Statistics");
-  ESP_LOGI(RUNTIME_TAG, "Period stats (last %" PRIu32 "ms):", this->log_interval_);
+  ESP_LOGI(TAG, "Component Runtime Statistics");
+  ESP_LOGI(TAG, "Period stats (last %" PRIu32 "ms):", this->log_interval_);
 
   // First collect stats we want to display
   std::vector<ComponentStatPair> stats_to_display;
@@ -57,13 +61,13 @@ void RuntimeStatsCollector::log_stats_() {
     const std::string &source = it.name;
     const ComponentRuntimeStats *stats = it.stats;
 
-    ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source.c_str(),
+    ESP_LOGI(TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source.c_str(),
              stats->get_period_count(), stats->get_period_avg_time_ms(), stats->get_period_max_time_ms(),
              stats->get_period_time_ms());
   }
 
   // Log total stats since boot
-  ESP_LOGI(RUNTIME_TAG, "Total stats (since boot):");
+  ESP_LOGI(TAG, "Total stats (since boot):");
 
   // Re-sort by total runtime for all-time stats
   std::sort(stats_to_display.begin(), stats_to_display.end(),
@@ -75,7 +79,7 @@ void RuntimeStatsCollector::log_stats_() {
     const std::string &source = it.name;
     const ComponentRuntimeStats *stats = it.stats;
 
-    ESP_LOGI(RUNTIME_TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source.c_str(),
+    ESP_LOGI(TAG, "  %s: count=%" PRIu32 ", avg=%.2fms, max=%" PRIu32 "ms, total=%" PRIu32 "ms", source.c_str(),
              stats->get_total_count(), stats->get_total_avg_time_ms(), stats->get_total_max_time_ms(),
              stats->get_total_time_ms());
   }
@@ -91,6 +95,11 @@ void RuntimeStatsCollector::process_pending_stats(uint32_t current_time) {
     this->next_log_time_ = current_time + this->log_interval_;
   }
 }
+
+}  // namespace runtime_stats
+
+runtime_stats::RuntimeStatsCollector *global_runtime_stats =
+    nullptr;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 }  // namespace esphome
 

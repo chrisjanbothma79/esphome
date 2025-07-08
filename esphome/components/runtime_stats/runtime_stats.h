@@ -12,9 +12,11 @@
 
 namespace esphome {
 
-static const char *const RUNTIME_TAG = "runtime";
-
 class Component;  // Forward declaration
+
+namespace runtime_stats {
+
+static const char *const TAG = "runtime_stats";
 
 class ComponentRuntimeStats {
  public:
@@ -87,7 +89,7 @@ struct ComponentStatPair {
 
 class RuntimeStatsCollector {
  public:
-  RuntimeStatsCollector() : log_interval_(60000), next_log_time_(0) {}
+  RuntimeStatsCollector();
 
   void set_log_interval(uint32_t log_interval) { this->log_interval_ = log_interval; }
   uint32_t get_log_interval() const { return this->log_interval_; }
@@ -113,8 +115,10 @@ class RuntimeStatsCollector {
   uint32_t next_log_time_;
 };
 
-// Global instance for runtime stats collection
-extern RuntimeStatsCollector runtime_stats;
+}  // namespace runtime_stats
+
+extern runtime_stats::RuntimeStatsCollector
+    *global_runtime_stats;  // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
 
 }  // namespace esphome
 

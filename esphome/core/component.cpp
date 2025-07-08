@@ -398,7 +398,9 @@ uint32_t WarnIfComponentBlockingGuard::finish() {
 
 #ifdef USE_RUNTIME_STATS
   // Record component runtime stats
-  runtime_stats.record_component_time(this->component_, blocking_time, curr_time);
+  if (global_runtime_stats != nullptr) {
+    global_runtime_stats->record_component_time(this->component_, blocking_time, curr_time);
+  }
 #endif
   bool should_warn;
   if (this->component_ != nullptr) {
