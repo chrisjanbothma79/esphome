@@ -4,15 +4,18 @@ Runtime statistics component for ESPHome.
 
 import esphome.codegen as cg
 import esphome.config_validation as cv
+from esphome.const import CONF_ID
 
-DEPENDENCIES = []
+CODEOWNERS = ["@bdraco"]
 
-CONF_ENABLED = "enabled"
 CONF_LOG_INTERVAL = "log_interval"
+
+runtime_stats_ns = cg.esphome_ns.namespace("runtime_stats")
+RuntimeStatsCollector = runtime_stats_ns.class_("RuntimeStatsCollector")
 
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_ENABLED, default=True): cv.boolean,
+        cv.GenerateID(): cv.declare_id(RuntimeStatsCollector),
         cv.Optional(
             CONF_LOG_INTERVAL, default=60000
         ): cv.positive_time_period_milliseconds,
@@ -22,5 +25,10 @@ CONFIG_SCHEMA = cv.Schema(
 
 async def to_code(config):
     """Generate code for the runtime statistics component."""
-    cg.add(cg.App.set_runtime_stats_enabled(config[CONF_ENABLED]))
-    cg.add(cg.App.set_runtime_stats_log_interval(config[CONF_LOG_INTERVAL]))
+    # Define USE_RUNTIME_STATS when this component is used
+    cg.add_define("USE_RUNTIME_STATS")
+
+    # Create the runtime stats instance (constructor sets global_runtime_stats)
+    var = cg.new_Pvariable(config[CONF_ID])
+
+    cg.add(var.set_log_interval(config[CONF_LOG_INTERVAL]))

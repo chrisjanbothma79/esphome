@@ -9,7 +9,9 @@
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/preferences.h"
-#include "esphome/core/runtime_stats.h"
+#ifdef USE_RUNTIME_STATS
+#include "esphome/components/runtime_stats/runtime_stats.h"
+#endif
 #include "esphome/core/scheduler.h"
 
 #ifdef USE_DEVICES
@@ -348,18 +350,6 @@ class Application {
   }
 
   uint32_t get_loop_interval() const { return static_cast<uint32_t>(this->loop_interval_); }
-
-  /** Enable or disable runtime statistics collection.
-   *
-   * @param enable Whether to enable runtime statistics collection.
-   */
-  void set_runtime_stats_enabled(bool enable) { runtime_stats.set_enabled(enable); }
-
-  /** Set the interval at which runtime statistics are logged.
-   *
-   * @param interval The interval in milliseconds between logging of runtime statistics.
-   */
-  void set_runtime_stats_log_interval(uint32_t interval) { runtime_stats.set_log_interval(interval); }
 
   void schedule_dump_config() { this->dump_config_at_ = 0; }
 
