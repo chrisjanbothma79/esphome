@@ -13,7 +13,7 @@ from esphome.components.image import CONFIG_SCHEMA
 
 
 @pytest.mark.parametrize(
-    "config,error_match",
+    ("config", "error_match"),
     [
         pytest.param(
             "a string",
@@ -175,7 +175,7 @@ def test_image_generation(
 ) -> None:
     """Test image generation configuration."""
 
-    main_cpp: str = generate_main(component_config_path("image_test.yaml"))
+    main_cpp = generate_main(component_config_path("image_test.yaml"))
     assert "uint8_t_id[] PROGMEM = {0x24, 0x21, 0x24, 0x21" in main_cpp
     assert (
         "cat_img = new image::Image(uint8_t_id, 32, 24, image::IMAGE_TYPE_RGB565, image::TRANSPARENCY_OPAQUE);"
