@@ -87,7 +87,7 @@ struct ComponentStatPair {
   }
 };
 
-class RuntimeStatsCollector : public Component {
+class RuntimeStatsCollector {
  public:
   RuntimeStatsCollector();
 

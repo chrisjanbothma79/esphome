@@ -1,4 +1,5 @@
 #include "runtime_stats.h"
+#include "esphome/core/defines.h"
 
 #ifdef USE_RUNTIME_STATS
 
