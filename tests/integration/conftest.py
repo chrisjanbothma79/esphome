@@ -167,16 +167,16 @@ async def compile_esphome(
     async def _compile(config_path: Path) -> Path:
         # Create a unique PlatformIO directory for this test to avoid race conditions
         platformio_dir = integration_test_dir / ".platformio"
-        platformio_dir.mkdir(exist_ok=True)
+        platformio_dir.mkdir(parents=True, exist_ok=True)
 
         # Create cache directory as well
-        cache_dir = platformio_dir / ".cache"
-        cache_dir.mkdir(exist_ok=True)
+        platformio_cache_dir = platformio_dir / ".cache"
+        platformio_cache_dir.mkdir(parents=True, exist_ok=True)
 
         # Set up environment with isolated PlatformIO directories
         env = os.environ.copy()
         env["PLATFORMIO_CORE_DIR"] = str(platformio_dir)
-        env["PLATFORMIO_CACHE_DIR"] = str(cache_dir)
+        env["PLATFORMIO_CACHE_DIR"] = str(platformio_cache_dir)
 
         # Retry compilation up to 3 times if we get a segfault
         max_retries = 3
