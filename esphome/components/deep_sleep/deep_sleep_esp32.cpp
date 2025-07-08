@@ -71,6 +71,12 @@ bool DeepSleepComponent::prepare_to_sleep_() {
 
 void DeepSleepComponent::deep_sleep_() {
   esp_err_t err;
+  // Reset all enabled IO wakeup configuration
+  err = esp_sleep_disable_ext1_wakeup_io(0);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "esp_sleep_disable_ext1_wakeup_io failed: %s", esp_err_to_name(err));
+    return;
+  }
 #if !defined(USE_ESP32_VARIANT_ESP32C3) && !defined(USE_ESP32_VARIANT_ESP32C6) && !defined(USE_ESP32_VARIANT_ESP32H2)
   if (this->sleep_duration_.has_value())
     err = esp_sleep_enable_timer_wakeup(*this->sleep_duration_);
