@@ -108,7 +108,41 @@ def test_dimension_validation(
         dimension_schema(32)({"width": 320, "height": 111})
 
 
+@pytest.mark.parametrize(
+    ("config", "error_match"),
+    [
+        pytest.param(
+            {
+                "model": "JC3248W535",
+                "transform": {"mirror_x": False, "mirror_y": True, "swap_xy": True},
+            },
+            "Axis swapping not supported by this model",
+            id="axis_swapping_not_supported",
+        ),
+        pytest.param(
+            {
+                "model": "custom",
+                "dimensions": {"width": 320, "height": 240},
+                "transform": {"mirror_x": False, "mirror_y": True, "swap_xy": False},
+                "init_sequence": [[0x36, 0x01]],
+            },
+            r"transform is not supported when MADCTL \(0X36\) is in the init sequence",
+            id="transform_with_madctl",
+        ),
+        pytest.param(
+            {
+                "model": "custom",
+                "dimensions": {"width": 320, "height": 240},
+                "init_sequence": [[0x3A, 0x01]],
+            },
+            r"PIXFMT \(0X3A\) should not be in the init sequence, it will be set automatically",
+            id="pixfmt_in_init_sequence",
+        ),
+    ],
+)
 def test_transform_and_init_sequence_errors(
+    config: Any,
+    error_match: str,
     set_core_config: Callable[..., None],
 ) -> None:
     """Test transform and init sequence validation errors"""
@@ -118,44 +152,48 @@ def test_transform_and_init_sequence_errors(
         platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32},
     )
 
-    def test_config(config: Any) -> None:
+    with pytest.raises(cv.Invalid, match=error_match):
         FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
 
-    with pytest.raises(cv.Invalid, match="Axis swapping not supported by this model"):
-        test_config(
-            {
-                "model": "JC3248W535",
-                "transform": {"mirror_x": False, "mirror_y": True, "swap_xy": True},
-            }
-        )
 
-    with pytest.raises(
-        cv.Invalid,
-        match=r"transform is not supported when MADCTL \(0X36\) is in the init sequence",
-    ):
-        test_config(
-            {
-                "model": "custom",
-                "dimensions": {"width": 320, "height": 240},
-                "transform": {"mirror_x": False, "mirror_y": True, "swap_xy": False},
-                "init_sequence": [[0x36, 0x01]],
-            }
-        )
-
-    with pytest.raises(
-        cv.Invalid,
-        match=r"PIXFMT \(0X3A\) should not be in the init sequence, it will be set automatically",
-    ):
-        test_config(
-            {
-                "model": "custom",
-                "dimensions": {"width": 320, "height": 240},
-                "init_sequence": [[0x3A, 0x01]],
-            }
-        )
-
-
+@pytest.mark.parametrize(
+    ("config", "error_match"),
+    [
+        pytest.param(
+            {"model": "t4-s3", "dc_pin": 18},
+            "DC pin is not supported in quad mode",
+            id="dc_pin_not_supported_quad_mode",
+        ),
+        pytest.param(
+            {"model": "t4-s3", "color_depth": 18},
+            "Unknown value '18', valid options are '16', '16bit",
+            id="invalid_color_depth_t4_s3",
+        ),
+        pytest.param(
+            {"model": "t-embed", "color_depth": 24},
+            "Unknown value '24', valid options are '16', '8",
+            id="invalid_color_depth_t_embed",
+        ),
+        pytest.param(
+            {"model": "ili9488"},
+            "DC pin is required in single mode",
+            id="dc_pin_required_single_mode",
+        ),
+        pytest.param(
+            {"model": "wt32-sc01-plus", "brightness": 128},
+            r"extra keys not allowed @ data\['brightness'\]",
+            id="brightness_not_supported",
+        ),
+        pytest.param(
+            {"model": "T-DISPLAY-S3-PRO"},
+            "PSRAM is required for this display",
+            id="psram_required",
+        ),
+    ],
+)
 def test_esp32s3_specific_errors(
+    config: Any,
+    error_match: str,
     set_core_config: Callable[..., None],
 ) -> None:
     """Test ESP32-S3 specific configuration errors"""
@@ -165,33 +203,8 @@ def test_esp32s3_specific_errors(
         platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32S3},
     )
 
-    def test_config(config: Any) -> None:
+    with pytest.raises(cv.Invalid, match=error_match):
         FINAL_VALIDATE_SCHEMA(CONFIG_SCHEMA(config))
-
-    with pytest.raises(cv.Invalid, match="DC pin is not supported in quad mode"):
-        test_config({"model": "t4-s3", "dc_pin": 18})
-
-    with pytest.raises(
-        cv.Invalid, match="Unknown value '18', valid options are '16', '16bit"
-    ):
-        test_config({"model": "t4-s3", "color_depth": 18})
-
-    with pytest.raises(
-        cv.Invalid, match="Unknown value '24', valid options are '16', '8"
-    ):
-        test_config({"model": "t-embed", "color_depth": 24})
-
-    with pytest.raises(cv.Invalid, match="DC pin is required in single mode"):
-        test_config({"model": "ili9488"})
-
-    # Brightness is not supported except for specific models
-    with pytest.raises(
-        cv.Invalid, match=r"extra keys not allowed @ data\['brightness'\]"
-    ):
-        test_config({"model": "wt32-sc01-plus", "brightness": 128})
-
-    with pytest.raises(cv.Invalid, match="PSRAM is required for this display"):
-        test_config({"model": "T-DISPLAY-S3-PRO"})
 
 
 def test_framework_specific_errors(
