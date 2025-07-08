@@ -242,18 +242,15 @@ def test_framework_specific_errors(
         run_schema_validation({"model": "wt32-sc01-plus"})
 
 
-def test_configuration_success(
+def test_custom_model_with_all_options(
     set_core_config: Callable[..., None],
-    set_component_config: Callable[..., None],
-    choose_variant_with_pins: Callable[..., None],
 ) -> None:
-    """Test successful configuration validation."""
+    """Test custom model configuration with all available options."""
     set_core_config(
         PlatformFramework.ESP32_IDF,
         platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32S3},
     )
 
-    # Custom model with all options
     run_schema_validation(
         {
             "model": "custom",
@@ -285,12 +282,26 @@ def test_configuration_success(
         }
     )
 
-    # Enable PSRAM for the remainder
+
+def test_all_predefined_models(
+    set_core_config: Callable[..., None],
+    set_component_config: Callable[..., None],
+    choose_variant_with_pins: Callable[..., None],
+) -> None:
+    """Test all predefined display models validate successfully with appropriate defaults."""
+    set_core_config(
+        PlatformFramework.ESP32_IDF,
+        platform_data={KEY_BOARD: "esp32dev", KEY_VARIANT: VARIANT_ESP32S3},
+    )
+
+    # Enable PSRAM which is required for some models
     set_component_config("psram", True)
 
     # Test all models, providing default values where necessary
     for name, model in MODELS.items():
         config = {"model": name}
+
+        # Get the pins required by this model and find a compatible variant
         pins = [
             pin
             for pin in [
@@ -301,6 +312,7 @@ def test_configuration_success(
         ]
         choose_variant_with_pins(pins)
 
+        # Add required fields that don't have defaults
         if (
             not model.get_default(CONF_DC_PIN)
             and model.get_default(CONF_BUS_MODE) != "quad"
@@ -310,6 +322,7 @@ def test_configuration_success(
             config[CONF_DIMENSIONS] = {CONF_HEIGHT: 240, CONF_WIDTH: 320}
         if model.initsequence is None:
             config[CONF_INIT_SEQUENCE] = [[0xA0, 0x01]]
+
         run_schema_validation(config)
 
 
