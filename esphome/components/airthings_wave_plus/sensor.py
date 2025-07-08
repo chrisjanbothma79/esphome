@@ -1,6 +1,5 @@
 import esphome.codegen as cg
 from esphome.components import airthings_wave_base, sensor
-from esphome.config_types import ConfigType
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_CO2,
@@ -17,6 +16,7 @@ from esphome.const import (
     UNIT_LUX,
     UNIT_PARTS_PER_MILLION,
 )
+from esphome.types import ConfigType
 
 DEPENDENCIES = airthings_wave_base.DEPENDENCIES
 
