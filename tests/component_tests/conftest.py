@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Generator
-import inspect
-import os
 from pathlib import Path
 import sys
 from typing import Any
@@ -60,18 +58,17 @@ def reset_core() -> Generator[None]:
 
 
 @pytest.fixture
-def get_path() -> Callable[[str], Path]:
+def get_path(request: pytest.FixtureRequest) -> Callable[[str], Path]:
     """Fixture to get the absolute path of a file relative to the test script."""
 
     def getter(filename: str) -> Path:
-        path = os.path.abspath(inspect.stack()[1].filename)
-        return (Path(path).parent / filename).absolute()
+        return (Path(request.fspath).parent / filename).absolute()
 
     return getter
 
 
 @pytest.fixture
-def set_core_config() -> Generator[Callable[..., None]]:
+def set_core_config(request: pytest.FixtureRequest) -> Generator[Callable[..., None]]:
     """Fixture to set up the core configuration for tests."""
 
     def setter(
@@ -84,7 +81,7 @@ def set_core_config() -> Generator[Callable[..., None]]:
     ) -> None:
         platform, framework = platform_framework.value
         if path is None:
-            path = os.path.abspath(inspect.stack()[1].filename)
+            path = str(Path(request.fspath).parent / "dummy.yaml")
         CORE.config_path = path
         CORE.data[KEY_CORE] = {
             KEY_TARGET_PLATFORM: platform.value,
