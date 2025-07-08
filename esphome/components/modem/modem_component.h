@@ -56,8 +56,8 @@ struct AtCommandResult {
 struct ModemRestoreState {
   int baud_rate{15200};
   uint8_t abort_count{0};
-  bool cmux{true};
-  bool synced{false};
+  bool cmux{true};     // FIXME: to remove, not used anymore
+  bool synced{false};  // FIXME: to remove, not used anymore
 } __attribute__((packed));
 
 class ModemComponent : public Component {
@@ -116,11 +116,10 @@ class ModemComponent : public Component {
 
  protected:
   void modem_create_dce_dte_(int baud_rate);
-  void modem_create_dce_dte_() { this->modem_create_dce_dte_(this->modem_restore_state_.baud_rate); }
   bool modem_command_mode_(bool cmux);
   bool modem_command_mode_() { return modem_command_mode_(this->cmux_); };
-  bool modem_recover_sync_(int baud_rate);
-  bool modem_recover_sync_() { return this->modem_recover_sync_(115200); }
+  // bool modem_recover_sync_(int baud_rate);
+  // bool modem_recover_sync_() { return this->modem_recover_sync_(115200); }
   bool modem_preinit_();
   bool modem_init_();
   int get_baud_rate_();
@@ -183,8 +182,6 @@ class ModemComponent : public Component {
     bool enabled{false};
     bool connected{false};
     bool got_ipv4_address{false};
-    // true if modem_init_ was sucessfull
-    bool modem_synced{false};
     // date start (millis())
     uint32_t connect_begin;
     // guess power state

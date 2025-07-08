@@ -44,6 +44,8 @@ void ModemSensor::update() {
     this->update_signal_sensors_();
     App.feed_wdt();
     this->update_gnss_sensors_();
+  } else {
+    ESP_LOGW(TAG, "Modem not ready, skipping sensor update");
   }
 }
 
