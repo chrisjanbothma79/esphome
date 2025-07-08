@@ -7,19 +7,14 @@ from typing import Any
 import pytest
 
 from esphome import config_validation as cv
-from esphome.components.esp32 import (
-    FRAMEWORK_ARDUINO,
-    FRAMEWORK_ESP_IDF,
-    VARIANT_ESP32,
-    VARIANT_ESP32S3,
-)
+from esphome.components.esp32 import VARIANT_ESP32, VARIANT_ESP32S3
 from esphome.const import (
     CONF_DC_PIN,
     CONF_DIMENSIONS,
     CONF_HEIGHT,
     CONF_INIT_SEQUENCE,
     CONF_WIDTH,
-    PLATFORM_ESP32,
+    PlatformFramework,
 )
 
 
@@ -28,7 +23,9 @@ def test_configuration_errors(
 ) -> None:
     """Test detection of invalid configuration"""
 
-    set_core_config(PLATFORM_ESP32, FRAMEWORK_ESP_IDF, "esp32dev", VARIANT_ESP32)
+    set_core_config(
+        PlatformFramework.ESP32_IDF, board="esp32dev", variant=VARIANT_ESP32
+    )
 
     from esphome.components.mipi_spi.display import dimension_schema
 
@@ -122,7 +119,9 @@ def test_configuration_errors(
             }
         )
 
-    set_core_config(PLATFORM_ESP32, FRAMEWORK_ESP_IDF, "esp32dev", VARIANT_ESP32S3)
+    set_core_config(
+        PlatformFramework.ESP32_IDF, board="esp32dev", variant=VARIANT_ESP32S3
+    )
 
     with pytest.raises(cv.Invalid, match="DC pin is not supported in quad mode"):
         test_config({"model": "t4-s3", "dc_pin": 18})
@@ -149,7 +148,9 @@ def test_configuration_errors(
     with pytest.raises(cv.Invalid, match="PSRAM is required for this display"):
         test_config({"model": "T-DISPLAY-S3-PRO"})
 
-    set_core_config(PLATFORM_ESP32, FRAMEWORK_ARDUINO, "esp32dev", VARIANT_ESP32)
+    set_core_config(
+        PlatformFramework.ESP32_ARDUINO, board="esp32dev", variant=VARIANT_ESP32
+    )
 
     with pytest.raises(
         cv.Invalid,
@@ -164,7 +165,9 @@ def test_configuration_success(
     choose_variant_with_pins: Callable[..., None],
 ) -> None:
     """Test successful configuration validation."""
-    set_core_config(PLATFORM_ESP32, FRAMEWORK_ESP_IDF, "esp32dev", VARIANT_ESP32S3)
+    set_core_config(
+        PlatformFramework.ESP32_IDF, board="esp32dev", variant=VARIANT_ESP32S3
+    )
 
     from esphome.components.mipi_spi.display import (
         CONF_BUS_MODE,

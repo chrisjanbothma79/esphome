@@ -19,6 +19,7 @@ from esphome.const import (
     KEY_TARGET_FRAMEWORK,
     KEY_TARGET_PLATFORM,
     KEY_VARIANT,
+    PlatformFramework,
 )
 from esphome.pins import internal_gpio_pin_number
 
@@ -69,20 +70,26 @@ def get_path():
 
 
 @pytest.fixture
-def set_core_config():
+def set_core_config() -> Generator[Callable[..., None]]:
     """Fixture to set up the core configuration for tests."""
 
     def setter(
-        platform: str, framework: str, board: str, variant: str = None, path: str = None
-    ):
+        platform_framework: PlatformFramework,
+        /,
+        *,
+        board: str,
+        variant: str | None = None,
+        path: str | None = None,
+    ) -> None:
+        platform, framework = platform_framework.value
         if path is None:
             path = os.path.abspath(inspect.stack()[1].filename)
         CORE.config_path = path
         CORE.data[KEY_CORE] = {
-            KEY_TARGET_PLATFORM: platform,
-            KEY_TARGET_FRAMEWORK: framework,
+            KEY_TARGET_PLATFORM: platform.value,
+            KEY_TARGET_FRAMEWORK: framework.value,
         }
-        CORE.data[platform] = {
+        CORE.data[platform.value] = {
             KEY_VARIANT: variant,
             KEY_BOARD: board,
         }
