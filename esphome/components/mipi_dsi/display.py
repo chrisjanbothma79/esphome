@@ -195,7 +195,7 @@ def model_schema(config):
             cv.Required(CONF_MODEL): cv.one_of(model.name, upper=True),
             model.option(CONF_INVERT_COLORS): cv.boolean,
             model.option(CONF_USE_AXIS_FLIPS): cv.boolean,
-            model.option(CONF_DATA_RATE): cv.All(
+            model.option(CONF_DATA_RATE, "40MHz"): cv.All(
                 cv.frequency, cv.Range(min=4e6, max=100e6)
             ),
             iseqconf: cv.ensure_list(map_sequence),
