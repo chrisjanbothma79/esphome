@@ -199,7 +199,6 @@ std::string ModemComponent::get_use_address() const {
 }
 
 void ModemComponent::setup() {
-  delay(2000);
   ESP_LOGI(TAG, "Setting up Modem...");
   this->pref_ = global_preferences->make_preference<ModemRestoreState>(76007670UL);
   this->pref_.load(&this->modem_restore_state_);
@@ -540,7 +539,7 @@ bool ModemComponent::modem_init_() {
   if (this->dce->get_mode() == modem_mode::UNDEF && this->internal_state_.current_baud_rate != 0) {
     ESP_LOGW(TAG, "Can't autodetect modem mode, retrying with default baud rate");
     this->modem_create_dce_dte_(0);
-    delay(100);
+    delay(100);  // NOLINT
     this->dce->set_mode(modem_mode::AUTODETECT);
   }
 
@@ -577,7 +576,7 @@ bool ModemComponent::modem_init_() {
     global_preferences->sync();
   }
 
-  delay(100);
+  delay(100);  // NOLINT
   if (success && this->dce->sync() == command_result::OK) {
     ESP_LOGI(TAG, "Modem ready");
   } else if (this->power_pin_) {
