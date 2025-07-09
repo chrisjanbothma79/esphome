@@ -5,6 +5,8 @@
 #include <vector>
 #include <chrono>
 
+// XXX
+
 namespace esphome {
 namespace defer_stress_component {
 
