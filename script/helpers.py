@@ -299,8 +299,14 @@ def filter_changed(files: list[str]) -> list[str]:
     print("Files to check:")
     if not files:
         print("    No files to check!")
-    for c in sorted(files):
-        print(f"    {c}")
+    elif len(files) <= 20:
+        for c in sorted(files):
+            print(f"    {c}")
+    else:
+        sorted_files = sorted(files)
+        for c in sorted_files[:10]:
+            print(f"    {c}")
+        print(f"    ... and {len(files) - 10} more files")
     return files
 
 
