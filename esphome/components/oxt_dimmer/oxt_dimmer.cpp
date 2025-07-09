@@ -36,7 +36,7 @@ void OxtController::send_to_mcu_(const OxtDimmerChannel *updated_channel) {
 
     if (channel == updated_channel) {
       frame.update = index + 1;
-      ESP_LOGI(TAG, "Setting channel %u, raw brightness=%d", index, brightness);
+      ESP_LOGD(TAG, "Setting channel %u, raw brightness=%d", index, brightness);
     }
   }
 
