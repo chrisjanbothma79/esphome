@@ -9,7 +9,7 @@ namespace remote_base {
 
 struct BrennenstuhlData {
   uint32_t code;
-  bool operator==(const BrennenstuhlData &rhs) const { return code == rhs.code;}
+  bool operator==(const BrennenstuhlData &rhs) const { return code == rhs.code; }
 };
 
 class BrennenstuhlProtocol : public RemoteProtocol<BrennenstuhlData> {

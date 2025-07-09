@@ -135,9 +135,7 @@ optional<BrennenstuhlData> BrennenstuhlProtocol::decode(RemoteReceiveData src) {
   return {};
 }
 
-void BrennenstuhlProtocol::dump(const BrennenstuhlData &data) {
-  ESP_LOGI(TAG, "Brennenstuhl: code=0x%x", data.code);
-}
+void BrennenstuhlProtocol::dump(const BrennenstuhlData &data) { ESP_LOGI(TAG, "Brennenstuhl: code=0x%x", data.code); }
 
 }  // namespace remote_base
 }  // namespace esphome
