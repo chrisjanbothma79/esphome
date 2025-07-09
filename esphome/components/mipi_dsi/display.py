@@ -9,6 +9,7 @@ from esphome.components.const.mipi import (
     CONF_HSYNC_BACK_PORCH,
     CONF_HSYNC_FRONT_PORCH,
     CONF_HSYNC_PULSE_WIDTH,
+    CONF_PCLK_FREQUENCY,
     CONF_PIXEL_MODE,
     CONF_USE_AXIS_FLIPS,
     CONF_VSYNC_BACK_PORCH,
@@ -48,7 +49,6 @@ from esphome.const import (
     CONF_WIDTH,
 )
 
-from ..rpi_dpi_rgb.display import CONF_PCLK_FREQUENCY
 from .models import (
     DELAY_FLAG,
     MADCTL_BGR,
@@ -77,18 +77,18 @@ COLOR_ORDERS = {
 
 DriverChip("CUSTOM")
 
-MODELS = DriverChip.models
-
 # This loop is a noop, but suppresses linting of side-effect-only imports
 for _ in (waveshare,):
     pass
+
+MODELS = DriverChip.models
 
 
 def get_sequence(config):
     """
     Create the init sequence for the display.
     Use the default sequence from the model, if any, and append any custom sequence provided in the config.
-    Append SLPOUT (if not already in the sequence) and DISPON to the end of the sequence
+    Append SLPOUT and DISPON to the end of the sequence
     Pixel format, color order, and orientation will be set.
     """
     model = DriverChip.models[config[CONF_MODEL].upper()]
@@ -121,9 +121,9 @@ def get_sequence(config):
     else:
         sequence.append((INVOFF,))
     sequence.append((SLPOUT,))
-    sequence.append((DELAY_FLAG, 120))  # Wait for 120ms after SLPOUT
+    # sequence.append((DELAY_FLAG, 120))  # Wait for 120ms after SLPOUT
     sequence.append((DISPON,))
-    sequence.append((DELAY_FLAG, 20))  # Wait for 20ms after DISPON
+    # sequence.append((DELAY_FLAG, 20))  # Wait for 20ms after DISPON
 
     # Flatten the sequence into a list of bytes, with the length of each command
     # or the delay flag inserted where needed
@@ -144,7 +144,7 @@ def model_schema(config):
             cv.Required(CONF_MIRROR_Y): cv.boolean,
         }
     )
-    if model.get_default(CONF_SWAP_XY, False) == cv.UNDEFINED:
+    if model.get_default(CONF_SWAP_XY) != cv.UNDEFINED:
         transform = transform.extend(
             {
                 cv.Optional(CONF_SWAP_XY): cv.invalid(
@@ -164,9 +164,9 @@ def model_schema(config):
         if model.initsequence is None
         else cv.Optional(CONF_INIT_SEQUENCE)
     )
-    # Dimensions are optional if the model has a default width and the transform is not overridden
     swap_xy = config.get(CONF_TRANSFORM, {}).get(CONF_SWAP_XY, False)
 
+    # Dimensions are optional if the model has a default width and the swap_xy transform is not overridden
     cv_dimensions = (
         cv.Optional if model.get_default(CONF_WIDTH) and not swap_xy else cv.Required
     )
@@ -213,20 +213,14 @@ def model_schema(config):
 
 
 def _config_schema(config):
-    # First get the model and bus mode
+    # First get the model
     config = cv.Schema(
         {
             cv.Required(CONF_MODEL): cv.one_of(*MODELS, upper=True),
         },
         extra=cv.ALLOW_EXTRA,
     )(config)
-    config = model_schema(config)(config)
-    if init_sequence := config.get(CONF_INIT_SEQUENCE):
-        if MADCTL in [x[0] for x in init_sequence] and CONF_TRANSFORM in config:
-            raise cv.Invalid(
-                f"transform is not supported when MADCTL ({MADCTL:#X}) is in the init sequence"
-            )
-    return config
+    return model_schema(config)(config)
 
 
 CONFIG_SCHEMA = _config_schema

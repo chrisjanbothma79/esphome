@@ -107,12 +107,14 @@ DELAY_FLAG = 0xFF
 CONF_PIXEL_MODE = "pixel_mode"
 CONF_USE_AXIS_FLIPS = "use_axis_flips"
 
+PIXEL_MODE_24BIT = "24bit"
 PIXEL_MODE_18BIT = "18bit"
 PIXEL_MODE_16BIT = "16bit"
 
 PIXEL_MODES = {
     PIXEL_MODE_16BIT: 0x55,
     PIXEL_MODE_18BIT: 0x66,
+    PIXEL_MODE_24BIT: 0x77,
 }
 
 MODE_RGB = "RGB"
@@ -128,6 +130,7 @@ CONF_HSYNC_FRONT_PORCH = "hsync_front_porch"
 CONF_VSYNC_PULSE_WIDTH = "vsync_pulse_width"
 CONF_VSYNC_BACK_PORCH = "vsync_back_porch"
 CONF_VSYNC_FRONT_PORCH = "vsync_front_porch"
+CONF_PCLK_FREQUENCY = "pclk_frequency"
 CONF_NATIVE_WIDTH = "native_width"
 CONF_NATIVE_HEIGHT = "native_height"
 CONF_BYTE_ORDER = "byte_order"
