@@ -52,6 +52,15 @@ if platform.system() == "Windows":
 import pty  # not available on Windows
 
 
+def _get_platformio_env(cache_dir: Path) -> dict[str, str]:
+    """Get environment variables for PlatformIO with shared cache."""
+    env = os.environ.copy()
+    env["PLATFORMIO_CORE_DIR"] = str(cache_dir)
+    env["PLATFORMIO_CACHE_DIR"] = str(cache_dir / ".cache")
+    env["PLATFORMIO_LIBDEPS_DIR"] = str(cache_dir / "libdeps")
+    return env
+
+
 @pytest.fixture(scope="session")
 def shared_platformio_cache() -> Generator[Path]:
     """Initialize a shared PlatformIO cache for all integration tests."""
@@ -89,10 +98,7 @@ logger:
                 # Run compilation to populate the cache
                 # We must succeed here to avoid race conditions where multiple
                 # tests try to populate the same cache directory simultaneously
-                env = os.environ.copy()
-                env["PLATFORMIO_CORE_DIR"] = str(cache_dir)
-                env["PLATFORMIO_CACHE_DIR"] = str(cache_dir / ".cache")
-                env["PLATFORMIO_LIBDEPS_DIR"] = str(cache_dir / "libdeps")
+                env = _get_platformio_env(cache_dir)
 
                 subprocess.run(
                     ["esphome", "compile", str(config_path)],
@@ -224,11 +230,7 @@ async def compile_esphome(
     async def _compile(config_path: Path) -> Path:
         # Use the shared PlatformIO cache for faster compilation
         # This avoids re-downloading dependencies for each test
-        env = os.environ.copy()
-        env["PLATFORMIO_CORE_DIR"] = str(shared_platformio_cache)
-        env["PLATFORMIO_CACHE_DIR"] = str(shared_platformio_cache / ".cache")
-        # Also share library dependencies to avoid re-downloading noise-c and libsodium
-        env["PLATFORMIO_LIBDEPS_DIR"] = str(shared_platformio_cache / "libdeps")
+        env = _get_platformio_env(shared_platformio_cache)
 
         # Retry compilation up to 3 times if we get a segfault
         max_retries = 3
