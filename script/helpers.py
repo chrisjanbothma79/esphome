@@ -214,7 +214,7 @@ def filter_changed(files: list[str], from_ci: bool = False) -> list[str]:
 
     Args:
         files: List of files to filter
-        from_ci: If True, also checks for header dependencies (requires ripgrep)
+        from_ci: If True, also checks for header dependencies (uses git grep)
     """
     changed: list[str] = changed_files()
 
