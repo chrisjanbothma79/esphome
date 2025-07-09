@@ -257,7 +257,7 @@ jobs:
       - name: Run integration tests
         run: |
           . venv/bin/activate
-          pytest -vvvs --no-cov --tb=native -n auto tests/integration/
+          pytest -vv --no-cov --tb=native -n auto tests/integration/
 
   clang-format:
     name: Check clang-format
