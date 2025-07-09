@@ -113,8 +113,30 @@ def changed_files(branch: str | None = None) -> list[str]:
                     print(
                         f"DEBUG: Using GitHub CLI to get changed files for PR #{pr_number}"
                     )
+                    # First let's see what gh pr diff returns without name-only
+                    debug_cmd = [
+                        "gh",
+                        "pr",
+                        "view",
+                        pr_number,
+                        "--json",
+                        "files,commits,baseRefName,headRefName",
+                    ]
+                    debug_output = get_output(*debug_cmd)
+                    print(f"DEBUG: PR info: {debug_output}")
+
+                    # Now get the actual changed files
+                    print(f"DEBUG: Running command: {' '.join(cmd)}")
+                    raw_output = get_output(*cmd)
+                    print(f"DEBUG: Raw gh pr diff --name-only output: '{raw_output}'")
+                    print(f"DEBUG: Output repr: {repr(raw_output)}")
                     result = _get_changed_files_from_command(cmd)
                     print(f"DEBUG: Found {len(result)} changed files via GitHub CLI")
+                    if len(result) == 0:
+                        # Try without --name-only to see what's happening
+                        raw_diff = get_output("gh", "pr", "diff", pr_number)
+                        print(f"DEBUG: Raw diff output length: {len(raw_diff)}")
+                        print(f"DEBUG: First 500 chars of diff: {raw_diff[:500]}")
                     return result
                 except Exception as e:
                     print(f"DEBUG: GitHub CLI failed: {e}, falling back to git diff")
