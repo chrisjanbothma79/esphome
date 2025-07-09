@@ -73,7 +73,7 @@ def splitlines_no_ends(string: str) -> list[str]:
     return [s.strip() for s in string.splitlines()]
 
 
-def changed_files(branch: str = "dev") -> list[str]:
+def changed_files(branch: str | None = None) -> list[str]:
     # In GitHub Actions, we can use the API to get changed files more efficiently
     if os.environ.get("GITHUB_ACTIONS") == "true":
         event_name = os.environ.get("GITHUB_EVENT_NAME")
@@ -81,7 +81,7 @@ def changed_files(branch: str = "dev") -> list[str]:
         # For pull requests
         if event_name == "pull_request":
             # Use GitHub's pre-fetched base branch
-            base_ref = os.environ.get("GITHUB_BASE_REF", branch)
+            base_ref = os.environ.get("GITHUB_BASE_REF", branch or "dev")
             try:
                 # GitHub Actions already has the base branch fetched
                 return _get_changed_files_from_command(
@@ -104,6 +104,8 @@ def changed_files(branch: str = "dev") -> list[str]:
                 pass
 
     # Original implementation for local development
+    if branch is None:
+        branch = "dev"
     check_remotes = ["upstream", "origin"]
     check_remotes.extend(splitlines_no_ends(get_output("git", "remote")))
     for remote in check_remotes:
