@@ -11,6 +11,7 @@ from pathlib import Path
 import platform
 import signal
 import socket
+import subprocess
 import sys
 import tempfile
 from typing import TextIO
@@ -71,8 +72,8 @@ logger:
 """)
 
             # Run compilation to populate the cache
-            import subprocess
-
+            # We must succeed here to avoid race conditions where multiple
+            # tests try to populate the same cache directory simultaneously
             subprocess.run(
                 ["esphome", "compile", str(config_path)],
                 check=True,
