@@ -23,6 +23,8 @@ get_changed_components = helpers.get_changed_components
 _get_changed_files_from_command = helpers._get_changed_files_from_command
 _get_pr_number_from_github_env = helpers._get_pr_number_from_github_env
 _get_changed_files_github_actions = helpers._get_changed_files_github_actions
+_filter_changed_ci = helpers._filter_changed_ci
+_filter_changed_local = helpers._filter_changed_local
 
 
 @pytest.mark.parametrize(
@@ -581,3 +583,70 @@ def test_filter_changed_empty_file_handling(
         # - Empty files list -> empty result
         # - file.cpp doesn't match esphome/components/wifi/* pattern -> filtered out
         assert len(result) == 0
+
+
+def test_filter_changed_ci_full_scan() -> None:
+    """Test _filter_changed_ci when core files changed (full scan)."""
+    all_files = ["esphome/components/wifi/wifi.cpp", "esphome/core/helpers.cpp"]
+
+    with patch("helpers.get_changed_components", return_value=None):
+        result = _filter_changed_ci(all_files)
+
+    # Should return all files for full scan
+    assert result == all_files
+
+
+def test_filter_changed_ci_no_components_changed() -> None:
+    """Test _filter_changed_ci when no components changed."""
+    all_files = ["esphome/components/wifi/wifi.cpp", "script/clang-tidy", "README.md"]
+
+    with (
+        patch("helpers.get_changed_components", return_value=[]),
+        patch("helpers.changed_files", return_value=["script/clang-tidy", "README.md"]),
+    ):
+        result = _filter_changed_ci(all_files)
+
+    # Should only include non-component files that changed
+    assert result == ["script/clang-tidy"]
+
+
+def test_filter_changed_ci_specific_components() -> None:
+    """Test _filter_changed_ci with specific components changed."""
+    all_files = [
+        "esphome/components/wifi/wifi.cpp",
+        "esphome/components/wifi/wifi.h",
+        "esphome/components/api/api.cpp",
+        "esphome/components/mqtt/mqtt.cpp",
+    ]
+
+    with patch("helpers.get_changed_components", return_value=["wifi", "api"]):
+        result = _filter_changed_ci(all_files)
+
+    # Should include all files from wifi and api components
+    expected = [
+        "esphome/components/wifi/wifi.cpp",
+        "esphome/components/wifi/wifi.h",
+        "esphome/components/api/api.cpp",
+    ]
+    assert set(result) == set(expected)
+
+
+def test_filter_changed_local() -> None:
+    """Test _filter_changed_local filters based on git changes."""
+    all_files = [
+        "esphome/components/wifi/wifi.cpp",
+        "esphome/components/api/api.cpp",
+        "esphome/core/helpers.cpp",
+    ]
+
+    with patch("helpers.changed_files") as mock_changed:
+        mock_changed.return_value = [
+            "esphome/components/wifi/wifi.cpp",
+            "esphome/core/helpers.cpp",
+        ]
+
+        result = _filter_changed_local(all_files)
+
+    # Should only include files that actually changed
+    expected = ["esphome/components/wifi/wifi.cpp", "esphome/core/helpers.cpp"]
+    assert set(result) == set(expected)

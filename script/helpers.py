@@ -192,55 +192,74 @@ def get_changed_components() -> list[str] | None:
         return None
 
 
+def _filter_changed_ci(files: list[str]) -> list[str]:
+    """Filter files based on changed components in CI environment.
+
+    Args:
+        files: List of all files to filter
+
+    Returns:
+        Filtered list of files to check
+    """
+    components = get_changed_components()
+    if components is None:
+        # None means core files changed or couldn't determine - return all files for full scan
+        return files
+
+    if not components:
+        # No components changed - check only non-component files that changed
+        changed = changed_files()
+        files = [
+            f for f in files if f in changed and not f.startswith("esphome/components/")
+        ]
+        if not files:
+            print("No files changed")
+        return files
+
+    # Convert component list to set for O(1) lookups
+    component_set = set(components)
+    print(f"Changed components: {', '.join(sorted(components))}")
+
+    # The 'files' parameter contains ALL files in the codebase that clang-tidy would check.
+    # We filter this down to only files in the changed components.
+    # We check ALL files in each changed component (not just the changed files)
+    # because changes in one file can affect other files in the same component.
+    filtered_files = []
+    for f in files:
+        if f.startswith("esphome/components/"):
+            # Check if file belongs to any of the changed components
+            parts = f.split("/")
+            if len(parts) >= 3 and parts[2] in component_set:
+                filtered_files.append(f)
+
+    return filtered_files
+
+
+def _filter_changed_local(files: list[str]) -> list[str]:
+    """Filter files based on git changes for local development.
+
+    Args:
+        files: List of all files to filter
+
+    Returns:
+        Filtered list of files to check
+    """
+    # For local development, just check changed files directly
+    changed = changed_files()
+    return [f for f in files if f in changed]
+
+
 def filter_changed(files: list[str]) -> list[str]:
     """Filter files to only those that changed or are in changed components.
 
     Args:
         files: List of files to filter
     """
-    # Automatically detect if we're running in GitHub CI
-    in_ci = os.environ.get("GITHUB_ACTIONS") == "true"
-
     # When running from CI, use component-based filtering
-    if in_ci:
-        components = get_changed_components()
-        if components is None:
-            # None means core files changed or couldn't determine - return all files for full scan
-            return files
-
-        if not components:
-            # No components changed - check only non-component files that changed
-            changed = changed_files()
-            files = [
-                f
-                for f in files
-                if f in changed and not f.startswith("esphome/components/")
-            ]
-            if not files:
-                print("No files changed")
-            return files
-
-        # Convert component list to set for O(1) lookups
-        component_set = set(components)
-        print(f"Changed components: {', '.join(sorted(components))}")
-
-        # The 'files' parameter contains ALL files in the codebase that clang-tidy would check.
-        # We filter this down to only files in the changed components.
-        # We check ALL files in each changed component (not just the changed files)
-        # because changes in one file can affect other files in the same component.
-        filtered_files = []
-        for f in files:
-            if f.startswith("esphome/components/"):
-                # Check if file belongs to any of the changed components
-                parts = f.split("/")
-                if len(parts) >= 3 and parts[2] in component_set:
-                    filtered_files.append(f)
-
-        files = filtered_files
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        files = _filter_changed_ci(files)
     else:
-        # For local development, just check changed files directly
-        changed = changed_files()
-        files = [f for f in files if f in changed]
+        files = _filter_changed_local(files)
 
     print("Files to check:")
     if not files:
