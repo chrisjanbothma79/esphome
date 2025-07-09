@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 from pathlib import Path
+import re
 import sys
 
 # Add the script directory to path to import helpers
@@ -13,15 +14,51 @@ script_dir = Path(__file__).parent
 sys.path.insert(0, str(script_dir))
 
 
+def read_file_lines(path: Path) -> list[str]:
+    """Read lines from a file."""
+    with open(path) as f:
+        return f.readlines()
+
+
+def parse_requirement_line(line: str) -> tuple[str, str] | None:
+    """Parse a requirement line and return (package, original_line) or None.
+
+    Handles formats like:
+    - package==1.2.3
+    - package==1.2.3  # comment
+    - package>=1.2.3,<2.0.0
+    """
+    original_line = line.strip()
+
+    # Extract the part before any comment for parsing
+    parse_line = line
+    if "#" in parse_line:
+        parse_line = parse_line[: parse_line.index("#")]
+
+    parse_line = parse_line.strip()
+    if not parse_line:
+        return None
+
+    # Use regex to extract package name
+    # This matches package names followed by version operators
+    match = re.match(r"^([a-zA-Z0-9_-]+)(==|>=|<=|>|<|!=|~=)(.+)$", parse_line)
+    if match:
+        return (match.group(1), original_line)  # Return package name and original line
+
+    return None
+
+
 def get_clang_tidy_version_from_requirements() -> str:
     """Get clang-tidy version from requirements_dev.txt"""
     requirements_path = Path(__file__).parent.parent / "requirements_dev.txt"
-    with open(requirements_path) as f:
-        for line in f:
-            line = line.strip()
-            if line.startswith("clang-tidy=="):
-                # Return the full line including version and comment
-                return line
+    lines = read_file_lines(requirements_path)
+
+    for line in lines:
+        parsed = parse_requirement_line(line)
+        if parsed and parsed[0] == "clang-tidy":
+            # Return the original line (preserves comments)
+            return parsed[1]
+
     return "clang-tidy version not found"
 
 
@@ -31,18 +68,24 @@ def extract_platformio_flags() -> str:
     in_clangtidy_section = False
 
     platformio_path = Path(__file__).parent.parent / "platformio.ini"
-    with open(platformio_path) as f:
-        for line in f:
-            line = line.strip()
-            if line.startswith("[flags:clangtidy]"):
-                in_clangtidy_section = True
-                continue
-            elif line.startswith("[") and in_clangtidy_section:
-                break
-            elif in_clangtidy_section and line and not line.startswith("#"):
-                flags.append(line)
+    lines = read_file_lines(platformio_path)
+    for line in lines:
+        line = line.strip()
+        if line.startswith("[flags:clangtidy]"):
+            in_clangtidy_section = True
+            continue
+        elif line.startswith("[") and in_clangtidy_section:
+            break
+        elif in_clangtidy_section and line and not line.startswith("#"):
+            flags.append(line)
 
     return "\n".join(sorted(flags))
+
+
+def read_file_bytes(path: Path) -> bytes:
+    """Read bytes from a file."""
+    with open(path, "rb") as f:
+        return f.read()
 
 
 def calculate_clang_tidy_hash() -> str:
@@ -51,8 +94,8 @@ def calculate_clang_tidy_hash() -> str:
 
     # Hash .clang-tidy file
     clang_tidy_path = Path(__file__).parent.parent / ".clang-tidy"
-    with open(clang_tidy_path, "rb") as f:
-        hasher.update(f.read())
+    content = read_file_bytes(clang_tidy_path)
+    hasher.update(content)
 
     # Hash clang-tidy version from requirements_dev.txt
     version = get_clang_tidy_version_from_requirements()
@@ -69,16 +112,21 @@ def read_stored_hash() -> str | None:
     """Read the stored hash from file"""
     hash_file = Path(__file__).parent.parent / ".clang-tidy.hash"
     if hash_file.exists():
-        with open(hash_file) as f:
-            return f.read().strip()
+        lines = read_file_lines(hash_file)
+        return lines[0].strip() if lines else None
     return None
+
+
+def write_file_content(path: Path, content: str) -> None:
+    """Write content to a file."""
+    with open(path, "w") as f:
+        f.write(content)
 
 
 def write_hash(hash_value: str) -> None:
     """Write hash to file"""
     hash_file = Path(__file__).parent.parent / ".clang-tidy.hash"
-    with open(hash_file, "w") as f:
-        f.write(hash_value)
+    write_file_content(hash_file, hash_value)
 
 
 def main() -> None:
