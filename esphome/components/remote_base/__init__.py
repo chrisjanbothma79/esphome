@@ -316,9 +316,14 @@ async def beo4_action(var, config, args):
 
 
 # Brennenstuhl
-BrennenstuhlData, BrennenstuhlBinarySensor, BrennenstuhlTrigger, BrennenstuhlAction, BrennenstuhlDumper = declare_protocol(
-    "Brennenstuhl"
-)
+( 
+    BrennenstuhlData, 
+    BrennenstuhlBinarySensor, 
+    BrennenstuhlTrigger, 
+    BrennenstuhlAction, 
+    BrennenstuhlDumper,
+) = declare_protocol( "Brennenstuhl")
+
 BRENNENSTUHL_SCHEMA = cv.Schema(
     {
         cv.Required(CONF_CODE): cv.hex_uint32_t,
