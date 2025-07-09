@@ -6,7 +6,12 @@
 // only applicable on ESP32-S3
 #ifdef USE_ESP32_VARIANT_ESP32P4
 #include "esphome/core/component.h"
-#include "esphome/components/spi/spi.h"
+#include "esphome/core/application.h"
+#include "esphome/core/component.h"
+#include "esphome/core/hal.h"
+#include "esphome/core/log.h"
+#include "esphome/core/gpio.h"
+
 #include "esphome/components/display/display.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_io.h"
@@ -34,17 +39,18 @@ enum PixelMode {
   PIXEL_MODE_18 = 3,
 };
 
-template<typename BUFFERTYPE, bool IS_BIG_ENDIAN, PixelMode DISPLAYPIXEL, int WIDTH, int HEIGHT>
 class MIPI_DSI : public display::Display {
  public:
+  MIPI_DSI(size_t width, size_t height) : width_(width), height_(height) {}
   display::ColorOrder get_color_mode() { return this->color_mode_; }
   void set_color_mode(display::ColorOrder color_mode) { this->color_mode_ = color_mode; }
   void set_invert_colors(bool invert_colors) { this->invert_colors_ = invert_colors; }
+  display::DisplayType get_display_type() override { return display::DisplayType::DISPLAY_TYPE_COLOR; }
 
   void set_reset_pin(GPIOPin *reset_pin) { this->reset_pin_ = reset_pin; }
   void set_data_rate(uint32_t data_rate) { this->data_rate_ = data_rate; }
-  int get_width_internal() override { return WIDTH; }
-  int get_height_internal() override { return HEIGHT; }
+  int get_width_internal() override { return this->width_; }
+  int get_height_internal() override { return this->height_; }
   void set_hsync_back_porch(uint16_t hsync_back_porch) { this->hsync_back_porch_ = hsync_back_porch; }
   void set_hsync_front_porch(uint16_t hsync_front_porch) { this->hsync_front_porch_ = hsync_front_porch; }
   void set_hsync_pulse_width(uint16_t hsync_pulse_width) { this->hsync_pulse_width_ = hsync_pulse_width; }
@@ -52,21 +58,30 @@ class MIPI_DSI : public display::Display {
   void set_vsync_back_porch(uint16_t vsync_back_porch) { this->vsync_back_porch_ = vsync_back_porch; }
   void set_vsync_front_porch(uint16_t vsync_front_porch) { this->vsync_front_porch_ = vsync_front_porch; }
   void set_init_sequence(const std::vector<uint8_t> &init_sequence) { this->init_sequence_ = init_sequence; }
+  void set_model(const char *model) { this->model_ = model; }
 
   void smark_failed(const char *message, esp_err_t err) {
     auto str = str_sprintf("Setup failed: %s: %s", message, esp_err_to_name(err));
     this->mark_failed(str.c_str());
   }
 
-  void setup() {
+  void update() override {}
+
+  void setup() override {
     esph_log_config(TAG, "Setting up MIPI_DSI");
 
+    /*for (auto *pin : this->enable_pins_) {
+      pin->setup();
+      pin->digital_write(true);
+    }
+    delay(10);
+*/
     esp_lcd_dsi_bus_config_t config{};
     esp_lcd_dsi_bus_config_t bus_config = {
         .bus_id = 0,          // index from 0, specify the DSI host to use
         .num_data_lanes = 2,  // Number of data lanes to use, can't set a value that exceeds the chip's capability
         .phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT,  // Clock source for the DPHY
-        .lane_bit_rate_mbps = this->data_rate_,       // Bit rate of the data lanes, in Mbps
+        .lane_bit_rate_mbps = 1000,                   // Bit rate of the data lanes, in Mbps
     };
     auto err = esp_lcd_new_dsi_bus(&bus_config, &this->bus_handle_);
     if (err != ESP_OK) {
@@ -83,10 +98,6 @@ class MIPI_DSI : public display::Display {
       this->smark_failed("new_panel_io_dbi failed", err);
       return;
     }
-    /*for (auto *pin : this->enable_pins_) {
-      pin->setup();
-      pin->digital_write(true);
-    } */
     if (this->reset_pin_ != nullptr) {
       this->reset_pin_->setup();
       this->reset_pin_->digital_write(true);
@@ -97,7 +108,6 @@ class MIPI_DSI : public display::Display {
     }
     // need to know when the display is ready for SLPOUT command - will be 120ms after reset
     auto when = millis() + 120;
-    delay(10);
     size_t index = 0;
     auto &vec = this->init_sequence_;
     while (index != vec.size()) {
@@ -139,7 +149,11 @@ class MIPI_DSI : public display::Display {
         }
         const auto *ptr = vec.data() + index;
         ESP_LOGD(TAG, "Command %02X, length %d, byte %02X", cmd, num_args, arg_byte);
-        esp_lcd_panel_io_tx_param(this->io_handle_, cmd, ptr, num_args);
+        err = esp_lcd_panel_io_tx_param(this->io_handle_, cmd, ptr, num_args);
+        if (err != ESP_OK) {
+          this->smark_failed("lcd_panel_io_tx_param failed", err);
+          return;
+        }
         index += num_args;
         if (cmd == SLEEP_OUT)
           delay(10);
@@ -147,12 +161,12 @@ class MIPI_DSI : public display::Display {
     }
     esp_lcd_dpi_panel_config_t dpi_config = {.virtual_channel = 0,
                                              .dpi_clk_src = MIPI_DSI_DPI_CLK_SRC_DEFAULT,
-                                             .dpi_clock_freq_mhz = 1 * 1000,
+                                             .dpi_clock_freq_mhz = this->data_rate_,
                                              .in_color_format = LCD_COLOR_FMT_RGB888,
                                              .video_timing =
                                                  {
-                                                     .h_size = HEIGHT,
-                                                     .v_size = WIDTH,
+                                                     .h_size = this->height_,
+                                                     .v_size = this->width_,
                                                      .hsync_pulse_width = this->hsync_pulse_width_,
                                                      .hsync_back_porch = this->hsync_back_porch_,
                                                      .hsync_front_porch = this->hsync_front_porch_,
@@ -177,7 +191,7 @@ class MIPI_DSI : public display::Display {
   }
 
   void draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
-                      display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) {
+                      display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override {
     if (w <= 0 || h <= 0)
       return;
     // if color mapping is required, pass the buck.
@@ -191,6 +205,7 @@ class MIPI_DSI : public display::Display {
     if (x_offset == 0 && x_pad == 0 && y_offset == 0) {
       // we could deal here with a non-zero y_offset, but if x_offset is zero, y_offset probably will be so don't bother
       err = esp_lcd_panel_draw_bitmap(this->handle_, x_start, y_start, x_start + w, y_start + h, ptr);
+      delay(10);
     } else {
       // draw line by line
       auto stride = x_offset + w + x_pad;
@@ -214,15 +229,15 @@ class MIPI_DSI : public display::Display {
         break;
       case display::DISPLAY_ROTATION_90_DEGREES:
         std::swap(x, y);
-        x = WIDTH - x - 1;
+        x = this->width_ - x - 1;
         break;
       case display::DISPLAY_ROTATION_180_DEGREES:
-        x = WIDTH - x - 1;
-        y = HEIGHT - y - 1;
+        x = this->width_ - x - 1;
+        y = this->height_ - y - 1;
         break;
       case display::DISPLAY_ROTATION_270_DEGREES:
         std::swap(x, y);
-        y = HEIGHT - y - 1;
+        y = this->height_ - y - 1;
         break;
     }
     auto pixel = convert_big_endian(display::ColorUtil::color_to_565(color));
@@ -242,13 +257,15 @@ class MIPI_DSI : public display::Display {
                     "\n  Height: %u"
                     "\n  Width: %u"
                     "\n  Data Rate: %dMHz",
-                    HEIGHT, WIDTH, (unsigned) this->data_rate_ / 1000000);
+                    this->height_, this->width_, (unsigned) this->data_rate_ / 1000000);
     if (this->reset_pin_ != nullptr)
       esph_log_config(TAG, "  Reset Pin %s", this->reset_pin_->dump_summary().c_str());
   }
 
  protected:
   GPIOPin *reset_pin_{nullptr};
+  size_t width_{};
+  size_t height_{};
   uint8_t madctl_{};
   uint16_t hsync_pulse_width_ = 10;
   uint16_t hsync_back_porch_ = 10;
@@ -256,6 +273,7 @@ class MIPI_DSI : public display::Display {
   uint16_t vsync_pulse_width_ = 10;
   uint16_t vsync_back_porch_ = 10;
   uint16_t vsync_front_porch_ = 10;
+  const char *model_{"Unknown"};
   std::vector<uint8_t> init_sequence_;
   uint32_t data_rate_ = 16 * 1000 * 1000;
 

@@ -3,6 +3,7 @@ import logging
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display
+from esphome.components.const import CONF_DRAW_ROUNDING
 from esphome.components.const.mipi import (
     CONF_BYTE_ORDER,
     CONF_HSYNC_BACK_PORCH,
@@ -48,8 +49,6 @@ from esphome.const import (
     CONF_WIDTH,
 )
 
-from ...cpp_generator import TemplateArguments
-from ..const import CONF_DRAW_ROUNDING
 from .models import (
     DELAY_FLAG,
     MADCTL_BGR,
@@ -191,10 +190,10 @@ def model_schema(config):
             model.option(CONF_PIXEL_MODE, PIXEL_MODE_16BIT): cv.one_of(
                 *pixel_modes, lower=True
             ),
-            cv.Optional(CONF_TRANSFORM): transform,
+            model.option(CONF_TRANSFORM, cv.UNDEFINED): transform,
             cv.Required(CONF_MODEL): cv.one_of(model.name, upper=True),
-            model.option(CONF_INVERT_COLORS): cv.boolean,
-            model.option(CONF_USE_AXIS_FLIPS): cv.boolean,
+            model.option(CONF_INVERT_COLORS, False): cv.boolean,
+            model.option(CONF_USE_AXIS_FLIPS, False): cv.boolean,
             model.option(CONF_DATA_RATE, "40MHz"): cv.All(
                 cv.frequency, cv.Range(min=4e6, max=100e6)
             ),
@@ -202,6 +201,12 @@ def model_schema(config):
             model.option(CONF_BYTE_ORDER, "little_endian"): cv.one_of(
                 "big_endian", "little_endian", lower=True
             ),
+            model.option(CONF_HSYNC_PULSE_WIDTH): cv.int_,
+            model.option(CONF_HSYNC_BACK_PORCH): cv.int_,
+            model.option(CONF_HSYNC_FRONT_PORCH): cv.int_,
+            model.option(CONF_VSYNC_PULSE_WIDTH): cv.int_,
+            model.option(CONF_VSYNC_BACK_PORCH): cv.int_,
+            model.option(CONF_VSYNC_FRONT_PORCH): cv.int_,
         }
     )
     return cv.All(
@@ -234,16 +239,10 @@ CONFIG_SCHEMA = _config_schema
 async def to_code(config):
     model = DriverChip.models[config[CONF_MODEL].upper()]
     width, height, _offset_width, _offset_height = get_dimensions(model, config)
-    template_arguments = [
-        width,
-        height,
-        config[CONF_BYTE_ORDER] == "big_endian",
-    ]
-    var = cg.new_Pvariable(config[CONF_ID], TemplateArguments(template_arguments))
+    var = cg.new_Pvariable(config[CONF_ID], width, height)
     await display.register_display(var, config)
 
     cg.add(var.set_model(config[CONF_MODEL]))
-    cg.add(var.set_draw_rounding(config[CONF_DRAW_ROUNDING]))
     cg.add(var.set_init_sequence(get_sequence(config)))
     cg.add(var.set_invert_colors(config[CONF_INVERT_COLORS]))
     cg.add(var.set_hsync_pulse_width(config[CONF_HSYNC_PULSE_WIDTH]))
@@ -252,7 +251,7 @@ async def to_code(config):
     cg.add(var.set_vsync_pulse_width(config[CONF_VSYNC_PULSE_WIDTH]))
     cg.add(var.set_vsync_back_porch(config[CONF_VSYNC_BACK_PORCH]))
     cg.add(var.set_vsync_front_porch(config[CONF_VSYNC_FRONT_PORCH]))
-    cg.add(var.set_data_rate(int(config[CONF_DATA_RATE]) / 1e6))
+    cg.add(var.set_data_rate(int(config[CONF_DATA_RATE] / 1e6)))
     if reset_pin := config.get(CONF_RESET_PIN):
         reset = await cg.gpio_pin_expression(reset_pin)
         cg.add(var.set_reset_pin(reset))
