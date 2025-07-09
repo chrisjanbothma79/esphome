@@ -81,9 +81,33 @@ def changed_files(branch: str | None = None) -> list[str]:
         # For pull requests
         if event_name == "pull_request":
             # Try to use GitHub CLI first (much faster)
-            pr_number = os.environ.get("GITHUB_PR_NUMBER")
+            # In GitHub Actions, the PR number is in the event data
+            pr_number = None
+
+            # First try the GitHub event file
+            github_event_path = os.environ.get("GITHUB_EVENT_PATH")
+            if github_event_path and os.path.exists(github_event_path):
+                try:
+                    with open(github_event_path) as f:
+                        import json
+
+                        event_data = json.load(f)
+                        pr_data = event_data.get("pull_request", {})
+                        pr_number = str(pr_data.get("number", ""))
+
+                        # Debug: Check if files are in the event
+                        if "files" in pr_data:
+                            print("DEBUG: Found 'files' in PR event data!")
+                        # Sometimes the changed files count is there but not the actual files
+                        if "changed_files" in pr_data:
+                            print(
+                                f"DEBUG: PR has {pr_data['changed_files']} changed files (count only)"
+                            )
+                except:  # noqa: E722
+                    pass
+
+            # Fallback to parsing GITHUB_REF
             if not pr_number:
-                # Extract from GITHUB_REF if needed
                 github_ref = os.environ.get("GITHUB_REF", "")
                 if "/pull/" in github_ref:
                     pr_number = github_ref.split("/pull/")[1].split("/")[0]

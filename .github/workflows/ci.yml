@@ -317,17 +317,6 @@ jobs:
       - name: Check out code from GitHub
         uses: actions/checkout@v4.2.2
 
-      - name: Fetch base branch for PR
-        if: github.event_name == 'pull_request'
-        run: |
-          echo "Fetching base branch ${{ github.base_ref }}..."
-          # Fetch with enough depth to find merge-base
-          git fetch --no-tags --depth=50 origin ${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
-          echo "Available branches after fetch:"
-          git branch -a
-          echo "Testing if origin/${{ github.base_ref }} exists:"
-          git rev-parse --verify origin/${{ github.base_ref }}
-
       - name: Restore Python
         uses: ./.github/actions/restore-python
         with:
