@@ -341,6 +341,12 @@ jobs:
           python-version: ${{ env.DEFAULT_PYTHON }}
           cache-key: ${{ needs.common.outputs.cache-key }}
 
+      - name: Install ripgrep
+        run: |
+          curl -LO https://github.com/BurntSushi/ripgrep/releases/download/14.1.0/ripgrep_14.1.0-1_amd64.deb
+          sudo dpkg -i ripgrep_14.1.0-1_amd64.deb
+          rm ripgrep_14.1.0-1_amd64.deb
+
       - name: Cache platformio
         if: github.ref == 'refs/heads/dev'
         uses: actions/cache@v4.2.3
@@ -367,10 +373,28 @@ jobs:
           mkdir -p .temp
           pio run --list-targets -e esp32-idf-tidy
 
+      - name: Check if full clang-tidy scan needed
+        id: check_full_scan
+        run: |
+          . venv/bin/activate
+          if python script/clang_tidy_hash.py --check; then
+            echo "full_scan=true" >> $GITHUB_OUTPUT
+            echo "reason=hash_changed" >> $GITHUB_OUTPUT
+          else
+            echo "full_scan=false" >> $GITHUB_OUTPUT
+            echo "reason=normal" >> $GITHUB_OUTPUT
+          fi
+
       - name: Run clang-tidy
         run: |
           . venv/bin/activate
-          script/clang-tidy --all-headers --fix ${{ matrix.options }} ${{ matrix.ignore_errors && '|| true' || '' }}
+          if [ "${{ steps.check_full_scan.outputs.full_scan }}" = "true" ]; then
+            echo "Running FULL clang-tidy scan (hash changed)"
+            script/clang-tidy --all-headers --fix --from-ci ${{ matrix.options }} ${{ matrix.ignore_errors && '|| true' || '' }}
+          else
+            echo "Running clang-tidy on changed files only"
+            script/clang-tidy --all-headers --fix --changed --from-ci ${{ matrix.options }} ${{ matrix.ignore_errors && '|| true' || '' }}
+          fi
         env:
           # Also cache libdeps, store them in a ~/.platformio subfolder
           PLATFORMIO_LIBDEPS_DIR: ~/.platformio/libdeps

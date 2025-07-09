@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os.path
 from pathlib import Path
@@ -66,11 +68,11 @@ def get_err(*args):
     return err.decode("utf-8")
 
 
-def splitlines_no_ends(string):
+def splitlines_no_ends(string: str) -> list[str]:
     return [s.strip() for s in string.splitlines()]
 
 
-def changed_files(branch="dev"):
+def changed_files(branch: str = "dev") -> list[str]:
     check_remotes = ["upstream", "origin"]
     check_remotes.extend(splitlines_no_ends(get_output("git", "remote")))
     for remote in check_remotes:
@@ -90,18 +92,104 @@ def changed_files(branch="dev"):
     return changed
 
 
-def filter_changed(files):
-    changed = changed_files()
+def get_header_dependencies(headers: list[str]) -> set[str]:
+    """Find all cpp files that include the given header files (directly or transitively).
+
+    Args:
+        headers: List of header files that changed
+
+    Returns:
+        Set of cpp files that depend on the changed headers
+
+    Note:
+        This function requires ripgrep to be installed.
+        It's only called when --from-ci is used, where ripgrep is guaranteed to be available.
+    """
+    dependent_files: set[str] = set()
+    headers_to_check: set[str] = set(headers)
+    checked_headers: set[str] = set()
+
+    # First, find all headers that transitively include the changed headers
+    while headers_to_check:
+        current_header = headers_to_check.pop()
+        if current_header in checked_headers:
+            continue
+        checked_headers.add(current_header)
+
+        header_name = os.path.basename(current_header)
+        patterns = [f'#include "{header_name}"', f'#include "{current_header}"']
+
+        for pattern in patterns:
+            # Search in header files
+            cmd = ["rg", "-l", "--type-add", "header:*.h", "--type", "header", pattern]
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, check=False, close_fds=False
+            )
+            if result.returncode == 0 and result.stdout:
+                for file in result.stdout.strip().split("\n"):
+                    if file and file not in checked_headers:
+                        headers_to_check.add(file)
+
+    # Now find all cpp files that include any of these headers
+    all_headers = checked_headers
+
+    # Use ripgrep for fast searching
+    for header in all_headers:
+        header_name = os.path.basename(header)
+
+        # Search for #include statements with this header
+        patterns = [f'#include "{header_name}"', f'#include "{header}"']
+
+        for pattern in patterns:
+            # Use ripgrep to find files containing the pattern
+            cmd = ["rg", "-l", "--type", "cpp", pattern]
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, check=False, close_fds=False
+            )
+            if result.returncode == 0 and result.stdout:
+                for file in result.stdout.strip().split("\n"):
+                    if file:
+                        dependent_files.add(file)
+
+    return dependent_files
+
+
+def filter_changed(files: list[str], from_ci: bool = False) -> list[str]:
+    """Filter files to only those that changed or depend on changed headers.
+
+    Args:
+        files: List of files to filter
+        from_ci: If True, also checks for header dependencies (requires ripgrep)
+    """
+    changed: list[str] = changed_files()
+
+    # Only check header dependencies when running from CI
+    if from_ci:
+        # Find changed header files
+        changed_headers = [f for f in changed if f.endswith(".h")]
+
+        # If headers changed, add files that include them
+        if changed_headers:
+            print(f"Changed headers detected: {', '.join(changed_headers)}")
+            print("Finding dependent files (including transitive dependencies)...")
+            dependent_files = get_header_dependencies(changed_headers)
+            if dependent_files:
+                print(
+                    f"Found {len(dependent_files)} files that depend on changed headers"
+                )
+                # Add dependent files to the changed set
+                changed = list(set(changed) | dependent_files)
+
     files = [f for f in files if f in changed]
     print("Changed files:")
     if not files:
         print("    No changed files!")
-    for c in files:
+    for c in sorted(files):
         print(f"    {c}")
     return files
 
 
-def filter_grep(files, value):
+def filter_grep(files: list[str], value: str) -> list[str]:
     matched = []
     for file in files:
         with open(file, encoding="utf-8") as handle:
@@ -111,7 +199,7 @@ def filter_grep(files, value):
     return matched
 
 
-def git_ls_files(patterns=None):
+def git_ls_files(patterns: list[str] | None = None) -> dict[str, int]:
     command = ["git", "ls-files", "-s"]
     if patterns is not None:
         command.extend(patterns)
