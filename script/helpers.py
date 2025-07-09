@@ -297,7 +297,7 @@ def filter_changed(files: list[str]) -> list[str]:
     else:
         files = _filter_changed_local(files)
 
-    print_file_list(files, "Files to check:")
+    print_file_list(files, "Files to check after filtering:")
     return files
 
 
