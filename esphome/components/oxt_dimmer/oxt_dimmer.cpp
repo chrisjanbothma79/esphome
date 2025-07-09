@@ -56,7 +56,7 @@ light::LightTraits OxtDimmerChannel::get_traits() {
 }
 
 void OxtDimmerChannel::write_state(light::LightState *state) {
-  if (controller_ == nullptr) {
+  if (this->controller_ == nullptr) {
     ESP_LOGE(TAG, "No controller - state change ignored");
     return;
   }
@@ -71,15 +71,15 @@ void OxtDimmerChannel::write_state(light::LightState *state) {
 
   // If a new value, write to the dimmer
   if (calculated_brightness != brightness_) {
-    brightness_ = calculated_brightness;
-    controller_->send_to_mcu_(this);
+    this->brightness_ = calculated_brightness;
+    this->controller_->send_to_mcu_(this);
   }
 }
 
 void OxtDimmerChannel::dump_config() {
-  ESP_LOGCONFIG(TAG, "OXT channel: '%s'", light_state_ ? light_state_->get_name().c_str() : "");
-  ESP_LOGCONFIG(TAG, "  Minimal brightness: %d", min_value_);
-  ESP_LOGCONFIG(TAG, "  Maximal brightness: %d", max_value_);
+  ESP_LOGCONFIG(TAG, "OXT channel: '%s'", this->light_state_ ? this->light_state_->get_name().c_str() : "");
+  ESP_LOGCONFIG(TAG, "  Minimal brightness: %d", this->min_value_);
+  ESP_LOGCONFIG(TAG, "  Maximal brightness: %d", this->max_value_);
 }
 
 void OxtController::dump_config() { ESP_LOGCONFIG(TAG, "Oxt dimmer"); }

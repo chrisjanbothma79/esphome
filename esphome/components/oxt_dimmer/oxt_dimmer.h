@@ -32,11 +32,11 @@ class OxtDimmerChannel : public light::LightOutput, public Component {
   void write_state(light::LightState *state) override;
 
   // Own methods
-  uint8_t brightness() { return brightness_; }
+  uint8_t brightness() { return this->brightness_; }
 
-  void set_min_value(const uint8_t min_value) { min_value_ = min_value; }
-  void set_max_value(const uint8_t max_value) { max_value_ = max_value; }
-  void set_controller(OxtController *control) { controller_ = control; }
+  void set_min_value(const uint8_t min_value) { this->min_value_ = min_value; }
+  void set_max_value(const uint8_t max_value) { this->max_value_ = max_value; }
+  void set_controller(OxtController *control) { this->controller_ = control; }
 
  protected:
   OxtController *controller_{nullptr};
@@ -63,7 +63,7 @@ class OxtController : public uart::UARTDevice, public Component {
 
   // Own methods
   void add_channel(uint8_t index, OxtDimmerChannel *channel) {
-    channels_[index] = channel;
+    this->channels_[index] = channel;
     channel->set_controller(this);
   }
 
