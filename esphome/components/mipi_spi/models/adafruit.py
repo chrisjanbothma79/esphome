@@ -12,6 +12,7 @@ ST7789V.extend(
     invert_colors=True,
     mirror_x=True,
     mirror_y=True,
+    data_rate="80MHz",
 )
 
 ST7789V.extend(
