@@ -9,6 +9,7 @@ ST7789V.extend(
     cs_pin=40,
     dc_pin=39,
     reset_pin=41,
+    invert_colors=True,
 )
 
 ST7789V.extend(
@@ -20,6 +21,7 @@ ST7789V.extend(
     cs_pin=7,
     dc_pin=39,
     reset_pin=40,
+    invert_colors=True,
 )
 
 models = {}
