@@ -174,6 +174,8 @@ class APIServer : public Component, public Controller {
 #endif
 
  protected:
+  bool this_should_be_protected();
+
   void schedule_reboot_timeout_();
   // Pointers and pointer-like types first (4 bytes each)
   std::unique_ptr<socket::Socket> socket_ = nullptr;

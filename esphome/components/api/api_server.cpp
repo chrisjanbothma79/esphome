@@ -480,6 +480,13 @@ void APIServer::on_shutdown() {
   }
 }
 
+bool APIServer::this_should_be_protected() {
+  // If the API server is not set up, it should not be protected
+  if (global_api_server == nullptr) {
+    return false;
+  }
+}
+
 bool APIServer::teardown() {
   // If network is disconnected, no point trying to flush buffers
   if (!network::is_connected()) {
