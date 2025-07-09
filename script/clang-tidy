@@ -218,9 +218,6 @@ def main():
     )
     args = parser.parse_args()
 
-    idedata = load_idedata(args.environment)
-    options = clang_options(idedata)
-
     files = []
     for path in git_ls_files(["*.cpp"]):
         files.append(os.path.relpath(path, os.getcwd()))
@@ -248,6 +245,15 @@ def main():
 
     # Print final list of files to check
     print(f"\nTotal files to check: {len(files)}")
+
+    # Early exit if no files to check
+    if not files:
+        print("No files to check - exiting early")
+        return 0
+
+    # Load idedata and options only if we have files to check
+    idedata = load_idedata(args.environment)
+    options = clang_options(idedata)
     if len(files) <= 20:
         for f in files:
             print(f"  {f}")
