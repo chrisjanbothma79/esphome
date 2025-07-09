@@ -52,15 +52,23 @@ void ModemComponent::enable_debug() { esp_log_level_set("command_lib", ESP_LOG_V
 bool ModemComponent::is_modem_connected(bool verbose) {
   float rssi, ber;
   int network_mode = 0;
+  if (!this->dce || this->dce->sync() != command_result::OK) {
+    ESP_LOGE(TAG, "Modem DCE is not initialized or not synced, cannot check modem connection status.");
+    return false;
+  }
   bool network_attached = this->is_network_attached_();
   this->get_signal_quality(rssi, ber);
   this->dce->get_network_system_mode(network_mode);
 
   bool connected = (network_mode != 0) && (!std::isnan(rssi)) && network_attached;
 
-  ESP_LOGI(TAG, "Modem internal network status: %s (attached: %s, type: %s, rssi: %.0fdB %s, ber: %.0f%%)",
-           connected ? "Good" : "BAD", network_attached ? "Yes" : "NO",
-           network_system_mode_to_string(network_mode).c_str(), rssi, get_signal_bars(rssi).c_str(), ber);
+  if (verbose) {
+    ESP_LOGI(TAG, "Modem internal network status: %s (attached: %s, type: %s, IP: %s, rssi: %.0fdB %s, ber: %.0f%%)",
+             connected ? "Good" : "BAD", network_attached ? "Yes" : "NO",
+             network_system_mode_to_string(network_mode).c_str(), this->get_modem_ip().c_str(), rssi,
+             get_signal_bars(rssi).c_str(), ber);
+    this->send_at("AT+CGPADDR");  // Get the IP address assigned to the modem
+  }
   return connected;
 }
 
@@ -98,6 +106,22 @@ AtCommandResult ModemComponent::get_imei() {
   ESP_LOGV(TAG, "imei: %s (status: %s)", at_command_result.c_str(),
            command_result_to_string(at_command_result.esp_modem_command_result).c_str());
   return at_command_result;
+}
+
+AtCommandResult ModemComponent::get_modem_ip() {
+  // Get the IP address assigned to the modem (not the PPP interface)
+  AtCommandResult res = this->send_at("AT+CGPADDR", this->command_delay_);
+  if (!res.success)
+    return res;
+  auto start = res.output.find(',');
+  if (start != std::string::npos) {
+    res.output = res.output.substr(start + 1);
+    res.success = !res.output.empty();
+  } else {
+    res.success = false;
+    res.output.clear();
+  }
+  return res;
 }
 
 bool ModemComponent::get_power_status() {
@@ -213,6 +237,13 @@ void ModemComponent::setup() {
   ESP_LOGCONFIG(TAG, "  Enabled   : %s", this->internal_state_.enabled ? "Yes" : "No");
   ESP_LOGCONFIG(TAG, "  Use CMUX  : %s", this->cmux_ ? "Yes" : "No");
   ESP_LOGCONFIG(TAG, "  Baud rate : %d", this->baud_rate_);
+
+  if (CONFIG_ESP_TASK_WDT_TIMEOUT_S <= 10) {
+    ESP_LOGW(TAG,
+             "Task watchdog timeout is set to %d seconds, which might be too low for modem operations. "
+             "Consider increasing it if a WDT is triggered.",
+             CONFIG_ESP_TASK_WDT_TIMEOUT_S);
+  }
 
   if (!this->internal_state_.powered_on) {
     // The modem is not powered on, so it will be in a default state (e.g. baud rate 115200, no cmux) after boot.
@@ -336,6 +367,7 @@ void ModemComponent::loop() {
           float time_left_s = float(this->timeout_ - (millis() - this->internal_state_.startms)) / 1000;
           // want to connect
           if ((millis() - this->internal_state_.startms) > this->timeout_) {
+            this->poweroff_();  // power off the modem to reset it
             this->abort_("Timeout while trying to connect");
           }
           if (!connecting) {
@@ -345,13 +377,14 @@ void ModemComponent::loop() {
                 connecting = true;
               } else {
                 ESP_LOGE(TAG, "modem is unable to enter PPP (time left before abort: %.0fs)", time_left_s);
-                this->dce->set_mode(modem_mode::CMUX_MANUAL_COMMAND);
-                next_loop_millis = millis() + 25000;  // delay to retry
+                // this->dce->set_mode(modem_mode::CMUX_MANUAL_COMMAND);
+                this->dce->set_mode(modem_mode::COMMAND_MODE);  // force command mode
+                next_loop_millis = millis() + 25000;            // delay to retry
               }
             } else {
               ESP_LOGW(TAG, "Waiting for the modem to be attached to a network (time left before abort: %.0fs)",
                        time_left_s);
-              next_loop_millis = millis() + 5000;  // delay to retry
+              next_loop_millis = millis() + 10000;  // delay to retry
             }
           } else {
             // connecting
@@ -403,7 +436,8 @@ void ModemComponent::loop() {
       } else {
         if (this->internal_state_.connected) {
           // connected but disbaled, so disconnect
-          this->dce->set_mode(modem_mode::CMUX_MANUAL_COMMAND);  // FIXME: COMMAND_MODE ?
+          // this->dce->set_mode(modem_mode::CMUX_MANUAL_COMMAND);  // FIXME: COMMAND_MODE ?
+          this->dce->set_mode(modem_mode::COMMAND_MODE);
           this->component_state_ = ModemComponentState::DISCONNECTED;
         }
       }
@@ -497,10 +531,11 @@ bool ModemComponent::modem_init_() {
   this->modem_create_dce_dte_(this->internal_state_.current_baud_rate);
 
   ESP_LOGD(TAG, "Autodetecting modem mode...");
+  App.feed_wdt();
 
-  this->dce->set_mode(modem_mode::AUTODETECT);
-  ESP_LOGVV(TAG, "autodetected mode: %d (0 is undef, for others see enum modem_mode in esp_modem_types.hpp)",
-            this->dce->get_mode());
+  // Set the modem to AUTODETECT mode, with time elasped
+  this->dce->set_mode(modem_mode::AUTODETECT);  // WARNING: some WDT may be triggered if the modem is OFF
+  ESP_LOGD(TAG, "Modem checked in %" PRIu32 "ms", millis() - start_ms);
 
   if (this->dce->get_mode() == modem_mode::UNDEF && this->internal_state_.current_baud_rate != 0) {
     ESP_LOGW(TAG, "Can't autodetect modem mode, retrying with default baud rate");
@@ -511,7 +546,8 @@ bool ModemComponent::modem_init_() {
 
   switch (this->dce->get_mode()) {
     case modem_mode::UNDEF:
-      ESP_LOGW(TAG, "Unable to autodetect modem mode");
+      ESP_LOGW(TAG, "Unable to autodetect modem mode. Trying to set command mode.");
+      success = this->dce->sync() == command_result::OK || this->dce->set_mode(modem_mode::COMMAND_MODE);
       break;
     case modem_mode::COMMAND_MODE:
       ESP_LOGV(TAG, "Modem is in COMMAND_MODE");
@@ -528,8 +564,10 @@ bool ModemComponent::modem_init_() {
       ESP_LOGV(TAG, "Modem is in CMUX_MANUAL_MODE (from a previous aborted session?), switching to command mode");
       this->dce->set_mode(modem_mode::CMUX_MANUAL_COMMAND);
       success = this->dce->set_mode(modem_mode::CMUX_MANUAL_EXIT);
+      break;
     default:
-      ESP_LOGW(TAG, "Modem is in an unhandled mode: %d.", this->dce->get_mode());
+      ESP_LOGW(TAG, "Modem is in an unhandled mode: %d (see enum modem_mode in esp_modem_types.hpp).",
+               this->dce->get_mode());
   }
 
   if (success) {
@@ -552,6 +590,18 @@ bool ModemComponent::modem_init_() {
   }
 
   // modem synced
+
+  // some modems require to be disconnected from the network before PPP connection
+  int network_attached = 1;
+  this->dce->get_radio_state(network_attached);
+  if (network_attached == 1) {
+    ESP_LOGD(TAG, "Modem is attached to a network, detaching...");
+    this->dce->set_radio_state(4);  // disable RF (Airplane mode)
+    delay(200);                     // NOLINT
+    this->dce->set_radio_state(1);  // full functionality
+  }
+
+  // change baud rate if needed
   if (this->baud_rate_ != this->internal_state_.current_baud_rate) {
     ESP_LOGD(TAG, "Setting baud rate: %d -> %d", this->internal_state_.current_baud_rate, this->baud_rate_);
     this->flush_uart_();
@@ -575,7 +625,6 @@ bool ModemComponent::modem_init_() {
         ESP_LOGE(TAG, "Unable to sync modem at baud rate %d", this->baud_rate_);
         success = false;
       }
-
     } else {
       ESP_LOGW(TAG, "Unable to set modem baud rate to %d. Will continue tu use %d", this->baud_rate_,
                this->internal_state_.current_baud_rate);
@@ -643,20 +692,29 @@ bool ModemComponent::prepare_sim_() {
     return false;
   }
 
-  ESPMODEM_ERROR_CHECK(this->dce->set_pin(this->pin_code_), "Set pin error");
-
-  // wait for the sim to be ready
-  delay(2000);  // NOLINT
-  bool pin_ok = false;
-  ESPMODEM_ERROR_CHECK(this->dce->read_pin(pin_ok), "Error checking pin");
-
-  if (pin_ok) {
-    ESP_LOGD(TAG, "SIM pin unlocked");
-  } else {
-    ESP_LOGE(TAG, "SIM pin error");
+  if (this->pin_code_.empty()) {
+    ESP_LOGE(TAG, "SIM pin code is empty, but SIM is locked");
+    return false;  // no pin code defined
   }
 
-  return pin_ok;
+  // we need to unlock the sim
+  ESP_LOGD(TAG, "Unlocking SIM with pin code...");
+  if (this->dce->set_pin(this->pin_code_) == command_result::OK) {
+    delay(1000);  // NOLINT
+    bool pin_ok = false;
+    if (this->dce->read_pin(pin_ok) == command_result::TIMEOUT) {
+      ESP_LOGW(TAG, "Timeout while checking pin code. Assuming pin code is set correctly.");
+      // some modems are very slow to answer, so we assume that the pin code is set correctly
+      pin_ok = true;
+      delay(1000);  // NOLINT
+    }
+    return pin_ok;
+  } else {
+    ESP_LOGE(TAG, "Failed to set pin code");
+    return false;
+  }
+
+  return false;
 }
 
 void ModemComponent::send_init_at_() {
@@ -704,13 +762,16 @@ bool ModemComponent::start_ppp_() {
 
   bool status = false;
   if (cmux_) {
-    status = this->dce->set_mode(modem_mode::CMUX_MODE) && this->dce->sync() == command_result::OK;
+    status = this->dce->set_mode(modem_mode::CMUX_MODE);
+    //  Note: do not try to check now if the modem is synced with 'this->dce->sync()': it will fail on some modems
   } else {
     status = this->dce->set_mode(modem_mode::DATA_MODE);
   }
 
   if (!status) {
+    this->dce->set_mode(modem_mode::COMMAND_MODE);  // Something went wrong, be sure to be in command mode
     ESP_LOGE(TAG, "Unable to change modem mode to PPP after %" PRIu32 "ms", millis() - now);
+
   } else {
     ESP_LOGD(TAG, "Entered PPP after %" PRIu32 "ms", millis() - now);
   }
@@ -758,11 +819,7 @@ void ModemComponent::poweron_() {
     this->internal_state_.power_state = ModemPowerState::TON;
     this->internal_state_.power_transition = true;
   } else {
-    if (this->dce->sync() == command_result::OK) {
-      ESP_LOGV(TAG, "Modem is already ON");
-    } else {
-      ESP_LOGW(TAG, "No 'power_pin' defined: Not able to poweron the modem");
-    }
+    ESP_LOGW(TAG, "No 'power_pin' defined: Not able to poweron the modem");
   }
 }
 
@@ -773,8 +830,14 @@ void ModemComponent::poweroff_() {
     this->dce.reset();
     this->dte_.reset();
   } else {
-    // This will powercycle the modem
-    this->send_at("AT+CPOF");
+    // This will definitely power off the modem!!
+    // this->send_at("AT+CPOF");
+    this->dce->set_mode(modem_mode::COMMAND_MODE);
+    if (this->dce->set_radio_state(0) == command_result::OK) {
+      ESP_LOGI(TAG, "No power pin, modem set to minimal functionality");
+    } else {
+      ESP_LOGE(TAG, "Unable to power off the modem");
+    }
   }
 }
 
@@ -824,15 +887,6 @@ std::string ModemComponent::flush_uart_(uint32_t timeout) {
     ESP_LOGV(TAG, "Flushed %d modem buffer data: %s", cleaned, output.c_str());
   }
   return output;
-}
-
-const char *AtCommandResult::c_str() const {
-  if (success) {
-    cached_c_str = output + " (OK)";
-  } else {
-    cached_c_str = output + " (" + command_result_to_string(esp_modem_command_result) + ")";
-  }
-  return cached_c_str.c_str();
 }
 
 }  // namespace modem

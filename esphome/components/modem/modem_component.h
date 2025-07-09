@@ -46,14 +46,12 @@ struct AtCommandResult {
   std::string output{};
   bool success{false};
   command_result esp_modem_command_result{command_result::TIMEOUT};
-  mutable std::string cached_c_str;
-
   operator bool() const { return success; }
-  const char *c_str() const;
+  const char *c_str() const { return output.c_str(); }
 };
 
 struct ModemRestoreState {
-  int baud_rate{15200};
+  int baud_rate{0};
   uint8_t abort_count{0};
 } __attribute__((packed));
 
@@ -83,6 +81,7 @@ class ModemComponent : public Component {
   AtCommandResult send_at(const std::string &cmd) { return this->send_at(cmd, this->command_delay_); }
   AtCommandResult send_at(const std::string &cmd, uint32_t timeout);
   AtCommandResult get_imei();
+  AtCommandResult get_modem_ip();
   bool get_power_status();
   void enable();
   void disable();
