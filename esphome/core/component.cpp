@@ -12,6 +12,8 @@
 
 namespace esphome {
 
+// DUMMY CHANGE
+
 static const char *const TAG = "component";
 
 // Global vectors for component data that doesn't belong in every instance.
