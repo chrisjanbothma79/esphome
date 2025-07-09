@@ -191,17 +191,25 @@ def filter_changed(files: list[str], from_ci: bool = False) -> list[str]:
             return files
 
         if not components:
-            # No components changed
-            print("No components changed")
-            return []
+            # No components changed - check only non-component files that changed
+            changed = changed_files()
+            files = [
+                f
+                for f in files
+                if f in changed and not f.startswith("esphome/components/")
+            ]
+            if not files:
+                print("No files changed")
+            return files
 
         # Convert component list to set for O(1) lookups
         component_set = set(components)
+        print(f"Changed components: {', '.join(sorted(components))}")
 
-        # Get changed files for non-component files
-        changed = set(changed_files())
-
-        # Filter files efficiently
+        # The 'files' parameter contains ALL files in the codebase that clang-tidy would check.
+        # We filter this down to only files in the changed components.
+        # We check ALL files in each changed component (not just the changed files)
+        # because changes in one file can affect other files in the same component.
         filtered_files = []
         for f in files:
             if f.startswith("esphome/components/"):
@@ -209,9 +217,6 @@ def filter_changed(files: list[str], from_ci: bool = False) -> list[str]:
                 parts = f.split("/")
                 if len(parts) >= 3 and parts[2] in component_set:
                     filtered_files.append(f)
-            elif f in changed:
-                # Include non-component files that changed
-                filtered_files.append(f)
 
         files = filtered_files
     else:
@@ -219,9 +224,9 @@ def filter_changed(files: list[str], from_ci: bool = False) -> list[str]:
         changed = changed_files()
         files = [f for f in files if f in changed]
 
-    print("Changed files:")
+    print("Files to check:")
     if not files:
-        print("    No changed files!")
+        print("    No files to check!")
     for c in sorted(files):
         print(f"    {c}")
     return files
