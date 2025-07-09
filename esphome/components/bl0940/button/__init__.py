@@ -28,4 +28,4 @@ async def to_code(config):
     await cg.register_component(var, config)
     await button.register_button(var, config)
 
-    cg.add(bl0940.set_reset_calibration_button(var))
+    cg.add(var.set_bl0940(bl0940))

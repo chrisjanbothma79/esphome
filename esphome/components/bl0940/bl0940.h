@@ -66,7 +66,7 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
 #endif
 
 #ifdef USE_BUTTON
-  void set_reset_calibration_button(button::Button *button) { this->reset_calibration_button_ = button; }
+  void reset_calibration();
 #endif
   void loop() override;
 
@@ -91,9 +91,7 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
   number::Number *power_calibration_{nullptr};
   number::Number *energy_calibration_{nullptr};
 #endif
-#ifdef USE_BUTTON
-  button::Button *reset_calibration_button_{nullptr};
-#endif
+
   // Max difference between two measurements of the temperature. Used to avoid noise.
   float max_temperature_diff_{0};
 

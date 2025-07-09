@@ -99,12 +99,6 @@ void BL0940::setup() {
   }
 #endif
 
-#ifdef USE_BUTTON
-  if (this->reset_calibration_button_ != nullptr) {
-    this->reset_calibration_button_->add_on_press_callback([this]() { this->reset_calibration_callback_(); });
-  }
-#endif
-
   // calculate calibrated reference values
   this->voltage_reference_cal_ = this->voltage_reference_ / this->voltage_cal_;
   this->current_reference_cal_ = this->current_reference_ / this->current_cal_;
@@ -131,7 +125,7 @@ float BL0940::calculate_energy_reference_() {
 
 float BL0940::calculate_calibration_value_(float state) { return (100 + state) / 100; }
 
-void BL0940::reset_calibration_callback_() {
+void BL0940::reset_calibration() {
 #ifdef USE_NUMBER
   if (this->current_calibration_ != nullptr && this->current_cal_ != 1) {
     this->current_calibration_->make_call().set_value(0).perform();
