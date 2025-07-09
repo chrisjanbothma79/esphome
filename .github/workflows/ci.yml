@@ -412,6 +412,8 @@ jobs:
     needs:
       - common
     if: github.event_name == 'pull_request'
+    env:
+      GH_TOKEN: ${{ github.token }}
     outputs:
       components: ${{ steps.list-components.outputs.components }}
       count: ${{ steps.list-components.outputs.count }}
