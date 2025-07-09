@@ -50,6 +50,40 @@ if platform.system() == "Windows":
 import pty  # not available on Windows
 
 
+@pytest.fixture(scope="session")
+def shared_platformio_cache() -> Generator[Path]:
+    """Initialize a shared PlatformIO cache for all integration tests."""
+    cache_dir = Path.home() / ".platformio"
+
+    # Check if cache needs initialization
+    if not cache_dir.exists() or not any(cache_dir.iterdir()):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create a basic host config
+            init_dir = Path(tmpdir)
+            config_path = init_dir / "cache_init.yaml"
+            config_path.write_text("""esphome:
+  name: cache-init
+host:
+api:
+  encryption:
+    key: "IIevImVI42I0FGos5nLqFK91jrJehrgidI0ArwMLr8w="
+logger:
+""")
+
+            # Run compilation to populate the cache
+            import subprocess
+
+            subprocess.run(
+                ["esphome", "compile", str(config_path)],
+                check=False,
+                cwd=init_dir,
+                capture_output=True,
+                text=True,
+            )
+
+    yield cache_dir
+
+
 @pytest.fixture(scope="module", autouse=True)
 def enable_aioesphomeapi_debug_logging():
     """Enable debug logging for aioesphomeapi to help diagnose connection issues."""
@@ -161,22 +195,16 @@ async def write_yaml_config(
 @pytest_asyncio.fixture
 async def compile_esphome(
     integration_test_dir: Path,
+    shared_platformio_cache: Path,
 ) -> AsyncGenerator[CompileFunction]:
     """Compile an ESPHome configuration and return the binary path."""
 
     async def _compile(config_path: Path) -> Path:
-        # Create a unique PlatformIO directory for this test to avoid race conditions
-        platformio_dir = integration_test_dir / ".platformio"
-        platformio_dir.mkdir(parents=True, exist_ok=True)
-
-        # Create cache directory as well
-        platformio_cache_dir = platformio_dir / ".cache"
-        platformio_cache_dir.mkdir(parents=True, exist_ok=True)
-
-        # Set up environment with isolated PlatformIO directories
+        # Use the shared PlatformIO cache for faster compilation
+        # This avoids re-downloading dependencies for each test
         env = os.environ.copy()
-        env["PLATFORMIO_CORE_DIR"] = str(platformio_dir)
-        env["PLATFORMIO_CACHE_DIR"] = str(platformio_cache_dir)
+        env["PLATFORMIO_CORE_DIR"] = str(shared_platformio_cache)
+        env["PLATFORMIO_CACHE_DIR"] = str(shared_platformio_cache / ".cache")
 
         # Retry compilation up to 3 times if we get a segfault
         max_retries = 3
