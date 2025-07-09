@@ -6,7 +6,6 @@
 #include "esphome/core/application.h"
 #include "esphome/core/defines.h"
 #include "esphome/components/network/util.h"
-#include "esphome/components/watchdog/watchdog.h"
 
 #include <esp_netif.h>
 #include <esp_netif_ppp.h>
@@ -294,7 +293,6 @@ void ModemComponent::loop() {
         } else {
           ESP_LOGW(TAG, "Unable to power OFF the modem");
         }
-
         break;
     }
     App.feed_wdt();
@@ -371,6 +369,7 @@ void ModemComponent::loop() {
               connecting = false;
               ESP_LOGI(TAG, "Connected via Modem");
               this->component_state_ = ModemComponentState::CONNECTED;
+              this->dump_connect_params_();
               this->status_clear_warning();
             }
           }
@@ -486,17 +485,11 @@ void ModemComponent::modem_create_dce_dte_(int baud_rate) {
 }
 
 bool ModemComponent::modem_init_() {
-  // force command mode, check sim, and send init_at commands
-  // close cmux/data if needed, and may reboot the modem if unresponsive.
-
-  watchdog::WatchdogManager wdt(15000);
+  // Get command mode, check sim, and send init_at commands
+  // May reboot the modem if unresponsive.
 
   bool success = false;
 
-  // init the modem to get command mode.
-  // if baud_rate != 0, will also set the baud rate.
-
-  // std::string result;
   uint32_t start_ms = millis();
   uint32_t elapsed_ms;
 
@@ -533,7 +526,6 @@ bool ModemComponent::modem_init_() {
       break;
     case modem_mode::CMUX_MANUAL_MODE:
       ESP_LOGV(TAG, "Modem is in CMUX_MANUAL_MODE (from a previous aborted session?), switching to command mode");
-      // this->dce->set_mode(modem_mode::RESUME_CMUX_MANUAL_MODE);
       this->dce->set_mode(modem_mode::CMUX_MANUAL_COMMAND);
       success = this->dce->set_mode(modem_mode::CMUX_MANUAL_EXIT);
     default:
@@ -563,25 +555,31 @@ bool ModemComponent::modem_init_() {
   if (this->baud_rate_ != this->internal_state_.current_baud_rate) {
     ESP_LOGD(TAG, "Setting baud rate: %d -> %d", this->internal_state_.current_baud_rate, this->baud_rate_);
     this->flush_uart_();
-    // if (this->dce->set_baud(this->baud_rate_) == command_result::OK) {
-    // no error check, because the modem answer with a different baud rate
-    this->dce->set_baud(this->baud_rate_);
-    delay(200);  // NOLINT
-    // need to recreate dte/dce with new baud rate
-    this->modem_create_dce_dte_(this->baud_rate_);
-    delay(2000);  // NOLINT
-    this->flush_uart_();
-    App.feed_wdt();
-    if (this->dce->sync() == command_result::OK) {
-      ESP_LOGI(TAG, "Modem baud rate set to %d", this->baud_rate_);
-      success = true;
-      this->modem_restore_state_.baud_rate = this->baud_rate_;
-      this->pref_.save(&this->modem_restore_state_);
+    if (this->dce->set_baud(this->baud_rate_) == command_result::OK) {
+      ESP_LOGD(TAG, "Modem baud rate set to %d", this->baud_rate_);
+      delay(200);  // NOLINT
+      // need to recreate dte/dce with new baud rate
+      this->modem_create_dce_dte_(this->baud_rate_);
+      App.feed_wdt();
+      delay(200);  // NOLINT
+      this->flush_uart_();
+      if (this->dce->sync() == command_result::OK) {
+        ESP_LOGI(TAG, "Modem synced at baud rate %d", this->baud_rate_);
+        this->modem_restore_state_.baud_rate = this->internal_state_.current_baud_rate;
+        this->pref_.save(&this->modem_restore_state_);
+        // it's important to save the state, because if the modem is not
+        // powered off, it will be only reachable at this baud rate.
+        global_preferences->sync();
+
+      } else {
+        ESP_LOGE(TAG, "Unable to sync modem at baud rate %d", this->baud_rate_);
+        success = false;
+      }
+
     } else {
-      this->abort_("DCE has successfuly changed baud rate, but DTE can't reach it. Try to decrease baud rate?");
+      ESP_LOGW(TAG, "Unable to set modem baud rate to %d. Will continue tu use %d", this->baud_rate_,
+               this->internal_state_.current_baud_rate);
     }
-  } else {
-    ESP_LOGD(TAG, "Modem baud rate already set to %d", this->internal_state_.current_baud_rate);
   }
 
   elapsed_ms = millis() - start_ms;
@@ -625,6 +623,7 @@ bool ModemComponent::prepare_sim_() {
   this->flush_uart_();
 
   // this->dce->read_pin(pin_ok)   // not used, because we can't know the cause of the error.
+  App.feed_wdt();
   this->dce->command(
       "AT+CPIN?\r",
       [&](uint8_t *data, size_t len) {
@@ -698,20 +697,13 @@ bool ModemComponent::is_network_attached_() {
 bool ModemComponent::start_ppp_() {
   this->internal_state_.connect_begin = millis();
   this->status_set_warning("Starting connection");
-  watchdog::WatchdogManager wdt(15000);  // mini 10000
 
   uint32_t now = millis();
-
-  // will be set to true on event IP_EVENT_PPP_GOT_IP
-  // this->internal_state_.got_ipv4_address = false;
 
   ESP_LOGD(TAG, "Asking the modem to enter PPP (Using cmux: %s)", this->cmux_ ? "Yes" : "No");
 
   bool status = false;
-  // this->dce->set_mode(modem_mode::UNDEF);
   if (cmux_) {
-    // this->dce->set_mode(modem_mode::CMUX_MANUAL_MODE);
-    // status = this->dce->set_mode(modem_mode::CMUX_MANUAL_DATA) && this->dce->sync() == command_result::OK;
     status = this->dce->set_mode(modem_mode::CMUX_MODE) && this->dce->sync() == command_result::OK;
   } else {
     status = this->dce->set_mode(modem_mode::DATA_MODE);
@@ -734,7 +726,6 @@ void ModemComponent::ip_event_handler(void *arg, esp_event_base_t event_base, in
       event = (ip_event_got_ip_t *) event_data;
       ip_info = &event->ip_info;
       ESP_LOGD(TAG, "[IP event] Got IP " IPSTR, IP2STR(&ip_info->ip));
-      // global_modem_component->internal_state_.got_ipv4_address = true; // FIXME: this is not used anymore
       global_modem_component->internal_state_.connected = true;
       break;
 
@@ -743,7 +734,6 @@ void ModemComponent::ip_event_handler(void *arg, esp_event_base_t event_base, in
         // do not log message if we are not connected
         ESP_LOGD(TAG, "[IP event] Lost IP");
       }
-      // global_modem_component->internal_state_.got_ipv4_address = false; // FIXME: this is not used anymore
       global_modem_component->internal_state_.connected = false;
       break;
   }

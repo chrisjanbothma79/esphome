@@ -8,7 +8,6 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/preferences.h"
 #include "esphome/components/network/util.h"
-#include "esphome/components/watchdog/watchdog.h"
 
 // esp_modem will use esphome logger (needed if other components include esphome/core/log.h)
 // We need to do this because "cxx_include/esp_modem_api.hpp" is not a pure C++ header, and use logging.
@@ -173,7 +172,6 @@ class ModemComponent : public Component {
     uint32_t startms;
     bool enabled{false};
     bool connected{false};
-    // bool got_ipv4_address{false};  // FIXME: to remove, not used anymore
     // date start (millis())
     uint32_t connect_begin;
     // guess power state
