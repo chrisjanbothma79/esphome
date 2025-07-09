@@ -57,13 +57,12 @@ def shared_platformio_cache() -> Generator[Path]:
     """Initialize a shared PlatformIO cache for all integration tests."""
     # Use a dedicated directory for integration tests to avoid conflicts
     test_cache_dir = Path.home() / ".esphome-integration-tests"
-    test_cache_dir.mkdir(exist_ok=True)
-
     cache_dir = test_cache_dir / "platformio"
 
-    # Use a lock file to ensure only one process initializes the cache
+    # Use a lock file in the home directory to ensure only one process initializes the cache
     # This is needed when running with pytest-xdist
-    lock_file = test_cache_dir / "platformio_init.lock"
+    # The lock file must be in a directory that already exists to avoid race conditions
+    lock_file = Path.home() / "esphome_integration_test_init.lock"
 
     # Check if cache needs initialization
     if not cache_dir.exists() or not any(cache_dir.iterdir()):
@@ -73,6 +72,9 @@ def shared_platformio_cache() -> Generator[Path]:
 
             # Double-check after acquiring lock (another process might have initialized)
             if not cache_dir.exists() or not any(cache_dir.iterdir()):
+                # Create the test cache directory if it doesn't exist
+                test_cache_dir.mkdir(exist_ok=True)
+
                 with tempfile.TemporaryDirectory() as tmpdir:
                     # Create a basic host config
                     init_dir = Path(tmpdir)
