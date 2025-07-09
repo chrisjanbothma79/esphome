@@ -127,9 +127,13 @@ def changed_files(branch: str | None = None) -> list[str]:
 
                     # Now get the actual changed files
                     print(f"DEBUG: Running command: {' '.join(cmd)}")
-                    raw_output = get_output(*cmd)
-                    print(f"DEBUG: Raw gh pr diff --name-only output: '{raw_output}'")
-                    print(f"DEBUG: Output repr: {repr(raw_output)}")
+                    # Let's check both stdout and stderr
+                    proc = subprocess.run(
+                        cmd, capture_output=True, text=True, check=False
+                    )
+                    print(f"DEBUG: Return code: {proc.returncode}")
+                    print(f"DEBUG: Stdout: '{proc.stdout}'")
+                    print(f"DEBUG: Stderr: '{proc.stderr}'")
                     result = _get_changed_files_from_command(cmd)
                     print(f"DEBUG: Found {len(result)} changed files via GitHub CLI")
                     if len(result) == 0:
