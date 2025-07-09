@@ -32,7 +32,12 @@ void ModbusSwitch::parse_and_publish(const std::vector<uint8_t> &data) {
       value = coil_from_vector(this->offset, data);
       break;
     default:
-      value = get_data<uint16_t>(data, this->offset) & this->bitmask;
+      if (this->use_write_multiple_ && this->register_count > 1) {
+        // for multy registers switch, consider last 2 bytes only as offset
+        value = get_data<uint16_t>(data, this->register_count * 2 - 2) & this->bitmask;
+      } else {
+        value = get_data<uint16_t>(data, this->offset) & this->bitmask;
+      }
       break;
   }
 
