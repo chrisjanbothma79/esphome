@@ -27,7 +27,7 @@ void OxtController::send_to_mcu_(const OxtDimmerChannel *updated_channel) {
   } frame{{0x00, 0xff, 0x55}, 0x00, {0x00, 0x00}, {0x05, 0xdc, 0x0a, 0x00}};
 
   for (size_t index = 0; index < MAX_CHANNELS; index++) {
-    auto *channel = channels_[index];
+    auto *channel = this->channels_[index];
     if (channel == nullptr)
       continue;
 

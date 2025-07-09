@@ -28,7 +28,7 @@ class OxtDimmerChannel : public light::LightOutput, public Component {
 
   // LightOutput overrides
   light::LightTraits get_traits() override;
-  void setup_state(light::LightState *state) override { light_state_ = state; }
+  void setup_state(light::LightState *state) override { this->light_state_ = state; }
   void write_state(light::LightState *state) override;
 
   // Own methods
