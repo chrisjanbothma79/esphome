@@ -314,6 +314,7 @@ async def beo4_action(var, config, args):
     template_ = await cg.templatable(config[CONF_COMMAND_REPEATS], args, cg.uint8)
     cg.add(var.set_repeats(template_))
 
+
 # Brennenstuhl
 BrennenstuhlData, BrennenstuhlBinarySensor, BrennenstuhlTrigger, BrennenstuhlAction, BrennenstuhlDumper = declare_protocol(
     "Brennenstuhl"
@@ -351,6 +352,7 @@ def brennenstuhl_dumper(var, config):
 async def brennenstuhl_action(var, config, args):
     template_ = await cg.templatable(config[CONF_CODE], args, cg.uint32)
     cg.add(var.set_code(template_))
+
 
 # ByronSX
 (
