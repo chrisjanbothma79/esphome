@@ -75,7 +75,7 @@ logger:
 
             subprocess.run(
                 ["esphome", "compile", str(config_path)],
-                check=False,
+                check=True,
                 cwd=init_dir,
                 capture_output=True,
                 text=True,
