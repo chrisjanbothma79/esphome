@@ -1,12 +1,13 @@
 import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome.components import light, uart
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_CHANNELS,
     CONF_GAMMA_CORRECT,
-    CONF_OUTPUT_ID,
-    CONF_MIN_VALUE,
+    CONF_ID,
     CONF_MAX_VALUE,
+    CONF_MIN_VALUE,
+    CONF_OUTPUT_ID,
 )
 
 CODEOWNERS = ["@michau-krakow"]
