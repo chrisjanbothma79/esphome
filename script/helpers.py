@@ -93,16 +93,10 @@ def changed_files(branch: str | None = None) -> list[str]:
 
                         event_data = json.load(f)
                         pr_data = event_data.get("pull_request", {})
-                        pr_number = str(pr_data.get("number", ""))
-
-                        # Debug: Check if files are in the event
-                        if "files" in pr_data:
-                            print("DEBUG: Found 'files' in PR event data!")
-                        # Sometimes the changed files count is there but not the actual files
-                        if "changed_files" in pr_data:
-                            print(
-                                f"DEBUG: PR has {pr_data['changed_files']} changed files (count only)"
-                            )
+                        pr_number = pr_data.get("number")
+                        if pr_number:
+                            pr_number = str(pr_number)
+                            print(f"DEBUG: Found PR number {pr_number} in event data")
                 except:  # noqa: E722
                     pass
 
@@ -115,21 +109,12 @@ def changed_files(branch: str | None = None) -> list[str]:
             if pr_number:
                 try:
                     # Use GitHub CLI to get changed files directly
-                    cmd = [
-                        "gh",
-                        "pr",
-                        "view",
-                        pr_number,
-                        "--json",
-                        "files",
-                        "--jq",
-                        ".files[].path",
-                    ]
+                    cmd = ["gh", "pr", "diff", pr_number, "--name-only"]
                     print(
                         f"DEBUG: Using GitHub CLI to get changed files for PR #{pr_number}"
                     )
                     result = _get_changed_files_from_command(cmd)
-                    print(f"DEBUG: Found {len(result)} changed files via GitHub API")
+                    print(f"DEBUG: Found {len(result)} changed files via GitHub CLI")
                     return result
                 except Exception as e:
                     print(f"DEBUG: GitHub CLI failed: {e}, falling back to git diff")
