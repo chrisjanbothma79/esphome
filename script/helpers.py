@@ -194,19 +194,41 @@ def get_changed_components() -> list[str] | None:
 def _filter_changed_ci(files: list[str]) -> list[str]:
     """Filter files based on changed components in CI environment.
 
+    This function implements intelligent filtering to reduce CI runtime by only
+    checking files that could be affected by the changes. It handles three scenarios:
+
+    1. Core files changed (returns None from get_changed_components):
+       - Triggered when any file in esphome/core/ is modified
+       - Action: Check ALL files (full scan)
+       - Reason: Core files are used throughout the codebase
+
+    2. No components changed (returns empty list from get_changed_components):
+       - Triggered when only non-component files changed (e.g., scripts, configs)
+       - Action: Check only the specific non-component files that changed
+       - Example: If only script/clang-tidy changed, only check that file
+
+    3. Specific components changed (returns list of component names):
+       - Triggered when files in esphome/components/xxx/ changed
+       - Action: Check ALL files in each changed component
+       - Example: If esphome/components/wifi/wifi.cpp changed, check ALL files
+                 in esphome/components/wifi/ (including wifi.h, wifi_component.cpp, etc.)
+       - Reason: Component files often have interdependencies (headers, base classes)
+
     Args:
-        files: List of all files to filter
+        files: List of all files that clang-tidy would normally check
 
     Returns:
         Filtered list of files to check
     """
     components = get_changed_components()
     if components is None:
-        # None means core files changed or couldn't determine - return all files for full scan
+        # Scenario 1: Core files changed or couldn't determine components
+        # Action: Return all files for full scan
         return files
 
     if not components:
-        # No components changed - check only non-component files that changed
+        # Scenario 2: No components changed - only non-component files changed
+        # Action: Check only the specific non-component files that changed
         changed = changed_files()
         files = [
             f for f in files if f in changed and not f.startswith("esphome/components/")
@@ -215,6 +237,8 @@ def _filter_changed_ci(files: list[str]) -> list[str]:
             print("No files changed")
         return files
 
+    # Scenario 3: Specific components changed
+    # Action: Check ALL files in each changed component
     # Convert component list to set for O(1) lookups
     component_set = set(components)
     print(f"Changed components: {', '.join(sorted(components))}")
