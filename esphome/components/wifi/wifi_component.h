@@ -1,5 +1,7 @@
 #pragma once
 
+// TEST
+
 #include "esphome/core/defines.h"
 #ifdef USE_WIFI
 #include "esphome/components/network/ip_address.h"
