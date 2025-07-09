@@ -82,12 +82,35 @@ def changed_files(branch: str = "dev") -> list[str]:
         if event_name == "pull_request":
             # Use GitHub's pre-fetched base branch
             base_ref = os.environ.get("GITHUB_BASE_REF", branch)
+            print(f"DEBUG: PR detected, base_ref={base_ref}")
+
+            # Debug: Show git status and info
+            try:
+                print("DEBUG: git status:")
+                print(get_output("git", "status", "--short"))
+                print("DEBUG: git branch -a:")
+                print(get_output("git", "branch", "-a"))
+                print("DEBUG: git log --oneline -5:")
+                print(get_output("git", "log", "--oneline", "-5"))
+                print(f"DEBUG: Trying to find merge-base with origin/{base_ref}")
+                merge_base = get_output(
+                    "git", "merge-base", f"origin/{base_ref}", "HEAD"
+                ).strip()
+                print(f"DEBUG: merge-base = {merge_base}")
+            except Exception as e:
+                print(f"DEBUG: Error getting git info: {e}")
+
             try:
                 # GitHub Actions already has the base branch fetched
-                return _get_changed_files_from_command(
-                    ["git", "diff", f"origin/{base_ref}...HEAD", "--name-only"]
-                )
-            except:  # noqa: E722
+                command = ["git", "diff", f"origin/{base_ref}...HEAD", "--name-only"]
+                print(f"DEBUG: Running command: {' '.join(command)}")
+                result = _get_changed_files_from_command(command)
+                print(f"DEBUG: Command returned {len(result)} files")
+                if result:
+                    print(f"DEBUG: Files: {result}")
+                return result
+            except Exception as e:
+                print(f"DEBUG: Command failed with error: {e}")
                 # Fall back to the original method if this fails
                 pass
 
