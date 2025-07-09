@@ -46,9 +46,6 @@ class OxtDimmerChannel : public light::LightOutput, public Component {
   uint8_t max_value_{255};
   uint8_t brightness_{0};
   light::LightState *light_state_{nullptr};
-
-  void short_press_();
-  void periodic_long_press_();
 };
 
 /**
@@ -63,7 +60,6 @@ class OxtController : public uart::UARTDevice, public Component {
 
   // Component methods
   void dump_config() override;
-  float get_setup_priority() const override { return esphome::setup_priority::DATA; }
 
   // Own methods
   void add_channel(uint8_t index, OxtDimmerChannel *channel) {
