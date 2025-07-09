@@ -166,8 +166,17 @@ def _get_changed_files_from_command(command: list[str]) -> list[str]:
 def get_changed_components() -> list[str] | None:
     """Get list of changed components using list-components.py script.
 
+    This function:
+    1. First checks if any core files (esphome/core/*) changed - if so, returns None
+    2. Otherwise delegates to ./script/list-components.py --changed which:
+       - Analyzes all changed files
+       - Determines which components are affected (including dependencies)
+       - Returns a list of component names that need to be checked
+
     Returns:
-        List of component names that changed, or None to trigger full scan
+        - None: Core files changed, need full scan
+        - Empty list: No components changed (only non-component files changed)
+        - List of strings: Names of components that need checking (e.g., ["wifi", "mqtt"])
     """
     # Check if any core files changed first
     changed = changed_files()
@@ -208,10 +217,13 @@ def _filter_changed_ci(files: list[str]) -> list[str]:
        - Example: If only script/clang-tidy changed, only check that file
 
     3. Specific components changed (returns list of component names):
-       - Triggered when files in esphome/components/xxx/ changed
-       - Action: Check ALL files in each changed component
-       - Example: If esphome/components/wifi/wifi.cpp changed, check ALL files
-                 in esphome/components/wifi/ (including wifi.h, wifi_component.cpp, etc.)
+       - Component detection done by: ./script/list-components.py --changed
+       - That script analyzes which components are affected by the changed files
+         INCLUDING their dependencies
+       - Action: Check ALL files in each component that list-components.py identifies
+       - Example: If wifi.cpp changed, list-components.py might return ["wifi", "network"]
+                 if network depends on wifi. We then check ALL files in both
+                 esphome/components/wifi/ and esphome/components/network/
        - Reason: Component files often have interdependencies (headers, base classes)
 
     Args:
