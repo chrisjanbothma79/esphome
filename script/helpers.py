@@ -90,14 +90,16 @@ def changed_files(branch: str | None = None) -> list[str]:
                 pr_number = github_ref.split("/pull/")[1].split("/")[0]
 
             # Fallback to GitHub event file
-            if not pr_number:
-                github_event_path = os.environ.get("GITHUB_EVENT_PATH")
-                if github_event_path and os.path.exists(github_event_path):
-                    with open(github_event_path) as f:
-                        event_data = json.load(f)
-                        pr_data = event_data.get("pull_request", {})
-                        if pr_number := pr_data.get("number"):
-                            pr_number = str(pr_number)
+            if (
+                not pr_number
+                and (github_event_path := os.environ.get("GITHUB_EVENT_PATH"))
+                and os.path.exists(github_event_path)
+            ):
+                with open(github_event_path) as f:
+                    event_data = json.load(f)
+                    pr_data = event_data.get("pull_request", {})
+                    if pr_number := pr_data.get("number"):
+                        pr_number = str(pr_number)
 
             if pr_number:
                 # Use GitHub CLI to get changed files directly
@@ -138,7 +140,7 @@ def _get_changed_files_from_command(command: list[str]) -> list[str]:
     """Run a git command to get changed files and return them as a list."""
     proc = subprocess.run(command, capture_output=True, text=True, check=False)
     if proc.returncode != 0:
-        raise Exception(f"Command failed: {' '.join(command)}")
+        raise Exception(f"Command failed: {' '.join(command)}\nstderr: {proc.stderr}")
 
     changed_files = splitlines_no_ends(proc.stdout)
     changed_files = [os.path.relpath(f, os.getcwd()) for f in changed_files if f]
