@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 from pathlib import Path
+import re
 import sys
 
 # Add the script directory to path to import helpers
@@ -19,15 +20,45 @@ def read_file_lines(path: Path) -> list[str]:
         return f.readlines()
 
 
+def parse_requirement_line(line: str) -> tuple[str, str] | None:
+    """Parse a requirement line and return (package, original_line) or None.
+
+    Handles formats like:
+    - package==1.2.3
+    - package==1.2.3  # comment
+    - package>=1.2.3,<2.0.0
+    """
+    original_line = line.strip()
+
+    # Extract the part before any comment for parsing
+    parse_line = line
+    if "#" in parse_line:
+        parse_line = parse_line[: parse_line.index("#")]
+
+    parse_line = parse_line.strip()
+    if not parse_line:
+        return None
+
+    # Use regex to extract package name
+    # This matches package names followed by version operators
+    match = re.match(r"^([a-zA-Z0-9_-]+)(==|>=|<=|>|<|!=|~=)(.+)$", parse_line)
+    if match:
+        return (match.group(1), original_line)  # Return package name and original line
+
+    return None
+
+
 def get_clang_tidy_version_from_requirements() -> str:
     """Get clang-tidy version from requirements_dev.txt"""
     requirements_path = Path(__file__).parent.parent / "requirements_dev.txt"
     lines = read_file_lines(requirements_path)
+
     for line in lines:
-        line = line.strip()
-        if line.startswith("clang-tidy=="):
-            # Return the full line including version and comment
-            return line
+        parsed = parse_requirement_line(line)
+        if parsed and parsed[0] == "clang-tidy":
+            # Return the original line (preserves comments)
+            return parsed[1]
+
     return "clang-tidy version not found"
 
 

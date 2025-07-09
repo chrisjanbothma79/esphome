@@ -335,3 +335,25 @@ def test_write_file_content(tmp_path: Path) -> None:
     clang_tidy_hash.write_file_content(test_file, test_content)
 
     assert test_file.read_text() == test_content
+
+
+@pytest.mark.parametrize(
+    ("line", "expected"),
+    [
+        ("clang-tidy==18.1.5", ("clang-tidy", "clang-tidy==18.1.5")),
+        (
+            "clang-tidy==18.1.5  # comment",
+            ("clang-tidy", "clang-tidy==18.1.5  # comment"),
+        ),
+        ("some-package>=1.0,<2.0", ("some-package", "some-package>=1.0,<2.0")),
+        ("pkg_with-dashes==1.0", ("pkg_with-dashes", "pkg_with-dashes==1.0")),
+        ("# just a comment", None),
+        ("", None),
+        ("   ", None),
+        ("invalid line without version", None),
+    ],
+)
+def test_parse_requirement_line(line: str, expected: tuple[str, str] | None) -> None:
+    """Test parsing individual requirement lines."""
+    result = clang_tidy_hash.parse_requirement_line(line)
+    assert result == expected
