@@ -26,6 +26,7 @@ _get_changed_files_github_actions = helpers._get_changed_files_github_actions
 _filter_changed_ci = helpers._filter_changed_ci
 _filter_changed_local = helpers._filter_changed_local
 build_all_include = helpers.build_all_include
+print_file_list = helpers.print_file_list
 
 
 @pytest.mark.parametrize(
@@ -726,3 +727,86 @@ def test_build_all_include_creates_directory(tmp_path: Path) -> None:
     # Check that directory was created
     assert temp_file.parent.exists()
     assert temp_file.exists()
+
+
+def test_print_file_list_empty(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test printing an empty file list."""
+    print_file_list([], "Test Files:")
+    captured = capsys.readouterr()
+
+    assert "Test Files:" in captured.out
+    assert "No files to check!" in captured.out
+
+
+def test_print_file_list_small(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test printing a small list of files (less than max_files)."""
+    files = ["file1.cpp", "file2.cpp", "file3.cpp"]
+    print_file_list(files, "Test Files:", max_files=20)
+    captured = capsys.readouterr()
+
+    assert "Test Files:" in captured.out
+    assert "    file1.cpp" in captured.out
+    assert "    file2.cpp" in captured.out
+    assert "    file3.cpp" in captured.out
+    assert "... and" not in captured.out
+
+
+def test_print_file_list_exact_max_files(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test printing exactly max_files number of files."""
+    files = [f"file{i}.cpp" for i in range(20)]
+    print_file_list(files, "Test Files:", max_files=20)
+    captured = capsys.readouterr()
+
+    # All files should be shown
+    for i in range(20):
+        assert f"    file{i}.cpp" in captured.out
+    assert "... and" not in captured.out
+
+
+def test_print_file_list_large(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test printing a large list of files (more than max_files)."""
+    files = [f"file{i:03d}.cpp" for i in range(50)]
+    print_file_list(files, "Test Files:", max_files=20)
+    captured = capsys.readouterr()
+
+    assert "Test Files:" in captured.out
+    # First 10 files should be shown (sorted)
+    for i in range(10):
+        assert f"    file{i:03d}.cpp" in captured.out
+    # Files 10-49 should not be shown
+    assert "    file010.cpp" not in captured.out
+    assert "    file049.cpp" not in captured.out
+    # Should show count of remaining files
+    assert "... and 40 more files" in captured.out
+
+
+def test_print_file_list_unsorted(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test that files are sorted before printing."""
+    files = ["z_file.cpp", "a_file.cpp", "m_file.cpp"]
+    print_file_list(files, "Test Files:", max_files=20)
+    captured = capsys.readouterr()
+
+    lines = captured.out.strip().split("\n")
+    # Check order in output
+    assert lines[1] == "    a_file.cpp"
+    assert lines[2] == "    m_file.cpp"
+    assert lines[3] == "    z_file.cpp"
+
+
+def test_print_file_list_custom_max_files(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test with custom max_files parameter."""
+    files = [f"file{i}.cpp" for i in range(15)]
+    print_file_list(files, "Test Files:", max_files=10)
+    captured = capsys.readouterr()
+
+    # Should truncate after 10 files
+    assert "... and 5 more files" in captured.out
+
+
+def test_print_file_list_default_title(capsys: pytest.CaptureFixture[str]) -> None:
+    """Test with default title."""
+    print_file_list(["test.cpp"])
+    captured = capsys.readouterr()
+
+    assert "Files:" in captured.out
+    assert "    test.cpp" in captured.out
