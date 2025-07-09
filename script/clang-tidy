@@ -204,11 +204,6 @@ def main():
     parser.add_argument(
         "-c", "--changed", action="store_true", help="only run on changed files"
     )
-    parser.add_argument(
-        "--from-ci",
-        action="store_true",
-        help="running from CI (assumes ripgrep available)",
-    )
     parser.add_argument("-g", "--grep", help="only run on files containing value")
     parser.add_argument(
         "--split-num", type=int, help="split the files into X jobs.", default=None
@@ -236,7 +231,7 @@ def main():
         files = [p for p in files if file_name_re.search(p)]
 
     if args.changed:
-        files = filter_changed(files, from_ci=args.from_ci)
+        files = filter_changed(files)
 
     if args.grep:
         files = filter_grep(files, args.grep)
