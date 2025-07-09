@@ -945,6 +945,9 @@ class MemoryAnalyzer:
         self._esphome_core_symbols: list[
             tuple[str, str, int]
         ] = []  # Track core symbols
+        self._component_symbols: dict[str, list[tuple[str, str, int]]] = defaultdict(
+            list
+        )  # Track symbols for all components
 
     def analyze(self) -> dict[str, ComponentMemory]:
         """Analyze the ELF file and return component memory usage."""
@@ -1109,6 +1112,13 @@ class MemoryAnalyzer:
                 if component == "[esphome]core" and size > 0:
                     demangled = self._demangle_symbol(symbol_name)
                     self._esphome_core_symbols.append((symbol_name, demangled, size))
+
+                # Track all component symbols for detailed analysis
+                if size > 0:
+                    demangled = self._demangle_symbol(symbol_name)
+                    self._component_symbols[component].append(
+                        (symbol_name, demangled, size)
+                    )
 
     def _identify_component(self, symbol_name: str) -> str:
         """Identify which component a symbol belongs to."""
@@ -1463,6 +1473,44 @@ class MemoryAnalyzer:
                 lines.append(f"{i + 1}. {demangled[:MAX_SYMBOL_LENGTH]} ({size:,} B)")
 
             lines.append("=" * table_width)
+
+        # Add detailed analysis for top 5 ESPHome components
+        esphome_components = [
+            (name, mem)
+            for name, mem in components
+            if name.startswith("[esphome]") and name != "[esphome]core"
+        ]
+        top_esphome_components = sorted(
+            esphome_components, key=lambda x: x[1].flash_total, reverse=True
+        )[:5]
+
+        if top_esphome_components:
+            for comp_name, comp_mem in top_esphome_components:
+                comp_symbols = self._component_symbols.get(comp_name, [])
+                if comp_symbols:
+                    lines.append("")
+                    lines.append("=" * table_width)
+                    lines.append(f"{comp_name} Detailed Analysis".center(table_width))
+                    lines.append("=" * table_width)
+                    lines.append("")
+
+                    # Sort symbols by size
+                    sorted_symbols = sorted(
+                        comp_symbols, key=lambda x: x[2], reverse=True
+                    )
+
+                    lines.append(f"Total symbols: {len(sorted_symbols)}")
+                    lines.append(f"Total size: {comp_mem.flash_total:,} B")
+                    lines.append("")
+                    lines.append(f"Top 10 Largest {comp_name} Symbols:")
+
+                    MAX_SYMBOL_LENGTH = 80
+                    for i, (symbol, demangled, size) in enumerate(sorted_symbols[:10]):
+                        lines.append(
+                            f"{i + 1}. {demangled[:MAX_SYMBOL_LENGTH]} ({size:,} B)"
+                        )
+
+                    lines.append("=" * table_width)
 
         return "\n".join(lines)
 
