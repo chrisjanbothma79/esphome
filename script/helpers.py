@@ -73,50 +73,66 @@ def splitlines_no_ends(string: str) -> list[str]:
     return [s.strip() for s in string.splitlines()]
 
 
+def _get_pr_number_from_github_env() -> str | None:
+    """Extract PR number from GitHub environment variables.
+
+    Returns:
+        PR number as string, or None if not found
+    """
+    # First try parsing GITHUB_REF (fastest)
+    github_ref = os.environ.get("GITHUB_REF", "")
+    if "/pull/" in github_ref:
+        return github_ref.split("/pull/")[1].split("/")[0]
+
+    # Fallback to GitHub event file
+    github_event_path = os.environ.get("GITHUB_EVENT_PATH")
+    if github_event_path and os.path.exists(github_event_path):
+        with open(github_event_path) as f:
+            event_data = json.load(f)
+            pr_data = event_data.get("pull_request", {})
+            if pr_number := pr_data.get("number"):
+                return str(pr_number)
+
+    return None
+
+
+def _get_changed_files_github_actions() -> list[str] | None:
+    """Get changed files in GitHub Actions environment.
+
+    Returns:
+        List of changed files, or None if should fall back to git method
+    """
+    event_name = os.environ.get("GITHUB_EVENT_NAME")
+
+    # For pull requests
+    if event_name == "pull_request":
+        pr_number = _get_pr_number_from_github_env()
+        if pr_number:
+            # Use GitHub CLI to get changed files directly
+            cmd = ["gh", "pr", "diff", pr_number, "--name-only"]
+            return _get_changed_files_from_command(cmd)
+
+    # For pushes (including squash-and-merge)
+    elif event_name == "push":
+        # For push events, we want to check what changed in this commit
+        try:
+            # Get the changed files in the last commit
+            return _get_changed_files_from_command(
+                ["git", "diff", "HEAD~1..HEAD", "--name-only"]
+            )
+        except:  # noqa: E722
+            # Fall back to the original method if this fails
+            pass
+
+    return None
+
+
 def changed_files(branch: str | None = None) -> list[str]:
     # In GitHub Actions, we can use the API to get changed files more efficiently
     if os.environ.get("GITHUB_ACTIONS") == "true":
-        event_name = os.environ.get("GITHUB_EVENT_NAME")
-
-        # For pull requests
-        if event_name == "pull_request":
-            # Try to use GitHub CLI first (much faster)
-            # In GitHub Actions, the PR number is in the event data
-            pr_number: str | None = None
-
-            # First try parsing GITHUB_REF (fastest)
-            github_ref = os.environ.get("GITHUB_REF", "")
-            if "/pull/" in github_ref:
-                pr_number = github_ref.split("/pull/")[1].split("/")[0]
-
-            # Fallback to GitHub event file
-            if (
-                not pr_number
-                and (github_event_path := os.environ.get("GITHUB_EVENT_PATH"))
-                and os.path.exists(github_event_path)
-            ):
-                with open(github_event_path) as f:
-                    event_data = json.load(f)
-                    pr_data = event_data.get("pull_request", {})
-                    if pr_number := pr_data.get("number"):
-                        pr_number = str(pr_number)
-
-            if pr_number:
-                # Use GitHub CLI to get changed files directly
-                cmd = ["gh", "pr", "diff", pr_number, "--name-only"]
-                return _get_changed_files_from_command(cmd)
-
-        # For pushes (including squash-and-merge)
-        elif event_name == "push":
-            # For push events, we want to check what changed in this commit
-            try:
-                # Get the changed files in the last commit
-                return _get_changed_files_from_command(
-                    ["git", "diff", "HEAD~1..HEAD", "--name-only"]
-                )
-            except:  # noqa: E722
-                # Fall back to the original method if this fails
-                pass
+        github_files = _get_changed_files_github_actions()
+        if github_files is not None:
+            return github_files
 
     # Original implementation for local development
     if branch is None:

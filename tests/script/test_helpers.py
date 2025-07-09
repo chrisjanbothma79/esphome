@@ -21,6 +21,64 @@ changed_files = helpers.changed_files
 filter_changed = helpers.filter_changed
 get_changed_components = helpers.get_changed_components
 _get_changed_files_from_command = helpers._get_changed_files_from_command
+_get_pr_number_from_github_env = helpers._get_pr_number_from_github_env
+_get_changed_files_github_actions = helpers._get_changed_files_github_actions
+
+
+@pytest.mark.parametrize(
+    ("github_ref", "expected_pr_number"),
+    [
+        ("refs/pull/1234/merge", "1234"),
+        ("refs/pull/5678/head", "5678"),
+        ("refs/pull/999/merge", "999"),
+        ("refs/heads/main", None),
+        ("", None),
+    ],
+)
+def test_get_pr_number_from_github_env_ref(
+    monkeypatch: MonkeyPatch, github_ref: str, expected_pr_number: str | None
+) -> None:
+    """Test extracting PR number from GITHUB_REF."""
+    monkeypatch.setenv("GITHUB_REF", github_ref)
+    # Make sure GITHUB_EVENT_PATH is not set
+    monkeypatch.delenv("GITHUB_EVENT_PATH", raising=False)
+
+    result = _get_pr_number_from_github_env()
+
+    assert result == expected_pr_number
+
+
+def test_get_pr_number_from_github_env_event_file(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    """Test extracting PR number from GitHub event file."""
+    # No PR number in ref
+    monkeypatch.setenv("GITHUB_REF", "refs/heads/feature-branch")
+
+    event_file = tmp_path / "event.json"
+    event_data = {"pull_request": {"number": 5678}}
+    event_file.write_text(json.dumps(event_data))
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event_file))
+
+    result = _get_pr_number_from_github_env()
+
+    assert result == "5678"
+
+
+def test_get_pr_number_from_github_env_no_pr(
+    monkeypatch: MonkeyPatch, tmp_path: Path
+) -> None:
+    """Test when no PR number is available."""
+    monkeypatch.setenv("GITHUB_REF", "refs/heads/main")
+
+    event_file = tmp_path / "event.json"
+    event_data = {"push": {"head_commit": {"id": "abc123"}}}
+    event_file.write_text(json.dumps(event_data))
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event_file))
+
+    result = _get_pr_number_from_github_env()
+
+    assert result is None
 
 
 @pytest.mark.parametrize(
@@ -90,6 +148,76 @@ def test_github_actions_push_event(monkeypatch: MonkeyPatch) -> None:
 
         mock_get.assert_called_once_with(["git", "diff", "HEAD~1..HEAD", "--name-only"])
         assert result == expected_files
+
+
+def test_get_changed_files_github_actions_pull_request(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Test _get_changed_files_github_actions for pull request event."""
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "pull_request")
+
+    expected_files = ["file1.py", "file2.cpp"]
+
+    with (
+        patch("helpers._get_pr_number_from_github_env", return_value="1234"),
+        patch("helpers._get_changed_files_from_command") as mock_get,
+    ):
+        mock_get.return_value = expected_files
+
+        result = _get_changed_files_github_actions()
+
+        mock_get.assert_called_once_with(["gh", "pr", "diff", "1234", "--name-only"])
+        assert result == expected_files
+
+
+def test_get_changed_files_github_actions_pull_request_no_pr_number(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Test _get_changed_files_github_actions when no PR number is found."""
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "pull_request")
+
+    with patch("helpers._get_pr_number_from_github_env", return_value=None):
+        result = _get_changed_files_github_actions()
+
+        assert result is None
+
+
+def test_get_changed_files_github_actions_push(monkeypatch: MonkeyPatch) -> None:
+    """Test _get_changed_files_github_actions for push event."""
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "push")
+
+    expected_files = ["file1.py", "file2.cpp"]
+
+    with patch("helpers._get_changed_files_from_command") as mock_get:
+        mock_get.return_value = expected_files
+
+        result = _get_changed_files_github_actions()
+
+        mock_get.assert_called_once_with(["git", "diff", "HEAD~1..HEAD", "--name-only"])
+        assert result == expected_files
+
+
+def test_get_changed_files_github_actions_push_fallback(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    """Test _get_changed_files_github_actions fallback for push event."""
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "push")
+
+    with patch("helpers._get_changed_files_from_command") as mock_get:
+        mock_get.side_effect = Exception("Failed")
+
+        result = _get_changed_files_github_actions()
+
+        assert result is None
+
+
+def test_get_changed_files_github_actions_other_event(monkeypatch: MonkeyPatch) -> None:
+    """Test _get_changed_files_github_actions for other event types."""
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "workflow_dispatch")
+
+    result = _get_changed_files_github_actions()
+
+    assert result is None
 
 
 def test_github_actions_push_event_fallback(monkeypatch: MonkeyPatch) -> None:
