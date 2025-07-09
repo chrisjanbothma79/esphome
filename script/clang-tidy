@@ -22,6 +22,7 @@ from helpers import (
     git_ls_files,
     load_idedata,
     print_error_for_file,
+    print_file_list,
     root_path,
     temp_header_file,
 )
@@ -258,14 +259,7 @@ def main():
         print(f"Added all-include header file, new total: {len(files)}")
 
     # Print file list before loading idedata
-    if len(files) <= 20:
-        for f in files:
-            print(f"  {f}")
-    else:
-        print("First 10 files:")
-        for f in files[:10]:
-            print(f"  {f}")
-        print(f"  ... and {len(files) - 10} more files")
+    print_file_list(files, "Files to process:")
 
     # Load idedata and options only if we have files to check
     idedata = load_idedata(args.environment)
