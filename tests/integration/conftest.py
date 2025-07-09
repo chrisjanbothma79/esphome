@@ -92,14 +92,13 @@ logger:
                 env = os.environ.copy()
                 env["PLATFORMIO_CORE_DIR"] = str(cache_dir)
                 env["PLATFORMIO_CACHE_DIR"] = str(cache_dir / ".cache")
+                env["PLATFORMIO_LIBDEPS_DIR"] = str(cache_dir / "libdeps")
 
                 subprocess.run(
                     ["esphome", "compile", str(config_path)],
                     check=True,
                     cwd=init_dir,
                     env=env,
-                    capture_output=True,
-                    text=True,
                 )
 
         # Lock is held until here, ensuring cache is fully populated before any test proceeds
@@ -228,6 +227,8 @@ async def compile_esphome(
         env = os.environ.copy()
         env["PLATFORMIO_CORE_DIR"] = str(shared_platformio_cache)
         env["PLATFORMIO_CACHE_DIR"] = str(shared_platformio_cache / ".cache")
+        # Also share library dependencies to avoid re-downloading noise-c and libsodium
+        env["PLATFORMIO_LIBDEPS_DIR"] = str(shared_platformio_cache / "libdeps")
 
         # Retry compilation up to 3 times if we get a segfault
         max_retries = 3
