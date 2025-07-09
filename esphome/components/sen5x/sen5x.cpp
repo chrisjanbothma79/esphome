@@ -496,6 +496,18 @@ void SEN5XComponent::update() {
   uint16_t cmd;
   uint8_t length;
   switch (this->model_.value()) {
+    case SEN50:
+      cmd = SEN5X_CMD_READ_MEASUREMENT;
+      length = 4;
+      break;
+    case SEN54:
+      cmd = SEN5X_CMD_READ_MEASUREMENT;
+      length = 7;
+      break;
+    case SEN55:
+      cmd = SEN5X_CMD_READ_MEASUREMENT;
+      length = 8;
+      break;
     case SEN60:
       cmd = SEN60_CMD_READ_MEASUREMENT;
       length = 4;
@@ -517,9 +529,9 @@ void SEN5XComponent::update() {
       length = 9;
       break;
     default:
-      cmd = SEN5X_CMD_READ_MEASUREMENT;
-      length = 9;
-      break;
+      ESP_LOGE(TAG, "Unsupported model");
+      this->status_set_warning();
+      return;
   }
 
   if (!this->write_command(cmd)) {
@@ -532,6 +544,7 @@ void SEN5XComponent::update() {
     uint16_t measurements[9];
 
     if (!this->read_data(measurements, length)) {
+      ESP_LOGV(TAG, "Read measurement error");
       this->status_set_warning();
       return;
     }

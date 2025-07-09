@@ -22,6 +22,7 @@ from esphome.const import (
     CONF_TEMPERATURE_COMPENSATION,
     CONF_VALUE,
     DEVICE_CLASS_AQI,
+    DEVICE_CLASS_CARBON_DIOXIDE,
     DEVICE_CLASS_HUMIDITY,
     DEVICE_CLASS_PM1,
     DEVICE_CLASS_PM10,
@@ -35,10 +36,9 @@ from esphome.const import (
     STATE_CLASS_MEASUREMENT,
     UNIT_CELSIUS,
     UNIT_MICROGRAMS_PER_CUBIC_METER,
-    UNIT_PERCENT,
-    UNIT_PARTS_PER_MILLION,
     UNIT_PARTS_PER_BILLION,
-    DEVICE_CLASS_CARBON_DIOXIDE,
+    UNIT_PARTS_PER_MILLION,
+    UNIT_PERCENT,
 )
 
 CODEOWNERS = ["@martgras"]
@@ -154,7 +154,7 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_MODEL): cv.enum(SEN5X_MODELS, upper=True),
             cv.Optional(CONF_ACCELERATION_MODE): cv.enum(ACCELERATION_MODES),
             cv.Optional(CONF_AUTO_CLEANING_INTERVAL): cv.update_interval,
-            cv.Optional(CONF_STORE_BASELINE, default=True): cv.boolean,
+            cv.Optional(CONF_STORE_BASELINE): cv.boolean,
             cv.Optional(CONF_TEMPERATURE_COMPENSATION): cv.Schema(
                 {
                     cv.Optional(CONF_OFFSET, default=0): cv.float_,
