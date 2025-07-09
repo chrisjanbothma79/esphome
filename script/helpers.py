@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import os.path
 from pathlib import Path
 import re
@@ -73,6 +74,40 @@ def splitlines_no_ends(string: str) -> list[str]:
 
 
 def changed_files(branch: str = "dev") -> list[str]:
+    # In GitHub Actions, we can use the API to get changed files more efficiently
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        event_name = os.environ.get("GITHUB_EVENT_NAME")
+
+        # For pull requests
+        if event_name == "pull_request":
+            # Use GitHub's pre-fetched base branch
+            base_ref = os.environ.get("GITHUB_BASE_REF", branch)
+            try:
+                # GitHub Actions already has the base branch fetched
+                command = ["git", "diff", f"origin/{base_ref}...HEAD", "--name-only"]
+                changed = splitlines_no_ends(get_output(*command))
+                changed = [os.path.relpath(f, os.getcwd()) for f in changed]
+                changed.sort()
+                return changed
+            except:  # noqa: E722
+                # Fall back to the original method if this fails
+                pass
+
+        # For pushes (including squash-and-merge)
+        elif event_name == "push":
+            # For push events, we want to check what changed in this commit
+            try:
+                # Get the changed files in the last commit
+                command = ["git", "diff", "HEAD~1..HEAD", "--name-only"]
+                changed = splitlines_no_ends(get_output(*command))
+                changed = [os.path.relpath(f, os.getcwd()) for f in changed]
+                changed.sort()
+                return changed
+            except:  # noqa: E722
+                # Fall back to the original method if this fails
+                pass
+
+    # Original implementation for local development
     check_remotes = ["upstream", "origin"]
     check_remotes.extend(splitlines_no_ends(get_output("git", "remote")))
     for remote in check_remotes:
