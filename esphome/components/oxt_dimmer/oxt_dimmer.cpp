@@ -16,7 +16,7 @@
 namespace esphome {
 namespace oxt_dimmer {
 
-static const char *const TAG = "oxt";
+static const char *const TAG = "oxt_dimmer";
 
 void OxtController::send_to_mcu_(const OxtDimmerChannel *updated_channel) {
   struct {
