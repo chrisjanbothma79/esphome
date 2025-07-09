@@ -71,7 +71,7 @@ def shared_platformio_cache() -> Generator[Path]:
     # Use a lock file in the home directory to ensure only one process initializes the cache
     # This is needed when running with pytest-xdist
     # The lock file must be in a directory that already exists to avoid race conditions
-    lock_file = Path.home() / "esphome_integration_test_init.lock"
+    lock_file = Path.home() / ".esphome-integration-tests-init.lock"
 
     # Always acquire the lock to ensure cache is ready before proceeding
     with open(lock_file, "w") as lock_fd:
