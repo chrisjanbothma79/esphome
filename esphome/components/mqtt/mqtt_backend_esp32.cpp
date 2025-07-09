@@ -150,15 +150,16 @@ void MQTTBackendESP32::mqtt_event_handler_(const Event &event) {
       this->on_publish_.call((int) event.msg_id);
       break;
     case MQTT_EVENT_DATA: {
+      static std::string topic;
       if (event.topic.length() > 0) {
         // When a single message arrives as multiple chunks, the topic will be nullptr
         // on any but the first message, leading to event.topic being an empty string.
         // To ensure handlers get the correct topic, cache the last seen topic to
         // simulate always receiving the topic from underlying library
-        topic_cache_ = event.topic;
+        topic = event.topic;
       }
-      ESP_LOGV(TAG, "MQTT_EVENT_DATA %s", topic_cache_.c_str());
-      this->on_message_.call(topic_cache_.c_str(), event.data.data(), event.data.size(), event.current_data_offset,
+      ESP_LOGV(TAG, "MQTT_EVENT_DATA %s", topic.c_str());
+      this->on_message_.call(topic.c_str(), event.data.data(), event.data.size(), event.current_data_offset,
                              event.total_data_len);
     } break;
     case MQTT_EVENT_ERROR:
