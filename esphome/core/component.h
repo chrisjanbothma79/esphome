@@ -7,6 +7,8 @@
 
 #include "esphome/core/optional.h"
 
+// ANOTHER TEST
+
 namespace esphome {
 
 /** Default setup priorities for components of different types.
