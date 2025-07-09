@@ -82,85 +82,27 @@ def changed_files(branch: str | None = None) -> list[str]:
         if event_name == "pull_request":
             # Try to use GitHub CLI first (much faster)
             # In GitHub Actions, the PR number is in the event data
-            pr_number = None
+            pr_number: str | None = None
 
-            # First try the GitHub event file
-            github_event_path = os.environ.get("GITHUB_EVENT_PATH")
-            if github_event_path and os.path.exists(github_event_path):
-                try:
+            # First try parsing GITHUB_REF (fastest)
+            github_ref = os.environ.get("GITHUB_REF", "")
+            if "/pull/" in github_ref:
+                pr_number = github_ref.split("/pull/")[1].split("/")[0]
+
+            # Fallback to GitHub event file
+            if not pr_number:
+                github_event_path = os.environ.get("GITHUB_EVENT_PATH")
+                if github_event_path and os.path.exists(github_event_path):
                     with open(github_event_path) as f:
-                        import json
-
                         event_data = json.load(f)
                         pr_data = event_data.get("pull_request", {})
-                        pr_number = pr_data.get("number")
-                        if pr_number:
+                        if pr_number := pr_data.get("number"):
                             pr_number = str(pr_number)
-                            print(f"DEBUG: Found PR number {pr_number} in event data")
-                except:  # noqa: E722
-                    pass
-
-            # Fallback to parsing GITHUB_REF
-            if not pr_number:
-                github_ref = os.environ.get("GITHUB_REF", "")
-                if "/pull/" in github_ref:
-                    pr_number = github_ref.split("/pull/")[1].split("/")[0]
 
             if pr_number:
-                try:
-                    # Use GitHub CLI to get changed files directly
-                    cmd = ["gh", "pr", "diff", pr_number, "--name-only"]
-                    print(
-                        f"DEBUG: Using GitHub CLI to get changed files for PR #{pr_number}"
-                    )
-                    # First let's see what gh pr diff returns without name-only
-                    debug_cmd = [
-                        "gh",
-                        "pr",
-                        "view",
-                        pr_number,
-                        "--json",
-                        "files,commits,baseRefName,headRefName",
-                    ]
-                    debug_output = get_output(*debug_cmd)
-                    print(f"DEBUG: PR info: {debug_output}")
-
-                    # Now get the actual changed files
-                    print(f"DEBUG: Running command: {' '.join(cmd)}")
-                    # GitHub CLI needs GH_TOKEN in Actions
-                    env = os.environ.copy()
-                    # In GitHub Actions, GITHUB_TOKEN is available
-                    if "GITHUB_TOKEN" in env and "GH_TOKEN" not in env:
-                        env["GH_TOKEN"] = env["GITHUB_TOKEN"]
-
-                    # Let's check both stdout and stderr
-                    proc = subprocess.run(
-                        cmd, capture_output=True, text=True, check=False, env=env
-                    )
-                    print(f"DEBUG: Return code: {proc.returncode}")
-                    print(f"DEBUG: Stdout: '{proc.stdout}'")
-                    print(f"DEBUG: Stderr: '{proc.stderr}'")
-                    result = _get_changed_files_from_command(cmd)
-                    print(f"DEBUG: Found {len(result)} changed files via GitHub CLI")
-                    if len(result) == 0:
-                        # Try without --name-only to see what's happening
-                        raw_diff = get_output("gh", "pr", "diff", pr_number)
-                        print(f"DEBUG: Raw diff output length: {len(raw_diff)}")
-                        print(f"DEBUG: First 500 chars of diff: {raw_diff[:500]}")
-                    return result
-                except Exception as e:
-                    print(f"DEBUG: GitHub CLI failed: {e}, falling back to git diff")
-
-            # Fall back to git diff approach
-            base_ref = os.environ.get("GITHUB_BASE_REF", branch or "dev")
-            try:
-                # GitHub Actions already has the base branch fetched
-                return _get_changed_files_from_command(
-                    ["git", "diff", f"origin/{base_ref}...HEAD", "--name-only"]
-                )
-            except:  # noqa: E722
-                # Fall back to the original method if this fails
-                pass
+                # Use GitHub CLI to get changed files directly
+                cmd = ["gh", "pr", "diff", pr_number, "--name-only"]
+                return _get_changed_files_from_command(cmd)
 
         # For pushes (including squash-and-merge)
         elif event_name == "push":
@@ -194,21 +136,11 @@ def changed_files(branch: str | None = None) -> list[str]:
 
 def _get_changed_files_from_command(command: list[str]) -> list[str]:
     """Run a git command to get changed files and return them as a list."""
-    # For gh commands, we need to set GH_TOKEN
-    env = None
-    if command and command[0] == "gh":
-        env = os.environ.copy()
-        if "GITHUB_TOKEN" in env and "GH_TOKEN" not in env:
-            env["GH_TOKEN"] = env["GITHUB_TOKEN"]
-
-    # Run command with environment
-    proc = subprocess.run(command, capture_output=True, text=True, check=False, env=env)
+    proc = subprocess.run(command, capture_output=True, text=True, check=False)
     if proc.returncode != 0:
-        print(f"DEBUG: Command failed with code {proc.returncode}")
-        print(f"DEBUG: stderr: {proc.stderr}")
+        raise Exception(f"Command failed: {' '.join(command)}")
 
-    output = proc.stdout
-    changed_files = splitlines_no_ends(output)
+    changed_files = splitlines_no_ends(proc.stdout)
     changed_files = [os.path.relpath(f, os.getcwd()) for f in changed_files if f]
     changed_files.sort()
     return changed_files
