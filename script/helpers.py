@@ -15,13 +15,13 @@ temp_folder = os.path.join(root_path, ".temp")
 temp_header_file = os.path.join(temp_folder, "all-include.cpp")
 
 
-def styled(color, msg, reset=True):
+def styled(color: str | tuple[str, ...], msg: str, reset: bool = True) -> str:
     prefix = "".join(color) if isinstance(color, tuple) else color
     suffix = colorama.Style.RESET_ALL if reset else ""
     return prefix + msg + suffix
 
 
-def print_error_for_file(file, body):
+def print_error_for_file(file: str, body: str | None) -> None:
     print(
         styled(colorama.Fore.GREEN, "### File ")
         + styled((colorama.Fore.GREEN, colorama.Style.BRIGHT), file)
@@ -56,13 +56,13 @@ def build_all_include() -> None:
     p.write_text(content, encoding="utf-8")
 
 
-def get_output(*args):
+def get_output(*args: str) -> str:
     with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         output, _ = proc.communicate()
     return output.decode("utf-8")
 
 
-def get_err(*args):
+def get_err(*args: str) -> str:
     with subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE) as proc:
         _, err = proc.communicate()
     return err.decode("utf-8")

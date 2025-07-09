@@ -700,7 +700,7 @@ def test_build_all_include_empty_output(tmp_path: Path) -> None:
     assert include_file.exists()
 
     content = include_file.read_text()
-    # Should just have empty line
+    # Should have just the final empty line since headers list is empty
     assert content == "\n"
 
 
