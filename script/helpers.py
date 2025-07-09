@@ -87,12 +87,28 @@ def changed_files(branch: str | None = None) -> list[str]:
             # Check if the base branch exists
             try:
                 verify_cmd = ["git", "rev-parse", "--verify", f"origin/{base_ref}"]
-                get_output(*verify_cmd)
-                print(f"DEBUG: origin/{base_ref} exists")
+                base_sha = get_output(*verify_cmd).strip()
+                print(f"DEBUG: origin/{base_ref} exists at {base_sha}")
             except:  # noqa: E722
                 print(f"DEBUG: origin/{base_ref} does not exist")
                 print("DEBUG: Available remotes:")
                 print(get_output("git", "branch", "-r"))
+
+            # Debug current HEAD and merge state
+            print(f"DEBUG: HEAD is at {get_output('git', 'rev-parse', 'HEAD').strip()}")
+            print("DEBUG: git log --oneline -5:")
+            print(get_output("git", "log", "--oneline", "-5"))
+
+            # Try to find merge base
+            try:
+                merge_base = get_output(
+                    "git", "merge-base", f"origin/{base_ref}", "HEAD"
+                ).strip()
+                print(
+                    f"DEBUG: merge-base between origin/{base_ref} and HEAD: {merge_base}"
+                )
+            except:  # noqa: E722
+                print("DEBUG: Could not find merge-base")
 
             try:
                 # GitHub Actions already has the base branch fetched
