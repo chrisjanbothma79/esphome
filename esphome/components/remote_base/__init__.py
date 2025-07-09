@@ -322,7 +322,7 @@ async def beo4_action(var, config, args):
     BrennenstuhlTrigger, 
     BrennenstuhlAction, 
     BrennenstuhlDumper,
-) = declare_protocol( "Brennenstuhl")
+) = declare_protocol("Brennenstuhl")
 
 BRENNENSTUHL_SCHEMA = cv.Schema(
     {
