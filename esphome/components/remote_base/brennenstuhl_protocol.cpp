@@ -30,7 +30,7 @@ constexpr uint32_t N_SYMBOLS_REQ = 2u * (N_BITS + 1);
 // number of bs codes within received frame
 constexpr int32_t N_FRAME_CODES = 4;
 
-// decoder finite-state-machine 
+// decoder finite-state-machine
 enum class RxSt { START_PULSE, START_SYMBOL, PULSE, DATA_SYMBOL };
 
 // validates if a pulse or symbol is within expected range
@@ -56,23 +56,23 @@ void BrennenstuhlProtocol::encode(RemoteTransmitData *dst, const BrennenstuhlDat
 
 optional<BrennenstuhlData> BrennenstuhlProtocol::decode(RemoteReceiveData src) {
   int32_t n_received = src.size();
-  BrennenstuhlData data { 
-    .code = 0, 
+  BrennenstuhlData data {
+    .code = 0,
   };
-  // suppress noisy frames, at least a complete bs_code should be available 
-  if(n_received > N_SYMBOLS_REQ) { 
+  // suppress noisy frames, at least a complete bs_code should be available
+  if(n_received > N_SYMBOLS_REQ) {
     int32_t bs_codes[4]={0,0,0,0};  // internal brennenstuhl codes
     int32_t bs_cnt=0; // count number of brennenstuhl codes found within frame
     int32_t bs_idx=-1; // index to best code
     int32_t bit_cnt=0; // bit counter [0..23]
     int32_t abs_pre=0; // previous abs value
-    RxSt fsm = RxSt::START_PULSE; // init decoder state machine 
+    RxSt fsm = RxSt::START_PULSE; // init decoder state machine
     for (int32_t ic = 0; ic < n_received && bs_cnt < N_FRAME_CODES; ic++) {
       int32_t act = src[ic];
       int32_t abs_act = std::abs(act);
       switch (fsm) {
         case RxSt::START_PULSE: { // process start-pulse
-          if ((act > 0) && validate_timing(abs_act, START_PULSE_MIN,START_PULSE_MAX)) { 
+          if ((act > 0) && validate_timing(abs_act, START_PULSE_MIN,START_PULSE_MAX)) {
             bs_codes[bs_cnt]=0;
             bit_cnt = 0;
             abs_pre = abs_act;
@@ -81,7 +81,7 @@ optional<BrennenstuhlData> BrennenstuhlProtocol::decode(RemoteReceiveData src) {
           break;
         }
         case RxSt::START_SYMBOL: { // process start-symbol
-          if ((act < 0) && validate_timing(abs_pre+abs_act, START_SYMBOL_MIN, START_SYMBOL_MAX)) { 
+          if ((act < 0) && validate_timing(abs_pre+abs_act, START_SYMBOL_MIN, START_SYMBOL_MAX)) {
             fsm = RxSt::PULSE;
           } else {
             fsm = RxSt::START_PULSE;
@@ -99,11 +99,11 @@ optional<BrennenstuhlData> BrennenstuhlProtocol::decode(RemoteReceiveData src) {
         }
         case RxSt::DATA_SYMBOL: { // process data symbols
           if ((act < 0) && validate_timing(abs_pre+abs_act, DATA_SYMBOL_MIN, DATA_SYMBOL_MAX)) {
-            bs_codes[bs_cnt] <<= 1; 
-            bs_codes[bs_cnt] += (abs_act < abs_pre)? 1:0; 
+            bs_codes[bs_cnt] <<= 1;
+            bs_codes[bs_cnt] += (abs_act < abs_pre)? 1:0;
             if (++bit_cnt < N_BITS) {
               fsm = RxSt::PULSE; // continue with next bit
-            } else { 
+            } else {
               bs_cnt++; // a complete brennenstuhl code found
               fsm = RxSt::START_PULSE; // process further data within frame
             }
@@ -114,23 +114,23 @@ optional<BrennenstuhlData> BrennenstuhlProtocol::decode(RemoteReceiveData src) {
         }
       }
     }
-    if(bs_cnt > 0) { // valid codes available 
+    if(bs_cnt > 0) { // valid codes available
       uint8_t identical_max=0; // max number of identical codes
-      for(int32_t ic=0; ic < bs_cnt; ic++) { 
+      for(int32_t ic=0; ic < bs_cnt; ic++) {
         uint8_t identical_cnt=0;
         for(int32_t jc=0; jc < bs_cnt; jc++) {
           identical_cnt += (bs_codes[ic] == bs_codes[jc]) ? 1:0;
         }
         if(identical_cnt > identical_max) {
-          identical_max=identical_cnt; 
-          bs_idx=ic; 
+          identical_max=identical_cnt;
+          bs_idx=ic;
         }
       }
       if(bs_idx > -1) { // decoding OK
-        data.code = bs_codes[bs_idx]; 
+        data.code = bs_codes[bs_idx];
         return data;
       }
-    } 
+    }
   }
   return {}; // decoding failed
 }
