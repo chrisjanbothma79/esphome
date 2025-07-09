@@ -86,7 +86,7 @@ def test_get_pr_number_from_github_env_no_pr(
 
 
 @pytest.mark.parametrize(
-    "github_ref,expected_pr_number",
+    ("github_ref", "expected_pr_number"),
     [
         ("refs/pull/1234/merge", "1234"),
         ("refs/pull/5678/head", "5678"),
@@ -253,7 +253,7 @@ def test_github_actions_push_event_fallback(monkeypatch: MonkeyPatch) -> None:
 
 
 @pytest.mark.parametrize(
-    "branch,merge_base",
+    ("branch", "merge_base"),
     [
         (None, "abc123"),  # Default branch (dev)
         ("release", "def456"),
@@ -317,7 +317,7 @@ def test_local_development_no_remotes_configured(monkeypatch: MonkeyPatch) -> No
 
 
 @pytest.mark.parametrize(
-    "stdout,expected",
+    ("stdout", "expected"),
     [
         ("file1.py\nfile2.cpp\n\n", ["file1.py", "file2.cpp"]),
         ("\n\n", []),
@@ -346,7 +346,7 @@ def test_get_changed_files_from_command_successful(
 
 
 @pytest.mark.parametrize(
-    "returncode,stderr",
+    ("returncode", "stderr"),
     [
         (1, "Error: command failed"),
         (128, "fatal: not a git repository"),
