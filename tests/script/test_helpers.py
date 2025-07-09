@@ -25,6 +25,7 @@ _get_pr_number_from_github_env = helpers._get_pr_number_from_github_env
 _get_changed_files_github_actions = helpers._get_changed_files_github_actions
 _filter_changed_ci = helpers._filter_changed_ci
 _filter_changed_local = helpers._filter_changed_local
+build_all_include = helpers.build_all_include
 
 
 @pytest.mark.parametrize(
@@ -650,3 +651,74 @@ def test_filter_changed_local() -> None:
     # Should only include files that actually changed
     expected = ["esphome/components/wifi/wifi.cpp", "esphome/core/helpers.cpp"]
     assert set(result) == set(expected)
+
+
+def test_build_all_include_with_git(tmp_path: Path) -> None:
+    """Test build_all_include using git ls-files."""
+    # Mock git output
+    git_output = "esphome/core/component.h\nesphome/components/wifi/wifi.h\nesphome/components/api/api.h\n"
+
+    mock_proc = Mock()
+    mock_proc.returncode = 0
+    mock_proc.stdout = git_output
+
+    with (
+        patch("subprocess.run", return_value=mock_proc),
+        patch("helpers.temp_header_file", str(tmp_path / "all-include.cpp")),
+    ):
+        build_all_include()
+
+    # Check the generated file
+    include_file = tmp_path / "all-include.cpp"
+    assert include_file.exists()
+
+    content = include_file.read_text()
+    expected_lines = [
+        '#include "esphome/components/api/api.h"',
+        '#include "esphome/components/wifi/wifi.h"',
+        '#include "esphome/core/component.h"',
+        "",  # Empty line at end
+    ]
+    assert content == "\n".join(expected_lines)
+
+
+def test_build_all_include_empty_output(tmp_path: Path) -> None:
+    """Test build_all_include with empty git output."""
+    # Mock git returning empty output
+    mock_proc = Mock()
+    mock_proc.returncode = 0
+    mock_proc.stdout = ""
+
+    with (
+        patch("subprocess.run", return_value=mock_proc),
+        patch("helpers.temp_header_file", str(tmp_path / "all-include.cpp")),
+    ):
+        build_all_include()
+
+    # Check the generated file
+    include_file = tmp_path / "all-include.cpp"
+    assert include_file.exists()
+
+    content = include_file.read_text()
+    # Should just have empty line
+    assert content == "\n"
+
+
+def test_build_all_include_creates_directory(tmp_path: Path) -> None:
+    """Test that build_all_include creates the temp directory if needed."""
+    # Use a subdirectory that doesn't exist
+    temp_file = tmp_path / "subdir" / "all-include.cpp"
+
+    mock_proc = Mock()
+    mock_proc.returncode = 0
+    mock_proc.stdout = "esphome/core/test.h\n"
+
+    with (
+        patch("subprocess.run", return_value=mock_proc),
+        patch("helpers.temp_header_file", str(temp_file)),
+    ):
+        build_all_include()
+
+    # Check that directory was created
+    assert temp_file.parent.exists()
+    assert temp_file.exists()

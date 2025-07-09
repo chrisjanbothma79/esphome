@@ -32,29 +32,28 @@ def print_error_for_file(file, body):
         print()
 
 
-def build_all_include():
+def build_all_include() -> None:
     # Build a cpp file that includes all header files in this repo.
     # Otherwise header-only integrations would not be tested by clang-tidy
-    headers = []
-    for path in walk_files(basepath):
-        filetypes = (".h",)
-        ext = os.path.splitext(path)[1]
-        if ext in filetypes:
-            path = os.path.relpath(path, root_path)
-            include_p = path.replace(os.path.sep, "/")
-            headers.append(f'#include "{include_p}"')
+
+    # Use git ls-files to find all .h files in the esphome directory
+    # This is much faster than walking the filesystem
+    cmd = ["git", "ls-files", "esphome/**/*.h"]
+    proc = subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+    # Process git output - git already returns paths relative to repo root
+    headers = [
+        f'#include "{include_p}"'
+        for line in proc.stdout.strip().split("\n")
+        if (include_p := line.replace(os.path.sep, "/"))
+    ]
+
     headers.sort()
     headers.append("")
     content = "\n".join(headers)
     p = Path(temp_header_file)
     p.parent.mkdir(exist_ok=True)
     p.write_text(content, encoding="utf-8")
-
-
-def walk_files(path):
-    for root, _, files in os.walk(path):
-        for name in files:
-            yield os.path.join(root, name)
 
 
 def get_output(*args):
