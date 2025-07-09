@@ -73,7 +73,11 @@ AtCommandResult ModemComponent::send_at(const std::string &cmd, uint32_t timeout
     at_command_result.esp_modem_command_result = this->dce->at(cmd, at_command_result.output, timeout);
     ESP_LOGV(TAG, "Result for command %s: %s (status %s)", cmd.c_str(), at_command_result.c_str(),
              command_result_to_string(at_command_result.esp_modem_command_result).c_str());
+  } else {
+    ESP_LOGE(TAG, "Modem DCE is not initialized, cannot send AT command: %s", cmd.c_str());
+    at_command_result.esp_modem_command_result = command_result::FAIL;
   }
+
   at_command_result.success = at_command_result.esp_modem_command_result == command_result::OK;
   return at_command_result;
 }
@@ -144,7 +148,7 @@ bool ModemComponent::get_signal_quality(float &rssi, float &ber) {
   ber = NAN;
   int modem_rssi = 99;
   int modem_ber = 99;
-  if (this->dce->sync() == command_result::OK &&
+  if (this->dce && this->dce->sync() == command_result::OK &&
       (global_modem_component->dce->get_signal_quality(modem_rssi, modem_ber) == command_result::OK)) {
     if (modem_rssi != 99)
       rssi = -113 + (modem_rssi * 2);
@@ -248,7 +252,6 @@ void ModemComponent::loop() {
 
   if ((millis() < next_loop_millis)) {
     // some commands need some delay
-    yield();
     return;
   }
 
@@ -298,6 +301,8 @@ void ModemComponent::loop() {
     yield();
     return;
   }
+
+  ESP_LOGVV(TAG, "Modem loop (state: %s)", state_to_string(this->component_state_).c_str());
 
   switch (this->component_state_) {
     case ModemComponentState::NOT_RESPONDING:
@@ -394,6 +399,8 @@ void ModemComponent::loop() {
             this->reconnect();
           }
         }
+        next_loop_millis = millis() + 2000;  // slow down next loop
+
       } else {
         if (this->internal_state_.connected) {
           // connected but disbaled, so disconnect
@@ -407,7 +414,7 @@ void ModemComponent::loop() {
       if (this->internal_state_.enabled) {
         this->component_state_ = ModemComponentState::DISCONNECTED;
       }
-      next_loop_millis = millis() + 2000;  // delay for next loop
+      next_loop_millis = millis() + 2000;  // slow down next loop
       break;
   }
 

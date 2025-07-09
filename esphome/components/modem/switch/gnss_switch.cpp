@@ -32,7 +32,12 @@ using namespace esp_modem;
 static const char *const TAG = "modem.switch";
 
 optional<bool> GnssSwitch::get_modem_gnss_state() {
+  // Ask the modem if GNSS is enabled
   optional<bool> gnss_state = nullopt;
+  if (!global_modem_component->dce) {
+    // Will have to wait for DCE to be created
+    return gnss_state;  // return empty optional
+  }
   auto at_command_result = global_modem_component->send_at(this->command_ + "?");
   if (at_command_result) {
     std::string modem_state = at_command_result.output;
@@ -49,6 +54,7 @@ optional<bool> GnssSwitch::get_modem_gnss_state() {
       }
     }
   }
+  ESP_LOGV(TAG, "Modem GNSS state: %s", gnss_state.has_value() ? (gnss_state.value() ? "ON" : "OFF") : "UNKNOWN");
   return gnss_state;
 }
 
@@ -61,7 +67,12 @@ void GnssSwitch::loop() {
 
   if ((millis() < next_loop_millis)) {
     // some commands need some delay
-    yield();
+    return;
+  }
+
+  if (global_modem_component->is_disabled()) {
+    this->modem_state_ = nullopt;        // reset modem state to force re-check next time
+    next_loop_millis = millis() + 5000;  // soft delay
     return;
   }
 
@@ -70,8 +81,9 @@ void GnssSwitch::loop() {
     next_loop_millis = millis() + 5000;  // soft delay
   } else {
     if ((this->state != this->modem_state_.value())) {
-      ESP_LOGI(TAG, "gnss switch state: %d, modem state: %d", this->state, this->modem_state_.value());
-      if (global_modem_component->send_at(this->command_ + (this->state ? "=1" : "=0"))) {
+      if (global_modem_component->dce &&
+          global_modem_component->send_at(this->command_ + (this->state ? "=1" : "=0"))) {
+        ESP_LOGV(TAG, "Modem GNSS switch state changed to %s", this->state ? "ON" : "OFF");
         this->modem_state_ = nullopt;
         this->publish_state(this->state);
         next_loop_millis = millis() + 5000;  // soft delay

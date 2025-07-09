@@ -39,13 +39,11 @@ using namespace esp_modem;
 void ModemSensor::setup() { ESP_LOGI(TAG, "Setting up Modem Sensor..."); }
 
 void ModemSensor::update() {
-  ESP_LOGD(TAG, "Modem sensor update");
-  if (global_modem_component->dce && global_modem_component->dce->sync() == command_result::OK) {
+  if (global_modem_component->dce) {
+    ESP_LOGV(TAG, "Modem sensor update");
     this->update_signal_sensors_();
     App.feed_wdt();
     this->update_gnss_sensors_();
-  } else {
-    ESP_LOGW(TAG, "Modem not ready, skipping sensor update");
   }
 }
 
