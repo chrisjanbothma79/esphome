@@ -158,8 +158,7 @@ def get_header_dependencies(headers: list[str]) -> set[str]:
         Set of cpp files that depend on the changed headers
 
     Note:
-        This function requires ripgrep to be installed.
-        It's only called when --from-ci is used, where ripgrep is guaranteed to be available.
+        Uses git grep for fast searching within the git repository.
     """
     dependent_files: set[str] = set()
     headers_to_check: set[str] = set(headers)
@@ -176,8 +175,8 @@ def get_header_dependencies(headers: list[str]) -> set[str]:
         patterns = [f'#include "{header_name}"', f'#include "{current_header}"']
 
         for pattern in patterns:
-            # Search in header files
-            cmd = ["rg", "-l", "--type-add", "header:*.h", "--type", "header", pattern]
+            # Search in header files using git grep
+            cmd = ["git", "grep", "-l", pattern, "--", "*.h"]
             result = subprocess.run(
                 cmd, capture_output=True, text=True, check=False, close_fds=False
             )
@@ -189,7 +188,7 @@ def get_header_dependencies(headers: list[str]) -> set[str]:
     # Now find all cpp files that include any of these headers
     all_headers = checked_headers
 
-    # Use ripgrep for fast searching
+    # Use git grep for fast searching
     for header in all_headers:
         header_name = os.path.basename(header)
 
@@ -197,8 +196,8 @@ def get_header_dependencies(headers: list[str]) -> set[str]:
         patterns = [f'#include "{header_name}"', f'#include "{header}"']
 
         for pattern in patterns:
-            # Use ripgrep to find files containing the pattern
-            cmd = ["rg", "-l", "--type", "cpp", pattern]
+            # Use git grep to find files containing the pattern in cpp files only
+            cmd = ["git", "grep", "-l", pattern, "--", "*.cpp", "*.cc", "*.cxx"]
             result = subprocess.run(
                 cmd, capture_output=True, text=True, check=False, close_fds=False
             )
