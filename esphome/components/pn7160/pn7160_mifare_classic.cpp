@@ -10,7 +10,7 @@ static const char *const TAG = "pn7160.mifare_classic";
 
 uint8_t PN7160::read_mifare_classic_tag_(nfc::NfcTag &tag) {
   uint8_t current_block = 4;
-  uint8_t message_start_index = 0;
+  uint16_t message_start_index = 0;
   uint32_t message_length = 0;
 
   if (this->auth_mifare_classic_block_(current_block, nfc::MIFARE_CMD_AUTH_A, nfc::NDEF_KEY) != nfc::STATUS_OK) {

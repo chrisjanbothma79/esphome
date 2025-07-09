@@ -2,6 +2,7 @@
 
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
+#include <cstdint>
 #include "ndef_message.h"
 #include "ndef_record.h"
 #include "nfc_tag.h"
@@ -57,8 +58,12 @@ std::string format_uid(const std::vector<uint8_t> &uid);
 std::string format_bytes(const std::vector<uint8_t> &bytes);
 
 uint8_t guess_tag_type(uint8_t uid_length);
-uint8_t get_mifare_classic_ndef_start_index(std::vector<uint8_t> &data);
-bool decode_mifare_classic_tlv(std::vector<uint8_t> &data, uint32_t &message_length, uint8_t &message_start_index);
+/// Return index of the first TLV in the given 16‑byte block.
+///
+/// Values are in the range [-2, 15]; positive indices will never exceed 15.
+int8_t get_mifare_classic_ndef_start_index(const std::vector<uint8_t> &data);
+bool decode_mifare_classic_tlv(const std::vector<uint8_t> &data, uint32_t &message_length,
+                               uint16_t &message_start_index);
 uint32_t get_mifare_classic_buffer_size(uint32_t message_length);
 
 bool mifare_classic_is_first_block(uint8_t block_num);

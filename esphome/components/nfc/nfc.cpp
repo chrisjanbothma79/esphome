@@ -13,15 +13,21 @@ std::string format_uid(const std::vector<uint8_t> &uid) { return format_hex_pret
 std::string format_bytes(const std::vector<uint8_t> &bytes) { return format_hex_pretty(bytes, ' ', false); }
 
 uint8_t guess_tag_type(uint8_t uid_length) {
-  if (uid_length == 4) {
-    return TAG_TYPE_MIFARE_CLASSIC;
-  } else {
-    return TAG_TYPE_2;
+  switch (uid_length) {
+    case 0:
+      return TAG_TYPE_UNKNOWN;
+    case 4:
+      return TAG_TYPE_MIFARE_CLASSIC;
+    case 7:
+    case 10:
+      return TAG_TYPE_2;
+    default:
+      return TAG_TYPE_UNKNOWN;
   }
 }
 
-uint8_t get_mifare_classic_ndef_start_index(std::vector<uint8_t> &data) {
-  for (uint8_t i = 0; i < MIFARE_CLASSIC_BLOCK_SIZE; i++) {
+int8_t get_mifare_classic_ndef_start_index(const std::vector<uint8_t> &data) {
+  for (int8_t i = 0; i < static_cast<int8_t>(MIFARE_CLASSIC_BLOCK_SIZE) && static_cast<size_t>(i) < data.size(); i++) {
     if (data[i] == 0x00) {
       // Do nothing, skip
     } else if (data[i] == 0x03) {
@@ -33,18 +39,33 @@ uint8_t get_mifare_classic_ndef_start_index(std::vector<uint8_t> &data) {
   return -1;
 }
 
-bool decode_mifare_classic_tlv(std::vector<uint8_t> &data, uint32_t &message_length, uint8_t &message_start_index) {
-  auto i = get_mifare_classic_ndef_start_index(data);
+bool decode_mifare_classic_tlv(const std::vector<uint8_t> &data, uint32_t &message_length,
+                               uint16_t &message_start_index) {
+  int8_t i = get_mifare_classic_ndef_start_index(data);
+  if (i < 0 || static_cast<size_t>(i) >= data.size()) {
+    ESP_LOGE(TAG, "Invalid TLV start index: %d", i);
+    return false;
+  }
   if (data[i] != 0x03) {
-    ESP_LOGE(TAG, "Error, Can't decode message length.");
+    ESP_LOGE(TAG, "Can't decode message length.");
+    return false;
+  }
+  if (static_cast<size_t>(i) + MIFARE_CLASSIC_LONG_TLV_SIZE > data.size()) {
+    ESP_LOGE(TAG, "TLV too short: need %zu, have %zu", static_cast<size_t>(i) + MIFARE_CLASSIC_LONG_TLV_SIZE,
+             data.size());
     return false;
   }
   if (data[i + 1] == 0xFF) {
     message_length = ((0xFF & data[i + 2]) << 8) | (0xFF & data[i + 3]);
-    message_start_index = i + MIFARE_CLASSIC_LONG_TLV_SIZE;
+    message_start_index = static_cast<uint16_t>(i) + MIFARE_CLASSIC_LONG_TLV_SIZE;
   } else {
+    if (static_cast<size_t>(i) + MIFARE_CLASSIC_SHORT_TLV_SIZE > data.size()) {
+      ESP_LOGE(TAG, "TLV too short: need %zu, have %zu", static_cast<size_t>(i) + MIFARE_CLASSIC_SHORT_TLV_SIZE,
+               data.size());
+      return false;
+    }
     message_length = data[i + 1];
-    message_start_index = i + MIFARE_CLASSIC_SHORT_TLV_SIZE;
+    message_start_index = static_cast<uint16_t>(i) + MIFARE_CLASSIC_SHORT_TLV_SIZE;
   }
   return true;
 }

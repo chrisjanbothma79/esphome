@@ -10,7 +10,7 @@ static const char *const TAG = "pn532.mifare_classic";
 
 std::unique_ptr<nfc::NfcTag> PN532::read_mifare_classic_tag_(std::vector<uint8_t> &uid) {
   uint8_t current_block = 4;
-  uint8_t message_start_index = 0;
+  uint16_t message_start_index = 0;
   uint32_t message_length = 0;
 
   if (this->auth_mifare_classic_block_(uid, current_block, nfc::MIFARE_CMD_AUTH_A, nfc::NDEF_KEY)) {
