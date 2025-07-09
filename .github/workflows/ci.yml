@@ -420,17 +420,6 @@ jobs:
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v4.2.2
-        with:
-          # Fetch enough history so `git merge-base refs/remotes/origin/dev HEAD` works.
-          fetch-depth: 500
-      - name: Get target branch
-        id: target-branch
-        run: |
-          echo "branch=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
-      - name: Fetch ${{ steps.target-branch.outputs.branch }} branch
-        run: |
-          git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +refs/heads/${{ steps.target-branch.outputs.branch }}:refs/remotes/origin/${{ steps.target-branch.outputs.branch }}
-          git merge-base refs/remotes/origin/${{ steps.target-branch.outputs.branch }} HEAD
       - name: Restore Python
         uses: ./.github/actions/restore-python
         with:
@@ -440,7 +429,7 @@ jobs:
         id: list-components
         run: |
           . venv/bin/activate
-          components=$(script/list-components.py --changed --branch ${{ steps.target-branch.outputs.branch }})
+          components=$(script/list-components.py --changed)
           output_components=$(echo "$components" | jq -R -s -c 'split("\n")[:-1] | map(select(length > 0))')
           count=$(echo "$output_components" | jq length)
 
