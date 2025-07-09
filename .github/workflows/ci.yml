@@ -335,6 +335,12 @@ jobs:
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v4.2.2
+
+      - name: Fetch base branch for PR
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin ${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}
+
       - name: Restore Python
         uses: ./.github/actions/restore-python
         with:
