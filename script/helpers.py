@@ -80,45 +80,44 @@ def changed_files(branch: str | None = None) -> list[str]:
 
         # For pull requests
         if event_name == "pull_request":
-            # Use GitHub's pre-fetched base branch
+            # Try to use GitHub CLI first (much faster)
+            pr_number = os.environ.get("GITHUB_PR_NUMBER")
+            if not pr_number:
+                # Extract from GITHUB_REF if needed
+                github_ref = os.environ.get("GITHUB_REF", "")
+                if "/pull/" in github_ref:
+                    pr_number = github_ref.split("/pull/")[1].split("/")[0]
+
+            if pr_number:
+                try:
+                    # Use GitHub CLI to get changed files directly
+                    cmd = [
+                        "gh",
+                        "pr",
+                        "view",
+                        pr_number,
+                        "--json",
+                        "files",
+                        "--jq",
+                        ".files[].path",
+                    ]
+                    print(
+                        f"DEBUG: Using GitHub CLI to get changed files for PR #{pr_number}"
+                    )
+                    result = _get_changed_files_from_command(cmd)
+                    print(f"DEBUG: Found {len(result)} changed files via GitHub API")
+                    return result
+                except Exception as e:
+                    print(f"DEBUG: GitHub CLI failed: {e}, falling back to git diff")
+
+            # Fall back to git diff approach
             base_ref = os.environ.get("GITHUB_BASE_REF", branch or "dev")
-            print(f"DEBUG: PR mode - base_ref={base_ref}")
-
-            # Check if the base branch exists
-            try:
-                verify_cmd = ["git", "rev-parse", "--verify", f"origin/{base_ref}"]
-                base_sha = get_output(*verify_cmd).strip()
-                print(f"DEBUG: origin/{base_ref} exists at {base_sha}")
-            except:  # noqa: E722
-                print(f"DEBUG: origin/{base_ref} does not exist")
-                print("DEBUG: Available remotes:")
-                print(get_output("git", "branch", "-r"))
-
-            # Debug current HEAD and merge state
-            print(f"DEBUG: HEAD is at {get_output('git', 'rev-parse', 'HEAD').strip()}")
-            print("DEBUG: git log --oneline -5:")
-            print(get_output("git", "log", "--oneline", "-5"))
-
-            # Try to find merge base
-            try:
-                merge_base = get_output(
-                    "git", "merge-base", f"origin/{base_ref}", "HEAD"
-                ).strip()
-                print(
-                    f"DEBUG: merge-base between origin/{base_ref} and HEAD: {merge_base}"
-                )
-            except:  # noqa: E722
-                print("DEBUG: Could not find merge-base")
-
             try:
                 # GitHub Actions already has the base branch fetched
-                cmd = ["git", "diff", f"origin/{base_ref}...HEAD", "--name-only"]
-                print(f"DEBUG: Running: {' '.join(cmd)}")
-                result = _get_changed_files_from_command(cmd)
-                print(f"DEBUG: Found {len(result)} changed files")
-                return result
-            except Exception as e:
-                print(f"DEBUG: Command failed: {e}")
+                return _get_changed_files_from_command(
+                    ["git", "diff", f"origin/{base_ref}...HEAD", "--name-only"]
+                )
+            except:  # noqa: E722
                 # Fall back to the original method if this fails
                 pass
 
