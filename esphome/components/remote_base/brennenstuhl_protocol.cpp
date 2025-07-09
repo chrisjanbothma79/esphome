@@ -35,7 +35,7 @@ enum class RxSt { START_PULSE, START_SYMBOL, PULSE, DATA_SYMBOL };
 
 // validates if a pulse or symbol is within expected range
 static bool validate_timing(int32_t val, int32_t val_min, int32_t val_max) {
-  return ((val_min <= val && val <= val_max) ? true : false);
+  return (val_min <= val && val <= val_max);
 }
 
 void BrennenstuhlProtocol::encode(RemoteTransmitData *dst, const BrennenstuhlData &data) {
