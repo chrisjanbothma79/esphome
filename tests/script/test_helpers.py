@@ -700,8 +700,9 @@ def test_build_all_include_empty_output(tmp_path: Path) -> None:
     assert include_file.exists()
 
     content = include_file.read_text()
-    # Should have just the final empty line since headers list is empty
-    assert content == "\n"
+    # When git output is empty, the list comprehension filters out empty strings,
+    # then we append "" to get [""], which joins to just ""
+    assert content == ""
 
 
 def test_build_all_include_creates_directory(tmp_path: Path) -> None:
