@@ -148,130 +148,77 @@ def _get_changed_files_from_command(command: list[str]) -> list[str]:
     return changed_files
 
 
-def get_header_dependencies(headers: list[str]) -> set[str] | None:
-    """Find all cpp files that include the given header files (directly or transitively).
-
-    Args:
-        headers: List of header files that changed
+def get_changed_components() -> list[str] | None:
+    """Get list of changed components using list-components.py script.
 
     Returns:
-        Set of cpp files that depend on the changed headers, or None to trigger full scan
-
-    Note:
-        Uses git grep for fast searching within the git repository.
+        List of component names that changed, or None to trigger full scan
     """
-    dependent_files: set[str] = set()
-    MAX_DEPENDENT_HEADERS = (
-        50  # If a header is included by more than this many headers, run full scan
-    )
+    # Check if any core files changed first
+    changed = changed_files()
+    if any(f.startswith("esphome/core/") for f in changed):
+        print("Core files changed - will run full clang-tidy scan")
+        return None
 
-    # For each changed header, find files that depend on it
-    for header in headers:
-        header_name = os.path.basename(header)
-        patterns = [f'#include "{header_name}"', f'#include "{header}"']
+    # Use list-components.py to get changed components
+    script_path = os.path.join(root_path, "script", "list-components.py")
+    cmd = [script_path, "--changed"]
 
-        # First check how many headers include this header
-        total_including_headers = 0
-        for pattern in patterns:
-            cmd = ["git", "grep", "-l", pattern, "--", "*.h"]
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, check=False, close_fds=False
-            )
-            if result.returncode == 0 and result.stdout:
-                including_headers = [h for h in result.stdout.strip().split("\n") if h]
-                total_including_headers += len(including_headers)
-
-        # If too many headers include this header, it's a common header
-        if total_including_headers > MAX_DEPENDENT_HEADERS:
-            print(
-                f"Header {header} is included by {total_including_headers} headers - will run full clang-tidy scan"
-            )
-            return None
-
-        # Otherwise, find dependent cpp files
-        for pattern in patterns:
-            # Search directly in cpp files
-            cmd = ["git", "grep", "-l", pattern, "--", "*.cpp", "*.cc", "*.cxx"]
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, check=False, close_fds=False
-            )
-            if result.returncode == 0 and result.stdout:
-                for file in result.stdout.strip().split("\n"):
-                    if file:
-                        dependent_files.add(file)
-
-            # Also search in header files, then find cpp files that include those headers
-            cmd = ["git", "grep", "-l", pattern, "--", "*.h"]
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, check=False, close_fds=False
-            )
-            if result.returncode == 0 and result.stdout:
-                including_headers = result.stdout.strip().split("\n")
-                # For each header that includes our changed header,
-                # find cpp files that include it (limit depth to avoid explosion)
-                for inc_header in including_headers:
-                    if inc_header:
-                        inc_header_name = os.path.basename(inc_header)
-                        inc_patterns = [
-                            f'#include "{inc_header_name}"',
-                            f'#include "{inc_header}"',
-                        ]
-                        for inc_pattern in inc_patterns:
-                            cmd = [
-                                "git",
-                                "grep",
-                                "-l",
-                                inc_pattern,
-                                "--",
-                                "*.cpp",
-                                "*.cc",
-                                "*.cxx",
-                            ]
-                            result = subprocess.run(
-                                cmd,
-                                capture_output=True,
-                                text=True,
-                                check=False,
-                                close_fds=False,
-                            )
-                            if result.returncode == 0 and result.stdout:
-                                for file in result.stdout.strip().split("\n"):
-                                    if file:
-                                        dependent_files.add(file)
-
-    return dependent_files
+    try:
+        result = subprocess.run(
+            cmd, capture_output=True, text=True, check=True, close_fds=False
+        )
+        components = [c.strip() for c in result.stdout.strip().split("\n") if c.strip()]
+        return components
+    except subprocess.CalledProcessError:
+        # If the script fails, fall back to full scan
+        print("Could not determine changed components - will run full clang-tidy scan")
+        return None
 
 
 def filter_changed(files: list[str], from_ci: bool = False) -> list[str]:
-    """Filter files to only those that changed or depend on changed headers.
+    """Filter files to only those that changed or are in changed components.
 
     Args:
         files: List of files to filter
-        from_ci: If True, also checks for header dependencies (uses git grep)
+        from_ci: If True, uses component-based filtering for better coverage
     """
-    changed: list[str] = changed_files()
-
-    # Only check header dependencies when running from CI
+    # When running from CI, use component-based filtering
     if from_ci:
-        # Find changed header files
-        changed_headers = [f for f in changed if f.endswith(".h")]
+        components = get_changed_components()
+        if components is None:
+            # None means core files changed or couldn't determine - return all files for full scan
+            return files
 
-        # If headers changed, add files that include them
-        if changed_headers:
-            print(f"Changed headers detected: {', '.join(changed_headers)}")
-            print("Finding dependent files...")
-            dependent_files = get_header_dependencies(changed_headers)
-            if dependent_files is None:
-                # None means a common header changed - return all files for full scan
-                return files
-            elif dependent_files:
-                print(
-                    f"Found {len(dependent_files)} files that depend on changed headers"
-                )
-                # Add dependent files to the changed set
-                changed = list(set(changed) | dependent_files)
+        if not components:
+            # No components changed
+            print("No components changed")
+            return []
 
-    files = [f for f in files if f in changed]
+        # Convert component list to set for O(1) lookups
+        component_set = set(components)
+
+        # Get changed files for non-component files
+        changed = set(changed_files())
+
+        # Filter files efficiently
+        filtered_files = []
+        for f in files:
+            if f.startswith("esphome/components/"):
+                # Check if file belongs to any of the changed components
+                parts = f.split("/")
+                if len(parts) >= 3 and parts[2] in component_set:
+                    filtered_files.append(f)
+            elif f in changed:
+                # Include non-component files that changed
+                filtered_files.append(f)
+
+        files = filtered_files
+    else:
+        # For local development, just check changed files directly
+        changed = changed_files()
+        files = [f for f in files if f in changed]
+
     print("Changed files:")
     if not files:
         print("    No changed files!")
