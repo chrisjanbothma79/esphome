@@ -58,6 +58,7 @@ from .models import (
     MADCTL_XFLIP,
     MADCTL_YFLIP,
     DriverChip,
+    m5stack,
     waveshare,
 )
 
@@ -78,7 +79,7 @@ COLOR_ORDERS = {
 DriverChip("CUSTOM")
 
 # This loop is a noop, but suppresses linting of side-effect-only imports
-for _ in (waveshare,):
+for _ in (waveshare, m5stack):
     pass
 
 MODELS = DriverChip.models
