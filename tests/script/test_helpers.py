@@ -607,7 +607,7 @@ def test_filter_changed_ci_no_components_changed() -> None:
         result = _filter_changed_ci(all_files)
 
     # Should only include non-component files that changed
-    assert result == ["script/clang-tidy"]
+    assert set(result) == {"script/clang-tidy", "README.md"}
 
 
 def test_filter_changed_ci_specific_components() -> None:
