@@ -127,9 +127,15 @@ def changed_files(branch: str | None = None) -> list[str]:
 
                     # Now get the actual changed files
                     print(f"DEBUG: Running command: {' '.join(cmd)}")
+                    # GitHub CLI needs GH_TOKEN in Actions
+                    env = os.environ.copy()
+                    # In GitHub Actions, GITHUB_TOKEN is available
+                    if "GITHUB_TOKEN" in env and "GH_TOKEN" not in env:
+                        env["GH_TOKEN"] = env["GITHUB_TOKEN"]
+
                     # Let's check both stdout and stderr
                     proc = subprocess.run(
-                        cmd, capture_output=True, text=True, check=False
+                        cmd, capture_output=True, text=True, check=False, env=env
                     )
                     print(f"DEBUG: Return code: {proc.returncode}")
                     print(f"DEBUG: Stdout: '{proc.stdout}'")
@@ -188,9 +194,22 @@ def changed_files(branch: str | None = None) -> list[str]:
 
 def _get_changed_files_from_command(command: list[str]) -> list[str]:
     """Run a git command to get changed files and return them as a list."""
-    output = get_output(*command)
+    # For gh commands, we need to set GH_TOKEN
+    env = None
+    if command and command[0] == "gh":
+        env = os.environ.copy()
+        if "GITHUB_TOKEN" in env and "GH_TOKEN" not in env:
+            env["GH_TOKEN"] = env["GITHUB_TOKEN"]
+
+    # Run command with environment
+    proc = subprocess.run(command, capture_output=True, text=True, check=False, env=env)
+    if proc.returncode != 0:
+        print(f"DEBUG: Command failed with code {proc.returncode}")
+        print(f"DEBUG: stderr: {proc.stderr}")
+
+    output = proc.stdout
     changed_files = splitlines_no_ends(output)
-    changed_files = [os.path.relpath(f, os.getcwd()) for f in changed_files]
+    changed_files = [os.path.relpath(f, os.getcwd()) for f in changed_files if f]
     changed_files.sort()
     return changed_files
 
