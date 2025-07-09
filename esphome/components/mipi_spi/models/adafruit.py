@@ -10,7 +10,8 @@ ST7789V.extend(
     dc_pin=39,
     reset_pin=41,
     invert_colors=True,
-    rotation=180,
+    mirror_x=True,
+    mirror_y=True,
 )
 
 ST7789V.extend(
