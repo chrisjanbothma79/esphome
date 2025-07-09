@@ -338,7 +338,10 @@ def test_get_changed_files_from_command_successful(
     with patch("subprocess.run", return_value=mock_result):
         result = _get_changed_files_from_command(["git", "diff"])
 
-        assert result == expected
+        # Normalize paths to forward slashes for comparison
+        # since os.path.relpath returns OS-specific separators
+        normalized_result = [f.replace(os.sep, "/") for f in result]
+        assert normalized_result == expected
 
 
 @pytest.mark.parametrize(
