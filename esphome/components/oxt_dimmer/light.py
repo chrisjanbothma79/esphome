@@ -32,7 +32,7 @@ CHANNEL_SCHEMA = light.BRIGHTNESS_ONLY_LIGHT_SCHEMA.extend(
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(CONF_OUTPUT_ID): cv.declare_id(OxtController),
+            cv.GenerateID(CONF_ID): cv.declare_id(OxtController),
             cv.Required(CONF_CHANNELS): cv.All(
                 cv.ensure_list(CHANNEL_SCHEMA), cv.Length(min=1, max=2)
             ),
@@ -48,7 +48,7 @@ FINAL_VALIDATE_SCHEMA = uart.final_validate_device_schema(
 
 
 async def to_code(config):
-    ctrl = cg.new_Pvariable(config[CONF_OUTPUT_ID])
+    ctrl = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(ctrl, config)
     await uart.register_uart_device(ctrl, config)
 
