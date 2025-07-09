@@ -10,31 +10,13 @@ static const char *const TAG = "bl0940";
 static const uint8_t BL0940_FULL_PACKET = 0xAA;
 static const uint8_t BL0940_PACKET_HEADER = 0x55;  // 0x58 according to en doc but 0x55 in cn doc
 
-static const uint8_t BL0940_READ_COMMAND = 0x58;
-static const uint8_t BL0940_WRITE_COMMAND = 0xA8;
-
-// ----------------------------------------------------
-// values from initial implementation
-
-static const uint8_t BL0940_TUYA_READ_COMMAND = 0x50;
-static const uint8_t BL0940_TUYA_WRITE_COMMAND = 0xA0;
-
-static const float BL0940_TUYA_PREF = 1430;
-static const float BL0940_TUYA_UREF = 33000;
-static const float BL0940_TUYA_IREF = 275000;
-// Measured to 297J  per click according to power consumption of 5 minutes
-// Converted to kWh (3.6MJ per kwH). Used to be 256 * 1638.4
-static const float BL0940_TUYA_EREF = 3.6e6 / 297;
-//
-// ----------------------------------------------------
-
 static const uint8_t BL0940_REG_I_FAST_RMS_CTRL = 0x10;
 static const uint8_t BL0940_REG_MODE = 0x18;
 static const uint8_t BL0940_REG_SOFT_RESET = 0x19;
 static const uint8_t BL0940_REG_USR_WRPROT = 0x1A;
 static const uint8_t BL0940_REG_TPS_CTRL = 0x1B;
 
-const uint8_t BL0940_INIT[5][5] = {
+static const uint8_t BL0940_INIT[5][5] = {
     // Reset to default
     {BL0940_REG_SOFT_RESET, 0x5A, 0x5A, 0x5A, 0x38},
     // Enable User Operation Write
@@ -83,22 +65,6 @@ void BL0940::update() {
 }
 
 void BL0940::setup() {
-  if (!this->read_command_set_) {
-    if (this->tuya_mode_enabled_) {
-      this->read_command_ = BL0940_TUYA_READ_COMMAND;
-    } else {
-      this->read_command_ = BL0940_READ_COMMAND;
-    }
-  }
-
-  if (!this->write_command_set_) {
-    if (this->tuya_mode_enabled_) {
-      this->write_command_ = BL0940_TUYA_WRITE_COMMAND;
-    } else {
-      this->write_command_ = BL0940_WRITE_COMMAND;
-    }
-  }
-
 #ifdef USE_NUMBER
   // add calibration callbacks
   if (this->voltage_calibration_ != nullptr) {
@@ -139,40 +105,10 @@ void BL0940::setup() {
   }
 #endif
 
-  // calculate references based on schematic defaults if not set explicitly
-  if (!this->voltage_reference_set_) {
-    if (this->tuya_mode_enabled_) {
-      this->voltage_reference_ = BL0940_TUYA_UREF;
-    } else {
-      this->voltage_reference_ = this->calculate_voltage_reference_();
-    }
-  }
+  // calculate calibrated reference values
   this->voltage_reference_cal_ = this->voltage_reference_ / this->voltage_cal_;
-
-  if (!this->current_reference_set_) {
-    if (this->tuya_mode_enabled_) {
-      this->current_reference_ = BL0940_TUYA_IREF;
-    } else {
-      this->current_reference_ = this->calculate_current_reference_();
-    }
-  }
   this->current_reference_cal_ = this->current_reference_ / this->current_cal_;
-
-  if ((this->voltage_reference_set_ && this->current_reference_set_) ||
-      (!this->power_reference_set_ && !this->tuya_mode_enabled_)) {
-    this->power_reference_ = this->calculate_power_reference_();
-  } else if (!this->power_reference_set_ && this->tuya_mode_enabled_) {
-    this->power_reference_ = BL0940_TUYA_PREF;
-  }
   this->power_reference_cal_ = this->power_reference_ / this->power_cal_;
-
-  if (!this->energy_reference_set_) {
-    if (this->tuya_mode_enabled_) {
-      this->energy_reference_ = BL0940_TUYA_EREF;
-    } else {
-      this->energy_reference_ = this->calculate_energy_reference_();
-    }
-  }
   this->energy_reference_cal_ = this->energy_reference_ / this->energy_cal_;
 
   for (auto *i : BL0940_INIT) {
@@ -180,16 +116,6 @@ void BL0940::setup() {
     delay(1);
   }
   this->flush();
-}
-
-float BL0940::calculate_voltage_reference_() {
-  // formula: 79931 / Vref * (R1 * 1000) / (R1 + R2)
-  return 79931 / this->vref_ * (this->r_one_ * 1000) / (this->r_one_ + this->r_two_);
-}
-
-float BL0940::calculate_current_reference_() {
-  // formula: 324004 * RL / Vref
-  return 324004 * this->r_shunt_ / this->vref_;
 }
 
 float BL0940::calculate_power_reference_() {
@@ -249,13 +175,12 @@ void BL0940::recalibrate_() {
   this->voltage_reference_cal_ = this->voltage_reference_ / this->voltage_cal_;
   this->current_reference_cal_ = this->current_reference_ / this->current_cal_;
 
-  if ((this->voltage_reference_set_ && this->current_reference_set_) ||
-      (!this->power_reference_set_ && !this->tuya_mode_enabled_)) {
+  if (this->voltage_cal_ != 1 || this->current_cal_ != 1) {
     this->power_reference_ = this->calculate_power_reference_();
   }
   this->power_reference_cal_ = this->power_reference_ / this->power_cal_;
 
-  if (!this->energy_reference_set_ && !this->tuya_mode_enabled_) {
+  if (this->voltage_cal_ != 1 || this->current_cal_ != 1 || this->power_cal_ != 1) {
     this->energy_reference_ = this->calculate_energy_reference_();
   }
   this->energy_reference_cal_ = this->energy_reference_ / this->energy_cal_;
@@ -317,14 +242,10 @@ void BL0940::received_package_(DataPacket *data) {
 
 void BL0940::dump_config() {  // NOLINT(readability-function-cognitive-complexity)
   ESP_LOGCONFIG(TAG, "BL0940:");
-  ESP_LOGCONFIG(TAG, "  TUYA MODE: %s", TRUEFALSE(this->tuya_mode_enabled_));
+  ESP_LOGCONFIG(TAG, "  LEGACY MODE: %s", TRUEFALSE(this->legacy_mode_enabled_));
   ESP_LOGCONFIG(TAG, "  READ  CMD: 0x%02X", this->read_command_);
   ESP_LOGCONFIG(TAG, "  WRITE CMD: 0x%02X", this->write_command_);
   ESP_LOGCONFIG(TAG, "  ------------------");
-  ESP_LOGCONFIG(TAG, "  Vref: %f", this->vref_);
-  ESP_LOGCONFIG(TAG, "  R shunt: %f", this->r_shunt_);
-  ESP_LOGCONFIG(TAG, "  R One: %f", this->r_one_);
-  ESP_LOGCONFIG(TAG, "  R Two: %f", this->r_two_);
   ESP_LOGCONFIG(TAG, "  Current reference: %f", this->current_reference_);
   ESP_LOGCONFIG(TAG, "  Energy reference: %f", this->energy_reference_);
   ESP_LOGCONFIG(TAG, "  Power reference: %f", this->power_reference_);

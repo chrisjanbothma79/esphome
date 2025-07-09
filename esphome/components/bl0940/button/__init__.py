@@ -3,7 +3,8 @@ from esphome.components import button
 import esphome.config_validation as cv
 from esphome.const import CONF_ID, ENTITY_CATEGORY_CONFIG, ICON_RESTART
 
-from .. import BL0940, CONF_BL0940_ID, bl0940_ns
+from .. import CONF_BL0940_ID, bl0940_ns
+from ..sensor import BL0940
 
 CalibrationResetButton = bl0940_ns.class_(
     "CalibrationResetButton", button.Button, cg.Component
