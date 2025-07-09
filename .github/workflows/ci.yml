@@ -387,10 +387,10 @@ jobs:
           . venv/bin/activate
           if [ "${{ steps.check_full_scan.outputs.full_scan }}" = "true" ]; then
             echo "Running FULL clang-tidy scan (hash changed)"
-            script/clang-tidy --all-headers --fix --from-ci ${{ matrix.options }} ${{ matrix.ignore_errors && '|| true' || '' }}
+            script/clang-tidy --all-headers --fix ${{ matrix.options }} ${{ matrix.ignore_errors && '|| true' || '' }}
           else
             echo "Running clang-tidy on changed files only"
-            script/clang-tidy --all-headers --fix --changed --from-ci ${{ matrix.options }} ${{ matrix.ignore_errors && '|| true' || '' }}
+            script/clang-tidy --all-headers --fix --changed ${{ matrix.options }} ${{ matrix.ignore_errors && '|| true' || '' }}
           fi
         env:
           # Also cache libdeps, store them in a ~/.platformio subfolder

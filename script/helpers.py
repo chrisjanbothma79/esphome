@@ -176,15 +176,17 @@ def get_changed_components() -> list[str] | None:
         return None
 
 
-def filter_changed(files: list[str], from_ci: bool = False) -> list[str]:
+def filter_changed(files: list[str]) -> list[str]:
     """Filter files to only those that changed or are in changed components.
 
     Args:
         files: List of files to filter
-        from_ci: If True, uses component-based filtering for better coverage
     """
+    # Automatically detect if we're running in GitHub CI
+    in_ci = os.environ.get("GITHUB_ACTIONS") == "true"
+
     # When running from CI, use component-based filtering
-    if from_ci:
+    if in_ci:
         components = get_changed_components()
         if components is None:
             # None means core files changed or couldn't determine - return all files for full scan
