@@ -148,55 +148,49 @@ def _get_changed_files_from_command(command: list[str]) -> list[str]:
     return changed_files
 
 
-def get_header_dependencies(headers: list[str]) -> set[str]:
+def get_header_dependencies(headers: list[str]) -> set[str] | None:
     """Find all cpp files that include the given header files (directly or transitively).
 
     Args:
         headers: List of header files that changed
 
     Returns:
-        Set of cpp files that depend on the changed headers
+        Set of cpp files that depend on the changed headers, or None to trigger full scan
 
     Note:
         Uses git grep for fast searching within the git repository.
     """
     dependent_files: set[str] = set()
-    headers_to_check: set[str] = set(headers)
-    checked_headers: set[str] = set()
+    MAX_DEPENDENT_HEADERS = (
+        50  # If a header is included by more than this many headers, run full scan
+    )
 
-    # First, find all headers that transitively include the changed headers
-    while headers_to_check:
-        current_header = headers_to_check.pop()
-        if current_header in checked_headers:
-            continue
-        checked_headers.add(current_header)
+    # For each changed header, find files that depend on it
+    for header in headers:
+        header_name = os.path.basename(header)
+        patterns = [f'#include "{header_name}"', f'#include "{header}"']
 
-        header_name = os.path.basename(current_header)
-        patterns = [f'#include "{header_name}"', f'#include "{current_header}"']
-
+        # First check how many headers include this header
+        total_including_headers = 0
         for pattern in patterns:
-            # Search in header files using git grep
             cmd = ["git", "grep", "-l", pattern, "--", "*.h"]
             result = subprocess.run(
                 cmd, capture_output=True, text=True, check=False, close_fds=False
             )
             if result.returncode == 0 and result.stdout:
-                for file in result.stdout.strip().split("\n"):
-                    if file and file not in checked_headers:
-                        headers_to_check.add(file)
+                including_headers = [h for h in result.stdout.strip().split("\n") if h]
+                total_including_headers += len(including_headers)
 
-    # Now find all cpp files that include any of these headers
-    all_headers = checked_headers
+        # If too many headers include this header, it's a common header
+        if total_including_headers > MAX_DEPENDENT_HEADERS:
+            print(
+                f"Header {header} is included by {total_including_headers} headers - will run full clang-tidy scan"
+            )
+            return None
 
-    # Use git grep for fast searching
-    for header in all_headers:
-        header_name = os.path.basename(header)
-
-        # Search for #include statements with this header
-        patterns = [f'#include "{header_name}"', f'#include "{header}"']
-
+        # Otherwise, find dependent cpp files
         for pattern in patterns:
-            # Use git grep to find files containing the pattern in cpp files only
+            # Search directly in cpp files
             cmd = ["git", "grep", "-l", pattern, "--", "*.cpp", "*.cc", "*.cxx"]
             result = subprocess.run(
                 cmd, capture_output=True, text=True, check=False, close_fds=False
@@ -205,6 +199,45 @@ def get_header_dependencies(headers: list[str]) -> set[str]:
                 for file in result.stdout.strip().split("\n"):
                     if file:
                         dependent_files.add(file)
+
+            # Also search in header files, then find cpp files that include those headers
+            cmd = ["git", "grep", "-l", pattern, "--", "*.h"]
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, check=False, close_fds=False
+            )
+            if result.returncode == 0 and result.stdout:
+                including_headers = result.stdout.strip().split("\n")
+                # For each header that includes our changed header,
+                # find cpp files that include it (limit depth to avoid explosion)
+                for inc_header in including_headers:
+                    if inc_header:
+                        inc_header_name = os.path.basename(inc_header)
+                        inc_patterns = [
+                            f'#include "{inc_header_name}"',
+                            f'#include "{inc_header}"',
+                        ]
+                        for inc_pattern in inc_patterns:
+                            cmd = [
+                                "git",
+                                "grep",
+                                "-l",
+                                inc_pattern,
+                                "--",
+                                "*.cpp",
+                                "*.cc",
+                                "*.cxx",
+                            ]
+                            result = subprocess.run(
+                                cmd,
+                                capture_output=True,
+                                text=True,
+                                check=False,
+                                close_fds=False,
+                            )
+                            if result.returncode == 0 and result.stdout:
+                                for file in result.stdout.strip().split("\n"):
+                                    if file:
+                                        dependent_files.add(file)
 
     return dependent_files
 
@@ -226,9 +259,12 @@ def filter_changed(files: list[str], from_ci: bool = False) -> list[str]:
         # If headers changed, add files that include them
         if changed_headers:
             print(f"Changed headers detected: {', '.join(changed_headers)}")
-            print("Finding dependent files (including transitive dependencies)...")
+            print("Finding dependent files...")
             dependent_files = get_header_dependencies(changed_headers)
-            if dependent_files:
+            if dependent_files is None:
+                # None means a common header changed - return all files for full scan
+                return files
+            elif dependent_files:
                 print(
                     f"Found {len(dependent_files)} files that depend on changed headers"
                 )
