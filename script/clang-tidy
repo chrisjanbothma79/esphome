@@ -222,6 +222,10 @@ def main():
     for path in git_ls_files(["*.cpp"]):
         files.append(os.path.relpath(path, os.getcwd()))
 
+    # Print initial file count if it's large
+    if len(files) > 50:
+        print(f"Found {len(files)} total files to process")
+
     if args.files:
         # Match against files specified on command-line
         file_name_re = re.compile("|".join(args.files))
@@ -253,9 +257,7 @@ def main():
         files.insert(0, temp_header_file)
         print(f"Added all-include header file, new total: {len(files)}")
 
-    # Load idedata and options only if we have files to check
-    idedata = load_idedata(args.environment)
-    options = clang_options(idedata)
+    # Print file list before loading idedata
     if len(files) <= 20:
         for f in files:
             print(f"  {f}")
@@ -264,6 +266,10 @@ def main():
         for f in files[:10]:
             print(f"  {f}")
         print(f"  ... and {len(files) - 10} more files")
+
+    # Load idedata and options only if we have files to check
+    idedata = load_idedata(args.environment)
+    options = clang_options(idedata)
 
     tmpdir = None
     if args.fix:
