@@ -33,7 +33,6 @@ from esphome.components.esp32 import const, only_on_variant
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_COLOR_ORDER,
-    CONF_DATA_RATE,
     CONF_DIMENSIONS,
     CONF_ENABLE_PIN,
     CONF_ID,
@@ -49,6 +48,7 @@ from esphome.const import (
     CONF_WIDTH,
 )
 
+from ..rpi_dpi_rgb.display import CONF_PCLK_FREQUENCY
 from .models import (
     DELAY_FLAG,
     MADCTL_BGR,
@@ -97,37 +97,33 @@ def get_sequence(config):
     sequence.extend(custom_sequence)
     # Ensure each command is a tuple
     sequence = [x if isinstance(x, tuple) else (x,) for x in sequence]
-    commands = [x[0] for x in sequence]
-    # Set pixel format if not already in the custom sequence
-    if PIXFMT not in commands:
-        pixel_mode = config[CONF_PIXEL_MODE]
-        if not isinstance(pixel_mode, int):
-            pixel_mode = PIXEL_MODES[pixel_mode]
-        sequence.append((PIXFMT, pixel_mode))
+    pixel_mode = config[CONF_PIXEL_MODE]
+    if not isinstance(pixel_mode, int):
+        pixel_mode = PIXEL_MODES[pixel_mode]
+    sequence.append((PIXFMT, pixel_mode))
     # Does the chip use the flipping bits for mirroring rather than the reverse order bits?
     use_flip = config[CONF_USE_AXIS_FLIPS]
-    if MADCTL not in commands:
-        madctl = 0
-        transform = get_transform(model, config)
-        if transform.get(CONF_TRANSFORM):
-            LOGGER.info("Using hardware transform to implement rotation")
-        if transform.get(CONF_MIRROR_X):
-            madctl |= MADCTL_XFLIP if use_flip else MADCTL_MX
-        if transform.get(CONF_MIRROR_Y):
-            madctl |= MADCTL_YFLIP if use_flip else MADCTL_MY
-        if transform.get(CONF_SWAP_XY) is True:  # Exclude Undefined
-            madctl |= MADCTL_MV
-        if config[CONF_COLOR_ORDER] == MODE_BGR:
-            madctl |= MADCTL_BGR
-        sequence.append((MADCTL, madctl))
-    if INVON not in commands and INVOFF not in commands:
-        if config[CONF_INVERT_COLORS]:
-            sequence.append((INVON,))
-        else:
-            sequence.append((INVOFF,))
-    if SLPOUT not in commands:
-        sequence.append((SLPOUT,))
+    madctl = 0
+    transform = get_transform(model, config)
+    if transform.get(CONF_TRANSFORM):
+        LOGGER.info("Using hardware transform to implement rotation")
+    if transform.get(CONF_MIRROR_X):
+        madctl |= MADCTL_XFLIP if use_flip else MADCTL_MX
+    if transform.get(CONF_MIRROR_Y):
+        madctl |= MADCTL_YFLIP if use_flip else MADCTL_MY
+    if transform.get(CONF_SWAP_XY) is True:  # Exclude Undefined
+        madctl |= MADCTL_MV
+    if config[CONF_COLOR_ORDER] == MODE_BGR:
+        madctl |= MADCTL_BGR
+    sequence.append((MADCTL, madctl))
+    if config[CONF_INVERT_COLORS]:
+        sequence.append((INVON,))
+    else:
+        sequence.append((INVOFF,))
+    sequence.append((SLPOUT,))
+    sequence.append((DELAY_FLAG, 120))  # Wait for 120ms after SLPOUT
     sequence.append((DISPON,))
+    sequence.append((DELAY_FLAG, 20))  # Wait for 20ms after DISPON
 
     # Flatten the sequence into a list of bytes, with the length of each command
     # or the delay flag inserted where needed
@@ -194,7 +190,7 @@ def model_schema(config):
             cv.Required(CONF_MODEL): cv.one_of(model.name, upper=True),
             model.option(CONF_INVERT_COLORS, False): cv.boolean,
             model.option(CONF_USE_AXIS_FLIPS, False): cv.boolean,
-            model.option(CONF_DATA_RATE, "40MHz"): cv.All(
+            model.option(CONF_PCLK_FREQUENCY, "40MHz"): cv.All(
                 cv.frequency, cv.Range(min=4e6, max=100e6)
             ),
             iseqconf: cv.ensure_list(map_sequence),
@@ -251,7 +247,7 @@ async def to_code(config):
     cg.add(var.set_vsync_pulse_width(config[CONF_VSYNC_PULSE_WIDTH]))
     cg.add(var.set_vsync_back_porch(config[CONF_VSYNC_BACK_PORCH]))
     cg.add(var.set_vsync_front_porch(config[CONF_VSYNC_FRONT_PORCH]))
-    cg.add(var.set_data_rate(int(config[CONF_DATA_RATE] / 1e6)))
+    cg.add(var.set_pclk_frequency(int(config[CONF_PCLK_FREQUENCY] / 1e6)))
     if reset_pin := config.get(CONF_RESET_PIN):
         reset = await cg.gpio_pin_expression(reset_pin)
         cg.add(var.set_reset_pin(reset))

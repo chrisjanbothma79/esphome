@@ -1,3 +1,5 @@
+import esphome.config_validation as cv
+
 from . import DriverChip
 
 DriverChip(
@@ -10,14 +12,17 @@ DriverChip(
     vsync_back_porch=12,
     vsync_pulse_width=4,
     vsync_front_porch=30,
-    data_rate="80MHZ",
-    # reset_pin=27,
+    pclk_frequency="80MHZ",
+    swap_xy=cv.UNDEFINED,
+    color_order="RGB",
     initsequence=[
         (0xE0, 0x00),
         (0xE1, 0x93),
         (0xE2, 0x65),
         (0xE3, 0xF8),
         (0x80, 0x01),
+        (0x36, 0x08),  # MADCTL
+        (0x3A, 0x55),  # COLMOD
         (0xE0, 0x01),
         (0x00, 0x00),
         (0x01, 0x38),
