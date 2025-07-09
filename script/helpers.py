@@ -158,14 +158,11 @@ def get_header_dependencies(headers: list[str]) -> set[str]:
         Set of cpp files that depend on the changed headers
 
     Note:
-        This function requires ripgrep to be installed.
-        It's only called when --from-ci is used, where ripgrep is guaranteed to be available.
+        Uses git grep for fast searching within the git repository.
     """
     dependent_files: set[str] = set()
     headers_to_check: set[str] = set(headers)
     checked_headers: set[str] = set()
-
-    print(f"DEBUG: Initial headers to check: {headers}")
 
     # First, find all headers that transitively include the changed headers
     while headers_to_check:
@@ -177,11 +174,9 @@ def get_header_dependencies(headers: list[str]) -> set[str]:
         header_name = os.path.basename(current_header)
         patterns = [f'#include "{header_name}"', f'#include "{current_header}"']
 
-        print(f"DEBUG: Checking header {current_header} (basename: {header_name})")
-
         for pattern in patterns:
-            # Search in header files
-            cmd = ["rg", "-l", "--type-add", "header:*.h", "--type", "header", pattern]
+            # Search in header files using git grep
+            cmd = ["git", "grep", "-l", pattern, "--", "*.h"]
             result = subprocess.run(
                 cmd, capture_output=True, text=True, check=False, close_fds=False
             )
@@ -189,27 +184,20 @@ def get_header_dependencies(headers: list[str]) -> set[str]:
                 for file in result.stdout.strip().split("\n"):
                     if file and file not in checked_headers:
                         headers_to_check.add(file)
-                        print(f"DEBUG: Found header {file} includes {current_header}")
 
     # Now find all cpp files that include any of these headers
     all_headers = checked_headers
-    print(f"DEBUG: All headers (including transitive): {all_headers}")
 
-    # Use ripgrep for fast searching
+    # Use git grep for fast searching
     for header in all_headers:
         header_name = os.path.basename(header)
 
         # Search for #include statements with this header
         patterns = [f'#include "{header_name}"', f'#include "{header}"']
 
-        print(
-            f"DEBUG: Looking for cpp files that include {header} (basename: {header_name})"
-        )
-
         for pattern in patterns:
-            # Use ripgrep to find files containing the pattern
-            cmd = ["rg", "-l", "--type", "cpp", pattern]
-            print(f"DEBUG: Running: {' '.join(cmd)}")
+            # Use git grep to find files containing the pattern in cpp files only
+            cmd = ["git", "grep", "-l", pattern, "--", "*.cpp", "*.cc", "*.cxx"]
             result = subprocess.run(
                 cmd, capture_output=True, text=True, check=False, close_fds=False
             )
@@ -217,9 +205,7 @@ def get_header_dependencies(headers: list[str]) -> set[str]:
                 for file in result.stdout.strip().split("\n"):
                     if file:
                         dependent_files.add(file)
-                        print(f"DEBUG: Found cpp file {file} includes {header}")
 
-    print(f"DEBUG: Total dependent cpp files found: {len(dependent_files)}")
     return dependent_files
 
 
