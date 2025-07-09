@@ -84,11 +84,9 @@ def changed_files(branch: str = "dev") -> list[str]:
             base_ref = os.environ.get("GITHUB_BASE_REF", branch)
             try:
                 # GitHub Actions already has the base branch fetched
-                command = ["git", "diff", f"origin/{base_ref}...HEAD", "--name-only"]
-                changed = splitlines_no_ends(get_output(*command))
-                changed = [os.path.relpath(f, os.getcwd()) for f in changed]
-                changed.sort()
-                return changed
+                return _get_changed_files_from_command(
+                    ["git", "diff", f"origin/{base_ref}...HEAD", "--name-only"]
+                )
             except:  # noqa: E722
                 # Fall back to the original method if this fails
                 pass
@@ -98,11 +96,9 @@ def changed_files(branch: str = "dev") -> list[str]:
             # For push events, we want to check what changed in this commit
             try:
                 # Get the changed files in the last commit
-                command = ["git", "diff", "HEAD~1..HEAD", "--name-only"]
-                changed = splitlines_no_ends(get_output(*command))
-                changed = [os.path.relpath(f, os.getcwd()) for f in changed]
-                changed.sort()
-                return changed
+                return _get_changed_files_from_command(
+                    ["git", "diff", "HEAD~1..HEAD", "--name-only"]
+                )
             except:  # noqa: E722
                 # Fall back to the original method if this fails
                 pass
@@ -120,11 +116,16 @@ def changed_files(branch: str = "dev") -> list[str]:
             pass
     else:
         raise ValueError("Git not configured")
-    command = ["git", "diff", merge_base, "--name-only"]
-    changed = splitlines_no_ends(get_output(*command))
-    changed = [os.path.relpath(f, os.getcwd()) for f in changed]
-    changed.sort()
-    return changed
+    return _get_changed_files_from_command(["git", "diff", merge_base, "--name-only"])
+
+
+def _get_changed_files_from_command(command: list[str]) -> list[str]:
+    """Run a git command to get changed files and return them as a list."""
+    output = get_output(*command)
+    changed_files = splitlines_no_ends(output)
+    changed_files = [os.path.relpath(f, os.getcwd()) for f in changed_files]
+    changed_files.sort()
+    return changed_files
 
 
 def get_header_dependencies(headers: list[str]) -> set[str]:
