@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator, Callable, Generator
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
+import fcntl
 import logging
 import os
 from pathlib import Path
@@ -54,15 +55,29 @@ import pty  # not available on Windows
 @pytest.fixture(scope="session")
 def shared_platformio_cache() -> Generator[Path]:
     """Initialize a shared PlatformIO cache for all integration tests."""
-    cache_dir = Path.home() / ".platformio"
+    # Use a dedicated directory for integration tests to avoid conflicts
+    test_cache_dir = Path.home() / ".esphome-integration-tests"
+    test_cache_dir.mkdir(exist_ok=True)
+
+    cache_dir = test_cache_dir / "platformio"
+
+    # Use a lock file to ensure only one process initializes the cache
+    # This is needed when running with pytest-xdist
+    lock_file = test_cache_dir / "platformio_init.lock"
 
     # Check if cache needs initialization
     if not cache_dir.exists() or not any(cache_dir.iterdir()):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # Create a basic host config
-            init_dir = Path(tmpdir)
-            config_path = init_dir / "cache_init.yaml"
-            config_path.write_text("""esphome:
+        # Acquire exclusive lock to prevent multiple processes from initializing
+        with open(lock_file, "w") as lock_fd:
+            fcntl.flock(lock_fd.fileno(), fcntl.LOCK_EX)
+
+            # Double-check after acquiring lock (another process might have initialized)
+            if not cache_dir.exists() or not any(cache_dir.iterdir()):
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    # Create a basic host config
+                    init_dir = Path(tmpdir)
+                    config_path = init_dir / "cache_init.yaml"
+                    config_path.write_text("""esphome:
   name: cache-init
 host:
 api:
@@ -71,16 +86,21 @@ api:
 logger:
 """)
 
-            # Run compilation to populate the cache
-            # We must succeed here to avoid race conditions where multiple
-            # tests try to populate the same cache directory simultaneously
-            subprocess.run(
-                ["esphome", "compile", str(config_path)],
-                check=True,
-                cwd=init_dir,
-                capture_output=True,
-                text=True,
-            )
+                    # Run compilation to populate the cache
+                    # We must succeed here to avoid race conditions where multiple
+                    # tests try to populate the same cache directory simultaneously
+                    env = os.environ.copy()
+                    env["PLATFORMIO_CORE_DIR"] = str(cache_dir)
+                    env["PLATFORMIO_CACHE_DIR"] = str(cache_dir / ".cache")
+
+                    subprocess.run(
+                        ["esphome", "compile", str(config_path)],
+                        check=True,
+                        cwd=init_dir,
+                        env=env,
+                        capture_output=True,
+                        text=True,
+                    )
 
     yield cache_dir
 
