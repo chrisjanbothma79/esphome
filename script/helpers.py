@@ -82,12 +82,27 @@ def changed_files(branch: str | None = None) -> list[str]:
         if event_name == "pull_request":
             # Use GitHub's pre-fetched base branch
             base_ref = os.environ.get("GITHUB_BASE_REF", branch or "dev")
+            print(f"DEBUG: PR mode - base_ref={base_ref}")
+
+            # Check if the base branch exists
+            try:
+                verify_cmd = ["git", "rev-parse", "--verify", f"origin/{base_ref}"]
+                get_output(*verify_cmd)
+                print(f"DEBUG: origin/{base_ref} exists")
+            except:  # noqa: E722
+                print(f"DEBUG: origin/{base_ref} does not exist")
+                print("DEBUG: Available remotes:")
+                print(get_output("git", "branch", "-r"))
+
             try:
                 # GitHub Actions already has the base branch fetched
-                return _get_changed_files_from_command(
-                    ["git", "diff", f"origin/{base_ref}...HEAD", "--name-only"]
-                )
-            except:  # noqa: E722
+                cmd = ["git", "diff", f"origin/{base_ref}...HEAD", "--name-only"]
+                print(f"DEBUG: Running: {' '.join(cmd)}")
+                result = _get_changed_files_from_command(cmd)
+                print(f"DEBUG: Found {len(result)} changed files")
+                return result
+            except Exception as e:
+                print(f"DEBUG: Command failed: {e}")
                 # Fall back to the original method if this fails
                 pass
 
