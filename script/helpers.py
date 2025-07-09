@@ -6,6 +6,7 @@ import os.path
 from pathlib import Path
 import re
 import subprocess
+import time
 
 import colorama
 
@@ -296,17 +297,7 @@ def filter_changed(files: list[str]) -> list[str]:
     else:
         files = _filter_changed_local(files)
 
-    print("Files to check:")
-    if not files:
-        print("    No files to check!")
-    elif len(files) <= 20:
-        for c in sorted(files):
-            print(f"    {c}")
-    else:
-        sorted_files = sorted(files)
-        for c in sorted_files[:10]:
-            print(f"    {c}")
-        print(f"    ... and {len(files) - 10} more files")
+    print_file_list(files, "Files to check after filtering:")
     return files
 
 
@@ -331,6 +322,9 @@ def git_ls_files(patterns: list[str] | None = None) -> dict[str, int]:
 
 
 def load_idedata(environment):
+    start_time = time.time()
+    print(f"Loading IDE data for environment '{environment}'...")
+
     platformio_ini = Path(root_path) / "platformio.ini"
     temp_idedata = Path(temp_folder) / f"idedata-{environment}.json"
     changed = False
@@ -351,7 +345,10 @@ def load_idedata(environment):
             changed = True
 
     if not changed:
-        return json.loads(temp_idedata.read_text())
+        data = json.loads(temp_idedata.read_text())
+        elapsed = time.time() - start_time
+        print(f"IDE data loaded from cache in {elapsed:.2f} seconds")
+        return data
 
     # ensure temp directory exists before running pio, as it writes sdkconfig to it
     Path(temp_folder).mkdir(exist_ok=True)
@@ -367,6 +364,9 @@ def load_idedata(environment):
         match = re.search(r'{\s*".*}', stdout.decode("utf-8"))
         data = json.loads(match.group())
     temp_idedata.write_text(json.dumps(data, indent=2) + "\n")
+
+    elapsed = time.time() - start_time
+    print(f"IDE data generated and cached in {elapsed:.2f} seconds")
     return data
 
 
@@ -403,6 +403,29 @@ def get_binary(name: str, version: str) -> str:
             """
         )
         raise
+
+
+def print_file_list(
+    files: list[str], title: str = "Files:", max_files: int = 20
+) -> None:
+    """Print a list of files with optional truncation for large lists.
+
+    Args:
+        files: List of file paths to print
+        title: Title to print before the list
+        max_files: Maximum number of files to show before truncating (default: 20)
+    """
+    print(title)
+    if not files:
+        print("    No files to check!")
+    elif len(files) <= max_files:
+        for f in sorted(files):
+            print(f"    {f}")
+    else:
+        sorted_files = sorted(files)
+        for f in sorted_files[:10]:
+            print(f"    {f}")
+        print(f"    ... and {len(files) - 10} more files")
 
 
 def get_usable_cpu_count() -> int:
