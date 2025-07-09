@@ -316,11 +316,11 @@ async def beo4_action(var, config, args):
 
 
 # Brennenstuhl
-( 
-    BrennenstuhlData, 
-    BrennenstuhlBinarySensor, 
-    BrennenstuhlTrigger, 
-    BrennenstuhlAction, 
+(
+    BrennenstuhlData,
+    BrennenstuhlBinarySensor,
+    BrennenstuhlTrigger,
+    BrennenstuhlAction,
     BrennenstuhlDumper,
 ) = declare_protocol("Brennenstuhl")
 
