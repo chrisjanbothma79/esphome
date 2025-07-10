@@ -52,7 +52,7 @@ std::string state_to_string(ModemComponentState state) {
 std::string network_system_mode_to_string(int mode) {
   std::string network_type = "Not available";
   // Access Technology from AT+CNSMOD?
-  // see https://www.waveshare.com/w/upload/a/af/SIM7500_SIM7600_Series_AT_Command_Manual_V3.00.pdf, page 109
+  // See https://www.waveshare.com/w/upload/a/af/SIM7500_SIM7600_Series_AT_Command_Manual_V3.00.pdf, page 109
   switch (mode) {
     case 0:
       network_type = "No service";
@@ -119,7 +119,7 @@ std::string network_system_mode_to_string(int mode) {
 
 std::string get_signal_bars(float rssi) { return get_signal_bars(rssi, true); }
 std::string get_signal_bars(float rssi, bool color) {
-  // adapted from wifi_component.cpp
+  // Adapted from wifi_component.cpp
   // LOWER ONE QUARTER BLOCK
   // Unicode: U+2582, UTF-8: E2 96 82
   // LOWER HALF BLOCK

@@ -9,11 +9,11 @@
 #include "esphome/core/preferences.h"
 #include "esphome/components/network/util.h"
 
-// esp_modem will use esphome logger (needed if other components include esphome/core/log.h)
-// We need to do this because "cxx_include/esp_modem_api.hpp" is not a pure C++ header, and use logging.
-// error: using declarations in the global namespace in headers are prohibited
+// esp_modem will use the ESPHome logger (needed if other components include esphome/core/log.h).
+// This is necessary because "cxx_include/esp_modem_api.hpp" is not a pure C++ header and uses logging.
+// Error: "using declarations in the global namespace in headers are prohibited"
 // [google-global-names-in-headers,-warnings-as-errors]
-using esphome::esp_log_printf_;  // NOLINT(google-global-names-in-headers):
+using esphome::esp_log_printf_;  // NOLINT(google-global-names-in-headers)
 
 #include <driver/gpio.h>
 
@@ -75,7 +75,7 @@ class ModemComponent : public Component {
   void add_init_at_command(const std::string &cmd) { this->init_at_commands_.push_back(cmd); }
   bool is_connected() { return this->component_state_ == ModemComponentState::CONNECTED; }
   bool is_disabled() { return this->component_state_ == ModemComponentState::DISABLED; }
-  bool is_modem_connected(bool verbose);  // this if for modem only, not PPP
+  bool is_modem_connected(bool verbose);  // This is for the modem only, not PPP
   bool is_modem_connected() { return this->is_modem_connected(true); }
   AtCommandResult send_at(const std::string &cmd) { return this->send_at(cmd, this->command_delay_); }
   AtCommandResult send_at(const std::string &cmd, uint32_t timeout);
@@ -91,18 +91,18 @@ class ModemComponent : public Component {
   std::string get_use_address() const;
 
   // ========== INTERNAL METHODS ==========
-  // (In most use cases you won't need these)
+  // (In most use cases, you won't need these)
 
   ModemComponent();
   void setup() override;
   void loop() override;
   void dump_config() override { this->dump_connect_params_(); }
-  float get_setup_priority() const override { return setup_priority::WIFI + 1; }  // just before WIFI
+  float get_setup_priority() const override { return setup_priority::WIFI + 1; }  // Just before Wi-Fi
   bool can_proceed() override { return network::is_disabled() || this->is_connected(); };
   void add_on_state_callback(std::function<void(ModemComponentState, ModemComponentState)> &&callback) {
     this->on_state_callback_.add(std::move(callback));
   }
-  // main esp_modem object
+  // Main esp_modem object
   // https://docs.espressif.com/projects/esp-protocols/esp_modem/docs/latest/internal_docs.html#dce-internal-implementation
   std::unique_ptr<DCE> dce{nullptr};
 
@@ -125,7 +125,7 @@ class ModemComponent : public Component {
   std::string flush_uart_(uint32_t timeout);
   std::string flush_uart_() { return this->flush_uart_(this->command_delay_); }
 
-  // Attributes from yaml config
+  // Attributes from YAML config
   uint32_t timeout_;
   InternalGPIOPin *tx_pin_;
   InternalGPIOPin *rx_pin_;
@@ -140,45 +140,47 @@ class ModemComponent : public Component {
   std::string apn_;
   std::vector<std::string> init_at_commands_;
   std::string use_address_;
-  int baud_rate_ = 0;  // automatically set to 115200 if not set
+  int baud_rate_ = 0;  // Automatically set to 115200 if not specified
 
   bool cmux_{false};
-  // separate handler for `on_not_responding` (we want to know when it's ended)
+  // Separate handler for `on_not_responding` (we want to know when it's ended)
   Trigger<> *not_responding_cb_{nullptr};
   CallbackManager<void(ModemComponentState, ModemComponentState)> on_state_callback_;
 
-  // Allow changes from yaml ?
+  // Allow changes from YAML?
   size_t uart_rx_buffer_size_ = 2048;         // 256-2048
   size_t uart_tx_buffer_size_ = 1024;         // 256-2048
   uint8_t uart_event_queue_size_ = 30;        // 10-40
   size_t uart_event_task_stack_size_ = 4096;  // 2000-6000
   uint8_t uart_event_task_priority_ = 5;      // 3-22
-  uint32_t command_delay_ = 1000;             // timeout for AT commands
-  uint32_t reconnect_grace_period_ = 30000;   // let some time to mqtt or api to reconnect before retry
+  uint32_t command_delay_ = 1000;             // Timeout for AT commands
+  uint32_t reconnect_grace_period_ = 30000;   // Time to wait for MQTT or API to reconnect before retrying
+  uint32_t connect_retry_delay_ = 10000;      // Delay before retrying connection
+  uint32_t connect_timeout_ = 25000;
 
   // Changes will trigger user callback
   ModemComponentState component_state_{ModemComponentState::DISABLED};
 
-  // the uart DTE
+  // The UART DTE
   // https://docs.espressif.com/projects/esp-protocols/esp_modem/docs/latest/internal_docs.html#_CPPv4N9esp_modem3DCEE
   std::shared_ptr<DTE> dte_{nullptr};
   esp_netif_t *ppp_netif_{nullptr};
 
   struct InternalState {
     bool starting{false};
-    // trying to connect timestamp (for timeout)
+    // Timestamp for connection attempt (for timeout)
     uint32_t startms;
     bool enabled{false};
     bool connected{false};
-    // date start (millis())
+    // Start time (millis())
     uint32_t connect_begin;
-    // guess power state
+    // Guessed power state
     bool powered_on{false};
-    // Will be true when power transitionning
+    // True during power transitions
     bool power_transition{false};
-    // states for triggering on/off signals
+    // States for triggering on/off signals
     ModemPowerState power_state{ModemPowerState::TOFFUART};
-    // ask the modem to reconnect
+    // Request modem to reconnect
     bool reconnect{false};
     int current_baud_rate{0};
     bool sim_unlocked{false};

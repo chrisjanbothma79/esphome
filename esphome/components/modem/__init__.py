@@ -4,7 +4,7 @@ from esphome import automation, pins
 import esphome.codegen as cg
 from esphome.components.esp32 import add_idf_component, add_idf_sdkconfig_option
 
-# from esphome.components.wifi import wifi_has_sta  # uncomment after PR#4091 merged
+# from esphome.components.wifi import wifi_has_sta  # uncomment after PR #4091 is merged
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BAUD_RATE,
@@ -30,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 CODEOWNERS = ["@oarcher"]
 DEPENDENCIES = ["esp32"]
 AUTO_LOAD = ["network", "watchdog"]
-# following should be removed if conflicts are resolved (so we can have a wifi ap using modem)
+# The following should be removed if conflicts are resolved (so we can have a Wi-Fi AP using the modem)
 CONFLICTS_WITH = ["captive_portal", "ethernet"]
 
 CONF_MODEM = "modem"
@@ -122,7 +122,7 @@ CONFIG_SCHEMA = cv.All(
 
 
 def final_validate_platform(config):
-    # to be called by platform components
+    # To be called by platform components
     if modem_config := fv.full_config.get().get(CONF_MODEM, None):
         if not modem_config.get(CONF_ENABLE_CMUX, None):
             raise cv.Invalid(
@@ -135,10 +135,10 @@ def final_validate_platform(config):
 
 def _final_validate(config):
     full_config = fv.full_config.get()
-    # uncomment after PR#4091 merged
+    # Uncomment after PR #4091 is merged
     # if wifi_config := full_config.get(CONF_WIFI, None):
     #     if wifi_has_sta(wifi_config):
-    #         raise cv.Invalid("Wifi must be AP only when using ethernet")
+    #         raise cv.Invalid("Wi-Fi must be in AP-only mode when using a modem")
     if config.get(CONF_POWER_PIN, None):
         if config[CONF_MODEL] not in MODEM_MODELS_POWER:
             raise cv.Invalid(
@@ -166,10 +166,10 @@ async def to_code(config):
     add_idf_sdkconfig_option("CONFIG_PPP_SUPPORT", True)
     add_idf_sdkconfig_option(
         "CONFIG_ESP_MODEM_CMUX_USE_SHORT_PAYLOADS_ONLY", True
-    )  # True mean slower but more reliable
+    )  # Slower but more reliable
 
-    # If Uart queue full message ( A7672 ), those config option might be changed
-    # https://github.com/espressif/esp-protocols/issues/272#issuecomment-1558682967
+    # If "Uart queue full" messages appear (e.g., with A7672), these config options might need adjustment
+    # See: https://github.com/espressif/esp-protocols/issues/272#issuecomment-1558682967
     # add_idf_sdkconfig_option("CONFIG_ESP_MODEM_CMUX_DEFRAGMENT_PAYLOAD", True)
     # add_idf_sdkconfig_option("CONFIG_ESP_MODEM_USE_INFLATABLE_BUFFER_IF_NEEDED", True)
     # add_idf_sdkconfig_option("CONFIG_ESP_MODEM_CMUX_USE_SHORT_PAYLOADS_ONLY", False)

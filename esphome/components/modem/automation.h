@@ -36,7 +36,7 @@ class ModemOnDisconnectTrigger : public Trigger<> {
   explicit ModemOnDisconnectTrigger(ModemComponent *parent) {
     parent->add_on_state_callback([this, parent](ModemComponentState old_state, ModemComponentState state) {
       if (!parent->is_failed() && state == ModemComponentState::DISCONNECTED) {
-        // filter useless old_state
+        // Filter out unnecessary old_state values
         if (old_state == ModemComponentState::CONNECTED) {
           this->trigger();
         }
