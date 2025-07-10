@@ -1194,18 +1194,18 @@ def build_message_type(
         if ti.dump_content:
             dump.append(ti.dump_content)
 
-    # Check if this is a Response message and use metadata approach
-    is_response = desc.name.endswith("Response")
+    # Use metadata approach for all message classes
+    use_metadata = True  # Apply to all messages
     metadata_info = None
 
     cpp = ""
 
-    # Generate metadata arrays for Response classes (moved up to use in decode methods)
+    # Generate metadata arrays for all classes using metadata approach
     regular_fields = []
     repeated_fields = []
     metadata_info = None
 
-    if is_response:
+    if use_metadata:
         for field in desc.field:
             if field.label == 3:  # Repeated field
                 ti = RepeatedTypeInfo(field)
@@ -1270,8 +1270,8 @@ def build_message_type(
             "class_name": desc.name,
         }
 
-    # Only generate decode methods for non-Response messages
-    if not is_response:
+    # Only generate decode methods for classes not using metadata approach
+    if not use_metadata:
         if decode_varint:
             decode_varint.append("default:\n  return false;")
             o = f"bool {desc.name}::decode_varint(uint32_t field_id, ProtoVarInt value) {{\n"
@@ -1313,7 +1313,7 @@ def build_message_type(
             prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
             protected_content.insert(0, prot)
     else:
-        # For Response classes, add metadata-driven decode methods
+        # For classes using metadata approach, add metadata-driven decode methods
         if decode_varint:
             prot = "bool decode_varint(uint32_t field_id, ProtoVarInt value) override;"
             protected_content.insert(0, prot)
@@ -1355,8 +1355,8 @@ def build_message_type(
             o += "}\n"
             cpp += o
 
-    # Metadata arrays for Response classes are already generated above
-    if is_response:
+    # Metadata arrays for classes using metadata are already generated above
+    if use_metadata:
         # Add static declarations inside the class (definitions will be in cpp file)
         if regular_fields:
             public_content.append(
@@ -1379,7 +1379,7 @@ def build_message_type(
             public_content.append("static constexpr size_t REPEATED_COUNT = 0;")
 
     # Only generate encode method if there are fields to encode
-    if encode and not is_response:
+    if encode and not use_metadata:
         o = f"void {desc.name}::encode(ProtoWriteBuffer buffer) const {{"
         if len(encode) == 1 and len(encode[0]) + len(o) + 3 < 120:
             o += f" {encode[0]} "
@@ -1391,8 +1391,8 @@ def build_message_type(
         prot = "void encode(ProtoWriteBuffer buffer) const override;"
         public_content.append(prot)
     # If no fields to encode, the default implementation in ProtoMessage will be used
-    elif is_response and (regular_fields or repeated_fields):
-        # Generate metadata-based encode method for Response classes
+    elif use_metadata and (regular_fields or repeated_fields):
+        # Generate metadata-based encode method for classes using metadata
         prot = "void encode(ProtoWriteBuffer buffer) const override;"
         public_content.append(prot)
 
@@ -1407,7 +1407,7 @@ def build_message_type(
         cpp += o
 
     # Add calculate_size method only if there are fields
-    if size_calc and not is_response:
+    if size_calc and not use_metadata:
         o = f"void {desc.name}::calculate_size(uint32_t &total_size) const {{"
         # For a single field, just inline it for simplicity
         if len(size_calc) == 1 and len(size_calc[0]) + len(o) + 3 < 120:
@@ -1421,8 +1421,8 @@ def build_message_type(
         prot = "void calculate_size(uint32_t &total_size) const override;"
         public_content.append(prot)
     # If no fields to calculate size for, the default implementation in ProtoMessage will be used
-    elif is_response and (regular_fields or repeated_fields):
-        # Generate metadata-based calculate_size method for Response classes
+    elif use_metadata and (regular_fields or repeated_fields):
+        # Generate metadata-based calculate_size method for classes using metadata
         prot = "void calculate_size(uint32_t &total_size) const override;"
         public_content.append(prot)
 
@@ -1464,7 +1464,7 @@ def build_message_type(
 
     if base_class:
         out = f"class {desc.name} : public {base_class} {{\n"
-    elif is_response:
+    elif use_metadata:
         out = f"class {desc.name} : public ProtoMetadataMessage {{\n"
     else:
         out = f"class {desc.name} : public ProtoMessage {{\n"
@@ -1480,8 +1480,8 @@ def build_message_type(
     # Build dump_cpp content with dump_to implementation
     dump_cpp = dump_impl
 
-    # Return metadata info for Response classes
-    metadata_return = metadata_info if is_response else None
+    # Return metadata info for classes using metadata
+    metadata_return = metadata_info if use_metadata else None
 
     return out, cpp, dump_cpp, metadata_return
 
@@ -1589,13 +1589,8 @@ def build_base_class(
         public_content.extend(ti.public_content)
 
     # Build header
-    # Check if this is a Response base class
-    if base_class_name.endswith("Response") or base_class_name.endswith(
-        "ResponseProtoMessage"
-    ):
-        out = f"class {base_class_name} : public ProtoMetadataMessage {{\n"
-    else:
-        out = f"class {base_class_name} : public ProtoMessage {{\n"
+    # All base classes now use ProtoMetadataMessage
+    out = f"class {base_class_name} : public ProtoMetadataMessage {{\n"
     out += " public:\n"
 
     # Add destructor with override
@@ -1802,7 +1797,7 @@ namespace api {
     # Simple grouping by ifdef
     current_ifdef = None
 
-    # Collect metadata for Response classes
+    # Collect metadata for classes using metadata approach
     response_metadata = []
 
     for m in mt:
@@ -1846,9 +1841,9 @@ namespace api {
 }  // namespace esphome
 """
 
-    # Generate metadata definitions in cpp file for Response classes
+    # Generate metadata definitions in cpp file for classes using metadata
     if response_metadata:
-        cpp += "\n// Metadata definitions for Response classes\n"
+        cpp += "\n// Metadata definitions for classes using metadata approach\n"
         current_ifdef = None
 
         for meta in response_metadata:

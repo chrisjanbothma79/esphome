@@ -10,38 +10,16 @@ namespace esphome {
 namespace api {
 
 bool HelloRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->api_version_major = value.as_uint32();
-      return true;
-    }
-    case 3: {
-      this->api_version_minor = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool HelloRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->client_info = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void HelloRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_string(1, this->client_info);
-  buffer.encode_uint32(2, this->api_version_major);
-  buffer.encode_uint32(3, this->api_version_minor);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void HelloRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->client_info, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->api_version_major, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->api_version_minor, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool HelloResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -56,18 +34,13 @@ void HelloResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool ConnectRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->password = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
-void ConnectRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_string(1, this->password); }
+void ConnectRequest::encode(ProtoWriteBuffer buffer) const {
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
+}
 void ConnectRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->password, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool ConnectResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -79,66 +52,28 @@ void ConnectResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool AreaInfo::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->area_id = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool AreaInfo::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 2: {
-      this->name = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void AreaInfo::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint32(1, this->area_id);
-  buffer.encode_string(2, this->name);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void AreaInfo::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint32_field(total_size, 1, this->area_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool DeviceInfo::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->device_id = value.as_uint32();
-      return true;
-    }
-    case 3: {
-      this->area_id = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool DeviceInfo::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 2: {
-      this->name = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void DeviceInfo::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint32(1, this->device_id);
-  buffer.encode_string(2, this->name);
-  buffer.encode_uint32(3, this->area_id);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void DeviceInfo::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint32_field(total_size, 1, this->device_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->area_id, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool DeviceInfoResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -210,68 +145,16 @@ void CoverStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool CoverCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->has_legacy_command = value.as_bool();
-      return true;
-    }
-    case 3: {
-      this->legacy_command = value.as_enum<enums::LegacyCoverCommand>();
-      return true;
-    }
-    case 4: {
-      this->has_position = value.as_bool();
-      return true;
-    }
-    case 6: {
-      this->has_tilt = value.as_bool();
-      return true;
-    }
-    case 8: {
-      this->stop = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool CoverCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    case 5: {
-      this->position = value.as_float();
-      return true;
-    }
-    case 7: {
-      this->tilt = value.as_float();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void CoverCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_bool(2, this->has_legacy_command);
-  buffer.encode_enum<enums::LegacyCoverCommand>(3, this->legacy_command);
-  buffer.encode_bool(4, this->has_position);
-  buffer.encode_float(5, this->position);
-  buffer.encode_bool(6, this->has_tilt);
-  buffer.encode_float(7, this->tilt);
-  buffer.encode_bool(8, this->stop);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void CoverCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_legacy_command, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->legacy_command), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_position, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->position != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_tilt, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->tilt != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->stop, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_FAN
@@ -306,104 +189,19 @@ void FanStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool FanCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->has_state = value.as_bool();
-      return true;
-    }
-    case 3: {
-      this->state = value.as_bool();
-      return true;
-    }
-    case 4: {
-      this->has_speed = value.as_bool();
-      return true;
-    }
-    case 5: {
-      this->speed = value.as_enum<enums::FanSpeed>();
-      return true;
-    }
-    case 6: {
-      this->has_oscillating = value.as_bool();
-      return true;
-    }
-    case 7: {
-      this->oscillating = value.as_bool();
-      return true;
-    }
-    case 8: {
-      this->has_direction = value.as_bool();
-      return true;
-    }
-    case 9: {
-      this->direction = value.as_enum<enums::FanDirection>();
-      return true;
-    }
-    case 10: {
-      this->has_speed_level = value.as_bool();
-      return true;
-    }
-    case 11: {
-      this->speed_level = value.as_int32();
-      return true;
-    }
-    case 12: {
-      this->has_preset_mode = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool FanCommandRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 13: {
-      this->preset_mode = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool FanCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void FanCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_bool(2, this->has_state);
-  buffer.encode_bool(3, this->state);
-  buffer.encode_bool(4, this->has_speed);
-  buffer.encode_enum<enums::FanSpeed>(5, this->speed);
-  buffer.encode_bool(6, this->has_oscillating);
-  buffer.encode_bool(7, this->oscillating);
-  buffer.encode_bool(8, this->has_direction);
-  buffer.encode_enum<enums::FanDirection>(9, this->direction);
-  buffer.encode_bool(10, this->has_speed_level);
-  buffer.encode_int32(11, this->speed_level);
-  buffer.encode_bool(12, this->has_preset_mode);
-  buffer.encode_string(13, this->preset_mode);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void FanCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_speed, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->speed), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_oscillating, false);
-  ProtoSize::add_bool_field(total_size, 1, this->oscillating, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_direction, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->direction), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_speed_level, false);
-  ProtoSize::add_int32_field(total_size, 1, this->speed_level, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_preset_mode, false);
-  ProtoSize::add_string_field(total_size, 1, this->preset_mode, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_LIGHT
@@ -438,188 +236,19 @@ void LightStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool LightCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->has_state = value.as_bool();
-      return true;
-    }
-    case 3: {
-      this->state = value.as_bool();
-      return true;
-    }
-    case 4: {
-      this->has_brightness = value.as_bool();
-      return true;
-    }
-    case 22: {
-      this->has_color_mode = value.as_bool();
-      return true;
-    }
-    case 23: {
-      this->color_mode = value.as_enum<enums::ColorMode>();
-      return true;
-    }
-    case 20: {
-      this->has_color_brightness = value.as_bool();
-      return true;
-    }
-    case 6: {
-      this->has_rgb = value.as_bool();
-      return true;
-    }
-    case 10: {
-      this->has_white = value.as_bool();
-      return true;
-    }
-    case 12: {
-      this->has_color_temperature = value.as_bool();
-      return true;
-    }
-    case 24: {
-      this->has_cold_white = value.as_bool();
-      return true;
-    }
-    case 26: {
-      this->has_warm_white = value.as_bool();
-      return true;
-    }
-    case 14: {
-      this->has_transition_length = value.as_bool();
-      return true;
-    }
-    case 15: {
-      this->transition_length = value.as_uint32();
-      return true;
-    }
-    case 16: {
-      this->has_flash_length = value.as_bool();
-      return true;
-    }
-    case 17: {
-      this->flash_length = value.as_uint32();
-      return true;
-    }
-    case 18: {
-      this->has_effect = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool LightCommandRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 19: {
-      this->effect = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool LightCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    case 5: {
-      this->brightness = value.as_float();
-      return true;
-    }
-    case 21: {
-      this->color_brightness = value.as_float();
-      return true;
-    }
-    case 7: {
-      this->red = value.as_float();
-      return true;
-    }
-    case 8: {
-      this->green = value.as_float();
-      return true;
-    }
-    case 9: {
-      this->blue = value.as_float();
-      return true;
-    }
-    case 11: {
-      this->white = value.as_float();
-      return true;
-    }
-    case 13: {
-      this->color_temperature = value.as_float();
-      return true;
-    }
-    case 25: {
-      this->cold_white = value.as_float();
-      return true;
-    }
-    case 27: {
-      this->warm_white = value.as_float();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void LightCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_bool(2, this->has_state);
-  buffer.encode_bool(3, this->state);
-  buffer.encode_bool(4, this->has_brightness);
-  buffer.encode_float(5, this->brightness);
-  buffer.encode_bool(22, this->has_color_mode);
-  buffer.encode_enum<enums::ColorMode>(23, this->color_mode);
-  buffer.encode_bool(20, this->has_color_brightness);
-  buffer.encode_float(21, this->color_brightness);
-  buffer.encode_bool(6, this->has_rgb);
-  buffer.encode_float(7, this->red);
-  buffer.encode_float(8, this->green);
-  buffer.encode_float(9, this->blue);
-  buffer.encode_bool(10, this->has_white);
-  buffer.encode_float(11, this->white);
-  buffer.encode_bool(12, this->has_color_temperature);
-  buffer.encode_float(13, this->color_temperature);
-  buffer.encode_bool(24, this->has_cold_white);
-  buffer.encode_float(25, this->cold_white);
-  buffer.encode_bool(26, this->has_warm_white);
-  buffer.encode_float(27, this->warm_white);
-  buffer.encode_bool(14, this->has_transition_length);
-  buffer.encode_uint32(15, this->transition_length);
-  buffer.encode_bool(16, this->has_flash_length);
-  buffer.encode_uint32(17, this->flash_length);
-  buffer.encode_bool(18, this->has_effect);
-  buffer.encode_string(19, this->effect);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void LightCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_brightness, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->brightness != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_color_mode, false);
-  ProtoSize::add_enum_field(total_size, 2, static_cast<uint32_t>(this->color_mode), false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_color_brightness, false);
-  ProtoSize::add_fixed_field<4>(total_size, 2, this->color_brightness != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_rgb, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->red != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->green != 0.0f, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->blue != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_white, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->white != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_color_temperature, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->color_temperature != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_cold_white, false);
-  ProtoSize::add_fixed_field<4>(total_size, 2, this->cold_white != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_warm_white, false);
-  ProtoSize::add_fixed_field<4>(total_size, 2, this->warm_white != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_transition_length, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->transition_length, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_flash_length, false);
-  ProtoSize::add_uint32_field(total_size, 2, this->flash_length, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_effect, false);
-  ProtoSize::add_string_field(total_size, 2, this->effect, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_SENSOR
@@ -680,32 +309,16 @@ void SwitchStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool SwitchCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->state = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool SwitchCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void SwitchCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_bool(2, this->state);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void SwitchCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_TEXT_SENSOR
@@ -741,26 +354,13 @@ void TextSensorStateResponse::calculate_size(uint32_t &total_size) const {
 }
 #endif
 bool SubscribeLogsRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->level = value.as_enum<enums::LogLevel>();
-      return true;
-    }
-    case 2: {
-      this->dump_config = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void SubscribeLogsRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_enum<enums::LogLevel>(1, this->level);
-  buffer.encode_bool(2, this->dump_config);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void SubscribeLogsRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->level), false);
-  ProtoSize::add_bool_field(total_size, 1, this->dump_config, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool SubscribeLogsResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -776,20 +376,13 @@ void SubscribeLogsResponse::calculate_size(uint32_t &total_size) const {
 }
 #ifdef USE_API_NOISE
 bool NoiseEncryptionSetKeyRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void NoiseEncryptionSetKeyRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_bytes(1, reinterpret_cast<const uint8_t *>(this->key.data()), this->key.size());
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void NoiseEncryptionSetKeyRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->key, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool NoiseEncryptionSetKeyResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -802,26 +395,13 @@ void NoiseEncryptionSetKeyResponse::calculate_size(uint32_t &total_size) const {
 }
 #endif
 bool HomeassistantServiceMap::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_string();
-      return true;
-    }
-    case 2: {
-      this->value = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void HomeassistantServiceMap::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_string(1, this->key);
-  buffer.encode_string(2, this->value);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void HomeassistantServiceMap::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->key, false);
-  ProtoSize::add_string_field(total_size, 1, this->value, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool HomeassistantServiceResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -866,32 +446,16 @@ void GetTimeResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool ListEntitiesServicesArgument::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->type = value.as_enum<enums::ServiceArgType>();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool ListEntitiesServicesArgument::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->name = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void ListEntitiesServicesArgument::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_string(1, this->name);
-  buffer.encode_enum<enums::ServiceArgType>(2, this->type);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void ListEntitiesServicesArgument::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->type), false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool ListEntitiesServicesResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -906,134 +470,31 @@ void ListEntitiesServicesResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 bool ExecuteServiceArgument::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->bool_ = value.as_bool();
-      return true;
-    }
-    case 2: {
-      this->legacy_int = value.as_int32();
-      return true;
-    }
-    case 5: {
-      this->int_ = value.as_sint32();
-      return true;
-    }
-    case 6: {
-      this->bool_array.push_back(value.as_bool());
-      return true;
-    }
-    case 7: {
-      this->int_array.push_back(value.as_sint32());
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool ExecuteServiceArgument::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 4: {
-      this->string_ = value.as_string();
-      return true;
-    }
-    case 9: {
-      this->string_array.push_back(value.as_string());
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool ExecuteServiceArgument::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 3: {
-      this->float_ = value.as_float();
-      return true;
-    }
-    case 8: {
-      this->float_array.push_back(value.as_float());
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void ExecuteServiceArgument::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_bool(1, this->bool_);
-  buffer.encode_int32(2, this->legacy_int);
-  buffer.encode_float(3, this->float_);
-  buffer.encode_string(4, this->string_);
-  buffer.encode_sint32(5, this->int_);
-  for (auto it : this->bool_array) {
-    buffer.encode_bool(6, it, true);
-  }
-  for (auto &it : this->int_array) {
-    buffer.encode_sint32(7, it, true);
-  }
-  for (auto &it : this->float_array) {
-    buffer.encode_float(8, it, true);
-  }
-  for (auto &it : this->string_array) {
-    buffer.encode_string(9, it, true);
-  }
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 void ExecuteServiceArgument::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_bool_field(total_size, 1, this->bool_, false);
-  ProtoSize::add_int32_field(total_size, 1, this->legacy_int, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->float_ != 0.0f, false);
-  ProtoSize::add_string_field(total_size, 1, this->string_, false);
-  ProtoSize::add_sint32_field(total_size, 1, this->int_, false);
-  if (!this->bool_array.empty()) {
-    for (const auto it : this->bool_array) {
-      ProtoSize::add_bool_field(total_size, 1, it, true);
-    }
-  }
-  if (!this->int_array.empty()) {
-    for (const auto &it : this->int_array) {
-      ProtoSize::add_sint32_field(total_size, 1, it, true);
-    }
-  }
-  if (!this->float_array.empty()) {
-    for (const auto &it : this->float_array) {
-      ProtoSize::add_fixed_field<4>(total_size, 1, it != 0.0f, true);
-    }
-  }
-  if (!this->string_array.empty()) {
-    for (const auto &it : this->string_array) {
-      ProtoSize::add_string_field(total_size, 1, it, true);
-    }
-  }
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 bool ExecuteServiceRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 2: {
-      this->args.push_back(value.as_message<ExecuteServiceArgument>());
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool ExecuteServiceRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void ExecuteServiceRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  for (auto &it : this->args) {
-    buffer.encode_message<ExecuteServiceArgument>(2, it, true);
-  }
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 void ExecuteServiceRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_repeated_message(total_size, 1, this->args);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 #ifdef USE_CAMERA
 bool ListEntitiesCameraResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
@@ -1067,26 +528,13 @@ void CameraImageResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool CameraImageRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->single = value.as_bool();
-      return true;
-    }
-    case 2: {
-      this->stream = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void CameraImageRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_bool(1, this->single);
-  buffer.encode_bool(2, this->stream);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void CameraImageRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_bool_field(total_size, 1, this->single, false);
-  ProtoSize::add_bool_field(total_size, 1, this->stream, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_CLIMATE
@@ -1121,164 +569,19 @@ void ClimateStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool ClimateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->has_mode = value.as_bool();
-      return true;
-    }
-    case 3: {
-      this->mode = value.as_enum<enums::ClimateMode>();
-      return true;
-    }
-    case 4: {
-      this->has_target_temperature = value.as_bool();
-      return true;
-    }
-    case 6: {
-      this->has_target_temperature_low = value.as_bool();
-      return true;
-    }
-    case 8: {
-      this->has_target_temperature_high = value.as_bool();
-      return true;
-    }
-    case 10: {
-      this->unused_has_legacy_away = value.as_bool();
-      return true;
-    }
-    case 11: {
-      this->unused_legacy_away = value.as_bool();
-      return true;
-    }
-    case 12: {
-      this->has_fan_mode = value.as_bool();
-      return true;
-    }
-    case 13: {
-      this->fan_mode = value.as_enum<enums::ClimateFanMode>();
-      return true;
-    }
-    case 14: {
-      this->has_swing_mode = value.as_bool();
-      return true;
-    }
-    case 15: {
-      this->swing_mode = value.as_enum<enums::ClimateSwingMode>();
-      return true;
-    }
-    case 16: {
-      this->has_custom_fan_mode = value.as_bool();
-      return true;
-    }
-    case 18: {
-      this->has_preset = value.as_bool();
-      return true;
-    }
-    case 19: {
-      this->preset = value.as_enum<enums::ClimatePreset>();
-      return true;
-    }
-    case 20: {
-      this->has_custom_preset = value.as_bool();
-      return true;
-    }
-    case 22: {
-      this->has_target_humidity = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool ClimateCommandRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 17: {
-      this->custom_fan_mode = value.as_string();
-      return true;
-    }
-    case 21: {
-      this->custom_preset = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool ClimateCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    case 5: {
-      this->target_temperature = value.as_float();
-      return true;
-    }
-    case 7: {
-      this->target_temperature_low = value.as_float();
-      return true;
-    }
-    case 9: {
-      this->target_temperature_high = value.as_float();
-      return true;
-    }
-    case 23: {
-      this->target_humidity = value.as_float();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void ClimateCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_bool(2, this->has_mode);
-  buffer.encode_enum<enums::ClimateMode>(3, this->mode);
-  buffer.encode_bool(4, this->has_target_temperature);
-  buffer.encode_float(5, this->target_temperature);
-  buffer.encode_bool(6, this->has_target_temperature_low);
-  buffer.encode_float(7, this->target_temperature_low);
-  buffer.encode_bool(8, this->has_target_temperature_high);
-  buffer.encode_float(9, this->target_temperature_high);
-  buffer.encode_bool(10, this->unused_has_legacy_away);
-  buffer.encode_bool(11, this->unused_legacy_away);
-  buffer.encode_bool(12, this->has_fan_mode);
-  buffer.encode_enum<enums::ClimateFanMode>(13, this->fan_mode);
-  buffer.encode_bool(14, this->has_swing_mode);
-  buffer.encode_enum<enums::ClimateSwingMode>(15, this->swing_mode);
-  buffer.encode_bool(16, this->has_custom_fan_mode);
-  buffer.encode_string(17, this->custom_fan_mode);
-  buffer.encode_bool(18, this->has_preset);
-  buffer.encode_enum<enums::ClimatePreset>(19, this->preset);
-  buffer.encode_bool(20, this->has_custom_preset);
-  buffer.encode_string(21, this->custom_preset);
-  buffer.encode_bool(22, this->has_target_humidity);
-  buffer.encode_float(23, this->target_humidity);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void ClimateCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_mode, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->mode), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_target_temperature, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_temperature != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_target_temperature_low, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_temperature_low != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_target_temperature_high, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_temperature_high != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->unused_has_legacy_away, false);
-  ProtoSize::add_bool_field(total_size, 1, this->unused_legacy_away, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_fan_mode, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->fan_mode), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_swing_mode, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->swing_mode), false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_custom_fan_mode, false);
-  ProtoSize::add_string_field(total_size, 2, this->custom_fan_mode, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_preset, false);
-  ProtoSize::add_enum_field(total_size, 2, static_cast<uint32_t>(this->preset), false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_custom_preset, false);
-  ProtoSize::add_string_field(total_size, 2, this->custom_preset, false);
-  ProtoSize::add_bool_field(total_size, 2, this->has_target_humidity, false);
-  ProtoSize::add_fixed_field<4>(total_size, 2, this->target_humidity != 0.0f, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_NUMBER
@@ -1310,26 +613,13 @@ void NumberStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool NumberCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    case 2: {
-      this->state = value.as_float();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void NumberCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_float(2, this->state);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void NumberCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->state != 0.0f, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_SELECT
@@ -1364,32 +654,16 @@ void SelectStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool SelectCommandRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 2: {
-      this->state = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool SelectCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void SelectCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_string(2, this->state);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void SelectCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->state, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_SIREN
@@ -1421,80 +695,19 @@ void SirenStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool SirenCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->has_state = value.as_bool();
-      return true;
-    }
-    case 3: {
-      this->state = value.as_bool();
-      return true;
-    }
-    case 4: {
-      this->has_tone = value.as_bool();
-      return true;
-    }
-    case 6: {
-      this->has_duration = value.as_bool();
-      return true;
-    }
-    case 7: {
-      this->duration = value.as_uint32();
-      return true;
-    }
-    case 8: {
-      this->has_volume = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool SirenCommandRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 5: {
-      this->tone = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool SirenCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    case 9: {
-      this->volume = value.as_float();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void SirenCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_bool(2, this->has_state);
-  buffer.encode_bool(3, this->state);
-  buffer.encode_bool(4, this->has_tone);
-  buffer.encode_string(5, this->tone);
-  buffer.encode_bool(6, this->has_duration);
-  buffer.encode_uint32(7, this->duration);
-  buffer.encode_bool(8, this->has_volume);
-  buffer.encode_float(9, this->volume);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void SirenCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->state, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_tone, false);
-  ProtoSize::add_string_field(total_size, 1, this->tone, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_duration, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->duration, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_volume, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->volume != 0.0f, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_LOCK
@@ -1526,50 +739,19 @@ void LockStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool LockCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->command = value.as_enum<enums::LockCommand>();
-      return true;
-    }
-    case 3: {
-      this->has_code = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool LockCommandRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 4: {
-      this->code = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool LockCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void LockCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_enum<enums::LockCommand>(2, this->command);
-  buffer.encode_bool(3, this->has_code);
-  buffer.encode_string(4, this->code);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void LockCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->command), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_code, false);
-  ProtoSize::add_string_field(total_size, 1, this->code, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_BUTTON
@@ -1589,66 +771,27 @@ void ListEntitiesButtonResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool ButtonCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
-void ButtonCommandRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_fixed32(1, this->key); }
+void ButtonCommandRequest::encode(ProtoWriteBuffer buffer) const {
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
+}
 void ButtonCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_MEDIA_PLAYER
 bool MediaPlayerSupportedFormat::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->sample_rate = value.as_uint32();
-      return true;
-    }
-    case 3: {
-      this->num_channels = value.as_uint32();
-      return true;
-    }
-    case 4: {
-      this->purpose = value.as_enum<enums::MediaPlayerFormatPurpose>();
-      return true;
-    }
-    case 5: {
-      this->sample_bytes = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool MediaPlayerSupportedFormat::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->format = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void MediaPlayerSupportedFormat::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_string(1, this->format);
-  buffer.encode_uint32(2, this->sample_rate);
-  buffer.encode_uint32(3, this->num_channels);
-  buffer.encode_enum<enums::MediaPlayerFormatPurpose>(4, this->purpose);
-  buffer.encode_uint32(5, this->sample_bytes);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void MediaPlayerSupportedFormat::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->format, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->sample_rate, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->num_channels, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->purpose), false);
-  ProtoSize::add_uint32_field(total_size, 1, this->sample_bytes, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool ListEntitiesMediaPlayerResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -1678,138 +821,42 @@ void MediaPlayerStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool MediaPlayerCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->has_command = value.as_bool();
-      return true;
-    }
-    case 3: {
-      this->command = value.as_enum<enums::MediaPlayerCommand>();
-      return true;
-    }
-    case 4: {
-      this->has_volume = value.as_bool();
-      return true;
-    }
-    case 6: {
-      this->has_media_url = value.as_bool();
-      return true;
-    }
-    case 8: {
-      this->has_announcement = value.as_bool();
-      return true;
-    }
-    case 9: {
-      this->announcement = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool MediaPlayerCommandRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 7: {
-      this->media_url = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool MediaPlayerCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    case 5: {
-      this->volume = value.as_float();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void MediaPlayerCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_bool(2, this->has_command);
-  buffer.encode_enum<enums::MediaPlayerCommand>(3, this->command);
-  buffer.encode_bool(4, this->has_volume);
-  buffer.encode_float(5, this->volume);
-  buffer.encode_bool(6, this->has_media_url);
-  buffer.encode_string(7, this->media_url);
-  buffer.encode_bool(8, this->has_announcement);
-  buffer.encode_bool(9, this->announcement);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void MediaPlayerCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_command, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->command), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_volume, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->volume != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_media_url, false);
-  ProtoSize::add_string_field(total_size, 1, this->media_url, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_announcement, false);
-  ProtoSize::add_bool_field(total_size, 1, this->announcement, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_BLUETOOTH_PROXY
 bool SubscribeBluetoothLEAdvertisementsRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->flags = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void SubscribeBluetoothLEAdvertisementsRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint32(1, this->flags);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void SubscribeBluetoothLEAdvertisementsRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint32_field(total_size, 1, this->flags, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothServiceData::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->legacy_data.push_back(value.as_uint32());
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool BluetoothServiceData::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->uuid = value.as_string();
-      return true;
-    }
-    case 3: {
-      this->data = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void BluetoothServiceData::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_string(1, this->uuid);
-  for (auto &it : this->legacy_data) {
-    buffer.encode_uint32(2, it, true);
-  }
-  buffer.encode_bytes(3, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 void BluetoothServiceData::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->uuid, false);
-  if (!this->legacy_data.empty()) {
-    for (const auto &it : this->legacy_data) {
-      ProtoSize::add_uint32_field(total_size, 1, it, true);
-    }
-  }
-  ProtoSize::add_string_field(total_size, 1, this->data, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 bool BluetoothLEAdvertisementResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -1824,44 +871,16 @@ void BluetoothLEAdvertisementResponse::calculate_size(uint32_t &total_size) cons
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 bool BluetoothLERawAdvertisement::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->address = value.as_uint64();
-      return true;
-    }
-    case 2: {
-      this->rssi = value.as_sint32();
-      return true;
-    }
-    case 3: {
-      this->address_type = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool BluetoothLERawAdvertisement::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 4: {
-      this->data = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void BluetoothLERawAdvertisement::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint64(1, this->address);
-  buffer.encode_sint32(2, this->rssi);
-  buffer.encode_uint32(3, this->address_type);
-  buffer.encode_bytes(4, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void BluetoothLERawAdvertisement::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_sint32_field(total_size, 1, this->rssi, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->address_type, false);
-  ProtoSize::add_string_field(total_size, 1, this->data, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothLERawAdvertisementsResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   return false;  // No length-delimited fields
@@ -1873,38 +892,13 @@ void BluetoothLERawAdvertisementsResponse::calculate_size(uint32_t &total_size) 
   calculate_size_from_metadata(total_size, this, nullptr, 0, REPEATED_FIELDS, REPEATED_COUNT);
 }
 bool BluetoothDeviceRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->address = value.as_uint64();
-      return true;
-    }
-    case 2: {
-      this->request_type = value.as_enum<enums::BluetoothDeviceRequestType>();
-      return true;
-    }
-    case 3: {
-      this->has_address_type = value.as_bool();
-      return true;
-    }
-    case 4: {
-      this->address_type = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void BluetoothDeviceRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint64(1, this->address);
-  buffer.encode_enum<enums::BluetoothDeviceRequestType>(2, this->request_type);
-  buffer.encode_bool(3, this->has_address_type);
-  buffer.encode_uint32(4, this->address_type);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void BluetoothDeviceRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->request_type), false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_address_type, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->address_type, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothDeviceConnectionResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -1916,136 +910,46 @@ void BluetoothDeviceConnectionResponse::calculate_size(uint32_t &total_size) con
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothGATTGetServicesRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->address = value.as_uint64();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
-void BluetoothGATTGetServicesRequest::encode(ProtoWriteBuffer buffer) const { buffer.encode_uint64(1, this->address); }
+void BluetoothGATTGetServicesRequest::encode(ProtoWriteBuffer buffer) const {
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
+}
 void BluetoothGATTGetServicesRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothGATTDescriptor::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->uuid.push_back(value.as_uint64());
-      return true;
-    }
-    case 2: {
-      this->handle = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void BluetoothGATTDescriptor::encode(ProtoWriteBuffer buffer) const {
-  for (auto &it : this->uuid) {
-    buffer.encode_uint64(1, it, true);
-  }
-  buffer.encode_uint32(2, this->handle);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 void BluetoothGATTDescriptor::calculate_size(uint32_t &total_size) const {
-  if (!this->uuid.empty()) {
-    for (const auto &it : this->uuid) {
-      ProtoSize::add_uint64_field(total_size, 1, it, true);
-    }
-  }
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 bool BluetoothGATTCharacteristic::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->uuid.push_back(value.as_uint64());
-      return true;
-    }
-    case 2: {
-      this->handle = value.as_uint32();
-      return true;
-    }
-    case 3: {
-      this->properties = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool BluetoothGATTCharacteristic::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 4: {
-      this->descriptors.push_back(value.as_message<BluetoothGATTDescriptor>());
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void BluetoothGATTCharacteristic::encode(ProtoWriteBuffer buffer) const {
-  for (auto &it : this->uuid) {
-    buffer.encode_uint64(1, it, true);
-  }
-  buffer.encode_uint32(2, this->handle);
-  buffer.encode_uint32(3, this->properties);
-  for (auto &it : this->descriptors) {
-    buffer.encode_message<BluetoothGATTDescriptor>(4, it, true);
-  }
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 void BluetoothGATTCharacteristic::calculate_size(uint32_t &total_size) const {
-  if (!this->uuid.empty()) {
-    for (const auto &it : this->uuid) {
-      ProtoSize::add_uint64_field(total_size, 1, it, true);
-    }
-  }
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->properties, false);
-  ProtoSize::add_repeated_message(total_size, 1, this->descriptors);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 bool BluetoothGATTService::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->uuid.push_back(value.as_uint64());
-      return true;
-    }
-    case 2: {
-      this->handle = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool BluetoothGATTService::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 3: {
-      this->characteristics.push_back(value.as_message<BluetoothGATTCharacteristic>());
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void BluetoothGATTService::encode(ProtoWriteBuffer buffer) const {
-  for (auto &it : this->uuid) {
-    buffer.encode_uint64(1, it, true);
-  }
-  buffer.encode_uint32(2, this->handle);
-  for (auto &it : this->characteristics) {
-    buffer.encode_message<BluetoothGATTCharacteristic>(3, it, true);
-  }
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 void BluetoothGATTService::calculate_size(uint32_t &total_size) const {
-  if (!this->uuid.empty()) {
-    for (const auto &it : this->uuid) {
-      ProtoSize::add_uint64_field(total_size, 1, it, true);
-    }
-  }
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  ProtoSize::add_repeated_message(total_size, 1, this->characteristics);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 bool BluetoothGATTGetServicesResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -2069,26 +973,13 @@ void BluetoothGATTGetServicesDoneResponse::calculate_size(uint32_t &total_size) 
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothGATTReadRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->address = value.as_uint64();
-      return true;
-    }
-    case 2: {
-      this->handle = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void BluetoothGATTReadRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint64(1, this->address);
-  buffer.encode_uint32(2, this->handle);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void BluetoothGATTReadRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothGATTReadResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -2103,128 +994,46 @@ void BluetoothGATTReadResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothGATTWriteRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->address = value.as_uint64();
-      return true;
-    }
-    case 2: {
-      this->handle = value.as_uint32();
-      return true;
-    }
-    case 3: {
-      this->response = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool BluetoothGATTWriteRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 4: {
-      this->data = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void BluetoothGATTWriteRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint64(1, this->address);
-  buffer.encode_uint32(2, this->handle);
-  buffer.encode_bool(3, this->response);
-  buffer.encode_bytes(4, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void BluetoothGATTWriteRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  ProtoSize::add_bool_field(total_size, 1, this->response, false);
-  ProtoSize::add_string_field(total_size, 1, this->data, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothGATTReadDescriptorRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->address = value.as_uint64();
-      return true;
-    }
-    case 2: {
-      this->handle = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void BluetoothGATTReadDescriptorRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint64(1, this->address);
-  buffer.encode_uint32(2, this->handle);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void BluetoothGATTReadDescriptorRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothGATTWriteDescriptorRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->address = value.as_uint64();
-      return true;
-    }
-    case 2: {
-      this->handle = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool BluetoothGATTWriteDescriptorRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 3: {
-      this->data = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void BluetoothGATTWriteDescriptorRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint64(1, this->address);
-  buffer.encode_uint32(2, this->handle);
-  buffer.encode_bytes(3, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void BluetoothGATTWriteDescriptorRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  ProtoSize::add_string_field(total_size, 1, this->data, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothGATTNotifyRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->address = value.as_uint64();
-      return true;
-    }
-    case 2: {
-      this->handle = value.as_uint32();
-      return true;
-    }
-    case 3: {
-      this->enable = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void BluetoothGATTNotifyRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint64(1, this->address);
-  buffer.encode_uint32(2, this->handle);
-  buffer.encode_bool(3, this->enable);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void BluetoothGATTNotifyRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->handle, false);
-  ProtoSize::add_bool_field(total_size, 1, this->enable, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothGATTNotifyDataResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -2311,124 +1120,48 @@ void BluetoothScannerStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool BluetoothScannerSetModeRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->mode = value.as_enum<enums::BluetoothScannerMode>();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void BluetoothScannerSetModeRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_enum<enums::BluetoothScannerMode>(1, this->mode);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void BluetoothScannerSetModeRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->mode), false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_VOICE_ASSISTANT
 bool SubscribeVoiceAssistantRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->subscribe = value.as_bool();
-      return true;
-    }
-    case 2: {
-      this->flags = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void SubscribeVoiceAssistantRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_bool(1, this->subscribe);
-  buffer.encode_uint32(2, this->flags);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void SubscribeVoiceAssistantRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_bool_field(total_size, 1, this->subscribe, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->flags, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool VoiceAssistantAudioSettings::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->noise_suppression_level = value.as_uint32();
-      return true;
-    }
-    case 2: {
-      this->auto_gain = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool VoiceAssistantAudioSettings::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 3: {
-      this->volume_multiplier = value.as_float();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void VoiceAssistantAudioSettings::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint32(1, this->noise_suppression_level);
-  buffer.encode_uint32(2, this->auto_gain);
-  buffer.encode_float(3, this->volume_multiplier);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void VoiceAssistantAudioSettings::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint32_field(total_size, 1, this->noise_suppression_level, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->auto_gain, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->volume_multiplier != 0.0f, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool VoiceAssistantRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->start = value.as_bool();
-      return true;
-    }
-    case 3: {
-      this->flags = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool VoiceAssistantRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 2: {
-      this->conversation_id = value.as_string();
-      return true;
-    }
-    case 4: {
-      this->audio_settings = value.as_message<VoiceAssistantAudioSettings>();
-      return true;
-    }
-    case 5: {
-      this->wake_word_phrase = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void VoiceAssistantRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_bool(1, this->start);
-  buffer.encode_string(2, this->conversation_id);
-  buffer.encode_uint32(3, this->flags);
-  buffer.encode_message<VoiceAssistantAudioSettings>(4, this->audio_settings);
-  buffer.encode_string(5, this->wake_word_phrase);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void VoiceAssistantRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_bool_field(total_size, 1, this->start, false);
-  ProtoSize::add_string_field(total_size, 1, this->conversation_id, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->flags, false);
-  ProtoSize::add_message_object(total_size, 1, this->audio_settings, false);
-  ProtoSize::add_string_field(total_size, 1, this->wake_word_phrase, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool VoiceAssistantResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -2440,26 +1173,13 @@ void VoiceAssistantResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool VoiceAssistantEventData::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->name = value.as_string();
-      return true;
-    }
-    case 2: {
-      this->value = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void VoiceAssistantEventData::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_string(1, this->name);
-  buffer.encode_string(2, this->value);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void VoiceAssistantEventData::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->name, false);
-  ProtoSize::add_string_field(total_size, 1, this->value, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool VoiceAssistantEventResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -2474,32 +1194,16 @@ void VoiceAssistantEventResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 bool VoiceAssistantAudio::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->end = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool VoiceAssistantAudio::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->data = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void VoiceAssistantAudio::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_bytes(1, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
-  buffer.encode_bool(2, this->end);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void VoiceAssistantAudio::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->data, false);
-  ProtoSize::add_bool_field(total_size, 1, this->end, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool VoiceAssistantTimerEventResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -2514,92 +1218,34 @@ void VoiceAssistantTimerEventResponse::calculate_size(uint32_t &total_size) cons
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool VoiceAssistantAnnounceRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 4: {
-      this->start_conversation = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool VoiceAssistantAnnounceRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->media_id = value.as_string();
-      return true;
-    }
-    case 2: {
-      this->text = value.as_string();
-      return true;
-    }
-    case 3: {
-      this->preannounce_media_id = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void VoiceAssistantAnnounceRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_string(1, this->media_id);
-  buffer.encode_string(2, this->text);
-  buffer.encode_string(3, this->preannounce_media_id);
-  buffer.encode_bool(4, this->start_conversation);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void VoiceAssistantAnnounceRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->media_id, false);
-  ProtoSize::add_string_field(total_size, 1, this->text, false);
-  ProtoSize::add_string_field(total_size, 1, this->preannounce_media_id, false);
-  ProtoSize::add_bool_field(total_size, 1, this->start_conversation, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool VoiceAssistantAnnounceFinished::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 1: {
-      this->success = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
-void VoiceAssistantAnnounceFinished::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool(1, this->success); }
+void VoiceAssistantAnnounceFinished::encode(ProtoWriteBuffer buffer) const {
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
+}
 void VoiceAssistantAnnounceFinished::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_bool_field(total_size, 1, this->success, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool VoiceAssistantWakeWord::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->id = value.as_string();
-      return true;
-    }
-    case 2: {
-      this->wake_word = value.as_string();
-      return true;
-    }
-    case 3: {
-      this->trained_languages.push_back(value.as_string());
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void VoiceAssistantWakeWord::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_string(1, this->id);
-  buffer.encode_string(2, this->wake_word);
-  for (auto &it : this->trained_languages) {
-    buffer.encode_string(3, it, true);
-  }
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 void VoiceAssistantWakeWord::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->id, false);
-  ProtoSize::add_string_field(total_size, 1, this->wake_word, false);
-  if (!this->trained_languages.empty()) {
-    for (const auto &it : this->trained_languages) {
-      ProtoSize::add_string_field(total_size, 1, it, true);
-    }
-  }
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 bool VoiceAssistantConfigurationResponse::decode_varint(uint32_t field_id, ProtoVarInt value) {
   return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
@@ -2614,26 +1260,13 @@ void VoiceAssistantConfigurationResponse::calculate_size(uint32_t &total_size) c
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);
 }
 bool VoiceAssistantSetConfiguration::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 1: {
-      this->active_wake_words.push_back(value.as_string());
-      return true;
-    }
-    default:
-      return false;
-  }
+  return false;  // No length-delimited fields
 }
 void VoiceAssistantSetConfiguration::encode(ProtoWriteBuffer buffer) const {
-  for (auto &it : this->active_wake_words) {
-    buffer.encode_string(1, it, true);
-  }
+  encode_from_metadata(buffer, this, nullptr, 0, REPEATED_FIELDS, REPEATED_COUNT);
 }
 void VoiceAssistantSetConfiguration::calculate_size(uint32_t &total_size) const {
-  if (!this->active_wake_words.empty()) {
-    for (const auto &it : this->active_wake_words) {
-      ProtoSize::add_string_field(total_size, 1, it, true);
-    }
-  }
+  calculate_size_from_metadata(total_size, this, nullptr, 0, REPEATED_FIELDS, REPEATED_COUNT);
 }
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
@@ -2665,44 +1298,19 @@ void AlarmControlPanelStateResponse::calculate_size(uint32_t &total_size) const 
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool AlarmControlPanelCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->command = value.as_enum<enums::AlarmControlPanelStateCommand>();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool AlarmControlPanelCommandRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 3: {
-      this->code = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool AlarmControlPanelCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void AlarmControlPanelCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_enum<enums::AlarmControlPanelStateCommand>(2, this->command);
-  buffer.encode_string(3, this->code);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void AlarmControlPanelCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->command), false);
-  ProtoSize::add_string_field(total_size, 1, this->code, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_TEXT
@@ -2737,32 +1345,16 @@ void TextStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool TextCommandRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  switch (field_id) {
-    case 2: {
-      this->state = value.as_string();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool TextCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void TextCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_string(2, this->state);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void TextCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_string_field(total_size, 1, this->state, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_DATETIME_DATE
@@ -2794,44 +1386,16 @@ void DateStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool DateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->year = value.as_uint32();
-      return true;
-    }
-    case 3: {
-      this->month = value.as_uint32();
-      return true;
-    }
-    case 4: {
-      this->day = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool DateCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void DateCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_uint32(2, this->year);
-  buffer.encode_uint32(3, this->month);
-  buffer.encode_uint32(4, this->day);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void DateCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->year, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->month, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->day, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_DATETIME_TIME
@@ -2863,44 +1427,16 @@ void TimeStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool TimeCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->hour = value.as_uint32();
-      return true;
-    }
-    case 3: {
-      this->minute = value.as_uint32();
-      return true;
-    }
-    case 4: {
-      this->second = value.as_uint32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool TimeCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void TimeCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_uint32(2, this->hour);
-  buffer.encode_uint32(3, this->minute);
-  buffer.encode_uint32(4, this->second);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void TimeCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->hour, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->minute, false);
-  ProtoSize::add_uint32_field(total_size, 1, this->second, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_EVENT
@@ -2964,44 +1500,16 @@ void ValveStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool ValveCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->has_position = value.as_bool();
-      return true;
-    }
-    case 4: {
-      this->stop = value.as_bool();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool ValveCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    case 3: {
-      this->position = value.as_float();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void ValveCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_bool(2, this->has_position);
-  buffer.encode_float(3, this->position);
-  buffer.encode_bool(4, this->stop);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void ValveCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_bool_field(total_size, 1, this->has_position, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->position != 0.0f, false);
-  ProtoSize::add_bool_field(total_size, 1, this->stop, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_DATETIME_DATETIME
@@ -3033,26 +1541,13 @@ void DateTimeStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool DateTimeCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    case 2: {
-      this->epoch_seconds = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void DateTimeCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_fixed32(2, this->epoch_seconds);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void DateTimeCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->epoch_seconds != 0, false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 #ifdef USE_UPDATE
@@ -3087,36 +1582,41 @@ void UpdateStateResponse::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 bool UpdateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  switch (field_id) {
-    case 2: {
-      this->command = value.as_enum<enums::UpdateCommand>();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 bool UpdateCommandRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  switch (field_id) {
-    case 1: {
-      this->key = value.as_fixed32();
-      return true;
-    }
-    default:
-      return false;
-  }
+  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);
 }
 void UpdateCommandRequest::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_fixed32(1, this->key);
-  buffer.encode_enum<enums::UpdateCommand>(2, this->command);
+  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 void UpdateCommandRequest::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0, false);
-  ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->command), false);
+  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);
 }
 #endif
 
-// Metadata definitions for Response classes
+// Metadata definitions for classes using metadata approach
+const FieldMeta HelloRequest::FIELDS[3] = {{1,
+                                            PROTO_FIELD_OFFSET(HelloRequest, client_info),
+                                            &encode_string_field,
+                                            &size_string_field,
+                                            false,
+                                            2,
+                                            {.decode_length = &decode_string_field}},
+                                           {2,
+                                            PROTO_FIELD_OFFSET(HelloRequest, api_version_major),
+                                            &encode_uint32_field,
+                                            &size_uint32_field,
+                                            false,
+                                            0,
+                                            {.decode_varint = &decode_uint32_field}},
+                                           {3,
+                                            PROTO_FIELD_OFFSET(HelloRequest, api_version_minor),
+                                            &encode_uint32_field,
+                                            &size_uint32_field,
+                                            false,
+                                            0,
+                                            {.decode_varint = &decode_uint32_field}}};
 const FieldMeta HelloResponse::FIELDS[4] = {{1,
                                              PROTO_FIELD_OFFSET(HelloResponse, api_version_major),
                                              &encode_uint32_field,
@@ -3145,6 +1645,13 @@ const FieldMeta HelloResponse::FIELDS[4] = {{1,
                                              false,
                                              2,
                                              {.decode_length = &decode_string_field}}};
+const FieldMeta ConnectRequest::FIELDS[1] = {{1,
+                                              PROTO_FIELD_OFFSET(ConnectRequest, password),
+                                              &encode_string_field,
+                                              &size_string_field,
+                                              false,
+                                              2,
+                                              {.decode_length = &decode_string_field}}};
 const FieldMeta ConnectResponse::FIELDS[1] = {{1,
                                                PROTO_FIELD_OFFSET(ConnectResponse, invalid_password),
                                                &encode_bool_field,
@@ -3152,6 +1659,41 @@ const FieldMeta ConnectResponse::FIELDS[1] = {{1,
                                                false,
                                                0,
                                                {.decode_varint = &decode_bool_field}}};
+const FieldMeta AreaInfo::FIELDS[2] = {{1,
+                                        PROTO_FIELD_OFFSET(AreaInfo, area_id),
+                                        &encode_uint32_field,
+                                        &size_uint32_field,
+                                        false,
+                                        0,
+                                        {.decode_varint = &decode_uint32_field}},
+                                       {2,
+                                        PROTO_FIELD_OFFSET(AreaInfo, name),
+                                        &encode_string_field,
+                                        &size_string_field,
+                                        false,
+                                        2,
+                                        {.decode_length = &decode_string_field}}};
+const FieldMeta DeviceInfo::FIELDS[3] = {{1,
+                                          PROTO_FIELD_OFFSET(DeviceInfo, device_id),
+                                          &encode_uint32_field,
+                                          &size_uint32_field,
+                                          false,
+                                          0,
+                                          {.decode_varint = &decode_uint32_field}},
+                                         {2,
+                                          PROTO_FIELD_OFFSET(DeviceInfo, name),
+                                          &encode_string_field,
+                                          &size_string_field,
+                                          false,
+                                          2,
+                                          {.decode_length = &decode_string_field}},
+                                         {3,
+                                          PROTO_FIELD_OFFSET(DeviceInfo, area_id),
+                                          &encode_uint32_field,
+                                          &size_uint32_field,
+                                          false,
+                                          0,
+                                          {.decode_varint = &decode_uint32_field}}};
 const FieldMeta DeviceInfoResponse::FIELDS[19] = {
     {1,
      PROTO_FIELD_OFFSET(DeviceInfoResponse, uses_password),
@@ -3527,6 +2069,62 @@ const FieldMeta CoverStateResponse::FIELDS[6] = {{1,
                                                   false,
                                                   0,
                                                   {.decode_varint = &decode_uint32_field}}};
+const FieldMeta CoverCommandRequest::FIELDS[8] = {{1,
+                                                   PROTO_FIELD_OFFSET(CoverCommandRequest, key),
+                                                   &encode_fixed32_field,
+                                                   &size_fixed32_field,
+                                                   false,
+                                                   5,
+                                                   {.decode_32bit = &decode_fixed32_field}},
+                                                  {2,
+                                                   PROTO_FIELD_OFFSET(CoverCommandRequest, has_legacy_command),
+                                                   &encode_bool_field,
+                                                   &size_bool_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_bool_field}},
+                                                  {3,
+                                                   PROTO_FIELD_OFFSET(CoverCommandRequest, legacy_command),
+                                                   &encode_enum_field<enums::LegacyCoverCommand>,
+                                                   &size_enum_field<enums::LegacyCoverCommand>,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_enum_field<enums::LegacyCoverCommand>}},
+                                                  {4,
+                                                   PROTO_FIELD_OFFSET(CoverCommandRequest, has_position),
+                                                   &encode_bool_field,
+                                                   &size_bool_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_bool_field}},
+                                                  {5,
+                                                   PROTO_FIELD_OFFSET(CoverCommandRequest, position),
+                                                   &encode_float_field,
+                                                   &size_float_field,
+                                                   false,
+                                                   5,
+                                                   {.decode_32bit = &decode_float_field}},
+                                                  {6,
+                                                   PROTO_FIELD_OFFSET(CoverCommandRequest, has_tilt),
+                                                   &encode_bool_field,
+                                                   &size_bool_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_bool_field}},
+                                                  {7,
+                                                   PROTO_FIELD_OFFSET(CoverCommandRequest, tilt),
+                                                   &encode_float_field,
+                                                   &size_float_field,
+                                                   false,
+                                                   5,
+                                                   {.decode_32bit = &decode_float_field}},
+                                                  {8,
+                                                   PROTO_FIELD_OFFSET(CoverCommandRequest, stop),
+                                                   &encode_bool_field,
+                                                   &size_bool_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_bool_field}}};
 #endif
 #ifdef USE_FAN
 const FieldMeta ListEntitiesFanResponse::FIELDS[12] = {
@@ -3673,6 +2271,97 @@ const FieldMeta FanStateResponse::FIELDS[8] = {{1,
                                                 false,
                                                 0,
                                                 {.decode_varint = &decode_uint32_field}}};
+const FieldMeta FanCommandRequest::FIELDS[13] = {{1,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, key),
+                                                  &encode_fixed32_field,
+                                                  &size_fixed32_field,
+                                                  false,
+                                                  5,
+                                                  {.decode_32bit = &decode_fixed32_field}},
+                                                 {2,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, has_state),
+                                                  &encode_bool_field,
+                                                  &size_bool_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_bool_field}},
+                                                 {3,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, state),
+                                                  &encode_bool_field,
+                                                  &size_bool_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_bool_field}},
+                                                 {4,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, has_speed),
+                                                  &encode_bool_field,
+                                                  &size_bool_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_bool_field}},
+                                                 {5,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, speed),
+                                                  &encode_enum_field<enums::FanSpeed>,
+                                                  &size_enum_field<enums::FanSpeed>,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_enum_field<enums::FanSpeed>}},
+                                                 {6,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, has_oscillating),
+                                                  &encode_bool_field,
+                                                  &size_bool_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_bool_field}},
+                                                 {7,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, oscillating),
+                                                  &encode_bool_field,
+                                                  &size_bool_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_bool_field}},
+                                                 {8,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, has_direction),
+                                                  &encode_bool_field,
+                                                  &size_bool_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_bool_field}},
+                                                 {9,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, direction),
+                                                  &encode_enum_field<enums::FanDirection>,
+                                                  &size_enum_field<enums::FanDirection>,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_enum_field<enums::FanDirection>}},
+                                                 {10,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, has_speed_level),
+                                                  &encode_bool_field,
+                                                  &size_bool_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_bool_field}},
+                                                 {11,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, speed_level),
+                                                  &encode_int32_field,
+                                                  &size_int32_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_int32_field}},
+                                                 {12,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, has_preset_mode),
+                                                  &encode_bool_field,
+                                                  &size_bool_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_bool_field}},
+                                                 {13,
+                                                  PROTO_FIELD_OFFSET(FanCommandRequest, preset_mode),
+                                                  &encode_string_field,
+                                                  &size_string_field,
+                                                  false,
+                                                  2,
+                                                  {.decode_length = &decode_string_field}}};
 #endif
 #ifdef USE_LIGHT
 const FieldMeta ListEntitiesLightResponse::FIELDS[14] = {
@@ -3877,6 +2566,195 @@ const FieldMeta LightStateResponse::FIELDS[14] = {{1,
                                                    false,
                                                    0,
                                                    {.decode_varint = &decode_uint32_field}}};
+const FieldMeta LightCommandRequest::FIELDS[27] = {{1,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, key),
+                                                    &encode_fixed32_field,
+                                                    &size_fixed32_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_fixed32_field}},
+                                                   {2,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, has_state),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {3,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, state),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {4,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, has_brightness),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {5,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, brightness),
+                                                    &encode_float_field,
+                                                    &size_float_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_float_field}},
+                                                   {22,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, has_color_mode),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {23,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, color_mode),
+                                                    &encode_enum_field<enums::ColorMode>,
+                                                    &size_enum_field<enums::ColorMode>,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_enum_field<enums::ColorMode>}},
+                                                   {20,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, has_color_brightness),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {21,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, color_brightness),
+                                                    &encode_float_field,
+                                                    &size_float_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_float_field}},
+                                                   {6,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, has_rgb),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {7,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, red),
+                                                    &encode_float_field,
+                                                    &size_float_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_float_field}},
+                                                   {8,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, green),
+                                                    &encode_float_field,
+                                                    &size_float_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_float_field}},
+                                                   {9,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, blue),
+                                                    &encode_float_field,
+                                                    &size_float_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_float_field}},
+                                                   {10,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, has_white),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {11,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, white),
+                                                    &encode_float_field,
+                                                    &size_float_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_float_field}},
+                                                   {12,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, has_color_temperature),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {13,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, color_temperature),
+                                                    &encode_float_field,
+                                                    &size_float_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_float_field}},
+                                                   {24,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, has_cold_white),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {25,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, cold_white),
+                                                    &encode_float_field,
+                                                    &size_float_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_float_field}},
+                                                   {26,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, has_warm_white),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {27,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, warm_white),
+                                                    &encode_float_field,
+                                                    &size_float_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_float_field}},
+                                                   {14,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, has_transition_length),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {15,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, transition_length),
+                                                    &encode_uint32_field,
+                                                    &size_uint32_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_uint32_field}},
+                                                   {16,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, has_flash_length),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {17,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, flash_length),
+                                                    &encode_uint32_field,
+                                                    &size_uint32_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_uint32_field}},
+                                                   {18,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, has_effect),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}},
+                                                   {19,
+                                                    PROTO_FIELD_OFFSET(LightCommandRequest, effect),
+                                                    &encode_string_field,
+                                                    &size_string_field,
+                                                    false,
+                                                    2,
+                                                    {.decode_length = &decode_string_field}}};
 #endif
 #ifdef USE_SENSOR
 const FieldMeta ListEntitiesSensorResponse::FIELDS[14] = {
@@ -4100,6 +2978,20 @@ const FieldMeta SwitchStateResponse::FIELDS[3] = {{1,
                                                    false,
                                                    0,
                                                    {.decode_varint = &decode_uint32_field}}};
+const FieldMeta SwitchCommandRequest::FIELDS[2] = {{1,
+                                                    PROTO_FIELD_OFFSET(SwitchCommandRequest, key),
+                                                    &encode_fixed32_field,
+                                                    &size_fixed32_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_fixed32_field}},
+                                                   {2,
+                                                    PROTO_FIELD_OFFSET(SwitchCommandRequest, state),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}}};
 #endif
 #ifdef USE_TEXT_SENSOR
 const FieldMeta ListEntitiesTextSensorResponse::FIELDS[9] = {
@@ -4195,6 +3087,20 @@ const FieldMeta TextSensorStateResponse::FIELDS[4] = {{1,
                                                        0,
                                                        {.decode_varint = &decode_uint32_field}}};
 #endif
+const FieldMeta SubscribeLogsRequest::FIELDS[2] = {{1,
+                                                    PROTO_FIELD_OFFSET(SubscribeLogsRequest, level),
+                                                    &encode_enum_field<enums::LogLevel>,
+                                                    &size_enum_field<enums::LogLevel>,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_enum_field<enums::LogLevel>}},
+                                                   {2,
+                                                    PROTO_FIELD_OFFSET(SubscribeLogsRequest, dump_config),
+                                                    &encode_bool_field,
+                                                    &size_bool_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_bool_field}}};
 const FieldMeta SubscribeLogsResponse::FIELDS[3] = {{1,
                                                      PROTO_FIELD_OFFSET(SubscribeLogsResponse, level),
                                                      &encode_enum_field<enums::LogLevel>,
@@ -4217,6 +3123,13 @@ const FieldMeta SubscribeLogsResponse::FIELDS[3] = {{1,
                                                      0,
                                                      {.decode_varint = &decode_bool_field}}};
 #ifdef USE_API_NOISE
+const FieldMeta NoiseEncryptionSetKeyRequest::FIELDS[1] = {{1,
+                                                            PROTO_FIELD_OFFSET(NoiseEncryptionSetKeyRequest, key),
+                                                            &encode_bytes_field,
+                                                            &size_bytes_field,
+                                                            false,
+                                                            2,
+                                                            {.decode_length = &decode_bytes_field}}};
 const FieldMeta NoiseEncryptionSetKeyResponse::FIELDS[1] = {{1,
                                                              PROTO_FIELD_OFFSET(NoiseEncryptionSetKeyResponse, success),
                                                              &encode_bool_field,
@@ -4225,6 +3138,20 @@ const FieldMeta NoiseEncryptionSetKeyResponse::FIELDS[1] = {{1,
                                                              0,
                                                              {.decode_varint = &decode_bool_field}}};
 #endif
+const FieldMeta HomeassistantServiceMap::FIELDS[2] = {{1,
+                                                       PROTO_FIELD_OFFSET(HomeassistantServiceMap, key),
+                                                       &encode_string_field,
+                                                       &size_string_field,
+                                                       false,
+                                                       2,
+                                                       {.decode_length = &decode_string_field}},
+                                                      {2,
+                                                       PROTO_FIELD_OFFSET(HomeassistantServiceMap, value),
+                                                       &encode_string_field,
+                                                       &size_string_field,
+                                                       false,
+                                                       2,
+                                                       {.decode_length = &decode_string_field}}};
 const FieldMeta HomeassistantServiceResponse::FIELDS[2] = {{1,
                                                             PROTO_FIELD_OFFSET(HomeassistantServiceResponse, service),
                                                             &encode_string_field,
@@ -4296,6 +3223,21 @@ const FieldMeta GetTimeResponse::FIELDS[1] = {{1,
                                                false,
                                                5,
                                                {.decode_32bit = &decode_fixed32_field}}};
+const FieldMeta ListEntitiesServicesArgument::FIELDS[2] = {
+    {1,
+     PROTO_FIELD_OFFSET(ListEntitiesServicesArgument, name),
+     &encode_string_field,
+     &size_string_field,
+     false,
+     2,
+     {.decode_length = &decode_string_field}},
+    {2,
+     PROTO_FIELD_OFFSET(ListEntitiesServicesArgument, type),
+     &encode_enum_field<enums::ServiceArgType>,
+     &size_enum_field<enums::ServiceArgType>,
+     false,
+     0,
+     {.decode_varint = &decode_enum_field<enums::ServiceArgType>}}};
 const FieldMeta ListEntitiesServicesResponse::FIELDS[2] = {{1,
                                                             PROTO_FIELD_OFFSET(ListEntitiesServicesResponse, name),
                                                             &encode_string_field,
@@ -4314,6 +3256,59 @@ const RepeatedFieldMeta ListEntitiesServicesResponse::REPEATED_FIELDS[1] = {
     {3, PROTO_FIELD_OFFSET(ListEntitiesServicesResponse, args),
      &encode_repeated_message_field<ListEntitiesServicesArgument>,
      &size_repeated_message_field<ListEntitiesServicesArgument>}};
+const FieldMeta ExecuteServiceArgument::FIELDS[5] = {{1,
+                                                      PROTO_FIELD_OFFSET(ExecuteServiceArgument, bool_),
+                                                      &encode_bool_field,
+                                                      &size_bool_field,
+                                                      false,
+                                                      0,
+                                                      {.decode_varint = &decode_bool_field}},
+                                                     {2,
+                                                      PROTO_FIELD_OFFSET(ExecuteServiceArgument, legacy_int),
+                                                      &encode_int32_field,
+                                                      &size_int32_field,
+                                                      false,
+                                                      0,
+                                                      {.decode_varint = &decode_int32_field}},
+                                                     {3,
+                                                      PROTO_FIELD_OFFSET(ExecuteServiceArgument, float_),
+                                                      &encode_float_field,
+                                                      &size_float_field,
+                                                      false,
+                                                      5,
+                                                      {.decode_32bit = &decode_float_field}},
+                                                     {4,
+                                                      PROTO_FIELD_OFFSET(ExecuteServiceArgument, string_),
+                                                      &encode_string_field,
+                                                      &size_string_field,
+                                                      false,
+                                                      2,
+                                                      {.decode_length = &decode_string_field}},
+                                                     {5,
+                                                      PROTO_FIELD_OFFSET(ExecuteServiceArgument, int_),
+                                                      &encode_sint32_field,
+                                                      &size_sint32_field,
+                                                      false,
+                                                      0,
+                                                      {.decode_varint = &decode_sint32_field}}};
+const RepeatedFieldMeta ExecuteServiceArgument::REPEATED_FIELDS[4] = {
+    {6, PROTO_FIELD_OFFSET(ExecuteServiceArgument, bool_array), &encode_repeated_bool_field, &size_repeated_bool_field},
+    {7, PROTO_FIELD_OFFSET(ExecuteServiceArgument, int_array), &encode_repeated_sint32_field,
+     &size_repeated_sint32_field},
+    {8, PROTO_FIELD_OFFSET(ExecuteServiceArgument, float_array), &encode_repeated_float_field,
+     &size_repeated_float_field},
+    {9, PROTO_FIELD_OFFSET(ExecuteServiceArgument, string_array), &encode_repeated_string_field,
+     &size_repeated_string_field}};
+const FieldMeta ExecuteServiceRequest::FIELDS[1] = {{1,
+                                                     PROTO_FIELD_OFFSET(ExecuteServiceRequest, key),
+                                                     &encode_fixed32_field,
+                                                     &size_fixed32_field,
+                                                     false,
+                                                     5,
+                                                     {.decode_32bit = &decode_fixed32_field}}};
+const RepeatedFieldMeta ExecuteServiceRequest::REPEATED_FIELDS[1] = {
+    {2, PROTO_FIELD_OFFSET(ExecuteServiceRequest, args), &encode_repeated_message_field<ExecuteServiceArgument>,
+     &size_repeated_message_field<ExecuteServiceArgument>}};
 #ifdef USE_CAMERA
 const FieldMeta ListEntitiesCameraResponse::FIELDS[8] = {
     {1,
@@ -4393,6 +3388,20 @@ const FieldMeta CameraImageResponse::FIELDS[3] = {{1,
                                                    false,
                                                    0,
                                                    {.decode_varint = &decode_bool_field}}};
+const FieldMeta CameraImageRequest::FIELDS[2] = {{1,
+                                                  PROTO_FIELD_OFFSET(CameraImageRequest, single),
+                                                  &encode_bool_field,
+                                                  &size_bool_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_bool_field}},
+                                                 {2,
+                                                  PROTO_FIELD_OFFSET(CameraImageRequest, stream),
+                                                  &encode_bool_field,
+                                                  &size_bool_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_bool_field}}};
 #endif
 #ifdef USE_CLIMATE
 const FieldMeta ListEntitiesClimateResponse::FIELDS[20] = {
@@ -4661,6 +3670,168 @@ const FieldMeta ClimateStateResponse::FIELDS[16] = {{1,
                                                      false,
                                                      0,
                                                      {.decode_varint = &decode_uint32_field}}};
+const FieldMeta ClimateCommandRequest::FIELDS[23] = {
+    {1,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, key),
+     &encode_fixed32_field,
+     &size_fixed32_field,
+     false,
+     5,
+     {.decode_32bit = &decode_fixed32_field}},
+    {2,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, has_mode),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {3,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, mode),
+     &encode_enum_field<enums::ClimateMode>,
+     &size_enum_field<enums::ClimateMode>,
+     false,
+     0,
+     {.decode_varint = &decode_enum_field<enums::ClimateMode>}},
+    {4,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, has_target_temperature),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {5,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, target_temperature),
+     &encode_float_field,
+     &size_float_field,
+     false,
+     5,
+     {.decode_32bit = &decode_float_field}},
+    {6,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, has_target_temperature_low),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {7,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, target_temperature_low),
+     &encode_float_field,
+     &size_float_field,
+     false,
+     5,
+     {.decode_32bit = &decode_float_field}},
+    {8,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, has_target_temperature_high),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {9,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, target_temperature_high),
+     &encode_float_field,
+     &size_float_field,
+     false,
+     5,
+     {.decode_32bit = &decode_float_field}},
+    {10,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, unused_has_legacy_away),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {11,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, unused_legacy_away),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {12,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, has_fan_mode),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {13,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, fan_mode),
+     &encode_enum_field<enums::ClimateFanMode>,
+     &size_enum_field<enums::ClimateFanMode>,
+     false,
+     0,
+     {.decode_varint = &decode_enum_field<enums::ClimateFanMode>}},
+    {14,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, has_swing_mode),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {15,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, swing_mode),
+     &encode_enum_field<enums::ClimateSwingMode>,
+     &size_enum_field<enums::ClimateSwingMode>,
+     false,
+     0,
+     {.decode_varint = &decode_enum_field<enums::ClimateSwingMode>}},
+    {16,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, has_custom_fan_mode),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {17,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, custom_fan_mode),
+     &encode_string_field,
+     &size_string_field,
+     false,
+     2,
+     {.decode_length = &decode_string_field}},
+    {18,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, has_preset),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {19,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, preset),
+     &encode_enum_field<enums::ClimatePreset>,
+     &size_enum_field<enums::ClimatePreset>,
+     false,
+     0,
+     {.decode_varint = &decode_enum_field<enums::ClimatePreset>}},
+    {20,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, has_custom_preset),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {21,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, custom_preset),
+     &encode_string_field,
+     &size_string_field,
+     false,
+     2,
+     {.decode_length = &decode_string_field}},
+    {22,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, has_target_humidity),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {23,
+     PROTO_FIELD_OFFSET(ClimateCommandRequest, target_humidity),
+     &encode_float_field,
+     &size_float_field,
+     false,
+     5,
+     {.decode_32bit = &decode_float_field}}};
 #endif
 #ifdef USE_NUMBER
 const FieldMeta ListEntitiesNumberResponse::FIELDS[14] = {
@@ -4790,6 +3961,20 @@ const FieldMeta NumberStateResponse::FIELDS[4] = {{1,
                                                    false,
                                                    0,
                                                    {.decode_varint = &decode_uint32_field}}};
+const FieldMeta NumberCommandRequest::FIELDS[2] = {{1,
+                                                    PROTO_FIELD_OFFSET(NumberCommandRequest, key),
+                                                    &encode_fixed32_field,
+                                                    &size_fixed32_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_fixed32_field}},
+                                                   {2,
+                                                    PROTO_FIELD_OFFSET(NumberCommandRequest, state),
+                                                    &encode_float_field,
+                                                    &size_float_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_float_field}}};
 #endif
 #ifdef USE_SELECT
 const FieldMeta ListEntitiesSelectResponse::FIELDS[8] = {
@@ -4880,6 +4065,20 @@ const FieldMeta SelectStateResponse::FIELDS[4] = {{1,
                                                    false,
                                                    0,
                                                    {.decode_varint = &decode_uint32_field}}};
+const FieldMeta SelectCommandRequest::FIELDS[2] = {{1,
+                                                    PROTO_FIELD_OFFSET(SelectCommandRequest, key),
+                                                    &encode_fixed32_field,
+                                                    &size_fixed32_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_fixed32_field}},
+                                                   {2,
+                                                    PROTO_FIELD_OFFSET(SelectCommandRequest, state),
+                                                    &encode_string_field,
+                                                    &size_string_field,
+                                                    false,
+                                                    2,
+                                                    {.decode_length = &decode_string_field}}};
 #endif
 #ifdef USE_SIREN
 const FieldMeta ListEntitiesSirenResponse::FIELDS[10] = {
@@ -4977,6 +4176,69 @@ const FieldMeta SirenStateResponse::FIELDS[3] = {{1,
                                                   false,
                                                   0,
                                                   {.decode_varint = &decode_uint32_field}}};
+const FieldMeta SirenCommandRequest::FIELDS[9] = {{1,
+                                                   PROTO_FIELD_OFFSET(SirenCommandRequest, key),
+                                                   &encode_fixed32_field,
+                                                   &size_fixed32_field,
+                                                   false,
+                                                   5,
+                                                   {.decode_32bit = &decode_fixed32_field}},
+                                                  {2,
+                                                   PROTO_FIELD_OFFSET(SirenCommandRequest, has_state),
+                                                   &encode_bool_field,
+                                                   &size_bool_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_bool_field}},
+                                                  {3,
+                                                   PROTO_FIELD_OFFSET(SirenCommandRequest, state),
+                                                   &encode_bool_field,
+                                                   &size_bool_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_bool_field}},
+                                                  {4,
+                                                   PROTO_FIELD_OFFSET(SirenCommandRequest, has_tone),
+                                                   &encode_bool_field,
+                                                   &size_bool_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_bool_field}},
+                                                  {5,
+                                                   PROTO_FIELD_OFFSET(SirenCommandRequest, tone),
+                                                   &encode_string_field,
+                                                   &size_string_field,
+                                                   false,
+                                                   2,
+                                                   {.decode_length = &decode_string_field}},
+                                                  {6,
+                                                   PROTO_FIELD_OFFSET(SirenCommandRequest, has_duration),
+                                                   &encode_bool_field,
+                                                   &size_bool_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_bool_field}},
+                                                  {7,
+                                                   PROTO_FIELD_OFFSET(SirenCommandRequest, duration),
+                                                   &encode_uint32_field,
+                                                   &size_uint32_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_uint32_field}},
+                                                  {8,
+                                                   PROTO_FIELD_OFFSET(SirenCommandRequest, has_volume),
+                                                   &encode_bool_field,
+                                                   &size_bool_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_bool_field}},
+                                                  {9,
+                                                   PROTO_FIELD_OFFSET(SirenCommandRequest, volume),
+                                                   &encode_float_field,
+                                                   &size_float_field,
+                                                   false,
+                                                   5,
+                                                   {.decode_32bit = &decode_float_field}}};
 #endif
 #ifdef USE_LOCK
 const FieldMeta ListEntitiesLockResponse::FIELDS[12] = {
@@ -5085,6 +4347,34 @@ const FieldMeta LockStateResponse::FIELDS[3] = {{1,
                                                  false,
                                                  0,
                                                  {.decode_varint = &decode_uint32_field}}};
+const FieldMeta LockCommandRequest::FIELDS[4] = {{1,
+                                                  PROTO_FIELD_OFFSET(LockCommandRequest, key),
+                                                  &encode_fixed32_field,
+                                                  &size_fixed32_field,
+                                                  false,
+                                                  5,
+                                                  {.decode_32bit = &decode_fixed32_field}},
+                                                 {2,
+                                                  PROTO_FIELD_OFFSET(LockCommandRequest, command),
+                                                  &encode_enum_field<enums::LockCommand>,
+                                                  &size_enum_field<enums::LockCommand>,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_enum_field<enums::LockCommand>}},
+                                                 {3,
+                                                  PROTO_FIELD_OFFSET(LockCommandRequest, has_code),
+                                                  &encode_bool_field,
+                                                  &size_bool_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_bool_field}},
+                                                 {4,
+                                                  PROTO_FIELD_OFFSET(LockCommandRequest, code),
+                                                  &encode_string_field,
+                                                  &size_string_field,
+                                                  false,
+                                                  2,
+                                                  {.decode_length = &decode_string_field}}};
 #endif
 #ifdef USE_BUTTON
 const FieldMeta ListEntitiesButtonResponse::FIELDS[9] = {
@@ -5151,8 +4441,51 @@ const FieldMeta ListEntitiesButtonResponse::FIELDS[9] = {
      false,
      0,
      {.decode_varint = &decode_uint32_field}}};
+const FieldMeta ButtonCommandRequest::FIELDS[1] = {{1,
+                                                    PROTO_FIELD_OFFSET(ButtonCommandRequest, key),
+                                                    &encode_fixed32_field,
+                                                    &size_fixed32_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_fixed32_field}}};
 #endif
 #ifdef USE_MEDIA_PLAYER
+const FieldMeta MediaPlayerSupportedFormat::FIELDS[5] = {
+    {1,
+     PROTO_FIELD_OFFSET(MediaPlayerSupportedFormat, format),
+     &encode_string_field,
+     &size_string_field,
+     false,
+     2,
+     {.decode_length = &decode_string_field}},
+    {2,
+     PROTO_FIELD_OFFSET(MediaPlayerSupportedFormat, sample_rate),
+     &encode_uint32_field,
+     &size_uint32_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint32_field}},
+    {3,
+     PROTO_FIELD_OFFSET(MediaPlayerSupportedFormat, num_channels),
+     &encode_uint32_field,
+     &size_uint32_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint32_field}},
+    {4,
+     PROTO_FIELD_OFFSET(MediaPlayerSupportedFormat, purpose),
+     &encode_enum_field<enums::MediaPlayerFormatPurpose>,
+     &size_enum_field<enums::MediaPlayerFormatPurpose>,
+     false,
+     0,
+     {.decode_varint = &decode_enum_field<enums::MediaPlayerFormatPurpose>}},
+    {5,
+     PROTO_FIELD_OFFSET(MediaPlayerSupportedFormat, sample_bytes),
+     &encode_uint32_field,
+     &size_uint32_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint32_field}}};
 const FieldMeta ListEntitiesMediaPlayerResponse::FIELDS[9] = {
     {1,
      PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, object_id),
@@ -5256,8 +4589,97 @@ const FieldMeta MediaPlayerStateResponse::FIELDS[5] = {{1,
                                                         false,
                                                         0,
                                                         {.decode_varint = &decode_uint32_field}}};
+const FieldMeta MediaPlayerCommandRequest::FIELDS[9] = {
+    {1,
+     PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, key),
+     &encode_fixed32_field,
+     &size_fixed32_field,
+     false,
+     5,
+     {.decode_32bit = &decode_fixed32_field}},
+    {2,
+     PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, has_command),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {3,
+     PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, command),
+     &encode_enum_field<enums::MediaPlayerCommand>,
+     &size_enum_field<enums::MediaPlayerCommand>,
+     false,
+     0,
+     {.decode_varint = &decode_enum_field<enums::MediaPlayerCommand>}},
+    {4,
+     PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, has_volume),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {5,
+     PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, volume),
+     &encode_float_field,
+     &size_float_field,
+     false,
+     5,
+     {.decode_32bit = &decode_float_field}},
+    {6,
+     PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, has_media_url),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {7,
+     PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, media_url),
+     &encode_string_field,
+     &size_string_field,
+     false,
+     2,
+     {.decode_length = &decode_string_field}},
+    {8,
+     PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, has_announcement),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {9,
+     PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, announcement),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}}};
 #endif
 #ifdef USE_BLUETOOTH_PROXY
+const FieldMeta SubscribeBluetoothLEAdvertisementsRequest::FIELDS[1] = {
+    {1,
+     PROTO_FIELD_OFFSET(SubscribeBluetoothLEAdvertisementsRequest, flags),
+     &encode_uint32_field,
+     &size_uint32_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint32_field}}};
+const FieldMeta BluetoothServiceData::FIELDS[2] = {{1,
+                                                    PROTO_FIELD_OFFSET(BluetoothServiceData, uuid),
+                                                    &encode_string_field,
+                                                    &size_string_field,
+                                                    false,
+                                                    2,
+                                                    {.decode_length = &decode_string_field}},
+                                                   {3,
+                                                    PROTO_FIELD_OFFSET(BluetoothServiceData, data),
+                                                    &encode_bytes_field,
+                                                    &size_bytes_field,
+                                                    false,
+                                                    2,
+                                                    {.decode_length = &decode_bytes_field}}};
+const RepeatedFieldMeta BluetoothServiceData::REPEATED_FIELDS[1] = {
+    {2, PROTO_FIELD_OFFSET(BluetoothServiceData, legacy_data), &encode_repeated_uint32_field,
+     &size_repeated_uint32_field}};
 const FieldMeta BluetoothLEAdvertisementResponse::FIELDS[4] = {
     {1,
      PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, address),
@@ -5294,10 +4716,68 @@ const RepeatedFieldMeta BluetoothLEAdvertisementResponse::REPEATED_FIELDS[3] = {
      &encode_repeated_message_field<BluetoothServiceData>, &size_repeated_message_field<BluetoothServiceData>},
     {6, PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, manufacturer_data),
      &encode_repeated_message_field<BluetoothServiceData>, &size_repeated_message_field<BluetoothServiceData>}};
+const FieldMeta BluetoothLERawAdvertisement::FIELDS[4] = {
+    {1,
+     PROTO_FIELD_OFFSET(BluetoothLERawAdvertisement, address),
+     &encode_uint64_field,
+     &size_uint64_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint64_field}},
+    {2,
+     PROTO_FIELD_OFFSET(BluetoothLERawAdvertisement, rssi),
+     &encode_sint32_field,
+     &size_sint32_field,
+     false,
+     0,
+     {.decode_varint = &decode_sint32_field}},
+    {3,
+     PROTO_FIELD_OFFSET(BluetoothLERawAdvertisement, address_type),
+     &encode_uint32_field,
+     &size_uint32_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint32_field}},
+    {4,
+     PROTO_FIELD_OFFSET(BluetoothLERawAdvertisement, data),
+     &encode_bytes_field,
+     &size_bytes_field,
+     false,
+     2,
+     {.decode_length = &decode_bytes_field}}};
 const RepeatedFieldMeta BluetoothLERawAdvertisementsResponse::REPEATED_FIELDS[1] = {
     {1, PROTO_FIELD_OFFSET(BluetoothLERawAdvertisementsResponse, advertisements),
      &encode_repeated_message_field<BluetoothLERawAdvertisement>,
      &size_repeated_message_field<BluetoothLERawAdvertisement>}};
+const FieldMeta BluetoothDeviceRequest::FIELDS[4] = {
+    {1,
+     PROTO_FIELD_OFFSET(BluetoothDeviceRequest, address),
+     &encode_uint64_field,
+     &size_uint64_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint64_field}},
+    {2,
+     PROTO_FIELD_OFFSET(BluetoothDeviceRequest, request_type),
+     &encode_enum_field<enums::BluetoothDeviceRequestType>,
+     &size_enum_field<enums::BluetoothDeviceRequestType>,
+     false,
+     0,
+     {.decode_varint = &decode_enum_field<enums::BluetoothDeviceRequestType>}},
+    {3,
+     PROTO_FIELD_OFFSET(BluetoothDeviceRequest, has_address_type),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {4,
+     PROTO_FIELD_OFFSET(BluetoothDeviceRequest, address_type),
+     &encode_uint32_field,
+     &size_uint32_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint32_field}}};
 const FieldMeta BluetoothDeviceConnectionResponse::FIELDS[4] = {
     {1,
      PROTO_FIELD_OFFSET(BluetoothDeviceConnectionResponse, address),
@@ -5327,6 +4807,54 @@ const FieldMeta BluetoothDeviceConnectionResponse::FIELDS[4] = {
      false,
      0,
      {.decode_varint = &decode_int32_field}}};
+const FieldMeta BluetoothGATTGetServicesRequest::FIELDS[1] = {
+    {1,
+     PROTO_FIELD_OFFSET(BluetoothGATTGetServicesRequest, address),
+     &encode_uint64_field,
+     &size_uint64_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint64_field}}};
+const FieldMeta BluetoothGATTDescriptor::FIELDS[1] = {{2,
+                                                       PROTO_FIELD_OFFSET(BluetoothGATTDescriptor, handle),
+                                                       &encode_uint32_field,
+                                                       &size_uint32_field,
+                                                       false,
+                                                       0,
+                                                       {.decode_varint = &decode_uint32_field}}};
+const RepeatedFieldMeta BluetoothGATTDescriptor::REPEATED_FIELDS[1] = {
+    {1, PROTO_FIELD_OFFSET(BluetoothGATTDescriptor, uuid), &encode_repeated_uint64_field, &size_repeated_uint64_field}};
+const FieldMeta BluetoothGATTCharacteristic::FIELDS[2] = {{2,
+                                                           PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, handle),
+                                                           &encode_uint32_field,
+                                                           &size_uint32_field,
+                                                           false,
+                                                           0,
+                                                           {.decode_varint = &decode_uint32_field}},
+                                                          {3,
+                                                           PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, properties),
+                                                           &encode_uint32_field,
+                                                           &size_uint32_field,
+                                                           false,
+                                                           0,
+                                                           {.decode_varint = &decode_uint32_field}}};
+const RepeatedFieldMeta BluetoothGATTCharacteristic::REPEATED_FIELDS[2] = {
+    {1, PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, uuid), &encode_repeated_uint64_field,
+     &size_repeated_uint64_field},
+    {4, PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, descriptors),
+     &encode_repeated_message_field<BluetoothGATTDescriptor>, &size_repeated_message_field<BluetoothGATTDescriptor>}};
+const FieldMeta BluetoothGATTService::FIELDS[1] = {{2,
+                                                    PROTO_FIELD_OFFSET(BluetoothGATTService, handle),
+                                                    &encode_uint32_field,
+                                                    &size_uint32_field,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_uint32_field}}};
+const RepeatedFieldMeta BluetoothGATTService::REPEATED_FIELDS[2] = {
+    {1, PROTO_FIELD_OFFSET(BluetoothGATTService, uuid), &encode_repeated_uint64_field, &size_repeated_uint64_field},
+    {3, PROTO_FIELD_OFFSET(BluetoothGATTService, characteristics),
+     &encode_repeated_message_field<BluetoothGATTCharacteristic>,
+     &size_repeated_message_field<BluetoothGATTCharacteristic>}};
 const FieldMeta BluetoothGATTGetServicesResponse::FIELDS[1] = {
     {1,
      PROTO_FIELD_OFFSET(BluetoothGATTGetServicesResponse, address),
@@ -5346,6 +4874,20 @@ const FieldMeta BluetoothGATTGetServicesDoneResponse::FIELDS[1] = {
      false,
      0,
      {.decode_varint = &decode_uint64_field}}};
+const FieldMeta BluetoothGATTReadRequest::FIELDS[2] = {{1,
+                                                        PROTO_FIELD_OFFSET(BluetoothGATTReadRequest, address),
+                                                        &encode_uint64_field,
+                                                        &size_uint64_field,
+                                                        false,
+                                                        0,
+                                                        {.decode_varint = &decode_uint64_field}},
+                                                       {2,
+                                                        PROTO_FIELD_OFFSET(BluetoothGATTReadRequest, handle),
+                                                        &encode_uint32_field,
+                                                        &size_uint32_field,
+                                                        false,
+                                                        0,
+                                                        {.decode_varint = &decode_uint32_field}}};
 const FieldMeta BluetoothGATTReadResponse::FIELDS[3] = {{1,
                                                          PROTO_FIELD_OFFSET(BluetoothGATTReadResponse, address),
                                                          &encode_uint64_field,
@@ -5367,6 +4909,92 @@ const FieldMeta BluetoothGATTReadResponse::FIELDS[3] = {{1,
                                                          false,
                                                          2,
                                                          {.decode_length = &decode_bytes_field}}};
+const FieldMeta BluetoothGATTWriteRequest::FIELDS[4] = {{1,
+                                                         PROTO_FIELD_OFFSET(BluetoothGATTWriteRequest, address),
+                                                         &encode_uint64_field,
+                                                         &size_uint64_field,
+                                                         false,
+                                                         0,
+                                                         {.decode_varint = &decode_uint64_field}},
+                                                        {2,
+                                                         PROTO_FIELD_OFFSET(BluetoothGATTWriteRequest, handle),
+                                                         &encode_uint32_field,
+                                                         &size_uint32_field,
+                                                         false,
+                                                         0,
+                                                         {.decode_varint = &decode_uint32_field}},
+                                                        {3,
+                                                         PROTO_FIELD_OFFSET(BluetoothGATTWriteRequest, response),
+                                                         &encode_bool_field,
+                                                         &size_bool_field,
+                                                         false,
+                                                         0,
+                                                         {.decode_varint = &decode_bool_field}},
+                                                        {4,
+                                                         PROTO_FIELD_OFFSET(BluetoothGATTWriteRequest, data),
+                                                         &encode_bytes_field,
+                                                         &size_bytes_field,
+                                                         false,
+                                                         2,
+                                                         {.decode_length = &decode_bytes_field}}};
+const FieldMeta BluetoothGATTReadDescriptorRequest::FIELDS[2] = {
+    {1,
+     PROTO_FIELD_OFFSET(BluetoothGATTReadDescriptorRequest, address),
+     &encode_uint64_field,
+     &size_uint64_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint64_field}},
+    {2,
+     PROTO_FIELD_OFFSET(BluetoothGATTReadDescriptorRequest, handle),
+     &encode_uint32_field,
+     &size_uint32_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint32_field}}};
+const FieldMeta BluetoothGATTWriteDescriptorRequest::FIELDS[3] = {
+    {1,
+     PROTO_FIELD_OFFSET(BluetoothGATTWriteDescriptorRequest, address),
+     &encode_uint64_field,
+     &size_uint64_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint64_field}},
+    {2,
+     PROTO_FIELD_OFFSET(BluetoothGATTWriteDescriptorRequest, handle),
+     &encode_uint32_field,
+     &size_uint32_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint32_field}},
+    {3,
+     PROTO_FIELD_OFFSET(BluetoothGATTWriteDescriptorRequest, data),
+     &encode_bytes_field,
+     &size_bytes_field,
+     false,
+     2,
+     {.decode_length = &decode_bytes_field}}};
+const FieldMeta BluetoothGATTNotifyRequest::FIELDS[3] = {{1,
+                                                          PROTO_FIELD_OFFSET(BluetoothGATTNotifyRequest, address),
+                                                          &encode_uint64_field,
+                                                          &size_uint64_field,
+                                                          false,
+                                                          0,
+                                                          {.decode_varint = &decode_uint64_field}},
+                                                         {2,
+                                                          PROTO_FIELD_OFFSET(BluetoothGATTNotifyRequest, handle),
+                                                          &encode_uint32_field,
+                                                          &size_uint32_field,
+                                                          false,
+                                                          0,
+                                                          {.decode_varint = &decode_uint32_field}},
+                                                         {3,
+                                                          PROTO_FIELD_OFFSET(BluetoothGATTNotifyRequest, enable),
+                                                          &encode_bool_field,
+                                                          &size_bool_field,
+                                                          false,
+                                                          0,
+                                                          {.decode_varint = &decode_bool_field}}};
 const FieldMeta BluetoothGATTNotifyDataResponse::FIELDS[3] = {
     {1,
      PROTO_FIELD_OFFSET(BluetoothGATTNotifyDataResponse, address),
@@ -5537,8 +5165,81 @@ const FieldMeta BluetoothScannerStateResponse::FIELDS[2] = {
      false,
      0,
      {.decode_varint = &decode_enum_field<enums::BluetoothScannerMode>}}};
+const FieldMeta BluetoothScannerSetModeRequest::FIELDS[1] = {
+    {1,
+     PROTO_FIELD_OFFSET(BluetoothScannerSetModeRequest, mode),
+     &encode_enum_field<enums::BluetoothScannerMode>,
+     &size_enum_field<enums::BluetoothScannerMode>,
+     false,
+     0,
+     {.decode_varint = &decode_enum_field<enums::BluetoothScannerMode>}}};
 #endif
 #ifdef USE_VOICE_ASSISTANT
+const FieldMeta SubscribeVoiceAssistantRequest::FIELDS[2] = {
+    {1,
+     PROTO_FIELD_OFFSET(SubscribeVoiceAssistantRequest, subscribe),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}},
+    {2,
+     PROTO_FIELD_OFFSET(SubscribeVoiceAssistantRequest, flags),
+     &encode_uint32_field,
+     &size_uint32_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint32_field}}};
+const FieldMeta VoiceAssistantAudioSettings::FIELDS[3] = {
+    {1,
+     PROTO_FIELD_OFFSET(VoiceAssistantAudioSettings, noise_suppression_level),
+     &encode_uint32_field,
+     &size_uint32_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint32_field}},
+    {2,
+     PROTO_FIELD_OFFSET(VoiceAssistantAudioSettings, auto_gain),
+     &encode_uint32_field,
+     &size_uint32_field,
+     false,
+     0,
+     {.decode_varint = &decode_uint32_field}},
+    {3,
+     PROTO_FIELD_OFFSET(VoiceAssistantAudioSettings, volume_multiplier),
+     &encode_float_field,
+     &size_float_field,
+     false,
+     5,
+     {.decode_32bit = &decode_float_field}}};
+const FieldMeta VoiceAssistantRequest::FIELDS[4] = {{1,
+                                                     PROTO_FIELD_OFFSET(VoiceAssistantRequest, start),
+                                                     &encode_bool_field,
+                                                     &size_bool_field,
+                                                     false,
+                                                     0,
+                                                     {.decode_varint = &decode_bool_field}},
+                                                    {2,
+                                                     PROTO_FIELD_OFFSET(VoiceAssistantRequest, conversation_id),
+                                                     &encode_string_field,
+                                                     &size_string_field,
+                                                     false,
+                                                     2,
+                                                     {.decode_length = &decode_string_field}},
+                                                    {3,
+                                                     PROTO_FIELD_OFFSET(VoiceAssistantRequest, flags),
+                                                     &encode_uint32_field,
+                                                     &size_uint32_field,
+                                                     false,
+                                                     0,
+                                                     {.decode_varint = &decode_uint32_field}},
+                                                    {5,
+                                                     PROTO_FIELD_OFFSET(VoiceAssistantRequest, wake_word_phrase),
+                                                     &encode_string_field,
+                                                     &size_string_field,
+                                                     false,
+                                                     2,
+                                                     {.decode_length = &decode_string_field}}};
 const FieldMeta VoiceAssistantResponse::FIELDS[2] = {{1,
                                                       PROTO_FIELD_OFFSET(VoiceAssistantResponse, port),
                                                       &encode_uint32_field,
@@ -5553,6 +5254,20 @@ const FieldMeta VoiceAssistantResponse::FIELDS[2] = {{1,
                                                       false,
                                                       0,
                                                       {.decode_varint = &decode_bool_field}}};
+const FieldMeta VoiceAssistantEventData::FIELDS[2] = {{1,
+                                                       PROTO_FIELD_OFFSET(VoiceAssistantEventData, name),
+                                                       &encode_string_field,
+                                                       &size_string_field,
+                                                       false,
+                                                       2,
+                                                       {.decode_length = &decode_string_field}},
+                                                      {2,
+                                                       PROTO_FIELD_OFFSET(VoiceAssistantEventData, value),
+                                                       &encode_string_field,
+                                                       &size_string_field,
+                                                       false,
+                                                       2,
+                                                       {.decode_length = &decode_string_field}}};
 const FieldMeta VoiceAssistantEventResponse::FIELDS[1] = {
     {1,
      PROTO_FIELD_OFFSET(VoiceAssistantEventResponse, event_type),
@@ -5564,6 +5279,20 @@ const FieldMeta VoiceAssistantEventResponse::FIELDS[1] = {
 const RepeatedFieldMeta VoiceAssistantEventResponse::REPEATED_FIELDS[1] = {
     {2, PROTO_FIELD_OFFSET(VoiceAssistantEventResponse, data), &encode_repeated_message_field<VoiceAssistantEventData>,
      &size_repeated_message_field<VoiceAssistantEventData>}};
+const FieldMeta VoiceAssistantAudio::FIELDS[2] = {{1,
+                                                   PROTO_FIELD_OFFSET(VoiceAssistantAudio, data),
+                                                   &encode_bytes_field,
+                                                   &size_bytes_field,
+                                                   false,
+                                                   2,
+                                                   {.decode_length = &decode_bytes_field}},
+                                                  {2,
+                                                   PROTO_FIELD_OFFSET(VoiceAssistantAudio, end),
+                                                   &encode_bool_field,
+                                                   &size_bool_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_bool_field}}};
 const FieldMeta VoiceAssistantTimerEventResponse::FIELDS[6] = {
     {1,
      PROTO_FIELD_OFFSET(VoiceAssistantTimerEventResponse, event_type),
@@ -5607,6 +5336,60 @@ const FieldMeta VoiceAssistantTimerEventResponse::FIELDS[6] = {
      false,
      0,
      {.decode_varint = &decode_bool_field}}};
+const FieldMeta VoiceAssistantAnnounceRequest::FIELDS[4] = {
+    {1,
+     PROTO_FIELD_OFFSET(VoiceAssistantAnnounceRequest, media_id),
+     &encode_string_field,
+     &size_string_field,
+     false,
+     2,
+     {.decode_length = &decode_string_field}},
+    {2,
+     PROTO_FIELD_OFFSET(VoiceAssistantAnnounceRequest, text),
+     &encode_string_field,
+     &size_string_field,
+     false,
+     2,
+     {.decode_length = &decode_string_field}},
+    {3,
+     PROTO_FIELD_OFFSET(VoiceAssistantAnnounceRequest, preannounce_media_id),
+     &encode_string_field,
+     &size_string_field,
+     false,
+     2,
+     {.decode_length = &decode_string_field}},
+    {4,
+     PROTO_FIELD_OFFSET(VoiceAssistantAnnounceRequest, start_conversation),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}}};
+const FieldMeta VoiceAssistantAnnounceFinished::FIELDS[1] = {
+    {1,
+     PROTO_FIELD_OFFSET(VoiceAssistantAnnounceFinished, success),
+     &encode_bool_field,
+     &size_bool_field,
+     false,
+     0,
+     {.decode_varint = &decode_bool_field}}};
+const FieldMeta VoiceAssistantWakeWord::FIELDS[2] = {{1,
+                                                      PROTO_FIELD_OFFSET(VoiceAssistantWakeWord, id),
+                                                      &encode_string_field,
+                                                      &size_string_field,
+                                                      false,
+                                                      2,
+                                                      {.decode_length = &decode_string_field}},
+                                                     {2,
+                                                      PROTO_FIELD_OFFSET(VoiceAssistantWakeWord, wake_word),
+                                                      &encode_string_field,
+                                                      &size_string_field,
+                                                      false,
+                                                      2,
+                                                      {.decode_length = &decode_string_field}}};
+const RepeatedFieldMeta VoiceAssistantWakeWord::REPEATED_FIELDS[1] = {
+    {3, PROTO_FIELD_OFFSET(VoiceAssistantWakeWord, trained_languages), &encode_repeated_string_field,
+     &size_repeated_string_field}};
 const FieldMeta VoiceAssistantConfigurationResponse::FIELDS[1] = {
     {3,
      PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, max_active_wake_words),
@@ -5619,6 +5402,9 @@ const RepeatedFieldMeta VoiceAssistantConfigurationResponse::REPEATED_FIELDS[2] 
     {1, PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, available_wake_words),
      &encode_repeated_message_field<VoiceAssistantWakeWord>, &size_repeated_message_field<VoiceAssistantWakeWord>},
     {2, PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, active_wake_words), &encode_repeated_string_field,
+     &size_repeated_string_field}};
+const RepeatedFieldMeta VoiceAssistantSetConfiguration::REPEATED_FIELDS[1] = {
+    {1, PROTO_FIELD_OFFSET(VoiceAssistantSetConfiguration, active_wake_words), &encode_repeated_string_field,
      &size_repeated_string_field}};
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
@@ -5722,6 +5508,28 @@ const FieldMeta AlarmControlPanelStateResponse::FIELDS[3] = {
      false,
      0,
      {.decode_varint = &decode_uint32_field}}};
+const FieldMeta AlarmControlPanelCommandRequest::FIELDS[3] = {
+    {1,
+     PROTO_FIELD_OFFSET(AlarmControlPanelCommandRequest, key),
+     &encode_fixed32_field,
+     &size_fixed32_field,
+     false,
+     5,
+     {.decode_32bit = &decode_fixed32_field}},
+    {2,
+     PROTO_FIELD_OFFSET(AlarmControlPanelCommandRequest, command),
+     &encode_enum_field<enums::AlarmControlPanelStateCommand>,
+     &size_enum_field<enums::AlarmControlPanelStateCommand>,
+     false,
+     0,
+     {.decode_varint = &decode_enum_field<enums::AlarmControlPanelStateCommand>}},
+    {3,
+     PROTO_FIELD_OFFSET(AlarmControlPanelCommandRequest, code),
+     &encode_string_field,
+     &size_string_field,
+     false,
+     2,
+     {.decode_length = &decode_string_field}}};
 #endif
 #ifdef USE_TEXT
 const FieldMeta ListEntitiesTextResponse::FIELDS[12] = {
@@ -5837,6 +5645,20 @@ const FieldMeta TextStateResponse::FIELDS[4] = {{1,
                                                  false,
                                                  0,
                                                  {.decode_varint = &decode_uint32_field}}};
+const FieldMeta TextCommandRequest::FIELDS[2] = {{1,
+                                                  PROTO_FIELD_OFFSET(TextCommandRequest, key),
+                                                  &encode_fixed32_field,
+                                                  &size_fixed32_field,
+                                                  false,
+                                                  5,
+                                                  {.decode_32bit = &decode_fixed32_field}},
+                                                 {2,
+                                                  PROTO_FIELD_OFFSET(TextCommandRequest, state),
+                                                  &encode_string_field,
+                                                  &size_string_field,
+                                                  false,
+                                                  2,
+                                                  {.decode_length = &decode_string_field}}};
 #endif
 #ifdef USE_DATETIME_DATE
 const FieldMeta ListEntitiesDateResponse::FIELDS[8] = {
@@ -5938,6 +5760,34 @@ const FieldMeta DateStateResponse::FIELDS[6] = {{1,
                                                  false,
                                                  0,
                                                  {.decode_varint = &decode_uint32_field}}};
+const FieldMeta DateCommandRequest::FIELDS[4] = {{1,
+                                                  PROTO_FIELD_OFFSET(DateCommandRequest, key),
+                                                  &encode_fixed32_field,
+                                                  &size_fixed32_field,
+                                                  false,
+                                                  5,
+                                                  {.decode_32bit = &decode_fixed32_field}},
+                                                 {2,
+                                                  PROTO_FIELD_OFFSET(DateCommandRequest, year),
+                                                  &encode_uint32_field,
+                                                  &size_uint32_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_uint32_field}},
+                                                 {3,
+                                                  PROTO_FIELD_OFFSET(DateCommandRequest, month),
+                                                  &encode_uint32_field,
+                                                  &size_uint32_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_uint32_field}},
+                                                 {4,
+                                                  PROTO_FIELD_OFFSET(DateCommandRequest, day),
+                                                  &encode_uint32_field,
+                                                  &size_uint32_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_uint32_field}}};
 #endif
 #ifdef USE_DATETIME_TIME
 const FieldMeta ListEntitiesTimeResponse::FIELDS[8] = {
@@ -6039,6 +5889,34 @@ const FieldMeta TimeStateResponse::FIELDS[6] = {{1,
                                                  false,
                                                  0,
                                                  {.decode_varint = &decode_uint32_field}}};
+const FieldMeta TimeCommandRequest::FIELDS[4] = {{1,
+                                                  PROTO_FIELD_OFFSET(TimeCommandRequest, key),
+                                                  &encode_fixed32_field,
+                                                  &size_fixed32_field,
+                                                  false,
+                                                  5,
+                                                  {.decode_32bit = &decode_fixed32_field}},
+                                                 {2,
+                                                  PROTO_FIELD_OFFSET(TimeCommandRequest, hour),
+                                                  &encode_uint32_field,
+                                                  &size_uint32_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_uint32_field}},
+                                                 {3,
+                                                  PROTO_FIELD_OFFSET(TimeCommandRequest, minute),
+                                                  &encode_uint32_field,
+                                                  &size_uint32_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_uint32_field}},
+                                                 {4,
+                                                  PROTO_FIELD_OFFSET(TimeCommandRequest, second),
+                                                  &encode_uint32_field,
+                                                  &size_uint32_field,
+                                                  false,
+                                                  0,
+                                                  {.decode_varint = &decode_uint32_field}}};
 #endif
 #ifdef USE_EVENT
 const FieldMeta ListEntitiesEventResponse::FIELDS[9] = {
@@ -6244,6 +6122,34 @@ const FieldMeta ValveStateResponse::FIELDS[4] = {{1,
                                                   false,
                                                   0,
                                                   {.decode_varint = &decode_uint32_field}}};
+const FieldMeta ValveCommandRequest::FIELDS[4] = {{1,
+                                                   PROTO_FIELD_OFFSET(ValveCommandRequest, key),
+                                                   &encode_fixed32_field,
+                                                   &size_fixed32_field,
+                                                   false,
+                                                   5,
+                                                   {.decode_32bit = &decode_fixed32_field}},
+                                                  {2,
+                                                   PROTO_FIELD_OFFSET(ValveCommandRequest, has_position),
+                                                   &encode_bool_field,
+                                                   &size_bool_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_bool_field}},
+                                                  {3,
+                                                   PROTO_FIELD_OFFSET(ValveCommandRequest, position),
+                                                   &encode_float_field,
+                                                   &size_float_field,
+                                                   false,
+                                                   5,
+                                                   {.decode_32bit = &decode_float_field}},
+                                                  {4,
+                                                   PROTO_FIELD_OFFSET(ValveCommandRequest, stop),
+                                                   &encode_bool_field,
+                                                   &size_bool_field,
+                                                   false,
+                                                   0,
+                                                   {.decode_varint = &decode_bool_field}}};
 #endif
 #ifdef USE_DATETIME_DATETIME
 const FieldMeta ListEntitiesDateTimeResponse::FIELDS[8] = {
@@ -6331,6 +6237,20 @@ const FieldMeta DateTimeStateResponse::FIELDS[4] = {{1,
                                                      false,
                                                      0,
                                                      {.decode_varint = &decode_uint32_field}}};
+const FieldMeta DateTimeCommandRequest::FIELDS[2] = {{1,
+                                                      PROTO_FIELD_OFFSET(DateTimeCommandRequest, key),
+                                                      &encode_fixed32_field,
+                                                      &size_fixed32_field,
+                                                      false,
+                                                      5,
+                                                      {.decode_32bit = &decode_fixed32_field}},
+                                                     {2,
+                                                      PROTO_FIELD_OFFSET(DateTimeCommandRequest, epoch_seconds),
+                                                      &encode_fixed32_field,
+                                                      &size_fixed32_field,
+                                                      false,
+                                                      5,
+                                                      {.decode_32bit = &decode_fixed32_field}}};
 #endif
 #ifdef USE_UPDATE
 const FieldMeta ListEntitiesUpdateResponse::FIELDS[9] = {
@@ -6474,6 +6394,20 @@ const FieldMeta UpdateStateResponse::FIELDS[11] = {{1,
                                                     false,
                                                     0,
                                                     {.decode_varint = &decode_uint32_field}}};
+const FieldMeta UpdateCommandRequest::FIELDS[2] = {{1,
+                                                    PROTO_FIELD_OFFSET(UpdateCommandRequest, key),
+                                                    &encode_fixed32_field,
+                                                    &size_fixed32_field,
+                                                    false,
+                                                    5,
+                                                    {.decode_32bit = &decode_fixed32_field}},
+                                                   {2,
+                                                    PROTO_FIELD_OFFSET(UpdateCommandRequest, command),
+                                                    &encode_enum_field<enums::UpdateCommand>,
+                                                    &size_enum_field<enums::UpdateCommand>,
+                                                    false,
+                                                    0,
+                                                    {.decode_varint = &decode_enum_field<enums::UpdateCommand>}}};
 #endif
 
 }  // namespace api
