@@ -285,7 +285,7 @@ enum UpdateCommand : uint32_t {
 
 }  // namespace enums
 
-class InfoResponseProtoMessage : public ProtoMetadataMessage {
+class InfoResponseProtoMessage : public ProtoMessage {
  public:
   ~InfoResponseProtoMessage() override = default;
   std::string object_id{};
@@ -300,7 +300,7 @@ class InfoResponseProtoMessage : public ProtoMetadataMessage {
  protected:
 };
 
-class StateResponseProtoMessage : public ProtoMetadataMessage {
+class StateResponseProtoMessage : public ProtoMessage {
  public:
   ~StateResponseProtoMessage() override = default;
   uint32_t key{0};
@@ -308,7 +308,7 @@ class StateResponseProtoMessage : public ProtoMetadataMessage {
 
  protected:
 };
-class HelloRequest : public ProtoMetadataMessage {
+class HelloRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 1;
   static constexpr uint16_t ESTIMATED_SIZE = 17;
@@ -332,7 +332,7 @@ class HelloRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class HelloResponse : public ProtoMetadataMessage {
+class HelloResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 2;
   static constexpr uint16_t ESTIMATED_SIZE = 26;
@@ -357,7 +357,7 @@ class HelloResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class ConnectRequest : public ProtoMetadataMessage {
+class ConnectRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 3;
   static constexpr uint16_t ESTIMATED_SIZE = 9;
@@ -379,7 +379,7 @@ class ConnectRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class ConnectResponse : public ProtoMetadataMessage {
+class ConnectResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 4;
   static constexpr uint16_t ESTIMATED_SIZE = 2;
@@ -401,7 +401,7 @@ class ConnectResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class DisconnectRequest : public ProtoMetadataMessage {
+class DisconnectRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 5;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -421,7 +421,7 @@ class DisconnectRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class DisconnectResponse : public ProtoMetadataMessage {
+class DisconnectResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 6;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -441,7 +441,7 @@ class DisconnectResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class PingRequest : public ProtoMetadataMessage {
+class PingRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 7;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -461,7 +461,7 @@ class PingRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class PingResponse : public ProtoMetadataMessage {
+class PingResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 8;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -481,7 +481,7 @@ class PingResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class DeviceInfoRequest : public ProtoMetadataMessage {
+class DeviceInfoRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 9;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -501,7 +501,7 @@ class DeviceInfoRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class AreaInfo : public ProtoMetadataMessage {
+class AreaInfo : public ProtoMessage {
  public:
   uint32_t area_id{0};
   std::string name{};
@@ -519,7 +519,7 @@ class AreaInfo : public ProtoMetadataMessage {
 
  protected:
 };
-class DeviceInfo : public ProtoMetadataMessage {
+class DeviceInfo : public ProtoMessage {
  public:
   uint32_t device_id{0};
   std::string name{};
@@ -538,7 +538,7 @@ class DeviceInfo : public ProtoMetadataMessage {
 
  protected:
 };
-class DeviceInfoResponse : public ProtoMetadataMessage {
+class DeviceInfoResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 10;
   static constexpr uint16_t ESTIMATED_SIZE = 219;
@@ -582,7 +582,7 @@ class DeviceInfoResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class ListEntitiesRequest : public ProtoMetadataMessage {
+class ListEntitiesRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 11;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -602,7 +602,7 @@ class ListEntitiesRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class ListEntitiesDoneResponse : public ProtoMetadataMessage {
+class ListEntitiesDoneResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 19;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -622,7 +622,7 @@ class ListEntitiesDoneResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class SubscribeStatesRequest : public ProtoMetadataMessage {
+class SubscribeStatesRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 20;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -742,7 +742,7 @@ class CoverStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class CoverCommandRequest : public ProtoMetadataMessage {
+class CoverCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 30;
   static constexpr uint16_t ESTIMATED_SIZE = 25;
@@ -827,7 +827,7 @@ class FanStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class FanCommandRequest : public ProtoMetadataMessage {
+class FanCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 31;
   static constexpr uint16_t ESTIMATED_SIZE = 38;
@@ -926,7 +926,7 @@ class LightStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class LightCommandRequest : public ProtoMetadataMessage {
+class LightCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 32;
   static constexpr uint16_t ESTIMATED_SIZE = 107;
@@ -1073,7 +1073,7 @@ class SwitchStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class SwitchCommandRequest : public ProtoMetadataMessage {
+class SwitchCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 33;
   static constexpr uint16_t ESTIMATED_SIZE = 7;
@@ -1144,7 +1144,7 @@ class TextSensorStateResponse : public StateResponseProtoMessage {
  protected:
 };
 #endif
-class SubscribeLogsRequest : public ProtoMetadataMessage {
+class SubscribeLogsRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 28;
   static constexpr uint16_t ESTIMATED_SIZE = 4;
@@ -1167,7 +1167,7 @@ class SubscribeLogsRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class SubscribeLogsResponse : public ProtoMetadataMessage {
+class SubscribeLogsResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 29;
   static constexpr uint16_t ESTIMATED_SIZE = 13;
@@ -1192,7 +1192,7 @@ class SubscribeLogsResponse : public ProtoMetadataMessage {
  protected:
 };
 #ifdef USE_API_NOISE
-class NoiseEncryptionSetKeyRequest : public ProtoMetadataMessage {
+class NoiseEncryptionSetKeyRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 124;
   static constexpr uint16_t ESTIMATED_SIZE = 9;
@@ -1214,7 +1214,7 @@ class NoiseEncryptionSetKeyRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class NoiseEncryptionSetKeyResponse : public ProtoMetadataMessage {
+class NoiseEncryptionSetKeyResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 125;
   static constexpr uint16_t ESTIMATED_SIZE = 2;
@@ -1237,7 +1237,7 @@ class NoiseEncryptionSetKeyResponse : public ProtoMetadataMessage {
  protected:
 };
 #endif
-class SubscribeHomeassistantServicesRequest : public ProtoMetadataMessage {
+class SubscribeHomeassistantServicesRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 34;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -1257,7 +1257,7 @@ class SubscribeHomeassistantServicesRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class HomeassistantServiceMap : public ProtoMetadataMessage {
+class HomeassistantServiceMap : public ProtoMessage {
  public:
   std::string key{};
   std::string value{};
@@ -1275,7 +1275,7 @@ class HomeassistantServiceMap : public ProtoMetadataMessage {
 
  protected:
 };
-class HomeassistantServiceResponse : public ProtoMetadataMessage {
+class HomeassistantServiceResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 35;
   static constexpr uint16_t ESTIMATED_SIZE = 113;
@@ -1302,7 +1302,7 @@ class HomeassistantServiceResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class SubscribeHomeAssistantStatesRequest : public ProtoMetadataMessage {
+class SubscribeHomeAssistantStatesRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 38;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -1322,7 +1322,7 @@ class SubscribeHomeAssistantStatesRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class SubscribeHomeAssistantStateResponse : public ProtoMetadataMessage {
+class SubscribeHomeAssistantStateResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 39;
   static constexpr uint16_t ESTIMATED_SIZE = 20;
@@ -1346,7 +1346,7 @@ class SubscribeHomeAssistantStateResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class HomeAssistantStateResponse : public ProtoMetadataMessage {
+class HomeAssistantStateResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 40;
   static constexpr uint16_t ESTIMATED_SIZE = 27;
@@ -1370,7 +1370,7 @@ class HomeAssistantStateResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class GetTimeRequest : public ProtoMetadataMessage {
+class GetTimeRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 36;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -1390,7 +1390,7 @@ class GetTimeRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class GetTimeResponse : public ProtoMetadataMessage {
+class GetTimeResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 37;
   static constexpr uint16_t ESTIMATED_SIZE = 5;
@@ -1412,7 +1412,7 @@ class GetTimeResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class ListEntitiesServicesArgument : public ProtoMetadataMessage {
+class ListEntitiesServicesArgument : public ProtoMessage {
  public:
   std::string name{};
   enums::ServiceArgType type{};
@@ -1430,7 +1430,7 @@ class ListEntitiesServicesArgument : public ProtoMetadataMessage {
 
  protected:
 };
-class ListEntitiesServicesResponse : public ProtoMetadataMessage {
+class ListEntitiesServicesResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 41;
   static constexpr uint16_t ESTIMATED_SIZE = 48;
@@ -1455,7 +1455,7 @@ class ListEntitiesServicesResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class ExecuteServiceArgument : public ProtoMetadataMessage {
+class ExecuteServiceArgument : public ProtoMessage {
  public:
   bool bool_{false};
   int32_t legacy_int{0};
@@ -1481,7 +1481,7 @@ class ExecuteServiceArgument : public ProtoMetadataMessage {
 
  protected:
 };
-class ExecuteServiceRequest : public ProtoMetadataMessage {
+class ExecuteServiceRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 42;
   static constexpr uint16_t ESTIMATED_SIZE = 39;
@@ -1527,7 +1527,7 @@ class ListEntitiesCameraResponse : public InfoResponseProtoMessage {
 
  protected:
 };
-class CameraImageResponse : public ProtoMetadataMessage {
+class CameraImageResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 44;
   static constexpr uint16_t ESTIMATED_SIZE = 16;
@@ -1551,7 +1551,7 @@ class CameraImageResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class CameraImageRequest : public ProtoMetadataMessage {
+class CameraImageRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 45;
   static constexpr uint16_t ESTIMATED_SIZE = 4;
@@ -1651,7 +1651,7 @@ class ClimateStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class ClimateCommandRequest : public ProtoMetadataMessage {
+class ClimateCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 48;
   static constexpr uint16_t ESTIMATED_SIZE = 83;
@@ -1747,7 +1747,7 @@ class NumberStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class NumberCommandRequest : public ProtoMetadataMessage {
+class NumberCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 51;
   static constexpr uint16_t ESTIMATED_SIZE = 10;
@@ -1818,7 +1818,7 @@ class SelectStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class SelectCommandRequest : public ProtoMetadataMessage {
+class SelectCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 54;
   static constexpr uint16_t ESTIMATED_SIZE = 14;
@@ -1890,7 +1890,7 @@ class SirenStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class SirenCommandRequest : public ProtoMetadataMessage {
+class SirenCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 57;
   static constexpr uint16_t ESTIMATED_SIZE = 33;
@@ -1969,7 +1969,7 @@ class LockStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class LockCommandRequest : public ProtoMetadataMessage {
+class LockCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 60;
   static constexpr uint16_t ESTIMATED_SIZE = 18;
@@ -2018,7 +2018,7 @@ class ListEntitiesButtonResponse : public InfoResponseProtoMessage {
 
  protected:
 };
-class ButtonCommandRequest : public ProtoMetadataMessage {
+class ButtonCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 62;
   static constexpr uint16_t ESTIMATED_SIZE = 5;
@@ -2042,7 +2042,7 @@ class ButtonCommandRequest : public ProtoMetadataMessage {
 };
 #endif
 #ifdef USE_MEDIA_PLAYER
-class MediaPlayerSupportedFormat : public ProtoMetadataMessage {
+class MediaPlayerSupportedFormat : public ProtoMessage {
  public:
   std::string format{};
   uint32_t sample_rate{0};
@@ -2111,7 +2111,7 @@ class MediaPlayerStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class MediaPlayerCommandRequest : public ProtoMetadataMessage {
+class MediaPlayerCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 65;
   static constexpr uint16_t ESTIMATED_SIZE = 31;
@@ -2143,7 +2143,7 @@ class MediaPlayerCommandRequest : public ProtoMetadataMessage {
 };
 #endif
 #ifdef USE_BLUETOOTH_PROXY
-class SubscribeBluetoothLEAdvertisementsRequest : public ProtoMetadataMessage {
+class SubscribeBluetoothLEAdvertisementsRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 66;
   static constexpr uint16_t ESTIMATED_SIZE = 4;
@@ -2165,7 +2165,7 @@ class SubscribeBluetoothLEAdvertisementsRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothServiceData : public ProtoMetadataMessage {
+class BluetoothServiceData : public ProtoMessage {
  public:
   std::string uuid{};
   std::vector<uint32_t> legacy_data{};
@@ -2185,7 +2185,7 @@ class BluetoothServiceData : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothLEAdvertisementResponse : public ProtoMetadataMessage {
+class BluetoothLEAdvertisementResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 67;
   static constexpr uint16_t ESTIMATED_SIZE = 107;
@@ -2214,7 +2214,7 @@ class BluetoothLEAdvertisementResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothLERawAdvertisement : public ProtoMetadataMessage {
+class BluetoothLERawAdvertisement : public ProtoMessage {
  public:
   uint64_t address{0};
   int32_t rssi{0};
@@ -2234,7 +2234,7 @@ class BluetoothLERawAdvertisement : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothLERawAdvertisementsResponse : public ProtoMetadataMessage {
+class BluetoothLERawAdvertisementsResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 93;
   static constexpr uint16_t ESTIMATED_SIZE = 34;
@@ -2256,7 +2256,7 @@ class BluetoothLERawAdvertisementsResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothDeviceRequest : public ProtoMetadataMessage {
+class BluetoothDeviceRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 68;
   static constexpr uint16_t ESTIMATED_SIZE = 12;
@@ -2281,7 +2281,7 @@ class BluetoothDeviceRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothDeviceConnectionResponse : public ProtoMetadataMessage {
+class BluetoothDeviceConnectionResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 69;
   static constexpr uint16_t ESTIMATED_SIZE = 14;
@@ -2306,7 +2306,7 @@ class BluetoothDeviceConnectionResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTGetServicesRequest : public ProtoMetadataMessage {
+class BluetoothGATTGetServicesRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 70;
   static constexpr uint16_t ESTIMATED_SIZE = 4;
@@ -2328,7 +2328,7 @@ class BluetoothGATTGetServicesRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTDescriptor : public ProtoMetadataMessage {
+class BluetoothGATTDescriptor : public ProtoMessage {
  public:
   std::vector<uint64_t> uuid{};
   uint32_t handle{0};
@@ -2347,7 +2347,7 @@ class BluetoothGATTDescriptor : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTCharacteristic : public ProtoMetadataMessage {
+class BluetoothGATTCharacteristic : public ProtoMessage {
  public:
   std::vector<uint64_t> uuid{};
   uint32_t handle{0};
@@ -2368,7 +2368,7 @@ class BluetoothGATTCharacteristic : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTService : public ProtoMetadataMessage {
+class BluetoothGATTService : public ProtoMessage {
  public:
   std::vector<uint64_t> uuid{};
   uint32_t handle{0};
@@ -2388,7 +2388,7 @@ class BluetoothGATTService : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTGetServicesResponse : public ProtoMetadataMessage {
+class BluetoothGATTGetServicesResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 71;
   static constexpr uint16_t ESTIMATED_SIZE = 38;
@@ -2412,7 +2412,7 @@ class BluetoothGATTGetServicesResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTGetServicesDoneResponse : public ProtoMetadataMessage {
+class BluetoothGATTGetServicesDoneResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 72;
   static constexpr uint16_t ESTIMATED_SIZE = 4;
@@ -2434,7 +2434,7 @@ class BluetoothGATTGetServicesDoneResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTReadRequest : public ProtoMetadataMessage {
+class BluetoothGATTReadRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 73;
   static constexpr uint16_t ESTIMATED_SIZE = 8;
@@ -2457,7 +2457,7 @@ class BluetoothGATTReadRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTReadResponse : public ProtoMetadataMessage {
+class BluetoothGATTReadResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 74;
   static constexpr uint16_t ESTIMATED_SIZE = 17;
@@ -2481,7 +2481,7 @@ class BluetoothGATTReadResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTWriteRequest : public ProtoMetadataMessage {
+class BluetoothGATTWriteRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 75;
   static constexpr uint16_t ESTIMATED_SIZE = 19;
@@ -2506,7 +2506,7 @@ class BluetoothGATTWriteRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTReadDescriptorRequest : public ProtoMetadataMessage {
+class BluetoothGATTReadDescriptorRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 76;
   static constexpr uint16_t ESTIMATED_SIZE = 8;
@@ -2529,7 +2529,7 @@ class BluetoothGATTReadDescriptorRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTWriteDescriptorRequest : public ProtoMetadataMessage {
+class BluetoothGATTWriteDescriptorRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 77;
   static constexpr uint16_t ESTIMATED_SIZE = 17;
@@ -2553,7 +2553,7 @@ class BluetoothGATTWriteDescriptorRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTNotifyRequest : public ProtoMetadataMessage {
+class BluetoothGATTNotifyRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 78;
   static constexpr uint16_t ESTIMATED_SIZE = 10;
@@ -2577,7 +2577,7 @@ class BluetoothGATTNotifyRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTNotifyDataResponse : public ProtoMetadataMessage {
+class BluetoothGATTNotifyDataResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 79;
   static constexpr uint16_t ESTIMATED_SIZE = 17;
@@ -2601,7 +2601,7 @@ class BluetoothGATTNotifyDataResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class SubscribeBluetoothConnectionsFreeRequest : public ProtoMetadataMessage {
+class SubscribeBluetoothConnectionsFreeRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 80;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -2621,7 +2621,7 @@ class SubscribeBluetoothConnectionsFreeRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothConnectionsFreeResponse : public ProtoMetadataMessage {
+class BluetoothConnectionsFreeResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 81;
   static constexpr uint16_t ESTIMATED_SIZE = 16;
@@ -2646,7 +2646,7 @@ class BluetoothConnectionsFreeResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTErrorResponse : public ProtoMetadataMessage {
+class BluetoothGATTErrorResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 82;
   static constexpr uint16_t ESTIMATED_SIZE = 12;
@@ -2670,7 +2670,7 @@ class BluetoothGATTErrorResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTWriteResponse : public ProtoMetadataMessage {
+class BluetoothGATTWriteResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 83;
   static constexpr uint16_t ESTIMATED_SIZE = 8;
@@ -2693,7 +2693,7 @@ class BluetoothGATTWriteResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothGATTNotifyResponse : public ProtoMetadataMessage {
+class BluetoothGATTNotifyResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 84;
   static constexpr uint16_t ESTIMATED_SIZE = 8;
@@ -2716,7 +2716,7 @@ class BluetoothGATTNotifyResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothDevicePairingResponse : public ProtoMetadataMessage {
+class BluetoothDevicePairingResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 85;
   static constexpr uint16_t ESTIMATED_SIZE = 10;
@@ -2740,7 +2740,7 @@ class BluetoothDevicePairingResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothDeviceUnpairingResponse : public ProtoMetadataMessage {
+class BluetoothDeviceUnpairingResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 86;
   static constexpr uint16_t ESTIMATED_SIZE = 10;
@@ -2764,7 +2764,7 @@ class BluetoothDeviceUnpairingResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class UnsubscribeBluetoothLEAdvertisementsRequest : public ProtoMetadataMessage {
+class UnsubscribeBluetoothLEAdvertisementsRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 87;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -2784,7 +2784,7 @@ class UnsubscribeBluetoothLEAdvertisementsRequest : public ProtoMetadataMessage 
 
  protected:
 };
-class BluetoothDeviceClearCacheResponse : public ProtoMetadataMessage {
+class BluetoothDeviceClearCacheResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 88;
   static constexpr uint16_t ESTIMATED_SIZE = 10;
@@ -2808,7 +2808,7 @@ class BluetoothDeviceClearCacheResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothScannerStateResponse : public ProtoMetadataMessage {
+class BluetoothScannerStateResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 126;
   static constexpr uint16_t ESTIMATED_SIZE = 4;
@@ -2831,7 +2831,7 @@ class BluetoothScannerStateResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class BluetoothScannerSetModeRequest : public ProtoMetadataMessage {
+class BluetoothScannerSetModeRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 127;
   static constexpr uint16_t ESTIMATED_SIZE = 2;
@@ -2855,7 +2855,7 @@ class BluetoothScannerSetModeRequest : public ProtoMetadataMessage {
 };
 #endif
 #ifdef USE_VOICE_ASSISTANT
-class SubscribeVoiceAssistantRequest : public ProtoMetadataMessage {
+class SubscribeVoiceAssistantRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 89;
   static constexpr uint16_t ESTIMATED_SIZE = 6;
@@ -2878,7 +2878,7 @@ class SubscribeVoiceAssistantRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantAudioSettings : public ProtoMetadataMessage {
+class VoiceAssistantAudioSettings : public ProtoMessage {
  public:
   uint32_t noise_suppression_level{0};
   uint32_t auto_gain{0};
@@ -2897,7 +2897,7 @@ class VoiceAssistantAudioSettings : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantRequest : public ProtoMetadataMessage {
+class VoiceAssistantRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 90;
   static constexpr uint16_t ESTIMATED_SIZE = 41;
@@ -2923,7 +2923,7 @@ class VoiceAssistantRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantResponse : public ProtoMetadataMessage {
+class VoiceAssistantResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 91;
   static constexpr uint16_t ESTIMATED_SIZE = 6;
@@ -2946,7 +2946,7 @@ class VoiceAssistantResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantEventData : public ProtoMetadataMessage {
+class VoiceAssistantEventData : public ProtoMessage {
  public:
   std::string name{};
   std::string value{};
@@ -2964,7 +2964,7 @@ class VoiceAssistantEventData : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantEventResponse : public ProtoMetadataMessage {
+class VoiceAssistantEventResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 92;
   static constexpr uint16_t ESTIMATED_SIZE = 36;
@@ -2988,7 +2988,7 @@ class VoiceAssistantEventResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantAudio : public ProtoMetadataMessage {
+class VoiceAssistantAudio : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 106;
   static constexpr uint16_t ESTIMATED_SIZE = 11;
@@ -3011,7 +3011,7 @@ class VoiceAssistantAudio : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantTimerEventResponse : public ProtoMetadataMessage {
+class VoiceAssistantTimerEventResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 115;
   static constexpr uint16_t ESTIMATED_SIZE = 30;
@@ -3038,7 +3038,7 @@ class VoiceAssistantTimerEventResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantAnnounceRequest : public ProtoMetadataMessage {
+class VoiceAssistantAnnounceRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 119;
   static constexpr uint16_t ESTIMATED_SIZE = 29;
@@ -3063,7 +3063,7 @@ class VoiceAssistantAnnounceRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantAnnounceFinished : public ProtoMetadataMessage {
+class VoiceAssistantAnnounceFinished : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 120;
   static constexpr uint16_t ESTIMATED_SIZE = 2;
@@ -3085,7 +3085,7 @@ class VoiceAssistantAnnounceFinished : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantWakeWord : public ProtoMetadataMessage {
+class VoiceAssistantWakeWord : public ProtoMessage {
  public:
   std::string id{};
   std::string wake_word{};
@@ -3105,7 +3105,7 @@ class VoiceAssistantWakeWord : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantConfigurationRequest : public ProtoMetadataMessage {
+class VoiceAssistantConfigurationRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 121;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -3125,7 +3125,7 @@ class VoiceAssistantConfigurationRequest : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantConfigurationResponse : public ProtoMetadataMessage {
+class VoiceAssistantConfigurationResponse : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 122;
   static constexpr uint16_t ESTIMATED_SIZE = 56;
@@ -3150,7 +3150,7 @@ class VoiceAssistantConfigurationResponse : public ProtoMetadataMessage {
 
  protected:
 };
-class VoiceAssistantSetConfiguration : public ProtoMetadataMessage {
+class VoiceAssistantSetConfiguration : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 123;
   static constexpr uint16_t ESTIMATED_SIZE = 18;
@@ -3220,7 +3220,7 @@ class AlarmControlPanelStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class AlarmControlPanelCommandRequest : public ProtoMetadataMessage {
+class AlarmControlPanelCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 96;
   static constexpr uint16_t ESTIMATED_SIZE = 16;
@@ -3294,7 +3294,7 @@ class TextStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class TextCommandRequest : public ProtoMetadataMessage {
+class TextCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 99;
   static constexpr uint16_t ESTIMATED_SIZE = 14;
@@ -3365,7 +3365,7 @@ class DateStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class DateCommandRequest : public ProtoMetadataMessage {
+class DateCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 102;
   static constexpr uint16_t ESTIMATED_SIZE = 17;
@@ -3438,7 +3438,7 @@ class TimeStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class TimeCommandRequest : public ProtoMetadataMessage {
+class TimeCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 105;
   static constexpr uint16_t ESTIMATED_SIZE = 17;
@@ -3561,7 +3561,7 @@ class ValveStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class ValveCommandRequest : public ProtoMetadataMessage {
+class ValveCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 111;
   static constexpr uint16_t ESTIMATED_SIZE = 14;
@@ -3632,7 +3632,7 @@ class DateTimeStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class DateTimeCommandRequest : public ProtoMetadataMessage {
+class DateTimeCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 114;
   static constexpr uint16_t ESTIMATED_SIZE = 10;
@@ -3709,7 +3709,7 @@ class UpdateStateResponse : public StateResponseProtoMessage {
 
  protected:
 };
-class UpdateCommandRequest : public ProtoMetadataMessage {
+class UpdateCommandRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 118;
   static constexpr uint16_t ESTIMATED_SIZE = 7;

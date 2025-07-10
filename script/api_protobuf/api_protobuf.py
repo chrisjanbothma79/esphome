@@ -1491,8 +1491,6 @@ def build_message_type(
 
     if base_class:
         out = f"class {desc.name} : public {base_class} {{\n"
-    elif use_metadata:
-        out = f"class {desc.name} : public ProtoMetadataMessage {{\n"
     else:
         out = f"class {desc.name} : public ProtoMessage {{\n"
     out += " public:\n"
@@ -1616,8 +1614,8 @@ def build_base_class(
         public_content.extend(ti.public_content)
 
     # Build header
-    # All base classes now use ProtoMetadataMessage
-    out = f"class {base_class_name} : public ProtoMetadataMessage {{\n"
+    # All base classes now use ProtoMessage
+    out = f"class {base_class_name} : public ProtoMessage {{\n"
     out += " public:\n"
 
     # Add destructor with override

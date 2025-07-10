@@ -599,39 +599,39 @@ void calculate_size_from_metadata(uint32_t &total_size, const void *obj, const F
   }
 }
 
-// Base class implementations using virtual metadata getters
-void ProtoMetadataMessage::encode(ProtoWriteBuffer buffer) const {
+// ProtoMessage implementations using metadata
+void ProtoMessage::encode(ProtoWriteBuffer buffer) const {
   encode_from_metadata(buffer, this, get_field_metadata(), get_field_count(), get_repeated_field_metadata(),
                        get_repeated_field_count());
 }
 
-void ProtoMetadataMessage::calculate_size(uint32_t &total_size) const {
+void ProtoMessage::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, get_field_metadata(), get_field_count(), get_repeated_field_metadata(),
                                get_repeated_field_count());
 }
 
-bool ProtoMetadataMessage::decode_varint(uint32_t field_id, ProtoVarInt value) {
+bool ProtoMessage::decode_varint(uint32_t field_id, ProtoVarInt value) {
   const FieldMeta *fields = get_field_metadata();
   if (!fields)
     return false;
   return decode_varint_metadata(field_id, value, fields, get_field_count());
 }
 
-bool ProtoMetadataMessage::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
+bool ProtoMessage::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   const FieldMeta *fields = get_field_metadata();
   if (!fields)
     return false;
   return decode_length_metadata(field_id, value, fields, get_field_count());
 }
 
-bool ProtoMetadataMessage::decode_32bit(uint32_t field_id, Proto32Bit value) {
+bool ProtoMessage::decode_32bit(uint32_t field_id, Proto32Bit value) {
   const FieldMeta *fields = get_field_metadata();
   if (!fields)
     return false;
   return decode_32bit_metadata(field_id, value, fields, get_field_count());
 }
 
-bool ProtoMetadataMessage::decode_64bit(uint32_t field_id, Proto64Bit value) {
+bool ProtoMessage::decode_64bit(uint32_t field_id, Proto64Bit value) {
   const FieldMeta *fields = get_field_metadata();
   if (!fields)
     return false;
@@ -639,8 +639,8 @@ bool ProtoMetadataMessage::decode_64bit(uint32_t field_id, Proto64Bit value) {
 }
 
 // Metadata-driven decode implementations
-bool ProtoMetadataMessage::decode_varint_metadata(uint32_t field_id, ProtoVarInt value, const FieldMeta *fields,
-                                                  size_t field_count) {
+bool ProtoMessage::decode_varint_metadata(uint32_t field_id, ProtoVarInt value, const FieldMeta *fields,
+                                          size_t field_count) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
   // Check regular fields
@@ -666,8 +666,8 @@ bool ProtoMetadataMessage::decode_varint_metadata(uint32_t field_id, ProtoVarInt
   return false;
 }
 
-bool ProtoMetadataMessage::decode_length_metadata(uint32_t field_id, ProtoLengthDelimited value,
-                                                  const FieldMeta *fields, size_t field_count) {
+bool ProtoMessage::decode_length_metadata(uint32_t field_id, ProtoLengthDelimited value, const FieldMeta *fields,
+                                          size_t field_count) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
   // Check regular fields
@@ -693,8 +693,8 @@ bool ProtoMetadataMessage::decode_length_metadata(uint32_t field_id, ProtoLength
   return false;
 }
 
-bool ProtoMetadataMessage::decode_32bit_metadata(uint32_t field_id, Proto32Bit value, const FieldMeta *fields,
-                                                 size_t field_count) {
+bool ProtoMessage::decode_32bit_metadata(uint32_t field_id, Proto32Bit value, const FieldMeta *fields,
+                                         size_t field_count) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
   // Check regular fields
@@ -720,8 +720,8 @@ bool ProtoMetadataMessage::decode_32bit_metadata(uint32_t field_id, Proto32Bit v
   return false;
 }
 
-bool ProtoMetadataMessage::decode_64bit_metadata(uint32_t field_id, Proto64Bit value, const FieldMeta *fields,
-                                                 size_t field_count) {
+bool ProtoMessage::decode_64bit_metadata(uint32_t field_id, Proto64Bit value, const FieldMeta *fields,
+                                         size_t field_count) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
   // Check regular fields

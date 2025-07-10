@@ -391,11 +391,18 @@ struct RepeatedFieldMeta {
 class ProtoMessage {
  public:
   virtual ~ProtoMessage() = default;
-  // Default implementation for messages with no fields
-  virtual void encode(ProtoWriteBuffer buffer) const {}
+
+  // Virtual methods to get metadata - must be implemented by derived classes
+  virtual const FieldMeta *get_field_metadata() const { return nullptr; }
+  virtual size_t get_field_count() const { return 0; }
+  virtual const RepeatedFieldMeta *get_repeated_field_metadata() const { return nullptr; }
+  virtual size_t get_repeated_field_count() const { return 0; }
+
+  // Encode/decode/calculate_size using metadata
+  void encode(ProtoWriteBuffer buffer) const;
   void decode(const uint8_t *buffer, size_t length);
-  // Default implementation for messages with no fields
-  virtual void calculate_size(uint32_t &total_size) const {}
+  void calculate_size(uint32_t &total_size) const;
+
 #ifdef HAS_PROTO_MESSAGE_DUMP
   std::string dump() const;
   virtual void dump_to(std::string &out) const = 0;
@@ -403,41 +410,21 @@ class ProtoMessage {
 #endif
 
  protected:
-  virtual bool decode_varint(uint32_t field_id, ProtoVarInt value) { return false; }
-  virtual bool decode_length(uint32_t field_id, ProtoLengthDelimited value) { return false; }
-  virtual bool decode_32bit(uint32_t field_id, Proto32Bit value) { return false; }
-  virtual bool decode_64bit(uint32_t field_id, Proto64Bit value) { return false; }
-};
+  // Decode methods using metadata
+  bool decode_varint(uint32_t field_id, ProtoVarInt value);
+  bool decode_length(uint32_t field_id, ProtoLengthDelimited value);
+  bool decode_32bit(uint32_t field_id, Proto32Bit value);
+  bool decode_64bit(uint32_t field_id, Proto64Bit value);
 
-template<typename T> const char *proto_enum_to_string(T value);
-
-// Base class for messages using metadata-driven encode/decode
-class ProtoMetadataMessage : public ProtoMessage {
- public:
-  // Virtual methods to get metadata - must be implemented by derived classes
-  virtual const FieldMeta *get_field_metadata() const { return nullptr; }
-  virtual size_t get_field_count() const { return 0; }
-  virtual const RepeatedFieldMeta *get_repeated_field_metadata() const { return nullptr; }
-  virtual size_t get_repeated_field_count() const { return 0; }
-
-  // Override encode/decode/calculate_size using metadata
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
-
- protected:
-  // Override decode methods using metadata
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_64bit(uint32_t field_id, Proto64Bit value) override;
-
-  // Metadata-driven decode methods (now private implementation details)
+  // Metadata-driven decode methods (private implementation details)
   bool decode_varint_metadata(uint32_t field_id, ProtoVarInt value, const FieldMeta *fields, size_t field_count);
   bool decode_length_metadata(uint32_t field_id, ProtoLengthDelimited value, const FieldMeta *fields,
                               size_t field_count);
   bool decode_32bit_metadata(uint32_t field_id, Proto32Bit value, const FieldMeta *fields, size_t field_count);
   bool decode_64bit_metadata(uint32_t field_id, Proto64Bit value, const FieldMeta *fields, size_t field_count);
 };
+
+template<typename T> const char *proto_enum_to_string(T value);
 
 class ProtoService {
  public:
