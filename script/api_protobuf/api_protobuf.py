@@ -1184,20 +1184,20 @@ def build_message_type(
 
                 if encoder and sizer:
                     repeated_fields.append(
-                        f"{{{field.number}, offsetof({desc.name}, {ti.field_name}), {encoder}, {sizer}}}"
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), {encoder}, {sizer}}}"
                     )
                 elif isinstance(ti._ti, EnumType):
                     # Handle enum repeated fields with template
                     enum_type = ti._ti.cpp_type
                     repeated_fields.append(
-                        f"{{{field.number}, offsetof({desc.name}, {ti.field_name}), "
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
                         f"&encode_repeated_enum_field<{enum_type}>, &size_repeated_enum_field<{enum_type}>}}"
                     )
                 elif isinstance(ti._ti, MessageType):
                     # Handle message repeated fields with template
                     msg_type = ti._ti.cpp_type
                     repeated_fields.append(
-                        f"{{{field.number}, offsetof({desc.name}, {ti.field_name}), "
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
                         f"&encode_repeated_message_field<{msg_type}>, &size_repeated_message_field<{msg_type}>}}"
                     )
             else:
@@ -1208,13 +1208,13 @@ def build_message_type(
 
                 if encoder and sizer:
                     regular_fields.append(
-                        f"{{{field.number}, offsetof({desc.name}, {ti.field_name}), {encoder}, {sizer}, {force}}}"
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), {encoder}, {sizer}, {force}}}"
                     )
                 elif isinstance(ti, EnumType):
                     # Handle enum fields with template
                     enum_type = ti.cpp_type
                     regular_fields.append(
-                        f"{{{field.number}, offsetof({desc.name}, {ti.field_name}), "
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
                         f"&encode_enum_field<{enum_type}>, &size_enum_field<{enum_type}>, {force}}}"
                     )
                 elif isinstance(ti, MessageType):
@@ -1712,10 +1712,6 @@ namespace api {
     # Generate metadata definitions in cpp file for Response classes
     if response_metadata:
         cpp += "\n// Metadata definitions for Response classes\n"
-        cpp += "#ifdef __GNUC__\n"
-        cpp += "#pragma GCC diagnostic push\n"
-        cpp += '#pragma GCC diagnostic ignored "-Winvalid-offsetof"\n'
-        cpp += "#endif\n"
         current_ifdef = None
 
         for meta in response_metadata:
@@ -1753,11 +1749,6 @@ namespace api {
         # Close last ifdef for metadata
         if current_ifdef is not None:
             cpp += "#endif\n"
-
-        # Re-enable the warning
-        cpp += "#ifdef __GNUC__\n"
-        cpp += "#pragma GCC diagnostic pop\n"
-        cpp += "#endif\n"
 
     cpp += """\
 

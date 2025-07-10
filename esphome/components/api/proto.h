@@ -20,10 +20,14 @@ class ProtoWriteBuffer;
 using EncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
 using SizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
 
+// Macro to calculate field offset without triggering -Winvalid-offsetof
+// This uses the same approach as offsetof but with explicit reinterpret_cast
+#define PROTO_FIELD_OFFSET(Type, Member) (reinterpret_cast<size_t>(&reinterpret_cast<Type *>(16)->Member) - 16)
+
 // Metadata structure describing each field
 struct FieldMeta {
   uint8_t field_num;   // Protobuf field number (1-255)
-  uint16_t offset;     // offsetof(Class, field_name)
+  uint16_t offset;     // offset of field in class
   EncodeFunc encoder;  // Function to encode this field type
   SizeFunc sizer;      // Function to calculate size for this field type
   bool force_encode;   // If true, encode even if value is default/empty
