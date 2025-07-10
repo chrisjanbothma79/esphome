@@ -58,6 +58,7 @@ from .models import (
     MADCTL_XFLIP,
     MADCTL_YFLIP,
     DriverChip,
+    guition,
     m5stack,
     waveshare,
 )
@@ -82,7 +83,7 @@ CONF_LANES = "lanes"
 DriverChip("CUSTOM")
 
 # This loop is a noop, but suppresses linting of side-effect-only imports
-for _ in (waveshare, m5stack):
+for _ in (waveshare, m5stack, guition):
     pass
 
 MODELS = DriverChip.models
@@ -100,7 +101,7 @@ def get_sequence(config):
     custom_sequence = config.get(CONF_INIT_SEQUENCE, [])
     sequence.extend(custom_sequence)
     # Ensure each command is a tuple
-    sequence = [x if isinstance(x, tuple) else (x,) for x in sequence]
+    sequence = [tuple(x) if isinstance(x, tuple | list) else (x,) for x in sequence]
     pixel_mode = config[CONF_PIXEL_MODE]
     if not isinstance(pixel_mode, int):
         pixel_mode = PIXEL_MODES[pixel_mode]
