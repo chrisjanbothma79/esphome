@@ -162,69 +162,69 @@ void encode_bytes_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t
 }
 
 // Type-specific size calculation functions
-void size_string_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_string_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *str = static_cast<const std::string *>(field_ptr);
-  ProtoSize::add_string_field(total_size, field_num, *str, force);
+  ProtoSize::add_string_field(total_size, precalced_field_tag_size, *str, force);
 }
 
-void size_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *val = static_cast<const uint32_t *>(field_ptr);
-  ProtoSize::add_fixed_field<4>(total_size, field_num, *val != 0 || force, force);
+  ProtoSize::add_fixed_field<4>(total_size, precalced_field_tag_size, *val != 0 || force, force);
 }
 
-void size_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *val = static_cast<const bool *>(field_ptr);
-  ProtoSize::add_bool_field(total_size, field_num, *val, force);
+  ProtoSize::add_bool_field(total_size, precalced_field_tag_size, *val, force);
 }
 
-void size_float_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_float_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *val = static_cast<const float *>(field_ptr);
-  ProtoSize::add_fixed_field<4>(total_size, field_num, *val != 0.0f || force, force);
+  ProtoSize::add_fixed_field<4>(total_size, precalced_field_tag_size, *val != 0.0f || force, force);
 }
 
-void size_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *val = static_cast<const int32_t *>(field_ptr);
-  ProtoSize::add_int32_field(total_size, field_num, *val, force);
+  ProtoSize::add_int32_field(total_size, precalced_field_tag_size, *val, force);
 }
 
-void size_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *val = static_cast<const uint32_t *>(field_ptr);
-  ProtoSize::add_uint32_field(total_size, field_num, *val, force);
+  ProtoSize::add_uint32_field(total_size, precalced_field_tag_size, *val, force);
 }
 
-void size_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *val = static_cast<const int64_t *>(field_ptr);
-  ProtoSize::add_int64_field(total_size, field_num, *val, force);
+  ProtoSize::add_int64_field(total_size, precalced_field_tag_size, *val, force);
 }
 
-void size_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *val = static_cast<const uint64_t *>(field_ptr);
-  ProtoSize::add_uint64_field(total_size, field_num, *val, force);
+  ProtoSize::add_uint64_field(total_size, precalced_field_tag_size, *val, force);
 }
 
-void size_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *val = static_cast<const int32_t *>(field_ptr);
-  ProtoSize::add_sint32_field(total_size, field_num, *val, force);
+  ProtoSize::add_sint32_field(total_size, precalced_field_tag_size, *val, force);
 }
 
-void size_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *val = static_cast<const int64_t *>(field_ptr);
-  ProtoSize::add_sint64_field(total_size, field_num, *val, force);
+  ProtoSize::add_sint64_field(total_size, precalced_field_tag_size, *val, force);
 }
 
-void size_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *val = static_cast<const uint64_t *>(field_ptr);
-  ProtoSize::add_fixed_field<8>(total_size, field_num, *val != 0 || force, force);
+  ProtoSize::add_fixed_field<8>(total_size, precalced_field_tag_size, *val != 0 || force, force);
 }
 
-void size_double_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_double_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *val = static_cast<const double *>(field_ptr);
-  ProtoSize::add_fixed_field<8>(total_size, field_num, *val != 0.0 || force, force);
+  ProtoSize::add_fixed_field<8>(total_size, precalced_field_tag_size, *val != 0.0 || force, force);
 }
 
-void size_bytes_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force) {
+void size_bytes_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
   const auto *str = static_cast<const std::string *>(field_ptr);
-  ProtoSize::add_string_field(total_size, field_num, *str, force);
+  ProtoSize::add_string_field(total_size, precalced_field_tag_size, *str, force);
 }
 
 // Type-specific decode functions
@@ -401,99 +401,91 @@ void encode_repeated_double_field(ProtoWriteBuffer &buffer, const void *field_pt
 // Template repeated field functions moved to header
 
 // Repeated field size calculation functions
-void size_repeated_string_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num) {
+void size_repeated_string_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
   const auto *vec = static_cast<const std::vector<std::string> *>(field_ptr);
   for (const auto &item : *vec) {
-    ProtoSize::add_string_field(total_size, field_num, item, true);
+    ProtoSize::add_string_field(total_size, precalced_field_tag_size, item, true);
   }
 }
 
-void size_repeated_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num) {
+void size_repeated_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
   const auto *vec = static_cast<const std::vector<bool> *>(field_ptr);
   for (bool val : *vec) {
-    ProtoSize::add_bool_field(total_size, field_num, val, true);
+    ProtoSize::add_bool_field(total_size, precalced_field_tag_size, val, true);
   }
 }
 
-void size_repeated_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num) {
+void size_repeated_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
   const auto *vec = static_cast<const std::vector<uint32_t> *>(field_ptr);
   for (const auto &val : *vec) {
-    ProtoSize::add_uint32_field(total_size, field_num, val, true);
+    ProtoSize::add_uint32_field(total_size, precalced_field_tag_size, val, true);
   }
 }
 
-void size_repeated_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num) {
+void size_repeated_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
   const auto *vec = static_cast<const std::vector<int32_t> *>(field_ptr);
   for (const auto &val : *vec) {
-    ProtoSize::add_int32_field(total_size, field_num, val, true);
+    ProtoSize::add_int32_field(total_size, precalced_field_tag_size, val, true);
   }
 }
 
-void size_repeated_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num) {
+void size_repeated_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
   const auto *vec = static_cast<const std::vector<uint64_t> *>(field_ptr);
   for (const auto &val : *vec) {
-    ProtoSize::add_uint64_field(total_size, field_num, val, true);
+    ProtoSize::add_uint64_field(total_size, precalced_field_tag_size, val, true);
   }
 }
 
-void size_repeated_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num) {
+void size_repeated_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
   const auto *vec = static_cast<const std::vector<int64_t> *>(field_ptr);
   for (const auto &val : *vec) {
-    ProtoSize::add_int64_field(total_size, field_num, val, true);
+    ProtoSize::add_int64_field(total_size, precalced_field_tag_size, val, true);
   }
 }
 
-void size_repeated_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num) {
+void size_repeated_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
   const auto *vec = static_cast<const std::vector<int32_t> *>(field_ptr);
   for (const auto &val : *vec) {
-    ProtoSize::add_sint32_field(total_size, field_num, val, true);
+    ProtoSize::add_sint32_field(total_size, precalced_field_tag_size, val, true);
   }
 }
 
-void size_repeated_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num) {
+void size_repeated_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
   const auto *vec = static_cast<const std::vector<int64_t> *>(field_ptr);
   for (const auto &val : *vec) {
-    ProtoSize::add_sint64_field(total_size, field_num, val, true);
+    ProtoSize::add_sint64_field(total_size, precalced_field_tag_size, val, true);
   }
 }
 
-void size_repeated_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num) {
+void size_repeated_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
   const auto *vec = static_cast<const std::vector<uint32_t> *>(field_ptr);
   size_t count = vec->size();
   if (count > 0) {
-    // Calculate proper field tag size
-    uint32_t tag_size = ProtoSize::varint(static_cast<uint32_t>((field_num << 3) | 5));  // wire type 5 for fixed32
-    total_size += count * (tag_size + 4);                                                // field tag + 4 bytes per item
+    total_size += count * (precalced_field_tag_size + 4);  // field tag + 4 bytes per item
   }
 }
 
-void size_repeated_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num) {
+void size_repeated_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
   const auto *vec = static_cast<const std::vector<uint64_t> *>(field_ptr);
   size_t count = vec->size();
   if (count > 0) {
-    // Calculate proper field tag size
-    uint32_t tag_size = ProtoSize::varint(static_cast<uint32_t>((field_num << 3) | 1));  // wire type 1 for fixed64
-    total_size += count * (tag_size + 8);                                                // field tag + 8 bytes per item
+    total_size += count * (precalced_field_tag_size + 8);  // field tag + 8 bytes per item
   }
 }
 
-void size_repeated_float_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num) {
+void size_repeated_float_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
   const auto *vec = static_cast<const std::vector<float> *>(field_ptr);
   size_t count = vec->size();
   if (count > 0) {
-    // Calculate proper field tag size
-    uint32_t tag_size = ProtoSize::varint(static_cast<uint32_t>((field_num << 3) | 5));  // wire type 5 for float
-    total_size += count * (tag_size + 4);                                                // field tag + 4 bytes per item
+    total_size += count * (precalced_field_tag_size + 4);  // field tag + 4 bytes per item
   }
 }
 
-void size_repeated_double_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num) {
+void size_repeated_double_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
   const auto *vec = static_cast<const std::vector<double> *>(field_ptr);
   size_t count = vec->size();
   if (count > 0) {
-    // Calculate proper field tag size
-    uint32_t tag_size = ProtoSize::varint(static_cast<uint32_t>((field_num << 3) | 1));  // wire type 1 for double
-    total_size += count * (tag_size + 8);                                                // field tag + 8 bytes per item
+    total_size += count * (precalced_field_tag_size + 8);  // field tag + 8 bytes per item
   }
 }
 
@@ -524,13 +516,13 @@ void calculate_size_from_metadata(uint32_t &total_size, const void *obj, const F
   // Calculate size for regular fields
   for (size_t i = 0; i < field_count; i++) {
     const void *field_addr = base + fields[i].offset;
-    fields[i].sizer(total_size, field_addr, fields[i].field_num, fields[i].force_encode);
+    fields[i].sizer(total_size, field_addr, fields[i].precalced_field_tag_size, fields[i].force_encode);
   }
 
   // Calculate size for repeated fields
   for (size_t i = 0; i < repeated_count; i++) {
     const void *field_addr = base + repeated_fields[i].offset;
-    repeated_fields[i].sizer(total_size, field_addr, repeated_fields[i].field_num);
+    repeated_fields[i].sizer(total_size, field_addr, repeated_fields[i].precalced_field_tag_size);
   }
 }
 

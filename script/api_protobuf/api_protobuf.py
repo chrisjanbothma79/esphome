@@ -1211,24 +1211,25 @@ def build_message_type(
                 ti = RepeatedTypeInfo(field)
                 encoder = get_repeated_encoder_function(ti)
                 sizer = get_repeated_sizer_function(ti)
+                field_tag_size = ti.calculate_field_id_size()
 
                 if encoder and sizer:
                     repeated_fields.append(
-                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), {encoder}, {sizer}}}"
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), {encoder}, {sizer}, {field_tag_size}}}"
                     )
                 elif isinstance(ti._ti, EnumType):
                     # Handle enum repeated fields with template
                     enum_type = ti._ti.cpp_type
                     repeated_fields.append(
                         f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
-                        f"&encode_repeated_enum_field<{enum_type}>, &size_repeated_enum_field<{enum_type}>}}"
+                        f"&encode_repeated_enum_field<{enum_type}>, &size_repeated_enum_field<{enum_type}>, {field_tag_size}}}"
                     )
                 elif isinstance(ti._ti, MessageType):
                     # Handle message repeated fields with template
                     msg_type = ti._ti.cpp_type
                     repeated_fields.append(
                         f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
-                        f"&encode_repeated_message_field<{msg_type}>, &size_repeated_message_field<{msg_type}>}}"
+                        f"&encode_repeated_message_field<{msg_type}>, &size_repeated_message_field<{msg_type}>, {field_tag_size}}}"
                     )
             else:
                 ti = TYPE_INFO[field.type](field)
@@ -1239,7 +1240,9 @@ def build_message_type(
                 force = "true" if field.label == 2 else "false"  # Required fields
 
                 if encoder and sizer and decoder:
-                    # Format: {field_num, offset, encoder, sizer, force_encode, wire_type, {decoder}}
+                    # Calculate pre-calculated field tag size
+                    field_tag_size = ti.calculate_field_id_size()
+                    # Format: {field_num, offset, encoder, sizer, force_encode, wire_type, precalced_field_tag_size, {decoder}}
                     decoder_field = (
                         f".decode_varint = {decoder}"
                         if wire_type == 0
@@ -1250,14 +1253,15 @@ def build_message_type(
                         else f".decode_64bit = {decoder}"
                     )
                     regular_fields.append(
-                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), {encoder}, {sizer}, {force}, {wire_type}, {{{decoder_field}}}}}"
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), {encoder}, {sizer}, {force}, {wire_type}, {field_tag_size}, {{{decoder_field}}}}}"
                     )
                 elif isinstance(ti, EnumType):
                     # Handle enum fields with template
                     enum_type = ti.cpp_type
+                    field_tag_size = ti.calculate_field_id_size()
                     regular_fields.append(
                         f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
-                        f"&encode_enum_field<{enum_type}>, &size_enum_field<{enum_type}>, {force}, 0, {{.decode_varint = &decode_enum_field<{enum_type}>}}}}"
+                        f"&encode_enum_field<{enum_type}>, &size_enum_field<{enum_type}>, {force}, 0, {field_tag_size}, {{.decode_varint = &decode_enum_field<{enum_type}>}}}}"
                     )
                 elif isinstance(ti, MessageType):
                     # Skip nested messages for now - they need special handling

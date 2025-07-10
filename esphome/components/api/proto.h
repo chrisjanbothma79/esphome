@@ -18,7 +18,7 @@ class ProtoWriteBuffer;
 
 // Function pointer types for encoding and size calculation
 using EncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
-using SizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+using SizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
 
 // Macro to calculate field offset without triggering -Winvalid-offsetof
 // This uses the same approach as offsetof but with explicit reinterpret_cast
@@ -27,14 +27,15 @@ using SizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t f
 
 // Function pointer types for repeated fields
 using RepeatedEncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
-using RepeatedSizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+using RepeatedSizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
 
 // Special metadata for repeated fields
 struct RepeatedFieldMeta {
   uint8_t field_num;
   uint16_t offset;
-  RepeatedEncodeFunc encoder;  // Encoder for the entire vector
-  RepeatedSizeFunc sizer;      // Sizer for the entire vector
+  RepeatedEncodeFunc encoder;        // Encoder for the entire vector
+  RepeatedSizeFunc sizer;            // Sizer for the entire vector
+  uint8_t precalced_field_tag_size;  // Pre-calculated size of field tag in bytes
 };
 
 /// Representation of a VarInt - in ProtoBuf should be 64bit but we only use 32bit
@@ -216,12 +217,13 @@ using Decode64BitFunc = bool (*)(void *field_ptr, Proto64Bit value);
 
 // Metadata structure describing each field
 struct FieldMeta {
-  uint8_t field_num;   // Protobuf field number (1-255)
-  uint16_t offset;     // offset of field in class
-  EncodeFunc encoder;  // Function to encode this field type
-  SizeFunc sizer;      // Function to calculate size for this field type
-  bool force_encode;   // If true, encode even if value is default/empty
-  uint8_t wire_type;   // Wire type (0=varint, 2=length, 5=32bit, 1=64bit)
+  uint8_t field_num;                 // Protobuf field number (1-255)
+  uint16_t offset;                   // offset of field in class
+  EncodeFunc encoder;                // Function to encode this field type
+  SizeFunc sizer;                    // Function to calculate size for this field type
+  bool force_encode;                 // If true, encode even if value is default/empty
+  uint8_t wire_type;                 // Wire type (0=varint, 2=length, 5=32bit, 1=64bit)
+  uint8_t precalced_field_tag_size;  // Pre-calculated size of field tag in bytes
   union {
     DecodeVarintFunc decode_varint;
     DecodeLengthFunc decode_length;
@@ -510,25 +512,25 @@ bool decode_bytes_field(void *field_ptr, ProtoLengthDelimited value);
 template<typename EnumType> bool decode_enum_field(void *field_ptr, ProtoVarInt value);
 
 // Type-specific size calculation functions
-void size_string_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
-void size_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
-void size_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
-void size_float_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
-void size_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
-void size_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
-void size_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
-void size_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
-void size_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
-void size_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
-void size_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
-void size_double_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
-void size_bytes_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_string_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
+void size_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
+void size_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
+void size_float_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
+void size_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
+void size_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
+void size_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
+void size_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
+void size_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
+void size_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
+void size_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
+void size_double_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
+void size_bytes_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
 
 // Template enum field functions
 template<typename EnumType> void encode_enum_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
 
 template<typename EnumType>
-void size_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force);
 
 // Repeated field handling functions
 void encode_repeated_string_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
@@ -551,24 +553,24 @@ template<typename MessageType>
 void encode_repeated_message_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
 
 // Size calculation for repeated fields
-void size_repeated_string_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
-void size_repeated_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
-void size_repeated_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
-void size_repeated_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
-void size_repeated_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
-void size_repeated_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
-void size_repeated_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
-void size_repeated_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
-void size_repeated_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
-void size_repeated_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
-void size_repeated_float_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
-void size_repeated_double_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_string_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
+void size_repeated_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
+void size_repeated_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
+void size_repeated_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
+void size_repeated_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
+void size_repeated_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
+void size_repeated_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
+void size_repeated_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
+void size_repeated_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
+void size_repeated_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
+void size_repeated_float_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
+void size_repeated_double_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
 
 template<typename EnumType>
-void size_repeated_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
 
 template<typename MessageType>
-void size_repeated_message_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size);
 
 // Core shared functions
 void encode_from_metadata(ProtoWriteBuffer buffer, const void *obj, const FieldMeta *fields, size_t field_count,
