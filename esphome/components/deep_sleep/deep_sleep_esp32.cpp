@@ -50,18 +50,30 @@ void DeepSleepComponent::dump_config_platform_() {
   }
 }
 
-bool DeepSleepComponent::prepare_to_sleep_() {
-  if (this->wakeup_pin_mode_ == WAKEUP_PIN_MODE_KEEP_AWAKE && this->wakeup_pin_ != nullptr &&
-      this->wakeup_pin_->digital_read()) {
-    // Defer deep sleep until inactive
-    if (!this->next_enter_deep_sleep_) {
-      this->status_set_warning();
-      ESP_LOGW(TAG, "Waiting wakeup pin state change to enter deep sleep...");
+void DeepSleepComponent::setup_platform_() {
+  if (this->wakeup_pin_ != nullptr && this->wakeup_pin_mode_ == WAKEUP_PIN_MODE_KEEP_AWAKE) {
+    this->isr_pin_ = this->wakeup_pin_->to_isr();
+    this->wakeup_pin_->attach_interrupt(DeepSleepComponent::gpio_intr, this, esphome::gpio::INTERRUPT_ANY_EDGE);
+    if (this->wakeup_pin_->digital_read()) {
+      this->pin_state_ = true;
+      this->prevent_deep_sleep();
     }
-    this->next_enter_deep_sleep_ = true;
-    return false;
   }
-  return true;
+}
+
+void IRAM_ATTR DeepSleepComponent::gpio_intr(DeepSleepComponent *arg) {
+  volatile bool new_state = arg->isr_pin_.digital_read();
+
+  arg->defer([arg, new_state]() {
+    if (arg->pin_state_ != new_state) {
+      arg->pin_state_ = new_state;
+      if (new_state) {
+        arg->prevent_deep_sleep();
+      } else {
+        arg->allow_deep_sleep();
+      }
+    }
+  });
 }
 
 void DeepSleepComponent::deep_sleep_() {
