@@ -415,13 +415,6 @@ class ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value);
   bool decode_32bit(uint32_t field_id, Proto32Bit value);
   bool decode_64bit(uint32_t field_id, Proto64Bit value);
-
-  // Metadata-driven decode methods (private implementation details)
-  bool decode_varint_metadata(uint32_t field_id, ProtoVarInt value, const FieldMeta *fields, size_t field_count);
-  bool decode_length_metadata(uint32_t field_id, ProtoLengthDelimited value, const FieldMeta *fields,
-                              size_t field_count);
-  bool decode_32bit_metadata(uint32_t field_id, Proto32Bit value, const FieldMeta *fields, size_t field_count);
-  bool decode_64bit_metadata(uint32_t field_id, Proto64Bit value, const FieldMeta *fields, size_t field_count);
 };
 
 template<typename T> const char *proto_enum_to_string(T value);

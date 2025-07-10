@@ -611,39 +611,11 @@ void ProtoMessage::calculate_size(uint32_t &total_size) const {
 }
 
 bool ProtoMessage::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  const FieldMeta *fields = get_field_metadata();
-  if (!fields)
-    return false;
-  return decode_varint_metadata(field_id, value, fields, get_field_count());
-}
-
-bool ProtoMessage::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  const FieldMeta *fields = get_field_metadata();
-  if (!fields)
-    return false;
-  return decode_length_metadata(field_id, value, fields, get_field_count());
-}
-
-bool ProtoMessage::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  const FieldMeta *fields = get_field_metadata();
-  if (!fields)
-    return false;
-  return decode_32bit_metadata(field_id, value, fields, get_field_count());
-}
-
-bool ProtoMessage::decode_64bit(uint32_t field_id, Proto64Bit value) {
-  const FieldMeta *fields = get_field_metadata();
-  if (!fields)
-    return false;
-  return decode_64bit_metadata(field_id, value, fields, get_field_count());
-}
-
-// Metadata-driven decode implementations
-bool ProtoMessage::decode_varint_metadata(uint32_t field_id, ProtoVarInt value, const FieldMeta *fields,
-                                          size_t field_count) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
   // Check regular fields
+  const FieldMeta *fields = get_field_metadata();
+  size_t field_count = get_field_count();
   for (size_t i = 0; i < field_count; i++) {
     if (fields[i].field_num == field_id && fields[i].wire_type == 0) {  // varint
       void *field_addr = base + fields[i].offset;
@@ -666,11 +638,12 @@ bool ProtoMessage::decode_varint_metadata(uint32_t field_id, ProtoVarInt value, 
   return false;
 }
 
-bool ProtoMessage::decode_length_metadata(uint32_t field_id, ProtoLengthDelimited value, const FieldMeta *fields,
-                                          size_t field_count) {
+bool ProtoMessage::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
   // Check regular fields
+  const FieldMeta *fields = get_field_metadata();
+  size_t field_count = get_field_count();
   for (size_t i = 0; i < field_count; i++) {
     if (fields[i].field_num == field_id && fields[i].wire_type == 2) {  // length-delimited
       void *field_addr = base + fields[i].offset;
@@ -693,11 +666,12 @@ bool ProtoMessage::decode_length_metadata(uint32_t field_id, ProtoLengthDelimite
   return false;
 }
 
-bool ProtoMessage::decode_32bit_metadata(uint32_t field_id, Proto32Bit value, const FieldMeta *fields,
-                                         size_t field_count) {
+bool ProtoMessage::decode_32bit(uint32_t field_id, Proto32Bit value) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
   // Check regular fields
+  const FieldMeta *fields = get_field_metadata();
+  size_t field_count = get_field_count();
   for (size_t i = 0; i < field_count; i++) {
     if (fields[i].field_num == field_id && fields[i].wire_type == 5) {  // 32-bit
       void *field_addr = base + fields[i].offset;
@@ -720,11 +694,12 @@ bool ProtoMessage::decode_32bit_metadata(uint32_t field_id, Proto32Bit value, co
   return false;
 }
 
-bool ProtoMessage::decode_64bit_metadata(uint32_t field_id, Proto64Bit value, const FieldMeta *fields,
-                                         size_t field_count) {
+bool ProtoMessage::decode_64bit(uint32_t field_id, Proto64Bit value) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
   // Check regular fields
+  const FieldMeta *fields = get_field_metadata();
+  size_t field_count = get_field_count();
   for (size_t i = 0; i < field_count; i++) {
     if (fields[i].field_num == field_id && fields[i].wire_type == 1) {  // 64-bit
       void *field_addr = base + fields[i].offset;
