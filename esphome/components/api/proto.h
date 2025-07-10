@@ -20,28 +20,28 @@ class ProtoWriteBuffer;
 enum class ProtoFieldType : uint8_t {
   // Varint types (wire type 0)
   TYPE_BOOL = 0,
-  TYPE_INT32,
-  TYPE_UINT32,
-  TYPE_INT64,
-  TYPE_UINT64,
-  TYPE_SINT32,
-  TYPE_SINT64,
-  TYPE_ENUM,
+  TYPE_INT32 = 1,
+  TYPE_UINT32 = 2,
+  TYPE_INT64 = 3,
+  TYPE_UINT64 = 4,
+  TYPE_SINT32 = 5,
+  TYPE_SINT64 = 6,
+  TYPE_ENUM = 7,
 
   // Length-delimited types (wire type 2)
-  TYPE_STRING,
-  TYPE_BYTES,
-  TYPE_MESSAGE,
+  TYPE_STRING = 8,
+  TYPE_BYTES = 9,
+  TYPE_MESSAGE = 10,
 
   // 32-bit types (wire type 5)
-  TYPE_FLOAT,
-  TYPE_FIXED32,
-  TYPE_SFIXED32,
+  TYPE_FLOAT = 11,
+  TYPE_FIXED32 = 12,
+  TYPE_SFIXED32 = 13,
 
   // 64-bit types (wire type 1)
-  TYPE_DOUBLE,
-  TYPE_FIXED64,
-  TYPE_SFIXED64,
+  TYPE_DOUBLE = 14,
+  TYPE_FIXED64 = 15,
+  TYPE_SFIXED64 = 16,
 };
 
 // Helper to get wire type from field type
@@ -261,7 +261,51 @@ using RepeatedEncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, u
 using RepeatedSizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
 using RepeatedDecodeLengthFunc = bool (*)(void *field_ptr, ProtoLengthDelimited value);
 
-// New type-based metadata structure (smaller and more efficient)
+// Message handler registry entry
+struct MessageHandler {
+  EncodeFunc encode;
+  SizeFunc size;
+  DecodeLengthFunc decode;
+};
+
+// Repeated message handler registry entry
+struct RepeatedMessageHandler {
+  RepeatedEncodeFunc encode;
+  RepeatedSizeFunc size;
+  RepeatedDecodeLengthFunc decode;
+};
+
+// Global message handler registries (defined in proto.cpp)
+extern const MessageHandler MESSAGE_HANDLERS[];
+extern const size_t MESSAGE_HANDLER_COUNT;
+extern const RepeatedMessageHandler REPEATED_MESSAGE_HANDLERS[];
+extern const size_t REPEATED_MESSAGE_HANDLER_COUNT;
+
+// Optimized metadata structure (4 bytes - no padding on 32-bit architectures)
+struct FieldMetaV3 {
+  uint8_t field_num;      // Protobuf field number (1-255)
+  uint8_t type_and_size;  // bits 0-4: ProtoFieldType, bits 5-6: precalced_field_id_size-1, bit 7: reserved
+  union {
+    uint16_t offset;  // For non-message types: offset in class (0-65535)
+    struct {
+      uint8_t offset_low;       // For TYPE_MESSAGE: low byte of offset
+      uint8_t message_type_id;  // For TYPE_MESSAGE: index into MESSAGE_HANDLERS
+    };
+  };
+
+  // Helper methods
+  ProtoFieldType get_type() const { return static_cast<ProtoFieldType>(type_and_size & 0x1F); }
+  uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
+  uint16_t get_offset() const {
+    if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
+      return offset_low;  // Limited to 255 for messages
+    }
+    return offset;
+  }
+  uint8_t get_message_type_id() const { return message_type_id; }
+};
+
+// Keep V2 for now during transition
 struct FieldMetaV2 {
   uint8_t field_num;                // Protobuf field number (1-255)
   uint16_t offset;                  // offset of field in class
@@ -440,7 +484,31 @@ class ProtoWriteBuffer {
   std::vector<uint8_t> *buffer_;
 };
 
-// New type-based repeated field metadata
+// Optimized repeated field metadata (4 bytes - no padding on 32-bit architectures)
+struct RepeatedFieldMetaV3 {
+  uint8_t field_num;      // Protobuf field number (1-255)
+  uint8_t type_and_size;  // bits 0-4: ProtoFieldType, bits 5-6: precalced_field_id_size-1, bit 7: reserved
+  union {
+    uint16_t offset;  // For non-message types: offset in class (0-65535)
+    struct {
+      uint8_t offset_low;       // For TYPE_MESSAGE: low byte of offset
+      uint8_t message_type_id;  // For TYPE_MESSAGE: index into REPEATED_MESSAGE_HANDLERS
+    };
+  };
+
+  // Helper methods
+  ProtoFieldType get_type() const { return static_cast<ProtoFieldType>(type_and_size & 0x1F); }
+  uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
+  uint16_t get_offset() const {
+    if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
+      return offset_low;  // Limited to 255 for messages
+    }
+    return offset;
+  }
+  uint8_t get_message_type_id() const { return message_type_id; }
+};
+
+// Keep V2 for now during transition
 struct RepeatedFieldMetaV2 {
   uint8_t field_num;
   uint16_t offset;
@@ -468,10 +536,22 @@ class ProtoMessage {
   virtual const RepeatedFieldMetaV2 *get_repeated_field_metadata_v2() const { return nullptr; }
   virtual size_t get_repeated_field_count_v2() const { return 0; }
 
-  // Encode/decode/calculate_size using V2 metadata
+  // V3 metadata getters - for optimized implementation
+  virtual const FieldMetaV3 *get_field_metadata_v3() const { return nullptr; }
+  virtual size_t get_field_count_v3() const { return 0; }
+  virtual const RepeatedFieldMetaV3 *get_repeated_field_metadata_v3() const { return nullptr; }
+  virtual size_t get_repeated_field_count_v3() const { return 0; }
+
+  // Encode/decode/calculate_size using V2 metadata (will check for V3 first)
   void encode(ProtoWriteBuffer buffer) const;
   void decode(const uint8_t *buffer, size_t length);
   void calculate_size(uint32_t &total_size) const;
+
+ protected:
+  // V3 implementations
+  void encode_v3(ProtoWriteBuffer buffer) const;
+  void decode_v3(const uint8_t *buffer, size_t length);
+  void calculate_size_v3(uint32_t &total_size) const;
 
 #ifdef HAS_PROTO_MESSAGE_DUMP
   std::string dump() const;
