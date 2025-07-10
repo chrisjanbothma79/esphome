@@ -22,7 +22,8 @@ using SizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t f
 
 // Macro to calculate field offset without triggering -Winvalid-offsetof
 // This uses the same approach as offsetof but with explicit reinterpret_cast
-#define PROTO_FIELD_OFFSET(Type, Member) (reinterpret_cast<size_t>(&reinterpret_cast<Type *>(16)->Member) - 16)
+#define PROTO_FIELD_OFFSET(Type, Member) \
+  static_cast<uint16_t>(reinterpret_cast<size_t>(&reinterpret_cast<Type *>(16)->Member) - 16)
 
 // Function pointer types for repeated fields
 using RepeatedEncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
