@@ -78,7 +78,7 @@ constexpr uint8_t get_wire_type(ProtoFieldType type) {
 // Macro to calculate field offset without triggering -Winvalid-offsetof
 // This uses the same approach as offsetof but with explicit reinterpret_cast
 #define PROTO_FIELD_OFFSET(Type, Member) \
-  static_cast<uint16_t>(reinterpret_cast<size_t>(&reinterpret_cast<Type *>(16)->Member) - 16)
+  static_cast<uint16_t>(reinterpret_cast<size_t>(&reinterpret_cast<(Type) *>(16)->Member) - 16)
 
 /// Representation of a VarInt - in ProtoBuf should be 64bit but we only use 32bit
 class ProtoVarInt {
@@ -512,17 +512,13 @@ class ProtoMessage {
   void decode(const uint8_t *buffer, size_t length);
   void calculate_size(uint32_t &total_size) const;
 
- protected:
-  // V3 implementations
-  void encode_v3(ProtoWriteBuffer buffer) const;
-  void decode_v3(const uint8_t *buffer, size_t length);
-  void calculate_size_v3(uint32_t &total_size) const;
-
 #ifdef HAS_PROTO_MESSAGE_DUMP
   std::string dump() const;
   virtual void dump_to(std::string &out) const = 0;
   virtual const char *message_name() const { return "unknown"; }
 #endif
+
+ protected:
 };
 
 template<typename T> const char *proto_enum_to_string(T value);
@@ -608,12 +604,6 @@ template<typename MessageType>
 void size_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
 
 // Template decode functions removed - V3 inlines decoding directly
-
-template<typename MessageType>
-void encode_repeated_message_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-
-template<typename MessageType>
-void size_repeated_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
 
 // Core shared functions removed - V2 metadata is used directly
 
