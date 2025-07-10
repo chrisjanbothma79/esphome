@@ -2,9 +2,9 @@
 
 #ifdef USE_ESP_IDF
 
-#include "i2c_bus.h"
 #include "esphome/core/component.h"
-#include "esphome/core/application.h"
+#include "i2c_bus.h"
+#include "esp_idf_version.h"
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 2)
 #include <driver/i2c_master.h>
 #else
