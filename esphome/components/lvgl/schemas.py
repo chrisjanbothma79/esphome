@@ -96,7 +96,7 @@ ENCODER_SCHEMA = cv.Schema(
         cv.GenerateID(): cv.All(
             cv.declare_id(LVEncoderListener), requires_component("binary_sensor")
         ),
-        cv.Optional(CONF_GROUP): cv.declare_id(lv_group_t),
+        cv.Optional(CONF_GROUP): cv.use_id(lv_group_t),
         cv.Optional(df.CONF_INITIAL_FOCUS): cv.All(
             LIST_ACTION_SCHEMA, cv.Length(min=1, max=1)
         ),
@@ -577,3 +577,17 @@ def any_widget_schema(extras=None):
     :return:
     """
     return cv.Any(dict(widget_schema(wt, extras) for wt in WIDGET_TYPES.values()))
+
+
+def set_group_schema():
+    """
+    Create a schema for setting the group of an LVGL encoder/keypad listener.
+    This is used in the lvgl.[encoder|keypad].set_group action.
+    :return: The schema for setting the group of an LVGL encoder listener.
+    """
+    return LVGL_SCHEMA.extend(
+        {
+            cv.Required(CONF_ID): cv.use_id(LVEncoderListener),
+            cv.Required(CONF_GROUP): cv.use_id(lv_group_t),
+        }
+    )

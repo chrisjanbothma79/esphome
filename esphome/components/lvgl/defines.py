@@ -421,6 +421,7 @@ CONF_CLOSE_BUTTON = "close_button"
 CONF_CONTROL = "control"
 CONF_DEFAULT_FONT = "default_font"
 CONF_DEFAULT_GROUP = "default_group"
+CONF_GROUPS = "groups"
 CONF_DIR = "dir"
 CONF_DISPLAYS = "displays"
 CONF_EDITING = "editing"
@@ -539,6 +540,7 @@ LV_KEYS = LvConstant(
 
 
 DEFAULT_ESPHOME_FONT = "esphome_lv_default_font"
+DEFAULT_LVGL_GROUP = "default_group"
 
 
 def join_enums(enums, prefix=""):

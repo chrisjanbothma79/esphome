@@ -28,17 +28,12 @@ from esphome.helpers import write_file_if_changed
 from . import defines as df, helpers, lv_validation as lvalid
 from .automation import disp_update, focused_widgets, refreshed_widgets, update_to_code
 from .defines import add_define
-from .encoders import (
-    ENCODERS_CONFIG,
-    encoders_to_code,
-    get_default_group,
-    initial_focus_to_code,
-)
+from .encoders import ENCODERS_CONFIG, encoders_to_code, initial_focus_to_code
 from .gradient import GRADIENT_SCHEMA, gradients_to_code
 from .hello_world import get_hello_world
 from .keypads import KEYPADS_CONFIG, keypads_to_code
 from .lv_validation import lv_bool, lv_images_used
-from .lvcode import LvContext, LvglComponent, lvgl_static
+from .lvcode import LvContext, LvglComponent, lv_expr, lvgl_static
 from .schemas import (
     DISP_BG_SCHEMA,
     FLEX_OBJ_SCHEMA,
@@ -250,6 +245,15 @@ def final_validation(configs):
                 )
 
 
+async def get_default_group(config):
+    if default_group_id := config.get(df.CONF_DEFAULT_GROUP):
+        return await cg.get_variable(default_group_id)
+    groups = config.get(df.CONF_GROUPS)
+    if groups is not None and len(groups) > 0:
+        return await cg.get_variable(groups[0])
+    return cg.new_Pvariable(df.DEFAULT_LVGL_GROUP, lv_expr.group_create())
+
+
 async def to_code(configs):
     config_0 = configs[0]
     # Global configuration
@@ -312,7 +316,12 @@ async def to_code(configs):
     else:
         add_define("LV_FONT_DEFAULT", await lvalid.lv_font.process(default_font))
     cg.add(lvgl_static.esphome_lvgl_init())
-    default_group = get_default_group(config_0)
+
+    for group_name in config_0[df.CONF_GROUPS]:
+        cg.Pvariable(group_name, lv_expr.group_create())
+
+    default_group = await get_default_group(config_0)
+    cg.add(lv_expr.group_set_default(default_group))
 
     for config in configs:
         frac = config[CONF_BUFFER_SIZE]
@@ -473,9 +482,10 @@ LVGL_SCHEMA = cv.All(
                 ),
                 cv.Optional(df.CONF_GRADIENTS): GRADIENT_SCHEMA,
                 cv.Optional(df.CONF_TOUCHSCREENS, default=None): touchscreen_schema,
+                cv.Optional(df.CONF_GROUPS): cv.ensure_list(cv.declare_id(lv_group_t)),
                 cv.Optional(df.CONF_ENCODERS, default=None): ENCODERS_CONFIG,
                 cv.Optional(df.CONF_KEYPADS, default=None): KEYPADS_CONFIG,
-                cv.GenerateID(df.CONF_DEFAULT_GROUP): cv.declare_id(lv_group_t),
+                cv.Optional(df.CONF_DEFAULT_GROUP, default=None): cv.use_id(lv_group_t),
                 cv.Optional(df.CONF_RESUME_ON_INPUT, default=True): cv.boolean,
             }
         )
