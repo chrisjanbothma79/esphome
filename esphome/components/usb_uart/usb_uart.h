@@ -123,7 +123,7 @@ class USBUartTypeCdcAcm : public USBUartComponent {
   USBUartTypeCdcAcm(uint16_t vid, uint16_t pid) : USBUartComponent(vid, pid) {}
 
  protected:
-  virtual std::vector<CdcEps> parse_descriptors_(usb_device_handle_t dev_hdl);
+  virtual std::vector<CdcEps> parse_descriptors(usb_device_handle_t dev_hdl);
   void on_connected() override;
   virtual void enable_channels();
   void on_disconnected() override;
@@ -134,7 +134,7 @@ class USBUartTypeCP210X : public USBUartTypeCdcAcm {
   USBUartTypeCP210X(uint16_t vid, uint16_t pid) : USBUartTypeCdcAcm(vid, pid) {}
 
  protected:
-  std::vector<CdcEps> parse_descriptors_(usb_device_handle_t dev_hdl) override;
+  std::vector<CdcEps> parse_descriptors(usb_device_handle_t dev_hdl) override;
   void enable_channels() override;
 };
 class USBUartTypeCH34X : public USBUartTypeCdcAcm {
