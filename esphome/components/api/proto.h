@@ -24,15 +24,6 @@ using SizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t f
 // This uses the same approach as offsetof but with explicit reinterpret_cast
 #define PROTO_FIELD_OFFSET(Type, Member) (reinterpret_cast<size_t>(&reinterpret_cast<Type *>(16)->Member) - 16)
 
-// Metadata structure describing each field
-struct FieldMeta {
-  uint8_t field_num;   // Protobuf field number (1-255)
-  uint16_t offset;     // offset of field in class
-  EncodeFunc encoder;  // Function to encode this field type
-  SizeFunc sizer;      // Function to calculate size for this field type
-  bool force_encode;   // If true, encode even if value is default/empty
-};
-
 // Function pointer types for repeated fields
 using RepeatedEncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
 using RepeatedSizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
@@ -216,6 +207,28 @@ class Proto64Bit {
   const uint64_t value_;
 };
 
+// Function pointer types for decoding (now that Proto classes are defined)
+using DecodeVarintFunc = bool (*)(void *field_ptr, ProtoVarInt value);
+using DecodeLengthFunc = bool (*)(void *field_ptr, ProtoLengthDelimited value);
+using Decode32BitFunc = bool (*)(void *field_ptr, Proto32Bit value);
+using Decode64BitFunc = bool (*)(void *field_ptr, Proto64Bit value);
+
+// Metadata structure describing each field
+struct FieldMeta {
+  uint8_t field_num;   // Protobuf field number (1-255)
+  uint16_t offset;     // offset of field in class
+  EncodeFunc encoder;  // Function to encode this field type
+  SizeFunc sizer;      // Function to calculate size for this field type
+  bool force_encode;   // If true, encode even if value is default/empty
+  uint8_t wire_type;   // Wire type (0=varint, 2=length, 5=32bit, 1=64bit)
+  union {
+    DecodeVarintFunc decode_varint;
+    DecodeLengthFunc decode_length;
+    Decode32BitFunc decode_32bit;
+    Decode64BitFunc decode_64bit;
+  } decoder;
+};
+
 class ProtoWriteBuffer {
  public:
   ProtoWriteBuffer(std::vector<uint8_t> *buffer) : buffer_(buffer) {}
@@ -379,6 +392,17 @@ class ProtoMessage {
 
 template<typename T> const char *proto_enum_to_string(T value);
 
+// Base class for messages using metadata-driven encode/decode
+class ProtoMetadataMessage : public ProtoMessage {
+ protected:
+  // Metadata-driven decode methods
+  bool decode_varint_metadata(uint32_t field_id, ProtoVarInt value, const FieldMeta *fields, size_t field_count);
+  bool decode_length_metadata(uint32_t field_id, ProtoLengthDelimited value, const FieldMeta *fields,
+                              size_t field_count);
+  bool decode_32bit_metadata(uint32_t field_id, Proto32Bit value, const FieldMeta *fields, size_t field_count);
+  bool decode_64bit_metadata(uint32_t field_id, Proto64Bit value, const FieldMeta *fields, size_t field_count);
+};
+
 class ProtoService {
  public:
  protected:
@@ -448,6 +472,24 @@ void encode_sint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_
 void encode_fixed64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
 void encode_double_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
 void encode_bytes_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+
+// Type-specific decode functions
+bool decode_string_field(void *field_ptr, ProtoLengthDelimited value);
+bool decode_fixed32_field(void *field_ptr, Proto32Bit value);
+bool decode_bool_field(void *field_ptr, ProtoVarInt value);
+bool decode_float_field(void *field_ptr, Proto32Bit value);
+bool decode_int32_field(void *field_ptr, ProtoVarInt value);
+bool decode_uint32_field(void *field_ptr, ProtoVarInt value);
+bool decode_int64_field(void *field_ptr, ProtoVarInt value);
+bool decode_uint64_field(void *field_ptr, ProtoVarInt value);
+bool decode_sint32_field(void *field_ptr, ProtoVarInt value);
+bool decode_sint64_field(void *field_ptr, ProtoVarInt value);
+bool decode_fixed64_field(void *field_ptr, Proto64Bit value);
+bool decode_double_field(void *field_ptr, Proto64Bit value);
+bool decode_bytes_field(void *field_ptr, ProtoLengthDelimited value);
+
+// Template enum decode function
+template<typename EnumType> bool decode_enum_field(void *field_ptr, ProtoVarInt value);
 
 // Type-specific size calculation functions
 void size_string_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);

@@ -285,7 +285,7 @@ enum UpdateCommand : uint32_t {
 
 }  // namespace enums
 
-class InfoResponseProtoMessage : public ProtoMessage {
+class InfoResponseProtoMessage : public ProtoMetadataMessage {
  public:
   ~InfoResponseProtoMessage() override = default;
   std::string object_id{};
@@ -300,7 +300,7 @@ class InfoResponseProtoMessage : public ProtoMessage {
  protected:
 };
 
-class StateResponseProtoMessage : public ProtoMessage {
+class StateResponseProtoMessage : public ProtoMetadataMessage {
  public:
   ~StateResponseProtoMessage() override = default;
   uint32_t key{0};
@@ -328,7 +328,7 @@ class HelloRequest : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class HelloResponse : public ProtoMessage {
+class HelloResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 2;
   static constexpr uint16_t ESTIMATED_SIZE = 26;
@@ -369,7 +369,7 @@ class ConnectRequest : public ProtoMessage {
  protected:
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
 };
-class ConnectResponse : public ProtoMessage {
+class ConnectResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 4;
   static constexpr uint16_t ESTIMATED_SIZE = 2;
@@ -402,7 +402,7 @@ class DisconnectRequest : public ProtoMessage {
 
  protected:
 };
-class DisconnectResponse : public ProtoMessage {
+class DisconnectResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 6;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -430,7 +430,7 @@ class PingRequest : public ProtoMessage {
 
  protected:
 };
-class PingResponse : public ProtoMessage {
+class PingResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 8;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -487,7 +487,7 @@ class DeviceInfo : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class DeviceInfoResponse : public ProtoMessage {
+class DeviceInfoResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 10;
   static constexpr uint16_t ESTIMATED_SIZE = 219;
@@ -543,7 +543,7 @@ class ListEntitiesRequest : public ProtoMessage {
 
  protected:
 };
-class ListEntitiesDoneResponse : public ProtoMessage {
+class ListEntitiesDoneResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 19;
   static constexpr uint16_t ESTIMATED_SIZE = 0;
@@ -1073,7 +1073,7 @@ class SubscribeLogsRequest : public ProtoMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class SubscribeLogsResponse : public ProtoMessage {
+class SubscribeLogsResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 29;
   static constexpr uint16_t ESTIMATED_SIZE = 13;
@@ -1114,7 +1114,7 @@ class NoiseEncryptionSetKeyRequest : public ProtoMessage {
  protected:
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
 };
-class NoiseEncryptionSetKeyResponse : public ProtoMessage {
+class NoiseEncryptionSetKeyResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 125;
   static constexpr uint16_t ESTIMATED_SIZE = 2;
@@ -1161,7 +1161,7 @@ class HomeassistantServiceMap : public ProtoMessage {
  protected:
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
 };
-class HomeassistantServiceResponse : public ProtoMessage {
+class HomeassistantServiceResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 35;
   static constexpr uint16_t ESTIMATED_SIZE = 113;
@@ -1200,7 +1200,7 @@ class SubscribeHomeAssistantStatesRequest : public ProtoMessage {
 
  protected:
 };
-class SubscribeHomeAssistantStateResponse : public ProtoMessage {
+class SubscribeHomeAssistantStateResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 39;
   static constexpr uint16_t ESTIMATED_SIZE = 20;
@@ -1223,7 +1223,7 @@ class SubscribeHomeAssistantStateResponse : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class HomeAssistantStateResponse : public ProtoMessage {
+class HomeAssistantStateResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 40;
   static constexpr uint16_t ESTIMATED_SIZE = 27;
@@ -1258,7 +1258,7 @@ class GetTimeRequest : public ProtoMessage {
 
  protected:
 };
-class GetTimeResponse : public ProtoMessage {
+class GetTimeResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 37;
   static constexpr uint16_t ESTIMATED_SIZE = 5;
@@ -1292,7 +1292,7 @@ class ListEntitiesServicesArgument : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class ListEntitiesServicesResponse : public ProtoMessage {
+class ListEntitiesServicesResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 41;
   static constexpr uint16_t ESTIMATED_SIZE = 48;
@@ -1379,7 +1379,7 @@ class ListEntitiesCameraResponse : public InfoResponseProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class CameraImageResponse : public ProtoMessage {
+class CameraImageResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 44;
   static constexpr uint16_t ESTIMATED_SIZE = 16;
@@ -1988,7 +1988,7 @@ class BluetoothServiceData : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothLEAdvertisementResponse : public ProtoMessage {
+class BluetoothLEAdvertisementResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 67;
   static constexpr uint16_t ESTIMATED_SIZE = 107;
@@ -2032,7 +2032,7 @@ class BluetoothLERawAdvertisement : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothLERawAdvertisementsResponse : public ProtoMessage {
+class BluetoothLERawAdvertisementsResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 93;
   static constexpr uint16_t ESTIMATED_SIZE = 34;
@@ -2072,7 +2072,7 @@ class BluetoothDeviceRequest : public ProtoMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothDeviceConnectionResponse : public ProtoMessage {
+class BluetoothDeviceConnectionResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 69;
   static constexpr uint16_t ESTIMATED_SIZE = 14;
@@ -2156,7 +2156,7 @@ class BluetoothGATTService : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothGATTGetServicesResponse : public ProtoMessage {
+class BluetoothGATTGetServicesResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 71;
   static constexpr uint16_t ESTIMATED_SIZE = 38;
@@ -2179,7 +2179,7 @@ class BluetoothGATTGetServicesResponse : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothGATTGetServicesDoneResponse : public ProtoMessage {
+class BluetoothGATTGetServicesDoneResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 72;
   static constexpr uint16_t ESTIMATED_SIZE = 4;
@@ -2217,7 +2217,7 @@ class BluetoothGATTReadRequest : public ProtoMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothGATTReadResponse : public ProtoMessage {
+class BluetoothGATTReadResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 74;
   static constexpr uint16_t ESTIMATED_SIZE = 17;
@@ -2318,7 +2318,7 @@ class BluetoothGATTNotifyRequest : public ProtoMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothGATTNotifyDataResponse : public ProtoMessage {
+class BluetoothGATTNotifyDataResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 79;
   static constexpr uint16_t ESTIMATED_SIZE = 17;
@@ -2354,7 +2354,7 @@ class SubscribeBluetoothConnectionsFreeRequest : public ProtoMessage {
 
  protected:
 };
-class BluetoothConnectionsFreeResponse : public ProtoMessage {
+class BluetoothConnectionsFreeResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 81;
   static constexpr uint16_t ESTIMATED_SIZE = 16;
@@ -2377,7 +2377,7 @@ class BluetoothConnectionsFreeResponse : public ProtoMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothGATTErrorResponse : public ProtoMessage {
+class BluetoothGATTErrorResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 82;
   static constexpr uint16_t ESTIMATED_SIZE = 12;
@@ -2399,7 +2399,7 @@ class BluetoothGATTErrorResponse : public ProtoMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothGATTWriteResponse : public ProtoMessage {
+class BluetoothGATTWriteResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 83;
   static constexpr uint16_t ESTIMATED_SIZE = 8;
@@ -2420,7 +2420,7 @@ class BluetoothGATTWriteResponse : public ProtoMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothGATTNotifyResponse : public ProtoMessage {
+class BluetoothGATTNotifyResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 84;
   static constexpr uint16_t ESTIMATED_SIZE = 8;
@@ -2441,7 +2441,7 @@ class BluetoothGATTNotifyResponse : public ProtoMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothDevicePairingResponse : public ProtoMessage {
+class BluetoothDevicePairingResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 85;
   static constexpr uint16_t ESTIMATED_SIZE = 10;
@@ -2463,7 +2463,7 @@ class BluetoothDevicePairingResponse : public ProtoMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothDeviceUnpairingResponse : public ProtoMessage {
+class BluetoothDeviceUnpairingResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 86;
   static constexpr uint16_t ESTIMATED_SIZE = 10;
@@ -2498,7 +2498,7 @@ class UnsubscribeBluetoothLEAdvertisementsRequest : public ProtoMessage {
 
  protected:
 };
-class BluetoothDeviceClearCacheResponse : public ProtoMessage {
+class BluetoothDeviceClearCacheResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 88;
   static constexpr uint16_t ESTIMATED_SIZE = 10;
@@ -2520,7 +2520,7 @@ class BluetoothDeviceClearCacheResponse : public ProtoMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class BluetoothScannerStateResponse : public ProtoMessage {
+class BluetoothScannerStateResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 126;
   static constexpr uint16_t ESTIMATED_SIZE = 4;
@@ -2615,7 +2615,7 @@ class VoiceAssistantRequest : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class VoiceAssistantResponse : public ProtoMessage {
+class VoiceAssistantResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 91;
   static constexpr uint16_t ESTIMATED_SIZE = 6;
@@ -2649,7 +2649,7 @@ class VoiceAssistantEventData : public ProtoMessage {
  protected:
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
 };
-class VoiceAssistantEventResponse : public ProtoMessage {
+class VoiceAssistantEventResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 92;
   static constexpr uint16_t ESTIMATED_SIZE = 36;
@@ -2691,7 +2691,7 @@ class VoiceAssistantAudio : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-class VoiceAssistantTimerEventResponse : public ProtoMessage {
+class VoiceAssistantTimerEventResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 115;
   static constexpr uint16_t ESTIMATED_SIZE = 30;
@@ -2782,7 +2782,7 @@ class VoiceAssistantConfigurationRequest : public ProtoMessage {
 
  protected:
 };
-class VoiceAssistantConfigurationResponse : public ProtoMessage {
+class VoiceAssistantConfigurationResponse : public ProtoMetadataMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 122;
   static constexpr uint16_t ESTIMATED_SIZE = 56;

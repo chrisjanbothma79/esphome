@@ -227,6 +227,85 @@ void size_bytes_field(uint32_t &total_size, const void *field_ptr, uint8_t field
   ProtoSize::add_string_field(total_size, 1, *str, force);
 }
 
+// Type-specific decode functions
+bool decode_string_field(void *field_ptr, ProtoLengthDelimited value) {
+  auto *str = static_cast<std::string *>(field_ptr);
+  *str = value.as_string();
+  return true;
+}
+
+bool decode_fixed32_field(void *field_ptr, Proto32Bit value) {
+  auto *val = static_cast<uint32_t *>(field_ptr);
+  *val = value.as_fixed32();
+  return true;
+}
+
+bool decode_bool_field(void *field_ptr, ProtoVarInt value) {
+  auto *val = static_cast<bool *>(field_ptr);
+  *val = value.as_bool();
+  return true;
+}
+
+bool decode_float_field(void *field_ptr, Proto32Bit value) {
+  auto *val = static_cast<float *>(field_ptr);
+  *val = value.as_float();
+  return true;
+}
+
+bool decode_int32_field(void *field_ptr, ProtoVarInt value) {
+  auto *val = static_cast<int32_t *>(field_ptr);
+  *val = value.as_int32();
+  return true;
+}
+
+bool decode_uint32_field(void *field_ptr, ProtoVarInt value) {
+  auto *val = static_cast<uint32_t *>(field_ptr);
+  *val = value.as_uint32();
+  return true;
+}
+
+bool decode_int64_field(void *field_ptr, ProtoVarInt value) {
+  auto *val = static_cast<int64_t *>(field_ptr);
+  *val = value.as_int64();
+  return true;
+}
+
+bool decode_uint64_field(void *field_ptr, ProtoVarInt value) {
+  auto *val = static_cast<uint64_t *>(field_ptr);
+  *val = value.as_uint64();
+  return true;
+}
+
+bool decode_sint32_field(void *field_ptr, ProtoVarInt value) {
+  auto *val = static_cast<int32_t *>(field_ptr);
+  *val = value.as_sint32();
+  return true;
+}
+
+bool decode_sint64_field(void *field_ptr, ProtoVarInt value) {
+  auto *val = static_cast<int64_t *>(field_ptr);
+  *val = value.as_sint64();
+  return true;
+}
+
+bool decode_fixed64_field(void *field_ptr, Proto64Bit value) {
+  auto *val = static_cast<uint64_t *>(field_ptr);
+  *val = value.as_fixed64();
+  return true;
+}
+
+bool decode_double_field(void *field_ptr, Proto64Bit value) {
+  auto *val = static_cast<double *>(field_ptr);
+  *val = value.as_double();
+  return true;
+}
+
+bool decode_bytes_field(void *field_ptr, ProtoLengthDelimited value) {
+  auto *str = static_cast<std::string *>(field_ptr);
+  *str = value.as_string();
+  return true;
+}
+
 // Template functions are now in the header file for proper instantiation
 
 // Repeated field encoding functions
@@ -445,6 +524,59 @@ void calculate_size_from_metadata(uint32_t &total_size, const void *obj, const F
     const void *field_addr = base + repeated_fields[i].offset;
     repeated_fields[i].sizer(total_size, field_addr, repeated_fields[i].field_num);
   }
+}
+
+// Metadata-driven decode implementations
+bool ProtoMetadataMessage::decode_varint_metadata(uint32_t field_id, ProtoVarInt value, const FieldMeta *fields,
+                                                  size_t field_count) {
+  uint8_t *base = reinterpret_cast<uint8_t *>(this);
+
+  for (size_t i = 0; i < field_count; i++) {
+    if (fields[i].field_num == field_id && fields[i].wire_type == 0) {  // varint
+      void *field_addr = base + fields[i].offset;
+      return fields[i].decoder.decode_varint(field_addr, value);
+    }
+  }
+  return false;
+}
+
+bool ProtoMetadataMessage::decode_length_metadata(uint32_t field_id, ProtoLengthDelimited value,
+                                                  const FieldMeta *fields, size_t field_count) {
+  uint8_t *base = reinterpret_cast<uint8_t *>(this);
+
+  for (size_t i = 0; i < field_count; i++) {
+    if (fields[i].field_num == field_id && fields[i].wire_type == 2) {  // length-delimited
+      void *field_addr = base + fields[i].offset;
+      return fields[i].decoder.decode_length(field_addr, value);
+    }
+  }
+  return false;
+}
+
+bool ProtoMetadataMessage::decode_32bit_metadata(uint32_t field_id, Proto32Bit value, const FieldMeta *fields,
+                                                 size_t field_count) {
+  uint8_t *base = reinterpret_cast<uint8_t *>(this);
+
+  for (size_t i = 0; i < field_count; i++) {
+    if (fields[i].field_num == field_id && fields[i].wire_type == 5) {  // 32-bit
+      void *field_addr = base + fields[i].offset;
+      return fields[i].decoder.decode_32bit(field_addr, value);
+    }
+  }
+  return false;
+}
+
+bool ProtoMetadataMessage::decode_64bit_metadata(uint32_t field_id, Proto64Bit value, const FieldMeta *fields,
+                                                 size_t field_count) {
+  uint8_t *base = reinterpret_cast<uint8_t *>(this);
+
+  for (size_t i = 0; i < field_count; i++) {
+    if (fields[i].field_num == field_id && fields[i].wire_type == 1) {  // 64-bit
+      void *field_addr = base + fields[i].offset;
+      return fields[i].decoder.decode_64bit(field_addr, value);
+    }
+  }
+  return false;
 }
 
 }  // namespace api

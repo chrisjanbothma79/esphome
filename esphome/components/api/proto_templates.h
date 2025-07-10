@@ -19,6 +19,12 @@ inline void size_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(*val), force);
 }
 
+template<typename EnumType> inline bool decode_enum_field(void *field_ptr, ProtoVarInt value) {
+  auto *val = static_cast<EnumType *>(field_ptr);
+  *val = value.as_enum<EnumType>();
+  return true;
+}
+
 // Template repeated field functions (must be in header for instantiation)
 template<typename EnumType>
 inline void encode_repeated_enum_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {

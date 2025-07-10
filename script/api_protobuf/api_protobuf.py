@@ -1056,6 +1056,75 @@ def get_repeated_sizer_function(type_info: RepeatedTypeInfo) -> str | None:
     return type_map.get(type_name, None)
 
 
+def get_wire_type(type_info: TypeInfo) -> int:
+    """Get the wire type for a given field type."""
+    # Map from TypeInfo class name to wire type
+    wire_type_map = {
+        "StringType": 2,  # LENGTH_DELIMITED
+        "BytesType": 2,  # LENGTH_DELIMITED
+        "MessageType": 2,  # LENGTH_DELIMITED
+        "BoolType": 0,  # VARINT
+        "Int32Type": 0,  # VARINT
+        "UInt32Type": 0,  # VARINT
+        "Int64Type": 0,  # VARINT
+        "UInt64Type": 0,  # VARINT
+        "SInt32Type": 0,  # VARINT
+        "SInt64Type": 0,  # VARINT
+        "EnumType": 0,  # VARINT
+        "FloatType": 5,  # FIXED32
+        "Fixed32Type": 5,  # FIXED32
+        "SFixed32Type": 5,  # FIXED32
+        "DoubleType": 1,  # FIXED64
+        "Fixed64Type": 1,  # FIXED64
+        "SFixed64Type": 1,  # FIXED64
+    }
+
+    type_name = type_info.__class__.__name__
+    return wire_type_map.get(type_name, 0)
+
+
+def get_decoder_function(type_info: TypeInfo, wire_type: int) -> str:
+    """Get the decoder function for a given type."""
+    # Map based on both type and wire type
+    if wire_type == 0:  # VARINT
+        type_map = {
+            "BoolType": "&decode_bool_field",
+            "Int32Type": "&decode_int32_field",
+            "UInt32Type": "&decode_uint32_field",
+            "Int64Type": "&decode_int64_field",
+            "UInt64Type": "&decode_uint64_field",
+            "SInt32Type": "&decode_sint32_field",
+            "SInt64Type": "&decode_sint64_field",
+        }
+        type_name = type_info.__class__.__name__
+        return type_map.get(type_name, None)
+    elif wire_type == 2:  # LENGTH_DELIMITED
+        type_map = {
+            "StringType": "&decode_string_field",
+            "BytesType": "&decode_bytes_field",
+        }
+        type_name = type_info.__class__.__name__
+        return type_map.get(type_name, None)
+    elif wire_type == 5:  # FIXED32
+        type_map = {
+            "FloatType": "&decode_float_field",
+            "Fixed32Type": "&decode_fixed32_field",
+            "SFixed32Type": "&decode_int32_field",  # sfixed32 uses same as int32
+        }
+        type_name = type_info.__class__.__name__
+        return type_map.get(type_name, None)
+    elif wire_type == 1:  # FIXED64
+        type_map = {
+            "DoubleType": "&decode_double_field",
+            "Fixed64Type": "&decode_fixed64_field",
+            "SFixed64Type": "&decode_int64_field",  # sfixed64 uses same as int64
+        }
+        type_name = type_info.__class__.__name__
+        return type_map.get(type_name, None)
+
+    return None
+
+
 def build_message_type(
     desc: descriptor.DescriptorProto,
     base_class_fields: dict[str, list[descriptor.FieldDescriptorProto]] = None,
@@ -1125,51 +1194,84 @@ def build_message_type(
         if ti.dump_content:
             dump.append(ti.dump_content)
 
-    cpp = ""
-    if decode_varint:
-        decode_varint.append("default:\n  return false;")
-        o = f"bool {desc.name}::decode_varint(uint32_t field_id, ProtoVarInt value) {{\n"
-        o += "  switch (field_id) {\n"
-        o += indent("\n".join(decode_varint), "    ") + "\n"
-        o += "  }\n"
-        o += "}\n"
-        cpp += o
-        prot = "bool decode_varint(uint32_t field_id, ProtoVarInt value) override;"
-        protected_content.insert(0, prot)
-    if decode_length:
-        decode_length.append("default:\n  return false;")
-        o = f"bool {desc.name}::decode_length(uint32_t field_id, ProtoLengthDelimited value) {{\n"
-        o += "  switch (field_id) {\n"
-        o += indent("\n".join(decode_length), "    ") + "\n"
-        o += "  }\n"
-        o += "}\n"
-        cpp += o
-        prot = "bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;"
-        protected_content.insert(0, prot)
-    if decode_32bit:
-        decode_32bit.append("default:\n  return false;")
-        o = f"bool {desc.name}::decode_32bit(uint32_t field_id, Proto32Bit value) {{\n"
-        o += "  switch (field_id) {\n"
-        o += indent("\n".join(decode_32bit), "    ") + "\n"
-        o += "  }\n"
-        o += "}\n"
-        cpp += o
-        prot = "bool decode_32bit(uint32_t field_id, Proto32Bit value) override;"
-        protected_content.insert(0, prot)
-    if decode_64bit:
-        decode_64bit.append("default:\n  return false;")
-        o = f"bool {desc.name}::decode_64bit(uint32_t field_id, Proto64Bit value) {{\n"
-        o += "  switch (field_id) {\n"
-        o += indent("\n".join(decode_64bit), "    ") + "\n"
-        o += "  }\n"
-        o += "}\n"
-        cpp += o
-        prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
-        protected_content.insert(0, prot)
-
     # Check if this is a Response message and use metadata approach
     is_response = desc.name.endswith("Response")
     metadata_info = None
+
+    cpp = ""
+
+    # Only generate decode methods for non-Response messages
+    if not is_response:
+        if decode_varint:
+            decode_varint.append("default:\n  return false;")
+            o = f"bool {desc.name}::decode_varint(uint32_t field_id, ProtoVarInt value) {{\n"
+            o += "  switch (field_id) {\n"
+            o += indent("\n".join(decode_varint), "    ") + "\n"
+            o += "  }\n"
+            o += "}\n"
+            cpp += o
+            prot = "bool decode_varint(uint32_t field_id, ProtoVarInt value) override;"
+            protected_content.insert(0, prot)
+        if decode_length:
+            decode_length.append("default:\n  return false;")
+            o = f"bool {desc.name}::decode_length(uint32_t field_id, ProtoLengthDelimited value) {{\n"
+            o += "  switch (field_id) {\n"
+            o += indent("\n".join(decode_length), "    ") + "\n"
+            o += "  }\n"
+            o += "}\n"
+            cpp += o
+            prot = "bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;"
+            protected_content.insert(0, prot)
+        if decode_32bit:
+            decode_32bit.append("default:\n  return false;")
+            o = f"bool {desc.name}::decode_32bit(uint32_t field_id, Proto32Bit value) {{\n"
+            o += "  switch (field_id) {\n"
+            o += indent("\n".join(decode_32bit), "    ") + "\n"
+            o += "  }\n"
+            o += "}\n"
+            cpp += o
+            prot = "bool decode_32bit(uint32_t field_id, Proto32Bit value) override;"
+            protected_content.insert(0, prot)
+        if decode_64bit:
+            decode_64bit.append("default:\n  return false;")
+            o = f"bool {desc.name}::decode_64bit(uint32_t field_id, Proto64Bit value) {{\n"
+            o += "  switch (field_id) {\n"
+            o += indent("\n".join(decode_64bit), "    ") + "\n"
+            o += "  }\n"
+            o += "}\n"
+            cpp += o
+            prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
+            protected_content.insert(0, prot)
+    else:
+        # For Response classes, add metadata-driven decode methods
+        if decode_varint:
+            prot = "bool decode_varint(uint32_t field_id, ProtoVarInt value) override;"
+            protected_content.insert(0, prot)
+            o = f"bool {desc.name}::decode_varint(uint32_t field_id, ProtoVarInt value) {{\n"
+            o += "  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
+            o += "}\n"
+            cpp += o
+        if decode_length:
+            prot = "bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;"
+            protected_content.insert(0, prot)
+            o = f"bool {desc.name}::decode_length(uint32_t field_id, ProtoLengthDelimited value) {{\n"
+            o += "  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
+            o += "}\n"
+            cpp += o
+        if decode_32bit:
+            prot = "bool decode_32bit(uint32_t field_id, Proto32Bit value) override;"
+            protected_content.insert(0, prot)
+            o = f"bool {desc.name}::decode_32bit(uint32_t field_id, Proto32Bit value) {{\n"
+            o += "  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
+            o += "}\n"
+            cpp += o
+        if decode_64bit:
+            prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
+            protected_content.insert(0, prot)
+            o = f"bool {desc.name}::decode_64bit(uint32_t field_id, Proto64Bit value) {{\n"
+            o += "  return decode_64bit_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
+            o += "}\n"
+            cpp += o
 
     # Generate metadata arrays for Response classes
     if is_response:
@@ -1204,18 +1306,30 @@ def build_message_type(
                 ti = TYPE_INFO[field.type](field)
                 encoder = get_encoder_function(ti)
                 sizer = get_sizer_function(ti)
+                wire_type = get_wire_type(ti)
+                decoder = get_decoder_function(ti, wire_type)
                 force = "true" if field.label == 2 else "false"  # Required fields
 
-                if encoder and sizer:
+                if encoder and sizer and decoder:
+                    # Format: {field_num, offset, encoder, sizer, force_encode, wire_type, {decoder}}
+                    decoder_field = (
+                        f".decode_varint = {decoder}"
+                        if wire_type == 0
+                        else f".decode_length = {decoder}"
+                        if wire_type == 2
+                        else f".decode_32bit = {decoder}"
+                        if wire_type == 5
+                        else f".decode_64bit = {decoder}"
+                    )
                     regular_fields.append(
-                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), {encoder}, {sizer}, {force}}}"
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), {encoder}, {sizer}, {force}, {wire_type}, {{{decoder_field}}}}}"
                     )
                 elif isinstance(ti, EnumType):
                     # Handle enum fields with template
                     enum_type = ti.cpp_type
                     regular_fields.append(
                         f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
-                        f"&encode_enum_field<{enum_type}>, &size_enum_field<{enum_type}>, {force}}}"
+                        f"&encode_enum_field<{enum_type}>, &size_enum_field<{enum_type}>, {force}, 0, {{.decode_varint = &decode_enum_field<{enum_type}>}}}}"
                     )
                 elif isinstance(ti, MessageType):
                     # Skip nested messages for now - they need special handling
@@ -1335,6 +1449,8 @@ def build_message_type(
 
     if base_class:
         out = f"class {desc.name} : public {base_class} {{\n"
+    elif is_response:
+        out = f"class {desc.name} : public ProtoMetadataMessage {{\n"
     else:
         out = f"class {desc.name} : public ProtoMessage {{\n"
     out += " public:\n"
@@ -1458,7 +1574,13 @@ def build_base_class(
         public_content.extend(ti.public_content)
 
     # Build header
-    out = f"class {base_class_name} : public ProtoMessage {{\n"
+    # Check if this is a Response base class
+    if base_class_name.endswith("Response") or base_class_name.endswith(
+        "ResponseProtoMessage"
+    ):
+        out = f"class {base_class_name} : public ProtoMetadataMessage {{\n"
+    else:
+        out = f"class {base_class_name} : public ProtoMessage {{\n"
     out += " public:\n"
 
     # Add destructor with override
@@ -1962,7 +2084,6 @@ static const char *const TAG = "api.service";
         exec_clang_format(root / "api_pb2_service.cpp")
         exec_clang_format(root / "api_pb2.h")
         exec_clang_format(root / "api_pb2.cpp")
-        exec_clang_format(root / "api_pb2_dump.h")
         exec_clang_format(root / "api_pb2_dump.cpp")
     except ImportError:
         pass
