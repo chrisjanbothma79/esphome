@@ -13,6 +13,34 @@
 namespace esphome {
 namespace api {
 
+// Forward declarations
+class ProtoWriteBuffer;
+
+// Function pointer types for encoding and size calculation
+using EncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
+using SizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+
+// Metadata structure describing each field
+struct FieldMeta {
+  uint8_t field_num;   // Protobuf field number (1-255)
+  uint16_t offset;     // offsetof(Class, field_name)
+  EncodeFunc encoder;  // Function to encode this field type
+  SizeFunc sizer;      // Function to calculate size for this field type
+  bool force_encode;   // If true, encode even if value is default/empty
+};
+
+// Function pointer types for repeated fields
+using RepeatedEncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
+using RepeatedSizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+
+// Special metadata for repeated fields
+struct RepeatedFieldMeta {
+  uint8_t field_num;
+  uint16_t offset;
+  RepeatedEncodeFunc encoder;  // Encoder for the entire vector
+  RepeatedSizeFunc sizer;      // Sizer for the entire vector
+};
+
 /// Representation of a VarInt - in ProtoBuf should be 64bit but we only use 32bit
 class ProtoVarInt {
  public:
@@ -401,6 +429,89 @@ class ProtoService {
     return true;
   }
 };
+
+// Type-specific encoding functions
+void encode_string_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_fixed32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_bool_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_float_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_int32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_uint32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_int64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_uint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_sint32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_sint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_fixed64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_double_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_bytes_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+
+// Type-specific size calculation functions
+void size_string_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_float_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_double_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+void size_bytes_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+
+// Template enum field functions
+template<typename EnumType> void encode_enum_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+
+template<typename EnumType>
+void size_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num, bool force);
+
+// Repeated field handling functions
+void encode_repeated_string_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_repeated_bool_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_repeated_uint32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_repeated_int32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_repeated_uint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_repeated_int64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_repeated_sint32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_repeated_sint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_repeated_fixed32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_repeated_fixed64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_repeated_float_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+void encode_repeated_double_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+
+template<typename EnumType>
+void encode_repeated_enum_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+
+template<typename MessageType>
+void encode_repeated_message_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+
+// Size calculation for repeated fields
+void size_repeated_string_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_float_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+void size_repeated_double_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+
+template<typename EnumType>
+void size_repeated_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+
+template<typename MessageType>
+void size_repeated_message_field(uint32_t &total_size, const void *field_ptr, uint8_t field_num);
+
+// Core shared functions
+void encode_from_metadata(ProtoWriteBuffer buffer, const void *obj, const FieldMeta *fields, size_t field_count,
+                          const RepeatedFieldMeta *repeated_fields = nullptr, size_t repeated_count = 0);
+
+void calculate_size_from_metadata(uint32_t &total_size, const void *obj, const FieldMeta *fields, size_t field_count,
+                                  const RepeatedFieldMeta *repeated_fields = nullptr, size_t repeated_count = 0);
 
 }  // namespace api
 }  // namespace esphome

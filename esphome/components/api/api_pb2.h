@@ -6,6 +6,7 @@
 
 #include "proto.h"
 #include "api_pb2_size.h"
+#include "proto_templates.h"
 
 namespace esphome {
 namespace api {
@@ -338,6 +339,9 @@ class HelloResponse : public ProtoMessage {
   uint32_t api_version_minor{0};
   std::string server_info{};
   std::string name{};
+  static const FieldMeta FIELDS[4];
+  static constexpr size_t FIELD_COUNT = 4;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -373,6 +377,9 @@ class ConnectResponse : public ProtoMessage {
   const char *message_name() const override { return "connect_response"; }
 #endif
   bool invalid_password{false};
+  static const FieldMeta FIELDS[1];
+  static constexpr size_t FIELD_COUNT = 1;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -402,6 +409,8 @@ class DisconnectResponse : public ProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "disconnect_response"; }
 #endif
+  static constexpr size_t FIELD_COUNT = 0;
+  static constexpr size_t REPEATED_COUNT = 0;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -428,6 +437,8 @@ class PingResponse : public ProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "ping_response"; }
 #endif
+  static constexpr size_t FIELD_COUNT = 0;
+  static constexpr size_t REPEATED_COUNT = 0;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -505,6 +516,10 @@ class DeviceInfoResponse : public ProtoMessage {
   std::vector<DeviceInfo> devices{};
   std::vector<AreaInfo> areas{};
   AreaInfo area{};
+  static const FieldMeta FIELDS[19];
+  static constexpr size_t FIELD_COUNT = 19;
+  static const RepeatedFieldMeta REPEATED_FIELDS[2];
+  static constexpr size_t REPEATED_COUNT = 2;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -535,6 +550,8 @@ class ListEntitiesDoneResponse : public ProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "list_entities_done_response"; }
 #endif
+  static constexpr size_t FIELD_COUNT = 0;
+  static constexpr size_t REPEATED_COUNT = 0;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -564,6 +581,9 @@ class ListEntitiesBinarySensorResponse : public InfoResponseProtoMessage {
 #endif
   std::string device_class{};
   bool is_status_binary_sensor{false};
+  static const FieldMeta FIELDS[10];
+  static constexpr size_t FIELD_COUNT = 10;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -584,6 +604,9 @@ class BinarySensorStateResponse : public StateResponseProtoMessage {
 #endif
   bool state{false};
   bool missing_state{false};
+  static const FieldMeta FIELDS[4];
+  static constexpr size_t FIELD_COUNT = 4;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -608,6 +631,9 @@ class ListEntitiesCoverResponse : public InfoResponseProtoMessage {
   bool supports_tilt{false};
   std::string device_class{};
   bool supports_stop{false};
+  static const FieldMeta FIELDS[13];
+  static constexpr size_t FIELD_COUNT = 13;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -630,6 +656,9 @@ class CoverStateResponse : public StateResponseProtoMessage {
   float position{0.0f};
   float tilt{0.0f};
   enums::CoverOperation current_operation{};
+  static const FieldMeta FIELDS[6];
+  static constexpr size_t FIELD_COUNT = 6;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -679,6 +708,10 @@ class ListEntitiesFanResponse : public InfoResponseProtoMessage {
   bool supports_direction{false};
   int32_t supported_speed_count{0};
   std::vector<std::string> supported_preset_modes{};
+  static const FieldMeta FIELDS[12];
+  static constexpr size_t FIELD_COUNT = 12;
+  static const RepeatedFieldMeta REPEATED_FIELDS[1];
+  static constexpr size_t REPEATED_COUNT = 1;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -703,6 +736,9 @@ class FanStateResponse : public StateResponseProtoMessage {
   enums::FanDirection direction{};
   int32_t speed_level{0};
   std::string preset_mode{};
+  static const FieldMeta FIELDS[8];
+  static constexpr size_t FIELD_COUNT = 8;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -762,6 +798,10 @@ class ListEntitiesLightResponse : public InfoResponseProtoMessage {
   float min_mireds{0.0f};
   float max_mireds{0.0f};
   std::vector<std::string> effects{};
+  static const FieldMeta FIELDS[14];
+  static constexpr size_t FIELD_COUNT = 14;
+  static const RepeatedFieldMeta REPEATED_FIELDS[2];
+  static constexpr size_t REPEATED_COUNT = 2;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -792,6 +832,9 @@ class LightStateResponse : public StateResponseProtoMessage {
   float cold_white{0.0f};
   float warm_white{0.0f};
   std::string effect{};
+  static const FieldMeta FIELDS[14];
+  static constexpr size_t FIELD_COUNT = 14;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -863,6 +906,9 @@ class ListEntitiesSensorResponse : public InfoResponseProtoMessage {
   std::string device_class{};
   enums::SensorStateClass state_class{};
   enums::SensorLastResetType legacy_last_reset_type{};
+  static const FieldMeta FIELDS[14];
+  static constexpr size_t FIELD_COUNT = 14;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -883,6 +929,9 @@ class SensorStateResponse : public StateResponseProtoMessage {
 #endif
   float state{0.0f};
   bool missing_state{false};
+  static const FieldMeta FIELDS[4];
+  static constexpr size_t FIELD_COUNT = 4;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -904,6 +953,9 @@ class ListEntitiesSwitchResponse : public InfoResponseProtoMessage {
 #endif
   bool assumed_state{false};
   std::string device_class{};
+  static const FieldMeta FIELDS[10];
+  static constexpr size_t FIELD_COUNT = 10;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -923,6 +975,9 @@ class SwitchStateResponse : public StateResponseProtoMessage {
   const char *message_name() const override { return "switch_state_response"; }
 #endif
   bool state{false};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -962,6 +1017,9 @@ class ListEntitiesTextSensorResponse : public InfoResponseProtoMessage {
   const char *message_name() const override { return "list_entities_text_sensor_response"; }
 #endif
   std::string device_class{};
+  static const FieldMeta FIELDS[9];
+  static constexpr size_t FIELD_COUNT = 9;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -982,6 +1040,9 @@ class TextSensorStateResponse : public StateResponseProtoMessage {
 #endif
   std::string state{};
   bool missing_state{false};
+  static const FieldMeta FIELDS[4];
+  static constexpr size_t FIELD_COUNT = 4;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1022,6 +1083,9 @@ class SubscribeLogsResponse : public ProtoMessage {
   enums::LogLevel level{};
   std::string message{};
   bool send_failed{false};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1058,6 +1122,9 @@ class NoiseEncryptionSetKeyResponse : public ProtoMessage {
   const char *message_name() const override { return "noise_encryption_set_key_response"; }
 #endif
   bool success{false};
+  static const FieldMeta FIELDS[1];
+  static constexpr size_t FIELD_COUNT = 1;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1106,6 +1173,10 @@ class HomeassistantServiceResponse : public ProtoMessage {
   std::vector<HomeassistantServiceMap> data_template{};
   std::vector<HomeassistantServiceMap> variables{};
   bool is_event{false};
+  static const FieldMeta FIELDS[2];
+  static constexpr size_t FIELD_COUNT = 2;
+  static const RepeatedFieldMeta REPEATED_FIELDS[3];
+  static constexpr size_t REPEATED_COUNT = 3;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1139,6 +1210,9 @@ class SubscribeHomeAssistantStateResponse : public ProtoMessage {
   std::string entity_id{};
   std::string attribute{};
   bool once{false};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1159,6 +1233,9 @@ class HomeAssistantStateResponse : public ProtoMessage {
   std::string entity_id{};
   std::string state{};
   std::string attribute{};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1189,6 +1266,9 @@ class GetTimeResponse : public ProtoMessage {
   const char *message_name() const override { return "get_time_response"; }
 #endif
   uint32_t epoch_seconds{0};
+  static const FieldMeta FIELDS[1];
+  static constexpr size_t FIELD_COUNT = 1;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1222,6 +1302,10 @@ class ListEntitiesServicesResponse : public ProtoMessage {
   std::string name{};
   uint32_t key{0};
   std::vector<ListEntitiesServicesArgument> args{};
+  static const FieldMeta FIELDS[2];
+  static constexpr size_t FIELD_COUNT = 2;
+  static const RepeatedFieldMeta REPEATED_FIELDS[1];
+  static constexpr size_t REPEATED_COUNT = 1;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1281,6 +1365,9 @@ class ListEntitiesCameraResponse : public InfoResponseProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "list_entities_camera_response"; }
 #endif
+  static const FieldMeta FIELDS[8];
+  static constexpr size_t FIELD_COUNT = 8;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1302,6 +1389,9 @@ class CameraImageResponse : public ProtoMessage {
   uint32_t key{0};
   std::string data{};
   bool done{false};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1358,6 +1448,10 @@ class ListEntitiesClimateResponse : public InfoResponseProtoMessage {
   bool supports_target_humidity{false};
   float visual_min_humidity{0.0f};
   float visual_max_humidity{0.0f};
+  static const FieldMeta FIELDS[20];
+  static constexpr size_t FIELD_COUNT = 20;
+  static const RepeatedFieldMeta REPEATED_FIELDS[6];
+  static constexpr size_t REPEATED_COUNT = 6;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1390,6 +1484,9 @@ class ClimateStateResponse : public StateResponseProtoMessage {
   std::string custom_preset{};
   float current_humidity{0.0f};
   float target_humidity{0.0f};
+  static const FieldMeta FIELDS[16];
+  static constexpr size_t FIELD_COUNT = 16;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1457,6 +1554,9 @@ class ListEntitiesNumberResponse : public InfoResponseProtoMessage {
   std::string unit_of_measurement{};
   enums::NumberMode mode{};
   std::string device_class{};
+  static const FieldMeta FIELDS[14];
+  static constexpr size_t FIELD_COUNT = 14;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1477,6 +1577,9 @@ class NumberStateResponse : public StateResponseProtoMessage {
 #endif
   float state{0.0f};
   bool missing_state{false};
+  static const FieldMeta FIELDS[4];
+  static constexpr size_t FIELD_COUNT = 4;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1515,6 +1618,10 @@ class ListEntitiesSelectResponse : public InfoResponseProtoMessage {
   const char *message_name() const override { return "list_entities_select_response"; }
 #endif
   std::vector<std::string> options{};
+  static const FieldMeta FIELDS[8];
+  static constexpr size_t FIELD_COUNT = 8;
+  static const RepeatedFieldMeta REPEATED_FIELDS[1];
+  static constexpr size_t REPEATED_COUNT = 1;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1535,6 +1642,9 @@ class SelectStateResponse : public StateResponseProtoMessage {
 #endif
   std::string state{};
   bool missing_state{false};
+  static const FieldMeta FIELDS[4];
+  static constexpr size_t FIELD_COUNT = 4;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1577,6 +1687,10 @@ class ListEntitiesSirenResponse : public InfoResponseProtoMessage {
   std::vector<std::string> tones{};
   bool supports_duration{false};
   bool supports_volume{false};
+  static const FieldMeta FIELDS[10];
+  static constexpr size_t FIELD_COUNT = 10;
+  static const RepeatedFieldMeta REPEATED_FIELDS[1];
+  static constexpr size_t REPEATED_COUNT = 1;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1596,6 +1710,9 @@ class SirenStateResponse : public StateResponseProtoMessage {
   const char *message_name() const override { return "siren_state_response"; }
 #endif
   bool state{false};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1646,6 +1763,9 @@ class ListEntitiesLockResponse : public InfoResponseProtoMessage {
   bool supports_open{false};
   bool requires_code{false};
   std::string code_format{};
+  static const FieldMeta FIELDS[12];
+  static constexpr size_t FIELD_COUNT = 12;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1665,6 +1785,9 @@ class LockStateResponse : public StateResponseProtoMessage {
   const char *message_name() const override { return "lock_state_response"; }
 #endif
   enums::LockState state{};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1707,6 +1830,9 @@ class ListEntitiesButtonResponse : public InfoResponseProtoMessage {
   const char *message_name() const override { return "list_entities_button_response"; }
 #endif
   std::string device_class{};
+  static const FieldMeta FIELDS[9];
+  static constexpr size_t FIELD_COUNT = 9;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1763,6 +1889,10 @@ class ListEntitiesMediaPlayerResponse : public InfoResponseProtoMessage {
 #endif
   bool supports_pause{false};
   std::vector<MediaPlayerSupportedFormat> supported_formats{};
+  static const FieldMeta FIELDS[9];
+  static constexpr size_t FIELD_COUNT = 9;
+  static const RepeatedFieldMeta REPEATED_FIELDS[1];
+  static constexpr size_t REPEATED_COUNT = 1;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1784,6 +1914,9 @@ class MediaPlayerStateResponse : public StateResponseProtoMessage {
   enums::MediaPlayerState state{};
   float volume{0.0f};
   bool muted{false};
+  static const FieldMeta FIELDS[5];
+  static constexpr size_t FIELD_COUNT = 5;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1869,6 +2002,10 @@ class BluetoothLEAdvertisementResponse : public ProtoMessage {
   std::vector<BluetoothServiceData> service_data{};
   std::vector<BluetoothServiceData> manufacturer_data{};
   uint32_t address_type{0};
+  static const FieldMeta FIELDS[4];
+  static constexpr size_t FIELD_COUNT = 4;
+  static const RepeatedFieldMeta REPEATED_FIELDS[3];
+  static constexpr size_t REPEATED_COUNT = 3;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1903,6 +2040,9 @@ class BluetoothLERawAdvertisementsResponse : public ProtoMessage {
   const char *message_name() const override { return "bluetooth_le_raw_advertisements_response"; }
 #endif
   std::vector<BluetoothLERawAdvertisement> advertisements{};
+  static constexpr size_t FIELD_COUNT = 0;
+  static const RepeatedFieldMeta REPEATED_FIELDS[1];
+  static constexpr size_t REPEATED_COUNT = 1;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1943,6 +2083,9 @@ class BluetoothDeviceConnectionResponse : public ProtoMessage {
   bool connected{false};
   uint32_t mtu{0};
   int32_t error{0};
+  static const FieldMeta FIELDS[4];
+  static constexpr size_t FIELD_COUNT = 4;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2022,6 +2165,10 @@ class BluetoothGATTGetServicesResponse : public ProtoMessage {
 #endif
   uint64_t address{0};
   std::vector<BluetoothGATTService> services{};
+  static const FieldMeta FIELDS[1];
+  static constexpr size_t FIELD_COUNT = 1;
+  static const RepeatedFieldMeta REPEATED_FIELDS[1];
+  static constexpr size_t REPEATED_COUNT = 1;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2040,6 +2187,9 @@ class BluetoothGATTGetServicesDoneResponse : public ProtoMessage {
   const char *message_name() const override { return "bluetooth_gatt_get_services_done_response"; }
 #endif
   uint64_t address{0};
+  static const FieldMeta FIELDS[1];
+  static constexpr size_t FIELD_COUNT = 1;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2077,6 +2227,9 @@ class BluetoothGATTReadResponse : public ProtoMessage {
   uint64_t address{0};
   uint32_t handle{0};
   std::string data{};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2175,6 +2328,9 @@ class BluetoothGATTNotifyDataResponse : public ProtoMessage {
   uint64_t address{0};
   uint32_t handle{0};
   std::string data{};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2208,6 +2364,10 @@ class BluetoothConnectionsFreeResponse : public ProtoMessage {
   uint32_t free{0};
   uint32_t limit{0};
   std::vector<uint64_t> allocated{};
+  static const FieldMeta FIELDS[2];
+  static constexpr size_t FIELD_COUNT = 2;
+  static const RepeatedFieldMeta REPEATED_FIELDS[1];
+  static constexpr size_t REPEATED_COUNT = 1;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2227,6 +2387,9 @@ class BluetoothGATTErrorResponse : public ProtoMessage {
   uint64_t address{0};
   uint32_t handle{0};
   int32_t error{0};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2245,6 +2408,9 @@ class BluetoothGATTWriteResponse : public ProtoMessage {
 #endif
   uint64_t address{0};
   uint32_t handle{0};
+  static const FieldMeta FIELDS[2];
+  static constexpr size_t FIELD_COUNT = 2;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2263,6 +2429,9 @@ class BluetoothGATTNotifyResponse : public ProtoMessage {
 #endif
   uint64_t address{0};
   uint32_t handle{0};
+  static const FieldMeta FIELDS[2];
+  static constexpr size_t FIELD_COUNT = 2;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2282,6 +2451,9 @@ class BluetoothDevicePairingResponse : public ProtoMessage {
   uint64_t address{0};
   bool paired{false};
   int32_t error{0};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2301,6 +2473,9 @@ class BluetoothDeviceUnpairingResponse : public ProtoMessage {
   uint64_t address{0};
   bool success{false};
   int32_t error{0};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2333,6 +2508,9 @@ class BluetoothDeviceClearCacheResponse : public ProtoMessage {
   uint64_t address{0};
   bool success{false};
   int32_t error{0};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2351,6 +2529,9 @@ class BluetoothScannerStateResponse : public ProtoMessage {
 #endif
   enums::BluetoothScannerState state{};
   enums::BluetoothScannerMode mode{};
+  static const FieldMeta FIELDS[2];
+  static constexpr size_t FIELD_COUNT = 2;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2443,6 +2624,9 @@ class VoiceAssistantResponse : public ProtoMessage {
 #endif
   uint32_t port{0};
   bool error{false};
+  static const FieldMeta FIELDS[2];
+  static constexpr size_t FIELD_COUNT = 2;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2474,6 +2658,10 @@ class VoiceAssistantEventResponse : public ProtoMessage {
 #endif
   enums::VoiceAssistantEvent event_type{};
   std::vector<VoiceAssistantEventData> data{};
+  static const FieldMeta FIELDS[1];
+  static constexpr size_t FIELD_COUNT = 1;
+  static const RepeatedFieldMeta REPEATED_FIELDS[1];
+  static constexpr size_t REPEATED_COUNT = 1;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2516,6 +2704,9 @@ class VoiceAssistantTimerEventResponse : public ProtoMessage {
   uint32_t total_seconds{0};
   uint32_t seconds_left{0};
   bool is_active{false};
+  static const FieldMeta FIELDS[6];
+  static constexpr size_t FIELD_COUNT = 6;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2601,6 +2792,10 @@ class VoiceAssistantConfigurationResponse : public ProtoMessage {
   std::vector<VoiceAssistantWakeWord> available_wake_words{};
   std::vector<std::string> active_wake_words{};
   uint32_t max_active_wake_words{0};
+  static const FieldMeta FIELDS[1];
+  static constexpr size_t FIELD_COUNT = 1;
+  static const RepeatedFieldMeta REPEATED_FIELDS[2];
+  static constexpr size_t REPEATED_COUNT = 2;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2640,6 +2835,9 @@ class ListEntitiesAlarmControlPanelResponse : public InfoResponseProtoMessage {
   uint32_t supported_features{0};
   bool requires_code{false};
   bool requires_code_to_arm{false};
+  static const FieldMeta FIELDS[11];
+  static constexpr size_t FIELD_COUNT = 11;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2659,6 +2857,9 @@ class AlarmControlPanelStateResponse : public StateResponseProtoMessage {
   const char *message_name() const override { return "alarm_control_panel_state_response"; }
 #endif
   enums::AlarmControlPanelState state{};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2703,6 +2904,9 @@ class ListEntitiesTextResponse : public InfoResponseProtoMessage {
   uint32_t max_length{0};
   std::string pattern{};
   enums::TextMode mode{};
+  static const FieldMeta FIELDS[12];
+  static constexpr size_t FIELD_COUNT = 12;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2723,6 +2927,9 @@ class TextStateResponse : public StateResponseProtoMessage {
 #endif
   std::string state{};
   bool missing_state{false};
+  static const FieldMeta FIELDS[4];
+  static constexpr size_t FIELD_COUNT = 4;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2762,6 +2969,9 @@ class ListEntitiesDateResponse : public InfoResponseProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "list_entities_date_response"; }
 #endif
+  static const FieldMeta FIELDS[8];
+  static constexpr size_t FIELD_COUNT = 8;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2784,6 +2994,9 @@ class DateStateResponse : public StateResponseProtoMessage {
   uint32_t year{0};
   uint32_t month{0};
   uint32_t day{0};
+  static const FieldMeta FIELDS[6];
+  static constexpr size_t FIELD_COUNT = 6;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2824,6 +3037,9 @@ class ListEntitiesTimeResponse : public InfoResponseProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "list_entities_time_response"; }
 #endif
+  static const FieldMeta FIELDS[8];
+  static constexpr size_t FIELD_COUNT = 8;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2846,6 +3062,9 @@ class TimeStateResponse : public StateResponseProtoMessage {
   uint32_t hour{0};
   uint32_t minute{0};
   uint32_t second{0};
+  static const FieldMeta FIELDS[6];
+  static constexpr size_t FIELD_COUNT = 6;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2888,6 +3107,10 @@ class ListEntitiesEventResponse : public InfoResponseProtoMessage {
 #endif
   std::string device_class{};
   std::vector<std::string> event_types{};
+  static const FieldMeta FIELDS[9];
+  static constexpr size_t FIELD_COUNT = 9;
+  static const RepeatedFieldMeta REPEATED_FIELDS[1];
+  static constexpr size_t REPEATED_COUNT = 1;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2907,6 +3130,9 @@ class EventResponse : public StateResponseProtoMessage {
   const char *message_name() const override { return "event_response"; }
 #endif
   std::string event_type{};
+  static const FieldMeta FIELDS[3];
+  static constexpr size_t FIELD_COUNT = 3;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2931,6 +3157,9 @@ class ListEntitiesValveResponse : public InfoResponseProtoMessage {
   bool assumed_state{false};
   bool supports_position{false};
   bool supports_stop{false};
+  static const FieldMeta FIELDS[12];
+  static constexpr size_t FIELD_COUNT = 12;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2951,6 +3180,9 @@ class ValveStateResponse : public StateResponseProtoMessage {
 #endif
   float position{0.0f};
   enums::ValveOperation current_operation{};
+  static const FieldMeta FIELDS[4];
+  static constexpr size_t FIELD_COUNT = 4;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2991,6 +3223,9 @@ class ListEntitiesDateTimeResponse : public InfoResponseProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "list_entities_date_time_response"; }
 #endif
+  static const FieldMeta FIELDS[8];
+  static constexpr size_t FIELD_COUNT = 8;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3011,6 +3246,9 @@ class DateTimeStateResponse : public StateResponseProtoMessage {
 #endif
   bool missing_state{false};
   uint32_t epoch_seconds{0};
+  static const FieldMeta FIELDS[4];
+  static constexpr size_t FIELD_COUNT = 4;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3049,6 +3287,9 @@ class ListEntitiesUpdateResponse : public InfoResponseProtoMessage {
   const char *message_name() const override { return "list_entities_update_response"; }
 #endif
   std::string device_class{};
+  static const FieldMeta FIELDS[9];
+  static constexpr size_t FIELD_COUNT = 9;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3076,6 +3317,9 @@ class UpdateStateResponse : public StateResponseProtoMessage {
   std::string title{};
   std::string release_summary{};
   std::string release_url{};
+  static const FieldMeta FIELDS[11];
+  static constexpr size_t FIELD_COUNT = 11;
+  static constexpr size_t REPEATED_COUNT = 0;
   void encode(ProtoWriteBuffer buffer) const override;
   void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP

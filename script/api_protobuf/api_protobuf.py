@@ -962,10 +962,104 @@ def calculate_message_estimated_size(desc: descriptor.DescriptorProto) -> int:
     return total_size
 
 
+def get_encoder_function(type_info: TypeInfo) -> str | None:
+    """Get the encoder function name for a given type."""
+    type_map = {
+        "StringType": "&encode_string_field",
+        "BoolType": "&encode_bool_field",
+        "FloatType": "&encode_float_field",
+        "DoubleType": "&encode_double_field",
+        "Int32Type": "&encode_int32_field",
+        "UInt32Type": "&encode_uint32_field",
+        "Int64Type": "&encode_int64_field",
+        "UInt64Type": "&encode_uint64_field",
+        "SInt32Type": "&encode_sint32_field",
+        "SInt64Type": "&encode_sint64_field",
+        "Fixed32Type": "&encode_fixed32_field",
+        "Fixed64Type": "&encode_fixed64_field",
+        "SFixed32Type": "&encode_int32_field",  # sfixed32 uses same as int32
+        "SFixed64Type": "&encode_int64_field",  # sfixed64 uses same as int64
+        "BytesType": "&encode_bytes_field",
+    }
+
+    type_name = type_info.__class__.__name__
+    return type_map.get(type_name, None)
+
+
+def get_sizer_function(type_info: TypeInfo) -> str | None:
+    """Get the sizer function name for a given type."""
+    type_map = {
+        "StringType": "&size_string_field",
+        "BoolType": "&size_bool_field",
+        "FloatType": "&size_float_field",
+        "DoubleType": "&size_double_field",
+        "Int32Type": "&size_int32_field",
+        "UInt32Type": "&size_uint32_field",
+        "Int64Type": "&size_int64_field",
+        "UInt64Type": "&size_uint64_field",
+        "SInt32Type": "&size_sint32_field",
+        "SInt64Type": "&size_sint64_field",
+        "Fixed32Type": "&size_fixed32_field",
+        "Fixed64Type": "&size_fixed64_field",
+        "SFixed32Type": "&size_int32_field",  # sfixed32 uses same as int32
+        "SFixed64Type": "&size_int64_field",  # sfixed64 uses same as int64
+        "BytesType": "&size_bytes_field",
+    }
+
+    type_name = type_info.__class__.__name__
+    return type_map.get(type_name, None)
+
+
+def get_repeated_encoder_function(type_info: RepeatedTypeInfo) -> str | None:
+    """Get the repeated encoder function name for a given type."""
+    type_map = {
+        "StringType": "&encode_repeated_string_field",
+        "BoolType": "&encode_repeated_bool_field",
+        "FloatType": "&encode_repeated_float_field",
+        "DoubleType": "&encode_repeated_double_field",
+        "Int32Type": "&encode_repeated_int32_field",
+        "UInt32Type": "&encode_repeated_uint32_field",
+        "Int64Type": "&encode_repeated_int64_field",
+        "UInt64Type": "&encode_repeated_uint64_field",
+        "SInt32Type": "&encode_repeated_sint32_field",
+        "SInt64Type": "&encode_repeated_sint64_field",
+        "Fixed32Type": "&encode_repeated_fixed32_field",
+        "Fixed64Type": "&encode_repeated_fixed64_field",
+        "SFixed32Type": "&encode_repeated_int32_field",  # sfixed32 uses same as int32
+        "SFixed64Type": "&encode_repeated_int64_field",  # sfixed64 uses same as int64
+    }
+
+    type_name = type_info._ti.__class__.__name__
+    return type_map.get(type_name, None)
+
+
+def get_repeated_sizer_function(type_info: RepeatedTypeInfo) -> str | None:
+    """Get the repeated sizer function name for a given type."""
+    type_map = {
+        "StringType": "&size_repeated_string_field",
+        "BoolType": "&size_repeated_bool_field",
+        "FloatType": "&size_repeated_float_field",
+        "DoubleType": "&size_repeated_double_field",
+        "Int32Type": "&size_repeated_int32_field",
+        "UInt32Type": "&size_repeated_uint32_field",
+        "Int64Type": "&size_repeated_int64_field",
+        "UInt64Type": "&size_repeated_uint64_field",
+        "SInt32Type": "&size_repeated_sint32_field",
+        "SInt64Type": "&size_repeated_sint64_field",
+        "Fixed32Type": "&size_repeated_fixed32_field",
+        "Fixed64Type": "&size_repeated_fixed64_field",
+        "SFixed32Type": "&size_repeated_int32_field",  # sfixed32 uses same as int32
+        "SFixed64Type": "&size_repeated_int64_field",  # sfixed64 uses same as int64
+    }
+
+    type_name = type_info._ti.__class__.__name__
+    return type_map.get(type_name, None)
+
+
 def build_message_type(
     desc: descriptor.DescriptorProto,
     base_class_fields: dict[str, list[descriptor.FieldDescriptorProto]] = None,
-) -> tuple[str, str, str]:
+) -> tuple[str, str, str, dict | None]:
     public_content: list[str] = []
     protected_content: list[str] = []
     decode_varint: list[str] = []
@@ -1073,8 +1167,90 @@ def build_message_type(
         prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
         protected_content.insert(0, prot)
 
+    # Check if this is a Response message and use metadata approach
+    is_response = desc.name.endswith("Response")
+    metadata_info = None
+
+    # Generate metadata arrays for Response classes
+    if is_response:
+        regular_fields = []
+        repeated_fields = []
+
+        for field in desc.field:
+            if field.label == 3:  # Repeated field
+                ti = RepeatedTypeInfo(field)
+                encoder = get_repeated_encoder_function(ti)
+                sizer = get_repeated_sizer_function(ti)
+
+                if encoder and sizer:
+                    repeated_fields.append(
+                        f"{{{field.number}, offsetof({desc.name}, {ti.field_name}), {encoder}, {sizer}}}"
+                    )
+                elif isinstance(ti._ti, EnumType):
+                    # Handle enum repeated fields with template
+                    enum_type = ti._ti.cpp_type
+                    repeated_fields.append(
+                        f"{{{field.number}, offsetof({desc.name}, {ti.field_name}), "
+                        f"&encode_repeated_enum_field<{enum_type}>, &size_repeated_enum_field<{enum_type}>}}"
+                    )
+                elif isinstance(ti._ti, MessageType):
+                    # Handle message repeated fields with template
+                    msg_type = ti._ti.cpp_type
+                    repeated_fields.append(
+                        f"{{{field.number}, offsetof({desc.name}, {ti.field_name}), "
+                        f"&encode_repeated_message_field<{msg_type}>, &size_repeated_message_field<{msg_type}>}}"
+                    )
+            else:
+                ti = TYPE_INFO[field.type](field)
+                encoder = get_encoder_function(ti)
+                sizer = get_sizer_function(ti)
+                force = "true" if field.label == 2 else "false"  # Required fields
+
+                if encoder and sizer:
+                    regular_fields.append(
+                        f"{{{field.number}, offsetof({desc.name}, {ti.field_name}), {encoder}, {sizer}, {force}}}"
+                    )
+                elif isinstance(ti, EnumType):
+                    # Handle enum fields with template
+                    enum_type = ti.cpp_type
+                    regular_fields.append(
+                        f"{{{field.number}, offsetof({desc.name}, {ti.field_name}), "
+                        f"&encode_enum_field<{enum_type}>, &size_enum_field<{enum_type}>, {force}}}"
+                    )
+                elif isinstance(ti, MessageType):
+                    # Skip nested messages for now - they need special handling
+                    pass
+
+        # Store metadata info for later generation outside the class
+        metadata_info = {
+            "regular_fields": regular_fields,
+            "repeated_fields": repeated_fields,
+            "class_name": desc.name,
+        }
+
+        # Add static declarations inside the class (definitions will be in cpp file)
+        if regular_fields:
+            public_content.append(
+                f"static const FieldMeta FIELDS[{len(regular_fields)}];"
+            )
+            public_content.append(
+                f"static constexpr size_t FIELD_COUNT = {len(regular_fields)};"
+            )
+        else:
+            public_content.append("static constexpr size_t FIELD_COUNT = 0;")
+
+        if repeated_fields:
+            public_content.append(
+                f"static const RepeatedFieldMeta REPEATED_FIELDS[{len(repeated_fields)}];"
+            )
+            public_content.append(
+                f"static constexpr size_t REPEATED_COUNT = {len(repeated_fields)};"
+            )
+        else:
+            public_content.append("static constexpr size_t REPEATED_COUNT = 0;")
+
     # Only generate encode method if there are fields to encode
-    if encode:
+    if encode and not is_response:
         o = f"void {desc.name}::encode(ProtoWriteBuffer buffer) const {{"
         if len(encode) == 1 and len(encode[0]) + len(o) + 3 < 120:
             o += f" {encode[0]} "
@@ -1086,9 +1262,23 @@ def build_message_type(
         prot = "void encode(ProtoWriteBuffer buffer) const override;"
         public_content.append(prot)
     # If no fields to encode, the default implementation in ProtoMessage will be used
+    elif is_response and (regular_fields or repeated_fields):
+        # Generate metadata-based encode method for Response classes
+        prot = "void encode(ProtoWriteBuffer buffer) const override;"
+        public_content.append(prot)
+
+        o = f"void {desc.name}::encode(ProtoWriteBuffer buffer) const {{\n"
+        if regular_fields and repeated_fields:
+            o += "  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);\n"
+        elif regular_fields:
+            o += "  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);\n"
+        else:
+            o += "  encode_from_metadata(buffer, this, nullptr, 0, REPEATED_FIELDS, REPEATED_COUNT);\n"
+        o += "}\n"
+        cpp += o
 
     # Add calculate_size method only if there are fields
-    if size_calc:
+    if size_calc and not is_response:
         o = f"void {desc.name}::calculate_size(uint32_t &total_size) const {{"
         # For a single field, just inline it for simplicity
         if len(size_calc) == 1 and len(size_calc[0]) + len(o) + 3 < 120:
@@ -1102,6 +1292,20 @@ def build_message_type(
         prot = "void calculate_size(uint32_t &total_size) const override;"
         public_content.append(prot)
     # If no fields to calculate size for, the default implementation in ProtoMessage will be used
+    elif is_response and (regular_fields or repeated_fields):
+        # Generate metadata-based calculate_size method for Response classes
+        prot = "void calculate_size(uint32_t &total_size) const override;"
+        public_content.append(prot)
+
+        o = f"void {desc.name}::calculate_size(uint32_t &total_size) const {{\n"
+        if regular_fields and repeated_fields:
+            o += "  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);\n"
+        elif regular_fields:
+            o += "  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);\n"
+        else:
+            o += "  calculate_size_from_metadata(total_size, this, nullptr, 0, REPEATED_FIELDS, REPEATED_COUNT);\n"
+        o += "}\n"
+        cpp += o
 
     # dump_to method declaration in header
     prot = "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
@@ -1145,7 +1349,10 @@ def build_message_type(
     # Build dump_cpp content with dump_to implementation
     dump_cpp = dump_impl
 
-    return out, cpp, dump_cpp
+    # Return metadata info for Response classes
+    metadata_return = metadata_info if is_response else None
+
+    return out, cpp, dump_cpp, metadata_return
 
 
 SOURCE_BOTH = 0
@@ -1367,6 +1574,7 @@ def main() -> None:
 
 #include "proto.h"
 #include "api_pb2_size.h"
+#include "proto_templates.h"
 
 namespace esphome {
 namespace api {
@@ -1377,6 +1585,7 @@ namespace api {
     cpp += """\
     #include "api_pb2.h"
     #include "api_pb2_size.h"
+    #include "proto_templates.h"
     #include "esphome/core/log.h"
     #include "esphome/core/helpers.h"
 
@@ -1456,8 +1665,11 @@ namespace api {
     # Simple grouping by ifdef
     current_ifdef = None
 
+    # Collect metadata for Response classes
+    response_metadata = []
+
     for m in mt:
-        s, c, dc = build_message_type(m, base_class_fields)
+        s, c, dc, metadata = build_message_type(m, base_class_fields)
         msg_ifdef = message_ifdef_map.get(m.name)
 
         # Handle ifdef changes
@@ -1478,17 +1690,75 @@ namespace api {
         cpp += c
         dump_cpp += dc
 
+        # Collect metadata for later generation
+        if metadata:
+            metadata["ifdef"] = msg_ifdef
+            response_metadata.append(metadata)
+
     # Close last ifdef
     if current_ifdef is not None:
         content += "#endif\n"
         cpp += "#endif\n"
         dump_cpp += "#endif\n"
 
+    # No definitions in header - they'll be in cpp file
+
     content += """\
 
 }  // namespace api
 }  // namespace esphome
 """
+
+    # Generate metadata definitions in cpp file for Response classes
+    if response_metadata:
+        cpp += "\n// Metadata definitions for Response classes\n"
+        cpp += "#ifdef __GNUC__\n"
+        cpp += "#pragma GCC diagnostic push\n"
+        cpp += '#pragma GCC diagnostic ignored "-Winvalid-offsetof"\n'
+        cpp += "#endif\n"
+        current_ifdef = None
+
+        for meta in response_metadata:
+            class_name = meta["class_name"]
+            regular_fields = meta["regular_fields"]
+            repeated_fields = meta["repeated_fields"]
+            msg_ifdef = meta["ifdef"]
+
+            # Handle ifdef changes
+            if msg_ifdef != current_ifdef:
+                if current_ifdef is not None:
+                    cpp += "#endif\n"
+                if msg_ifdef is not None:
+                    cpp += f"#ifdef {msg_ifdef}\n"
+                current_ifdef = msg_ifdef
+
+            if regular_fields:
+                cpp += f"const FieldMeta {class_name}::FIELDS[{len(regular_fields)}] = {{\n"
+                for i, field in enumerate(regular_fields):
+                    if i < len(regular_fields) - 1:
+                        cpp += f"  {field},\n"
+                    else:
+                        cpp += f"  {field}\n"
+                cpp += "};\n"
+
+            if repeated_fields:
+                cpp += f"const RepeatedFieldMeta {class_name}::REPEATED_FIELDS[{len(repeated_fields)}] = {{\n"
+                for i, field in enumerate(repeated_fields):
+                    if i < len(repeated_fields) - 1:
+                        cpp += f"  {field},\n"
+                    else:
+                        cpp += f"  {field}\n"
+                cpp += "};\n"
+
+        # Close last ifdef for metadata
+        if current_ifdef is not None:
+            cpp += "#endif\n"
+
+        # Re-enable the warning
+        cpp += "#ifdef __GNUC__\n"
+        cpp += "#pragma GCC diagnostic pop\n"
+        cpp += "#endif\n"
+
     cpp += """\
 
 }  // namespace api
