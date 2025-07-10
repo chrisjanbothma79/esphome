@@ -344,13 +344,9 @@ def test_main_does_not_trigger_on_unrelated_changes(
 
 def test_main_with_branch_argument(
     mock_changed_files: Mock,
-    mock_get_fixtures: Mock,
-    mock_get_deps: Mock,
 ) -> None:
     """Test using branch argument."""
     mock_changed_files.return_value = []
-    mock_get_fixtures.return_value = set()
-    mock_get_deps.return_value = set()
 
     result: bool = should_run_integration_tests.should_run_integration_tests("main")
 
@@ -371,13 +367,9 @@ def test_simple_mock_check(
 
 def test_main_with_no_changes(
     mock_changed_files: Mock,
-    mock_get_fixtures: Mock,
-    mock_get_deps: Mock,
 ) -> None:
     """Test when no files have changed."""
     mock_changed_files.return_value = []
-    mock_get_fixtures.return_value = set()
-    mock_get_deps.return_value = set()
 
     result: bool = should_run_integration_tests.should_run_integration_tests()
 
@@ -387,13 +379,9 @@ def test_main_with_no_changes(
 def test_main_function_with_args(
     mock_argv_with_branch: None,
     mock_changed_files: Mock,
-    mock_get_fixtures: Mock,
-    mock_get_deps: Mock,
 ) -> None:
     """Test that main() correctly parses arguments and calls should_run_integration_tests."""
     mock_changed_files.return_value = []
-    mock_get_fixtures.return_value = set()
-    mock_get_deps.return_value = set()
 
     result: bool = should_run_integration_tests.main()
 
