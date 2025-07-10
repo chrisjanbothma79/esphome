@@ -1864,7 +1864,7 @@ void BluetoothLERawAdvertisement::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->data, false);
 }
 bool BluetoothLERawAdvertisementsResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);
+  return false;  // No length-delimited fields
 }
 void BluetoothLERawAdvertisementsResponse::encode(ProtoWriteBuffer buffer) const {
   encode_from_metadata(buffer, this, nullptr, 0, REPEATED_FIELDS, REPEATED_COUNT);

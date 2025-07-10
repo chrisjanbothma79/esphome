@@ -1200,84 +1200,12 @@ def build_message_type(
 
     cpp = ""
 
-    # Only generate decode methods for non-Response messages
-    if not is_response:
-        if decode_varint:
-            decode_varint.append("default:\n  return false;")
-            o = f"bool {desc.name}::decode_varint(uint32_t field_id, ProtoVarInt value) {{\n"
-            o += "  switch (field_id) {\n"
-            o += indent("\n".join(decode_varint), "    ") + "\n"
-            o += "  }\n"
-            o += "}\n"
-            cpp += o
-            prot = "bool decode_varint(uint32_t field_id, ProtoVarInt value) override;"
-            protected_content.insert(0, prot)
-        if decode_length:
-            decode_length.append("default:\n  return false;")
-            o = f"bool {desc.name}::decode_length(uint32_t field_id, ProtoLengthDelimited value) {{\n"
-            o += "  switch (field_id) {\n"
-            o += indent("\n".join(decode_length), "    ") + "\n"
-            o += "  }\n"
-            o += "}\n"
-            cpp += o
-            prot = "bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;"
-            protected_content.insert(0, prot)
-        if decode_32bit:
-            decode_32bit.append("default:\n  return false;")
-            o = f"bool {desc.name}::decode_32bit(uint32_t field_id, Proto32Bit value) {{\n"
-            o += "  switch (field_id) {\n"
-            o += indent("\n".join(decode_32bit), "    ") + "\n"
-            o += "  }\n"
-            o += "}\n"
-            cpp += o
-            prot = "bool decode_32bit(uint32_t field_id, Proto32Bit value) override;"
-            protected_content.insert(0, prot)
-        if decode_64bit:
-            decode_64bit.append("default:\n  return false;")
-            o = f"bool {desc.name}::decode_64bit(uint32_t field_id, Proto64Bit value) {{\n"
-            o += "  switch (field_id) {\n"
-            o += indent("\n".join(decode_64bit), "    ") + "\n"
-            o += "  }\n"
-            o += "}\n"
-            cpp += o
-            prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
-            protected_content.insert(0, prot)
-    else:
-        # For Response classes, add metadata-driven decode methods
-        if decode_varint:
-            prot = "bool decode_varint(uint32_t field_id, ProtoVarInt value) override;"
-            protected_content.insert(0, prot)
-            o = f"bool {desc.name}::decode_varint(uint32_t field_id, ProtoVarInt value) {{\n"
-            o += "  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
-            o += "}\n"
-            cpp += o
-        if decode_length:
-            prot = "bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;"
-            protected_content.insert(0, prot)
-            o = f"bool {desc.name}::decode_length(uint32_t field_id, ProtoLengthDelimited value) {{\n"
-            o += "  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
-            o += "}\n"
-            cpp += o
-        if decode_32bit:
-            prot = "bool decode_32bit(uint32_t field_id, Proto32Bit value) override;"
-            protected_content.insert(0, prot)
-            o = f"bool {desc.name}::decode_32bit(uint32_t field_id, Proto32Bit value) {{\n"
-            o += "  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
-            o += "}\n"
-            cpp += o
-        if decode_64bit:
-            prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
-            protected_content.insert(0, prot)
-            o = f"bool {desc.name}::decode_64bit(uint32_t field_id, Proto64Bit value) {{\n"
-            o += "  return decode_64bit_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
-            o += "}\n"
-            cpp += o
+    # Generate metadata arrays for Response classes (moved up to use in decode methods)
+    regular_fields = []
+    repeated_fields = []
+    metadata_info = None
 
-    # Generate metadata arrays for Response classes
     if is_response:
-        regular_fields = []
-        repeated_fields = []
-
         for field in desc.field:
             if field.label == 3:  # Repeated field
                 ti = RepeatedTypeInfo(field)
@@ -1342,6 +1270,93 @@ def build_message_type(
             "class_name": desc.name,
         }
 
+    # Only generate decode methods for non-Response messages
+    if not is_response:
+        if decode_varint:
+            decode_varint.append("default:\n  return false;")
+            o = f"bool {desc.name}::decode_varint(uint32_t field_id, ProtoVarInt value) {{\n"
+            o += "  switch (field_id) {\n"
+            o += indent("\n".join(decode_varint), "    ") + "\n"
+            o += "  }\n"
+            o += "}\n"
+            cpp += o
+            prot = "bool decode_varint(uint32_t field_id, ProtoVarInt value) override;"
+            protected_content.insert(0, prot)
+        if decode_length:
+            decode_length.append("default:\n  return false;")
+            o = f"bool {desc.name}::decode_length(uint32_t field_id, ProtoLengthDelimited value) {{\n"
+            o += "  switch (field_id) {\n"
+            o += indent("\n".join(decode_length), "    ") + "\n"
+            o += "  }\n"
+            o += "}\n"
+            cpp += o
+            prot = "bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;"
+            protected_content.insert(0, prot)
+        if decode_32bit:
+            decode_32bit.append("default:\n  return false;")
+            o = f"bool {desc.name}::decode_32bit(uint32_t field_id, Proto32Bit value) {{\n"
+            o += "  switch (field_id) {\n"
+            o += indent("\n".join(decode_32bit), "    ") + "\n"
+            o += "  }\n"
+            o += "}\n"
+            cpp += o
+            prot = "bool decode_32bit(uint32_t field_id, Proto32Bit value) override;"
+            protected_content.insert(0, prot)
+        if decode_64bit:
+            decode_64bit.append("default:\n  return false;")
+            o = f"bool {desc.name}::decode_64bit(uint32_t field_id, Proto64Bit value) {{\n"
+            o += "  switch (field_id) {\n"
+            o += indent("\n".join(decode_64bit), "    ") + "\n"
+            o += "  }\n"
+            o += "}\n"
+            cpp += o
+            prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
+            protected_content.insert(0, prot)
+    else:
+        # For Response classes, add metadata-driven decode methods
+        if decode_varint:
+            prot = "bool decode_varint(uint32_t field_id, ProtoVarInt value) override;"
+            protected_content.insert(0, prot)
+            o = f"bool {desc.name}::decode_varint(uint32_t field_id, ProtoVarInt value) {{\n"
+            if regular_fields:
+                o += "  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
+            else:
+                o += "  return false;  // No varint fields\n"
+            o += "}\n"
+            cpp += o
+        if decode_length:
+            prot = "bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;"
+            protected_content.insert(0, prot)
+            o = f"bool {desc.name}::decode_length(uint32_t field_id, ProtoLengthDelimited value) {{\n"
+            if regular_fields:
+                o += "  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
+            else:
+                o += "  return false;  // No length-delimited fields\n"
+            o += "}\n"
+            cpp += o
+        if decode_32bit:
+            prot = "bool decode_32bit(uint32_t field_id, Proto32Bit value) override;"
+            protected_content.insert(0, prot)
+            o = f"bool {desc.name}::decode_32bit(uint32_t field_id, Proto32Bit value) {{\n"
+            if regular_fields:
+                o += "  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
+            else:
+                o += "  return false;  // No 32-bit fields\n"
+            o += "}\n"
+            cpp += o
+        if decode_64bit:
+            prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
+            protected_content.insert(0, prot)
+            o = f"bool {desc.name}::decode_64bit(uint32_t field_id, Proto64Bit value) {{\n"
+            if regular_fields:
+                o += "  return decode_64bit_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
+            else:
+                o += "  return false;  // No 64-bit fields\n"
+            o += "}\n"
+            cpp += o
+
+    # Metadata arrays for Response classes are already generated above
+    if is_response:
         # Add static declarations inside the class (definitions will be in cpp file)
         if regular_fields:
             public_content.append(
