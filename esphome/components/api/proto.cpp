@@ -491,6 +491,79 @@ void size_repeated_double_field(uint32_t &total_size, const void *field_ptr, uin
 
 // Template size functions moved to header
 
+// Repeated field decode functions
+bool decode_repeated_string_field(void *field_ptr, ProtoLengthDelimited value) {
+  auto *vec = static_cast<std::vector<std::string> *>(field_ptr);
+  vec->push_back(value.as_string());
+  return true;
+}
+
+bool decode_repeated_bool_field(void *field_ptr, ProtoVarInt value) {
+  auto *vec = static_cast<std::vector<bool> *>(field_ptr);
+  vec->push_back(value.as_bool());
+  return true;
+}
+
+bool decode_repeated_uint32_field(void *field_ptr, ProtoVarInt value) {
+  auto *vec = static_cast<std::vector<uint32_t> *>(field_ptr);
+  vec->push_back(value.as_uint32());
+  return true;
+}
+
+bool decode_repeated_int32_field(void *field_ptr, ProtoVarInt value) {
+  auto *vec = static_cast<std::vector<int32_t> *>(field_ptr);
+  vec->push_back(value.as_int32());
+  return true;
+}
+
+bool decode_repeated_uint64_field(void *field_ptr, ProtoVarInt value) {
+  auto *vec = static_cast<std::vector<uint64_t> *>(field_ptr);
+  vec->push_back(value.as_uint64());
+  return true;
+}
+
+bool decode_repeated_int64_field(void *field_ptr, ProtoVarInt value) {
+  auto *vec = static_cast<std::vector<int64_t> *>(field_ptr);
+  vec->push_back(value.as_int64());
+  return true;
+}
+
+bool decode_repeated_sint32_field(void *field_ptr, ProtoVarInt value) {
+  auto *vec = static_cast<std::vector<int32_t> *>(field_ptr);
+  vec->push_back(value.as_sint32());
+  return true;
+}
+
+bool decode_repeated_sint64_field(void *field_ptr, ProtoVarInt value) {
+  auto *vec = static_cast<std::vector<int64_t> *>(field_ptr);
+  vec->push_back(value.as_sint64());
+  return true;
+}
+
+bool decode_repeated_fixed32_field(void *field_ptr, Proto32Bit value) {
+  auto *vec = static_cast<std::vector<uint32_t> *>(field_ptr);
+  vec->push_back(value.as_fixed32());
+  return true;
+}
+
+bool decode_repeated_fixed64_field(void *field_ptr, Proto64Bit value) {
+  auto *vec = static_cast<std::vector<uint64_t> *>(field_ptr);
+  vec->push_back(value.as_fixed64());
+  return true;
+}
+
+bool decode_repeated_float_field(void *field_ptr, Proto32Bit value) {
+  auto *vec = static_cast<std::vector<float> *>(field_ptr);
+  vec->push_back(value.as_float());
+  return true;
+}
+
+bool decode_repeated_double_field(void *field_ptr, Proto64Bit value) {
+  auto *vec = static_cast<std::vector<double> *>(field_ptr);
+  vec->push_back(value.as_double());
+  return true;
+}
+
 // Core shared functions
 void encode_from_metadata(ProtoWriteBuffer buffer, const void *obj, const FieldMeta *fields, size_t field_count,
                           const RepeatedFieldMeta *repeated_fields, size_t repeated_count) {
@@ -570,12 +643,26 @@ bool ProtoMetadataMessage::decode_varint_metadata(uint32_t field_id, ProtoVarInt
                                                   size_t field_count) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
+  // Check regular fields
   for (size_t i = 0; i < field_count; i++) {
     if (fields[i].field_num == field_id && fields[i].wire_type == 0) {  // varint
       void *field_addr = base + fields[i].offset;
       return fields[i].decoder.decode_varint(field_addr, value);
     }
   }
+
+  // Check repeated fields
+  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
+  size_t repeated_count = get_repeated_field_count();
+  if (repeated_fields) {
+    for (size_t i = 0; i < repeated_count; i++) {
+      if (repeated_fields[i].field_num == field_id && repeated_fields[i].wire_type == 0) {  // varint
+        void *field_addr = base + repeated_fields[i].offset;
+        return repeated_fields[i].decoder.decode_varint(field_addr, value);
+      }
+    }
+  }
+
   return false;
 }
 
@@ -583,12 +670,26 @@ bool ProtoMetadataMessage::decode_length_metadata(uint32_t field_id, ProtoLength
                                                   const FieldMeta *fields, size_t field_count) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
+  // Check regular fields
   for (size_t i = 0; i < field_count; i++) {
     if (fields[i].field_num == field_id && fields[i].wire_type == 2) {  // length-delimited
       void *field_addr = base + fields[i].offset;
       return fields[i].decoder.decode_length(field_addr, value);
     }
   }
+
+  // Check repeated fields
+  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
+  size_t repeated_count = get_repeated_field_count();
+  if (repeated_fields) {
+    for (size_t i = 0; i < repeated_count; i++) {
+      if (repeated_fields[i].field_num == field_id && repeated_fields[i].wire_type == 2) {  // length-delimited
+        void *field_addr = base + repeated_fields[i].offset;
+        return repeated_fields[i].decoder.decode_length(field_addr, value);
+      }
+    }
+  }
+
   return false;
 }
 
@@ -596,12 +697,26 @@ bool ProtoMetadataMessage::decode_32bit_metadata(uint32_t field_id, Proto32Bit v
                                                  size_t field_count) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
+  // Check regular fields
   for (size_t i = 0; i < field_count; i++) {
     if (fields[i].field_num == field_id && fields[i].wire_type == 5) {  // 32-bit
       void *field_addr = base + fields[i].offset;
       return fields[i].decoder.decode_32bit(field_addr, value);
     }
   }
+
+  // Check repeated fields
+  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
+  size_t repeated_count = get_repeated_field_count();
+  if (repeated_fields) {
+    for (size_t i = 0; i < repeated_count; i++) {
+      if (repeated_fields[i].field_num == field_id && repeated_fields[i].wire_type == 5) {  // 32-bit
+        void *field_addr = base + repeated_fields[i].offset;
+        return repeated_fields[i].decoder.decode_32bit(field_addr, value);
+      }
+    }
+  }
+
   return false;
 }
 
@@ -609,12 +724,26 @@ bool ProtoMetadataMessage::decode_64bit_metadata(uint32_t field_id, Proto64Bit v
                                                  size_t field_count) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
+  // Check regular fields
   for (size_t i = 0; i < field_count; i++) {
     if (fields[i].field_num == field_id && fields[i].wire_type == 1) {  // 64-bit
       void *field_addr = base + fields[i].offset;
       return fields[i].decoder.decode_64bit(field_addr, value);
     }
   }
+
+  // Check repeated fields
+  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
+  size_t repeated_count = get_repeated_field_count();
+  if (repeated_fields) {
+    for (size_t i = 0; i < repeated_count; i++) {
+      if (repeated_fields[i].field_num == field_id && repeated_fields[i].wire_type == 1) {  // 64-bit
+        void *field_addr = base + repeated_fields[i].offset;
+        return repeated_fields[i].decoder.decode_64bit(field_addr, value);
+      }
+    }
+  }
+
   return false;
 }
 

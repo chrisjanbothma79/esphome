@@ -1535,6 +1535,7 @@ void APIConnection::on_home_assistant_state_response(const HomeAssistantStateRes
   }
 }
 void APIConnection::execute_service(const ExecuteServiceRequest &msg) {
+  ESP_LOGD(TAG, "execute_service called with key: %u, args count: %zu", msg.key, msg.args.size());
   bool found = false;
   for (auto *service : this->parent_->get_user_services()) {
     if (service->execute_service(msg)) {

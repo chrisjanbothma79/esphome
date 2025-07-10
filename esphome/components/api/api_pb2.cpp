@@ -329,10 +329,20 @@ const FieldMeta DeviceInfoResponse::FIELDS[19] = {
      2,
      {.decode_varint = &decode_bool_field}}};
 const RepeatedFieldMeta DeviceInfoResponse::REPEATED_FIELDS[2] = {
-    {20, PROTO_FIELD_OFFSET(DeviceInfoResponse, devices), &encode_repeated_message_field<DeviceInfo>,
-     &size_repeated_message_field<DeviceInfo>, 2},
-    {21, PROTO_FIELD_OFFSET(DeviceInfoResponse, areas), &encode_repeated_message_field<AreaInfo>,
-     &size_repeated_message_field<AreaInfo>, 2}};
+    {20,
+     PROTO_FIELD_OFFSET(DeviceInfoResponse, devices),
+     &encode_repeated_message_field<DeviceInfo>,
+     &size_repeated_message_field<DeviceInfo>,
+     2,
+     2,
+     {.decode_length = &decode_repeated_message_field<DeviceInfo>}},
+    {21,
+     PROTO_FIELD_OFFSET(DeviceInfoResponse, areas),
+     &encode_repeated_message_field<AreaInfo>,
+     &size_repeated_message_field<AreaInfo>,
+     2,
+     2,
+     {.decode_length = &decode_repeated_message_field<AreaInfo>}}};
 #ifdef USE_BINARY_SENSOR
 const FieldMeta ListEntitiesBinarySensorResponse::FIELDS[10] = {
     {1,
@@ -766,8 +776,13 @@ const FieldMeta ListEntitiesFanResponse::FIELDS[12] = {
      1,
      {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta ListEntitiesFanResponse::REPEATED_FIELDS[1] = {
-    {12, PROTO_FIELD_OFFSET(ListEntitiesFanResponse, supported_preset_modes), &encode_repeated_string_field,
-     &size_repeated_string_field, 1}};
+    {12,
+     PROTO_FIELD_OFFSET(ListEntitiesFanResponse, supported_preset_modes),
+     &encode_repeated_string_field,
+     &size_repeated_string_field,
+     1,
+     2,
+     {.decode_length = &decode_repeated_string_field}}};
 const FieldMeta FanStateResponse::FIELDS[8] = {{1,
                                                 PROTO_FIELD_OFFSET(FanStateResponse, key),
                                                 &encode_fixed32_field,
@@ -1052,10 +1067,20 @@ const FieldMeta ListEntitiesLightResponse::FIELDS[14] = {
      2,
      {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta ListEntitiesLightResponse::REPEATED_FIELDS[2] = {
-    {12, PROTO_FIELD_OFFSET(ListEntitiesLightResponse, supported_color_modes),
-     &encode_repeated_enum_field<enums::ColorMode>, &size_repeated_enum_field<enums::ColorMode>, 1},
-    {11, PROTO_FIELD_OFFSET(ListEntitiesLightResponse, effects), &encode_repeated_string_field,
-     &size_repeated_string_field, 1}};
+    {12,
+     PROTO_FIELD_OFFSET(ListEntitiesLightResponse, supported_color_modes),
+     &encode_repeated_enum_field<enums::ColorMode>,
+     &size_repeated_enum_field<enums::ColorMode>,
+     1,
+     0,
+     {.decode_varint = &decode_repeated_enum_field<enums::ColorMode>}},
+    {11,
+     PROTO_FIELD_OFFSET(ListEntitiesLightResponse, effects),
+     &encode_repeated_string_field,
+     &size_repeated_string_field,
+     1,
+     2,
+     {.decode_length = &decode_repeated_string_field}}};
 const FieldMeta LightStateResponse::FIELDS[14] = {{1,
                                                    PROTO_FIELD_OFFSET(LightStateResponse, key),
                                                    &encode_fixed32_field,
@@ -1853,13 +1878,27 @@ const FieldMeta HomeassistantServiceResponse::FIELDS[2] = {{1,
                                                             1,
                                                             {.decode_varint = &decode_bool_field}}};
 const RepeatedFieldMeta HomeassistantServiceResponse::REPEATED_FIELDS[3] = {
-    {2, PROTO_FIELD_OFFSET(HomeassistantServiceResponse, data), &encode_repeated_message_field<HomeassistantServiceMap>,
-     &size_repeated_message_field<HomeassistantServiceMap>, 1},
-    {3, PROTO_FIELD_OFFSET(HomeassistantServiceResponse, data_template),
-     &encode_repeated_message_field<HomeassistantServiceMap>, &size_repeated_message_field<HomeassistantServiceMap>, 1},
-    {4, PROTO_FIELD_OFFSET(HomeassistantServiceResponse, variables),
-     &encode_repeated_message_field<HomeassistantServiceMap>, &size_repeated_message_field<HomeassistantServiceMap>,
-     1}};
+    {2,
+     PROTO_FIELD_OFFSET(HomeassistantServiceResponse, data),
+     &encode_repeated_message_field<HomeassistantServiceMap>,
+     &size_repeated_message_field<HomeassistantServiceMap>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<HomeassistantServiceMap>}},
+    {3,
+     PROTO_FIELD_OFFSET(HomeassistantServiceResponse, data_template),
+     &encode_repeated_message_field<HomeassistantServiceMap>,
+     &size_repeated_message_field<HomeassistantServiceMap>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<HomeassistantServiceMap>}},
+    {4,
+     PROTO_FIELD_OFFSET(HomeassistantServiceResponse, variables),
+     &encode_repeated_message_field<HomeassistantServiceMap>,
+     &size_repeated_message_field<HomeassistantServiceMap>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<HomeassistantServiceMap>}}};
 const FieldMeta SubscribeHomeAssistantStateResponse::FIELDS[3] = {
     {1,
      PROTO_FIELD_OFFSET(SubscribeHomeAssistantStateResponse, entity_id),
@@ -1951,9 +1990,13 @@ const FieldMeta ListEntitiesServicesResponse::FIELDS[2] = {{1,
                                                             1,
                                                             {.decode_32bit = &decode_fixed32_field}}};
 const RepeatedFieldMeta ListEntitiesServicesResponse::REPEATED_FIELDS[1] = {
-    {3, PROTO_FIELD_OFFSET(ListEntitiesServicesResponse, args),
+    {3,
+     PROTO_FIELD_OFFSET(ListEntitiesServicesResponse, args),
      &encode_repeated_message_field<ListEntitiesServicesArgument>,
-     &size_repeated_message_field<ListEntitiesServicesArgument>, 1}};
+     &size_repeated_message_field<ListEntitiesServicesArgument>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<ListEntitiesServicesArgument>}}};
 const FieldMeta ExecuteServiceArgument::FIELDS[5] = {{1,
                                                       PROTO_FIELD_OFFSET(ExecuteServiceArgument, bool_),
                                                       &encode_bool_field,
@@ -1995,14 +2038,34 @@ const FieldMeta ExecuteServiceArgument::FIELDS[5] = {{1,
                                                       1,
                                                       {.decode_varint = &decode_sint32_field}}};
 const RepeatedFieldMeta ExecuteServiceArgument::REPEATED_FIELDS[4] = {
-    {6, PROTO_FIELD_OFFSET(ExecuteServiceArgument, bool_array), &encode_repeated_bool_field, &size_repeated_bool_field,
-     1},
-    {7, PROTO_FIELD_OFFSET(ExecuteServiceArgument, int_array), &encode_repeated_sint32_field,
-     &size_repeated_sint32_field, 1},
-    {8, PROTO_FIELD_OFFSET(ExecuteServiceArgument, float_array), &encode_repeated_float_field,
-     &size_repeated_float_field, 1},
-    {9, PROTO_FIELD_OFFSET(ExecuteServiceArgument, string_array), &encode_repeated_string_field,
-     &size_repeated_string_field, 1}};
+    {6,
+     PROTO_FIELD_OFFSET(ExecuteServiceArgument, bool_array),
+     &encode_repeated_bool_field,
+     &size_repeated_bool_field,
+     1,
+     0,
+     {.decode_varint = &decode_repeated_bool_field}},
+    {7,
+     PROTO_FIELD_OFFSET(ExecuteServiceArgument, int_array),
+     &encode_repeated_sint32_field,
+     &size_repeated_sint32_field,
+     1,
+     0,
+     {.decode_varint = &decode_repeated_sint32_field}},
+    {8,
+     PROTO_FIELD_OFFSET(ExecuteServiceArgument, float_array),
+     &encode_repeated_float_field,
+     &size_repeated_float_field,
+     1,
+     5,
+     {.decode_32bit = &decode_repeated_float_field}},
+    {9,
+     PROTO_FIELD_OFFSET(ExecuteServiceArgument, string_array),
+     &encode_repeated_string_field,
+     &size_repeated_string_field,
+     1,
+     2,
+     {.decode_length = &decode_repeated_string_field}}};
 const FieldMeta ExecuteServiceRequest::FIELDS[1] = {{1,
                                                      PROTO_FIELD_OFFSET(ExecuteServiceRequest, key),
                                                      &encode_fixed32_field,
@@ -2012,8 +2075,13 @@ const FieldMeta ExecuteServiceRequest::FIELDS[1] = {{1,
                                                      1,
                                                      {.decode_32bit = &decode_fixed32_field}}};
 const RepeatedFieldMeta ExecuteServiceRequest::REPEATED_FIELDS[1] = {
-    {2, PROTO_FIELD_OFFSET(ExecuteServiceRequest, args), &encode_repeated_message_field<ExecuteServiceArgument>,
-     &size_repeated_message_field<ExecuteServiceArgument>, 1}};
+    {2,
+     PROTO_FIELD_OFFSET(ExecuteServiceRequest, args),
+     &encode_repeated_message_field<ExecuteServiceArgument>,
+     &size_repeated_message_field<ExecuteServiceArgument>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<ExecuteServiceArgument>}}};
 #ifdef USE_CAMERA
 const FieldMeta ListEntitiesCameraResponse::FIELDS[8] = {
     {1,
@@ -2284,18 +2352,48 @@ const FieldMeta ListEntitiesClimateResponse::FIELDS[20] = {
      2,
      {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta ListEntitiesClimateResponse::REPEATED_FIELDS[6] = {
-    {7, PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_modes),
-     &encode_repeated_enum_field<enums::ClimateMode>, &size_repeated_enum_field<enums::ClimateMode>, 1},
-    {13, PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_fan_modes),
-     &encode_repeated_enum_field<enums::ClimateFanMode>, &size_repeated_enum_field<enums::ClimateFanMode>, 1},
-    {14, PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_swing_modes),
-     &encode_repeated_enum_field<enums::ClimateSwingMode>, &size_repeated_enum_field<enums::ClimateSwingMode>, 1},
-    {15, PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_custom_fan_modes), &encode_repeated_string_field,
-     &size_repeated_string_field, 1},
-    {16, PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_presets),
-     &encode_repeated_enum_field<enums::ClimatePreset>, &size_repeated_enum_field<enums::ClimatePreset>, 2},
-    {17, PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_custom_presets), &encode_repeated_string_field,
-     &size_repeated_string_field, 2}};
+    {7,
+     PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_modes),
+     &encode_repeated_enum_field<enums::ClimateMode>,
+     &size_repeated_enum_field<enums::ClimateMode>,
+     1,
+     0,
+     {.decode_varint = &decode_repeated_enum_field<enums::ClimateMode>}},
+    {13,
+     PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_fan_modes),
+     &encode_repeated_enum_field<enums::ClimateFanMode>,
+     &size_repeated_enum_field<enums::ClimateFanMode>,
+     1,
+     0,
+     {.decode_varint = &decode_repeated_enum_field<enums::ClimateFanMode>}},
+    {14,
+     PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_swing_modes),
+     &encode_repeated_enum_field<enums::ClimateSwingMode>,
+     &size_repeated_enum_field<enums::ClimateSwingMode>,
+     1,
+     0,
+     {.decode_varint = &decode_repeated_enum_field<enums::ClimateSwingMode>}},
+    {15,
+     PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_custom_fan_modes),
+     &encode_repeated_string_field,
+     &size_repeated_string_field,
+     1,
+     2,
+     {.decode_length = &decode_repeated_string_field}},
+    {16,
+     PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_presets),
+     &encode_repeated_enum_field<enums::ClimatePreset>,
+     &size_repeated_enum_field<enums::ClimatePreset>,
+     2,
+     0,
+     {.decode_varint = &decode_repeated_enum_field<enums::ClimatePreset>}},
+    {17,
+     PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_custom_presets),
+     &encode_repeated_string_field,
+     &size_repeated_string_field,
+     2,
+     2,
+     {.decode_length = &decode_repeated_string_field}}};
 const FieldMeta ClimateStateResponse::FIELDS[16] = {{1,
                                                      PROTO_FIELD_OFFSET(ClimateStateResponse, key),
                                                      &encode_fixed32_field,
@@ -2840,8 +2938,13 @@ const FieldMeta ListEntitiesSelectResponse::FIELDS[8] = {
      1,
      {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta ListEntitiesSelectResponse::REPEATED_FIELDS[1] = {
-    {6, PROTO_FIELD_OFFSET(ListEntitiesSelectResponse, options), &encode_repeated_string_field,
-     &size_repeated_string_field, 1}};
+    {6,
+     PROTO_FIELD_OFFSET(ListEntitiesSelectResponse, options),
+     &encode_repeated_string_field,
+     &size_repeated_string_field,
+     1,
+     2,
+     {.decode_length = &decode_repeated_string_field}}};
 const FieldMeta SelectStateResponse::FIELDS[4] = {{1,
                                                    PROTO_FIELD_OFFSET(SelectStateResponse, key),
                                                    &encode_fixed32_field,
@@ -2974,8 +3077,13 @@ const FieldMeta ListEntitiesSirenResponse::FIELDS[10] = {
      1,
      {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta ListEntitiesSirenResponse::REPEATED_FIELDS[1] = {
-    {7, PROTO_FIELD_OFFSET(ListEntitiesSirenResponse, tones), &encode_repeated_string_field,
-     &size_repeated_string_field, 1}};
+    {7,
+     PROTO_FIELD_OFFSET(ListEntitiesSirenResponse, tones),
+     &encode_repeated_string_field,
+     &size_repeated_string_field,
+     1,
+     2,
+     {.decode_length = &decode_repeated_string_field}}};
 const FieldMeta SirenStateResponse::FIELDS[3] = {{1,
                                                   PROTO_FIELD_OFFSET(SirenStateResponse, key),
                                                   &encode_fixed32_field,
@@ -3427,9 +3535,13 @@ const FieldMeta ListEntitiesMediaPlayerResponse::FIELDS[9] = {
      1,
      {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta ListEntitiesMediaPlayerResponse::REPEATED_FIELDS[1] = {
-    {9, PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, supported_formats),
+    {9,
+     PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, supported_formats),
      &encode_repeated_message_field<MediaPlayerSupportedFormat>,
-     &size_repeated_message_field<MediaPlayerSupportedFormat>, 1}};
+     &size_repeated_message_field<MediaPlayerSupportedFormat>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<MediaPlayerSupportedFormat>}}};
 const FieldMeta MediaPlayerStateResponse::FIELDS[5] = {{1,
                                                         PROTO_FIELD_OFFSET(MediaPlayerStateResponse, key),
                                                         &encode_fixed32_field,
@@ -3571,8 +3683,13 @@ const FieldMeta BluetoothServiceData::FIELDS[2] = {{1,
                                                     1,
                                                     {.decode_length = &decode_bytes_field}}};
 const RepeatedFieldMeta BluetoothServiceData::REPEATED_FIELDS[1] = {
-    {2, PROTO_FIELD_OFFSET(BluetoothServiceData, legacy_data), &encode_repeated_uint32_field,
-     &size_repeated_uint32_field, 1}};
+    {2,
+     PROTO_FIELD_OFFSET(BluetoothServiceData, legacy_data),
+     &encode_repeated_uint32_field,
+     &size_repeated_uint32_field,
+     1,
+     0,
+     {.decode_varint = &decode_repeated_uint32_field}}};
 const FieldMeta BluetoothLEAdvertisementResponse::FIELDS[4] = {
     {1,
      PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, address),
@@ -3607,12 +3724,27 @@ const FieldMeta BluetoothLEAdvertisementResponse::FIELDS[4] = {
      1,
      {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta BluetoothLEAdvertisementResponse::REPEATED_FIELDS[3] = {
-    {4, PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, service_uuids), &encode_repeated_string_field,
-     &size_repeated_string_field, 1},
-    {5, PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, service_data),
-     &encode_repeated_message_field<BluetoothServiceData>, &size_repeated_message_field<BluetoothServiceData>, 1},
-    {6, PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, manufacturer_data),
-     &encode_repeated_message_field<BluetoothServiceData>, &size_repeated_message_field<BluetoothServiceData>, 1}};
+    {4,
+     PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, service_uuids),
+     &encode_repeated_string_field,
+     &size_repeated_string_field,
+     1,
+     2,
+     {.decode_length = &decode_repeated_string_field}},
+    {5,
+     PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, service_data),
+     &encode_repeated_message_field<BluetoothServiceData>,
+     &size_repeated_message_field<BluetoothServiceData>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<BluetoothServiceData>}},
+    {6,
+     PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, manufacturer_data),
+     &encode_repeated_message_field<BluetoothServiceData>,
+     &size_repeated_message_field<BluetoothServiceData>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<BluetoothServiceData>}}};
 const FieldMeta BluetoothLERawAdvertisement::FIELDS[4] = {
     {1,
      PROTO_FIELD_OFFSET(BluetoothLERawAdvertisement, address),
@@ -3647,9 +3779,13 @@ const FieldMeta BluetoothLERawAdvertisement::FIELDS[4] = {
      1,
      {.decode_length = &decode_bytes_field}}};
 const RepeatedFieldMeta BluetoothLERawAdvertisementsResponse::REPEATED_FIELDS[1] = {
-    {1, PROTO_FIELD_OFFSET(BluetoothLERawAdvertisementsResponse, advertisements),
+    {1,
+     PROTO_FIELD_OFFSET(BluetoothLERawAdvertisementsResponse, advertisements),
      &encode_repeated_message_field<BluetoothLERawAdvertisement>,
-     &size_repeated_message_field<BluetoothLERawAdvertisement>, 1}};
+     &size_repeated_message_field<BluetoothLERawAdvertisement>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<BluetoothLERawAdvertisement>}}};
 const FieldMeta BluetoothDeviceRequest::FIELDS[4] = {
     {1,
      PROTO_FIELD_OFFSET(BluetoothDeviceRequest, address),
@@ -3734,8 +3870,13 @@ const FieldMeta BluetoothGATTDescriptor::FIELDS[1] = {{2,
                                                        1,
                                                        {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta BluetoothGATTDescriptor::REPEATED_FIELDS[1] = {
-    {1, PROTO_FIELD_OFFSET(BluetoothGATTDescriptor, uuid), &encode_repeated_uint64_field, &size_repeated_uint64_field,
-     1}};
+    {1,
+     PROTO_FIELD_OFFSET(BluetoothGATTDescriptor, uuid),
+     &encode_repeated_uint64_field,
+     &size_repeated_uint64_field,
+     1,
+     0,
+     {.decode_varint = &decode_repeated_uint64_field}}};
 const FieldMeta BluetoothGATTCharacteristic::FIELDS[2] = {{2,
                                                            PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, handle),
                                                            &encode_uint32_field,
@@ -3753,11 +3894,20 @@ const FieldMeta BluetoothGATTCharacteristic::FIELDS[2] = {{2,
                                                            1,
                                                            {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta BluetoothGATTCharacteristic::REPEATED_FIELDS[2] = {
-    {1, PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, uuid), &encode_repeated_uint64_field,
-     &size_repeated_uint64_field, 1},
-    {4, PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, descriptors),
-     &encode_repeated_message_field<BluetoothGATTDescriptor>, &size_repeated_message_field<BluetoothGATTDescriptor>,
-     1}};
+    {1,
+     PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, uuid),
+     &encode_repeated_uint64_field,
+     &size_repeated_uint64_field,
+     1,
+     0,
+     {.decode_varint = &decode_repeated_uint64_field}},
+    {4,
+     PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, descriptors),
+     &encode_repeated_message_field<BluetoothGATTDescriptor>,
+     &size_repeated_message_field<BluetoothGATTDescriptor>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<BluetoothGATTDescriptor>}}};
 const FieldMeta BluetoothGATTService::FIELDS[1] = {{2,
                                                     PROTO_FIELD_OFFSET(BluetoothGATTService, handle),
                                                     &encode_uint32_field,
@@ -3767,10 +3917,20 @@ const FieldMeta BluetoothGATTService::FIELDS[1] = {{2,
                                                     1,
                                                     {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta BluetoothGATTService::REPEATED_FIELDS[2] = {
-    {1, PROTO_FIELD_OFFSET(BluetoothGATTService, uuid), &encode_repeated_uint64_field, &size_repeated_uint64_field, 1},
-    {3, PROTO_FIELD_OFFSET(BluetoothGATTService, characteristics),
+    {1,
+     PROTO_FIELD_OFFSET(BluetoothGATTService, uuid),
+     &encode_repeated_uint64_field,
+     &size_repeated_uint64_field,
+     1,
+     0,
+     {.decode_varint = &decode_repeated_uint64_field}},
+    {3,
+     PROTO_FIELD_OFFSET(BluetoothGATTService, characteristics),
      &encode_repeated_message_field<BluetoothGATTCharacteristic>,
-     &size_repeated_message_field<BluetoothGATTCharacteristic>, 1}};
+     &size_repeated_message_field<BluetoothGATTCharacteristic>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<BluetoothGATTCharacteristic>}}};
 const FieldMeta BluetoothGATTGetServicesResponse::FIELDS[1] = {
     {1,
      PROTO_FIELD_OFFSET(BluetoothGATTGetServicesResponse, address),
@@ -3781,8 +3941,13 @@ const FieldMeta BluetoothGATTGetServicesResponse::FIELDS[1] = {
      1,
      {.decode_varint = &decode_uint64_field}}};
 const RepeatedFieldMeta BluetoothGATTGetServicesResponse::REPEATED_FIELDS[1] = {
-    {2, PROTO_FIELD_OFFSET(BluetoothGATTGetServicesResponse, services),
-     &encode_repeated_message_field<BluetoothGATTService>, &size_repeated_message_field<BluetoothGATTService>, 1}};
+    {2,
+     PROTO_FIELD_OFFSET(BluetoothGATTGetServicesResponse, services),
+     &encode_repeated_message_field<BluetoothGATTService>,
+     &size_repeated_message_field<BluetoothGATTService>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<BluetoothGATTService>}}};
 const FieldMeta BluetoothGATTGetServicesDoneResponse::FIELDS[1] = {
     {1,
      PROTO_FIELD_OFFSET(BluetoothGATTGetServicesDoneResponse, address),
@@ -3973,8 +4138,13 @@ const FieldMeta BluetoothConnectionsFreeResponse::FIELDS[2] = {
      1,
      {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta BluetoothConnectionsFreeResponse::REPEATED_FIELDS[1] = {
-    {3, PROTO_FIELD_OFFSET(BluetoothConnectionsFreeResponse, allocated), &encode_repeated_uint64_field,
-     &size_repeated_uint64_field, 1}};
+    {3,
+     PROTO_FIELD_OFFSET(BluetoothConnectionsFreeResponse, allocated),
+     &encode_repeated_uint64_field,
+     &size_repeated_uint64_field,
+     1,
+     0,
+     {.decode_varint = &decode_repeated_uint64_field}}};
 const FieldMeta BluetoothGATTErrorResponse::FIELDS[3] = {{1,
                                                           PROTO_FIELD_OFFSET(BluetoothGATTErrorResponse, address),
                                                           &encode_uint64_field,
@@ -4250,8 +4420,13 @@ const FieldMeta VoiceAssistantEventResponse::FIELDS[1] = {
      1,
      {.decode_varint = &decode_enum_field<enums::VoiceAssistantEvent>}}};
 const RepeatedFieldMeta VoiceAssistantEventResponse::REPEATED_FIELDS[1] = {
-    {2, PROTO_FIELD_OFFSET(VoiceAssistantEventResponse, data), &encode_repeated_message_field<VoiceAssistantEventData>,
-     &size_repeated_message_field<VoiceAssistantEventData>, 1}};
+    {2,
+     PROTO_FIELD_OFFSET(VoiceAssistantEventResponse, data),
+     &encode_repeated_message_field<VoiceAssistantEventData>,
+     &size_repeated_message_field<VoiceAssistantEventData>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<VoiceAssistantEventData>}}};
 const FieldMeta VoiceAssistantAudio::FIELDS[2] = {{1,
                                                    PROTO_FIELD_OFFSET(VoiceAssistantAudio, data),
                                                    &encode_bytes_field,
@@ -4376,8 +4551,13 @@ const FieldMeta VoiceAssistantWakeWord::FIELDS[2] = {{1,
                                                       1,
                                                       {.decode_length = &decode_string_field}}};
 const RepeatedFieldMeta VoiceAssistantWakeWord::REPEATED_FIELDS[1] = {
-    {3, PROTO_FIELD_OFFSET(VoiceAssistantWakeWord, trained_languages), &encode_repeated_string_field,
-     &size_repeated_string_field, 1}};
+    {3,
+     PROTO_FIELD_OFFSET(VoiceAssistantWakeWord, trained_languages),
+     &encode_repeated_string_field,
+     &size_repeated_string_field,
+     1,
+     2,
+     {.decode_length = &decode_repeated_string_field}}};
 const FieldMeta VoiceAssistantConfigurationResponse::FIELDS[1] = {
     {3,
      PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, max_active_wake_words),
@@ -4388,13 +4568,28 @@ const FieldMeta VoiceAssistantConfigurationResponse::FIELDS[1] = {
      1,
      {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta VoiceAssistantConfigurationResponse::REPEATED_FIELDS[2] = {
-    {1, PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, available_wake_words),
-     &encode_repeated_message_field<VoiceAssistantWakeWord>, &size_repeated_message_field<VoiceAssistantWakeWord>, 1},
-    {2, PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, active_wake_words), &encode_repeated_string_field,
-     &size_repeated_string_field, 1}};
+    {1,
+     PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, available_wake_words),
+     &encode_repeated_message_field<VoiceAssistantWakeWord>,
+     &size_repeated_message_field<VoiceAssistantWakeWord>,
+     1,
+     2,
+     {.decode_length = &decode_repeated_message_field<VoiceAssistantWakeWord>}},
+    {2,
+     PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, active_wake_words),
+     &encode_repeated_string_field,
+     &size_repeated_string_field,
+     1,
+     2,
+     {.decode_length = &decode_repeated_string_field}}};
 const RepeatedFieldMeta VoiceAssistantSetConfiguration::REPEATED_FIELDS[1] = {
-    {1, PROTO_FIELD_OFFSET(VoiceAssistantSetConfiguration, active_wake_words), &encode_repeated_string_field,
-     &size_repeated_string_field, 1}};
+    {1,
+     PROTO_FIELD_OFFSET(VoiceAssistantSetConfiguration, active_wake_words),
+     &encode_repeated_string_field,
+     &size_repeated_string_field,
+     1,
+     2,
+     {.decode_length = &decode_repeated_string_field}}};
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
 const FieldMeta ListEntitiesAlarmControlPanelResponse::FIELDS[11] = {
@@ -5053,8 +5248,13 @@ const FieldMeta ListEntitiesEventResponse::FIELDS[9] = {
      1,
      {.decode_varint = &decode_uint32_field}}};
 const RepeatedFieldMeta ListEntitiesEventResponse::REPEATED_FIELDS[1] = {
-    {9, PROTO_FIELD_OFFSET(ListEntitiesEventResponse, event_types), &encode_repeated_string_field,
-     &size_repeated_string_field, 1}};
+    {9,
+     PROTO_FIELD_OFFSET(ListEntitiesEventResponse, event_types),
+     &encode_repeated_string_field,
+     &size_repeated_string_field,
+     1,
+     2,
+     {.decode_length = &decode_repeated_string_field}}};
 const FieldMeta EventResponse::FIELDS[3] = {{1,
                                              PROTO_FIELD_OFFSET(EventResponse, key),
                                              &encode_fixed32_field,

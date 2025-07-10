@@ -1125,6 +1125,53 @@ def get_decoder_function(type_info: TypeInfo, wire_type: int) -> str:
     return None
 
 
+def get_repeated_decoder_function(type_info):
+    """Get the appropriate repeated decoder function based on type."""
+    # For repeated fields, we get the underlying type from RepeatedTypeInfo
+    if hasattr(type_info, "_ti"):
+        underlying_type = type_info._ti
+    else:
+        underlying_type = type_info
+
+    wire_type = get_wire_type(underlying_type)
+
+    # Map based on both type and wire type
+    if wire_type == 0:  # VARINT
+        type_map = {
+            "BoolType": "&decode_repeated_bool_field",
+            "Int32Type": "&decode_repeated_int32_field",
+            "UInt32Type": "&decode_repeated_uint32_field",
+            "Int64Type": "&decode_repeated_int64_field",
+            "UInt64Type": "&decode_repeated_uint64_field",
+            "SInt32Type": "&decode_repeated_sint32_field",
+            "SInt64Type": "&decode_repeated_sint64_field",
+        }
+        type_name = underlying_type.__class__.__name__
+        return type_map.get(type_name, None)
+    elif wire_type == 2:  # LENGTH_DELIMITED
+        type_map = {
+            "StringType": "&decode_repeated_string_field",
+        }
+        type_name = underlying_type.__class__.__name__
+        return type_map.get(type_name, None)
+    elif wire_type == 5:  # FIXED32
+        type_map = {
+            "FloatType": "&decode_repeated_float_field",
+            "Fixed32Type": "&decode_repeated_fixed32_field",
+        }
+        type_name = underlying_type.__class__.__name__
+        return type_map.get(type_name, None)
+    elif wire_type == 1:  # FIXED64
+        type_map = {
+            "DoubleType": "&decode_repeated_double_field",
+            "Fixed64Type": "&decode_repeated_fixed64_field",
+        }
+        type_name = underlying_type.__class__.__name__
+        return type_map.get(type_name, None)
+
+    return None
+
+
 def build_message_type(
     desc: descriptor.DescriptorProto,
     base_class_fields: dict[str, list[descriptor.FieldDescriptorProto]] = None,
@@ -1211,25 +1258,39 @@ def build_message_type(
                 ti = RepeatedTypeInfo(field)
                 encoder = get_repeated_encoder_function(ti)
                 sizer = get_repeated_sizer_function(ti)
+                decoder = get_repeated_decoder_function(ti)
                 field_tag_size = ti.calculate_field_id_size()
+                wire_type = get_wire_type(ti._ti)
 
-                if encoder and sizer:
+                if encoder and sizer and decoder:
+                    # Format: {field_num, offset, encoder, sizer, precalced_field_id_size, wire_type, {decoder}}
+                    decoder_field = (
+                        f".decode_varint = {decoder}"
+                        if wire_type == 0
+                        else f".decode_length = {decoder}"
+                        if wire_type == 2
+                        else f".decode_32bit = {decoder}"
+                        if wire_type == 5
+                        else f".decode_64bit = {decoder}"
+                    )
                     repeated_fields.append(
-                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), {encoder}, {sizer}, {field_tag_size}}}"
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), {encoder}, {sizer}, {field_tag_size}, {wire_type}, {{{decoder_field}}}}}"
                     )
                 elif isinstance(ti._ti, EnumType):
                     # Handle enum repeated fields with template
                     enum_type = ti._ti.cpp_type
                     repeated_fields.append(
                         f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
-                        f"&encode_repeated_enum_field<{enum_type}>, &size_repeated_enum_field<{enum_type}>, {field_tag_size}}}"
+                        f"&encode_repeated_enum_field<{enum_type}>, &size_repeated_enum_field<{enum_type}>, {field_tag_size}, 0, "
+                        f"{{.decode_varint = &decode_repeated_enum_field<{enum_type}>}}}}"
                     )
                 elif isinstance(ti._ti, MessageType):
                     # Handle message repeated fields with template
                     msg_type = ti._ti.cpp_type
                     repeated_fields.append(
                         f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
-                        f"&encode_repeated_message_field<{msg_type}>, &size_repeated_message_field<{msg_type}>, {field_tag_size}}}"
+                        f"&encode_repeated_message_field<{msg_type}>, &size_repeated_message_field<{msg_type}>, {field_tag_size}, 2, "
+                        f"{{.decode_length = &decode_repeated_message_field<{msg_type}>}}}}"
                     )
             else:
                 ti = TYPE_INFO[field.type](field)

@@ -57,5 +57,18 @@ inline void size_repeated_message_field(uint32_t &total_size, const void *field_
   ProtoSize::add_repeated_message<MessageType>(total_size, precalced_field_id_size, *vec);
 }
 
+// Template decode functions for repeated fields
+template<typename EnumType> inline bool decode_repeated_enum_field(void *field_ptr, ProtoVarInt value) {
+  auto *vec = static_cast<std::vector<EnumType> *>(field_ptr);
+  vec->push_back(value.as_enum<EnumType>());
+  return true;
+}
+
+template<typename MessageType> inline bool decode_repeated_message_field(void *field_ptr, ProtoLengthDelimited value) {
+  auto *vec = static_cast<std::vector<MessageType> *>(field_ptr);
+  vec->push_back(value.as_message<MessageType>());
+  return true;
+}
+
 }  // namespace api
 }  // namespace esphome

@@ -29,14 +29,8 @@ using SizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t p
 using RepeatedEncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
 using RepeatedSizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
 
-// Special metadata for repeated fields
-struct RepeatedFieldMeta {
-  uint8_t field_num;
-  uint16_t offset;
-  RepeatedEncodeFunc encoder;       // Encoder for the entire vector
-  RepeatedSizeFunc sizer;           // Sizer for the entire vector
-  uint8_t precalced_field_id_size;  // Pre-calculated size of field tag in bytes
-};
+// Forward declaration for RepeatedFieldMeta - will be defined after Proto* classes
+struct RepeatedFieldMeta;
 
 /// Representation of a VarInt - in ProtoBuf should be 64bit but we only use 32bit
 class ProtoVarInt {
@@ -372,6 +366,28 @@ class ProtoWriteBuffer {
   std::vector<uint8_t> *buffer_;
 };
 
+// Forward declarations for repeated field decode - now that Proto* classes are defined
+using RepeatedDecodeVarintFunc = bool (*)(void *field_ptr, ProtoVarInt value);
+using RepeatedDecodeLengthFunc = bool (*)(void *field_ptr, ProtoLengthDelimited value);
+using RepeatedDecode32BitFunc = bool (*)(void *field_ptr, Proto32Bit value);
+using RepeatedDecode64BitFunc = bool (*)(void *field_ptr, Proto64Bit value);
+
+// Special metadata for repeated fields
+struct RepeatedFieldMeta {
+  uint8_t field_num;
+  uint16_t offset;
+  RepeatedEncodeFunc encoder;       // Encoder for the entire vector
+  RepeatedSizeFunc sizer;           // Sizer for the entire vector
+  uint8_t precalced_field_id_size;  // Pre-calculated size of field tag in bytes
+  uint8_t wire_type;                // Wire type for decoding
+  union {
+    RepeatedDecodeVarintFunc decode_varint;
+    RepeatedDecodeLengthFunc decode_length;
+    RepeatedDecode32BitFunc decode_32bit;
+    RepeatedDecode64BitFunc decode_64bit;
+  } decoder;
+};
+
 class ProtoMessage {
  public:
   virtual ~ProtoMessage() = default;
@@ -571,6 +587,24 @@ void size_repeated_enum_field(uint32_t &total_size, const void *field_ptr, uint8
 
 template<typename MessageType>
 void size_repeated_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
+
+// Repeated field decode functions
+bool decode_repeated_string_field(void *field_ptr, ProtoLengthDelimited value);
+bool decode_repeated_bool_field(void *field_ptr, ProtoVarInt value);
+bool decode_repeated_uint32_field(void *field_ptr, ProtoVarInt value);
+bool decode_repeated_int32_field(void *field_ptr, ProtoVarInt value);
+bool decode_repeated_uint64_field(void *field_ptr, ProtoVarInt value);
+bool decode_repeated_int64_field(void *field_ptr, ProtoVarInt value);
+bool decode_repeated_sint32_field(void *field_ptr, ProtoVarInt value);
+bool decode_repeated_sint64_field(void *field_ptr, ProtoVarInt value);
+bool decode_repeated_fixed32_field(void *field_ptr, Proto32Bit value);
+bool decode_repeated_fixed64_field(void *field_ptr, Proto64Bit value);
+bool decode_repeated_float_field(void *field_ptr, Proto32Bit value);
+bool decode_repeated_double_field(void *field_ptr, Proto64Bit value);
+
+template<typename EnumType> bool decode_repeated_enum_field(void *field_ptr, ProtoVarInt value);
+
+template<typename MessageType> bool decode_repeated_message_field(void *field_ptr, ProtoLengthDelimited value);
 
 // Core shared functions
 void encode_from_metadata(ProtoWriteBuffer buffer, const void *obj, const FieldMeta *fields, size_t field_count,
