@@ -442,3 +442,48 @@ def get_usable_cpu_count() -> int:
     return (
         os.process_cpu_count() if hasattr(os, "process_cpu_count") else os.cpu_count()
     )
+
+
+def get_all_dependencies(component_names: set[str]) -> set[str]:
+    """Get all dependencies for a set of components.
+
+    Args:
+        component_names: Set of component names to get dependencies for
+
+    Returns:
+        Set of all components including dependencies and auto-loaded components
+    """
+    from esphome.const import KEY_CORE
+    from esphome.core import CORE
+    from esphome.loader import get_component
+
+    all_components: set[str] = set(component_names)
+
+    # Set up fake config path for component loading
+    root = Path(__file__).parent.parent
+    CORE.config_path = str(root)
+    CORE.data[KEY_CORE] = {}
+
+    # Keep finding dependencies until no new ones are found
+    while True:
+        new_components: set[str] = set()
+
+        for comp_name in all_components:
+            comp = get_component(comp_name)
+            if not comp:
+                continue
+
+            # Add dependencies (extract component name before '.')
+            new_components.update(dep.split(".")[0] for dep in comp.dependencies)
+
+            # Add auto_load components
+            new_components.update(comp.auto_load)
+
+        # Check if we found any new components
+        new_components -= all_components
+        if not new_components:
+            break
+
+        all_components.update(new_components)
+
+    return all_components

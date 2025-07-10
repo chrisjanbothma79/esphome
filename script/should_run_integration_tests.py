@@ -8,12 +8,8 @@ from pathlib import Path
 import sys
 from typing import Any
 
-from helpers import changed_files
+from helpers import changed_files, get_all_dependencies
 import yaml
-
-from esphome.const import KEY_CORE
-from esphome.core import CORE
-from esphome.loader import get_component
 
 
 def get_components_from_fixtures() -> set[str]:
@@ -42,40 +38,6 @@ def get_components_from_fixtures() -> set[str]:
     return components
 
 
-def get_all_dependencies(component_names: set[str]) -> set[str]:
-    """Get all dependencies for a set of components."""
-    all_components: set[str] = set(component_names)
-
-    # Set up fake config path for component loading
-    root = Path(__file__).parent.parent
-    CORE.config_path = str(root)
-    CORE.data[KEY_CORE] = {}
-
-    # Keep finding dependencies until no new ones are found
-    while True:
-        new_components: set[str] = set()
-
-        for comp_name in all_components:
-            comp = get_component(comp_name)
-            if not comp:
-                continue
-
-            # Add dependencies (extract component name before '.')
-            new_components.update(dep.split(".")[0] for dep in comp.dependencies)
-
-            # Add auto_load components
-            new_components.update(comp.auto_load)
-
-        # Check if we found any new components
-        new_components -= all_components
-        if not new_components:
-            break
-
-        all_components.update(new_components)
-
-    return all_components
-
-
 def should_run_integration_tests(branch: str | None = None) -> bool:
     """Determine if integration tests should run based on changed files.
 
@@ -95,10 +57,11 @@ def should_run_integration_tests(branch: str | None = None) -> bool:
         if file.startswith("esphome/core/"):
             return True
 
-    # Check if any Python files outside components changed
+    # Check if any Python files directly in esphome/ changed (not in subdirs)
     for file in changed:
         if file.startswith("esphome/") and file.endswith(".py"):
-            if not file.startswith("esphome/components/"):
+            # Check if it's directly in esphome/ (no additional slashes after esphome/)
+            if file.count("/") == 1:
                 return True
 
     # Check if any integration test files changed

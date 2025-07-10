@@ -15,6 +15,7 @@ sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "script"))
 )
 
+import helpers  # noqa: E402
 import should_run_integration_tests  # noqa: E402
 
 
@@ -49,7 +50,7 @@ def mock_yaml_load() -> Generator[Mock, None, None]:
 @pytest.fixture
 def mock_get_component() -> Generator[Mock, None, None]:
     """Mock get_component from esphome.loader."""
-    with patch("should_run_integration_tests.get_component") as mock:
+    with patch("esphome.loader.get_component") as mock:
         yield mock
 
 
@@ -218,9 +219,7 @@ def test_get_all_dependencies(
 
     mock_get_component.side_effect = get_component_side_effect
 
-    result: set[str] = should_run_integration_tests.get_all_dependencies(
-        initial_components
-    )
+    result: set[str] = helpers.get_all_dependencies(initial_components)
 
     assert result == expected_components
 
@@ -236,9 +235,7 @@ def test_get_all_dependencies_handles_missing_components(
 
     mock_get_component.side_effect = lambda name: comp if name == "existing" else None
 
-    result: set[str] = should_run_integration_tests.get_all_dependencies(
-        {"existing", "nonexistent"}
-    )
+    result: set[str] = helpers.get_all_dependencies({"existing", "nonexistent"})
 
     # Should still include all components, even if some can't be loaded
     assert result == {"existing", "nonexistent", "missing_comp"}
@@ -252,7 +249,7 @@ def test_get_all_dependencies_handles_missing_components(
             ["esphome/core/component.cpp", "esphome/components/sensor/sensor.cpp"],
             "true",
         ),
-        # Python files outside components
+        # Python files directly in esphome/ directory
         (
             ["esphome/config.py", "esphome/util.py"],
             "true",
@@ -336,6 +333,21 @@ def test_main_does_not_trigger_on_unrelated_changes(
     ]
     mock_get_fixtures.return_value = {"sensor", "light"}
     mock_get_deps.return_value = {"sensor", "light", "api"}
+
+    result: bool = should_run_integration_tests.should_run_integration_tests()
+
+    assert result is False
+
+
+def test_python_files_in_subdirs_do_not_trigger(
+    mock_changed_files: Mock,
+) -> None:
+    """Test that Python files in subdirectories (other than components) don't trigger tests."""
+    mock_changed_files.return_value = [
+        "esphome/dashboard/web_server.py",
+        "esphome/dashboard/util/file.py",
+        "esphome/pins/esp32_pins.py",
+    ]
 
     result: bool = should_run_integration_tests.should_run_integration_tests()
 

@@ -232,11 +232,47 @@ jobs:
           path: venv
           key: ${{ runner.os }}-${{ steps.restore-python.outputs.python-version }}-venv-${{ needs.common.outputs.cache-key }}
 
+  check-integration-tests:
+    name: Check if integration tests should run
+    runs-on: ubuntu-24.04
+    needs:
+      - common
+    outputs:
+      should-run: ${{ steps.check.outputs.should-run }}
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v4.2.2
+        with:
+          # Fetch enough history to find the merge base
+          fetch-depth: 2
+      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
+        uses: actions/setup-python@v5.6.0
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+      - name: Restore Python virtual environment
+        uses: actions/cache@v4.2.3
+        with:
+          path: venv
+          key: ${{ runner.os }}-${{ env.DEFAULT_PYTHON }}-venv-${{ needs.common.outputs.cache-key }}
+      - name: Check if integration tests should run
+        id: check
+        run: |
+          . venv/bin/activate
+          if python script/should_run_integration_tests.py; then
+            echo "should-run=true" >> $GITHUB_OUTPUT
+            echo "Integration tests will run"
+          else
+            echo "should-run=false" >> $GITHUB_OUTPUT
+            echo "Integration tests will be skipped"
+          fi
+
   integration-tests:
     name: Run integration tests
     runs-on: ubuntu-latest
     needs:
       - common
+      - check-integration-tests
+    if: needs.check-integration-tests.outputs.should-run == 'true'
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v4.2.2
@@ -550,6 +586,7 @@ jobs:
       - flake8
       - pylint
       - pytest
+      - check-integration-tests
       - integration-tests
       - pyupgrade
       - clang-tidy
