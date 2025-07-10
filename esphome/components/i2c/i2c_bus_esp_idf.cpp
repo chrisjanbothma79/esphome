@@ -178,7 +178,7 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 4, 2)
   i2c_operation_job_t jobs[cnt + 4];
   uint8_t read = (address << 1) | I2C_MASTER_READ;
-  size_t num = 0;
+  size_t last = 0, num = 0;
 
   jobs[num].command = I2C_MASTER_CMD_START;
   num++;
@@ -189,13 +189,23 @@ ErrorCode IDFI2CBus::readv(uint8_t address, ReadBuffer *buffers, size_t cnt) {
   jobs[num].write.total_bytes = 1;
   num++;
 
+  // find the last valid index
   for (size_t i = 0; i < cnt; i++) {
     const auto &buf = buffers[i];
-    if (buf.len == 0)
+    if (buf.len == 0) {
       continue;
-    // the last byte of the read before stop should always be nack,
-    // split the last read if len is larger than 1
-    if (i == cnt - 1) {
+    }
+    last = i;
+  }
+
+  for (size_t i = 0; i < cnt; i++) {
+    const auto &buf = buffers[i];
+    if (buf.len == 0) {
+      continue;
+    }
+    if (i == last) {
+      // the last byte read before stop should always be a nack,
+      // split the last read if len is larger than 1
       if (buf.len > 1) {
         jobs[num].command = I2C_MASTER_CMD_READ;
         jobs[num].read.ack_value = I2C_ACK_VAL;
@@ -334,8 +344,9 @@ ErrorCode IDFI2CBus::writev(uint8_t address, WriteBuffer *buffers, size_t cnt, b
 
   for (size_t i = 0; i < cnt; i++) {
     const auto &buf = buffers[i];
-    if (buf.len == 0)
+    if (buf.len == 0) {
       continue;
+    }
     jobs[num].command = I2C_MASTER_CMD_WRITE;
     jobs[num].write.ack_check = true;
     jobs[num].write.data = (uint8_t *) buf.data;
