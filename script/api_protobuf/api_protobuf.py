@@ -1242,7 +1242,7 @@ def build_message_type(
                 if encoder and sizer and decoder:
                     # Calculate pre-calculated field tag size
                     field_tag_size = ti.calculate_field_id_size()
-                    # Format: {field_num, offset, encoder, sizer, force_encode, wire_type, precalced_field_tag_size, {decoder}}
+                    # Format: {field_num, offset, encoder, sizer, force_encode, wire_type, precalced_field_id_size, {decoder}}
                     decoder_field = (
                         f".decode_varint = {decoder}"
                         if wire_type == 0

@@ -14,9 +14,9 @@ inline void encode_enum_field(ProtoWriteBuffer &buffer, const void *field_ptr, u
 }
 
 template<typename EnumType>
-inline void size_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size, bool force) {
+inline void size_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
   const auto *val = static_cast<const EnumType *>(field_ptr);
-  ProtoSize::add_enum_field(total_size, precalced_field_tag_size, static_cast<uint32_t>(*val), force);
+  ProtoSize::add_enum_field(total_size, precalced_field_id_size, static_cast<uint32_t>(*val), force);
 }
 
 template<typename EnumType> inline bool decode_enum_field(void *field_ptr, ProtoVarInt value) {
@@ -44,17 +44,17 @@ inline void encode_repeated_message_field(ProtoWriteBuffer &buffer, const void *
 
 // Template size functions for repeated fields (must be in header for instantiation)
 template<typename EnumType>
-inline void size_repeated_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
+inline void size_repeated_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
   const auto *vec = static_cast<const std::vector<EnumType> *>(field_ptr);
   for (const auto &val : *vec) {
-    ProtoSize::add_enum_field(total_size, precalced_field_tag_size, static_cast<uint32_t>(val), true);
+    ProtoSize::add_enum_field(total_size, precalced_field_id_size, static_cast<uint32_t>(val), true);
   }
 }
 
 template<typename MessageType>
-inline void size_repeated_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_tag_size) {
+inline void size_repeated_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
   const auto *vec = static_cast<const std::vector<MessageType> *>(field_ptr);
-  ProtoSize::add_repeated_message<MessageType>(total_size, precalced_field_tag_size, *vec);
+  ProtoSize::add_repeated_message<MessageType>(total_size, precalced_field_id_size, *vec);
 }
 
 }  // namespace api
