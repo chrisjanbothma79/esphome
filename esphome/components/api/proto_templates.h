@@ -25,6 +25,26 @@ template<typename EnumType> inline bool decode_enum_field(void *field_ptr, Proto
   return true;
 }
 
+// Template functions for message field handling (regular fields)
+template<typename MessageType>
+inline void encode_message_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
+  const MessageType *msg = static_cast<const MessageType *>(field_ptr);
+  buffer.encode_message<MessageType>(field_num, *msg);
+}
+
+template<typename MessageType>
+inline void size_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size,
+                               bool force) {
+  const MessageType *msg = static_cast<const MessageType *>(field_ptr);
+  ProtoSize::add_message_object(total_size, precalced_field_id_size, *msg, force);
+}
+
+template<typename MessageType> inline bool decode_message_field(void *field_ptr, ProtoLengthDelimited value) {
+  MessageType *msg = static_cast<MessageType *>(field_ptr);
+  *msg = value.as_message<MessageType>();
+  return true;
+}
+
 // Template repeated field functions (must be in header for instantiation)
 template<typename EnumType>
 inline void encode_repeated_enum_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {

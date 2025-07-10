@@ -292,7 +292,16 @@ struct FieldMetaV2 {
   ProtoFieldType type;              // Field type enum
   bool force_encode;                // If true, encode even if value is default/empty
   uint8_t precalced_field_id_size;  // Pre-calculated size of field tag in bytes
-  uint8_t message_type_id;          // For TYPE_MESSAGE/TYPE_ENUM: identifies which type (0 for non-message/enum)
+  union {
+    // For TYPE_MESSAGE: function pointers (12 bytes on ESP32)
+    struct {
+      EncodeFunc encode;
+      SizeFunc size;
+      DecodeLengthFunc decode;
+    } message;
+    // For TYPE_ENUM: enum ID (1 byte)
+    uint8_t enum_id;
+  } handler;
 };
 
 class ProtoWriteBuffer {
@@ -483,7 +492,16 @@ struct RepeatedFieldMetaV2 {
   uint16_t offset;
   ProtoFieldType type;              // Element type
   uint8_t precalced_field_id_size;  // Pre-calculated size of field tag in bytes
-  uint8_t message_type_id;          // For TYPE_MESSAGE/TYPE_ENUM: identifies which type (0 for non-message/enum)
+  union {
+    // For TYPE_MESSAGE: function pointers
+    struct {
+      RepeatedEncodeFunc encode;
+      RepeatedSizeFunc size;
+      RepeatedDecodeLengthFunc decode;
+    } message;
+    // For TYPE_ENUM: enum ID
+    uint8_t enum_id;
+  } handler;
 };
 
 class ProtoMessage {
@@ -688,25 +706,27 @@ template<typename EnumType> bool decode_repeated_enum_field(void *field_ptr, Pro
 
 template<typename MessageType> bool decode_repeated_message_field(void *field_ptr, ProtoLengthDelimited value);
 
+// Forward declarations for message field template functions
+template<typename MessageType>
+void encode_message_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+
+template<typename MessageType>
+void size_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
+
+template<typename MessageType> bool decode_message_field(void *field_ptr, ProtoLengthDelimited value);
+
+template<typename MessageType>
+void encode_repeated_message_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+
+template<typename MessageType>
+void size_repeated_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
+
 // Core shared functions
 void encode_from_metadata(ProtoWriteBuffer buffer, const void *obj, const FieldMeta *fields, size_t field_count,
                           const RepeatedFieldMeta *repeated_fields = nullptr, size_t repeated_count = 0);
 
 void calculate_size_from_metadata(uint32_t &total_size, const void *obj, const FieldMeta *fields, size_t field_count,
                                   const RepeatedFieldMeta *repeated_fields = nullptr, size_t repeated_count = 0);
-
-// Message type handlers for V2 system
-void encode_message_field_by_type(ProtoWriteBuffer &buffer, uint8_t field_num, const void *field_ptr,
-                                  uint8_t message_type_id);
-void decode_message_field_by_type(void *field_ptr, ProtoLengthDelimited value, uint8_t message_type_id);
-void size_message_field_by_type(uint32_t &total_size, uint8_t precalced_field_id_size, const void *field_ptr,
-                                uint8_t message_type_id, bool force);
-
-void encode_repeated_message_field_by_type(ProtoWriteBuffer &buffer, uint8_t field_num, const void *field_ptr,
-                                           uint8_t message_type_id);
-void decode_repeated_message_field_by_type(void *field_ptr, ProtoLengthDelimited value, uint8_t message_type_id);
-void size_repeated_message_field_by_type(uint32_t &total_size, uint8_t precalced_field_id_size, const void *field_ptr,
-                                         uint8_t message_type_id);
 
 }  // namespace api
 }  // namespace esphome

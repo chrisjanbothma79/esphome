@@ -889,9 +889,10 @@ void ProtoMessage::decode_v2(const uint8_t *buffer, size_t length) {
                 break;
               }
               case ProtoFieldType::TYPE_MESSAGE: {
-                // Use message type ID to call the appropriate handler
-                decode_message_field_by_type(field_addr, value, fields[j].message_type_id);
-                decoded = true;
+                // Use function pointer from metadata
+                if (fields[j].handler.message.decode) {
+                  decoded = fields[j].handler.message.decode(field_addr, value);
+                }
                 break;
               }
               default:
@@ -921,9 +922,10 @@ void ProtoMessage::decode_v2(const uint8_t *buffer, size_t length) {
                   break;
                 }
                 case ProtoFieldType::TYPE_MESSAGE: {
-                  // Use message type ID to call the appropriate handler
-                  decode_repeated_message_field_by_type(field_addr, value, repeated_fields[j].message_type_id);
-                  decoded = true;
+                  // Use function pointer from metadata
+                  if (repeated_fields[j].handler.message.decode) {
+                    decoded = repeated_fields[j].handler.message.decode(field_addr, value);
+                  }
                   break;
                 }
                 default:
@@ -1202,8 +1204,10 @@ void ProtoMessage::encode_v2(ProtoWriteBuffer buffer) const {
         break;
       }
       case ProtoFieldType::TYPE_MESSAGE: {
-        // Use message type ID to call the appropriate handler
-        encode_message_field_by_type(buffer, fields[i].field_num, field_addr, fields[i].message_type_id);
+        // Use function pointer from metadata
+        if (fields[i].handler.message.encode) {
+          fields[i].handler.message.encode(buffer, field_addr, fields[i].field_num);
+        }
         break;
       }
     }
@@ -1337,9 +1341,10 @@ void ProtoMessage::encode_v2(ProtoWriteBuffer buffer) const {
         break;
       }
       case ProtoFieldType::TYPE_MESSAGE: {
-        // Use message type ID to call the appropriate handler
-        encode_repeated_message_field_by_type(buffer, repeated_fields[i].field_num, field_addr,
-                                              repeated_fields[i].message_type_id);
+        // Use function pointer from metadata
+        if (repeated_fields[i].handler.message.encode) {
+          repeated_fields[i].handler.message.encode(buffer, field_addr, repeated_fields[i].field_num);
+        }
         break;
       }
     }
@@ -1447,9 +1452,11 @@ void ProtoMessage::calculate_size_v2(uint32_t &total_size) const {
         break;
       }
       case ProtoFieldType::TYPE_MESSAGE: {
-        // Use message type ID to call the appropriate handler
-        size_message_field_by_type(total_size, fields[i].precalced_field_id_size, field_addr, fields[i].message_type_id,
-                                   fields[i].force_encode);
+        // Use function pointer from metadata
+        if (fields[i].handler.message.size) {
+          fields[i].handler.message.size(total_size, field_addr, fields[i].precalced_field_id_size,
+                                         fields[i].force_encode);
+        }
         break;
       }
     }
@@ -1577,9 +1584,10 @@ void ProtoMessage::calculate_size_v2(uint32_t &total_size) const {
         break;
       }
       case ProtoFieldType::TYPE_MESSAGE: {
-        // Use message type ID to call the appropriate handler
-        size_repeated_message_field_by_type(total_size, repeated_fields[i].precalced_field_id_size, field_addr,
-                                            repeated_fields[i].message_type_id);
+        // Use function pointer from metadata
+        if (repeated_fields[i].handler.message.size) {
+          repeated_fields[i].handler.message.size(total_size, field_addr, repeated_fields[i].precalced_field_id_size);
+        }
         break;
       }
     }
