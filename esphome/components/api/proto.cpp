@@ -10,434 +10,7 @@ namespace api {
 
 static const char *const TAG = "api.proto";
 
-// Message handler registry - populated by generated code
-const MessageHandler MESSAGE_HANDLERS[] = {
-    // Will be populated with entries like:
-    // {encode_message_field<HelloRequest>, size_message_field<HelloRequest>, decode_message_field<HelloRequest>},
-    // etc.
-};
-const size_t MESSAGE_HANDLER_COUNT = 0;  // Will be set by generated code
-
-const RepeatedMessageHandler REPEATED_MESSAGE_HANDLERS[] = {
-    // Will be populated with entries like:
-    // {encode_repeated_message_field<AreaInfo>, size_repeated_message_field<AreaInfo>,
-    // decode_repeated_message_field<AreaInfo>},
-    // etc.
-};
-const size_t REPEATED_MESSAGE_HANDLER_COUNT = 0;  // Will be set by generated code
-
-void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
-  // Check if V3 metadata is available
-  const FieldMetaV3 *fields_v3 = get_field_metadata_v3();
-  if (fields_v3 != nullptr) {
-    decode_v3(buffer, length);
-    return;
-  }
-
-  // Fall back to V2
-  uint32_t i = 0;
-  bool error = false;
-  uint8_t *base = reinterpret_cast<uint8_t *>(this);
-
-  // Get V2 metadata once at the start
-  const FieldMetaV2 *fields = get_field_metadata_v2();
-  size_t field_count = get_field_count_v2();
-  const RepeatedFieldMetaV2 *repeated_fields = get_repeated_field_metadata_v2();
-  size_t repeated_count = get_repeated_field_count_v2();
-
-  while (i < length) {
-    uint32_t consumed;
-    auto res = ProtoVarInt::parse(&buffer[i], length - i, &consumed);
-    if (!res.has_value()) {
-      ESP_LOGV(TAG, "Invalid field start at %" PRIu32, i);
-      break;
-    }
-
-    uint32_t field_type = (res->as_uint32()) & 0b111;
-    uint32_t field_id = (res->as_uint32()) >> 3;
-    i += consumed;
-
-    switch (field_type) {
-      case 0: {  // VarInt
-        res = ProtoVarInt::parse(&buffer[i], length - i, &consumed);
-        if (!res.has_value()) {
-          ESP_LOGV(TAG, "Invalid VarInt at %" PRIu32, i);
-          error = true;
-          break;
-        }
-        ProtoVarInt value = *res;
-        bool decoded = false;
-
-        // Check regular fields
-        for (size_t j = 0; j < field_count; j++) {
-          if (fields[j].field_num == field_id && get_wire_type(fields[j].type) == 0) {
-            void *field_addr = base + fields[j].offset;
-
-            switch (fields[j].type) {
-              case ProtoFieldType::TYPE_BOOL:
-                *static_cast<bool *>(field_addr) = value.as_bool();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_INT32:
-                *static_cast<int32_t *>(field_addr) = value.as_int32();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_UINT32:
-                *static_cast<uint32_t *>(field_addr) = value.as_uint32();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_INT64:
-                *static_cast<int64_t *>(field_addr) = value.as_int64();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_UINT64:
-                *static_cast<uint64_t *>(field_addr) = value.as_uint64();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_SINT32:
-                *static_cast<int32_t *>(field_addr) = value.as_sint32();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_SINT64:
-                *static_cast<int64_t *>(field_addr) = value.as_sint64();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_ENUM:
-                // For enums, we need to use the old metadata for now
-                // This will be fixed in Phase 5
-                *static_cast<uint32_t *>(field_addr) = value.as_uint32();
-                decoded = true;
-                break;
-              default:
-                break;
-            }
-            break;
-          }
-        }
-
-        // Check repeated fields if not found
-        if (!decoded && repeated_fields) {
-          for (size_t j = 0; j < repeated_count; j++) {
-            if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].type) == 0) {
-              void *field_addr = base + repeated_fields[j].offset;
-
-              switch (repeated_fields[j].type) {
-                case ProtoFieldType::TYPE_BOOL: {
-                  auto *vec = static_cast<std::vector<bool> *>(field_addr);
-                  vec->push_back(value.as_bool());
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_INT32: {
-                  auto *vec = static_cast<std::vector<int32_t> *>(field_addr);
-                  vec->push_back(value.as_int32());
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_UINT32: {
-                  auto *vec = static_cast<std::vector<uint32_t> *>(field_addr);
-                  vec->push_back(value.as_uint32());
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_INT64: {
-                  auto *vec = static_cast<std::vector<int64_t> *>(field_addr);
-                  vec->push_back(value.as_int64());
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_UINT64: {
-                  auto *vec = static_cast<std::vector<uint64_t> *>(field_addr);
-                  vec->push_back(value.as_uint64());
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_SINT32: {
-                  auto *vec = static_cast<std::vector<int32_t> *>(field_addr);
-                  vec->push_back(value.as_sint32());
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_SINT64: {
-                  auto *vec = static_cast<std::vector<int64_t> *>(field_addr);
-                  vec->push_back(value.as_sint64());
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_ENUM: {
-                  // For repeated enums, use old metadata for now
-                  auto *vec = static_cast<std::vector<uint32_t> *>(field_addr);
-                  vec->push_back(value.as_uint32());
-                  decoded = true;
-                  break;
-                }
-                default:
-                  break;
-              }
-              break;
-            }
-          }
-        }
-
-        if (!decoded) {
-          ESP_LOGV(TAG, "Cannot decode VarInt field %" PRIu32 " with value %" PRIu32 "!", field_id, res->as_uint32());
-        }
-        i += consumed;
-        break;
-      }
-      case 2: {  // Length-delimited
-        res = ProtoVarInt::parse(&buffer[i], length - i, &consumed);
-        if (!res.has_value()) {
-          ESP_LOGV(TAG, "Invalid Length Delimited at %" PRIu32, i);
-          error = true;
-          break;
-        }
-        uint32_t field_length = res->as_uint32();
-        i += consumed;
-        if (field_length > length - i) {
-          ESP_LOGV(TAG, "Out-of-bounds Length Delimited at %" PRIu32, i);
-          error = true;
-          break;
-        }
-        ProtoLengthDelimited value(&buffer[i], field_length);
-        bool decoded = false;
-
-        // Check regular fields
-        for (size_t j = 0; j < field_count; j++) {
-          if (fields[j].field_num == field_id && get_wire_type(fields[j].type) == 2) {
-            void *field_addr = base + fields[j].offset;
-
-            switch (fields[j].type) {
-              case ProtoFieldType::TYPE_STRING:
-                *static_cast<std::string *>(field_addr) = value.as_string();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_BYTES: {
-                // ProtoLengthDelimited has protected members, use buffer directly
-                static_cast<std::string *>(field_addr)
-                    ->assign(reinterpret_cast<const char *>(&buffer[i]), field_length);
-                decoded = true;
-                break;
-              }
-              case ProtoFieldType::TYPE_MESSAGE: {
-                // Use function pointer from metadata
-                if (fields[j].handler.message.decode) {
-                  decoded = fields[j].handler.message.decode(field_addr, value);
-                }
-                break;
-              }
-              default:
-                break;
-            }
-            break;
-          }
-        }
-
-        // Check repeated fields if not found
-        if (!decoded && repeated_fields) {
-          for (size_t j = 0; j < repeated_count; j++) {
-            if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].type) == 2) {
-              void *field_addr = base + repeated_fields[j].offset;
-
-              switch (repeated_fields[j].type) {
-                case ProtoFieldType::TYPE_STRING: {
-                  auto *vec = static_cast<std::vector<std::string> *>(field_addr);
-                  vec->push_back(value.as_string());
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_BYTES: {
-                  auto *vec = static_cast<std::vector<std::string> *>(field_addr);
-                  vec->emplace_back(reinterpret_cast<const char *>(&buffer[i]), field_length);
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_MESSAGE: {
-                  // Use function pointer from metadata
-                  if (repeated_fields[j].handler.message.decode) {
-                    decoded = repeated_fields[j].handler.message.decode(field_addr, value);
-                  }
-                  break;
-                }
-                default:
-                  break;
-              }
-              break;
-            }
-          }
-        }
-
-        if (!decoded) {
-          ESP_LOGV(TAG, "Cannot decode Length field %" PRIu32, field_id);
-        }
-        i += field_length;
-        break;
-      }
-      case 5: {  // 32-bit
-        if (length - i < 4) {
-          ESP_LOGV(TAG, "Invalid 32-bit at %" PRIu32, i);
-          error = true;
-          break;
-        }
-        uint32_t raw = (buffer[i]) | (buffer[i + 1] << 8) | (buffer[i + 2] << 16) | (buffer[i + 3] << 24);
-        Proto32Bit value(raw);
-        bool decoded = false;
-
-        // Check regular fields
-        for (size_t j = 0; j < field_count; j++) {
-          if (fields[j].field_num == field_id && get_wire_type(fields[j].type) == 5) {
-            void *field_addr = base + fields[j].offset;
-
-            switch (fields[j].type) {
-              case ProtoFieldType::TYPE_FLOAT: {
-                float *val = static_cast<float *>(field_addr);
-                *val = value.as_float();
-                decoded = true;
-                break;
-              }
-              case ProtoFieldType::TYPE_FIXED32:
-                *static_cast<uint32_t *>(field_addr) = value.as_fixed32();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_SFIXED32:
-                *static_cast<int32_t *>(field_addr) = value.as_sfixed32();
-                decoded = true;
-                break;
-              default:
-                break;
-            }
-            break;
-          }
-        }
-
-        // Check repeated fields if not found
-        if (!decoded && repeated_fields) {
-          for (size_t j = 0; j < repeated_count; j++) {
-            if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].type) == 5) {
-              void *field_addr = base + repeated_fields[j].offset;
-
-              switch (repeated_fields[j].type) {
-                case ProtoFieldType::TYPE_FLOAT: {
-                  auto *vec = static_cast<std::vector<float> *>(field_addr);
-                  vec->push_back(value.as_float());
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_FIXED32: {
-                  auto *vec = static_cast<std::vector<uint32_t> *>(field_addr);
-                  vec->push_back(value.as_fixed32());
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_SFIXED32: {
-                  auto *vec = static_cast<std::vector<int32_t> *>(field_addr);
-                  vec->push_back(value.as_sfixed32());
-                  decoded = true;
-                  break;
-                }
-                default:
-                  break;
-              }
-              break;
-            }
-          }
-        }
-
-        if (!decoded) {
-          ESP_LOGV(TAG, "Cannot decode 32-bit field %" PRIu32, field_id);
-        }
-        i += 4;
-        break;
-      }
-      case 1: {  // 64-bit
-        if (length - i < 8) {
-          ESP_LOGV(TAG, "Invalid 64-bit at %" PRIu32, i);
-          error = true;
-          break;
-        }
-        uint64_t raw = uint64_t(buffer[i]) | (uint64_t(buffer[i + 1]) << 8) | (uint64_t(buffer[i + 2]) << 16) |
-                       (uint64_t(buffer[i + 3]) << 24) | (uint64_t(buffer[i + 4]) << 32) |
-                       (uint64_t(buffer[i + 5]) << 40) | (uint64_t(buffer[i + 6]) << 48) |
-                       (uint64_t(buffer[i + 7]) << 56);
-        Proto64Bit value(raw);
-        bool decoded = false;
-
-        // Check regular fields
-        for (size_t j = 0; j < field_count; j++) {
-          if (fields[j].field_num == field_id && get_wire_type(fields[j].type) == 1) {
-            void *field_addr = base + fields[j].offset;
-
-            switch (fields[j].type) {
-              case ProtoFieldType::TYPE_DOUBLE: {
-                double *val = static_cast<double *>(field_addr);
-                *val = value.as_double();
-                decoded = true;
-                break;
-              }
-              case ProtoFieldType::TYPE_FIXED64:
-                *static_cast<uint64_t *>(field_addr) = value.as_fixed64();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_SFIXED64:
-                *static_cast<int64_t *>(field_addr) = value.as_sfixed64();
-                decoded = true;
-                break;
-              default:
-                break;
-            }
-            break;
-          }
-        }
-
-        // Check repeated fields if not found
-        if (!decoded && repeated_fields) {
-          for (size_t j = 0; j < repeated_count; j++) {
-            if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].type) == 1) {
-              void *field_addr = base + repeated_fields[j].offset;
-
-              switch (repeated_fields[j].type) {
-                case ProtoFieldType::TYPE_DOUBLE: {
-                  auto *vec = static_cast<std::vector<double> *>(field_addr);
-                  vec->push_back(value.as_double());
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_FIXED64: {
-                  auto *vec = static_cast<std::vector<uint64_t> *>(field_addr);
-                  vec->push_back(value.as_fixed64());
-                  decoded = true;
-                  break;
-                }
-                case ProtoFieldType::TYPE_SFIXED64: {
-                  auto *vec = static_cast<std::vector<int64_t> *>(field_addr);
-                  vec->push_back(value.as_sfixed64());
-                  decoded = true;
-                  break;
-                }
-                default:
-                  break;
-              }
-              break;
-            }
-          }
-        }
-
-        if (!decoded) {
-          ESP_LOGV(TAG, "Cannot decode 64-bit field %" PRIu32, field_id);
-        }
-        i += 8;
-        break;
-      }
-      default: {
-        ESP_LOGV(TAG, "Invalid field type %" PRIu32 " at %" PRIu32, field_type, i);
-        return;
-      }
-    }
-    if (error) {
-      break;
-    }
-  }
-}
+// Message handler registries are defined in api_pb2.cpp
 
 #ifdef HAS_PROTO_MESSAGE_DUMP
 std::string ProtoMessage::dump() const {
@@ -447,990 +20,56 @@ std::string ProtoMessage::dump() const {
 }
 #endif
 
-// Type-specific encoding functions
-void encode_string_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *str = static_cast<const std::string *>(field_ptr);
-  buffer.encode_string(field_num, *str);
-}
+// Type-specific encoding functions removed - V3 inlines encoding directly
 
-void encode_fixed32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *val = static_cast<const uint32_t *>(field_ptr);
-  buffer.encode_fixed32(field_num, *val);
-}
+// Type-specific size calculation functions removed - V3 inlines size calculation directly
 
-void encode_bool_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *val = static_cast<const bool *>(field_ptr);
-  buffer.encode_bool(field_num, *val);
-}
-
-void encode_float_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *val = static_cast<const float *>(field_ptr);
-  buffer.encode_float(field_num, *val);
-}
-
-void encode_int32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *val = static_cast<const int32_t *>(field_ptr);
-  buffer.encode_int32(field_num, *val);
-}
-
-void encode_uint32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *val = static_cast<const uint32_t *>(field_ptr);
-  buffer.encode_uint32(field_num, *val);
-}
-
-void encode_int64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *val = static_cast<const int64_t *>(field_ptr);
-  buffer.encode_int64(field_num, *val);
-}
-
-void encode_uint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *val = static_cast<const uint64_t *>(field_ptr);
-  buffer.encode_uint64(field_num, *val);
-}
-
-void encode_sint32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *val = static_cast<const int32_t *>(field_ptr);
-  buffer.encode_sint32(field_num, *val);
-}
-
-void encode_sint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *val = static_cast<const int64_t *>(field_ptr);
-  buffer.encode_sint64(field_num, *val);
-}
-
-void encode_fixed64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *val = static_cast<const uint64_t *>(field_ptr);
-  buffer.encode_fixed64(field_num, *val);
-}
-
-void encode_double_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *val = static_cast<const double *>(field_ptr);
-  union {
-    double value;
-    uint64_t raw;
-  } u{};
-  u.value = *val;
-  buffer.encode_fixed64(field_num, u.raw);
-}
-
-void encode_bytes_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *str = static_cast<const std::string *>(field_ptr);
-  buffer.encode_bytes(field_num, reinterpret_cast<const uint8_t *>(str->data()), str->size());
-}
-
-// Type-specific size calculation functions
-void size_string_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *str = static_cast<const std::string *>(field_ptr);
-  ProtoSize::add_string_field(total_size, precalced_field_id_size, *str, force);
-}
-
-void size_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *val = static_cast<const uint32_t *>(field_ptr);
-  ProtoSize::add_fixed_field<4>(total_size, precalced_field_id_size, *val != 0 || force, force);
-}
-
-void size_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *val = static_cast<const bool *>(field_ptr);
-  ProtoSize::add_bool_field(total_size, precalced_field_id_size, *val, force);
-}
-
-void size_float_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *val = static_cast<const float *>(field_ptr);
-  ProtoSize::add_fixed_field<4>(total_size, precalced_field_id_size, *val != 0.0f || force, force);
-}
-
-void size_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *val = static_cast<const int32_t *>(field_ptr);
-  ProtoSize::add_int32_field(total_size, precalced_field_id_size, *val, force);
-}
-
-void size_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *val = static_cast<const uint32_t *>(field_ptr);
-  ProtoSize::add_uint32_field(total_size, precalced_field_id_size, *val, force);
-}
-
-void size_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *val = static_cast<const int64_t *>(field_ptr);
-  ProtoSize::add_int64_field(total_size, precalced_field_id_size, *val, force);
-}
-
-void size_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *val = static_cast<const uint64_t *>(field_ptr);
-  ProtoSize::add_uint64_field(total_size, precalced_field_id_size, *val, force);
-}
-
-void size_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *val = static_cast<const int32_t *>(field_ptr);
-  ProtoSize::add_sint32_field(total_size, precalced_field_id_size, *val, force);
-}
-
-void size_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *val = static_cast<const int64_t *>(field_ptr);
-  ProtoSize::add_sint64_field(total_size, precalced_field_id_size, *val, force);
-}
-
-void size_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *val = static_cast<const uint64_t *>(field_ptr);
-  ProtoSize::add_fixed_field<8>(total_size, precalced_field_id_size, *val != 0 || force, force);
-}
-
-void size_double_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *val = static_cast<const double *>(field_ptr);
-  ProtoSize::add_fixed_field<8>(total_size, precalced_field_id_size, *val != 0.0 || force, force);
-}
-
-void size_bytes_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force) {
-  const auto *str = static_cast<const std::string *>(field_ptr);
-  ProtoSize::add_string_field(total_size, precalced_field_id_size, *str, force);
-}
-
-// Type-specific decode functions
-bool decode_string_field(void *field_ptr, ProtoLengthDelimited value) {
-  auto *str = static_cast<std::string *>(field_ptr);
-  *str = value.as_string();
-  return true;
-}
-
-bool decode_fixed32_field(void *field_ptr, Proto32Bit value) {
-  auto *val = static_cast<uint32_t *>(field_ptr);
-  *val = value.as_fixed32();
-  return true;
-}
-
-bool decode_bool_field(void *field_ptr, ProtoVarInt value) {
-  auto *val = static_cast<bool *>(field_ptr);
-  *val = value.as_bool();
-  return true;
-}
-
-bool decode_float_field(void *field_ptr, Proto32Bit value) {
-  auto *val = static_cast<float *>(field_ptr);
-  *val = value.as_float();
-  return true;
-}
-
-bool decode_int32_field(void *field_ptr, ProtoVarInt value) {
-  auto *val = static_cast<int32_t *>(field_ptr);
-  *val = value.as_int32();
-  return true;
-}
-
-bool decode_uint32_field(void *field_ptr, ProtoVarInt value) {
-  auto *val = static_cast<uint32_t *>(field_ptr);
-  *val = value.as_uint32();
-  return true;
-}
-
-bool decode_int64_field(void *field_ptr, ProtoVarInt value) {
-  auto *val = static_cast<int64_t *>(field_ptr);
-  *val = value.as_int64();
-  return true;
-}
-
-bool decode_uint64_field(void *field_ptr, ProtoVarInt value) {
-  auto *val = static_cast<uint64_t *>(field_ptr);
-  *val = value.as_uint64();
-  return true;
-}
-
-bool decode_sint32_field(void *field_ptr, ProtoVarInt value) {
-  auto *val = static_cast<int32_t *>(field_ptr);
-  *val = value.as_sint32();
-  return true;
-}
-
-bool decode_sint64_field(void *field_ptr, ProtoVarInt value) {
-  auto *val = static_cast<int64_t *>(field_ptr);
-  *val = value.as_sint64();
-  return true;
-}
-
-bool decode_fixed64_field(void *field_ptr, Proto64Bit value) {
-  auto *val = static_cast<uint64_t *>(field_ptr);
-  *val = value.as_fixed64();
-  return true;
-}
-
-bool decode_double_field(void *field_ptr, Proto64Bit value) {
-  auto *val = static_cast<double *>(field_ptr);
-  *val = value.as_double();
-  return true;
-}
-
-bool decode_bytes_field(void *field_ptr, ProtoLengthDelimited value) {
-  auto *str = static_cast<std::string *>(field_ptr);
-  *str = value.as_string();
-  return true;
-}
+// Type-specific decode functions removed - V3 inlines decoding directly
 
 // Template functions are now in the header file for proper instantiation
 
-// Repeated field encoding functions
-void encode_repeated_string_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *vec = static_cast<const std::vector<std::string> *>(field_ptr);
-  for (const auto &item : *vec) {
-    buffer.encode_string(field_num, item, true);
-  }
-}
-
-void encode_repeated_bool_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *vec = static_cast<const std::vector<bool> *>(field_ptr);
-  for (bool val : *vec) {
-    buffer.encode_bool(field_num, val, true);
-  }
-}
-
-void encode_repeated_uint32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *vec = static_cast<const std::vector<uint32_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    buffer.encode_uint32(field_num, val, true);
-  }
-}
-
-void encode_repeated_int32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *vec = static_cast<const std::vector<int32_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    buffer.encode_int32(field_num, val, true);
-  }
-}
-
-void encode_repeated_uint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *vec = static_cast<const std::vector<uint64_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    buffer.encode_uint64(field_num, val, true);
-  }
-}
-
-void encode_repeated_int64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *vec = static_cast<const std::vector<int64_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    buffer.encode_int64(field_num, val, true);
-  }
-}
-
-void encode_repeated_sint32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *vec = static_cast<const std::vector<int32_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    buffer.encode_sint32(field_num, val, true);
-  }
-}
-
-void encode_repeated_sint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *vec = static_cast<const std::vector<int64_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    buffer.encode_sint64(field_num, val, true);
-  }
-}
-
-void encode_repeated_fixed32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *vec = static_cast<const std::vector<uint32_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    buffer.encode_fixed32(field_num, val, true);
-  }
-}
-
-void encode_repeated_fixed64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *vec = static_cast<const std::vector<uint64_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    buffer.encode_fixed64(field_num, val, true);
-  }
-}
-
-void encode_repeated_float_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *vec = static_cast<const std::vector<float> *>(field_ptr);
-  for (const auto &val : *vec) {
-    buffer.encode_float(field_num, val, true);
-  }
-}
-
-void encode_repeated_double_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num) {
-  const auto *vec = static_cast<const std::vector<double> *>(field_ptr);
-  for (const auto &val : *vec) {
-    union {
-      double value;
-      uint64_t raw;
-    } u{};
-    u.value = val;
-    buffer.encode_fixed64(field_num, u.raw, true);
-  }
-}
+// Repeated field encoding functions removed - V3 inlines encoding directly
 
 // Template repeated field functions moved to header
 
-// Repeated field size calculation functions
-void size_repeated_string_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
-  const auto *vec = static_cast<const std::vector<std::string> *>(field_ptr);
-  for (const auto &item : *vec) {
-    ProtoSize::add_string_field(total_size, precalced_field_id_size, item, true);
-  }
-}
-
-void size_repeated_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
-  const auto *vec = static_cast<const std::vector<bool> *>(field_ptr);
-  for (bool val : *vec) {
-    ProtoSize::add_bool_field(total_size, precalced_field_id_size, val, true);
-  }
-}
-
-void size_repeated_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
-  const auto *vec = static_cast<const std::vector<uint32_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    ProtoSize::add_uint32_field(total_size, precalced_field_id_size, val, true);
-  }
-}
-
-void size_repeated_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
-  const auto *vec = static_cast<const std::vector<int32_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    ProtoSize::add_int32_field(total_size, precalced_field_id_size, val, true);
-  }
-}
-
-void size_repeated_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
-  const auto *vec = static_cast<const std::vector<uint64_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    ProtoSize::add_uint64_field(total_size, precalced_field_id_size, val, true);
-  }
-}
-
-void size_repeated_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
-  const auto *vec = static_cast<const std::vector<int64_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    ProtoSize::add_int64_field(total_size, precalced_field_id_size, val, true);
-  }
-}
-
-void size_repeated_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
-  const auto *vec = static_cast<const std::vector<int32_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    ProtoSize::add_sint32_field(total_size, precalced_field_id_size, val, true);
-  }
-}
-
-void size_repeated_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
-  const auto *vec = static_cast<const std::vector<int64_t> *>(field_ptr);
-  for (const auto &val : *vec) {
-    ProtoSize::add_sint64_field(total_size, precalced_field_id_size, val, true);
-  }
-}
-
-void size_repeated_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
-  const auto *vec = static_cast<const std::vector<uint32_t> *>(field_ptr);
-  size_t count = vec->size();
-  if (count > 0) {
-    total_size += count * (precalced_field_id_size + 4);  // field tag + 4 bytes per item
-  }
-}
-
-void size_repeated_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
-  const auto *vec = static_cast<const std::vector<uint64_t> *>(field_ptr);
-  size_t count = vec->size();
-  if (count > 0) {
-    total_size += count * (precalced_field_id_size + 8);  // field tag + 8 bytes per item
-  }
-}
-
-void size_repeated_float_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
-  const auto *vec = static_cast<const std::vector<float> *>(field_ptr);
-  size_t count = vec->size();
-  if (count > 0) {
-    total_size += count * (precalced_field_id_size + 4);  // field tag + 4 bytes per item
-  }
-}
-
-void size_repeated_double_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size) {
-  const auto *vec = static_cast<const std::vector<double> *>(field_ptr);
-  size_t count = vec->size();
-  if (count > 0) {
-    total_size += count * (precalced_field_id_size + 8);  // field tag + 8 bytes per item
-  }
-}
+// Repeated field size calculation functions removed - V3 inlines size calculation directly
 
 // Template size functions moved to header
 
-// Repeated field decode functions
-bool decode_repeated_string_field(void *field_ptr, ProtoLengthDelimited value) {
-  auto *vec = static_cast<std::vector<std::string> *>(field_ptr);
-  vec->push_back(value.as_string());
-  return true;
-}
-
-bool decode_repeated_bool_field(void *field_ptr, ProtoVarInt value) {
-  auto *vec = static_cast<std::vector<bool> *>(field_ptr);
-  vec->push_back(value.as_bool());
-  return true;
-}
-
-bool decode_repeated_uint32_field(void *field_ptr, ProtoVarInt value) {
-  auto *vec = static_cast<std::vector<uint32_t> *>(field_ptr);
-  vec->push_back(value.as_uint32());
-  return true;
-}
-
-bool decode_repeated_int32_field(void *field_ptr, ProtoVarInt value) {
-  auto *vec = static_cast<std::vector<int32_t> *>(field_ptr);
-  vec->push_back(value.as_int32());
-  return true;
-}
-
-bool decode_repeated_uint64_field(void *field_ptr, ProtoVarInt value) {
-  auto *vec = static_cast<std::vector<uint64_t> *>(field_ptr);
-  vec->push_back(value.as_uint64());
-  return true;
-}
-
-bool decode_repeated_int64_field(void *field_ptr, ProtoVarInt value) {
-  auto *vec = static_cast<std::vector<int64_t> *>(field_ptr);
-  vec->push_back(value.as_int64());
-  return true;
-}
-
-bool decode_repeated_sint32_field(void *field_ptr, ProtoVarInt value) {
-  auto *vec = static_cast<std::vector<int32_t> *>(field_ptr);
-  vec->push_back(value.as_sint32());
-  return true;
-}
-
-bool decode_repeated_sint64_field(void *field_ptr, ProtoVarInt value) {
-  auto *vec = static_cast<std::vector<int64_t> *>(field_ptr);
-  vec->push_back(value.as_sint64());
-  return true;
-}
-
-bool decode_repeated_fixed32_field(void *field_ptr, Proto32Bit value) {
-  auto *vec = static_cast<std::vector<uint32_t> *>(field_ptr);
-  vec->push_back(value.as_fixed32());
-  return true;
-}
-
-bool decode_repeated_fixed64_field(void *field_ptr, Proto64Bit value) {
-  auto *vec = static_cast<std::vector<uint64_t> *>(field_ptr);
-  vec->push_back(value.as_fixed64());
-  return true;
-}
-
-bool decode_repeated_float_field(void *field_ptr, Proto32Bit value) {
-  auto *vec = static_cast<std::vector<float> *>(field_ptr);
-  vec->push_back(value.as_float());
-  return true;
-}
-
-bool decode_repeated_double_field(void *field_ptr, Proto64Bit value) {
-  auto *vec = static_cast<std::vector<double> *>(field_ptr);
-  vec->push_back(value.as_double());
-  return true;
-}
+// Repeated field decode functions removed - V3 inlines decoding directly
 
 // ProtoMessage implementations using metadata
-void ProtoMessage::encode(ProtoWriteBuffer buffer) const {
-  // Check if V3 metadata is available
-  const FieldMetaV3 *fields_v3 = get_field_metadata_v3();
-  if (fields_v3 != nullptr) {
-    encode_v3(buffer);
+void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
+  ESP_LOGD(TAG, "ProtoMessage::decode entered, buffer=%p, length=%zu", buffer, length);
+
+  // Handle null buffer
+  if (buffer == nullptr && length > 0) {
+    ESP_LOGW(TAG, "decode called with nullptr buffer but length=%zu", length);
     return;
   }
 
-  const uint8_t *base = reinterpret_cast<const uint8_t *>(this);
-
-  // Get V2 metadata once at the start
-  const FieldMetaV2 *fields = get_field_metadata_v2();
-  size_t field_count = get_field_count_v2();
-
-  // Encode regular fields
-  for (size_t i = 0; i < field_count; i++) {
-    const void *field_addr = base + fields[i].offset;
-
-    switch (fields[i].type) {
-      case ProtoFieldType::TYPE_BOOL: {
-        const bool *val = static_cast<const bool *>(field_addr);
-        buffer.encode_bool(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_INT32: {
-        const int32_t *val = static_cast<const int32_t *>(field_addr);
-        buffer.encode_int32(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT32: {
-        const uint32_t *val = static_cast<const uint32_t *>(field_addr);
-        buffer.encode_uint32(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_INT64: {
-        const int64_t *val = static_cast<const int64_t *>(field_addr);
-        buffer.encode_int64(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT64: {
-        const uint64_t *val = static_cast<const uint64_t *>(field_addr);
-        buffer.encode_uint64(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT32: {
-        const int32_t *val = static_cast<const int32_t *>(field_addr);
-        buffer.encode_sint32(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT64: {
-        const int64_t *val = static_cast<const int64_t *>(field_addr);
-        buffer.encode_sint64(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_ENUM: {
-        // For enums, treat as uint32 for now
-        const uint32_t *val = static_cast<const uint32_t *>(field_addr);
-        buffer.encode_uint32(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_STRING: {
-        const std::string *val = static_cast<const std::string *>(field_addr);
-        buffer.encode_string(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_BYTES: {
-        const std::string *val = static_cast<const std::string *>(field_addr);
-        buffer.encode_bytes(fields[i].field_num, reinterpret_cast<const uint8_t *>(val->data()), val->size(),
-                            fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_FLOAT: {
-        const float *val = static_cast<const float *>(field_addr);
-        buffer.encode_float(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED32: {
-        const uint32_t *val = static_cast<const uint32_t *>(field_addr);
-        buffer.encode_fixed32(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED32: {
-        const int32_t *val = static_cast<const int32_t *>(field_addr);
-        buffer.encode_sfixed32(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_DOUBLE: {
-        const double *val = static_cast<const double *>(field_addr);
-        buffer.encode_double(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED64: {
-        const uint64_t *val = static_cast<const uint64_t *>(field_addr);
-        buffer.encode_fixed64(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED64: {
-        const int64_t *val = static_cast<const int64_t *>(field_addr);
-        buffer.encode_sfixed64(fields[i].field_num, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_MESSAGE: {
-        // Use function pointer from metadata
-        if (fields[i].handler.message.encode) {
-          fields[i].handler.message.encode(buffer, field_addr, fields[i].field_num);
-        }
-        break;
-      }
-    }
-  }
-
-  // Encode repeated fields
-  const RepeatedFieldMetaV2 *repeated_fields = get_repeated_field_metadata_v2();
-  size_t repeated_count = get_repeated_field_count_v2();
-
-  for (size_t i = 0; i < repeated_count; i++) {
-    const void *field_addr = base + repeated_fields[i].offset;
-
-    switch (repeated_fields[i].type) {
-      case ProtoFieldType::TYPE_BOOL: {
-        const auto *vec = static_cast<const std::vector<bool> *>(field_addr);
-        for (bool val : *vec) {
-          buffer.encode_bool(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_INT32: {
-        const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_int32(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT32: {
-        const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_uint32(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_INT64: {
-        const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_int64(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT64: {
-        const auto *vec = static_cast<const std::vector<uint64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_uint64(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT32: {
-        const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_sint32(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT64: {
-        const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_sint64(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_ENUM: {
-        // For repeated enums, treat as uint32 for now
-        const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_uint32(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_STRING: {
-        const auto *vec = static_cast<const std::vector<std::string> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_string(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_BYTES: {
-        const auto *vec = static_cast<const std::vector<std::string> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_bytes(repeated_fields[i].field_num, reinterpret_cast<const uint8_t *>(val.data()), val.size(),
-                              true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_FLOAT: {
-        const auto *vec = static_cast<const std::vector<float> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_float(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED32: {
-        const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_fixed32(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED32: {
-        const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_sfixed32(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_DOUBLE: {
-        const auto *vec = static_cast<const std::vector<double> *>(field_addr);
-        for (const auto &val : *vec) {
-          union {
-            double value;
-            uint64_t raw;
-          } u{};
-          u.value = val;
-          buffer.encode_fixed64(repeated_fields[i].field_num, u.raw, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED64: {
-        const auto *vec = static_cast<const std::vector<uint64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_fixed64(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED64: {
-        const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_sfixed64(repeated_fields[i].field_num, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_MESSAGE: {
-        // Use function pointer from metadata
-        if (repeated_fields[i].handler.message.encode) {
-          repeated_fields[i].handler.message.encode(buffer, field_addr, repeated_fields[i].field_num);
-        }
-        break;
-      }
-    }
-  }
-}
-
-void ProtoMessage::calculate_size(uint32_t &total_size) const {
-  // Check if V3 metadata is available
-  const FieldMetaV3 *fields_v3 = get_field_metadata_v3();
-  if (fields_v3 != nullptr) {
-    calculate_size_v3(total_size);
-    return;
-  }
-
-  const uint8_t *base = reinterpret_cast<const uint8_t *>(this);
-
-  // Get V2 metadata once at the start
-  const FieldMetaV2 *fields = get_field_metadata_v2();
-  size_t field_count = get_field_count_v2();
-
-  // Calculate size for regular fields
-  for (size_t i = 0; i < field_count; i++) {
-    const void *field_addr = base + fields[i].offset;
-
-    switch (fields[i].type) {
-      case ProtoFieldType::TYPE_BOOL: {
-        const bool *val = static_cast<const bool *>(field_addr);
-        ProtoSize::add_bool_field(total_size, fields[i].precalced_field_id_size, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_INT32: {
-        const int32_t *val = static_cast<const int32_t *>(field_addr);
-        ProtoSize::add_int32_field(total_size, fields[i].precalced_field_id_size, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT32: {
-        const uint32_t *val = static_cast<const uint32_t *>(field_addr);
-        ProtoSize::add_uint32_field(total_size, fields[i].precalced_field_id_size, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_INT64: {
-        const int64_t *val = static_cast<const int64_t *>(field_addr);
-        ProtoSize::add_int64_field(total_size, fields[i].precalced_field_id_size, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT64: {
-        const uint64_t *val = static_cast<const uint64_t *>(field_addr);
-        ProtoSize::add_uint64_field(total_size, fields[i].precalced_field_id_size, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT32: {
-        const int32_t *val = static_cast<const int32_t *>(field_addr);
-        ProtoSize::add_sint32_field(total_size, fields[i].precalced_field_id_size, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT64: {
-        const int64_t *val = static_cast<const int64_t *>(field_addr);
-        ProtoSize::add_sint64_field(total_size, fields[i].precalced_field_id_size, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_ENUM: {
-        // For enums, treat as uint32 for now
-        const uint32_t *val = static_cast<const uint32_t *>(field_addr);
-        ProtoSize::add_enum_field(total_size, fields[i].precalced_field_id_size, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_STRING: {
-        const std::string *val = static_cast<const std::string *>(field_addr);
-        ProtoSize::add_string_field(total_size, fields[i].precalced_field_id_size, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_BYTES: {
-        const std::string *val = static_cast<const std::string *>(field_addr);
-        ProtoSize::add_string_field(total_size, fields[i].precalced_field_id_size, *val, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_FLOAT: {
-        const float *val = static_cast<const float *>(field_addr);
-        ProtoSize::add_fixed_field<4>(total_size, fields[i].precalced_field_id_size,
-                                      *val != 0.0f || fields[i].force_encode, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED32: {
-        const uint32_t *val = static_cast<const uint32_t *>(field_addr);
-        ProtoSize::add_fixed_field<4>(total_size, fields[i].precalced_field_id_size,
-                                      *val != 0 || fields[i].force_encode, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED32: {
-        const int32_t *val = static_cast<const int32_t *>(field_addr);
-        ProtoSize::add_fixed_field<4>(total_size, fields[i].precalced_field_id_size,
-                                      *val != 0 || fields[i].force_encode, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_DOUBLE: {
-        const double *val = static_cast<const double *>(field_addr);
-        ProtoSize::add_fixed_field<8>(total_size, fields[i].precalced_field_id_size,
-                                      *val != 0.0 || fields[i].force_encode, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED64: {
-        const uint64_t *val = static_cast<const uint64_t *>(field_addr);
-        ProtoSize::add_fixed_field<8>(total_size, fields[i].precalced_field_id_size,
-                                      *val != 0 || fields[i].force_encode, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED64: {
-        const int64_t *val = static_cast<const int64_t *>(field_addr);
-        ProtoSize::add_fixed_field<8>(total_size, fields[i].precalced_field_id_size,
-                                      *val != 0 || fields[i].force_encode, fields[i].force_encode);
-        break;
-      }
-      case ProtoFieldType::TYPE_MESSAGE: {
-        // Use function pointer from metadata
-        if (fields[i].handler.message.size) {
-          fields[i].handler.message.size(total_size, field_addr, fields[i].precalced_field_id_size,
-                                         fields[i].force_encode);
-        }
-        break;
-      }
-    }
-  }
-
-  // Calculate size for repeated fields
-  const RepeatedFieldMetaV2 *repeated_fields = get_repeated_field_metadata_v2();
-  size_t repeated_count = get_repeated_field_count_v2();
-
-  for (size_t i = 0; i < repeated_count; i++) {
-    const void *field_addr = base + repeated_fields[i].offset;
-
-    switch (repeated_fields[i].type) {
-      case ProtoFieldType::TYPE_BOOL: {
-        const auto *vec = static_cast<const std::vector<bool> *>(field_addr);
-        for (bool val : *vec) {
-          ProtoSize::add_bool_field(total_size, repeated_fields[i].precalced_field_id_size, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_INT32: {
-        const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_int32_field(total_size, repeated_fields[i].precalced_field_id_size, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT32: {
-        const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_uint32_field(total_size, repeated_fields[i].precalced_field_id_size, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_INT64: {
-        const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_int64_field(total_size, repeated_fields[i].precalced_field_id_size, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT64: {
-        const auto *vec = static_cast<const std::vector<uint64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_uint64_field(total_size, repeated_fields[i].precalced_field_id_size, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT32: {
-        const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_sint32_field(total_size, repeated_fields[i].precalced_field_id_size, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT64: {
-        const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_sint64_field(total_size, repeated_fields[i].precalced_field_id_size, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_ENUM: {
-        // For repeated enums, treat as uint32 for now
-        const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_enum_field(total_size, repeated_fields[i].precalced_field_id_size, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_STRING: {
-        const auto *vec = static_cast<const std::vector<std::string> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_string_field(total_size, repeated_fields[i].precalced_field_id_size, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_BYTES: {
-        const auto *vec = static_cast<const std::vector<std::string> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_string_field(total_size, repeated_fields[i].precalced_field_id_size, val, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_FLOAT: {
-        const auto *vec = static_cast<const std::vector<float> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_fixed_field<4>(total_size, repeated_fields[i].precalced_field_id_size, true, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED32: {
-        const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_fixed_field<4>(total_size, repeated_fields[i].precalced_field_id_size, true, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED32: {
-        const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_fixed_field<4>(total_size, repeated_fields[i].precalced_field_id_size, true, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_DOUBLE: {
-        const auto *vec = static_cast<const std::vector<double> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_fixed_field<8>(total_size, repeated_fields[i].precalced_field_id_size, true, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED64: {
-        const auto *vec = static_cast<const std::vector<uint64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_fixed_field<8>(total_size, repeated_fields[i].precalced_field_id_size, true, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED64: {
-        const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_fixed_field<8>(total_size, repeated_fields[i].precalced_field_id_size, true, true);
-        }
-        break;
-      }
-      case ProtoFieldType::TYPE_MESSAGE: {
-        // Use function pointer from metadata
-        if (repeated_fields[i].handler.message.size) {
-          repeated_fields[i].handler.message.size(total_size, field_addr, repeated_fields[i].precalced_field_id_size);
-        }
-        break;
-      }
-    }
-  }
-}
-
-// V3 implementations
-void ProtoMessage::decode_v3(const uint8_t *buffer, size_t length) {
   uint32_t i = 0;
   bool error = false;
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
   // Get V3 metadata
+  ESP_LOGD(TAG, "Getting V3 metadata...");
   const FieldMetaV3 *fields = get_field_metadata_v3();
   size_t field_count = get_field_count_v3();
   const RepeatedFieldMetaV3 *repeated_fields = get_repeated_field_metadata_v3();
   size_t repeated_count = get_repeated_field_count_v3();
+
+  ESP_LOGD(TAG, "decode: field_count=%zu, repeated_count=%zu, length=%zu, fields=%p, repeated_fields=%p", field_count,
+           repeated_count, length, fields, repeated_fields);
+
+  // If message has no fields at all, just return (valid empty message)
+  if (field_count == 0 && repeated_count == 0) {
+    if (length > 0) {
+      ESP_LOGW(TAG, "Received data for message with no fields");
+    }
+    ESP_LOGD(TAG, "Empty message handled, returning");
+    return;
+  }
 
   while (i < length) {
     uint32_t consumed;
@@ -1456,55 +95,56 @@ void ProtoMessage::decode_v3(const uint8_t *buffer, size_t length) {
         bool decoded = false;
 
         // Check regular fields
-        for (size_t j = 0; j < field_count; j++) {
-          if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 0) {
-            void *field_addr = base + fields[j].offset;
+        if (fields != nullptr) {
+          for (size_t j = 0; j < field_count; j++) {
+            if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 0) {
+              void *field_addr = base + fields[j].get_offset();
 
-            switch (fields[j].get_type()) {
-              case ProtoFieldType::TYPE_BOOL:
-                *static_cast<bool *>(field_addr) = value.as_bool();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_INT32:
-                *static_cast<int32_t *>(field_addr) = value.as_int32();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_UINT32:
-                *static_cast<uint32_t *>(field_addr) = value.as_uint32();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_INT64:
-                *static_cast<int64_t *>(field_addr) = value.as_int64();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_UINT64:
-                *static_cast<uint64_t *>(field_addr) = value.as_uint64();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_SINT32:
-                *static_cast<int32_t *>(field_addr) = value.as_sint32();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_SINT64:
-                *static_cast<int64_t *>(field_addr) = value.as_sint64();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_ENUM:
-                *static_cast<uint32_t *>(field_addr) = value.as_uint32();
-                decoded = true;
-                break;
-              default:
-                break;
+              switch (fields[j].get_type()) {
+                case ProtoFieldType::TYPE_BOOL:
+                  *static_cast<bool *>(field_addr) = value.as_bool();
+                  decoded = true;
+                  break;
+                case ProtoFieldType::TYPE_INT32:
+                  *static_cast<int32_t *>(field_addr) = value.as_int32();
+                  decoded = true;
+                  break;
+                case ProtoFieldType::TYPE_UINT32:
+                  *static_cast<uint32_t *>(field_addr) = value.as_uint32();
+                  decoded = true;
+                  break;
+                case ProtoFieldType::TYPE_INT64:
+                  *static_cast<int64_t *>(field_addr) = value.as_int64();
+                  decoded = true;
+                  break;
+                case ProtoFieldType::TYPE_UINT64:
+                  *static_cast<uint64_t *>(field_addr) = value.as_uint64();
+                  decoded = true;
+                  break;
+                case ProtoFieldType::TYPE_SINT32:
+                  *static_cast<int32_t *>(field_addr) = value.as_sint32();
+                  decoded = true;
+                  break;
+                case ProtoFieldType::TYPE_SINT64:
+                  *static_cast<int64_t *>(field_addr) = value.as_sint64();
+                  decoded = true;
+                  break;
+                case ProtoFieldType::TYPE_ENUM:
+                  *static_cast<uint32_t *>(field_addr) = value.as_uint32();
+                  decoded = true;
+                  break;
+                default:
+                  break;
+              }
+              break;
             }
-            break;
           }
         }
-
         // Check repeated fields if not found
         if (!decoded && repeated_fields) {
           for (size_t j = 0; j < repeated_count; j++) {
             if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 0) {
-              void *field_addr = base + repeated_fields[j].offset;
+              void *field_addr = base + repeated_fields[j].get_offset();
 
               switch (repeated_fields[j].get_type()) {
                 case ProtoFieldType::TYPE_BOOL: {
@@ -1590,34 +230,41 @@ void ProtoMessage::decode_v3(const uint8_t *buffer, size_t length) {
         bool decoded = false;
 
         // Check regular fields
-        for (size_t j = 0; j < field_count; j++) {
-          if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 2) {
-            void *field_addr = base + fields[j].offset;
+        if (fields != nullptr) {
+          for (size_t j = 0; j < field_count; j++) {
+            if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 2) {
+              void *field_addr = base + fields[j].get_offset();
 
-            switch (fields[j].get_type()) {
-              case ProtoFieldType::TYPE_STRING: {
-                auto *str = static_cast<std::string *>(field_addr);
-                *str = value.as_string();
-                decoded = true;
-                break;
-              }
-              case ProtoFieldType::TYPE_BYTES: {
-                auto *str = static_cast<std::string *>(field_addr);
-                *str = value.as_string();
-                decoded = true;
-                break;
-              }
-              case ProtoFieldType::TYPE_MESSAGE: {
-                // Use message handler registry
-                if (fields[j].get_message_type_id() < MESSAGE_HANDLER_COUNT) {
-                  decoded = MESSAGE_HANDLERS[fields[j].get_message_type_id()].decode(field_addr, value);
+              switch (fields[j].get_type()) {
+                case ProtoFieldType::TYPE_STRING: {
+                  auto *str = static_cast<std::string *>(field_addr);
+                  *str = value.as_string();
+                  decoded = true;
+                  break;
                 }
-                break;
+                case ProtoFieldType::TYPE_BYTES: {
+                  auto *str = static_cast<std::string *>(field_addr);
+                  *str = value.as_string();
+                  decoded = true;
+                  break;
+                }
+                case ProtoFieldType::TYPE_MESSAGE: {
+                  // Use message handler registry
+                  uint8_t handler_id = fields[j].get_message_type_id();
+                  ESP_LOGD(TAG, "TYPE_MESSAGE field %d, handler_id=%d, MESSAGE_HANDLER_COUNT=%zu", field_id, handler_id,
+                           MESSAGE_HANDLER_COUNT);
+                  if (handler_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[handler_id].decode != nullptr) {
+                    decoded = MESSAGE_HANDLERS[handler_id].decode(field_addr, value);
+                  } else {
+                    ESP_LOGW(TAG, "No handler for message type %d", handler_id);
+                  }
+                  break;
+                }
+                default:
+                  break;
               }
-              default:
-                break;
+              break;
             }
-            break;
           }
         }
 
@@ -1625,7 +272,7 @@ void ProtoMessage::decode_v3(const uint8_t *buffer, size_t length) {
         if (!decoded && repeated_fields) {
           for (size_t j = 0; j < repeated_count; j++) {
             if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 2) {
-              void *field_addr = base + repeated_fields[j].offset;
+              void *field_addr = base + repeated_fields[j].get_offset();
 
               switch (repeated_fields[j].get_type()) {
                 case ProtoFieldType::TYPE_STRING: {
@@ -1636,9 +283,14 @@ void ProtoMessage::decode_v3(const uint8_t *buffer, size_t length) {
                 }
                 case ProtoFieldType::TYPE_MESSAGE: {
                   // Use repeated message handler registry
-                  if (repeated_fields[j].get_message_type_id() < REPEATED_MESSAGE_HANDLER_COUNT) {
-                    decoded =
-                        REPEATED_MESSAGE_HANDLERS[repeated_fields[j].get_message_type_id()].decode(field_addr, value);
+                  uint8_t handler_id = repeated_fields[j].get_message_type_id();
+                  ESP_LOGD(TAG, "Repeated TYPE_MESSAGE field %d, handler_id=%d, REPEATED_MESSAGE_HANDLER_COUNT=%zu", 
+                           field_id, handler_id, REPEATED_MESSAGE_HANDLER_COUNT);
+                  if (handler_id < REPEATED_MESSAGE_HANDLER_COUNT && REPEATED_MESSAGE_HANDLERS[handler_id].decode != nullptr) {
+                    decoded = REPEATED_MESSAGE_HANDLERS[handler_id].decode(field_addr, value);
+                    ESP_LOGD(TAG, "Decoded repeated message field %d: %s", field_id, decoded ? "success" : "failed");
+                  } else {
+                    ESP_LOGW(TAG, "No handler for repeated message type %d", handler_id);
                   }
                   break;
                 }
@@ -1673,27 +325,29 @@ void ProtoMessage::decode_v3(const uint8_t *buffer, size_t length) {
         bool decoded = false;
 
         // Check regular fields
-        for (size_t j = 0; j < field_count; j++) {
-          if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 5) {
-            void *field_addr = base + fields[j].offset;
+        if (fields != nullptr) {
+          for (size_t j = 0; j < field_count; j++) {
+            if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 5) {
+              void *field_addr = base + fields[j].get_offset();
 
-            switch (fields[j].get_type()) {
-              case ProtoFieldType::TYPE_FLOAT:
-                *static_cast<float *>(field_addr) = value.as_float();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_FIXED32:
-                *static_cast<uint32_t *>(field_addr) = value.as_fixed32();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_SFIXED32:
-                *static_cast<int32_t *>(field_addr) = value.as_sfixed32();
-                decoded = true;
-                break;
-              default:
-                break;
+              switch (fields[j].get_type()) {
+                case ProtoFieldType::TYPE_FLOAT:
+                  *static_cast<float *>(field_addr) = value.as_float();
+                  decoded = true;
+                  break;
+                case ProtoFieldType::TYPE_FIXED32:
+                  *static_cast<uint32_t *>(field_addr) = value.as_fixed32();
+                  decoded = true;
+                  break;
+                case ProtoFieldType::TYPE_SFIXED32:
+                  *static_cast<int32_t *>(field_addr) = value.as_sfixed32();
+                  decoded = true;
+                  break;
+                default:
+                  break;
+              }
+              break;
             }
-            break;
           }
         }
 
@@ -1701,7 +355,7 @@ void ProtoMessage::decode_v3(const uint8_t *buffer, size_t length) {
         if (!decoded && repeated_fields) {
           for (size_t j = 0; j < repeated_count; j++) {
             if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 5) {
-              void *field_addr = base + repeated_fields[j].offset;
+              void *field_addr = base + repeated_fields[j].get_offset();
 
               switch (repeated_fields[j].get_type()) {
                 case ProtoFieldType::TYPE_FLOAT: {
@@ -1757,27 +411,29 @@ void ProtoMessage::decode_v3(const uint8_t *buffer, size_t length) {
         bool decoded = false;
 
         // Check regular fields
-        for (size_t j = 0; j < field_count; j++) {
-          if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 1) {
-            void *field_addr = base + fields[j].offset;
+        if (fields != nullptr) {
+          for (size_t j = 0; j < field_count; j++) {
+            if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 1) {
+              void *field_addr = base + fields[j].get_offset();
 
-            switch (fields[j].get_type()) {
-              case ProtoFieldType::TYPE_DOUBLE:
-                *static_cast<double *>(field_addr) = value.as_double();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_FIXED64:
-                *static_cast<uint64_t *>(field_addr) = value.as_fixed64();
-                decoded = true;
-                break;
-              case ProtoFieldType::TYPE_SFIXED64:
-                *static_cast<int64_t *>(field_addr) = value.as_sfixed64();
-                decoded = true;
-                break;
-              default:
-                break;
+              switch (fields[j].get_type()) {
+                case ProtoFieldType::TYPE_DOUBLE:
+                  *static_cast<double *>(field_addr) = value.as_double();
+                  decoded = true;
+                  break;
+                case ProtoFieldType::TYPE_FIXED64:
+                  *static_cast<uint64_t *>(field_addr) = value.as_fixed64();
+                  decoded = true;
+                  break;
+                case ProtoFieldType::TYPE_SFIXED64:
+                  *static_cast<int64_t *>(field_addr) = value.as_sfixed64();
+                  decoded = true;
+                  break;
+                default:
+                  break;
+              }
+              break;
             }
-            break;
           }
         }
 
@@ -1785,7 +441,7 @@ void ProtoMessage::decode_v3(const uint8_t *buffer, size_t length) {
         if (!decoded && repeated_fields) {
           for (size_t j = 0; j < repeated_count; j++) {
             if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 1) {
-              void *field_addr = base + repeated_fields[j].offset;
+              void *field_addr = base + repeated_fields[j].get_offset();
 
               switch (repeated_fields[j].get_type()) {
                 case ProtoFieldType::TYPE_DOUBLE: {
@@ -1832,7 +488,7 @@ void ProtoMessage::decode_v3(const uint8_t *buffer, size_t length) {
   }
 }
 
-void ProtoMessage::encode_v3(ProtoWriteBuffer buffer) const {
+void ProtoMessage::encode(ProtoWriteBuffer buffer) const {
   const uint8_t *base = reinterpret_cast<const uint8_t *>(this);
 
   // Get V3 metadata
@@ -1840,234 +496,237 @@ void ProtoMessage::encode_v3(ProtoWriteBuffer buffer) const {
   size_t field_count = get_field_count_v3();
 
   // Regular fields
-  for (size_t i = 0; i < field_count; i++) {
-    const void *field_addr = base + fields[i].offset;
+  if (fields != nullptr) {
+    for (size_t i = 0; i < field_count; i++) {
+      const void *field_addr = base + fields[i].get_offset();
 
-    switch (fields[i].get_type()) {
-      case ProtoFieldType::TYPE_BOOL: {
-        const auto *val = static_cast<const bool *>(field_addr);
-        buffer.encode_bool(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_INT32: {
-        const auto *val = static_cast<const int32_t *>(field_addr);
-        buffer.encode_int32(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT32: {
-        const auto *val = static_cast<const uint32_t *>(field_addr);
-        buffer.encode_uint32(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_INT64: {
-        const auto *val = static_cast<const int64_t *>(field_addr);
-        buffer.encode_int64(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT64: {
-        const auto *val = static_cast<const uint64_t *>(field_addr);
-        buffer.encode_uint64(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT32: {
-        const auto *val = static_cast<const int32_t *>(field_addr);
-        buffer.encode_sint32(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT64: {
-        const auto *val = static_cast<const int64_t *>(field_addr);
-        buffer.encode_sint64(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_ENUM: {
-        const auto *val = static_cast<const uint32_t *>(field_addr);
-        buffer.encode_uint32(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_STRING: {
-        const auto *val = static_cast<const std::string *>(field_addr);
-        buffer.encode_string(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_BYTES: {
-        const auto *str = static_cast<const std::string *>(field_addr);
-        buffer.encode_bytes(fields[i].field_num, reinterpret_cast<const uint8_t *>(str->data()), str->size(), false);
-        break;
-      }
-      case ProtoFieldType::TYPE_FLOAT: {
-        const auto *val = static_cast<const float *>(field_addr);
-        buffer.encode_float(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED32: {
-        const auto *val = static_cast<const uint32_t *>(field_addr);
-        buffer.encode_fixed32(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED32: {
-        const auto *val = static_cast<const int32_t *>(field_addr);
-        buffer.encode_sfixed32(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_DOUBLE: {
-        const auto *val = static_cast<const double *>(field_addr);
-        buffer.encode_double(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED64: {
-        const auto *val = static_cast<const uint64_t *>(field_addr);
-        buffer.encode_fixed64(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED64: {
-        const auto *val = static_cast<const int64_t *>(field_addr);
-        buffer.encode_sfixed64(fields[i].field_num, *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_MESSAGE: {
-        // Use message handler registry
-        if (fields[i].get_message_type_id() < MESSAGE_HANDLER_COUNT) {
-          MESSAGE_HANDLERS[fields[i].get_message_type_id()].encode(buffer, field_addr, fields[i].field_num);
+      switch (fields[i].get_type()) {
+        case ProtoFieldType::TYPE_BOOL: {
+          const auto *val = static_cast<const bool *>(field_addr);
+          buffer.encode_bool(fields[i].field_num, *val, false);
+          break;
         }
-        break;
+        case ProtoFieldType::TYPE_INT32: {
+          const auto *val = static_cast<const int32_t *>(field_addr);
+          buffer.encode_int32(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_UINT32: {
+          const auto *val = static_cast<const uint32_t *>(field_addr);
+          buffer.encode_uint32(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_INT64: {
+          const auto *val = static_cast<const int64_t *>(field_addr);
+          buffer.encode_int64(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_UINT64: {
+          const auto *val = static_cast<const uint64_t *>(field_addr);
+          buffer.encode_uint64(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_SINT32: {
+          const auto *val = static_cast<const int32_t *>(field_addr);
+          buffer.encode_sint32(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_SINT64: {
+          const auto *val = static_cast<const int64_t *>(field_addr);
+          buffer.encode_sint64(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_ENUM: {
+          const auto *val = static_cast<const uint32_t *>(field_addr);
+          buffer.encode_uint32(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_STRING: {
+          const auto *val = static_cast<const std::string *>(field_addr);
+          buffer.encode_string(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_BYTES: {
+          const auto *str = static_cast<const std::string *>(field_addr);
+          buffer.encode_bytes(fields[i].field_num, reinterpret_cast<const uint8_t *>(str->data()), str->size(), false);
+          break;
+        }
+        case ProtoFieldType::TYPE_FLOAT: {
+          const auto *val = static_cast<const float *>(field_addr);
+          buffer.encode_float(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_FIXED32: {
+          const auto *val = static_cast<const uint32_t *>(field_addr);
+          buffer.encode_fixed32(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_SFIXED32: {
+          const auto *val = static_cast<const int32_t *>(field_addr);
+          buffer.encode_sfixed32(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_DOUBLE: {
+          const auto *val = static_cast<const double *>(field_addr);
+          buffer.encode_double(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_FIXED64: {
+          const auto *val = static_cast<const uint64_t *>(field_addr);
+          buffer.encode_fixed64(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_SFIXED64: {
+          const auto *val = static_cast<const int64_t *>(field_addr);
+          buffer.encode_sfixed64(fields[i].field_num, *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_MESSAGE: {
+          // Use message handler registry
+          if (fields[i].get_message_type_id() < MESSAGE_HANDLER_COUNT) {
+            MESSAGE_HANDLERS[fields[i].get_message_type_id()].encode(buffer, field_addr, fields[i].field_num);
+          }
+          break;
+        }
       }
     }
   }
-
   // Repeated fields
   const RepeatedFieldMetaV3 *repeated_fields = get_repeated_field_metadata_v3();
   size_t repeated_count = get_repeated_field_count_v3();
 
-  for (size_t i = 0; i < repeated_count; i++) {
-    const void *field_addr = base + repeated_fields[i].offset;
+  if (repeated_fields != nullptr) {
+    for (size_t i = 0; i < repeated_count; i++) {
+      const void *field_addr = base + repeated_fields[i].get_offset();
 
-    switch (repeated_fields[i].get_type()) {
-      case ProtoFieldType::TYPE_BOOL: {
-        const auto *vec = static_cast<const std::vector<bool> *>(field_addr);
-        for (bool val : *vec) {
-          buffer.encode_bool(repeated_fields[i].field_num, val, true);
+      switch (repeated_fields[i].get_type()) {
+        case ProtoFieldType::TYPE_BOOL: {
+          const auto *vec = static_cast<const std::vector<bool> *>(field_addr);
+          for (bool val : *vec) {
+            buffer.encode_bool(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_INT32: {
-        const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_int32(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_INT32: {
+          const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_int32(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT32: {
-        const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_uint32(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_UINT32: {
+          const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_uint32(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_INT64: {
-        const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_int64(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_INT64: {
+          const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_int64(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT64: {
-        const auto *vec = static_cast<const std::vector<uint64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_uint64(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_UINT64: {
+          const auto *vec = static_cast<const std::vector<uint64_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_uint64(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT32: {
-        const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_sint32(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_SINT32: {
+          const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_sint32(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT64: {
-        const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_sint64(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_SINT64: {
+          const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_sint64(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_ENUM: {
-        const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_uint32(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_ENUM: {
+          const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_uint32(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_STRING: {
-        const auto *vec = static_cast<const std::vector<std::string> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_string(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_STRING: {
+          const auto *vec = static_cast<const std::vector<std::string> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_string(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_BYTES: {
-        const auto *vec = static_cast<const std::vector<std::string> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_bytes(repeated_fields[i].field_num, reinterpret_cast<const uint8_t *>(val.data()), val.size(),
-                              true);
+        case ProtoFieldType::TYPE_BYTES: {
+          const auto *vec = static_cast<const std::vector<std::string> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_bytes(repeated_fields[i].field_num, reinterpret_cast<const uint8_t *>(val.data()), val.size(),
+                                true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_FLOAT: {
-        const auto *vec = static_cast<const std::vector<float> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_float(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_FLOAT: {
+          const auto *vec = static_cast<const std::vector<float> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_float(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED32: {
-        const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_fixed32(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_FIXED32: {
+          const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_fixed32(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED32: {
-        const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_sfixed32(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_SFIXED32: {
+          const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_sfixed32(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_DOUBLE: {
-        const auto *vec = static_cast<const std::vector<double> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_double(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_DOUBLE: {
+          const auto *vec = static_cast<const std::vector<double> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_double(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED64: {
-        const auto *vec = static_cast<const std::vector<uint64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_fixed64(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_FIXED64: {
+          const auto *vec = static_cast<const std::vector<uint64_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_fixed64(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED64: {
-        const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          buffer.encode_sfixed64(repeated_fields[i].field_num, val, true);
+        case ProtoFieldType::TYPE_SFIXED64: {
+          const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            buffer.encode_sfixed64(repeated_fields[i].field_num, val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_MESSAGE: {
-        // Use repeated message handler registry
-        if (repeated_fields[i].get_message_type_id() < REPEATED_MESSAGE_HANDLER_COUNT) {
-          REPEATED_MESSAGE_HANDLERS[repeated_fields[i].get_message_type_id()].encode(buffer, field_addr,
-                                                                                     repeated_fields[i].field_num);
+        case ProtoFieldType::TYPE_MESSAGE: {
+          // Use repeated message handler registry
+          if (repeated_fields[i].get_message_type_id() < REPEATED_MESSAGE_HANDLER_COUNT) {
+            REPEATED_MESSAGE_HANDLERS[repeated_fields[i].get_message_type_id()].encode(buffer, field_addr,
+                                                                                       repeated_fields[i].field_num);
+          }
+          break;
         }
-        break;
       }
     }
   }
 }
 
-void ProtoMessage::calculate_size_v3(uint32_t &total_size) const {
+void ProtoMessage::calculate_size(uint32_t &total_size) const {
   const uint8_t *base = reinterpret_cast<const uint8_t *>(this);
 
   // Get V3 metadata
@@ -2075,225 +734,235 @@ void ProtoMessage::calculate_size_v3(uint32_t &total_size) const {
   size_t field_count = get_field_count_v3();
 
   // Regular fields
-  for (size_t i = 0; i < field_count; i++) {
-    const void *field_addr = base + fields[i].offset;
+  if (fields != nullptr) {
+    for (size_t i = 0; i < field_count; i++) {
+      const void *field_addr = base + fields[i].get_offset();
 
-    switch (fields[i].get_type()) {
-      case ProtoFieldType::TYPE_BOOL: {
-        const auto *val = static_cast<const bool *>(field_addr);
-        ProtoSize::add_bool_field(total_size, fields[i].get_precalced_size(), *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_INT32: {
-        const auto *val = static_cast<const int32_t *>(field_addr);
-        ProtoSize::add_int32_field(total_size, fields[i].get_precalced_size(), *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT32: {
-        const auto *val = static_cast<const uint32_t *>(field_addr);
-        ProtoSize::add_uint32_field(total_size, fields[i].get_precalced_size(), *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_INT64: {
-        const auto *val = static_cast<const int64_t *>(field_addr);
-        ProtoSize::add_int64_field(total_size, fields[i].get_precalced_size(), *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT64: {
-        const auto *val = static_cast<const uint64_t *>(field_addr);
-        ProtoSize::add_uint64_field(total_size, fields[i].get_precalced_size(), *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT32: {
-        const auto *val = static_cast<const int32_t *>(field_addr);
-        ProtoSize::add_sint32_field(total_size, fields[i].get_precalced_size(), *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT64: {
-        const auto *val = static_cast<const int64_t *>(field_addr);
-        ProtoSize::add_sint64_field(total_size, fields[i].get_precalced_size(), *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_ENUM: {
-        const auto *val = static_cast<const uint32_t *>(field_addr);
-        ProtoSize::add_enum_field(total_size, fields[i].get_precalced_size(), *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_STRING: {
-        const auto *val = static_cast<const std::string *>(field_addr);
-        ProtoSize::add_string_field(total_size, fields[i].get_precalced_size(), *val, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_BYTES: {
-        const auto *str = static_cast<const std::string *>(field_addr);
-        ProtoSize::add_string_field(total_size, fields[i].get_precalced_size(), *str, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_FLOAT: {
-        const auto *val = static_cast<const float *>(field_addr);
-        ProtoSize::add_fixed_field<4>(total_size, fields[i].get_precalced_size(), *val != 0.0f, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED32: {
-        const auto *val = static_cast<const uint32_t *>(field_addr);
-        ProtoSize::add_fixed_field<4>(total_size, fields[i].get_precalced_size(), *val != 0, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED32: {
-        const auto *val = static_cast<const int32_t *>(field_addr);
-        ProtoSize::add_fixed_field<4>(total_size, fields[i].get_precalced_size(), *val != 0, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_DOUBLE: {
-        const auto *val = static_cast<const double *>(field_addr);
-        ProtoSize::add_fixed_field<8>(total_size, fields[i].get_precalced_size(), *val != 0.0, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED64: {
-        const auto *val = static_cast<const uint64_t *>(field_addr);
-        ProtoSize::add_fixed_field<8>(total_size, fields[i].get_precalced_size(), *val != 0, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED64: {
-        const auto *val = static_cast<const int64_t *>(field_addr);
-        ProtoSize::add_fixed_field<8>(total_size, fields[i].get_precalced_size(), *val != 0, false);
-        break;
-      }
-      case ProtoFieldType::TYPE_MESSAGE: {
-        // Use message handler registry
-        if (fields[i].get_message_type_id() < MESSAGE_HANDLER_COUNT) {
-          MESSAGE_HANDLERS[fields[i].get_message_type_id()].size(total_size, field_addr, fields[i].get_precalced_size(),
-                                                                 false);
+      switch (fields[i].get_type()) {
+        case ProtoFieldType::TYPE_BOOL: {
+          const auto *val = static_cast<const bool *>(field_addr);
+          ProtoSize::add_bool_field(total_size, fields[i].get_precalced_size(), *val, false);
+          break;
         }
-        break;
+        case ProtoFieldType::TYPE_INT32: {
+          const auto *val = static_cast<const int32_t *>(field_addr);
+          ProtoSize::add_int32_field(total_size, fields[i].get_precalced_size(), *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_UINT32: {
+          const auto *val = static_cast<const uint32_t *>(field_addr);
+          ProtoSize::add_uint32_field(total_size, fields[i].get_precalced_size(), *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_INT64: {
+          const auto *val = static_cast<const int64_t *>(field_addr);
+          ProtoSize::add_int64_field(total_size, fields[i].get_precalced_size(), *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_UINT64: {
+          const auto *val = static_cast<const uint64_t *>(field_addr);
+          ProtoSize::add_uint64_field(total_size, fields[i].get_precalced_size(), *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_SINT32: {
+          const auto *val = static_cast<const int32_t *>(field_addr);
+          ProtoSize::add_sint32_field(total_size, fields[i].get_precalced_size(), *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_SINT64: {
+          const auto *val = static_cast<const int64_t *>(field_addr);
+          ProtoSize::add_sint64_field(total_size, fields[i].get_precalced_size(), *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_ENUM: {
+          const auto *val = static_cast<const uint32_t *>(field_addr);
+          ProtoSize::add_enum_field(total_size, fields[i].get_precalced_size(), *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_STRING: {
+          const auto *val = static_cast<const std::string *>(field_addr);
+          ProtoSize::add_string_field(total_size, fields[i].get_precalced_size(), *val, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_BYTES: {
+          const auto *str = static_cast<const std::string *>(field_addr);
+          ProtoSize::add_string_field(total_size, fields[i].get_precalced_size(), *str, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_FLOAT: {
+          const auto *val = static_cast<const float *>(field_addr);
+          ProtoSize::add_fixed_field<4>(total_size, fields[i].get_precalced_size(), *val != 0.0f, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_FIXED32: {
+          const auto *val = static_cast<const uint32_t *>(field_addr);
+          ProtoSize::add_fixed_field<4>(total_size, fields[i].get_precalced_size(), *val != 0, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_SFIXED32: {
+          const auto *val = static_cast<const int32_t *>(field_addr);
+          ProtoSize::add_fixed_field<4>(total_size, fields[i].get_precalced_size(), *val != 0, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_DOUBLE: {
+          const auto *val = static_cast<const double *>(field_addr);
+          ProtoSize::add_fixed_field<8>(total_size, fields[i].get_precalced_size(), *val != 0.0, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_FIXED64: {
+          const auto *val = static_cast<const uint64_t *>(field_addr);
+          ProtoSize::add_fixed_field<8>(total_size, fields[i].get_precalced_size(), *val != 0, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_SFIXED64: {
+          const auto *val = static_cast<const int64_t *>(field_addr);
+          ProtoSize::add_fixed_field<8>(total_size, fields[i].get_precalced_size(), *val != 0, false);
+          break;
+        }
+        case ProtoFieldType::TYPE_MESSAGE: {
+          // Use message handler registry
+          if (fields[i].get_message_type_id() < MESSAGE_HANDLER_COUNT) {
+            MESSAGE_HANDLERS[fields[i].get_message_type_id()].size(total_size, field_addr,
+                                                                   fields[i].get_precalced_size(), false);
+          }
+          break;
+        }
       }
     }
   }
-
   // Repeated fields
   const RepeatedFieldMetaV3 *repeated_fields = get_repeated_field_metadata_v3();
   size_t repeated_count = get_repeated_field_count_v3();
 
   for (size_t i = 0; i < repeated_count; i++) {
-    const void *field_addr = base + repeated_fields[i].offset;
+    if (repeated_fields != nullptr) {
+      const void *field_addr = base + repeated_fields[i].get_offset();
 
-    switch (repeated_fields[i].get_type()) {
-      case ProtoFieldType::TYPE_BOOL: {
-        const auto *vec = static_cast<const std::vector<bool> *>(field_addr);
-        for (bool val : *vec) {
-          ProtoSize::add_bool_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+      switch (repeated_fields[i].get_type()) {
+        case ProtoFieldType::TYPE_BOOL: {
+          const auto *vec = static_cast<const std::vector<bool> *>(field_addr);
+          for (bool val : *vec) {
+            ProtoSize::add_bool_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_INT32: {
-        const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_int32_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+        case ProtoFieldType::TYPE_INT32: {
+          const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            ProtoSize::add_int32_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT32: {
-        const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_uint32_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+        case ProtoFieldType::TYPE_UINT32: {
+          const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            ProtoSize::add_uint32_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_INT64: {
-        const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_int64_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+        case ProtoFieldType::TYPE_INT64: {
+          const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            ProtoSize::add_int64_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_UINT64: {
-        const auto *vec = static_cast<const std::vector<uint64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_uint64_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+        case ProtoFieldType::TYPE_UINT64: {
+          const auto *vec = static_cast<const std::vector<uint64_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            ProtoSize::add_uint64_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT32: {
-        const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_sint32_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+        case ProtoFieldType::TYPE_SINT32: {
+          const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            ProtoSize::add_sint32_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_SINT64: {
-        const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_sint64_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+        case ProtoFieldType::TYPE_SINT64: {
+          const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            ProtoSize::add_sint64_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_ENUM: {
-        const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_enum_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+        case ProtoFieldType::TYPE_ENUM: {
+          const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
+          for (const auto &val : *vec) {
+            ProtoSize::add_enum_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_STRING: {
-        const auto *vec = static_cast<const std::vector<std::string> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_string_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+        case ProtoFieldType::TYPE_STRING: {
+          const auto *vec = static_cast<const std::vector<std::string> *>(field_addr);
+          for (const auto &val : *vec) {
+            ProtoSize::add_string_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_FLOAT: {
-        const auto *vec = static_cast<const std::vector<float> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_fixed_field<4>(total_size, repeated_fields[i].get_precalced_size(), val != 0.0f, true);
+        case ProtoFieldType::TYPE_BYTES: {
+          const auto *vec = static_cast<const std::vector<std::string> *>(field_addr);
+          for (const auto &val : *vec) {
+            ProtoSize::add_string_field(total_size, repeated_fields[i].get_precalced_size(), val, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED32: {
-        const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
-        size_t count = vec->size();
-        if (count > 0) {
-          total_size += count * (repeated_fields[i].get_precalced_size() + 4);
+        case ProtoFieldType::TYPE_FLOAT: {
+          const auto *vec = static_cast<const std::vector<float> *>(field_addr);
+          for (const auto &val : *vec) {
+            ProtoSize::add_fixed_field<4>(total_size, repeated_fields[i].get_precalced_size(), val != 0.0f, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED32: {
-        const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
-        size_t count = vec->size();
-        if (count > 0) {
-          total_size += count * (repeated_fields[i].get_precalced_size() + 4);
+        case ProtoFieldType::TYPE_FIXED32: {
+          const auto *vec = static_cast<const std::vector<uint32_t> *>(field_addr);
+          size_t count = vec->size();
+          if (count > 0) {
+            total_size += count * (repeated_fields[i].get_precalced_size() + 4);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_DOUBLE: {
-        const auto *vec = static_cast<const std::vector<double> *>(field_addr);
-        for (const auto &val : *vec) {
-          ProtoSize::add_fixed_field<8>(total_size, repeated_fields[i].get_precalced_size(), val != 0.0, true);
+        case ProtoFieldType::TYPE_SFIXED32: {
+          const auto *vec = static_cast<const std::vector<int32_t> *>(field_addr);
+          size_t count = vec->size();
+          if (count > 0) {
+            total_size += count * (repeated_fields[i].get_precalced_size() + 4);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_FIXED64: {
-        const auto *vec = static_cast<const std::vector<uint64_t> *>(field_addr);
-        size_t count = vec->size();
-        if (count > 0) {
-          total_size += count * (repeated_fields[i].get_precalced_size() + 8);
+        case ProtoFieldType::TYPE_DOUBLE: {
+          const auto *vec = static_cast<const std::vector<double> *>(field_addr);
+          for (const auto &val : *vec) {
+            ProtoSize::add_fixed_field<8>(total_size, repeated_fields[i].get_precalced_size(), val != 0.0, true);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_SFIXED64: {
-        const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
-        size_t count = vec->size();
-        if (count > 0) {
-          total_size += count * (repeated_fields[i].get_precalced_size() + 8);
+        case ProtoFieldType::TYPE_FIXED64: {
+          const auto *vec = static_cast<const std::vector<uint64_t> *>(field_addr);
+          size_t count = vec->size();
+          if (count > 0) {
+            total_size += count * (repeated_fields[i].get_precalced_size() + 8);
+          }
+          break;
         }
-        break;
-      }
-      case ProtoFieldType::TYPE_MESSAGE: {
-        // Use repeated message handler registry
-        if (repeated_fields[i].get_message_type_id() < REPEATED_MESSAGE_HANDLER_COUNT) {
-          REPEATED_MESSAGE_HANDLERS[repeated_fields[i].get_message_type_id()].size(
-              total_size, field_addr, repeated_fields[i].get_precalced_size());
+        case ProtoFieldType::TYPE_SFIXED64: {
+          const auto *vec = static_cast<const std::vector<int64_t> *>(field_addr);
+          size_t count = vec->size();
+          if (count > 0) {
+            total_size += count * (repeated_fields[i].get_precalced_size() + 8);
+          }
+          break;
         }
-        break;
+        case ProtoFieldType::TYPE_MESSAGE: {
+          // Use repeated message handler registry
+          if (repeated_fields[i].get_message_type_id() < REPEATED_MESSAGE_HANDLER_COUNT) {
+            REPEATED_MESSAGE_HANDLERS[repeated_fields[i].get_message_type_id()].size(
+                total_size, field_addr, repeated_fields[i].get_precalced_size());
+          }
+          break;
+        }
       }
     }
   }

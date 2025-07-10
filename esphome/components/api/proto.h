@@ -305,24 +305,7 @@ struct FieldMetaV3 {
   uint8_t get_message_type_id() const { return message_type_id; }
 };
 
-// Keep V2 for now during transition
-struct FieldMetaV2 {
-  uint8_t field_num;                // Protobuf field number (1-255)
-  uint16_t offset;                  // offset of field in class
-  ProtoFieldType type;              // Field type enum
-  bool force_encode;                // If true, encode even if value is default/empty
-  uint8_t precalced_field_id_size;  // Pre-calculated size of field tag in bytes
-  union {
-    // For TYPE_MESSAGE: function pointers (12 bytes on ESP32)
-    struct {
-      EncodeFunc encode;
-      SizeFunc size;
-      DecodeLengthFunc decode;
-    } message;
-    // For TYPE_ENUM: enum ID (1 byte)
-    uint8_t enum_id;
-  } handler;
-};
+// V2 structures removed - we only use V3 now
 
 class ProtoWriteBuffer {
  public:
@@ -508,35 +491,13 @@ struct RepeatedFieldMetaV3 {
   uint8_t get_message_type_id() const { return message_type_id; }
 };
 
-// Keep V2 for now during transition
-struct RepeatedFieldMetaV2 {
-  uint8_t field_num;
-  uint16_t offset;
-  ProtoFieldType type;              // Element type
-  uint8_t precalced_field_id_size;  // Pre-calculated size of field tag in bytes
-  union {
-    // For TYPE_MESSAGE: function pointers
-    struct {
-      RepeatedEncodeFunc encode;
-      RepeatedSizeFunc size;
-      RepeatedDecodeLengthFunc decode;
-    } message;
-    // For TYPE_ENUM: enum ID
-    uint8_t enum_id;
-  } handler;
-};
+// V2 structures removed - we only use V3 now
 
 class ProtoMessage {
  public:
   virtual ~ProtoMessage() = default;
 
-  // V2 metadata getters - must be implemented by derived classes
-  virtual const FieldMetaV2 *get_field_metadata_v2() const { return nullptr; }
-  virtual size_t get_field_count_v2() const { return 0; }
-  virtual const RepeatedFieldMetaV2 *get_repeated_field_metadata_v2() const { return nullptr; }
-  virtual size_t get_repeated_field_count_v2() const { return 0; }
-
-  // V3 metadata getters - for optimized implementation
+  // V3 metadata getters - must be implemented by derived classes
   virtual const FieldMetaV3 *get_field_metadata_v3() const { return nullptr; }
   virtual size_t get_field_count_v3() const { return 0; }
   virtual const RepeatedFieldMetaV3 *get_repeated_field_metadata_v3() const { return nullptr; }
@@ -617,117 +578,23 @@ class ProtoService {
   }
 };
 
-// Type-specific encoding functions
-void encode_string_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_fixed32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_bool_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_float_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_int32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_uint32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_int64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_uint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_sint32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_sint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_fixed64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_double_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_bytes_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
+// Type-specific functions removed - V3 inlines all operations directly
 
-// Type-specific decode functions
-bool decode_string_field(void *field_ptr, ProtoLengthDelimited value);
-bool decode_fixed32_field(void *field_ptr, Proto32Bit value);
-bool decode_bool_field(void *field_ptr, ProtoVarInt value);
-bool decode_float_field(void *field_ptr, Proto32Bit value);
-bool decode_int32_field(void *field_ptr, ProtoVarInt value);
-bool decode_uint32_field(void *field_ptr, ProtoVarInt value);
-bool decode_int64_field(void *field_ptr, ProtoVarInt value);
-bool decode_uint64_field(void *field_ptr, ProtoVarInt value);
-bool decode_sint32_field(void *field_ptr, ProtoVarInt value);
-bool decode_sint64_field(void *field_ptr, ProtoVarInt value);
-bool decode_fixed64_field(void *field_ptr, Proto64Bit value);
-bool decode_double_field(void *field_ptr, Proto64Bit value);
-bool decode_bytes_field(void *field_ptr, ProtoLengthDelimited value);
+// Template enum field functions removed - V3 inlines all operations directly
 
-// Template enum decode function
-template<typename EnumType> bool decode_enum_field(void *field_ptr, ProtoVarInt value);
+// Repeated field handling functions removed - V3 inlines encoding directly
 
-// Type-specific size calculation functions
-void size_string_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-void size_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-void size_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-void size_float_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-void size_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-void size_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-void size_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-void size_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-void size_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-void size_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-void size_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-void size_double_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-void size_bytes_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-
-// Template enum field functions
-template<typename EnumType> void encode_enum_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-
-template<typename EnumType>
-void size_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-
-// Repeated field handling functions
-void encode_repeated_string_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_repeated_bool_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_repeated_uint32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_repeated_int32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_repeated_uint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_repeated_int64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_repeated_sint32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_repeated_sint64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_repeated_fixed32_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_repeated_fixed64_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_repeated_float_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-void encode_repeated_double_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-
-template<typename EnumType>
-void encode_repeated_enum_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
-
+// Note: The template encode_repeated_message_field is still used by the message handler registry
 template<typename MessageType>
 void encode_repeated_message_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
 
-// Size calculation for repeated fields
-void size_repeated_string_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-void size_repeated_bool_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-void size_repeated_uint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-void size_repeated_int32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-void size_repeated_uint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-void size_repeated_int64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-void size_repeated_sint32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-void size_repeated_sint64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-void size_repeated_fixed32_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-void size_repeated_fixed64_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-void size_repeated_float_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-void size_repeated_double_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
+// Size calculation for repeated fields removed - V3 inlines size calculation directly
 
-template<typename EnumType>
-void size_repeated_enum_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-
+// Note: The template size_repeated_message_field is still used by the message handler registry
 template<typename MessageType>
 void size_repeated_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
 
-// Repeated field decode functions
-bool decode_repeated_string_field(void *field_ptr, ProtoLengthDelimited value);
-bool decode_repeated_bool_field(void *field_ptr, ProtoVarInt value);
-bool decode_repeated_uint32_field(void *field_ptr, ProtoVarInt value);
-bool decode_repeated_int32_field(void *field_ptr, ProtoVarInt value);
-bool decode_repeated_uint64_field(void *field_ptr, ProtoVarInt value);
-bool decode_repeated_int64_field(void *field_ptr, ProtoVarInt value);
-bool decode_repeated_sint32_field(void *field_ptr, ProtoVarInt value);
-bool decode_repeated_sint64_field(void *field_ptr, ProtoVarInt value);
-bool decode_repeated_fixed32_field(void *field_ptr, Proto32Bit value);
-bool decode_repeated_fixed64_field(void *field_ptr, Proto64Bit value);
-bool decode_repeated_float_field(void *field_ptr, Proto32Bit value);
-bool decode_repeated_double_field(void *field_ptr, Proto64Bit value);
-
-template<typename EnumType> bool decode_repeated_enum_field(void *field_ptr, ProtoVarInt value);
-
-template<typename MessageType> bool decode_repeated_message_field(void *field_ptr, ProtoLengthDelimited value);
+// Repeated field decode functions removed - V3 inlines decoding directly
 
 // Forward declarations for message field template functions
 template<typename MessageType>
@@ -736,7 +603,7 @@ void encode_message_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8
 template<typename MessageType>
 void size_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
 
-template<typename MessageType> bool decode_message_field(void *field_ptr, ProtoLengthDelimited value);
+// Template decode functions removed - V3 inlines decoding directly
 
 template<typename MessageType>
 void encode_repeated_message_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
