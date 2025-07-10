@@ -109,18 +109,10 @@ def test_main_list_components_fails(
     # Mock list-components.py failure
     mock_subprocess_run.side_effect = subprocess.CalledProcessError(1, "cmd")
 
-    # Run main function with mocked argv
+    # Run main function with mocked argv - should raise
     with patch("sys.argv", ["determine_tests_to_run.py"]):
-        determine_tests_to_run.main()
-
-    # Check output
-    captured = capsys.readouterr()
-    output = json.loads(captured.out)
-
-    assert output["integration_tests"] is True
-    assert output["clang_tidy"] is True
-    assert output["changed_components"] == []
-    assert output["component_test_count"] == 0
+        with pytest.raises(subprocess.CalledProcessError):
+            determine_tests_to_run.main()
 
 
 def test_main_with_branch_argument(
