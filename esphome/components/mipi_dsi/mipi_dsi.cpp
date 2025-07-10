@@ -123,8 +123,8 @@ void MIPI_DSI::setup() {
           break;
       }
       const auto *ptr = vec.data() + index;
-      ESP_LOGV(TAG, "Command %02X, length %d, byte(s) %s", cmd, num_args,
-               format_hex_pretty(ptr, num_args, '.', false).c_str());
+      ESP_LOGVV(TAG, "Command %02X, length %d, byte(s) %s", cmd, num_args,
+                format_hex_pretty(ptr, num_args, '.', false).c_str());
       err = esp_lcd_panel_io_tx_param(this->io_handle_, cmd, ptr, num_args);
       if (err != ESP_OK) {
         this->smark_failed("lcd_panel_io_tx_param failed", err);

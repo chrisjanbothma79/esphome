@@ -200,7 +200,7 @@ def model_schema(config):
             ),
             model.option(CONF_LANES, 2): cv.int_range(1, 2),
             model.option(CONF_LANE_BIT_RATE, None): cv.All(
-                cv.frequency, cv.Range(min=100e6, max=3200e6)
+                cv.bps, cv.Range(min=100e6, max=3200e6)
             ),
             iseqconf: cv.ensure_list(map_sequence),
             model.option(CONF_BYTE_ORDER, "little_endian"): cv.one_of(
