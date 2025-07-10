@@ -151,10 +151,6 @@ void WiFiComponent::wifi_pre_setup_() {
     return;
   }
   if (!s_gw_netif) {
-#else
-  if (true) {
-#endif  // USE_WIFI_AP
-
     err = esp_netif_init();
     if (err != ERR_OK) {
       ESP_LOGE(TAG, "esp_netif_init failed: %s", esp_err_to_name(err));
@@ -167,6 +163,19 @@ void WiFiComponent::wifi_pre_setup_() {
       return;
     }
   }
+#else
+  err = esp_netif_init();
+  if (err != ERR_OK) {
+    ESP_LOGE(TAG, "esp_netif_init failed: %s", esp_err_to_name(err));
+    return;
+  }
+
+  err = esp_event_loop_create_default();
+  if (err != ERR_OK) {
+    ESP_LOGE(TAG, "esp_event_loop_create_default failed: %s", esp_err_to_name(err));
+    return;
+  }
+#endif  // USE_WIFI_AP
 
   s_wifi_event_group = xEventGroupCreate();
   if (s_wifi_event_group == nullptr) {
