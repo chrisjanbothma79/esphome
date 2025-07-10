@@ -204,6 +204,7 @@ jobs:
       - name: Check out code from GitHub
         uses: actions/checkout@v4.2.2
       - name: Restore Python
+        id: restore-python
         uses: ./.github/actions/restore-python
         with:
           python-version: ${{ matrix.python-version }}
@@ -213,7 +214,7 @@ jobs:
       - name: Run pytest
         if: matrix.os == 'windows-latest'
         run: |
-          ./venv/Scripts/activate
+          . ./venv/Scripts/activate.ps1
           pytest -vv --cov-report=xml --tb=native -n auto tests --ignore=tests/integration/
       - name: Run pytest
         if: matrix.os == 'ubuntu-latest' || matrix.os == 'macOS-latest'
@@ -224,6 +225,12 @@ jobs:
         uses: codecov/codecov-action@v5.4.3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Save Python virtual environment cache
+        if: github.ref == 'refs/heads/dev'
+        uses: actions/cache/save@v4.2.3
+        with:
+          path: venv
+          key: ${{ runner.os }}-${{ steps.restore-python.outputs.python-version }}-venv-${{ needs.common.outputs.cache-key }}
 
   integration-tests:
     name: Run integration tests
@@ -337,6 +344,9 @@ jobs:
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v4.2.2
+        with:
+          # Need history for HEAD~1 to work for checking changed files
+          fetch-depth: 2
 
       - name: Restore Python
         uses: ./.github/actions/restore-python
@@ -349,28 +359,14 @@ jobs:
         uses: actions/cache@v4.2.3
         with:
           path: ~/.platformio
-          key: platformio-${{ matrix.pio_cache_key }}
+          key: platformio-${{ matrix.pio_cache_key }}-${{ hashFiles('platformio.ini') }}
 
       - name: Cache platformio
         if: github.ref != 'refs/heads/dev'
         uses: actions/cache/restore@v4.2.3
         with:
           path: ~/.platformio
-          key: platformio-${{ matrix.pio_cache_key }}
-
-      - name: Cache platformio libdeps
-        if: github.ref == 'refs/heads/dev'
-        uses: actions/cache@v4.2.3
-        with:
-          path: .pio/libdeps
-          key: pio-libdeps-${{ matrix.pio_cache_key }}-${{ hashFiles('platformio.ini') }}
-
-      - name: Cache platformio libdeps
-        if: github.ref != 'refs/heads/dev'
-        uses: actions/cache/restore@v4.2.3
-        with:
-          path: .pio/libdeps
-          key: pio-libdeps-${{ matrix.pio_cache_key }}-${{ hashFiles('platformio.ini') }}
+          key: platformio-${{ matrix.pio_cache_key }}-${{ hashFiles('platformio.ini') }}
 
       - name: Register problem matchers
         run: |
