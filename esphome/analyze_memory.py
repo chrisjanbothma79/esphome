@@ -1017,10 +1017,10 @@ class MemoryAnalyzer:
                     return standard_section
             return None
 
-        def parse_symbol_line(line: str) -> tuple[str, str, int] | None:
+        def parse_symbol_line(line: str) -> tuple[str, str, int, str] | None:
             """Parse a single symbol line from objdump output.
 
-            Returns (section, name, size) or None if not a valid symbol.
+            Returns (section, name, size, address) or None if not a valid symbol.
             Format: address l/g w/d F/O section size name
             Example: 40084870 l     F .iram0.text    00000000 _xt_user_exc
             """
@@ -1029,8 +1029,9 @@ class MemoryAnalyzer:
                 return None
 
             try:
-                # Validate address
-                int(parts[0], 16)
+                # Validate and extract address
+                address = parts[0]
+                int(address, 16)
             except ValueError:
                 return None
 
@@ -1047,7 +1048,7 @@ class MemoryAnalyzer:
                             size = int(parts[i + 1], 16)
                             if i + 2 < len(parts) and size > 0:
                                 name = " ".join(parts[i + 2 :])
-                                return (section, name, size)
+                                return (section, name, size, address)
                         except ValueError:
                             pass
                     break
@@ -1061,12 +1062,17 @@ class MemoryAnalyzer:
                 check=True,
             )
 
+            # Track seen addresses to avoid duplicates
+            seen_addresses: set[str] = set()
+
             for line in result.stdout.splitlines():
                 symbol_info = parse_symbol_line(line)
                 if symbol_info:
-                    section, name, size = symbol_info
-                    if section in self.sections:
+                    section, name, size, address = symbol_info
+                    # Skip duplicate symbols at the same address (e.g., C1/C2 constructors)
+                    if address not in seen_addresses and section in self.sections:
                         self.sections[section].symbols.append((name, size, ""))
+                        seen_addresses.add(address)
 
         except subprocess.CalledProcessError as e:
             _LOGGER.error(f"Failed to parse symbols: {e}")
@@ -1468,9 +1474,8 @@ class MemoryAnalyzer:
                 self._esphome_core_symbols, key=lambda x: x[2], reverse=True
             )
 
-            MAX_SYMBOL_LENGTH = 80
             for i, (symbol, demangled, size) in enumerate(sorted_core_symbols[:10]):
-                lines.append(f"{i + 1}. {demangled[:MAX_SYMBOL_LENGTH]} ({size:,} B)")
+                lines.append(f"{i + 1}. {demangled} ({size:,} B)")
 
             lines.append("=" * table_width)
 
@@ -1504,11 +1509,8 @@ class MemoryAnalyzer:
                     lines.append("")
                     lines.append(f"Top 10 Largest {comp_name} Symbols:")
 
-                    MAX_SYMBOL_LENGTH = 80
                     for i, (symbol, demangled, size) in enumerate(sorted_symbols[:10]):
-                        lines.append(
-                            f"{i + 1}. {demangled[:MAX_SYMBOL_LENGTH]} ({size:,} B)"
-                        )
+                        lines.append(f"{i + 1}. {demangled} ({size:,} B)")
 
                     lines.append("=" * table_width)
 
