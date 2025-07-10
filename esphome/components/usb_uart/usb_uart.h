@@ -25,7 +25,8 @@ struct CdcEps {
   const usb_ep_desc_t *notify_ep;
   const usb_ep_desc_t *in_ep;
   const usb_ep_desc_t *out_ep;
-  uint8_t interface_number;
+  uint8_t bulk_interface_number;
+  uint8_t interrupt_interface_number;
 };
 
 enum UARTParityOptions {

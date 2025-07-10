@@ -18,9 +18,9 @@ namespace usb_uart {
  */
 static optional<CdcEps> get_cdc(const usb_config_desc_t *config_desc, uint8_t intf_idx) {
   int conf_offset, ep_offset;
-  const usb_ep_desc_t *notify_ep{}, *in_ep{}, *out_ep{};
-  uint8_t interface_number = 0;
-  // look for an interrupt endpoint (notify), and two bulk endpoints (data in/out)
+  // look for an interface with an interrupt endpoint (notify), and one with two bulk endpoints (data in/out)
+  CdcEps eps{};
+  eps.bulk_interface_number = 0xFF;
   for (;;) {
     const auto *intf_desc = usb_parse_interface_descriptor(config_desc, intf_idx++, 0, &conf_offset);
     if (!intf_desc) {
@@ -34,23 +34,28 @@ static optional<CdcEps> get_cdc(const usb_config_desc_t *config_desc, uint8_t in
       ep_offset = conf_offset;
       const auto *ep = usb_parse_endpoint_descriptor_by_index(intf_desc, i, config_desc->wTotalLength, &ep_offset);
       if (!ep) {
-        ESP_LOGE(TAG, "usb_parse_endpoint_descriptor_by_index at index %d failed", i);
+        ESP_LOGE(TAG, "Ran out of interfaces at %d before finding all endpoints", i);
         return nullopt;
       }
       ESP_LOGD(TAG, "ep: bEndpointAddress=%02X, bmAttributes=%02X", ep->bEndpointAddress, ep->bmAttributes);
       if (ep->bmAttributes == USB_BM_ATTRIBUTES_XFER_INT) {
-        notify_ep = ep;
-      } else if (ep->bmAttributes == USB_BM_ATTRIBUTES_XFER_BULK && ep->bEndpointAddress & usb_host::USB_DIR_IN) {
-        in_ep = ep;
-      } else if (ep->bmAttributes == USB_BM_ATTRIBUTES_XFER_BULK && !(ep->bEndpointAddress & usb_host::USB_DIR_IN)) {
-        out_ep = ep;
+        eps.notify_ep = ep;
+        eps.interrupt_interface_number = intf_desc->bInterfaceNumber;
+      } else if (ep->bmAttributes == USB_BM_ATTRIBUTES_XFER_BULK && ep->bEndpointAddress & usb_host::USB_DIR_IN &&
+                 (eps.bulk_interface_number == 0xFF || eps.bulk_interface_number == intf_desc->bInterfaceNumber)) {
+        eps.in_ep = ep;
+        eps.bulk_interface_number = intf_desc->bInterfaceNumber;
+      } else if (ep->bmAttributes == USB_BM_ATTRIBUTES_XFER_BULK && !(ep->bEndpointAddress & usb_host::USB_DIR_IN) &&
+                 (eps.bulk_interface_number == 0xFF || eps.bulk_interface_number == intf_desc->bInterfaceNumber)) {
+        eps.out_ep = ep;
+        eps.bulk_interface_number = intf_desc->bInterfaceNumber;
       } else {
         ESP_LOGE(TAG, "Unexpected endpoint attributes: %02X", ep->bmAttributes);
         continue;
       }
     }
-    if (in_ep != nullptr && out_ep != nullptr && notify_ep != nullptr)
-      return CdcEps{.notify_ep = notify_ep, .in_ep = out_ep, .out_ep = in_ep, .interface_number = interface_number};
+    if (eps.in_ep != nullptr && eps.out_ep != nullptr && eps.notify_ep != nullptr)
+      return eps;
   }
 }
 
@@ -268,10 +273,11 @@ void USBUartTypeCdcAcm::on_connected() {
     fix_mps(channel->cdc_dev_.in_ep);
     fix_mps(channel->cdc_dev_.out_ep);
     channel->initialised_ = true;
-    auto err = usb_host_interface_claim(this->handle_, this->device_handle_, channel->cdc_dev_.interface_number, 0);
+    auto err =
+        usb_host_interface_claim(this->handle_, this->device_handle_, channel->cdc_dev_.bulk_interface_number, 0);
     if (err != ESP_OK) {
       ESP_LOGE(TAG, "usb_host_interface_claim failed: %s, channel=%d, intf=%d", esp_err_to_name(err), channel->index_,
-               channel->cdc_dev_.interface_number);
+               channel->cdc_dev_.bulk_interface_number);
       this->status_set_error("usb_host_interface_claim failed");
       this->disconnect();
       return;
@@ -294,7 +300,7 @@ void USBUartTypeCdcAcm::on_disconnected() {
       usb_host_endpoint_halt(this->device_handle_, channel->cdc_dev_.notify_ep->bEndpointAddress);
       usb_host_endpoint_flush(this->device_handle_, channel->cdc_dev_.notify_ep->bEndpointAddress);
     }
-    usb_host_interface_release(this->handle_, this->device_handle_, channel->cdc_dev_.interface_number);
+    usb_host_interface_release(this->handle_, this->device_handle_, channel->cdc_dev_.bulk_interface_number);
     channel->initialised_ = false;
     channel->input_started_ = false;
     channel->output_started_ = false;
