@@ -75,21 +75,10 @@ constexpr uint8_t get_wire_type(ProtoFieldType type) {
   return 0;
 }
 
-// Function pointer types for encoding and size calculation
-using EncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
-using SizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-
 // Macro to calculate field offset without triggering -Winvalid-offsetof
 // This uses the same approach as offsetof but with explicit reinterpret_cast
 #define PROTO_FIELD_OFFSET(Type, Member) \
   static_cast<uint16_t>(reinterpret_cast<size_t>(&reinterpret_cast<Type *>(16)->Member) - 16)
-
-// Function pointer types for repeated fields
-using RepeatedEncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
-using RepeatedSizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
-
-// Forward declaration for RepeatedFieldMeta - will be defined after Proto* classes
-struct RepeatedFieldMeta;
 
 /// Representation of a VarInt - in ProtoBuf should be 64bit but we only use 32bit
 class ProtoVarInt {
@@ -262,28 +251,15 @@ class Proto64Bit {
   const uint64_t value_;
 };
 
-// Function pointer types for decoding (now that Proto classes are defined)
-using DecodeVarintFunc = bool (*)(void *field_ptr, ProtoVarInt value);
+// Function pointer types used by V2 structures
+using EncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
+using SizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
 using DecodeLengthFunc = bool (*)(void *field_ptr, ProtoLengthDelimited value);
-using Decode32BitFunc = bool (*)(void *field_ptr, Proto32Bit value);
-using Decode64BitFunc = bool (*)(void *field_ptr, Proto64Bit value);
 
-// Metadata structure describing each field
-struct FieldMeta {
-  uint8_t field_num;                // Protobuf field number (1-255)
-  uint16_t offset;                  // offset of field in class
-  EncodeFunc encoder;               // Function to encode this field type
-  SizeFunc sizer;                   // Function to calculate size for this field type
-  bool force_encode;                // If true, encode even if value is default/empty
-  uint8_t wire_type;                // Wire type (0=varint, 2=length, 5=32bit, 1=64bit)
-  uint8_t precalced_field_id_size;  // Pre-calculated size of field tag in bytes
-  union {
-    DecodeVarintFunc decode_varint;
-    DecodeLengthFunc decode_length;
-    Decode32BitFunc decode_32bit;
-    Decode64BitFunc decode_64bit;
-  } decoder;
-};
+// Function pointer types for repeated fields used by V2 structures
+using RepeatedEncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
+using RepeatedSizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
+using RepeatedDecodeLengthFunc = bool (*)(void *field_ptr, ProtoLengthDelimited value);
 
 // New type-based metadata structure (smaller and more efficient)
 struct FieldMetaV2 {
@@ -464,28 +440,6 @@ class ProtoWriteBuffer {
   std::vector<uint8_t> *buffer_;
 };
 
-// Forward declarations for repeated field decode - now that Proto* classes are defined
-using RepeatedDecodeVarintFunc = bool (*)(void *field_ptr, ProtoVarInt value);
-using RepeatedDecodeLengthFunc = bool (*)(void *field_ptr, ProtoLengthDelimited value);
-using RepeatedDecode32BitFunc = bool (*)(void *field_ptr, Proto32Bit value);
-using RepeatedDecode64BitFunc = bool (*)(void *field_ptr, Proto64Bit value);
-
-// Special metadata for repeated fields
-struct RepeatedFieldMeta {
-  uint8_t field_num;
-  uint16_t offset;
-  RepeatedEncodeFunc encoder;       // Encoder for the entire vector
-  RepeatedSizeFunc sizer;           // Sizer for the entire vector
-  uint8_t precalced_field_id_size;  // Pre-calculated size of field tag in bytes
-  uint8_t wire_type;                // Wire type for decoding
-  union {
-    RepeatedDecodeVarintFunc decode_varint;
-    RepeatedDecodeLengthFunc decode_length;
-    RepeatedDecode32BitFunc decode_32bit;
-    RepeatedDecode64BitFunc decode_64bit;
-  } decoder;
-};
-
 // New type-based repeated field metadata
 struct RepeatedFieldMetaV2 {
   uint8_t field_num;
@@ -508,27 +462,16 @@ class ProtoMessage {
  public:
   virtual ~ProtoMessage() = default;
 
-  // Virtual methods to get metadata - must be implemented by derived classes
-  virtual const FieldMeta *get_field_metadata() const { return nullptr; }
-  virtual size_t get_field_count() const { return 0; }
-  virtual const RepeatedFieldMeta *get_repeated_field_metadata() const { return nullptr; }
-  virtual size_t get_repeated_field_count() const { return 0; }
-
-  // V2 metadata getters - default implementations return nullptr/0
+  // V2 metadata getters - must be implemented by derived classes
   virtual const FieldMetaV2 *get_field_metadata_v2() const { return nullptr; }
   virtual size_t get_field_count_v2() const { return 0; }
   virtual const RepeatedFieldMetaV2 *get_repeated_field_metadata_v2() const { return nullptr; }
   virtual size_t get_repeated_field_count_v2() const { return 0; }
 
-  // Encode/decode/calculate_size using metadata
+  // Encode/decode/calculate_size using V2 metadata
   void encode(ProtoWriteBuffer buffer) const;
   void decode(const uint8_t *buffer, size_t length);
   void calculate_size(uint32_t &total_size) const;
-
-  // Type-based implementations using V2 metadata
-  void decode_v2(const uint8_t *buffer, size_t length);
-  void encode_v2(ProtoWriteBuffer buffer) const;
-  void calculate_size_v2(uint32_t &total_size) const;
 
 #ifdef HAS_PROTO_MESSAGE_DUMP
   std::string dump() const;
@@ -721,12 +664,7 @@ void encode_repeated_message_field(ProtoWriteBuffer &buffer, const void *field_p
 template<typename MessageType>
 void size_repeated_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
 
-// Core shared functions
-void encode_from_metadata(ProtoWriteBuffer buffer, const void *obj, const FieldMeta *fields, size_t field_count,
-                          const RepeatedFieldMeta *repeated_fields = nullptr, size_t repeated_count = 0);
-
-void calculate_size_from_metadata(uint32_t &total_size, const void *obj, const FieldMeta *fields, size_t field_count,
-                                  const RepeatedFieldMeta *repeated_fields = nullptr, size_t repeated_count = 0);
+// Core shared functions removed - V2 metadata is used directly
 
 }  // namespace api
 }  // namespace esphome
