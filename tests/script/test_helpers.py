@@ -955,3 +955,172 @@ def test_get_all_dependencies_empty_set() -> None:
     """Test with empty initial component set."""
     result = helpers.get_all_dependencies(set())
     assert result == set()
+
+
+def test_get_components_from_integration_fixtures() -> None:
+    """Test extraction of components from fixture YAML files."""
+    yaml_content = {
+        "sensor": [{"platform": "template", "name": "test"}],
+        "binary_sensor": [{"platform": "gpio", "pin": 5}],
+        "esphome": {"name": "test"},
+        "api": {},
+    }
+    expected_components = {
+        "sensor",
+        "binary_sensor",
+        "esphome",
+        "api",
+        "template",
+        "gpio",
+    }
+
+    mock_yaml_file = Mock()
+
+    with (
+        patch("pathlib.Path.glob") as mock_glob,
+        patch("builtins.open", create=True),
+        patch("yaml.safe_load", return_value=yaml_content),
+    ):
+        mock_glob.return_value = [mock_yaml_file]
+
+        components = helpers.get_components_from_integration_fixtures()
+
+        assert components == expected_components
+
+
+@pytest.mark.parametrize(
+    ("changed_files", "expected_result"),
+    [
+        # Core files changed
+        (
+            ["esphome/core/component.cpp", "esphome/components/sensor/sensor.cpp"],
+            True,
+        ),
+        # Python files directly in esphome/ directory
+        (
+            ["esphome/config.py", "esphome/util.py"],
+            True,
+        ),
+        # Integration test files
+        (
+            [
+                "tests/integration/test_something.py",
+                "tests/integration/fixtures/test.yaml",
+            ],
+            True,
+        ),
+        # Component files but not used in integration tests
+        (
+            ["esphome/components/unused_component/unused.cpp"],
+            False,
+        ),
+        # Python files in subdirectories
+        (
+            ["esphome/dashboard/web_server.py", "esphome/pins/esp32_pins.py"],
+            False,
+        ),
+        # No relevant files changed
+        (
+            ["README.md", ".github/workflows/ci.yml"],
+            False,
+        ),
+    ],
+)
+def test_should_run_integration_tests(
+    changed_files: list[str],
+    expected_result: bool,
+) -> None:
+    """Test should_run_integration_tests function."""
+    with (
+        patch("helpers.changed_files", return_value=changed_files),
+        patch(
+            "helpers.get_components_from_integration_fixtures",
+            return_value={"sensor", "api"},
+        ),
+        patch("helpers.get_all_dependencies", return_value={"sensor", "api", "socket"}),
+    ):
+        result = helpers.should_run_integration_tests()
+        assert result == expected_result
+
+
+def test_should_run_integration_tests_with_branch() -> None:
+    """Test should_run_integration_tests with branch argument."""
+    with patch("helpers.changed_files") as mock_changed:
+        mock_changed.return_value = []
+
+        helpers.should_run_integration_tests("release")
+
+        mock_changed.assert_called_once_with("release")
+
+
+def test_should_run_integration_tests_component_dependency() -> None:
+    """Test that changes to component dependencies trigger tests."""
+    changed_files = ["esphome/components/socket/socket.cpp"]
+
+    with (
+        patch("helpers.changed_files", return_value=changed_files),
+        patch("helpers.get_components_from_integration_fixtures", return_value={"api"}),
+        patch(
+            "helpers.get_all_dependencies", return_value={"api", "socket"}
+        ),  # api depends on socket
+    ):
+        result = helpers.should_run_integration_tests()
+        assert result is True
+
+
+@pytest.mark.parametrize(
+    ("hash_check_returncode", "changed_files", "expected_result"),
+    [
+        # Hash changed - full scan needed
+        (0, [], True),
+        # Hash unchanged, C++ files changed
+        (1, ["esphome/components/wifi/wifi.cpp"], True),
+        # Hash unchanged, header files changed
+        (1, ["esphome/core/component.h"], True),
+        # Hash unchanged, no C++ files changed
+        (1, ["esphome/config.py", "README.md"], False),
+        # Hash check failed - run to be safe
+        (None, [], True),  # None indicates exception
+    ],
+)
+def test_should_run_clang_tidy(
+    hash_check_returncode: int | None,
+    changed_files: list[str],
+    expected_result: bool,
+) -> None:
+    """Test should_run_clang_tidy function."""
+    mock_result = Mock()
+    if hash_check_returncode is not None:
+        mock_result.returncode = hash_check_returncode
+
+    with (
+        patch(
+            "subprocess.run",
+            return_value=mock_result if hash_check_returncode is not None else None,
+        ),
+        patch("helpers.changed_files", return_value=changed_files),
+    ):
+        if hash_check_returncode is None:
+            # Simulate exception
+            with patch("subprocess.run", side_effect=Exception("Failed")):
+                result = helpers.should_run_clang_tidy()
+        else:
+            result = helpers.should_run_clang_tidy()
+
+        assert result == expected_result
+
+
+def test_should_run_clang_tidy_with_branch() -> None:
+    """Test should_run_clang_tidy with branch argument."""
+    mock_result = Mock()
+    mock_result.returncode = 1  # Hash unchanged
+
+    with (
+        patch("subprocess.run", return_value=mock_result),
+        patch("helpers.changed_files") as mock_changed,
+    ):
+        mock_changed.return_value = []
+
+        helpers.should_run_clang_tidy("release")
+
+        mock_changed.assert_called_once_with("release")
