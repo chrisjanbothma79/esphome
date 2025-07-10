@@ -88,6 +88,11 @@ for _ in (waveshare, m5stack, guition):
 
 MODELS = DriverChip.models
 
+if getattr(cv, "bps", None) is None:
+    # If the bps validator is not available, we need to define it ourselves
+
+    cv.bps = cv.float_with_unit("bits per second", "(bps|bits/s|bit/s)?")
+
 
 def get_sequence(config):
     """
