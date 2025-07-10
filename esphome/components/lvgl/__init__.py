@@ -28,10 +28,10 @@ from esphome.helpers import write_file_if_changed
 from . import defines as df, helpers, lv_validation as lvalid
 from .automation import disp_update, focused_widgets, refreshed_widgets, update_to_code
 from .defines import add_define
-from .encoders import ENCODERS_CONFIG, encoders_to_code, initial_focus_to_code
+from .encoders import ENCODERS_CONFIG, encoder_initial_focus_to_code, encoders_to_code
 from .gradient import GRADIENT_SCHEMA, gradients_to_code
 from .hello_world import get_hello_world
-from .keypads import KEYPADS_CONFIG, keypads_to_code
+from .keypads import KEYPADS_CONFIG, keypad_initial_focus_to_code, keypads_to_code
 from .lv_validation import lv_bool, lv_images_used
 from .lvcode import LvContext, LvglComponent, lv_expr, lvgl_static
 from .schemas import (
@@ -243,15 +243,19 @@ def final_validation(configs):
                 raise cv.Invalid(
                     f"Widget '{w}' does not have any templated properties to refresh",
                 )
+        if any(config.get(key) for key in (df.CONF_ENCODERS, df.CONF_KEYPADS)):
+            if not config.get(df.CONF_GROUPS):
+                raise cv.Invalid(
+                    "When using encoders or keypads, at least one group must be defined"
+                )
 
 
 async def get_default_group(config):
     if default_group_id := config.get(df.CONF_DEFAULT_GROUP):
         return await cg.get_variable(default_group_id)
-    groups = config.get(df.CONF_GROUPS)
-    if groups is not None and len(groups) > 0:
+    if groups := config.get(df.CONF_GROUPS):
         return await cg.get_variable(groups[0])
-    return cg.new_Pvariable(df.DEFAULT_LVGL_GROUP, lv_expr.group_create())
+    return None
 
 
 async def to_code(configs):
@@ -317,12 +321,6 @@ async def to_code(configs):
         add_define("LV_FONT_DEFAULT", await lvalid.lv_font.process(default_font))
     cg.add(lvgl_static.esphome_lvgl_init())
 
-    for group_name in config_0[df.CONF_GROUPS]:
-        cg.Pvariable(group_name, lv_expr.group_create())
-
-    default_group = await get_default_group(config_0)
-    cg.add(lv_expr.group_set_default(default_group))
-
     for config in configs:
         frac = config[CONF_BUFFER_SIZE]
         if frac >= 0.75:
@@ -347,6 +345,12 @@ async def to_code(configs):
         await cg.register_component(lv_component, config)
         Widget.create(config[CONF_ID], lv_component, LvScrActType(), config)
 
+        for group_name in config.get(df.CONF_GROUPS, []):
+            cg.Pvariable(group_name, lv_expr.group_create())
+
+        if default_group := await get_default_group(config):
+            cg.add(lv_expr.group_set_default(default_group))
+
         lv_scr_act = get_scr_act(lv_component)
         async with LvContext():
             await touchscreens_to_code(lv_component, config)
@@ -368,7 +372,8 @@ async def to_code(configs):
         for config in configs:
             lv_component = await cg.get_variable(config[CONF_ID])
             await generate_page_triggers(config)
-            await initial_focus_to_code(config)
+            await encoder_initial_focus_to_code(config)
+            await keypad_initial_focus_to_code(config)
             for conf in config.get(CONF_ON_IDLE, ()):
                 templ = await cg.templatable(conf[CONF_TIMEOUT], [], cg.uint32)
                 idle_trigger = cg.new_Pvariable(
@@ -485,7 +490,7 @@ LVGL_SCHEMA = cv.All(
                 cv.Optional(df.CONF_GROUPS): cv.ensure_list(cv.declare_id(lv_group_t)),
                 cv.Optional(df.CONF_ENCODERS, default=None): ENCODERS_CONFIG,
                 cv.Optional(df.CONF_KEYPADS, default=None): KEYPADS_CONFIG,
-                cv.Optional(df.CONF_DEFAULT_GROUP, default=None): cv.use_id(lv_group_t),
+                cv.Optional(df.CONF_DEFAULT_GROUP): cv.use_id(lv_group_t),
                 cv.Optional(df.CONF_RESUME_ON_INPUT, default=True): cv.boolean,
             }
         )

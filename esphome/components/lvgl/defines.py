@@ -540,7 +540,6 @@ LV_KEYS = LvConstant(
 
 
 DEFAULT_ESPHOME_FONT = "esphome_lv_default_font"
-DEFAULT_LVGL_GROUP = "default_group"
 
 
 def join_enums(enums, prefix=""):

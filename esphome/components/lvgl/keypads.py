@@ -4,18 +4,18 @@ import esphome.config_validation as cv
 from esphome.const import CONF_GROUP, CONF_ID
 
 from .defines import (
-    CONF_ENCODERS,
     CONF_INITIAL_FOCUS,
     CONF_KEYPADS,
     CONF_LONG_PRESS_REPEAT_TIME,
     CONF_LONG_PRESS_TIME,
     literal,
 )
-from .encoders import set_group_to_code as encoders_set_group_to_code
+from .encoders import set_group_to_code as _set_group_to_code
 from .helpers import lvgl_components_required
 from .lvcode import lv
-from .schemas import ENCODER_SCHEMA, set_group_schema
+from .schemas import ENCODER_SCHEMA, set_group_action_schema
 from .types import LvglAction, lv_indev_type_t
+from .widgets import get_widgets
 
 KEYPAD_KEYS = (
     "up",
@@ -64,20 +64,23 @@ async def keypads_to_code(var, config, default_group):
             b_sensor = await cg.get_variable(enc_conf[key])
             cg.add(listener.add_button(b_sensor, literal(f"LV_KEY_{key.upper()}")))
 
-        if group := enc_conf.get(CONF_GROUP):
-            group = await cg.get_variable(group)
-        else:
-            group = default_group
-        cg.add(listener.set_group(group))
+        if (
+            group := await cg.get_variable(enc_conf[CONF_GROUP])
+            if CONF_GROUP in enc_conf
+            else default_group
+        ):
+            cg.add(listener.set_group(group))
 
 
-async def initial_focus_to_code(config):
-    for enc_conf in config[CONF_ENCODERS]:
-        if default_focus := enc_conf.get(CONF_INITIAL_FOCUS):
-            obj = await cg.get_variable(default_focus)
-            lv.group_focus_obj(obj)
+async def keypad_initial_focus_to_code(config):
+    for keyp_conf in config[CONF_KEYPADS]:
+        if default_focus := keyp_conf.get(CONF_INITIAL_FOCUS):
+            widget = await get_widgets(default_focus)
+            lv.group_focus_obj(widget[0].obj)
 
 
-@automation.register_action("lvgl.keypad.set_group", LvglAction, set_group_schema())
+@automation.register_action(
+    "lvgl.keypad.set_group", LvglAction, set_group_action_schema()
+)
 async def set_group_to_code(config, action_id, template_arg, args):
-    return await encoders_set_group_to_code(config, action_id, template_arg, args)
+    return await _set_group_to_code(config, action_id, template_arg, args)

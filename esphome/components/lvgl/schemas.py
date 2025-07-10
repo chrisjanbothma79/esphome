@@ -579,7 +579,7 @@ def any_widget_schema(extras=None):
     return cv.Any(dict(widget_schema(wt, extras) for wt in WIDGET_TYPES.values()))
 
 
-def set_group_schema():
+def set_group_action_schema():
     """
     Create a schema for setting the group of an LVGL encoder/keypad listener.
     This is used in the lvgl.[encoder|keypad].set_group action.

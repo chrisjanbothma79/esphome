@@ -16,7 +16,7 @@ from .defines import (
 )
 from .helpers import lvgl_components_required, requires_component
 from .lvcode import LVGL_COMP_ARG, LambdaContext, add_line_marks, lv, lv_add
-from .schemas import ENCODER_SCHEMA, set_group_schema
+from .schemas import ENCODER_SCHEMA, set_group_action_schema
 from .types import LvglAction, lv_indev_type_t, lv_key_t
 from .widgets import get_widgets
 
@@ -61,21 +61,24 @@ async def encoders_to_code(var, config, default_group):
         b_sensor = await cg.get_variable(enc_conf[CONF_ENTER_BUTTON])
         cg.add(listener.add_button(b_sensor, lv_key_t.LV_KEY_ENTER))
 
-        if group := enc_conf.get(CONF_GROUP):
-            group = await cg.get_variable(group)
-        else:
-            group = default_group
-        cg.add(listener.set_group(group))
+        if (
+            group := await cg.get_variable(enc_conf[CONF_GROUP])
+            if CONF_GROUP in enc_conf
+            else default_group
+        ):
+            cg.add(listener.set_group(group))
 
 
-async def initial_focus_to_code(config):
+async def encoder_initial_focus_to_code(config):
     for enc_conf in config[CONF_ENCODERS]:
         if default_focus := enc_conf.get(CONF_INITIAL_FOCUS):
             widget = await get_widgets(default_focus)
             lv.group_focus_obj(widget[0].obj)
 
 
-@automation.register_action("lvgl.encoder.set_group", LvglAction, set_group_schema())
+@automation.register_action(
+    "lvgl.encoder.set_group", LvglAction, set_group_action_schema()
+)
 async def set_group_to_code(config, action_id, template_arg, args):
     listener = await cg.get_variable(config[CONF_ID])
     group = await cg.get_variable(config[CONF_GROUP])
