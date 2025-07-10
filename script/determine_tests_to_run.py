@@ -56,16 +56,12 @@ def main() -> None:
     if args.branch:
         cmd.extend(["-b", args.branch])
 
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        # list-components.py outputs one component per line
-        components_output = result.stdout.strip()
-        if components_output:
-            changed_components = components_output.split("\n")
-        else:
-            changed_components = []
-    except subprocess.CalledProcessError:
-        # If list-components.py fails, assume no components changed
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    # list-components.py outputs one component per line
+    components_output = result.stdout.strip()
+    if components_output:
+        changed_components = components_output.split("\n")
+    else:
         changed_components = []
 
     # Build output
