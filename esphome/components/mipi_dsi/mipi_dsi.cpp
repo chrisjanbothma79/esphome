@@ -11,7 +11,7 @@ static bool notify_refresh_ready(esp_lcd_panel_handle_t panel, esp_lcd_dpi_panel
   return (need_yield == pdTRUE);
 }
 void MIPI_DSI::setup() {
-  ESP_LOGCONFIG(TAG, "Setting up MIPI_DSI");
+  ESP_LOGCONFIG(TAG, "Running Setup");
 
   /*for (auto *pin : this->enable_pins_) {
     pin->setup();
@@ -122,7 +122,8 @@ void MIPI_DSI::setup() {
           break;
       }
       const auto *ptr = vec.data() + index;
-      ESP_LOGD(TAG, "Command %02X, length %d, byte %02X", cmd, num_args, arg_byte);
+      ESP_LOGD(TAG, "Command %02X, length %d, byte(s) %s", cmd, num_args,
+               format_hex_pretty(ptr, num_args, '.', false).c_str());
       err = esp_lcd_panel_io_tx_param(this->io_handle_, cmd, ptr, num_args);
       if (err != ESP_OK) {
         this->smark_failed("lcd_panel_io_tx_param failed", err);
@@ -207,14 +208,13 @@ void MIPI_DSI::draw_pixel_at(int x, int y, Color color) {
 }
 
 void MIPI_DSI::dump_config() {
-  ESP_LOGCONFIG("",
+  ESP_LOGCONFIG(TAG,
                 "MIPI_DSI RGB LCD"
                 "\n  Height: %u"
                 "\n  Width: %u"
                 "\n  Data Rate: %dMHz",
                 this->height_, this->width_, (unsigned) this->pclk_frequency_);
-  if (this->reset_pin_ != nullptr)
-    ESP_LOGCONFIG(TAG, "  Reset Pin %s", this->reset_pin_->dump_summary().c_str());
+  LOG_PIN("  Reset Pin ", this->reset_pin_);
 }
 }  // namespace mipi_dsi
 }  // namespace esphome
