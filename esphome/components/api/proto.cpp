@@ -284,9 +284,10 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
                 case ProtoFieldType::TYPE_MESSAGE: {
                   // Use repeated message handler registry
                   uint8_t handler_id = repeated_fields[j].get_message_type_id();
-                  ESP_LOGD(TAG, "Repeated TYPE_MESSAGE field %d, handler_id=%d, REPEATED_MESSAGE_HANDLER_COUNT=%zu", 
+                  ESP_LOGD(TAG, "Repeated TYPE_MESSAGE field %d, handler_id=%d, REPEATED_MESSAGE_HANDLER_COUNT=%zu",
                            field_id, handler_id, REPEATED_MESSAGE_HANDLER_COUNT);
-                  if (handler_id < REPEATED_MESSAGE_HANDLER_COUNT && REPEATED_MESSAGE_HANDLERS[handler_id].decode != nullptr) {
+                  if (handler_id < REPEATED_MESSAGE_HANDLER_COUNT &&
+                      REPEATED_MESSAGE_HANDLERS[handler_id].decode != nullptr) {
                     decoded = REPEATED_MESSAGE_HANDLERS[handler_id].decode(field_addr, value);
                     ESP_LOGD(TAG, "Decoded repeated message field %d: %s", field_id, decoded ? "success" : "failed");
                   } else {
@@ -583,8 +584,9 @@ void ProtoMessage::encode(ProtoWriteBuffer buffer) const {
         }
         case ProtoFieldType::TYPE_MESSAGE: {
           // Use message handler registry
-          if (fields[i].get_message_type_id() < MESSAGE_HANDLER_COUNT) {
-            MESSAGE_HANDLERS[fields[i].get_message_type_id()].encode(buffer, field_addr, fields[i].field_num);
+          uint8_t handler_id = fields[i].get_message_type_id();
+          if (handler_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[handler_id].encode != nullptr) {
+            MESSAGE_HANDLERS[handler_id].encode(buffer, field_addr, fields[i].field_num);
           }
           break;
         }
@@ -821,9 +823,9 @@ void ProtoMessage::calculate_size(uint32_t &total_size) const {
         }
         case ProtoFieldType::TYPE_MESSAGE: {
           // Use message handler registry
-          if (fields[i].get_message_type_id() < MESSAGE_HANDLER_COUNT) {
-            MESSAGE_HANDLERS[fields[i].get_message_type_id()].size(total_size, field_addr,
-                                                                   fields[i].get_precalced_size(), false);
+          uint8_t handler_id = fields[i].get_message_type_id();
+          if (handler_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[handler_id].size != nullptr) {
+            MESSAGE_HANDLERS[handler_id].size(total_size, field_addr, fields[i].get_precalced_size(), false);
           }
           break;
         }
@@ -834,8 +836,8 @@ void ProtoMessage::calculate_size(uint32_t &total_size) const {
   const RepeatedFieldMetaV3 *repeated_fields = get_repeated_field_metadata_v3();
   size_t repeated_count = get_repeated_field_count_v3();
 
-  for (size_t i = 0; i < repeated_count; i++) {
-    if (repeated_fields != nullptr) {
+  if (repeated_fields != nullptr) {
+    for (size_t i = 0; i < repeated_count; i++) {
       const void *field_addr = base + repeated_fields[i].get_offset();
 
       switch (repeated_fields[i].get_type()) {

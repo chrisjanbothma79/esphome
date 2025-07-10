@@ -298,11 +298,13 @@ struct FieldMetaV3 {
   uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
   uint16_t get_offset() const {
     if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
-      return offset_low;  // Limited to 255 for messages
+      // Reconstruct full offset from packed fields
+      // Bits 0-7 from offset_low, bits 8-11 from upper nibble of message_type_id
+      return static_cast<uint16_t>(offset_low) | (static_cast<uint16_t>(message_type_id & 0xF0) << 4);
     }
     return offset;
   }
-  uint8_t get_message_type_id() const { return message_type_id; }
+  uint8_t get_message_type_id() const { return message_type_id & 0x0F; }
 };
 
 // V2 structures removed - we only use V3 now
@@ -484,11 +486,13 @@ struct RepeatedFieldMetaV3 {
   uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
   uint16_t get_offset() const {
     if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
-      return offset_low;  // Limited to 255 for messages
+      // Reconstruct full offset from packed fields
+      // Bits 0-7 from offset_low, bits 8-11 from upper nibble of message_type_id
+      return static_cast<uint16_t>(offset_low) | (static_cast<uint16_t>(message_type_id & 0xF0) << 4);
     }
     return offset;
   }
-  uint8_t get_message_type_id() const { return message_type_id; }
+  uint8_t get_message_type_id() const { return message_type_id & 0x0F; }
 };
 
 // V2 structures removed - we only use V3 now

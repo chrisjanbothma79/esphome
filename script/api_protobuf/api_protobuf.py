@@ -1344,11 +1344,11 @@ def build_message_type(
                     type_and_size = (type_num & 0x1F) | ((field_tag_size - 1) << 5)
 
                     if field.type == descriptor.FieldDescriptorProto.TYPE_MESSAGE:
-                        # For messages, use offset_low and message_type_id
+                        # For messages, use offset_low and message_type_id with offset extension
                         message_type_id = get_repeated_message_type_id(ti._ti.type_name)
                         offset = f"PROTO_FIELD_OFFSET({desc.name}, {ti.field_name})"
                         repeated_fields_v3.append(
-                            f"{{{field.number}, {type_and_size}, {{.offset_low = static_cast<uint8_t>({offset}), .message_type_id = {message_type_id}}}}}"
+                            f"{{{field.number}, {type_and_size}, {{.offset_low = static_cast<uint8_t>({offset} & 0xFF), .message_type_id = static_cast<uint8_t>({message_type_id} | ((({offset} >> 8) & 0x0F) << 4))}}}}"
                         )
                     else:
                         # Non-message types use full offset
@@ -1369,9 +1369,13 @@ def build_message_type(
                         # For messages, use offset_low and message_type_id
                         message_type_id = get_message_type_id(ti.type_name)
                         offset = f"PROTO_FIELD_OFFSET({desc.name}, {ti.field_name})"
-                        # Check if offset fits in 8 bits
+
+                        # Since we have so few message types, we can use the upper bits of
+                        # message_type_id to extend the offset range
+                        # Bits 0-3: actual message type ID (supports 16 types)
+                        # Bits 4-7: bits 8-11 of offset (extends offset to 12 bits = 4096)
                         regular_fields_v3.append(
-                            f"{{{field.number}, {type_and_size}, {{.offset_low = static_cast<uint8_t>({offset}), .message_type_id = {message_type_id}}}}}"
+                            f"{{{field.number}, {type_and_size}, {{.offset_low = static_cast<uint8_t>({offset} & 0xFF), .message_type_id = static_cast<uint8_t>({message_type_id} | ((({offset} >> 8) & 0x0F) << 4))}}}}"
                         )
                     else:
                         # Non-message types use full offset
@@ -1391,8 +1395,9 @@ def build_message_type(
                     type_and_size = (10 & 0x1F) | ((field_tag_size - 1) << 5)
                     message_type_id = get_message_type_id(ti.type_name)
                     offset = f"PROTO_FIELD_OFFSET({desc.name}, {ti.field_name})"
+                    # Same encoding as above for large offsets
                     regular_fields_v3.append(
-                        f"{{{field.number}, {type_and_size}, {{.offset_low = static_cast<uint8_t>({offset}), .message_type_id = {message_type_id}}}}}"
+                        f"{{{field.number}, {type_and_size}, {{.offset_low = static_cast<uint8_t>({offset} & 0xFF), .message_type_id = static_cast<uint8_t>({message_type_id} | ((({offset} >> 8) & 0x0F) << 4))}}}}"
                     )
 
         # Store metadata info for later generation outside the class
