@@ -492,6 +492,7 @@ def _detect_variant(value):
     if variant and board is None:
         # If variant is set, we can derive the board from it
         # variant has already been validated against the known set
+        value = value.copy()
         value[CONF_BOARD] = STANDARD_BOARDS[variant]
     elif board in BOARDS:
         variant = variant or BOARDS[board][KEY_VARIANT]
@@ -510,7 +511,8 @@ def _detect_variant(value):
         )
     else:
         _LOGGER.warning(
-            f"This board is unknown; the specified variant '{variant}' will be used but this may not work as expected."
+            "This board is unknown; the specified variant '%s' will be used but this may not work as expected.",
+            variant,
         )
     return value
 
