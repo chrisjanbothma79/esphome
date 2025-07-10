@@ -59,7 +59,7 @@ void NeewerBleClient::send_message(esphome::ble_client::BLEClient *client, std::
   }
   ESP_LOGD(TAG, "[%s] Writing %i bytes", this->characteristic_uuid_.to_string().c_str(), msg.size());
   for (int i = 0; i < msg.size(); i++) {
-    ESP_LOGV(TAG, "Reading byte %i/%i, value %i (0x%1x)", i, msg.size() - 1, msg[i], msg[i]);
+    ESP_LOGV(TAG, "Byte %i/%i to write: %i (0x%1x)", i, msg.size() - 1, msg[i], msg[i]);
   }
   esp_err_t status = characteristic->write_value(msg.data(), msg.size(), ESP_GATT_WRITE_TYPE_RSP);
   if (status != ESP_OK) {
