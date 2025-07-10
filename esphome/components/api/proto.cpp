@@ -12,6 +12,14 @@ static const char *const TAG = "api.proto";
 void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
   uint32_t i = 0;
   bool error = false;
+  uint8_t *base = reinterpret_cast<uint8_t *>(this);
+
+  // Get metadata once at the start
+  const FieldMeta *fields = get_field_metadata();
+  size_t field_count = get_field_count();
+  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
+  size_t repeated_count = get_repeated_field_count();
+
   while (i < length) {
     uint32_t consumed;
     auto res = ProtoVarInt::parse(&buffer[i], length - i, &consumed);
@@ -32,7 +40,30 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
           error = true;
           break;
         }
-        if (!this->decode_varint(field_id, *res)) {
+        ProtoVarInt value = *res;
+        bool decoded = false;
+
+        // Check regular fields
+        for (size_t j = 0; j < field_count; j++) {
+          if (fields[j].field_num == field_id && fields[j].wire_type == 0) {
+            void *field_addr = base + fields[j].offset;
+            decoded = fields[j].decoder.decode_varint(field_addr, value);
+            break;
+          }
+        }
+
+        // Check repeated fields if not found
+        if (!decoded && repeated_fields) {
+          for (size_t j = 0; j < repeated_count; j++) {
+            if (repeated_fields[j].field_num == field_id && repeated_fields[j].wire_type == 0) {
+              void *field_addr = base + repeated_fields[j].offset;
+              decoded = repeated_fields[j].decoder.decode_varint(field_addr, value);
+              break;
+            }
+          }
+        }
+
+        if (!decoded) {
           ESP_LOGV(TAG, "Cannot decode VarInt field %" PRIu32 " with value %" PRIu32 "!", field_id, res->as_uint32());
         }
         i += consumed;
@@ -52,7 +83,30 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
           error = true;
           break;
         }
-        if (!this->decode_length(field_id, ProtoLengthDelimited(&buffer[i], field_length))) {
+        ProtoLengthDelimited value(&buffer[i], field_length);
+        bool decoded = false;
+
+        // Check regular fields
+        for (size_t j = 0; j < field_count; j++) {
+          if (fields[j].field_num == field_id && fields[j].wire_type == 2) {
+            void *field_addr = base + fields[j].offset;
+            decoded = fields[j].decoder.decode_length(field_addr, value);
+            break;
+          }
+        }
+
+        // Check repeated fields if not found
+        if (!decoded && repeated_fields) {
+          for (size_t j = 0; j < repeated_count; j++) {
+            if (repeated_fields[j].field_num == field_id && repeated_fields[j].wire_type == 2) {
+              void *field_addr = base + repeated_fields[j].offset;
+              decoded = repeated_fields[j].decoder.decode_length(field_addr, value);
+              break;
+            }
+          }
+        }
+
+        if (!decoded) {
           ESP_LOGV(TAG, "Cannot decode Length Delimited field %" PRIu32 "!", field_id);
         }
         i += field_length;
@@ -65,7 +119,30 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
           break;
         }
         uint32_t val = encode_uint32(buffer[i + 3], buffer[i + 2], buffer[i + 1], buffer[i]);
-        if (!this->decode_32bit(field_id, Proto32Bit(val))) {
+        Proto32Bit value(val);
+        bool decoded = false;
+
+        // Check regular fields
+        for (size_t j = 0; j < field_count; j++) {
+          if (fields[j].field_num == field_id && fields[j].wire_type == 5) {
+            void *field_addr = base + fields[j].offset;
+            decoded = fields[j].decoder.decode_32bit(field_addr, value);
+            break;
+          }
+        }
+
+        // Check repeated fields if not found
+        if (!decoded && repeated_fields) {
+          for (size_t j = 0; j < repeated_count; j++) {
+            if (repeated_fields[j].field_num == field_id && repeated_fields[j].wire_type == 5) {
+              void *field_addr = base + repeated_fields[j].offset;
+              decoded = repeated_fields[j].decoder.decode_32bit(field_addr, value);
+              break;
+            }
+          }
+        }
+
+        if (!decoded) {
           ESP_LOGV(TAG, "Cannot decode 32-bit field %" PRIu32 " with value %" PRIu32 "!", field_id, val);
         }
         i += 4;
@@ -608,118 +685,6 @@ void ProtoMessage::encode(ProtoWriteBuffer buffer) const {
 void ProtoMessage::calculate_size(uint32_t &total_size) const {
   calculate_size_from_metadata(total_size, this, get_field_metadata(), get_field_count(), get_repeated_field_metadata(),
                                get_repeated_field_count());
-}
-
-bool ProtoMessage::decode_varint(uint32_t field_id, ProtoVarInt value) {
-  uint8_t *base = reinterpret_cast<uint8_t *>(this);
-
-  // Check regular fields
-  const FieldMeta *fields = get_field_metadata();
-  size_t field_count = get_field_count();
-  for (size_t i = 0; i < field_count; i++) {
-    if (fields[i].field_num == field_id && fields[i].wire_type == 0) {  // varint
-      void *field_addr = base + fields[i].offset;
-      return fields[i].decoder.decode_varint(field_addr, value);
-    }
-  }
-
-  // Check repeated fields
-  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
-  size_t repeated_count = get_repeated_field_count();
-  if (repeated_fields) {
-    for (size_t i = 0; i < repeated_count; i++) {
-      if (repeated_fields[i].field_num == field_id && repeated_fields[i].wire_type == 0) {  // varint
-        void *field_addr = base + repeated_fields[i].offset;
-        return repeated_fields[i].decoder.decode_varint(field_addr, value);
-      }
-    }
-  }
-
-  return false;
-}
-
-bool ProtoMessage::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
-  uint8_t *base = reinterpret_cast<uint8_t *>(this);
-
-  // Check regular fields
-  const FieldMeta *fields = get_field_metadata();
-  size_t field_count = get_field_count();
-  for (size_t i = 0; i < field_count; i++) {
-    if (fields[i].field_num == field_id && fields[i].wire_type == 2) {  // length-delimited
-      void *field_addr = base + fields[i].offset;
-      return fields[i].decoder.decode_length(field_addr, value);
-    }
-  }
-
-  // Check repeated fields
-  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
-  size_t repeated_count = get_repeated_field_count();
-  if (repeated_fields) {
-    for (size_t i = 0; i < repeated_count; i++) {
-      if (repeated_fields[i].field_num == field_id && repeated_fields[i].wire_type == 2) {  // length-delimited
-        void *field_addr = base + repeated_fields[i].offset;
-        return repeated_fields[i].decoder.decode_length(field_addr, value);
-      }
-    }
-  }
-
-  return false;
-}
-
-bool ProtoMessage::decode_32bit(uint32_t field_id, Proto32Bit value) {
-  uint8_t *base = reinterpret_cast<uint8_t *>(this);
-
-  // Check regular fields
-  const FieldMeta *fields = get_field_metadata();
-  size_t field_count = get_field_count();
-  for (size_t i = 0; i < field_count; i++) {
-    if (fields[i].field_num == field_id && fields[i].wire_type == 5) {  // 32-bit
-      void *field_addr = base + fields[i].offset;
-      return fields[i].decoder.decode_32bit(field_addr, value);
-    }
-  }
-
-  // Check repeated fields
-  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
-  size_t repeated_count = get_repeated_field_count();
-  if (repeated_fields) {
-    for (size_t i = 0; i < repeated_count; i++) {
-      if (repeated_fields[i].field_num == field_id && repeated_fields[i].wire_type == 5) {  // 32-bit
-        void *field_addr = base + repeated_fields[i].offset;
-        return repeated_fields[i].decoder.decode_32bit(field_addr, value);
-      }
-    }
-  }
-
-  return false;
-}
-
-bool ProtoMessage::decode_64bit(uint32_t field_id, Proto64Bit value) {
-  uint8_t *base = reinterpret_cast<uint8_t *>(this);
-
-  // Check regular fields
-  const FieldMeta *fields = get_field_metadata();
-  size_t field_count = get_field_count();
-  for (size_t i = 0; i < field_count; i++) {
-    if (fields[i].field_num == field_id && fields[i].wire_type == 1) {  // 64-bit
-      void *field_addr = base + fields[i].offset;
-      return fields[i].decoder.decode_64bit(field_addr, value);
-    }
-  }
-
-  // Check repeated fields
-  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
-  size_t repeated_count = get_repeated_field_count();
-  if (repeated_fields) {
-    for (size_t i = 0; i < repeated_count; i++) {
-      if (repeated_fields[i].field_num == field_id && repeated_fields[i].wire_type == 1) {  // 64-bit
-        void *field_addr = base + repeated_fields[i].offset;
-        return repeated_fields[i].decoder.decode_64bit(field_addr, value);
-      }
-    }
-  }
-
-  return false;
 }
 
 }  // namespace api

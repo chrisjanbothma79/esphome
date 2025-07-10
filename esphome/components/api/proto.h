@@ -408,13 +408,6 @@ class ProtoMessage {
   virtual void dump_to(std::string &out) const = 0;
   virtual const char *message_name() const { return "unknown"; }
 #endif
-
- protected:
-  // Decode methods using metadata
-  bool decode_varint(uint32_t field_id, ProtoVarInt value);
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value);
-  bool decode_32bit(uint32_t field_id, Proto32Bit value);
-  bool decode_64bit(uint32_t field_id, Proto64Bit value);
 };
 
 template<typename T> const char *proto_enum_to_string(T value);
