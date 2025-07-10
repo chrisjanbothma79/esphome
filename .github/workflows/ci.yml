@@ -252,13 +252,15 @@ jobs:
           cache-key: ${{ needs.common.outputs.cache-key }}
       - name: Check if integration tests should run
         id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           . venv/bin/activate
-          if python script/should_run_integration_tests.py; then
-            echo "should-run=true" >> $GITHUB_OUTPUT
+          result=$(python script/should_run_integration_tests.py)
+          echo "should-run=$result" >> $GITHUB_OUTPUT
+          if [ "$result" = "true" ]; then
             echo "Integration tests will run"
           else
-            echo "should-run=false" >> $GITHUB_OUTPUT
             echo "Integration tests will be skipped"
           fi
 
