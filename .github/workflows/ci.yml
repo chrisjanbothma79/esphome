@@ -245,15 +245,11 @@ jobs:
         with:
           # Fetch enough history to find the merge base
           fetch-depth: 2
-      - name: Set up Python ${{ env.DEFAULT_PYTHON }}
-        uses: actions/setup-python@v5.6.0
+      - name: Restore Python
+        uses: ./.github/actions/restore-python
         with:
           python-version: ${{ env.DEFAULT_PYTHON }}
-      - name: Restore Python virtual environment
-        uses: actions/cache@v4.2.3
-        with:
-          path: venv
-          key: ${{ runner.os }}-${{ env.DEFAULT_PYTHON }}-venv-${{ needs.common.outputs.cache-key }}
+          cache-key: ${{ needs.common.outputs.cache-key }}
       - name: Check if integration tests should run
         id: check
         run: |
