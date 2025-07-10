@@ -566,7 +566,7 @@ bool ModemComponent::modem_init_() {
       break;
     default:
       ESP_LOGW(TAG, "Modem is in an unhandled mode: %d (see enum modem_mode in esp_modem_types.hpp).",
-               this->dce->get_mode());
+               static_cast<int>(this->dce->get_mode()));
   }
 
   if (success) {
