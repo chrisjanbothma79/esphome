@@ -2,7 +2,7 @@
 Test ESP32 configuration
 """
 
-from esphome.components.esp32 import STANDARD_BOARDS
+from esphome.components.esp32 import VARIANTS
 from esphome.const import PlatformFramework
 
 
@@ -28,7 +28,7 @@ def test_esp32_config(set_core_config) -> None:
     assert config["variant"] == VARIANT_ESP32
 
     # Check that defining a variant sets the board name correctly
-    for variant in STANDARD_BOARDS:
+    for variant in VARIANTS:
         config = CONFIG_SCHEMA(
             {
                 "variant": variant,
