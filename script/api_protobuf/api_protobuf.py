@@ -1313,47 +1313,9 @@ def build_message_type(
             prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
             protected_content.insert(0, prot)
     else:
-        # For classes using metadata approach, add metadata-driven decode methods
-        if decode_varint:
-            prot = "bool decode_varint(uint32_t field_id, ProtoVarInt value) override;"
-            protected_content.insert(0, prot)
-            o = f"bool {desc.name}::decode_varint(uint32_t field_id, ProtoVarInt value) {{\n"
-            if regular_fields:
-                o += "  return decode_varint_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
-            else:
-                o += "  return false;  // No varint fields\n"
-            o += "}\n"
-            cpp += o
-        if decode_length:
-            prot = "bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;"
-            protected_content.insert(0, prot)
-            o = f"bool {desc.name}::decode_length(uint32_t field_id, ProtoLengthDelimited value) {{\n"
-            if regular_fields:
-                o += "  return decode_length_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
-            else:
-                o += "  return false;  // No length-delimited fields\n"
-            o += "}\n"
-            cpp += o
-        if decode_32bit:
-            prot = "bool decode_32bit(uint32_t field_id, Proto32Bit value) override;"
-            protected_content.insert(0, prot)
-            o = f"bool {desc.name}::decode_32bit(uint32_t field_id, Proto32Bit value) {{\n"
-            if regular_fields:
-                o += "  return decode_32bit_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
-            else:
-                o += "  return false;  // No 32-bit fields\n"
-            o += "}\n"
-            cpp += o
-        if decode_64bit:
-            prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
-            protected_content.insert(0, prot)
-            o = f"bool {desc.name}::decode_64bit(uint32_t field_id, Proto64Bit value) {{\n"
-            if regular_fields:
-                o += "  return decode_64bit_metadata(field_id, value, FIELDS, FIELD_COUNT);\n"
-            else:
-                o += "  return false;  // No 64-bit fields\n"
-            o += "}\n"
-            cpp += o
+        # For classes using metadata approach, no need to generate decode methods
+        # They're implemented in the base class ProtoMetadataMessage
+        pass
 
     # Metadata arrays for classes using metadata are already generated above
     if use_metadata:
@@ -1378,6 +1340,32 @@ def build_message_type(
         else:
             public_content.append("static constexpr size_t REPEATED_COUNT = 0;")
 
+        # Add virtual getter methods that return the metadata
+        public_content.append("// Virtual metadata getters")
+        if regular_fields:
+            public_content.append(
+                "const FieldMeta *get_field_metadata() const override { return FIELDS; }"
+            )
+        else:
+            public_content.append(
+                "const FieldMeta *get_field_metadata() const override { return nullptr; }"
+            )
+        public_content.append(
+            "size_t get_field_count() const override { return FIELD_COUNT; }"
+        )
+
+        if repeated_fields:
+            public_content.append(
+                "const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }"
+            )
+        else:
+            public_content.append(
+                "const RepeatedFieldMeta *get_repeated_field_metadata() const override { return nullptr; }"
+            )
+        public_content.append(
+            "size_t get_repeated_field_count() const override { return REPEATED_COUNT; }"
+        )
+
     # Only generate encode method if there are fields to encode
     if encode and not use_metadata:
         o = f"void {desc.name}::encode(ProtoWriteBuffer buffer) const {{"
@@ -1391,20 +1379,7 @@ def build_message_type(
         prot = "void encode(ProtoWriteBuffer buffer) const override;"
         public_content.append(prot)
     # If no fields to encode, the default implementation in ProtoMessage will be used
-    elif use_metadata and (regular_fields or repeated_fields):
-        # Generate metadata-based encode method for classes using metadata
-        prot = "void encode(ProtoWriteBuffer buffer) const override;"
-        public_content.append(prot)
-
-        o = f"void {desc.name}::encode(ProtoWriteBuffer buffer) const {{\n"
-        if regular_fields and repeated_fields:
-            o += "  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);\n"
-        elif regular_fields:
-            o += "  encode_from_metadata(buffer, this, FIELDS, FIELD_COUNT, nullptr, 0);\n"
-        else:
-            o += "  encode_from_metadata(buffer, this, nullptr, 0, REPEATED_FIELDS, REPEATED_COUNT);\n"
-        o += "}\n"
-        cpp += o
+    # For metadata classes, encode is implemented in base class ProtoMetadataMessage
 
     # Add calculate_size method only if there are fields
     if size_calc and not use_metadata:
@@ -1421,20 +1396,7 @@ def build_message_type(
         prot = "void calculate_size(uint32_t &total_size) const override;"
         public_content.append(prot)
     # If no fields to calculate size for, the default implementation in ProtoMessage will be used
-    elif use_metadata and (regular_fields or repeated_fields):
-        # Generate metadata-based calculate_size method for classes using metadata
-        prot = "void calculate_size(uint32_t &total_size) const override;"
-        public_content.append(prot)
-
-        o = f"void {desc.name}::calculate_size(uint32_t &total_size) const {{\n"
-        if regular_fields and repeated_fields:
-            o += "  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, REPEATED_FIELDS, REPEATED_COUNT);\n"
-        elif regular_fields:
-            o += "  calculate_size_from_metadata(total_size, this, FIELDS, FIELD_COUNT, nullptr, 0);\n"
-        else:
-            o += "  calculate_size_from_metadata(total_size, this, nullptr, 0, REPEATED_FIELDS, REPEATED_COUNT);\n"
-        o += "}\n"
-        cpp += o
+    # For metadata classes, calculate_size is implemented in base class ProtoMetadataMessage
 
     # dump_to method declaration in header
     prot = "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
