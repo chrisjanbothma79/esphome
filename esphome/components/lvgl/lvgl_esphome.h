@@ -331,6 +331,7 @@ class LVEncoderListener : public Parented<LvglComponent> {
 
  protected:
   lv_indev_drv_t drv_{};
+  lv_indev_t *indev_{nullptr};
   bool pressed_{};
   int32_t count_{};
   int32_t last_count_{};
