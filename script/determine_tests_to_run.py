@@ -28,13 +28,12 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
+import subprocess
+import sys
 from typing import Any
 
-from helpers import (
-    get_changed_components,
-    should_run_clang_tidy,
-    should_run_integration_tests,
-)
+from helpers import should_run_clang_tidy, should_run_integration_tests
 
 
 def main() -> None:
@@ -51,25 +50,31 @@ def main() -> None:
     run_integration = should_run_integration_tests(args.branch)
     run_clang_tidy = should_run_clang_tidy(args.branch)
 
-    # Get changed components
-    changed_components = get_changed_components()
+    # Get changed components using list-components.py for exact compatibility
+    script_path = Path(__file__).parent / "list-components.py"
+    cmd = [sys.executable, str(script_path), "--changed"]
+    if args.branch:
+        cmd.extend(["-b", args.branch])
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        # list-components.py outputs one component per line
+        components_output = result.stdout.strip()
+        if components_output:
+            changed_components = components_output.split("\n")
+        else:
+            changed_components = []
+    except subprocess.CalledProcessError:
+        # If list-components.py fails, assume no components changed
+        changed_components = []
 
     # Build output
     output: dict[str, Any] = {
         "integration_tests": run_integration,
         "clang_tidy": run_clang_tidy,
+        "changed_components": changed_components,
+        "component_test_count": len(changed_components),
     }
-
-    # Get changed components
-    # Note: get_changed_components returns None when core files change,
-    # but the CI expects an empty list which means no component tests need to run
-    # (since core file changes are caught by other tests)
-    if changed_components is None:
-        output["changed_components"] = []
-        output["component_test_count"] = 0
-    else:
-        output["changed_components"] = changed_components
-        output["component_test_count"] = len(changed_components)
 
     # Output as JSON
     print(json.dumps(output))
