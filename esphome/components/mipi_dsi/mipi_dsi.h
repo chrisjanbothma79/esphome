@@ -32,6 +32,10 @@ const uint8_t DISPLAY_ON = 0x29;
 const uint8_t CMD2_BKSEL = 0xFF;
 const uint8_t CMD2_BK0[5] = {0x77, 0x01, 0x00, 0x00, 0x10};
 const uint8_t DELAY_FLAG = 0xFF;
+const uint8_t MADCTL_BGR = 0x08;
+const uint8_t MADCTL_MX = 0x40;
+const uint8_t MADCTL_MY = 0x80;
+const uint8_t MADCTL_MV = 0x20;  // row/column swap
 
 enum PixelMode {
   PIXEL_MODE_8 = 1,
@@ -59,6 +63,9 @@ class MIPI_DSI : public display::Display {
   void set_vsync_front_porch(uint16_t vsync_front_porch) { this->vsync_front_porch_ = vsync_front_porch; }
   void set_init_sequence(const std::vector<uint8_t> &init_sequence) { this->init_sequence_ = init_sequence; }
   void set_model(const char *model) { this->model_ = model; }
+  void set_lane_bit_rate(uint16_t lane_bit_rate) { this->lane_bit_rate_ = lane_bit_rate; }
+  void set_lanes(uint8_t lanes) { this->lanes_ = lanes; }
+  void set_madctl(uint8_t madctl) { this->madctl_ = madctl; }
 
   void smark_failed(const char *message, esp_err_t err) {
     auto str = str_sprintf("Setup failed: %s: %s", message, esp_err_to_name(err));
@@ -89,7 +96,9 @@ class MIPI_DSI : public display::Display {
   uint16_t vsync_front_porch_ = 10;
   const char *model_{"Unknown"};
   std::vector<uint8_t> init_sequence_;
-  uint16_t pclk_frequency_ = 16;
+  uint16_t pclk_frequency_ = 16;  // in MHz
+  uint16_t lane_bit_rate_{1500};  // in Mbps
+  uint8_t lanes_{2};              // 1, 2, 3 or 4 lanes
 
   bool invert_colors_{};
   display::ColorOrder color_mode_{display::COLOR_ORDER_BGR};

@@ -76,6 +76,9 @@ COLOR_ORDERS = {
     "BGR": ColorOrder.COLOR_ORDER_BGR,
 }
 
+CONF_LANE_BIT_RATE = "lane_bit_rate"
+CONF_LANES = "lanes"
+
 DriverChip("CUSTOM")
 
 # This loop is a noop, but suppresses linting of side-effect-only imports
@@ -134,7 +137,7 @@ def get_sequence(config):
             for x in sequence
         ),
         (),
-    )
+    ), madctl
 
 
 def model_schema(config):
@@ -194,6 +197,10 @@ def model_schema(config):
             model.option(CONF_PCLK_FREQUENCY, "40MHz"): cv.All(
                 cv.frequency, cv.Range(min=4e6, max=100e6)
             ),
+            model.option(CONF_LANES, 2): cv.int_range(1, 2),
+            model.option(CONF_LANE_BIT_RATE, None): cv.All(
+                cv.frequency, cv.Range(min=100e6, max=3200e6)
+            ),
             iseqconf: cv.ensure_list(map_sequence),
             model.option(CONF_BYTE_ORDER, "little_endian"): cv.one_of(
                 "big_endian", "little_endian", lower=True
@@ -233,8 +240,10 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID], width, height)
     await display.register_display(var, config)
 
+    sequence, madctl = get_sequence(config)
     cg.add(var.set_model(config[CONF_MODEL]))
-    cg.add(var.set_init_sequence(get_sequence(config)))
+    cg.add(var.set_init_sequence(sequence))
+    cg.add(var.set_madctl(madctl))
     cg.add(var.set_invert_colors(config[CONF_INVERT_COLORS]))
     cg.add(var.set_hsync_pulse_width(config[CONF_HSYNC_PULSE_WIDTH]))
     cg.add(var.set_hsync_back_porch(config[CONF_HSYNC_BACK_PORCH]))
@@ -243,6 +252,8 @@ async def to_code(config):
     cg.add(var.set_vsync_back_porch(config[CONF_VSYNC_BACK_PORCH]))
     cg.add(var.set_vsync_front_porch(config[CONF_VSYNC_FRONT_PORCH]))
     cg.add(var.set_pclk_frequency(int(config[CONF_PCLK_FREQUENCY] / 1e6)))
+    cg.add(var.set_lanes(int(config[CONF_LANES])))
+    cg.add(var.set_lane_bit_rate(int(config[CONF_LANE_BIT_RATE] / 1e6)))
     if reset_pin := config.get(CONF_RESET_PIN):
         reset = await cg.gpio_pin_expression(reset_pin)
         cg.add(var.set_reset_pin(reset))

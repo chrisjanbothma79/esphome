@@ -21,10 +21,11 @@ void MIPI_DSI::setup() {
 */
 
   esp_lcd_dsi_bus_config_t bus_config = {
-      .bus_id = 0,          // index from 0, specify the DSI host to use
-      .num_data_lanes = 2,  // Number of data lanes to use, can't set a value that exceeds the chip's capability
+      .bus_id = 0,  // index from 0, specify the DSI host to use
+      .num_data_lanes =
+          this->lanes_,  // Number of data lanes to use, can't set a value that exceeds the chip's capability
       .phy_clk_src = MIPI_DSI_PHY_CLK_SRC_DEFAULT,  // Clock source for the DPHY
-      .lane_bit_rate_mbps = 1500,                   // Bit rate of the data lanes, in Mbps
+      .lane_bit_rate_mbps = this->lane_bit_rate_,   // Bit rate of the data lanes, in Mbps
   };
   auto err = esp_lcd_new_dsi_bus(&bus_config, &this->bus_handle_);
   if (err != ESP_OK) {
@@ -122,7 +123,7 @@ void MIPI_DSI::setup() {
           break;
       }
       const auto *ptr = vec.data() + index;
-      ESP_LOGD(TAG, "Command %02X, length %d, byte(s) %s", cmd, num_args,
+      ESP_LOGV(TAG, "Command %02X, length %d, byte(s) %s", cmd, num_args,
                format_hex_pretty(ptr, num_args, '.', false).c_str());
       err = esp_lcd_panel_io_tx_param(this->io_handle_, cmd, ptr, num_args);
       if (err != ESP_OK) {
@@ -207,13 +208,36 @@ void MIPI_DSI::draw_pixel_at(int x, int y, Color color) {
   App.feed_wdt();
 }
 
+static const uint8_t PIXEL_MODES[] = {0, 16, 18, 24};
+
 void MIPI_DSI::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "MIPI_DSI RGB LCD"
+                "\n  Model: %s"
                 "\n  Height: %u"
                 "\n  Width: %u"
-                "\n  Data Rate: %dMHz",
-                this->height_, this->width_, (unsigned) this->pclk_frequency_);
+                "\n  Mirror X: %s"
+                "\n  Mirror Y: %s"
+                "\n  Swap X/Y: %s"
+                "\n  Rotation: %d degrees"
+                "\n  DSI Lanes: %u"
+                "\n  Lane Bit Rate: %uMbps"
+                "\n  HSync Pulse Width: %u"
+                "\n  HSync Back Porch: %u"
+                "\n  HSync Front Porch: %u"
+                "\n  VSync Pulse Width: %u"
+                "\n  VSync Back Porch: %u"
+                "\n  VSync Front Porch: %u"
+                "\n  Pixel Mode: %d bit"
+                "\n  Color Order: %s"
+                "\n  Invert Colors: %s"
+                "\n  Pixel Clock: %dMHz",
+                this->model_, this->height_, this->width_, YESNO(this->madctl_ & MADCTL_MX),
+                YESNO(this->madctl_ & MADCTL_MY), YESNO(this->madctl_ & MADCTL_MV), this->rotation_, this->lanes_,
+                this->lane_bit_rate_, this->hsync_pulse_width_, this->hsync_back_porch_, this->hsync_front_porch_,
+                this->vsync_pulse_width_, this->vsync_back_porch_, this->vsync_front_porch_,
+                PIXEL_MODES[this->madctl_ & 0x03], this->madctl_ & MADCTL_BGR ? "BGR" : "RGB",
+                YESNO(this->invert_colors_), this->pclk_frequency_);
   LOG_PIN("  Reset Pin ", this->reset_pin_);
 }
 }  // namespace mipi_dsi
