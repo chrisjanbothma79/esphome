@@ -76,35 +76,34 @@ def get_all_dependencies(component_names: set[str]) -> set[str]:
     return all_components
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-b", "--branch", help="Branch to compare changed files against"
-    )
-    args = parser.parse_args()
+def should_run_integration_tests(branch: str | None = None) -> bool:
+    """Determine if integration tests should run based on changed files.
 
-    if args.branch:
-        changed: list[str] = changed_files(args.branch)
+    Args:
+        branch: Branch to compare against. If None, uses default.
+
+    Returns:
+        True if integration tests should run, False otherwise.
+    """
+    if branch:
+        changed: list[str] = changed_files(branch)
     else:
         changed: list[str] = changed_files()
 
     # Check if any core files changed (esphome/core/*)
     for file in changed:
         if file.startswith("esphome/core/"):
-            print("true")
-            sys.exit(0)
+            return True
 
     # Check if any Python files outside components changed
     for file in changed:
         if file.startswith("esphome/") and file.endswith(".py"):
             if not file.startswith("esphome/components/"):
-                print("true")
-                sys.exit(0)
+                return True
 
     # Check if any integration test files changed
     if any("tests/integration" in file for file in changed):
-        print("true")
-        sys.exit(0)
+        return True
 
     # Get all components used in integration tests and their dependencies
     fixture_components: set[str] = get_components_from_fixtures()
@@ -117,12 +116,23 @@ def main() -> None:
             if len(parts) >= 3:
                 component = parts[2]
                 if component in all_required_components:
-                    print("true")
-                    sys.exit(0)
+                    return True
 
-    print("false")
-    sys.exit(0)
+    return False
+
+
+def main() -> bool:
+    """Main function that parses arguments and calls should_run_integration_tests."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-b", "--branch", help="Branch to compare changed files against"
+    )
+    args = parser.parse_args()
+
+    return should_run_integration_tests(args.branch)
 
 
 if __name__ == "__main__":
-    main()
+    result = main()
+    print("true" if result else "false")
+    sys.exit(0)
