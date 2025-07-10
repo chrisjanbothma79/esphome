@@ -60,14 +60,16 @@ def main() -> None:
         "clang_tidy": run_clang_tidy,
     }
 
-    # Only include component info if we successfully got the list
-    if changed_components is not None:
+    # Get changed components
+    # Note: get_changed_components returns None when core files change,
+    # but the CI expects an empty list which means no component tests need to run
+    # (since core file changes are caught by other tests)
+    if changed_components is None:
+        output["changed_components"] = []
+        output["component_test_count"] = 0
+    else:
         output["changed_components"] = changed_components
         output["component_test_count"] = len(changed_components)
-    else:
-        # None means all components need testing (e.g., core files changed)
-        output["changed_components"] = []
-        output["component_test_count"] = -1  # Indicates "test all"
 
     # Output as JSON
     print(json.dumps(output))

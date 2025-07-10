@@ -458,7 +458,7 @@ jobs:
     needs:
       - common
       - determine-tests
-    if: github.event_name == 'pull_request' && needs.determine-tests.outputs.component-test-count != '-1' && fromJSON(needs.determine-tests.outputs.component-test-count) > 0 && fromJSON(needs.determine-tests.outputs.component-test-count) < 100
+    if: github.event_name == 'pull_request' && fromJSON(needs.determine-tests.outputs.component-test-count) > 0 && fromJSON(needs.determine-tests.outputs.component-test-count) < 100
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -492,7 +492,7 @@ jobs:
     needs:
       - common
       - determine-tests
-    if: github.event_name == 'pull_request' && needs.determine-tests.outputs.component-test-count != '-1' && fromJSON(needs.determine-tests.outputs.component-test-count) >= 100
+    if: github.event_name == 'pull_request' && fromJSON(needs.determine-tests.outputs.component-test-count) >= 100
     outputs:
       matrix: ${{ steps.split.outputs.components }}
     steps:
@@ -511,7 +511,7 @@ jobs:
       - common
       - determine-tests
       - test-build-components-splitter
-    if: github.event_name == 'pull_request' && needs.determine-tests.outputs.component-test-count != '-1' && fromJSON(needs.determine-tests.outputs.component-test-count) >= 100
+    if: github.event_name == 'pull_request' && fromJSON(needs.determine-tests.outputs.component-test-count) >= 100
     strategy:
       fail-fast: false
       max-parallel: 4
