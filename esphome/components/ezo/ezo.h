@@ -4,11 +4,18 @@
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/i2c/i2c.h"
 #include <deque>
+#include <string>
+#include <string_view>
 
 namespace esphome {
 namespace ezo {
 
 static const char *const TAG = "ezo.sensor";
+
+/**
+ * @note Response buffers reserve READ_LEN bytes from the sensor and add one
+ * extra byte so they are always null terminated (BUF_LEN = READ_LEN + 1).
+ */
 
 enum EzoCommandType : uint8_t {
   EZO_READ = 0,
@@ -44,7 +51,7 @@ class EZOSensor : public sensor::Sensor, public PollingComponent, public i2c::I2
 
   // Device Information
   void get_device_information();
-  void add_device_infomation_callback(std::function<void(std::string)> &&callback) {
+  void add_device_infomation_callback(std::function<void(std::string_view)> &&callback) {
     this->device_infomation_callback_.add(std::move(callback));
   }
 
@@ -56,7 +63,7 @@ class EZOSensor : public sensor::Sensor, public PollingComponent, public i2c::I2
 
   // Slope
   void get_slope();
-  void add_slope_callback(std::function<void(std::string)> &&callback) {
+  void add_slope_callback(std::function<void(std::string_view)> &&callback) {
     this->slope_callback_.add(std::move(callback));
   }
 
@@ -64,7 +71,7 @@ class EZOSensor : public sensor::Sensor, public PollingComponent, public i2c::I2
   void get_t();
   void set_t(float value);
   void set_tempcomp_value(float temp);  // For backwards compatibility
-  void add_t_callback(std::function<void(std::string)> &&callback) { this->t_callback_.add(std::move(callback)); }
+  void add_t_callback(std::function<void(std::string_view)> &&callback) { this->t_callback_.add(std::move(callback)); }
 
   // Calibration
   void get_calibration();
@@ -73,7 +80,7 @@ class EZOSensor : public sensor::Sensor, public PollingComponent, public i2c::I2
   void set_calibration_point_high(float value);
   void set_calibration_generic(float value);
   void clear_calibration();
-  void add_calibration_callback(std::function<void(std::string)> &&callback) {
+  void add_calibration_callback(std::function<void(std::string_view)> &&callback) {
     this->calibration_callback_.add(std::move(callback));
   }
 
@@ -84,7 +91,7 @@ class EZOSensor : public sensor::Sensor, public PollingComponent, public i2c::I2
 
   // Custom
   void send_custom(const std::string &to_send);
-  void add_custom_callback(std::function<void(std::string)> &&callback) {
+  void add_custom_callback(std::function<void(std::string_view)> &&callback) {
     this->custom_callback_.add(std::move(callback));
   }
 
@@ -96,11 +103,11 @@ class EZOSensor : public sensor::Sensor, public PollingComponent, public i2c::I2
 
   void set_calibration_point_(EzoCalibrationType type, float value);
 
-  CallbackManager<void(std::string)> device_infomation_callback_{};
-  CallbackManager<void(std::string)> calibration_callback_{};
-  CallbackManager<void(std::string)> slope_callback_{};
-  CallbackManager<void(std::string)> t_callback_{};
-  CallbackManager<void(std::string)> custom_callback_{};
+  CallbackManager<void(std::string_view)> device_infomation_callback_{};
+  CallbackManager<void(std::string_view)> calibration_callback_{};
+  CallbackManager<void(std::string_view)> slope_callback_{};
+  CallbackManager<void(std::string_view)> t_callback_{};
+  CallbackManager<void(std::string_view)> custom_callback_{};
   CallbackManager<void(bool)> led_callback_{};
 
   uint32_t start_time_ = 0;
