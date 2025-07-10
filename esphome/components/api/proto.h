@@ -77,8 +77,8 @@ constexpr uint8_t get_wire_type(ProtoFieldType type) {
 
 // Macro to calculate field offset without triggering -Winvalid-offsetof
 // This uses the same approach as offsetof but with explicit reinterpret_cast
-#define PROTO_FIELD_OFFSET(Type, Member) \
-  static_cast<uint16_t>(reinterpret_cast<size_t>(&reinterpret_cast<(Type) *>(16)->Member) - 16)
+#define PROTO_FIELD_OFFSET(Type, Member) /* NOLINT(bugprone-macro-parentheses) */ \
+  static_cast<uint16_t>(reinterpret_cast<size_t>(&reinterpret_cast<Type *>(16)->Member) - 16)
 
 /// Representation of a VarInt - in ProtoBuf should be 64bit but we only use 32bit
 class ProtoVarInt {
