@@ -225,7 +225,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
       - name: Save Python virtual environment cache
-        if: github.ref == 'refs/heads/dev' && (matrix.os == 'windows-latest' || matrix.os == 'macOS-latest')
+        if: github.ref == 'refs/heads/dev'
         uses: actions/cache/save@v4.2.3
         with:
           path: venv
