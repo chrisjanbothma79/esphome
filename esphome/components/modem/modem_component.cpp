@@ -316,6 +316,7 @@ void ModemComponent::loop() {
           ESP_LOGI(TAG, "Modem powered OFF");
           this->component_state_ = ModemComponentState::DISABLED;
           this->internal_state_.powered_on = false;
+          this->internal_state_.sim_unlocked = false;
           // when the modem will be back, it will be in a default baud rate
           this->modem_restore_state_.baud_rate = 0;
           this->internal_state_.current_baud_rate = 0;
@@ -340,7 +341,6 @@ void ModemComponent::loop() {
         } else {
           ESP_LOGW(TAG, "Modem not responding, resetting...");
           this->internal_state_.connected = false;
-          // this->modem_create_dce_dte_();
           if (!this->modem_init_()) {
             ESP_LOGE(TAG, "Unable to recover modem");
           } else {
@@ -370,6 +370,24 @@ void ModemComponent::loop() {
             this->abort_("Timeout while trying to connect");
           }
           if (!connecting) {
+            if (!this->internal_state_.sim_unlocked) {
+              if (this->dce->read_pin(this->internal_state_.sim_unlocked) != command_result::OK) {
+                ESP_LOGW(TAG, "SIM card not ready, will retry later");
+                next_loop_millis = millis() + 5000;  // delay to retry
+              } else {
+                if (!this->internal_state_.sim_unlocked) {
+                  this->abort_("Invalid SIM PIN");
+                } else {
+                  ESP_LOGD(TAG, "SIM card is ready");
+                }
+              }
+              if (this->prepare_sim_()) {
+                this->internal_state_.sim_unlocked = true;
+              } else {
+                ESP_LOGE(TAG, "SIM card is not ready, aborting connection");
+                this->abort_("SIM card error");
+              }
+            }
             // wait for the modem be attached to a network, start ppp, and set connecting=true
             if (this->is_modem_connected()) {
               if (this->start_ppp_()) {
@@ -459,7 +477,7 @@ void ModemComponent::loop() {
   }
 }
 
-void ModemComponent::modem_create_dce_dte_(int baud_rate) {
+void ModemComponent::modem_create_dte_dce_(int baud_rate) {
   // create or recreate dte and dce.
   // no communication is done with the modem.
 
@@ -527,7 +545,7 @@ bool ModemComponent::modem_init_() {
   uint32_t elapsed_ms;
 
   // Create or recreate DTE and DCE, using the guessed baud rate
-  this->modem_create_dce_dte_(this->internal_state_.current_baud_rate);
+  this->modem_create_dte_dce_(this->internal_state_.current_baud_rate);
 
   ESP_LOGD(TAG, "Autodetecting modem mode...");
   App.feed_wdt();
@@ -538,7 +556,7 @@ bool ModemComponent::modem_init_() {
 
   if (this->dce->get_mode() == modem_mode::UNDEF && this->internal_state_.current_baud_rate != 0) {
     ESP_LOGW(TAG, "Can't autodetect modem mode, retrying with default baud rate");
-    this->modem_create_dce_dte_(0);
+    this->modem_create_dte_dce_(0);
     delay(100);  // NOLINT
     this->dce->set_mode(modem_mode::AUTODETECT);
   }
@@ -608,7 +626,7 @@ bool ModemComponent::modem_init_() {
       ESP_LOGD(TAG, "Modem baud rate set to %d", this->baud_rate_);
       delay(200);  // NOLINT
       // need to recreate dte/dce with new baud rate
-      this->modem_create_dce_dte_(this->baud_rate_);
+      this->modem_create_dte_dce_(this->baud_rate_);
       App.feed_wdt();
       delay(200);  // NOLINT
       this->flush_uart_();
@@ -687,8 +705,14 @@ bool ModemComponent::prepare_sim_() {
     ESP_LOGD(TAG, "Pin already unlocked");
     return true;  // pin not needed or already unlocked
   } else if (output.find("SIM not inserted") != std::string::npos) {
-    ESP_LOGE(TAG, "sim card missing?");
+    ESP_LOGE(TAG, "Sim card missing?");
     return false;
+  } else if (output.find("SIM failure") != std::string::npos) {
+    ESP_LOGE(TAG, "Sim card failure. Check your SIM card.");
+    return false;
+  } else if (output.find("SIM PUK") != std::string::npos) {
+    ESP_LOGE(TAG, "SIM card is locked with **PUK** code. Please unlock it.");
+    return false;  // sim card is locked with PUK code
   }
 
   if (this->pin_code_.empty()) {
@@ -697,20 +721,14 @@ bool ModemComponent::prepare_sim_() {
   }
 
   // we need to unlock the sim
+  this->internal_state_.sim_unlocked = false;
   ESP_LOGD(TAG, "Unlocking SIM with pin code...");
   if (this->dce->set_pin(this->pin_code_) == command_result::OK) {
-    delay(1000);  // NOLINT
-    bool pin_ok = false;
-    if (this->dce->read_pin(pin_ok) == command_result::TIMEOUT) {
-      ESP_LOGW(TAG, "Timeout while checking pin code. Assuming pin code is set correctly.");
-      // some modems are very slow to answer, so we assume that the pin code is set correctly
-      pin_ok = true;
-      delay(1000);  // NOLINT
-    }
-    return pin_ok;
+    ESP_LOGD(TAG, "Pin code set. Will be checked later");
+    return true;
   } else {
     ESP_LOGE(TAG, "Failed to set pin code");
-    return false;
+    return false;  // failed to set pin code
   }
 
   return false;
@@ -842,7 +860,6 @@ void ModemComponent::poweroff_() {
 
 void ModemComponent::abort_(const std::string &message) {
   ESP_LOGE(TAG, "Aborting: %s", message.c_str());
-  this->modem_restore_state_.abort_count++;  // FIXME: should use this at init
   this->pref_.save(&this->modem_restore_state_);
   App.reboot();
 }

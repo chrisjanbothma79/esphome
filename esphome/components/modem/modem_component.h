@@ -52,7 +52,6 @@ struct AtCommandResult {
 
 struct ModemRestoreState {
   int baud_rate{0};
-  uint8_t abort_count{0};
 } __attribute__((packed));
 
 class ModemComponent : public Component {
@@ -108,15 +107,15 @@ class ModemComponent : public Component {
   std::unique_ptr<DCE> dce{nullptr};
 
  protected:
-  void modem_create_dce_dte_(int baud_rate);
-  void modem_create_dce_dte_() { this->modem_create_dce_dte_(this->internal_state_.current_baud_rate); }
+  void modem_create_dte_dce_(int baud_rate);
+  void modem_create_dte_dce_() { this->modem_create_dte_dce_(this->internal_state_.current_baud_rate); }
   bool modem_command_mode_(bool cmux);
   bool modem_command_mode_() { return modem_command_mode_(this->cmux_); };
   bool modem_init_();
   int get_baud_rate_();
-  bool prepare_sim_();
   void send_init_at_();
   bool is_network_attached_();
+  bool prepare_sim_();
   bool start_ppp_();
   void poweron_();
   void poweroff_();
@@ -182,6 +181,7 @@ class ModemComponent : public Component {
     // ask the modem to reconnect
     bool reconnect{false};
     int current_baud_rate{0};
+    bool sim_unlocked{false};
   };
   InternalState internal_state_;
 
