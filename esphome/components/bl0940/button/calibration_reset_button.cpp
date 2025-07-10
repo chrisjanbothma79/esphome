@@ -1,5 +1,5 @@
 #include "calibration_reset_button.h"
-#include "esphome/components/bl0940/bl0940.h"
+#include "../bl0940.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include "esphome/core/application.h"
