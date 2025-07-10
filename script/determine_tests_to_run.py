@@ -33,7 +33,11 @@ import subprocess
 import sys
 from typing import Any
 
-from helpers import should_run_clang_tidy, should_run_integration_tests
+from helpers import (
+    should_run_clang_format,
+    should_run_clang_tidy,
+    should_run_integration_tests,
+)
 
 
 def main() -> None:
@@ -49,6 +53,7 @@ def main() -> None:
     # Determine what should run
     run_integration = should_run_integration_tests(args.branch)
     run_clang_tidy = should_run_clang_tidy(args.branch)
+    run_clang_format = should_run_clang_format(args.branch)
 
     # Get changed components using list-components.py for exact compatibility
     script_path = Path(__file__).parent / "list-components.py"
@@ -68,6 +73,7 @@ def main() -> None:
     output: dict[str, Any] = {
         "integration_tests": run_integration,
         "clang_tidy": run_clang_tidy,
+        "clang_format": run_clang_format,
         "changed_components": changed_components,
         "component_test_count": len(changed_components),
     }

@@ -15,6 +15,9 @@ basepath = os.path.join(root_path, "esphome")
 temp_folder = os.path.join(root_path, ".temp")
 temp_header_file = os.path.join(temp_folder, "all-include.cpp")
 
+# C++ file extensions used for clang-tidy and clang-format checks
+CPP_FILE_EXTENSIONS = (".cpp", ".h", ".hpp", ".cc", ".cxx", ".c", ".tcc")
+
 
 def styled(color: str | tuple[str, ...], msg: str, reset: bool = True) -> str:
     prefix = "".join(color) if isinstance(color, tuple) else color
@@ -183,7 +186,7 @@ def get_changed_components() -> list[str] | None:
     changed = changed_files()
     core_cpp_changed = any(
         f.startswith("esphome/core/")
-        and f.endswith((".cpp", ".h", ".hpp", ".cc", ".cxx", ".c"))
+        and f.endswith(CPP_FILE_EXTENSIONS[:-1])  # Exclude .tcc for core files
         for f in changed
     )
     if core_cpp_changed:
@@ -647,9 +650,32 @@ def should_run_clang_tidy(branch: str | None = None) -> bool:
     files = changed_files(branch)
 
     # Check if any C++ source files changed
-    cpp_extensions = (".cpp", ".h", ".hpp", ".cc", ".cxx", ".c", ".tcc")
     for file in files:
-        if file.endswith(cpp_extensions):
+        if file.endswith(CPP_FILE_EXTENSIONS):
+            return True
+
+    return False
+
+
+def should_run_clang_format(branch: str | None = None) -> bool:
+    """Determine if clang-format should run based on changed files.
+
+    This function is used by the CI workflow to skip clang-format checks when no C++ files
+    have changed, saving CI time and resources.
+
+    Clang-format will run when any C++ source files have changed.
+
+    Args:
+        branch: Branch to compare against. If None, uses default.
+
+    Returns:
+        True if clang-format should run, False otherwise.
+    """
+    files = changed_files(branch)
+
+    # Check if any C++ source files changed
+    for file in files:
+        if file.endswith(CPP_FILE_EXTENSIONS):
             return True
 
     return False

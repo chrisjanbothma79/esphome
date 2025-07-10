@@ -240,6 +240,7 @@ jobs:
     outputs:
       integration-tests: ${{ steps.determine.outputs.integration-tests }}
       clang-tidy: ${{ steps.determine.outputs.clang-tidy }}
+      clang-format: ${{ steps.determine.outputs.clang-format }}
       changed-components: ${{ steps.determine.outputs.changed-components }}
       component-test-count: ${{ steps.determine.outputs.component-test-count }}
     steps:
@@ -266,6 +267,7 @@ jobs:
           # Extract individual fields
           echo "integration-tests=$(echo "$output" | jq -r '.integration_tests')" >> $GITHUB_OUTPUT
           echo "clang-tidy=$(echo "$output" | jq -r '.clang_tidy')" >> $GITHUB_OUTPUT
+          echo "clang-format=$(echo "$output" | jq -r '.clang_format')" >> $GITHUB_OUTPUT
           echo "changed-components=$(echo "$output" | jq -c '.changed_components')" >> $GITHUB_OUTPUT
           echo "component-test-count=$(echo "$output" | jq -r '.component_test_count')" >> $GITHUB_OUTPUT
 
@@ -310,6 +312,8 @@ jobs:
     runs-on: ubuntu-24.04
     needs:
       - common
+      - determine-tests
+    if: needs.determine-tests.outputs.clang-format == 'true'
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v4.2.2
