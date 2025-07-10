@@ -1,5 +1,45 @@
 #!/usr/bin/env python3
-"""Determine if integration tests should run based on changed files."""
+"""Determine if integration tests should run based on changed files.
+
+This script is used by the CI workflow to intelligently skip integration tests when they're
+not needed, saving significant CI time and resources.
+
+Integration tests will run when ANY of the following conditions are met:
+
+1. Core C++ files changed (esphome/core/*)
+   - Any .cpp, .h, .tcc files in the core directory
+   - These files contain fundamental functionality used throughout ESPHome
+   - Examples: esphome/core/component.cpp, esphome/core/application.h
+
+2. Python files directly in esphome/ directory changed
+   - Only .py files directly in esphome/ (not in subdirectories)
+   - These are core Python files that affect the entire system
+   - Examples: esphome/config.py, esphome/core.py, esphome/__init__.py
+   - NOT included: esphome/dashboard/*.py, esphome/components/*/*.py
+
+3. Integration test files changed
+   - Any file in tests/integration/ directory
+   - This includes test files themselves and fixture YAML files
+   - Examples: tests/integration/test_api.py, tests/integration/fixtures/api.yaml
+
+4. Components used by integration tests (or their dependencies) changed
+   - The script parses all YAML files in tests/integration/fixtures/
+   - Extracts which components are used in integration tests
+   - Recursively finds all dependencies of those components
+   - If any of these components have changes, tests must run
+   - Example: If api.yaml uses 'sensor' and 'api' components, and 'api' depends on 'socket',
+     then changes to sensor/, api/, or socket/ components trigger tests
+
+The script returns:
+- "true" (exit 0): Integration tests should run
+- "false" (exit 0): Integration tests can be skipped
+
+Usage:
+  python script/should_run_integration_tests.py [-b BRANCH]
+
+Options:
+  -b, --branch BRANCH  Branch to compare against (default: dev)
+"""
 
 from __future__ import annotations
 
