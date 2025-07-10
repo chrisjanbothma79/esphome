@@ -235,22 +235,28 @@ void BL0940::received_package_(DataPacket *data) {
 }
 
 void BL0940::dump_config() {  // NOLINT(readability-function-cognitive-complexity)
-  ESP_LOGCONFIG(TAG, "BL0940:");
-  ESP_LOGCONFIG(TAG, "  LEGACY MODE: %s", TRUEFALSE(this->legacy_mode_enabled_));
-  ESP_LOGCONFIG(TAG, "  READ  CMD: 0x%02X", this->read_command_);
-  ESP_LOGCONFIG(TAG, "  WRITE CMD: 0x%02X", this->write_command_);
-  ESP_LOGCONFIG(TAG, "  ------------------");
-  ESP_LOGCONFIG(TAG, "  Current reference: %f", this->current_reference_);
-  ESP_LOGCONFIG(TAG, "  Energy reference: %f", this->energy_reference_);
-  ESP_LOGCONFIG(TAG, "  Power reference: %f", this->power_reference_);
-  ESP_LOGCONFIG(TAG, "  Voltage reference: %f", this->voltage_reference_);
-  ESP_LOGCONFIG(TAG, "  ------------------");
+  ESP_LOGCONFIG(TAG,
+                "\nBL0940:\n"
+                "  LEGACY MODE: %s\n"
+                "  READ  CMD: 0x%02X\n"
+                "  WRITE CMD: 0x%02X\n"
+                "  ------------------\n"
+                "  Current reference: %f\n"
+                "  Energy reference: %f\n"
+                "  Power reference: %f\n"
+                "  Voltage reference: %f\n"
+                "  ------------------\n",
+                TRUEFALSE(this->legacy_mode_enabled_), this->read_command_, this->write_command_,
+                this->current_reference_, this->energy_reference_, this->power_reference_, this->voltage_reference_);
 #ifdef USE_NUMBER
-  ESP_LOGCONFIG(TAG, "  Current calibration: %f", this->current_cal_);
-  ESP_LOGCONFIG(TAG, "  Energy calibration: %f", this->energy_cal_);
-  ESP_LOGCONFIG(TAG, "  Power calibration: %f", this->power_cal_);
-  ESP_LOGCONFIG(TAG, "  Voltage calibration: %f", this->voltage_cal_);
-  ESP_LOGCONFIG(TAG, "  ------------------");
+  ESP_LOGCONFIG(TAG,
+                "\nBL0940:\n"
+                "  Current calibration: %f\n"
+                "  Energy calibration: %f\n"
+                "  Power calibration: %f\n"
+                "  Voltage calibration: %f\n"
+                "  ------------------\n",
+                this->current_cal_, this->energy_cal_, this->power_cal_, this->voltage_cal_);
 #endif
   LOG_SENSOR("", "Voltage", this->voltage_sensor_);
   LOG_SENSOR("", "Current", this->current_sensor_);
