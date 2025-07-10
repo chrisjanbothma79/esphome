@@ -1,7 +1,7 @@
 #include "nextion.h"
 
 #ifdef USE_NEXTION_TFT_UPLOAD
-#ifdef USE_ARDUINO
+#ifdef USE_ESP8266
 
 #include <cinttypes>
 #include "esphome/components/network/util.h"
@@ -358,5 +358,5 @@ WiFiClient *Nextion::get_wifi_client_() {
 }  // namespace nextion
 }  // namespace esphome
 
-#endif  // USE_ARDUINO
+#endif  // USE_ESP8266
 #endif  // USE_NEXTION_TFT_UPLOAD

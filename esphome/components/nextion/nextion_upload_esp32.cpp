@@ -1,7 +1,7 @@
 #include "nextion.h"
 
 #ifdef USE_NEXTION_TFT_UPLOAD
-#ifdef USE_ESP_IDF
+#ifdef USE_ESP32
 
 #include <esp_heap_caps.h>
 #include <esp_http_client.h>
@@ -338,5 +338,5 @@ bool Nextion::upload_tft(uint32_t baud_rate, bool exit_reparse) {
 }  // namespace nextion
 }  // namespace esphome
 
-#endif  // USE_ESP_IDF
+#endif  // USE_ESP32
 #endif  // USE_NEXTION_TFT_UPLOAD
