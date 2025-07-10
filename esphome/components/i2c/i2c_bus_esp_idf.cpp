@@ -29,7 +29,7 @@ void IDFI2CBus::setup() {
   }
 
   if (this->timeout_ > 13000) {
-    ESP_LOGW(TAG, "i2c timeout of %" PRIu32 "us greater than max of 13ms on esp-idf, setting to max", this->timeout_);
+    ESP_LOGW(TAG, "Using max allowed timeout: 13 ms");
     this->timeout_ = 13000;
   }
 
@@ -77,7 +77,7 @@ void IDFI2CBus::setup() {
   this->initialized_ = true;
 
   if (this->scan_) {
-    ESP_LOGV(TAG, "Scanning i2c bus for active devices...");
+    ESP_LOGV(TAG, "Scanning for devices");
     this->i2c_scan_();
   }
 #else
