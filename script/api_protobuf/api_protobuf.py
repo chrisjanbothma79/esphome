@@ -30,6 +30,42 @@ class WireType(IntEnum):
     FIXED32 = 5  # fixed32, sfixed32, float
 
 
+# Message type registry - maps message names to type IDs
+MESSAGE_TYPE_REGISTRY = {}
+NEXT_MESSAGE_TYPE_ID = 1
+
+
+def get_message_type_id(message_name):
+    """Get or assign a type ID for a message type."""
+    global NEXT_MESSAGE_TYPE_ID
+    if message_name not in MESSAGE_TYPE_REGISTRY:
+        MESSAGE_TYPE_REGISTRY[message_name] = NEXT_MESSAGE_TYPE_ID
+        NEXT_MESSAGE_TYPE_ID += 1
+    return MESSAGE_TYPE_REGISTRY[message_name]
+
+
+# Mapping from protobuf types to our ProtoFieldType enum
+PROTO_TYPE_MAP = {
+    descriptor.FieldDescriptorProto.TYPE_BOOL: "ProtoFieldType::TYPE_BOOL",
+    descriptor.FieldDescriptorProto.TYPE_INT32: "ProtoFieldType::TYPE_INT32",
+    descriptor.FieldDescriptorProto.TYPE_UINT32: "ProtoFieldType::TYPE_UINT32",
+    descriptor.FieldDescriptorProto.TYPE_INT64: "ProtoFieldType::TYPE_INT64",
+    descriptor.FieldDescriptorProto.TYPE_UINT64: "ProtoFieldType::TYPE_UINT64",
+    descriptor.FieldDescriptorProto.TYPE_SINT32: "ProtoFieldType::TYPE_SINT32",
+    descriptor.FieldDescriptorProto.TYPE_SINT64: "ProtoFieldType::TYPE_SINT64",
+    descriptor.FieldDescriptorProto.TYPE_ENUM: "ProtoFieldType::TYPE_ENUM",
+    descriptor.FieldDescriptorProto.TYPE_STRING: "ProtoFieldType::TYPE_STRING",
+    descriptor.FieldDescriptorProto.TYPE_BYTES: "ProtoFieldType::TYPE_BYTES",
+    descriptor.FieldDescriptorProto.TYPE_MESSAGE: "ProtoFieldType::TYPE_MESSAGE",
+    descriptor.FieldDescriptorProto.TYPE_FLOAT: "ProtoFieldType::TYPE_FLOAT",
+    descriptor.FieldDescriptorProto.TYPE_FIXED32: "ProtoFieldType::TYPE_FIXED32",
+    descriptor.FieldDescriptorProto.TYPE_SFIXED32: "ProtoFieldType::TYPE_SFIXED32",
+    descriptor.FieldDescriptorProto.TYPE_DOUBLE: "ProtoFieldType::TYPE_DOUBLE",
+    descriptor.FieldDescriptorProto.TYPE_FIXED64: "ProtoFieldType::TYPE_FIXED64",
+    descriptor.FieldDescriptorProto.TYPE_SFIXED64: "ProtoFieldType::TYPE_SFIXED64",
+}
+
+
 # Generate with
 # protoc --python_out=script/api_protobuf -I esphome/components/api/ api_options.proto
 
@@ -483,6 +519,10 @@ class StringType(TypeInfo):
 class MessageType(TypeInfo):
     @property
     def cpp_type(self) -> str:
+        return self._field.type_name[1:]
+
+    @property
+    def type_name(self) -> str:
         return self._field.type_name[1:]
 
     default_value = ""
@@ -1250,6 +1290,8 @@ def build_message_type(
     # Generate metadata arrays for all classes using metadata approach
     regular_fields = []
     repeated_fields = []
+    regular_fields_v2 = []
+    repeated_fields_v2 = []
     metadata_info = None
 
     if use_metadata:
@@ -1335,6 +1377,70 @@ def build_message_type(
             "class_name": desc.name,
         }
 
+        # Also generate V2 metadata
+        for field in desc.field:
+            if field.label == 3:  # Repeated field
+                ti = RepeatedTypeInfo(field)
+                field_type = PROTO_TYPE_MAP.get(field.type, None)
+                if field_type:
+                    field_tag_size = ti.calculate_field_id_size()
+                    if field.type == descriptor.FieldDescriptorProto.TYPE_MESSAGE:
+                        # For messages, get the type ID
+                        message_type_id = get_message_type_id(ti._ti.type_name)
+                    else:
+                        message_type_id = 0  # Non-message types have ID 0
+                    repeated_fields_v2.append(
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
+                        f"{field_type}, {field_tag_size}, {message_type_id}}}"
+                    )
+                elif isinstance(ti._ti, EnumType):
+                    enum_type_id = get_message_type_id(ti._ti.type_name)
+                    repeated_fields_v2.append(
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
+                        f"ProtoFieldType::TYPE_ENUM, {ti.calculate_field_id_size()}, {enum_type_id}}}"
+                    )
+                elif isinstance(ti._ti, MessageType):
+                    message_type_id = get_message_type_id(ti._ti.type_name)
+                    repeated_fields_v2.append(
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
+                        f"ProtoFieldType::TYPE_MESSAGE, {ti.calculate_field_id_size()}, {message_type_id}}}"
+                    )
+            else:
+                ti = TYPE_INFO[field.type](field)
+                field_type = PROTO_TYPE_MAP.get(field.type, None)
+                force = "true" if field.label == 2 else "false"  # Required fields
+
+                if field_type:
+                    field_tag_size = ti.calculate_field_id_size()
+                    if field.type == descriptor.FieldDescriptorProto.TYPE_MESSAGE:
+                        # For messages, get the type ID
+                        message_type_id = get_message_type_id(ti.type_name)
+                    else:
+                        message_type_id = 0  # Non-message types have ID 0
+                    regular_fields_v2.append(
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
+                        f"{field_type}, {force}, {field_tag_size}, {message_type_id}}}"
+                    )
+                elif isinstance(ti, EnumType):
+                    field_tag_size = ti.calculate_field_id_size()
+                    # For enums, use the enum name as type ID
+                    enum_type_id = get_message_type_id(ti.type_name)
+                    regular_fields_v2.append(
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
+                        f"ProtoFieldType::TYPE_ENUM, {force}, {field_tag_size}, {enum_type_id}}}"
+                    )
+                elif isinstance(ti, MessageType):
+                    field_tag_size = ti.calculate_field_id_size()
+                    # For messages, use the message type name as type ID
+                    message_type_id = get_message_type_id(ti.type_name)
+                    regular_fields_v2.append(
+                        f"{{{field.number}, PROTO_FIELD_OFFSET({desc.name}, {ti.field_name}), "
+                        f"ProtoFieldType::TYPE_MESSAGE, {force}, {field_tag_size}, {message_type_id}}}"
+                    )
+
+        metadata_info["regular_fields_v2"] = regular_fields_v2
+        metadata_info["repeated_fields_v2"] = repeated_fields_v2
+
     # Only generate decode methods for classes not using metadata approach
     if not use_metadata:
         if decode_varint:
@@ -1405,6 +1511,27 @@ def build_message_type(
         else:
             public_content.append("static constexpr size_t REPEATED_COUNT = 0;")
 
+        # Add V2 metadata arrays
+        if regular_fields_v2:
+            public_content.append(
+                f"static const FieldMetaV2 FIELDS_V2[{len(regular_fields_v2)}];"
+            )
+            public_content.append(
+                f"static constexpr size_t FIELD_COUNT_V2 = {len(regular_fields_v2)};"
+            )
+        else:
+            public_content.append("static constexpr size_t FIELD_COUNT_V2 = 0;")
+
+        if repeated_fields_v2:
+            public_content.append(
+                f"static const RepeatedFieldMetaV2 REPEATED_FIELDS_V2[{len(repeated_fields_v2)}];"
+            )
+            public_content.append(
+                f"static constexpr size_t REPEATED_COUNT_V2 = {len(repeated_fields_v2)};"
+            )
+        else:
+            public_content.append("static constexpr size_t REPEATED_COUNT_V2 = 0;")
+
         # Add virtual getter methods that return the metadata
         public_content.append("// Virtual metadata getters")
         if regular_fields:
@@ -1429,6 +1556,31 @@ def build_message_type(
             )
         public_content.append(
             "size_t get_repeated_field_count() const override { return REPEATED_COUNT; }"
+        )
+
+        # Add V2 metadata getters
+        if regular_fields_v2:
+            public_content.append(
+                "const FieldMetaV2 *get_field_metadata_v2() const override { return FIELDS_V2; }"
+            )
+        else:
+            public_content.append(
+                "const FieldMetaV2 *get_field_metadata_v2() const override { return nullptr; }"
+            )
+        public_content.append(
+            "size_t get_field_count_v2() const override { return FIELD_COUNT_V2; }"
+        )
+
+        if repeated_fields_v2:
+            public_content.append(
+                "const RepeatedFieldMetaV2 *get_repeated_field_metadata_v2() const override { return REPEATED_FIELDS_V2; }"
+            )
+        else:
+            public_content.append(
+                "const RepeatedFieldMetaV2 *get_repeated_field_metadata_v2() const override { return nullptr; }"
+            )
+        public_content.append(
+            "size_t get_repeated_field_count_v2() const override { return REPEATED_COUNT_V2; }"
         )
 
     # Only generate encode method if there are fields to encode
@@ -1801,6 +1953,10 @@ namespace api {
 
     mt = file.message_type
 
+    # First pass: Register all message types to populate MESSAGE_TYPE_REGISTRY
+    for m in mt:
+        get_message_type_id(m.name)
+
     # Collect messages by base class
     base_class_groups = collect_messages_by_base_class(mt)
 
@@ -1903,9 +2059,155 @@ namespace api {
                         cpp += f"  {field}\n"
                 cpp += "};\n"
 
+            # Generate V2 metadata arrays
+            regular_fields_v2 = meta.get("regular_fields_v2", [])
+            repeated_fields_v2 = meta.get("repeated_fields_v2", [])
+
+            if regular_fields_v2:
+                cpp += f"const FieldMetaV2 {class_name}::FIELDS_V2[{len(regular_fields_v2)}] = {{\n"
+                for i, field in enumerate(regular_fields_v2):
+                    if i < len(regular_fields_v2) - 1:
+                        cpp += f"  {field},\n"
+                    else:
+                        cpp += f"  {field}\n"
+                cpp += "};\n"
+
+            if repeated_fields_v2:
+                cpp += f"const RepeatedFieldMetaV2 {class_name}::REPEATED_FIELDS_V2[{len(repeated_fields_v2)}] = {{\n"
+                for i, field in enumerate(repeated_fields_v2):
+                    if i < len(repeated_fields_v2) - 1:
+                        cpp += f"  {field},\n"
+                    else:
+                        cpp += f"  {field}\n"
+                cpp += "};\n"
+
         # Close last ifdef for metadata
         if current_ifdef is not None:
             cpp += "#endif\n"
+
+    # Generate message type handler functions
+    cpp += "\n// Message type handler implementations\n"
+
+    # Sort by type ID for consistent output
+    sorted_types = sorted(MESSAGE_TYPE_REGISTRY.items(), key=lambda x: x[1])
+
+    # Generate encode handler
+    cpp += "void encode_message_field_by_type(ProtoWriteBuffer &buffer, uint8_t field_num, const void *field_ptr, uint8_t message_type_id) {\n"
+    cpp += "  switch (message_type_id) {\n"
+    for message_name, type_id in sorted_types:
+        ifdef = message_ifdef_map.get(message_name)
+        if ifdef:
+            cpp += f"#ifdef {ifdef}\n"
+        cpp += f"    case {type_id}: {{\n"
+        cpp += f"      const {message_name} *msg = static_cast<const {message_name} *>(field_ptr);\n"
+        cpp += f"      buffer.encode_message<{message_name}>(field_num, *msg);\n"
+        cpp += "      break;\n"
+        cpp += "    }\n"
+        if ifdef:
+            cpp += "#endif\n"
+    cpp += "    default:\n"
+    cpp += "      break;\n"
+    cpp += "  }\n"
+    cpp += "}\n\n"
+
+    # Generate decode handler
+    cpp += "void decode_message_field_by_type(void *field_ptr, ProtoLengthDelimited value, uint8_t message_type_id) {\n"
+    cpp += "  switch (message_type_id) {\n"
+    for message_name, type_id in sorted_types:
+        ifdef = message_ifdef_map.get(message_name)
+        if ifdef:
+            cpp += f"#ifdef {ifdef}\n"
+        cpp += f"    case {type_id}: {{\n"
+        cpp += (
+            f"      {message_name} *msg = static_cast<{message_name} *>(field_ptr);\n"
+        )
+        cpp += f"      *msg = value.as_message<{message_name}>();\n"
+        cpp += "      break;\n"
+        cpp += "    }\n"
+        if ifdef:
+            cpp += "#endif\n"
+    cpp += "    default:\n"
+    cpp += "      break;\n"
+    cpp += "  }\n"
+    cpp += "}\n\n"
+
+    # Generate size handler
+    cpp += "void size_message_field_by_type(uint32_t &total_size, uint8_t precalced_field_id_size, const void *field_ptr, uint8_t message_type_id, bool force) {\n"
+    cpp += "  switch (message_type_id) {\n"
+    for message_name, type_id in sorted_types:
+        ifdef = message_ifdef_map.get(message_name)
+        if ifdef:
+            cpp += f"#ifdef {ifdef}\n"
+        cpp += f"    case {type_id}: {{\n"
+        cpp += f"      const {message_name} *msg = static_cast<const {message_name} *>(field_ptr);\n"
+        cpp += "      ProtoSize::add_message_object(total_size, precalced_field_id_size, *msg, force);\n"
+        cpp += "      break;\n"
+        cpp += "    }\n"
+        if ifdef:
+            cpp += "#endif\n"
+    cpp += "    default:\n"
+    cpp += "      break;\n"
+    cpp += "  }\n"
+    cpp += "}\n\n"
+
+    # Generate repeated encode handler
+    cpp += "void encode_repeated_message_field_by_type(ProtoWriteBuffer &buffer, uint8_t field_num, const void *field_ptr, uint8_t message_type_id) {\n"
+    cpp += "  switch (message_type_id) {\n"
+    for message_name, type_id in sorted_types:
+        ifdef = message_ifdef_map.get(message_name)
+        if ifdef:
+            cpp += f"#ifdef {ifdef}\n"
+        cpp += f"    case {type_id}: {{\n"
+        cpp += f"      const std::vector<{message_name}> *vec = static_cast<const std::vector<{message_name}> *>(field_ptr);\n"
+        cpp += "      for (const auto &msg : *vec) {\n"
+        cpp += f"        buffer.encode_message<{message_name}>(field_num, msg, true);\n"
+        cpp += "      }\n"
+        cpp += "      break;\n"
+        cpp += "    }\n"
+        if ifdef:
+            cpp += "#endif\n"
+    cpp += "    default:\n"
+    cpp += "      break;\n"
+    cpp += "  }\n"
+    cpp += "}\n\n"
+
+    # Generate repeated decode handler
+    cpp += "void decode_repeated_message_field_by_type(void *field_ptr, ProtoLengthDelimited value, uint8_t message_type_id) {\n"
+    cpp += "  switch (message_type_id) {\n"
+    for message_name, type_id in sorted_types:
+        ifdef = message_ifdef_map.get(message_name)
+        if ifdef:
+            cpp += f"#ifdef {ifdef}\n"
+        cpp += f"    case {type_id}: {{\n"
+        cpp += f"      std::vector<{message_name}> *vec = static_cast<std::vector<{message_name}> *>(field_ptr);\n"
+        cpp += f"      vec->push_back(value.as_message<{message_name}>());\n"
+        cpp += "      break;\n"
+        cpp += "    }\n"
+        if ifdef:
+            cpp += "#endif\n"
+    cpp += "    default:\n"
+    cpp += "      break;\n"
+    cpp += "  }\n"
+    cpp += "}\n\n"
+
+    # Generate repeated size handler
+    cpp += "void size_repeated_message_field_by_type(uint32_t &total_size, uint8_t precalced_field_id_size, const void *field_ptr, uint8_t message_type_id) {\n"
+    cpp += "  switch (message_type_id) {\n"
+    for message_name, type_id in sorted_types:
+        ifdef = message_ifdef_map.get(message_name)
+        if ifdef:
+            cpp += f"#ifdef {ifdef}\n"
+        cpp += f"    case {type_id}: {{\n"
+        cpp += f"      const std::vector<{message_name}> *vec = static_cast<const std::vector<{message_name}> *>(field_ptr);\n"
+        cpp += f"      ProtoSize::add_repeated_message<{message_name}>(total_size, precalced_field_id_size, *vec);\n"
+        cpp += "      break;\n"
+        cpp += "    }\n"
+        if ifdef:
+            cpp += "#endif\n"
+    cpp += "    default:\n"
+    cpp += "      break;\n"
+    cpp += "  }\n"
+    cpp += "}\n"
 
     cpp += """\
 
