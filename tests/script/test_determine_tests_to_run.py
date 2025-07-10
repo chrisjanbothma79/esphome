@@ -19,21 +19,21 @@ import determine_tests_to_run  # noqa: E402
 @pytest.fixture
 def mock_should_run_integration_tests() -> Generator[Mock, None, None]:
     """Mock should_run_integration_tests from helpers."""
-    with patch("helpers.should_run_integration_tests") as mock:
+    with patch("determine_tests_to_run.should_run_integration_tests") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_should_run_clang_tidy() -> Generator[Mock, None, None]:
     """Mock should_run_clang_tidy from helpers."""
-    with patch("helpers.should_run_clang_tidy") as mock:
+    with patch("determine_tests_to_run.should_run_clang_tidy") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_get_changed_components() -> Generator[Mock, None, None]:
     """Mock get_changed_components from helpers."""
-    with patch("helpers.get_changed_components") as mock:
+    with patch("determine_tests_to_run.get_changed_components") as mock:
         yield mock
 
 

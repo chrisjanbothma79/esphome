@@ -459,6 +459,9 @@ def get_all_dependencies(component_names: set[str]) -> set[str]:
 
     all_components: set[str] = set(component_names)
 
+    # Reset CORE to ensure clean state
+    CORE.reset()
+
     # Set up fake config path for component loading
     root = Path(__file__).parent.parent
     CORE.config_path = str(root)
@@ -524,16 +527,42 @@ def get_components_from_integration_fixtures() -> set[str]:
 def should_run_integration_tests(branch: str | None = None) -> bool:
     """Determine if integration tests should run based on changed files.
 
+    This function is used by the CI workflow to intelligently skip integration tests when they're
+    not needed, saving significant CI time and resources.
+
+    Integration tests will run when ANY of the following conditions are met:
+
+    1. Core C++ files changed (esphome/core/*)
+       - Any .cpp, .h, .tcc files in the core directory
+       - These files contain fundamental functionality used throughout ESPHome
+       - Examples: esphome/core/component.cpp, esphome/core/application.h
+
+    2. Python files directly in esphome/ directory changed
+       - Only .py files directly in esphome/ (not in subdirectories)
+       - These are core Python files that affect the entire system
+       - Examples: esphome/config.py, esphome/core.py, esphome/__init__.py
+       - NOT included: esphome/dashboard/*.py, esphome/components/*/*.py
+
+    3. Integration test files changed
+       - Any file in tests/integration/ directory
+       - This includes test files themselves and fixture YAML files
+       - Examples: tests/integration/test_api.py, tests/integration/fixtures/api.yaml
+
+    4. Components used by integration tests (or their dependencies) changed
+       - The function parses all YAML files in tests/integration/fixtures/
+       - Extracts which components are used in integration tests
+       - Recursively finds all dependencies of those components
+       - If any of these components have changes, tests must run
+       - Example: If api.yaml uses 'sensor' and 'api' components, and 'api' depends on 'socket',
+         then changes to sensor/, api/, or socket/ components trigger tests
+
     Args:
         branch: Branch to compare against. If None, uses default.
 
     Returns:
         True if integration tests should run, False otherwise.
     """
-    if branch:
-        files = changed_files(branch)
-    else:
-        files = changed_files()
+    files = changed_files(branch)
 
     # Check if any core files changed (esphome/core/*)
     for file in files:
@@ -570,6 +599,28 @@ def should_run_integration_tests(branch: str | None = None) -> bool:
 def should_run_clang_tidy(branch: str | None = None) -> bool:
     """Determine if clang-tidy should run based on changed files.
 
+    This function is used by the CI workflow to intelligently skip clang-tidy checks when they're
+    not needed, saving significant CI time and resources.
+
+    Clang-tidy will run when ANY of the following conditions are met:
+
+    1. Clang-tidy configuration changed
+       - The hash of .clang-tidy configuration file has changed
+       - The hash includes the .clang-tidy file, clang-tidy version from requirements_dev.txt,
+         and relevant platformio.ini sections
+       - When configuration changes, a full scan is needed to ensure all code complies
+         with the new rules
+       - Detected by script/clang_tidy_hash.py --check returning exit code 0
+
+    2. Any C++ source files changed
+       - Any file with C++ extensions: .cpp, .h, .hpp, .cc, .cxx, .c, .tcc
+       - Includes files anywhere in the repository, not just in esphome/
+       - This ensures all C++ code is checked, including tests, examples, etc.
+       - Examples: esphome/core/component.cpp, tests/custom/my_component.h
+
+    If the hash check fails for any reason, clang-tidy runs as a safety measure to ensure
+    code quality is maintained.
+
     Args:
         branch: Branch to compare against. If None, uses default.
 
@@ -593,15 +644,12 @@ def should_run_clang_tidy(branch: str | None = None) -> bool:
         return True
 
     # Check if any C++ files changed
-    if branch:
-        files = changed_files(branch)
-    else:
-        files = changed_files()
+    files = changed_files(branch)
 
     # Check if any C++ source files changed
     cpp_extensions = (".cpp", ".h", ".hpp", ".cc", ".cxx", ".c", ".tcc")
     for file in files:
-        if file.startswith("esphome/") and file.endswith(cpp_extensions):
+        if file.endswith(cpp_extensions):
             return True
 
     return False
