@@ -45,6 +45,8 @@ binary_sensor:
       inverted: true
 lvgl:
   draw_rounding: 8
+  groups:
+    - switches
   encoders:
     group: switches
     initial_focus: button_button

@@ -19,8 +19,14 @@ touchscreen:
 lvgl:
   - id: lvgl_0
     displays: sdl0
+    groups:
+      - general_0
+    default_group: general_0
   - id: lvgl_1
     displays: sdl1
+    groups:
+      - general_1
+    default_group: general_1
     on_idle:
       timeout: 8s
       then:
