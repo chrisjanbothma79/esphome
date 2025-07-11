@@ -662,14 +662,10 @@ void ProtoMessage::calculate_size(uint32_t &total_size) const {
       // For fixed-size types, we can calculate size more efficiently
       if (type == ProtoFieldType::TYPE_FIXED32 || type == ProtoFieldType::TYPE_SFIXED32 ||
           type == ProtoFieldType::TYPE_FLOAT) {
-        if (count > 0) {
-          total_size += count * (repeated_fields[i].get_precalced_size() + 4);
-        }
+        total_size += count * (repeated_fields[i].get_precalced_size() + 4);
       } else if (type == ProtoFieldType::TYPE_FIXED64 || type == ProtoFieldType::TYPE_SFIXED64 ||
                  type == ProtoFieldType::TYPE_DOUBLE) {
-        if (count > 0) {
-          total_size += count * (repeated_fields[i].get_precalced_size() + 8);
-        }
+        total_size += count * (repeated_fields[i].get_precalced_size() + 8);
       } else {
         // For variable-size types, calculate each element
         for (size_t j = 0; j < count; j++) {
