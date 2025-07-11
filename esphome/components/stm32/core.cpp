@@ -38,8 +38,6 @@ void init_uart() {}
 
 }  // namespace stm32
 
-uint32_t random_uint32() { return 42; }
-
 uint32_t IRAM_ATTR HOT millis() { return HAL_GetTick(); }
 
 void IRAM_ATTR HOT delay(uint32_t ms) { HAL_Delay(ms); }
