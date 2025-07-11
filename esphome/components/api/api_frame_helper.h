@@ -28,13 +28,13 @@ struct ReadPacketBuffer {
   uint16_t data_len;
 };
 
-// Packet info structure for batching multiple messages
+// Packed packet info structure to minimize memory usage
 struct PacketInfo {
-  uint8_t message_type;   // Message type (0-255)
   uint16_t offset;        // Offset in buffer where message starts
   uint16_t payload_size;  // Size of the message payload
+  uint8_t message_type;   // Message type (0-255)
 
-  PacketInfo(uint8_t type, uint16_t off, uint16_t size) : message_type(type), offset(off), payload_size(size) {}
+  PacketInfo(uint8_t type, uint16_t off, uint16_t size) : offset(off), payload_size(size), message_type(type) {}
 };
 
 enum class APIError : uint16_t {
