@@ -1433,9 +1433,13 @@ HelloResponse APIConnection::hello(const HelloRequest &msg) {
   resp.server_info = App.get_name() + " (esphome v" ESPHOME_VERSION ")";
   resp.name = App.get_name();
 
-  // Auto-authenticate if no password is required
+  bool needs_auth = false;
 #ifdef USE_API_PASSWORD
-  if (!this->parent_->uses_password()) {
+  needs_auth = this->parent_->uses_password();
+#endif
+
+  if (!needs_auth) {
+    // Auto-authenticate if no password is required
     this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::AUTHENTICATED);
     ESP_LOGD(TAG, "%s connected (no password)", this->get_client_combined_info().c_str());
 #ifdef USE_API_CLIENT_CONNECTED_TRIGGER
@@ -1449,19 +1453,6 @@ HelloResponse APIConnection::hello(const HelloRequest &msg) {
   } else {
     this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::CONNECTED);
   }
-#else
-  // No password support compiled in, always authenticate
-  this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::AUTHENTICATED);
-  ESP_LOGD(TAG, "%s connected (no password)", this->get_client_combined_info().c_str());
-#ifdef USE_API_CLIENT_CONNECTED_TRIGGER
-  this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->client_peername_);
-#endif
-#ifdef USE_HOMEASSISTANT_TIME
-  if (homeassistant::global_homeassistant_time != nullptr) {
-    this->send_time_request();
-  }
-#endif
-#endif
 
   return resp;
 }
