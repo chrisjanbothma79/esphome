@@ -427,18 +427,16 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         ProtoVarInt value = *value_res;
 
         // Try regular fields first
-        if (fields != nullptr) {
-          for (size_t j = 0; j < field_count; j++) {
-            if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 0) {
-              void *field_addr = base + fields[j].get_offset();
-              decoded = decode_varint_field(fields[j].get_type(), field_addr, value, false);
-              break;
-            }
+        for (size_t j = 0; j < field_count; j++) {
+          if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 0) {
+            void *field_addr = base + fields[j].get_offset();
+            decoded = decode_varint_field(fields[j].get_type(), field_addr, value, false);
+            break;
           }
         }
 
         // If not found, try repeated fields
-        if (!decoded && repeated_fields != nullptr) {
+        if (!decoded) {
           for (size_t j = 0; j < repeated_count; j++) {
             if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 0) {
               void *field_addr = base + repeated_fields[j].get_offset();
@@ -469,19 +467,17 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         ProtoLengthDelimited value(&buffer[i], field_length);
 
         // Try regular fields first
-        if (fields != nullptr) {
-          for (size_t j = 0; j < field_count; j++) {
-            if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 2) {
-              void *field_addr = base + fields[j].get_offset();
-              decoded =
-                  decode_length_field(fields[j].get_type(), field_addr, value, false, fields[j].get_message_type_id());
-              break;
-            }
+        for (size_t j = 0; j < field_count; j++) {
+          if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 2) {
+            void *field_addr = base + fields[j].get_offset();
+            decoded =
+                decode_length_field(fields[j].get_type(), field_addr, value, false, fields[j].get_message_type_id());
+            break;
           }
         }
 
         // If not found, try repeated fields
-        if (!decoded && repeated_fields != nullptr) {
+        if (!decoded) {
           for (size_t j = 0; j < repeated_count; j++) {
             if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 2) {
               void *field_addr = base + repeated_fields[j].get_offset();
@@ -510,18 +506,16 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         Proto32Bit value(raw);
 
         // Try regular fields first
-        if (fields != nullptr) {
-          for (size_t j = 0; j < field_count; j++) {
-            if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 5) {
-              void *field_addr = base + fields[j].get_offset();
-              decoded = decode_32bit_field(fields[j].get_type(), field_addr, value, false);
-              break;
-            }
+        for (size_t j = 0; j < field_count; j++) {
+          if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 5) {
+            void *field_addr = base + fields[j].get_offset();
+            decoded = decode_32bit_field(fields[j].get_type(), field_addr, value, false);
+            break;
           }
         }
 
         // If not found, try repeated fields
-        if (!decoded && repeated_fields != nullptr) {
+        if (!decoded) {
           for (size_t j = 0; j < repeated_count; j++) {
             if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 5) {
               void *field_addr = base + repeated_fields[j].get_offset();
@@ -553,18 +547,16 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         Proto64Bit value(raw);
 
         // Try regular fields first
-        if (fields != nullptr) {
-          for (size_t j = 0; j < field_count; j++) {
-            if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 1) {
-              void *field_addr = base + fields[j].get_offset();
-              decoded = decode_64bit_field(fields[j].get_type(), field_addr, value, false);
-              break;
-            }
+        for (size_t j = 0; j < field_count; j++) {
+          if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 1) {
+            void *field_addr = base + fields[j].get_offset();
+            decoded = decode_64bit_field(fields[j].get_type(), field_addr, value, false);
+            break;
           }
         }
 
         // If not found, try repeated fields
-        if (!decoded && repeated_fields != nullptr) {
+        if (!decoded) {
           for (size_t j = 0; j < repeated_count; j++) {
             if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 1) {
               void *field_addr = base + repeated_fields[j].get_offset();
@@ -596,18 +588,16 @@ void ProtoMessage::encode(ProtoWriteBuffer buffer) const {
   const FieldMeta *fields = get_field_metadata();
   size_t field_count = get_field_count();
 
-  if (fields != nullptr) {
-    for (size_t i = 0; i < field_count; i++) {
-      const void *field_addr = base + fields[i].get_offset();
+  for (size_t i = 0; i < field_count; i++) {
+    const void *field_addr = base + fields[i].get_offset();
 
-      if (fields[i].get_type() == ProtoFieldType::TYPE_MESSAGE) {
-        uint8_t handler_id = fields[i].get_message_type_id();
-        if (handler_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[handler_id].encode != nullptr) {
-          MESSAGE_HANDLERS[handler_id].encode(buffer, field_addr, fields[i].field_num);
-        }
-      } else {
-        encode_field(buffer, fields[i].get_type(), fields[i].field_num, field_addr, false);
+    if (fields[i].get_type() == ProtoFieldType::TYPE_MESSAGE) {
+      uint8_t handler_id = fields[i].get_message_type_id();
+      if (handler_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[handler_id].encode != nullptr) {
+        MESSAGE_HANDLERS[handler_id].encode(buffer, field_addr, fields[i].field_num);
       }
+    } else {
+      encode_field(buffer, fields[i].get_type(), fields[i].field_num, field_addr, false);
     }
   }
 
@@ -615,23 +605,21 @@ void ProtoMessage::encode(ProtoWriteBuffer buffer) const {
   const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
   size_t repeated_count = get_repeated_field_count();
 
-  if (repeated_fields != nullptr) {
-    for (size_t i = 0; i < repeated_count; i++) {
-      const void *field_addr = base + repeated_fields[i].get_offset();
+  for (size_t i = 0; i < repeated_count; i++) {
+    const void *field_addr = base + repeated_fields[i].get_offset();
 
-      if (repeated_fields[i].get_type() == ProtoFieldType::TYPE_MESSAGE) {
-        uint8_t handler_id = repeated_fields[i].get_message_type_id();
-        if (handler_id < REPEATED_MESSAGE_HANDLER_COUNT && REPEATED_MESSAGE_HANDLERS[handler_id].encode != nullptr) {
-          REPEATED_MESSAGE_HANDLERS[handler_id].encode(buffer, field_addr, repeated_fields[i].field_num);
-        }
-      } else {
-        // Iterate through the vector and encode each element using the same function!
-        size_t count = get_vector_size(repeated_fields[i].get_type(), field_addr);
-        for (size_t j = 0; j < count; j++) {
-          const void *element = get_vector_element(repeated_fields[i].get_type(), field_addr, j);
-          if (element != nullptr) {
-            encode_field(buffer, repeated_fields[i].get_type(), repeated_fields[i].field_num, element, true);
-          }
+    if (repeated_fields[i].get_type() == ProtoFieldType::TYPE_MESSAGE) {
+      uint8_t handler_id = repeated_fields[i].get_message_type_id();
+      if (handler_id < REPEATED_MESSAGE_HANDLER_COUNT && REPEATED_MESSAGE_HANDLERS[handler_id].encode != nullptr) {
+        REPEATED_MESSAGE_HANDLERS[handler_id].encode(buffer, field_addr, repeated_fields[i].field_num);
+      }
+    } else {
+      // Iterate through the vector and encode each element using the same function!
+      size_t count = get_vector_size(repeated_fields[i].get_type(), field_addr);
+      for (size_t j = 0; j < count; j++) {
+        const void *element = get_vector_element(repeated_fields[i].get_type(), field_addr, j);
+        if (element != nullptr) {
+          encode_field(buffer, repeated_fields[i].get_type(), repeated_fields[i].field_num, element, true);
         }
       }
     }
@@ -645,18 +633,16 @@ void ProtoMessage::calculate_size(uint32_t &total_size) const {
   const FieldMeta *fields = get_field_metadata();
   size_t field_count = get_field_count();
 
-  if (fields != nullptr) {
-    for (size_t i = 0; i < field_count; i++) {
-      const void *field_addr = base + fields[i].get_offset();
+  for (size_t i = 0; i < field_count; i++) {
+    const void *field_addr = base + fields[i].get_offset();
 
-      if (fields[i].get_type() == ProtoFieldType::TYPE_MESSAGE) {
-        uint8_t handler_id = fields[i].get_message_type_id();
-        if (handler_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[handler_id].size != nullptr) {
-          MESSAGE_HANDLERS[handler_id].size(total_size, field_addr, fields[i].get_precalced_size(), false);
-        }
-      } else {
-        calculate_field_size(total_size, fields[i].get_type(), fields[i].get_precalced_size(), field_addr, false);
+    if (fields[i].get_type() == ProtoFieldType::TYPE_MESSAGE) {
+      uint8_t handler_id = fields[i].get_message_type_id();
+      if (handler_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[handler_id].size != nullptr) {
+        MESSAGE_HANDLERS[handler_id].size(total_size, field_addr, fields[i].get_precalced_size(), false);
       }
+    } else {
+      calculate_field_size(total_size, fields[i].get_type(), fields[i].get_precalced_size(), field_addr, false);
     }
   }
 
@@ -664,38 +650,36 @@ void ProtoMessage::calculate_size(uint32_t &total_size) const {
   const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
   size_t repeated_count = get_repeated_field_count();
 
-  if (repeated_fields != nullptr) {
-    for (size_t i = 0; i < repeated_count; i++) {
-      const void *field_addr = base + repeated_fields[i].get_offset();
+  for (size_t i = 0; i < repeated_count; i++) {
+    const void *field_addr = base + repeated_fields[i].get_offset();
 
-      if (repeated_fields[i].get_type() == ProtoFieldType::TYPE_MESSAGE) {
-        uint8_t handler_id = repeated_fields[i].get_message_type_id();
-        if (handler_id < REPEATED_MESSAGE_HANDLER_COUNT && REPEATED_MESSAGE_HANDLERS[handler_id].size != nullptr) {
-          REPEATED_MESSAGE_HANDLERS[handler_id].size(total_size, field_addr, repeated_fields[i].get_precalced_size());
+    if (repeated_fields[i].get_type() == ProtoFieldType::TYPE_MESSAGE) {
+      uint8_t handler_id = repeated_fields[i].get_message_type_id();
+      if (handler_id < REPEATED_MESSAGE_HANDLER_COUNT && REPEATED_MESSAGE_HANDLERS[handler_id].size != nullptr) {
+        REPEATED_MESSAGE_HANDLERS[handler_id].size(total_size, field_addr, repeated_fields[i].get_precalced_size());
+      }
+    } else {
+      // Special optimization for fixed-size types
+      ProtoFieldType type = repeated_fields[i].get_type();
+      size_t count = get_vector_size(type, field_addr);
+
+      // For fixed-size types, we can calculate size more efficiently
+      if (type == ProtoFieldType::TYPE_FIXED32 || type == ProtoFieldType::TYPE_SFIXED32 ||
+          type == ProtoFieldType::TYPE_FLOAT) {
+        if (count > 0) {
+          total_size += count * (repeated_fields[i].get_precalced_size() + 4);
+        }
+      } else if (type == ProtoFieldType::TYPE_FIXED64 || type == ProtoFieldType::TYPE_SFIXED64 ||
+                 type == ProtoFieldType::TYPE_DOUBLE) {
+        if (count > 0) {
+          total_size += count * (repeated_fields[i].get_precalced_size() + 8);
         }
       } else {
-        // Special optimization for fixed-size types
-        ProtoFieldType type = repeated_fields[i].get_type();
-        size_t count = get_vector_size(type, field_addr);
-
-        // For fixed-size types, we can calculate size more efficiently
-        if (type == ProtoFieldType::TYPE_FIXED32 || type == ProtoFieldType::TYPE_SFIXED32 ||
-            type == ProtoFieldType::TYPE_FLOAT) {
-          if (count > 0) {
-            total_size += count * (repeated_fields[i].get_precalced_size() + 4);
-          }
-        } else if (type == ProtoFieldType::TYPE_FIXED64 || type == ProtoFieldType::TYPE_SFIXED64 ||
-                   type == ProtoFieldType::TYPE_DOUBLE) {
-          if (count > 0) {
-            total_size += count * (repeated_fields[i].get_precalced_size() + 8);
-          }
-        } else {
-          // For variable-size types, calculate each element
-          for (size_t j = 0; j < count; j++) {
-            const void *element = get_vector_element(type, field_addr, j);
-            if (element != nullptr) {
-              calculate_field_size(total_size, type, repeated_fields[i].get_precalced_size(), element, true);
-            }
+        // For variable-size types, calculate each element
+        for (size_t j = 0; j < count; j++) {
+          const void *element = get_vector_element(type, field_addr, j);
+          if (element != nullptr) {
+            calculate_field_size(total_size, type, repeated_fields[i].get_precalced_size(), element, true);
           }
         }
       }
