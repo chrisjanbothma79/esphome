@@ -30,22 +30,27 @@ struct ReadPacketBuffer {
 
 // Packet info structure - packed into 4 bytes using bit fields
 // Note: While the API protocol supports message sizes up to 65535 (uint16_t),
-// we limit payload_size and offset to 4095 (12 bits) for practical reasons:
-// 1. Messages larger than 4095 bytes cannot be sent immediately
-// 2. They will be buffered, potentially filling up the tx buffer
-// 3. Large messages risk network fragmentation issues
-// 4. The typical MTU-based batch size (MAX_BATCH_PACKET_SIZE) is 1390 bytes
-// This limitation provides a good balance between efficiency and practicality.
+// we limit offset to 2047 (11 bits) and payload_size to 8191 (13 bits) for practical reasons:
+// 1. Messages larger than 8KB are rare but do occur (e.g., select entities with many options)
+// 2. Very large messages may cause memory pressure on constrained devices
+// 3. The typical MTU-based batch size (MAX_BATCH_PACKET_SIZE) is 1390 bytes
+//
+// Why MAX_OFFSET (2047) > MAX_BATCH_PACKET_SIZE (1390):
+// When batching, messages are only included if the total batch size stays under
+// MAX_BATCH_PACKET_SIZE. However, we need extra headroom in MAX_OFFSET for:
+// - Protocol headers and padding for each message in the batch
+// - Future protocol extensions that might need additional offset space
+// Large messages (> MAX_BATCH_PACKET_SIZE) are sent individually with offset=0.
 struct PacketInfo {
-  static constexpr uint16_t MAX_OFFSET = 4095;        // 12 bits max
-  static constexpr uint16_t MAX_PAYLOAD_SIZE = 4095;  // 12 bits max
+  static constexpr uint16_t MAX_OFFSET = 2047;        // 11 bits max
+  static constexpr uint16_t MAX_PAYLOAD_SIZE = 8191;  // 13 bits max
 
-  uint32_t offset : 12;        // 12 bits: 0-4095
-  uint32_t payload_size : 12;  // 12 bits: 0-4095
   uint32_t message_type : 8;   // 8 bits: 0-255
+  uint32_t offset : 11;        // 11 bits: 0-2047
+  uint32_t payload_size : 13;  // 13 bits: 0-8191
   // Total: 32 bits = 4 bytes exactly
 
-  PacketInfo(uint8_t type, uint16_t off, uint16_t size) : offset(off), payload_size(size), message_type(type) {}
+  PacketInfo(uint8_t type, uint16_t off, uint16_t size) : message_type(type), offset(off), payload_size(size) {}
 };
 
 enum class APIError : uint16_t {
