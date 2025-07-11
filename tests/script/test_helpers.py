@@ -155,6 +155,15 @@ def test_github_actions_push_event(monkeypatch: MonkeyPatch) -> None:
         assert result == expected_files
 
 
+@pytest.fixture(autouse=True)
+def clear_caches():
+    """Clear function caches before each test."""
+    # Clear the cache for _get_changed_files_github_actions
+    if hasattr(_get_changed_files_github_actions, "cache_clear"):
+        _get_changed_files_github_actions.cache_clear()
+    yield
+
+
 def test_get_changed_files_github_actions_pull_request(
     monkeypatch: MonkeyPatch,
 ) -> None:
@@ -1217,3 +1226,21 @@ def test_should_run_clang_format_with_branch() -> None:
         helpers.should_run_clang_format("release")
 
         mock_changed.assert_called_once_with("release")
+
+
+@pytest.mark.parametrize(
+    "output,expected",
+    [
+        ("wifi\napi\nsensor\n", ["wifi", "api", "sensor"]),
+        ("wifi\n", ["wifi"]),
+        ("", []),
+        ("  \n  \n", []),
+        ("\n\n", []),
+        ("  wifi  \n  api  \n", ["wifi", "api"]),
+        ("wifi\n\napi\n\nsensor", ["wifi", "api", "sensor"]),
+    ],
+)
+def test_parse_list_components_output(output: str, expected: list[str]) -> None:
+    """Test parse_list_components_output function."""
+    result = helpers.parse_list_components_output(output)
+    assert result == expected

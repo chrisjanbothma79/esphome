@@ -34,6 +34,7 @@ import sys
 from typing import Any
 
 from helpers import (
+    parse_list_components_output,
     should_run_clang_format,
     should_run_clang_tidy,
     should_run_integration_tests,
@@ -66,12 +67,7 @@ def main() -> None:
         cmd.extend(["-b", args.branch])
 
     result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    # list-components.py outputs one component per line
-    components_output = result.stdout.strip()
-    if components_output:
-        changed_components = components_output.split("\n")
-    else:
-        changed_components = []
+    changed_components = parse_list_components_output(result.stdout)
 
     # Build output
     output: dict[str, Any] = {

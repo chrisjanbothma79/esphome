@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import cache
 import json
 import os
 import os.path
@@ -7,6 +8,7 @@ from pathlib import Path
 import re
 import subprocess
 import time
+from typing import Any
 
 import colorama
 
@@ -23,6 +25,22 @@ PYTHON_FILE_EXTENSIONS = (".py", ".pyi")
 
 # YAML file extensions
 YAML_FILE_EXTENSIONS = (".yaml", ".yml")
+
+
+def parse_list_components_output(output: str) -> list[str]:
+    """Parse the output from list-components.py script.
+
+    The script outputs one component name per line.
+
+    Args:
+        output: The stdout from list-components.py
+
+    Returns:
+        List of component names, or empty list if no output
+    """
+    if not output or not output.strip():
+        return []
+    return [c.strip() for c in output.strip().split("\n") if c.strip()]
 
 
 def styled(color: str | tuple[str, ...], msg: str, reset: bool = True) -> str:
@@ -105,6 +123,7 @@ def _get_pr_number_from_github_env() -> str | None:
     return None
 
 
+@cache
 def _get_changed_files_github_actions() -> list[str] | None:
     """Get changed files in GitHub Actions environment.
 
@@ -207,8 +226,7 @@ def get_changed_components() -> list[str] | None:
         result = subprocess.run(
             cmd, capture_output=True, text=True, check=True, close_fds=False
         )
-        components = [c.strip() for c in result.stdout.strip().split("\n") if c.strip()]
-        return components
+        return parse_list_components_output(result.stdout)
     except subprocess.CalledProcessError:
         # If the script fails, fall back to full scan
         print("Could not determine changed components - will run full clang-tidy scan")
@@ -335,7 +353,7 @@ def git_ls_files(patterns: list[str] | None = None) -> dict[str, int]:
     return {s[3].strip(): int(s[0]) for s in lines}
 
 
-def load_idedata(environment):
+def load_idedata(environment: str) -> dict[str, Any]:
     start_time = time.time()
     print(f"Loading IDE data for environment '{environment}'...")
 
