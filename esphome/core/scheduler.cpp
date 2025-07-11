@@ -1,13 +1,13 @@
 #include "scheduler.h"
 
+#include <algorithm>
+#include <cinttypes>
+#include <cstring>
 #include "application.h"
 #include "esphome/core/defines.h"
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
-#include <algorithm>
-#include <cinttypes>
-#include <cstring>
 
 namespace esphome {
 
@@ -86,8 +86,10 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   // ESP8266 and RP2040 are excluded because they don't need thread-safe defer handling
   if (delay == 0 && type == SchedulerItem::TIMEOUT) {
     // Put in defer queue for guaranteed FIFO execution
-    LockGuard guard{this->lock_};
-    this->cancel_item_locked_(component, name_cstr, type);
+    if (is_name_valid_(name_cstr)) {
+      LockGuard guard{this->lock_};
+      this->cancel_item_locked_(component, name_cstr, type);
+    }
     this->defer_queue_.push_back(std::move(item));
     return;
   }
