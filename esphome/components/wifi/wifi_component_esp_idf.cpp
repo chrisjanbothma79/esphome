@@ -918,7 +918,7 @@ bool WiFiComponent::wifi_ap_ip_config_(optional<ManualIP> manual_ip) {
   if (s_gw_netif) {
     const char *if_key = esp_netif_get_ifkey(s_gw_netif);
 
-    ESP_LOGD(TAG, "Using previous netif '%s' to setup NAT", if_key);
+    ESP_LOGI(TAG, "AP will use exiting netif '%s' to setup NAT", if_key);
 
     esp_netif_dns_info_t dns_gw;
     esp_netif_get_dns_info(s_gw_netif, ESP_NETIF_DNS_MAIN, &dns_gw);
