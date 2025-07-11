@@ -1,5 +1,7 @@
 """Helpers for config validation using voluptuous."""
 
+# should not trigger integration
+
 from __future__ import annotations
 
 from contextlib import contextmanager
