@@ -443,9 +443,9 @@ class ProtoMessage {
 
   // Metadata getters - must be implemented by derived classes
   virtual const FieldMeta *get_field_metadata() const { return nullptr; }
-  virtual size_t get_field_count() const { return 0; }
+  virtual uint8_t get_field_count() const { return 0; }
   virtual const RepeatedFieldMeta *get_repeated_field_metadata() const { return nullptr; }
-  virtual size_t get_repeated_field_count() const { return 0; }
+  virtual uint8_t get_repeated_field_count() const { return 0; }
 
   // Encode/decode/calculate_size using V2 metadata (will check for V3 first)
   void encode(ProtoWriteBuffer buffer) const;

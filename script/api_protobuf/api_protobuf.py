@@ -1345,16 +1345,26 @@ def build_message_type(
     # Add metadata declarations
     if regular_fields:
         public_content.append(f"static const FieldMeta FIELDS[{len(regular_fields)}];")
+        # Validate field count fits in uint8_t
+        if len(regular_fields) > 255:
+            raise ValueError(
+                f"Message '{desc.name}' has {len(regular_fields)} fields which exceeds the maximum of 255."
+            )
         public_content.append(
-            f"static constexpr size_t FIELD_COUNT = {len(regular_fields)};"
+            f"static constexpr uint8_t FIELD_COUNT = {len(regular_fields)};"
         )
 
     if repeated_fields:
         public_content.append(
             f"static const RepeatedFieldMeta REPEATED_FIELDS[{len(repeated_fields)}];"
         )
+        # Validate repeated field count fits in uint8_t
+        if len(repeated_fields) > 255:
+            raise ValueError(
+                f"Message '{desc.name}' has {len(repeated_fields)} repeated fields which exceeds the maximum of 255."
+            )
         public_content.append(
-            f"static constexpr size_t REPEATED_COUNT = {len(repeated_fields)};"
+            f"static constexpr uint8_t REPEATED_COUNT = {len(repeated_fields)};"
         )
 
     # Add virtual getter methods only when needed
@@ -1367,7 +1377,7 @@ def build_message_type(
             "const FieldMeta *get_field_metadata() const override { return FIELDS; }"
         )
         public_content.append(
-            "size_t get_field_count() const override { return FIELD_COUNT; }"
+            "uint8_t get_field_count() const override { return FIELD_COUNT; }"
         )
 
     if repeated_fields:
@@ -1375,7 +1385,7 @@ def build_message_type(
             "const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }"
         )
         public_content.append(
-            "size_t get_repeated_field_count() const override { return REPEATED_COUNT; }"
+            "uint8_t get_repeated_field_count() const override { return REPEATED_COUNT; }"
         )
 
     # dump_to method declaration in header
