@@ -24,7 +24,7 @@ class AQICalculator : public AbstractAQICalculator {
                                                       {56, 125}, {126, 225}, {256, INT_MAX}};
 
   int pm10_0_calculation_grid_[AMOUNT_OF_LEVELS][2] = {{0, 54},    {55, 154},  {155, 254},
-                                                        {255, 354}, {355, 424}, {425, INT_MAX}};
+                                                       {255, 354}, {355, 424}, {425, INT_MAX}};
 
   int calculate_index_(uint16_t value, int array[AMOUNT_OF_LEVELS][2]) {
     int grid_index = get_grid_index_(value, array);
