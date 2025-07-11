@@ -215,162 +215,168 @@ static void calculate_field_size(uint32_t &total_size, ProtoFieldType type, uint
   }
 }
 
-// For decode, we still need separate functions because we're pushing to vectors vs assigning
-static bool decode_varint_field(ProtoFieldType type, void *field_addr, const ProtoVarInt &value, bool is_repeated) {
-  if (is_repeated) {
-    switch (type) {
-      case ProtoFieldType::TYPE_BOOL:
-        static_cast<std::vector<bool> *>(field_addr)->push_back(value.as_bool());
-        return true;
-      case ProtoFieldType::TYPE_INT32:
-        static_cast<std::vector<int32_t> *>(field_addr)->push_back(value.as_int32());
-        return true;
-      case ProtoFieldType::TYPE_UINT32:
-      case ProtoFieldType::TYPE_ENUM:
-        static_cast<std::vector<uint32_t> *>(field_addr)->push_back(value.as_uint32());
-        return true;
-      case ProtoFieldType::TYPE_INT64:
-        static_cast<std::vector<int64_t> *>(field_addr)->push_back(value.as_int64());
-        return true;
-      case ProtoFieldType::TYPE_UINT64:
-        static_cast<std::vector<uint64_t> *>(field_addr)->push_back(value.as_uint64());
-        return true;
-      case ProtoFieldType::TYPE_SINT32:
-        static_cast<std::vector<int32_t> *>(field_addr)->push_back(value.as_sint32());
-        return true;
-      case ProtoFieldType::TYPE_SINT64:
-        static_cast<std::vector<int64_t> *>(field_addr)->push_back(value.as_sint64());
-        return true;
-      default:
-        return false;
-    }
-  } else {
-    switch (type) {
-      case ProtoFieldType::TYPE_BOOL:
-        *static_cast<bool *>(field_addr) = value.as_bool();
-        return true;
-      case ProtoFieldType::TYPE_INT32:
-        *static_cast<int32_t *>(field_addr) = value.as_int32();
-        return true;
-      case ProtoFieldType::TYPE_UINT32:
-      case ProtoFieldType::TYPE_ENUM:
-        *static_cast<uint32_t *>(field_addr) = value.as_uint32();
-        return true;
-      case ProtoFieldType::TYPE_INT64:
-        *static_cast<int64_t *>(field_addr) = value.as_int64();
-        return true;
-      case ProtoFieldType::TYPE_UINT64:
-        *static_cast<uint64_t *>(field_addr) = value.as_uint64();
-        return true;
-      case ProtoFieldType::TYPE_SINT32:
-        *static_cast<int32_t *>(field_addr) = value.as_sint32();
-        return true;
-      case ProtoFieldType::TYPE_SINT64:
-        *static_cast<int64_t *>(field_addr) = value.as_sint64();
-        return true;
-      default:
-        return false;
-    }
+// Decode varint for single fields
+static bool decode_varint_field(ProtoFieldType type, void *field_addr, const ProtoVarInt &value) {
+  switch (type) {
+    case ProtoFieldType::TYPE_BOOL:
+      *static_cast<bool *>(field_addr) = value.as_bool();
+      return true;
+    case ProtoFieldType::TYPE_INT32:
+      *static_cast<int32_t *>(field_addr) = value.as_int32();
+      return true;
+    case ProtoFieldType::TYPE_UINT32:
+    case ProtoFieldType::TYPE_ENUM:
+      *static_cast<uint32_t *>(field_addr) = value.as_uint32();
+      return true;
+    case ProtoFieldType::TYPE_INT64:
+      *static_cast<int64_t *>(field_addr) = value.as_int64();
+      return true;
+    case ProtoFieldType::TYPE_UINT64:
+      *static_cast<uint64_t *>(field_addr) = value.as_uint64();
+      return true;
+    case ProtoFieldType::TYPE_SINT32:
+      *static_cast<int32_t *>(field_addr) = value.as_sint32();
+      return true;
+    case ProtoFieldType::TYPE_SINT64:
+      *static_cast<int64_t *>(field_addr) = value.as_sint64();
+      return true;
+    default:
+      return false;
   }
 }
 
-// Decode for 32-bit fields
-static bool decode_32bit_field(ProtoFieldType type, void *field_addr, const Proto32Bit &value, bool is_repeated) {
-  if (is_repeated) {
-    switch (type) {
-      case ProtoFieldType::TYPE_FLOAT:
-        static_cast<std::vector<float> *>(field_addr)->push_back(value.as_float());
-        return true;
-      case ProtoFieldType::TYPE_FIXED32:
-        static_cast<std::vector<uint32_t> *>(field_addr)->push_back(value.as_fixed32());
-        return true;
-      case ProtoFieldType::TYPE_SFIXED32:
-        static_cast<std::vector<int32_t> *>(field_addr)->push_back(value.as_sfixed32());
-        return true;
-      default:
-        return false;
-    }
-  } else {
-    switch (type) {
-      case ProtoFieldType::TYPE_FLOAT:
-        *static_cast<float *>(field_addr) = value.as_float();
-        return true;
-      case ProtoFieldType::TYPE_FIXED32:
-        *static_cast<uint32_t *>(field_addr) = value.as_fixed32();
-        return true;
-      case ProtoFieldType::TYPE_SFIXED32:
-        *static_cast<int32_t *>(field_addr) = value.as_sfixed32();
-        return true;
-      default:
-        return false;
-    }
+// Decode varint for repeated fields
+static bool decode_repeated_varint_field(ProtoFieldType type, void *field_addr, const ProtoVarInt &value) {
+  switch (type) {
+    case ProtoFieldType::TYPE_BOOL:
+      static_cast<std::vector<bool> *>(field_addr)->push_back(value.as_bool());
+      return true;
+    case ProtoFieldType::TYPE_INT32:
+      static_cast<std::vector<int32_t> *>(field_addr)->push_back(value.as_int32());
+      return true;
+    case ProtoFieldType::TYPE_UINT32:
+    case ProtoFieldType::TYPE_ENUM:
+      static_cast<std::vector<uint32_t> *>(field_addr)->push_back(value.as_uint32());
+      return true;
+    case ProtoFieldType::TYPE_INT64:
+      static_cast<std::vector<int64_t> *>(field_addr)->push_back(value.as_int64());
+      return true;
+    case ProtoFieldType::TYPE_UINT64:
+      static_cast<std::vector<uint64_t> *>(field_addr)->push_back(value.as_uint64());
+      return true;
+    case ProtoFieldType::TYPE_SINT32:
+      static_cast<std::vector<int32_t> *>(field_addr)->push_back(value.as_sint32());
+      return true;
+    case ProtoFieldType::TYPE_SINT64:
+      static_cast<std::vector<int64_t> *>(field_addr)->push_back(value.as_sint64());
+      return true;
+    default:
+      return false;
   }
 }
 
-// Decode for 64-bit fields
-static bool decode_64bit_field(ProtoFieldType type, void *field_addr, const Proto64Bit &value, bool is_repeated) {
-  if (is_repeated) {
-    switch (type) {
-      case ProtoFieldType::TYPE_DOUBLE:
-        static_cast<std::vector<double> *>(field_addr)->push_back(value.as_double());
-        return true;
-      case ProtoFieldType::TYPE_FIXED64:
-        static_cast<std::vector<uint64_t> *>(field_addr)->push_back(value.as_fixed64());
-        return true;
-      case ProtoFieldType::TYPE_SFIXED64:
-        static_cast<std::vector<int64_t> *>(field_addr)->push_back(value.as_sfixed64());
-        return true;
-      default:
-        return false;
-    }
-  } else {
-    switch (type) {
-      case ProtoFieldType::TYPE_DOUBLE:
-        *static_cast<double *>(field_addr) = value.as_double();
-        return true;
-      case ProtoFieldType::TYPE_FIXED64:
-        *static_cast<uint64_t *>(field_addr) = value.as_fixed64();
-        return true;
-      case ProtoFieldType::TYPE_SFIXED64:
-        *static_cast<int64_t *>(field_addr) = value.as_sfixed64();
-        return true;
-      default:
-        return false;
-    }
+// Decode 32-bit for single fields
+static bool decode_32bit_field(ProtoFieldType type, void *field_addr, const Proto32Bit &value) {
+  switch (type) {
+    case ProtoFieldType::TYPE_FLOAT:
+      *static_cast<float *>(field_addr) = value.as_float();
+      return true;
+    case ProtoFieldType::TYPE_FIXED32:
+      *static_cast<uint32_t *>(field_addr) = value.as_fixed32();
+      return true;
+    case ProtoFieldType::TYPE_SFIXED32:
+      *static_cast<int32_t *>(field_addr) = value.as_sfixed32();
+      return true;
+    default:
+      return false;
   }
 }
 
-// Decode for length-delimited fields
+// Decode 32-bit for repeated fields
+static bool decode_repeated_32bit_field(ProtoFieldType type, void *field_addr, const Proto32Bit &value) {
+  switch (type) {
+    case ProtoFieldType::TYPE_FLOAT:
+      static_cast<std::vector<float> *>(field_addr)->push_back(value.as_float());
+      return true;
+    case ProtoFieldType::TYPE_FIXED32:
+      static_cast<std::vector<uint32_t> *>(field_addr)->push_back(value.as_fixed32());
+      return true;
+    case ProtoFieldType::TYPE_SFIXED32:
+      static_cast<std::vector<int32_t> *>(field_addr)->push_back(value.as_sfixed32());
+      return true;
+    default:
+      return false;
+  }
+}
+
+// Decode 64-bit for single fields
+static bool decode_64bit_field(ProtoFieldType type, void *field_addr, const Proto64Bit &value) {
+  switch (type) {
+    case ProtoFieldType::TYPE_DOUBLE:
+      *static_cast<double *>(field_addr) = value.as_double();
+      return true;
+    case ProtoFieldType::TYPE_FIXED64:
+      *static_cast<uint64_t *>(field_addr) = value.as_fixed64();
+      return true;
+    case ProtoFieldType::TYPE_SFIXED64:
+      *static_cast<int64_t *>(field_addr) = value.as_sfixed64();
+      return true;
+    default:
+      return false;
+  }
+}
+
+// Decode 64-bit for repeated fields
+static bool decode_repeated_64bit_field(ProtoFieldType type, void *field_addr, const Proto64Bit &value) {
+  switch (type) {
+    case ProtoFieldType::TYPE_DOUBLE:
+      static_cast<std::vector<double> *>(field_addr)->push_back(value.as_double());
+      return true;
+    case ProtoFieldType::TYPE_FIXED64:
+      static_cast<std::vector<uint64_t> *>(field_addr)->push_back(value.as_fixed64());
+      return true;
+    case ProtoFieldType::TYPE_SFIXED64:
+      static_cast<std::vector<int64_t> *>(field_addr)->push_back(value.as_sfixed64());
+      return true;
+    default:
+      return false;
+  }
+}
+
+// Decode length-delimited for single fields
 static bool decode_length_field(ProtoFieldType type, void *field_addr, const ProtoLengthDelimited &value,
-                                bool is_repeated, uint8_t message_type_id) {
-  if (is_repeated) {
-    switch (type) {
-      case ProtoFieldType::TYPE_STRING:
-        static_cast<std::vector<std::string> *>(field_addr)->push_back(value.as_string());
-        return true;
-      case ProtoFieldType::TYPE_MESSAGE:
-        if (message_type_id < REPEATED_MESSAGE_HANDLER_COUNT &&
-            REPEATED_MESSAGE_HANDLERS[message_type_id].decode != nullptr) {
-          return REPEATED_MESSAGE_HANDLERS[message_type_id].decode(field_addr, value);
-        }
-        return false;
-      default:
-        return false;
-    }
-  } else {
-    switch (type) {
-      case ProtoFieldType::TYPE_STRING:
-      case ProtoFieldType::TYPE_BYTES:
-        *static_cast<std::string *>(field_addr) = value.as_string();
-        return true;
-      case ProtoFieldType::TYPE_MESSAGE:
-        if (message_type_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[message_type_id].decode != nullptr) {
-          return MESSAGE_HANDLERS[message_type_id].decode(field_addr, value);
-        }
-        return false;
-      default:
-        return false;
-    }
+                                uint8_t message_type_id) {
+  switch (type) {
+    case ProtoFieldType::TYPE_STRING:
+    case ProtoFieldType::TYPE_BYTES:
+      *static_cast<std::string *>(field_addr) = value.as_string();
+      return true;
+    case ProtoFieldType::TYPE_MESSAGE:
+      if (message_type_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[message_type_id].decode != nullptr) {
+        return MESSAGE_HANDLERS[message_type_id].decode(field_addr, value);
+      }
+      return false;
+    default:
+      return false;
+  }
+}
+
+// Decode length-delimited for repeated fields
+static bool decode_repeated_length_field(ProtoFieldType type, void *field_addr, const ProtoLengthDelimited &value,
+                                         uint8_t message_type_id) {
+  switch (type) {
+    case ProtoFieldType::TYPE_STRING:
+    case ProtoFieldType::TYPE_BYTES:
+      static_cast<std::vector<std::string> *>(field_addr)->push_back(value.as_string());
+      return true;
+    case ProtoFieldType::TYPE_MESSAGE:
+      if (message_type_id < REPEATED_MESSAGE_HANDLER_COUNT &&
+          REPEATED_MESSAGE_HANDLERS[message_type_id].decode != nullptr) {
+        return REPEATED_MESSAGE_HANDLERS[message_type_id].decode(field_addr, value);
+      }
+      return false;
+    default:
+      return false;
   }
 }
 
@@ -421,7 +427,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         for (size_t j = 0; j < field_count; j++) {
           if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 0) {
             void *field_addr = base + fields[j].get_offset();
-            decoded = decode_varint_field(fields[j].get_type(), field_addr, value, false);
+            decoded = decode_varint_field(fields[j].get_type(), field_addr, value);
             break;
           }
         }
@@ -431,7 +437,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
           for (size_t j = 0; j < repeated_count; j++) {
             if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 0) {
               void *field_addr = base + repeated_fields[j].get_offset();
-              decoded = decode_varint_field(repeated_fields[j].get_type(), field_addr, value, true);
+              decoded = decode_repeated_varint_field(repeated_fields[j].get_type(), field_addr, value);
               break;
             }
           }
@@ -461,8 +467,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         for (size_t j = 0; j < field_count; j++) {
           if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 2) {
             void *field_addr = base + fields[j].get_offset();
-            decoded =
-                decode_length_field(fields[j].get_type(), field_addr, value, false, fields[j].get_message_type_id());
+            decoded = decode_length_field(fields[j].get_type(), field_addr, value, fields[j].get_message_type_id());
             break;
           }
         }
@@ -472,8 +477,8 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
           for (size_t j = 0; j < repeated_count; j++) {
             if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 2) {
               void *field_addr = base + repeated_fields[j].get_offset();
-              decoded = decode_length_field(repeated_fields[j].get_type(), field_addr, value, true,
-                                            repeated_fields[j].get_message_type_id());
+              decoded = decode_repeated_length_field(repeated_fields[j].get_type(), field_addr, value,
+                                                     repeated_fields[j].get_message_type_id());
               break;
             }
           }
@@ -500,7 +505,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         for (size_t j = 0; j < field_count; j++) {
           if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 5) {
             void *field_addr = base + fields[j].get_offset();
-            decoded = decode_32bit_field(fields[j].get_type(), field_addr, value, false);
+            decoded = decode_32bit_field(fields[j].get_type(), field_addr, value);
             break;
           }
         }
@@ -510,7 +515,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
           for (size_t j = 0; j < repeated_count; j++) {
             if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 5) {
               void *field_addr = base + repeated_fields[j].get_offset();
-              decoded = decode_32bit_field(repeated_fields[j].get_type(), field_addr, value, true);
+              decoded = decode_repeated_32bit_field(repeated_fields[j].get_type(), field_addr, value);
               break;
             }
           }
@@ -541,7 +546,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         for (size_t j = 0; j < field_count; j++) {
           if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 1) {
             void *field_addr = base + fields[j].get_offset();
-            decoded = decode_64bit_field(fields[j].get_type(), field_addr, value, false);
+            decoded = decode_64bit_field(fields[j].get_type(), field_addr, value);
             break;
           }
         }
@@ -551,7 +556,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
           for (size_t j = 0; j < repeated_count; j++) {
             if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 1) {
               void *field_addr = base + repeated_fields[j].get_offset();
-              decoded = decode_64bit_field(repeated_fields[j].get_type(), field_addr, value, true);
+              decoded = decode_repeated_64bit_field(repeated_fields[j].get_type(), field_addr, value);
               break;
             }
           }
