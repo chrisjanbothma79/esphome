@@ -173,7 +173,9 @@ class APIConnection : public APIServerConnection {
   void on_get_time_response(const GetTimeResponse &value) override;
 #endif
   HelloResponse hello(const HelloRequest &msg) override;
+#ifdef USE_API_PASSWORD
   ConnectResponse connect(const ConnectRequest &msg) override;
+#endif
   DisconnectResponse disconnect(const DisconnectRequest &msg) override;
   PingResponse ping(const PingRequest &msg) override { return {}; }
   DeviceInfoResponse device_info(const DeviceInfoRequest &msg) override;

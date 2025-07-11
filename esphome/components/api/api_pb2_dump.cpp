@@ -632,6 +632,7 @@ void HelloResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
+#ifdef USE_API_PASSWORD
 void ConnectRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ConnectRequest {\n");
@@ -648,6 +649,7 @@ void ConnectResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
+#endif
 void DisconnectRequest::dump_to(std::string &out) const { out.append("DisconnectRequest {}"); }
 void DisconnectResponse::dump_to(std::string &out) const { out.append("DisconnectResponse {}"); }
 void PingRequest::dump_to(std::string &out) const { out.append("PingRequest {}"); }

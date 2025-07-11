@@ -27,7 +27,9 @@ class APIServerConnectionBase : public ProtoService {
 
   virtual void on_hello_request(const HelloRequest &value){};
 
+#ifdef USE_API_PASSWORD
   virtual void on_connect_request(const ConnectRequest &value){};
+#endif
 
   virtual void on_disconnect_request(const DisconnectRequest &value){};
   virtual void on_disconnect_response(const DisconnectResponse &value){};
@@ -206,7 +208,9 @@ class APIServerConnectionBase : public ProtoService {
 class APIServerConnection : public APIServerConnectionBase {
  public:
   virtual HelloResponse hello(const HelloRequest &msg) = 0;
+#ifdef USE_API_PASSWORD
   virtual ConnectResponse connect(const ConnectRequest &msg) = 0;
+#endif
   virtual DisconnectResponse disconnect(const DisconnectRequest &msg) = 0;
   virtual PingResponse ping(const PingRequest &msg) = 0;
   virtual DeviceInfoResponse device_info(const DeviceInfoRequest &msg) = 0;
@@ -323,7 +327,9 @@ class APIServerConnection : public APIServerConnectionBase {
 #endif
  protected:
   void on_hello_request(const HelloRequest &msg) override;
+#ifdef USE_API_PASSWORD
   void on_connect_request(const ConnectRequest &msg) override;
+#endif
   void on_disconnect_request(const DisconnectRequest &msg) override;
   void on_ping_request(const PingRequest &msg) override;
   void on_device_info_request(const DeviceInfoRequest &msg) override;

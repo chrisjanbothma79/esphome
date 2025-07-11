@@ -348,6 +348,7 @@ class HelloResponse : public ProtoMessage {
   bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
+#ifdef USE_API_PASSWORD
 class ConnectRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 3;
@@ -382,6 +383,7 @@ class ConnectResponse : public ProtoMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
+#endif
 class DisconnectRequest : public ProtoMessage {
  public:
   static constexpr uint16_t MESSAGE_TYPE = 5;

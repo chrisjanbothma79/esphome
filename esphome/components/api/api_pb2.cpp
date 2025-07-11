@@ -82,6 +82,7 @@ void HelloResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->server_info, false);
   ProtoSize::add_string_field(total_size, 1, this->name, false);
 }
+#ifdef USE_API_PASSWORD
 bool ConnectRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 1: {
@@ -110,6 +111,7 @@ void ConnectResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_bool
 void ConnectResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->invalid_password, false);
 }
+#endif
 bool AreaInfo::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 1: {

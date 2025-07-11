@@ -1436,11 +1436,10 @@ HelloResponse APIConnection::hello(const HelloRequest &msg) {
   this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::CONNECTED);
   return resp;
 }
+#ifdef USE_API_PASSWORD
 ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
   bool correct = true;
-#ifdef USE_API_PASSWORD
   correct = this->parent_->check_password(msg.password);
-#endif
 
   ConnectResponse resp;
   // bool invalid_password = 1;
@@ -1459,6 +1458,7 @@ ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
   }
   return resp;
 }
+#endif
 DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
   DeviceInfoResponse resp{};
 #ifdef USE_API_PASSWORD

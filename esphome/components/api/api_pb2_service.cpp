@@ -25,6 +25,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       this->on_hello_request(msg);
       break;
     }
+#ifdef USE_API_PASSWORD
     case 3: {
       ConnectRequest msg;
       msg.decode(msg_data, msg_size);
@@ -34,6 +35,7 @@ void APIServerConnectionBase::read_message(uint32_t msg_size, uint32_t msg_type,
       this->on_connect_request(msg);
       break;
     }
+#endif
     case 5: {
       DisconnectRequest msg;
       msg.decode(msg_data, msg_size);
@@ -600,12 +602,14 @@ void APIServerConnection::on_hello_request(const HelloRequest &msg) {
     this->on_fatal_error();
   }
 }
+#ifdef USE_API_PASSWORD
 void APIServerConnection::on_connect_request(const ConnectRequest &msg) {
   ConnectResponse ret = this->connect(msg);
   if (!this->send_message(ret)) {
     this->on_fatal_error();
   }
 }
+#endif
 void APIServerConnection::on_disconnect_request(const DisconnectRequest &msg) {
   DisconnectResponse ret = this->disconnect(msg);
   if (!this->send_message(ret)) {
