@@ -4,6 +4,7 @@ import logging
 import os
 from pathlib import Path
 
+# mod python file
 from esphome import automation, core
 import esphome.codegen as cg
 from esphome.config_helpers import filter_source_files_from_platform
