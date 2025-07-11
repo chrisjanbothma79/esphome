@@ -112,13 +112,6 @@ void MIPI_DSI::setup() {
           }
         } break;
 
-        case INVERT_ON:
-          this->invert_colors_ = true;
-          break;
-        case MADCTL_CMD:
-          this->madctl_ = arg_byte;
-          break;
-
         default:
           break;
       }
