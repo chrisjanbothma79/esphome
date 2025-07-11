@@ -1489,8 +1489,20 @@ class MemoryAnalyzer:
             esphome_components, key=lambda x: x[1].flash_total, reverse=True
         )[:5]
 
-        if top_esphome_components:
-            for comp_name, comp_mem in top_esphome_components:
+        # Check if API component exists and ensure it's included
+        api_component = None
+        for name, mem in components:
+            if name == "[esphome]api":
+                api_component = (name, mem)
+                break
+
+        # If API exists and not in top 5, add it to the list
+        components_to_analyze = list(top_esphome_components)
+        if api_component and api_component not in components_to_analyze:
+            components_to_analyze.append(api_component)
+
+        if components_to_analyze:
+            for comp_name, comp_mem in components_to_analyze:
                 comp_symbols = self._component_symbols.get(comp_name, [])
                 if comp_symbols:
                     lines.append("")
@@ -1507,10 +1519,18 @@ class MemoryAnalyzer:
                     lines.append(f"Total symbols: {len(sorted_symbols)}")
                     lines.append(f"Total size: {comp_mem.flash_total:,} B")
                     lines.append("")
-                    lines.append(f"Top 10 Largest {comp_name} Symbols:")
 
-                    for i, (symbol, demangled, size) in enumerate(sorted_symbols[:10]):
-                        lines.append(f"{i + 1}. {demangled} ({size:,} B)")
+                    # For API component, show all symbols; for others show top 10
+                    if comp_name == "[esphome]api":
+                        lines.append(f"All {comp_name} Symbols (sorted by size):")
+                        for i, (symbol, demangled, size) in enumerate(sorted_symbols):
+                            lines.append(f"{i + 1}. {demangled} ({size:,} B)")
+                    else:
+                        lines.append(f"Top 10 Largest {comp_name} Symbols:")
+                        for i, (symbol, demangled, size) in enumerate(
+                            sorted_symbols[:10]
+                        ):
+                            lines.append(f"{i + 1}. {demangled} ({size:,} B)")
 
                     lines.append("=" * table_width)
 
