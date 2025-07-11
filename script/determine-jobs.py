@@ -9,7 +9,6 @@ what files have changed. It outputs JSON with the following structure:
   "clang_tidy": true/false,
   "clang_format": true/false,
   "python_linters": true/false,
-  "yamllint": true/false,
   "changed_components": ["component1", "component2", ...],
   "component_test_count": 5
 }
@@ -19,7 +18,6 @@ The CI workflow uses this information to:
 - Skip or run clang-tidy (and whether to do a full scan)
 - Skip or run clang-format
 - Skip or run Python linters (ruff, flake8, pylint, pyupgrade)
-- Skip or run yamllint
 - Determine which components to test individually
 - Decide how to split component tests (if there are many)
 
@@ -44,7 +42,6 @@ from helpers import (
     CPP_FILE_EXTENSIONS,
     ESPHOME_COMPONENTS_PATH,
     PYTHON_FILE_EXTENSIONS,
-    YAML_FILE_EXTENSIONS,
     changed_files,
     get_all_dependencies,
     get_components_from_integration_fixtures,
@@ -207,23 +204,6 @@ def should_run_python_linters(branch: str | None = None) -> bool:
     return _any_changed_file_endswith(branch, PYTHON_FILE_EXTENSIONS)
 
 
-def should_run_yamllint(branch: str | None = None) -> bool:
-    """Determine if yamllint should run based on changed files.
-
-    This function is used by the CI workflow to skip yamllint checks when no YAML files
-    have changed, saving CI time and resources.
-
-    Yamllint will run when any YAML files have changed.
-
-    Args:
-        branch: Branch to compare against. If None, uses default.
-
-    Returns:
-        True if yamllint should run, False otherwise.
-    """
-    return _any_changed_file_endswith(branch, YAML_FILE_EXTENSIONS)
-
-
 def _any_changed_file_endswith(branch: str | None, extensions: tuple[str, ...]) -> bool:
     """Check if a changed file ends with any of the specified extensions."""
     return any(file.endswith(extensions) for file in changed_files(branch))
@@ -244,7 +224,6 @@ def main() -> None:
     run_clang_tidy = should_run_clang_tidy(args.branch)
     run_clang_format = should_run_clang_format(args.branch)
     run_python_linters = should_run_python_linters(args.branch)
-    run_yamllint = should_run_yamllint(args.branch)
 
     # Get changed components using list-components.py for exact compatibility
     script_path = Path(__file__).parent / "list-components.py"
@@ -261,7 +240,6 @@ def main() -> None:
         "clang_tidy": run_clang_tidy,
         "clang_format": run_clang_format,
         "python_linters": run_python_linters,
-        "yamllint": run_yamllint,
         "changed_components": changed_components,
         "component_test_count": len(changed_components),
     }
