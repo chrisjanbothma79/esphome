@@ -1,6 +1,7 @@
-"""Unit tests for script/determine_tests_to_run.py module."""
+"""Unit tests for script/determine-jobs.py module."""
 
 from collections.abc import Generator
+import importlib.util
 import json
 import os
 import subprocess
@@ -10,52 +11,57 @@ from unittest.mock import Mock, patch
 import pytest
 
 # Add the script directory to Python path so we can import the module
-sys.path.insert(
-    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "script"))
+script_dir = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "script")
 )
+sys.path.insert(0, script_dir)
 
-import determine_tests_to_run  # noqa: E402
+spec = importlib.util.spec_from_file_location(
+    "determine_jobs", os.path.join(script_dir, "determine-jobs.py")
+)
+determine_jobs = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(determine_jobs)
 
 
 @pytest.fixture
 def mock_should_run_integration_tests() -> Generator[Mock, None, None]:
     """Mock should_run_integration_tests from helpers."""
-    with patch("determine_tests_to_run.should_run_integration_tests") as mock:
+    with patch.object(determine_jobs, "should_run_integration_tests") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_should_run_clang_tidy() -> Generator[Mock, None, None]:
     """Mock should_run_clang_tidy from helpers."""
-    with patch("determine_tests_to_run.should_run_clang_tidy") as mock:
+    with patch.object(determine_jobs, "should_run_clang_tidy") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_should_run_clang_format() -> Generator[Mock, None, None]:
     """Mock should_run_clang_format from helpers."""
-    with patch("determine_tests_to_run.should_run_clang_format") as mock:
+    with patch.object(determine_jobs, "should_run_clang_format") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_should_run_python_linters() -> Generator[Mock, None, None]:
     """Mock should_run_python_linters from helpers."""
-    with patch("determine_tests_to_run.should_run_python_linters") as mock:
+    with patch.object(determine_jobs, "should_run_python_linters") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_should_run_yamllint() -> Generator[Mock, None, None]:
     """Mock should_run_yamllint from helpers."""
-    with patch("determine_tests_to_run.should_run_yamllint") as mock:
+    with patch.object(determine_jobs, "should_run_yamllint") as mock:
         yield mock
 
 
 @pytest.fixture
 def mock_subprocess_run() -> Generator[Mock, None, None]:
     """Mock subprocess.run for list-components.py calls."""
-    with patch("determine_tests_to_run.subprocess.run") as mock:
+    with patch.object(determine_jobs.subprocess, "run") as mock:
         yield mock
 
 
@@ -81,8 +87,8 @@ def test_main_all_tests_should_run(
     mock_subprocess_run.return_value = mock_result
 
     # Run main function with mocked argv
-    with patch("sys.argv", ["determine_tests_to_run.py"]):
-        determine_tests_to_run.main()
+    with patch("sys.argv", ["determine-jobs.py"]):
+        determine_jobs.main()
 
     # Check output
     captured = capsys.readouterr()
@@ -119,8 +125,8 @@ def test_main_no_tests_should_run(
     mock_subprocess_run.return_value = mock_result
 
     # Run main function with mocked argv
-    with patch("sys.argv", ["determine_tests_to_run.py"]):
-        determine_tests_to_run.main()
+    with patch("sys.argv", ["determine-jobs.py"]):
+        determine_jobs.main()
 
     # Check output
     captured = capsys.readouterr()
@@ -155,9 +161,9 @@ def test_main_list_components_fails(
     mock_subprocess_run.side_effect = subprocess.CalledProcessError(1, "cmd")
 
     # Run main function with mocked argv - should raise
-    with patch("sys.argv", ["determine_tests_to_run.py"]):
+    with patch("sys.argv", ["determine-jobs.py"]):
         with pytest.raises(subprocess.CalledProcessError):
-            determine_tests_to_run.main()
+            determine_jobs.main()
 
 
 def test_main_with_branch_argument(
@@ -182,7 +188,7 @@ def test_main_with_branch_argument(
     mock_subprocess_run.return_value = mock_result
 
     with patch("sys.argv", ["script.py", "-b", "main"]):
-        determine_tests_to_run.main()
+        determine_jobs.main()
 
     # Check that functions were called with branch
     mock_should_run_integration_tests.assert_called_once_with("main")

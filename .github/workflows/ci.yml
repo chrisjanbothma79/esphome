@@ -269,7 +269,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           . venv/bin/activate
-          output=$(python script/determine_tests_to_run.py)
+          output=$(python script/determine-jobs.py)
           echo "Test determination output:"
           echo "$output" | jq
 

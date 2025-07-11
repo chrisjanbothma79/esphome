@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Determine which tests should run based on changed files.
+"""Determine which CI jobs should run based on changed files.
 
-This script is a centralized way to determine which CI tests need to run based on
+This script is a centralized way to determine which CI jobs need to run based on
 what files have changed. It outputs JSON with the following structure:
 
 {
@@ -18,7 +18,7 @@ The CI workflow uses this information to:
 - Decide how to split component tests (if there are many)
 
 Usage:
-  python script/determine_tests_to_run.py [-b BRANCH]
+  python script/determine-jobs.py [-b BRANCH]
 
 Options:
   -b, --branch BRANCH  Branch to compare against (default: dev)
@@ -43,9 +43,9 @@ from helpers import (
 
 
 def main() -> None:
-    """Main function that determines which tests to run."""
+    """Main function that determines which CI jobs to run."""
     parser = argparse.ArgumentParser(
-        description="Determine which tests should run based on changed files"
+        description="Determine which CI jobs should run based on changed files"
     )
     parser.add_argument(
         "-b", "--branch", help="Branch to compare changed files against"
