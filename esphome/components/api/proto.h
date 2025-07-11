@@ -309,7 +309,7 @@ struct RepeatedFieldMeta {
 };
 
 // Binary search for field lookup - optimized for performance
-inline const FieldMeta *find_field_binary(const FieldMeta *fields, uint8_t count, uint8_t field_id, uint8_t wire_type) {
+inline const FieldMeta *find_field_binary(const FieldMeta *fields, uint8_t count, uint8_t field_id) {
   uint8_t left = 0;
   uint8_t right = count;
 
@@ -322,28 +322,8 @@ inline const FieldMeta *find_field_binary(const FieldMeta *fields, uint8_t count
     } else if (mid_field > field_id) {
       right = mid;
     } else {
-      // Found field_id, check wire type
-      if (get_wire_type(fields[mid].get_type()) == wire_type) {
-        return &fields[mid];
-      }
-      // Field number matches but wire type doesn't - search nearby entries
-      // (in case there are multiple fields with same number but different types)
-
-      // Search backwards
-      for (uint8_t k = mid; k > 0 && fields[k - 1].field_num == field_id; k--) {
-        if (get_wire_type(fields[k - 1].get_type()) == wire_type) {
-          return &fields[k - 1];
-        }
-      }
-
-      // Search forwards
-      for (uint8_t k = mid + 1; k < count && fields[k].field_num == field_id; k++) {
-        if (get_wire_type(fields[k].get_type()) == wire_type) {
-          return &fields[k];
-        }
-      }
-
-      return nullptr;  // Field number found but no matching wire type
+      // Found field_id
+      return &fields[mid];
     }
   }
 

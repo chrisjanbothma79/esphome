@@ -350,7 +350,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         ProtoVarInt value = *value_res;
 
         // Try regular fields first using binary search
-        if (const FieldMeta *field = find_field_binary(fields, field_count, field_id, 0)) {
+        if (const FieldMeta *field = find_field_binary(fields, field_count, field_id)) {
           void *field_addr = base + field->get_offset();
           decoded = decode_varint_field(field->get_type(), field_addr, value);
         }
@@ -387,7 +387,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         ProtoLengthDelimited value(&buffer[i], field_length);
 
         // Try regular fields first using binary search
-        if (const FieldMeta *field = find_field_binary(fields, field_count, field_id, 2)) {
+        if (const FieldMeta *field = find_field_binary(fields, field_count, field_id)) {
           void *field_addr = base + field->get_offset();
           decoded = decode_length_field(field->get_type(), field_addr, value, field->get_message_type_id());
         }
@@ -422,7 +422,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         Proto32Bit value(raw);
 
         // Try regular fields first using binary search
-        if (const FieldMeta *field = find_field_binary(fields, field_count, field_id, 5)) {
+        if (const FieldMeta *field = find_field_binary(fields, field_count, field_id)) {
           void *field_addr = base + field->get_offset();
           decoded = decode_32bit_field(field->get_type(), field_addr, value);
         }
