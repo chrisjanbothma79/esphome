@@ -320,7 +320,6 @@ class HelloRequest : public ProtoMessage {
   uint32_t api_version_minor{0};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -342,7 +341,6 @@ class HelloResponse : public ProtoMessage {
   std::string name{};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -361,7 +359,6 @@ class ConnectRequest : public ProtoMessage {
   std::string password{};
   static const FieldMeta FIELDS[1];
   static constexpr uint8_t FIELD_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -380,7 +377,6 @@ class ConnectResponse : public ProtoMessage {
   bool invalid_password{false};
   static const FieldMeta FIELDS[1];
   static constexpr uint8_t FIELD_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -460,7 +456,6 @@ class AreaInfo : public ProtoMessage {
   std::string name{};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -476,7 +471,6 @@ class DeviceInfo : public ProtoMessage {
   uint32_t area_id{0};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -518,7 +512,6 @@ class DeviceInfoResponse : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 20;
   static const RepeatedFieldMeta REPEATED_FIELDS[2];
   static constexpr uint8_t REPEATED_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -580,7 +573,6 @@ class ListEntitiesBinarySensorResponse : public InfoResponseProtoMessage {
   bool is_status_binary_sensor{false};
   static const FieldMeta FIELDS[10];
   static constexpr uint8_t FIELD_COUNT = 10;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -600,7 +592,6 @@ class BinarySensorStateResponse : public StateResponseProtoMessage {
   bool missing_state{false};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -625,7 +616,6 @@ class ListEntitiesCoverResponse : public InfoResponseProtoMessage {
   bool supports_stop{false};
   static const FieldMeta FIELDS[13];
   static constexpr uint8_t FIELD_COUNT = 13;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -647,7 +637,6 @@ class CoverStateResponse : public StateResponseProtoMessage {
   enums::CoverOperation current_operation{};
   static const FieldMeta FIELDS[6];
   static constexpr uint8_t FIELD_COUNT = 6;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -673,7 +662,6 @@ class CoverCommandRequest : public ProtoMessage {
   bool stop{false};
   static const FieldMeta FIELDS[8];
   static constexpr uint8_t FIELD_COUNT = 8;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -700,7 +688,6 @@ class ListEntitiesFanResponse : public InfoResponseProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 12;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -726,7 +713,6 @@ class FanStateResponse : public StateResponseProtoMessage {
   std::string preset_mode{};
   static const FieldMeta FIELDS[8];
   static constexpr uint8_t FIELD_COUNT = 8;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -757,7 +743,6 @@ class FanCommandRequest : public ProtoMessage {
   std::string preset_mode{};
   static const FieldMeta FIELDS[13];
   static constexpr uint8_t FIELD_COUNT = 13;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -787,7 +772,6 @@ class ListEntitiesLightResponse : public InfoResponseProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 14;
   static const RepeatedFieldMeta REPEATED_FIELDS[2];
   static constexpr uint8_t REPEATED_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -819,7 +803,6 @@ class LightStateResponse : public StateResponseProtoMessage {
   std::string effect{};
   static const FieldMeta FIELDS[14];
   static constexpr uint8_t FIELD_COUNT = 14;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -864,7 +847,6 @@ class LightCommandRequest : public ProtoMessage {
   std::string effect{};
   static const FieldMeta FIELDS[27];
   static constexpr uint8_t FIELD_COUNT = 27;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -890,7 +872,6 @@ class ListEntitiesSensorResponse : public InfoResponseProtoMessage {
   enums::SensorLastResetType legacy_last_reset_type{};
   static const FieldMeta FIELDS[14];
   static constexpr uint8_t FIELD_COUNT = 14;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -910,7 +891,6 @@ class SensorStateResponse : public StateResponseProtoMessage {
   bool missing_state{false};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -932,7 +912,6 @@ class ListEntitiesSwitchResponse : public InfoResponseProtoMessage {
   std::string device_class{};
   static const FieldMeta FIELDS[10];
   static constexpr uint8_t FIELD_COUNT = 10;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -951,7 +930,6 @@ class SwitchStateResponse : public StateResponseProtoMessage {
   bool state{false};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -971,7 +949,6 @@ class SwitchCommandRequest : public ProtoMessage {
   bool state{false};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -992,7 +969,6 @@ class ListEntitiesTextSensorResponse : public InfoResponseProtoMessage {
   std::string device_class{};
   static const FieldMeta FIELDS[9];
   static constexpr uint8_t FIELD_COUNT = 9;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1012,7 +988,6 @@ class TextSensorStateResponse : public StateResponseProtoMessage {
   bool missing_state{false};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1033,7 +1008,6 @@ class SubscribeLogsRequest : public ProtoMessage {
   bool dump_config{false};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1054,7 +1028,6 @@ class SubscribeLogsResponse : public ProtoMessage {
   bool send_failed{false};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1074,7 +1047,6 @@ class NoiseEncryptionSetKeyRequest : public ProtoMessage {
   std::string key{};
   static const FieldMeta FIELDS[1];
   static constexpr uint8_t FIELD_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1093,7 +1065,6 @@ class NoiseEncryptionSetKeyResponse : public ProtoMessage {
   bool success{false};
   static const FieldMeta FIELDS[1];
   static constexpr uint8_t FIELD_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1122,7 +1093,6 @@ class HomeassistantServiceMap : public ProtoMessage {
   std::string value{};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1147,7 +1117,6 @@ class HomeassistantServiceResponse : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 2;
   static const RepeatedFieldMeta REPEATED_FIELDS[3];
   static constexpr uint8_t REPEATED_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -1183,7 +1152,6 @@ class SubscribeHomeAssistantStateResponse : public ProtoMessage {
   bool once{false};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1204,7 +1172,6 @@ class HomeAssistantStateResponse : public ProtoMessage {
   std::string attribute{};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1236,7 +1203,6 @@ class GetTimeResponse : public ProtoMessage {
   uint32_t epoch_seconds{0};
   static const FieldMeta FIELDS[1];
   static constexpr uint8_t FIELD_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1251,7 +1217,6 @@ class ListEntitiesServicesArgument : public ProtoMessage {
   enums::ServiceArgType type{};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1274,7 +1239,6 @@ class ListEntitiesServicesResponse : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 2;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -1300,7 +1264,6 @@ class ExecuteServiceArgument : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 5;
   static const RepeatedFieldMeta REPEATED_FIELDS[4];
   static constexpr uint8_t REPEATED_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -1324,7 +1287,6 @@ class ExecuteServiceRequest : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 1;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -1345,7 +1307,6 @@ class ListEntitiesCameraResponse : public InfoResponseProtoMessage {
 #endif
   static const FieldMeta FIELDS[8];
   static constexpr uint8_t FIELD_COUNT = 8;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1366,7 +1327,6 @@ class CameraImageResponse : public ProtoMessage {
   bool done{false};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1386,7 +1346,6 @@ class CameraImageRequest : public ProtoMessage {
   bool stream{false};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1426,7 +1385,6 @@ class ListEntitiesClimateResponse : public InfoResponseProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 20;
   static const RepeatedFieldMeta REPEATED_FIELDS[6];
   static constexpr uint8_t REPEATED_COUNT = 6;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -1460,7 +1418,6 @@ class ClimateStateResponse : public StateResponseProtoMessage {
   float target_humidity{0.0f};
   static const FieldMeta FIELDS[16];
   static constexpr uint8_t FIELD_COUNT = 16;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1501,7 +1458,6 @@ class ClimateCommandRequest : public ProtoMessage {
   float target_humidity{0.0f};
   static const FieldMeta FIELDS[23];
   static constexpr uint8_t FIELD_COUNT = 23;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1527,7 +1483,6 @@ class ListEntitiesNumberResponse : public InfoResponseProtoMessage {
   std::string device_class{};
   static const FieldMeta FIELDS[14];
   static constexpr uint8_t FIELD_COUNT = 14;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1547,7 +1502,6 @@ class NumberStateResponse : public StateResponseProtoMessage {
   bool missing_state{false};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1567,7 +1521,6 @@ class NumberCommandRequest : public ProtoMessage {
   float state{0.0f};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1590,7 +1543,6 @@ class ListEntitiesSelectResponse : public InfoResponseProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 8;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -1612,7 +1564,6 @@ class SelectStateResponse : public StateResponseProtoMessage {
   bool missing_state{false};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1632,7 +1583,6 @@ class SelectCommandRequest : public ProtoMessage {
   std::string state{};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1657,7 +1607,6 @@ class ListEntitiesSirenResponse : public InfoResponseProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 10;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -1678,7 +1627,6 @@ class SirenStateResponse : public StateResponseProtoMessage {
   bool state{false};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1705,7 +1653,6 @@ class SirenCommandRequest : public ProtoMessage {
   float volume{0.0f};
   static const FieldMeta FIELDS[9];
   static constexpr uint8_t FIELD_COUNT = 9;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1729,7 +1676,6 @@ class ListEntitiesLockResponse : public InfoResponseProtoMessage {
   std::string code_format{};
   static const FieldMeta FIELDS[12];
   static constexpr uint8_t FIELD_COUNT = 12;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1748,7 +1694,6 @@ class LockStateResponse : public StateResponseProtoMessage {
   enums::LockState state{};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1770,7 +1715,6 @@ class LockCommandRequest : public ProtoMessage {
   std::string code{};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1791,7 +1735,6 @@ class ListEntitiesButtonResponse : public InfoResponseProtoMessage {
   std::string device_class{};
   static const FieldMeta FIELDS[9];
   static constexpr uint8_t FIELD_COUNT = 9;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1810,7 +1753,6 @@ class ButtonCommandRequest : public ProtoMessage {
   uint32_t key{0};
   static const FieldMeta FIELDS[1];
   static constexpr uint8_t FIELD_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1830,7 +1772,6 @@ class MediaPlayerSupportedFormat : public ProtoMessage {
   uint32_t sample_bytes{0};
   static const FieldMeta FIELDS[5];
   static constexpr uint8_t FIELD_COUNT = 5;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1852,7 +1793,6 @@ class ListEntitiesMediaPlayerResponse : public InfoResponseProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 9;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -1875,7 +1815,6 @@ class MediaPlayerStateResponse : public StateResponseProtoMessage {
   bool muted{false};
   static const FieldMeta FIELDS[5];
   static constexpr uint8_t FIELD_COUNT = 5;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1902,7 +1841,6 @@ class MediaPlayerCommandRequest : public ProtoMessage {
   bool announcement{false};
   static const FieldMeta FIELDS[9];
   static constexpr uint8_t FIELD_COUNT = 9;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1923,7 +1861,6 @@ class SubscribeBluetoothLEAdvertisementsRequest : public ProtoMessage {
   uint32_t flags{0};
   static const FieldMeta FIELDS[1];
   static constexpr uint8_t FIELD_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -1941,7 +1878,6 @@ class BluetoothServiceData : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 2;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -1970,7 +1906,6 @@ class BluetoothLEAdvertisementResponse : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 4;
   static const RepeatedFieldMeta REPEATED_FIELDS[3];
   static constexpr uint8_t REPEATED_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -1989,7 +1924,6 @@ class BluetoothLERawAdvertisement : public ProtoMessage {
   std::string data{};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2008,7 +1942,6 @@ class BluetoothLERawAdvertisementsResponse : public ProtoMessage {
   std::vector<BluetoothLERawAdvertisement> advertisements{};
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
   uint8_t get_repeated_field_count() const override { return REPEATED_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2030,7 +1963,6 @@ class BluetoothDeviceRequest : public ProtoMessage {
   uint32_t address_type{0};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2052,7 +1984,6 @@ class BluetoothDeviceConnectionResponse : public ProtoMessage {
   int32_t error{0};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2071,7 +2002,6 @@ class BluetoothGATTGetServicesRequest : public ProtoMessage {
   uint64_t address{0};
   static const FieldMeta FIELDS[1];
   static constexpr uint8_t FIELD_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2088,7 +2018,6 @@ class BluetoothGATTDescriptor : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 1;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -2109,7 +2038,6 @@ class BluetoothGATTCharacteristic : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 2;
   static const RepeatedFieldMeta REPEATED_FIELDS[2];
   static constexpr uint8_t REPEATED_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -2129,7 +2057,6 @@ class BluetoothGATTService : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 1;
   static const RepeatedFieldMeta REPEATED_FIELDS[2];
   static constexpr uint8_t REPEATED_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -2153,7 +2080,6 @@ class BluetoothGATTGetServicesResponse : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 1;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -2174,7 +2100,6 @@ class BluetoothGATTGetServicesDoneResponse : public ProtoMessage {
   uint64_t address{0};
   static const FieldMeta FIELDS[1];
   static constexpr uint8_t FIELD_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2194,7 +2119,6 @@ class BluetoothGATTReadRequest : public ProtoMessage {
   uint32_t handle{0};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2215,7 +2139,6 @@ class BluetoothGATTReadResponse : public ProtoMessage {
   std::string data{};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2237,7 +2160,6 @@ class BluetoothGATTWriteRequest : public ProtoMessage {
   std::string data{};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2257,7 +2179,6 @@ class BluetoothGATTReadDescriptorRequest : public ProtoMessage {
   uint32_t handle{0};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2278,7 +2199,6 @@ class BluetoothGATTWriteDescriptorRequest : public ProtoMessage {
   std::string data{};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2299,7 +2219,6 @@ class BluetoothGATTNotifyRequest : public ProtoMessage {
   bool enable{false};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2320,7 +2239,6 @@ class BluetoothGATTNotifyDataResponse : public ProtoMessage {
   std::string data{};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2356,7 +2274,6 @@ class BluetoothConnectionsFreeResponse : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 2;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -2379,7 +2296,6 @@ class BluetoothGATTErrorResponse : public ProtoMessage {
   int32_t error{0};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2399,7 +2315,6 @@ class BluetoothGATTWriteResponse : public ProtoMessage {
   uint32_t handle{0};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2419,7 +2334,6 @@ class BluetoothGATTNotifyResponse : public ProtoMessage {
   uint32_t handle{0};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2440,7 +2354,6 @@ class BluetoothDevicePairingResponse : public ProtoMessage {
   int32_t error{0};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2461,7 +2374,6 @@ class BluetoothDeviceUnpairingResponse : public ProtoMessage {
   int32_t error{0};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2495,7 +2407,6 @@ class BluetoothDeviceClearCacheResponse : public ProtoMessage {
   int32_t error{0};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2515,7 +2426,6 @@ class BluetoothScannerStateResponse : public ProtoMessage {
   enums::BluetoothScannerMode mode{};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2534,7 +2444,6 @@ class BluetoothScannerSetModeRequest : public ProtoMessage {
   enums::BluetoothScannerMode mode{};
   static const FieldMeta FIELDS[1];
   static constexpr uint8_t FIELD_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2556,7 +2465,6 @@ class SubscribeVoiceAssistantRequest : public ProtoMessage {
   uint32_t flags{0};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2572,7 +2480,6 @@ class VoiceAssistantAudioSettings : public ProtoMessage {
   float volume_multiplier{0.0f};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2595,7 +2502,6 @@ class VoiceAssistantRequest : public ProtoMessage {
   std::string wake_word_phrase{};
   static const FieldMeta FIELDS[5];
   static constexpr uint8_t FIELD_COUNT = 5;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2615,7 +2521,6 @@ class VoiceAssistantResponse : public ProtoMessage {
   bool error{false};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2630,7 +2535,6 @@ class VoiceAssistantEventData : public ProtoMessage {
   std::string value{};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2652,7 +2556,6 @@ class VoiceAssistantEventResponse : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 1;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -2674,7 +2577,6 @@ class VoiceAssistantAudio : public ProtoMessage {
   bool end{false};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2698,7 +2600,6 @@ class VoiceAssistantTimerEventResponse : public ProtoMessage {
   bool is_active{false};
   static const FieldMeta FIELDS[6];
   static constexpr uint8_t FIELD_COUNT = 6;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2720,7 +2621,6 @@ class VoiceAssistantAnnounceRequest : public ProtoMessage {
   bool start_conversation{false};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2739,7 +2639,6 @@ class VoiceAssistantAnnounceFinished : public ProtoMessage {
   bool success{false};
   static const FieldMeta FIELDS[1];
   static constexpr uint8_t FIELD_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2757,7 +2656,6 @@ class VoiceAssistantWakeWord : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 2;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -2795,7 +2693,6 @@ class VoiceAssistantConfigurationResponse : public ProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 1;
   static const RepeatedFieldMeta REPEATED_FIELDS[2];
   static constexpr uint8_t REPEATED_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -2816,7 +2713,6 @@ class VoiceAssistantSetConfiguration : public ProtoMessage {
   std::vector<std::string> active_wake_words{};
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
   uint8_t get_repeated_field_count() const override { return REPEATED_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2839,7 +2735,6 @@ class ListEntitiesAlarmControlPanelResponse : public InfoResponseProtoMessage {
   bool requires_code_to_arm{false};
   static const FieldMeta FIELDS[11];
   static constexpr uint8_t FIELD_COUNT = 11;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2858,7 +2753,6 @@ class AlarmControlPanelStateResponse : public StateResponseProtoMessage {
   enums::AlarmControlPanelState state{};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2879,7 +2773,6 @@ class AlarmControlPanelCommandRequest : public ProtoMessage {
   std::string code{};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2903,7 +2796,6 @@ class ListEntitiesTextResponse : public InfoResponseProtoMessage {
   enums::TextMode mode{};
   static const FieldMeta FIELDS[12];
   static constexpr uint8_t FIELD_COUNT = 12;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2923,7 +2815,6 @@ class TextStateResponse : public StateResponseProtoMessage {
   bool missing_state{false};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2943,7 +2834,6 @@ class TextCommandRequest : public ProtoMessage {
   std::string state{};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2963,7 +2853,6 @@ class ListEntitiesDateResponse : public InfoResponseProtoMessage {
 #endif
   static const FieldMeta FIELDS[8];
   static constexpr uint8_t FIELD_COUNT = 8;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -2985,7 +2874,6 @@ class DateStateResponse : public StateResponseProtoMessage {
   uint32_t day{0};
   static const FieldMeta FIELDS[6];
   static constexpr uint8_t FIELD_COUNT = 6;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3007,7 +2895,6 @@ class DateCommandRequest : public ProtoMessage {
   uint32_t day{0};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3027,7 +2914,6 @@ class ListEntitiesTimeResponse : public InfoResponseProtoMessage {
 #endif
   static const FieldMeta FIELDS[8];
   static constexpr uint8_t FIELD_COUNT = 8;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3049,7 +2935,6 @@ class TimeStateResponse : public StateResponseProtoMessage {
   uint32_t second{0};
   static const FieldMeta FIELDS[6];
   static constexpr uint8_t FIELD_COUNT = 6;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3071,7 +2956,6 @@ class TimeCommandRequest : public ProtoMessage {
   uint32_t second{0};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3095,7 +2979,6 @@ class ListEntitiesEventResponse : public InfoResponseProtoMessage {
   static constexpr uint8_t FIELD_COUNT = 9;
   static const RepeatedFieldMeta REPEATED_FIELDS[1];
   static constexpr uint8_t REPEATED_COUNT = 1;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
   const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }
@@ -3116,7 +2999,6 @@ class EventResponse : public StateResponseProtoMessage {
   std::string event_type{};
   static const FieldMeta FIELDS[3];
   static constexpr uint8_t FIELD_COUNT = 3;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3140,7 +3022,6 @@ class ListEntitiesValveResponse : public InfoResponseProtoMessage {
   bool supports_stop{false};
   static const FieldMeta FIELDS[12];
   static constexpr uint8_t FIELD_COUNT = 12;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3160,7 +3041,6 @@ class ValveStateResponse : public StateResponseProtoMessage {
   enums::ValveOperation current_operation{};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3182,7 +3062,6 @@ class ValveCommandRequest : public ProtoMessage {
   bool stop{false};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3202,7 +3081,6 @@ class ListEntitiesDateTimeResponse : public InfoResponseProtoMessage {
 #endif
   static const FieldMeta FIELDS[8];
   static constexpr uint8_t FIELD_COUNT = 8;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3222,7 +3100,6 @@ class DateTimeStateResponse : public StateResponseProtoMessage {
   uint32_t epoch_seconds{0};
   static const FieldMeta FIELDS[4];
   static constexpr uint8_t FIELD_COUNT = 4;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3242,7 +3119,6 @@ class DateTimeCommandRequest : public ProtoMessage {
   uint32_t epoch_seconds{0};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3263,7 +3139,6 @@ class ListEntitiesUpdateResponse : public InfoResponseProtoMessage {
   std::string device_class{};
   static const FieldMeta FIELDS[9];
   static constexpr uint8_t FIELD_COUNT = 9;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3290,7 +3165,6 @@ class UpdateStateResponse : public StateResponseProtoMessage {
   std::string release_url{};
   static const FieldMeta FIELDS[11];
   static constexpr uint8_t FIELD_COUNT = 11;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP
@@ -3310,7 +3184,6 @@ class UpdateCommandRequest : public ProtoMessage {
   enums::UpdateCommand command{};
   static const FieldMeta FIELDS[2];
   static constexpr uint8_t FIELD_COUNT = 2;
-  // Metadata getters
   const FieldMeta *get_field_metadata() const override { return FIELDS; }
   uint8_t get_field_count() const override { return FIELD_COUNT; }
 #ifdef HAS_PROTO_MESSAGE_DUMP

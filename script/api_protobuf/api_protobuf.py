@@ -1369,9 +1369,6 @@ def build_message_type(
 
     # Add virtual getter methods only when needed
     # Skip overrides for empty messages since base class already returns correct defaults
-    if regular_fields or repeated_fields:
-        public_content.append("// Metadata getters")
-
     if regular_fields:
         public_content.append(
             "const FieldMeta *get_field_metadata() const override { return FIELDS; }"
