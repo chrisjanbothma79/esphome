@@ -1,0 +1,33 @@
+esphome:
+  name: scheduler-null-name
+
+host:
+
+logger:
+  level: DEBUG
+
+api:
+  services:
+    - service: test_null_name
+      then:
+        - lambda: |-
+            // Test 1: set_timeout with nullptr (simulating defer() behavior)
+            App.scheduler.set_timeout(nullptr, nullptr, 0, []() {
+              ESP_LOGI("TEST", "Defer with null name executed");
+            });
+
+            // Test 2: Cancel with nullptr name - should not crash
+            App.scheduler.cancel_timeout(nullptr, nullptr);
+
+            // Test 3: set_interval with nullptr
+            App.scheduler.set_interval(nullptr, nullptr, 100, []() {
+              ESP_LOGI("TEST", "Interval with null name executed");
+            });
+
+            // Test 4: Cancel interval with nullptr - should not crash
+            App.scheduler.cancel_interval(nullptr, nullptr);
+
+            // Test 5: Verify scheduler still works after null operations
+            App.scheduler.set_timeout(nullptr, "valid_timeout", 50, []() {
+              ESP_LOGI("TEST", "Test completed successfully");
+            });
