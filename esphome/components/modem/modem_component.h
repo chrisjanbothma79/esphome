@@ -150,7 +150,7 @@ class ModemComponent : public Component {
   // Allow changes from YAML?
   size_t uart_rx_buffer_size_ = 2048;         // 256-2048
   size_t uart_tx_buffer_size_ = 1024;         // 256-2048
-  uint8_t uart_event_queue_size_ = 30;        // 10-40
+  uint8_t uart_event_queue_size_ = 10;        // 10-40
   size_t uart_event_task_stack_size_ = 4096;  // 2000-6000
   uint8_t uart_event_task_priority_ = 5;      // 3-22
   uint32_t command_delay_ = 1000;             // Timeout for AT commands

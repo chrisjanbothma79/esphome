@@ -522,13 +522,13 @@ bool ModemComponent::modem_init_() {
   uint32_t start_ms = millis();
   uint32_t elapsed_ms;
 
-  // Create or recreate DTE and DCE using the guessed baud rate.
+  // Create or recreate DTE and DCE using the guessed baud rate (0, ie default on cold boot, or last used on warm boot)
   this->modem_create_dte_dce_(this->internal_state_.current_baud_rate);
 
   ESP_LOGD(TAG, "Autodetecting modem mode...");
   App.feed_wdt();
 
-  // Set the modem to AUTODETECT mode, with time elapsed.
+  // Set the modem to AUTODETECT mode
   this->dce->set_mode(modem_mode::AUTODETECT);  // WARNING: A WDT may be triggered if the modem is off.
   ESP_LOGD(TAG, "Modem check took %" PRIu32 "ms.", millis() - start_ms);
 
@@ -565,13 +565,6 @@ bool ModemComponent::modem_init_() {
                static_cast<int>(this->dce->get_mode()));
   }
 
-  if (success) {
-    // Save the baud rate.
-    this->modem_restore_state_.baud_rate = this->internal_state_.current_baud_rate;
-    this->pref_.save(&this->modem_restore_state_);
-    global_preferences->sync();
-  }
-
   delay(100);  // NOLINT
   if (success && this->dce->sync() == command_result::OK) {
     ESP_LOGI(TAG, "Modem ready.");
@@ -588,14 +581,14 @@ bool ModemComponent::modem_init_() {
 
   // Some modems require disconnection from the network before a PPP connection.
   // This slows down the connection slightly but is more conservative.
-  int network_attached = 1;
-  this->dce->get_radio_state(network_attached);
-  if (network_attached == 1) {
-    ESP_LOGD(TAG, "Modem attached to network. Detaching...");
-    this->dce->set_radio_state(4);  // disable RF (Airplane mode)
-    delay(200);                     // NOLINT
-    this->dce->set_radio_state(1);  // Full functionality
-  }
+  // int network_attached = 1;
+  // this->dce->get_radio_state(network_attached);
+  // if (network_attached == 1) {
+  //   ESP_LOGD(TAG, "Modem attached to network. Detaching...");
+  //   this->dce->set_radio_state(4);  // disable RF (Airplane mode)
+  //   delay(200);                     // NOLINT
+  //   this->dce->set_radio_state(1);  // Full functionality
+  // }
 
   // Change baud rate if needed.
   if (this->baud_rate_ != this->internal_state_.current_baud_rate) {
@@ -610,7 +603,7 @@ bool ModemComponent::modem_init_() {
       delay(200);  // NOLINT
       this->flush_uart_();
       if (this->dce->sync() == command_result::OK) {
-        ESP_LOGI(TAG, "Modem synced at baud rate %d.", this->baud_rate_);
+        ESP_LOGI(TAG, "Modem synced at baud rate %d.", this->internal_state_.current_baud_rate);
         this->modem_restore_state_.baud_rate = this->internal_state_.current_baud_rate;
         this->pref_.save(&this->modem_restore_state_);
         // Save state: modem only reachable at this baud rate if not powered off.
@@ -632,34 +625,15 @@ bool ModemComponent::modem_init_() {
     ESP_LOGI(TAG, "Modem initialized in %" PRIu32 "ms.", elapsed_ms);
   } else {
     ESP_LOGE(TAG, "Modem initialization failed in %" PRIu32 "ms.", elapsed_ms);
-  }
-
-  if (!success) {
     return false;
   }
-
-  this->pref_.save(&this->modem_restore_state_);
-  global_preferences->sync();
-
-  this->send_init_at_();
-
-  ESP_LOGI(TAG, "Modem infos:");
-  std::string result;
-  ESPMODEM_ERROR_CHECK(this->dce->get_module_name(result), "get_module_name");
-  ESP_LOGI(TAG, "  Module name: %s", result.c_str());
 
   if (!this->prepare_sim_()) {
     this->abort_("Fatal: Sim error");
     return false;
   }
 
-  success = this->dce->sync() == command_result::OK;
-
-  if (!success) {
-    ESP_LOGE(TAG, "Fatal: Modem init failed.");
-  }
-
-  return success;
+  return true;
 }
 
 bool ModemComponent::prepare_sim_() {
