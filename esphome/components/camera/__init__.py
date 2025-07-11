@@ -2,7 +2,9 @@ from esphome import automation
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.const import CONF_HEIGHT, CONF_ID, CONF_TRIGGER_ID, CONF_WIDTH
+from esphome.core import coroutine_with_priority
 from esphome.core.entity_helpers import setup_entity
+from esphome.cpp_generator import MockObjClass
 
 CODEOWNERS = ["@DT-art1", "@bdraco"]
 
@@ -73,6 +75,7 @@ CONF_ENCODER_QUALITY_SELECTS = {
     "LOW": EncoderQuality.ENCODER_QUALITY_LOW,
 }
 
+IS_PLATFORM_COMPONENT = True
 MULTI_CONF = True
 MULTI_CONF_NO_DEFAULT = True
 
@@ -120,9 +123,10 @@ ENCODER_SCHEMA = cv.Schema(
     }
 )
 
-CAMERA_SCHEMA = (
+_CAMERA_SCHEMA = (
     cv.Schema(
         {
+            cv.GenerateID(): cv.declare_id(Camera),
             cv.Required(CONF_HEIGHT): cv.int_range(0),
             cv.Required(CONF_WIDTH): cv.int_range(0),
             cv.Required(CONF_IMAGE_FORMAT): cv.enum(
@@ -141,11 +145,17 @@ CAMERA_SCHEMA = (
     .extend(cv.ENTITY_BASE_SCHEMA)
 )
 
-CONFIG_SCHEMA = cv.Schema(
-    {
-        cv.GenerateID(CONF_ID): cv.declare_id(Camera),
-    }
-).extend(CAMERA_SCHEMA)
+
+def camera_schema(
+    class_: MockObjClass = cv.UNDEFINED,
+) -> cv.Schema:
+    schema = {}
+
+    if class_ is not cv.UNDEFINED:
+        # Not optional.
+        schema[cv.GenerateID()] = cv.declare_id(class_)
+
+    return _CAMERA_SCHEMA.extend(schema)
 
 
 async def setup_camera(var, config):
@@ -222,5 +232,7 @@ async def new_camera(config, *args):
     return var
 
 
+@coroutine_with_priority(100.0)
 async def to_code(config):
-    await new_camera(config)
+    cg.add_global(camera_ns.using)
+    cg.add_define("USE_CAMERA")

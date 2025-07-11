@@ -32,29 +32,30 @@ display:
           it.filled_circle(196, 128, 15, Color(0, 0, 255));
         }
 camera:
-  name: Test Camera
-  width: 256
-  height: 256
-  image_format: RGB888
-  on_capture_image:
-    - lambda: |-
-        static uint8_t frame_count = 0;
-        int pixel_count = 0;
-        uint8_t *rgb = image.data;
-        while (context.x < spec.width) {
-          while (context.y < spec.height) {
-            int idx = context.y * spec.bytes_per_row() + context.x * spec.bytes_per_pixel();
-            rgb[idx + 0] = frame_count + context.x;
-            rgb[idx + 1] = frame_count + context.y;
-            rgb[idx + 2] = frame_count + context.x + context.y;
-            ++context.y;
-            ++pixel_count;
-            if (pixel_count >= 16384) {
-              context.done = false;
-              return;
+  - platform: template
+    name: Test Camera
+    width: 256
+    height: 256
+    image_format: RGB888
+    on_capture_image:
+      - lambda: |-
+          static uint8_t frame_count = 0;
+          int pixel_count = 0;
+          uint8_t *rgb = image.data;
+          while (context.x < spec.width) {
+            while (context.y < spec.height) {
+              int idx = context.y * spec.bytes_per_row() + context.x * spec.bytes_per_pixel();
+              rgb[idx + 0] = frame_count + context.x;
+              rgb[idx + 1] = frame_count + context.y;
+              rgb[idx + 2] = frame_count + context.x + context.y;
+              ++context.y;
+              ++pixel_count;
+              if (pixel_count >= 16384) {
+                context.done = false;
+                return;
+              }
             }
+            context.y = 0;
+            ++context.x;
           }
-          context.y = 0;
-          ++context.x;
-        }
-        ++frame_count;
+          ++frame_count;

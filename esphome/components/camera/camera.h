@@ -10,6 +10,13 @@
 namespace esphome {
 namespace camera {
 
+#define SUB_CAMERA(name) \
+ protected: \
+  camera::Camera *name##_camera_{nullptr}; \
+\
+ public: \
+  void set_##name##_camera(camera::Camera *camera) { this->name##_camera_ = camera; }
+
 /** Different sources for filtering.
  *  IDLE: Camera requests to send an image to the API.
  *  API_REQUESTER: API requests a new image.
