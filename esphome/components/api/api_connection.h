@@ -628,7 +628,7 @@ class APIConnection : public APIServerConnection {
   // to send in one go. This is the maximum size of a single packet
   // that can be sent over the network.
   // This is to avoid fragmentation of the packet.
-  static constexpr size_t MAX_PACKET_SIZE = 1390;  // MTU
+  static constexpr size_t MAX_BATCH_PACKET_SIZE = 1390;  // MTU
 
   bool schedule_batch_();
   void process_batch_();
@@ -641,7 +641,7 @@ class APIConnection : public APIServerConnection {
   // Helper to log a proto message from a MessageCreator object
   void log_proto_message_(EntityBase *entity, const MessageCreator &creator, uint8_t message_type) {
     this->flags_.log_only_mode = true;
-    creator(entity, this, MAX_PACKET_SIZE, true, message_type);
+    creator(entity, this, MAX_BATCH_PACKET_SIZE, true, message_type);
     this->flags_.log_only_mode = false;
   }
 
@@ -661,7 +661,7 @@ class APIConnection : public APIServerConnection {
     if (this->flags_.should_try_send_immediately && this->get_batch_delay_ms_() == 0 &&
         this->helper_->can_write_without_blocking()) {
       // Now actually encode and send
-      if (creator(entity, this, MAX_PACKET_SIZE, true) &&
+      if (creator(entity, this, MAX_BATCH_PACKET_SIZE, true) &&
           this->send_buffer(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, message_type)) {
 #ifdef HAS_PROTO_MESSAGE_DUMP
         // Log the message in verbose mode

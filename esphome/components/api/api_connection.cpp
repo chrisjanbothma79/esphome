@@ -201,7 +201,7 @@ void APIConnection::loop() {
 
 #ifdef USE_CAMERA
   if (this->image_reader_ && this->image_reader_->available() && this->helper_->can_write_without_blocking()) {
-    uint32_t to_send = std::min((size_t) MAX_PACKET_SIZE, this->image_reader_->available());
+    uint32_t to_send = std::min((size_t) MAX_BATCH_PACKET_SIZE, this->image_reader_->available());
     bool done = this->image_reader_->available() == to_send;
     uint32_t msg_size = 0;
     ProtoSize::add_fixed_field<4>(msg_size, 1, true);
@@ -1614,6 +1614,11 @@ bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint8_t message_type) {
   if (err == APIError::WOULD_BLOCK)
     return false;
   if (err != APIError::OK) {
+    if (err == APIError::MESSAGE_TOO_LARGE) {
+      // Log error for oversized messages - safe here since we're not in the middle of encoding
+      ESP_LOGE(TAG, "%s: Message type %u is too large to send (exceeds %u byte limit)",
+               this->get_client_combined_info().c_str(), message_type, PacketInfo::MAX_PAYLOAD_SIZE);
+    }
     on_fatal_error();
     if (err == APIError::SOCKET_WRITE_FAILED && errno == ECONNRESET) {
       ESP_LOGW(TAG, "%s: Connection reset", this->get_client_combined_info().c_str());
@@ -1771,9 +1776,9 @@ void APIConnection::process_batch_() {
 
     // Update tracking variables
     items_processed++;
-    // After first message, set remaining size to MAX_PACKET_SIZE to avoid fragmentation
+    // After first message, set remaining size to MAX_BATCH_PACKET_SIZE to avoid fragmentation
     if (items_processed == 1) {
-      remaining_size = MAX_PACKET_SIZE;
+      remaining_size = MAX_BATCH_PACKET_SIZE;
     }
     remaining_size -= payload_size;
     // Calculate where the next message's header padding will start
