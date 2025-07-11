@@ -3,9 +3,8 @@ import logging
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display
-from esphome.components.const import CONF_DRAW_ROUNDING
+from esphome.components.const import CONF_BYTE_ORDER, CONF_DRAW_ROUNDING
 from esphome.components.const.mipi import (
-    CONF_BYTE_ORDER,
     CONF_HSYNC_BACK_PORCH,
     CONF_HSYNC_FRONT_PORCH,
     CONF_HSYNC_PULSE_WIDTH,

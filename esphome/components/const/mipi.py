@@ -133,7 +133,6 @@ CONF_VSYNC_FRONT_PORCH = "vsync_front_porch"
 CONF_PCLK_FREQUENCY = "pclk_frequency"
 CONF_NATIVE_WIDTH = "native_width"
 CONF_NATIVE_HEIGHT = "native_height"
-CONF_BYTE_ORDER = "byte_order"
 
 
 def rotation_as_transform(model, config):
