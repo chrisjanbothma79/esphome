@@ -28,16 +28,14 @@ struct ReadPacketBuffer {
   uint16_t data_len;
 };
 
-// Packed packet info structure to minimize memory usage
+// Packet info structure
 struct PacketInfo {
-  uint8_t message_type;   // 1 byte (max 255 message types)
-  uint8_t padding1;       // 1 byte (for alignment)
   uint16_t offset;        // 2 bytes (sufficient for packet size ~1460 bytes)
   uint16_t payload_size;  // 2 bytes (up to 65535 bytes)
-  uint16_t padding2;      // 2 bytes (for alignment to 8 bytes)
+  uint8_t message_type;   // 1 byte (max 255 message types)
+  // Total: 5 bytes, compiler adds 3 bytes padding for alignment (8 bytes total)
 
-  PacketInfo(uint8_t type, uint16_t off, uint16_t size)
-      : message_type(type), padding1(0), offset(off), payload_size(size), padding2(0) {}
+  PacketInfo(uint8_t type, uint16_t off, uint16_t size) : offset(off), payload_size(size), message_type(type) {}
 };
 
 enum class APIError : uint16_t {
