@@ -1418,6 +1418,24 @@ bool APIConnection::try_send_log_message(int level, const char *tag, const char 
   return this->send_buffer(buffer, SubscribeLogsResponse::MESSAGE_TYPE);
 }
 
+void APIConnection::complete_authentication_() {
+  // Early return if already authenticated
+  if (this->flags_.connection_state == static_cast<uint8_t>(ConnectionState::AUTHENTICATED)) {
+    return;
+  }
+
+  this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::AUTHENTICATED);
+  ESP_LOGD(TAG, "%s connected", this->get_client_combined_info().c_str());
+#ifdef USE_API_CLIENT_CONNECTED_TRIGGER
+  this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->client_peername_);
+#endif
+#ifdef USE_HOMEASSISTANT_TIME
+  if (homeassistant::global_homeassistant_time != nullptr) {
+    this->send_time_request();
+  }
+#endif
+}
+
 HelloResponse APIConnection::hello(const HelloRequest &msg) {
   this->client_info_ = msg.client_info;
   this->client_peername_ = this->helper_->getpeername();
@@ -1433,7 +1451,14 @@ HelloResponse APIConnection::hello(const HelloRequest &msg) {
   resp.server_info = App.get_name() + " (esphome v" ESPHOME_VERSION ")";
   resp.name = App.get_name();
 
+#ifdef USE_API_PASSWORD
+  // Password required - wait for authentication
   this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::CONNECTED);
+#else
+  // No password configured - auto-authenticate
+  this->complete_authentication_();
+#endif
+
   return resp;
 }
 ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
@@ -1446,23 +1471,14 @@ ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
   // bool invalid_password = 1;
   resp.invalid_password = !correct;
   if (correct) {
-    ESP_LOGD(TAG, "%s connected", this->get_client_combined_info().c_str());
-    this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::AUTHENTICATED);
-#ifdef USE_API_CLIENT_CONNECTED_TRIGGER
-    this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->client_peername_);
-#endif
-#ifdef USE_HOMEASSISTANT_TIME
-    if (homeassistant::global_homeassistant_time != nullptr) {
-      this->send_time_request();
-    }
-#endif
+    this->complete_authentication_();
   }
   return resp;
 }
 DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
   DeviceInfoResponse resp{};
 #ifdef USE_API_PASSWORD
-  resp.uses_password = this->parent_->uses_password();
+  resp.uses_password = true;
 #else
   resp.uses_password = false;
 #endif
@@ -1920,7 +1936,7 @@ uint16_t APIConnection::get_estimated_message_size(uint16_t message_type) {
     case ListEntitiesClimateResponse::MESSAGE_TYPE:
       return ListEntitiesClimateResponse::ESTIMATED_SIZE;
 #endif
-#ifdef USE_ESP32_CAMERA
+#ifdef USE_CAMERA
     case ListEntitiesCameraResponse::MESSAGE_TYPE:
       return ListEntitiesCameraResponse::ESTIMATED_SIZE;
 #endif
