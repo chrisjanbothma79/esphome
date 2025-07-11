@@ -20,7 +20,7 @@ def filter_component_files(str):
     return str.startswith("esphome/components/") | str.startswith("tests/components/")
 
 
-def get_all_component_files():
+def get_all_component_files() -> list[str]:
     """Get all component files from git."""
     files = git_ls_files()
     return list(filter(filter_component_files, files))

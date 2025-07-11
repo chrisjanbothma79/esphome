@@ -159,8 +159,7 @@ def test_github_actions_push_event(monkeypatch: MonkeyPatch) -> None:
 def clear_caches():
     """Clear function caches before each test."""
     # Clear the cache for _get_changed_files_github_actions
-    if hasattr(_get_changed_files_github_actions, "cache_clear"):
-        _get_changed_files_github_actions.cache_clear()
+    _get_changed_files_github_actions.cache_clear()
     yield
 
 
