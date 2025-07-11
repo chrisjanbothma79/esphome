@@ -349,23 +349,17 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         }
         ProtoVarInt value = *value_res;
 
-        // Try regular fields first
-        for (uint8_t j = 0; j < field_count; j++) {
-          if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 0) {
-            void *field_addr = base + fields[j].get_offset();
-            decoded = decode_varint_field(fields[j].get_type(), field_addr, value);
-            break;
-          }
+        // Try regular fields first using binary search
+        if (const FieldMeta *field = find_field_binary(fields, field_count, field_id, 0)) {
+          void *field_addr = base + field->get_offset();
+          decoded = decode_varint_field(field->get_type(), field_addr, value);
         }
 
         // If not found, try repeated fields
         if (!decoded) {
-          for (uint8_t j = 0; j < repeated_count; j++) {
-            if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 0) {
-              void *field_addr = base + repeated_fields[j].get_offset();
-              decoded = decode_repeated_varint_field(repeated_fields[j].get_type(), field_addr, value);
-              break;
-            }
+          if (const RepeatedFieldMeta *field = find_field_binary(repeated_fields, repeated_count, field_id, 0)) {
+            void *field_addr = base + field->get_offset();
+            decoded = decode_repeated_varint_field(field->get_type(), field_addr, value);
           }
         }
 
@@ -389,24 +383,17 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
 
         ProtoLengthDelimited value(&buffer[i], field_length);
 
-        // Try regular fields first
-        for (uint8_t j = 0; j < field_count; j++) {
-          if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 2) {
-            void *field_addr = base + fields[j].get_offset();
-            decoded = decode_length_field(fields[j].get_type(), field_addr, value, fields[j].get_message_type_id());
-            break;
-          }
+        // Try regular fields first using binary search
+        if (const FieldMeta *field = find_field_binary(fields, field_count, field_id, 2)) {
+          void *field_addr = base + field->get_offset();
+          decoded = decode_length_field(field->get_type(), field_addr, value, field->get_message_type_id());
         }
 
         // If not found, try repeated fields
         if (!decoded) {
-          for (uint8_t j = 0; j < repeated_count; j++) {
-            if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 2) {
-              void *field_addr = base + repeated_fields[j].get_offset();
-              decoded = decode_repeated_length_field(repeated_fields[j].get_type(), field_addr, value,
-                                                     repeated_fields[j].get_message_type_id());
-              break;
-            }
+          if (const RepeatedFieldMeta *field = find_field_binary(repeated_fields, repeated_count, field_id, 2)) {
+            void *field_addr = base + field->get_offset();
+            decoded = decode_repeated_length_field(field->get_type(), field_addr, value, field->get_message_type_id());
           }
         }
 
@@ -427,23 +414,17 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         raw |= uint32_t(buffer[i + 3]) << 24;
         Proto32Bit value(raw);
 
-        // Try regular fields first
-        for (uint8_t j = 0; j < field_count; j++) {
-          if (fields[j].field_num == field_id && get_wire_type(fields[j].get_type()) == 5) {
-            void *field_addr = base + fields[j].get_offset();
-            decoded = decode_32bit_field(fields[j].get_type(), field_addr, value);
-            break;
-          }
+        // Try regular fields first using binary search
+        if (const FieldMeta *field = find_field_binary(fields, field_count, field_id, 5)) {
+          void *field_addr = base + field->get_offset();
+          decoded = decode_32bit_field(field->get_type(), field_addr, value);
         }
 
         // If not found, try repeated fields
         if (!decoded) {
-          for (uint8_t j = 0; j < repeated_count; j++) {
-            if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 5) {
-              void *field_addr = base + repeated_fields[j].get_offset();
-              decoded = decode_repeated_32bit_field(repeated_fields[j].get_type(), field_addr, value);
-              break;
-            }
+          if (const RepeatedFieldMeta *field = find_field_binary(repeated_fields, repeated_count, field_id, 5)) {
+            void *field_addr = base + field->get_offset();
+            decoded = decode_repeated_32bit_field(field->get_type(), field_addr, value);
           }
         }
 
