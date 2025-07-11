@@ -14,9 +14,12 @@ from esphome.const import (
     ENTITY_CATEGORY_DIAGNOSTIC,
     ICON_MOLECULE_CO2,
     ICON_RADIATOR,
+    ICON_TIMER,  # baseline last stored age
+    ICON_TIMER_SAND,  # baseline ready countdown
     STATE_CLASS_MEASUREMENT,
     UNIT_PARTS_PER_BILLION,
     UNIT_PARTS_PER_MILLION,
+    UNIT_SECOND,
 )
 
 DEPENDENCIES = ["i2c"]
@@ -31,6 +34,10 @@ CONF_ECO2_BASELINE = "eco2_baseline"
 CONF_TVOC_BASELINE = "tvoc_baseline"
 CONF_UPTIME = "uptime"
 CONF_HUMIDITY_SOURCE = "humidity_source"
+
+# config for baseline ready countdown and baseline last stored age
+CONF_WARMUP_COUNTDOWN = "warmup_countdown"
+CONF_BASELINE_STORE_AGE = "baseline_store_age"
 
 
 CONFIG_SCHEMA = (
@@ -74,6 +81,20 @@ CONFIG_SCHEMA = (
                     cv.Required(CONF_TEMPERATURE_SOURCE): cv.use_id(sensor.Sensor),
                 }
             ),
+            cv.Optional(CONF_WARMUP_COUNTDOWN): sensor.sensor_schema(
+                unit_of_measurement=UNIT_SECOND,
+                icon=ICON_TIMER_SAND,
+                accuracy_decimals=0,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
+            cv.Optional(CONF_BASELINE_STORE_AGE): sensor.sensor_schema(
+                unit_of_measurement=UNIT_SECOND,
+                icon=ICON_TIMER,
+                accuracy_decimals=0,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ),
         }
     )
     .extend(cv.polling_component_schema("60s"))
@@ -114,3 +135,11 @@ async def to_code(config):
         cg.add(var.set_humidity_sensor(sens))
         sens = await cg.get_variable(compensation_config[CONF_TEMPERATURE_SOURCE])
         cg.add(var.set_temperature_sensor(sens))
+
+    if warmup_countdown_config := config.get(CONF_WARMUP_COUNTDOWN):
+        sens = await sensor.new_sensor(warmup_countdown_config)
+        cg.add(var.set_warmup_countdown_sensor(sens))
+
+    if baseline_store_age_config := config.get(CONF_BASELINE_STORE_AGE):
+        sens = await sensor.new_sensor(baseline_store_age_config)
+        cg.add(var.set_baseline_store_age_sensor(sens))

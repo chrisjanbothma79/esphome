@@ -113,6 +113,11 @@ void SGP30Component::read_iaq_baseline_() {
       this->status_set_warning();
       return;
     }
+
+    /// Publish warm up countdown zero since baseline available
+    if (this->warmup_countdown_sensor_ != nullptr)
+      this->warmup_countdown_sensor_->publish_state(0);
+
     this->set_timeout(50, [this]() {
       uint16_t raw_data[2];
       if (!this->read_data(raw_data, 2)) {
@@ -152,8 +157,13 @@ void SGP30Component::read_iaq_baseline_() {
       this->status_clear_warning();
     });
   } else {
-    ESP_LOGD(TAG, "Baseline reading not available for: %.0fs",
-             (this->required_warm_up_time_ - std::floor(millis() / 1000)));
+    uint32_t warm_up_countdown = (this->required_warm_up_time_ - std::floor(millis() / 1000));
+
+    ESP_LOGD(TAG, "Baseline reading not available for %us", warm_up_countdown);
+
+    /// Publish warm up countdown until baseline available
+    if (this->warmup_countdown_sensor_ != nullptr)
+      this->warmup_countdown_sensor_->publish_state(warm_up_countdown);
   }
 }
 
@@ -279,6 +289,11 @@ void SGP30Component::update() {
     return;
   }
   this->seconds_since_last_store_ += this->update_interval_ / 1000;
+
+  /// Publish seconds since last store
+  if (this->baseline_store_age_sensor_ != nullptr)
+    this->baseline_store_age_sensor_->publish_state(this->seconds_since_last_store_);
+
   this->set_timeout(50, [this]() {
     uint16_t raw_data[2];
     if (!this->read_data(raw_data, 2)) {

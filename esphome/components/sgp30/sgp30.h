@@ -19,15 +19,24 @@ struct SGP30Baselines {
 /// This class implements support for the Sensirion SGP30 i2c GAS (VOC and CO2eq) sensors.
 class SGP30Component : public PollingComponent, public sensirion_common::SensirionI2CDevice {
  public:
-  void set_eco2_sensor(sensor::Sensor *eco2) { eco2_sensor_ = eco2; }
-  void set_tvoc_sensor(sensor::Sensor *tvoc) { tvoc_sensor_ = tvoc; }
-  void set_eco2_baseline_sensor(sensor::Sensor *eco2_baseline) { eco2_sensor_baseline_ = eco2_baseline; }
-  void set_tvoc_baseline_sensor(sensor::Sensor *tvoc_baseline) { tvoc_sensor_baseline_ = tvoc_baseline; }
-  void set_store_baseline(bool store_baseline) { store_baseline_ = store_baseline; }
-  void set_eco2_baseline(uint16_t eco2_baseline) { eco2_baseline_ = eco2_baseline; }
-  void set_tvoc_baseline(uint16_t tvoc_baseline) { tvoc_baseline_ = tvoc_baseline; }
-  void set_humidity_sensor(sensor::Sensor *humidity) { humidity_sensor_ = humidity; }
-  void set_temperature_sensor(sensor::Sensor *temperature) { temperature_sensor_ = temperature; }
+  void set_eco2_sensor(sensor::Sensor *eco2) { this->eco2_sensor_ = eco2; }
+  void set_tvoc_sensor(sensor::Sensor *tvoc) { this->tvoc_sensor_ = tvoc; }
+  void set_eco2_baseline_sensor(sensor::Sensor *eco2_baseline) { this->eco2_sensor_baseline_ = eco2_baseline; }
+  void set_tvoc_baseline_sensor(sensor::Sensor *tvoc_baseline) { this->tvoc_sensor_baseline_ = tvoc_baseline; }
+  void set_store_baseline(bool store_baseline) { this->store_baseline_ = store_baseline; }
+  void set_eco2_baseline(uint16_t eco2_baseline) { this->eco2_baseline_ = eco2_baseline; }
+  void set_tvoc_baseline(uint16_t tvoc_baseline) { this->tvoc_baseline_ = tvoc_baseline; }
+  void set_humidity_sensor(sensor::Sensor *humidity) { this->humidity_sensor_ = humidity; }
+  void set_temperature_sensor(sensor::Sensor *temperature) { this->temperature_sensor_ = temperature; }
+
+  /// sensor for seconds until baseline is available
+  void set_warmup_countdown_sensor(sensor::Sensor *warmup_countdown) {
+    this->warmup_countdown_sensor_ = warmup_countdown;
+  }
+  /// sensor for seconds elapsed since last baseline stored
+  void set_baseline_store_age_sensor(sensor::Sensor *baseline_store_age) {
+    this->baseline_store_age_sensor_ = baseline_store_age;
+  }
 
   void setup() override;
   void update() override;
@@ -60,6 +69,11 @@ class SGP30Component : public PollingComponent, public sensirion_common::Sensiri
   uint16_t eco2_baseline_{0x0000};
   uint16_t tvoc_baseline_{0x0000};
   bool store_baseline_;
+
+  /// sensor for seconds until baseline is available
+  sensor::Sensor *warmup_countdown_sensor_{nullptr};
+  /// sensor for seconds elapsed since last baseline stored
+  sensor::Sensor *baseline_store_age_sensor_{nullptr};
 
   /// Input sensor for humidity and temperature compensation.
   sensor::Sensor *humidity_sensor_{nullptr};
