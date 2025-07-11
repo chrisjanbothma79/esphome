@@ -104,18 +104,18 @@ const FieldMetaV3 DeviceInfoResponse::FIELDS_V3[20] = {
      42,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(DeviceInfoResponse, area) & 0xFF),
       .message_type_id =
-          static_cast<uint8_t>(9 | (((PROTO_FIELD_OFFSET(DeviceInfoResponse, area) >> 8) & 0x0F) << 4))}}};
+          static_cast<uint8_t>(((PROTO_FIELD_OFFSET(DeviceInfoResponse, area) >> 8) & 0x03) | (9 << 2))}}};
 const RepeatedFieldMetaV3 DeviceInfoResponse::REPEATED_FIELDS_V3[2] = {
     {20,
      42,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(DeviceInfoResponse, devices) & 0xFF),
       .message_type_id =
-          static_cast<uint8_t>(0 | (((PROTO_FIELD_OFFSET(DeviceInfoResponse, devices) >> 8) & 0x0F) << 4))}},
+          static_cast<uint8_t>(((PROTO_FIELD_OFFSET(DeviceInfoResponse, devices) >> 8) & 0x03) | (0 << 2))}},
     {21,
      42,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(DeviceInfoResponse, areas) & 0xFF),
       .message_type_id =
-          static_cast<uint8_t>(1 | (((PROTO_FIELD_OFFSET(DeviceInfoResponse, areas) >> 8) & 0x0F) << 4))}}};
+          static_cast<uint8_t>(((PROTO_FIELD_OFFSET(DeviceInfoResponse, areas) >> 8) & 0x03) | (1 << 2))}}};
 #ifdef USE_BINARY_SENSOR
 const FieldMetaV3 ListEntitiesBinarySensorResponse::FIELDS_V3[10] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesBinarySensorResponse, object_id)}},
@@ -352,17 +352,17 @@ const RepeatedFieldMetaV3 HomeassistantServiceResponse::REPEATED_FIELDS_V3[3] = 
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(HomeassistantServiceResponse, data) & 0xFF),
       .message_type_id =
-          static_cast<uint8_t>(2 | (((PROTO_FIELD_OFFSET(HomeassistantServiceResponse, data) >> 8) & 0x0F) << 4))}},
+          static_cast<uint8_t>(((PROTO_FIELD_OFFSET(HomeassistantServiceResponse, data) >> 8) & 0x03) | (2 << 2))}},
     {3,
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(HomeassistantServiceResponse, data_template) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
-          2 | (((PROTO_FIELD_OFFSET(HomeassistantServiceResponse, data_template) >> 8) & 0x0F) << 4))}},
+          ((PROTO_FIELD_OFFSET(HomeassistantServiceResponse, data_template) >> 8) & 0x03) | (2 << 2))}},
     {4,
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(HomeassistantServiceResponse, variables) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
-          2 | (((PROTO_FIELD_OFFSET(HomeassistantServiceResponse, variables) >> 8) & 0x0F) << 4))}}};
+          ((PROTO_FIELD_OFFSET(HomeassistantServiceResponse, variables) >> 8) & 0x03) | (2 << 2))}}};
 const FieldMetaV3 SubscribeHomeAssistantStateResponse::FIELDS_V3[3] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(SubscribeHomeAssistantStateResponse, entity_id)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(SubscribeHomeAssistantStateResponse, attribute)}},
@@ -384,7 +384,7 @@ const RepeatedFieldMetaV3 ListEntitiesServicesResponse::REPEATED_FIELDS_V3[1] = 
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(ListEntitiesServicesResponse, args) & 0xFF),
       .message_type_id =
-          static_cast<uint8_t>(3 | (((PROTO_FIELD_OFFSET(ListEntitiesServicesResponse, args) >> 8) & 0x0F) << 4))}}};
+          static_cast<uint8_t>(((PROTO_FIELD_OFFSET(ListEntitiesServicesResponse, args) >> 8) & 0x03) | (3 << 2))}}};
 const FieldMetaV3 ExecuteServiceArgument::FIELDS_V3[5] = {
     {1, 0, {.offset = PROTO_FIELD_OFFSET(ExecuteServiceArgument, bool_)}},
     {2, 1, {.offset = PROTO_FIELD_OFFSET(ExecuteServiceArgument, legacy_int)}},
@@ -403,7 +403,7 @@ const RepeatedFieldMetaV3 ExecuteServiceRequest::REPEATED_FIELDS_V3[1] = {
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(ExecuteServiceRequest, args) & 0xFF),
       .message_type_id =
-          static_cast<uint8_t>(4 | (((PROTO_FIELD_OFFSET(ExecuteServiceRequest, args) >> 8) & 0x0F) << 4))}}};
+          static_cast<uint8_t>(((PROTO_FIELD_OFFSET(ExecuteServiceRequest, args) >> 8) & 0x03) | (4 << 2))}}};
 #ifdef USE_CAMERA
 const FieldMetaV3 ListEntitiesCameraResponse::FIELDS_V3[8] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCameraResponse, object_id)}},
@@ -628,7 +628,7 @@ const RepeatedFieldMetaV3 ListEntitiesMediaPlayerResponse::REPEATED_FIELDS_V3[1]
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, supported_formats) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
-          5 | (((PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, supported_formats) >> 8) & 0x0F) << 4))}}};
+          ((PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, supported_formats) >> 8) & 0x03) | (5 << 2))}}};
 const FieldMetaV3 MediaPlayerStateResponse::FIELDS_V3[5] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(MediaPlayerStateResponse, key)}},
     {2, 7, {.offset = PROTO_FIELD_OFFSET(MediaPlayerStateResponse, state)}},
@@ -665,13 +665,13 @@ const RepeatedFieldMetaV3 BluetoothLEAdvertisementResponse::REPEATED_FIELDS_V3[3
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, service_data) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
-          6 | (((PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, service_data) >> 8) & 0x0F) << 4))}},
+          ((PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, service_data) >> 8) & 0x03) | (6 << 2))}},
     {6,
      10,
      {.offset_low =
           static_cast<uint8_t>(PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, manufacturer_data) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
-          6 | (((PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, manufacturer_data) >> 8) & 0x0F) << 4))}}};
+          ((PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, manufacturer_data) >> 8) & 0x03) | (6 << 2))}}};
 const FieldMetaV3 BluetoothLERawAdvertisement::FIELDS_V3[4] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothLERawAdvertisement, address)}},
     {2, 5, {.offset = PROTO_FIELD_OFFSET(BluetoothLERawAdvertisement, rssi)}},
@@ -683,7 +683,7 @@ const RepeatedFieldMetaV3 BluetoothLERawAdvertisementsResponse::REPEATED_FIELDS_
      {.offset_low =
           static_cast<uint8_t>(PROTO_FIELD_OFFSET(BluetoothLERawAdvertisementsResponse, advertisements) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
-          7 | (((PROTO_FIELD_OFFSET(BluetoothLERawAdvertisementsResponse, advertisements) >> 8) & 0x0F) << 4))}}};
+          ((PROTO_FIELD_OFFSET(BluetoothLERawAdvertisementsResponse, advertisements) >> 8) & 0x03) | (7 << 2))}}};
 const FieldMetaV3 BluetoothDeviceRequest::FIELDS_V3[4] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceRequest, address)}},
     {2, 7, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceRequest, request_type)}},
@@ -709,7 +709,7 @@ const RepeatedFieldMetaV3 BluetoothGATTCharacteristic::REPEATED_FIELDS_V3[2] = {
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, descriptors) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
-          8 | (((PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, descriptors) >> 8) & 0x0F) << 4))}}};
+          ((PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, descriptors) >> 8) & 0x03) | (8 << 2))}}};
 const FieldMetaV3 BluetoothGATTService::FIELDS_V3[1] = {
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTService, handle)}}};
 const RepeatedFieldMetaV3 BluetoothGATTService::REPEATED_FIELDS_V3[2] = {
@@ -718,7 +718,7 @@ const RepeatedFieldMetaV3 BluetoothGATTService::REPEATED_FIELDS_V3[2] = {
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(BluetoothGATTService, characteristics) & 0xFF),
       .message_type_id =
-          static_cast<uint8_t>(9 | (((PROTO_FIELD_OFFSET(BluetoothGATTService, characteristics) >> 8) & 0x0F) << 4))}}};
+          static_cast<uint8_t>(((PROTO_FIELD_OFFSET(BluetoothGATTService, characteristics) >> 8) & 0x03) | (9 << 2))}}};
 const FieldMetaV3 BluetoothGATTGetServicesResponse::FIELDS_V3[1] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTGetServicesResponse, address)}}};
 const RepeatedFieldMetaV3 BluetoothGATTGetServicesResponse::REPEATED_FIELDS_V3[1] = {
@@ -726,7 +726,7 @@ const RepeatedFieldMetaV3 BluetoothGATTGetServicesResponse::REPEATED_FIELDS_V3[1
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(BluetoothGATTGetServicesResponse, services) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
-          10 | (((PROTO_FIELD_OFFSET(BluetoothGATTGetServicesResponse, services) >> 8) & 0x0F) << 4))}}};
+          ((PROTO_FIELD_OFFSET(BluetoothGATTGetServicesResponse, services) >> 8) & 0x03) | (10 << 2))}}};
 const FieldMetaV3 BluetoothGATTGetServicesDoneResponse::FIELDS_V3[1] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTGetServicesDoneResponse, address)}}};
 const FieldMetaV3 BluetoothGATTReadRequest::FIELDS_V3[2] = {
@@ -805,7 +805,7 @@ const FieldMetaV3 VoiceAssistantRequest::FIELDS_V3[5] = {
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(VoiceAssistantRequest, audio_settings) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
-          105 | (((PROTO_FIELD_OFFSET(VoiceAssistantRequest, audio_settings) >> 8) & 0x0F) << 4))}},
+          ((PROTO_FIELD_OFFSET(VoiceAssistantRequest, audio_settings) >> 8) & 0x03) | (105 << 2))}},
     {5, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantRequest, wake_word_phrase)}}};
 const FieldMetaV3 VoiceAssistantResponse::FIELDS_V3[2] = {
     {1, 2, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantResponse, port)}},
@@ -820,7 +820,7 @@ const RepeatedFieldMetaV3 VoiceAssistantEventResponse::REPEATED_FIELDS_V3[1] = {
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(VoiceAssistantEventResponse, data) & 0xFF),
       .message_type_id =
-          static_cast<uint8_t>(11 | (((PROTO_FIELD_OFFSET(VoiceAssistantEventResponse, data) >> 8) & 0x0F) << 4))}}};
+          static_cast<uint8_t>(((PROTO_FIELD_OFFSET(VoiceAssistantEventResponse, data) >> 8) & 0x03) | (11 << 2))}}};
 const FieldMetaV3 VoiceAssistantAudio::FIELDS_V3[2] = {
     {1, 9, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAudio, data)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAudio, end)}}};
@@ -851,7 +851,7 @@ const RepeatedFieldMetaV3 VoiceAssistantConfigurationResponse::REPEATED_FIELDS_V
      {.offset_low =
           static_cast<uint8_t>(PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, available_wake_words) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
-          12 | (((PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, available_wake_words) >> 8) & 0x0F) << 4))}},
+          ((PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, available_wake_words) >> 8) & 0x03) | (12 << 2))}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, active_wake_words)}}};
 const RepeatedFieldMetaV3 VoiceAssistantSetConfiguration::REPEATED_FIELDS_V3[1] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantSetConfiguration, active_wake_words)}}};

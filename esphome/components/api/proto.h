@@ -77,8 +77,9 @@ constexpr uint8_t get_wire_type(ProtoFieldType type) {
 
 // Macro to calculate field offset without triggering -Winvalid-offsetof
 // This uses the same approach as offsetof but with explicit reinterpret_cast
-#define PROTO_FIELD_OFFSET(Type, Member) /* NOLINT(bugprone-macro-parentheses) */ \
-  static_cast<uint16_t>(reinterpret_cast<size_t>(&reinterpret_cast<Type *>(16)->Member) - 16)
+#define PROTO_FIELD_OFFSET(Type, Member) \
+  static_cast<uint16_t>(reinterpret_cast<size_t>(&reinterpret_cast<Type *>(16)->Member) - \
+                        16) /* NOLINT(bugprone-macro-parentheses) */
 
 /// Representation of a VarInt - in ProtoBuf should be 64bit but we only use 32bit
 class ProtoVarInt {
@@ -288,8 +289,8 @@ struct FieldMetaV3 {
   union {
     uint16_t offset;  // For non-message types: offset in class (0-65535)
     struct {
-      uint8_t offset_low;       // For TYPE_MESSAGE: low byte of offset
-      uint8_t message_type_id;  // For TYPE_MESSAGE: index into MESSAGE_HANDLERS
+      uint8_t offset_low;       // For TYPE_MESSAGE: low byte of offset (bits 0-7)
+      uint8_t message_type_id;  // For TYPE_MESSAGE: bits 0-1: offset high (bits 8-9), bits 2-7: handler index (0-63)
     };
   };
 
@@ -298,13 +299,13 @@ struct FieldMetaV3 {
   uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
   uint16_t get_offset() const {
     if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
-      // Reconstruct full offset from packed fields
-      // Bits 0-7 from offset_low, bits 8-11 from upper nibble of message_type_id
-      return static_cast<uint16_t>(offset_low) | (static_cast<uint16_t>(message_type_id & 0xF0) << 4);
+      // Reconstruct full offset from packed fields (10-bit offset)
+      // Bits 0-7 from offset_low, bits 8-9 from lower 2 bits of message_type_id
+      return static_cast<uint16_t>(offset_low) | (static_cast<uint16_t>(message_type_id & 0x03) << 8);
     }
     return offset;
   }
-  uint8_t get_message_type_id() const { return message_type_id & 0x0F; }
+  uint8_t get_message_type_id() const { return message_type_id >> 2; }  // Upper 6 bits for type ID (0-63)
 };
 
 // V2 structures removed - we only use V3 now
@@ -476,8 +477,8 @@ struct RepeatedFieldMetaV3 {
   union {
     uint16_t offset;  // For non-message types: offset in class (0-65535)
     struct {
-      uint8_t offset_low;       // For TYPE_MESSAGE: low byte of offset
-      uint8_t message_type_id;  // For TYPE_MESSAGE: index into REPEATED_MESSAGE_HANDLERS
+      uint8_t offset_low;       // For TYPE_MESSAGE: low byte of offset (bits 0-7)
+      uint8_t message_type_id;  // For TYPE_MESSAGE: bits 0-1: offset high (bits 8-9), bits 2-7: handler index (0-63)
     };
   };
 
@@ -486,13 +487,13 @@ struct RepeatedFieldMetaV3 {
   uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
   uint16_t get_offset() const {
     if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
-      // Reconstruct full offset from packed fields
-      // Bits 0-7 from offset_low, bits 8-11 from upper nibble of message_type_id
-      return static_cast<uint16_t>(offset_low) | (static_cast<uint16_t>(message_type_id & 0xF0) << 4);
+      // Reconstruct full offset from packed fields (10-bit offset)
+      // Bits 0-7 from offset_low, bits 8-9 from lower 2 bits of message_type_id
+      return static_cast<uint16_t>(offset_low) | (static_cast<uint16_t>(message_type_id & 0x03) << 8);
     }
     return offset;
   }
-  uint8_t get_message_type_id() const { return message_type_id & 0x0F; }
+  uint8_t get_message_type_id() const { return message_type_id >> 2; }  // Upper 6 bits for type ID (0-63)
 };
 
 // V2 structures removed - we only use V3 now
@@ -577,35 +578,17 @@ class ProtoService {
     return true;
   }
 };
-
-// Type-specific functions removed - V3 inlines all operations directly
-
-// Template enum field functions removed - V3 inlines all operations directly
-
-// Repeated field handling functions removed - V3 inlines encoding directly
-
-// Note: The template encode_repeated_message_field is still used by the message handler registry
 template<typename MessageType>
 void encode_repeated_message_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
 
-// Size calculation for repeated fields removed - V3 inlines size calculation directly
-
-// Note: The template size_repeated_message_field is still used by the message handler registry
 template<typename MessageType>
 void size_repeated_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size);
 
-// Repeated field decode functions removed - V3 inlines decoding directly
-
-// Forward declarations for message field template functions
 template<typename MessageType>
 void encode_message_field(ProtoWriteBuffer &buffer, const void *field_ptr, uint8_t field_num);
 
 template<typename MessageType>
 void size_message_field(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
-
-// Template decode functions removed - V3 inlines decoding directly
-
-// Core shared functions removed - V2 metadata is used directly
 
 }  // namespace api
 }  // namespace esphome

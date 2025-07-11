@@ -1350,8 +1350,10 @@ def build_message_type(
                             ti._ti.type_name
                         )
                         offset = f"PROTO_FIELD_OFFSET({desc.name}, {ti.field_name})"
+                        # Bits 0-1: bits 8-9 of offset (extends offset to 10 bits = 1023)
+                        # Bits 2-7: actual message type ID (supports 64 types)
                         repeated_fields_v3.append(
-                            f"{{{field.number}, {type_and_size}, {{.offset_low = static_cast<uint8_t>({offset} & 0xFF), .message_type_id = static_cast<uint8_t>({message_type_id} | ((({offset} >> 8) & 0x0F) << 4))}}}}"
+                            f"{{{field.number}, {type_and_size}, {{.offset_low = static_cast<uint8_t>({offset} & 0xFF), .message_type_id = static_cast<uint8_t>((({offset} >> 8) & 0x03) | ({message_type_id} << 2))}}}}"
                         )
                     else:
                         # Non-message types use full offset
@@ -1376,11 +1378,11 @@ def build_message_type(
                         offset = f"PROTO_FIELD_OFFSET({desc.name}, {ti.field_name})"
 
                         # Since we have so few message types, we can use the upper bits of
-                        # message_type_id to extend the offset range
-                        # Bits 0-3: actual message type ID (supports 16 types)
-                        # Bits 4-7: bits 8-11 of offset (extends offset to 12 bits = 4096)
+                        # message_type_id to store the actual type ID
+                        # Bits 0-1: bits 8-9 of offset (extends offset to 10 bits = 1023)
+                        # Bits 2-7: actual message type ID (supports 64 types)
                         regular_fields_v3.append(
-                            f"{{{field.number}, {type_and_size}, {{.offset_low = static_cast<uint8_t>({offset} & 0xFF), .message_type_id = static_cast<uint8_t>({message_type_id} | ((({offset} >> 8) & 0x0F) << 4))}}}}"
+                            f"{{{field.number}, {type_and_size}, {{.offset_low = static_cast<uint8_t>({offset} & 0xFF), .message_type_id = static_cast<uint8_t>((({offset} >> 8) & 0x03) | ({message_type_id} << 2))}}}}"
                         )
                     else:
                         # Non-message types use full offset
