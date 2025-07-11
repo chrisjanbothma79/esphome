@@ -1334,8 +1334,6 @@ def build_message_type(
         public_content.append(
             f"static constexpr size_t FIELD_COUNT = {len(regular_fields)};"
         )
-    else:
-        public_content.append("static constexpr size_t FIELD_COUNT = 0;")
 
     if repeated_fields:
         public_content.append(
@@ -1344,34 +1342,27 @@ def build_message_type(
         public_content.append(
             f"static constexpr size_t REPEATED_COUNT = {len(repeated_fields)};"
         )
-    else:
-        public_content.append("static constexpr size_t REPEATED_COUNT = 0;")
 
-    # Add virtual getter methods
-    public_content.append("// Metadata getters")
+    # Add virtual getter methods only when needed
+    # Skip overrides for empty messages since base class already returns correct defaults
+    if regular_fields or repeated_fields:
+        public_content.append("// Metadata getters")
+
     if regular_fields:
         public_content.append(
             "const FieldMeta *get_field_metadata() const override { return FIELDS; }"
         )
-    else:
         public_content.append(
-            "const FieldMeta *get_field_metadata() const override { return nullptr; }"
+            "size_t get_field_count() const override { return FIELD_COUNT; }"
         )
-    public_content.append(
-        "size_t get_field_count() const override { return FIELD_COUNT; }"
-    )
 
     if repeated_fields:
         public_content.append(
             "const RepeatedFieldMeta *get_repeated_field_metadata() const override { return REPEATED_FIELDS; }"
         )
-    else:
         public_content.append(
-            "const RepeatedFieldMeta *get_repeated_field_metadata() const override { return nullptr; }"
+            "size_t get_repeated_field_count() const override { return REPEATED_COUNT; }"
         )
-    public_content.append(
-        "size_t get_repeated_field_count() const override { return REPEATED_COUNT; }"
-    )
 
     # dump_to method declaration in header
     prot = "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
