@@ -1452,14 +1452,10 @@ HelloResponse APIConnection::hello(const HelloRequest &msg) {
   resp.name = App.get_name();
 
 #ifdef USE_API_PASSWORD
-  if (!this->parent_->uses_password()) {
-    // Auto-authenticate if no password is required
-    this->complete_authentication_();
-  } else {
-    this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::CONNECTED);
-  }
+  // Password required - wait for authentication
+  this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::CONNECTED);
 #else
-  // No password support - always auto-authenticate
+  // No password configured - auto-authenticate
   this->complete_authentication_();
 #endif
 
@@ -1483,7 +1479,7 @@ ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
 DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
   DeviceInfoResponse resp{};
 #ifdef USE_API_PASSWORD
-  resp.uses_password = this->parent_->uses_password();
+  resp.uses_password = true;
 #else
   resp.uses_password = false;
 #endif
