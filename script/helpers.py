@@ -661,8 +661,6 @@ def should_run_clang_tidy(branch: str | None = None) -> bool:
     """
     # First check if clang-tidy configuration changed (full scan needed)
     try:
-        import subprocess
-
         result = subprocess.run(
             [os.path.join(root_path, "script", "clang_tidy_hash.py"), "--check"],
             capture_output=True,
@@ -675,15 +673,7 @@ def should_run_clang_tidy(branch: str | None = None) -> bool:
         # If hash check fails, run clang-tidy to be safe
         return True
 
-    # Check if any C++ files changed
-    files = changed_files(branch)
-
-    # Check if any C++ source files changed
-    for file in files:
-        if file.endswith(CPP_FILE_EXTENSIONS):
-            return True
-
-    return False
+    return _any_changed_file_endswith(branch, CPP_FILE_EXTENSIONS)
 
 
 def should_run_clang_format(branch: str | None = None) -> bool:
@@ -700,14 +690,7 @@ def should_run_clang_format(branch: str | None = None) -> bool:
     Returns:
         True if clang-format should run, False otherwise.
     """
-    files = changed_files(branch)
-
-    # Check if any C++ source files changed
-    for file in files:
-        if file.endswith(CPP_FILE_EXTENSIONS):
-            return True
-
-    return False
+    return _any_changed_file_endswith(branch, CPP_FILE_EXTENSIONS)
 
 
 def should_run_python_linters(branch: str | None = None) -> bool:

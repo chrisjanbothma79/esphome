@@ -7,6 +7,9 @@ what files have changed. It outputs JSON with the following structure:
 {
   "integration_tests": true/false,
   "clang_tidy": true/false,
+  "clang_format": true/false,
+  "python_linters": true/false,
+  "yamllint": true/false,
   "changed_components": ["component1", "component2", ...],
   "component_test_count": 5
 }
@@ -14,6 +17,9 @@ what files have changed. It outputs JSON with the following structure:
 The CI workflow uses this information to:
 - Skip or run integration tests
 - Skip or run clang-tidy (and whether to do a full scan)
+- Skip or run clang-format
+- Skip or run Python linters (ruff, flake8, pylint, pyupgrade)
+- Skip or run yamllint
 - Determine which components to test individually
 - Decide how to split component tests (if there are many)
 
