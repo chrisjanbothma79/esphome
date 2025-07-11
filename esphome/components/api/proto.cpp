@@ -374,16 +374,7 @@ static bool decode_length_field(ProtoFieldType type, void *field_addr, const Pro
   }
 }
 
-// ============================================================================
-// ProtoMessage Implementation - Simplified with Unified Helpers
-// ============================================================================
-
 void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
-  if (buffer == nullptr && length > 0) {
-    ESP_LOGW(TAG, "decode called with nullptr buffer but length=%zu", length);
-    return;
-  }
-
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
   // Get metadata
