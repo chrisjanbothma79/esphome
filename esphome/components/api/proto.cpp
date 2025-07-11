@@ -19,10 +19,6 @@ std::string ProtoMessage::dump() const {
 }
 #endif
 
-// ============================================================================
-// Unified Field Operations - Single Implementation for Both Regular and Repeated
-// ============================================================================
-
 // Helper to get vector size for any repeated field type
 static inline size_t get_vector_size(ProtoFieldType type, const void *field_addr) {
   switch (type) {
