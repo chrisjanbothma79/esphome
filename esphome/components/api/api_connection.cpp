@@ -1418,6 +1418,24 @@ bool APIConnection::try_send_log_message(int level, const char *tag, const char 
   return this->send_buffer(buffer, SubscribeLogsResponse::MESSAGE_TYPE);
 }
 
+void APIConnection::complete_authentication_() {
+  // Early return if already authenticated
+  if (this->flags_.connection_state == static_cast<uint8_t>(ConnectionState::AUTHENTICATED)) {
+    return;
+  }
+
+  this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::AUTHENTICATED);
+  ESP_LOGD(TAG, "%s connected (no password)", this->get_client_combined_info().c_str());
+#ifdef USE_API_CLIENT_CONNECTED_TRIGGER
+  this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->client_peername_);
+#endif
+#ifdef USE_HOMEASSISTANT_TIME
+  if (homeassistant::global_homeassistant_time != nullptr) {
+    this->send_time_request();
+  }
+#endif
+}
+
 HelloResponse APIConnection::hello(const HelloRequest &msg) {
   this->client_info_ = msg.client_info;
   this->client_peername_ = this->helper_->getpeername();
@@ -1433,26 +1451,17 @@ HelloResponse APIConnection::hello(const HelloRequest &msg) {
   resp.server_info = App.get_name() + " (esphome v" ESPHOME_VERSION ")";
   resp.name = App.get_name();
 
-  bool needs_auth = false;
 #ifdef USE_API_PASSWORD
-  needs_auth = this->parent_->uses_password();
-#endif
-
-  if (!needs_auth) {
+  if (!this->parent_->uses_password()) {
     // Auto-authenticate if no password is required
-    this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::AUTHENTICATED);
-    ESP_LOGD(TAG, "%s connected (no password)", this->get_client_combined_info().c_str());
-#ifdef USE_API_CLIENT_CONNECTED_TRIGGER
-    this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->client_peername_);
-#endif
-#ifdef USE_HOMEASSISTANT_TIME
-    if (homeassistant::global_homeassistant_time != nullptr) {
-      this->send_time_request();
-    }
-#endif
+    this->complete_authentication_();
   } else {
     this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::CONNECTED);
   }
+#else
+  // No password support - always auto-authenticate
+  this->complete_authentication_();
+#endif
 
   return resp;
 }
@@ -1467,22 +1476,7 @@ ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
   resp.invalid_password = !correct;
   if (correct) {
     ESP_LOGD(TAG, "%s connected", this->get_client_combined_info().c_str());
-
-    // Check if we're already authenticated (e.g., from auto-auth during hello)
-    bool was_authenticated = this->flags_.connection_state == static_cast<uint8_t>(ConnectionState::AUTHENTICATED);
-    this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::AUTHENTICATED);
-
-    // Only trigger events if we weren't already authenticated
-    if (!was_authenticated) {
-#ifdef USE_API_CLIENT_CONNECTED_TRIGGER
-      this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->client_peername_);
-#endif
-#ifdef USE_HOMEASSISTANT_TIME
-      if (homeassistant::global_homeassistant_time != nullptr) {
-        this->send_time_request();
-      }
-#endif
-    }
+    this->complete_authentication_();
   }
   return resp;
 }
