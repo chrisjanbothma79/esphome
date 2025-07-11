@@ -40,7 +40,7 @@ enum class ProtoFieldType : uint8_t {
 };
 
 // Helper to get wire type from field type
-constexpr uint8_t get_wire_type(ProtoFieldType type) {
+inline constexpr uint8_t get_wire_type(ProtoFieldType type) {
   switch (type) {
     case ProtoFieldType::TYPE_BOOL:
     case ProtoFieldType::TYPE_INT32:
@@ -113,20 +113,20 @@ class ProtoVarInt {
     return {};  // Incomplete or invalid varint
   }
 
-  uint16_t as_uint16() const { return this->value_; }
-  uint32_t as_uint32() const { return this->value_; }
-  uint64_t as_uint64() const { return this->value_; }
-  bool as_bool() const { return this->value_; }
-  template<typename T> T as_enum() const { return static_cast<T>(this->as_uint32()); }
-  int32_t as_int32() const {
+  inline uint16_t as_uint16() const { return this->value_; }
+  inline uint32_t as_uint32() const { return this->value_; }
+  inline uint64_t as_uint64() const { return this->value_; }
+  inline bool as_bool() const { return this->value_; }
+  template<typename T> inline T as_enum() const { return static_cast<T>(this->as_uint32()); }
+  inline int32_t as_int32() const {
     // Not ZigZag encoded
     return static_cast<int32_t>(this->as_int64());
   }
-  int64_t as_int64() const {
+  inline int64_t as_int64() const {
     // Not ZigZag encoded
     return static_cast<int64_t>(this->value_);
   }
-  int32_t as_sint32() const {
+  inline int32_t as_sint32() const {
     // with ZigZag encoding
     if (this->value_ & 1) {
       return static_cast<int32_t>(~(this->value_ >> 1));
@@ -134,7 +134,7 @@ class ProtoVarInt {
       return static_cast<int32_t>(this->value_ >> 1);
     }
   }
-  int64_t as_sint64() const {
+  inline int64_t as_sint64() const {
     // with ZigZag encoding
     if (this->value_ & 1) {
       return static_cast<int64_t>(~(this->value_ >> 1));
@@ -194,8 +194,10 @@ class ProtoVarInt {
 class ProtoLengthDelimited {
  public:
   explicit ProtoLengthDelimited(const uint8_t *value, size_t length) : value_(value), length_(length) {}
-  std::string as_string() const { return std::string(reinterpret_cast<const char *>(this->value_), this->length_); }
-  template<class C> C as_message() const {
+  inline std::string as_string() const {
+    return std::string(reinterpret_cast<const char *>(this->value_), this->length_);
+  }
+  template<class C> inline C as_message() const {
     auto msg = C();
     msg.decode(this->value_, this->length_);
     return msg;
@@ -209,9 +211,9 @@ class ProtoLengthDelimited {
 class Proto32Bit {
  public:
   explicit Proto32Bit(uint32_t value) : value_(value) {}
-  uint32_t as_fixed32() const { return this->value_; }
-  int32_t as_sfixed32() const { return static_cast<int32_t>(this->value_); }
-  float as_float() const {
+  inline uint32_t as_fixed32() const { return this->value_; }
+  inline int32_t as_sfixed32() const { return static_cast<int32_t>(this->value_); }
+  inline float as_float() const {
     union {
       uint32_t raw;
       float value;
@@ -267,9 +269,9 @@ struct FieldMeta {
   };
 
   // Helper methods
-  ProtoFieldType get_type() const { return static_cast<ProtoFieldType>(type_and_size & 0x1F); }
-  uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
-  uint8_t get_wire_type() const {
+  inline ProtoFieldType get_type() const { return static_cast<ProtoFieldType>(type_and_size & 0x1F); }
+  inline uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
+  inline uint8_t get_wire_type() const {
     // Wire type is encoded as: 0=varint, 2=length-delimited, 5=32-bit
     // We only need 1 bit to distinguish between 0/2 and 5 (32-bit)
     // If bit 7 is set, it's wire type 5, otherwise check the field type
@@ -279,7 +281,7 @@ struct FieldMeta {
     ProtoFieldType t = get_type();
     return (t >= ProtoFieldType::TYPE_STRING) ? 2 : 0;  // length-delimited : varint
   }
-  uint16_t get_offset() const {
+  inline uint16_t get_offset() const {
     if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
       // Reconstruct full offset from packed fields (10-bit offset)
       // Bits 0-7 from offset_low, bits 8-9 from lower 2 bits of message_type_id
@@ -287,7 +289,7 @@ struct FieldMeta {
     }
     return offset;
   }
-  uint8_t get_message_type_id() const { return message_type_id >> 2; }  // Upper 6 bits for type ID (0-63)
+  inline uint8_t get_message_type_id() const { return message_type_id >> 2; }  // Upper 6 bits for type ID (0-63)
 };
 
 // Optimized repeated field metadata (4 bytes - no padding on 32-bit architectures)
@@ -303,9 +305,9 @@ struct RepeatedFieldMeta {
   };
 
   // Helper methods
-  ProtoFieldType get_type() const { return static_cast<ProtoFieldType>(type_and_size & 0x1F); }
-  uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
-  uint8_t get_wire_type() const {
+  inline ProtoFieldType get_type() const { return static_cast<ProtoFieldType>(type_and_size & 0x1F); }
+  inline uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
+  inline uint8_t get_wire_type() const {
     // Wire type is encoded as: 0=varint, 2=length-delimited, 5=32-bit
     // We only need 1 bit to distinguish between 0/2 and 5 (32-bit)
     // If bit 7 is set, it's wire type 5, otherwise check the field type
@@ -315,7 +317,7 @@ struct RepeatedFieldMeta {
     ProtoFieldType t = get_type();
     return (t >= ProtoFieldType::TYPE_STRING) ? 2 : 0;  // length-delimited : varint
   }
-  uint16_t get_offset() const {
+  inline uint16_t get_offset() const {
     if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
       // Reconstruct full offset from packed fields (10-bit offset)
       // Bits 0-7 from offset_low, bits 8-9 from lower 2 bits of message_type_id
@@ -323,7 +325,7 @@ struct RepeatedFieldMeta {
     }
     return offset;
   }
-  uint8_t get_message_type_id() const { return message_type_id >> 2; }  // Upper 6 bits for type ID (0-63)
+  inline uint8_t get_message_type_id() const { return message_type_id >> 2; }  // Upper 6 bits for type ID (0-63)
 };
 
 // Binary search for field lookup - optimized for performance
@@ -371,9 +373,9 @@ inline const FieldMeta *find_field_binary(const FieldMeta *fields, uint8_t count
 class ProtoWriteBuffer {
  public:
   ProtoWriteBuffer(std::vector<uint8_t> *buffer) : buffer_(buffer) {}
-  void write(uint8_t value) { this->buffer_->push_back(value); }
-  void encode_varint_raw(ProtoVarInt value) { value.encode(*this->buffer_); }
-  void encode_varint_raw(uint32_t value) { this->encode_varint_raw(ProtoVarInt(value)); }
+  inline void write(uint8_t value) { this->buffer_->push_back(value); }
+  inline void encode_varint_raw(ProtoVarInt value) { value.encode(*this->buffer_); }
+  inline void encode_varint_raw(uint32_t value) { this->encode_varint_raw(ProtoVarInt(value)); }
   /**
    * Encode a field key (tag/wire type combination).
    *
@@ -386,11 +388,11 @@ class ProtoWriteBuffer {
    *
    * Following https://protobuf.dev/programming-guides/encoding/#structure
    */
-  void encode_field_raw(uint32_t field_id, uint32_t type) {
+  inline void encode_field_raw(uint32_t field_id, uint32_t type) {
     uint32_t val = (field_id << 3) | (type & 0b111);
     this->encode_varint_raw(val);
   }
-  void encode_string(uint32_t field_id, const char *string, size_t len, bool force = false) {
+  inline void encode_string(uint32_t field_id, const char *string, size_t len, bool force = false) {
     if (len == 0 && !force)
       return;
 
@@ -399,25 +401,25 @@ class ProtoWriteBuffer {
     auto *data = reinterpret_cast<const uint8_t *>(string);
     this->buffer_->insert(this->buffer_->end(), data, data + len);
   }
-  void encode_string(uint32_t field_id, const std::string &value, bool force = false) {
+  inline void encode_string(uint32_t field_id, const std::string &value, bool force = false) {
     this->encode_string(field_id, value.data(), value.size(), force);
   }
-  void encode_bytes(uint32_t field_id, const uint8_t *data, size_t len, bool force = false) {
+  inline void encode_bytes(uint32_t field_id, const uint8_t *data, size_t len, bool force = false) {
     this->encode_string(field_id, reinterpret_cast<const char *>(data), len, force);
   }
-  void encode_uint32(uint32_t field_id, uint32_t value, bool force = false) {
+  inline void encode_uint32(uint32_t field_id, uint32_t value, bool force = false) {
     if (value == 0 && !force)
       return;
     this->encode_field_raw(field_id, 0);  // type 0: Varint - uint32
     this->encode_varint_raw(value);
   }
-  void encode_uint64(uint32_t field_id, uint64_t value, bool force = false) {
+  inline void encode_uint64(uint32_t field_id, uint64_t value, bool force = false) {
     if (value == 0 && !force)
       return;
     this->encode_field_raw(field_id, 0);  // type 0: Varint - uint64
     this->encode_varint_raw(ProtoVarInt(value));
   }
-  void encode_bool(uint32_t field_id, bool value, bool force = false) {
+  inline void encode_bool(uint32_t field_id, bool value, bool force = false) {
     if (!value && !force)
       return;
     this->encode_field_raw(field_id, 0);  // type 0: Varint - bool
@@ -428,15 +430,15 @@ class ProtoWriteBuffer {
       return;
 
     this->encode_field_raw(field_id, 5);  // type 5: 32-bit fixed32
-    this->write((value >> 0) & 0xFF);
-    this->write((value >> 8) & 0xFF);
-    this->write((value >> 16) & 0xFF);
-    this->write((value >> 24) & 0xFF);
+    // Reserve space and write all 4 bytes at once for better performance
+    size_t pos = this->buffer_->size();
+    this->buffer_->resize(pos + 4);
+    (*this->buffer_)[pos] = (value >> 0) & 0xFF;
+    (*this->buffer_)[pos + 1] = (value >> 8) & 0xFF;
+    (*this->buffer_)[pos + 2] = (value >> 16) & 0xFF;
+    (*this->buffer_)[pos + 3] = (value >> 24) & 0xFF;
   }
-  template<typename T> void encode_enum(uint32_t field_id, T value, bool force = false) {
-    this->encode_uint32(field_id, static_cast<uint32_t>(value), force);
-  }
-  void encode_float(uint32_t field_id, float value, bool force = false) {
+  inline void encode_float(uint32_t field_id, float value, bool force = false) {
     if (value == 0.0f && !force)
       return;
 
@@ -447,7 +449,7 @@ class ProtoWriteBuffer {
     val.value = value;
     this->encode_fixed32(field_id, val.raw);
   }
-  void encode_int32(uint32_t field_id, int32_t value, bool force = false) {
+  inline void encode_int32(uint32_t field_id, int32_t value, bool force = false) {
     if (value < 0) {
       // negative int32 is always 10 byte long
       this->encode_int64(field_id, value, force);
@@ -455,10 +457,10 @@ class ProtoWriteBuffer {
     }
     this->encode_uint32(field_id, static_cast<uint32_t>(value), force);
   }
-  void encode_int64(uint32_t field_id, int64_t value, bool force = false) {
+  inline void encode_int64(uint32_t field_id, int64_t value, bool force = false) {
     this->encode_uint64(field_id, static_cast<uint64_t>(value), force);
   }
-  void encode_sint32(uint32_t field_id, int32_t value, bool force = false) {
+  inline void encode_sint32(uint32_t field_id, int32_t value, bool force = false) {
     uint32_t uvalue;
     if (value < 0) {
       uvalue = ~(value << 1);
@@ -467,7 +469,7 @@ class ProtoWriteBuffer {
     }
     this->encode_uint32(field_id, uvalue, force);
   }
-  void encode_sint64(uint32_t field_id, int64_t value, bool force = false) {
+  inline void encode_sint64(uint32_t field_id, int64_t value, bool force = false) {
     uint64_t uvalue;
     if (value < 0) {
       uvalue = ~(value << 1);
@@ -476,7 +478,7 @@ class ProtoWriteBuffer {
     }
     this->encode_uint64(field_id, uvalue, force);
   }
-  void encode_sfixed32(uint32_t field_id, int32_t value, bool force = false) {
+  inline void encode_sfixed32(uint32_t field_id, int32_t value, bool force = false) {
     if (!force && value == 0)
       return;
     this->encode_fixed32(field_id, static_cast<uint32_t>(value), force);

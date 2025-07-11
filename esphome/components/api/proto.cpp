@@ -24,7 +24,7 @@ std::string ProtoMessage::dump() const {
 // ============================================================================
 
 // Helper to get vector size for any repeated field type
-static size_t get_vector_size(ProtoFieldType type, const void *field_addr) {
+static inline size_t get_vector_size(ProtoFieldType type, const void *field_addr) {
   switch (type) {
     case ProtoFieldType::TYPE_BOOL:
       return static_cast<const std::vector<bool> *>(field_addr)->size();
@@ -52,7 +52,7 @@ static size_t get_vector_size(ProtoFieldType type, const void *field_addr) {
 }
 
 // Helper to get a pointer to the nth element in a vector (const version)
-static const void *get_vector_element(ProtoFieldType type, const void *field_addr, size_t index) {
+static inline const void *get_vector_element(ProtoFieldType type, const void *field_addr, size_t index) {
   switch (type) {
     case ProtoFieldType::TYPE_BOOL: {
       // std::vector<bool> is special - we need to handle it differently
@@ -84,8 +84,8 @@ static const void *get_vector_element(ProtoFieldType type, const void *field_add
 }
 
 // Unified encode function that works for both single fields and repeated fields
-static void encode_field(ProtoWriteBuffer &buffer, ProtoFieldType type, uint8_t field_num, const void *field_addr,
-                         bool force) {
+static inline void encode_field(ProtoWriteBuffer &buffer, ProtoFieldType type, uint8_t field_num,
+                                const void *field_addr, bool force) {
   switch (type) {
     case ProtoFieldType::TYPE_BOOL:
       buffer.encode_bool(field_num, *static_cast<const bool *>(field_addr), force);
@@ -132,8 +132,8 @@ static void encode_field(ProtoWriteBuffer &buffer, ProtoFieldType type, uint8_t 
 }
 
 // Unified size calculation
-static void calculate_field_size(uint32_t &total_size, ProtoFieldType type, uint8_t precalc_size,
-                                 const void *field_addr, bool force) {
+static inline void calculate_field_size(uint32_t &total_size, ProtoFieldType type, uint8_t precalc_size,
+                                        const void *field_addr, bool force) {
   switch (type) {
     case ProtoFieldType::TYPE_BOOL:
       ProtoSize::add_bool_field(total_size, precalc_size, *static_cast<const bool *>(field_addr), force);
@@ -176,7 +176,7 @@ static void calculate_field_size(uint32_t &total_size, ProtoFieldType type, uint
 }
 
 // Decode varint for single fields
-static bool decode_varint_field(ProtoFieldType type, void *field_addr, const ProtoVarInt &value) {
+static inline bool decode_varint_field(ProtoFieldType type, void *field_addr, const ProtoVarInt &value) {
   switch (type) {
     case ProtoFieldType::TYPE_BOOL:
       *static_cast<bool *>(field_addr) = value.as_bool();
@@ -206,7 +206,7 @@ static bool decode_varint_field(ProtoFieldType type, void *field_addr, const Pro
 }
 
 // Decode varint for repeated fields
-static bool decode_repeated_varint_field(ProtoFieldType type, void *field_addr, const ProtoVarInt &value) {
+static inline bool decode_repeated_varint_field(ProtoFieldType type, void *field_addr, const ProtoVarInt &value) {
   switch (type) {
     case ProtoFieldType::TYPE_BOOL:
       static_cast<std::vector<bool> *>(field_addr)->push_back(value.as_bool());
@@ -236,7 +236,7 @@ static bool decode_repeated_varint_field(ProtoFieldType type, void *field_addr, 
 }
 
 // Decode 32-bit for single fields
-static bool decode_32bit_field(ProtoFieldType type, void *field_addr, const Proto32Bit &value) {
+static inline bool decode_32bit_field(ProtoFieldType type, void *field_addr, const Proto32Bit &value) {
   switch (type) {
     case ProtoFieldType::TYPE_FLOAT:
       *static_cast<float *>(field_addr) = value.as_float();
@@ -253,7 +253,7 @@ static bool decode_32bit_field(ProtoFieldType type, void *field_addr, const Prot
 }
 
 // Decode 32-bit for repeated fields
-static bool decode_repeated_32bit_field(ProtoFieldType type, void *field_addr, const Proto32Bit &value) {
+static inline bool decode_repeated_32bit_field(ProtoFieldType type, void *field_addr, const Proto32Bit &value) {
   switch (type) {
     case ProtoFieldType::TYPE_FLOAT:
       static_cast<std::vector<float> *>(field_addr)->push_back(value.as_float());
@@ -270,8 +270,8 @@ static bool decode_repeated_32bit_field(ProtoFieldType type, void *field_addr, c
 }
 
 // Decode length-delimited for single fields
-static bool decode_length_field(ProtoFieldType type, void *field_addr, const ProtoLengthDelimited &value,
-                                uint8_t message_type_id) {
+static inline bool decode_length_field(ProtoFieldType type, void *field_addr, const ProtoLengthDelimited &value,
+                                       uint8_t message_type_id) {
   switch (type) {
     case ProtoFieldType::TYPE_STRING:
     case ProtoFieldType::TYPE_BYTES:
@@ -288,8 +288,8 @@ static bool decode_length_field(ProtoFieldType type, void *field_addr, const Pro
 }
 
 // Decode length-delimited for repeated fields
-static bool decode_repeated_length_field(ProtoFieldType type, void *field_addr, const ProtoLengthDelimited &value,
-                                         uint8_t message_type_id) {
+static inline bool decode_repeated_length_field(ProtoFieldType type, void *field_addr,
+                                                const ProtoLengthDelimited &value, uint8_t message_type_id) {
   switch (type) {
     case ProtoFieldType::TYPE_STRING:
     case ProtoFieldType::TYPE_BYTES:
@@ -486,8 +486,13 @@ void ProtoMessage::encode(ProtoWriteBuffer buffer) const {
         REPEATED_MESSAGE_HANDLERS[handler_id].encode(buffer, field_addr, repeated_fields[i].field_num);
       }
     } else {
-      // Iterate through the vector and encode each element using the same function!
+      // Early exit for empty vectors
       size_t count = get_vector_size(repeated_fields[i].get_type(), field_addr);
+      if (count == 0) {
+        continue;
+      }
+
+      // Iterate through the vector and encode each element using the same function!
       for (size_t j = 0; j < count; j++) {
         const void *element = get_vector_element(repeated_fields[i].get_type(), field_addr, j);
         if (element != nullptr) {
@@ -535,10 +540,18 @@ void ProtoMessage::calculate_size(uint32_t &total_size) const {
       ProtoFieldType type = repeated_fields[i].get_type();
       size_t count = get_vector_size(type, field_addr);
 
+      // Early exit for empty vectors
+      if (count == 0) {
+        continue;
+      }
+
       // For fixed-size types, we can calculate size more efficiently
       if (type == ProtoFieldType::TYPE_FIXED32 || type == ProtoFieldType::TYPE_SFIXED32 ||
           type == ProtoFieldType::TYPE_FLOAT) {
         total_size += count * (repeated_fields[i].get_precalced_size() + 4);
+      } else if (type == ProtoFieldType::TYPE_BOOL) {
+        // Booleans are always 1 byte when encoded
+        total_size += count * (repeated_fields[i].get_precalced_size() + 1);
       } else {
         // For variable-size types, calculate each element
         for (size_t j = 0; j < count; j++) {
