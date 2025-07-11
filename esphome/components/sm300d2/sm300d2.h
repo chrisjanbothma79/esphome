@@ -9,10 +9,12 @@ namespace sm300d2 {
 
 class SM300D2Sensor : public PollingComponent, public uart::UARTDevice {
  public:
+
   float get_setup_priority() const override { return setup_priority::DATA; }
 
   void set_addr_sensor(sensor::Sensor *addr_sensor) { addr_sensor_ = addr_sensor; }
   void set_function_sensor(sensor::Sensor *function_sensor) { function_sensor_ = function_sensor; }
+
   void set_co2_sensor(sensor::Sensor *co2_sensor) { co2_sensor_ = co2_sensor; }
   void set_formaldehyde_sensor(sensor::Sensor *formaldehyde_sensor) { formaldehyde_sensor_ = formaldehyde_sensor; }
   void set_tvoc_sensor(sensor::Sensor *tvoc_sensor) { tvoc_sensor_ = tvoc_sensor; }
