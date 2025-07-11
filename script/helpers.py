@@ -26,6 +26,9 @@ PYTHON_FILE_EXTENSIONS = (".py", ".pyi")
 # YAML file extensions
 YAML_FILE_EXTENSIONS = (".yaml", ".yml")
 
+# Component path prefix
+ESPHOME_COMPONENTS_PATH = "esphome/components/"
+
 
 def parse_list_components_output(output: str) -> list[str]:
     """Parse the output from list-components.py script.
@@ -276,7 +279,9 @@ def _filter_changed_ci(files: list[str]) -> list[str]:
         # Action: Check only the specific non-component files that changed
         changed = changed_files()
         files = [
-            f for f in files if f in changed and not f.startswith("esphome/components/")
+            f
+            for f in files
+            if f in changed and not f.startswith(ESPHOME_COMPONENTS_PATH)
         ]
         if not files:
             print("No files changed")
@@ -294,7 +299,7 @@ def _filter_changed_ci(files: list[str]) -> list[str]:
     # because changes in one file can affect other files in the same component.
     filtered_files = []
     for f in files:
-        if f.startswith("esphome/components/"):
+        if f.startswith(ESPHOME_COMPONENTS_PATH):
             # Check if file belongs to any of the changed components
             parts = f.split("/")
             if len(parts) >= 3 and parts[2] in component_set:
@@ -598,7 +603,7 @@ def should_run_integration_tests(branch: str | None = None) -> bool:
 
     # Check if any Python files directly in esphome/ changed (not in subdirs)
     for file in files:
-        if file.startswith("esphome/") and file.endswith(".py"):
+        if file.startswith("esphome/") and file.endswith(PYTHON_FILE_EXTENSIONS):
             # Check if it's directly in esphome/ (no additional slashes after esphome/)
             if file.count("/") == 1:
                 return True
@@ -613,7 +618,7 @@ def should_run_integration_tests(branch: str | None = None) -> bool:
 
     # Check if any required components changed
     for file in files:
-        if file.startswith("esphome/components/"):
+        if file.startswith(ESPHOME_COMPONENTS_PATH):
             parts = file.split("/")
             if len(parts) >= 3:
                 component = parts[2]
@@ -719,14 +724,7 @@ def should_run_python_linters(branch: str | None = None) -> bool:
     Returns:
         True if Python linters should run, False otherwise.
     """
-    files = changed_files(branch)
-
-    # Check if any Python source files changed
-    for file in files:
-        if file.endswith(PYTHON_FILE_EXTENSIONS):
-            return True
-
-    return False
+    return _any_changed_file_endswith(branch, PYTHON_FILE_EXTENSIONS)
 
 
 def should_run_yamllint(branch: str | None = None) -> bool:
@@ -743,11 +741,9 @@ def should_run_yamllint(branch: str | None = None) -> bool:
     Returns:
         True if yamllint should run, False otherwise.
     """
-    files = changed_files(branch)
+    return _any_changed_file_endswith(branch, YAML_FILE_EXTENSIONS)
 
-    # Check if any YAML files changed
-    for file in files:
-        if file.endswith(YAML_FILE_EXTENSIONS):
-            return True
 
-    return False
+def _any_changed_file_endswith(branch: str, extensions: tuple[str, ...]) -> bool:
+    """Check if a changed file ends with any of the specified extensions."""
+    return any(file.endswith(extensions) for file in changed_files(branch))
