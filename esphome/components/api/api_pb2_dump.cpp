@@ -988,6 +988,11 @@ void CoverCommandRequest::dump_to(std::string &out) const {
   out.append("  stop: ");
   out.append(YESNO(this->stop));
   out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
   out.append("}");
 }
 #endif
@@ -1147,6 +1152,11 @@ void FanCommandRequest::dump_to(std::string &out) const {
 
   out.append("  preset_mode: ");
   out.append("'").append(this->preset_mode).append("'");
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -1421,6 +1431,11 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("  effect: ");
   out.append("'").append(this->effect).append("'");
   out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
   out.append("}");
 }
 #endif
@@ -1587,6 +1602,11 @@ void SwitchCommandRequest::dump_to(std::string &out) const {
 
   out.append("  state: ");
   out.append(YESNO(this->state));
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -1946,6 +1966,11 @@ void CameraImageResponse::dump_to(std::string &out) const {
   out.append("  done: ");
   out.append(YESNO(this->done));
   out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
   out.append("}");
 }
 void CameraImageRequest::dump_to(std::string &out) const {
@@ -2265,6 +2290,11 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
   snprintf(buffer, sizeof(buffer), "%g", this->target_humidity);
   out.append(buffer);
   out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
   out.append("}");
 }
 #endif
@@ -2369,6 +2399,11 @@ void NumberCommandRequest::dump_to(std::string &out) const {
   snprintf(buffer, sizeof(buffer), "%g", this->state);
   out.append(buffer);
   out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
   out.append("}");
 }
 #endif
@@ -2449,6 +2484,11 @@ void SelectCommandRequest::dump_to(std::string &out) const {
 
   out.append("  state: ");
   out.append("'").append(this->state).append("'");
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -2565,6 +2605,11 @@ void SirenCommandRequest::dump_to(std::string &out) const {
   snprintf(buffer, sizeof(buffer), "%g", this->volume);
   out.append(buffer);
   out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
   out.append("}");
 }
 #endif
@@ -2660,6 +2705,11 @@ void LockCommandRequest::dump_to(std::string &out) const {
   out.append("  code: ");
   out.append("'").append(this->code).append("'");
   out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
   out.append("}");
 }
 #endif
@@ -2711,6 +2761,11 @@ void ButtonCommandRequest::dump_to(std::string &out) const {
   out.append("ButtonCommandRequest {\n");
   out.append("  key: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2858,6 +2913,11 @@ void MediaPlayerCommandRequest::dump_to(std::string &out) const {
 
   out.append("  announcement: ");
   out.append(YESNO(this->announcement));
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -3684,6 +3744,11 @@ void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
   out.append("  code: ");
   out.append("'").append(this->code).append("'");
   out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
   out.append("}");
 }
 #endif
@@ -3776,6 +3841,11 @@ void TextCommandRequest::dump_to(std::string &out) const {
 
   out.append("  state: ");
   out.append("'").append(this->state).append("'");
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -3874,6 +3944,11 @@ void DateCommandRequest::dump_to(std::string &out) const {
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->day);
   out.append(buffer);
   out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
   out.append("}");
 }
 #endif
@@ -3969,6 +4044,11 @@ void TimeCommandRequest::dump_to(std::string &out) const {
 
   out.append("  second: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->second);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -4140,6 +4220,11 @@ void ValveCommandRequest::dump_to(std::string &out) const {
   out.append("  stop: ");
   out.append(YESNO(this->stop));
   out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
   out.append("}");
 }
 #endif
@@ -4215,6 +4300,11 @@ void DateTimeCommandRequest::dump_to(std::string &out) const {
 
   out.append("  epoch_seconds: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->epoch_seconds);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -4324,6 +4414,11 @@ void UpdateCommandRequest::dump_to(std::string &out) const {
 
   out.append("  command: ");
   out.append(proto_enum_to_string<enums::UpdateCommand>(this->command));
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
