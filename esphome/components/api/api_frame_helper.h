@@ -30,13 +30,14 @@ struct ReadPacketBuffer {
 
 // Packed packet info structure to minimize memory usage
 struct PacketInfo {
-  uint16_t message_type;  // 2 bytes
+  uint8_t message_type;   // 1 byte (max 255 message types)
+  uint8_t padding1;       // 1 byte (for alignment)
   uint16_t offset;        // 2 bytes (sufficient for packet size ~1460 bytes)
   uint16_t payload_size;  // 2 bytes (up to 65535 bytes)
-  uint16_t padding;       // 2 byte (for alignment)
+  uint16_t padding2;      // 2 bytes (for alignment to 8 bytes)
 
-  PacketInfo(uint16_t type, uint16_t off, uint16_t size)
-      : message_type(type), offset(off), payload_size(size), padding(0) {}
+  PacketInfo(uint8_t type, uint16_t off, uint16_t size)
+      : message_type(type), padding1(0), offset(off), payload_size(size), padding2(0) {}
 };
 
 enum class APIError : uint16_t {
@@ -98,7 +99,7 @@ class APIFrameHelper {
   }
   // Give this helper a name for logging
   void set_log_info(std::string info) { info_ = std::move(info); }
-  virtual APIError write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) = 0;
+  virtual APIError write_protobuf_packet(uint8_t type, ProtoWriteBuffer buffer) = 0;
   // Write multiple protobuf packets in a single operation
   // packets contains (message_type, offset, length) for each message in the buffer
   // The buffer contains all messages with appropriate padding before each
@@ -197,7 +198,7 @@ class APINoiseFrameHelper : public APIFrameHelper {
   APIError init() override;
   APIError loop() override;
   APIError read_packet(ReadPacketBuffer *buffer) override;
-  APIError write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) override;
+  APIError write_protobuf_packet(uint8_t type, ProtoWriteBuffer buffer) override;
   APIError write_protobuf_packets(ProtoWriteBuffer buffer, std::span<const PacketInfo> packets) override;
   // Get the frame header padding required by this protocol
   uint8_t frame_header_padding() override { return frame_header_padding_; }
@@ -251,7 +252,7 @@ class APIPlaintextFrameHelper : public APIFrameHelper {
   APIError init() override;
   APIError loop() override;
   APIError read_packet(ReadPacketBuffer *buffer) override;
-  APIError write_protobuf_packet(uint16_t type, ProtoWriteBuffer buffer) override;
+  APIError write_protobuf_packet(uint8_t type, ProtoWriteBuffer buffer) override;
   APIError write_protobuf_packets(ProtoWriteBuffer buffer, std::span<const PacketInfo> packets) override;
   uint8_t frame_header_padding() override { return frame_header_padding_; }
   // Get the frame footer size required by this protocol
