@@ -34,19 +34,199 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 from typing import Any
 
 from helpers import (
+    CPP_FILE_EXTENSIONS,
+    ESPHOME_COMPONENTS_PATH,
+    PYTHON_FILE_EXTENSIONS,
+    YAML_FILE_EXTENSIONS,
+    changed_files,
+    get_all_dependencies,
+    get_components_from_integration_fixtures,
     parse_list_components_output,
-    should_run_clang_format,
-    should_run_clang_tidy,
-    should_run_integration_tests,
-    should_run_python_linters,
-    should_run_yamllint,
+    root_path,
 )
+
+
+def should_run_integration_tests(branch: str | None = None) -> bool:
+    """Determine if integration tests should run based on changed files.
+
+    This function is used by the CI workflow to intelligently skip integration tests when they're
+    not needed, saving significant CI time and resources.
+
+    Integration tests will run when ANY of the following conditions are met:
+
+    1. Core C++ files changed (esphome/core/*)
+       - Any .cpp, .h, .tcc files in the core directory
+       - These files contain fundamental functionality used throughout ESPHome
+       - Examples: esphome/core/component.cpp, esphome/core/application.h
+
+    2. Python files directly in esphome/ directory changed
+       - Only .py files directly in esphome/ (not in subdirectories)
+       - These are core Python files that affect the entire system
+       - Examples: esphome/config.py, esphome/core.py, esphome/__init__.py
+       - NOT included: esphome/dashboard/*.py, esphome/components/*/*.py
+
+    3. Integration test files changed
+       - Any file in tests/integration/ directory
+       - This includes test files themselves and fixture YAML files
+       - Examples: tests/integration/test_api.py, tests/integration/fixtures/api.yaml
+
+    4. Components used by integration tests (or their dependencies) changed
+       - The function parses all YAML files in tests/integration/fixtures/
+       - Extracts which components are used in integration tests
+       - Recursively finds all dependencies of those components
+       - If any of these components have changes, tests must run
+       - Example: If api.yaml uses 'sensor' and 'api' components, and 'api' depends on 'socket',
+         then changes to sensor/, api/, or socket/ components trigger tests
+
+    Args:
+        branch: Branch to compare against. If None, uses default.
+
+    Returns:
+        True if integration tests should run, False otherwise.
+    """
+    files = changed_files(branch)
+
+    # Check if any core files changed (esphome/core/*)
+    for file in files:
+        if file.startswith("esphome/core/"):
+            return True
+
+    # Check if any Python files directly in esphome/ changed (not in subdirs)
+    for file in files:
+        if file.startswith("esphome/") and file.endswith(PYTHON_FILE_EXTENSIONS):
+            # Check if it's directly in esphome/ (no additional slashes after esphome/)
+            if file.count("/") == 1:
+                return True
+
+    # Check if any integration test files changed
+    if any("tests/integration" in file for file in files):
+        return True
+
+    # Get all components used in integration tests and their dependencies
+    fixture_components = get_components_from_integration_fixtures()
+    all_required_components = get_all_dependencies(fixture_components)
+
+    # Check if any required components changed
+    for file in files:
+        if file.startswith(ESPHOME_COMPONENTS_PATH):
+            parts = file.split("/")
+            if len(parts) >= 3:
+                component = parts[2]
+                if component in all_required_components:
+                    return True
+
+    return False
+
+
+def should_run_clang_tidy(branch: str | None = None) -> bool:
+    """Determine if clang-tidy should run based on changed files.
+
+    This function is used by the CI workflow to intelligently skip clang-tidy checks when they're
+    not needed, saving significant CI time and resources.
+
+    Clang-tidy will run when ANY of the following conditions are met:
+
+    1. Clang-tidy configuration changed
+       - The hash of .clang-tidy configuration file has changed
+       - The hash includes the .clang-tidy file, clang-tidy version from requirements_dev.txt,
+         and relevant platformio.ini sections
+       - When configuration changes, a full scan is needed to ensure all code complies
+         with the new rules
+       - Detected by script/clang_tidy_hash.py --check returning exit code 0
+
+    2. Any C++ source files changed
+       - Any file with C++ extensions: .cpp, .h, .hpp, .cc, .cxx, .c, .tcc
+       - Includes files anywhere in the repository, not just in esphome/
+       - This ensures all C++ code is checked, including tests, examples, etc.
+       - Examples: esphome/core/component.cpp, tests/custom/my_component.h
+
+    If the hash check fails for any reason, clang-tidy runs as a safety measure to ensure
+    code quality is maintained.
+
+    Args:
+        branch: Branch to compare against. If None, uses default.
+
+    Returns:
+        True if clang-tidy should run, False otherwise.
+    """
+    # First check if clang-tidy configuration changed (full scan needed)
+    try:
+        result = subprocess.run(
+            [os.path.join(root_path, "script", "clang_tidy_hash.py"), "--check"],
+            capture_output=True,
+            check=False,
+        )
+        # Exit 0 means hash changed (full scan needed)
+        if result.returncode == 0:
+            return True
+    except Exception:
+        # If hash check fails, run clang-tidy to be safe
+        return True
+
+    return _any_changed_file_endswith(branch, CPP_FILE_EXTENSIONS)
+
+
+def should_run_clang_format(branch: str | None = None) -> bool:
+    """Determine if clang-format should run based on changed files.
+
+    This function is used by the CI workflow to skip clang-format checks when no C++ files
+    have changed, saving CI time and resources.
+
+    Clang-format will run when any C++ source files have changed.
+
+    Args:
+        branch: Branch to compare against. If None, uses default.
+
+    Returns:
+        True if clang-format should run, False otherwise.
+    """
+    return _any_changed_file_endswith(branch, CPP_FILE_EXTENSIONS)
+
+
+def should_run_python_linters(branch: str | None = None) -> bool:
+    """Determine if Python linters (ruff, flake8, pylint, pyupgrade) should run based on changed files.
+
+    This function is used by the CI workflow to skip Python linting checks when no Python files
+    have changed, saving CI time and resources.
+
+    Python linters will run when any Python source files have changed.
+
+    Args:
+        branch: Branch to compare against. If None, uses default.
+
+    Returns:
+        True if Python linters should run, False otherwise.
+    """
+    return _any_changed_file_endswith(branch, PYTHON_FILE_EXTENSIONS)
+
+
+def should_run_yamllint(branch: str | None = None) -> bool:
+    """Determine if yamllint should run based on changed files.
+
+    This function is used by the CI workflow to skip yamllint checks when no YAML files
+    have changed, saving CI time and resources.
+
+    Yamllint will run when any YAML files have changed.
+
+    Args:
+        branch: Branch to compare against. If None, uses default.
+
+    Returns:
+        True if yamllint should run, False otherwise.
+    """
+    return _any_changed_file_endswith(branch, YAML_FILE_EXTENSIONS)
+
+
+def _any_changed_file_endswith(branch: str | None, extensions: tuple[str, ...]) -> bool:
+    """Check if a changed file ends with any of the specified extensions."""
+    return any(file.endswith(extensions) for file in changed_files(branch))
 
 
 def main() -> None:
