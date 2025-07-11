@@ -975,7 +975,7 @@ const MessageHandler MESSAGE_HANDLERS[2] = {
     {nullptr, nullptr, nullptr},
 #endif
 };
-const size_t MESSAGE_HANDLER_COUNT = 2;
+const uint8_t MESSAGE_HANDLER_COUNT = 2;
 
 const RepeatedMessageHandler REPEATED_MESSAGE_HANDLERS[13] = {
     {&encode_repeated_message_field<DeviceInfo>, &size_repeated_message_field<DeviceInfo>,
@@ -1041,7 +1041,7 @@ const RepeatedMessageHandler REPEATED_MESSAGE_HANDLERS[13] = {
     {nullptr, nullptr, nullptr},
 #endif
 };
-const size_t REPEATED_MESSAGE_HANDLER_COUNT = 13;
+const uint8_t REPEATED_MESSAGE_HANDLER_COUNT = 13;
 
 }  // namespace api
 }  // namespace esphome

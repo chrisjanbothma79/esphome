@@ -250,9 +250,9 @@ struct RepeatedMessageHandler {
 
 // Global message handler registries (defined in api_pb2.cpp)
 extern const MessageHandler MESSAGE_HANDLERS[];
-extern const size_t MESSAGE_HANDLER_COUNT;
+extern const uint8_t MESSAGE_HANDLER_COUNT;
 extern const RepeatedMessageHandler REPEATED_MESSAGE_HANDLERS[];
-extern const size_t REPEATED_MESSAGE_HANDLER_COUNT;
+extern const uint8_t REPEATED_MESSAGE_HANDLER_COUNT;
 
 // Optimized metadata structure (4 bytes - no padding on 32-bit architectures)
 struct FieldMeta {

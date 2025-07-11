@@ -1973,9 +1973,7 @@ namespace api {
     if cpp.endswith(",\n"):
         cpp = cpp[:-2] + "\n"
     cpp += "};\n"
-    cpp += (
-        f"const size_t MESSAGE_HANDLER_COUNT = {len(type_registry.message_registry)};\n"
-    )
+    cpp += f"const uint8_t MESSAGE_HANDLER_COUNT = {len(type_registry.message_registry)};\n"
 
     # Generate REPEATED_MESSAGE_HANDLERS array with same approach
     repeated_handler_count = (
@@ -2013,7 +2011,7 @@ namespace api {
     if cpp.endswith(",\n"):
         cpp = cpp[:-2] + "\n"
     cpp += "};\n"
-    cpp += f"const size_t REPEATED_MESSAGE_HANDLER_COUNT = {len(type_registry.repeated_registry)};\n"
+    cpp += f"const uint8_t REPEATED_MESSAGE_HANDLER_COUNT = {len(type_registry.repeated_registry)};\n"
 
     cpp += """\
 
