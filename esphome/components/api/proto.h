@@ -311,8 +311,7 @@ struct RepeatedFieldMeta {
 };
 
 // Binary search for field lookup - optimized for performance
-template<typename MetaType>
-inline const MetaType *find_field_binary(const MetaType *fields, uint8_t count, uint8_t field_id, uint8_t wire_type) {
+inline const FieldMeta *find_field_binary(const FieldMeta *fields, uint8_t count, uint8_t field_id, uint8_t wire_type) {
   uint8_t left = 0;
   uint8_t right = count;
 
