@@ -37,11 +37,6 @@ enum class ProtoFieldType : uint8_t {
   TYPE_FLOAT = 11,
   TYPE_FIXED32 = 12,
   TYPE_SFIXED32 = 13,
-
-  // 64-bit types (wire type 1)
-  TYPE_DOUBLE = 14,
-  TYPE_FIXED64 = 15,
-  TYPE_SFIXED64 = 16,
 };
 
 // Helper to get wire type from field type
@@ -66,11 +61,6 @@ constexpr uint8_t get_wire_type(ProtoFieldType type) {
     case ProtoFieldType::TYPE_FIXED32:
     case ProtoFieldType::TYPE_SFIXED32:
       return 5;  // 32-bit
-
-    case ProtoFieldType::TYPE_DOUBLE:
-    case ProtoFieldType::TYPE_FIXED64:
-    case ProtoFieldType::TYPE_SFIXED64:
-      return 1;  // 64-bit
   }
   return 0;
 }
@@ -234,24 +224,6 @@ class Proto32Bit {
   const uint32_t value_;
 };
 
-class Proto64Bit {
- public:
-  explicit Proto64Bit(uint64_t value) : value_(value) {}
-  uint64_t as_fixed64() const { return this->value_; }
-  int64_t as_sfixed64() const { return static_cast<int64_t>(this->value_); }
-  double as_double() const {
-    union {
-      uint64_t raw;
-      double value;
-    } s{};
-    s.raw = this->value_;
-    return s.value;
-  }
-
- protected:
-  const uint64_t value_;
-};
-
 // Function pointer types used by V2 structures
 using EncodeFunc = void (*)(ProtoWriteBuffer &, const void *field_ptr, uint8_t field_num);
 using SizeFunc = void (*)(uint32_t &total_size, const void *field_ptr, uint8_t precalced_field_id_size, bool force);
@@ -307,8 +279,6 @@ struct FieldMeta {
   }
   uint8_t get_message_type_id() const { return message_type_id >> 2; }  // Upper 6 bits for type ID (0-63)
 };
-
-// V2 structures removed - we only use V3 now
 
 class ProtoWriteBuffer {
  public:
@@ -375,20 +345,6 @@ class ProtoWriteBuffer {
     this->write((value >> 16) & 0xFF);
     this->write((value >> 24) & 0xFF);
   }
-  void encode_fixed64(uint32_t field_id, uint64_t value, bool force = false) {
-    if (value == 0 && !force)
-      return;
-
-    this->encode_field_raw(field_id, 1);  // type 1: 64-bit fixed64
-    this->write((value >> 0) & 0xFF);
-    this->write((value >> 8) & 0xFF);
-    this->write((value >> 16) & 0xFF);
-    this->write((value >> 24) & 0xFF);
-    this->write((value >> 32) & 0xFF);
-    this->write((value >> 40) & 0xFF);
-    this->write((value >> 48) & 0xFF);
-    this->write((value >> 56) & 0xFF);
-  }
   template<typename T> void encode_enum(uint32_t field_id, T value, bool force = false) {
     this->encode_uint32(field_id, static_cast<uint32_t>(value), force);
   }
@@ -437,21 +393,6 @@ class ProtoWriteBuffer {
       return;
     this->encode_fixed32(field_id, static_cast<uint32_t>(value), force);
   }
-  void encode_double(uint32_t field_id, double value, bool force = false) {
-    if (!force && value == 0.0)
-      return;
-    union {
-      double value;
-      uint64_t raw;
-    } val{};
-    val.value = value;
-    this->encode_fixed64(field_id, val.raw, force);
-  }
-  void encode_sfixed64(uint32_t field_id, int64_t value, bool force = false) {
-    if (!force && value == 0)
-      return;
-    this->encode_fixed64(field_id, static_cast<uint64_t>(value), force);
-  }
   template<class C> void encode_message(uint32_t field_id, const C &value, bool force = false) {
     this->encode_field_raw(field_id, 2);  // type 2: Length-delimited message
     size_t begin = this->buffer_->size();
@@ -495,8 +436,6 @@ struct RepeatedFieldMeta {
   }
   uint8_t get_message_type_id() const { return message_type_id >> 2; }  // Upper 6 bits for type ID (0-63)
 };
-
-// V2 structures removed - we only use V3 now
 
 class ProtoMessage {
  public:

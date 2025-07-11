@@ -58,6 +58,13 @@ class MessageTypeRegistry:
 type_registry = MessageTypeRegistry()
 
 
+# Unsupported types that ESPHome doesn't use
+UNSUPPORTED_TYPES = {
+    descriptor.FieldDescriptorProto.TYPE_DOUBLE,
+    descriptor.FieldDescriptorProto.TYPE_FIXED64,
+    descriptor.FieldDescriptorProto.TYPE_SFIXED64,
+}
+
 # Mapping from protobuf types to our ProtoFieldType enum
 PROTO_TYPE_MAP = {
     descriptor.FieldDescriptorProto.TYPE_BOOL: "ProtoFieldType::TYPE_BOOL",
@@ -74,9 +81,6 @@ PROTO_TYPE_MAP = {
     descriptor.FieldDescriptorProto.TYPE_FLOAT: "ProtoFieldType::TYPE_FLOAT",
     descriptor.FieldDescriptorProto.TYPE_FIXED32: "ProtoFieldType::TYPE_FIXED32",
     descriptor.FieldDescriptorProto.TYPE_SFIXED32: "ProtoFieldType::TYPE_SFIXED32",
-    descriptor.FieldDescriptorProto.TYPE_DOUBLE: "ProtoFieldType::TYPE_DOUBLE",
-    descriptor.FieldDescriptorProto.TYPE_FIXED64: "ProtoFieldType::TYPE_FIXED64",
-    descriptor.FieldDescriptorProto.TYPE_SFIXED64: "ProtoFieldType::TYPE_SFIXED64",
 }
 
 # Mapping from protobuf types to numeric values (must match proto.h enum)
@@ -95,9 +99,6 @@ PROTO_TYPE_NUM_MAP = {
     descriptor.FieldDescriptorProto.TYPE_FLOAT: 11,
     descriptor.FieldDescriptorProto.TYPE_FIXED32: 12,
     descriptor.FieldDescriptorProto.TYPE_SFIXED32: 13,
-    descriptor.FieldDescriptorProto.TYPE_DOUBLE: 14,
-    descriptor.FieldDescriptorProto.TYPE_FIXED64: 15,
-    descriptor.FieldDescriptorProto.TYPE_SFIXED64: 16,
 }
 
 
@@ -1290,6 +1291,20 @@ def build_message_type(
         public_content.append("#endif")
 
     for field in desc.field:
+        # Check for unsupported types
+        if field.type in UNSUPPORTED_TYPES:
+            raise ValueError(
+                f"Field '{field.name}' in message '{desc.name}' uses unsupported type {field.type}. "
+                f"ESPHome does not support double, fixed64, or sfixed64 types."
+            )
+
+        # Validate field number fits in uint8_t
+        if field.number > 255:
+            raise ValueError(
+                f"Field '{field.name}' in message '{desc.name}' has field number {field.number} "
+                f"which exceeds the maximum of 255 supported by FieldMeta."
+            )
+
         if field.label == 3:
             ti = RepeatedTypeInfo(field)
         else:
@@ -1370,6 +1385,15 @@ def build_message_type(
                         message_type_id = type_registry.get_message_type_id(
                             ti.type_name
                         )
+
+                        # Validate message type ID fits in 6 bits (0-63)
+                        if message_type_id > 63:
+                            raise ValueError(
+                                f"Message field '{field.name}' in '{desc.name}' references message type "
+                                f"'{ti.type_name}' with type ID {message_type_id}, which exceeds the "
+                                f"maximum of 63 supported by FieldMeta."
+                            )
+
                         offset = f"PROTO_FIELD_OFFSET({desc.name}, {ti.field_name})"
 
                         # Since we have so few message types, we can use the upper bits of
