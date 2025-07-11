@@ -1893,7 +1893,7 @@ namespace api {
                 cpp += "};\n"
 
             if repeated_fields:
-                # Sort fields by field number for binary search
+                # Sort fields by field number for consistency (even though using linear search)
                 sorted_fields = sorted(
                     repeated_fields, key=lambda f: int(f.split(",")[0].strip("{"))
                 )
