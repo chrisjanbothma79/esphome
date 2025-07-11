@@ -1467,15 +1467,22 @@ ConnectResponse APIConnection::connect(const ConnectRequest &msg) {
   resp.invalid_password = !correct;
   if (correct) {
     ESP_LOGD(TAG, "%s connected", this->get_client_combined_info().c_str());
+
+    // Check if we're already authenticated (e.g., from auto-auth during hello)
+    bool was_authenticated = this->flags_.connection_state == static_cast<uint8_t>(ConnectionState::AUTHENTICATED);
     this->flags_.connection_state = static_cast<uint8_t>(ConnectionState::AUTHENTICATED);
+
+    // Only trigger events if we weren't already authenticated
+    if (!was_authenticated) {
 #ifdef USE_API_CLIENT_CONNECTED_TRIGGER
-    this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->client_peername_);
+      this->parent_->get_client_connected_trigger()->trigger(this->client_info_, this->client_peername_);
 #endif
 #ifdef USE_HOMEASSISTANT_TIME
-    if (homeassistant::global_homeassistant_time != nullptr) {
-      this->send_time_request();
-    }
+      if (homeassistant::global_homeassistant_time != nullptr) {
+        this->send_time_request();
+      }
 #endif
+    }
   }
   return resp;
 }
