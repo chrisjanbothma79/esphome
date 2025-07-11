@@ -271,7 +271,6 @@ struct FieldMeta {
   // Helper methods
   inline ProtoFieldType get_type() const { return static_cast<ProtoFieldType>(type_and_size & 0x1F); }
   inline uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
-  inline uint8_t get_wire_type() const { return ::esphome::api::get_wire_type(get_type()); }
   inline uint16_t get_offset() const {
     if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
       // Reconstruct full offset from packed fields (10-bit offset)
@@ -298,7 +297,6 @@ struct RepeatedFieldMeta {
   // Helper methods
   inline ProtoFieldType get_type() const { return static_cast<ProtoFieldType>(type_and_size & 0x1F); }
   inline uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
-  inline uint8_t get_wire_type() const { return ::esphome::api::get_wire_type(get_type()); }
   inline uint16_t get_offset() const {
     if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
       // Reconstruct full offset from packed fields (10-bit offset)
@@ -325,7 +323,7 @@ inline const FieldMeta *find_field_binary(const FieldMeta *fields, uint8_t count
       right = mid;
     } else {
       // Found field_id, check wire type
-      if (fields[mid].get_wire_type() == wire_type) {
+      if (get_wire_type(fields[mid].get_type()) == wire_type) {
         return &fields[mid];
       }
       // Field number matches but wire type doesn't - search nearby entries
@@ -333,14 +331,14 @@ inline const FieldMeta *find_field_binary(const FieldMeta *fields, uint8_t count
 
       // Search backwards
       for (uint8_t k = mid; k > 0 && fields[k - 1].field_num == field_id; k--) {
-        if (fields[k - 1].get_wire_type() == wire_type) {
+        if (get_wire_type(fields[k - 1].get_type()) == wire_type) {
           return &fields[k - 1];
         }
       }
 
       // Search forwards
       for (uint8_t k = mid + 1; k < count && fields[k].field_num == field_id; k++) {
-        if (fields[k].get_wire_type() == wire_type) {
+        if (get_wire_type(fields[k].get_type()) == wire_type) {
           return &fields[k];
         }
       }
