@@ -1,6 +1,5 @@
+from esphome.components.mipi import DriverChip
 import esphome.config_validation as cv
-
-from . import DriverChip
 
 DriverChip(
     "JC1060P470",

@@ -3,8 +3,14 @@ import logging
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import display
-from esphome.components.const import CONF_BYTE_ORDER, CONF_DRAW_ROUNDING
-from esphome.components.const.mipi import (
+from esphome.components.const import (
+    BYTE_ORDER_BIG,
+    BYTE_ORDER_LITTLE,
+    CONF_BYTE_ORDER,
+    CONF_DRAW_ROUNDING,
+)
+from esphome.components.esp32 import const, only_on_variant
+from esphome.components.mipi import (
     CONF_HSYNC_BACK_PORCH,
     CONF_HSYNC_FRONT_PORCH,
     CONF_HSYNC_PULSE_WIDTH,
@@ -14,22 +20,13 @@ from esphome.components.const.mipi import (
     CONF_VSYNC_BACK_PORCH,
     CONF_VSYNC_FRONT_PORCH,
     CONF_VSYNC_PULSE_WIDTH,
-    DISPON,
-    INVOFF,
-    INVON,
-    MADCTL,
     MODE_BGR,
     PIXEL_MODE_16BIT,
-    PIXEL_MODES,
-    PIXFMT,
-    SLPOUT,
+    DriverChip,
     dimension_schema,
-    get_dimensions,
-    get_transform,
     map_sequence,
     power_of_two,
 )
-from esphome.components.esp32 import const, only_on_variant
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_COLOR_ORDER,
@@ -48,19 +45,7 @@ from esphome.const import (
     CONF_WIDTH,
 )
 
-from .models import (
-    DELAY_FLAG,
-    MADCTL_BGR,
-    MADCTL_MV,
-    MADCTL_MX,
-    MADCTL_MY,
-    MADCTL_XFLIP,
-    MADCTL_YFLIP,
-    DriverChip,
-    guition,
-    m5stack,
-    waveshare,
-)
+from .models import guition, m5stack, waveshare
 
 DEPENDENCIES = ["esp32"]
 DOMAIN = "mipi_dsi"
@@ -91,58 +76,6 @@ if getattr(cv, "bps", None) is None:
     # If the bps validator is not available, we need to define it ourselves
 
     cv.bps = cv.float_with_unit("bits per second", "(bps|bits/s|bit/s)?")
-
-
-def get_sequence(config):
-    """
-    Create the init sequence for the display.
-    Use the default sequence from the model, if any, and append any custom sequence provided in the config.
-    Append SLPOUT and DISPON to the end of the sequence
-    Pixel format, color order, and orientation will be set.
-    """
-    model = DriverChip.models[config[CONF_MODEL].upper()]
-    sequence = list(model.initsequence)
-    custom_sequence = config.get(CONF_INIT_SEQUENCE, [])
-    sequence.extend(custom_sequence)
-    # Ensure each command is a tuple
-    sequence = [tuple(x) if isinstance(x, tuple | list) else (x,) for x in sequence]
-    pixel_mode = config[CONF_PIXEL_MODE]
-    if not isinstance(pixel_mode, int):
-        pixel_mode = PIXEL_MODES[pixel_mode]
-    sequence.append((PIXFMT, pixel_mode))
-    # Does the chip use the flipping bits for mirroring rather than the reverse order bits?
-    use_flip = config[CONF_USE_AXIS_FLIPS]
-    madctl = 0
-    transform = get_transform(model, config)
-    if transform.get(CONF_TRANSFORM):
-        LOGGER.info("Using hardware transform to implement rotation")
-    if transform.get(CONF_MIRROR_X):
-        madctl |= MADCTL_XFLIP if use_flip else MADCTL_MX
-    if transform.get(CONF_MIRROR_Y):
-        madctl |= MADCTL_YFLIP if use_flip else MADCTL_MY
-    if transform.get(CONF_SWAP_XY) is True:  # Exclude Undefined
-        madctl |= MADCTL_MV
-    if config[CONF_COLOR_ORDER] == MODE_BGR:
-        madctl |= MADCTL_BGR
-    sequence.append((MADCTL, madctl))
-    if config[CONF_INVERT_COLORS]:
-        sequence.append((INVON,))
-    else:
-        sequence.append((INVOFF,))
-    sequence.append((SLPOUT,))
-    # sequence.append((DELAY_FLAG, 120))  # Wait for 120ms after SLPOUT
-    sequence.append((DISPON,))
-    # sequence.append((DELAY_FLAG, 20))  # Wait for 20ms after DISPON
-
-    # Flatten the sequence into a list of bytes, with the length of each command
-    # or the delay flag inserted where needed
-    return sum(
-        tuple(
-            (x[1], 0xFF) if x[0] == DELAY_FLAG else (x[0], len(x) - 1) + x[1:]
-            for x in sequence
-        ),
-        (),
-    ), madctl
 
 
 def model_schema(config):
@@ -207,8 +140,8 @@ def model_schema(config):
                 cv.bps, cv.Range(min=100e6, max=3200e6)
             ),
             iseqconf: cv.ensure_list(map_sequence),
-            model.option(CONF_BYTE_ORDER, "little_endian"): cv.one_of(
-                "big_endian", "little_endian", lower=True
+            model.option(CONF_BYTE_ORDER, BYTE_ORDER_LITTLE): cv.one_of(
+                BYTE_ORDER_LITTLE, BYTE_ORDER_BIG, lower=True
             ),
             model.option(CONF_HSYNC_PULSE_WIDTH): cv.int_,
             model.option(CONF_HSYNC_BACK_PORCH): cv.int_,
@@ -241,11 +174,11 @@ CONFIG_SCHEMA = _config_schema
 
 async def to_code(config):
     model = DriverChip.models[config[CONF_MODEL].upper()]
-    width, height, _offset_width, _offset_height = get_dimensions(model, config)
+    width, height, _offset_width, _offset_height = model.get_dimensions(config)
     var = cg.new_Pvariable(config[CONF_ID], width, height)
     await display.register_display(var, config)
 
-    sequence, madctl = get_sequence(config)
+    sequence, madctl = model.get_sequence(config)
     cg.add(var.set_model(config[CONF_MODEL]))
     cg.add(var.set_init_sequence(sequence))
     cg.add(var.set_madctl(madctl))
