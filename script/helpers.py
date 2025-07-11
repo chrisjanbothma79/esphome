@@ -163,7 +163,7 @@ def changed_files(branch: str | None = None) -> list[str]:
             return github_files
 
     # Original implementation for local development
-    if branch is None:
+    if not branch:  # Treat None and empty string the same
         branch = "dev"
     check_remotes = ["upstream", "origin"]
     check_remotes.extend(splitlines_no_ends(get_output("git", "remote")))
