@@ -1,5 +1,4 @@
 #pragma once
-#include <cassert>
 #include <cstdint>
 #include <deque>
 #include <limits>
@@ -46,10 +45,7 @@ struct PacketInfo {
   uint32_t message_type : 8;   // 8 bits: 0-255
   // Total: 32 bits = 4 bytes exactly
 
-  PacketInfo(uint8_t type, uint16_t off, uint16_t size) : offset(off), payload_size(size), message_type(type) {
-    assert(off <= MAX_OFFSET);
-    assert(size <= MAX_PAYLOAD_SIZE);
-  }
+  PacketInfo(uint8_t type, uint16_t off, uint16_t size) : offset(off), payload_size(size), message_type(type) {}
 };
 
 enum class APIError : uint16_t {
