@@ -1178,13 +1178,27 @@ def build_message_type(
 
     # Add MESSAGE_TYPE method if this is a service message
     if message_id is not None:
+        # Validate message ID fits in uint8_t (used in BatchItem)
+        if message_id > 255:
+            raise ValueError(
+                f"Message '{desc.name}' has ID {message_id} which exceeds the maximum of 255. "
+                f"To support message IDs > 255, you need to update BatchItem.message_type from uint8_t to uint16_t "
+                f"in api_connection.h"
+            )
+
         # Add static constexpr for message type
-        public_content.append(f"static constexpr uint16_t MESSAGE_TYPE = {message_id};")
+        public_content.append(f"static constexpr uint8_t MESSAGE_TYPE = {message_id};")
 
         # Add estimated size constant
         estimated_size = calculate_message_estimated_size(desc)
+        # Validate estimated size fits in uint8_t
+        if estimated_size > 255:
+            raise ValueError(
+                f"Message '{desc.name}' has estimated size {estimated_size} which exceeds the maximum of 255. "
+                f"This is unusual for protobuf messages. Consider optimizing the message structure."
+            )
         public_content.append(
-            f"static constexpr uint16_t ESTIMATED_SIZE = {estimated_size};"
+            f"static constexpr uint8_t ESTIMATED_SIZE = {estimated_size};"
         )
 
         # Add message_name method inline in header
