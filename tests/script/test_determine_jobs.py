@@ -215,3 +215,158 @@ def test_main_with_branch_argument(
     assert output["yamllint"] is False
     assert output["changed_components"] == ["mqtt"]
     assert output["component_test_count"] == 1
+
+
+def test_should_run_integration_tests(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test should_run_integration_tests function."""
+    # Core files trigger tests
+    with patch.object(
+        determine_jobs, "changed_files", return_value=["esphome/core/component.cpp"]
+    ):
+        result = determine_jobs.should_run_integration_tests()
+        assert result is True
+
+
+def test_should_run_integration_tests_with_branch() -> None:
+    """Test should_run_integration_tests with branch argument."""
+    with patch.object(determine_jobs, "changed_files") as mock_changed:
+        mock_changed.return_value = []
+        determine_jobs.should_run_integration_tests("release")
+        mock_changed.assert_called_once_with("release")
+
+
+def test_should_run_integration_tests_component_dependency() -> None:
+    """Test that integration tests run when components used in fixtures change."""
+    with patch.object(
+        determine_jobs, "changed_files", return_value=["esphome/components/api/api.cpp"]
+    ):
+        with patch.object(
+            determine_jobs, "get_components_from_integration_fixtures"
+        ) as mock_fixtures:
+            mock_fixtures.return_value = {"api", "sensor"}
+            with patch.object(determine_jobs, "get_all_dependencies") as mock_deps:
+                mock_deps.return_value = {"api", "sensor", "network"}
+                result = determine_jobs.should_run_integration_tests()
+                assert result is True
+
+
+@pytest.mark.parametrize(
+    ("check_returncode", "changed_files", "expected_result"),
+    [
+        (0, [], True),  # Hash changed - need full scan
+        (1, ["esphome/core.cpp"], True),  # C++ file changed
+        (1, ["README.md"], False),  # No C++ files changed
+    ],
+)
+def test_should_run_clang_tidy(
+    check_returncode: int,
+    changed_files: list[str],
+    expected_result: bool,
+) -> None:
+    """Test should_run_clang_tidy function."""
+    with patch.object(determine_jobs, "changed_files", return_value=changed_files):
+        # Test with hash check returning specific code
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = Mock(returncode=check_returncode)
+            result = determine_jobs.should_run_clang_tidy()
+            assert result == expected_result
+
+        # Test with hash check failing (exception)
+        if check_returncode != 0:
+            with patch("subprocess.run", side_effect=Exception("Failed")):
+                result = determine_jobs.should_run_clang_tidy()
+            assert result is True  # Fail safe - run clang-tidy
+
+
+def test_should_run_clang_tidy_with_branch() -> None:
+    """Test should_run_clang_tidy with branch argument."""
+    with patch.object(determine_jobs, "changed_files") as mock_changed:
+        mock_changed.return_value = []
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = Mock(returncode=1)  # Hash unchanged
+            determine_jobs.should_run_clang_tidy("release")
+            mock_changed.assert_called_once_with("release")
+
+
+@pytest.mark.parametrize(
+    ("changed_files", "expected_result"),
+    [
+        (["esphome/core.py"], True),
+        (["script/test.py"], True),
+        (["esphome/test.pyi"], True),  # .pyi files should trigger
+        (["README.md"], False),
+        ([], False),
+    ],
+)
+def test_should_run_python_linters(
+    changed_files: list[str], expected_result: bool
+) -> None:
+    """Test should_run_python_linters function."""
+    with patch.object(determine_jobs, "changed_files", return_value=changed_files):
+        result = determine_jobs.should_run_python_linters()
+        assert result == expected_result
+
+
+def test_should_run_python_linters_with_branch() -> None:
+    """Test should_run_python_linters with branch argument."""
+    with patch.object(determine_jobs, "changed_files") as mock_changed:
+        mock_changed.return_value = []
+        determine_jobs.should_run_python_linters("release")
+        mock_changed.assert_called_once_with("release")
+
+
+@pytest.mark.parametrize(
+    ("changed_files", "expected_result"),
+    [
+        (["config.yaml"], True),
+        (["test.yml"], True),
+        (["README.md"], False),
+        ([], False),
+    ],
+)
+def test_should_run_yamllint(changed_files: list[str], expected_result: bool) -> None:
+    """Test should_run_yamllint function."""
+    with patch.object(determine_jobs, "changed_files", return_value=changed_files):
+        result = determine_jobs.should_run_yamllint()
+        assert result == expected_result
+
+
+def test_should_run_yamllint_with_branch() -> None:
+    """Test should_run_yamllint with branch argument."""
+    with patch.object(determine_jobs, "changed_files") as mock_changed:
+        mock_changed.return_value = []
+        determine_jobs.should_run_yamllint("release")
+        mock_changed.assert_called_once_with("release")
+
+
+@pytest.mark.parametrize(
+    ("changed_files", "expected_result"),
+    [
+        (["esphome/core.cpp"], True),
+        (["esphome/core.h"], True),
+        (["test.hpp"], True),
+        (["test.cc"], True),
+        (["test.cxx"], True),
+        (["test.c"], True),
+        (["test.tcc"], True),
+        (["README.md"], False),
+        ([], False),
+    ],
+)
+def test_should_run_clang_format(
+    changed_files: list[str], expected_result: bool
+) -> None:
+    """Test should_run_clang_format function."""
+    with patch.object(determine_jobs, "changed_files", return_value=changed_files):
+        result = determine_jobs.should_run_clang_format()
+        assert result == expected_result
+
+
+def test_should_run_clang_format_with_branch() -> None:
+    """Test should_run_clang_format with branch argument."""
+    with patch.object(determine_jobs, "changed_files") as mock_changed:
+        mock_changed.return_value = []
+        determine_jobs.should_run_clang_format("release")
+        mock_changed.assert_called_once_with("release")
