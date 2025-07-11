@@ -142,6 +142,7 @@ static void calculate_field_size(uint32_t &total_size, ProtoFieldType type, uint
       ProtoSize::add_int32_field(total_size, precalc_size, *static_cast<const int32_t *>(field_addr), force);
       break;
     case ProtoFieldType::TYPE_UINT32:
+    case ProtoFieldType::TYPE_ENUM:
       ProtoSize::add_uint32_field(total_size, precalc_size, *static_cast<const uint32_t *>(field_addr), force);
       break;
     case ProtoFieldType::TYPE_INT64:
@@ -156,25 +157,16 @@ static void calculate_field_size(uint32_t &total_size, ProtoFieldType type, uint
     case ProtoFieldType::TYPE_SINT64:
       ProtoSize::add_sint64_field(total_size, precalc_size, *static_cast<const int64_t *>(field_addr), force);
       break;
-    case ProtoFieldType::TYPE_ENUM:
-      ProtoSize::add_enum_field(total_size, precalc_size, *static_cast<const uint32_t *>(field_addr), force);
-      break;
     case ProtoFieldType::TYPE_STRING:
     case ProtoFieldType::TYPE_BYTES:
       ProtoSize::add_string_field(total_size, precalc_size, *static_cast<const std::string *>(field_addr), force);
       break;
-    case ProtoFieldType::TYPE_FLOAT: {
-      float val = *static_cast<const float *>(field_addr);
-      ProtoSize::add_fixed_field<4>(total_size, precalc_size, val != 0.0f, force);
-      break;
-    }
-    case ProtoFieldType::TYPE_FIXED32: {
-      uint32_t val = *static_cast<const uint32_t *>(field_addr);
-      ProtoSize::add_fixed_field<4>(total_size, precalc_size, val != 0, force);
-      break;
-    }
+    case ProtoFieldType::TYPE_FLOAT:
+    case ProtoFieldType::TYPE_FIXED32:
     case ProtoFieldType::TYPE_SFIXED32: {
-      int32_t val = *static_cast<const int32_t *>(field_addr);
+      // All 32-bit fixed types use the same size calculation
+      // Check if the 4-byte value is non-zero by treating as uint32_t
+      uint32_t val = *static_cast<const uint32_t *>(field_addr);
       ProtoSize::add_fixed_field<4>(total_size, precalc_size, val != 0, force);
       break;
     }
