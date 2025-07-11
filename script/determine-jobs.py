@@ -63,11 +63,11 @@ def should_run_integration_tests(branch: str | None = None) -> bool:
        - These files contain fundamental functionality used throughout ESPHome
        - Examples: esphome/core/component.cpp, esphome/core/application.h
 
-    2. Python files directly in esphome/ directory changed
-       - Only .py files directly in esphome/ (not in subdirectories)
+    2. Core Python files changed (esphome/core/*.py)
+       - Only .py files in the esphome/core/ directory
        - These are core Python files that affect the entire system
-       - Examples: esphome/config.py, esphome/core.py, esphome/__init__.py
-       - NOT included: esphome/dashboard/*.py, esphome/components/*/*.py
+       - Examples: esphome/core/config.py, esphome/core/__init__.py
+       - NOT included: esphome/*.py, esphome/dashboard/*.py, esphome/components/*/*.py
 
     3. Integration test files changed
        - Any file in tests/integration/ directory
@@ -94,13 +94,6 @@ def should_run_integration_tests(branch: str | None = None) -> bool:
     for file in files:
         if file.startswith("esphome/core/"):
             return True
-
-    # Check if any Python files directly in esphome/ changed (not in subdirs)
-    for file in files:
-        if file.startswith("esphome/") and file.endswith(PYTHON_FILE_EXTENSIONS):
-            # Check if it's directly in esphome/ (no additional slashes after esphome/)
-            if file.count("/") == 1:
-                return True
 
     # Check if any integration test files changed
     if any("tests/integration" in file for file in files):

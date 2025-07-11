@@ -202,12 +202,35 @@ def test_should_run_integration_tests(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Test should_run_integration_tests function."""
-    # Core files trigger tests
+    # Core C++ files trigger tests
     with patch.object(
         determine_jobs, "changed_files", return_value=["esphome/core/component.cpp"]
     ):
         result = determine_jobs.should_run_integration_tests()
         assert result is True
+
+    # Core Python files trigger tests
+    with patch.object(
+        determine_jobs, "changed_files", return_value=["esphome/core/config.py"]
+    ):
+        result = determine_jobs.should_run_integration_tests()
+        assert result is True
+
+    # Python files directly in esphome/ do NOT trigger tests
+    with patch.object(
+        determine_jobs, "changed_files", return_value=["esphome/config.py"]
+    ):
+        result = determine_jobs.should_run_integration_tests()
+        assert result is False
+
+    # Python files in subdirectories (not core) do NOT trigger tests
+    with patch.object(
+        determine_jobs,
+        "changed_files",
+        return_value=["esphome/dashboard/web_server.py"],
+    ):
+        result = determine_jobs.should_run_integration_tests()
+        assert result is False
 
 
 def test_should_run_integration_tests_with_branch() -> None:
