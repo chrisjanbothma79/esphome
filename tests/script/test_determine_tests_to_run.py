@@ -39,6 +39,20 @@ def mock_should_run_clang_format() -> Generator[Mock, None, None]:
 
 
 @pytest.fixture
+def mock_should_run_python_linters() -> Generator[Mock, None, None]:
+    """Mock should_run_python_linters from helpers."""
+    with patch("determine_tests_to_run.should_run_python_linters") as mock:
+        yield mock
+
+
+@pytest.fixture
+def mock_should_run_yamllint() -> Generator[Mock, None, None]:
+    """Mock should_run_yamllint from helpers."""
+    with patch("determine_tests_to_run.should_run_yamllint") as mock:
+        yield mock
+
+
+@pytest.fixture
 def mock_subprocess_run() -> Generator[Mock, None, None]:
     """Mock subprocess.run for list-components.py calls."""
     with patch("determine_tests_to_run.subprocess.run") as mock:
@@ -49,6 +63,8 @@ def test_main_all_tests_should_run(
     mock_should_run_integration_tests: Mock,
     mock_should_run_clang_tidy: Mock,
     mock_should_run_clang_format: Mock,
+    mock_should_run_python_linters: Mock,
+    mock_should_run_yamllint: Mock,
     mock_subprocess_run: Mock,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -56,6 +72,8 @@ def test_main_all_tests_should_run(
     mock_should_run_integration_tests.return_value = True
     mock_should_run_clang_tidy.return_value = True
     mock_should_run_clang_format.return_value = True
+    mock_should_run_python_linters.return_value = True
+    mock_should_run_yamllint.return_value = True
 
     # Mock list-components.py output
     mock_result = Mock()
@@ -73,6 +91,8 @@ def test_main_all_tests_should_run(
     assert output["integration_tests"] is True
     assert output["clang_tidy"] is True
     assert output["clang_format"] is True
+    assert output["python_linters"] is True
+    assert output["yamllint"] is True
     assert output["changed_components"] == ["wifi", "api", "sensor"]
     assert output["component_test_count"] == 3
 
@@ -81,6 +101,8 @@ def test_main_no_tests_should_run(
     mock_should_run_integration_tests: Mock,
     mock_should_run_clang_tidy: Mock,
     mock_should_run_clang_format: Mock,
+    mock_should_run_python_linters: Mock,
+    mock_should_run_yamllint: Mock,
     mock_subprocess_run: Mock,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -88,6 +110,8 @@ def test_main_no_tests_should_run(
     mock_should_run_integration_tests.return_value = False
     mock_should_run_clang_tidy.return_value = False
     mock_should_run_clang_format.return_value = False
+    mock_should_run_python_linters.return_value = False
+    mock_should_run_yamllint.return_value = False
 
     # Mock empty list-components.py output
     mock_result = Mock()
@@ -105,6 +129,8 @@ def test_main_no_tests_should_run(
     assert output["integration_tests"] is False
     assert output["clang_tidy"] is False
     assert output["clang_format"] is False
+    assert output["python_linters"] is False
+    assert output["yamllint"] is False
     assert output["changed_components"] == []
     assert output["component_test_count"] == 0
 
@@ -113,6 +139,8 @@ def test_main_list_components_fails(
     mock_should_run_integration_tests: Mock,
     mock_should_run_clang_tidy: Mock,
     mock_should_run_clang_format: Mock,
+    mock_should_run_python_linters: Mock,
+    mock_should_run_yamllint: Mock,
     mock_subprocess_run: Mock,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -120,6 +148,8 @@ def test_main_list_components_fails(
     mock_should_run_integration_tests.return_value = True
     mock_should_run_clang_tidy.return_value = True
     mock_should_run_clang_format.return_value = True
+    mock_should_run_python_linters.return_value = True
+    mock_should_run_yamllint.return_value = True
 
     # Mock list-components.py failure
     mock_subprocess_run.side_effect = subprocess.CalledProcessError(1, "cmd")
@@ -134,6 +164,8 @@ def test_main_with_branch_argument(
     mock_should_run_integration_tests: Mock,
     mock_should_run_clang_tidy: Mock,
     mock_should_run_clang_format: Mock,
+    mock_should_run_python_linters: Mock,
+    mock_should_run_yamllint: Mock,
     mock_subprocess_run: Mock,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -141,6 +173,8 @@ def test_main_with_branch_argument(
     mock_should_run_integration_tests.return_value = False
     mock_should_run_clang_tidy.return_value = True
     mock_should_run_clang_format.return_value = False
+    mock_should_run_python_linters.return_value = True
+    mock_should_run_yamllint.return_value = False
 
     # Mock list-components.py output
     mock_result = Mock()
@@ -154,6 +188,8 @@ def test_main_with_branch_argument(
     mock_should_run_integration_tests.assert_called_once_with("main")
     mock_should_run_clang_tidy.assert_called_once_with("main")
     mock_should_run_clang_format.assert_called_once_with("main")
+    mock_should_run_python_linters.assert_called_once_with("main")
+    mock_should_run_yamllint.assert_called_once_with("main")
 
     # Check that list-components.py was called with branch
     mock_subprocess_run.assert_called_once()
@@ -169,5 +205,7 @@ def test_main_with_branch_argument(
     assert output["integration_tests"] is False
     assert output["clang_tidy"] is True
     assert output["clang_format"] is False
+    assert output["python_linters"] is True
+    assert output["yamllint"] is False
     assert output["changed_components"] == ["mqtt"]
     assert output["component_test_count"] == 1

@@ -18,6 +18,12 @@ temp_header_file = os.path.join(temp_folder, "all-include.cpp")
 # C++ file extensions used for clang-tidy and clang-format checks
 CPP_FILE_EXTENSIONS = (".cpp", ".h", ".hpp", ".cc", ".cxx", ".c", ".tcc")
 
+# Python file extensions
+PYTHON_FILE_EXTENSIONS = (".py", ".pyi")
+
+# YAML file extensions
+YAML_FILE_EXTENSIONS = (".yaml", ".yml")
+
 
 def styled(color: str | tuple[str, ...], msg: str, reset: bool = True) -> str:
     prefix = "".join(color) if isinstance(color, tuple) else color
@@ -676,6 +682,54 @@ def should_run_clang_format(branch: str | None = None) -> bool:
     # Check if any C++ source files changed
     for file in files:
         if file.endswith(CPP_FILE_EXTENSIONS):
+            return True
+
+    return False
+
+
+def should_run_python_linters(branch: str | None = None) -> bool:
+    """Determine if Python linters (ruff, flake8, pylint, pyupgrade) should run based on changed files.
+
+    This function is used by the CI workflow to skip Python linting checks when no Python files
+    have changed, saving CI time and resources.
+
+    Python linters will run when any Python source files have changed.
+
+    Args:
+        branch: Branch to compare against. If None, uses default.
+
+    Returns:
+        True if Python linters should run, False otherwise.
+    """
+    files = changed_files(branch)
+
+    # Check if any Python source files changed
+    for file in files:
+        if file.endswith(PYTHON_FILE_EXTENSIONS):
+            return True
+
+    return False
+
+
+def should_run_yamllint(branch: str | None = None) -> bool:
+    """Determine if yamllint should run based on changed files.
+
+    This function is used by the CI workflow to skip yamllint checks when no YAML files
+    have changed, saving CI time and resources.
+
+    Yamllint will run when any YAML files have changed.
+
+    Args:
+        branch: Branch to compare against. If None, uses default.
+
+    Returns:
+        True if yamllint should run, False otherwise.
+    """
+    files = changed_files(branch)
+
+    # Check if any YAML files changed
+    for file in files:
+        if file.endswith(YAML_FILE_EXTENSIONS):
             return True
 
     return False

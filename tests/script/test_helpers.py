@@ -1124,3 +1124,96 @@ def test_should_run_clang_tidy_with_branch() -> None:
         helpers.should_run_clang_tidy("release")
 
         mock_changed.assert_called_once_with("release")
+
+
+@pytest.mark.parametrize(
+    "changed_files,expected_result",
+    [
+        (["esphome/core.py"], True),
+        (["esphome/components/wifi/wifi_component.py"], True),
+        (["tests/test_helpers.py"], True),
+        (["esphome/__init__.pyi"], True),
+        (["README.md"], False),
+        (["esphome/core/component.cpp"], False),
+        ([], False),
+    ],
+)
+def test_should_run_python_linters(
+    changed_files: list[str], expected_result: bool
+) -> None:
+    """Test should_run_python_linters function."""
+    with patch("helpers.changed_files", return_value=changed_files):
+        result = helpers.should_run_python_linters()
+        assert result == expected_result
+
+
+def test_should_run_python_linters_with_branch() -> None:
+    """Test should_run_python_linters with branch argument."""
+    with patch("helpers.changed_files") as mock_changed:
+        mock_changed.return_value = []
+
+        helpers.should_run_python_linters("release")
+
+        mock_changed.assert_called_once_with("release")
+
+
+@pytest.mark.parametrize(
+    "changed_files,expected_result",
+    [
+        (["config.yaml"], True),
+        (["tests/fixtures/test.yml"], True),
+        ([".github/workflows/ci.yml"], True),
+        (["esphome/core.py"], False),
+        (["README.md"], False),
+        ([], False),
+    ],
+)
+def test_should_run_yamllint(changed_files: list[str], expected_result: bool) -> None:
+    """Test should_run_yamllint function."""
+    with patch("helpers.changed_files", return_value=changed_files):
+        result = helpers.should_run_yamllint()
+        assert result == expected_result
+
+
+def test_should_run_yamllint_with_branch() -> None:
+    """Test should_run_yamllint with branch argument."""
+    with patch("helpers.changed_files") as mock_changed:
+        mock_changed.return_value = []
+
+        helpers.should_run_yamllint("release")
+
+        mock_changed.assert_called_once_with("release")
+
+
+@pytest.mark.parametrize(
+    "changed_files,expected_result",
+    [
+        (["esphome/core/component.cpp"], True),
+        (["esphome/components/wifi/wifi.h"], True),
+        (["tests/custom_component.hpp"], True),
+        (["esphome/util.cc"], True),
+        (["platformio/platform.cxx"], True),
+        (["esphome/core.c"], True),
+        (["esphome/components/api/api.tcc"], True),
+        (["esphome/core.py"], False),
+        (["README.md"], False),
+        ([], False),
+    ],
+)
+def test_should_run_clang_format(
+    changed_files: list[str], expected_result: bool
+) -> None:
+    """Test should_run_clang_format function."""
+    with patch("helpers.changed_files", return_value=changed_files):
+        result = helpers.should_run_clang_format()
+        assert result == expected_result
+
+
+def test_should_run_clang_format_with_branch() -> None:
+    """Test should_run_clang_format with branch argument."""
+    with patch("helpers.changed_files") as mock_changed:
+        mock_changed.return_value = []
+
+        helpers.should_run_clang_format("release")
+
+        mock_changed.assert_called_once_with("release")
