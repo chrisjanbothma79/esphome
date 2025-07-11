@@ -1,5 +1,7 @@
 #pragma once
 
+// XYZ
+
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
