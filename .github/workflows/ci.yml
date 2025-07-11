@@ -241,7 +241,7 @@ jobs:
           key: ${{ runner.os }}-${{ steps.restore-python.outputs.python-version }}-venv-${{ needs.common.outputs.cache-key }}
 
   determine-jobs:
-    name: Determine which tests to run
+    name: Determine which jobs to run
     runs-on: ubuntu-24.04
     needs:
       - common
