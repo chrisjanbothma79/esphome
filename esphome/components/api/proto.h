@@ -176,6 +176,18 @@ class ProtoVarInt {
       out.push_back(val);
       return;
     }
+    // Optimize for 2-byte varints (0x80-0x3FFF)
+    if (val <= 0x3FFF) {
+      out.push_back((val & 0x7F) | 0x80);
+      out.push_back(val >> 7);
+      return;
+    }
+    // For 3+ byte varints, write first 2 bytes directly
+    out.push_back((val & 0x7F) | 0x80);
+    out.push_back(((val >> 7) & 0x7F) | 0x80);
+    val >>= 14;
+
+    // Continue with remaining bytes
     while (val) {
       uint8_t temp = val & 0x7F;
       val >>= 7;
