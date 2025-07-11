@@ -358,7 +358,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         // If not found, try repeated fields (linear search - usually only 1-2 fields)
         if (!decoded) {
           for (uint8_t j = 0; j < repeated_count; j++) {
-            if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 0) {
+            if (repeated_fields[j].field_num == field_id) {
               void *field_addr = base + repeated_fields[j].get_offset();
               decoded = decode_repeated_varint_field(repeated_fields[j].get_type(), field_addr, value);
               break;
@@ -395,7 +395,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         // If not found, try repeated fields (linear search - usually only 1-2 fields)
         if (!decoded) {
           for (uint8_t j = 0; j < repeated_count; j++) {
-            if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 2) {
+            if (repeated_fields[j].field_num == field_id) {
               void *field_addr = base + repeated_fields[j].get_offset();
               decoded = decode_repeated_length_field(repeated_fields[j].get_type(), field_addr, value,
                                                      repeated_fields[j].get_message_type_id());
@@ -430,7 +430,7 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
         // If not found, try repeated fields (linear search - usually only 1-2 fields)
         if (!decoded) {
           for (uint8_t j = 0; j < repeated_count; j++) {
-            if (repeated_fields[j].field_num == field_id && get_wire_type(repeated_fields[j].get_type()) == 5) {
+            if (repeated_fields[j].field_num == field_id) {
               void *field_addr = base + repeated_fields[j].get_offset();
               decoded = decode_repeated_32bit_field(repeated_fields[j].get_type(), field_addr, value);
               break;
