@@ -451,25 +451,30 @@ void ProtoMessage::encode(ProtoWriteBuffer buffer) const {
   const uint8_t *base = reinterpret_cast<const uint8_t *>(this);
 
   // Encode regular fields
-  const FieldMeta *fields = get_field_metadata();
   uint8_t field_count = get_field_count();
+  if (field_count) {
+    const FieldMeta *fields = get_field_metadata();
 
-  for (uint8_t i = 0; i < field_count; i++) {
-    const void *field_addr = base + fields[i].get_offset();
+    for (uint8_t i = 0; i < field_count; i++) {
+      const void *field_addr = base + fields[i].get_offset();
 
-    if (fields[i].get_type() == ProtoFieldType::TYPE_MESSAGE) {
-      uint8_t handler_id = fields[i].get_message_type_id();
-      if (handler_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[handler_id].encode != nullptr) {
-        MESSAGE_HANDLERS[handler_id].encode(buffer, field_addr, fields[i].field_num);
+      if (fields[i].get_type() == ProtoFieldType::TYPE_MESSAGE) {
+        uint8_t handler_id = fields[i].get_message_type_id();
+        if (handler_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[handler_id].encode != nullptr) {
+          MESSAGE_HANDLERS[handler_id].encode(buffer, field_addr, fields[i].field_num);
+        }
+      } else {
+        encode_field(buffer, fields[i].get_type(), fields[i].field_num, field_addr, false);
       }
-    } else {
-      encode_field(buffer, fields[i].get_type(), fields[i].field_num, field_addr, false);
     }
   }
 
   // Encode repeated fields - reuse the same encode_field function!
-  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
   uint8_t repeated_count = get_repeated_field_count();
+  if (repeated_count == 0) {
+    return;  // No repeated fields to process
+  }
+  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
 
   for (uint8_t i = 0; i < repeated_count; i++) {
     const void *field_addr = base + repeated_fields[i].get_offset();
@@ -501,25 +506,29 @@ void ProtoMessage::calculate_size(uint32_t &total_size) const {
   const uint8_t *base = reinterpret_cast<const uint8_t *>(this);
 
   // Calculate size for regular fields
-  const FieldMeta *fields = get_field_metadata();
   uint8_t field_count = get_field_count();
+  if (field_count) {
+    const FieldMeta *fields = get_field_metadata();
+    for (uint8_t i = 0; i < field_count; i++) {
+      const void *field_addr = base + fields[i].get_offset();
 
-  for (uint8_t i = 0; i < field_count; i++) {
-    const void *field_addr = base + fields[i].get_offset();
-
-    if (fields[i].get_type() == ProtoFieldType::TYPE_MESSAGE) {
-      uint8_t handler_id = fields[i].get_message_type_id();
-      if (handler_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[handler_id].size != nullptr) {
-        MESSAGE_HANDLERS[handler_id].size(total_size, field_addr, fields[i].get_precalced_size(), false);
+      if (fields[i].get_type() == ProtoFieldType::TYPE_MESSAGE) {
+        uint8_t handler_id = fields[i].get_message_type_id();
+        if (handler_id < MESSAGE_HANDLER_COUNT && MESSAGE_HANDLERS[handler_id].size != nullptr) {
+          MESSAGE_HANDLERS[handler_id].size(total_size, field_addr, fields[i].get_precalced_size(), false);
+        }
+      } else {
+        calculate_field_size(total_size, fields[i].get_type(), fields[i].get_precalced_size(), field_addr, false);
       }
-    } else {
-      calculate_field_size(total_size, fields[i].get_type(), fields[i].get_precalced_size(), field_addr, false);
     }
   }
 
   // Calculate size for repeated fields - reuse the same calculate_field_size function!
-  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
   uint8_t repeated_count = get_repeated_field_count();
+  if (repeated_count == 0) {
+    return;  // No repeated fields to process
+  }
+  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
 
   for (uint8_t i = 0; i < repeated_count; i++) {
     const void *field_addr = base + repeated_fields[i].get_offset();
