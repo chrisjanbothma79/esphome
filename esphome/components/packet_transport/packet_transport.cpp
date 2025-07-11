@@ -315,7 +315,6 @@ void PacketTransport::send_data_(bool all) {
 
 void PacketTransport::update() {
   if (!this->ping_pong_enable_) {
-    this->stop_poller();
     return;
   }
   auto now = millis() / 1000;
