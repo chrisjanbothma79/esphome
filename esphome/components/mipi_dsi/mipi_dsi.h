@@ -7,8 +7,6 @@
 #ifdef USE_ESP32_VARIANT_ESP32P4
 #include "esphome/core/component.h"
 #include "esphome/core/application.h"
-#include "esphome/core/component.h"
-#include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include "esphome/core/gpio.h"
 
@@ -80,6 +78,8 @@ class MIPI_DSI : public display::Display {
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override;
 
   void draw_pixel_at(int x, int y, Color color) override;
+  int get_width() override;
+  int get_height() override;
 
   void dump_config() override;
 

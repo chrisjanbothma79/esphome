@@ -201,14 +201,38 @@ void MIPI_DSI::draw_pixel_at(int x, int y, Color color) {
   App.feed_wdt();
 }
 
+int MIPI_DSI::get_width() {
+  switch (this->rotation_) {
+    case display::DISPLAY_ROTATION_90_DEGREES:
+    case display::DISPLAY_ROTATION_270_DEGREES:
+      return this->get_height_internal();
+    case display::DISPLAY_ROTATION_0_DEGREES:
+    case display::DISPLAY_ROTATION_180_DEGREES:
+    default:
+      return this->get_width_internal();
+  }
+}
+
+int MIPI_DSI::get_height() {
+  switch (this->rotation_) {
+    case display::DISPLAY_ROTATION_0_DEGREES:
+    case display::DISPLAY_ROTATION_180_DEGREES:
+      return this->get_height_internal();
+    case display::DISPLAY_ROTATION_90_DEGREES:
+    case display::DISPLAY_ROTATION_270_DEGREES:
+    default:
+      return this->get_width_internal();
+  }
+}
+
 static const uint8_t PIXEL_MODES[] = {0, 16, 18, 24};
 
 void MIPI_DSI::dump_config() {
   ESP_LOGCONFIG(TAG,
                 "MIPI_DSI RGB LCD"
                 "\n  Model: %s"
-                "\n  Height: %u"
                 "\n  Width: %u"
+                "\n  Height: %u"
                 "\n  Mirror X: %s"
                 "\n  Mirror Y: %s"
                 "\n  Swap X/Y: %s"
@@ -225,7 +249,7 @@ void MIPI_DSI::dump_config() {
                 "\n  Color Order: %s"
                 "\n  Invert Colors: %s"
                 "\n  Pixel Clock: %dMHz",
-                this->model_, this->height_, this->width_, YESNO(this->madctl_ & MADCTL_MX),
+                this->model_, this->width_, this->height_, YESNO(this->madctl_ & MADCTL_MX),
                 YESNO(this->madctl_ & MADCTL_MY), YESNO(this->madctl_ & MADCTL_MV), this->rotation_, this->lanes_,
                 this->lane_bit_rate_, this->hsync_pulse_width_, this->hsync_back_porch_, this->hsync_front_porch_,
                 this->vsync_pulse_width_, this->vsync_back_porch_, this->vsync_front_porch_,
