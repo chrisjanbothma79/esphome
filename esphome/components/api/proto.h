@@ -280,6 +280,32 @@ struct FieldMeta {
   uint8_t get_message_type_id() const { return message_type_id >> 2; }  // Upper 6 bits for type ID (0-63)
 };
 
+// Optimized repeated field metadata (4 bytes - no padding on 32-bit architectures)
+struct RepeatedFieldMeta {
+  uint8_t field_num;      // Protobuf field number (1-255)
+  uint8_t type_and_size;  // bits 0-4: ProtoFieldType, bits 5-6: precalced_field_id_size-1, bit 7: reserved
+  union {
+    uint16_t offset;  // For non-message types: offset in class (0-65535)
+    struct {
+      uint8_t offset_low;       // For TYPE_MESSAGE: low byte of offset (bits 0-7)
+      uint8_t message_type_id;  // For TYPE_MESSAGE: bits 0-1: offset high (bits 8-9), bits 2-7: handler index (0-63)
+    };
+  };
+
+  // Helper methods
+  ProtoFieldType get_type() const { return static_cast<ProtoFieldType>(type_and_size & 0x1F); }
+  uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
+  uint16_t get_offset() const {
+    if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
+      // Reconstruct full offset from packed fields (10-bit offset)
+      // Bits 0-7 from offset_low, bits 8-9 from lower 2 bits of message_type_id
+      return static_cast<uint16_t>(offset_low) | (static_cast<uint16_t>(message_type_id & 0x03) << 8);
+    }
+    return offset;
+  }
+  uint8_t get_message_type_id() const { return message_type_id >> 2; }  // Upper 6 bits for type ID (0-63)
+};
+
 class ProtoWriteBuffer {
  public:
   ProtoWriteBuffer(std::vector<uint8_t> *buffer) : buffer_(buffer) {}
@@ -409,32 +435,6 @@ class ProtoWriteBuffer {
 
  protected:
   std::vector<uint8_t> *buffer_;
-};
-
-// Optimized repeated field metadata (4 bytes - no padding on 32-bit architectures)
-struct RepeatedFieldMeta {
-  uint8_t field_num;      // Protobuf field number (1-255)
-  uint8_t type_and_size;  // bits 0-4: ProtoFieldType, bits 5-6: precalced_field_id_size-1, bit 7: reserved
-  union {
-    uint16_t offset;  // For non-message types: offset in class (0-65535)
-    struct {
-      uint8_t offset_low;       // For TYPE_MESSAGE: low byte of offset (bits 0-7)
-      uint8_t message_type_id;  // For TYPE_MESSAGE: bits 0-1: offset high (bits 8-9), bits 2-7: handler index (0-63)
-    };
-  };
-
-  // Helper methods
-  ProtoFieldType get_type() const { return static_cast<ProtoFieldType>(type_and_size & 0x1F); }
-  uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
-  uint16_t get_offset() const {
-    if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
-      // Reconstruct full offset from packed fields (10-bit offset)
-      // Bits 0-7 from offset_low, bits 8-9 from lower 2 bits of message_type_id
-      return static_cast<uint16_t>(offset_low) | (static_cast<uint16_t>(message_type_id & 0x03) << 8);
-    }
-    return offset;
-  }
-  uint8_t get_message_type_id() const { return message_type_id >> 2; }  // Upper 6 bits for type ID (0-63)
 };
 
 class ProtoMessage {
