@@ -259,7 +259,7 @@ extern const uint8_t REPEATED_MESSAGE_HANDLER_COUNT;
 // Optimized metadata structure (4 bytes - no padding on 32-bit architectures)
 struct FieldMeta {
   uint8_t field_num;      // Protobuf field number (1-255)
-  uint8_t type_and_size;  // bits 0-4: ProtoFieldType, bits 5-6: precalced_field_id_size-1, bit 7: wire_type_high_bit
+  uint8_t type_and_size;  // bits 0-4: ProtoFieldType, bits 5-6: precalced_field_id_size-1, bit 7: reserved
   union {
     uint16_t offset;  // For non-message types: offset in class (0-65535)
     struct {
@@ -271,16 +271,6 @@ struct FieldMeta {
   // Helper methods
   inline ProtoFieldType get_type() const { return static_cast<ProtoFieldType>(type_and_size & 0x1F); }
   inline uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
-  inline uint8_t get_wire_type() const {
-    // Wire type is encoded as: 0=varint, 2=length-delimited, 5=32-bit
-    // We only need 1 bit to distinguish between 0/2 and 5 (32-bit)
-    // If bit 7 is set, it's wire type 5, otherwise check the field type
-    if (type_and_size & 0x80) {
-      return 5;  // 32-bit types
-    }
-    ProtoFieldType t = get_type();
-    return (t >= ProtoFieldType::TYPE_STRING) ? 2 : 0;  // length-delimited : varint
-  }
   inline uint16_t get_offset() const {
     if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
       // Reconstruct full offset from packed fields (10-bit offset)
@@ -295,7 +285,7 @@ struct FieldMeta {
 // Optimized repeated field metadata (4 bytes - no padding on 32-bit architectures)
 struct RepeatedFieldMeta {
   uint8_t field_num;      // Protobuf field number (1-255)
-  uint8_t type_and_size;  // bits 0-4: ProtoFieldType, bits 5-6: precalced_field_id_size-1, bit 7: wire_type_high_bit
+  uint8_t type_and_size;  // bits 0-4: ProtoFieldType, bits 5-6: precalced_field_id_size-1, bit 7: reserved
   union {
     uint16_t offset;  // For non-message types: offset in class (0-65535)
     struct {
@@ -307,16 +297,6 @@ struct RepeatedFieldMeta {
   // Helper methods
   inline ProtoFieldType get_type() const { return static_cast<ProtoFieldType>(type_and_size & 0x1F); }
   inline uint8_t get_precalced_size() const { return ((type_and_size >> 5) & 0x03) + 1; }
-  inline uint8_t get_wire_type() const {
-    // Wire type is encoded as: 0=varint, 2=length-delimited, 5=32-bit
-    // We only need 1 bit to distinguish between 0/2 and 5 (32-bit)
-    // If bit 7 is set, it's wire type 5, otherwise check the field type
-    if (type_and_size & 0x80) {
-      return 5;  // 32-bit types
-    }
-    ProtoFieldType t = get_type();
-    return (t >= ProtoFieldType::TYPE_STRING) ? 2 : 0;  // length-delimited : varint
-  }
   inline uint16_t get_offset() const {
     if (get_type() == ProtoFieldType::TYPE_MESSAGE) {
       // Reconstruct full offset from packed fields (10-bit offset)
@@ -327,48 +307,6 @@ struct RepeatedFieldMeta {
   }
   inline uint8_t get_message_type_id() const { return message_type_id >> 2; }  // Upper 6 bits for type ID (0-63)
 };
-
-// Binary search for field lookup - optimized for performance
-inline const FieldMeta *find_field_binary(const FieldMeta *fields, uint8_t count, uint8_t field_id, uint8_t wire_type) {
-  uint8_t left = 0;
-  uint8_t right = count;
-
-  while (left < right) {
-    uint8_t mid = (left + right) / 2;
-    uint8_t mid_field = fields[mid].field_num;
-
-    if (mid_field < field_id) {
-      left = mid + 1;
-    } else if (mid_field > field_id) {
-      right = mid;
-    } else {
-      // Found field_id, check wire type
-      if (fields[mid].get_wire_type() == wire_type) {
-        return &fields[mid];
-      }
-      // Field number matches but wire type doesn't - search nearby entries
-      // (in case there are multiple fields with same number but different types)
-
-      // Search backwards
-      for (uint8_t k = mid; k > 0 && fields[k - 1].field_num == field_id; k--) {
-        if (fields[k - 1].get_wire_type() == wire_type) {
-          return &fields[k - 1];
-        }
-      }
-
-      // Search forwards
-      for (uint8_t k = mid + 1; k < count && fields[k].field_num == field_id; k++) {
-        if (fields[k].get_wire_type() == wire_type) {
-          return &fields[k];
-        }
-      }
-
-      return nullptr;  // Field number found but no matching wire type
-    }
-  }
-
-  return nullptr;  // Field not found
-}
 
 class ProtoWriteBuffer {
  public:

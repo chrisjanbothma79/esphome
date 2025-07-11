@@ -101,13 +101,6 @@ PROTO_TYPE_NUM_MAP = {
     descriptor.FieldDescriptorProto.TYPE_SFIXED32: 13,
 }
 
-# Wire type 5 (32-bit) field types that need bit 7 set
-WIRE_TYPE_5_TYPES = {
-    descriptor.FieldDescriptorProto.TYPE_FLOAT,
-    descriptor.FieldDescriptorProto.TYPE_FIXED32,
-    descriptor.FieldDescriptorProto.TYPE_SFIXED32,
-}
-
 
 # Generate with
 # protoc --python_out=script/api_protobuf -I esphome/components/api/ api_options.proto
@@ -802,39 +795,6 @@ class RepeatedTypeInfo(TypeInfo):
         return underlying_size * 2
 
 
-def pack_type_and_size(
-    field_type_or_num: int | descriptor.FieldDescriptorProto.Type, field_tag_size: int
-) -> int:
-    """Pack field type, tag size, and wire type bit into type_and_size byte.
-
-    Args:
-        field_type_or_num: Either a FieldDescriptorProto type constant or a direct type number
-        field_tag_size: The precalculated field ID size (1-3)
-
-    Bit layout:
-    - bits 0-4: ProtoFieldType (5 bits)
-    - bits 5-6: precalced_field_id_size - 1 (2 bits)
-    - bit 7: wire type bit (1 if wire type 5 for 32-bit types)
-    """
-    # Handle direct type numbers (for EnumType=7, MessageType=10)
-    if isinstance(field_type_or_num, int):
-        type_num = field_type_or_num
-    else:
-        type_num = PROTO_TYPE_NUM_MAP.get(field_type_or_num, 0)
-
-    type_and_size = (type_num & 0x1F) | ((field_tag_size - 1) << 5)
-
-    # Set bit 7 for 32-bit types (wire type 5)
-    # Only check if we have a descriptor type, not a raw number
-    if (
-        not isinstance(field_type_or_num, int)
-        and field_type_or_num in WIRE_TYPE_5_TYPES
-    ):
-        type_and_size |= 0x80
-
-    return type_and_size
-
-
 def build_type_usage_map(
     file_desc: descriptor.FileDescriptorProto,
 ) -> tuple[dict[str, str | None], dict[str, str | None]]:
@@ -1301,7 +1261,9 @@ def build_message_type(
             field_type = PROTO_TYPE_MAP.get(field.type, None)
             if field_type:
                 field_tag_size = ti.calculate_field_id_size()
-                type_and_size = pack_type_and_size(field.type, field_tag_size)
+                # Pack type and size into type_and_size byte
+                type_num = PROTO_TYPE_NUM_MAP.get(field.type, 0)
+                type_and_size = (type_num & 0x1F) | ((field_tag_size - 1) << 5)
 
                 if field.type == descriptor.FieldDescriptorProto.TYPE_MESSAGE:
                     # For messages, use offset_low and message_type_id with offset extension
@@ -1325,7 +1287,9 @@ def build_message_type(
 
             if field_type:
                 field_tag_size = ti.calculate_field_id_size()
-                type_and_size = pack_type_and_size(field.type, field_tag_size)
+                # Pack type and size into type_and_size byte
+                type_num = PROTO_TYPE_NUM_MAP.get(field.type, 0)
+                type_and_size = (type_num & 0x1F) | ((field_tag_size - 1) << 5)
 
                 if field.type == descriptor.FieldDescriptorProto.TYPE_MESSAGE:
                     # For messages, use offset_low and message_type_id
@@ -1356,14 +1320,14 @@ def build_message_type(
             elif isinstance(ti, EnumType):
                 field_tag_size = ti.calculate_field_id_size()
                 # Enums are TYPE_ENUM (7)
-                type_and_size = pack_type_and_size(7, field_tag_size)
+                type_and_size = (7 & 0x1F) | ((field_tag_size - 1) << 5)
                 regular_fields.append(
                     f"{{{field.number}, {type_and_size}, {{.offset = PROTO_FIELD_OFFSET({desc.name}, {ti.field_name})}}}}"
                 )
             elif isinstance(ti, MessageType):
                 field_tag_size = ti.calculate_field_id_size()
                 # Messages are TYPE_MESSAGE (10)
-                type_and_size = pack_type_and_size(10, field_tag_size)
+                type_and_size = (10 & 0x1F) | ((field_tag_size - 1) << 5)
                 message_type_id = type_registry.get_message_type_id(ti.type_name)
                 offset = f"PROTO_FIELD_OFFSET({desc.name}, {ti.field_name})"
                 # Same encoding as above for large offsets
