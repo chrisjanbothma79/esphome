@@ -28,27 +28,11 @@ struct ReadPacketBuffer {
   uint16_t data_len;
 };
 
-// Packet info structure - packed into 4 bytes using bit fields
-// Note: While the API protocol supports message sizes up to 65535 (uint16_t),
-// we limit offset to 2047 (11 bits) and payload_size to 8191 (13 bits) for practical reasons:
-// 1. Messages larger than 8KB are rare but do occur (e.g., select entities with many options)
-// 2. Very large messages may cause memory pressure on constrained devices
-// 3. The typical MTU-based batch size (MAX_BATCH_PACKET_SIZE) is 1390 bytes
-//
-// Why MAX_OFFSET (2047) > MAX_BATCH_PACKET_SIZE (1390):
-// When batching, messages are only included if the total batch size stays under
-// MAX_BATCH_PACKET_SIZE. However, we need extra headroom in MAX_OFFSET for:
-// - Protocol headers and padding for each message in the batch
-// - Future protocol extensions that might need additional offset space
-// Large messages (> MAX_BATCH_PACKET_SIZE) are sent individually with offset=0.
+// Packet info structure for batching multiple messages
 struct PacketInfo {
-  static constexpr uint16_t MAX_OFFSET = 2047;        // 11 bits max
-  static constexpr uint16_t MAX_PAYLOAD_SIZE = 8191;  // 13 bits max
-
-  uint32_t message_type : 8;   // 8 bits: 0-255
-  uint32_t offset : 11;        // 11 bits: 0-2047
-  uint32_t payload_size : 13;  // 13 bits: 0-8191
-  // Total: 32 bits = 4 bytes exactly
+  uint8_t message_type;   // Message type (0-255)
+  uint16_t offset;        // Offset in buffer where message starts
+  uint16_t payload_size;  // Size of the message payload
 
   PacketInfo(uint8_t type, uint16_t off, uint16_t size) : message_type(type), offset(off), payload_size(size) {}
 };
@@ -77,7 +61,6 @@ enum class APIError : uint16_t {
   HANDSHAKESTATE_SPLIT_FAILED = 1020,
   BAD_HANDSHAKE_ERROR_BYTE = 1021,
   CONNECTION_CLOSED = 1022,
-  MESSAGE_TOO_LARGE = 1023,
 };
 
 const char *api_error_to_str(APIError err);

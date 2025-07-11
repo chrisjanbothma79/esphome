@@ -62,8 +62,6 @@ const char *api_error_to_str(APIError err) {
     return "BAD_HANDSHAKE_ERROR_BYTE";
   } else if (err == APIError::CONNECTION_CLOSED) {
     return "CONNECTION_CLOSED";
-  } else if (err == APIError::MESSAGE_TOO_LARGE) {
-    return "MESSAGE_TOO_LARGE";
   }
   return "UNKNOWN";
 }
@@ -621,11 +619,6 @@ APIError APINoiseFrameHelper::write_protobuf_packet(uint8_t type, ProtoWriteBuff
   uint16_t payload_size =
       static_cast<uint16_t>(buffer.get_buffer()->size() - frame_header_padding_ - frame_footer_size_);
 
-  // Check if message exceeds PacketInfo limits
-  if (payload_size > PacketInfo::MAX_PAYLOAD_SIZE) {
-    return APIError::MESSAGE_TOO_LARGE;
-  }
-
   PacketInfo packet{type, 0, payload_size};
   return write_protobuf_packets(buffer, std::span<const PacketInfo>(&packet, 1));
 }
@@ -1013,11 +1006,6 @@ APIError APIPlaintextFrameHelper::read_packet(ReadPacketBuffer *buffer) {
 }
 APIError APIPlaintextFrameHelper::write_protobuf_packet(uint8_t type, ProtoWriteBuffer buffer) {
   uint16_t payload_size = static_cast<uint16_t>(buffer.get_buffer()->size() - frame_header_padding_);
-
-  // Check if message exceeds PacketInfo limits
-  if (payload_size > PacketInfo::MAX_PAYLOAD_SIZE) {
-    return APIError::MESSAGE_TOO_LARGE;
-  }
 
   PacketInfo packet{type, 0, payload_size};
   return write_protobuf_packets(buffer, std::span<const PacketInfo>(&packet, 1));

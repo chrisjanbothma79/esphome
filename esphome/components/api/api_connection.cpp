@@ -1614,11 +1614,6 @@ bool APIConnection::send_buffer(ProtoWriteBuffer buffer, uint8_t message_type) {
   if (err == APIError::WOULD_BLOCK)
     return false;
   if (err != APIError::OK) {
-    if (err == APIError::MESSAGE_TOO_LARGE) {
-      // Log error for oversized messages - safe here since we're not in the middle of encoding
-      ESP_LOGE(TAG, "%s: Message type %u is too large to send (exceeds %u byte limit)",
-               this->get_client_combined_info().c_str(), message_type, PacketInfo::MAX_PAYLOAD_SIZE);
-    }
     on_fatal_error();
     if (err == APIError::SOCKET_WRITE_FAILED && errno == ECONNRESET) {
       ESP_LOGW(TAG, "%s: Connection reset", this->get_client_combined_info().c_str());
