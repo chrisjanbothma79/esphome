@@ -387,10 +387,10 @@ void ProtoMessage::decode(const uint8_t *buffer, size_t length) {
   uint8_t *base = reinterpret_cast<uint8_t *>(this);
 
   // Get metadata
-  const FieldMetaV3 *fields = get_field_metadata_v3();
-  size_t field_count = get_field_count_v3();
-  const RepeatedFieldMetaV3 *repeated_fields = get_repeated_field_metadata_v3();
-  size_t repeated_count = get_repeated_field_count_v3();
+  const FieldMeta *fields = get_field_metadata();
+  size_t field_count = get_field_count();
+  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
+  size_t repeated_count = get_repeated_field_count();
 
   // Handle empty message
   if (field_count == 0 && repeated_count == 0) {
@@ -593,8 +593,8 @@ void ProtoMessage::encode(ProtoWriteBuffer buffer) const {
   const uint8_t *base = reinterpret_cast<const uint8_t *>(this);
 
   // Encode regular fields
-  const FieldMetaV3 *fields = get_field_metadata_v3();
-  size_t field_count = get_field_count_v3();
+  const FieldMeta *fields = get_field_metadata();
+  size_t field_count = get_field_count();
 
   if (fields != nullptr) {
     for (size_t i = 0; i < field_count; i++) {
@@ -612,8 +612,8 @@ void ProtoMessage::encode(ProtoWriteBuffer buffer) const {
   }
 
   // Encode repeated fields - reuse the same encode_field function!
-  const RepeatedFieldMetaV3 *repeated_fields = get_repeated_field_metadata_v3();
-  size_t repeated_count = get_repeated_field_count_v3();
+  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
+  size_t repeated_count = get_repeated_field_count();
 
   if (repeated_fields != nullptr) {
     for (size_t i = 0; i < repeated_count; i++) {
@@ -642,8 +642,8 @@ void ProtoMessage::calculate_size(uint32_t &total_size) const {
   const uint8_t *base = reinterpret_cast<const uint8_t *>(this);
 
   // Calculate size for regular fields
-  const FieldMetaV3 *fields = get_field_metadata_v3();
-  size_t field_count = get_field_count_v3();
+  const FieldMeta *fields = get_field_metadata();
+  size_t field_count = get_field_count();
 
   if (fields != nullptr) {
     for (size_t i = 0; i < field_count; i++) {
@@ -661,8 +661,8 @@ void ProtoMessage::calculate_size(uint32_t &total_size) const {
   }
 
   // Calculate size for repeated fields - reuse the same calculate_field_size function!
-  const RepeatedFieldMetaV3 *repeated_fields = get_repeated_field_metadata_v3();
-  size_t repeated_count = get_repeated_field_count_v3();
+  const RepeatedFieldMeta *repeated_fields = get_repeated_field_metadata();
+  size_t repeated_count = get_repeated_field_count();
 
   if (repeated_fields != nullptr) {
     for (size_t i = 0; i < repeated_count; i++) {

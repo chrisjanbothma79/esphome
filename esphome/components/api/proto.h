@@ -276,14 +276,14 @@ struct RepeatedMessageHandler {
   RepeatedDecodeLengthFunc decode;
 };
 
-// Global message handler registries (defined in proto.cpp)
+// Global message handler registries (defined in api_pb2.cpp)
 extern const MessageHandler MESSAGE_HANDLERS[];
 extern const size_t MESSAGE_HANDLER_COUNT;
 extern const RepeatedMessageHandler REPEATED_MESSAGE_HANDLERS[];
 extern const size_t REPEATED_MESSAGE_HANDLER_COUNT;
 
 // Optimized metadata structure (4 bytes - no padding on 32-bit architectures)
-struct FieldMetaV3 {
+struct FieldMeta {
   uint8_t field_num;      // Protobuf field number (1-255)
   uint8_t type_and_size;  // bits 0-4: ProtoFieldType, bits 5-6: precalced_field_id_size-1, bit 7: reserved
   union {
@@ -471,7 +471,7 @@ class ProtoWriteBuffer {
 };
 
 // Optimized repeated field metadata (4 bytes - no padding on 32-bit architectures)
-struct RepeatedFieldMetaV3 {
+struct RepeatedFieldMeta {
   uint8_t field_num;      // Protobuf field number (1-255)
   uint8_t type_and_size;  // bits 0-4: ProtoFieldType, bits 5-6: precalced_field_id_size-1, bit 7: reserved
   union {
@@ -502,11 +502,11 @@ class ProtoMessage {
  public:
   virtual ~ProtoMessage() = default;
 
-  // V3 metadata getters - must be implemented by derived classes
-  virtual const FieldMetaV3 *get_field_metadata_v3() const { return nullptr; }
-  virtual size_t get_field_count_v3() const { return 0; }
-  virtual const RepeatedFieldMetaV3 *get_repeated_field_metadata_v3() const { return nullptr; }
-  virtual size_t get_repeated_field_count_v3() const { return 0; }
+  // Metadata getters - must be implemented by derived classes
+  virtual const FieldMeta *get_field_metadata() const { return nullptr; }
+  virtual size_t get_field_count() const { return 0; }
+  virtual const RepeatedFieldMeta *get_repeated_field_metadata() const { return nullptr; }
+  virtual size_t get_repeated_field_count() const { return 0; }
 
   // Encode/decode/calculate_size using V2 metadata (will check for V3 first)
   void encode(ProtoWriteBuffer buffer) const;

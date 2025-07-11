@@ -9,78 +9,23 @@
 namespace esphome {
 namespace api {
 
-#ifdef USE_BINARY_SENSOR
-#endif
-#ifdef USE_COVER
-#endif
-#ifdef USE_FAN
-#endif
-#ifdef USE_LIGHT
-#endif
-#ifdef USE_SENSOR
-#endif
-#ifdef USE_SWITCH
-#endif
-#ifdef USE_TEXT_SENSOR
-#endif
-#ifdef USE_API_NOISE
-#endif
-#ifdef USE_CAMERA
-#endif
-#ifdef USE_CLIMATE
-#endif
-#ifdef USE_NUMBER
-#endif
-#ifdef USE_SELECT
-#endif
-#ifdef USE_SIREN
-#endif
-#ifdef USE_LOCK
-#endif
-#ifdef USE_BUTTON
-#endif
-#ifdef USE_MEDIA_PLAYER
-#endif
-#ifdef USE_BLUETOOTH_PROXY
-#endif
-#ifdef USE_VOICE_ASSISTANT
-#endif
-#ifdef USE_ALARM_CONTROL_PANEL
-#endif
-#ifdef USE_TEXT
-#endif
-#ifdef USE_DATETIME_DATE
-#endif
-#ifdef USE_DATETIME_TIME
-#endif
-#ifdef USE_EVENT
-#endif
-#ifdef USE_VALVE
-#endif
-#ifdef USE_DATETIME_DATETIME
-#endif
-#ifdef USE_UPDATE
-#endif
-
 // Metadata definitions for classes using metadata approach
-const FieldMetaV3 HelloRequest::FIELDS_V3[3] = {
-    {1, 8, {.offset = PROTO_FIELD_OFFSET(HelloRequest, client_info)}},
-    {2, 2, {.offset = PROTO_FIELD_OFFSET(HelloRequest, api_version_major)}},
-    {3, 2, {.offset = PROTO_FIELD_OFFSET(HelloRequest, api_version_minor)}}};
-const FieldMetaV3 HelloResponse::FIELDS_V3[4] = {
-    {1, 2, {.offset = PROTO_FIELD_OFFSET(HelloResponse, api_version_major)}},
-    {2, 2, {.offset = PROTO_FIELD_OFFSET(HelloResponse, api_version_minor)}},
-    {3, 8, {.offset = PROTO_FIELD_OFFSET(HelloResponse, server_info)}},
-    {4, 8, {.offset = PROTO_FIELD_OFFSET(HelloResponse, name)}}};
-const FieldMetaV3 ConnectRequest::FIELDS_V3[1] = {{1, 8, {.offset = PROTO_FIELD_OFFSET(ConnectRequest, password)}}};
-const FieldMetaV3 ConnectResponse::FIELDS_V3[1] = {
+const FieldMeta HelloRequest::FIELDS[3] = {{1, 8, {.offset = PROTO_FIELD_OFFSET(HelloRequest, client_info)}},
+                                           {2, 2, {.offset = PROTO_FIELD_OFFSET(HelloRequest, api_version_major)}},
+                                           {3, 2, {.offset = PROTO_FIELD_OFFSET(HelloRequest, api_version_minor)}}};
+const FieldMeta HelloResponse::FIELDS[4] = {{1, 2, {.offset = PROTO_FIELD_OFFSET(HelloResponse, api_version_major)}},
+                                            {2, 2, {.offset = PROTO_FIELD_OFFSET(HelloResponse, api_version_minor)}},
+                                            {3, 8, {.offset = PROTO_FIELD_OFFSET(HelloResponse, server_info)}},
+                                            {4, 8, {.offset = PROTO_FIELD_OFFSET(HelloResponse, name)}}};
+const FieldMeta ConnectRequest::FIELDS[1] = {{1, 8, {.offset = PROTO_FIELD_OFFSET(ConnectRequest, password)}}};
+const FieldMeta ConnectResponse::FIELDS[1] = {
     {1, 0, {.offset = PROTO_FIELD_OFFSET(ConnectResponse, invalid_password)}}};
-const FieldMetaV3 AreaInfo::FIELDS_V3[2] = {{1, 2, {.offset = PROTO_FIELD_OFFSET(AreaInfo, area_id)}},
-                                            {2, 8, {.offset = PROTO_FIELD_OFFSET(AreaInfo, name)}}};
-const FieldMetaV3 DeviceInfo::FIELDS_V3[3] = {{1, 2, {.offset = PROTO_FIELD_OFFSET(DeviceInfo, device_id)}},
-                                              {2, 8, {.offset = PROTO_FIELD_OFFSET(DeviceInfo, name)}},
-                                              {3, 2, {.offset = PROTO_FIELD_OFFSET(DeviceInfo, area_id)}}};
-const FieldMetaV3 DeviceInfoResponse::FIELDS_V3[20] = {
+const FieldMeta AreaInfo::FIELDS[2] = {{1, 2, {.offset = PROTO_FIELD_OFFSET(AreaInfo, area_id)}},
+                                       {2, 8, {.offset = PROTO_FIELD_OFFSET(AreaInfo, name)}}};
+const FieldMeta DeviceInfo::FIELDS[3] = {{1, 2, {.offset = PROTO_FIELD_OFFSET(DeviceInfo, device_id)}},
+                                         {2, 8, {.offset = PROTO_FIELD_OFFSET(DeviceInfo, name)}},
+                                         {3, 2, {.offset = PROTO_FIELD_OFFSET(DeviceInfo, area_id)}}};
+const FieldMeta DeviceInfoResponse::FIELDS[20] = {
     {1, 0, {.offset = PROTO_FIELD_OFFSET(DeviceInfoResponse, uses_password)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(DeviceInfoResponse, name)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(DeviceInfoResponse, mac_address)}},
@@ -104,8 +49,8 @@ const FieldMetaV3 DeviceInfoResponse::FIELDS_V3[20] = {
      42,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(DeviceInfoResponse, area) & 0xFF),
       .message_type_id =
-          static_cast<uint8_t>(((PROTO_FIELD_OFFSET(DeviceInfoResponse, area) >> 8) & 0x03) | (9 << 2))}}};
-const RepeatedFieldMetaV3 DeviceInfoResponse::REPEATED_FIELDS_V3[2] = {
+          static_cast<uint8_t>(((PROTO_FIELD_OFFSET(DeviceInfoResponse, area) >> 8) & 0x03) | (0 << 2))}}};
+const RepeatedFieldMeta DeviceInfoResponse::REPEATED_FIELDS[2] = {
     {20,
      42,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(DeviceInfoResponse, devices) & 0xFF),
@@ -117,7 +62,7 @@ const RepeatedFieldMetaV3 DeviceInfoResponse::REPEATED_FIELDS_V3[2] = {
       .message_type_id =
           static_cast<uint8_t>(((PROTO_FIELD_OFFSET(DeviceInfoResponse, areas) >> 8) & 0x03) | (1 << 2))}}};
 #ifdef USE_BINARY_SENSOR
-const FieldMetaV3 ListEntitiesBinarySensorResponse::FIELDS_V3[10] = {
+const FieldMeta ListEntitiesBinarySensorResponse::FIELDS[10] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesBinarySensorResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesBinarySensorResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesBinarySensorResponse, name)}},
@@ -128,14 +73,14 @@ const FieldMetaV3 ListEntitiesBinarySensorResponse::FIELDS_V3[10] = {
     {8, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesBinarySensorResponse, icon)}},
     {9, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesBinarySensorResponse, entity_category)}},
     {10, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesBinarySensorResponse, device_id)}}};
-const FieldMetaV3 BinarySensorStateResponse::FIELDS_V3[4] = {
+const FieldMeta BinarySensorStateResponse::FIELDS[4] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(BinarySensorStateResponse, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(BinarySensorStateResponse, state)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(BinarySensorStateResponse, missing_state)}},
     {4, 2, {.offset = PROTO_FIELD_OFFSET(BinarySensorStateResponse, device_id)}}};
 #endif
 #ifdef USE_COVER
-const FieldMetaV3 ListEntitiesCoverResponse::FIELDS_V3[13] = {
+const FieldMeta ListEntitiesCoverResponse::FIELDS[13] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCoverResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCoverResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCoverResponse, name)}},
@@ -149,14 +94,14 @@ const FieldMetaV3 ListEntitiesCoverResponse::FIELDS_V3[13] = {
     {11, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCoverResponse, entity_category)}},
     {12, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCoverResponse, supports_stop)}},
     {13, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCoverResponse, device_id)}}};
-const FieldMetaV3 CoverStateResponse::FIELDS_V3[6] = {
+const FieldMeta CoverStateResponse::FIELDS[6] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(CoverStateResponse, key)}},
     {2, 7, {.offset = PROTO_FIELD_OFFSET(CoverStateResponse, legacy_state)}},
     {3, 11, {.offset = PROTO_FIELD_OFFSET(CoverStateResponse, position)}},
     {4, 11, {.offset = PROTO_FIELD_OFFSET(CoverStateResponse, tilt)}},
     {5, 7, {.offset = PROTO_FIELD_OFFSET(CoverStateResponse, current_operation)}},
     {6, 2, {.offset = PROTO_FIELD_OFFSET(CoverStateResponse, device_id)}}};
-const FieldMetaV3 CoverCommandRequest::FIELDS_V3[8] = {
+const FieldMeta CoverCommandRequest::FIELDS[8] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(CoverCommandRequest, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(CoverCommandRequest, has_legacy_command)}},
     {3, 7, {.offset = PROTO_FIELD_OFFSET(CoverCommandRequest, legacy_command)}},
@@ -167,7 +112,7 @@ const FieldMetaV3 CoverCommandRequest::FIELDS_V3[8] = {
     {8, 0, {.offset = PROTO_FIELD_OFFSET(CoverCommandRequest, stop)}}};
 #endif
 #ifdef USE_FAN
-const FieldMetaV3 ListEntitiesFanResponse::FIELDS_V3[12] = {
+const FieldMeta ListEntitiesFanResponse::FIELDS[12] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesFanResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesFanResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesFanResponse, name)}},
@@ -180,18 +125,17 @@ const FieldMetaV3 ListEntitiesFanResponse::FIELDS_V3[12] = {
     {10, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesFanResponse, icon)}},
     {11, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesFanResponse, entity_category)}},
     {13, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesFanResponse, device_id)}}};
-const RepeatedFieldMetaV3 ListEntitiesFanResponse::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta ListEntitiesFanResponse::REPEATED_FIELDS[1] = {
     {12, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesFanResponse, supported_preset_modes)}}};
-const FieldMetaV3 FanStateResponse::FIELDS_V3[8] = {
-    {1, 12, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, key)}},
-    {2, 0, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, state)}},
-    {3, 0, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, oscillating)}},
-    {4, 7, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, speed)}},
-    {5, 7, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, direction)}},
-    {6, 1, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, speed_level)}},
-    {7, 8, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, preset_mode)}},
-    {8, 2, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, device_id)}}};
-const FieldMetaV3 FanCommandRequest::FIELDS_V3[13] = {
+const FieldMeta FanStateResponse::FIELDS[8] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, key)}},
+                                               {2, 0, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, state)}},
+                                               {3, 0, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, oscillating)}},
+                                               {4, 7, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, speed)}},
+                                               {5, 7, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, direction)}},
+                                               {6, 1, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, speed_level)}},
+                                               {7, 8, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, preset_mode)}},
+                                               {8, 2, {.offset = PROTO_FIELD_OFFSET(FanStateResponse, device_id)}}};
+const FieldMeta FanCommandRequest::FIELDS[13] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(FanCommandRequest, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(FanCommandRequest, has_state)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(FanCommandRequest, state)}},
@@ -207,7 +151,7 @@ const FieldMetaV3 FanCommandRequest::FIELDS_V3[13] = {
     {13, 8, {.offset = PROTO_FIELD_OFFSET(FanCommandRequest, preset_mode)}}};
 #endif
 #ifdef USE_LIGHT
-const FieldMetaV3 ListEntitiesLightResponse::FIELDS_V3[14] = {
+const FieldMeta ListEntitiesLightResponse::FIELDS[14] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLightResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLightResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLightResponse, name)}},
@@ -222,10 +166,10 @@ const FieldMetaV3 ListEntitiesLightResponse::FIELDS_V3[14] = {
     {14, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLightResponse, icon)}},
     {15, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLightResponse, entity_category)}},
     {16, 34, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLightResponse, device_id)}}};
-const RepeatedFieldMetaV3 ListEntitiesLightResponse::REPEATED_FIELDS_V3[2] = {
+const RepeatedFieldMeta ListEntitiesLightResponse::REPEATED_FIELDS[2] = {
     {12, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLightResponse, supported_color_modes)}},
     {11, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLightResponse, effects)}}};
-const FieldMetaV3 LightStateResponse::FIELDS_V3[14] = {
+const FieldMeta LightStateResponse::FIELDS[14] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(LightStateResponse, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(LightStateResponse, state)}},
     {3, 11, {.offset = PROTO_FIELD_OFFSET(LightStateResponse, brightness)}},
@@ -240,7 +184,7 @@ const FieldMetaV3 LightStateResponse::FIELDS_V3[14] = {
     {13, 11, {.offset = PROTO_FIELD_OFFSET(LightStateResponse, warm_white)}},
     {9, 8, {.offset = PROTO_FIELD_OFFSET(LightStateResponse, effect)}},
     {14, 2, {.offset = PROTO_FIELD_OFFSET(LightStateResponse, device_id)}}};
-const FieldMetaV3 LightCommandRequest::FIELDS_V3[27] = {
+const FieldMeta LightCommandRequest::FIELDS[27] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(LightCommandRequest, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(LightCommandRequest, has_state)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(LightCommandRequest, state)}},
@@ -270,7 +214,7 @@ const FieldMetaV3 LightCommandRequest::FIELDS_V3[27] = {
     {19, 40, {.offset = PROTO_FIELD_OFFSET(LightCommandRequest, effect)}}};
 #endif
 #ifdef USE_SENSOR
-const FieldMetaV3 ListEntitiesSensorResponse::FIELDS_V3[14] = {
+const FieldMeta ListEntitiesSensorResponse::FIELDS[14] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSensorResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSensorResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSensorResponse, name)}},
@@ -285,14 +229,14 @@ const FieldMetaV3 ListEntitiesSensorResponse::FIELDS_V3[14] = {
     {12, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSensorResponse, disabled_by_default)}},
     {13, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSensorResponse, entity_category)}},
     {14, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSensorResponse, device_id)}}};
-const FieldMetaV3 SensorStateResponse::FIELDS_V3[4] = {
+const FieldMeta SensorStateResponse::FIELDS[4] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(SensorStateResponse, key)}},
     {2, 11, {.offset = PROTO_FIELD_OFFSET(SensorStateResponse, state)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(SensorStateResponse, missing_state)}},
     {4, 2, {.offset = PROTO_FIELD_OFFSET(SensorStateResponse, device_id)}}};
 #endif
 #ifdef USE_SWITCH
-const FieldMetaV3 ListEntitiesSwitchResponse::FIELDS_V3[10] = {
+const FieldMeta ListEntitiesSwitchResponse::FIELDS[10] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSwitchResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSwitchResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSwitchResponse, name)}},
@@ -303,16 +247,15 @@ const FieldMetaV3 ListEntitiesSwitchResponse::FIELDS_V3[10] = {
     {8, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSwitchResponse, entity_category)}},
     {9, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSwitchResponse, device_class)}},
     {10, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSwitchResponse, device_id)}}};
-const FieldMetaV3 SwitchStateResponse::FIELDS_V3[3] = {
+const FieldMeta SwitchStateResponse::FIELDS[3] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(SwitchStateResponse, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(SwitchStateResponse, state)}},
     {3, 2, {.offset = PROTO_FIELD_OFFSET(SwitchStateResponse, device_id)}}};
-const FieldMetaV3 SwitchCommandRequest::FIELDS_V3[2] = {
-    {1, 12, {.offset = PROTO_FIELD_OFFSET(SwitchCommandRequest, key)}},
-    {2, 0, {.offset = PROTO_FIELD_OFFSET(SwitchCommandRequest, state)}}};
+const FieldMeta SwitchCommandRequest::FIELDS[2] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(SwitchCommandRequest, key)}},
+                                                   {2, 0, {.offset = PROTO_FIELD_OFFSET(SwitchCommandRequest, state)}}};
 #endif
 #ifdef USE_TEXT_SENSOR
-const FieldMetaV3 ListEntitiesTextSensorResponse::FIELDS_V3[9] = {
+const FieldMeta ListEntitiesTextSensorResponse::FIELDS[9] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTextSensorResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTextSensorResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTextSensorResponse, name)}},
@@ -322,32 +265,32 @@ const FieldMetaV3 ListEntitiesTextSensorResponse::FIELDS_V3[9] = {
     {7, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTextSensorResponse, entity_category)}},
     {8, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTextSensorResponse, device_class)}},
     {9, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTextSensorResponse, device_id)}}};
-const FieldMetaV3 TextSensorStateResponse::FIELDS_V3[4] = {
+const FieldMeta TextSensorStateResponse::FIELDS[4] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(TextSensorStateResponse, key)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(TextSensorStateResponse, state)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(TextSensorStateResponse, missing_state)}},
     {4, 2, {.offset = PROTO_FIELD_OFFSET(TextSensorStateResponse, device_id)}}};
 #endif
-const FieldMetaV3 SubscribeLogsRequest::FIELDS_V3[2] = {
+const FieldMeta SubscribeLogsRequest::FIELDS[2] = {
     {1, 7, {.offset = PROTO_FIELD_OFFSET(SubscribeLogsRequest, level)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(SubscribeLogsRequest, dump_config)}}};
-const FieldMetaV3 SubscribeLogsResponse::FIELDS_V3[3] = {
+const FieldMeta SubscribeLogsResponse::FIELDS[3] = {
     {1, 7, {.offset = PROTO_FIELD_OFFSET(SubscribeLogsResponse, level)}},
     {3, 9, {.offset = PROTO_FIELD_OFFSET(SubscribeLogsResponse, message)}},
     {4, 0, {.offset = PROTO_FIELD_OFFSET(SubscribeLogsResponse, send_failed)}}};
 #ifdef USE_API_NOISE
-const FieldMetaV3 NoiseEncryptionSetKeyRequest::FIELDS_V3[1] = {
+const FieldMeta NoiseEncryptionSetKeyRequest::FIELDS[1] = {
     {1, 9, {.offset = PROTO_FIELD_OFFSET(NoiseEncryptionSetKeyRequest, key)}}};
-const FieldMetaV3 NoiseEncryptionSetKeyResponse::FIELDS_V3[1] = {
+const FieldMeta NoiseEncryptionSetKeyResponse::FIELDS[1] = {
     {1, 0, {.offset = PROTO_FIELD_OFFSET(NoiseEncryptionSetKeyResponse, success)}}};
 #endif
-const FieldMetaV3 HomeassistantServiceMap::FIELDS_V3[2] = {
+const FieldMeta HomeassistantServiceMap::FIELDS[2] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(HomeassistantServiceMap, key)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(HomeassistantServiceMap, value)}}};
-const FieldMetaV3 HomeassistantServiceResponse::FIELDS_V3[2] = {
+const FieldMeta HomeassistantServiceResponse::FIELDS[2] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(HomeassistantServiceResponse, service)}},
     {5, 0, {.offset = PROTO_FIELD_OFFSET(HomeassistantServiceResponse, is_event)}}};
-const RepeatedFieldMetaV3 HomeassistantServiceResponse::REPEATED_FIELDS_V3[3] = {
+const RepeatedFieldMeta HomeassistantServiceResponse::REPEATED_FIELDS[3] = {
     {2,
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(HomeassistantServiceResponse, data) & 0xFF),
@@ -363,49 +306,48 @@ const RepeatedFieldMetaV3 HomeassistantServiceResponse::REPEATED_FIELDS_V3[3] = 
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(HomeassistantServiceResponse, variables) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
           ((PROTO_FIELD_OFFSET(HomeassistantServiceResponse, variables) >> 8) & 0x03) | (2 << 2))}}};
-const FieldMetaV3 SubscribeHomeAssistantStateResponse::FIELDS_V3[3] = {
+const FieldMeta SubscribeHomeAssistantStateResponse::FIELDS[3] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(SubscribeHomeAssistantStateResponse, entity_id)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(SubscribeHomeAssistantStateResponse, attribute)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(SubscribeHomeAssistantStateResponse, once)}}};
-const FieldMetaV3 HomeAssistantStateResponse::FIELDS_V3[3] = {
+const FieldMeta HomeAssistantStateResponse::FIELDS[3] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(HomeAssistantStateResponse, entity_id)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(HomeAssistantStateResponse, state)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(HomeAssistantStateResponse, attribute)}}};
-const FieldMetaV3 GetTimeResponse::FIELDS_V3[1] = {
-    {1, 12, {.offset = PROTO_FIELD_OFFSET(GetTimeResponse, epoch_seconds)}}};
-const FieldMetaV3 ListEntitiesServicesArgument::FIELDS_V3[2] = {
+const FieldMeta GetTimeResponse::FIELDS[1] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(GetTimeResponse, epoch_seconds)}}};
+const FieldMeta ListEntitiesServicesArgument::FIELDS[2] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesServicesArgument, name)}},
     {2, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesServicesArgument, type)}}};
-const FieldMetaV3 ListEntitiesServicesResponse::FIELDS_V3[2] = {
+const FieldMeta ListEntitiesServicesResponse::FIELDS[2] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesServicesResponse, name)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesServicesResponse, key)}}};
-const RepeatedFieldMetaV3 ListEntitiesServicesResponse::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta ListEntitiesServicesResponse::REPEATED_FIELDS[1] = {
     {3,
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(ListEntitiesServicesResponse, args) & 0xFF),
       .message_type_id =
           static_cast<uint8_t>(((PROTO_FIELD_OFFSET(ListEntitiesServicesResponse, args) >> 8) & 0x03) | (3 << 2))}}};
-const FieldMetaV3 ExecuteServiceArgument::FIELDS_V3[5] = {
+const FieldMeta ExecuteServiceArgument::FIELDS[5] = {
     {1, 0, {.offset = PROTO_FIELD_OFFSET(ExecuteServiceArgument, bool_)}},
     {2, 1, {.offset = PROTO_FIELD_OFFSET(ExecuteServiceArgument, legacy_int)}},
     {3, 11, {.offset = PROTO_FIELD_OFFSET(ExecuteServiceArgument, float_)}},
     {4, 8, {.offset = PROTO_FIELD_OFFSET(ExecuteServiceArgument, string_)}},
     {5, 5, {.offset = PROTO_FIELD_OFFSET(ExecuteServiceArgument, int_)}}};
-const RepeatedFieldMetaV3 ExecuteServiceArgument::REPEATED_FIELDS_V3[4] = {
+const RepeatedFieldMeta ExecuteServiceArgument::REPEATED_FIELDS[4] = {
     {6, 0, {.offset = PROTO_FIELD_OFFSET(ExecuteServiceArgument, bool_array)}},
     {7, 5, {.offset = PROTO_FIELD_OFFSET(ExecuteServiceArgument, int_array)}},
     {8, 11, {.offset = PROTO_FIELD_OFFSET(ExecuteServiceArgument, float_array)}},
     {9, 8, {.offset = PROTO_FIELD_OFFSET(ExecuteServiceArgument, string_array)}}};
-const FieldMetaV3 ExecuteServiceRequest::FIELDS_V3[1] = {
+const FieldMeta ExecuteServiceRequest::FIELDS[1] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(ExecuteServiceRequest, key)}}};
-const RepeatedFieldMetaV3 ExecuteServiceRequest::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta ExecuteServiceRequest::REPEATED_FIELDS[1] = {
     {2,
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(ExecuteServiceRequest, args) & 0xFF),
       .message_type_id =
           static_cast<uint8_t>(((PROTO_FIELD_OFFSET(ExecuteServiceRequest, args) >> 8) & 0x03) | (4 << 2))}}};
 #ifdef USE_CAMERA
-const FieldMetaV3 ListEntitiesCameraResponse::FIELDS_V3[8] = {
+const FieldMeta ListEntitiesCameraResponse::FIELDS[8] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCameraResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCameraResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCameraResponse, name)}},
@@ -414,16 +356,14 @@ const FieldMetaV3 ListEntitiesCameraResponse::FIELDS_V3[8] = {
     {6, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCameraResponse, icon)}},
     {7, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCameraResponse, entity_category)}},
     {8, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesCameraResponse, device_id)}}};
-const FieldMetaV3 CameraImageResponse::FIELDS_V3[3] = {
-    {1, 12, {.offset = PROTO_FIELD_OFFSET(CameraImageResponse, key)}},
-    {2, 9, {.offset = PROTO_FIELD_OFFSET(CameraImageResponse, data)}},
-    {3, 0, {.offset = PROTO_FIELD_OFFSET(CameraImageResponse, done)}}};
-const FieldMetaV3 CameraImageRequest::FIELDS_V3[2] = {
-    {1, 0, {.offset = PROTO_FIELD_OFFSET(CameraImageRequest, single)}},
-    {2, 0, {.offset = PROTO_FIELD_OFFSET(CameraImageRequest, stream)}}};
+const FieldMeta CameraImageResponse::FIELDS[3] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(CameraImageResponse, key)}},
+                                                  {2, 9, {.offset = PROTO_FIELD_OFFSET(CameraImageResponse, data)}},
+                                                  {3, 0, {.offset = PROTO_FIELD_OFFSET(CameraImageResponse, done)}}};
+const FieldMeta CameraImageRequest::FIELDS[2] = {{1, 0, {.offset = PROTO_FIELD_OFFSET(CameraImageRequest, single)}},
+                                                 {2, 0, {.offset = PROTO_FIELD_OFFSET(CameraImageRequest, stream)}}};
 #endif
 #ifdef USE_CLIMATE
-const FieldMetaV3 ListEntitiesClimateResponse::FIELDS_V3[20] = {
+const FieldMeta ListEntitiesClimateResponse::FIELDS[20] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, name)}},
@@ -444,14 +384,14 @@ const FieldMetaV3 ListEntitiesClimateResponse::FIELDS_V3[20] = {
     {24, 43, {.offset = PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, visual_min_humidity)}},
     {25, 43, {.offset = PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, visual_max_humidity)}},
     {26, 34, {.offset = PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, device_id)}}};
-const RepeatedFieldMetaV3 ListEntitiesClimateResponse::REPEATED_FIELDS_V3[6] = {
+const RepeatedFieldMeta ListEntitiesClimateResponse::REPEATED_FIELDS[6] = {
     {7, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_modes)}},
     {13, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_fan_modes)}},
     {14, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_swing_modes)}},
     {15, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_custom_fan_modes)}},
     {16, 39, {.offset = PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_presets)}},
     {17, 40, {.offset = PROTO_FIELD_OFFSET(ListEntitiesClimateResponse, supported_custom_presets)}}};
-const FieldMetaV3 ClimateStateResponse::FIELDS_V3[16] = {
+const FieldMeta ClimateStateResponse::FIELDS[16] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(ClimateStateResponse, key)}},
     {2, 7, {.offset = PROTO_FIELD_OFFSET(ClimateStateResponse, mode)}},
     {3, 11, {.offset = PROTO_FIELD_OFFSET(ClimateStateResponse, current_temperature)}},
@@ -468,7 +408,7 @@ const FieldMetaV3 ClimateStateResponse::FIELDS_V3[16] = {
     {14, 11, {.offset = PROTO_FIELD_OFFSET(ClimateStateResponse, current_humidity)}},
     {15, 11, {.offset = PROTO_FIELD_OFFSET(ClimateStateResponse, target_humidity)}},
     {16, 34, {.offset = PROTO_FIELD_OFFSET(ClimateStateResponse, device_id)}}};
-const FieldMetaV3 ClimateCommandRequest::FIELDS_V3[23] = {
+const FieldMeta ClimateCommandRequest::FIELDS[23] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(ClimateCommandRequest, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(ClimateCommandRequest, has_mode)}},
     {3, 7, {.offset = PROTO_FIELD_OFFSET(ClimateCommandRequest, mode)}},
@@ -494,7 +434,7 @@ const FieldMetaV3 ClimateCommandRequest::FIELDS_V3[23] = {
     {23, 43, {.offset = PROTO_FIELD_OFFSET(ClimateCommandRequest, target_humidity)}}};
 #endif
 #ifdef USE_NUMBER
-const FieldMetaV3 ListEntitiesNumberResponse::FIELDS_V3[14] = {
+const FieldMeta ListEntitiesNumberResponse::FIELDS[14] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesNumberResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesNumberResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesNumberResponse, name)}},
@@ -509,17 +449,17 @@ const FieldMetaV3 ListEntitiesNumberResponse::FIELDS_V3[14] = {
     {12, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesNumberResponse, mode)}},
     {13, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesNumberResponse, device_class)}},
     {14, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesNumberResponse, device_id)}}};
-const FieldMetaV3 NumberStateResponse::FIELDS_V3[4] = {
+const FieldMeta NumberStateResponse::FIELDS[4] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(NumberStateResponse, key)}},
     {2, 11, {.offset = PROTO_FIELD_OFFSET(NumberStateResponse, state)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(NumberStateResponse, missing_state)}},
     {4, 2, {.offset = PROTO_FIELD_OFFSET(NumberStateResponse, device_id)}}};
-const FieldMetaV3 NumberCommandRequest::FIELDS_V3[2] = {
+const FieldMeta NumberCommandRequest::FIELDS[2] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(NumberCommandRequest, key)}},
     {2, 11, {.offset = PROTO_FIELD_OFFSET(NumberCommandRequest, state)}}};
 #endif
 #ifdef USE_SELECT
-const FieldMetaV3 ListEntitiesSelectResponse::FIELDS_V3[8] = {
+const FieldMeta ListEntitiesSelectResponse::FIELDS[8] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSelectResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSelectResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSelectResponse, name)}},
@@ -528,19 +468,18 @@ const FieldMetaV3 ListEntitiesSelectResponse::FIELDS_V3[8] = {
     {7, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSelectResponse, disabled_by_default)}},
     {8, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSelectResponse, entity_category)}},
     {9, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSelectResponse, device_id)}}};
-const RepeatedFieldMetaV3 ListEntitiesSelectResponse::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta ListEntitiesSelectResponse::REPEATED_FIELDS[1] = {
     {6, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSelectResponse, options)}}};
-const FieldMetaV3 SelectStateResponse::FIELDS_V3[4] = {
+const FieldMeta SelectStateResponse::FIELDS[4] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(SelectStateResponse, key)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(SelectStateResponse, state)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(SelectStateResponse, missing_state)}},
     {4, 2, {.offset = PROTO_FIELD_OFFSET(SelectStateResponse, device_id)}}};
-const FieldMetaV3 SelectCommandRequest::FIELDS_V3[2] = {
-    {1, 12, {.offset = PROTO_FIELD_OFFSET(SelectCommandRequest, key)}},
-    {2, 8, {.offset = PROTO_FIELD_OFFSET(SelectCommandRequest, state)}}};
+const FieldMeta SelectCommandRequest::FIELDS[2] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(SelectCommandRequest, key)}},
+                                                   {2, 8, {.offset = PROTO_FIELD_OFFSET(SelectCommandRequest, state)}}};
 #endif
 #ifdef USE_SIREN
-const FieldMetaV3 ListEntitiesSirenResponse::FIELDS_V3[10] = {
+const FieldMeta ListEntitiesSirenResponse::FIELDS[10] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSirenResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSirenResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSirenResponse, name)}},
@@ -551,13 +490,12 @@ const FieldMetaV3 ListEntitiesSirenResponse::FIELDS_V3[10] = {
     {9, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSirenResponse, supports_volume)}},
     {10, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSirenResponse, entity_category)}},
     {11, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSirenResponse, device_id)}}};
-const RepeatedFieldMetaV3 ListEntitiesSirenResponse::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta ListEntitiesSirenResponse::REPEATED_FIELDS[1] = {
     {7, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesSirenResponse, tones)}}};
-const FieldMetaV3 SirenStateResponse::FIELDS_V3[3] = {
-    {1, 12, {.offset = PROTO_FIELD_OFFSET(SirenStateResponse, key)}},
-    {2, 0, {.offset = PROTO_FIELD_OFFSET(SirenStateResponse, state)}},
-    {3, 2, {.offset = PROTO_FIELD_OFFSET(SirenStateResponse, device_id)}}};
-const FieldMetaV3 SirenCommandRequest::FIELDS_V3[9] = {
+const FieldMeta SirenStateResponse::FIELDS[3] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(SirenStateResponse, key)}},
+                                                 {2, 0, {.offset = PROTO_FIELD_OFFSET(SirenStateResponse, state)}},
+                                                 {3, 2, {.offset = PROTO_FIELD_OFFSET(SirenStateResponse, device_id)}}};
+const FieldMeta SirenCommandRequest::FIELDS[9] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(SirenCommandRequest, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(SirenCommandRequest, has_state)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(SirenCommandRequest, state)}},
@@ -569,7 +507,7 @@ const FieldMetaV3 SirenCommandRequest::FIELDS_V3[9] = {
     {9, 11, {.offset = PROTO_FIELD_OFFSET(SirenCommandRequest, volume)}}};
 #endif
 #ifdef USE_LOCK
-const FieldMetaV3 ListEntitiesLockResponse::FIELDS_V3[12] = {
+const FieldMeta ListEntitiesLockResponse::FIELDS[12] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLockResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLockResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLockResponse, name)}},
@@ -582,18 +520,16 @@ const FieldMetaV3 ListEntitiesLockResponse::FIELDS_V3[12] = {
     {10, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLockResponse, requires_code)}},
     {11, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLockResponse, code_format)}},
     {12, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesLockResponse, device_id)}}};
-const FieldMetaV3 LockStateResponse::FIELDS_V3[3] = {
-    {1, 12, {.offset = PROTO_FIELD_OFFSET(LockStateResponse, key)}},
-    {2, 7, {.offset = PROTO_FIELD_OFFSET(LockStateResponse, state)}},
-    {3, 2, {.offset = PROTO_FIELD_OFFSET(LockStateResponse, device_id)}}};
-const FieldMetaV3 LockCommandRequest::FIELDS_V3[4] = {
-    {1, 12, {.offset = PROTO_FIELD_OFFSET(LockCommandRequest, key)}},
-    {2, 7, {.offset = PROTO_FIELD_OFFSET(LockCommandRequest, command)}},
-    {3, 0, {.offset = PROTO_FIELD_OFFSET(LockCommandRequest, has_code)}},
-    {4, 8, {.offset = PROTO_FIELD_OFFSET(LockCommandRequest, code)}}};
+const FieldMeta LockStateResponse::FIELDS[3] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(LockStateResponse, key)}},
+                                                {2, 7, {.offset = PROTO_FIELD_OFFSET(LockStateResponse, state)}},
+                                                {3, 2, {.offset = PROTO_FIELD_OFFSET(LockStateResponse, device_id)}}};
+const FieldMeta LockCommandRequest::FIELDS[4] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(LockCommandRequest, key)}},
+                                                 {2, 7, {.offset = PROTO_FIELD_OFFSET(LockCommandRequest, command)}},
+                                                 {3, 0, {.offset = PROTO_FIELD_OFFSET(LockCommandRequest, has_code)}},
+                                                 {4, 8, {.offset = PROTO_FIELD_OFFSET(LockCommandRequest, code)}}};
 #endif
 #ifdef USE_BUTTON
-const FieldMetaV3 ListEntitiesButtonResponse::FIELDS_V3[9] = {
+const FieldMeta ListEntitiesButtonResponse::FIELDS[9] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesButtonResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesButtonResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesButtonResponse, name)}},
@@ -603,17 +539,16 @@ const FieldMetaV3 ListEntitiesButtonResponse::FIELDS_V3[9] = {
     {7, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesButtonResponse, entity_category)}},
     {8, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesButtonResponse, device_class)}},
     {9, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesButtonResponse, device_id)}}};
-const FieldMetaV3 ButtonCommandRequest::FIELDS_V3[1] = {
-    {1, 12, {.offset = PROTO_FIELD_OFFSET(ButtonCommandRequest, key)}}};
+const FieldMeta ButtonCommandRequest::FIELDS[1] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(ButtonCommandRequest, key)}}};
 #endif
 #ifdef USE_MEDIA_PLAYER
-const FieldMetaV3 MediaPlayerSupportedFormat::FIELDS_V3[5] = {
+const FieldMeta MediaPlayerSupportedFormat::FIELDS[5] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(MediaPlayerSupportedFormat, format)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(MediaPlayerSupportedFormat, sample_rate)}},
     {3, 2, {.offset = PROTO_FIELD_OFFSET(MediaPlayerSupportedFormat, num_channels)}},
     {4, 7, {.offset = PROTO_FIELD_OFFSET(MediaPlayerSupportedFormat, purpose)}},
     {5, 2, {.offset = PROTO_FIELD_OFFSET(MediaPlayerSupportedFormat, sample_bytes)}}};
-const FieldMetaV3 ListEntitiesMediaPlayerResponse::FIELDS_V3[9] = {
+const FieldMeta ListEntitiesMediaPlayerResponse::FIELDS[9] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, name)}},
@@ -623,19 +558,19 @@ const FieldMetaV3 ListEntitiesMediaPlayerResponse::FIELDS_V3[9] = {
     {7, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, entity_category)}},
     {8, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, supports_pause)}},
     {10, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, device_id)}}};
-const RepeatedFieldMetaV3 ListEntitiesMediaPlayerResponse::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta ListEntitiesMediaPlayerResponse::REPEATED_FIELDS[1] = {
     {9,
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, supported_formats) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
           ((PROTO_FIELD_OFFSET(ListEntitiesMediaPlayerResponse, supported_formats) >> 8) & 0x03) | (5 << 2))}}};
-const FieldMetaV3 MediaPlayerStateResponse::FIELDS_V3[5] = {
+const FieldMeta MediaPlayerStateResponse::FIELDS[5] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(MediaPlayerStateResponse, key)}},
     {2, 7, {.offset = PROTO_FIELD_OFFSET(MediaPlayerStateResponse, state)}},
     {3, 11, {.offset = PROTO_FIELD_OFFSET(MediaPlayerStateResponse, volume)}},
     {4, 0, {.offset = PROTO_FIELD_OFFSET(MediaPlayerStateResponse, muted)}},
     {5, 2, {.offset = PROTO_FIELD_OFFSET(MediaPlayerStateResponse, device_id)}}};
-const FieldMetaV3 MediaPlayerCommandRequest::FIELDS_V3[9] = {
+const FieldMeta MediaPlayerCommandRequest::FIELDS[9] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, has_command)}},
     {3, 7, {.offset = PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, command)}},
@@ -647,19 +582,18 @@ const FieldMetaV3 MediaPlayerCommandRequest::FIELDS_V3[9] = {
     {9, 0, {.offset = PROTO_FIELD_OFFSET(MediaPlayerCommandRequest, announcement)}}};
 #endif
 #ifdef USE_BLUETOOTH_PROXY
-const FieldMetaV3 SubscribeBluetoothLEAdvertisementsRequest::FIELDS_V3[1] = {
+const FieldMeta SubscribeBluetoothLEAdvertisementsRequest::FIELDS[1] = {
     {1, 2, {.offset = PROTO_FIELD_OFFSET(SubscribeBluetoothLEAdvertisementsRequest, flags)}}};
-const FieldMetaV3 BluetoothServiceData::FIELDS_V3[2] = {
-    {1, 8, {.offset = PROTO_FIELD_OFFSET(BluetoothServiceData, uuid)}},
-    {3, 9, {.offset = PROTO_FIELD_OFFSET(BluetoothServiceData, data)}}};
-const RepeatedFieldMetaV3 BluetoothServiceData::REPEATED_FIELDS_V3[1] = {
+const FieldMeta BluetoothServiceData::FIELDS[2] = {{1, 8, {.offset = PROTO_FIELD_OFFSET(BluetoothServiceData, uuid)}},
+                                                   {3, 9, {.offset = PROTO_FIELD_OFFSET(BluetoothServiceData, data)}}};
+const RepeatedFieldMeta BluetoothServiceData::REPEATED_FIELDS[1] = {
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothServiceData, legacy_data)}}};
-const FieldMetaV3 BluetoothLEAdvertisementResponse::FIELDS_V3[4] = {
+const FieldMeta BluetoothLEAdvertisementResponse::FIELDS[4] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, address)}},
     {2, 9, {.offset = PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, name)}},
     {3, 5, {.offset = PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, rssi)}},
     {7, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, address_type)}}};
-const RepeatedFieldMetaV3 BluetoothLEAdvertisementResponse::REPEATED_FIELDS_V3[3] = {
+const RepeatedFieldMeta BluetoothLEAdvertisementResponse::REPEATED_FIELDS[3] = {
     {4, 8, {.offset = PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, service_uuids)}},
     {5,
      10,
@@ -672,180 +606,179 @@ const RepeatedFieldMetaV3 BluetoothLEAdvertisementResponse::REPEATED_FIELDS_V3[3
           static_cast<uint8_t>(PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, manufacturer_data) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
           ((PROTO_FIELD_OFFSET(BluetoothLEAdvertisementResponse, manufacturer_data) >> 8) & 0x03) | (6 << 2))}}};
-const FieldMetaV3 BluetoothLERawAdvertisement::FIELDS_V3[4] = {
+const FieldMeta BluetoothLERawAdvertisement::FIELDS[4] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothLERawAdvertisement, address)}},
     {2, 5, {.offset = PROTO_FIELD_OFFSET(BluetoothLERawAdvertisement, rssi)}},
     {3, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothLERawAdvertisement, address_type)}},
     {4, 9, {.offset = PROTO_FIELD_OFFSET(BluetoothLERawAdvertisement, data)}}};
-const RepeatedFieldMetaV3 BluetoothLERawAdvertisementsResponse::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta BluetoothLERawAdvertisementsResponse::REPEATED_FIELDS[1] = {
     {1,
      10,
      {.offset_low =
           static_cast<uint8_t>(PROTO_FIELD_OFFSET(BluetoothLERawAdvertisementsResponse, advertisements) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
           ((PROTO_FIELD_OFFSET(BluetoothLERawAdvertisementsResponse, advertisements) >> 8) & 0x03) | (7 << 2))}}};
-const FieldMetaV3 BluetoothDeviceRequest::FIELDS_V3[4] = {
+const FieldMeta BluetoothDeviceRequest::FIELDS[4] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceRequest, address)}},
     {2, 7, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceRequest, request_type)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceRequest, has_address_type)}},
     {4, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceRequest, address_type)}}};
-const FieldMetaV3 BluetoothDeviceConnectionResponse::FIELDS_V3[4] = {
+const FieldMeta BluetoothDeviceConnectionResponse::FIELDS[4] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceConnectionResponse, address)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceConnectionResponse, connected)}},
     {3, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceConnectionResponse, mtu)}},
     {4, 1, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceConnectionResponse, error)}}};
-const FieldMetaV3 BluetoothGATTGetServicesRequest::FIELDS_V3[1] = {
+const FieldMeta BluetoothGATTGetServicesRequest::FIELDS[1] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTGetServicesRequest, address)}}};
-const FieldMetaV3 BluetoothGATTDescriptor::FIELDS_V3[1] = {
+const FieldMeta BluetoothGATTDescriptor::FIELDS[1] = {
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTDescriptor, handle)}}};
-const RepeatedFieldMetaV3 BluetoothGATTDescriptor::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta BluetoothGATTDescriptor::REPEATED_FIELDS[1] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTDescriptor, uuid)}}};
-const FieldMetaV3 BluetoothGATTCharacteristic::FIELDS_V3[2] = {
+const FieldMeta BluetoothGATTCharacteristic::FIELDS[2] = {
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, handle)}},
     {3, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, properties)}}};
-const RepeatedFieldMetaV3 BluetoothGATTCharacteristic::REPEATED_FIELDS_V3[2] = {
+const RepeatedFieldMeta BluetoothGATTCharacteristic::REPEATED_FIELDS[2] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, uuid)}},
     {4,
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, descriptors) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
           ((PROTO_FIELD_OFFSET(BluetoothGATTCharacteristic, descriptors) >> 8) & 0x03) | (8 << 2))}}};
-const FieldMetaV3 BluetoothGATTService::FIELDS_V3[1] = {
+const FieldMeta BluetoothGATTService::FIELDS[1] = {
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTService, handle)}}};
-const RepeatedFieldMetaV3 BluetoothGATTService::REPEATED_FIELDS_V3[2] = {
+const RepeatedFieldMeta BluetoothGATTService::REPEATED_FIELDS[2] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTService, uuid)}},
     {3,
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(BluetoothGATTService, characteristics) & 0xFF),
       .message_type_id =
           static_cast<uint8_t>(((PROTO_FIELD_OFFSET(BluetoothGATTService, characteristics) >> 8) & 0x03) | (9 << 2))}}};
-const FieldMetaV3 BluetoothGATTGetServicesResponse::FIELDS_V3[1] = {
+const FieldMeta BluetoothGATTGetServicesResponse::FIELDS[1] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTGetServicesResponse, address)}}};
-const RepeatedFieldMetaV3 BluetoothGATTGetServicesResponse::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta BluetoothGATTGetServicesResponse::REPEATED_FIELDS[1] = {
     {2,
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(BluetoothGATTGetServicesResponse, services) & 0xFF),
       .message_type_id = static_cast<uint8_t>(
           ((PROTO_FIELD_OFFSET(BluetoothGATTGetServicesResponse, services) >> 8) & 0x03) | (10 << 2))}}};
-const FieldMetaV3 BluetoothGATTGetServicesDoneResponse::FIELDS_V3[1] = {
+const FieldMeta BluetoothGATTGetServicesDoneResponse::FIELDS[1] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTGetServicesDoneResponse, address)}}};
-const FieldMetaV3 BluetoothGATTReadRequest::FIELDS_V3[2] = {
+const FieldMeta BluetoothGATTReadRequest::FIELDS[2] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTReadRequest, address)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTReadRequest, handle)}}};
-const FieldMetaV3 BluetoothGATTReadResponse::FIELDS_V3[3] = {
+const FieldMeta BluetoothGATTReadResponse::FIELDS[3] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTReadResponse, address)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTReadResponse, handle)}},
     {3, 9, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTReadResponse, data)}}};
-const FieldMetaV3 BluetoothGATTWriteRequest::FIELDS_V3[4] = {
+const FieldMeta BluetoothGATTWriteRequest::FIELDS[4] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTWriteRequest, address)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTWriteRequest, handle)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTWriteRequest, response)}},
     {4, 9, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTWriteRequest, data)}}};
-const FieldMetaV3 BluetoothGATTReadDescriptorRequest::FIELDS_V3[2] = {
+const FieldMeta BluetoothGATTReadDescriptorRequest::FIELDS[2] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTReadDescriptorRequest, address)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTReadDescriptorRequest, handle)}}};
-const FieldMetaV3 BluetoothGATTWriteDescriptorRequest::FIELDS_V3[3] = {
+const FieldMeta BluetoothGATTWriteDescriptorRequest::FIELDS[3] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTWriteDescriptorRequest, address)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTWriteDescriptorRequest, handle)}},
     {3, 9, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTWriteDescriptorRequest, data)}}};
-const FieldMetaV3 BluetoothGATTNotifyRequest::FIELDS_V3[3] = {
+const FieldMeta BluetoothGATTNotifyRequest::FIELDS[3] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTNotifyRequest, address)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTNotifyRequest, handle)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTNotifyRequest, enable)}}};
-const FieldMetaV3 BluetoothGATTNotifyDataResponse::FIELDS_V3[3] = {
+const FieldMeta BluetoothGATTNotifyDataResponse::FIELDS[3] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTNotifyDataResponse, address)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTNotifyDataResponse, handle)}},
     {3, 9, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTNotifyDataResponse, data)}}};
-const FieldMetaV3 BluetoothConnectionsFreeResponse::FIELDS_V3[2] = {
+const FieldMeta BluetoothConnectionsFreeResponse::FIELDS[2] = {
     {1, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothConnectionsFreeResponse, free)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothConnectionsFreeResponse, limit)}}};
-const RepeatedFieldMetaV3 BluetoothConnectionsFreeResponse::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta BluetoothConnectionsFreeResponse::REPEATED_FIELDS[1] = {
     {3, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothConnectionsFreeResponse, allocated)}}};
-const FieldMetaV3 BluetoothGATTErrorResponse::FIELDS_V3[3] = {
+const FieldMeta BluetoothGATTErrorResponse::FIELDS[3] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTErrorResponse, address)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTErrorResponse, handle)}},
     {3, 1, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTErrorResponse, error)}}};
-const FieldMetaV3 BluetoothGATTWriteResponse::FIELDS_V3[2] = {
+const FieldMeta BluetoothGATTWriteResponse::FIELDS[2] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTWriteResponse, address)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTWriteResponse, handle)}}};
-const FieldMetaV3 BluetoothGATTNotifyResponse::FIELDS_V3[2] = {
+const FieldMeta BluetoothGATTNotifyResponse::FIELDS[2] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTNotifyResponse, address)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(BluetoothGATTNotifyResponse, handle)}}};
-const FieldMetaV3 BluetoothDevicePairingResponse::FIELDS_V3[3] = {
+const FieldMeta BluetoothDevicePairingResponse::FIELDS[3] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothDevicePairingResponse, address)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(BluetoothDevicePairingResponse, paired)}},
     {3, 1, {.offset = PROTO_FIELD_OFFSET(BluetoothDevicePairingResponse, error)}}};
-const FieldMetaV3 BluetoothDeviceUnpairingResponse::FIELDS_V3[3] = {
+const FieldMeta BluetoothDeviceUnpairingResponse::FIELDS[3] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceUnpairingResponse, address)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceUnpairingResponse, success)}},
     {3, 1, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceUnpairingResponse, error)}}};
-const FieldMetaV3 BluetoothDeviceClearCacheResponse::FIELDS_V3[3] = {
+const FieldMeta BluetoothDeviceClearCacheResponse::FIELDS[3] = {
     {1, 4, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceClearCacheResponse, address)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceClearCacheResponse, success)}},
     {3, 1, {.offset = PROTO_FIELD_OFFSET(BluetoothDeviceClearCacheResponse, error)}}};
-const FieldMetaV3 BluetoothScannerStateResponse::FIELDS_V3[2] = {
+const FieldMeta BluetoothScannerStateResponse::FIELDS[2] = {
     {1, 7, {.offset = PROTO_FIELD_OFFSET(BluetoothScannerStateResponse, state)}},
     {2, 7, {.offset = PROTO_FIELD_OFFSET(BluetoothScannerStateResponse, mode)}}};
-const FieldMetaV3 BluetoothScannerSetModeRequest::FIELDS_V3[1] = {
+const FieldMeta BluetoothScannerSetModeRequest::FIELDS[1] = {
     {1, 7, {.offset = PROTO_FIELD_OFFSET(BluetoothScannerSetModeRequest, mode)}}};
 #endif
 #ifdef USE_VOICE_ASSISTANT
-const FieldMetaV3 SubscribeVoiceAssistantRequest::FIELDS_V3[2] = {
+const FieldMeta SubscribeVoiceAssistantRequest::FIELDS[2] = {
     {1, 0, {.offset = PROTO_FIELD_OFFSET(SubscribeVoiceAssistantRequest, subscribe)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(SubscribeVoiceAssistantRequest, flags)}}};
-const FieldMetaV3 VoiceAssistantAudioSettings::FIELDS_V3[3] = {
+const FieldMeta VoiceAssistantAudioSettings::FIELDS[3] = {
     {1, 2, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAudioSettings, noise_suppression_level)}},
     {2, 2, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAudioSettings, auto_gain)}},
     {3, 11, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAudioSettings, volume_multiplier)}}};
-const FieldMetaV3 VoiceAssistantRequest::FIELDS_V3[5] = {
+const FieldMeta VoiceAssistantRequest::FIELDS[5] = {
     {1, 0, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantRequest, start)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantRequest, conversation_id)}},
     {3, 2, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantRequest, flags)}},
     {4,
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(VoiceAssistantRequest, audio_settings) & 0xFF),
-      .message_type_id = static_cast<uint8_t>(
-          ((PROTO_FIELD_OFFSET(VoiceAssistantRequest, audio_settings) >> 8) & 0x03) | (105 << 2))}},
+      .message_type_id =
+          static_cast<uint8_t>(((PROTO_FIELD_OFFSET(VoiceAssistantRequest, audio_settings) >> 8) & 0x03) | (1 << 2))}},
     {5, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantRequest, wake_word_phrase)}}};
-const FieldMetaV3 VoiceAssistantResponse::FIELDS_V3[2] = {
+const FieldMeta VoiceAssistantResponse::FIELDS[2] = {
     {1, 2, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantResponse, port)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantResponse, error)}}};
-const FieldMetaV3 VoiceAssistantEventData::FIELDS_V3[2] = {
+const FieldMeta VoiceAssistantEventData::FIELDS[2] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantEventData, name)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantEventData, value)}}};
-const FieldMetaV3 VoiceAssistantEventResponse::FIELDS_V3[1] = {
+const FieldMeta VoiceAssistantEventResponse::FIELDS[1] = {
     {1, 7, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantEventResponse, event_type)}}};
-const RepeatedFieldMetaV3 VoiceAssistantEventResponse::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta VoiceAssistantEventResponse::REPEATED_FIELDS[1] = {
     {2,
      10,
      {.offset_low = static_cast<uint8_t>(PROTO_FIELD_OFFSET(VoiceAssistantEventResponse, data) & 0xFF),
       .message_type_id =
           static_cast<uint8_t>(((PROTO_FIELD_OFFSET(VoiceAssistantEventResponse, data) >> 8) & 0x03) | (11 << 2))}}};
-const FieldMetaV3 VoiceAssistantAudio::FIELDS_V3[2] = {
-    {1, 9, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAudio, data)}},
-    {2, 0, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAudio, end)}}};
-const FieldMetaV3 VoiceAssistantTimerEventResponse::FIELDS_V3[6] = {
+const FieldMeta VoiceAssistantAudio::FIELDS[2] = {{1, 9, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAudio, data)}},
+                                                  {2, 0, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAudio, end)}}};
+const FieldMeta VoiceAssistantTimerEventResponse::FIELDS[6] = {
     {1, 7, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantTimerEventResponse, event_type)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantTimerEventResponse, timer_id)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantTimerEventResponse, name)}},
     {4, 2, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantTimerEventResponse, total_seconds)}},
     {5, 2, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantTimerEventResponse, seconds_left)}},
     {6, 0, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantTimerEventResponse, is_active)}}};
-const FieldMetaV3 VoiceAssistantAnnounceRequest::FIELDS_V3[4] = {
+const FieldMeta VoiceAssistantAnnounceRequest::FIELDS[4] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAnnounceRequest, media_id)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAnnounceRequest, text)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAnnounceRequest, preannounce_media_id)}},
     {4, 0, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAnnounceRequest, start_conversation)}}};
-const FieldMetaV3 VoiceAssistantAnnounceFinished::FIELDS_V3[1] = {
+const FieldMeta VoiceAssistantAnnounceFinished::FIELDS[1] = {
     {1, 0, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantAnnounceFinished, success)}}};
-const FieldMetaV3 VoiceAssistantWakeWord::FIELDS_V3[2] = {
+const FieldMeta VoiceAssistantWakeWord::FIELDS[2] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantWakeWord, id)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantWakeWord, wake_word)}}};
-const RepeatedFieldMetaV3 VoiceAssistantWakeWord::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta VoiceAssistantWakeWord::REPEATED_FIELDS[1] = {
     {3, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantWakeWord, trained_languages)}}};
-const FieldMetaV3 VoiceAssistantConfigurationResponse::FIELDS_V3[1] = {
+const FieldMeta VoiceAssistantConfigurationResponse::FIELDS[1] = {
     {3, 2, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, max_active_wake_words)}}};
-const RepeatedFieldMetaV3 VoiceAssistantConfigurationResponse::REPEATED_FIELDS_V3[2] = {
+const RepeatedFieldMeta VoiceAssistantConfigurationResponse::REPEATED_FIELDS[2] = {
     {1,
      10,
      {.offset_low =
@@ -853,11 +786,11 @@ const RepeatedFieldMetaV3 VoiceAssistantConfigurationResponse::REPEATED_FIELDS_V
       .message_type_id = static_cast<uint8_t>(
           ((PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, available_wake_words) >> 8) & 0x03) | (12 << 2))}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantConfigurationResponse, active_wake_words)}}};
-const RepeatedFieldMetaV3 VoiceAssistantSetConfiguration::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta VoiceAssistantSetConfiguration::REPEATED_FIELDS[1] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(VoiceAssistantSetConfiguration, active_wake_words)}}};
 #endif
 #ifdef USE_ALARM_CONTROL_PANEL
-const FieldMetaV3 ListEntitiesAlarmControlPanelResponse::FIELDS_V3[11] = {
+const FieldMeta ListEntitiesAlarmControlPanelResponse::FIELDS[11] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesAlarmControlPanelResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesAlarmControlPanelResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesAlarmControlPanelResponse, name)}},
@@ -869,17 +802,17 @@ const FieldMetaV3 ListEntitiesAlarmControlPanelResponse::FIELDS_V3[11] = {
     {9, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesAlarmControlPanelResponse, requires_code)}},
     {10, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesAlarmControlPanelResponse, requires_code_to_arm)}},
     {11, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesAlarmControlPanelResponse, device_id)}}};
-const FieldMetaV3 AlarmControlPanelStateResponse::FIELDS_V3[3] = {
+const FieldMeta AlarmControlPanelStateResponse::FIELDS[3] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(AlarmControlPanelStateResponse, key)}},
     {2, 7, {.offset = PROTO_FIELD_OFFSET(AlarmControlPanelStateResponse, state)}},
     {3, 2, {.offset = PROTO_FIELD_OFFSET(AlarmControlPanelStateResponse, device_id)}}};
-const FieldMetaV3 AlarmControlPanelCommandRequest::FIELDS_V3[3] = {
+const FieldMeta AlarmControlPanelCommandRequest::FIELDS[3] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(AlarmControlPanelCommandRequest, key)}},
     {2, 7, {.offset = PROTO_FIELD_OFFSET(AlarmControlPanelCommandRequest, command)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(AlarmControlPanelCommandRequest, code)}}};
 #endif
 #ifdef USE_TEXT
-const FieldMetaV3 ListEntitiesTextResponse::FIELDS_V3[12] = {
+const FieldMeta ListEntitiesTextResponse::FIELDS[12] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTextResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTextResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTextResponse, name)}},
@@ -892,17 +825,16 @@ const FieldMetaV3 ListEntitiesTextResponse::FIELDS_V3[12] = {
     {10, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTextResponse, pattern)}},
     {11, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTextResponse, mode)}},
     {12, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTextResponse, device_id)}}};
-const FieldMetaV3 TextStateResponse::FIELDS_V3[4] = {
+const FieldMeta TextStateResponse::FIELDS[4] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(TextStateResponse, key)}},
     {2, 8, {.offset = PROTO_FIELD_OFFSET(TextStateResponse, state)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(TextStateResponse, missing_state)}},
     {4, 2, {.offset = PROTO_FIELD_OFFSET(TextStateResponse, device_id)}}};
-const FieldMetaV3 TextCommandRequest::FIELDS_V3[2] = {
-    {1, 12, {.offset = PROTO_FIELD_OFFSET(TextCommandRequest, key)}},
-    {2, 8, {.offset = PROTO_FIELD_OFFSET(TextCommandRequest, state)}}};
+const FieldMeta TextCommandRequest::FIELDS[2] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(TextCommandRequest, key)}},
+                                                 {2, 8, {.offset = PROTO_FIELD_OFFSET(TextCommandRequest, state)}}};
 #endif
 #ifdef USE_DATETIME_DATE
-const FieldMetaV3 ListEntitiesDateResponse::FIELDS_V3[8] = {
+const FieldMeta ListEntitiesDateResponse::FIELDS[8] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesDateResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesDateResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesDateResponse, name)}},
@@ -911,20 +843,20 @@ const FieldMetaV3 ListEntitiesDateResponse::FIELDS_V3[8] = {
     {6, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesDateResponse, disabled_by_default)}},
     {7, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesDateResponse, entity_category)}},
     {8, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesDateResponse, device_id)}}};
-const FieldMetaV3 DateStateResponse::FIELDS_V3[6] = {
+const FieldMeta DateStateResponse::FIELDS[6] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(DateStateResponse, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(DateStateResponse, missing_state)}},
     {3, 2, {.offset = PROTO_FIELD_OFFSET(DateStateResponse, year)}},
     {4, 2, {.offset = PROTO_FIELD_OFFSET(DateStateResponse, month)}},
     {5, 2, {.offset = PROTO_FIELD_OFFSET(DateStateResponse, day)}},
     {6, 2, {.offset = PROTO_FIELD_OFFSET(DateStateResponse, device_id)}}};
-const FieldMetaV3 DateCommandRequest::FIELDS_V3[4] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(DateCommandRequest, key)}},
-                                                      {2, 2, {.offset = PROTO_FIELD_OFFSET(DateCommandRequest, year)}},
-                                                      {3, 2, {.offset = PROTO_FIELD_OFFSET(DateCommandRequest, month)}},
-                                                      {4, 2, {.offset = PROTO_FIELD_OFFSET(DateCommandRequest, day)}}};
+const FieldMeta DateCommandRequest::FIELDS[4] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(DateCommandRequest, key)}},
+                                                 {2, 2, {.offset = PROTO_FIELD_OFFSET(DateCommandRequest, year)}},
+                                                 {3, 2, {.offset = PROTO_FIELD_OFFSET(DateCommandRequest, month)}},
+                                                 {4, 2, {.offset = PROTO_FIELD_OFFSET(DateCommandRequest, day)}}};
 #endif
 #ifdef USE_DATETIME_TIME
-const FieldMetaV3 ListEntitiesTimeResponse::FIELDS_V3[8] = {
+const FieldMeta ListEntitiesTimeResponse::FIELDS[8] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTimeResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTimeResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTimeResponse, name)}},
@@ -933,21 +865,20 @@ const FieldMetaV3 ListEntitiesTimeResponse::FIELDS_V3[8] = {
     {6, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTimeResponse, disabled_by_default)}},
     {7, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTimeResponse, entity_category)}},
     {8, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesTimeResponse, device_id)}}};
-const FieldMetaV3 TimeStateResponse::FIELDS_V3[6] = {
+const FieldMeta TimeStateResponse::FIELDS[6] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(TimeStateResponse, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(TimeStateResponse, missing_state)}},
     {3, 2, {.offset = PROTO_FIELD_OFFSET(TimeStateResponse, hour)}},
     {4, 2, {.offset = PROTO_FIELD_OFFSET(TimeStateResponse, minute)}},
     {5, 2, {.offset = PROTO_FIELD_OFFSET(TimeStateResponse, second)}},
     {6, 2, {.offset = PROTO_FIELD_OFFSET(TimeStateResponse, device_id)}}};
-const FieldMetaV3 TimeCommandRequest::FIELDS_V3[4] = {
-    {1, 12, {.offset = PROTO_FIELD_OFFSET(TimeCommandRequest, key)}},
-    {2, 2, {.offset = PROTO_FIELD_OFFSET(TimeCommandRequest, hour)}},
-    {3, 2, {.offset = PROTO_FIELD_OFFSET(TimeCommandRequest, minute)}},
-    {4, 2, {.offset = PROTO_FIELD_OFFSET(TimeCommandRequest, second)}}};
+const FieldMeta TimeCommandRequest::FIELDS[4] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(TimeCommandRequest, key)}},
+                                                 {2, 2, {.offset = PROTO_FIELD_OFFSET(TimeCommandRequest, hour)}},
+                                                 {3, 2, {.offset = PROTO_FIELD_OFFSET(TimeCommandRequest, minute)}},
+                                                 {4, 2, {.offset = PROTO_FIELD_OFFSET(TimeCommandRequest, second)}}};
 #endif
 #ifdef USE_EVENT
-const FieldMetaV3 ListEntitiesEventResponse::FIELDS_V3[9] = {
+const FieldMeta ListEntitiesEventResponse::FIELDS[9] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesEventResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesEventResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesEventResponse, name)}},
@@ -957,14 +888,14 @@ const FieldMetaV3 ListEntitiesEventResponse::FIELDS_V3[9] = {
     {7, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesEventResponse, entity_category)}},
     {8, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesEventResponse, device_class)}},
     {10, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesEventResponse, device_id)}}};
-const RepeatedFieldMetaV3 ListEntitiesEventResponse::REPEATED_FIELDS_V3[1] = {
+const RepeatedFieldMeta ListEntitiesEventResponse::REPEATED_FIELDS[1] = {
     {9, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesEventResponse, event_types)}}};
-const FieldMetaV3 EventResponse::FIELDS_V3[3] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(EventResponse, key)}},
-                                                 {2, 8, {.offset = PROTO_FIELD_OFFSET(EventResponse, event_type)}},
-                                                 {3, 2, {.offset = PROTO_FIELD_OFFSET(EventResponse, device_id)}}};
+const FieldMeta EventResponse::FIELDS[3] = {{1, 12, {.offset = PROTO_FIELD_OFFSET(EventResponse, key)}},
+                                            {2, 8, {.offset = PROTO_FIELD_OFFSET(EventResponse, event_type)}},
+                                            {3, 2, {.offset = PROTO_FIELD_OFFSET(EventResponse, device_id)}}};
 #endif
 #ifdef USE_VALVE
-const FieldMetaV3 ListEntitiesValveResponse::FIELDS_V3[12] = {
+const FieldMeta ListEntitiesValveResponse::FIELDS[12] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesValveResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesValveResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesValveResponse, name)}},
@@ -977,19 +908,19 @@ const FieldMetaV3 ListEntitiesValveResponse::FIELDS_V3[12] = {
     {10, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesValveResponse, supports_position)}},
     {11, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesValveResponse, supports_stop)}},
     {12, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesValveResponse, device_id)}}};
-const FieldMetaV3 ValveStateResponse::FIELDS_V3[4] = {
+const FieldMeta ValveStateResponse::FIELDS[4] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(ValveStateResponse, key)}},
     {2, 11, {.offset = PROTO_FIELD_OFFSET(ValveStateResponse, position)}},
     {3, 7, {.offset = PROTO_FIELD_OFFSET(ValveStateResponse, current_operation)}},
     {4, 2, {.offset = PROTO_FIELD_OFFSET(ValveStateResponse, device_id)}}};
-const FieldMetaV3 ValveCommandRequest::FIELDS_V3[4] = {
+const FieldMeta ValveCommandRequest::FIELDS[4] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(ValveCommandRequest, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(ValveCommandRequest, has_position)}},
     {3, 11, {.offset = PROTO_FIELD_OFFSET(ValveCommandRequest, position)}},
     {4, 0, {.offset = PROTO_FIELD_OFFSET(ValveCommandRequest, stop)}}};
 #endif
 #ifdef USE_DATETIME_DATETIME
-const FieldMetaV3 ListEntitiesDateTimeResponse::FIELDS_V3[8] = {
+const FieldMeta ListEntitiesDateTimeResponse::FIELDS[8] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesDateTimeResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesDateTimeResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesDateTimeResponse, name)}},
@@ -998,17 +929,17 @@ const FieldMetaV3 ListEntitiesDateTimeResponse::FIELDS_V3[8] = {
     {6, 0, {.offset = PROTO_FIELD_OFFSET(ListEntitiesDateTimeResponse, disabled_by_default)}},
     {7, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesDateTimeResponse, entity_category)}},
     {8, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesDateTimeResponse, device_id)}}};
-const FieldMetaV3 DateTimeStateResponse::FIELDS_V3[4] = {
+const FieldMeta DateTimeStateResponse::FIELDS[4] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(DateTimeStateResponse, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(DateTimeStateResponse, missing_state)}},
     {3, 12, {.offset = PROTO_FIELD_OFFSET(DateTimeStateResponse, epoch_seconds)}},
     {4, 2, {.offset = PROTO_FIELD_OFFSET(DateTimeStateResponse, device_id)}}};
-const FieldMetaV3 DateTimeCommandRequest::FIELDS_V3[2] = {
+const FieldMeta DateTimeCommandRequest::FIELDS[2] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(DateTimeCommandRequest, key)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(DateTimeCommandRequest, epoch_seconds)}}};
 #endif
 #ifdef USE_UPDATE
-const FieldMetaV3 ListEntitiesUpdateResponse::FIELDS_V3[9] = {
+const FieldMeta ListEntitiesUpdateResponse::FIELDS[9] = {
     {1, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesUpdateResponse, object_id)}},
     {2, 12, {.offset = PROTO_FIELD_OFFSET(ListEntitiesUpdateResponse, key)}},
     {3, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesUpdateResponse, name)}},
@@ -1018,7 +949,7 @@ const FieldMetaV3 ListEntitiesUpdateResponse::FIELDS_V3[9] = {
     {7, 7, {.offset = PROTO_FIELD_OFFSET(ListEntitiesUpdateResponse, entity_category)}},
     {8, 8, {.offset = PROTO_FIELD_OFFSET(ListEntitiesUpdateResponse, device_class)}},
     {9, 2, {.offset = PROTO_FIELD_OFFSET(ListEntitiesUpdateResponse, device_id)}}};
-const FieldMetaV3 UpdateStateResponse::FIELDS_V3[11] = {
+const FieldMeta UpdateStateResponse::FIELDS[11] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(UpdateStateResponse, key)}},
     {2, 0, {.offset = PROTO_FIELD_OFFSET(UpdateStateResponse, missing_state)}},
     {3, 0, {.offset = PROTO_FIELD_OFFSET(UpdateStateResponse, in_progress)}},
@@ -1030,160 +961,21 @@ const FieldMetaV3 UpdateStateResponse::FIELDS_V3[11] = {
     {9, 8, {.offset = PROTO_FIELD_OFFSET(UpdateStateResponse, release_summary)}},
     {10, 8, {.offset = PROTO_FIELD_OFFSET(UpdateStateResponse, release_url)}},
     {11, 2, {.offset = PROTO_FIELD_OFFSET(UpdateStateResponse, device_id)}}};
-const FieldMetaV3 UpdateCommandRequest::FIELDS_V3[2] = {
+const FieldMeta UpdateCommandRequest::FIELDS[2] = {
     {1, 12, {.offset = PROTO_FIELD_OFFSET(UpdateCommandRequest, key)}},
     {2, 7, {.offset = PROTO_FIELD_OFFSET(UpdateCommandRequest, command)}}};
 #endif
 
-// Message handler registries for V3
-const MessageHandler MESSAGE_HANDLERS[141] = {
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {&encode_message_field<AreaInfo>, &size_message_field<AreaInfo>, &decode_message_field<AreaInfo>},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
+// Message handler registries
+const MessageHandler MESSAGE_HANDLERS[2] = {
 #ifdef USE_VOICE_ASSISTANT
     {&encode_message_field<VoiceAssistantAudioSettings>, &size_message_field<VoiceAssistantAudioSettings>,
      &decode_message_field<VoiceAssistantAudioSettings>},
 #else
     {nullptr, nullptr, nullptr},
 #endif
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr},
-    {nullptr, nullptr, nullptr}};
-const size_t MESSAGE_HANDLER_COUNT = 141;
+};
+const size_t MESSAGE_HANDLER_COUNT = 2;
 
 const RepeatedMessageHandler REPEATED_MESSAGE_HANDLERS[13] = {
     {&encode_repeated_message_field<DeviceInfo>, &size_repeated_message_field<DeviceInfo>,
