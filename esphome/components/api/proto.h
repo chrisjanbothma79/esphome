@@ -132,6 +132,9 @@ class ProtoVarInt {
   uint64_t value_;
 };
 
+// Forward declaration for decode_to_message and encode_to_writer
+class ProtoMessage;
+
 class ProtoLengthDelimited {
  public:
   explicit ProtoLengthDelimited(const uint8_t *value, size_t length) : value_(value), length_(length) {}
@@ -188,9 +191,6 @@ class Proto64Bit {
  protected:
   const uint64_t value_;
 };
-
-// Forward declaration needed for method declaration
-class ProtoMessage;
 
 class ProtoWriteBuffer {
  public:
