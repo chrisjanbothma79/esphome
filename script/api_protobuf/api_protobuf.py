@@ -502,7 +502,19 @@ class MessageType(TypeInfo):
 
     @property
     def decode_length(self) -> str:
-        return f"value.as_message<{self.cpp_type}>()"
+        # For non-template decoding, we need to handle this differently
+        return None
+
+    @property
+    def decode_length_content(self) -> str:
+        # Custom decode that doesn't use templates
+        return dedent(
+            f"""\
+        case {self.number}: {{
+          value.decode_to_message(this->{self.field_name});
+          return true;
+        }}"""
+        )
 
     def dump(self, name: str) -> str:
         o = f"{name}.dump_to(out);"
@@ -731,6 +743,16 @@ class RepeatedTypeInfo(TypeInfo):
     @property
     def decode_length_content(self) -> str:
         content = self._ti.decode_length
+        if content is None and isinstance(self._ti, MessageType):
+            # Special handling for non-template message decoding
+            return dedent(
+                f"""\
+        case {self.number}: {{
+          this->{self.field_name}.emplace_back();
+          value.decode_to_message(this->{self.field_name}.back());
+          return true;
+        }}"""
+            )
         if content is None:
             return None
         return dedent(

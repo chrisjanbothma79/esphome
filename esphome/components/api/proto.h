@@ -133,15 +133,16 @@ class ProtoVarInt {
   uint64_t value_;
 };
 
+// Forward declaration for decode_to_message
+class ProtoMessage;
+
 class ProtoLengthDelimited {
  public:
   explicit ProtoLengthDelimited(const uint8_t *value, size_t length) : value_(value), length_(length) {}
   std::string as_string() const { return std::string(reinterpret_cast<const char *>(this->value_), this->length_); }
-  template<class C> C as_message() const {
-    auto msg = C();
-    msg.decode(this->value_, this->length_);
-    return msg;
-  }
+
+  // Non-template method to decode into an existing message instance
+  void decode_to_message(ProtoMessage &msg) const;
 
  protected:
   const uint8_t *const value_;
@@ -350,6 +351,11 @@ inline void ProtoWriteBuffer::encode_message(uint32_t field_id, const ProtoMessa
   std::vector<uint8_t> var;
   ProtoVarInt(nested_length).encode(var);
   this->buffer_->insert(this->buffer_->begin() + begin, var.begin(), var.end());
+}
+
+// Implementation of decode_to_message - must be after ProtoMessage is defined
+inline void ProtoLengthDelimited::decode_to_message(ProtoMessage &msg) const {
+  msg.decode(this->value_, this->length_);
 }
 
 template<typename T> const char *proto_enum_to_string(T value);

@@ -257,15 +257,17 @@ bool DeviceInfoResponse::decode_length(uint32_t field_id, ProtoLengthDelimited v
       return true;
     }
     case 20: {
-      this->devices.push_back(value.as_message<DeviceInfo>());
+      this->devices.emplace_back();
+      value.decode_to_message(this->devices.back());
       return true;
     }
     case 21: {
-      this->areas.push_back(value.as_message<AreaInfo>());
+      this->areas.emplace_back();
+      value.decode_to_message(this->areas.back());
       return true;
     }
     case 22: {
-      this->area = value.as_message<AreaInfo>();
+      value.decode_to_message(this->area);
       return true;
     }
     default:
@@ -1935,15 +1937,18 @@ bool HomeassistantServiceResponse::decode_length(uint32_t field_id, ProtoLengthD
       return true;
     }
     case 2: {
-      this->data.push_back(value.as_message<HomeassistantServiceMap>());
+      this->data.emplace_back();
+      value.decode_to_message(this->data.back());
       return true;
     }
     case 3: {
-      this->data_template.push_back(value.as_message<HomeassistantServiceMap>());
+      this->data_template.emplace_back();
+      value.decode_to_message(this->data_template.back());
       return true;
     }
     case 4: {
-      this->variables.push_back(value.as_message<HomeassistantServiceMap>());
+      this->variables.emplace_back();
+      value.decode_to_message(this->variables.back());
       return true;
     }
     default:
@@ -2081,7 +2086,8 @@ bool ListEntitiesServicesResponse::decode_length(uint32_t field_id, ProtoLengthD
       return true;
     }
     case 3: {
-      this->args.push_back(value.as_message<ListEntitiesServicesArgument>());
+      this->args.emplace_back();
+      value.decode_to_message(this->args.back());
       return true;
     }
     default:
@@ -2213,7 +2219,8 @@ void ExecuteServiceArgument::calculate_size(uint32_t &total_size) const {
 bool ExecuteServiceRequest::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 2: {
-      this->args.push_back(value.as_message<ExecuteServiceArgument>());
+      this->args.emplace_back();
+      value.decode_to_message(this->args.back());
       return true;
     }
     default:
@@ -3820,7 +3827,8 @@ bool ListEntitiesMediaPlayerResponse::decode_length(uint32_t field_id, ProtoLeng
       return true;
     }
     case 9: {
-      this->supported_formats.push_back(value.as_message<MediaPlayerSupportedFormat>());
+      this->supported_formats.emplace_back();
+      value.decode_to_message(this->supported_formats.back());
       return true;
     }
     default:
@@ -4078,11 +4086,13 @@ bool BluetoothLEAdvertisementResponse::decode_length(uint32_t field_id, ProtoLen
       return true;
     }
     case 5: {
-      this->service_data.push_back(value.as_message<BluetoothServiceData>());
+      this->service_data.emplace_back();
+      value.decode_to_message(this->service_data.back());
       return true;
     }
     case 6: {
-      this->manufacturer_data.push_back(value.as_message<BluetoothServiceData>());
+      this->manufacturer_data.emplace_back();
+      value.decode_to_message(this->manufacturer_data.back());
       return true;
     }
     default:
@@ -4160,7 +4170,8 @@ void BluetoothLERawAdvertisement::calculate_size(uint32_t &total_size) const {
 bool BluetoothLERawAdvertisementsResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 1: {
-      this->advertisements.push_back(value.as_message<BluetoothLERawAdvertisement>());
+      this->advertisements.emplace_back();
+      value.decode_to_message(this->advertisements.back());
       return true;
     }
     default:
@@ -4306,7 +4317,8 @@ bool BluetoothGATTCharacteristic::decode_varint(uint32_t field_id, ProtoVarInt v
 bool BluetoothGATTCharacteristic::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 4: {
-      this->descriptors.push_back(value.as_message<BluetoothGATTDescriptor>());
+      this->descriptors.emplace_back();
+      value.decode_to_message(this->descriptors.back());
       return true;
     }
     default:
@@ -4350,7 +4362,8 @@ bool BluetoothGATTService::decode_varint(uint32_t field_id, ProtoVarInt value) {
 bool BluetoothGATTService::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 3: {
-      this->characteristics.push_back(value.as_message<BluetoothGATTCharacteristic>());
+      this->characteristics.emplace_back();
+      value.decode_to_message(this->characteristics.back());
       return true;
     }
     default:
@@ -4388,7 +4401,8 @@ bool BluetoothGATTGetServicesResponse::decode_varint(uint32_t field_id, ProtoVar
 bool BluetoothGATTGetServicesResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 2: {
-      this->services.push_back(value.as_message<BluetoothGATTService>());
+      this->services.emplace_back();
+      value.decode_to_message(this->services.back());
       return true;
     }
     default:
@@ -4942,7 +4956,7 @@ bool VoiceAssistantRequest::decode_length(uint32_t field_id, ProtoLengthDelimite
       return true;
     }
     case 4: {
-      this->audio_settings = value.as_message<VoiceAssistantAudioSettings>();
+      value.decode_to_message(this->audio_settings);
       return true;
     }
     case 5: {
@@ -5024,7 +5038,8 @@ bool VoiceAssistantEventResponse::decode_varint(uint32_t field_id, ProtoVarInt v
 bool VoiceAssistantEventResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 2: {
-      this->data.push_back(value.as_message<VoiceAssistantEventData>());
+      this->data.emplace_back();
+      value.decode_to_message(this->data.back());
       return true;
     }
     default:
@@ -5222,7 +5237,8 @@ bool VoiceAssistantConfigurationResponse::decode_varint(uint32_t field_id, Proto
 bool VoiceAssistantConfigurationResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
     case 1: {
-      this->available_wake_words.push_back(value.as_message<VoiceAssistantWakeWord>());
+      this->available_wake_words.emplace_back();
+      value.decode_to_message(this->available_wake_words.back());
       return true;
     }
     case 2: {
