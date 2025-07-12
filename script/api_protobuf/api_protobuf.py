@@ -576,14 +576,18 @@ class EnumType(TypeInfo):
 
     @property
     def decode_varint(self) -> str:
-        return f"value.as_enum<{self.cpp_type}>()"
+        return f"static_cast<{self.cpp_type}>(value.as_uint32())"
 
     default_value = ""
     wire_type = WireType.VARINT  # Uses wire type 0
 
     @property
     def encode_func(self) -> str:
-        return f"encode_enum<{self.cpp_type}>"
+        return "encode_enum_uint32"
+
+    @property
+    def encode_content(self) -> str:
+        return f"buffer.{self.encode_func}({self.number}, static_cast<uint32_t>(this->{self.field_name}));"
 
     def dump(self, name: str) -> str:
         o = f"out.append(proto_enum_to_string<{self.cpp_type}>({name}));"
@@ -771,7 +775,10 @@ class RepeatedTypeInfo(TypeInfo):
     @property
     def encode_content(self) -> str:
         o = f"for (auto {'' if self._ti_is_bool else '&'}it : this->{self.field_name}) {{\n"
-        o += f"  buffer.{self._ti.encode_func}({self.number}, it, true);\n"
+        if isinstance(self._ti, EnumType):
+            o += f"  buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>(it), true);\n"
+        else:
+            o += f"  buffer.{self._ti.encode_func}({self.number}, it, true);\n"
         o += "}"
         return o
 

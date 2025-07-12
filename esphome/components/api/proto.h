@@ -59,7 +59,7 @@ class ProtoVarInt {
   uint32_t as_uint32() const { return this->value_; }
   uint64_t as_uint64() const { return this->value_; }
   bool as_bool() const { return this->value_; }
-  template<typename T> T as_enum() const { return static_cast<T>(this->as_uint32()); }
+  // Removed template as_enum - now use as_uint32() directly with static_cast in generated code
   int32_t as_int32() const {
     // Not ZigZag encoded
     return static_cast<int32_t>(this->as_int64());
@@ -263,8 +263,9 @@ class ProtoWriteBuffer {
     this->write((value >> 48) & 0xFF);
     this->write((value >> 56) & 0xFF);
   }
-  template<typename T> void encode_enum(uint32_t field_id, T value, bool force = false) {
-    this->encode_uint32(field_id, static_cast<uint32_t>(value), force);
+  // Non-template version for enum encoding to reduce flash usage
+  void encode_enum_uint32(uint32_t field_id, uint32_t value, bool force = false) {
+    this->encode_uint32(field_id, value, force);
   }
   void encode_float(uint32_t field_id, float value, bool force = false) {
     if (value == 0.0f && !force)
