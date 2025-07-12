@@ -11,7 +11,8 @@ from esphome.const import (
     UNIT_PERCENT,
 )
 
-from .. import BL0940, CONF_BL0940_ID, bl0940_ns
+from .. import CONF_BL0940_ID, bl0940_ns
+from ..sensor import BL0940
 
 # Define calibration types
 CONF_CURRENT_CALIBRATION = "current_calibration"

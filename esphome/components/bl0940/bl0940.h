@@ -15,13 +15,6 @@
 namespace esphome {
 namespace bl0940 {
 
-// Values according to BL0940 application note:
-// https://www.belling.com.cn/media/file_object/bel_product/BL0940/guide/BL0940_APPNote_TSSOP14_V1.04_EN.pdf
-static const float BL0940_VREF = 1.218;  // Vref = 1.218
-static const float BL0940_RL = 1;        // RL = 1 mΩ
-static const float BL0940_R1 = 0.51;     // R1 = 0.51 kΩ
-static const float BL0940_R2 = 1950;     // R2 = 5 x 390 kΩ -> 1950 kΩ
-
 // Caveat: All these values are big endian (low - middle - high)
 struct DataPacket {
   uint8_t frame_header;    // value of 0x58 according to en docs but 0x55 in cn docs and Tasmota real world tests
@@ -55,38 +48,15 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
     external_temperature_sensor_ = external_temperature_sensor;
   }
 
-  void set_tuya_mode(bool enable) { this->tuya_mode_enabled_ = enable; }
+  void set_legacy_mode(bool enable) { this->legacy_mode_enabled_ = enable; }
 
-  void set_read_command(uint8_t read_command) {
-    this->read_command_ = read_command;
-    this->read_command_set_ = true;
-  }
-  void set_write_command(uint8_t write_command) {
-    this->write_command_ = write_command;
-    this->write_command_set_ = true;
-  }
+  void set_read_command(uint8_t read_command) { this->read_command_ = read_command; }
+  void set_write_command(uint8_t write_command) { this->write_command_ = write_command; }
 
-  void set_reference_voltage(float vref) { this->vref_ = vref; }
-  void set_resistor_shunt(float resistor_shunt) { this->r_shunt_ = resistor_shunt; }
-  void set_resistor_one(float resistor_one) { this->r_one_ = resistor_one; }
-  void set_resistor_two(float resistor_two) { this->r_two_ = resistor_two; }
-
-  void set_current_reference(float current_ref) {
-    this->current_reference_ = current_ref;
-    this->current_reference_set_ = true;
-  }
-  void set_energy_reference(float energy_ref) {
-    this->energy_reference_ = energy_ref;
-    this->energy_reference_set_ = true;
-  }
-  void set_power_reference(float power_ref) {
-    this->power_reference_ = power_ref;
-    this->power_reference_set_ = true;
-  }
-  void set_voltage_reference(float voltage_ref) {
-    this->voltage_reference_ = voltage_ref;
-    this->voltage_reference_set_ = true;
-  }
+  void set_current_reference(float current_ref) { this->current_reference_ = current_ref; }
+  void set_energy_reference(float energy_ref) { this->energy_reference_ = energy_ref; }
+  void set_power_reference(float power_ref) { this->power_reference_ = power_ref; }
+  void set_voltage_reference(float voltage_ref) { this->voltage_reference_ = voltage_ref; }
 
 #ifdef USE_NUMBER
   void set_current_calibration(number::Number *num) { this->current_calibration_ = num; }
@@ -96,7 +66,7 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
 #endif
 
 #ifdef USE_BUTTON
-  void set_reset_calibration_button(button::Button *button) { this->reset_calibration_button_ = button; }
+  void reset_calibration();
 #endif
   void loop() override;
 
@@ -121,40 +91,27 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
   number::Number *power_calibration_{nullptr};
   number::Number *energy_calibration_{nullptr};
 #endif
-#ifdef USE_BUTTON
-  button::Button *reset_calibration_button_{nullptr};
-#endif
+
   // Max difference between two measurements of the temperature. Used to avoid noise.
   float max_temperature_diff_{0};
 
-  bool tuya_mode_enabled_ = true;
+  bool legacy_mode_enabled_ = true;
 
   uint8_t read_command_;
-  bool read_command_set_ = false;
   uint8_t write_command_;
-  bool write_command_set_ = false;
-
-  float vref_ = BL0940_VREF;
-  float r_shunt_ = BL0940_RL;
-  float r_one_ = BL0940_R1;
-  float r_two_ = BL0940_R2;
 
   // Divide by this to turn into Watt
   float power_reference_;
   float power_reference_cal_;
-  bool power_reference_set_ = false;
   // Divide by this to turn into Volt
   float voltage_reference_;
   float voltage_reference_cal_;
-  bool voltage_reference_set_ = false;
   // Divide by this to turn into Ampere
   float current_reference_;
   float current_reference_cal_;
-  bool current_reference_set_ = false;
   // Divide by this to turn into kWh
   float energy_reference_;
   float energy_reference_cal_;
-  bool energy_reference_set_ = false;
 
   float update_temp_(sensor::Sensor *sensor, uint16_le_t packed_temperature) const;
 
@@ -169,10 +126,8 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
   float power_cal_{1};
   float energy_cal_{1};
 
-  float calculate_current_reference_();
   float calculate_energy_reference_();
   float calculate_power_reference_();
-  float calculate_voltage_reference_();
   float calculate_calibration_value_(float state);
 
   void current_calibration_callback_(float state);
