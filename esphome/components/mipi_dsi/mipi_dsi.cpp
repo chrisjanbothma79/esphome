@@ -249,10 +249,10 @@ void MIPI_DSI::dump_config() {
                 "\n  Color Order: %s"
                 "\n  Invert Colors: %s"
                 "\n  Pixel Clock: %dMHz",
-                this->model_, this->width_, this->height_, YESNO(this->madctl_ & MADCTL_MX),
-                YESNO(this->madctl_ & MADCTL_MY), YESNO(this->madctl_ & MADCTL_MV), this->rotation_, this->lanes_,
-                this->lane_bit_rate_, this->hsync_pulse_width_, this->hsync_back_porch_, this->hsync_front_porch_,
-                this->vsync_pulse_width_, this->vsync_back_porch_, this->vsync_front_porch_,
+                this->model_, this->width_, this->height_, YESNO(this->madctl_ & (MADCTL_XFLIP | MADCTL_MX)),
+                YESNO(this->madctl_ & (MADCTL_YFLIP | MADCTL_MY)), YESNO(this->madctl_ & MADCTL_MV), this->rotation_,
+                this->lanes_, this->lane_bit_rate_, this->hsync_pulse_width_, this->hsync_back_porch_,
+                this->hsync_front_porch_, this->vsync_pulse_width_, this->vsync_back_porch_, this->vsync_front_porch_,
                 PIXEL_MODES[this->madctl_ & 0x03], this->madctl_ & MADCTL_BGR ? "BGR" : "RGB",
                 YESNO(this->invert_colors_), this->pclk_frequency_);
   LOG_PIN("  Reset Pin ", this->reset_pin_);

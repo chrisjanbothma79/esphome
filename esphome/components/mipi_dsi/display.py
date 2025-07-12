@@ -40,6 +40,7 @@ from esphome.const import (
     CONF_MIRROR_Y,
     CONF_MODEL,
     CONF_RESET_PIN,
+    CONF_ROTATION,
     CONF_SWAP_XY,
     CONF_TRANSFORM,
     CONF_WIDTH,
@@ -176,7 +177,6 @@ async def to_code(config):
     model = DriverChip.models[config[CONF_MODEL].upper()]
     width, height, _offset_width, _offset_height = model.get_dimensions(config)
     var = cg.new_Pvariable(config[CONF_ID], width, height)
-    await display.register_display(var, config)
 
     sequence, madctl = model.get_sequence(config)
     cg.add(var.set_model(config[CONF_MODEL]))
@@ -196,6 +196,9 @@ async def to_code(config):
         reset = await cg.gpio_pin_expression(reset_pin)
         cg.add(var.set_reset_pin(reset))
 
+    if model.rotation_as_transform(config):
+        config[CONF_ROTATION] = 0
+    await display.register_display(var, config)
     if lamb := config.get(CONF_LAMBDA):
         lambda_ = await cg.process_lambda(
             lamb, [(display.DisplayRef, "it")], return_type=cg.void

@@ -33,7 +33,9 @@ const uint8_t DELAY_FLAG = 0xFF;
 const uint8_t MADCTL_BGR = 0x08;
 const uint8_t MADCTL_MX = 0x40;
 const uint8_t MADCTL_MY = 0x80;
-const uint8_t MADCTL_MV = 0x20;  // row/column swap
+const uint8_t MADCTL_MV = 0x20;     // row/column swap
+const uint8_t MADCTL_XFLIP = 0x02;  // Mirror the display horizontally
+const uint8_t MADCTL_YFLIP = 0x01;  // Mirror the display vertically
 
 enum PixelMode {
   PIXEL_MODE_8 = 1,

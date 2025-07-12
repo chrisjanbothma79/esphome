@@ -15,6 +15,7 @@ DriverChip(
     lane_bit_rate="730Mbps",
     swap_xy=cv.UNDEFINED,
     color_order="RGB",
+    use_axis_flips=True,
     initsequence=[
         (0xFF, 0x98, 0x81, 0x01),  # Select Page 1
         (0xB7, 0x03),  # Pad control - 2 lane

@@ -15,6 +15,7 @@ DriverChip(
     lane_bit_rate="1.5Gbps",
     swap_xy=cv.UNDEFINED,
     color_order="RGB",
+    use_axis_flips=True,
     initsequence=[
         (0xE0, 0x00),  # select userpage
         (0xE1, 0x93),

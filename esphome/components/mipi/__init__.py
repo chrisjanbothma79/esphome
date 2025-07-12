@@ -352,7 +352,7 @@ class DriverChip:
         use_flip = config.get(CONF_USE_AXIS_FLIPS)
         madctl = 0
         transform = self.get_transform(config)
-        if transform.get(CONF_TRANSFORM):
+        if self.rotation_as_transform(config):
             LOGGER.info("Using hardware transform to implement rotation")
         if transform.get(CONF_MIRROR_X):
             madctl |= MADCTL_XFLIP if use_flip else MADCTL_MX
