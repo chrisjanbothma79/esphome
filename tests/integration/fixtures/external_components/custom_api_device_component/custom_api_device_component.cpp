@@ -21,7 +21,8 @@ void CustomAPIDeviceComponent::setup() {
 
 void CustomAPIDeviceComponent::on_test_service() { ESP_LOGI(TAG, "Custom test service called!"); }
 
-void CustomAPIDeviceComponent::on_service_with_args(const std::string &arg_string, int32_t arg_int, bool arg_bool,
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+void CustomAPIDeviceComponent::on_service_with_args(std::string arg_string, int32_t arg_int, bool arg_bool,
                                                     float arg_float) {
   ESP_LOGI(TAG, "Custom service called with: %s, %d, %d, %.2f", arg_string.c_str(), arg_int, arg_bool, arg_float);
 }
@@ -34,7 +35,7 @@ void CustomAPIDeviceComponent::on_service_with_arrays(std::vector<bool> bool_arr
 
   // Log first element of each array if not empty
   if (!bool_array.empty()) {
-    ESP_LOGI(TAG, "First bool: %d", bool_array[0]);
+    ESP_LOGI(TAG, "First bool: %s", bool_array[0] ? "true" : "false");
   }
   if (!int_array.empty()) {
     ESP_LOGI(TAG, "First int: %d", int_array[0]);
