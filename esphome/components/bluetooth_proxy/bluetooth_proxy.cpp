@@ -57,9 +57,9 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
 // Batch size for BLE advertisements to maximize WiFi efficiency
 // Each advertisement is up to 80 bytes when packaged (including protocol overhead)
 // Most advertisements are 20-30 bytes, allowing even more to fit per packet
-// 16 advertisements × 80 bytes (worst case) = 1280 bytes out of ~1320 bytes usable payload
-// This achieves ~97% WiFi MTU utilization while staying under the limit
-static constexpr size_t FLUSH_BATCH_SIZE = 16;
+// Reduced from 16 to 8 to avoid stack/memory pressure on ESP32
+// 8 advertisements × 80 bytes (worst case) = 640 bytes out of ~1320 bytes usable payload
+static constexpr size_t FLUSH_BATCH_SIZE = 8;
 
 namespace {
 // Memory pool for BluetoothLERawAdvertisement objects
@@ -110,10 +110,22 @@ bool BluetoothProxy::parse_devices(const esp32_ble::BLEScanResult *scan_results,
       // No free advertisements, flush current batch now
       ESP_LOGV(TAG, "Advertisement pool exhausted, flushing batch");
       this->flush_pending_advertisements();
+
+      // After flushing, we should have free advertisements again
+      if (free_advertisements.empty()) {
+        ESP_LOGW(TAG, "Advertisement pool still empty after flush!");
+        continue;
+      }
     }
 
     auto &result = scan_results[i];
     uint8_t length = result.adv_data_len + result.scan_rsp_len;
+
+    // Validate length to prevent buffer overflow
+    if (length > 62) {
+      ESP_LOGW(TAG, "BLE advertisement too large: %d bytes (max 62)", length);
+      length = 62;
+    }
 
     // Get an advertisement from the free pool
     auto *adv = free_advertisements.back();
