@@ -17,7 +17,8 @@ class CustomAPIDeviceComponent : public Component, public CustomAPIDevice {
 
   void on_test_service();
 
-  void on_service_with_args(const std::string &arg_string, int32_t arg_int, bool arg_bool, float arg_float);
+  // NOLINTNEXTLINE(performance-unnecessary-value-param)
+  void on_service_with_args(std::string arg_string, int32_t arg_int, bool arg_bool, float arg_float);
 
   void on_service_with_arrays(std::vector<bool> bool_array, std::vector<int32_t> int_array,
                               std::vector<float> float_array, std::vector<std::string> string_array);
