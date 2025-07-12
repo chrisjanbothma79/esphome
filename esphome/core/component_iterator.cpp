@@ -15,13 +15,13 @@ namespace esphome {
   case state_enum: { \
     if (this->at_ >= (vector).size()) { \
       advance_platform_(); \
-      break; \
-    } \
-    auto *(item_name) = (vector)[this->at_]; \
-    if ((item_name)->is_internal() && !this->include_internal_) { \
-      this->at_++; \
-    } else if (this->method(item_name)) { \
-      this->at_++; \
+    } else { \
+      auto *(item_name) = (vector)[this->at_]; \
+      if ((item_name)->is_internal() && !this->include_internal_) { \
+        this->at_++; \
+      } else if (this->method(item_name)) { \
+        this->at_++; \
+      } \
     } \
   } break;
 
