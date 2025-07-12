@@ -18,6 +18,8 @@ namespace api {
 
 // Keepalive timeout in milliseconds
 static constexpr uint32_t KEEPALIVE_TIMEOUT_MS = 60000;
+// Maximum number of entities to process in a single batch during initial state/info sending
+static constexpr size_t MAX_INITIAL_PER_BATCH = 20;
 
 class APIConnection : public APIServerConnection {
  public:
@@ -31,7 +33,7 @@ class APIConnection : public APIServerConnection {
 
   bool send_list_info_done() {
     return this->schedule_message_(nullptr, &APIConnection::try_send_list_info_done,
-                                   ListEntitiesDoneResponse::MESSAGE_TYPE);
+                                   ListEntitiesDoneResponse::MESSAGE_TYPE, ListEntitiesDoneResponse::ESTIMATED_SIZE);
   }
 #ifdef USE_BINARY_SENSOR
   bool send_binary_sensor_state(binary_sensor::BinarySensor *binary_sensor);
@@ -58,8 +60,8 @@ class APIConnection : public APIServerConnection {
 #ifdef USE_TEXT_SENSOR
   bool send_text_sensor_state(text_sensor::TextSensor *text_sensor);
 #endif
-#ifdef USE_ESP32_CAMERA
-  void set_camera_state(std::shared_ptr<esp32_camera::CameraImage> image);
+#ifdef USE_CAMERA
+  void set_camera_state(std::shared_ptr<camera::CameraImage> image);
   void camera_image(const CameraImageRequest &msg) override;
 #endif
 #ifdef USE_CLIMATE
@@ -105,7 +107,7 @@ class APIConnection : public APIServerConnection {
   bool send_media_player_state(media_player::MediaPlayer *media_player);
   void media_player_command(const MediaPlayerCommandRequest &msg) override;
 #endif
-  bool try_send_log_message(int level, const char *tag, const char *line);
+  bool try_send_log_message(int level, const char *tag, const char *line, size_t message_len);
   void send_homeassistant_service_call(const HomeassistantServiceResponse &call) {
     if (!this->flags_.service_call_subscription)
       return;
@@ -193,7 +195,9 @@ class APIConnection : public APIServerConnection {
     // TODO
     return {};
   }
+#ifdef USE_API_SERVICES
   void execute_service(const ExecuteServiceRequest &msg) override;
+#endif
 #ifdef USE_API_NOISE
   NoiseEncryptionSetKeyResponse noise_encryption_set_key(const NoiseEncryptionSetKeyRequest &msg) override;
 #endif
@@ -254,7 +258,7 @@ class APIConnection : public APIServerConnection {
   }
 
   bool try_to_clear_buffer(bool log_out_of_space);
-  bool send_buffer(ProtoWriteBuffer buffer, uint16_t message_type) override;
+  bool send_buffer(ProtoWriteBuffer buffer, uint8_t message_type) override;
 
   std::string get_client_combined_info() const {
     if (this->client_info_ == this->client_peername_) {
@@ -290,11 +294,33 @@ class APIConnection : public APIServerConnection {
   // Helper function to fill common entity state fields
   static void fill_entity_state_base(esphome::EntityBase *entity, StateResponseProtoMessage &response) {
     response.key = entity->get_object_id_hash();
+#ifdef USE_DEVICES
+    response.device_id = entity->get_device_id();
+#endif
   }
 
   // Non-template helper to encode any ProtoMessage
-  static uint16_t encode_message_to_buffer(ProtoMessage &msg, uint16_t message_type, APIConnection *conn,
+  static uint16_t encode_message_to_buffer(ProtoMessage &msg, uint8_t message_type, APIConnection *conn,
                                            uint32_t remaining_size, bool is_single);
+
+#ifdef USE_VOICE_ASSISTANT
+  // Helper to check voice assistant validity and connection ownership
+  inline bool check_voice_assistant_api_connection_() const;
+#endif
+
+  // Helper method to process multiple entities from an iterator in a batch
+  template<typename Iterator> void process_iterator_batch_(Iterator &iterator) {
+    size_t initial_size = this->deferred_batch_.size();
+    while (!iterator.completed() && (this->deferred_batch_.size() - initial_size) < MAX_INITIAL_PER_BATCH) {
+      iterator.advance();
+    }
+
+    // If the batch is full, process it immediately
+    // Note: iterator.advance() already calls schedule_batch_() via schedule_message_()
+    if (this->deferred_batch_.size() >= MAX_INITIAL_PER_BATCH) {
+      this->process_batch_();
+    }
+  }
 
 #ifdef USE_BINARY_SENSOR
   static uint16_t try_send_binary_sensor_state(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -406,7 +432,7 @@ class APIConnection : public APIServerConnection {
   static uint16_t try_send_update_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                        bool is_single);
 #endif
-#ifdef USE_ESP32_CAMERA
+#ifdef USE_CAMERA
   static uint16_t try_send_camera_info(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                        bool is_single);
 #endif
@@ -418,9 +444,6 @@ class APIConnection : public APIServerConnection {
   // Method for DisconnectRequest batching
   static uint16_t try_send_disconnect_request(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
                                               bool is_single);
-
-  // Helper function to get estimated message size for buffer pre-allocation
-  static uint16_t get_estimated_message_size(uint16_t message_type);
 
   // Batch message method for ping requests
   static uint16_t try_send_ping_request(EntityBase *entity, APIConnection *conn, uint32_t remaining_size,
@@ -436,8 +459,8 @@ class APIConnection : public APIServerConnection {
   // These contain vectors/pointers internally, so putting them early ensures good alignment
   InitialStateIterator initial_state_iterator_;
   ListEntitiesIterator list_entities_iterator_;
-#ifdef USE_ESP32_CAMERA
-  esp32_camera::CameraImageReader image_reader_;
+#ifdef USE_CAMERA
+  std::unique_ptr<camera::CameraImageReader> image_reader_;
 #endif
 
   // Group 3: Strings (12 bytes each on 32-bit, 4-byte aligned)
@@ -481,10 +504,10 @@ class APIConnection : public APIServerConnection {
 
     // Call operator - uses message_type to determine union type
     uint16_t operator()(EntityBase *entity, APIConnection *conn, uint32_t remaining_size, bool is_single,
-                        uint16_t message_type) const;
+                        uint8_t message_type) const;
 
     // Manual cleanup method - must be called before destruction for string types
-    void cleanup(uint16_t message_type) {
+    void cleanup(uint8_t message_type) {
 #ifdef USE_EVENT
       if (message_type == EventResponse::MESSAGE_TYPE && data_.string_ptr != nullptr) {
         delete data_.string_ptr;
@@ -505,11 +528,12 @@ class APIConnection : public APIServerConnection {
     struct BatchItem {
       EntityBase *entity;      // Entity pointer
       MessageCreator creator;  // Function that creates the message when needed
-      uint16_t message_type;   // Message type for overhead calculation
+      uint8_t message_type;    // Message type for overhead calculation (max 255)
+      uint8_t estimated_size;  // Estimated message size (max 255 bytes)
 
       // Constructor for creating BatchItem
-      BatchItem(EntityBase *entity, MessageCreator creator, uint16_t message_type)
-          : entity(entity), creator(std::move(creator)), message_type(message_type) {}
+      BatchItem(EntityBase *entity, MessageCreator creator, uint8_t message_type, uint8_t estimated_size)
+          : entity(entity), creator(std::move(creator)), message_type(message_type), estimated_size(estimated_size) {}
     };
 
     std::vector<BatchItem> items;
@@ -535,9 +559,9 @@ class APIConnection : public APIServerConnection {
     }
 
     // Add item to the batch
-    void add_item(EntityBase *entity, MessageCreator creator, uint16_t message_type);
+    void add_item(EntityBase *entity, MessageCreator creator, uint8_t message_type, uint8_t estimated_size);
     // Add item to the front of the batch (for high priority messages like ping)
-    void add_item_front(EntityBase *entity, MessageCreator creator, uint16_t message_type);
+    void add_item_front(EntityBase *entity, MessageCreator creator, uint8_t message_type, uint8_t estimated_size);
 
     // Clear all items with proper cleanup
     void clear() {
@@ -582,7 +606,8 @@ class APIConnection : public APIServerConnection {
     uint8_t service_call_subscription : 1;
     uint8_t next_close : 1;
     uint8_t batch_scheduled : 1;
-    uint8_t batch_first_message : 1;  // For batch buffer allocation
+    uint8_t batch_first_message : 1;          // For batch buffer allocation
+    uint8_t should_try_send_immediately : 1;  // True after initial states are sent
 #ifdef HAS_PROTO_MESSAGE_DUMP
     uint8_t log_only_mode : 1;
 #endif
@@ -605,29 +630,71 @@ class APIConnection : public APIServerConnection {
   // to send in one go. This is the maximum size of a single packet
   // that can be sent over the network.
   // This is to avoid fragmentation of the packet.
-  static constexpr size_t MAX_PACKET_SIZE = 1390;  // MTU
+  static constexpr size_t MAX_BATCH_PACKET_SIZE = 1390;  // MTU
 
   bool schedule_batch_();
   void process_batch_();
+  void clear_batch_() {
+    this->deferred_batch_.clear();
+    this->flags_.batch_scheduled = false;
+  }
 
 #ifdef HAS_PROTO_MESSAGE_DUMP
-  void log_batch_item_(const DeferredBatch::BatchItem &item);
+  // Helper to log a proto message from a MessageCreator object
+  void log_proto_message_(EntityBase *entity, const MessageCreator &creator, uint8_t message_type) {
+    this->flags_.log_only_mode = true;
+    creator(entity, this, MAX_BATCH_PACKET_SIZE, true, message_type);
+    this->flags_.log_only_mode = false;
+  }
+
+  void log_batch_item_(const DeferredBatch::BatchItem &item) {
+    // Use the helper to log the message
+    this->log_proto_message_(item.entity, item.creator, item.message_type);
+  }
 #endif
 
+  // Helper method to send a message either immediately or via batching
+  bool send_message_smart_(EntityBase *entity, MessageCreatorPtr creator, uint8_t message_type,
+                           uint8_t estimated_size) {
+    // Try to send immediately if:
+    // 1. We should try to send immediately (should_try_send_immediately = true)
+    // 2. Batch delay is 0 (user has opted in to immediate sending)
+    // 3. Buffer has space available
+    if (this->flags_.should_try_send_immediately && this->get_batch_delay_ms_() == 0 &&
+        this->helper_->can_write_without_blocking()) {
+      // Now actually encode and send
+      if (creator(entity, this, MAX_BATCH_PACKET_SIZE, true) &&
+          this->send_buffer(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, message_type)) {
+#ifdef HAS_PROTO_MESSAGE_DUMP
+        // Log the message in verbose mode
+        this->log_proto_message_(entity, MessageCreator(creator), message_type);
+#endif
+        return true;
+      }
+
+      // If immediate send failed, fall through to batching
+    }
+
+    // Fall back to scheduled batching
+    return this->schedule_message_(entity, creator, message_type, estimated_size);
+  }
+
   // Helper function to schedule a deferred message with known message type
-  bool schedule_message_(EntityBase *entity, MessageCreator creator, uint16_t message_type) {
-    this->deferred_batch_.add_item(entity, std::move(creator), message_type);
+  bool schedule_message_(EntityBase *entity, MessageCreator creator, uint8_t message_type, uint8_t estimated_size) {
+    this->deferred_batch_.add_item(entity, std::move(creator), message_type, estimated_size);
     return this->schedule_batch_();
   }
 
   // Overload for function pointers (for info messages and current state reads)
-  bool schedule_message_(EntityBase *entity, MessageCreatorPtr function_ptr, uint16_t message_type) {
-    return schedule_message_(entity, MessageCreator(function_ptr), message_type);
+  bool schedule_message_(EntityBase *entity, MessageCreatorPtr function_ptr, uint8_t message_type,
+                         uint8_t estimated_size) {
+    return schedule_message_(entity, MessageCreator(function_ptr), message_type, estimated_size);
   }
 
   // Helper function to schedule a high priority message at the front of the batch
-  bool schedule_message_front_(EntityBase *entity, MessageCreatorPtr function_ptr, uint16_t message_type) {
-    this->deferred_batch_.add_item_front(entity, MessageCreator(function_ptr), message_type);
+  bool schedule_message_front_(EntityBase *entity, MessageCreatorPtr function_ptr, uint8_t message_type,
+                               uint8_t estimated_size) {
+    this->deferred_batch_.add_item_front(entity, MessageCreator(function_ptr), message_type, estimated_size);
     return this->schedule_batch_();
   }
 };
