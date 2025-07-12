@@ -24,12 +24,8 @@ void ComponentIterator::process_entity_(const std::vector<Entity *> &items,
     this->advance_platform_();
   } else {
     Entity *entity = items[this->at_];
-    if (entity->is_internal() && !this->include_internal_) {
+    if ((entity->is_internal() && !this->include_internal_) || (this->*on_item)(entity)) {
       this->at_++;
-    } else {
-      if ((this->*on_item)(entity)) {
-        this->at_++;
-      }
     }
   }
 }
