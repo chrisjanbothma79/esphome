@@ -14,22 +14,27 @@
 
 namespace esphome {
 
-#define ITER_COMPONENT(state_enum, vector, item_name, method) \
-  case state_enum: { \
-    if (this->at_ >= (vector).size()) { \
-      advance_platform_(); \
-    } else { \
-      auto *(item_name) = (vector)[this->at_]; \
-      if (((item_name)->is_internal() && !this->include_internal_) || this->method(item_name)) { \
-        this->at_++; \
-      } \
-    } \
-  } break;
-
 void ComponentIterator::begin(bool include_internal) {
   this->state_ = IteratorState::BEGIN;
   this->at_ = 0;
   this->include_internal_ = include_internal;
+}
+
+template<typename Entity>
+void ComponentIterator::process_entity_(const std::vector<Entity *> &items,
+                                        bool (ComponentIterator::*on_item)(Entity *)) {
+  if (this->at_ >= items.size()) {
+    this->advance_platform_();
+  } else {
+    Entity *entity = items[this->at_];
+    if (entity->is_internal() && !this->include_internal_) {
+      this->at_++;
+    } else {
+      if ((this->*on_item)(entity)) {
+        this->at_++;
+      }
+    }
+  }
 }
 
 void ComponentIterator::advance_platform_() {
@@ -49,39 +54,57 @@ void ComponentIterator::advance() {
       break;
 
 #ifdef USE_BINARY_SENSOR
-      ITER_COMPONENT(IteratorState::BINARY_SENSOR, App.get_binary_sensors(), binary_sensor, on_binary_sensor)
+    case IteratorState::BINARY_SENSOR:
+      this->process_entity_(App.get_binary_sensors(), &ComponentIterator::on_binary_sensor);
+      break;
 #endif
 
 #ifdef USE_COVER
-      ITER_COMPONENT(IteratorState::COVER, App.get_covers(), cover, on_cover)
+    case IteratorState::COVER:
+      this->process_entity_(App.get_covers(), &ComponentIterator::on_cover);
+      break;
 #endif
 
 #ifdef USE_FAN
-      ITER_COMPONENT(IteratorState::FAN, App.get_fans(), fan, on_fan)
+    case IteratorState::FAN:
+      this->process_entity_(App.get_fans(), &ComponentIterator::on_fan);
+      break;
 #endif
 
 #ifdef USE_LIGHT
-      ITER_COMPONENT(IteratorState::LIGHT, App.get_lights(), light, on_light)
+    case IteratorState::LIGHT:
+      this->process_entity_(App.get_lights(), &ComponentIterator::on_light);
+      break;
 #endif
 
 #ifdef USE_SENSOR
-      ITER_COMPONENT(IteratorState::SENSOR, App.get_sensors(), sensor, on_sensor)
+    case IteratorState::SENSOR:
+      this->process_entity_(App.get_sensors(), &ComponentIterator::on_sensor);
+      break;
 #endif
 
 #ifdef USE_SWITCH
-      ITER_COMPONENT(IteratorState::SWITCH, App.get_switches(), a_switch, on_switch)
+    case IteratorState::SWITCH:
+      this->process_entity_(App.get_switches(), &ComponentIterator::on_switch);
+      break;
 #endif
 
 #ifdef USE_BUTTON
-      ITER_COMPONENT(IteratorState::BUTTON, App.get_buttons(), button, on_button)
+    case IteratorState::BUTTON:
+      this->process_entity_(App.get_buttons(), &ComponentIterator::on_button);
+      break;
 #endif
 
 #ifdef USE_TEXT_SENSOR
-      ITER_COMPONENT(IteratorState::TEXT_SENSOR, App.get_text_sensors(), text_sensor, on_text_sensor)
+    case IteratorState::TEXT_SENSOR:
+      this->process_entity_(App.get_text_sensors(), &ComponentIterator::on_text_sensor);
+      break;
 #endif
 
 #ifdef USE_API_SERVICES
-      ITER_COMPONENT(IteratorState::SERVICE, api::global_api_server->get_user_services(), service, on_service)
+    case IteratorState::SERVICE:
+      this->process_entity_(api::global_api_server->get_user_services(), &ComponentIterator::on_service);
+      break;
 #endif
 
 #ifdef USE_CAMERA
@@ -96,56 +119,81 @@ void ComponentIterator::advance() {
 #endif
 
 #ifdef USE_CLIMATE
-      ITER_COMPONENT(IteratorState::CLIMATE, App.get_climates(), climate, on_climate)
+    case IteratorState::CLIMATE:
+      this->process_entity_(App.get_climates(), &ComponentIterator::on_climate);
+      break;
 #endif
 
 #ifdef USE_NUMBER
-      ITER_COMPONENT(IteratorState::NUMBER, App.get_numbers(), number, on_number)
+    case IteratorState::NUMBER:
+      this->process_entity_(App.get_numbers(), &ComponentIterator::on_number);
+      break;
 #endif
 
 #ifdef USE_DATETIME_DATE
-      ITER_COMPONENT(IteratorState::DATETIME_DATE, App.get_dates(), date, on_date)
+    case IteratorState::DATETIME_DATE:
+      this->process_entity_(App.get_dates(), &ComponentIterator::on_date);
+      break;
 #endif
 
 #ifdef USE_DATETIME_TIME
-      ITER_COMPONENT(IteratorState::DATETIME_TIME, App.get_times(), time, on_time)
+    case IteratorState::DATETIME_TIME:
+      this->process_entity_(App.get_times(), &ComponentIterator::on_time);
+      break;
 #endif
 
 #ifdef USE_DATETIME_DATETIME
-      ITER_COMPONENT(IteratorState::DATETIME_DATETIME, App.get_datetimes(), datetime, on_datetime)
+    case IteratorState::DATETIME_DATETIME:
+      this->process_entity_(App.get_datetimes(), &ComponentIterator::on_datetime);
+      break;
 #endif
 
 #ifdef USE_TEXT
-      ITER_COMPONENT(IteratorState::TEXT, App.get_texts(), text, on_text)
+    case IteratorState::TEXT:
+      this->process_entity_(App.get_texts(), &ComponentIterator::on_text);
+      break;
 #endif
 
 #ifdef USE_SELECT
-      ITER_COMPONENT(IteratorState::SELECT, App.get_selects(), select, on_select)
+    case IteratorState::SELECT:
+      this->process_entity_(App.get_selects(), &ComponentIterator::on_select);
+      break;
 #endif
 
 #ifdef USE_LOCK
-      ITER_COMPONENT(IteratorState::LOCK, App.get_locks(), lock, on_lock)
+    case IteratorState::LOCK:
+      this->process_entity_(App.get_locks(), &ComponentIterator::on_lock);
+      break;
 #endif
 
 #ifdef USE_VALVE
-      ITER_COMPONENT(IteratorState::VALVE, App.get_valves(), valve, on_valve)
+    case IteratorState::VALVE:
+      this->process_entity_(App.get_valves(), &ComponentIterator::on_valve);
+      break;
 #endif
 
 #ifdef USE_MEDIA_PLAYER
-      ITER_COMPONENT(IteratorState::MEDIA_PLAYER, App.get_media_players(), media_player, on_media_player)
+    case IteratorState::MEDIA_PLAYER:
+      this->process_entity_(App.get_media_players(), &ComponentIterator::on_media_player);
+      break;
 #endif
 
 #ifdef USE_ALARM_CONTROL_PANEL
-      ITER_COMPONENT(IteratorState::ALARM_CONTROL_PANEL, App.get_alarm_control_panels(), alarm_control_panel,
-                     on_alarm_control_panel)
+    case IteratorState::ALARM_CONTROL_PANEL:
+      this->process_entity_(App.get_alarm_control_panels(), &ComponentIterator::on_alarm_control_panel);
+      break;
 #endif
 
 #ifdef USE_EVENT
-      ITER_COMPONENT(IteratorState::EVENT, App.get_events(), event, on_event)
+    case IteratorState::EVENT:
+      this->process_entity_(App.get_events(), &ComponentIterator::on_event);
+      break;
 #endif
 
 #ifdef USE_UPDATE
-      ITER_COMPONENT(IteratorState::UPDATE, App.get_updates(), update, on_update)
+    case IteratorState::UPDATE:
+      this->process_entity_(App.get_updates(), &ComponentIterator::on_update);
+      break;
 #endif
 
     case IteratorState::MAX:
