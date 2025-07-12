@@ -296,7 +296,11 @@ class DoubleType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0.0, {force_str(force)});"
+        method = "add_fixed_field_repeated<8>" if force else "add_fixed_field<8>"
+        if force:
+            o = f"ProtoSize::{method}(total_size, {field_id_size});"
+        else:
+            o = f"ProtoSize::{method}(total_size, {field_id_size}, {name} != 0.0);"
         return o
 
     def get_estimated_size(self) -> int:
@@ -318,7 +322,11 @@ class FloatType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0.0f, {force_str(force)});"
+        method = "add_fixed_field_repeated<4>" if force else "add_fixed_field<4>"
+        if force:
+            o = f"ProtoSize::{method}(total_size, {field_id_size});"
+        else:
+            o = f"ProtoSize::{method}(total_size, {field_id_size}, {name} != 0.0f);"
         return o
 
     def get_estimated_size(self) -> int:
@@ -340,7 +348,8 @@ class Int64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_int64_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        method = "add_int64_field_repeated" if force else "add_int64_field"
+        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
         return o
 
     def get_estimated_size(self) -> int:
@@ -362,7 +371,8 @@ class UInt64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_uint64_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        method = "add_uint64_field_repeated" if force else "add_uint64_field"
+        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
         return o
 
     def get_estimated_size(self) -> int:
@@ -384,7 +394,8 @@ class Int32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_int32_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        method = "add_int32_field_repeated" if force else "add_int32_field"
+        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
         return o
 
     def get_estimated_size(self) -> int:
@@ -406,7 +417,11 @@ class Fixed64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {force_str(force)});"
+        method = "add_fixed_field_repeated<8>" if force else "add_fixed_field<8>"
+        if force:
+            o = f"ProtoSize::{method}(total_size, {field_id_size});"
+        else:
+            o = f"ProtoSize::{method}(total_size, {field_id_size}, {name} != 0);"
         return o
 
     def get_estimated_size(self) -> int:
@@ -428,7 +443,11 @@ class Fixed32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {force_str(force)});"
+        method = "add_fixed_field_repeated<4>" if force else "add_fixed_field<4>"
+        if force:
+            o = f"ProtoSize::{method}(total_size, {field_id_size});"
+        else:
+            o = f"ProtoSize::{method}(total_size, {field_id_size}, {name} != 0);"
         return o
 
     def get_estimated_size(self) -> int:
@@ -449,7 +468,8 @@ class BoolType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_bool_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        method = "add_bool_field_repeated" if force else "add_bool_field"
+        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
         return o
 
     def get_estimated_size(self) -> int:
@@ -472,7 +492,8 @@ class StringType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        method = "add_string_field_repeated" if force else "add_string_field"
+        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
         return o
 
     def get_estimated_size(self) -> int:
@@ -510,7 +531,8 @@ class MessageType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_message_object(total_size, {field_id_size}, {name}, {force_str(force)});"
+        method = "add_message_object_repeated" if force else "add_message_object"
+        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
         return o
 
     def get_estimated_size(self) -> int:
@@ -539,7 +561,8 @@ class BytesType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_string_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        method = "add_string_field_repeated" if force else "add_string_field"
+        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
         return o
 
     def get_estimated_size(self) -> int:
@@ -561,7 +584,8 @@ class UInt32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_uint32_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        method = "add_uint32_field_repeated" if force else "add_uint32_field"
+        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
         return o
 
     def get_estimated_size(self) -> int:
@@ -591,7 +615,8 @@ class EnumType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_enum_field(total_size, {field_id_size}, static_cast<uint32_t>({name}), {force_str(force)});"
+        method = "add_enum_field_repeated" if force else "add_enum_field"
+        o = f"ProtoSize::{method}(total_size, {field_id_size}, static_cast<uint32_t>({name}));"
         return o
 
     def get_estimated_size(self) -> int:
@@ -613,7 +638,11 @@ class SFixed32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_fixed_field<4>(total_size, {field_id_size}, {name} != 0, {force_str(force)});"
+        method = "add_fixed_field_repeated<4>" if force else "add_fixed_field<4>"
+        if force:
+            o = f"ProtoSize::{method}(total_size, {field_id_size});"
+        else:
+            o = f"ProtoSize::{method}(total_size, {field_id_size}, {name} != 0);"
         return o
 
     def get_estimated_size(self) -> int:
@@ -635,7 +664,11 @@ class SFixed64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_fixed_field<8>(total_size, {field_id_size}, {name} != 0, {force_str(force)});"
+        method = "add_fixed_field_repeated<8>" if force else "add_fixed_field<8>"
+        if force:
+            o = f"ProtoSize::{method}(total_size, {field_id_size});"
+        else:
+            o = f"ProtoSize::{method}(total_size, {field_id_size}, {name} != 0);"
         return o
 
     def get_estimated_size(self) -> int:
@@ -657,7 +690,8 @@ class SInt32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_sint32_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        method = "add_sint32_field_repeated" if force else "add_sint32_field"
+        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
         return o
 
     def get_estimated_size(self) -> int:
@@ -679,7 +713,8 @@ class SInt64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         field_id_size = self.calculate_field_id_size()
-        o = f"ProtoSize::add_sint64_field(total_size, {field_id_size}, {name}, {force_str(force)});"
+        method = "add_sint64_field_repeated" if force else "add_sint64_field"
+        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
         return o
 
     def get_estimated_size(self) -> int:
@@ -1701,7 +1736,6 @@ static const char *const TAG = "api.service";
         exec_clang_format(root / "api_pb2_service.cpp")
         exec_clang_format(root / "api_pb2.h")
         exec_clang_format(root / "api_pb2.cpp")
-        exec_clang_format(root / "api_pb2_dump.h")
         exec_clang_format(root / "api_pb2_dump.cpp")
     except ImportError:
         pass
