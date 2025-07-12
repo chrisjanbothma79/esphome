@@ -266,10 +266,6 @@ class ProtoWriteBuffer {
     this->write((value >> 48) & 0xFF);
     this->write((value >> 56) & 0xFF);
   }
-  // Non-template version for enum encoding to reduce flash usage
-  void encode_enum_uint32(uint32_t field_id, uint32_t value, bool force = false) {
-    this->encode_uint32(field_id, value, force);
-  }
   void encode_float(uint32_t field_id, float value, bool force = false) {
     if (value == 0.0f && !force)
       return;

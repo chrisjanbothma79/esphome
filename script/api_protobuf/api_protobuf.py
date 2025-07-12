@@ -595,7 +595,7 @@ class EnumType(TypeInfo):
 
     @property
     def encode_func(self) -> str:
-        return "encode_enum_uint32"
+        return "encode_uint32"
 
     @property
     def encode_content(self) -> str:
