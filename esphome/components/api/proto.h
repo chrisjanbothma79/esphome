@@ -307,18 +307,7 @@ class ProtoWriteBuffer {
     }
     this->encode_uint64(field_id, uvalue, force);
   }
-  void encode_message(uint32_t field_id, const ProtoMessage &value, bool force = false) {
-    this->encode_field_raw(field_id, 2);  // type 2: Length-delimited message
-    size_t begin = this->buffer_->size();
-
-    value.encode(*this);
-
-    const uint32_t nested_length = this->buffer_->size() - begin;
-    // add size varint
-    std::vector<uint8_t> var;
-    ProtoVarInt(nested_length).encode(var);
-    this->buffer_->insert(this->buffer_->begin() + begin, var.begin(), var.end());
-  }
+  void encode_message(uint32_t field_id, const ProtoMessage &value, bool force = false);
   std::vector<uint8_t> *get_buffer() const { return buffer_; }
 
  protected:
@@ -345,6 +334,20 @@ class ProtoMessage {
   virtual bool decode_32bit(uint32_t field_id, Proto32Bit value) { return false; }
   virtual bool decode_64bit(uint32_t field_id, Proto64Bit value) { return false; }
 };
+
+// Implementation of encode_message - must be after ProtoMessage is defined
+inline void ProtoWriteBuffer::encode_message(uint32_t field_id, const ProtoMessage &value, bool force) {
+  this->encode_field_raw(field_id, 2);  // type 2: Length-delimited message
+  size_t begin = this->buffer_->size();
+
+  value.encode(*this);
+
+  const uint32_t nested_length = this->buffer_->size() - begin;
+  // add size varint
+  std::vector<uint8_t> var;
+  ProtoVarInt(nested_length).encode(var);
+  this->buffer_->insert(this->buffer_->begin() + begin, var.begin(), var.end());
+}
 
 template<typename T> const char *proto_enum_to_string(T value);
 
