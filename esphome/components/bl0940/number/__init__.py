@@ -72,10 +72,10 @@ async def to_code(config):
 
     # Process all calibration types
     for cal_type, setter_method in [
-        (CONF_CURRENT_CALIBRATION, "set_current_calibration"),
-        (CONF_VOLTAGE_CALIBRATION, "set_voltage_calibration"),
-        (CONF_POWER_CALIBRATION, "set_power_calibration"),
-        (CONF_ENERGY_CALIBRATION, "set_energy_calibration"),
+        (CONF_CURRENT_CALIBRATION, "set_current_calibration_number"),
+        (CONF_VOLTAGE_CALIBRATION, "set_voltage_calibration_number"),
+        (CONF_POWER_CALIBRATION, "set_power_calibration_number"),
+        (CONF_ENERGY_CALIBRATION, "set_energy_calibration_number"),
     ]:
         if cal_type in config:
             conf = dict(config[cal_type])
