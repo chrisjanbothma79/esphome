@@ -38,22 +38,24 @@ BASE_SCHEMA = cv.Schema(
     }
 )
 
-DEFAULT_ENCODER_SCHEMA = cv.Schema(
-    {
-        cv.Optional(CONF_QUALITY, default="HIGH"): cv.enum(
-            CONF_DEFAULT_QUALITY_SELECTS, upper=True
-        ),
-        cv.Optional(CONF_SUBSAMPLING, default="444"): cv.enum(
-            CONF_DEFAULT_SUBSAMPLING_SELECTS, upper=True
-        ),
-        cv.Optional(CONF_MCU_COUNT, default=0): cv.int_range(0),
-    }
+DEFAULT_ENCODER_SCHEMA = BASE_SCHEMA.extend(
+    cv.Schema(
+        {
+            cv.Optional(CONF_QUALITY, default="HIGH"): cv.enum(
+                CONF_DEFAULT_QUALITY_SELECTS, upper=True
+            ),
+            cv.Optional(CONF_SUBSAMPLING, default="444"): cv.enum(
+                CONF_DEFAULT_SUBSAMPLING_SELECTS, upper=True
+            ),
+            cv.Optional(CONF_MCU_COUNT, default=0): cv.int_range(0),
+        }
+    )
 )
 
 
 CONFIG_SCHEMA = cv.typed_schema(
     {
-        DEFAULT_ENCODER: BASE_SCHEMA.extend(DEFAULT_ENCODER_SCHEMA),
+        DEFAULT_ENCODER: DEFAULT_ENCODER_SCHEMA,
     },
     default_type=DEFAULT_ENCODER,
 )
