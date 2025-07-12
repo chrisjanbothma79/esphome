@@ -59,7 +59,6 @@ class ProtoVarInt {
   uint32_t as_uint32() const { return this->value_; }
   uint64_t as_uint64() const { return this->value_; }
   bool as_bool() const { return this->value_; }
-  // Removed template as_enum - now use as_uint32() directly with static_cast in generated code
   int32_t as_int32() const {
     // Not ZigZag encoded
     return static_cast<int32_t>(this->as_int64());
