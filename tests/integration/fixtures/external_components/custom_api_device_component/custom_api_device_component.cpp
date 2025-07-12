@@ -21,7 +21,7 @@ void CustomAPIDeviceComponent::setup() {
 
 void CustomAPIDeviceComponent::on_test_service() { ESP_LOGI(TAG, "Custom test service called!"); }
 
-void CustomAPIDeviceComponent::on_service_with_args(std::string arg_string, int32_t arg_int, bool arg_bool,
+void CustomAPIDeviceComponent::on_service_with_args(const std::string &arg_string, int32_t arg_int, bool arg_bool,
                                                     float arg_float) {
   ESP_LOGI(TAG, "Custom service called with: %s, %d, %d, %.2f", arg_string.c_str(), arg_int, arg_bool, arg_float);
 }
