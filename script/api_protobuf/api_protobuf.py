@@ -8,7 +8,6 @@ from pathlib import Path
 import re
 from subprocess import call
 import sys
-from textwrap import dedent
 from typing import Any
 
 import aioesphomeapi.api_options_pb2 as pb
@@ -157,13 +156,7 @@ class TypeInfo(ABC):
         content = self.decode_varint
         if content is None:
             return None
-        return dedent(
-            f"""\
-        case {self.number}: {{
-          this->{self.field_name} = {content};
-          return true;
-        }}"""
-        )
+        return f"case {self.number}: this->{self.field_name} = {content}; break;"
 
     decode_varint = None
 
@@ -172,13 +165,7 @@ class TypeInfo(ABC):
         content = self.decode_length
         if content is None:
             return None
-        return dedent(
-            f"""\
-        case {self.number}: {{
-          this->{self.field_name} = {content};
-          return true;
-        }}"""
-        )
+        return f"case {self.number}: this->{self.field_name} = {content}; break;"
 
     decode_length = None
 
@@ -187,13 +174,7 @@ class TypeInfo(ABC):
         content = self.decode_32bit
         if content is None:
             return None
-        return dedent(
-            f"""\
-        case {self.number}: {{
-          this->{self.field_name} = {content};
-          return true;
-        }}"""
-        )
+        return f"case {self.number}: this->{self.field_name} = {content}; break;"
 
     decode_32bit = None
 
@@ -202,13 +183,7 @@ class TypeInfo(ABC):
         content = self.decode_64bit
         if content is None:
             return None
-        return dedent(
-            f"""\
-        case {self.number}: {{
-          this->{self.field_name} = {content};
-          return true;
-        }}"""
-        )
+        return f"case {self.number}: this->{self.field_name} = {content}; break;"
 
     decode_64bit = None
 
@@ -549,13 +524,7 @@ class MessageType(TypeInfo):
     @property
     def decode_length_content(self) -> str:
         # Custom decode that doesn't use templates
-        return dedent(
-            f"""\
-        case {self.number}: {{
-          value.decode_to_message(this->{self.field_name});
-          return true;
-        }}"""
-        )
+        return f"case {self.number}: value.decode_to_message(this->{self.field_name}); break;"
 
     def dump(self, name: str) -> str:
         o = f"{name}.dump_to(out);"
@@ -765,12 +734,8 @@ class RepeatedTypeInfo(TypeInfo):
         content = self._ti.decode_varint
         if content is None:
             return None
-        return dedent(
-            f"""\
-        case {self.number}: {{
-          this->{self.field_name}.push_back({content});
-          return true;
-        }}"""
+        return (
+            f"case {self.number}: this->{self.field_name}.push_back({content}); break;"
         )
 
     @property
@@ -778,22 +743,11 @@ class RepeatedTypeInfo(TypeInfo):
         content = self._ti.decode_length
         if content is None and isinstance(self._ti, MessageType):
             # Special handling for non-template message decoding
-            return dedent(
-                f"""\
-        case {self.number}: {{
-          this->{self.field_name}.emplace_back();
-          value.decode_to_message(this->{self.field_name}.back());
-          return true;
-        }}"""
-            )
+            return f"case {self.number}: this->{self.field_name}.emplace_back(); value.decode_to_message(this->{self.field_name}.back()); break;"
         if content is None:
             return None
-        return dedent(
-            f"""\
-        case {self.number}: {{
-          this->{self.field_name}.push_back({content});
-          return true;
-        }}"""
+        return (
+            f"case {self.number}: this->{self.field_name}.push_back({content}); break;"
         )
 
     @property
@@ -801,12 +755,8 @@ class RepeatedTypeInfo(TypeInfo):
         content = self._ti.decode_32bit
         if content is None:
             return None
-        return dedent(
-            f"""\
-        case {self.number}: {{
-          this->{self.field_name}.push_back({content});
-          return true;
-        }}"""
+        return (
+            f"case {self.number}: this->{self.field_name}.push_back({content}); break;"
         )
 
     @property
@@ -814,12 +764,8 @@ class RepeatedTypeInfo(TypeInfo):
         content = self._ti.decode_64bit
         if content is None:
             return None
-        return dedent(
-            f"""\
-        case {self.number}: {{
-          this->{self.field_name}.push_back({content});
-          return true;
-        }}"""
+        return (
+            f"case {self.number}: this->{self.field_name}.push_back({content}); break;"
         )
 
     @property
@@ -1118,41 +1064,45 @@ def build_message_type(
 
     cpp = ""
     if decode_varint:
-        decode_varint.append("default:\n  return false;")
         o = f"bool {desc.name}::decode_varint(uint32_t field_id, ProtoVarInt value) {{\n"
         o += "  switch (field_id) {\n"
         o += indent("\n".join(decode_varint), "    ") + "\n"
+        o += "    default: return false;\n"
         o += "  }\n"
+        o += "  return true;\n"
         o += "}\n"
         cpp += o
         prot = "bool decode_varint(uint32_t field_id, ProtoVarInt value) override;"
         protected_content.insert(0, prot)
     if decode_length:
-        decode_length.append("default:\n  return false;")
         o = f"bool {desc.name}::decode_length(uint32_t field_id, ProtoLengthDelimited value) {{\n"
         o += "  switch (field_id) {\n"
         o += indent("\n".join(decode_length), "    ") + "\n"
+        o += "    default: return false;\n"
         o += "  }\n"
+        o += "  return true;\n"
         o += "}\n"
         cpp += o
         prot = "bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;"
         protected_content.insert(0, prot)
     if decode_32bit:
-        decode_32bit.append("default:\n  return false;")
         o = f"bool {desc.name}::decode_32bit(uint32_t field_id, Proto32Bit value) {{\n"
         o += "  switch (field_id) {\n"
         o += indent("\n".join(decode_32bit), "    ") + "\n"
+        o += "    default: return false;\n"
         o += "  }\n"
+        o += "  return true;\n"
         o += "}\n"
         cpp += o
         prot = "bool decode_32bit(uint32_t field_id, Proto32Bit value) override;"
         protected_content.insert(0, prot)
     if decode_64bit:
-        decode_64bit.append("default:\n  return false;")
         o = f"bool {desc.name}::decode_64bit(uint32_t field_id, Proto64Bit value) {{\n"
         o += "  switch (field_id) {\n"
         o += indent("\n".join(decode_64bit), "    ") + "\n"
+        o += "    default: return false;\n"
         o += "  }\n"
+        o += "  return true;\n"
         o += "}\n"
         cpp += o
         prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
