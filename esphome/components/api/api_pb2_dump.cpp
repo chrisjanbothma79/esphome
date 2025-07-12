@@ -345,6 +345,12 @@ template<> const char *proto_enum_to_string<enums::MediaPlayerState>(enums::Medi
       return "MEDIA_PLAYER_STATE_PLAYING";
     case enums::MEDIA_PLAYER_STATE_PAUSED:
       return "MEDIA_PLAYER_STATE_PAUSED";
+    case enums::MEDIA_PLAYER_STATE_ANNOUNCING:
+      return "MEDIA_PLAYER_STATE_ANNOUNCING";
+    case enums::MEDIA_PLAYER_STATE_OFF:
+      return "MEDIA_PLAYER_STATE_OFF";
+    case enums::MEDIA_PLAYER_STATE_ON:
+      return "MEDIA_PLAYER_STATE_ON";
     default:
       return "UNKNOWN";
   }
@@ -361,6 +367,24 @@ template<> const char *proto_enum_to_string<enums::MediaPlayerCommand>(enums::Me
       return "MEDIA_PLAYER_COMMAND_MUTE";
     case enums::MEDIA_PLAYER_COMMAND_UNMUTE:
       return "MEDIA_PLAYER_COMMAND_UNMUTE";
+    case enums::MEDIA_PLAYER_COMMAND_TOGGLE:
+      return "MEDIA_PLAYER_COMMAND_TOGGLE";
+    case enums::MEDIA_PLAYER_COMMAND_VOLUME_UP:
+      return "MEDIA_PLAYER_COMMAND_VOLUME_UP";
+    case enums::MEDIA_PLAYER_COMMAND_VOLUME_DOWN:
+      return "MEDIA_PLAYER_COMMAND_VOLUME_DOWN";
+    case enums::MEDIA_PLAYER_COMMAND_ENQUEUE:
+      return "MEDIA_PLAYER_COMMAND_ENQUEUE";
+    case enums::MEDIA_PLAYER_COMMAND_REPEAT_ONE:
+      return "MEDIA_PLAYER_COMMAND_REPEAT_ONE";
+    case enums::MEDIA_PLAYER_COMMAND_REPEAT_OFF:
+      return "MEDIA_PLAYER_COMMAND_REPEAT_OFF";
+    case enums::MEDIA_PLAYER_COMMAND_CLEAR_PLAYLIST:
+      return "MEDIA_PLAYER_COMMAND_CLEAR_PLAYLIST";
+    case enums::MEDIA_PLAYER_COMMAND_TURN_ON:
+      return "MEDIA_PLAYER_COMMAND_TURN_ON";
+    case enums::MEDIA_PLAYER_COMMAND_TURN_OFF:
+      return "MEDIA_PLAYER_COMMAND_TURN_OFF";
     default:
       return "UNKNOWN";
   }
@@ -2846,6 +2870,10 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
+  out.append("\n");
+
+  out.append("  supports_turn_off_on: ");
+  out.append(YESNO(this->supports_turn_off_on));
   out.append("\n");
   out.append("}");
 }
