@@ -234,18 +234,6 @@ class ProtoSize {
   }
 
   /**
-   * @brief Calculates and adds the size of a fixed field to the total message size (repeated field version)
-   *
-   * @tparam NumBytes The number of bytes for this fixed field (4 or 8)
-   */
-  template<uint32_t NumBytes>
-  static inline void add_fixed_field_repeated(uint32_t &total_size, uint32_t field_id_size) {
-    // Always calculate size for repeated fields
-    // Fixed fields always take exactly NumBytes
-    total_size += field_id_size + NumBytes;
-  }
-
-  /**
    * @brief Calculates and adds the size of an enum field to the total message size
    *
    * Enum fields are encoded as uint32 varints.

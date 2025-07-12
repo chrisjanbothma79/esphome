@@ -277,15 +277,13 @@ class TypeInfo(ABC):
             zero_check: Expression to check for zero value (e.g., "!= 0.0f")
         """
         field_id_size = self.calculate_field_id_size()
-        method = (
-            f"add_fixed_field_repeated<{num_bytes}>"
-            if force
-            else f"add_fixed_field<{num_bytes}>"
+        # Fixed-size repeated fields are handled differently in RepeatedTypeInfo
+        # so we should never get force=True here
+        assert not force, (
+            "Fixed-size repeated fields should be handled by RepeatedTypeInfo"
         )
-        if force:
-            return f"ProtoSize::{method}(total_size, {field_id_size});"
-        else:
-            return f"ProtoSize::{method}(total_size, {field_id_size}, {name} {zero_check});"
+        method = f"add_fixed_field<{num_bytes}>"
+        return f"ProtoSize::{method}(total_size, {field_id_size}, {name} {zero_check});"
 
     @abstractmethod
     def get_size_calculation(self, name: str, force: bool = False) -> str:
@@ -295,6 +293,14 @@ class TypeInfo(ABC):
             name: The name of the field
             force: Whether to force encoding the field even if it has a default value
         """
+
+    def get_fixed_size_bytes(self) -> int | None:
+        """Get the number of bytes for fixed-size fields (float, double, fixed32, etc).
+
+        Returns:
+            The number of bytes (4 or 8) for fixed-size fields, None for variable-size fields.
+        """
+        return None
 
     @abstractmethod
     def get_estimated_size(self) -> int:
@@ -335,6 +341,9 @@ class DoubleType(TypeInfo):
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         return self._get_fixed_size_calculation(name, force, 8, "!= 0.0")
 
+    def get_fixed_size_bytes(self) -> int:
+        return 8
+
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes for double
 
@@ -354,6 +363,9 @@ class FloatType(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         return self._get_fixed_size_calculation(name, force, 4, "!= 0.0f")
+
+    def get_fixed_size_bytes(self) -> int:
+        return 4
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 4  # field ID + 4 bytes for float
@@ -435,6 +447,9 @@ class Fixed64Type(TypeInfo):
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         return self._get_fixed_size_calculation(name, force, 8, "!= 0")
 
+    def get_fixed_size_bytes(self) -> int:
+        return 8
+
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes fixed
 
@@ -454,6 +469,9 @@ class Fixed32Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         return self._get_fixed_size_calculation(name, force, 4, "!= 0")
+
+    def get_fixed_size_bytes(self) -> int:
+        return 4
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 4  # field ID + 4 bytes fixed
@@ -628,6 +646,9 @@ class SFixed32Type(TypeInfo):
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         return self._get_fixed_size_calculation(name, force, 4, "!= 0")
 
+    def get_fixed_size_bytes(self) -> int:
+        return 4
+
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 4  # field ID + 4 bytes fixed
 
@@ -647,6 +668,9 @@ class SFixed64Type(TypeInfo):
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         return self._get_fixed_size_calculation(name, force, 8, "!= 0")
+
+    def get_fixed_size_bytes(self) -> int:
+        return 8
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes fixed
@@ -801,11 +825,23 @@ class RepeatedTypeInfo(TypeInfo):
             field_id_size = self._ti.calculate_field_id_size()
             o = f"ProtoSize::add_repeated_message(total_size, {field_id_size}, {name});"
             return o
+
         # For other repeated types, use the underlying type's size calculation with force=True
         o = f"if (!{name}.empty()) {{\n"
-        o += f"  for (const auto {'' if self._ti_is_bool else '&'}it : {name}) {{\n"
-        o += f"    {self._ti.get_size_calculation('it', True)}\n"
-        o += "  }\n"
+
+        # Check if this is a fixed-size type by seeing if it has a fixed byte count
+        num_bytes = self._ti.get_fixed_size_bytes()
+        if num_bytes is not None:
+            # Fixed types have constant size per element, so we can multiply
+            field_id_size = self._ti.calculate_field_id_size()
+            # Pre-calculate the total bytes per element
+            bytes_per_element = field_id_size + num_bytes
+            o += f"  total_size += {name}.size() * {bytes_per_element};\n"
+        else:
+            # Other types need the actual value
+            o += f"  for (const auto {'' if self._ti_is_bool else '&'}it : {name}) {{\n"
+            o += f"    {self._ti.get_size_calculation('it', True)}\n"
+            o += "  }\n"
         o += "}"
         return o
 
