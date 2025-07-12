@@ -4,9 +4,11 @@ from esphome.const import CONF_ID, CONF_TYPE
 
 CODEOWNERS = ["@DT-art1"]
 
-CONF_DEFAULT_MCU_COUNT = "mcu_count"
-CONF_DEFAULT_QUALITY = "quality"
-CONF_DEFAULT_SUBSAMPLING = "subsampling"
+AUTO_LOAD = ["camera"]
+
+CONF_MCU_COUNT = "mcu_count"
+CONF_QUALITY = "quality"
+CONF_SUBSAMPLING = "subsampling"
 
 DEFAULT_ENCODER = "default"
 
@@ -38,13 +40,13 @@ BASE_SCHEMA = cv.Schema(
 
 DEFAULT_ENCODER_SCHEMA = cv.Schema(
     {
-        cv.Optional(CONF_DEFAULT_QUALITY, default="HIGH"): cv.enum(
+        cv.Optional(CONF_QUALITY, default="HIGH"): cv.enum(
             CONF_DEFAULT_QUALITY_SELECTS, upper=True
         ),
-        cv.Optional(CONF_DEFAULT_SUBSAMPLING, default="444"): cv.enum(
+        cv.Optional(CONF_SUBSAMPLING, default="444"): cv.enum(
             CONF_DEFAULT_SUBSAMPLING_SELECTS, upper=True
         ),
-        cv.Optional(CONF_DEFAULT_MCU_COUNT, default=0): cv.int_range(0),
+        cv.Optional(CONF_MCU_COUNT, default=0): cv.int_range(0),
     }
 )
 
@@ -65,8 +67,8 @@ async def to_code(config):
         cg.Pvariable(
             config[CONF_ID],
             DefaultEncoder.new(
-                config[CONF_DEFAULT_QUALITY],
-                config[CONF_DEFAULT_SUBSAMPLING],
-                config[CONF_DEFAULT_MCU_COUNT],
+                config[CONF_QUALITY],
+                config[CONF_SUBSAMPLING],
+                config[CONF_MCU_COUNT],
             ),
         )

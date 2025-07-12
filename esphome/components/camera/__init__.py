@@ -1,6 +1,6 @@
 from esphome import automation
 import esphome.codegen as cg
-from esphome.components.camera_encoder import Encoder
+from esphome.components import camera_encoder
 import esphome.config_validation as cv
 from esphome.const import CONF_HEIGHT, CONF_ID, CONF_TRIGGER_ID, CONF_WIDTH
 from esphome.core import coroutine_with_priority
@@ -11,7 +11,7 @@ CODEOWNERS = ["@DT-art1", "@bdraco"]
 
 CONF_IDLE_UPDATE_INTERVAL = "idle_update_interval"
 CONF_MAX_UPDATE_INTERVAL = "max_update_interval"
-CONF_ENCODER_ID = "camera_encoder_id"
+CONF_CAMERA_ENCODER_ID = "camera_encoder_id"
 CONF_ENCODER_BUFFER_SIZE = "encoder_buffer_size"
 CONF_ENCODER_BUFFER_GROW = "encoder_buffer_grow"
 
@@ -98,6 +98,7 @@ _CAMERA_SCHEMA = (
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(Camera),
+            cv.Required(CONF_CAMERA_ENCODER_ID): cv.use_id(camera_encoder.Encoder),
             cv.Required(CONF_HEIGHT): cv.int_range(0),
             cv.Required(CONF_WIDTH): cv.int_range(0),
             cv.Required(CONF_IMAGE_FORMAT): cv.enum(
@@ -107,7 +108,6 @@ _CAMERA_SCHEMA = (
             cv.Optional(CONF_MAX_UPDATE_INTERVAL, default=100): cv.int_range(0),
             cv.Optional(CONF_ENCODER_BUFFER_SIZE, default=4096): cv.int_range(1024),
             cv.Optional(CONF_ENCODER_BUFFER_GROW, default=4096): cv.int_range(0),
-            cv.Optional(CONF_ENCODER_ID): cv.use_id(Encoder),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -142,8 +142,8 @@ async def setup_camera(var, config):
     await setup_entity(var, config, "camera")
     await setup_camera_automation(var, config)
     await cg.register_component(var, config)
-    if CONF_ENCODER_ID in config:
-        encoder = await cg.get_variable(config[CONF_ENCODER_ID])
+    if CONF_CAMERA_ENCODER_ID in config:
+        encoder = await cg.get_variable(config[CONF_CAMERA_ENCODER_ID])
         cg.add(var.set_encoder(encoder))
 
 
