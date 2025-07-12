@@ -327,8 +327,6 @@ class HelloRequest : public ProtoMessage {
   std::string client_info{};
   uint32_t api_version_major{0};
   uint32_t api_version_minor{0};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -364,8 +362,6 @@ class ConnectRequest : public ProtoMessage {
   const char *message_name() const override { return "connect_request"; }
 #endif
   std::string password{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -649,8 +645,6 @@ class CoverCommandRequest : public CommandProtoMessage {
   bool has_tilt{false};
   float tilt{0.0f};
   bool stop{false};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -721,8 +715,6 @@ class FanCommandRequest : public CommandProtoMessage {
   int32_t speed_level{0};
   bool has_preset_mode{false};
   std::string preset_mode{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -817,8 +809,6 @@ class LightCommandRequest : public CommandProtoMessage {
   uint32_t flash_length{0};
   bool has_effect{false};
   std::string effect{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -911,8 +901,6 @@ class SwitchCommandRequest : public CommandProtoMessage {
   const char *message_name() const override { return "switch_command_request"; }
 #endif
   bool state{false};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -966,8 +954,6 @@ class SubscribeLogsRequest : public ProtoMessage {
 #endif
   enums::LogLevel level{};
   bool dump_config{false};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1002,8 +988,6 @@ class NoiseEncryptionSetKeyRequest : public ProtoMessage {
   const char *message_name() const override { return "noise_encryption_set_key_request"; }
 #endif
   std::string key{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1115,8 +1099,6 @@ class HomeAssistantStateResponse : public ProtoMessage {
   std::string entity_id{};
   std::string state{};
   std::string attribute{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1218,8 +1200,6 @@ class ExecuteServiceRequest : public ProtoMessage {
 #endif
   uint32_t key{0};
   std::vector<ExecuteServiceArgument> args{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1271,8 +1251,6 @@ class CameraImageRequest : public ProtoMessage {
 #endif
   bool single{false};
   bool stream{false};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1373,8 +1351,6 @@ class ClimateCommandRequest : public CommandProtoMessage {
   std::string custom_preset{};
   bool has_target_humidity{false};
   float target_humidity{0.0f};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1432,8 +1408,6 @@ class NumberCommandRequest : public CommandProtoMessage {
   const char *message_name() const override { return "number_command_request"; }
 #endif
   float state{0.0f};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1485,8 +1459,6 @@ class SelectCommandRequest : public CommandProtoMessage {
   const char *message_name() const override { return "select_command_request"; }
 #endif
   std::string state{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1547,8 +1519,6 @@ class SirenCommandRequest : public CommandProtoMessage {
   uint32_t duration{0};
   bool has_volume{false};
   float volume{0.0f};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1605,8 +1575,6 @@ class LockCommandRequest : public CommandProtoMessage {
   enums::LockCommand command{};
   bool has_code{false};
   std::string code{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1641,8 +1609,6 @@ class ButtonCommandRequest : public CommandProtoMessage {
 #ifdef HAS_PROTO_MESSAGE_DUMP
   const char *message_name() const override { return "button_command_request"; }
 #endif
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1720,8 +1686,6 @@ class MediaPlayerCommandRequest : public CommandProtoMessage {
   std::string media_url{};
   bool has_announcement{false};
   bool announcement{false};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1741,8 +1705,6 @@ class SubscribeBluetoothLEAdvertisementsRequest : public ProtoMessage {
   const char *message_name() const override { return "subscribe_bluetooth_le_advertisements_request"; }
 #endif
   uint32_t flags{0};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1830,8 +1792,6 @@ class BluetoothDeviceRequest : public ProtoMessage {
   enums::BluetoothDeviceRequestType request_type{};
   bool has_address_type{false};
   uint32_t address_type{0};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1866,8 +1826,6 @@ class BluetoothGATTGetServicesRequest : public ProtoMessage {
   const char *message_name() const override { return "bluetooth_gatt_get_services_request"; }
 #endif
   uint64_t address{0};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1961,8 +1919,6 @@ class BluetoothGATTReadRequest : public ProtoMessage {
 #endif
   uint64_t address{0};
   uint32_t handle{0};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -1999,8 +1955,6 @@ class BluetoothGATTWriteRequest : public ProtoMessage {
   uint32_t handle{0};
   bool response{false};
   std::string data{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2018,8 +1972,6 @@ class BluetoothGATTReadDescriptorRequest : public ProtoMessage {
 #endif
   uint64_t address{0};
   uint32_t handle{0};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2037,8 +1989,6 @@ class BluetoothGATTWriteDescriptorRequest : public ProtoMessage {
   uint64_t address{0};
   uint32_t handle{0};
   std::string data{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2057,8 +2007,6 @@ class BluetoothGATTNotifyRequest : public ProtoMessage {
   uint64_t address{0};
   uint32_t handle{0};
   bool enable{false};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2259,8 +2207,6 @@ class BluetoothScannerSetModeRequest : public ProtoMessage {
   const char *message_name() const override { return "bluetooth_scanner_set_mode_request"; }
 #endif
   enums::BluetoothScannerMode mode{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2279,8 +2225,6 @@ class SubscribeVoiceAssistantRequest : public ProtoMessage {
 #endif
   bool subscribe{false};
   uint32_t flags{0};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2332,8 +2276,6 @@ class VoiceAssistantResponse : public ProtoMessage {
 #endif
   uint32_t port{0};
   bool error{false};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2363,8 +2305,6 @@ class VoiceAssistantEventResponse : public ProtoMessage {
 #endif
   enums::VoiceAssistantEvent event_type{};
   std::vector<VoiceAssistantEventData> data{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2405,8 +2345,6 @@ class VoiceAssistantTimerEventResponse : public ProtoMessage {
   uint32_t total_seconds{0};
   uint32_t seconds_left{0};
   bool is_active{false};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2426,8 +2364,6 @@ class VoiceAssistantAnnounceRequest : public ProtoMessage {
   std::string text{};
   std::string preannounce_media_id{};
   bool start_conversation{false};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2505,8 +2441,6 @@ class VoiceAssistantSetConfiguration : public ProtoMessage {
   const char *message_name() const override { return "voice_assistant_set_configuration"; }
 #endif
   std::vector<std::string> active_wake_words{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2559,8 +2493,6 @@ class AlarmControlPanelCommandRequest : public CommandProtoMessage {
 #endif
   enums::AlarmControlPanelStateCommand command{};
   std::string code{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2616,8 +2548,6 @@ class TextCommandRequest : public CommandProtoMessage {
   const char *message_name() const override { return "text_command_request"; }
 #endif
   std::string state{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2673,8 +2603,6 @@ class DateCommandRequest : public CommandProtoMessage {
   uint32_t year{0};
   uint32_t month{0};
   uint32_t day{0};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2729,8 +2657,6 @@ class TimeCommandRequest : public CommandProtoMessage {
   uint32_t hour{0};
   uint32_t minute{0};
   uint32_t second{0};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2822,8 +2748,6 @@ class ValveCommandRequest : public CommandProtoMessage {
   bool has_position{false};
   float position{0.0f};
   bool stop{false};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2874,8 +2798,6 @@ class DateTimeCommandRequest : public CommandProtoMessage {
   const char *message_name() const override { return "date_time_command_request"; }
 #endif
   uint32_t epoch_seconds{0};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
@@ -2934,8 +2856,6 @@ class UpdateCommandRequest : public CommandProtoMessage {
   const char *message_name() const override { return "update_command_request"; }
 #endif
   enums::UpdateCommand command{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
 #ifdef HAS_PROTO_MESSAGE_DUMP
   void dump_to(std::string &out) const override;
 #endif
