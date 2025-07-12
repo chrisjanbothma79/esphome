@@ -3,6 +3,7 @@
 #include "api_pb2.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
+#include <cstring>
 
 namespace esphome {
 namespace api {
@@ -3825,9 +3826,14 @@ bool BluetoothLERawAdvertisement::decode_varint(uint32_t field_id, ProtoVarInt v
 }
 bool BluetoothLERawAdvertisement::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {
-    case 4:
-      this->data = value.as_string();
+    case 4: {
+      this->data_len = value.as_string().size();
+      if (this->data_len > 62) {
+        this->data_len = 62;
+      }
+      memcpy(this->data, value.as_string().data(), this->data_len);
       break;
+    }
     default:
       return false;
   }
@@ -3837,13 +3843,13 @@ void BluetoothLERawAdvertisement::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
   buffer.encode_sint32(2, this->rssi);
   buffer.encode_uint32(3, this->address_type);
-  buffer.encode_bytes(4, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
+  buffer.encode_bytes(4, this->data, this->data_len);
 }
 void BluetoothLERawAdvertisement::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint64_field(total_size, 1, this->address);
   ProtoSize::add_sint32_field(total_size, 1, this->rssi);
   ProtoSize::add_uint32_field(total_size, 1, this->address_type);
-  ProtoSize::add_string_field(total_size, 1, this->data);
+  total_size += 1 + ProtoSize::varint(static_cast<uint32_t>(this->data_len)) + this->data_len;
 }
 bool BluetoothLERawAdvertisementsResponse::decode_length(uint32_t field_id, ProtoLengthDelimited value) {
   switch (field_id) {

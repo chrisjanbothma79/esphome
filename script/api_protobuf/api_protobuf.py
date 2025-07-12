@@ -564,6 +564,75 @@ class BytesType(TypeInfo):
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes typical bytes
 
 
+class FixedArrayBytesType(TypeInfo):
+    """Special type for fixed-size byte arrays."""
+
+    def __init__(self, field: descriptor.FieldDescriptorProto, size: int) -> None:
+        super().__init__(field)
+        self.array_size = size
+
+    @property
+    def cpp_type(self) -> str:
+        return "uint8_t"
+
+    @property
+    def default_value(self) -> str:
+        return "{}"
+
+    @property
+    def reference_type(self) -> str:
+        return f"uint8_t (&)[{self.array_size}]"
+
+    @property
+    def const_reference_type(self) -> str:
+        return f"const uint8_t (&)[{self.array_size}]"
+
+    @property
+    def public_content(self) -> list[str]:
+        # Add both the array and length fields
+        return [
+            f"uint8_t {self.field_name}[{self.array_size}]{{}};",
+            f"uint8_t {self.field_name}_len{{0}};",
+        ]
+
+    @property
+    def decode_length_content(self) -> str:
+        o = f"case {self.number}: {{\n"
+        o += f"  this->{self.field_name}_len = value.as_string().size();\n"
+        o += f"  if (this->{self.field_name}_len > {self.array_size}) {{\n"
+        o += f"    this->{self.field_name}_len = {self.array_size};\n"
+        o += "  }\n"
+        o += f"  memcpy(this->{self.field_name}, value.as_string().data(), this->{self.field_name}_len);\n"
+        o += "  break;\n"
+        o += "}"
+        return o
+
+    @property
+    def encode_content(self) -> str:
+        return f"buffer.encode_bytes({self.number}, this->{self.field_name}, this->{self.field_name}_len);"
+
+    def dump(self, name: str) -> str:
+        o = f"out.append(format_hex_pretty(reinterpret_cast<const char*>(this->{name}), this->{name}_len));"
+        return o
+
+    def get_size_calculation(self, name: str, force: bool = False) -> str:
+        # Use the actual length stored in the _len field
+        length_field = f"this->{self.field_name}_len"
+        # Size = field_id_size + varint(length) + actual_data_bytes
+        field_id_size = self.calculate_field_id_size()
+        return f"  total_size += {field_id_size} + ProtoSize::varint(static_cast<uint32_t>({length_field})) + {length_field};\n"
+
+    def get_estimated_size(self) -> int:
+        # Estimate based on typical BLE advertisement size
+        return (
+            self.calculate_field_id_size() + 1 + 31
+        )  # field ID + length byte + typical 31 bytes
+
+    @property
+    def wire_type(self) -> WireType:
+        return WireType.LENGTH_DELIMITED
+
+
 @register_type(13)
 class UInt32Type(TypeInfo):
     cpp_type = "uint32_t"
@@ -971,10 +1040,7 @@ def calculate_message_estimated_size(desc: descriptor.DescriptorProto) -> int:
     total_size = 0
 
     for field in desc.field:
-        if field.label == 3:  # repeated
-            ti = RepeatedTypeInfo(field)
-        else:
-            ti = TYPE_INFO[field.type](field)
+        ti = create_field_type_info(field)
 
         # Add estimated size for this field
         total_size += ti.get_estimated_size()
@@ -1036,10 +1102,7 @@ def build_message_type(
         public_content.append("#endif")
 
     for field in desc.field:
-        if field.label == 3:
-            ti = RepeatedTypeInfo(field)
-        else:
-            ti = TYPE_INFO[field.type](field)
+        ti = create_field_type_info(field)
 
         # Skip field declarations for fields that are in the base class
         # but include their encode/decode logic
@@ -1203,6 +1266,31 @@ def get_opt(
     return desc.options.Extensions[opt]
 
 
+def get_field_opt(
+    field: descriptor.FieldDescriptorProto,
+    opt: descriptor.FieldOptions,
+    default: Any = None,
+) -> Any:
+    """Get the option from a field descriptor."""
+    if not field.options.HasExtension(opt):
+        return default
+    return field.options.Extensions[opt]
+
+
+def create_field_type_info(field: descriptor.FieldDescriptorProto) -> TypeInfo:
+    """Create the appropriate TypeInfo instance for a field, handling repeated fields and custom options."""
+    if field.label == 3:  # repeated
+        return RepeatedTypeInfo(field)
+
+    # Check for fixed_array_size option on bytes fields
+    if field.type == 12:  # TYPE_BYTES
+        fixed_size = get_field_opt(field, pb.fixed_array_size)
+        if fixed_size is not None:
+            return FixedArrayBytesType(field, fixed_size)
+
+    return TYPE_INFO[field.type](field)
+
+
 def get_base_class(desc: descriptor.DescriptorProto) -> str | None:
     """Get the base_class option from a message descriptor."""
     if not desc.options.HasExtension(pb.base_class):
@@ -1276,10 +1364,7 @@ def build_base_class(
     # For base classes, we only declare the fields but don't handle encode/decode
     # The derived classes will handle encoding/decoding with their specific field numbers
     for field in common_fields:
-        if field.label == 3:  # repeated
-            ti = RepeatedTypeInfo(field)
-        else:
-            ti = TYPE_INFO[field.type](field)
+        ti = create_field_type_info(field)
 
         # Only add field declarations, not encode/decode logic
         protected_content.extend(ti.protected_content)
@@ -1412,6 +1497,7 @@ namespace api {
     #include "api_pb2.h"
     #include "esphome/core/log.h"
     #include "esphome/core/helpers.h"
+    #include <cstring>
 
 namespace esphome {
 namespace api {

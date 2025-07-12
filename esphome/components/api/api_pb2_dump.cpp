@@ -3013,7 +3013,7 @@ void BluetoothLERawAdvertisement::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  data: ");
-  out.append(format_hex_pretty(this->data));
+  out.append(format_hex_pretty(reinterpret_cast<const char *>(this->this->data), this->this->data_len));
   out.append("\n");
   out.append("}");
 }

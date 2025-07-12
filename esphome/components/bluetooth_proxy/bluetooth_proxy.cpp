@@ -3,6 +3,8 @@
 #include "esphome/core/log.h"
 #include "esphome/core/macros.h"
 #include "esphome/core/application.h"
+#include <cstring>
+#include <memory>
 
 #ifdef USE_ESP32
 
@@ -60,13 +62,39 @@ bool BluetoothProxy::parse_device(const esp32_ble_tracker::ESPBTDevice &device) 
 static constexpr size_t FLUSH_BATCH_SIZE = 16;
 
 namespace {
-// Batch buffer in anonymous namespace to avoid guard variable (saves 8 bytes)
-// This is initialized at program startup before any threads
+// Memory pool for BluetoothLERawAdvertisement objects
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-std::vector<api::BluetoothLERawAdvertisement> batch_buffer;
+std::vector<api::BluetoothLERawAdvertisement> advertisement_pool;
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+std::vector<api::BluetoothLERawAdvertisement *> free_advertisements;
+
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+std::vector<api::BluetoothLERawAdvertisement *> batch_buffer;
+
+// Pre-allocated response object to avoid heap allocation during runtime
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+std::unique_ptr<api::BluetoothLERawAdvertisementsResponse> response =
+    std::make_unique<api::BluetoothLERawAdvertisementsResponse>();
+
+// Initialize the pool
+struct PoolInitializer {
+  PoolInitializer() {
+    // Pre-allocate all vectors
+    advertisement_pool.resize(FLUSH_BATCH_SIZE);
+    free_advertisements.resize(FLUSH_BATCH_SIZE);
+    batch_buffer.reserve(FLUSH_BATCH_SIZE);
+    response->advertisements.reserve(FLUSH_BATCH_SIZE);
+
+    // Populate free pool with pointers to all advertisements
+    for (size_t i = 0; i < FLUSH_BATCH_SIZE; i++) {
+      free_advertisements[i] = &advertisement_pool[i];
+    }
+  }
+} pool_initializer;
 }  // namespace
 
-static std::vector<api::BluetoothLERawAdvertisement> &get_batch_buffer() { return batch_buffer; }
+static std::vector<api::BluetoothLERawAdvertisement *> &get_batch_buffer() { return batch_buffer; }
 
 bool BluetoothProxy::parse_devices(const esp32_ble::BLEScanResult *scan_results, size_t count) {
   if (!api::global_api_server->is_connected() || this->api_connection_ == nullptr || !this->raw_advertisements_)
@@ -75,26 +103,35 @@ bool BluetoothProxy::parse_devices(const esp32_ble::BLEScanResult *scan_results,
   // Get the batch buffer reference
   auto &batch_buffer = get_batch_buffer();
 
-  // Reserve additional capacity if needed
-  size_t new_size = batch_buffer.size() + count;
-  if (batch_buffer.capacity() < new_size) {
-    batch_buffer.reserve(new_size);
-  }
-
   // Add new advertisements to the batch buffer
   for (size_t i = 0; i < count; i++) {
+    // Check if we have free advertisements available
+    if (free_advertisements.empty()) {
+      // No free advertisements, flush current batch now
+      ESP_LOGV(TAG, "Advertisement pool exhausted, flushing batch");
+      this->flush_pending_advertisements();
+    }
+
     auto &result = scan_results[i];
     uint8_t length = result.adv_data_len + result.scan_rsp_len;
 
-    batch_buffer.emplace_back();
-    auto &adv = batch_buffer.back();
-    adv.address = esp32_ble::ble_addr_to_uint64(result.bda);
-    adv.rssi = result.rssi;
-    adv.address_type = result.ble_addr_type;
-    adv.data.assign(&result.ble_adv[0], &result.ble_adv[length]);
+    // Get an advertisement from the free pool
+    auto *adv = free_advertisements.back();
+    free_advertisements.pop_back();
 
-    ESP_LOGV(TAG, "Queuing raw packet from %02X:%02X:%02X:%02X:%02X:%02X, length %d. RSSI: %d dB", result.bda[0],
-             result.bda[1], result.bda[2], result.bda[3], result.bda[4], result.bda[5], length, result.rssi);
+    // Fill in the advertisement data
+    adv->address = esp32_ble::ble_addr_to_uint64(result.bda);
+    adv->rssi = result.rssi;
+    adv->address_type = result.ble_addr_type;
+    adv->data_len = length;
+    std::memcpy(adv->data, result.ble_adv, length);
+
+    // Add to batch buffer
+    batch_buffer.push_back(adv);
+
+    ESP_LOGV(TAG, "Queuing raw packet from %02X:%02X:%02X:%02X:%02X:%02X, length %d (adv:%d, rsp:%d). RSSI: %d dB",
+             result.bda[0], result.bda[1], result.bda[2], result.bda[3], result.bda[4], result.bda[5], length,
+             result.adv_data_len, result.scan_rsp_len, result.rssi);
   }
 
   // Only send if we've accumulated a good batch size to maximize batching efficiency
@@ -111,9 +148,30 @@ void BluetoothProxy::flush_pending_advertisements() {
   if (batch_buffer.empty() || !api::global_api_server->is_connected() || this->api_connection_ == nullptr)
     return;
 
-  api::BluetoothLERawAdvertisementsResponse resp;
-  resp.advertisements.swap(batch_buffer);
-  this->api_connection_->send_message(resp);
+  // Defensive check
+  if (batch_buffer.size() > FLUSH_BATCH_SIZE) {
+    ESP_LOGW(TAG, "Batch buffer size %d exceeds maximum %d", batch_buffer.size(), FLUSH_BATCH_SIZE);
+    return;
+  }
+
+  // Clear any previous data in response
+  response->advertisements.clear();
+
+  // Copy data from pool objects to response
+  // Use resize + index assignment instead of push_back to avoid temporaries
+  response->advertisements.resize(batch_buffer.size());
+  for (size_t i = 0; i < batch_buffer.size(); i++) {
+    response->advertisements[i] = *batch_buffer[i];
+  }
+
+  // Send the message
+  this->api_connection_->send_message(*response);
+
+  // Return all advertisements to the free pool
+  free_advertisements.insert(free_advertisements.end(), batch_buffer.begin(), batch_buffer.end());
+
+  // Clear the batch buffer
+  batch_buffer.clear();
 }
 
 void BluetoothProxy::send_api_packet_(const esp32_ble_tracker::ESPBTDevice &device) {
