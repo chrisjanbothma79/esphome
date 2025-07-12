@@ -7,6 +7,7 @@
 #include "esphome/core/automation.h"
 #include "api_pb2.h"
 
+#ifdef USE_API_SERVICES
 namespace esphome {
 namespace api {
 
@@ -75,3 +76,4 @@ template<typename... Ts> class UserServiceTrigger : public UserServiceBase<Ts...
 
 }  // namespace api
 }  // namespace esphome
+#endif  // USE_API_SERVICES

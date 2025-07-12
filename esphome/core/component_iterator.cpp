@@ -4,7 +4,12 @@
 
 #ifdef USE_API
 #include "esphome/components/api/api_server.h"
+#endif
+#ifdef USE_API_SERVICES
 #include "esphome/components/api/user_services.h"
+#endif
+#ifdef USE_CAMERA
+#include "esphome/components/camera/camera.h"
 #endif
 
 namespace esphome {
@@ -96,19 +101,20 @@ void ComponentIterator::advance() {
       break;
 #endif
 
-#ifdef USE_API
+#ifdef USE_API_SERVICES
     case IteratorState::SERVICE:
       this->process_entity_(api::global_api_server->get_user_services(), &ComponentIterator::on_service);
       break;
 #endif
 
-#ifdef USE_ESP32_CAMERA
+#ifdef USE_CAMERA
     case IteratorState::CAMERA: {
-      std::vector<esp32_camera::ESP32Camera *> cameras;
-      if (esp32_camera::global_esp32_camera) {
-        cameras.push_back(esp32_camera::global_esp32_camera);
+      if (camera::Camera::instance() == nullptr) {
+        advance_platform_();
+      } else {
+        std::vector<camera::Camera *> cameras{camera::Camera::instance()};
+        this->process_entity_(cameras, &ComponentIterator::on_camera);
       }
-      this->process_entity_(cameras, &ComponentIterator::on_camera);
     } break;
 #endif
 
@@ -200,11 +206,11 @@ void ComponentIterator::advance() {
 
 bool ComponentIterator::on_end() { return true; }
 bool ComponentIterator::on_begin() { return true; }
-#ifdef USE_API
+#ifdef USE_API_SERVICES
 bool ComponentIterator::on_service(api::UserServiceDescriptor *service) { return true; }
 #endif
-#ifdef USE_ESP32_CAMERA
-bool ComponentIterator::on_camera(esp32_camera::ESP32Camera *camera) { return true; }
+#ifdef USE_CAMERA
+bool ComponentIterator::on_camera(camera::Camera *camera) { return true; }
 #endif
 #ifdef USE_MEDIA_PLAYER
 bool ComponentIterator::on_media_player(media_player::MediaPlayer *media_player) { return true; }
