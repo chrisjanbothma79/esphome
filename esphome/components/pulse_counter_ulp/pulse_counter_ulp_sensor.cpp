@@ -94,8 +94,8 @@ UlpProgram::State UlpProgram::peek_state() const {
   return {.rising_edge_count_ = rising_edge_count, .falling_edge_count_ = falling_edge_count};
 }
 
-RTC_DATA_ATTR int PulseCounterUlpSensor::pulse_count_persist_ = 0;
-RTC_DATA_ATTR clock::time_point PulseCounterUlpSensor::last_time_{};
+RTC_DATA_ATTR int PulseCounterUlpSensor::pulse_count_persist = 0;
+RTC_DATA_ATTR clock::time_point PulseCounterUlpSensor::last_time{};
 
 float PulseCounterUlpSensor::get_setup_priority() const {
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_UNDEFINED) {
@@ -114,7 +114,7 @@ void PulseCounterUlpSensor::setup() {
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_UNDEFINED) {
     ESP_LOGD(TAG, "Did not wake up from sleep, assuming restart or first boot and setting up ULP program");
     this->storage_ = UlpProgram::start(this->config_);
-    this->last_time_ = clock::now();
+    last_time = clock::now();
   } else {
     ESP_LOGD(TAG, "Woke up from sleep, skipping set-up of ULP program");
     this->storage_ = make_unique<UlpProgram>();
@@ -135,7 +135,7 @@ void PulseCounterUlpSensor::set_total_pulses(uint32_t pulses) {
   if (this->total_sensor_ != nullptr) {
     ESP_LOGD(TAG, "'%s': Reset pulses of total count to pulses: %d", this->get_name().c_str(), pulses);
 
-    pulse_count_persist_ = std::max(static_cast<int>(pulses), 0);
+    pulse_count_persist = std::max(static_cast<int>(pulses), 0);
     this->total_sensor_->publish_state(pulses);
   }
 }
@@ -172,8 +172,8 @@ void PulseCounterUlpSensor::update() {
   }
 
   clock::time_point now = clock::now();
-  clock::duration interval = now - this->last_time_;
-  this->last_time_ = now;
+  clock::duration interval = now - last_time;
+  last_time = now;
 
   if (interval > clock::duration::zero()) {
     float value = std::chrono::minutes{1} * static_cast<float>(pulse_count_ulp) / interval;  // pulses per minute
@@ -184,10 +184,10 @@ void PulseCounterUlpSensor::update() {
 
   if (this->total_sensor_ != nullptr) {
     // Get new overall value
-    const int32_t pulse_count = pulse_count_persist_ + pulse_count_ulp;
+    const int32_t pulse_count = pulse_count_persist + pulse_count_ulp;
 
     // Update persistent counter
-    pulse_count_persist_ = (int) pulse_count;
+    pulse_count_persist = (int) pulse_count;
 
     // publish new state
     ESP_LOGD(TAG, "'%s': Pulses from ULP: %d; Overall pulses: %d", this->get_name().c_str(), pulse_count_ulp,

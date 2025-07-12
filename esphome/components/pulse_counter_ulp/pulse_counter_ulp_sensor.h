@@ -63,8 +63,8 @@ class PulseCounterUlpSensor : public sensor::Sensor, public PollingComponent {
   std::unique_ptr<UlpProgram> storage_{};
 
   // These need to be static to be stored as RTC_DATA_ATTR
-  static clock::time_point last_time_;
-  static int pulse_count_persist_;
+  static clock::time_point last_time;
+  static int pulse_count_persist;
 };
 
 }  // namespace pulse_counter_ulp
