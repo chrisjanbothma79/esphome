@@ -184,6 +184,9 @@ class Proto64Bit {
   const uint64_t value_;
 };
 
+// Forward declaration needed for method declaration
+class ProtoMessage;
+
 class ProtoWriteBuffer {
  public:
   ProtoWriteBuffer(std::vector<uint8_t> *buffer) : buffer_(buffer) {}
