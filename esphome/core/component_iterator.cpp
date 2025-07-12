@@ -8,9 +8,6 @@
 #ifdef USE_API_SERVICES
 #include "esphome/components/api/user_services.h"
 #endif
-#ifdef USE_CAMERA
-#include "esphome/components/camera/camera.h"
-#endif
 
 namespace esphome {
 
