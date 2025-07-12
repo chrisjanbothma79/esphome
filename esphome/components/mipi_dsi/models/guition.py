@@ -16,7 +16,6 @@ DriverChip(
     swap_xy=cv.UNDEFINED,
     color_order="RGB",
     reset_pin=27,
-    use_axis_flips=True,
     initsequence=[
         (0x30, 0x00),
         (0xF7, 0x49, 0x61, 0x02, 0x00),

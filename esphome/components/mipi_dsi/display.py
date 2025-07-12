@@ -132,7 +132,7 @@ def model_schema(config):
             model.option(CONF_TRANSFORM, cv.UNDEFINED): transform,
             cv.Required(CONF_MODEL): cv.one_of(model.name, upper=True),
             model.option(CONF_INVERT_COLORS, False): cv.boolean,
-            model.option(CONF_USE_AXIS_FLIPS, False): cv.boolean,
+            model.option(CONF_USE_AXIS_FLIPS, True): cv.boolean,
             model.option(CONF_PCLK_FREQUENCY, "40MHz"): cv.All(
                 cv.frequency, cv.Range(min=4e6, max=100e6)
             ),
