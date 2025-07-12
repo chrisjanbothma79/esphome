@@ -86,10 +86,11 @@ void ComponentIterator::advance() {
 
 #ifdef USE_CAMERA
     case IteratorState::CAMERA: {
-      camera::Camera *camera_instance = camera::Camera::instance();
-      if (camera_instance == nullptr || (camera_instance->is_internal() && !this->include_internal_) ||
-          this->on_camera(camera_instance)) {
+      if (camera::Camera::instance() == nullptr) {
         advance_platform_();
+      } else {
+        std::vector<camera::Camera *> cameras{camera::Camera::instance()};
+        this->process_entity_(cameras, &ComponentIterator::on_camera);
       }
     } break;
 #endif
