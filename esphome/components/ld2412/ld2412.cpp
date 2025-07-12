@@ -196,13 +196,8 @@ static const uint8_t NO_MAC[] = {0x08, 0x05, 0x04, 0x03, 0x02, 0x01};
 
 static inline int two_byte_to_int(char firstbyte, char secondbyte) { return (int16_t) (secondbyte << 8) + firstbyte; }
 
-static bool validate_header_footer(const uint8_t *header_footer, const uint8_t *buffer) {
-  for (uint8_t i = 0; i < HEADER_FOOTER_SIZE; i++) {
-    if (header_footer[i] != buffer[i]) {
-      return false;  // Mismatch in header/footer
-    }
-  }
-  return true;  // Valid header/footer
+static inline bool validate_header_footer(const uint8_t *header_footer, const uint8_t *buffer) {
+  return std::memcmp(header_footer, buffer, HEADER_FOOTER_SIZE) == 0;
 }
 
 void LD2412Component::dump_config() {
@@ -513,7 +508,7 @@ bool LD2412Component::handle_ack_data_() {
     ESP_LOGW(TAG, "Invalid status");
     return true;
   }
-  if (ld2412::two_byte_to_int(this->buffer_data_[8], this->buffer_data_[9]) != 0x00) {
+  if (this->buffer_data_[8] || this->buffer_data_[9]) {
     ESP_LOGW(TAG, "Invalid command: %02X, %02X", this->buffer_data_[8], this->buffer_data_[9]);
     return true;
   }
@@ -564,8 +559,8 @@ bool LD2412Component::handle_ack_data_() {
       this->light_threshold_ = this->buffer_data_[11];
       const auto *light_function_str = find_str(LIGHT_FUNCTIONS_BY_UINT, this->light_function_);
       ESP_LOGV(TAG,
-               "Light function is: %s\n"
-               "Light threshold is: %u",
+               "Light function: %s\n"
+               "Light threshold: %u",
                light_function_str, this->light_threshold_);
 #ifdef USE_SELECT
       if (this->light_function_select_ != nullptr) {
@@ -836,7 +831,6 @@ void LD2412Component::set_basic_config() {
   };
   this->set_config_mode_(true);
   this->send_command_(CMD_BASIC_CONF, value, sizeof(value));
-  delay(50);  // NOLINT
   this->set_config_mode_(false);
 }
 
@@ -852,23 +846,19 @@ void LD2412Component::set_gate_threshold() {
       value[i] = lowbyte(static_cast<int>(this->gate_move_threshold_numbers_[i]->state));
     }
     this->send_command_(CMD_MOTION_GATE_SENS, value, sizeof(value));
-    delay(50);  // NOLINT
   }
   if (!this->gate_still_threshold_numbers_.empty()) {
     for (size_t i = 0; i < this->gate_still_threshold_numbers_.size(); i++) {
       value[i] = lowbyte(static_cast<int>(this->gate_still_threshold_numbers_[i]->state));
     }
     this->send_command_(CMD_STATIC_GATE_SENS, value, sizeof(value));
-    delay(50);  // NOLINT
   }
   this->set_config_mode_(false);
 }
 
 void LD2412Component::get_gate_threshold() {
   this->send_command_(CMD_QUERY_MOTION_GATE_SENS, nullptr, 0);
-  delay(50);  // NOLINT
   this->send_command_(CMD_QUERY_STATIC_GATE_SENS, nullptr, 0);
-  delay(50);  // NOLINT
 }
 
 void LD2412Component::set_gate_still_threshold_number(uint8_t gate, number::Number *n) {
@@ -894,7 +884,6 @@ void LD2412Component::set_light_out_control() {
   uint8_t value[2] = {this->light_function_, this->light_threshold_};
   this->set_config_mode_(true);
   this->send_command_(CMD_SET_LIGHT_CONTROL, value, sizeof(value));
-  delay(50);  // NOLINT
   this->query_light_control_();
   this->set_timeout(200, [this]() { this->restart_and_read_all_info(); });
 }
