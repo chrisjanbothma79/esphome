@@ -540,7 +540,10 @@ class MessageType(TypeInfo):
 
     @property
     def decode_length(self) -> str:
-        # For non-template decoding, we need to handle this differently
+        # Override to return None for message types because we can't use template-based
+        # decoding when the specific message type isn't known at compile time.
+        # Instead, we use the non-template decode_to_message() method which allows
+        # runtime polymorphism through virtual function calls.
         return None
 
     @property
