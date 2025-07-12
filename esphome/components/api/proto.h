@@ -132,15 +132,20 @@ class ProtoVarInt {
   uint64_t value_;
 };
 
-// Forward declaration for decode_to_message
-class ProtoMessage;
-
 class ProtoLengthDelimited {
  public:
   explicit ProtoLengthDelimited(const uint8_t *value, size_t length) : value_(value), length_(length) {}
   std::string as_string() const { return std::string(reinterpret_cast<const char *>(this->value_), this->length_); }
 
-  // Non-template method to decode into an existing message instance
+  /**
+   * Decode the length-delimited data into an existing ProtoMessage instance.
+   *
+   * This method allows decoding without templates, enabling use in contexts
+   * where the message type is not known at compile time. The ProtoMessage's
+   * decode() method will be called with the raw data and length.
+   *
+   * @param msg The ProtoMessage instance to decode into
+   */
   void decode_to_message(ProtoMessage &msg) const;
 
  protected:
