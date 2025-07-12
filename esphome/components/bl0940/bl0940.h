@@ -59,10 +59,10 @@ class BL0940 : public PollingComponent, public uart::UARTDevice {
   void set_voltage_reference(float voltage_ref) { this->voltage_reference_ = voltage_ref; }
 
 #ifdef USE_NUMBER
-  void set_current_calibration(number::Number *num) { this->current_calibration_ = num; }
-  void set_voltage_calibration(number::Number *num) { this->voltage_calibration_ = num; }
-  void set_power_calibration(number::Number *num) { this->power_calibration_ = num; }
-  void set_energy_calibration(number::Number *num) { this->energy_calibration_ = num; }
+  void set_current_calibration_number(number::Number *num) { this->current_calibration_ = num; }
+  void set_voltage_calibration_number(number::Number *num) { this->voltage_calibration_ = num; }
+  void set_power_calibration_number(number::Number *num) { this->power_calibration_ = num; }
+  void set_energy_calibration_number(number::Number *num) { this->energy_calibration_ = num; }
 #endif
 
 #ifdef USE_BUTTON
