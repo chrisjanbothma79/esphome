@@ -249,6 +249,44 @@ class TypeInfo(ABC):
             return 4  # 28 bits
         return 5  # 32 bits (maximum for uint32_t)
 
+    def _get_simple_size_calculation(
+        self, name: str, force: bool, base_method: str, value_expr: str = None
+    ) -> str:
+        """Helper for simple size calculations.
+
+        Args:
+            name: Field name
+            force: Whether this is for a repeated field
+            base_method: Base method name (e.g., "add_int32_field")
+            value_expr: Optional value expression (defaults to name)
+        """
+        field_id_size = self.calculate_field_id_size()
+        method = f"{base_method}_repeated" if force else base_method
+        value = value_expr if value_expr else name
+        return f"ProtoSize::{method}(total_size, {field_id_size}, {value});"
+
+    def _get_fixed_size_calculation(
+        self, name: str, force: bool, num_bytes: int, zero_check: str
+    ) -> str:
+        """Helper for fixed-size field calculations.
+
+        Args:
+            name: Field name
+            force: Whether this is for a repeated field
+            num_bytes: Number of bytes (4 or 8)
+            zero_check: Expression to check for zero value (e.g., "!= 0.0f")
+        """
+        field_id_size = self.calculate_field_id_size()
+        method = (
+            f"add_fixed_field_repeated<{num_bytes}>"
+            if force
+            else f"add_fixed_field<{num_bytes}>"
+        )
+        if force:
+            return f"ProtoSize::{method}(total_size, {field_id_size});"
+        else:
+            return f"ProtoSize::{method}(total_size, {field_id_size}, {name} {zero_check});"
+
     @abstractmethod
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         """Calculate the size needed for encoding this field.
@@ -295,13 +333,7 @@ class DoubleType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_fixed_field_repeated<8>" if force else "add_fixed_field<8>"
-        if force:
-            o = f"ProtoSize::{method}(total_size, {field_id_size});"
-        else:
-            o = f"ProtoSize::{method}(total_size, {field_id_size}, {name} != 0.0);"
-        return o
+        return self._get_fixed_size_calculation(name, force, 8, "!= 0.0")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes for double
@@ -321,13 +353,7 @@ class FloatType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_fixed_field_repeated<4>" if force else "add_fixed_field<4>"
-        if force:
-            o = f"ProtoSize::{method}(total_size, {field_id_size});"
-        else:
-            o = f"ProtoSize::{method}(total_size, {field_id_size}, {name} != 0.0f);"
-        return o
+        return self._get_fixed_size_calculation(name, force, 4, "!= 0.0f")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 4  # field ID + 4 bytes for float
@@ -347,10 +373,7 @@ class Int64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_int64_field_repeated" if force else "add_int64_field"
-        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
-        return o
+        return self._get_simple_size_calculation(name, force, "add_int64_field")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
@@ -370,10 +393,7 @@ class UInt64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_uint64_field_repeated" if force else "add_uint64_field"
-        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
-        return o
+        return self._get_simple_size_calculation(name, force, "add_uint64_field")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
@@ -393,10 +413,7 @@ class Int32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_int32_field_repeated" if force else "add_int32_field"
-        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
-        return o
+        return self._get_simple_size_calculation(name, force, "add_int32_field")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
@@ -416,13 +433,7 @@ class Fixed64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_fixed_field_repeated<8>" if force else "add_fixed_field<8>"
-        if force:
-            o = f"ProtoSize::{method}(total_size, {field_id_size});"
-        else:
-            o = f"ProtoSize::{method}(total_size, {field_id_size}, {name} != 0);"
-        return o
+        return self._get_fixed_size_calculation(name, force, 8, "!= 0")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes fixed
@@ -442,13 +453,7 @@ class Fixed32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_fixed_field_repeated<4>" if force else "add_fixed_field<4>"
-        if force:
-            o = f"ProtoSize::{method}(total_size, {field_id_size});"
-        else:
-            o = f"ProtoSize::{method}(total_size, {field_id_size}, {name} != 0);"
-        return o
+        return self._get_fixed_size_calculation(name, force, 4, "!= 0")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 4  # field ID + 4 bytes fixed
@@ -467,10 +472,7 @@ class BoolType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_bool_field_repeated" if force else "add_bool_field"
-        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
-        return o
+        return self._get_simple_size_calculation(name, force, "add_bool_field")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 1  # field ID + 1 byte
@@ -491,10 +493,7 @@ class StringType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_string_field_repeated" if force else "add_string_field"
-        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
-        return o
+        return self._get_simple_size_calculation(name, force, "add_string_field")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes typical string
@@ -530,10 +529,7 @@ class MessageType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_message_object_repeated" if force else "add_message_object"
-        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
-        return o
+        return self._get_simple_size_calculation(name, force, "add_message_object")
 
     def get_estimated_size(self) -> int:
         return (
@@ -560,10 +556,7 @@ class BytesType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_string_field_repeated" if force else "add_string_field"
-        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
-        return o
+        return self._get_simple_size_calculation(name, force, "add_string_field")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes typical bytes
@@ -583,10 +576,7 @@ class UInt32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_uint32_field_repeated" if force else "add_uint32_field"
-        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
-        return o
+        return self._get_simple_size_calculation(name, force, "add_uint32_field")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
@@ -614,10 +604,9 @@ class EnumType(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_enum_field_repeated" if force else "add_enum_field"
-        o = f"ProtoSize::{method}(total_size, {field_id_size}, static_cast<uint32_t>({name}));"
-        return o
+        return self._get_simple_size_calculation(
+            name, force, "add_enum_field", f"static_cast<uint32_t>({name})"
+        )
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 1  # field ID + 1 byte typical enum
@@ -637,13 +626,7 @@ class SFixed32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_fixed_field_repeated<4>" if force else "add_fixed_field<4>"
-        if force:
-            o = f"ProtoSize::{method}(total_size, {field_id_size});"
-        else:
-            o = f"ProtoSize::{method}(total_size, {field_id_size}, {name} != 0);"
-        return o
+        return self._get_fixed_size_calculation(name, force, 4, "!= 0")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 4  # field ID + 4 bytes fixed
@@ -663,13 +646,7 @@ class SFixed64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_fixed_field_repeated<8>" if force else "add_fixed_field<8>"
-        if force:
-            o = f"ProtoSize::{method}(total_size, {field_id_size});"
-        else:
-            o = f"ProtoSize::{method}(total_size, {field_id_size}, {name} != 0);"
-        return o
+        return self._get_fixed_size_calculation(name, force, 8, "!= 0")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 8  # field ID + 8 bytes fixed
@@ -689,10 +666,7 @@ class SInt32Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_sint32_field_repeated" if force else "add_sint32_field"
-        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
-        return o
+        return self._get_simple_size_calculation(name, force, "add_sint32_field")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
@@ -712,10 +686,7 @@ class SInt64Type(TypeInfo):
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
-        field_id_size = self.calculate_field_id_size()
-        method = "add_sint64_field_repeated" if force else "add_sint64_field"
-        o = f"ProtoSize::{method}(total_size, {field_id_size}, {name});"
-        return o
+        return self._get_simple_size_calculation(name, force, "add_sint64_field")
 
     def get_estimated_size(self) -> int:
         return self.calculate_field_id_size() + 3  # field ID + 3 bytes typical varint
