@@ -355,8 +355,6 @@ class HelloResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class ConnectRequest : public ProtoMessage {
  public:
@@ -390,7 +388,6 @@ class ConnectResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class DisconnectRequest : public ProtoMessage {
  public:
@@ -522,8 +519,6 @@ class DeviceInfoResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class ListEntitiesRequest : public ProtoMessage {
  public:
@@ -581,9 +576,6 @@ class ListEntitiesBinarySensorResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BinarySensorStateResponse : public StateResponseProtoMessage {
  public:
@@ -601,8 +593,6 @@ class BinarySensorStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 #endif
 #ifdef USE_COVER
@@ -625,9 +615,6 @@ class ListEntitiesCoverResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class CoverStateResponse : public StateResponseProtoMessage {
  public:
@@ -647,8 +634,6 @@ class CoverStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class CoverCommandRequest : public CommandProtoMessage {
  public:
@@ -695,9 +680,6 @@ class ListEntitiesFanResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class FanStateResponse : public StateResponseProtoMessage {
  public:
@@ -719,9 +701,6 @@ class FanStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class FanCommandRequest : public CommandProtoMessage {
  public:
@@ -777,9 +756,6 @@ class ListEntitiesLightResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class LightStateResponse : public StateResponseProtoMessage {
  public:
@@ -807,9 +783,6 @@ class LightStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class LightCommandRequest : public CommandProtoMessage {
  public:
@@ -877,9 +850,6 @@ class ListEntitiesSensorResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class SensorStateResponse : public StateResponseProtoMessage {
  public:
@@ -897,8 +867,6 @@ class SensorStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 #endif
 #ifdef USE_SWITCH
@@ -918,9 +886,6 @@ class ListEntitiesSwitchResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class SwitchStateResponse : public StateResponseProtoMessage {
  public:
@@ -937,8 +902,6 @@ class SwitchStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class SwitchCommandRequest : public CommandProtoMessage {
  public:
@@ -975,9 +938,6 @@ class ListEntitiesTextSensorResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class TextSensorStateResponse : public StateResponseProtoMessage {
  public:
@@ -995,9 +955,6 @@ class TextSensorStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 #endif
 class SubscribeLogsRequest : public ProtoMessage {
@@ -1035,8 +992,6 @@ class SubscribeLogsResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 #ifdef USE_API_NOISE
 class NoiseEncryptionSetKeyRequest : public ProtoMessage {
@@ -1071,7 +1026,6 @@ class NoiseEncryptionSetKeyResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 #endif
 class SubscribeHomeassistantServicesRequest : public ProtoMessage {
@@ -1119,8 +1073,6 @@ class HomeassistantServiceResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class SubscribeHomeAssistantStatesRequest : public ProtoMessage {
  public:
@@ -1152,8 +1104,6 @@ class SubscribeHomeAssistantStateResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class HomeAssistantStateResponse : public ProtoMessage {
  public:
@@ -1236,8 +1186,6 @@ class ListEntitiesServicesResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
 };
 class ExecuteServiceArgument : public ProtoMessage {
  public:
@@ -1296,9 +1244,6 @@ class ListEntitiesCameraResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class CameraImageResponse : public StateResponseProtoMessage {
  public:
@@ -1316,9 +1261,6 @@ class CameraImageResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class CameraImageRequest : public ProtoMessage {
  public:
@@ -1372,9 +1314,6 @@ class ListEntitiesClimateResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class ClimateStateResponse : public StateResponseProtoMessage {
  public:
@@ -1404,9 +1343,6 @@ class ClimateStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class ClimateCommandRequest : public CommandProtoMessage {
  public:
@@ -1470,9 +1406,6 @@ class ListEntitiesNumberResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class NumberStateResponse : public StateResponseProtoMessage {
  public:
@@ -1490,8 +1423,6 @@ class NumberStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class NumberCommandRequest : public CommandProtoMessage {
  public:
@@ -1528,9 +1459,6 @@ class ListEntitiesSelectResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class SelectStateResponse : public StateResponseProtoMessage {
  public:
@@ -1548,9 +1476,6 @@ class SelectStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class SelectCommandRequest : public CommandProtoMessage {
  public:
@@ -1590,9 +1515,6 @@ class ListEntitiesSirenResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class SirenStateResponse : public StateResponseProtoMessage {
  public:
@@ -1609,8 +1531,6 @@ class SirenStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class SirenCommandRequest : public CommandProtoMessage {
  public:
@@ -1658,9 +1578,6 @@ class ListEntitiesLockResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class LockStateResponse : public StateResponseProtoMessage {
  public:
@@ -1677,8 +1594,6 @@ class LockStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class LockCommandRequest : public CommandProtoMessage {
  public:
@@ -1718,9 +1633,6 @@ class ListEntitiesButtonResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class ButtonCommandRequest : public CommandProtoMessage {
  public:
@@ -1774,9 +1686,6 @@ class ListEntitiesMediaPlayerResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class MediaPlayerStateResponse : public StateResponseProtoMessage {
  public:
@@ -1795,8 +1704,6 @@ class MediaPlayerStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class MediaPlayerCommandRequest : public CommandProtoMessage {
  public:
@@ -1879,8 +1786,6 @@ class BluetoothLEAdvertisementResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BluetoothLERawAdvertisement : public ProtoMessage {
  public:
@@ -1913,7 +1818,6 @@ class BluetoothLERawAdvertisementsResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
 };
 class BluetoothDeviceRequest : public ProtoMessage {
  public:
@@ -1953,7 +1857,6 @@ class BluetoothDeviceConnectionResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BluetoothGATTGetServicesRequest : public ProtoMessage {
  public:
@@ -2032,8 +1935,6 @@ class BluetoothGATTGetServicesResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BluetoothGATTGetServicesDoneResponse : public ProtoMessage {
  public:
@@ -2050,7 +1951,6 @@ class BluetoothGATTGetServicesDoneResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BluetoothGATTReadRequest : public ProtoMessage {
  public:
@@ -2087,8 +1987,6 @@ class BluetoothGATTReadResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BluetoothGATTWriteRequest : public ProtoMessage {
  public:
@@ -2185,8 +2083,6 @@ class BluetoothGATTNotifyDataResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class SubscribeBluetoothConnectionsFreeRequest : public ProtoMessage {
  public:
@@ -2218,7 +2114,6 @@ class BluetoothConnectionsFreeResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BluetoothGATTErrorResponse : public ProtoMessage {
  public:
@@ -2237,7 +2132,6 @@ class BluetoothGATTErrorResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BluetoothGATTWriteResponse : public ProtoMessage {
  public:
@@ -2255,7 +2149,6 @@ class BluetoothGATTWriteResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BluetoothGATTNotifyResponse : public ProtoMessage {
  public:
@@ -2273,7 +2166,6 @@ class BluetoothGATTNotifyResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BluetoothDevicePairingResponse : public ProtoMessage {
  public:
@@ -2292,7 +2184,6 @@ class BluetoothDevicePairingResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BluetoothDeviceUnpairingResponse : public ProtoMessage {
  public:
@@ -2311,7 +2202,6 @@ class BluetoothDeviceUnpairingResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class UnsubscribeBluetoothLEAdvertisementsRequest : public ProtoMessage {
  public:
@@ -2343,7 +2233,6 @@ class BluetoothDeviceClearCacheResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BluetoothScannerStateResponse : public ProtoMessage {
  public:
@@ -2361,7 +2250,6 @@ class BluetoothScannerStateResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class BluetoothScannerSetModeRequest : public ProtoMessage {
  public:
@@ -2434,8 +2322,6 @@ class VoiceAssistantRequest : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class VoiceAssistantResponse : public ProtoMessage {
  public:
@@ -2565,7 +2451,6 @@ class VoiceAssistantAnnounceFinished : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class VoiceAssistantWakeWord : public ProtoMessage {
  public:
@@ -2611,8 +2496,6 @@ class VoiceAssistantConfigurationResponse : public ProtoMessage {
 #endif
 
  protected:
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class VoiceAssistantSetConfiguration : public ProtoMessage {
  public:
@@ -2650,9 +2533,6 @@ class ListEntitiesAlarmControlPanelResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class AlarmControlPanelStateResponse : public StateResponseProtoMessage {
  public:
@@ -2669,8 +2549,6 @@ class AlarmControlPanelStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class AlarmControlPanelCommandRequest : public CommandProtoMessage {
  public:
@@ -2712,9 +2590,6 @@ class ListEntitiesTextResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class TextStateResponse : public StateResponseProtoMessage {
  public:
@@ -2732,9 +2607,6 @@ class TextStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class TextCommandRequest : public CommandProtoMessage {
  public:
@@ -2771,9 +2643,6 @@ class ListEntitiesDateResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class DateStateResponse : public StateResponseProtoMessage {
  public:
@@ -2793,8 +2662,6 @@ class DateStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class DateCommandRequest : public CommandProtoMessage {
  public:
@@ -2832,9 +2699,6 @@ class ListEntitiesTimeResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class TimeStateResponse : public StateResponseProtoMessage {
  public:
@@ -2854,8 +2718,6 @@ class TimeStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class TimeCommandRequest : public CommandProtoMessage {
  public:
@@ -2895,9 +2757,6 @@ class ListEntitiesEventResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class EventResponse : public StateResponseProtoMessage {
  public:
@@ -2914,9 +2773,6 @@ class EventResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 #endif
 #ifdef USE_VALVE
@@ -2938,9 +2794,6 @@ class ListEntitiesValveResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class ValveStateResponse : public StateResponseProtoMessage {
  public:
@@ -2958,8 +2811,6 @@ class ValveStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class ValveCommandRequest : public CommandProtoMessage {
  public:
@@ -2997,9 +2848,6 @@ class ListEntitiesDateTimeResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class DateTimeStateResponse : public StateResponseProtoMessage {
  public:
@@ -3017,8 +2865,6 @@ class DateTimeStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class DateTimeCommandRequest : public CommandProtoMessage {
  public:
@@ -3055,9 +2901,6 @@ class ListEntitiesUpdateResponse : public InfoResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class UpdateStateResponse : public StateResponseProtoMessage {
  public:
@@ -3082,9 +2925,6 @@ class UpdateStateResponse : public StateResponseProtoMessage {
 #endif
 
  protected:
-  bool decode_32bit(uint32_t field_id, Proto32Bit value) override;
-  bool decode_length(uint32_t field_id, ProtoLengthDelimited value) override;
-  bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
 class UpdateCommandRequest : public CommandProtoMessage {
  public:

@@ -1059,6 +1059,10 @@ def build_message_type(
     # Get message ID if it's a service message
     message_id: int | None = get_opt(desc, pb.id)
 
+    # Get source direction to determine if we need decode methods
+    source: int = get_opt(desc, pb.source, SOURCE_BOTH)
+    needs_decode = source in (SOURCE_BOTH, SOURCE_CLIENT)
+
     # Add MESSAGE_TYPE method if this is a service message
     if message_id is not None:
         # Validate that message_id fits in uint8_t
@@ -1105,14 +1109,16 @@ def build_message_type(
         encode.append(ti.encode_content)
         size_calc.append(ti.get_size_calculation(f"this->{ti.field_name}"))
 
-        if ti.decode_varint_content:
-            decode_varint.append(ti.decode_varint_content)
-        if ti.decode_length_content:
-            decode_length.append(ti.decode_length_content)
-        if ti.decode_32bit_content:
-            decode_32bit.append(ti.decode_32bit_content)
-        if ti.decode_64bit_content:
-            decode_64bit.append(ti.decode_64bit_content)
+        # Only collect decode methods if this message needs them
+        if needs_decode:
+            if ti.decode_varint_content:
+                decode_varint.append(ti.decode_varint_content)
+            if ti.decode_length_content:
+                decode_length.append(ti.decode_length_content)
+            if ti.decode_32bit_content:
+                decode_32bit.append(ti.decode_32bit_content)
+            if ti.decode_64bit_content:
+                decode_64bit.append(ti.decode_64bit_content)
         if ti.dump_content:
             dump.append(ti.dump_content)
 
