@@ -15,6 +15,17 @@ namespace camera {
  */
 enum CameraRequester : uint8_t { IDLE, API_REQUESTER, WEB_REQUESTER };
 
+/** Enumeration of different image formats.
+ *  IMAGE_FORMAT_GRAYSCALE: 1 byte.
+ *  IMAGE_FORMAT_RGB565: 2 bytes of color information.
+ *  IMAGE_FORMAT_RGB888: 3 bytes of colors in RGB order.
+ */
+enum ImageFormat : uint8_t {
+  IMAGE_FORMAT_GRAYSCALE = 0,
+  IMAGE_FORMAT_RGB565,
+  IMAGE_FORMAT_RGB888,
+};
+
 /** Abstract camera image base class.
  *  Encapsulates the JPEG encoded data and it is shared among
  *  all connected clients.
@@ -41,6 +52,30 @@ class CameraImageReader {
   virtual void consume_data(size_t consumed) = 0;
   virtual void return_image() = 0;
   virtual ~CameraImageReader() {}
+};
+
+/** Specification of a caputured camera image.
+ *  This struct defines the format and size details for images
+ *  captured or processed by a camera component.
+ */
+struct CameraImageSpec {
+  uint16_t width;
+  uint16_t height;
+  ImageFormat format;
+  size_t bytes_per_pixel() {
+    switch (format) {
+      case IMAGE_FORMAT_GRAYSCALE:
+        return 1;
+      case IMAGE_FORMAT_RGB565:
+        return 2;
+      case IMAGE_FORMAT_RGB888:
+        return 3;
+    }
+
+    return 1;
+  }
+  size_t bytes_per_row() { return bytes_per_pixel() * width; }
+  size_t bytes_per_image() { return bytes_per_pixel() * width * height; }
 };
 
 /** Abstract camera base class. Collaborates with API.
