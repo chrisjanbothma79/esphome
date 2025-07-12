@@ -236,7 +236,7 @@ void BL0940::received_package_(DataPacket *data) {
 
 void BL0940::dump_config() {  // NOLINT(readability-function-cognitive-complexity)
   ESP_LOGCONFIG(TAG,
-                "\nBL0940:\n"
+                "BL0940:\n"
                 "  LEGACY MODE: %s\n"
                 "  READ  CMD: 0x%02X\n"
                 "  WRITE CMD: 0x%02X\n"
@@ -244,18 +244,16 @@ void BL0940::dump_config() {  // NOLINT(readability-function-cognitive-complexit
                 "  Current reference: %f\n"
                 "  Energy reference: %f\n"
                 "  Power reference: %f\n"
-                "  Voltage reference: %f\n"
-                "  ------------------\n",
+                "  Voltage reference: %f\n",
                 TRUEFALSE(this->legacy_mode_enabled_), this->read_command_, this->write_command_,
                 this->current_reference_, this->energy_reference_, this->power_reference_, this->voltage_reference_);
 #ifdef USE_NUMBER
   ESP_LOGCONFIG(TAG,
-                "\nBL0940:\n"
+                "BL0940:\n"
                 "  Current calibration: %f\n"
                 "  Energy calibration: %f\n"
                 "  Power calibration: %f\n"
-                "  Voltage calibration: %f\n"
-                "  ------------------\n",
+                "  Voltage calibration: %f\n",
                 this->current_cal_, this->energy_cal_, this->power_cal_, this->voltage_cal_);
 #endif
   LOG_SENSOR("", "Voltage", this->voltage_sensor_);
