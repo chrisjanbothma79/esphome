@@ -173,7 +173,8 @@ class ComponentIterator {
   bool include_internal_{false};
 
   template<typename ComponentItem>
-  void process_entity_(const std::vector<ComponentItem *> &items, bool (ComponentIterator::*on_item)(ComponentItem *));
+  void process_component_item_(const std::vector<ComponentItem *> &items,
+                               bool (ComponentIterator::*on_item)(ComponentItem *));
   void advance_platform_();
 };
 
