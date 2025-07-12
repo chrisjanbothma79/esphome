@@ -2200,9 +2200,7 @@ void ExecuteServiceArgument::calculate_size(uint32_t &total_size) const {
     }
   }
   if (!this->float_array.empty()) {
-    for (const auto &it : this->float_array) {
-      ProtoSize::add_fixed_field_repeated<4>(total_size, 1);
-    }
+    total_size += this->float_array.size() * 5;
   }
   if (!this->string_array.empty()) {
     for (const auto &it : this->string_array) {
