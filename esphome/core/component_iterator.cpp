@@ -17,14 +17,14 @@ void ComponentIterator::begin(bool include_internal) {
   this->include_internal_ = include_internal;
 }
 
-template<typename Entity>
-void ComponentIterator::process_entity_(const std::vector<Entity *> &items,
-                                        bool (ComponentIterator::*on_item)(Entity *)) {
+template<typename ComponentItem>
+void ComponentIterator::process_entity_(const std::vector<ComponentItem *> &items,
+                                        bool (ComponentIterator::*on_item)(ComponentItem *)) {
   if (this->at_ >= items.size()) {
     this->advance_platform_();
   } else {
-    Entity *entity = items[this->at_];
-    if ((entity->is_internal() && !this->include_internal_) || (this->*on_item)(entity)) {
+    ComponentItem *item = items[this->at_];
+    if ((item->is_internal() && !this->include_internal_) || (this->*on_item)(item)) {
       this->at_++;
     }
   }
