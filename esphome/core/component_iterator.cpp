@@ -20,9 +20,7 @@ namespace esphome {
       advance_platform_(); \
     } else { \
       auto *(item_name) = (vector)[this->at_]; \
-      if ((item_name)->is_internal() && !this->include_internal_) { \
-        this->at_++; \
-      } else if (this->method(item_name)) { \
+      if (((item_name)->is_internal() && !this->include_internal_) || this->method(item_name)) { \
         this->at_++; \
       } \
     } \
@@ -89,10 +87,10 @@ void ComponentIterator::advance() {
 #ifdef USE_CAMERA
     case IteratorState::CAMERA: {
       camera::Camera *camera_instance = camera::Camera::instance();
-      if (camera_instance != nullptr && (!camera_instance->is_internal() || this->include_internal_)) {
-        this->on_camera(camera_instance);
+      if (camera_instance == nullptr || (camera_instance->is_internal() && !this->include_internal_) ||
+          this->on_camera(camera_instance)) {
+        advance_platform_();
       }
-      advance_platform_();
     } break;
 #endif
 
