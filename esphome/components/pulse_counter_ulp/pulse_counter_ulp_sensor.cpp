@@ -52,7 +52,6 @@ std::unique_ptr<UlpProgram> UlpProgram::start(const Config &config) {
   ulp_rising_edge_count = 0;
   ulp_falling_edge_en = config.falling_edge_mode_ != CountMode::DISABLE;
   ulp_falling_edge_count = 0;
-  ulp_run_count = 0;
   ulp_debounce_counter = 3;
   ulp_edges_wakeup = config.edges_wakeup_ > 0 ? config.edges_wakeup_ : std::numeric_limits<uint16_t>::max();
   ulp_debounce_max_count = config.debounce_;
@@ -86,19 +85,17 @@ UlpProgram::State UlpProgram::pop_state() {
   State state = UlpProgram::peek_state();
   ulp_rising_edge_count = 0;
   ulp_falling_edge_count = 0;
-  ulp_run_count = 0;
   return state;
 }
 
 UlpProgram::State UlpProgram::peek_state() const {
   auto rising_edge_count = static_cast<uint16_t>(ulp_rising_edge_count);
   auto falling_edge_count = static_cast<uint16_t>(ulp_falling_edge_count);
-  auto run_count = static_cast<uint16_t>(ulp_run_count);
-  return {.rising_edge_count_ = rising_edge_count, .falling_edge_count_ = falling_edge_count, .run_count_ = run_count};
+  return {.rising_edge_count_ = rising_edge_count, .falling_edge_count_ = falling_edge_count};
 }
 
-RTC_DATA_ATTR int PulseCounterUlpSensor::pulse_count_persist = 0;
-RTC_DATA_ATTR int PulseCounterUlpSensor::mean_exec_time = 0;
+RTC_DATA_ATTR int PulseCounterUlpSensor::pulse_count_persist_ = 0;
+RTC_DATA_ATTR clock::time_point PulseCounterUlpSensor::last_time_{};
 
 float PulseCounterUlpSensor::get_setup_priority() const {
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_UNDEFINED) {
@@ -117,12 +114,10 @@ void PulseCounterUlpSensor::setup() {
   if (esp_sleep_get_wakeup_cause() == ESP_SLEEP_WAKEUP_UNDEFINED) {
     ESP_LOGD(TAG, "Did not wake up from sleep, assuming restart or first boot and setting up ULP program");
     this->storage_ = UlpProgram::start(this->config_);
-    mean_exec_time = static_cast<int>(this->config_.sleep_duration_ / microseconds{1});
+    this->last_time_ = clock::now();
   } else {
     ESP_LOGD(TAG, "Woke up from sleep, skipping set-up of ULP program");
     this->storage_ = make_unique<UlpProgram>();
-    UlpProgram::State state = this->storage_->peek_state();
-    this->last_time_ = clock::now() - state.run_count_ * (mean_exec_time * microseconds{1});
   }
 
   /* Enable wakeup from ulp */
@@ -140,7 +135,7 @@ void PulseCounterUlpSensor::set_total_pulses(uint32_t pulses) {
   if (this->total_sensor_ != nullptr) {
     ESP_LOGD(TAG, "'%s': Reset pulses of total count to pulses: %d", this->get_name().c_str(), pulses);
 
-    pulse_count_persist = std::max(static_cast<int>(pulses), 0);
+    pulse_count_persist_ = std::max(static_cast<int>(pulses), 0);
     this->total_sensor_->publish_state(pulses);
   }
 }
@@ -178,9 +173,9 @@ void PulseCounterUlpSensor::update() {
 
   clock::time_point now = clock::now();
   clock::duration interval = now - this->last_time_;
-  if (interval != clock::duration::zero()) {
-    mean_exec_time =
-        static_cast<int>((std::chrono::duration_cast<microseconds>(interval / raw.run_count_)) / microseconds{1});
+  this->last_time_ = now;
+
+  if (interval > clock::duration::zero()) {
     float value = std::chrono::minutes{1} * static_cast<float>(pulse_count_ulp) / interval;  // pulses per minute
     ESP_LOGD(TAG, "'%s': Retrieved counter: %d pulses at %0.2f pulses/min", this->get_name().c_str(), pulse_count_ulp,
              value);
@@ -189,10 +184,10 @@ void PulseCounterUlpSensor::update() {
 
   if (this->total_sensor_ != nullptr) {
     // Get new overall value
-    const int32_t pulse_count = pulse_count_persist + pulse_count_ulp;
+    const int32_t pulse_count = pulse_count_persist_ + pulse_count_ulp;
 
     // Update persistent counter
-    pulse_count_persist = (int) pulse_count;
+    pulse_count_persist_ = (int) pulse_count;
 
     // publish new state
     ESP_LOGD(TAG, "'%s': Pulses from ULP: %d; Overall pulses: %d", this->get_name().c_str(), pulse_count_ulp,
@@ -200,8 +195,6 @@ void PulseCounterUlpSensor::update() {
 
     this->total_sensor_->publish_state(pulse_count);
   }
-
-  this->last_time_ = now;
 }
 
 }  // namespace pulse_counter_ulp

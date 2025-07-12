@@ -13,7 +13,7 @@ namespace pulse_counter_ulp {
 
 enum class CountMode { DISABLE = 0, INCREMENT = 1, DECREMENT = -1 };
 
-using clock = std::chrono::steady_clock;
+using clock = std::chrono::system_clock;
 using microseconds = std::chrono::duration<uint32_t, std::micro>;
 
 class UlpProgram {
@@ -29,7 +29,6 @@ class UlpProgram {
   struct State {
     uint16_t rising_edge_count_;
     uint16_t falling_edge_count_;
-    uint16_t run_count_;
   };
   State pop_state();
   State peek_state() const;
@@ -62,10 +61,10 @@ class PulseCounterUlpSensor : public sensor::Sensor, public PollingComponent {
   sensor::Sensor *total_sensor_{nullptr};
   UlpProgram::Config config_{};
   std::unique_ptr<UlpProgram> storage_{};
-  clock::time_point last_time_{};
 
-  static int pulse_count_persist;
-  static int mean_exec_time;
+  // These need to be static to be stored as RTC_DATA_ATTR
+  static clock::time_point last_time_;
+  static int pulse_count_persist_;
 };
 
 }  // namespace pulse_counter_ulp
