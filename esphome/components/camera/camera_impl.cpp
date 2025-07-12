@@ -15,19 +15,6 @@ void CameraImpl::set_camera_image_spec(int width, int height, ImageFormat format
   this->camera_image_spec_.height = height;
   this->camera_image_spec_.format = format;
 }
-void CameraImpl::set_idle_update_interval(uint32_t idle_update_interval) {
-  this->idle_update_interval_ = idle_update_interval;
-}
-void CameraImpl::set_max_update_interval(uint32_t max_update_interval) {
-  this->max_update_interval_ = max_update_interval;
-}
-void CameraImpl::set_encoder(Encoder *encoder) { this->encoder_ = encoder; }
-void CameraImpl::set_encoder_buffer_size(size_t encoder_buffer_size) {
-  this->encoder_buffer_size_ = encoder_buffer_size;
-}
-void CameraImpl::set_encoder_buffer_grow(size_t encoder_buffer_grow) {
-  this->encoder_buffer_grow_ = encoder_buffer_grow;
-}
 
 CameraImageReader *CameraImpl::create_image_reader() {
   ESP_LOGV(TAG, "CameraImpl::create_image_reader.");

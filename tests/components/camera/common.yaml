@@ -31,9 +31,15 @@ display:
           ++context.state;
           it.filled_circle(196, 128, 15, Color(0, 0, 255));
         }
+
+camera_encoder:
+  id: jpeg_encoder
+  type: default
+
 camera:
   - platform: template
     name: Test Camera
+    camera_encoder_id: jpeg_encoder
     width: 256
     height: 256
     image_format: RGB888

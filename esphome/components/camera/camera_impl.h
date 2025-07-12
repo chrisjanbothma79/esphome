@@ -28,15 +28,15 @@ class CameraImpl : public Camera {
   // Sets the camera's image specifications
   void set_camera_image_spec(int width, int height, ImageFormat format);
   // Sets the update interval in milliseconds for images without requests
-  void set_idle_update_interval(uint32_t idle_update_interval);
+  void set_idle_update_interval(uint32_t idle_update_interval) { this->idle_update_interval_ = idle_update_interval; }
   // Sets the number of milliseconds between two consecutive images
-  void set_max_update_interval(uint32_t max_update_interval);
+  void set_max_update_interval(uint32_t max_update_interval) { this->max_update_interval_ = max_update_interval; }
   // Sets encoder implementation
-  void set_encoder(Encoder *encoder);
+  void set_encoder(Encoder *encoder) { this->encoder_ = encoder; }
   // Sets the initial number of bytes in the encoder buffer
-  void set_encoder_buffer_size(size_t encoder_buffer_size);
+  void set_encoder_buffer_size(size_t encoder_buffer_size) { this->encoder_buffer_size_ = encoder_buffer_size; }
   // Specifies how many bytes the buffer should grow after an underflow error
-  void set_encoder_buffer_grow(size_t encoder_buffer_grow);
+  void set_encoder_buffer_grow(size_t encoder_buffer_grow) { this->encoder_buffer_grow_ = encoder_buffer_grow; }
   // Performs camera processing tasks such as image capture and JPEG encoding spread
   // over multiple loop cycles to avoid blocking and ensure real-time responsiveness.
   // This method is intended to be called repeatedly from the loop.
