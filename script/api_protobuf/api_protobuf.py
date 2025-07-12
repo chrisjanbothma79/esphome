@@ -498,7 +498,7 @@ class MessageType(TypeInfo):
 
     @property
     def encode_func(self) -> str:
-        return f"encode_message<{self.cpp_type}>"
+        return "encode_message"
 
     @property
     def decode_length(self) -> str:

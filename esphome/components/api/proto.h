@@ -307,7 +307,7 @@ class ProtoWriteBuffer {
     }
     this->encode_uint64(field_id, uvalue, force);
   }
-  template<class C> void encode_message(uint32_t field_id, const C &value, bool force = false) {
+  void encode_message(uint32_t field_id, const ProtoMessage &value, bool force = false) {
     this->encode_field_raw(field_id, 2);  // type 2: Length-delimited message
     size_t begin = this->buffer_->size();
 

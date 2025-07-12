@@ -293,12 +293,12 @@ void DeviceInfoResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(18, this->bluetooth_mac_address);
   buffer.encode_bool(19, this->api_encryption_supported);
   for (auto &it : this->devices) {
-    buffer.encode_message<DeviceInfo>(20, it, true);
+    buffer.encode_message(20, it, true);
   }
   for (auto &it : this->areas) {
-    buffer.encode_message<AreaInfo>(21, it, true);
+    buffer.encode_message(21, it, true);
   }
-  buffer.encode_message<AreaInfo>(22, this->area);
+  buffer.encode_message(22, this->area);
 }
 void DeviceInfoResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->uses_password, false);
@@ -1953,13 +1953,13 @@ bool HomeassistantServiceResponse::decode_length(uint32_t field_id, ProtoLengthD
 void HomeassistantServiceResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->service);
   for (auto &it : this->data) {
-    buffer.encode_message<HomeassistantServiceMap>(2, it, true);
+    buffer.encode_message(2, it, true);
   }
   for (auto &it : this->data_template) {
-    buffer.encode_message<HomeassistantServiceMap>(3, it, true);
+    buffer.encode_message(3, it, true);
   }
   for (auto &it : this->variables) {
-    buffer.encode_message<HomeassistantServiceMap>(4, it, true);
+    buffer.encode_message(4, it, true);
   }
   buffer.encode_bool(5, this->is_event);
 }
@@ -2102,7 +2102,7 @@ void ListEntitiesServicesResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->name);
   buffer.encode_fixed32(2, this->key);
   for (auto &it : this->args) {
-    buffer.encode_message<ListEntitiesServicesArgument>(3, it, true);
+    buffer.encode_message(3, it, true);
   }
 }
 void ListEntitiesServicesResponse::calculate_size(uint32_t &total_size) const {
@@ -2233,7 +2233,7 @@ bool ExecuteServiceRequest::decode_32bit(uint32_t field_id, Proto32Bit value) {
 void ExecuteServiceRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   for (auto &it : this->args) {
-    buffer.encode_message<ExecuteServiceArgument>(2, it, true);
+    buffer.encode_message(2, it, true);
   }
 }
 void ExecuteServiceRequest::calculate_size(uint32_t &total_size) const {
@@ -3847,7 +3847,7 @@ void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum_uint32(7, static_cast<uint32_t>(this->entity_category));
   buffer.encode_bool(8, this->supports_pause);
   for (auto &it : this->supported_formats) {
-    buffer.encode_message<MediaPlayerSupportedFormat>(9, it, true);
+    buffer.encode_message(9, it, true);
   }
   buffer.encode_uint32(10, this->device_id);
 }
@@ -4097,10 +4097,10 @@ void BluetoothLEAdvertisementResponse::encode(ProtoWriteBuffer buffer) const {
     buffer.encode_string(4, it, true);
   }
   for (auto &it : this->service_data) {
-    buffer.encode_message<BluetoothServiceData>(5, it, true);
+    buffer.encode_message(5, it, true);
   }
   for (auto &it : this->manufacturer_data) {
-    buffer.encode_message<BluetoothServiceData>(6, it, true);
+    buffer.encode_message(6, it, true);
   }
   buffer.encode_uint32(7, this->address_type);
 }
@@ -4169,7 +4169,7 @@ bool BluetoothLERawAdvertisementsResponse::decode_length(uint32_t field_id, Prot
 }
 void BluetoothLERawAdvertisementsResponse::encode(ProtoWriteBuffer buffer) const {
   for (auto &it : this->advertisements) {
-    buffer.encode_message<BluetoothLERawAdvertisement>(1, it, true);
+    buffer.encode_message(1, it, true);
   }
 }
 void BluetoothLERawAdvertisementsResponse::calculate_size(uint32_t &total_size) const {
@@ -4320,7 +4320,7 @@ void BluetoothGATTCharacteristic::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, this->handle);
   buffer.encode_uint32(3, this->properties);
   for (auto &it : this->descriptors) {
-    buffer.encode_message<BluetoothGATTDescriptor>(4, it, true);
+    buffer.encode_message(4, it, true);
   }
 }
 void BluetoothGATTCharacteristic::calculate_size(uint32_t &total_size) const {
@@ -4363,7 +4363,7 @@ void BluetoothGATTService::encode(ProtoWriteBuffer buffer) const {
   }
   buffer.encode_uint32(2, this->handle);
   for (auto &it : this->characteristics) {
-    buffer.encode_message<BluetoothGATTCharacteristic>(3, it, true);
+    buffer.encode_message(3, it, true);
   }
 }
 void BluetoothGATTService::calculate_size(uint32_t &total_size) const {
@@ -4398,7 +4398,7 @@ bool BluetoothGATTGetServicesResponse::decode_length(uint32_t field_id, ProtoLen
 void BluetoothGATTGetServicesResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
   for (auto &it : this->services) {
-    buffer.encode_message<BluetoothGATTService>(2, it, true);
+    buffer.encode_message(2, it, true);
   }
 }
 void BluetoothGATTGetServicesResponse::calculate_size(uint32_t &total_size) const {
@@ -4957,7 +4957,7 @@ void VoiceAssistantRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(1, this->start);
   buffer.encode_string(2, this->conversation_id);
   buffer.encode_uint32(3, this->flags);
-  buffer.encode_message<VoiceAssistantAudioSettings>(4, this->audio_settings);
+  buffer.encode_message(4, this->audio_settings);
   buffer.encode_string(5, this->wake_word_phrase);
 }
 void VoiceAssistantRequest::calculate_size(uint32_t &total_size) const {
@@ -5034,7 +5034,7 @@ bool VoiceAssistantEventResponse::decode_length(uint32_t field_id, ProtoLengthDe
 void VoiceAssistantEventResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_enum_uint32(1, static_cast<uint32_t>(this->event_type));
   for (auto &it : this->data) {
-    buffer.encode_message<VoiceAssistantEventData>(2, it, true);
+    buffer.encode_message(2, it, true);
   }
 }
 void VoiceAssistantEventResponse::calculate_size(uint32_t &total_size) const {
@@ -5235,7 +5235,7 @@ bool VoiceAssistantConfigurationResponse::decode_length(uint32_t field_id, Proto
 }
 void VoiceAssistantConfigurationResponse::encode(ProtoWriteBuffer buffer) const {
   for (auto &it : this->available_wake_words) {
-    buffer.encode_message<VoiceAssistantWakeWord>(1, it, true);
+    buffer.encode_message(1, it, true);
   }
   for (auto &it : this->active_wake_words) {
     buffer.encode_string(2, it, true);
