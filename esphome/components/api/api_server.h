@@ -27,11 +27,6 @@ struct SavedNoisePsk {
 } PACKED;  // NOLINT
 #endif
 
-#ifndef USE_API_SERVICES
-// Forward declaration of helper function
-const std::vector<UserServiceDescriptor *> &get_empty_user_services_instance();
-#endif
-
 class APIServer : public Component, public Controller {
  public:
   APIServer();
@@ -145,14 +140,9 @@ class APIServer : public Component, public Controller {
   void get_home_assistant_state(std::string entity_id, optional<std::string> attribute,
                                 std::function<void(std::string)> f);
   const std::vector<HomeAssistantStateSubscription> &get_state_subs() const;
-  const std::vector<UserServiceDescriptor *> &get_user_services() const {
 #ifdef USE_API_SERVICES
-    return this->user_services_;
-#else
-    // Return reference to global empty instance (no guard needed)
-    return get_empty_user_services_instance();
+  const std::vector<UserServiceDescriptor *> &get_user_services() const { return this->user_services_; }
 #endif
-  }
 
 #ifdef USE_API_CLIENT_CONNECTED_TRIGGER
   Trigger<std::string, std::string> *get_client_connected_trigger() const { return this->client_connected_trigger_; }
