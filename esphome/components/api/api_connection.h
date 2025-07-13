@@ -1,5 +1,7 @@
 #pragma once
 
+// DTEST
+
 #include "esphome/core/defines.h"
 #ifdef USE_API
 #include "api_frame_helper.h"
