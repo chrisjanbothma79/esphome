@@ -38,7 +38,7 @@ def test_gpio_binary_sensor_esp8266_gpio16_disables_interrupt(
 
     # Check that the warning was logged
     assert "GPIO16 on ESP8266 doesn't support interrupts" in caplog.text
-    assert "Automatically disabling interrupt mode for this pin" in caplog.text
+    assert "Falling back to polling mode" in caplog.text
 
 
 def test_gpio_binary_sensor_esp8266_other_pins_use_interrupt(
