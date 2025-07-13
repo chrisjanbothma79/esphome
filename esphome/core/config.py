@@ -3,11 +3,11 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-  
-from esphome import automation,  core
+
+from esphome import automation, core
 import esphome.codegen as cg
 from esphome.config_helpers import filter_source_files_from_platform
-import esphome.config_validation   as cv
+import esphome.config_validation as cv
 from esphome.const import (
     CONF_AREA,
     CONF_AREA_ID,
