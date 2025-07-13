@@ -1152,7 +1152,12 @@ def build_message_type(
                     wrap_with_ifdef(ti.decode_64bit_content, field_ifdef)
                 )
         if ti.dump_content:
-            dump.append(ti.dump_content)
+            # Check for field_ifdef option for dump as well
+            field_ifdef = None
+            if field.options.HasExtension(pb.field_ifdef):
+                field_ifdef = field.options.Extensions[pb.field_ifdef]
+
+            dump.extend(wrap_with_ifdef(ti.dump_content, field_ifdef))
 
     cpp = ""
     if decode_varint:
