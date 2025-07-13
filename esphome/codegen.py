@@ -27,6 +27,7 @@ from esphome.cpp_generator import (  # noqa: F401
     add_global,
     add_library,
     add_platformio_option,
+    define_entity,
     get_variable,
     get_variable_with_full_id,
     is_template,
