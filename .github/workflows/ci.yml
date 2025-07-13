@@ -368,7 +368,10 @@ jobs:
     needs:
       - clang-tidy-deps
       - determine-jobs
-    if: needs.determine-jobs.outputs.clang-tidy == 'true'
+    if: |
+      always() &&
+      needs.determine-jobs.outputs.clang-tidy == 'true' &&
+      needs.clang-tidy-deps.result == 'success'
     env:
       GH_TOKEN: ${{ github.token }}
     strategy:
