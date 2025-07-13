@@ -1523,7 +1523,7 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
   resp.voice_assistant_feature_flags = voice_assistant::global_voice_assistant->get_feature_flags();
 #endif
 #ifdef USE_API_NOISE
-  resp.api_encryption_supported = true;
+      resp.api_encryption_supported = true;
 #endif
 #ifdef USE_DEVICES
   for (auto const &device : App.get_devices()) {
@@ -1535,10 +1535,10 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
   }
 #endif
 #ifdef USE_AREAS
-  for (auto const &area : App.get_areas()) {
+  for (    auto const &area : App.get_areas()) {
     AreaInfo area_info;
     area_info.area_id = area->get_area_id();
-    area_info.name = area->get_name();
+    area_info.name   = area->get_name();
     resp.areas.push_back(area_info);
   }
 #endif
