@@ -57,6 +57,16 @@ sensor:
 
 # Switches with the same name on different devices to test device_id lookup
 switch:
+  # Switch with no device_id (defaults to 0)
+  - platform: template
+    name: Test Switch
+    id: test_switch_main
+    optimistic: true
+    turn_on_action:
+      - logger.log: "Turning on Test Switch on Main Device (no device_id)"
+    turn_off_action:
+      - logger.log: "Turning off Test Switch on Main Device (no device_id)"
+
   - platform: template
     name: Test Switch
     device_id: light_controller_device

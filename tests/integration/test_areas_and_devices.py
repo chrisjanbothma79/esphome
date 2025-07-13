@@ -129,14 +129,17 @@ async def test_areas_and_devices(
 
         # Find all switches named "Test Switch"
         test_switches = [e for e in switch_entities if e.name == "Test Switch"]
-        assert len(test_switches) == 3, (
-            f"Expected 3 'Test Switch' entities, got {len(test_switches)}"
+        assert len(test_switches) == 4, (
+            f"Expected 4 'Test Switch' entities, got {len(test_switches)}"
         )
 
-        # Verify each switch has a different device_id
+        # Verify we have switches with different device_ids including one with 0 (main)
         switch_device_ids = {s.device_id for s in test_switches}
-        assert len(switch_device_ids) == 3, (
+        assert len(switch_device_ids) == 4, (
             "All Test Switch entities should have different device_ids"
+        )
+        assert 0 in switch_device_ids, (
+            "Should have a switch with device_id 0 (main device)"
         )
 
         # Subscribe to all switch states
@@ -222,3 +225,57 @@ async def test_areas_and_devices(
             assert switch_states[state_key].state is False, (
                 f"{device_name} switch should be off"
             )
+
+        # Test that controlling a switch with device_id doesn't affect main switch
+        # Find the main switch (device_id = 0)
+        main_switch = next((s for s in test_switches if s.device_id == 0), None)
+        assert main_switch is not None, "No main switch (device_id=0) found"
+
+        # Find a switch with a device_id
+        device_switch = next(
+            (s for s in test_switches if s.device_id == light_controller.device_id),
+            None,
+        )
+        assert device_switch is not None, "No device switch found"
+
+        # Create futures for both switches
+        main_key = (main_switch.device_id, main_switch.key)
+        device_key = (device_switch.device_id, device_switch.key)
+
+        # Turn on the main switch first
+        switch_state_futures[main_key] = loop.create_future()
+        client.switch_command(main_switch.key, True, device_id=main_switch.device_id)
+        await asyncio.wait_for(switch_state_futures[main_key], timeout=2.0)
+        assert switch_states[main_key].state is True, "Main switch should be on"
+
+        # Now turn on the device switch
+        switch_state_futures[device_key] = loop.create_future()
+        client.switch_command(
+            device_switch.key, True, device_id=device_switch.device_id
+        )
+        await asyncio.wait_for(switch_state_futures[device_key], timeout=2.0)
+
+        # Verify device switch is on and main switch is still on
+        assert switch_states[device_key].state is True, "Device switch should be on"
+        assert switch_states[main_key].state is True, (
+            "Main switch should still be on after turning on device switch"
+        )
+
+        # Turn off the device switch
+        switch_state_futures[device_key] = loop.create_future()
+        client.switch_command(
+            device_switch.key, False, device_id=device_switch.device_id
+        )
+        await asyncio.wait_for(switch_state_futures[device_key], timeout=2.0)
+
+        # Verify device switch is off and main switch is still on
+        assert switch_states[device_key].state is False, "Device switch should be off"
+        assert switch_states[main_key].state is True, (
+            "Main switch should still be on after turning off device switch"
+        )
+
+        # Clean up - turn off main switch
+        switch_state_futures[main_key] = loop.create_future()
+        client.switch_command(main_switch.key, False, device_id=main_switch.device_id)
+        await asyncio.wait_for(switch_state_futures[main_key], timeout=2.0)
+        assert switch_states[main_key].state is False, "Main switch should be off"
