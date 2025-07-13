@@ -55,7 +55,8 @@ async def to_code(config):
     if use_interrupt and CORE.is_esp8266 and config[CONF_PIN][CONF_NUMBER] == 16:
         _LOGGER.warning(
             "GPIO16 on ESP8266 doesn't support interrupts. "
-            "Automatically disabling interrupt mode for this pin."
+            "Falling back to polling mode (same as in ESPHome <2025.7). "
+            "The sensor will work exactly as before, but other pins have better performance with interrupts."
         )
         use_interrupt = False
 
