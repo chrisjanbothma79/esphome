@@ -172,6 +172,9 @@ class ModemComponent : public Component {
     uint32_t startms;
     bool enabled{false};
     bool connected{false};
+    esp_netif_ip_info_t ip_info{};
+    esp_netif_dns_info_t dns_main{};
+    esp_netif_dns_info_t dns_backup{};
     // Start time (millis())
     uint32_t connect_begin;
     // Guessed power state

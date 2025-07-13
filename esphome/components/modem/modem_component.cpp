@@ -164,9 +164,9 @@ bool ModemComponent::get_signal_quality(float &rssi, float &ber) {
 
 network::IPAddresses ModemComponent::get_ip_addresses() {
   network::IPAddresses addresses;
-  esp_netif_ip_info_t ip;
-  esp_netif_get_ip_info(this->ppp_netif_, &ip);
-  addresses[0] = network::IPAddress(&ip.ip);
+  if (this->internal_state_.connected) {
+    addresses[0] = network::IPAddress(&this->internal_state_.ip_info.ip);
+  }
   return addresses;
 }
 
@@ -239,11 +239,10 @@ void ModemComponent::setup() {
   ESPHL_ERROR_CHECK(err, "PPP event loop init failed");
 
   esp_netif_config_t netif_ppp_config = ESP_NETIF_DEFAULT_PPP();
-
   this->ppp_netif_ = esp_netif_new(&netif_ppp_config);
   assert(this->ppp_netif_);
 
-  err = esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &ModemComponent::ip_event_handler, nullptr);
+  err = esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &ModemComponent::ip_event_handler, this);
   ESPHL_ERROR_CHECK(err, "IP event handler register failed");
 
   ESP_LOGV(TAG, "Setup complete.");
@@ -381,22 +380,21 @@ void ModemComponent::loop() {
             }
           } else {
             // Connecting
-            if (!this->internal_state_.connected) {
-              // Wait until this->internal_state_.connected is set to true by IP_EVENT_PPP_GOT_IP.
-              next_loop_millis = millis() + 1000;  // Delay the next loop.
-
-              // Connecting timeout
-              if (millis() - this->internal_state_.connect_begin > this->connect_timeout_) {
-                ESP_LOGW(TAG, "Modem connection failed! Reconnecting...");
-                this->dce->set_mode(modem_mode::CMUX_MANUAL_COMMAND);
-                connecting = false;
-              }
-            } else {
+            if (this->internal_state_.connected) {
+              // Connected!
               connecting = false;
               ESP_LOGI(TAG, "ESP connected to network via modem.");
               this->component_state_ = ModemComponentState::CONNECTED;
               this->dump_connect_params_();
               this->status_clear_warning();
+            } else if (millis() - this->internal_state_.connect_begin > this->connect_timeout_) {
+              // Connecting timeout
+              ESP_LOGW(TAG, "Modem connection failed! Reconnecting...");
+              this->dce->set_mode(modem_mode::CMUX_MANUAL_COMMAND);
+              connecting = false;
+            } else {
+              // Wait until bit is set by IP_EVENT_PPP_GOT_IP.
+              next_loop_millis = millis() + 1000;  // Delay the next loop.
             }
           }
         } else {
@@ -747,22 +745,24 @@ bool ModemComponent::start_ppp_() {
 }
 
 void ModemComponent::ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
-  ip_event_got_ip_t *event;
-  const esp_netif_ip_info_t *ip_info;
-  switch (event_id) {
-    case IP_EVENT_PPP_GOT_IP:
-      event = (ip_event_got_ip_t *) event_data;
-      ip_info = &event->ip_info;
-      ESP_LOGD(TAG, "IP event: Got IP " IPSTR, IP2STR(&ip_info->ip));
-      global_modem_component->internal_state_.connected = true;
-      break;
+  auto *this_ = static_cast<ModemComponent *>(arg);
 
+  switch (event_id) {
+    case IP_EVENT_PPP_GOT_IP: {
+      ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
+      ESP_LOGD(TAG, "IP event: Got IP " IPSTR, IP2STR(&event->ip_info.ip));
+      this_->internal_state_.ip_info = event->ip_info;
+      esp_netif_get_dns_info(event->esp_netif, ESP_NETIF_DNS_MAIN, &this_->internal_state_.dns_main);
+      esp_netif_get_dns_info(event->esp_netif, ESP_NETIF_DNS_BACKUP, &this_->internal_state_.dns_backup);
+      this_->internal_state_.connected = true;
+      break;
+    }
     case IP_EVENT_PPP_LOST_IP:
-      if (global_modem_component->internal_state_.connected) {
+      if (this_->internal_state_.connected) {
         // Only log if previously connected.
         ESP_LOGD(TAG, "IP event: Lost IP.");
       }
-      global_modem_component->internal_state_.connected = false;
+      this_->internal_state_.connected = false;
       break;
   }
 }
@@ -818,21 +818,17 @@ void ModemComponent::dump_connect_params_() {
     ESP_LOGCONFIG(TAG, "Modem connection: Not connected.");
     return;
   }
-  esp_netif_ip_info_t ip;
-  esp_netif_get_ip_info(this->ppp_netif_, &ip);
+  esp_netif_ip_info_t ip = this->internal_state_.ip_info;
+  esp_netif_dns_info_t dns_main = this->internal_state_.dns_main;
+  esp_netif_dns_info_t dns_backup = this->internal_state_.dns_backup;
+
   ESP_LOGCONFIG(TAG, "Modem connection:");
   ESP_LOGCONFIG(TAG, "  IP Address  : %s", network::IPAddress(&ip.ip).str().c_str());
   ESP_LOGCONFIG(TAG, "  Hostname    : '%s'", App.get_name().c_str());
   ESP_LOGCONFIG(TAG, "  Subnet      : %s", network::IPAddress(&ip.netmask).str().c_str());
   ESP_LOGCONFIG(TAG, "  Gateway     : %s", network::IPAddress(&ip.gw).str().c_str());
-
-  const ip_addr_t *dns_main_ip = dns_getserver(ESP_NETIF_DNS_MAIN);
-  const ip_addr_t *dns_backup_ip = dns_getserver(ESP_NETIF_DNS_BACKUP);
-  const ip_addr_t *dns_fallback_ip = dns_getserver(ESP_NETIF_DNS_FALLBACK);
-
-  ESP_LOGCONFIG(TAG, "  DNS main    : %s", network::IPAddress(dns_main_ip).str().c_str());
-  ESP_LOGCONFIG(TAG, "  DNS backup  : %s", network::IPAddress(dns_backup_ip).str().c_str());
-  ESP_LOGCONFIG(TAG, "  DNS fallback: %s", network::IPAddress(dns_fallback_ip).str().c_str());
+  ESP_LOGCONFIG(TAG, "  DNS main    : %s", network::IPAddress(&dns_main.ip.u_addr.ip4).str().c_str());
+  ESP_LOGCONFIG(TAG, "  DNS backup  : %s", network::IPAddress(&dns_backup.ip.u_addr.ip4).str().c_str());
 }
 
 std::string ModemComponent::flush_uart_(uint32_t timeout) {
