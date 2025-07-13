@@ -1,4 +1,4 @@
-# See https://pre-commit.ci/configuration
+# See https://pre-commit.ci/#configuration
 ci:
   # Attempt to automatically fix issues
   autoupdate_commit_msg: 'pre-commit: autoupdate'
