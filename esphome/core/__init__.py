@@ -532,6 +532,8 @@ class EsphomeCore:
         self.quiet = False
         # A list of all known ID classes
         self.id_classes = {}
+        # A set of available entities
+        self.entities: set[str] = set()
 
     def reset(self):
         from esphome.pins import PIN_SCHEMA_REGISTRY
@@ -559,6 +561,7 @@ class EsphomeCore:
         self.platform_counts = defaultdict(int)
         self.unique_ids = set()
         PIN_SCHEMA_REGISTRY.reset()
+        self.entities = set()
 
     @property
     def address(self) -> str | None:
@@ -799,6 +802,9 @@ class EsphomeCore:
         self.defines.add(define)
         _LOGGER.debug("Adding define: %s", define)
         return define
+
+    def define_entity(self, class_):
+        self.entities.add(class_)
 
     def add_platformio_option(self, key: str, value: str | list[str]) -> None:
         new_val = value

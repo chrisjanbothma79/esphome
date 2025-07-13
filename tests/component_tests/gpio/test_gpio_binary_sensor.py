@@ -17,7 +17,7 @@ def test_gpio_binary_sensor_basic_setup(
     main_cpp = generate_main("tests/component_tests/gpio/test_gpio_binary_sensor.yaml")
 
     assert "new gpio::GPIOBinarySensor();" in main_cpp
-    assert "App.register_binary_sensor" in main_cpp
+    assert "App.register_entity<binary_sensor::BinarySensor>" in main_cpp
     assert "bs_gpio->set_use_interrupt(true);" in main_cpp
     assert "bs_gpio->set_interrupt_type(gpio::INTERRUPT_ANY_EDGE);" in main_cpp
 

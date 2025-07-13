@@ -85,6 +85,7 @@
 #ifdef USE_UPDATE
 #include "esphome/components/update/update_entity.h"
 #endif
+#include "esphome/core/entities.h"
 
 namespace esphome {
 
@@ -95,6 +96,11 @@ namespace esphome {
 static const uint32_t TEARDOWN_TIMEOUT_REBOOT_MS = 1000;  // 1 second for quick reboot
 
 class Application {
+  template<typename Tuple> struct entityRegistry;
+  template<typename... Args> struct entityRegistry<std::tuple<Args...>> {
+    using type = std::tuple<std::vector<Args>...>;
+  };
+
  public:
   void pre_setup(const std::string &name, const std::string &friendly_name, const char *comment,
                  const char *compilation_time, bool name_add_mac_suffix) {
@@ -125,18 +131,27 @@ class Application {
   void set_current_component(Component *component) { this->current_component_ = component; }
   Component *get_current_component() { return this->current_component_; }
 
-#ifdef USE_BINARY_SENSOR
-  void register_binary_sensor(binary_sensor::BinarySensor *binary_sensor) {
-    this->binary_sensors_.push_back(binary_sensor);
+  template<typename Entity> void register_entity(Entity *entity) {
+    get_by_type<std::vector<Entity *>>(entities_).push_back(entity);
   }
-#endif
+
+  template<typename Entity> const std::vector<Entity *> &get_entities() {
+    return get_by_type<std::vector<Entity *>>(entities_);
+  }
+  template<typename Entity> std::vector<Entity *> &get_entities_mutable() {
+    return get_by_type<std::vector<Entity *>>(entities_);
+  }
+  template<typename Entity> Entity *get_entity_by_key(uint32_t key, bool include_internal) {
+    for (auto *obj : this->get_entities<Entity>()) {
+      if (obj->get_object_id_hash() == key && (include_internal || !obj->is_internal())) {
+        return obj;
+      }
+    }
+    return nullptr;
+  }
 
 #ifdef USE_SENSOR
   void register_sensor(sensor::Sensor *sensor) { this->sensors_.push_back(sensor); }
-#endif
-
-#ifdef USE_SWITCH
-  void register_switch(switch_::Switch *a_switch) { this->switches_.push_back(a_switch); }
 #endif
 
 #ifdef USE_BUTTON
@@ -217,10 +232,10 @@ class Application {
   void reserve_components(size_t count) { this->components_.reserve(count); }
 
 #ifdef USE_BINARY_SENSOR
-  void reserve_binary_sensor(size_t count) { this->binary_sensors_.reserve(count); }
+  void reserve_binary_sensor(size_t count) { this->get_entities_mutable<binary_sensor::BinarySensor>().reserve(count); }
 #endif
 #ifdef USE_SWITCH
-  void reserve_switch(size_t count) { this->switches_.reserve(count); }
+  void reserve_switch(size_t count) { this->get_entities_mutable<switch_::Switch>().reserve(count); }
 #endif
 #ifdef USE_BUTTON
   void reserve_button(size_t count) { this->buttons_.reserve(count); }
@@ -386,12 +401,18 @@ class Application {
   const std::vector<Area *> &get_areas() { return this->areas_; }
 #endif
 #ifdef USE_BINARY_SENSOR
-  const std::vector<binary_sensor::BinarySensor *> &get_binary_sensors() { return this->binary_sensors_; }
-  GET_ENTITY_METHOD(binary_sensor::BinarySensor, binary_sensor, binary_sensors)
+  const std::vector<binary_sensor::BinarySensor *> &get_binary_sensors() {
+    return this->get_entities<binary_sensor::BinarySensor>();
+  }
+  binary_sensor::BinarySensor *get_binary_sensor_by_key(uint32_t key, bool include_internal = false) {
+    return this->get_entity_by_key<binary_sensor::BinarySensor>(key, include_internal);
+  }
 #endif
 #ifdef USE_SWITCH
-  const std::vector<switch_::Switch *> &get_switches() { return this->switches_; }
-  GET_ENTITY_METHOD(switch_::Switch, switch, switches)
+  const std::vector<switch_::Switch *> &get_switches() { return this->get_entities<switch_::Switch>(); }
+  switch_::Switch *get_switch_by_key(uint32_t key, bool include_internal = false) {
+    return this->get_entity_by_key<switch_::Switch>(key, include_internal);
+  }
 #endif
 #ifdef USE_BUTTON
   const std::vector<button::Button *> &get_buttons() { return this->buttons_; }
@@ -540,18 +561,12 @@ class Application {
   //   and active_end_ is incremented
   // - This eliminates branch mispredictions from flag checking in the hot loop
   std::vector<Component *> looping_components_{};
-
+  entityRegistry<entities_t>::type entities_;
 #ifdef USE_DEVICES
   std::vector<Device *> devices_{};
 #endif
 #ifdef USE_AREAS
   std::vector<Area *> areas_{};
-#endif
-#ifdef USE_BINARY_SENSOR
-  std::vector<binary_sensor::BinarySensor *> binary_sensors_{};
-#endif
-#ifdef USE_SWITCH
-  std::vector<switch_::Switch *> switches_{};
 #endif
 #ifdef USE_BUTTON
   std::vector<button::Button *> buttons_{};
