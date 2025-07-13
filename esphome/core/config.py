@@ -4,8 +4,8 @@ import logging
 import os
 from pathlib import Path
 
-from esphome import automation, core
-import esphome.codegen as cg
+from esphome import automation,   core
+import esphome.codegen as  cg
 from esphome.config_helpers import filter_source_files_from_platform
 import esphome.config_validation as cv
 from esphome.const import (
