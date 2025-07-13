@@ -119,3 +119,106 @@ async def test_areas_and_devices(
                     f"{entity.name} has device_id {entity.device_id}, "
                     f"expected {expected_device_id}"
                 )
+
+        # Test switches with same name on different devices
+        # Find all switches in the flat entity list
+        from aioesphomeapi import SwitchInfo
+
+        all_entities, _ = entities  # Unpack the tuple
+        switch_entities = [e for e in all_entities if isinstance(e, SwitchInfo)]
+
+        # Find all switches named "Test Switch"
+        test_switches = [e for e in switch_entities if e.name == "Test Switch"]
+        assert len(test_switches) == 3, (
+            f"Expected 3 'Test Switch' entities, got {len(test_switches)}"
+        )
+
+        # Verify each switch has a different device_id
+        switch_device_ids = {s.device_id for s in test_switches}
+        assert len(switch_device_ids) == 3, (
+            "All Test Switch entities should have different device_ids"
+        )
+
+        # Subscribe to all switch states
+        switch_keys = {s.key for s in test_switches}
+        switch_states: dict[
+            tuple[int, int], EntityState
+        ] = {}  # (device_id, key) -> state
+        switch_state_futures: dict[
+            tuple[int, int], asyncio.Future[EntityState]
+        ] = {}  # (device_id, key) -> future
+        initial_states_received: set[tuple[int, int]] = set()
+        initial_states_future: asyncio.Future[bool] = loop.create_future()
+
+        def on_state(state: EntityState) -> None:
+            if state.key not in switch_keys:
+                return
+
+            state_key = (state.device_id, state.key)
+            switch_states[state_key] = state
+            initial_states_received.add(state_key)
+
+            # Check if we have all initial states
+            expected_switch_keys = {(s.device_id, s.key) for s in test_switches}
+            if (
+                initial_states_received == expected_switch_keys
+                and not initial_states_future.done()
+            ):
+                initial_states_future.set_result(True)
+
+            # Resolve the future for this switch if it exists
+            if (
+                state_key in switch_state_futures
+                and not switch_state_futures[state_key].done()
+            ):
+                switch_state_futures[state_key].set_result(state)
+
+        client.subscribe_states(on_state)
+
+        # Wait for initial states to be received for all switches
+        await asyncio.wait_for(initial_states_future, timeout=2.0)
+
+        # Test controlling each switch specifically by device_id
+        for device_name, device in [
+            ("Light Controller", light_controller),
+            ("Temperature Sensor", temp_sensor),
+            ("Motion Detector", motion_detector),
+        ]:
+            # Find the switch for this specific device
+            device_switch = next(
+                (s for s in test_switches if s.device_id == device.device_id), None
+            )
+            assert device_switch is not None, f"No Test Switch found for {device_name}"
+
+            # Create future for this switch's state change
+            state_key = (device_switch.device_id, device_switch.key)
+            switch_state_futures[state_key] = loop.create_future()
+
+            # Turn on the switch with device_id
+            client.switch_command(
+                device_switch.key, True, device_id=device_switch.device_id
+            )
+
+            # Wait for state to change
+            await asyncio.wait_for(switch_state_futures[state_key], timeout=2.0)
+
+            # Verify the correct switch was turned on
+            assert switch_states[state_key].state is True, (
+                f"{device_name} switch should be on"
+            )
+
+            # Create new future for turning off
+            switch_state_futures[state_key] = loop.create_future()
+
+            # Turn off the switch with device_id
+            client.switch_command(
+                device_switch.key, False, device_id=device_switch.device_id
+            )
+
+            # Wait for state to change
+            await asyncio.wait_for(switch_state_futures[state_key], timeout=2.0)
+
+            # Verify the correct switch was turned off
+            assert switch_states[state_key].state is False, (
+                f"{device_name} switch should be off"
+            )
