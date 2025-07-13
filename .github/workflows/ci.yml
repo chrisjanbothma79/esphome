@@ -354,11 +354,9 @@ jobs:
       - clang-format
       - pytest
       - determine-jobs
-      - ruff
     if: |
       always() &&
-      needs.determine-jobs.outputs.clang-tidy == 'true' &&
-      (needs.ruff.result == 'success' || needs.ruff.result == 'skipped')
+      needs.determine-jobs.outputs.clang-tidy == 'true'
     steps:
       - run: echo "All clang-tidy dependencies ready"
 
