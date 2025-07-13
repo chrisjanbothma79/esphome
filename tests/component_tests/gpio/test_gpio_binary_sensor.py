@@ -14,12 +14,8 @@ def test_gpio_binary_sensor_basic_setup(
     """
     When the GPIO binary sensor is set in the yaml file, it should be registered in main
     """
-    # Given
-
-    # When
     main_cpp = generate_main("tests/component_tests/gpio/test_gpio_binary_sensor.yaml")
 
-    # Then
     assert "new gpio::GPIOBinarySensor();" in main_cpp
     assert "App.register_binary_sensor" in main_cpp
     assert "bs_gpio->set_use_interrupt(true);" in main_cpp
@@ -33,14 +29,10 @@ def test_gpio_binary_sensor_esp8266_gpio16_disables_interrupt(
     """
     Test that ESP8266 GPIO16 automatically disables interrupt mode with a warning
     """
-    # Given
-
-    # When
     main_cpp = generate_main(
         "tests/component_tests/gpio/test_gpio_binary_sensor_esp8266.yaml"
     )
 
-    # Then
     # Check that interrupt is disabled for GPIO16
     assert "bs_gpio16->set_use_interrupt(false);" in main_cpp
 
@@ -55,14 +47,10 @@ def test_gpio_binary_sensor_esp8266_other_pins_use_interrupt(
     """
     Test that ESP8266 pins other than GPIO16 still use interrupt mode
     """
-    # Given
-
-    # When
     main_cpp = generate_main(
         "tests/component_tests/gpio/test_gpio_binary_sensor_esp8266.yaml"
     )
 
-    # Then
     # GPIO5 should still use interrupts
     assert "bs_gpio5->set_use_interrupt(true);" in main_cpp
     assert "bs_gpio5->set_interrupt_type(gpio::INTERRUPT_ANY_EDGE);" in main_cpp
@@ -74,12 +62,8 @@ def test_gpio_binary_sensor_explicit_polling_mode(
     """
     Test that explicitly setting use_interrupt: false works
     """
-    # Given
-
-    # When
     main_cpp = generate_main(
         "tests/component_tests/gpio/test_gpio_binary_sensor_polling.yaml"
     )
 
-    # Then
     assert "bs_polling->set_use_interrupt(false);" in main_cpp
