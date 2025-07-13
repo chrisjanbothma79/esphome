@@ -1,7 +1,9 @@
 ---
 extends: default
 
-ignore-from-file: .gitignore
+ignore: |
+  .clang-format
+  .clang-tidy
 
 rules:
   document-start: disable
