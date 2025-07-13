@@ -11,8 +11,7 @@ static const char *const TAG = "deep_sleep";
 optional<uint32_t> DeepSleepComponent::get_run_duration_() const { return this->run_duration_; }
 
 void DeepSleepComponent::dump_config_platform_() {}
-
-bool DeepSleepComponent::prepare_to_sleep_() { return true; }
+void DeepSleepComponent::setup_platform_() {}
 
 void DeepSleepComponent::deep_sleep_() {
   ESP.deepSleep(*this->sleep_duration_);  // NOLINT(readability-static-accessed-through-instance)
