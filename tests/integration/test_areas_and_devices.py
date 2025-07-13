@@ -103,7 +103,8 @@ async def test_areas_and_devices(
                 and not initial_states_future.done()
             ):
                 initial_states_future.set_result(True)
-            else:
+
+            if not initial_states_future.done():
                 return
 
             # Resolve the future for this switch if it exists
