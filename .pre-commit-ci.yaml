@@ -1,7 +1,0 @@
-# See https://pre-commit.ci/#configuration
-ci:
-  # Attempt to automatically fix issues
-  autoupdate_commit_msg: 'pre-commit: autoupdate'
-  autoupdate_schedule: daily
-  # Skip hooks that have issues in pre-commit CI environment
-  skip: [pylint, clang-tidy-hash, yamllint]
