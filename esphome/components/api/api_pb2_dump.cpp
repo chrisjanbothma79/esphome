@@ -162,6 +162,7 @@ template<> const char *proto_enum_to_string<enums::LogLevel>(enums::LogLevel val
       return "UNKNOWN";
   }
 }
+#ifdef USE_API_SERVICES
 template<> const char *proto_enum_to_string<enums::ServiceArgType>(enums::ServiceArgType value) {
   switch (value) {
     case enums::SERVICE_ARG_TYPE_BOOL:
@@ -184,6 +185,7 @@ template<> const char *proto_enum_to_string<enums::ServiceArgType>(enums::Servic
       return "UNKNOWN";
   }
 }
+#endif
 #ifdef USE_CLIMATE
 template<> const char *proto_enum_to_string<enums::ClimateMode>(enums::ClimateMode value) {
   switch (value) {
@@ -600,12 +602,12 @@ void HelloRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  api_version_major: ");
-  sprintf(buffer, "%" PRIu32, this->api_version_major);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->api_version_major);
   out.append(buffer);
   out.append("\n");
 
   out.append("  api_version_minor: ");
-  sprintf(buffer, "%" PRIu32, this->api_version_minor);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->api_version_minor);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -614,12 +616,12 @@ void HelloResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("HelloResponse {\n");
   out.append("  api_version_major: ");
-  sprintf(buffer, "%" PRIu32, this->api_version_major);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->api_version_major);
   out.append(buffer);
   out.append("\n");
 
   out.append("  api_version_minor: ");
-  sprintf(buffer, "%" PRIu32, this->api_version_minor);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->api_version_minor);
   out.append(buffer);
   out.append("\n");
 
@@ -657,7 +659,7 @@ void AreaInfo::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("AreaInfo {\n");
   out.append("  area_id: ");
-  sprintf(buffer, "%" PRIu32, this->area_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->area_id);
   out.append(buffer);
   out.append("\n");
 
@@ -670,7 +672,7 @@ void DeviceInfo::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("DeviceInfo {\n");
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
 
@@ -679,7 +681,7 @@ void DeviceInfo::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  area_id: ");
-  sprintf(buffer, "%" PRIu32, this->area_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->area_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -724,17 +726,17 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  webserver_port: ");
-  sprintf(buffer, "%" PRIu32, this->webserver_port);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->webserver_port);
   out.append(buffer);
   out.append("\n");
 
   out.append("  legacy_bluetooth_proxy_version: ");
-  sprintf(buffer, "%" PRIu32, this->legacy_bluetooth_proxy_version);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->legacy_bluetooth_proxy_version);
   out.append(buffer);
   out.append("\n");
 
   out.append("  bluetooth_proxy_feature_flags: ");
-  sprintf(buffer, "%" PRIu32, this->bluetooth_proxy_feature_flags);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->bluetooth_proxy_feature_flags);
   out.append(buffer);
   out.append("\n");
 
@@ -747,12 +749,12 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  legacy_voice_assistant_version: ");
-  sprintf(buffer, "%" PRIu32, this->legacy_voice_assistant_version);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->legacy_voice_assistant_version);
   out.append(buffer);
   out.append("\n");
 
   out.append("  voice_assistant_feature_flags: ");
-  sprintf(buffer, "%" PRIu32, this->voice_assistant_feature_flags);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->voice_assistant_feature_flags);
   out.append(buffer);
   out.append("\n");
 
@@ -797,7 +799,7 @@ void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -826,7 +828,7 @@ void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -835,7 +837,7 @@ void BinarySensorStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BinarySensorStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -848,7 +850,7 @@ void BinarySensorStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -863,7 +865,7 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -904,7 +906,7 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -913,7 +915,7 @@ void CoverStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("CoverStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -922,12 +924,12 @@ void CoverStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  position: ");
-  sprintf(buffer, "%g", this->position);
+  snprintf(buffer, sizeof(buffer), "%g", this->position);
   out.append(buffer);
   out.append("\n");
 
   out.append("  tilt: ");
-  sprintf(buffer, "%g", this->tilt);
+  snprintf(buffer, sizeof(buffer), "%g", this->tilt);
   out.append(buffer);
   out.append("\n");
 
@@ -936,7 +938,7 @@ void CoverStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -945,7 +947,7 @@ void CoverCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("CoverCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -962,7 +964,7 @@ void CoverCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  position: ");
-  sprintf(buffer, "%g", this->position);
+  snprintf(buffer, sizeof(buffer), "%g", this->position);
   out.append(buffer);
   out.append("\n");
 
@@ -971,12 +973,17 @@ void CoverCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  tilt: ");
-  sprintf(buffer, "%g", this->tilt);
+  snprintf(buffer, sizeof(buffer), "%g", this->tilt);
   out.append(buffer);
   out.append("\n");
 
   out.append("  stop: ");
   out.append(YESNO(this->stop));
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -990,7 +997,7 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1011,7 +1018,7 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  supported_speed_count: ");
-  sprintf(buffer, "%" PRId32, this->supported_speed_count);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->supported_speed_count);
   out.append(buffer);
   out.append("\n");
 
@@ -1034,7 +1041,7 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
   }
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -1043,7 +1050,7 @@ void FanStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("FanStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1064,7 +1071,7 @@ void FanStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  speed_level: ");
-  sprintf(buffer, "%" PRId32, this->speed_level);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->speed_level);
   out.append(buffer);
   out.append("\n");
 
@@ -1073,7 +1080,7 @@ void FanStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -1082,7 +1089,7 @@ void FanCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("FanCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1123,7 +1130,7 @@ void FanCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  speed_level: ");
-  sprintf(buffer, "%" PRId32, this->speed_level);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->speed_level);
   out.append(buffer);
   out.append("\n");
 
@@ -1133,6 +1140,11 @@ void FanCommandRequest::dump_to(std::string &out) const {
 
   out.append("  preset_mode: ");
   out.append("'").append(this->preset_mode).append("'");
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -1146,7 +1158,7 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1177,12 +1189,12 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  min_mireds: ");
-  sprintf(buffer, "%g", this->min_mireds);
+  snprintf(buffer, sizeof(buffer), "%g", this->min_mireds);
   out.append(buffer);
   out.append("\n");
 
   out.append("  max_mireds: ");
-  sprintf(buffer, "%g", this->max_mireds);
+  snprintf(buffer, sizeof(buffer), "%g", this->max_mireds);
   out.append(buffer);
   out.append("\n");
 
@@ -1205,7 +1217,7 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -1214,7 +1226,7 @@ void LightStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("LightStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1223,7 +1235,7 @@ void LightStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  brightness: ");
-  sprintf(buffer, "%g", this->brightness);
+  snprintf(buffer, sizeof(buffer), "%g", this->brightness);
   out.append(buffer);
   out.append("\n");
 
@@ -1232,42 +1244,42 @@ void LightStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  color_brightness: ");
-  sprintf(buffer, "%g", this->color_brightness);
+  snprintf(buffer, sizeof(buffer), "%g", this->color_brightness);
   out.append(buffer);
   out.append("\n");
 
   out.append("  red: ");
-  sprintf(buffer, "%g", this->red);
+  snprintf(buffer, sizeof(buffer), "%g", this->red);
   out.append(buffer);
   out.append("\n");
 
   out.append("  green: ");
-  sprintf(buffer, "%g", this->green);
+  snprintf(buffer, sizeof(buffer), "%g", this->green);
   out.append(buffer);
   out.append("\n");
 
   out.append("  blue: ");
-  sprintf(buffer, "%g", this->blue);
+  snprintf(buffer, sizeof(buffer), "%g", this->blue);
   out.append(buffer);
   out.append("\n");
 
   out.append("  white: ");
-  sprintf(buffer, "%g", this->white);
+  snprintf(buffer, sizeof(buffer), "%g", this->white);
   out.append(buffer);
   out.append("\n");
 
   out.append("  color_temperature: ");
-  sprintf(buffer, "%g", this->color_temperature);
+  snprintf(buffer, sizeof(buffer), "%g", this->color_temperature);
   out.append(buffer);
   out.append("\n");
 
   out.append("  cold_white: ");
-  sprintf(buffer, "%g", this->cold_white);
+  snprintf(buffer, sizeof(buffer), "%g", this->cold_white);
   out.append(buffer);
   out.append("\n");
 
   out.append("  warm_white: ");
-  sprintf(buffer, "%g", this->warm_white);
+  snprintf(buffer, sizeof(buffer), "%g", this->warm_white);
   out.append(buffer);
   out.append("\n");
 
@@ -1276,7 +1288,7 @@ void LightStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -1285,7 +1297,7 @@ void LightCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("LightCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1302,7 +1314,7 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  brightness: ");
-  sprintf(buffer, "%g", this->brightness);
+  snprintf(buffer, sizeof(buffer), "%g", this->brightness);
   out.append(buffer);
   out.append("\n");
 
@@ -1319,7 +1331,7 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  color_brightness: ");
-  sprintf(buffer, "%g", this->color_brightness);
+  snprintf(buffer, sizeof(buffer), "%g", this->color_brightness);
   out.append(buffer);
   out.append("\n");
 
@@ -1328,17 +1340,17 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  red: ");
-  sprintf(buffer, "%g", this->red);
+  snprintf(buffer, sizeof(buffer), "%g", this->red);
   out.append(buffer);
   out.append("\n");
 
   out.append("  green: ");
-  sprintf(buffer, "%g", this->green);
+  snprintf(buffer, sizeof(buffer), "%g", this->green);
   out.append(buffer);
   out.append("\n");
 
   out.append("  blue: ");
-  sprintf(buffer, "%g", this->blue);
+  snprintf(buffer, sizeof(buffer), "%g", this->blue);
   out.append(buffer);
   out.append("\n");
 
@@ -1347,7 +1359,7 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  white: ");
-  sprintf(buffer, "%g", this->white);
+  snprintf(buffer, sizeof(buffer), "%g", this->white);
   out.append(buffer);
   out.append("\n");
 
@@ -1356,7 +1368,7 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  color_temperature: ");
-  sprintf(buffer, "%g", this->color_temperature);
+  snprintf(buffer, sizeof(buffer), "%g", this->color_temperature);
   out.append(buffer);
   out.append("\n");
 
@@ -1365,7 +1377,7 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  cold_white: ");
-  sprintf(buffer, "%g", this->cold_white);
+  snprintf(buffer, sizeof(buffer), "%g", this->cold_white);
   out.append(buffer);
   out.append("\n");
 
@@ -1374,7 +1386,7 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  warm_white: ");
-  sprintf(buffer, "%g", this->warm_white);
+  snprintf(buffer, sizeof(buffer), "%g", this->warm_white);
   out.append(buffer);
   out.append("\n");
 
@@ -1383,7 +1395,7 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  transition_length: ");
-  sprintf(buffer, "%" PRIu32, this->transition_length);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->transition_length);
   out.append(buffer);
   out.append("\n");
 
@@ -1392,7 +1404,7 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  flash_length: ");
-  sprintf(buffer, "%" PRIu32, this->flash_length);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->flash_length);
   out.append(buffer);
   out.append("\n");
 
@@ -1402,6 +1414,11 @@ void LightCommandRequest::dump_to(std::string &out) const {
 
   out.append("  effect: ");
   out.append("'").append(this->effect).append("'");
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -1415,7 +1432,7 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1432,7 +1449,7 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  accuracy_decimals: ");
-  sprintf(buffer, "%" PRId32, this->accuracy_decimals);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->accuracy_decimals);
   out.append(buffer);
   out.append("\n");
 
@@ -1461,7 +1478,7 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -1470,12 +1487,12 @@ void SensorStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SensorStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
   out.append("  state: ");
-  sprintf(buffer, "%g", this->state);
+  snprintf(buffer, sizeof(buffer), "%g", this->state);
   out.append(buffer);
   out.append("\n");
 
@@ -1484,7 +1501,7 @@ void SensorStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -1499,7 +1516,7 @@ void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1528,7 +1545,7 @@ void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -1537,7 +1554,7 @@ void SwitchStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SwitchStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1546,7 +1563,7 @@ void SwitchStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -1555,12 +1572,17 @@ void SwitchCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SwitchCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
   out.append("  state: ");
   out.append(YESNO(this->state));
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -1574,7 +1596,7 @@ void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1599,7 +1621,7 @@ void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -1608,7 +1630,7 @@ void TextSensorStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("TextSensorStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1621,7 +1643,7 @@ void TextSensorStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -1758,11 +1780,12 @@ void GetTimeResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("GetTimeResponse {\n");
   out.append("  epoch_seconds: ");
-  sprintf(buffer, "%" PRIu32, this->epoch_seconds);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->epoch_seconds);
   out.append(buffer);
   out.append("\n");
   out.append("}");
 }
+#ifdef USE_API_SERVICES
 void ListEntitiesServicesArgument::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesServicesArgument {\n");
@@ -1783,7 +1806,7 @@ void ListEntitiesServicesResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1802,12 +1825,12 @@ void ExecuteServiceArgument::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  legacy_int: ");
-  sprintf(buffer, "%" PRId32, this->legacy_int);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->legacy_int);
   out.append(buffer);
   out.append("\n");
 
   out.append("  float_: ");
-  sprintf(buffer, "%g", this->float_);
+  snprintf(buffer, sizeof(buffer), "%g", this->float_);
   out.append(buffer);
   out.append("\n");
 
@@ -1816,7 +1839,7 @@ void ExecuteServiceArgument::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  int_: ");
-  sprintf(buffer, "%" PRId32, this->int_);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->int_);
   out.append(buffer);
   out.append("\n");
 
@@ -1828,14 +1851,14 @@ void ExecuteServiceArgument::dump_to(std::string &out) const {
 
   for (const auto &it : this->int_array) {
     out.append("  int_array: ");
-    sprintf(buffer, "%" PRId32, it);
+    snprintf(buffer, sizeof(buffer), "%" PRId32, it);
     out.append(buffer);
     out.append("\n");
   }
 
   for (const auto &it : this->float_array) {
     out.append("  float_array: ");
-    sprintf(buffer, "%g", it);
+    snprintf(buffer, sizeof(buffer), "%g", it);
     out.append(buffer);
     out.append("\n");
   }
@@ -1851,7 +1874,7 @@ void ExecuteServiceRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ExecuteServiceRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1862,6 +1885,7 @@ void ExecuteServiceRequest::dump_to(std::string &out) const {
   }
   out.append("}");
 }
+#endif
 #ifdef USE_CAMERA
 void ListEntitiesCameraResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
@@ -1871,7 +1895,7 @@ void ListEntitiesCameraResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1892,7 +1916,7 @@ void ListEntitiesCameraResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -1901,7 +1925,7 @@ void CameraImageResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("CameraImageResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1911,6 +1935,11 @@ void CameraImageResponse::dump_to(std::string &out) const {
 
   out.append("  done: ");
   out.append(YESNO(this->done));
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -1936,7 +1965,7 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -1959,17 +1988,17 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   }
 
   out.append("  visual_min_temperature: ");
-  sprintf(buffer, "%g", this->visual_min_temperature);
+  snprintf(buffer, sizeof(buffer), "%g", this->visual_min_temperature);
   out.append(buffer);
   out.append("\n");
 
   out.append("  visual_max_temperature: ");
-  sprintf(buffer, "%g", this->visual_max_temperature);
+  snprintf(buffer, sizeof(buffer), "%g", this->visual_max_temperature);
   out.append(buffer);
   out.append("\n");
 
   out.append("  visual_target_temperature_step: ");
-  sprintf(buffer, "%g", this->visual_target_temperature_step);
+  snprintf(buffer, sizeof(buffer), "%g", this->visual_target_temperature_step);
   out.append(buffer);
   out.append("\n");
 
@@ -2024,7 +2053,7 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  visual_current_temperature_step: ");
-  sprintf(buffer, "%g", this->visual_current_temperature_step);
+  snprintf(buffer, sizeof(buffer), "%g", this->visual_current_temperature_step);
   out.append(buffer);
   out.append("\n");
 
@@ -2037,17 +2066,17 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  visual_min_humidity: ");
-  sprintf(buffer, "%g", this->visual_min_humidity);
+  snprintf(buffer, sizeof(buffer), "%g", this->visual_min_humidity);
   out.append(buffer);
   out.append("\n");
 
   out.append("  visual_max_humidity: ");
-  sprintf(buffer, "%g", this->visual_max_humidity);
+  snprintf(buffer, sizeof(buffer), "%g", this->visual_max_humidity);
   out.append(buffer);
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2056,7 +2085,7 @@ void ClimateStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ClimateStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2065,22 +2094,22 @@ void ClimateStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  current_temperature: ");
-  sprintf(buffer, "%g", this->current_temperature);
+  snprintf(buffer, sizeof(buffer), "%g", this->current_temperature);
   out.append(buffer);
   out.append("\n");
 
   out.append("  target_temperature: ");
-  sprintf(buffer, "%g", this->target_temperature);
+  snprintf(buffer, sizeof(buffer), "%g", this->target_temperature);
   out.append(buffer);
   out.append("\n");
 
   out.append("  target_temperature_low: ");
-  sprintf(buffer, "%g", this->target_temperature_low);
+  snprintf(buffer, sizeof(buffer), "%g", this->target_temperature_low);
   out.append(buffer);
   out.append("\n");
 
   out.append("  target_temperature_high: ");
-  sprintf(buffer, "%g", this->target_temperature_high);
+  snprintf(buffer, sizeof(buffer), "%g", this->target_temperature_high);
   out.append(buffer);
   out.append("\n");
 
@@ -2113,17 +2142,17 @@ void ClimateStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  current_humidity: ");
-  sprintf(buffer, "%g", this->current_humidity);
+  snprintf(buffer, sizeof(buffer), "%g", this->current_humidity);
   out.append(buffer);
   out.append("\n");
 
   out.append("  target_humidity: ");
-  sprintf(buffer, "%g", this->target_humidity);
+  snprintf(buffer, sizeof(buffer), "%g", this->target_humidity);
   out.append(buffer);
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2132,7 +2161,7 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ClimateCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2149,7 +2178,7 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  target_temperature: ");
-  sprintf(buffer, "%g", this->target_temperature);
+  snprintf(buffer, sizeof(buffer), "%g", this->target_temperature);
   out.append(buffer);
   out.append("\n");
 
@@ -2158,7 +2187,7 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  target_temperature_low: ");
-  sprintf(buffer, "%g", this->target_temperature_low);
+  snprintf(buffer, sizeof(buffer), "%g", this->target_temperature_low);
   out.append(buffer);
   out.append("\n");
 
@@ -2167,7 +2196,7 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  target_temperature_high: ");
-  sprintf(buffer, "%g", this->target_temperature_high);
+  snprintf(buffer, sizeof(buffer), "%g", this->target_temperature_high);
   out.append(buffer);
   out.append("\n");
 
@@ -2224,7 +2253,12 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  target_humidity: ");
-  sprintf(buffer, "%g", this->target_humidity);
+  snprintf(buffer, sizeof(buffer), "%g", this->target_humidity);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2239,7 +2273,7 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2252,17 +2286,17 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  min_value: ");
-  sprintf(buffer, "%g", this->min_value);
+  snprintf(buffer, sizeof(buffer), "%g", this->min_value);
   out.append(buffer);
   out.append("\n");
 
   out.append("  max_value: ");
-  sprintf(buffer, "%g", this->max_value);
+  snprintf(buffer, sizeof(buffer), "%g", this->max_value);
   out.append(buffer);
   out.append("\n");
 
   out.append("  step: ");
-  sprintf(buffer, "%g", this->step);
+  snprintf(buffer, sizeof(buffer), "%g", this->step);
   out.append(buffer);
   out.append("\n");
 
@@ -2287,7 +2321,7 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2296,12 +2330,12 @@ void NumberStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("NumberStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
   out.append("  state: ");
-  sprintf(buffer, "%g", this->state);
+  snprintf(buffer, sizeof(buffer), "%g", this->state);
   out.append(buffer);
   out.append("\n");
 
@@ -2310,7 +2344,7 @@ void NumberStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2319,12 +2353,17 @@ void NumberCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("NumberCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
   out.append("  state: ");
-  sprintf(buffer, "%g", this->state);
+  snprintf(buffer, sizeof(buffer), "%g", this->state);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2339,7 +2378,7 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2366,7 +2405,7 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2375,7 +2414,7 @@ void SelectStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SelectStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2388,7 +2427,7 @@ void SelectStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2397,12 +2436,17 @@ void SelectCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SelectCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
   out.append("  state: ");
   out.append("'").append(this->state).append("'");
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -2416,7 +2460,7 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2451,7 +2495,7 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2460,7 +2504,7 @@ void SirenStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SirenStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2469,7 +2513,7 @@ void SirenStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2478,7 +2522,7 @@ void SirenCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("SirenCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2503,7 +2547,7 @@ void SirenCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  duration: ");
-  sprintf(buffer, "%" PRIu32, this->duration);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->duration);
   out.append(buffer);
   out.append("\n");
 
@@ -2512,7 +2556,12 @@ void SirenCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  volume: ");
-  sprintf(buffer, "%g", this->volume);
+  snprintf(buffer, sizeof(buffer), "%g", this->volume);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2527,7 +2576,7 @@ void ListEntitiesLockResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2564,7 +2613,7 @@ void ListEntitiesLockResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2573,7 +2622,7 @@ void LockStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("LockStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2582,7 +2631,7 @@ void LockStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2591,7 +2640,7 @@ void LockCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("LockCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2606,6 +2655,11 @@ void LockCommandRequest::dump_to(std::string &out) const {
   out.append("  code: ");
   out.append("'").append(this->code).append("'");
   out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
   out.append("}");
 }
 #endif
@@ -2618,7 +2672,7 @@ void ListEntitiesButtonResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2643,7 +2697,7 @@ void ListEntitiesButtonResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2652,7 +2706,12 @@ void ButtonCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ButtonCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2667,12 +2726,12 @@ void MediaPlayerSupportedFormat::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  sample_rate: ");
-  sprintf(buffer, "%" PRIu32, this->sample_rate);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->sample_rate);
   out.append(buffer);
   out.append("\n");
 
   out.append("  num_channels: ");
-  sprintf(buffer, "%" PRIu32, this->num_channels);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->num_channels);
   out.append(buffer);
   out.append("\n");
 
@@ -2681,7 +2740,7 @@ void MediaPlayerSupportedFormat::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  sample_bytes: ");
-  sprintf(buffer, "%" PRIu32, this->sample_bytes);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->sample_bytes);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2694,7 +2753,7 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2725,7 +2784,7 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   }
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2734,7 +2793,7 @@ void MediaPlayerStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("MediaPlayerStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2743,7 +2802,7 @@ void MediaPlayerStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  volume: ");
-  sprintf(buffer, "%g", this->volume);
+  snprintf(buffer, sizeof(buffer), "%g", this->volume);
   out.append(buffer);
   out.append("\n");
 
@@ -2752,7 +2811,7 @@ void MediaPlayerStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2761,7 +2820,7 @@ void MediaPlayerCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("MediaPlayerCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -2778,7 +2837,7 @@ void MediaPlayerCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  volume: ");
-  sprintf(buffer, "%g", this->volume);
+  snprintf(buffer, sizeof(buffer), "%g", this->volume);
   out.append(buffer);
   out.append("\n");
 
@@ -2797,6 +2856,11 @@ void MediaPlayerCommandRequest::dump_to(std::string &out) const {
   out.append("  announcement: ");
   out.append(YESNO(this->announcement));
   out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
   out.append("}");
 }
 #endif
@@ -2805,7 +2869,7 @@ void SubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) const 
   __attribute__((unused)) char buffer[64];
   out.append("SubscribeBluetoothLEAdvertisementsRequest {\n");
   out.append("  flags: ");
-  sprintf(buffer, "%" PRIu32, this->flags);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->flags);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2819,7 +2883,7 @@ void BluetoothServiceData::dump_to(std::string &out) const {
 
   for (const auto &it : this->legacy_data) {
     out.append("  legacy_data: ");
-    sprintf(buffer, "%" PRIu32, it);
+    snprintf(buffer, sizeof(buffer), "%" PRIu32, it);
     out.append(buffer);
     out.append("\n");
   }
@@ -2833,7 +2897,7 @@ void BluetoothLEAdvertisementResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothLEAdvertisementResponse {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
@@ -2842,7 +2906,7 @@ void BluetoothLEAdvertisementResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  rssi: ");
-  sprintf(buffer, "%" PRId32, this->rssi);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->rssi);
   out.append(buffer);
   out.append("\n");
 
@@ -2865,7 +2929,7 @@ void BluetoothLEAdvertisementResponse::dump_to(std::string &out) const {
   }
 
   out.append("  address_type: ");
-  sprintf(buffer, "%" PRIu32, this->address_type);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->address_type);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2874,17 +2938,17 @@ void BluetoothLERawAdvertisement::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothLERawAdvertisement {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
   out.append("  rssi: ");
-  sprintf(buffer, "%" PRId32, this->rssi);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->rssi);
   out.append(buffer);
   out.append("\n");
 
   out.append("  address_type: ");
-  sprintf(buffer, "%" PRIu32, this->address_type);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->address_type);
   out.append(buffer);
   out.append("\n");
 
@@ -2907,7 +2971,7 @@ void BluetoothDeviceRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothDeviceRequest {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
@@ -2920,7 +2984,7 @@ void BluetoothDeviceRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  address_type: ");
-  sprintf(buffer, "%" PRIu32, this->address_type);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->address_type);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2929,7 +2993,7 @@ void BluetoothDeviceConnectionResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothDeviceConnectionResponse {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
@@ -2938,12 +3002,12 @@ void BluetoothDeviceConnectionResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  mtu: ");
-  sprintf(buffer, "%" PRIu32, this->mtu);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->mtu);
   out.append(buffer);
   out.append("\n");
 
   out.append("  error: ");
-  sprintf(buffer, "%" PRId32, this->error);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->error);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2952,7 +3016,7 @@ void BluetoothGATTGetServicesRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTGetServicesRequest {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2962,13 +3026,13 @@ void BluetoothGATTDescriptor::dump_to(std::string &out) const {
   out.append("BluetoothGATTDescriptor {\n");
   for (const auto &it : this->uuid) {
     out.append("  uuid: ");
-    sprintf(buffer, "%llu", it);
+    snprintf(buffer, sizeof(buffer), "%llu", it);
     out.append(buffer);
     out.append("\n");
   }
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -2978,18 +3042,18 @@ void BluetoothGATTCharacteristic::dump_to(std::string &out) const {
   out.append("BluetoothGATTCharacteristic {\n");
   for (const auto &it : this->uuid) {
     out.append("  uuid: ");
-    sprintf(buffer, "%llu", it);
+    snprintf(buffer, sizeof(buffer), "%llu", it);
     out.append(buffer);
     out.append("\n");
   }
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
 
   out.append("  properties: ");
-  sprintf(buffer, "%" PRIu32, this->properties);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->properties);
   out.append(buffer);
   out.append("\n");
 
@@ -3005,13 +3069,13 @@ void BluetoothGATTService::dump_to(std::string &out) const {
   out.append("BluetoothGATTService {\n");
   for (const auto &it : this->uuid) {
     out.append("  uuid: ");
-    sprintf(buffer, "%llu", it);
+    snprintf(buffer, sizeof(buffer), "%llu", it);
     out.append(buffer);
     out.append("\n");
   }
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
 
@@ -3026,7 +3090,7 @@ void BluetoothGATTGetServicesResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTGetServicesResponse {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
@@ -3041,7 +3105,7 @@ void BluetoothGATTGetServicesDoneResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTGetServicesDoneResponse {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3050,12 +3114,12 @@ void BluetoothGATTReadRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTReadRequest {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3064,12 +3128,12 @@ void BluetoothGATTReadResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTReadResponse {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
 
@@ -3082,12 +3146,12 @@ void BluetoothGATTWriteRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTWriteRequest {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
 
@@ -3104,12 +3168,12 @@ void BluetoothGATTReadDescriptorRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTReadDescriptorRequest {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3118,12 +3182,12 @@ void BluetoothGATTWriteDescriptorRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTWriteDescriptorRequest {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
 
@@ -3136,12 +3200,12 @@ void BluetoothGATTNotifyRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTNotifyRequest {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
 
@@ -3154,12 +3218,12 @@ void BluetoothGATTNotifyDataResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTNotifyDataResponse {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
 
@@ -3175,18 +3239,18 @@ void BluetoothConnectionsFreeResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothConnectionsFreeResponse {\n");
   out.append("  free: ");
-  sprintf(buffer, "%" PRIu32, this->free);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->free);
   out.append(buffer);
   out.append("\n");
 
   out.append("  limit: ");
-  sprintf(buffer, "%" PRIu32, this->limit);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->limit);
   out.append(buffer);
   out.append("\n");
 
   for (const auto &it : this->allocated) {
     out.append("  allocated: ");
-    sprintf(buffer, "%llu", it);
+    snprintf(buffer, sizeof(buffer), "%llu", it);
     out.append(buffer);
     out.append("\n");
   }
@@ -3196,17 +3260,17 @@ void BluetoothGATTErrorResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTErrorResponse {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
 
   out.append("  error: ");
-  sprintf(buffer, "%" PRId32, this->error);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->error);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3215,12 +3279,12 @@ void BluetoothGATTWriteResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTWriteResponse {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3229,12 +3293,12 @@ void BluetoothGATTNotifyResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothGATTNotifyResponse {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
   out.append("  handle: ");
-  sprintf(buffer, "%" PRIu32, this->handle);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->handle);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3243,7 +3307,7 @@ void BluetoothDevicePairingResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothDevicePairingResponse {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
@@ -3252,7 +3316,7 @@ void BluetoothDevicePairingResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  error: ");
-  sprintf(buffer, "%" PRId32, this->error);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->error);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3261,7 +3325,7 @@ void BluetoothDeviceUnpairingResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothDeviceUnpairingResponse {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
@@ -3270,7 +3334,7 @@ void BluetoothDeviceUnpairingResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  error: ");
-  sprintf(buffer, "%" PRId32, this->error);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->error);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3282,7 +3346,7 @@ void BluetoothDeviceClearCacheResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothDeviceClearCacheResponse {\n");
   out.append("  address: ");
-  sprintf(buffer, "%llu", this->address);
+  snprintf(buffer, sizeof(buffer), "%llu", this->address);
   out.append(buffer);
   out.append("\n");
 
@@ -3291,7 +3355,7 @@ void BluetoothDeviceClearCacheResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  error: ");
-  sprintf(buffer, "%" PRId32, this->error);
+  snprintf(buffer, sizeof(buffer), "%" PRId32, this->error);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3326,7 +3390,7 @@ void SubscribeVoiceAssistantRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  flags: ");
-  sprintf(buffer, "%" PRIu32, this->flags);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->flags);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3335,17 +3399,17 @@ void VoiceAssistantAudioSettings::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantAudioSettings {\n");
   out.append("  noise_suppression_level: ");
-  sprintf(buffer, "%" PRIu32, this->noise_suppression_level);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->noise_suppression_level);
   out.append(buffer);
   out.append("\n");
 
   out.append("  auto_gain: ");
-  sprintf(buffer, "%" PRIu32, this->auto_gain);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->auto_gain);
   out.append(buffer);
   out.append("\n");
 
   out.append("  volume_multiplier: ");
-  sprintf(buffer, "%g", this->volume_multiplier);
+  snprintf(buffer, sizeof(buffer), "%g", this->volume_multiplier);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3362,7 +3426,7 @@ void VoiceAssistantRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  flags: ");
-  sprintf(buffer, "%" PRIu32, this->flags);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->flags);
   out.append(buffer);
   out.append("\n");
 
@@ -3379,7 +3443,7 @@ void VoiceAssistantResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("VoiceAssistantResponse {\n");
   out.append("  port: ");
-  sprintf(buffer, "%" PRIu32, this->port);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->port);
   out.append(buffer);
   out.append("\n");
 
@@ -3442,12 +3506,12 @@ void VoiceAssistantTimerEventResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  total_seconds: ");
-  sprintf(buffer, "%" PRIu32, this->total_seconds);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->total_seconds);
   out.append(buffer);
   out.append("\n");
 
   out.append("  seconds_left: ");
-  sprintf(buffer, "%" PRIu32, this->seconds_left);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->seconds_left);
   out.append(buffer);
   out.append("\n");
 
@@ -3521,7 +3585,7 @@ void VoiceAssistantConfigurationResponse::dump_to(std::string &out) const {
   }
 
   out.append("  max_active_wake_words: ");
-  sprintf(buffer, "%" PRIu32, this->max_active_wake_words);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->max_active_wake_words);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3546,7 +3610,7 @@ void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -3567,7 +3631,7 @@ void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  supported_features: ");
-  sprintf(buffer, "%" PRIu32, this->supported_features);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->supported_features);
   out.append(buffer);
   out.append("\n");
 
@@ -3580,7 +3644,7 @@ void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3589,7 +3653,7 @@ void AlarmControlPanelStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("AlarmControlPanelStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -3598,7 +3662,7 @@ void AlarmControlPanelStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3607,7 +3671,7 @@ void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("AlarmControlPanelCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -3617,6 +3681,11 @@ void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
 
   out.append("  code: ");
   out.append("'").append(this->code).append("'");
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -3630,7 +3699,7 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -3651,12 +3720,12 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  min_length: ");
-  sprintf(buffer, "%" PRIu32, this->min_length);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->min_length);
   out.append(buffer);
   out.append("\n");
 
   out.append("  max_length: ");
-  sprintf(buffer, "%" PRIu32, this->max_length);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->max_length);
   out.append(buffer);
   out.append("\n");
 
@@ -3669,7 +3738,7 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3678,7 +3747,7 @@ void TextStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("TextStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -3691,7 +3760,7 @@ void TextStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3700,12 +3769,17 @@ void TextCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("TextCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
   out.append("  state: ");
   out.append("'").append(this->state).append("'");
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -3719,7 +3793,7 @@ void ListEntitiesDateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -3740,7 +3814,7 @@ void ListEntitiesDateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3749,7 +3823,7 @@ void DateStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("DateStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -3758,22 +3832,22 @@ void DateStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  year: ");
-  sprintf(buffer, "%" PRIu32, this->year);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->year);
   out.append(buffer);
   out.append("\n");
 
   out.append("  month: ");
-  sprintf(buffer, "%" PRIu32, this->month);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->month);
   out.append(buffer);
   out.append("\n");
 
   out.append("  day: ");
-  sprintf(buffer, "%" PRIu32, this->day);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->day);
   out.append(buffer);
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3782,22 +3856,27 @@ void DateCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("DateCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
   out.append("  year: ");
-  sprintf(buffer, "%" PRIu32, this->year);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->year);
   out.append(buffer);
   out.append("\n");
 
   out.append("  month: ");
-  sprintf(buffer, "%" PRIu32, this->month);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->month);
   out.append(buffer);
   out.append("\n");
 
   out.append("  day: ");
-  sprintf(buffer, "%" PRIu32, this->day);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->day);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3812,7 +3891,7 @@ void ListEntitiesTimeResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -3833,7 +3912,7 @@ void ListEntitiesTimeResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3842,7 +3921,7 @@ void TimeStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("TimeStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -3851,22 +3930,22 @@ void TimeStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  hour: ");
-  sprintf(buffer, "%" PRIu32, this->hour);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->hour);
   out.append(buffer);
   out.append("\n");
 
   out.append("  minute: ");
-  sprintf(buffer, "%" PRIu32, this->minute);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->minute);
   out.append(buffer);
   out.append("\n");
 
   out.append("  second: ");
-  sprintf(buffer, "%" PRIu32, this->second);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->second);
   out.append(buffer);
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3875,22 +3954,27 @@ void TimeCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("TimeCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
   out.append("  hour: ");
-  sprintf(buffer, "%" PRIu32, this->hour);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->hour);
   out.append(buffer);
   out.append("\n");
 
   out.append("  minute: ");
-  sprintf(buffer, "%" PRIu32, this->minute);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->minute);
   out.append(buffer);
   out.append("\n");
 
   out.append("  second: ");
-  sprintf(buffer, "%" PRIu32, this->second);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->second);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3905,7 +3989,7 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -3936,7 +4020,7 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
   }
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3945,7 +4029,7 @@ void EventResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("EventResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -3954,7 +4038,7 @@ void EventResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -3969,7 +4053,7 @@ void ListEntitiesValveResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -4006,7 +4090,7 @@ void ListEntitiesValveResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -4015,12 +4099,12 @@ void ValveStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ValveStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
   out.append("  position: ");
-  sprintf(buffer, "%g", this->position);
+  snprintf(buffer, sizeof(buffer), "%g", this->position);
   out.append(buffer);
   out.append("\n");
 
@@ -4029,7 +4113,7 @@ void ValveStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -4038,7 +4122,7 @@ void ValveCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ValveCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -4047,12 +4131,17 @@ void ValveCommandRequest::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  position: ");
-  sprintf(buffer, "%g", this->position);
+  snprintf(buffer, sizeof(buffer), "%g", this->position);
   out.append(buffer);
   out.append("\n");
 
   out.append("  stop: ");
   out.append(YESNO(this->stop));
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
@@ -4066,7 +4155,7 @@ void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -4087,7 +4176,7 @@ void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -4096,7 +4185,7 @@ void DateTimeStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("DateTimeStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -4105,12 +4194,12 @@ void DateTimeStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  epoch_seconds: ");
-  sprintf(buffer, "%" PRIu32, this->epoch_seconds);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->epoch_seconds);
   out.append(buffer);
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -4119,12 +4208,17 @@ void DateTimeCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("DateTimeCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
   out.append("  epoch_seconds: ");
-  sprintf(buffer, "%" PRIu32, this->epoch_seconds);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->epoch_seconds);
+  out.append(buffer);
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -4139,7 +4233,7 @@ void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -4164,7 +4258,7 @@ void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -4173,7 +4267,7 @@ void UpdateStateResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("UpdateStateResponse {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
@@ -4190,7 +4284,7 @@ void UpdateStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  progress: ");
-  sprintf(buffer, "%g", this->progress);
+  snprintf(buffer, sizeof(buffer), "%g", this->progress);
   out.append(buffer);
   out.append("\n");
 
@@ -4215,7 +4309,7 @@ void UpdateStateResponse::dump_to(std::string &out) const {
   out.append("\n");
 
   out.append("  device_id: ");
-  sprintf(buffer, "%" PRIu32, this->device_id);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
   out.append("}");
@@ -4224,12 +4318,17 @@ void UpdateCommandRequest::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("UpdateCommandRequest {\n");
   out.append("  key: ");
-  sprintf(buffer, "%" PRIu32, this->key);
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
 
   out.append("  command: ");
   out.append(proto_enum_to_string<enums::UpdateCommand>(this->command));
+  out.append("\n");
+
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
   out.append("\n");
   out.append("}");
 }
