@@ -604,21 +604,22 @@ def test_entity_duplicate_validator_internal_entities() -> None:
     config1 = {CONF_NAME: "Temperature"}
     validated1 = validator(config1)
     assert validated1 == config1
-    assert ("sensor", "temperature") in CORE.unique_ids
+    # New format includes device_id (empty string for main device)
+    assert ("", "sensor", "temperature") in CORE.unique_ids
 
     # Internal entity with same name should pass (not added to unique_ids)
     config2 = {CONF_NAME: "Temperature", CONF_INTERNAL: True}
     validated2 = validator(config2)
     assert validated2 == config2
     # Internal entity should not be added to unique_ids
-    assert len([k for k in CORE.unique_ids if k == ("sensor", "temperature")]) == 1
+    assert len([k for k in CORE.unique_ids if k == ("", "sensor", "temperature")]) == 1
 
     # Another internal entity with same name should also pass
     config3 = {CONF_NAME: "Temperature", CONF_INTERNAL: True}
     validated3 = validator(config3)
     assert validated3 == config3
     # Still only one entry in unique_ids (from the non-internal entity)
-    assert len([k for k in CORE.unique_ids if k == ("sensor", "temperature")]) == 1
+    assert len([k for k in CORE.unique_ids if k == ("", "sensor", "temperature")]) == 1
 
     # Non-internal entity with same name should fail
     config4 = {CONF_NAME: "Temperature"}
