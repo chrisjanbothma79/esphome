@@ -368,29 +368,28 @@ class Application {
 
   uint8_t get_app_state() const { return this->app_state_; }
 
-  // Helper method to check if entity matches key and device_id
-  // When USE_DEVICES is not defined, device_id is ignored
-  inline bool entity_matches_key_device(EntityBase *entity, uint32_t key, uint32_t device_id) {
-#ifdef USE_DEVICES
-    return entity->get_object_id_hash() == key && entity->get_device_id() == device_id;
-#else
-    (void) device_id;  // Suppress unused parameter warning
-    return entity->get_object_id_hash() == key;
-#endif
-  }
-
 // Helper macro for entity getter method declarations
+#ifdef USE_DEVICES
+  const std::vector<Device *> &get_devices() { return this->devices_; }
 #define GET_ENTITY_METHOD(entity_type, entity_name, entities_member) \
   entity_type *get_##entity_name##_by_key(uint32_t key, uint32_t device_id, bool include_internal = false) { \
     for (auto *obj : this->entities_member##_) { \
-      if (entity_matches_key_device(obj, key, device_id) && (include_internal || !obj->is_internal())) \
+      if (obj->get_object_id_hash() == key && obj->get_device_id() == device_id && \
+          (include_internal || !obj->is_internal())) \
         return obj; \
     } \
     return nullptr; \
   }
-
-#ifdef USE_DEVICES
-  const std::vector<Device *> &get_devices() { return this->devices_; }
+#else
+#define GET_ENTITY_METHOD(entity_type, entity_name, entities_member) \
+  entity_type *get_##entity_name##_by_key(uint32_t key, uint32_t device_id, bool include_internal = false) { \
+    (void) device_id; \
+    for (auto *obj : this->entities_member##_) { \
+      if (obj->get_object_id_hash() == key && (include_internal || !obj->is_internal())) \
+        return obj; \
+    } \
+    return nullptr; \
+  }
 #endif
 #ifdef USE_AREAS
   const std::vector<Area *> &get_areas() { return this->areas_; }
