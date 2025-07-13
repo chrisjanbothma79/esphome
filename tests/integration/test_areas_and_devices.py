@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 
-from aioesphomeapi import EntityState
+from aioesphomeapi import EntityState, SwitchInfo, SwitchState
 import pytest
 
 from .types import APIClientConnectedFactory, RunCompiledFunction
@@ -84,23 +84,44 @@ async def test_areas_and_devices(
 
         # Subscribe to states to get sensor values
         loop = asyncio.get_running_loop()
-        states: dict[int, EntityState] = {}
-        states_future: asyncio.Future[bool] = loop.create_future()
+        states: dict[tuple[int, int], EntityState] = {}
+        # Subscribe to all switch states
+        switch_state_futures: dict[
+            tuple[int, int], asyncio.Future[EntityState]
+        ] = {}  # (device_id, key) -> future
+        initial_states_received: set[tuple[int, int]] = set()
+        initial_states_future: asyncio.Future[bool] = loop.create_future()
 
         def on_state(state: EntityState) -> None:
-            states[state.key] = state
-            # Check if we have all expected sensor states
-            if len(states) >= 4 and not states_future.done():
-                states_future.set_result(True)
+            state_key = (state.device_id, state.key)
+            states[state_key] = state
+
+            initial_states_received.add(state_key)
+            # Check if we have all initial states
+            if (
+                len(initial_states_received) >= 7  # 7 entities expected
+                and not initial_states_future.done()
+            ):
+                initial_states_future.set_result(True)
+            else:
+                return
+
+            # Resolve the future for this switch if it exists
+            if (
+                state_key in switch_state_futures
+                and not switch_state_futures[state_key].done()
+                and isinstance(state, SwitchState)
+            ):
+                switch_state_futures[state_key].set_result(state)
 
         client.subscribe_states(on_state)
 
         # Wait for sensor states
         try:
-            await asyncio.wait_for(states_future, timeout=10.0)
+            await asyncio.wait_for(initial_states_future, timeout=10.0)
         except asyncio.TimeoutError:
             pytest.fail(
-                f"Did not receive all sensor states within 10 seconds. "
+                f"Did not receive all states within 10 seconds. "
                 f"Received {len(states)} states"
             )
 
@@ -120,10 +141,6 @@ async def test_areas_and_devices(
                     f"expected {expected_device_id}"
                 )
 
-        # Test switches with same name on different devices
-        # Find all switches in the flat entity list
-        from aioesphomeapi import SwitchInfo
-
         all_entities, _ = entities  # Unpack the tuple
         switch_entities = [e for e in all_entities if isinstance(e, SwitchInfo)]
 
@@ -141,42 +158,6 @@ async def test_areas_and_devices(
         assert 0 in switch_device_ids, (
             "Should have a switch with device_id 0 (main device)"
         )
-
-        # Subscribe to all switch states
-        switch_keys = {s.key for s in test_switches}
-        switch_states: dict[
-            tuple[int, int], EntityState
-        ] = {}  # (device_id, key) -> state
-        switch_state_futures: dict[
-            tuple[int, int], asyncio.Future[EntityState]
-        ] = {}  # (device_id, key) -> future
-        initial_states_received: set[tuple[int, int]] = set()
-        initial_states_future: asyncio.Future[bool] = loop.create_future()
-
-        def on_state(state: EntityState) -> None:
-            if state.key not in switch_keys:
-                return
-
-            state_key = (state.device_id, state.key)
-            switch_states[state_key] = state
-            initial_states_received.add(state_key)
-
-            # Check if we have all initial states
-            expected_switch_keys = {(s.device_id, s.key) for s in test_switches}
-            if (
-                initial_states_received == expected_switch_keys
-                and not initial_states_future.done()
-            ):
-                initial_states_future.set_result(True)
-
-            # Resolve the future for this switch if it exists
-            if (
-                state_key in switch_state_futures
-                and not switch_state_futures[state_key].done()
-            ):
-                switch_state_futures[state_key].set_result(state)
-
-        client.subscribe_states(on_state)
 
         # Wait for initial states to be received for all switches
         await asyncio.wait_for(initial_states_future, timeout=2.0)
@@ -206,9 +187,7 @@ async def test_areas_and_devices(
             await asyncio.wait_for(switch_state_futures[state_key], timeout=2.0)
 
             # Verify the correct switch was turned on
-            assert switch_states[state_key].state is True, (
-                f"{device_name} switch should be on"
-            )
+            assert states[state_key].state is True, f"{device_name} switch should be on"
 
             # Create new future for turning off
             switch_state_futures[state_key] = loop.create_future()
@@ -222,7 +201,7 @@ async def test_areas_and_devices(
             await asyncio.wait_for(switch_state_futures[state_key], timeout=2.0)
 
             # Verify the correct switch was turned off
-            assert switch_states[state_key].state is False, (
+            assert states[state_key].state is False, (
                 f"{device_name} switch should be off"
             )
 
@@ -246,7 +225,7 @@ async def test_areas_and_devices(
         switch_state_futures[main_key] = loop.create_future()
         client.switch_command(main_switch.key, True, device_id=main_switch.device_id)
         await asyncio.wait_for(switch_state_futures[main_key], timeout=2.0)
-        assert switch_states[main_key].state is True, "Main switch should be on"
+        assert states[main_key].state is True, "Main switch should be on"
 
         # Now turn on the device switch
         switch_state_futures[device_key] = loop.create_future()
@@ -256,8 +235,8 @@ async def test_areas_and_devices(
         await asyncio.wait_for(switch_state_futures[device_key], timeout=2.0)
 
         # Verify device switch is on and main switch is still on
-        assert switch_states[device_key].state is True, "Device switch should be on"
-        assert switch_states[main_key].state is True, (
+        assert states[device_key].state is True, "Device switch should be on"
+        assert states[main_key].state is True, (
             "Main switch should still be on after turning on device switch"
         )
 
@@ -269,8 +248,8 @@ async def test_areas_and_devices(
         await asyncio.wait_for(switch_state_futures[device_key], timeout=2.0)
 
         # Verify device switch is off and main switch is still on
-        assert switch_states[device_key].state is False, "Device switch should be off"
-        assert switch_states[main_key].state is True, (
+        assert states[device_key].state is False, "Device switch should be off"
+        assert states[main_key].state is True, (
             "Main switch should still be on after turning off device switch"
         )
 
@@ -278,4 +257,4 @@ async def test_areas_and_devices(
         switch_state_futures[main_key] = loop.create_future()
         client.switch_command(main_switch.key, False, device_id=main_switch.device_id)
         await asyncio.wait_for(switch_state_futures[main_key], timeout=2.0)
-        assert switch_states[main_key].state is False, "Main switch should be off"
+        assert states[main_key].state is False, "Main switch should be off"
