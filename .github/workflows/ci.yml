@@ -345,18 +345,28 @@ jobs:
         run: script/ci-suggest-changes
         if: always()
 
+  clang-tidy-deps:
+    name: Clang-tidy dependencies
+    runs-on: ubuntu-24.04
+    needs:
+      - common
+      - ci-custom
+      - clang-format
+      - pytest
+      - determine-jobs
+      - ruff
+    if: |
+      always() &&
+      needs.determine-jobs.outputs.clang-tidy == 'true' &&
+      (needs.ruff.result == 'success' || needs.ruff.result == 'skipped')
+    steps:
+      - run: echo "All clang-tidy dependencies ready"
+
   clang-tidy:
     name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
     needs:
-      - common
-      - ruff
-      - ci-custom
-      - clang-format
-      - flake8
-      - pylint
-      - pytest
-      - pyupgrade
+      - clang-tidy-deps
       - determine-jobs
     if: needs.determine-jobs.outputs.clang-tidy == 'true'
     env:
@@ -575,6 +585,7 @@ jobs:
       - pytest
       - integration-tests
       - pyupgrade
+      - clang-tidy-deps
       - clang-tidy
       - determine-jobs
       - test-build-components
