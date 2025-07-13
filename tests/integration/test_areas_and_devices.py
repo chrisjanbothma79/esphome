@@ -99,7 +99,7 @@ async def test_areas_and_devices(
             initial_states_received.add(state_key)
             # Check if we have all initial states
             if (
-                len(initial_states_received) >= 7  # 7 entities expected
+                len(initial_states_received) >= 8  # 8 entities expected
                 and not initial_states_future.done()
             ):
                 initial_states_future.set_result(True)
