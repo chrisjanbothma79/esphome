@@ -58,7 +58,7 @@ async def to_code(config):
             "Falling back to polling mode (same as in ESPHome <2025.8). "
             "The sensor will work exactly as before, but other pins have better "
             "performance with interrupts.",
-            config.get(CONF_ID) or "unnamed",
+            config[CONF_ID],
         )
         use_interrupt = False
 
