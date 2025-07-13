@@ -4,7 +4,7 @@ from esphome import pins
 import esphome.codegen as cg
 from esphome.components import binary_sensor
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_NUMBER, CONF_PIN
+from esphome.const import CONF_ID, CONF_NAME, CONF_NUMBER, CONF_PIN
 from esphome.core import CORE
 
 from .. import gpio_ns
@@ -58,7 +58,7 @@ async def to_code(config):
             "Falling back to polling mode (same as in ESPHome <2025.8). "
             "The sensor will work exactly as before, but other pins have better "
             "performance with interrupts.",
-            config[CONF_ID],
+            config.get(CONF_NAME, config[CONF_ID]),
         )
         use_interrupt = False
 
