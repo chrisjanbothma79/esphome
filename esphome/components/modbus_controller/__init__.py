@@ -191,6 +191,7 @@ ModbusServerRegisterSchema = cv.Schema(
             cv.Required(CONF_ADDRESS): cv.uint16_t,
             cv.Optional(CONF_VALUE_TYPE, default="U_WORD"): cv.enum(SENSOR_VALUE_TYPE),
             cv.Required(CONF_READ_LAMBDA): cv.returning_lambda,
+            cv.Optional(CONF_WRITE_LAMBDA): cv.returning_lambda,
         },
         validate_address(ModbusServerRegisterSet),
     )
