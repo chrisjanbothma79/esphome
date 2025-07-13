@@ -368,12 +368,22 @@ class Application {
 
   uint8_t get_app_state() const { return this->app_state_; }
 
-// Helper macro for entity getter method declarations - reduces code duplication
-// When USE_DEVICE_ID is enabled in the future, this can be conditionally compiled to add device_id parameter
+  // Helper method to check if entity matches key and device_id
+  // When USE_DEVICES is not defined, device_id is ignored
+  inline bool entity_matches_key_device(EntityBase *entity, uint32_t key, uint32_t device_id) {
+#ifdef USE_DEVICES
+    return entity->get_object_id_hash() == key && entity->get_device_id() == device_id;
+#else
+    (void) device_id;  // Suppress unused parameter warning
+    return entity->get_object_id_hash() == key;
+#endif
+  }
+
+// Helper macro for entity getter method declarations
 #define GET_ENTITY_METHOD(entity_type, entity_name, entities_member) \
-  entity_type *get_##entity_name##_by_key(uint32_t key, bool include_internal = false) { \
+  entity_type *get_##entity_name##_by_key(uint32_t key, uint32_t device_id, bool include_internal = false) { \
     for (auto *obj : this->entities_member##_) { \
-      if (obj->get_object_id_hash() == key && (include_internal || !obj->is_internal())) \
+      if (entity_matches_key_device(obj, key, device_id) && (include_internal || !obj->is_internal())) \
         return obj; \
     } \
     return nullptr; \
