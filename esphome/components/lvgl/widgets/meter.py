@@ -13,6 +13,7 @@ from esphome.const import (
     CONF_ROTATION,
     CONF_VALUE,
     CONF_WIDTH,
+    literal,
 )
 
 from ..automation import action_to_code
@@ -217,7 +218,7 @@ class MeterType(WidgetType):
                             meter_var,
                             major[CONF_STRIDE],
                             major[CONF_WIDTH],
-                            major[CONF_LENGTH],
+                            literal(major[CONF_LENGTH]),
                             color,
                             major[CONF_LABEL_GAP],
                         )
