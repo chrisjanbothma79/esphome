@@ -238,7 +238,7 @@ void ModbusController::on_modbus_write_coil_register(uint8_t function_code, uint
            "0x%X.",
            this->address_, function_code, address, state);
 
-  if (!(state == 0x0000 || state == 0xFF00)) {
+  if (state != 0x0000 && state != 0xFF00) {
     ESP_LOGW(TAG, "Coil state 0x%04X is not 0x0000 or 0xFF00. Sending exception response", state);
     send_error(function_code, 3);
     return;
