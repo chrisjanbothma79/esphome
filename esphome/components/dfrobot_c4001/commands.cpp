@@ -1,11 +1,7 @@
+#include "dfrobot_c4001.h"
 #include "commands.h"
 
-#include <cmath>
 #include <sstream>
-
-#include "esphome/core/log.h"
-
-#include "dfrobot_c4001.h"
 
 namespace esphome {
 namespace dfrobot_c4001 {
@@ -21,7 +17,7 @@ uint8_t Command::execute(DFRobotC4001Hub *parent) {
         if (this->retries_left_ > 0) {
           this->retries_left_ -= 1;
           this->cmd_sent_ = false;
-          ESP_LOGD(TAG, "Retrying (%s)", this->cmd_.c_str());
+          ESP_LOGD(TAG, "Retrying");
           return 0;
         } else {
           this->parent_->find_prompt_();
@@ -29,8 +25,17 @@ uint8_t Command::execute(DFRobotC4001Hub *parent) {
         }
       }
       uint8_t rc = on_message(message);
-      if (rc == 0) {
-        // command is not done yet
+      if (rc == 2) {
+        if (this->retries_left_ > 0) {
+          this->retries_left_ -= 1;
+          this->cmd_sent_ = false;
+          ESP_LOGD(TAG, "Retrying");
+          return 0;
+        } else {
+          this->parent_->find_prompt_();
+          return 1;  // Command done
+        }
+      } else if (rc == 0) {
         return 0;
       } else {
         // command is done
@@ -39,12 +44,13 @@ uint8_t Command::execute(DFRobotC4001Hub *parent) {
       }
     }
     if (millis() - this->parent_->ts_last_cmd_sent_ > this->timeout_ms_) {
+      ESP_LOGD(TAG, "Command timeout");
       if (this->retries_left_ > 0) {
         this->retries_left_ -= 1;
         this->cmd_sent_ = false;
-        ESP_LOGD(TAG, "Command timeout, retrying (%s)", this->cmd_.c_str());
+        ESP_LOGD(TAG, "Retrying");
       } else {
-        ESP_LOGD(TAG, "Command failed (%s)", this->cmd_.c_str());
+        // ESP_LOGD(TAG, "Command failed (%s)", this->cmd_.c_str());
         return 1;  // Command done
       }
     }
@@ -68,11 +74,10 @@ uint8_t ReadStateCommand::execute(DFRobotC4001Hub *parent) {
       this->parent_->set_enable(true);
       ESP_LOGV(TAG, "Recv Rpt: Occupancy Detected");
       return 1;  // Command done
-    } else if (message.starts_with("$DFDMD")) {
+    } else if (message.rfind("$DFDMD") != std::string::npos) {
       std::string str1, str2, str3, str4, str5;
       std::replace(message.begin(), message.end(), ',', ' ');
       std::stringstream s(message);
-
       s >> str1 >> str1 >> str2 >> str3 >> str4 >> str5;
       auto target = parse_number<int>(str1);
       auto target_distance = parse_number<float>(str3);
@@ -144,13 +149,26 @@ uint8_t PowerCommand::on_message(std::string &message) {
   return 0;  // Command not done yet.
 }
 
+SetUartOutputCommand::SetUartOutputCommand() { cmd_ = "setUartOutput 1 1"; };
+
+uint8_t SetUartOutputCommand::on_message(std::string &message) {
+  if (message == "sensor is not stopped") {
+    ESP_LOGE(TAG, "Sensor is not stopped");
+    return 1;  // Command done
+  } else if (message == "Done") {
+    ESP_LOGV(TAG, "Set UART Output complete");
+    return 1;  // Command done
+  }
+  return 0;  // Command not done yet
+}
+
 GetRangeCommand::GetRangeCommand() { cmd_ = "getRange"; }
 
 uint8_t GetRangeCommand::on_message(std::string &message) {
   std::string str1, str2;
   std::stringstream s(message);
 
-  if (message.starts_with("Response")) {
+  if (message.rfind("Response") != std::string::npos) {
     s >> str1 >> str1 >> str2;
     auto min = parse_number<float>(str1);
     auto max = parse_number<float>(str2);
@@ -194,7 +212,7 @@ uint8_t GetTrigRangeCommand::on_message(std::string &message) {
   std::string str1;
   std::stringstream s(message);
 
-  if (message.starts_with("Response")) {
+  if (message.rfind("Response") != std::string::npos) {
     s >> str1 >> str1;
     auto trig = parse_number<float>(str1);
     if (trig.has_value()) {
@@ -236,7 +254,7 @@ uint8_t GetSensitivityCommand::on_message(std::string &message) {
   std::string str1, str2;
   std::stringstream s(message);
 
-  if (message.starts_with("Response")) {
+  if (message.rfind("Response") != std::string::npos) {
     s >> str1 >> str1 >> str2;
     auto hold = parse_number<uint16_t>(str1);
     auto trig = parse_number<uint16_t>(str2);
@@ -282,7 +300,7 @@ uint8_t GetLatencyCommand::on_message(std::string &message) {
   std::string str1, str2;
   std::stringstream s(message);
 
-  if (message.starts_with("Response")) {
+  if (message.rfind("Response") != std::string::npos) {
     s >> str1 >> str1 >> str2;
     auto on = parse_number<float>(str1);
     auto off = parse_number<float>(str2);
@@ -328,7 +346,7 @@ uint8_t GetInhibitTimeCommand::on_message(std::string &message) {
   std::string str1;
   std::stringstream s(message);
 
-  if (message.starts_with("Response")) {
+  if (message.rfind("Response") != std::string::npos) {
     s >> str1 >> str1;
     auto inhibit = parse_number<float>(str1);
     if (inhibit.has_value()) {
@@ -370,7 +388,7 @@ uint8_t GetThrFactorCommand::on_message(std::string &message) {
   std::string str1;
   std::stringstream s(message);
 
-  if (message.starts_with("Response")) {
+  if (message.rfind("Response") != std::string::npos) {
     s >> str1 >> str1;
     auto thr = parse_number<float>(str1);
     if (thr.has_value()) {
@@ -423,12 +441,10 @@ uint8_t SetLedModeCommand1::on_message(std::string &message) {
     ESP_LOGE(TAG, "Sensor is not stopped");
     return 1;  // Command done
   } else if (message == "Done") {
-    if (this->led_enable_) {
-      this->parent_->set_led_enable(true, false);
-    } else {
-      this->parent_->set_led_enable(false, false);
-    }
-    ESP_LOGV(TAG, "Set LED Mode 1 complete");
+    this->parent_->set_led_enable(this->led_enable_, false);
+    // we save the state of LED enable to flash because you cannot read this value from the module
+    this->parent_->flash_led_enable();
+    ESP_LOGV(TAG, "Set LED Mode 1 complete (%s)", this->led_enable_ ? "Enabled" : "Disabled");
     return 1;  // Command done
   }
   return 0;  // Command not done yet
@@ -451,14 +467,7 @@ uint8_t SetLedModeCommand2::on_message(std::string &message) {
     ESP_LOGE(TAG, "Sensor is not stopped");
     return 1;  // Command done
   } else if (message == "Done") {
-    if (this->led_enable_) {
-      this->parent_->set_led_enable(true, false);
-    } else {
-      this->parent_->set_led_enable(false, false);
-    }
-    ESP_LOGV(TAG, "Set LED Mode 2 complete");
-    // we save the state of LED enable to flash because you cannot read this value from the module
-    this->parent_->flash_led_enable();
+    ESP_LOGV(TAG, "Set LED Mode 2 complete (%s)", this->led_enable_ ? "Enabled" : "Disabled");
     return 1;  // Command done
   }
   return 0;  // Command not done yet
@@ -470,7 +479,7 @@ uint8_t GetMicroMotionCommand::on_message(std::string &message) {
   std::string str1;
   std::stringstream s(message);
 
-  if (message.starts_with("Response")) {
+  if (message.rfind("Response") != std::string::npos) {
     s >> str1 >> str1;
     auto led = parse_number<uint8_t>(str1);
     if (led.has_value()) {
@@ -578,8 +587,12 @@ uint8_t SetRunAppCommand::on_message(std::string &message) {
 GetSWVCommand::GetSWVCommand() { cmd_ = "getSWV"; }
 
 uint8_t GetSWVCommand::on_message(std::string &message) {
-  if (message.starts_with("SoftwareVersion:")) {
-    this->version_ = message.substr(16);
+  if (message.rfind("SoftwareVersion:") != std::string::npos) {
+    std::string str1;
+    std::replace(message.begin(), message.end(), ':', ' ');
+    std::stringstream s(message);
+    s >> str1 >> str1;
+    this->version_ = str1;
     return 0;
   } else if (message == "Done") {
     this->parent_->set_software_version(this->version_);
@@ -593,8 +606,12 @@ uint8_t GetSWVCommand::on_message(std::string &message) {
 GetHWVCommand::GetHWVCommand() { cmd_ = "getHWV"; }
 
 uint8_t GetHWVCommand::on_message(std::string &message) {
-  if (message.starts_with("HardwareVersion:")) {
-    this->version_ = message.substr(16);
+  if (message.rfind("HardwareVersion:") != std::string::npos) {
+    std::string str1;
+    std::replace(message.begin(), message.end(), ':', ' ');
+    std::stringstream s(message);
+    s >> str1 >> str1;
+    this->version_ = str1;
     return 0;
   } else if (message == "Done") {
     this->parent_->set_hardware_version(this->version_);

@@ -207,7 +207,7 @@ void DFRobotC4001Hub::set_hardware_version(const std::string &version) {
 
 void DFRobotC4001Hub::flash_led_enable() {
 #ifdef USE_SWITCH
-  // Save LED Enable preferences (to flash storage)
+  //Save LED Enable preferences (to flash storage)
   if (this->led_enable_switch_ != nullptr) {
     ESP_LOGV(TAG, "Writing LED Enable setting to flash.");
     this->pref_.save(&this->led_enable_);
@@ -228,22 +228,26 @@ void DFRobotC4001Hub::set_needs_save(bool needs_save) {
 
 void DFRobotC4001Hub::config_load() {
   // set dfrobot_c4001 hub configuration
-  cmd_queue_.enqueue(make_unique<PowerCommand>(false));
+  this->enqueue(make_unique<PowerCommand>(false));
+  this->enqueue(make_unique<SetUartOutputCommand>());
   // have to be in the right mode to read that mode's parameters
-  cmd_queue_.enqueue(make_unique<SetRunAppCommand>(this->mode_));
-  cmd_queue_.enqueue(make_unique<PowerCommand>(true));
-  cmd_queue_.enqueue(make_unique<GetHWVCommand>());
-  cmd_queue_.enqueue(make_unique<GetSWVCommand>());
+  this->enqueue(make_unique<SetRunAppCommand>(this->mode_));
+  this->enqueue(make_unique<GetHWVCommand>());
+  this->enqueue(make_unique<GetSWVCommand>());
+  this->enqueue(make_unique<SetLedModeCommand1>(this->led_enable_));
+
+  this->enqueue(make_unique<SetLedModeCommand2>(this->led_enable_));
+  this->enqueue(make_unique<PowerCommand>(true));
   // Read current parameters
   if (this->mode_ == MODE_PRESENCE) {
-    cmd_queue_.enqueue(make_unique<GetRangeCommand>());
-    cmd_queue_.enqueue(make_unique<GetTrigRangeCommand>());
-    cmd_queue_.enqueue(make_unique<GetSensitivityCommand>());
-    cmd_queue_.enqueue(make_unique<GetLatencyCommand>());
-    cmd_queue_.enqueue(make_unique<GetInhibitTimeCommand>());
+    this->enqueue(make_unique<GetRangeCommand>());
+    this->enqueue(make_unique<GetTrigRangeCommand>());
+    this->enqueue(make_unique<GetSensitivityCommand>());
+    this->enqueue(make_unique<GetLatencyCommand>());
+    this->enqueue(make_unique<GetInhibitTimeCommand>());
   } else {
-    cmd_queue_.enqueue(make_unique<GetMicroMotionCommand>());
-    cmd_queue_.enqueue(make_unique<GetThrFactorCommand>());
+    this->enqueue(make_unique<GetMicroMotionCommand>());
+    this->enqueue(make_unique<GetThrFactorCommand>());
   }
 
   this->set_needs_save(false);
@@ -254,7 +258,7 @@ void DFRobotC4001Hub::config_save() {
     this->flash_led_enable();
     this->enqueue(make_unique<PowerCommand>(false));
     if (this->mode_ == MODE_PRESENCE) {
-      this->enqueue(make_unique<SetRangeCommand>(this->min_range_, max_range_));
+      this->enqueue(make_unique<SetRangeCommand>(this->min_range_, this->max_range_));
       this->enqueue(make_unique<SetTrigRangeCommand>(this->trigger_range_));
       this->enqueue(make_unique<SetSensitivityCommand>(this->hold_sensitivity_, this->trigger_sensitivity_));
       this->enqueue(make_unique<SetLatencyCommand>(this->on_latency_, this->off_latency_));
@@ -318,7 +322,7 @@ void DFRobotC4001Hub::dump_config() {
 #endif
 #ifdef USE_SWITCH
   ESP_LOGCONFIG(TAG, "Switches:");
-  LOG_SWITCH("  ", "Turn on LED", this->led_enable_switch_);
+  LOG_SWITCH("  ", "LED Enable", this->led_enable_switch_);
   LOG_SWITCH("  ", "Micro Motion Enable", this->micro_motion_enable_switch_);
 #endif
 #ifdef USE_TEXT_SENSOR
@@ -329,43 +333,58 @@ void DFRobotC4001Hub::dump_config() {
 }
 
 void DFRobotC4001Hub::setup() {
-#ifdef USE_SWITCH
+  ESP_LOGCONFIG(TAG, "Running setup");
   // Restore LED Enable preferences (from flash storage)
-  if (this->led_enable_switch_ != nullptr) {
-    this->pref_ = global_preferences->make_preference<bool>(this->led_enable_switch_->get_object_id_hash());
+  this->pref_ = global_preferences->make_preference<bool>(this->led_enable_switch_->get_object_id_hash());
 
-    bool value;
-    ESP_LOGV(TAG, "Reading LED Enable setting from flash.");
-    if (!this->pref_.load(&value)) {
-      ESP_LOGV(TAG, "Reading LED Enable unsuccessful, using default (false).");
-      value = false;
-    }
-    this->set_led_enable(value, false);
+  bool value;
+  ESP_LOGCONFIG(TAG, "Load flash settings");
+  if (!this->pref_.load(&value)) {
+    ESP_LOGCONFIG(TAG, "Defaulting flash settings");
+    value = false;
   }
-#endif
-  this->config_load();
+  this->set_led_enable(value, false);
 }
 
 void DFRobotC4001Hub::loop() {
-  if (cmd_queue_.is_empty()) {
+  static uint64_t start_time = millis();
+  static bool prompt = false;
+
+  if (this->is_failed()) {
+    return;
+  }
+  if (!prompt) {
+    // still waiting to module to come alive and send a prompt
+    if (!this->find_prompt_()) {
+      if (millis() - start_time > 4000) {
+        this->mark_failed("Module not responding");
+        return;
+      }
+    } else {
+      ESP_LOGCONFIG(TAG, "Module responded (%ldms)", millis() - start_time);
+      this->config_load();
+      prompt = true;
+    }
+    return;
+  }
+  if (this->cmd_queue_.is_empty()) {
     // Command queue empty, first time this happens setup is complete
     if (!this->is_setup_) {
       this->is_setup_ = true;
-      ESP_LOGV(TAG, "Setup complete");
+      ESP_LOGCONFIG(TAG, "Setup complete");
     }
     // Read sensor state.
-    cmd_queue_.enqueue(make_unique<ReadStateCommand>());
+    this->enqueue(make_unique<ReadStateCommand>());
   }
-
   // Commands are non-blocking and need to be called repeatedly.
-  if (cmd_queue_.process(this)) {
+  if (this->cmd_queue_.process(this)) {
     // Dequeue if command is done
-    cmd_queue_.dequeue();
+    this->cmd_queue_.dequeue();
   }
 }
 
 int8_t DFRobotC4001Hub::enqueue(std::unique_ptr<Command> cmd) {
-  return cmd_queue_.enqueue(std::move(cmd));  // Transfer ownership using std::move
+  return this->cmd_queue_.enqueue(std::move(cmd));  // Transfer ownership using std::move
 }
 
 uint8_t DFRobotC4001Hub::read_message_() {
@@ -402,7 +421,7 @@ uint8_t DFRobotC4001Hub::read_message_() {
 uint8_t DFRobotC4001Hub::find_prompt_() {
   if (this->read_message_()) {
     std::string message(this->read_buffer_);
-    if (message.rfind("leapMMW:/>") != std::string::npos) {
+    if (message.rfind("DFRobot:/>") != std::string::npos) {
       return 1;  // Prompt found
     }
   }
@@ -411,9 +430,9 @@ uint8_t DFRobotC4001Hub::find_prompt_() {
 
 uint8_t DFRobotC4001Hub::send_cmd_(const char *cmd, uint32_t duration) {
   // The interval between two commands must be larger than the specified duration (in ms).
-  if (millis() - ts_last_cmd_sent_ > duration) {
+  if (millis() - this->ts_last_cmd_sent_ > duration) {
     this->write_str(cmd);
-    ts_last_cmd_sent_ = millis();
+    this->ts_last_cmd_sent_ = millis();
     ESP_LOGV(TAG, "Send Cmd: %s", cmd);
     return 1;  // Command sent
   }
@@ -426,35 +445,35 @@ int8_t CircularCommandQueue::enqueue(std::unique_ptr<Command> cmd) {
     ESP_LOGE(TAG, "Command queue is full");
     return -1;
   } else if (this->is_empty())
-    front_++;
-  rear_ = (rear_ + 1) % COMMAND_QUEUE_SIZE;
-  commands_[rear_] = std::move(cmd);  // Transfer ownership using std::move
+    this->front_++;
+  rear_ = (this->rear_ + 1) % COMMAND_QUEUE_SIZE;
+  commands_[this->rear_] = std::move(cmd);  // Transfer ownership using std::move
   return 1;
 }
 
 std::unique_ptr<Command> CircularCommandQueue::dequeue() {
   if (this->is_empty())
     return nullptr;
-  std::unique_ptr<Command> dequeued_cmd = std::move(commands_[front_]);
-  if (front_ == rear_) {
-    front_ = -1;
-    rear_ = -1;
+  std::unique_ptr<Command> dequeued_cmd = std::move(commands_[this->front_]);
+  if (this->front_ == this->rear_) {
+    this->front_ = -1;
+    this->rear_ = -1;
   } else {
-    front_ = (front_ + 1) % COMMAND_QUEUE_SIZE;
+    this->front_ = (this->front_ + 1) % COMMAND_QUEUE_SIZE;
   }
 
   return dequeued_cmd;
 }
 
-bool CircularCommandQueue::is_empty() { return front_ == -1; }
+bool CircularCommandQueue::is_empty() { return this->front_ == -1; }
 
-bool CircularCommandQueue::is_full() { return (rear_ + 1) % COMMAND_QUEUE_SIZE == front_; }
+bool CircularCommandQueue::is_full() { return (this->rear_ + 1) % COMMAND_QUEUE_SIZE == this->front_; }
 
 // Run execute method of first in line command.
 // Execute is non-blocking and has to be called until it returns 1.
 uint8_t CircularCommandQueue::process(DFRobotC4001Hub *parent) {
   if (!is_empty()) {
-    return commands_[front_]->execute(parent);
+    return commands_[this->front_]->execute(parent);
   } else {
     return 1;
   }
