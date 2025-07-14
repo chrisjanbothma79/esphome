@@ -14,10 +14,10 @@ static const char *const TAG = "mqtt.climate";
 using namespace esphome::climate;
 
 void MQTTClimateComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryConfig &config) {
+  // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   auto traits = this->device_->get_traits();
   // current_temperature_topic
   if (traits.get_supports_current_temperature()) {
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
     root[MQTT_CURRENT_TEMPERATURE_TOPIC] = this->get_current_temperature_state_topic();
   }
   // current_humidity_topic
@@ -29,7 +29,6 @@ void MQTTClimateComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryCo
   // mode_state_topic
   root[MQTT_MODE_STATE_TOPIC] = this->get_mode_state_topic();
   // modes
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   JsonArray modes = root[MQTT_MODES].to<JsonArray>();
   // sort array for nice UI in HA
   if (traits.supports_mode(CLIMATE_MODE_AUTO))
@@ -165,6 +164,7 @@ void MQTTClimateComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryCo
 
   config.state_topic = false;
   config.command_topic = false;
+  // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 void MQTTClimateComponent::setup() {
   auto traits = this->device_->get_traits();
