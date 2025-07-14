@@ -361,7 +361,7 @@ void DFRobotC4001Hub::loop() {
         return;
       }
     } else {
-      ESP_LOGCONFIG(TAG, "Module responded (%ldms)", millis() - start_time);
+      ESP_LOGCONFIG(TAG, "Module responded (%llums)", millis() - start_time);
       this->config_load();
       prompt = true;
     }
