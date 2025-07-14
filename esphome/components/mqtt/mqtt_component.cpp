@@ -189,6 +189,7 @@ bool MQTTComponent::send_discovery_() {
           device_info[MQTT_DEVICE_SUGGESTED_AREA] = node_area;
         }
 
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         device_info[MQTT_DEVICE_CONNECTIONS][0][0] = "mac";
         device_info[MQTT_DEVICE_CONNECTIONS][0][1] = mac;
       },

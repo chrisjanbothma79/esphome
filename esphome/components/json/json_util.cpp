@@ -26,6 +26,7 @@ struct SpiRamAllocator : ArduinoJson::Allocator {
 };
 
 std::string build_json(const json_build_t &f) {
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   auto doc_allocator = SpiRamAllocator();
   JsonDocument json_document(&doc_allocator);
   if (json_document.overflowed()) {
@@ -45,6 +46,7 @@ std::string build_json(const json_build_t &f) {
 }
 
 bool parse_json(const std::string &data, const json_parse_t &f) {
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   auto doc_allocator = SpiRamAllocator();
   JsonDocument json_document(&doc_allocator);
   if (json_document.overflowed()) {
