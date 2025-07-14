@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+    # ruff format
 import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass
