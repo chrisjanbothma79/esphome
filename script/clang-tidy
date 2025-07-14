@@ -152,9 +152,7 @@ def run_tidy(executable, args, options, tmpdir, path_queue, lock, failed_files):
         if sys.stdout.isatty():
             invocation.append("--use-color")
 
-        invocation.append(
-            f"--header-filter=^{os.path.abspath(basepath)}/(?!.*\\.platformio/).*"
-        )
+        invocation.append(f"--header-filter={os.path.abspath(basepath)}/.*")
         invocation.append(os.path.abspath(path))
         invocation.append("--")
         invocation.extend(options)
