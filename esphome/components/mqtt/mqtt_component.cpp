@@ -73,6 +73,7 @@ bool MQTTComponent::send_discovery_() {
   return global_mqtt_client->publish_json(
       this->get_discovery_topic_(discovery_info),
       [this](JsonObject root) {
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         SendDiscoveryConfig config;
         config.state_topic = true;
         config.command_topic = true;
@@ -155,7 +156,7 @@ bool MQTTComponent::send_discovery_() {
         }
         std::string node_area = App.get_area();
 
-        JsonObject device_info = root.createNestedObject(MQTT_DEVICE);
+        JsonObject device_info = root[MQTT_DEVICE].to<JsonObject>();
         const auto mac = get_mac_address();
         device_info[MQTT_DEVICE_IDENTIFIERS] = mac;
         device_info[MQTT_DEVICE_NAME] = node_friendly_name;
@@ -188,6 +189,7 @@ bool MQTTComponent::send_discovery_() {
           device_info[MQTT_DEVICE_SUGGESTED_AREA] = node_area;
         }
 
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         device_info[MQTT_DEVICE_CONNECTIONS][0][0] = "mac";
         device_info[MQTT_DEVICE_CONNECTIONS][0][1] = mac;
       },

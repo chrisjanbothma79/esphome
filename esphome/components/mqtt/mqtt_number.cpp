@@ -38,6 +38,7 @@ std::string MQTTNumberComponent::component_type() const { return "number"; }
 const EntityBase *MQTTNumberComponent::get_entity() const { return this->number_; }
 
 void MQTTNumberComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryConfig &config) {
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   const auto &traits = number_->traits;
   // https://www.home-assistant.io/integrations/number.mqtt/
   root[MQTT_MIN] = traits.get_min_value();

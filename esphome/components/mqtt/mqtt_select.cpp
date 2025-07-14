@@ -33,9 +33,10 @@ std::string MQTTSelectComponent::component_type() const { return "select"; }
 const EntityBase *MQTTSelectComponent::get_entity() const { return this->select_; }
 
 void MQTTSelectComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryConfig &config) {
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   const auto &traits = select_->traits;
   // https://www.home-assistant.io/integrations/select.mqtt/
-  JsonArray options = root.createNestedArray(MQTT_OPTIONS);
+  JsonArray options = root[MQTT_OPTIONS].to<JsonArray>();
   for (const auto &option : traits.get_options())
     options.add(option);
 
