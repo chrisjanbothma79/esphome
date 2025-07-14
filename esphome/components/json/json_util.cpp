@@ -15,9 +15,10 @@ struct SpiRamAllocator : ArduinoJson::Allocator {
   void deallocate(void *pointer) override {
     // ArduinoJson's Allocator interface doesn't provide the size parameter in deallocate.
     // RAMAllocator::deallocate() requires the size, which we don't have access to here.
-    // Since RAMAllocator internally uses malloc/free for NONE mode (PSRAM allocation),
-    // it's safe to use free() directly. The memory was allocated via malloc in
-    // RAMAllocator::allocate() when using NONE mode.
+    // RAMAllocator::deallocate implementation just calls free() regardless of whether
+    // the memory was allocated with heap_caps_malloc or malloc.
+    // This is safe because ESP-IDF's heap implementation internally tracks the memory region
+    // and routes free() to the appropriate heap.
     free(pointer);  // NOLINT(cppcoreguidelines-owning-memory,cppcoreguidelines-no-malloc)
   }
 
