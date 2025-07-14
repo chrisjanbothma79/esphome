@@ -207,7 +207,7 @@ void DFRobotC4001Hub::set_hardware_version(const std::string &version) {
 
 void DFRobotC4001Hub::flash_led_enable() {
 #ifdef USE_SWITCH
-  //Save LED Enable preferences (to flash storage)
+  // Save LED Enable preferences (to flash storage)
   if (this->led_enable_switch_ != nullptr) {
     ESP_LOGV(TAG, "Writing LED Enable setting to flash.");
     this->pref_.save(&this->led_enable_);
