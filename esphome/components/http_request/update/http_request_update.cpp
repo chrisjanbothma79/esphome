@@ -83,8 +83,7 @@ void HttpRequestUpdate::update_task(void *params) {
     container.reset();  // Release ownership of the container's shared_ptr
 
     valid = json::parse_json(response, [this_update](JsonObject root) -> bool {
-      if (!root["name"].is<const char *>() || !root["version"].is<const char *>() ||
-          !root["builds"].is<const char *>()) {
+      if (!root["name"].is<const char *>() || !root["version"].is<const char *>() || !root["builds"].is<JsonArray>()) {
         ESP_LOGE(TAG, "Manifest does not contain required fields");
         return false;
       }

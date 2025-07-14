@@ -1,7 +1,7 @@
 #include "json_util.h"
 #include "esphome/core/log.h"
 
-#include <ArduinoJson/Memory/Allocator.hpp>
+// ArduinoJson::Allocator is included via ArduinoJson.h in json_util.h
 
 namespace esphome {
 namespace json {
@@ -13,7 +13,11 @@ struct SpiRamAllocator : ArduinoJson::Allocator {
   void *allocate(size_t size) override { return this->allocator_.allocate(size); }
 
   void deallocate(void *pointer) override {
-    // RAMAllocator requires passing the size of the allocated space which don't know, so use free directly
+    // ArduinoJson's Allocator interface doesn't provide the size parameter in deallocate.
+    // RAMAllocator::deallocate() requires the size, which we don't have access to here.
+    // Since RAMAllocator internally uses malloc/free for NONE mode (PSRAM allocation),
+    // it's safe to use free() directly. The memory was allocated via malloc in
+    // RAMAllocator::allocate() when using NONE mode.
     free(pointer);  // NOLINT(cppcoreguidelines-owning-memory,cppcoreguidelines-no-malloc)
   }
 
