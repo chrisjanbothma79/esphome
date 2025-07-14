@@ -105,6 +105,8 @@ class DeepSleepComponent : public Component {
   void prevent_deep_sleep();
   void allow_deep_sleep();
 
+  void set_deep_sleep_prevention(bool prevent, bool external);
+
  protected:
   // Returns nullopt if no run duration is set. Otherwise, returns the run
   // duration before entering deep sleep.
@@ -118,8 +120,10 @@ class DeepSleepComponent : public Component {
 #ifdef USE_ESP32
   InternalGPIOPin *wakeup_pin_;
   WakeupPinMode wakeup_pin_mode_{WAKEUP_PIN_MODE_IGNORE};
+
   static void gpio_intr(DeepSleepComponent *arg);
-  volatile bool pin_state_{false};
+  volatile int32_t debounce_timer_{0};
+  volatile bool last_pin_state_{false};
   ISRInternalGPIOPin isr_pin_;
 
 #if !defined(USE_ESP32_VARIANT_ESP32C3)
