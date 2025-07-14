@@ -622,6 +622,8 @@ bool ModemComponent::modem_init_() {
     }
   }
 
+  send_init_at_();
+
   if (this->dce->sync() != command_result::OK) {
     ESP_LOGW(TAG, "Unable to sync modem");
     success = false;
@@ -704,21 +706,14 @@ void ModemComponent::send_init_at_() {
   // Send initial AT commands from YAML.
   for (const auto &cmd : this->init_at_commands_) {
     App.feed_wdt();
-
-    std::string output;
-
-    ESPMODEM_ERROR_CHECK(this->dce->command(
-                             cmd + "\r",
-                             [&](uint8_t *data, size_t len) {
-                               output.assign(reinterpret_cast<char *>(data), len);
-                               std::replace(output.begin(), output.end(), '\n', ' ');
-                               return command_result::OK;
-                             },
-                             this->command_delay_),
-                         "init_at");
-    delay(200);                         // NOLINT
-    output += this->flush_uart_(2000);  // Probably a bug in esp_modem. Long strings are truncated.
-    ESP_LOGI(TAG, "Init AT cmd %s: %s", cmd.c_str(), output.c_str());
+    this->flush_uart_();
+    AtCommandResult result = this->send_at(cmd);
+    if (result.success) {
+      ESP_LOGI(TAG, "init_at %s: %s", cmd.c_str(), result.output.c_str());
+    } else {
+      ESP_LOGW(TAG, "init_at %s: %s", cmd.c_str(), command_result_to_string(result.esp_modem_command_result).c_str());
+    }
+    delay(200);  // NOLINT
   }
   this->flush_uart_();
 }
