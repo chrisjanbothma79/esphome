@@ -144,6 +144,7 @@ bool MQTTFanComponent::send_initial_state() { return this->publish_state(); }
 
 void MQTTFanComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryConfig &config) {
   if (this->state_->get_traits().supports_direction()) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
     root[MQTT_DIRECTION_COMMAND_TOPIC] = this->get_direction_command_topic();
     root[MQTT_DIRECTION_STATE_TOPIC] = this->get_direction_state_topic();
   }

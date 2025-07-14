@@ -68,6 +68,7 @@ bool MQTTDateTimeComponent::send_initial_state() {
 bool MQTTDateTimeComponent::publish_state(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute,
                                           uint8_t second) {
   return this->publish_json(this->get_state_topic_(), [year, month, day, hour, minute, second](JsonObject root) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
     root["year"] = year;
     root["month"] = month;
     root["day"] = day;
