@@ -39,6 +39,7 @@ void MQTTTextComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryConfi
       root[MQTT_MODE] = "text";
       break;
     case TEXT_MODE_PASSWORD:
+      // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
       root[MQTT_MODE] = "password";
       break;
   }

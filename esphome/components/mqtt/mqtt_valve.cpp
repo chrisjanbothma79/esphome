@@ -50,6 +50,7 @@ void MQTTValveComponent::dump_config() {
 }
 void MQTTValveComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryConfig &config) {
   if (!this->valve_->get_device_class().empty())
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
     root[MQTT_DEVICE_CLASS] = this->valve_->get_device_class();
 
   auto traits = this->valve_->get_traits();
