@@ -105,7 +105,7 @@ def clang_options(idedata):
     # idedata contains include directories for all toolchains of this platform, only use those from the one in use
     toolchain_dir = os.path.normpath(f"{idedata['cxx_path']}/../../")
     for directory in idedata["includes"]["toolchain"]:
-        if directory.startswith(toolchain_dir) or "/.platformio/" in directory:
+        if directory.startswith(toolchain_dir):
             cmd.extend(["-isystem", directory])
 
     # add library include directories using -isystem to suppress their errors
@@ -128,11 +128,6 @@ def clang_options(idedata):
 
     # add the esphome include directory using -I
     cmd.extend(["-I", root_path])
-
-    # Also ensure any remaining directories with .platformio are system includes
-    for i in range(len(cmd)):
-        if cmd[i] == "-I" and i + 1 < len(cmd) and "/.platformio/" in cmd[i + 1]:
-            cmd[i] = "-isystem"
 
     return cmd
 
