@@ -81,6 +81,7 @@ bool MQTTComponent::send_discovery_() {
         this->send_discovery(root, config);
         // Set subscription QoS (default is 0)
         if (this->subscribe_qos_ != 0) {
+          // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
           root[MQTT_QOS] = this->subscribe_qos_;
         }
 

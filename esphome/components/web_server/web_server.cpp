@@ -1324,6 +1324,7 @@ std::string WebServer::climate_all_json_generator(WebServer *web_server, void *s
 std::string WebServer::climate_json(climate::Climate *obj, JsonDetail start_config) {
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   return json::build_json([this, obj, start_config](JsonObject root) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
     set_json_id(root, obj, "climate-" + obj->get_object_id(), start_config);
     const auto traits = obj->get_traits();
     int8_t target_accuracy = traits.get_target_temperature_accuracy_decimals();
@@ -1331,31 +1332,37 @@ std::string WebServer::climate_json(climate::Climate *obj, JsonDetail start_conf
     char buf[16];
 
     if (start_config == DETAIL_ALL) {
+      // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
       JsonArray opt = root["modes"].to<JsonArray>();
       for (climate::ClimateMode m : traits.get_supported_modes())
         opt.add(PSTR_LOCAL(climate::climate_mode_to_string(m)));
       if (!traits.get_supported_custom_fan_modes().empty()) {
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         JsonArray opt = root["fan_modes"].to<JsonArray>();
         for (climate::ClimateFanMode m : traits.get_supported_fan_modes())
           opt.add(PSTR_LOCAL(climate::climate_fan_mode_to_string(m)));
       }
 
       if (!traits.get_supported_custom_fan_modes().empty()) {
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         JsonArray opt = root["custom_fan_modes"].to<JsonArray>();
         for (auto const &custom_fan_mode : traits.get_supported_custom_fan_modes())
           opt.add(custom_fan_mode);
       }
       if (traits.get_supports_swing_modes()) {
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         JsonArray opt = root["swing_modes"].to<JsonArray>();
         for (auto swing_mode : traits.get_supported_swing_modes())
           opt.add(PSTR_LOCAL(climate::climate_swing_mode_to_string(swing_mode)));
       }
       if (traits.get_supports_presets() && obj->preset.has_value()) {
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         JsonArray opt = root["presets"].to<JsonArray>();
         for (climate::ClimatePreset m : traits.get_supported_presets())
           opt.add(PSTR_LOCAL(climate::climate_preset_to_string(m)));
       }
       if (!traits.get_supported_custom_presets().empty() && obj->custom_preset.has_value()) {
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         JsonArray opt = root["custom_presets"].to<JsonArray>();
         for (auto const &custom_preset : traits.get_supported_custom_presets())
           opt.add(custom_preset);
@@ -1685,6 +1692,7 @@ std::string WebServer::update_all_json_generator(WebServer *web_server, void *so
 std::string WebServer::update_json(update::UpdateEntity *obj, JsonDetail start_config) {
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   return json::build_json([this, obj, start_config](JsonObject root) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
     set_json_id(root, obj, "update-" + obj->get_object_id(), start_config);
     root["value"] = obj->update_info.latest_version;
     switch (obj->state) {

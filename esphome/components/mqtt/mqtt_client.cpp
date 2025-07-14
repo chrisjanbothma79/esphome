@@ -103,6 +103,7 @@ void MQTTClientComponent::send_device_info_() {
             index++;
           }
         }
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         root["name"] = App.get_name();
         if (!App.get_friendly_name().empty()) {
           root["friendly_name"] = App.get_friendly_name();
