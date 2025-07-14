@@ -91,7 +91,7 @@ void LightJSONSchema::parse_color_json(LightState &state, LightCall &call, JsonO
     }
   }
 
-  if (root["brightness"].is<unsigned char>()) {
+  if (root["brightness"].is<uint8_t>()) {
     call.set_brightness(float(root["brightness"]) / 255.0f);
   }
 
@@ -99,32 +99,32 @@ void LightJSONSchema::parse_color_json(LightState &state, LightCall &call, JsonO
     JsonObject color = root["color"];
     // HA also encodes brightness information in the r, g, b values, so extract that and set it as color brightness.
     float max_rgb = 0.0f;
-    if (color["r"].is<unsigned char>()) {
+    if (color["r"].is<uint8_t>()) {
       float r = float(color["r"]) / 255.0f;
       max_rgb = fmaxf(max_rgb, r);
       call.set_red(r);
     }
-    if (color["g"].is<unsigned char>()) {
+    if (color["g"].is<uint8_t>()) {
       float g = float(color["g"]) / 255.0f;
       max_rgb = fmaxf(max_rgb, g);
       call.set_green(g);
     }
-    if (color["b"].is<unsigned char>()) {
+    if (color["b"].is<uint8_t>()) {
       float b = float(color["b"]) / 255.0f;
       max_rgb = fmaxf(max_rgb, b);
       call.set_blue(b);
     }
-    if (color["r"].is<unsigned char>() || color["g"].is<unsigned char>() || color["b"].is<unsigned char>()) {
+    if (color["r"].is<uint8_t>() || color["g"].is<uint8_t>() || color["b"].is<uint8_t>()) {
       call.set_color_brightness(max_rgb);
     }
 
-    if (color["c"].is<unsigned char>()) {
+    if (color["c"].is<uint8_t>()) {
       call.set_cold_white(float(color["c"]) / 255.0f);
     }
-    if (color["w"].is<unsigned short>()) {
+    if (color["w"].is<uint16_t>()) {
       // the HA scheme is ambiguous here, the same key is used for white channel in RGBW and warm
       // white channel in RGBWW.
-      if (color["c"].is<unsigned short>()) {
+      if (color["c"].is<uint16_t>()) {
         call.set_warm_white(float(color["w"]) / 255.0f);
       } else {
         call.set_white(float(color["w"]) / 255.0f);
@@ -132,11 +132,11 @@ void LightJSONSchema::parse_color_json(LightState &state, LightCall &call, JsonO
     }
   }
 
-  if (root["white_value"].is<unsigned short>()) {  // legacy API
+  if (root["white_value"].is<uint16_t>()) {  // legacy API
     call.set_white(float(root["white_value"]) / 255.0f);
   }
 
-  if (root["color_temp"].is<unsigned short>()) {
+  if (root["color_temp"].is<uint16_t>()) {
     call.set_color_temperature(float(root["color_temp"]));
   }
 }
@@ -149,7 +149,7 @@ void LightJSONSchema::parse_json(LightState &state, LightCall &call, JsonObject 
     call.set_flash_length(length);
   }
 
-  if (root["transition"].is<unsigned short>()) {
+  if (root["transition"].is<uint16_t>()) {
     auto length = uint32_t(float(root["transition"]) * 1000);
     call.set_transition_length(length);
   }
