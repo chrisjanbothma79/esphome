@@ -251,11 +251,8 @@ def final_validation(configs):
 
 
 async def get_default_group(config):
-    if default_group_id := config.get(df.CONF_DEFAULT_GROUP):
-        return await cg.get_variable(default_group_id)
-    if groups := config.get(df.CONF_GROUPS):
-        return await cg.get_variable(groups[0])
-    return None
+    default_group = cg.Pvariable(config[df.CONF_DEFAULT_GROUP], lv_expr.group_create())
+    return default_group
 
 
 async def to_code(configs):
@@ -490,7 +487,7 @@ LVGL_SCHEMA = cv.All(
                 cv.Optional(df.CONF_GROUPS): cv.ensure_list(cv.declare_id(lv_group_t)),
                 cv.Optional(df.CONF_ENCODERS, default=None): ENCODERS_CONFIG,
                 cv.Optional(df.CONF_KEYPADS, default=None): KEYPADS_CONFIG,
-                cv.Optional(df.CONF_DEFAULT_GROUP): cv.use_id(lv_group_t),
+                cv.GenerateID(df.CONF_DEFAULT_GROUP): cv.declare_id(lv_group_t),
                 cv.Optional(df.CONF_RESUME_ON_INPUT, default=True): cv.boolean,
             }
         )
