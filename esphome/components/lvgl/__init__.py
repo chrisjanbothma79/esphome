@@ -250,7 +250,7 @@ def final_validation(configs):
                 )
 
 
-async def get_default_group(config):
+def get_default_group(config):
     default_group = cg.Pvariable(config[df.CONF_DEFAULT_GROUP], lv_expr.group_create())
     return default_group
 
@@ -318,6 +318,9 @@ async def to_code(configs):
         add_define("LV_FONT_DEFAULT", await lvalid.lv_font.process(default_font))
     cg.add(lvgl_static.esphome_lvgl_init())
 
+    default_group = get_default_group(config_0)
+    cg.add(lv_expr.group_set_default(default_group))
+
     for config in configs:
         frac = config[CONF_BUFFER_SIZE]
         if frac >= 0.75:
@@ -344,9 +347,6 @@ async def to_code(configs):
 
         for group_name in config.get(df.CONF_GROUPS, []):
             cg.Pvariable(group_name, lv_expr.group_create())
-
-        if default_group := await get_default_group(config):
-            cg.add(lv_expr.group_set_default(default_group))
 
         lv_scr_act = get_scr_act(lv_component)
         async with LvContext():
