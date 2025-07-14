@@ -29,7 +29,11 @@ static const char *const TAG = "mqtt";
 
 MQTTClientComponent::MQTTClientComponent() {
   global_mqtt_client = this;
-  this->credentials_.client_id = App.get_name() + "-" + get_mac_address();
+  auto prefix = App.get_name();
+  if (App.is_name_add_mac_suffix_enabled()) {
+    prefix = prefix.substr(0, prefix.size() - 7);
+  }
+  this->credentials_.client_id = prefix + "-" + get_mac_address();
 }
 
 // Connection
