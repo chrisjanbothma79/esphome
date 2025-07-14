@@ -513,8 +513,7 @@ jobs:
       - uses: pre-commit/action@v3.0.1
         env:
           SKIP: pylint,clang-tidy-hash,yamllint
-      - name: Run pre-commit.ci lite
-        uses: pre-commit-ci/lite-action@v1.1.0
+      - uses: pre-commit-ci/lite-action@v1.1.0
         if: always()
 
   ci-status:
