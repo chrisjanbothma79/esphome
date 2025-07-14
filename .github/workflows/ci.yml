@@ -588,8 +588,8 @@ jobs:
           python-version: ${{ env.DEFAULT_PYTHON }}
           cache-key: ${{ needs.common.outputs.cache-key }}
       - uses: pre-commit/action@v3.0.1
-        with:
-          extra_args: --all-files --skip pylint,clang-tidy-hash,yamllint
+        env:
+          SKIP: pylint,clang-tidy-hash,yamllint
       - name: Run pre-commit.ci lite
         uses: pre-commit-ci/lite-action@v1.0.3
         if: always()
