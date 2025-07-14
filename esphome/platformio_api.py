@@ -79,7 +79,7 @@ def run_platformio_cli(*args, **kwargs) -> str | int:
         "PLATFORMIO_LIBDEPS_DIR", os.path.abspath(CORE.relative_piolibdeps_path())
     )
     # Suppress Python syntax warnings from third-party scripts during compilation
-    os.environ["PYTHONWARNINGS"] = "ignore::SyntaxWarning"
+    os.environ.setdefault("PYTHONWARNINGS", "ignore::SyntaxWarning")
     cmd = ["platformio"] + list(args)
 
     if not CORE.verbose:
