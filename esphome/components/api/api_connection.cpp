@@ -1538,8 +1538,8 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
   for (auto const &area : App.get_areas()) {
     AreaInfo area_info;
     area_info.area_id = area->get_area_id();
-    area_info.name = area->get_name();
-    resp.areas.push_back(area_info);
+      area_info.name = area->get_name();
+       resp.areas.push_back(area_info);
   }
 #endif
   return resp;
