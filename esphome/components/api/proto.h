@@ -567,6 +567,60 @@ class ProtoSize {
   }
 
   /**
+   * @brief Calculates and adds the size of a float field to the total message size
+   */
+  static inline void add_float_field(uint32_t &total_size, uint32_t field_id_size, float value) {
+    if (value != 0.0f) {
+      total_size += field_id_size + 4;
+    }
+  }
+
+  /**
+   * @brief Calculates and adds the size of a double field to the total message size
+   */
+  static inline void add_double_field(uint32_t &total_size, uint32_t field_id_size, double value) {
+    if (value != 0.0) {
+      total_size += field_id_size + 8;
+    }
+  }
+
+  /**
+   * @brief Calculates and adds the size of a fixed32 field to the total message size
+   */
+  static inline void add_fixed32_field(uint32_t &total_size, uint32_t field_id_size, uint32_t value) {
+    if (value != 0) {
+      total_size += field_id_size + 4;
+    }
+  }
+
+  /**
+   * @brief Calculates and adds the size of a fixed64 field to the total message size
+   */
+  static inline void add_fixed64_field(uint32_t &total_size, uint32_t field_id_size, uint64_t value) {
+    if (value != 0) {
+      total_size += field_id_size + 8;
+    }
+  }
+
+  /**
+   * @brief Calculates and adds the size of a sfixed32 field to the total message size
+   */
+  static inline void add_sfixed32_field(uint32_t &total_size, uint32_t field_id_size, int32_t value) {
+    if (value != 0) {
+      total_size += field_id_size + 4;
+    }
+  }
+
+  /**
+   * @brief Calculates and adds the size of a sfixed64 field to the total message size
+   */
+  static inline void add_sfixed64_field(uint32_t &total_size, uint32_t field_id_size, int64_t value) {
+    if (value != 0) {
+      total_size += field_id_size + 8;
+    }
+  }
+
+  /**
    * @brief Calculates and adds the size of an enum field to the total message size
    *
    * Enum fields are encoded as uint32 varints.
