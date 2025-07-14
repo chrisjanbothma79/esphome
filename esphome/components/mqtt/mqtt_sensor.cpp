@@ -44,8 +44,8 @@ void MQTTSensorComponent::set_expire_after(uint32_t expire_after) { this->expire
 void MQTTSensorComponent::disable_expire_after() { this->expire_after_ = 0; }
 
 void MQTTSensorComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryConfig &config) {
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   if (!this->sensor_->get_device_class().empty()) {
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
     root[MQTT_DEVICE_CLASS] = this->sensor_->get_device_class();
   }
 

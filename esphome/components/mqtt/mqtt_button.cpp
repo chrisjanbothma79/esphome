@@ -31,8 +31,8 @@ void MQTTButtonComponent::dump_config() {
 }
 
 void MQTTButtonComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryConfig &config) {
-  config.state_topic = false;
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
+  config.state_topic = false;
   if (!this->button_->get_device_class().empty())
     root[MQTT_DEVICE_CLASS] = this->button_->get_device_class();
 }
