@@ -152,6 +152,8 @@ def run_tidy(executable, args, options, tmpdir, path_queue, lock, failed_files):
         if sys.stdout.isatty():
             invocation.append("--use-color")
 
+        # Exclude PlatformIO files from analysis since we can't fix issues in external code
+        # and they often generate false positives
         invocation.append(
             f"--header-filter=^{os.path.abspath(basepath)}/(?!.*\\.platformio/).*"
         )
