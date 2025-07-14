@@ -1,10 +1,17 @@
 ---
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
+
+ci:
+  autoupdate_commit_msg: 'pre-commit: autoupdate'
+  autoupdate_schedule: off  # Disabled until ruff versions are synced between deps and pre-commit
+  # Skip hooks that have issues in pre-commit CI environment
+  skip: [pylint, clang-tidy-hash, yamllint]
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.12.0
+    rev: v0.12.3
     hooks:
       # Run the linter.
       - id: ruff
@@ -48,3 +55,10 @@ repos:
         entry: python3 script/run-in-env.py pylint
         language: system
         types: [python]
+      - id: clang-tidy-hash
+        name: Update clang-tidy hash
+        entry: python script/clang_tidy_hash.py --update-if-changed
+        language: python
+        files: ^(\.clang-tidy|platformio\.ini|requirements_dev\.txt)$
+        pass_filenames: false
+        additional_dependencies: []
