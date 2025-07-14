@@ -32,12 +32,15 @@ void MQTTJSONLightComponent::setup() {
 MQTTJSONLightComponent::MQTTJSONLightComponent(LightState *state) : state_(state) {}
 
 bool MQTTJSONLightComponent::publish_state_() {
-  return this->publish_json(this->get_state_topic_(),
-                            [this](JsonObject root) { LightJSONSchema::dump_json(*this->state_, root); });
+  return this->publish_json(this->get_state_topic_(), [this](JsonObject root) {
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
+    LightJSONSchema::dump_json(*this->state_, root);
+  });
 }
 LightState *MQTTJSONLightComponent::get_state() const { return this->state_; }
 
 void MQTTJSONLightComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryConfig &config) {
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   root["schema"] = "json";
   auto traits = this->state_->get_traits();
 
