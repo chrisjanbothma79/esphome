@@ -14,4 +14,5 @@ CONFIG_SCHEMA = cv.All(
 async def to_code(config):
     cg.add_library("bblanchon/ArduinoJson", "7.4.2")
     cg.add_define("USE_JSON")
+    cg.add_define("ARDUINOJSON_ENABLE_STD_STRING", "1")
     cg.add_global(json_ns.using)
