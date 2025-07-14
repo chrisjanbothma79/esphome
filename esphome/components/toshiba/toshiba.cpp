@@ -139,22 +139,22 @@ const uint64_t RAS_2819T_POWER_OFF_COMMAND = 0xC23D7B84E01F;
 
 // RAS-2819T known valid command patterns for validation
 const std::vector<uint64_t> RAS_2819T_VALID_SINGLE_COMMANDS = {
-  RAS_2819T_POWER_OFF_COMMAND,  // Power off
-  RAS_2819T_SWING_TOGGLE,       // Swing toggle
+    RAS_2819T_POWER_OFF_COMMAND,  // Power off
+    RAS_2819T_SWING_TOGGLE,       // Swing toggle
 };
 
 // RAS-2819T known valid first packet patterns (for two-packet commands)
 const std::vector<uint64_t> RAS_2819T_VALID_FIRST_PACKETS = {
-  // Sample of known good packets from the remote control codes
-  0xC23DBF4010EF,  // 18°C Cool Auto
-  0xC23DBF40708F,  // 22°C Cool Auto  
-  0xC23DFF00708F,  // 22°C Cool Quiet
-  0xC23D9F60708F,  // 22°C Cool Low
-  0xC23D5FA0708F,  // 22°C Cool Medium
-  0xC23D3FC0708F,  // 22°C Cool High
-  0xC23D1FE008F7,  // 16°C (Auto/Dry pattern)
-  0xC23D1FE0649B,  // 21°C Dry
-  0xC23DBF40E41B,  // Fan only
+    // Sample of known good packets from the remote control codes
+    0xC23DBF4010EF,  // 18°C Cool Auto
+    0xC23DBF40708F,  // 22°C Cool Auto
+    0xC23DFF00708F,  // 22°C Cool Quiet
+    0xC23D9F60708F,  // 22°C Cool Low
+    0xC23D5FA0708F,  // 22°C Cool Medium
+    0xC23D3FC0708F,  // 22°C Cool High
+    0xC23D1FE008F7,  // 16°C (Auto/Dry pattern)
+    0xC23D1FE0649B,  // 21°C Dry
+    0xC23DBF40E41B,  // Fan only
 };
 
 const uint16_t RAS_2819T_VALID_HEADER1 = 0xC23D;
@@ -188,7 +188,7 @@ const uint8_t RAS_2819T_HEAT_SUFFIX = 0x3B;
 // All packets are 6 bytes (48 bits) transmitted with standard Toshiba timing.
 //
 // TWO-PACKET COMMANDS (Mode/Temperature/Fan changes):
-// 
+//
 // First Packet (rc_code_1):  [C2 3D] [FAN_HI FAN_LO] [TEMP] [~TEMP]
 //   Byte 0-1: Header (always 0xC23D)
 //   Byte 2-3: Fan speed encoding (varies by mode, see fan tables below)
@@ -273,27 +273,27 @@ Ras2819tSecondPacketCodes get_ras_2819t_second_packet_codes(climate::ClimateFanM
 uint8_t get_ras_2819t_temp_code(float temperature) {
   // Temperature codes for RAS-2819T protocol (18-30°C)
   static const uint8_t RAS_2819T_TEMP_CODES[] = {
-    0x10, // 18°C
-    0x30, // 19°C
-    0x20, // 20°C
-    0x60, // 21°C
-    0x70, // 22°C
-    0x50, // 23°C
-    0x40, // 24°C
-    0xC0, // 25°C
-    0xD0, // 26°C
-    0x90, // 27°C
-    0x80, // 28°C
-    0xA0, // 29°C
-    0xB0  // 30°C
+      0x10,  // 18°C
+      0x30,  // 19°C
+      0x20,  // 20°C
+      0x60,  // 21°C
+      0x70,  // 22°C
+      0x50,  // 23°C
+      0x40,  // 24°C
+      0xC0,  // 25°C
+      0xD0,  // 26°C
+      0x90,  // 27°C
+      0x80,  // 28°C
+      0xA0,  // 29°C
+      0xB0   // 30°C
   };
-  
+
   int temp_index = static_cast<int>(temperature) - 18;
   if (temp_index < 0 || temp_index >= static_cast<int>(sizeof(RAS_2819T_TEMP_CODES))) {
     ESP_LOGW(TAG, "Temperature %.1f°C out of range [18-30°C], defaulting to 24°C", temperature);
-    return 0x40; // Default to 24°C
+    return 0x40;  // Default to 24°C
   }
-  
+
   return RAS_2819T_TEMP_CODES[temp_index];
 }
 
@@ -302,22 +302,20 @@ uint8_t get_ras_2819t_temp_code(float temperature) {
  */
 float decode_ras_2819t_temperature(uint8_t temp_code) {
   // Map temp codes back to temperatures using array lookup for better performance
-  static const uint8_t RAS_2819T_TEMP_CODES_DECODE[] = {
-    0x10, 0x30, 0x20, 0x60, 0x70, 0x50, 0x40, 0xC0,
-    0xD0, 0x90, 0x80, 0xA0, 0xB0
-  };
-  
+  static const uint8_t RAS_2819T_TEMP_CODES_DECODE[] = {0x10, 0x30, 0x20, 0x60, 0x70, 0x50, 0x40,
+                                                        0xC0, 0xD0, 0x90, 0x80, 0xA0, 0xB0};
+
   uint8_t base_temp_code = temp_code & 0xF0;
-  
+
   // Linear search through the small array (faster than map for small datasets)
   for (size_t i = 0; i < sizeof(RAS_2819T_TEMP_CODES_DECODE); i++) {
     if (RAS_2819T_TEMP_CODES_DECODE[i] == base_temp_code) {
-      return static_cast<float>(i + 18); // 18°C is the minimum
+      return static_cast<float>(i + 18);  // 18°C is the minimum
     }
   }
-  
+
   ESP_LOGW(TAG, "Unknown temp code: 0x%02X, defaulting to 24°C", base_temp_code);
-  return 24.0f; // Default to 24°C
+  return 24.0f;  // Default to 24°C
 }
 
 /**
@@ -348,7 +346,7 @@ bool is_valid_ras_2819t_command(uint64_t rc_code_1, uint64_t rc_code_2 = 0) {
   if (header1 != RAS_2819T_VALID_HEADER1) {
     return false;
   }
-  
+
   // Single packet commands
   if (rc_code_2 == 0) {
     for (uint64_t valid_cmd : RAS_2819T_VALID_SINGLE_COMMANDS) {
@@ -359,33 +357,39 @@ bool is_valid_ras_2819t_command(uint64_t rc_code_1, uint64_t rc_code_2 = 0) {
     // Additional validation for unknown single packets
     return false;
   }
-  
+
   // Two-packet commands - validate second packet header
   uint8_t header2 = (rc_code_2 >> 40) & 0xFF;
   if (header2 != RAS_2819T_VALID_HEADER2) {
     return false;
   }
-  
+
   // Validate temperature complement in first packet (byte 4 should be ~byte 5)
   uint8_t temp_byte = (rc_code_1 >> 8) & 0xFF;
   uint8_t temp_complement = rc_code_1 & 0xFF;
   if (temp_byte != static_cast<uint8_t>(~temp_complement)) {
     return false;
   }
-  
+
   // Validate fan speed combinations make sense
   uint16_t fan_code = (rc_code_1 >> 16) & 0xFFFF;
   uint8_t fan2_byte = (rc_code_2 >> 32) & 0xFF;
-  
+
   // Check if fan codes are from known valid patterns
   bool valid_fan_combo = false;
-  if (fan_code == RAS_2819T_FAN_AUTO && fan2_byte == RAS_2819T_FAN2_AUTO) valid_fan_combo = true;
-  if (fan_code == RAS_2819T_FAN_QUIET && fan2_byte == RAS_2819T_FAN2_QUIET) valid_fan_combo = true;
-  if (fan_code == RAS_2819T_FAN_LOW && fan2_byte == RAS_2819T_FAN2_LOW) valid_fan_combo = true;
-  if (fan_code == RAS_2819T_FAN_MEDIUM && fan2_byte == RAS_2819T_FAN2_MEDIUM) valid_fan_combo = true;
-  if (fan_code == RAS_2819T_FAN_HIGH && fan2_byte == RAS_2819T_FAN2_HIGH) valid_fan_combo = true;
-  if (fan_code == 0x1FE0 && fan2_byte == RAS_2819T_AUTO_DRY_FAN_BYTE) valid_fan_combo = true; // AUTO/DRY
-  
+  if (fan_code == RAS_2819T_FAN_AUTO && fan2_byte == RAS_2819T_FAN2_AUTO)
+    valid_fan_combo = true;
+  if (fan_code == RAS_2819T_FAN_QUIET && fan2_byte == RAS_2819T_FAN2_QUIET)
+    valid_fan_combo = true;
+  if (fan_code == RAS_2819T_FAN_LOW && fan2_byte == RAS_2819T_FAN2_LOW)
+    valid_fan_combo = true;
+  if (fan_code == RAS_2819T_FAN_MEDIUM && fan2_byte == RAS_2819T_FAN2_MEDIUM)
+    valid_fan_combo = true;
+  if (fan_code == RAS_2819T_FAN_HIGH && fan2_byte == RAS_2819T_FAN2_HIGH)
+    valid_fan_combo = true;
+  if (fan_code == 0x1FE0 && fan2_byte == RAS_2819T_AUTO_DRY_FAN_BYTE)
+    valid_fan_combo = true;  // AUTO/DRY
+
   return valid_fan_combo;
 }
 
@@ -418,7 +422,7 @@ void ToshibaClimate::setup() {
   this->minimum_temperature_ = this->temperature_min_();
   this->maximum_temperature_ = this->temperature_max_();
   this->swing_modes_ = this->toshiba_swing_modes_();
-  
+
   // Ensure swing mode is always initialized to a valid value
   if (this->swing_modes_.empty()) {
     // No swing support for this model
@@ -427,34 +431,29 @@ void ToshibaClimate::setup() {
     // Current swing mode not supported, reset to OFF
     this->swing_mode = climate::CLIMATE_SWING_OFF;
   }
-  
+
   // Ensure mode is valid - ESPHome should only use standard climate modes
-  if (this->mode != climate::CLIMATE_MODE_OFF &&
-      this->mode != climate::CLIMATE_MODE_HEAT &&
-      this->mode != climate::CLIMATE_MODE_COOL &&
-      this->mode != climate::CLIMATE_MODE_HEAT_COOL &&
-      this->mode != climate::CLIMATE_MODE_DRY &&
-      this->mode != climate::CLIMATE_MODE_FAN_ONLY) {
+  if (this->mode != climate::CLIMATE_MODE_OFF && this->mode != climate::CLIMATE_MODE_HEAT &&
+      this->mode != climate::CLIMATE_MODE_COOL && this->mode != climate::CLIMATE_MODE_HEAT_COOL &&
+      this->mode != climate::CLIMATE_MODE_DRY && this->mode != climate::CLIMATE_MODE_FAN_ONLY) {
     ESP_LOGW(TAG, "Invalid mode detected during setup, resetting to OFF");
     this->mode = climate::CLIMATE_MODE_OFF;
   }
-  
+
   // Ensure fan mode is valid
   if (!this->fan_mode.has_value()) {
     ESP_LOGW(TAG, "Fan mode not set during setup, defaulting to AUTO");
     this->fan_mode = climate::CLIMATE_FAN_AUTO;
   }
-  
+
   // Never send nan to HA
   if (std::isnan(this->target_temperature))
     this->target_temperature = 24;
-    
+
   // Log final state for debugging HA errors
-  ESP_LOGI(TAG, "Setup complete - Mode: %d, Fan: %s, Swing: %d, Temp: %.1f", 
-           static_cast<int>(this->mode),
+  ESP_LOGI(TAG, "Setup complete - Mode: %d, Fan: %s, Swing: %d, Temp: %.1f", static_cast<int>(this->mode),
            this->fan_mode.has_value() ? std::to_string(static_cast<int>(this->fan_mode.value())).c_str() : "NONE",
-           static_cast<int>(this->swing_mode),
-           this->target_temperature);
+           static_cast<int>(this->swing_mode), this->target_temperature);
 }
 
 void ToshibaClimate::transmit_state() {
@@ -770,24 +769,24 @@ void ToshibaClimate::transmit_rac_pt1411hwru_temp_(const bool cs_state, const bo
 void ToshibaClimate::transmit_ras_2819t_() {
   // Handle swing mode transmission for RAS-2819T
   // Note: RAS-2819T uses a toggle command, so we need to track state changes
-  
+
   // Check if ONLY swing mode changed (and no other climate parameters)
   bool swing_changed = (this->swing_mode != this->last_swing_mode_);
   bool mode_changed = (this->mode != this->last_mode_);
   bool fan_changed = (this->fan_mode != this->last_fan_mode_);
   bool temp_changed = (abs(this->target_temperature - this->last_target_temperature_) > 0.1f);
-  
+
   bool only_swing_changed = swing_changed && !mode_changed && !fan_changed && !temp_changed;
-  
+
   if (only_swing_changed) {
     ESP_LOGI(TAG, "[TX] Swing mode changed from %s to %s, sending ONLY toggle command",
              this->last_swing_mode_ == climate::CLIMATE_SWING_VERTICAL ? "VERTICAL" : "OFF",
              this->swing_mode == climate::CLIMATE_SWING_VERTICAL ? "VERTICAL" : "OFF");
-    
+
     // Send ONLY swing toggle command (like the physical remote does)
     auto swing_transmit = this->transmitter_->transmit();
     auto *swing_data = swing_transmit.get_data();
-    
+
     // Convert toggle command to bytes for transmission
     uint8_t swing_message[RAS_2819T_MESSAGE_LENGTH];
     swing_message[0] = (RAS_2819T_SWING_TOGGLE >> 40) & 0xFF;
@@ -796,36 +795,36 @@ void ToshibaClimate::transmit_ras_2819t_() {
     swing_message[3] = (RAS_2819T_SWING_TOGGLE >> 16) & 0xFF;
     swing_message[4] = (RAS_2819T_SWING_TOGGLE >> 8) & 0xFF;
     swing_message[5] = RAS_2819T_SWING_TOGGLE & 0xFF;
-    
-    ESP_LOGD(TAG, "[TX] Swing toggle ONLY: %02X %02X %02X %02X %02X %02X", 
-             swing_message[0], swing_message[1], swing_message[2], 
-             swing_message[3], swing_message[4], swing_message[5]);
-    
+
+    ESP_LOGD(TAG, "[TX] Swing toggle ONLY: %02X %02X %02X %02X %02X %02X", swing_message[0], swing_message[1],
+             swing_message[2], swing_message[3], swing_message[4], swing_message[5]);
+
     // Use single packet transmission WITH repeat (like regular commands)
     encode_(swing_data, swing_message, RAS_2819T_MESSAGE_LENGTH, 1);
     swing_transmit.perform();
-    
+
     // Update all state tracking
     this->last_swing_mode_ = this->swing_mode;
     this->last_mode_ = this->mode;
     this->last_fan_mode_ = this->fan_mode;
     this->last_target_temperature_ = this->target_temperature;
-    
+
     // Immediately publish the state change to Home Assistant
     this->publish_state();
-    
-    return; // Exit early - don't send climate command
+
+    return;  // Exit early - don't send climate command
   }
-  
+
   // If we get here, send the regular climate command (temperature/mode/fan)
   uint8_t message1[RAS_2819T_MESSAGE_LENGTH] = {0};
   uint8_t message2[RAS_2819T_MESSAGE_LENGTH] = {0};
-  float temperature = clamp<float>(this->target_temperature, TOSHIBA_RAS_2819T_TEMP_C_MIN, TOSHIBA_RAS_2819T_TEMP_C_MAX);
-  
+  float temperature =
+      clamp<float>(this->target_temperature, TOSHIBA_RAS_2819T_TEMP_C_MIN, TOSHIBA_RAS_2819T_TEMP_C_MAX);
+
   // Build first packet (RAS_2819T_HEADER1 + 4 bytes)
   message1[0] = (RAS_2819T_HEADER1 >> 8) & 0xFF;
   message1[1] = RAS_2819T_HEADER1 & 0xFF;
-  
+
   // Handle OFF mode
   if (this->mode == climate::CLIMATE_MODE_OFF) {
     // Extract bytes from power off command constant
@@ -837,10 +836,10 @@ void ToshibaClimate::transmit_ras_2819t_() {
   } else {
     // Get temperature and fan encoding
     uint8_t temp_code = get_ras_2819t_temp_code(temperature);
-    
+
     // Get fan speed encoding for rc_code_1
     climate::ClimateFanMode effective_fan_mode = this->fan_mode.value();
-    
+
     // Dry mode only supports AUTO fan speed
     if (this->mode == climate::CLIMATE_MODE_DRY) {
       effective_fan_mode = climate::CLIMATE_FAN_AUTO;
@@ -848,11 +847,11 @@ void ToshibaClimate::transmit_ras_2819t_() {
         ESP_LOGW(TAG, "Dry mode only supports AUTO fan speed, forcing AUTO");
       }
     }
-    
+
     uint16_t fan_code = get_ras_2819t_fan_code(effective_fan_mode);
-    ESP_LOGD(TAG, "Transmitting with fan_mode=%d, effective_fan_mode=%d, fan_code=0x%04X", 
+    ESP_LOGD(TAG, "Transmitting with fan_mode=%d, effective_fan_mode=%d, fan_code=0x%04X",
              static_cast<int>(this->fan_mode.value()), static_cast<int>(effective_fan_mode), fan_code);
-    
+
     // Mode and temperature encoding
     switch (this->mode) {
       case climate::CLIMATE_MODE_COOL:
@@ -862,7 +861,7 @@ void ToshibaClimate::transmit_ras_2819t_() {
         message1[4] = temp_code;
         message1[5] = ~temp_code;
         break;
-        
+
       case climate::CLIMATE_MODE_HEAT:
         // Heating supports fan speed control
         message1[2] = (fan_code >> 8) & 0xFF;
@@ -871,7 +870,7 @@ void ToshibaClimate::transmit_ras_2819t_() {
         message1[4] = temp_code | RAS_2819T_HEAT_TEMP_OFFSET;
         message1[5] = ~(temp_code | RAS_2819T_HEAT_TEMP_OFFSET);
         break;
-        
+
       case climate::CLIMATE_MODE_HEAT_COOL:
         // Auto mode uses fixed encoding
         message1[2] = RAS_2819T_AUTO_BYTE2;
@@ -879,7 +878,7 @@ void ToshibaClimate::transmit_ras_2819t_() {
         message1[4] = temp_code | RAS_2819T_AUTO_TEMP_OFFSET;
         message1[5] = ~(temp_code | RAS_2819T_AUTO_TEMP_OFFSET);
         break;
-        
+
       case climate::CLIMATE_MODE_DRY:
         // Dry mode uses fixed encoding and forces AUTO fan
         message1[2] = RAS_2819T_DRY_BYTE2;
@@ -887,7 +886,7 @@ void ToshibaClimate::transmit_ras_2819t_() {
         message1[4] = temp_code | RAS_2819T_DRY_TEMP_OFFSET;
         message1[5] = ~message1[4];
         break;
-        
+
       case climate::CLIMATE_MODE_FAN_ONLY:
         // Fan only mode supports fan speed control
         message1[2] = (fan_code >> 8) & 0xFF;
@@ -895,7 +894,7 @@ void ToshibaClimate::transmit_ras_2819t_() {
         message1[4] = RAS_2819T_FAN_ONLY_TEMP;
         message1[5] = RAS_2819T_FAN_ONLY_TEMP_INV;
         break;
-        
+
       default:
         // Default case supports fan speed control
         message1[2] = (fan_code >> 8) & 0xFF;
@@ -904,15 +903,15 @@ void ToshibaClimate::transmit_ras_2819t_() {
         message1[5] = ~temp_code;
         break;
     }
-    
+
     // Build second packet (RAS_2819T_HEADER2 + 4 bytes)
     message2[0] = RAS_2819T_HEADER2;
-    
+
     // Get fan speed encoding for rc_code_2
     Ras2819tSecondPacketCodes second_packet_codes = get_ras_2819t_second_packet_codes(effective_fan_mode);
-    ESP_LOGD(TAG, "Second packet codes: fan_byte=0x%02X, suffix=0x%02X,0x%02X,0x%02X", 
-             second_packet_codes.fan_byte, second_packet_codes.suffix.byte3, second_packet_codes.suffix.byte4, second_packet_codes.suffix.byte5);
-    
+    ESP_LOGD(TAG, "Second packet codes: fan_byte=0x%02X, suffix=0x%02X,0x%02X,0x%02X", second_packet_codes.fan_byte,
+             second_packet_codes.suffix.byte3, second_packet_codes.suffix.byte4, second_packet_codes.suffix.byte5);
+
     // Determine header byte 2 and fan encoding based on mode
     switch (this->mode) {
       case climate::CLIMATE_MODE_COOL:
@@ -922,7 +921,7 @@ void ToshibaClimate::transmit_ras_2819t_() {
         message2[4] = second_packet_codes.suffix.byte4;
         message2[5] = second_packet_codes.suffix.byte5;
         break;
-        
+
       case climate::CLIMATE_MODE_HEAT:
         message2[1] = second_packet_codes.fan_byte;
         message2[2] = 0x00;
@@ -930,7 +929,7 @@ void ToshibaClimate::transmit_ras_2819t_() {
         message2[4] = 0x00;
         message2[5] = RAS_2819T_HEAT_SUFFIX;
         break;
-        
+
       case climate::CLIMATE_MODE_HEAT_COOL:
       case climate::CLIMATE_MODE_DRY:
         // Auto/Dry modes use fixed values regardless of fan setting
@@ -940,7 +939,7 @@ void ToshibaClimate::transmit_ras_2819t_() {
         message2[4] = 0x00;
         message2[5] = RAS_2819T_AUTO_DRY_SUFFIX;
         break;
-        
+
       case climate::CLIMATE_MODE_FAN_ONLY:
         message2[1] = second_packet_codes.fan_byte;
         message2[2] = 0x00;
@@ -948,7 +947,7 @@ void ToshibaClimate::transmit_ras_2819t_() {
         message2[4] = 0x00;
         message2[5] = RAS_2819T_HEAT_SUFFIX;
         break;
-        
+
       default:
         message2[1] = second_packet_codes.fan_byte;
         message2[2] = 0x00;
@@ -958,29 +957,29 @@ void ToshibaClimate::transmit_ras_2819t_() {
         break;
     }
   }
-  
+
   // Log final messages being transmitted
-  ESP_LOGD(TAG, "[TX] Final message1: %02X %02X %02X %02X %02X %02X", 
-           message1[0], message1[1], message1[2], message1[3], message1[4], message1[5]);
+  ESP_LOGD(TAG, "[TX] Final message1: %02X %02X %02X %02X %02X %02X", message1[0], message1[1], message1[2],
+           message1[3], message1[4], message1[5]);
   if (this->mode != climate::CLIMATE_MODE_OFF) {
-    ESP_LOGD(TAG, "[TX] Final message2: %02X %02X %02X %02X %02X %02X", 
-             message2[0], message2[1], message2[2], message2[3], message2[4], message2[5]);
+    ESP_LOGD(TAG, "[TX] Final message2: %02X %02X %02X %02X %02X %02X", message2[0], message2[1], message2[2],
+             message2[3], message2[4], message2[5]);
   }
-  
+
   // Transmit using proper Toshiba protocol timing
   auto transmit = this->transmitter_->transmit();
   auto *data = transmit.get_data();
-  
+
   // Use existing Toshiba encode function for proper timing
   encode_(data, message1, RAS_2819T_MESSAGE_LENGTH, 1);
-  
+
   if (this->mode != climate::CLIMATE_MODE_OFF) {
     // Send second packet with gap
     encode_(data, message2, RAS_2819T_MESSAGE_LENGTH, 0);
   }
-  
+
   transmit.perform();
-  
+
   // Update all state tracking after successful transmission
   this->last_swing_mode_ = this->swing_mode;
   this->last_mode_ = this->mode;
@@ -1048,7 +1047,7 @@ bool ToshibaClimate::process_ras_2819t_command_(const remote_base::ToshibaAcData
     this->publish_state();
     return true;
   }
-  
+
   // Check for swing toggle command (single packet)
   if (toshiba_data.rc_code_2 == 0 && toshiba_data.rc_code_1 == RAS_2819T_SWING_TOGGLE) {
     ESP_LOGI(TAG, "RAS-2819T swing toggle detected!");
@@ -1063,29 +1062,29 @@ bool ToshibaClimate::process_ras_2819t_command_(const remote_base::ToshibaAcData
     this->publish_state();
     return true;
   }
-  
+
   // Handle regular two-packet commands (mode/temperature/fan changes)
   if (toshiba_data.rc_code_2 != 0) {
-    ESP_LOGI(TAG, "RAS-2819T protocol detected! rc_code_1=0x%" PRIX64 ", rc_code_2=0x%" PRIX64, 
-             toshiba_data.rc_code_1, toshiba_data.rc_code_2);
-    
+    ESP_LOGI(TAG, "RAS-2819T protocol detected! rc_code_1=0x%" PRIX64 ", rc_code_2=0x%" PRIX64, toshiba_data.rc_code_1,
+             toshiba_data.rc_code_2);
+
     // Convert to byte array for easier processing
     uint8_t message1[6], message2[6];
     for (int i = 0; i < 6; i++) {
       message1[i] = (toshiba_data.rc_code_1 >> (40 - i * 8)) & 0xFF;
       message2[i] = (toshiba_data.rc_code_2 >> (40 - i * 8)) & 0xFF;
     }
-    
-    ESP_LOGD(TAG, "[RX] Message1: %02X %02X %02X %02X %02X %02X", 
-             message1[0], message1[1], message1[2], message1[3], message1[4], message1[5]);
-    ESP_LOGD(TAG, "[RX] Message2: %02X %02X %02X %02X %02X %02X",
-             message2[0], message2[1], message2[2], message2[3], message2[4], message2[5]);
-    
+
+    ESP_LOGD(TAG, "[RX] Message1: %02X %02X %02X %02X %02X %02X", message1[0], message1[1], message1[2], message1[3],
+             message1[4], message1[5]);
+    ESP_LOGD(TAG, "[RX] Message2: %02X %02X %02X %02X %02X %02X", message2[0], message2[1], message2[2], message2[3],
+             message2[4], message2[5]);
+
     // Decode the protocol using message1 (rc_code_1)
     uint8_t temp_code = message1[4];
-    
+
     ESP_LOGD(TAG, "Temp code: 0x%02X", temp_code);
-    
+
     // Decode mode - check bytes 2-3 pattern and temperature code
     if ((message1[2] == 0x7B) && (message1[3] == 0x84)) {
       // OFF mode has specific pattern
@@ -1116,46 +1115,48 @@ bool ToshibaClimate::process_ras_2819t_command_(const remote_base::ToshibaAcData
         ESP_LOGI(TAG, "Mode: COOL");
       }
     }
-    
+
     // Decode fan speed from rc_code_1
     uint16_t fan_code = (message1[2] << 8) | message1[3];
     ESP_LOGD(TAG, "Fan code: 0x%04X", fan_code);
-    
+
     this->fan_mode = decode_ras_2819t_fan_mode(fan_code);
-    ESP_LOGD(TAG, "Fan: %s", this->fan_mode.value() == climate::CLIMATE_FAN_AUTO ? "AUTO" :
-                              this->fan_mode.value() == climate::CLIMATE_FAN_QUIET ? "QUIET" :
-                              this->fan_mode.value() == climate::CLIMATE_FAN_LOW ? "LOW" :
-                              this->fan_mode.value() == climate::CLIMATE_FAN_MEDIUM ? "MEDIUM" :
-                              this->fan_mode.value() == climate::CLIMATE_FAN_HIGH ? "HIGH" : "UNKNOWN");
-    
+    ESP_LOGD(TAG, "Fan: %s",
+             this->fan_mode.value() == climate::CLIMATE_FAN_AUTO     ? "AUTO"
+             : this->fan_mode.value() == climate::CLIMATE_FAN_QUIET  ? "QUIET"
+             : this->fan_mode.value() == climate::CLIMATE_FAN_LOW    ? "LOW"
+             : this->fan_mode.value() == climate::CLIMATE_FAN_MEDIUM ? "MEDIUM"
+             : this->fan_mode.value() == climate::CLIMATE_FAN_HIGH   ? "HIGH"
+                                                                     : "UNKNOWN");
+
     // Decode temperature
     if (this->mode != climate::CLIMATE_MODE_OFF && this->mode != climate::CLIMATE_MODE_FAN_ONLY) {
       float old_temp = this->target_temperature;
       this->target_temperature = decode_ras_2819t_temperature(temp_code);
       ESP_LOGD(TAG, "Temperature: %.1f°C (was %.1f°C, code 0x%02X)", this->target_temperature, old_temp, temp_code);
     }
-    
-    ESP_LOGI(TAG, "RAS-2819T decode complete - Mode: %s, Fan: %s, Temp: %.1f°C", 
-             this->mode == climate::CLIMATE_MODE_OFF ? "OFF" :
-             this->mode == climate::CLIMATE_MODE_COOL ? "COOL" :
-             this->mode == climate::CLIMATE_MODE_HEAT ? "HEAT" :
-             this->mode == climate::CLIMATE_MODE_HEAT_COOL ? "AUTO" :
-             this->mode == climate::CLIMATE_MODE_DRY ? "DRY" :
-             this->mode == climate::CLIMATE_MODE_FAN_ONLY ? "FAN" : "UNKNOWN",
-             this->fan_mode.value() == climate::CLIMATE_FAN_AUTO ? "AUTO" :
-             this->fan_mode.value() == climate::CLIMATE_FAN_QUIET ? "QUIET" :
-             this->fan_mode.value() == climate::CLIMATE_FAN_LOW ? "LOW" :
-             this->fan_mode.value() == climate::CLIMATE_FAN_MEDIUM ? "MEDIUM" :
-             this->fan_mode.value() == climate::CLIMATE_FAN_HIGH ? "HIGH" : "UNKNOWN",
+
+    ESP_LOGI(TAG, "RAS-2819T decode complete - Mode: %s, Fan: %s, Temp: %.1f°C",
+             this->mode == climate::CLIMATE_MODE_OFF         ? "OFF"
+             : this->mode == climate::CLIMATE_MODE_COOL      ? "COOL"
+             : this->mode == climate::CLIMATE_MODE_HEAT      ? "HEAT"
+             : this->mode == climate::CLIMATE_MODE_HEAT_COOL ? "AUTO"
+             : this->mode == climate::CLIMATE_MODE_DRY       ? "DRY"
+             : this->mode == climate::CLIMATE_MODE_FAN_ONLY  ? "FAN"
+                                                             : "UNKNOWN",
+             this->fan_mode.value() == climate::CLIMATE_FAN_AUTO     ? "AUTO"
+             : this->fan_mode.value() == climate::CLIMATE_FAN_QUIET  ? "QUIET"
+             : this->fan_mode.value() == climate::CLIMATE_FAN_LOW    ? "LOW"
+             : this->fan_mode.value() == climate::CLIMATE_FAN_MEDIUM ? "MEDIUM"
+             : this->fan_mode.value() == climate::CLIMATE_FAN_HIGH   ? "HIGH"
+                                                                     : "UNKNOWN",
              this->target_temperature);
-    
+
     // Log raw values before publishing to debug HA errors
-    ESP_LOGD(TAG, "Publishing to HA - Mode: %d, Fan: %d, Swing: %d, Temp: %.1f", 
-             static_cast<int>(this->mode),
+    ESP_LOGD(TAG, "Publishing to HA - Mode: %d, Fan: %d, Swing: %d, Temp: %.1f", static_cast<int>(this->mode),
              this->fan_mode.has_value() ? static_cast<int>(this->fan_mode.value()) : -1,
-             static_cast<int>(this->swing_mode),
-             this->target_temperature);
-             
+             static_cast<int>(this->swing_mode), this->target_temperature);
+
     this->publish_state();
     return true;
   } else {
@@ -1166,21 +1167,21 @@ bool ToshibaClimate::process_ras_2819t_command_(const remote_base::ToshibaAcData
 
 bool ToshibaClimate::on_receive(remote_base::RemoteReceiveData data) {
   ESP_LOGD(TAG, "on_receive called, model=%d", this->model_);
-  
+
   // Try modern ToshibaAcProtocol decoder first (handles RAS-2819T and potentially others)
   remote_base::ToshibaAcProtocol toshiba_protocol;
   auto decode_result = toshiba_protocol.decode(data);
-  
+
   if (decode_result.has_value()) {
     auto toshiba_data = decode_result.value();
-    ESP_LOGD(TAG, "ToshibaAcProtocol decode successful: rc_code_1=0x%" PRIX64 ", rc_code_2=0x%" PRIX64, 
+    ESP_LOGD(TAG, "ToshibaAcProtocol decode successful: rc_code_1=0x%" PRIX64 ", rc_code_2=0x%" PRIX64,
              toshiba_data.rc_code_1, toshiba_data.rc_code_2);
-    
+
     // Validate and process RAS-2819T commands
     if (is_valid_ras_2819t_command(toshiba_data.rc_code_1, toshiba_data.rc_code_2)) {
       return process_ras_2819t_command_(toshiba_data);
     }
-    
+
     // If not RAS-2819T, could be another ToshibaAc protocol variant
     ESP_LOGD(TAG, "Not a valid RAS-2819T command, continuing to generic processing");
   }

@@ -58,13 +58,17 @@ class ToshibaClimate : public climate_ir::ClimateIR {
   float last_target_temperature_{24.0f};
 
   float temperature_min_() {
-    if (this->model_ == MODEL_RAC_PT1411HWRU_C || this->model_ == MODEL_RAC_PT1411HWRU_F) return TOSHIBA_RAC_PT1411HWRU_TEMP_C_MIN;
-    if (this->model_ == MODEL_RAS_2819T) return TOSHIBA_RAS_2819T_TEMP_C_MIN;
+    if (this->model_ == MODEL_RAC_PT1411HWRU_C || this->model_ == MODEL_RAC_PT1411HWRU_F)
+      return TOSHIBA_RAC_PT1411HWRU_TEMP_C_MIN;
+    if (this->model_ == MODEL_RAS_2819T)
+      return TOSHIBA_RAS_2819T_TEMP_C_MIN;
     return TOSHIBA_GENERIC_TEMP_C_MIN;  // Default to GENERIC for unknown models
   }
   float temperature_max_() {
-    if (this->model_ == MODEL_RAC_PT1411HWRU_C || this->model_ == MODEL_RAC_PT1411HWRU_F) return TOSHIBA_RAC_PT1411HWRU_TEMP_C_MAX;
-    if (this->model_ == MODEL_RAS_2819T) return TOSHIBA_RAS_2819T_TEMP_C_MAX;
+    if (this->model_ == MODEL_RAC_PT1411HWRU_C || this->model_ == MODEL_RAC_PT1411HWRU_F)
+      return TOSHIBA_RAC_PT1411HWRU_TEMP_C_MAX;
+    if (this->model_ == MODEL_RAS_2819T)
+      return TOSHIBA_RAS_2819T_TEMP_C_MAX;
     return TOSHIBA_GENERIC_TEMP_C_MAX;  // Default to GENERIC for unknown models
   }
   std::set<climate::ClimateSwingMode> toshiba_swing_modes_() {
