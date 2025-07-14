@@ -121,8 +121,6 @@ def clang_options(idedata):
                 )
             )
             or (directory.startswith(f"{root_path}") and "/.pio/" in directory)
-            or "/.platformio/"
-            in directory  # Also treat any .platformio directory as system
         ):
             cmd.extend(["-isystem", directory])
 
