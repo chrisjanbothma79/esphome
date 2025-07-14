@@ -127,7 +127,7 @@ class ModemComponent : public Component {
   void poweron_();
   void poweroff_();
   void abort_(const std::string &message);
-  void loop_delay(uint32_t delay_ms);
+  void loop_delay_(uint32_t delay_ms);
   static void ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
   void dump_connect_params_();
   std::string flush_uart_(uint32_t timeout);

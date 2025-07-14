@@ -250,7 +250,7 @@ void ModemComponent::setup() {
 }
 
 void ModemComponent::loop() {
-  ModemComponentState last_state = this->component_state_;
+  static ModemComponentState last_state = this->component_state_;
 
   if ((millis() < this->internal_state_.next_loop_millis)) {
     // Some commands require a delay.
@@ -295,7 +295,7 @@ void ModemComponent::loop() {
 
 void ModemComponent::handle_state_disabled() {
   // Just wait 'enable()'
-  this->loop_delay(2000);  // Slow down the loop to save CPU cycles.
+  this->loop_delay_(2000);  // Slow down the loop to save CPU cycles.
 }
 
 void ModemComponent::handle_state_powering_on() {
@@ -303,7 +303,7 @@ void ModemComponent::handle_state_powering_on() {
   delay(this->power_ton_);
   this->power_pin_->digital_write(true);
   uint32_t loop_delay = this->power_tonuart_ + 2000;  // Add delay for modem readiness.
-  this->loop_delay(loop_delay);                       // Delay next loop.
+  this->loop_delay_(loop_delay);                      // Delay next loop.
   ESP_LOGD(TAG, "Modem ON in %.1fs...", float(loop_delay) / 1000);
 
   this->component_state_ = ModemComponentState::INITIALIZING;  // Transition to INITIALIZING after power on
@@ -315,7 +315,7 @@ void ModemComponent::handle_state_powering_off() {
   this->power_pin_->digital_write(false);
   delay(this->power_toff_);
   this->power_pin_->digital_write(true);
-  this->loop_delay(this->power_toffuart_);
+  this->loop_delay_(this->power_toffuart_);
   ESP_LOGD(TAG, "Modem should be OFF in %.1fs...", float(this->power_toffuart_) / 1000);
 
   this->component_state_ = ModemComponentState::DISABLED;
@@ -342,7 +342,7 @@ void ModemComponent::handle_state_initializing() {
     command_result status_read_pin = this->dce->read_pin(this->internal_state_.sim_unlocked);
     if (status_read_pin != command_result::OK) {
       ESP_LOGW(TAG, "SIM card not ready, will retry later (%s)", command_result_to_string(status_read_pin).c_str());
-      this->loop_delay(5000);  // delay to retry
+      this->loop_delay_(5000);  // delay to retry
       return;
     }
 
@@ -372,6 +372,9 @@ void ModemComponent::handle_state_initializing() {
 
 void ModemComponent::handle_state_disconnected() {
   // In DISCONNECTED state, we attempt to connect.
+
+  this->status_set_warning("Starting connection");
+
   if (!this->internal_state_.powered_on) {
     this->poweron_();
     this->component_state_ = ModemComponentState::POWERING_ON;
@@ -390,13 +393,13 @@ void ModemComponent::handle_state_disconnected() {
     if (!this->start_ppp_()) {
       ESP_LOGE(TAG, "Modem failed to enter PPP. Retrying...");
       this->dce->set_mode(modem_mode::COMMAND_MODE);
-      this->loop_delay(this->connect_retry_delay_);  // Delay before retrying.
+      this->loop_delay_(this->connect_retry_delay_);  // Delay before retrying.
       this->component_state_ = ModemComponentState::DISCONNECTED;
     }
   } else {
     float time_left_s = float(this->timeout_ - (millis() - this->internal_state_.startms)) / 1000;
     ESP_LOGW(TAG, "Waiting for modem network attach (abort in %.0fs).", time_left_s);
-    this->loop_delay(this->connect_retry_delay_);  // Delay before retrying.
+    this->loop_delay_(this->connect_retry_delay_);  // Delay before retrying.
     if ((millis() - this->internal_state_.startms) > this->timeout_) {
       this->poweroff_();  // Power off the modem to reset it.
       this->abort_("Timeout while trying to connect");
@@ -408,6 +411,7 @@ void ModemComponent::handle_state_connecting() {
   // In CONNECTING state, we wait for IP_EVENT_PPP_GOT_IP.
   if (this->internal_state_.got_ip) {
     this->component_state_ = ModemComponentState::CONNECTED;
+    this->status_clear_warning();
     return;
   }
   if (millis() - this->internal_state_.connect_begin > this->connect_timeout_) {
@@ -416,8 +420,8 @@ void ModemComponent::handle_state_connecting() {
     this->dce->set_mode(modem_mode::CMUX_MANUAL_COMMAND);
     this->reconnect();
   } else {
-    // Wait until bit is set by IP_EVENT_PPP_GOT_IP.
-    this->loop_delay(1000);  // Delay the next loop.
+    // Wait until IP_EVENT_PPP_GOT_IP.
+    this->loop_delay_(1000);  // Delay the next loop.
   }
 }
 
@@ -438,7 +442,7 @@ void ModemComponent::handle_state_connected() {
       }
     }
   }
-  this->loop_delay(2000);  // Slow down the next loop.
+  this->loop_delay_(2000);  // Slow down the next loop.
 }
 
 void ModemComponent::handle_state_not_responding() {
@@ -732,7 +736,6 @@ bool ModemComponent::is_network_attached_() {
 
 bool ModemComponent::start_ppp_() {
   this->internal_state_.connect_begin = millis();
-  this->status_set_warning("Starting connection");
 
   uint32_t now = millis();
 
@@ -756,24 +759,24 @@ bool ModemComponent::start_ppp_() {
 }
 
 void ModemComponent::ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {
-  auto *this_ = static_cast<ModemComponent *>(arg);
+  auto *self = static_cast<ModemComponent *>(arg);
 
   switch (event_id) {
     case IP_EVENT_PPP_GOT_IP: {
       ip_event_got_ip_t *event = (ip_event_got_ip_t *) event_data;
       ESP_LOGD(TAG, "IP event: Got IP " IPSTR, IP2STR(&event->ip_info.ip));
-      this_->internal_state_.ip_info = event->ip_info;
-      esp_netif_get_dns_info(event->esp_netif, ESP_NETIF_DNS_MAIN, &this_->internal_state_.dns_main);
-      esp_netif_get_dns_info(event->esp_netif, ESP_NETIF_DNS_BACKUP, &this_->internal_state_.dns_backup);
-      this_->internal_state_.got_ip = true;
+      self->internal_state_.ip_info = event->ip_info;
+      esp_netif_get_dns_info(event->esp_netif, ESP_NETIF_DNS_MAIN, &self->internal_state_.dns_main);
+      esp_netif_get_dns_info(event->esp_netif, ESP_NETIF_DNS_BACKUP, &self->internal_state_.dns_backup);
+      self->internal_state_.got_ip = true;
       break;
     }
     case IP_EVENT_PPP_LOST_IP:
-      if (this_->component_state_ == ModemComponentState::CONNECTED) {
+      if (self->component_state_ == ModemComponentState::CONNECTED) {
         // Only log if previously connected.
         ESP_LOGD(TAG, "IP event: Lost IP.");
       }
-      this_->internal_state_.got_ip = false;
+      self->internal_state_.got_ip = false;
       break;
   }
 }
@@ -820,7 +823,7 @@ void ModemComponent::abort_(const std::string &message) {
   App.reboot();
 }
 
-void ModemComponent::loop_delay(uint32_t delay_ms) { this->internal_state_.next_loop_millis = millis() + delay_ms; }
+void ModemComponent::loop_delay_(uint32_t delay_ms) { this->internal_state_.next_loop_millis = millis() + delay_ms; }
 
 void ModemComponent::dump_connect_params_() {
   if (this->component_state_ != ModemComponentState::CONNECTED) {
