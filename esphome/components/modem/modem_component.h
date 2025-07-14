@@ -29,17 +29,14 @@ namespace modem {
 using namespace esp_modem;
 
 enum class ModemComponentState {
-  NOT_RESPONDING,
-  DISCONNECTED,
-  CONNECTED,
   DISABLED,
-};
-
-enum class ModemPowerState {
-  TON,
-  TONUART,
-  TOFF,
-  TOFFUART,
+  POWERING_ON,
+  INITIALIZING,
+  DISCONNECTED,
+  CONNECTING,
+  CONNECTED,
+  NOT_RESPONDING,
+  POWERING_OFF,
 };
 
 struct AtCommandResult {
@@ -96,6 +93,16 @@ class ModemComponent : public Component {
   ModemComponent();
   void setup() override;
   void loop() override;
+
+  // ===== State handler methods =====
+  void handle_state_disabled();
+  void handle_state_powering_on();
+  void handle_state_initializing();
+  void handle_state_disconnected();
+  void handle_state_connecting();
+  void handle_state_connected();
+  void handle_state_not_responding();
+  void handle_state_powering_off();  // Declaration for the new handler
   void dump_config() override { this->dump_connect_params_(); }
   float get_setup_priority() const override { return setup_priority::WIFI + 1; }  // Just before Wi-Fi
   bool can_proceed() override { return network::is_disabled() || this->is_connected(); };
@@ -120,6 +127,7 @@ class ModemComponent : public Component {
   void poweron_();
   void poweroff_();
   void abort_(const std::string &message);
+  void loop_delay(uint32_t delay_ms);
   static void ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
   void dump_connect_params_();
   std::string flush_uart_(uint32_t timeout);
@@ -167,26 +175,23 @@ class ModemComponent : public Component {
   esp_netif_t *ppp_netif_{nullptr};
 
   struct InternalState {
-    bool starting{false};
     // Timestamp for connection attempt (for timeout)
     uint32_t startms;
-    bool enabled{false};
-    bool connected{false};
     esp_netif_ip_info_t ip_info{};
     esp_netif_dns_info_t dns_main{};
     esp_netif_dns_info_t dns_backup{};
     // Start time (millis())
     uint32_t connect_begin;
+    uint32_t last_health_check{0};
+    uint32_t next_loop_millis{0};
     // Guessed power state
     bool powered_on{false};
-    // True during power transitions
-    bool power_transition{false};
     // States for triggering on/off signals
-    ModemPowerState power_state{ModemPowerState::TOFFUART};
     // Request modem to reconnect
     bool reconnect{false};
     int current_baud_rate{0};
     bool sim_unlocked{false};
+    bool got_ip{false};
   };
   InternalState internal_state_;
 

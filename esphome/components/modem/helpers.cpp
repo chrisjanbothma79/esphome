@@ -33,17 +33,29 @@ std::string command_result_to_string(command_result err) {
 std::string state_to_string(ModemComponentState state) {
   std::string str;
   switch (state) {
-    case ModemComponentState::NOT_RESPONDING:
-      str = "NOT_RESPONDING";
+    case ModemComponentState::DISABLED:
+      str = "DISABLED";
+      break;
+    case ModemComponentState::POWERING_ON:
+      str = "POWERING_ON";
+      break;
+    case ModemComponentState::INITIALIZING:
+      str = "INITIALIZING";
       break;
     case ModemComponentState::DISCONNECTED:
       str = "DISCONNECTED";
       break;
+    case ModemComponentState::CONNECTING:
+      str = "CONNECTING";
+      break;
     case ModemComponentState::CONNECTED:
       str = "CONNECTED";
       break;
-    case ModemComponentState::DISABLED:
-      str = "DISABLED";
+    case ModemComponentState::NOT_RESPONDING:
+      str = "NOT_RESPONDING";
+      break;
+    case ModemComponentState::POWERING_OFF:
+      str = "POWERING_OFF";
       break;
   }
   return str;
