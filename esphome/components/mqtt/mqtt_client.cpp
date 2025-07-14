@@ -92,7 +92,7 @@ void MQTTClientComponent::send_device_info_() {
   std::string topic = "esphome/discover/";
   topic.append(App.get_name());
 
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
+  // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   this->publish_json(
       topic,
       [](JsonObject root) {
@@ -103,7 +103,6 @@ void MQTTClientComponent::send_device_info_() {
             index++;
           }
         }
-        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         root["name"] = App.get_name();
         if (!App.get_friendly_name().empty()) {
           root["friendly_name"] = App.get_friendly_name();
@@ -149,6 +148,7 @@ void MQTTClientComponent::send_device_info_() {
 #endif
       },
       2, this->discovery_info_.retain);
+  // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 
 void MQTTClientComponent::dump_config() {
