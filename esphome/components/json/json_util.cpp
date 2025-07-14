@@ -26,59 +26,41 @@ struct SpiRamAllocator : ArduinoJson::Allocator {
 };
 
 std::string build_json(const json_build_t &f) {
-  // Here we are allocating up to 5kb of memory,
-  // with the heap size minus 2kb to be safe if less than 5kb
-  // as we can not have a true dynamic sized document.
-  // The excess memory is freed below with `shrinkToFit()`
-  while (true) {
-    auto doc_allocator = SpiRamAllocator();
-    JsonDocument json_document(&doc_allocator);
-    if (json_document.overflowed()) {
-      ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
-      return "{}";
-    }
-    JsonObject root = json_document.to<JsonObject>();
-    f(root);
-    if (json_document.overflowed()) {
-      if (request_size == free_heap) {
-        ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
-        return "{}";
-      }
-      request_size = std::min(request_size * 2, free_heap);
-      continue;
-    }
-    std::string output;
-    serializeJson(json_document, output);
-    return output;
+  auto doc_allocator = SpiRamAllocator();
+  JsonDocument json_document(&doc_allocator);
+  if (json_document.overflowed()) {
+    ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
+    return "{}";
   }
+  JsonObject root = json_document.to<JsonObject>();
+  f(root);
+  if (json_document.overflowed()) {
+    ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
+    return "{}";
+  }
+  std::string output;
+  serializeJson(json_document, output);
+  return output;
 }
 
 bool parse_json(const std::string &data, const json_parse_t &f) {
-  // Here we are allocating 1.5 times the data size,
-  // with the heap size minus 2kb to be safe if less than that
-  // as we can not have a true dynamic sized document.
-  // The excess memory is freed below with `shrinkToFit()`
-  while (true) {
-    auto doc_allocator = SpiRamAllocator();
-    JsonDocument json_document(&doc_allocator);
-    if (json_document.overflowed()) {
-      ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
-      return false;
-    }
-    DeserializationError err = deserializeJson(json_document, data);
+  auto doc_allocator = SpiRamAllocator();
+  JsonDocument json_document(&doc_allocator);
+  if (json_document.overflowed()) {
+    ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
+    return false;
+  }
+  DeserializationError err = deserializeJson(json_document, data);
 
-    JsonObject root = json_document.as<JsonObject>();
+  JsonObject root = json_document.as<JsonObject>();
 
-    if (err == DeserializationError::Ok) {
-      return f(root);
-    } else if (err == DeserializationError::NoMemory) {
-      ESP_LOGE(TAG, "Can not allocate more memory for deserialization. Consider making source string smaller");
-      return false;
-    } else {
-      ESP_LOGE(TAG, "Parse error: %s", err.c_str());
-      return false;
-    }
-  };
+  if (err == DeserializationError::Ok) {
+    return f(root);
+  } else if (err == DeserializationError::NoMemory) {
+    ESP_LOGE(TAG, "Can not allocate more memory for deserialization. Consider making source string smaller");
+    return false;
+  }
+  ESP_LOGE(TAG, "Parse error: %s", err.c_str());
   return false;
 }
 
