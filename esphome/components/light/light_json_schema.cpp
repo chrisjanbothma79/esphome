@@ -121,10 +121,10 @@ void LightJSONSchema::parse_color_json(LightState &state, LightCall &call, JsonO
     if (color["c"].is<uint8_t>()) {
       call.set_cold_white(float(color["c"]) / 255.0f);
     }
-    if (color["w"].is<uint16_t>()) {
+    if (color["w"].is<uint8_t>()) {
       // the HA scheme is ambiguous here, the same key is used for white channel in RGBW and warm
       // white channel in RGBWW.
-      if (color["c"].is<uint16_t>()) {
+      if (color["c"].is<uint8_t>()) {
         call.set_warm_white(float(color["w"]) / 255.0f);
       } else {
         call.set_white(float(color["w"]) / 255.0f);
@@ -132,7 +132,7 @@ void LightJSONSchema::parse_color_json(LightState &state, LightCall &call, JsonO
     }
   }
 
-  if (root["white_value"].is<uint16_t>()) {  // legacy API
+  if (root["white_value"].is<uint8_t>()) {  // legacy API
     call.set_white(float(root["white_value"]) / 255.0f);
   }
 
@@ -144,7 +144,7 @@ void LightJSONSchema::parse_color_json(LightState &state, LightCall &call, JsonO
 void LightJSONSchema::parse_json(LightState &state, LightCall &call, JsonObject root) {
   LightJSONSchema::parse_color_json(state, call, root);
 
-  if (root["flash"].is<unsigned int>()) {
+  if (root["flash"].is<uint32_t>()) {
     auto length = uint32_t(float(root["flash"]) * 1000);
     call.set_flash_length(length);
   }
