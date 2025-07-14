@@ -582,11 +582,6 @@ jobs:
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v4.2.2
-      - name: Restore Python
-        uses: ./.github/actions/restore-python
-        with:
-          python-version: ${{ env.DEFAULT_PYTHON }}
-          cache-key: ${{ needs.common.outputs.cache-key }}
       - uses: pre-commit/action@v3.0.1
         env:
           SKIP: pylint,clang-tidy-hash,yamllint
