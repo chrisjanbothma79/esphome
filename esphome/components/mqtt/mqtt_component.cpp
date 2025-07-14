@@ -73,6 +73,7 @@ bool MQTTComponent::send_discovery_() {
   return global_mqtt_client->publish_json(
       this->get_discovery_topic_(discovery_info),
       [this](JsonObject root) {
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         SendDiscoveryConfig config;
         config.state_topic = true;
         config.command_topic = true;

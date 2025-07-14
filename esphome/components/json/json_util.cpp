@@ -32,6 +32,7 @@ std::string build_json(const json_build_t &f) {
     ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
     return "{}";
   }
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   JsonObject root = json_document.to<JsonObject>();
   f(root);
   if (json_document.overflowed()) {
@@ -50,6 +51,7 @@ bool parse_json(const std::string &data, const json_parse_t &f) {
     ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
     return false;
   }
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   DeserializationError err = deserializeJson(json_document, data);
 
   JsonObject root = json_document.as<JsonObject>();

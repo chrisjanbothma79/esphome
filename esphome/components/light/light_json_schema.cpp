@@ -9,6 +9,7 @@ namespace light {
 // See https://www.home-assistant.io/integrations/light.mqtt/#json-schema for documentation on the schema
 
 void LightJSONSchema::dump_json(LightState &state, JsonObject root) {
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   if (state.supports_effects())
     root["effect"] = state.get_effect_name();
 
