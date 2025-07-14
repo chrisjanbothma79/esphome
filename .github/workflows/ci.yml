@@ -499,10 +499,17 @@ jobs:
   pre-commit-ci-lite:
     name: pre-commit.ci lite
     runs-on: ubuntu-latest
+    needs:
+      - common
     if: github.event_name == 'pull_request' && github.base_ref != 'beta' && github.base_ref != 'release'
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v4.2.2
+      - name: Restore Python
+        uses: ./.github/actions/restore-python
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON }}
+          cache-key: ${{ needs.common.outputs.cache-key }}
       - uses: pre-commit/action@v3.0.1
         env:
           SKIP: pylint,clang-tidy-hash,yamllint
