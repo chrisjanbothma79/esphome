@@ -5,6 +5,8 @@ from esphome.const import ENTITY_CATEGORY_CONFIG, ICON_POWER
 
 from .. import CONF_DEEPSLEEP, DeepSleepComponent, deep_sleep_ns
 
+CODEOWNERS = ["@nielsnl68"]
+
 PreventSleepSwitch = deep_sleep_ns.class_(
     "PreventSleepSwitch",
     switch.Switch,

@@ -5,6 +5,8 @@ from esphome.const import CONF_ID, ENTITY_CATEGORY_CONFIG, ICON_POWER
 
 from .. import CONF_DEEPSLEEP, DeepSleepComponent, deep_sleep_ns
 
+CODEOWNERS = ["@nielsnl68"]
+
 DeepSleepButton = deep_sleep_ns.class_(
     "DeepSleepButton",
     button.Button,
