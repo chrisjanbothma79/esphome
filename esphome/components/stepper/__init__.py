@@ -7,8 +7,8 @@ from esphome.const import (
     CONF_ID,
     CONF_MAX_SPEED,
     CONF_POSITION,
-    CONF_SPEED,
     CONF_ROTATION,
+    CONF_SPEED,
     CONF_TARGET,
 )
 from esphome.core import CORE, coroutine_with_priority

@@ -7,8 +7,7 @@ namespace stepper {
 
 static const char *const TAG = "stepper";
 
-void Stepper::set_target(int32_t steps)
-{
+void Stepper::set_target(int32_t steps) {
   if (this->rotation_ != ROTATION_BOTH) {
     if (steps != this->current_position) {
       int32_t tmag = steps > this->current_position ? 1 : -1;
@@ -28,7 +27,8 @@ void Stepper::set_target(int32_t steps)
       }
 
       if (mag != tmag) {
-        ESP_LOGE(TAG, "Target (%d) cannot be reached in that direction (%d) from this position (%d)", steps, this->rotation_, this->current_position);
+        ESP_LOGE(TAG, "Target (%d) cannot be reached in that direction (%d) from this position (%d)", steps,
+                 this->rotation_, this->current_position);
         this->target_position = this->current_position;
         return;
       }
