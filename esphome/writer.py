@@ -33,7 +33,6 @@ CPP_INCLUDE_END = "// ========== AUTO GENERATED INCLUDE BLOCK END ==========="
 INI_AUTO_GENERATE_BEGIN = "; ========== AUTO GENERATED CODE BEGIN ==========="
 INI_AUTO_GENERATE_END = "; =========== AUTO GENERATED CODE END ============"
 
-
 CPP_BASE_FORMAT = (
     """// Auto generated code by esphome
 """,
