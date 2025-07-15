@@ -4,7 +4,8 @@
 
 from typing import Any
 
-from esphome.components.display import display_ns
+from esphome.components.const import CONF_COLOR_DEPTH
+from esphome.components.display import CONF_SHOW_TEST_CARD, display_ns
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_BRIGHTNESS,
@@ -13,10 +14,12 @@ from esphome.const import (
     CONF_HEIGHT,
     CONF_INIT_SEQUENCE,
     CONF_INVERT_COLORS,
+    CONF_LAMBDA,
     CONF_MIRROR_X,
     CONF_MIRROR_Y,
     CONF_OFFSET_HEIGHT,
     CONF_OFFSET_WIDTH,
+    CONF_PAGES,
     CONF_ROTATION,
     CONF_SWAP_XY,
     CONF_TRANSFORM,
@@ -154,7 +157,6 @@ CONF_VSYNC_FRONT_PORCH = "vsync_front_porch"
 CONF_PCLK_FREQUENCY = "pclk_frequency"
 CONF_NATIVE_WIDTH = "native_width"
 CONF_NATIVE_HEIGHT = "native_height"
-CONF_COLOR_DEPTH = "color_depth"
 
 CONF_DE_PIN = "de_pin"
 CONF_PCLK_PIN = "pclk_pin"
@@ -381,3 +383,18 @@ class DriverChip:
             ),
             (),
         ), madctl
+
+
+def requires_buffer(config):
+    """
+    Check if the display configuration requires a buffer. It will do so if any drawing methods are configured.
+    :param config:
+    :return:  True if a buffer is required, False otherwise
+    """
+    return any(
+        config.get(key) for key in (CONF_LAMBDA, CONF_PAGES, CONF_SHOW_TEST_CARD)
+    )
+
+
+def get_color_depth(config):
+    return int(config[CONF_COLOR_DEPTH].removesuffix("bit"))

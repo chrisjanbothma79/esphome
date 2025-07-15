@@ -2,7 +2,7 @@ import logging
 
 from esphome.automation import build_automation, register_action, validate_automation
 import esphome.codegen as cg
-from esphome.components.const import CONF_DRAW_ROUNDING
+from esphome.components.const import CONF_COLOR_DEPTH, CONF_DRAW_ROUNDING
 from esphome.components.display import Display
 import esphome.config_validation as cv
 from esphome.const import (
@@ -186,7 +186,7 @@ def multi_conf_validate(configs: list[dict]):
     for config in configs[1:]:
         for item in (
             df.CONF_LOG_LEVEL,
-            df.CONF_COLOR_DEPTH,
+            CONF_COLOR_DEPTH,
             df.CONF_BYTE_ORDER,
             df.CONF_TRANSPARENCY_KEY,
         ):

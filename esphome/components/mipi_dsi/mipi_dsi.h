@@ -45,7 +45,8 @@ enum PixelMode {
 
 class MIPI_DSI : public display::Display {
  public:
-  MIPI_DSI(size_t width, size_t height) : width_(width), height_(height) {}
+  MIPI_DSI(size_t width, size_t height, display::ColorBitness color_depth)
+      : width_(width), height_(height), color_depth_(color_depth) {}
   display::ColorOrder get_color_mode() { return this->color_mode_; }
   void set_color_mode(display::ColorOrder color_mode) { this->color_mode_ = color_mode; }
   void set_invert_colors(bool invert_colors) { this->invert_colors_ = invert_colors; }
@@ -72,7 +73,7 @@ class MIPI_DSI : public display::Display {
     this->mark_failed(str.c_str());
   }
 
-  void update() override {}
+  void update() override;
 
   void setup() override;
 
@@ -80,12 +81,16 @@ class MIPI_DSI : public display::Display {
                       display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) override;
 
   void draw_pixel_at(int x, int y, Color color) override;
+  void fill(Color color);
   int get_width() override;
   int get_height() override;
 
   void dump_config() override;
 
  protected:
+  void write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
+                         int x_pad);
+  bool check_buffer_();
   GPIOPin *reset_pin_{nullptr};
   size_t width_{};
   size_t height_{};
@@ -97,18 +102,24 @@ class MIPI_DSI : public display::Display {
   uint16_t vsync_back_porch_ = 10;
   uint16_t vsync_front_porch_ = 10;
   const char *model_{"Unknown"};
-  std::vector<uint8_t> init_sequence_;
+  std::vector<uint8_t> init_sequence_{};
   uint16_t pclk_frequency_ = 16;  // in MHz
   uint16_t lane_bit_rate_{1500};  // in Mbps
   uint8_t lanes_{2};              // 1, 2, 3 or 4 lanes
 
   bool invert_colors_{};
   display::ColorOrder color_mode_{display::COLOR_ORDER_BGR};
+  display::ColorBitness color_depth_;
 
   esp_lcd_panel_handle_t handle_{};
   esp_lcd_dsi_bus_handle_t bus_handle_{};
   esp_lcd_panel_io_handle_t io_handle_{};
   SemaphoreHandle_t io_lock_{};
+  uint8_t *buffer_{nullptr};
+  uint16_t x_low_{1};
+  uint16_t y_low_{1};
+  uint16_t x_high_{0};
+  uint16_t y_high_{0};
 };
 
 }  // namespace mipi_dsi

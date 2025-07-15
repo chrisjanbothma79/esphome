@@ -1,4 +1,5 @@
 #ifdef USE_ESP32_VARIANT_ESP32P4
+#include <utility>
 #include "mipi_dsi.h"
 
 namespace esphome {
@@ -142,6 +143,34 @@ void MIPI_DSI::setup() {
   ESP_LOGCONFIG(TAG, "MIPI SPI setup complete");
 }
 
+void MIPI_DSI::update() {
+  if (this->auto_clear_enabled_) {
+    this->clear();
+  }
+  if (this->show_test_card_) {
+    this->test_card();
+  } else if (this->page_ != nullptr) {
+    this->page_->get_writer()(*this);
+  } else if (this->writer_.has_value()) {
+    (*this->writer_)(*this);
+  } else {
+    this->stop_poller();
+  }
+  if (this->buffer_ == nullptr || this->x_low_ > this->x_high_ || this->y_low_ > this->y_high_)
+    return;
+  ESP_LOGV(TAG, "x_low %d, y_low %d, x_high %d, y_high %d", this->x_low_, this->y_low_, this->x_high_, this->y_high_);
+  // Some chips require that the drawing window be aligned on certain boundaries
+  int w = this->x_high_ - this->x_low_ + 1;
+  int h = this->y_high_ - this->y_low_ + 1;
+  this->write_to_display_(this->x_low_, this->y_low_, w, h, this->buffer_, this->x_low_, this->y_low_,
+                          this->width_ - w - this->x_low_);
+  // invalidate watermarks
+  this->x_low_ = this->width_;
+  this->y_low_ = this->height_;
+  this->x_high_ = 0;
+  this->y_high_ = 0;
+}
+
 void MIPI_DSI::draw_pixels_at(int x_start, int y_start, int w, int h, const uint8_t *ptr, display::ColorOrder order,
                               display::ColorBitness bitness, bool big_endian, int x_offset, int y_offset, int x_pad) {
   if (w <= 0 || h <= 0)
@@ -152,9 +181,15 @@ void MIPI_DSI::draw_pixels_at(int x_start, int y_start, int w, int h, const uint
     display::Display::draw_pixels_at(x_start, y_start, w, h, ptr, order, bitness, big_endian, x_offset, y_offset,
                                      x_pad);
   }
-  esp_err_t err;
-  auto stride = (x_offset + w + x_pad) * 2;
-  ptr += y_offset * stride + x_offset * 2;  // skip to the first pixel
+  this->write_to_display_(x_start, y_start, w, h, ptr, x_offset, y_offset, x_pad);
+}
+
+void MIPI_DSI::write_to_display_(int x_start, int y_start, int w, int h, const uint8_t *ptr, int x_offset, int y_offset,
+                                 int x_pad) {
+  esp_err_t err = ESP_OK;
+  auto bytes_per_pixel = 3 - this->color_depth_;
+  auto stride = (x_offset + w + x_pad) * bytes_per_pixel;
+  ptr += y_offset * stride + x_offset * bytes_per_pixel;  // skip to the first pixel
   // x_ and y_offset are offsets into the source buffer, unrelated to our own offsets into the display.
   if (x_offset == 0 && x_pad == 0) {
     err = esp_lcd_panel_draw_bitmap(this->handle_, x_start, y_start, x_start + w, y_start + h, ptr);
@@ -172,6 +207,22 @@ void MIPI_DSI::draw_pixels_at(int x_start, int y_start, int w, int h, const uint
   }
   if (err != ESP_OK)
     ESP_LOGE(TAG, "lcd_lcd_panel_draw_bitmap failed: %s", esp_err_to_name(err));
+}
+
+bool MIPI_DSI::check_buffer_() {
+  if (this->is_failed())
+    return false;
+  if (this->buffer_ != nullptr)
+    return true;
+  // this is dependent on the enum values.
+  auto bytes_per_pixel = 3 - this->color_depth_;
+  RAMAllocator<uint8_t> allocator;
+  this->buffer_ = allocator.allocate(this->height_ * this->width_ * bytes_per_pixel);
+  if (this->buffer_ == nullptr) {
+    this->mark_failed("Could not allocate buffer for display!");
+    return false;
+  }
+  return true;
 }
 
 void MIPI_DSI::draw_pixel_at(int x, int y, Color color) {
@@ -194,11 +245,63 @@ void MIPI_DSI::draw_pixel_at(int x, int y, Color color) {
       y = this->height_ - y - 1;
       break;
   }
+  if (x >= this->get_width_internal() || x < 0 || y >= this->get_height_internal() || y < 0) {
+    return;
+  }
   auto pixel = convert_big_endian(display::ColorUtil::color_to_565(color));
-
-  this->draw_pixels_at(x, y, 1, 1, (const uint8_t *) &pixel, display::COLOR_ORDER_RGB, display::COLOR_BITNESS_565, true,
-                       0, 0, 0);
-  App.feed_wdt();
+  if (!this->check_buffer_())
+    return;
+  size_t pos = (y * this->width_) + x;
+  switch (this->color_depth_) {
+    case display::COLOR_BITNESS_565: {
+      auto *ptr_16 = reinterpret_cast<uint16_t *>(this->buffer_);
+      uint8_t hi_byte = static_cast<uint8_t>(color.r & 0xF8) | (color.g >> 5);
+      uint8_t lo_byte = static_cast<uint8_t>((color.g & 0x1C) << 3) | (color.b >> 3);
+      uint16_t new_color = lo_byte | (hi_byte << 8);  // little endian
+      if (ptr_16[pos] == new_color)
+        return;
+      ptr_16[pos] = new_color;
+      break;
+    }
+    case display::COLOR_BITNESS_888:
+      if (this->color_mode_ == display::COLOR_ORDER_BGR) {
+        this->buffer_[pos * 3] = color.b;
+        this->buffer_[pos * 3 + 1] = color.g;
+        this->buffer_[pos * 3 + 2] = color.r;
+      } else {
+        this->buffer_[pos * 3] = color.r;
+        this->buffer_[pos * 3 + 1] = color.g;
+        this->buffer_[pos * 3 + 2] = color.b;
+      }
+      break;
+    case display::COLOR_BITNESS_332:
+      break;
+  }
+  // low and high watermark may speed up drawing from buffer
+  if (x < this->x_low_)
+    this->x_low_ = x;
+  if (y < this->y_low_)
+    this->y_low_ = y;
+  if (x > this->x_high_)
+    this->x_high_ = x;
+  if (y > this->y_high_)
+    this->y_high_ = y;
+}
+void MIPI_DSI::fill(Color color) {
+  if (!this->check_buffer_())
+    return;
+  switch (this->color_depth_) {
+    case display::COLOR_BITNESS_565: {
+      auto *ptr_16 = reinterpret_cast<uint16_t *>(this->buffer_);
+      uint8_t hi_byte = static_cast<uint8_t>(color.r & 0xF8) | (color.g >> 5);
+      uint8_t lo_byte = static_cast<uint8_t>((color.g & 0x1C) << 3) | (color.b >> 3);
+      uint16_t new_color = lo_byte | (hi_byte << 8);  // little endian
+      std::fill_n(ptr_16, this->width_ * this->height_, new_color);
+      break;
+    }
+    default:
+      break;
+  }
 }
 
 int MIPI_DSI::get_width() {

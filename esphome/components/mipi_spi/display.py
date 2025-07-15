@@ -31,7 +31,6 @@ from esphome.const import (
     CONF_MODEL,
     CONF_OFFSET_HEIGHT,
     CONF_OFFSET_WIDTH,
-    CONF_PAGES,
     CONF_RESET_PIN,
     CONF_ROTATION,
     CONF_SWAP_XY,
@@ -42,6 +41,7 @@ from esphome.core import CORE, TimePeriod
 from esphome.cpp_generator import TemplateArguments
 from esphome.final_validate import full_config
 
+from ..mipi import get_color_depth, requires_buffer
 from . import (
     CONF_BUS_MODE,
     CONF_NATIVE_HEIGHT,
@@ -398,21 +398,6 @@ def customise_schema(config):
 
 
 CONFIG_SCHEMA = customise_schema
-
-
-def requires_buffer(config):
-    """
-    Check if the display configuration requires a buffer. It will do so if any drawing methods are configured.
-    :param config:
-    :return:  True if a buffer is required, False otherwise
-    """
-    return any(
-        config.get(key) for key in (CONF_LAMBDA, CONF_PAGES, CONF_SHOW_TEST_CARD)
-    )
-
-
-def get_color_depth(config):
-    return int(config[CONF_COLOR_DEPTH].removesuffix("bit"))
 
 
 def _final_validate(config):

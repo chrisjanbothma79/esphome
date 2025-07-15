@@ -11,6 +11,7 @@ from esphome.components.const import (
 )
 from esphome.components.esp32 import const, only_on_variant
 from esphome.components.mipi import (
+    CONF_COLOR_DEPTH,
     CONF_HSYNC_BACK_PORCH,
     CONF_HSYNC_FRONT_PORCH,
     CONF_HSYNC_PULSE_WIDTH,
@@ -24,8 +25,10 @@ from esphome.components.mipi import (
     PIXEL_MODE_16BIT,
     DriverChip,
     dimension_schema,
+    get_color_depth,
     map_sequence,
     power_of_two,
+    requires_buffer,
 )
 import esphome.config_validation as cv
 from esphome.const import (
@@ -46,6 +49,8 @@ from esphome.const import (
     CONF_WIDTH,
 )
 
+from ...final_validate import full_config
+from ..display import CONF_SHOW_TEST_CARD
 from . import mipi_dsi_ns
 from .models import guition, m5stack, waveshare
 
@@ -56,6 +61,7 @@ LOGGER = logging.getLogger(DOMAIN)
 
 MIPI_DSI = mipi_dsi_ns.class_("MIPI_DSI", display.Display, cg.Component)
 ColorOrder = display.display_ns.enum("ColorMode")
+ColorBitness = display.display_ns.enum("ColorBitness")
 
 COLOR_ORDERS = {
     "RGB": ColorOrder.COLOR_ORDER_RGB,
@@ -72,6 +78,12 @@ for _ in (waveshare, m5stack, guition):
     pass
 
 MODELS = DriverChip.models
+
+COLOR_DEPTHS = {
+    8: ColorBitness.COLOR_BITNESS_332,
+    16: ColorBitness.COLOR_BITNESS_565,
+    24: ColorBitness.COLOR_BITNESS_888,
+}
 
 if getattr(cv, "bps", None) is None:
     # If the bps validator is not available, we need to define it ourselves
@@ -132,6 +144,11 @@ def model_schema(config):
             model.option(CONF_TRANSFORM, cv.UNDEFINED): transform,
             cv.Required(CONF_MODEL): cv.one_of(model.name, upper=True),
             model.option(CONF_INVERT_COLORS, False): cv.boolean,
+            model.option(CONF_COLOR_DEPTH, "16"): cv.one_of(
+                *[str(d) for d in COLOR_DEPTHS],
+                *[f"{d}bit" for d in COLOR_DEPTHS],
+                lower=True,
+            ),
             model.option(CONF_USE_AXIS_FLIPS, True): cv.boolean,
             model.option(CONF_PCLK_FREQUENCY, "40MHz"): cv.All(
                 cv.frequency, cv.Range(min=4e6, max=100e6)
@@ -170,13 +187,26 @@ def _config_schema(config):
     return model_schema(config)(config)
 
 
+def _final_validate(config):
+    global_config = full_config.get()
+
+    from esphome.components.lvgl import DOMAIN as LVGL_DOMAIN
+
+    if not requires_buffer(config) and LVGL_DOMAIN not in global_config:
+        # If no drawing methods are configured, and LVGL is not enabled, show a test card
+        config[CONF_SHOW_TEST_CARD] = True
+    return config
+
+
 CONFIG_SCHEMA = _config_schema
+FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 async def to_code(config):
     model = DriverChip.models[config[CONF_MODEL].upper()]
+    color_depth = COLOR_DEPTHS[get_color_depth(config)]
     width, height, _offset_width, _offset_height = model.get_dimensions(config)
-    var = cg.new_Pvariable(config[CONF_ID], width, height)
+    var = cg.new_Pvariable(config[CONF_ID], width, height, color_depth)
 
     sequence, madctl = model.get_sequence(config)
     cg.add(var.set_model(config[CONF_MODEL]))
