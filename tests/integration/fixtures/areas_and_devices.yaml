@@ -96,4 +96,3 @@ switch:
       - logger.log: "Turning on Test Switch on Motion Detector"
     turn_off_action:
       - logger.log: "Turning off Test Switch on Motion Detector"
-
