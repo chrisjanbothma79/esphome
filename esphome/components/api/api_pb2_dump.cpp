@@ -836,10 +836,6 @@ void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
   out.append("  device_class: ");
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
@@ -909,10 +905,6 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
   out.append("  assumed_state: ");
@@ -1053,10 +1045,6 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
   out.append("  supports_oscillation: ");
@@ -1226,10 +1214,6 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
   for (const auto &it : this->supported_color_modes) {
@@ -1511,10 +1495,6 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
@@ -1601,10 +1581,6 @@ void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
@@ -1688,10 +1664,6 @@ void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
 #ifdef USE_ENTITY_ICON
@@ -1998,10 +1970,6 @@ void ListEntitiesCameraResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -2075,10 +2043,6 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
   out.append("  supports_current_temperature: ");
@@ -2397,10 +2361,6 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
@@ -2508,10 +2468,6 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
@@ -2597,10 +2553,6 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
 #ifdef USE_ENTITY_ICON
@@ -2727,10 +2679,6 @@ void ListEntitiesLockResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
@@ -2832,10 +2780,6 @@ void ListEntitiesButtonResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
@@ -2920,10 +2864,6 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
 #ifdef USE_ENTITY_ICON
@@ -3791,10 +3731,6 @@ void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
@@ -3887,10 +3823,6 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
 #ifdef USE_ENTITY_ICON
@@ -3990,10 +3922,6 @@ void ListEntitiesDateResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
 #ifdef USE_ENTITY_ICON
@@ -4099,10 +4027,6 @@ void ListEntitiesTimeResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
@@ -4206,10 +4130,6 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
@@ -4277,10 +4197,6 @@ void ListEntitiesValveResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
 #ifdef USE_ENTITY_ICON
@@ -4390,10 +4306,6 @@ void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
 #ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
@@ -4475,10 +4387,6 @@ void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
 #ifdef USE_ENTITY_ICON
