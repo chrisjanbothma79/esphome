@@ -92,7 +92,8 @@ async def setup_stepper_core_(stepper_var, config):
         cg.add(stepper_var.set_deceleration(config[CONF_DECELERATION]))
     if CONF_MAX_SPEED in config:
         cg.add(stepper_var.set_max_speed(config[CONF_MAX_SPEED]))
-    cg.add(stepper_var.set_rotation(config[CONF_ROTATION]))
+    if CONF_ROTATION in config:
+        cg.add(stepper_var.set_rotation(config[CONF_ROTATION]))
 
 
 async def register_stepper(var, config):

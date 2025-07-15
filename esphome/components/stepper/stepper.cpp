@@ -7,6 +7,37 @@ namespace stepper {
 
 static const char *const TAG = "stepper";
 
+void Stepper::set_target(int32_t steps)
+{
+  if (this->rotation_ != ROTATION_BOTH) {
+    if (steps != this->current_position) {
+      int32_t tmag = steps > this->current_position ? 1 : -1;
+      int32_t mag = 0;
+
+      switch (this->rotation_) {
+        case ROTATION_CW:
+          mag = 1;
+          break;
+
+        case ROTATION_CCW:
+          mag = -1;
+          break;
+
+        case ROTATION_BOTH:
+          break;
+      }
+
+      if (mag != tmag) {
+        ESP_LOGE(TAG, "Target (%d) cannot be reached in that direction (%d) from this position (%d)", steps, this->rotation_, this->current_position);
+        this->target_position = this->current_position;
+        return;
+      }
+    }
+  }
+
+  this->target_position = steps;
+}
+
 void Stepper::calculate_speed_(uint32_t now) {
   // delta t since last calculation in seconds
   float dt = (now - this->last_calculation_) * 1e-6f;
@@ -29,6 +60,7 @@ void Stepper::calculate_speed_(uint32_t now) {
   }
   this->current_speed_ = clamp(this->current_speed_, 0.0f, this->max_speed_);
 }
+
 int32_t Stepper::should_step_() {
   uint32_t now = micros();
   this->calculate_speed_(now);

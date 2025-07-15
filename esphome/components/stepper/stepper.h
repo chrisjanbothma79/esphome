@@ -23,7 +23,7 @@ enum Rotations {
 
 class Stepper {
  public:
-  void set_target(int32_t steps) { this->target_position = steps; }
+  void set_target(int32_t steps);
   void report_position(int32_t steps) { this->current_position = steps; }
   void set_acceleration(float acceleration) { this->acceleration_ = acceleration; }
   void set_deceleration(float deceleration) { this->deceleration_ = deceleration; }
