@@ -9,6 +9,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_BAUD_RATE,
     CONF_DEBUG,
+    CONF_DISABLED,
     CONF_ENABLE_ON_BOOT,
     CONF_ID,
     CONF_MODEL,
@@ -17,6 +18,7 @@ from esphome.const import (
     CONF_PASSWORD,
     CONF_REBOOT_TIMEOUT,
     CONF_RX_PIN,
+    CONF_SAFE_MODE,
     CONF_TRIGGER_ID,
     CONF_TX_PIN,
     CONF_USE_ADDRESS,
@@ -30,7 +32,6 @@ _LOGGER = logging.getLogger(__name__)
 CODEOWNERS = ["@oarcher"]
 DEPENDENCIES = ["esp32"]
 AUTO_LOAD = ["network", "watchdog"]
-# The following should be removed if conflicts are resolved (so we can have a Wi-Fi AP using the modem)
 CONFLICTS_WITH = ["captive_portal", "ethernet"]
 
 CONF_MODEM = "modem"
@@ -144,8 +145,13 @@ def _final_validate(config):
             raise cv.Invalid(
                 f"Modem model '{config[CONF_MODEL]}' has no power power specs."
             )
-    full_config.data[KEY_MODEM_MODEL] = config[CONF_MODEL]
-    full_config.data[KEY_MODEM_CMUX] = config[CONF_ENABLE_CMUX]
+    if conf_safe_mode := full_config.get(CONF_SAFE_MODE, None):
+        if not conf_safe_mode.get(CONF_DISABLED, None):
+            _LOGGER.warning(
+                "%s may be explicitly disabled, since triggering it would prevent the %s component from being activated.",
+                CONF_SAFE_MODE,
+                CONF_MODEM,
+            )
 
 
 FINAL_VALIDATE_SCHEMA = _final_validate

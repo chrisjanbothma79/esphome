@@ -63,9 +63,8 @@ bool ModemComponent::is_modem_connected(bool verbose) {
   bool connected = (network_mode != 0) && (!std::isnan(rssi)) && network_attached;
 
   if (verbose) {
-    ESP_LOGI(TAG, "Modem status: %s, attached: %s, type: %s, IP: %s, ber: %.0f%%, rssi: %.0fdB %s",
-             connected ? "Good" : "BAD", network_attached ? "Yes" : "NO",
-             network_system_mode_to_string(network_mode).c_str(), this->get_modem_ip().c_str(), ber, rssi,
+    ESP_LOGI(TAG, "Modem status: %s, attached: %s, type: %s, ber: %.0f%%, rssi: %.0fdB %s", connected ? "Good" : "BAD",
+             network_attached ? "Yes" : "NO", network_system_mode_to_string(network_mode).c_str(), ber, rssi,
              get_signal_bars(rssi).c_str());
   }
   return connected;
@@ -86,22 +85,6 @@ AtCommandResult ModemComponent::send_at(const std::string &cmd, uint32_t timeout
 
   at_command_result.success = at_command_result.esp_modem_command_result == command_result::OK;
   return at_command_result;
-}
-
-AtCommandResult ModemComponent::get_modem_ip() {
-  // Get the IP address assigned to the modem (not the PPP interface).
-  AtCommandResult res = this->send_at("AT+CGPADDR", this->command_delay_);
-  if (!res.success)
-    return res;
-  auto start = res.output.find(',');
-  if (start != std::string::npos) {
-    res.output = res.output.substr(start + 1);
-    res.success = !res.output.empty();
-  } else {
-    res.success = false;
-    res.output.clear();
-  }
-  return res;
 }
 
 bool ModemComponent::get_power_status() {

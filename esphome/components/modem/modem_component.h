@@ -77,7 +77,6 @@ class ModemComponent : public Component {
   AtCommandResult send_at(const std::string &cmd) { return this->send_at(cmd, this->command_delay_); }
   AtCommandResult send_at(const std::string &cmd, uint32_t timeout);
   AtCommandResult get_imei();
-  AtCommandResult get_modem_ip();
   bool get_power_status();
   void enable();
   void disable();
