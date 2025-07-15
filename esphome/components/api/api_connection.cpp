@@ -326,7 +326,6 @@ uint16_t APIConnection::try_send_binary_sensor_info(EntityBase *entity, APIConne
   ListEntitiesBinarySensorResponse msg;
   msg.device_class = binary_sensor->get_device_class();
   msg.is_status_binary_sensor = binary_sensor->is_status_binary_sensor();
-  msg.unique_id = get_default_unique_id("binary_sensor", binary_sensor);
   return fill_and_encode_entity_info(binary_sensor, msg, ListEntitiesBinarySensorResponse::MESSAGE_TYPE, conn,
                                      remaining_size, is_single);
 }
@@ -360,7 +359,6 @@ uint16_t APIConnection::try_send_cover_info(EntityBase *entity, APIConnection *c
   msg.supports_tilt = traits.get_supports_tilt();
   msg.supports_stop = traits.get_supports_stop();
   msg.device_class = cover->get_device_class();
-  msg.unique_id = get_default_unique_id("cover", cover);
   return fill_and_encode_entity_info(cover, msg, ListEntitiesCoverResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -422,7 +420,6 @@ uint16_t APIConnection::try_send_fan_info(EntityBase *entity, APIConnection *con
   msg.supported_speed_count = traits.supported_speed_count();
   for (auto const &preset : traits.supported_preset_modes())
     msg.supported_preset_modes.push_back(preset);
-  msg.unique_id = get_default_unique_id("fan", fan);
   return fill_and_encode_entity_info(fan, msg, ListEntitiesFanResponse::MESSAGE_TYPE, conn, remaining_size, is_single);
 }
 void APIConnection::fan_command(const FanCommandRequest &msg) {
@@ -494,7 +491,6 @@ uint16_t APIConnection::try_send_light_info(EntityBase *entity, APIConnection *c
       msg.effects.push_back(effect->get_name());
     }
   }
-  msg.unique_id = get_default_unique_id("light", light);
   return fill_and_encode_entity_info(light, msg, ListEntitiesLightResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -555,9 +551,6 @@ uint16_t APIConnection::try_send_sensor_info(EntityBase *entity, APIConnection *
   msg.force_update = sensor->get_force_update();
   msg.device_class = sensor->get_device_class();
   msg.state_class = static_cast<enums::SensorStateClass>(sensor->get_state_class());
-  msg.unique_id = sensor->unique_id();
-  if (msg.unique_id.empty())
-    msg.unique_id = get_default_unique_id("sensor", sensor);
   return fill_and_encode_entity_info(sensor, msg, ListEntitiesSensorResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -584,7 +577,6 @@ uint16_t APIConnection::try_send_switch_info(EntityBase *entity, APIConnection *
   ListEntitiesSwitchResponse msg;
   msg.assumed_state = a_switch->assumed_state();
   msg.device_class = a_switch->get_device_class();
-  msg.unique_id = get_default_unique_id("switch", a_switch);
   return fill_and_encode_entity_info(a_switch, msg, ListEntitiesSwitchResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -619,9 +611,6 @@ uint16_t APIConnection::try_send_text_sensor_info(EntityBase *entity, APIConnect
   auto *text_sensor = static_cast<text_sensor::TextSensor *>(entity);
   ListEntitiesTextSensorResponse msg;
   msg.device_class = text_sensor->get_device_class();
-  msg.unique_id = text_sensor->unique_id();
-  if (msg.unique_id.empty())
-    msg.unique_id = get_default_unique_id("text_sensor", text_sensor);
   return fill_and_encode_entity_info(text_sensor, msg, ListEntitiesTextSensorResponse::MESSAGE_TYPE, conn,
                                      remaining_size, is_single);
 }
@@ -694,7 +683,6 @@ uint16_t APIConnection::try_send_climate_info(EntityBase *entity, APIConnection 
     msg.supported_custom_presets.push_back(custom_preset);
   for (auto swing_mode : traits.get_supported_swing_modes())
     msg.supported_swing_modes.push_back(static_cast<enums::ClimateSwingMode>(swing_mode));
-  msg.unique_id = get_default_unique_id("climate", climate);
   return fill_and_encode_entity_info(climate, msg, ListEntitiesClimateResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -749,7 +737,6 @@ uint16_t APIConnection::try_send_number_info(EntityBase *entity, APIConnection *
   msg.min_value = number->traits.get_min_value();
   msg.max_value = number->traits.get_max_value();
   msg.step = number->traits.get_step();
-  msg.unique_id = get_default_unique_id("number", number);
   return fill_and_encode_entity_info(number, msg, ListEntitiesNumberResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -779,7 +766,6 @@ uint16_t APIConnection::try_send_date_info(EntityBase *entity, APIConnection *co
                                            bool is_single) {
   auto *date = static_cast<datetime::DateEntity *>(entity);
   ListEntitiesDateResponse msg;
-  msg.unique_id = get_default_unique_id("date", date);
   return fill_and_encode_entity_info(date, msg, ListEntitiesDateResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -809,7 +795,6 @@ uint16_t APIConnection::try_send_time_info(EntityBase *entity, APIConnection *co
                                            bool is_single) {
   auto *time = static_cast<datetime::TimeEntity *>(entity);
   ListEntitiesTimeResponse msg;
-  msg.unique_id = get_default_unique_id("time", time);
   return fill_and_encode_entity_info(time, msg, ListEntitiesTimeResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -841,7 +826,6 @@ uint16_t APIConnection::try_send_datetime_info(EntityBase *entity, APIConnection
                                                bool is_single) {
   auto *datetime = static_cast<datetime::DateTimeEntity *>(entity);
   ListEntitiesDateTimeResponse msg;
-  msg.unique_id = get_default_unique_id("datetime", datetime);
   return fill_and_encode_entity_info(datetime, msg, ListEntitiesDateTimeResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -875,7 +859,6 @@ uint16_t APIConnection::try_send_text_info(EntityBase *entity, APIConnection *co
   msg.min_length = text->traits.get_min_length();
   msg.max_length = text->traits.get_max_length();
   msg.pattern = text->traits.get_pattern();
-  msg.unique_id = get_default_unique_id("text", text);
   return fill_and_encode_entity_info(text, msg, ListEntitiesTextResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -907,7 +890,6 @@ uint16_t APIConnection::try_send_select_info(EntityBase *entity, APIConnection *
   ListEntitiesSelectResponse msg;
   for (const auto &option : select->traits.get_options())
     msg.options.push_back(option);
-  msg.unique_id = get_default_unique_id("select", select);
   return fill_and_encode_entity_info(select, msg, ListEntitiesSelectResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -924,7 +906,6 @@ uint16_t APIConnection::try_send_button_info(EntityBase *entity, APIConnection *
   auto *button = static_cast<button::Button *>(entity);
   ListEntitiesButtonResponse msg;
   msg.device_class = button->get_device_class();
-  msg.unique_id = get_default_unique_id("button", button);
   return fill_and_encode_entity_info(button, msg, ListEntitiesButtonResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -955,7 +936,6 @@ uint16_t APIConnection::try_send_lock_info(EntityBase *entity, APIConnection *co
   msg.assumed_state = a_lock->traits.get_assumed_state();
   msg.supports_open = a_lock->traits.get_supports_open();
   msg.requires_code = a_lock->traits.get_requires_code();
-  msg.unique_id = get_default_unique_id("lock", a_lock);
   return fill_and_encode_entity_info(a_lock, msg, ListEntitiesLockResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -998,7 +978,6 @@ uint16_t APIConnection::try_send_valve_info(EntityBase *entity, APIConnection *c
   msg.assumed_state = traits.get_is_assumed_state();
   msg.supports_position = traits.get_supports_position();
   msg.supports_stop = traits.get_supports_stop();
-  msg.unique_id = get_default_unique_id("valve", valve);
   return fill_and_encode_entity_info(valve, msg, ListEntitiesValveResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -1045,7 +1024,6 @@ uint16_t APIConnection::try_send_media_player_info(EntityBase *entity, APIConnec
     media_format.sample_bytes = supported_format.sample_bytes;
     msg.supported_formats.push_back(media_format);
   }
-  msg.unique_id = get_default_unique_id("media_player", media_player);
   return fill_and_encode_entity_info(media_player, msg, ListEntitiesMediaPlayerResponse::MESSAGE_TYPE, conn,
                                      remaining_size, is_single);
 }
@@ -1082,7 +1060,6 @@ uint16_t APIConnection::try_send_camera_info(EntityBase *entity, APIConnection *
                                              bool is_single) {
   auto *camera = static_cast<camera::Camera *>(entity);
   ListEntitiesCameraResponse msg;
-  msg.unique_id = get_default_unique_id("camera", camera);
   return fill_and_encode_entity_info(camera, msg, ListEntitiesCameraResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -1272,7 +1249,6 @@ uint16_t APIConnection::try_send_alarm_control_panel_info(EntityBase *entity, AP
   msg.supported_features = a_alarm_control_panel->get_supported_features();
   msg.requires_code = a_alarm_control_panel->get_requires_code();
   msg.requires_code_to_arm = a_alarm_control_panel->get_requires_code_to_arm();
-  msg.unique_id = get_default_unique_id("alarm_control_panel", a_alarm_control_panel);
   return fill_and_encode_entity_info(a_alarm_control_panel, msg, ListEntitiesAlarmControlPanelResponse::MESSAGE_TYPE,
                                      conn, remaining_size, is_single);
 }
@@ -1325,7 +1301,6 @@ uint16_t APIConnection::try_send_event_info(EntityBase *entity, APIConnection *c
   msg.device_class = event->get_device_class();
   for (const auto &event_type : event->get_event_types())
     msg.event_types.push_back(event_type);
-  msg.unique_id = get_default_unique_id("event", event);
   return fill_and_encode_entity_info(event, msg, ListEntitiesEventResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
@@ -1360,7 +1335,6 @@ uint16_t APIConnection::try_send_update_info(EntityBase *entity, APIConnection *
   auto *update = static_cast<update::UpdateEntity *>(entity);
   ListEntitiesUpdateResponse msg;
   msg.device_class = update->get_device_class();
-  msg.unique_id = get_default_unique_id("update", update);
   return fill_and_encode_entity_info(update, msg, ListEntitiesUpdateResponse::MESSAGE_TYPE, conn, remaining_size,
                                      is_single);
 }
