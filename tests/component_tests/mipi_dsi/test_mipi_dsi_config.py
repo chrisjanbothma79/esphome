@@ -29,10 +29,23 @@ def test_configuration_errors(set_core_config) -> None:
         CONFIG_SCHEMA({"id": "display_id"})
 
     with pytest.raises(
-        cv.Invalid, match=r"required key not provided @ data\['dimensions'\]"
+        cv.Invalid,
+        match=r"string value is None for dictionary value @ data\['lane_bit_rate'\]",
     ):
         CONFIG_SCHEMA(
             {"id": "display_id", "model": "custom", "init_sequence": [[0x36, 0x01]]}
+        )
+
+    with pytest.raises(
+        cv.Invalid, match=r"required key not provided @ data\['dimensions'\]"
+    ):
+        CONFIG_SCHEMA(
+            {
+                "id": "display_id",
+                "model": "custom",
+                "init_sequence": [[0x36, 0x01]],
+                "lane_bit_rate": "1.5Gbps",
+            }
         )
 
     with pytest.raises(
@@ -41,6 +54,7 @@ def test_configuration_errors(set_core_config) -> None:
         CONFIG_SCHEMA(
             {
                 "model": "custom",
+                "lane_bit_rate": "1.5Gbps",
                 "dimensions": {"width": 320, "height": 240},
             }
         )
@@ -69,8 +83,10 @@ def test_configuration_success(
                 "height": 240,
             },
             "invert_colors": True,
-            "transform": {"mirror_x": True, "mirror_y": True, "swap_xy": False},
-            "data_rate": "40MHz",
+            "transform": {"mirror_x": True, "mirror_y": True},
+            "pclk_frequency": "40MHz",
+            "lane_bit_rate": "1.5Gbps",
+            "lanes": 2,
             "use_axis_flips": True,
         }
     )
@@ -82,28 +98,16 @@ def test_configuration_success(
             config[CONF_INIT_SEQUENCE] = [[0xA0, 0x01]]
         if not model.get_default(CONF_DIMENSIONS):
             config[CONF_DIMENSIONS] = {CONF_WIDTH: 400, CONF_HEIGHT: 300}
+        if not model.get_default("lane_bit_rate"):
+            config["lane_bit_rate"] = "1.5Gbps"
         CONFIG_SCHEMA(config)
 
 
-def test_native_generation(generate_main, get_path) -> None:
+def test_code_generation(generate_main, get_path) -> None:
     """Test code generation for display."""
 
-    main_cpp = generate_main(get_path("native.yaml"))
-    assert (
-        "mipi_dsi::MipiSpiBuffer<uint16_t, mipi_dsi::PIXEL_MODE_16, true, mipi_dsi::PIXEL_MODE_16, mipi_dsi::BUS_TYPE_QUAD, 360, 360, 0, 1, display::DISPLAY_ROTATION_0_DEGREES, 1>()"
-        in main_cpp
-    )
-    assert "set_init_sequence({240, 1, 8, 242" in main_cpp
-    assert "show_test_card();" in main_cpp
-    assert "set_write_only(true);" in main_cpp
-
-
-def test_lvgl_generation(generate_main, get_path) -> None:
-    main_cpp = generate_main(get_path("lvgl.yaml"))
-    assert (
-        "mipi_dsi::MipiSpi<uint16_t, mipi_dsi::PIXEL_MODE_16, true, mipi_dsi::PIXEL_MODE_16, mipi_dsi::BUS_TYPE_SINGLE, 128, 160, 0, 0>();"
-        in main_cpp
-    )
-    assert "set_init_sequence({1, 0, 10, 255, 177" in main_cpp
-    assert "show_test_card();" not in main_cpp
-    assert "set_auto_clear(false);" in main_cpp
+    main_cpp = generate_main(get_path("mipi_dsi.yaml"))
+    assert "new mipi_dsi::MIPI_DSI(800, 1280);" in main_cpp
+    assert "set_init_sequence({224, 1, 0, 225, 1, 147, 226, 1," in main_cpp
+    assert "mipi_dsi_mipi_dsi_id->set_lane_bit_rate(1500);" in main_cpp
+    assert "backlight_id = new light::LightState(mipi_dsi_dsibacklight_id);" in main_cpp
