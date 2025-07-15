@@ -25,6 +25,8 @@
 #include "esphome/components/voice_assistant/voice_assistant.h"
 #endif
 
+// RANDOM COMMENT
+
 namespace esphome {
 namespace api {
 
