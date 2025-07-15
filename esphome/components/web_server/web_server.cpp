@@ -1322,6 +1322,7 @@ std::string WebServer::climate_all_json_generator(WebServer *web_server, void *s
   return web_server->climate_json((climate::Climate *) (source), DETAIL_ALL);
 }
 std::string WebServer::climate_json(climate::Climate *obj, JsonDetail start_config) {
+  // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_id(root, obj, "climate-" + obj->get_object_id(), start_config);
     const auto traits = obj->get_traits();
@@ -1407,6 +1408,7 @@ std::string WebServer::climate_json(climate::Climate *obj, JsonDetail start_conf
         root["state"] = root["target_temperature"];
     }
   });
+  // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 #endif
 
@@ -1682,6 +1684,7 @@ std::string WebServer::update_all_json_generator(WebServer *web_server, void *so
   return web_server->update_json((update::UpdateEntity *) (source), DETAIL_STATE);
 }
 std::string WebServer::update_json(update::UpdateEntity *obj, JsonDetail start_config) {
+  // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   return json::build_json([this, obj, start_config](JsonObject root) {
     set_json_id(root, obj, "update-" + obj->get_object_id(), start_config);
     root["value"] = obj->update_info.latest_version;
@@ -1707,6 +1710,7 @@ std::string WebServer::update_json(update::UpdateEntity *obj, JsonDetail start_c
       this->add_sorting_info_(root, obj);
     }
   });
+  // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 #endif
 

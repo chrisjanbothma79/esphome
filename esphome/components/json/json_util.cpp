@@ -1,7 +1,7 @@
 #include "json_util.h"
 #include "esphome/core/log.h"
 
-#include <ArduinoJson/Memory/Allocator.hpp>
+// ArduinoJson::Allocator is included via ArduinoJson.h in json_util.h
 
 namespace esphome {
 namespace json {
@@ -13,7 +13,12 @@ struct SpiRamAllocator : ArduinoJson::Allocator {
   void *allocate(size_t size) override { return this->allocator_.allocate(size); }
 
   void deallocate(void *pointer) override {
-    // RAMAllocator requires passing the size of the allocated space which don't know, so use free directly
+    // ArduinoJson's Allocator interface doesn't provide the size parameter in deallocate.
+    // RAMAllocator::deallocate() requires the size, which we don't have access to here.
+    // RAMAllocator::deallocate implementation just calls free() regardless of whether
+    // the memory was allocated with heap_caps_malloc or malloc.
+    // This is safe because ESP-IDF's heap implementation internally tracks the memory region
+    // and routes free() to the appropriate heap.
     free(pointer);  // NOLINT(cppcoreguidelines-owning-memory,cppcoreguidelines-no-malloc)
   }
 
@@ -26,18 +31,15 @@ struct SpiRamAllocator : ArduinoJson::Allocator {
 };
 
 std::string build_json(const json_build_t &f) {
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
+  // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   auto doc_allocator = SpiRamAllocator();
   JsonDocument json_document(&doc_allocator);
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   if (json_document.overflowed()) {
     ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
     return "{}";
   }
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   JsonObject root = json_document.to<JsonObject>();
   f(root);
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   if (json_document.overflowed()) {
     ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
     return "{}";
@@ -45,18 +47,17 @@ std::string build_json(const json_build_t &f) {
   std::string output;
   serializeJson(json_document, output);
   return output;
+  // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 
 bool parse_json(const std::string &data, const json_parse_t &f) {
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
+  // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   auto doc_allocator = SpiRamAllocator();
   JsonDocument json_document(&doc_allocator);
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   if (json_document.overflowed()) {
     ESP_LOGE(TAG, "Could not allocate memory for JSON document!");
     return false;
   }
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   DeserializationError err = deserializeJson(json_document, data);
 
   JsonObject root = json_document.as<JsonObject>();
@@ -69,6 +70,7 @@ bool parse_json(const std::string &data, const json_parse_t &f) {
   }
   ESP_LOGE(TAG, "Parse error: %s", err.c_str());
   return false;
+  // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 
 }  // namespace json

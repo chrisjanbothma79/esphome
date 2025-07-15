@@ -92,10 +92,10 @@ void MQTTClientComponent::send_device_info_() {
   std::string topic = "esphome/discover/";
   topic.append(App.get_name());
 
+  // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   this->publish_json(
       topic,
       [](JsonObject root) {
-        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         uint8_t index = 0;
         for (auto &ip : network::get_ip_addresses()) {
           if (ip.is_set()) {
@@ -148,6 +148,7 @@ void MQTTClientComponent::send_device_info_() {
 #endif
       },
       2, this->discovery_info_.retain);
+  // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 
 void MQTTClientComponent::dump_config() {

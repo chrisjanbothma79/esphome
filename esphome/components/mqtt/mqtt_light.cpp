@@ -45,6 +45,7 @@ void MQTTJSONLightComponent::send_discovery(JsonObject root, mqtt::SendDiscovery
   auto traits = this->state_->get_traits();
 
   root[MQTT_COLOR_MODE] = true;
+  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   JsonArray color_modes = root["supported_color_modes"].to<JsonArray>();
   if (traits.supports_color_mode(ColorMode::ON_OFF))
     color_modes.add("onoff");

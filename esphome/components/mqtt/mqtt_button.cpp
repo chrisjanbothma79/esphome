@@ -31,10 +31,12 @@ void MQTTButtonComponent::dump_config() {
 }
 
 void MQTTButtonComponent::send_discovery(JsonObject root, mqtt::SendDiscoveryConfig &config) {
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
+  // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   config.state_topic = false;
-  if (!this->button_->get_device_class().empty())
+  if (!this->button_->get_device_class().empty()) {
     root[MQTT_DEVICE_CLASS] = this->button_->get_device_class();
+  }
+  // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 
 std::string MQTTButtonComponent::component_type() const { return "button"; }

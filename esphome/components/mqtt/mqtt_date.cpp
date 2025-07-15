@@ -26,7 +26,7 @@ void MQTTDateComponent::setup() {
     if (root["month"].is<uint8_t>()) {
       call.set_month(root["month"]);
     }
-    if (root["day"].is<uint16_t>()) {
+    if (root["day"].is<uint8_t>()) {
       call.set_day(root["day"]);
     }
     call.perform();

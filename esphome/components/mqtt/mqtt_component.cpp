@@ -70,10 +70,10 @@ bool MQTTComponent::send_discovery_() {
 
   ESP_LOGV(TAG, "'%s': Sending discovery", this->friendly_name().c_str());
 
+  // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
   return global_mqtt_client->publish_json(
       this->get_discovery_topic_(discovery_info),
       [this](JsonObject root) {
-        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         SendDiscoveryConfig config;
         config.state_topic = true;
         config.command_topic = true;
@@ -189,11 +189,11 @@ bool MQTTComponent::send_discovery_() {
           device_info[MQTT_DEVICE_SUGGESTED_AREA] = node_area;
         }
 
-        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
         device_info[MQTT_DEVICE_CONNECTIONS][0][0] = "mac";
         device_info[MQTT_DEVICE_CONNECTIONS][0][1] = mac;
       },
       this->qos_, discovery_info.retain);
+  // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 }
 
 uint8_t MQTTComponent::get_qos() const { return this->qos_; }
