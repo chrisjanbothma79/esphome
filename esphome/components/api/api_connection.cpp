@@ -26,6 +26,7 @@
 #endif
 
 // RANDOM COMMENT
+// AND ANOTHER  
 
 namespace esphome {
 namespace api {
