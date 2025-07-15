@@ -193,7 +193,7 @@ void HOT Scheduler::set_retry(Component *component, const std::string &name, uin
             name.c_str(), initial_wait_time, max_attempts, backoff_increase_factor);
 
   if (backoff_increase_factor < 0.0001) {
-    ESP_LOGE(TAG, "backoff_factor %0.1f too small, using 1.0", backoff_increase_factor);
+    ESP_LOGE(TAG, "backoff_factor %0.1f too small, using 1.0: %s", backoff_increase_factor, name.c_str());
     backoff_increase_factor = 1;
   }
 
