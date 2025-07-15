@@ -56,7 +56,7 @@ void X9cOutput::setup() {
 
 void X9cOutput::write_state(float state) {
   int change_amount = static_cast<uint32_t>(roundf((state - this->pot_value_) * 100));
-  if (change_amount != 0) {  
+  if (change_amount != 0) {
     this->trim_value(change_amount);
     this->pot_value_ = state;
   }
