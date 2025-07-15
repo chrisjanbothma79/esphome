@@ -29,13 +29,13 @@ void MQTTDateTimeComponent::setup() {
     if (root["day"].is<uint8_t>()) {
       call.set_day(root["day"]);
     }
-    if (root["hour"].is<uint16_t>()) {
+    if (root["hour"].is<uint8_t>()) {
       call.set_hour(root["hour"]);
     }
-    if (root["minute"].is<uint16_t>()) {
+    if (root["minute"].is<uint8_t>()) {
       call.set_minute(root["minute"]);
     }
-    if (root["second"].is<uint16_t>()) {
+    if (root["second"].is<uint8_t>()) {
       call.set_second(root["second"]);
     }
     call.perform();
