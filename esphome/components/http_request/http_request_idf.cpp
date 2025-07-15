@@ -189,11 +189,12 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::perform(std::string url, std::str
       }
 
       container->feed_wdt();
-      esp_http_client_fetch_headers(client);
+      container->content_length = esp_http_client_fetch_headers(client);
       container->feed_wdt();
       container->status_code = esp_http_client_get_status_code(client);
       container->feed_wdt();
-      container->content_length = esp_http_client_get_content_length(client);
+      container->chunked = esp_http_client_is_chunked_response(client);
+      container->feed_wdt();
       if (is_success(container->status_code)) {
         container->duration_ms = millis() - start;
         return container;
