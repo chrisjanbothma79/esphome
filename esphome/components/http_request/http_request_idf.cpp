@@ -152,11 +152,12 @@ std::shared_ptr<HttpContainer> HttpRequestIDF::perform(std::string url, std::str
   }
 
   container->feed_wdt();
-  esp_http_client_fetch_headers(client);
+  container->content_length = esp_http_client_fetch_headers(client);
   container->feed_wdt();
   container->status_code = esp_http_client_get_status_code(client);
   container->feed_wdt();
-  container->content_length = esp_http_client_get_content_length(client);
+  container->chunked = esp_http_client_is_chunked_response(client);
+  container->feed_wdt();
   container->set_response_headers(user_data.response_headers);
   if (is_success(container->status_code)) {
     container->duration_ms = millis() - start;
@@ -218,7 +219,7 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
   int bufsize;
   int read_len;
   size_t chunk_length = this->content_length;
-  if (esp_http_client_is_chunked_response(this->client_)) {
+  if (this->chunked) {
     int signed_chunk_length;
     auto err = esp_http_client_get_chunk_length(this->client_, &signed_chunk_length);
     if (err != ESP_OK) {
@@ -254,7 +255,7 @@ int HttpContainerIDF::read(uint8_t *buf, size_t max_len) {
   }
   this->bytes_read_ += read_len;
 
-  if (esp_http_client_is_chunked_response(this->client_)) {
+  if (this->chunked) {
     this->chunk_bytes_read_ += read_len;
     ESP_LOGVV(TAG, "Read %d bytes from chunk (total in chunk: %zu/%zu)", read_len, this->chunk_bytes_read_,
               chunk_length);

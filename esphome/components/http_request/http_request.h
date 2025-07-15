@@ -86,6 +86,7 @@ class HttpContainer : public Parented<HttpRequestComponent> {
  public:
   virtual ~HttpContainer() = default;
   size_t content_length;
+  bool chunked;
   int status_code;
   uint32_t duration_ms;
 
@@ -235,7 +236,7 @@ template<typename... Ts> class HttpRequestSendAction : public Action<Ts...> {
     }
 
     size_t max_length;
-    if (container->content_length == -1) {
+    if (container->chunked) {
       max_length = this->max_response_buffer_size_;
     } else {
       max_length = std::min(container->content_length, this->max_response_buffer_size_);

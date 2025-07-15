@@ -54,6 +54,14 @@ void HttpRequestUpdate::update_task(void *params) {
     UPDATE_RETURN;
   }
 
+  if (container->chunked) {
+    std::string msg = str_sprintf("Updates transmitted using chunked encoding aren't supported: %s",
+                                  this_update->source_url_.c_str());
+    this_update->status_set_error(msg.c_str());
+    container->end();
+    UPDATE_RETURN;
+  }
+
   RAMAllocator<uint8_t> allocator;
   uint8_t *data = allocator.allocate(container->content_length);
   if (data == nullptr) {
