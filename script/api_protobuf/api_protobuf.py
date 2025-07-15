@@ -536,11 +536,26 @@ class MessageType(TypeInfo):
 
     @property
     def encode_func(self) -> str:
-        return f"encode_message<{self.cpp_type}>"
+        return "encode_message"
 
     @property
     def decode_length(self) -> str:
-        return f"value.as_message<{self.cpp_type}>()"
+        # Override to return None for message types because we can't use template-based
+        # decoding when the specific message type isn't known at compile time.
+        # Instead, we use the non-template decode_to_message() method which allows
+        # runtime polymorphism through virtual function calls.
+        return None
+
+    @property
+    def decode_length_content(self) -> str:
+        # Custom decode that doesn't use templates
+        return dedent(
+            f"""\
+        case {self.number}: {{
+          value.decode_to_message(this->{self.field_name});
+          return true;
+        }}"""
+        )
 
     def dump(self, name: str) -> str:
         o = f"{name}.dump_to(out);"
@@ -608,14 +623,18 @@ class EnumType(TypeInfo):
 
     @property
     def decode_varint(self) -> str:
-        return f"value.as_enum<{self.cpp_type}>()"
+        return f"static_cast<{self.cpp_type}>(value.as_uint32())"
 
     default_value = ""
     wire_type = WireType.VARINT  # Uses wire type 0
 
     @property
     def encode_func(self) -> str:
-        return f"encode_enum<{self.cpp_type}>"
+        return "encode_uint32"
+
+    @property
+    def encode_content(self) -> str:
+        return f"buffer.{self.encode_func}({self.number}, static_cast<uint32_t>(this->{self.field_name}));"
 
     def dump(self, name: str) -> str:
         o = f"out.append(proto_enum_to_string<{self.cpp_type}>({name}));"
@@ -757,6 +776,16 @@ class RepeatedTypeInfo(TypeInfo):
     @property
     def decode_length_content(self) -> str:
         content = self._ti.decode_length
+        if content is None and isinstance(self._ti, MessageType):
+            # Special handling for non-template message decoding
+            return dedent(
+                f"""\
+        case {self.number}: {{
+          this->{self.field_name}.emplace_back();
+          value.decode_to_message(this->{self.field_name}.back());
+          return true;
+        }}"""
+            )
         if content is None:
             return None
         return dedent(
@@ -801,7 +830,10 @@ class RepeatedTypeInfo(TypeInfo):
     @property
     def encode_content(self) -> str:
         o = f"for (auto {'' if self._ti_is_bool else '&'}it : this->{self.field_name}) {{\n"
-        o += f"  buffer.{self._ti.encode_func}({self.number}, it, true);\n"
+        if isinstance(self._ti, EnumType):
+            o += f"  buffer.{self._ti.encode_func}({self.number}, static_cast<uint32_t>(it), true);\n"
+        else:
+            o += f"  buffer.{self._ti.encode_func}({self.number}, it, true);\n"
         o += "}"
         return o
 
@@ -1027,6 +1059,11 @@ def build_message_type(
     # Get message ID if it's a service message
     message_id: int | None = get_opt(desc, pb.id)
 
+    # Get source direction to determine if we need decode/encode methods
+    source: int = get_opt(desc, pb.source, SOURCE_BOTH)
+    needs_decode = source in (SOURCE_BOTH, SOURCE_CLIENT)
+    needs_encode = source in (SOURCE_BOTH, SOURCE_SERVER)
+
     # Add MESSAGE_TYPE method if this is a service message
     if message_id is not None:
         # Validate that message_id fits in uint8_t
@@ -1069,18 +1106,21 @@ def build_message_type(
             protected_content.extend(ti.protected_content)
             public_content.extend(ti.public_content)
 
-        # Always include encode/decode logic for all fields
-        encode.append(ti.encode_content)
-        size_calc.append(ti.get_size_calculation(f"this->{ti.field_name}"))
+        # Only collect encode logic if this message needs it
+        if needs_encode:
+            encode.append(ti.encode_content)
+            size_calc.append(ti.get_size_calculation(f"this->{ti.field_name}"))
 
-        if ti.decode_varint_content:
-            decode_varint.append(ti.decode_varint_content)
-        if ti.decode_length_content:
-            decode_length.append(ti.decode_length_content)
-        if ti.decode_32bit_content:
-            decode_32bit.append(ti.decode_32bit_content)
-        if ti.decode_64bit_content:
-            decode_64bit.append(ti.decode_64bit_content)
+        # Only collect decode methods if this message needs them
+        if needs_decode:
+            if ti.decode_varint_content:
+                decode_varint.append(ti.decode_varint_content)
+            if ti.decode_length_content:
+                decode_length.append(ti.decode_length_content)
+            if ti.decode_32bit_content:
+                decode_32bit.append(ti.decode_32bit_content)
+            if ti.decode_64bit_content:
+                decode_64bit.append(ti.decode_64bit_content)
         if ti.dump_content:
             dump.append(ti.dump_content)
 
@@ -1126,8 +1166,8 @@ def build_message_type(
         prot = "bool decode_64bit(uint32_t field_id, Proto64Bit value) override;"
         protected_content.insert(0, prot)
 
-    # Only generate encode method if there are fields to encode
-    if encode:
+    # Only generate encode method if this message needs encoding and has fields
+    if needs_encode and encode:
         o = f"void {desc.name}::encode(ProtoWriteBuffer buffer) const {{"
         if len(encode) == 1 and len(encode[0]) + len(o) + 3 < 120:
             o += f" {encode[0]} "
@@ -1138,10 +1178,10 @@ def build_message_type(
         cpp += o
         prot = "void encode(ProtoWriteBuffer buffer) const override;"
         public_content.append(prot)
-    # If no fields to encode, the default implementation in ProtoMessage will be used
+    # If no fields to encode or message doesn't need encoding, the default implementation in ProtoMessage will be used
 
-    # Add calculate_size method only if there are fields
-    if size_calc:
+    # Add calculate_size method only if this message needs encoding and has fields
+    if needs_encode and size_calc:
         o = f"void {desc.name}::calculate_size(uint32_t &total_size) const {{"
         # For a single field, just inline it for simplicity
         if len(size_calc) == 1 and len(size_calc[0]) + len(o) + 3 < 120:
@@ -1154,7 +1194,7 @@ def build_message_type(
         cpp += o
         prot = "void calculate_size(uint32_t &total_size) const override;"
         public_content.append(prot)
-    # If no fields to calculate size for, the default implementation in ProtoMessage will be used
+    # If no fields to calculate size for or message doesn't need encoding, the default implementation in ProtoMessage will be used
 
     # dump_to method declaration in header
     prot = "#ifdef HAS_PROTO_MESSAGE_DUMP\n"
@@ -1419,7 +1459,6 @@ def main() -> None:
 #include "esphome/core/defines.h"
 
 #include "proto.h"
-#include "api_pb2_size.h"
 
 namespace esphome {
 namespace api {
@@ -1429,7 +1468,6 @@ namespace api {
     cpp = FILE_HEADER
     cpp += """\
     #include "api_pb2.h"
-    #include "api_pb2_size.h"
     #include "esphome/core/log.h"
     #include "esphome/core/helpers.h"
 
