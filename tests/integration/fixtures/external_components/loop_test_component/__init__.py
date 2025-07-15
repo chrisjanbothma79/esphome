@@ -1,7 +1,7 @@
 from esphome import automation
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.const import CONF_COMPONENTS, CONF_ID, CONF_NAME
+from esphome.const import CONF_COMPONENTS, CONF_ID, CONF_NAME, CONF_UPDATE_INTERVAL
 
 CODEOWNERS = ["@esphome/tests"]
 
@@ -19,7 +19,6 @@ CONF_TEST_REDUNDANT_OPERATIONS = "test_redundant_operations"
 CONF_ISR_COMPONENTS = "isr_components"
 CONF_UPDATE_COMPONENTS = "update_components"
 CONF_DISABLE_LOOP_AFTER = "disable_loop_after"
-CONF_UPDATE_INTERVAL = "update_interval"
 
 COMPONENT_CONFIG_SCHEMA = cv.Schema(
     {

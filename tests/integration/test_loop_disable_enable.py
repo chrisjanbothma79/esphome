@@ -130,7 +130,6 @@ async def test_loop_disable_enable(
             elif "LoopTestUpdateComponent update() called" in clean_line:
                 nonlocal update_component_update_count
                 update_component_update_count += 1
-                # Check if this is after manual trigger
                 if "Manually calling component.update" in " ".join(log_messages[-5:]):
                     nonlocal update_component_manual_update_count
                     update_component_manual_update_count += 1
