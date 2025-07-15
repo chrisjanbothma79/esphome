@@ -21,12 +21,15 @@ NeewerCTLightOutput::NeewerCTLightOutput() {
 };
 
 void NeewerCTLightOutput::dump_config() {
-  ESP_LOGCONFIG(TAG, "Neewer CT Light Output:");
-  ESP_LOGCONFIG(TAG, "  MAC address        : %s", this->parent_ ? this->parent_->address_str().c_str() : "N/A");
-  ESP_LOGCONFIG(TAG, "  Service UUID       : %s", this->ble_.service_uuid_.to_string().c_str());
-  ESP_LOGCONFIG(TAG, "  Characteristic UUID: %s", this->ble_.characteristic_uuid_.to_string().c_str());
-  ESP_LOGCONFIG(TAG, "  Require Response   : %s", this->ble_.require_response_ ? "True" : "False");
-  ESP_LOGCONFIG(TAG, "  Colour Temperature Range: %d K - %d K", utils::mireds_to_kelvin_int(warm_white_temperature_),
+  ESP_LOGCONFIG(TAG,
+                "Neewer CT Light:\n"
+                "  MAC address: %s\n"
+                "  Service UUID: %s\n"
+                "  Characteristic UUID: %s\n"
+                "  Require Response: %s\n",
+                "  Colour Temperature Range: %d K - %d K", this->parent_ ? this->parent_->address_str().c_str() : "N/A",
+                this->ble_.service_uuid_.to_string().c_str(), this->ble_.characteristic_uuid_.to_string().c_str(),
+                this->ble_.require_response_ ? "True" : "False", utils::mireds_to_kelvin_int(warm_white_temperature_),
                 utils::mireds_to_kelvin_int(cold_white_temperature_));
 };
 
