@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Generator
-import inspect
-import os
 from pathlib import Path
 import sys
 from typing import Any
