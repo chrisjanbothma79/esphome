@@ -26,34 +26,17 @@ logger:
 espnow:
   auto_add_peer: true
   wifi_channel: 1
-  attempts: 3
-  predefined_peers:
-    - mac_address: E8:6B:EA:24:22:04
+  peers:
+    - E8:6B:EA:24:22:04
   on_new_peer:
     - logger.log:
-        format: "New Peer from: %s = '%s' cmd: %d RSSI: %d"
+        format: "New Peer from: %s = '%s' RSSI: %d"
         args:
           [
             packet->payload(),
             packet->peer_str().c_str(),
-            packet->command(),
             packet->rssi(),
           ]
-  custom_apps:
-    - on_receive:
-        - logger.log:
-            format: "Received from: %s = '%s' cmd: %d RSSI: %d"
-            args:
-              [
-                packet->payload(),
-                packet->peer_str().c_str(),
-                packet->command(),
-                packet->rssi(),
-              ]
-      on_failed:
-        - logger.log:
-            format: "Failed to send %s"
-            args: [packet->info().c_str()]
 
 binary_sensor:
   - platform: gpio
@@ -70,5 +53,4 @@ binary_sensor:
       - espnow.send:
           # ac_address: e8:6b:ea:24:22:04
           # app_id: ${my_espnow_app}
-          command: 222
           payload: "Test  1."

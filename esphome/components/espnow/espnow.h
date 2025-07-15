@@ -44,7 +44,7 @@ class ESPNowComponent;
 
 using EPSNowTrigger = std::function<void(std::shared_ptr<ESPNowPacket>)>;
 
-class ESPNowPacket extend std::vector < uint8_t {
+class ESPNowPacket extend std::vector<uint8_t> {
  public:
   ESPNowPacket(uint64_t peer, const uint8_t *payload, size_t size);
   ESPNowPacket(const uint8_t *mac_address, const uint8_t *payload, int size);
