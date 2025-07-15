@@ -275,11 +275,11 @@ async def to_code(configs):
         "LVGL_LOG_LEVEL",
         cg.RawExpression(f"ESPHOME_LOG_LEVEL_{config_0[df.CONF_LOG_LEVEL]}"),
     )
-    add_define("LV_COLOR_DEPTH", config_0[df.CONF_COLOR_DEPTH])
+    add_define("LV_COLOR_DEPTH", config_0[CONF_COLOR_DEPTH])
     for font in helpers.lv_fonts_used:
         add_define(f"LV_FONT_{font.upper()}")
 
-    if config_0[df.CONF_COLOR_DEPTH] == 16:
+    if config_0[CONF_COLOR_DEPTH] == 16:
         add_define(
             "LV_COLOR_16_SWAP",
             "1" if config_0[df.CONF_BYTE_ORDER] == "big_endian" else "0",
@@ -416,7 +416,7 @@ LVGL_SCHEMA = cv.All(
             {
                 cv.GenerateID(CONF_ID): cv.declare_id(LvglComponent),
                 cv.GenerateID(df.CONF_DISPLAYS): display_schema,
-                cv.Optional(df.CONF_COLOR_DEPTH, default=16): cv.one_of(16),
+                cv.Optional(CONF_COLOR_DEPTH, default=16): cv.one_of(16),
                 cv.Optional(
                     df.CONF_DEFAULT_FONT, default="montserrat_14"
                 ): lvalid.lv_font,
