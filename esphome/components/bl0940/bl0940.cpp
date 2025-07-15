@@ -145,27 +145,27 @@ void BL0940::reset_calibration() {
 
 void BL0940::current_calibration_callback_(float state) {
   this->current_cal_ = this->calculate_calibration_value_(state);
-  ESP_LOGD(TAG, "update current calibration state: %f", this->current_cal_);
+  ESP_LOGV(TAG, "update current calibration state: %f", this->current_cal_);
   this->recalibrate_();
 }
 void BL0940::voltage_calibration_callback_(float state) {
   this->voltage_cal_ = this->calculate_calibration_value_(state);
-  ESP_LOGD(TAG, "update voltage calibration state: %f", this->voltage_cal_);
+  ESP_LOGV(TAG, "update voltage calibration state: %f", this->voltage_cal_);
   this->recalibrate_();
 }
 void BL0940::power_calibration_callback_(float state) {
   this->power_cal_ = this->calculate_calibration_value_(state);
-  ESP_LOGD(TAG, "update power calibration state: %f", this->power_cal_);
+  ESP_LOGV(TAG, "update power calibration state: %f", this->power_cal_);
   this->recalibrate_();
 }
 void BL0940::energy_calibration_callback_(float state) {
   this->energy_cal_ = this->calculate_calibration_value_(state);
-  ESP_LOGD(TAG, "update energy calibration state: %f", this->energy_cal_);
+  ESP_LOGV(TAG, "update energy calibration state: %f", this->energy_cal_);
   this->recalibrate_();
 }
 
 void BL0940::recalibrate_() {
-  ESP_LOGD(TAG, "Recalibrating reference values");
+  ESP_LOGV(TAG, "Recalibrating reference values");
   this->voltage_reference_cal_ = this->voltage_reference_ / this->voltage_cal_;
   this->current_reference_cal_ = this->current_reference_ / this->current_cal_;
 
@@ -178,6 +178,12 @@ void BL0940::recalibrate_() {
     this->energy_reference_ = this->calculate_energy_reference_();
   }
   this->energy_reference_cal_ = this->energy_reference_ / this->energy_cal_;
+
+  ESP_LOGD(TAG,
+           "Recalibrated reference values:\n"
+           "Voltage: %f\n, Current: %f\n, Power: %f\n, Energy: %f\n",
+           this->voltage_reference_cal_, this->current_reference_cal_, this->power_reference_cal_,
+           this->energy_reference_cal_);
 }
 
 float BL0940::update_temp_(sensor::Sensor *sensor, uint16_le_t temperature) const {
