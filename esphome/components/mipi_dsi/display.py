@@ -46,6 +46,7 @@ from esphome.const import (
     CONF_WIDTH,
 )
 
+from . import mipi_dsi_ns
 from .models import guition, m5stack, waveshare
 
 DEPENDENCIES = ["esp32"]
@@ -53,7 +54,6 @@ DOMAIN = "mipi_dsi"
 
 LOGGER = logging.getLogger(DOMAIN)
 
-mipi_dsi_ns = cg.esphome_ns.namespace("mipi_dsi")
 MIPI_DSI = mipi_dsi_ns.class_("MIPI_DSI", display.Display, cg.Component)
 ColorOrder = display.display_ns.enum("ColorMode")
 
