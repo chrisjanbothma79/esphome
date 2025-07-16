@@ -23,6 +23,9 @@ STANDARD_BOARDS = {
     VARIANT_ESP32P4: "esp32-p4-evboard",
 }
 
+# Make sure not missed here if a new variant added.
+assert all(v in STANDARD_BOARDS for v in VARIANTS)
+
 ESP32_BASE_PINS = {
     "TX": 1,
     "RX": 3,
