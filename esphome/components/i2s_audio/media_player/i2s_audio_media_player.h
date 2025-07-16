@@ -133,23 +133,23 @@ class I2SAudioMediaPlayer : public Component, public Parented<I2SAudioComponent>
 #endif  // USE_ESP_IDF
 
   // Common member variables
-  I2SState i2s_state_{I2S_STATE_STOPPED};          ///< Current I2S state
-  uint8_t dout_pin_{0};                             ///< I2S data out pin
-  GPIOPin *mute_pin_{nullptr};                      ///< Optional mute pin
-  bool muted_{false};                               ///< Current mute state
-  uint8_t external_dac_channels_{2};                ///< Number of external DAC channels
-  bool i2s_comm_fmt_lsb_{false};                    ///< I2S communication format (LSB/MSB)
-  HighFrequencyLoopRequester high_freq_;            ///< High frequency loop requester
-  optional<std::string> current_url_{};             ///< Current media URL
-  bool is_announcement_{false};                     ///< Whether current playback is an announcement
+  I2SState i2s_state_{I2S_STATE_STOPPED};  ///< Current I2S state
+  uint8_t dout_pin_{0};                    ///< I2S data out pin
+  GPIOPin *mute_pin_{nullptr};             ///< Optional mute pin
+  bool muted_{false};                      ///< Current mute state
+  uint8_t external_dac_channels_{2};       ///< Number of external DAC channels
+  bool i2s_comm_fmt_lsb_{false};           ///< I2S communication format (LSB/MSB)
+  HighFrequencyLoopRequester high_freq_;   ///< High frequency loop requester
+  optional<std::string> current_url_{};    ///< Current media URL
+  bool is_announcement_{false};            ///< Whether current playback is an announcement
 
 #if SOC_I2S_SUPPORTS_DAC
   i2s_dac_mode_t internal_dac_mode_{I2S_DAC_CHANNEL_DISABLE};  ///< Internal DAC mode
-#endif  // SOC_I2S_SUPPORTS_DAC
+#endif                                                         // SOC_I2S_SUPPORTS_DAC
 
 #ifdef USE_ESP32_FRAMEWORK_ARDUINO
   std::unique_ptr<Audio> audio_;  ///< Arduino framework Audio instance
-#endif  // USE_ESP32_FRAMEWORK_ARDUINO
+#endif                            // USE_ESP32_FRAMEWORK_ARDUINO
 };
 
 }  // namespace i2s_audio

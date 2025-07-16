@@ -3,7 +3,8 @@
 #ifdef USE_ESP32_FRAMEWORK_ARDUINO
 
 #include "esphome/core/log.h"
-#include <Audio.h>  // Arduino framework ESP32-audioI2S library
+
+#include <Audio.h>  // ESP32-audioI2S library
 
 namespace esphome {
 namespace i2s_audio {

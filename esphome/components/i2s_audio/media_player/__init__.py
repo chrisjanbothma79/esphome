@@ -48,10 +48,10 @@ I2C_COMM_FMT_OPTIONS = ["lsb", "msb"]
 # Filter source files based on platform framework
 FILTER_SOURCE_FILES = filter_source_files_from_platform(
     {
-        "i2s_audio_media_player_arduino.cpp": {
+        "i2s_audio_media_player_arduino.cpp": {  # Keep existing Arduino filename
             PlatformFramework.ESP32_ARDUINO,
         },
-        "i2s_audio_media_player_idf.cpp": {
+        "i2s_audio_media_player_idf.cpp": {  # New ESP-IDF implementation
             PlatformFramework.ESP32_IDF,
         },
     }
@@ -118,8 +118,6 @@ CONFIG_SCHEMA = cv.All(
 
 def _final_validate(config):
     """Final validation for framework-specific requirements."""
-    # Framework-specific validation is now handled by the file filtering system
-    # Only validate legacy driver requirements for internal DAC
     if config[CONF_DAC_TYPE] == "internal" and not use_legacy():
         raise cv.Invalid("Internal DAC is only compatible with legacy i2s driver.")
 
@@ -151,7 +149,5 @@ async def to_code(config):
         cg.add_library("HTTPClient", None)
         cg.add_library("esphome/ESP32-audioI2S", "2.3.0")
         cg.add_build_flag("-DAUDIO_NO_SD_FS")
-    elif CORE.using_esp_idf:
-        # ESP-IDF framework uses built-in HTTP client and I2S drivers
-        # No additional libraries needed
-        pass
+    # ESP-IDF framework uses built-in HTTP client and I2S drivers
+    # No additional libraries needed for ESP-IDF
