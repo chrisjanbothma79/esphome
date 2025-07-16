@@ -4,3 +4,4 @@ packages:
 sensor:
   - id: !extend my_sensor
     pin: PA0
+    attenuation: !remove
