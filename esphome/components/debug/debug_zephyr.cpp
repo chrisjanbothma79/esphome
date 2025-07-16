@@ -18,7 +18,7 @@ static void show_reset_reason(std::string &reset_reason, bool set, const char *r
   if (!set) {
     return;
   }
-  if (reset_reason.size()) {
+  if (!reset_reason.empty()) {
     reset_reason += ", ";
   }
   reset_reason += reason;
@@ -261,9 +261,9 @@ void DebugComponent::get_device_info_(std::string &device_info) {
 #if 1
   ESP_LOGD(TAG, "bootloader: Adafruit, version %u.%u.%u", (BOOTLOADER_VERSION_REGISTER >> 16) & 0xFF,
            (BOOTLOADER_VERSION_REGISTER >> 8) & 0xFF, BOOTLOADER_VERSION_REGISTER & 0xFF);
-  ESP_LOGD(TAG, "MBR bootloader addr 0x%08lx, UICR bootloader addr 0x%08lx", (*((uint32_t *) MBR_BOOTLOADER_ADDR)),
+  ESP_LOGD(TAG, "MBR bootloader addr 0x%08x, UICR bootloader addr 0x%08lx", (*((uint32_t *) MBR_BOOTLOADER_ADDR)),
            NRF_UICR->NRFFW[0]);
-  ESP_LOGD(TAG, "MBR param page addr 0x%08lx, UICR param page addr 0x%08lx", (*((uint32_t *) MBR_PARAM_PAGE_ADDR)),
+  ESP_LOGD(TAG, "MBR param page addr 0x%08x, UICR param page addr 0x%08lx", (*((uint32_t *) MBR_PARAM_PAGE_ADDR)),
            NRF_UICR->NRFFW[1]);
 #else
   ESP_LOGD(TAG, "bootloader: mcuboot");
