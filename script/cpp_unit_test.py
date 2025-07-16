@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import hashlib
 import os
 from pathlib import Path
@@ -20,6 +21,23 @@ CURRENT_FILE = Path(__file__).resolve()
 # Path to /tests/components
 COMPONENTS_TESTS_DIR = CURRENT_FILE.parent.parent / "tests" / "components"
 
+# Path to list-components.py
+LIST_COMPONENTS_SCRIPT = CURRENT_FILE.parent / "list-components.py"
+
+
+def get_all_components():
+    try:
+        result = subprocess.run(
+            [sys.executable, str(LIST_COMPONENTS_SCRIPT)],
+            check=True,
+            stdout=subprocess.PIPE,
+            text=True,
+        )
+        return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    except subprocess.CalledProcessError as e:
+        print(f"Error invoking list-components.py: {e}", file=sys.stderr)
+        return []
+
 
 def hash_components(components):
     key = ",".join(components)
@@ -29,6 +47,11 @@ def hash_components(components):
 def _process_dependencies(components: list[str], manifests: set[ComponentManifest]):
     for component_name in components:
         m = get_component(component_name)
+        if m is None:
+            raise ValueError(
+                f"Component '{component_name}' not found. Make sure it is a valid component."
+            )
+
         if m not in manifests:
             manifests.add(m)
             _process_dependencies(m.dependencies, manifests)
@@ -39,7 +62,7 @@ def get_component_name(module_name):
     if parts:
         return parts[-1]
     else:
-        raise f"Invalid module name {module_name}"
+        raise ValueError(f"Invalid module name {module_name}")
 
 
 def process_dependencies(components: list[str]):
@@ -66,17 +89,14 @@ def filter_components_without_tests(components: list[str]) -> list[str]:
     return filtered_components
 
 
-def run_tests():
+def run_tests(selected_components):
     # Skip tests on Windows
     if os.name == "nt":
         print("Skipping esphome tests on Windows", file=sys.stderr)
         return 1
 
-    # Get components from command line arguments, skipping the script name
-    components = set(sys.argv[1:])
-
     # Remove components that do not have tests
-    components = filter_components_without_tests(components)
+    components = filter_components_without_tests(selected_components)
 
     if len(components) == 0:
         print(
@@ -162,7 +182,24 @@ def run_tests():
 
 
 def main():
-    sys.exit(run_tests())
+    parser = argparse.ArgumentParser(
+        description="Run C++ unit tests for ESPHome components."
+    )
+    parser.add_argument(
+        "components",
+        nargs="*",
+        help="List of components to test. Use --all to test all known components.",
+    )
+    parser.add_argument("--all", action="store_true", help="Test all known components.")
+
+    args = parser.parse_args()
+
+    if args.all:
+        components = get_all_components()
+    else:
+        components = args.components
+
+    sys.exit(run_tests(components))
 
 
 if __name__ == "__main__":
