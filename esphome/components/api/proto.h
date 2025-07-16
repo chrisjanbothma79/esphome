@@ -309,7 +309,7 @@ class ProtoMessage {
 };
 
 // Base class for messages that support decoding
-class ProtoDecodableMessage : public virtual ProtoMessage {
+class ProtoDecodableMessage : public ProtoMessage {
  public:
   void decode(const uint8_t *buffer, size_t length);
 
