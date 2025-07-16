@@ -39,15 +39,14 @@ LwIPLock::LwIPLock() {
   // Only lock if we're not already in the TCPIP thread
   if (!sys_thread_tcpip(LWIP_CORE_LOCK_QUERY_HOLDER)) {
     LOCK_TCPIP_CORE();
-    locked_ = true;
   }
 #endif
 }
 
 LwIPLock::~LwIPLock() {
 #ifdef CONFIG_LWIP_TCPIP_CORE_LOCKING
-  // Only unlock if we locked it
-  if (locked_ && sys_thread_tcpip(LWIP_CORE_LOCK_QUERY_HOLDER)) {
+  // Only unlock if we hold the lock
+  if (sys_thread_tcpip(LWIP_CORE_LOCK_QUERY_HOLDER)) {
     UNLOCK_TCPIP_CORE();
   }
 #endif
