@@ -16,19 +16,27 @@ async def test_api_string_lambda(
     run_compiled: RunCompiledFunction,
     api_client_connected: APIClientConnectedFactory,
 ) -> None:
-    """Test TemplatableStringValue works with lambdas that return strings (e.g., x.c_str())."""
+    """Test TemplatableStringValue works with lambdas that return different types."""
     loop = asyncio.get_running_loop()
 
-    # Track log messages
-    service_called_future = loop.create_future()
+    # Track log messages for all three service calls
+    string_called_future = loop.create_future()
+    int_called_future = loop.create_future()
+    float_called_future = loop.create_future()
 
-    # Pattern to match in logs - confirms the lambda compiled and executed
-    service_pattern = re.compile(r"Service called with string: STRING_FROM_LAMBDA")
+    # Patterns to match in logs - confirms the lambdas compiled and executed
+    string_pattern = re.compile(r"Service called with string: STRING_FROM_LAMBDA")
+    int_pattern = re.compile(r"Service called with int: 42")
+    float_pattern = re.compile(r"Service called with float: 3\.14")
 
     def check_output(line: str) -> None:
         """Check log output for expected messages."""
-        if not service_called_future.done() and service_pattern.search(line):
-            service_called_future.set_result(True)
+        if not string_called_future.done() and string_pattern.search(line):
+            string_called_future.set_result(True)
+        if not int_called_future.done() and int_pattern.search(line):
+            int_called_future.set_result(True)
+        if not float_called_future.done() and float_pattern.search(line):
+            float_called_future.set_result(True)
 
     # Run with log monitoring
     async with (
@@ -40,23 +48,38 @@ async def test_api_string_lambda(
         assert device_info is not None
         assert device_info.name == "api-string-lambda-test"
 
-        # List services to find our test service
+        # List services to find our test services
         _, services = await client.list_entities_services()
 
-        # Find the test service that uses a string lambda
-        test_service = next(
+        # Find all test services
+        string_service = next(
             (s for s in services if s.name == "test_string_lambda"), None
         )
-        assert test_service is not None, "test_string_lambda service not found"
+        assert string_service is not None, "test_string_lambda service not found"
 
-        # Execute the service - this will test the string lambda functionality
-        client.execute_service(test_service, {"input_string": "STRING_FROM_LAMBDA"})
+        int_service = next((s for s in services if s.name == "test_int_lambda"), None)
+        assert int_service is not None, "test_int_lambda service not found"
 
-        # Wait for the service log message
-        # This confirms the lambda compiled successfully and executed
+        float_service = next(
+            (s for s in services if s.name == "test_float_lambda"), None
+        )
+        assert float_service is not None, "test_float_lambda service not found"
+
+        # Execute all three services to test different lambda return types
+        client.execute_service(string_service, {"input_string": "STRING_FROM_LAMBDA"})
+        client.execute_service(int_service, {"input_number": 42})
+        client.execute_service(float_service, {"input_float": 3.14})
+
+        # Wait for all service log messages
+        # This confirms the lambdas compiled successfully and executed
         try:
-            await asyncio.wait_for(service_called_future, timeout=5.0)
+            await asyncio.wait_for(
+                asyncio.gather(
+                    string_called_future, int_called_future, float_called_future
+                ),
+                timeout=5.0,
+            )
         except TimeoutError:
             pytest.fail(
-                "Service log message not received - lambda may have failed to compile or execute"
+                "One or more service log messages not received - lambda may have failed to compile or execute"
             )
