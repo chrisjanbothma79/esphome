@@ -23,6 +23,7 @@ from esphome.components.mipi import (
     CONF_VSYNC_PULSE_WIDTH,
     MODE_BGR,
     PIXEL_MODE_16BIT,
+    PIXEL_MODE_24BIT,
     DriverChip,
     dimension_schema,
     get_color_depth,
@@ -80,7 +81,6 @@ for _ in (waveshare, m5stack, guition):
 MODELS = DriverChip.models
 
 COLOR_DEPTHS = {
-    8: ColorBitness.COLOR_BITNESS_332,
     16: ColorBitness.COLOR_BITNESS_565,
     24: ColorBitness.COLOR_BITNESS_888,
 }
@@ -125,7 +125,7 @@ def model_schema(config):
     cv_dimensions = (
         cv.Optional if model.get_default(CONF_WIDTH) and not swap_xy else cv.Required
     )
-    pixel_modes = (PIXEL_MODE_16BIT,)
+    pixel_modes = (PIXEL_MODE_16BIT, PIXEL_MODE_24BIT)
     schema = display.FULL_DISPLAY_SCHEMA.extend(
         {
             model.option(CONF_RESET_PIN, cv.UNDEFINED): pins.gpio_output_pin_schema,

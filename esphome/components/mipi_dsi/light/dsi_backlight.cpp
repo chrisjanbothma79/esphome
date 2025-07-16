@@ -4,7 +4,6 @@ namespace mipi_dsi {
 static const uint8_t REG_95 = 0x95;
 static const uint8_t REG_96 = 0x96;
 static const uint8_t REG_PWM = 0x86;
-static const char *TAG = "mipi_dsi.light";
 
 void DsiBacklight::setup() {
   this->write_byte(REG_95, 0x11);

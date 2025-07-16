@@ -9,6 +9,7 @@ from esphome.components.const import (
     CONF_DRAW_ROUNDING,
 )
 from esphome.components.display import CONF_SHOW_TEST_CARD, DISPLAY_ROTATIONS
+from esphome.components.mipi import CONF_PIXEL_MODE, get_color_depth, requires_buffer
 from esphome.components.spi import TYPE_OCTAL, TYPE_QUAD, TYPE_SINGLE
 import esphome.config_validation as cv
 from esphome.config_validation import ALLOW_EXTRA
@@ -41,12 +42,10 @@ from esphome.core import CORE, TimePeriod
 from esphome.cpp_generator import TemplateArguments
 from esphome.final_validate import full_config
 
-from ..mipi import get_color_depth, requires_buffer
 from . import (
     CONF_BUS_MODE,
     CONF_NATIVE_HEIGHT,
     CONF_NATIVE_WIDTH,
-    CONF_PIXEL_MODE,
     CONF_SPI_16,
     CONF_USE_AXIS_FLIPS,
     DOMAIN,
