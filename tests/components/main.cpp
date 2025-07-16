@@ -1,5 +1,11 @@
 #include <gtest/gtest.h>
 
+/*
+This special main.cpp replaces the default one.
+It will run all the Google Tests found in all compiled cpp files and then exit with the result
+See README.md for more information
+*/
+
 // Auto generated code by esphome
 // ========== AUTO GENERATED INCLUDE BLOCK BEGIN ===========
 // ========== AUTO GENERATED INCLUDE BLOCK END ==========="
