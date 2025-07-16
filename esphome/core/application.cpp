@@ -4,6 +4,9 @@
 #include "esphome/core/hal.h"
 #include <algorithm>
 #include <ranges>
+#ifdef USE_RUNTIME_STATS
+#include "esphome/components/runtime_stats/runtime_stats.h"
+#endif
 
 #ifdef USE_STATUS_LED
 #include "esphome/components/status_led/status_led.h"
@@ -140,6 +143,14 @@ void Application::loop() {
 
   this->in_loop_ = false;
   this->app_state_ = new_app_state;
+
+#ifdef USE_RUNTIME_STATS
+  // Process any pending runtime stats printing after all components have run
+  // This ensures stats printing doesn't affect component timing measurements
+  if (global_runtime_stats != nullptr) {
+    global_runtime_stats->process_pending_stats(last_op_end_time);
+  }
+#endif
 
   // Use the last component's end time instead of calling millis() again
   auto elapsed = last_op_end_time - this->last_loop_;
@@ -309,6 +320,12 @@ void Application::disable_component_loop_(Component *component) {
         if (this->in_loop_ && i == this->current_loop_index_) {
           // Decrement so we'll process the swapped component next
           this->current_loop_index_--;
+          // Update the loop start time to current time so the swapped component
+          // gets correct timing instead of inheriting stale timing.
+          // This prevents integer underflow in timing calculations by ensuring
+          // the swapped component starts with a fresh timing reference, avoiding
+          // errors caused by stale or wrapped timing values.
+          this->loop_component_start_time_ = millis();
         }
       }
       return;

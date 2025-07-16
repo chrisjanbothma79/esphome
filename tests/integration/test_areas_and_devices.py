@@ -120,7 +120,7 @@ async def test_areas_and_devices(
         # Wait for sensor states
         try:
             await asyncio.wait_for(initial_states_future, timeout=10.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pytest.fail(
                 f"Did not receive all states within 10 seconds. "
                 f"Received {len(states)} states"
