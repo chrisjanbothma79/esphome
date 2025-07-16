@@ -30,6 +30,29 @@ void Mutex::unlock() { xSemaphoreGive(this->handle_); }
 IRAM_ATTR InterruptLock::InterruptLock() { portDISABLE_INTERRUPTS(); }
 IRAM_ATTR InterruptLock::~InterruptLock() { portENABLE_INTERRUPTS(); }
 
+#ifdef CONFIG_LWIP_TCPIP_CORE_LOCKING
+#include "lwip/priv/tcpip_priv.h"
+#endif
+
+LwIPLock::LwIPLock() {
+#ifdef CONFIG_LWIP_TCPIP_CORE_LOCKING
+  // Only lock if we're not already in the TCPIP thread
+  if (!sys_thread_tcpip(LWIP_CORE_LOCK_QUERY_HOLDER)) {
+    LOCK_TCPIP_CORE();
+    locked_ = true;
+  }
+#endif
+}
+
+LwIPLock::~LwIPLock() {
+#ifdef CONFIG_LWIP_TCPIP_CORE_LOCKING
+  // Only unlock if we locked it
+  if (locked_ && sys_thread_tcpip(LWIP_CORE_LOCK_QUERY_HOLDER)) {
+    UNLOCK_TCPIP_CORE();
+  }
+#endif
+}
+
 void get_mac_address_raw(uint8_t *mac) {  // NOLINT(readability-non-const-parameter)
 #if defined(CONFIG_SOC_IEEE802154_SUPPORTED)
   // When CONFIG_SOC_IEEE802154_SUPPORTED is defined, esp_efuse_mac_get_default
