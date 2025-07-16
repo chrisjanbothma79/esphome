@@ -189,9 +189,9 @@ class ProtoWriteBuffer {
    * @param field_id Field number (tag) in the protobuf message
    * @param type Wire type value:
    *   - 0: Varint (int32, int64, uint32, uint64, sint32, sint64, bool, enum)
-   *   - 1: 64-bit (fixed64, sfixed64, double)
    *   - 2: Length-delimited (string, bytes, embedded messages, packed repeated fields)
    *   - 5: 32-bit (fixed32, sfixed32, float)
+   *   - Note: Wire type 1 (64-bit fixed) is not supported
    *
    * Following https://protobuf.dev/programming-guides/encoding/#structure
    */
@@ -549,14 +549,8 @@ class ProtoSize {
     }
   }
 
-  /**
-   * @brief Calculates and adds the size of a double field to the total message size
-   */
-  static inline void add_double_field(uint32_t &total_size, uint32_t field_id_size, double value) {
-    if (value != 0.0) {
-      total_size += field_id_size + 8;
-    }
-  }
+  // NOTE: add_double_field removed - wire type 1 (64-bit: double) not supported
+  // to reduce overhead on embedded systems
 
   /**
    * @brief Calculates and adds the size of a fixed32 field to the total message size
@@ -567,14 +561,8 @@ class ProtoSize {
     }
   }
 
-  /**
-   * @brief Calculates and adds the size of a fixed64 field to the total message size
-   */
-  static inline void add_fixed64_field(uint32_t &total_size, uint32_t field_id_size, uint64_t value) {
-    if (value != 0) {
-      total_size += field_id_size + 8;
-    }
-  }
+  // NOTE: add_fixed64_field removed - wire type 1 (64-bit: fixed64) not supported
+  // to reduce overhead on embedded systems
 
   /**
    * @brief Calculates and adds the size of a sfixed32 field to the total message size
@@ -585,14 +573,8 @@ class ProtoSize {
     }
   }
 
-  /**
-   * @brief Calculates and adds the size of a sfixed64 field to the total message size
-   */
-  static inline void add_sfixed64_field(uint32_t &total_size, uint32_t field_id_size, int64_t value) {
-    if (value != 0) {
-      total_size += field_id_size + 8;
-    }
-  }
+  // NOTE: add_sfixed64_field removed - wire type 1 (64-bit: sfixed64) not supported
+  // to reduce overhead on embedded systems
 
   /**
    * @brief Calculates and adds the size of an enum field to the total message size
