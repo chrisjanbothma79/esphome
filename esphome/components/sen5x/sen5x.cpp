@@ -76,7 +76,7 @@ static inline const char *model_to_str(Sen5xType model) {
   }
 }
 
-static inline Sen5xType str_to_model(std::string product_name) {
+static inline Sen5xType str_to_model(const std::string &product_name) {
   if (product_name == "SEN50") {
     return SEN50;
   } else if (product_name == "SEN54") {
