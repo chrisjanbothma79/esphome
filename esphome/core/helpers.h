@@ -695,11 +695,6 @@ class LwIPLock {
  public:
   LwIPLock();
   ~LwIPLock();
-
- protected:
-#if defined(USE_ESP32)
-  bool locked_{false};
-#endif
 };
 
 /** Helper class to request `loop()` to be called as fast as possible.
