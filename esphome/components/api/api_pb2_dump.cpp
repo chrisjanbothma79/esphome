@@ -4052,10 +4052,13 @@ void DateStateResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void DateCommandRequest::dump_to(std::string &out) const {
@@ -4081,10 +4084,13 @@ void DateCommandRequest::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -4155,10 +4161,13 @@ void TimeStateResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void TimeCommandRequest::dump_to(std::string &out) const {
@@ -4184,10 +4193,13 @@ void TimeCommandRequest::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif

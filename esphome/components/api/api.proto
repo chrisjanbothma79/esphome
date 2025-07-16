@@ -1961,7 +1961,7 @@ message DateStateResponse {
   uint32 year = 3;
   uint32 month = 4;
   uint32 day = 5;
-  uint32 device_id = 6;
+  uint32 device_id = 6 [(field_ifdef) = "USE_DEVICES"];
 }
 message DateCommandRequest {
   option (id) = 102;
@@ -1974,7 +1974,7 @@ message DateCommandRequest {
   uint32 year = 2;
   uint32 month = 3;
   uint32 day = 4;
-  uint32 device_id = 5;
+  uint32 device_id = 5 [(field_ifdef) = "USE_DEVICES"];
 }
 
 // ==================== DATETIME TIME ====================
@@ -2008,7 +2008,7 @@ message TimeStateResponse {
   uint32 hour = 3;
   uint32 minute = 4;
   uint32 second = 5;
-  uint32 device_id = 6;
+  uint32 device_id = 6 [(field_ifdef) = "USE_DEVICES"];
 }
 message TimeCommandRequest {
   option (id) = 105;
@@ -2021,7 +2021,7 @@ message TimeCommandRequest {
   uint32 hour = 2;
   uint32 minute = 3;
   uint32 second = 4;
-  uint32 device_id = 5;
+  uint32 device_id = 5 [(field_ifdef) = "USE_DEVICES"];
 }
 
 // ==================== EVENT ====================

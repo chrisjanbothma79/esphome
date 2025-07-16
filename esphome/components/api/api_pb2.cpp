@@ -2972,7 +2972,9 @@ void DateStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(3, this->year);
   buffer.encode_uint32(4, this->month);
   buffer.encode_uint32(5, this->day);
+#ifdef USE_DEVICES
   buffer.encode_uint32(6, this->device_id);
+#endif
 }
 void DateStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
@@ -2980,7 +2982,9 @@ void DateStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint32_field(total_size, 1, this->year);
   ProtoSize::add_uint32_field(total_size, 1, this->month);
   ProtoSize::add_uint32_field(total_size, 1, this->day);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool DateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -2993,9 +2997,11 @@ bool DateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
     case 4:
       this->day = value.as_uint32();
       break;
+#ifdef USE_DEVICES
     case 5:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }
@@ -3045,7 +3051,9 @@ void TimeStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(3, this->hour);
   buffer.encode_uint32(4, this->minute);
   buffer.encode_uint32(5, this->second);
+#ifdef USE_DEVICES
   buffer.encode_uint32(6, this->device_id);
+#endif
 }
 void TimeStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
@@ -3053,7 +3061,9 @@ void TimeStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint32_field(total_size, 1, this->hour);
   ProtoSize::add_uint32_field(total_size, 1, this->minute);
   ProtoSize::add_uint32_field(total_size, 1, this->second);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool TimeCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -3066,9 +3076,11 @@ bool TimeCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
     case 4:
       this->second = value.as_uint32();
       break;
+#ifdef USE_DEVICES
     case 5:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }
