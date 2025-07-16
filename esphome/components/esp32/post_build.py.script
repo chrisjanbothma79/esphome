@@ -4,53 +4,57 @@ import os
 import json
 import pathlib
 
-firmware_name = os.path.basename(env.subst("$PROGNAME")) + ".bin"
-build_dir = pathlib.Path(env.subst("$BUILD_DIR"))
-firmware_path = build_dir / firmware_name
-flash_size = env.BoardConfig().get("upload.flash_size", "4MB")
+def merge_factory_bin(source, target, env):
+    firmware_name = os.path.basename(env.subst("$PROGNAME")) + ".bin"
+    build_dir = pathlib.Path(env.subst("$BUILD_DIR"))
+    firmware_path = build_dir / firmware_name
+    flash_size = env.BoardConfig().get("upload.flash_size", "4MB")
+    chip = env.BoardConfig().get("build.mcu", "esp32")
 
-# Collect flash sections to merge
-sections = []
-flasher_args_path = build_dir / "flasher_args.json"
+    # Collect flash sections
+    sections = []
+    flasher_args_path = build_dir / "flasher_args.json"
 
-if flasher_args_path.exists():
-    try:
-        with flasher_args_path.open() as f:
-            flash_data = json.load(f)
-        for addr, fname in sorted(flash_data["flash_files"].items(), key=lambda kv: int(kv[0], 16)):
-            path = pathlib.Path(fname)
-            if path.exists():
-                sections.append((addr, str(path)))
+    if flasher_args_path.exists():
+        try:
+            with flasher_args_path.open() as f:
+                flash_data = json.load(f)
+            for addr, fname in sorted(flash_data["flash_files"].items(), key=lambda kv: int(kv[0], 16)):
+                file_path = pathlib.Path(fname)
+                if file_path.exists():
+                    sections.append((addr, str(file_path)))
+                else:
+                    print(f"Info: {file_path.name} not found — skipping")
+        except Exception as e:
+            print(f"Warning: Failed to parse flasher_args.json — {e}")
+    else:
+        print("Warning: flasher_args.json not found — falling back to legacy guesses")
+        guesses = [
+            ("0x0", build_dir / "bootloader" / "bootloader.bin"),
+            ("0x8000", build_dir / "partition_table" / "partition-table.bin"),
+            ("0xe000", build_dir / "ota_data_initial.bin"),
+            ("0x10000", firmware_path)
+        ]
+        for addr, file_path in guesses:
+            if file_path.exists():
+                sections.append((addr, str(file_path)))
             else:
-                print(f"Info: {path.name} not found — skipping")
-    except Exception as e:
-        print(f"Warning: Failed to parse flasher_args.json — {e}")
-else:
-    print("Warning: flasher_args.json not found — falling back to legacy guesses")
-    guesses = [
-        ("0x0", build_dir / "bootloader" / "bootloader.bin"),
-        ("0x8000", build_dir / "partition_table" / "partition-table.bin"),
-        ("0xe000", build_dir / "ota_data_initial.bin"),
-        ("0x10000", firmware_path)
-    ]
-    for addr, path in guesses:
-        if path.exists():
-            sections.append((addr, str(path)))
-        else:
-            print(f"Info: {path.name} not found — skipping")
+                print(f"Info: {file_path.name} not found — skipping")
 
-# Only run esptool if we found valid sections
-if not sections:
-    print("No valid flash sections found — skipping .factory.bin creation.")
-else:
+    # Only run esptool if valid input exists
+    if not sections:
+        print("No valid flash sections found — skipping .factory.bin creation.")
+        return
+
     output_path = firmware_path.with_suffix(".factory.bin")
     cmd = [
         "merge_bin",
+        "--chip", chip,
         "--fill-flash-size", flash_size,
         "--output", str(output_path)
     ]
-    for addr, path in sections:
-        cmd += [addr, path]
+    for addr, file_path in sections:
+        cmd += [addr, file_path]
 
     print(f"Merging binaries into {output_path}")
     result = env.Execute(
@@ -64,3 +68,6 @@ else:
         print(f"Successfully created {output_path}")
     else:
         print(f"Error: esptool merge_bin failed with code {result}")
+
+# Register to run AFTER firmware is built
+env.AddPostAction("$BUILD_DIR/${PROGNAME}.bin", merge_factory_bin)
