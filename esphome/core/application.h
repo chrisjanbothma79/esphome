@@ -370,7 +370,6 @@ class Application {
 
 // Helper macro for entity getter method declarations
 #ifdef USE_DEVICES
-  const std::vector<Device *> &get_devices() { return this->devices_; }
 #define GET_ENTITY_METHOD(entity_type, entity_name, entities_member) \
   entity_type *get_##entity_name##_by_key(uint32_t key, uint32_t device_id, bool include_internal = false) { \
     for (auto *obj : this->entities_member##_) { \
@@ -380,6 +379,7 @@ class Application {
     } \
     return nullptr; \
   }
+  const std::vector<Device *> &get_devices() { return this->devices_; }
 #else
 #define GET_ENTITY_METHOD(entity_type, entity_name, entities_member) \
   entity_type *get_##entity_name##_by_key(uint32_t key, bool include_internal = false) { \
