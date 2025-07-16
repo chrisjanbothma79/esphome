@@ -1,7 +1,7 @@
 # How to write C++ ESPHome unit tests
 
-1. Locate the folder with your component or create a new one. Then, copy the contents of the `example` folder as a starting template.
-2. Rename `example.cpp` in your folder to a suitable name and write the tests. You can add as many .cpp and .h files as you need to organize your tests.
+1. Locate the folder with your component or create a new one with the same name as the component.
+2. Write the tests. You can add as many .cpp and .h files as you need to organize your tests.
 
 ## Running component unit tests
 
