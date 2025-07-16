@@ -209,6 +209,7 @@ class APIConnection : public APIServerConnection {
     return static_cast<ConnectionState>(this->flags_.connection_state) == ConnectionState::CONNECTED ||
            this->is_authenticated();
   }
+  uint8_t get_log_subscription_level() const { return this->flags_.log_subscription; }
   void on_fatal_error() override;
   void on_unauthenticated_access() override;
   void on_no_setup_connection() override;
@@ -273,6 +274,9 @@ class APIConnection : public APIServerConnection {
   ProtoWriteBuffer allocate_batch_message_buffer(uint16_t size);
 
  protected:
+  // Helper function to handle authentication completion
+  void complete_authentication_();
+
   // Helper function to fill common entity info fields
   static void fill_entity_info_base(esphome::EntityBase *entity, InfoResponseProtoMessage &response) {
     // Set common fields that are shared by all entity types
