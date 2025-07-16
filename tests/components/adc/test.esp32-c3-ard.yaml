@@ -1,5 +1,2 @@
-sensor:
-  - platform: adc
-    id: my_sensor
-    pin: 4
-    attenuation: 12db
+packages:
+  base: !include common.yaml
