@@ -267,19 +267,17 @@ void DFRobotC4001Hub::config_save() {
   if (this->needs_save_) {
     this->flash_led_enable();
     this->enqueue(make_unique<PowerCommand>(false));
+    this->enqueue(make_unique<SetLedModeCommand1>(this->led_enable_));
+    this->enqueue(make_unique<SetLedModeCommand2>(this->led_enable_));
+    this->enqueue(make_unique<SetRangeCommand>(this->min_range_, this->max_range_));
     if (this->mode_ == MODE_PRESENCE) {
-      this->enqueue(make_unique<SetRangeCommand>(this->min_range_, this->max_range_));
       this->enqueue(make_unique<SetTrigRangeCommand>(this->trigger_range_));
       this->enqueue(make_unique<SetSensitivityCommand>(this->hold_sensitivity_, this->trigger_sensitivity_));
       this->enqueue(make_unique<SetLatencyCommand>(this->on_latency_, this->off_latency_));
       this->enqueue(make_unique<SetInhibitTimeCommand>(this->inhibit_time_));
-      this->enqueue(make_unique<SetLedModeCommand1>(this->led_enable_));
-      this->enqueue(make_unique<SetLedModeCommand2>(this->led_enable_));
     } else {
       this->enqueue(make_unique<SetThrFactorCommand>(this->threshold_factor_));
       this->enqueue(make_unique<SetMicroMotionCommand>(this->micro_motion_enable_));
-      this->enqueue(make_unique<SetLedModeCommand1>(this->led_enable_));
-      this->enqueue(make_unique<SetLedModeCommand2>(this->led_enable_));
     }
     this->enqueue(make_unique<SaveCfgCommand>());
     this->enqueue(make_unique<PowerCommand>(true));
@@ -357,6 +355,9 @@ void DFRobotC4001Hub::setup() {
   this->set_led_enable(value, false);
 #endif
   this->loop_time_ = millis();
+  ESP_LOGCONFIG(TAG, "Running setup");
+  this->enqueue(make_unique<ResetSystemCommand>());
+  this->config_load();
 }
 
 void DFRobotC4001Hub::loop() {
@@ -364,23 +365,31 @@ void DFRobotC4001Hub::loop() {
     return;
   }
 
-  // wait for prompt but not too long
-  if (!this->module_present_) {
-    if (millis() - this->loop_time_ > 500) {
-      ESP_LOGCONFIG(TAG, "Running setup");
-      this->config_load();
-      this->module_present_ = true;
-    } else {
-      if (this->read_message_()) {
-        std::string message(this->read_buffer_);
-        if (message.rfind("DFRobot:/>") != std::string::npos) {
-          this->config_load();
-          this->module_present_ = true;
-        }
-      }
-    }
-    return;
-  }
+  // // wait for prompt but not too long
+  // if (!this->module_present_) {
+
+  //   uint64_t delay = millis() - this->loop_time_;
+  //   if (delay > 5000) {
+  //     ESP_LOGCONFIG(TAG, "Timeout, running setup");
+  //     this->config_load();
+  //     this->module_present_ = true;
+  //   } else {
+  //     if (this->read_message_()) {
+  //       std::string message(this->read_buffer_);
+  //       if (message.rfind("DFRobot:/>") != std::string::npos) {
+  //         ESP_LOGCONFIG(TAG, "Running setup");
+  //         this->config_load();
+  //         this->module_present_ = true;
+  //       } 
+  //     } 
+  //     // if (delay > this->wake_time_) {
+  //     //   this->write_str("resetSystem");      // send empty string to wake up module
+  //     //   this->wake_time_ += 100;  // do this every 100 ms
+  //     //   ESP_LOGV(TAG, "Sending restart command...");
+  //     // }
+  //   }
+  //   return;
+  // }
 
   if (this->cmd_queue_.is_empty()) {
     // Command queue empty, first time this happens setup is complete
