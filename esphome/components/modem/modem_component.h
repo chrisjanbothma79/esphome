@@ -36,6 +36,7 @@ enum class ModemComponentState {
   CONNECTING,
   CONNECTED,
   NOT_RESPONDING,
+  DISABLING,
   POWERING_OFF,
 };
 
@@ -80,7 +81,7 @@ class ModemComponent : public Component {
   bool get_power_status();
   void enable();
   void disable();
-  void reconnect();
+  void reset();
   bool get_signal_quality(float &rssi, float &ber);
 
   network::IPAddresses get_ip_addresses();
@@ -93,15 +94,6 @@ class ModemComponent : public Component {
   void setup() override;
   void loop() override;
 
-  // ===== State handler methods =====
-  void handle_state_disabled();
-  void handle_state_powering_on();
-  void handle_state_initializing();
-  void handle_state_disconnected();
-  void handle_state_connecting();
-  void handle_state_connected();
-  void handle_state_not_responding();
-  void handle_state_powering_off();  // Declaration for the new handler
   void dump_config() override { this->dump_connect_params_(); }
   float get_setup_priority() const override { return setup_priority::WIFI + 1; }  // Just before Wi-Fi
   bool can_proceed() override { return network::is_disabled() || this->is_connected(); };
@@ -113,6 +105,17 @@ class ModemComponent : public Component {
   std::unique_ptr<DCE> dce{nullptr};
 
  protected:
+  // ===== State handler methods =====
+  void handle_state_disabled_();
+  void handle_state_powering_on_();
+  void handle_state_initializing_();
+  void handle_state_disconnected_();
+  void handle_state_connecting_();
+  void handle_state_connected_();
+  void handle_state_not_responding_();
+  void handle_state_disabling_();
+  void handle_state_powering_off_();
+
   void modem_create_dte_dce_(int baud_rate);
   void modem_create_dte_dce_() { this->modem_create_dte_dce_(this->internal_state_.current_baud_rate); }
   bool modem_command_mode_(bool cmux);
@@ -123,8 +126,6 @@ class ModemComponent : public Component {
   bool is_network_attached_();
   bool prepare_sim_();
   bool start_ppp_();
-  void poweron_();
-  void poweroff_();
   void abort_(const std::string &message);
   void loop_delay_(uint32_t delay_ms);
   static void ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
@@ -148,7 +149,6 @@ class ModemComponent : public Component {
   std::vector<std::string> init_at_commands_;
   std::string use_address_;
   int baud_rate_ = 0;  // Automatically set to 115200 if not specified
-
   bool cmux_{false};
   // Separate handler for `on_not_responding` (we want to know when it's ended)
   Trigger<> *not_responding_cb_{nullptr};
@@ -161,7 +161,6 @@ class ModemComponent : public Component {
   size_t uart_event_task_stack_size_ = 4096;  // 2000-6000
   uint8_t uart_event_task_priority_ = 5;      // 3-22
   uint32_t command_delay_ = 1000;             // Timeout for AT commands
-  uint32_t reconnect_grace_period_ = 30000;   // Time to wait for MQTT or API to reconnect before retrying
   uint32_t connect_retry_delay_ = 10000;      // Delay before retrying connection
   uint32_t connect_timeout_ = 25000;
 
@@ -187,10 +186,10 @@ class ModemComponent : public Component {
     bool powered_on{false};
     // States for triggering on/off signals
     // Request modem to reconnect
-    bool reconnect{false};
     int current_baud_rate{0};
-    bool sim_unlocked{false};
     bool got_ip{false};
+    // if false the component wil be reenabled if disabled (ie power cycle or reset)
+    bool disable_wanted = true;
   };
   InternalState internal_state_;
 
