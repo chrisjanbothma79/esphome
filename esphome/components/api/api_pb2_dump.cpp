@@ -4265,10 +4265,13 @@ void EventResponse::dump_to(std::string &out) const {
   out.append("'").append(this->event_type).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -4345,10 +4348,13 @@ void ValveStateResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::ValveOperation>(this->current_operation));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void ValveCommandRequest::dump_to(std::string &out) const {
@@ -4372,10 +4378,13 @@ void ValveCommandRequest::dump_to(std::string &out) const {
   out.append(YESNO(this->stop));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif

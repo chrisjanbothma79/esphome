@@ -2052,7 +2052,7 @@ message EventResponse {
 
   fixed32 key = 1;
   string event_type = 2;
-  uint32 device_id = 3;
+  uint32 device_id = 3 [(field_ifdef) = "USE_DEVICES"];
 }
 
 // ==================== VALVE ====================
@@ -2093,7 +2093,7 @@ message ValveStateResponse {
   fixed32 key = 1;
   float position = 2;
   ValveOperation current_operation = 3;
-  uint32 device_id = 4;
+  uint32 device_id = 4 [(field_ifdef) = "USE_DEVICES"];
 }
 
 message ValveCommandRequest {
@@ -2107,7 +2107,7 @@ message ValveCommandRequest {
   bool has_position = 2;
   float position = 3;
   bool stop = 4;
-  uint32 device_id = 5;
+  uint32 device_id = 5 [(field_ifdef) = "USE_DEVICES"];
 }
 
 // ==================== DATETIME DATETIME ====================

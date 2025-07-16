@@ -3137,12 +3137,16 @@ void ListEntitiesEventResponse::calculate_size(uint32_t &total_size) const {
 void EventResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_string(2, this->event_type);
+#ifdef USE_DEVICES
   buffer.encode_uint32(3, this->device_id);
+#endif
 }
 void EventResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->event_type);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 #endif
 #ifdef USE_VALVE
@@ -3184,13 +3188,17 @@ void ValveStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_float(2, this->position);
   buffer.encode_uint32(3, static_cast<uint32_t>(this->current_operation));
+#ifdef USE_DEVICES
   buffer.encode_uint32(4, this->device_id);
+#endif
 }
 void ValveStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_float_field(total_size, 1, this->position);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->current_operation));
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool ValveCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -3200,9 +3208,11 @@ bool ValveCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
     case 4:
       this->stop = value.as_bool();
       break;
+#ifdef USE_DEVICES
     case 5:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }
