@@ -50,6 +50,29 @@ from helpers import (
 )
 
 
+def core_changed(files: list[str]) -> bool:
+    """Check if any core C++ or Python files have changed."""
+    for file in files:
+        if file.startswith("esphome/core/") and file.endswith(CPP_FILE_EXTENSIONS):
+            return True
+        if file.startswith("esphome/core/") and file.endswith(PYTHON_FILE_EXTENSIONS):
+            return True
+    return False
+
+
+def list_components(
+    branch: str | None = None, switches: list[str] | None = None
+) -> list[str]:
+    # Get changed components using list-components.py for exact compatibility
+    script_path = Path(__file__).parent / "list-components.py"
+    cmd = [sys.executable, str(script_path)] + (switches or [])
+    if branch:
+        cmd.extend(["-b", branch])
+
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    return parse_list_components_output(result.stdout)
+
+
 def should_run_integration_tests(branch: str | None = None) -> bool:
     """Determine if integration tests should run based on changed files.
 
@@ -90,10 +113,9 @@ def should_run_integration_tests(branch: str | None = None) -> bool:
     """
     files = changed_files(branch)
 
-    # Check if any core files changed (esphome/core/*)
-    for file in files:
-        if file.startswith("esphome/core/"):
-            return True
+    if core_changed(files):
+        # If any core files changed, run integration tests
+        return True
 
     # Check if any integration test files changed
     if any("tests/integration" in file for file in files):
@@ -197,6 +219,33 @@ def should_run_python_linters(branch: str | None = None) -> bool:
     return _any_changed_file_endswith(branch, PYTHON_FILE_EXTENSIONS)
 
 
+def list_cpp_components_to_test(branch: str | None = None) -> bool:
+    """Determine if C++ unit tests should run based on changed files.
+
+    This function is used by the CI workflow to skip C++ unit tests when no relevant files have changed,
+    saving CI time and resources.
+
+    C++ unit tests will run when any of the following conditions are met:
+
+    1. Any C++ core source files changed (esphome/core/*), in which case all cpp unit tests run.
+    2. A test file for a component changed, which triggers tests for that component.
+    3. The code for a component changed, which triggers tests for that component and all components that depend on it.
+
+    Args:
+        branch: Branch to compare against. If None, uses default.
+
+    Returns:
+        List of components that have unit tests to run, an empty list if no tests are needed or
+        the special value ["--all"] if all tests should run.
+    """
+    files = changed_files(branch)
+    return (
+        (["--all"])
+        if core_changed(files)
+        else list_components(branch, ["--cpp-changed"])
+    )
+
+
 def _any_changed_file_endswith(branch: str | None, extensions: tuple[str, ...]) -> bool:
     """Check if a changed file ends with any of the specified extensions."""
     return any(file.endswith(extensions) for file in changed_files(branch))
@@ -218,14 +267,8 @@ def main() -> None:
     run_clang_format = should_run_clang_format(args.branch)
     run_python_linters = should_run_python_linters(args.branch)
 
-    # Get changed components using list-components.py for exact compatibility
-    script_path = Path(__file__).parent / "list-components.py"
-    cmd = [sys.executable, str(script_path), "--changed"]
-    if args.branch:
-        cmd.extend(["-b", args.branch])
-
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    changed_components = parse_list_components_output(result.stdout)
+    changed_components = list_components(args.branch, ["--changed"])
+    component_test_count = len(changed_components)
 
     # Build output
     output: dict[str, Any] = {
@@ -234,7 +277,8 @@ def main() -> None:
         "clang_format": run_clang_format,
         "python_linters": run_python_linters,
         "changed_components": changed_components,
-        "component_test_count": len(changed_components),
+        "component_test_count": component_test_count,
+        "cpp_unit_tests": list_cpp_components_to_test(args.branch),
     }
 
     # Output as JSON
