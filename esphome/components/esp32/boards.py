@@ -8,6 +8,7 @@ from .const import (
     VARIANT_ESP32P4,
     VARIANT_ESP32S2,
     VARIANT_ESP32S3,
+    VARIANTS,
 )
 
 STANDARD_BOARDS = {
