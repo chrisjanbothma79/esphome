@@ -1,14 +1,10 @@
-external_components:
-  - source: github://pr#7049
-    components: [logger, nrf52, time, zephyr]
-    refresh: always
-
 esphome:
   name: componenttestnrf52
   friendly_name: $component_name
 
 nrf52:
   board: adafruit_itsybitsy_nrf52840
+  bootloader: adafruit_nrf52_sd140_v6
 
 logger:
   level: VERY_VERBOSE

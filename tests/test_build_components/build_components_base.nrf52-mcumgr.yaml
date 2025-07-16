@@ -1,8 +1,3 @@
-external_components:
-  - source: github://pr#7049
-    components: [logger, nrf52, time, zephyr]
-    refresh: always
-
 esphome:
   name: componenttestnrf52
   friendly_name: $component_name
