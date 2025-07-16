@@ -380,8 +380,8 @@ void DFRobotC4001Hub::loop() {
   //         ESP_LOGCONFIG(TAG, "Running setup");
   //         this->config_load();
   //         this->module_present_ = true;
-  //       } 
-  //     } 
+  //       }
+  //     }
   //     // if (delay > this->wake_time_) {
   //     //   this->write_str("resetSystem");      // send empty string to wake up module
   //     //   this->wake_time_ += 100;  // do this every 100 ms
