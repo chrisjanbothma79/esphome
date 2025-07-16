@@ -260,13 +260,17 @@ void BinarySensorStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_bool(2, this->state);
   buffer.encode_bool(3, this->missing_state);
+#ifdef USE_DEVICES
   buffer.encode_uint32(4, this->device_id);
+#endif
 }
 void BinarySensorStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->state);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 #endif
 #ifdef USE_COVER
@@ -312,7 +316,9 @@ void CoverStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_float(3, this->position);
   buffer.encode_float(4, this->tilt);
   buffer.encode_uint32(5, static_cast<uint32_t>(this->current_operation));
+#ifdef USE_DEVICES
   buffer.encode_uint32(6, this->device_id);
+#endif
 }
 void CoverStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
@@ -320,7 +326,9 @@ void CoverStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_float_field(total_size, 1, this->position);
   ProtoSize::add_float_field(total_size, 1, this->tilt);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->current_operation));
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool CoverCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -468,9 +476,11 @@ bool FanCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
     case 12:
       this->has_preset_mode = value.as_bool();
       break;
+#ifdef USE_DEVICES
     case 14:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }
@@ -566,7 +576,9 @@ void LightStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_float(12, this->cold_white);
   buffer.encode_float(13, this->warm_white);
   buffer.encode_string(9, this->effect);
+#ifdef USE_DEVICES
   buffer.encode_uint32(14, this->device_id);
+#endif
 }
 void LightStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
@@ -582,7 +594,9 @@ void LightStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_float_field(total_size, 1, this->cold_white);
   ProtoSize::add_float_field(total_size, 1, this->warm_white);
   ProtoSize::add_string_field(total_size, 1, this->effect);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool LightCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -634,9 +648,11 @@ bool LightCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
     case 18:
       this->has_effect = value.as_bool();
       break;
+#ifdef USE_DEVICES
     case 28:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }
@@ -706,7 +722,9 @@ void ListEntitiesSensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(11, static_cast<uint32_t>(this->legacy_last_reset_type));
   buffer.encode_bool(12, this->disabled_by_default);
   buffer.encode_uint32(13, static_cast<uint32_t>(this->entity_category));
+#ifdef USE_DEVICES
   buffer.encode_uint32(14, this->device_id);
+#endif
 }
 void ListEntitiesSensorResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
@@ -723,19 +741,25 @@ void ListEntitiesSensorResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->legacy_last_reset_type));
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 void SensorStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_float(2, this->state);
   buffer.encode_bool(3, this->missing_state);
+#ifdef USE_DEVICES
   buffer.encode_uint32(4, this->device_id);
+#endif
 }
 void SensorStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_float_field(total_size, 1, this->state);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 #endif
 #ifdef USE_SWITCH
@@ -772,21 +796,27 @@ void ListEntitiesSwitchResponse::calculate_size(uint32_t &total_size) const {
 void SwitchStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_bool(2, this->state);
+#ifdef USE_DEVICES
   buffer.encode_uint32(3, this->device_id);
+#endif
 }
 void SwitchStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->state);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool SwitchCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2:
       this->state = value.as_bool();
       break;
+#ifdef USE_DEVICES
     case 3:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }
@@ -836,13 +866,17 @@ void TextSensorStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_string(2, this->state);
   buffer.encode_bool(3, this->missing_state);
+#ifdef USE_DEVICES
   buffer.encode_uint32(4, this->device_id);
+#endif
 }
 void TextSensorStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->state);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 #endif
 bool SubscribeLogsRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
@@ -1151,13 +1185,17 @@ void CameraImageResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_bytes(2, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
   buffer.encode_bool(3, this->done);
+#ifdef USE_DEVICES
   buffer.encode_uint32(4, this->device_id);
+#endif
 }
 void CameraImageResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->data);
   ProtoSize::add_bool_field(total_size, 1, this->done);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool CameraImageRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -1362,9 +1400,11 @@ bool ClimateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) 
     case 22:
       this->has_target_humidity = value.as_bool();
       break;
+#ifdef USE_DEVICES
     case 24:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }

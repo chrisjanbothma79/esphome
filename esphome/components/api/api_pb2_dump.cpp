@@ -883,10 +883,13 @@ void BinarySensorStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->missing_state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -976,10 +979,13 @@ void CoverStateResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::CoverOperation>(this->current_operation));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void CoverCommandRequest::dump_to(std::string &out) const {
@@ -1192,10 +1198,13 @@ void FanCommandRequest::dump_to(std::string &out) const {
   out.append("'").append(this->preset_mode).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -1342,10 +1351,13 @@ void LightStateResponse::dump_to(std::string &out) const {
   out.append("'").append(this->effect).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void LightCommandRequest::dump_to(std::string &out) const {
@@ -1471,10 +1483,13 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("'").append(this->effect).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -1534,10 +1549,13 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void SensorStateResponse::dump_to(std::string &out) const {
@@ -1557,10 +1575,13 @@ void SensorStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->missing_state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -1624,10 +1645,13 @@ void SwitchStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void SwitchCommandRequest::dump_to(std::string &out) const {
@@ -1642,10 +1666,13 @@ void SwitchCommandRequest::dump_to(std::string &out) const {
   out.append(YESNO(this->state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -1709,10 +1736,13 @@ void TextSensorStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->missing_state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -2009,10 +2039,13 @@ void CameraImageResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->done));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void CameraImageRequest::dump_to(std::string &out) const {
@@ -2337,10 +2370,13 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
