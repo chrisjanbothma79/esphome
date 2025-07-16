@@ -410,8 +410,8 @@ void SEN5XComponent::dump_config() {
                 "  Model: %s\n"
                 "  Product Name: %s\n"
                 "  Serial number: %s\n",
-                this->address_, this->update_interval_, model_to_str(this->model_.value()),
-                this->product_name_.c_str(), this->serial_number_.c_str());
+                this->address_, this->update_interval_, model_to_str(this->model_.value()), this->product_name_.c_str(),
+                this->serial_number_.c_str());
 
   if (this->is_sen6x_()) {
     ESP_LOGCONFIG(TAG, "  Firmware version: %u.%u", this->firmware_major_, this->firmware_minor_);
