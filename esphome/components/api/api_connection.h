@@ -277,34 +277,6 @@ class APIConnection : public APIServerConnection {
   // Helper function to handle authentication completion
   void complete_authentication_();
 
-  // Helper function to fill common entity info fields
-  static void fill_entity_info_base(esphome::EntityBase *entity, InfoResponseProtoMessage &response) {
-    // Set common fields that are shared by all entity types
-    response.key = entity->get_object_id_hash();
-    response.object_id = entity->get_object_id();
-
-    if (entity->has_own_name())
-      response.name = entity->get_name();
-
-      // Set common EntityBase properties
-#ifdef USE_ENTITY_ICON
-    response.icon = entity->get_icon();
-#endif
-    response.disabled_by_default = entity->is_disabled_by_default();
-    response.entity_category = static_cast<enums::EntityCategory>(entity->get_entity_category());
-#ifdef USE_DEVICES
-    response.device_id = entity->get_device_id();
-#endif
-  }
-
-  // Helper function to fill common entity state fields
-  static void fill_entity_state_base(esphome::EntityBase *entity, StateResponseProtoMessage &response) {
-    response.key = entity->get_object_id_hash();
-#ifdef USE_DEVICES
-    response.device_id = entity->get_device_id();
-#endif
-  }
-
   // Non-template helper to encode any ProtoMessage
   static uint16_t encode_message_to_buffer(ProtoMessage &msg, uint8_t message_type, APIConnection *conn,
                                            uint32_t remaining_size, bool is_single);
