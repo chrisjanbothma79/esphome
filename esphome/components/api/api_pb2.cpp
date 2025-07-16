@@ -1462,7 +1462,9 @@ void ListEntitiesNumberResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(11, this->unit_of_measurement);
   buffer.encode_uint32(12, static_cast<uint32_t>(this->mode));
   buffer.encode_string(13, this->device_class);
+#ifdef USE_DEVICES
   buffer.encode_uint32(14, this->device_id);
+#endif
 }
 void ListEntitiesNumberResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
@@ -1479,25 +1481,33 @@ void ListEntitiesNumberResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->unit_of_measurement);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->mode));
   ProtoSize::add_string_field(total_size, 1, this->device_class);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 void NumberStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_float(2, this->state);
   buffer.encode_bool(3, this->missing_state);
+#ifdef USE_DEVICES
   buffer.encode_uint32(4, this->device_id);
+#endif
 }
 void NumberStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_float_field(total_size, 1, this->state);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool NumberCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
+#ifdef USE_DEVICES
     case 3:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }
@@ -1556,19 +1566,25 @@ void SelectStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_string(2, this->state);
   buffer.encode_bool(3, this->missing_state);
+#ifdef USE_DEVICES
   buffer.encode_uint32(4, this->device_id);
+#endif
 }
 void SelectStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->state);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool SelectCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
+#ifdef USE_DEVICES
     case 3:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }
@@ -1637,12 +1653,16 @@ void ListEntitiesSirenResponse::calculate_size(uint32_t &total_size) const {
 void SirenStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_bool(2, this->state);
+#ifdef USE_DEVICES
   buffer.encode_uint32(3, this->device_id);
+#endif
 }
 void SirenStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->state);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool SirenCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -1736,12 +1756,16 @@ void ListEntitiesLockResponse::calculate_size(uint32_t &total_size) const {
 void LockStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_uint32(2, static_cast<uint32_t>(this->state));
+#ifdef USE_DEVICES
   buffer.encode_uint32(3, this->device_id);
+#endif
 }
 void LockStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->state));
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool LockCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -1751,9 +1775,11 @@ bool LockCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
     case 3:
       this->has_code = value.as_bool();
       break;
+#ifdef USE_DEVICES
     case 5:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }
@@ -1811,9 +1837,11 @@ void ListEntitiesButtonResponse::calculate_size(uint32_t &total_size) const {
 }
 bool ButtonCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
+#ifdef USE_DEVICES
     case 2:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }

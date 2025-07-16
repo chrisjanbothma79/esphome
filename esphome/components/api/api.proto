@@ -1216,7 +1216,7 @@ message LockStateResponse {
   option (no_delay) = true;
   fixed32 key = 1;
   LockState state = 2;
-  uint32 device_id = 3;
+  uint32 device_id = 3 [(field_ifdef) = "USE_DEVICES"];
 }
 message LockCommandRequest {
   option (id) = 60;
@@ -1230,7 +1230,7 @@ message LockCommandRequest {
   // Not yet implemented:
   bool has_code = 3;
   string code = 4;
-  uint32 device_id = 5;
+  uint32 device_id = 5 [(field_ifdef) = "USE_DEVICES"];
 }
 
 // ==================== BUTTON ====================
@@ -1259,7 +1259,7 @@ message ButtonCommandRequest {
   option (base_class) = "CommandProtoMessage";
 
   fixed32 key = 1;
-  uint32 device_id = 2;
+  uint32 device_id = 2 [(field_ifdef) = "USE_DEVICES"];
 }
 
 // ==================== MEDIA PLAYER ====================

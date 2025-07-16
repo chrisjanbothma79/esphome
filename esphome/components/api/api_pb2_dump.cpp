@@ -2438,10 +2438,13 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void NumberStateResponse::dump_to(std::string &out) const {
@@ -2461,10 +2464,13 @@ void NumberStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->missing_state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void NumberCommandRequest::dump_to(std::string &out) const {
@@ -2480,10 +2486,13 @@ void NumberCommandRequest::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -2549,10 +2558,13 @@ void SelectStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->missing_state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void SelectCommandRequest::dump_to(std::string &out) const {
@@ -2567,10 +2579,13 @@ void SelectCommandRequest::dump_to(std::string &out) const {
   out.append("'").append(this->state).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -2640,10 +2655,13 @@ void SirenStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void SirenCommandRequest::dump_to(std::string &out) const {
@@ -2766,10 +2784,13 @@ void LockStateResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::LockState>(this->state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void LockCommandRequest::dump_to(std::string &out) const {
@@ -2792,10 +2813,13 @@ void LockCommandRequest::dump_to(std::string &out) const {
   out.append("'").append(this->code).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -2851,10 +2875,13 @@ void ButtonCommandRequest::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
