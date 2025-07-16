@@ -382,8 +382,7 @@ class Application {
   }
 #else
 #define GET_ENTITY_METHOD(entity_type, entity_name, entities_member) \
-  entity_type *get_##entity_name##_by_key(uint32_t key, uint32_t device_id, bool include_internal = false) { \
-    (void) device_id; \
+  entity_type *get_##entity_name##_by_key(uint32_t key, bool include_internal = false) { \
     for (auto *obj : this->entities_member##_) { \
       if (obj->get_object_id_hash() == key && (include_internal || !obj->is_internal())) \
         return obj; \

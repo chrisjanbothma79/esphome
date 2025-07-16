@@ -42,6 +42,7 @@ static const char *const TAG = "api.connection";
 static const int CAMERA_STOP_STREAM = 5000;
 #endif
 
+#ifdef USE_DEVICES
 // Helper macro for entity command handlers - gets entity by key and device_id, returns if not found, and creates call
 // object
 #define ENTITY_COMMAND_MAKE_CALL(entity_type, entity_var, getter_name) \
@@ -56,6 +57,22 @@ static const int CAMERA_STOP_STREAM = 5000;
   entity_type *entity_var = App.get_##getter_name##_by_key(msg.key, msg.device_id); \
   if ((entity_var) == nullptr) \
     return;
+#else
+// Helper macro for entity command handlers - gets entity by key, returns if not found, and creates call
+// object
+#define ENTITY_COMMAND_MAKE_CALL(entity_type, entity_var, getter_name) \
+  entity_type *entity_var = App.get_##getter_name##_by_key(msg.key); \
+  if ((entity_var) == nullptr) \
+    return; \
+  auto call = (entity_var)->make_call();
+
+// Helper macro for entity command handlers that don't use make_call() - gets entity by key and returns if
+// not found
+#define ENTITY_COMMAND_GET(entity_type, entity_var, getter_name) \
+  entity_type *entity_var = App.get_##getter_name##_by_key(msg.key); \
+  if ((entity_var) == nullptr) \
+    return;
+#endif
 
 APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *parent)
     : parent_(parent), initial_state_iterator_(this), list_entities_iterator_(this) {
