@@ -389,7 +389,7 @@ class Application {
     } \
     return nullptr; \
   }
-#endif
+#endif  // USE_DEVICES
 #ifdef USE_AREAS
   const std::vector<Area *> &get_areas() { return this->areas_; }
 #endif

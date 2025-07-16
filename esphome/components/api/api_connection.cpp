@@ -57,7 +57,7 @@ static const int CAMERA_STOP_STREAM = 5000;
   entity_type *entity_var = App.get_##getter_name##_by_key(msg.key, msg.device_id); \
   if ((entity_var) == nullptr) \
     return;
-#else
+#else  // No device support, use simpler macros
 // Helper macro for entity command handlers - gets entity by key, returns if not found, and creates call
 // object
 #define ENTITY_COMMAND_MAKE_CALL(entity_type, entity_var, getter_name) \
@@ -72,7 +72,7 @@ static const int CAMERA_STOP_STREAM = 5000;
   entity_type *entity_var = App.get_##getter_name##_by_key(msg.key); \
   if ((entity_var) == nullptr) \
     return;
-#endif
+#endif  // USE_DEVICES
 
 APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *parent)
     : parent_(parent), initial_state_iterator_(this), list_entities_iterator_(this) {
