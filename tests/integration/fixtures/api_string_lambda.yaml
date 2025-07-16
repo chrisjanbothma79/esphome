@@ -1,0 +1,23 @@
+esphome:
+  name: api-string-lambda-test
+host:
+
+api:
+  actions:
+    # Service that tests string lambda functionality
+    - action: test_string_lambda
+      variables:
+        input_string: string
+      then:
+        # Log the input to verify service was called
+        - logger.log:
+            format: "Service called with string: %s"
+            args: [input_string.c_str()]
+
+        # This is the key test - using a lambda that returns x.c_str()
+        # where x is already a string. This would fail to compile in 2025.7.0b5
+        # with "no matching function for call to 'to_string(std::string)'"
+        - homeassistant.tag_scanned: !lambda 'return input_string.c_str();'
+
+logger:
+  level: DEBUG
