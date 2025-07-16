@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -678,7 +679,7 @@ class InterruptLock {
   ~InterruptLock();
 
  protected:
-#if defined(USE_ESP8266) || defined(USE_RP2040)
+#if defined(USE_ESP8266) || defined(USE_RP2040) || defined(USE_ZEPHYR)
   uint32_t state_;
 #endif
 };
@@ -783,7 +784,7 @@ template<class T> class RAMAllocator {
   T *reallocate(T *p, size_t n) { return this->reallocate(p, n, sizeof(T)); }
 
   T *reallocate(T *p, size_t n, size_t manual_size) {
-    size_t size = n * sizeof(T);
+    size_t size = n * manual_size;
     T *ptr = nullptr;
 #ifdef USE_ESP32
     if (this->flags_ & Flags::ALLOC_EXTERNAL) {

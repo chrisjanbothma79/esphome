@@ -113,7 +113,7 @@ void ADCSensor::setup() {
       ESP_LOGW(TAG, "Line fitting calibration failed with error %d, will use uncalibrated readings", err);
       this->setup_flags_.calibration_complete = false;
     }
-#endif  // USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C5 || ESP32C6 || ESP32S3 || ESP32H2
+#endif  // USE_ESP32_VARIANT_ESP32C3 || ESP32C5 || ESP32C6 || ESP32S3 || ESP32H2
   }
 
   this->setup_flags_.init_complete = true;
@@ -192,7 +192,7 @@ float ADCSensor::sample_fixed_attenuation_() {
         adc_cali_delete_scheme_curve_fitting(this->calibration_handle_);
 #else   // Other ESP32 variants use line fitting calibration
         adc_cali_delete_scheme_line_fitting(this->calibration_handle_);
-#endif  // USE_ESP32_VARIANT_ESP32C3 || USE_ESP32_VARIANT_ESP32C5 || ESP32C6 || ESP32S3 || ESP32H2
+#endif  // USE_ESP32_VARIANT_ESP32C3 || ESP32C5 || ESP32C6 || ESP32S3 || ESP32H2
         this->calibration_handle_ = nullptr;
       }
     }
