@@ -249,7 +249,7 @@ jobs:
     needs:
       - common
       - determine-jobs
-    if: github.event_name == 'pull_request' && fromJSON(needs.determine-jobs.outputs.cpp-unit-tests) | length > 0
+    if: github.event_name == 'pull_request' && needs.determine-jobs.outputs.cpp-unit-tests != '[]'
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v4.2.2
