@@ -150,8 +150,7 @@ async def to_code(config):
         cg.add_library("WiFi", None)  # Required by ESP32-audioI2S library
         cg.add_library("esphome/ESP32-audioI2S", "2.3.0")
         cg.add_build_flag("-DAUDIO_NO_SD_FS")
-        cg.add_build_flag(
-            "-DAUDIO_NO_WIFI"
-        )  # Disable WiFi features in the audio library
+        # Disable WiFi features in the audio library
+        cg.add_build_flag("-DAUDIO_NO_WIFI")  
     # ESP-IDF framework uses built-in HTTP client and I2S drivers
     # No additional libraries needed for ESP-IDF
