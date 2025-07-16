@@ -1,22 +1,29 @@
 """Tests for mpip_spi configuration validation."""
 
+from collections.abc import Callable
+from pathlib import Path
+
 import pytest
 
 from esphome import config_validation as cv
-from esphome.components.esp32 import FRAMEWORK_ESP_IDF, VARIANT_ESP32P4
+from esphome.components.esp32 import KEY_BOARD, VARIANT_ESP32P4
 from esphome.const import (
     CONF_DIMENSIONS,
     CONF_HEIGHT,
     CONF_INIT_SEQUENCE,
     CONF_WIDTH,
-    PLATFORM_ESP32,
+    KEY_VARIANT,
+    PlatformFramework,
 )
+from tests.component_tests.types import SetCoreConfigCallable
 
 
-def test_configuration_errors(set_core_config) -> None:
+def test_configuration_errors(set_core_config: SetCoreConfigCallable) -> None:
     """Test detection of invalid configuration"""
-
-    set_core_config(PLATFORM_ESP32, FRAMEWORK_ESP_IDF, "esp32dev", VARIANT_ESP32P4)
+    set_core_config(
+        PlatformFramework.ESP32_IDF,
+        platform_data={KEY_BOARD: "esp32-p4-evboard", KEY_VARIANT: VARIANT_ESP32P4},
+    )
 
     from esphome.components.mipi_dsi.display import CONFIG_SCHEMA
 
@@ -60,11 +67,12 @@ def test_configuration_errors(set_core_config) -> None:
         )
 
 
-def test_configuration_success(
-    set_core_config, set_component_config, choose_variant_with_pins
-) -> None:
+def test_configuration_success(set_core_config: SetCoreConfigCallable) -> None:
     """Test successful configuration validation."""
-    set_core_config(PLATFORM_ESP32, FRAMEWORK_ESP_IDF, "esp32dev", VARIANT_ESP32P4)
+    set_core_config(
+        PlatformFramework.ESP32_IDF,
+        platform_data={KEY_BOARD: "esp32-p4-evboard", KEY_VARIANT: VARIANT_ESP32P4},
+    )
 
     from esphome.components.mipi_dsi.display import CONFIG_SCHEMA, MODELS
 
@@ -103,11 +111,17 @@ def test_configuration_success(
         CONFIG_SCHEMA(config)
 
 
-def test_code_generation(generate_main, get_path) -> None:
+def test_code_generation(
+    generate_main: Callable[[str | Path], str],
+    component_fixture_path: Callable[[str], Path],
+) -> None:
     """Test code generation for display."""
 
-    main_cpp = generate_main(get_path("mipi_dsi.yaml"))
-    assert "new mipi_dsi::MIPI_DSI(800, 1280);" in main_cpp
+    main_cpp = generate_main(component_fixture_path("mipi_dsi.yaml"))
+    assert (
+        "mipi_dsi_mipi_dsi_id = new mipi_dsi::MIPI_DSI(800, 1280, display::COLOR_BITNESS_565);"
+        in main_cpp
+    )
     assert "set_init_sequence({224, 1, 0, 225, 1, 147, 226, 1," in main_cpp
     assert "mipi_dsi_mipi_dsi_id->set_lane_bit_rate(1500);" in main_cpp
     assert "backlight_id = new light::LightState(mipi_dsi_dsibacklight_id);" in main_cpp
