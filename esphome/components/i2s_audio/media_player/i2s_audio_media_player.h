@@ -33,7 +33,7 @@ class I2SAudioMediaPlayer : public Component, public Parented<I2SAudioComponent>
 
   /// @brief Set the data out pin for I2S
   void set_dout_pin(uint8_t pin) { this->dout_pin_ = pin; }
-  
+
   /// @brief Set the mute pin (optional)
   void set_mute_pin(GPIOPin *mute_pin) { this->mute_pin_ = mute_pin; }
 
@@ -59,10 +59,10 @@ class I2SAudioMediaPlayer : public Component, public Parented<I2SAudioComponent>
 
   /// @brief Mute the audio output
   void mute_();
-  
+
   /// @brief Unmute the audio output
   void unmute_();
-  
+
   /// @brief Set volume level (0.0 to 1.0)
   /// @param volume Volume level
   /// @param publish Whether to publish state change

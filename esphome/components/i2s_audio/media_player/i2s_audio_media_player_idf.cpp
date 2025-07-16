@@ -34,32 +34,32 @@ static const uint32_t HTTP_TIMEOUT_MS = 5000;
 
 /// @brief Event group bits for media player task communication
 enum MediaPlayerEventGroupBits : uint32_t {
-  COMMAND_START = (1 << 0),         ///< Start playback command
-  COMMAND_STOP = (1 << 1),          ///< Stop playback command
-  COMMAND_PAUSE = (1 << 2),         ///< Pause playback command
-  COMMAND_RESUME = (1 << 3),        ///< Resume playback command
-  COMMAND_SET_VOLUME = (1 << 4),    ///< Set volume command
+  COMMAND_START = (1 << 0),       ///< Start playback command
+  COMMAND_STOP = (1 << 1),        ///< Stop playback command
+  COMMAND_PAUSE = (1 << 2),       ///< Pause playback command
+  COMMAND_RESUME = (1 << 3),      ///< Resume playback command
+  COMMAND_SET_VOLUME = (1 << 4),  ///< Set volume command
 
-  STATE_STARTING = (1 << 10),       ///< Task starting state
-  STATE_RUNNING = (1 << 11),        ///< Task running state
-  STATE_PAUSED = (1 << 12),         ///< Task paused state
-  STATE_STOPPING = (1 << 13),       ///< Task stopping state
-  STATE_STOPPED = (1 << 14),        ///< Task stopped state
+  STATE_STARTING = (1 << 10),  ///< Task starting state
+  STATE_RUNNING = (1 << 11),   ///< Task running state
+  STATE_PAUSED = (1 << 12),    ///< Task paused state
+  STATE_STOPPING = (1 << 13),  ///< Task stopping state
+  STATE_STOPPED = (1 << 14),   ///< Task stopped state
 
-  ERR_HTTP_FAILED = (1 << 20),      ///< HTTP connection failed
-  ERR_I2S_FAILED = (1 << 21),       ///< I2S operation failed
-  ERR_TASK_FAILED = (1 << 22),      ///< Task creation failed
-  ERR_NO_MEMORY = (1 << 23),        ///< Memory allocation failed
+  ERR_HTTP_FAILED = (1 << 20),  ///< HTTP connection failed
+  ERR_I2S_FAILED = (1 << 21),   ///< I2S operation failed
+  ERR_TASK_FAILED = (1 << 22),  ///< Task creation failed
+  ERR_NO_MEMORY = (1 << 23),    ///< Memory allocation failed
 
   ALL_ERR_BITS = ERR_HTTP_FAILED | ERR_I2S_FAILED | ERR_TASK_FAILED | ERR_NO_MEMORY,
-  ALL_BITS = 0x00FFFFFF,            ///< All valid FreeRTOS event group bits
+  ALL_BITS = 0x00FFFFFF,  ///< All valid FreeRTOS event group bits
 };
 
 /// @brief Audio format information for ESP-IDF implementation
 struct AudioFormat {
-  uint32_t sample_rate{44100};       ///< Sample rate in Hz
-  uint8_t channels{2};               ///< Number of channels (1=mono, 2=stereo)
-  uint8_t bits_per_sample{16};       ///< Bits per sample (8, 16, 24, 32)
+  uint32_t sample_rate{44100};  ///< Sample rate in Hz
+  uint8_t channels{2};          ///< Number of channels (1=mono, 2=stereo)
+  uint8_t bits_per_sample{16};  ///< Bits per sample (8, 16, 24, 32)
 };
 
 /// @brief ESP-IDF specific data for each media player instance
@@ -67,10 +67,10 @@ struct ESPIDFData {
   TaskHandle_t task_handle_{nullptr};
   EventGroupHandle_t event_group_{nullptr};
   esp_http_client_handle_t http_client_{nullptr};
-  
+
 #ifdef USE_I2S_LEGACY
   // Legacy I2S driver state - no additional members needed
-#else  // !USE_I2S_LEGACY
+#else   // !USE_I2S_LEGACY
   i2s_chan_handle_t tx_handle_{nullptr};
 #endif  // USE_I2S_LEGACY
 
@@ -79,11 +79,11 @@ struct ESPIDFData {
   size_t audio_buffer_size_{4096};
   bool task_running_{false};
   bool i2s_driver_installed_{false};
-  uint8_t volume_level_{21};              ///< Volume level (0-21, matching Arduino library)
+  uint8_t volume_level_{21};  ///< Volume level (0-21, matching Arduino library)
 };
 
 // Static map to store ESP-IDF specific data for each media player instance
-static std::map<I2SAudioMediaPlayer*, ESPIDFData> esp_idf_data;
+static std::map<I2SAudioMediaPlayer *, ESPIDFData> esp_idf_data;
 
 /// @brief HTTP event handler for audio streaming
 static esp_err_t http_event_handler(esp_http_client_event_t *evt) {
@@ -114,7 +114,7 @@ void I2SAudioMediaPlayer::setup() {
   this->state = media_player::MEDIA_PLAYER_STATE_IDLE;
 
   auto &data = esp_idf_data[this];
-  
+
   // Create event group for task communication
   data.event_group_ = xEventGroupCreate();
   if (data.event_group_ == nullptr) {
@@ -192,7 +192,7 @@ void I2SAudioMediaPlayer::loop() {
     if (event_bits & MediaPlayerEventGroupBits::ERR_NO_MEMORY) {
       ESP_LOGE(TAG, "Memory allocation failed");
     }
-    
+
     this->state = media_player::MEDIA_PLAYER_STATE_IDLE;
     this->i2s_state_ = I2S_STATE_STOPPED;
     this->publish_state();
@@ -202,7 +202,7 @@ void I2SAudioMediaPlayer::loop() {
 
 void I2SAudioMediaPlayer::control(const media_player::MediaPlayerCall &call) {
   auto &data = esp_idf_data[this];
-  
+
   media_player::MediaPlayerState play_state = media_player::MEDIA_PLAYER_STATE_PLAYING;
   if (call.get_announcement().has_value()) {
     play_state = call.get_announcement().value() ? media_player::MEDIA_PLAYER_STATE_ANNOUNCING
@@ -307,7 +307,7 @@ void I2SAudioMediaPlayer::set_volume_(float volume, bool publish) {
   if (data.event_group_ != nullptr) {
     xEventGroupSetBits(data.event_group_, MediaPlayerEventGroupBits::COMMAND_SET_VOLUME);
   }
-  
+
   if (publish)
     this->volume = volume;
 }
@@ -318,7 +318,7 @@ media_player::MediaPlayerTraits I2SAudioMediaPlayer::get_traits() {
   return traits;
 }
 
-void I2SAudioMediaPlayer::start() { 
+void I2SAudioMediaPlayer::start() {
   this->i2s_state_ = I2S_STATE_STARTING;
   this->start_task_();
 }
@@ -377,14 +377,8 @@ void I2SAudioMediaPlayer::start_task_() {
     return;
   }
 
-  BaseType_t result = xTaskCreate(
-      media_player_task,
-      "media_player_task",
-      TASK_STACK_SIZE,
-      this,
-      TASK_PRIORITY,
-      &data.task_handle_
-  );
+  BaseType_t result =
+      xTaskCreate(media_player_task, "media_player_task", TASK_STACK_SIZE, this, TASK_PRIORITY, &data.task_handle_);
 
   if (result != pdPASS || data.task_handle_ == nullptr) {
     ESP_LOGE(TAG, "Failed to create media player task");
@@ -411,7 +405,7 @@ void I2SAudioMediaPlayer::stop_task_() {
     vTaskDelay(pdMS_TO_TICKS(50));
     timeout_count++;
   }
-  
+
   if (data.task_running_) {
     ESP_LOGW(TAG, "Task did not stop gracefully, forcing deletion");
     if (data.task_handle_ != nullptr) {
@@ -426,17 +420,14 @@ void I2SAudioMediaPlayer::media_player_task(void *params) {
   I2SAudioMediaPlayer *player = static_cast<I2SAudioMediaPlayer *>(params);
   auto &data = esp_idf_data[player];
   bool paused = false;
-  
+
   ESP_LOGD(TAG, "Media player task started");
 
   // Wait for start command
-  xEventGroupWaitBits(
-      data.event_group_,
-      MediaPlayerEventGroupBits::COMMAND_START,
-      pdTRUE,  // Clear on exit
-      pdFALSE, // Don't wait for all bits
-      portMAX_DELAY
-  );
+  xEventGroupWaitBits(data.event_group_, MediaPlayerEventGroupBits::COMMAND_START,
+                      pdTRUE,   // Clear on exit
+                      pdFALSE,  // Don't wait for all bits
+                      portMAX_DELAY);
 
   xEventGroupSetBits(data.event_group_, MediaPlayerEventGroupBits::STATE_STARTING);
 
@@ -473,14 +464,11 @@ void I2SAudioMediaPlayer::media_player_task(void *params) {
   while (true) {
     uint32_t event_bits = xEventGroupWaitBits(
         data.event_group_,
-        MediaPlayerEventGroupBits::COMMAND_STOP | 
-        MediaPlayerEventGroupBits::COMMAND_PAUSE | 
-        MediaPlayerEventGroupBits::COMMAND_RESUME |
-        MediaPlayerEventGroupBits::COMMAND_SET_VOLUME,
-        pdTRUE,  // Clear on exit
-        pdFALSE, // Don't wait for all bits
-        TASK_DELAY_MS
-    );
+        MediaPlayerEventGroupBits::COMMAND_STOP | MediaPlayerEventGroupBits::COMMAND_PAUSE |
+            MediaPlayerEventGroupBits::COMMAND_RESUME | MediaPlayerEventGroupBits::COMMAND_SET_VOLUME,
+        pdTRUE,   // Clear on exit
+        pdFALSE,  // Don't wait for all bits
+        TASK_DELAY_MS);
 
     // Handle stop command
     if (event_bits & MediaPlayerEventGroupBits::COMMAND_STOP) {
@@ -510,10 +498,9 @@ void I2SAudioMediaPlayer::media_player_task(void *params) {
     }
 
     // Read audio data from HTTP stream
-    size_t bytes_read = esp_http_client_read(data.http_client_, 
-                                             reinterpret_cast<char *>(data.audio_buffer_), 
-                                             data.audio_buffer_size_);
-    
+    size_t bytes_read =
+        esp_http_client_read(data.http_client_, reinterpret_cast<char *>(data.audio_buffer_), data.audio_buffer_size_);
+
     if (bytes_read <= 0) {
       ESP_LOGD(TAG, "End of stream or read error, stopping playback");
       break;
@@ -525,17 +512,11 @@ void I2SAudioMediaPlayer::media_player_task(void *params) {
     // Write to I2S
     size_t bytes_written = 0;
 #ifdef USE_I2S_LEGACY
-    esp_err_t write_err = i2s_write(player->parent_->get_port(), 
-                                    data.audio_buffer_, 
-                                    bytes_read, 
-                                    &bytes_written, 
-                                    pdMS_TO_TICKS(100));
-#else  // !USE_I2S_LEGACY
-    esp_err_t write_err = i2s_channel_write(data.tx_handle_, 
-                                            data.audio_buffer_, 
-                                            bytes_read, 
-                                            &bytes_written, 
-                                            pdMS_TO_TICKS(100));
+    esp_err_t write_err =
+        i2s_write(player->parent_->get_port(), data.audio_buffer_, bytes_read, &bytes_written, pdMS_TO_TICKS(100));
+#else   // !USE_I2S_LEGACY
+    esp_err_t write_err =
+        i2s_channel_write(data.tx_handle_, data.audio_buffer_, bytes_read, &bytes_written, pdMS_TO_TICKS(100));
 #endif  // USE_I2S_LEGACY
 
     if (write_err != ESP_OK) {
@@ -551,18 +532,18 @@ task_cleanup:
   // Cleanup
   player->stop_i2s_driver_();
   player->stop_http_client_();
-  
+
   xEventGroupSetBits(data.event_group_, MediaPlayerEventGroupBits::STATE_STOPPED);
   data.task_running_ = false;
   data.task_handle_ = nullptr;
-  
+
   ESP_LOGD(TAG, "Media player task ended");
   vTaskDelete(nullptr);
 }
 
 esp_err_t I2SAudioMediaPlayer::start_i2s_driver_(const AudioFormat &format) {
   auto &data = esp_idf_data[this];
-  
+
   if (!this->parent_->try_lock()) {
     return ESP_ERR_INVALID_STATE;
   }
@@ -610,7 +591,7 @@ esp_err_t I2SAudioMediaPlayer::start_i2s_driver_(const AudioFormat &format) {
   }
 #endif  // SOC_I2S_SUPPORTS_DAC
 
-#else  // !USE_I2S_LEGACY
+#else   // !USE_I2S_LEGACY
   i2s_chan_config_t chan_cfg = {
       .id = this->parent_->get_port(),
       .role = I2S_ROLE_MASTER,
@@ -632,8 +613,8 @@ esp_err_t I2SAudioMediaPlayer::start_i2s_driver_(const AudioFormat &format) {
   };
 
   i2s_slot_mode_t slot_mode = format.channels == 1 ? I2S_SLOT_MODE_MONO : I2S_SLOT_MODE_STEREO;
-  i2s_std_slot_config_t slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(
-      static_cast<i2s_data_bit_width_t>(format.bits_per_sample), slot_mode);
+  i2s_std_slot_config_t slot_cfg =
+      I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(static_cast<i2s_data_bit_width_t>(format.bits_per_sample), slot_mode);
   slot_cfg.slot_mask = format.channels == 1 ? I2S_STD_SLOT_LEFT : I2S_STD_SLOT_BOTH;
 
   i2s_std_gpio_config_t gpio_cfg = this->parent_->get_pin_config();
@@ -658,7 +639,7 @@ esp_err_t I2SAudioMediaPlayer::start_i2s_driver_(const AudioFormat &format) {
   if (err != ESP_OK) {
 #ifdef USE_I2S_LEGACY
     i2s_driver_uninstall(this->parent_->get_port());
-#else  // !USE_I2S_LEGACY
+#else   // !USE_I2S_LEGACY
     i2s_del_channel(data.tx_handle_);
     data.tx_handle_ = nullptr;
 #endif  // USE_I2S_LEGACY
@@ -679,7 +660,7 @@ void I2SAudioMediaPlayer::stop_i2s_driver_() {
 #ifdef USE_I2S_LEGACY
   i2s_stop(this->parent_->get_port());
   i2s_driver_uninstall(this->parent_->get_port());
-#else  // !USE_I2S_LEGACY
+#else   // !USE_I2S_LEGACY
   if (data.tx_handle_ != nullptr) {
     i2s_channel_disable(data.tx_handle_);
     i2s_del_channel(data.tx_handle_);
@@ -693,7 +674,7 @@ void I2SAudioMediaPlayer::stop_i2s_driver_() {
 
 esp_err_t I2SAudioMediaPlayer::start_http_client_(const std::string &url) {
   auto &data = esp_idf_data[this];
-  
+
   esp_http_client_config_t config = {};
   config.url = url.c_str();
   config.event_handler = http_event_handler;
@@ -741,11 +722,11 @@ bool I2SAudioMediaPlayer::parse_audio_format_() {
 
   // Try to get content type
   char *content_type = nullptr;
-  
+
   esp_err_t err = esp_http_client_get_header(data.http_client_, "Content-Type", &content_type);
   if (err == ESP_OK && content_type != nullptr) {
     ESP_LOGD(TAG, "Content-Type: %s", content_type);
-    
+
     // Simple format detection based on content type
     if (strstr(content_type, "audio/wav") != nullptr) {
       // Default WAV format
@@ -761,10 +742,8 @@ bool I2SAudioMediaPlayer::parse_audio_format_() {
     free(content_type);
   }
 
-  ESP_LOGD(TAG, "Audio format: %lu Hz, %d channels, %d bits", 
-           data.audio_format_.sample_rate, 
-           data.audio_format_.channels, 
-           data.audio_format_.bits_per_sample);
+  ESP_LOGD(TAG, "Audio format: %lu Hz, %d channels, %d bits", data.audio_format_.sample_rate,
+           data.audio_format_.channels, data.audio_format_.bits_per_sample);
 
   return true;
 }
@@ -784,15 +763,14 @@ void I2SAudioMediaPlayer::apply_volume_control_(uint8_t *audio_data, size_t len)
   if (data.audio_format_.bits_per_sample == 16) {
     int16_t *samples = reinterpret_cast<int16_t *>(audio_data);
     size_t sample_count = len / sizeof(int16_t);
-    
+
     // Volume scaling: 21 = 100%, 0 = 0%
     float volume_factor = static_cast<float>(data.volume_level_) / 21.0f;
-    
+
     for (size_t i = 0; i < sample_count; i++) {
       int32_t scaled = static_cast<int32_t>(samples[i]) * volume_factor;
-      samples[i] = static_cast<int16_t>(std::clamp(scaled, 
-                                                   static_cast<int32_t>(INT16_MIN), 
-                                                   static_cast<int32_t>(INT16_MAX)));
+      samples[i] =
+          static_cast<int16_t>(std::clamp(scaled, static_cast<int32_t>(INT16_MIN), static_cast<int32_t>(INT16_MAX)));
     }
   }
 }

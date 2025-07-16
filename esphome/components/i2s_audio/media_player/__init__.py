@@ -1,8 +1,8 @@
 from esphome import pins
 import esphome.codegen as cg
 from esphome.components import esp32, media_player
-import esphome.config_validation as cv
 from esphome.config_helpers import filter_source_files_from_platform
+import esphome.config_validation as cv
 from esphome.const import CONF_MODE, PlatformFramework
 from esphome.core import CORE
 
