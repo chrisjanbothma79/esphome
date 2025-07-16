@@ -1049,7 +1049,7 @@ message ListEntitiesNumberResponse {
   string unit_of_measurement = 11;
   NumberMode mode = 12;
   string device_class = 13;
-  uint32 device_id = 14;
+  uint32 device_id = 14 [(field_ifdef) = "USE_DEVICES"];
 }
 message NumberStateResponse {
   option (id) = 50;
@@ -1063,7 +1063,7 @@ message NumberStateResponse {
   // If the number does not have a valid state yet.
   // Equivalent to `!obj->has_state()` - inverse logic to make state packets smaller
   bool missing_state = 3;
-  uint32 device_id = 4;
+  uint32 device_id = 4 [(field_ifdef) = "USE_DEVICES"];
 }
 message NumberCommandRequest {
   option (id) = 51;
@@ -1074,7 +1074,7 @@ message NumberCommandRequest {
 
   fixed32 key = 1;
   float state = 2;
-  uint32 device_id = 3;
+  uint32 device_id = 3 [(field_ifdef) = "USE_DEVICES"];
 }
 
 // ==================== SELECT ====================
@@ -1107,7 +1107,7 @@ message SelectStateResponse {
   // If the select does not have a valid state yet.
   // Equivalent to `!obj->has_state()` - inverse logic to make state packets smaller
   bool missing_state = 3;
-  uint32 device_id = 4;
+  uint32 device_id = 4 [(field_ifdef) = "USE_DEVICES"];
 }
 message SelectCommandRequest {
   option (id) = 54;
@@ -1118,7 +1118,7 @@ message SelectCommandRequest {
 
   fixed32 key = 1;
   string state = 2;
-  uint32 device_id = 3;
+  uint32 device_id = 3 [(field_ifdef) = "USE_DEVICES"];
 }
 
 // ==================== SIREN ====================
@@ -1150,7 +1150,7 @@ message SirenStateResponse {
 
   fixed32 key = 1;
   bool state = 2;
-  uint32 device_id = 3;
+  uint32 device_id = 3 [(field_ifdef) = "USE_DEVICES"];
 }
 message SirenCommandRequest {
   option (id) = 57;
