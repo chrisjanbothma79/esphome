@@ -48,10 +48,10 @@ I2C_COMM_FMT_OPTIONS = ["lsb", "msb"]
 # Filter source files based on platform framework
 FILTER_SOURCE_FILES = filter_source_files_from_platform(
     {
-        "i2s_audio_media_player_arduino.cpp": {  # Keep existing Arduino filename
+        "i2s_audio_media_player_arduino.cpp": {  # Arduino implementation
             PlatformFramework.ESP32_ARDUINO,
         },
-        "i2s_audio_media_player_idf.cpp": {  # New ESP-IDF implementation
+        "i2s_audio_media_player_idf.cpp": {  # ESP-IDF implementation
             PlatformFramework.ESP32_IDF,
         },
     }
