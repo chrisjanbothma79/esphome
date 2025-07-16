@@ -77,9 +77,9 @@ def merge_factory_bin(source, target, env):
 
     output_path = firmware_path.with_suffix(".factory.bin")
     cmd = [
-        "merge_bin",
         "--chip", chip,
-        "--fill-flash-size", flash_size,
+        "merge_bin",
+        "--flash_size", flash_size,
         "--output", str(output_path)
     ]
     for addr, file_path in sections:
