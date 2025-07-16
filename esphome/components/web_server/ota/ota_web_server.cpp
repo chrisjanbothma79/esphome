@@ -57,7 +57,7 @@ void OTARequestHandler::report_ota_progress_(AsyncWebServerRequest *request) {
       percentage = (this->ota_read_length_ * 100.0f) / request->contentLength();
       ESP_LOGD(TAG, "OTA in progress: %0.1f%%", percentage);
     } else {
-      ESP_LOGD(TAG, "OTA in progress: %u bytes read", this->ota_read_length_);
+      ESP_LOGD(TAG, "OTA in progress: %lu bytes read", this->ota_read_length_);
     }
 #ifdef USE_OTA_STATE_CALLBACK
     // Report progress - use call_deferred since we're in web server task
@@ -152,7 +152,7 @@ void OTARequestHandler::handleUpload(AsyncWebServerRequest *request, const Strin
 
   // Finalize
   if (final) {
-    ESP_LOGD(TAG, "OTA final chunk: index=%u, len=%u, total_read=%u, contentLength=%u", index, len,
+    ESP_LOGD(TAG, "OTA final chunk: index=%zu, len=%zu, total_read=%lu, contentLength=%zu", index, len,
              this->ota_read_length_, request->contentLength());
 
     // For Arduino framework, the Update library tracks expected size from firmware header
