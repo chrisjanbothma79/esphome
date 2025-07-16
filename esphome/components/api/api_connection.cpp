@@ -42,18 +42,37 @@ static const char *const TAG = "api.connection";
 static const int CAMERA_STOP_STREAM = 5000;
 #endif
 
-// Helper macro for entity command handlers - gets entity by key, returns if not found, and creates call object
+#ifdef USE_DEVICES
+// Helper macro for entity command handlers - gets entity by key and device_id, returns if not found, and creates call
+// object
+#define ENTITY_COMMAND_MAKE_CALL(entity_type, entity_var, getter_name) \
+  entity_type *entity_var = App.get_##getter_name##_by_key(msg.key, msg.device_id); \
+  if ((entity_var) == nullptr) \
+    return; \
+  auto call = (entity_var)->make_call();
+
+// Helper macro for entity command handlers that don't use make_call() - gets entity by key and device_id and returns if
+// not found
+#define ENTITY_COMMAND_GET(entity_type, entity_var, getter_name) \
+  entity_type *entity_var = App.get_##getter_name##_by_key(msg.key, msg.device_id); \
+  if ((entity_var) == nullptr) \
+    return;
+#else  // No device support, use simpler macros
+// Helper macro for entity command handlers - gets entity by key, returns if not found, and creates call
+// object
 #define ENTITY_COMMAND_MAKE_CALL(entity_type, entity_var, getter_name) \
   entity_type *entity_var = App.get_##getter_name##_by_key(msg.key); \
   if ((entity_var) == nullptr) \
     return; \
   auto call = (entity_var)->make_call();
 
-// Helper macro for entity command handlers that don't use make_call() - gets entity by key and returns if not found
+// Helper macro for entity command handlers that don't use make_call() - gets entity by key and returns if
+// not found
 #define ENTITY_COMMAND_GET(entity_type, entity_var, getter_name) \
   entity_type *entity_var = App.get_##getter_name##_by_key(msg.key); \
   if ((entity_var) == nullptr) \
     return;
+#endif  // USE_DEVICES
 
 APIConnection::APIConnection(std::unique_ptr<socket::Socket> sock, APIServer *parent)
     : parent_(parent), initial_state_iterator_(this), list_entities_iterator_(this) {
@@ -183,7 +202,8 @@ void APIConnection::loop() {
   } else if (now - this->last_traffic_ > KEEPALIVE_TIMEOUT_MS && !this->flags_.remove) {
     // Only send ping if we're not disconnecting
     ESP_LOGVV(TAG, "Sending keepalive PING");
-    this->flags_.sent_ping = this->send_message(PingRequest());
+    PingRequest req;
+    this->flags_.sent_ping = this->send_message(req, PingRequest::MESSAGE_TYPE);
     if (!this->flags_.sent_ping) {
       // If we can't send the ping request directly (tx_buffer full),
       // schedule it at the front of the batch so it will be sent with priority
@@ -232,7 +252,7 @@ void APIConnection::loop() {
       resp.entity_id = it.entity_id;
       resp.attribute = it.attribute.value();
       resp.once = it.once;
-      if (this->send_message(resp)) {
+      if (this->send_message(resp, SubscribeHomeAssistantStateResponse::MESSAGE_TYPE)) {
         state_subs_at_++;
       }
     } else {
@@ -1104,9 +1124,9 @@ bool APIConnection::send_bluetooth_le_advertisement(const BluetoothLEAdvertiseme
       manufacturer_data.legacy_data.assign(manufacturer_data.data.begin(), manufacturer_data.data.end());
       manufacturer_data.data.clear();
     }
-    return this->send_message(resp);
+    return this->send_message(resp, BluetoothLEAdvertisementResponse::MESSAGE_TYPE);
   }
-  return this->send_message(msg);
+  return this->send_message(msg, BluetoothLEAdvertisementResponse::MESSAGE_TYPE);
 }
 void APIConnection::bluetooth_device_request(const BluetoothDeviceRequest &msg) {
   bluetooth_proxy::global_bluetooth_proxy->bluetooth_device_request(msg);
