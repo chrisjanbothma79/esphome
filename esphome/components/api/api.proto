@@ -1915,7 +1915,7 @@ message TextStateResponse {
   // If the Text does not have a valid state yet.
   // Equivalent to `!obj->has_state()` - inverse logic to make state packets smaller
   bool missing_state = 3;
-  uint32 device_id = 4;
+  uint32 device_id = 4 [(field_ifdef) = "USE_DEVICES"];
 }
 message TextCommandRequest {
   option (id) = 99;
@@ -1926,7 +1926,7 @@ message TextCommandRequest {
 
   fixed32 key = 1;
   string state = 2;
-  uint32 device_id = 3;
+  uint32 device_id = 3 [(field_ifdef) = "USE_DEVICES"];
 }
 
 
