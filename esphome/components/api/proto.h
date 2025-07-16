@@ -189,9 +189,9 @@ class ProtoWriteBuffer {
    * @param field_id Field number (tag) in the protobuf message
    * @param type Wire type value:
    *   - 0: Varint (int32, int64, uint32, uint64, sint32, sint64, bool, enum)
-   *   - 1: 64-bit (fixed64, sfixed64, double)
    *   - 2: Length-delimited (string, bytes, embedded messages, packed repeated fields)
    *   - 5: 32-bit (fixed32, sfixed32, float)
+   *   - Note: Wire type 1 (64-bit fixed) is not supported
    *
    * Following https://protobuf.dev/programming-guides/encoding/#structure
    */
