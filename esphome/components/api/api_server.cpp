@@ -461,7 +461,8 @@ void APIServer::on_shutdown() {
 
   // Send disconnect requests to all connected clients
   for (auto &c : this->clients_) {
-    if (!c->send_message(DisconnectRequest())) {
+    DisconnectRequest req;
+    if (!c->send_message(req, DisconnectRequest::MESSAGE_TYPE)) {
       // If we can't send the disconnect request directly (tx_buffer full),
       // schedule it at the front of the batch so it will be sent with priority
       c->schedule_message_front_(nullptr, &APIConnection::try_send_disconnect_request, DisconnectRequest::MESSAGE_TYPE,
