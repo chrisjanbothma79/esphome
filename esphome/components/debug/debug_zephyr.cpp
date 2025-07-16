@@ -4,15 +4,16 @@
 #include "esphome/core/log.h"
 #include <zephyr/drivers/hwinfo.h>
 #include <hal/nrf_power.h>
+#include <cstdint>
 
 #define BOOTLOADER_VERSION_REGISTER NRF_TIMER2->CC[0]
-#define MBR_BOOTLOADER_ADDR (0xFF8)
-#define MBR_PARAM_PAGE_ADDR (0xFFC)
 
 namespace esphome {
 namespace debug {
 
 static const char *const TAG = "debug";
+constexpr std::uintptr_t MBR_PARAM_PAGE_ADDR = 0xFFC;
+constexpr std::uintptr_t MBR_BOOTLOADER_ADDR = 0xFF8;
 
 static void show_reset_reason(std::string &reset_reason, bool set, const char *reason) {
   if (!set) {
@@ -22,6 +23,10 @@ static void show_reset_reason(std::string &reset_reason, bool set, const char *r
     reset_reason += ", ";
   }
   reset_reason += reason;
+}
+
+inline uint32_t read_mem_u32(uintptr_t addr) {
+  return *reinterpret_cast<volatile uint32_t *>(addr);  // NOLINT(performance-no-int-to-ptr)
 }
 
 std::string DebugComponent::get_reset_reason_() {
@@ -257,16 +262,15 @@ void DebugComponent::get_device_info_(std::string &device_info) {
             ((NRF_UICR->PSELRESET[1] & UICR_PSELRESET_CONNECT_Msk) !=
              (UICR_PSELRESET_CONNECT_Connected << UICR_PSELRESET_CONNECT_Pos))));
 
-// #ifdef USE_ADAFRUIT_BOOTLOADER
-#if 1
+#if USE_BOOTLOADER_MCUBOOT
+  ESP_LOGD(TAG, "bootloader: mcuboot");
+#else
   ESP_LOGD(TAG, "bootloader: Adafruit, version %u.%u.%u", (BOOTLOADER_VERSION_REGISTER >> 16) & 0xFF,
            (BOOTLOADER_VERSION_REGISTER >> 8) & 0xFF, BOOTLOADER_VERSION_REGISTER & 0xFF);
-  ESP_LOGD(TAG, "MBR bootloader addr 0x%08x, UICR bootloader addr 0x%08lx", (*((uint32_t *) MBR_BOOTLOADER_ADDR)),
+  ESP_LOGD(TAG, "MBR bootloader addr 0x%08x, UICR bootloader addr 0x%08x", read_mem_u32(MBR_BOOTLOADER_ADDR),
            NRF_UICR->NRFFW[0]);
-  ESP_LOGD(TAG, "MBR param page addr 0x%08x, UICR param page addr 0x%08lx", (*((uint32_t *) MBR_PARAM_PAGE_ADDR)),
+  ESP_LOGD(TAG, "MBR param page addr 0x%08x, UICR param page addr 0x%08x", read_mem_u32(MBR_PARAM_PAGE_ADDR),
            NRF_UICR->NRFFW[1]);
-#else
-  ESP_LOGD(TAG, "bootloader: mcuboot");
 #endif
 }
 
