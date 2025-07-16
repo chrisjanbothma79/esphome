@@ -777,3 +777,5 @@ void I2SAudioMediaPlayer::apply_volume_control_(uint8_t *audio_data, size_t len)
 
 }  // namespace i2s_audio
 }  // namespace esphome
+
+#endif  // USE_ESP32 && USE_ESP_IDF
