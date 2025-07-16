@@ -3263,19 +3263,25 @@ void DateTimeStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_bool(2, this->missing_state);
   buffer.encode_fixed32(3, this->epoch_seconds);
+#ifdef USE_DEVICES
   buffer.encode_uint32(4, this->device_id);
+#endif
 }
 void DateTimeStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
   ProtoSize::add_fixed32_field(total_size, 1, this->epoch_seconds);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool DateTimeCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
+#ifdef USE_DEVICES
     case 3:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }
@@ -3359,9 +3365,11 @@ bool UpdateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
     case 2:
       this->command = static_cast<enums::UpdateCommand>(value.as_uint32());
       break;
+#ifdef USE_DEVICES
     case 3:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }

@@ -2139,7 +2139,7 @@ message DateTimeStateResponse {
   // Equivalent to `!obj->has_state()` - inverse logic to make state packets smaller
   bool missing_state = 2;
   fixed32 epoch_seconds = 3;
-  uint32 device_id = 4;
+  uint32 device_id = 4 [(field_ifdef) = "USE_DEVICES"];
 }
 message DateTimeCommandRequest {
   option (id) = 114;
@@ -2150,7 +2150,7 @@ message DateTimeCommandRequest {
 
   fixed32 key = 1;
   fixed32 epoch_seconds = 2;
-  uint32 device_id = 3;
+  uint32 device_id = 3 [(field_ifdef) = "USE_DEVICES"];
 }
 
 // ==================== UPDATE ====================
@@ -2204,5 +2204,5 @@ message UpdateCommandRequest {
 
   fixed32 key = 1;
   UpdateCommand command = 2;
-  uint32 device_id = 3;
+  uint32 device_id = 3 [(field_ifdef) = "USE_DEVICES"];
 }
