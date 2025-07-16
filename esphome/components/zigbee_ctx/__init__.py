@@ -2,8 +2,8 @@ from collections.abc import MutableMapping
 from typing import Any
 
 import esphome.codegen as cg
-from esphome.components.zephyr import zephyr_add_pm_static
 from esphome.components.nrf52.boards import BOOTLOADER_CONFIG, Section
+from esphome.components.zephyr import zephyr_add_pm_static
 from esphome.components.zephyr.const import KEY_BOOTLOADER, KEY_ZEPHYR
 from esphome.core import CORE, coroutine_with_priority
 
