@@ -11,4 +11,4 @@ media_player:
   name: Media Player
   internal: true
   dac_type: internal
-  mode: mono
+  mode: stereo
