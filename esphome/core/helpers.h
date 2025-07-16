@@ -698,7 +698,7 @@ class LwIPLock {
 
  protected:
 #if defined(USE_ESP32)
-  bool locked_;
+  bool locked_{false};
 #endif
 };
 
