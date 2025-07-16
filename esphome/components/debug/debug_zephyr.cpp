@@ -262,7 +262,7 @@ void DebugComponent::get_device_info_(std::string &device_info) {
             ((NRF_UICR->PSELRESET[1] & UICR_PSELRESET_CONNECT_Msk) !=
              (UICR_PSELRESET_CONNECT_Connected << UICR_PSELRESET_CONNECT_Pos))));
 
-#if USE_BOOTLOADER_MCUBOOT
+#ifdef USE_BOOTLOADER_MCUBOOT
   ESP_LOGD(TAG, "bootloader: mcuboot");
 #else
   ESP_LOGD(TAG, "bootloader: Adafruit, version %u.%u.%u", (BOOTLOADER_VERSION_REGISTER >> 16) & 0xFF,
