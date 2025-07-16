@@ -168,7 +168,7 @@ uint8_t ReadStateCommand::execute(DFRobotC4001Hub *parent) {
   return 0;  // Command not done yet.
 }
 
-void ReadStateCommand::on_message(std::string &message) { return; }
+void ReadStateCommand::on_message(std::string &message) {}
 
 PowerCommand::PowerCommand(bool power_on) : power_on_(power_on) {
   if (power_on) {
