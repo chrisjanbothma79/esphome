@@ -134,17 +134,19 @@ def run_tests():
     # so they are picked up by the compile step
     config.update({key: {} for key in components_with_dependencies})
 
-    print(f"Testing components: {", ".join(components)}")
+    print(f"Testing components: {', '.join(components)}")
     CORE.config = config
     args = parse_args(["program", "compile", CORE.config_path])
     try:
         exit_code = command_compile(args, config)
 
         if exit_code != 0:
-            print(f"Error compiling unit tests for {", ".join(components)}")
+            print(f"Error compiling unit tests for {', '.join(components)}")
             return exit_code
-    except:
-        print(f"Error compiling unit tests for {", ".join(components)}. Check path.")
+    except Exception as e:
+        print(
+            f"Error compiling unit tests for {', '.join(components)}. Check path. : {e}"
+        )
         return 2
 
     # After a successful compilation, locate the executable and run it:
@@ -160,7 +162,7 @@ def run_tests():
 
 
 def main():
-    exit(run_tests())
+    sys.exit(run_tests())
 
 
 if __name__ == "__main__":
