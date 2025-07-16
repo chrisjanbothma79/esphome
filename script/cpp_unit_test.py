@@ -172,7 +172,7 @@ def run_tests(selected_components):
     # After a successful compilation, locate the executable and run it:
     idedata = get_idedata(config)
     if idedata is None:
-        print(f"Cannot find executable")
+        print("Cannot find executable")
         return 1
 
     program_path = idedata.raw["prog_path"]

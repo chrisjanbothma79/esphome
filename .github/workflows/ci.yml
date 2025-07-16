@@ -282,7 +282,6 @@ jobs:
           ARGS=$(echo '${{ needs.determine-jobs.outputs.cpp-unit-tests }}' | jq -r '.[] | @sh' | xargs)
           script/cpp_unit_test.py $ARGS
 
-
   clang-tidy:
     name: ${{ matrix.name }}
     runs-on: ubuntu-24.04
