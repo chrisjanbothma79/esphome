@@ -174,7 +174,6 @@ void ListEntitiesBinarySensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->device_class);
   buffer.encode_bool(6, this->is_status_binary_sensor);
   buffer.encode_bool(7, this->disabled_by_default);
@@ -184,9 +183,8 @@ void ListEntitiesBinarySensorResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesBinarySensorResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->device_class);
   ProtoSize::add_bool_field(total_size, 1, this->is_status_binary_sensor);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
@@ -201,7 +199,7 @@ void BinarySensorStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->device_id);
 }
 void BinarySensorStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->state);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
@@ -212,7 +210,6 @@ void ListEntitiesCoverResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_bool(5, this->assumed_state);
   buffer.encode_bool(6, this->supports_position);
   buffer.encode_bool(7, this->supports_tilt);
@@ -225,9 +222,8 @@ void ListEntitiesCoverResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesCoverResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_bool_field(total_size, 1, this->assumed_state);
   ProtoSize::add_bool_field(total_size, 1, this->supports_position);
   ProtoSize::add_bool_field(total_size, 1, this->supports_tilt);
@@ -247,10 +243,10 @@ void CoverStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(6, this->device_id);
 }
 void CoverStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->legacy_state));
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->position != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->tilt != 0.0f);
+  ProtoSize::add_float_field(total_size, 1, this->position);
+  ProtoSize::add_float_field(total_size, 1, this->tilt);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->current_operation));
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 }
@@ -301,7 +297,6 @@ void ListEntitiesFanResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_bool(5, this->supports_oscillation);
   buffer.encode_bool(6, this->supports_speed);
   buffer.encode_bool(7, this->supports_direction);
@@ -316,9 +311,8 @@ void ListEntitiesFanResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesFanResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_bool_field(total_size, 1, this->supports_oscillation);
   ProtoSize::add_bool_field(total_size, 1, this->supports_speed);
   ProtoSize::add_bool_field(total_size, 1, this->supports_direction);
@@ -344,7 +338,7 @@ void FanStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(8, this->device_id);
 }
 void FanStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->state);
   ProtoSize::add_bool_field(total_size, 1, this->oscillating);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->speed));
@@ -422,7 +416,6 @@ void ListEntitiesLightResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   for (auto &it : this->supported_color_modes) {
     buffer.encode_uint32(12, static_cast<uint32_t>(it), true);
   }
@@ -442,9 +435,8 @@ void ListEntitiesLightResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesLightResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   if (!this->supported_color_modes.empty()) {
     for (const auto &it : this->supported_color_modes) {
       ProtoSize::add_enum_field_repeated(total_size, 1, static_cast<uint32_t>(it));
@@ -454,8 +446,8 @@ void ListEntitiesLightResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->legacy_supports_rgb);
   ProtoSize::add_bool_field(total_size, 1, this->legacy_supports_white_value);
   ProtoSize::add_bool_field(total_size, 1, this->legacy_supports_color_temperature);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->min_mireds != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->max_mireds != 0.0f);
+  ProtoSize::add_float_field(total_size, 1, this->min_mireds);
+  ProtoSize::add_float_field(total_size, 1, this->max_mireds);
   if (!this->effects.empty()) {
     for (const auto &it : this->effects) {
       ProtoSize::add_string_field_repeated(total_size, 1, it);
@@ -483,18 +475,18 @@ void LightStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(14, this->device_id);
 }
 void LightStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->state);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->brightness != 0.0f);
+  ProtoSize::add_float_field(total_size, 1, this->brightness);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->color_mode));
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->color_brightness != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->red != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->green != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->blue != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->white != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->color_temperature != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->cold_white != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->warm_white != 0.0f);
+  ProtoSize::add_float_field(total_size, 1, this->color_brightness);
+  ProtoSize::add_float_field(total_size, 1, this->red);
+  ProtoSize::add_float_field(total_size, 1, this->green);
+  ProtoSize::add_float_field(total_size, 1, this->blue);
+  ProtoSize::add_float_field(total_size, 1, this->white);
+  ProtoSize::add_float_field(total_size, 1, this->color_temperature);
+  ProtoSize::add_float_field(total_size, 1, this->cold_white);
+  ProtoSize::add_float_field(total_size, 1, this->warm_white);
   ProtoSize::add_string_field(total_size, 1, this->effect);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 }
@@ -609,7 +601,6 @@ void ListEntitiesSensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_string(6, this->unit_of_measurement);
   buffer.encode_int32(7, this->accuracy_decimals);
@@ -623,9 +614,8 @@ void ListEntitiesSensorResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesSensorResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_string_field(total_size, 1, this->unit_of_measurement);
   ProtoSize::add_int32_field(total_size, 1, this->accuracy_decimals);
@@ -644,8 +634,8 @@ void SensorStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->device_id);
 }
 void SensorStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->state != 0.0f);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
+  ProtoSize::add_float_field(total_size, 1, this->state);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 }
@@ -655,7 +645,6 @@ void ListEntitiesSwitchResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->assumed_state);
   buffer.encode_bool(7, this->disabled_by_default);
@@ -665,9 +654,8 @@ void ListEntitiesSwitchResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesSwitchResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->assumed_state);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
@@ -681,7 +669,7 @@ void SwitchStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(3, this->device_id);
 }
 void SwitchStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->state);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 }
@@ -714,7 +702,6 @@ void ListEntitiesTextSensorResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -723,9 +710,8 @@ void ListEntitiesTextSensorResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesTextSensorResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -739,7 +725,7 @@ void TextSensorStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->device_id);
 }
 void TextSensorStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->state);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
@@ -863,7 +849,7 @@ bool GetTimeResponse::decode_32bit(uint32_t field_id, Proto32Bit value) {
 }
 void GetTimeResponse::encode(ProtoWriteBuffer buffer) const { buffer.encode_fixed32(1, this->epoch_seconds); }
 void GetTimeResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->epoch_seconds != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->epoch_seconds);
 }
 #ifdef USE_API_SERVICES
 bool ListEntitiesServicesArgument::decode_varint(uint32_t field_id, ProtoVarInt value) {
@@ -903,7 +889,7 @@ void ListEntitiesServicesResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesServicesResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_repeated_message(total_size, 1, this->args);
 }
 bool ExecuteServiceArgument::decode_varint(uint32_t field_id, ProtoVarInt value) {
@@ -976,7 +962,7 @@ void ExecuteServiceArgument::encode(ProtoWriteBuffer buffer) const {
 void ExecuteServiceArgument::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 1, this->bool_);
   ProtoSize::add_int32_field(total_size, 1, this->legacy_int);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->float_ != 0.0f);
+  ProtoSize::add_float_field(total_size, 1, this->float_);
   ProtoSize::add_string_field(total_size, 1, this->string_);
   ProtoSize::add_sint32_field(total_size, 1, this->int_);
   if (!this->bool_array.empty()) {
@@ -1025,7 +1011,6 @@ void ListEntitiesCameraResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_bool(5, this->disabled_by_default);
   buffer.encode_string(6, this->icon);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -1033,9 +1018,8 @@ void ListEntitiesCameraResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesCameraResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -1048,7 +1032,7 @@ void CameraImageResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->device_id);
 }
 void CameraImageResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->data);
   ProtoSize::add_bool_field(total_size, 1, this->done);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
@@ -1072,7 +1056,6 @@ void ListEntitiesClimateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_bool(5, this->supports_current_temperature);
   buffer.encode_bool(6, this->supports_two_point_target_temperature);
   for (auto &it : this->supported_modes) {
@@ -1110,9 +1093,8 @@ void ListEntitiesClimateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesClimateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_bool_field(total_size, 1, this->supports_current_temperature);
   ProtoSize::add_bool_field(total_size, 1, this->supports_two_point_target_temperature);
   if (!this->supported_modes.empty()) {
@@ -1120,9 +1102,9 @@ void ListEntitiesClimateResponse::calculate_size(uint32_t &total_size) const {
       ProtoSize::add_enum_field_repeated(total_size, 1, static_cast<uint32_t>(it));
     }
   }
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->visual_min_temperature != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->visual_max_temperature != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->visual_target_temperature_step != 0.0f);
+  ProtoSize::add_float_field(total_size, 1, this->visual_min_temperature);
+  ProtoSize::add_float_field(total_size, 1, this->visual_max_temperature);
+  ProtoSize::add_float_field(total_size, 1, this->visual_target_temperature_step);
   ProtoSize::add_bool_field(total_size, 1, this->legacy_supports_away);
   ProtoSize::add_bool_field(total_size, 1, this->supports_action);
   if (!this->supported_fan_modes.empty()) {
@@ -1153,11 +1135,11 @@ void ListEntitiesClimateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_bool_field(total_size, 2, this->disabled_by_default);
   ProtoSize::add_string_field(total_size, 2, this->icon);
   ProtoSize::add_enum_field(total_size, 2, static_cast<uint32_t>(this->entity_category));
-  ProtoSize::add_fixed_field<4>(total_size, 2, this->visual_current_temperature_step != 0.0f);
+  ProtoSize::add_float_field(total_size, 2, this->visual_current_temperature_step);
   ProtoSize::add_bool_field(total_size, 2, this->supports_current_humidity);
   ProtoSize::add_bool_field(total_size, 2, this->supports_target_humidity);
-  ProtoSize::add_fixed_field<4>(total_size, 2, this->visual_min_humidity != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 2, this->visual_max_humidity != 0.0f);
+  ProtoSize::add_float_field(total_size, 2, this->visual_min_humidity);
+  ProtoSize::add_float_field(total_size, 2, this->visual_max_humidity);
   ProtoSize::add_uint32_field(total_size, 2, this->device_id);
 }
 void ClimateStateResponse::encode(ProtoWriteBuffer buffer) const {
@@ -1179,12 +1161,12 @@ void ClimateStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(16, this->device_id);
 }
 void ClimateStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->mode));
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->current_temperature != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_temperature != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_temperature_low != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_temperature_high != 0.0f);
+  ProtoSize::add_float_field(total_size, 1, this->current_temperature);
+  ProtoSize::add_float_field(total_size, 1, this->target_temperature);
+  ProtoSize::add_float_field(total_size, 1, this->target_temperature_low);
+  ProtoSize::add_float_field(total_size, 1, this->target_temperature_high);
   ProtoSize::add_bool_field(total_size, 1, this->unused_legacy_away);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->action));
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->fan_mode));
@@ -1192,8 +1174,8 @@ void ClimateStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->custom_fan_mode);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->preset));
   ProtoSize::add_string_field(total_size, 1, this->custom_preset);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->current_humidity != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->target_humidity != 0.0f);
+  ProtoSize::add_float_field(total_size, 1, this->current_humidity);
+  ProtoSize::add_float_field(total_size, 1, this->target_humidity);
   ProtoSize::add_uint32_field(total_size, 2, this->device_id);
 }
 bool ClimateCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
@@ -1295,7 +1277,6 @@ void ListEntitiesNumberResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_float(6, this->min_value);
   buffer.encode_float(7, this->max_value);
@@ -1309,13 +1290,12 @@ void ListEntitiesNumberResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesNumberResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->min_value != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->max_value != 0.0f);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->step != 0.0f);
+  ProtoSize::add_float_field(total_size, 1, this->min_value);
+  ProtoSize::add_float_field(total_size, 1, this->max_value);
+  ProtoSize::add_float_field(total_size, 1, this->step);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
   ProtoSize::add_string_field(total_size, 1, this->unit_of_measurement);
@@ -1330,8 +1310,8 @@ void NumberStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->device_id);
 }
 void NumberStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->state != 0.0f);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
+  ProtoSize::add_float_field(total_size, 1, this->state);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 }
@@ -1364,7 +1344,6 @@ void ListEntitiesSelectResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   for (auto &it : this->options) {
     buffer.encode_string(6, it, true);
@@ -1375,9 +1354,8 @@ void ListEntitiesSelectResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesSelectResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   if (!this->options.empty()) {
     for (const auto &it : this->options) {
@@ -1395,7 +1373,7 @@ void SelectStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->device_id);
 }
 void SelectStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->state);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
@@ -1436,7 +1414,6 @@ void ListEntitiesSirenResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   for (auto &it : this->tones) {
@@ -1449,9 +1426,8 @@ void ListEntitiesSirenResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesSirenResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   if (!this->tones.empty()) {
@@ -1470,7 +1446,7 @@ void SirenStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(3, this->device_id);
 }
 void SirenStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->state);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 }
@@ -1531,7 +1507,6 @@ void ListEntitiesLockResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -1543,9 +1518,8 @@ void ListEntitiesLockResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesLockResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -1561,7 +1535,7 @@ void LockStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(3, this->device_id);
 }
 void LockStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->state));
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 }
@@ -1607,7 +1581,6 @@ void ListEntitiesButtonResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -1616,9 +1589,8 @@ void ListEntitiesButtonResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesButtonResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -1694,7 +1666,6 @@ void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -1706,9 +1677,8 @@ void ListEntitiesMediaPlayerResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesMediaPlayerResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -1724,9 +1694,9 @@ void MediaPlayerStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(5, this->device_id);
 }
 void MediaPlayerStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->state));
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->volume != 0.0f);
+  ProtoSize::add_float_field(total_size, 1, this->volume);
   ProtoSize::add_bool_field(total_size, 1, this->muted);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 }
@@ -2326,7 +2296,7 @@ void VoiceAssistantAudioSettings::encode(ProtoWriteBuffer buffer) const {
 void VoiceAssistantAudioSettings::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_uint32_field(total_size, 1, this->noise_suppression_level);
   ProtoSize::add_uint32_field(total_size, 1, this->auto_gain);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->volume_multiplier != 0.0f);
+  ProtoSize::add_float_field(total_size, 1, this->volume_multiplier);
 }
 void VoiceAssistantRequest::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_bool(1, this->start);
@@ -2553,7 +2523,6 @@ void ListEntitiesAlarmControlPanelResponse::encode(ProtoWriteBuffer buffer) cons
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -2564,9 +2533,8 @@ void ListEntitiesAlarmControlPanelResponse::encode(ProtoWriteBuffer buffer) cons
 }
 void ListEntitiesAlarmControlPanelResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -2581,7 +2549,7 @@ void AlarmControlPanelStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(3, this->device_id);
 }
 void AlarmControlPanelStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->state));
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 }
@@ -2624,7 +2592,6 @@ void ListEntitiesTextResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -2636,9 +2603,8 @@ void ListEntitiesTextResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesTextResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -2655,7 +2621,7 @@ void TextStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->device_id);
 }
 void TextStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->state);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
@@ -2696,7 +2662,6 @@ void ListEntitiesDateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -2704,9 +2669,8 @@ void ListEntitiesDateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesDateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -2721,7 +2685,7 @@ void DateStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(6, this->device_id);
 }
 void DateStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
   ProtoSize::add_uint32_field(total_size, 1, this->year);
   ProtoSize::add_uint32_field(total_size, 1, this->month);
@@ -2763,7 +2727,6 @@ void ListEntitiesTimeResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -2771,9 +2734,8 @@ void ListEntitiesTimeResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesTimeResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -2788,7 +2750,7 @@ void TimeStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(6, this->device_id);
 }
 void TimeStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
   ProtoSize::add_uint32_field(total_size, 1, this->hour);
   ProtoSize::add_uint32_field(total_size, 1, this->minute);
@@ -2830,7 +2792,6 @@ void ListEntitiesEventResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -2842,9 +2803,8 @@ void ListEntitiesEventResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesEventResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -2862,7 +2822,7 @@ void EventResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(3, this->device_id);
 }
 void EventResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->event_type);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 }
@@ -2872,7 +2832,6 @@ void ListEntitiesValveResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -2884,9 +2843,8 @@ void ListEntitiesValveResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesValveResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -2903,8 +2861,8 @@ void ValveStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->device_id);
 }
 void ValveStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->position != 0.0f);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
+  ProtoSize::add_float_field(total_size, 1, this->position);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->current_operation));
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 }
@@ -2943,7 +2901,6 @@ void ListEntitiesDateTimeResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -2951,9 +2908,8 @@ void ListEntitiesDateTimeResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesDateTimeResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -2966,9 +2922,9 @@ void DateTimeStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(4, this->device_id);
 }
 void DateTimeStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->epoch_seconds != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->epoch_seconds);
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
 }
 bool DateTimeCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
@@ -3000,7 +2956,6 @@ void ListEntitiesUpdateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->object_id);
   buffer.encode_fixed32(2, this->key);
   buffer.encode_string(3, this->name);
-  buffer.encode_string(4, this->unique_id);
   buffer.encode_string(5, this->icon);
   buffer.encode_bool(6, this->disabled_by_default);
   buffer.encode_uint32(7, static_cast<uint32_t>(this->entity_category));
@@ -3009,9 +2964,8 @@ void ListEntitiesUpdateResponse::encode(ProtoWriteBuffer buffer) const {
 }
 void ListEntitiesUpdateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->object_id);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_string_field(total_size, 1, this->unique_id);
   ProtoSize::add_string_field(total_size, 1, this->icon);
   ProtoSize::add_bool_field(total_size, 1, this->disabled_by_default);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->entity_category));
@@ -3032,11 +2986,11 @@ void UpdateStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(11, this->device_id);
 }
 void UpdateStateResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->key != 0);
+  ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_bool_field(total_size, 1, this->missing_state);
   ProtoSize::add_bool_field(total_size, 1, this->in_progress);
   ProtoSize::add_bool_field(total_size, 1, this->has_progress);
-  ProtoSize::add_fixed_field<4>(total_size, 1, this->progress != 0.0f);
+  ProtoSize::add_float_field(total_size, 1, this->progress);
   ProtoSize::add_string_field(total_size, 1, this->current_version);
   ProtoSize::add_string_field(total_size, 1, this->latest_version);
   ProtoSize::add_string_field(total_size, 1, this->title);
