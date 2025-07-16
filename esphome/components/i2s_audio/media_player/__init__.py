@@ -59,6 +59,7 @@ FILTER_SOURCE_FILES = filter_source_files_from_platform(
 
 
 def validate_esp32_variant(config):
+    """Validate ESP32 variant supports the requested DAC type."""
     if config[CONF_DAC_TYPE] != "internal":
         return config
     variant = esp32.get_esp32_variant()
@@ -127,6 +128,7 @@ FINAL_VALIDATE_SCHEMA = _final_validate
 
 
 async def to_code(config):
+    """Generate code for the I2S audio media player component."""
     var = await media_player.new_media_player(config)
     await cg.register_component(var, config)
 

@@ -1,8 +1,9 @@
 #include "i2s_audio_media_player.h"
 
-#if defined(USE_ESP32) && defined(USE_ARDUINO)
+#ifdef USE_ESP32_FRAMEWORK_ARDUINO
 
 #include "esphome/core/log.h"
+#include <Audio.h>  // Arduino framework ESP32-audioI2S library
 
 namespace esphome {
 namespace i2s_audio {
@@ -104,6 +105,7 @@ void I2SAudioMediaPlayer::mute_() {
   }
   this->muted_ = true;
 }
+
 void I2SAudioMediaPlayer::unmute_() {
   if (this->mute_pin_ != nullptr) {
     this->mute_pin_->digital_write(false);
@@ -112,6 +114,7 @@ void I2SAudioMediaPlayer::unmute_() {
   }
   this->muted_ = false;
 }
+
 void I2SAudioMediaPlayer::set_volume_(float volume, bool publish) {
   if (this->audio_ != nullptr)
     this->audio_->setVolume(remap<uint8_t, float>(volume, 0.0f, 1.0f, 0, 21));
@@ -127,20 +130,20 @@ void I2SAudioMediaPlayer::setup() {
 void I2SAudioMediaPlayer::loop() {
   switch (this->i2s_state_) {
     case I2S_STATE_STARTING:
-      this->start();
+      this->start_();
       break;
     case I2S_STATE_RUNNING:
-      this->play();
+      this->play_();
       break;
     case I2S_STATE_STOPPING:
-      this->stop();
+      this->stop_();
       break;
     case I2S_STATE_STOPPED:
       break;
   }
 }
 
-void I2SAudioMediaPlayer::play() {
+void I2SAudioMediaPlayer::play_() {
   this->audio_->loop();
   if ((this->state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
        this->state == media_player::MEDIA_PLAYER_STATE_ANNOUNCING) &&
@@ -150,7 +153,8 @@ void I2SAudioMediaPlayer::play() {
 }
 
 void I2SAudioMediaPlayer::start() { this->i2s_state_ = I2S_STATE_STARTING; }
-void I2SAudioMediaPlayer::start() {
+
+void I2SAudioMediaPlayer::start_() {
   if (!this->parent_->try_lock()) {
     return;  // Waiting for another i2s to return lock
   }
@@ -159,7 +163,7 @@ void I2SAudioMediaPlayer::start() {
   if (this->internal_dac_mode_ != I2S_DAC_CHANNEL_DISABLE) {
     this->audio_ = make_unique<Audio>(true, this->internal_dac_mode_, this->parent_->get_port());
   } else {
-#endif
+#endif  // SOC_I2S_SUPPORTS_DAC
     this->audio_ = make_unique<Audio>(false, 3, this->parent_->get_port());
 
     i2s_pin_config_t pin_config = this->parent_->get_pin_config();
@@ -174,7 +178,7 @@ void I2SAudioMediaPlayer::start() {
     }
 #if SOC_I2S_SUPPORTS_DAC
   }
-#endif
+#endif  // SOC_I2S_SUPPORTS_DAC
 
   this->i2s_state_ = I2S_STATE_RUNNING;
   this->high_freq_.start();
@@ -188,6 +192,7 @@ void I2SAudioMediaPlayer::start() {
     this->publish_state();
   }
 }
+
 void I2SAudioMediaPlayer::stop() {
   if (this->i2s_state_ == I2S_STATE_STOPPED) {
     return;
@@ -198,7 +203,8 @@ void I2SAudioMediaPlayer::stop() {
   }
   this->i2s_state_ = I2S_STATE_STOPPING;
 }
-void I2SAudioMediaPlayer::stop() {
+
+void I2SAudioMediaPlayer::stop_() {
   if (this->audio_->isRunning()) {
     this->audio_->stopSong();
     return;
@@ -219,7 +225,7 @@ media_player::MediaPlayerTraits I2SAudioMediaPlayer::get_traits() {
   auto traits = media_player::MediaPlayerTraits();
   traits.set_supports_pause(true);
   return traits;
-};
+}
 
 void I2SAudioMediaPlayer::dump_config() {
   ESP_LOGCONFIG(TAG, "Audio:");
@@ -243,7 +249,7 @@ void I2SAudioMediaPlayer::dump_config() {
         break;
     }
   } else {
-#endif
+#endif  // SOC_I2S_SUPPORTS_DAC
     ESP_LOGCONFIG(TAG,
                   "  External DAC channels: %d\n"
                   "  I2S DOUT Pin: %d",
@@ -251,10 +257,10 @@ void I2SAudioMediaPlayer::dump_config() {
     LOG_PIN("  Mute Pin: ", this->mute_pin_);
 #if SOC_I2S_SUPPORTS_DAC
   }
-#endif
+#endif  // SOC_I2S_SUPPORTS_DAC
 }
 
 }  // namespace i2s_audio
 }  // namespace esphome
 
-#endif  // USE_ESP32 && USE_ARDUINO#include "i2s_audio_media_player.h"
+#endif  // USE_ESP32_FRAMEWORK_ARDUINO
