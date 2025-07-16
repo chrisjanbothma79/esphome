@@ -2,13 +2,13 @@
 
 #if defined(USE_ESP32) && defined(USE_ESP_IDF)
 
-#include "esphome/core/log.h"
 #include "esphome/core/application.h"
+#include "esphome/core/log.h"
+#include <esp_http_client.h>
 #include <esp_log.h>
 #include <esp_timer.h>
-#include <esp_http_client.h>
-#include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
+#include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
 #include <string.h>
@@ -541,7 +541,7 @@ task_cleanup:
   vTaskDelete(nullptr);
 }
 
-esp_err_t I2SAudioMediaPlayer::start_i2s_driver_(const AudioFormat &format) {
+esp_err_t I2SAudioMediaPlayer::start_i2s_driver(const AudioFormat &format) {
   auto &data = esp_idf_data[this];
 
   if (!this->parent_->try_lock()) {
@@ -742,7 +742,7 @@ bool I2SAudioMediaPlayer::parse_audio_format_() {
     free(content_type);
   }
 
-  ESP_LOGD(TAG, "Audio format: %lu Hz, %d channels, %d bits", data.audio_format_.sample_rate,
+  ESP_LOGD(TAG, "Audio format: %u Hz, %d channels, %d bits", data.audio_format_.sample_rate,
            data.audio_format_.channels, data.audio_format_.bits_per_sample);
 
   return true;
