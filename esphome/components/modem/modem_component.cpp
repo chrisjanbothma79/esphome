@@ -50,24 +50,30 @@ ModemComponent::ModemComponent() {
 void ModemComponent::enable_debug() { esp_log_level_set("command_lib", ESP_LOG_VERBOSE); }
 
 bool ModemComponent::is_modem_connected(bool verbose) {
-  float rssi, ber;
-  int network_mode = 0;
-  if (!this->dce || this->dce->sync() != command_result::OK) {
-    ESP_LOGE(TAG, "Modem DCE not ready, cannot check connection.");
-    return false;
-  }
-  bool network_attached = this->is_network_attached_();
-  this->get_signal_quality(rssi, ber);
-  this->dce->get_network_system_mode(network_mode);
+  this->update_network_state_();
+  return this->internal_state_.connected;
+}
 
-  bool connected = (network_mode != 0) && (!std::isnan(rssi)) && network_attached;
+std::string ModemComponent::modem_network_status_string() {
+  this->update_network_state_();
 
-  if (verbose) {
-    ESP_LOGI(TAG, "Modem status: %s, attached: %s, type: %s, ber: %.0f%%, rssi: %.0fdB %s", connected ? "Good" : "BAD",
-             network_attached ? "Yes" : "NO", network_system_mode_to_string(network_mode).c_str(), ber, rssi,
-             get_signal_bars(rssi).c_str());
+  std::string fun_str;
+  if (this->internal_state_.fun == 1) {
+    fun_str = "OK";
+  } else {
+    fun_str = "NOK (" + std::to_string(this->internal_state_.fun) + ")";
   }
-  return connected;
+
+  char buf[256];
+  snprintf(buf, sizeof(buf),
+           "Modem status: %s, attached: %s, radio function: %s, SIM: %s, type: %s, ber: %.0f%%, rssi: %.0fdB %s",
+           this->internal_state_.connected ? "Good" : "BAD", this->internal_state_.network_attached ? "Yes" : "NO",
+           fun_str.c_str(), this->internal_state_.sim_status.c_str(),
+           network_system_mode_to_string(this->internal_state_.network_mode).c_str(), this->internal_state_.ber,
+           this->internal_state_.rssi, get_signal_bars(this->internal_state_.rssi).c_str());
+
+  std::string status_string(buf);
+  return status_string;
 }
 
 AtCommandResult ModemComponent::send_at(const std::string &cmd, uint32_t timeout) {
@@ -341,6 +347,7 @@ void ModemComponent::handle_state_initializing_() {
   //   this->loop_delay_(5000);  // delay to retry
   //   return;
   // }
+  ESP_LOGI(TAG, this->modem_network_status_string().c_str());
 
   if (sim_unlocked || this->prepare_sim_()) {
     ESP_LOGI(TAG, "SIM PIN unlocked");
@@ -381,6 +388,7 @@ void ModemComponent::handle_state_disconnected_() {
   this->status_set_warning("Starting connection");
 
   this->internal_state_.startms = millis();  // Start connection timer
+  ESP_LOGI(TAG, this->modem_network_status_string().c_str());
   if (!this->start_ppp_()) {
     float time_left_s = float(this->timeout_ - (millis() - this->internal_state_.startms)) / 1000;
     ESP_LOGW(TAG, "Modem failed to enter PPP (abort in %.0fs).", time_left_s);
@@ -395,31 +403,6 @@ void ModemComponent::handle_state_disconnected_() {
   } else {
     this->component_state_ = ModemComponentState::CONNECTING;
   }
-
-  // if (this->dce->sync() != command_result::OK) {
-  //   ESP_LOGW(TAG, "Modem not responding while trying to connect");
-  //   this->component_state_ = ModemComponentState::NOT_RESPONDING;
-  // }
-  //
-  // // Wait for the modem to attach to a network, start PPP
-  // if (this->is_modem_connected()) {
-  //   this->component_state_ = ModemComponentState::CONNECTING;
-  //   this->internal_state_.startms = millis();  // Start connection timer
-  //   if (!this->start_ppp_()) {
-  //     ESP_LOGE(TAG, "Modem failed to enter PPP. Retrying...");
-  //     this->dce->set_mode(modem_mode::COMMAND_MODE);
-  //     this->loop_delay_(this->connect_retry_delay_);  // Delay before retrying.
-  //     this->component_state_ = ModemComponentState::DISCONNECTED;
-  //   }
-  // } else {
-  //   float time_left_s = float(this->timeout_ - (millis() - this->internal_state_.startms)) / 1000;
-  //   ESP_LOGW(TAG, "Waiting for modem network attach (abort in %.0fs).", time_left_s);
-  //   this->loop_delay_(this->connect_retry_delay_);  // Delay before retrying.
-  //   if ((millis() - this->internal_state_.startms) > this->timeout_) {
-  //     this->abort_("Timeout while trying to connect. Trying to reset the modem");
-  //     this->reset();
-  //   }
-  // }
 }
 
 void ModemComponent::handle_state_connecting_() {
@@ -447,17 +430,20 @@ void ModemComponent::handle_state_connected_() {
     this->loop_delay_(this->connect_retry_delay_);
     return;
   }
-  // In CONNECTED state, we perform health checks.
-  if ((millis() - this->internal_state_.last_health_check) > 35000) {
-    this->internal_state_.last_health_check = millis();
-    // Health check only available in CMUX mode.
-    if (this->cmux_ && !this->is_modem_connected()) {
-      ESP_LOGW(TAG, "Connection lost!");
-      this->component_state_ = ModemComponentState::DISCONNECTED;
-      this->loop_delay_(this->connect_retry_delay_);
+  // If CMUX, we perform health checks
+  if (this->cmux_) {
+    if ((millis() - this->internal_state_.last_health_check) > 35000) {
+      this->internal_state_.last_health_check = millis();
+      ESP_LOGI(TAG, this->modem_network_status_string().c_str());
+      // Health check only available in CMUX mode.
+      if (!this->is_modem_connected()) {
+        ESP_LOGW(TAG, "Connection lost!");
+        this->component_state_ = ModemComponentState::DISCONNECTED;
+        this->loop_delay_(this->connect_retry_delay_);
+      }
     }
+    this->loop_delay_(2000);
   }
-  this->loop_delay_(2000);
 }
 
 void ModemComponent::handle_state_not_responding_() {
@@ -675,18 +661,13 @@ bool ModemComponent::prepare_sim_() {
     ESP_LOGW(TAG, "Failed to check pin");
     return false;
   }
-  if (result.output.find("+CPIN: READY") != std::string::npos) {
+
+  std::string sim_status = result.output.starts_with("+CPIN: ") ? result.output.substr(7) : result.output;
+  ESP_LOGD(TAG, "SIM: %s", sim_status.c_str());
+
+  if (sim_status.find("READY") != std::string::npos) {
     ESP_LOGD(TAG, "SIM PIN unlocked.");
     return true;  // Pin not needed or already unlocked.
-  } else if (result.output.find("SIM not inserted") != std::string::npos) {
-    ESP_LOGE(TAG, "SIM card missing.");
-    return false;
-  } else if (result.output.find("SIM failure") != std::string::npos) {
-    ESP_LOGE(TAG, "SIM card failure. Check card.");
-    return false;
-  } else if (result.output.find("SIM PUK") != std::string::npos) {
-    ESP_LOGE(TAG, "SIM locked by PUK. Unlock it.");
-    return false;
   }
 
   if (this->pin_code_.empty()) {
@@ -723,16 +704,39 @@ void ModemComponent::send_init_at_() {
   this->flush_uart_();
 }
 
-bool ModemComponent::is_network_attached_() {
-  if (this->component_state_ == ModemComponentState::CONNECTED)
-    return true;
-  if (this->dce->sync() == command_result::OK) {
-    int attached = 99;
-    this->dce->get_network_attachment_state(attached);
-    if (attached != 99)
-      return (bool) attached;
+bool ModemComponent::update_network_state_() {
+  bool success = false;
+  int attached = 99;
+
+  if (this->dce->get_radio_state(this->internal_state_.fun) != command_result::OK) {
+    success = false;
   }
-  return false;
+
+  if (this->dce->get_network_attachment_state(attached) == command_result::OK) {
+    this->internal_state_.network_attached = (bool) attached;
+    success = true;
+  } else {
+    success = false;
+  }
+  if (!this->get_signal_quality(this->internal_state_.rssi, this->internal_state_.ber)) {
+    success = false;
+  }
+
+  if (this->dce->get_network_system_mode(this->internal_state_.network_mode) != command_result::OK) {
+    success = false;
+  }
+
+  AtCommandResult result = this->send_at("AT+CPIN?");
+  if (!result.success) {
+    success = false;
+  } else {
+    this->internal_state_.sim_status = result.output.starts_with("+CPIN: ") ? result.output.substr(7) : result.output;
+  }
+
+  this->internal_state_.connected =
+      (this->internal_state_.network_mode != 0) && (!std::isnan(this->internal_state_.rssi)) &&
+      this->internal_state_.network_attached && this->internal_state_.sim_status.find("READY") != std::string::npos;
+  return success;
 }
 
 bool ModemComponent::start_ppp_() {

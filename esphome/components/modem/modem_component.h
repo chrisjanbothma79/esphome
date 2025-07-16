@@ -83,6 +83,7 @@ class ModemComponent : public Component {
   void disable();
   void reset();
   bool get_signal_quality(float &rssi, float &ber);
+  std::string modem_network_status_string();
 
   network::IPAddresses get_ip_addresses();
   std::string get_use_address() const;
@@ -123,7 +124,8 @@ class ModemComponent : public Component {
   bool modem_init_();
   int get_baud_rate_();
   void send_init_at_();
-  bool is_network_attached_();
+  // bool is_network_attached_();
+  bool update_network_state_();
   bool prepare_sim_();
   bool start_ppp_();
   void abort_(const std::string &message);
@@ -189,7 +191,15 @@ class ModemComponent : public Component {
     int current_baud_rate{0};
     bool got_ip{false};
     // if false the component wil be reenabled if disabled (ie power cycle or reset)
-    bool disable_wanted = true;
+    bool disable_wanted{true};
+    // Will be set by update_network_state_(): those are from the modem side, not PPP
+    float rssi{NAN};
+    float ber{NAN};
+    bool network_attached{false};
+    int network_mode{0};
+    bool connected{false};
+    int fun{0};
+    std::string sim_status = "None";
   };
   InternalState internal_state_;
 
