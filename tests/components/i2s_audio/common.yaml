@@ -1,4 +1,12 @@
 i2s_audio:
+  id: my_i2s_audio
   i2s_bclk_pin: ${i2s_bclk_pin}
   i2s_lrclk_pin: ${i2s_lrclk_pin}
   i2s_mclk_pin: ${i2s_mclk_pin}
+
+media_player:
+  id: my_media_player
+  platform: my_i2s_audio
+  name: Media Player
+  internal: true
+  dac_type: internal

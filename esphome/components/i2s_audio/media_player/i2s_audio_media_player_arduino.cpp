@@ -1,13 +1,13 @@
 #include "i2s_audio_media_player.h"
 
-#ifdef USE_ESP32_FRAMEWORK_ARDUINO
+#if defined(USE_ESP32) && defined(USE_ARDUINO)
 
 #include "esphome/core/log.h"
 
 namespace esphome {
 namespace i2s_audio {
 
-static const char *const TAG = "audio";
+static const char *const TAG = "i2s_audio.media_player";
 
 void I2SAudioMediaPlayer::control(const media_player::MediaPlayerCall &call) {
   media_player::MediaPlayerState play_state = media_player::MEDIA_PLAYER_STATE_PLAYING;
@@ -257,4 +257,4 @@ void I2SAudioMediaPlayer::dump_config() {
 }  // namespace i2s_audio
 }  // namespace esphome
 
-#endif  // USE_ESP32_FRAMEWORK_ARDUINO
+#endif  // USE_ESP32 && USE_ARDUINO#include "i2s_audio_media_player.h"
