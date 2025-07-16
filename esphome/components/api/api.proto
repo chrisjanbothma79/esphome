@@ -1320,7 +1320,7 @@ message MediaPlayerStateResponse {
   MediaPlayerState state = 2;
   float volume = 3;
   bool muted = 4;
-  uint32 device_id = 5;
+  uint32 device_id = 5 [(field_ifdef) = "USE_DEVICES"];
 }
 message MediaPlayerCommandRequest {
   option (id) = 65;
@@ -1863,7 +1863,7 @@ message AlarmControlPanelStateResponse {
   option (no_delay) = true;
   fixed32 key = 1;
   AlarmControlPanelState state = 2;
-  uint32 device_id = 3;
+  uint32 device_id = 3 [(field_ifdef) = "USE_DEVICES"];
 }
 
 message AlarmControlPanelCommandRequest {
@@ -1875,7 +1875,7 @@ message AlarmControlPanelCommandRequest {
   fixed32 key = 1;
   AlarmControlPanelStateCommand command = 2;
   string code = 3;
-  uint32 device_id = 4;
+  uint32 device_id = 4 [(field_ifdef) = "USE_DEVICES"];
 }
 
 // ===================== TEXT =====================

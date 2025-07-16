@@ -2983,10 +2983,13 @@ void MediaPlayerStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->muted));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void MediaPlayerCommandRequest::dump_to(std::string &out) const {
@@ -3842,10 +3845,13 @@ void AlarmControlPanelStateResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::AlarmControlPanelState>(this->state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
@@ -3864,10 +3870,13 @@ void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
   out.append("'").append(this->code).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif

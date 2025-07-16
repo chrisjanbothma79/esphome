@@ -1939,14 +1939,18 @@ void MediaPlayerStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint32(2, static_cast<uint32_t>(this->state));
   buffer.encode_float(3, this->volume);
   buffer.encode_bool(4, this->muted);
+#ifdef USE_DEVICES
   buffer.encode_uint32(5, this->device_id);
+#endif
 }
 void MediaPlayerStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->state));
   ProtoSize::add_float_field(total_size, 1, this->volume);
   ProtoSize::add_bool_field(total_size, 1, this->muted);
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool MediaPlayerCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
@@ -2804,21 +2808,27 @@ void ListEntitiesAlarmControlPanelResponse::calculate_size(uint32_t &total_size)
 void AlarmControlPanelStateResponse::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_fixed32(1, this->key);
   buffer.encode_uint32(2, static_cast<uint32_t>(this->state));
+#ifdef USE_DEVICES
   buffer.encode_uint32(3, this->device_id);
+#endif
 }
 void AlarmControlPanelStateResponse::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_fixed32_field(total_size, 1, this->key);
   ProtoSize::add_enum_field(total_size, 1, static_cast<uint32_t>(this->state));
+#ifdef USE_DEVICES
   ProtoSize::add_uint32_field(total_size, 1, this->device_id);
+#endif
 }
 bool AlarmControlPanelCommandRequest::decode_varint(uint32_t field_id, ProtoVarInt value) {
   switch (field_id) {
     case 2:
       this->command = static_cast<enums::AlarmControlPanelStateCommand>(value.as_uint32());
       break;
+#ifdef USE_DEVICES
     case 4:
       this->device_id = value.as_uint32();
       break;
+#endif
     default:
       return false;
   }
