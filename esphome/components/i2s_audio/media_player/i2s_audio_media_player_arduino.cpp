@@ -127,20 +127,20 @@ void I2SAudioMediaPlayer::setup() {
 void I2SAudioMediaPlayer::loop() {
   switch (this->i2s_state_) {
     case I2S_STATE_STARTING:
-      this->start_();
+      this->start();
       break;
     case I2S_STATE_RUNNING:
-      this->play_();
+      this->play();
       break;
     case I2S_STATE_STOPPING:
-      this->stop_();
+      this->stop();
       break;
     case I2S_STATE_STOPPED:
       break;
   }
 }
 
-void I2SAudioMediaPlayer::play_() {
+void I2SAudioMediaPlayer::play() {
   this->audio_->loop();
   if ((this->state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
        this->state == media_player::MEDIA_PLAYER_STATE_ANNOUNCING) &&
@@ -150,7 +150,7 @@ void I2SAudioMediaPlayer::play_() {
 }
 
 void I2SAudioMediaPlayer::start() { this->i2s_state_ = I2S_STATE_STARTING; }
-void I2SAudioMediaPlayer::start_() {
+void I2SAudioMediaPlayer::start() {
   if (!this->parent_->try_lock()) {
     return;  // Waiting for another i2s to return lock
   }
@@ -198,7 +198,7 @@ void I2SAudioMediaPlayer::stop() {
   }
   this->i2s_state_ = I2S_STATE_STOPPING;
 }
-void I2SAudioMediaPlayer::stop_() {
+void I2SAudioMediaPlayer::stop() {
   if (this->audio_->isRunning()) {
     this->audio_->stopSong();
     return;
