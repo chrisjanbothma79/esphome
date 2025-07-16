@@ -37,6 +37,15 @@ namespace web_server_idf {
 
 static const char *const TAG = "web_server_idf";
 
+// Global instance to avoid guard variable (saves 8 bytes)
+// This is initialized at program startup before any threads
+namespace {
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+DefaultHeaders default_headers_instance;
+}  // namespace
+
+DefaultHeaders &DefaultHeaders::Instance() { return default_headers_instance; }
+
 void AsyncWebServer::end() {
   if (this->server_) {
     httpd_stop(this->server_);
@@ -380,10 +389,12 @@ AsyncEventSourceResponse::AsyncEventSourceResponse(const AsyncWebServerRequest *
 
 #ifdef USE_WEBSERVER_SORTING
   for (auto &group : ws->sorting_groups_) {
+    // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks) false positive with ArduinoJson
     message = json::build_json([group](JsonObject root) {
       root["name"] = group.second.name;
       root["sorting_weight"] = group.second.weight;
     });
+    // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 
     // a (very) large number of these should be able to be queued initially without defer
     // since the only thing in the send buffer at this point is the initial ping/config
