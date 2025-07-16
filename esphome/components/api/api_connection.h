@@ -273,6 +273,9 @@ class APIConnection : public APIServerConnection {
   ProtoWriteBuffer allocate_batch_message_buffer(uint16_t size);
 
  protected:
+  // Helper function to handle authentication completion
+  void complete_authentication_();
+
   // Non-template helper to encode any ProtoMessage
   static uint16_t encode_message_to_buffer(ProtoMessage &msg, uint8_t message_type, APIConnection *conn,
                                            uint32_t remaining_size, bool is_single);
