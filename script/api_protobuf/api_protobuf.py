@@ -75,6 +75,30 @@ def indent(text: str, padding: str = "  ") -> str:
     return "\n".join(indent_list(text, padding))
 
 
+def wrap_with_ifdef(content: str | list[str], ifdef: str | None) -> list[str]:
+    """Wrap content with #ifdef directives if ifdef is provided.
+
+    Args:
+        content: Single string or list of strings to wrap
+        ifdef: The ifdef condition, or None to skip wrapping
+
+    Returns:
+        List of strings with ifdef wrapping if needed
+    """
+    if not ifdef:
+        if isinstance(content, str):
+            return [content]
+        return content
+
+    result = [f"#ifdef {ifdef}"]
+    if isinstance(content, str):
+        result.append(content)
+    else:
+        result.extend(content)
+    result.append("#endif")
+    return result
+
+
 def camel_to_snake(name: str) -> str:
     # https://stackoverflow.com/a/1176023
     s1 = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", name)
@@ -853,14 +877,15 @@ class RepeatedTypeInfo(TypeInfo):
 
 def build_type_usage_map(
     file_desc: descriptor.FileDescriptorProto,
-) -> tuple[dict[str, str | None], dict[str, str | None]]:
+) -> tuple[dict[str, str | None], dict[str, str | None], dict[str, int]]:
     """Build mappings for both enums and messages to their ifdefs based on usage.
 
     Returns:
-        tuple: (enum_ifdef_map, message_ifdef_map)
+        tuple: (enum_ifdef_map, message_ifdef_map, message_source_map)
     """
     enum_ifdef_map: dict[str, str | None] = {}
     message_ifdef_map: dict[str, str | None] = {}
+    message_source_map: dict[str, int] = {}
 
     # Build maps of which types are used by which messages
     enum_usage: dict[
@@ -947,7 +972,44 @@ def build_type_usage_map(
                 message_ifdef_map[message.name] = parent_ifdefs.pop()
                 changed = True
 
-    return enum_ifdef_map, message_ifdef_map
+    # Build message source map
+    # First pass: Get explicit sources for messages with source option or id
+    for msg in file_desc.message_type:
+        if msg.options.HasExtension(pb.source):
+            # Explicit source option takes precedence
+            message_source_map[msg.name] = get_opt(msg, pb.source, SOURCE_BOTH)
+        elif msg.options.HasExtension(pb.id):
+            # Service messages (with id) default to SOURCE_BOTH
+            message_source_map[msg.name] = SOURCE_BOTH
+
+    # Second pass: Determine sources for embedded messages based on their usage
+    for msg in file_desc.message_type:
+        if msg.name in message_source_map:
+            continue  # Already has explicit source
+
+        if msg.name in message_usage:
+            # Get sources from all parent messages that use this one
+            parent_sources = {
+                message_source_map[parent]
+                for parent in message_usage[msg.name]
+                if parent in message_source_map
+            }
+
+            # Combine parent sources
+            if not parent_sources:
+                # No parent has explicit source, default to encode-only
+                message_source_map[msg.name] = SOURCE_SERVER
+            elif len(parent_sources) > 1:
+                # Multiple different sources or SOURCE_BOTH present
+                message_source_map[msg.name] = SOURCE_BOTH
+            else:
+                # Inherit single parent source
+                message_source_map[msg.name] = parent_sources.pop()
+        else:
+            # Not used by any message and no explicit source - default to encode-only
+            message_source_map[msg.name] = SOURCE_SERVER
+
+    return enum_ifdef_map, message_ifdef_map, message_source_map
 
 
 def build_enum_type(desc, enum_ifdef_map) -> tuple[str, str, str]:
@@ -999,7 +1061,8 @@ def calculate_message_estimated_size(desc: descriptor.DescriptorProto) -> int:
 
 def build_message_type(
     desc: descriptor.DescriptorProto,
-    base_class_fields: dict[str, list[descriptor.FieldDescriptorProto]] = None,
+    base_class_fields: dict[str, list[descriptor.FieldDescriptorProto]],
+    message_source_map: dict[str, int],
 ) -> tuple[str, str, str]:
     public_content: list[str] = []
     protected_content: list[str] = []
@@ -1021,7 +1084,7 @@ def build_message_type(
     message_id: int | None = get_opt(desc, pb.id)
 
     # Get source direction to determine if we need decode/encode methods
-    source: int = get_opt(desc, pb.source, SOURCE_BOTH)
+    source = message_source_map[desc.name]
     needs_decode = source in (SOURCE_BOTH, SOURCE_CLIENT)
     needs_encode = source in (SOURCE_BOTH, SOURCE_SERVER)
 
@@ -1064,26 +1127,62 @@ def build_message_type(
         # Skip field declarations for fields that are in the base class
         # but include their encode/decode logic
         if field.name not in common_field_names:
-            protected_content.extend(ti.protected_content)
-            public_content.extend(ti.public_content)
+            # Check for field_ifdef option
+            field_ifdef = None
+            if field.options.HasExtension(pb.field_ifdef):
+                field_ifdef = field.options.Extensions[pb.field_ifdef]
+
+            if ti.protected_content:
+                protected_content.extend(
+                    wrap_with_ifdef(ti.protected_content, field_ifdef)
+                )
+            if ti.public_content:
+                public_content.extend(wrap_with_ifdef(ti.public_content, field_ifdef))
 
         # Only collect encode logic if this message needs it
         if needs_encode:
-            encode.append(ti.encode_content)
-            size_calc.append(ti.get_size_calculation(f"this->{ti.field_name}"))
+            # Check for field_ifdef option
+            field_ifdef = None
+            if field.options.HasExtension(pb.field_ifdef):
+                field_ifdef = field.options.Extensions[pb.field_ifdef]
+
+            encode.extend(wrap_with_ifdef(ti.encode_content, field_ifdef))
+            size_calc.extend(
+                wrap_with_ifdef(
+                    ti.get_size_calculation(f"this->{ti.field_name}"), field_ifdef
+                )
+            )
 
         # Only collect decode methods if this message needs them
         if needs_decode:
+            # Check for field_ifdef option for decode as well
+            field_ifdef = None
+            if field.options.HasExtension(pb.field_ifdef):
+                field_ifdef = field.options.Extensions[pb.field_ifdef]
+
             if ti.decode_varint_content:
-                decode_varint.append(ti.decode_varint_content)
+                decode_varint.extend(
+                    wrap_with_ifdef(ti.decode_varint_content, field_ifdef)
+                )
             if ti.decode_length_content:
-                decode_length.append(ti.decode_length_content)
+                decode_length.extend(
+                    wrap_with_ifdef(ti.decode_length_content, field_ifdef)
+                )
             if ti.decode_32bit_content:
-                decode_32bit.append(ti.decode_32bit_content)
+                decode_32bit.extend(
+                    wrap_with_ifdef(ti.decode_32bit_content, field_ifdef)
+                )
             if ti.decode_64bit_content:
-                decode_64bit.append(ti.decode_64bit_content)
+                decode_64bit.extend(
+                    wrap_with_ifdef(ti.decode_64bit_content, field_ifdef)
+                )
         if ti.dump_content:
-            dump.append(ti.dump_content)
+            # Check for field_ifdef option for dump as well
+            field_ifdef = None
+            if field.options.HasExtension(pb.field_ifdef):
+                field_ifdef = field.options.Extensions[pb.field_ifdef]
+
+            dump.extend(wrap_with_ifdef(ti.dump_content, field_ifdef))
 
     cpp = ""
     if decode_varint:
@@ -1190,7 +1289,9 @@ def build_message_type(
     if base_class:
         out = f"class {desc.name} : public {base_class} {{\n"
     else:
-        out = f"class {desc.name} : public ProtoMessage {{\n"
+        # Determine inheritance based on whether the message needs decoding
+        base_class = "ProtoDecodableMessage" if needs_decode else "ProtoMessage"
+        out = f"class {desc.name} : public {base_class} {{\n"
     out += " public:\n"
     out += indent("\n".join(public_content)) + "\n"
     out += "\n"
@@ -1291,6 +1392,7 @@ def find_common_fields(
 def build_base_class(
     base_class_name: str,
     common_fields: list[descriptor.FieldDescriptorProto],
+    messages: list[descriptor.DescriptorProto],
 ) -> tuple[str, str, str]:
     """Build the base class definition and implementation."""
     public_content = []
@@ -1305,8 +1407,15 @@ def build_base_class(
         protected_content.extend(ti.protected_content)
         public_content.extend(ti.public_content)
 
+    # Determine if any message using this base class needs decoding
+    needs_decode = any(
+        get_opt(msg, pb.source, SOURCE_BOTH) in (SOURCE_BOTH, SOURCE_CLIENT)
+        for msg in messages
+    )
+
     # Build header
-    out = f"class {base_class_name} : public ProtoMessage {{\n"
+    parent_class = "ProtoDecodableMessage" if needs_decode else "ProtoMessage"
+    out = f"class {base_class_name} : public {parent_class} {{\n"
     out += " public:\n"
 
     # Add destructor with override
@@ -1344,7 +1453,9 @@ def generate_base_classes(
 
         if common_fields:
             # Generate base class
-            header, cpp, dump_cpp = build_base_class(base_class_name, common_fields)
+            header, cpp, dump_cpp = build_base_class(
+                base_class_name, common_fields, messages
+            )
             all_headers.append(header)
             all_cpp.append(cpp)
             all_dump_cpp.append(dump_cpp)
@@ -1456,7 +1567,7 @@ namespace api {
     content += "namespace enums {\n\n"
 
     # Build dynamic ifdef mappings for both enums and messages
-    enum_ifdef_map, message_ifdef_map = build_type_usage_map(file)
+    enum_ifdef_map, message_ifdef_map, message_source_map = build_type_usage_map(file)
 
     # Simple grouping of enums by ifdef
     current_ifdef = None
@@ -1510,7 +1621,7 @@ namespace api {
     current_ifdef = None
 
     for m in mt:
-        s, c, dc = build_message_type(m, base_class_fields)
+        s, c, dc = build_message_type(m, base_class_fields, message_source_map)
         msg_ifdef = message_ifdef_map.get(m.name)
 
         # Handle ifdef changes
