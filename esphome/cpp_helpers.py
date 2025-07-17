@@ -4,6 +4,7 @@ from esphome.const import (
     CONF_DISABLED_BY_DEFAULT,
     CONF_ENTITY_CATEGORY,
     CONF_ICON,
+    CONF_ID,
     CONF_INTERNAL,
     CONF_NAME,
     CONF_SAFE_MODE,
@@ -11,7 +12,6 @@ from esphome.const import (
     CONF_TYPE_ID,
     CONF_UPDATE_INTERVAL,
     KEY_PAST_SAFE_MODE,
-    CONF_ID,
 )
 from esphome.core import CORE, ID, coroutine
 from esphome.coroutine import FakeAwaitable
@@ -110,6 +110,7 @@ async def setup_entity(var, config):
                 object_id = sanitize(snake_case(str(config[CONF_ID])))
             else:
                 from esphome import config_validation as cv
+
                 raise cv.Invalid(
                     f"The name '{config[CONF_NAME]}' is not valid for object_id generation. \n"
                     f"Please set an explicit 'id:' for this entity."
