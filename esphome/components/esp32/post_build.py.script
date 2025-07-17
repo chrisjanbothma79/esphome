@@ -30,9 +30,9 @@ def merge_factory_bin(source, target, env):
                 if file_path.exists():
                     sections.append((addr, str(file_path)))
                 else:
-                    print(f"Info: {file_path.name} not found — skipping")
+                    print(f"Info: {file_path.name} not found - skipping")
         except Exception as e:
-            print(f"Warning: Failed to parse flasher_args.json — {e}")
+            print(f"Warning: Failed to parse flasher_args.json - {e}")
 
     # 2. Try FLASH_EXTRA_IMAGES if flasher_args.json failed or was empty
     if not sections:
