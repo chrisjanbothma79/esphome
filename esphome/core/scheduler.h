@@ -55,8 +55,12 @@ class Scheduler {
                  std::function<RetryResult(uint8_t)> func, float backoff_increase_factor = 1.0f);
   bool cancel_retry(Component *component, const std::string &name);
 
+  // Calculate when the next scheduled item should run
+  // @param now Fresh timestamp from millis() - must not be stale/cached
   optional<uint32_t> next_schedule_in(uint32_t now);
 
+  // Execute all scheduled items that are ready
+  // @param now Fresh timestamp from millis() - must not be stale/cached
   void call(uint32_t now);
 
   void process_to_add();

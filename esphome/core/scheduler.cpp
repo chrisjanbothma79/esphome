@@ -93,7 +93,8 @@ void HOT Scheduler::set_timer_common_(Component *component, SchedulerItem::Type 
   }
 #endif
 
-  const auto now = this->millis_64_(millis());
+  // Get fresh timestamp for new timer/interval - ensures accurate scheduling
+  const auto now = this->millis_64_(millis());  // Fresh millis() call
 
   // Type-specific setup
   if (type == SchedulerItem::INTERVAL) {
@@ -222,7 +223,8 @@ optional<uint32_t> HOT Scheduler::next_schedule_in(uint32_t now) {
   if (this->empty_())
     return {};
   auto &item = this->items_[0];
-  const auto now_64 = this->millis_64_(now);
+  // Convert the fresh timestamp from caller (usually Application::loop()) to 64-bit
+  const auto now_64 = this->millis_64_(now);  // 'now' from parameter - fresh from caller
   if (item->next_execution_ < now_64)
     return 0;
   return item->next_execution_ - now_64;
@@ -261,7 +263,8 @@ void HOT Scheduler::call(uint32_t now) {
   }
 #endif
 
-  const auto now_64 = this->millis_64_(now);
+  // Convert the fresh timestamp from main loop to 64-bit for scheduler operations
+  const auto now_64 = this->millis_64_(now);  // 'now' from parameter - fresh from Application::loop()
   this->process_to_add();
 
 #ifdef ESPHOME_DEBUG_SCHEDULER
@@ -493,6 +496,10 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
   // THREAD SAFETY NOTE:
   // This function can be called from multiple threads simultaneously on ESP32/LibreTiny.
   // On single-threaded platforms (ESP8266, RP2040), atomics are not needed.
+  //
+  // IMPORTANT: Always pass fresh millis() values to this function. The implementation
+  // handles out-of-order timestamps between threads, but minimizing time differences
+  // helps maintain accuracy.
   //
   // The implementation handles the 32-bit rollover (every 49.7 days) by:
   // 1. Using a lock when detecting rollover to ensure atomic update
