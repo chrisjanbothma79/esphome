@@ -273,6 +273,8 @@ class ZigbeeClusterDesc(MockObj):
     def __init__(self, name: str, attr=None):
         self.name = name
         self.attr = attr
+        base = ID(name + "_ZHA_", True, type)
+        super().__init__(base, "")
 
     def __str__(self):
         role = (
