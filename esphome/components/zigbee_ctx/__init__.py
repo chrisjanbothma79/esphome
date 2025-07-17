@@ -10,6 +10,7 @@ from esphome.core import CORE, coroutine_with_priority
 KEY_ZIGBEE = "zigbee"
 KEY_EP_NUMBER = "ep_number"
 CONF_EP = "ep"
+CODEOWNERS = ["@tomaszduda23"]
 
 
 def zigbee_set_core_data(config):
