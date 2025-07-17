@@ -35,6 +35,7 @@ class OTARequestHandler : public AsyncWebHandler {
 #if defined(USE_WEBSERVER_OTA_DISABLED) && defined(USE_CAPTIVE_PORTAL)
     // IMPORTANT: USE_WEBSERVER_OTA_DISABLED only disables OTA for the web_server component
     // Captive portal can still perform OTA updates - check if request is from active captive portal
+    // Note: global_captive_portal is the standard way components communicate in ESPHome
     return is_ota_request && captive_portal::global_captive_portal != nullptr &&
            captive_portal::global_captive_portal->is_active();
 #elif defined(USE_WEBSERVER_OTA_DISABLED)
