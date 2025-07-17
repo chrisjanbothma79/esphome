@@ -120,6 +120,7 @@ jobs:
                 'core',
                 'small-pr',
                 'dashboard',
+                'github-actions',
                 'has-tests',
                 'needs-tests',
                 'too-big',
@@ -287,6 +288,15 @@ jobs:
 
             if (dashboardFiles.length > 0) {
               labels.add('dashboard');
+            }
+
+            // Strategy: GitHub Actions changes
+            const githubActionsFiles = changedFiles.filter(file =>
+              file.startsWith('.github/workflows/')
+            );
+
+            if (githubActionsFiles.length > 0) {
+              labels.add('github-actions');
             }
 
             // Strategy: Test detection
