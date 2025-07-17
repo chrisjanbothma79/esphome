@@ -134,7 +134,7 @@ void BluetoothProxy::flush_pending_advertisements() {
   }
 
   // Send the message
-  this->api_connection_->send_message(*this->response_);
+  this->api_connection_->send_message(*this->response_, api::BluetoothLERawAdvertisementsResponse::MESSAGE_TYPE);
 
   // Reset count - existing items will be overwritten in next batch
   this->advertisement_count_ = 0;
