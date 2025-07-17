@@ -26,9 +26,6 @@ void ZigbeeBinarySensor::setup() {
     this->parent_->flush();
   });
 
-  if (!this->publish_initial_state_)
-    return;
-
   if (this->f_ != nullptr) {
     this->publish_initial_state(this->f_().value_or(false));
   } else {

@@ -39,3 +39,7 @@ zigbee:
     - switch.zigbee.publish:
         id: zigbee_switch_1
         state: ON
+
+time:
+  - platform: zigbee
+    id: test_time

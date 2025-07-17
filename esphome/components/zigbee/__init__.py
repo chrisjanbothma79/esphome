@@ -50,6 +50,7 @@ from .const import (
 )
 
 AUTO_LOAD = ["zigbee_ctx"]
+CODEOWNERS = ["@tomaszduda23"]
 
 CONF_ON_JOIN = "on_join"
 
