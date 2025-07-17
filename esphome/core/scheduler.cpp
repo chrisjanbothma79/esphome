@@ -493,31 +493,34 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
   // On single-threaded platforms (ESP8266, RP2040), atomics are not needed.
 
 #if !defined(USE_ESP8266) && !defined(USE_RP2040)
-  // Multi-threaded platforms: Use atomic operations for thread safety
+  // Multi-threaded platforms: Need to handle rollover carefully
   uint32_t last = this->last_millis_.load(std::memory_order_relaxed);
 
-  // Check for rollover - only if backwards jump is very large
+  // If we might be near a rollover (large backwards jump), take the lock for the entire operation
+  // This ensures rollover detection and last_millis_ update are atomic together
   if (now < last && (last - now) > 0x80000000UL) {
-    // True rollover detected (happens every ~49.7 days)
-    // Must lock here to prevent multiple threads from incrementing for the same rollover
+    // Potential rollover - need lock for atomic rollover detection + update
     LockGuard guard{this->lock_};
-    // Re-check with lock held using atomic loads
-    uint32_t locked_last = this->last_millis_.load(std::memory_order_relaxed);
-    if (now < locked_last && (locked_last - now) > 0x80000000UL) {
-      // Increment while holding the lock
+    // Re-read with lock held
+    last = this->last_millis_.load(std::memory_order_relaxed);
+
+    if (now < last && (last - now) > 0x80000000UL) {
+      // True rollover detected (happens every ~49.7 days)
       this->millis_major_++;
 #ifdef ESPHOME_DEBUG_SCHEDULER
-      ESP_LOGD(TAG, "Detected true 32-bit rollover at %" PRIu32 "ms (was %" PRIu32 ")", now, locked_last);
+      ESP_LOGD(TAG, "Detected true 32-bit rollover at %" PRIu32 "ms (was %" PRIu32 ")", now, last);
 #endif
     }
-  }
-
-  // Update last_millis_ using compare_exchange to prevent writing stale values
-  while (last < now) {
-    if (this->last_millis_.compare_exchange_weak(last, now, std::memory_order_relaxed)) {
-      break;
+    // Update last_millis_ while holding lock to prevent races
+    this->last_millis_.store(now, std::memory_order_relaxed);
+  } else {
+    // Normal case: Try lock-free update
+    while (now > last) {
+      if (this->last_millis_.compare_exchange_weak(last, now, std::memory_order_relaxed)) {
+        break;
+      }
+      // last is automatically updated by compare_exchange_weak if it fails
     }
-    // last is automatically updated by compare_exchange_weak if it fails
   }
 
 #else
