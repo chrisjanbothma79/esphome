@@ -29,14 +29,16 @@ namespace modem {
 using namespace esp_modem;
 
 enum class ModemComponentState {
-  DISABLED,
   POWERING_ON,
-  INITIALIZING,
-  DISCONNECTED,
-  CONNECTING,
+  SYNCING,
+  INIT_NETWORK,
+  START_PPP,
+  WAIT_IP,
   CONNECTED,
+  DISCONNECTED,
   NOT_RESPONDING,
   DISABLING,
+  DISABLED,
   POWERING_OFF,
 };
 
@@ -72,9 +74,9 @@ class ModemComponent : public Component {
   void enable_debug();
   void add_init_at_command(const std::string &cmd) { this->init_at_commands_.push_back(cmd); }
   bool is_connected() { return this->component_state_ == ModemComponentState::CONNECTED; }
-  bool is_disabled() { return this->component_state_ == ModemComponentState::DISABLED; }
-  bool is_modem_connected(bool verbose);  // This is for the modem only, not PPP
-  bool is_modem_connected() { return this->is_modem_connected(true); }
+  bool is_disabled() {
+    return this->component_state_ == ModemComponentState::DISABLED && this->internal_state_.disable_wanted;
+  }
   AtCommandResult send_at(const std::string &cmd) { return this->send_at(cmd, this->command_delay_); }
   AtCommandResult send_at(const std::string &cmd, uint32_t timeout);
   AtCommandResult get_imei();
@@ -107,27 +109,26 @@ class ModemComponent : public Component {
 
  protected:
   // ===== State handler methods =====
-  void handle_state_disabled_();
   void handle_state_powering_on_();
-  void handle_state_initializing_();
-  void handle_state_disconnected_();
-  void handle_state_connecting_();
+  void handle_state_syncing_();
+  void handle_state_init_network_();
+  void handle_state_start_ppp_();
+  void handle_state_wait_ip_();
   void handle_state_connected_();
+  void handle_state_disconnected_();
   void handle_state_not_responding_();
   void handle_state_disabling_();
+  void handle_state_disabled_();
   void handle_state_powering_off_();
 
   void modem_create_dte_dce_(int baud_rate);
   void modem_create_dte_dce_() { this->modem_create_dte_dce_(this->internal_state_.current_baud_rate); }
   bool modem_command_mode_(bool cmux);
   bool modem_command_mode_() { return modem_command_mode_(this->cmux_); };
-  bool modem_init_();
   int get_baud_rate_();
   void send_init_at_();
-  // bool is_network_attached_();
-  bool update_network_state_();
+  void update_network_state_();
   bool prepare_sim_();
-  bool start_ppp_();
   void abort_(const std::string &message);
   void loop_delay_(uint32_t delay_ms);
   static void ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
@@ -163,8 +164,7 @@ class ModemComponent : public Component {
   size_t uart_event_task_stack_size_ = 4096;  // 2000-6000
   uint8_t uart_event_task_priority_ = 5;      // 3-22
   uint32_t command_delay_ = 1000;             // Timeout for AT commands
-  uint32_t connect_retry_delay_ = 10000;      // Delay before retrying connection
-  uint32_t connect_timeout_ = 25000;
+  uint32_t connect_retry_delay_ = 5000;       // Delay before retrying connection
 
   // Changes will trigger user callback
   ModemComponentState component_state_{ModemComponentState::DISABLED};
@@ -175,18 +175,13 @@ class ModemComponent : public Component {
   esp_netif_t *ppp_netif_{nullptr};
 
   struct InternalState {
-    // Timestamp for connection attempt (for timeout)
-    uint32_t startms;
     esp_netif_ip_info_t ip_info{};
     esp_netif_dns_info_t dns_main{};
     esp_netif_dns_info_t dns_backup{};
-    // Start time (millis())
-    uint32_t connect_begin;
     uint32_t last_health_check{0};
     uint32_t next_loop_millis{0};
     // Guessed power state
     bool powered_on{false};
-    // States for triggering on/off signals
     // Request modem to reconnect
     int current_baud_rate{0};
     bool got_ip{false};
@@ -195,10 +190,10 @@ class ModemComponent : public Component {
     // Will be set by update_network_state_(): those are from the modem side, not PPP
     float rssi{NAN};
     float ber{NAN};
-    bool network_attached{false};
+    int network_attached{0};
     int network_mode{0};
-    bool connected{false};
-    int fun{0};
+    bool modem_connected{false};
+    int cfun{0};
     std::string sim_status = "None";
   };
   InternalState internal_state_;
