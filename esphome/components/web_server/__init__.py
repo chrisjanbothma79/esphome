@@ -321,7 +321,7 @@ async def to_code(config):
 
 def FILTER_SOURCE_FILES() -> list[str]:
     """Filter out web_server_v1.cpp when version is not 1."""
-    files_to_filter = []
+    files_to_filter: list[str] = []
 
     # web_server_v1.cpp is only needed when version is 1
     config = CORE.config.get("web_server", {})
