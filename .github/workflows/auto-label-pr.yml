@@ -264,8 +264,6 @@ jobs:
               }
             }
 
-            // Convert Set to Array
-            let finalLabels = Array.from(labels);
             const coreFiles = changedFiles.filter(file =>
               file.startsWith('esphome/core/') ||
               (file.startsWith('esphome/') && file.split('/').length === 2)
