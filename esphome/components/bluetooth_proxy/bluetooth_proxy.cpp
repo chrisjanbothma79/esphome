@@ -32,6 +32,10 @@ std::vector<uint64_t> get_128bit_uuid_vec(esp_bt_uuid_t uuid_source) {
 // This achieves ~97% WiFi MTU utilization while staying under the limit
 static constexpr size_t FLUSH_BATCH_SIZE = 16;
 
+// Verify BLE advertisement data array size matches the BLE specification (31 bytes adv + 31 bytes scan response)
+static_assert(sizeof(((api::BluetoothLERawAdvertisement *) nullptr)->data) == 62,
+              "BLE advertisement data array size mismatch");
+
 BluetoothProxy::BluetoothProxy() { global_bluetooth_proxy = this; }
 
 void BluetoothProxy::setup() {
@@ -76,12 +80,6 @@ bool BluetoothProxy::parse_devices(const esp32_ble::BLEScanResult *scan_results,
   for (size_t i = 0; i < count; i++) {
     auto &result = scan_results[i];
     uint8_t length = result.adv_data_len + result.scan_rsp_len;
-
-    // Validate length
-    if (length > 62) {
-      ESP_LOGW(TAG, "BLE advertisement too large: %d bytes (max 62)", length);
-      length = 62;
-    }
 
     // Check if we need to expand the vector
     if (this->advertisement_count_ >= advertisements.size()) {
