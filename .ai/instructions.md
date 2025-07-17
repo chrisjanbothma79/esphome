@@ -65,6 +65,7 @@ This document provides essential context for AI models interacting with this pro
             ├── [platform].h     # Platform C++ header
             └── [platform].cpp   # Platform C++ implementation
         ```
+
     *   **Component Metadata:**
         - `DEPENDENCIES`: List of required components
         - `AUTO_LOAD`: Components to automatically load
@@ -96,6 +97,7 @@ This document provides essential context for AI models interacting with this pro
             cg.add(var.set_key(config[CONF_KEY]))
             cg.add(var.set_param(config[CONF_PARAM]))
         ```
+
     *   **C++ Class Pattern:**
         ```cpp
         namespace esphome {
@@ -118,6 +120,7 @@ This document provides essential context for AI models interacting with this pro
         }  // namespace my_component
         }  // namespace esphome
         ```
+
     *   **Common Component Examples:**
         - **Sensor:**
           ```python
@@ -127,6 +130,7 @@ This document provides essential context for AI models interacting with this pro
               var = await sensor.new_sensor(config)
               await cg.register_component(var, config)
           ```
+
         - **Binary Sensor:**
           ```python
           from esphome.components import binary_sensor
@@ -134,6 +138,7 @@ This document provides essential context for AI models interacting with this pro
           async def to_code(config):
               var = await binary_sensor.new_binary_sensor(config)
           ```
+
         - **Switch:**
           ```python
           from esphome.components import switch
