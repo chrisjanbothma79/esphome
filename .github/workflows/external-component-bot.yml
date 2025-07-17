@@ -27,6 +27,15 @@ jobs:
                     source = `github://${owner}/${repo}@pull/${prNumber}/head`;
                 return `To use the changes from this PR as an external component, add the following to your ESPHome configuration YAML file:
 
+            // Generate external component usage instructions
+            function generateExternalComponentInstructions(prNumber, componentNames, owner, repo) {
+                let source;
+                if (owner === 'esphome' && repo === 'esphome')
+                    source = `github://pr#${prNumber}`;
+                else
+                    source = `github://${owner}/${repo}@pull/${prNumber}/head`;
+                return `To use the changes from this PR as an external component, add the following to your ESPHome configuration YAML file:
+
             \`\`\`yaml
             external_components:
               - source: ${source}
@@ -59,10 +68,8 @@ jobs:
             `;
             }
 
-            async function createComment(octokit, pr, esphomeChanges, componentChanges) {
+            async function createComment(octokit, owner, repo, prNumber, esphomeChanges, componentChanges) {
                 const commentMarker = "<!-- This comment was generated automatically by a GitHub workflow. -->";
-                const [owner, repo] = pr.base.repo.full_name.split('/');
-                const prNumber = pr.number;
                 let commentBody;
                 if (esphomeChanges.length === 1) {
                     commentBody = generateExternalComponentInstructions(prNumber, componentChanges, owner, repo);
@@ -141,13 +148,8 @@ jobs:
 
             const prNumber = context.payload.pull_request.number;
             const {owner, repo} = context.repo;
-            const prDetails = await github.rest.pulls.get({
-                owner: owner,
-                repo: repo,
-                pull_number: prNumber,
-            });
 
             const {esphomeChanges, componentChanges} = await getEsphomeAndComponentChanges(github, owner, repo, prNumber);
             if (componentChanges.length !== 0) {
-                await createComment(github, prDetails.data, esphomeChanges, componentChanges);
+                await createComment(github, owner, repo, prNumber, esphomeChanges, componentChanges);
             }
