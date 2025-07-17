@@ -52,9 +52,9 @@ class Scheduler {
                  std::function<RetryResult(uint8_t)> func, float backoff_increase_factor = 1.0f);
   bool cancel_retry(Component *component, const std::string &name);
 
-  optional<uint32_t> next_schedule_in();
+  optional<uint32_t> next_schedule_in(uint32_t now);
 
-  void call();
+  void call(uint32_t now);
 
   void process_to_add();
 
@@ -137,7 +137,7 @@ class Scheduler {
   void set_timer_common_(Component *component, SchedulerItem::Type type, bool is_static_string, const void *name_ptr,
                          uint32_t delay, std::function<void()> func);
 
-  uint64_t millis_();
+  uint64_t millis_64_(uint32_t now);
   void cleanup_();
   void pop_raw_();
 
@@ -149,9 +149,6 @@ class Scheduler {
   inline const char *get_name_cstr_(bool is_static_string, const void *name_ptr) {
     return is_static_string ? static_cast<const char *>(name_ptr) : static_cast<const std::string *>(name_ptr)->c_str();
   }
-
-  // Helper to check if a name is valid (not null and not empty)
-  inline bool is_name_valid_(const char *name) { return name != nullptr && name[0] != '\0'; }
 
   // Common implementation for cancel operations
   bool cancel_item_(Component *component, bool is_static_string, const void *name_ptr, SchedulerItem::Type type);
@@ -178,7 +175,7 @@ class Scheduler {
   }
 
   // Helper to execute a scheduler item
-  void execute_item_(SchedulerItem *item);
+  void execute_item_(SchedulerItem *item, uint32_t now);
 
   // Helper to check if item should be skipped
   bool should_skip_item_(const SchedulerItem *item) const {

@@ -162,6 +162,7 @@ template<> const char *proto_enum_to_string<enums::LogLevel>(enums::LogLevel val
       return "UNKNOWN";
   }
 }
+#ifdef USE_API_SERVICES
 template<> const char *proto_enum_to_string<enums::ServiceArgType>(enums::ServiceArgType value) {
   switch (value) {
     case enums::SERVICE_ARG_TYPE_BOOL:
@@ -184,6 +185,7 @@ template<> const char *proto_enum_to_string<enums::ServiceArgType>(enums::Servic
       return "UNKNOWN";
   }
 }
+#endif
 #ifdef USE_CLIMATE
 template<> const char *proto_enum_to_string<enums::ClimateMode>(enums::ClimateMode value) {
   switch (value) {
@@ -711,33 +713,45 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
   out.append("'").append(this->model).append("'");
   out.append("\n");
 
+#ifdef USE_DEEP_SLEEP
   out.append("  has_deep_sleep: ");
   out.append(YESNO(this->has_deep_sleep));
   out.append("\n");
 
+#endif
+#ifdef ESPHOME_PROJECT_NAME
   out.append("  project_name: ");
   out.append("'").append(this->project_name).append("'");
   out.append("\n");
 
+#endif
+#ifdef ESPHOME_PROJECT_NAME
   out.append("  project_version: ");
   out.append("'").append(this->project_version).append("'");
   out.append("\n");
 
+#endif
+#ifdef USE_WEBSERVER
   out.append("  webserver_port: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->webserver_port);
   out.append(buffer);
   out.append("\n");
 
+#endif
+#ifdef USE_BLUETOOTH_PROXY
   out.append("  legacy_bluetooth_proxy_version: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->legacy_bluetooth_proxy_version);
   out.append(buffer);
   out.append("\n");
 
+#endif
+#ifdef USE_BLUETOOTH_PROXY
   out.append("  bluetooth_proxy_feature_flags: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->bluetooth_proxy_feature_flags);
   out.append(buffer);
   out.append("\n");
 
+#endif
   out.append("  manufacturer: ");
   out.append("'").append(this->manufacturer).append("'");
   out.append("\n");
@@ -746,43 +760,60 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
   out.append("'").append(this->friendly_name).append("'");
   out.append("\n");
 
+#ifdef USE_VOICE_ASSISTANT
   out.append("  legacy_voice_assistant_version: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->legacy_voice_assistant_version);
   out.append(buffer);
   out.append("\n");
 
+#endif
+#ifdef USE_VOICE_ASSISTANT
   out.append("  voice_assistant_feature_flags: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->voice_assistant_feature_flags);
   out.append(buffer);
   out.append("\n");
 
+#endif
+#ifdef USE_AREAS
   out.append("  suggested_area: ");
   out.append("'").append(this->suggested_area).append("'");
   out.append("\n");
 
+#endif
+#ifdef USE_BLUETOOTH_PROXY
   out.append("  bluetooth_mac_address: ");
   out.append("'").append(this->bluetooth_mac_address).append("'");
   out.append("\n");
 
+#endif
+#ifdef USE_API_NOISE
   out.append("  api_encryption_supported: ");
   out.append(YESNO(this->api_encryption_supported));
   out.append("\n");
 
+#endif
+#ifdef USE_DEVICES
   for (const auto &it : this->devices) {
     out.append("  devices: ");
     it.dump_to(out);
     out.append("\n");
   }
 
+#endif
+#ifdef USE_AREAS
   for (const auto &it : this->areas) {
     out.append("  areas: ");
     it.dump_to(out);
     out.append("\n");
   }
 
+#endif
+#ifdef USE_AREAS
   out.append("  area: ");
   this->area.dump_to(out);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void ListEntitiesRequest::dump_to(std::string &out) const { out.append("ListEntitiesRequest {}"); }
@@ -805,10 +836,6 @@ void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
   out.append("  device_class: ");
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
@@ -821,18 +848,23 @@ void ListEntitiesBinarySensorResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
 
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  entity_category: ");
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void BinarySensorStateResponse::dump_to(std::string &out) const {
@@ -851,10 +883,13 @@ void BinarySensorStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->missing_state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -873,10 +908,6 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
   out.append("  assumed_state: ");
@@ -899,10 +930,12 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
 
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  entity_category: ");
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
@@ -911,10 +944,13 @@ void ListEntitiesCoverResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->supports_stop));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void CoverStateResponse::dump_to(std::string &out) const {
@@ -943,10 +979,13 @@ void CoverStateResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::CoverOperation>(this->current_operation));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void CoverCommandRequest::dump_to(std::string &out) const {
@@ -986,6 +1025,14 @@ void CoverCommandRequest::dump_to(std::string &out) const {
   out.append("  stop: ");
   out.append(YESNO(this->stop));
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -1004,10 +1051,6 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
   out.append("  supports_oscillation: ");
@@ -1031,10 +1074,12 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
 
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  entity_category: ");
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
@@ -1045,10 +1090,13 @@ void ListEntitiesFanResponse::dump_to(std::string &out) const {
     out.append("\n");
   }
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void FanStateResponse::dump_to(std::string &out) const {
@@ -1084,10 +1132,13 @@ void FanStateResponse::dump_to(std::string &out) const {
   out.append("'").append(this->preset_mode).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void FanCommandRequest::dump_to(std::string &out) const {
@@ -1146,6 +1197,14 @@ void FanCommandRequest::dump_to(std::string &out) const {
   out.append("  preset_mode: ");
   out.append("'").append(this->preset_mode).append("'");
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -1164,10 +1223,6 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
   for (const auto &it : this->supported_color_modes) {
@@ -1212,18 +1267,23 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
 
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  entity_category: ");
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void LightStateResponse::dump_to(std::string &out) const {
@@ -1291,10 +1351,13 @@ void LightStateResponse::dump_to(std::string &out) const {
   out.append("'").append(this->effect).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void LightCommandRequest::dump_to(std::string &out) const {
@@ -1419,6 +1482,14 @@ void LightCommandRequest::dump_to(std::string &out) const {
   out.append("  effect: ");
   out.append("'").append(this->effect).append("'");
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -1439,14 +1510,12 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  unit_of_measurement: ");
   out.append("'").append(this->unit_of_measurement).append("'");
   out.append("\n");
@@ -1480,10 +1549,13 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void SensorStateResponse::dump_to(std::string &out) const {
@@ -1503,10 +1575,13 @@ void SensorStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->missing_state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -1527,14 +1602,12 @@ void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  assumed_state: ");
   out.append(YESNO(this->assumed_state));
   out.append("\n");
@@ -1551,10 +1624,13 @@ void ListEntitiesSwitchResponse::dump_to(std::string &out) const {
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void SwitchStateResponse::dump_to(std::string &out) const {
@@ -1569,10 +1645,13 @@ void SwitchStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void SwitchCommandRequest::dump_to(std::string &out) const {
@@ -1586,6 +1665,14 @@ void SwitchCommandRequest::dump_to(std::string &out) const {
   out.append("  state: ");
   out.append(YESNO(this->state));
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -1606,14 +1693,12 @@ void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -1626,10 +1711,13 @@ void ListEntitiesTextSensorResponse::dump_to(std::string &out) const {
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void TextSensorStateResponse::dump_to(std::string &out) const {
@@ -1648,10 +1736,13 @@ void TextSensorStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->missing_state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -1791,6 +1882,7 @@ void GetTimeResponse::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
+#ifdef USE_API_SERVICES
 void ListEntitiesServicesArgument::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("ListEntitiesServicesArgument {\n");
@@ -1890,6 +1982,7 @@ void ExecuteServiceRequest::dump_to(std::string &out) const {
   }
   out.append("}");
 }
+#endif
 #ifdef USE_CAMERA
 void ListEntitiesCameraResponse::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
@@ -1907,26 +2000,27 @@ void ListEntitiesCameraResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
 
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  entity_category: ");
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void CameraImageResponse::dump_to(std::string &out) const {
@@ -1944,6 +2038,14 @@ void CameraImageResponse::dump_to(std::string &out) const {
   out.append("  done: ");
   out.append(YESNO(this->done));
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 void CameraImageRequest::dump_to(std::string &out) const {
@@ -1974,10 +2076,6 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
 
   out.append("  name: ");
   out.append("'").append(this->name).append("'");
-  out.append("\n");
-
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
   out.append("\n");
 
   out.append("  supports_current_temperature: ");
@@ -2051,10 +2149,12 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
 
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  entity_category: ");
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
@@ -2082,10 +2182,13 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void ClimateStateResponse::dump_to(std::string &out) const {
@@ -2158,10 +2261,13 @@ void ClimateStateResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void ClimateCommandRequest::dump_to(std::string &out) const {
@@ -2263,6 +2369,14 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
   snprintf(buffer, sizeof(buffer), "%g", this->target_humidity);
   out.append(buffer);
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -2283,14 +2397,12 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  min_value: ");
   snprintf(buffer, sizeof(buffer), "%g", this->min_value);
   out.append(buffer);
@@ -2326,10 +2438,13 @@ void ListEntitiesNumberResponse::dump_to(std::string &out) const {
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void NumberStateResponse::dump_to(std::string &out) const {
@@ -2349,10 +2464,13 @@ void NumberStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->missing_state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void NumberCommandRequest::dump_to(std::string &out) const {
@@ -2367,6 +2485,14 @@ void NumberCommandRequest::dump_to(std::string &out) const {
   snprintf(buffer, sizeof(buffer), "%g", this->state);
   out.append(buffer);
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -2387,14 +2513,12 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   for (const auto &it : this->options) {
     out.append("  options: ");
     out.append("'").append(it).append("'");
@@ -2409,10 +2533,13 @@ void ListEntitiesSelectResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void SelectStateResponse::dump_to(std::string &out) const {
@@ -2431,10 +2558,13 @@ void SelectStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->missing_state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void SelectCommandRequest::dump_to(std::string &out) const {
@@ -2448,6 +2578,14 @@ void SelectCommandRequest::dump_to(std::string &out) const {
   out.append("  state: ");
   out.append("'").append(this->state).append("'");
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -2468,14 +2606,12 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -2498,10 +2634,13 @@ void ListEntitiesSirenResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void SirenStateResponse::dump_to(std::string &out) const {
@@ -2516,10 +2655,13 @@ void SirenStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void SirenCommandRequest::dump_to(std::string &out) const {
@@ -2563,6 +2705,14 @@ void SirenCommandRequest::dump_to(std::string &out) const {
   snprintf(buffer, sizeof(buffer), "%g", this->volume);
   out.append(buffer);
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -2583,14 +2733,12 @@ void ListEntitiesLockResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -2615,10 +2763,13 @@ void ListEntitiesLockResponse::dump_to(std::string &out) const {
   out.append("'").append(this->code_format).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void LockStateResponse::dump_to(std::string &out) const {
@@ -2633,10 +2784,13 @@ void LockStateResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::LockState>(this->state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void LockCommandRequest::dump_to(std::string &out) const {
@@ -2658,6 +2812,14 @@ void LockCommandRequest::dump_to(std::string &out) const {
   out.append("  code: ");
   out.append("'").append(this->code).append("'");
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -2678,14 +2840,12 @@ void ListEntitiesButtonResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -2698,10 +2858,13 @@ void ListEntitiesButtonResponse::dump_to(std::string &out) const {
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void ButtonCommandRequest::dump_to(std::string &out) const {
@@ -2711,6 +2874,14 @@ void ButtonCommandRequest::dump_to(std::string &out) const {
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -2758,14 +2929,12 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -2784,10 +2953,13 @@ void ListEntitiesMediaPlayerResponse::dump_to(std::string &out) const {
     out.append("\n");
   }
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void MediaPlayerStateResponse::dump_to(std::string &out) const {
@@ -2811,10 +2983,13 @@ void MediaPlayerStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->muted));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void MediaPlayerCommandRequest::dump_to(std::string &out) const {
@@ -2857,6 +3032,14 @@ void MediaPlayerCommandRequest::dump_to(std::string &out) const {
   out.append("  announcement: ");
   out.append(YESNO(this->announcement));
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -3614,14 +3797,12 @@ void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -3643,10 +3824,13 @@ void ListEntitiesAlarmControlPanelResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->requires_code_to_arm));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void AlarmControlPanelStateResponse::dump_to(std::string &out) const {
@@ -3661,10 +3845,13 @@ void AlarmControlPanelStateResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::AlarmControlPanelState>(this->state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
@@ -3682,6 +3869,14 @@ void AlarmControlPanelCommandRequest::dump_to(std::string &out) const {
   out.append("  code: ");
   out.append("'").append(this->code).append("'");
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -3702,14 +3897,12 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -3736,10 +3929,13 @@ void ListEntitiesTextResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::TextMode>(this->mode));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void TextStateResponse::dump_to(std::string &out) const {
@@ -3758,10 +3954,13 @@ void TextStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->missing_state));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void TextCommandRequest::dump_to(std::string &out) const {
@@ -3775,6 +3974,14 @@ void TextCommandRequest::dump_to(std::string &out) const {
   out.append("  state: ");
   out.append("'").append(this->state).append("'");
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -3795,14 +4002,12 @@ void ListEntitiesDateResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -3811,10 +4016,13 @@ void ListEntitiesDateResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void DateStateResponse::dump_to(std::string &out) const {
@@ -3844,10 +4052,13 @@ void DateStateResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void DateCommandRequest::dump_to(std::string &out) const {
@@ -3872,6 +4083,14 @@ void DateCommandRequest::dump_to(std::string &out) const {
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->day);
   out.append(buffer);
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -3892,14 +4111,12 @@ void ListEntitiesTimeResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -3908,10 +4125,13 @@ void ListEntitiesTimeResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void TimeStateResponse::dump_to(std::string &out) const {
@@ -3941,10 +4161,13 @@ void TimeStateResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void TimeCommandRequest::dump_to(std::string &out) const {
@@ -3969,6 +4192,14 @@ void TimeCommandRequest::dump_to(std::string &out) const {
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->second);
   out.append(buffer);
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -3989,14 +4220,12 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -4015,10 +4244,13 @@ void ListEntitiesEventResponse::dump_to(std::string &out) const {
     out.append("\n");
   }
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void EventResponse::dump_to(std::string &out) const {
@@ -4033,10 +4265,13 @@ void EventResponse::dump_to(std::string &out) const {
   out.append("'").append(this->event_type).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -4057,14 +4292,12 @@ void ListEntitiesValveResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -4089,10 +4322,13 @@ void ListEntitiesValveResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->supports_stop));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void ValveStateResponse::dump_to(std::string &out) const {
@@ -4112,10 +4348,13 @@ void ValveStateResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::ValveOperation>(this->current_operation));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void ValveCommandRequest::dump_to(std::string &out) const {
@@ -4138,6 +4377,14 @@ void ValveCommandRequest::dump_to(std::string &out) const {
   out.append("  stop: ");
   out.append(YESNO(this->stop));
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -4158,14 +4405,12 @@ void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -4174,10 +4419,13 @@ void ListEntitiesDateTimeResponse::dump_to(std::string &out) const {
   out.append(proto_enum_to_string<enums::EntityCategory>(this->entity_category));
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void DateTimeStateResponse::dump_to(std::string &out) const {
@@ -4197,10 +4445,13 @@ void DateTimeStateResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void DateTimeCommandRequest::dump_to(std::string &out) const {
@@ -4215,6 +4466,14 @@ void DateTimeCommandRequest::dump_to(std::string &out) const {
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->epoch_seconds);
   out.append(buffer);
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
@@ -4235,14 +4494,12 @@ void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
   out.append("'").append(this->name).append("'");
   out.append("\n");
 
-  out.append("  unique_id: ");
-  out.append("'").append(this->unique_id).append("'");
-  out.append("\n");
-
+#ifdef USE_ENTITY_ICON
   out.append("  icon: ");
   out.append("'").append(this->icon).append("'");
   out.append("\n");
 
+#endif
   out.append("  disabled_by_default: ");
   out.append(YESNO(this->disabled_by_default));
   out.append("\n");
@@ -4255,10 +4512,13 @@ void ListEntitiesUpdateResponse::dump_to(std::string &out) const {
   out.append("'").append(this->device_class).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void UpdateStateResponse::dump_to(std::string &out) const {
@@ -4306,10 +4566,13 @@ void UpdateStateResponse::dump_to(std::string &out) const {
   out.append("'").append(this->release_url).append("'");
   out.append("\n");
 
+#ifdef USE_DEVICES
   out.append("  device_id: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
   out.append(buffer);
   out.append("\n");
+
+#endif
   out.append("}");
 }
 void UpdateCommandRequest::dump_to(std::string &out) const {
@@ -4323,6 +4586,14 @@ void UpdateCommandRequest::dump_to(std::string &out) const {
   out.append("  command: ");
   out.append(proto_enum_to_string<enums::UpdateCommand>(this->command));
   out.append("\n");
+
+#ifdef USE_DEVICES
+  out.append("  device_id: ");
+  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->device_id);
+  out.append(buffer);
+  out.append("\n");
+
+#endif
   out.append("}");
 }
 #endif
