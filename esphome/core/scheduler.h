@@ -215,7 +215,7 @@ class Scheduler {
 #endif
   // millis_major_ is protected by lock when incrementing, volatile ensures
   // reads outside the lock see fresh values (not cached in registers)
-  volatile uint16_t millis_major_{0};
+  uint16_t millis_major_{0};
   uint32_t to_remove_{0};
 };
 
