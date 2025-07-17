@@ -515,8 +515,6 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
     // last is automatically updated by compare_exchange_weak if it fails
   }
 
-  return now + (static_cast<uint64_t>(this->millis_major_) << 32);
-
 #else
   // Single-threaded platforms: No atomics needed
   uint32_t last = this->last_millis_;
@@ -533,9 +531,10 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
   if (now > last) {
     this->last_millis_ = now;
   }
-
-  return now + (static_cast<uint64_t>(this->millis_major_) << 32);
 #endif
+
+  // Combine major (high 32 bits) and now (low 32 bits) into 64-bit time
+  return now + (static_cast<uint64_t>(this->millis_major_) << 32);
 }
 
 bool HOT Scheduler::SchedulerItem::cmp(const std::unique_ptr<SchedulerItem> &a,
