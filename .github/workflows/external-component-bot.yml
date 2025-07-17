@@ -5,8 +5,8 @@ on:
     types: [opened, synchronize]
 
 permissions:
-  contents: read       #  Needed to checkout code
-  issues: write        #  Needed to comment on issues (if applicable)
+  contents: read       #  Needed to fetch PR details
+  issues: write        #  Needed to create and update comments (PR comments are managed via the issues REST API)
 
 jobs:
   external-comment:
