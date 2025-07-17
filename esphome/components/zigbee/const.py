@@ -6,7 +6,6 @@ Zigbee = zigbee_ns.class_("Zigbee", cg.Component)
 zb_char_t_ptr = cg.global_ns.namespace("zb_char_t *")
 
 CONF_ZIGBEE_ID = "zigbee_id"
-CONF_SWITCH = "switch"
 CONF_MAX_EP_NUMBER = 8
 CONF_EP = "ep"
 
