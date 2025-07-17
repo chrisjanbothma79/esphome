@@ -14,6 +14,8 @@ namespace esphome {
 static const char *const TAG = "scheduler";
 
 static const uint32_t MAX_LOGICALLY_DELETED_ITEMS = 10;
+// Half the 32-bit range - used to detect rollovers vs normal time progression
+static const uint32_t HALF_MAX_UINT32 = 0x80000000UL;
 
 // Uncomment to debug scheduler
 // #define ESPHOME_DEBUG_SCHEDULER
@@ -504,13 +506,13 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
 
   // If we might be near a rollover (large backwards jump), take the lock for the entire operation
   // This ensures rollover detection and last_millis_ update are atomic together
-  if (now < last && (last - now) > 0x80000000UL) {
+  if (now < last && (last - now) > HALF_MAX_UINT32) {
     // Potential rollover - need lock for atomic rollover detection + update
     LockGuard guard{this->lock_};
     // Re-read with lock held
     last = this->last_millis_.load(std::memory_order_relaxed);
 
-    if (now < last && (last - now) > 0x80000000UL) {
+    if (now < last && (last - now) > HALF_MAX_UINT32) {
       // True rollover detected (happens every ~49.7 days)
       this->millis_major_++;
 #ifdef ESPHOME_DEBUG_SCHEDULER
@@ -522,7 +524,7 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
   } else {
     // Normal case: Try lock-free update, but only allow forward movement within same epoch
     // This prevents accidentally moving backwards across a rollover boundary
-    while (now > last && (now - last) < 0x80000000UL) {
+    while (now > last && (now - last) < HALF_MAX_UINT32) {
       if (this->last_millis_.compare_exchange_weak(last, now, std::memory_order_relaxed)) {
         break;
       }
@@ -535,7 +537,7 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
   uint32_t last = this->last_millis_;
 
   // Check for rollover
-  if (now < last && (last - now) > 0x80000000UL) {
+  if (now < last && (last - now) > HALF_MAX_UINT32) {
     this->millis_major_++;
 #ifdef ESPHOME_DEBUG_SCHEDULER
     ESP_LOGD(TAG, "Detected true 32-bit rollover at %" PRIu32 "ms (was %" PRIu32 ")", now, last);
