@@ -17,7 +17,7 @@ template<typename... X> class TemplatableStringValue : public TemplatableValue<s
 
   // Overloads for string types - needed because std::to_string doesn't support them
   static std::string value_to_string(char *val) {
-    return std::string(val);
+    return val ? std::string(val) : std::string();
   }  // For lambdas returning char* (e.g., itoa)
   static std::string value_to_string(const char *val) { return std::string(val); }  // For lambdas returning .c_str()
   static std::string value_to_string(const std::string &val) { return val; }
