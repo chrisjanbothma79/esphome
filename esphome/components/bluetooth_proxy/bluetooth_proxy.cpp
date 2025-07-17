@@ -43,10 +43,11 @@ void BluetoothProxy::setup() {
   this->response_ = std::make_unique<api::BluetoothLERawAdvertisementsResponse>();
 
   // Reserve capacity but start with size 0
-  this->response_->advertisements.reserve(FLUSH_BATCH_SIZE);
+  // Reserve 50% since we'll grow naturally and flush at FLUSH_BATCH_SIZE
+  this->response_->advertisements.reserve(FLUSH_BATCH_SIZE / 2);
 
-  // Pre-allocate pool for overflow
-  this->advertisement_pool_.reserve(FLUSH_BATCH_SIZE);
+  // Don't pre-allocate pool - let it grow only if needed in busy environments
+  // Many devices in quiet areas will never need the overflow pool
 
   this->parent_->add_scanner_state_callback([this](esp32_ble_tracker::ScannerState state) {
     if (this->api_connection_ != nullptr) {
