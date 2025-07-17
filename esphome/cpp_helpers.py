@@ -1,12 +1,13 @@
 import logging
 
+from esphome import config_validation as cv
 from esphome.const import (
+    CONF_ID,
     CONF_SAFE_MODE,
     CONF_SETUP_PRIORITY,
     CONF_TYPE_ID,
     CONF_UPDATE_INTERVAL,
     KEY_PAST_SAFE_MODE,
-    CONF_ID,
 )
 from esphome.core import CORE, ID, coroutine
 from esphome.coroutine import FakeAwaitable
@@ -14,7 +15,6 @@ from esphome.cpp_generator import add, get_variable
 from esphome.cpp_types import App
 from esphome.types import ConfigFragmentType, ConfigType
 from esphome.util import Registry, RegistryEntry
-from esphome import config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,6 +91,7 @@ async def register_parented(var, value):
         paren = value
     add(var.set_parent(paren))
 
+
 async def setup_entity(var, config):
     """Set up generic properties of an Entity"""
     add(var.set_name(config[CONF_NAME]))
@@ -115,6 +116,7 @@ async def setup_entity(var, config):
         add(var.set_icon(config[CONF_ICON]))
     if CONF_ENTITY_CATEGORY in config:
         add(var.set_entity_category(config[CONF_ENTITY_CATEGORY]))
+
 
 def extract_registry_entry_config(
     registry: Registry,
