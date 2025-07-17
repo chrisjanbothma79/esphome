@@ -14,6 +14,8 @@ from esphome.const import (
 
 from .. import template_ns
 
+CONF_OPTIONS_LAMBDA = "options_lambda"
+
 TemplateSelect = template_ns.class_(
     "TemplateSelect", select.Select, cg.PollingComponent
 )
@@ -27,13 +29,26 @@ def validate(config):
             raise cv.Invalid("initial_value cannot be used with lambda")
         if CONF_RESTORE_VALUE in config:
             raise cv.Invalid("restore_value cannot be used with lambda")
-    elif CONF_INITIAL_OPTION in config:
-        if config[CONF_INITIAL_OPTION] not in config[CONF_OPTIONS]:
-            raise cv.Invalid(
-                f"initial_option '{config[CONF_INITIAL_OPTION]}' is not a valid option [{', '.join(config[CONF_OPTIONS])}]"
-            )
-    else:
-        config[CONF_INITIAL_OPTION] = config[CONF_OPTIONS][0]
+
+    # Handle options validation - either static options or options_lambda required
+    has_static_options = CONF_OPTIONS in config
+    has_options_lambda = CONF_OPTIONS_LAMBDA in config
+
+    if not has_static_options and not has_options_lambda:
+        raise cv.Invalid("Either 'options' or 'options_lambda' must be specified")
+
+    if has_static_options and has_options_lambda:
+        raise cv.Invalid("Cannot specify both 'options' and 'options_lambda'")
+
+    # Validate initial option only if static options are provided
+    if has_static_options:
+        if CONF_INITIAL_OPTION in config:
+            if config[CONF_INITIAL_OPTION] not in config[CONF_OPTIONS]:
+                raise cv.Invalid(
+                    f"initial_option '{config[CONF_INITIAL_OPTION]}' is not a valid option [{', '.join(config[CONF_OPTIONS])}]"
+                )
+        else:
+            config[CONF_INITIAL_OPTION] = config[CONF_OPTIONS][0]
 
     if not config[CONF_OPTIMISTIC] and CONF_SET_ACTION not in config:
         raise cv.Invalid(
@@ -46,9 +61,10 @@ CONFIG_SCHEMA = cv.All(
     select.select_schema(TemplateSelect)
     .extend(
         {
-            cv.Required(CONF_OPTIONS): cv.All(
+            cv.Optional(CONF_OPTIONS): cv.All(
                 cv.ensure_list(cv.string_strict), cv.Length(min=1)
             ),
+            cv.Optional(CONF_OPTIONS_LAMBDA): cv.returning_lambda,
             cv.Optional(CONF_LAMBDA): cv.returning_lambda,
             cv.Optional(CONF_OPTIMISTIC, default=False): cv.boolean,
             cv.Optional(CONF_SET_ACTION): automation.validate_automation(single=True),
@@ -64,20 +80,34 @@ CONFIG_SCHEMA = cv.All(
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
-    await select.register_select(var, config, options=config[CONF_OPTIONS])
+
+    # Handle static options vs options lambda
+    if CONF_OPTIONS in config:
+        await select.register_select(var, config, options=config[CONF_OPTIONS])
+    else:
+        # For options lambda, register with empty options initially
+        await select.register_select(var, config, options=[])
 
     if CONF_LAMBDA in config:
         template_ = await cg.process_lambda(
             config[CONF_LAMBDA], [], return_type=cg.optional.template(cg.std_string)
         )
         cg.add(var.set_template(template_))
-
     else:
         cg.add(var.set_optimistic(config[CONF_OPTIMISTIC]))
-        cg.add(var.set_initial_option(config[CONF_INITIAL_OPTION]))
+        if CONF_INITIAL_OPTION in config:
+            cg.add(var.set_initial_option(config[CONF_INITIAL_OPTION]))
 
         if CONF_RESTORE_VALUE in config:
             cg.add(var.set_restore_value(config[CONF_RESTORE_VALUE]))
+
+    if CONF_OPTIONS_LAMBDA in config:
+        options_template = await cg.process_lambda(
+            config[CONF_OPTIONS_LAMBDA],
+            [],
+            return_type=cg.std_vector.template(cg.std_string),
+        )
+        cg.add(var.set_options_template(options_template))
 
     if CONF_SET_ACTION in config:
         await automation.build_automation(
