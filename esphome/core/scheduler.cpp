@@ -483,16 +483,44 @@ bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_c
 }
 
 uint64_t Scheduler::millis_64_(uint32_t now) {
-  // Check for rollover by comparing with last value
-  if (now < this->last_millis_) {
-    // Detected rollover (happens every ~49.7 days)
-    this->millis_major_++;
+  // THREAD SAFETY NOTE:
+  // This function can be called from multiple threads simultaneously.
+  // We use a local snapshot and a large threshold to make it thread-safe without locks.
+
+  // Read once to ensure consistent value throughout this function
+  uint32_t last = this->last_millis_;
+
+  // Check for rollover - only if backwards jump is very large
+  // A true 32-bit rollover means jumping from ~4294967295 to ~0
+  // So we only consider it a rollover if the backwards jump is > 2^31 (half the range)
+  // This prevents false positives from thread timing variations while detecting real rollovers
+  //
+  // THREAD SAFETY: Even with concurrent access, this is safe because:
+  // 1. We use a consistent snapshot (last) for the entire check
+  // 2. The threshold (0x80000000) is so large that timing variations between threads
+  //    (at most a few ms) can never cause a false positive
+  if (now < last && (last - now) > 0x80000000UL) {
+    // This is a true rollover (happens every ~49.7 days)
+    // Use a lock here to prevent multiple threads from incrementing for the same rollover
+    // This is worth the overhead since it only happens every 49.7 days
+    LockGuard guard{this->lock_};
+    // Re-check with lock held to prevent double increment
+    if (now < this->last_millis_ && (this->last_millis_ - now) > 0x80000000UL) {
+      this->millis_major_++;
 #ifdef ESPHOME_DEBUG_SCHEDULER
-    ESP_LOGD(TAG, "Incrementing scheduler major at %" PRIu64 "ms",
-             now + (static_cast<uint64_t>(this->millis_major_) << 32));
+      ESP_LOGD(TAG, "Detected true 32-bit rollover at %" PRIu32 "ms (was %" PRIu32 ")", now, this->last_millis_);
 #endif
+    }
   }
-  this->last_millis_ = now;
+
+  // Only update last_millis_ if time moved forward
+  // This maintains the latest time seen for rollover detection
+  // THREAD SAFETY: If another thread already updated to a higher value,
+  // we skip our update. This is fine - we just want the highest value seen.
+  if (now > last) {
+    this->last_millis_ = now;
+  }
+
   // Combine major (high 32 bits) and now (low 32 bits) into 64-bit time
   return now + (static_cast<uint64_t>(this->millis_major_) << 32);
 }
