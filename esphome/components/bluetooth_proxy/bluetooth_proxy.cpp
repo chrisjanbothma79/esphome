@@ -25,6 +25,13 @@ std::vector<uint64_t> get_128bit_uuid_vec(esp_bt_uuid_t uuid_source) {
                                    ((uint64_t) uuid.uuid.uuid128[1] << 8) | ((uint64_t) uuid.uuid.uuid128[0])};
 }
 
+// Batch size for BLE advertisements to maximize WiFi efficiency
+// Each advertisement is up to 80 bytes when packaged (including protocol overhead)
+// Most advertisements are 20-30 bytes, allowing even more to fit per packet
+// 16 advertisements × 80 bytes (worst case) = 1280 bytes out of ~1320 bytes usable payload
+// This achieves ~97% WiFi MTU utilization while staying under the limit
+static constexpr size_t FLUSH_BATCH_SIZE = 16;
+
 BluetoothProxy::BluetoothProxy() { global_bluetooth_proxy = this; }
 
 void BluetoothProxy::setup() {
