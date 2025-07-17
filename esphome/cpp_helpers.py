@@ -6,6 +6,7 @@ from esphome.const import (
     CONF_SETUP_PRIORITY,
     CONF_TYPE_ID,
     CONF_UPDATE_INTERVAL,
+    CONF_NAME
     KEY_PAST_SAFE_MODE,
 )
 from esphome.core import CORE, ID, coroutine
