@@ -177,7 +177,7 @@ This document provides essential context for AI models interacting with this pro
         ├── test_build_components/ # Base test configurations
         └── components/[component]/ # Component-specific tests
         ```
-        Run them using `script/test_build_components`.
+        Run them using `script/test_build_components`. Use `-c <component>` to test specific components and `-t <target>` for specific platforms.
 *   **Debugging and Troubleshooting:**
     *   **Debug Tools:**
         - `esphome config <file>.yaml` to validate configuration.
@@ -215,3 +215,4 @@ This document provides essential context for AI models interacting with this pro
     *   **Python:** When adding a new Python dependency, add it to the appropriate `requirements*.txt` file and `pyproject.toml`.
     *   **C++ / PlatformIO:** When adding a new C++ dependency, add it to `platformio.ini` and use `cg.add_library`.
     *   **Build Flags:** Use `cg.add_build_flag(...)` to add compiler flags.
+    6.  **Pull Request:** Submit a PR against the `dev` branch. The Pull Request title should have a prefix of the component being worked on (e.g., `[display] Fix bug`, `[abc123] Add new component`). Update documentation, examples, and add `CODEOWNERS` entries as needed.
