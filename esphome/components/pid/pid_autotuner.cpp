@@ -97,7 +97,7 @@ PIDAutotuner::PIDAutotuneResult PIDAutotuner::update(float setpoint, float proce
   }
 
   bool zc_symmetrical = this->frequency_detector_.is_increase_decrease_symmetrical();
-  bool amplitude_convergent = this->frequency_detector_.is_increase_decrease_symmetrical();
+  bool amplitude_convergent = this->amplitude_detector_.is_amplitude_convergent();
   if (!zc_symmetrical || !amplitude_convergent) {
     // The frequency/amplitude is not fully accurate yet, try to wait
     // until the fault clears, or terminate after a while anyway
