@@ -325,7 +325,7 @@ def FILTER_SOURCE_FILES() -> list[str]:
 
     # web_server_v1.cpp is only needed when version is 1
     config = CORE.config.get("web_server", {})
-    if config and config.get(CONF_VERSION, 2) != 1:
+    if config.get(CONF_VERSION, 2) != 1:
         files_to_filter.append("web_server_v1.cpp")
 
     return files_to_filter
