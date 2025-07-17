@@ -138,7 +138,7 @@ void Zigbee::setup() {
     return;
   }
 
-#if 0
+#ifdef USE_WIPE_ON_BOOT
   _erase_flash(FIXED_PARTITION_ID(ZBOSS_NVRAM));
   _erase_flash(FIXED_PARTITION_ID(ZBOSS_PRODUCT_CONFIG));
   _erase_flash(FIXED_PARTITION_ID(SETTINGS_STORAGE));

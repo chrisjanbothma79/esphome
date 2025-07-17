@@ -53,6 +53,8 @@ AUTO_LOAD = ["zigbee_ctx"]
 CODEOWNERS = ["@tomaszduda23"]
 
 CONF_ON_JOIN = "on_join"
+CONF_WIPE_ON_BOOT = "wipe_on_boot"
+
 
 ZigbeeBaseSchema = cv.Schema(
     {
@@ -99,6 +101,7 @@ CONFIG_SCHEMA = cv.All(
                 ZB_ZCL_DECLARE_SCENES_ATTRIB_LIST
             ),
             cv.Optional(CONF_ON_JOIN): automation.validate_automation(single=True),
+            cv.Optional(CONF_WIPE_ON_BOOT, default=False): cv.boolean,
         }
     ).extend(cv.COMPONENT_SCHEMA),
     zigbee_set_core_data,
@@ -192,7 +195,8 @@ async def to_code(config):
         zigbee_assign(scenes_attrs.name_support, 0),
     )
 
-    # the rest
+    if CONF_WIPE_ON_BOOT in config:
+        cg.add_define("USE_WIPE_ON_BOOT")
     var = cg.new_Pvariable(config[CONF_ID])
 
     if on_join_config := config.get(CONF_ON_JOIN):

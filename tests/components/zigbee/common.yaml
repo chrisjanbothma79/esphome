@@ -32,6 +32,7 @@ binary_sensor:
     lambda: return true;
 
 zigbee:
+  wipe_on_boot: true
   on_join:
     - switch.zigbee.publish:
         id: zigbee_switch_1
