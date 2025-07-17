@@ -491,6 +491,13 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
   // THREAD SAFETY NOTE:
   // This function can be called from multiple threads simultaneously on ESP32/LibreTiny.
   // On single-threaded platforms (ESP8266, RP2040), atomics are not needed.
+  //
+  // KNOWN LIMITATION: There is a small race condition at the 32-bit rollover boundary
+  // (every 49.7 days). To fix this completely would require either:
+  // 1. 64-bit atomic operations (not available on ESP32)
+  // 2. Locking on every time check (unacceptable performance impact)
+  // We accept this edge case as the race window is tiny (microseconds every 49.7 days)
+  // and the consequence is timeouts firing early, not crashes.
 
 #if !defined(USE_ESP8266) && !defined(USE_RP2040)
   // Multi-threaded platforms: Need to handle rollover carefully
