@@ -29,20 +29,20 @@ class OTARequestHandler : public AsyncWebHandler {
   void handleUpload(AsyncWebServerRequest *request, const String &filename, size_t index, uint8_t *data, size_t len,
                     bool final) override;
   bool canHandle(AsyncWebServerRequest *request) const override {
-    if (request->url() != "/update" || request->method() != HTTP_POST) {
-      return false;
-    }
+    // Check if this is an OTA update request
+    bool is_ota_request = request->url() == "/update" && request->method() == HTTP_POST;
 
 #if defined(USE_WEBSERVER_OTA_DISABLED) && defined(USE_CAPTIVE_PORTAL)
     // IMPORTANT: USE_WEBSERVER_OTA_DISABLED only disables OTA for the web_server component
     // Captive portal can still perform OTA updates - check if request is from active captive portal
-    return captive_portal::global_captive_portal != nullptr && captive_portal::global_captive_portal->is_active();
+    return is_ota_request && captive_portal::global_captive_portal != nullptr &&
+           captive_portal::global_captive_portal->is_active();
 #elif defined(USE_WEBSERVER_OTA_DISABLED)
     // OTA disabled for web_server and no captive portal compiled in
     return false;
 #else
     // OTA enabled for web_server
-    return true;
+    return is_ota_request;
 #endif
   }
 
