@@ -657,7 +657,7 @@ class FixedArrayBytesType(TypeInfo):
         return f"buffer.encode_bytes({self.number}, this->{self.field_name}, this->{self.field_name}_len);"
 
     def dump(self, name: str) -> str:
-        o = f"out.append(format_hex_pretty(reinterpret_cast<const char*>({name}), {name}_len));"
+        o = f"out.append(format_hex_pretty({name}, {name}_len));"
         return o
 
     def get_size_calculation(self, name: str, force: bool = False) -> str:
