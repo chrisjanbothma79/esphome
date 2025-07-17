@@ -26,11 +26,29 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/helpers.h"
 
+#define SUB_SENSOR_WITH_DEDUP(name) \
+ protected: \
+  SensorWithDedup name##_sensor_; \
+\
+ public: \
+  void set_##name##_sensor(sensor::Sensor *sensor) { this->name##_sensor_.sens = sensor; }
+
 namespace esphome {
 namespace ld2410 {
 
-static const uint8_t MAX_LINE_LENGTH = 46;  // Max characters for serial buffer
-static const uint8_t TOTAL_GATES = 9;       // Total number of gates supported by the LD2410
+static constexpr uint8_t MAX_LINE_LENGTH = 46;  // Max characters for serial buffer
+static constexpr uint8_t TOTAL_GATES = 9;       // Total number of gates supported by the LD2410
+
+#ifdef USE_SENSOR
+// Helper class to store a sensor with a deduplicator & publish state only when the value changes
+class SensorWithDedup {
+ public:
+  void publish_state_if_not_dup(float state, bool use_sentinel = false);
+
+  sensor::Sensor *sens{nullptr};
+  Deduplicator<float> publish_dedup;
+};
+#endif
 
 class LD2410Component : public Component, public uart::UARTDevice {
 #ifdef USE_BINARY_SENSOR
@@ -40,12 +58,12 @@ class LD2410Component : public Component, public uart::UARTDevice {
   SUB_BINARY_SENSOR(target)
 #endif
 #ifdef USE_SENSOR
-  SUB_SENSOR(light)
-  SUB_SENSOR(detection_distance)
-  SUB_SENSOR(moving_target_distance)
-  SUB_SENSOR(moving_target_energy)
-  SUB_SENSOR(still_target_distance)
-  SUB_SENSOR(still_target_energy)
+  SUB_SENSOR_WITH_DEDUP(light)
+  SUB_SENSOR_WITH_DEDUP(detection_distance)
+  SUB_SENSOR_WITH_DEDUP(moving_target_distance)
+  SUB_SENSOR_WITH_DEDUP(moving_target_energy)
+  SUB_SENSOR_WITH_DEDUP(still_target_distance)
+  SUB_SENSOR_WITH_DEDUP(still_target_energy)
 #endif
 #ifdef USE_TEXT_SENSOR
   SUB_TEXT_SENSOR(version)
@@ -126,8 +144,8 @@ class LD2410Component : public Component, public uart::UARTDevice {
   std::vector<number::Number *> gate_still_threshold_numbers_ = std::vector<number::Number *>(TOTAL_GATES);
 #endif
 #ifdef USE_SENSOR
-  std::vector<sensor::Sensor *> gate_move_sensors_ = std::vector<sensor::Sensor *>(TOTAL_GATES);
-  std::vector<sensor::Sensor *> gate_still_sensors_ = std::vector<sensor::Sensor *>(TOTAL_GATES);
+  std::vector<SensorWithDedup> gate_move_sensors_ = std::vector<SensorWithDedup>(TOTAL_GATES);
+  std::vector<SensorWithDedup> gate_still_sensors_ = std::vector<SensorWithDedup>(TOTAL_GATES);
 #endif
 };
 

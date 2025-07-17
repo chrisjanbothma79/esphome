@@ -142,6 +142,8 @@ template<size_t N> const char *find_str(const Uint8ToString (&arr)[N], uint8_t v
   return "";  // Not found
 }
 
+// Used to dedup when engineering mode is off; safe because it is not a valid percentage value
+static constexpr float EM_OFF_SENTINEL = -1.0f;
 // Commands
 static constexpr uint8_t CMD_ENABLE_CONF = 0xFF;
 static constexpr uint8_t CMD_DISABLE_CONF = 0xFE;
@@ -182,6 +184,14 @@ static inline bool validate_header_footer(const uint8_t *header_footer, const ui
   return std::memcmp(header_footer, buffer, HEADER_FOOTER_SIZE) == 0;
 }
 
+#ifdef USE_SENSOR
+void SensorWithDedup::publish_state_if_not_dup(const float state, const bool use_sentinel) {
+  if (this->sens != nullptr && this->publish_dedup.next(state)) {
+    this->sens->publish_state(use_sentinel && state == EM_OFF_SENTINEL ? NAN : state);
+  }
+}
+#endif
+
 void LD2410Component::dump_config() {
   std::string mac_str =
       mac_address_is_valid(this->mac_address_) ? format_mac_address_pretty(this->mac_address_) : UNKNOWN_MAC;
@@ -202,17 +212,17 @@ void LD2410Component::dump_config() {
 #endif
 #ifdef USE_SENSOR
   ESP_LOGCONFIG(TAG, "Sensors:");
-  LOG_SENSOR("  ", "Light", this->light_sensor_);
-  LOG_SENSOR("  ", "DetectionDistance", this->detection_distance_sensor_);
-  LOG_SENSOR("  ", "MovingTargetDistance", this->moving_target_distance_sensor_);
-  LOG_SENSOR("  ", "MovingTargetEnergy", this->moving_target_energy_sensor_);
-  LOG_SENSOR("  ", "StillTargetDistance", this->still_target_distance_sensor_);
-  LOG_SENSOR("  ", "StillTargetEnergy", this->still_target_energy_sensor_);
-  for (sensor::Sensor *s : this->gate_move_sensors_) {
-    LOG_SENSOR("  ", "GateMove", s);
+  LOG_SENSOR("  ", "Light", this->light_sensor_.sens);
+  LOG_SENSOR("  ", "DetectionDistance", this->detection_distance_sensor_.sens);
+  LOG_SENSOR("  ", "MovingTargetDistance", this->moving_target_distance_sensor_.sens);
+  LOG_SENSOR("  ", "MovingTargetEnergy", this->moving_target_energy_sensor_.sens);
+  LOG_SENSOR("  ", "StillTargetDistance", this->still_target_distance_sensor_.sens);
+  LOG_SENSOR("  ", "StillTargetEnergy", this->still_target_energy_sensor_.sens);
+  for (SensorWithDedup s : this->gate_move_sensors_) {
+    LOG_SENSOR("  ", "GateMove", s.sens);
   }
-  for (sensor::Sensor *s : this->gate_still_sensors_) {
-    LOG_SENSOR("  ", "GateStill", s);
+  for (SensorWithDedup s : this->gate_still_sensors_) {
+    LOG_SENSOR("  ", "GateStill", s.sens);
   }
 #endif
 #ifdef USE_TEXT_SENSOR
@@ -362,89 +372,40 @@ void LD2410Component::handle_periodic_data_() {
     Detect distance: 16~17th bytes
   */
 #ifdef USE_SENSOR
-  if (this->moving_target_distance_sensor_ != nullptr) {
-    int new_moving_target_distance =
-        ld2410::two_byte_to_int(this->buffer_data_[MOVING_TARGET_LOW], this->buffer_data_[MOVING_TARGET_HIGH]);
-    if (this->moving_target_distance_sensor_->get_state() != new_moving_target_distance)
-      this->moving_target_distance_sensor_->publish_state(new_moving_target_distance);
+  this->moving_target_distance_sensor_.publish_state_if_not_dup(static_cast<float>(
+      ld2410::two_byte_to_int(this->buffer_data_[MOVING_TARGET_LOW], this->buffer_data_[MOVING_TARGET_HIGH])));
+  this->moving_target_energy_sensor_.publish_state_if_not_dup(static_cast<float>(this->buffer_data_[MOVING_ENERGY]));
+  this->still_target_distance_sensor_.publish_state_if_not_dup(static_cast<float>(
+      ld2410::two_byte_to_int(this->buffer_data_[STILL_TARGET_LOW], this->buffer_data_[STILL_TARGET_HIGH])));
+  this->still_target_energy_sensor_.publish_state_if_not_dup(static_cast<float>(this->buffer_data_[STILL_ENERGY]));
+  this->detection_distance_sensor_.publish_state_if_not_dup(static_cast<float>(
+      ld2410::two_byte_to_int(this->buffer_data_[DETECT_DISTANCE_LOW], this->buffer_data_[DETECT_DISTANCE_HIGH])));
+  /*
+    Moving distance range: 18th byte
+    Still distance range: 19th byte
+    Moving energy: 20~28th bytes
+  */
+  for (std::vector<SensorWithDedup>::size_type i = 0; i != this->gate_move_sensors_.size(); i++) {
+    this->gate_move_sensors_[i].publish_state_if_not_dup(
+        engineering_mode ? static_cast<float>(this->buffer_data_[MOVING_SENSOR_START + i]) : EM_OFF_SENTINEL, true);
   }
-  if (this->moving_target_energy_sensor_ != nullptr) {
-    int new_moving_target_energy = this->buffer_data_[MOVING_ENERGY];
-    if (this->moving_target_energy_sensor_->get_state() != new_moving_target_energy)
-      this->moving_target_energy_sensor_->publish_state(new_moving_target_energy);
+  /*
+    Still energy: 29~37th bytes
+  */
+  for (std::vector<SensorWithDedup>::size_type i = 0; i != this->gate_still_sensors_.size(); i++) {
+    this->gate_still_sensors_[i].publish_state_if_not_dup(
+        engineering_mode ? static_cast<float>(this->buffer_data_[STILL_SENSOR_START + i]) : EM_OFF_SENTINEL, true);
   }
-  if (this->still_target_distance_sensor_ != nullptr) {
-    int new_still_target_distance =
-        ld2410::two_byte_to_int(this->buffer_data_[STILL_TARGET_LOW], this->buffer_data_[STILL_TARGET_HIGH]);
-    if (this->still_target_distance_sensor_->get_state() != new_still_target_distance)
-      this->still_target_distance_sensor_->publish_state(new_still_target_distance);
-  }
-  if (this->still_target_energy_sensor_ != nullptr) {
-    int new_still_target_energy = this->buffer_data_[STILL_ENERGY];
-    if (this->still_target_energy_sensor_->get_state() != new_still_target_energy)
-      this->still_target_energy_sensor_->publish_state(new_still_target_energy);
-  }
-  if (this->detection_distance_sensor_ != nullptr) {
-    int new_detect_distance =
-        ld2410::two_byte_to_int(this->buffer_data_[DETECT_DISTANCE_LOW], this->buffer_data_[DETECT_DISTANCE_HIGH]);
-    if (this->detection_distance_sensor_->get_state() != new_detect_distance)
-      this->detection_distance_sensor_->publish_state(new_detect_distance);
-  }
-  if (engineering_mode) {
-    /*
-      Moving distance range: 18th byte
-      Still distance range: 19th byte
-      Moving energy: 20~28th bytes
-    */
-    for (std::vector<sensor::Sensor *>::size_type i = 0; i != this->gate_move_sensors_.size(); i++) {
-      sensor::Sensor *s = this->gate_move_sensors_[i];
-      if (s != nullptr) {
-        s->publish_state(this->buffer_data_[MOVING_SENSOR_START + i]);
-      }
-    }
-    /*
-      Still energy: 29~37th bytes
-    */
-    for (std::vector<sensor::Sensor *>::size_type i = 0; i != this->gate_still_sensors_.size(); i++) {
-      sensor::Sensor *s = this->gate_still_sensors_[i];
-      if (s != nullptr) {
-        s->publish_state(this->buffer_data_[STILL_SENSOR_START + i]);
-      }
-    }
-    /*
-      Light sensor: 38th bytes
-    */
-    if (this->light_sensor_ != nullptr) {
-      int new_light_sensor = this->buffer_data_[LIGHT_SENSOR];
-      if (this->light_sensor_->get_state() != new_light_sensor) {
-        this->light_sensor_->publish_state(new_light_sensor);
-      }
-    }
-  } else {
-    for (auto *s : this->gate_move_sensors_) {
-      if (s != nullptr && !std::isnan(s->get_state())) {
-        s->publish_state(NAN);
-      }
-    }
-    for (auto *s : this->gate_still_sensors_) {
-      if (s != nullptr && !std::isnan(s->get_state())) {
-        s->publish_state(NAN);
-      }
-    }
-    if (this->light_sensor_ != nullptr && !std::isnan(this->light_sensor_->get_state())) {
-      this->light_sensor_->publish_state(NAN);
-    }
-  }
+  /*
+    Light sensor: 38th bytes
+  */
+  this->light_sensor_.publish_state_if_not_dup(
+      engineering_mode ? static_cast<float>(this->buffer_data_[LIGHT_SENSOR]) : EM_OFF_SENTINEL, true);
 #endif
 #ifdef USE_BINARY_SENSOR
-  if (engineering_mode) {
-    if (this->out_pin_presence_status_binary_sensor_ != nullptr) {
-      this->out_pin_presence_status_binary_sensor_->publish_state(this->buffer_data_[OUT_PIN_SENSOR] == 0x01);
-    }
-  } else {
-    if (this->out_pin_presence_status_binary_sensor_ != nullptr) {
-      this->out_pin_presence_status_binary_sensor_->publish_state(false);
-    }
+  if (this->out_pin_presence_status_binary_sensor_ != nullptr) {
+    this->out_pin_presence_status_binary_sensor_->publish_state(
+        engineering_mode ? this->buffer_data_[OUT_PIN_SENSOR] == 0x01 : false);
   }
 #endif
 }
@@ -824,8 +785,10 @@ void LD2410Component::set_light_out_control() {
 }
 
 #ifdef USE_SENSOR
-void LD2410Component::set_gate_move_sensor(uint8_t gate, sensor::Sensor *s) { this->gate_move_sensors_[gate] = s; }
-void LD2410Component::set_gate_still_sensor(uint8_t gate, sensor::Sensor *s) { this->gate_still_sensors_[gate] = s; }
+void LD2410Component::set_gate_move_sensor(uint8_t gate, sensor::Sensor *s) { this->gate_move_sensors_[gate].sens = s; }
+void LD2410Component::set_gate_still_sensor(uint8_t gate, sensor::Sensor *s) {
+  this->gate_still_sensors_[gate].sens = s;
+}
 #endif
 
 }  // namespace ld2410
