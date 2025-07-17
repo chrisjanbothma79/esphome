@@ -663,9 +663,18 @@ class FixedArrayBytesType(TypeInfo):
     def get_size_calculation(self, name: str, force: bool = False) -> str:
         # Use the actual length stored in the _len field
         length_field = f"this->{self.field_name}_len"
-        # Size = field_id_size + varint(length) + actual_data_bytes
         field_id_size = self.calculate_field_id_size()
-        return f"  total_size += {field_id_size} + ProtoSize::varint(static_cast<uint32_t>({length_field})) + {length_field};\n"
+
+        if force:
+            # For repeated fields, always calculate size
+            return f"total_size += {field_id_size} + ProtoSize::varint(static_cast<uint32_t>({length_field})) + {length_field};"
+        else:
+            # For non-repeated fields, skip if length is 0 (matching encode_string behavior)
+            return (
+                f"if ({length_field} != 0) {{\n"
+                f"  total_size += {field_id_size} + ProtoSize::varint(static_cast<uint32_t>({length_field})) + {length_field};\n"
+                f"}}"
+            )
 
     def get_estimated_size(self) -> int:
         # Estimate based on typical BLE advertisement size
