@@ -53,7 +53,7 @@ def test_deep_sleep_with_wifi_esp8266(generate_main):
     # Verify WiFi component is registered
     assert "wifi = new wifi::WiFiComponent();" in main_cpp
     assert "App.register_component(wifi);" in main_cpp
-    
-    # Verify deep sleep component is registered  
+
+    # Verify deep sleep component is registered
     assert "deep_sleep_1 = new deep_sleep::DeepSleepComponent();" in main_cpp
     assert "App.register_component(deep_sleep_1);" in main_cpp

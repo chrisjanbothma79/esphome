@@ -7,7 +7,7 @@ esp8266:
 
 wifi:
   ssid: "test"
-  password: "test"
+  password: "testtest"
 
 api:
   actions:
