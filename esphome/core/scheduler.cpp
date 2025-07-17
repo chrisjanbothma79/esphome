@@ -521,8 +521,9 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
     // Update last_millis_ while holding lock to prevent races
     this->last_millis_.store(now, std::memory_order_relaxed);
   } else {
-    // Normal case: Try lock-free update
-    while (now > last) {
+    // Normal case: Try lock-free update, but only allow forward movement within same epoch
+    // This prevents accidentally moving backwards across a rollover boundary
+    while (now > last && (now - last) < 0x80000000UL) {
       if (this->last_millis_.compare_exchange_weak(last, now, std::memory_order_relaxed)) {
         break;
       }
