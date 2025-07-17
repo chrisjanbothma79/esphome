@@ -27,15 +27,6 @@ jobs:
                     source = `github://${owner}/${repo}@pull/${prNumber}/head`;
                 return `To use the changes from this PR as an external component, add the following to your ESPHome configuration YAML file:
 
-            // Generate external component usage instructions
-            function generateExternalComponentInstructions(prNumber, componentNames, owner, repo) {
-                let source;
-                if (owner === 'esphome' && repo === 'esphome')
-                    source = `github://pr#${prNumber}`;
-                else
-                    source = `github://${owner}/${repo}@pull/${prNumber}/head`;
-                return `To use the changes from this PR as an external component, add the following to your ESPHome configuration YAML file:
-
             \`\`\`yaml
             external_components:
               - source: ${source}
