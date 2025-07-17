@@ -318,32 +318,36 @@ jobs:
 
               let isCodeOwner = false;
 
+              // Precompile CODEOWNERS patterns into regex objects
+              const codeownersRegexes = codeownersLines.map(line => {
+                const parts = line.split(/\s+/);
+                const pattern = parts[0];
+                const owners = parts.slice(1);
+
+                let regex;
+                if (pattern.endsWith('*')) {
+                  // Directory pattern like "esphome/components/api/*"
+                  const dir = pattern.slice(0, -1);
+                  regex = new RegExp(`^${dir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
+                } else if (pattern.includes('*')) {
+                  // Glob pattern
+                  const regexPattern = pattern
+                    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                    .replace(/\\*/g, '.*');
+                  regex = new RegExp(`^${regexPattern}$`);
+                } else {
+                  // Exact match
+                  regex = new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+                }
+
+                return { regex, owners };
+              });
+
               for (const file of changedFiles) {
-                for (const line of codeownersLines) {
-                  const parts = line.split(/\s+/);
-                  const pattern = parts[0];
-                  const owners = parts.slice(1);
-
-                  // Convert CODEOWNERS pattern to regex
-                  let regex;
-                  if (pattern.endsWith('*')) {
-                    // Directory pattern like "esphome/components/api/*"
-                    const dir = pattern.slice(0, -1);
-                    regex = new RegExp(`^${dir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
-                  } else if (pattern.includes('*')) {
-                    // Glob pattern
-                    const regexPattern = pattern
-                      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-                      .replace(/\\*/g, '.*');
-                    regex = new RegExp(`^${regexPattern}$`);
-                  } else {
-                    // Exact match
-                    regex = new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
-                  }
-
+                for (const { regex, owners } of codeownersRegexes) {
                   if (regex.test(file)) {
                     // Check if PR author is in the owners list
-                    if (owners.some(owner => owner === `@${prAuthor}`) {
+                    if (owners.some(owner => owner === `@${prAuthor}`)) {
                       isCodeOwner = true;
                       break;
                     }
