@@ -268,8 +268,13 @@ void HOT Scheduler::call(uint32_t now) {
   if (now_64 - last_print > 2000) {
     last_print = now_64;
     std::vector<std::unique_ptr<SchedulerItem>> old_items;
+#if !defined(USE_ESP8266) && !defined(USE_RP2040)
+    ESP_LOGD(TAG, "Items: count=%zu, now=%" PRIu64 " (%u, %" PRIu32 ")", this->items_.size(), now_64,
+             this->millis_major_, this->last_millis_.load(std::memory_order_relaxed));
+#else
     ESP_LOGD(TAG, "Items: count=%zu, now=%" PRIu64 " (%u, %" PRIu32 ")", this->items_.size(), now_64,
              this->millis_major_, this->last_millis_);
+#endif
     while (!this->empty_()) {
       std::unique_ptr<SchedulerItem> item;
       {
