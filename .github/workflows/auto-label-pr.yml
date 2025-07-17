@@ -1,8 +1,8 @@
 name: Auto Label PR
 
 on:
-  pull_request: # remove after testing
-    types: [labeled, opened, reopened, synchronize]
+  # Runs only on pull_request_target due to having access to a App token.
+  # This means PRs from forks will not be able to alter this workflow to get the tokens
   pull_request_target:
     types: [labeled, opened, reopened, synchronize]
 
