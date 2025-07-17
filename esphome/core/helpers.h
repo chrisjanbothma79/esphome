@@ -695,6 +695,10 @@ class LwIPLock {
  public:
   LwIPLock();
   ~LwIPLock();
+
+  // Delete copy constructor and copy assignment operator to prevent accidental copying
+  LwIPLock(const LwIPLock &) = delete;
+  LwIPLock &operator=(const LwIPLock &) = delete;
 };
 
 /** Helper class to request `loop()` to be called as fast as possible.
