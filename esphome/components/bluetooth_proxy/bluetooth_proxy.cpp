@@ -61,7 +61,7 @@ void BluetoothProxy::send_bluetooth_scanner_state_(esp32_ble_tracker::ScannerSta
   resp.state = static_cast<api::enums::BluetoothScannerState>(state);
   resp.mode = this->parent_->get_scan_active() ? api::enums::BluetoothScannerMode::BLUETOOTH_SCANNER_MODE_ACTIVE
                                                : api::enums::BluetoothScannerMode::BLUETOOTH_SCANNER_MODE_PASSIVE;
-  this->api_connection_->send_message(resp);
+  this->api_connection_->send_message(resp, api::BluetoothScannerStateResponse::MESSAGE_TYPE);
 }
 
 #ifdef USE_ESP32_BLE_DEVICE
@@ -134,7 +134,7 @@ void BluetoothProxy::flush_pending_advertisements() {
   }
 
   // Send the message
-  this->api_connection_->send_message(*this->response_);
+  this->api_connection_->send_message(*this->response_, api::BluetoothLERawAdvertisementsResponse::MESSAGE_TYPE);
 
   // Reset count - existing items will be overwritten in next batch
   this->advertisement_count_ = 0;
@@ -176,7 +176,7 @@ void BluetoothProxy::send_api_packet_(const esp32_ble_tracker::ESPBTDevice &devi
     manufacturer_data.data.assign(data.data.begin(), data.data.end());
   }
 
-  this->api_connection_->send_message(resp);
+  this->api_connection_->send_message(resp, api::BluetoothLEAdvertisementResponse::MESSAGE_TYPE);
 }
 #endif  // USE_ESP32_BLE_DEVICE
 
@@ -335,7 +335,7 @@ void BluetoothProxy::loop() {
         service_resp.characteristics.push_back(std::move(characteristic_resp));
       }
       resp.services.push_back(std::move(service_resp));
-      this->api_connection_->send_message(resp);
+      this->api_connection_->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
     }
   }
 }
@@ -486,7 +486,7 @@ void BluetoothProxy::bluetooth_device_request(const api::BluetoothDeviceRequest 
       call.success = ret == ESP_OK;
       call.error = ret;
 
-      this->api_connection_->send_message(call);
+      this->api_connection_->send_message(call, api::BluetoothDeviceClearCacheResponse::MESSAGE_TYPE);
 
       break;
     }
@@ -608,7 +608,7 @@ void BluetoothProxy::send_device_connection(uint64_t address, bool connected, ui
   call.connected = connected;
   call.mtu = mtu;
   call.error = error;
-  this->api_connection_->send_message(call);
+  this->api_connection_->send_message(call, api::BluetoothDeviceConnectionResponse::MESSAGE_TYPE);
 }
 void BluetoothProxy::send_connections_free() {
   if (this->api_connection_ == nullptr)
@@ -621,7 +621,7 @@ void BluetoothProxy::send_connections_free() {
       call.allocated.push_back(connection->address_);
     }
   }
-  this->api_connection_->send_message(call);
+  this->api_connection_->send_message(call, api::BluetoothConnectionsFreeResponse::MESSAGE_TYPE);
 }
 
 void BluetoothProxy::send_gatt_services_done(uint64_t address) {
@@ -629,7 +629,7 @@ void BluetoothProxy::send_gatt_services_done(uint64_t address) {
     return;
   api::BluetoothGATTGetServicesDoneResponse call;
   call.address = address;
-  this->api_connection_->send_message(call);
+  this->api_connection_->send_message(call, api::BluetoothGATTGetServicesDoneResponse::MESSAGE_TYPE);
 }
 
 void BluetoothProxy::send_gatt_error(uint64_t address, uint16_t handle, esp_err_t error) {
@@ -639,7 +639,7 @@ void BluetoothProxy::send_gatt_error(uint64_t address, uint16_t handle, esp_err_
   call.address = address;
   call.handle = handle;
   call.error = error;
-  this->api_connection_->send_message(call);
+  this->api_connection_->send_message(call, api::BluetoothGATTWriteResponse::MESSAGE_TYPE);
 }
 
 void BluetoothProxy::send_device_pairing(uint64_t address, bool paired, esp_err_t error) {
@@ -648,7 +648,7 @@ void BluetoothProxy::send_device_pairing(uint64_t address, bool paired, esp_err_
   call.paired = paired;
   call.error = error;
 
-  this->api_connection_->send_message(call);
+  this->api_connection_->send_message(call, api::BluetoothDevicePairingResponse::MESSAGE_TYPE);
 }
 
 void BluetoothProxy::send_device_unpairing(uint64_t address, bool success, esp_err_t error) {
@@ -657,7 +657,7 @@ void BluetoothProxy::send_device_unpairing(uint64_t address, bool success, esp_e
   call.success = success;
   call.error = error;
 
-  this->api_connection_->send_message(call);
+  this->api_connection_->send_message(call, api::BluetoothDeviceUnpairingResponse::MESSAGE_TYPE);
 }
 
 void BluetoothProxy::bluetooth_scanner_set_mode(bool active) {
