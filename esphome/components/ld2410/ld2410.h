@@ -26,12 +26,18 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/helpers.h"
 
+#include <memory>
+#include <vector>
+
 #define SUB_SENSOR_WITH_DEDUP(name) \
  protected: \
   SensorWithDedup name##_sensor_; \
 \
  public: \
-  void set_##name##_sensor(sensor::Sensor *sensor) { this->name##_sensor_.sens = sensor; }
+  void set_##name##_sensor(sensor::Sensor *sensor) { \
+    this->name##_sensor_.sens = sensor; \
+    this->name##_sensor_.publish_dedup = std::make_unique<Deduplicator<float>>(); \
+  }
 
 namespace esphome {
 namespace ld2410 {
@@ -46,7 +52,7 @@ class SensorWithDedup {
   void publish_state_if_not_dup(float state, bool use_sentinel = false);
 
   sensor::Sensor *sens{nullptr};
-  Deduplicator<float> publish_dedup;
+  std::unique_ptr<Deduplicator<float>> publish_dedup;
 };
 #endif
 

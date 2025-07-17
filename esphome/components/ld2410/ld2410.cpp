@@ -186,7 +186,7 @@ static inline bool validate_header_footer(const uint8_t *header_footer, const ui
 
 #ifdef USE_SENSOR
 void SensorWithDedup::publish_state_if_not_dup(const float state, const bool use_sentinel) {
-  if (this->sens != nullptr && this->publish_dedup.next(state)) {
+  if (this->sens != nullptr && this->publish_dedup->next(state)) {
     this->sens->publish_state(use_sentinel && state == EM_OFF_SENTINEL ? NAN : state);
   }
 }
@@ -218,10 +218,10 @@ void LD2410Component::dump_config() {
   LOG_SENSOR("  ", "MovingTargetEnergy", this->moving_target_energy_sensor_.sens);
   LOG_SENSOR("  ", "StillTargetDistance", this->still_target_distance_sensor_.sens);
   LOG_SENSOR("  ", "StillTargetEnergy", this->still_target_energy_sensor_.sens);
-  for (SensorWithDedup s : this->gate_move_sensors_) {
+  for (auto &s : this->gate_move_sensors_) {
     LOG_SENSOR("  ", "GateMove", s.sens);
   }
-  for (SensorWithDedup s : this->gate_still_sensors_) {
+  for (auto &s : this->gate_still_sensors_) {
     LOG_SENSOR("  ", "GateStill", s.sens);
   }
 #endif
@@ -785,9 +785,14 @@ void LD2410Component::set_light_out_control() {
 }
 
 #ifdef USE_SENSOR
-void LD2410Component::set_gate_move_sensor(uint8_t gate, sensor::Sensor *s) { this->gate_move_sensors_[gate].sens = s; }
+void LD2410Component::set_gate_move_sensor(uint8_t gate, sensor::Sensor *s) {
+  this->gate_move_sensors_[gate].sens = s;
+  this->gate_move_sensors_[gate].publish_dedup = std::make_unique<Deduplicator<float>>();
+}
+
 void LD2410Component::set_gate_still_sensor(uint8_t gate, sensor::Sensor *s) {
   this->gate_still_sensors_[gate].sens = s;
+  this->gate_still_sensors_[gate].publish_dedup = std::make_unique<Deduplicator<float>>();
 }
 #endif
 
