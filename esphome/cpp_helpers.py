@@ -1,4 +1,5 @@
 import logging
+
 from esphome.const import (
     CONF_ID,
     CONF_SAFE_MODE,
@@ -103,6 +104,7 @@ async def setup_entity(var, config):
                 object_id = sanitize(snake_case(str(config[CONF_ID])))
             else:
                 from esphome import config_validation as cv
+
                 raise cv.Invalid(
                     f"The name '{config[CONF_NAME]}' is not valid for object_id generation. \n"
                     f"Please set an explicit 'id:' for this entity."
