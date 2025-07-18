@@ -49,8 +49,7 @@ async def test_scheduler_retry_test(
 
         # Simple retry test
         if "Simple retry attempt" in clean_line:
-            match = re.search(r"Simple retry attempt (\d+)", clean_line)
-            if match:
+            if match := re.search(r"Simple retry attempt (\d+)", clean_line):
                 simple_retry_count = int(match.group(1))
 
         elif "Simple retry succeeded on attempt" in clean_line:
@@ -58,10 +57,9 @@ async def test_scheduler_retry_test(
 
         # Backoff retry test
         elif "Backoff retry attempt" in clean_line:
-            match = re.search(
+            if match := re.search(
                 r"Backoff retry attempt (\d+).*interval=(\d+)ms", clean_line
-            )
-            if match:
+            ):
                 backoff_retry_count = int(match.group(1))
                 interval = int(match.group(2))
                 if backoff_retry_count > 1:  # Skip first (immediate) call
@@ -85,8 +83,7 @@ async def test_scheduler_retry_test(
 
         # Empty name retry test
         elif "Empty name retry attempt" in clean_line:
-            match = re.search(r"Empty name retry attempt (\d+)", clean_line)
-            if match:
+            if match := re.search(r"Empty name retry attempt (\d+)", clean_line):
                 empty_name_retry_count = int(match.group(1))
 
         elif "Empty name retry cancel result:" in clean_line:
@@ -97,16 +94,14 @@ async def test_scheduler_retry_test(
 
         # Component retry test
         elif "Component retry attempt" in clean_line:
-            match = re.search(r"Component retry attempt (\d+)", clean_line)
-            if match:
+            if match := re.search(r"Component retry attempt (\d+)", clean_line):
                 component_retry_count = int(match.group(1))
                 if component_retry_count >= 2:
                     component_retry_done.set()
 
         # Multiple same name test
         elif "Second duplicate retry attempt" in clean_line:
-            match = re.search(r"counter=(\d+)", clean_line)
-            if match:
+            if match := re.search(r"counter=(\d+)", clean_line):
                 multiple_name_count = int(match.group(1))
                 if multiple_name_count >= 20:
                     multiple_name_done.set()
@@ -237,5 +232,3 @@ async def test_scheduler_retry_test(
             await asyncio.wait_for(test_complete.wait(), timeout=1.0)
         except TimeoutError:
             pytest.fail("Test did not complete within timeout")
-
-        # All tests passed!
