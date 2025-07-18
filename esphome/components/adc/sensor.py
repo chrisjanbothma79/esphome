@@ -67,7 +67,7 @@ ADCSensor = adc_ns.class_(
 
 CONF_NRF_SAADC = "nrf_saadc"
 
-adc_dt_spec = cg.global_ns.class_("adc_dt_spec").operator("const")
+adc_dt_spec = cg.global_ns.class_("adc_dt_spec")
 
 CONFIG_SCHEMA = cv.All(
     sensor.sensor_schema(
@@ -93,6 +93,8 @@ CONFIG_SCHEMA = cv.All(
     validate_config,
 )
 
+CONF_ADC_CHANNEL_ID = "adc_channel_id"
+
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
@@ -103,7 +105,7 @@ async def to_code(config):
         cg.add_define("USE_ADC_SENSOR_VCC")
     elif config[CONF_PIN] == "TEMPERATURE":
         cg.add(var.set_is_temperature())
-    else:
+    elif not CORE.is_nrf52:
         pin = await cg.gpio_pin_expression(config[CONF_PIN])
         cg.add(var.set_pin(pin))
 
@@ -134,14 +136,16 @@ async def to_code(config):
             cg.add(var.set_channel(adc_unit_t.ADC_UNIT_2, chan))
 
     elif CORE.is_nrf52:
+        CORE.data.setdefault(CONF_ADC_CHANNEL_ID, 0)
+        channel_id = CORE.data[CONF_ADC_CHANNEL_ID]
+        CORE.data["ADC_COUNT"] = channel_id + 1
         zephyr_add_prj_conf("ADC", True)
         nrf_saadc = config[CONF_NRF_SAADC]
-        channel_id = int(str(nrf_saadc)[str(nrf_saadc).find("_id") + 4 :] or "1") - 1
         rhs = cg.RawExpression(
             f"ADC_DT_SPEC_GET_BY_IDX(DT_PATH(zephyr_user), {channel_id})"
         )
         adc = cg.new_Pvariable(nrf_saadc, rhs)
-        cg.add(var.set_channel(adc))
+        cg.add(var.set_adc_channel(adc))
         gain = "ADC_GAIN_1_6"
         pin_number = config[CONF_PIN][CONF_NUMBER]
         if pin_number == "VDDHDIV5":
