@@ -38,6 +38,7 @@ CONFIG_SCHEMA = (
                 esp8266=True,
                 esp32=True,
                 rp2040=True,
+                nrf52=True,
                 bk72xx=False,
                 ln882x=False,
                 rtl87xx=False,
