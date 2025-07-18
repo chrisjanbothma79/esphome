@@ -362,8 +362,6 @@ uint16_t APIConnection::try_send_cover_state(EntityBase *entity, APIConnection *
   auto *cover = static_cast<cover::Cover *>(entity);
   CoverStateResponse msg;
   auto traits = cover->get_traits();
-  msg.legacy_state =
-      (cover->position == cover::COVER_OPEN) ? enums::LEGACY_COVER_STATE_OPEN : enums::LEGACY_COVER_STATE_CLOSED;
   msg.position = cover->position;
   if (traits.get_supports_tilt())
     msg.tilt = cover->tilt;
@@ -385,19 +383,6 @@ uint16_t APIConnection::try_send_cover_info(EntityBase *entity, APIConnection *c
 }
 void APIConnection::cover_command(const CoverCommandRequest &msg) {
   ENTITY_COMMAND_MAKE_CALL(cover::Cover, cover, cover)
-  if (msg.has_legacy_command) {
-    switch (msg.legacy_command) {
-      case enums::LEGACY_COVER_COMMAND_OPEN:
-        call.set_command_open();
-        break;
-      case enums::LEGACY_COVER_COMMAND_CLOSE:
-        call.set_command_close();
-        break;
-      case enums::LEGACY_COVER_COMMAND_STOP:
-        call.set_command_stop();
-        break;
-    }
-  }
   if (msg.has_position)
     call.set_position(msg.position);
   if (msg.has_tilt)
@@ -495,17 +480,8 @@ uint16_t APIConnection::try_send_light_info(EntityBase *entity, APIConnection *c
   auto traits = light->get_traits();
   for (auto mode : traits.get_supported_color_modes())
     msg.supported_color_modes.push_back(static_cast<enums::ColorMode>(mode));
-  msg.legacy_supports_brightness = traits.supports_color_capability(light::ColorCapability::BRIGHTNESS);
-  msg.legacy_supports_rgb = traits.supports_color_capability(light::ColorCapability::RGB);
-  msg.legacy_supports_white_value =
-      msg.legacy_supports_rgb && (traits.supports_color_capability(light::ColorCapability::WHITE) ||
-                                  traits.supports_color_capability(light::ColorCapability::COLD_WARM_WHITE));
-  msg.legacy_supports_color_temperature = traits.supports_color_capability(light::ColorCapability::COLOR_TEMPERATURE) ||
-                                          traits.supports_color_capability(light::ColorCapability::COLD_WARM_WHITE);
-  if (msg.legacy_supports_color_temperature) {
-    msg.min_mireds = traits.get_min_mireds();
-    msg.max_mireds = traits.get_max_mireds();
-  }
+  msg.min_mireds = traits.get_min_mireds();
+  msg.max_mireds = traits.get_max_mireds();
   if (light->supports_effects()) {
     msg.effects.emplace_back("None");
     for (auto *effect : light->get_effects()) {
@@ -692,7 +668,6 @@ uint16_t APIConnection::try_send_climate_info(EntityBase *entity, APIConnection 
   msg.visual_current_temperature_step = traits.get_visual_current_temperature_step();
   msg.visual_min_humidity = traits.get_visual_min_humidity();
   msg.visual_max_humidity = traits.get_visual_max_humidity();
-  msg.legacy_supports_away = traits.supports_preset(climate::CLIMATE_PRESET_AWAY);
   msg.supports_action = traits.get_supports_action();
   for (auto fan_mode : traits.get_supported_fan_modes())
     msg.supported_fan_modes.push_back(static_cast<enums::ClimateFanMode>(fan_mode));
