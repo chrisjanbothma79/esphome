@@ -35,14 +35,14 @@ CONFIG_SCHEMA = (
             # capabilities before changing this default behavior.
             cv.SplitDefault(
                 CONF_USE_INTERRUPT,
-                esp8266=True,
-                esp32=True,
-                rp2040=True,
-                nrf52=True,
                 bk72xx=False,
-                ln882x=False,
-                rtl87xx=False,
+                esp32=True,
+                esp8266=True,
                 host=True,
+                ln882x=False,
+                nrf52=True,
+                rp2040=True,
+                rtl87xx=False,
             ): cv.boolean,
             cv.Optional(CONF_INTERRUPT_TYPE, default="ANY"): cv.enum(
                 INTERRUPT_TYPES, upper=True
