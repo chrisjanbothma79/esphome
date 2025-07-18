@@ -321,7 +321,7 @@ async def to_code(configs):
             frac = 2
         elif frac > 0.19:
             frac = 4
-        else:
+        elif frac != 0:
             frac = 8
         displays = [
             await cg.get_variable(display) for display in config[df.CONF_DISPLAYS]
@@ -422,7 +422,7 @@ LVGL_SCHEMA = cv.All(
                 ): lvalid.lv_font,
                 cv.Optional(df.CONF_FULL_REFRESH, default=False): cv.boolean,
                 cv.Optional(CONF_DRAW_ROUNDING, default=2): cv.positive_int,
-                cv.Optional(CONF_BUFFER_SIZE, default="100%"): cv.percentage,
+                cv.Optional(CONF_BUFFER_SIZE, default=0): cv.percentage,
                 cv.Optional(df.CONF_LOG_LEVEL, default="WARN"): cv.one_of(
                     *df.LV_LOG_LEVELS, upper=True
                 ),
@@ -466,7 +466,7 @@ LVGL_SCHEMA = cv.All(
                 ): lvalid.lv_color,
                 cv.Optional(df.CONF_THEME): cv.Schema(
                     {
-                        cv.Optional(name): obj_schema(w)
+                        cv.Optional(name): obj_schema(w).extend(FULL_STYLE_SCHEMA)
                         for name, w in WIDGET_TYPES.items()
                     }
                 ),
