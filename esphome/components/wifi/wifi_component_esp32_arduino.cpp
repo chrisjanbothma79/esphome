@@ -648,7 +648,7 @@ void WiFiComponent::wifi_event_callback_(esphome_wifi_event_id_t event, esphome_
 
 WiFiSTAConnectStatus WiFiComponent::wifi_sta_connect_status_() {
   const auto status = WiFi.status();
-  if (status == WL_CONNECT_FAILED || status == WL_CONNECTION_LOST) {
+  if (status == WL_CONNECT_FAILED || status == WL_CONNECTION_LOST || status == WL_DISCONNECTED) {
     return WiFiSTAConnectStatus::ERROR_CONNECT_FAILED;
   }
   if (status == WL_NO_SSID_AVAIL) {
