@@ -78,11 +78,14 @@ void MicroNova::request_address(uint8_t location, uint8_t address, MicroNovaSens
     write_data[1] = address;
     ESP_LOGV(TAG, "Request from stove [%02X,%02X]", write_data[0], write_data[1]);
 
-    if (this->enable_rx_pin_ != nullptr) this->enable_rx_pin_->digital_write(true);
+    if (this->enable_rx_pin_ != nullptr)
+      this->enable_rx_pin_->digital_write(true);
     this->write_array(write_data, 2);
     this->flush();
-    if (this->enable_rx_pin_ != nullptr) this->enable_rx_pin_->digital_write(false);
-    if (this->uart_echo_) this->read_array(write_data, 2);
+    if (this->enable_rx_pin_ != nullptr)
+      this->enable_rx_pin_->digital_write(false);
+    if (this->uart_echo_)
+      this->read_array(write_data, 2);
 
     this->current_transmission_.request_transmission_time = millis();
     this->current_transmission_.memory_location = location;
@@ -130,14 +133,18 @@ void MicroNova::write_address(uint8_t location, uint8_t address, uint8_t data) {
 
     ESP_LOGV(TAG, "Write 4 bytes [%02X,%02X,%02X,%02X]", write_data[0], write_data[1], write_data[2], write_data[3]);
 
-    if (this->enable_rx_pin_ != nullptr) this->enable_rx_pin_->digital_write(true);
+    if (this->enable_rx_pin_ != nullptr)
+      this->enable_rx_pin_->digital_write(true);
     this->write_array(write_data, 4);
     this->flush();
-    if (this->enable_rx_pin_ != nullptr) this->enable_rx_pin_->digital_write(false);
-    if (this->uart_echo_) this->read_array(write_data, 4);
+    if (this->enable_rx_pin_ != nullptr)
+      this->enable_rx_pin_->digital_write(false);
+    if (this->uart_echo_)
+      this->read_array(write_data, 4);
 
     this->current_transmission_.request_transmission_time = millis();
-    this->current_transmission_.memory_location = location | 0x80;;
+    this->current_transmission_.memory_location = location | 0x80;
+    ;
     this->current_transmission_.memory_address = address;
     this->current_transmission_.reply_pending = true;
     this->current_transmission_.initiating_listener = nullptr;

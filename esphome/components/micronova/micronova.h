@@ -134,7 +134,7 @@ class MicroNova : public PollingComponent, public uart::UARTDevice {
   int read_stove_reply();
 
   void set_enable_rx_pin(GPIOPin *enable_rx_pin) { this->enable_rx_pin_ = enable_rx_pin; }
-  void set_uart_echo(bool x) { this->uart_echo_ = x;}
+  void set_uart_echo(bool x) { this->uart_echo_ = x; }
 
   void set_current_stove_state(uint8_t s) { this->current_stove_state_ = s; }
   uint8_t get_current_stove_state() { return this->current_stove_state_; }

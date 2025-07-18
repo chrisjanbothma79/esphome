@@ -22,11 +22,17 @@ MicroNovaSwitch = micronova_ns.class_("MicroNovaSwitch", switch.Switch, cg.Compo
 
 CUSTOM_SWITCH_SCHEMA = (
     switch.switch_schema(MicroNovaSwitch)
-    .extend(MICRONOVA_LISTENER_SCHEMA(default_memory_location=0x00, default_memory_address=0x01))
-    .extend({
-        cv.Optional(CONF_MEMORY_DATA_OFF, default=0x01): cv.hex_int_range(),
-        cv.Optional(CONF_MEMORY_DATA_ON, default=0x01): cv.hex_int_range(),
-    })
+    .extend(
+        MICRONOVA_LISTENER_SCHEMA(
+            default_memory_location=0x00, default_memory_address=0x01
+        )
+    )
+    .extend(
+        {
+            cv.Optional(CONF_MEMORY_DATA_OFF, default=0x01): cv.hex_int_range(),
+            cv.Optional(CONF_MEMORY_DATA_ON, default=0x01): cv.hex_int_range(),
+        }
+    )
 )
 
 CONFIG_SCHEMA = cv.Schema(
@@ -47,8 +53,7 @@ CONFIG_SCHEMA = cv.Schema(
                 cv.Optional(CONF_MEMORY_DATA_ON, default=0x01): cv.hex_int_range(),
             }
         ),
-        cv.Optional(CONF_CUSTOM, default=[]): cv.ensure_list(CUSTOM_SWITCH_SCHEMA)
-
+        cv.Optional(CONF_CUSTOM, default=[]): cv.ensure_list(CUSTOM_SWITCH_SCHEMA),
     }
 )
 
