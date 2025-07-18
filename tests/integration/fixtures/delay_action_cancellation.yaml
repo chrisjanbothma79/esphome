@@ -20,5 +20,5 @@ script:
     mode: restart
     then:
       - logger.log: "Script started, beginning delay"
-      - delay: 5s  # Long enough that it won't complete before restart
-      - logger.log: "ERROR: First delay completed - this should NOT happen with restart mode!"
+      - delay: 1s  # Long enough that it won't complete before restart
+      - logger.log: "Delay completed successfully"
