@@ -29,7 +29,12 @@ CONFIG_SCHEMA = (
     .extend(
         {
             cv.Required(CONF_PIN): pins.gpio_input_pin_schema,
-            cv.Optional(CONF_USE_INTERRUPT, default=True): cv.boolean,
+            cv.SplitDefault(
+                CONF_USE_INTERRUPT,
+                bk72xx=False,
+                ln882x=False,
+                rtl87xx=False,
+            ): cv.boolean,
             cv.Optional(CONF_INTERRUPT_TYPE, default="ANY"): cv.enum(
                 INTERRUPT_TYPES, upper=True
             ),
