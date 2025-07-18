@@ -1821,16 +1821,6 @@ bool SubscribeBluetoothLEAdvertisementsRequest::decode_varint(uint32_t field_id,
   }
   return true;
 }
-#endif
-void BluetoothServiceData::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_string(1, this->uuid);
-  buffer.encode_bytes(3, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
-}
-void BluetoothServiceData::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_string_field(total_size, 1, this->uuid);
-  ProtoSize::add_string_field(total_size, 1, this->data);
-}
-#ifdef USE_BLUETOOTH_PROXY
 void BluetoothLERawAdvertisement::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
   buffer.encode_sint32(2, this->rssi);

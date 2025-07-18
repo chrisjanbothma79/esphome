@@ -971,11 +971,13 @@ class RepeatedTypeInfo(TypeInfo):
 
 def build_type_usage_map(
     file_desc: descriptor.FileDescriptorProto,
-) -> tuple[dict[str, str | None], dict[str, str | None], dict[str, int], set[str]]:
+) -> tuple[
+    dict[str, str | None], dict[str, str | None], dict[str, int], set[str], set[str]
+]:
     """Build mappings for both enums and messages to their ifdefs based on usage.
 
     Returns:
-        tuple: (enum_ifdef_map, message_ifdef_map, message_source_map, used_enums)
+        tuple: (enum_ifdef_map, message_ifdef_map, message_source_map, used_enums, used_messages)
     """
     enum_ifdef_map: dict[str, str | None] = {}
     message_ifdef_map: dict[str, str | None] = {}
@@ -991,6 +993,7 @@ def build_type_usage_map(
     used_enums: set[str] = (
         set()
     )  # Track which enums are actually used by non-deprecated fields
+    used_messages: set[str] = set()  # Track which messages are actually used
 
     # Build message name to ifdef mapping for quick lookup
     message_to_ifdef: dict[str, str | None] = {
@@ -1019,6 +1022,7 @@ def build_type_usage_map(
             # Track message usage
             elif field.type == 11:  # TYPE_MESSAGE
                 message_usage.setdefault(type_name, set()).add(message.name)
+                used_messages.add(type_name)
 
     # Helper to get unique ifdef from a set of messages
     def get_unique_ifdef(message_names: set[str]) -> str | None:
@@ -1081,12 +1085,18 @@ def build_type_usage_map(
     # Build message source map
     # First pass: Get explicit sources for messages with source option or id
     for msg in file_desc.message_type:
+        # Skip deprecated messages
+        if msg.options.deprecated:
+            continue
+
         if msg.options.HasExtension(pb.source):
             # Explicit source option takes precedence
             message_source_map[msg.name] = get_opt(msg, pb.source, SOURCE_BOTH)
         elif msg.options.HasExtension(pb.id):
             # Service messages (with id) default to SOURCE_BOTH
             message_source_map[msg.name] = SOURCE_BOTH
+            # Service messages are always used
+            used_messages.add(msg.name)
 
     # Second pass: Determine sources for embedded messages based on their usage
     for msg in file_desc.message_type:
@@ -1115,7 +1125,13 @@ def build_type_usage_map(
             # Not used by any message and no explicit source - default to encode-only
             message_source_map[msg.name] = SOURCE_SERVER
 
-    return enum_ifdef_map, message_ifdef_map, message_source_map, used_enums
+    return (
+        enum_ifdef_map,
+        message_ifdef_map,
+        message_source_map,
+        used_enums,
+        used_messages,
+    )
 
 
 def build_enum_type(desc, enum_ifdef_map) -> tuple[str, str, str]:
@@ -1702,7 +1718,7 @@ namespace api {
     content += "namespace enums {\n\n"
 
     # Build dynamic ifdef mappings for both enums and messages
-    enum_ifdef_map, message_ifdef_map, message_source_map, used_enums = (
+    enum_ifdef_map, message_ifdef_map, message_source_map, used_enums, used_messages = (
         build_type_usage_map(file)
     )
 
@@ -1770,6 +1786,10 @@ namespace api {
     for m in mt:
         # Skip deprecated messages
         if m.options.deprecated:
+            continue
+
+        # Skip messages that aren't used (unless they have an ID/service message)
+        if m.name not in used_messages and not m.options.HasExtension(pb.id):
             continue
 
         s, c, dc = build_message_type(m, base_class_fields, message_source_map)

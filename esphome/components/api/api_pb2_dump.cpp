@@ -2910,20 +2910,6 @@ void SubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) const 
   out.append("\n");
   out.append("}");
 }
-#endif
-void BluetoothServiceData::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
-  out.append("BluetoothServiceData {\n");
-  out.append("  uuid: ");
-  out.append("'").append(this->uuid).append("'");
-  out.append("\n");
-
-  out.append("  data: ");
-  out.append(format_hex_pretty(this->data));
-  out.append("\n");
-  out.append("}");
-}
-#ifdef USE_BLUETOOTH_PROXY
 void BluetoothLERawAdvertisement::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothLERawAdvertisement {\n");

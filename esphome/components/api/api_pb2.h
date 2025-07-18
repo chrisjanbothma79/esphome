@@ -1679,20 +1679,6 @@ class SubscribeBluetoothLEAdvertisementsRequest : public ProtoDecodableMessage {
  protected:
   bool decode_varint(uint32_t field_id, ProtoVarInt value) override;
 };
-#endif
-class BluetoothServiceData : public ProtoMessage {
- public:
-  std::string uuid{};
-  std::string data{};
-  void encode(ProtoWriteBuffer buffer) const override;
-  void calculate_size(uint32_t &total_size) const override;
-#ifdef HAS_PROTO_MESSAGE_DUMP
-  void dump_to(std::string &out) const override;
-#endif
-
- protected:
-};
-#ifdef USE_BLUETOOTH_PROXY
 class BluetoothLERawAdvertisement : public ProtoMessage {
  public:
   uint64_t address{0};
