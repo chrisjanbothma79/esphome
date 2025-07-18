@@ -125,10 +125,10 @@ uint8_t ReadStateCommand::execute(DFRobotC4001Hub *parent) {
       ESP_LOGV(TAG, "Recv Rpt: Occupancy Detected");
       return true;  // Command done
     } else if (str_startswith(message, "$DFDMD")) {
-      token = strtok(this->parent_->read_buffer_, ",");
+      strtok(this->parent_->read_buffer_, ",");
       token = strtok(NULL, ",");
       auto target = parse_number<uint8_t>(token);
-      token = strtok(NULL, ",");
+      strtok(NULL, ",");
       token = strtok(NULL, ",");
       auto target_distance = parse_number<float>(token);
       token = strtok(NULL, ",");
