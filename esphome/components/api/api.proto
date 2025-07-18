@@ -371,6 +371,7 @@ message CoverStateResponse {
 
 // Deprecated in API version 1.1
 enum LegacyCoverCommand {
+  option deprecated = true;
   LEGACY_COVER_COMMAND_OPEN = 0;
   LEGACY_COVER_COMMAND_CLOSE = 1;
   LEGACY_COVER_COMMAND_STOP = 2;
