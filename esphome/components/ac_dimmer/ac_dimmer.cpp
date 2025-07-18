@@ -3,6 +3,7 @@
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 #include <cmath>
+#include <numbers>
 
 #ifdef USE_ESP8266
 #include <core_esp8266_waveform.h>
@@ -197,31 +198,19 @@ void AcDimmer::setup() {
   // PWM and AcDimmer can even run at the same time this way
   setTimer1Callback(&timer_interrupt);
 #endif
-
-#if USE_ESP32 && (ESP_IDF_VERSION_MAJOR == 4)
-  // 80 Divider -> 1 count=1µs
-  dimmer_timer = timer_begin(0, 80, true);
-  timer_attach_interrupt(dimmer_timer, &AcDimmerDataStore::s_timer_intr);
+#ifdef USE_ESP32
+  // timer frequency of 1mhz
+  dimmer_timer = timerBegin(1000000);
+  timerAttachInterrupt(dimmer_timer, &AcDimmerDataStore::s_timer_intr);
   // For ESP32, we can't use dynamic interval calculation because the timerX functions
   // are not callable from ISR (placed in flash storage).
   // Here we just use an interrupt firing every 50 µs.
-  timer_alarm(dimmer_timer, 50, true);
-  timer_alarm_enable(dimmer_timer);
-#endif
-#if USE_ESP32 && (ESP_IDF_VERSION_MAJOR == 5)
-  // 1 MHz -> 1 count=1µs
-  dimmer_timer = timer_begin(1000000);
-  timer_attach_interrupt(dimmer_timer, &AcDimmerDataStore::s_timer_intr);
-  // For ESP32, we can't use dynamic interval calculation because the timerX functions
-  // are not callable from ISR (placed in flash storage).
-  // Here we just use an interrupt firing every 50 µs.
-  timer_alarm(dimmer_timer, 50, true, 0);
-  timer_start(dimmer_timer);
+  timerAlarm(dimmer_timer, 50, true, 0);
 #endif
 }
 
 void AcDimmer::write_state(float state) {
-  state = std::acos(1 - (2 * state)) / 3.14159;  // RMS power compensation
+  state = std::acos(1 - (2 * state)) / std::numbers::pi;  // RMS power compensation
   auto new_value = static_cast<uint16_t>(roundf(state * 65535));
   if (new_value != 0 && this->store_.value == 0)
     this->store_.init_cycle = this->init_with_half_cycle_;
@@ -232,8 +221,10 @@ void AcDimmer::dump_config() {
   ESP_LOGCONFIG(TAG, "AcDimmer:");
   LOG_PIN("  Output Pin: ", this->gate_pin_);
   LOG_PIN("  Zero-Cross Pin: ", this->zero_cross_pin_);
-  ESP_LOGCONFIG(TAG, "   Min Power: %.1f%%", this->store_.min_power / 10.0f);
-  ESP_LOGCONFIG(TAG, "   Init with half cycle: %s", YESNO(this->init_with_half_cycle_));
+  ESP_LOGCONFIG(TAG,
+                "   Min Power: %.1f%%\n"
+                "   Init with half cycle: %s",
+                this->store_.min_power / 10.0f, YESNO(this->init_with_half_cycle_));
   if (method_ == DIM_METHOD_LEADING_PULSE) {
     ESP_LOGCONFIG(TAG, "   Method: leading pulse");
   } else if (method_ == DIM_METHOD_LEADING) {
