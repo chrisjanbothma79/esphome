@@ -73,14 +73,14 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   /// @return A float representing the setup priority.
   float get_setup_priority() const override;
 
-  /// Set the GPIO pin to be used by the ADC sensor.
-  /// @param pin Pointer to an InternalGPIOPin representing the ADC input pin.
-  void set_pin(InternalGPIOPin *pin) { this->pin_ = pin; }
-
 #ifdef USE_ZEPHYR
   /// Set the ADC channel to be used by the ADC sensor.
   /// @param channel Pointer to an adc_dt_spec structure representing the ADC channel.
   void set_adc_channel(const adc_dt_spec *channel) { this->channel_ = channel; }
+#else
+  /// Set the GPIO pin to be used by the ADC sensor.
+  /// @param pin Pointer to an InternalGPIOPin representing the ADC input pin.
+  void set_pin(InternalGPIOPin *pin) { this->pin_ = pin; }
 #endif
 
   /// Enable or disable the output of raw ADC values (unprocessed data).
@@ -136,7 +136,9 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
  protected:
   uint8_t sample_count_{1};
   bool output_raw_{false};
+#ifndef USE_ZEPHYR
   InternalGPIOPin *pin_;
+#endif
   SamplingMode sampling_mode_{SamplingMode::AVG};
 
 #ifdef USE_ESP32
