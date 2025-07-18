@@ -65,6 +65,17 @@ jobs:
 
               const codeownersPatterns = [];
 
+              // Convert CODEOWNERS pattern to regex (robust glob handling)
+              function globToRegex(pattern) {
+                // Escape regex special characters except for glob wildcards
+                let regexStr = pattern
+                  .replace(/([.+^=!:${}()|[\]\\])/g, '\\$1') // escape regex chars
+                  .replace(/\*\*/g, '.*') // globstar
+                  .replace(/\*/g, '[^/]*') // single star
+                  .replace(/\?/g, '.'); // question mark
+                return new RegExp('^' + regexStr + '$');
+              }
+
               for (const line of codeownersLines) {
                 const parts = line.split(/\s+/);
                 if (parts.length < 2) continue;
@@ -72,23 +83,8 @@ jobs:
                 const pattern = parts[0];
                 const owners = parts.slice(1);
 
-                // Convert CODEOWNERS pattern to regex
-                let regex;
-                if (pattern.endsWith('*')) {
-                  // Directory pattern like "esphome/components/api/*"
-                  const dir = pattern.slice(0, -1);
-                  regex = new RegExp(`^${dir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
-                } else if (pattern.includes('*')) {
-                  // Glob pattern
-                  const regexPattern = pattern
-                    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-                    .replace(/\\*/g, '.*');
-                  regex = new RegExp(`^${regexPattern}$`);
-                } else {
-                  // Exact match
-                  regex = new RegExp(`^${pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
-                }
-
+                // Use robust glob-to-regex conversion
+                const regex = globToRegex(pattern);
                 codeownersPatterns.push({ pattern, regex, owners });
               }
 
