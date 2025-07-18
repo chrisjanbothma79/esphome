@@ -1,0 +1,41 @@
+esphome:
+  name: test-delay-action
+
+host:
+api:
+  actions:
+    - action: start_script
+      then:
+        - script.execute: test_delay_script
+
+    - action: restart_script
+      then:
+        - script.execute: test_delay_script
+
+    - action: check_result
+      then:
+        - logger.log:
+            format: "Test completed with %d delay completions"
+            args: ['id(delay_completed_count)']
+
+logger:
+  level: DEBUG
+
+globals:
+  - id: delay_completed_count
+    type: int
+    initial_value: "0"
+
+script:
+  - id: test_delay_script
+    mode: restart
+    then:
+      - logger.log:
+          format: "Script execution started (run number %d)"
+          args: ['id(delay_completed_count) + 1']
+      - delay: 3s
+      - lambda: |-
+          id(delay_completed_count)++;
+      - logger.log:
+          format: "Delay completed! Total completions: %d"
+          args: ['id(delay_completed_count)']
