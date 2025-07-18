@@ -1,10 +1,11 @@
 #pragma once
 
+#include "esphome/core/defines.h"
 #include <vector>
 #include <memory>
 #include <cstring>
 #include <deque>
-#if !defined(USE_ESP8266) && !defined(USE_RP2040) && !defined(USE_LIBRETINY)
+#ifdef ESPHOME_ATOMIC_SCHEDULER
 #include <atomic>
 #endif
 
@@ -204,22 +205,37 @@ class Scheduler {
   Mutex lock_;
   std::vector<std::unique_ptr<SchedulerItem>> items_;
   std::vector<std::unique_ptr<SchedulerItem>> to_add_;
-#if !defined(USE_ESP8266) && !defined(USE_RP2040)
-  // ESP8266 and RP2040 don't need the defer queue because:
-  // ESP8266: Single-core with no preemptive multitasking
-  // RP2040: Currently has empty mutex implementation in ESPHome
-  // Both platforms save 40 bytes of RAM by excluding this
+#ifndef ESPHOME_SINGLE_CORE
+  // Single-core platforms don't need the defer queue and save 40 bytes of RAM
   std::deque<std::unique_ptr<SchedulerItem>> defer_queue_;  // FIFO queue for defer() calls
-#endif
-#if !defined(USE_ESP8266) && !defined(USE_RP2040) && !defined(USE_LIBRETINY)
-  // Multi-threaded platforms with atomic support: last_millis_ needs atomic for lock-free updates
+#endif                                                      /* ESPHOME_SINGLE_CORE */
+#ifdef ESPHOME_ATOMIC_SCHEDULER
+  /*
+   * Multi-threaded platforms with atomic support: last_millis_ needs atomic for lock-free updates
+   *
+   * MEMORY-ORDERING NOTE
+   * --------------------
+   * `last_millis_` and `millis_major_` form a single 64-bit timestamp split in half.
+   * Writers publish `last_millis_` with memory_order_release and readers use
+   * memory_order_acquire. This ensures that once a reader sees the new low word,
+   * it also observes the corresponding increment of `millis_major_`.
+   */
   std::atomic<uint32_t> last_millis_{0};
-#else
+#else  /* not ESPHOME_ATOMIC_SCHEDULER */
   // Platforms without atomic support or single-threaded platforms
   uint32_t last_millis_{0};
-#endif
-  // millis_major_ is protected by lock when incrementing
+#endif /* else ESPHOME_ATOMIC_SCHEDULER */
+  /*
+   * Upper 16 bits of the 64-bit millis counter. Incremented only while holding
+   * `lock_`; read concurrently. Atomic (relaxed) avoids a formal data race.
+   * Ordering relative to `last_millis_` is provided by its release store and the
+   * corresponding acquire loads.
+   */
+#ifdef ESPHOME_ATOMIC_SCHEDULER
+  std::atomic<uint16_t> millis_major_{0};
+#else  /* not ESPHOME_ATOMIC_SCHEDULER */
   uint16_t millis_major_{0};
+#endif /* else ESPHOME_ATOMIC_SCHEDULER */
   uint32_t to_remove_{0};
 };
 
