@@ -26,6 +26,17 @@ void MicroNovaSwitch::write_state(bool state) {
       this->micronova_->update();
       break;
 
+    case MicroNovaFunctions::STOVE_FUNCTION_SWITCH_CUSTOM:
+      if (state) {
+        this->micronova_->write_address(this->memory_location_, this->memory_address_, this->memory_data_on_);
+        this->publish_state(true);
+      } else {
+        this->micronova_->write_address(this->memory_location_, this->memory_address_, this->memory_data_off_);
+        this->publish_state(false);
+      }
+      this->micronova_->update();
+      break;
+
     default:
       break;
   }

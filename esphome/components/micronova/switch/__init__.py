@@ -16,8 +16,18 @@ from .. import (
 CONF_STOVE = "stove"
 CONF_MEMORY_DATA_ON = "memory_data_on"
 CONF_MEMORY_DATA_OFF = "memory_data_off"
+CONF_CUSTOM = "custom"
 
 MicroNovaSwitch = micronova_ns.class_("MicroNovaSwitch", switch.Switch, cg.Component)
+
+CUSTOM_SWITCH_SCHEMA = (
+    switch.switch_schema(MicroNovaSwitch)
+    .extend(MICRONOVA_LISTENER_SCHEMA(default_memory_location=0x00, default_memory_address=0x01))
+    .extend({
+        cv.Optional(CONF_MEMORY_DATA_OFF, default=0x01): cv.hex_int_range(),
+        cv.Optional(CONF_MEMORY_DATA_ON, default=0x01): cv.hex_int_range(),
+    })
+)
 
 CONFIG_SCHEMA = cv.Schema(
     {
@@ -37,6 +47,8 @@ CONFIG_SCHEMA = cv.Schema(
                 cv.Optional(CONF_MEMORY_DATA_ON, default=0x01): cv.hex_int_range(),
             }
         ),
+        cv.Optional(CONF_CUSTOM, default=[]): cv.ensure_list(CUSTOM_SWITCH_SCHEMA)
+
     }
 )
 
@@ -52,3 +64,11 @@ async def to_code(config):
         cg.add(sw.set_memory_data_on(stove_config[CONF_MEMORY_DATA_ON]))
         cg.add(sw.set_memory_data_off(stove_config[CONF_MEMORY_DATA_OFF]))
         cg.add(sw.set_function(MicroNovaFunctions.STOVE_FUNCTION_SWITCH))
+
+    for cfg in config[CONF_CUSTOM]:
+        sw = await switch.new_switch(cfg, mv)
+        cg.add(sw.set_memory_location(cfg[CONF_MEMORY_LOCATION]))
+        cg.add(sw.set_memory_address(cfg[CONF_MEMORY_ADDRESS]))
+        cg.add(sw.set_memory_data_on(cfg[CONF_MEMORY_DATA_ON]))
+        cg.add(sw.set_memory_data_off(cfg[CONF_MEMORY_DATA_OFF]))
+        cg.add(sw.set_function(MicroNovaFunctions.STOVE_FUNCTION_SWITCH_CUSTOM))

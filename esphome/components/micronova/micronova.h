@@ -39,7 +39,8 @@ enum class MicroNovaFunctions {
   STOVE_FUNCTION_WATER_TEMPERATURE = 9,
   STOVE_FUNCTION_WATER_PRESSURE = 10,
   STOVE_FUNCTION_POWER_LEVEL = 11,
-  STOVE_FUNCTION_CUSTOM = 12
+  STOVE_FUNCTION_CUSTOM = 12,
+  STOVE_FUNCTION_SWITCH_CUSTOM = 13
 };
 
 class MicroNova;
@@ -133,6 +134,7 @@ class MicroNova : public PollingComponent, public uart::UARTDevice {
   int read_stove_reply();
 
   void set_enable_rx_pin(GPIOPin *enable_rx_pin) { this->enable_rx_pin_ = enable_rx_pin; }
+  void set_uart_echo(bool x) { this->uart_echo_ = x;}
 
   void set_current_stove_state(uint8_t s) { this->current_stove_state_ = s; }
   uint8_t get_current_stove_state() { return this->current_stove_state_; }
@@ -144,6 +146,7 @@ class MicroNova : public PollingComponent, public uart::UARTDevice {
   uint8_t current_stove_state_ = 0;
 
   GPIOPin *enable_rx_pin_{nullptr};
+  bool uart_echo_{false};
 
   struct MicroNovaSerialTransmission {
     uint32_t request_transmission_time;
