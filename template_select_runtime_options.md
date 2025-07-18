@@ -11,7 +11,7 @@ select:
     name: "Static Example"
     options:
       - "Option 1"
-      - "Option 2" 
+      - "Option 2"
       - "Option 3"
     initial_option: "Option 1"
     optimistic: true
