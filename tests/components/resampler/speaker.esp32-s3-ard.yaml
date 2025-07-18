@@ -4,4 +4,4 @@ substitutions:
   mclk_pin: GPIO6
   dout_pin: GPIO7
 
-<<: !include common.yaml
+<<: !include common-speaker.yaml
