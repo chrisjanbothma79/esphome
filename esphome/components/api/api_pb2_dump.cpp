@@ -381,6 +381,29 @@ template<> const char *proto_enum_to_string<enums::BluetoothScannerMode>(enums::
   }
 }
 #endif
+template<>
+const char *proto_enum_to_string<enums::VoiceAssistantSubscribeFlag>(enums::VoiceAssistantSubscribeFlag value) {
+  switch (value) {
+    case enums::VOICE_ASSISTANT_SUBSCRIBE_NONE:
+      return "VOICE_ASSISTANT_SUBSCRIBE_NONE";
+    case enums::VOICE_ASSISTANT_SUBSCRIBE_API_AUDIO:
+      return "VOICE_ASSISTANT_SUBSCRIBE_API_AUDIO";
+    default:
+      return "UNKNOWN";
+  }
+}
+template<> const char *proto_enum_to_string<enums::VoiceAssistantRequestFlag>(enums::VoiceAssistantRequestFlag value) {
+  switch (value) {
+    case enums::VOICE_ASSISTANT_REQUEST_NONE:
+      return "VOICE_ASSISTANT_REQUEST_NONE";
+    case enums::VOICE_ASSISTANT_REQUEST_USE_VAD:
+      return "VOICE_ASSISTANT_REQUEST_USE_VAD";
+    case enums::VOICE_ASSISTANT_REQUEST_USE_WAKE_WORD:
+      return "VOICE_ASSISTANT_REQUEST_USE_WAKE_WORD";
+    default:
+      return "UNKNOWN";
+  }
+}
 #ifdef USE_VOICE_ASSISTANT
 template<> const char *proto_enum_to_string<enums::VoiceAssistantEvent>(enums::VoiceAssistantEvent value) {
   switch (value) {

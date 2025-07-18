@@ -185,6 +185,15 @@ enum BluetoothScannerMode : uint32_t {
   BLUETOOTH_SCANNER_MODE_ACTIVE = 1,
 };
 #endif
+enum VoiceAssistantSubscribeFlag : uint32_t {
+  VOICE_ASSISTANT_SUBSCRIBE_NONE = 0,
+  VOICE_ASSISTANT_SUBSCRIBE_API_AUDIO = 1,
+};
+enum VoiceAssistantRequestFlag : uint32_t {
+  VOICE_ASSISTANT_REQUEST_NONE = 0,
+  VOICE_ASSISTANT_REQUEST_USE_VAD = 1,
+  VOICE_ASSISTANT_REQUEST_USE_WAKE_WORD = 2,
+};
 #ifdef USE_VOICE_ASSISTANT
 enum VoiceAssistantEvent : uint32_t {
   VOICE_ASSISTANT_ERROR = 0,
