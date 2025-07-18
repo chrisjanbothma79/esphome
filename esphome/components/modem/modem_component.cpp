@@ -187,6 +187,12 @@ void ModemComponent::setup() {
   ESP_LOGCONFIG(TAG, "  Tx Pin    : GPIO%u", this->tx_pin_->get_pin());
   ESP_LOGCONFIG(TAG, "  Rx Pin    : GPIO%u", this->rx_pin_->get_pin());
   ESP_LOGCONFIG(TAG, "  Power pin : %s", (this->power_pin_) ? this->power_pin_->dump_summary().c_str() : "Not defined");
+  if (this->power_pin_) {
+    ESP_LOGCONFIG(TAG, "    ON pulse delay  : %dms", this->power_ton_pulse_delay_);
+    ESP_LOGCONFIG(TAG, "    ON delay        : %dms", this->power_ton_delay_);
+    ESP_LOGCONFIG(TAG, "    OFF pulse delay : %dms", this->power_toff_pulse_delay_);
+    ESP_LOGCONFIG(TAG, "    OFF delay       : %dms", this->power_toff_delay_);
+  }
   if (this->status_pin_) {
     std::string current_status = this->get_power_status() ? "ON" : "OFF";
     ESP_LOGCONFIG(TAG, "  Status pin: %s (state: %s)", this->status_pin_->dump_summary().c_str(),
@@ -196,7 +202,8 @@ void ModemComponent::setup() {
   }
   ESP_LOGCONFIG(TAG, "  Enabled   : %s", (this->component_state_ != ModemComponentState::DISABLED) ? "Yes" : "No");
   ESP_LOGCONFIG(TAG, "  Use CMUX  : %s", this->cmux_ ? "Yes" : "No");
-  ESP_LOGCONFIG(TAG, "  Baud rate : %d", this->baud_rate_);
+  if (this->baud_rate_ != 0)
+    ESP_LOGCONFIG(TAG, "  Baud rate : %d", this->baud_rate_);
 
   if (CONFIG_ESP_TASK_WDT_TIMEOUT_S <= 10) {
     ESP_LOGW(TAG, "WDT timeout (%d s) may be too low for modem. Increase if WDT triggers.",
@@ -297,10 +304,10 @@ void ModemComponent::handle_state_disabled_() {
 
 void ModemComponent::handle_state_powering_on_() {
   this->power_pin_->digital_write(false);
-  delay(this->power_ton_);
+  delay(this->power_ton_pulse_delay_);
   this->power_pin_->digital_write(true);
-  uint32_t loop_delay = this->power_tonuart_ + 2000;  // Add delay for modem readiness.
-  this->loop_delay_(loop_delay);                      // Delay next loop.
+  uint32_t loop_delay = this->power_ton_pulse_delay_;
+  this->loop_delay_(loop_delay);  // Delay next loop.
   ESP_LOGD(TAG, "Modem ON in %.1fs...", float(loop_delay) / 1000);
 
   this->component_state_ = ModemComponentState::SYNCING;
@@ -310,10 +317,10 @@ void ModemComponent::handle_state_powering_on_() {
 void ModemComponent::handle_state_powering_off_() {
   delay(10);
   this->power_pin_->digital_write(false);
-  delay(this->power_toff_);
+  delay(this->power_toff_pulse_delay_);
   this->power_pin_->digital_write(true);
-  this->loop_delay_(this->power_toffuart_);
-  ESP_LOGD(TAG, "Modem should be OFF in %.1fs...", float(this->power_toffuart_) / 1000);
+  this->loop_delay_(this->power_toff_delay_);
+  ESP_LOGD(TAG, "Modem should be OFF in %.1fs...", float(this->power_toff_delay_) / 1000);
 
   this->component_state_ = ModemComponentState::DISABLED;
   this->internal_state_.powered_on = false;

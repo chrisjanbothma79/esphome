@@ -41,16 +41,46 @@ CONF_APN = "apn"
 CONF_DTR_PIN = "dtr_pin"
 CONF_STATUS_PIN = "status_pin"
 CONF_POWER_PIN = "power_pin"
+CONF_TON_PULSE_DELAY = "ton_pulse_delay"
+CONF_TON_DELAY = "ton_delay"
+CONF_TOFF_PULSE_DELAY = "toff_pulse_delay"
+CONF_TOFF_DELAY = "toff_delay"
 CONF_INIT_AT = "init_at"
 CONF_ON_NOT_RESPONDING = "on_not_responding"
 CONF_ENABLE_CMUX = "enable_cmux"
 
 MODEM_MODELS = ["BG96", "SIM800", "SIM7000", "SIM7600", "SIM7670", "GENERIC"]
 MODEM_MODELS_POWER = {
-    "BG96": {"ton": 600, "tonuart": 4900, "toff": 650, "toffuart": 2000},
-    "SIM800": {"ton": 1300, "tonuart": 3000, "toff": 200, "toffuart": 3000},
-    "SIM7000": {"ton": 1100, "tonuart": 4500, "toff": 1300, "toffuart": 1800},
-    "SIM7600": {"ton": 500, "tonuart": 12000, "toff": 2800, "toffuart": 25000},
+    "BG96": {
+        CONF_TON_PULSE_DELAY: 600,
+        CONF_TON_DELAY: 4900,
+        CONF_TOFF_PULSE_DELAY: 650,
+        CONF_TOFF_DELAY: 2000,
+    },
+    "SIM800": {
+        CONF_TON_PULSE_DELAY: 1300,
+        CONF_TON_DELAY: 3000,
+        CONF_TOFF_PULSE_DELAY: 200,
+        CONF_TOFF_DELAY: 3000,
+    },
+    "SIM7000": {
+        CONF_TON_PULSE_DELAY: 1100,
+        CONF_TON_DELAY: 4500,
+        CONF_TOFF_PULSE_DELAY: 1300,
+        CONF_TOFF_DELAY: 1800,
+    },
+    "SIM7600": {
+        CONF_TON_PULSE_DELAY: 500,
+        CONF_TON_DELAY: 12000,
+        CONF_TOFF_PULSE_DELAY: 2800,
+        CONF_TOFF_DELAY: 25000,
+    },
+    "GENERIC": {
+        CONF_TON_PULSE_DELAY: None,
+        CONF_TON_DELAY: None,
+        CONF_TOFF_PULSE_DELAY: None,
+        CONF_TOFF_DELAY: None,
+    },
 }
 
 MODEM_MODELS_POWER["SIM7670"] = MODEM_MODELS_POWER["SIM7600"]
@@ -86,6 +116,10 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_APN): cv.string,
             cv.Optional(CONF_STATUS_PIN): pins.gpio_input_pin_schema,
             cv.Optional(CONF_POWER_PIN): pins.gpio_output_pin_schema,
+            cv.Optional(CONF_TON_PULSE_DELAY): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_TON_DELAY): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_TOFF_PULSE_DELAY): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_TOFF_DELAY): cv.positive_time_period_milliseconds,
             cv.Optional(CONF_PIN_CODE): cv.string_strict,
             cv.Optional(CONF_USE_ADDRESS): cv.string,
             cv.Optional(CONF_INIT_AT): cv.All(cv.ensure_list(cv.string)),
@@ -141,10 +175,39 @@ def _final_validate(config):
     #     if wifi_has_sta(wifi_config):
     #         raise cv.Invalid("Wi-Fi must be in AP-only mode when using a modem")
     if config.get(CONF_POWER_PIN, None):
-        if config[CONF_MODEL] not in MODEM_MODELS_POWER:
-            raise cv.Invalid(
-                f"Modem model '{config[CONF_MODEL]}' has no power power specs."
+        # if ton/off pulse delay options are defined, they overrides MODEM_MODELS_POWER
+        if ton_pulse_delay := config.get(CONF_TON_PULSE_DELAY, None):
+            MODEM_MODELS_POWER[config[CONF_MODEL]][CONF_TON_PULSE_DELAY] = (
+                ton_pulse_delay
             )
+        if ton_delay := config.get(CONF_TON_DELAY, None):
+            MODEM_MODELS_POWER[config[CONF_MODEL]][CONF_TON_DELAY] = ton_delay
+        if toff_pulse_delay := config.get(CONF_TOFF_PULSE_DELAY, None):
+            MODEM_MODELS_POWER[config[CONF_MODEL]][CONF_TOFF_PULSE_DELAY] = (
+                toff_pulse_delay
+            )
+        if toff_delay := config.get(CONF_TOFF_DELAY, None):
+            MODEM_MODELS_POWER[config[CONF_MODEL]][CONF_TOFF_DELAY] = toff_delay
+
+        if config[CONF_MODEL] not in MODEM_MODELS_POWER:
+            # no defaults for ton/toff delay, so manual config is required
+            if not (
+                config.get(CONF_TON_PULSE_DELAY, None)
+                and config.get(CONF_TON_DELAY, None)
+                and config.get(CONF_TOFF_PULSE_DELAY, None)
+                and config.get(CONF_TOFF_DELAY, None)
+            ):
+                raise cv.Invalid(
+                    f"Modem model '{config[CONF_MODEL]}' has no known power specs. If using a power pin, '{CONF_TON_PULSE_DELAY}', '{CONF_TON_DELAY}', '{CONF_TOFF_PULSE_DELAY}', '{CONF_TOFF_DELAY}' options a required"
+                )
+        power_undef = [
+            k for k, v in MODEM_MODELS_POWER[config[CONF_MODEL]].items() if not v
+        ]
+        if power_undef:
+            raise cv.Invalid(
+                f"Options {power_undef} must be defined for model {config[CONF_MODEL]}"
+            )
+
     if conf_safe_mode := full_config.get(CONF_SAFE_MODE, None):
         if not conf_safe_mode.get(CONF_DISABLED, None):
             _LOGGER.warning(
@@ -216,10 +279,10 @@ async def to_code(config):
     cg.add(var.set_model(modem_model))
 
     if power_spec := MODEM_MODELS_POWER.get(modem_model, None):
-        cg.add(var.set_power_ton(power_spec["ton"]))
-        cg.add(var.set_power_tonuart(power_spec["tonuart"]))
-        cg.add(var.set_power_toff(power_spec["toff"]))
-        cg.add(var.set_power_toffuart(power_spec["toffuart"]))
+        cg.add(var.set_power_ton_pulse_delay(power_spec[CONF_TON_PULSE_DELAY]))
+        cg.add(var.set_power_ton_delay(power_spec[CONF_TON_DELAY]))
+        cg.add(var.set_power_toff_pulse_delay(power_spec[CONF_TOFF_PULSE_DELAY]))
+        cg.add(var.set_power_toff_delay(power_spec[CONF_TOFF_DELAY]))
 
     cg.add(var.set_apn(config[CONF_APN]))
 

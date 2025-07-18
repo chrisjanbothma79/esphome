@@ -63,10 +63,10 @@ class ModemComponent : public Component {
   void set_baud_rate(int baud_rate) { this->baud_rate_ = baud_rate; }
   void set_model(const std::string &model) { this->model_ = model; }
   void set_power_pin(GPIOPin *power_pin) { this->power_pin_ = power_pin; }
-  void set_power_ton(int ton) { this->power_ton_ = ton; }
-  void set_power_tonuart(int tonuart) { this->power_tonuart_ = tonuart; }
-  void set_power_toff(int toff) { this->power_toff_ = toff; }
-  void set_power_toffuart(int toffuart) { this->power_toffuart_ = toffuart; }
+  void set_power_ton_pulse_delay(uint32_t ton_pulse_delay) { this->power_ton_pulse_delay_ = ton_pulse_delay; }
+  void set_power_ton_delay(uint32_t ton_delay) { this->power_ton_delay_ = ton_delay; }
+  void set_power_toff_pulse_delay(uint32_t toff_pulse_delay) { this->power_toff_pulse_delay_ = toff_pulse_delay; }
+  void set_power_toff_delay(uint32_t toff_delay) { this->power_toff_delay_ = toff_delay; }
   void set_status_pin(GPIOPin *status_pin) { this->status_pin_ = status_pin; }
   void set_pin_code(const std::string &pin_code) { this->pin_code_ = pin_code; }
   void set_apn(const std::string &apn) { this->apn_ = apn; }
@@ -123,9 +123,6 @@ class ModemComponent : public Component {
 
   void modem_create_dte_dce_(int baud_rate);
   void modem_create_dte_dce_() { this->modem_create_dte_dce_(this->internal_state_.current_baud_rate); }
-  bool modem_command_mode_(bool cmux);
-  bool modem_command_mode_() { return modem_command_mode_(this->cmux_); };
-  int get_baud_rate_();
   void send_init_at_();
   void update_network_state_();
   bool prepare_sim_();
@@ -142,10 +139,10 @@ class ModemComponent : public Component {
   InternalGPIOPin *rx_pin_;
   std::string model_;
   GPIOPin *status_pin_{nullptr};
-  int power_ton_;
-  int power_tonuart_;
-  int power_toff_;
-  int power_toffuart_;
+  uint32_t power_ton_pulse_delay_;
+  uint32_t power_ton_delay_;
+  uint32_t power_toff_pulse_delay_;
+  uint32_t power_toff_delay_;
   GPIOPin *power_pin_{nullptr};
   std::string pin_code_;
   std::string apn_;
