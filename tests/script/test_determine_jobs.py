@@ -6,7 +6,7 @@ import json
 import os
 import subprocess
 import sys
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, call, patch
 
 import pytest
 
@@ -308,7 +308,9 @@ def test_should_run_clang_tidy_with_branch() -> None:
         with patch("subprocess.run") as mock_run:
             mock_run.return_value = Mock(returncode=1)  # Hash unchanged
             determine_jobs.should_run_clang_tidy("release")
-            mock_changed.assert_called_once_with("release")
+            # Changed files is called twice now - once for hash check, once for .clang-tidy.hash check
+            assert mock_changed.call_count == 2
+            mock_changed.assert_has_calls([call("release"), call("release")])
 
 
 @pytest.mark.parametrize(
