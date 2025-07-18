@@ -715,7 +715,9 @@ async def to_code(config):
     cg.add_define("ESPHOME_BOARD", config[CONF_BOARD])
     cg.add_build_flag(f"-DUSE_ESP32_VARIANT_{config[CONF_VARIANT]}")
     cg.add_define("ESPHOME_VARIANT", VARIANT_FRIENDLY[config[CONF_VARIANT]])
-    cg.add_define("LOOP_TASK_STACK_SIZE", conf[CONF_ADVANCED].get(CONF_LOOP_TASK_STACK_SIZE))
+    cg.add_define(
+        "LOOP_TASK_STACK_SIZE", conf[CONF_ADVANCED].get(CONF_LOOP_TASK_STACK_SIZE)
+    )
 
     cg.add_platformio_option("lib_ldf_mode", "off")
     cg.add_platformio_option("lib_compat_mode", "strict")

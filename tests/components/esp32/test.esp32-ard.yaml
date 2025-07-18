@@ -8,4 +8,3 @@ esp32:
 wifi:
   ssid: MySSID
   password: password1
-
