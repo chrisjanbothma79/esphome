@@ -524,15 +524,15 @@ esp_err_t ESPNowInterface::send(uint64_t peer, std::vector<uint8_t> payload) {
 
 bool ESPNowInterface::call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet) {
   switch (event) {
-    case ON_NEW_PEER:
+    case ESPNowTriggers::ON_NEW_PEER:
       return this->on_new_peer(weak_packet);
-    case ON_RECEIVED:
+    case ESPNowTriggers::ON_RECEIVED:
       return this->on_received(weak_packet);
-    case ON_BROADCASTED:
+    case ESPNowTriggers::ON_BROADCASTED:
       return this->on_broadcasted(weak_packet);
-    case ON_SUCCEED:
+    case ESPNowTriggers::ON_SUCCEED:
       return this->on_sent_succeed(weak_packet);
-    case ON_FAILED:
+    case ESPNowTriggers::ON_FAILED:
       return this->on_sent_failed(weak_packet);
     default:
       return false;
