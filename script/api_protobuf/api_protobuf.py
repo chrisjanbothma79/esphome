@@ -1692,6 +1692,10 @@ namespace api {
     current_ifdef = None
 
     for enum in file.enum_type:
+        # Skip deprecated enums
+        if enum.options.deprecated:
+            continue
+
         s, c, dc = build_enum_type(enum, enum_ifdef_map)
         enum_ifdef = enum_ifdef_map.get(enum.name)
 

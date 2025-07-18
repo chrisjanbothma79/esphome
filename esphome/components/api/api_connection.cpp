@@ -480,8 +480,11 @@ uint16_t APIConnection::try_send_light_info(EntityBase *entity, APIConnection *c
   auto traits = light->get_traits();
   for (auto mode : traits.get_supported_color_modes())
     msg.supported_color_modes.push_back(static_cast<enums::ColorMode>(mode));
-  msg.min_mireds = traits.get_min_mireds();
-  msg.max_mireds = traits.get_max_mireds();
+  if (traits.supports_color_capability(light::ColorCapability::COLOR_TEMPERATURE) ||
+      traits.supports_color_capability(light::ColorCapability::COLD_WARM_WHITE)) {
+    msg.min_mireds = traits.get_min_mireds();
+    msg.max_mireds = traits.get_max_mireds();
+  }
   if (light->supports_effects()) {
     msg.effects.emplace_back("None");
     for (auto *effect : light->get_effects()) {
@@ -1474,12 +1477,10 @@ DeviceInfoResponse APIConnection::device_info(const DeviceInfoRequest &msg) {
   resp.webserver_port = USE_WEBSERVER_PORT;
 #endif
 #ifdef USE_BLUETOOTH_PROXY
-  resp.legacy_bluetooth_proxy_version = bluetooth_proxy::global_bluetooth_proxy->get_legacy_version();
   resp.bluetooth_proxy_feature_flags = bluetooth_proxy::global_bluetooth_proxy->get_feature_flags();
   resp.bluetooth_mac_address = bluetooth_proxy::global_bluetooth_proxy->get_bluetooth_mac_address_pretty();
 #endif
 #ifdef USE_VOICE_ASSISTANT
-  resp.legacy_voice_assistant_version = voice_assistant::global_voice_assistant->get_legacy_version();
   resp.voice_assistant_feature_flags = voice_assistant::global_voice_assistant->get_feature_flags();
 #endif
 #ifdef USE_API_NOISE
