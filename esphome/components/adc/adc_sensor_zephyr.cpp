@@ -132,16 +132,17 @@ void ADCSensor::dump_config() {
                 "  reference: %s\n"
                 "  acquisition_time: %d\n"
                 "  differential %s",
-                gain_to_str(this->channel_->channel_cfg.gain), reference_to_str(this->channel_->channel_cfg.reference),
+                LOG_STR_ARG(gain_to_str(this->channel_->channel_cfg.gain)),
+                LOG_STR_ARG(reference_to_str(this->channel_->channel_cfg.reference)),
                 this->channel_->channel_cfg.acquisition_time, YESNO(this->channel_->channel_cfg.differential));
   if (this->channel_->channel_cfg.differential) {
     ESP_LOGCONFIG(TAG,
                   "  Positive: %s\n"
                   "  Negative: %s",
-                  input_to_str(this->channel_->channel_cfg.input_positive),
-                  input_to_str(this->channel_->channel_cfg.input_negative));
+                  LOG_STR_ARG(input_to_str(this->channel_->channel_cfg.input_positive)),
+                  LOG_STR_ARG(input_to_str(this->channel_->channel_cfg.input_negative)));
   } else {
-    ESP_LOGCONFIG(TAG, "  Positive: %s", input_to_str(this->channel_->channel_cfg.input_positive));
+    ESP_LOGCONFIG(TAG, "  Positive: %s", LOG_STR_ARG(input_to_str(this->channel_->channel_cfg.input_positive)));
   }
 
   LOG_UPDATE_INTERVAL(this);
