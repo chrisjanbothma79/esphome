@@ -13,6 +13,7 @@
 #include <hal/cpu_hal.h>
 
 #ifdef USE_ARDUINO
+SET_LOOP_TASK_STACK_SIZE(LOOP_TASK_STACK_SIZE);
 #include <Esp.h>
 #else
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 1, 0)
@@ -85,11 +86,7 @@ void loop_task(void *pv_params) {
 
 extern "C" void app_main() {
   esp32::setup_preferences();
-#ifdef LOOP_TASK_STACK_SIZE
   xTaskCreate(loop_task, "loopTask", LOOP_TASK_STACK_SIZE, nullptr, 1, &loop_task_handle);
-#else
-  xTaskCreate(loop_task, "loopTask", 8192, nullptr, 1, &loop_task_handle);
-#endif
 }
 #endif  // USE_ESP_IDF
 
