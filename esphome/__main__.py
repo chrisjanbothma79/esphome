@@ -124,6 +124,8 @@ def mqtt_logging_enabled(mqtt_config):
 
 
 def get_port_type(port):
+    if port.startswith("rfc2217://"):
+        return "RFC2217"
     if port.startswith("/") or port.startswith("COM"):
         return "SERIAL"
     if port == "MQTT":
@@ -343,7 +345,7 @@ def upload_program(config, args, host):
     except AttributeError:
         pass
 
-    if get_port_type(host) == "SERIAL":
+    if get_port_type(host) in ("SERIAL", "RFC2217"):
         check_permissions(host)
         if CORE.target_platform in (PLATFORM_ESP32, PLATFORM_ESP8266):
             file = getattr(args, "file", None)
@@ -396,7 +398,7 @@ def upload_program(config, args, host):
 def show_logs(config, args, port):
     if "logger" not in config:
         raise EsphomeError("Logger is not configured!")
-    if get_port_type(port) == "SERIAL":
+    if get_port_type(port) in ("SERIAL", "RFC2217"):
         check_permissions(port)
         return run_miniterm(config, port, args)
     if get_port_type(port) == "NETWORK" and "api" in config:
