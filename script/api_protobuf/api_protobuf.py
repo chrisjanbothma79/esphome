@@ -1145,6 +1145,10 @@ def calculate_message_estimated_size(desc: descriptor.DescriptorProto) -> int:
     total_size = 0
 
     for field in desc.field:
+        # Skip deprecated fields
+        if field.options.deprecated:
+            continue
+
         ti = create_field_type_info(field)
 
         # Add estimated size for this field
@@ -1213,6 +1217,10 @@ def build_message_type(
         public_content.append("#endif")
 
     for field in desc.field:
+        # Skip deprecated fields completely
+        if field.options.deprecated:
+            continue
+
         ti = create_field_type_info(field)
 
         # Skip field declarations for fields that are in the base class
@@ -1459,8 +1467,10 @@ def find_common_fields(
     if not messages:
         return []
 
-    # Start with fields from the first message
-    first_msg_fields = {field.name: field for field in messages[0].field}
+    # Start with fields from the first message (excluding deprecated fields)
+    first_msg_fields = {
+        field.name: field for field in messages[0].field if not field.options.deprecated
+    }
     common_fields = []
 
     # Check each field to see if it exists in all messages with same type
@@ -1471,6 +1481,9 @@ def find_common_fields(
         for msg in messages[1:]:
             found = False
             for other_field in msg.field:
+                # Skip deprecated fields
+                if other_field.options.deprecated:
+                    continue
                 if (
                     other_field.name == field_name
                     and other_field.type == field.type

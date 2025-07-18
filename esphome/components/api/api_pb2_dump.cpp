@@ -739,13 +739,6 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
 
 #endif
 #ifdef USE_BLUETOOTH_PROXY
-  out.append("  legacy_bluetooth_proxy_version: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->legacy_bluetooth_proxy_version);
-  out.append(buffer);
-  out.append("\n");
-
-#endif
-#ifdef USE_BLUETOOTH_PROXY
   out.append("  bluetooth_proxy_feature_flags: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->bluetooth_proxy_feature_flags);
   out.append(buffer);
@@ -760,13 +753,6 @@ void DeviceInfoResponse::dump_to(std::string &out) const {
   out.append("'").append(this->friendly_name).append("'");
   out.append("\n");
 
-#ifdef USE_VOICE_ASSISTANT
-  out.append("  legacy_voice_assistant_version: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->legacy_voice_assistant_version);
-  out.append(buffer);
-  out.append("\n");
-
-#endif
 #ifdef USE_VOICE_ASSISTANT
   out.append("  voice_assistant_feature_flags: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->voice_assistant_feature_flags);
@@ -961,10 +947,6 @@ void CoverStateResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
-  out.append("  legacy_state: ");
-  out.append(proto_enum_to_string<enums::LegacyCoverState>(this->legacy_state));
-  out.append("\n");
-
   out.append("  position: ");
   snprintf(buffer, sizeof(buffer), "%g", this->position);
   out.append(buffer);
@@ -994,14 +976,6 @@ void CoverCommandRequest::dump_to(std::string &out) const {
   out.append("  key: ");
   snprintf(buffer, sizeof(buffer), "%" PRIu32, this->key);
   out.append(buffer);
-  out.append("\n");
-
-  out.append("  has_legacy_command: ");
-  out.append(YESNO(this->has_legacy_command));
-  out.append("\n");
-
-  out.append("  legacy_command: ");
-  out.append(proto_enum_to_string<enums::LegacyCoverCommand>(this->legacy_command));
   out.append("\n");
 
   out.append("  has_position: ");
@@ -1115,10 +1089,6 @@ void FanStateResponse::dump_to(std::string &out) const {
   out.append(YESNO(this->oscillating));
   out.append("\n");
 
-  out.append("  speed: ");
-  out.append(proto_enum_to_string<enums::FanSpeed>(this->speed));
-  out.append("\n");
-
   out.append("  direction: ");
   out.append(proto_enum_to_string<enums::FanDirection>(this->direction));
   out.append("\n");
@@ -1155,14 +1125,6 @@ void FanCommandRequest::dump_to(std::string &out) const {
 
   out.append("  state: ");
   out.append(YESNO(this->state));
-  out.append("\n");
-
-  out.append("  has_speed: ");
-  out.append(YESNO(this->has_speed));
-  out.append("\n");
-
-  out.append("  speed: ");
-  out.append(proto_enum_to_string<enums::FanSpeed>(this->speed));
   out.append("\n");
 
   out.append("  has_oscillating: ");
@@ -1230,22 +1192,6 @@ void ListEntitiesLightResponse::dump_to(std::string &out) const {
     out.append(proto_enum_to_string<enums::ColorMode>(it));
     out.append("\n");
   }
-
-  out.append("  legacy_supports_brightness: ");
-  out.append(YESNO(this->legacy_supports_brightness));
-  out.append("\n");
-
-  out.append("  legacy_supports_rgb: ");
-  out.append(YESNO(this->legacy_supports_rgb));
-  out.append("\n");
-
-  out.append("  legacy_supports_white_value: ");
-  out.append(YESNO(this->legacy_supports_white_value));
-  out.append("\n");
-
-  out.append("  legacy_supports_color_temperature: ");
-  out.append(YESNO(this->legacy_supports_color_temperature));
-  out.append("\n");
 
   out.append("  min_mireds: ");
   snprintf(buffer, sizeof(buffer), "%g", this->min_mireds);
@@ -1535,10 +1481,6 @@ void ListEntitiesSensorResponse::dump_to(std::string &out) const {
 
   out.append("  state_class: ");
   out.append(proto_enum_to_string<enums::SensorStateClass>(this->state_class));
-  out.append("\n");
-
-  out.append("  legacy_last_reset_type: ");
-  out.append(proto_enum_to_string<enums::SensorLastResetType>(this->legacy_last_reset_type));
   out.append("\n");
 
   out.append("  disabled_by_default: ");
@@ -2107,10 +2049,6 @@ void ListEntitiesClimateResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
-  out.append("  legacy_supports_away: ");
-  out.append(YESNO(this->legacy_supports_away));
-  out.append("\n");
-
   out.append("  supports_action: ");
   out.append(YESNO(this->supports_action));
   out.append("\n");
@@ -2223,10 +2161,6 @@ void ClimateStateResponse::dump_to(std::string &out) const {
   out.append(buffer);
   out.append("\n");
 
-  out.append("  unused_legacy_away: ");
-  out.append(YESNO(this->unused_legacy_away));
-  out.append("\n");
-
   out.append("  action: ");
   out.append(proto_enum_to_string<enums::ClimateAction>(this->action));
   out.append("\n");
@@ -2311,14 +2245,6 @@ void ClimateCommandRequest::dump_to(std::string &out) const {
   out.append("  target_temperature_high: ");
   snprintf(buffer, sizeof(buffer), "%g", this->target_temperature_high);
   out.append(buffer);
-  out.append("\n");
-
-  out.append("  unused_has_legacy_away: ");
-  out.append(YESNO(this->unused_has_legacy_away));
-  out.append("\n");
-
-  out.append("  unused_legacy_away: ");
-  out.append(YESNO(this->unused_legacy_away));
   out.append("\n");
 
   out.append("  has_fan_mode: ");
@@ -3059,13 +2985,6 @@ void BluetoothServiceData::dump_to(std::string &out) const {
   out.append("  uuid: ");
   out.append("'").append(this->uuid).append("'");
   out.append("\n");
-
-  for (const auto &it : this->legacy_data) {
-    out.append("  legacy_data: ");
-    snprintf(buffer, sizeof(buffer), "%" PRIu32, it);
-    out.append(buffer);
-    out.append("\n");
-  }
 
   out.append("  data: ");
   out.append(format_hex_pretty(this->data));
