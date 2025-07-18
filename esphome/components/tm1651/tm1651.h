@@ -8,15 +8,15 @@ namespace esphome {
 namespace tm1651 {
 
 enum TM1651Brightness : uint8_t {
-  TM1651_DARKEST   = 1,
-  TM1651_TYPICAL   = 2,
+  TM1651_DARKEST = 1,
+  TM1651_TYPICAL = 2,
   TM1651_BRIGHTEST = 3,
 };
 
 class TM1651Display : public Component {
  public:
-  void set_clk_pin(InternalGPIOPin* pin) { clk_pin_ = pin; }
-  void set_dio_pin(InternalGPIOPin* pin) { dio_pin_ = pin; }
+  void set_clk_pin(InternalGPIOPin *pin) { clk_pin_ = pin; }
+  void set_dio_pin(InternalGPIOPin *pin) { dio_pin_ = pin; }
 
   void setup() override;
   void dump_config() override;
@@ -49,8 +49,8 @@ class TM1651Display : public Component {
 
   bool write_byte(uint8_t data);
 
-  InternalGPIOPin* clk_pin_;
-  InternalGPIOPin* dio_pin_;
+  InternalGPIOPin *clk_pin_;
+  InternalGPIOPin *dio_pin_;
 
   bool display_on_{true};
 
