@@ -23,6 +23,7 @@ class Command {
   virtual ~Command() = default;
   virtual uint8_t execute(DFRobotC4001Hub *parent);
   virtual void on_message(std::string &message) = 0;
+  uint8_t retry_power_stop{false};
 
  protected:
   DFRobotC4001Hub *parent_{nullptr};
@@ -30,6 +31,7 @@ class Command {
   uint8_t done_{false};
   uint8_t error_{false};
   std::string cmd_;
+  char *read_buffer_{nullptr};
   int8_t error_count_{0};
   int8_t retries_left_{2};
   uint32_t cmd_duration_ms_{10};
@@ -57,18 +59,14 @@ class GetRangeCommand : public Command {
   void on_message(std::string &message) override;
 
  protected:
-  float min_range_;
-  float max_range_;
+  optional<float> min_range_;
+  optional<float> max_range_;
 };
 
 class SetRangeCommand : public Command {
  public:
   SetRangeCommand(float min_range, float max_range);
   void on_message(std::string &message) override;
-
- protected:
-  float min_range_;
-  float max_range_;
 };
 
 class GetTrigRangeCommand : public Command {
@@ -77,16 +75,13 @@ class GetTrigRangeCommand : public Command {
   void on_message(std::string &message) override;
 
  protected:
-  float trigger_range_;
+  optional<float> trigger_range_;
 };
 
 class SetTrigRangeCommand : public Command {
  public:
   SetTrigRangeCommand(float trigger_range);
   void on_message(std::string &message) override;
-
- protected:
-  float trigger_range_;
 };
 
 class GetSensitivityCommand : public Command {
@@ -95,18 +90,14 @@ class GetSensitivityCommand : public Command {
   void on_message(std::string &message) override;
 
  protected:
-  uint16_t hold_sensitivity_;
-  uint16_t trigger_sensitivity_;
+  optional<float> hold_sensitivity_;
+  optional<float> trigger_sensitivity_;
 };
 
 class SetSensitivityCommand : public Command {
  public:
-  SetSensitivityCommand(uint16_t hold_sensitivity, uint16_t trigger_sensitivity);
+  SetSensitivityCommand(float hold_sensitivity, float trigger_sensitivity);
   void on_message(std::string &message) override;
-
- protected:
-  uint16_t hold_sensitivity_;
-  uint16_t trigger_sensitivity_;
 };
 
 class GetLatencyCommand : public Command {
@@ -115,18 +106,14 @@ class GetLatencyCommand : public Command {
   void on_message(std::string &message) override;
 
  protected:
-  float on_latency_;
-  float off_latency_;
+  optional<float> on_latency_;
+  optional<float> off_latency_;
 };
 
 class SetLatencyCommand : public Command {
  public:
   SetLatencyCommand(float on_latency, float off_latency);
   void on_message(std::string &message) override;
-
- protected:
-  float on_latency_;
-  float off_latency_;
 };
 
 class GetInhibitTimeCommand : public Command {
@@ -135,16 +122,13 @@ class GetInhibitTimeCommand : public Command {
   void on_message(std::string &message) override;
 
  protected:
-  float inhibit_time_;
+  optional<float> inhibit_time_;
 };
 
 class SetInhibitTimeCommand : public Command {
  public:
   SetInhibitTimeCommand(float inhibit_time);
   void on_message(std::string &message) override;
-
- protected:
-  float inhibit_time_;
 };
 
 class GetThrFactorCommand : public Command {
@@ -153,16 +137,13 @@ class GetThrFactorCommand : public Command {
   void on_message(std::string &message) override;
 
  protected:
-  float threshold_factor_;
+  optional<float> threshold_factor_;
 };
 
 class SetThrFactorCommand : public Command {
  public:
   SetThrFactorCommand(float threshold_factor);
   void on_message(std::string &message) override;
-
- protected:
-  float threshold_factor_;
 };
 
 class GetUartOutputCommand : public Command {
@@ -171,16 +152,13 @@ class GetUartOutputCommand : public Command {
   void on_message(std::string &message) override;
 
  protected:
-  bool uart_output_enable_;
+  optional<bool> uart_output_enable_;
 };
 
 class SetUartOutputCommand : public Command {
  public:
   SetUartOutputCommand(bool uart_output_enable);
   void on_message(std::string &message) override;
-
- protected:
-  bool uart_output_enable_;
 };
 
 class SetLedModeCommand1 : public Command {
@@ -196,9 +174,6 @@ class SetLedModeCommand2 : public Command {
  public:
   SetLedModeCommand2(bool led_mode);
   void on_message(std::string &message) override;
-
- protected:
-  bool led_enable_;
 };
 
 class GetMicroMotionCommand : public Command {
@@ -207,7 +182,7 @@ class GetMicroMotionCommand : public Command {
   void on_message(std::string &message) override;
 
  protected:
-  bool micro_motion_;
+  optional<bool> micro_motion_;
 };
 
 class SetMicroMotionCommand : public Command {
@@ -227,8 +202,11 @@ class FactoryResetCommand : public Command {
 
 class ResetSystemCommand : public Command {
  public:
-  ResetSystemCommand();
+  ResetSystemCommand(bool read_config);
   void on_message(std::string &message) override;
+
+ protected:
+  bool read_config_;
 };
 
 class SaveCfgCommand : public Command {
@@ -241,27 +219,18 @@ class SetRunAppCommand : public Command {
  public:
   SetRunAppCommand(uint8_t mode);
   void on_message(std::string &message) override;
-
- protected:
-  uint8_t mode_;
 };
 
 class GetHWVCommand : public Command {
  public:
   GetHWVCommand();
   void on_message(std::string &message) override;
-
- protected:
-  std::string version_;
 };
 
 class GetSWVCommand : public Command {
  public:
   GetSWVCommand();
   void on_message(std::string &message) override;
-
- protected:
-  std::string version_;
 };
 
 }  // namespace dfrobot_c4001

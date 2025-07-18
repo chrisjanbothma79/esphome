@@ -37,14 +37,15 @@ enum ModeConfig {
   MODE_UNKNOWN,
 };
 
-const uint8_t MMWAVE_READ_BUFFER_LENGTH = 255;
+const uint8_t MMWAVE_READ_BUFFER_LENGTH = 64;
 
 static const uint8_t COMMAND_QUEUE_SIZE = 32;
 
 class CircularCommandQueue {
  public:
-  int8_t enqueue(std::unique_ptr<Command> cmd);
+  int8_t enqueue(std::unique_ptr<Command> cmd, bool first = false);
   std::unique_ptr<Command> dequeue();
+  bool isRetryPowerStop();
   bool is_empty();
   bool is_full();
   int8_t process(DFRobotC4001Hub *parent);
@@ -115,9 +116,10 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   void set_micro_motion_enable(bool enable, bool needs_save = true);
   void flash_led_enable();
   void set_mode(uint8_t value);
-  void set_software_version(const std::string &version);
-  void set_hardware_version(const std::string &version);
+  void set_software_version(char *version);
+  void set_hardware_version(char *version);
   void set_needs_save(bool needs_save);
+  void setup_module();
   void config_load();
   void config_save();
   void factory_reset();
@@ -126,7 +128,7 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   void set_target_distance(float value);
   void set_target_speed(float value);
   void set_target_energy(float value);
-  int8_t enqueue(std::unique_ptr<Command> cmd);
+  int8_t enqueue(std::unique_ptr<Command> cmd, bool first = false);
 
  protected:
   bool is_setup_{false};
@@ -148,12 +150,9 @@ class DFRobotC4001Hub : public uart::UARTDevice, public Component {
   float target_speed_;
   float target_energy_;
   uint8_t mode_{MODE_PRESENCE};
-  std::string hw_version_{""};
-  std::string sw_version_{""};
+  std::string hw_version_;
+  std::string sw_version_;
 
-  uint64_t loop_time_{0};
-  uint16_t wake_time_{0};
-  uint8_t module_present_{false};
   char read_buffer_[MMWAVE_READ_BUFFER_LENGTH];
   size_t read_pos_{0};
   CircularCommandQueue cmd_queue_;
