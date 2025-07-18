@@ -13,7 +13,6 @@
 #include <hal/cpu_hal.h>
 
 #ifdef USE_ARDUINO
-SET_LOOP_TASK_STACK_SIZE(LOOP_TASK_STACK_SIZE);
 #include <Esp.h>
 #else
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 1, 0)
