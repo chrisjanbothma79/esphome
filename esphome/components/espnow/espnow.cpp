@@ -118,6 +118,7 @@ uint64_t ESPNowPacket::read(size_t pos, size_t length, bool header) const {
 
 std::string ESPNowPacket::peer_str() const {
   char mac[24];
+  uint64_t peer = this->peer_id_;
   if (peer == 0) {
     snprintf(mac, sizeof(mac), "%s", "[Not Set]");
   } else if (peer == ESPNOW_BROADCAST_ADDR) {
@@ -154,8 +155,8 @@ void ESPNowComponent::dump_config() {
 #endif
   ESP_LOGCONFIG(TAG, "  Wifi channel        : %d.", this->wifi_channel_);
 
-  ESP_LOGCONFIG(TAG, "  Own Mac address    : %s.", peer_string(this->own_peer_address_).c_str());
-  ESP_LOGCONFIG(TAG, "  Default Mac Address: %s.", peer_string(this->default_peer_address_).c_str());
+  ESP_LOGCONFIG(TAG, "  Own Mac address    : %s.", this->peer_str(this->own_peer_address_).c_str());
+  ESP_LOGCONFIG(TAG, "  Default Mac Address: %s.", this->peer_str(this->default_peer_address_).c_str());
 
   ESP_LOGCONFIG(TAG, "  Response timeout: %" PRId32 "ms.", this->response_timeout_);
 }
@@ -412,7 +413,7 @@ void ESPNowComponent::call_trigger(ESPNowTriggers event, std::weak_ptr<ESPNowPac
   }
 }
 
-esp_err_t ESPNowComponent::send(const uint64_t peer_address, std::vector<uint8_t> payload) {
+esp_err_t ESPNowComponent::send(uint64_t peer_address, std::vector<uint8_t> payload) {
   if (!this->can_proceed() || !this->is_ready()) {
     return ESP_ERR_ESPNOW_NOT_INIT;
   } else if (this->is_failed()) {
@@ -499,7 +500,7 @@ esp_err_t ESPNowComponent::del_peer(uint64_t peer) {
   return result;
 }
 
-std::string ESPNowComponent::peer_string(const uint64_t peer) {
+std::string ESPNowComponent::peer_str(uint64_t peer) {
   char mac[24];
   if (peer == 0) {
     snprintf(mac, sizeof(mac), "%s", "[Not Set]");
@@ -518,21 +519,21 @@ std::string ESPNowComponent::peer_string(const uint64_t peer) {
 /* ESPNowInterface ********************************************************************** */
 
 esp_err_t ESPNowInterface::send(uint64_t peer, std::vector<uint8_t> payload) {
-  return this->parent_->send(peer, payload);
+  return this->parent_->send(peer, std::move(payload));
 }
 
-bool ESPNowInterface::call_trigger(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet) {
+bool ESPNowInterface::call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> weak_packet) {
   switch (event) {
-  ON_NEW_PEER:
-    return this->on_new_peer(weak_packet);
-  ON_RECEIVED:
-    return this->on_received(weak_packet);
-  ON_BROADCASTED:
-    return this->on_broadcasted(weak_packet);
-  ON_SUCCEED:
-    return this->on_sent_succeed(weak_packet);
-  ON_FAILED:
-    return this->on_sent_failed(weak_packet);
+    case ON_NEW_PEER:
+      return this->on_new_peer(weak_packet);
+    case ON_RECEIVED:
+      return this->on_received(weak_packet);
+    case ON_BROADCASTED:
+      return this->on_broadcasted(weak_packet);
+    case ON_SUCCEED:
+      return this->on_sent_succeed(weak_packet);
+    case ON_FAILED:
+      return this->on_sent_failed(weak_packet);
     default:
       return false;
   }

@@ -48,7 +48,7 @@ using ESPNowTriggerCB = std::function<void(std::shared_ptr<ESPNowPacket>)>;
 class ESPNowPacket {
  public:
   ESPNowPacket(uint64_t peer, const uint8_t *payload, size_t size);
-  ESPNowPacket(const uint8_t *mac_address, const uint8_t *payload, int size);
+  ESPNowPacket(const uint8_t *peer, const uint8_t *payload, int size);
 
   uint8_t *content() const { return (uint8_t *) this->content_.data(); }
   size_t size() const { return this->content_.size(); }
@@ -176,7 +176,7 @@ class ESPNowComponent : public Component {
     app->initialize();
   }
 
-  esp_err_t send(const uint64_t peer_address, std::vector<uint8_t> payload);
+  esp_err_t send(uint64_t peer_address, std::vector<uint8_t> payload);
   bool get_last_send_state() { return this->last_send_state_; }
 
   static void on_data_received(const esp_now_recv_info_t *info, const uint8_t *data, int size);
@@ -185,12 +185,9 @@ class ESPNowComponent : public Component {
 #else
   static void on_send_report(const uint8_t *mac_addr, esp_now_send_status_t status);
 #endif
-  std::string peer_string(const uint64_t peer);
+  std::string peer_str(uint64_t peer);
 
  protected:
-  void on_data_received_(const esp_now_recv_info_t *info, const uint8_t *data, int size);
-  void on_send_report_(const uint64_t peer_address, std::vector<uint8_t> payload, esp_now_send_status_t status);
-
   bool is_wifi_enabled_();
 
   bool validate_channel_(uint8_t channel);
