@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cinttypes>
 #include <cstring>
+#include <limits>
 
 namespace esphome {
 
@@ -518,8 +519,8 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
   // This covers any reasonable scheduler delays or thread preemption
   static const uint32_t ROLLOVER_WINDOW = 10000;  // 10 seconds in milliseconds
 
-  // Check if we're near the rollover boundary (close to 0xFFFFFFFF or just past 0)
-  bool near_rollover = (last > (0xFFFFFFFF - ROLLOVER_WINDOW)) || (now < ROLLOVER_WINDOW);
+  // Check if we're near the rollover boundary (close to std::numeric_limits<uint32_t>::max() or just past 0)
+  bool near_rollover = (last > (std::numeric_limits<uint32_t>::max() - ROLLOVER_WINDOW)) || (now < ROLLOVER_WINDOW);
 
   if (near_rollover || (now < last && (last - now) > HALF_MAX_UINT32)) {
     // Near rollover or detected a rollover - need lock for safety
