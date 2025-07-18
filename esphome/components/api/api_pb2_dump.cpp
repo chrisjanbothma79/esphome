@@ -2910,6 +2910,7 @@ void SubscribeBluetoothLEAdvertisementsRequest::dump_to(std::string &out) const 
   out.append("\n");
   out.append("}");
 }
+#endif
 void BluetoothServiceData::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothServiceData {\n");
@@ -2922,47 +2923,7 @@ void BluetoothServiceData::dump_to(std::string &out) const {
   out.append("\n");
   out.append("}");
 }
-void BluetoothLEAdvertisementResponse::dump_to(std::string &out) const {
-  __attribute__((unused)) char buffer[64];
-  out.append("BluetoothLEAdvertisementResponse {\n");
-  out.append("  address: ");
-  snprintf(buffer, sizeof(buffer), "%llu", this->address);
-  out.append(buffer);
-  out.append("\n");
-
-  out.append("  name: ");
-  out.append(format_hex_pretty(this->name));
-  out.append("\n");
-
-  out.append("  rssi: ");
-  snprintf(buffer, sizeof(buffer), "%" PRId32, this->rssi);
-  out.append(buffer);
-  out.append("\n");
-
-  for (const auto &it : this->service_uuids) {
-    out.append("  service_uuids: ");
-    out.append("'").append(it).append("'");
-    out.append("\n");
-  }
-
-  for (const auto &it : this->service_data) {
-    out.append("  service_data: ");
-    it.dump_to(out);
-    out.append("\n");
-  }
-
-  for (const auto &it : this->manufacturer_data) {
-    out.append("  manufacturer_data: ");
-    it.dump_to(out);
-    out.append("\n");
-  }
-
-  out.append("  address_type: ");
-  snprintf(buffer, sizeof(buffer), "%" PRIu32, this->address_type);
-  out.append(buffer);
-  out.append("\n");
-  out.append("}");
-}
+#ifdef USE_BLUETOOTH_PROXY
 void BluetoothLERawAdvertisement::dump_to(std::string &out) const {
   __attribute__((unused)) char buffer[64];
   out.append("BluetoothLERawAdvertisement {\n");

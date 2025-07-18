@@ -1821,6 +1821,7 @@ bool SubscribeBluetoothLEAdvertisementsRequest::decode_varint(uint32_t field_id,
   }
   return true;
 }
+#endif
 void BluetoothServiceData::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_string(1, this->uuid);
   buffer.encode_bytes(3, reinterpret_cast<const uint8_t *>(this->data.data()), this->data.size());
@@ -1829,34 +1830,7 @@ void BluetoothServiceData::calculate_size(uint32_t &total_size) const {
   ProtoSize::add_string_field(total_size, 1, this->uuid);
   ProtoSize::add_string_field(total_size, 1, this->data);
 }
-void BluetoothLEAdvertisementResponse::encode(ProtoWriteBuffer buffer) const {
-  buffer.encode_uint64(1, this->address);
-  buffer.encode_bytes(2, reinterpret_cast<const uint8_t *>(this->name.data()), this->name.size());
-  buffer.encode_sint32(3, this->rssi);
-  for (auto &it : this->service_uuids) {
-    buffer.encode_string(4, it, true);
-  }
-  for (auto &it : this->service_data) {
-    buffer.encode_message(5, it, true);
-  }
-  for (auto &it : this->manufacturer_data) {
-    buffer.encode_message(6, it, true);
-  }
-  buffer.encode_uint32(7, this->address_type);
-}
-void BluetoothLEAdvertisementResponse::calculate_size(uint32_t &total_size) const {
-  ProtoSize::add_uint64_field(total_size, 1, this->address);
-  ProtoSize::add_string_field(total_size, 1, this->name);
-  ProtoSize::add_sint32_field(total_size, 1, this->rssi);
-  if (!this->service_uuids.empty()) {
-    for (const auto &it : this->service_uuids) {
-      ProtoSize::add_string_field_repeated(total_size, 1, it);
-    }
-  }
-  ProtoSize::add_repeated_message(total_size, 1, this->service_data);
-  ProtoSize::add_repeated_message(total_size, 1, this->manufacturer_data);
-  ProtoSize::add_uint32_field(total_size, 1, this->address_type);
-}
+#ifdef USE_BLUETOOTH_PROXY
 void BluetoothLERawAdvertisement::encode(ProtoWriteBuffer buffer) const {
   buffer.encode_uint64(1, this->address);
   buffer.encode_sint32(2, this->rssi);

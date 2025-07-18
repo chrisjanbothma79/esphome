@@ -1091,9 +1091,6 @@ void APIConnection::subscribe_bluetooth_le_advertisements(const SubscribeBluetoo
 void APIConnection::unsubscribe_bluetooth_le_advertisements(const UnsubscribeBluetoothLEAdvertisementsRequest &msg) {
   bluetooth_proxy::global_bluetooth_proxy->unsubscribe_api_connection(this);
 }
-bool APIConnection::send_bluetooth_le_advertisement(const BluetoothLEAdvertisementResponse &msg) {
-  return this->send_message(msg, BluetoothLEAdvertisementResponse::MESSAGE_TYPE);
-}
 void APIConnection::bluetooth_device_request(const BluetoothDeviceRequest &msg) {
   bluetooth_proxy::global_bluetooth_proxy->bluetooth_device_request(msg);
 }

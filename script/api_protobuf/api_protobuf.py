@@ -999,6 +999,10 @@ def build_type_usage_map(
 
     # Analyze field usage
     for message in file_desc.message_type:
+        # Skip deprecated messages entirely
+        if message.options.deprecated:
+            continue
+
         for field in message.field:
             # Skip deprecated fields when tracking enum usage
             if field.options.deprecated:
@@ -1593,6 +1597,10 @@ def build_service_message_type(
     message_source_map: dict[str, int],
 ) -> tuple[str, str] | None:
     """Builds the service message type."""
+    # Skip deprecated messages
+    if mt.options.deprecated:
+        return None
+
     snake = camel_to_snake(mt.name)
     id_: int | None = get_opt(mt, pb.id)
     if id_ is None:
@@ -1760,6 +1768,10 @@ namespace api {
     current_ifdef = None
 
     for m in mt:
+        # Skip deprecated messages
+        if m.options.deprecated:
+            continue
+
         s, c, dc = build_message_type(m, base_class_fields, message_source_map)
         msg_ifdef = message_ifdef_map.get(m.name)
 
