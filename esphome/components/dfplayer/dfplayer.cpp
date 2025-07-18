@@ -102,14 +102,10 @@ void DFPlayer::random() {
   this->send_cmd_(0x18);
 }
 
-void DFPlayer::enable_loop() {
-  ESP_LOGD(TAG, "Repeating current file");
-  this->send_cmd_(0x19, 0x00);
-}
-
-void DFPlayer::disable_loop() {
-  ESP_LOGD(TAG, "Disabling repeat of current file");
-  this->send_cmd_(0x19, 0x01);
+void DFPlayer::set_current_track_repeat(bool enable) {
+  uint16_t arg = enable ? 0x00 : 0x01;
+  ESP_LOGD(TAG, "Setting current track repeat to %s", enable ? "enabled" : "disabled");
+  this->send_cmd_(0x19, arg);
 }
 
 void DFPlayer::play_folder(uint16_t folder, uint16_t file) {

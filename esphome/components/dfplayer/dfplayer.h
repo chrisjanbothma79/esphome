@@ -47,8 +47,7 @@ class DFPlayer : public uart::UARTDevice, public Component {
   void pause();
   void stop();
   void random();
-  void enable_loop();
-  void disable_loop();
+  void set_current_track_repeat(bool enable);
 
   bool is_playing() { return is_playing_; }
   void dump_config() override;
@@ -159,6 +158,16 @@ template<typename... Ts> class SetEqAction : public Action<Ts...>, public Parent
   }
 };
 
+template<typename... Ts> class SetCurrentTrackRepeatAction : public Action<Ts...>, public Parented<DFPlayer> {
+ public:
+  TEMPLATABLE_VALUE(bool, enable)
+
+  void play(Ts... x) override {
+    auto enable = this->enable_.value(x...);
+    this->parent_->set_current_track_repeat(enable);
+  }
+};
+
 DFPLAYER_SIMPLE_ACTION(SleepAction, sleep)
 DFPLAYER_SIMPLE_ACTION(ResetAction, reset)
 DFPLAYER_SIMPLE_ACTION(StartAction, start)
@@ -167,8 +176,6 @@ DFPLAYER_SIMPLE_ACTION(StopAction, stop)
 DFPLAYER_SIMPLE_ACTION(RandomAction, random)
 DFPLAYER_SIMPLE_ACTION(VolumeUpAction, volume_up)
 DFPLAYER_SIMPLE_ACTION(VolumeDownAction, volume_down)
-DFPLAYER_SIMPLE_ACTION(EnableLoopAction, enable_loop)
-DFPLAYER_SIMPLE_ACTION(DisableLoopAction, disable_loop)
 
 template<typename... Ts> class DFPlayerIsPlayingCondition : public Condition<Ts...>, public Parented<DFPlayer> {
  public:
