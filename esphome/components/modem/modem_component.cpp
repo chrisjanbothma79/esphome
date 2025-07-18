@@ -60,12 +60,13 @@ std::string ModemComponent::modem_network_status_string() {
   char buf[256];
   snprintf(buf, sizeof(buf),
            "Modem status: %s, attached: %s, radio function: %s, SIM: %s, type: %s, ber: %.0f%%, rssi: %.0fdB %s",
-           this->internal_state_.modem_connected ? "Good" : "BAD",
+           this->internal_state_.modem_connected ? "Good"
+           : this->internal_state_.synced        ? "BAD"
+                                                 : "No SYNC",
            this->internal_state_.network_attached ? "Yes" : "NO", cfun_str.c_str(),
            this->internal_state_.sim_status.c_str(),
            network_system_mode_to_string(this->internal_state_.network_mode).c_str(), this->internal_state_.ber,
            this->internal_state_.rssi, get_signal_bars(this->internal_state_.rssi).c_str());
-
   std::string status_string(buf);
   return status_string;
 }
@@ -306,7 +307,7 @@ void ModemComponent::handle_state_powering_on_() {
   this->power_pin_->digital_write(false);
   delay(this->power_ton_pulse_delay_);
   this->power_pin_->digital_write(true);
-  uint32_t loop_delay = this->power_ton_pulse_delay_;
+  uint32_t loop_delay = this->power_ton_delay_;
   this->loop_delay_(loop_delay);  // Delay next loop.
   ESP_LOGD(TAG, "Modem ON in %.1fs...", float(loop_delay) / 1000);
 
@@ -711,6 +712,7 @@ void ModemComponent::update_network_state_() {
   // On command error, state will be unchanged
 
   if (this->dce && (this->dce->sync() == command_result::OK)) {
+    this->internal_state_.synced = true;
     AtCommandResult sim_status = this->send_at("AT+CPIN?");
     if (sim_status) {
       this->internal_state_.sim_status =
@@ -729,12 +731,13 @@ void ModemComponent::update_network_state_() {
                          "get_network_system_mode");
   } else {
     ESP_LOGW(TAG, "Modem not synced, some network states might be incorrect");
-    return;
+    this->internal_state_.synced = false;
   }
 
-  this->internal_state_.modem_connected =
-      (this->internal_state_.network_mode != 0) && (!std::isnan(this->internal_state_.rssi)) &&
-      this->internal_state_.network_attached && this->internal_state_.sim_status.find("READY") != std::string::npos;
+  this->internal_state_.modem_connected = (this->internal_state_.network_mode != 0) &&
+                                          (!std::isnan(this->internal_state_.rssi)) && this->internal_state_.synced &&
+                                          this->internal_state_.network_attached &&
+                                          this->internal_state_.sim_status.find("READY") != std::string::npos;
 }
 
 void ModemComponent::ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data) {

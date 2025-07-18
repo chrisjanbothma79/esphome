@@ -71,7 +71,7 @@ MODEM_MODELS_POWER = {
     },
     "SIM7600": {
         CONF_TON_PULSE_DELAY: 500,
-        CONF_TON_DELAY: 12000,
+        CONF_TON_DELAY: 14000,
         CONF_TOFF_PULSE_DELAY: 2800,
         CONF_TOFF_DELAY: 25000,
     },

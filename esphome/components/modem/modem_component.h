@@ -192,6 +192,7 @@ class ModemComponent : public Component {
     bool modem_connected{false};
     int cfun{0};
     std::string sim_status = "None";
+    bool synced{false};
   };
   InternalState internal_state_;
 
