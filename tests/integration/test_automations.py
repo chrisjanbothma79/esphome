@@ -81,46 +81,11 @@ async def test_delay_action_cancellation(
         )
         assert script_restart_logged, "Script restart was not logged"
 
-        # The key assertion: we should only see ONE delay completion (from the second script)
-        if len(delay_completions) > 1:
-            # Print timing analysis
-            timing_info = []
-            if len(script_starts) >= 2 and len(delay_completions) >= 1:
-                first_start = script_starts[0]
-                second_start = script_starts[1]
-                timing_info.append(
-                    f"First script started at: +{first_start - test_started_time:.3f}s"
-                )
-                timing_info.append(
-                    f"Second script started at: +{second_start - test_started_time:.3f}s"
-                )
-                timing_info.append(
-                    f"Time between starts: {second_start - first_start:.3f}s"
-                )
-                for i, completion in enumerate(delay_completions):
-                    timing_info.append(
-                        f"Delay {i + 1} completed at: +{completion - test_started_time:.3f}s"
-                    )
-                    if i == 0:
-                        timing_info.append(
-                            f"  Time from first start: {completion - first_start:.3f}s"
-                        )
-                    timing_info.append(
-                        f"  Time from second start: {completion - second_start:.3f}s"
-                    )
-
-            pytest.fail(
-                f"Found {len(delay_completions)} delay completions, but expected only 1!\n"
-                "The first delay should have been cancelled by the script restart.\n"
-                f"Timing analysis:\n" + "\n".join(timing_info)
-            )
-
         # Verify we got exactly one completion and it happened ~5s after the second start
         assert len(delay_completions) == 1, (
             f"Expected 1 delay completion, got {len(delay_completions)}"
         )
-        if len(script_starts) >= 2 and len(delay_completions) >= 1:
-            time_from_second_start = delay_completions[0] - script_starts[1]
-            assert 0.8 < time_from_second_start < 1.2, (
-                f"Delay completed {time_from_second_start:.3f}s after second start, expected ~1s"
-            )
+        time_from_second_start = delay_completions[0] - script_starts[1]
+        assert 0.8 < time_from_second_start < 1.2, (
+            f"Delay completed {time_from_second_start:.3f}s after second start, expected ~1s"
+        )
