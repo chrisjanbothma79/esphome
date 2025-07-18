@@ -210,9 +210,12 @@ void IRAM_ATTR ESP32TouchComponent::touch_isr_handler(void *arg) {
       value = touch_ll_read_raw_data(pad);
     }
 
-    // Skip pads that aren’t in the trigger mask
+    // Check if pad is in the trigger mask
     bool is_touched = (mask >> pad) & 1;
-    if (!is_touched) {
+
+    // In setup mode, we need to send all pad values for logging
+    // In normal mode, only send touched pads to reduce queue traffic
+    if (!component->setup_mode_ && !is_touched) {
       continue;
     }
 
