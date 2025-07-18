@@ -522,7 +522,7 @@ esp_err_t ESPNowInterface::send(uint64_t peer, std::vector<uint8_t> payload) {
   return this->parent_->send(peer, std::move(payload));
 }
 
-bool ESPNowInterface::call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> weak_packet) {
+bool ESPNowInterface::call_trigger(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet) {
   switch (event) {
     case ON_NEW_PEER:
       return this->on_new_peer(weak_packet);
