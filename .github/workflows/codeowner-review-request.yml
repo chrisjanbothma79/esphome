@@ -10,7 +10,8 @@
 name: Request Codeowner Reviews
 
 on:
-  pull_request:
+  # Needs to be pull_request_target to get write permissions
+  pull_request_target:
     types: [opened, reopened, synchronize, ready_for_review]
 
 permissions:
