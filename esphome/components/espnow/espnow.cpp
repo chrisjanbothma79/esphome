@@ -273,7 +273,7 @@ void ESPNowComponent::enable_() {
 
   esp_wifi_get_mac(WIFI_IF_STA, (uint8_t *) &this->own_peer_address_);
 
-#if USE_DEEP_SLEEP
+#ifdef USE_DEEP_SLEEP
   esp_now_set_wake_window(CONFIG_ESPNOW_WAKE_WINDOW);
   esp_wifi_connectionless_module_set_wake_interval(CONFIG_ESPNOW_WAKE_INTERVAL);
 #endif
