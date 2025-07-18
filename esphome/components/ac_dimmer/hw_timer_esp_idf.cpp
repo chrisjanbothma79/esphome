@@ -39,11 +39,8 @@ hw_timer_t *timerBegin(uint32_t frequency) {
   esp_err_t err = ESP_OK;
   uint32_t counter_src_hz = 0;
   uint32_t divider = 0;
-  int clk;
-  // soc_periph_gptimer_clk_src_t clk;
-
-  int gptimer_clks[] = SOC_GPTIMER_CLKS;
-  // soc_periph_gptimer_clk_src_t gptimer_clks[] = SOC_GPTIMER_CLKS;
+  int /*soc_periph_gptimer_clk_src_t*/ clk;
+  int /*soc_periph_gptimer_clk_src_t*/ gptimer_clks[] = SOC_GPTIMER_CLKS;
   for (size_t i = 0; i < sizeof(gptimer_clks) / sizeof(gptimer_clks[0]); i++) {
     clk = gptimer_clks[i];
 #if defined __has_include && __has_include("clk_tree.h")
@@ -68,7 +65,6 @@ hw_timer_t *timerBegin(uint32_t frequency) {
       .clk_src = (gptimer_clock_source_t) clk,
       .direction = GPTIMER_COUNT_UP,
       .resolution_hz = frequency,
-      // .intr_priority = 0,
       .flags = {.intr_shared = true},
   };
 
