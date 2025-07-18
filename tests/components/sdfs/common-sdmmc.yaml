@@ -22,3 +22,19 @@ sdfs:
       - logger.log:
           format: "State changed %d"
           args: [x]
+
+script:
+  - id: test_script
+  - if:
+      condition:
+        or:
+          - sdfs.is_size_le:
+              id: sdfs_1
+              path: "/"
+              size: 10000
+          - sdfs.is_state:
+              id: sdfs_1
+              state: 1
+      then:
+        - lambda: |-
+            ESP_LOGD("lambda", "Condition TRUE");

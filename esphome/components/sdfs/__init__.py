@@ -8,6 +8,7 @@ from esphome.const import (
     # CONF_CS_PIN,
     CONF_ID,
     CONF_PATH,
+    CONF_SIZE,
     # PLATFORM_ESP8266,
     CONF_TRIGGER_ID,
     CONF_TYPE,
@@ -41,6 +42,7 @@ CONF_MODE = "mode"
 CONF_DATA = "data"
 CONF_ON_STATE = "on_state"
 CONF_STATE_NUM = "state"
+# CONF_PATH = "file"
 
 
 sdfs_ns = cg.esphome_ns.namespace("sdfs")
@@ -73,12 +75,26 @@ SpiDrv = sdfs_ns.class_("EsphomeSpiDrv", spi.SPIDevice)
 SdfsWriteFile = sdfs_ns.class_("SdfsWriteFile", automation.Action)
 # SdfsStatus = sdfs_ns.class_("SdfsStatus", automation.Condition)
 
+ChangeSateteTrigger = sdfs_ns.class_(
+    "ChangeSateteTrigger", automation.Trigger.template()
+)
+
 SdIsStateCondition = sdfs_ns.class_(
     "SdIsStateCondition", automation.Condition.template()
 )
 
-ChangeSateteTrigger = sdfs_ns.class_(
-    "ChangeSateteTrigger", automation.Trigger.template()
+SdIsSizeGECondition = sdfs_ns.class_(
+    "SdIsSizeGECondition", automation.Condition.template()
+)
+
+SdIsSizeLECondition = sdfs_ns.class_(
+    "SdIsSizeLECondition", automation.Condition.template()
+)
+
+SdIsDirCondition = sdfs_ns.class_("SdIsDirCondition", automation.Condition.template())
+
+SdIsEsistCondition = sdfs_ns.class_(
+    "SdIsEsistCondition", automation.Condition.template()
 )
 
 
@@ -352,6 +368,11 @@ async def sdfs_write_file_to_code(config, action_id, template_arg, args):
 #
 #   CONDITION
 #
+# SdIsStateCondition = sdfs_ns.class_(
+#     "SdIsStateCondition", automation.Condition.template()
+# )
+
+
 @automation.register_condition(
     "sdfs.is_state",
     SdIsStateCondition,
@@ -369,4 +390,102 @@ async def sd_is_state_to_code(config, condition_id, template_arg, args):
     var = cg.new_Pvariable(condition_id, template_arg, paren)
     templ = await cg.templatable(config[CONF_STATE_NUM], args, cg.int_)
     cg.add(var.set_state(templ))
+    return var
+
+
+# SdIsSizeGECondition = sdfs_ns.class_(
+#     "SdIsSizeGE", automation.Condition.template()
+# )
+
+
+@automation.register_condition(
+    "sdfs.is_size_ge",
+    SdIsSizeGECondition,
+    automation.maybe_simple_id(
+        {
+            cv.Required(CONF_ID): cv.use_id(SdfsHost),
+            cv.Optional(CONF_PATH, default="/"): cv.templatable(cv.string),
+            cv.Required(CONF_SIZE): cv.templatable(cv.positive_int),
+        }
+    ),
+)
+async def sd_is_size_ge_to_code(config, condition_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(condition_id, template_arg, paren)
+    path = await cg.templatable(config[CONF_PATH], args, cg.std_string)
+    cg.add(var.set_path(path))
+    size = await cg.templatable(config[CONF_SIZE], args, cg.size_t)
+    cg.add(var.set_size(size))
+    return var
+
+
+# SdIsSizeLECondition = sdfs_ns.class_(
+#     "SdIsSizeLE", automation.Condition.template()
+# )
+
+
+@automation.register_condition(
+    "sdfs.is_size_le",
+    SdIsSizeLECondition,
+    automation.maybe_simple_id(
+        {
+            cv.Required(CONF_ID): cv.use_id(SdfsHost),
+            cv.Optional(CONF_PATH, default="/"): cv.templatable(cv.string),
+            cv.Required(CONF_SIZE): cv.templatable(cv.positive_int),
+        }
+    ),
+)
+async def sd_is_size_le_to_code(config, condition_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(condition_id, template_arg, paren)
+    path = await cg.templatable(config[CONF_PATH], args, cg.std_string)
+    cg.add(var.set_path(path))
+    size = await cg.templatable(config[CONF_SIZE], args, cg.size_t)
+    cg.add(var.set_size(size))
+    return var
+
+
+# SdIsDir = sdfs_ns.class_(
+#     "SdIsDir", automation.Condition.template()
+# )
+
+
+@automation.register_condition(
+    "sdfs.is_dir",
+    SdIsDirCondition,
+    automation.maybe_simple_id(
+        {
+            cv.Required(CONF_ID): cv.use_id(SdfsHost),
+            cv.Optional(CONF_PATH, default="/"): cv.templatable(cv.string),
+        }
+    ),
+)
+async def sd_is_dir_to_code(config, condition_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(condition_id, template_arg, paren)
+    path = await cg.templatable(config[CONF_PATH], args, cg.std_string)
+    cg.add(var.set_path(path))
+    return var
+
+
+# SdIsEsistCondition = sdfs_ns.class_(
+#     "SdIsEsistCondition", automation.Condition.template()
+# )
+
+
+@automation.register_condition(
+    "sdfs.is_exist",
+    SdIsEsistCondition,
+    automation.maybe_simple_id(
+        {
+            cv.Required(CONF_ID): cv.use_id(SdfsHost),
+            cv.Optional(CONF_PATH, default="/"): cv.templatable(cv.string),
+        }
+    ),
+)
+async def sd_is_exist_to_code(config, condition_id, template_arg, args):
+    paren = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(condition_id, template_arg, paren)
+    path = await cg.templatable(config[CONF_PATH], args, cg.std_string)
+    cg.add(var.set_path(path))
     return var
