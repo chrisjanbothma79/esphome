@@ -57,6 +57,7 @@ CONFIG_SCHEMA = cv.All(
                 cv.boolean, cv.only_with_esp_idf
             ),
             cv.Optional(CONF_FILTERS, default=16): cv.int_range(min=2, max=1024),
+            cv.Optional(CONF_SAMPLE_RATE, default=16000): cv.int_range(8000, 48000),
             cv.Optional(CONF_TAPS, default=16): _validate_taps,
         }
     ).extend(cv.COMPONENT_SCHEMA),
