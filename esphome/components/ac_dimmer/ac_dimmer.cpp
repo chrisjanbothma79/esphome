@@ -14,7 +14,6 @@
 #endif
 
 #ifdef USE_ESP32_FRAMEWORK_ESP_IDF
-#include "esp_idf_version.h"
 #include "hw_timer_esp_idf.h"
 #endif
 
