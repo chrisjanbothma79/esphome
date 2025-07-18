@@ -8,7 +8,7 @@ api:
       then:
         - logger.log: "Starting first script execution"
         - script.execute: test_delay_script
-        - delay: 500ms  # Give first script time to start delay
+        - delay: 250ms  # Give first script time to start delay
         - logger.log: "Restarting script (should cancel first delay)"
         - script.execute: test_delay_script
 
@@ -20,5 +20,5 @@ script:
     mode: restart
     then:
       - logger.log: "Script started, beginning delay"
-      - delay: 1s  # Long enough that it won't complete before restart
+      - delay: 500ms  # Long enough that it won't complete before restart
       - logger.log: "Delay completed successfully"

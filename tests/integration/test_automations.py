@@ -73,7 +73,7 @@ async def test_delay_action_cancellation(
         await asyncio.wait_for(second_script_started, timeout=5.0)
 
         # Wait for potential delay completion
-        await asyncio.sleep(1.5)  # Original delay was 1s
+        await asyncio.sleep(0.75)  # Original delay was 500ms
 
         # Check results
         assert len(script_starts) == 2, (
@@ -86,6 +86,6 @@ async def test_delay_action_cancellation(
             f"Expected 1 delay completion, got {len(delay_completions)}"
         )
         time_from_second_start = delay_completions[0] - script_starts[1]
-        assert 0.8 < time_from_second_start < 1.2, (
-            f"Delay completed {time_from_second_start:.3f}s after second start, expected ~1s"
+        assert 0.4 < time_from_second_start < 0.6, (
+            f"Delay completed {time_from_second_start:.3f}s after second start, expected ~0.5s"
         )
