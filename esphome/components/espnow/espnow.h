@@ -123,7 +123,9 @@ class ESPNowInterface : public Parented<ESPNowComponent> {
   virtual bool on_broadcasted(std::weak_ptr<ESPNowPacket> weak_packet) { return false; }
   virtual bool on_sent_succeed(std::weak_ptr<ESPNowPacket> weak_packet) { return false; }
   virtual bool on_sent_failed(std::weak_ptr<ESPNowPacket> weak_packet) { return false; }
-  bool call_trigger(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet);
+
+  virtual bool call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet);
+
   esp_err_t send(uint64_t peer, std::vector<uint8_t> payload);
 
  private:
@@ -154,7 +156,7 @@ class ESPNowComponent : public Component {
 
   Trigger<std::shared_ptr<ESPNowPacket>> *get_trigger(ESPNowTriggers event);
 
-  void call_trigger(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet);
+  void call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet);
 
   uint64_t get_own_peer_address() const { return this->own_peer_address_; }
 

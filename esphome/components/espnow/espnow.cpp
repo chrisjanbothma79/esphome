@@ -137,7 +137,7 @@ std::string ESPNowPacket::info() const {
   char info[100];
   char mode = this->is_received_ ? 'R' : 'S';
   snprintf(info, sizeof(info), "%c>%s, Broatcasted: %s, Size: %d ", mode, this->peer_str().c_str(),
-           YESNO(thid->is_broadcast_), this->size());
+           YESNO(this->is_broadcast_), this->size());
   return info;
 }
 
@@ -398,7 +398,7 @@ void ESPNowComponent::on_data_received(const esp_now_recv_info_t *info, const ui
   }
 }
 
-void ESPNowComponent::call_trigger(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet) {
+void ESPNowComponent::call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet) {
   ESP_LOGI(TAG, "call triggger {%d}", (int) event);
   bool result = false;
   for (const auto &kv : this->interfaces_) {
@@ -522,7 +522,7 @@ esp_err_t ESPNowInterface::send(uint64_t peer, std::vector<uint8_t> payload) {
   return this->parent_->send(peer, std::move(payload));
 }
 
-bool ESPNowInterface::call_trigger(ESPNowTriggers event, std::weak_ptr<ESPNowPacket> weak_packet) {
+bool ESPNowInterface::call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet) {
   switch (event) {
     case ON_NEW_PEER:
       return this->on_new_peer(weak_packet);
