@@ -1,6 +1,6 @@
-#ifdef USE_ZEPHYR
 
 #include "adc_sensor.h"
+#ifdef USE_ZEPHYR
 #include "esphome/core/log.h"
 
 #include "hal/nrf_saadc.h"
@@ -10,20 +10,20 @@ namespace adc {
 
 static const char *const TAG = "adc.zephyr";
 
-void AdcSensor::setup() {
-  if (!adc_is_ready_dt(adc_channel_)) {
-    ESP_LOGE(TAG, "ADC controller device %s not ready", adc_channel_->dev->name);
+void ADCSensor::setup() {
+  if (!adc_is_ready_dt(this->channel_)) {
+    ESP_LOGE(TAG, "ADC controller device %s not ready", this->channel_->dev->name);
     return;
   }
 
-  auto err = adc_channel_setup_dt(adc_channel_);
+  auto err = adc_channel_setup_dt(this->channel_);
   if (err < 0) {
-    ESP_LOGE(TAG, "Could not setup channel %s (%d)", adc_channel_->dev->name, err);
+    ESP_LOGE(TAG, "Could not setup channel %s (%d)", this->channel_->dev->name, err);
     return;
   }
 }
 
-static LogString *gain_to_str(enum adc_gain gain) {
+static const LogString *gain_to_str(enum adc_gain gain) {
   switch (gain) {
     case ADC_GAIN_1_6:
       return LOG_STR("1/6");
@@ -69,7 +69,7 @@ static LogString *gain_to_str(enum adc_gain gain) {
   return LOG_STR("undefined gain");
 }
 
-static LogString *reference_to_str(enum adc_reference reference) {
+static const LogString *reference_to_str(enum adc_reference reference) {
   switch (reference) {
     case ADC_REF_VDD_1:
       return LOG_STR("VDD");
@@ -89,7 +89,7 @@ static LogString *reference_to_str(enum adc_reference reference) {
   return LOG_STR("undefined reference");
 }
 
-static LogString *input_to_str(uint8_t input) {
+static const LogString *input_to_str(uint8_t input) {
   switch (input) {
     case NRF_SAADC_INPUT_AIN0:
       return LOG_STR("AIN0");
@@ -115,33 +115,32 @@ static LogString *input_to_str(uint8_t input) {
   return LOG_STR("undefined input");
 }
 
-void AdcSensor::dump_config() {
+void ADCSensor::dump_config() {
   LOG_SENSOR("", "ADC Sensor", this);
-  LOG_PIN("  Pin: ", this->pin_);
   ESP_LOGCONFIG(TAG,
                 "  Name: %s\n"
                 "  Channel: %d\n"
                 "  vref_mv: %d\n"
                 "  Resolution %d\n"
                 "  Oversampling %d",
-                adc_channel_->dev->name, adc_channel_->channel_id, adc_channel_->vref_mv, adc_channel_->resolution,
-                adc_channel_->oversampling);
+                this->channel_->dev->name, this->channel_->channel_id, this->channel_->vref_mv,
+                this->channel_->resolution, this->channel_->oversampling);
 
   ESP_LOGCONFIG(TAG,
                 "  Gain: %s\n"
                 "  reference: %s\n"
                 "  acquisition_time: %d\n"
                 "  differential %s",
-                gain_to_str(adc_channel_->channel_cfg.gain), reference_to_str(adc_channel_->channel_cfg.reference),
-                adc_channel_->channel_cfg.acquisition_time, YESNO(adc_channel_->channel_cfg.differential));
-  if (adc_channel_->channel_cfg.differential) {
+                gain_to_str(this->channel_->channel_cfg.gain), reference_to_str(this->channel_->channel_cfg.reference),
+                this->channel_->channel_cfg.acquisition_time, YESNO(this->channel_->channel_cfg.differential));
+  if (this->channel_->channel_cfg.differential) {
     ESP_LOGCONFIG(TAG,
                   "  Positive: %s\n"
                   "  Negative: %s",
-                  input_to_str(adc_channel_->channel_cfg.input_positive),
-                  input_to_str(adc_channel_->channel_cfg.input_negative));
+                  input_to_str(this->channel_->channel_cfg.input_positive),
+                  input_to_str(this->channel_->channel_cfg.input_negative));
   } else {
-    ESP_LOGCONFIG(TAG, "  Positive: %s", input_to_str(adc_channel_->channel_cfg.input_positive));
+    ESP_LOGCONFIG(TAG, "  Positive: %s", input_to_str(this->channel_->channel_cfg.input_positive));
   }
 
   LOG_UPDATE_INTERVAL(this);
@@ -156,15 +155,15 @@ float ADCSensor::sample() {
   };
   int32_t val_mv;
 
-  auto err = adc_sequence_init_dt(adc_channel_, &sequence);
+  auto err = adc_sequence_init_dt(this->channel_, &sequence);
   if (err < 0) {
-    ESP_LOGE(TAG, "Could sequence init %s (%d)", adc_channel_->dev->name, err);
+    ESP_LOGE(TAG, "Could sequence init %s (%d)", this->channel_->dev->name, err);
     return 0.0;
   }
 
-  err = adc_read(adc_channel_->dev, &sequence);
+  err = adc_read(this->channel_->dev, &sequence);
   if (err < 0) {
-    ESP_LOGE(TAG, "Could not read %s (%d)", adc_channel_->dev->name, err);
+    ESP_LOGE(TAG, "Could not read %s (%d)", this->channel_->dev->name, err);
     return 0.0;
   }
 
@@ -173,7 +172,7 @@ float ADCSensor::sample() {
    * in the ADC sample buffer should be a signed 2's
    * complement value.
    */
-  if (adc_channel_->channel_cfg.differential) {
+  if (this->channel_->channel_cfg.differential) {
     val_mv = (int32_t) ((int16_t) buf);
   } else {
     val_mv = (int32_t) buf;
@@ -183,14 +182,14 @@ float ADCSensor::sample() {
     }
   }
 
-  if (output_raw_) {
+  if (this->output_raw_) {
     return val_mv;
   }
 
-  err = adc_raw_to_millivolts_dt(adc_channel_, &val_mv);
+  err = adc_raw_to_millivolts_dt(this->channel_, &val_mv);
   /* conversion to mV may not be supported, skip if not */
   if (err < 0) {
-    ESP_LOGE(TAG, "Value in mV not available %s (%d)", adc_channel_->dev->name, err);
+    ESP_LOGE(TAG, "Value in mV not available %s (%d)", this->channel_->dev->name, err);
     return 0.0;
   }
 
@@ -199,3 +198,4 @@ float ADCSensor::sample() {
 
 }  // namespace adc
 }  // namespace esphome
+#endif
