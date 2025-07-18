@@ -118,11 +118,11 @@ class ESPNowInterface : public Parented<ESPNowComponent> {
   virtual bool on_add_peer(uint64_t peer) { return true; };
   virtual bool on_del_peer(uint64_t peer) { return true; };
 
-  virtual bool on_new_peer(std::weak_ptr<ESPNowPacket> weak_packet) { return false; }
-  virtual bool on_received(std::weak_ptr<ESPNowPacket> weak_packet) { return false; }
-  virtual bool on_broadcasted(std::weak_ptr<ESPNowPacket> weak_packet) { return false; }
-  virtual bool on_sent_succeed(std::weak_ptr<ESPNowPacket> weak_packet) { return false; }
-  virtual bool on_sent_failed(std::weak_ptr<ESPNowPacket> weak_packet) { return false; }
+  virtual bool on_new_peer(const std::weak_ptr<ESPNowPacket> &weak_packet) { return false; }
+  virtual bool on_received(const std::weak_ptr<ESPNowPacket> &weak_packet) { return false; }
+  virtual bool on_broadcasted(const std::weak_ptr<ESPNowPacket> &weak_packet) { return false; }
+  virtual bool on_sent_succeed(const std::weak_ptr<ESPNowPacket> &weak_packet) { return false; }
+  virtual bool on_sent_failed(const std::weak_ptr<ESPNowPacket> &weak_packet) { return false; }
 
   virtual bool call_trigger(ESPNowTriggers event, const std::weak_ptr<ESPNowPacket> &weak_packet);
 
