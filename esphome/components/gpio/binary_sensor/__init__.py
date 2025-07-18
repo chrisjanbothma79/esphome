@@ -29,6 +29,10 @@ CONFIG_SCHEMA = (
     .extend(
         {
             cv.Required(CONF_PIN): pins.gpio_input_pin_schema,
+            # Interrupts are disabled by default for bk72xx, ln882x, and rtl87xx platforms
+            # due to hardware limitations or lack of reliable interrupt support. This ensures
+            # stable operation on these platforms. Future maintainers should verify platform
+            # capabilities before changing this default behavior.
             cv.SplitDefault(
                 CONF_USE_INTERRUPT,
                 bk72xx=False,
