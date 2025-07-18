@@ -202,7 +202,7 @@ void DFRobotC4001Hub::set_software_version(char *version) {
     this->software_version_text_sensor_->publish_state(new_string);
   }
 #endif
-  this->sw_version_ = move(new_string);
+  this->sw_version_ = std::move(new_string);
 }
 
 void DFRobotC4001Hub::set_hardware_version(char *version) {
@@ -212,7 +212,7 @@ void DFRobotC4001Hub::set_hardware_version(char *version) {
     this->hardware_version_text_sensor_->publish_state(new_string);
   }
 #endif
-  this->hw_version_ = move(new_string);
+  this->hw_version_ = std::move(new_string);
 }
 
 void DFRobotC4001Hub::flash_led_enable() {
@@ -403,7 +403,7 @@ void DFRobotC4001Hub::loop() {
   // Commands are non-blocking and need to be called repeatedly.
   int8_t result = this->cmd_queue_.process(this);
   if (result) {
-    if (this->cmd_queue_.isRetryPowerStop()) {
+    if (this->cmd_queue_.is_retry_power_stop()) {
       // add PowerCommand to the beginning of the queue tostop the sensor
       this->enqueue(make_unique<PowerCommand>(false), true);
       ESP_LOGV(TAG, "Queue: Retrying command after stopping sensor");
@@ -494,7 +494,7 @@ int8_t CircularCommandQueue::enqueue(std::unique_ptr<Command> cmd, bool first) {
   }
 }
 
-bool CircularCommandQueue::isRetryPowerStop() {
+bool CircularCommandQueue::is_retry_power_stop() {
   if (this->is_empty()) {
     return false;
   } else {

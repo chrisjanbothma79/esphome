@@ -85,7 +85,7 @@ uint8_t Command::execute(DFRobotC4001Hub *parent) {
         break;
       default:  // STATE_DONE
         // Command done
-        this->error_count_ < 0 ? this->error_count_ : true;
+        return this->error_count_ < 0 ? this->error_count_ : true;
     }
   }
   // check for timeout

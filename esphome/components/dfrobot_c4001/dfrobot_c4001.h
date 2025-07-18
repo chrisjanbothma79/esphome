@@ -45,7 +45,7 @@ class CircularCommandQueue {
  public:
   int8_t enqueue(std::unique_ptr<Command> cmd, bool first = false);
   std::unique_ptr<Command> dequeue();
-  bool isRetryPowerStop();
+  bool is_retry_power_stop();
   bool is_empty();
   bool is_full();
   int8_t process(DFRobotC4001Hub *parent);
