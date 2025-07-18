@@ -1092,18 +1092,6 @@ void APIConnection::unsubscribe_bluetooth_le_advertisements(const UnsubscribeBlu
   bluetooth_proxy::global_bluetooth_proxy->unsubscribe_api_connection(this);
 }
 bool APIConnection::send_bluetooth_le_advertisement(const BluetoothLEAdvertisementResponse &msg) {
-  if (this->client_api_version_major_ < 1 || this->client_api_version_minor_ < 7) {
-    BluetoothLEAdvertisementResponse resp = msg;
-    for (auto &service : resp.service_data) {
-      service.legacy_data.assign(service.data.begin(), service.data.end());
-      service.data.clear();
-    }
-    for (auto &manufacturer_data : resp.manufacturer_data) {
-      manufacturer_data.legacy_data.assign(manufacturer_data.data.begin(), manufacturer_data.data.end());
-      manufacturer_data.data.clear();
-    }
-    return this->send_message(resp, BluetoothLEAdvertisementResponse::MESSAGE_TYPE);
-  }
   return this->send_message(msg, BluetoothLEAdvertisementResponse::MESSAGE_TYPE);
 }
 void APIConnection::bluetooth_device_request(const BluetoothDeviceRequest &msg) {
