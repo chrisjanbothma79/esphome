@@ -31,9 +31,13 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_PIN): pins.gpio_input_pin_schema,
             cv.SplitDefault(
                 CONF_USE_INTERRUPT,
+                esp8266=True,
+                esp32=True,
+                rp2040=True,
                 bk72xx=False,
                 ln882x=False,
                 rtl87xx=False,
+                host=True,
             ): cv.boolean,
             cv.Optional(CONF_INTERRUPT_TYPE, default="ANY"): cv.enum(
                 INTERRUPT_TYPES, upper=True
