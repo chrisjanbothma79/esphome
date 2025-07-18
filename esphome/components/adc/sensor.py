@@ -3,6 +3,7 @@ import logging
 import esphome.codegen as cg
 from esphome.components import sensor, voltage_sampler
 from esphome.components.esp32 import get_esp32_variant
+from esphome.components.nrf52.const import AIN_TO_GPIO, EXTRA_ADC
 from esphome.components.zephyr import (
     zephyr_add_overlay,
     zephyr_add_prj_conf,
@@ -105,7 +106,7 @@ async def to_code(config):
         cg.add_define("USE_ADC_SENSOR_VCC")
     elif config[CONF_PIN] == "TEMPERATURE":
         cg.add(var.set_is_temperature())
-    elif not CORE.is_nrf52:
+    elif not CORE.is_nrf52 or config[CONF_PIN][CONF_NUMBER] not in EXTRA_ADC:
         pin = await cg.gpio_pin_expression(config[CONF_PIN])
         cg.add(var.set_pin(pin))
 
@@ -150,6 +151,9 @@ async def to_code(config):
         pin_number = config[CONF_PIN][CONF_NUMBER]
         if pin_number == "VDDHDIV5":
             gain = "ADC_GAIN_1_2"
+        if isinstance(pin_number, int):
+            GPIO_TO_AIN = {v: k for k, v in AIN_TO_GPIO.items()}
+            pin_number = GPIO_TO_AIN[pin_number]
         zephyr_add_user("io-channels", f"<&adc {channel_id}>")
         zephyr_add_overlay(
             f"""

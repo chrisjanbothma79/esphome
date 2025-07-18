@@ -117,6 +117,7 @@ static const LogString *input_to_str(uint8_t input) {
 
 void ADCSensor::dump_config() {
   LOG_SENSOR("", "ADC Sensor", this);
+  LOG_PIN("  Pin: ", this->pin_);
   ESP_LOGCONFIG(TAG,
                 "  Name: %s\n"
                 "  Channel: %d\n"
