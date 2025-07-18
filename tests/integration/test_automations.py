@@ -92,17 +92,16 @@ async def test_delay_action_cancellation(
         await asyncio.wait_for(script_started_future, timeout=5.0)
         assert script_started_count == 1, "Script should have started once"
 
-        # Wait a bit to ensure the delay is running
-        await asyncio.sleep(0.5)
+        # Restart immediately - no sleep needed since we're properly testing cancellation
 
         # Restart the script
         client.execute_service(restart_service, {})
 
         # Wait for restart confirmation
-        await asyncio.wait_for(script_restarted_future, timeout=5.0)
+        await asyncio.wait_for(script_restarted_future, timeout=2.0)
 
         # Wait for the restarted script to complete its delay
-        await asyncio.wait_for(delay_completed_future, timeout=5.0)
+        await asyncio.wait_for(delay_completed_future, timeout=1.0)
 
         # Check the final result
         client.execute_service(check_result_service, {})

@@ -33,7 +33,7 @@ script:
       - logger.log:
           format: "Script execution started (run number %d)"
           args: ['id(delay_completed_count) + 1']
-      - delay: 3s
+      - delay: 150ms
       - lambda: |-
           id(delay_completed_count)++;
       - logger.log:
