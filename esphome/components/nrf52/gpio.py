@@ -51,7 +51,7 @@ def validate_supports(value):
     is_analog = mode[CONF_ANALOG]
     if is_analog and num not in ADC_INPUTS:
         if num not in GPIO_TO_AIN:
-            raise cv.Invalid(f"Cannot user {num} as analog pin")
+            raise cv.Invalid(f"Cannot use {num} as analog pin")
         value[CONF_NUMBER] = GPIO_TO_AIN[num]
     return value
 
