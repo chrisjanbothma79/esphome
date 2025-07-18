@@ -23,16 +23,6 @@ template<> const char *proto_enum_to_string<enums::EntityCategory>(enums::Entity
   }
 }
 #ifdef USE_COVER
-template<> const char *proto_enum_to_string<enums::LegacyCoverState>(enums::LegacyCoverState value) {
-  switch (value) {
-    case enums::LEGACY_COVER_STATE_OPEN:
-      return "LEGACY_COVER_STATE_OPEN";
-    case enums::LEGACY_COVER_STATE_CLOSED:
-      return "LEGACY_COVER_STATE_CLOSED";
-    default:
-      return "UNKNOWN";
-  }
-}
 template<> const char *proto_enum_to_string<enums::CoverOperation>(enums::CoverOperation value) {
   switch (value) {
     case enums::COVER_OPERATION_IDLE:
@@ -45,32 +35,8 @@ template<> const char *proto_enum_to_string<enums::CoverOperation>(enums::CoverO
       return "UNKNOWN";
   }
 }
-template<> const char *proto_enum_to_string<enums::LegacyCoverCommand>(enums::LegacyCoverCommand value) {
-  switch (value) {
-    case enums::LEGACY_COVER_COMMAND_OPEN:
-      return "LEGACY_COVER_COMMAND_OPEN";
-    case enums::LEGACY_COVER_COMMAND_CLOSE:
-      return "LEGACY_COVER_COMMAND_CLOSE";
-    case enums::LEGACY_COVER_COMMAND_STOP:
-      return "LEGACY_COVER_COMMAND_STOP";
-    default:
-      return "UNKNOWN";
-  }
-}
 #endif
 #ifdef USE_FAN
-template<> const char *proto_enum_to_string<enums::FanSpeed>(enums::FanSpeed value) {
-  switch (value) {
-    case enums::FAN_SPEED_LOW:
-      return "FAN_SPEED_LOW";
-    case enums::FAN_SPEED_MEDIUM:
-      return "FAN_SPEED_MEDIUM";
-    case enums::FAN_SPEED_HIGH:
-      return "FAN_SPEED_HIGH";
-    default:
-      return "UNKNOWN";
-  }
-}
 template<> const char *proto_enum_to_string<enums::FanDirection>(enums::FanDirection value) {
   switch (value) {
     case enums::FAN_DIRECTION_FORWARD:
@@ -123,18 +89,6 @@ template<> const char *proto_enum_to_string<enums::SensorStateClass>(enums::Sens
       return "STATE_CLASS_TOTAL_INCREASING";
     case enums::STATE_CLASS_TOTAL:
       return "STATE_CLASS_TOTAL";
-    default:
-      return "UNKNOWN";
-  }
-}
-template<> const char *proto_enum_to_string<enums::SensorLastResetType>(enums::SensorLastResetType value) {
-  switch (value) {
-    case enums::LAST_RESET_NONE:
-      return "LAST_RESET_NONE";
-    case enums::LAST_RESET_NEVER:
-      return "LAST_RESET_NEVER";
-    case enums::LAST_RESET_AUTO:
-      return "LAST_RESET_AUTO";
     default:
       return "UNKNOWN";
   }
@@ -427,29 +381,6 @@ template<> const char *proto_enum_to_string<enums::BluetoothScannerMode>(enums::
   }
 }
 #endif
-template<>
-const char *proto_enum_to_string<enums::VoiceAssistantSubscribeFlag>(enums::VoiceAssistantSubscribeFlag value) {
-  switch (value) {
-    case enums::VOICE_ASSISTANT_SUBSCRIBE_NONE:
-      return "VOICE_ASSISTANT_SUBSCRIBE_NONE";
-    case enums::VOICE_ASSISTANT_SUBSCRIBE_API_AUDIO:
-      return "VOICE_ASSISTANT_SUBSCRIBE_API_AUDIO";
-    default:
-      return "UNKNOWN";
-  }
-}
-template<> const char *proto_enum_to_string<enums::VoiceAssistantRequestFlag>(enums::VoiceAssistantRequestFlag value) {
-  switch (value) {
-    case enums::VOICE_ASSISTANT_REQUEST_NONE:
-      return "VOICE_ASSISTANT_REQUEST_NONE";
-    case enums::VOICE_ASSISTANT_REQUEST_USE_VAD:
-      return "VOICE_ASSISTANT_REQUEST_USE_VAD";
-    case enums::VOICE_ASSISTANT_REQUEST_USE_WAKE_WORD:
-      return "VOICE_ASSISTANT_REQUEST_USE_WAKE_WORD";
-    default:
-      return "UNKNOWN";
-  }
-}
 #ifdef USE_VOICE_ASSISTANT
 template<> const char *proto_enum_to_string<enums::VoiceAssistantEvent>(enums::VoiceAssistantEvent value) {
   switch (value) {

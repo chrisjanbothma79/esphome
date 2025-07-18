@@ -17,27 +17,13 @@ enum EntityCategory : uint32_t {
   ENTITY_CATEGORY_DIAGNOSTIC = 2,
 };
 #ifdef USE_COVER
-enum LegacyCoverState : uint32_t {
-  LEGACY_COVER_STATE_OPEN = 0,
-  LEGACY_COVER_STATE_CLOSED = 1,
-};
 enum CoverOperation : uint32_t {
   COVER_OPERATION_IDLE = 0,
   COVER_OPERATION_IS_OPENING = 1,
   COVER_OPERATION_IS_CLOSING = 2,
 };
-enum LegacyCoverCommand : uint32_t {
-  LEGACY_COVER_COMMAND_OPEN = 0,
-  LEGACY_COVER_COMMAND_CLOSE = 1,
-  LEGACY_COVER_COMMAND_STOP = 2,
-};
 #endif
 #ifdef USE_FAN
-enum FanSpeed : uint32_t {
-  FAN_SPEED_LOW = 0,
-  FAN_SPEED_MEDIUM = 1,
-  FAN_SPEED_HIGH = 2,
-};
 enum FanDirection : uint32_t {
   FAN_DIRECTION_FORWARD = 0,
   FAN_DIRECTION_REVERSE = 1,
@@ -64,11 +50,6 @@ enum SensorStateClass : uint32_t {
   STATE_CLASS_MEASUREMENT = 1,
   STATE_CLASS_TOTAL_INCREASING = 2,
   STATE_CLASS_TOTAL = 3,
-};
-enum SensorLastResetType : uint32_t {
-  LAST_RESET_NONE = 0,
-  LAST_RESET_NEVER = 1,
-  LAST_RESET_AUTO = 2,
 };
 #endif
 enum LogLevel : uint32_t {
@@ -204,15 +185,6 @@ enum BluetoothScannerMode : uint32_t {
   BLUETOOTH_SCANNER_MODE_ACTIVE = 1,
 };
 #endif
-enum VoiceAssistantSubscribeFlag : uint32_t {
-  VOICE_ASSISTANT_SUBSCRIBE_NONE = 0,
-  VOICE_ASSISTANT_SUBSCRIBE_API_AUDIO = 1,
-};
-enum VoiceAssistantRequestFlag : uint32_t {
-  VOICE_ASSISTANT_REQUEST_NONE = 0,
-  VOICE_ASSISTANT_REQUEST_USE_VAD = 1,
-  VOICE_ASSISTANT_REQUEST_USE_WAKE_WORD = 2,
-};
 #ifdef USE_VOICE_ASSISTANT
 enum VoiceAssistantEvent : uint32_t {
   VOICE_ASSISTANT_ERROR = 0,

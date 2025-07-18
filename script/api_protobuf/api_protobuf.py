@@ -971,11 +971,11 @@ class RepeatedTypeInfo(TypeInfo):
 
 def build_type_usage_map(
     file_desc: descriptor.FileDescriptorProto,
-) -> tuple[dict[str, str | None], dict[str, str | None], dict[str, int]]:
+) -> tuple[dict[str, str | None], dict[str, str | None], dict[str, int], set[str]]:
     """Build mappings for both enums and messages to their ifdefs based on usage.
 
     Returns:
-        tuple: (enum_ifdef_map, message_ifdef_map, message_source_map)
+        tuple: (enum_ifdef_map, message_ifdef_map, message_source_map, used_enums)
     """
     enum_ifdef_map: dict[str, str | None] = {}
     message_ifdef_map: dict[str, str | None] = {}
@@ -988,6 +988,9 @@ def build_type_usage_map(
     message_usage: dict[
         str, set[str]
     ] = {}  # message_name -> set of message names that use it
+    used_enums: set[str] = (
+        set()
+    )  # Track which enums are actually used by non-deprecated fields
 
     # Build message name to ifdef mapping for quick lookup
     message_to_ifdef: dict[str, str | None] = {
@@ -997,13 +1000,18 @@ def build_type_usage_map(
     # Analyze field usage
     for message in file_desc.message_type:
         for field in message.field:
+            # Skip deprecated fields when tracking enum usage
+            if field.options.deprecated:
+                continue
+
             type_name = field.type_name.split(".")[-1] if field.type_name else None
             if not type_name:
                 continue
 
-            # Track enum usage
+            # Track enum usage (only from non-deprecated fields)
             if field.type == 14:  # TYPE_ENUM
                 enum_usage.setdefault(type_name, set()).add(message.name)
+                used_enums.add(type_name)
             # Track message usage
             elif field.type == 11:  # TYPE_MESSAGE
                 message_usage.setdefault(type_name, set()).add(message.name)
@@ -1103,7 +1111,7 @@ def build_type_usage_map(
             # Not used by any message and no explicit source - default to encode-only
             message_source_map[msg.name] = SOURCE_SERVER
 
-    return enum_ifdef_map, message_ifdef_map, message_source_map
+    return enum_ifdef_map, message_ifdef_map, message_source_map, used_enums
 
 
 def build_enum_type(desc, enum_ifdef_map) -> tuple[str, str, str]:
@@ -1686,7 +1694,9 @@ namespace api {
     content += "namespace enums {\n\n"
 
     # Build dynamic ifdef mappings for both enums and messages
-    enum_ifdef_map, message_ifdef_map, message_source_map = build_type_usage_map(file)
+    enum_ifdef_map, message_ifdef_map, message_source_map, used_enums = (
+        build_type_usage_map(file)
+    )
 
     # Simple grouping of enums by ifdef
     current_ifdef = None
@@ -1694,6 +1704,10 @@ namespace api {
     for enum in file.enum_type:
         # Skip deprecated enums
         if enum.options.deprecated:
+            continue
+
+        # Skip enums that aren't used by any non-deprecated fields
+        if enum.name not in used_enums:
             continue
 
         s, c, dc = build_enum_type(enum, enum_ifdef_map)
