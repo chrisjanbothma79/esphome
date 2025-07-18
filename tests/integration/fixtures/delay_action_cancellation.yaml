@@ -4,38 +4,21 @@ esphome:
 host:
 api:
   actions:
-    - action: start_script
+    - action: start_delay_then_restart
       then:
+        - logger.log: "Starting first script execution"
         - script.execute: test_delay_script
-
-    - action: restart_script
-      then:
+        - delay: 500ms  # Give first script time to start delay
+        - logger.log: "Restarting script (should cancel first delay)"
         - script.execute: test_delay_script
-
-    - action: check_result
-      then:
-        - logger.log:
-            format: "Test completed with %d delay completions"
-            args: ['id(delay_completed_count)']
 
 logger:
   level: DEBUG
-
-globals:
-  - id: delay_completed_count
-    type: int
-    initial_value: "0"
 
 script:
   - id: test_delay_script
     mode: restart
     then:
-      - logger.log:
-          format: "Script execution started (run number %d)"
-          args: ['id(delay_completed_count) + 1']
-      - delay: 150ms
-      - lambda: |-
-          id(delay_completed_count)++;
-      - logger.log:
-          format: "Delay completed! Total completions: %d"
-          args: ['id(delay_completed_count)']
+      - logger.log: "Script started, beginning delay"
+      - delay: 5s  # Long enough that it won't complete before restart
+      - logger.log: "ERROR: First delay completed - this should NOT happen with restart mode!"
