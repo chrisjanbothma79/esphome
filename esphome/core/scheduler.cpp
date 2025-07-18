@@ -16,7 +16,7 @@ static const char *const TAG = "scheduler";
 
 static const uint32_t MAX_LOGICALLY_DELETED_ITEMS = 10;
 // Half the 32-bit range - used to detect rollovers vs normal time progression
-static const uint32_t HALF_MAX_UINT32 = 0x80000000UL;
+static constexpr uint32_t HALF_MAX_UINT32 = std::numeric_limits<uint32_t>::max() / 2;
 
 // Uncomment to debug scheduler
 // #define ESPHOME_DEBUG_SCHEDULER
