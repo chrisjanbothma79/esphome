@@ -2,6 +2,7 @@
 
 #include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/defines.h"
 #include "preferences.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
