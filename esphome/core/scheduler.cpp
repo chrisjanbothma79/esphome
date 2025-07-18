@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cinttypes>
 #include <cstring>
+#include <limits>
 
 namespace esphome {
 
@@ -15,7 +16,7 @@ static const char *const TAG = "scheduler";
 
 static const uint32_t MAX_LOGICALLY_DELETED_ITEMS = 10;
 // Half the 32-bit range - used to detect rollovers vs normal time progression
-static const uint32_t HALF_MAX_UINT32 = 0x80000000UL;
+static constexpr uint32_t HALF_MAX_UINT32 = std::numeric_limits<uint32_t>::max() / 2;
 
 // Uncomment to debug scheduler
 // #define ESPHOME_DEBUG_SCHEDULER
@@ -452,7 +453,7 @@ bool HOT Scheduler::cancel_item_(Component *component, bool is_static_string, co
 // Helper to cancel items by name - must be called with lock held
 bool HOT Scheduler::cancel_item_locked_(Component *component, const char *name_cstr, SchedulerItem::Type type) {
   // Early return if name is invalid - no items to cancel
-  if (name_cstr == nullptr || name_cstr[0] == '\0') {
+  if (name_cstr == nullptr) {
     return false;
   }
 
@@ -518,8 +519,8 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
   // This covers any reasonable scheduler delays or thread preemption
   static const uint32_t ROLLOVER_WINDOW = 10000;  // 10 seconds in milliseconds
 
-  // Check if we're near the rollover boundary (close to 0xFFFFFFFF or just past 0)
-  bool near_rollover = (last > (0xFFFFFFFF - ROLLOVER_WINDOW)) || (now < ROLLOVER_WINDOW);
+  // Check if we're near the rollover boundary (close to std::numeric_limits<uint32_t>::max() or just past 0)
+  bool near_rollover = (last > (std::numeric_limits<uint32_t>::max() - ROLLOVER_WINDOW)) || (now < ROLLOVER_WINDOW);
 
   if (near_rollover || (now < last && (last - now) > HALF_MAX_UINT32)) {
     // Near rollover or detected a rollover - need lock for safety

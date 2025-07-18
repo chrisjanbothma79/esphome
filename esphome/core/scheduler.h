@@ -121,16 +121,17 @@ class Scheduler {
         name_is_dynamic = false;
       }
 
-      if (!name || !name[0]) {
+      if (!name) {
+        // nullptr case - no name provided
         name_.static_name = nullptr;
       } else if (make_copy) {
-        // Make a copy for dynamic strings
+        // Make a copy for dynamic strings (including empty strings)
         size_t len = strlen(name);
         name_.dynamic_name = new char[len + 1];
         memcpy(name_.dynamic_name, name, len + 1);
         name_is_dynamic = true;
       } else {
-        // Use static string directly
+        // Use static string directly (including empty strings)
         name_.static_name = name;
       }
     }
@@ -217,8 +218,7 @@ class Scheduler {
   // Platforms without atomic support or single-threaded platforms
   uint32_t last_millis_{0};
 #endif
-  // millis_major_ is protected by lock when incrementing, volatile ensures
-  // reads outside the lock see fresh values (not cached in registers)
+  // millis_major_ is protected by lock when incrementing
   uint16_t millis_major_{0};
   uint32_t to_remove_{0};
 };
