@@ -12,6 +12,7 @@ ESPNowComponent = espnow_ns.class_("ESPNowComponent", cg.Component)
 ESPNowInterface = espnow_ns.class_(
     "ESPNowInterface", cg.Parented.template(ESPNowComponent)
 )
+ESPNowPacket = espnow_ns.class_("ESPNowPacket")
 
 ESPNowDefaultTrigger = espnow_ns.class_(
     "ESPNowDefaultTrigger",
@@ -114,11 +115,7 @@ async def to_code(config):
         if conf := config.get(key):
             await automation.build_automation(
                 var.get_trigger(code),
-                [
-                    (cg.uint64, "peer_address"),
-                    (cg.std_vector.template(cg.uint8), "payload"),
-                    (cg.int_, "errorcode"),
-                ],
+                [(cg.std_shared_ptr.template(ESPNowPacket), "packet")],
                 conf,
             )
 
