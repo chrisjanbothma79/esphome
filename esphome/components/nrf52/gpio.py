@@ -11,6 +11,8 @@ from esphome.const import (
     PLATFORM_NRF52,
 )
 
+from .const import ADC_INPUTS, GPIO_TO_AIN
+
 ZephyrGPIOPin = zephyr_ns.class_("ZephyrGPIOPin", cg.InternalGPIOPin)
 
 
@@ -34,20 +36,6 @@ def _translate_pin(value):
     raise cv.Invalid(f"Invalid pin: {value}")
 
 
-ADC_INPUTS = [
-    "AIN0",
-    "AIN1",
-    "AIN2",
-    "AIN3",
-    "AIN4",
-    "AIN5",
-    "AIN6",
-    "AIN7",
-    "VDD",
-    "VDDHDIV5",
-]
-
-
 def validate_gpio_pin(value):
     if value in ADC_INPUTS:
         return value
@@ -57,12 +45,24 @@ def validate_gpio_pin(value):
     return value
 
 
+def validate_supports(value):
+    num = value[CONF_NUMBER]
+    mode = value[CONF_MODE]
+    is_analog = mode[CONF_ANALOG]
+    if is_analog and num not in ADC_INPUTS:
+        if num not in GPIO_TO_AIN:
+            raise cv.Invalid(f"Cannot user {num} as analog pin")
+        value[CONF_NUMBER] = GPIO_TO_AIN[num]
+    return value
+
+
 NRF52_PIN_SCHEMA = cv.All(
     pins.gpio_base_schema(
         ZephyrGPIOPin,
         validate_gpio_pin,
         modes=pins.GPIO_STANDARD_MODES + (CONF_ANALOG,),
     ),
+    validate_supports,
 )
 
 

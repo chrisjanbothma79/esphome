@@ -138,7 +138,7 @@ async def to_code(config):
     elif CORE.is_nrf52:
         CORE.data.setdefault(CONF_ADC_CHANNEL_ID, 0)
         channel_id = CORE.data[CONF_ADC_CHANNEL_ID]
-        CORE.data["ADC_COUNT"] = channel_id + 1
+        CORE.data[CONF_ADC_CHANNEL_ID] = channel_id + 1
         zephyr_add_prj_conf("ADC", True)
         nrf_saadc = config[CONF_NRF_SAADC]
         rhs = cg.RawExpression(
@@ -162,7 +162,7 @@ async def to_code(config):
         zephyr,gain = "{gain}";
         zephyr,reference = "ADC_REF_INTERNAL";
         zephyr,acquisition-time = <ADC_ACQ_TIME_DEFAULT>;
-        zephyr,input-positive = <NRF_SAADC_{config[CONF_PIN][CONF_NUMBER]}>;
+        zephyr,input-positive = <NRF_SAADC_{pin_number}>;
         zephyr,resolution = <14>;
         zephyr,oversampling = <8>;
     }};
