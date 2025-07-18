@@ -15,6 +15,8 @@ from esphome.const import (
 from esphome.core import CORE
 from esphome.loader import get_component, get_platform
 
+CPP_FILE_EXTENSIONS = (".cpp", ".h", ".hpp", ".cc", ".cxx", ".c", ".tcc")
+
 
 def filter_component_files(str):
     return str.startswith("esphome/components/") | str.startswith("tests/components/")
@@ -155,6 +157,27 @@ def get_components(files: list[str], get_dependencies: bool = False):
     return sorted(components)
 
 
+def get_cpp_changed_components(files: list[str]):
+    components_graph = create_components_graph()
+    affected = set()
+    for file in files:
+        if not file.endswith(CPP_FILE_EXTENSIONS):
+            continue
+        if file.startswith("tests/components/"):
+            parts = file.split("/")
+            if len(parts) >= 3:
+                component_dir = Path("tests/components") / parts[2]
+                if component_dir.is_dir():
+                    affected.add(parts[2])
+        elif file.startswith("esphome/components/"):
+            parts = file.split("/")
+            if len(parts) >= 3:
+                component = parts[2]
+                affected.update(find_children_of_component(components_graph, component))
+                affected.add(component)
+    return sorted(affected)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -166,12 +189,13 @@ def main():
     parser.add_argument(
         "-b", "--branch", help="Branch to compare changed files against"
     )
+    parser.add_argument("--cpp-changed", action="store_true")
     args = parser.parse_args()
 
-    if args.branch and not args.changed:
-        parser.error("--branch requires --changed")
+    if args.branch and not args.changed and not args.cpp_changed:
+        parser.error("--branch requires --changed or --cpp-changed")
 
-    if args.changed:
+    if args.changed or args.cpp_changed:
         # When --changed is passed, only get the changed files
         changed = changed_files(args.branch)
 
@@ -186,7 +210,12 @@ def main():
         # Get all component files
         files = get_all_component_files()
 
-    for c in get_components(files, args.changed):
+    if args.cpp_changed:
+        result = get_cpp_changed_components(files)
+    else:
+        result = get_components(files, args.changed)
+
+    for c in result:
         print(c)
 
 

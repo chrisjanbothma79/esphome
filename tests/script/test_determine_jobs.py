@@ -52,6 +52,13 @@ def mock_should_run_python_linters() -> Generator[Mock, None, None]:
 
 
 @pytest.fixture
+def mock_list_cpp_components_to_test() -> Generator[Mock, None, None]:
+    """Mock list_cpp_components_to_test from helpers."""
+    with patch.object(determine_jobs, "list_cpp_components_to_test") as mock:
+        yield mock
+
+
+@pytest.fixture
 def mock_subprocess_run() -> Generator[Mock, None, None]:
     """Mock subprocess.run for list-components.py calls."""
     with patch.object(determine_jobs.subprocess, "run") as mock:
@@ -64,6 +71,7 @@ def test_main_all_tests_should_run(
     mock_should_run_clang_format: Mock,
     mock_should_run_python_linters: Mock,
     mock_subprocess_run: Mock,
+    mock_list_cpp_components_to_test: Mock,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Test when all tests should run."""
@@ -71,6 +79,7 @@ def test_main_all_tests_should_run(
     mock_should_run_clang_tidy.return_value = True
     mock_should_run_clang_format.return_value = True
     mock_should_run_python_linters.return_value = True
+    mock_list_cpp_components_to_test.return_value = ["wifi", "api", "sensor"]
 
     # Mock list-components.py output
     mock_result = Mock()
@@ -91,6 +100,7 @@ def test_main_all_tests_should_run(
     assert output["python_linters"] is True
     assert output["changed_components"] == ["wifi", "api", "sensor"]
     assert output["component_test_count"] == 3
+    assert output["cpp_unit_tests"] == ["wifi", "api", "sensor"]
 
 
 def test_main_no_tests_should_run(
@@ -99,6 +109,7 @@ def test_main_no_tests_should_run(
     mock_should_run_clang_format: Mock,
     mock_should_run_python_linters: Mock,
     mock_subprocess_run: Mock,
+    mock_list_cpp_components_to_test: Mock,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Test when no tests should run."""
@@ -106,6 +117,7 @@ def test_main_no_tests_should_run(
     mock_should_run_clang_tidy.return_value = False
     mock_should_run_clang_format.return_value = False
     mock_should_run_python_linters.return_value = False
+    mock_list_cpp_components_to_test.return_value = []
 
     # Mock empty list-components.py output
     mock_result = Mock()
@@ -126,6 +138,7 @@ def test_main_no_tests_should_run(
     assert output["python_linters"] is False
     assert output["changed_components"] == []
     assert output["component_test_count"] == 0
+    assert output["cpp_unit_tests"] == []
 
 
 def test_main_list_components_fails(
@@ -134,6 +147,7 @@ def test_main_list_components_fails(
     mock_should_run_clang_format: Mock,
     mock_should_run_python_linters: Mock,
     mock_subprocess_run: Mock,
+    mock_list_cpp_components_to_test: Mock,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Test when list-components.py fails."""
@@ -141,6 +155,7 @@ def test_main_list_components_fails(
     mock_should_run_clang_tidy.return_value = True
     mock_should_run_clang_format.return_value = True
     mock_should_run_python_linters.return_value = True
+    mock_list_cpp_components_to_test.return_value = []
 
     # Mock list-components.py failure
     mock_subprocess_run.side_effect = subprocess.CalledProcessError(1, "cmd")
@@ -157,6 +172,7 @@ def test_main_with_branch_argument(
     mock_should_run_clang_format: Mock,
     mock_should_run_python_linters: Mock,
     mock_subprocess_run: Mock,
+    mock_list_cpp_components_to_test: Mock,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """Test with branch argument."""
@@ -164,6 +180,7 @@ def test_main_with_branch_argument(
     mock_should_run_clang_tidy.return_value = True
     mock_should_run_clang_format.return_value = False
     mock_should_run_python_linters.return_value = True
+    mock_list_cpp_components_to_test.return_value = ["mqtt"]
 
     # Mock list-components.py output
     mock_result = Mock()
@@ -196,6 +213,7 @@ def test_main_with_branch_argument(
     assert output["python_linters"] is True
     assert output["changed_components"] == ["mqtt"]
     assert output["component_test_count"] == 1
+    assert output["cpp_unit_tests"] == ["mqtt"]
 
 
 def test_should_run_integration_tests(
