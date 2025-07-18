@@ -13,6 +13,8 @@ from esphome.const import (
     CONF_TRIGGER_ID,
 )
 
+# Simple commit to test workflow
+
 AUTO_LOAD = ["binary_sensor", "nfc"]
 CODEOWNERS = ["@kbx81", "@jesserockz"]
 
