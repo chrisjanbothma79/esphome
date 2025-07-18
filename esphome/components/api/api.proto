@@ -1382,7 +1382,9 @@ message BluetoothServiceData {
   repeated uint32 legacy_data = 2 [deprecated=true];  // Removed in api version 1.7
   bytes data = 3;  // Added in api version 1.7
 }
+// Removed in ESPHome 2025.8.0 - use BluetoothLERawAdvertisementsResponse instead
 message BluetoothLEAdvertisementResponse {
+  option deprecated = true;
   option (id) = 67;
   option (source) = SOURCE_SERVER;
   option (ifdef) = "USE_BLUETOOTH_PROXY";
