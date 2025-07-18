@@ -273,7 +273,7 @@ void HOT Scheduler::call(uint32_t now) {
   if (now_64 - last_print > 2000) {
     last_print = now_64;
     std::vector<std::unique_ptr<SchedulerItem>> old_items;
-#if !defined(USE_ESP8266) && !defined(USE_RP2040)
+#if !defined(USE_ESP8266) && !defined(USE_RP2040) && !defined(USE_LIBRETINY)
     ESP_LOGD(TAG, "Items: count=%zu, now=%" PRIu64 " (%u, %" PRIu32 ")", this->items_.size(), now_64,
              this->millis_major_, this->last_millis_.load(std::memory_order_relaxed));
 #else
@@ -507,13 +507,50 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
   // This prevents race conditions at the rollover boundary without requiring
   // 64-bit atomics or locking on every call.
 
-#if !defined(USE_ESP8266) && !defined(USE_RP2040)
-  // Multi-threaded platforms: Need to handle rollover carefully
 #ifdef USE_LIBRETINY
+  // LibreTiny: Multi-threaded but lacks atomic operation support
+  // TODO: If LibreTiny ever adds atomic support, remove this entire block and
+  // let it fall through to the atomic-based implementation below
+  // We need to use a lock when near the rollover boundary to prevent races
   uint32_t last = this->last_millis_;
-#else
+
+  // Define a safe window around the rollover point (10 seconds)
+  // This covers any reasonable scheduler delays or thread preemption
+  static const uint32_t ROLLOVER_WINDOW = 10000;  // 10 seconds in milliseconds
+
+  // Check if we're near the rollover boundary (close to 0xFFFFFFFF or just past 0)
+  bool near_rollover = (last > (0xFFFFFFFF - ROLLOVER_WINDOW)) || (now < ROLLOVER_WINDOW);
+
+  if (near_rollover || (now < last && (last - now) > HALF_MAX_UINT32)) {
+    // Near rollover or detected a rollover - need lock for safety
+    LockGuard guard{this->lock_};
+    // Re-read with lock held
+    last = this->last_millis_;
+
+    if (now < last && (last - now) > HALF_MAX_UINT32) {
+      // True rollover detected (happens every ~49.7 days)
+      this->millis_major_++;
+#ifdef ESPHOME_DEBUG_SCHEDULER
+      ESP_LOGD(TAG, "Detected true 32-bit rollover at %" PRIu32 "ms (was %" PRIu32 ")", now, last);
+#endif
+    }
+    // Update last_millis_ while holding lock
+    this->last_millis_ = now;
+  } else if (now > last) {
+    // Normal case: Not near rollover and time moved forward
+    // Update without lock. While this may cause minor races (microseconds of
+    // backwards time movement), they're acceptable because:
+    // 1. The scheduler operates at millisecond resolution, not microsecond
+    // 2. We've already prevented the critical rollover race condition
+    // 3. Any backwards movement is orders of magnitude smaller than scheduler delays
+    this->last_millis_ = now;
+  }
+  // If now <= last and we're not near rollover, don't update
+  // This minimizes backwards time movement
+
+#elif !defined(USE_ESP8266) && !defined(USE_RP2040)
+  // Multi-threaded platforms with atomic support (ESP32)
   uint32_t last = this->last_millis_.load(std::memory_order_relaxed);
-#endif  // USE_LIBRETINY
 
   // If we might be near a rollover (large backwards jump), take the lock for the entire operation
   // This ensures rollover detection and last_millis_ update are atomic together
@@ -521,11 +558,7 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
     // Potential rollover - need lock for atomic rollover detection + update
     LockGuard guard{this->lock_};
     // Re-read with lock held
-#ifdef USE_LIBRETINY
-    last = this->last_millis_;
-#else
     last = this->last_millis_.load(std::memory_order_relaxed);
-#endif
 
     if (now < last && (last - now) > HALF_MAX_UINT32) {
       // True rollover detected (happens every ~49.7 days)
@@ -535,21 +568,8 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
 #endif
     }
     // Update last_millis_ while holding lock to prevent races
-#ifdef USE_LIBRETINY
-    this->last_millis_ = now;
-#else
     this->last_millis_.store(now, std::memory_order_relaxed);
-#endif
   } else {
-#ifdef USE_LIBRETINY
-    // LibreTiny does not support atomics, so we use a simple lock-free update
-    // This is not completely safe, but without atomics we don't have a choice
-    // and in practice we don't have a lot of task on libretiny so it should be fine.
-    if (now > last && (now - last) < HALF_MAX_UINT32) {
-      // Normal case: Update last_millis_ if time moved forward
-      this->last_millis_ = now;
-    }
-#else
     // Normal case: Try lock-free update, but only allow forward movement within same epoch
     // This prevents accidentally moving backwards across a rollover boundary
     while (now > last && (now - last) < HALF_MAX_UINT32) {
@@ -558,11 +578,10 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
       }
       // last is automatically updated by compare_exchange_weak if it fails
     }
-#endif  // USE_LIBRETINY
   }
 
 #else
-  // Single-threaded platforms: No atomics needed
+  // Single-threaded platforms (ESP8266, RP2040): No atomics needed
   uint32_t last = this->last_millis_;
 
   // Check for rollover
