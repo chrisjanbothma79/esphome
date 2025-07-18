@@ -81,7 +81,7 @@ async def test_delay_action_cancellation(
         )
         assert script_restart_logged, "Script restart was not logged"
 
-        # Verify we got exactly one completion and it happened ~5s after the second start
+        # Verify we got exactly one completion and it happened ~500ms after the second start
         assert len(delay_completions) == 1, (
             f"Expected 1 delay completion, got {len(delay_completions)}"
         )
