@@ -509,7 +509,11 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
 
 #if !defined(USE_ESP8266) && !defined(USE_RP2040)
   // Multi-threaded platforms: Need to handle rollover carefully
+#ifdef USE_LIBRETINY
+  uint32_t last = this->last_millis_;
+#else
   uint32_t last = this->last_millis_.load(std::memory_order_relaxed);
+#endif  // USE_LIBRETINY
 
   // If we might be near a rollover (large backwards jump), take the lock for the entire operation
   // This ensures rollover detection and last_millis_ update are atomic together
@@ -517,7 +521,11 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
     // Potential rollover - need lock for atomic rollover detection + update
     LockGuard guard{this->lock_};
     // Re-read with lock held
+#ifdef USE_LIBRETINY
+    last = this->last_millis_;
+#else
     last = this->last_millis_.load(std::memory_order_relaxed);
+#endif
 
     if (now < last && (last - now) > HALF_MAX_UINT32) {
       // True rollover detected (happens every ~49.7 days)
@@ -527,8 +535,21 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
 #endif
     }
     // Update last_millis_ while holding lock to prevent races
+#ifdef USE_LIBRETINY
+    this->last_millis_ = now;
+#else
     this->last_millis_.store(now, std::memory_order_relaxed);
+#endif
   } else {
+#ifdef USE_LIBRETINY
+    // LibreTiny does not support atomics, so we use a simple lock-free update
+    // This is not completely safe, but without atomics we don't have a choice
+    // and in practice we don't have a lot of task on libretiny so it should be fine.
+    if (now > last && (now - last) < HALF_MAX_UINT32) {
+      // Normal case: Update last_millis_ if time moved forward
+      this->last_millis_ = now;
+    }
+#else
     // Normal case: Try lock-free update, but only allow forward movement within same epoch
     // This prevents accidentally moving backwards across a rollover boundary
     while (now > last && (now - last) < HALF_MAX_UINT32) {
@@ -537,6 +558,7 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
       }
       // last is automatically updated by compare_exchange_weak if it fails
     }
+#endif  // USE_LIBRETINY
   }
 
 #else
