@@ -1766,6 +1766,8 @@ void APIConnection::process_batch_() {
     uint16_t proto_payload_size = payload_size - header_padding - footer_size;
     // Use placement new to construct PacketInfo in pre-allocated stack array
     // This avoids default-constructing all MAX_PACKETS_PER_BATCH elements
+    // Explicit destruction is not needed because PacketInfo is trivially destructible,
+    // as ensured by the static_assert in its definition.
     new (&packet_info[packet_count++]) PacketInfo(item.message_type, current_offset, proto_payload_size);
 
     // Update tracking variables
