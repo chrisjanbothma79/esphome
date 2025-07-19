@@ -118,31 +118,31 @@ static const LogString *input_to_str(uint8_t input) {
 void ADCSensor::dump_config() {
   LOG_SENSOR("", "ADC Sensor", this);
   LOG_PIN("  Pin: ", this->pin_);
-  ESP_LOGCONFIG(TAG,
-                "  Name: %s\n"
-                "  Channel: %d\n"
-                "  vref_mv: %d\n"
-                "  Resolution %d\n"
-                "  Oversampling %d",
-                this->channel_->dev->name, this->channel_->channel_id, this->channel_->vref_mv,
-                this->channel_->resolution, this->channel_->oversampling);
+  ESP_LOGV(TAG,
+           "  Name: %s\n"
+           "  Channel: %d\n"
+           "  vref_mv: %d\n"
+           "  Resolution %d\n"
+           "  Oversampling %d",
+           this->channel_->dev->name, this->channel_->channel_id, this->channel_->vref_mv, this->channel_->resolution,
+           this->channel_->oversampling);
 
-  ESP_LOGCONFIG(TAG,
-                "  Gain: %s\n"
-                "  reference: %s\n"
-                "  acquisition_time: %d\n"
-                "  differential %s",
-                LOG_STR_ARG(gain_to_str(this->channel_->channel_cfg.gain)),
-                LOG_STR_ARG(reference_to_str(this->channel_->channel_cfg.reference)),
-                this->channel_->channel_cfg.acquisition_time, YESNO(this->channel_->channel_cfg.differential));
+  ESP_LOGV(TAG,
+           "  Gain: %s\n"
+           "  reference: %s\n"
+           "  acquisition_time: %d\n"
+           "  differential %s",
+           LOG_STR_ARG(gain_to_str(this->channel_->channel_cfg.gain)),
+           LOG_STR_ARG(reference_to_str(this->channel_->channel_cfg.reference)),
+           this->channel_->channel_cfg.acquisition_time, YESNO(this->channel_->channel_cfg.differential));
   if (this->channel_->channel_cfg.differential) {
-    ESP_LOGCONFIG(TAG,
-                  "  Positive: %s\n"
-                  "  Negative: %s",
-                  LOG_STR_ARG(input_to_str(this->channel_->channel_cfg.input_positive)),
-                  LOG_STR_ARG(input_to_str(this->channel_->channel_cfg.input_negative)));
+    ESP_LOGV(TAG,
+             "  Positive: %s\n"
+             "  Negative: %s",
+             LOG_STR_ARG(input_to_str(this->channel_->channel_cfg.input_positive)),
+             LOG_STR_ARG(input_to_str(this->channel_->channel_cfg.input_negative)));
   } else {
-    ESP_LOGCONFIG(TAG, "  Positive: %s", LOG_STR_ARG(input_to_str(this->channel_->channel_cfg.input_positive)));
+    ESP_LOGV(TAG, "  Positive: %s", LOG_STR_ARG(input_to_str(this->channel_->channel_cfg.input_positive)));
   }
 
   LOG_UPDATE_INTERVAL(this);
