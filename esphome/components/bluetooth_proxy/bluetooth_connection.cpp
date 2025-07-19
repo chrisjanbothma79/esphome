@@ -323,12 +323,12 @@ esp_err_t BluetoothConnection::read_characteristic(uint16_t handle) {
   }
 
   ESP_LOGV(TAG, "[%d] [%s] Reading GATT characteristic handle %d", this->get_connection_index(),
-           this->address_str_.c_str(), handle);
+           this->address_str().c_str(), handle);
 
   esp_err_t err = esp_ble_gattc_read_char(this->gattc_if_, this->conn_id_, handle, ESP_GATT_AUTH_REQ_NONE);
   if (err != ERR_OK) {
     ESP_LOGW(TAG, "[%d] [%s] esp_ble_gattc_read_char error, err=%d", this->get_connection_index(),
-             this->address_str_.c_str(), err);
+             this->address_str().c_str(), err);
     return err;
   }
   return ESP_OK;
