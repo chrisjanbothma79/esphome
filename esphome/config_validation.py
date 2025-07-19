@@ -1517,7 +1517,10 @@ LAMBDA_ENTITY_ID_PROG = re.compile(r"\Wid\(\s*([a-zA-Z0-9_]+\.[.a-zA-Z0-9_]+)\s*
 
 def lambda_(value):
     """Coerce this configuration option to a lambda."""
-    if not isinstance(value, Lambda):
+    if isinstance(value, str) and value.endswith(".state"):
+        ident = validate_id_name(value.removesuffix(".state"))
+        value = Lambda(f"return id({ident}).state;")
+    elif not isinstance(value, Lambda):
         value = make_data_base(Lambda(string_strict(value)), value)
     entity_id_parts = re.split(LAMBDA_ENTITY_ID_PROG, value.value)
     if len(entity_id_parts) != 1:
