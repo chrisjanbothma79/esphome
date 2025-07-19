@@ -42,7 +42,10 @@ void BluetoothConnection::loop() {
   this->send_service_for_discovery_();
 }
 
-void BluetoothConnection::reset_connection_() {
+void BluetoothConnection::reset_connection_(esp_err_t reason) {
+  // Send disconnection notification
+  this->proxy_->send_device_connection(this->address_, false, 0, reason);
+
   // Important: If we were in the middle of sending services, we do NOT send
   // send_gatt_services_done() here. This ensures the client knows that
   // the service discovery was interrupted and can retry. The client
@@ -191,19 +194,16 @@ bool BluetoothConnection::gattc_event_handler(esp_gattc_cb_event_t event, esp_ga
 
   switch (event) {
     case ESP_GATTC_DISCONNECT_EVT: {
-      this->proxy_->send_device_connection(this->address_, false, 0, param->disconnect.reason);
-      this->reset_connection_();
+      this->reset_connection_(param->disconnect.reason);
       break;
     }
     case ESP_GATTC_CLOSE_EVT: {
-      this->proxy_->send_device_connection(this->address_, false, 0, param->close.reason);
-      this->reset_connection_();
+      this->reset_connection_(param->close.reason);
       break;
     }
     case ESP_GATTC_OPEN_EVT: {
       if (param->open.status != ESP_GATT_OK && param->open.status != ESP_GATT_ALREADY_OPEN) {
-        this->proxy_->send_device_connection(this->address_, false, 0, param->open.status);
-        this->reset_connection_();
+        this->reset_connection_(param->open.status);
       } else if (this->connection_type_ == espbt::ConnectionType::V3_WITH_CACHE) {
         this->proxy_->send_device_connection(this->address_, true, this->mtu_);
         this->proxy_->send_connections_free();
