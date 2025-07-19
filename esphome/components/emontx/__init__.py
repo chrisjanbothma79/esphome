@@ -229,6 +229,9 @@ async def to_code(config):
             trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
             await automation.build_automation(
                 trigger,
-                [(cg.JsonObjectConst, "json"), (cg.std_string.const_ref, "raw_json")],
+                [
+                    (cg.JsonObjectConst, "json"),
+                    (cg.std_string.const_reference(), "raw_json"),
+                ],
                 conf,
             )
