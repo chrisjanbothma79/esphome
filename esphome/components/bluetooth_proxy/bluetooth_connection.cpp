@@ -401,7 +401,7 @@ esp_err_t BluetoothConnection::notify_characteristic(uint16_t handle, bool enabl
 
   if (enable) {
     ESP_LOGV(TAG, "[%d] [%s] Registering for GATT characteristic notifications handle %d", this->get_connection_index(),
-             this->address_str_.c_str(), handle);
+             this->address_str().c_str(), handle);
     esp_err_t err = esp_ble_gattc_register_for_notify(this->gattc_if_, this->remote_bda_, handle);
     if (err != ESP_OK) {
       ESP_LOGW(TAG, "[%d] [%s] esp_ble_gattc_register_for_notify failed, err=%d", this->get_connection_index(),
