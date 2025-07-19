@@ -39,7 +39,6 @@ BusWidth = sdfs_ns.enum("BusWidth")
 BUS_WIDTH_OPTION = {
     "1bit": BusWidth.BUS_WIDTH_1BIT,
     "4bit": BusWidth.BUS_WIDTH_4BIT,
-    "8bit": BusWidth.BUS_WIDTH_8BIT,
 }
 
 SdConnType = sdfs_ns.enum("SdConnType")
@@ -51,6 +50,44 @@ SD_CONN_TYPE = {
 SdmmcHost = sdfs_ns.class_("SdmmcHost", cg.Component)
 SpiDrv = sdfs_ns.class_("EsphomeSpiDrv", spi.SPIDevice)
 
+<<<<<<< HEAD
+=======
+SdfsWriteFile = sdfs_ns.class_("SdfsWriteFile", automation.Action)
+# SdfsStatus = sdfs_ns.class_("SdfsStatus", automation.Condition)
+
+ChangeSateteTrigger = sdfs_ns.class_(
+    "ChangeSateteTrigger", automation.Trigger.template()
+)
+
+SdIsStateCondition = sdfs_ns.class_(
+    "SdIsStateCondition", automation.Condition.template()
+)
+
+SdIsSizeGECondition = sdfs_ns.class_(
+    "SdIsSizeGECondition", automation.Condition.template()
+)
+
+SdIsSizeLECondition = sdfs_ns.class_(
+    "SdIsSizeLECondition", automation.Condition.template()
+)
+
+SdIsDirCondition = sdfs_ns.class_("SdIsDirCondition", automation.Condition.template())
+
+SdIsEsistCondition = sdfs_ns.class_(
+    "SdIsEsistCondition", automation.Condition.template()
+)
+
+
+# -------------------------------------------------------------------------------------------
+#
+#  VALUDATION
+#
+def validate_inlist(value, array):
+    if value not in array:
+        options = ",".join(array)
+        raise cv.Invalid(f"Must me one of the  {options}  options")
+
+>>>>>>> dbfe366cc (fix lint errors. remove 8bit bus width)
 
 def validate_raw_data(value):
     if isinstance(value, str):
@@ -63,6 +100,7 @@ def validate_raw_data(value):
 
 
 def _validate(config):
+<<<<<<< HEAD
     if CORE.target_platform == PLATFORM_ESP8266:
         pass
     elif CORE.target_platform == PLATFORM_ESP32:
@@ -81,6 +119,46 @@ def _validate(config):
             if variant not in [VARIANT_ESP32, VARIANT_ESP32S3]:
                 raise cv.Invalid(
                     "SD mmc host adapter available only on {VARIANT_ESP32} or {VARIANT_ESP32S3} chips"
+=======
+    platform = CORE.target_platform
+    # CORE.data[KEY_CORE][KEY_TARGET_PLATFORM]
+    variant = ""
+    if platform == PLATFORM_ESP32:
+        variant = CORE.data[KEY_ESP32][KEY_VARIANT]
+    elif platform == PLATFORM_ESP8266:
+        variant = PLATFORM_ESP8266
+
+    if config[CONF_TYPE] == "sdspi":
+        pass
+    elif config[CONF_TYPE] == "sdmmc" and platform != PLATFORM_ESP32:
+        raise cv.Invalid(
+            "SDMMC host adapter available only on {PLATFORM_ESP32} platform with {VARIANT_ESP32} or {VARIANT_ESP32S3} chip"
+        )
+    else:
+        if variant not in [VARIANT_ESP32, VARIANT_ESP32S3]:
+            raise cv.Invalid(
+                "SDMMC host adapter available only on {VARIANT_ESP32} or {VARIANT_ESP32S3} chips"
+            )
+
+        if config[CONF_BUS_WIDTH] == "1bit":
+            if config[CONF_DATA0_PIN] not in config:
+                raise cv.Invalid(
+                    f"With 8bit bus definition of {CONF_DATA0_PIN} required 1bit mode."
+                )
+
+        if config[CONF_BUS_WIDTH] == "4bit":
+            if (
+                config[CONF_DATA0_PIN] not in config
+                or config[CONF_DATA1_PIN] not in config
+                or config[CONF_DATA2_PIN] not in config
+                or config[CONF_DATA3_PIN] not in config
+            ):
+                raise cv.Invalid(
+                    f"With 8bit bus definition of {CONF_DATA0_PIN}, {CONF_DATA1_PIN}, {CONF_DATA2_PIN}, {CONF_DATA3_PIN} required in 4bit mode."
+<<<<<<< HEAD
+>>>>>>> dbfe366cc (fix lint errors. remove 8bit bus width)
+=======
+>>>>>>> dbfe366cc (fix lint errors. remove 8bit bus width)
                 )
 
             if config[CONF_BUS_WIDTH] == "8bit":
@@ -140,11 +218,20 @@ SDMMC_SCHEMA = BASE_SCHEMA.extend(
             cv.Optional(CONF_DATA1_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_DATA2_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_DATA3_PIN): pins.internal_gpio_output_pin_number,
+<<<<<<< HEAD
+<<<<<<< HEAD
             cv.Optional(CONF_DATA4_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_DATA5_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_DATA6_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_DATA7_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_POWER_CTRL_PIN): pins.internal_gpio_output_pin_number,
+=======
+=======
+>>>>>>> dbfe366cc (fix lint errors. remove 8bit bus width)
+            cv.Optional(CONF_BUS_WIDTH, default="1bit"): cv.enum(
+                BUS_WIDTH_OPTION, lower=True
+            ),
+>>>>>>> dbfe366cc (fix lint errors. remove 8bit bus width)
         }
     ),
 )
