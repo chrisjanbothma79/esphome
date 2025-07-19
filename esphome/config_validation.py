@@ -584,7 +584,10 @@ def declare_id(type):
 
 
 def convert_id_state_to_lambda(value) -> Lambda | None:
-    """Convert an ID state to a lambda that returns the state of the ID."""
+    """
+    Convert an ID state to a lambda that returns the state of the ID.
+    If not well-formed, return None.
+    """
     if isinstance(value, str) and value.endswith(".state"):
         ident = validate_id_name(value.removesuffix(".state"))
         return Lambda(f"return id({ident}).state;")
