@@ -231,7 +231,7 @@ async def to_code(config):
                 trigger,
                 [
                     (cg.JsonObjectConst, "json"),
-                    (cg.std_string.const_reference(), "raw_json"),
+                    (cg.std_string, "raw_json"),
                 ],
                 conf,
             )
