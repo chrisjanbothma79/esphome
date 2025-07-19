@@ -65,6 +65,12 @@ void BluetoothConnection::send_service_for_discovery_() {
     return;
   }
 
+  // Early return if no API connection
+  auto *api_conn = this->proxy_->get_api_connection();
+  if (api_conn == nullptr) {
+    return;
+  }
+
   // Send next service
   esp_gattc_service_elem_t service_result;
   uint16_t service_count = 1;
@@ -174,10 +180,8 @@ void BluetoothConnection::send_service_for_discovery_() {
   }
   resp.services.push_back(std::move(service_resp));
 
-  auto *api_conn = this->proxy_->get_api_connection();
-  if (api_conn != nullptr) {
-    api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
-  }
+  // Send the message (we already checked api_conn is not null at the beginning)
+  api_conn->send_message(resp, api::BluetoothGATTGetServicesResponse::MESSAGE_TYPE);
 }
 
 bool BluetoothConnection::gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
