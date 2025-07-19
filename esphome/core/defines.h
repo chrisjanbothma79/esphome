@@ -229,21 +229,6 @@
 #define USE_SOCKET_SELECT_SUPPORT
 #endif
 
-// Helper macro for single core platforms that lack atomic scheduler support
-#if defined(USE_ESP8266) || defined(USE_RP2040)
-#define ESPHOME_SINGLE_CORE
-#endif
-
-// Helper macro for multi core platforms that lack atomic scheduler support
-#if !defined(ESPHOME_SINGLE_CORE) && defined(USE_LIBRETINY)
-#define ESPHOME_MULTI_CORE_NO_ATOMICS
-#endif
-
-// Helper macro for multi core platforms with atomic scheduler support
-#if !defined(ESPHOME_SINGLE_CORE) && !defined(USE_LIBRETINY)
-#define ESPHOME_MULTI_CORE_ATOMICS
-#endif
-
 // Disabled feature flags
 // #define USE_BSEC   // Requires a library with proprietary license
 // #define USE_BSEC2  // Requires a library with proprietary license
