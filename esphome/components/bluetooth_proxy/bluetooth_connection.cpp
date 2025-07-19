@@ -224,7 +224,7 @@ bool BluetoothConnection::gattc_event_handler(esp_gattc_cb_event_t event, esp_ga
     case ESP_GATTC_READ_CHAR_EVT: {
       if (param->read.status != ESP_GATT_OK) {
         ESP_LOGW(TAG, "[%d] [%s] Error reading char/descriptor at handle 0x%2X, status=%d", this->connection_index_,
-                 this->address_str_.c_str(), param->read.handle, param->read.status);
+                 this->address_str().c_str(), param->read.handle, param->read.status);
         this->proxy_->send_gatt_error(this->address_, param->read.handle, param->read.status);
         break;
       }
@@ -241,7 +241,7 @@ bool BluetoothConnection::gattc_event_handler(esp_gattc_cb_event_t event, esp_ga
     case ESP_GATTC_WRITE_DESCR_EVT: {
       if (param->write.status != ESP_GATT_OK) {
         ESP_LOGW(TAG, "[%d] [%s] Error writing char/descriptor at handle 0x%2X, status=%d", this->connection_index_,
-                 this->address_str_.c_str(), param->write.handle, param->write.status);
+                 this->address_str().c_str(), param->write.handle, param->write.status);
         this->proxy_->send_gatt_error(this->address_, param->write.handle, param->write.status);
         break;
       }
@@ -254,7 +254,7 @@ bool BluetoothConnection::gattc_event_handler(esp_gattc_cb_event_t event, esp_ga
     case ESP_GATTC_UNREG_FOR_NOTIFY_EVT: {
       if (param->unreg_for_notify.status != ESP_GATT_OK) {
         ESP_LOGW(TAG, "[%d] [%s] Error unregistering notifications for handle 0x%2X, status=%d",
-                 this->connection_index_, this->address_str_.c_str(), param->unreg_for_notify.handle,
+                 this->connection_index_, this->address_str().c_str(), param->unreg_for_notify.handle,
                  param->unreg_for_notify.status);
         this->proxy_->send_gatt_error(this->address_, param->unreg_for_notify.handle, param->unreg_for_notify.status);
         break;
@@ -268,7 +268,7 @@ bool BluetoothConnection::gattc_event_handler(esp_gattc_cb_event_t event, esp_ga
     case ESP_GATTC_REG_FOR_NOTIFY_EVT: {
       if (param->reg_for_notify.status != ESP_GATT_OK) {
         ESP_LOGW(TAG, "[%d] [%s] Error registering notifications for handle 0x%2X, status=%d", this->connection_index_,
-                 this->address_str_.c_str(), param->reg_for_notify.handle, param->reg_for_notify.status);
+                 this->address_str().c_str(), param->reg_for_notify.handle, param->reg_for_notify.status);
         this->proxy_->send_gatt_error(this->address_, param->reg_for_notify.handle, param->reg_for_notify.status);
         break;
       }
@@ -279,8 +279,8 @@ bool BluetoothConnection::gattc_event_handler(esp_gattc_cb_event_t event, esp_ga
       break;
     }
     case ESP_GATTC_NOTIFY_EVT: {
-      ESP_LOGV(TAG, "[%d] [%s] ESP_GATTC_NOTIFY_EVT: handle=0x%2X", this->connection_index_, this->address_str_.c_str(),
-               param->notify.handle);
+      ESP_LOGV(TAG, "[%d] [%s] ESP_GATTC_NOTIFY_EVT: handle=0x%2X", this->connection_index_,
+               this->address_str().c_str(), param->notify.handle);
       api::BluetoothGATTNotifyDataResponse resp;
       resp.address = this->address_;
       resp.handle = param->notify.handle;
@@ -317,7 +317,7 @@ void BluetoothConnection::gap_event_handler(esp_gap_ble_cb_event_t event, esp_bl
 esp_err_t BluetoothConnection::read_characteristic(uint16_t handle) {
   if (!this->connected()) {
     ESP_LOGW(TAG, "[%d] [%s] Cannot read GATT characteristic, not connected.", this->connection_index_,
-             this->address_str_.c_str());
+             this->address_str().c_str());
     return ESP_GATT_NOT_CONNECTED;
   }
 
@@ -336,7 +336,7 @@ esp_err_t BluetoothConnection::read_characteristic(uint16_t handle) {
 esp_err_t BluetoothConnection::write_characteristic(uint16_t handle, const std::string &data, bool response) {
   if (!this->connected()) {
     ESP_LOGW(TAG, "[%d] [%s] Cannot write GATT characteristic, not connected.", this->connection_index_,
-             this->address_str_.c_str());
+             this->address_str().c_str());
     return ESP_GATT_NOT_CONNECTED;
   }
   ESP_LOGV(TAG, "[%d] [%s] Writing GATT characteristic handle %d", this->connection_index_, this->address_str_.c_str(),
@@ -356,7 +356,7 @@ esp_err_t BluetoothConnection::write_characteristic(uint16_t handle, const std::
 esp_err_t BluetoothConnection::read_descriptor(uint16_t handle) {
   if (!this->connected()) {
     ESP_LOGW(TAG, "[%d] [%s] Cannot read GATT descriptor, not connected.", this->connection_index_,
-             this->address_str_.c_str());
+             this->address_str().c_str());
     return ESP_GATT_NOT_CONNECTED;
   }
   ESP_LOGV(TAG, "[%d] [%s] Reading GATT descriptor handle %d", this->connection_index_, this->address_str_.c_str(),
@@ -374,7 +374,7 @@ esp_err_t BluetoothConnection::read_descriptor(uint16_t handle) {
 esp_err_t BluetoothConnection::write_descriptor(uint16_t handle, const std::string &data, bool response) {
   if (!this->connected()) {
     ESP_LOGW(TAG, "[%d] [%s] Cannot write GATT descriptor, not connected.", this->connection_index_,
-             this->address_str_.c_str());
+             this->address_str().c_str());
     return ESP_GATT_NOT_CONNECTED;
   }
   ESP_LOGV(TAG, "[%d] [%s] Writing GATT descriptor handle %d", this->connection_index_, this->address_str_.c_str(),
@@ -394,7 +394,7 @@ esp_err_t BluetoothConnection::write_descriptor(uint16_t handle, const std::stri
 esp_err_t BluetoothConnection::notify_characteristic(uint16_t handle, bool enable) {
   if (!this->connected()) {
     ESP_LOGW(TAG, "[%d] [%s] Cannot notify GATT characteristic, not connected.", this->connection_index_,
-             this->address_str_.c_str());
+             this->address_str().c_str());
     return ESP_GATT_NOT_CONNECTED;
   }
 
