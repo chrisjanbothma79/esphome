@@ -533,9 +533,8 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
 
   // Combine major (high 32 bits) and now (low 32 bits) into 64-bit time
   return now + (static_cast<uint64_t>(major) << 32);
-#endif  // ESPHOME_CORES_SINGLE
 
-#ifdef ESPHOME_CORES_MULTI_NO_ATOMICS
+#elif defined(ESPHOME_CORES_MULTI_NO_ATOMICS)
   // This is the multi core no atomics implementation.
   //
   // Without atomics, this implementation uses locks more aggressively:
@@ -583,9 +582,8 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
 
   // Combine major (high 32 bits) and now (low 32 bits) into 64-bit time
   return now + (static_cast<uint64_t>(major) << 32);
-#endif  // ESPHOME_CORES_MULTI_NO_ATOMICS
 
-#ifdef ESPHOME_CORES_MULTI_ATOMICS
+#elif defined(ESPHOME_CORES_MULTI_ATOMICS)
   // This is the multi core with atomics implementation.
   //
   // Uses atomic operations with acquire/release semantics to ensure coherent
@@ -647,7 +645,11 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
   }
   // Unreachable - the loop always returns when major_end == major
   __builtin_unreachable();
-#endif  // ESPHOME_CORES_MULTI_ATOMICS
+
+#else
+#error \
+    "No platform threading model defined. One of ESPHOME_CORES_SINGLE, ESPHOME_CORES_MULTI_NO_ATOMICS, or ESPHOME_CORES_MULTI_ATOMICS must be defined."
+#endif
 }
 
 bool HOT Scheduler::SchedulerItem::cmp(const std::unique_ptr<SchedulerItem> &a,
