@@ -20,6 +20,10 @@
 
 namespace esphome {
 namespace emontx {
+
+// Add callback type definition for JSON callbacks
+using EmonTxJsonCallback = std::function<void(JsonObject)>;
+
 /*
  * 198 bytes should be enough to contain a full session in historical mode with
  * three phases. But go with 1024 just to be sure.
@@ -57,6 +61,9 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   void update() override;
   void dump_config() override;
   std::vector<EmonTxListener *> emontx_listeners_{};
+
+  // Add method to register JSON callbacks
+  void add_on_json_callback(EmonTxJsonCallback callback) { this->json_callbacks_.push_back(callback); }
 
 #ifdef USE_SENSOR
   void register_sensor(const std::string &tag_name, sensor::Sensor *sensor);
@@ -106,6 +113,9 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   std::string buffer_;
   void parse_json_(const std::string &data);
   void publish_value_(const std::string &tag, const std::string &val);
+
+  // Add storage for JSON callbacks
+  std::vector<EmonTxJsonCallback> json_callbacks_{};
 
 #ifdef USE_HTTP_REQUEST
   // EmonCMS configuration - only declared when http_request is enabled

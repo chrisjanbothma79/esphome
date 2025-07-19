@@ -1,7 +1,8 @@
+from esphome import automation
 import esphome.codegen as cg
 from esphome.components import uart
 import esphome.config_validation as cv
-from esphome.const import CONF_ID, CONF_MQTT
+from esphome.const import CONF_ID, CONF_MQTT, CONF_TRIGGER_ID
 
 AUTO_LOAD = ["json"]
 CODEOWNERS = ["@FredM67", "@TrystanLea", "@glynhudson"]
@@ -9,8 +10,14 @@ CODEOWNERS = ["@FredM67", "@TrystanLea", "@glynhudson"]
 emontx_ns = cg.esphome_ns.namespace("emontx")
 EmonTx = emontx_ns.class_("EmonTx", cg.PollingComponent, uart.UARTDevice)
 
+# Add trigger class for on_json
+EmonTxJsonTrigger = emontx_ns.class_(
+    "EmonTxJsonTrigger", automation.Trigger.template(cg.JsonObjectConst)
+)
+
 CONF_EMONTX_ID = "emontx_id"
 CONF_TAG_NAME = "tag_name"
+CONF_ON_JSON = "on_json"
 
 # EmonCMS config
 CONF_EMONCMS = "emoncms"
@@ -95,6 +102,12 @@ CONFIG_SCHEMA = (
                     ),
                     # MQTT config becomes optional within EmonCMS
                     cv.Optional(CONF_MQTT): empty_mqtt_schema,
+                }
+            ),
+            # Add on_json trigger
+            cv.Optional(CONF_ON_JSON): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(EmonTxJsonTrigger),
                 }
             ),
         }
@@ -209,3 +222,11 @@ async def to_code(config):
 
             # Call updated method with both prefixes
             cg.add(var.set_mqtt_config(base_prefix, topic_prefix, publish_mode))
+
+    # Process on_json triggers
+    if CONF_ON_JSON in config:
+        for conf in config[CONF_ON_JSON]:
+            trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+            await automation.build_automation(
+                trigger, [(cg.JsonObjectConst, "json")], conf
+            )

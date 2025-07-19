@@ -152,6 +152,14 @@ void EmonTx::parse_json_(const std::string &data) {
       }
     }
 
+    // Execute all registered JSON callbacks
+    if (!this->json_callbacks_.empty()) {
+      ESP_LOGV(TAG, "Executing %d JSON callbacks", (int) this->json_callbacks_.size());
+      for (const auto &callback : this->json_callbacks_) {
+        callback(root);
+      }
+    }
+
     return true;  // Parsing was handled successfully
   });
 
