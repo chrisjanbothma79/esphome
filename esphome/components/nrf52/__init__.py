@@ -107,7 +107,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Optional(CONF_DFU, default={}): cv.Schema(
                 {
                     cv.GenerateID(): cv.declare_id(DeviceFirmwareUpdate),
-                    cv.Required(CONF_RESET_OUTPUT): cv.use_id(output.BinaryOutput),
+                    cv.Optional(CONF_RESET_OUTPUT): cv.use_id(output.BinaryOutput),
                 }
             ),
         }
@@ -124,7 +124,7 @@ def _validate_mcumgr(config):
 
 
 def _final_validate(config):
-    if CONF_DFU in config:
+    if CONF_RESET_OUTPUT in config[CONF_DFU]:
         _validate_mcumgr(config)
 
 
@@ -161,9 +161,10 @@ async def to_code(config: ConfigType) -> None:
 
     zephyr_to_code(config)
 
-    if CONF_DFU in config:
+    dfu = config[CONF_DFU]
+
+    if CONF_RESET_OUTPUT in dfu:
         cg.add_define("USE_NRF52_DFU")
-        dfu = config[CONF_DFU]
         var = cg.new_Pvariable(dfu[CONF_ID])
         reset_output = await cg.get_variable(dfu[CONF_RESET_OUTPUT])
         cg.add(var.set_reset_output(reset_output))
