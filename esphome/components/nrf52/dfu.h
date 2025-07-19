@@ -1,13 +1,13 @@
 #pragma once
-#ifdef USE_NRF52
 #include "esphome/core/defines.h"
+#ifdef USE_DFU
 #include "esphome/core/component.h"
 #ifdef USE_OUTPUT
 #include "esphome/components/output/binary_output.h"
 #endif
 
 namespace esphome {
-namespace dfu {
+namespace nrf52 {
 class DeviceFirmwareUpdate : public Component {
  public:
   void setup() override;
@@ -20,6 +20,6 @@ class DeviceFirmwareUpdate : public Component {
   output::BinaryOutput *reset_output_;
 #endif
 };
-}  // namespace dfu
+}  // namespace nrf52
 }  // namespace esphome
 #endif

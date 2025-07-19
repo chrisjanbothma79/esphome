@@ -3,9 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import esphome.codegen as cg
+from esphome.components import output
 from esphome.components.zephyr import (
     copy_files as zephyr_copy_files,
     zephyr_add_pm_static,
+    zephyr_add_prj_conf,
+    zephyr_data,
     zephyr_set_core_data,
     zephyr_to_code,
 )
@@ -18,6 +21,7 @@ import esphome.config_validation as cv
 from esphome.const import (
     CONF_BOARD,
     CONF_FRAMEWORK,
+    CONF_ID,
     KEY_CORE,
     KEY_FRAMEWORK_VERSION,
     KEY_TARGET_FRAMEWORK,
@@ -34,6 +38,7 @@ from .const import (
     BOOTLOADER_ADAFRUIT_NRF52_SD132,
     BOOTLOADER_ADAFRUIT_NRF52_SD140_V6,
     BOOTLOADER_ADAFRUIT_NRF52_SD140_V7,
+    CONF_RESET_OUTPUT,
 )
 
 # force import gpio to register pin schema
@@ -89,11 +94,22 @@ def _detect_bootloader(config: ConfigType) -> ConfigType:
     return config
 
 
+nrf52_ns = cg.esphome_ns.namespace("nrf52")
+DeviceFirmwareUpdate = nrf52_ns.class_("DeviceFirmwareUpdate", cg.Component)
+
+CONF_DFU = "dfu"
+
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.Required(CONF_BOARD): cv.string_strict,
             cv.Optional(KEY_BOOTLOADER): cv.one_of(*BOOTLOADERS, lower=True),
+            cv.Optional(CONF_DFU, default={}): cv.Schema(
+                {
+                    cv.GenerateID(): cv.declare_id(DeviceFirmwareUpdate),
+                    cv.Required(CONF_RESET_OUTPUT): cv.use_id(output.BinaryOutput),
+                }
+            ),
         }
     ),
     _detect_bootloader,
@@ -101,7 +117,21 @@ CONFIG_SCHEMA = cv.All(
 )
 
 
-@coroutine_with_priority(1000)
+def _validate_mcumgr(config):
+    bootloader = zephyr_data()[KEY_BOOTLOADER]
+    if bootloader == BOOTLOADER_MCUBOOT:
+        raise cv.Invalid(f"'{bootloader}' bootloader does not support DFU")
+
+
+def _final_validate(config):
+    if CONF_DFU in config:
+        _validate_mcumgr(config)
+
+
+FINAL_VALIDATE_SCHEMA = _final_validate
+
+
+@coroutine_with_priority(90)
 async def to_code(config: ConfigType) -> None:
     """Convert the configuration to code."""
     cg.add_platformio_option("board", config[CONF_BOARD])
@@ -130,6 +160,15 @@ async def to_code(config: ConfigType) -> None:
         cg.add_platformio_option("board_upload.wait_for_upload_port", "true")
 
     zephyr_to_code(config)
+
+    if CONF_DFU in config:
+        cg.add_define("USE_DFU")
+        dfu = config[CONF_DFU]
+        var = cg.new_Pvariable(dfu[CONF_ID])
+        reset_output = await cg.get_variable(dfu[CONF_RESET_OUTPUT])
+        cg.add(var.set_reset_output(reset_output))
+        zephyr_add_prj_conf("CDC_ACM_DTE_RATE_CALLBACK_SUPPORT", True)
+        await cg.register_component(var, dfu)
 
 
 def copy_files() -> None:

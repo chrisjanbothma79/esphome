@@ -1,11 +1,11 @@
-#ifdef USE_NRF52
 #include "dfu.h"
+#ifdef USE_DFU
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/uart/cdc_acm.h>
 
 namespace esphome {
-namespace dfu {
+namespace nrf52 {
 
 volatile bool goto_dfu = false;
 
@@ -36,6 +36,6 @@ void DeviceFirmwareUpdate::loop() {
   }
 }
 
-}  // namespace dfu
+}  // namespace nrf52
 }  // namespace esphome
 #endif

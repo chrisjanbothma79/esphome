@@ -1,3 +1,9 @@
+nrf52:
+  board: adafruit_itsybitsy_nrf52840
+  bootloader: adafruit_nrf52_sd140_v6
+  dfu:
+    reset_output: rest_gpio
+
 output:
   - platform: gpio
     pin:
@@ -6,6 +12,3 @@ output:
       mode:
         output: true
     id: rest_gpio
-
-dfu:
-  reset_output: rest_gpio
