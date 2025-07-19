@@ -54,3 +54,4 @@ api-docs/
 __pycache__
 __pycache__/
 *.swp
+dependencies.lock
