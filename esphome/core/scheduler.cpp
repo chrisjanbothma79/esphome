@@ -538,12 +538,11 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
 #ifdef ESPHOME_MULTI_CORE_NO_ATOMICS
   // This is the multi core no atomics implementation.
   //
-  // Without atomics, this implementation uses locks more aggressively:
-  // 1. Always locks when near the rollover boundary (within 10 seconds)
-  // 2. Always locks when detecting a large backwards jump
-  // 3. Updates without lock in normal forward progression (accepting minor races)
-  // This is less efficient but necessary without atomic operations.
-
+  // The implementation handles the 32-bit rollover (every 49.7 days) by:
+  // 1. Using a lock when detecting rollover to ensure atomic update
+  // 2. Restricting normal updates to forward movement within the same epoch
+  // This prevents race conditions at the rollover boundary without requiring
+  // 64-bit atomics or locking on every call.
   uint16_t major = this->millis_major_;
   uint32_t last = this->last_millis_;
 
@@ -589,12 +588,11 @@ uint64_t Scheduler::millis_64_(uint32_t now) {
 #ifdef ESPHOME_MULTI_CORE_ATOMICS
   // This is the multi core with atomics implementation.
   //
-  // Uses atomic operations with acquire/release semantics to ensure coherent
-  // reads of millis_major_ and last_millis_ across cores. Features:
-  // 1. Epoch-coherency retry loop to handle concurrent updates
-  // 2. Lock only taken for actual rollover detection and update
-  // 3. Lock-free CAS updates for normal forward time progression
-  // 4. Memory ordering ensures cores see consistent time values
+  // The implementation handles the 32-bit rollover (every 49.7 days) by:
+  // 1. Using a lock when detecting rollover to ensure atomic update
+  // 2. Restricting normal updates to forward movement within the same epoch
+  // This prevents race conditions at the rollover boundary without requiring
+  // 64-bit atomics or locking on every call.
 
   for (;;) {
     uint16_t major = this->millis_major_.load(std::memory_order_acquire);
