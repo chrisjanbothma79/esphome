@@ -1669,9 +1669,12 @@ void APIConnection::process_batch_() {
     return;
   }
 
-  // Pre-allocate storage for packet info
-  std::vector<PacketInfo> packet_info;
-  packet_info.reserve(num_items);
+  size_t packets_to_process = std::min(num_items, MAX_PACKETS_PER_BATCH);
+
+  // Stack-allocated array for packet info
+  alignas(PacketInfo) char packet_info_storage[MAX_PACKETS_PER_BATCH * sizeof(PacketInfo)];
+  PacketInfo *packet_info = reinterpret_cast<PacketInfo *>(packet_info_storage);
+  size_t packet_count = 0;
 
   // Cache these values to avoid repeated virtual calls
   const uint8_t header_padding = this->helper_->frame_header_padding();
@@ -1703,8 +1706,8 @@ void APIConnection::process_batch_() {
   // The actual message data follows after the header padding
   uint32_t current_offset = 0;
 
-  // Process items and encode directly to buffer
-  for (size_t i = 0; i < this->deferred_batch_.size(); i++) {
+  // Process items and encode directly to buffer (up to our limit)
+  for (size_t i = 0; i < packets_to_process; i++) {
     const auto &item = this->deferred_batch_[i];
     // Try to encode message
     // The creator will calculate overhead to determine if the message fits
@@ -1718,7 +1721,9 @@ void APIConnection::process_batch_() {
     // Message was encoded successfully
     // payload_size is header_padding + actual payload size + footer_size
     uint16_t proto_payload_size = payload_size - header_padding - footer_size;
-    packet_info.emplace_back(item.message_type, current_offset, proto_payload_size);
+    // Use placement new to construct PacketInfo in pre-allocated stack array
+    // This avoids default-constructing all MAX_PACKETS_PER_BATCH elements
+    new (&packet_info[packet_count++]) PacketInfo(item.message_type, current_offset, proto_payload_size);
 
     // Update tracking variables
     items_processed++;
@@ -1744,8 +1749,8 @@ void APIConnection::process_batch_() {
   }
 
   // Send all collected packets
-  APIError err =
-      this->helper_->write_protobuf_packets(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()}, packet_info);
+  APIError err = this->helper_->write_protobuf_packets(ProtoWriteBuffer{&this->parent_->get_shared_buffer_ref()},
+                                                       std::span<const PacketInfo>(packet_info, packet_count));
   if (err != APIError::OK && err != APIError::WOULD_BLOCK) {
     on_fatal_error();
     ESP_LOGW(TAG, "%s: Batch write failed %s errno=%d", this->get_client_combined_info().c_str(), api_error_to_str(err),
