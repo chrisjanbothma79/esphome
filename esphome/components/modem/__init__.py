@@ -50,6 +50,7 @@ CONF_TOFF_DELAY = "toff_delay"
 CONF_INIT_AT = "init_at"
 CONF_ON_NOT_RESPONDING = "on_not_responding"
 CONF_ON_START_PPP = "on_start_ppp"
+CONF_ON_ENABLE = "on_enable"
 CONF_ENABLE_CMUX = "enable_cmux"
 CONF_DTE_BUFFER_SIZE = "dte_buffer_size"
 
@@ -106,6 +107,9 @@ ModemOnDisconnectTrigger = modem_ns.class_(
 ModemOnStartPPPTrigger = modem_ns.class_(
     "ModemOnStartPPPTrigger", automation.Trigger.template()
 )
+ModemOnEnableTrigger = modem_ns.class_(
+    "ModemOnEnableTrigger", automation.Trigger.template()
+)
 
 # Actions
 ModemEnableAction = modem_ns.class_("ModemEnableAction", automation.Action)
@@ -114,8 +118,11 @@ ModemResetAction = modem_ns.class_("ModemResetAction", automation.Action)
 ModemSendAtAction = modem_ns.class_("ModemSendAtAction", automation.Action)
 
 # Conditions
-ModemIsConnectedCondition = modem_ns.class_(
-    "ModemIsConnectedCondition", automation.Condition.template()
+ModemConnectedCondition = modem_ns.class_(
+    "ModemConnectedCondition", automation.Condition.template()
+)
+ModemEnabledCondition = modem_ns.class_(
+    "ModemEnabledCondition", automation.Condition.template()
 )
 
 
@@ -169,6 +176,9 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(CONF_ON_START_PPP): automation.validate_automation(
                 {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ModemOnStartPPPTrigger)}
+            ),
+            cv.Optional(CONF_ON_ENABLE): automation.validate_automation(
+                {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ModemOnEnableTrigger)}
             ),
         }
     )
@@ -278,11 +288,20 @@ async def modem_send_at_action_to_code(config, action_id, template_arg, args):
 
 
 @automation.register_condition(
-    "modem.is_connected",
-    ModemIsConnectedCondition,
+    "modem.connected",
+    ModemConnectedCondition,
     cv.Schema({}),
 )
-async def modem_is_connected_to_code(config, condition_id, template_arg, args):
+async def modem_connected_to_code(config, condition_id, template_arg, args):
+    return cg.new_Pvariable(condition_id, template_arg)
+
+
+@automation.register_condition(
+    "modem.enabled",
+    ModemEnabledCondition,
+    cv.Schema({}),
+)
+async def modem_enabled_to_code(config, condition_id, template_arg, args):
     return cg.new_Pvariable(condition_id, template_arg)
 
 
@@ -391,6 +410,10 @@ async def to_code(config):
         await automation.build_automation(trigger, [], conf)
 
     for conf in config.get(CONF_ON_START_PPP, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [], conf)
+
+    for conf in config.get(CONF_ON_ENABLE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [], conf)
 

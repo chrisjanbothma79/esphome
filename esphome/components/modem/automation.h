@@ -57,6 +57,18 @@ class ModemOnStartPPPTrigger : public Trigger<> {
   }
 };
 
+class ModemOnEnableTrigger : public Trigger<> {
+ public:
+  explicit ModemOnEnableTrigger(ModemComponent *parent) {
+    parent->add_on_state_callback([this, parent](ModemComponentState old_state, ModemComponentState state) {
+      if (!parent->is_failed() && old_state == ModemComponentState::DISCONNECTED &&
+          state != ModemComponentState::DISCONNECTED) {
+        this->trigger();
+      }
+    });
+  }
+};
+
 template<typename... Ts> class ModemSendAtAction : public Action<Ts...> {
  public:
   void set_command(const std::string &command) { this->command_ = command; }
@@ -87,11 +99,21 @@ template<typename... Ts> class ModemResetAction : public Action<Ts...> {
 };
 
 // Conditions
-template<typename... Ts> class ModemIsConnectedCondition : public Condition<Ts...> {
+template<typename... Ts> class ModemConnectedCondition : public Condition<Ts...> {
  public:
   bool check(Ts... x) override {
     if (global_modem_component) {
       return global_modem_component->is_connected();
+    }
+    return false;
+  }
+};
+
+template<typename... Ts> class ModemEnabledCondition : public Condition<Ts...> {
+ public:
+  bool check(Ts... x) override {
+    if (global_modem_component) {
+      return global_modem_component->is_enabled();
     }
     return false;
   }
