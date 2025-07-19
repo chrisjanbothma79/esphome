@@ -604,7 +604,7 @@ def templatable(other_validators):
         # then turn it into a lambda
         try:
             return schema(value)
-        except Exception as exc:
+        except Invalid as exc:
             if isinstance(value, str) and value.endswith(".state"):
                 ident = validate_id_name(value.removesuffix(".state"))
                 return Lambda(f"return id({ident}).state;")

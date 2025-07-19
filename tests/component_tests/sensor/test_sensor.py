@@ -16,4 +16,3 @@ def test_sensor_device_class_set(generate_main):
         "threshold_id->set_upper_threshold([=]() -> float {\n    return s_1->state;"
         in main_cpp
     )
-    print(main_cpp)
