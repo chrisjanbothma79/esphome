@@ -113,7 +113,7 @@ template<typename... Ts> class ModemEnabledCondition : public Condition<Ts...> {
  public:
   bool check(Ts... x) override {
     if (global_modem_component) {
-      return global_modem_component->is_enabled();
+      return !global_modem_component->is_disabled();
     }
     return false;
   }
