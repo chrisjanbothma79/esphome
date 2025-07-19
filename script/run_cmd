@@ -62,12 +62,12 @@ echo "Work folder" $WORK_FOLDER
 while [  "${wf##*/}" != "esphome" ]  && [ ! -z "${wf##*/}" ]  &&  [ "$wf" != "." ]; do
     wf="${wf%/*}"
     echo ${wf}
-done 
+done
 
 if [ -z "$wf" ]; then
     echo "Incorret path. Path sholup be abcolute and pint on directory inside esphome folder"
     exit 2
-else 
+else
     WORK_FOLDER="$wf"
 fi
 
@@ -78,7 +78,7 @@ export IDF_PATH="$HOME/.platformio/packages/framework-espidf/tools/idf.py"
 if [  "$IS_CLEAN" == "YES" ]; then
     set -x
     #platformio run --target clean
-    script/test_build_components -e clean -c  $COMPONENT 
+    script/test_build_components -e clean -c  $COMPONENT
     set +x
 fi
 
@@ -109,12 +109,12 @@ if [ "$ALL_VARIANTS" == "NO" ]; then
             ;;
         esac
 
-    echo 
+    echo
     echo "=== Select platform [ $PLATFORM_OPT ] ==="
-    echo 
+    echo
 
     PLATFORM_OPT="-t $PLATFORM_OPT"
-else 
+else
     PLATFORM_OPT=""
 fi
 
