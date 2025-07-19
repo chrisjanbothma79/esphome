@@ -51,5 +51,6 @@ sdkconfig.*
 /managed_components
 api-docs/
 .platformio.ini
+__pycache__
 __pycache__/
 *.swp
