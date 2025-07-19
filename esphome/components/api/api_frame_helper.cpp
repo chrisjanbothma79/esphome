@@ -80,8 +80,11 @@ APIError APIFrameHelper::loop() {
 void APIFrameHelper::buffer_data_from_iov_(const struct iovec *iov, int iovcnt, uint16_t total_write_len,
                                            uint16_t offset) {
   SendBuffer buffer;
-  buffer.data.reserve(total_write_len - offset);
+  buffer.size = total_write_len - offset;
+  buffer.data = std::make_unique<uint8_t[]>(buffer.size);
+
   uint16_t to_skip = offset;
+  uint16_t write_pos = 0;
 
   for (int i = 0; i < iovcnt; i++) {
     if (to_skip >= iov[i].iov_len) {
@@ -89,9 +92,10 @@ void APIFrameHelper::buffer_data_from_iov_(const struct iovec *iov, int iovcnt, 
       to_skip -= static_cast<uint16_t>(iov[i].iov_len);
     } else {
       // Include this segment (partially or fully)
-      const uint8_t *data = reinterpret_cast<uint8_t *>(iov[i].iov_base) + to_skip;
+      const uint8_t *src = reinterpret_cast<uint8_t *>(iov[i].iov_base) + to_skip;
       uint16_t len = static_cast<uint16_t>(iov[i].iov_len) - to_skip;
-      buffer.data.insert(buffer.data.end(), data, data + len);
+      std::memcpy(buffer.data.get() + write_pos, src, len);
+      write_pos += len;
       to_skip = 0;
     }
   }
