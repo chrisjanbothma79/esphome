@@ -1,4 +1,4 @@
-# Person detection example
+#Person detection example
 
 This example shows how you can use Tensorflow Lite to run a 250 kilobyte neural
 network to recognize people in images captured by a camera.  It is designed to
@@ -72,7 +72,7 @@ There are 10 [images](static_images/sample_images/README.md) embedded into the a
   * To switch to CLI mode just define the following line in [esp_main.h](main/esp_main.h):
 
   ```
-  #define CLI_ONLY_INFERENCE 1
+#define CLI_ONLY_INFERENCE 1
   ```
 
   * To run an inferencing you need to type following on `idf.py monitor` window:

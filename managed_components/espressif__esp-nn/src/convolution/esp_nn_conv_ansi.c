@@ -100,8 +100,8 @@ __attribute__((noinline)) static void esp_nn_conv_s8_1x1(const data_dims_t *inpu
         const int8_t *input_ptr = input_base_ptr;
 
         int32_t in_ch_idx = 0;
-#if 1  // inline asm
-       // for now check for the alignment as well
+#if 1                            // inline asm
+                                 // for now check for the alignment as well
         if (in_channels < 16) {  // || ((uint32_t) input_ptr & 15) || ((uint32_t) filter_ptr & 15)) {
           goto skip_asm;
         }
@@ -222,8 +222,8 @@ __attribute__((noinline)) static void esp_nn_conv_s8_padded(const data_dims_t *i
           const int32_t in_col = base_x;
           const int8_t *input_data_ptr = input_data + (in_row * input_wd + in_col) * in_channels;
           int32_t row_idx = 0;
-#if 1  // inline asm
-       // for now check for the alignment as well
+#if 1                           // inline asm
+                                // for now check for the alignment as well
           if (row_size < 16) {  // || ((uint32_t) input_ptr & 15) || ((uint32_t) filter_ptr & 15)) {
             goto skip_asm_pad0;
           }

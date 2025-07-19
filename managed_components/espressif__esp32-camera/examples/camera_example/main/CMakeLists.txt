@@ -2,4 +2,3 @@ dependencies:
   espressif/esp32-camera:
     version: "*"
     override_path: "../../../"
-
