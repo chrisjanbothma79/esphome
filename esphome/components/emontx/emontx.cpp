@@ -2,10 +2,6 @@
 #include "esphome/core/log.h"
 #include "esphome/components/json/json_util.h"
 
-#ifdef USE_HTTP_REQUEST
-#include "esphome/components/network/util.h"
-#endif
-
 namespace esphome {
 namespace emontx {
 
@@ -25,50 +21,6 @@ void EmonTx::setup() {
   }
 #else
   ESP_LOGCONFIG(TAG, "Sensor support: DISABLED");
-#endif
-
-#ifdef USE_HTTP_REQUEST
-  // Initialize HTTP client if EmonCMS is configured
-  if (has_emoncms_config_) {
-    ESP_LOGCONFIG(TAG, "EmonCMS forwarding enabled:");
-    ESP_LOGCONFIG(TAG, "  Server: %s", this->emoncms_server_.c_str());
-    ESP_LOGCONFIG(TAG, "  Node: %s", this->emoncms_node_.c_str());
-    ESP_LOGCONFIG(TAG, "  API Key: %s...", this->emoncms_apikey_.substr(0, 5).c_str());
-
-    // Pre-build the URL - only done once
-    std::string url = emoncms_server_;
-    if (url.back() != '/') {
-      url += '/';
-    }
-    url += "input/post";
-    this->emoncms_url_ = url;
-
-    // Pre-build the body prefix - only done once
-    std::string body_prefix = "node=";
-    body_prefix += emoncms_node_;
-    body_prefix += "&apikey=";
-    body_prefix += emoncms_apikey_;
-    body_prefix += "&data=";
-    this->emoncms_body_prefix_ = body_prefix;
-
-    ESP_LOGD(TAG, "EmonCMS URL constructed: %s", this->emoncms_url_.c_str());
-  }
-#endif
-
-#ifdef USE_MQTT_FORWARD
-  // Show MQTT forwarding configuration
-  if (has_mqtt_config_) {
-    ESP_LOGCONFIG(TAG, "  MQTT Forwarding: ENABLED");
-    ESP_LOGCONFIG(TAG, "    Topic prefix: %s", mqtt_topic_prefix_full_.c_str());
-    ESP_LOGCONFIG(TAG, "    Publish mode: %s", mqtt_publish_mode_ == MqttPublishMode::JSON ? "json" : "individual");
-    ESP_LOGCONFIG(TAG, "    Global MQTT discovery: %s",
-                  mqtt::global_mqtt_client->is_discovery_enabled() ? "ENABLED" : "DISABLED");
-    mqtt::global_mqtt_client->enable();
-  } else {
-    ESP_LOGCONFIG(TAG, "  MQTT Forwarding: DISABLED");
-  }
-#else
-  ESP_LOGCONFIG(TAG, "  MQTT Forwarding: NOT AVAILABLE");
 #endif
 }
 
@@ -99,15 +51,6 @@ void EmonTx::loop() {
         ESP_LOGI(TAG, "Received data: %s", buffer_.c_str());
         parse_json_(buffer_);
 
-#ifdef USE_HTTP_REQUEST
-        // Forward to EmonCMS if configured
-        send_to_emoncms_(buffer_);
-#endif
-
-#ifdef USE_MQTT_FORWARD
-        // Forward to MQTT if configured
-        send_to_mqtt_(buffer_);
-#endif
         buffer_.clear();
       }
     } else {
@@ -168,126 +111,6 @@ void EmonTx::parse_json_(const std::string &data) {
   }
 }
 
-#ifdef USE_HTTP_REQUEST
-void EmonTx::send_to_emoncms_(const std::string &json_data) {
-  if (!has_emoncms_config_) {
-    return;
-  }
-
-  if (!network::is_connected()) {
-    ESP_LOGW(TAG, "Network not connected, skipping EmonCMS update");
-    return;
-  }
-
-  ESP_LOGV(TAG, "Sending data to EmonCMS: %s", json_data.c_str());
-
-  // Use the pre-built body prefix and just append the JSON data
-  // This avoids rebuilding the same strings every time
-  std::string body = this->emoncms_body_prefix_ + json_data;
-
-  ESP_LOGV(TAG, "EmonCMS request to URL: %s", this->emoncms_url_.c_str());
-  ESP_LOGV(TAG, "EmonCMS POST data: %s", body.c_str());
-
-  // Create headers list with Content-Type
-  std::list<http_request::Header> headers = {{"Content-Type", "application/x-www-form-urlencoded"}};
-
-  // Send POST request and capture the response container
-  auto container = http_client_->post(this->emoncms_url_, body, headers);
-
-  // Check if request was successfully initiated
-  if (container != nullptr) {
-    ESP_LOGI(TAG, "HTTP POST request to EmonCMS initiated successfully");
-
-    // Access status code from the container
-    int status_code = container->status_code;
-
-    if (status_code >= 200 && status_code < 300) {
-      ESP_LOGI(TAG, "EmonCMS data sent successfully (HTTP %d)", status_code);
-
-      // Check if there's content to read
-      if (container->content_length > 0) {
-        // Read response body in chunks
-        const size_t buffer_size = 128;
-        uint8_t buffer[buffer_size];
-        std::string response;
-
-        int bytes_read;
-        while ((bytes_read = container->read(buffer, buffer_size)) > 0) {
-          response.append(reinterpret_cast<char *>(buffer), bytes_read);
-        }
-
-        if (!response.empty()) {
-          ESP_LOGV(TAG, "Response: %s", response.c_str());
-        }
-      }
-    } else {
-      ESP_LOGW(TAG, "Error sending data to EmonCMS (HTTP %d)", status_code);
-    }
-
-    // Always end the connection when done
-    container->end();
-  } else {
-    ESP_LOGW(TAG, "Failed to initiate HTTP POST request to EmonCMS");
-  }
-}
-#endif
-
-#ifdef USE_MQTT_FORWARD
-void EmonTx::send_to_mqtt_(const std::string &json_data) {
-  static uint8_t failure_counter{0};
-
-  if (!has_mqtt_config_ || mqtt::global_mqtt_client == nullptr || !mqtt::global_mqtt_client->is_connected()) {
-    ++failure_counter;
-    ESP_LOGW(TAG, "MQTT failed to connect (failure count: %d)", failure_counter);
-
-    if (failure_counter > 5) {
-      ESP_LOGE(TAG, "MQTT connection failed too many times, disabling MQTT");
-      mqtt::global_mqtt_client->disconnect();
-      mqtt::global_mqtt_client->disable();
-    }
-
-    return;
-  }
-
-  if (mqtt_publish_mode_ == MqttPublishMode::JSON) {
-    ESP_LOGV(TAG, "Publishing JSON to MQTT topic %s: %s", mqtt_topic_prefix_full_.c_str(), json_data.c_str());
-    mqtt::global_mqtt_client->publish(mqtt_topic_prefix_full_, json_data, 0, false);
-
-    ESP_LOGI(TAG, "JSON data published to MQTT topic %s", mqtt_topic_prefix_full_.c_str());
-  } else if (mqtt_publish_mode_ == MqttPublishMode::INDIVIDUAL) {
-    // Send only individual values to separate topics
-    ESP_LOGI(TAG, "Publishing individual values to MQTT topics under %s", mqtt_topic_prefix_full_.c_str());
-
-    bool success = json::parse_json(json_data, [this](JsonObject root) {
-      // For each key-value pair in the JSON
-      for (JsonPair kv : root) {
-        // Create topic for this value: prefix/key
-        std::string value_topic = mqtt_topic_prefix_full_ + "/" + kv.key().c_str();
-
-        // Convert value to string
-        std::string value;
-        if (kv.value().is<float>() || kv.value().is<int>()) {
-          value = to_string(kv.value().as<float>());
-        } else if (kv.value().is<const char *>()) {
-          value = kv.value().as<const char *>();
-        } else {
-          value = "unknown";
-        }
-
-        // Publish this value
-        ESP_LOGV(TAG, "  Publishing %s = %s", kv.key().c_str(), value.c_str());
-        mqtt::global_mqtt_client->publish(value_topic, value, 0, false);
-      }
-      return true;
-    });
-
-    if (!success) {
-      ESP_LOGW(TAG, "Failed to parse JSON for MQTT individual topics");
-    }
-  }
-}
-#endif
-
 /**
  * @brief Dumps the EmonTx configuration to the log.
  *
@@ -305,35 +128,6 @@ void EmonTx::dump_config() {
   }
 #else
   ESP_LOGCONFIG(TAG, "  Sensor support: DISABLED");
-#endif
-
-#ifdef USE_HTTP_REQUEST
-  // Show EmonCMS configuration
-  if (has_emoncms_config_) {
-    ESP_LOGCONFIG(TAG, "  EmonCMS Forwarding: ENABLED");
-    ESP_LOGCONFIG(TAG, "    Server: %s", this->emoncms_server_.c_str());
-    ESP_LOGCONFIG(TAG, "    Node: %s", this->emoncms_node_.c_str());
-    ESP_LOGCONFIG(TAG, "    API Key: %s...", this->emoncms_apikey_.substr(0, 5).c_str());
-  } else {
-    ESP_LOGCONFIG(TAG, "  EmonCMS Forwarding: DISABLED");
-  }
-#else
-  ESP_LOGCONFIG(TAG, "  EmonCMS Forwarding: DISABLED");
-#endif
-
-#ifdef USE_MQTT_FORWARD
-  // Show MQTT forwarding configuration
-  if (has_mqtt_config_) {
-    ESP_LOGCONFIG(TAG, "  MQTT Forwarding: ENABLED");
-    ESP_LOGCONFIG(TAG, "    Topic prefix: %s", mqtt_topic_prefix_full_.c_str());
-    ESP_LOGCONFIG(TAG, "    Publish mode: %s", mqtt_publish_mode_ == MqttPublishMode::JSON ? "json" : "individual");
-    ESP_LOGCONFIG(TAG, "    Global MQTT discovery: %s",
-                  mqtt::global_mqtt_client->is_discovery_enabled() ? "ENABLED" : "DISABLED");
-  } else {
-    ESP_LOGCONFIG(TAG, "  MQTT Forwarding: DISABLED");
-  }
-#else
-  ESP_LOGCONFIG(TAG, "  MQTT Forwarding: NOT AVAILABLE");
 #endif
 }
 

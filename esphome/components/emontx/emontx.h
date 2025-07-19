@@ -8,14 +8,6 @@
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #endif
-// Conditionally include http_request
-#ifdef USE_HTTP_REQUEST
-#include "esphome/components/http_request/http_request.h"
-#endif
-
-#ifdef USE_MQTT_FORWARD
-#include "esphome/components/mqtt/mqtt_client.h"
-#endif
 
 #include <map>
 #include <vector>
@@ -74,43 +66,6 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   void register_sensor(const std::string &tag_name, sensor::Sensor *sensor);
 #endif
 
-#ifdef USE_HTTP_REQUEST
-  // EmonCMS configuration - only available when http_request is enabled
-  void set_http_forward(const std::string &server, const std::string &node, const std::string &apikey,
-                        http_request::HttpRequestComponent *http_client) {
-    emoncms_server_ = server;
-    emoncms_node_ = node;
-    emoncms_apikey_ = apikey;
-    http_client_ = http_client;
-    has_emoncms_config_ = true;
-  }
-#endif
-
-#ifdef USE_MQTT_FORWARD
-  // MQTT forwarding configuration
-  void set_mqtt_config(const std::string &base_prefix, const std::string &topic_prefix,
-                       const std::string &publish_mode = "json") {
-    // Convert string to enum
-    if (publish_mode == "individual") {
-      mqtt_publish_mode_ = MqttPublishMode::INDIVIDUAL;
-    } else {
-      // Default to JSON
-      mqtt_publish_mode_ = MqttPublishMode::JSON;
-    }
-
-    has_mqtt_config_ = true;
-
-    // Pre-compute the full topic prefix
-    mqtt_topic_prefix_full_ = base_prefix;
-    if (!mqtt_topic_prefix_full_.empty() && mqtt_topic_prefix_full_.back() != '/') {
-      mqtt_topic_prefix_full_ += '/';
-    }
-
-    // Add this line to append the topic prefix to the base prefix
-    mqtt_topic_prefix_full_ += topic_prefix;
-  }
-#endif
-
  protected:
 #ifdef USE_SENSOR
   std::map<std::string, sensor::Sensor *> sensors_{};
@@ -121,31 +76,6 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
 
   // Add storage for JSON callbacks
   std::vector<EmonTxJsonCallback> json_callbacks_{};
-
-#ifdef USE_HTTP_REQUEST
-  // EmonCMS configuration - only declared when http_request is enabled
-  bool has_emoncms_config_{false};
-  std::string emoncms_server_;
-  std::string emoncms_node_;
-  std::string emoncms_apikey_;
-  http_request::HttpRequestComponent *http_client_{nullptr};
-
-  // Pre-built URL and body template
-  std::string emoncms_url_;          // The base URL including endpoint
-  std::string emoncms_body_prefix_;  // "node=X&apikey=Y&json="
-
-  void send_to_emoncms_(const std::string &json_data);
-#endif
-
-#ifdef USE_MQTT_FORWARD
-  // MQTT forwarding config
-  bool has_mqtt_config_{false};
-  // Pre-computed MQTT topic prefix (base_prefix/topic_prefix/)
-  std::string mqtt_topic_prefix_full_;
-  MqttPublishMode mqtt_publish_mode_{MqttPublishMode::JSON};  // Use enum now
-
-  void send_to_mqtt_(const std::string &json_data);
-#endif
 };
 
 }  // namespace emontx
