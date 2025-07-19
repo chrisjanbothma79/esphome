@@ -583,6 +583,14 @@ def declare_id(type):
     return validator
 
 
+def convert_id_state_to_lambda(value) -> Lambda | None:
+    """Convert an ID state to a lambda that returns the state of the ID."""
+    if isinstance(value, str) and value.endswith(".state"):
+        ident = validate_id_name(value.removesuffix(".state"))
+        return Lambda(f"return id({ident}).state;")
+    return None
+
+
 def templatable(other_validators):
     """Validate that the configuration option can (optionally) be templated.
 
@@ -605,9 +613,8 @@ def templatable(other_validators):
         try:
             return schema(value)
         except Invalid as exc:
-            if isinstance(value, str) and value.endswith(".state"):
-                ident = validate_id_name(value.removesuffix(".state"))
-                return Lambda(f"return id({ident}).state;")
+            if value := convert_id_state_to_lambda(value):
+                return value
             raise exc
 
     return validator
@@ -1517,11 +1524,11 @@ LAMBDA_ENTITY_ID_PROG = re.compile(r"\Wid\(\s*([a-zA-Z0-9_]+\.[.a-zA-Z0-9_]+)\s*
 
 def lambda_(value):
     """Coerce this configuration option to a lambda."""
-    if isinstance(value, str) and value.endswith(".state"):
-        ident = validate_id_name(value.removesuffix(".state"))
-        value = Lambda(f"return id({ident}).state;")
-    elif not isinstance(value, Lambda):
-        value = make_data_base(Lambda(string_strict(value)), value)
+    if not isinstance(value, Lambda):
+        if id_state := convert_id_state_to_lambda(value):
+            value = id_state
+        else:
+            value = make_data_base(Lambda(string_strict(value)), value)
     entity_id_parts = re.split(LAMBDA_ENTITY_ID_PROG, value.value)
     if len(entity_id_parts) != 1:
         entity_ids = " ".join(
