@@ -1,5 +1,4 @@
 esphome:
-  name: "test"
 
 substitutions:
   slot_id_name: "1"

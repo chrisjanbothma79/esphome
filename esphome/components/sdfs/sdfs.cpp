@@ -258,8 +258,7 @@ void SdfsHost::set_mode(spi::SPIMode mode) { connector_->set_mode(mode); }
  */
 void SdfsHost::loop() {
   if (this->card_present_st.init) {
-    if ((this->card_present_st.card_insert && (!card_present)) ||
-        ((!this->card_present_st.card_insert) && card_present)) {
+    if ((this->card_present_st.present && (!card_present)) || ((!this->card_present_st.present) && card_present)) {
       this->update();
     }
   }

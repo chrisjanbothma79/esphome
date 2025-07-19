@@ -25,7 +25,6 @@
 #include "esp8266_cdio.h"
 #if defined(USE_ARDUINO) && defined(USE_ESP8266)
 
-const char *TAG = "esp8266_cdio";
 void sdCsInit(SdCsPin_t pin) {
   // initCalls++;
   // pinMode(pin, OUTPUT);
@@ -36,8 +35,11 @@ void sdCsWrite(SdCsPin_t pin, bool level) {
   // digitalWrite(pin, level);
   DEBUG_TRACE("sdCsWrite called");
 }
+
 namespace esphome {
 namespace sdfs {
+
+static const char *TAG = "esp8266_cdio";
 
 //==============================================================================
 class Timeout {

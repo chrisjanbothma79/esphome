@@ -1,5 +1,4 @@
 esphome:
-  name: "test"
 
 substitutions:
   type_str: "sdspi"

@@ -8,7 +8,7 @@
 namespace esphome {
 namespace sdfs {
 
-const char *TAG = "esp8266_drv";
+static const char *TAG = "esp8266_drv";
 
 String sdcard_err2str(uint8_t code) {
   // pr->print(F("SD_CARD_ERROR_"));

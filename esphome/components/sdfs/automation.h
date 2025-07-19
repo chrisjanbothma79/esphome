@@ -154,9 +154,9 @@ template<typename... Ts> class SdIsDirCondition : public Condition<Ts...> {
   SdfsHost *parent_;
 };
 
-template<typename... Ts> class SdIsEsistCondition : public Condition<Ts...> {
+template<typename... Ts> class SdIsExistCondition : public Condition<Ts...> {
  public:
-  SdIsEsistCondition(SdfsHost *parent) : parent_(parent) {}
+  SdIsExistCondition(SdfsHost *parent) : parent_(parent) {}
   TEMPLATABLE_VALUE(std::string, path)
   bool check(Ts... x) override {
     auto path = this->path_.value(x...);
