@@ -29,7 +29,17 @@ class BluetoothConnection : public esp32_ble_client::BLEClientBase {
   friend class BluetoothProxy;
 
   void send_service_for_discovery_();
-  void reset_connection_();
+  void reset_connection_() {
+    // Important: If we were in the middle of sending services, we do NOT send
+    // send_gatt_services_done() here. This ensures the client knows that
+    // the service discovery was interrupted and can retry. The client
+    // (aioesphomeapi) implements a 30-second timeout (DEFAULT_BLE_TIMEOUT)
+    // to detect incomplete service discovery rather than relying on us to
+    // tell them about a partial list.
+    this->set_address(0);
+    this->send_service_ = DONE_SENDING_SERVICES;
+    this->proxy_->send_connections_free();
+  }
 
   // Memory optimized layout for 32-bit systems
   // Group 1: Pointers (4 bytes each, naturally aligned)

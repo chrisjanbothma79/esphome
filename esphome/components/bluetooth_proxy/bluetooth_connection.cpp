@@ -13,7 +13,6 @@ namespace bluetooth_proxy {
 
 static const char *const TAG = "bluetooth_proxy.connection";
 
-// Helper function from bluetooth_proxy.cpp
 static std::vector<uint64_t> get_128bit_uuid_vec(esp_bt_uuid_t uuid_source) {
   esp_bt_uuid_t uuid = espbt::ESPBTUUID::from_uuid(uuid_source).as_128bit().get_uuid();
   return std::vector<uint64_t>{((uint64_t) uuid.uuid.uuid128[15] << 56) | ((uint64_t) uuid.uuid.uuid128[14] << 48) |
