@@ -4,6 +4,9 @@
 #include <memory>
 #include <cstring>
 #include <deque>
+#if !defined(USE_ESP8266) && !defined(USE_RP2040) && !defined(USE_LIBRETINY)
+#include <atomic>
+#endif
 
 #include "esphome/core/component.h"
 #include "esphome/core/helpers.h"
@@ -52,8 +55,12 @@ class Scheduler {
                  std::function<RetryResult(uint8_t)> func, float backoff_increase_factor = 1.0f);
   bool cancel_retry(Component *component, const std::string &name);
 
+  // Calculate when the next scheduled item should run
+  // @param now Fresh timestamp from millis() - must not be stale/cached
   optional<uint32_t> next_schedule_in(uint32_t now);
 
+  // Execute all scheduled items that are ready
+  // @param now Fresh timestamp from millis() - must not be stale/cached
   void call(uint32_t now);
 
   void process_to_add();
@@ -114,16 +121,17 @@ class Scheduler {
         name_is_dynamic = false;
       }
 
-      if (!name || !name[0]) {
+      if (!name) {
+        // nullptr case - no name provided
         name_.static_name = nullptr;
       } else if (make_copy) {
-        // Make a copy for dynamic strings
+        // Make a copy for dynamic strings (including empty strings)
         size_t len = strlen(name);
         name_.dynamic_name = new char[len + 1];
         memcpy(name_.dynamic_name, name, len + 1);
         name_is_dynamic = true;
       } else {
-        // Use static string directly
+        // Use static string directly (including empty strings)
         name_.static_name = name;
       }
     }
@@ -203,7 +211,14 @@ class Scheduler {
   // Both platforms save 40 bytes of RAM by excluding this
   std::deque<std::unique_ptr<SchedulerItem>> defer_queue_;  // FIFO queue for defer() calls
 #endif
+#if !defined(USE_ESP8266) && !defined(USE_RP2040) && !defined(USE_LIBRETINY)
+  // Multi-threaded platforms with atomic support: last_millis_ needs atomic for lock-free updates
+  std::atomic<uint32_t> last_millis_{0};
+#else
+  // Platforms without atomic support or single-threaded platforms
   uint32_t last_millis_{0};
+#endif
+  // millis_major_ is protected by lock when incrementing
   uint16_t millis_major_{0};
   uint32_t to_remove_{0};
 };
