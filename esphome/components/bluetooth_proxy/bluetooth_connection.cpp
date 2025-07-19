@@ -68,18 +68,18 @@ void BluetoothConnection::send_service_for_discovery_() {
   // Send next service
   esp_gattc_service_elem_t service_result;
   uint16_t service_count = 1;
-  esp_gatt_status_t service_status = esp_ble_gattc_get_service(this->get_gattc_if(), this->get_conn_id(), nullptr,
+  esp_gatt_status_t service_status = esp_ble_gattc_get_service(this->get_gattc_if(), this->conn_id_, nullptr,
                                                                &service_result, &service_count, this->send_service_);
   this->send_service_++;
 
   if (service_status != ESP_GATT_OK) {
-    ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_service error at offset=%d, status=%d", this->get_connection_index(),
+    ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_service error at offset=%d, status=%d", this->connection_index_,
              this->address_str().c_str(), this->send_service_ - 1, service_status);
     return;
   }
 
   if (service_count == 0) {
-    ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_service missing, service_count=%d", this->get_connection_index(),
+    ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_service missing, service_count=%d", this->connection_index_,
              this->address_str().c_str(), service_count);
     return;
   }
@@ -94,14 +94,14 @@ void BluetoothConnection::send_service_for_discovery_() {
   // Get the number of characteristics directly with one call
   uint16_t total_char_count = 0;
   esp_gatt_status_t char_count_status =
-      esp_ble_gattc_get_attr_count(this->get_gattc_if(), this->get_conn_id(), ESP_GATT_DB_CHARACTERISTIC,
+      esp_ble_gattc_get_attr_count(this->get_gattc_if(), this->conn_id_, ESP_GATT_DB_CHARACTERISTIC,
                                    service_result.start_handle, service_result.end_handle, 0, &total_char_count);
 
   if (char_count_status == ESP_GATT_OK && total_char_count > 0) {
     // Only reserve if we successfully got a count
     service_resp.characteristics.reserve(total_char_count);
   } else if (char_count_status != ESP_GATT_OK) {
-    ESP_LOGW(TAG, "[%d] [%s] Error getting characteristic count, status=%d", this->get_connection_index(),
+    ESP_LOGW(TAG, "[%d] [%s] Error getting characteristic count, status=%d", this->connection_index_,
              this->address_str().c_str(), char_count_status);
   }
 
@@ -111,13 +111,13 @@ void BluetoothConnection::send_service_for_discovery_() {
   while (true) {  // characteristics
     uint16_t char_count = 1;
     esp_gatt_status_t char_status =
-        esp_ble_gattc_get_all_char(this->get_gattc_if(), this->get_conn_id(), service_result.start_handle,
+        esp_ble_gattc_get_all_char(this->get_gattc_if(), this->conn_id_, service_result.start_handle,
                                    service_result.end_handle, &char_result, &char_count, char_offset);
     if (char_status == ESP_GATT_INVALID_OFFSET || char_status == ESP_GATT_NOT_FOUND) {
       break;
     }
     if (char_status != ESP_GATT_OK) {
-      ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_char error, status=%d", this->get_connection_index(),
+      ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_char error, status=%d", this->connection_index_,
                this->address_str().c_str(), char_status);
       break;
     }
@@ -134,15 +134,15 @@ void BluetoothConnection::send_service_for_discovery_() {
     // Get the number of descriptors directly with one call
     uint16_t total_desc_count = 0;
     esp_gatt_status_t desc_count_status =
-        esp_ble_gattc_get_attr_count(this->get_gattc_if(), this->get_conn_id(), ESP_GATT_DB_DESCRIPTOR,
+        esp_ble_gattc_get_attr_count(this->get_gattc_if(), this->conn_id_, ESP_GATT_DB_DESCRIPTOR,
                                      char_result.char_handle, service_result.end_handle, 0, &total_desc_count);
 
     if (desc_count_status == ESP_GATT_OK && total_desc_count > 0) {
       // Only reserve if we successfully got a count
       characteristic_resp.descriptors.reserve(total_desc_count);
     } else if (desc_count_status != ESP_GATT_OK) {
-      ESP_LOGW(TAG, "[%d] [%s] Error getting descriptor count for char handle %d, status=%d",
-               this->get_connection_index(), this->address_str().c_str(), char_result.char_handle, desc_count_status);
+      ESP_LOGW(TAG, "[%d] [%s] Error getting descriptor count for char handle %d, status=%d", this->connection_index_,
+               this->address_str().c_str(), char_result.char_handle, desc_count_status);
     }
 
     // Now process descriptors
@@ -151,12 +151,12 @@ void BluetoothConnection::send_service_for_discovery_() {
     while (true) {  // descriptors
       uint16_t desc_count = 1;
       esp_gatt_status_t desc_status = esp_ble_gattc_get_all_descr(
-          this->get_gattc_if(), this->get_conn_id(), char_result.char_handle, &desc_result, &desc_count, desc_offset);
+          this->get_gattc_if(), this->conn_id_, char_result.char_handle, &desc_result, &desc_count, desc_offset);
       if (desc_status == ESP_GATT_INVALID_OFFSET || desc_status == ESP_GATT_NOT_FOUND) {
         break;
       }
       if (desc_status != ESP_GATT_OK) {
-        ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_descr error, status=%d", this->get_connection_index(),
+        ESP_LOGE(TAG, "[%d] [%s] esp_ble_gattc_get_all_descr error, status=%d", this->connection_index_,
                  this->address_str().c_str(), desc_status);
         break;
       }
