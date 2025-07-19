@@ -125,13 +125,13 @@ class APIFrameHelper {
   };
 
   // Common implementation for writing raw data to socket
-  APIError write_raw_(const struct iovec *iov, int iovcnt);
+  APIError write_raw_(const struct iovec *iov, int iovcnt, uint16_t total_write_len);
 
   // Try to send data from the tx buffer
   APIError try_send_tx_buf_();
 
   // Helper method to buffer data from IOVs
-  void buffer_data_from_iov_(const struct iovec *iov, int iovcnt, uint16_t total_write_len);
+  void buffer_data_from_iov_(const struct iovec *iov, int iovcnt, uint16_t total_write_len, uint16_t offset);
   template<typename StateEnum>
   APIError write_raw_(const struct iovec *iov, int iovcnt, socket::Socket *socket, std::vector<uint8_t> &tx_buf,
                       const std::string &info, StateEnum &state, StateEnum failed_state);
