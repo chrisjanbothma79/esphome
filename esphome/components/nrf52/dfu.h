@@ -1,6 +1,6 @@
 #pragma once
 #include "esphome/core/defines.h"
-#ifdef USE_DFU
+#ifdef USE_NRF52_DFU
 #include "esphome/core/component.h"
 #ifdef USE_OUTPUT
 #include "esphome/components/output/binary_output.h"

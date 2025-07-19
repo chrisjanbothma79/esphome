@@ -1,5 +1,5 @@
 #include "dfu.h"
-#ifdef USE_DFU
+#ifdef USE_NRF52_DFU
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/drivers/uart/cdc_acm.h>
