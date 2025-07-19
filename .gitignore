@@ -142,9 +142,4 @@ sdkconfig.*
 
 /components
 /managed_components
-<<<<<<< HEAD
 esp-dev.code-workspace
-=======
-
-api-docs/
->>>>>>> upstream/dev

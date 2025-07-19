@@ -50,7 +50,6 @@ BusWidth = sdfs_ns.enum("BusWidth")
 BUS_WIDTH_OPTION = {
     "1bit": BusWidth.BUS_WIDTH_1BIT,
     "4bit": BusWidth.BUS_WIDTH_4BIT,
-    "8bit": BusWidth.BUS_WIDTH_8BIT,
 }
 
 SdConnType = sdfs_ns.enum("SdConnType")
@@ -104,7 +103,7 @@ SdIsEsistCondition = sdfs_ns.class_(
 #
 def validate_inlist(value, array):
     if value not in array:
-        options = ",".joun(array)
+        options = ",".join(array)
         raise cv.Invalid(f"Must me one of the  {options}  options")
 
 
@@ -121,6 +120,7 @@ def validate_raw_data(value):
 def _validate(config):
     platform = CORE.target_platform
     # CORE.data[KEY_CORE][KEY_TARGET_PLATFORM]
+    variant = ""
     if platform == PLATFORM_ESP32:
         variant = CORE.data[KEY_ESP32][KEY_VARIANT]
     elif platform == PLATFORM_ESP8266:
@@ -138,29 +138,13 @@ def _validate(config):
                 "SDMMC host adapter available only on {VARIANT_ESP32} or {VARIANT_ESP32S3} chips"
             )
 
-        if config[CONF_BUS_WIDTH] == "8bit":
-            if variant != VARIANT_ESP32:
+        if config[CONF_BUS_WIDTH] == "1bit":
+            if config[CONF_DATA0_PIN] not in config:
                 raise cv.Invalid(
-                    "Useing 8bit bus available only in SLOT_0 on ESP32 chip."
-                )
-            elif config[CONF_BUS_SLOT] != 0:
-                raise cv.Invalid("8bit bus with available only on SPI_0 ")
-
-            if (
-                config[CONF_DATA0_PIN] not in config
-                or config[CONF_DATA1_PIN] not in config
-                or config[CONF_DATA2_PIN] not in config
-                or config[CONF_DATA3_PIN] not in config
-                or config[CONF_DATA4_PIN] not in config
-                or config[CONF_DATA5_PIN] not in config
-                or config[CONF_DATA6_PIN] not in config
-                or config[CONF_DATA7_PIN] not in config
-            ):
-                raise cv.Invalid(
-                    f"With 8bit bus definition of {CONF_DATA4_PIN}, {CONF_DATA5_PIN}, {CONF_DATA6_PIN}, {CONF_DATA7_PIN} required."
+                    f"With 8bit bus definition of {CONF_DATA0_PIN} required 1bit mode."
                 )
 
-        elif config[CONF_BUS_WIDTH] == "4bit":
+        if config[CONF_BUS_WIDTH] == "4bit":
             if (
                 config[CONF_DATA0_PIN] not in config
                 or config[CONF_DATA1_PIN] not in config
@@ -168,7 +152,7 @@ def _validate(config):
                 or config[CONF_DATA3_PIN] not in config
             ):
                 raise cv.Invalid(
-                    f"With 8bit bus definition of {CONF_DATA0_PIN}, {CONF_DATA1_PIN}, {CONF_DATA2_PIN}, {CONF_DATA3_PIN} required."
+                    f"With 8bit bus definition of {CONF_DATA0_PIN}, {CONF_DATA1_PIN}, {CONF_DATA2_PIN}, {CONF_DATA3_PIN} required in 4bit mode."
                 )
     return config
 
@@ -206,10 +190,6 @@ SDMMC_SCHEMA = BASE_SCHEMA.extend(
             cv.Optional(CONF_DATA1_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_DATA2_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_DATA3_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_DATA4_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_DATA5_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_DATA6_PIN): pins.internal_gpio_output_pin_number,
-            cv.Optional(CONF_DATA7_PIN): pins.internal_gpio_output_pin_number,
             cv.Optional(CONF_BUS_WIDTH, default="1bit"): cv.enum(
                 BUS_WIDTH_OPTION, lower=True
             ),
