@@ -63,7 +63,7 @@ class EmonTx : public PollingComponent, public uart::UARTDevice {
   std::vector<EmonTxListener *> emontx_listeners_{};
 
   // Add method to register JSON callbacks
-  void add_on_json_callback(EmonTxJsonCallback callback) { this->json_callbacks_.push_back(callback); }
+  void add_on_json_callback(const EmonTxJsonCallback &callback) { this->json_callbacks_.push_back(callback); }
 
 #ifdef USE_SENSOR
   void register_sensor(const std::string &tag_name, sensor::Sensor *sensor);
