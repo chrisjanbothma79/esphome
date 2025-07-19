@@ -51,7 +51,9 @@ class ESPNowPacket {
   ESPNowPacket(const uint8_t *peer, const uint8_t *payload, int size);
 
   uint8_t *content() const { return (uint8_t *) this->content_.data(); }
-  size_t size() const { return this->content_.size(); }
+  uint8_t *payload() const { return (uint8_t *) this->content_.data() + this->header_size(); }
+
+  size_t size() const { return this->content_.size() - this->header_size(); }
 
   void peer_address(const uint8_t *value) { memcpy((void *) this->peer_address(), (const void *) value, 6); };
   uint8_t *peer_address() const { return (uint8_t *) &(this->peer_id_); }
