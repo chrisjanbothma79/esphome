@@ -426,8 +426,7 @@ void BluetoothProxy::bluetooth_gatt_send_services(const api::BluetoothGATTGetSer
     return;
   }
   if (!connection->service_count_) {
-    ESP_LOGW(TAG, "[%d] [%s] No GATT services found", connection->get_connection_index(),
-             connection->address_str().c_str());
+    ESP_LOGW(TAG, "[%d] [%s] No GATT services found", connection->connection_index_, connection->address_str().c_str());
     this->send_gatt_services_done(msg.address);
     return;
   }
