@@ -150,8 +150,6 @@ class ModemComponent : public Component {
   std::string use_address_;
   int baud_rate_ = 0;  // Automatically set to 115200 if not specified
   bool cmux_{false};
-  // Separate handler for `on_not_responding` (we want to know when it's ended)
-  Trigger<> *not_responding_cb_{nullptr};
   CallbackManager<void(ModemComponentState, ModemComponentState)> on_state_callback_;
 
   // Allow changes from YAML?

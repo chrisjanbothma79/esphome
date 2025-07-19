@@ -36,10 +36,21 @@ class ModemOnDisconnectTrigger : public Trigger<> {
   explicit ModemOnDisconnectTrigger(ModemComponent *parent) {
     parent->add_on_state_callback([this, parent](ModemComponentState old_state, ModemComponentState state) {
       if (!parent->is_failed() && state == ModemComponentState::DISCONNECTED) {
-        // Filter out unnecessary old_state values
+        // only trigger if old_state is CONNECTED
         if (old_state == ModemComponentState::CONNECTED) {
           this->trigger();
         }
+      }
+    });
+  }
+};
+
+class ModemOnStartPPPTrigger : public Trigger<> {
+ public:
+  explicit ModemOnStartPPPTrigger(ModemComponent *parent) {
+    parent->add_on_state_callback([this, parent](ModemComponentState old_state, ModemComponentState state) {
+      if (!parent->is_failed() && state == ModemComponentState::START_PPP) {
+        this->trigger();
       }
     });
   }

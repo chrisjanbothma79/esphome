@@ -47,6 +47,7 @@ CONF_TOFF_PULSE_DELAY = "toff_pulse_delay"
 CONF_TOFF_DELAY = "toff_delay"
 CONF_INIT_AT = "init_at"
 CONF_ON_NOT_RESPONDING = "on_not_responding"
+CONF_ON_START_PPP = "on_start_ppp"
 CONF_ENABLE_CMUX = "enable_cmux"
 
 MODEM_MODELS = ["BG96", "SIM800", "SIM7000", "SIM7600", "SIM7670", "GENERIC"]
@@ -100,6 +101,9 @@ ModemOnConnectTrigger = modem_ns.class_(
 ModemOnDisconnectTrigger = modem_ns.class_(
     "ModemOnDisconnectTrigger", automation.Trigger.template()
 )
+ModemOnStartPPPTrigger = modem_ns.class_(
+    "ModemOnStartPPPTrigger", automation.Trigger.template()
+)
 
 MODEM_COMPONENT_SCHEMA = cv.Schema(
     {cv.GenerateID(CONF_MODEM_ID): cv.use_id(ModemComponent)}
@@ -145,6 +149,9 @@ CONFIG_SCHEMA = cv.All(
                         ModemOnDisconnectTrigger
                     )
                 }
+            ),
+            cv.Optional(CONF_ON_START_PPP): automation.validate_automation(
+                {cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(ModemOnStartPPPTrigger)}
             ),
         }
     )
@@ -312,6 +319,10 @@ async def to_code(config):
         await automation.build_automation(trigger, [], conf)
 
     for conf in config.get(CONF_ON_DISCONNECT, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(trigger, [], conf)
+
+    for conf in config.get(CONF_ON_START_PPP, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [], conf)
 

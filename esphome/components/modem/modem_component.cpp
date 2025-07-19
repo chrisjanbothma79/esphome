@@ -244,6 +244,7 @@ void ModemComponent::loop() {
 
   if ((millis() < this->internal_state_.next_loop_millis)) {
     // Some commands require a delay.
+    delay(10);
     return;
   }
 
