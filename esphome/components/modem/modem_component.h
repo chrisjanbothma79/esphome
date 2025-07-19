@@ -66,6 +66,8 @@ class ModemComponent : public Component {
   void add_init_at_command(const std::string &cmd) { this->modem_handler->init_at_commands.push_back(cmd); }
   bool is_connected() { return this->component_state_ == ModemComponentState::CONNECTED; }
   bool is_disabled() { return this->component_state_ == ModemComponentState::DISABLED && this->disable_wanted_; }
+  bool is_enabled() { return !is_disabled(); }
+
   // Delegated methods
   AtCommandResult send_at(const std::string &cmd, uint32_t timeout = 0, bool verbose = false);
   void enable();
